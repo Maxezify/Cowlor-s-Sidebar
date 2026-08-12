@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.21.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.22.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -292,15 +292,26 @@ Column labels printed by these commands are localized.
 
 ### Measuring Twitch's lag (v3.19+)
 
-The extension knows when a stream started (`createdAt`) and when Twitch made its
-card appear. The gap between the two is Twitch's lag, and `tse.lag()` reports
-it: median, 90th percentile, and the most recent samples in detail.
+The extension knows when a stream started (`createdAt`) and when **a Twitch
+card** showed it as live. The gap between the two is Twitch's lag, and
+`tse.lag()` reports it: median, 90th percentile, and the most recent samples in
+detail.
+
+Since 3.22, a **"gained by extension"** column additionally reports, for each
+stream, the head start the extension actually took by posting its card before
+Twitch. That is the figure that says whether the feature earns its keep.
 
 A sample is only kept if the stream started **while you were watching** — after
 a one-minute settling window from page load, and after your last return to the
 tab. A stream that started before the extension was observing is discarded: its
 card may well have been there already, so nothing can be concluded. Samples
 therefore accumulate slowly, through normal usage.
+
+Two points on what counts. Only **Twitch's own** cards are evidence: the ones
+the extension builds are excluded, otherwise it would be measuring its own
+speed. And a sample covers **one stream**, identified by its stream id, not a
+channel: a streamer who goes offline and back within the same session is
+measured each time.
 
 This measurement is what justified the "Getting ahead of Twitch" feature: the
 first samples showed 2 to 4.5 minutes of lag, without a single one under two

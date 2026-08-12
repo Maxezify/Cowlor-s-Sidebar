@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.21.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.22.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -308,15 +308,25 @@ Les libellés des colonnes affichées par ces commandes sont localisés.
 ### Mesure du retard de Twitch (v3.19+)
 
 L'extension sait à quel instant un stream a démarré (`createdAt`) et à quel
-instant Twitch a fait apparaître sa carte. L'écart entre les deux est le retard
-de Twitch, et `tse.lag()` l'affiche : médiane, 90ᵉ centile, et le détail des
-dernières mesures.
+instant **une carte de Twitch** l'a affiché comme étant en direct. L'écart entre
+les deux est le retard de Twitch, et `tse.lag()` l'affiche : médiane, 90ᵉ
+centile, et le détail des dernières mesures.
+
+Depuis la 3.22, la colonne **« gagné par l'extension »** indique en plus, pour
+chaque direct, l'avance que l'extension a réellement prise en posant sa carte
+avant Twitch. C'est le chiffre qui dit si la fonctionnalité sert.
 
 Une mesure n'est retenue que si le stream a démarré **pendant que vous
 regardiez** — après une minute d'installation depuis l'ouverture de la page, et
 après votre dernier retour sur l'onglet. Un stream démarré avant que l'extension
 n'observe est écarté : sa carte était peut-être déjà là, on ne peut rien en
 conclure. Les mesures s'accumulent donc lentement, au fil de l'usage normal.
+
+Deux précisions sur ce qui est compté. Seules les cartes **de Twitch** font foi :
+celles que l'extension fabrique sont exclues, sans quoi elle mesurerait sa
+propre rapidité. Et la mesure porte sur **un direct**, identifié par son stream,
+et non sur une chaîne : un streamer qui coupe et reprend dans la même session
+est mesuré à chaque fois.
 
 C'est cette mesure qui a justifié la fonctionnalité « Prendre les devants sur
 Twitch » : les premiers relevés donnaient 2 à 4,5 minutes de retard, sans un

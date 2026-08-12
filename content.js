@@ -1,5 +1,5 @@
 /* ============================================================
- *  Cowlor's Sidebar for Twitch — Extension Chrome v3.21.1
+ *  Cowlor's Sidebar for Twitch — Extension Chrome v3.22.0
  *  -------------------------------------------------------------
  *  Portage du userscript Violentmonkey "Twitch Sidebar Enhancer
  *  ADBLOCK 4" v2.22.3 vers une extension Manifest V3, avec
@@ -1396,6 +1396,8 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleColVisits:          'visites',
       consoleColLast:            'dernière visite',
       consoleColLag:             'retard de Twitch',
+      consoleColGain:            'gagné par l\'extension',
+      consoleLagGain:            (n, med) => `[tse] Sur ${n} de ces direct(s), l'extension a devancé Twitch de ${med} en médiane.`,
       consoleColSeen:            'vu le',
       consoleLagEmpty:           '[tse] Aucune mesure exploitable pour le moment. Laissez l\'onglet Twitch ouvert : une mesure est prise chaque fois qu\'une chaîne suivie passe en live sous vos yeux.',
       consoleLagSummary:         (n, med, p90) => `[tse] ${n} mesure(s) — retard médian de Twitch : ${med}, 90e centile : ${p90}.`,
@@ -1440,6 +1442,8 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleColVisits:          'visits',
       consoleColLast:            'last visit',
       consoleColLag:             'Twitch lag',
+      consoleColGain:            'gained by extension',
+      consoleLagGain:            (n, med) => `[tse] On ${n} of those streams, the extension beat Twitch by ${med} at the median.`,
       consoleColSeen:            'seen at',
       consoleLagEmpty:           '[tse] No usable measurement yet. Keep the Twitch tab open: a sample is taken every time a followed channel goes live while you are watching.',
       consoleLagSummary:         (n, med, p90) => `[tse] ${n} sample(s) — median Twitch lag: ${med}, 90th percentile: ${p90}.`,
@@ -1484,6 +1488,8 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleColVisits:          'Besuche',
       consoleColLast:            'letzter Besuch',
       consoleColLag:             'Twitch-Verzögerung',
+      consoleColGain:            'durch Erweiterung gewonnen',
+      consoleLagGain:            (n, med) => `[tse] Bei ${n} dieser Streams war die Erweiterung Twitch im Median um ${med} voraus.`,
       consoleColSeen:            'gesehen am',
       consoleLagEmpty:           '[tse] Noch keine verwertbare Messung. Lassen Sie den Twitch-Tab offen: eine Messung wird erfasst, sobald ein gefolgter Kanal vor Ihren Augen live geht.',
       consoleLagSummary:         (n, med, p90) => `[tse] ${n} Messung(en) — mediane Twitch-Verzögerung: ${med}, 90. Perzentil: ${p90}.`,
@@ -1528,6 +1534,8 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleColVisits:          'visitas',
       consoleColLast:            'última visita',
       consoleColLag:             'retraso de Twitch',
+      consoleColGain:            'ganado por la extensión',
+      consoleLagGain:            (n, med) => `[tse] En ${n} de esos directos, la extensión se adelantó a Twitch ${med} en mediana.`,
       consoleColSeen:            'visto el',
       consoleLagEmpty:           '[tse] Aún no hay mediciones utilizables. Deje la pestaña de Twitch abierta: se toma una medición cada vez que un canal que sigue se pone en directo ante sus ojos.',
       consoleLagSummary:         (n, med, p90) => `[tse] ${n} medición(es) — retraso mediano de Twitch: ${med}, percentil 90: ${p90}.`,
@@ -1572,6 +1580,8 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleColVisits:          'visitas',
       consoleColLast:            'última visita',
       consoleColLag:             'atraso da Twitch',
+      consoleColGain:            'ganho pela extensão',
+      consoleLagGain:            (n, med) => `[tse] Em ${n} desses diretos, a extensão adiantou-se à Twitch em ${med} na mediana.`,
       consoleColSeen:            'visto em',
       consoleLagEmpty:           '[tse] Ainda nenhuma medição utilizável. Deixe a aba da Twitch aberta: uma medição é feita sempre que um canal seguido entra ao vivo diante de você.',
       consoleLagSummary:         (n, med, p90) => `[tse] ${n} medição(ões) — atraso mediano da Twitch: ${med}, percentil 90: ${p90}.`,
@@ -1761,6 +1771,10 @@ if (TSE_ADBLOCK_ENABLED) (function() {
 
     // === Mesure du retard de Twitch (cf. module LIVE LAG) ===
     LAG_STORAGE_KEY:      'tse:livelag',
+    // Version du format. À incrémenter dès que la MÉTHODE de mesure change :
+    // les relevés d'une méthode antérieure sont alors ignorés au chargement
+    // plutôt que moyennés avec les nouveaux, ce qui n'aurait aucun sens.
+    LAG_FORMAT:           2,
     LAG_MAX_SAMPLES:      300,
     // Délai d'installation après le boot avant de mesurer quoi que ce soit :
     // pendant le peuplement initial, toutes les cartes « apparaissent », ce
@@ -3206,50 +3220,84 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   const liveLag = (() => {
     const bootAt = Date.now();
     let visibleSince = document.hidden ? 0 : bootAt;
-    const firstSeen = new Map();  // login -> 1re apparition (cette session)
-    const measured  = new Set();  // logins déjà mesurés (une fois suffit)
+    // Clé de TOUT ce module : l'identifiant de stream, pas le login. Il change
+    // à chaque diffusion, ce qui fait porter la mesure sur « ce direct-ci » —
+    // une chaîne qui coupe et reprend dans la même session est donc mesurable
+    // deux fois, alors qu'une clé par login n'aurait autorisé qu'une mesure.
+    const aheadAt = new Map();  // id de stream -> instant où NOTRE carte l'a montré
+    const done    = new Set();  // ids déjà traités (mesurés ou écartés)
     let samples = [];
 
     const load = () => {
       try {
-        const arr = JSON.parse(localStorage.getItem(CFG.LAG_STORAGE_KEY) || 'null');
-        if (Array.isArray(arr)) {
-          samples = arr.filter(x => x && Number.isFinite(x.lag) && Number.isFinite(x.ts))
-                       .slice(-CFG.LAG_MAX_SAMPLES);
-        }
+        const raw = JSON.parse(localStorage.getItem(CFG.LAG_STORAGE_KEY) || 'null');
+        // Les relevés antérieurs à la v2 provenaient d'une méthode BIAISÉE (ils
+        // n'échantillonnaient que les chaînes absentes de la sidebar, celles sur
+        // lesquelles Twitch est le plus lent). Les mélanger aux nouveaux
+        // fausserait la médiane : on repart de zéro plutôt que de comparer des
+        // grandeurs qui ne mesurent pas la même chose.
+        if (!raw || raw.v !== CFG.LAG_FORMAT || !Array.isArray(raw.samples)) return;
+        samples = raw.samples
+          .filter(x => x && Number.isFinite(x.lag) && Number.isFinite(x.ts))
+          .slice(-CFG.LAG_MAX_SAMPLES);
       } catch { /* ignoré */ }
     };
 
     const save = () => {
-      try { localStorage.setItem(CFG.LAG_STORAGE_KEY, JSON.stringify(samples)); }
-      catch { /* quota → on garde en mémoire */ }
+      try {
+        localStorage.setItem(CFG.LAG_STORAGE_KEY,
+          JSON.stringify({ v: CFG.LAG_FORMAT, samples }));
+      } catch { /* quota → on garde en mémoire */ }
     };
 
-    // Première fois qu'on voit cette carte suivie dans cette session.
-    const note = (login) => {
-      if (!login || measured.has(login) || firstSeen.has(login)) return;
-      firstSeen.set(login, Date.now());
+    // NOUS venons de poser une carte pour ce stream, avant Twitch. On retient
+    // l'instant : quand Twitch finira par afficher le sien, la différence dira
+    // ce que l'extension a réellement fait gagner.
+    const noteAhead = (streamId) => {
+      if (!streamId || done.has(streamId) || aheadAt.has(streamId)) return;
+      aheadAt.set(streamId, Date.now());
     };
 
-    // createdAt connu : on mesure si l'échantillon est attribuable.
-    const resolve = (login, createdAt) => {
-      if (!login || measured.has(login)) return;
-      const seenAt = firstSeen.get(login);
-      if (!seenAt) return;
-      const started = new Date(createdAt).getTime();
+    /**
+     * Appelée quand une carte de TWITCH affiche un stream comme étant en
+     * direct. L'instant de cet appel est, à un scan près, celui où Twitch a
+     * rendu la chaîne visible — c'est la grandeur qu'on cherche.
+     *
+     * L'ancienne version datait au contraire la première apparition de la
+     * carte QUELLE QUE SOIT sa forme, « Déconnecté » compris. Une chaîne déjà
+     * présente hors ligne était donc datée du chargement de la page, ce qui
+     * donnait un écart négatif au moment où elle passait en direct — et
+     * l'échantillon était jeté. Seules subsistaient les chaînes absentes de la
+     * sidebar, c'est-à-dire précisément celles que Twitch tarde le plus à
+     * lister : la médiane mesurait un sous-ensemble, pas la réalité.
+     */
+    const observe = (card, stream) => {
+      const id = stream?.id;
+      if (!id || done.has(id)) return;                      // sortie courante
+      if (isSynthetic(card)) return;                        // ne pas se mesurer soi-même
+      if (!card.querySelector(DOM.followedCardSelector)) return; // section suivie seule
+      const started = new Date(stream.createdAt).getTime();
       if (!Number.isFinite(started)) return;
+
+      done.add(id);
+      const ahead = aheadAt.get(id);
+      aheadAt.delete(id);
 
       // Borne d'attribution : le stream doit avoir démarré alors qu'on
       // observait vraiment. Sinon on ne mesure pas Twitch, on mesure le
       // hasard de notre propre arrivée.
-      const floor = Math.max(bootAt + CFG.LAG_SETTLE_MS, visibleSince);
-      measured.add(login);
-      firstSeen.delete(login);
-      if (started <= floor) return;
+      if (started <= Math.max(bootAt + CFG.LAG_SETTLE_MS, visibleSince)) return;
 
-      const lag = seenAt - started;
+      const now = Date.now();
+      const lag = now - started;
       if (lag < 0 || lag > CFG.LAG_MAX_PLAUSIBLE) return;
-      samples.push({ login, lag, ts: seenAt });
+      samples.push({
+        login: card.dataset.tseLogin || null,
+        lag,
+        // Écart entre notre affichage et celui de Twitch, quand on l'a devancé.
+        gain: Number.isFinite(ahead) ? Math.max(0, now - ahead) : null,
+        ts: now
+      });
       if (samples.length > CFG.LAG_MAX_SAMPLES) samples = samples.slice(-CFG.LAG_MAX_SAMPLES);
       save();
     };
@@ -3259,18 +3307,17 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
           visibleSince = Date.now();
-          // Les cartes vues pendant l'absence ne sont pas attribuables :
-          // on repart d'une page blanche pour ce qui n'a pas été mesuré.
-          firstSeen.clear();
+          // Ce qui s'est passé pendant l'absence n'est pas attribuable.
+          aheadAt.clear();
         }
       });
     };
 
     return {
-      init, note, resolve,
+      init, noteAhead, observe,
       all:   () => samples.slice(),
       clear: () => {
-        samples = []; firstSeen.clear(); measured.clear();
+        samples = []; aheadAt.clear(); done.clear();
         try { localStorage.removeItem(CFG.LAG_STORAGE_KEY); } catch {}
       }
     };
@@ -3430,16 +3477,28 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     lag(limit = 25) {
       const samples = liveLag.all();
       if (!samples.length) { console.log(S.consoleLagEmpty); return []; }
-      const sorted = samples.map(s => s.lag).sort((a, b) => a - b);
-      const at = (q) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))];
       const fmt = (ms) => {
         const s = Math.round(ms / 1000);
         return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}`;
       };
-      console.log(S.consoleLagSummary(samples.length, fmt(at(0.5)), fmt(at(0.9))));
+      const median = (arr) => {
+        const a = arr.slice().sort((x, y) => x - y);
+        return a[Math.floor(a.length / 2)];
+      };
+      const pct = (arr, q) => {
+        const a = arr.slice().sort((x, y) => x - y);
+        return a[Math.min(a.length - 1, Math.floor(a.length * q))];
+      };
+      const lags = samples.map(s => s.lag);
+      console.log(S.consoleLagSummary(samples.length, fmt(median(lags)), fmt(pct(lags, 0.9))));
+      // Avance réellement prise sur Twitch, quand l'extension a posé la carte
+      // la première. C'est le chiffre qui dit si la fonctionnalité sert.
+      const gains = samples.map(s => s.gain).filter(g => Number.isFinite(g));
+      if (gains.length) console.log(S.consoleLagGain(gains.length, fmt(median(gains))));
       console.table(samples.slice(-limit).reverse().map(s => ({
         [S.consoleColLogin]: s.login,
         [S.consoleColLag]:   fmt(s.lag),
+        [S.consoleColGain]:  Number.isFinite(s.gain) ? fmt(s.gain) : '—',
         [S.consoleColSeen]:  formatDate(s.ts)
       })));
       return samples;
@@ -4899,9 +4958,11 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     const stream = data.stream;
 
     if (stream?.createdAt) {
-      // Mesure du retard de Twitch : on tient enfin les deux bouts pour cette
-      // chaîne (démarrage du stream, et instant où sa carte est apparue).
-      liveLag.resolve(card.dataset.tseLogin, stream.createdAt);
+      // Mesure du retard de Twitch. L'instant de cet appel est celui où une
+      // carte de TWITCH affiche ce stream en direct (processCard n'arrive
+      // jusqu'ici que pour les cartes non hors-ligne) ; observe() écarte de
+      // lui-même les cartes que l'extension a fabriquées.
+      liveLag.observe(card, stream);
       card.dataset.tseStartedAt = stream.createdAt;
       card.dataset.tseOfflineHits = '0';
       delete card.dataset.tseOfflineTs;
@@ -6516,6 +6577,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       const card = buildAheadCard(template, login, hit);
       if (!card) return; // clone inexploitable : inutile d'insister sur les suivants
       container.appendChild(card);
+      liveLag.noteAhead(hit.stream.id); // pour chiffrer l'avance prise sur Twitch
       live++;
     }
   };
@@ -6527,8 +6589,10 @@ if (TSE_ADBLOCK_ENABLED) (function() {
    * l'extension masque ensuite ; c'est ce qui rend la liste apprenable sans
    * jamais s'authentifier.
    *
-   * Alimente le roster (mémoire longue) et la mesure de retard (qui a besoin
-   * de l'instant exact où une carte apparaît pour la première fois).
+   * Alimente le roster (mémoire longue). La mesure de retard, elle, ne passe
+   * plus par ici : dater la première apparition d'une carte QUELLE QUE SOIT sa
+   * forme confondait « Twitch liste la chaîne » et « Twitch l'affiche en
+   * direct », et écartait tout le cas courant (cf. module LIVE LAG).
    */
   const harvestFollowed = () => {
     const section = followedSection();
@@ -6537,7 +6601,6 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       const login = loginFromHref(a.getAttribute('href'));
       if (!login) return;
       roster.record(login);
-      liveLag.note(login);
     });
   };
 
