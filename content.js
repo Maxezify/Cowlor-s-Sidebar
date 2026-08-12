@@ -1,5 +1,5 @@
 /* ============================================================
- *  Cowlor's Sidebar for Twitch — Extension Chrome v3.19.0
+ *  Cowlor's Sidebar for Twitch — Extension Chrome v3.20.0
  *  -------------------------------------------------------------
  *  Portage du userscript Violentmonkey "Twitch Sidebar Enhancer
  *  ADBLOCK 4" v2.22.3 vers une extension Manifest V3, avec
@@ -27,9 +27,11 @@
  *  de lire le DOM de Twitch, elle rafraîchit elle-même ce que
  *  Twitch laisse périmer. Le pipeline tient en trois pièces :
  *
- *   • UNE requête, TseChannel, qui rapporte par chaîne tout ce
- *     dont la sidebar a besoin (createdAt, viewersCount, game,
- *     freeformTags, id). Elle a remplacé UseLive + TseLang.
+ *   • UNE requête, TseChannels, qui rapporte pour TOUTE une
+ *     tranche de chaînes ce dont la sidebar a besoin (createdAt,
+ *     viewersCount, game, freeformTags, id). Elle a remplacé
+ *     UseLive + TseLang, ET la forme `user(login:)` qui imposait
+ *     une opération par chaîne. Un lot de logins → une opération.
  *   • UN cache à TTL, `cache` (login -> entrée), dont la durée de
  *     validité LIVE_TTL est la SEULE constante qui détermine à
  *     quel point la sidebar colle au direct.
@@ -1624,13 +1626,13 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   const CFG = Object.freeze({
     GQL_URL:        'https://gql.twitch.tv/gql',
     CLIENT_ID:      'kimne78kx3ncx6brgo4mv6wki5h1ko',
-    // Nombre max d'opérations par POST GraphQL. Twitch plafonne la taille des
-    // lots batchés : au-delà, c'est le lot ENTIER qui est rejeté, et tous les
-    // logins qu'il portait retombent en UPTIME_UNKNOWN (sidebar figée sur son
-    // dernier état, sans signe visible de panne). On découpe donc en tranches,
-    // envoyées en parallèle et évaluées INDÉPENDAMMENT : l'échec d'une tranche
-    // ne coûte que les logins de cette tranche.
-    GQL_MAX_BATCH:  25,
+    // Nombre max de logins passés à `users(logins:)` en une opération. Le
+    // plafond réel côté Twitch n'est pas documenté ; on reste prudemment en
+    // dessous de ce que le service accepte vraisemblablement, et on découpe
+    // en tranches envoyées en parallèle et évaluées INDÉPENDAMMENT : si une
+    // tranche est rejetée, elle ne coûte que ses propres logins, au lieu
+    // d'aveugler toute la sidebar d'un coup.
+    GQL_MAX_LOGINS: 50,
     // Persisted query "GuestStarBatchCollaborationQuery" : source FIABLE des
     // co-streams "Streamer ensemble" (host.id partagé entre participants).
     // Capté sur le trafic gql.twitch.tv ; repli heuristique si le hash devient
@@ -1648,7 +1650,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     UI_TICK:        60_000,
     // ─── Cadence de fraîcheur ─────────────────────────────────────────
     // LIVE_TTL est LA constante qui détermine à quel point la sidebar colle
-    // au direct : durée de validité d'une réponse TseChannel (statut live,
+    // au direct : durée de validité d'une réponse TseChannels (statut live,
     // createdAt, viewers, catégorie, tags de langue). Tant qu'une entrée est
     // fraîche, les scans la relisent sans réseau ; dès qu'elle périme, le
     // premier scan qui la touche la remet en file.
@@ -1686,7 +1688,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     SCAN_DEBOUNCE:  250,
     FRESH_MAX_MIN:  10,
     GQL_TIMEOUT:    15_000,       // ms — au-delà, on considère la requête HS
-    // Pause après l'échec d'un lot TseChannel (réseau coupé, throttle, lot
+    // Pause après l'échec d'un lot TseChannels (réseau coupé, throttle, lot
     // rejeté). Indispensable depuis que les cartes ne portent plus de garde
     // qui bloque leur re-fetch : sans cooldown, chaque scan reconstituerait
     // aussitôt la file, et une panne réseau se traduirait par un lot toutes
@@ -2474,7 +2476,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   /* ============================================================
    *  GRAPHQL — requête consolidée, batching découpé, cache
    *  -------------------------------------------------------------
-   *  UNE seule opération (TseChannel) porte tout ce dont la sidebar
+   *  UNE seule opération (TseChannels) porte tout ce dont la sidebar
    *  a besoin par chaîne :
    *    stream.createdAt     → durée de stream + « stream frais »
    *    stream.viewersCount  → compteur rafraîchi (cf. module VIEWERS)
@@ -2530,9 +2532,9 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       .finally(() => clearTimeout(timer));
   };
 
-  const TSE_CHANNEL_QUERY =
-    'query TseChannel($channelLogin: String!) {' +
-    '  user(login: $channelLogin) {' +
+  const TSE_CHANNELS_QUERY =
+    'query TseChannels($logins: [String!]) {' +
+    '  users(logins: $logins) {' +
     '    id' +
     '    login' +
     '    stream {' +
@@ -2543,10 +2545,14 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     '  }' +
     '}';
 
-  const buildChannelOp = (login) => ({
-    operationName: 'TseChannel',
-    variables: { channelLogin: login },
-    query: TSE_CHANNEL_QUERY
+  // UNE opération couvre TOUTE une tranche de logins. C'est la différence
+  // décisive avec la forme `user(login:)` : celle-ci imposait une opération
+  // par chaîne, soit ~60 opérations/minute pour une sidebar ordinaire à la
+  // cadence de 30 s. Ici une sidebar entière tient en une seule.
+  const buildChannelsOp = (logins) => ({
+    operationName: 'TseChannels',
+    variables: { logins },
+    query: TSE_CHANNELS_QUERY
   });
 
   // Sentinelle pour les consommateurs : "on n'a pas pu savoir, ne touche à rien".
@@ -2575,20 +2581,21 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     // séparément : un lot rejeté (trop gros, throttle, erreur globale) ne fait
     // basculer en UPTIME_UNKNOWN que les logins qu'il portait, au lieu
     // d'aveugler toute la sidebar d'un coup.
-    const slices = chunk(logins, CFG.GQL_MAX_BATCH);
-    const responses = await Promise.all(slices.map(s => post(s.map(buildChannelOp))));
+    const slices = chunk(logins, CFG.GQL_MAX_LOGINS);
+    const responses = await Promise.all(slices.map(s => post([buildChannelsOp(s)])));
 
     const now = Date.now();
     let fresh = 0;
 
     slices.forEach((slice, si) => {
       const results = responses[si];
+      const list = results?.[0]?.data?.users;
 
       // Tranche HS → ne pas écraser le cache, ne pas marquer les cartes
       // hors-ligne : les appelants reçoivent la sentinelle "on ne sait pas".
       // L'échec vaut aussi signal de santé réseau : on ouvre une pause pendant
       // laquelle plus rien n'est mis en file (cf. GQL_ERROR_COOLDOWN).
-      if (isResultsUnusable(results)) {
+      if (isResultsUnusable(results) || !Array.isArray(list)) {
         gqlCooldownUntil = Date.now() + CFG.GQL_ERROR_COOLDOWN;
         slice.forEach(login => {
           (pending.get(login) || []).forEach(fn => fn(UPTIME_UNKNOWN));
@@ -2596,8 +2603,24 @@ if (TSE_ADBLOCK_ENABLED) (function() {
         return;
       }
 
-      slice.forEach((login, i) => {
-        const user   = results?.[i]?.data?.user;
+      // INDEXATION PAR LOGIN, jamais par position. Contrairement à une
+      // opération par chaîne, `users(logins:)` ne garantit ni l'ordre ni la
+      // complétude du tableau : un login inconnu peut être omis. S'aligner sur
+      // l'index attribuerait les données d'une chaîne à une autre.
+      const byLogin = new Map();
+      for (const u of list) {
+        const l = u?.login?.toLowerCase();
+        if (l) byLogin.set(l, u);
+      }
+
+      slice.forEach((login) => {
+        const user = byLogin.get(login);
+        // Login absent de la réponse : on ne sait pas. Surtout PAS « hors
+        // ligne » — ce serait masquer une carte sur une absence de preuve.
+        if (!user) {
+          (pending.get(login) || []).forEach(fn => fn(UPTIME_UNKNOWN));
+          return;
+        }
         const stream = user?.stream ?? null;
         // ID numérique de la chaîne : clé attendue par la requête Guest Star
         // (GuestStarBatchCollaborationQuery prend des channelIDs, pas des
@@ -3126,7 +3149,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
    *  sans rien coûter : les deux instants nécessaires sont déjà
    *  connus du code.
    *
-   *    createdAt (réponse TseChannel)  → quand le stream a démarré
+   *    createdAt (réponse TseChannels)  → quand le stream a démarré
    *    première apparition de la carte → quand Twitch l'a affichée
    *
    *  Un échantillon n'est retenu que si le stream a démarré ALORS
@@ -3446,7 +3469,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   };
 
   /**
-   * Écrit la catégorie fraîche (issue de TseChannel) dans la carte, quand elle
+   * Écrit la catégorie fraîche (issue de TseChannels) dans la carte, quand elle
    * diffère de celle affichée par Twitch.
    *
    * Contrairement au compteur de viewers, on écrit ici DANS l'élément de
@@ -3684,7 +3707,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
    *  -------------------------------------------------------------
    *  Le compteur natif de Twitch n'est réécrit que lorsque Twitch
    *  re-rend sa sidebar — c'est-à-dire rarement. On affiche donc le
-   *  nôtre, alimenté par TseChannel toutes les LIVE_TTL.
+   *  nôtre, alimenté par TseChannels toutes les LIVE_TTL.
    *
    *  Placement : un <span> inséré JUSTE APRÈS l'élément natif, dans le
    *  même parent. Il hérite ainsi de la même position dans le flux flex
@@ -3768,7 +3791,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     return (el.textContent || '').replace(/\s+/g, ' ').trim() || null;
   };
 
-  // Nombre de viewers comparable. Valeur exacte issue de TseChannel dès
+  // Nombre de viewers comparable. Valeur exacte issue de TseChannels dès
   // qu'elle est connue ; repli sur l'analyse du texte natif tant qu'elle ne
   // l'est pas (premier rendu, sections hors « suivis », requête en vol).
   const getCardViewers = (card) => {
@@ -4788,7 +4811,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   let offlineTransitionsThisScan = 0;
 
   /**
-   * Applique à une carte une entrée de cache TseChannel (ou la sentinelle
+   * Applique à une carte une entrée de cache TseChannels (ou la sentinelle
    * UPTIME_UNKNOWN). Idempotent : ré-appelée à chaque scan tant que l'entrée
    * reste fraîche, elle doit converger sans effet de bord cumulatif.
    *
@@ -4911,7 +4934,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     card.dataset.tseLogin = login;
 
     // Catégorie affichée par Twitch : AMORCE seulement, tant que l'API n'a
-    // rien dit. Une fois la valeur de TseChannel posée (applyChannelData), on
+    // rien dit. Une fois la valeur de TseChannels posée (applyChannelData), on
     // ne revient plus en arrière — relire le DOM à chaque scan la ferait
     // osciller entre la valeur périmée de Twitch et la nôtre, et les options
     // du filtre catégorie se reconstruiraient en boucle sur deux valeurs
@@ -5415,7 +5438,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
    *   - la facette « dépendante » ne propose que les valeurs cohérentes avec
    *     le pilote ; s'il n'en reste qu'UNE → auto-sélection + désactivation
    *     (grisée) ; s'il n'en reste AUCUNE → vidée + désactivée.
-   * Lit aussi les langues (langStore, cache TseChannel) et les mémorise sur
+   * Lit aussi les langues (langStore, cache TseChannels) et les mémorise sur
    * chaque carte (data-tse-langs) pour applyCardVisibility. Idempotent.
    */
   function recomputeFilters() {
@@ -5431,7 +5454,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       if (card.dataset.tseOffline === 'true') return;
       const login = card.dataset.tseLogin;
       if (!login) return;
-      const resolved = langStore.getLangs(login); // lecture du cache TseChannel
+      const resolved = langStore.getLangs(login); // lecture du cache TseChannels
       if (resolved) card.dataset.tseLangs = resolved.length ? '|' + resolved.join('|') + '|' : '';
       const langs = (card.dataset.tseLangs || '').split('|').filter(Boolean);
       records.push({ cat: card.dataset.tseCategory || '', langs });
@@ -5813,7 +5836,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   const langIcon = (canonical) =>
     flagMarkup(canonical) || `<span class="tse-lang-code">${escapeHtml(canonical)}</span>`;
 
-  // LECTURE PURE du cache TseChannel — plus aucun transport propre.
+  // LECTURE PURE du cache TseChannels — plus aucun transport propre.
   //
   // Les tags viennent désormais de la même réponse que le statut live, les
   // viewers et la catégorie : le module n'a donc plus ni file d'attente, ni

@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.19.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.20.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -101,11 +101,22 @@ channel that just went live therefore still appears at Twitch's own pace.
 
 ### Network cost
 
-A **single** query (`TseChannel`) now returns stream duration, viewers, category
-and languages, where three separate operations were needed before. So even at a
-tenfold higher frequency, the request count does not grow proportionally.
-Requests are split into batches of at most 25 channels, sent in parallel: a
-rejected batch only affects the channels it carried.
+A **single** GraphQL operation (`TseChannels`) covers the whole sidebar at once:
+it takes a list of channels and returns, for each, stream duration, viewers,
+category and languages. Where three operations *per channel* were needed before,
+an entire sidebar now fits in one.
+
+The result: **refreshing ten times more often costs three times fewer requests
+than before**.
+
+| Version | Operations per minute (~30-channel sidebar) |
+| --- | --- |
+| 3.17.1 — refresh every 5 min | ~14 |
+| 3.18 — 30 s, one operation per channel | ~62 |
+| 3.20 — 30 s, one operation per batch | **~4** |
+
+Lists are split into slices of at most 50 channels, sent in parallel: a rejected
+slice only affects the channels it carried.
 
 If the network drops, the extension **keeps the last known state** — it never
 shows a false "Ended" — and pauses its requests for 30 seconds rather than
@@ -387,7 +398,7 @@ context, and a fourth transformation adds localization.
    departure from the userscript. The userscript, like earlier 3.x releases,
    relied on whatever data Twitch put in the DOM and re-checked live status only
    every 5 minutes. The extension now queries the public GraphQL API itself
-   every 30 seconds, through a single operation (`TseChannel`) that replaced the
+   every 30 seconds, through a single operation (`TseChannels`) that replaced the
    three previous ones (`UseLive`, `TseLang`, and the overlapping part of
    `TsePreview`):
 
@@ -398,8 +409,12 @@ context, and a fourth transformation adds localization.
    - the viewer count is **rendered by the extension** into its own element,
      inserted next to the native counter, which is hidden by CSS only on cards
      that are already resolved;
-   - GraphQL batches are **chunked** (25 operations max) and evaluated
-     independently.
+   - `TseChannels` takes a **list** of logins (`users(logins:)`): an entire
+     sidebar fits in one operation instead of one per channel. Lists are split
+     into slices of 50 channels, evaluated independently. Corollary: since the
+     response guarantees neither the order nor the completeness of the array,
+     it is indexed **by login** and never by position, and a login missing from
+     the response is treated as "unknown" — never as "offline".
 
    See the "Near-live refresh" section for the functional details and the tuning
    constants.

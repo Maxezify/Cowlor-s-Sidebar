@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.19.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.20.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -108,12 +108,22 @@ Twitch.
 
 ### Coût réseau
 
-Une **seule** requête (`TseChannel`) rapporte désormais durée de stream,
-viewers, catégorie et langues, là où trois opérations distinctes étaient
-nécessaires. Malgré une fréquence dix fois plus élevée, le nombre de requêtes
-n'augmente donc pas proportionnellement. Les requêtes sont découpées en lots
-d'au plus 25 chaînes, envoyés en parallèle : un lot rejeté n'affecte que les
-chaînes qu'il portait.
+Une **seule** opération GraphQL (`TseChannels`) couvre toute la sidebar d'un
+coup : elle prend une liste de chaînes et rapporte pour chacune la durée de
+stream, les viewers, la catégorie et les langues. Là où il fallait auparavant
+trois opérations *par chaîne*, une sidebar entière tient désormais dans une.
+
+Résultat : **rafraîchir dix fois plus souvent coûte trois fois moins de
+requêtes qu'avant**.
+
+| Version | Opérations par minute (sidebar de ~30 chaînes) |
+| --- | --- |
+| 3.17.1 — rafraîchissement toutes les 5 min | ~14 |
+| 3.18 — 30 s, une opération par chaîne | ~62 |
+| 3.20 — 30 s, une opération par lot | **~4** |
+
+Les listes sont découpées en tranches d'au plus 50 chaînes, envoyées en
+parallèle : une tranche rejetée n'affecte que les chaînes qu'elle portait.
 
 En cas de coupure réseau, l'extension **conserve le dernier état connu** — elle
 n'affiche jamais de faux « Terminé » — et met ses requêtes en pause 30 secondes
@@ -406,7 +416,7 @@ extension, et une quatrième transformation ajoute la localisation.
    précédentes, se contentait des données que Twitch plaçait dans le DOM et ne
    revérifiait le statut live que toutes les 5 minutes. L'extension interroge
    désormais elle-même l'API GraphQL publique toutes les 30 secondes, via une
-   opération unique (`TseChannel`) qui a remplacé les trois opérations
+   opération unique (`TseChannels`) qui a remplacé les trois opérations
    précédentes (`UseLive`, `TseLang`, et la partie recouvrante de
    `TsePreview`) :
 
@@ -417,8 +427,13 @@ extension, et une quatrième transformation ajoute la localisation.
    - le compteur de viewers est **rendu par l'extension** dans un élément à
      elle, inséré à côté du compteur natif, ce dernier étant masqué par CSS
      uniquement sur les cartes déjà résolues ;
-   - les lots GraphQL sont **découpés** (25 opérations max) et évalués
-     indépendamment.
+   - `TseChannels` prend une **liste** de logins (`users(logins:)`) : une
+     sidebar entière tient dans une opération, au lieu d'une par chaîne. Les
+     listes sont découpées en tranches de 50 chaînes, évaluées indépendamment.
+     Corollaire : la réponse ne garantissant ni l'ordre ni la complétude du
+     tableau, elle est indexée **par login** et jamais par position, et un
+     login absent de la réponse est traité comme « inconnu » — surtout pas
+     comme « hors ligne ».
 
    Cf. la section « Rafraîchissement en quasi-direct » pour le détail
    fonctionnel et les constantes de réglage.
