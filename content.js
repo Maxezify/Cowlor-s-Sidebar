@@ -1,5 +1,5 @@
 /* ============================================================
- *  Cowlor's Sidebar for Twitch — Extension Chrome v3.20.0
+ *  Cowlor's Sidebar for Twitch — Extension Chrome v3.21.0
  *  -------------------------------------------------------------
  *  Portage du userscript Violentmonkey "Twitch Sidebar Enhancer
  *  ADBLOCK 4" v2.22.3 vers une extension Manifest V3, avec
@@ -39,6 +39,14 @@
  *     frais (sans réseau), remet le login en file sinon. Le
  *     rendu passe par applyChannelData, ré-appelable sans effet
  *     de bord cumulatif.
+ *
+ *  Depuis la v3.21 le pipeline ne se contente plus de décorer ce
+ *  que Twitch pose : il SONDE aussi les chaînes suivies absentes de
+ *  la sidebar (roster appris par observation) et FABRIQUE la carte
+ *  de celles qui viennent de passer en direct, que Twitch met 2 à
+ *  4 minutes à afficher (mesuré, cf. tse.lag()). La carte est un
+ *  clone d'une carte native : elle hérite ainsi du rendu de Twitch
+ *  et de tous les marqueurs dont le reste du module dépend.
  *
  *  Deux invariants tiennent l'ensemble, tous deux nécessaires
  *  parce que le scan est déclenché par les mutations du DOM :
@@ -1737,6 +1745,20 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     // finirait par porter des chaînes que l'utilisateur ne suit plus.
     ROSTER_MAX_AGE:       60 * 24 * 60 * 60_000,   // 60 jours
 
+    // === Cartes en avance sur Twitch (cf. module CARTES EN AVANCE) ===
+    // Interrupteur unique de la fonctionnalité. À false, l'extension se
+    // contente d'enrichir les cartes que Twitch pose — le roster continue
+    // d'être appris et la mesure de retard de tourner.
+    AHEAD_ENABLED:        true,
+    // Plafond de cartes fabriquées simultanément. Filet contre un état
+    // inattendu (sidebar à moitié montée, roster anormalement grand) : la
+    // sidebar ne doit jamais se remplir de cartes que Twitch ignore.
+    AHEAD_MAX:            15,
+    // Plafond de chaînes sondées par cycle. Les entrées du roster sont
+    // servies de la plus récemment vue à la plus ancienne, donc en cas de
+    // dépassement ce sont les chaînes les plus présentes qui sont couvertes.
+    AHEAD_MAX_POLL:       300,
+
     // === Mesure du retard de Twitch (cf. module LIVE LAG) ===
     LAG_STORAGE_KEY:      'tse:livelag',
     LAG_MAX_SAMPLES:      300,
@@ -2537,6 +2559,8 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     '  users(logins: $logins) {' +
     '    id' +
     '    login' +
+    '    displayName' +
+    '    profileImageURL(width: 70)' +
     '    stream {' +
     '      id createdAt viewersCount' +
     '      game { id name }' +
@@ -2638,6 +2662,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
           tags,
           game:    stream?.game?.name || null,
           viewers: Number.isFinite(stream?.viewersCount) ? stream.viewersCount : null,
+          // Nom affiché et avatar : nécessaires UNIQUEMENT pour fabriquer une
+          // carte que Twitch n'a pas encore posée (cf. module CARTES EN
+          // AVANCE). On préserve une valeur déjà connue si la réponse ne la
+          // porte pas, pour ne pas perdre l'avatar d'une carte déjà rendue.
+          name:    user?.displayName?.trim() || cache.get(login)?.name || null,
+          avatar:  user?.profileImageURL || cache.get(login)?.avatar || null,
           ts:      now
         };
         cache.set(login, entry);
@@ -4990,7 +5020,10 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     const section = followedSection();
     if (!section) return;
 
-    const cards = section.querySelectorAll('.side-nav-card');
+    // Compte les seules cartes de Twitch : c'est leur nombre qui dit si
+    // « Afficher plus » a encore de la matière à charger. Y mêler les nôtres
+    // simulerait une croissance et déclencherait des clics inutiles.
+    const cards = [...section.querySelectorAll('.side-nav-card')].filter(c => !isSynthetic(c));
     const currentCount = cards.length;
     if (currentCount === 0) return;
 
@@ -6091,7 +6124,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   function snapshotTwitchOrder() {
     const section = followedSection();
     if (!section) return;
-    const cards = section.querySelectorAll('.side-nav-card');
+    // Les cartes FABRIQUÉES sont écartées : elles ne font pas partie de
+    // l'ordre de Twitch, et les compter décalerait l'indice de toutes les
+    // cartes natives suivantes. Sans tseTwitchOrder elles retombent sur la
+    // valeur par défaut du tri (fin de liste), ce qui est correct — cet ordre
+    // ne sert que de départage et de repli.
+    const cards = [...section.querySelectorAll('.side-nav-card')].filter(c => !isSynthetic(c));
     cards.forEach((card, i) => {
       if (card.dataset.tseTwitchOrder !== undefined) return;
       card.dataset.tseTwitchOrder = String(i);
@@ -6237,6 +6275,215 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   /* ============================================================
    *  SCAN + OBSERVER
    * ============================================================ */
+  /* ============================================================
+   *  CARTES EN AVANCE SUR TWITCH
+   *  -------------------------------------------------------------
+   *  Twitch met 2 à 4 minutes à faire apparaître la carte d'une
+   *  chaîne suivie qui passe en direct (mesuré : cf. tse.lag()).
+   *  Comme le roster nous donne la liste des chaînes suivies et que
+   *  leur statut live est une donnée publique, on peut le savoir
+   *  avant lui — et poser la carte nous-mêmes.
+   *
+   *  FABRICATION PAR CLONAGE. La carte n'est pas écrite à la main :
+   *  on CLONE une carte native de la sidebar et on en réécrit le
+   *  contenu. C'est ce qui garantit qu'elle est visuellement
+   *  indiscernable — toutes les classes de Twitch viennent avec —
+   *  et qu'elle reste compatible avec le reste de l'extension :
+   *  tri, filtres, aperçu au survol, coloration co-stream et
+   *  rafraîchissement s'y appliquent sans une ligne de plus, parce
+   *  qu'elle porte exactement les mêmes marqueurs.
+   *
+   *  Corollaire : sans carte native EN DIRECT à cloner, on ne
+   *  fabrique rien. Le cas « aucune chaîne suivie en direct » ne
+   *  bénéficie donc pas de l'avance — c'est assumé : mieux vaut ne
+   *  rien afficher qu'une carte au rendu approximatif.
+   *
+   *  DEUX GARDES sur la fabrication :
+   *   • jamais pendant le voile de chargement. Au boot la sidebar de
+   *     Twitch est vide alors que le roster est plein : sans cette
+   *     garde on injecterait des dizaines de cartes que Twitch
+   *     poserait ensuite lui-même, pour rien.
+   *   • un plafond (AHEAD_MAX), filet contre un état inattendu.
+   *
+   *  RETRAIT dès que l'une de ces conditions tombe : Twitch a posé
+   *  sa propre carte (dédoublonnage), ou la chaîne n'est plus en
+   *  direct. Le retrait passe AVANT la fabrication à chaque scan,
+   *  pour qu'aucun doublon ne soit visible même transitoirement.
+   * ============================================================ */
+
+  const isSynthetic = (card) => card.dataset.tseSynthetic === 'true';
+
+  // Sonde les chaînes du roster dont on ne connaît pas l'état frais. C'est
+  // ce qui permet de voir un passage en direct avant Twitch ; sans ça on ne
+  // saurait rien des chaînes absentes de la sidebar.
+  const pollRoster = () => {
+    if (!CFG.AHEAD_ENABLED || document.hidden) return;
+    let budget = CFG.AHEAD_MAX_POLL;
+    // roster.entries() est trié par observation la plus récente : si le
+    // budget est atteint, ce sont les chaînes les plus présentes dans la
+    // sidebar — donc celles qui comptent — qui sont servies en premier.
+    for (const [login] of roster.entries()) {
+      if (budget-- <= 0) break;
+      if (getFreshChannel(login)) continue;
+      fetchChannel(login); // résultat récupéré via le cache au prochain scan
+    }
+  };
+
+  // Débarrasse un clone de tout ce qui appartenait à la carte d'origine :
+  // nos propres injections, les marqueurs d'état, les lignes annexes de
+  // Twitch (hype train, réduction) et les styles calculés. Sans ce nettoyage,
+  // la carte fabriquée hériterait de l'uptime, du compteur, du badge collab et
+  // de la couleur de co-stream de la chaîne clonée.
+  const scrubClone = (el) => {
+    el.querySelectorAll('.tse-uptime, .tse-viewers, .tse-collab-badge, [data-tse-extra-row]')
+      .forEach(n => n.remove());
+    const strip = (node) => {
+      for (const attr of [...node.attributes]) {
+        if (attr.name.startsWith('data-tse-')) node.removeAttribute(attr.name);
+      }
+      if (node.classList.length) {
+        [...node.classList].forEach(c => { if (c.startsWith('tse-')) node.classList.remove(c); });
+      }
+      node.removeAttribute('style');
+      // Un id cloné serait un DOUBLON dans le document : il casserait
+      // getElementById et toute référence ARIA qui le vise.
+      node.removeAttribute('id');
+      // Les libellés d'accessibilité décrivent la chaîne SOURCE. Les garder
+      // ferait annoncer le mauvais streamer par un lecteur d'écran ; les
+      // retirer laisse le nom accessible se déduire du texte visible, qui,
+      // lui, est réécrit correctement.
+      node.removeAttribute('aria-label');
+      node.removeAttribute('aria-labelledby');
+      node.removeAttribute('aria-describedby');
+    };
+    strip(el);
+    el.querySelectorAll('*').forEach(strip);
+    // L'avatar grisé n'a plus lieu d'être : on ne fabrique que du live.
+    el.querySelectorAll('.side-nav-card__avatar--offline')
+      .forEach(n => n.classList.remove('side-nav-card__avatar--offline'));
+    // Twitch double son compteur visuel (aria-hidden) d'un texte réservé aux
+    // lecteurs d'écran. Cloné tel quel, il annoncerait le nombre de viewers de
+    // la chaîne SOURCE. On ne peut pas le réécrire — sa formulation exacte
+    // varie selon la locale — donc on le retire : ne rien annoncer vaut mieux
+    // qu'annoncer un chiffre faux. Le nom et la catégorie, eux, restent lus.
+    const status = liveStatusOf(el);
+    if (status) {
+      status.querySelectorAll('*').forEach(n => {
+        if (n.children.length) return;
+        if (n.getAttribute('aria-hidden') === 'true') return;
+        if ((n.textContent || '').trim()) n.remove();
+      });
+    }
+  };
+
+  /**
+   * Fabrique la carte de `login` à partir de `template` (carte native live).
+   * Renvoie l'élément, ou null si le clone n'expose pas les points d'ancrage
+   * attendus — auquel cas on préfère ne rien afficher.
+   */
+  const buildAheadCard = (template, login, data) => {
+    const card = template.cloneNode(true);
+    scrubClone(card);
+
+    // Liens : tous les <a> de la carte doivent pointer vers la bonne chaîne.
+    const links = card.querySelectorAll('a[href]');
+    if (!links.length) return null;
+    links.forEach(a => a.setAttribute('href', `/${login}`));
+
+    // Pseudo — hook d'automatisation Twitch, distinct du <p title> qui porte
+    // la catégorie (cf. displayNameFor du module d'aperçu).
+    const name = data.name || (login.charAt(0).toUpperCase() + login.slice(1));
+    const nameEl = card.querySelector('p[data-a-target="side-nav-title"]');
+    if (!nameEl) return null;
+    setText(nameEl, name);
+    if (nameEl.hasAttribute('title')) nameEl.setAttribute('title', name);
+
+    // Catégorie : même élément que celui lu partout ailleurs.
+    const catEl = cardCategoryEl(card);
+    if (catEl && data.game) {
+      setText(catEl, data.game);
+      if (catEl.hasAttribute('title')) catEl.setAttribute('title', data.game);
+    }
+
+    // Avatar.
+    const img = card.querySelector('img.tw-image-avatar, .side-nav-card__avatar img');
+    if (img) {
+      if (data.avatar) img.setAttribute('src', data.avatar);
+      else img.removeAttribute('src');
+      img.setAttribute('alt', name);
+      img.removeAttribute('srcset');
+    }
+
+    card.dataset.tseSynthetic = 'true';
+    card.dataset.tseLogin = login;
+    return card;
+  };
+
+  /**
+   * Réconcilie les cartes fabriquées avec la réalité, à chaque scan.
+   * Idempotent : ne crée que ce qui manque, ne retire que ce qui n'a plus
+   * lieu d'être. C'est aussi ce qui les ré-injecte si React les emporte.
+   */
+  const syncAheadCards = () => {
+    if (!CFG.AHEAD_ENABLED) return;
+    const section = followedSection();
+    if (!section) return;
+
+    const all = [...section.querySelectorAll('.side-nav-card')];
+
+    // Une carte de Twitch ne COUVRE un login que si elle est réellement
+    // affichée. Une carte que Twitch laisse en « Déconnecté » alors que la
+    // chaîne a repris est masquée par le CSS : elle ne couvre rien, et si on
+    // la comptait comme telle, la chaîne n'apparaîtrait NULLE PART — ni par
+    // Twitch qui l'a mal étiquetée, ni par nous qui nous serions abstenus.
+    const nativeCovers = (c) =>
+      !isCardOffline(c) && c.dataset.tseGqlOffline !== 'true';
+
+    const covered = new Set();
+    let template = null;
+    for (const c of all) {
+      if (isSynthetic(c) || !nativeCovers(c)) continue;
+      const l = c.dataset.tseLogin || getCardLogin(c);
+      if (l) covered.add(l);
+      // Modèle de clonage : une carte native EN DIRECT, seule à porter le
+      // markup complet (indicateur live, métadonnées, compteur).
+      if (!template) template = c;
+    }
+
+    // 1) Retraits — AVANT toute fabrication, pour qu'un doublon ne soit
+    //    jamais visible, même le temps d'un rendu. Les rescapées sont
+    //    collectées ici : ça évite d'avoir à les rechercher login par login
+    //    plus bas, donc d'échapper quoi que ce soit dans un sélecteur.
+    const standing = new Set();
+    for (const c of all) {
+      if (!isSynthetic(c)) continue;
+      const l = c.dataset.tseLogin;
+      const hit = l ? cache.get(l) : null;
+      if (!l || covered.has(l) || !hit?.stream) { c.remove(); continue; }
+      standing.add(l);
+    }
+    let live = standing.size;
+
+    // 2) Fabrication. Suspendue pendant le voile : la sidebar de Twitch n'est
+    //    pas encore peuplée, on injecterait des cartes qu'il va poser lui-même.
+    if (!template) return;
+    if (document.body.classList.contains('tse-loading')) return;
+
+    const container = template.parentElement;
+    if (!container) return;
+
+    for (const [login] of roster.entries()) {
+      if (live >= CFG.AHEAD_MAX) break;
+      if (covered.has(login) || standing.has(login)) continue;
+      const hit = getFreshChannel(login);
+      if (!hit?.stream?.createdAt) continue;
+      const card = buildAheadCard(template, login, hit);
+      if (!card) return; // clone inexploitable : inutile d'insister sur les suivants
+      container.appendChild(card);
+      live++;
+    }
+  };
+
   /**
    * Relève les chaînes suivies présentes dans la sidebar — EN DIRECT COMME
    * HORS LIGNE. Les cartes suivies portent toutes le marqueur indépendant de
@@ -6267,6 +6514,8 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     offlineTransitionsThisScan = 0; // remis à zéro avant le passage des cartes
     snapshotTwitchOrder(); // avant tout tri custom, on photographie l'ordre Twitch
     harvestFollowed();     // relève du roster + horodatage des cartes nouvelles
+    pollRoster();          // sonde les chaînes suivies absentes de la sidebar
+    syncAheadCards();      // pose/retire les cartes que Twitch n'a pas encore
     const cards = document.querySelectorAll('.side-nav-card');
     cards.forEach(processCard);
     ensureFilterBar();
@@ -6287,7 +6536,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     // grandit encore (de nouvelles cartes arrivent) : le voile ne se lève
     // que sur une sidebar peuplée, STABLE EN TAILLE et sans masquage offline
     // en cours, confirmé pendant LOADING_STABILITY_MS.
-    const stillGrowing = loadingOverlay.notifyScan(hadOfflineActivity, cards.length);
+    // Les cartes FABRIQUÉES sont exclues du compte : le voile juge la sidebar
+    // stable au nombre de cartes que Twitch a posées. Les compter reviendrait
+    // à nous signaler notre propre travail comme une croissance de Twitch, et
+    // le voile ne se lèverait jamais tant qu'on en ajoute.
+    const nativeCount = [...cards].filter(c => !isSynthetic(c)).length;
+    const stillGrowing = loadingOverlay.notifyScan(hadOfflineActivity, nativeCount);
 
     // Twitch n'a pas fini de monter sa sidebar (vague de cartes Déconnecté
     // masquées, ou cartes encore en cours d'ajout) → on reprogramme un scan
@@ -6393,8 +6647,14 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     const root      = document.querySelector(DOM.sidebarRoot);
     const collapsed = detectSidebarCollapsed();
     const section   = followedSection();
-    const allCards  = document.querySelectorAll('.side-nav-card');
-    const cards     = section ? [...section.querySelectorAll('.side-nav-card')] : [];
+    const allCards  = [...document.querySelectorAll('.side-nav-card')]
+      .filter(c => !isSynthetic(c));
+    // Cartes de TWITCH uniquement : les nôtres sont des clones, elles
+    // répondraient forcément « ok » et masqueraient une rupture réelle du
+    // markup — exactement ce que ce diagnostic doit détecter.
+    const cards     = section
+      ? [...section.querySelectorAll('.side-nav-card')].filter(c => !isSynthetic(c))
+      : [];
     // Carte-échantillon live (porte tous les sous-éléments). dataset.tseOffline
     // vient de notre traitement ; à défaut, on prend la 1re carte.
     const liveSample = cards.find(c => c.dataset.tseOffline !== 'true') || null;

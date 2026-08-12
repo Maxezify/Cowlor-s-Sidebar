@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.20.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.21.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -12,6 +12,10 @@ normalization of sponsored cards, category and language filters (with flags), fi
 from, locally-stored visit history, and live video preview on hover (across all
 sections) with title, contextual badges, and Content Classification Label
 handling.
+
+**New in 3.21.0**: the extension **gets ahead of Twitch**. Measured: Twitch takes
+2 to 4 minutes to show a followed channel that goes live; the extension now
+posts the card itself within 30 seconds. See "Getting ahead of Twitch" below.
 
 **New in 3.18.0**: the extension no longer just displays Twitch's data, it
 **refreshes it itself every 30 seconds** — viewer count, category, language,
@@ -87,6 +91,7 @@ On sidebar cards, concretely:
 | Viewer count | never refreshed (Twitch's value) | **30 s** |
 | Category | never refreshed (Twitch's value) | **30 s** |
 | Channel goes offline → hidden | 5 to 10 min | **30 to 60 s** |
+| Channel goes live → shown | 2 to 4 min (Twitch) | **30 s** |
 | Channel comes back → shown again | up to 5 min | **30 s** |
 | Language (tags) | 5 min | **30 s** |
 | Stream duration | 5 min | **30 s** |
@@ -95,9 +100,9 @@ Hiding an offline channel requires **two consecutive responses** confirming the
 stream ended, so a one-off hiccup on Twitch's side never makes a channel vanish
 by mistake. Hovering a card also forces an immediate check.
 
-**What the extension cannot do:** show a channel *before* Twitch does. The
-extension enriches the cards Twitch puts in the sidebar; it creates none. A
-channel that just went live therefore still appears at Twitch's own pace.
+And since 3.21, the extension no longer merely waits for Twitch to post its
+cards: it **posts its own** when Twitch lags (see "Getting ahead of Twitch"
+below).
 
 ### Network cost
 
@@ -125,6 +130,44 @@ hammering the API.
 Nothing changes regarding privacy or permissions: these calls stay **anonymous**
 (no session token, `credentials: 'omit'`), on public data, against the same
 GraphQL API Twitch already queries itself.
+
+### Getting ahead of Twitch (v3.21+)
+
+Measured on real usage (`tse.lag()`): **Twitch takes 2 to 4 minutes** to make the
+card of a followed channel appear once it goes live. Since the extension knows
+your followed channels (see "Roster") and their status is public data, it knows
+before Twitch does — and posts the card itself, within 30 seconds.
+
+**The card is a clone.** It is not hand-written: the extension duplicates an
+existing card from your sidebar and rewrites its contents (name, avatar,
+category, viewers, uptime). It is therefore visually indistinguishable from a
+Twitch card, and everything else works on it without exception: sorting,
+filters, hover preview, co-stream coloring, "fresh stream" highlighting.
+
+As soon as Twitch finally posts its own card, ours disappears — there is never a
+duplicate. It also disappears if the channel goes offline.
+
+**Two deliberate limits:**
+
+- If **no followed channel is live** in your sidebar, there is nothing to clone
+  and the extension builds nothing. Better to show nothing than a card rendered
+  approximately.
+- A channel must have been **seen at least once** in your sidebar to enter the
+  roster. A streamer you have just followed is therefore only anticipated from
+  their second time going live.
+
+On built cards, the viewer count is not announced by screen readers: Twitch's
+exact wording varies by language and cannot be reproduced faithfully — announcing
+nothing beats announcing a wrong figure. The name and category are read normally.
+
+**Disabling.** A constant near the top of `content.js`:
+
+```js
+AHEAD_ENABLED:        true,   // false → only ever show Twitch's own cards
+```
+
+At `false`, the extension keeps learning the roster and measuring Twitch's lag,
+but displays only what Twitch posts.
 
 ### Backgrounded tab
 
@@ -259,9 +302,10 @@ tab. A stream that started before the extension was observing is discarded: its
 card may well have been there already, so nothing can be concluded. Samples
 therefore accumulate slowly, through normal usage.
 
-What it's for: deciding on evidence whether it's worth having the extension get
-ahead of Twitch on showing channels that go live. If Twitch turns out to be fast
-at this, the question is settled.
+This measurement is what justified the "Getting ahead of Twitch" feature: the
+first samples showed 2 to 4.5 minutes of lag, without a single one under two
+minutes. It keeps running, and lets you check for yourself what the extension
+gains you.
 
 ### Followed-channel roster (v3.19+)
 
@@ -270,10 +314,10 @@ ones (the extension then hides them). So the extension memorises, across page
 loads, the list of channels you follow — without ever authenticating or touching
 a session token.
 
-This list is **not used by any feature yet**. It accumulates now so it is ready
-should the extension one day poll beyond what Twitch displays. A channel not
-seen in the sidebar for 60 days is forgotten — which is what prevents holding on
-to a channel you have unfollowed.
+This list is what lets the extension poll beyond what Twitch displays, and so
+post a card before it does (see "Getting ahead of Twitch"). A channel not seen in
+the sidebar for 60 days is forgotten — which is what prevents holding on to a
+channel you have unfollowed.
 
 ---
 
@@ -285,7 +329,7 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 | Key | Contents | Used for |
 | --- | --- | --- |
 | `tse:visits` | your visit dates per channel | "Most visited" sort |
-| `tse:roster` | followed channels seen in the sidebar | nothing yet (see Console API) |
+| `tse:roster` | followed channels seen in the sidebar | posting a card before Twitch |
 | `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
 
 `tse.reset()` wipes all three at any time; clearing `twitch.tv`'s site data from
@@ -418,6 +462,28 @@ context, and a fourth transformation adds localization.
 
    See the "Near-live refresh" section for the functional details and the tuning
    constants.
+
+6. **Built cards (v3.21.0)**. The second deliberate functional departure from
+   the userscript, and the only one that makes the sidebar show anything other
+   than what Twitch put there. Three pieces:
+
+   - a **roster** of followed channels, learned by watching the sidebar — Twitch
+     renders offline followed channels there as well as live ones, which makes
+     the list recoverable without ever authenticating;
+   - **polling** that roster at the same cadence as everything else, made
+     affordable by `users(logins:)`;
+   - **building by cloning** a native card rather than hand-written markup: that
+     is what guarantees the rendering and compatibility with sorting, filters
+     and preview. The clone is scrubbed of everything belonging to the source
+     card — our own injections, extra rows, `id`s (which would be duplicated in
+     the document) and ARIA labels (which would announce the wrong streamer).
+
+   Built cards are excluded from the internal counters that gauge Twitch's own
+   activity (the "Show More" auto-expansion, loading-veil stability, original
+   Twitch order, auto-diagnostic): including them would mean mistaking our own
+   work for Twitch's.
+
+   Disable with `AHEAD_ENABLED: false`.
 
 No other behavior change was introduced relative to userscript v2.22.3.
 

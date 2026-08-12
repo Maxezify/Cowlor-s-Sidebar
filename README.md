@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.20.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.21.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -12,6 +12,11 @@ multistream), normalisation visuelle des cartes sponsorisées, filtres par
 catégorie et par langue (avec drapeaux), cinq modes de tri au choix, historique de visites stocké localement,
 et aperçu vidéo en direct au survol d'une chaîne (toutes sections confondues)
 avec titre, badges contextuels et gestion des Content Classification Labels.
+
+**Nouveau en 3.21.0** : l'extension **prend les devants sur Twitch**. Mesure à
+l'appui, Twitch met 2 à 4 minutes à afficher une chaîne suivie qui passe en
+direct ; l'extension la pose désormais elle-même en 30 secondes. Voir
+« Prendre les devants sur Twitch » plus bas.
 
 **Nouveau en 3.18.0** : l'extension ne se contente plus d'afficher les données
 de Twitch, elle les **rafraîchit elle-même toutes les 30 secondes** — nombre de
@@ -92,6 +97,7 @@ Concrètement, sur les cartes de la sidebar :
 | Nombre de viewers | jamais rafraîchi (valeur de Twitch) | **30 s** |
 | Catégorie | jamais rafraîchie (valeur de Twitch) | **30 s** |
 | Chaîne qui coupe → masquée | 5 à 10 min | **30 à 60 s** |
+| Chaîne qui passe en direct → affichée | 2 à 4 min (Twitch) | **30 s** |
 | Chaîne qui reprend → réaffichée | jusqu'à 5 min | **30 s** |
 | Langue (tags) | 5 min | **30 s** |
 | Durée de stream | 5 min | **30 s** |
@@ -101,10 +107,9 @@ confirmant l'arrêt : un incident ponctuel côté Twitch ne fait donc pas
 disparaître une chaîne à tort. Survoler une carte force par ailleurs une
 vérification immédiate.
 
-**Ce que l'extension ne peut pas faire :** afficher une chaîne *avant* Twitch.
-L'extension enrichit les cartes que Twitch place dans la sidebar ; elle n'en
-crée aucune. Une chaîne qui vient de passer en live apparaît donc au rythme de
-Twitch.
+Et depuis la 3.21, l'extension ne se contente plus d'attendre que Twitch pose
+ses cartes : elle **pose les siennes** quand il tarde (cf. « Prendre les devants
+sur Twitch » ci-dessous).
 
 ### Coût réseau
 
@@ -132,6 +137,46 @@ plutôt que de marteler l'API.
 Rien ne change côté vie privée ni permissions : ces appels restent **anonymes**
 (aucun jeton de session, `credentials: 'omit'`), sur des données publiques, vers
 la même API GraphQL que Twitch interroge déjà lui-même.
+
+### Prendre les devants sur Twitch (v3.21+)
+
+Mesure faite sur usage réel (`tse.lag()`) : **Twitch met 2 à 4 minutes** à faire
+apparaître la carte d'une chaîne suivie qui vient de passer en direct. Comme
+l'extension connaît la liste de vos chaînes suivies (cf. « Roster ») et que leur
+statut est une donnée publique, elle le sait avant lui — et pose la carte
+elle-même, en 30 secondes.
+
+**La carte est un clone.** Elle n'est pas écrite à la main : l'extension duplique
+une carte existante de votre sidebar et en réécrit le contenu (pseudo, avatar,
+catégorie, viewers, durée). Elle est donc visuellement indiscernable d'une carte
+Twitch, et tout le reste fonctionne dessus sans exception : tri, filtres, aperçu
+au survol, coloration des co-streams, mise en avant « stream frais ».
+
+Dès que Twitch pose enfin sa propre carte, la nôtre disparaît — il n'y a jamais
+de doublon. Elle disparaît aussi si la chaîne coupe.
+
+**Deux limites, assumées :**
+
+- S'il n'y a **aucune chaîne suivie en direct** dans votre sidebar, il n'y a rien
+  à cloner et l'extension ne fabrique rien. Mieux vaut ne rien afficher qu'une
+  carte au rendu approximatif.
+- Une chaîne doit avoir été **vue au moins une fois** dans votre sidebar pour
+  entrer au roster. Un streamer que vous venez de suivre n'est donc devancé qu'à
+  partir de son deuxième passage en direct.
+
+Sur les cartes fabriquées, le nombre de viewers n'est pas annoncé par les
+lecteurs d'écran : la formulation exacte de Twitch varie selon la langue et ne
+peut pas être reproduite fidèlement — ne rien annoncer vaut mieux qu'annoncer un
+chiffre erroné. Le pseudo et la catégorie, eux, sont lus normalement.
+
+**Désactivation.** Une constante en haut de `content.js` :
+
+```js
+AHEAD_ENABLED:        true,   // false → l'extension n'affiche que les cartes de Twitch
+```
+
+À `false`, l'extension continue d'apprendre le roster et de mesurer le retard de
+Twitch, mais n'affiche plus que ce que Twitch pose.
 
 ### Onglet en arrière-plan
 
@@ -273,9 +318,10 @@ après votre dernier retour sur l'onglet. Un stream démarré avant que l'extens
 n'observe est écarté : sa carte était peut-être déjà là, on ne peut rien en
 conclure. Les mesures s'accumulent donc lentement, au fil de l'usage normal.
 
-À quoi ça sert : décider en connaissance de cause s'il vaut la peine que
-l'extension prenne les devants sur l'affichage des chaînes qui passent en
-direct. Si Twitch s'avère rapide sur ce point, la question est réglée.
+C'est cette mesure qui a justifié la fonctionnalité « Prendre les devants sur
+Twitch » : les premiers relevés donnaient 2 à 4,5 minutes de retard, sans un
+seul échantillon sous les deux minutes. Elle continue de tourner, et vous permet
+de vérifier vous-même ce que l'extension vous fait gagner.
 
 ### Roster des chaînes suivies (v3.19+)
 
@@ -284,11 +330,11 @@ en direct (l'extension les masque ensuite). L'extension mémorise donc, au fil
 des chargements, la liste des chaînes que vous suivez — sans jamais
 s'authentifier ni toucher à un jeton de session.
 
-Cette liste **n'est encore exploitée par aucune fonctionnalité**. Elle
-s'accumule dès maintenant pour être prête si l'extension devait un jour sonder
-au-delà de ce que Twitch affiche. Une chaîne qui n'a plus été vue dans la
-sidebar depuis 60 jours est oubliée — c'est ce qui évite de retenir
-indéfiniment une chaîne à laquelle vous vous êtes désabonné.
+C'est cette liste qui permet à l'extension de sonder au-delà de ce que Twitch
+affiche, et donc de poser une carte avant lui (cf. « Prendre les devants sur
+Twitch »). Une chaîne qui n'a plus été vue dans la sidebar depuis 60 jours est
+oubliée — c'est ce qui évite de retenir indéfiniment une chaîne à laquelle vous
+vous êtes désabonné.
 
 ---
 
@@ -300,7 +346,7 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 | Clé | Contenu | Usage |
 | --- | --- | --- |
 | `tse:visits` | dates de vos visites par chaîne | tri « Mes plus visités » |
-| `tse:roster` | chaînes suivies aperçues dans la sidebar | aucun pour l'instant (cf. API console) |
+| `tse:roster` | chaînes suivies aperçues dans la sidebar | poser une carte avant Twitch |
 | `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
 
 `tse.reset()` efface les trois à tout moment ; vider les données de site de
@@ -437,6 +483,29 @@ extension, et une quatrième transformation ajoute la localisation.
 
    Cf. la section « Rafraîchissement en quasi-direct » pour le détail
    fonctionnel et les constantes de réglage.
+
+6. **Cartes fabriquées (v3.21.0)**. Second écart fonctionnel assumé vis-à-vis
+   du userscript, et le seul qui fasse apparaître dans la sidebar autre chose
+   que ce que Twitch y a mis. Trois pièces :
+
+   - un **roster** des chaînes suivies, appris en observant la sidebar — Twitch
+     y rend les chaînes hors ligne autant que celles en direct, ce qui rend la
+     liste récupérable sans jamais s'authentifier ;
+   - un **sondage** de ce roster à la même cadence que le reste, rendu abordable
+     par `users(logins:)` ;
+   - une **fabrication par clonage** d'une carte native, plutôt qu'un markup
+     écrit à la main : c'est ce qui garantit le rendu et la compatibilité avec
+     le tri, les filtres et l'aperçu. Le clone est nettoyé de tout ce qui
+     appartenait à la carte source — nos injections, les lignes annexes, les
+     `id` (qui feraient doublon dans le document) et les libellés ARIA (qui
+     feraient annoncer le mauvais streamer).
+
+   Les cartes fabriquées sont exclues des compteurs internes qui mesurent
+   l'activité de Twitch (auto-expansion « Afficher plus », stabilité du voile
+   de chargement, ordre Twitch d'origine, auto-diagnostic) : les y inclure
+   reviendrait à prendre notre propre travail pour celui de Twitch.
+
+   Désactivable par `AHEAD_ENABLED: false`.
 
 Aucun autre changement de comportement n'a été introduit par rapport au
 userscript v2.22.3.
