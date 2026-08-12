@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Cowlor's Sidebar for Twitch",
+    "description": "Anzeigename der Erweiterung in chrome://extensions"
+  },
+  "extShortName": {
+    "message": "Cowlor's Sidebar",
+    "description": "Kurzer Name der Erweiterung für kompakte Kontexte"
+  },
+  "extDescription": {
+    "message": "Live-Vorschau beim Überfahren, Stream-Laufzeit, Co-streams, aufgeräumte Sidebar. Twitch, aber besser.",
+    "description": "Kurzbeschreibung der Erweiterung (max. 132 Zeichen im Chrome Web Store)"
+  }
+}
