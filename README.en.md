@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.17.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.18.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -12,6 +12,11 @@ normalization of sponsored cards, category and language filters (with flags), fi
 from, locally-stored visit history, and live video preview on hover (across all
 sections) with title, contextual badges, and Content Classification Label
 handling.
+
+**New in 3.18.0**: the extension no longer just displays Twitch's data, it
+**refreshes it itself every 30 seconds** — viewer count, category, language,
+stream uptime, and above all the hiding of channels that just went offline
+(30 to 60 s instead of 5 to 10 min). See the "Near-live refresh" section below.
 
 **New in 3.0.0+**: the hover preview is now free of pre-roll ads thanks to a
 built-in anti-ad module (see the dedicated section below). The main stream is
@@ -65,6 +70,69 @@ API, thumbnails, `player.twitch.tv` for previews).
 - **Firefox**: recent Firefox MV3 supports `"world": "MAIN"`, but there can be
   subtle injection-timing differences. The port targets Chromium; on Firefox,
   the original userscript (via Violentmonkey) remains the safest option.
+
+---
+
+## Near-live refresh (v3.18+)
+
+Twitch updates its sidebar infrequently: a channel that just went offline often
+lingers there for several minutes, and the viewer counts shown are stale for
+just as long. **The extension no longer merely reads that data — it refreshes it
+itself, every 30 seconds.**
+
+On sidebar cards, concretely:
+
+| Data | Before | Now |
+| --- | --- | --- |
+| Viewer count | never refreshed (Twitch's value) | **30 s** |
+| Category | never refreshed (Twitch's value) | **30 s** |
+| Channel goes offline → hidden | 5 to 10 min | **30 to 60 s** |
+| Channel comes back → shown again | up to 5 min | **30 s** |
+| Language (tags) | 5 min | **30 s** |
+| Stream duration | 5 min | **30 s** |
+
+Hiding an offline channel requires **two consecutive responses** confirming the
+stream ended, so a one-off hiccup on Twitch's side never makes a channel vanish
+by mistake. Hovering a card also forces an immediate check.
+
+**What the extension cannot do:** show a channel *before* Twitch does. The
+extension enriches the cards Twitch puts in the sidebar; it creates none. A
+channel that just went live therefore still appears at Twitch's own pace.
+
+### Network cost
+
+A **single** query (`TseChannel`) now returns stream duration, viewers, category
+and languages, where three separate operations were needed before. So even at a
+tenfold higher frequency, the request count does not grow proportionally.
+Requests are split into batches of at most 25 channels, sent in parallel: a
+rejected batch only affects the channels it carried.
+
+If the network drops, the extension **keeps the last known state** — it never
+shows a false "Ended" — and pauses its requests for 30 seconds rather than
+hammering the API.
+
+Nothing changes regarding privacy or permissions: these calls stay **anonymous**
+(no session token, `credentials: 'omit'`), on public data, against the same
+GraphQL API Twitch already queries itself.
+
+### Backgrounded tab
+
+Refreshing is **suspended** while the tab is not visible: browsers heavily
+throttle timers and requests there, and truncated responses would produce false
+"Ended" labels. On returning to the tab, the sidebar is fully repopulated behind
+the loading veil.
+
+### Tuning the cadence
+
+Everything is driven by a single constant near the top of `content.js`:
+
+```js
+LIVE_TTL:       30_000,   // ms — freshness of stream data
+REFRESH_TICK:   30_000,   // ms — refresh wake-up
+```
+
+Raise them to lighten traffic, lower them to get even closer to live. Then
+reload the extension (`chrome://extensions` → ↻) and the Twitch tab.
 
 ---
 
@@ -132,10 +200,12 @@ button, "X et N invités" / "X and N guests" / "X und N Gäste" / "X y N invitad
 / "X e N convidados" accessibility text, etc.) are also supported across all five
 languages, with a structural fallback for any other locale.
 
-The viewer count is parsed independently of locale: decimal abbreviation +
-suffix (`67,3 k` in fr, `67.3K` in en, `4.1 k` in es, `3,7 mil` / `1,2 mi` in
-pt, identical in Brazil and Portugal) or a full thousands-separated number
-(`29.339` in de) — viewer sorting stays correct everywhere.
+The viewer count the extension renders (see "Near-live refresh") is **formatted
+in your locale**, matching Twitch's own rendering: decimal abbreviation + suffix
+(`67,3 k` in fr, `67.3K` in en, `4.1 k` in es, `3,7 mil` / `1,2 mi` in pt,
+identical in Brazil and Portugal), or a full thousands-separated number
+(`29.339` in de). Twitch's native counter is still parsed independently of
+locale, which serves as the fallback until a channel has been resolved.
 
 If you switch languages from Twitch settings, the page reloads and the
 extension picks up the new language automatically.
@@ -273,6 +343,27 @@ context, and a fourth transformation adds localization.
      every sidebar scan. If the first detection (at `document_start`,
      before Twitch has populated the DOM) is wrong, it is corrected on the
      first scan; the root title and the filter re-translate automatically.
+
+5. **Autonomous data refresh (v3.18.0)**. The only deliberate functional
+   departure from the userscript. The userscript, like earlier 3.x releases,
+   relied on whatever data Twitch put in the DOM and re-checked live status only
+   every 5 minutes. The extension now queries the public GraphQL API itself
+   every 30 seconds, through a single operation (`TseChannel`) that replaced the
+   three previous ones (`UseLive`, `TseLang`, and the overlapping part of
+   `TsePreview`):
+
+   - the `UseLive` persisted query and its hash were **removed** — the fields
+     needed (`viewersCount`, `game`, `freeformTags`) go beyond what it returns.
+     That drops a dependency on a hash Twitch may rotate, along with the inline
+     fallback it required;
+   - the viewer count is **rendered by the extension** into its own element,
+     inserted next to the native counter, which is hidden by CSS only on cards
+     that are already resolved;
+   - GraphQL batches are **chunked** (25 operations max) and evaluated
+     independently.
+
+   See the "Near-live refresh" section for the functional details and the tuning
+   constants.
 
 No other behavior change was introduced relative to userscript v2.22.3.
 

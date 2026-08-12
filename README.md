@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.17.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.18.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -12,6 +12,12 @@ multistream), normalisation visuelle des cartes sponsorisées, filtres par
 catégorie et par langue (avec drapeaux), cinq modes de tri au choix, historique de visites stocké localement,
 et aperçu vidéo en direct au survol d'une chaîne (toutes sections confondues)
 avec titre, badges contextuels et gestion des Content Classification Labels.
+
+**Nouveau en 3.18.0** : l'extension ne se contente plus d'afficher les données
+de Twitch, elle les **rafraîchit elle-même toutes les 30 secondes** — nombre de
+viewers, catégorie, langue, durée de stream, et surtout masquage des chaînes qui
+viennent de couper (30 à 60 s au lieu de 5 à 10 min). Voir la section
+« Rafraîchissement en quasi-direct » plus bas.
 
 **Nouveau en 3.0.0+** : l'aperçu vidéo au survol est désormais débarrassé des
 publicités préroll grâce à un module anti-pub intégré (cf. section dédiée
@@ -69,6 +75,73 @@ de Twitch, miniatures, lecteur `player.twitch.tv` pour l'aperçu).
   versions récentes, mais quelques différences de timing d'injection peuvent
   exister. Le portage cible Chromium ; sous Firefox, la version userscript
   d'origine (via Violentmonkey) reste l'option la plus sûre.
+
+---
+
+## Rafraîchissement en quasi-direct (v3.18+)
+
+Twitch met sa sidebar à jour rarement : une chaîne qui vient de couper y reste
+souvent plusieurs minutes, et les nombres de viewers affichés sont figés
+d'autant. **L'extension ne se contente plus de lire ces données : elle les
+rafraîchit elle-même, toutes les 30 secondes.**
+
+Concrètement, sur les cartes de la sidebar :
+
+| Donnée | Avant | Maintenant |
+| --- | --- | --- |
+| Nombre de viewers | jamais rafraîchi (valeur de Twitch) | **30 s** |
+| Catégorie | jamais rafraîchie (valeur de Twitch) | **30 s** |
+| Chaîne qui coupe → masquée | 5 à 10 min | **30 à 60 s** |
+| Chaîne qui reprend → réaffichée | jusqu'à 5 min | **30 s** |
+| Langue (tags) | 5 min | **30 s** |
+| Durée de stream | 5 min | **30 s** |
+
+Le masquage d'une chaîne hors ligne demande **deux réponses successives**
+confirmant l'arrêt : un incident ponctuel côté Twitch ne fait donc pas
+disparaître une chaîne à tort. Survoler une carte force par ailleurs une
+vérification immédiate.
+
+**Ce que l'extension ne peut pas faire :** afficher une chaîne *avant* Twitch.
+L'extension enrichit les cartes que Twitch place dans la sidebar ; elle n'en
+crée aucune. Une chaîne qui vient de passer en live apparaît donc au rythme de
+Twitch.
+
+### Coût réseau
+
+Une **seule** requête (`TseChannel`) rapporte désormais durée de stream,
+viewers, catégorie et langues, là où trois opérations distinctes étaient
+nécessaires. Malgré une fréquence dix fois plus élevée, le nombre de requêtes
+n'augmente donc pas proportionnellement. Les requêtes sont découpées en lots
+d'au plus 25 chaînes, envoyés en parallèle : un lot rejeté n'affecte que les
+chaînes qu'il portait.
+
+En cas de coupure réseau, l'extension **conserve le dernier état connu** — elle
+n'affiche jamais de faux « Terminé » — et met ses requêtes en pause 30 secondes
+plutôt que de marteler l'API.
+
+Rien ne change côté vie privée ni permissions : ces appels restent **anonymes**
+(aucun jeton de session, `credentials: 'omit'`), sur des données publiques, vers
+la même API GraphQL que Twitch interroge déjà lui-même.
+
+### Onglet en arrière-plan
+
+Le rafraîchissement est **suspendu** quand l'onglet n'est pas visible : les
+navigateurs y ralentissent fortement minuteurs et requêtes, et les réponses
+tronquées produiraient de faux « Terminé ». Au retour sur l'onglet, la sidebar
+est intégralement repeuplée sous le voile de chargement.
+
+### Régler la cadence
+
+Tout est piloté par une constante unique en haut de `content.js` :
+
+```js
+LIVE_TTL:       30_000,   // ms — fraîcheur des données de stream
+REFRESH_TICK:   30_000,   // ms — réveil de rafraîchissement
+```
+
+Augmentez-les pour alléger le trafic, diminuez-les pour coller encore plus au
+direct. Rechargez ensuite l'extension (`chrome://extensions` → ↻) et l'onglet
+Twitch.
 
 ---
 
@@ -138,11 +211,13 @@ d'accessibilité « X et N invités » / « X and N guests » / « X und N Gäst
 « X y N invitados » / « X e N convidados », etc.) sont également pris en charge
 dans les cinq langues, avec repli structurel pour toute autre locale.
 
-Le compteur de viewers est interprété indépendamment de la locale : abréviation
-décimale + suffixe (`67,3 k` en fr, `67.3K` en en, `4.1 k` en es, `3,7 mil` /
-`1,2 mi` en pt, identique au Brésil et au Portugal) ou nombre plein à
-séparateur de milliers (`29.339` en de) —
-le tri par viewers reste correct partout.
+Le compteur de viewers que l'extension affiche (cf. « Rafraîchissement en
+quasi-direct ») est **rendu dans le format de votre locale**, identique à celui
+de Twitch : abréviation décimale + suffixe (`67,3 k` en fr, `67.3K` en en,
+`4.1 k` en es, `3,7 mil` / `1,2 mi` en pt, identique au Brésil et au Portugal),
+ou nombre plein à séparateur de milliers (`29.339` en de). Le compteur natif de
+Twitch reste par ailleurs interprété indépendamment de la locale, ce qui sert de
+repli tant qu'une chaîne n'a pas encore été résolue.
 
 Si vous changez la langue dans les paramètres Twitch, la page recharge et
 l'extension applique la nouvelle langue automatiquement.
@@ -284,6 +359,28 @@ extension, et une quatrième transformation ajoute la localisation.
      avant que Twitch ait peuplé le DOM) est erronée, elle est corrigée
      dès le premier scan ; le titre racine et le filtre se re-traduisent
      automatiquement.
+
+5. **Rafraîchissement autonome des données (v3.18.0)**. Seul écart fonctionnel
+   assumé vis-à-vis du userscript. Le userscript, comme les versions 3.x
+   précédentes, se contentait des données que Twitch plaçait dans le DOM et ne
+   revérifiait le statut live que toutes les 5 minutes. L'extension interroge
+   désormais elle-même l'API GraphQL publique toutes les 30 secondes, via une
+   opération unique (`TseChannel`) qui a remplacé les trois opérations
+   précédentes (`UseLive`, `TseLang`, et la partie recouvrante de
+   `TsePreview`) :
+
+   - la persisted query `UseLive` et son hash ont été **supprimés** — les champs
+     nécessaires (`viewersCount`, `game`, `freeformTags`) dépassent ce qu'elle
+     renvoie. Une dépendance à un hash susceptible d'être tourné par Twitch
+     disparaît donc, avec le repli inline qu'il fallait maintenir ;
+   - le compteur de viewers est **rendu par l'extension** dans un élément à
+     elle, inséré à côté du compteur natif, ce dernier étant masqué par CSS
+     uniquement sur les cartes déjà résolues ;
+   - les lots GraphQL sont **découpés** (25 opérations max) et évalués
+     indépendamment.
+
+   Cf. la section « Rafraîchissement en quasi-direct » pour le détail
+   fonctionnel et les constantes de réglage.
 
 Aucun autre changement de comportement n'a été introduit par rapport au
 userscript v2.22.3.

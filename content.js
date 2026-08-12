@@ -1,5 +1,5 @@
 /* ============================================================
- *  Cowlor's Sidebar for Twitch — Extension Chrome v3.17.1
+ *  Cowlor's Sidebar for Twitch — Extension Chrome v3.18.0
  *  -------------------------------------------------------------
  *  Portage du userscript Violentmonkey "Twitch Sidebar Enhancer
  *  ADBLOCK 4" v2.22.3 vers une extension Manifest V3, avec
@@ -22,6 +22,33 @@
  *  Les deux modules ont des gardes opposées (iframe-only /
  *  top-level-only) donc dans n'importe quelle frame, exactement
  *  un des deux est actif.
+ *
+ *  FRAÎCHEUR DES DONNÉES (v3.18) — l'extension ne se contente pas
+ *  de lire le DOM de Twitch, elle rafraîchit elle-même ce que
+ *  Twitch laisse périmer. Le pipeline tient en trois pièces :
+ *
+ *   • UNE requête, TseChannel, qui rapporte par chaîne tout ce
+ *     dont la sidebar a besoin (createdAt, viewersCount, game,
+ *     freeformTags, id). Elle a remplacé UseLive + TseLang.
+ *   • UN cache à TTL, `cache` (login -> entrée), dont la durée de
+ *     validité LIVE_TTL est la SEULE constante qui détermine à
+ *     quel point la sidebar colle au direct.
+ *   • UN scan idempotent : processCard lit le cache s'il est
+ *     frais (sans réseau), remet le login en file sinon. Le
+ *     rendu passe par applyChannelData, ré-appelable sans effet
+ *     de bord cumulatif.
+ *
+ *  Deux invariants tiennent l'ensemble, tous deux nécessaires
+ *  parce que le scan est déclenché par les mutations du DOM :
+ *
+ *   a) toute écriture de texte passe par setText(), qui n'écrit
+ *      que si la valeur change. Une écriture inconditionnelle
+ *      dans le scan entretiendrait sa propre boucle (écriture →
+ *      mutation → scan → écriture).
+ *   b) la confirmation hors-ligne se compte par RÉPONSE RÉSEAU
+ *      (marqueur tseOfflineTs), jamais par appel : sinon
+ *      OFFLINE_CONFIRM serait consommé en un instant par la
+ *      rafale de scans d'une seule mutation.
  *
  *  Adaptations imposées par le contexte extension :
  *
@@ -1567,7 +1594,13 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   const CFG = Object.freeze({
     GQL_URL:        'https://gql.twitch.tv/gql',
     CLIENT_ID:      'kimne78kx3ncx6brgo4mv6wki5h1ko',
-    USE_LIVE_HASH:  '639d5f11bfb8bf3053b424d9ef650d04c4ebb7d94711d644afb08fe9a0fad5d9',
+    // Nombre max d'opérations par POST GraphQL. Twitch plafonne la taille des
+    // lots batchés : au-delà, c'est le lot ENTIER qui est rejeté, et tous les
+    // logins qu'il portait retombent en UPTIME_UNKNOWN (sidebar figée sur son
+    // dernier état, sans signe visible de panne). On découpe donc en tranches,
+    // envoyées en parallèle et évaluées INDÉPENDAMMENT : l'échec d'une tranche
+    // ne coûte que les logins de cette tranche.
+    GQL_MAX_BATCH:  25,
     // Persisted query "GuestStarBatchCollaborationQuery" : source FIABLE des
     // co-streams "Streamer ensemble" (host.id partagé entre participants).
     // Capté sur le trafic gql.twitch.tv ; repli heuristique si le hash devient
@@ -1583,7 +1616,32 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     COSTREAM_COLOR_GRACE:      60_000,   // ms
     BATCH_DELAY:    250,
     UI_TICK:        60_000,
-    DATA_TTL:       5 * 60_000,
+    // ─── Cadence de fraîcheur ─────────────────────────────────────────
+    // LIVE_TTL est LA constante qui détermine à quel point la sidebar colle
+    // au direct : durée de validité d'une réponse TseChannel (statut live,
+    // createdAt, viewers, catégorie, tags de langue). Tant qu'une entrée est
+    // fraîche, les scans la relisent sans réseau ; dès qu'elle périme, le
+    // premier scan qui la touche la remet en file.
+    //
+    // 30 s est une cadence assumée, pas une estimation : le module Guest Star
+    // interroge déjà gql.twitch.tv à ce rythme (GUEST_STAR_TTL) avec un lot de
+    // toutes les chaînes suivies, sans incident. On s'aligne dessus.
+    LIVE_TTL:       30_000,
+    // Période du réveil de rafraîchissement. Un scan périodique est nécessaire
+    // même sans mutation DOM : sans lui, une sidebar immobile ne redemanderait
+    // jamais rien. Aligné sur LIVE_TTL — le scan trouve les entrées tout juste
+    // périmées et les remet en file.
+    REFRESH_TICK:   30_000,
+    // Période des tâches d'entretien (purge des caches, auto-diagnostic des
+    // sélecteurs). Rien à voir avec la fraîcheur : c'est de l'hygiène, elle
+    // n'a aucune raison de suivre la cadence de rafraîchissement.
+    MAINTENANCE_TICK: 5 * 60_000,
+    // Âge au-delà duquel une entrée du cache de streams est évincée. Volontai-
+    // rement plus large que LIVE_TTL : les chaînes affichées sont rafraîchies
+    // en boucle et ne vieillissent jamais jusque-là ; seules les entrées
+    // ponctuelles (survol hors « suivis », carte disparue) sont évincées.
+    LIVE_PRUNE_AGE: 5 * 60_000,
+    LIVE_CACHE_MAX: 500,          // entrées max du cache de streams
     // Durée d'absence (onglet caché) au-delà de laquelle un retour sur l'onglet
     // déclenche une RÉ-INITIALISATION complète sous voile (purge cache + rescan).
     // Pendant une absence, notre re-fetch GraphQL est en pause ET Twitch a pu
@@ -1592,20 +1650,34 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     // flasher le voile à chaque bref coup d'œil sur un autre onglet.
     REVISIT_RELOAD_MS: 60_000,
     // Délai après le boot avant le 1er auto-diagnostic des sélecteurs (laisse
-    // à Twitch le temps de monter la sidebar). Ensuite réévalué tous les DATA_TTL.
+    // à Twitch le temps de monter la sidebar). Ensuite réévalué à chaque
+    // MAINTENANCE_TICK.
     HEALTH_INITIAL_DELAY: 8_000,
     SCAN_DEBOUNCE:  250,
     FRESH_MAX_MIN:  10,
     GQL_TIMEOUT:    15_000,       // ms — au-delà, on considère la requête HS
-    OFFLINE_CONFIRM: 2,           // nb de réponses "stream=null" consécutives avant "Terminé"
+    // Pause après l'échec d'un lot TseChannel (réseau coupé, throttle, lot
+    // rejeté). Indispensable depuis que les cartes ne portent plus de garde
+    // qui bloque leur re-fetch : sans cooldown, chaque scan reconstituerait
+    // aussitôt la file, et une panne réseau se traduirait par un lot toutes
+    // les SCAN_DEBOUNCE — soit un martèlement à 4 requêtes/seconde pendant
+    // toute la durée de la panne. Aligné sur LIVE_TTL : dans le cas normal
+    // on aurait de toute façon attendu ce délai, la pause ne coûte rien.
+    GQL_ERROR_COOLDOWN: 30_000,
+    // Nombre de réponses "stream=null" CONSÉCUTIVES avant de basculer en
+    // "Terminé". Chaque confirmation coûte un LIVE_TTL : à 30 s, une chaîne
+    // qui coupe disparaît en 30 à 60 s, tout en gardant la garde à deux coups
+    // contre un faux négatif ponctuel (hiccup côté Twitch).
+    OFFLINE_CONFIRM: 2,
     // Plafonds mémoire des caches reconstruisibles (purge périodique). Évincer
     // une entrée = simple re-fetch à la prochaine demande, sans effet visible.
     META_CACHE_MAX:  300,         // entrées max du cache de métadonnées d'aperçu
     GS_CACHE_MAX:    500,         // entrées max du cache Guest Star
-    LANG_TTL:        300_000,     // ms — fraîcheur d'une langue de stream en cache (5 min)
-    LANG_DEBOUNCE:   300,         // ms — fenêtre de regroupement des logins avant fetch langue
-    LANG_ERROR_COOLDOWN: 30_000,  // ms — pause après échec réseau du fetch langue
-    LANG_CACHE_MAX:  500,         // entrées max du cache de langues
+    // Âge d'éviction du cache Guest Star. Comme LIVE_PRUNE_AGE, volontairement
+    // plus large que son TTL de fraîcheur (GUEST_STAR_TTL) : les entrées des
+    // chaînes affichées sont re-set en boucle par le scan, seules les entrées
+    // ponctuelles vieillissent jusqu'à l'éviction.
+    GS_PRUNE_AGE:    5 * 60_000,
     PURPLE:         '#9147ff',
     PURPLE_HOVER:   '#a970ff',
 
@@ -1747,6 +1819,21 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     }
     @keyframes tse-spin {
       to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* === Compteur de viewers rafraîchi par l'extension ===
+       Notre span est inséré juste après le compteur natif, dans le même
+       parent : il reprend donc exactement sa place dans le flux, sans avoir
+       à rejouer la mise en page de Twitch. Le natif n'est masqué que sur les
+       cartes qui portent déjà une valeur à nous ([data-tse-viewers]) — sur
+       toutes les autres (résolution en cours, sections hors « suivis »),
+       c'est celui de Twitch qui reste affiché. */
+    .tse-viewers {
+      font-variant-numeric: tabular-nums;
+    }
+    .side-nav-card[data-tse-viewers] .side-nav-card__live-status [aria-hidden="true"]:not(.tse-viewers),
+    .side-nav-card[data-tse-viewers] [data-a-target="side-nav-live-status"] [aria-hidden="true"]:not(.tse-viewers) {
+      display: none !important;
     }
 
     /* === Uptime label sous le nombre de viewers === */
@@ -2336,11 +2423,40 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   };
 
   /* ============================================================
-   *  GRAPHQL — batching + cache + fallback
+   *  GRAPHQL — requête consolidée, batching découpé, cache
+   *  -------------------------------------------------------------
+   *  UNE seule opération (TseChannel) porte tout ce dont la sidebar
+   *  a besoin par chaîne :
+   *    stream.createdAt     → durée de stream + « stream frais »
+   *    stream.viewersCount  → compteur rafraîchi (cf. module VIEWERS)
+   *    stream.game.name     → catégorie (filtre + heuristique co-stream)
+   *    stream.freeformTags  → langues (cf. langStore)
+   *    user.id              → clé de la résolution Guest Star
+   *  stream === null ⇒ la chaîne est réellement hors ligne.
+   *
+   *  Une entrée de cache vaut LIVE_TTL. Tant qu'elle est fraîche les
+   *  scans la relisent sans réseau ; dès qu'elle périme, le premier
+   *  scan qui la touche remet le login en file. C'est ce TTL — et lui
+   *  seul — qui fixe la fraîcheur de la sidebar.
+   *
+   *  Requête INLINE (et non persisted query) : les champs dont on a
+   *  besoin dépassent ce que renvoie le hash UseLive, qui n'a donc plus
+   *  lieu d'être. On perd une dépendance à un hash susceptible d'être
+   *  tourné par Twitch, et le repli inline qu'il fallait maintenir avec.
+   *  Le transport reste identique : Client-ID public, credentials omis,
+   *  donnée strictement publique — comme TsePreview.
    * ============================================================ */
   const cache = new Map();
   let queue = new Map();
   let queueTimer = null;
+  let gqlCooldownUntil = 0;   // anti-martèlement après l'échec d'un lot
+
+  // Découpe un tableau en tranches d'au plus `size` éléments.
+  const chunk = (arr, size) => {
+    const out = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  };
 
   // Sentinelle retournée par post() en cas d'échec réseau (timeout, fetch
   // rejeté, JSON invalide). À distinguer d'un payload légitime contenant
@@ -2365,19 +2481,23 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       .finally(() => clearTimeout(timer));
   };
 
-  const buildPersisted = (login) => ({
-    operationName: 'UseLive',
-    variables: { channelLogin: login },
-    extensions: { persistedQuery: { version: 1, sha256Hash: CFG.USE_LIVE_HASH } }
-  });
+  const TSE_CHANNEL_QUERY =
+    'query TseChannel($channelLogin: String!) {' +
+    '  user(login: $channelLogin) {' +
+    '    id' +
+    '    login' +
+    '    stream {' +
+    '      id createdAt viewersCount' +
+    '      game { id name }' +
+    '      freeformTags { name }' +
+    '    }' +
+    '  }' +
+    '}';
 
-  const INLINE_QUERY =
-    'query UseLive($channelLogin: String!) { user(login: $channelLogin) { id login stream { id createdAt } } }';
-
-  const buildInline = (login) => ({
-    operationName: 'UseLive',
+  const buildChannelOp = (login) => ({
+    operationName: 'TseChannel',
     variables: { channelLogin: login },
-    query: INLINE_QUERY
+    query: TSE_CHANNEL_QUERY
   });
 
   // Sentinelle pour les consommateurs : "on n'a pas pu savoir, ne touche à rien".
@@ -2402,42 +2522,88 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     queue = new Map();
     if (!logins.length) return;
 
-    let results = await post(logins.map(buildPersisted));
+    // Découpage en tranches, envoyées EN PARALLÈLE. Chaque tranche est jugée
+    // séparément : un lot rejeté (trop gros, throttle, erreur globale) ne fait
+    // basculer en UPTIME_UNKNOWN que les logins qu'il portait, au lieu
+    // d'aveugler toute la sidebar d'un coup.
+    const slices = chunk(logins, CFG.GQL_MAX_BATCH);
+    const responses = await Promise.all(slices.map(s => post(s.map(buildChannelOp))));
 
-    // Fallback inline si le hash de persisted query est obsolète.
-    if (Array.isArray(results) &&
-        results.some(r => r?.errors?.[0]?.message === 'PersistedQueryNotFound')) {
-      results = await post(logins.map(buildInline));
-    }
+    const now = Date.now();
+    let fresh = 0;
 
-    // Réponse HS → ne pas écraser le cache, ne pas marquer les cartes hors-ligne.
-    if (isResultsUnusable(results)) {
-      logins.forEach(login => {
-        (pending.get(login) || []).forEach(fn => fn(UPTIME_UNKNOWN));
+    slices.forEach((slice, si) => {
+      const results = responses[si];
+
+      // Tranche HS → ne pas écraser le cache, ne pas marquer les cartes
+      // hors-ligne : les appelants reçoivent la sentinelle "on ne sait pas".
+      // L'échec vaut aussi signal de santé réseau : on ouvre une pause pendant
+      // laquelle plus rien n'est mis en file (cf. GQL_ERROR_COOLDOWN).
+      if (isResultsUnusable(results)) {
+        gqlCooldownUntil = Date.now() + CFG.GQL_ERROR_COOLDOWN;
+        slice.forEach(login => {
+          (pending.get(login) || []).forEach(fn => fn(UPTIME_UNKNOWN));
+        });
+        return;
+      }
+
+      slice.forEach((login, i) => {
+        const user   = results?.[i]?.data?.user;
+        const stream = user?.stream ?? null;
+        // ID numérique de la chaîne : clé attendue par la requête Guest Star
+        // (GuestStarBatchCollaborationQuery prend des channelIDs, pas des
+        // logins). On préserve un ID déjà connu si la réponse ne le porte pas.
+        const id = user?.id ?? cache.get(login)?.id ?? null;
+        // Tags bruts conservés tels quels : la canonicalisation en langues est
+        // faite à la LECTURE (cf. langStore), ce qui évite de dupliquer ici la
+        // table LANG_SET définie bien plus bas dans le module.
+        const tags = Array.isArray(stream?.freeformTags)
+          ? stream.freeformTags.map(t => t?.name).filter(Boolean)
+          : [];
+        const entry = {
+          id,
+          stream,
+          tags,
+          game:    stream?.game?.name || null,
+          viewers: Number.isFinite(stream?.viewersCount) ? stream.viewersCount : null,
+          ts:      now
+        };
+        cache.set(login, entry);
+        fresh++;
+        (pending.get(login) || []).forEach(fn => fn(entry));
       });
-      return;
-    }
-
-    logins.forEach((login, i) => {
-      const user = results?.[i]?.data?.user;
-      const stream = user?.stream ?? null;
-      // On mémorise aussi l'ID numérique de la chaîne (présent dans la
-      // réponse UseLive) : c'est la clé attendue par la requête Guest Star
-      // (GuestStarBatchCollaborationQuery prend des channelIDs, pas des
-      // logins). On préserve un ID déjà connu si la réponse ne le porte pas.
-      const id = user?.id ?? cache.get(login)?.id ?? null;
-      cache.set(login, { stream, id, ts: Date.now() });
-      (pending.get(login) || []).forEach(fn => fn(stream));
     });
+
+    // Données fraîches → re-scan pour répercuter viewers, catégories, langues
+    // (options des filtres) et l'ordre de tri sur l'ensemble de la sidebar.
+    if (fresh) scheduleScan();
   }
 
-  // ID numérique d'une chaîne si on l'a déjà appris via UseLive, sinon null.
+  // ID numérique d'une chaîne si on l'a déjà appris, sinon null.
   // Sert de clé à la résolution Guest Star (cf. module co-stream).
   const getChannelId = (login) => cache.get(login)?.id ?? null;
 
-  const fetchStream = (login) => {
+  // Entrée de cache ENCORE FRAÎCHE, ou null. Lecture pure : n'enfile rien.
+  // C'est le chemin rapide des scans — un simple lookup de Map, sans promesse
+  // ni microtâche, exécuté sur ~100 cartes à chaque mutation de la sidebar.
+  const getFreshChannel = (login) => {
     const hit = cache.get(login);
-    if (hit && Date.now() - hit.ts < CFG.DATA_TTL) return Promise.resolve(hit.stream);
+    return hit && Date.now() - hit.ts < CFG.LIVE_TTL ? hit : null;
+  };
+
+  // Met `login` en file et tient la promesse avec son entrée de cache (ou
+  // UPTIME_UNKNOWN si la tranche a échoué). À n'appeler que si getFreshChannel
+  // a renvoyé null.
+  //
+  // Pendant une pause d'erreur, on répond UPTIME_UNKNOWN sans rien enfiler :
+  // les cartes gardent leur dernier état connu, exactement comme lors d'un
+  // échec ordinaire, et aucune requête ne part. Une entrée de cache PÉRIMÉE
+  // reste préférable à l'ignorance : on la sert telle quelle plutôt que de
+  // faire régresser l'affichage vers « on ne sait pas ».
+  const fetchChannel = (login) => {
+    if (Date.now() < gqlCooldownUntil) {
+      return Promise.resolve(cache.get(login) ?? UPTIME_UNKNOWN);
+    }
     return new Promise(resolve => {
       const arr = queue.get(login) || [];
       arr.push(resolve);
@@ -2468,6 +2634,21 @@ if (TSE_ADBLOCK_ENABLED) (function() {
 
   const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  /**
+   * Écrit du texte dans un élément UNIQUEMENT s'il change.
+   *
+   * À utiliser pour tout ce qu'on écrit dans la sidebar, sans exception.
+   * Affecter textContent remplace le nœud texte même quand la chaîne est
+   * identique, ce qui émet une mutation childList — or notre MutationObserver
+   * traite toute mutation dans #side-nav comme un signal de re-scan. Une
+   * écriture inconditionnelle dans une fonction appelée par le scan entretient
+   * donc sa propre boucle : scan → écriture → mutation → scan, indéfiniment,
+   * à la fréquence du debounce. Le test d'égalité la coupe net.
+   */
+  const setText = (el, text) => {
+    if (el && el.textContent !== text) el.textContent = text;
+  };
 
   // Section « Chaînes suivies ». Cascade pour être INDÉPENDANT DE LA LANGUE de
   // l'UI Twitch : (1) aria-label localisé (fr/en/de/es/pt — rapide et précis) ; (2) repli
@@ -2932,11 +3113,23 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   tseApi.scores.raw = () => buildScoresReport();
 
   // Expose en lecture seule pour éviter qu'un autre script ne l'écrase.
-  Object.defineProperty(window, 'tse', {
-    value: Object.freeze(tseApi),
-    writable: false,
-    configurable: false
-  });
+  //
+  // Le try/catch n'est pas décoratif : la propriété est posée non
+  // configurable, donc une SECONDE exécution du script sur le même document
+  // (rechargement de l'extension sur un onglet déjà ouvert, cohabitation avec
+  // le userscript dont ce portage est issu) lève une TypeError. Sans garde,
+  // elle interromprait l'IIFE AVANT l'appel à boot() en fin de fichier :
+  // l'extension entière resterait inerte, sans le moindre message.
+  try {
+    Object.defineProperty(window, 'tse', {
+      value: Object.freeze(tseApi),
+      writable: false,
+      configurable: false
+    });
+  } catch {
+    // Déjà posé par une exécution précédente — on garde l'objet en place et
+    // on poursuit le démarrage normalement.
+  }
 
   /* ============================================================
    *  CARD HELPERS
@@ -2952,19 +3145,56 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     card.querySelector('.tw-avatar') ||
     card.querySelector('img.tw-image-avatar')?.closest('figure, .tw-avatar, div');
 
+  const cardCategoryEl = (card) =>
+    card.querySelector('.side-nav-card__metadata p[title]') ||
+    card.querySelector('[data-a-target="side-nav-card-metadata"] p[title]') ||
+    // Cartes sponsorisées "promoted-followed" : la catégorie est dans
+    // .side-nav-promoted-followed-card__content (classe STABLE), hors de
+    // la metadata normale. Sans ce repli, le stream sponsorisé n'a pas de
+    // data-tse-category et échappe aux filtres catégorie/langue.
+    card.querySelector('[class*="promoted-followed-card__content"] p[title]') ||
+    card.querySelector('[class*="promoted-followed-card__content"] p') ||
+    card.querySelector('.side-nav-card__metadata p');
+
   const getCardCategory = (card) => {
-    const el =
-      card.querySelector('.side-nav-card__metadata p[title]') ||
-      card.querySelector('[data-a-target="side-nav-card-metadata"] p[title]') ||
-      // Cartes sponsorisées "promoted-followed" : la catégorie est dans
-      // .side-nav-promoted-followed-card__content (classe STABLE), hors de
-      // la metadata normale. Sans ce repli, le stream sponsorisé n'a pas de
-      // data-tse-category et échappe aux filtres catégorie/langue.
-      card.querySelector('[class*="promoted-followed-card__content"] p[title]') ||
-      card.querySelector('[class*="promoted-followed-card__content"] p') ||
-      card.querySelector('.side-nav-card__metadata p');
+    const el = cardCategoryEl(card);
     if (!el) return null;
     return (el.getAttribute('title') || el.textContent || '').trim() || null;
+  };
+
+  /**
+   * Écrit la catégorie fraîche (issue de TseChannel) dans la carte, quand elle
+   * diffère de celle affichée par Twitch.
+   *
+   * Contrairement au compteur de viewers, on écrit ici DANS l'élément de
+   * Twitch plutôt que d'en superposer un à nous : cette ligne porte l'ellipsis
+   * et l'infobulle natives, coûteuses à reproduire fidèlement, et la catégorie
+   * change bien trop rarement pour justifier ce coût.
+   *
+   * Écrire dans un nœud rendu par React demande une garantie de convergence :
+   *   - on n'écrit QUE si la valeur diffère, donc un état déjà correct ne
+   *     produit aucune mutation (pas de boucle scan → écriture → scan) ;
+   *   - si React re-rend et réimpose son ancienne valeur, sa propre mutation
+   *     déclenche un scan qui ré-applique la nôtre, en une passe.
+   * Dans les deux sens, la séquence se termine.
+   */
+  const renderCategory = (card, name, login) => {
+    if (!name) return;
+    const el = cardCategoryEl(card);
+    if (!el) return;
+    const cur = (el.getAttribute('title') || el.textContent || '').trim();
+    // Garde-fou contre le seul échec vraiment coûteux : ne JAMAIS écrire dans
+    // l'élément qui porte le nom de la chaîne. Si un remaniement du markup
+    // Twitch faisait pointer cardCategoryEl() sur le titre de la carte, on
+    // remplacerait le pseudo de chaque streamer par sa catégorie — panne très
+    // visible et déroutante. Le test ne coûte rien : dans ce cas on renonce
+    // simplement à écrire, et data-tse-category (donc les filtres) continue de
+    // fonctionner sur la valeur de l'API.
+    if (login && cur.toLowerCase() === login) return;
+    if (el.hasAttribute('title') && (el.getAttribute('title') || '').trim() !== name) {
+      el.setAttribute('title', name);
+    }
+    if ((el.textContent || '').trim() !== name) setText(el, name);
   };
 
   /* Détecteur pur de l'état réduit de la sidebar. Source de vérité unique,
@@ -3114,7 +3344,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       badge.className = 'tse-collab-badge';
       avatar.appendChild(badge);
     }
-    badge.textContent = count;
+    setText(badge, count);
 
     if (plusEl) {
       plusEl.style.display = 'none';
@@ -3143,7 +3373,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     const span = ensureUptimeSpan(card);
     if (!span) return;
     delete span.dataset.tseEnded;
-    span.textContent = formatUptime(createdAt);
+    setText(span, formatUptime(createdAt));
   };
 
   // Le stream a pris fin : on ne supprime PAS le label, on le mute en
@@ -3155,7 +3385,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     const span = ensureUptimeSpan(card);
     if (!span) return;
     span.dataset.tseEnded = 'true';
-    span.textContent = S.uiUptimeEnded;
+    setText(span, S.uiUptimeEnded);
   };
 
   const refreshUptime = (card) => {
@@ -3163,7 +3393,105 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     if (!ts) return;
     const span = card.querySelector('.tse-uptime');
     if (!span || span.dataset.tseEnded === 'true') return;
-    span.textContent = formatUptime(ts);
+    setText(span, formatUptime(ts));
+  };
+
+  /* ============================================================
+   *  VIEWERS
+   *  -------------------------------------------------------------
+   *  Le compteur natif de Twitch n'est réécrit que lorsque Twitch
+   *  re-rend sa sidebar — c'est-à-dire rarement. On affiche donc le
+   *  nôtre, alimenté par TseChannel toutes les LIVE_TTL.
+   *
+   *  Placement : un <span> inséré JUSTE APRÈS l'élément natif, dans le
+   *  même parent. Il hérite ainsi de la même position dans le flux flex
+   *  (aucune règle de mise en page à reproduire), et le natif n'est
+   *  masqué — par CSS, via [data-tse-viewers] sur la carte — qu'une
+   *  fois le nôtre porteur d'une valeur. Aucune carte ne se retrouve
+   *  donc sans compteur pendant la résolution, et les cartes hors
+   *  section « suivis » gardent le compteur de Twitch si jamais leur
+   *  requête n'aboutit pas.
+   *
+   *  aria-hidden="true" sur notre span, comme sur le natif : la valeur
+   *  lue par les lecteurs d'écran reste celle du libellé accessible de
+   *  Twitch, on ne duplique pas l'information.
+   * ============================================================ */
+
+  // Élément natif portant le nombre. Le :not(.tse-viewers) garantit qu'on ne
+  // se sélectionne jamais soi-même (notre span porte le même aria-hidden).
+  const nativeViewersEl = (card) =>
+    card.querySelector('.side-nav-card__live-status [aria-hidden="true"]:not(.tse-viewers)') ||
+    card.querySelector('[data-a-target="side-nav-live-status"] [aria-hidden="true"]:not(.tse-viewers)');
+
+  // Formateurs mémoïsés par locale : Intl.NumberFormat est coûteux à
+  // construire et on formate ~100 cartes à chaque cycle.
+  const viewerFormatters = new Map();
+  const viewerFormatter = () => {
+    const key = `${S.locale}|${LANG}`;
+    let f = viewerFormatters.get(key);
+    if (!f) {
+      // Rendu aligné sur celui de Twitch, locale par locale (formats vérifiés
+      // sur DOM réel, cf. le commentaire de parseViewerCount) :
+      //   de → nombre PLEIN à séparateur de milliers (« 29.339 ») ;
+      //   fr/en/es/pt → abréviation à une décimale (« 67,3 k », « 67.3K »,
+      //   « 3,7 mil »), ce que produit exactement la notation compacte.
+      const opts = LANG === 'de'
+        ? {}
+        : { notation: 'compact', maximumFractionDigits: 1 };
+      try { f = new Intl.NumberFormat(S.locale, opts); }
+      catch { f = new Intl.NumberFormat(undefined, opts); }
+      viewerFormatters.set(key, f);
+    }
+    return f;
+  };
+
+  const formatViewers = (n) => viewerFormatter().format(n);
+
+  const renderViewers = (card, count) => {
+    if (!Number.isFinite(count)) return;
+    const native = nativeViewersEl(card);
+    const host = native?.parentElement;
+    if (!host) return;
+    let span = host.querySelector(':scope > .tse-viewers');
+    if (!span) {
+      span = document.createElement('span');
+      span.className = 'tse-viewers';
+      span.setAttribute('aria-hidden', 'true');
+      native.insertAdjacentElement('afterend', span);
+    }
+    setText(span, formatViewers(count));
+    // Pose le marqueur qui masque le compteur natif (cf. CSS). Fait seulement
+    // maintenant : tant qu'on n'a pas de valeur, celui de Twitch reste visible.
+    if (card.dataset.tseViewers !== String(count)) {
+      card.dataset.tseViewers = String(count);
+    }
+  };
+
+  // Retire notre compteur et rend la main au natif (chaîne hors ligne, ou
+  // carte recyclée par React sur une autre chaîne).
+  const removeViewers = (card) => {
+    delete card.dataset.tseViewers;
+    card.querySelector('.tse-viewers')?.remove();
+  };
+
+  // Texte AFFICHÉ du compteur : le nôtre s'il existe, sinon celui de Twitch.
+  // Utilisé par l'heuristique co-stream, qui compare des valeurs ARRONDIES
+  // (deux co-streamers partagent un compteur combiné) — d'où la lecture du
+  // texte rendu, et non du nombre exact.
+  const getCardViewersText = (card) => {
+    const own = card.querySelector('.tse-viewers');
+    const el = own || nativeViewersEl(card);
+    if (!el) return null;
+    return (el.textContent || '').replace(/\s+/g, ' ').trim() || null;
+  };
+
+  // Nombre de viewers comparable. Valeur exacte issue de TseChannel dès
+  // qu'elle est connue ; repli sur l'analyse du texte natif tant qu'elle ne
+  // l'est pas (premier rendu, sections hors « suivis », requête en vol).
+  const getCardViewers = (card) => {
+    const n = parseInt(card.dataset.tseViewers, 10);
+    if (Number.isFinite(n)) return n;
+    return parseViewerCount(getCardViewersText(card));
   };
 
   /* ============================================================
@@ -3371,9 +3699,8 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     //   { title, hasCCL }       → stream live, données extraites
     //   { offline: true }       → stream confirmé OFFLINE par GQL (stream=null)
     //                             Permet à open() de corriger l'état de la
-    //                             carte (cf. processCard qui peut être en
-    //                             retard de plusieurs minutes sur la réalité
-    //                             à cause du cache fetchStream).
+    //                             carte sans attendre l'expiration de son
+    //                             entrée de cache (cf. LIVE_TTL).
     //   null                    → impossible de savoir (erreur réseau, throttle)
     const fetchPreviewMeta = async (login) => {
       const hit = metaCache.get(login);
@@ -3994,13 +4321,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
         if (currentLogin !== login || !el) return;
         if (!meta) return;
 
-        // Cas où GQL confirme que le stream est offline alors que la
-        // carte Twitch montre encore un état live (Twitch est en retard
-        // de plusieurs minutes à mettre à jour son DOM, et notre cache
-        // fetchStream peut aussi tenir une réponse périmée jusqu'à 5 min).
-        // On corrige immédiatement : on marque la carte offline (le CSS
-        // la masquera), on retire le popup, et on invalide le cache du
-        // login pour qu'un prochain fetchStream parte sur du frais.
+        // Cas où GQL confirme que le stream est offline alors que la carte
+        // Twitch montre encore un état live (Twitch est en retard sur son
+        // propre DOM, et notre entrée de cache peut être valide encore
+        // LIVE_TTL). Le survol raccourcit donc ce délai à zéro : on marque la
+        // carte offline (le CSS la masquera), on retire le popup, et on
+        // invalide l'entrée pour que le prochain scan reparte sur du frais.
         if (meta.offline) {
           card.dataset.tseGqlOffline = 'true';
           card.dataset.tseOffline = 'true';
@@ -4178,6 +4504,79 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   // levée du voile de chargement.
   let offlineTransitionsThisScan = 0;
 
+  /**
+   * Applique à une carte une entrée de cache TseChannel (ou la sentinelle
+   * UPTIME_UNKNOWN). Idempotent : ré-appelée à chaque scan tant que l'entrée
+   * reste fraîche, elle doit converger sans effet de bord cumulatif.
+   *
+   * C'est pourquoi le compteur de confirmation hors-ligne n'est PAS incrémenté
+   * par appel mais par RÉPONSE RÉSEAU : on mémorise sur la carte l'horodatage
+   * de la dernière entrée déjà comptabilisée (tseOfflineTs). Sans ça, le
+   * compteur grimperait à chaque scan — donc à chaque mutation de la sidebar —
+   * et OFFLINE_CONFIRM ne vaudrait plus rien : la première réponse « null »
+   * masquerait la carte, faux positifs compris.
+   */
+  const applyChannelData = (card, data) => {
+    if (data === UPTIME_UNKNOWN) {
+      // Réponse réseau HS : on ne touche à rien (pas d'effacement de
+      // l'uptime, pas de "Terminé"). L'état précédent reste affiché.
+      applyCardVisibility(card);
+      return;
+    }
+
+    const stream = data.stream;
+
+    if (stream?.createdAt) {
+      card.dataset.tseStartedAt = stream.createdAt;
+      card.dataset.tseOfflineHits = '0';
+      delete card.dataset.tseOfflineTs;
+      // Le streamer redémarre après une période offline confirmée : on retire
+      // les deux flags pour que la carte redevienne visible. C'est le chemin
+      // qui répare le sens offline → live, et il est désormais emprunté dès
+      // que l'entrée de cache périme (LIVE_TTL), sans attendre autre chose.
+      delete card.dataset.tseGqlOffline;
+      delete card.dataset.tseOffline;
+      renderUptime(card, stream.createdAt);
+      updateFreshness(card);
+      // Données fraîches issues de la même réponse.
+      renderViewers(card, data.viewers);
+      if (data.game) {
+        card.dataset.tseCategory = data.game;
+        renderCategory(card, data.game, card.dataset.tseLogin);
+      }
+    } else {
+      // Confirmation : il faut OFFLINE_CONFIRM réponses "stream=null"
+      // consécutives pour basculer en "Terminé". Évite les faux positifs
+      // ponctuels (Twitch lent, hiccup réseau). Une fois confirmé, on
+      // pose tseGqlOffline (source de vérité prioritaire au DOM Twitch)
+      // et tseOffline → la carte est masquée par CSS. Sans ça la carte
+      // restait visible avec "Terminé" indéfiniment, car Twitch ne
+      // retire pas toujours la carte de la sidebar en temps réel.
+      const counted = card.dataset.tseOfflineTs === String(data.ts);
+      let hits = parseInt(card.dataset.tseOfflineHits, 10) || 0;
+      if (!counted) {
+        hits += 1;
+        card.dataset.tseOfflineHits = String(hits);
+        card.dataset.tseOfflineTs = String(data.ts);
+      }
+      if (hits >= CFG.OFFLINE_CONFIRM && card.dataset.tseGqlOffline !== 'true') {
+        // Masquage offline confirmé via GQL (hors scan synchrone). On ne
+        // traite que la TRANSITION (carte pas encore masquée) pour ne pas
+        // re-signaler à chaque scan une carte déjà offline.
+        removeUptime(card);
+        removeViewers(card);
+        card.dataset.tseGqlOffline = 'true';
+        card.dataset.tseOffline = 'true';
+        // Annule la confirmation de stabilité du voile et programme un
+        // scan : le prochain notifyScan ré-évaluera s'il reste du
+        // Déconnecté à masquer avant de relancer la confirmation.
+        loadingOverlay.bumpActivity();
+        scheduleScan();
+      }
+    }
+    applyCardVisibility(card);
+  };
+
   async function processCard(card) {
     if (isCardOffline(card)) {
       // Compte les NOUVELLES transitions (carte pas encore masquée). Ce
@@ -4185,6 +4584,11 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       // voile de chargement reste (la sidebar masque encore du Déconnecté).
       if (card.dataset.tseOffline !== 'true') offlineTransitionsThisScan++;
       card.dataset.tseOffline = 'true';
+      // Twitch a basculé la carte hors ligne : notre compteur n'a plus de sens
+      // et le marqueur qui masque le sien doit tomber, sinon le libellé
+      // « Déconnecté » resterait caché derrière un nombre figé si la carte
+      // redevenait visible. Idempotent (le second passage ne trouve plus rien).
+      removeViewers(card);
       return;
     }
     // Si on a déjà confirmé l'offline via GQL, on garde la carte masquée
@@ -4205,65 +4609,45 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     const login = loginFromHref(link?.getAttribute('href'));
     if (!login) return;
 
-    const category = getCardCategory(card);
-    if (category) card.dataset.tseCategory = category;
-    else delete card.dataset.tseCategory;
-
-    if (card.dataset.tseLogin === login && card.dataset.tseStartedAt) {
-      refreshUptime(card);
-      updateFreshness(card);
-      applyCardVisibility(card);
-      return;
+    // Carte recyclée par React sur une AUTRE chaîne : les données de la
+    // précédente n'ont plus rien à y faire (elles resteraient affichées
+    // jusqu'à la première réponse pour le nouveau login). À faire AVANT
+    // l'amorçage ci-dessous, qui doit repartir du DOM de la nouvelle chaîne.
+    if (card.dataset.tseLogin && card.dataset.tseLogin !== login) {
+      delete card.dataset.tseStartedAt;
+      delete card.dataset.tseOfflineHits;
+      delete card.dataset.tseOfflineTs;
+      delete card.dataset.tseGqlOffline;
+      delete card.dataset.tseCategory;
+      delete card.dataset.tseLangs;
+      removeViewers(card);
     }
     card.dataset.tseLogin = login;
 
-    const stream = await fetchStream(login);
+    // Catégorie affichée par Twitch : AMORCE seulement, tant que l'API n'a
+    // rien dit. Une fois la valeur de TseChannel posée (applyChannelData), on
+    // ne revient plus en arrière — relire le DOM à chaque scan la ferait
+    // osciller entre la valeur périmée de Twitch et la nôtre, et les options
+    // du filtre catégorie se reconstruiraient en boucle sur deux valeurs
+    // différentes. La provenance est portée par la simple présence du dataset.
+    if (!card.dataset.tseCategory) {
+      const category = getCardCategory(card);
+      if (category) card.dataset.tseCategory = category;
+    }
+
+    // Chemin rapide : entrée encore fraîche → application synchrone, sans
+    // réseau ni microtâche. C'est le cas de l'immense majorité des passages
+    // (les scans sont déclenchés par chaque mutation de la sidebar).
+    const cached = getFreshChannel(login);
+    if (cached) { applyChannelData(card, cached); return; }
+
+    // Entrée périmée ou inconnue : on la remet en file. Le batch part dans
+    // BATCH_DELAY, découpé en tranches (cf. flushQueue).
+    const data = await fetchChannel(login);
     if (!document.contains(card)) return;
-
-    if (stream === UPTIME_UNKNOWN) {
-      // Réponse réseau HS : on ne touche à rien (pas d'effacement de
-      // l'uptime, pas de "Terminé"). L'état précédent reste affiché.
-      applyCardVisibility(card);
-      return;
-    }
-
-    if (stream?.createdAt) {
-      card.dataset.tseStartedAt = stream.createdAt;
-      card.dataset.tseOfflineHits = '0';
-      // Le streamer redémarre après une période offline confirmée :
-      // on retire les deux flags pour que la carte redevienne visible.
-      delete card.dataset.tseGqlOffline;
-      delete card.dataset.tseOffline;
-      renderUptime(card, stream.createdAt);
-      updateFreshness(card);
-    } else {
-      // Confirmation : il faut OFFLINE_CONFIRM réponses "stream=null"
-      // consécutives pour basculer en "Terminé". Évite les faux positifs
-      // ponctuels (Twitch lent, hiccup réseau). Une fois confirmé, on
-      // pose tseGqlOffline (source de vérité prioritaire au DOM Twitch)
-      // et tseOffline → la carte est masquée par CSS. Sans ça la carte
-      // restait visible avec "Terminé" indéfiniment, car Twitch ne
-      // retire pas toujours la carte de la sidebar en temps réel.
-      const hits = (parseInt(card.dataset.tseOfflineHits, 10) || 0) + 1;
-      card.dataset.tseOfflineHits = String(hits);
-      if (hits >= CFG.OFFLINE_CONFIRM) {
-        // Masquage offline confirmé via GQL (hors scan synchrone). On ne
-        // traite que la TRANSITION (carte pas encore masquée) pour ne pas
-        // re-signaler à chaque scan une carte déjà offline.
-        const wasOffline = card.dataset.tseGqlOffline === 'true';
-        removeUptime(card);
-        card.dataset.tseGqlOffline = 'true';
-        card.dataset.tseOffline = 'true';
-        if (!wasOffline) {
-          // Annule la confirmation de stabilité du voile et programme un
-          // scan : le prochain notifyScan ré-évaluera s'il reste du
-          // Déconnecté à masquer avant de relancer la confirmation.
-          loadingOverlay.bumpActivity();
-          scheduleScan();
-        }
-      }
-    }
-    applyCardVisibility(card);
+    // La carte a pu être recyclée sur une autre chaîne pendant l'attente.
+    if (card.dataset.tseLogin !== login) return;
+    applyChannelData(card, data);
   }
 
   /* ============================================================
@@ -4745,7 +5129,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
    *   - la facette « dépendante » ne propose que les valeurs cohérentes avec
    *     le pilote ; s'il n'en reste qu'UNE → auto-sélection + désactivation
    *     (grisée) ; s'il n'en reste AUCUNE → vidée + désactivée.
-   * Résout aussi les langues (langStore, async) et mémorise les langues sur
+   * Lit aussi les langues (langStore, cache TseChannel) et les mémorise sur
    * chaque carte (data-tse-langs) pour applyCardVisibility. Idempotent.
    */
   function recomputeFilters() {
@@ -4761,7 +5145,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       if (card.dataset.tseOffline === 'true') return;
       const login = card.dataset.tseLogin;
       if (!login) return;
-      const resolved = langStore.getLangs(login); // déclenche le fetch si non résolu
+      const resolved = langStore.getLangs(login); // lecture du cache TseChannel
       if (resolved) card.dataset.tseLangs = resolved.length ? '|' + resolved.join('|') + '|' : '';
       const langs = (card.dataset.tseLangs || '').split('|').filter(Boolean);
       records.push({ cat: card.dataset.tseCategory || '', langs });
@@ -4879,15 +5263,6 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   // La réservation survit à une inactivité brève (cf. COSTREAM_COLOR_GRACE),
   // ce qui garantit une couleur stable pour toute la durée de la collaboration.
   const costreamColorByKey = new Map();
-
-  // Renvoie le texte affiché du compteur de viewers (ex. "3,9 k") ou null.
-  const getCardViewerCount = (card) => {
-    const el =
-      card.querySelector('.side-nav-card__live-status [aria-hidden="true"]') ||
-      card.querySelector('[data-a-target="side-nav-live-status"] [aria-hidden="true"]');
-    if (!el) return null;
-    return (el.textContent || '').replace(/\s+/g, ' ').trim() || null;
-  };
 
   const cardHasCollab = (card) => !!card.querySelector('.tse-collab-badge');
 
@@ -5152,71 +5527,31 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   const langIcon = (canonical) =>
     flagMarkup(canonical) || `<span class="tse-lang-code">${escapeHtml(canonical)}</span>`;
 
+  // LECTURE PURE du cache TseChannel — plus aucun transport propre.
+  //
+  // Les tags viennent désormais de la même réponse que le statut live, les
+  // viewers et la catégorie : le module n'a donc plus ni file d'attente, ni
+  // TTL, ni cooldown, ni cache à purger. Il ne reste que la canonicalisation,
+  // faite ici plutôt qu'à l'écriture parce que LANG_SET est défini dans cette
+  // section du fichier, bien après la couche GraphQL.
   const langStore = (() => {
-    const cache = new Map();   // login -> { langs: string[], ts }
-    const queue = new Set();   // logins en attente
-    let timer = null;
-    let cooldownUntil = 0;
-
-    const QUERY =
-      'query TseLang($channelLogin: String!) {' +
-      '  user(login: $channelLogin) {' +
-      '    stream { id freeformTags { name } }' +
-      '  }' +
-      '}';
-
-    // Langues (noms canoniques) déduites des tags d'un stream : un tag compte
-    // si et seulement si son nom est EXACTEMENT une chaîne de LANG_SET. Un même
-    // streamer peut relever de plusieurs langues (ex. "Français" + "English").
-    const langsFromStream = (stream) => {
-      if (!stream || !Array.isArray(stream.freeformTags)) return [];
-      const out = new Set();
-      for (const t of stream.freeformTags) {
-        if (t && LANG_SET.has(t.name)) out.add(t.name);
-      }
-      return [...out];
-    };
-
-    const flush = async () => {
-      timer = null;
-      const logins = [...queue];
-      queue.clear();
-      if (!logins.length) return;
-
-      const res = await post(logins.map(login => ({
-        operationName: 'TseLang',
-        variables: { channelLogin: login },
-        query: QUERY
-      })));
-      if (isResultsUnusable(res)) {
-        cooldownUntil = Date.now() + CFG.LANG_ERROR_COOLDOWN;
-        return;
-      }
-      const now = Date.now();
-      logins.forEach((login, i) => {
-        const stream = res?.[i]?.data?.user?.stream ?? null;
-        cache.set(login, { langs: langsFromStream(stream), ts: now });
-      });
-      scheduleScan(); // langues fraîches → (re)construire options + filtrer
-    };
-
-    // Langues connues d'une chaîne (tableau de noms canoniques), ou null si
-    // pas encore résolu. Stale-while-revalidate : on sert la valeur connue
-    // (même périmée) en relançant un fetch en fond.
+    // Langues (noms canoniques) d'une chaîne, ou null si sa réponse n'est pas
+    // encore arrivée. Un tag compte si et seulement si son nom est EXACTEMENT
+    // une chaîne de LANG_SET ; un streamer multilingue (ex. « Français » +
+    // « English ») relève donc de plusieurs filtres. Une chaîne hors ligne
+    // renvoie [] (aucun tag), pas null : c'est une réponse, pas une absence.
     const getLangs = (login) => {
       if (!login) return null;
       const hit = cache.get(login);
-      const stale = !hit || Date.now() - hit.ts >= CFG.LANG_TTL;
-      if (stale && Date.now() >= cooldownUntil) {
-        queue.add(login);
-        timer ??= setTimeout(flush, CFG.LANG_DEBOUNCE);
+      if (!hit) return null;
+      const out = [];
+      for (const name of hit.tags) {
+        if (LANG_SET.has(name) && !out.includes(name)) out.push(name);
       }
-      return hit ? hit.langs : null;
+      return out;
     };
 
-    const prune = () => pruneCache(cache, CFG.LANG_TTL, CFG.LANG_CACHE_MAX);
-
-    return { getLangs, prune };
+    return { getLangs };
   })();
 
   function detectCoStreams() {
@@ -5273,7 +5608,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       if (!cardHasCollab(card)) return;
       const cat = card.dataset.tseCategory;
       if (!cat) return;
-      const viewers = getCardViewerCount(card);
+      // Comparaison sur le texte AFFICHÉ (donc arrondi, « 3,9 k ») et non sur
+      // le nombre exact : la signature de cette heuristique est justement que
+      // les co-streamers d'un même événement montrent le même compteur
+      // combiné. Deux valeurs exactes voisines (1 663 / 1 661) ne doivent pas
+      // faire échouer un regroupement que Twitch affiche comme identique.
+      const viewers = getCardViewersText(card);
       if (!viewers) return;
       const key = `vh:${cat}|||${viewers}`;
       if (!groups.has(key)) groups.set(key, []);
@@ -5523,11 +5863,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       });
     } else if (state.sortMode === 'viewers') {
       // Viewers DESC → le plus regardé en premier
-      sorted = [...cards].sort((a, b) => {
-        const va = parseViewerCount(getCardViewerCount(a));
-        const vb = parseViewerCount(getCardViewerCount(b));
-        return vb - va;
-      });
+      sorted = [...cards].sort((a, b) => getCardViewers(b) - getCardViewers(a));
     } else if (state.sortMode === 'costream') {
       // Groupes de co-stream regroupés en tête, ordonnés par nombre de
       // viewers du groupe (somme) décroissant. Les solos sont relégués
@@ -5537,8 +5873,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       cards.forEach(card => {
         const key = card.dataset.tseCostreamKey;
         if (!key) return;
-        const v = parseViewerCount(getCardViewerCount(card));
-        groupViewers.set(key, (groupViewers.get(key) || 0) + v);
+        groupViewers.set(key, (groupViewers.get(key) || 0) + getCardViewers(card));
       });
       sorted = [...cards].sort((a, b) => {
         const ka = a.dataset.tseCostreamKey || null;
@@ -5774,6 +6109,13 @@ if (TSE_ADBLOCK_ENABLED) (function() {
         collapsed ? 'na' : (!exp ? 'na' : (exp.querySelector(DOM.liveIndicator) ? 'ok' : 'broken')),
         collapsed ? 'sidebar réduite' : (exp ? '' : 'aucune carte live à sonder'));
 
+    // CRITIQUE depuis que l'extension rafraîchit elle-même le compteur : c'est
+    // l'élément à côté duquel le nôtre s'insère et celui que le CSS masque.
+    // S'il disparaît du markup Twitch, aucun compteur ne s'affiche plus.
+    add('viewersCount', 'nativeViewersEl() — compteur de viewers', true,
+        collapsed ? 'na' : (!exp ? 'na' : (nativeViewersEl(exp) ? 'ok' : 'broken')),
+        collapsed ? 'sidebar réduite' : (exp ? '' : 'aucune carte live à sonder'));
+
     add('category', 'getCardCategory() — métadonnées', false,
         collapsed ? 'na' : (!exp ? 'na' : (getCardCategory(exp) ? 'ok' : 'broken')),
         collapsed ? 'sidebar réduite' : (exp ? '' : 'aucune carte live à sonder'));
@@ -5837,30 +6179,40 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       });
     }, CFG.UI_TICK);
 
-    // Cycle de re-fetch GraphQL. On le skippe quand l'onglet est caché :
-    // les navigateurs throttlent les setTimeout et fetch en arrière-plan,
-    // donc les réponses arrivent vides ou en timeout et déclencheraient
-    // des faux "Terminé" partout. On rattrape au retour de l'utilisateur.
+    // Réveil de rafraîchissement. Il ne fait QUE programmer un scan : les
+    // entrées de cache périmées depuis plus de LIVE_TTL sont alors remises en
+    // file par processCard, et les fraîches relues sans réseau. La cadence
+    // réelle de fraîcheur est donc fixée par LIVE_TTL, pas ici — ce timer
+    // n'existe que pour couvrir le cas d'une sidebar immobile, où aucune
+    // mutation DOM ne déclencherait de scan.
+    //
+    // Skippé quand l'onglet est caché : les navigateurs throttlent setTimeout
+    // et fetch en arrière-plan, donc les réponses arrivent vides ou en timeout
+    // et déclencheraient des faux "Terminé" partout. On rattrape au retour de
+    // l'utilisateur (cf. handler visibilitychange plus bas).
     setInterval(() => {
-      // Purge mémoire des caches reconstructibles — exécutée TOUJOURS (même
-      // onglet caché) pour libérer la RAM en arrière-plan. gsCache : les
-      // entrées des chaînes suivies live restent fraîches (re-set par le scan
-      // tous les GUEST_STAR_TTL) ; seules les entrées ponctuelles (survols hors
-      // "suivis") vieillissent et sont évincées → re-fetch à la demande.
-      pruneCache(gsCache, CFG.DATA_TTL, CFG.GS_CACHE_MAX);
-      preview.prune();
-      langStore.prune();
+      if (document.hidden) return;
+      scheduleScan();
+    }, CFG.REFRESH_TICK);
 
-      // Onglet caché : on ne re-fetch PAS (le navigateur throttle setTimeout/
-      // fetch en arrière-plan → réponses vides/timeouts qui donneraient de faux
-      // "Terminé"). Mais on libère quand même le cache GraphQL : il est
+    // Entretien : purge mémoire + auto-diagnostic. Aucun rapport avec la
+    // fraîcheur, d'où une cadence propre, bien plus lente.
+    setInterval(() => {
+      // Purge des caches reconstructibles — exécutée TOUJOURS (même onglet
+      // caché) pour libérer la RAM en arrière-plan. Les entrées des chaînes
+      // affichées sont re-set en boucle par le scan et ne vieillissent jamais
+      // jusqu'à l'âge d'éviction ; seules les entrées ponctuelles (survols hors
+      // "suivis", cartes disparues) sont évincées → re-fetch à la demande.
+      pruneCache(cache, CFG.LIVE_PRUNE_AGE, CFG.LIVE_CACHE_MAX);
+      pruneCache(gsCache, CFG.GS_PRUNE_AGE, CFG.GS_CACHE_MAX);
+      preview.prune();
+
+      // Onglet caché : on libère en plus tout le cache de streams. Il est
       // reconstructible à la demande, et au retour invalidateAndRescan le
-      // reconstruit sous le voile de chargement. Ainsi TOUS les caches
-      // reconstructibles sont libérés pendant une longue mise en arrière-plan.
+      // reconstruit sous le voile de chargement.
       if (document.hidden) { cache.clear(); return; }
-      invalidateAndRescan();
-      runSelectorHealthCheck(); // auto-diagnostic des sélecteurs (réévalué tous les DATA_TTL)
-    }, CFG.DATA_TTL);
+      runSelectorHealthCheck();
+    }, CFG.MAINTENANCE_TICK);
 
     // Au retour d'une absence significative (onglet caché >= REVISIT_RELOAD_MS),
     // on réinitialise la sidebar comme à un boot. Pendant que l'onglet était
