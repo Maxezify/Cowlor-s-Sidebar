@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.18.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.19.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -235,25 +235,66 @@ sert au tri « Mes plus visités » :
 - `tse.scores(20)` — même chose, sur les 20 premières.
 - `tse.scores.raw()` — renvoie les données brutes (objet) plutôt qu'un tableau
   formaté, utile pour un traitement manuel.
-- `tse.reset()` — efface tout l'historique de visites.
+- `tse.reset()` — efface l'historique de visites, le roster et les mesures de
+  retard.
 - `tse.diagnose()` — affiche un rapport de santé des sélecteurs DOM dont dépend
   l'extension (OK / cassé / non applicable) et renvoie le rapport brut. Un
   auto-diagnostic tourne aussi en arrière-plan et avertit dans la console
   (`console.warn`) si Twitch change son markup et qu'un sélecteur critique ne
   correspond plus — utile pour diagnostiquer une éventuelle panne.
+- `tse.lag()` — **mesure le retard de Twitch** sur les passages en direct :
+  combien de temps s'écoule entre le démarrage d'un stream et l'apparition de
+  sa carte dans la sidebar (cf. section suivante).
+- `tse.roster()` — liste les chaînes suivies que l'extension a mémorisées en
+  observant la sidebar (cf. section suivante).
 
-Les libellés des colonnes affichées par `tse.scores()` (login, score, visites,
-dernière visite) sont localisés.
+Les libellés des colonnes affichées par ces commandes sont localisés.
+
+### Mesure du retard de Twitch (v3.19+)
+
+L'extension sait à quel instant un stream a démarré (`createdAt`) et à quel
+instant Twitch a fait apparaître sa carte. L'écart entre les deux est le retard
+de Twitch, et `tse.lag()` l'affiche : médiane, 90ᵉ centile, et le détail des
+dernières mesures.
+
+Une mesure n'est retenue que si le stream a démarré **pendant que vous
+regardiez** — après une minute d'installation depuis l'ouverture de la page, et
+après votre dernier retour sur l'onglet. Un stream démarré avant que l'extension
+n'observe est écarté : sa carte était peut-être déjà là, on ne peut rien en
+conclure. Les mesures s'accumulent donc lentement, au fil de l'usage normal.
+
+À quoi ça sert : décider en connaissance de cause s'il vaut la peine que
+l'extension prenne les devants sur l'affichage des chaînes qui passent en
+direct. Si Twitch s'avère rapide sur ce point, la question est réglée.
+
+### Roster des chaînes suivies (v3.19+)
+
+Twitch rend dans la sidebar les chaînes suivies **hors ligne** autant que celles
+en direct (l'extension les masque ensuite). L'extension mémorise donc, au fil
+des chargements, la liste des chaînes que vous suivez — sans jamais
+s'authentifier ni toucher à un jeton de session.
+
+Cette liste **n'est encore exploitée par aucune fonctionnalité**. Elle
+s'accumule dès maintenant pour être prête si l'extension devait un jour sonder
+au-delà de ce que Twitch affiche. Une chaîne qui n'a plus été vue dans la
+sidebar depuis 60 jours est oubliée — c'est ce qui évite de retenir
+indéfiniment une chaîne à laquelle vous vous êtes désabonné.
 
 ---
 
 ## Vie privée
 
-L'historique de visites est **100 % local**. Il est stocké dans le
-`localStorage` de votre navigateur, sous la clé `tse:visits`, et n'est **jamais**
-envoyé nulle part. Il sert uniquement au calcul du tri « Mes plus visités ».
-Utilisez `tse.reset()` pour l'effacer à tout moment, ou videz les données de
-site de `twitch.tv` depuis les réglages du navigateur.
+Tout ce que l'extension mémorise est **100 % local**, stocké dans le
+`localStorage` de votre navigateur et **jamais** envoyé nulle part :
+
+| Clé | Contenu | Usage |
+| --- | --- | --- |
+| `tse:visits` | dates de vos visites par chaîne | tri « Mes plus visités » |
+| `tse:roster` | chaînes suivies aperçues dans la sidebar | aucun pour l'instant (cf. API console) |
+| `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
+
+`tse.reset()` efface les trois à tout moment ; vider les données de site de
+`twitch.tv` depuis les réglages du navigateur fait de même.
 
 Le module anti-pub vaft, lui aussi, ne communique avec aucun serveur tiers :
 il intercepte les requêtes Twitch dans l'iframe d'aperçu et les redirige

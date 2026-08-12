@@ -1,5 +1,5 @@
 /* ============================================================
- *  Cowlor's Sidebar for Twitch — Extension Chrome v3.18.0
+ *  Cowlor's Sidebar for Twitch — Extension Chrome v3.19.0
  *  -------------------------------------------------------------
  *  Portage du userscript Violentmonkey "Twitch Sidebar Enhancer
  *  ADBLOCK 4" v2.22.3 vers une extension Manifest V3, avec
@@ -1385,6 +1385,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleColScore:           'score',
       consoleColVisits:          'visites',
       consoleColLast:            'dernière visite',
+      consoleColLag:             'retard de Twitch',
+      consoleColSeen:            'vu le',
+      consoleLagEmpty:           '[tse] Aucune mesure exploitable pour le moment. Laissez l\'onglet Twitch ouvert : une mesure est prise chaque fois qu\'une chaîne suivie passe en live sous vos yeux.',
+      consoleLagSummary:         (n, med, p90) => `[tse] ${n} mesure(s) — retard médian de Twitch : ${med}, 90e centile : ${p90}.`,
+      consoleRosterEmpty:        '[tse] Aucune chaîne mémorisée pour le moment.',
+      consoleRosterSummary:      (n) => `[tse] ${n} chaîne(s) suivie(s) mémorisée(s) localement.`,
       consoleHealthBroken:       '[tse] Des sélecteurs critiques ne correspondent plus au DOM de Twitch — l\'extension est peut-être partiellement cassée. Détails : tse.diagnose()',
       consoleHealthAllOk:        '[tse] Tous les sélecteurs critiques répondent.',
       consoleColProbe:           'sonde',
@@ -1423,6 +1429,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleColScore:           'score',
       consoleColVisits:          'visits',
       consoleColLast:            'last visit',
+      consoleColLag:             'Twitch lag',
+      consoleColSeen:            'seen at',
+      consoleLagEmpty:           '[tse] No usable measurement yet. Keep the Twitch tab open: a sample is taken every time a followed channel goes live while you are watching.',
+      consoleLagSummary:         (n, med, p90) => `[tse] ${n} sample(s) — median Twitch lag: ${med}, 90th percentile: ${p90}.`,
+      consoleRosterEmpty:        '[tse] No channel memorised yet.',
+      consoleRosterSummary:      (n) => `[tse] ${n} followed channel(s) memorised locally.`,
       consoleHealthBroken:       '[tse] Some critical selectors no longer match Twitch\'s DOM — the extension may be partially broken. Details: tse.diagnose()',
       consoleHealthAllOk:        '[tse] All critical selectors are responding.',
       consoleColProbe:           'probe',
@@ -1461,6 +1473,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleColScore:           'Punktzahl',
       consoleColVisits:          'Besuche',
       consoleColLast:            'letzter Besuch',
+      consoleColLag:             'Twitch-Verzögerung',
+      consoleColSeen:            'gesehen am',
+      consoleLagEmpty:           '[tse] Noch keine verwertbare Messung. Lassen Sie den Twitch-Tab offen: eine Messung wird erfasst, sobald ein gefolgter Kanal vor Ihren Augen live geht.',
+      consoleLagSummary:         (n, med, p90) => `[tse] ${n} Messung(en) — mediane Twitch-Verzögerung: ${med}, 90. Perzentil: ${p90}.`,
+      consoleRosterEmpty:        '[tse] Noch keine Kanäle gespeichert.',
+      consoleRosterSummary:      (n) => `[tse] ${n} gefolgte(r) Kanal/Kanäle lokal gespeichert.`,
       consoleHealthBroken:       '[tse] Einige kritische Selektoren stimmen nicht mehr mit dem DOM von Twitch überein — die Erweiterung ist möglicherweise teilweise defekt. Details: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Alle kritischen Selektoren reagieren.',
       consoleColProbe:           'Sonde',
@@ -1499,6 +1517,18 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleColScore:           'puntuación',
       consoleColVisits:          'visitas',
       consoleColLast:            'última visita',
+      consoleColLag:             'atraso da Twitch',
+      consoleColSeen:            'visto em',
+      consoleLagEmpty:           '[tse] Ainda nenhuma medição utilizável. Deixe a aba da Twitch aberta: uma medição é feita sempre que um canal seguido entra ao vivo diante de você.',
+      consoleLagSummary:         (n, med, p90) => `[tse] ${n} medição(ões) — atraso mediano da Twitch: ${med}, percentil 90: ${p90}.`,
+      consoleRosterEmpty:        '[tse] Nenhum canal memorizado no momento.',
+      consoleRosterSummary:      (n) => `[tse] ${n} canal(is) seguido(s) memorizado(s) localmente.`,
+      consoleColLag:             'retraso de Twitch',
+      consoleColSeen:            'visto el',
+      consoleLagEmpty:           '[tse] Aún no hay mediciones utilizables. Deje la pestaña de Twitch abierta: se toma una medición cada vez que un canal que sigue se pone en directo ante sus ojos.',
+      consoleLagSummary:         (n, med, p90) => `[tse] ${n} medición(es) — retraso mediano de Twitch: ${med}, percentil 90: ${p90}.`,
+      consoleRosterEmpty:        '[tse] Ningún canal memorizado por el momento.',
+      consoleRosterSummary:      (n) => `[tse] ${n} canal(es) que sigue memorizado(s) localmente.`,
       consoleHealthBroken:       '[tse] Algunos selectores críticos ya no coinciden con el DOM de Twitch — puede que la extensión esté parcialmente rota. Detalles: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Todos los selectores críticos responden.',
       consoleColProbe:           'sonda',
@@ -1696,6 +1726,25 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     VISIT_MAX_LOGINS:     400,           // nb max de chaînes suivies (borne mémoire + localStorage)
     VISIT_HALFLIFE_DAYS:  7,
     VISIT_STORAGE_KEY:    'tse:visits',
+
+    // === Roster des chaînes suivies (cf. module ROSTER) ===
+    ROSTER_STORAGE_KEY:   'tse:roster',
+    ROSTER_MAX:           1500,           // borne dure (largement au-dessus d'un suivi réel)
+    // Une chaîne plus vue dans la sidebar depuis ce délai est oubliée. C'est
+    // le seul garde-fou contre les désabonnements : un roster sans péremption
+    // finirait par porter des chaînes que l'utilisateur ne suit plus.
+    ROSTER_MAX_AGE:       60 * 24 * 60 * 60_000,   // 60 jours
+
+    // === Mesure du retard de Twitch (cf. module LIVE LAG) ===
+    LAG_STORAGE_KEY:      'tse:livelag',
+    LAG_MAX_SAMPLES:      300,
+    // Délai d'installation après le boot avant de mesurer quoi que ce soit :
+    // pendant le peuplement initial, toutes les cartes « apparaissent », ce
+    // qui n'apprend rien sur la réactivité de Twitch.
+    LAG_SETTLE_MS:        60_000,
+    // Au-delà, l'échantillon est aberrant (horloge décalée, cas non prévu) et
+    // polluerait la médiane.
+    LAG_MAX_PLAUSIBLE:    2 * 60 * 60_000,         // 2 h
 
     // === Aperçu au survol ===
     // Largeur cible de l'aperçu. Le ratio 16:9 est respecté pour le wrapper.
@@ -2968,6 +3017,203 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     }
   };
 
+  /* ============================================================
+   *  ROSTER DES CHAÎNES SUIVIES
+   *  -------------------------------------------------------------
+   *  Mémorise les chaînes suivies APERÇUES dans la sidebar, avec la
+   *  date de dernière observation.
+   *
+   *  Pourquoi c'est possible sans authentification : Twitch rend dans
+   *  la sidebar les chaînes suivies HORS LIGNE aussi bien que les
+   *  chaînes en direct (c'est ce que masque isCardOffline), et
+   *  autoExpandFollowed déplie la liste. Les cartes suivies portent
+   *  toutes le marqueur indépendant de la langue
+   *  data-test-selector="followed-channel" — il suffit de les lire.
+   *
+   *  À quoi ça sert : sonder la liveness d'une chaîne ne demande
+   *  aucune authentification (c'est une donnée publique) ; seule la
+   *  question « qui est-ce que je suis ? » l'exigeait. En apprenant
+   *  la réponse par observation, on lève ce verrou — et on ouvre la
+   *  possibilité de détecter un passage en direct sans attendre que
+   *  Twitch insère la carte.
+   *
+   *  Ce module se contente d'ACCUMULER. Rien ne l'exploite encore ;
+   *  il tourne dès maintenant pour que la liste soit déjà chaude le
+   *  jour où on décidera de s'en servir (cf. tse.roster()).
+   *
+   *  Vie privée : 100 % local, jamais envoyé, même posture que
+   *  l'historique de visites. Effaçable via tse.reset().
+   * ============================================================ */
+  const roster = (() => {
+    const map = new Map();   // login -> ts de dernière observation
+    let dirty = false;
+
+    const load = () => {
+      try {
+        const obj = JSON.parse(localStorage.getItem(CFG.ROSTER_STORAGE_KEY) || 'null');
+        if (!obj || typeof obj !== 'object') return;
+        for (const [login, ts] of Object.entries(obj)) {
+          const n = Number(ts);
+          if (typeof login === 'string' && Number.isFinite(n) && n > 0) map.set(login, n);
+        }
+        prune();
+      } catch { /* stockage corrompu / quota / navigation privée → on ignore */ }
+    };
+
+    // Évince ce qui n'a plus été vu depuis ROSTER_MAX_AGE : c'est le seul
+    // garde-fou contre les désabonnements. Sans lui, une chaîne que
+    // l'utilisateur ne suit plus resterait sondée — et, le jour où on
+    // affichera des cartes, réapparaîtrait dans sa sidebar.
+    const prune = () => {
+      const cutoff = Date.now() - CFG.ROSTER_MAX_AGE;
+      for (const [login, ts] of map) if (ts < cutoff) map.delete(login);
+      if (map.size <= CFG.ROSTER_MAX) return;
+      const kept = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, CFG.ROSTER_MAX);
+      map.clear();
+      for (const [login, ts] of kept) map.set(login, ts);
+    };
+
+    // Écriture différée : le scan tourne à chaque mutation de la sidebar,
+    // sérialiser le roster à ce rythme serait absurde. On marque sale et on
+    // écrit sur le tick d'entretien (et au départ de la page).
+    const flush = () => {
+      if (!dirty) return;
+      dirty = false;
+      prune();
+      try {
+        localStorage.setItem(CFG.ROSTER_STORAGE_KEY,
+          JSON.stringify(Object.fromEntries(map)));
+      } catch { /* quota → on garde en mémoire */ }
+    };
+
+    const record = (login) => {
+      if (!login) return;
+      const now = Date.now();
+      const prev = map.get(login);
+      // Ne marque sale que si la valeur bouge significativement : sinon chaque
+      // scan re-daterait les ~100 mêmes logins pour rien.
+      if (prev && now - prev < 60_000) return;
+      map.set(login, now);
+      dirty = true;
+    };
+
+    const init = () => {
+      load();
+      // pagehide couvre fermeture, navigation et mise en cache bfcache —
+      // contrairement à unload, il est fiable sur mobile et sous Chromium.
+      window.addEventListener('pagehide', flush);
+      document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+    };
+
+    return {
+      init, flush, record,
+      size:    () => map.size,
+      entries: () => [...map.entries()].sort((a, b) => b[1] - a[1]),
+      clear:   () => {
+        map.clear(); dirty = false;
+        try { localStorage.removeItem(CFG.ROSTER_STORAGE_KEY); } catch {}
+      }
+    };
+  })();
+
+  /* ============================================================
+   *  MESURE DU RETARD DE TWITCH SUR LES PASSAGES EN DIRECT
+   *  -------------------------------------------------------------
+   *  Combien de temps Twitch met-il à faire apparaître la carte d'une
+   *  chaîne qui vient de démarrer ? Personne ne le sait — et c'est
+   *  précisément ce qui détermine s'il vaut la peine que l'extension
+   *  prenne les devants. Ce module répond, sur des données réelles,
+   *  sans rien coûter : les deux instants nécessaires sont déjà
+   *  connus du code.
+   *
+   *    createdAt (réponse TseChannel)  → quand le stream a démarré
+   *    première apparition de la carte → quand Twitch l'a affichée
+   *
+   *  Un échantillon n'est retenu que si le stream a démarré ALORS
+   *  QU'ON REGARDAIT, c'est-à-dire après :
+   *    • un délai d'installation depuis le boot (sinon on mesurerait
+   *      le peuplement initial de la sidebar, pas la réactivité de
+   *      Twitch) ;
+   *    • le dernier retour sur l'onglet (onglet caché = ni Twitch ni
+   *      nous ne rafraîchissons — la mesure ne voudrait rien dire).
+   *  Tout stream démarré avant cette borne est ignoré : sa carte
+   *  était peut-être là depuis le début, on ne peut rien conclure.
+   *
+   *  Résultat : tse.lag(). 100 % local, jamais envoyé.
+   * ============================================================ */
+  const liveLag = (() => {
+    const bootAt = Date.now();
+    let visibleSince = document.hidden ? 0 : bootAt;
+    const firstSeen = new Map();  // login -> 1re apparition (cette session)
+    const measured  = new Set();  // logins déjà mesurés (une fois suffit)
+    let samples = [];
+
+    const load = () => {
+      try {
+        const arr = JSON.parse(localStorage.getItem(CFG.LAG_STORAGE_KEY) || 'null');
+        if (Array.isArray(arr)) {
+          samples = arr.filter(x => x && Number.isFinite(x.lag) && Number.isFinite(x.ts))
+                       .slice(-CFG.LAG_MAX_SAMPLES);
+        }
+      } catch { /* ignoré */ }
+    };
+
+    const save = () => {
+      try { localStorage.setItem(CFG.LAG_STORAGE_KEY, JSON.stringify(samples)); }
+      catch { /* quota → on garde en mémoire */ }
+    };
+
+    // Première fois qu'on voit cette carte suivie dans cette session.
+    const note = (login) => {
+      if (!login || measured.has(login) || firstSeen.has(login)) return;
+      firstSeen.set(login, Date.now());
+    };
+
+    // createdAt connu : on mesure si l'échantillon est attribuable.
+    const resolve = (login, createdAt) => {
+      if (!login || measured.has(login)) return;
+      const seenAt = firstSeen.get(login);
+      if (!seenAt) return;
+      const started = new Date(createdAt).getTime();
+      if (!Number.isFinite(started)) return;
+
+      // Borne d'attribution : le stream doit avoir démarré alors qu'on
+      // observait vraiment. Sinon on ne mesure pas Twitch, on mesure le
+      // hasard de notre propre arrivée.
+      const floor = Math.max(bootAt + CFG.LAG_SETTLE_MS, visibleSince);
+      measured.add(login);
+      firstSeen.delete(login);
+      if (started <= floor) return;
+
+      const lag = seenAt - started;
+      if (lag < 0 || lag > CFG.LAG_MAX_PLAUSIBLE) return;
+      samples.push({ login, lag, ts: seenAt });
+      if (samples.length > CFG.LAG_MAX_SAMPLES) samples = samples.slice(-CFG.LAG_MAX_SAMPLES);
+      save();
+    };
+
+    const init = () => {
+      load();
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          visibleSince = Date.now();
+          // Les cartes vues pendant l'absence ne sont pas attribuables :
+          // on repart d'une page blanche pour ce qui n'a pas été mesuré.
+          firstSeen.clear();
+        }
+      });
+    };
+
+    return {
+      init, note, resolve,
+      all:   () => samples.slice(),
+      clear: () => {
+        samples = []; firstSeen.clear(); measured.clear();
+        try { localStorage.removeItem(CFG.LAG_STORAGE_KEY); } catch {}
+      }
+    };
+  })();
+
   /**
    * Observe la page courante : quand l'utilisateur arrive sur /<login>,
    * démarre un timer ; s'il reste >= VISIT_MIN_DWELL_MS, on enregistre
@@ -3097,7 +3343,44 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     reset() {
       visits.map.clear();
       try { localStorage.removeItem(CFG.VISIT_STORAGE_KEY); } catch {}
+      roster.clear();
+      liveLag.clear();
       console.log(S.consoleHistoryCleared);
+    },
+    // Chaînes suivies mémorisées par observation de la sidebar (cf. module
+    // ROSTER). Rien ne les exploite encore : la liste s'accumule pour être
+    // déjà chaude le jour où on décidera de sonder au-delà de ce que Twitch
+    // affiche. Renvoie les données brutes.
+    roster(limit = Infinity) {
+      const entries = roster.entries();
+      if (!entries.length) { console.log(S.consoleRosterEmpty); return []; }
+      console.log(S.consoleRosterSummary(entries.length));
+      console.table(entries.slice(0, limit).map(([login, ts]) => ({
+        [S.consoleColLogin]: login,
+        [S.consoleColSeen]:  formatDate(ts)
+      })));
+      return entries;
+    },
+    // Retard mesuré de Twitch sur les passages en direct (cf. module LIVE
+    // LAG) : combien de temps s'écoule entre le démarrage d'un stream et
+    // l'apparition de sa carte. C'est ce chiffre — et lui seul — qui dit s'il
+    // vaut la peine que l'extension prenne les devants. Renvoie les mesures.
+    lag(limit = 25) {
+      const samples = liveLag.all();
+      if (!samples.length) { console.log(S.consoleLagEmpty); return []; }
+      const sorted = samples.map(s => s.lag).sort((a, b) => a - b);
+      const at = (q) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))];
+      const fmt = (ms) => {
+        const s = Math.round(ms / 1000);
+        return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}`;
+      };
+      console.log(S.consoleLagSummary(samples.length, fmt(at(0.5)), fmt(at(0.9))));
+      console.table(samples.slice(-limit).reverse().map(s => ({
+        [S.consoleColLogin]: s.login,
+        [S.consoleColLag]:   fmt(s.lag),
+        [S.consoleColSeen]:  formatDate(s.ts)
+      })));
+      return samples;
     },
     // Auto-diagnostic des sélecteurs : rapport complet (toutes les sondes) +
     // verdict. Retourne le rapport brut (programmable).
@@ -4527,6 +4810,9 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     const stream = data.stream;
 
     if (stream?.createdAt) {
+      // Mesure du retard de Twitch : on tient enfin les deux bouts pour cette
+      // chaîne (démarrage du stream, et instant où sa carte est apparue).
+      liveLag.resolve(card.dataset.tseLogin, stream.createdAt);
       card.dataset.tseStartedAt = stream.createdAt;
       card.dataset.tseOfflineHits = '0';
       delete card.dataset.tseOfflineTs;
@@ -5928,6 +6214,27 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   /* ============================================================
    *  SCAN + OBSERVER
    * ============================================================ */
+  /**
+   * Relève les chaînes suivies présentes dans la sidebar — EN DIRECT COMME
+   * HORS LIGNE. Les cartes suivies portent toutes le marqueur indépendant de
+   * la langue data-test-selector="followed-channel", y compris celles que
+   * l'extension masque ensuite ; c'est ce qui rend la liste apprenable sans
+   * jamais s'authentifier.
+   *
+   * Alimente le roster (mémoire longue) et la mesure de retard (qui a besoin
+   * de l'instant exact où une carte apparaît pour la première fois).
+   */
+  const harvestFollowed = () => {
+    const section = followedSection();
+    if (!section) return;
+    section.querySelectorAll(DOM.followedCardSelector).forEach(a => {
+      const login = loginFromHref(a.getAttribute('href'));
+      if (!login) return;
+      roster.record(login);
+      liveLag.note(login);
+    });
+  };
+
   const scanSidebar = () => {
     // Re-évaluer la langue en premier : auto-correction si LANG
     // initial était erroné (DOM Twitch pas encore prêt au boot).
@@ -5936,6 +6243,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     preview.closeIfDetached(); // ferme l'aperçu si sa carte d'ancrage a été retirée
     offlineTransitionsThisScan = 0; // remis à zéro avant le passage des cartes
     snapshotTwitchOrder(); // avant tout tri custom, on photographie l'ordre Twitch
+    harvestFollowed();     // relève du roster + horodatage des cartes nouvelles
     const cards = document.querySelectorAll('.side-nav-card');
     cards.forEach(processCard);
     ensureFilterBar();
@@ -6206,6 +6514,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       pruneCache(cache, CFG.LIVE_PRUNE_AGE, CFG.LIVE_CACHE_MAX);
       pruneCache(gsCache, CFG.GS_PRUNE_AGE, CFG.GS_CACHE_MAX);
       preview.prune();
+      roster.flush(); // écriture différée du roster (cf. module ROSTER)
 
       // Onglet caché : on libère en plus tout le cache de streams. Il est
       // reconstructible à la demande, et au retour invalidateAndRescan le
@@ -6250,6 +6559,8 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       refreshLanguage();
       loadingOverlay.init(); // doit être appelé AVANT startObserver pour
                              // que le voile soit posé avant le premier scan
+      roster.init();         // avant startObserver : le 1er scan relève déjà
+      liveLag.init();
       visitTracker.init();
       preview.init();
       startObserver();

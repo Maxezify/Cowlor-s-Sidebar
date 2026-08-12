@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.18.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.19.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -222,24 +222,63 @@ The extension exposes a `tse` object in the Twitch page's DevTools console
 - `tse.scores(20)` — same, with the top 20.
 - `tse.scores.raw()` — returns raw data (object) instead of a formatted
   table, useful for programmatic processing.
-- `tse.reset()` — wipes the entire visit history.
+- `tse.reset()` — wipes the visit history, the roster and the lag measurements.
 - `tse.diagnose()` — prints a health report of the DOM selectors the extension
   relies on (OK / broken / not applicable) and returns the raw report. A
   background auto-diagnostic also runs and warns in the console (`console.warn`)
   if Twitch changes its markup and a critical selector no longer matches —
   handy to diagnose a potential breakage.
+- `tse.lag()` — **measures Twitch's lag** on channels going live: how long
+  passes between a stream starting and its card appearing in the sidebar (see
+  below).
+- `tse.roster()` — lists the followed channels the extension has memorised by
+  watching the sidebar (see below).
 
-Column labels printed by `tse.scores()` (login, score, visits, last visit)
-are localized.
+Column labels printed by these commands are localized.
+
+### Measuring Twitch's lag (v3.19+)
+
+The extension knows when a stream started (`createdAt`) and when Twitch made its
+card appear. The gap between the two is Twitch's lag, and `tse.lag()` reports
+it: median, 90th percentile, and the most recent samples in detail.
+
+A sample is only kept if the stream started **while you were watching** — after
+a one-minute settling window from page load, and after your last return to the
+tab. A stream that started before the extension was observing is discarded: its
+card may well have been there already, so nothing can be concluded. Samples
+therefore accumulate slowly, through normal usage.
+
+What it's for: deciding on evidence whether it's worth having the extension get
+ahead of Twitch on showing channels that go live. If Twitch turns out to be fast
+at this, the question is settled.
+
+### Followed-channel roster (v3.19+)
+
+Twitch renders **offline** followed channels in the sidebar just as it does live
+ones (the extension then hides them). So the extension memorises, across page
+loads, the list of channels you follow — without ever authenticating or touching
+a session token.
+
+This list is **not used by any feature yet**. It accumulates now so it is ready
+should the extension one day poll beyond what Twitch displays. A channel not
+seen in the sidebar for 60 days is forgotten — which is what prevents holding on
+to a channel you have unfollowed.
 
 ---
 
 ## Privacy
 
-Visit history is **100 % local**. It lives in your browser's `localStorage`
-under the `tse:visits` key, and is **never** sent anywhere. It is only used
-to compute the "Most visited" sort. Use `tse.reset()` to wipe it at any
-time, or clear `twitch.tv`'s site data from your browser settings.
+Everything the extension memorises is **100 % local**, stored in your browser's
+`localStorage` and **never** sent anywhere:
+
+| Key | Contents | Used for |
+| --- | --- | --- |
+| `tse:visits` | your visit dates per channel | "Most visited" sort |
+| `tse:roster` | followed channels seen in the sidebar | nothing yet (see Console API) |
+| `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
+
+`tse.reset()` wipes all three at any time; clearing `twitch.tv`'s site data from
+your browser settings does the same.
 
 The bundled vaft anti-ad module likewise never talks to third-party servers:
 it intercepts Twitch requests inside the preview iframe and reroutes them to
