@@ -1,5 +1,5 @@
 /* ============================================================
- *  Cowlor's Sidebar for Twitch — Extension Chrome v3.21.0
+ *  Cowlor's Sidebar for Twitch — Extension Chrome v3.21.1
  *  -------------------------------------------------------------
  *  Portage du userscript Violentmonkey "Twitch Sidebar Enhancer
  *  ADBLOCK 4" v2.22.3 vers une extension Manifest V3, avec
@@ -1527,12 +1527,6 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleColScore:           'puntuación',
       consoleColVisits:          'visitas',
       consoleColLast:            'última visita',
-      consoleColLag:             'atraso da Twitch',
-      consoleColSeen:            'visto em',
-      consoleLagEmpty:           '[tse] Ainda nenhuma medição utilizável. Deixe a aba da Twitch aberta: uma medição é feita sempre que um canal seguido entra ao vivo diante de você.',
-      consoleLagSummary:         (n, med, p90) => `[tse] ${n} medição(ões) — atraso mediano da Twitch: ${med}, percentil 90: ${p90}.`,
-      consoleRosterEmpty:        '[tse] Nenhum canal memorizado no momento.',
-      consoleRosterSummary:      (n) => `[tse] ${n} canal(is) seguido(s) memorizado(s) localmente.`,
       consoleColLag:             'retraso de Twitch',
       consoleColSeen:            'visto el',
       consoleLagEmpty:           '[tse] Aún no hay mediciones utilizables. Deje la pestaña de Twitch abierta: se toma una medición cada vez que un canal que sigue se pone en directo ante sus ojos.',
@@ -1577,6 +1571,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleColScore:           'pontuação',
       consoleColVisits:          'visitas',
       consoleColLast:            'última visita',
+      consoleColLag:             'atraso da Twitch',
+      consoleColSeen:            'visto em',
+      consoleLagEmpty:           '[tse] Ainda nenhuma medição utilizável. Deixe a aba da Twitch aberta: uma medição é feita sempre que um canal seguido entra ao vivo diante de você.',
+      consoleLagSummary:         (n, med, p90) => `[tse] ${n} medição(ões) — atraso mediano da Twitch: ${med}, percentil 90: ${p90}.`,
+      consoleRosterEmpty:        '[tse] Nenhum canal memorizado no momento.',
+      consoleRosterSummary:      (n) => `[tse] ${n} canal(is) seguido(s) memorizado(s) localmente.`,
       consoleHealthBroken:       '[tse] Alguns seletores críticos não correspondem mais ao DOM da Twitch — a extensão pode estar parcialmente quebrada. Detalhes: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Todos os seletores críticos estão respondendo.',
       consoleColProbe:           'sonda',
@@ -3100,6 +3100,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   const roster = (() => {
     const map = new Map();   // login -> ts de dernière observation
     let dirty = false;
+    // Classement par récence, mémoïsé. Il est parcouru DEUX fois par scan
+    // (sondage puis fabrication de cartes) ; le recalculer à chaque appel
+    // copiait et triait la centaine d'entrées quatre fois par seconde pour
+    // un résultat qui ne bouge quasiment jamais. Invalidé à la moindre
+    // mutation de la table.
+    let ordered = null;
 
     const load = () => {
       try {
@@ -3109,6 +3115,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
           const n = Number(ts);
           if (typeof login === 'string' && Number.isFinite(n) && n > 0) map.set(login, n);
         }
+        ordered = null;
         prune();
       } catch { /* stockage corrompu / quota / navigation privée → on ignore */ }
     };
@@ -3119,11 +3126,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     // affichera des cartes, réapparaîtrait dans sa sidebar.
     const prune = () => {
       const cutoff = Date.now() - CFG.ROSTER_MAX_AGE;
-      for (const [login, ts] of map) if (ts < cutoff) map.delete(login);
+      for (const [login, ts] of map) if (ts < cutoff) { map.delete(login); ordered = null; }
       if (map.size <= CFG.ROSTER_MAX) return;
       const kept = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, CFG.ROSTER_MAX);
       map.clear();
       for (const [login, ts] of kept) map.set(login, ts);
+      ordered = null;
     };
 
     // Écriture différée : le scan tourne à chaque mutation de la sidebar,
@@ -3148,6 +3156,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       if (prev && now - prev < 60_000) return;
       map.set(login, now);
       dirty = true;
+      ordered = null; // le classement par récence change
     };
 
     const init = () => {
@@ -3161,9 +3170,9 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     return {
       init, flush, record,
       size:    () => map.size,
-      entries: () => [...map.entries()].sort((a, b) => b[1] - a[1]),
+      entries: () => (ordered ??= [...map.entries()].sort((a, b) => b[1] - a[1])),
       clear:   () => {
-        map.clear(); dirty = false;
+        map.clear(); dirty = false; ordered = null;
         try { localStorage.removeItem(CFG.ROSTER_STORAGE_KEY); } catch {}
       }
     };
@@ -3527,9 +3536,18 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     // simplement à écrire, et data-tse-category (donc les filtres) continue de
     // fonctionner sur la valeur de l'API.
     if (login && cur.toLowerCase() === login) return;
+    // L'attribut title ne porte que la catégorie : on peut le rafraîchir sans
+    // risque, et c'est lui que getCardCategory lit en premier.
     if (el.hasAttribute('title') && (el.getAttribute('title') || '').trim() !== name) {
       el.setAttribute('title', name);
     }
+    // Le TEXTE, lui, peut transporter davantage : Twitch y accole le « +N »
+    // des collaborations, que la pastille collab lit juste après. Le réécrire
+    // avec la seule catégorie effacerait cette information et ferait
+    // disparaître le badge. On s'abstient donc dès qu'un « +N » est présent —
+    // la catégorie fraîche reste portée par le title et par data-tse-category,
+    // dont dépendent les filtres.
+    if (PLUS_RE_PRESENT.test(el.textContent || '')) return;
     if ((el.textContent || '').trim() !== name) setText(el, name);
   };
 
@@ -3628,8 +3646,31 @@ if (TSE_ADBLOCK_ENABLED) (function() {
    * ============================================================ */
   const PLUS_RE_ELEMENT  = /^\+\s*(\d+)$/;
   const PLUS_RE_TRAILING = /(\s+)\+\s*(\d+)\s*$/;
+  // Condition NÉCESSAIRE aux deux recherches ci-dessous : l'une comme l'autre
+  // exigent un « + » suivi (éventuellement après des espaces) d'un chiffre.
+  const PLUS_RE_PRESENT  = /\+\s*\d/;
+
+  // Retire le badge laissé par un scan précédent. Extrait pour être appelé
+  // depuis les deux sorties « aucun collab détecté ».
+  const clearCollabBadge = (card) => {
+    const avatar = avatarOf(card);
+    if (!avatar) return;
+    avatar.querySelector(':scope > .tse-collab-badge')?.remove();
+    avatar.classList.remove('tse-collab-host');
+  };
 
   const applyCollabBadge = (card) => {
+    // Pré-filtre. Sans lui, chaque carte de la sidebar était parcourue par un
+    // TreeWalker qui rappelle du JS sur CHAQUE nœud, à chaque scan — de loin
+    // le poste de calcul le plus lourd de l'extension au profilage (un quart
+    // de son temps propre). Le cas courant est l'absence de collab : un test
+    // de regex sur le texte de la carte le tranche sans rien parcourir.
+    //
+    // L'équivalence est stricte : quand ce test échoue, aucune des deux
+    // recherches ne pouvait aboutir, donc l'ancien code atteignait la même
+    // branche de nettoyage.
+    if (!PLUS_RE_PRESENT.test(card.textContent || '')) { clearCollabBadge(card); return; }
+
     let count = null;
     let plusEl = null;
     let textHit = null;
@@ -3661,12 +3702,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       // scan précédent (cas où Twitch met à jour la carte pour retirer le
       // "+N" sans détruire la carte). Sinon le badge resterait collé avec
       // sa valeur obsolète.
-      const avatar = avatarOf(card);
-      if (avatar) {
-        const stale = avatar.querySelector(':scope > .tse-collab-badge');
-        if (stale) stale.remove();
-        avatar.classList.remove('tse-collab-host');
-      }
+      clearCollabBadge(card);
       return;
     }
 
