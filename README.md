@@ -225,6 +225,15 @@ en navigateur : période réelle de **2,00 ×** `LIVE_TTL` avec un réveil align
 contre **1,17 ×** avec le réglage actuel. Un réveil qui ne trouve rien de périmé
 ne déclenche aucune requête : le raffiner ne coûte rien.
 
+**Descendre `LIVE_TTL` sous 30 s n'apporte rien au compteur de viewers.** Mesure
+faite sur l'API publique (sondage toutes les 5 s pendant 5 min, grosses chaînes
+françaises) : `viewersCount` ne change qu'environ **toutes les 60 secondes**,
+avec un cache propre à chaque chaîne — les compteurs ne bougent pas ensemble.
+À 30 s, l'extension n'est donc jamais en retard de plus d'une demi-période sur
+la valeur que Twitch expose : le plancher n'est pas dans l'extension, il est
+chez Twitch. Le délai de détection des passages en direct et des déconnexions,
+lui, dépend bien de cette constante.
+
 Rechargez ensuite l'extension (`chrome://extensions` → ↻) et l'onglet Twitch.
 
 ---

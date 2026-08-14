@@ -214,6 +214,14 @@ Measured in-browser: a real period of **2.00 ×** `LIVE_TTL` with an aligned
 wake-up, versus **1.17 ×** with the current setting. A wake-up that finds nothing
 stale issues no request at all, so making it finer costs nothing.
 
+**Lowering `LIVE_TTL` below 30 s gains nothing for the viewer count.** Measured
+against the public API (polled every 5 s for 5 min, large channels):
+`viewersCount` only changes about **once every 60 seconds**, with a cache of its
+own per channel — counters do not move in step. At 30 s the extension is
+therefore never more than half a period behind the value Twitch exposes: the
+floor is not in the extension, it is at Twitch. Detection of channels going live
+or offline, on the other hand, does depend on this constant.
+
 Then reload the extension (`chrome://extensions` → ↻) and the Twitch tab.
 
 ---
