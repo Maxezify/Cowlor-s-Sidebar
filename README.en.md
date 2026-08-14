@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.22.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.22.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -182,11 +182,21 @@ Everything is driven by a single constant near the top of `content.js`:
 
 ```js
 LIVE_TTL:       30_000,   // ms — freshness of stream data
-REFRESH_TICK:   30_000,   // ms — refresh wake-up
+REFRESH_TICK:    5_000,   // ms — refresh wake-up
 ```
 
-Raise them to lighten traffic, lower them to get even closer to live. Then
-reload the extension (`chrome://extensions` → ↻) and the Twitch tab.
+`LIVE_TTL` is the only one to tune: raise it to lighten traffic, lower it to get
+even closer to live.
+
+**Do not raise `REFRESH_TICK` to match `LIVE_TTL`** — counter-intuitively, that
+*doubles* the real period. An entry is only written after the wake-up that asked
+for it (network round-trip included), so it expires just after the *next*
+wake-up, which still considers it fresh; it then has to wait for the one after.
+Measured in-browser: a real period of **2.00 ×** `LIVE_TTL` with an aligned
+wake-up, versus **1.17 ×** with the current setting. A wake-up that finds nothing
+stale issues no request at all, so making it finer costs nothing.
+
+Then reload the extension (`chrome://extensions` → ↻) and the Twitch tab.
 
 ---
 

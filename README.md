@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.22.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.22.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -191,12 +191,21 @@ Tout est piloté par une constante unique en haut de `content.js` :
 
 ```js
 LIVE_TTL:       30_000,   // ms — fraîcheur des données de stream
-REFRESH_TICK:   30_000,   // ms — réveil de rafraîchissement
+REFRESH_TICK:    5_000,   // ms — réveil de rafraîchissement
 ```
 
-Augmentez-les pour alléger le trafic, diminuez-les pour coller encore plus au
-direct. Rechargez ensuite l'extension (`chrome://extensions` → ↻) et l'onglet
-Twitch.
+`LIVE_TTL` est la seule à régler : augmentez-la pour alléger le trafic,
+diminuez-la pour coller encore plus au direct.
+
+**Ne montez pas `REFRESH_TICK` au niveau de `LIVE_TTL`** — c'est contre-intuitif,
+mais ça *double* la période réelle. Une donnée n'est écrite qu'après le réveil
+qui l'a demandée (le temps du réseau) ; elle périme donc juste après le réveil
+suivant, qui la juge encore fraîche, et il faut attendre celui d'après. Mesuré
+en navigateur : période réelle de **2,00 ×** `LIVE_TTL` avec un réveil aligné,
+contre **1,17 ×** avec le réglage actuel. Un réveil qui ne trouve rien de périmé
+ne déclenche aucune requête : le raffiner ne coûte rien.
+
+Rechargez ensuite l'extension (`chrome://extensions` → ↻) et l'onglet Twitch.
 
 ---
 

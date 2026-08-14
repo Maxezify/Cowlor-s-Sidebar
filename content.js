@@ -1,5 +1,5 @@
 /* ============================================================
- *  Cowlor's Sidebar for Twitch — Extension Chrome v3.22.0
+ *  Cowlor's Sidebar for Twitch — Extension Chrome v3.22.1
  *  -------------------------------------------------------------
  *  Portage du userscript Violentmonkey "Twitch Sidebar Enhancer
  *  ADBLOCK 4" v2.22.3 vers une extension Manifest V3, avec
@@ -1679,9 +1679,22 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     LIVE_TTL:       30_000,
     // Période du réveil de rafraîchissement. Un scan périodique est nécessaire
     // même sans mutation DOM : sans lui, une sidebar immobile ne redemanderait
-    // jamais rien. Aligné sur LIVE_TTL — le scan trouve les entrées tout juste
-    // périmées et les remet en file.
-    REFRESH_TICK:   30_000,
+    // jamais rien.
+    //
+    // Il doit être NETTEMENT PLUS FIN que LIVE_TTL, et c'est contre-intuitif :
+    // l'aligner sur LIVE_TTL semble logique mais DOUBLE la période réelle.
+    // Une entrée n'est écrite qu'APRÈS le réveil qui l'a demandée — le temps
+    // du debounce de scan, du regroupement en lot et de l'aller-retour réseau.
+    // Elle périme donc quelques centaines de millisecondes APRÈS le réveil
+    // suivant, qui la juge encore fraîche et passe son chemin ; il faut
+    // attendre le réveil d'après. Mesuré en navigateur : période réelle de
+    // 2,00 × LIVE_TTL avec un réveil aligné, 1,33 × avec un réveil trois fois
+    // plus fin.
+    //
+    // Un réveil qui ne trouve rien de périmé ne coûte qu'une lecture de Map
+    // par carte et AUCUNE requête : le raffiner est donc quasi gratuit, alors
+    // qu'il ramène la période de 60 s à ~33 s pour un TTL de 30 s.
+    REFRESH_TICK:   5_000,
     // Période des tâches d'entretien (purge des caches, auto-diagnostic des
     // sélecteurs). Rien à voir avec la fraîcheur : c'est de l'hygiène, elle
     // n'a aucune raison de suivre la cadence de rafraîchissement.
