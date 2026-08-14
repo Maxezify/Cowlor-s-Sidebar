@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.22.2 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.22.3 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -165,9 +165,11 @@ duplicate. It also disappears if the channel goes offline.
 
 **Two deliberate limits:**
 
-- If **no followed channel is live** in your sidebar, there is nothing to clone
-  and the extension builds nothing. Better to show nothing than a card rendered
-  approximately.
+- The extension only clones a **plain** card: not sponsored, not in a
+  co-stream, carrying no collaboration badge or banner. Whatever the template
+  card carries would be copied onto the built channel. If your sidebar holds no
+  plain live card, the extension builds nothing — better to show nothing than a
+  card bearing another channel's markings.
 - A channel must have been **seen at least once** in your sidebar to enter the
   roster. A streamer you have just followed is therefore only anticipated from
   their second time going live.

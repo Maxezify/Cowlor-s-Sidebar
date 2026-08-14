@@ -1,5 +1,5 @@
 /* ============================================================
- *  Cowlor's Sidebar for Twitch — Extension Chrome v3.22.2
+ *  Cowlor's Sidebar for Twitch — Extension Chrome v3.22.3
  *  -------------------------------------------------------------
  *  Portage du userscript Violentmonkey "Twitch Sidebar Enhancer
  *  ADBLOCK 4" v2.22.3 vers une extension Manifest V3, avec
@@ -1801,6 +1801,10 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     // plutôt que moyennés avec les nouveaux, ce qui n'aurait aucun sens.
     LAG_FORMAT:           2,
     LAG_MAX_SAMPLES:      300,
+    // Plafond des identifiants de direct déjà traités, gardés en mémoire pour
+    // ne pas mesurer deux fois le même. Sans borne, la table grandissait d'une
+    // entrée par direct observé, indéfiniment.
+    LAG_MAX_DONE:         1000,
     // Délai d'installation après le boot avant de mesurer quoi que ce soit :
     // pendant le peuplement initial, toutes les cartes « apparaissent », ce
     // qui n'apprend rien sur la réactivité de Twitch.
@@ -2684,12 +2688,25 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     // La tolérance est BORNÉE : si l'anomalie persiste plusieurs cycles, c'est
     // qu'elle est réelle (panne Twitch, fin d'un gros événement) et on finit
     // par l'accepter. Le garde-fou retarde, il ne censure pas.
+    //
+    // Deux sources pour « on la savait en direct », et la seconde est
+    // indispensable : au tout premier cycle le cache est VIDE, donc la
+    // première source ne prouve rien et le garde-fou serait inopérant au
+    // moment le plus exposé — celui du démarrage. Ce que TWITCH affiche
+    // comme étant en direct fait alors référence.
+    const shownLive = new Set();
+    document.querySelectorAll('.side-nav-card').forEach(c => {
+      if (isSynthetic(c) || isCardOffline(c)) return;
+      const l = c.dataset.tseLogin;
+      if (l) shownLive.add(l);
+    });
+
     let wasLive = 0, nowOffline = 0;
     slices.forEach((slice, si) => {
       const byLogin = parsed[si];
       if (!byLogin) return;
       for (const login of slice) {
-        if (!cache.get(login)?.stream) continue;   // on ne le savait pas en direct
+        if (!cache.get(login)?.stream && !shownLive.has(login)) continue;
         if (!byLogin.has(login)) continue;         // absent de la réponse = inconnu
         wasLive++;
         if (!byLogin.get(login).stream) nowOffline++;
@@ -3293,6 +3310,11 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     // deux fois, alors qu'une clé par login n'aurait autorisé qu'une mesure.
     const aheadAt = new Map();  // id de stream -> instant où NOTRE carte l'a montré
     const done    = new Set();  // ids déjà traités (mesurés ou écartés)
+    // `done` et `aheadAt` grandissent d'une entrée par direct observé et rien
+    // ne les vidait : sur une session de plusieurs heures, ils accumulaient
+    // indéfiniment. `prune()` (appelé au tick d'entretien) les borne.
+    // Évincer une entrée de `done` autorise au pire une seconde mesure du
+    // même direct — sans conséquence, et le plafond rend le cas théorique.
     let samples = [];
 
     const load = () => {
@@ -3380,8 +3402,19 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       });
     };
 
+    const prune = () => {
+      // Une avance jamais suivie de l'affichage de Twitch (la chaîne a coupé
+      // avant qu'il ne rattrape) resterait sinon éternellement en attente.
+      const cutoff = Date.now() - CFG.LAG_MAX_PLAUSIBLE;
+      for (const [id, ts] of aheadAt) if (ts < cutoff) aheadAt.delete(id);
+      if (done.size > CFG.LAG_MAX_DONE) {
+        let over = done.size - CFG.LAG_MAX_DONE;
+        for (const id of done) { done.delete(id); if (--over <= 0) break; }
+      }
+    };
+
     return {
-      init, noteAhead, observe,
+      init, noteAhead, observe, prune,
       all:   () => samples.slice(),
       clear: () => {
         samples = []; aheadAt.clear(); done.clear();
@@ -6477,6 +6510,24 @@ if (TSE_ADBLOCK_ENABLED) (function() {
 
   const isSynthetic = (card) => card.dataset.tseSynthetic === 'true';
 
+  /**
+   * Une carte est NEUTRE si elle ne porte aucune des décorations que Twitch
+   * ajoute selon le contexte. Seule une carte neutre peut servir de modèle de
+   * clonage : tout ce qu'elle porte serait recopié sur la chaîne fabriquée.
+   *
+   * On réutilise exactement les détecteurs du reste du module — si l'un d'eux
+   * évolue, cette garde suit sans intervention.
+   */
+  const isPlainCard = (card) => {
+    if (card.querySelector('[class*="promoted-followed-card__content"]')) return false; // sponsorisée
+    if (card.querySelector(DOM.altCostreamHostSelector)) return false;                  // co-stream
+    if (card.querySelector(DOM.altLogoSelector)) return false;                          // logo sponsor / squad
+    if (card.querySelector('.tse-collab-badge')) return false;                          // badge collab posé
+    if (PLUS_RE_PRESENT.test(card.textContent || '')) return false;                     // « +N » non encore traité
+    if (card.querySelector('[data-tse-extra-row]')) return false;                       // hype train, réduction…
+    return true;
+  };
+
   // Sonde les chaînes du roster dont on ne connaît pas l'état frais. C'est
   // ce qui permet de voir un passage en direct avant Twitch ; sans ça on ne
   // saurait rien des chaînes absentes de la sidebar.
@@ -6609,9 +6660,14 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       if (isSynthetic(c) || !nativeCovers(c)) continue;
       const l = c.dataset.tseLogin || getCardLogin(c);
       if (l) covered.add(l);
-      // Modèle de clonage : une carte native EN DIRECT, seule à porter le
-      // markup complet (indicateur live, métadonnées, compteur).
-      if (!template) template = c;
+      // Modèle de clonage : une carte native EN DIRECT et NEUTRE. Le clonage
+      // copie le markup tel quel — les décorations de la carte source
+      // comprises. Cloner une carte sponsorisée, en co-stream ou portant un
+      // badge de collaboration transposerait ces marques sur une chaîne qui
+      // n'a rien à voir : l'aperçu au survol annoncerait un co-stream
+      // inexistant, un badge « +3 » apparaîtrait sur l'avatar. On n'accepte
+      // donc pour modèle qu'une carte dépourvue de toute décoration.
+      if (!template && isPlainCard(c)) template = c;
     }
 
     // 1) Retraits — AVANT toute fabrication, pour qu'un doublon ne soit
@@ -6963,6 +7019,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       pruneCache(cache, CFG.LIVE_PRUNE_AGE, CFG.LIVE_CACHE_MAX);
       pruneCache(gsCache, CFG.GS_PRUNE_AGE, CFG.GS_CACHE_MAX);
       preview.prune();
+      liveLag.prune();
       roster.flush(); // écriture différée du roster (cf. module ROSTER)
 
       // Onglet caché : on libère en plus tout le cache de streams. Il est

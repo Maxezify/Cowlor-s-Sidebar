@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.22.2 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.22.3 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -174,9 +174,12 @@ de doublon. Elle disparaît aussi si la chaîne coupe.
 
 **Deux limites, assumées :**
 
-- S'il n'y a **aucune chaîne suivie en direct** dans votre sidebar, il n'y a rien
-  à cloner et l'extension ne fabrique rien. Mieux vaut ne rien afficher qu'une
-  carte au rendu approximatif.
+- L'extension ne clone qu'une carte **neutre** : ni sponsorisée, ni en
+  co-stream, ni porteuse d'un badge de collaboration ou d'un bandeau. Tout ce
+  que porte la carte modèle serait recopié sur la chaîne fabriquée. S'il n'y a
+  dans votre sidebar aucune carte neutre en direct, l'extension ne fabrique
+  rien — mieux vaut ne rien afficher qu'une carte portant les marques d'une
+  autre chaîne.
 - Une chaîne doit avoir été **vue au moins une fois** dans votre sidebar pour
   entrer au roster. Un streamer que vous venez de suivre n'est donc devancé qu'à
   partir de son deuxième passage en direct.
