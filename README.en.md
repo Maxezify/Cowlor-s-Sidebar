@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.22.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.22.2 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -126,6 +126,22 @@ slice only affects the channels it carried.
 If the network drops, the extension **keeps the last known state** — it never
 shows a false "Ended" — and pauses its requests for 30 seconds rather than
 hammering the API.
+
+### When Twitch's API answers wrongly
+
+Twitch's API occasionally answers without any apparent error while reporting
+channels as offline that are not. Taken at face value, that would empty your
+sidebar in one go — which happened once before 3.22.2.
+
+The extension now **refuses to believe a mass shutdown**: if a large share of the
+channels it knew to be live are reported offline within the same cycle, it keeps
+the current display, reports it in the console (`console.warn`) and retries 30
+seconds later. A one-minute-stale sidebar beats an empty one.
+
+That refusal is **bounded**: if the anomaly persists across several cycles it is
+real (a Twitch outage, the end of a large event) and the extension eventually
+accepts it. The safeguard delays, it does not censor. A single channel going
+offline is handled normally.
 
 Nothing changes regarding privacy or permissions: these calls stay **anonymous**
 (no session token, `credentials: 'omit'`), on public data, against the same

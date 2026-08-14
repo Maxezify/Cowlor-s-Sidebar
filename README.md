@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.22.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.22.2 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -133,6 +133,23 @@ parallèle : une tranche rejetée n'affecte que les chaînes qu'elle portait.
 En cas de coupure réseau, l'extension **conserve le dernier état connu** — elle
 n'affiche jamais de faux « Terminé » — et met ses requêtes en pause 30 secondes
 plutôt que de marteler l'API.
+
+### Si l'API de Twitch répond de travers
+
+Il arrive que l'API réponde sans erreur apparente tout en annonçant hors ligne
+des chaînes qui ne le sont pas. Prise au mot, l'extension viderait votre sidebar
+d'un coup — ce qui est arrivé une fois avant la 3.22.2.
+
+L'extension **refuse désormais de croire une extinction de masse** : si une part
+importante des chaînes qu'elle savait en direct est annoncée hors ligne dans le
+même cycle, elle conserve l'affichage en l'état, le signale dans la console
+(`console.warn`) et réessaie 30 secondes plus tard. Mieux vaut un affichage
+périmé d'une minute qu'une sidebar vide.
+
+Ce refus est **borné** : si l'anomalie persiste sur plusieurs cycles, c'est
+qu'elle est réelle (panne Twitch, fin d'un gros événement) et l'extension finit
+par l'accepter. Le garde-fou retarde, il ne censure pas. Une chaîne isolée qui
+coupe, elle, est traitée normalement.
 
 Rien ne change côté vie privée ni permissions : ces appels restent **anonymes**
 (aucun jeton de session, `credentials: 'omit'`), sur des données publiques, vers

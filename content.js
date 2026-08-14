@@ -1,5 +1,5 @@
 /* ============================================================
- *  Cowlor's Sidebar for Twitch — Extension Chrome v3.22.1
+ *  Cowlor's Sidebar for Twitch — Extension Chrome v3.22.2
  *  -------------------------------------------------------------
  *  Portage du userscript Violentmonkey "Twitch Sidebar Enhancer
  *  ADBLOCK 4" v2.22.3 vers une extension Manifest V3, avec
@@ -1405,6 +1405,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleRosterSummary:      (n) => `[tse] ${n} chaîne(s) suivie(s) mémorisée(s) localement.`,
       consoleHealthBroken:       '[tse] Des sélecteurs critiques ne correspondent plus au DOM de Twitch — l\'extension est peut-être partiellement cassée. Détails : tse.diagnose()',
       consoleHealthAllOk:        '[tse] Tous les sélecteurs critiques répondent.',
+      consoleMassOffline:        (n, total) => `[tse] Réponse suspecte de l'API Twitch : ${n} chaînes sur ${total} que l'on savait en direct sont annoncées hors ligne d'un coup. Affichage conservé en l'état plutôt que de vider la sidebar ; nouvel essai dans 30 s.`,
       consoleColProbe:           'sonde',
       consoleColStatus:          'état',
       consoleColDetail:          'détail',
@@ -1451,6 +1452,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleRosterSummary:      (n) => `[tse] ${n} followed channel(s) memorised locally.`,
       consoleHealthBroken:       '[tse] Some critical selectors no longer match Twitch\'s DOM — the extension may be partially broken. Details: tse.diagnose()',
       consoleHealthAllOk:        '[tse] All critical selectors are responding.',
+      consoleMassOffline:        (n, total) => `[tse] Suspicious response from Twitch's API: ${n} of ${total} channels known to be live are reported offline at once. Keeping the current display rather than emptying the sidebar; retrying in 30 s.`,
       consoleColProbe:           'probe',
       consoleColStatus:          'status',
       consoleColDetail:          'detail',
@@ -1497,6 +1499,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleRosterSummary:      (n) => `[tse] ${n} gefolgte(r) Kanal/Kanäle lokal gespeichert.`,
       consoleHealthBroken:       '[tse] Einige kritische Selektoren stimmen nicht mehr mit dem DOM von Twitch überein — die Erweiterung ist möglicherweise teilweise defekt. Details: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Alle kritischen Selektoren reagieren.',
+      consoleMassOffline:        (n, total) => `[tse] Verdächtige Antwort der Twitch-API: ${n} von ${total} als live bekannten Kanälen werden auf einmal als offline gemeldet. Anzeige wird beibehalten, statt die Seitenleiste zu leeren; neuer Versuch in 30 s.`,
       consoleColProbe:           'Sonde',
       consoleColStatus:          'Status',
       consoleColDetail:          'Detail',
@@ -1543,6 +1546,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleRosterSummary:      (n) => `[tse] ${n} canal(es) que sigue memorizado(s) localmente.`,
       consoleHealthBroken:       '[tse] Algunos selectores críticos ya no coinciden con el DOM de Twitch — puede que la extensión esté parcialmente rota. Detalles: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Todos los selectores críticos responden.',
+      consoleMassOffline:        (n, total) => `[tse] Respuesta sospechosa de la API de Twitch: ${n} de ${total} canales que sabíamos en directo se anuncian desconectados de golpe. Se mantiene la vista actual en vez de vaciar la barra lateral; nuevo intento en 30 s.`,
       consoleColProbe:           'sonda',
       consoleColStatus:          'estado',
       consoleColDetail:          'detalle',
@@ -1589,6 +1593,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleRosterSummary:      (n) => `[tse] ${n} canal(is) seguido(s) memorizado(s) localmente.`,
       consoleHealthBroken:       '[tse] Alguns seletores críticos não correspondem mais ao DOM da Twitch — a extensão pode estar parcialmente quebrada. Detalhes: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Todos os seletores críticos estão respondendo.',
+      consoleMassOffline:        (n, total) => `[tse] Resposta suspeita da API da Twitch: ${n} de ${total} canais que sabíamos ao vivo são anunciados offline de uma vez. A exibição é mantida em vez de esvaziar a barra lateral; nova tentativa em 30 s.`,
       consoleColProbe:           'sonda',
       consoleColStatus:          'estado',
       consoleColDetail:          'detalhe',
@@ -1727,6 +1732,13 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     // toute la durée de la panne. Aligné sur LIVE_TTL : dans le cas normal
     // on aurait de toute façon attendu ce délai, la pause ne coûte rien.
     GQL_ERROR_COOLDOWN: 30_000,
+    // ─── Garde-fou « extinction de masse » (cf. flushQueue) ───────────
+    // Une réponse dégradée de l'API qui annoncerait tout le monde hors ligne
+    // viderait la sidebar. On refuse de la croire tant que l'anomalie n'est
+    // pas confirmée sur plusieurs cycles.
+    MASS_OFFLINE_MIN:       5,    // en dessous, l'échantillon ne prouve rien
+    MASS_OFFLINE_RATIO:     0.6,  // part des chaînes connues live qui s'éteignent
+    MASS_OFFLINE_TOLERANCE: 4,    // cycles refusés avant d'accepter le verdict
     // Nombre de réponses "stream=null" CONSÉCUTIVES avant de basculer en
     // "Terminé". Chaque confirmation coûte un LIVE_TTL : à 30 s, une chaîne
     // qui coupe disparaît en 30 à 60 s, tout en gardant la garde à deux coups
@@ -2550,6 +2562,7 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   let queue = new Map();
   let queueTimer = null;
   let gqlCooldownUntil = 0;   // anti-martèlement après l'échec d'un lot
+  let massOfflineStreak = 0;  // cycles consécutifs d'extinction de masse suspecte
 
   // Découpe un tableau en tranches d'au plus `size` éléments.
   const chunk = (arr, size) => {
@@ -2638,30 +2651,71 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     const now = Date.now();
     let fresh = 0;
 
-    slices.forEach((slice, si) => {
+    // ── 1) Dépouillement des tranches exploitables ──────────────────────
+    // INDEXATION PAR LOGIN, jamais par position. Contrairement à une
+    // opération par chaîne, `users(logins:)` ne garantit ni l'ordre ni la
+    // complétude du tableau : un login inconnu peut être omis. S'aligner sur
+    // l'index attribuerait les données d'une chaîne à une autre.
+    const parsed = slices.map((slice, si) => {
       const results = responses[si];
       const list = results?.[0]?.data?.users;
-
-      // Tranche HS → ne pas écraser le cache, ne pas marquer les cartes
-      // hors-ligne : les appelants reçoivent la sentinelle "on ne sait pas".
-      // L'échec vaut aussi signal de santé réseau : on ouvre une pause pendant
-      // laquelle plus rien n'est mis en file (cf. GQL_ERROR_COOLDOWN).
+      // Tranche HS → l'échec vaut signal de santé réseau : on ouvre une pause
+      // pendant laquelle plus rien n'est mis en file (cf. GQL_ERROR_COOLDOWN).
       if (isResultsUnusable(results) || !Array.isArray(list)) {
         gqlCooldownUntil = Date.now() + CFG.GQL_ERROR_COOLDOWN;
-        slice.forEach(login => {
-          (pending.get(login) || []).forEach(fn => fn(UPTIME_UNKNOWN));
-        });
-        return;
+        return null;
       }
-
-      // INDEXATION PAR LOGIN, jamais par position. Contrairement à une
-      // opération par chaîne, `users(logins:)` ne garantit ni l'ordre ni la
-      // complétude du tableau : un login inconnu peut être omis. S'aligner sur
-      // l'index attribuerait les données d'une chaîne à une autre.
       const byLogin = new Map();
       for (const u of list) {
         const l = u?.login?.toLowerCase();
         if (l) byLogin.set(l, u);
+      }
+      return byLogin;
+    });
+
+    // ── 2) GARDE-FOU : extinction de masse ──────────────────────────────
+    // Combien de chaînes qu'on savait EN DIRECT reviennent hors ligne dans ce
+    // même cycle ? Qu'une large part d'entre elles s'éteigne à la seconde près
+    // est infiniment moins probable qu'une réponse dégradée de l'API — or la
+    // croire vide la sidebar d'un coup, ce qui détruit la fonction même de
+    // l'extension. Devant ce doute, on préfère un affichage périmé de quelques
+    // dizaines de secondes à une sidebar vide.
+    //
+    // La tolérance est BORNÉE : si l'anomalie persiste plusieurs cycles, c'est
+    // qu'elle est réelle (panne Twitch, fin d'un gros événement) et on finit
+    // par l'accepter. Le garde-fou retarde, il ne censure pas.
+    let wasLive = 0, nowOffline = 0;
+    slices.forEach((slice, si) => {
+      const byLogin = parsed[si];
+      if (!byLogin) return;
+      for (const login of slice) {
+        if (!cache.get(login)?.stream) continue;   // on ne le savait pas en direct
+        if (!byLogin.has(login)) continue;         // absent de la réponse = inconnu
+        wasLive++;
+        if (!byLogin.get(login).stream) nowOffline++;
+      }
+    });
+    const suspect = wasLive >= CFG.MASS_OFFLINE_MIN &&
+                    nowOffline >= wasLive * CFG.MASS_OFFLINE_RATIO;
+    if (suspect && massOfflineStreak < CFG.MASS_OFFLINE_TOLERANCE) {
+      massOfflineStreak++;
+      console.warn(S.consoleMassOffline(nowOffline, wasLive));
+      gqlCooldownUntil = Date.now() + CFG.GQL_ERROR_COOLDOWN;
+      logins.forEach(login => {
+        (pending.get(login) || []).forEach(fn => fn(UPTIME_UNKNOWN));
+      });
+      return;
+    }
+    if (!suspect) massOfflineStreak = 0;
+
+    // ── 3) Application ──────────────────────────────────────────────────
+    slices.forEach((slice, si) => {
+      const byLogin = parsed[si];
+      if (!byLogin) {
+        slice.forEach(login => {
+          (pending.get(login) || []).forEach(fn => fn(UPTIME_UNKNOWN));
+        });
+        return;
       }
 
       slice.forEach((login) => {
