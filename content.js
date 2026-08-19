@@ -3982,11 +3982,14 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   // `display` : nombre à AFFICHER s'il diffère. Sur un co-stream "Streamer
   //             ensemble", Twitch montre le compteur COMBINÉ de la session et
   //             non celui du streamer : afficher `count` afficherait 1,2 k là
-  //             où Twitch affiche 11,8 k. Les deux valeurs sont donc tenues
-  //             séparées — confondre l'affichage et la donnée de tri fausserait
-  //             l'un ou l'autre (cf. tri 'costream', qui somme par groupe : y
-  //             sommer des compteurs déjà combinés compterait N fois la même
-  //             audience).
+  //             où Twitch affiche 11,8 k.
+  //
+  // C'est la valeur AFFICHÉE qui est mémorisée en dataset, donc celle sur
+  // laquelle on trie. Trier sur un nombre différent de celui qu'on montre
+  // produit une liste que l'œil juge cassée : deux co-streamers marqués
+  // « 11,5 k » se retrouvaient l'un en haut du classement et l'autre au milieu
+  // des « 1,7 k », chacun rangé selon son audience propre. Le tri suit donc ce
+  // que l'utilisateur lit — comme le fait Twitch lui-même.
   const renderViewers = (card, count, display) => {
     if (!Number.isFinite(count)) return;
     const native = nativeViewersEl(card);
@@ -3999,11 +4002,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       span.setAttribute('aria-hidden', 'true');
       native.insertAdjacentElement('afterend', span);
     }
-    setText(span, formatViewers(Number.isFinite(display) ? display : count));
+    const shown = Number.isFinite(display) ? display : count;
+    setText(span, formatViewers(shown));
     // Pose le marqueur qui masque le compteur natif (cf. CSS). Fait seulement
     // maintenant : tant qu'on n'a pas de valeur, celui de Twitch reste visible.
-    if (card.dataset.tseViewers !== String(count)) {
-      card.dataset.tseViewers = String(count);
+    if (card.dataset.tseViewers !== String(shown)) {
+      card.dataset.tseViewers = String(shown);
     }
   };
 
@@ -4025,9 +4029,11 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     return (el.textContent || '').replace(/\s+/g, ' ').trim() || null;
   };
 
-  // Nombre de viewers comparable. Valeur exacte issue de TseChannels dès
-  // qu'elle est connue ; repli sur l'analyse du texte natif tant qu'elle ne
-  // l'est pas (premier rendu, sections hors « suivis », requête en vol).
+  // Nombre de viewers comparable — celui que la carte AFFICHE (donc le compteur
+  // combiné sur un co-stream, cf. renderViewers). Valeur exacte issue de
+  // TseChannels dès qu'elle est connue ; repli sur l'analyse du texte natif tant
+  // qu'elle ne l'est pas (premier rendu, sections hors « suivis », requête en
+  // vol).
   const getCardViewers = (card) => {
     const n = parseInt(card.dataset.tseViewers, 10);
     if (Number.isFinite(n)) return n;
@@ -6493,15 +6499,21 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       // Viewers DESC → le plus regardé en premier
       sorted = [...cards].sort((a, b) => getCardViewers(b) - getCardViewers(a));
     } else if (state.sortMode === 'costream') {
-      // Groupes de co-stream regroupés en tête, ordonnés par nombre de
-      // viewers du groupe (somme) décroissant. Les solos sont relégués
-      // après, dans leur ordre Twitch original. À l'intérieur d'un même
-      // groupe, on conserve l'ordre Twitch (déjà cohérent avec viewers).
-      const groupViewers = new Map(); // key -> somme viewers du groupe
+      // Groupes de co-stream regroupés en tête, ordonnés par audience du
+      // groupe décroissante. Les solos sont relégués après, dans leur ordre
+      // Twitch original. À l'intérieur d'un même groupe, on conserve l'ordre
+      // Twitch (déjà cohérent avec viewers).
+      //
+      // Audience du groupe = le PLUS GRAND compteur de ses membres, pas leur
+      // somme : chaque membre d'un co-stream affiche déjà l'audience COMBINÉE
+      // de la session (à un échantillon près — 11 736 chez l'un, 11 821 chez
+      // l'autre). Les additionner compterait N fois le même public et
+      // propulserait mécaniquement les groupes nombreux.
+      const groupViewers = new Map(); // key -> audience du groupe
       cards.forEach(card => {
         const key = card.dataset.tseCostreamKey;
         if (!key) return;
-        groupViewers.set(key, (groupViewers.get(key) || 0) + getCardViewers(card));
+        groupViewers.set(key, Math.max(groupViewers.get(key) || 0, getCardViewers(card)));
       });
       sorted = [...cards].sort((a, b) => {
         const ka = a.dataset.tseCostreamKey || null;
