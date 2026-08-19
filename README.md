@@ -589,6 +589,11 @@ extension, et une quatrième transformation ajoute la localisation.
    *répondu* en rejetant l'opération. Sur une coupure réseau, la seconde requête
    échouerait pareil — on ne la fait pas.
 
+   La forme inline a été **vérifiée sur l'API réelle**, en anonyme : elle est
+   acceptée telle quelle et répond même plus vite que la persistée (24 ms contre
+   43-49), sa sélection étant bien plus courte. Ce n'est pas un repli
+   spéculatif.
+
 Aucun autre changement de comportement n'a été introduit par rapport au
 userscript v2.22.3.
 

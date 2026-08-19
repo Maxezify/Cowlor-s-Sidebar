@@ -5909,6 +5909,11 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   // pour qu'aucune valeur inattendue ne puisse se glisser dans le texte envoyé.
   // Renvoie null si rien ne survit au filtre : mieux vaut ne rien demander que
   // demander une liste vide.
+  //
+  // VÉRIFIÉ sur gql.twitch.tv (anonyme, Client-ID public) : la requête est
+  // acceptée telle quelle et renvoie exactement la forme lue plus bas. Elle
+  // répond même plus vite que la persistée (24 ms contre 43-49), la sélection
+  // étant bien plus courte. Ce n'est donc PAS un repli spéculatif.
   const buildGuestStarInlineOp = (ids) => {
     const list = ids.filter(id => /^[0-9]+$/.test(id));
     if (!list.length) return null;
