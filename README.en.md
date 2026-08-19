@@ -548,26 +548,33 @@ context, and a fourth transformation adds localization.
 
    Disable with `AHEAD_ENABLED: false`.
 
-7. **The last persisted query now has a fallback** (v3.23). After `UseLive` was
-   removed, `GuestStarBatchCollaborationQuery` remained the only operation
-   identified by a **hash** — that is, the only thing Twitch could expire
-   unilaterally. It had all the less right to, being the reliable source of
-   co-stream grouping: without it, colouring fell back on a heuristic the code
-   itself describes as flickering, and **with nothing to signal it**.
+7. **No persisted query left** (v3.24). After `UseLive` was removed, the Guest
+   Star query remained the only operation identified by a **hash** — that is, the
+   only thing Twitch could expire unilaterally. It had all the less right to,
+   being the reliable source of co-stream grouping: without it, colouring fell
+   back on a heuristic the code itself describes as flickering, and **with
+   nothing to signal it**.
 
-   The query now also exists in **inline form** — full text, hence immune to any
-   hash rotation. The order is: hash first (lighter), inline only if it is
-   rejected. The switch is permanent for the session and **announced in the
-   console**, so that updating the hash is something you see rather than guess.
+   It is now sent **inline**, like `TseChannels`: the query carries its own text,
+   so there is no hash left to keep up to date. The sidebar module therefore no
+   longer depends on any persisted query. (The ad-block module still keeps one —
+   `PlaybackAccessToken` — but that is third-party code taken as-is, outside the
+   sidebar's scope.)
 
-   The distinction matters: the fallback is only attempted if the server
-   *answered* by rejecting the operation. On a network outage the second request
-   would fail just the same — so it is not made.
+   The choice was **verified against the live API**, anonymously, before being
+   made: the query is accepted as-is and even answers **faster** than the
+   persisted one (24 ms against 43-49), because it selects four fields instead of
+   the full payload (`canJoinStatus`, descriptions, profile colours, and a second
+   root field duplicating the first).
 
-   The inline form has been **verified against the live API**, anonymously: it
-   is accepted as-is and even answers faster than the persisted one (24 ms
-   against 43-49), its selection being far shorter. It is not a speculative
-   fallback.
+   A conditional fallback was written first (hash first, inline as backup). It
+   was removed: **a backup path that never runs is a path you cannot rely on**,
+   and it would only have been called upon at the exact moment everything
+   depended on it. Inline as the primary path runs every cycle — if it broke, it
+   would show immediately.
+
+   If the API refuses anyway, nothing breaks: a 30 s cooldown, the display is
+   kept, and colouring falls back on the heuristic until it recovers.
 
 No other behavior change was introduced relative to userscript v2.22.3.
 

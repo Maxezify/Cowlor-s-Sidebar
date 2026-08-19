@@ -571,28 +571,33 @@ extension, et une quatrième transformation ajoute la localisation.
 
    Désactivable par `AHEAD_ENABLED: false`.
 
-7. **La dernière persisted query a maintenant un repli** (v3.23). Après la
-   suppression de `UseLive`, `GuestStarBatchCollaborationQuery` restait la seule
-   opération identifiée par un **hash** — c'est-à-dire la seule chose que Twitch
-   pouvait périmer unilatéralement. Elle en avait d'autant moins le droit qu'elle
-   est la source fiable du regroupement des co-streams : sans elle, la coloration
-   retombait sur une heuristique que le code lui-même décrit comme clignotante,
-   et **sans que rien ne le signale**.
+7. **Plus aucune persisted query** (v3.24). Après la suppression de `UseLive`,
+   la requête Guest Star restait la seule opération identifiée par un **hash** —
+   c'est-à-dire la seule chose que Twitch pouvait périmer unilatéralement. Elle
+   en avait d'autant moins le droit qu'elle est la source fiable du regroupement
+   des co-streams : sans elle, la coloration retombait sur une heuristique que le
+   code lui-même décrit comme clignotante, et **sans que rien ne le signale**.
 
-   La requête existe désormais aussi sous **forme inline** — texte complet,
-   donc insensible à toute rotation de hash. L'ordre est : hash d'abord (léger),
-   inline seulement s'il est rejeté. La bascule est définitive pour la session et
-   **annoncée en console**, pour que la mise à jour du hash soit visible au lieu
-   d'être devinée.
+   Elle est désormais posée **inline**, comme `TseChannels` : la requête porte
+   son propre texte, il n'y a plus de hash à tenir à jour. Le module sidebar ne
+   dépend donc plus d'aucune persisted query. (Le module anti-pub, lui, en
+   conserve une — `PlaybackAccessToken` — mais c'est du code tiers repris tel
+   quel, hors du périmètre de la sidebar.)
 
-   La distinction est importante : le repli n'est tenté que si le serveur a
-   *répondu* en rejetant l'opération. Sur une coupure réseau, la seconde requête
-   échouerait pareil — on ne la fait pas.
+   Le choix a été **vérifié sur l'API réelle**, en anonyme, avant d'être fait :
+   la requête est acceptée telle quelle et répond même **plus vite** que la
+   persistée (24 ms contre 43-49), parce qu'elle sélectionne quatre champs
+   au lieu de la charge complète (`canJoinStatus`, descriptions, couleurs de
+   profil, et un second champ racine qui duplique le premier).
 
-   La forme inline a été **vérifiée sur l'API réelle**, en anonyme : elle est
-   acceptée telle quelle et répond même plus vite que la persistée (24 ms contre
-   43-49), sa sélection étant bien plus courte. Ce n'est pas un repli
-   spéculatif.
+   Un repli conditionnel avait d'abord été écrit (hash d'abord, inline en
+   secours). Il a été retiré : **un chemin de secours qui ne tourne jamais est
+   un chemin auquel on ne peut pas se fier**, et il n'aurait servi qu'au moment
+   précis où tout en aurait dépendu. L'inline en primaire est exercé à chaque
+   cycle — s'il cassait, cela se verrait tout de suite.
+
+   Si l'API refuse malgré tout, rien ne casse : cooldown de 30 s, affichage
+   conservé, et la coloration retombe sur l'heuristique le temps que ça passe.
 
 Aucun autre changement de comportement n'a été introduit par rapport au
 userscript v2.22.3.

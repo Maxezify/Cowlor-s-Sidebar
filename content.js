@@ -1406,7 +1406,6 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleHealthBroken:       '[tse] Des sélecteurs critiques ne correspondent plus au DOM de Twitch — l\'extension est peut-être partiellement cassée. Détails : tse.diagnose()',
       consoleHealthAllOk:        '[tse] Tous les sélecteurs critiques répondent.',
       consoleMassOffline:        (n, total) => `[tse] Réponse suspecte de l'API Twitch : ${n} chaînes sur ${total} que l'on savait en direct sont annoncées hors ligne d'un coup. Affichage conservé en l'état plutôt que de vider la sidebar ; nouvel essai dans 30 s.`,
-      consoleGuestStarInline:    '[tse] La requête « Streamer ensemble » de Twitch a changé de signature : l\'extension est repassée sur sa forme complète, qui, elle, ne périme pas. Le regroupement des co-streams reste exact — rien à faire, mais le hash mérite une mise à jour.',
       consoleColProbe:           'sonde',
       consoleColStatus:          'état',
       consoleColDetail:          'détail',
@@ -1454,7 +1453,6 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleHealthBroken:       '[tse] Some critical selectors no longer match Twitch\'s DOM — the extension may be partially broken. Details: tse.diagnose()',
       consoleHealthAllOk:        '[tse] All critical selectors are responding.',
       consoleMassOffline:        (n, total) => `[tse] Suspicious response from Twitch's API: ${n} of ${total} channels known to be live are reported offline at once. Keeping the current display rather than emptying the sidebar; retrying in 30 s.`,
-      consoleGuestStarInline:    '[tse] Twitch\'s "Streaming together" query changed signature: the extension fell back to its full form, which does not expire. Co-stream grouping stays accurate — nothing to do, but the hash is due for an update.',
       consoleColProbe:           'probe',
       consoleColStatus:          'status',
       consoleColDetail:          'detail',
@@ -1502,7 +1500,6 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleHealthBroken:       '[tse] Einige kritische Selektoren stimmen nicht mehr mit dem DOM von Twitch überein — die Erweiterung ist möglicherweise teilweise defekt. Details: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Alle kritischen Selektoren reagieren.',
       consoleMassOffline:        (n, total) => `[tse] Verdächtige Antwort der Twitch-API: ${n} von ${total} als live bekannten Kanälen werden auf einmal als offline gemeldet. Anzeige wird beibehalten, statt die Seitenleiste zu leeren; neuer Versuch in 30 s.`,
-      consoleGuestStarInline:    '[tse] Die „Gemeinsam streamen“-Abfrage von Twitch hat ihre Signatur geändert: Die Erweiterung ist auf die vollständige Form ausgewichen, die nicht abläuft. Die Co-Stream-Gruppierung bleibt korrekt — nichts zu tun, aber der Hash sollte aktualisiert werden.',
       consoleColProbe:           'Sonde',
       consoleColStatus:          'Status',
       consoleColDetail:          'Detail',
@@ -1550,7 +1547,6 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleHealthBroken:       '[tse] Algunos selectores críticos ya no coinciden con el DOM de Twitch — puede que la extensión esté parcialmente rota. Detalles: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Todos los selectores críticos responden.',
       consoleMassOffline:        (n, total) => `[tse] Respuesta sospechosa de la API de Twitch: ${n} de ${total} canales que sabíamos en directo se anuncian desconectados de golpe. Se mantiene la vista actual en vez de vaciar la barra lateral; nuevo intento en 30 s.`,
-      consoleGuestStarInline:    '[tse] La consulta «Emitiendo juntos» de Twitch ha cambiado de firma: la extensión ha pasado a su forma completa, que no caduca. La agrupación de co-streams sigue siendo exacta — nada que hacer, pero conviene actualizar el hash.',
       consoleColProbe:           'sonda',
       consoleColStatus:          'estado',
       consoleColDetail:          'detalle',
@@ -1598,7 +1594,6 @@ if (TSE_ADBLOCK_ENABLED) (function() {
       consoleHealthBroken:       '[tse] Alguns seletores críticos não correspondem mais ao DOM da Twitch — a extensão pode estar parcialmente quebrada. Detalhes: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Todos os seletores críticos estão respondendo.',
       consoleMassOffline:        (n, total) => `[tse] Resposta suspeita da API da Twitch: ${n} de ${total} canais que sabíamos ao vivo são anunciados offline de uma vez. A exibição é mantida em vez de esvaziar a barra lateral; nova tentativa em 30 s.`,
-      consoleGuestStarInline:    '[tse] A consulta «A transmitir em conjunto» da Twitch mudou de assinatura: a extensão passou para a sua forma completa, que não expira. O agrupamento de co-streams continua exato — nada a fazer, mas o hash merece uma atualização.',
       consoleColProbe:           'sonda',
       consoleColStatus:          'estado',
       consoleColDetail:          'detalhe',
@@ -1661,16 +1656,13 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     // tranche est rejetée, elle ne coûte que ses propres logins, au lieu
     // d'aveugler toute la sidebar d'un coup.
     GQL_MAX_LOGINS: 50,
-    // Persisted query "GuestStarBatchCollaborationQuery" : source FIABLE des
-    // co-streams "Streamer ensemble" (host.id partagé entre participants).
-    // Capté sur le trafic gql.twitch.tv. S'il devient obsolète, la requête
-    // bascule d'elle-même sur sa forme inline (qui, elle, ne périme pas) et
-    // le signale en console ; l'heuristique ne sert plus que si les DEUX
-    // formes échouent (cf. module Guest Star / detectCoStreams).
-    GUEST_STAR_HASH:           '096d50357df5e938f4fa83fe2acf25cb0f4886149aa81ddb9754eae98c05f2dd',
+    // Guest Star : source FIABLE des co-streams "Streamer ensemble" (host.id
+    // partagé entre participants). Interrogé par une requête INLINE, sans
+    // hash — l'extension ne dépend donc d'AUCUNE persisted query (cf. module
+    // Guest Star / detectCoStreams).
     GUEST_STAR_TTL:            30_000,   // ms — fraîcheur d'une session co-stream en cache
     GUEST_STAR_DEBOUNCE:       300,      // ms — fenêtre de regroupement des IDs avant fetch
-    GUEST_STAR_ERROR_COOLDOWN: 30_000,   // ms — pause après échec (réseau / hash obsolète)
+    GUEST_STAR_ERROR_COOLDOWN: 30_000,   // ms — pause après échec réseau / rejet
     // Délai de grâce avant de LIBÉRER la couleur d'un co-stream devenu inactif.
     // Absorbe les disparitions transitoires (rebuild DOM de Twitch, fenêtre de
     // refetch) : tant qu'une collaboration réapparaît dans ce délai, elle
@@ -5844,11 +5836,12 @@ if (TSE_ADBLOCK_ENABLED) (function() {
    *  et même le compteur combiné varie : 1722 vs 1719), d'où un
    *  coloriage clignotant.
    *
-   *  Twitch expose la vérité via l'opération
-   *  GuestStarBatchCollaborationQuery : pour un lot d'IDs de chaînes,
-   *  chaque entrée porte une `session` dont `session.host.id` est
-   *  PARTAGÉ par TOUS les participants d'un même co-stream. On
-   *  regroupe donc par host.id — déterministe, insensible aux viewers.
+   *  Twitch expose la vérité via `guestStarChannelCollaboration` : pour
+   *  un lot d'IDs de chaînes, chaque entrée porte une `session` dont
+   *  `session.host.id` est PARTAGÉ par TOUS les participants d'un même
+   *  co-stream. On regroupe donc par host.id — déterministe, insensible
+   *  aux viewers. (Twitch l'interroge de son côté sous le nom
+   *  GuestStarBatchCollaborationQuery ; on ne réutilise que le champ.)
    *
    *  La même réponse porte `collaborationViewersCount` : le compteur
    *  COMBINÉ que Twitch affiche sur la carte d'un co-streamer, à la
@@ -5856,14 +5849,13 @@ if (TSE_ADBLOCK_ENABLED) (function() {
    *  requête supplémentaire (cf. renderViewers).
    *
    *  Transport : post() (header Client-ID seul, donnée publique), batché
-   *  et mis en cache (TTL). Requête persistée d'abord, repli sur sa forme
-   *  inline si le hash est rejeté — cf. buildGuestStarInlineOp.
+   *  et mis en cache (TTL). Requête INLINE, sans hash — cf. buildGuestStarOp.
    *  Le cache est servi en "stale-while-revalidate" : une valeur connue
    *  est renvoyée même périmée pendant son rafraîchissement, ce qui évite
    *  tout retour transitoire à l'heuristique (donc toute saute de couleur).
-   *  Si aucune valeur n'a JAMAIS été apprise (hash obsolète dès le départ,
-   *  réseau HS), getHostId() renvoie `undefined` et detectCoStreams retombe
-   *  proprement sur l'heuristique → aucune régression.
+   *  Si aucune valeur n'a JAMAIS été apprise (réseau HS, API qui refuse),
+   *  getHostId() renvoie `undefined` et detectCoStreams retombe proprement
+   *  sur l'heuristique → aucune régression.
    *
    *  Valeurs de getHostId(channelId) :
    *    string    → ID de l'hôte (clé de regroupement du co-stream)
@@ -5884,23 +5876,16 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     }
   };
 
-  // Forme PERSISTÉE : le texte de la requête n'est pas transmis, seul son hash.
-  const buildGuestStarOp = (ids) => ({
-    operationName: 'GuestStarBatchCollaborationQuery',
-    variables: {
-      options: { channelIDs: ids },
-      canDropInFlagEnabled: false,
-      openCallingFlagEnabled: true
-    },
-    extensions: { persistedQuery: { version: 1, sha256Hash: CFG.GUEST_STAR_HASH } }
-  });
-
-  // Forme INLINE de repli : elle porte le texte de la requête, donc ne périme
-  // jamais. Sélection RÉDUITE au strict nécessaire — host.id pour regrouper, les
-  // participants pour la popup, le compteur combiné pour l'affichage. La requête
-  // persistée en renvoie bien davantage (canJoinStatus, descriptions, couleurs
-  // de profil, et un second champ racine guestStarCollaborationStatuses qui
-  // duplique le premier) dont rien ici ne se sert.
+  // Requête INLINE : elle porte son propre texte, donc AUCUN hash — rien que
+  // Twitch puisse périmer unilatéralement. C'est le même choix que pour
+  // TseChannels, et pour la même raison.
+  //
+  // Sélection réduite au strict nécessaire — host.id pour regrouper, les
+  // participants pour la popup, le compteur combiné pour l'affichage. La forme
+  // persistée qu'utilise Twitch en renvoie bien davantage (canJoinStatus,
+  // descriptions, couleurs de profil, et un second champ racine
+  // guestStarCollaborationStatuses qui duplique le premier) dont rien ici ne se
+  // sert : à sélection plus courte, réponse plus légère et plus rapide.
   //
   // Les IDs sont écrits en LITTÉRAL plutôt que passés par $variables : le type
   // d'entrée exact de `options` n'est pas connu, et une déclaration de variable
@@ -5910,11 +5895,10 @@ if (TSE_ADBLOCK_ENABLED) (function() {
   // Renvoie null si rien ne survit au filtre : mieux vaut ne rien demander que
   // demander une liste vide.
   //
-  // VÉRIFIÉ sur gql.twitch.tv (anonyme, Client-ID public) : la requête est
-  // acceptée telle quelle et renvoie exactement la forme lue plus bas. Elle
-  // répond même plus vite que la persistée (24 ms contre 43-49), la sélection
-  // étant bien plus courte. Ce n'est donc PAS un repli spéculatif.
-  const buildGuestStarInlineOp = (ids) => {
+  // VÉRIFIÉ sur gql.twitch.tv (anonyme, Client-ID public) : acceptée telle
+  // quelle, elle renvoie exactement la forme lue plus bas et répond plus vite
+  // que la persistée (24 ms contre 43-49).
+  const buildGuestStarOp = (ids) => {
     const list = ids.filter(id => /^[0-9]+$/.test(id));
     if (!list.length) return null;
     return {
@@ -5932,45 +5916,21 @@ if (TSE_ADBLOCK_ENABLED) (function() {
     };
   };
 
-  // Le serveur A RÉPONDU, et il a répondu par des erreurs : signature d'un rejet
-  // applicatif (hash inconnu → PersistedQueryNotFound) plutôt que d'une panne
-  // réseau. C'est la SEULE situation où retenter en inline a un sens : sur une
-  // coupure, la seconde requête échouerait pareil, pour rien. Un throttle passe
-  // aussi par ici, mais il frappera l'inline tout autant — donc sans bascule.
-  const isPersistedRejection = (results) =>
-    results !== NETWORK_ERROR &&
-    Array.isArray(results) && results.length > 0 &&
-    results.every(r => r?.errors);
-
-  let gsInlineOnly = false;   // hash rejeté ET inline validé → on cesse d'essayer le hash
-
   const flushGuestStar = async () => {
     gsTimer = null;
     const ids = [...gsQueue];
     gsQueue.clear();
     if (!ids.length) return;
 
-    const inlineOp = buildGuestStarInlineOp(ids);
-    let res = await post([gsInlineOnly && inlineOp ? inlineOp : buildGuestStarOp(ids)]);
+    const op = buildGuestStarOp(ids);
+    // Aucun ID exploitable (tous écartés par le filtre) : on ne demande rien,
+    // mais on libère les promesses en attente pour ne pas les laisser pendre.
+    if (!op) { resolveGuestStarWaiters(ids); return; }
 
-    // Hash périmé : on bascule une fois pour toutes sur l'inline, et on le DIT.
-    // Sans cette alerte, la panne serait muette : la coloration retomberait sur
-    // l'heuristique sans que personne ne sache qu'un hash est à mettre à jour.
-    if (!gsInlineOnly && inlineOp && isPersistedRejection(res)) {
-      const alt = await post([inlineOp]);
-      if (!isResultsUnusable(alt)) {
-        // Re-lecture APRÈS l'await : un autre flush a pu basculer entre-temps.
-        // Le drapeau ne va jamais que de false à true, donc la bascule est
-        // idempotente ; on tient simplement à ne l'annoncer qu'une fois.
-        if (!gsInlineOnly) { gsInlineOnly = true; console.warn(S.consoleGuestStarInline); }
-        res = alt;
-      }
-    }
+    const res = await post([op]);
 
-    // Échec global (réseau, throttle, ou les DEUX formes rejetées) : on n'écrit
-    // rien, on pose un cooldown, et le repli heuristique assure l'intérim.
-    // NB : isResultsUnusable couvre déjà le cas d'une réponse mono-opération
-    // porteuse d'`errors` (PersistedQueryNotFound inclus).
+    // Échec global (réseau, throttle, rejet applicatif) : on n'écrit rien, on
+    // pose un cooldown, et le repli heuristique assure l'intérim.
     if (isResultsUnusable(res)) {
       gsCooldownUntil = Date.now() + CFG.GUEST_STAR_ERROR_COOLDOWN;
       resolveGuestStarWaiters(ids); // libère les promesses (échec) pour ne pas les laisser pendre
