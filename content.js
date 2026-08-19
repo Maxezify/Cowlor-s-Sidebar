@@ -6008,6 +6008,14 @@ if (TSE_ADBLOCK_ENABLED) (function() {
         // coller exactement à ce que Twitch montrerait sur CETTE carte.
         // L'hôte figure lui aussi parmi les `guests` (slot 0), il est donc
         // couvert sans traitement particulier.
+        //
+        // Le champ vaut `null` sur une session OUVERTE MAIS SOLO — un seul
+        // participant, donc rien à combiner (observé : session à un slot,
+        // collaborationViewersCount null alors que viewersCount vaut 739).
+        // Ce null est la bonne réponse et se propage tel quel : la carte
+        // affiche alors l'audience propre. Ne pas le "réparer" en sommant les
+        // invités ni en reprenant la valeur de l'hôte — ce serait inventer un
+        // chiffre que Twitch n'affiche pas.
         let combined = null;
         for (const g of (session?.guests || [])) {
           if (g?.user?.id !== e.id) continue;
