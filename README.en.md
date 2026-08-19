@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.25.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.26.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -284,7 +284,7 @@ one of them runs.
 
 The module now lives in **`adblock.js`** rather than at the top of `content.js`.
 It is third-party code that updates upstream: isolating it makes the next update
-mechanical — swap the file, replay the five adaptations listed in its header —
+mechanical — swap the file, replay the seven adaptations listed in its header —
 instead of a hand merge. The manifest loads `adblock.js` **before** `content.js`,
 reproducing exactly the order the two modules had when they shared a file. Do not
 invert it.
@@ -305,12 +305,52 @@ working fully.
 ### Credit and licence
 
 The code is licensed **MIT** — Copyright (c) 2020-present TwitchAdSolutions
-Contributors. Only five adaptations separate it from upstream, each marked
+Contributors. Only seven adaptations separate it from upstream, each marked
 `ADAPTATION` in the file and summarised in its header: the `[TSE-AdBlock]` log
 prefix, the kill switch, the iframe-only guard, a hardcoded version in place of
-`GM_info` (a userscript-manager API absent from an extension), and removal of the
+`GM_info` (a userscript-manager API absent from an extension), removal of the
 startup banner — upstream it prints once per page, here the iframe is recreated
-on every hover and the console would drown.
+on every hover and the console would drown — and two settings ill-suited to a
+thumbnail (see "Preview quality" below).
+
+### Preview quality (v3.26)
+
+The preview popup is **480 × 270**. The sidebar therefore asks
+`player.twitch.tv` for `360p30`: 640 × 360, just enough to fill the box without
+oversampling it. Going lower (`160p30` = 284 × 160) would fall below the display
+size and show.
+
+The anti-ad module, however, shipped with `PinHighestQuality: true`, which writes
+"highest available quality" into `player.twitch.tv`'s local storage and therefore
+works **against** that choice. Upstream the setting is right — it serves a
+full-screen viewing session; it stops being right for a hover thumbnail. It is
+set to `false` (adaptation f), as is `ShowBanner` (adaptation g), whose
+diagnostic box ate the corner of the picture.
+
+### Co-stream colours
+
+Each simultaneous collaboration gets a colour from the palette. The constraint is
+simple: two colours must stay distinguishable at a glance on cards that may touch
+— which a **hue** gap guarantees, saturation and lightness being close across the
+whole palette.
+
+Until 3.25 three warm tones were stacked within a 16° arc: orange 31°, soft
+yellow 42°, yellow 47°. The two yellows sat **5°** apart, which is the same colour
+to the naked eye. Both the orange **and** the soft yellow were removed, a violet
+takes their place, and green and blue were moved further apart:
+
+| Colour | Hue |
+| --- | --- |
+| yellow `#f5c518` | 47° |
+| green `#7ee081` | 122° |
+| turquoise `#26d4c8` | 176° |
+| blue `#4d8cff` | 219° |
+| violet `#c77dff` | 274° |
+| pink `#ff7a8a` | 353° |
+
+Minimum gap: **43°**, against 5° before. The test harness rejects any pair below
+40° and checks along the way that each `rgba` matches its hex — a typo there
+would give a border of one colour and a glow of another.
 
 **What could not be verified.** Ad blocking itself requires a real stream serving
 real ads: it is not testable from the development environment. What *is* verified
@@ -512,7 +552,7 @@ context, and a fourth transformation adds localization.
 
 3. **Bundled anti-ad module** (see the dedicated section above). Since v3.25 the
    code is vendored as-is from [scamorza/TwitchAdBlock](https://github.com/scamorza/TwitchAdBlock)
-   into its own file, `adblock.js`, with five marked adaptations — kill switch,
+   into its own file, `adblock.js`, with seven marked adaptations — kill switch,
    iframe-only guard, `[TSE-AdBlock]` log prefix, hardcoded version instead of
    `GM_info`, and no startup banner.
 

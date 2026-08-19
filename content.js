@@ -4641,14 +4641,34 @@
    *  la durée de la collaboration, y compris au travers des
    *  disparitions transitoires (rebuild DOM de Twitch, refetch).
    * ============================================================ */
+  /* Palette : une couleur par collaboration simultanée.
+   *
+   * RÈGLE : deux couleurs de cette liste doivent rester distinguables au
+   * premier coup d'œil, sur des cartes qui peuvent se toucher. C'est un
+   * écart de TEINTE qui le garantit — la saturation et la luminosité, elles,
+   * se ressemblent toutes ici (couleurs claires sur fond sombre).
+   *
+   * L'ancienne palette empilait trois tons chauds dans un arc de 16° :
+   * orange 31°, jaune doux 42°, jaune 47°. Le jaune doux et le jaune étaient
+   * à 5° l'un de l'autre, soit la même couleur à l'œil nu. Les deux ont été
+   * retirés — pas seulement l'orange — et un violet prend leur place dans le
+   * grand vide entre le bleu et le rose.
+   *
+   * Teintes et écarts (mesurés) :
+   *   jaune 47° → vert 122° → turquoise 176° → bleu 219° → violet 274°
+   *   → rose 353° → (retour au jaune)
+   *   écarts : 75°, 54°, 43°, 55°, 79°, 54°  —  MINIMUM 43° (contre 5° avant)
+   *
+   * Avant d'ajouter ou de modifier une entrée, vérifier que l'écart minimum
+   * reste au-dessus de 40°. Le harnais de test le contrôle.
+   */
   const COSTREAM_PALETTE = [
-    { color: '#f5c518', bg: 'rgba(245, 197, 24, 0.18)',  fade: 'rgba(245, 197, 24, 0.06)'  }, // jaune
-    { color: '#ffa94d', bg: 'rgba(255, 169, 77, 0.18)',  fade: 'rgba(255, 169, 77, 0.06)'  }, // orange clair
-    { color: '#4dc4ff', bg: 'rgba(77, 196, 255, 0.18)',  fade: 'rgba(77, 196, 255, 0.06)'  }, // bleu clair
-    { color: '#5cdf8a', bg: 'rgba(92, 223, 138, 0.18)',  fade: 'rgba(92, 223, 138, 0.06)'  }, // vert clair
-    { color: '#ff7a8a', bg: 'rgba(255, 122, 138, 0.18)', fade: 'rgba(255, 122, 138, 0.06)' }, // rouge clair
-    { color: '#26d4c8', bg: 'rgba(38, 212, 200, 0.18)',  fade: 'rgba(38, 212, 200, 0.06)'  }, // turquoise
-    { color: '#ffd166', bg: 'rgba(255, 209, 102, 0.18)', fade: 'rgba(255, 209, 102, 0.06)' }, // jaune doux
+    { color: '#f5c518', bg: 'rgba(245, 197, 24, 0.18)',  fade: 'rgba(245, 197, 24, 0.06)'  }, // jaune      47°
+    { color: '#7ee081', bg: 'rgba(126, 224, 129, 0.18)', fade: 'rgba(126, 224, 129, 0.06)' }, // vert      122°
+    { color: '#26d4c8', bg: 'rgba(38, 212, 200, 0.18)',  fade: 'rgba(38, 212, 200, 0.06)'  }, // turquoise 176°
+    { color: '#4d8cff', bg: 'rgba(77, 140, 255, 0.18)',  fade: 'rgba(77, 140, 255, 0.06)'  }, // bleu      219°
+    { color: '#c77dff', bg: 'rgba(199, 125, 255, 0.18)', fade: 'rgba(199, 125, 255, 0.06)' }, // violet    274°
+    { color: '#ff7a8a', bg: 'rgba(255, 122, 138, 0.18)', fade: 'rgba(255, 122, 138, 0.06)' }, // rose      353°
   ];
 
   // clé de groupe -> { idx: indice de palette, lastActiveTs: dernier scan actif }

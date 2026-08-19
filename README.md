@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.25.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.26.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -319,12 +319,52 @@ filtre, popup d'aperçu…) reste pleinement fonctionnel.
 ### Crédit et licence
 
 Le code est sous licence **MIT** — Copyright (c) 2020-present TwitchAdSolutions
-Contributors. Cinq adaptations seulement le séparent de l'amont, toutes marquées
+Contributors. Sept adaptations seulement le séparent de l'amont, toutes marquées
 « ADAPTATION » dans le fichier et récapitulées dans son en-tête : préfixe de log
 `[TSE-AdBlock]`, interrupteur, garde iframe-only, version en dur à la place de
 `GM_info` (une API de gestionnaire de userscripts, absente dans une extension),
-et retrait de la bannière de démarrage — en amont elle s'affiche une fois par
-page, ici l'iframe renaît à chaque survol et la console serait noyée.
+retrait de la bannière de démarrage — en amont elle s'affiche une fois par page,
+ici l'iframe renaît à chaque survol et la console serait noyée — et deux réglages
+inadaptés à une vignette (cf. « Qualité de l'aperçu » ci-dessous).
+
+### Qualité de l'aperçu (v3.26)
+
+La popup d'aperçu fait **480 × 270**. La sidebar demande donc `360p30` à
+`player.twitch.tv` : 640 × 360, soit juste ce qu'il faut pour remplir la boîte
+sans la sur-échantillonner. Descendre plus bas (`160p30` = 284 × 160) passerait
+sous la taille d'affichage et se verrait.
+
+Le module anti-pub arrivait cependant avec `PinHighestQuality: true`, qui écrit
+« meilleure qualité disponible » dans le stockage local de `player.twitch.tv` et
+travaille donc **contre** ce choix. En amont le réglage est juste — il sert une
+session de visionnage plein écran ; il ne l'est plus pour une vignette de survol.
+Il est passé à `false` (adaptation f), de même que `ShowBanner` (adaptation g),
+dont l'encart de diagnostic mangeait le coin de l'image.
+
+### Couleurs de co-stream
+
+Chaque collaboration simultanée reçoit une couleur de la palette. La contrainte
+est simple : deux couleurs doivent rester distinguables au premier coup d'œil sur
+des cartes qui peuvent se toucher — ce que garantit un écart de **teinte**, la
+saturation et la luminosité étant voisines dans toute la palette.
+
+Jusqu'à la 3.25, trois tons chauds s'y empilaient dans un arc de 16° : orange
+31°, jaune doux 42°, jaune 47°. Les deux jaunes étaient à **5°** l'un de l'autre,
+soit la même couleur à l'œil nu. L'orange **et** le jaune doux ont été retirés, un
+violet prend leur place, et le vert comme le bleu ont été écartés l'un de l'autre :
+
+| Couleur | Teinte |
+| --- | --- |
+| jaune `#f5c518` | 47° |
+| vert `#7ee081` | 122° |
+| turquoise `#26d4c8` | 176° |
+| bleu `#4d8cff` | 219° |
+| violet `#c77dff` | 274° |
+| rose `#ff7a8a` | 353° |
+
+Écart minimum : **43°**, contre 5° auparavant. Le harnais de test refuse toute
+paire sous 40° et vérifie au passage que chaque `rgba` correspond bien à son
+hex — une coquille y donnerait un liseré d'une couleur et un halo d'une autre.
 
 **Ce qui n'a pas pu être vérifié.** Le blocage publicitaire lui-même demande un
 vrai stream servant de vraies publicités : il n'est pas testable depuis
@@ -532,7 +572,7 @@ extension, et une quatrième transformation ajoute la localisation.
 
 3. **Module anti-pub intégré** (cf. section dédiée plus haut). Depuis la v3.25 le
    code est vendorisé tel quel depuis [scamorza/TwitchAdBlock](https://github.com/scamorza/TwitchAdBlock)
-   dans son propre fichier, `adblock.js`, avec cinq adaptations marquées —
+   dans son propre fichier, `adblock.js`, avec sept adaptations marquées —
    interrupteur, garde iframe-only, préfixe `[TSE-AdBlock]` sur les logs, version
    en dur à la place de `GM_info`, et pas de bannière au démarrage.
 

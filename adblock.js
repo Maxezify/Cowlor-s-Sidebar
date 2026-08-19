@@ -22,14 +22,24 @@
  *   handshake twitchAdSolutionsVersion gère la cohabitation, et c'est
  *   d'ailleurs lui qui fait que l'un des deux se retire proprement.
  *
- *  LES CINQ ADAPTATIONS (toutes marquées « ADAPTATION » dans le code) :
+ *  LES SEPT ADAPTATIONS (toutes marquées « ADAPTATION » dans le code) :
  *   a) préfixe de log « [VAFT2] » → « [TSE-AdBlock] », pour distinguer
  *      nos lignes de celles d'un vaft installé en externe ;
  *   b) interrupteur TSE_ADBLOCK_ENABLED ;
  *   c) garde iframe-only (cf. ci-dessus) ;
  *   d) GM_info remplacé par la version en dur — cette API appartient aux
  *      gestionnaires de userscripts et n'existe pas dans une extension ;
- *   e) bannière de démarrage retirée (l'iframe renaît à chaque survol).
+ *   e) bannière de démarrage retirée (l'iframe renaît à chaque survol) ;
+ *   f) PinHighestQuality passé à false — l'aperçu fait 480x270, épingler la
+ *      meilleure qualité disponible y est du gaspillage pur, et cela combat
+ *      le 360p30 que la sidebar demande déjà par l'URL ;
+ *   g) ShowBanner passé à false — l'encart de diagnostic mangerait le coin
+ *      de la vignette.
+ *
+ *  (f) et (g) ne sont pas des corrections : en amont ces deux valeurs sont
+ *  justes, pour un lecteur qu'on regarde vraiment. Elles ne le sont plus dès
+ *  lors que le lecteur est une vignette de survol. À reconsidérer si la garde
+ *  iframe-only tombait un jour.
  *
  *  Le reste du fichier est repris TEL QUEL. Ne pas y corriger de bug
  *  local : le signaler en amont, sinon la prochaine mise à jour l'écrase.
@@ -156,7 +166,13 @@ const TSE_ADBLOCK_ENABLED = true;
         // Twitch's own 'video-quality-highest-available'. Does NOT prevent the background downscale
         // despite vaft's similarly-named option claiming so -- measured: with quality pinned it
         // still fell to 360p on schedule. HideVisibility is what stops that.
-        PinHighestQuality: true,
+        // ADAPTATION (f) : OFF. En amont ce réglage sert une session de visionnage
+        // plein écran ; ici le lecteur vit dans une vignette de 480x270 au survol,
+        // pour laquelle la sidebar demande déjà 360p30 par l'URL. Épingler « la
+        // meilleure qualité disponible » écrit dans le localStorage de
+        // player.twitch.tv et travaille donc CONTRE ce choix, pour un flux qu'on
+        // affiche de toute façon dans un huitième de sa surface.
+        PinHighestQuality: false,
 
         // -- recovery ------------------------------------------------------------------------
         // onSinkStop has three exits: unmuted -> mute and replay (AudioBlocked); muted -> pause +
@@ -185,7 +201,11 @@ const TSE_ADBLOCK_ENABLED = true;
         StepDownCodecInsteadOfStripping: true,
 
         // -- diagnostics ---------------------------------------------------------------------
-        ShowBanner: true,
+        // ADAPTATION (g) : OFF. La bannière est un encart noir posé en haut à
+        // gauche du lecteur. Sur une vignette de 480 px elle mange le coin de
+        // l'image, et l'aperçu n'est pas un endroit où l'on diagnostique — la
+        // console suffit pour ça. (La v37 la masquait déjà, pour cette raison.)
+        ShowBanner: false,
         // 'debug' | 'info' | 'warn' | 'off'
         LogLevel: 'info',
         // Report the player's own stitchedadstart/stitchedadend next to our own detection: one
