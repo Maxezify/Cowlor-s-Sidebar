@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.22.3 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.25.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -116,9 +116,16 @@ The extension now picks up the combined counter and displays that one, in
 agreement with Twitch. It comes from the **Guest Star response already
 requested** to group co-streams: no extra request.
 
-Both numbers are kept separately — the combined one for display, the channel's
-own for sorting. Otherwise the "co-streams first" sort, which adds up a group's
-members, would count the same audience N times.
+That combined counter is what **sorting** uses too (v3.24.1). Sorting on a
+number other than the one displayed produces a list the eye reads as broken: two
+co-streamers both marked "11.5K" ended up one at the top of the ranking and the
+other in the middle of the "1.7K"s, each filed under its own audience. Sorting
+therefore follows what you read, as Twitch does.
+
+Corollary for the "co-streams first" sort: a group's audience is the **largest**
+counter among its members, not their sum. Every member already displays the
+session's combined figure, so adding them up would count the same audience N
+times and mechanically push large groups to the top.
 
 ### Network cost
 
@@ -242,44 +249,74 @@ Then reload the extension (`chrome://extensions` → ↻) and the Twitch tab.
 
 ---
 
-## Built-in anti-ad module (v3.0+)
+## Built-in anti-ad module (v3.0+, replaced in v3.25)
 
-The extension bundles an ad-blocking module based on
-**[vaft v37.0.0](https://github.com/pixeltris/TwitchAdSolutions)** by
-**pixeltris** (TwitchAdSolutions project). Its sole purpose is to prevent
-pre-roll ads from playing inside the hover-preview iframe, which made the
-preview unusable on monetized channels.
+The extension bundles an ad-blocking module. Its only job is to keep a pre-roll
+ad from playing inside the hover preview iframe, which made previews unusable on
+monetized channels.
+
+Since **v3.25** that module is **[vaft v2.0.4](https://github.com/scamorza/TwitchAdBlock)**,
+replacing the vaft v37.0.0 by **pixeltris** used until then. It is not an update
+but a **rewrite**: it started from that project and little of the original code
+remains. What changes in practice:
+
+- server-side ads are worked around by requesting the stream under a different
+  `playerType`. The old chain led with `embed` then `popout`; the new one leads
+  with `mobile_feed` asked as `android`, the one combination that is both ad-free
+  and uncapped. It carries the source codec, so a break costs no rendition change
+  at all — which is exactly what the player used to stall on;
+- **client-side ads** (the pod above chat, banners, pause ads) are refused
+  upstream, through Twitch's own decline path. The old module simply never saw
+  them;
+- where no clean stream exists, the player is stepped down to the best rung of a
+  different codec instead of stalling.
 
 ### Execution scope
 
-The module is intentionally **iframe-only** (concretely, the
-`player.twitch.tv` iframe the extension mounts on hover). It does **not**
-touch the main stream you watch on `twitch.tv`. If you want a global block
-for the main stream too, install vaft separately (dedicated extension or
-userscript); the bundled module detects an external version via
-`window.twitchAdSolutionsVersion` and gracefully steps aside.
+Unchanged: the module is deliberately restricted to **iframes** (concretely, the
+`player.twitch.tv` iframe the extension mounts on hover). It **does not touch**
+the main stream you watch on `twitch.tv` — someone actually watching a stream
+accepts Twitch's business model. For global blocking, install vaft separately;
+the two recognise each other via `window.twitchAdSolutionsVersion` and exactly
+one of them runs.
 
-### Disabling
+### A file of its own
 
-The very first non-comment line of `content.js` is:
+The module now lives in **`adblock.js`** rather than at the top of `content.js`.
+It is third-party code that updates upstream: isolating it makes the next update
+mechanical — swap the file, replay the five adaptations listed in its header —
+instead of a hand merge. The manifest loads `adblock.js` **before** `content.js`,
+reproducing exactly the order the two modules had when they shared a file. Do not
+invert it.
+
+### Disabling it
+
+At the very top of `adblock.js`, the first non-comment line is:
 
 ```js
 const TSE_ADBLOCK_ENABLED = true;
 ```
 
-Flip it to `false`, reload the extension (`chrome://extensions` → ↻ icon on
-the card), and the preview iframe becomes a plain Twitch iframe again with
-no interception. The rest of the extension (stream uptime, sort, filter,
-preview popup…) remains fully functional.
+Set it to `false`, reload the extension (`chrome://extensions` → ↻ icon on the
+card) and the preview iframe becomes a plain Twitch iframe with no interception.
+The rest of the extension (uptime, sorting, filters, hover preview…) keeps
+working fully.
 
-### Credit and license
+### Credit and licence
 
-The vaft code is licensed under **The Unlicense** (public domain). The only
-modification relative to upstream is cosmetic: a `[TSE-AdBlock]` prefix
-added to console logs to make them distinguishable in DevTools, and hiding
-of the small "Blocking ads" banner that appeared inside the preview. The
-vaft logic is intact, and the file explicitly documents every modification
-in its intro comment.
+The code is licensed **MIT** — Copyright (c) 2020-present TwitchAdSolutions
+Contributors. Only five adaptations separate it from upstream, each marked
+`ADAPTATION` in the file and summarised in its header: the `[TSE-AdBlock]` log
+prefix, the kill switch, the iframe-only guard, a hardcoded version in place of
+`GM_info` (a userscript-manager API absent from an extension), and removal of the
+startup banner — upstream it prints once per page, here the iframe is recreated
+on every hover and the console would drown.
+
+**What could not be verified.** Ad blocking itself requires a real stream serving
+real ads: it is not testable from the development environment. What *is* verified
+automatically: that the module loads, that it stays **strictly inert outside an
+iframe** (neither `fetch` nor `Worker` hooked, no marker claimed, no console API
+installed), and that it does not disturb the sidebar in any way.
 
 The language-filter flags come from the **OpenMoji** set (CC BY-SA 4.0 licence). The **EN** (USA + UK) and **PT** (Portugal + Brazil) bi-flags, split down the vertical centre, are derived from it to represent both variants of a language with a single flag.
 
@@ -398,10 +435,10 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 `tse.reset()` wipes all three at any time; clearing `twitch.tv`'s site data from
 your browser settings does the same.
 
-The bundled vaft anti-ad module likewise never talks to third-party servers:
-it intercepts Twitch requests inside the preview iframe and reroutes them to
-other Twitch endpoints (popout player, embed) to fetch an ad-free stream.
-No data leaves the Twitch circuit.
+The bundled anti-ad module likewise never talks to third-party servers: it
+intercepts Twitch requests inside the preview iframe and re-asks Twitch for the
+stream under a different `playerType` to get an ad-free version. No data leaves
+the Twitch circuit.
 
 ---
 
@@ -409,7 +446,7 @@ No data leaves the Twitch circuit.
 
 If you change any of the extension files (e.g. to tweak a configuration
 constant at the top of `content.js`, or to disable the anti-ad module via
-`TSE_ADBLOCK_ENABLED`):
+`TSE_ADBLOCK_ENABLED` at the top of `adblock.js`):
 
 1. Save your changes.
 2. Go back to `chrome://extensions`.
@@ -423,7 +460,8 @@ constant at the top of `content.js`, or to disable the anti-ad module via
 ```
 cowlors-sidebar-for-twitch/
 ├── manifest.json          MV3 declaration (content script MAIN world, all_frames true)
-├── content.js             all the logic: vaft anti-ad module + sidebar module
+├── adblock.js             anti-ad module (vendored third-party code, see its header)
+├── content.js             all the sidebar logic
 ├── _locales/
 │   ├── en/messages.json     English name + description (default_locale)
 │   ├── fr/messages.json     French name + description
@@ -472,10 +510,11 @@ context, and a fourth transformation adds localization.
    this thanks to Violentmonkey's injection privilege. The thumbnail-fallback
    semantics are strictly preserved.
 
-3. **Bundled vaft anti-ad module** (see the dedicated section above). The code
-   is imported as-is from [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions),
-   wrapped in a conditional IIFE (`if (TSE_ADBLOCK_ENABLED) (...)()`) with an
-   iframe-only guard and a `[TSE-AdBlock]` prefix on console logs.
+3. **Bundled anti-ad module** (see the dedicated section above). Since v3.25 the
+   code is vendored as-is from [scamorza/TwitchAdBlock](https://github.com/scamorza/TwitchAdBlock)
+   into its own file, `adblock.js`, with five marked adaptations — kill switch,
+   iframe-only guard, `[TSE-AdBlock]` log prefix, hardcoded version instead of
+   `GM_info`, and no startup banner.
 
 4. **Multi-language localization (FR / EN / DE / ES / PT)**. The i18n architecture is
    designed to decouple features from the detected language:

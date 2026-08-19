@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.22.3 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.25.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -123,9 +123,16 @@ L'extension récupère désormais le compteur combiné et affiche celui-là, en
 accord avec Twitch. Il vient de la **réponse Guest Star déjà demandée** pour
 regrouper les co-streams : aucune requête supplémentaire.
 
-Les deux nombres sont conservés séparément — le combiné pour l'affichage,
-l'audience propre pour le tri. Sans quoi le tri « co-streams d'abord », qui
-additionne les membres d'un groupe, compterait N fois la même audience.
+C'est ce compteur combiné qui sert aussi au **tri** (v3.24.1). Trier sur un
+nombre différent de celui qu'on affiche produit une liste que l'œil juge
+cassée : deux co-streamers marqués « 11,5 k » se retrouvaient l'un en tête du
+classement et l'autre au milieu des « 1,7 k », chacun rangé selon son audience
+propre. Le tri suit donc ce que vous lisez, comme le fait Twitch.
+
+Corollaire pour le tri « co-streams d'abord » : l'audience d'un groupe est le
+**plus grand** compteur de ses membres, non leur somme. Chaque membre affichant
+déjà le combiné de la session, les additionner compterait N fois le même public
+et propulserait mécaniquement les groupes nombreux.
 
 ### Coût réseau
 
@@ -254,27 +261,51 @@ Rechargez ensuite l'extension (`chrome://extensions` → ↻) et l'onglet Twitch
 
 ---
 
-## Module anti-pub intégré (v3.0+)
+## Module anti-pub intégré (v3.0+, remplacé en v3.25)
 
-L'extension intègre un module de blocage de publicités basé sur
-**[vaft v37.0.0](https://github.com/pixeltris/TwitchAdSolutions)** par
-**pixeltris** (projet TwitchAdSolutions). Son rôle est uniquement d'éviter
-qu'une publicité préroll s'affiche dans l'iframe d'aperçu au survol d'une
-chaîne, ce qui rendait l'aperçu inutilisable sur les chaînes monétisées.
+L'extension intègre un module de blocage de publicités. Son rôle est uniquement
+d'éviter qu'une publicité préroll s'affiche dans l'iframe d'aperçu au survol
+d'une chaîne, ce qui rendait l'aperçu inutilisable sur les chaînes monétisées.
+
+Depuis la **v3.25**, ce module est **[vaft v2.0.4](https://github.com/scamorza/TwitchAdBlock)**,
+qui remplace le vaft v37.0.0 de **pixeltris** utilisé jusque-là. Ce n'est pas une
+mise à jour mais une **réécriture** : partie du même projet, elle n'en garde plus
+guère que l'idée. Ce qui change concrètement :
+
+- la publicité serveur est contournée en demandant le flux sous un autre
+  `playerType`. L'ancienne chaîne commençait par `embed` puis `popout` ; la
+  nouvelle mène avec `mobile_feed` demandé en `android`, seule combinaison à la
+  fois sans pub et non bridée. Elle porte le codec source, donc une coupure ne
+  coûte aucun changement de rendition — c'est précisément là-dessus que le
+  lecteur se bloquait ;
+- les publicités **décidées côté navigateur** (encart au-dessus du chat,
+  bandeau, pub de pause) sont refusées en amont, via le propre chemin de refus
+  de Twitch. L'ancien module ne les voyait tout simplement pas ;
+- quand aucun flux propre n'existe, le lecteur est descendu sur le meilleur
+  palier d'un autre codec au lieu de rester bloqué.
 
 ### Portée d'exécution
 
-Le module est volontairement limité aux **iframes** (concrètement, l'iframe
-`player.twitch.tv` que l'extension monte au survol). Il **ne touche pas**
-le stream principal que vous regardez sur `twitch.tv`. Si vous voulez un
-blocage global pour le stream principal, installez vaft séparément
-(extension ou userscript dédié) ; le module intégré détecte la présence
-d'une version externe via `window.twitchAdSolutionsVersion` et se met
-automatiquement en retrait.
+Inchangée : le module est volontairement limité aux **iframes** (concrètement,
+l'iframe `player.twitch.tv` que l'extension monte au survol). Il **ne touche
+pas** le stream principal que vous regardez sur `twitch.tv` — qui regarde
+vraiment un stream accepte le modèle économique de Twitch. Pour un blocage
+global, installez vaft séparément ; les deux se reconnaissent via
+`window.twitchAdSolutionsVersion` et exactement un des deux tourne.
+
+### Un fichier à part
+
+Le module vit désormais dans **`adblock.js`**, et non plus au début de
+`content.js`. C'est du code tiers qui se met à jour en amont : l'isoler rend la
+prochaine mise à jour mécanique — remplacer le fichier, rejouer les cinq
+adaptations listées dans son en-tête — au lieu d'une fusion à la main. Le
+manifeste charge `adblock.js` **avant** `content.js`, ce qui reproduit
+exactement l'ordre qu'avaient les deux modules quand ils partageaient un
+fichier. Ne pas l'inverser.
 
 ### Désactivation
 
-Tout en haut de `content.js`, la première ligne hors commentaire est :
+Tout en haut d'`adblock.js`, la première ligne hors commentaire est :
 
 ```js
 const TSE_ADBLOCK_ENABLED = true;
@@ -287,12 +318,20 @@ filtre, popup d'aperçu…) reste pleinement fonctionnel.
 
 ### Crédit et licence
 
-Le code de vaft est sous licence **The Unlicense** (domaine public).
-La seule modification appliquée par rapport à l'amont est cosmétique :
-préfixe `[TSE-AdBlock]` ajouté aux logs console pour les distinguer
-dans la DevTools, et masquage de la petite bannière « Blocking ads »
-qui s'affichait dans l'aperçu. La logique vaft est intacte, et le
-fichier explicite chaque modification dans son commentaire d'intro.
+Le code est sous licence **MIT** — Copyright (c) 2020-present TwitchAdSolutions
+Contributors. Cinq adaptations seulement le séparent de l'amont, toutes marquées
+« ADAPTATION » dans le fichier et récapitulées dans son en-tête : préfixe de log
+`[TSE-AdBlock]`, interrupteur, garde iframe-only, version en dur à la place de
+`GM_info` (une API de gestionnaire de userscripts, absente dans une extension),
+et retrait de la bannière de démarrage — en amont elle s'affiche une fois par
+page, ici l'iframe renaît à chaque survol et la console serait noyée.
+
+**Ce qui n'a pas pu être vérifié.** Le blocage publicitaire lui-même demande un
+vrai stream servant de vraies publicités : il n'est pas testable depuis
+l'environnement de développement. Ce qui EST vérifié automatiquement : que le
+module se charge, qu'il reste **strictement inerte hors iframe** (ni `fetch` ni
+`Worker` accrochés, aucun marqueur revendiqué, aucune API posée) et qu'il ne
+perturbe en rien la sidebar.
 
 Les drapeaux SVG du filtre par langue proviennent du jeu **OpenMoji** (licence CC BY-SA 4.0). Les bi-drapeaux **EN** (USA + Royaume-Uni) et **PT** (Portugal + Brésil), coupés à la verticale centrale, en sont dérivés pour représenter d'un seul drapeau les deux variantes d'une même langue.
 
@@ -416,10 +455,10 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 `tse.reset()` efface les trois à tout moment ; vider les données de site de
 `twitch.tv` depuis les réglages du navigateur fait de même.
 
-Le module anti-pub vaft, lui aussi, ne communique avec aucun serveur tiers :
-il intercepte les requêtes Twitch dans l'iframe d'aperçu et les redirige
-vers d'autres endpoints Twitch (player popout, embed) pour récupérer un
-flux sans publicité. Aucune donnée n'est envoyée hors du circuit Twitch.
+Le module anti-pub, lui aussi, ne communique avec aucun serveur tiers : il
+intercepte les requêtes Twitch dans l'iframe d'aperçu et redemande le flux à
+Twitch sous un autre `playerType` pour en obtenir une version sans publicité.
+Aucune donnée n'est envoyée hors du circuit Twitch.
 
 ---
 
@@ -427,7 +466,7 @@ flux sans publicité. Aucune donnée n'est envoyée hors du circuit Twitch.
 
 Si vous modifiez les fichiers de l'extension (par exemple pour ajuster une
 constante de configuration en haut de `content.js`, ou désactiver l'antipub
-via `TSE_ADBLOCK_ENABLED`) :
+via `TSE_ADBLOCK_ENABLED` en haut d'`adblock.js`) :
 
 1. Enregistrez vos changements.
 2. Retournez sur `chrome://extensions`.
@@ -441,7 +480,8 @@ via `TSE_ADBLOCK_ENABLED`) :
 ```
 cowlors-sidebar-for-twitch/
 ├── manifest.json          déclaration MV3 (content script MAIN world, all_frames true)
-├── content.js             toute la logique : module anti-pub vaft + module sidebar
+├── adblock.js             module anti-pub (code tiers vendorisé, cf. son en-tête)
+├── content.js             toute la logique de la sidebar
 ├── _locales/
 │   ├── en/messages.json     nom + description en anglais (default_locale)
 │   ├── fr/messages.json     nom + description en français
@@ -490,10 +530,11 @@ extension, et une quatrième transformation ajoute la localisation.
    échappait grâce au privilège d'injection de Violentmonkey. La sémantique du
    fallback miniature est strictement identique.
 
-3. **Module anti-pub vaft intégré** (cf. section dédiée plus haut). Le code est
-   importé tel quel depuis [pixeltris/TwitchAdSolutions](https://github.com/pixeltris/TwitchAdSolutions),
-   wrappé dans une IIFE conditionnelle (`if (TSE_ADBLOCK_ENABLED) (...)()`) avec
-   une garde iframe-only et un préfixe `[TSE-AdBlock]` sur les logs.
+3. **Module anti-pub intégré** (cf. section dédiée plus haut). Depuis la v3.25 le
+   code est vendorisé tel quel depuis [scamorza/TwitchAdBlock](https://github.com/scamorza/TwitchAdBlock)
+   dans son propre fichier, `adblock.js`, avec cinq adaptations marquées —
+   interrupteur, garde iframe-only, préfixe `[TSE-AdBlock]` sur les logs, version
+   en dur à la place de `GM_info`, et pas de bannière au démarrage.
 
 4. **Internationalisation multilingue (FR / EN / DE / ES / PT)**. L'architecture i18n est
    conçue pour découpler les fonctionnalités de la langue détectée :
