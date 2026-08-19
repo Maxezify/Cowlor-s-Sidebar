@@ -111,6 +111,22 @@ Et depuis la 3.21, l'extension ne se contente plus d'attendre que Twitch pose
 ses cartes : elle **pose les siennes** quand il tarde (cf. « Prendre les devants
 sur Twitch » ci-dessous).
 
+### Le cas des co-streams « Streamer ensemble » (v3.23)
+
+Sur une carte de co-stream, Twitch n'affiche pas l'audience propre du streamer
+mais **l'audience combinée de la session**. L'écart n'est pas cosmétique : pour
+un invité, 1 166 spectateurs à lui contre 11 821 pour la session — un facteur
+dix. Rafraîchir naïvement le compteur avec l'audience propre revenait donc à
+afficher `1,2 k` là où Twitch affiche `11,8 k`.
+
+L'extension récupère désormais le compteur combiné et affiche celui-là, en
+accord avec Twitch. Il vient de la **réponse Guest Star déjà demandée** pour
+regrouper les co-streams : aucune requête supplémentaire.
+
+Les deux nombres sont conservés séparément — le combiné pour l'affichage,
+l'audience propre pour le tri. Sans quoi le tri « co-streams d'abord », qui
+additionne les membres d'un groupe, compterait N fois la même audience.
+
 ### Coût réseau
 
 Une **seule** opération GraphQL (`TseChannels`) couvre toute la sidebar d'un
@@ -554,6 +570,24 @@ extension, et une quatrième transformation ajoute la localisation.
    reviendrait à prendre notre propre travail pour celui de Twitch.
 
    Désactivable par `AHEAD_ENABLED: false`.
+
+7. **La dernière persisted query a maintenant un repli** (v3.23). Après la
+   suppression de `UseLive`, `GuestStarBatchCollaborationQuery` restait la seule
+   opération identifiée par un **hash** — c'est-à-dire la seule chose que Twitch
+   pouvait périmer unilatéralement. Elle en avait d'autant moins le droit qu'elle
+   est la source fiable du regroupement des co-streams : sans elle, la coloration
+   retombait sur une heuristique que le code lui-même décrit comme clignotante,
+   et **sans que rien ne le signale**.
+
+   La requête existe désormais aussi sous **forme inline** — texte complet,
+   donc insensible à toute rotation de hash. L'ordre est : hash d'abord (léger),
+   inline seulement s'il est rejeté. La bascule est définitive pour la session et
+   **annoncée en console**, pour que la mise à jour du hash soit visible au lieu
+   d'être devinée.
+
+   La distinction est importante : le repli n'est tenté que si le serveur a
+   *répondu* en rejetant l'opération. Sur une coupure réseau, la seconde requête
+   échouerait pareil — on ne la fait pas.
 
 Aucun autre changement de comportement n'a été introduit par rapport au
 userscript v2.22.3.

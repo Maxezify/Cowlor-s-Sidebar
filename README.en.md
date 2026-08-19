@@ -104,6 +104,22 @@ And since 3.21, the extension no longer merely waits for Twitch to post its
 cards: it **posts its own** when Twitch lags (see "Getting ahead of Twitch"
 below).
 
+### The "Streaming together" case (v3.23)
+
+On a co-stream card, Twitch does not display the streamer's own audience but
+**the session's combined audience**. The gap is not cosmetic: for one guest,
+1,166 viewers of their own against 11,821 for the session — a factor of ten.
+Naively refreshing the counter with the streamer's own audience therefore meant
+showing `1.2K` where Twitch shows `11.8K`.
+
+The extension now picks up the combined counter and displays that one, in
+agreement with Twitch. It comes from the **Guest Star response already
+requested** to group co-streams: no extra request.
+
+Both numbers are kept separately — the combined one for display, the channel's
+own for sorting. Otherwise the "co-streams first" sort, which adds up a group's
+members, would count the same audience N times.
+
 ### Network cost
 
 A **single** GraphQL operation (`TseChannels`) covers the whole sidebar at once:
@@ -531,6 +547,22 @@ context, and a fourth transformation adds localization.
    work for Twitch's.
 
    Disable with `AHEAD_ENABLED: false`.
+
+7. **The last persisted query now has a fallback** (v3.23). After `UseLive` was
+   removed, `GuestStarBatchCollaborationQuery` remained the only operation
+   identified by a **hash** — that is, the only thing Twitch could expire
+   unilaterally. It had all the less right to, being the reliable source of
+   co-stream grouping: without it, colouring fell back on a heuristic the code
+   itself describes as flickering, and **with nothing to signal it**.
+
+   The query now also exists in **inline form** — full text, hence immune to any
+   hash rotation. The order is: hash first (lighter), inline only if it is
+   rejected. The switch is permanent for the session and **announced in the
+   console**, so that updating the hash is something you see rather than guess.
+
+   The distinction matters: the fallback is only attempted if the server
+   *answered* by rejecting the operation. On a network outage the second request
+   would fail just the same — so it is not made.
 
 No other behavior change was introduced relative to userscript v2.22.3.
 
