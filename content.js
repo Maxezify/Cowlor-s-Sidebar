@@ -20,6 +20,12 @@
  *      top-level, jamais dans les iframes. C'est le module
  *      principal de l'extension.
  *
+ *      Une exception, minuscule et volontaire : le PONT D'APERÇU en
+ *      tête de ce fichier tourne, lui, dans les iframes du lecteur.
+ *      Il n'y fait qu'une chose — signaler au parent la première image
+ *      affichée — et ne touche à rien d'autre, précisément pour ne
+ *      pas croiser le module anti-pub qui partage cette frame.
+ *
  *  Les deux ont des gardes OPPOSÉES (iframe-only / top-level-only)
  *  donc dans n'importe quelle frame, exactement un des deux est
  *  actif. Ces gardes sont porteuses, pas décoratives : le module
@@ -109,6 +115,89 @@
  *  sont conservés malgré le renommage pour ne pas invalider
  *  l'historique de visites des utilisateurs existants.
  * ============================================================ */
+
+/* ============================================================
+ *  PONT D'APERÇU — la seule partie de ce fichier qui tourne EN IFRAME
+ *  -------------------------------------------------------------
+ *  Problème : `iframe.onload` signale la fin du chargement du DOCUMENT
+ *  du lecteur, pas l'arrivée d'une image. Révéler l'iframe à ce
+ *  moment-là posait un lecteur encore noir par-dessus la vignette,
+ *  environ une seconde durant.
+ *
+ *  L'iframe étant cross-origin, le parent ne peut rien observer de son
+ *  contenu. C'est donc l'iframe qui parle : à la première image
+ *  réellement présentée, elle poste un message, et le parent fait
+ *  alors son fondu (cf. injectIframe).
+ *
+ *  Ce module est DÉLIBÉRÉMENT minuscule et passif. Il ne touche ni à
+ *  la visibilité, ni au réseau, ni au lecteur — rien qui puisse entrer
+ *  en conflit avec le module anti-pub, qui vit dans la même frame.
+ * ============================================================ */
+const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
+
+(() => {
+  'use strict';
+
+  // Uniquement dans une iframe du lecteur. Le try/catch couvre la
+  // SecurityError théorique sur window.top en cross-origin.
+  try {
+    if (window.top === window) return;
+    if (location.hostname !== 'player.twitch.tv') return;
+  } catch { return; }
+
+  // Origines destinataires. `ancestorOrigins` est ordonné du parent IMMÉDIAT
+  // vers le sommet ; on poste à `parent`, donc c'est bien l'indice 0 qu'il
+  // faut — prendre le dernier viserait la page du haut, qui n'est le parent
+  // que dans le cas d'une iframe non imbriquée. Sans cette API, on retombe sur
+  // les deux formes que le manifeste déclare. Un envoi vers une origine qui ne
+  // correspond pas est simplement ignoré par le navigateur. Jamais '*' : le
+  // message ne porte aucune donnée, mais diffuser à l'aveugle reste une
+  // habitude à ne pas prendre.
+  let targets;
+  try {
+    const a = location.ancestorOrigins;
+    targets = a && a.length ? [a[0]] : null;
+  } catch { targets = null; }
+  if (!targets) targets = ['https://www.twitch.tv', 'https://twitch.tv'];
+
+  let sent = false;
+  const announce = () => {
+    if (sent) return;
+    sent = true;
+    for (const origin of targets) {
+      try { window.parent.postMessage({ tse: TSE_PREVIEW_FIRST_FRAME_MSG }, origin); } catch { /* origine refusée */ }
+    }
+  };
+
+  const watch = (video) => {
+    // requestVideoFrameCallback se déclenche sur une image RÉELLEMENT
+    // présentée au compositeur — c'est le signal exact recherché.
+    if (typeof video.requestVideoFrameCallback === 'function') {
+      try { video.requestVideoFrameCallback(announce); } catch { /* ignore */ }
+    }
+    // Replis, dans l'ordre de précision décroissante : le navigateur n'a pas
+    // rVFC, ou la vidéo tournait déjà quand on l'a trouvée.
+    video.addEventListener('playing', announce, { once: true });
+    if (video.readyState >= 2) announce();   // HAVE_CURRENT_DATA : une image existe
+  };
+
+  const scan = () => {
+    const v = document.querySelector('video');
+    if (v) { watch(v); return true; }
+    return false;
+  };
+
+  // À document_start il n'y a pas encore de <video>. On l'attend, sans
+  // surveiller indéfiniment : passé le délai, l'observation cesse et le
+  // parent révèle de lui-même par son propre filet.
+  if (!scan()) {
+    const root = document.documentElement;
+    if (!root) return;
+    const mo = new MutationObserver(() => { if (scan()) mo.disconnect(); });
+    mo.observe(root, { childList: true, subtree: true });
+    setTimeout(() => mo.disconnect(), 15_000);
+  }
+})();
 
 (() => {
   'use strict';
@@ -662,6 +751,12 @@
     PREVIEW_IFRAME_QUALITY: '360p30',
     // Délai max d'attente du chargement de l'iframe avant fallback JPEG.
     PREVIEW_IFRAME_TIMEOUT_MS: 3_000,
+    // Filet de révélation. L'iframe est normalement dévoilée à sa PREMIÈRE
+    // IMAGE, signalée par le module PONT D'APERÇU. Si ce signal n'arrive pas,
+    // on dévoile quand même ce délai après le `load` du document — au pire on
+    // retrouve l'ancien comportement (un lecteur noir un instant), jamais un
+    // aperçu bloqué sur sa vignette.
+    PREVIEW_REVEAL_FALLBACK_MS: 1_500,
 
     // === Voile de chargement initial ===
     // Délai de stabilité : le voile se lève quand la sidebar est peuplée
@@ -1287,9 +1382,13 @@
       object-fit: cover;
     }
     /* L'iframe player est superposé au JPEG dans le même wrapper.
-       Invisible par défaut (data-tse-loaded="false"), apparaît en
-       fade-in une fois le player chargé. Si l'iframe est démonté
-       (timeout, fermeture), le JPEG reste visible en fallback. */
+       Invisible par défaut (data-tse-loaded="false"), elle apparaît en
+       fondu à sa PREMIÈRE IMAGE — pas au chargement de son document,
+       qui la montrerait encore noire (cf. injectIframe). Si l'iframe est
+       démontée (timeout, fermeture), le JPEG reste visible en repli.
+       Le fondu est allongé à 0,35 s : la vignette et la première image
+       montrent presque la même chose, la transition doit se sentir
+       comme un enchaînement, pas comme une bascule. */
     .tse-preview__iframe {
       position: absolute;
       inset: 0;
@@ -1297,7 +1396,7 @@
       height: 100%;
       border: 0;
       opacity: 0;
-      transition: opacity 0.2s ease;
+      transition: opacity 0.35s ease;
       /* L'iframe ne doit pas capter les clics : le popup entier est
          pointer-events:none côté .tse-preview, mais l'iframe pourrait
          intercepter via sa propre composition. Cohérent avec
@@ -3047,6 +3146,8 @@
     let el = null;             // élément popup (singleton)
     let iframeTimer = null;    // setTimeout avant injection de l'iframe
     let iframeLoadTimer = null;// timeout de chargement de l'iframe
+    let revealTimer = null;    // filet si le signal de première image n'arrive pas
+    let revealCleanup = null;  // retire l'écouteur postMessage de l'iframe en cours
     let flagRemoveTimer = null;// retrait différé du flag body.tse-preview-active
     let currentLogin = null;   // login affiché actuellement (anti-race)
     let currentCard = null;    // carte sous laquelle on est ancré
@@ -3580,14 +3681,47 @@
       iframe.className = 'tse-preview__iframe';
       iframe.src = buildIframeUrl(login);
       iframe.setAttribute('allow', 'autoplay; encrypted-media');
-      // L'iframe est masqué via CSS tant que dataset.tseLoaded != 'true'.
-      // On positionne l'attribut au load réussi (cf. listener ci-dessous).
+
+      /* Révélation de l'iframe — le MOMENT compte plus que le fondu.
+       *
+       * L'événement `load` d'une iframe signale la fin du chargement de son
+       * DOCUMENT, pas l'arrivée d'une image. Révéler à ce moment-là faisait
+       * apparaître un lecteur ENCORE NOIR par-dessus la vignette, pour environ
+       * une seconde : le fondu jouait, mais sur du noir, ce qui se lit comme
+       * une coupure franche.
+       *
+       * On attend donc que le lecteur ait vraiment présenté une image. Le
+       * signal vient de l'iframe elle-même (cf. module PONT D'APERÇU en haut
+       * de ce fichier), qui poste un message à la première frame peinte.
+       * Cross-origin oblige, on ne peut pas l'observer d'ici.
+       */
+      const reveal = () => {
+        if (revealTimer) { clearTimeout(revealTimer); revealTimer = null; }
+        if (revealCleanup) { revealCleanup(); revealCleanup = null; }
+        // Le popup a pu être refermé, ou pointer une autre chaîne, entre-temps.
+        if (currentLogin !== login || !iframe.isConnected) return;
+        iframe.dataset.tseLoaded = 'true';
+      };
+
+      const onFirstFrame = (e) => {
+        // `source` est la seule vérification qui compte : elle ancre le message
+        // à CETTE iframe. Le contenu, lui, ne sert qu'à écarter le bruit des
+        // autres scripts de la page (Twitch en poste beaucoup).
+        if (e.source !== iframe.contentWindow) return;
+        if (e.data?.tse !== TSE_PREVIEW_FIRST_FRAME_MSG) return;
+        reveal();
+      };
+      window.addEventListener('message', onFirstFrame);
+      revealCleanup = () => window.removeEventListener('message', onFirstFrame);
 
       iframe.addEventListener('load', () => {
         if (iframeLoadTimer) { clearTimeout(iframeLoadTimer); iframeLoadTimer = null; }
-        // Vérifie que le popup n'a pas été refermé entre-temps.
         if (currentLogin !== login || !iframe.isConnected) return;
-        iframe.dataset.tseLoaded = 'true';
+        // Filet. Si le signal de première image n'arrive jamais — lecteur
+        // remanié par Twitch, vidéo refusée, navigateur sans les API utilisées
+        // — on révèle quand même passé ce délai. Mieux vaut un lecteur noir
+        // qu'un aperçu figé sur sa vignette pour toujours.
+        revealTimer = setTimeout(reveal, CFG.PREVIEW_REVEAL_FALLBACK_MS);
       }, { once: true });
 
       // Fallback : si load n'arrive pas à temps (réseau lent, erreur silencieuse),
@@ -3609,6 +3743,10 @@
     const removeIframe = () => {
       if (iframeTimer) { clearTimeout(iframeTimer); iframeTimer = null; }
       if (iframeLoadTimer) { clearTimeout(iframeLoadTimer); iframeLoadTimer = null; }
+      if (revealTimer) { clearTimeout(revealTimer); revealTimer = null; }
+      // L'écouteur est posé sur window, pas sur l'iframe : il ne part pas avec
+      // elle. Le retirer ici est ce qui évite d'en empiler un par survol.
+      if (revealCleanup) { revealCleanup(); revealCleanup = null; }
       if (!el) return;
       const iframe = el.querySelector('.tse-preview__iframe');
       if (iframe) {

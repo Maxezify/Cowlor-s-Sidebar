@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.26.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.27.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -126,6 +126,28 @@ Corollary for the "co-streams first" sort: a group's audience is the **largest**
 counter among its members, not their sum. Every member already displays the
 session's combined figure, so adding them up would count the same audience N
 times and mechanically push large groups to the top.
+
+### The second of black between thumbnail and video (v3.27)
+
+The preview first shows a **JPEG thumbnail**, then switches to the Twitch player.
+Between the two there was about a second of black.
+
+The fade already existed. The problem was the **timing**: the switch fired on the
+iframe's `load` event, which signals the end of the player *document* loading —
+not the arrival of a picture. So a still-black player was faded in over the
+thumbnail, and then the video was awaited. Lengthening the fade would only have
+softened the arrival of the black.
+
+The iframe being on another origin, the page cannot observe anything inside it.
+So the iframe speaks instead: a tiny module in it watches for the **first frame
+actually presented** (`requestVideoFrameCallback`, falling back to the `playing`
+event) and posts a message to the parent, which then runs its fade — lengthened
+to 0.35 s, now that it has two pictures to cross-fade rather than a picture and
+black.
+
+If that signal never arrives — player reworked by Twitch, video refused — a
+safety net reveals the iframe anyway 1.5 s after `load`. At worst that is the old
+behaviour; never a preview stuck on its thumbnail.
 
 ### Network cost
 

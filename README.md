@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.26.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.27.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -133,6 +133,28 @@ Corollaire pour le tri « co-streams d'abord » : l'audience d'un groupe est le
 **plus grand** compteur de ses membres, non leur somme. Chaque membre affichant
 déjà le combiné de la session, les additionner compterait N fois le même public
 et propulserait mécaniquement les groupes nombreux.
+
+### Le noir d'une seconde entre la vignette et la vidéo (v3.27)
+
+L'aperçu montre d'abord une **miniature JPEG**, puis bascule sur le lecteur
+Twitch. Entre les deux, il y avait environ une seconde de noir.
+
+Le fondu existait pourtant déjà. Le problème était le **moment** : la bascule se
+déclenchait sur l'événement `load` de l'iframe, qui signale la fin du chargement
+du *document* du lecteur — pas l'arrivée d'une image. On faisait donc apparaître
+en fondu un lecteur encore noir par-dessus la miniature, puis on attendait la
+vidéo. Allonger le fondu n'aurait fait qu'adoucir l'arrivée du noir.
+
+L'iframe étant sur une autre origine, la page ne peut rien observer de son
+contenu. C'est donc l'iframe qui parle : un module minuscule y guette la
+**première image réellement présentée** (`requestVideoFrameCallback`, avec repli
+sur l'événement `playing`) et poste un message au parent, qui enchaîne alors son
+fondu — allongé à 0,35 s, puisqu'il a désormais deux images à enchaîner plutôt
+qu'une image et du noir.
+
+Si ce signal n'arrive jamais — lecteur remanié par Twitch, vidéo refusée — un
+filet dévoile quand même l'iframe 1,5 s après le `load`. Au pire on retrouve
+l'ancien comportement ; jamais un aperçu bloqué sur sa miniature.
 
 ### Coût réseau
 
