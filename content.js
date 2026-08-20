@@ -2599,11 +2599,23 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Retourne true si la sidebar grandit encore : l'appelant doit alors
     // reprogrammer un scan pour confirmer la stabilité, même si Twitch
     // n'émet plus de mutation.
+    // Verrou de levée. Un appelant peut déclarer que la sidebar n'est pas
+    // présentable même si elle est peuplée et stable — c'est le cas du mode
+    // Top Chaînes, dont les cartes n'existent qu'à la fin de la marche
+    // structurelle. Le timeout dur, lui, reste souverain : un verrou oublié
+    // ne peut pas laisser la sidebar voilée indéfiniment.
+    let held = false;
+    const setHold = (on) => {
+      if (held === on) return;
+      held = on;
+      if (on) clearStability();
+    };
+
     const notifyScan = (hadOfflineActivity, cardCount) => {
       if (!cycleActive) return false;
       const stillGrowing = cardCount > lastCardCount;
       if (cardCount > lastCardCount) lastCardCount = cardCount;
-      const ready = cardCount > 0 && !hadOfflineActivity && !stillGrowing;
+      const ready = cardCount > 0 && !hadOfflineActivity && !stillGrowing && !held;
       if (!ready) { clearStability(); return stillGrowing; }
       if (!stabilityTimer) armStability();
       return false;
@@ -2624,6 +2636,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       if (cycleActive) return;
       cycleActive = true;
       lastCardCount = 0; // croissance mesurée à partir de zéro pour ce cycle
+      held = false;      // un nouveau cycle repart sans verrou hérité
 
       // 1) Pose body.tse-loading dès que possible : rend #side-nav
       //    transparent (CSS) pour qu'aucun fragment de sidebar ne flashe
@@ -2680,7 +2693,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       globalObserver.observe(document.body, { childList: true, subtree: true });
     };
 
-    return { init, notifyScan, bumpActivity, startCycle };
+    return { init, notifyScan,
+      setHold, bumpActivity, startCycle };
   })();
 
   /* ============================================================
@@ -6464,7 +6478,15 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     document.body.classList.toggle('tse-global-mode', on);
     // Entrer dans le mode doit être immédiat : on ne fait pas attendre le
     // prochain réveil de rafraîchissement pour lancer la marche.
-    if (on) globalChannels.tick();
+    if (on) {
+      globalChannels.tick();
+      // Première entrée : la marche complète dure ~1,6 s. Sans voile,
+      // l'utilisateur regarde ses chaînes suivies sous un titre qui annonce
+      // déjà « Top Chaînes » — l'interface se contredit. On réutilise le
+      // voile du démarrage plutôt que d'en inventer un second, et le verrou
+      // ci-dessous le retient jusqu'à ce que les cartes existent.
+      if (!globalChannels.top(1).length) loadingOverlay.startCycle();
+    }
     // En SORTIR ne purge pas le classement — y revenir doit être instantané,
     // et le pool se périme tout seul s'il n'est plus tiqué (GLOBAL_PRUNE_AGE).
     scheduleScan();
@@ -6562,6 +6584,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    * que ce qui n'a plus lieu d'être, et se ré-exécute à chaque scan — donc
    * ré-injecte ce que React aurait emporté.
    */
+  // Dernier modèle de carte native relevé dans la session, et le conteneur
+  // qui l'hébergeait (cf. syncGlobalCards).
+  let globalTemplate = null;
+  let globalContainer = null;
+
   function syncGlobalCards() {
     const section = followedSection();
     if (!section) return;
@@ -6583,14 +6610,37 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Même exigence de modèle que pour les cartes en avance : une carte
     // native, en direct, et NEUTRE — cloner une carte décorée transposerait
     // ses marques sur une chaîne qui n'a rien à voir.
+    // Le modèle est MÉMORISÉ, et c'est ce qui rend le mode utilisable pour de
+    // bon : il n'existe de carte native EN DIRECT que si l'utilisateur suit
+    // au moins une chaîne actuellement en ligne. Sans mémoire, un utilisateur
+    // dont personne ne streame verrait « Top Chaînes » ne rien afficher —
+    // alors même que le classement mondial, lui, est parfaitement connu.
+    // Un modèle relevé une fois dans la session reste valable : c'est le
+    // markup de carte de Twitch, il ne change pas d'une minute à l'autre.
     let template = null;
+    let container = null;
     for (const c of section.querySelectorAll('.side-nav-card')) {
       if (c.dataset.tseGlobal === 'true' || isSynthetic(c)) continue;
       if (isPlainCard(c) && !isCardOffline(c)) { template = c; break; }
     }
-    if (!template) return;
-    const container = template.parentElement;
-    if (!container) return;
+    if (template) {
+      container = template.parentElement;
+      // Clone DÉTACHÉ : garder une référence au nœud vivant le laisserait
+      // dériver avec les décorations que le scan lui applique ensuite.
+      globalTemplate = template.cloneNode(true);
+      globalContainer = container;
+    } else if (globalTemplate) {
+      template = globalTemplate;
+      // Le conteneur mémorisé n'est retenu que s'il est TOUJOURS attaché :
+      // React peut avoir remonté la liste entre-temps, et remplir un nœud
+      // détaché reviendrait à ne rien afficher. Deux replis ensuite : le
+      // parent d'une carte encore présente, puis la section elle-même —
+      // moins fidèle à la structure de Twitch, mais visible.
+      container = (globalContainer?.isConnected ? globalContainer : null)
+        || section.querySelector('.side-nav-card')?.parentElement
+        || section;
+    }
+    if (!template || !container) return;
 
     // Le cache partagé est la source de vérité de processCard. Sans l'amorcer,
     // une carte fraîchement clonée afficherait le compteur, la catégorie et
@@ -6809,6 +6859,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    */
   const syncAheadCards = () => {
     if (!CFG.AHEAD_ENABLED) return;
+    // En mode Top Chaînes, ces cartes sont de toute façon masquées par le
+    // CSS. Les fabriquer quand même coûterait des clones, des mutations DOM
+    // et des mesures d'avance (liveLag) sur des cartes que personne ne voit.
+    // Elles sont réconciliées au retour, la fonction étant idempotente.
+    if (state.globalMode) return;
     const section = followedSection();
     if (!section) return;
 
@@ -6943,6 +6998,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // stable au nombre de cartes que Twitch a posées. Les compter reviendrait
     // à nous signaler notre propre travail comme une croissance de Twitch, et
     // le voile ne se lèverait jamais tant qu'on en ajoute.
+    // Retenir le voile tant que le mode global n'a pas ses cartes : sans ça,
+    // il se lèverait sur une sidebar « stable » — celle des chaînes suivies,
+    // qui n'a effectivement pas bougé — avant même la fin de la marche.
+    loadingOverlay.setHold(state.globalMode
+      && !document.body.classList.contains('tse-global-ready'));
     const nativeCount = [...cards].filter(c => !isSynthetic(c)).length;
     const stillGrowing = loadingOverlay.notifyScan(hadOfflineActivity, nativeCount);
 
