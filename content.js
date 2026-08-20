@@ -3276,9 +3276,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       for (const card of root.querySelectorAll('.side-nav-card')) {
         const login = card.dataset.tseLogin;
         if (!login || seen.has(login) || done.has(login)) continue;
+        // Hors direct, il n'y a pas de miniature : l'URL répondrait 404. Deux
+        // signaux, dans cet ordre : le verdict de l'API quand on l'a, le DOM
+        // sinon. S'appuyer sur le cache SEUL exclurait les sections « Chaînes
+        // live » et « Les spectateurs de… », que le scan n'interroge jamais —
+        // or ce sont des cartes survolables comme les autres.
         if (card.dataset.tseOffline === 'true') continue;
-        // Hors direct, il n'y a pas de miniature : l'URL répondrait 404.
-        if (!cache.get(login)?.stream) continue;
+        if (isCardOffline(card)) continue;
         seen.add(login);
         out.push(login);
         if (out.length >= CFG.PREVIEW_PRELOAD_MAX) break;

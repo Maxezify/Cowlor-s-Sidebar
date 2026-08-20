@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.30.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.30.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -202,8 +202,8 @@ La cadence suit la **tranche de cache**, pas une période : l'URL vaut
 arbitraire de la frontière et jetterait en moyenne la moitié de son travail. Le
 réveil de rafraîchissement, plus fin, voit la bascule à 5 secondes près.
 
-**Ce que ça coûte.** Environ 25 requêtes par tranche pour une sidebar
-ordinaire, soit ~15 Mo/heure — 5 % d'un stream en 360p, 1,4 % en 1080p. Trois
+**Ce que ça coûte.** Environ 25 à 40 requêtes par tranche pour une
+sidebar ordinaire, soit ~15 Mo/heure — 5 % d'un stream en 360p, 1,4 % en 1080p. Trois
 requêtes en vol au maximum, en priorité réseau basse : cent chaînes se
 réchauffent en une douzaine de secondes sur une tranche de 150. Rien ne part si
 l'onglet est en arrière-plan, ni en mode économie de données. Réglable par

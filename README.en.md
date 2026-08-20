@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.30.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.30.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -193,7 +193,7 @@ The cadence follows the **cache bucket**, not a period: the URL is
 offset from the boundary and throw away half its work on average. The refresh
 tick, being finer, sees the flip within 5 seconds.
 
-**What it costs.** About 25 requests per bucket for an ordinary sidebar, i.e.
+**What it costs.** About 25 to 40 requests per bucket for an ordinary sidebar, i.e.
 ~15 MB/hour — 5% of a 360p stream, 1.4% of a 1080p one. At most three requests
 in flight, at low network priority: a hundred channels warm up in a dozen
 seconds within a 150-second bucket. Nothing is sent when the tab is in the
