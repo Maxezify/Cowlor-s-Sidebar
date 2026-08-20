@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.28.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.28.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -140,8 +140,8 @@ softened the arrival of the black.
 
 The iframe being on another origin, the page cannot observe anything inside it.
 So the iframe speaks instead: a tiny module in it watches for the **first frame
-actually presented** (`requestVideoFrameCallback`, falling back to the `playing`
-event) and posts a message to the parent, which then runs its fade — lengthened
+actually presented** (`requestVideoFrameCallback`) and posts a message to the
+parent, which then runs its fade — lengthened
 to 0.35 s, now that it has two pictures to cross-fade rather than a picture and
 black.
 
@@ -163,10 +163,11 @@ never serve anything back, not even when returning to the channel two seconds
 later. Every hover was a download. That also explains the "sometimes it works":
 only the CDN-side cache decided.
 
-The parameter is now rounded to a **one-minute bucket**. The URL stays stable
-for the whole bucket, so a repeat hover displays instantly. The thumbnail may be
-a minute old — irrelevant for a picture shown for one second before the live
-stream takes over.
+The parameter is now rounded to a **2 min 30 bucket**, aligned with the rate at
+which Twitch regenerates these images rather than finer than it — which would
+only buy extra downloads. The URL stays stable for the whole bucket, so a repeat
+hover displays instantly. The thumbnail may be a few minutes old — irrelevant for
+a picture shown for one second before the live stream takes over.
 
 A channel's first display still depends on the network. Two details make it less
 abrupt: the thumbnail **fades in** as well, and the waiting background is no

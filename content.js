@@ -169,14 +169,32 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }
   };
 
+  // Au-delà de ce nombre d'images, on cesse d'attendre mieux et on dévoile.
+  // À 30 im/s cela plafonne l'attente à un demi-seconde.
+  const MAX_FRAMES_WAITED = 15;
+
   const watch = (video) => {
-    // requestVideoFrameCallback se déclenche sur une image RÉELLEMENT
-    // présentée au compositeur — c'est le signal exact recherché.
+    // Le signal RECHERCHÉ est « une image a été présentée au compositeur », et
+    // requestVideoFrameCallback est le seul à le dire. Les autres signaux
+    // disponibles annoncent autre chose : `playing` que la lecture DÉMARRE,
+    // `readyState` que des données EXISTENT — deux instants qui précèdent
+    // l'affichage. Ce sont donc des REPLIS, jamais des renforts : les mettre en
+    // concurrence, comme je l'avais d'abord écrit, laisse gagner le plus
+    // imprécis des trois et redonne un bref noir.
     if (typeof video.requestVideoFrameCallback === 'function') {
-      try { video.requestVideoFrameCallback(announce); } catch { /* ignore */ }
+      let frames = 0;
+      const onFrame = () => {
+        // Une image est passée, mais le lecteur peut encore être en train de se
+        // remplir — auquel cas il affiche son propre voile de chargement
+        // PAR-DESSUS, et dévoiler maintenant montrerait ce voile. On attend
+        // d'avoir de quoi poursuivre la lecture (HAVE_FUTURE_DATA), en se
+        // redonnant rendez-vous à l'image suivante.
+        if (video.readyState >= 3 || ++frames >= MAX_FRAMES_WAITED) { announce(); return; }
+        try { video.requestVideoFrameCallback(onFrame); } catch { announce(); }
+      };
+      try { video.requestVideoFrameCallback(onFrame); return; } catch { /* repli ci-dessous */ }
     }
-    // Replis, dans l'ordre de précision décroissante : le navigateur n'a pas
-    // rVFC, ou la vidéo tournait déjà quand on l'a trouvée.
+    // Navigateur sans requestVideoFrameCallback : on prend ce qui existe.
     video.addEventListener('playing', announce, { once: true });
     if (video.readyState >= 2) announce();   // HAVE_CURRENT_DATA : une image existe
   };
@@ -746,7 +764,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // rapidement (un iframe player Twitch = ~5-10 MB de RAM).
     // Granularité du contournement de cache de la vignette (cf. buildThumbUrl).
     // Pendant une tranche, l'URL ne change pas : les re-survols sont instantanés.
-    PREVIEW_THUMB_CACHE_MS: 60_000,
+    // 2 min 30 : Twitch régénère ces images toutes les quelques minutes, la
+    // tranche est donc calée sur le rythme de la source plutôt que plus fine
+    // qu'elle — ce qui ne rapporterait que des téléchargements en plus.
+    PREVIEW_THUMB_CACHE_MS: 150_000,
     PREVIEW_IFRAME_DELAY: 150,
     // Quality demandée à player.twitch.tv. "360p30" est le sweet spot pour
     // un aperçu : bande passante raisonnable, qualité suffisante. Valeurs

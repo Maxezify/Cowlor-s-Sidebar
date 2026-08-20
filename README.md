@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.28.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.28.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -147,8 +147,8 @@ vidéo. Allonger le fondu n'aurait fait qu'adoucir l'arrivée du noir.
 
 L'iframe étant sur une autre origine, la page ne peut rien observer de son
 contenu. C'est donc l'iframe qui parle : un module minuscule y guette la
-**première image réellement présentée** (`requestVideoFrameCallback`, avec repli
-sur l'événement `playing`) et poste un message au parent, qui enchaîne alors son
+**première image réellement présentée** (`requestVideoFrameCallback`) et poste un
+message au parent, qui enchaîne alors son
 fondu — allongé à 0,35 s, puisqu'il a désormais deux images à enchaîner plutôt
 qu'une image et du noir.
 
@@ -171,10 +171,12 @@ sur la chaîne deux secondes plus tard. Chaque survol était un téléchargement
 Ce qui explique aussi le « parfois oui, parfois non » : seul l'état du cache
 côté CDN départageait.
 
-Le paramètre est désormais arrondi à une **tranche d'une minute**. L'URL reste
-stable pendant toute la tranche, donc un re-survol s'affiche instantanément. La
-miniature peut être vieille d'une minute — sans importance pour une image
-montrée une seconde avant de céder la place au direct.
+Le paramètre est désormais arrondi à une **tranche de 2 min 30**, calée sur le
+rythme auquel Twitch régénère ces images plutôt que plus fine qu'elle — ce qui ne
+rapporterait que des téléchargements en plus. L'URL reste stable pendant toute la
+tranche, donc un re-survol s'affiche instantanément. La miniature peut avoir
+quelques minutes — sans importance pour une image montrée une seconde avant de
+céder la place au direct.
 
 Le premier affichage d'une chaîne reste tributaire du réseau. Deux détails le
 rendent moins abrupt : la miniature **apparaît en fondu** elle aussi, et le fond
