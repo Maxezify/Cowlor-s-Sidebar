@@ -722,17 +722,15 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // "argument 'first' value must be between 1 and 30." Ce n'est donc pas une
     // observation mais une limite déclarée.
     GLOBAL_STREAMS_MAX:      30,
-    // Plancher du `first` adaptatif. Une catégorie à C spectateurs ne peut
-    // contenir que C/T streams au-dessus de T : demander 3 au lieu de 30 aux
-    // petites catégories diviserait la charge utile par dix.
-    //
-    // MAIS cela suppose que `first: k` rende les k PLUS GROS streams de la
-    // catégorie, et pas k streams quelconques parmi son sommet. La couverture
-    // mesurée (44 % à 96 % de l'audience d'une catégorie sur 30 streams)
-    // prouve la sélection par rang à 30 — elle ne prouve rien à 3. Tant que
-    // ce point n'est pas mesuré, le plancher reste égal au plafond : on paie
-    // la charge utile pour garder la garantie d'exactitude intacte.
-    GLOBAL_STREAMS_MIN:      30,
+    // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
+    // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
+    // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
+    // divisé la charge utile par dix. Mesuré sur Just Chatting :
+    //     first: 3  → les 3 plus gros, exactement
+    //     first: 5  → 3 justes, puis deux chaînes qui ne sont pas du top 5
+    //     first: 10 → 4 justes, puis six chaînes qui ne sont pas du top 10
+    // `first: k` ne rend donc PAS le top k. L'optimisation est réfutée, pas
+    // en attente : on demande toujours GLOBAL_STREAMS_MAX.
     // Opérations groupées par requête HTTP. L'extension envoie déjà des
     // tableaux d'opérations à gql.twitch.tv (cf. post()).
     GLOBAL_BATCH_OPS:        20,
@@ -1898,11 +1896,24 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    *  encore contenir un stream du top N. La marche s'arrête alors en sachant
    *  qu'elle est complète — pas en espérant l'être.
    *
-   *  Hypothèse restante, mesurée et bornée : `game(name:){ streams(first: 30) }`
-   *  rend bien le sommet de la catégorie. Couverture observée sur six grosses
-   *  catégories : 96,5 % / 73,9 % / 65,1 % / 61,8 % / 59,6 % / 44,5 % de
-   *  l'audience totale pour 30 streams sur des milliers. Une sélection qui ne
-   *  serait pas ordonnée par rang n'en capterait qu'une fraction de pour cent.
+   *  Reste UNE hypothèse, et il faut la nommer : `game(name:){ streams(first:
+   *  30) }` rend bien LE SOMMET de sa catégorie. Deux mesures l'encadrent.
+   *
+   *  Pour — la couverture. Sur six grosses catégories, 30 streams captent
+   *  96,5 % / 73,9 % / 65,1 % / 61,8 % / 59,6 % / 44,5 % de l'audience totale,
+   *  choisis parmi des milliers. Une sélection non ordonnée par rang n'en
+   *  capterait qu'une fraction de pour cent.
+   *
+   *  Contre — la sélection n'est pas STRICTEMENT ordonnée. Mesuré sur Just
+   *  Chatting : `first: 3` rend exactement les trois plus gros, mais `first: 5`
+   *  et `first: 10` glissent des chaînes de mi-classement dans leur résultat.
+   *  Le sommet immédiat revient juste à chaque fois ; le ventre, non.
+   *
+   *  Conclusion tenable, et rien de plus : le classement est exact tant qu'une
+   *  chaîne au-dessus de T figure dans les 30 rendus par sa catégorie. C'est
+   *  une hypothèse mesurée, pas une certitude — d'où le soin apporté au sens
+   *  de `complete`, qui ne parle QUE de la descente entre catégories et jamais
+   *  de ce qui se passe à l'intérieur de l'une d'elles.
    * ============================================================ */
   const globalChannels = (() => {
     /* Requêtes INLINE, sans sha256Hash : ce module ne dépend d'AUCUNE
@@ -2009,16 +2020,6 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       return v[n - 1] ?? 0;
     };
 
-    // Combien de streams demander à une catégorie : au plus C/T peuvent
-    // dépasser T, plus une marge. Voir GLOBAL_STREAMS_MIN pour la raison
-    // pour laquelle le plancher vaut aujourd'hui le plafond.
-    const firstFor = (catViewers, t) => {
-      if (!(t > 0)) return CFG.GLOBAL_STREAMS_MAX;
-      const need = Math.ceil(catViewers / t) + 1;
-      return Math.min(CFG.GLOBAL_STREAMS_MAX,
-                      Math.max(CFG.GLOBAL_STREAMS_MIN, need));
-    };
-
     // ── Récolte ─────────────────────────────────────────────────────────
     const fetchCategories = async () => {
       const [data] = await send([{
@@ -2049,11 +2050,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
     // Interroge le sommet de chaque catégorie et verse le résultat dans pool.
     // Rend le nombre de catégories effectivement dépouillées.
-    const harvest = async (cats, t, pool) => {
+    const harvest = async (cats, pool) => {
       if (!cats.length) return 0;
       const ops = cats.map(c => ({
         operationName: 'TseCategoryTop',
-        variables: { name: c.name, n: firstFor(c.viewers, t) },
+        variables: { name: c.name, n: CFG.GLOBAL_STREAMS_MAX },
         query: CATEGORY_TOP_QUERY
       }));
       const data = await send(ops);
@@ -2098,7 +2099,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
       const pool = new Map();
       const seed = cats.slice(0, CFG.GLOBAL_SEED_CATEGORIES);
-      if (!await harvest(seed, 0, pool)) return { ok: false, complete: false };
+      if (!await harvest(seed, pool)) return { ok: false, complete: false };
 
       // T est calculé APRÈS l'amorce puis figé pour toute la descente. Il ne
       // peut que MONTER à mesure que le pool grossit ; conserver la valeur
@@ -2118,7 +2119,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         todo.push(c);
       }
 
-      await harvest(todo, t, pool);
+      await harvest(todo, pool);
       publish(pool);
 
       // Complétude — et c'est ici que se joue l'honnêteté du module.
@@ -2181,7 +2182,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       const pool = new Map();
       for (const r of ranking) if (r.ts >= cutoff) pool.set(r.login, r);
 
-      if (!await harvest(seed.concat(crossed), threshold, pool)) return { ok: false };
+      if (!await harvest(seed.concat(crossed), pool)) return { ok: false };
 
       publish(pool);
       stats.light += 1;
