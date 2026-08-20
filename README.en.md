@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.27.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.28.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -148,6 +148,30 @@ black.
 If that signal never arrives — player reworked by Twitch, video refused — a
 safety net reveals the iframe anyway 1.5 s after `load`. At worst that is the old
 behaviour; never a preview stuck on its thumbnail.
+
+### The black BEFORE the thumbnail (v3.28)
+
+The previous fix handled the thumbnail → video switch. A second black remained
+upstream of it: on some channels the preview opened on a black rectangle, the
+thumbnail arrived one to two seconds later, then the video.
+
+The cause was the thumbnail URL. It ended in a parameter timestamped **to the
+millisecond**, meant to defeat the browser cache — Twitch regenerates these
+images every few minutes, and without it the same one would be served forever.
+But at that precision **every hover produced a unique URL**: the cache could
+never serve anything back, not even when returning to the channel two seconds
+later. Every hover was a download. That also explains the "sometimes it works":
+only the CDN-side cache decided.
+
+The parameter is now rounded to a **one-minute bucket**. The URL stays stable
+for the whole bucket, so a repeat hover displays instantly. The thumbnail may be
+a minute old — irrelevant for a picture shown for one second before the live
+stream takes over.
+
+A channel's first display still depends on the network. Two details make it less
+abrupt: the thumbnail **fades in** as well, and the waiting background is no
+longer black but the panel's own shade — a black rectangle reads as a failure,
+the panel colour reads as loading.
 
 ### Network cost
 

@@ -744,6 +744,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Délai avant de basculer du JPEG statique au player iframe. Permet
     // de ne pas spawner d'iframes si l'utilisateur balaie plusieurs cartes
     // rapidement (un iframe player Twitch = ~5-10 MB de RAM).
+    // Granularité du contournement de cache de la vignette (cf. buildThumbUrl).
+    // Pendant une tranche, l'URL ne change pas : les re-survols sont instantanés.
+    PREVIEW_THUMB_CACHE_MS: 60_000,
     PREVIEW_IFRAME_DELAY: 150,
     // Quality demandée à player.twitch.tv. "360p30" est le sweet spot pour
     // un aperçu : bande passante raisonnable, qualité suffisante. Valeurs
@@ -1373,14 +1376,23 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       position: relative;
       width: 100%;
       aspect-ratio: 16 / 9;
-      background: #000;
+      /* Fond de la même teinte que le popup, et non noir : c'est ce qu'on voit
+         tant que la vignette n'est pas arrivée. Un rectangle noir se lit comme
+         une panne ; la couleur du panneau se lit comme un chargement. */
+      background: #18181b;
     }
+    /* La vignette apparaît elle aussi en fondu. Elle est servie par le réseau :
+       même mise en cache, un premier affichage a un délai, et la voir surgir
+       d'un coup sur le fond du panneau accroche l'œil. */
     .tse-preview__thumb {
       display: block;
       width: 100%;
       height: 100%;
       object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.25s ease;
     }
+    .tse-preview__thumb[data-tse-loaded="true"] { opacity: 1; }
     /* L'iframe player est superposé au JPEG dans le même wrapper.
        Invisible par défaut (data-tse-loaded="false"), elle apparaît en
        fondu à sa PREMIÈRE IMAGE — pas au chargement de son document,
@@ -3224,11 +3236,23 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     };
 
     // URL du JPEG statique servi par le CDN Twitch (affichage immédiat
-    // avant que l'iframe player ne soit prêt).
+    // avant que l'iframe player ne soit prête).
+    //
+    // Le paramètre de fin sert à contourner le cache : sans lui, le navigateur
+    // resservirait indéfiniment une image que Twitch régénère toutes les
+    // quelques minutes. Mais il était horodaté à la MILLISECONDE, ce qui
+    // rendait chaque URL unique — donc chaque survol un échec de cache garanti,
+    // y compris en revenant sur la même chaîne deux secondes plus tard. D'où le
+    // fond noir de une à deux secondes, le temps du téléchargement.
+    //
+    // On l'arrondit désormais à une tranche : l'URL est stable pendant toute la
+    // tranche, donc un re-survol tape le cache et s'affiche instantanément. La
+    // vignette peut être vieille d'une minute — sans importance pour une image
+    // affichée une seconde avant de céder la place à la vidéo en direct.
     const buildThumbUrl = (login) =>
       `https://static-cdn.jtvnw.net/previews-ttv/live_user_${login}` +
       `-${CFG.PREVIEW_THUMB_WIDTH}x${CFG.PREVIEW_THUMB_HEIGHT}.jpg` +
-      `?_=${Date.now()}`;
+      `?_=${Math.floor(Date.now() / CFG.PREVIEW_THUMB_CACHE_MS)}`;
 
     // URL du player iframe. parent=twitch.tv est requis par Twitch pour
     // l'embed (on est servi depuis twitch.tv donc OK). muted=true est
@@ -3666,6 +3690,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           thumbImg.style.display = 'none';
           placeholder.style.display = 'flex';
         }, { once: true });
+        // `complete` couvre le cas d'une image déjà en cache : l'événement load
+        // a pu partir avant même que l'écouteur ne soit posé.
+        const showThumb = () => { thumbImg.dataset.tseLoaded = 'true'; };
+        if (thumbImg.complete && thumbImg.naturalWidth > 0) showThumb();
+        else thumbImg.addEventListener('load', showThumb, { once: true });
       }
     };
 

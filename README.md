@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.27.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.28.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -155,6 +155,31 @@ qu'une image et du noir.
 Si ce signal n'arrive jamais — lecteur remanié par Twitch, vidéo refusée — un
 filet dévoile quand même l'iframe 1,5 s après le `load`. Au pire on retrouve
 l'ancien comportement ; jamais un aperçu bloqué sur sa miniature.
+
+### Le noir AVANT la miniature (v3.28)
+
+Le correctif précédent réglait le passage miniature → vidéo. Restait un noir en
+amont : sur certaines chaînes, l'aperçu s'ouvrait sur un rectangle noir, la
+miniature arrivait une à deux secondes plus tard, puis la vidéo.
+
+En cause, l'URL de la miniature. Elle se terminait par un paramètre horodaté **à
+la milliseconde**, destiné à contourner le cache du navigateur — Twitch régénère
+ces images toutes les quelques minutes, et sans ce paramètre on resservirait
+indéfiniment la même. Sauf qu'à cette précision, **chaque survol produisait une
+URL unique** : le cache ne pouvait jamais rien resservir, pas même en revenant
+sur la chaîne deux secondes plus tard. Chaque survol était un téléchargement.
+Ce qui explique aussi le « parfois oui, parfois non » : seul l'état du cache
+côté CDN départageait.
+
+Le paramètre est désormais arrondi à une **tranche d'une minute**. L'URL reste
+stable pendant toute la tranche, donc un re-survol s'affiche instantanément. La
+miniature peut être vieille d'une minute — sans importance pour une image
+montrée une seconde avant de céder la place au direct.
+
+Le premier affichage d'une chaîne reste tributaire du réseau. Deux détails le
+rendent moins abrupt : la miniature **apparaît en fondu** elle aussi, et le fond
+d'attente n'est plus noir mais de la teinte du panneau — un rectangle noir se lit
+comme une panne, la couleur du panneau se lit comme un chargement.
 
 ### Coût réseau
 
