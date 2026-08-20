@@ -2034,7 +2034,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     let running       = false;
     let complete      = false; // le dernier classement est-il PROUVÉ complet ?
     let windowFloor   = 0;     // total de la dernière catégorie de la fenêtre
-    const stats = { walks: 0, light: 0, ops: 0, failedSlices: 0,
+    const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
                     misses: 0, evicted: 0, lastMs: 0 };
 
     // ── Transport ───────────────────────────────────────────────────────
@@ -2305,6 +2305,57 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       return { ok: true };
     };
 
+    // ── Portée : le monde, ou UNE catégorie ─────────────────────────────
+    // Choisir une catégorie ne FILTRE pas le classement mondial — il n'en
+    // resterait qu'une poignée de chaînes, et sûrement pas les plus regardées
+    // de cette catégorie. Cela change ce qu'on DEMANDE : une seule opération
+    // `game(name:){ streams(first: 30) }`, triée par nous comme le reste.
+    //
+    // Le plafond de 30 est celui de l'API — « argument 'first' value must be
+    // between 1 and 30. » — et vaut pour TOUTE catégorie, ZEVENT compris.
+    // Aucune exception n'est possible de ce côté-là.
+    let scope        = null;   // nom canonique de la catégorie servie, ou null
+    let scopeRanking = [];
+    let scopeTs      = 0;
+    let scopeDirty   = false;
+    // Génération de portée. Une passe lit l'état AVANT son aller-retour et
+    // l'écrit APRÈS : entre les deux, un reset() ou un autre choix de
+    // catégorie a pu survenir, et publier le résultat ressusciterait une
+    // portée que plus personne n'a demandée.
+    let scopeGen     = 0;
+
+    // Catégorie voulue par l'utilisateur, ou null pour le monde entier.
+    const wantedScope = () =>
+      (state.globalMode && state.categoryFilter) ? state.categoryFilter : null;
+
+    const scopePass = async (name) => {
+      const gen = ++scopeGen;
+      const started = Date.now();
+      const frais = new Map();
+      const h = await harvest([{ name, viewers: 0 }], frais);
+      // Périmée pendant l'aller-retour : on jette. Ce n'est PAS un échec —
+      // le compter comme tel déclencherait une pause et, au bout de trois,
+      // un repli de cadence, alors que rien n'a mal tourné.
+      if (gen !== scopeGen) return { ok: true };
+      if (!h.done) return { ok: false };
+      // L'état porté est lu APRÈS l'aller-retour, jamais avant : le lire
+      // d'abord reviendrait à fusionner un classement qui a pu changer
+      // pendant la requête. Changer de catégorie repart donc d'un pool vide —
+      // le classement précédent ne dit rien de la nouvelle — tandis que
+      // rester dans la même le conserve, pour que la tolérance à
+      // l'échantillonnage s'applique ici comme ailleurs.
+      const pool = scope === name ? new Map(scopeRanking.map(r => [r.login, r])) : new Map();
+      for (const [login, rec] of frais) pool.set(login, rec);   // le frais prime
+      reconcile(pool, h.queried, h.seen, started);
+      scope        = name;
+      scopeRanking = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
+      scopeDirty   = false;
+      scopeTs      = Date.now();
+      stats.scoped += 1;
+      stats.lastMs  = scopeTs - started;
+      return { ok: true };
+    };
+
     // ── Cadence ─────────────────────────────────────────────────────────
     const noteFailure = () => {
       failStreak += 1;
@@ -2332,6 +2383,21 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       if (!state.globalMode || running) return;
       const now = Date.now();
       if (now < cooldownUntil) return;
+
+      // Une catégorie est choisie : une opération suffit, et la marche
+      // mondiale n'a plus lieu d'être tant qu'on y reste.
+      const want = wantedScope();
+      if (want) {
+        const neuf = want !== scope;
+        if (!neuf && now - scopeTs < CFG.GLOBAL_STRUCT_TICK) return;
+        running = true;
+        scopePass(want)
+          .then(res => { res?.ok ? noteSuccess() : noteFailure(); })
+          .catch(() => noteFailure())
+          .finally(() => { running = false; });
+        return;
+      }
+
       const needFull = !ranking.length || now - lastFullWalk >= CFG.GLOBAL_FULL_WALK_MS;
       if (!needFull) {
         const interval = degraded ? CFG.GLOBAL_FULL_WALK_MS : CFG.GLOBAL_STRUCT_TICK;
@@ -2348,6 +2414,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       categories = []; categoriesTs = 0;
       ranking = []; rankingDirty = false; rankingTs = 0;
       threshold = 0; windowFloor = 0; lastFullWalk = 0; cooldownUntil = 0;
+      scope = null; scopeRanking = []; scopeTs = 0; scopeDirty = false;
+      scopeGen += 1;   // invalide une passe encore en vol
       failStreak = 0; okStreak = 0; degraded = false; complete = false;
     };
 
@@ -2368,6 +2436,18 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // Classement courant, retrié à la demande si un compteur frais est
       // arrivé depuis le dernier tri.
       top(n = CFG.GLOBAL_TOP_N) {
+        const want = wantedScope();
+        if (want) {
+          // Servir le classement d'une AUTRE catégorie serait pire que ne
+          // rien servir : l'utilisateur verrait des chaînes qui n'ont rien à
+          // voir avec son choix. On rend une liste vide, le voile couvre.
+          if (want !== scope) return [];
+          if (scopeDirty) {
+            scopeRanking = scopeRanking.slice().sort((a, b) => b.viewers - a.viewers);
+            scopeDirty = false;
+          }
+          return scopeRanking.slice(0, n);
+        }
         if (rankingDirty) {
           ranking = ranking.slice().sort((a, b) => b.viewers - a.viewers);
           rankingDirty = false;
@@ -2381,17 +2461,27 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // n'est plus en direct : on la retire du classement plutôt que de la
       // laisser figée sur sa dernière valeur connue.
       setViewers(login, viewers) {
-        const i = ranking.findIndex(r => r.login === login);
-        if (i < 0) return false;
-        if (viewers === null) { ranking.splice(i, 1); rankingDirty = true; return true; }
-        if (!Number.isFinite(viewers) || ranking[i].viewers === viewers) return false;
-        ranking[i] = { ...ranking[i], viewers, ts: Date.now() };
-        rankingDirty = true;
-        return true;
+        // Les DEUX classements sont servis : celui du monde et celui de la
+        // catégorie courante. Une chaîne peut figurer dans les deux, et le
+        // compteur frais vaut pour l'un comme pour l'autre.
+        let touche = false;
+        const appliquer = (liste) => {
+          const i = liste.findIndex(r => r.login === login);
+          if (i < 0) return false;
+          if (viewers === null) { liste.splice(i, 1); return true; }
+          if (!Number.isFinite(viewers) || liste[i].viewers === viewers) return false;
+          liste[i] = { ...liste[i], viewers, ts: Date.now() };
+          return true;
+        };
+        if (appliquer(ranking))      { rankingDirty = true; touche = true; }
+        if (appliquer(scopeRanking)) { scopeDirty   = true; touche = true; }
+        return touche;
       },
       report() {
         return {
           enabled:    state.globalMode,
+          scope,
+          scopeSize:  scopeRanking.length,
           degraded,
           complete,
           threshold,
@@ -5268,6 +5358,17 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     if (facet === 'category') {
       state.categoryFilter = value;
       state.filterDriver = value ? 'category' : (state.languageFilter ? 'language' : null);
+      // En mode Top Chaînes, changer de catégorie ne filtre pas l'affichage :
+      // cela change ce qu'on DEMANDE à l'API. Le classement courant devient
+      // caduc, donc on lance la requête sans attendre le prochain réveil, et
+      // on voile tant qu'il n'y a rien à montrer — comme à l'entrée du mode.
+      // Revenir à « toutes les catégories » ne voile pas : le classement
+      // mondial n'a pas été purgé, il est servi immédiatement.
+      if (state.globalMode) {
+        globalChannels.tick();
+        if (!globalChannels.top(1).length) loadingOverlay.startCycle();
+        scheduleScan();
+      }
     } else {
       state.languageFilter = value;
       state.filterDriver = value ? 'language' : (state.categoryFilter ? 'category' : null);
@@ -5516,7 +5617,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    *   kind='cat'  : libellé = nom de catégorie (texte), « toutes » = libellé i18n.
    *   kind='lang' : libellé = drapeau SVG (repli code), « toutes » = globe SVG.
    */
-  function rebuildDropdown(dd, values, counts, current, disabled, kind) {
+  //   fmt         : rendu du compteur. Par défaut le nombre brut (« 3 |
+  //                 Just Chatting » = trois chaînes suivies). En mode Top
+  //                 Chaînes le compteur est une AUDIENCE, pas un décompte de
+  //                 chaînes : on y passe formatViewers (« 122 k | VALORANT »).
+  function rebuildDropdown(dd, values, counts, current, disabled, kind, fmt = String) {
     const btn  = dd.querySelector('.tse-dd-btn');
     const cur  = dd.querySelector('.tse-dd-current');
     const menu = dd.querySelector('.tse-dd-menu');
@@ -5537,7 +5642,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         + `title="${escapeHtml(allTitle)}">${allLabel}</div>`;
       const rows = values.map(v =>
         `<div class="tse-dd-opt" role="option" data-value="${escapeHtml(v)}" aria-selected="${v === current}">`
-        + `<span class="tse-dd-n">${counts.get(v) || 0} |</span>${itemLabel(v)}</div>`).join('');
+        + `<span class="tse-dd-n">${escapeHtml(fmt(counts.get(v) || 0))} |</span>${itemLabel(v)}</div>`).join('');
       menu.innerHTML = allRow + rows;
     }
     btn.disabled = disabled;
@@ -5578,6 +5683,34 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       const langs = (card.dataset.tseLangs || '').split('|').filter(Boolean);
       records.push({ cat: card.dataset.tseCategory || '', langs });
     });
+
+    // ── Mode Top Chaînes : la catégorie n'est pas un filtre ─────────────
+    // Elle décide de ce qu'on DEMANDE à l'API (cf. globalChannels, portée).
+    // Sa liste vient donc du classement des catégories — les 100 premières,
+    // avec leur audience réelle — et non des cartes affichées, qui n'en
+    // couvrent qu'une poignée. Le croisement des deux facettes, lui, n'a plus
+    // de sens ici : la langue reste un vrai filtre sur les cartes présentes.
+    if (state.globalMode) {
+      const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX);
+      const catCount = new Map(cats.map(c => [c.name, c.viewers]));
+      // La sélection n'est PAS validée contre les catégories connues : la
+      // liste peut être vide au tout premier scan, et invalider le choix de
+      // l'utilisateur à cet instant le lui ferait perdre sans raison.
+      const langsPresent = new Set(records.flatMap(r => r.langs));
+      const Lg = state.languageFilter && langsPresent.has(state.languageFilter)
+        ? state.languageFilter : null;
+      state.languageFilter = Lg;
+      const langCount = new Map([...langsPresent].map(l =>
+        [l, records.filter(r => r.langs.includes(l)).length]));
+      rebuildDropdown(catDD, cats.map(c => c.name), catCount,
+                      state.categoryFilter, cats.length === 0, 'cat', formatViewers);
+      rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
+                      langCount, Lg, langsPresent.size <= 1, 'lang');
+      const wrapG = document.getElementById(FILTER_ID);
+      if (wrapG) wrapG.dataset.tseActive = (state.categoryFilter || Lg) ? 'true' : 'false';
+      applyCategoryFilter();
+      return;
+    }
 
     const allCats  = new Set(records.map(r => r.cat).filter(Boolean));
     const allLangs = new Set(records.flatMap(r => r.langs));
