@@ -300,8 +300,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     fr: Object.freeze({
       followedLabel:             'Chaînes suivies',
       uiGlobalLabel:             'Top Chaînes',
-      uiModeToGlobal:            'Afficher les chaînes les plus regardées de Twitch',
-      uiModeToFollowed:          'Revenir aux chaînes suivies',
+      uiModeMenuTitle:           'Afficher',
+      uiModeMenuAria:            'Choisir ce qui s\'affiche dans la barre latérale',
       uiGlobalPartial:           'Classement partiel : Twitch n\'expose pas assez de catégories en ce moment pour le garantir complet.',
       uiFilterAriaLabel:         'Filtrer les chaînes suivies par catégorie',
       uiFilterAllCategories:     'Toutes les catégories',
@@ -353,8 +353,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     en: Object.freeze({
       followedLabel:             'Followed Channels',
       uiGlobalLabel:             'Top Channels',
-      uiModeToGlobal:            'Show the most-watched channels on Twitch',
-      uiModeToFollowed:          'Back to followed channels',
+      uiModeMenuTitle:           'Show',
+      uiModeMenuAria:            'Choose what the sidebar displays',
       uiGlobalPartial:           'Partial ranking: Twitch is not exposing enough categories right now to guarantee it is complete.',
       uiFilterAriaLabel:         'Filter followed channels by category',
       uiFilterAllCategories:     'All categories',
@@ -406,8 +406,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     de: Object.freeze({
       followedLabel:             'Gefolgte Kanäle',
       uiGlobalLabel:             'Top-Kanäle',
-      uiModeToGlobal:            'Die meistgesehenen Kanäle auf Twitch anzeigen',
-      uiModeToFollowed:          'Zurück zu den gefolgten Kanälen',
+      uiModeMenuTitle:           'Anzeigen',
+      uiModeMenuAria:            'Auswählen, was in der Seitenleiste angezeigt wird',
       uiGlobalPartial:           'Unvollständige Rangliste: Twitch gibt derzeit nicht genügend Kategorien preis, um Vollständigkeit zu garantieren.',
       uiFilterAriaLabel:         'Gefolgte Kanäle nach Kategorie filtern',
       uiFilterAllCategories:     'Alle Kategorien',
@@ -459,8 +459,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     es: Object.freeze({
       followedLabel:             'Canales que sigues',
       uiGlobalLabel:             'Top Canales',
-      uiModeToGlobal:            'Mostrar los canales más vistos de Twitch',
-      uiModeToFollowed:          'Volver a los canales que sigues',
+      uiModeMenuTitle:           'Mostrar',
+      uiModeMenuAria:            'Elegir lo que muestra la barra lateral',
       uiGlobalPartial:           'Clasificación parcial: Twitch no expone ahora mismo suficientes categorías para garantizar que esté completa.',
       uiFilterAriaLabel:         'Filtrar los canales que sigues por categoría',
       uiFilterAllCategories:     'Todas las categorías',
@@ -512,8 +512,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     pt: Object.freeze({
       followedLabel:             'Canais seguidos',
       uiGlobalLabel:             'Top Canais',
-      uiModeToGlobal:            'Mostrar os canais mais assistidos da Twitch',
-      uiModeToFollowed:          'Voltar aos canais seguidos',
+      uiModeMenuTitle:           'Mostrar',
+      uiModeMenuAria:            'Escolher o que a barra lateral mostra',
       uiGlobalPartial:           'Classificação parcial: a Twitch não expõe categorias suficientes neste momento para garantir que esteja completa.',
       uiFilterAriaLabel:         'Filtrar os canais seguidos por categoria',
       uiFilterAllCategories:     'Todas as categorias',
@@ -1474,26 +1474,43 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       margin-top: 4px;
     }
 
-    /* === Bascule « Chaînes suivies » ↔ « Top Chaînes » ===
-       Posée à droite du titre racine, là où Twitch met son bouton de tri —
-       que l'extension masque déjà (cf. hideNativeFollowedHeader). On ne
-       détourne pas le bouton de React : on met le nôtre à sa place, ce qui
-       évite d'avoir à lutter contre un re-render.
-       Positionnement ABSOLU plutôt que flex sur le conteneur du titre : on
-       ne veut pas réécrire la mise en page de Twitch pour y greffer un
-       bouton, sous peine de déplacer ce qu'il y rangera demain. */
-    #side-nav .side-nav__title { position: relative; }
-    .tse-mode-switch {
-      position: absolute; right: 0; top: 50%; transform: translateY(-50%);
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 26px; height: 26px; padding: 0;
-      background: transparent; border: 0; border-radius: 4px;
-      color: #adadb8; cursor: pointer;
-      transition: background-color 0.1s ease, color 0.1s ease;
+    /* === Menu « Afficher » : Chaînes suivies ↔ Top Chaînes ===
+       On DÉTOURNE le bouton de tri natif de Twitch — les flèches ↑↓ à droite
+       de l'en-tête de section — plutôt que d'en poser un à côté. Son clic est
+       intercepté en phase de CAPTURE, donc le menu « Trier par » de React ne
+       s'ouvre jamais : on ne lutte pas contre son rendu, on l'empêche de
+       commencer. C'est aussi ce qui rend l'emplacement stable, puisque c'est
+       Twitch qui le positionne.
+
+       Le menu est en position FIXE, ancré au rectangle du bouton : la barre
+       latérale a ses propres conteneurs à débordement caché, et un menu en
+       absolu s'y ferait rogner. Même raison que pour la popup d'aperçu. */
+    .tse-mode-menu {
+      position: fixed; z-index: 9998;
+      min-width: 208px; padding: 8px 0;
+      background: #18181b; color: #efeff1;
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      font-family: var(--font-base, "Inter", sans-serif);
     }
-    .tse-mode-switch:hover { background: rgba(255, 255, 255, 0.12); color: #efeff1; }
-    .tse-mode-switch svg { width: 17px; height: 17px; fill: currentColor; }
-    .tse-mode-switch[aria-pressed="true"] { color: ${CFG.PURPLE_HOVER}; }
+    .tse-mode-menu__title {
+      padding: 4px 12px 8px; margin: 0;
+      font-size: 13px; font-weight: 600; color: #adadb8;
+    }
+    .tse-mode-menu__item {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 8px 12px; border: 0; background: transparent;
+      color: inherit; font: inherit; font-size: 13px; text-align: left;
+      cursor: pointer;
+    }
+    .tse-mode-menu__item:hover { background: rgba(255, 255, 255, 0.1); }
+    .tse-mode-menu__item[aria-checked="true"] {
+      background: ${CFG.PURPLE}; color: #fff; font-weight: 600;
+    }
+    .tse-mode-menu__item svg { flex: 0 0 auto; width: 16px; height: 16px; fill: currentColor; }
+    .tse-mode-menu__label { flex: 1 1 auto; }
+    .tse-mode-menu__check { flex: 0 0 auto; width: 14px; height: 14px; opacity: 0; fill: currentColor; }
+    .tse-mode-menu__item[aria-checked="true"] .tse-mode-menu__check { opacity: 1; }
 
     /* En mode « Top Chaînes », les cartes de Twitch s'effacent au profit des
        nôtres. Le bouton « Afficher plus » de la liste suivie n'a plus d'objet,
@@ -5463,6 +5480,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     const triggers = section.querySelectorAll('button[aria-expanded]');
     for (const btn of triggers) {
       if (btn.dataset.tseNativeHeader === 'hidden') continue;
+      // Ne JAMAIS masquer le bouton qu'on a détourné en menu « Afficher » :
+      // c'est désormais le seul point d'entrée de la bascule de mode. Le
+      // masquer reviendrait à supprimer la fonctionnalité pour les locales
+      // où Twitch écrit le tri courant dans le libellé du bouton.
+      if (btn.dataset.tseModeTrigger === 'true') continue;
       const txt = (btn.textContent || '');
       if (!DOM.nativeHeaderRe.test(txt)) continue;
       // On masque le bloc parent (header complet) plutôt que juste le bouton,
@@ -6443,12 +6465,21 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    *  c'est ce qui leur donne gratuitement le style de Twitch, le survol, la
    *  popup d'aperçu et tout ce que processCard sait déjà décorer.
    * ============================================================ */
-  const MODE_SWITCH_ID = 'tse-mode-switch';
+  const MODE_MENU_ID = 'tse-mode-menu';
   const GLOBAL_BANNER_ID = 'tse-global-partial';
   // Podium : trois barres, la plus haute au milieu.
   const SVG_PODIUM =
     '<svg viewBox="0 0 24 24" aria-hidden="true">' +
     '<path d="M10 3h4v18h-4V3Zm-7 7h4v11H3V10Zm14 4h4v7h-4v-7Z"/>' +
+    '</svg>';
+  // Cœur plein (les chaînes que l'utilisateur suit).
+  const SVG_HEART =
+    '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path d="M12 21s-7.5-4.6-9.6-9A5.4 5.4 0 0 1 12 6.3 5.4 5.4 0 0 1 21.6 12c-2.1 4.4-9.6 9-9.6 9Z"/>' +
+    '</svg>';
+  const SVG_CHECK =
+    '<svg viewBox="0 0 24 24" class="tse-mode-menu__check" aria-hidden="true">' +
+    '<path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z"/>' +
     '</svg>';
 
   function setGlobalMode(on) {
@@ -6463,28 +6494,143 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     scheduleScan();
   }
 
-  function ensureModeSwitch() {
-    const title = document.querySelector('#side-nav .side-nav__title');
-    if (!title) return;
-    let btn = document.getElementById(MODE_SWITCH_ID);
-    if (!btn) {
-      btn = document.createElement('button');
-      btn.id = MODE_SWITCH_ID;
-      btn.type = 'button';
-      btn.className = 'tse-mode-switch';
-      btn.innerHTML = SVG_PODIUM;
-      btn.addEventListener('click', () => setGlobalMode(!state.globalMode));
-      title.appendChild(btn);
-    } else if (btn.parentElement !== title) {
-      // React a reconstruit le titre : on se réinsère au lieu de disparaître.
-      title.appendChild(btn);
+  /**
+   * Le déclencheur : le bouton de tri natif de Twitch, dans l'en-tête de la
+   * section suivie (les flèches ↑↓). Identifié SANS s'appuyer sur son texte —
+   * il n'en a plus, et celui qu'il avait était localisé. On prend le bouton
+   * à menu (`aria-expanded`) de l'en-tête, en excluant « Afficher plus /
+   * moins » qui vivent ailleurs dans la section.
+   */
+  const nativeSortTrigger = () => {
+    const section = followedSection();
+    if (!section) return null;
+    const header = section.querySelector(DOM.followedHeaderSelector);
+    const scope = header || section;
+    for (const btn of scope.querySelectorAll('button[aria-expanded]')) {
+      if (btn.matches(DOM.showMoreStableSelector)) continue;
+      if (btn.matches(DOM.showLessStableSelector)) continue;
+      return btn;
     }
-    // Le libellé décrit ce que le clic VA FAIRE, pas l'état courant.
-    const label = state.globalMode ? S.uiModeToFollowed : S.uiModeToGlobal;
-    btn.setAttribute('aria-pressed', state.globalMode ? 'true' : 'false');
-    if (btn.getAttribute('title') !== label) {
-      btn.setAttribute('title', label);
-      btn.setAttribute('aria-label', label);
+    return null;
+  };
+
+  let modeMenuTrigger = null;   // bouton actuellement instrumenté
+
+  const closeModeMenu = () => {
+    const menu = document.getElementById(MODE_MENU_ID);
+    if (menu) menu.remove();
+    if (modeMenuTrigger) modeMenuTrigger.setAttribute('aria-expanded', 'false');
+  };
+
+  const openModeMenu = (trigger) => {
+    closeModeMenu();
+    const menu = document.createElement('div');
+    menu.id = MODE_MENU_ID;
+    menu.className = 'tse-mode-menu';
+    menu.setAttribute('role', 'menu');
+    const row = (on, svg, label) =>
+      `<button type="button" class="tse-mode-menu__item" role="menuitemradio"` +
+      ` data-tse-mode="${on ? 'global' : 'followed'}"` +
+      ` aria-checked="${state.globalMode === on ? 'true' : 'false'}">` +
+      `${svg}<span class="tse-mode-menu__label">${escapeHtml(label)}</span>${SVG_CHECK}` +
+      '</button>';
+    menu.innerHTML =
+      `<p class="tse-mode-menu__title">${escapeHtml(S.uiModeMenuTitle)}</p>` +
+      row(false, SVG_HEART,  S.followedLabel) +
+      row(true,  SVG_PODIUM, S.uiGlobalLabel);
+    document.body.appendChild(menu);
+
+    // Ancrage sur le rectangle du bouton, bord droit aligné, puis ramené
+    // dans la fenêtre : la barre latérale est collée au bord gauche, mais
+    // un menu plus large que le bouton peut déborder par la droite.
+    const r = trigger.getBoundingClientRect();
+    const w = menu.offsetWidth;
+    const left = Math.max(4, Math.min(r.right - w, window.innerWidth - w - 4));
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.top  = `${Math.round(r.bottom + 4)}px`;
+
+    menu.querySelectorAll('[data-tse-mode]').forEach(item => {
+      item.addEventListener('click', () => {
+        setGlobalMode(item.dataset.tseMode === 'global');
+        closeModeMenu();
+      });
+    });
+    trigger.setAttribute('aria-expanded', 'true');
+  };
+
+  // Fermetures : clic hors menu, Échap, défilement, redimensionnement.
+  // Posées UNE fois, au chargement du module.
+  document.addEventListener('pointerdown', (e) => {
+    const menu = document.getElementById(MODE_MENU_ID);
+    if (!menu) return;
+    if (menu.contains(e.target)) return;
+    if (modeMenuTrigger && modeMenuTrigger.contains(e.target)) return;
+    closeModeMenu();
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModeMenu();
+  }, true);
+  window.addEventListener('scroll', closeModeMenu, true);
+  window.addEventListener('resize', closeModeMenu);
+
+  /**
+   * Instrumente le bouton natif : son clic n'ouvre plus « Trier par », il
+   * ouvre notre menu. L'interception est en phase de CAPTURE et coupe la
+   * propagation — le gestionnaire de React ne reçoit jamais l'événement,
+   * donc son menu n'est pas ouvert puis refermé, il ne s'ouvre pas du tout.
+   */
+  function ensureModeMenu() {
+    const trigger = nativeSortTrigger();
+    if (!trigger) return;
+    if (trigger !== modeMenuTrigger) {
+      // React a remplacé le bouton : le précédent n'a plus d'existence, on
+      // instrumente le nouveau. Le menu ouvert, s'il y en avait un, pointait
+      // sur un élément disparu.
+      closeModeMenu();
+      modeMenuTrigger = trigger;
+    }
+    if (trigger.dataset.tseModeTrigger !== 'true') {
+      trigger.dataset.tseModeTrigger = 'true';
+      const intercept = (e) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (document.getElementById(MODE_MENU_ID)) closeModeMenu();
+        else openModeMenu(trigger);
+      };
+      trigger.addEventListener('click', intercept, true);
+      trigger.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') intercept(e);
+      }, true);
+      // Twitch ouvre aussi ses menus au pointerdown : sans cette garde, son
+      // gestionnaire partirait avant même que notre clic soit émis.
+      trigger.addEventListener('pointerdown', (e) => e.stopImmediatePropagation(), true);
+    }
+    if (trigger.getAttribute('aria-label') !== S.uiModeMenuAria) {
+      trigger.setAttribute('aria-label', S.uiModeMenuAria);
+      trigger.setAttribute('title', S.uiModeMenuAria);
+    }
+  }
+
+  /**
+   * L'en-tête de section porte lui aussi « Chaînes suivies ». Il doit suivre
+   * le mode, sinon il contredirait le titre racine juste au-dessus.
+   * Repéré par son TEXTE parmi les libellés connus, et non par une classe
+   * hachée : c'est ce qui traverse les cinq langues sans sélecteur fragile.
+   */
+  function renameFollowedHeader() {
+    const section = followedSection();
+    if (!section) return;
+    const header = section.querySelector(DOM.followedHeaderSelector);
+    if (!header) return;
+    const wanted = state.globalMode ? S.uiGlobalLabel : S.followedLabel;
+    const known = new Set([...DOM.followedLabels, S.uiGlobalLabel]);
+    for (const el of header.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span')) {
+      if (el.children.length) continue;                 // feuille de texte seulement
+      if (el.closest('button[aria-expanded]')) continue; // pas le libellé du bouton
+      const txt = (el.textContent || '').trim();
+      if (!known.has(txt)) continue;
+      if (txt !== wanted) setText(el, wanted);
+      return;
     }
   }
 
@@ -6869,7 +7015,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     cards.forEach(processCard);
     ensureFilterBar();
     ensureSortRow();
-    ensureModeSwitch();
+    ensureModeMenu();
+    renameFollowedHeader();
     ensureGlobalBanner();
     hideNativeFollowedHeader();
     renameRootTitle();
