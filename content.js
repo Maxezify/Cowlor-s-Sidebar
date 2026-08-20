@@ -6624,9 +6624,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     if (!header) return;
     const wanted = state.globalMode ? S.uiGlobalLabel : S.followedLabel;
     const known = new Set([...DOM.followedLabels, S.uiGlobalLabel]);
+    // On NE saute PAS ce qui est à l'intérieur du bouton de tri : dans le DOM
+    // réel de Twitch, le titre de section vit précisément là — le <h3> est un
+    // descendant du bouton qu'on a détourné, pas son voisin. C'est la seule
+    // garde qu'il ne fallait pas poser, et elle rendait ce renommage inopérant.
     for (const el of header.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span')) {
-      if (el.children.length) continue;                 // feuille de texte seulement
-      if (el.closest('button[aria-expanded]')) continue; // pas le libellé du bouton
+      if (el.children.length) continue;   // feuille de texte seulement
       const txt = (el.textContent || '').trim();
       if (!known.has(txt)) continue;
       if (txt !== wanted) setText(el, wanted);
