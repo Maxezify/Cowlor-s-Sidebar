@@ -299,6 +299,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
   const STRINGS = Object.freeze({
     fr: Object.freeze({
       followedLabel:             'Chaînes suivies',
+      uiGlobalLabel:             'Top Chaînes',
+      uiModeToGlobal:            'Afficher les chaînes les plus regardées de Twitch',
+      uiModeToFollowed:          'Revenir aux chaînes suivies',
+      uiGlobalPartial:           'Classement partiel : Twitch n\'expose pas assez de catégories en ce moment pour le garantir complet.',
       uiFilterAriaLabel:         'Filtrer les chaînes suivies par catégorie',
       uiFilterAllCategories:     'Toutes les catégories',
       uiFilterLangAriaLabel:     'Filtrer les chaînes suivies par langue',
@@ -348,6 +352,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }),
     en: Object.freeze({
       followedLabel:             'Followed Channels',
+      uiGlobalLabel:             'Top Channels',
+      uiModeToGlobal:            'Show the most-watched channels on Twitch',
+      uiModeToFollowed:          'Back to followed channels',
+      uiGlobalPartial:           'Partial ranking: Twitch is not exposing enough categories right now to guarantee it is complete.',
       uiFilterAriaLabel:         'Filter followed channels by category',
       uiFilterAllCategories:     'All categories',
       uiFilterLangAriaLabel:     'Filter followed channels by language',
@@ -397,6 +405,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }),
     de: Object.freeze({
       followedLabel:             'Gefolgte Kanäle',
+      uiGlobalLabel:             'Top-Kanäle',
+      uiModeToGlobal:            'Die meistgesehenen Kanäle auf Twitch anzeigen',
+      uiModeToFollowed:          'Zurück zu den gefolgten Kanälen',
+      uiGlobalPartial:           'Unvollständige Rangliste: Twitch gibt derzeit nicht genügend Kategorien preis, um Vollständigkeit zu garantieren.',
       uiFilterAriaLabel:         'Gefolgte Kanäle nach Kategorie filtern',
       uiFilterAllCategories:     'Alle Kategorien',
       uiFilterLangAriaLabel:     'Gefolgte Kanäle nach Sprache filtern',
@@ -446,6 +458,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }),
     es: Object.freeze({
       followedLabel:             'Canales que sigues',
+      uiGlobalLabel:             'Top Canales',
+      uiModeToGlobal:            'Mostrar los canales más vistos de Twitch',
+      uiModeToFollowed:          'Volver a los canales que sigues',
+      uiGlobalPartial:           'Clasificación parcial: Twitch no expone ahora mismo suficientes categorías para garantizar que esté completa.',
       uiFilterAriaLabel:         'Filtrar los canales que sigues por categoría',
       uiFilterAllCategories:     'Todas las categorías',
       uiFilterLangAriaLabel:     'Filtrar los canales que sigues por idioma',
@@ -495,6 +511,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }),
     pt: Object.freeze({
       followedLabel:             'Canais seguidos',
+      uiGlobalLabel:             'Top Canais',
+      uiModeToGlobal:            'Mostrar os canais mais assistidos da Twitch',
+      uiModeToFollowed:          'Voltar aos canais seguidos',
+      uiGlobalPartial:           'Classificação parcial: a Twitch não expõe categorias suficientes neste momento para garantir que esteja completa.',
       uiFilterAriaLabel:         'Filtrar os canais seguidos por categoria',
       uiFilterAllCategories:     'Todas as categorias',
       uiFilterLangAriaLabel:     'Filtrar os canais seguidos por idioma',
@@ -1452,6 +1472,43 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     .tse-sort-row {
       display: flex; align-items: center; justify-content: center; gap: 6px;
       margin-top: 4px;
+    }
+
+    /* === Bascule « Chaînes suivies » ↔ « Top Chaînes » ===
+       Posée à droite du titre racine, là où Twitch met son bouton de tri —
+       que l'extension masque déjà (cf. hideNativeFollowedHeader). On ne
+       détourne pas le bouton de React : on met le nôtre à sa place, ce qui
+       évite d'avoir à lutter contre un re-render.
+       Positionnement ABSOLU plutôt que flex sur le conteneur du titre : on
+       ne veut pas réécrire la mise en page de Twitch pour y greffer un
+       bouton, sous peine de déplacer ce qu'il y rangera demain. */
+    #side-nav .side-nav__title { position: relative; }
+    .tse-mode-switch {
+      position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; padding: 0;
+      background: transparent; border: 0; border-radius: 4px;
+      color: #adadb8; cursor: pointer;
+      transition: background-color 0.1s ease, color 0.1s ease;
+    }
+    .tse-mode-switch:hover { background: rgba(255, 255, 255, 0.12); color: #efeff1; }
+    .tse-mode-switch svg { width: 17px; height: 17px; fill: currentColor; }
+    .tse-mode-switch[aria-pressed="true"] { color: ${CFG.PURPLE_HOVER}; }
+
+    /* En mode « Top Chaînes », les cartes de Twitch s'effacent au profit des
+       nôtres. Le bouton « Afficher plus » de la liste suivie n'a plus d'objet,
+       et les modes de tri non plus : le classement EST le tri. */
+    body.tse-global-ready .side-nav-card:not([data-tse-global="true"]) { display: none !important; }
+    body.tse-global-ready ${DOM.showMoreStableSelector} { display: none !important; }
+    body.tse-global-mode #tse-sort-row { display: none; }
+
+    /* Bandeau d'honnêteté : le classement est servi, mais on dit quand il
+       n'est pas PROUVÉ complet (cf. windowFloor dans le module de données). */
+    .tse-global-partial {
+      margin-top: 4px; padding: 4px 6px;
+      font-size: 11px; line-height: 1.3; color: #dedee3;
+      background: rgba(255, 122, 138, 0.14);
+      border-left: 2px solid #ff7a8a; border-radius: 2px;
     }
 
     /* === Sidebar rétrécie (collapsed) : masque les contrôles custom ===
@@ -5056,6 +5113,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // sections live seraient masquées à tort.
     const filterActive = !sidebarCollapsed &&
       (state.categoryFilter !== null || state.languageFilter !== null);
+    // En mode « Top Chaînes », les sections de recommandation de Twitch
+    // — « Chaînes live », « Les spectateurs de X regardent aussi » — parlent
+    // de ce que l'utilisateur suit. Elles n'ont plus de rapport avec ce qui
+    // est affiché : on les masque, comme le fait un filtre explicite.
+    const hideOthers = filterActive || state.globalMode;
 
     sections.forEach(section => {
       // La section suivie reste toujours visible (elle porte notre UI filtre/tri).
@@ -5069,7 +5131,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         return;
       }
 
-      if (filterActive) {
+      if (hideOthers) {
         section.classList.add('tse-section-hidden');
         return;
       }
@@ -5376,12 +5438,15 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Idempotence textuelle (pas de court-circuit data-marker) :
     // si LANG bascule après le boot, le titre est automatiquement
     // re-traduit au prochain appel.
+    // Le titre porte le nom du MODE : c'est lui qui dit à l'utilisateur ce
+    // qu'il regarde, le bouton à sa droite ne faisant qu'en changer.
+    const wanted = state.globalMode ? S.uiGlobalLabel : S.followedLabel;
     const current = (root.textContent || '').trim();
-    if (current === S.followedLabel) {
+    if (current === wanted) {
       root.dataset.tseRenamed = 'true';
       return;
     }
-    root.textContent = S.followedLabel;
+    root.textContent = wanted;
     root.dataset.tseRenamed = 'true';
   }
 
@@ -6286,18 +6351,24 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     const container = cards[0].parentElement;
     if (!container) return;
 
+    // En mode global, le mode de tri est imposé : un classement mondial n'a
+    // pas de sens trié par popularité personnelle ou par ordre alphabétique.
+    // La ligne de boutons est masquée en conséquence, mais l'état qu'elle
+    // portait est préservé — revenir aux chaînes suivies le retrouve intact.
+    const sortMode = state.globalMode ? 'viewers' : state.sortMode;
+
     let sorted;
-    if (state.sortMode === 'uptime') {
+    if (sortMode === 'uptime') {
       // createdAt DESC → stream le plus récent en premier (uptime le plus court)
       sorted = [...cards].sort((a, b) => {
         const ta = new Date(a.dataset.tseStartedAt || 0).getTime() || 0;
         const tb = new Date(b.dataset.tseStartedAt || 0).getTime() || 0;
         return tb - ta;
       });
-    } else if (state.sortMode === 'viewers') {
+    } else if (sortMode === 'viewers') {
       // Viewers DESC → le plus regardé en premier
       sorted = [...cards].sort((a, b) => getCardViewers(b) - getCardViewers(a));
-    } else if (state.sortMode === 'costream') {
+    } else if (sortMode === 'costream') {
       // Groupes de co-stream regroupés en tête, ordonnés par audience du
       // groupe décroissante. Les solos sont relégués après, dans leur ordre
       // Twitch original. À l'intérieur d'un même groupe, on conserve l'ordre
@@ -6328,7 +6399,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         const ob = parseInt(b.dataset.tseTwitchOrder ?? '999', 10);
         return oa - ob;
       });
-    } else if (state.sortMode === 'popular') {
+    } else if (sortMode === 'popular') {
       // Score de popularité personnelle DESC (visites récentes pondérées).
       // À égalité (ou si aucune donnée encore), on tombe sur l'ordre Twitch
       // pour rester déterministe — au début de l'usage la plupart des
@@ -6341,7 +6412,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         const ob = parseInt(b.dataset.tseTwitchOrder ?? '999', 10);
         return oa - ob;
       });
-    } else if (state.sortMode === 'alpha') {
+    } else if (sortMode === 'alpha') {
       // Pseudo ASC (insensible à la casse, locale fr pour les accents)
       sorted = [...cards].sort((a, b) => {
         return getCardLogin(a).localeCompare(getCardLogin(b), S.locale, { sensitivity: 'base' });
@@ -6362,6 +6433,156 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }
     if (!changed) return;
     sorted.forEach(c => container.appendChild(c));
+  }
+
+  /* ============================================================
+   *  MODE « TOP CHAÎNES » — bascule et cartes
+   *  -------------------------------------------------------------
+   *  Le classement vient de globalChannels ; ici on ne fait que le rendre.
+   *  Les cartes sont CLONÉES d'une carte native, comme les cartes en avance :
+   *  c'est ce qui leur donne gratuitement le style de Twitch, le survol, la
+   *  popup d'aperçu et tout ce que processCard sait déjà décorer.
+   * ============================================================ */
+  const MODE_SWITCH_ID = 'tse-mode-switch';
+  const GLOBAL_BANNER_ID = 'tse-global-partial';
+  // Podium : trois barres, la plus haute au milieu.
+  const SVG_PODIUM =
+    '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path d="M10 3h4v18h-4V3Zm-7 7h4v11H3V10Zm14 4h4v7h-4v-7Z"/>' +
+    '</svg>';
+
+  function setGlobalMode(on) {
+    if (state.globalMode === on) return;
+    state.globalMode = on;
+    document.body.classList.toggle('tse-global-mode', on);
+    // Entrer dans le mode doit être immédiat : on ne fait pas attendre le
+    // prochain réveil de rafraîchissement pour lancer la marche.
+    if (on) globalChannels.tick();
+    // En SORTIR ne purge pas le classement — y revenir doit être instantané,
+    // et le pool se périme tout seul s'il n'est plus tiqué (GLOBAL_PRUNE_AGE).
+    scheduleScan();
+  }
+
+  function ensureModeSwitch() {
+    const title = document.querySelector('#side-nav .side-nav__title');
+    if (!title) return;
+    let btn = document.getElementById(MODE_SWITCH_ID);
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = MODE_SWITCH_ID;
+      btn.type = 'button';
+      btn.className = 'tse-mode-switch';
+      btn.innerHTML = SVG_PODIUM;
+      btn.addEventListener('click', () => setGlobalMode(!state.globalMode));
+      title.appendChild(btn);
+    } else if (btn.parentElement !== title) {
+      // React a reconstruit le titre : on se réinsère au lieu de disparaître.
+      title.appendChild(btn);
+    }
+    // Le libellé décrit ce que le clic VA FAIRE, pas l'état courant.
+    const label = state.globalMode ? S.uiModeToFollowed : S.uiModeToGlobal;
+    btn.setAttribute('aria-pressed', state.globalMode ? 'true' : 'false');
+    if (btn.getAttribute('title') !== label) {
+      btn.setAttribute('title', label);
+      btn.setAttribute('aria-label', label);
+    }
+  }
+
+  // Bandeau affiché uniquement quand le classement n'est pas prouvé complet.
+  function ensureGlobalBanner() {
+    const bar = document.getElementById(FILTER_ID);
+    let el = document.getElementById(GLOBAL_BANNER_ID);
+    const rep = globalChannels.report();
+    const show = state.globalMode && rep.pool > 0 && !rep.complete;
+    if (!show || !bar) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement('div');
+      el.id = GLOBAL_BANNER_ID;
+      el.className = 'tse-global-partial';
+      bar.appendChild(el);
+    }
+    if (el.textContent !== S.uiGlobalPartial) setText(el, S.uiGlobalPartial);
+  }
+
+  /**
+   * Réconcilie les cartes du mode global avec le classement courant.
+   * Idempotent, comme syncAheadCards : ne crée que ce qui manque, ne retire
+   * que ce qui n'a plus lieu d'être, et se ré-exécute à chaque scan — donc
+   * ré-injecte ce que React aurait emporté.
+   */
+  function syncGlobalCards() {
+    const section = followedSection();
+    if (!section) return;
+
+    const existing = new Map();
+    for (const c of section.querySelectorAll('.side-nav-card[data-tse-global="true"]')) {
+      const l = c.dataset.tseLogin;
+      if (l) existing.set(l, c); else c.remove();
+    }
+    // `tse-global-ready` — et non `tse-global-mode` — commande l'effacement
+    // des cartes de Twitch. La première marche prend ~1,6 s : basculer sur un
+    // drapeau posé AVANT d'avoir le classement viderait la sidebar pendant ce
+    // temps. On préfère montrer encore un instant la liste suivie, sous un
+    // titre qui a déjà changé, plutôt qu'un vide. Les bascules suivantes sont
+    // instantanées — le pool n'est pas purgé en sortant du mode.
+    const ready = (n) => document.body.classList.toggle('tse-global-ready', n > 0);
+    if (!state.globalMode) { existing.forEach(c => c.remove()); ready(0); return; }
+
+    // Même exigence de modèle que pour les cartes en avance : une carte
+    // native, en direct, et NEUTRE — cloner une carte décorée transposerait
+    // ses marques sur une chaîne qui n'a rien à voir.
+    let template = null;
+    for (const c of section.querySelectorAll('.side-nav-card')) {
+      if (c.dataset.tseGlobal === 'true' || isSynthetic(c)) continue;
+      if (isPlainCard(c) && !isCardOffline(c)) { template = c; break; }
+    }
+    if (!template) return;
+    const container = template.parentElement;
+    if (!container) return;
+
+    // Le cache partagé est la source de vérité de processCard. Sans l'amorcer,
+    // une carte fraîchement clonée afficherait le compteur, la catégorie et
+    // l'ancienneté de la chaîne qui a servi de MODÈLE jusqu'à la première
+    // réponse TseChannels — soit un chiffre faux pendant une seconde.
+    // On n'écrase jamais une entrée plus récente : la file TseChannels reste
+    // la voix la plus autorisée sur une chaîne donnée.
+    const seedCache = (rec) => {
+      const prev = cache.get(rec.login);
+      if (prev && prev.ts >= rec.ts) return;
+      cache.set(rec.login, {
+        id: rec.id, tags: rec.tags, game: rec.game, viewers: rec.viewers,
+        name: rec.name, avatar: rec.avatar, ts: rec.ts,
+        stream: {
+          id: 'g:' + rec.login, createdAt: rec.createdAt,
+          viewersCount: rec.viewers, game: { name: rec.game },
+          freeformTags: rec.tags.map(n => ({ name: n }))
+        }
+      });
+    };
+
+    const top = globalChannels.top(CFG.GLOBAL_TOP_N);
+    const keep = new Set();
+    ready(top.length);
+    for (const rec of top) {
+      keep.add(rec.login);
+      seedCache(rec);
+      let card = existing.get(rec.login);
+      if (!card) {
+        card = buildAheadCard(template, rec.login, rec);
+        if (!card) return;   // clone inexploitable : inutile d'insister
+        card.dataset.tseGlobal = 'true';
+        container.appendChild(card);
+      }
+      // Le compteur est écrit ICI, sans attendre le cache. Le clone hérite
+      // sinon du nombre de spectateurs de la chaîne qui a servi de MODÈLE —
+      // un chiffre faux, affiché le temps d'un aller-retour réseau, et
+      // indéfiniment si la file TseChannels ne connaît pas cette chaîne.
+      // processCard, qui passe APRÈS dans le scan, reste prioritaire : une
+      // entrée de cache fraîche vient de TseChannels et fait plus autorité
+      // que la marche structurelle.
+      renderViewers(card, rec.viewers);
+    }
+    for (const [login, card] of existing) if (!keep.has(login)) card.remove();
   }
 
   /* ============================================================
@@ -6616,6 +6837,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     const section = followedSection();
     if (!section) return;
     section.querySelectorAll(DOM.followedCardSelector).forEach(a => {
+      // NOS clones portent le même marqueur que les cartes de Twitch — c'est
+      // même tout l'intérêt du clonage. Mais le roster est la mémoire
+      // PERSISTÉE des chaînes suivies : y verser une carte du mode « Top
+      // Chaînes » y inscrirait durablement une chaîne que l'utilisateur ne
+      // suit pas, que pollRoster sonderait ensuite pour rien et que les
+      // cartes en avance ressusciteraient au retour en mode suivi.
+      // On ne relève donc que ce que Twitch a posé lui-même.
+      if (a.closest('[data-tse-synthetic="true"]')) return;
       const login = loginFromHref(a.getAttribute('href'));
       if (!login) return;
       roster.record(login);
@@ -6632,11 +6861,16 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     snapshotTwitchOrder(); // avant tout tri custom, on photographie l'ordre Twitch
     harvestFollowed();     // relève du roster + horodatage des cartes nouvelles
     pollRoster();          // sonde les chaînes suivies absentes de la sidebar
-    syncAheadCards();      // pose/retire les cartes que Twitch n'a pas encore
+    // Les cartes en avance servent la liste SUIVIE : elles n'ont pas d'objet
+    // en mode global, où l'on n'affiche pas ce que l'utilisateur suit.
+    if (!state.globalMode) syncAheadCards();
+    syncGlobalCards();     // pose/retire les cartes du classement mondial
     const cards = document.querySelectorAll('.side-nav-card');
     cards.forEach(processCard);
     ensureFilterBar();
     ensureSortRow();
+    ensureModeSwitch();
+    ensureGlobalBanner();
     hideNativeFollowedHeader();
     renameRootTitle();
     recomputeFilters();
