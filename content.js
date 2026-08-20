@@ -844,7 +844,6 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Largeur cible de l'aperçu. Le ratio 16:9 est respecté pour le wrapper.
     // Largeur du popup d'aperçu, en pixels CSS. NE SERT QU'À LA MISE EN PAGE.
     PREVIEW_THUMB_WIDTH:  480,
-    PREVIEW_THUMB_HEIGHT: 270,
     // Taille demandée au CDN pour la miniature. Volontairement SÉPARÉE de la
     // largeur du popup, dont elle dépendait jusqu'ici : changer la mise en page
     // changeait alors silencieusement l'objet réclamé au CDN, donc les temps de
@@ -1470,27 +1469,30 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }
 
     /* === Bascule de mode : Chaînes suivies ↔ Top Chaînes ===
-       Deux onglets dans NOTRE bloc filtre. Pas de popup, donc rien à
-       positionner, rien à refermer, et rien que React puisse emporter.
-       Le libellé est tronqué plutôt que rétréci : « Kanäle, denen du folgst »
-       ne tient pas dans une demi-largeur de barre latérale, et l'attribut
-       title porte le texte entier. */
-    .tse-mode-row { display: flex; gap: 4px; margin-bottom: 8px; }
+       Deux boutons dans NOTRE bloc filtre, posés là où Twitch affichait son
+       en-tête de section. Pas de popup : rien à positionner, rien à refermer,
+       rien que React puisse emporter.
+
+       Le libellé n'est JAMAIS tronqué — c'est la seule contrainte qui compte
+       ici. Plutôt qu'une ellipse, la rangée autorise le retour à la ligne :
+       en français les deux boutons tiennent côte à côte, et dans une langue
+       plus longue (« Kanäle, denen du folgst ») le second passe en dessous,
+       toujours entièrement lisible. Une ellipse aurait donné « Chaînes su… »,
+       ce qui n'informe plus de rien. */
+    .tse-mode-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
     .tse-mode-tab {
-      flex: 1 1 0; min-width: 0;
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 6px 8px; border: 0; border-radius: 4px;
+      flex: 1 1 auto;
+      padding: 7px 8px; border: 0; border-radius: 4px;
       background: rgba(255, 255, 255, 0.08); color: #adadb8;
-      font: inherit; font-size: 12px; line-height: 1.2; cursor: pointer;
+      font: inherit; font-size: 12px; font-weight: 600; line-height: 1.2;
+      white-space: nowrap; text-align: center; cursor: pointer;
       transition: background-color 0.1s ease, color 0.1s ease;
     }
     .tse-mode-tab:hover { background: rgba(255, 255, 255, 0.16); color: #efeff1; }
     .tse-mode-tab[aria-pressed="true"] {
-      background: ${CFG.PURPLE}; color: #fff; font-weight: 600;
+      background: ${CFG.PURPLE}; color: #fff;
     }
     .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE_HOVER}; }
-    .tse-mode-tab svg { flex: 0 0 auto; width: 14px; height: 14px; fill: currentColor; }
-    .tse-mode-tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* En mode « Top Chaînes », les cartes de Twitch s'effacent au profit des
        nôtres. Le bouton « Afficher plus » de la liste suivie n'a plus d'objet,
@@ -1893,7 +1895,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         // jour le classement sans une seule requête de plus. C'est ce qui
         // rend la cadence de 30 s réelle plutôt que théorique — la marche
         // structurelle, elle, ne sert qu'à faire ENTRER et SORTIR des
-        // chaînes du classement (cf. globalChannels.tracked()).
+        // chaînes du classement, qui portent toutes une carte.
         globalChannels.setViewers(login, entry.viewers);
         fresh++;
         (pending.get(login) || []).forEach(fn => fn(entry));
@@ -2371,15 +2373,6 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           rankingDirty = false;
         }
         return ranking.slice(0, n);
-      },
-      // Logins à maintenir frais dans la file TseChannels existante. Le
-      // tampon au-delà du top N n'est pas décoratif : une chaîne qui grimpe
-      // est DÉJÀ suivie quand elle entre au classement, donc elle y apparaît
-      // en LIVE_TTL (30 s) au lieu d'attendre la marche complète. La taille
-      // est calée sur GQL_MAX_LOGINS pour tenir en UNE tranche, c'est-à-dire
-      // une opération de plus dans une requête qui partait de toute façon.
-      tracked() {
-        return ranking.slice(0, CFG.GQL_MAX_LOGINS).map(r => r.login);
       },
       // Top des catégories, avec leur audience. Alimentera le filtre
       // catégorie du mode global (« 523k | Dota 2 »).
@@ -5485,6 +5478,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     if (!block) return;
     if (block.getAttribute('data-tse-native-header') === 'hidden') return;
     block.setAttribute('data-tse-native-header', 'hidden');
+    // Masquage EN LIGNE et !important, en plus de la règle de feuille.
+    // Constaté en production : l'en-tête restait visible malgré
+    // `[class*="followed-side-nav-header"] { display: none !important }`.
+    // Un style en ligne !important ne peut être battu par aucune feuille,
+    // quelle que soit la spécificité ou l'ordre d'injection. Si React
+    // réécrit l'attribut style, le scan suivant le repose.
+    block.style.setProperty('display', 'none', 'important');
   }
 
   // Comparateur : nombre de streamers décroissant, puis alpha (rendu stable).
@@ -6458,17 +6458,6 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    *  popup d'aperçu et tout ce que processCard sait déjà décorer.
    * ============================================================ */
   const GLOBAL_BANNER_ID = 'tse-global-partial';
-  // Podium : trois barres, la plus haute au milieu.
-  const SVG_PODIUM =
-    '<svg viewBox="0 0 24 24" aria-hidden="true">' +
-    '<path d="M10 3h4v18h-4V3Zm-7 7h4v11H3V10Zm14 4h4v7h-4v-7Z"/>' +
-    '</svg>';
-  // Cœur plein (les chaînes que l'utilisateur suit).
-  const SVG_HEART =
-    '<svg viewBox="0 0 24 24" aria-hidden="true">' +
-    '<path d="M12 21s-7.5-4.6-9.6-9A5.4 5.4 0 0 1 12 6.3 5.4 5.4 0 0 1 21.6 12c-2.1 4.4-9.6 9-9.6 9Z"/>' +
-    '</svg>';
-
   function setGlobalMode(on) {
     if (state.globalMode === on) return;
     state.globalMode = on;
@@ -6518,14 +6507,15 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // lequel l'extension retrouve la section suivie (DOM.followedSelector).
       // Le poser transformait ce bouton en imposteur : followedSection() le
       // renvoyait à sa place, et la sidebar se retrouvait sans aucune carte.
-      // Le <span> visible fait déjà office de nom accessible ; title porte le
-      // texte entier quand la troncature s'applique.
-      const tab = (mode, svg, label) =>
-        `<button type="button" class="tse-mode-tab" data-tse-mode="${mode}"` +
-        ` title="${escapeHtml(label)}">` +
-        `${svg}<span>${escapeHtml(label)}</span></button>`;
-      row.innerHTML = tab('followed', SVG_HEART,  S.followedLabel)
-                    + tab('global',   SVG_PODIUM, S.uiGlobalLabel);
+      // Le texte du bouton fait déjà office de nom accessible.
+      //
+      // Pas d'icône non plus : deux pictogrammes et leurs gouttières coûtent
+      // une quarantaine de pixels sur les ~224 disponibles, et le libellé doit
+      // rester lisible ENTIER — c'est lui qui porte l'information, pas l'image.
+      const tab = (mode, label) =>
+        `<button type="button" class="tse-mode-tab" data-tse-mode="${mode}">` +
+        `${escapeHtml(label)}</button>`;
+      row.innerHTML = tab('followed', S.followedLabel) + tab('global', S.uiGlobalLabel);
       row.querySelectorAll('[data-tse-mode]').forEach(btn => {
         btn.addEventListener('click', () => {
           // Recliquer l'onglet actif ne fait rien : un mode est TOUJOURS
@@ -6535,9 +6525,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           setGlobalMode(wanted);
         });
       });
-      // En tête du bloc filtre : le mode décide de ce que les filtres
-      // filtrent, il se lit donc avant eux.
-      filterBar.prepend(row);
+      // En BAS du bloc filtre, et c'est ce qui le pose exactement là où
+      // Twitch mettait son en-tête « Chaînes suivies ↑↓ » : ce bloc est le
+      // dernier élément avant lui. L'en-tête masqué, les deux boutons
+      // occupent sa place, au contact des cartes qu'ils commandent.
+      filterBar.append(row);
     }
     row.setAttribute('aria-label', S.uiModeMenuAria);
     row.querySelectorAll('[data-tse-mode]').forEach(btn => {
