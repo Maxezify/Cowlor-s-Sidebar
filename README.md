@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.28.2 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.29.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -369,7 +369,7 @@ filtre, popup d'aperçu…) reste pleinement fonctionnel.
 ### Crédit et licence
 
 Le code est sous licence **MIT** — Copyright (c) 2020-present TwitchAdSolutions
-Contributors. Sept adaptations seulement le séparent de l'amont, toutes marquées
+Contributors. Huit adaptations seulement le séparent de l'amont, toutes marquées
 « ADAPTATION » dans le fichier et récapitulées dans son en-tête : préfixe de log
 `[TSE-AdBlock]`, interrupteur, garde iframe-only, version en dur à la place de
 `GM_info` (une API de gestionnaire de userscripts, absente dans une extension),
@@ -390,6 +390,20 @@ travaille donc **contre** ce choix. En amont le réglage est juste — il sert u
 session de visionnage plein écran ; il ne l'est plus pour une vignette de survol.
 Il est passé à `false` (adaptation f), de même que `ShowBanner` (adaptation g),
 dont l'encart de diagnostic mangeait le coin de l'image.
+
+Cela ne suffisait pourtant pas : la qualité **montait** encore d'elle-même après
+quelques secondes. Le `quality=360p30` de l'URL n'est qu'une préférence, que le
+lecteur reste libre de dépasser par adaptation de débit. Le vrai levier est
+ailleurs — dans le **type de lecteur porté par la requête de jeton d'accès**,
+qui décide de l'échelle de qualité que Twitch renvoie. Le module le réécrivait
+en `popout`, dont l'échelle monte jusqu'à la source.
+
+Il est désormais réécrit en **`autoplay`**, dont Twitch plafonne l'échelle à
+640 × 360 (adaptation h). C'est un plafond **serveur** : l'adaptation de débit
+ne peut pas le franchir, et 640 × 360 est exactement le bon calibre pour une
+vignette de 480 × 270. `autoplay` est sans publicité de l'aveu même du fork, et
+le retrait de `parent_domains` ne dépend pas de cette valeur.
+
 
 ### Couleurs de co-stream
 
@@ -622,7 +636,7 @@ extension, et une quatrième transformation ajoute la localisation.
 
 3. **Module anti-pub intégré** (cf. section dédiée plus haut). Depuis la v3.25 le
    code est vendorisé tel quel depuis [scamorza/TwitchAdBlock](https://github.com/scamorza/TwitchAdBlock)
-   dans son propre fichier, `adblock.js`, avec sept adaptations marquées —
+   dans son propre fichier, `adblock.js`, avec huit adaptations marquées —
    interrupteur, garde iframe-only, préfixe `[TSE-AdBlock]` sur les logs, version
    en dur à la place de `GM_info`, et pas de bannière au démarrage.
 

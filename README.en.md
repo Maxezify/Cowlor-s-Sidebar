@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.28.2 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.29.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -332,7 +332,7 @@ one of them runs.
 
 The module now lives in **`adblock.js`** rather than at the top of `content.js`.
 It is third-party code that updates upstream: isolating it makes the next update
-mechanical — swap the file, replay the seven adaptations listed in its header —
+mechanical — swap the file, replay the eight adaptations listed in its header —
 instead of a hand merge. The manifest loads `adblock.js` **before** `content.js`,
 reproducing exactly the order the two modules had when they shared a file. Do not
 invert it.
@@ -353,7 +353,7 @@ working fully.
 ### Credit and licence
 
 The code is licensed **MIT** — Copyright (c) 2020-present TwitchAdSolutions
-Contributors. Only seven adaptations separate it from upstream, each marked
+Contributors. Only eight adaptations separate it from upstream, each marked
 `ADAPTATION` in the file and summarised in its header: the `[TSE-AdBlock]` log
 prefix, the kill switch, the iframe-only guard, a hardcoded version in place of
 `GM_info` (a userscript-manager API absent from an extension), removal of the
@@ -374,6 +374,20 @@ works **against** that choice. Upstream the setting is right — it serves a
 full-screen viewing session; it stops being right for a hover thumbnail. It is
 set to `false` (adaptation f), as is `ShowBanner` (adaptation g), whose
 diagnostic box ate the corner of the picture.
+
+That was not enough on its own: quality still **climbed** by itself after a few
+seconds. The URL's `quality=360p30` is only a preference, which the player is
+free to exceed through adaptive bitrate. The real lever is elsewhere — in the
+**player type carried by the access-token request**, which decides the quality
+ladder Twitch returns. The module rewrote it as `popout`, whose ladder goes all
+the way to source.
+
+It is now rewritten as **`autoplay`**, whose ladder Twitch caps at 640 × 360
+(adaptation h). That is a **server-side** ceiling: adaptive bitrate cannot climb
+past it, and 640 × 360 is exactly the right size for a 480 × 270 thumbnail.
+`autoplay` is ad-free by the fork's own account, and stripping `parent_domains`
+does not depend on this value.
+
 
 ### Co-stream colours
 
@@ -600,7 +614,7 @@ context, and a fourth transformation adds localization.
 
 3. **Bundled anti-ad module** (see the dedicated section above). Since v3.25 the
    code is vendored as-is from [scamorza/TwitchAdBlock](https://github.com/scamorza/TwitchAdBlock)
-   into its own file, `adblock.js`, with seven marked adaptations — kill switch,
+   into its own file, `adblock.js`, with eight marked adaptations — kill switch,
    iframe-only guard, `[TSE-AdBlock]` log prefix, hardcoded version instead of
    `GM_info`, and no startup banner.
 

@@ -22,7 +22,7 @@
  *   handshake twitchAdSolutionsVersion gère la cohabitation, et c'est
  *   d'ailleurs lui qui fait que l'un des deux se retire proprement.
  *
- *  LES SEPT ADAPTATIONS (toutes marquées « ADAPTATION » dans le code) :
+ *  LES HUIT ADAPTATIONS (toutes marquées « ADAPTATION » dans le code) :
  *   a) préfixe de log « [VAFT2] » → « [TSE-AdBlock] », pour distinguer
  *      nos lignes de celles d'un vaft installé en externe ;
  *   b) interrupteur TSE_ADBLOCK_ENABLED ;
@@ -34,9 +34,13 @@
  *      meilleure qualité disponible y est du gaspillage pur, et cela combat
  *      le 360p30 que la sidebar demande déjà par l'URL ;
  *   g) ShowBanner passé à false — l'encart de diagnostic mangerait le coin
- *      de la vignette.
+ *      de la vignette ;
+ *   h) ForceAccessTokenPlayerType passé de 'popout' à 'autoplay' — Twitch
+ *      plafonne l'échelle de qualité d'autoplay à 640x360, ce qui est
+ *      exactement le bon plafond pour une vignette de 480x270, et un plafond
+ *      SERVEUR que l'adaptation de débit ne peut pas franchir.
  *
- *  (f) et (g) ne sont pas des corrections : en amont ces deux valeurs sont
+ *  (f), (g) et (h) ne sont pas des corrections : en amont ces valeurs sont
  *  justes, pour un lecteur qu'on regarde vraiment. Elles ne le sont plus dès
  *  lors que le lecteur est une vignette de survol. À reconsidérer si la garde
  *  iframe-only tombait un jour.
@@ -115,7 +119,23 @@ const TSE_ADBLOCK_ENABLED = true;
         // rare path where mobile_feed fails. autoplay is last and ad-free too, but capped at 640x360.
         BackupPlayerTypes: ['mobile_feed', 'popout', 'autoplay'],
         // Also strips parent_domains, which is what stops the embed-shaped fake ads.
-        ForceAccessTokenPlayerType: 'popout',
+        //
+        // ADAPTATION (h) : 'popout' → 'autoplay'. Le type demandé au jeton d'accès
+        // décide de l'ÉCHELLE DE QUALITÉ que Twitch renvoie, et celle d'autoplay
+        // est plafonnée par Twitch à 640x360 (documenté deux fois en amont). Pour
+        // une vignette de 480x270, c'est exactement le bon plafond — et c'est un
+        // plafond SERVEUR, donc l'adaptation de débit ne peut pas le franchir,
+        // contrairement au quality=360p30 de l'URL qui n'est qu'une préférence
+        // que le lecteur reste libre d'ignorer ou de dépasser.
+        //
+        // Sans lui, l'échelle de popout monte jusqu'à la source : le lecteur y
+        // grimpe tout seul en quelques secondes, et la qualité « s'améliore » à
+        // vue d'œil dans une vignette qui n'en tirera rien.
+        //
+        // Ce que ça ne change pas : autoplay est sans publicité de l'aveu même du
+        // fork, et le retrait de parent_domains ne dépend pas de la VALEUR — seule
+        // une valeur vide désactiverait la réécriture (cf. doc/config.md du fork).
+        ForceAccessTokenPlayerType: 'autoplay',
         StripAdSegments: true,
         // Renumbers the served playlist onto the numbering the player already believes in. Without
         // it the gap between the two sessions grows by one break's worth of segments every time and
