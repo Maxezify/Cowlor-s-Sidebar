@@ -738,6 +738,22 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // catégories de tête. Alignée sur LIVE_TTL, car les compteurs des
     // chaînes affichées voyagent, eux, dans la file TseChannels existante.
     GLOBAL_STRUCT_TICK:      30_000,
+    // Absences CONSÉCUTIVES d'une chaîne dans une catégorie pourtant
+    // interrogée, avant de la retirer du classement. Mesuré : l'API omet
+    // rubius (23 608 spectateurs) 2 fois sur 6 appels identiques. À ce taux,
+    // trois absences d'affilée surviennent une fois sur 27 au lieu d'une fois
+    // sur 3 — le clignotement passe de 33 % du temps à moins de 4 %, sans
+    // une seule requête de plus. Doubler les appels ferait pire (1 sur 9)
+    // pour deux fois le prix.
+    GLOBAL_MISS_CONFIRM:     3,
+    // Âge au-delà duquel un enregistrement du pool est évincé sans plus de
+    // procès : sa catégorie est sortie de la descente et rien ne le rafraîchit
+    // plus. Assez large pour ne jamais concurrencer le compteur d'absences
+    // ci-dessus, qui est le mécanisme d'éviction NORMAL. Ce que l'utilisateur
+    // voit, lui, est protégé bien plus tôt : les chaînes affichées portent une
+    // carte, donc la file TseChannels les rafraîchit toutes les 30 s et retire
+    // celles qui se sont éteintes.
+    GLOBAL_PRUNE_AGE:        10 * 60_000,
     // Cadence de la marche complète, filet de correction contre la dérive
     // (une chaîne qui grimpe dans une catégorie ni de tête ni franchissante).
     GLOBAL_FULL_WALK_MS:     150_000,
@@ -1962,7 +1978,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     let running       = false;
     let complete      = false; // le dernier classement est-il PROUVÉ complet ?
     let windowFloor   = 0;     // total de la dernière catégorie de la fenêtre
-    const stats = { walks: 0, light: 0, ops: 0, failedSlices: 0, lastMs: 0 };
+    const stats = { walks: 0, light: 0, ops: 0, failedSlices: 0,
+                    misses: 0, evicted: 0, lastMs: 0 };
 
     // ── Transport ───────────────────────────────────────────────────────
     // Envoie un lot d'opérations et rend un tableau de `data` ALIGNÉ sur les
@@ -2049,9 +2066,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     };
 
     // Interroge le sommet de chaque catégorie et verse le résultat dans pool.
-    // Rend le nombre de catégories effectivement dépouillées.
+    // Rend les catégories effectivement dépouillées et les chaînes qu'elles
+    // ont rendues — les deux ensembles dont la réconciliation a besoin pour
+    // distinguer « absente » de « pas regardée ».
     const harvest = async (cats, pool) => {
-      if (!cats.length) return 0;
+      const queried = new Set(), seen = new Set();
+      if (!cats.length) return { queried, seen, done: 0 };
       const ops = cats.map(c => ({
         operationName: 'TseCategoryTop',
         variables: { name: c.name, n: CFG.GLOBAL_STREAMS_MAX },
@@ -2064,19 +2084,54 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         const edges = d?.game?.streams?.edges;
         if (!Array.isArray(edges)) return;
         done += 1;
+        queried.add(cats[i].name);
         // Total de la catégorie tel que vu à l'instant de la réponse : plus
         // frais que celui de la liste `games`, on en profite.
         if (Number.isFinite(d.game?.viewersCount)) cats[i].viewers = d.game.viewersCount;
         for (const e of edges) {
           const rec = readStream(e?.node, now);
           if (!rec) continue;
+          seen.add(rec.login);
           const prev = pool.get(rec.login);
           // Une chaîne peut remonter de deux catégories lors d'un changement
           // de jeu en cours de passe : on garde la lecture la plus récente.
+          // Un enregistrement frais repart à zéro absence, par construction.
           if (!prev || rec.ts >= prev.ts) pool.set(rec.login, rec);
         }
       });
-      return done;
+      return { queried, seen, done };
+    };
+
+    // Réconciliation — le cœur de la tolérance à l'échantillonnage.
+    //
+    // MESURÉ : `game(name:){ streams(first: 30) }` omet par intermittence des
+    // chaînes qui devraient y figurer. Six appels identiques à Fortnite, même
+    // catégorie, même compteur : rubius (23 608 spectateurs, top 10 mondial)
+    // présent quatre fois sur six — ●○●○●●. Ce n'est pas un changement de jeu,
+    // c'est l'API qui échantillonne.
+    //
+    // Reconstruire le pool à vide à chaque marche ferait donc CLIGNOTER une
+    // chaîne sur trois passages. On ne croit plus une absence isolée : il en
+    // faut GLOBAL_MISS_CONFIRM d'affilée, exactement comme OFFLINE_CONFIRM
+    // refuse de déclarer une chaîne terminée sur une seule réponse vide.
+    //
+    // Et l'on ne compte une absence QUE si la catégorie de la chaîne a été
+    // réellement interrogée : ne pas regarder n'est pas constater.
+    const reconcile = (pool, queried, seen, now) => {
+      const cutoff = now - CFG.GLOBAL_PRUNE_AGE;
+      for (const [login, rec] of pool) {
+        if (seen.has(login)) { rec.misses = 0; continue; }
+        // Trop vieille pour être encore crédible : sa catégorie est sortie de
+        // la descente il y a longtemps, et plus rien ne la rafraîchit.
+        if (rec.ts < cutoff) { pool.delete(login); stats.evicted += 1; continue; }
+        if (!queried.has(rec.game)) continue;      // pas regardée, pas jugée
+        rec.misses = (rec.misses || 0) + 1;
+        stats.misses += 1;
+        if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM) {
+          pool.delete(login);
+          stats.evicted += 1;
+        }
+      }
     };
 
     const publish = (pool) => {
@@ -2086,10 +2141,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       threshold    = nthViewers(pool, CFG.GLOBAL_TOP_N);
     };
 
+    // Pool de départ d'une passe : le classement courant, tel quel. Il n'est
+    // PAS reconstruit à vide — voir reconcile() pour la raison.
+    const carryOver = () => new Map(ranking.map(r => [r.login, r]));
+
     // ── Marche complète ─────────────────────────────────────────────────
-    // Reconstruit le pool à partir de rien. `complete` dit si la descente
-    // s'est arrêtée sur la condition d'exactitude (audience <= T ou liste
-    // épuisée) plutôt que sur le budget.
+    // Redescend toutes les catégories au-dessus de T. `complete` dit si la
+    // descente s'est arrêtée sur la condition d'exactitude plutôt que sur le
+    // budget ou sur le bord de la fenêtre.
     const fullWalk = async () => {
       const started = Date.now();
       const cats = await fetchCategories();
@@ -2097,9 +2156,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       categories   = cats;
       categoriesTs = started;
 
-      const pool = new Map();
+      const pool = carryOver();
       const seed = cats.slice(0, CFG.GLOBAL_SEED_CATEGORIES);
-      if (!await harvest(seed, pool)) return { ok: false, complete: false };
+      const a = await harvest(seed, pool);
+      if (!a.done) return { ok: false, complete: false };
 
       // T est calculé APRÈS l'amorce puis figé pour toute la descente. Il ne
       // peut que MONTER à mesure que le pool grossit ; conserver la valeur
@@ -2119,7 +2179,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         todo.push(c);
       }
 
-      await harvest(todo, pool);
+      const b = await harvest(todo, pool);
+      reconcile(pool,
+                new Set([...a.queried, ...b.queried]),
+                new Set([...a.seen,    ...b.seen]),
+                started);
       publish(pool);
 
       // Complétude — et c'est ici que se joue l'honnêteté du module.
@@ -2175,15 +2239,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         }
       }
 
-      // Le pool repart du classement courant, purgé de ce qui n'a pas été
-      // revu depuis deux marches complètes — une chaîne éteinte dans une
-      // catégorie ni de tête ni franchissante ne doit pas s'y fossiliser.
-      const cutoff = started - CFG.GLOBAL_FULL_WALK_MS * 2;
-      const pool = new Map();
-      for (const r of ranking) if (r.ts >= cutoff) pool.set(r.login, r);
-
-      if (!await harvest(seed.concat(crossed), pool)) return { ok: false };
-
+      const pool = carryOver();
+      const h = await harvest(seed.concat(crossed), pool);
+      if (!h.done) return { ok: false };
+      reconcile(pool, h.queried, h.seen, started);
       publish(pool);
       stats.light += 1;
       stats.lastMs = rankingTs - started;
