@@ -337,6 +337,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       consoleHealthBroken:       '[tse] Des sélecteurs critiques ne correspondent plus au DOM de Twitch — l\'extension est peut-être partiellement cassée. Détails : tse.diagnose()',
       consoleHealthAllOk:        '[tse] Tous les sélecteurs critiques répondent.',
       consoleMassOffline:        (n, total) => `[tse] Réponse suspecte de l'API Twitch : ${n} chaînes sur ${total} que l'on savait en direct sont annoncées hors ligne d'un coup. Affichage conservé en l'état plutôt que de vider la sidebar ; nouvel essai dans 30 s.`,
+      consoleGlobalDegraded:     (n, s) => `[tse] Chaînes globales : ${n} échecs consécutifs de l'API Twitch. Cadence structurelle repliée sur ${s} s pour ne pas marteler l'endpoint. La sidebar « Chaînes suivies » n'est pas affectée.`,
+      consoleGlobalRestored:     (s) => `[tse] Chaînes globales : API de nouveau stable, cadence structurelle rétablie à ${s} s.`,
       consoleColProbe:           'sonde',
       consoleColStatus:          'état',
       consoleColDetail:          'détail',
@@ -384,6 +386,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       consoleHealthBroken:       '[tse] Some critical selectors no longer match Twitch\'s DOM — the extension may be partially broken. Details: tse.diagnose()',
       consoleHealthAllOk:        '[tse] All critical selectors are responding.',
       consoleMassOffline:        (n, total) => `[tse] Suspicious response from Twitch's API: ${n} of ${total} channels known to be live are reported offline at once. Keeping the current display rather than emptying the sidebar; retrying in 30 s.`,
+      consoleGlobalDegraded:     (n, s) => `[tse] Global channels: ${n} consecutive failures from Twitch's API. Structural refresh backed off to ${s} s to avoid hammering the endpoint. The "Followed Channels" sidebar is unaffected.`,
+      consoleGlobalRestored:     (s) => `[tse] Global channels: API stable again, structural refresh restored to ${s} s.`,
       consoleColProbe:           'probe',
       consoleColStatus:          'status',
       consoleColDetail:          'detail',
@@ -431,6 +435,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       consoleHealthBroken:       '[tse] Einige kritische Selektoren stimmen nicht mehr mit dem DOM von Twitch überein — die Erweiterung ist möglicherweise teilweise defekt. Details: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Alle kritischen Selektoren reagieren.',
       consoleMassOffline:        (n, total) => `[tse] Verdächtige Antwort der Twitch-API: ${n} von ${total} als live bekannten Kanälen werden auf einmal als offline gemeldet. Anzeige wird beibehalten, statt die Seitenleiste zu leeren; neuer Versuch in 30 s.`,
+      consoleGlobalDegraded:     (n, s) => `[tse] Globale Kanäle: ${n} aufeinanderfolgende Fehler der Twitch-API. Strukturelle Aktualisierung auf ${s} s gedrosselt, um den Endpunkt nicht zu überlasten. Die Seitenleiste „Kanäle, denen du folgst“ ist nicht betroffen.`,
+      consoleGlobalRestored:     (s) => `[tse] Globale Kanäle: API wieder stabil, strukturelle Aktualisierung auf ${s} s zurückgesetzt.`,
       consoleColProbe:           'Sonde',
       consoleColStatus:          'Status',
       consoleColDetail:          'Detail',
@@ -478,6 +484,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       consoleHealthBroken:       '[tse] Algunos selectores críticos ya no coinciden con el DOM de Twitch — puede que la extensión esté parcialmente rota. Detalles: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Todos los selectores críticos responden.',
       consoleMassOffline:        (n, total) => `[tse] Respuesta sospechosa de la API de Twitch: ${n} de ${total} canales que sabíamos en directo se anuncian desconectados de golpe. Se mantiene la vista actual en vez de vaciar la barra lateral; nuevo intento en 30 s.`,
+      consoleGlobalDegraded:     (n, s) => `[tse] Canales globales: ${n} fallos consecutivos de la API de Twitch. Cadencia estructural reducida a ${s} s para no saturar el endpoint. La barra lateral «Canales que sigues» no se ve afectada.`,
+      consoleGlobalRestored:     (s) => `[tse] Canales globales: la API vuelve a ser estable, cadencia estructural restablecida a ${s} s.`,
       consoleColProbe:           'sonda',
       consoleColStatus:          'estado',
       consoleColDetail:          'detalle',
@@ -525,6 +533,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       consoleHealthBroken:       '[tse] Alguns seletores críticos não correspondem mais ao DOM da Twitch — a extensão pode estar parcialmente quebrada. Detalhes: tse.diagnose()',
       consoleHealthAllOk:        '[tse] Todos os seletores críticos estão respondendo.',
       consoleMassOffline:        (n, total) => `[tse] Resposta suspeita da API da Twitch: ${n} de ${total} canais que sabíamos ao vivo são anunciados offline de uma vez. A exibição é mantida em vez de esvaziar a barra lateral; nova tentativa em 30 s.`,
+      consoleGlobalDegraded:     (n, s) => `[tse] Canais globais: ${n} falhas consecutivas da API da Twitch. Cadência estrutural reduzida para ${s} s para não sobrecarregar o endpoint. A barra lateral «Canais seguidos» não é afetada.`,
+      consoleGlobalRestored:     (s) => `[tse] Canais globais: API estável novamente, cadência estrutural restabelecida em ${s} s.`,
       consoleColProbe:           'sonda',
       consoleColStatus:          'estado',
       consoleColDetail:          'detalhe',
@@ -683,6 +693,58 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // chaînes affichées sont re-set en boucle par le scan, seules les entrées
     // ponctuelles vieillissent jusqu'à l'éviction.
     GS_PRUNE_AGE:    5 * 60_000,
+
+    // === CHAÎNES GLOBALES — couche de données ===
+    // Taille du classement rendu. 30 n'est pas une limite technique mais un
+    // choix de coût : T (le N-ième score) baisse quand N monte, donc le
+    // nombre de catégories à interroger monte avec lui. À 50, compter
+    // environ deux fois plus d'opérations par marche complète.
+    GLOBAL_TOP_N:            30,
+    // `games(first:)` accepte 100 et rend une liste RÉELLEMENT classée
+    // (vérifié : 100 reçus, décroissants). C'est la colonne vertébrale de
+    // tout le module — et accessoirement la source du filtre catégorie.
+    GLOBAL_CATEGORIES_MAX:   100,
+    // Catégories de tête interrogées à chaque passe structurelle : elles
+    // portent l'essentiel du top N, et les re-lire à chaque cycle évite
+    // d'attendre la marche complète pour voir une chaîne grimper CHEZ ELLES.
+    GLOBAL_SEED_CATEGORIES:  10,
+    // Plafond dur d'opérations « catégorie » par marche complète. La marche
+    // s'arrête normalement d'elle-même sur la condition `audience <= T` ;
+    // ce budget n'est qu'un garde-fou contre une réponse aberrante.
+    GLOBAL_CATEGORY_BUDGET:  60,
+    // `streams(first:)` est plafonné à 30 par Twitch, qui le dit explicitement :
+    // "argument 'first' value must be between 1 and 30." Ce n'est donc pas une
+    // observation mais une limite déclarée.
+    GLOBAL_STREAMS_MAX:      30,
+    // Plancher du `first` adaptatif. Une catégorie à C spectateurs ne peut
+    // contenir que C/T streams au-dessus de T : demander 3 au lieu de 30 aux
+    // petites catégories diviserait la charge utile par dix.
+    //
+    // MAIS cela suppose que `first: k` rende les k PLUS GROS streams de la
+    // catégorie, et pas k streams quelconques parmi son sommet. La couverture
+    // mesurée (44 % à 96 % de l'audience d'une catégorie sur 30 streams)
+    // prouve la sélection par rang à 30 — elle ne prouve rien à 3. Tant que
+    // ce point n'est pas mesuré, le plancher reste égal au plafond : on paie
+    // la charge utile pour garder la garantie d'exactitude intacte.
+    GLOBAL_STREAMS_MIN:      30,
+    // Opérations groupées par requête HTTP. L'extension envoie déjà des
+    // tableaux d'opérations à gql.twitch.tv (cf. post()).
+    GLOBAL_BATCH_OPS:        20,
+    // Cadence de la passe structurelle légère : totaux des catégories +
+    // catégories de tête. Alignée sur LIVE_TTL, car les compteurs des
+    // chaînes affichées voyagent, eux, dans la file TseChannels existante.
+    GLOBAL_STRUCT_TICK:      30_000,
+    // Cadence de la marche complète, filet de correction contre la dérive
+    // (une chaîne qui grimpe dans une catégorie ni de tête ni franchissante).
+    GLOBAL_FULL_WALK_MS:     150_000,
+    // Pause après échec — DISTINCTE de GQL_ERROR_COOLDOWN, à dessein : si
+    // Twitch bride le mode global, la sidebar « Chaînes suivies » ne doit pas
+    // s'éteindre avec lui. Domaines de panne séparés.
+    GLOBAL_ERROR_COOLDOWN:   30_000,
+    // Échecs consécutifs au-delà desquels la cadence structurelle retombe
+    // d'elle-même sur GLOBAL_FULL_WALK_MS, avec un avertissement en console.
+    GLOBAL_FAIL_DEGRADE:     3,
+
     PURPLE:         '#9147ff',
     PURPLE_HOVER:   '#a970ff',
 
@@ -827,7 +889,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     sortMode:       'viewers',
     categoryFilter: null,
     languageFilter: null,
-    filterDriver:   null   // facette pilotée par l'utilisateur : 'category' | 'language' | null
+    filterDriver:   null,  // facette pilotée par l'utilisateur : 'category' | 'language' | null
+    // Mode d'affichage de la section principale :
+    //   false → « Chaînes suivies » (les cartes que Twitch pose lui-même)
+    //   true  → « Chaînes globales » (cartes fabriquées par l'extension à
+    //           partir du classement calculé par le module globalChannels)
+    // La bascule d'interface arrive au palier 2 ; au palier 1 le drapeau
+    // n'est manipulable que par la console (tse.global.on()).
+    globalMode:     false
   };
 
   /* ============================================================
@@ -1746,6 +1815,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           ts:      now
         };
         cache.set(login, entry);
+        // Le mode global se nourrit du MÊME lot : un compteur frais met à
+        // jour le classement sans une seule requête de plus. C'est ce qui
+        // rend la cadence de 30 s réelle plutôt que théorique — la marche
+        // structurelle, elle, ne sert qu'à faire ENTRER et SORTIR des
+        // chaînes du classement (cf. globalChannels.tracked()).
+        globalChannels.setViewers(login, entry.viewers);
         fresh++;
         (pending.get(login) || []).forEach(fn => fn(entry));
       });
@@ -1790,9 +1865,421 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
   };
 
   /* ============================================================
+   *  CHAÎNES GLOBALES — couche de données
+   *  -------------------------------------------------------------
+   *  Rend le classement des chaînes les plus regardées de Twitch, ANONYMEMENT,
+   *  alors que l'API ne sait pas le produire.
+   *
+   *  Ce que dit le schéma de Twitch :
+   *      "Fetch live streams, ordered by the number of viewers descending."
+   *      StreamSort.VIEWER_COUNT : "descending (most viewers first). This is
+   *      the default if StreamSort is not set."
+   *  Ce que l'API rend réellement : une liste NON TRIÉE — mesuré, y compris
+   *  sur la requête de Twitch lui-même, porteuse de son Authorization et de
+   *  son Client-Integrity. Le contrat documenté est violé pour tout le monde ;
+   *  le classement se fait donc dans le client, et nous le faisons aussi.
+   *
+   *  L'exactitude ne repose pas sur une estimation mais sur une inégalité.
+   *  L'audience d'une catégorie est la SOMME de ses streams, donc pour tout
+   *  stream S de la catégorie C :
+   *
+   *      viewers(S) <= viewers(C)
+   *
+   *  Or `games(first: 100, options: {sort: VIEWER_COUNT})` rend, LUI, une
+   *  liste réellement classée (vérifié : 100 valeurs décroissantes). Il suffit
+   *  donc de descendre les catégories tant que leur audience dépasse T, le
+   *  N-ième score déjà trouvé : en dessous de T, aucune catégorie ne PEUT
+   *  encore contenir un stream du top N. La marche s'arrête alors en sachant
+   *  qu'elle est complète — pas en espérant l'être.
+   *
+   *  Hypothèse restante, mesurée et bornée : `game(name:){ streams(first: 30) }`
+   *  rend bien le sommet de la catégorie. Couverture observée sur six grosses
+   *  catégories : 96,5 % / 73,9 % / 65,1 % / 61,8 % / 59,6 % / 44,5 % de
+   *  l'audience totale pour 30 streams sur des milliers. Une sélection qui ne
+   *  serait pas ordonnée par rang n'en capterait qu'une fraction de pour cent.
+   * ============================================================ */
+  const globalChannels = (() => {
+    /* Requêtes INLINE, sans sha256Hash : ce module ne dépend d'AUCUNE
+       persisted query, comme le reste de la sidebar. Anonymes (post() pose
+       credentials: 'omit' et le Client-ID public), sur des données strictement
+       publiques.
+
+       Tous les champs de stream demandés ici sont DÉJÀ servis à l'extension
+       par TseChannels — id, createdAt, viewersCount, game, freeformTags,
+       login, displayName, profileImageURL. Le seul élément neuf est la forme
+       `game(name:){ streams(first:, options:) }` elle-même. */
+    const CATEGORIES_QUERY =
+      'query TseCategories($n: Int!) {' +
+      '  games(first: $n, options: { sort: VIEWER_COUNT }) {' +
+      '    edges { node { id name displayName viewersCount } }' +
+      '  }' +
+      '}';
+
+    const CATEGORY_TOP_QUERY =
+      'query TseCategoryTop($name: String!, $n: Int!) {' +
+      '  game(name: $name) {' +
+      '    id name viewersCount' +
+      '    streams(first: $n, options: { sort: VIEWER_COUNT }) {' +
+      '      edges { node {' +
+      '        id createdAt viewersCount' +
+      '        broadcaster { id login displayName profileImageURL(width: 70) }' +
+      '        game { id name }' +
+      '        freeformTags { name }' +
+      '      } }' +
+      '    }' +
+      '  }' +
+      '}';
+
+    // ── État ────────────────────────────────────────────────────────────
+    let categories    = [];    // top GLOBAL_CATEGORIES_MAX — classé par l'API
+    let categoriesTs  = 0;
+    let ranking       = [];    // pool récolté, classé PAR NOUS, décroissant
+    let rankingDirty  = false; // un compteur frais est arrivé depuis le tri
+    let rankingTs     = 0;
+    let threshold     = 0;     // T — N-ième score de la dernière passe
+    let lastFullWalk  = 0;
+    let cooldownUntil = 0;
+    let failStreak    = 0;
+    let okStreak      = 0;
+    let degraded      = false; // cadence structurelle retombée sur la marche
+    let running       = false;
+    let complete      = false; // la dernière marche s'est-elle arrêtée sur T ?
+    const stats = { walks: 0, light: 0, ops: 0, failedSlices: 0, lastMs: 0 };
+
+    // ── Transport ───────────────────────────────────────────────────────
+    // Envoie un lot d'opérations et rend un tableau de `data` ALIGNÉ sur les
+    // opérations, avec null là où la réponse est inexploitable. Ne jette
+    // jamais : une tranche ratée ne dégrade que ce qu'elle portait, jamais
+    // le reste de la marche.
+    const send = async (ops) => {
+      if (!ops.length) return [];
+      const slices = chunk(ops, CFG.GLOBAL_BATCH_OPS);
+      stats.ops += ops.length;
+      const responses = await Promise.all(slices.map(s => post(s)));
+      const out = [];
+      responses.forEach((rep, i) => {
+        const size = slices[i].length;
+        // Une réponse de taille différente n'est PAS alignable : l'accepter
+        // attribuerait les streams d'une catégorie à une autre.
+        if (rep === NETWORK_ERROR || !Array.isArray(rep) || rep.length !== size) {
+          stats.failedSlices += 1;
+          for (let k = 0; k < size; k++) out.push(null);
+          return;
+        }
+        rep.forEach(r => out.push(r?.errors ? null : (r?.data ?? null)));
+      });
+      return out;
+    };
+
+    // ── Lecture ─────────────────────────────────────────────────────────
+    // Nœud de stream → enregistrement plat, ou null si inutilisable.
+    const readStream = (node, now) => {
+      const login   = node?.broadcaster?.login;
+      const viewers = node?.viewersCount;
+      if (!login || !Number.isFinite(viewers)) return null;
+      return {
+        login,
+        id:        node.broadcaster.id ?? null,
+        name:      node.broadcaster.displayName?.trim() || login,
+        avatar:    node.broadcaster.profileImageURL || null,
+        viewers,
+        game:      node.game?.name || null,
+        createdAt: node.createdAt || null,
+        // Tags bruts, canonicalisés à la LECTURE comme pour TseChannels :
+        // c'est ce qui alimentera le filtre pays sans requête supplémentaire.
+        tags:      Array.isArray(node.freeformTags)
+          ? node.freeformTags.map(t => t?.name).filter(Boolean) : [],
+        ts:        now
+      };
+    };
+
+    // N-ième meilleur score du pool, ou 0 si le pool n'atteint pas N.
+    // Rendre 0 est VOLONTAIRE : tant qu'on n'a pas N candidats, aucune
+    // catégorie ne peut être écartée et la descente doit continuer.
+    const nthViewers = (pool, n) => {
+      if (pool.size < n) return 0;
+      const v = [...pool.values()].map(s => s.viewers).sort((a, b) => b - a);
+      return v[n - 1] ?? 0;
+    };
+
+    // Combien de streams demander à une catégorie : au plus C/T peuvent
+    // dépasser T, plus une marge. Voir GLOBAL_STREAMS_MIN pour la raison
+    // pour laquelle le plancher vaut aujourd'hui le plafond.
+    const firstFor = (catViewers, t) => {
+      if (!(t > 0)) return CFG.GLOBAL_STREAMS_MAX;
+      const need = Math.ceil(catViewers / t) + 1;
+      return Math.min(CFG.GLOBAL_STREAMS_MAX,
+                      Math.max(CFG.GLOBAL_STREAMS_MIN, need));
+    };
+
+    // ── Récolte ─────────────────────────────────────────────────────────
+    const fetchCategories = async () => {
+      const [data] = await send([{
+        operationName: 'TseCategories',
+        variables: { n: CFG.GLOBAL_CATEGORIES_MAX },
+        query: CATEGORIES_QUERY
+      }]);
+      const edges = data?.games?.edges;
+      if (!Array.isArray(edges) || !edges.length) return null;
+      const list = [];
+      for (const e of edges) {
+        const node = e?.node;
+        if (!node?.name || !Number.isFinite(node.viewersCount)) continue;
+        list.push({
+          id:      node.id ?? null,
+          name:    node.name,
+          display: node.displayName?.trim() || node.name,
+          viewers: node.viewersCount
+        });
+      }
+      // L'API rend cette liste classée — et nous la retrions quand même.
+      // TOUTE la garantie d'exactitude repose sur cet ordre : s'en remettre
+      // à la parole d'une API qui viole déjà son contrat sur `streams`
+      // serait précisément l'erreur à ne pas commettre.
+      list.sort((a, b) => b.viewers - a.viewers);
+      return list.length ? list : null;
+    };
+
+    // Interroge le sommet de chaque catégorie et verse le résultat dans pool.
+    // Rend le nombre de catégories effectivement dépouillées.
+    const harvest = async (cats, t, pool) => {
+      if (!cats.length) return 0;
+      const ops = cats.map(c => ({
+        operationName: 'TseCategoryTop',
+        variables: { name: c.name, n: firstFor(c.viewers, t) },
+        query: CATEGORY_TOP_QUERY
+      }));
+      const data = await send(ops);
+      const now  = Date.now();
+      let done = 0;
+      data.forEach((d, i) => {
+        const edges = d?.game?.streams?.edges;
+        if (!Array.isArray(edges)) return;
+        done += 1;
+        // Total de la catégorie tel que vu à l'instant de la réponse : plus
+        // frais que celui de la liste `games`, on en profite.
+        if (Number.isFinite(d.game?.viewersCount)) cats[i].viewers = d.game.viewersCount;
+        for (const e of edges) {
+          const rec = readStream(e?.node, now);
+          if (!rec) continue;
+          const prev = pool.get(rec.login);
+          // Une chaîne peut remonter de deux catégories lors d'un changement
+          // de jeu en cours de passe : on garde la lecture la plus récente.
+          if (!prev || rec.ts >= prev.ts) pool.set(rec.login, rec);
+        }
+      });
+      return done;
+    };
+
+    const publish = (pool) => {
+      ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
+      rankingDirty = false;
+      rankingTs    = Date.now();
+      threshold    = nthViewers(pool, CFG.GLOBAL_TOP_N);
+    };
+
+    // ── Marche complète ─────────────────────────────────────────────────
+    // Reconstruit le pool à partir de rien. `complete` dit si la descente
+    // s'est arrêtée sur la condition d'exactitude (audience <= T ou liste
+    // épuisée) plutôt que sur le budget.
+    const fullWalk = async () => {
+      const started = Date.now();
+      const cats = await fetchCategories();
+      if (!cats) return { ok: false, complete: false };
+      categories   = cats;
+      categoriesTs = started;
+
+      const pool = new Map();
+      const seed = cats.slice(0, CFG.GLOBAL_SEED_CATEGORIES);
+      if (!await harvest(seed, 0, pool)) return { ok: false, complete: false };
+
+      // T est calculé APRÈS l'amorce puis figé pour toute la descente. Il ne
+      // peut que MONTER à mesure que le pool grossit ; conserver la valeur
+      // basse rend la condition d'arrêt plus prudente — on visite plus de
+      // catégories que strictement nécessaire, jamais moins.
+      const t = nthViewers(pool, CFG.GLOBAL_TOP_N);
+
+      const rest = cats.slice(seed.length);
+      const todo = [];
+      let stopped = false;
+      for (const c of rest) {
+        // Liste classée : la première catégorie sous T garantit que toutes
+        // les suivantes le sont aussi.
+        if (t > 0 && c.viewers <= t) { stopped = true; break; }
+        if (todo.length >= CFG.GLOBAL_CATEGORY_BUDGET) break;
+        todo.push(c);
+      }
+      // Épuiser la liste sans croiser T est un arrêt tout aussi légitime :
+      // il n'y a simplement plus de catégorie à examiner.
+      if (!stopped && todo.length === rest.length) stopped = true;
+
+      await harvest(todo, t, pool);
+
+      publish(pool);
+      lastFullWalk = rankingTs;
+      complete     = stopped;
+      stats.walks += 1;
+      stats.lastMs = rankingTs - started;
+      return { ok: true, complete: stopped };
+    };
+
+    // ── Passe légère ────────────────────────────────────────────────────
+    // Ne remplace pas la marche complète : elle la retarde. Un seul appel
+    // `games(first: 100)` donne TOUS les totaux de catégories, donc aucune
+    // catégorie ne peut franchir T sans qu'on le voie au cycle suivant.
+    const lightPass = async () => {
+      const started = Date.now();
+      const cats = await fetchCategories();
+      if (!cats) return { ok: false };
+      const prev = new Map(categories.map(c => [c.name, c.viewers]));
+      categories   = cats;
+      categoriesTs = started;
+
+      const seed = cats.slice(0, CFG.GLOBAL_SEED_CATEGORIES);
+      const seen = new Set(seed.map(c => c.name));
+      const crossed = [];
+      if (threshold > 0) {
+        for (const c of cats.slice(seed.length)) {
+          if (c.viewers <= threshold) break;   // liste classée : rien au-delà
+          const before = prev.get(c.name);
+          // Catégorie inconnue au cycle précédent, ou qui vient de repasser
+          // au-dessus de T : son sommet peut désormais entrer au classement.
+          if ((before === undefined || before <= threshold) && !seen.has(c.name)) {
+            crossed.push(c);
+            seen.add(c.name);
+          }
+        }
+      }
+
+      // Le pool repart du classement courant, purgé de ce qui n'a pas été
+      // revu depuis deux marches complètes — une chaîne éteinte dans une
+      // catégorie ni de tête ni franchissante ne doit pas s'y fossiliser.
+      const cutoff = started - CFG.GLOBAL_FULL_WALK_MS * 2;
+      const pool = new Map();
+      for (const r of ranking) if (r.ts >= cutoff) pool.set(r.login, r);
+
+      if (!await harvest(seed.concat(crossed), threshold, pool)) return { ok: false };
+
+      publish(pool);
+      stats.light += 1;
+      stats.lastMs = rankingTs - started;
+      return { ok: true };
+    };
+
+    // ── Cadence ─────────────────────────────────────────────────────────
+    const noteFailure = () => {
+      failStreak += 1;
+      okStreak    = 0;
+      cooldownUntil = Date.now() + CFG.GLOBAL_ERROR_COOLDOWN;
+      if (!degraded && failStreak >= CFG.GLOBAL_FAIL_DEGRADE) {
+        degraded = true;
+        console.warn(S.consoleGlobalDegraded(
+          failStreak, Math.round(CFG.GLOBAL_FULL_WALK_MS / 1000)));
+      }
+    };
+
+    const noteSuccess = () => {
+      failStreak = 0;
+      if (!degraded) return;
+      if (++okStreak >= CFG.GLOBAL_FAIL_DEGRADE) {
+        degraded = false;
+        okStreak = 0;
+        console.info(S.consoleGlobalRestored(
+          Math.round(CFG.GLOBAL_STRUCT_TICK / 1000)));
+      }
+    };
+
+    const tick = () => {
+      if (!state.globalMode || running) return;
+      const now = Date.now();
+      if (now < cooldownUntil) return;
+      const needFull = !ranking.length || now - lastFullWalk >= CFG.GLOBAL_FULL_WALK_MS;
+      if (!needFull) {
+        const interval = degraded ? CFG.GLOBAL_FULL_WALK_MS : CFG.GLOBAL_STRUCT_TICK;
+        if (now - rankingTs < interval) return;
+      }
+      running = true;
+      (needFull ? fullWalk() : lightPass())
+        .then(res => { res?.ok ? noteSuccess() : noteFailure(); })
+        .catch(() => noteFailure())
+        .finally(() => { running = false; });
+    };
+
+    const reset = () => {
+      categories = []; categoriesTs = 0;
+      ranking = []; rankingDirty = false; rankingTs = 0;
+      threshold = 0; lastFullWalk = 0; cooldownUntil = 0;
+      failStreak = 0; okStreak = 0; degraded = false; complete = false;
+    };
+
+    return {
+      tick,
+      reset,
+      // Force une marche complète et rend sa promesse. Surface de
+      // vérification (tse.global.on()) — le chemin de production, lui, passe
+      // par tick(), qui ne rend rien et ne bloque personne.
+      warm() {
+        if (running) return Promise.resolve(null);
+        running = true;
+        return fullWalk()
+          .then(res => { res?.ok ? noteSuccess() : noteFailure(); return res; })
+          .catch(() => { noteFailure(); return { ok: false, complete: false }; })
+          .finally(() => { running = false; });
+      },
+      // Classement courant, retrié à la demande si un compteur frais est
+      // arrivé depuis le dernier tri.
+      top(n = CFG.GLOBAL_TOP_N) {
+        if (rankingDirty) {
+          ranking = ranking.slice().sort((a, b) => b.viewers - a.viewers);
+          rankingDirty = false;
+        }
+        return ranking.slice(0, n);
+      },
+      // Logins à maintenir frais dans la file TseChannels existante. Le
+      // tampon au-delà du top N n'est pas décoratif : une chaîne qui grimpe
+      // est DÉJÀ suivie quand elle entre au classement, donc elle y apparaît
+      // en LIVE_TTL (30 s) au lieu d'attendre la marche complète. La taille
+      // est calée sur GQL_MAX_LOGINS pour tenir en UNE tranche, c'est-à-dire
+      // une opération de plus dans une requête qui partait de toute façon.
+      tracked() {
+        return ranking.slice(0, CFG.GQL_MAX_LOGINS).map(r => r.login);
+      },
+      // Top des catégories, avec leur audience. Alimentera le filtre
+      // catégorie du mode global (« 523k | Dota 2 »).
+      cats(n = CFG.GLOBAL_CATEGORIES_MAX) { return categories.slice(0, n); },
+      // Compteur frais venu de TseChannels. viewers === null → la chaîne
+      // n'est plus en direct : on la retire du classement plutôt que de la
+      // laisser figée sur sa dernière valeur connue.
+      setViewers(login, viewers) {
+        const i = ranking.findIndex(r => r.login === login);
+        if (i < 0) return false;
+        if (viewers === null) { ranking.splice(i, 1); rankingDirty = true; return true; }
+        if (!Number.isFinite(viewers) || ranking[i].viewers === viewers) return false;
+        ranking[i] = { ...ranking[i], viewers, ts: Date.now() };
+        rankingDirty = true;
+        return true;
+      },
+      report() {
+        return {
+          enabled:    state.globalMode,
+          degraded,
+          complete,
+          threshold,
+          pool:       ranking.length,
+          categories: categories.length,
+          rankingAge: rankingTs ? Date.now() - rankingTs : null,
+          walkAge:    lastFullWalk ? Date.now() - lastFullWalk : null,
+          categoriesAge: categoriesTs ? Date.now() - categoriesTs : null,
+          ...stats
+        };
+      }
+    };
+  })();
+
+  /* ============================================================
    *  HELPERS
    * ============================================================ */
-  const RESERVED = /^(directory|videos|search|p|drops|wallet|prime|subscriptions|settings|jobs|turbo|moderator|payments|inventory|messages|friends)$/i;
+  const RESERVED =/^(directory|videos|search|p|drops|wallet|prime|subscriptions|settings|jobs|turbo|moderator|payments|inventory|messages|friends)$/i;
 
   const formatUptime = (createdAt) => {
     const start = new Date(createdAt).getTime();
@@ -2579,6 +3066,45 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         [S.consoleColSeen]:  formatDate(s.ts)
       })));
       return samples;
+    },
+    // Chaînes globales — surface de vérification de la couche de données.
+    // Aucune interface ne consomme encore le classement : c'est ici, et
+    // seulement ici, qu'on peut l'allumer et le lire. Les colonnes sont des
+    // noms de champs, pas des libellés d'interface : rien à localiser.
+    //   await tse.global.on()  → active le mode, attend la marche complète
+    //   tse.global.top(30)     → classement calculé
+    //   tse.global.cats(25)    → catégories classées par l'API
+    //   tse.global.report()    → T, complétude, coût, cadence
+    //   tse.global.off()       → coupe et purge
+    global: {
+      on() {
+        state.globalMode = true;
+        return globalChannels.warm().then(() => globalChannels.report());
+      },
+      off() {
+        state.globalMode = false;
+        globalChannels.reset();
+        return globalChannels.report();
+      },
+      top(limit = CFG.GLOBAL_TOP_N) {
+        const rows = globalChannels.top(limit).map((r, i) => ({
+          rank: i + 1, login: r.login, viewers: r.viewers, game: r.game
+        }));
+        console.table(rows);
+        return rows;
+      },
+      cats(limit = 25) {
+        const rows = globalChannels.cats(limit).map((c, i) => ({
+          rank: i + 1, category: c.display, viewers: c.viewers
+        }));
+        console.table(rows);
+        return rows;
+      },
+      report() {
+        const r = globalChannels.report();
+        console.table([r]);
+        return r;
+      }
     },
     // Auto-diagnostic des sélecteurs : rapport complet (toutes les sondes) +
     // verdict. Retourne le rapport brut (programmable).
@@ -6295,6 +6821,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // deux propriétés voulues : il est coupé en arrière-plan, et il est plus
       // fin que la tranche de cache, donc la bascule est vue à 5 s près.
       thumbPreload.tick();
+      // Passe structurelle du mode global. Même raison de vivre ici : coupée
+      // en arrière-plan, et assez fine pour que GLOBAL_STRUCT_TICK soit tenu
+      // à 5 s près. Ne fait rien tant que state.globalMode est faux.
+      globalChannels.tick();
     }, CFG.REFRESH_TICK);
 
     // Entretien : purge mémoire + auto-diagnostic. Aucun rapport avec la
