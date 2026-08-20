@@ -745,8 +745,21 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
     // === Aperçu au survol ===
     // Largeur cible de l'aperçu. Le ratio 16:9 est respecté pour le wrapper.
+    // Largeur du popup d'aperçu, en pixels CSS. NE SERT QU'À LA MISE EN PAGE.
     PREVIEW_THUMB_WIDTH:  480,
     PREVIEW_THUMB_HEIGHT: 270,
+    // Taille demandée au CDN pour la miniature. Volontairement SÉPARÉE de la
+    // largeur du popup, dont elle dépendait jusqu'ici : changer la mise en page
+    // changeait alors silencieusement l'objet réclamé au CDN, donc les temps de
+    // chargement, sans que rien ne le laisse voir.
+    //
+    // Le choix de cette taille n'est pas neutre : le service d'images de Twitch
+    // fabrique à la demande les dimensions qu'on lui réclame, et seules celles
+    // que Twitch demande lui-même pour son propre site restent chaudes en bord
+    // de réseau. Une taille inhabituelle se paie donc d'un redimensionnement à
+    // chaque fois qu'elle a refroidi.
+    PREVIEW_THUMB_CDN_W:  480,
+    PREVIEW_THUMB_CDN_H:  270,
     // Délai avant de basculer du JPEG statique au player iframe. Permet
     // de ne pas spawner d'iframes si l'utilisateur balaie plusieurs cartes
     // rapidement (un iframe player Twitch = ~5-10 MB de RAM).
@@ -3260,7 +3273,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // affichée une seconde avant de céder la place à la vidéo en direct.
     const buildThumbUrl = (login) =>
       `https://static-cdn.jtvnw.net/previews-ttv/live_user_${login}` +
-      `-${CFG.PREVIEW_THUMB_WIDTH}x${CFG.PREVIEW_THUMB_HEIGHT}.jpg` +
+      `-${CFG.PREVIEW_THUMB_CDN_W}x${CFG.PREVIEW_THUMB_CDN_H}.jpg` +
       `?_=${Math.floor(Date.now() / CFG.PREVIEW_THUMB_CACHE_MS)}`;
 
     // URL du player iframe. parent=twitch.tv est requis par Twitch pour
