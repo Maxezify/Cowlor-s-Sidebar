@@ -711,7 +711,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Plafond dur d'opérations « catégorie » par marche complète. La marche
     // s'arrête normalement d'elle-même sur la condition `audience <= T` ;
     // ce budget n'est qu'un garde-fou contre une réponse aberrante.
-    GLOBAL_CATEGORY_BUDGET:  60,
+    // Mesuré en production : une marche complète descend une cinquantaine de
+    // catégories (pool de ~1 600 chaînes) avant de croiser T. Aux heures
+    // creuses T baisse et la descente s'allonge. Calé sur ce que la fenêtre
+    // peut au maximum contenir (GLOBAL_CATEGORIES_MAX moins l'amorce), le
+    // budget cesse d'être une cause de troncature silencieuse : il ne reste
+    // qu'un garde-fou contre une réponse aberrante.
+    GLOBAL_CATEGORY_BUDGET:  90,
     // `streams(first:)` est plafonné à 30 par Twitch, qui le dit explicitement :
     // "argument 'first' value must be between 1 and 30." Ce n'est donc pas une
     // observation mais une limite déclarée.
@@ -1943,7 +1949,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     let okStreak      = 0;
     let degraded      = false; // cadence structurelle retombée sur la marche
     let running       = false;
-    let complete      = false; // la dernière marche s'est-elle arrêtée sur T ?
+    let complete      = false; // le dernier classement est-il PROUVÉ complet ?
+    let windowFloor   = 0;     // total de la dernière catégorie de la fenêtre
     const stats = { walks: 0, light: 0, ops: 0, failedSlices: 0, lastMs: 0 };
 
     // ── Transport ───────────────────────────────────────────────────────
@@ -2101,26 +2108,42 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
       const rest = cats.slice(seed.length);
       const todo = [];
-      let stopped = false;
+      let truncated = false;
       for (const c of rest) {
         // Liste classée : la première catégorie sous T garantit que toutes
-        // les suivantes le sont aussi.
-        if (t > 0 && c.viewers <= t) { stopped = true; break; }
-        if (todo.length >= CFG.GLOBAL_CATEGORY_BUDGET) break;
+        // les suivantes le sont aussi. On arrête d'ACHETER, ce qui est une
+        // économie — la preuve de complétude, elle, se fait plus bas.
+        if (t > 0 && c.viewers <= t) break;
+        if (todo.length >= CFG.GLOBAL_CATEGORY_BUDGET) { truncated = true; break; }
         todo.push(c);
       }
-      // Épuiser la liste sans croiser T est un arrêt tout aussi légitime :
-      // il n'y a simplement plus de catégorie à examiner.
-      if (!stopped && todo.length === rest.length) stopped = true;
 
       await harvest(todo, t, pool);
-
       publish(pool);
+
+      // Complétude — et c'est ici que se joue l'honnêteté du module.
+      //
+      // La descente ne voit que les GLOBAL_CATEGORIES_MAX premières
+      // catégories. Une catégorie HORS de cette fenêtre a forcément un total
+      // inférieur ou égal à celui de la dernière catégorie reçue. Le
+      // classement n'est donc prouvé complet que si ce PLANCHER DE FENÊTRE
+      // passe sous T : sinon, une catégorie non vue peut encore abriter un
+      // membre du top N, et l'affirmer complet serait mentir.
+      //
+      // Cas particulier : si Twitch rend MOINS que la fenêtre demandée, c'est
+      // qu'il n'a plus rien à donner — il n'y a alors pas de hors-fenêtre.
+      //
+      // Remarquer que la sortie de boucle sur `c.viewers <= t` est absorbée
+      // par ce même test : si une catégorie de la fenêtre est passée sous T,
+      // la dernière l'est aussi. Une seule règle, pas deux.
+      windowFloor = cats[cats.length - 1].viewers;
+      complete = !truncated
+        && (cats.length < CFG.GLOBAL_CATEGORIES_MAX || windowFloor <= threshold);
+
       lastFullWalk = rankingTs;
-      complete     = stopped;
       stats.walks += 1;
       stats.lastMs = rankingTs - started;
-      return { ok: true, complete: stopped };
+      return { ok: true, complete };
     };
 
     // ── Passe légère ────────────────────────────────────────────────────
@@ -2208,7 +2231,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     const reset = () => {
       categories = []; categoriesTs = 0;
       ranking = []; rankingDirty = false; rankingTs = 0;
-      threshold = 0; lastFullWalk = 0; cooldownUntil = 0;
+      threshold = 0; windowFloor = 0; lastFullWalk = 0; cooldownUntil = 0;
       failStreak = 0; okStreak = 0; degraded = false; complete = false;
     };
 
@@ -2265,6 +2288,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           degraded,
           complete,
           threshold,
+          windowFloor,
           pool:       ranking.length,
           categories: categories.length,
           rankingAge: rankingTs ? Date.now() - rankingTs : null,
