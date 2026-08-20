@@ -169,32 +169,20 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }
   };
 
-  // Au-delà de ce nombre d'images, on cesse d'attendre mieux et on dévoile.
-  // À 30 im/s cela plafonne l'attente à un demi-seconde.
-  const MAX_FRAMES_WAITED = 15;
-
   const watch = (video) => {
-    // Le signal RECHERCHÉ est « une image a été présentée au compositeur », et
-    // requestVideoFrameCallback est le seul à le dire. Les autres signaux
-    // disponibles annoncent autre chose : `playing` que la lecture DÉMARRE,
-    // `readyState` que des données EXISTENT — deux instants qui précèdent
-    // l'affichage. Ce sont donc des REPLIS, jamais des renforts : les mettre en
-    // concurrence, comme je l'avais d'abord écrit, laisse gagner le plus
-    // imprécis des trois et redonne un bref noir.
+    // Les trois signaux sont posés EN CONCURRENCE, à dessein : on dévoile au
+    // premier qui parle. requestVideoFrameCallback est le plus juste — il dit
+    // qu'une image a été PRÉSENTÉE — mais `playing` (la lecture démarre) et
+    // `readyState` (des données existent) peuvent arriver avant lui.
+    //
+    // La 3.28.1 avait resserré ce choix : rVFC seul, puis attente de
+    // HAVE_FUTURE_DATA, pour éviter de dévoiler pendant que le lecteur affiche
+    // encore son propre voile de chargement. Retour à la course sur demande,
+    // après essai. Ne pas « corriger » ce point sans mesure : la variante
+    // stricte a été essayée, elle est dans l'historique (3.28.1).
     if (typeof video.requestVideoFrameCallback === 'function') {
-      let frames = 0;
-      const onFrame = () => {
-        // Une image est passée, mais le lecteur peut encore être en train de se
-        // remplir — auquel cas il affiche son propre voile de chargement
-        // PAR-DESSUS, et dévoiler maintenant montrerait ce voile. On attend
-        // d'avoir de quoi poursuivre la lecture (HAVE_FUTURE_DATA), en se
-        // redonnant rendez-vous à l'image suivante.
-        if (video.readyState >= 3 || ++frames >= MAX_FRAMES_WAITED) { announce(); return; }
-        try { video.requestVideoFrameCallback(onFrame); } catch { announce(); }
-      };
-      try { video.requestVideoFrameCallback(onFrame); return; } catch { /* repli ci-dessous */ }
+      try { video.requestVideoFrameCallback(announce); } catch { /* ignore */ }
     }
-    // Navigateur sans requestVideoFrameCallback : on prend ce qui existe.
     video.addEventListener('playing', announce, { once: true });
     if (video.readyState >= 2) announce();   // HAVE_CURRENT_DATA : une image existe
   };

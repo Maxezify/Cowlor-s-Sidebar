@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.28.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.28.2 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -140,8 +140,9 @@ softened the arrival of the black.
 
 The iframe being on another origin, the page cannot observe anything inside it.
 So the iframe speaks instead: a tiny module in it watches for the **first frame
-actually presented** (`requestVideoFrameCallback`) and posts a message to the
-parent, which then runs its fade — lengthened
+actually presented** (`requestVideoFrameCallback`, falling back to the `playing`
+event and to `readyState`) and posts a message to the parent, which then runs its
+fade — lengthened
 to 0.35 s, now that it has two pictures to cross-fade rather than a picture and
 black.
 

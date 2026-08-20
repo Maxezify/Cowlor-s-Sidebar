@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.28.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.28.2 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -147,8 +147,9 @@ vidéo. Allonger le fondu n'aurait fait qu'adoucir l'arrivée du noir.
 
 L'iframe étant sur une autre origine, la page ne peut rien observer de son
 contenu. C'est donc l'iframe qui parle : un module minuscule y guette la
-**première image réellement présentée** (`requestVideoFrameCallback`) et poste un
-message au parent, qui enchaîne alors son
+**première image réellement présentée** (`requestVideoFrameCallback`, avec replis
+sur l'événement `playing` et sur `readyState`) et poste un message au parent, qui
+enchaîne alors son
 fondu — allongé à 0,35 s, puisqu'il a désormais deux images à enchaîner plutôt
 qu'une image et du noir.
 
