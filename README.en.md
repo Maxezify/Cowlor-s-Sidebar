@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.29.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.30.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -174,6 +174,42 @@ A channel's first display still depends on the network. Two details make it less
 abrupt: the thumbnail **fades in** as well, and the waiting background is no
 longer black but the panel's own shade — a black rectangle reads as a failure,
 the panel colour reads as loading.
+
+### Warming thumbnails ahead of time (v3.30)
+
+Measured: the thumbnail of a never-hovered channel takes anywhere from **89 ms
+to 1.8 s** to arrive — a factor of 20, a property of Twitch's CDN for that
+channel at that moment, over which the extension has no lever. Once in the
+browser cache, the same hover costs **~40 ms**.
+
+So the extension warms them in advance, and the rule is the opposite of the
+intuitive one: **it does not preload when the pointer enters the sidebar**.
+Entering the sidebar means landing on a card, hence opening a preview — the
+moment the network is busiest. It preloads when the pointer is **elsewhere**,
+and the pass is long finished by the time you come back.
+
+The cadence follows the **cache bucket**, not a period: the URL is
+`floor(now / 2 min 30)`, so a free-running timer would land at an arbitrary
+offset from the boundary and throw away half its work on average. The refresh
+tick, being finer, sees the flip within 5 seconds.
+
+**What it costs.** About 25 requests per bucket for an ordinary sidebar, i.e.
+~15 MB/hour — 5% of a 360p stream, 1.4% of a 1080p one. At most three requests
+in flight, at low network priority: a hundred channels warm up in a dozen
+seconds within a 150-second bucket. Nothing is sent when the tab is in the
+background, nor in data-saver mode. Toggle with `PREVIEW_PRELOAD_ENABLED`.
+
+**A hover is never slower than before.** Either the thumbnail is already there,
+or its request is in flight and the popup's image joins it — same URL, the
+browser does not duplicate it — or it was never requested and that is the old
+path, at normal priority, hence ahead of any leftover pass. Interrupting means
+*stop issuing*, never cancel: cutting an in-flight request could cut precisely
+the one just hovered.
+
+**Memory.** A thumbnail weighs ~25 KB encoded but **~506 KB decoded**. No
+reference is kept on preloaded images: the browser keeps the encoded bytes in
+its cache — what we want — and frees the decoded bitmap. Without that care, a
+hundred channels would pin ~50 MB of invisible bitmaps.
 
 ### Network cost
 

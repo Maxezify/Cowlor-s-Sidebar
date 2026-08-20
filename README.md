@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.29.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.30.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -183,6 +183,43 @@ Le premier affichage d'une chaîne reste tributaire du réseau. Deux détails le
 rendent moins abrupt : la miniature **apparaît en fondu** elle aussi, et le fond
 d'attente n'est plus noir mais de la teinte du panneau — un rectangle noir se lit
 comme une panne, la couleur du panneau se lit comme un chargement.
+
+### Réchauffer les miniatures à l'avance (v3.30)
+
+Mesure faite : la miniature d'une chaîne jamais survolée met de **89 ms à
+1,8 s** à arriver — un facteur 20, propriété du CDN de Twitch pour cette chaîne
+à cet instant, sur lequel l'extension n'a aucun levier. Une fois en cache
+navigateur, le même survol coûte **~40 ms**.
+
+L'extension les réchauffe donc à l'avance, et la règle est l'inverse de
+l'intuition : **elle ne précharge pas quand le pointeur entre dans la sidebar**.
+Y entrer, c'est atterrir sur une carte, donc ouvrir un aperçu — le moment où le
+réseau est le plus sollicité. Elle précharge quand le pointeur est **ailleurs**,
+et la passe est terminée bien avant votre retour.
+
+La cadence suit la **tranche de cache**, pas une période : l'URL vaut
+`floor(maintenant / 2 min 30)`, donc un minuteur libre tomberait à un décalage
+arbitraire de la frontière et jetterait en moyenne la moitié de son travail. Le
+réveil de rafraîchissement, plus fin, voit la bascule à 5 secondes près.
+
+**Ce que ça coûte.** Environ 25 requêtes par tranche pour une sidebar
+ordinaire, soit ~15 Mo/heure — 5 % d'un stream en 360p, 1,4 % en 1080p. Trois
+requêtes en vol au maximum, en priorité réseau basse : cent chaînes se
+réchauffent en une douzaine de secondes sur une tranche de 150. Rien ne part si
+l'onglet est en arrière-plan, ni en mode économie de données. Réglable par
+`PREVIEW_PRELOAD_ENABLED`.
+
+**Un survol n'est jamais plus lent qu'avant.** Soit la miniature est déjà là,
+soit sa requête est en vol et l'image du popup s'y raccroche — même URL, le
+navigateur ne la double pas — soit elle n'a jamais été demandée et c'est le
+chemin d'avant, à priorité normale donc devant tout résidu de passe.
+Interrompre veut dire *cesser d'émettre*, jamais annuler : couper une requête
+en vol pourrait couper précisément celle qu'on vient de survoler.
+
+**Mémoire.** Une miniature pèse ~25 Ko encodée mais **~506 Ko décodée**. Aucune
+référence n'est conservée sur les images préchargées : le navigateur garde les
+octets encodés dans son cache — ce qu'on veut — et libère le décodé. Sans cette
+précaution, cent chaînes épingleraient ~50 Mo de bitmaps invisibles.
 
 ### Coût réseau
 

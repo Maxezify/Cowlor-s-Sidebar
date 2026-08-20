@@ -769,6 +769,15 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // tranche est donc calée sur le rythme de la source plutôt que plus fine
     // qu'elle — ce qui ne rapporterait que des téléchargements en plus.
     PREVIEW_THUMB_CACHE_MS: 150_000,
+    // === Préchargement des miniatures (cf. module dédié) ===
+    // Interrupteur, et bornes de la passe. La concurrence est ce qui borne la
+    // charge instantanée ; le plafond n'est qu'une soupape pour un cas
+    // pathologique, pas un réglage de confort — à 3 requêtes en vol, cent
+    // chaînes se réchauffent en une douzaine de secondes sur une tranche de
+    // 150, largement de quoi finir avant le retour du pointeur.
+    PREVIEW_PRELOAD_ENABLED:     true,
+    PREVIEW_PRELOAD_CONCURRENCY: 3,
+    PREVIEW_PRELOAD_MAX:         200,
     PREVIEW_IFRAME_DELAY: 150,
     // Quality demandée à player.twitch.tv. "360p30" est le sweet spot pour
     // un aperçu : bande passante raisonnable, qualité suffisante. Valeurs
@@ -3176,6 +3185,154 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }
   };
 
+  // URL du JPEG statique servi par le CDN Twitch (affichage immédiat
+  // avant que l'iframe player ne soit prête).
+  //
+  // Le paramètre de fin sert à contourner le cache : sans lui, le navigateur
+  // resservirait indéfiniment une image que Twitch régénère toutes les
+  // quelques minutes. Mais il était horodaté à la MILLISECONDE, ce qui
+  // rendait chaque URL unique — donc chaque survol un échec de cache garanti,
+  // y compris en revenant sur la même chaîne deux secondes plus tard. D'où le
+  // fond noir de une à deux secondes, le temps du téléchargement.
+  //
+  // On l'arrondit désormais à une tranche : l'URL est stable pendant toute la
+  // tranche, donc un re-survol tape le cache et s'affiche instantanément. La
+  // vignette peut être vieille d'une minute — sans importance pour une image
+  // affichée une seconde avant de céder la place à la vidéo en direct.
+  const buildThumbUrl = (login) =>
+    `https://static-cdn.jtvnw.net/previews-ttv/live_user_${login}` +
+    `-${CFG.PREVIEW_THUMB_CDN_W}x${CFG.PREVIEW_THUMB_CDN_H}.jpg` +
+    `?_=${Math.floor(Date.now() / CFG.PREVIEW_THUMB_CACHE_MS)}`;
+
+  /* ============================================================
+   *  PRÉCHARGEMENT DES MINIATURES
+   *  -------------------------------------------------------------
+   *  Mesuré : la miniature d'une chaîne jamais survolée met de 89 ms à
+   *  1,8 s à arriver — un facteur 20, propriété du CDN de Twitch pour
+   *  cette chaîne à cet instant, sur lequel on n'a aucun levier. Une
+   *  fois en cache navigateur, le même survol coûte ~40 ms.
+   *
+   *  On réchauffe donc à l'avance, PENDANT LES PÉRIODES CALMES. La règle
+   *  est inversée par rapport à l'intuition : on ne précharge PAS quand
+   *  le pointeur entre dans la sidebar — entrer dans la sidebar, c'est
+   *  atterrir sur une carte, donc ouvrir un aperçu, donc le moment où le
+   *  réseau est le plus sollicité. On précharge quand le pointeur est
+   *  AILLEURS, et la passe est terminée bien avant le retour.
+   *
+   *  Cadencé sur la TRANCHE de cache des miniatures, pas sur une période :
+   *  l'URL vaut Math.floor(now / PREVIEW_THUMB_CACHE_MS), donc un minuteur
+   *  libre tomberait à un décalage arbitraire de la frontière et jetterait
+   *  en moyenne la moitié de son travail. Même piège que REFRESH_TICK
+   *  aligné sur LIVE_TTL, documenté plus haut.
+   *
+   *  Garantie tenue : un survol n'est JAMAIS plus lent qu'avant. Soit la
+   *  miniature est déjà là, soit sa requête est en vol et l'<img> du popup
+   *  s'y raccroche (même URL, le navigateur ne la double pas), soit elle
+   *  n'a jamais été demandée et c'est le chemin d'aujourd'hui — à priorité
+   *  normale, donc devant tout résidu de passe, qui est en priorité basse.
+   * ============================================================ */
+  const thumbPreload = (() => {
+    const done = new Set();   // logins déjà servis DANS LA TRANCHE COURANTE
+    let bucket = null;        // tranche à laquelle `done` se rapporte
+    let inFlight = 0;
+
+    const currentBucket = () => Math.floor(Date.now() / CFG.PREVIEW_THUMB_CACHE_MS);
+
+    // Le registre ne vaut que pour SA tranche. Au changement, tout ce qu'il
+    // mémorise porte une URL désormais morte, et il empêcherait de repartir.
+    // Le vider est donc à la fois la correction et la purge : c'est ce qui le
+    // borne en mémoire.
+    const sync = () => {
+      const b = currentBucket();
+      if (b !== bucket) { bucket = b; done.clear(); }
+      return b;
+    };
+
+    // Pointeur au-dessus de la sidebar. Lu à la demande via :hover plutôt que
+    // suivi par des écouteurs : la question n'est posée qu'au réveil et entre
+    // deux préchargements — inutile d'observer chaque mouvement de souris.
+    const sidebarHovered = () => {
+      try {
+        const root = document.querySelector(DOM.sidebarRoot);
+        return !!root && root.matches(':hover');
+      } catch { return false; }
+    };
+
+    const saveData = () => {
+      try { return !!navigator.connection?.saveData; } catch { return false; }
+    };
+
+    const blocked = () => document.hidden || sidebarHovered() || saveData();
+
+    // Chaînes à réchauffer, DANS L'ORDRE D'AFFICHAGE : on entre dans la sidebar
+    // par le haut, donc les premières servies sont les plus probables. La liste
+    // est reconstruite à chaque passage, ce qui fait sortir d'elle-même une
+    // chaîne qui vient de couper et entrer une qui vient de démarrer.
+    const candidates = () => {
+      const root = document.querySelector(DOM.sidebarRoot);
+      if (!root) return [];
+      const out = [];
+      const seen = new Set();
+      for (const card of root.querySelectorAll('.side-nav-card')) {
+        const login = card.dataset.tseLogin;
+        if (!login || seen.has(login) || done.has(login)) continue;
+        if (card.dataset.tseOffline === 'true') continue;
+        // Hors direct, il n'y a pas de miniature : l'URL répondrait 404.
+        if (!cache.get(login)?.stream) continue;
+        seen.add(login);
+        out.push(login);
+        if (out.length >= CFG.PREVIEW_PRELOAD_MAX) break;
+      }
+      return out;
+    };
+
+    const fetchOne = (login) => {
+      // Marqué AVANT la requête : un échec ne doit pas être réessayé en boucle
+      // dans la même tranche.
+      done.add(login);
+      inFlight++;
+      // AUCUNE référence n'est conservée sur l'Image, et c'est délibéré. Une
+      // miniature 480x270 pèse ~25 Ko encodée mais ~506 Ko DÉCODÉE (129 600
+      // pixels x 4 octets) : garder cent objets épinglerait ~50 Mo de bitmaps
+      // pour des images qu'on n'affiche même pas. En la relâchant, le
+      // navigateur garde les octets encodés dans son cache HTTP — ce qu'on
+      // veut — et libère le décodé au ramasse-miettes.
+      // createElement plutôt que new Image() : strictement équivalent, et
+      // cohérent avec le reste du fichier.
+      const img = document.createElement('img');
+      try { img.fetchPriority = 'low'; } catch { /* attribut non géré */ }
+      const finish = () => { inFlight--; pump(); };
+      img.addEventListener('load', finish, { once: true });
+      img.addEventListener('error', finish, { once: true });
+      img.src = buildThumbUrl(login);
+    };
+
+    function pump() {
+      const b = sync();
+      if (blocked()) return;
+      const queue = candidates();
+      let i = 0;
+      while (inFlight < CFG.PREVIEW_PRELOAD_CONCURRENCY && i < queue.length) {
+        // Réévalué à CHAQUE émission : entrer dans la sidebar ou changer de
+        // tranche doit arrêter la passe tout de suite. On cesse d'ÉMETTRE ;
+        // on n'annule jamais ce qui est en vol — la requête coupée pourrait
+        // être précisément celle que l'utilisateur vient de survoler, et le
+        // popup la relancerait de zéro.
+        if (blocked() || currentBucket() !== b) return;
+        fetchOne(queue[i++]);
+      }
+    }
+
+    return {
+      // Appelé par le réveil de rafraîchissement. Reprend là où la passe s'est
+      // arrêtée : `done` sert aussi de point de reprise.
+      tick() { if (CFG.PREVIEW_PRELOAD_ENABLED) pump(); },
+      // Une chaîne survolée est chargée par le popup de toute façon : inutile
+      // que la passe la redemande ensuite.
+      markDone(login) { if (login) { sync(); done.add(login); } }
+    };
+  })();
+
   const preview = (() => {
     let el = null;             // élément popup (singleton)
     let iframeTimer = null;    // setTimeout avant injection de l'iframe
@@ -3256,25 +3413,6 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       metaCache.set(login, { title, hasCCL, id, costreamOrganizer, ts: Date.now() });
       return { title, hasCCL, id, costreamOrganizer };
     };
-
-    // URL du JPEG statique servi par le CDN Twitch (affichage immédiat
-    // avant que l'iframe player ne soit prête).
-    //
-    // Le paramètre de fin sert à contourner le cache : sans lui, le navigateur
-    // resservirait indéfiniment une image que Twitch régénère toutes les
-    // quelques minutes. Mais il était horodaté à la MILLISECONDE, ce qui
-    // rendait chaque URL unique — donc chaque survol un échec de cache garanti,
-    // y compris en revenant sur la même chaîne deux secondes plus tard. D'où le
-    // fond noir de une à deux secondes, le temps du téléchargement.
-    //
-    // On l'arrondit désormais à une tranche : l'URL est stable pendant toute la
-    // tranche, donc un re-survol tape le cache et s'affiche instantanément. La
-    // vignette peut être vieille d'une minute — sans importance pour une image
-    // affichée une seconde avant de céder la place à la vidéo en direct.
-    const buildThumbUrl = (login) =>
-      `https://static-cdn.jtvnw.net/previews-ttv/live_user_${login}` +
-      `-${CFG.PREVIEW_THUMB_CDN_W}x${CFG.PREVIEW_THUMB_CDN_H}.jpg` +
-      `?_=${Math.floor(Date.now() / CFG.PREVIEW_THUMB_CACHE_MS)}`;
 
     // URL du player iframe. parent=twitch.tv est requis par Twitch pour
     // l'embed (on est servi depuis twitch.tv donc OK). muted=true est
@@ -3845,6 +3983,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
       currentLogin = login;
       currentCard = card;
+      // Le popup va charger cette miniature lui-même : on l'ôte de la passe.
+      thumbPreload.markDone(login);
       ensureEl();
 
       const extraRows = (() => {
@@ -6147,6 +6287,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     setInterval(() => {
       if (document.hidden) return;
       scheduleScan();
+      // Réchauffage des miniatures. Posé ici parce que ce réveil a déjà les
+      // deux propriétés voulues : il est coupé en arrière-plan, et il est plus
+      // fin que la tranche de cache, donc la bascule est vue à 5 s près.
+      thumbPreload.tick();
     }, CFG.REFRESH_TICK);
 
     // Entretien : purge mémoire + auto-diagnostic. Aucun rapport avec la
