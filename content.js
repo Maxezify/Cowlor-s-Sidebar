@@ -936,8 +936,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     //   false → « Chaînes suivies » (les cartes que Twitch pose lui-même)
     //   true  → « Chaînes globales » (cartes fabriquées par l'extension à
     //           partir du classement calculé par le module globalChannels)
-    // La bascule d'interface arrive au palier 2 ; au palier 1 le drapeau
-    // n'est manipulable que par la console (tse.global.on()).
+    // Piloté par les deux onglets de #tse-mode-row (cf. ensureModeRow), et
+    // aussi depuis la console par tse.global.on() / off().
     globalMode:     false
   };
 
@@ -1515,6 +1515,16 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     /* Rangée des stories : masquée UNIQUEMENT en mode Top Chaînes. Elle
        reste intacte sur les chaînes suivies, où elle a du sens. */
     body.tse-global-mode [data-tse-stories="row"] { display: none !important; }
+    /* Twitch ne lui donne d'air qu'AU-DESSUS (style="margin-top: 0.7rem" posé
+       en ligne) : en dessous, elle touchait notre bloc filtre. On lui rend la
+       même valeur en bas, dans la même unité, pour qu'elle respire des deux
+       côtés.
+       Le !important n'est pas décoratif : la marge du haut est déclarée EN
+       LIGNE par Twitch. Tant qu'ils écrivent « margin-top », une règle de
+       feuille suffirait — mais le jour où ils passent au raccourci « margin »,
+       leur déclaration en ligne remettrait notre marge basse à zéro, sans
+       bruit. Un mot met la règle à l'abri de ce changement-là. */
+    [data-tse-stories="row"] { margin-bottom: 0.7rem !important; }
     .tse-mode-tab {
       flex: 1 1 auto; min-width: 0;
       display: inline-flex; align-items: center; justify-content: center;
