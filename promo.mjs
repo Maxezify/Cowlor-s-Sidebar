@@ -91,7 +91,20 @@ const CSS_TWITCH = `
 
 const browser = await chromium.launch();
 
-export async function scene({ nom, lang = 'fr', titre, sousTitre, jeu, apres,
+// Libellé natif de la section suivie, par langue d'interface. detectLanguage()
+// le cherche AVANT de regarder <html lang> : sans cette substitution, toutes
+// les scènes rendraient en français quelle que soit la langue demandée.
+// Clé = code de FICHE (es419 et ptpt sont des fiches distinctes), pas code de
+// langue de l'extension : es-419 partage l'interface espagnole, pt-PT et pt-BR
+// partagent l'interface portugaise mais PAS ce libellé, que Twitch traduit
+// différemment de part et d'autre de l'Atlantique.
+const SECTION = {
+  fr: 'Chaînes suivies', en: 'Followed Channels', de: 'Kanäle, denen du folgst',
+  es: 'Canales que sigues', es419: 'Canales que sigues',
+  ptbr: 'Canais seguidos', ptpt: 'Canais que segues',
+};
+
+export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre, jeu, jeuArg = null, apres,
                              echelleMax = 1.42, texteEtroit = false, visites = null }) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 },
                                        deviceScaleFactor: 2 });
@@ -99,8 +112,12 @@ export async function scene({ nom, lang = 'fr', titre, sousTitre, jeu, apres,
   await page.route('https://www.twitch.tv/**', (r) => {
     const n = r.request().url().split('/').pop().split('?')[0];
     if (n.endsWith('.js')) return r.fulfill({ contentType: 'application/javascript; charset=utf-8', body: lire(n) });
+    const libelle = SECTION[section || lang];
+    if (!libelle) throw new Error('libellé de section inconnu pour : ' + (section || lang));
     return r.fulfill({ contentType: 'text/html; charset=utf-8',
-                       body: lire('page.html').replace('<html lang="fr">', `<html lang="${lang}">`) });
+                       body: lire('page.html')
+                         .replace('<html lang="fr">', `<html lang="${lang}">`)
+                         .replaceAll('Chaînes suivies', libelle) });
   });
   // Zone vidéo de l'aperçu. Un dégradé abstrait, volontairement NON figuratif :
   // une fausse image de jeu ferait croire à un contenu qui n'existe pas.
@@ -128,7 +145,7 @@ export async function scene({ nom, lang = 'fr', titre, sousTitre, jeu, apres,
     try { localStorage.setItem('tse:visits', JSON.stringify(v)); } catch {}
   }, visites);
   await page.goto('https://www.twitch.tv/');
-  await page.evaluate(jeu);
+  await page.evaluate(jeu, jeuArg);
   await page.waitForTimeout(2200);
   if (apres) await apres(page);
   await page.evaluate(habiller, { titre, sousTitre, CSS: CSS_TWITCH, echelleMax, texteEtroit });
@@ -151,6 +168,24 @@ export async function scene({ nom, lang = 'fr', titre, sousTitre, jeu, apres,
   // rééchantillonnage est fait par Chromium lui-même (canvas, lissage haute
   // qualité) — aucune dépendance de plus, et un piqué bien meilleur qu'un
   // rendu direct en 1x.
+  // Le texte grandit : un débordement doit se voir ici, pas dans une image
+  // publiée. On mesure la colonne de droite et le bandeau de marque.
+  const trop = await page.evaluate(() => {
+    const t = document.getElementById('promo-texte');
+    const m = document.getElementById('promo-marque');
+    const rt = t.getBoundingClientRect(), rm = m.getBoundingClientRect();
+    const h1 = t.querySelector('h1');
+    return {
+      hors: rt.top < 8 || rt.bottom > 792 || rt.right > 1274 || rt.left < 560,
+      coupe: h1 ? Math.round(h1.scrollWidth - h1.clientWidth) : 0,
+      chevauche: rt.bottom > rm.top - 8,
+      marque: Math.round(rm.left) < 560,
+    };
+  });
+  if (trop.hors || trop.coupe > 0 || trop.chevauche || trop.marque) {
+    console.log('  ⚠ mise en page :', nom, JSON.stringify(trop));
+  }
+
   const brut = await page.screenshot();
   await page.close();
   const reduite = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -195,22 +230,22 @@ function habiller({ titre, sousTitre, CSS, echelleMax, texteEtroit }) {
       padding:10px 6px 12px; border-radius:14px;
       background:#1f1f23; border:1px solid rgba(255,255,255,.08);
       box-shadow:0 34px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(145,71,255,.13); }
-    #promo-texte { position:fixed; right:66px; top:50%; transform:translateY(-50%);
-      width:496px; color:#efeff1; }
-    body.promo-etroit #promo-texte { right:52px; width:338px; }
-    body.promo-etroit #promo-texte h1 { font-size:40px; letter-spacing:-1.1px; }
-    body.promo-etroit #promo-texte p { font-size:17px; max-width:330px; }
-    #promo-texte .kicker { display:inline-block; padding:5px 12px; border-radius:999px;
+    #promo-texte { position:fixed; right:60px; top:50%; transform:translateY(-50%);
+      width:540px; color:#efeff1; }
+    body.promo-etroit #promo-texte { right:46px; width:352px; }
+    body.promo-etroit #promo-texte h1 { font-size:47px; letter-spacing:-1.3px; }
+    body.promo-etroit #promo-texte p { font-size:20px; max-width:346px; }
+    #promo-texte .kicker { display:inline-block; padding:6px 14px; border-radius:999px;
       background:rgba(145,71,255,.16); border:1px solid rgba(145,71,255,.40);
-      color:#c9a6ff; font-size:13px; font-weight:700; letter-spacing:.10em;
-      text-transform:uppercase; margin-bottom:22px; }
-    #promo-texte h1 { margin:0 0 18px; font-size:52px; line-height:1.05;
-      font-weight:800; letter-spacing:-1.5px; }
+      color:#c9a6ff; font-size:15px; font-weight:700; letter-spacing:.10em;
+      text-transform:uppercase; margin-bottom:24px; }
+    #promo-texte h1 { margin:0 0 20px; font-size:62px; line-height:1.04;
+      font-weight:800; letter-spacing:-1.8px; }
     #promo-texte h1 em { font-style:normal; color:#a970ff; }
-    #promo-texte p { margin:0; font-size:19px; line-height:1.55; color:#b6b6c2;
-      font-weight:400; max-width:452px; }
-    #promo-marque { position:fixed; right:66px; bottom:42px; color:#68687a;
-      font-size:15px; font-weight:600; }
+    #promo-texte p { margin:0; font-size:23px; line-height:1.5; color:#bcbcc8;
+      font-weight:400; max-width:520px; }
+    #promo-marque { position:fixed; right:60px; bottom:40px; color:#707082;
+      font-size:16px; font-weight:600; }
     #promo-marque b { color:#dedee3; font-weight:800; }
   `;
   document.head.appendChild(st);

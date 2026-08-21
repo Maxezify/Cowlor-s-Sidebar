@@ -1,13 +1,13 @@
 import { scene, browser } from './promo.mjs';
 
 // Chaînes INVENTÉES : aucune identité réelle empruntée, aucun endossement suggéré.
-const DECOR = () => {
+const DECOR = (TITRES) => {
   const h = (min) => new Date(Date.now() - min * 60_000).toISOString();
   window.__fx = {
     novaflux:    { id:'101', createdAt:h(259), viewers:18420, game:'Just Chatting',      tags:['Français'],
-                   title:'On refait le monde avant le sub-ton de ce soir' },
+                   title:TITRES.novaflux },
     kiraplays:   { id:'102', createdAt:h(132), viewers:9310,  game:'League of Legends',  tags:['Français'],
-                   title:'Objectif Master avant la fin du mois — jour 12' },
+                   title:TITRES.kiraplays },
     atlasgaming: { id:'103', createdAt:h(94),  viewers:6240,  game:'Valorant',           tags:['Français'] },
     mirabelle:   { id:'104', createdAt:h(311), viewers:4180,  game:'Art',                tags:['Français'] },
     orionwave:   { id:'105', createdAt:h(3),   viewers:2870,  game:'Minecraft',          tags:['Français'] },
@@ -54,7 +54,8 @@ const DECOR = () => {
 };
 
 const T = {
-  fr: {
+  fr: { ui:'fr', section:'fr',
+    titres:{ novaflux:'On refait le monde avant le sub-ton de ce soir', kiraplays:'Objectif Master avant la fin du mois — jour 12' },
     hero:  ['<span class="kicker">Twitch, mais en mieux</span>' +
             '<h1>Votre sidebar<br>vous <em>dit tout</em>.</h1>' +
             '<p>Durée de stream, co-streams colorés, streams qui viennent de démarrer. ' +
@@ -79,16 +80,189 @@ const T = {
             '<h1>Votre liste,<br><em>votre</em> ordre.</h1>' +
             '<p>Spectateurs, popularité perso, durée de stream, alphabétique — ' +
             'ou les co-streams regroupés en tête.</p>',
-            '<b>Cowlor\'s Sidebar</b> · votre historique reste dans votre navigateur'],
-  },
-};
+            '<b>Cowlor\'s Sidebar</b> · votre historique reste dans votre navigateur'] },
 
-const L = 'fr', S = T[L];
+  en: { ui:'en', section:'en',
+    titres:{ novaflux:"Putting the world to rights before tonight's subathon", kiraplays:'Road to Master before the month ends — day 12' },
+    hero:  ['<span class="kicker">Twitch, but better</span>' +
+            '<h1>Your sidebar<br><em>tells you</em> everything.</h1>' +
+            '<p>Stream uptime, colour-coded co-streams, streams that just went live. ' +
+            'The information you had to go looking for is already there.</p>',
+            '<b>Cowlor\'s Sidebar</b> · free, no account, no ads'],
+    apercu:['<span class="kicker">Hover preview</span>' +
+            '<h1>Watch<br><em>before</em> you click.</h1>' +
+            '<p>Hover for a second and the stream opens live, with its full title ' +
+            'and the context: co-stream, sponsor, Hype Train.</p>',
+            '<b>Cowlor\'s Sidebar</b> · the preview works everywhere in the sidebar'],
+    top:   ['<span class="kicker">Top Channels</span>' +
+            '<h1>All of Twitch,<br>in <em>your</em> sidebar.</h1>' +
+            '<p>One tab, and the 30 most-watched channels take over. By category, ' +
+            'by language, recomputed continuously.</p>',
+            '<b>Cowlor\'s Sidebar</b> · one click there, one click back'],
+    filtre:['<span class="kicker">Filters</span>' +
+            '<h1>Find it<br>in <em>two clicks</em>.</h1>' +
+            '<p>By category, by language — with flags. Only the values actually ' +
+            'present among your followed channels are offered.</p>',
+            '<b>Cowlor\'s Sidebar</b> · nothing to configure, ever'],
+    tri:   ['<span class="kicker">Five sorts</span>' +
+            '<h1>Your list,<br><em>your</em> order.</h1>' +
+            '<p>Viewers, personal popularity, stream uptime, alphabetical — ' +
+            'or co-streams grouped at the top.</p>',
+            '<b>Cowlor\'s Sidebar</b> · your history stays in your browser'] },
+
+  de: { ui:'de', section:'de',
+    titres:{ novaflux:'Wir lösen die Weltprobleme vor dem Subathon heute Abend', kiraplays:'Auf zu Master vor Monatsende — Tag 12' },
+    hero:  ['<span class="kicker">Twitch, nur besser</span>' +
+            '<h1>Deine Sidebar<br><em>sagt dir</em> alles.</h1>' +
+            '<p>Stream-Dauer, farbige Co-Streams, gerade gestartete Streams. ' +
+            'Was du sonst suchen musstest, steht schon da.</p>',
+            '<b>Cowlor\'s Sidebar</b> · gratis, ohne Konto, ohne Werbung'],
+    apercu:['<span class="kicker">Vorschau beim Überfahren</span>' +
+            '<h1>Schau hin,<br><em>bevor</em> du klickst.</h1>' +
+            '<p>Eine Sekunde überfahren, und der Stream läuft live — mit ganzem ' +
+            'Titel und Kontext: Co-Stream, Sponsor, Hype Train.</p>',
+            '<b>Cowlor\'s Sidebar</b> · die Vorschau läuft überall in der Sidebar'],
+    top:   ['<span class="kicker">Top-Kanäle</span>' +
+            '<h1>Ganz Twitch,<br>in <em>deiner</em> Sidebar.</h1>' +
+            '<p>Ein Tab, und die 30 meistgesehenen Kanäle übernehmen. Nach ' +
+            'Kategorie, nach Sprache, laufend neu berechnet.</p>',
+            '<b>Cowlor\'s Sidebar</b> · ein Klick hin, ein Klick zurück'],
+    filtre:['<span class="kicker">Filter</span>' +
+            '<h1>Finden<br>in <em>zwei Klicks</em>.</h1>' +
+            '<p>Nach Kategorie, nach Sprache — mit Flaggen. Angeboten wird nur, ' +
+            'was bei deinen Kanälen wirklich vorkommt.</p>',
+            '<b>Cowlor\'s Sidebar</b> · nichts einzustellen, nie'],
+    tri:   ['<span class="kicker">Fünf Sortierungen</span>' +
+            '<h1>Deine Liste,<br><em>deine</em> Reihenfolge.</h1>' +
+            '<p>Zuschauer, eigene Beliebtheit, Stream-Dauer, alphabetisch — ' +
+            'oder Co-Streams ganz oben gruppiert.</p>',
+            '<b>Cowlor\'s Sidebar</b> · dein Verlauf bleibt in deinem Browser'] },
+
+  es: { ui:'es', section:'es',
+    titres:{ novaflux:'Arreglamos el mundo antes del subatón de esta noche', kiraplays:'Camino a Master antes de fin de mes — día 12' },
+    hero:  ['<span class="kicker">Twitch, pero mejor</span>' +
+            '<h1>Tu barra lateral<br><em>te lo cuenta</em> todo.</h1>' +
+            '<p>Duración del directo, co-streams con color, streams recién ' +
+            'empezados. Lo que había que ir a buscar ya está ahí.</p>',
+            '<b>Cowlor\'s Sidebar</b> · gratis, sin cuenta, sin anuncios'],
+    apercu:['<span class="kicker">Vista previa al pasar</span>' +
+            '<h1>Mira<br><em>antes</em> de hacer clic.</h1>' +
+            '<p>Un segundo encima y el directo se abre, con su título completo ' +
+            'y el contexto: co-stream, patrocinio, Hype Train.</p>',
+            '<b>Cowlor\'s Sidebar</b> · la vista previa funciona en toda la barra'],
+    top:   ['<span class="kicker">Top Canales</span>' +
+            '<h1>Todo Twitch,<br>en <em>tu</em> barra lateral.</h1>' +
+            '<p>Una pestaña, y los 30 canales más vistos ocupan el sitio. Por ' +
+            'categoría, por idioma, recalculado sin parar.</p>',
+            '<b>Cowlor\'s Sidebar</b> · un clic para ir, un clic para volver'],
+    filtre:['<span class="kicker">Filtros</span>' +
+            '<h1>Encuentra<br>en <em>dos clics</em>.</h1>' +
+            '<p>Por categoría, por idioma — con banderas. Solo se ofrecen los ' +
+            'valores realmente presentes entre tus canales.</p>',
+            '<b>Cowlor\'s Sidebar</b> · nada que configurar, nunca'],
+    tri:   ['<span class="kicker">Cinco órdenes</span>' +
+            '<h1>Tu lista,<br><em>tu</em> orden.</h1>' +
+            '<p>Espectadores, popularidad personal, duración, alfabético — ' +
+            'o los co-streams agrupados arriba.</p>',
+            '<b>Cowlor\'s Sidebar</b> · tu historial se queda en tu navegador'] },
+
+  es419: { ui:'es', section:'es',
+    titres:{ novaflux:'Arreglamos el mundo antes del subatón de esta noche', kiraplays:'Camino a Master antes de fin de mes — día 12' },
+    hero:  ['<span class="kicker">Twitch, pero mejor</span>' +
+            '<h1>Tu barra lateral<br><em>te lo cuenta</em> todo.</h1>' +
+            '<p>Duración del vivo, co-streams con color, streams recién ' +
+            'empezados. Lo que había que ir a buscar ya está ahí.</p>',
+            '<b>Cowlor\'s Sidebar</b> · gratis, sin cuenta, sin anuncios'],
+    apercu:['<span class="kicker">Vista previa al pasar</span>' +
+            '<h1>Mira<br><em>antes</em> de hacer clic.</h1>' +
+            '<p>Un segundo encima y el vivo se abre, con su título completo ' +
+            'y el contexto: co-stream, patrocinio, Hype Train.</p>',
+            '<b>Cowlor\'s Sidebar</b> · la vista previa funciona en toda la barra'],
+    top:   ['<span class="kicker">Top Canales</span>' +
+            '<h1>Todo Twitch,<br>en <em>tu</em> barra lateral.</h1>' +
+            '<p>Una pestaña, y los 30 canales más vistos ocupan el lugar. Por ' +
+            'categoría, por idioma, recalculado sin parar.</p>',
+            '<b>Cowlor\'s Sidebar</b> · un clic para ir, un clic para volver'],
+    filtre:['<span class="kicker">Filtros</span>' +
+            '<h1>Encuentra<br>en <em>dos clics</em>.</h1>' +
+            '<p>Por categoría, por idioma — con banderas. Solo se ofrecen los ' +
+            'valores realmente presentes entre tus canales.</p>',
+            '<b>Cowlor\'s Sidebar</b> · nada que configurar, nunca'],
+    tri:   ['<span class="kicker">Cinco órdenes</span>' +
+            '<h1>Tu lista,<br><em>tu</em> orden.</h1>' +
+            '<p>Espectadores, popularidad personal, duración, alfabético — ' +
+            'o los co-streams agrupados arriba.</p>',
+            '<b>Cowlor\'s Sidebar</b> · tu historial se queda en tu navegador'] },
+
+  ptbr: { ui:'pt', section:'ptbr',
+    titres:{ novaflux:'Resolvendo o mundo antes do subathon de hoje à noite', kiraplays:'Rumo ao Mestre antes do fim do mês — dia 12' },
+    hero:  ['<span class="kicker">Twitch, só que melhor</span>' +
+            '<h1>Sua barra lateral<br><em>te conta</em> tudo.</h1>' +
+            '<p>Tempo de live, co-streams coloridos, lives que acabaram de ' +
+            'começar. O que você tinha que ir procurar já está ali.</p>',
+            '<b>Cowlor\'s Sidebar</b> · grátis, sem conta, sem anúncios'],
+    apercu:['<span class="kicker">Prévia ao passar o mouse</span>' +
+            '<h1>Veja<br><em>antes</em> de clicar.</h1>' +
+            '<p>Um segundo em cima e a live abre ao vivo, com o título completo ' +
+            'e o contexto: co-stream, patrocínio, Hype Train.</p>',
+            '<b>Cowlor\'s Sidebar</b> · a prévia funciona na barra inteira'],
+    top:   ['<span class="kicker">Top Canais</span>' +
+            '<h1>A Twitch inteira,<br>na <em>sua</em> barra lateral.</h1>' +
+            '<p>Uma aba, e os 30 canais mais assistidos assumem o lugar. Por ' +
+            'categoria, por idioma, recalculado o tempo todo.</p>',
+            '<b>Cowlor\'s Sidebar</b> · um clique para ir, um para voltar'],
+    filtre:['<span class="kicker">Filtros</span>' +
+            '<h1>Ache<br>em <em>dois cliques</em>.</h1>' +
+            '<p>Por categoria, por idioma — com bandeiras. Só aparecem os valores ' +
+            'realmente presentes entre os seus canais.</p>',
+            '<b>Cowlor\'s Sidebar</b> · nada para configurar, nunca'],
+    tri:   ['<span class="kicker">Cinco ordens</span>' +
+            '<h1>Sua lista,<br><em>sua</em> ordem.</h1>' +
+            '<p>Espectadores, popularidade pessoal, tempo de live, alfabética — ' +
+            'ou os co-streams agrupados no topo.</p>',
+            '<b>Cowlor\'s Sidebar</b> · seu histórico fica no seu navegador'] },
+
+  ptpt: { ui:'pt', section:'ptpt',
+    titres:{ novaflux:'A resolver o mundo antes do subathon desta noite', kiraplays:'Rumo a Mestre antes do fim do mês — dia 12' },
+    hero:  ['<span class="kicker">Twitch, mas melhor</span>' +
+            '<h1>A tua barra lateral<br><em>diz-te</em> tudo.</h1>' +
+            '<p>Duração da emissão, co-streams coloridos, emissões acabadas de ' +
+            'começar. O que tinhas de ir procurar já está ali.</p>',
+            '<b>Cowlor\'s Sidebar</b> · grátis, sem conta, sem anúncios'],
+    apercu:['<span class="kicker">Pré-visualização ao passar</span>' +
+            '<h1>Vê<br><em>antes</em> de clicares.</h1>' +
+            '<p>Um segundo por cima e a emissão abre em direto, com o título ' +
+            'completo e o contexto: co-stream, patrocínio, Hype Train.</p>',
+            '<b>Cowlor\'s Sidebar</b> · funciona em toda a barra lateral'],
+    top:   ['<span class="kicker">Top Canais</span>' +
+            '<h1>A Twitch inteira,<br>na <em>tua</em> barra lateral.</h1>' +
+            '<p>Um separador, e os 30 canais mais vistos ocupam o lugar. Por ' +
+            'categoria, por idioma, recalculado sem parar.</p>',
+            '<b>Cowlor\'s Sidebar</b> · um clique para ir, um para voltar'],
+    filtre:['<span class="kicker">Filtros</span>' +
+            '<h1>Encontra<br>em <em>dois cliques</em>.</h1>' +
+            '<p>Por categoria, por idioma — com bandeiras. Só aparecem os valores ' +
+            'realmente presentes entre os teus canais.</p>',
+            '<b>Cowlor\'s Sidebar</b> · nada para configurar, nunca'],
+    tri:   ['<span class="kicker">Cinco ordens</span>' +
+            '<h1>A tua lista,<br><em>a tua</em> ordem.</h1>' +
+            '<p>Espectadores, popularidade pessoal, duração, alfabética — ' +
+            'ou os co-streams agrupados no topo.</p>',
+            '<b>Cowlor\'s Sidebar</b> · o teu histórico fica no teu navegador'] },
+};
+const LANGUES = process.env.PROMO_LANGS
+  ? process.env.PROMO_LANGS.split(',')
+  : Object.keys(T);
 console.log('Captures 1280 x 800 :');
 
-await scene({ nom:`01-hero-${L}`, lang:L, jeu:DECOR, titre:S.hero[0], sousTitre:S.hero[1] });
+for (const L of LANGUES) {
+  const S = T[L];
+  if (!S) throw new Error('fiche inconnue : ' + L);
+  console.log('— ' + L);
 
-await scene({ nom:`02-apercu-${L}`, lang:L, jeu:DECOR, titre:S.apercu[0], sousTitre:S.apercu[1],
+  await scene({ nom:`01-hero-${L}`, lang:S.ui, section:S.section, jeu:DECOR, jeuArg:S.titres, titre:S.hero[0], sousTitre:S.hero[1] });
+
+  await scene({ nom:`02-apercu-${L}`, lang:S.ui, section:S.section, jeu:DECOR, jeuArg:S.titres, titre:S.apercu[0], sousTitre:S.apercu[1],
   echelleMax:1, texteEtroit:true,
   apres: async (page) => {
     await page.evaluate(() => {
@@ -109,30 +283,30 @@ await scene({ nom:`02-apercu-${L}`, lang:L, jeu:DECOR, titre:S.apercu[0], sousTi
     await page.waitForTimeout(300);
   } });
 
-await scene({ nom:`03-top-${L}`, lang:L, jeu:DECOR, titre:S.top[0], sousTitre:S.top[1],
+  await scene({ nom:`03-top-${L}`, lang:S.ui, section:S.section, jeu:DECOR, jeuArg:S.titres, titre:S.top[0], sousTitre:S.top[1],
   apres: async (page) => {
     await page.evaluate(() =>
       document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
     await page.waitForTimeout(2600);
   } });
 
-await scene({ nom:`04-filtres-${L}`, lang:L, jeu:DECOR, titre:S.filtre[0], sousTitre:S.filtre[1],
+  await scene({ nom:`04-filtres-${L}`, lang:S.ui, section:S.section, jeu:DECOR, jeuArg:S.titres, titre:S.filtre[0], sousTitre:S.filtre[1],
   apres: async (page) => {
     await page.evaluate(() => document.querySelector('#tse-lang-dd .tse-dd-btn').click());
     await page.waitForTimeout(400);
   } });
 
-// Un historique de visites plausible : c'est lui qui donne son sens au tri
+  // Un historique de visites plausible : c'est lui qui donne son sens au tri
 // « popularité perso », et il ne quitte jamais le navigateur.
-const J = 86_400_000, N = Date.now();
-const VISITES = {
+  const J = 86_400_000, N = Date.now();
+  const VISITES = {
   lumenkai:  [N-2*3600e3, N-J, N-2*J, N-3*J, N-4*J, N-6*J],
   duskraven: [N-5*3600e3, N-J, N-3*J, N-5*J],
   mirabelle: [N-J, N-4*J],
   novaflux:  [N-9*J],
 };
 
-await scene({ nom:`05-tri-${L}`, lang:L, jeu:DECOR, titre:S.tri[0], sousTitre:S.tri[1],
+  await scene({ nom:`05-tri-${L}`, lang:S.ui, section:S.section, jeu:DECOR, jeuArg:S.titres, titre:S.tri[0], sousTitre:S.tri[1],
   visites:VISITES,
   apres: async (page) => {
     await page.evaluate(() => {
@@ -144,5 +318,7 @@ await scene({ nom:`05-tri-${L}`, lang:L, jeu:DECOR, titre:S.tri[0], sousTitre:S.
     });
     await page.waitForTimeout(1200);
   } });
+
+}
 
 await browser.close();
