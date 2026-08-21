@@ -8,3 +8,7 @@ package-lock.json
 # risquer de le voir diverger de sa source.
 tests/content.test.js
 tests/adblock.test.js
+
+# Captures de présentation produites par `npm run promo`. Régénérées à la
+# demande depuis promo.mjs : ce sont des artefacts, pas des sources.
+promo/

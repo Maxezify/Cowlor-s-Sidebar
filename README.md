@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.41.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.42.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -896,6 +896,8 @@ cowlors-sidebar-for-twitch/
 ├── icons/                 icônes 16 / 48 / 128 px
 ├── package.json           outillage de vérification UNIQUEMENT (cf. plus bas)
 ├── eslint.config.mjs      règles de lint
+├── promo.mjs              captures 1280×800 pour le Chrome Web Store
+├── promo-run.mjs          les scènes et leurs textes
 ├── tests/
 │   ├── run.mjs              le harnais : ~353 assertions, 41 scénarios
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
@@ -948,6 +950,28 @@ Le stub reproduit aussi les défauts mesurés de l'API, parce qu'un harnais trop
 gentil laisse passer les bugs : `games` arrive classé mais `streams` ne l'est
 pas, une chaîne peut manquer d'une réponse à l'autre (échantillonnage), et la
 langue de diffusion d'un stream est indépendante des étiquettes qu'il affiche.
+
+### Captures pour le Chrome Web Store
+
+```bash
+npm run promo        # → promo/*.png, 1280×800 exactement
+```
+
+Même principe que le harnais, et pour la même raison : **l'extension tourne
+pour de vrai** et on photographie ce qu'elle produit. Rien n'est redessiné. Le
+rendu se fait en 2× puis est réduit à 1280×800 — la taille exacte qu'exige le
+Chrome Web Store — par Chromium lui-même, ce qui donne un texte bien plus net
+qu'un rendu direct.
+
+Deux limites, à connaître avant de publier. L'habillage des cartes de Twitch
+est une **reconstruction** : `tests/page.html` reproduit la structure du DOM,
+pas l'apparence, et `promo.mjs` réécrit donc la mise en forme (avatar 30 px,
+pseudo 13 px, point rouge). Tout ce que l'extension ajoute est authentique ;
+le fond sur lequel elle l'ajoute est une approximation. Et les données sont des
+fixtures : les chaînes sont **inventées** pour n'emprunter l'identité de
+personne, les avatars sont générés, et la zone vidéo de l'aperçu est un dégradé
+abstrait — une fausse image de jeu laisserait croire à un contenu qui n'existe
+pas.
 
 ---
 

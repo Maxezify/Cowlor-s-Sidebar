@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.41.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.42.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -859,6 +859,8 @@ cowlors-sidebar-for-twitch/
 ├── icons/                 16 / 48 / 128 px icons
 ├── package.json           verification tooling ONLY (see below)
 ├── eslint.config.mjs      lint rules
+├── promo.mjs              1280×800 captures for the Chrome Web Store
+├── promo-run.mjs          the scenes and their copy
 ├── tests/
 │   ├── run.mjs              the harness: ~353 assertions across 41 scenarios
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
@@ -909,6 +911,27 @@ The stub also reproduces the API's measured defects, because a lenient harness
 lets bugs through: `games` comes back sorted but `streams` does not, a channel
 can go missing from one response to the next (sampling), and a stream's
 broadcast language is independent of the tags it displays.
+
+### Chrome Web Store captures
+
+```bash
+npm run promo        # → promo/*.png, exactly 1280×800
+```
+
+Same principle as the harness, for the same reason: **the extension actually
+runs** and we photograph what it produces. Nothing is redrawn. Rendering happens
+at 2× and is then downscaled to 1280×800 — the exact size the Chrome Web Store
+requires — by Chromium itself, which yields much crisper text than rendering
+directly at 1×.
+
+Two limits, worth knowing before publishing. Twitch's card styling is a
+**reconstruction**: `tests/page.html` reproduces the DOM structure, not the
+appearance, so `promo.mjs` rewrites the card layout (30 px avatar, 13 px name,
+red dot). Everything the extension adds is authentic; the surface it adds it to
+is an approximation. And the data are fixtures: the channels are **invented** so
+no real identity is borrowed, avatars are generated, and the preview's video
+area is an abstract gradient — a fake gameplay still would suggest content that
+does not exist.
 
 ---
 
