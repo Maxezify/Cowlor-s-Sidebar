@@ -5476,6 +5476,15 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     const cached = getFreshChannel(login);
     if (cached) { applyChannelData(card, cached); return; }
 
+    // Carte du classement dont TseChannels n'a rien dit d'assez frais : la
+    // marche structurelle, elle, en connaît le compteur, la catégorie et
+    // l'ancienneté. On les applique TOUT DE SUITE — sans quoi la carte
+    // afficherait les valeurs de la chaîne qui a servi de modèle — puis on
+    // laisse la requête suivre son cours et corriger. L'amorce vit dans sa
+    // propre Map : elle ne se mélange jamais au cache partagé (cf. globalSeed).
+    const seed = globalSeedFor(card);
+    if (seed) applyChannelData(card, seed);
+
     // Entrée périmée ou inconnue : on la remet en file. Le batch part dans
     // BATCH_DELAY, découpé en tranches (cf. flushQueue).
     const data = await fetchChannel(login);
@@ -6072,24 +6081,20 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     const section = followedSection();
     if (!section) return;
 
-    // 1. Cartes live suivies → enregistrements { cat, langs[] }.
-    const records = [];
-    section.querySelectorAll('.side-nav-card').forEach(card => {
-      if (card.dataset.tseOffline === 'true') return;
-      const login = card.dataset.tseLogin;
-      if (!login) return;
-      const resolved = langStore.getLangs(login); // lecture du cache TseChannels
-      if (resolved) card.dataset.tseLangs = resolved.length ? '|' + resolved.join('|') + '|' : '';
-      const langs = (card.dataset.tseLangs || '').split('|').filter(Boolean);
-      records.push({ cat: card.dataset.tseCategory || '', langs });
-    });
-
-    // ── Mode Top Chaînes : la catégorie n'est pas un filtre ─────────────
-    // Elle décide de ce qu'on DEMANDE à l'API (cf. globalChannels, portée).
-    // Sa liste vient donc du classement des catégories — les 100 premières,
-    // avec leur audience réelle — et non des cartes affichées, qui n'en
-    // couvrent qu'une poignée. Le croisement des deux facettes, lui, n'a plus
-    // de sens ici : la langue reste un vrai filtre sur les cartes présentes.
+    // ── Mode Top Chaînes : ni la catégorie ni la langue ne se lisent sur les
+    // cartes ─────────────────────────────────────────────────────────────
+    // Elles décident de ce qu'on DEMANDE à l'API (cf. globalChannels, portée
+    // et descente). La liste des catégories vient donc du classement — les
+    // 100 premières, avec leur audience réelle — et celle des langues du pool
+    // toutes langues ; les cartes affichées n'en couvrent qu'une poignée.
+    //
+    // Cette branche passe AVANT le relevé des cartes, et c'est délibéré :
+    // `records` ne sert qu'au croisement des deux facettes de la liste
+    // suivie, dont il n'est pas question ici. Le calculer quand même — un
+    // parcours du cache et une concaténation par carte, à chaque scan —
+    // n'aurait servi qu'à écrire un data-tse-langs que plus personne ne lit
+    // depuis que le classement a cessé d'être re-filtré (cf.
+    // applyCardVisibility).
     if (state.globalMode) {
       const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX);
       const catCount = new Map(cats.map(c => [c.name, c.viewers]));
@@ -6115,6 +6120,18 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       applyCategoryFilter();
       return;
     }
+
+    // 1. Cartes live suivies → enregistrements { cat, langs[] }.
+    const records = [];
+    section.querySelectorAll('.side-nav-card').forEach(card => {
+      if (card.dataset.tseOffline === 'true') return;
+      const login = card.dataset.tseLogin;
+      if (!login) return;
+      const resolved = langStore.getLangs(login); // lecture du cache TseChannels
+      if (resolved) card.dataset.tseLangs = resolved.length ? '|' + resolved.join('|') + '|' : '';
+      const langs = (card.dataset.tseLangs || '').split('|').filter(Boolean);
+      records.push({ cat: card.dataset.tseCategory || '', langs });
+    });
 
     const allCats  = new Set(records.map(r => r.cat).filter(Boolean));
     const allLangs = new Set(records.flatMap(r => r.langs));
@@ -7192,6 +7209,50 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
   let globalTemplate = null;
   let globalContainer = null;
 
+  /**
+   * Rend au mode suivi une carte qui servait le classement.
+   *
+   * Deux cas, et il ne faut surtout pas les confondre : une carte que NOUS
+   * avons fabriquée se retire, une carte de Twitch qu'on avait EMPRUNTÉE se
+   * rend — la retirer effacerait de la barre latérale une chaîne réellement
+   * suivie, jusqu'au prochain rendu de React.
+   */
+  const releaseGlobalCard = (card) => {
+    if (isSynthetic(card)) { card.remove(); return; }
+    delete card.dataset.tseGlobal;
+  };
+
+  /**
+   * Amorce du mode global : ce que la marche structurelle sait des chaînes du
+   * classement, sous la forme qu'attend applyChannelData.
+   *
+   * ELLE NE VA PAS DANS LE CACHE PARTAGÉ, et c'est toute la raison d'être de
+   * cette Map. Le cache de TseChannels est lu par des modules qui n'ont rien à
+   * voir avec le classement — le garde-fou d'extinction de masse, les cartes
+   * en avance, le filtre de langue de la liste suivie — et il SURVIT à la
+   * sortie du mode. Y verser trente chaînes étrangères leur faisait dire des
+   * choses qu'aucune réponse de Twitch n'avait dites : une chaîne suivie qui
+   * figurait au classement français en repartait avec un tag « Français »
+   * posé par la descente elle-même (cf. fullWalk), donc rangée sous ce filtre
+   * dans la liste suivie alors qu'elle ne l'a jamais porté.
+   *
+   * L'amorce ne porte PAS d'identifiant de stream. L'ancienne en fabriquait un
+   * (« g:login ») : liveLag.noteAhead le recevait ensuite comme s'il venait de
+   * Twitch et le versait aux statistiques d'avance. Un classement n'est pas
+   * l'observation d'un stream ; il n'a pas à s'en donner l'identifiant. Son
+   * absence suffit d'ailleurs à faire sortir liveLag.observe dès sa première
+   * ligne, ce qui protège aussi les cartes empruntées.
+   *
+   * Reconstruite à chaque passe depuis le classement courant, elle se purge
+   * d'elle-même en sortant du mode.
+   */
+  const globalSeed = new Map();   // login -> entrée façon cache
+
+  // Amorce applicable à CETTE carte, ou null. Réservée aux cartes du
+  // classement : une carte suivie n'a rien à lire ici.
+  const globalSeedFor = (card) =>
+    (card.dataset.tseGlobal === 'true' && globalSeed.get(card.dataset.tseLogin)) || null;
+
   function syncGlobalCards() {
     const section = followedSection();
     if (!section) return;
@@ -7199,7 +7260,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     const existing = new Map();
     for (const c of section.querySelectorAll('.side-nav-card[data-tse-global="true"]')) {
       const l = c.dataset.tseLogin;
-      if (l) existing.set(l, c); else c.remove();
+      if (l) existing.set(l, c); else releaseGlobalCard(c);
     }
     // `tse-global-ready` — et non `tse-global-mode` — commande l'effacement
     // des cartes de Twitch. La première marche prend ~1,6 s : basculer sur un
@@ -7208,7 +7269,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // titre qui a déjà changé, plutôt qu'un vide. Les bascules suivantes sont
     // instantanées — le pool n'est pas purgé en sortant du mode.
     const ready = (n) => document.body.classList.toggle('tse-global-ready', n > 0);
-    if (!state.globalMode) { existing.forEach(c => c.remove()); ready(0); return; }
+    if (!state.globalMode) {
+      existing.forEach(releaseGlobalCard);
+      globalSeed.clear();
+      ready(0);
+      return;
+    }
 
     // Même exigence de modèle que pour les cartes en avance : une carte
     // native, en direct, et NEUTRE — cloner une carte décorée transposerait
@@ -7245,34 +7311,43 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }
     if (!template || !container) return;
 
-    // Le cache partagé est la source de vérité de processCard. Sans l'amorcer,
-    // une carte fraîchement clonée afficherait le compteur, la catégorie et
-    // l'ancienneté de la chaîne qui a servi de MODÈLE jusqu'à la première
-    // réponse TseChannels — soit un chiffre faux pendant une seconde.
-    // On n'écrase jamais une entrée plus récente : la file TseChannels reste
-    // la voix la plus autorisée sur une chaîne donnée.
-    const seedCache = (rec) => {
-      const prev = cache.get(rec.login);
-      if (prev && prev.ts >= rec.ts) return;
-      cache.set(rec.login, {
-        id: rec.id, tags: rec.tags, game: rec.game, viewers: rec.viewers,
-        name: rec.name, avatar: rec.avatar, ts: rec.ts,
-        stream: {
-          id: 'g:' + rec.login, createdAt: rec.createdAt,
-          viewersCount: rec.viewers, game: { name: rec.game },
-          freeformTags: rec.tags.map(n => ({ name: n }))
-        }
-      });
-    };
+    // Sans amorce, une carte fraîchement clonée afficherait le compteur, la
+    // catégorie et l'ancienneté de la chaîne qui a servi de MODÈLE jusqu'à la
+    // première réponse TseChannels — un chiffre faux pendant une seconde.
+    // processCard la lit (cf. globalSeedFor) puis laisse la requête suivre son
+    // cours : TseChannels reste la voix la plus autorisée sur une chaîne.
+    const seed = (rec) => globalSeed.set(rec.login, {
+      id: rec.id, tags: rec.tags, game: rec.game, viewers: rec.viewers,
+      name: rec.name, avatar: rec.avatar, ts: rec.ts,
+      stream: {
+        createdAt: rec.createdAt,
+        viewersCount: rec.viewers, game: { name: rec.game },
+        freeformTags: rec.tags.map(n => ({ name: n }))
+      }
+    });
+
+    // Cartes que Twitch a posées lui-même, indexées par login : une chaîne du
+    // classement que l'utilisateur suit DÉJÀ en a une. On l'emprunte au lieu
+    // d'en fabriquer une seconde — deux cartes pour une chaîne, dont une
+    // masquée, c'est du travail refait à chaque scan et un doublon que la
+    // détection de co-stream a déjà pris pour deux participants distincts.
+    const natives = new Map();
+    for (const c of section.querySelectorAll('.side-nav-card')) {
+      const l = c.dataset.tseLogin;
+      if (l && !isSynthetic(c) && !c.dataset.tseGlobal && !natives.has(l)) natives.set(l, c);
+    }
 
     const top = globalChannels.top(CFG.GLOBAL_TOP_N);
     const keep = new Set();
     ready(top.length);
+    globalSeed.clear();
     for (const rec of top) {
       keep.add(rec.login);
-      seedCache(rec);
-      let card = existing.get(rec.login);
-      if (!card) {
+      seed(rec);
+      let card = existing.get(rec.login) || natives.get(rec.login);
+      if (card) {
+        card.dataset.tseGlobal = 'true';
+      } else {
         card = buildAheadCard(template, rec.login, rec);
         if (!card) return;   // clone inexploitable : inutile d'insister
         card.dataset.tseGlobal = 'true';
@@ -7287,7 +7362,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // que la marche structurelle.
       renderViewers(card, rec.viewers);
     }
-    for (const [login, card] of existing) if (!keep.has(login)) card.remove();
+    for (const [login, card] of existing) if (!keep.has(login)) releaseGlobalCard(card);
   }
 
   /* ============================================================
