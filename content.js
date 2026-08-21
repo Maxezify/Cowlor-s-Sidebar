@@ -3781,6 +3781,22 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       card.style.display = '';
       return;
     }
+    // Mode « Top Chaînes » : nos cartes ne sont pas filtrées, elles SONT le
+    // résultat du filtre. La catégorie décide de ce qu'on DEMANDE à l'API, la
+    // langue décide de la DESCENTE qu'on y fait (cf. globalChannels), et
+    // globalChannels.top() refuse déjà de re-filtrer ce que l'API a filtré.
+    // Le rejouer ici vidait le classement à retardement : la descente pose le
+    // tag canonique sur ses enregistrements, mais TseChannels — qui fait
+    // autorité sur les tags et rafraîchit toutes les chaînes affichées — le
+    // remplace par les freeformTags réels quelques secondes plus tard. Or une
+    // chaîne servie par broadcasterLanguages: [FR] n'affiche pas forcément le
+    // tag « Français ». Les cartes s'effaçaient donc une à une, à mesure que
+    // les réponses arrivaient, en laissant des trous dans un top 30 dont
+    // chaque ligne avait pourtant été demandée en français.
+    if (card.dataset.tseGlobal === 'true') {
+      card.style.display = '';
+      return;
+    }
     const catFilter  = state.categoryFilter;
     const langFilter = state.languageFilter;
     if (!catFilter && !langFilter) {
@@ -6180,6 +6196,35 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
   const cardHasCollab = (card) => !!card.querySelector('.tse-collab-badge');
 
+  /**
+   * Cette carte occupe-t-elle réellement une place à l'écran ?
+   *
+   * Il y a TROIS façons de masquer une carte dans cette extension, et la
+   * détection de co-stream doit les compter toutes les trois :
+   *   1. hors ligne          → attribut data-tse-offline, masqué par CSS ;
+   *   2. filtrée             → style.display en ligne (applyCardVisibility) ;
+   *   3. mode « Top Chaînes » → règle CSS de CLASSE
+   *      `body.tse-global-ready .side-nav-card:not([data-tse-global="true"])`.
+   *
+   * Le troisième cas ne pose ni attribut ni style en ligne : une carte suivie
+   * y conserve toutes ses marques alors qu'elle n'a plus de boîte. La compter
+   * comme voisine revenait à mesurer un interstice contre un rectangle NUL —
+   * getBoundingClientRect() renvoie des zéros sur un display:none — donc à
+   * étendre la barre de son partenaire de plusieurs centaines de pixels, en
+   * travers de cartes qui n'ont rien à voir avec le co-stream. C'est le trait
+   * vertical continu observé en mode global.
+   *
+   * Ce prédicat RECOPIE la règle CSS ci-dessus au lieu de lire la mise en page
+   * (offsetParent / getClientRects forceraient un reflow à chaque scan, sur
+   * une centaine de cartes). Le harnais vérifie que les deux disent bien la
+   * même chose ; toute modification de la règle doit passer ici aussi.
+   */
+  const cardShown = (card) =>
+    card.dataset.tseOffline !== 'true' &&
+    card.style.display !== 'none' &&
+    (card.dataset.tseGlobal === 'true' ||
+     !document.body.classList.contains('tse-global-ready'));
+
   // Lit le chiffre N dans le badge collab. Convention Twitch (rectifiée par
   // l'utilisateur) : N représente "autres streamers en plus de celui-ci",
   // donc la taille totale du co-stream = N + 1. Exemple : badge "3" sur
@@ -6580,8 +6625,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     const groups = new Map();        // clé -> [cards]  (gs:<hostId> ou vh:<cat>|||<viewers>)
     const gsHandled = new Set();     // cartes couvertes de façon fiable
     const hostByCard = new Map();    // card -> string | null | undefined
+    // Seules les cartes RÉELLEMENT AFFICHÉES forment des groupes. Un groupe
+    // est une information visuelle : deux cartes qu'on relie par une barre. Si
+    // l'une des deux est masquée — filtrée, ou effacée par le mode global —
+    // il ne reste rien à relier, et la colorer isolément afficherait un
+    // co-stream dont l'utilisateur ne voit qu'un membre. La remise à zéro des
+    // marqueurs (§5), elle, continue de passer sur TOUTES les cartes.
     cards.forEach(card => {
-      if (card.dataset.tseOffline === 'true') return;
+      if (!cardShown(card)) return;
       const login = card.dataset.tseLogin;
       if (!login) return;
       const hostId = getHostId(getChannelId(login));
@@ -6609,7 +6660,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // l'heuristique : on attend la vérité (~1s) → aucune transition de couleur
     // au démarrage.
     cards.forEach(card => {
-      if (card.dataset.tseOffline === 'true') return;
+      if (!cardShown(card)) return;
       if (gsHandled.has(card)) return;
       if (gsUsable && hostByCard.get(card) === undefined && getChannelId(card.dataset.tseLogin)) return;
       if (!cardHasCollab(card)) return;
@@ -6714,9 +6765,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
   // groupe, pour que leurs barres latérales se rejoignent (cf. CSS
   // .tse-costream-join-top/-bottom). À appeler APRÈS applySorting (l'adjacence
   // dépend de l'ordre final) et après recomputeFilters (une carte masquée —
-  // offline ou filtrée — ne compte pas comme voisine et ne rompt donc pas la
-  // continuité des deux cartes qui l'encadrent). Idempotent : réinitialise les
-  // marqueurs à chaque passage.
+  // hors ligne, filtrée, ou effacée par le mode global : cf. cardShown — ne
+  // compte pas comme voisine et ne rompt donc pas la continuité des deux
+  // cartes qui l'encadrent). Idempotent : réinitialise les marqueurs à chaque
+  // passage.
   //
   // L'extension de chaque barre vers son voisin = moitié de l'interstice RÉEL
   // mesuré (+1px de recouvrement anti-hairline), pour une jointure exacte quel
@@ -6737,8 +6789,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       c.style.removeProperty('--tse-costream-jb');
     });
     const visible = [...all].filter(c =>
-      c.dataset.tseOffline !== 'true' &&
-      c.style.display !== 'none' &&
+      cardShown(c) &&
       !c.parentElement?.closest('.side-nav-card')  // exclut le <a> interne (mode réduit)
     );
     // 1) Repère les paires voisines à joindre (même clé), sans lire le layout.
@@ -6749,10 +6800,22 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       if (key && key === b.dataset.tseCostreamKey) pairs.push([a, b]);
     }
     if (!pairs.length) return;
-    // 2) Mesure l'interstice de chaque paire (lectures groupées).
-    const exts = pairs.map(([a, b]) =>
-      Math.max(0, b.getBoundingClientRect().top - a.getBoundingClientRect().bottom) / 2 + 1
-    );
+    // 2) Mesure l'interstice de chaque paire (lectures groupées) et ÉCARTE
+    //    celles dont la géométrie ne décrit pas deux cartes qui se suivent.
+    //    Garde-fou volontairement indépendant de cardShown : celui-ci recopie
+    //    nos règles de masquage, celui-là ne croit que la mise en page. Une
+    //    boîte sans hauteur n'a pas d'interstice à combler, et deux cartes
+    //    séparées par plus que leur propre hauteur ne se touchent pas — dans
+    //    les deux cas l'extension calculée peindrait une barre au travers de
+    //    cartes étrangères, ce qui est précisément le défaut à empêcher.
+    const joins = [];
+    for (const [a, b] of pairs) {
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      if (!ra.height || !rb.height) continue;
+      const gap = rb.top - ra.bottom;
+      if (gap > Math.min(ra.height, rb.height)) continue;
+      joins.push([a, b, Math.max(0, gap) / 2 + 1]);
+    }
     // 3) Applique classes + extension à la carte ET à ses cartes internes
     //    (écritures ::before uniquement → pas d'invalidation de layout).
     const mark = (card, cls, varName, ext) => {
@@ -6761,10 +6824,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         el.style.setProperty(varName, `-${ext}px`);
       }
     };
-    pairs.forEach(([a, b], i) => {
-      mark(a, 'tse-costream-join-bottom', '--tse-costream-jb', exts[i]);
-      mark(b, 'tse-costream-join-top', '--tse-costream-jt', exts[i]);
-    });
+    for (const [a, b, ext] of joins) {
+      mark(a, 'tse-costream-join-bottom', '--tse-costream-jb', ext);
+      mark(b, 'tse-costream-join-top', '--tse-costream-jt', ext);
+    }
   }
 
   /* ============================================================
