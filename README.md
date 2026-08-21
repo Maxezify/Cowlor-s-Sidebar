@@ -478,6 +478,20 @@ l'extension l'apprend au premier essai, retombe sur le filtrage par tags et
 cesse d'annoncer l'exactitude. Une coupure réseau, elle, ne condamne rien :
 elle n'apprend rien sur la validité du code.
 
+**Mesuré le 21/08/2026** : les vingt-six codes sont acceptés par l'API. Une
+requête, vingt-six opérations, une par langue — aucune erreur, et vingt-trois
+ont ramené un stream d'exemple.
+
+Ce qui ne veut **pas** dire que le repli est devenu inutile, et il n'est pas
+question de le retirer. Deux raisons. La mesure dit ce qui était vrai ce
+jour-là, pas ce que Twitch acceptera demain — c'est une API privée, sans
+engagement de compatibilité. Et surtout : le champ `broadcasterLanguages`
+**ne figure pas** dans le schéma GraphQL public que Twitch publie, où
+`GameStreamOptions` ne déclare qu'un `languages: [String!]` marqué déprécié.
+L'API vivante l'accepte, le schéma l'ignore : la seule autorité sur ce champ
+est donc l'API elle-même, interrogée à l'exécution. C'est exactement ce que
+fait le repli.
+
 ### Le plafond de 30 vient de l'API
 
 `streams(first:)` est plafonné à 30, et Twitch le dit sans ambiguïté :

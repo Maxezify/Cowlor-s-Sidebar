@@ -458,6 +458,19 @@ first attempt, falls back to tag filtering and stops claiming exactness. A
 network cut, on the other hand, condemns nothing: it teaches nothing about the
 code's validity.
 
+**Measured on 2026-08-21**: all twenty-six codes are accepted by the API. One
+request, twenty-six operations, one per language — no errors, and twenty-three
+came back with a sample stream.
+
+That does **not** make the fallback useless, and it is not going anywhere. Two
+reasons. The measurement says what was true that day, not what Twitch will
+accept tomorrow — this is a private API with no compatibility commitment. And
+more to the point: the `broadcasterLanguages` field **does not appear** in the
+public GraphQL schema Twitch publishes, where `GameStreamOptions` only declares
+a `languages: [String!]` marked deprecated. The live API accepts it, the schema
+ignores it: the only authority on this field is the API itself, queried at
+runtime. Which is precisely what the fallback does.
+
 ### The cap of 30 comes from the API
 
 `streams(first:)` is capped at 30, and Twitch says so plainly:
