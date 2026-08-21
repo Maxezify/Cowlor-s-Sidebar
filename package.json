@@ -8,6 +8,7 @@
     "lint": "eslint content.js adblock.js",
     "parity": "node tests/parity.mjs",
     "promo": "node tests/build.mjs && node promo-run.mjs",
+    "tuile": "node promo-tile.mjs",
     "check": "npm run lint && npm run parity && npm test"
   },
   "devDependencies": {
