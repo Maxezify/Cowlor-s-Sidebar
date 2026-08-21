@@ -2634,6 +2634,17 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Lève le voile en fondu. Nettoie tous les timers et observers du
     // cycle courant. cycleActive repasse à false pour qu'un futur cycle
     // (retour depuis /stories par ex.) puisse être déclenché.
+    // Journal des cycles, borné. Il n'existe que pour répondre à UNE question
+    // qu'on ne peut pas trancher depuis un harnais : au chargement d'une vraie
+    // page Twitch, combien de fois le voile monte-t-il, et pourquoi ? Un
+    // second cycle, ou une levée trop précoce suivie d'une vague de cartes,
+    // se lisent directement ici. Consultable via tse.cycles().
+    const journal = [];
+    const noter = (evt, detail) => {
+      journal.push({ t: Math.round(performance.now()), evt, detail });
+      if (journal.length > 40) journal.shift();
+    };
+
     const finish = () => {
       if (!cycleActive) return;
       cycleActive = false;
@@ -2663,7 +2674,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // LOADING_STABILITY_MS de confirmation.
     const armStability = () => {
       if (stabilityTimer) clearTimeout(stabilityTimer);
-      stabilityTimer = setTimeout(finish, CFG.LOADING_STABILITY_MS);
+      stabilityTimer = setTimeout(() => { noter('levée', 'stabilité'); finish(); },
+                                  CFG.LOADING_STABILITY_MS);
     };
 
     // Annule une confirmation de stabilité en cours (la sidebar bouge
@@ -2722,8 +2734,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Démarre un cycle de voile : crée l'overlay, pose le flag body,
     // installe les observers de repositionnement et le timeout dur.
     // Idempotent : si un cycle est déjà en cours, ne fait rien.
-    const startCycle = () => {
-      if (cycleActive) return;
+    const startCycle = (raison = 'inconnue') => {
+      if (cycleActive) { noter('cycle ignoré', raison); return; }
+      noter('cycle', raison);
       cycleActive = true;
       lastCardCount = 0; // croissance mesurée à partir de zéro pour ce cycle
       held = false;      // un nouveau cycle repart sans verrou hérité
@@ -2759,13 +2772,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
       // 5) Timeout dur : voile levé d'office si jamais aucun scan n'arrive
       //    ou si la sidebar reste indéfiniment en mutation.
-      timeoutTimer = setTimeout(finish, CFG.LOADING_TIMEOUT_MS);
+      timeoutTimer = setTimeout(() => { noter('levée', 'délai maximal'); finish(); },
+                                CFG.LOADING_TIMEOUT_MS);
     };
 
     const init = () => {
       // Démarre un premier cycle immédiatement (le boot Twitch va monter
       // la sidebar et déclencher les scans).
-      startCycle();
+      startCycle('démarrage');
 
       // Observer GLOBAL permanent : détecte les disparitions/réapparitions
       // de #side-nav pour redéclencher un cycle au retour de /stories ou
@@ -2776,7 +2790,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         const present = !!document.querySelector(DOM.sidebarRoot);
         if (present && !wasPresent && !cycleActive) {
           // #side-nav réapparaît après une absence → nouveau cycle.
-          startCycle();
+          startCycle('remount de la sidebar');
         }
         wasPresent = present;
       });
@@ -2784,7 +2798,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     };
 
     return { init, notifyScan,
-      setHold, bumpActivity, startCycle };
+      setHold, bumpActivity, startCycle,
+      journal: () => journal.slice() };
   })();
 
   /* ============================================================
@@ -3309,6 +3324,16 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         [S.consoleColSeen]:  formatDate(s.ts)
       })));
       return samples;
+    },
+    // Journal des cycles de voile : à quel instant le voile est monté, pour
+    // quelle raison, et ce qui l'a fait retomber. Sert à répondre à une
+    // question qu'aucun harnais ne peut trancher — ce que fait VRAIMENT une
+    // page Twitch au chargement.
+    cycles() {
+      const j = loadingOverlay.journal();
+      if (!j.length) { console.log('[tse] aucun cycle de voile enregistré.'); return j; }
+      console.table(j.map(e => ({ 'ms depuis le chargement': e.t, événement: e.evt, détail: e.detail })));
+      return j;
     },
     // Chaînes globales — surface de vérification de la couche de données.
     // Aucune interface ne consomme encore le classement : c'est ici, et
@@ -5366,7 +5391,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // mondial n'a pas été purgé, il est servi immédiatement.
       if (state.globalMode) {
         globalChannels.tick();
-        if (!globalChannels.top(1).length) loadingOverlay.startCycle();
+        if (!globalChannels.top(1).length) loadingOverlay.startCycle('changement de catégorie');
         scheduleScan();
       }
     } else {
@@ -6618,7 +6643,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // déjà « Top Chaînes » — l'interface se contredit. On réutilise le
       // voile du démarrage plutôt que d'en inventer un second, et le verrou
       // ci-dessous le retient jusqu'à ce que les cartes existent.
-      if (!globalChannels.top(1).length) loadingOverlay.startCycle();
+      if (!globalChannels.top(1).length) loadingOverlay.startCycle('entrée dans Top Chaînes');
     }
     // En SORTIR ne purge pas le classement — y revenir doit être instantané,
     // et le pool se périme tout seul s'il n'est plus tiqué (GLOBAL_PRUNE_AGE).
@@ -7156,7 +7181,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // État réduit/étendu observé en dernier, pour détecter les transitions
     // réduit↔étendu. Initialisé sur l'état courant au démarrage afin que la
     // première bascule réelle soit bien vue comme un changement.
-    let lastObservedCollapsed = detectSidebarCollapsed();
+    // null = INCONNU. Lire l'état avant que Twitch ait monté sa sidebar
+    // renverrait « étendu » par défaut — l'élément marqueur n'existe pas
+    // encore — et la première observation réelle serait alors comparée à une
+    // valeur fabriquée. Chez un utilisateur en mode réduit, ou si la sidebar
+    // se monte transitoirement dans l'autre état, cela déclenche une fausse
+    // « bascule » : voile + purge du cache + re-scan complet, en plein
+    // chargement. L'utilisateur voit alors la sidebar s'initialiser deux fois.
+    let lastObservedCollapsed = null;
 
     const obs = new MutationObserver((mutations) => {
       // Un SEUL passage sur les mutations calcule deux choses :
@@ -7211,12 +7243,18 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // VOLONTAIREMENT inconditionnel (hors porte) : le marqueur collapsed est
       // posé sur un ANCÊTRE de #side-nav, donc en dehors de la porte ; on le
       // vérifie donc à chaque mutation pour ne jamais manquer une bascule.
-      const collapsedNow = detectSidebarCollapsed();
-      if (collapsedNow !== lastObservedCollapsed) {
-        lastObservedCollapsed = collapsedNow;
-        loadingOverlay.startCycle();
-        invalidateAndRescan();
-        return; // invalidateAndRescan a déjà relancé un scan complet
+      if (nav) {
+        const collapsedNow = detectSidebarCollapsed();
+        if (lastObservedCollapsed === null) {
+          // Première observation avec une sidebar réellement montée : c'est
+          // la ligne de base, pas une transition.
+          lastObservedCollapsed = collapsedNow;
+        } else if (collapsedNow !== lastObservedCollapsed) {
+          lastObservedCollapsed = collapsedNow;
+          loadingOverlay.startCycle('bascule réduit/étendu');
+          invalidateAndRescan();
+          return; // invalidateAndRescan a déjà relancé un scan complet
+        }
       }
 
       if (relevant) scheduleScan(); // porte : pas de scan pour les mutations hors sidebar
@@ -7428,7 +7466,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       const awayMs = Date.now() - hiddenSince;
       hiddenSince = 0;
       if (awayMs < CFG.REVISIT_RELOAD_MS) return;
-      loadingOverlay.startCycle();
+      loadingOverlay.startCycle('retour d\'onglet');
       invalidateAndRescan();
     });
 
