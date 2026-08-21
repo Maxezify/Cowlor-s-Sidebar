@@ -342,14 +342,24 @@ Then reload the extension (`chrome://extensions` → ↻) and the Twitch tab.
 ## Top Channels (v3.32+)
 
 Twitch's native sort button — the ↕ arrows to the right of "Followed Channels" —
-is hidden, and two tabs replace it at the top of the filter block:
+is hidden, and a segmented control replaces it at the top of the filter block:
 
-    [ Followed Channels ]  [ Top Channels ]
+    ┌───────────────────┬───────────────┐
+    │ Followed Channels │ Top Channels  │
+    └───────────────────┴───────────────┘
+
+A single track, sharing the surfaces of the dropdowns right below it and matching
+their height exactly, with a purple thumb that moves from one segment to the
+other. The mode is an **exclusive** choice: two detached pills, as up to 3.41,
+read as two independent actions. The label is never truncated — in a language
+longer than English the second segment drops below the first rather than
+abbreviating to "Followed Chan…", which would inform nobody.
 
 In **Top Channels**, the sidebar stops showing your subscriptions and shows the
-30 most-watched channels on Twitch instead. The cards are built by the extension
-and inherit everything else: stream uptime, hover preview, thumbnail warming,
-filters.
+30 most-watched channels on Twitch instead. The cards inherit everything else:
+stream uptime, hover preview, thumbnail warming, filters. The extension builds
+them by cloning — **except** for a channel you already follow, whose card Twitch
+already placed and the extension borrows (see "The mode leaves nothing behind").
 
 ### Why it has to be rebuilt
 
@@ -494,6 +504,33 @@ throttles the global mode, "Followed Channels" does not go down with it. Past
 three consecutive failures the cadence backs off on its own and says so in the
 console, in all five languages.
 
+### The mode leaves nothing behind (v3.42)
+
+Two guarantees, learned by fixing two real defects.
+
+**One card per channel.** If you follow a channel that appears in the ranking,
+there used to be two: Twitch's own, hidden, and a counterfeit placed next to it.
+The extension now **borrows** the native card — more faithful than a clone, and
+without the duplicate that co-stream detection took for two distinct
+participants. On leaving the mode, a fabricated card is removed and a borrowed
+card is **given back**: removing it would erase from the sidebar a channel you
+actually follow.
+
+**The ranking does not write into the followed list's cache.** So that a freshly
+placed card does not spend a second showing the numbers of the channel used as a
+template, the mode seeds it with what the structural walk already knows. That
+seed used to live in the **shared** cache — the one read by the language filter,
+the ahead-of-Twitch cards and the mass-extinction guard — and it survived leaving
+the mode. The symptom was visible: a followed channel appearing in the French
+ranking came back carrying a "Français" tag the walk had stamped on it, and the
+followed list's language filter then offered that language for a channel that
+never declared it. The seed now has its own memory, read only by ranking cards
+and emptied on the way out.
+
+Nor does it carry a stream id. The old one fabricated one (`g:login`), which
+could end up in the get-ahead-of-Twitch statistics. A ranking is not the
+observation of a stream; it has no business claiming a stream's identity.
+
 ### What the mode does not do
 
 - The "Open stories" row is hidden, as are the "Live channels" and "Viewers of…"
@@ -622,6 +659,28 @@ takes their place, and green and blue were moved further apart:
 Minimum gap: **43°**, against 5° before. The test harness rejects any pair below
 40° and checks along the way that each `rgba` matches its hex — a typo there
 would give a border of one colour and a glow of another.
+
+#### A hidden card is not a member (v3.41.1)
+
+The bars of two adjacent members **join up**, and the extension measures the
+actual gap between the two cards to do it — the join is therefore exact whatever
+the spacing, notably in collapsed mode where avatars sit further apart.
+
+That assumes both cards exist on screen. There are **three** ways to hide one:
+the offline attribute, an inline `display` set by a filter, and — since "Top
+Channels" — a CSS **class** rule. The third sets neither attribute nor inline
+style: a followed card kept all its markers while no longer having a box.
+Measuring a gap against it meant measuring against a null rectangle, that is,
+extending its partner's bar by half the page. The symptom was a continuous
+vertical line across a dozen unrelated channels, measured at **653 px on a
+148 px card**.
+
+Two fixes, deliberately independent. A single predicate enumerates the three
+ways of hiding and serves both the grouping and the adjacency computation — a
+group is a visual statement, and colouring a card whose other half is not shown
+makes none. On top of it sits a purely geometric guard that believes only the
+layout: no join between two boxes when one has no height, nor across a gap
+larger than the cards themselves.
 
 **What could not be verified.** Ad blocking itself requires a real stream serving
 real ads: it is not testable from the development environment. What *is* verified

@@ -357,14 +357,26 @@ Rechargez ensuite l'extension (`chrome://extensions` → ↻) et l'onglet Twitch
 ## Top Chaînes (v3.32+)
 
 Le bouton de tri natif de Twitch — les flèches ↕ à droite de « Chaînes suivies »
-— est masqué, et deux onglets le remplacent en tête du bloc de filtres :
+— est masqué, et un contrôle segmenté le remplace en tête du bloc de filtres :
 
-    [ Chaînes suivies ]  [ Top Chaînes ]
+    ┌─────────────────┬─────────────┐
+    │ Chaînes suivies │ Top Chaînes │
+    └─────────────────┴─────────────┘
+
+Une piste unique, aux mêmes surfaces que les listes déroulantes juste en dessous
+et exactement à la même hauteur, dans laquelle un curseur violet se déplace d'un
+segment à l'autre. Le mode est un choix **exclusif** : deux pastilles détachées,
+comme jusqu'à la 3.41, le donnaient à lire comme deux actions indépendantes. Le
+libellé n'est jamais tronqué — dans une langue plus longue que le français, le
+second segment passe sous le premier plutôt que de s'abréger en « Chaînes su… »,
+qui n'informerait plus de rien.
 
 En **Top Chaînes**, la sidebar n'affiche plus vos abonnements mais les 30 chaînes
-les plus regardées de Twitch. Les cartes sont fabriquées par l'extension et
-héritent de tout le reste : durée de stream, aperçu au survol, préchargement des
-miniatures, filtres.
+les plus regardées de Twitch. Les cartes héritent de tout le reste : durée de
+stream, aperçu au survol, préchargement des miniatures, filtres. L'extension les
+fabrique par clonage — **sauf** pour une chaîne que vous suivez déjà, dont elle
+emprunte la carte que Twitch a posée (cf. « Le mode ne laisse rien derrière
+lui »).
 
 ### Pourquoi il faut le reconstruire
 
@@ -516,6 +528,35 @@ bride le mode global, « Chaînes suivies » ne s'éteint pas avec lui. Au-delà
 trois échecs consécutifs, la cadence se replie d'elle-même et l'annonce en
 console, dans les cinq langues.
 
+### Le mode ne laisse rien derrière lui (v3.42)
+
+Deux garanties, apprises en corrigeant deux défauts réels.
+
+**Une carte par chaîne.** Si vous suivez une chaîne qui figure au classement,
+il y en avait deux : celle de Twitch, masquée, et une contrefaçon posée à côté.
+L'extension **emprunte** désormais la carte native — plus fidèle qu'un clone, et
+sans le doublon que la détection de co-stream prenait pour deux participants
+distincts. En quittant le mode, une carte fabriquée se retire et une carte
+empruntée **se rend** : la retirer effacerait de la barre latérale une chaîne
+que vous suivez réellement.
+
+**Le classement n'écrit pas dans le cache de la liste suivie.** Pour qu'une
+carte fraîchement posée n'affiche pas une seconde durant les chiffres de la
+chaîne qui a servi de modèle, le mode l'amorce avec ce que la marche
+structurelle sait déjà. Cette amorce vivait dans le cache **partagé** — celui
+que lisent le filtre de langue, les cartes en avance et le garde-fou
+d'extinction de masse — et elle y survivait à la sortie du mode. Le symptôme
+était visible : une chaîne suivie figurant au classement français en repartait
+avec un tag « Français » que la descente avait posé elle-même, et le filtre de
+langue de la liste suivie proposait alors cette langue pour une chaîne qui ne
+l'a jamais déclarée. L'amorce a maintenant sa propre mémoire, lue par les seules
+cartes du classement et vidée en sortant.
+
+Elle ne porte pas non plus d'identifiant de stream. L'ancienne en fabriquait un
+(`g:login`), qui pouvait finir dans les statistiques d'avance sur Twitch. Un
+classement n'est pas l'observation d'un stream ; il n'a pas à s'en donner
+l'identifiant.
+
 ### Ce que le mode ne fait pas
 
 - La rangée « Ouvrir les stories » est masquée, ainsi que les sections
@@ -647,6 +688,30 @@ violet prend leur place, et le vert comme le bleu ont été écartés l'un de l'
 Écart minimum : **43°**, contre 5° auparavant. Le harnais de test refuse toute
 paire sous 40° et vérifie au passage que chaque `rgba` correspond bien à son
 hex — une coquille y donnerait un liseré d'une couleur et un halo d'une autre.
+
+#### Une carte masquée n'est pas un membre (v3.41.1)
+
+Les barres de deux membres voisins se **rejoignent**, et l'extension mesure pour
+cela l'interstice réel entre les deux cartes — la jointure est ainsi exacte quel
+que soit l'espacement, notamment en mode réduit où les avatars sont plus écartés.
+
+Encore faut-il que les deux cartes existent à l'écran. Il y a **trois** façons
+d'en masquer une : l'attribut hors-ligne, un `display` en ligne posé par un
+filtre, et — depuis « Top Chaînes » — une règle CSS de **classe**. La troisième
+ne pose ni attribut ni style en ligne : une carte suivie y gardait toutes ses
+marques alors qu'elle n'avait plus de boîte. Mesurer un interstice contre elle
+revenait à le mesurer contre un rectangle nul, c'est-à-dire à étendre la barre de
+son partenaire de la moitié de la page. Le symptôme était un trait vertical
+continu en travers d'une dizaine de chaînes sans rapport, mesuré à **653 px sur
+une carte de 148**.
+
+Deux corrections, volontairement indépendantes. Un prédicat unique énumère les
+trois masquages et sert aussi bien au regroupement qu'au calcul de voisinage —
+un groupe est une information visuelle, et colorer une carte dont on ne montre
+pas l'autre moitié n'en est pas une. S'y ajoute un garde-fou purement
+géométrique, qui ne croit que la mise en page : pas de jointure entre deux
+boîtes dont l'une n'a pas de hauteur, ni au-delà d'un interstice plus grand que
+les cartes elles-mêmes.
 
 **Ce qui n'a pas pu être vérifié.** Le blocage publicitaire lui-même demande un
 vrai stream servant de vraies publicités : il n'est pas testable depuis
