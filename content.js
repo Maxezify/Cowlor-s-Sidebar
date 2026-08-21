@@ -2035,20 +2035,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       '  }' +
       '}';
 
-    const CATEGORY_TOP_QUERY =
-      'query TseCategoryTop($name: String!, $n: Int!) {' +
-      '  game(name: $name) {' +
-      '    id name viewersCount' +
-      '    streams(first: $n, options: { sort: VIEWER_COUNT }) {' +
-      '      edges { node {' +
-      '        id createdAt viewersCount' +
-      '        broadcaster { id login displayName profileImageURL(width: 70) }' +
-      '        game { id name }' +
-      '        freeformTags { name }' +
-      '      } }' +
-      '    }' +
-      '  }' +
-      '}';
+    // La forme sans langue n'est PAS réécrite à part : la dupliquer créerait
+    // deux sources de vérité pour la même liste de champs, et un champ ajouté
+    // d'un seul côté ferait diverger silencieusement le chemin filtré.
+    const CATEGORY_TOP_QUERY = catTopQuery(null);
 
     // ── État ────────────────────────────────────────────────────────────
     let categories    = [];    // top GLOBAL_CATEGORIES_MAX — classé par l'API
@@ -2073,24 +2063,34 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // opérations, avec null là où la réponse est inexploitable. Ne jette
     // jamais : une tranche ratée ne dégrade que ce qu'elle portait, jamais
     // le reste de la marche.
+    // Rend { out, transport } : `out` est aligné sur les opérations, `transport`
+    // dit qu'au moins une tranche n'est pas ARRIVÉE — réseau coupé, réponse
+    // illisible, taille non alignable.
+    //
+    // La distinction n'est pas cosmétique. Un rejet par le serveur est un
+    // verdict sur la requête ; une panne de transport n'apprend rien sur elle.
+    // Les confondre reviendrait à condamner définitivement un code de langue
+    // sur une simple coupure réseau (cf. langApiRejected).
     const send = async (ops) => {
-      if (!ops.length) return [];
+      if (!ops.length) return { out: [], transport: false };
       const slices = chunk(ops, CFG.GLOBAL_BATCH_OPS);
       stats.ops += ops.length;
       const responses = await Promise.all(slices.map(s => post(s)));
       const out = [];
+      let transport = false;
       responses.forEach((rep, i) => {
         const size = slices[i].length;
         // Une réponse de taille différente n'est PAS alignable : l'accepter
         // attribuerait les streams d'une catégorie à une autre.
         if (rep === NETWORK_ERROR || !Array.isArray(rep) || rep.length !== size) {
           stats.failedSlices += 1;
+          transport = true;
           for (let k = 0; k < size; k++) out.push(null);
           return;
         }
         rep.forEach(r => out.push(r?.errors ? null : (r?.data ?? null)));
       });
-      return out;
+      return { out, transport };
     };
 
     // ── Lecture ─────────────────────────────────────────────────────────
@@ -2126,7 +2126,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
     // ── Récolte ─────────────────────────────────────────────────────────
     const fetchCategories = async () => {
-      const [data] = await send([{
+      const { out: [data] } = await send([{
         operationName: 'TseCategories',
         variables: { n: CFG.GLOBAL_CATEGORIES_MAX },
         query: CATEGORIES_QUERY
@@ -2158,14 +2158,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // distinguer « absente » de « pas regardée ».
     const harvest = async (cats, pool, code = null) => {
       const queried = new Set(), seen = new Set();
-      if (!cats.length) return { queried, seen, done: 0 };
+      if (!cats.length) return { queried, seen, done: 0, transport: false };
       const query = code ? catTopQuery(code) : CATEGORY_TOP_QUERY;
       const ops = cats.map(c => ({
         operationName: 'TseCategoryTop',
         variables: { name: c.name, n: CFG.GLOBAL_STREAMS_MAX },
         query
       }));
-      const data = await send(ops);
+      const { out: data, transport } = await send(ops);
       const now  = Date.now();
       let done = 0;
       data.forEach((d, i) => {
@@ -2187,7 +2187,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           if (!prev || rec.ts >= prev.ts) pool.set(rec.login, rec);
         }
       });
-      return { queried, seen, done };
+      return { queried, seen, done, transport };
     };
 
     // Réconciliation — le cœur de la tolérance à l'échantillonnage.
@@ -2384,7 +2384,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // l'apprend, on le retire du jeu et on refait la passe SANS — le filtre
       // par pool reprendra la main. Une seule fois par langue, pas à chaque
       // cycle : sans cette mémoire, on rejouerait indéfiniment un échec.
-      if (!h.done && want.code) {
+      // On ne condamne le code QUE si le serveur a répondu. Une tranche qui
+      // n'est jamais arrivée ne dit rien de la validité de l'énumération, et
+      // blacklister sur une coupure réseau priverait l'utilisateur de cette
+      // langue pour le reste de la session.
+      if (!h.done && want.code && !h.transport) {
         langApiRejected.add(want.lang);
         applique = false;
         frais.clear();
@@ -2601,7 +2605,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           complete:   complete
             && !(state.globalMode && state.languageFilter
                  && !(wantedScope() && scopeLangApplied)),
-          langApplied: scopeLangApplied,
+          langApplied: !!(wantedScope() && scopeLangApplied),
           language:   state.globalMode ? state.languageFilter : null,
           scope,
           scopeSize:  scopeRanking.length,
