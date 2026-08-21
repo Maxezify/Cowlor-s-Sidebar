@@ -2015,6 +2015,26 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       '  }' +
       '}';
 
+    // Deux formes plutôt qu'une variable typée : déclarer `$langs: [Language!]`
+    // supposerait connaître le nom exact du type dans le schéma de Twitch. On
+    // interpole donc l'énumération, dont la valeur ne vient JAMAIS de
+    // l'extérieur — uniquement de LANG_API, une table close.
+    const catTopQuery = (code) =>
+      'query TseCategoryTop($name: String!, $n: Int!) {' +
+      '  game(name: $name) {' +
+      '    id name viewersCount' +
+      '    streams(first: $n, options: { sort: VIEWER_COUNT' +
+      (code ? `, broadcasterLanguages: [${code}]` : '') + ' }) {' +
+      '      edges { node {' +
+      '        id createdAt viewersCount' +
+      '        broadcaster { id login displayName profileImageURL(width: 70) }' +
+      '        game { id name }' +
+      '        freeformTags { name }' +
+      '      } }' +
+      '    }' +
+      '  }' +
+      '}';
+
     const CATEGORY_TOP_QUERY =
       'query TseCategoryTop($name: String!, $n: Int!) {' +
       '  game(name: $name) {' +
@@ -2136,13 +2156,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Rend les catégories effectivement dépouillées et les chaînes qu'elles
     // ont rendues — les deux ensembles dont la réconciliation a besoin pour
     // distinguer « absente » de « pas regardée ».
-    const harvest = async (cats, pool) => {
+    const harvest = async (cats, pool, code = null) => {
       const queried = new Set(), seen = new Set();
       if (!cats.length) return { queried, seen, done: 0 };
+      const query = code ? catTopQuery(code) : CATEGORY_TOP_QUERY;
       const ops = cats.map(c => ({
         operationName: 'TseCategoryTop',
         variables: { name: c.name, n: CFG.GLOBAL_STREAMS_MAX },
-        query: CATEGORY_TOP_QUERY
+        query
       }));
       const data = await send(ops);
       const now  = Date.now();
@@ -2334,31 +2355,67 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // catégorie a pu survenir, et publier le résultat ressusciterait une
     // portée que plus personne n'a demandée.
     let scopeGen     = 0;
+    // L'API a-t-elle appliqué elle-même le filtre de langue à la portée ?
+    // Si oui, re-filtrer sur les tags par-dessus retirerait les chaînes que
+    // Twitch déclare dans cette langue sans qu'elles portent le tag.
+    let scopeLangApplied = false;
 
-    // Catégorie voulue par l'utilisateur, ou null pour le monde entier.
-    const wantedScope = () =>
-      (state.globalMode && state.categoryFilter) ? state.categoryFilter : null;
+    // Portée voulue : une catégorie, éventuellement restreinte à une langue.
+    // MESURÉ : `game(name:){ streams(options:{broadcasterLanguages:[FR]}) }`
+    // rend bien LE SOMMET FRANÇAIS de la catégorie — sur quatre catégories,
+    // aucune chaîne française du top 30 brut ne manque à l'appel, et la
+    // requête en révèle 23 à 29 de plus que le top 30 brut ne contenait.
+    // Filtrer les trente cartes, lui, n'en laissait que sept.
+    const wantedScope = () => {
+      if (!state.globalMode || !state.categoryFilter) return null;
+      const lang = state.languageFilter;
+      const code = (lang && !langApiRejected.has(lang)) ? (LANG_API[lang] || null) : null;
+      return { name: state.categoryFilter, lang, code,
+               key: state.categoryFilter + '\u0000' + (code || '') };
+    };
 
-    const scopePass = async (name) => {
+    const scopePass = async (want) => {
       const gen = ++scopeGen;
       const started = Date.now();
       const frais = new Map();
-      const h = await harvest([{ name, viewers: 0 }], frais);
+      let applique = !!want.code;
+      let h = await harvest([{ name: want.name, viewers: 0 }], frais, want.code);
+      // Code de langue refusé par le schéma : la requête entière échoue. On
+      // l'apprend, on le retire du jeu et on refait la passe SANS — le filtre
+      // par pool reprendra la main. Une seule fois par langue, pas à chaque
+      // cycle : sans cette mémoire, on rejouerait indéfiniment un échec.
+      if (!h.done && want.code) {
+        langApiRejected.add(want.lang);
+        applique = false;
+        frais.clear();
+        h = await harvest([{ name: want.name, viewers: 0 }], frais);
+      }
       // Périmée pendant l'aller-retour : on jette. Ce n'est PAS un échec —
       // le compter comme tel déclencherait une pause et, au bout de trois,
       // un repli de cadence, alors que rien n'a mal tourné.
       if (gen !== scopeGen) return { ok: true };
       if (!h.done) return { ok: false };
+      // L'API vient d'affirmer que ces chaînes sont dans cette langue. On
+      // pose donc le tag canonique quand il manque : `broadcasterLanguages`
+      // porte sur la langue DÉCLARÉE du stream, alors que nos tags viennent
+      // des freeformTags — un stream français non tagué « Français » serait
+      // sinon rejeté par le filtre d'affichage que l'on vient de satisfaire.
+      if (applique) {
+        for (const rec of frais.values()) {
+          if (!rec.tags.includes(want.lang)) rec.tags = [...rec.tags, want.lang];
+        }
+      }
       // L'état porté est lu APRÈS l'aller-retour, jamais avant : le lire
       // d'abord reviendrait à fusionner un classement qui a pu changer
       // pendant la requête. Changer de catégorie repart donc d'un pool vide —
       // le classement précédent ne dit rien de la nouvelle — tandis que
       // rester dans la même le conserve, pour que la tolérance à
       // l'échantillonnage s'applique ici comme ailleurs.
-      const pool = scope === name ? new Map(scopeRanking.map(r => [r.login, r])) : new Map();
+      const pool = scope === want.key ? new Map(scopeRanking.map(r => [r.login, r])) : new Map();
       for (const [login, rec] of frais) pool.set(login, rec);   // le frais prime
       reconcile(pool, h.queried, h.seen, started);
-      scope        = name;
+      scope        = want.key;
+      scopeLangApplied = applique;
       scopeRanking = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       scopeDirty   = false;
       scopeTs      = Date.now();
@@ -2399,7 +2456,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // mondiale n'a plus lieu d'être tant qu'on y reste.
       const want = wantedScope();
       if (want) {
-        const neuf = want !== scope;
+        const neuf = want.key !== scope;
         if (!neuf && now - scopeTs < CFG.GLOBAL_STRUCT_TICK) return;
         running = true;
         scopePass(want)
@@ -2426,6 +2483,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       ranking = []; rankingDirty = false; rankingTs = 0;
       threshold = 0; windowFloor = 0; lastFullWalk = 0; cooldownUntil = 0;
       scope = null; scopeRanking = []; scopeTs = 0; scopeDirty = false;
+      scopeLangApplied = false;
       scopeGen += 1;   // invalide une passe encore en vol
       failStreak = 0; okStreak = 0; degraded = false; complete = false;
     };
@@ -2451,10 +2509,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       base() {
         const want = wantedScope();
         if (want) {
-          // Servir le classement d'une AUTRE catégorie serait pire que ne
-          // rien servir : l'utilisateur verrait des chaînes qui n'ont rien à
-          // voir avec son choix. On rend une liste vide, le voile couvre.
-          if (want !== scope) return [];
+          // Servir le classement d'une AUTRE portée serait pire que ne rien
+          // servir : l'utilisateur verrait des chaînes qui n'ont rien à voir
+          // avec son choix. On rend une liste vide, le voile couvre.
+          if (want.key !== scope) return [];
           if (scopeDirty) {
             scopeRanking = scopeRanking.slice().sort((a, b) => b.viewers - a.viewers);
             scopeDirty = false;
@@ -2478,17 +2536,27 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // Et cela ne coûte AUCUNE requête : les tags de langue voyagent déjà
       // dans chaque réponse de la marche.
       top(n = CFG.GLOBAL_TOP_N) {
-        const want = state.globalMode ? state.languageFilter : null;
+        const lang = state.globalMode ? state.languageFilter : null;
         const liste = this.base();
-        return (want ? liste.filter(r => r.tags.includes(want)) : liste).slice(0, n);
+        // Portée déjà restreinte PAR L'API : elle rend le sommet de la
+        // catégorie dans cette langue, il n'y a plus rien à filtrer.
+        if (!lang || (wantedScope() && scopeLangApplied)) return liste.slice(0, n);
+        return liste.filter(r => r.tags.includes(lang)).slice(0, n);
       },
 
-      // Langues présentes dans la BASE (et non parmi les cartes affichées) :
-      // sans quoi on ne pourrait choisir qu'une langue déjà visible, ce qui
-      // rendrait le filtre inutilisable.
+      // Langues proposables. Calculées sur le pool MONDIAL, jamais sur la
+      // portée courante — et c'est le point qui rend le filtre utilisable.
+      // Une catégorie dont les 30 plus grosses chaînes sont anglaises ne
+      // proposerait sinon que l'anglais, c'est-à-dire précisément pas la
+      // langue qu'on veut lui demander. Le pool mondial, lui, recense toutes
+      // les langues qui streament réellement à cet instant.
+      //
+      // Repli sur la portée tant que la marche mondiale n'a rien produit —
+      // au premier scan, mieux vaut une liste courte que pas de liste.
       langs() {
         const m = new Map();
-        for (const r of this.base()) {
+        const src = ranking.length ? ranking : this.base();
+        for (const r of src) {
           for (const t of r.tags) {
             if (LANG_SET.has(t)) m.set(t, (m.get(t) || 0) + 1);
           }
@@ -2525,7 +2593,15 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           // Sous filtre de langue, l'inégalité qui fonde l'exactitude ne dit
           // plus rien : une chaîne française sous le top 30 de sa catégorie
           // est invisible pour nous. On cesse donc d'annoncer la complétude.
-          complete:   complete && !(state.globalMode && state.languageFilter),
+          // Sous filtre de langue, le seuil T de la descente mondiale ne dit
+          // plus rien : il a été calculé toutes langues confondues. Sauf
+          // quand la portée est une catégorie et que l'API a appliqué le
+          // filtre elle-même — là, on a bien le sommet de cette catégorie
+          // dans cette langue, et rien n'est approché.
+          complete:   complete
+            && !(state.globalMode && state.languageFilter
+                 && !(wantedScope() && scopeLangApplied)),
+          langApplied: scopeLangApplied,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
           scopeSize:  scopeRanking.length,
@@ -5443,9 +5519,16 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     } else {
       state.languageFilter = value;
       state.filterDriver = value ? 'language' : (state.categoryFilter ? 'category' : null);
-      // En mode Top Chaînes le filtre s'applique au pool déjà récolté : le
-      // classement change, donc les cartes aussi. Aucune requête, aucun voile.
-      if (state.globalMode) scheduleScan();
+      // Sans catégorie, le filtre s'applique au pool déjà récolté : aucune
+      // requête, aucun voile. AVEC une catégorie, la portée change — on
+      // redemande le sommet de cette catégorie dans cette langue.
+      if (state.globalMode) {
+        if (state.categoryFilter) {
+          globalChannels.tick();
+          if (!globalChannels.top(1).length) loadingOverlay.startCycle('changement de langue');
+        }
+        scheduleScan();
+      }
     }
     recomputeFilters();
   }
@@ -5753,7 +5836,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         + `title="${escapeHtml(allTitle)}">${allLabel}</div>`;
       const rows = values.map(v =>
         `<div class="tse-dd-opt" role="option" data-value="${escapeHtml(v)}" aria-selected="${v === current}">`
-        + `<span class="tse-dd-n">${escapeHtml(fmt(counts.get(v) || 0))} |</span>${itemLabel(v)}</div>`).join('');
+        + (() => {
+            const n = fmt(counts.get(v) || 0);
+            // Compteur OMIS quand le formateur rend une chaîne vide : sous
+            // portée catégorie, le nombre décrirait un autre ensemble que
+            // celui qu'on obtiendra en choisissant — autant ne rien dire.
+            return n === '' ? '' : `<span class="tse-dd-n">${escapeHtml(n)} |</span>`;
+          })() + `${itemLabel(v)}</div>`).join('');
       menu.innerHTML = allRow + rows;
     }
     btn.disabled = disabled;
@@ -5816,7 +5905,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       rebuildDropdown(catDD, cats.map(c => c.name), catCount,
                       state.categoryFilter, cats.length === 0, 'cat', formatViewers);
       rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
-                      langCount, Lg, langsPresent.size <= 1, 'lang');
+                      langCount, Lg, langsPresent.size === 0, 'lang',
+                      // Sous portée catégorie, le compteur porterait sur le
+                      // pool mondial alors que la sélection interrogera la
+                      // catégorie : deux ensembles différents, donc silence.
+                      state.categoryFilter ? () => '' : String);
       const wrapG = document.getElementById(FILTER_ID);
       if (wrapG) wrapG.dataset.tseActive = (state.categoryFilter || Lg) ? 'true' : 'false';
       applyCategoryFilter();
@@ -6273,6 +6366,26 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     'Magyar':'HU', 'Română':'RO', 'ไทย':'TH', 'Tiếng Việt':'VN',
     'Bahasa Indonesia':'ID', 'Українська':'UA'
   };
+  // Code attendu par l'API pour `broadcasterLanguages`, en ISO 639-1 majuscule.
+  // DISTINCT du code drapeau de LANG_CC, et les confondre ferait échouer la
+  // requête : le japonais a pour drapeau JP mais pour langue JA, le coréen
+  // KR/KO, le chinois CN/ZH, l'arabe SA/AR, le tchèque CZ/CS, le suédois
+  // SE/SV, le danois DK/DA, le grec GR/EL, le vietnamien VN/VI, l'ukrainien
+  // UA/UK. Onze des vingt-six diffèrent.
+  const LANG_API = {
+    'Français':'FR', 'English':'EN', 'Deutsch':'DE', 'Español':'ES',
+    'Italiano':'IT', 'Português':'PT', 'Русский':'RU', '日本語':'JA',
+    '한국어':'KO', '中文':'ZH', 'Nederlands':'NL', 'Polski':'PL',
+    'Türkçe':'TR', 'العربية':'AR', 'Čeština':'CS', 'Svenska':'SV',
+    'Dansk':'DA', 'Norsk':'NO', 'Suomi':'FI', 'Ελληνικά':'EL',
+    'Magyar':'HU', 'Română':'RO', 'ไทย':'TH', 'Tiếng Việt':'VI',
+    'Bahasa Indonesia':'ID', 'Українська':'UK'
+  };
+  // Langues dont l'API a refusé le code. On cesse de le lui proposer et on
+  // retombe sur le filtrage du pool : mieux vaut un classement approché qu'une
+  // requête répétée qui échoue. Ni deviné ni figé — appris à l'usage.
+  const langApiRejected = new Set();
+
   // Détection de langue : le nom d'un tag freeform doit correspondre EXACTEMENT
   // à l'une des chaînes canoniques (un seul tag par langue ; aucune variante,
   // casse ou traduction). Dérivé de LANG_CC → toute langue détectée a un drapeau.
