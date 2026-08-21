@@ -785,9 +785,58 @@ cowlors-sidebar-for-twitch/
 │   ├── pt_BR/messages.json    Brazilian Portuguese name + description
 │   └── pt_PT/messages.json    European Portuguese name + description
 ├── icons/                 16 / 48 / 128 px icons
+├── package.json           verification tooling ONLY (see below)
+├── eslint.config.mjs      lint rules
+├── tests/
+│   ├── run.mjs              the harness: ~353 assertions across 41 scenarios
+│   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
+│   ├── build.mjs            copies content.js with the timings accelerated
+│   └── parity.mjs           translation-key parity across the 5 languages
 ├── README.md              French version of this file
 └── README.en.md           this file
 ```
+
+**What ships to the browser** is `manifest.json`, `content.js`, `adblock.js`,
+`_locales/` and `icons/` — nothing else. The extension has no dependencies:
+`package.json` and `tests/` exist only to verify it, and are never packaged.
+
+---
+
+## Verification
+
+```bash
+npm install                        # eslint + playwright
+npx playwright install chromium    # once
+npm run check                      # lint + locale parity + harness
+```
+
+Three independent checks:
+
+| Command | What it checks |
+|---|---|
+| `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
+| `npm run parity` | all five translation blocks carry exactly the same keys |
+| `npm test` | the Playwright harness: 41 scenarios, ~353 assertions |
+
+**The harness runs the extension for real**, in Chromium, against a fake
+Twitch: `tests/page.html` reproduces the sidebar's actual DOM (captured from
+the live site, traps included — the section heading lives *inside* the sort
+button, the stories row lives *next to* `#side-nav`, the CSS root is at 62.5%)
+and serves a `gql.twitch.tv` stub driven by fixtures. Several scenarios go
+further and serve the page under `https://www.twitch.tv` via request
+interception: without a real origin, a `postMessage` aimed at the player
+iframe has nowhere to land.
+
+`tests/build.mjs` transforms exactly one thing: the timing constants
+(`LIVE_TTL`, `GLOBAL_STRUCT_TICK`, `GLOBAL_FULL_WALK_MS`…), divided by a
+constant factor so several cycles fit inside a test. The *ratios* between them
+are preserved — those, not the absolute values, are what drive the behaviour.
+The logic under test is the repository's, line for line.
+
+The stub also reproduces the API's measured defects, because a lenient harness
+lets bugs through: `games` comes back sorted but `streams` does not, a channel
+can go missing from one response to the next (sampling), and a stream's
+broadcast language is independent of the tags it displays.
 
 ---
 

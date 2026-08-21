@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Faux Twitch</title>
+<!-- Twitch pose une racine à 62,5 %, soit 10 px : c'est l'échelle contre
+     laquelle TOUT le CSS de l'extension est écrit (1,15rem pour un bouton de
+     filtre, 1,4rem pour un titre d'aperçu, 1,1rem pour un badge). Sans cette
+     règle, le harnais rendait ces tailles sur une base de 16 px — 18,4 px au
+     lieu de 11,5 — et toute mesure de largeur ou de hauteur y était fausse. -->
+<style>html { font-size: 62.5%; }</style>
+</head>
+<body>
+<div id="root">
+  <!-- Rangée des stories, copiée du DOM réel (21/08/2026) : elle vit À CÔTÉ
+       de #side-nav, pas dedans, et sa classe est `storiesLeftNavSection--…`.
+       Une page de test qui la place dans la barre laisse passer le bug. -->
+  <div class="Layout-sc-1xcs6mc-0 dQMmwU storiesLeftNavSection--csO9S" style="margin-top: 0.7rem;">
+    <button><div aria-label="4 chaînes avec des stories non lues">
+      <div><div class="tw-avatar"><img class="tw-image-avatar" alt="36318615" src="https://cdn/a.png"></div></div>
+      <div><div class="tw-avatar"><img class="tw-image-avatar" alt="41812776" src="https://cdn/b.png"></div></div>
+    </div><div aria-label="Ouvrir les stories"><p title="Ouvrir les stories">Ouvrir les stories</p></div></button>
+  </div>
+  <nav id="side-nav">
+    <div class="side-nav__title"><h3>Chaînes suivies</h3></div>
+
+    <div class="side-nav-section" aria-label="Chaînes suivies">
+      <!-- Copie FIDÈLE du DOM réel de Twitch (relevé le 20/08/2026).
+           Le point qui compte : le titre de section vit À L'INTÉRIEUR du
+           bouton de tri, pas à côté. Une page de test qui les sépare laisse
+           passer un bug de renommage — c'est exactement ce qui est arrivé. -->
+      <div class="followed-side-nav-header followed-side-nav-header--expanded">
+        <button id="native-sort" aria-expanded="false" aria-label="Trier par">
+          <div class="followed-side-nav-header__dropdown-trigger">
+            <div data-a-target="side-nav-header-expanded">
+              <h3>Chaînes suivies</h3>
+              <p>  </p>
+            </div>
+            <div><svg width="24" height="24" viewBox="0 0 24 24" role="img">
+              <title>Options de tri</title>
+              <path d="M13 7 8 2 3 7l1.414 1.621L7 6v9h2V6l2.5 2.5L13 7Z"></path>
+            </svg></div>
+          </div>
+        </button>
+      </div>
+      <div id="cards"></div>
+      <button data-a-target="side-nav-show-more-button">Afficher plus</button>
+    </div>
+    <!-- Section de recommandation de Twitch. Elle parle de ce que
+         l'utilisateur suit, donc elle n'a plus de sens en Top Chaînes. -->
+    <div class="side-nav-section" aria-label="Chaînes live">
+      <div class="side-nav-header"><h4>Chaînes live</h4></div>
+      <div id="reco"></div>
+    </div>
+  </nav>
+</div>
+<script>
+// ── Fixtures pilotées depuis le test ────────────────────────────────
+window.__fx = {};          // login -> {id, createdAt, viewers, game, tags} | null (hors ligne)
+window.__gs = {};           // channelId -> session Guest Star simulée
+window.__gsMode = 'ok';     // 'ok' | 'down' (l'API refuse)
+window.__calls = [];       // journal : une entrée par POST { n: nb d'opérations, ops:[logins] }
+window.__failNext = 0;     // nb de POST à faire échouer
+
+// ── Chaînes globales ────────────────────────────────────────────────
+// __cats : [{ name, viewers, streams:[{login, viewers, tags?}] }]
+//   `viewers` de la catégorie est LIBRE : les tests s'en servent pour
+//   fabriquer des cas où la somme des streams connus est très inférieure au
+//   total annoncé — exactement la situation réelle (une catégorie a des
+//   milliers de streams, on n'en voit que le sommet).
+window.__cats = [];
+// L'API rend `games` classé. Mis à true, le stub le rend À L'ENVERS : c'est
+// ainsi qu'on vérifie que le module NE FAIT PAS confiance à cet ordre.
+window.__catsUnsorted = false;
+// L'API rend `streams` en DÉSORDRE (mesuré). Le stub reproduit ce défaut par
+// défaut ; mis à true, il rend l'ordre décroissant.
+window.__catOrdered = false;
+// Fait échouer les SEULES opérations du mode global. Sert à vérifier que la
+// panne reste confinée : la sidebar « Chaînes suivies » doit continuer.
+window.__globalFail = false;
+// Latence (ms) appliquée aux opérations du mode global. Sans elle, la marche
+// structurelle est instantanée dans le harnais et la transition — donc le
+// voile qui la couvre — n'a aucune durée observable.
+window.__catDelay = 0;
+// Logins que les réponses `TseCategoryTop` doivent OMETTRE, pour reproduire
+// l'échantillonnage mesuré de l'API (une chaîne présente 4 appels sur 6).
+window.__hidden = [];
+// Compte les fois où le gestionnaire natif du bouton de tri a été atteint.
+// Doit rester à 0 : l'extension intercepte en phase de capture.
+window.__nativeSortOpened = 0;
+// Nombre de requêtes PORTANT UN FILTRE DE LANGUE à faire échouer au niveau
+// TRANSPORT (comme une coupure réseau), et non à faire rejeter par le
+// serveur. Les deux ne doivent pas avoir les mêmes conséquences.
+window.__failLang = 0;
+
+// Construit une carte fidèle au markup de la sidebar Twitch.
+// Carte d'une section de recommandation (hors « Chaînes suivies »).
+window.__addReco = (login, cat, viewersText) => {
+  const d = window.__addCard(login, cat, viewersText);
+  document.getElementById('reco').appendChild(d);
+  return d;
+};
+
+window.__addCard = (login, cat, viewersText, live = true) => {
+  const d = document.createElement('div');
+  d.className = 'side-nav-card';
+  d.innerHTML =
+    '<a class="side-nav-card__link" data-a-target="side-nav-card" ' +
+        'id="nav-' + login + '" aria-label="' + login + ', ' + cat + '" ' +
+        'data-test-selector="followed-channel" href="/' + login + '">' +
+      '<div class="side-nav-card__avatar' + (live ? '' : ' side-nav-card__avatar--offline') + '">' +
+        '<figure class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/' + login + '.png"></figure></div>' +
+      '<div class="mainblock"><div class="metacell">' +
+        '<div data-a-target="side-nav-card-metadata">' +
+          '<p data-a-target="side-nav-title">' + login + '</p>' +
+          '<p title="' + cat + '">' + cat + '</p>' +
+        '</div>' +
+        '<div class="side-nav-card__live-status"><div><div>' +
+          (live ? '<span class="tw-channel-status-indicator"></span>' : '') +
+          '<span aria-hidden="true">' + viewersText + '</span>' +
+          '<p class="sr-only">' + viewersText + ' spectateurs</p>' +
+        '</div></div></div>' +
+      '</div></div>' +
+    '</a>';
+  document.getElementById('cards').appendChild(d);
+  return d;
+};
+
+// ── Stub réseau : répond aux POST gql.twitch.tv ─────────────────────
+// Bascule en direct la carte que Twitch affichait « Déconnecté ».
+window.__goLive = (login) => {
+  const c = [...document.querySelectorAll('.side-nav-card')]
+    .find(x => x.querySelector('a[href="/' + login + '"]') && x.dataset.tseSynthetic !== 'true');
+  if (!c) return false;
+  c.querySelector('.side-nav-card__avatar').classList.remove('side-nav-card__avatar--offline');
+  c.querySelector('.side-nav-card__live-status > div > div').innerHTML =
+    '<span class="tw-channel-status-indicator"></span><span aria-hidden="true">500</span>';
+  return true;
+};
+
+// Référence conservée : si le module anti-pub accrochait fetch en top-level,
+// window.fetch ne serait plus cette fonction-ci.
+window.fetch = async (url, opt) => {
+  const body = JSON.parse(opt.body);
+  // Une opération porte désormais une LISTE de logins (users(logins:)).
+  const ops = body.flatMap(o => o.variables?.logins || []);
+  window.__calls.push({ n: ops.length, ops, op: body[0]?.operationName,
+                        // Noms de TOUTES les opérations du lot : c'est ce qui
+                        // permet de compter le coût réel d'une passe globale.
+                        names: body.map(o => o.operationName),
+                        cats: body.filter(o => o.operationName === 'TseCategoryTop')
+                                  .map(o => o.variables?.name),
+                        firsts: body.filter(o => o.operationName === 'TseCategoryTop')
+                                    .map(o => o.variables?.n),
+                        // Codes de langue interpolés dans le texte de la
+                        // requête : c'est là qu'on peut les compter.
+                        langs: body.flatMap(o =>
+                          [...(o.query || '').matchAll(/broadcasterLanguages:\s*\[(\w+)\]/g)]
+                            .map(m => m[1])),
+                        form: body[0]?.extensions?.persistedQuery ? 'hash' : 'inline' });
+  if (window.__failNext > 0) { window.__failNext--; throw new TypeError('network down'); }
+  // Coupure CIBLÉE sur TseChannels, les marches du mode global continuant de
+  // passer. C'est la seule façon de figer l'horodatage du cache partagé
+  // pendant que celui du classement, lui, avance — la condition exacte dans
+  // laquelle une amorce écrite dans ce cache prend le dessus sur la réponse
+  // de Twitch. Le laisser au hasard d'une course rendait le défaut
+  // intermittent, donc indémontrable.
+  if (window.__failChannels && body.some(o => o.operationName === 'TseChannels')) {
+    throw new TypeError('network down (TseChannels)');
+  }
+  if (window.__failLang > 0 &&
+      body.some(o => /broadcasterLanguages/.test(o.query || ''))) {
+    window.__failLang--;
+    throw new TypeError('network down');
+  }
+  const mk = (login) => {
+    const f = window.__fx[login];
+    if (f === undefined) return null;          // login inconnu : omis par Twitch
+    return {
+      id: f ? f.id : 'id-' + login,
+      login: window.__upperCaseLogins ? login.toUpperCase() : login,
+      displayName: f && f.name ? f.name : login.charAt(0).toUpperCase() + login.slice(1),
+      profileImageURL: 'https://cdn/api-' + login + '.png',
+      stream: f ? {
+        id: 's-' + login, createdAt: f.createdAt, viewersCount: f.viewers,
+        game: { id: 'g', name: f.game },
+        freeformTags: (f.tags || []).map(n => ({ name: n }))
+      } : null
+    };
+  };
+  // ── Guest Star ────────────────────────────────────────────────────────
+  // __gs      : channelId -> { hostId, hostLogin, guests:[{id,login,combined}] }
+  // __gsMode  : 'ok' (défaut) | 'reject' (hash refusé, inline servi) | 'down'
+  const gsIdsFrom = (o) => {
+    if (o.variables?.options?.channelIDs) return o.variables.options.channelIDs;
+    const m = /channelIDs:\s*\[([^\]]*)\]/.exec(o.query || '');
+    return m ? m[1].split(',').map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean) : [];
+  };
+  const gsAnswer = (ids) => ids.map(id => {
+    const s = (window.__gs || {})[id];
+    return {
+      id,
+      session: s ? {
+        id: 'sess-' + s.hostId + ':' + id,
+        host: { id: s.hostId, login: s.hostLogin, displayName: s.hostLogin },
+        guests: s.guests.map(g => ({
+          id: 'slot-' + g.id,
+          user: {
+            id: g.id, login: g.login, displayName: g.login,
+            stream: { id: 's-' + g.login, viewersCount: g.viewers, collaborationViewersCount: g.combined }
+          }
+        }))
+      } : null
+    };
+  });
+
+  if (window.__catDelay > 0 && body.some(o =>
+        o.operationName === 'TseCategories' || o.operationName === 'TseCategoryTop')) {
+    await new Promise(r => setTimeout(r, window.__catDelay));
+  }
+  const data = body.map(o => {
+    if (o.operationName === 'GuestStarBatchCollaborationQuery' || o.operationName === 'TseGuestStar') {
+      if (window.__gsMode === 'down') return { errors: [{ message: 'service unavailable' }] };
+      return { data: { guestStarChannelCollaboration: gsAnswer(gsIdsFrom(o)) } };
+    }
+    // TsePreview : métadonnées de la popup d'aperçu. Sans réponse crédible ici,
+    // le code conclut « stream hors ligne » et FERME la popup — l'iframe player
+    // n'est alors jamais injectée.
+    if (o.operationName === 'TsePreview') {
+      const login = o.variables?.channelLogin;
+      const f = window.__fx[login];
+      if (!f) return { data: { user: null } };
+      return { data: { user: { id: f.id, stream: {
+        id: 's-' + login,
+        title: f.title || 'Titre de test',
+        // Un label de classification ferait rester l'aperçu sur le JPEG.
+        contentClassificationLabels: f.ccl || [],
+        costreamDetails: null
+      } } } };
+    }
+    if (window.__globalFail &&
+        (o.operationName === 'TseCategories' || o.operationName === 'TseCategoryTop')) {
+      return { errors: [{ message: 'service unavailable' }] };
+    }
+    // ── Chaînes globales : catégories classées ──────────────────────────
+    if (o.operationName === 'TseCategories') {
+      const n = o.variables?.n ?? 10;
+      let list = (window.__cats || []).slice().sort((a, b) => b.viewers - a.viewers);
+      if (window.__catsUnsorted) list = list.reverse();
+      return { data: { games: { edges: list.slice(0, n).map(c => ({
+        node: { id: 'gid-' + c.name, name: c.name,
+                displayName: c.name, viewersCount: c.viewers }
+      })) } } };
+    }
+    // ── Chaînes globales : sommet d'une catégorie ───────────────────────
+    // SÉLECTION PAR RANG, puis DÉSORDRE. C'est le comportement mesuré de
+    // l'API : le sommet est bien celui qu'on demande, mais il n'arrive pas
+    // trié. Reproduire les deux moitiés est ce qui rend le test honnête.
+    if (o.operationName === 'TseCategoryTop') {
+      const c = (window.__cats || []).find(x => x.name === o.variables?.name);
+      if (!c) return { data: { game: null } };
+      const n = o.variables?.n ?? 10;
+      // Filtre de langue : l'option est INTERPOLÉE dans la requête, pas
+      // passée en variable — le stub la lit donc là où elle se trouve.
+      const mLang = /broadcasterLanguages:\s*\[(\w+)\]/.exec(o.query || '');
+      const codeToTag = { FR: 'Français', EN: 'English', DE: 'Deutsch' };
+      const wantTag = mLang ? codeToTag[mLang[1]] : null;
+      if (mLang && !wantTag) {
+        // Code inconnu du schéma simulé : l'API rejette la requête ENTIÈRE,
+        // comme le ferait Twitch sur une valeur d'énumération invalide.
+        return { errors: [{ message: 'Unknown enum value ' + mLang[1] }] };
+      }
+      // La LANGUE DE DIFFUSION d'une chaîne (un réglage de salon, ce que
+      // `broadcasterLanguages` interroge) et les ÉTIQUETTES qu'elle affiche
+      // sont deux choses différentes : une chaîne servie par
+      // broadcasterLanguages: [FR] ne porte pas forcément le tag « Français ».
+      // Le stub les distingue donc — `lang` pour le réglage, `tags` pour ce
+      // qui est affiché — et retombe sur le tag quand `lang` n'est pas
+      // précisé, pour ne rien changer aux décors existants.
+      const parle = (s) => s.lang ? s.lang === mLang[1] : (s.tags || []).includes(wantTag);
+      const visibles = c.streams
+        .filter(s => !(window.__hidden || []).includes(s.login))
+        .filter(s => !mLang || parle(s));
+      const top = visibles.slice().sort((a, b) => b.viewers - a.viewers).slice(0, n);
+      const out = window.__catOrdered ? top : top.slice().reverse();
+      return { data: { game: {
+        id: 'gid-' + c.name, name: c.name, viewersCount: c.viewers,
+        streams: { edges: out.map(s => ({ node: {
+          id: 's-' + s.login,
+          createdAt: s.createdAt || '2026-01-01T00:00:00.000Z',
+          viewersCount: s.viewers,
+          // MÊME identifiant que celui servi par TseChannels quand la chaîne
+          // est aussi une fixture : sur le vrai Twitch, `broadcaster.id` et
+          // `user.id` désignent la même chaîne. Les faire diverger cachait un
+          // défaut — la résolution Guest Star d'une carte du classement ne
+          // trouvait alors jamais sa session.
+          broadcaster: { id: (window.__fx[s.login] || {}).id || 'id-' + s.login,
+                         login: s.login, displayName: s.login,
+                         profileImageURL: 'https://cdn/api-' + s.login + '.png' },
+          game: { id: 'gid-' + c.name, name: c.name },
+          freeformTags: (s.tags || []).map(t => ({ name: t }))
+        } })) }
+      } } };
+    }
+    if (o.operationName !== 'TseChannels') return { data: {} };
+    let users = (o.variables.logins || []).map(mk).filter(Boolean);
+    // Twitch ne garantit pas l'ordre : on le mélange pour que le code soit
+    // obligé de s'indexer sur le login et non sur la position.
+    if (window.__shuffle) users = users.slice().reverse();
+    return { data: { users } };
+  });
+  return { ok: true, json: async () => data };
+};
+window.__mockFetch = window.fetch;
+
+// Gestionnaires « de Twitch » sur le bouton de tri, posés en phase de
+// BOUILLONNEMENT comme le ferait React.
+for (const type of ['pointerdown', 'click']) {
+  document.getElementById('native-sort').addEventListener(type, () => {
+    window.__nativeSortOpened++;
+  });
+}
+
+// Montage TARDIF de la sidebar, piloté par le test (page.addInitScript).
+// Reproduit ce que fait Twitch : au moment où l'extension démarre, #side-nav
+// n'existe pas encore ; il apparaît ensuite, éventuellement en mode réduit.
+// C'est la seule façon d'éprouver la ligne de base « réduit/étendu », qu'une
+// page où la sidebar est déjà là ne peut pas mettre en défaut.
+if (window.__lateMount) {
+  const nav = document.getElementById('side-nav');
+  const parent = nav.parentElement;
+  nav.remove();
+  setTimeout(() => {
+    if (window.__lateCollapsed) parent.classList.add('side-nav--collapsed');
+    parent.appendChild(nav);
+  }, 400);
+}
+</script>
+<!-- Ordre identique au manifeste : anti-pub d'abord, sidebar ensuite. -->
+<script src="./adblock.test.js"></script>
+<script src="./content.test.js"></script>
+</body></html>

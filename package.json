@@ -1,0 +1,16 @@
+{
+  "name": "cowlors-sidebar",
+  "version": "3.42.0",
+  "private": true,
+  "description": "Outillage de vérification de l'extension. Le produit livré reste manifest.json + content.js + adblock.js ; rien d'ici n'est empaqueté.",
+  "scripts": {
+    "test": "node tests/build.mjs && node tests/run.mjs",
+    "lint": "eslint content.js adblock.js",
+    "parity": "node tests/parity.mjs",
+    "check": "npm run lint && npm run parity && npm test"
+  },
+  "devDependencies": {
+    "eslint": "^10.1.0",
+    "playwright": "^1.56.1"
+  }
+}

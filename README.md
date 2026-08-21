@@ -815,9 +815,60 @@ cowlors-sidebar-for-twitch/
 │   ├── pt_BR/messages.json    nom + description en portugais (Brésil)
 │   └── pt_PT/messages.json    nom + description en portugais (Portugal)
 ├── icons/                 icônes 16 / 48 / 128 px
+├── package.json           outillage de vérification UNIQUEMENT (cf. plus bas)
+├── eslint.config.mjs      règles de lint
+├── tests/
+│   ├── run.mjs              le harnais : ~353 assertions, 41 scénarios
+│   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
+│   ├── build.mjs            copie content.js avec les durées accélérées
+│   └── parity.mjs           parité des clés de traduction entre les 5 langues
 ├── README.md              ce fichier
 └── README.en.md           version anglaise
 ```
+
+**Ce qui est livré au navigateur**, c'est `manifest.json`, `content.js`,
+`adblock.js`, `_locales/` et `icons/` — rien d'autre. L'extension n'a aucune
+dépendance : `package.json` et `tests/` ne servent qu'à la vérifier, et ne sont
+jamais empaquetés.
+
+---
+
+## Vérification
+
+```bash
+npm install                        # eslint + playwright
+npx playwright install chromium    # une fois
+npm run check                      # lint + parité des locales + harnais
+```
+
+Trois vérifications, indépendantes :
+
+| Commande | Ce qu'elle contrôle |
+|---|---|
+| `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
+| `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
+| `npm test` | le harnais Playwright : 41 scénarios, ~353 assertions |
+
+**Le harnais fait tourner l'extension pour de vrai**, dans Chromium, contre un
+faux Twitch : `tests/page.html` reproduit le DOM réel de la barre latérale
+(relevé sur le site, y compris ses pièges — le titre de section vit *à
+l'intérieur* du bouton de tri, la rangée des stories vit *à côté* de
+`#side-nav`, la racine CSS est à 62,5 %) et sert un stub de `gql.twitch.tv`
+piloté par des fixtures. Plusieurs scénarios vont plus loin et servent la page
+sous `https://www.twitch.tv` par interception réseau : sans une origine réelle,
+un `postMessage` vers l'iframe du lecteur n'a nulle part où arriver.
+
+`tests/build.mjs` ne transforme qu'une chose : les constantes de temps
+(`LIVE_TTL`, `GLOBAL_STRUCT_TICK`, `GLOBAL_FULL_WALK_MS`…), divisées d'un
+facteur constant pour que plusieurs cycles tiennent dans un test. Les
+*rapports* entre elles sont conservés — c'est eux, et non les valeurs absolues,
+qui décident du comportement. La logique éprouvée est celle du dépôt, ligne
+pour ligne.
+
+Le stub reproduit aussi les défauts mesurés de l'API, parce qu'un harnais trop
+gentil laisse passer les bugs : `games` arrive classé mais `streams` ne l'est
+pas, une chaîne peut manquer d'une réponse à l'autre (échantillonnage), et la
+langue de diffusion d'un stream est indépendante des étiquettes qu'il affiche.
 
 ---
 

@@ -1,0 +1,10 @@
+# Dépendances de l'outillage de test. Le produit livré n'en a aucune.
+node_modules/
+package-lock.json
+
+# Sortie de tests/build.mjs : content.js et adblock.js recopiés avec les
+# constantes de temps accélérées. Régénéré à chaque `npm test`, jamais édité
+# à la main — le versionner reviendrait à versionner un artefact dérivé, et à
+# risquer de le voir diverger de sa source.
+tests/content.test.js
+tests/adblock.test.js
