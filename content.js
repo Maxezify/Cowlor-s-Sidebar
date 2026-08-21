@@ -257,6 +257,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Servent de repli structurel pour toute UI Twitch dont la langue n'est
     // pas explicitement listée (fr/en/de/es/pt) — détection indépendante des libellés.
     followedHeaderSelector:  '[class*="followed-side-nav-header"]',
+    // Rangée « Ouvrir les stories » (vignettes + libellé), masquée en mode
+    // Top Chaînes où elle n'a plus de rapport avec ce qui est affiché.
+    // Repérée par un hook d'automatisation ou une classe SÉMANTIQUE : les
+    // classes hachées de Twitch (Layout-sc-…) changent, mais il conserve à
+    // côté des noms lisibles — c'est déjà ce qui rend followed-side-nav-header
+    // exploitable. Un match textuel serait pire : « stories » se traduit
+    // (« historias » en espagnol), la classe non.
+    storiesSelector:         '[data-a-target*="stories" i], [class*="stories" i]',
     followedCardSelector:    'a[data-test-selector="followed-channel"]',
     // Indicateur de statut live (point coloré) présent sur une carte EN LIGNE,
     // absent d'une carte hors-ligne. Sélecteur Twitch → centralisé ici (utilisé
@@ -1479,7 +1487,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
        plus longue (« Kanäle, denen du folgst ») le second passe en dessous,
        toujours entièrement lisible. Une ellipse aurait donné « Chaînes su… »,
        ce qui n'informe plus de rien. */
-    .tse-mode-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .tse-mode-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    /* Rangée des stories : masquée UNIQUEMENT en mode Top Chaînes. Elle
+       reste intacte sur les chaînes suivies, où elle a du sens. */
+    body.tse-global-mode [data-tse-stories="row"] { display: none !important; }
     .tse-mode-tab {
       flex: 1 1 auto;
       padding: 7px 8px; border: 0; border-radius: 4px;
@@ -5596,6 +5607,32 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    * aria-expanded (= le trigger du modal). Marquage idempotent via dataset.
    */
   /**
+   * Marque la rangée « Ouvrir les stories » pour que le CSS puisse la masquer
+   * en mode Top Chaînes. On remonte du repère jusqu'au bloc de premier niveau
+   * de la barre latérale : c'est lui qui porte la rangée ENTIÈRE, vignettes
+   * comprises, et non le seul libellé.
+   *
+   * Garde-fou : on refuse de marquer un bloc qui contient des cartes. Si
+   * Twitch réorganisait sa barre au point que le repère se retrouve dans la
+   * section suivie, la remontée finirait par englober la liste — mieux vaut
+   * ne rien masquer que vider la sidebar.
+   */
+  function tagStoriesRow() {
+    const nav = document.querySelector(DOM.sidebarRoot);
+    if (!nav) return;
+    if (nav.querySelector('[data-tse-stories="row"]')) return;
+    const hit = nav.querySelector(DOM.storiesSelector);
+    if (!hit) return;
+    let el = hit;
+    while (el.parentElement && el.parentElement !== nav
+           && !el.parentElement.classList.contains('side-nav-section')) {
+      el = el.parentElement;
+    }
+    if (el === nav || el.querySelector('.side-nav-card')) return;
+    el.setAttribute('data-tse-stories', 'row');
+  }
+
+  /**
    * Masque l'en-tête natif de la section suivie — titre ET bouton de tri.
    *
    * C'était déjà l'intention d'origine ; elle reposait sur un match TEXTUEL
@@ -6705,11 +6742,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           setGlobalMode(wanted);
         });
       });
-      // En BAS du bloc filtre, et c'est ce qui le pose exactement là où
-      // Twitch mettait son en-tête « Chaînes suivies ↑↓ » : ce bloc est le
-      // dernier élément avant lui. L'en-tête masqué, les deux boutons
-      // occupent sa place, au contact des cartes qu'ils commandent.
-      filterBar.append(row);
+      // En TÊTE du bloc filtre : la bascule décide de CE QU'ON REGARDE, les
+      // filtres ne font que restreindre à l'intérieur. Elle se lit donc en
+      // premier, juste sous la rangée des stories.
+      filterBar.prepend(row);
     }
     row.setAttribute('aria-label', S.uiModeMenuAria);
     row.querySelectorAll('[data-tse-mode]').forEach(btn => {
@@ -7135,6 +7171,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     ensureFilterBar();
     ensureSortRow();
     ensureModeRow();
+    tagStoriesRow();
     ensureGlobalBanner();
     hideNativeFollowedHeader();
     renameRootTitle();
