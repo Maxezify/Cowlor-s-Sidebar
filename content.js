@@ -2446,7 +2446,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       },
       // Classement courant, retrié à la demande si un compteur frais est
       // arrivé depuis le dernier tri.
-      top(n = CFG.GLOBAL_TOP_N) {
+      // Base courante AVANT filtre de langue : le classement mondial, ou
+      // celui de la catégorie choisie. Triée, jamais tronquée.
+      base() {
         const want = wantedScope();
         if (want) {
           // Servir le classement d'une AUTRE catégorie serait pire que ne
@@ -2457,13 +2459,41 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
             scopeRanking = scopeRanking.slice().sort((a, b) => b.viewers - a.viewers);
             scopeDirty = false;
           }
-          return scopeRanking.slice(0, n);
+          return scopeRanking;
         }
         if (rankingDirty) {
           ranking = ranking.slice().sort((a, b) => b.viewers - a.viewers);
           rankingDirty = false;
         }
-        return ranking.slice(0, n);
+        return ranking;
+      },
+
+      // Classement servi à l'interface : la base, filtrée par la langue
+      // choisie, puis tronquée.
+      //
+      // Le filtre s'applique au POOL — un millier et demi de chaînes
+      // récoltées par la marche — et non aux 30 affichées. Filtrer l'affichage
+      // n'en laisserait que deux ou trois ; filtrer le pool rend les 30
+      // chaînes les plus regardées de cette langue parmi tout ce qu'on a vu.
+      // Et cela ne coûte AUCUNE requête : les tags de langue voyagent déjà
+      // dans chaque réponse de la marche.
+      top(n = CFG.GLOBAL_TOP_N) {
+        const want = state.globalMode ? state.languageFilter : null;
+        const liste = this.base();
+        return (want ? liste.filter(r => r.tags.includes(want)) : liste).slice(0, n);
+      },
+
+      // Langues présentes dans la BASE (et non parmi les cartes affichées) :
+      // sans quoi on ne pourrait choisir qu'une langue déjà visible, ce qui
+      // rendrait le filtre inutilisable.
+      langs() {
+        const m = new Map();
+        for (const r of this.base()) {
+          for (const t of r.tags) {
+            if (LANG_SET.has(t)) m.set(t, (m.get(t) || 0) + 1);
+          }
+        }
+        return m;
       },
       // Top des catégories, avec leur audience. Alimentera le filtre
       // catégorie du mode global (« 523k | Dota 2 »).
@@ -2491,10 +2521,15 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       report() {
         return {
           enabled:    state.globalMode,
+          // Le seuil T de la descente a été calculé TOUTES LANGUES CONFONDUES.
+          // Sous filtre de langue, l'inégalité qui fonde l'exactitude ne dit
+          // plus rien : une chaîne française sous le top 30 de sa catégorie
+          // est invisible pour nous. On cesse donc d'annoncer la complétude.
+          complete:   complete && !(state.globalMode && state.languageFilter),
+          language:   state.globalMode ? state.languageFilter : null,
           scope,
           scopeSize:  scopeRanking.length,
           degraded,
-          complete,
           threshold,
           windowFloor,
           pool:       ranking.length,
@@ -5408,6 +5443,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     } else {
       state.languageFilter = value;
       state.filterDriver = value ? 'language' : (state.categoryFilter ? 'category' : null);
+      // En mode Top Chaînes le filtre s'applique au pool déjà récolté : le
+      // classement change, donc les cartes aussi. Aucune requête, aucun voile.
+      if (state.globalMode) scheduleScan();
     }
     recomputeFilters();
   }
@@ -5617,18 +5655,29 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    * section suivie, la remontée finirait par englober la liste — mieux vaut
    * ne rien masquer que vider la sidebar.
    */
+  const STORIES_RE = /stories/i;
+  const classOf = (el) => el?.getAttribute?.('class') || '';
+
   function tagStoriesRow() {
     const nav = document.querySelector(DOM.sidebarRoot);
     if (!nav) return;
-    if (nav.querySelector('[data-tse-stories="row"]')) return;
-    const hit = nav.querySelector(DOM.storiesSelector);
-    if (!hit) return;
-    let el = hit;
-    while (el.parentElement && el.parentElement !== nav
-           && !el.parentElement.classList.contains('side-nav-section')) {
+    // La rangée n'est PAS dans #side-nav : relevé sur DOM réel, elle porte
+    // `storiesLeftNavSection--…` et vit dans le conteneur de navigation, à
+    // côté de la barre. Chercher depuis #side-nav ne pouvait donc rien
+    // trouver. On part du parent, ce qui couvre les deux emplacements.
+    const root = nav.parentElement || nav;
+    if (root.querySelector('[data-tse-stories="row"]')) return;
+    let el = root.querySelector(DOM.storiesSelector);
+    if (!el) return;
+    // Prendre le bloc le PLUS EXTERNE de la grappe « stories » : le repère
+    // peut être un descendant, et masquer lui seul laisserait les vignettes.
+    // On ne remonte que tant que le parent est LUI AUSSI marqué stories —
+    // remonter à l'aveugle finirait par emporter la barre entière.
+    while (el.parentElement && el.parentElement !== root
+           && STORIES_RE.test(classOf(el.parentElement))) {
       el = el.parentElement;
     }
-    if (el === nav || el.querySelector('.side-nav-card')) return;
+    if (el === nav || el.contains(nav) || el.querySelector('.side-nav-card')) return;
     el.setAttribute('data-tse-stories', 'row');
   }
 
@@ -5758,12 +5807,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // La sélection n'est PAS validée contre les catégories connues : la
       // liste peut être vide au tout premier scan, et invalider le choix de
       // l'utilisateur à cet instant le lui ferait perdre sans raison.
-      const langsPresent = new Set(records.flatMap(r => r.langs));
+      // Les langues viennent du POOL récolté, pas des cartes affichées.
+      const langCount = globalChannels.langs();
+      const langsPresent = new Set(langCount.keys());
       const Lg = state.languageFilter && langsPresent.has(state.languageFilter)
         ? state.languageFilter : null;
       state.languageFilter = Lg;
-      const langCount = new Map([...langsPresent].map(l =>
-        [l, records.filter(r => r.langs.includes(l)).length]));
       rebuildDropdown(catDD, cats.map(c => c.name), catCount,
                       state.categoryFilter, cats.length === 0, 'cat', formatViewers);
       rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
