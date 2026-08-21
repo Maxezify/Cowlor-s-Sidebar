@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.40.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.41.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -422,20 +422,41 @@ itself prints on its cards, even in French ("Just Chatting", not "Discussions")
 Going back to "all categories" is **instant**: the global ranking is never
 purged.
 
-### Language: two behaviours, and only one is exact
+### Language: a walk, not a filter (v3.41)
+
+Picking a language does not narrow the display — **it changes what is asked**,
+exactly like a category does.
 
 | situation | what happens | exact? |
 | --- | --- | --- |
 | **Category + language** | dedicated `broadcasterLanguages` query → the 30 biggest of that language **within that category** | **yes** |
-| **Global + language** | filters the ~1,600-channel pool already harvested | **no**, and the banner says so |
+| **Global + language** | the whole walk is run IN THAT LANGUAGE: every visited category is queried with the filter | **yes** |
+| Language whose code the API rejects | falls back to tag-filtering the already-harvested pool | **no**, and the banner says so |
 
-The second case yields "channels of that language that appear in their
-category's top 30". A French channel below that cut stays invisible. It is
-approximate, and it is announced as such.
+The guarantee survives untouched: `viewers(stream) ≤ viewers(category)` holds
+language by language, since a category's total bounds its French channels just
+as well as the rest.
+
+What this changes in practice: the 30-per-category cap hid every channel of a
+minority language as soon as a category was dominated by another one. A French
+channel with 800 viewers in Just Chatting was invisible — that category's
+all-language top 30 stops far higher. It now shows up.
 
 Measured across four categories, both queries at the same instant: the filtered
 query loses **no** French channel from the unfiltered top 30, and reveals 23 to
 29 that this top did not contain.
+
+The language walk **replaces** the all-language walk rather than adding to it:
+~101 operations instead of ~64, i.e. two more batched HTTP requests per walk,
+and only while a language is selected. The last all-language ranking is kept,
+so going back to "all languages" is **instant**.
+
+One precaution that matters: the code the API expects is ISO 639-1 (`JA`, `KO`,
+`CS`, `EL`…) and **not** the flag code (`JP`, `KR`, `CZ`, `GR`…) — eleven of the
+twenty-six differ. Should Twitch reject one, the extension learns it on the
+first attempt, falls back to tag filtering and stops claiming exactness. A
+network cut, on the other hand, condemns nothing: it teaches nothing about the
+code's validity.
 
 ### The cap of 30 comes from the API
 
@@ -453,6 +474,7 @@ This holds for **every** category. No exception is possible.
 | Light structural pass | 30 s | ~11 operations, **one** batched request |
 | Full walk (drift safety net) | 2 min 30 | ~64 operations |
 | Category selected | 30 s | **1** operation |
+| Language selected (no category) | 2 min 30 | ~101 operations instead of ~64 |
 
 The module has its **own** cooldown, separate from the sidebar's: if Twitch
 throttles the global mode, "Followed Channels" does not go down with it. Past

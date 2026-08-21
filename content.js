@@ -2237,16 +2237,33 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Redescend toutes les catégories au-dessus de T. `complete` dit si la
     // descente s'est arrêtée sur la condition d'exactitude plutôt que sur le
     // budget ou sur le bord de la fenêtre.
-    const fullWalk = async () => {
+    const fullWalk = async (wl) => {
+      const gen = ++walkGen;
       const started = Date.now();
+      // Langue portée LUE À L'ENTRÉE, avant tout aller-retour : la relire
+      // après reviendrait à décider du sort du pool sur un état qui a pu
+      // changer entre-temps.
+      const langAvant = worldLang;
       const cats = await fetchCategories();
       if (!cats) return { ok: false, complete: false };
       categories   = cats;
       categoriesTs = started;
 
-      const pool = carryOver();
+      // Changer de langue invalide le pool : les chaînes portées ne sont pas
+      // celles de la nouvelle. On repart à vide plutôt que de mélanger.
+      const pool = (wl?.lang || null) === langAvant ? carryOver() : new Map();
       const seed = cats.slice(0, CFG.GLOBAL_SEED_CATEGORIES);
-      const a = await harvest(seed, pool);
+      let code = wl?.code || null;
+      let a = await harvest(seed, pool, code);
+      // Code d'énumération refusé PAR LE SERVEUR (une coupure réseau
+      // n'apprend rien) : on le retire du jeu et on refait l'amorce sans lui.
+      // Le filtre par tags reprendra alors la main, en moins exact.
+      if (!a.done && code && !a.transport) {
+        langApiRejected.add(wl.lang);
+        code = null;
+        pool.clear();
+        a = await harvest(seed, pool);
+      }
       if (!a.done) return { ok: false, complete: false };
 
       // T est calculé APRÈS l'amorce puis figé pour toute la descente. Il ne
@@ -2267,7 +2284,17 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         todo.push(c);
       }
 
-      const b = await harvest(todo, pool);
+      const b = await harvest(todo, pool, code);
+      if (gen !== walkGen) return { ok: true, complete: false };  // périmée
+      // L'API vient d'affirmer la langue de ces chaînes : on pose le tag
+      // canonique quand il manque, pour la même raison que dans scopePass —
+      // `broadcasterLanguages` porte sur la langue déclarée du stream, nos
+      // tags viennent des freeformTags.
+      if (code) {
+        for (const rec of pool.values()) {
+          if (!rec.tags.includes(wl.lang)) rec.tags = [...rec.tags, wl.lang];
+        }
+      }
       reconcile(pool,
                 new Set([...a.queried, ...b.queried]),
                 new Set([...a.seen,    ...b.seen]),
@@ -2293,6 +2320,20 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       complete = !truncated
         && (cats.length < CFG.GLOBAL_CATEGORIES_MAX || windowFloor <= threshold);
 
+      // Langue finale calculée AVANT d'être publiée, et relue nulle part
+      // ensuite : la marche n'interroge plus l'état global une fois ses
+      // allers-retours terminés, elle ne fait que l'écrire.
+      const langFinal = code ? wl.lang : null;
+      // require-atomic-updates signale ici une course que deux gardes
+      // interdisent déjà, et qu'il ne peut pas voir : `running` empêche deux
+      // marches simultanées, et `walkGen` fait abandonner une marche périmée
+      // avant ce point. La règle se contente de constater une lecture
+      // (langAvant) et une écriture séparées par un await.
+      // eslint-disable-next-line require-atomic-updates
+      worldLang = langFinal;
+      // Le pool toutes langues n'est mis à jour que par une marche toutes
+      // langues — sinon la liste des langues se refermerait sur elle-même.
+      if (!langFinal) allLangPool = ranking;
       lastFullWalk = rankingTs;
       stats.walks += 1;
       stats.lastMs = rankingTs - started;
@@ -2303,8 +2344,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Ne remplace pas la marche complète : elle la retarde. Un seul appel
     // `games(first: 100)` donne TOUS les totaux de catégories, donc aucune
     // catégorie ne peut franchir T sans qu'on le voie au cycle suivant.
-    const lightPass = async () => {
+    const lightPass = async (wl) => {
+      const gen = ++walkGen;
       const started = Date.now();
+      const langAvant = worldLang;
       const cats = await fetchCategories();
       if (!cats) return { ok: false };
       const prev = new Map(categories.map(c => [c.name, c.viewers]));
@@ -2328,10 +2371,21 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       }
 
       const pool = carryOver();
-      const h = await harvest(seed.concat(crossed), pool);
+      // La passe légère suit la langue de la marche en cours. Elle ne
+      // l'INSTAURE jamais : c'est la marche complète qui décide, et qui sait
+      // repartir d'un pool vide quand la langue change.
+      const code = langAvant ? (wl?.code || null) : null;
+      const h = await harvest(seed.concat(crossed), pool, code);
+      if (gen !== walkGen) return { ok: true };                   // périmée
       if (!h.done) return { ok: false };
+      if (code) {
+        for (const rec of pool.values()) {
+          if (!rec.tags.includes(langAvant)) rec.tags = [...rec.tags, langAvant];
+        }
+      }
       reconcile(pool, h.queried, h.seen, started);
       publish(pool);
+      if (!langAvant) allLangPool = ranking;
       stats.light += 1;
       stats.lastMs = rankingTs - started;
       return { ok: true };
@@ -2355,6 +2409,25 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // catégorie a pu survenir, et publier le résultat ressusciterait une
     // portée que plus personne n'a demandée.
     let scopeGen     = 0;
+    // Langue de la descente MONDIALE en cours, ou null pour « toutes ».
+    // Une descente en langue applique `broadcasterLanguages` à CHAQUE
+    // catégorie visitée : l'inégalité viewers(stream) ≤ viewers(catégorie)
+    // reste vraie langue par langue, donc la garantie survit telle quelle.
+    // Elle REMPLACE la descente toutes langues plutôt que de s'y ajouter —
+    // l'ajouter reviendrait à payer les deux, pour ~134 opérations au lieu
+    // de ~101.
+    let worldLang = null;
+    // Dernier pool TOUTES LANGUES publié. Conservé pour deux usages précis :
+    //   • la liste des langues proposables — un pool français ne proposerait
+    //     que le français, c'est-à-dire pas les langues qu'on veut demander ;
+    //   • le retour à « toutes les langues », servi instantanément au lieu
+    //     d'attendre une nouvelle marche.
+    let allLangPool = [];
+    // Génération de marche, même rôle que scopeGen pour les portées : une
+    // marche lit l'état avant ses allers-retours et l'écrit après. Entre les
+    // deux, un reset() a pu survenir, et publier le résultat ressusciterait
+    // un classement que plus personne n'a demandé.
+    let walkGen = 0;
     // L'API a-t-elle appliqué elle-même le filtre de langue à la portée ?
     // Si oui, re-filtrer sur les tags par-dessus retirerait les chaînes que
     // Twitch déclare dans cette langue sans qu'elles portent le tag.
@@ -2372,6 +2445,23 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       const code = (lang && !langApiRejected.has(lang)) ? (LANG_API[lang] || null) : null;
       return { name: state.categoryFilter, lang, code,
                key: state.categoryFilter + '\u0000' + (code || '') };
+    };
+
+    // Langue voulue pour la descente MONDIALE. Nulle dès qu'une catégorie est
+    // choisie : c'est alors la portée qui porte la langue (cf. wantedScope).
+    // Rend null dès que la langue n'est PAS demandable à l'API — code absent
+    // de LANG_API, ou refusé par le serveur. Et c'est délibérément le même
+    // résultat que « aucune langue » : la descente ne se lance pas, le
+    // classement reste celui de toutes les langues, et top() applique le
+    // filtre par tags. Une langue sans code utilisable dégrade donc vers
+    // l'approximation au lieu de laisser la barre latérale vide — ce qui
+    // arriverait si la descente était réclamée sans pouvoir aboutir.
+    const wantedLang = () => {
+      if (!state.globalMode || state.categoryFilter) return null;
+      const lang = state.languageFilter;
+      if (!lang || langApiRejected.has(lang)) return null;
+      const code = LANG_API[lang];
+      return code ? { lang, code } : null;
     };
 
     const scopePass = async (want) => {
@@ -2470,13 +2560,25 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         return;
       }
 
-      const needFull = !ranking.length || now - lastFullWalk >= CFG.GLOBAL_FULL_WALK_MS;
+      const wl = wantedLang();
+      const langChange = (wl?.lang || null) !== worldLang;
+      // Retour à « toutes les langues » : le dernier pool toutes langues est
+      // republié SUR-LE-CHAMP, sans attendre le réseau. La marche qui suit ne
+      // fait que le rafraîchir. Passer À une langue n'a pas d'équivalent —
+      // rien n'est en cache — et c'est le voile qui couvre l'attente.
+      if (langChange && !wl && allLangPool.length) {
+        ranking = allLangPool;
+        rankingDirty = false;
+        worldLang = null;
+      }
+      const needFull = langChange || !ranking.length
+        || now - lastFullWalk >= CFG.GLOBAL_FULL_WALK_MS;
       if (!needFull) {
         const interval = degraded ? CFG.GLOBAL_FULL_WALK_MS : CFG.GLOBAL_STRUCT_TICK;
         if (now - rankingTs < interval) return;
       }
       running = true;
-      (needFull ? fullWalk() : lightPass())
+      (needFull ? fullWalk(wl) : lightPass(wl))
         .then(res => { res?.ok ? noteSuccess() : noteFailure(); })
         .catch(() => noteFailure())
         .finally(() => { running = false; });
@@ -2487,6 +2589,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       ranking = []; rankingDirty = false; rankingTs = 0;
       threshold = 0; windowFloor = 0; lastFullWalk = 0; cooldownUntil = 0;
       scope = null; scopeRanking = []; scopeTs = 0; scopeDirty = false;
+      worldLang = null; allLangPool = []; walkGen += 1;
       scopeLangApplied = false;
       scopeGen += 1;   // invalide une passe encore en vol
       failStreak = 0; okStreak = 0; degraded = false; complete = false;
@@ -2523,6 +2626,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           }
           return scopeRanking;
         }
+        // Le classement porté n'est pas celui de la langue demandée : le
+        // servir montrerait des chaînes d'une autre langue. Liste vide, le
+        // voile couvre — même règle que pour une portée catégorie. Et comme
+        // wantedLang() rend null quand la langue n'est pas demandable, ce
+        // test ne peut pas se bloquer sur une descente irréalisable.
+        if ((wantedLang()?.lang || null) !== worldLang) return [];
         if (rankingDirty) {
           ranking = ranking.slice().sort((a, b) => b.viewers - a.viewers);
           rankingDirty = false;
@@ -2542,9 +2651,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       top(n = CFG.GLOBAL_TOP_N) {
         const lang = state.globalMode ? state.languageFilter : null;
         const liste = this.base();
-        // Portée déjà restreinte PAR L'API : elle rend le sommet de la
-        // catégorie dans cette langue, il n'y a plus rien à filtrer.
-        if (!lang || (wantedScope() && scopeLangApplied)) return liste.slice(0, n);
+        // Déjà restreint PAR L'API — portée catégorie filtrée, ou descente
+        // mondiale menée en langue : il n'y a plus rien à filtrer, et le
+        // refaire retirerait les chaînes que Twitch déclare dans cette langue
+        // sans qu'elles portent le tag.
+        if (!lang
+            || (wantedScope() && scopeLangApplied)
+            || (!wantedScope() && worldLang === lang)) return liste.slice(0, n);
         return liste.filter(r => r.tags.includes(lang)).slice(0, n);
       },
 
@@ -2559,7 +2672,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // au premier scan, mieux vaut une liste courte que pas de liste.
       langs() {
         const m = new Map();
-        const src = ranking.length ? ranking : this.base();
+        const src = allLangPool.length ? allLangPool
+          : (ranking.length ? ranking : this.base());
         for (const r of src) {
           for (const t of r.tags) {
             if (LANG_SET.has(t)) m.set(t, (m.get(t) || 0) + 1);
@@ -2602,10 +2716,18 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           // quand la portée est une catégorie et que l'API a appliqué le
           // filtre elle-même — là, on a bien le sommet de cette catégorie
           // dans cette langue, et rien n'est approché.
+          // Sous filtre de langue, le classement n'est exact que si l'API a
+          // appliqué le filtre elle-même — portée catégorie filtrée, ou
+          // descente mondiale menée en langue. Un repli sur le filtrage par
+          // tags, lui, reste approché : le seuil T aurait été calculé toutes
+          // langues confondues.
           complete:   complete
             && !(state.globalMode && state.languageFilter
-                 && !(wantedScope() && scopeLangApplied)),
-          langApplied: !!(wantedScope() && scopeLangApplied),
+                 && !(wantedScope() ? scopeLangApplied
+                                    : worldLang === state.languageFilter)),
+          langApplied: !!(wantedScope() ? scopeLangApplied
+                                        : worldLang && worldLang === state.languageFilter),
+          worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
           scopeSize:  scopeRanking.length,
@@ -5526,11 +5648,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // Sans catégorie, le filtre s'applique au pool déjà récolté : aucune
       // requête, aucun voile. AVEC une catégorie, la portée change — on
       // redemande le sommet de cette catégorie dans cette langue.
+      // Avec OU sans catégorie, changer de langue change ce qu'on demande :
+      // portée filtrée d'un côté, descente menée en langue de l'autre. Dans
+      // les deux cas on relance sans attendre le réveil, et on voile tant
+      // qu'il n'y a rien à montrer. Revenir à « toutes les langues » ne voile
+      // pas : le pool toutes langues est republié sur-le-champ.
       if (state.globalMode) {
-        if (state.categoryFilter) {
-          globalChannels.tick();
-          if (!globalChannels.top(1).length) loadingOverlay.startCycle('changement de langue');
-        }
+        globalChannels.tick();
+        if (!globalChannels.top(1).length) loadingOverlay.startCycle('changement de langue');
         scheduleScan();
       }
     }

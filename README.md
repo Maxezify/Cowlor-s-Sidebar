@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.40.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.41.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -440,20 +440,43 @@ la même langue.
 Revenir à « toutes les catégories » est **instantané** : le classement mondial
 n'est pas purgé.
 
-### Langue : deux comportements, et un seul est exact
+### Langue : une descente, pas un filtre (v3.41)
+
+Choisir une langue ne restreint pas l'affichage — **cela change ce qu'on
+demande**, exactement comme une catégorie.
 
 | situation | ce qui se passe | exact ? |
 | --- | --- | --- |
 | **Catégorie + langue** | requête dédiée `broadcasterLanguages` → les 30 plus grosses de cette langue **dans cette catégorie** | **oui** |
-| **Monde + langue** | filtre du pool de ~1 600 chaînes déjà récoltées | **non**, et le bandeau le dit |
+| **Monde + langue** | la descente entière est menée EN LANGUE : chaque catégorie visitée est interrogée avec le filtre | **oui** |
+| Langue dont le code est refusé par l'API | repli sur le filtrage par tags du pool déjà récolté | **non**, et le bandeau le dit |
 
-Le second cas rend « les chaînes de cette langue qui figurent dans le top 30 de
-leur catégorie ». Une chaîne française sous ce seuil reste invisible. C'est
-approché, et c'est annoncé comme tel.
+La garantie survit telle quelle : l'inégalité `viewers(stream) ≤ viewers(catégorie)`
+reste vraie langue par langue, puisque le total d'une catégorie majore aussi
+bien ses chaînes françaises que les autres.
+
+Ce que ça change concrètement : le plafond de 30 par catégorie masquait toutes
+les chaînes d'une langue minoritaire dès qu'une catégorie était dominée par une
+autre langue. Une chaîne française à 800 spectateurs en Just Chatting était
+invisible — le top 30 toutes langues de cette catégorie s'arrête bien plus
+haut. Elle apparaît désormais.
 
 Mesuré sur quatre catégories, les deux requêtes au même instant : la requête
 filtrée ne perd **aucune** chaîne française du top 30 brut, et en révèle 23 à 29
 que ce top ne contenait pas.
+
+La descente en langue **remplace** la descente toutes langues, elle ne s'y
+ajoute pas : ~101 opérations au lieu de ~64, soit deux requêtes HTTP groupées
+de plus par marche, et seulement tant qu'une langue est sélectionnée. Le
+dernier classement toutes langues est conservé, si bien que revenir à « toutes
+les langues » est **instantané**.
+
+Une précaution qui compte : le code attendu par l'API est l'ISO 639-1
+(`JA`, `KO`, `CS`, `EL`…) et **non** le code du drapeau (`JP`, `KR`, `CZ`,
+`GR`…) — onze des vingt-six diffèrent. Si Twitch venait à en refuser un,
+l'extension l'apprend au premier essai, retombe sur le filtrage par tags et
+cesse d'annoncer l'exactitude. Une coupure réseau, elle, ne condamne rien :
+elle n'apprend rien sur la validité du code.
 
 ### Le plafond de 30 vient de l'API
 
@@ -472,6 +495,7 @@ compris.
 | Passe structurelle légère | 30 s | ~11 opérations, **une** requête groupée |
 | Marche complète (filet contre la dérive) | 2 min 30 | ~64 opérations |
 | Catégorie sélectionnée | 30 s | **1** opération |
+| Langue sélectionnée (sans catégorie) | 2 min 30 | ~101 opérations au lieu de ~64 |
 
 Le module a son **propre** cooldown, distinct de celui de la sidebar : si Twitch
 bride le mode global, « Chaînes suivies » ne s'éteint pas avec lui. Au-delà de
