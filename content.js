@@ -1481,27 +1481,72 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
        en-tête de section. Pas de popup : rien à positionner, rien à refermer,
        rien que React puisse emporter.
 
+       UN CONTRÔLE SEGMENTÉ, ET NON DEUX BOUTONS. Le mode est un choix
+       exclusif : deux pastilles détachées se lisaient comme deux actions
+       indépendantes, et la pastille violette pleine hauteur pesait plus lourd
+       que tout le reste du bloc filtre. On pose donc une piste unique, qui
+       reprend exactement les surfaces des listes déroulantes juste en dessous
+       — fond enfoncé rgba(0,0,0,.4), filet blanc à 8 %, rayon 6 px — et un
+       curseur violet qui se déplace de l'un à l'autre à l'intérieur.
+
+       Les cotes sont choisies pour que la piste fasse la MÊME HAUTEUR que la
+       rangée de filtres : 22 px de segment + 2×2 px de gouttière + 2×1 px de
+       filet = 28 px, la hauteur de .tse-dd-btn. Le bloc filtre s'aligne ainsi
+       sur une seule trame verticale (le harnais le vérifie).
+
        Le libellé n'est JAMAIS tronqué — c'est la seule contrainte qui compte
        ici. Plutôt qu'une ellipse, la rangée autorise le retour à la ligne :
        en français les deux boutons tiennent côte à côte, et dans une langue
        plus longue (« Kanäle, denen du folgst ») le second passe en dessous,
        toujours entièrement lisible. Une ellipse aurait donné « Chaînes su… »,
        ce qui n'informe plus de rien. */
-    .tse-mode-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .tse-mode-row {
+      display: flex; flex-wrap: wrap; gap: 2px;
+      padding: 2px; box-sizing: border-box;
+      /* 2 px de plus que la gouttière de .tse-filter (6 px) : la bascule dit
+         CE QU'ON REGARDE, les filtres ne font que restreindre à l'intérieur.
+         Un cran d'espace marque cette différence de niveau sans trait de
+         séparation. */
+      margin-bottom: 2px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+    }
     /* Rangée des stories : masquée UNIQUEMENT en mode Top Chaînes. Elle
        reste intacte sur les chaînes suivies, où elle a du sens. */
     body.tse-global-mode [data-tse-stories="row"] { display: none !important; }
     .tse-mode-tab {
-      flex: 1 1 auto;
-      padding: 7px 8px; border: 0; border-radius: 4px;
-      background: rgba(255, 255, 255, 0.08); color: #adadb8;
-      font: inherit; font-size: 12px; font-weight: 600; line-height: 1.2;
+      flex: 1 1 auto; min-width: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 22px; padding: 0 8px;
+      border: 0; border-radius: 4px;
+      background: transparent; color: var(--color-text-alt-2, #adadb8);
+      /* Même échelle typographique que .tse-dd-btn et .tse-dd-opt : le bloc
+         filtre ne doit pas mélanger deux tailles de texte. */
+      font: inherit; font-size: 1.15rem; font-weight: 600; line-height: 1.2;
       white-space: nowrap; text-align: center; cursor: pointer;
-      transition: background-color 0.1s ease, color 0.1s ease;
+      transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
     }
-    .tse-mode-tab:hover { background: rgba(255, 255, 255, 0.16); color: #efeff1; }
+    /* Le segment inactif n'a pas de filet propre à colorer comme le font les
+       listes déroulantes au survol : c'est donc un lavis de fond qui joue ce
+       rôle. À 8 % il se perdait sur la piste déjà sombre (rendu et regardé) ;
+       12 % se lit sans crier. */
+    .tse-mode-tab:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--color-text-base, #efeff1);
+    }
+    /* Anneau de focus clavier, comme sur le bouton de tri — il manquait ici. */
+    .tse-mode-tab:focus-visible {
+      outline: none;
+      color: var(--color-text-base, #efeff1);
+      box-shadow: 0 0 0 1px ${CFG.PURPLE};
+    }
+    /* Curseur actif : dégradé vertical léger et ombre portée courte, pour
+       qu'il se lise POSÉ SUR la piste et non découpé dedans. */
     .tse-mode-tab[aria-pressed="true"] {
-      background: ${CFG.PURPLE}; color: #fff;
+      background: linear-gradient(180deg, ${CFG.PURPLE_HOVER} 0%, ${CFG.PURPLE} 100%);
+      color: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     }
     .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE_HOVER}; }
 
