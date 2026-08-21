@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.30.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.40.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -12,6 +12,12 @@ normalization of sponsored cards, category and language filters (with flags), fi
 from, locally-stored visit history, and live video preview on hover (across all
 sections) with title, contextual badges, and Content Classification Label
 handling.
+
+**New in 3.32.0**: a second mode, **"Top Channels"**, shows the most-watched
+channels on Twitch — globally, within a category, or in a given language.
+Twitch does not hand out that ranking: its API claims to sort and does not. The
+extension **rebuilds** it, and says so when it cannot prove the result. See
+"Top Channels" below.
 
 **New in 3.21.0**: the extension **gets ahead of Twitch**. Measured: Twitch takes
 2 to 4 minutes to show a followed channel that goes live; the extension now
@@ -333,6 +339,138 @@ Then reload the extension (`chrome://extensions` → ↻) and the Twitch tab.
 
 ---
 
+## Top Channels (v3.32+)
+
+Twitch's native sort button — the ↕ arrows to the right of "Followed Channels" —
+is hidden, and two tabs replace it at the top of the filter block:
+
+    [ Followed Channels ]  [ Top Channels ]
+
+In **Top Channels**, the sidebar stops showing your subscriptions and shows the
+30 most-watched channels on Twitch instead. The cards are built by the extension
+and inherit everything else: stream uptime, hover preview, thumbnail warming,
+filters.
+
+### Why it has to be rebuilt
+
+Twitch's schema states:
+
+> *Fetch live streams, ordered by the number of viewers descending.*
+
+Measured: **that is false**. The list comes back unsorted — including on
+Twitch's own request, carrying its `Authorization` and `Client-Integrity`:
+
+    189916, 142955, 1164, 61117, 9893, 9073, 32517, 42340, …
+
+So the sorting happens in the browser, at Twitch as much as here. But sorting
+the 30 received would not be enough: that set is not the top 30 (it contains
+channels with 1,164 viewers). It has to be built differently.
+
+### How: an inequality, not an estimate
+
+A category's audience is the **sum** of its streams. So for any stream S in
+category C:
+
+    viewers(S) ≤ viewers(C)
+
+And `games(first: 100, options: {sort: VIEWER_COUNT})` *is* genuinely sorted
+(verified: 100 decreasing values). It is therefore enough to walk down the
+categories while their audience exceeds **T**, the 30th score found so far:
+below T, no category *can* still hold a member of the top 30. The walk stops
+knowing it is done.
+
+Measured in production: **64 operations, 1.6 second**, a pool of roughly 1,600
+channels harvested across some fifty categories.
+
+### What is proven, and what is not
+
+The extension claims no more than it knows:
+
+| | proven? |
+| --- | --- |
+| The walk between categories | **yes** — that is the inequality above |
+| The window depth (100 categories) | **checked on every walk** — if the 100th category still outweighs T, the ranking is not declared complete |
+| The top of a single category | **a measured assumption** — see below |
+
+On that last point: `game(name:){ streams(first: 30) }` does return the top of
+the category — measured coverage ranges from 44% to 96% of its audience for 30
+streams picked among thousands. But the selection is **not strictly ordered**,
+and it intermittently omits channels that belong there. Six identical calls to
+Fortnite, same category, same viewer count:
+
+    rubius 23608 ●○●○●●
+
+Rebuilding the ranking from scratch on every pass would therefore make such a
+channel flicker one pass in three. The extension no longer believes a single
+absence: it takes **three in a row** to drop a channel — the same reasoning it
+already applies to channels going offline. Flicker falls below 4%, without one
+extra request.
+
+When the ranking is not proven complete, a banner says so. It is never hidden.
+
+### Category: not a filter
+
+Filtering the global top 30 by "VALORANT" would leave one or two channels — and
+certainly not the most-watched ones in VALORANT. Picking a category therefore
+changes what is **asked**: a single operation, refreshed every 30 seconds.
+
+The list offers the **top 100 categories with their real audience**
+("122k | VALORANT"), sorted. The label is the canonical name — the one Twitch
+itself prints on its cards, even in French ("Just Chatting", not "Discussions")
+— so the list, the query and the cards all speak the same language.
+
+Going back to "all categories" is **instant**: the global ranking is never
+purged.
+
+### Language: two behaviours, and only one is exact
+
+| situation | what happens | exact? |
+| --- | --- | --- |
+| **Category + language** | dedicated `broadcasterLanguages` query → the 30 biggest of that language **within that category** | **yes** |
+| **Global + language** | filters the ~1,600-channel pool already harvested | **no**, and the banner says so |
+
+The second case yields "channels of that language that appear in their
+category's top 30". A French channel below that cut stays invisible. It is
+approximate, and it is announced as such.
+
+Measured across four categories, both queries at the same instant: the filtered
+query loses **no** French channel from the unfiltered top 30, and reveals 23 to
+29 that this top did not contain.
+
+### The cap of 30 comes from the API
+
+`streams(first:)` is capped at 30, and Twitch says so plainly:
+
+    argument 'first' value must be between 1 and 30.
+
+This holds for **every** category. No exception is possible.
+
+### Cost and cadence
+
+| | frequency | cost |
+| --- | --- | --- |
+| Viewer counts of displayed channels | 30 s | **no request** — they ride the `TseChannels` batch that is already leaving |
+| Light structural pass | 30 s | ~11 operations, **one** batched request |
+| Full walk (drift safety net) | 2 min 30 | ~64 operations |
+| Category selected | 30 s | **1** operation |
+
+The module has its **own** cooldown, separate from the sidebar's: if Twitch
+throttles the global mode, "Followed Channels" does not go down with it. Past
+three consecutive failures the cadence backs off on its own and says so in the
+console, in all five languages.
+
+### What the mode does not do
+
+- The "Open stories" row is hidden, as are the "Live channels" and "Viewers of…"
+  sections: they no longer relate to what is displayed.
+- Sort modes are hidden: the ranking **is** the sort.
+- The mode is not remembered across page loads.
+- Everything goes through the **same anonymous calls** as the rest of the
+  extension — `credentials: 'omit'`, public Client-ID, no token, no extra
+  permission.
+
+---
+
 ## Built-in anti-ad module (v3.0+, replaced in v3.25)
 
 The extension bundles an ad-blocking module. Its only job is to keep a pre-roll
@@ -514,6 +652,17 @@ The extension exposes a `tse` object in the Twitch page's DevTools console
   below).
 - `tse.roster()` — lists the followed channels the extension has memorised by
   watching the sidebar (see below).
+- `tse.cycles()` — log of the **loading veils**: when each one went up, why
+  ("startup", "sidebar remount", "collapsed/expanded toggle", "tab return",
+  "entering Top Channels", "category change"…) and what brought it down
+  (stability or hard timeout). Useful to diagnose a sidebar that appears to
+  initialise twice.
+- `tse.global.*` — inspection surface for **Top Channels**:
+  `await tse.global.on()` turns the mode on and waits for the full walk,
+  `tse.global.top(30)` prints the computed ranking, `tse.global.cats(25)` the
+  sorted categories, `tse.global.report()` the internal state (threshold T,
+  window floor, completeness, cost, cadence, tolerated absences) and
+  `tse.global.off()` turns it off and clears.
 
 Column labels printed by these commands are localized.
 
@@ -572,6 +721,11 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 
 `tse.reset()` wipes all three at any time; clearing `twitch.tv`'s site data from
 your browser settings does the same.
+
+**Top Channels** adds nothing to that list: it stores nothing, does not even
+persist the selected mode, and its requests take exactly the same anonymous path
+as the rest of the extension — `credentials: 'omit'`, public Client-ID, no
+session token, no extra permission.
 
 The bundled anti-ad module likewise never talks to third-party servers: it
 intercepts Twitch requests inside the preview iframe and re-asks Twitch for the

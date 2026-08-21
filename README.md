@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.30.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.40.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -12,6 +12,12 @@ multistream), normalisation visuelle des cartes sponsorisées, filtres par
 catégorie et par langue (avec drapeaux), cinq modes de tri au choix, historique de visites stocké localement,
 et aperçu vidéo en direct au survol d'une chaîne (toutes sections confondues)
 avec titre, badges contextuels et gestion des Content Classification Labels.
+
+**Nouveau en 3.32.0** : un second mode, **« Top Chaînes »**, affiche les chaînes
+les plus regardées de Twitch — au global, ou dans une catégorie, ou dans une
+langue. Twitch ne rend pas ce classement : son API le prétend trié et ne l'est
+pas. L'extension le **reconstruit**, et sait dire quand elle n'en a pas la
+preuve. Voir « Top Chaînes » plus bas.
 
 **Nouveau en 3.21.0** : l'extension **prend les devants sur Twitch**. Mesure à
 l'appui, Twitch met 2 à 4 minutes à afficher une chaîne suivie qui passe en
@@ -348,6 +354,143 @@ Rechargez ensuite l'extension (`chrome://extensions` → ↻) et l'onglet Twitch
 
 ---
 
+## Top Chaînes (v3.32+)
+
+Le bouton de tri natif de Twitch — les flèches ↕ à droite de « Chaînes suivies »
+— est masqué, et deux onglets le remplacent en tête du bloc de filtres :
+
+    [ Chaînes suivies ]  [ Top Chaînes ]
+
+En **Top Chaînes**, la sidebar n'affiche plus vos abonnements mais les 30 chaînes
+les plus regardées de Twitch. Les cartes sont fabriquées par l'extension et
+héritent de tout le reste : durée de stream, aperçu au survol, préchargement des
+miniatures, filtres.
+
+### Pourquoi il faut le reconstruire
+
+Le schéma de Twitch annonce :
+
+> *Fetch live streams, ordered by the number of viewers descending.*
+
+Mesuré : **c'est faux**. La liste arrive en désordre — y compris sur la requête
+de Twitch lui-même, porteuse de son `Authorization` et de son `Client-Integrity` :
+
+    189916, 142955, 1164, 61117, 9893, 9073, 32517, 42340, …
+
+Le classement se fait donc dans le navigateur, chez Twitch comme chez nous.
+Mais trier les 30 reçus ne suffirait pas : cet ensemble n'est pas le top 30 (on
+y trouve des chaînes à 1 164 spectateurs). Il faut le construire autrement.
+
+### Comment : une inégalité, pas une estimation
+
+L'audience d'une catégorie est la **somme** de ses streams. Donc pour tout
+stream S de la catégorie C :
+
+    viewers(S) ≤ viewers(C)
+
+Or `games(first: 100, options: {sort: VIEWER_COUNT})` rend, lui, une liste
+**réellement classée** (vérifié : 100 valeurs décroissantes). Il suffit donc de
+descendre les catégories tant que leur audience dépasse **T**, le 30ᵉ score déjà
+trouvé : en dessous de T, aucune catégorie ne *peut* plus contenir un membre du
+top 30. La marche s'arrête en le sachant.
+
+Mesuré en production : **64 opérations, 1,6 seconde**, un pool d'environ 1 600
+chaînes récoltées sur une cinquantaine de catégories.
+
+### Ce qui est prouvé, et ce qui ne l'est pas
+
+L'extension ne revendique pas plus qu'elle ne sait :
+
+| | prouvé ? |
+| --- | --- |
+| La descente entre catégories | **oui** — c'est l'inégalité ci-dessus |
+| La profondeur de la fenêtre (100 catégories) | **vérifié à chaque marche** — si la 100ᵉ catégorie pèse encore plus que T, le classement n'est pas déclaré complet |
+| Le sommet d'une catégorie | **hypothèse mesurée** — voir ci-dessous |
+
+Sur ce dernier point : `game(name:){ streams(first: 30) }` rend bien le sommet
+de la catégorie — la couverture mesurée va de 44 % à 96 % de son audience pour
+30 streams choisis parmi des milliers. Mais la sélection **n'est pas
+strictement ordonnée**, et elle omet par intermittence des chaînes qui
+devraient y figurer. Six appels identiques à Fortnite, même catégorie, même
+compteur :
+
+    rubius 23608 ●○●○●●
+
+Reconstruire le classement à vide à chaque passe le ferait donc clignoter une
+fois sur trois. L'extension ne croit plus une absence isolée : il en faut
+**trois d'affilée** pour retirer une chaîne — le même raisonnement que pour les
+chaînes déconnectées. Le clignotement tombe sous 4 %, sans une requête de plus.
+
+Quand le classement n'est pas prouvé complet, un bandeau le dit. Il n'est
+jamais masqué.
+
+### Catégorie : ce n'est pas un filtre
+
+Filtrer le top 30 mondial par « VALORANT » n'en laisserait qu'une ou deux
+chaînes — et sûrement pas les plus regardées de VALORANT. Choisir une catégorie
+change donc ce qu'on **demande** : une seule opération, rafraîchie toutes les
+30 secondes.
+
+La liste propose les **100 premières catégories avec leur audience réelle**
+(« 122 k | VALORANT »), classée. Le libellé est le nom canonique — celui que
+Twitch écrit lui-même sur ses cartes, y compris en français (« Just Chatting »,
+pas « Discussions ») — de sorte que la liste, la requête et les cartes parlent
+la même langue.
+
+Revenir à « toutes les catégories » est **instantané** : le classement mondial
+n'est pas purgé.
+
+### Langue : deux comportements, et un seul est exact
+
+| situation | ce qui se passe | exact ? |
+| --- | --- | --- |
+| **Catégorie + langue** | requête dédiée `broadcasterLanguages` → les 30 plus grosses de cette langue **dans cette catégorie** | **oui** |
+| **Monde + langue** | filtre du pool de ~1 600 chaînes déjà récoltées | **non**, et le bandeau le dit |
+
+Le second cas rend « les chaînes de cette langue qui figurent dans le top 30 de
+leur catégorie ». Une chaîne française sous ce seuil reste invisible. C'est
+approché, et c'est annoncé comme tel.
+
+Mesuré sur quatre catégories, les deux requêtes au même instant : la requête
+filtrée ne perd **aucune** chaîne française du top 30 brut, et en révèle 23 à 29
+que ce top ne contenait pas.
+
+### Le plafond de 30 vient de l'API
+
+`streams(first:)` est plafonné à 30, et Twitch le dit sans ambiguïté :
+
+    argument 'first' value must be between 1 and 30.
+
+Cela vaut pour **toute** catégorie. Il n'y a pas d'exception possible, ZEVENT
+compris.
+
+### Coût et cadence
+
+| | fréquence | coût |
+| --- | --- | --- |
+| Compteurs des chaînes affichées | 30 s | **aucune requête** — ils voyagent dans le lot `TseChannels` qui part déjà |
+| Passe structurelle légère | 30 s | ~11 opérations, **une** requête groupée |
+| Marche complète (filet contre la dérive) | 2 min 30 | ~64 opérations |
+| Catégorie sélectionnée | 30 s | **1** opération |
+
+Le module a son **propre** cooldown, distinct de celui de la sidebar : si Twitch
+bride le mode global, « Chaînes suivies » ne s'éteint pas avec lui. Au-delà de
+trois échecs consécutifs, la cadence se replie d'elle-même et l'annonce en
+console, dans les cinq langues.
+
+### Ce que le mode ne fait pas
+
+- La rangée « Ouvrir les stories » est masquée, ainsi que les sections
+  « Chaînes live » et « Les spectateurs de… » : elles n'ont plus de rapport
+  avec ce qui est affiché.
+- Les modes de tri sont masqués : le classement **est** le tri.
+- Le mode n'est pas mémorisé entre deux chargements de page.
+- Tout passe par les **mêmes appels anonymes** que le reste de l'extension —
+  `credentials: 'omit'`, Client-ID public, aucun jeton, aucune permission
+  supplémentaire.
+
+---
+
 ## Module anti-pub intégré (v3.0+, remplacé en v3.25)
 
 L'extension intègre un module de blocage de publicités. Son rôle est uniquement
@@ -536,6 +679,17 @@ sert au tri « Mes plus visités » :
   sa carte dans la sidebar (cf. section suivante).
 - `tse.roster()` — liste les chaînes suivies que l'extension a mémorisées en
   observant la sidebar (cf. section suivante).
+- `tse.cycles()` — journal des **voiles de chargement** : à quel instant chacun
+  est monté, pour quelle raison (« démarrage », « remount de la sidebar »,
+  « bascule réduit/étendu », « retour d'onglet », « entrée dans Top Chaînes »,
+  « changement de catégorie »…) et ce qui l'a fait retomber (stabilité ou délai
+  maximal). Sert à diagnostiquer une sidebar qui semble s'initialiser deux fois.
+- `tse.global.*` — surface d'inspection du mode **Top Chaînes** :
+  `await tse.global.on()` allume le mode et attend la marche complète,
+  `tse.global.top(30)` affiche le classement calculé, `tse.global.cats(25)` les
+  catégories classées, `tse.global.report()` l'état interne (seuil T, plancher
+  de fenêtre, complétude, coût, cadence, absences tolérées) et
+  `tse.global.off()` coupe et purge.
 
 Les libellés des colonnes affichées par ces commandes sont localisés.
 
@@ -595,6 +749,11 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 
 `tse.reset()` efface les trois à tout moment ; vider les données de site de
 `twitch.tv` depuis les réglages du navigateur fait de même.
+
+Le mode **Top Chaînes** n'ajoute rien à cette liste : il ne mémorise rien, ne
+persiste pas même le mode choisi, et ses requêtes empruntent exactement le même
+chemin anonyme que le reste de l'extension — `credentials: 'omit'`, Client-ID
+public, aucun jeton de session, aucune permission supplémentaire.
 
 Le module anti-pub, lui aussi, ne communique avec aucun serveur tiers : il
 intercepte les requêtes Twitch dans l'iframe d'aperçu et redemande le flux à
