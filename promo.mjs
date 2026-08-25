@@ -104,10 +104,15 @@ const SECTION = {
   ptbr: 'Canais seguidos', ptpt: 'Canais que segues',
 };
 
-export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre, jeu, jeuArg = null, apres,
-                             echelleMax = 1.42, texteEtroit = false, visites = null }) {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 },
-                                       deviceScaleFactor: 2 });
+/**
+ * Ouvre une page qui fait tourner l'extension RÉELLE contre le faux Twitch.
+ * Extraite de scene() parce que la tuile promotionnelle en a besoin à
+ * l'identique : mêmes routes, mêmes avatars, même stub, même historique.
+ */
+export async function pageProduit({ lang = 'fr', section = null, visites = null,
+                                    viewport = { width: 1280, height: 800 },
+                                    deviceScaleFactor = 2 } = {}) {
+  const page = await browser.newPage({ viewport, deviceScaleFactor });
   page.on('pageerror', e => console.log('  ERREUR PAGE:', e.message));
   await page.route('https://www.twitch.tv/**', (r) => {
     const n = r.request().url().split('/').pop().split('?')[0];
@@ -145,6 +150,12 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
     try { localStorage.setItem('tse:visits', JSON.stringify(v)); } catch {}
   }, visites);
   await page.goto('https://www.twitch.tv/');
+  return page;
+}
+
+export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre, jeu, jeuArg = null, apres,
+                             echelleMax = 1.42, texteEtroit = false, visites = null }) {
+  const page = await pageProduit({ lang, section, visites });
   await page.evaluate(jeu, jeuArg);
   await page.waitForTimeout(2200);
   if (apres) await apres(page);
