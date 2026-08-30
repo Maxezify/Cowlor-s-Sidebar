@@ -8,7 +8,7 @@
     "description": "Short name of the extension for compact contexts"
   },
   "extDescription": {
-    "message": "Live preview on hover, stream uptime, co-streams, sidebar cleaned up. Twitch, but better.",
+    "message": "Improves Twitch's sidebar with more relevant stream information and better organization.",
     "description": "Short description of the extension (max 132 chars on Chrome Web Store)"
   }
 }

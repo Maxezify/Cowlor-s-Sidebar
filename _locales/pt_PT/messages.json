@@ -8,7 +8,7 @@
     "description": "Nome curto da extensão para contextos compactos"
   },
   "extDescription": {
-    "message": "Pré-visualização em direto ao passar o rato, duração da stream, co-streams e barra lateral arrumada. O Twitch, mas melhor.",
+    "message": "Melhora a barra lateral do Twitch com informações de stream mais relevantes e melhor organização.",
     "description": "Descrição curta da extensão (máx. 132 caracteres na Chrome Web Store)"
   }
 }

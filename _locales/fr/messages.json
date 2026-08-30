@@ -8,7 +8,7 @@
     "description": "Nom court de l'extension pour les contextes compacts"
   },
   "extDescription": {
-    "message": "Aperçu vidéo au survol, durée de stream, co-streams, sidebar nettoyée. Twitch, mais en mieux.",
+    "message": "Améliore la barre latérale de Twitch avec des informations de stream plus pertinentes et une meilleure organisation.",
     "description": "Description courte de l'extension (max 132 caractères Chrome Web Store)"
   }
 }
