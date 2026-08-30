@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.43.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.44.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -391,14 +391,38 @@ markup.
 **Aucune requête, aucun jeton, aucune permission de plus.** Le statut est noté
 au passage, quand vous ouvrez une chaîne, et mémorisé dans `tse:subs`.
 
-### La contrepartie, dite franchement
+### La liste complète, sans jamais toucher à votre jeton (v3.44)
 
-On ne connaît que les chaînes que vous avez **ouvertes**. Un abonnement à une
-chaîne jamais visitée est invisible pour l'extension — c'est pour cela que le
-bouton s'intitule « Mes abonnements en tête (chaînes visitées) » et non « Mes
-abonnements ».
+Lire au fil des visites ne connaît que les chaînes ouvertes. Twitch, lui,
+publie la liste complète sur `/subscriptions` — une page de **votre** compte,
+que votre navigateur sait déjà afficher.
 
-Trois conséquences pratiques :
+L'extension la charge donc dans une **iframe cachée**, la lit, et la retire.
+Trois faits mesurés avant d'écrire une ligne :
+
+- `www.twitch.tv` accepte d'être encadré par lui-même. Beaucoup de sites
+  l'interdisent (`X-Frame-Options`) ; pas celui-ci ;
+- l'iframe étant de **même origine**, son document est lisible ;
+- chaque abonnement y est un `[data-a-target="subscription-card"]` contenant
+  le lien de la chaîne. Relevé : 3 cartes dans l'onglet « payants », 1 dans
+  « offerts » — exactement ce que la page affiche.
+
+**L'extension n'a pas accès à votre jeton et n'en envoie aucun.** Elle demande
+une page ; le navigateur l'authentifie avec ses cookies, exactement comme si
+vous aviez cliqué sur le lien. Rien ne quitte votre machine.
+
+Le prix, lui, est réel : c'est une application React entière qui démarre en
+arrière-plan. D'où un relevé **rare** — une fois toutes les 6 heures —,
+**différé** de 25 secondes après le démarrage pour ne pas concurrencer la
+sidebar, et jamais deux à la fois. `tse.subs.refresh()` le force à la demande.
+
+Le relevé est **additif** : on marque abonné ce qu'on trouve, jamais
+« non abonné » sur une absence. Les onglets lus (payants, offerts) ne couvrent
+pas tout — mobile, Turbo, autres — et conclure d'une absence retirerait à tort
+le style d'un abonnement bien réel. La correction d'un désabonnement reste au
+relevé de visite, qui observe la chaîne elle-même.
+
+### Les conséquences pratiques
 
 - tant qu'aucun abonnement n'a été repéré, le bouton est **grisé** et explique
   pourquoi, plutôt que d'offrir un tri qui ne trierait rien ;
@@ -843,8 +867,9 @@ sert au tri « Mes plus visités » :
   sa carte dans la sidebar (cf. section suivante).
 - `tse.roster()` — liste les chaînes suivies que l'extension a mémorisées en
   observant la sidebar (cf. section suivante).
-- `tse.subs()` — liste les abonnements repérés en visitant des chaînes, avec
-  la date de l'observation. La colonne `abonné` vaut aussi `false` : c'est ce
+- `tse.subs()` — liste les abonnements repérés, avec la date de l'observation.
+- `tse.subs.refresh()` — force un relevé complet de `/subscriptions` sans
+  attendre les six heures, et renvoie les chaînes trouvées. La colonne `abonné` vaut aussi `false` : c'est ce
   qui permet à une visite de corriger une entrée devenue fausse.
 - `tse.cycles()` — journal des **voiles de chargement** : à quel instant chacun
   est monté, pour quelle raison (« démarrage », « remount de la sidebar »,
@@ -913,7 +938,8 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 | `tse:visits` | dates de vos visites par chaîne | tri « Mes plus visités » |
 | `tse:roster` | chaînes suivies aperçues dans la sidebar | poser une carte avant Twitch |
 | `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
-| `tse:subs` | abonnements repérés en visitant des chaînes | tri « Mes abonnements en tête » |
+| `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`) | tri « Mes abonnements en tête » |
+| `tse:substs` | date du dernier relevé complet | espacer les relevés de 6 h |
 
 `tse.reset()` les efface toutes à tout moment ; vider les données de site de
 `twitch.tv` depuis les réglages du navigateur fait de même.
@@ -922,6 +948,15 @@ Le mode **Top Chaînes** n'ajoute rien à cette liste : il ne mémorise rien, ne
 persiste pas même le mode choisi, et ses requêtes empruntent exactement le même
 chemin anonyme que le reste de l'extension — `credentials: 'omit'`, Client-ID
 public, aucun jeton de session, aucune permission supplémentaire.
+
+**Une exception, et une seule.** Depuis la 3.44, le relevé des abonnements
+charge `https://www.twitch.tv/subscriptions` dans une iframe cachée, toutes les
+six heures. Cette page-là est **authentifiée** — c'est une page de votre
+compte. La nuance compte : l'extension ne lit ni ne transmet votre jeton, elle
+demande une page et le navigateur l'authentifie avec ses cookies, comme pour
+n'importe quel lien que vous cliqueriez. Rien n'est envoyé à un tiers, et le
+résultat ne quitte pas `localStorage`. Désactivable par `SUBS_PAGE_ENABLED:
+false`.
 
 Le module anti-pub, lui aussi, ne communique avec aucun serveur tiers : il
 intercepte les requêtes Twitch dans l'iframe d'aperçu et redemande le flux à

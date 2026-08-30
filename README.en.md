@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.43.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.44.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -376,13 +376,39 @@ markup.
 **No request, no token, no extra permission.** The status is noted in passing,
 when you open a channel, and stored in `tse:subs`.
 
-### The trade-off, stated plainly
+### The full list, without ever touching your token (v3.44)
 
-Only channels you have **opened** are known. A subscription to a channel you
-never visited is invisible to the extension — which is why the button reads
-"My subscriptions first (visited channels)" rather than "My subscriptions".
+Reading as you browse only knows the channels you opened. Twitch, however,
+publishes the complete list at `/subscriptions` — a page of **your** account,
+which your browser already knows how to render.
 
-Three practical consequences:
+So the extension loads it in a **hidden iframe**, reads it, and removes it.
+Three facts measured before a line was written:
+
+- `www.twitch.tv` allows itself to be framed. Many sites forbid it
+  (`X-Frame-Options`); this one does not;
+- the iframe being **same-origin**, its document is readable;
+- each subscription there is a `[data-a-target="subscription-card"]` holding
+  the channel's link. Captured: 3 cards in the "paid" tab, 1 in "gifts" —
+  exactly what the page shows.
+
+**The extension has no access to your token and sends none.** It asks for a
+page; the browser authenticates it with its cookies, exactly as if you had
+clicked the link. Nothing leaves your machine.
+
+The cost is real, though: a whole React application boots in the background.
+Hence a **rare** scan — once every 6 hours — **deferred** by 25 seconds after
+startup so it never competes with the sidebar, and never two at once.
+`tse.subs.refresh()` forces one on demand.
+
+The scan is **additive**: it marks as subscribed what it finds, never
+"not subscribed" on an absence. The tabs read (paid, gifts) do not cover
+everything — mobile, Turbo, other — and concluding from an absence would
+wrongly strip the styling from a genuine subscription. Correcting an
+unsubscribe stays with the visit-time reading, which observes the channel
+itself.
+
+### Practical consequences
 
 - until a subscription has been spotted, the button is **greyed out** and says
   why, rather than offering a sort with nothing to sort;
@@ -806,8 +832,10 @@ The extension exposes a `tse` object in the Twitch page's DevTools console
   below).
 - `tse.roster()` — lists the followed channels the extension has memorised by
   watching the sidebar (see below).
-- `tse.subs()` — lists the subscriptions spotted while visiting channels, with
-  the date of the observation. The column is also `false` for visited channels
+- `tse.subs()` — lists the subscriptions spotted, with the date of the
+  observation.
+- `tse.subs.refresh()` — forces a full `/subscriptions` scan without waiting
+  the six hours, and returns the channels found. The column is also `false` for visited channels
   you are *not* subscribed to: that is what lets a later visit correct a stale
   entry.
 - `tse.cycles()` — log of the **loading veils**: when each one went up, why
@@ -876,7 +904,8 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 | `tse:visits` | your visit dates per channel | "Most visited" sort |
 | `tse:roster` | followed channels seen in the sidebar | posting a card before Twitch |
 | `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
-| `tse:subs` | subscriptions spotted while visiting channels | "My subscriptions first" sort |
+| `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan) | "My subscriptions first" sort |
+| `tse:substs` | date of the last full scan | spacing scans 6 h apart |
 
 `tse.reset()` wipes them all at any time; clearing `twitch.tv`'s site data from
 your browser settings does the same.
@@ -885,6 +914,14 @@ your browser settings does the same.
 persist the selected mode, and its requests take exactly the same anonymous path
 as the rest of the extension — `credentials: 'omit'`, public Client-ID, no
 session token, no extra permission.
+
+**One exception, and only one.** Since 3.44 the subscription scan loads
+`https://www.twitch.tv/subscriptions` in a hidden iframe, once every six hours.
+That page is **authenticated** — it is a page of your account. The nuance
+matters: the extension neither reads nor transmits your token; it asks for a
+page and the browser authenticates it with its cookies, just as for any link
+you would click. Nothing is sent to a third party, and the result never leaves
+`localStorage`. Disable with `SUBS_PAGE_ENABLED: false`.
 
 The bundled anti-ad module likewise never talks to third-party servers: it
 intercepts Twitch requests inside the preview iframe and re-asks Twitch for the

@@ -47,7 +47,7 @@ const fileText = (name) => readFileSync(join(ICI, name), 'utf8');
 const PIXEL = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
   'base64');
-async function freshTwitch(playerBody, cdnUrls = [], chemin = '/') {
+async function freshTwitch(playerBody, cdnUrls = [], chemin = '/', init = null) {
   const page = await browser.newPage();
   page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
   await page.route('https://www.twitch.tv/**', (route) => {
@@ -73,6 +73,10 @@ async function freshTwitch(playerBody, cdnUrls = [], chemin = '/') {
     route.fulfill({ contentType: 'image/png', body: PIXEL,
                     headers: { 'Cache-Control': 'max-age=300' } });
   });
+  // addInitScript s'exécute dans CHAQUE frame avant tout script de la page :
+  // c'est le seul moyen d'atteindre l'iframe /subscriptions, qui est un
+  // document neuf que le test ne peut pas préparer autrement.
+  if (init) await page.addInitScript(init);
   // Le chemin compte : le relevé d'abonnement ne se déclenche que sur la
   // page d'une CHAÎNE, et c'est location.pathname qui la nomme.
   await page.goto('https://www.twitch.tv' + chemin);
@@ -3075,6 +3079,9 @@ console.log('\n41. Cache — le mode global ne doit rien laisser derrière lui')
 console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requête');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
+  // Ce scénario éprouve la lecture PAR VISITE. Le relevé complet, testé
+  // au scénario 43, verserait ses propres chaînes et fausserait les comptes.
+  const SANS_PAGE = () => { window.__noSubsPage = true; };
   const decor = (page) => page.evaluate(() => {
     const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
     window.__fx = {
@@ -3094,7 +3101,7 @@ console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requ
 
   // ── a) rien de connu : le bouton est là, à sa place, et il est grisé ────
   {
-    const page = await freshTwitch(PLAYER, [], '/');
+    const page = await freshTwitch(PLAYER, [], '/', SANS_PAGE);
     await decor(page);
     await wait(page, 1800);
     const b = await boutons(page);
@@ -3112,7 +3119,7 @@ console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requ
 
   // ── b) sur la page d'une chaîne abonnée, l'extension le relève ──────────
   {
-    const page = await freshTwitch(PLAYER, [], '/omofficial');
+    const page = await freshTwitch(PLAYER, [], '/omofficial', SANS_PAGE);
     await decor(page);
     // Le marqueur MESURÉ sur Twitch : abonné → data-a-target="manage-sub-button".
     await page.evaluate(() => {
@@ -3173,7 +3180,7 @@ console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requ
       const el = document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"] .tse-sort-count');
       return el ? el.textContent : null;
     });
-    const page = await freshTwitch(PLAYER, [], '/omofficial');
+    const page = await freshTwitch(PLAYER, [], '/omofficial', SANS_PAGE);
     await decor(page);
     await wait(page, 1500);
     ok('aucune pastille tant qu\'aucun abonnement n\'est connu',
@@ -3219,7 +3226,7 @@ console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requ
 
   // ── e) hors d'une page de chaîne, on n'invente rien ─────────────────────
   {
-    const page = await freshTwitch(PLAYER, [], '/directory');
+    const page = await freshTwitch(PLAYER, [], '/directory', SANS_PAGE);
     await decor(page);
     await page.evaluate(() => {
       const b = document.createElement('button');
@@ -3235,6 +3242,65 @@ console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requ
        memoire === null || !JSON.parse(memoire).directory, String(memoire));
     await page.close();
   }
+}
+
+// ═════ 43. Relevé complet des abonnements via /subscriptions ═════
+console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const memoire = (page) => page.evaluate(() => {
+    try { return JSON.parse(localStorage.getItem('tse:subs') || 'null'); }
+    catch { return null; }
+  });
+
+  const page = await freshTwitch(PLAYER, [], '/');
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { omofficial: { id:'1', createdAt:h, viewers:500, game:'G', tags:[] } };
+    window.__addCard('omofficial', 'G', '500');
+  });
+  // Le relevé est DIFFÉRÉ (400 ms dans le harnais) : rien ne doit avoir été
+  // lu avant, sans quoi il concurrencerait le démarrage de la sidebar.
+  await wait(page, 250);
+  ok('rien n\'est relevé pendant le démarrage', (await memoire(page)) === null,
+     JSON.stringify(await memoire(page)));
+
+  await wait(page, 4000);
+  const m = await memoire(page);
+  const trouves = Object.keys(m || {}).sort();
+  // Les deux onglets configurés : trois cartes en « paid », une en « gifts ».
+  ok('les quatre abonnements des deux onglets sont relevés',
+     trouves.join(',') === 'clem_mlrt,etoiles,omofficial,roicheese', JSON.stringify(trouves));
+  ok('et tous marqués « abonné »',
+     Object.values(m || {}).every(v => v[0] === 1), JSON.stringify(m));
+
+  // L'iframe est un moyen, pas une trace : elle ne doit rien laisser derrière.
+  ok('aucune iframe ne reste accrochée à la page',
+     await page.evaluate(() => document.querySelectorAll('iframe').length) === 0,
+     String(await page.evaluate(() => document.querySelectorAll('iframe').length)));
+
+  // La pastille suit : quatre abonnements connus, quatre sur le bouton.
+  const pastille = () => page.evaluate(() => {
+    const el = document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"] .tse-sort-count');
+    return el ? el.textContent : null;
+  });
+  ok('la pastille affiche 4', (await pastille()) === '4', String(await pastille()));
+
+  // Le relevé est horodaté : dans le TTL, il ne doit pas recommencer.
+  const stamp = await page.evaluate(() => localStorage.getItem('tse:substs'));
+  ok('le relevé est horodaté', !!stamp && Number(stamp) > 0, String(stamp));
+  const avant = await page.evaluate(() => window.__calls.length);
+  await wait(page, 1500);
+  ok('et ne recommence pas dans le délai',
+     (await page.evaluate(() => localStorage.getItem('tse:substs'))) === stamp,
+     'horodatage modifié');
+  void avant;
+
+  // Forcer le relevé doit, lui, repasser outre le délai.
+  const forcees = await page.evaluate(() => window.tse.subs.refresh());
+  ok('tse.subs.refresh() force un nouveau relevé',
+     Array.isArray(forcees) && forcees.length === 4, JSON.stringify(forcees));
+  await page.close();
 }
 
 await browser.close();

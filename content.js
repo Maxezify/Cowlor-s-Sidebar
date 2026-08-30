@@ -297,6 +297,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
        (« Abonné » / « S'abonner ») aurait demandé cinq traductions et cassé
        à la première refonte de Twitch. */
     subManageSelector:       '[data-a-target="manage-sub-button"]',
+    /* Carte de la page /subscriptions. MESURÉ : chaque abonnement y est un
+       [data-a-target="subscription-card"] contenant un <a href="/login">.
+       Relevé conforme aux deux onglets — 3 cartes en « paid », 1 en
+       « gifts », exactement ce que la page affiche. */
+    subCardSelector:         '[data-a-target="subscription-card"]',
     subOfferSelector:        '[data-a-target="subscribe-button"]',
     showLessStableSelector:  '[data-a-target="side-nav-show-less-button"], [data-test-selector="ShowLess"]',
 
@@ -337,7 +342,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       },
       uiBadgeSponsoredBy:        (nameHtml) => `Sponsorisé par <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'Aucun co-stream détecté actuellement',
-      uiSortLabelSubs:           'Mes abonnements en tête (chaînes visitées)',
+      uiSortLabelSubs:           'Mes abonnements en tête',
       uiSortNoSubs:              'Aucun abonnement repéré pour l\'instant — ouvrez une chaîne à laquelle vous êtes abonné',
       consoleNoSubs:             '[tse] Aucun abonnement repéré pour le moment.',
       uiSortLabelViewers:        'Trier par nombre de viewers (décroissant)',
@@ -392,7 +397,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       },
       uiBadgeSponsoredBy:        (nameHtml) => `Sponsored by <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'No co-streams currently detected',
-      uiSortLabelSubs:           'My subscriptions first (visited channels)',
+      uiSortLabelSubs:           'My subscriptions first',
       uiSortNoSubs:              'No subscription spotted yet — open a channel you are subscribed to',
       consoleNoSubs:             '[tse] No subscription spotted yet.',
       uiSortLabelViewers:        'Sort by viewer count (descending)',
@@ -447,7 +452,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       },
       uiBadgeSponsoredBy:        (nameHtml) => `Gesponsert von <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'Derzeit keine Co-streams erkannt',
-      uiSortLabelSubs:           'Meine Abos zuerst (besuchte Kanäle)',
+      uiSortLabelSubs:           'Meine Abos zuerst',
       uiSortNoSubs:              'Noch kein Abo erkannt — öffne einen Kanal, den du abonniert hast',
       consoleNoSubs:             '[tse] Noch kein Abo erkannt.',
       uiSortLabelViewers:        'Nach Zuschauerzahl sortieren (absteigend)',
@@ -502,7 +507,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       },
       uiBadgeSponsoredBy:        (nameHtml) => `Patrocinado por <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'No se detectaron co-streams por el momento',
-      uiSortLabelSubs:           'Mis suscripciones primero (canales visitados)',
+      uiSortLabelSubs:           'Mis suscripciones primero',
       uiSortNoSubs:              'Ninguna suscripción detectada aún — abre un canal al que estés suscrito',
       consoleNoSubs:             '[tse] Ninguna suscripción detectada por ahora.',
       uiSortLabelViewers:        'Ordenar por número de espectadores (descendente)',
@@ -557,7 +562,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       },
       uiBadgeSponsoredBy:        (nameHtml) => `Patrocinado por <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'Nenhum co-stream detectado no momento',
-      uiSortLabelSubs:           'Minhas inscrições primeiro (canais visitados)',
+      uiSortLabelSubs:           'Minhas inscrições primeiro',
       uiSortNoSubs:              'Nenhuma inscrição detectada ainda — abra um canal em que você é inscrito',
       consoleNoSubs:             '[tse] Nenhuma inscrição detectada por enquanto.',
       uiSortLabelViewers:        'Ordenar por número de espectadores (decrescente)',
@@ -840,6 +845,21 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
        ouvertes au moins une fois — et l'interface doit le dire.
        Au-delà de SUBS_TTL_DAYS, une observation n'est plus crue : un
        abonnement mensuel non reconduit deviendrait sinon éternel. */
+    /* Relevé complet via la page /subscriptions, chargée dans une iframe
+       cachée. MESURÉ : www.twitch.tv accepte d'être encadré par lui-même,
+       le document est lisible (même origine), et les cartes portent un
+       marqueur stable. L'extension ne touche JAMAIS au jeton : c'est le
+       navigateur qui authentifie la navigation, comme pour un clic.
+       En contrepartie, c'est une application React complète qui démarre en
+       arrière-plan — donc rarement, et jamais pendant le démarrage de la
+       sidebar. */
+    SUBS_PAGE_ENABLED:    true,
+    SUBS_PAGE_TABS:       ['paid', 'gifts'],
+    SUBS_PAGE_TTL:        6 * 60 * 60_000,   // 6 h entre deux relevés
+    SUBS_PAGE_TIMEOUT:    25_000,            // abandon si la page ne rend rien
+    SUBS_PAGE_DELAY:      25_000,            // après le démarrage, pour ne rien concurrencer
+    SUBS_PAGE_STAMP_KEY:  'tse:substs',
+
     SUBS_STORAGE_KEY:     'tse:subs',
     SUBS_MAX_LOGINS:      400,
     SUBS_TTL_DAYS:        120,
@@ -3360,6 +3380,125 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }
   };
 
+
+  /* ============================================================
+   *  RELEVÉ COMPLET DES ABONNEMENTS (page /subscriptions)
+   *  -------------------------------------------------------------
+   *  La lecture au fil des visites (module ci-dessus) ne connaît que
+   *  les chaînes ouvertes. Twitch, lui, publie la liste complète sur
+   *  /subscriptions — une page de VOTRE compte, que votre navigateur
+   *  sait déjà afficher.
+   *
+   *  MESURÉ avant d'être écrit :
+   *    • www.twitch.tv accepte d'être encadré par lui-même (beaucoup de
+   *      sites l'interdisent par X-Frame-Options ; pas celui-ci) ;
+   *    • l'iframe étant de MÊME ORIGINE, son document est lisible ;
+   *    • chaque abonnement y est un [data-a-target="subscription-card"]
+   *      contenant le lien de la chaîne. Relevé exact : 3 cartes dans
+   *      l'onglet « paid », 1 dans « gifts », conformes à la page.
+   *
+   *  CE QUE ÇA COÛTE, ET CE QUE ÇA NE COÛTE PAS. L'extension n'a pas
+   *  accès à votre jeton et n'en envoie aucun : elle demande une page,
+   *  le navigateur l'authentifie avec ses cookies exactement comme si
+   *  vous aviez cliqué sur le lien. Aucune donnée ne quitte la machine.
+   *  En revanche c'est une application React entière qui démarre en
+   *  arrière-plan — d'où un relevé RARE (6 h), différé bien après le
+   *  démarrage, et jamais deux à la fois.
+   *
+   *  ADDITIF, VOLONTAIREMENT. On marque abonné ce qu'on trouve ; on ne
+   *  marque personne « non abonné » sur une absence. Les onglets lus ne
+   *  couvrent pas tout (mobile, Turbo, autres), et conclure d'une
+   *  absence retirerait à tort le style d'un abonnement bien réel. La
+   *  correction d'un désabonnement reste au relevé de visite, qui, lui,
+   *  observe la chaîne elle-même.
+   * ============================================================ */
+  const subsPage = (() => {
+    let running = false;
+
+    const horodatage = () => {
+      try { return Number(localStorage.getItem(CFG.SUBS_PAGE_STAMP_KEY)) || 0; }
+      catch { return 0; }
+    };
+    const marquer = () => {
+      try { localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY, String(Date.now())); } catch {}
+    };
+
+    // Charge un onglet dans une iframe cachée et rend les logins trouvés.
+    // Résout TOUJOURS — un onglet qui ne rend rien ne doit pas bloquer les
+    // suivants ni laisser l'iframe accrochée à la page.
+    const visiter = (onglet) => new Promise(resolve => {
+      let cadre = document.createElement('iframe');
+      let sondeur = null, limite = null;
+      const finir = (logins) => {
+        if (sondeur) { clearInterval(sondeur); sondeur = null; }
+        if (limite) { clearTimeout(limite); limite = null; }
+        if (cadre) { cadre.remove(); cadre = null; }
+        resolve(logins);
+      };
+      cadre.setAttribute('aria-hidden', 'true');
+      cadre.setAttribute('tabindex', '-1');
+      cadre.style.cssText =
+        'position:fixed;left:-10000px;top:0;width:1280px;height:900px;' +
+        'opacity:0;pointer-events:none;border:0';
+      cadre.src = `${location.origin}/subscriptions?tab=${encodeURIComponent(onglet)}`;
+      limite = setTimeout(() => finir([]), CFG.SUBS_PAGE_TIMEOUT);
+      cadre.addEventListener('load', () => {
+        // La page est une SPA : le `load` de l'iframe précède l'apparition
+        // des cartes. On scrute jusqu'à en voir, ou jusqu'au délai maximal.
+        sondeur = setInterval(() => {
+          let doc = null;
+          try { doc = cadre?.contentDocument; } catch { return finir([]); }
+          if (!doc) return;
+          const cartes = doc.querySelectorAll(DOM.subCardSelector);
+          if (!cartes.length) return;
+          const logins = [];
+          for (const carte of cartes) {
+            const lien = carte.querySelector('a[href^="/"]');
+            const login = loginFromHref(lien?.getAttribute('href') || '');
+            if (login && !logins.includes(login)) logins.push(login);
+          }
+          if (logins.length) finir(logins);
+        }, 400);
+      }, { once: true });
+      document.body.appendChild(cadre);
+    });
+
+    /**
+     * Relève tous les onglets configurés et verse le résultat dans `subs`.
+     * `force` ignore le TTL (c'est le chemin de tse.subs.refresh()).
+     */
+    const refresh = async (force = false) => {
+      if (!CFG.SUBS_PAGE_ENABLED || running) return null;
+      if (!force && Date.now() - horodatage() < CFG.SUBS_PAGE_TTL) return null;
+      if (!document.body) return null;
+      running = true;
+      const trouves = [];
+      try {
+        for (const onglet of CFG.SUBS_PAGE_TABS) {
+          const logins = await visiter(onglet);
+          for (const l of logins) if (!trouves.includes(l)) trouves.push(l);
+        }
+        // Marqué même à vide : un compte sans abonnement ne doit pas
+        // relancer un chargement de page toutes les minutes.
+        marquer();
+        for (const login of trouves) subs.record(login, true);
+        if (trouves.length) scheduleScan();   // la pastille et le tri suivent
+      } finally {
+        running = false;
+      }
+      return trouves;
+    };
+
+    // Différé : la sidebar a la priorité au démarrage, et un onglet ouvert
+    // puis refermé aussitôt n'aurait de toute façon pas eu le temps.
+    const init = () => {
+      if (!CFG.SUBS_PAGE_ENABLED) return;
+      setTimeout(() => { refresh().catch(() => {}); }, CFG.SUBS_PAGE_DELAY);
+    };
+
+    return { init, refresh, horodatage };
+  })();
+
   /**
    * Relève le statut d'abonnement de la chaîne dont la page est ouverte.
    * Appelée à chaque scan : c'est une seule interrogation de sélecteur, et
@@ -3888,6 +4027,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
   };
   // Sous-commande pour accéder aux données brutes (programmable).
   tseApi.scores.raw = () => buildScoresReport();
+  /* Force un relevé complet via /subscriptions, sans attendre les 6 h.
+     Rend la liste des chaînes trouvées, ou null si le relevé est désactivé
+     ou déjà en cours. Utile pour vérifier soi-même ce que l'extension lit. */
+  tseApi.subs.refresh = () => subsPage.refresh(true);
 
   // Expose en lecture seule pour éviter qu'un autre script ne l'écrase.
   //
@@ -8264,6 +8407,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
                              // que le voile soit posé avant le premier scan
       roster.init();         // avant startObserver : le 1er scan relève déjà
       subs.load();           // idem : le tri doit pouvoir servir dès le 1er scan
+      subsPage.init();       // relevé complet, différé bien après le démarrage
       liveLag.init();
       visitTracker.init();
       preview.init();

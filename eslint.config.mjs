@@ -14,7 +14,10 @@ export default [{
       // que no-undef signalait donc à tort : URLSearchParams (buildIframeUrl,
       // content.js) et Request (adblock.js). Disponibles dans un content
       // script comme partout ailleurs.
-      URLSearchParams:'readonly', Request:'readonly' }
+      URLSearchParams:'readonly', Request:'readonly',
+      // setInterval était déjà déclaré plus haut ; seul clearInterval
+      // manquait, pour le nettoyage de subsPage.
+      clearInterval:'readonly' }
   },
   linterOptions: { reportUnusedDisableDirectives: true },
   rules: {

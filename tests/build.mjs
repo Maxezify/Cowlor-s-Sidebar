@@ -36,6 +36,13 @@ const subs = [
   [/GLOBAL_STRUCT_TICK:\s*[\d_]+/,   'GLOBAL_STRUCT_TICK:      600'],
   [/GLOBAL_FULL_WALK_MS:\s*[\d_]+/,  'GLOBAL_FULL_WALK_MS:     3_000'],
   [/GLOBAL_ERROR_COOLDOWN:\s*[\d_]+/, 'GLOBAL_ERROR_COOLDOWN:   1_500'],
+  // Relevé complet des abonnements : 25 s de délai et 6 h de TTL sont des
+  // durées de production. Réduites pour qu'un test puisse l'observer — le
+  // RAPPORT entre délai et TTL n'a pas d'importance ici, seul compte le fait
+  // que le relevé se déclenche puis ne se répète pas.
+  [/SUBS_PAGE_DELAY:\s*[\d_]+/,   'SUBS_PAGE_DELAY:      400'],
+  [/SUBS_PAGE_TTL:\s*6 \* 60 \* 60_000/, 'SUBS_PAGE_TTL:        4_000'],
+  [/SUBS_PAGE_TIMEOUT:\s*[\d_]+/, 'SUBS_PAGE_TIMEOUT:    6_000'],
   [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  40'],
   [/BATCH_DELAY:\s*[\d_]+/,       'BATCH_DELAY:    40'],
 ];

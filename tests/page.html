@@ -318,6 +318,36 @@ for (const type of ['pointerdown', 'click']) {
   });
 }
 
+// ── Page /subscriptions ─────────────────────────────────────────────
+// Reproduite d'après le relevé du 21/08/2026 : chaque abonnement est un
+// [data-a-target="subscription-card"] contenant le lien de la chaîne.
+// Rendue APRÈS un délai, comme la vraie : c'est une SPA, et le `load` de
+// l'iframe précède l'apparition des cartes. Un harnais qui les poserait
+// tout de suite ne testerait pas l'attente.
+// __noSubsPage coupe cette page : certains scénarios éprouvent la lecture
+// PAR VISITE seule, et le relevé complet y ajouterait ses propres chaînes.
+if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
+  const ONGLETS = {
+    paid:  ['omofficial', 'roicheese', 'etoiles'],
+    gifts: ['clem_mlrt'],
+  };
+  const tab = new URLSearchParams(location.search).get('tab') || 'paid';
+  setTimeout(() => {
+    const zone = document.createElement('div');
+    zone.id = 'subs-content';
+    for (const login of (ONGLETS[tab] || [])) {
+      const carte = document.createElement('div');
+      carte.className = 'subscription-card';
+      carte.setAttribute('data-a-target', 'subscription-card');
+      carte.innerHTML = '<div class="subscription-card-banner">' +
+        '<a class="tw-link" href="/' + login + '"></a></div>' +
+        '<p data-a-target="subscription-card__channel-name">' + login + '</p>';
+      zone.appendChild(carte);
+    }
+    document.getElementById('root').appendChild(zone);
+  }, 600);
+}
+
 // Montage TARDIF de la sidebar, piloté par le test (page.addInitScript).
 // Reproduit ce que fait Twitch : au moment où l'extension démarre, #side-nav
 // n'existe pas encore ; il apparaît ensuite, éventuellement en mode réduit.
