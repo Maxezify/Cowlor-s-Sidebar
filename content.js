@@ -1465,6 +1465,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
     .tse-sort-toggle {
       flex: 0 0 auto;
+      position: relative;   /* ancre du compteur, cf. .tse-sort-count */
       width: 28px; height: 28px;
       display: inline-flex; align-items: center; justify-content: center;
       padding: 0;
@@ -1498,6 +1499,29 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       background: ${CFG.PURPLE_HOVER};
       border-color: ${CFG.PURPLE_HOVER};
     }
+    /* Compteur d'abonnements, en pastille au coin bas-droit du bouton.
+       Le filet de la couleur du fond découpe la pastille dans le bouton au
+       lieu de l'y coller — c'est ce qui la fait lire comme une notification.
+       Sur le bouton ACTIF, le violet du badge se confondrait avec le violet
+       du bouton : les couleurs s'inversent alors. */
+    .tse-sort-count {
+      position: absolute; right: -5px; bottom: -5px;
+      min-width: 15px; height: 15px; padding: 0 3px;
+      display: inline-flex; align-items: center; justify-content: center;
+      box-sizing: border-box; border-radius: 999px;
+      background: ${CFG.PURPLE}; color: #fff;
+      border: 2px solid #1f1f23;
+      font-size: 9px; font-weight: 800; line-height: 1;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+    }
+    .tse-sort-toggle[aria-pressed="true"] .tse-sort-count {
+      background: #fff; color: ${CFG.PURPLE}; border-color: ${CFG.PURPLE};
+    }
+    /* Un bouton grisé n'a rien à compter : le CSS le dit aussi, pour que la
+       pastille ne survive pas à un état où le tri est indisponible. */
+    .tse-sort-toggle:disabled .tse-sort-count { display: none; }
+
     /* État désactivé : grise le bouton et bloque toute interaction.
        Note : l'attribut HTML "disabled" court-circuite déjà click et focus
        côté navigateur ; ce style ne fait qu'aligner le rendu. */
@@ -6049,11 +6073,16 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
     // Disponibilité par mode. Tous true sauf 'costream' qui requiert
     // qu'au moins un groupe ait été détecté par detectCoStreams().
+    // Compté UNE fois : la valeur sert à la fois à décider si le tri est
+    // disponible et à alimenter la pastille. La recompter reviendrait à
+    // parcourir deux fois la mémoire à chaque scan.
+    const nbSubs = subs.count();
+
     const available = {
       viewers:  true,
       // Sans une seule chaîne connue comme abonnée, ce tri ne trierait rien :
       // on le grise et on dit pourquoi, plutôt que d'offrir un bouton inerte.
-      subs:     subs.count() > 0,
+      subs:     nbSubs > 0,
       popular:  true,
       uptime:   true,
       alpha:    true,
@@ -6076,6 +6105,26 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         const spec = getSortButtons().find(s => s.mode === mode);
         if (spec) btn.title = spec.label;
       }
+      // Pastille de comptage sur le bouton des abonnements. Créée une seule
+      // fois, et son texte n'est réécrit que s'il CHANGE : une écriture
+      // inconditionnelle dans une fonction appelée à chaque scan émettrait
+      // une mutation, que notre propre observateur relirait comme un signal
+      // de re-scan — soit une boucle entretenue par elle-même (cf. setText).
+      if (mode === 'subs') {
+        let pastille = btn.querySelector(':scope > .tse-sort-count');
+        if (nbSubs > 0) {
+          if (!pastille) {
+            pastille = document.createElement('span');
+            pastille.className = 'tse-sort-count';
+            pastille.setAttribute('aria-hidden', 'true'); // le titre du bouton porte déjà le sens
+            btn.appendChild(pastille);
+          }
+          setText(pastille, nbSubs > 99 ? '99+' : String(nbSubs));
+        } else if (pastille) {
+          pastille.remove();
+        }
+      }
+
       // Fallback : si le mode actif vient d'être désactivé, basculer vers
       // 'viewers' (le mode par défaut au démarrage). On ne retombe pas sur
       // 'default' car ce mode n'est plus accessible volontairement à

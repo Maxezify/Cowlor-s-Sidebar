@@ -3167,6 +3167,56 @@ console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requ
     await page.close();
   }
 
+  // ── f) la pastille de comptage ─────────────────────────────────────────
+  {
+    const pastille = (page) => page.evaluate(() => {
+      const el = document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"] .tse-sort-count');
+      return el ? el.textContent : null;
+    });
+    const page = await freshTwitch(PLAYER, [], '/omofficial');
+    await decor(page);
+    await wait(page, 1500);
+    ok('aucune pastille tant qu\'aucun abonnement n\'est connu',
+       (await pastille(page)) === null, String(await pastille(page)));
+
+    await page.evaluate(() => {
+      const b = document.createElement('button');
+      b.setAttribute('data-a-target', 'manage-sub-button');
+      document.body.appendChild(b);
+    });
+    await wait(page, 1200);
+    ok('elle affiche 1 dès le premier abonnement repéré',
+       (await pastille(page)) === '1', String(await pastille(page)));
+
+    // Un second abonnement, injecté directement dans la mémoire : on teste
+    // le COMPTAGE, pas une seconde fois la détection.
+    await page.evaluate(() => {
+      const m = JSON.parse(localStorage.getItem('tse:subs'));
+      m.autrechaine = [1, Date.now()];
+      localStorage.setItem('tse:subs', JSON.stringify(m));
+    });
+    await page.reload();
+    await decor(page);
+    await page.evaluate(() => {
+      const b = document.createElement('button');
+      b.setAttribute('data-a-target', 'manage-sub-button');
+      document.body.appendChild(b);
+    });
+    await wait(page, 1800);
+    ok('et 2 quand deux abonnements sont connus',
+       (await pastille(page)) === '2', String(await pastille(page)));
+
+    // La pastille ne doit pas entretenir de boucle de scan : son texte n'est
+    // réécrit que s'il change. On vérifie que le nombre de scans se calme.
+    const compte = () => page.evaluate(() => window.__calls.length);
+    const a1 = await compte();
+    await wait(page, 1500);
+    const a2 = await compte();
+    ok('elle n\'entretient pas de boucle de re-scan', a2 - a1 <= 4,
+       `${a2 - a1} requête(s) en 1,5 s`);
+    await page.close();
+  }
+
   // ── e) hors d'une page de chaîne, on n'invente rien ─────────────────────
   {
     const page = await freshTwitch(PLAYER, [], '/directory');

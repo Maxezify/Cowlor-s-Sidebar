@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.43.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.43.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -386,6 +386,10 @@ Three practical consequences:
 
 - until a subscription has been spotted, the button is **greyed out** and says
   why, rather than offering a sort with nothing to sort;
+- as soon as there is one, a **badge** in the button's bottom-right corner gives
+  the count — the only way to tell at a glance what this sort actually has to
+  work with. It flips to white on the active button, and disappears with the
+  greyed-out state;
 - the **non**-subscription is stored too, so a later visit corrects an entry
   that has gone stale — including after unsubscribing;
 - past 120 days an observation is no longer believed, otherwise a monthly

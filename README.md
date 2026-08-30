@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.43.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.43.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -402,6 +402,10 @@ Trois conséquences pratiques :
 
 - tant qu'aucun abonnement n'a été repéré, le bouton est **grisé** et explique
   pourquoi, plutôt que d'offrir un tri qui ne trierait rien ;
+- dès qu'il y en a, une **pastille** au coin bas-droit du bouton en donne le
+  nombre — c'est la seule façon de savoir, d'un coup d'œil, ce que ce tri a
+  réellement sous la main. Elle s'inverse en blanc sur le bouton actif, et
+  disparaît avec le grisé ;
 - le **non**-abonnement est mémorisé lui aussi : une visite ultérieure corrige
   donc une entrée devenue fausse, y compris après un désabonnement ;
 - au-delà de 120 jours, une observation n'est plus crue — sans quoi un
