@@ -287,6 +287,17 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Twitch expose ces hooks d'automatisation sur tous ses libellés localisés ;
     // on les privilégie au match textuel (qui ne couvre que les langues listées).
     showMoreStableSelector:  '[data-a-target="side-nav-show-more-button"], [data-test-selector="ShowMore"]',
+    /* Statut d'abonnement, lu sur la page d'une chaîne. MESURÉ (21/08/2026,
+       deux relevés comparés) : le bouton d'abonnement change de
+       `data-a-target` selon l'état, et NON pas seulement de libellé —
+         abonné      → manage-sub-button  (+ gift-button à côté)
+         non abonné  → subscribe-button
+       C'est ce qui rend la lecture indépendante de la langue de l'interface,
+       comme partout ailleurs dans cette extension. Un repli sur le texte
+       (« Abonné » / « S'abonner ») aurait demandé cinq traductions et cassé
+       à la première refonte de Twitch. */
+    subManageSelector:       '[data-a-target="manage-sub-button"]',
+    subOfferSelector:        '[data-a-target="subscribe-button"]',
     showLessStableSelector:  '[data-a-target="side-nav-show-less-button"], [data-test-selector="ShowLess"]',
 
     offlineRe:               /\b(?:déconnecté(?:e)?s?|offline|desconectad(?:o|a)s?)\b/i,
@@ -326,6 +337,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       },
       uiBadgeSponsoredBy:        (nameHtml) => `Sponsorisé par <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'Aucun co-stream détecté actuellement',
+      uiSortLabelSubs:           'Mes abonnements en tête (chaînes visitées)',
+      uiSortNoSubs:              'Aucun abonnement repéré pour l\'instant — ouvrez une chaîne à laquelle vous êtes abonné',
+      consoleNoSubs:             '[tse] Aucun abonnement repéré pour le moment.',
       uiSortLabelViewers:        'Trier par nombre de viewers (décroissant)',
       uiSortLabelPopular:        'Trier par popularité personnelle (visites récentes)',
       uiSortLabelUptime:         'Trier par durée de stream (croissant)',
@@ -378,6 +392,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       },
       uiBadgeSponsoredBy:        (nameHtml) => `Sponsored by <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'No co-streams currently detected',
+      uiSortLabelSubs:           'My subscriptions first (visited channels)',
+      uiSortNoSubs:              'No subscription spotted yet — open a channel you are subscribed to',
+      consoleNoSubs:             '[tse] No subscription spotted yet.',
       uiSortLabelViewers:        'Sort by viewer count (descending)',
       uiSortLabelPopular:        'Sort by personal popularity (recent visits)',
       uiSortLabelUptime:         'Sort by stream duration (ascending)',
@@ -430,6 +447,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       },
       uiBadgeSponsoredBy:        (nameHtml) => `Gesponsert von <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'Derzeit keine Co-streams erkannt',
+      uiSortLabelSubs:           'Meine Abos zuerst (besuchte Kanäle)',
+      uiSortNoSubs:              'Noch kein Abo erkannt — öffne einen Kanal, den du abonniert hast',
+      consoleNoSubs:             '[tse] Noch kein Abo erkannt.',
       uiSortLabelViewers:        'Nach Zuschauerzahl sortieren (absteigend)',
       uiSortLabelPopular:        'Nach persönlicher Beliebtheit sortieren (kürzliche Besuche)',
       uiSortLabelUptime:         'Nach Stream-Dauer sortieren (aufsteigend)',
@@ -482,6 +502,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       },
       uiBadgeSponsoredBy:        (nameHtml) => `Patrocinado por <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'No se detectaron co-streams por el momento',
+      uiSortLabelSubs:           'Mis suscripciones primero (canales visitados)',
+      uiSortNoSubs:              'Ninguna suscripción detectada aún — abre un canal al que estés suscrito',
+      consoleNoSubs:             '[tse] Ninguna suscripción detectada por ahora.',
       uiSortLabelViewers:        'Ordenar por número de espectadores (descendente)',
       uiSortLabelPopular:        'Ordenar por popularidad personal (visitas recientes)',
       uiSortLabelUptime:         'Ordenar por duración del stream (ascendente)',
@@ -534,6 +557,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       },
       uiBadgeSponsoredBy:        (nameHtml) => `Patrocinado por <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'Nenhum co-stream detectado no momento',
+      uiSortLabelSubs:           'Minhas inscrições primeiro (canais visitados)',
+      uiSortNoSubs:              'Nenhuma inscrição detectada ainda — abra um canal em que você é inscrito',
+      consoleNoSubs:             '[tse] Nenhuma inscrição detectada por enquanto.',
       uiSortLabelViewers:        'Ordenar por número de espectadores (decrescente)',
       uiSortLabelPopular:        'Ordenar por popularidade pessoal (visitas recentes)',
       uiSortLabelUptime:         'Ordenar por duração do stream (crescente)',
@@ -806,6 +832,17 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     VISIT_MAX_LOGINS:     400,           // nb max de chaînes suivies (borne mémoire + localStorage)
     VISIT_HALFLIFE_DAYS:  7,
     VISIT_STORAGE_KEY:    'tse:visits',
+
+    /* ── Abonnements repérés (cf. module ABONNEMENTS) ───────────────────
+       Aucune requête, aucun jeton : le statut est LU sur la page de la
+       chaîne quand on la visite, puis mémorisé localement. La couverture
+       est donc partielle par construction — on ne connaît que les chaînes
+       ouvertes au moins une fois — et l'interface doit le dire.
+       Au-delà de SUBS_TTL_DAYS, une observation n'est plus crue : un
+       abonnement mensuel non reconduit deviendrait sinon éternel. */
+    SUBS_STORAGE_KEY:     'tse:subs',
+    SUBS_MAX_LOGINS:      400,
+    SUBS_TTL_DAYS:        120,
 
     // === Roster des chaînes suivies (cf. module ROSTER) ===
     ROSTER_STORAGE_KEY:   'tse:roster',
@@ -3194,6 +3231,128 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
   };
 
   /* ============================================================
+   *  ABONNEMENTS REPÉRÉS
+   *  -------------------------------------------------------------
+   *  « À quelles chaînes suis-je abonné ? » est une donnée PRIVÉE :
+   *  l'API ne la rend qu'à une requête authentifiée (vérifié sur le
+   *  schéma — `UserSelfConnection.subscriptionBenefit` est documenté
+   *  « null if the authenticated user is not subscribed »), et une
+   *  requête anonyme reçoit `self: null`. Mesuré, pas supposé.
+   *
+   *  L'extension ne demande donc RIEN. Elle lit ce que la page montre
+   *  déjà quand vous ouvrez une chaîne : le bouton d'abonnement porte
+   *  un `data-a-target` différent selon l'état (cf. DOM.subManageSelector).
+   *  Aucun jeton, aucun cookie, aucune requête supplémentaire — la
+   *  promesse d'anonymat de l'extension reste vraie mot pour mot.
+   *
+   *  CONTREPARTIE ASSUMÉE, et affichée dans l'interface : on ne connaît
+   *  que les chaînes VISITÉES. Un abonnement à une chaîne jamais ouverte
+   *  est invisible. Une visite ultérieure corrige toujours l'entrée —
+   *  y compris pour un désabonnement, puisqu'on mémorise aussi le NON.
+   *
+   *  Stockage : localStorage (clé SUBS_STORAGE_KEY), { login: [sub, ts] }.
+   *  Effaçable par tse.reset(), comme le reste.
+   * ============================================================ */
+  const subs = {
+    map: new Map(),   // login -> { sub: boolean, ts: number }
+
+    load() {
+      try {
+        const obj = JSON.parse(localStorage.getItem(CFG.SUBS_STORAGE_KEY) || 'null');
+        if (!obj || typeof obj !== 'object') return;
+        for (const [login, v] of Object.entries(obj)) {
+          // Forme compacte [sub, ts] pour tenir dans le quota : on la relit
+          // en tolérant tout ce qui ne lui ressemble pas.
+          if (!Array.isArray(v) || v.length !== 2) continue;
+          const ts = Number(v[1]);
+          if (!Number.isFinite(ts) || ts <= 0) continue;
+          this.map.set(login, { sub: !!v[0], ts });
+        }
+        this.prune();
+      } catch { /* stockage corrompu / indisponible → on ignore */ }
+    },
+
+    save() {
+      try {
+        const obj = {};
+        for (const [login, e] of this.map) obj[login] = [e.sub ? 1 : 0, e.ts];
+        localStorage.setItem(CFG.SUBS_STORAGE_KEY, JSON.stringify(obj));
+      } catch { /* quota → on garde en mémoire */ }
+    },
+
+    // Borne le nombre de chaînes, en gardant les observations les plus
+    // RÉCENTES : ce sont les seules encore dignes de confiance.
+    prune() {
+      const limite = Date.now() - CFG.SUBS_TTL_DAYS * 24 * 60 * 60 * 1000;
+      for (const [login, e] of [...this.map]) if (e.ts < limite) this.map.delete(login);
+      if (this.map.size <= CFG.SUBS_MAX_LOGINS) return;
+      const gardees = [...this.map.entries()]
+        .sort((a, b) => b[1].ts - a[1].ts)
+        .slice(0, CFG.SUBS_MAX_LOGINS);
+      this.map = new Map(gardees);
+    },
+
+    /**
+     * Enregistre une observation. N'écrit sur le disque QUE si l'état a
+     * changé — sinon un simple passage sur une chaîne déclencherait une
+     * écriture localStorage à chaque scan, soit plusieurs par seconde.
+     */
+    record(login, sub) {
+      if (!login) return false;
+      const avant = this.map.get(login);
+      this.map.set(login, { sub, ts: Date.now() });
+      if (avant && avant.sub === sub) return false;   // rien de neuf
+      this.prune();
+      this.save();
+      return true;
+    },
+
+    // Abonné à cette chaîne, pour autant qu'on le sache. Une observation
+    // périmée ne vaut plus rien : prune() l'a déjà retirée, mais on reteste
+    // ici pour ne pas dépendre du moment où prune a tourné.
+    isSub(login) {
+      const e = login ? this.map.get(login) : null;
+      if (!e || !e.sub) return false;
+      return Date.now() - e.ts < CFG.SUBS_TTL_DAYS * 24 * 60 * 60 * 1000;
+    },
+
+    // Nombre de chaînes CONNUES COMME ABONNÉES. C'est lui qui décide si le
+    // mode de tri a quelque chose à trier.
+    count() {
+      let n = 0;
+      for (const login of this.map.keys()) if (this.isSub(login)) n += 1;
+      return n;
+    },
+
+    entries() {
+      return [...this.map.entries()]
+        .map(([login, e]) => ({ login, sub: e.sub, ts: e.ts }))
+        .sort((a, b) => (b.sub - a.sub) || (b.ts - a.ts));
+    },
+
+    clear() {
+      this.map.clear();
+      try { localStorage.removeItem(CFG.SUBS_STORAGE_KEY); } catch {}
+    }
+  };
+
+  /**
+   * Relève le statut d'abonnement de la chaîne dont la page est ouverte.
+   * Appelée à chaque scan : c'est une seule interrogation de sélecteur, et
+   * la répétition est ce qui rend la lecture robuste — le bouton n'apparaît
+   * qu'une fois React passé, et un abonnement souscrit sans quitter la page
+   * est ainsi vu tout de suite.
+   */
+  function detectSubscription() {
+    const login = loginFromHref(location.pathname);
+    if (!login) return;                       // pas sur une page de chaîne
+    if (document.querySelector(DOM.subManageSelector)) subs.record(login, true);
+    else if (document.querySelector(DOM.subOfferSelector)) subs.record(login, false);
+    // Ni l'un ni l'autre : page pas encore rendue, ou chaîne sans
+    // abonnement possible. On n'écrit rien plutôt que de deviner.
+  }
+
+  /* ============================================================
    *  ROSTER DES CHAÎNES SUIVIES
    *  -------------------------------------------------------------
    *  Mémorise les chaînes suivies APERÇUES dans la sidebar, avec la
@@ -3578,8 +3737,24 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       visits.map.clear();
       try { localStorage.removeItem(CFG.VISIT_STORAGE_KEY); } catch {}
       roster.clear();
+      subs.clear();
       liveLag.clear();
       console.log(S.consoleHistoryCleared);
+    },
+    // Abonnements repérés en visitant des chaînes (cf. module ABONNEMENTS).
+    // Aucune requête n'a été faite pour les obtenir : ce sont des lectures de
+    // page. La colonne `abonné` vaut false pour une chaîne visitée à laquelle
+    // vous n'êtes PAS abonné — c'est ce qui permet de corriger une entrée.
+    subs(limit = Infinity) {
+      const entries = subs.entries();
+      if (!entries.length) { console.log(S.consoleNoSubs); return []; }
+      const lignes = entries.slice(0, limit);
+      console.table(lignes.map(e => ({
+        [S.consoleColLogin]: e.login,
+        abonné:              e.sub,
+        [S.consoleColLast]:  formatDate(e.ts)
+      })));
+      return lignes;
     },
     // Chaînes suivies mémorisées par observation de la sidebar (cf. module
     // ROSTER). Rien ne les exploite encore : la liste s'accumule pour être
@@ -5792,8 +5967,20 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
   //   2. ajouter le case correspondant dans applySorting()
   // L'ordre du tableau définit l'ordre d'affichage de gauche à droite.
   // getSortButtons() lu dynamiquement pour suivre LANG si elle bascule.
+  // Gemme : l'étoile est déjà prise par la popularité personnelle, et c'est
+  // la forme que Twitch associe lui-même à l'abonnement.
+  const SVG_GEM =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 3h9l4 5.5-8.5 12L3.5 8.5 7.5 3Z' +
+    'm.8 2L6 8h3.4l1.1-3H8.3Zm4.4 0-1.1 3h2.8l-1.1-3h-.6Zm3.4 0 1.1 3H20l-2.3-3h-1.6Z' +
+    'M5.9 10l5 7-2.4-7H5.9Zm4.7 0 1.4 4.2L13.4 10h-2.8Zm4.9 0-2.4 7 5-7h-2.6Z"/></svg>';
+
   const getSortButtons = () => [
     { mode: 'viewers',  svg: SVG_EYE,   label: S.uiSortLabelViewers  },
+    // Entre « viewers » et « popularité » : le classement passe du plus
+    // objectif (ce que Twitch mesure) au plus personnel (ce que vous faites).
+    // L'abonnement se situe exactement là — c'est un lien que vous avez
+    // choisi, mais qui ne dépend pas de votre navigation.
+    { mode: 'subs',     svg: SVG_GEM,   label: S.uiSortLabelSubs     },
     { mode: 'popular',  svg: SVG_STAR,  label: S.uiSortLabelPopular  },
     { mode: 'uptime',   svg: SVG_CLOCK, label: S.uiSortLabelUptime   },
     { mode: 'alpha',    svg: SVG_ALPHA, label: S.uiSortLabelAlpha    },
@@ -5864,6 +6051,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // qu'au moins un groupe ait été détecté par detectCoStreams().
     const available = {
       viewers:  true,
+      // Sans une seule chaîne connue comme abonnée, ce tri ne trierait rien :
+      // on le grise et on dit pourquoi, plutôt que d'offrir un bouton inerte.
+      subs:     subs.count() > 0,
       popular:  true,
       uptime:   true,
       alpha:    true,
@@ -5880,6 +6070,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // Tooltip étendu quand désactivé, pour expliquer pourquoi.
       if (!ok && mode === 'costream') {
         btn.title = S.uiSortNoCoStreams;
+      } else if (!ok && mode === 'subs') {
+        btn.title = S.uiSortNoSubs;
       } else {
         const spec = getSortButtons().find(s => s.mode === mode);
         if (spec) btn.title = spec.label;
@@ -7048,6 +7240,20 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         const ob = parseInt(b.dataset.tseTwitchOrder ?? '999', 10);
         return oa - ob;
       });
+    } else if (sortMode === 'subs') {
+      // Abonnements en tête. À l'intérieur de chaque groupe, on retombe sur
+      // le nombre de spectateurs décroissant — le tri par défaut, donc celui
+      // que l'œil attend — puis sur l'ordre Twitch pour rester déterministe.
+      sorted = [...cards].sort((a, b) => {
+        const sa = subs.isSub(getCardLogin(a)) ? 1 : 0;
+        const sb = subs.isSub(getCardLogin(b)) ? 1 : 0;
+        if (sa !== sb) return sb - sa;
+        const va = getCardViewers(a), vb = getCardViewers(b);
+        if (vb !== va) return vb - va;
+        const oa = parseInt(a.dataset.tseTwitchOrder ?? '999', 10);
+        const ob = parseInt(b.dataset.tseTwitchOrder ?? '999', 10);
+        return oa - ob;
+      });
     } else if (sortMode === 'popular') {
       // Score de popularité personnelle DESC (visites récentes pondérées).
       // À égalité (ou si aucune donnée encore), on tombe sur l'ordre Twitch
@@ -7645,6 +7851,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     offlineTransitionsThisScan = 0; // remis à zéro avant le passage des cartes
     snapshotTwitchOrder(); // avant tout tri custom, on photographie l'ordre Twitch
     harvestFollowed();     // relève du roster + horodatage des cartes nouvelles
+    detectSubscription();  // statut d'abonnement de la chaîne ouverte, s'il y en a une
     pollRoster();          // sonde les chaînes suivies absentes de la sidebar
     // Les cartes en avance servent la liste SUIVIE : elles n'ont pas d'objet
     // en mode global, où l'on n'affiche pas ce que l'utilisateur suit.
@@ -8007,6 +8214,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       loadingOverlay.init(); // doit être appelé AVANT startObserver pour
                              // que le voile soit posé avant le premier scan
       roster.init();         // avant startObserver : le 1er scan relève déjà
+      subs.load();           // idem : le tri doit pouvoir servir dès le 1er scan
       liveLag.init();
       visitTracker.init();
       preview.init();

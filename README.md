@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.42.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.43.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -9,7 +9,7 @@ vides, auto-expansion de la liste suivie, mise en évidence des streams démarr�
 récemment, détection et coloration des co-streams (avec rôle hôte/participant
 extrait du DOM Twitch), détection du système « En live avec » (squad /
 multistream), normalisation visuelle des cartes sponsorisées, filtres par
-catégorie et par langue (avec drapeaux), cinq modes de tri au choix, historique de visites stocké localement,
+catégorie et par langue (avec drapeaux), six modes de tri au choix, historique de visites stocké localement,
 et aperçu vidéo en direct au survol d'une chaîne (toutes sections confondues)
 avec titre, badges contextuels et gestion des Content Classification Labels.
 
@@ -351,6 +351,63 @@ chez Twitch. Le délai de détection des passages en direct et des déconnexions
 lui, dépend bien de cette constante.
 
 Rechargez ensuite l'extension (`chrome://extensions` → ↻) et l'onglet Twitch.
+
+---
+
+## Mes abonnements en tête (v3.43+)
+
+Un sixième mode de tri, entre « spectateurs » et « popularité perso » : les
+chaînes auxquelles vous êtes abonné remontent en haut de la liste.
+
+### Pourquoi ce n'est pas une requête
+
+« À quelles chaînes suis-je abonné » est une donnée **privée**, et le schéma
+GraphQL de Twitch le dit noir sur blanc :
+
+> `UserSelfConnection.subscriptionBenefit` — *The subscription benefit
+> relationship between **the authenticated user** and another user. Null if the
+> authenticated user is not subscribed to the other user.*
+
+Mesuré, pas supposé : une requête anonyme sur ce champ renvoie `self: null`.
+L'obtenir imposerait donc d'envoyer votre jeton de session — c'est-à-dire de
+renoncer à ce que cette extension promet partout ailleurs.
+
+### Ce qu'elle fait à la place
+
+Elle **lit ce que la page montre déjà**. Sur la page d'une chaîne, le bouton
+d'abonnement change de `data-a-target` selon votre état — et non pas seulement
+de libellé, ce qui aurait rendu la lecture dépendante de la langue :
+
+| | `data-a-target` |
+| --- | --- |
+| abonné | `manage-sub-button` |
+| non abonné | `subscribe-button` |
+
+Relevé sur deux chaînes réelles, une dans chaque état. C'est le même genre de
+repère structurel que l'extension utilise pour trouver la section suivie ou les
+cartes : indépendant de la langue, et stable tant que Twitch ne refond pas son
+markup.
+
+**Aucune requête, aucun jeton, aucune permission de plus.** Le statut est noté
+au passage, quand vous ouvrez une chaîne, et mémorisé dans `tse:subs`.
+
+### La contrepartie, dite franchement
+
+On ne connaît que les chaînes que vous avez **ouvertes**. Un abonnement à une
+chaîne jamais visitée est invisible pour l'extension — c'est pour cela que le
+bouton s'intitule « Mes abonnements en tête (chaînes visitées) » et non « Mes
+abonnements ».
+
+Trois conséquences pratiques :
+
+- tant qu'aucun abonnement n'a été repéré, le bouton est **grisé** et explique
+  pourquoi, plutôt que d'offrir un tri qui ne trierait rien ;
+- le **non**-abonnement est mémorisé lui aussi : une visite ultérieure corrige
+  donc une entrée devenue fausse, y compris après un désabonnement ;
+- au-delà de 120 jours, une observation n'est plus crue — sans quoi un
+  abonnement mensuel non reconduit resterait vrai pour toujours.
+
+`tse.subs()` liste ce qui a été repéré, `tse.reset()` l'efface avec le reste.
 
 ---
 
@@ -782,6 +839,9 @@ sert au tri « Mes plus visités » :
   sa carte dans la sidebar (cf. section suivante).
 - `tse.roster()` — liste les chaînes suivies que l'extension a mémorisées en
   observant la sidebar (cf. section suivante).
+- `tse.subs()` — liste les abonnements repérés en visitant des chaînes, avec
+  la date de l'observation. La colonne `abonné` vaut aussi `false` : c'est ce
+  qui permet à une visite de corriger une entrée devenue fausse.
 - `tse.cycles()` — journal des **voiles de chargement** : à quel instant chacun
   est monté, pour quelle raison (« démarrage », « remount de la sidebar »,
   « bascule réduit/étendu », « retour d'onglet », « entrée dans Top Chaînes »,
@@ -849,8 +909,9 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 | `tse:visits` | dates de vos visites par chaîne | tri « Mes plus visités » |
 | `tse:roster` | chaînes suivies aperçues dans la sidebar | poser une carte avant Twitch |
 | `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
+| `tse:subs` | abonnements repérés en visitant des chaînes | tri « Mes abonnements en tête » |
 
-`tse.reset()` efface les trois à tout moment ; vider les données de site de
+`tse.reset()` les efface toutes à tout moment ; vider les données de site de
 `twitch.tv` depuis les réglages du navigateur fait de même.
 
 Le mode **Top Chaînes** n'ajoute rien à cette liste : il ne mémorise rien, ne

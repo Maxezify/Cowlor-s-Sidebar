@@ -47,7 +47,7 @@ const fileText = (name) => readFileSync(join(ICI, name), 'utf8');
 const PIXEL = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
   'base64');
-async function freshTwitch(playerBody, cdnUrls = []) {
+async function freshTwitch(playerBody, cdnUrls = [], chemin = '/') {
   const page = await browser.newPage();
   page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
   await page.route('https://www.twitch.tv/**', (route) => {
@@ -73,7 +73,9 @@ async function freshTwitch(playerBody, cdnUrls = []) {
     route.fulfill({ contentType: 'image/png', body: PIXEL,
                     headers: { 'Cache-Control': 'max-age=300' } });
   });
-  await page.goto('https://www.twitch.tv/');
+  // Le chemin compte : le relevé d'abonnement ne se déclenche que sur la
+  // page d'une CHAÎNE, et c'est location.pathname qui la nomme.
+  await page.goto('https://www.twitch.tv' + chemin);
   return page;
 }
 
@@ -3067,6 +3069,122 @@ console.log('\n41. Cache — le mode global ne doit rien laisser derrière lui')
   ok('et la liste suivie ne propose toujours pas « Français »',
      !apres.options.includes('Français'), apres.options.join(','));
   await page.close();
+}
+
+// ═════════ 42. Abonnements — lus sur la page, jamais demandés ═════════
+console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requête');
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const decor = (page) => page.evaluate(() => {
+    const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+    window.__fx = {
+      gros:      { id:'1', createdAt:h(120), viewers:9000, game:'Just Chatting', tags:[] },
+      moyen:     { id:'2', createdAt:h(90),  viewers:4000, game:'Just Chatting', tags:[] },
+      omofficial:{ id:'3', createdAt:h(30),  viewers:120,  game:'Just Chatting', tags:[] },
+    };
+    window.__addCard('gros',       'Just Chatting', '9 k');
+    window.__addCard('moyen',      'Just Chatting', '4 k');
+    window.__addCard('omofficial', 'Just Chatting', '120');
+  });
+  const boutons = (page) => page.evaluate(() =>
+    [...document.querySelectorAll('#tse-sort-row button[data-tse-sort-mode]')]
+      .map(b => ({ mode: b.dataset.tseSortMode, off: b.disabled, titre: b.title })));
+  const ordre = (page) => page.evaluate(() =>
+    [...document.querySelectorAll('#side-nav .side-nav-card')].map(c => c.dataset.tseLogin));
+
+  // ── a) rien de connu : le bouton est là, à sa place, et il est grisé ────
+  {
+    const page = await freshTwitch(PLAYER, [], '/');
+    await decor(page);
+    await wait(page, 1800);
+    const b = await boutons(page);
+    ok('six modes de tri, dans l\'ordre attendu',
+       b.map(x => x.mode).join(',') === 'viewers,subs,popular,uptime,alpha,costream',
+       b.map(x => x.mode).join(','));
+    const sub = b.find(x => x.mode === 'subs');
+    // Sans une seule chaîne repérée, le tri ne trierait rien : il doit se
+    // griser et DIRE pourquoi, plutôt que d'offrir un bouton inerte.
+    ok('grisé tant qu\'aucun abonnement n\'est repéré', sub?.off === true, JSON.stringify(sub));
+    ok('et le survol explique pourquoi',
+       /abonnement/i.test(sub?.titre || ''), sub?.titre);
+    await page.close();
+  }
+
+  // ── b) sur la page d'une chaîne abonnée, l'extension le relève ──────────
+  {
+    const page = await freshTwitch(PLAYER, [], '/omofficial');
+    await decor(page);
+    // Le marqueur MESURÉ sur Twitch : abonné → data-a-target="manage-sub-button".
+    await page.evaluate(() => {
+      const b = document.createElement('button');
+      b.setAttribute('data-a-target', 'manage-sub-button');
+      b.textContent = 'Gérer';
+      document.body.appendChild(b);
+    });
+    const avant = await page.evaluate(() => window.__calls.length);
+    await wait(page, 1500);
+    const memoire = await page.evaluate(() => {
+      try { return JSON.parse(localStorage.getItem('tse:subs') || 'null'); }
+      catch { return 'illisible'; }
+    });
+    ok('l\'abonnement est mémorisé', !!memoire?.omofficial, JSON.stringify(memoire));
+    ok('avec l\'état « abonné »', memoire?.omofficial?.[0] === 1, JSON.stringify(memoire));
+
+    // LE point qui justifie toute cette voie : aucune requête n'a été émise
+    // pour l'obtenir. Le statut a été LU sur la page, pas demandé au réseau.
+    const requetes = await page.evaluate((k) => window.__calls.slice(k)
+      .flatMap(c => c.names || []), avant);
+    ok('aucune requête n\'a servi à l\'apprendre',
+       !requetes.some(n => /sub/i.test(n)), JSON.stringify([...new Set(requetes)]));
+
+    // ── c) le tri met l'abonné en tête, malgré ses 120 spectateurs ────────
+    const b = await boutons(page);
+    ok('le bouton s\'active une fois un abonnement connu',
+       b.find(x => x.mode === 'subs')?.off === false, JSON.stringify(b));
+    ok('avant le tri, l\'abonné est bon dernier',
+       (await ordre(page)).at(-1) === 'omofficial', (await ordre(page)).join(','));
+    await page.evaluate(() =>
+      document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"]').click());
+    await wait(page, 900);
+    const apres = await ordre(page);
+    ok('après le tri, il passe en tête', apres[0] === 'omofficial', apres.join(','));
+    ok('et les autres gardent l\'ordre par spectateurs',
+       apres.slice(1).join(',') === 'gros,moyen', apres.join(','));
+
+    // ── d) une visite ultérieure corrige un désabonnement ─────────────────
+    // C'est ce qui rend la mémoire honnête : on mémorise aussi le NON.
+    await page.evaluate(() => {
+      document.querySelector('[data-a-target="manage-sub-button"]').remove();
+      const b = document.createElement('button');
+      b.setAttribute('data-a-target', 'subscribe-button');
+      document.body.appendChild(b);
+    });
+    await wait(page, 1200);
+    const apresDesabo = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('tse:subs') || 'null'));
+    ok('le désabonnement est enregistré à la visite suivante',
+       apresDesabo?.omofficial?.[0] === 0, JSON.stringify(apresDesabo));
+    await page.close();
+  }
+
+  // ── e) hors d'une page de chaîne, on n'invente rien ─────────────────────
+  {
+    const page = await freshTwitch(PLAYER, [], '/directory');
+    await decor(page);
+    await page.evaluate(() => {
+      const b = document.createElement('button');
+      b.setAttribute('data-a-target', 'manage-sub-button');
+      document.body.appendChild(b);
+    });
+    await wait(page, 1400);
+    const memoire = await page.evaluate(() =>
+      localStorage.getItem('tse:subs'));
+    // « directory » est un chemin RÉSERVÉ : ce n'est pas une chaîne, et
+    // enregistrer « abonné à directory » polluerait la mémoire pour toujours.
+    ok('un chemin réservé n\'est jamais pris pour une chaîne',
+       memoire === null || !JSON.parse(memoire).directory, String(memoire));
+    await page.close();
+  }
 }
 
 await browser.close();

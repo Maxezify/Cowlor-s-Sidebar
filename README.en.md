@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.42.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.43.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -8,7 +8,7 @@ discount banners, hiding of offline channels and empty sections, auto-expansion
 of the followed list, highlighting of recently started streams, detection and
 coloring of co-streams (with host/participant role extracted from the Twitch
 DOM), detection of the "Live with" (squad / multistream) system, visual
-normalization of sponsored cards, category and language filters (with flags), five sort modes to choose
+normalization of sponsored cards, category and language filters (with flags), six sort modes to choose
 from, locally-stored visit history, and live video preview on hover (across all
 sections) with title, contextual badges, and Content Classification Label
 handling.
@@ -336,6 +336,62 @@ floor is not in the extension, it is at Twitch. Detection of channels going live
 or offline, on the other hand, does depend on this constant.
 
 Then reload the extension (`chrome://extensions` → ↻) and the Twitch tab.
+
+---
+
+## My subscriptions first (v3.43+)
+
+A sixth sort mode, sitting between "viewers" and "personal popularity": the
+channels you are subscribed to rise to the top of the list.
+
+### Why this is not a request
+
+"Which channels am I subscribed to" is **private** data, and Twitch's GraphQL
+schema says so plainly:
+
+> `UserSelfConnection.subscriptionBenefit` — *The subscription benefit
+> relationship between **the authenticated user** and another user. Null if the
+> authenticated user is not subscribed to the other user.*
+
+Measured, not assumed: an anonymous request for that field comes back with
+`self: null`. Getting it would mean sending your session token — that is,
+giving up what this extension promises everywhere else.
+
+### What it does instead
+
+It **reads what the page already shows**. On a channel page, the subscribe
+button changes its `data-a-target` according to your state — not merely its
+label, which would have made the reading language-dependent:
+
+| | `data-a-target` |
+| --- | --- |
+| subscribed | `manage-sub-button` |
+| not subscribed | `subscribe-button` |
+
+Captured on two real channels, one in each state. It is the same kind of
+structural hook the extension already uses to find the followed section or the
+cards: independent of the UI language, and stable until Twitch reworks its
+markup.
+
+**No request, no token, no extra permission.** The status is noted in passing,
+when you open a channel, and stored in `tse:subs`.
+
+### The trade-off, stated plainly
+
+Only channels you have **opened** are known. A subscription to a channel you
+never visited is invisible to the extension — which is why the button reads
+"My subscriptions first (visited channels)" rather than "My subscriptions".
+
+Three practical consequences:
+
+- until a subscription has been spotted, the button is **greyed out** and says
+  why, rather than offering a sort with nothing to sort;
+- the **non**-subscription is stored too, so a later visit corrects an entry
+  that has gone stale — including after unsubscribing;
+- past 120 days an observation is no longer believed, otherwise a monthly
+  subscription left to lapse would stay true forever.
+
+`tse.subs()` lists what has been spotted; `tse.reset()` wipes it with the rest.
 
 ---
 
@@ -746,6 +802,10 @@ The extension exposes a `tse` object in the Twitch page's DevTools console
   below).
 - `tse.roster()` — lists the followed channels the extension has memorised by
   watching the sidebar (see below).
+- `tse.subs()` — lists the subscriptions spotted while visiting channels, with
+  the date of the observation. The column is also `false` for visited channels
+  you are *not* subscribed to: that is what lets a later visit correct a stale
+  entry.
 - `tse.cycles()` — log of the **loading veils**: when each one went up, why
   ("startup", "sidebar remount", "collapsed/expanded toggle", "tab return",
   "entering Top Channels", "category change"…) and what brought it down
@@ -812,8 +872,9 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 | `tse:visits` | your visit dates per channel | "Most visited" sort |
 | `tse:roster` | followed channels seen in the sidebar | posting a card before Twitch |
 | `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
+| `tse:subs` | subscriptions spotted while visiting channels | "My subscriptions first" sort |
 
-`tse.reset()` wipes all three at any time; clearing `twitch.tv`'s site data from
+`tse.reset()` wipes them all at any time; clearing `twitch.tv`'s site data from
 your browser settings does the same.
 
 **Top Channels** adds nothing to that list: it stores nothing, does not even
