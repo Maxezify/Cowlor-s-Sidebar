@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.51.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.52.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -546,11 +546,26 @@ les rechercher n'était pas une remise à zéro.
 ### Le style d'une chaîne abonnée (v3.45, refondu en v3.51)
 
 Le **nom de la chaîne passe à l'or**, et un reflet plus clair le traverse en
-boucle — la couleur est celle d'un dégradé découpé à la forme des lettres. Dans
-le **fond de la carte**, une lueur circule : trois nappes colorées qui dérivent
-chacune à sa vitesse, et un voile lumineux qui balaie la carte en diagonale de
-loin en loin. L'avatar garde un anneau tournant : c'est le seul élément qui
-subsiste en mode réduit, où il n'y a ni fond ni texte à colorer.
+boucle — la couleur est celle d'un dégradé découpé à la forme des lettres. La
+**catégorie** reçoit le même traitement en plus sourd : un champagne, un reflet
+presque deux fois plus lent, et pas de halo. Les deux rangs doivent le rester —
+leur donner le même éclat aurait aplati la hiérarchie que Twitch installe par
+la taille et la couleur.
+
+Dans le **fond de la carte**, une lueur circule : trois nappes colorées qui
+dérivent chacune à sa vitesse, et un voile lumineux qui balaie la carte en
+diagonale de loin en loin.
+
+L'avatar porte un **anneau d'or tournant**, dont le halo respire. C'est le seul
+élément qui subsiste en mode réduit, où il n'y a ni fond ni texte à colorer —
+et il est **doré pour tout abonnement**, quel que soit l'onglet d'où il vient.
+Une teinte par origine (or, or rose, platine) a été essayée puis retirée : le
+signal « abonné » est binaire, et le décliner en trois couleurs demandait de
+retenir un code pour une distinction dont on n'a que faire à cet endroit.
+
+L'onglet d'origine reste néanmoins **en mémoire**, lisible par `tse.subs()` :
+il est relevé sans requête supplémentaire et répond à une question qu'on se
+pose — « celui-là, je l'ai payé ou on me l'a offert ? ».
 
 **Comment cela cohabite** avec le violet de « stream frais » et la couleur d'un
 co-stream, qui occupent déjà le fond : la couche animée est posée en `z-index`
@@ -598,6 +613,9 @@ relevé de visite, qui observe la chaîne elle-même.
   la mémoire est vide, « aucun de vos abonnements n'est en direct » quand elle
   ne l'est pas. Envoyer ouvrir une chaîne quelqu'un dont le relevé est déjà
   complet serait un contresens ;
+- le **survol** du bouton annonce le total en toutes lettres (« Mes
+  abonnements en tête — 12 abonnements au total ») : la pastille tronque
+  au-delà de 99 et ne dit pas ce qu'elle compte ;
 - une **pastille** au coin bas-droit du bouton donne le **total** de vos
   abonnements, qu'ils émettent ou non (v3.47). Les deux nombres répondent à
   deux questions différentes : le grisé dit « rien à trier maintenant », la

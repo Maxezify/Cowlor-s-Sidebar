@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.51.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.52.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -527,11 +527,26 @@ was not a reset.
 ### The styling of a subscribed channel (v3.45, reworked in v3.51)
 
 The **channel name turns gold**, with a brighter sheen travelling through it on
-a loop — the colour is a gradient clipped to the shape of the letters. In the
-**card's background**, a glow circulates: three coloured washes each drifting at
-its own speed, and a light veil sweeping the card diagonally now and then. The
-avatar keeps a turning ring: it is the only element left in collapsed mode,
-where there is neither background nor text to colour.
+a loop — the colour is a gradient clipped to the shape of the letters. The
+**category** gets the same treatment, muted: champagne, a sheen nearly twice as
+slow, and no halo. The two ranks must stay distinct — giving them the same
+shine would have flattened the hierarchy Twitch establishes through size and
+colour.
+
+In the **card's background**, a glow circulates: three coloured washes each
+drifting at its own speed, and a light veil sweeping the card diagonally now
+and then.
+
+The avatar wears a **turning gold ring** whose halo breathes. It is the only
+element left in collapsed mode, where there is neither background nor text to
+colour — and it is **gold for every subscription**, whichever tab it came from.
+A tint per origin (gold, rose gold, platinum) was tried and dropped: the
+"subscribed" signal is binary, and splitting it into three colours asked the
+reader to memorise a code for a distinction that does not matter there.
+
+The originating tab is still **kept in memory**, readable via `tse.subs()`: it
+is collected with no extra request and answers a question one does ask — "that
+one, did I pay for it or was it gifted?".
 
 **How this coexists** with the purple of "fresh stream" and a co-stream's
 colour, which already own the background: the animated layer sits at a
@@ -579,6 +594,9 @@ the visit-time reading, which observes the channel itself.
   spotted" when memory is empty, "none of your subscriptions is live" when it
   is not. Sending someone off to open a channel when their scan is already
   complete would be nonsense;
+- the button's **tooltip** spells the total out ("My subscriptions first — 12
+  subscriptions in total"): the badge truncates past 99 and does not say what
+  it counts;
 - a **badge** in the button's bottom-right corner gives the **total** number of
   your subscriptions, whether they stream or not (v3.47). The two numbers
   answer different questions: the greying says "nothing to sort right now", the

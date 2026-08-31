@@ -3553,6 +3553,10 @@ console.log('\n45. Abonnements — le tri se grise quand aucun abonné n\'émet'
     await wait(page, 1200);
     const c = await bouton(page);
     ok('un abonné passe en direct : le bouton s\'ouvre', c?.off === false, JSON.stringify(c));
+  // Le survol donne le TOTAL, celui de la pastille — qui, elle, tronque au-delà
+  // de 99 et ne dit pas ce qu'elle compte.
+  ok('et son survol annonce le total des abonnements',
+     /2 abonnements au total/.test(c?.titre || ''), String(c && c.titre));
     ok('et la pastille affiche toujours le total', c?.pastille === '2', JSON.stringify(c));
 
     // Puis il s'éteint. Twitch garde la carte quelques minutes ; l'extension,
@@ -3933,6 +3937,12 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
     const avApres = av ? getComputedStyle(av, '::after') : null;
     const nom = c.querySelector('p[data-a-target="side-nav-title"]');
     const nomStyle = nom ? getComputedStyle(nom) : null;
+    // Même cascade que le CSS et que cardCategoryEl : le DOM réel de Twitch
+    // porte .side-nav-card__metadata, que le harnais n'a pas — s'appuyer sur
+    // la seule première forme ne prouvait rien ici.
+    const cat = c.querySelector('.side-nav-card__metadata p[title]:not([data-a-target="side-nav-title"])')
+      || c.querySelector('[data-a-target="side-nav-card-metadata"] p[title]:not([data-a-target="side-nav-title"])');
+    const catStyle = cat ? getComputedStyle(cat) : null;
     return {
       classe:    c.classList.contains('tse-sub'),
       phase:     c.style.getPropertyValue('--tse-sub-phase'),
@@ -3946,6 +3956,12 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
       nomAnim:   nomStyle ? nomStyle.animationName : null,
       nomFill:   nomStyle ? nomStyle.webkitTextFillColor : null,
       nomPoids:  nomStyle ? nomStyle.fontWeight : null,
+      catTexte:  cat ? cat.textContent : null,
+      catAnim:   catStyle ? catStyle.animationName : null,
+      catFill:   catStyle ? catStyle.webkitTextFillColor : null,
+      catDuree:  catStyle ? catStyle.animationDuration : null,
+      nomDuree:  nomStyle ? nomStyle.animationDuration : null,
+      avSouffle: av ? getComputedStyle(av).animationName : null,
     };
   }, login);
 
@@ -3961,10 +3977,32 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
   // possible sans une seule règle de départage.
   ok('et posée sous le contenu de la carte', abo?.plan === '-1', String(abo && abo.plan));
   // Le nom passe à l'or, et le dégradé le traverse.
-  ok('le nom porte le dégradé doré', abo?.nomAnim === 'tse-sub-titre', String(abo && abo.nomAnim));
+  ok('le nom porte le dégradé doré',
+     (abo?.nomAnim || '').includes('tse-sub-titre'), String(abo && abo.nomAnim));
   ok('en découpe dans le texte',
      (abo?.nomFill || '').includes('rgba(0, 0, 0, 0)'), String(abo && abo.nomFill));
   ok('et il est mis en gras', abo?.nomPoids === '700', String(abo && abo.nomPoids));
+  // La catégorie reçoit le même traitement, en plus sourd et plus lent : les
+  // deux rangs doivent rester distincts, sans quoi la hiérarchie que Twitch
+  // installe par la taille et la couleur s'aplatit.
+  ok('la catégorie est bien celle visée, pas le nom',
+     abo?.catTexte === 'G', String(abo && abo.catTexte));
+  ok('elle porte elle aussi le dégradé', abo?.catAnim === 'tse-sub-titre',
+     String(abo && abo.catAnim));
+  ok('en découpe dans le texte',
+     (abo?.catFill || '').includes('rgba(0, 0, 0, 0)'), String(abo && abo.catFill));
+  // Le nom porte DEUX animations (reflet + halo), la catégorie une seule ; et
+  // le reflet du nom est plus rapide. C'est cette différence qui tient la
+  // hiérarchie.
+  ok('le nom porte en plus un halo qui respire',
+     (abo?.nomAnim || '').includes('tse-sub-halo'), String(abo && abo.nomAnim));
+  ok('et son reflet va plus vite que celui de la catégorie',
+     parseFloat(abo?.nomDuree) < parseFloat(abo?.catDuree),
+     `${abo && abo.nomDuree} contre ${abo && abo.catDuree}`);
+  ok('la catégorie, elle, n\'a qu\'une animation',
+     (abo?.catAnim || '').split(',').length === 1, String(abo && abo.catAnim));
+  ok('la catégorie d\'une chaîne non abonnée est laissée telle quelle',
+     !non || non.catAnim === 'none', String(non && non.catAnim));
   ok('le nom d\'une chaîne non abonnée est laissé tel quel',
      !non || (non.nomAnim === 'none' && non.nomPoids !== '700'),
      JSON.stringify(non && { a: non.nomAnim, p: non.nomPoids }));
@@ -3972,6 +4010,7 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
   // réduit, où il n'y a ni fond ni nom à colorer.
   ok('l\'avatar garde son anneau tournant', !!abo && (abo.avatar || '').includes('tse-sub-turn'),
      String(abo && abo.avatar));
+  ok('et son halo respire', abo?.avSouffle === 'tse-sub-souffle', String(abo && abo.avSouffle));
   ok('la chaîne non abonnée n\'a pas d\'anneau d\'avatar',
      !non || non.avatar === 'none', String(non && non.avatar));
   ok('et le décor ne capte pas les clics', !!abo && abo.pointeur === 'none',
@@ -3998,7 +4037,9 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
   const calme = await marque('omofficial');
   ok('mouvement réduit : plus d\'animation', calme.anim === 'none', String(calme.anim));
   ok('ni sur le nom', calme.nomAnim === 'none', String(calme.nomAnim));
+  ok('ni sur la catégorie', calme.catAnim === 'none', String(calme.catAnim));
   ok('ni sur l\'avatar', calme.avatar === 'none', String(calme.avatar));
+  ok('ni sur son halo', calme.avSouffle === 'none', String(calme.avSouffle));
   ok('mais la marque demeure', calme.classe === true, JSON.stringify(calme));
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
@@ -4092,6 +4133,53 @@ console.log('\n53. Abonnements — les onglets partent ensemble, l\'étiquette e
        JSON.stringify(mem.roicheese));
     await page.close();
   }
+}
+
+console.log('\n54. Abonnements — l\'origine est retenue, la teinte reste l\'or');
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const page = await freshTwitch(PLAYER, [], '/');
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = {
+      omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] },  // payant
+      clem_mlrt:  { id: '5', createdAt: h, viewers: 150, game: 'G', tags: [] },  // offert
+      zerator:    { id: '6', createdAt: h, viewers: 840, game: 'G', tags: [] },  // mobile
+      inconnue:   { id: '4', createdAt: h, viewers: 900, game: 'G', tags: [] },
+    };
+    for (const l of ['omofficial', 'clem_mlrt', 'zerator', 'inconnue']) {
+      window.__addCard(l, 'G', '100');
+    }
+  });
+  await attendre(page, () => !!localStorage.getItem('tse:substs'));
+  await wait(page, 500);
+
+  const mem = await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs') || '{}'));
+  // L'origine est le CINQUIÈME champ de la forme compacte. Aucune interface ne
+  // s'en sert — la teinte par origine a été essayée puis retirée — mais elle
+  // est relevée sans requête supplémentaire et tse.subs() la montre.
+  ok('l\'onglet d\'origine est mémorisé', mem.omofficial?.[4] === 'paid',
+     JSON.stringify(mem.omofficial));
+  ok('un abonnement offert le sait', mem.clem_mlrt?.[4] === 'gifts', JSON.stringify(mem.clem_mlrt));
+  ok('un abonnement mobile aussi', mem.zerator?.[4] === 'mobile', JSON.stringify(mem.zerator));
+  ok('les expirés ne posent pas d\'origine', !mem.antoinedaniel?.[4],
+     JSON.stringify(mem.antoinedaniel));
+  ok('et tse.subs() la rend lisible',
+     (await page.evaluate(() => window.tse.subs().find(e => e.login === 'clem_mlrt')?.origine))
+       === 'gifts');
+
+  // L'OR POUR TOUS, quelle que soit l'origine : c'est ce que l'interface dit.
+  const teinte = (login) => page.evaluate((l) => {
+    const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
+    return c ? getComputedStyle(c).getPropertyValue('--tse-sub-or').trim() : null;
+  }, login);
+  const teintes = [await teinte('omofficial'), await teinte('clem_mlrt'), await teinte('zerator')];
+  ok('les trois origines portent le même or', new Set(teintes).size === 1,
+     JSON.stringify(teintes));
+  ok('et c\'est bien de l\'or', /255,\s*196,\s*92/.test(teintes[0] || ''), String(teintes[0]));
+  ok('aucune carte ne porte d\'attribut d\'origine',
+     await page.evaluate(() => document.querySelectorAll('[data-tse-sub-src]').length) === 0);
+  await page.close();
 }
 
 await browser.close();

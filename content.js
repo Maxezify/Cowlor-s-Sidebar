@@ -354,6 +354,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiBadgeSponsoredBy:        (nameHtml) => `Sponsorisé par <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'Aucun co-stream détecté actuellement',
       uiSortLabelSubs:           'Mes abonnements en tête',
+      uiSortLabelSubsCount:      (n) => `Mes abonnements en tête — ${n} abonnement${n > 1 ? 's' : ''} au total`,
       uiSortNoSubs:              'Aucun abonnement repéré pour l\'instant — ouvrez une chaîne à laquelle vous êtes abonné',
       uiSortSubsOffline:         'Aucun de vos abonnements n\'est en direct',
       consoleNoSubs:             '[tse] Aucun abonnement repéré pour le moment.',
@@ -412,6 +413,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiBadgeSponsoredBy:        (nameHtml) => `Sponsored by <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'No co-streams currently detected',
       uiSortLabelSubs:           'My subscriptions first',
+      uiSortLabelSubsCount:      (n) => `My subscriptions first — ${n} subscription${n > 1 ? 's' : ''} in total`,
       uiSortNoSubs:              'No subscription spotted yet — open a channel you are subscribed to',
       uiSortSubsOffline:         'None of your subscriptions is live',
       consoleNoSubs:             '[tse] No subscription spotted yet.',
@@ -470,6 +472,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiBadgeSponsoredBy:        (nameHtml) => `Gesponsert von <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'Derzeit keine Co-streams erkannt',
       uiSortLabelSubs:           'Meine Abos zuerst',
+      uiSortLabelSubsCount:      (n) => `Meine Abos zuerst — ${n} Abo${n > 1 ? 's' : ''} insgesamt`,
       uiSortNoSubs:              'Noch kein Abo erkannt — öffne einen Kanal, den du abonniert hast',
       uiSortSubsOffline:         'Keines deiner Abos ist live',
       consoleNoSubs:             '[tse] Noch kein Abo erkannt.',
@@ -528,6 +531,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiBadgeSponsoredBy:        (nameHtml) => `Patrocinado por <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'No se detectaron co-streams por el momento',
       uiSortLabelSubs:           'Mis suscripciones primero',
+      uiSortLabelSubsCount:      (n) => `Mis suscripciones primero — ${n} suscripci${n > 1 ? 'ones' : 'ón'} en total`,
       uiSortNoSubs:              'Ninguna suscripción detectada aún — abre un canal al que estés suscrito',
       uiSortSubsOffline:         'Ninguna de tus suscripciones está en directo',
       consoleNoSubs:             '[tse] Ninguna suscripción detectada por ahora.',
@@ -586,6 +590,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiBadgeSponsoredBy:        (nameHtml) => `Patrocinado por <strong>${nameHtml}</strong>`,
       uiSortNoCoStreams:         'Nenhum co-stream detectado no momento',
       uiSortLabelSubs:           'Minhas inscrições primeiro',
+      uiSortLabelSubsCount:      (n) => `Minhas inscrições primeiro — ${n} inscri${n > 1 ? 'ções' : 'ção'} no total`,
       uiSortNoSubs:              'Nenhuma inscrição detectada ainda — abra um canal em que você é inscrito',
       uiSortSubsOffline:         'Nenhuma das suas inscrições está ao vivo',
       consoleNoSubs:             '[tse] Nenhuma inscrição detectada por enquanto.',
@@ -1575,13 +1580,32 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       100% { background-position:  210% 0, 100% 50%,   0% 50%,  40% 50%; }
     }
 
-    /* LE NOM, EN OR. Un dégradé qui traverse le texte lui-même : la couleur
-       est celle du fond, découpée à la forme des lettres. La règle de repli
-       pose une couleur pleine d'abord — si background-clip venait à ne pas
-       s'appliquer, le nom reste doré et lisible au lieu de disparaître. */
+    /* LE TEXTE, EN OR. Un dégradé qui traverse les lettres elles-mêmes : la
+       couleur est celle d'un fond, découpée à la forme du texte. La règle de
+       repli pose une couleur pleine D'ABORD — si background-clip venait à ne
+       pas s'appliquer, le texte reste doré et lisible au lieu de disparaître.
+
+       DEUX RANGS, ET ILS DOIVENT LE RESTER. Le nom est l'information ; la
+       catégorie l'accompagne. Le nom reçoit donc l'or vif, un reflet rapide
+       (7 s) et un halo qui respire ; la catégorie, un champagne plus sourd et
+       un reflet presque deux fois plus lent (11 s), sans halo. Leur donner le
+       même traitement aurait aplati la hiérarchie que Twitch installe par la
+       taille et la couleur — et rendu la carte illisible d'un coup d'œil.
+       Les deux reflets ne défilent pas non plus en cadence : périodes
+       différentes ET décalages différents, sinon l'œil y verrait un seul bloc
+       qui glisse. */
     .side-nav-card.tse-sub p[data-a-target="side-nav-title"] {
       color: #ffd68a;
       font-weight: 700;
+    }
+    /* La catégorie. Le :not() écarte le nom, qui porte parfois lui aussi un
+       attribut title (cf. buildAheadCard, qui le renseigne quand il existe) —
+       sans quoi le sélecteur de la catégorie l'attraperait au passage et les
+       deux rangs recevraient le même traitement. */
+    .side-nav-card.tse-sub .side-nav-card__metadata p[title]:not([data-a-target="side-nav-title"]),
+    .side-nav-card.tse-sub [data-a-target="side-nav-card-metadata"] p[title]:not([data-a-target="side-nav-title"]),
+    .side-nav-card.tse-sub [class*="promoted-followed-card__content"] p[title]:not([data-a-target="side-nav-title"]) {
+      color: #e6c68d;
     }
     @supports (-webkit-background-clip: text) or (background-clip: text) {
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"] {
@@ -1594,22 +1618,69 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
-        animation: tse-sub-titre 7s linear infinite;
-        animation-delay: calc(var(--tse-sub-phase, 0) * -0.58s);
+        /* Le halo est posé par un filtre, non par text-shadow : avec un
+           remplissage transparent, une ombre de texte se verrait AU TRAVERS
+           des lettres, en double flou. Le filtre, lui, s'applique au résultat
+           déjà découpé — il entoure les lettres au lieu de les traverser. */
+        animation: tse-sub-titre 7s linear infinite,
+                   tse-sub-halo 5.5s ease-in-out infinite;
+        animation-delay: calc(var(--tse-sub-phase, 0) * -0.58s),
+                         calc(var(--tse-sub-phase, 0) * -0.46s);
+      }
+      .side-nav-card.tse-sub .side-nav-card__metadata p[title]:not([data-a-target="side-nav-title"]),
+      .side-nav-card.tse-sub [data-a-target="side-nav-card-metadata"] p[title]:not([data-a-target="side-nav-title"]),
+      .side-nav-card.tse-sub [class*="promoted-followed-card__content"] p[title]:not([data-a-target="side-nav-title"]) {
+        background: linear-gradient(100deg,
+          #d4b076   0%,
+          #f4e3c2  34%,
+          #dcb4c6  47%,
+          #d4b076  64%,
+          #d4b076 100%) 0 0 / 300% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: tse-sub-titre 11s linear infinite;
+        animation-delay: calc(var(--tse-sub-phase, 0) * -0.91s);
       }
     }
     @keyframes tse-sub-titre { to { background-position: 300% 0; } }
+    @keyframes tse-sub-halo {
+      0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 196,  92, 0.20)); }
+      50%      { filter: drop-shadow(0 0 5px rgba(255, 220, 160, 0.55)); }
+    }
 
     /* L'AVATAR — seul élément qui subsiste en mode réduit, donc le seul qui
        puisse y porter le signal : ni fond ni nom n'y sont visibles. Les trois
        sélecteurs reprennent la cascade de avatarOf() : figure, .tw-avatar, ou
-       l'un dans l'autre selon le rendu de Twitch. */
+       l'un dans l'autre selon le rendu de Twitch.
+
+       L'OR, POUR TOUT ABONNEMENT, quel que soit l'onglet d'où il vient —
+       payant, offert, mobile — et qu'il ait été relevé sur la page ou appris
+       au passage sur une chaîne. Une teinte par origine a été essayée puis
+       retirée : le signal « abonné » est binaire, et le décliner en trois
+       couleurs demandait au lecteur de retenir un code pour une distinction
+       dont il n'a que faire à cet endroit.
+
+       Les deux variables restent : elles tiennent la teinte en UN point, d'où
+       les dégradés et le halo la lisent tous. */
+    .side-nav-card.tse-sub {
+      --tse-sub-or:    rgba(255, 196,  92, 1);
+      --tse-sub-clair: rgba(255, 246, 214, 1);
+    }
     .side-nav-card.tse-sub .side-nav-card__avatar figure,
     .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar,
     .side-nav-card.tse-sub figure.tw-avatar {
       position: relative;
       border-radius: 50%;
-      box-shadow: 0 0 8px rgba(255, 201, 102, 0.4);
+      /* Le halo respire. C'est une ombre portée sur un disque de trente
+         pixels : le repeint tient dans un mouchoir de poche, et c'est ce qui
+         donne à l'anneau sa présence sans rien ajouter au mouvement déjà là. */
+      animation: tse-sub-souffle 4.2s ease-in-out infinite;
+      animation-delay: calc(var(--tse-sub-phase, 0) * -0.35s);
+    }
+    @keyframes tse-sub-souffle {
+      0%, 100% { box-shadow: 0 0 5px color-mix(in srgb, var(--tse-sub-or) 30%, transparent); }
+      50%      { box-shadow: 0 0 11px color-mix(in srgb, var(--tse-sub-or) 62%, transparent); }
     }
     .side-nav-card.tse-sub .side-nav-card__avatar figure::after,
     .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar::after,
@@ -1621,18 +1692,21 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       border-radius: 50%;
       padding: 2px;
       background:
+        /* L'éclat qui court, blanc quelle que soit la teinte : c'est un
+           reflet, pas une couleur. */
         conic-gradient(from var(--tse-sub-angle),
           rgba(255, 255, 255, 0)      0deg,
           rgba(255, 255, 255, 1)     22deg,
-          rgba(255, 190, 225, 0.65)  44deg,
+          color-mix(in srgb, var(--tse-sub-clair) 70%, transparent)  44deg,
           rgba(255, 255, 255, 0)     80deg,
           rgba(255, 255, 255, 0)    360deg),
+        /* Le métal, dans la teinte de l'origine. */
         conic-gradient(from var(--tse-sub-angle),
-          rgba(255, 196, 92,  0.62)   0deg,
-          rgba(255, 240, 200, 0.78)  90deg,
-          rgba(255, 158, 205, 0.58) 180deg,
-          rgba(255, 240, 200, 0.78) 270deg,
-          rgba(255, 196, 92,  0.62) 360deg);
+          color-mix(in srgb, var(--tse-sub-or)    62%, transparent)    0deg,
+          color-mix(in srgb, var(--tse-sub-clair) 80%, transparent)   90deg,
+          color-mix(in srgb, var(--tse-sub-or)    58%, transparent)  180deg,
+          color-mix(in srgb, var(--tse-sub-clair) 80%, transparent)  270deg,
+          color-mix(in srgb, var(--tse-sub-or)    62%, transparent)  360deg);
       /* Deux masques, l'un sur la boîte de contenu, l'autre sur la boîte
          entière ; leur DIFFÉRENCE ne laisse que l'anneau du padding. C'est ce
          qui fait un dégradé conique en bordure, chose qu'aucune propriété
@@ -1650,12 +1724,27 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     /* Mouvement réduit : la demande est explicite, on la respecte. L'or reste
        — c'est lui qui porte l'information — mais plus rien ne bouge. */
     @media (prefers-reduced-motion: reduce) {
+      /* Les sélecteurs de la catégorie reprennent le :not() de la règle qui
+         pose l'animation. Sans lui, ils sont MOINS spécifiques qu'elle et la
+         coupure ne s'appliquait pas : la catégorie continuait de scintiller
+         alors que tout le reste s'était arrêté. Attrapé au banc. */
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
+      .side-nav-card.tse-sub .side-nav-card__metadata p[title]:not([data-a-target="side-nav-title"]),
+      .side-nav-card.tse-sub [data-a-target="side-nav-card-metadata"] p[title]:not([data-a-target="side-nav-title"]),
+      .side-nav-card.tse-sub [class*="promoted-followed-card__content"] p[title]:not([data-a-target="side-nav-title"]),
+      .side-nav-card.tse-sub .side-nav-card__avatar figure,
+      .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar,
+      .side-nav-card.tse-sub figure.tw-avatar,
       .side-nav-card.tse-sub .side-nav-card__avatar figure::after,
       .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar::after,
       .side-nav-card.tse-sub figure.tw-avatar::after {
         animation: none;
+      }
+      .side-nav-card.tse-sub .side-nav-card__avatar figure,
+      .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar,
+      .side-nav-card.tse-sub figure.tw-avatar {
+        box-shadow: 0 0 8px color-mix(in srgb, var(--tse-sub-or) 45%, transparent);
       }
       .side-nav-card.tse-sub .side-nav-card__avatar figure::after,
       .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar::after,
@@ -3589,9 +3678,17 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    *  alimentent le badge de l'aperçu, « Abonné N mois » ou « Anciennement
    *  abonné N mois ».
    *
+   *  ORIGINE (v3.52). L'onglet d'où vient l'abonnement — payant, offert,
+   *  mobile — est retenu lui aussi, et lisible par tse.subs(). Aucune
+   *  interface ne s'en sert : une teinte d'anneau par origine a été
+   *  essayée puis retirée, le signal « abonné » étant binaire. La donnée
+   *  reste parce qu'elle ne coûte qu'un champ, qu'elle est relevée sans
+   *  requête supplémentaire, et qu'elle répond à une question qu'on se
+   *  pose (« celui-là, je l'ai payé ou on me l'a offert ? »).
+   *
    *  Stockage : localStorage (clé SUBS_STORAGE_KEY), { login: [sub, ts]
-   *  ou [sub, ts, m, ex] }. La forme courte reste lue telle quelle — une
-   *  mémoire écrite par une version antérieure ne se perd pas.
+   *  ou [sub, ts, m, ex, src] }. Les formes courtes restent lues telles
+   *  quelles — une mémoire écrite par une version antérieure ne se perd pas.
    *  Effaçable par tse.reset(), comme le reste.
    * ============================================================ */
   const subs = {
@@ -3613,6 +3710,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           const m = Number(v[2]);
           if (Number.isFinite(m) && m > 0) e.m = m;
           if (v[3]) e.ex = true;
+          if (typeof v[4] === 'string' && v[4]) e.src = v[4];
           this.map.set(login, e);
         }
         this.prune();
@@ -3625,9 +3723,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         for (const [login, e] of this.map) {
           // La forme longue n'est écrite que si elle porte quelque chose :
           // inutile d'alourdir chaque entrée de deux zéros.
-          obj[login] = (e.m || e.ex)
-            ? [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0]
-            : [e.sub ? 1 : 0, e.ts];
+          if (e.src) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src];
+          else if (e.m || e.ex) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0];
+          else obj[login] = [e.sub ? 1 : 0, e.ts];
         }
         localStorage.setItem(CFG.SUBS_STORAGE_KEY, JSON.stringify(obj));
       } catch { /* quota → on garde en mémoire */ }
@@ -3661,6 +3759,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       const e = { sub, ts: Date.now() };
       if (avant?.m) e.m = avant.m;
       if (avant?.ex) e.ex = avant.ex;
+      if (avant?.src) e.src = avant.src;
       this.map.set(login, e);
       if (avant && avant.sub === sub) return false;   // rien de neuf
       this.prune();
@@ -3706,6 +3805,28 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       this.save();
     },
 
+    /**
+     * Note l'ONGLET d'où vient l'abonnement : 'paid', 'gifts' ou 'mobile'.
+     * Ne touche à rien d'autre. Une visite, qui ne sait pas d'où vient
+     * l'abonnement, n'appelle jamais ceci — la teinte par défaut s'applique.
+     */
+    noteSource(login, src, differer = false) {
+      if (!login || !src) return false;
+      const avant = this.map.get(login);
+      if (avant && avant.src === src) return false;   // rien de neuf
+      const e = avant ? { ...avant } : { sub: false, ts: Date.now() };
+      e.src = src;
+      this.map.set(login, e);
+      if (!differer) this.flush();
+      return true;
+    },
+
+    // Onglet d'origine, ou '' si inconnu (abonnement appris par visite).
+    sourceFor(login) {
+      const e = login ? this.map.get(login) : null;
+      return (e && e.src) || '';
+    },
+
     // Nombre total de mois d'abonnement relevé, ou 0. Sert au badge de
     // l'aperçu, qui préfère ne rien dire à dire un chiffre inventé.
     monthsFor(login) {
@@ -3741,7 +3862,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
     entries() {
       return [...this.map.entries()]
-        .map(([login, e]) => ({ login, sub: e.sub, ts: e.ts, mois: e.m || 0, ancien: !!e.ex }))
+        .map(([login, e]) => ({ login, sub: e.sub, ts: e.ts, mois: e.m || 0,
+                                ancien: !!e.ex, origine: e.src || '' }))
         .sort((a, b) => (b.sub - a.sub) || (b.ts - a.ts));
     },
 
@@ -4041,11 +4163,16 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         // Versé DÈS QU'UN ONGLET RENTRE, et non à la fin de la volée : la
         // sidebar se décore alors au fil de l'eau, et le voile peut se lever
         // sans attendre les onglets vides — qui n'apportent rien à voir.
-        const verserCourant = (liste) => {
+        const verserCourant = (onglet) => (liste) => {
           if (!liste.length) return;
           for (const { login, mois: m } of liste) {
             if (!trouves.includes(login)) trouves.push(login);
             touche = subs.noteMonths(login, m, false, true) || touche;
+            // L'origine avant l'état : record() la conserve, mais elle doit
+            // exister pour cela. Un onglet lu APRÈS un autre ne l'écrase pas
+            // — noteSource ne réécrit que si la valeur change, et le premier
+            // onglet à trouver une chaîne est celui qui la sert.
+            touche = subs.noteSource(login, onglet, true) || touche;
             subs.record(login, true);
           }
           if (touche) { subs.flush(); touche = false; }
@@ -4072,7 +4199,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         let rang = 0;
         await Promise.all([
           ...encore.map(o => visiterApres(o, true, rang++).then(verserPasse)),
-          ...CFG.SUBS_PAGE_TABS.map(o => visiterApres(o, false, rang++).then(verserCourant)),
+          ...CFG.SUBS_PAGE_TABS.map(o => visiterApres(o, false, rang++).then(verserCourant(o))),
         ]);
         if (touche) subs.flush();   // ce que les onglets d'expirés ont apporté
         // Horodaté APRÈS l'enregistrement : l'horodatage veut dire « un relevé
@@ -4869,6 +4996,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     if (card.style.getPropertyValue('--tse-sub-phase') !== phase) {
       card.style.setProperty('--tse-sub-phase', phase);
     }
+
   };
 
   /**
@@ -7011,6 +7139,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         // on en connaît et aucun n'émet. Les confondre enverrait ouvrir une
         // chaîne quelqu'un dont le relevé est déjà complet.
         btn.title = nbConnus > 0 ? S.uiSortSubsOffline : S.uiSortNoSubs;
+      } else if (mode === 'subs' && nbConnus > 0) {
+        // Le survol donne le TOTAL, celui-là même que porte la pastille. Elle
+        // n'affiche que deux chiffres — « 99+ » au-delà — et rien n'y dit ce
+        // qu'elle compte ; l'infobulle, elle, le dit en toutes lettres et sans
+        // troncature.
+        btn.title = S.uiSortLabelSubsCount(nbConnus);
       } else {
         const spec = getSortButtons().find(s => s.mode === mode);
         if (spec) btn.title = spec.label;
