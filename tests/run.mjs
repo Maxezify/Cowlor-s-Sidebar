@@ -3289,13 +3289,16 @@ console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
   // « expired » — qui ne doivent PAS remonter : un abonnement expiré n'en est
   // plus un, et le relevé étant additif, le lire marquerait « abonné » pour
   // 120 jours quelqu'un qu'on ne l'est plus.
+  const abonnes = Object.entries(m || {}).filter(([, v]) => v[0] === 1).map(([k]) => k).sort();
   ok('les cinq abonnements des trois onglets sont relevés',
-     trouves.join(',') === 'clem_mlrt,etoiles,omofficial,roicheese,zerator', JSON.stringify(trouves));
-  ok('ni Turbo ni les expirés ne sont lus',
-     !trouves.includes('jamais_turbo') && !trouves.includes('jamais_expire'),
-     JSON.stringify(trouves));
+     abonnes.join(',') === 'clem_mlrt,etoiles,omofficial,roicheese,zerator', JSON.stringify(abonnes));
+  ok('Turbo n\'est pas lu', !trouves.includes('jamais_turbo'), JSON.stringify(trouves));
+  // Les EXPIRÉS entrent en mémoire — c'est ce qui nourrit « anciennement
+  // abonné » — mais jamais comme des abonnements en cours.
+  ok('les expirés sont mémorisés sans être comptés pour abonnés',
+     trouves.includes('jenfirer') && !abonnes.includes('jenfirer'), JSON.stringify(trouves));
   ok('et tous marqués « abonné »',
-     Object.values(m || {}).every(v => v[0] === 1), JSON.stringify(m));
+     abonnes.length === 5, JSON.stringify(m));
 
   // L'iframe est un moyen, pas une trace : elle ne doit rien laisser derrière.
   ok('aucune iframe ne reste accrochée à la page',
@@ -3372,7 +3375,8 @@ console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un 
     await attendre(page, () => !!localStorage.getItem('tse:substs'));
     const su = await page.evaluate(() => Object.keys(
       JSON.parse(localStorage.getItem('tse:subs') || '{}')).sort().join(','));
-    ok('et il aboutit', su === 'clem_mlrt,etoiles,omofficial,roicheese,zerator', su);
+    ok('et il aboutit',
+       su === 'antoinedaniel,clem_mlrt,etoiles,jenfirer,omofficial,roicheese,zerator', su);
     await page.close();
   }
 
@@ -3549,7 +3553,7 @@ console.log('\n46. Abonnements — un onglet vide ne coûte pas le garde-fou');
   const trouves = await page.evaluate(() => Object.keys(
     JSON.parse(localStorage.getItem('tse:subs') || '{}')).sort().join(','));
   ok('l\'onglet peuplé est relevé quand même',
-     trouves === 'etoiles,omofficial,roicheese', trouves);
+     trouves === 'antoinedaniel,etoiles,jenfirer,omofficial,roicheese', trouves);
   // Deux onglets vides à 1,2 s d'apaisement ≈ 2,4 s, contre 12 s si chacun
   // attendait le garde-fou de 6 s. La borne est posée entre les deux.
   ok('et les deux onglets vides n\'ont pas attendu le garde-fou',
@@ -3615,7 +3619,116 @@ console.log('\n47. Tri — le mode choisi revient quand il redevient possible');
   await page.close();
 }
 
-console.log('\n48. Abonnements — la carte d\'une chaîne abonnée');
+console.log('\n48. Abonnements — l\'ancienneté, lue sans lire le français');
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const page = await freshTwitch(PLAYER, [], '/');
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = {
+      omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] },
+      roicheese:  { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] },
+    };
+    window.__addCard('omofficial', 'G', '500');
+    window.__addCard('roicheese', 'G', '400');
+  });
+  await attendre(page, () => !!localStorage.getItem('tse:substs'));
+  await wait(page, 400);
+  const mem = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('tse:subs') || '{}'));
+
+  // LE point du scénario. La carte payante de « roicheese » porte QUATRE
+  // nombres : 9 jours avant l'anniversaire, 4 mois au total, 3 mois à la
+  // suite, une date d'expiration. Prendre le premier venu donnerait 9 ;
+  // prendre le dernier « N mois » donnerait 3. Seule l'étiquette — apprise
+  // sur une carte expirée, où elle est seule — donne 4.
+  ok('l\'ancienneté totale est lue, pas le compte à rebours',
+     mem.roicheese?.[2] === 4, JSON.stringify(mem.roicheese));
+  ok('ni la série en cours', mem.roicheese?.[2] !== 3, JSON.stringify(mem.roicheese));
+  ok('un abonnement d\'un mois est lu comme tel',
+     mem.omofficial?.[2] === 1, JSON.stringify(mem.omofficial));
+
+  // Les cartes expirées, elles, n'ont qu'une paire : c'est ce qui les rend
+  // enseignables. On vérifie qu'elles sont relevées, et marquées « ancien ».
+  ok('un ancien abonnement porte son ancienneté',
+     mem.antoinedaniel?.[2] === 29, JSON.stringify(mem.antoinedaniel));
+  ok('et la marque « ancien abonné »',
+     mem.antoinedaniel?.[3] === 1, JSON.stringify(mem.antoinedaniel));
+  ok('sans être compté comme abonné en cours',
+     mem.antoinedaniel?.[0] === 0, JSON.stringify(mem.antoinedaniel));
+
+  // Le réabonnement : « etoiles » figure dans les expirés ET dans les payants.
+  // La lecture des expirés ne doit pas dégrader un abonnement en cours — et
+  // c'est bien pour ça qu'elle ne touche jamais à l'état d'abonnement.
+  ok('une chaîne réabonnée reste abonnée', mem.etoiles?.[0] === 1, JSON.stringify(mem.etoiles));
+  ok('avec son ancienneté', mem.etoiles?.[2] === 12, JSON.stringify(mem.etoiles));
+
+  // L'ancienneté survit à une observation de visite, qui vient d'une AUTRE
+  // source et n'a rien à dire sur le nombre de mois.
+  await page.evaluate(() => {
+    const b = document.createElement('button');
+    b.setAttribute('data-a-target', 'manage-sub-button');
+    document.body.appendChild(b);
+    history.pushState({}, '', '/roicheese');
+  });
+  await wait(page, 800);
+  const apres = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('tse:subs') || '{}'));
+  ok('une visite n\'efface pas l\'ancienneté',
+     apres.roicheese?.[2] === 4, JSON.stringify(apres.roicheese));
+  await page.close();
+}
+
+console.log('\n49. Aperçu — le badge d\'abonnement');
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const page = await freshTwitch(PLAYER, [], '/');
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = {
+      roicheese:     { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] },
+      antoinedaniel: { id: '3', createdAt: h, viewers: 300, game: 'G', tags: [] },
+      inconnue:      { id: '4', createdAt: h, viewers: 200, game: 'G', tags: [] },
+    };
+    window.__addCard('roicheese', 'G', '400');
+    window.__addCard('antoinedaniel', 'G', '300');
+    window.__addCard('inconnue', 'G', '200');
+  });
+  await attendre(page, () => !!localStorage.getItem('tse:substs'));
+  await wait(page, 500);
+
+  const badge = async (login) => {
+    await hoverLogin(page, login);
+    await wait(page, 500);
+    const b = await page.evaluate(() => {
+      const el = document.querySelector('.tse-preview__badge--sub, .tse-preview__badge--exsub');
+      return el ? { classe: el.className, texte: el.textContent.trim() } : null;
+    });
+    await unhoverCard(page, 0);
+    await wait(page, 200);
+    return b;
+  };
+
+  const abo = await badge('roicheese');
+  ok('un abonnement en cours affiche sa durée',
+     abo?.texte === 'Abonné 4 mois', JSON.stringify(abo));
+  ok('avec la teinte « abonné »',
+     (abo?.classe || '').includes('--sub'), JSON.stringify(abo));
+
+  const ancien = await badge('antoinedaniel');
+  ok('un ancien abonnement le dit, au passé',
+     ancien?.texte === 'Anciennement abonné 29 mois', JSON.stringify(ancien));
+  ok('avec sa propre teinte, désaturée',
+     (ancien?.classe || '').includes('--exsub'), JSON.stringify(ancien));
+
+  // Une chaîne dont on ne sait rien : PAS de badge. Un « Abonné » sans durée
+  // n'apprendrait rien que le filet doré de la carte ne dise déjà.
+  const rien = await badge('inconnue');
+  ok('une chaîne sans historique n\'affiche aucun badge', rien === null, JSON.stringify(rien));
+  await page.close();
+}
+
+console.log('\n50. Abonnements — la carte d\'une chaîne abonnée');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const page = await freshTwitch(PLAYER, [], '/');

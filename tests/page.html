@@ -344,8 +344,19 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
     gifts:   ['clem_mlrt'],
     mobile:  ['zerator'],
     turbo:   ['jamais_turbo'],
-    expired: ['jamais_expire'],
+    expired: ['jenfirer', 'antoinedaniel', 'etoiles'],
   };
+  // Ancienneté par chaîne, en mois. Sur la vraie page elle est écrite dans
+  // une paire <p> étiquette + <span> valeur, sans le moindre data-*.
+  const MOIS = {
+    omofficial: 1, roicheese: 4, etoiles: 12, clem_mlrt: 2, zerator: 7,
+    jenfirer: 1, antoinedaniel: 29,
+  };
+  // Les abonnements RÉVOLUS : chaînes qui n'apparaissent dans aucun autre
+  // onglet, plus une (etoiles) qui figure AUSSI dans « paid ». Ce doublon est
+  // délibéré — il reproduit un réabonnement après interruption, et vérifie
+  // que la lecture des expirés ne dégrade pas un abonnement en cours.
+  const EXPIRES = ['jenfirer', 'antoinedaniel', 'etoiles'];
   const tab = new URLSearchParams(location.search).get('tab') || 'paid';
   // __subsVides : onglets qui ne rendront AUCUNE carte, comme un compte sans
   // abonnement offert. La barre latérale, elle, est là — c'est justement ce
@@ -361,9 +372,35 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
       const carte = document.createElement('div');
       carte.className = 'subscription-card';
       carte.setAttribute('data-a-target', 'subscription-card');
+      const passe = EXPIRES.includes(login) && tab === 'expired';
+      const m = MOIS[login] || 0;
+      // Copie FIDÈLE de la structure relevée le 31/08/2026. Ce qui compte :
+      //  • l'ancienneté est une paire <p> étiquette + <span> valeur, SANS
+      //    aucun data-* pour la désigner ;
+      //  • une carte PAYANTE en porte trois autres qui lui ressemblent —
+      //    l'anniversaire (en JOURS, et placé AVANT), la série en cours, et
+      //    la date d'expiration. Un harnais qui n'en poserait qu'une laisserait
+      //    passer un relevé qui prend le premier nombre venu ;
+      //  • une carte EXPIRÉE n'en porte qu'une, et c'est ce qui permet
+      //    d'apprendre l'étiquette sans lire le français.
+      const etiquette = 'Nombre total de mois abonné :';
+      const bruit = passe
+        ? '<p class="expired-sub-message">Réabonnez-vous pour débloquer ' +
+          '<span class="expired-sub-message">instantanément</span></p>'
+        : '<p>Prochain anniversaire d\'abonnement dans : <span>9 jours</span></p>';
+      const suite = passe ? '' :
+        '<p>Nombre de mois à la suite :</p><span>' + Math.max(1, m - 1) + ' mois</span>' +
+        '<p>Vos avantages arrivent à expiration le <span>9 sept. 2026</span></p>';
       carte.innerHTML = '<div class="subscription-card-banner">' +
         '<a class="tw-link" href="/' + login + '"></a></div>' +
-        '<p data-a-target="subscription-card__channel-name">' + login + '</p>';
+        '<p data-a-target="subscription-card__channel-name">' + login + '</p>' +
+        bruit +
+        (m ? '<p>' + etiquette + '</p><span>' + m + ' mois</span>' : '') +
+        suite +
+        '<div class="subscription-card__sub-progress"><div class="sub-badge-progress">' +
+        '<p class="sub-badge-progress__current-badge--text">Badge de 3 mois</p>' +
+        '<p class="sub-badge-progress__next-badge--text">Badge de 6 mois</p>' +
+        '</div></div>';
       zone.appendChild(carte);
     }
     document.getElementById('root').appendChild(zone);

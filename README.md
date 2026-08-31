@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.47.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.48.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -445,6 +445,46 @@ Et au tout premier démarrage — extension fraîchement installée, rien en mé
 n'attend rien : les abonnements connus sont relus du disque avant le premier
 scan, la décoration est posée dès la première carte, et le relevé ne fait que
 rafraîchir en arrière-plan.
+
+### « Abonné 4 mois » dans l'aperçu (v3.48)
+
+L'aperçu au survol porte un badge de plus, à côté de « En live avec » et des
+trains de hype : **Abonné N mois**, ou **Anciennement abonné N mois** pour une
+chaîne que vous avez quittée. L'onglet `?tab=expired` est lu pour ça — mais
+lui seul alimente l'ancienneté et le passé d'abonné : il ne touche **jamais**
+à l'état d'abonnement. Une chaîne peut figurer dans les expirés pour une
+période révolue tout en étant réabonnée aujourd'hui ; en déduire un « non
+abonné » dépendrait de l'ordre de lecture des onglets.
+
+#### Lire un nombre sans lire la langue
+
+Le nombre de mois est sur la page, mais **aucun `data-*` ne le désigne**. Et
+une carte payante en porte quatre qui se ressemblent :
+
+| étiquette | valeur |
+| --- | --- |
+| Prochain anniversaire d'abonnement dans : | 9 **jours** |
+| Nombre **total** de mois abonné : | 4 mois |
+| Nombre de mois **à la suite** : | 3 mois |
+| Vos avantages arrivent à expiration le | 9 sept. 2026 |
+
+Prendre « le premier nombre » donne **9**. Prendre « le dernier N mois » donne
+**3**. Lire l'étiquette donne 4 — mais en français seulement, et l'extension
+sert six langues.
+
+Une carte **expirée**, elle, n'en porte qu'une seule fois écartés les blocs à
+accroche connue (`.sub-badge-progress`, `.expired-sub-message`, le nom de la
+chaîne, les boutons). Sa structure la désigne donc sans ambiguïté.
+
+D'où le détour : l'extension **apprend** l'étiquette là où la structure la
+désigne seule, puis la retrouve telle quelle sur les cartes payantes, où le
+texte est identique. **Aucune chaîne de caractères n'est codée en dur.** Si
+Twitch change ce libellé, la correspondance échoue et le badge disparaît — il
+ne ment pas. C'est aussi pour cela que l'onglet des expirés est lu **en
+premier**.
+
+Le badge n'apparaît que si l'ancienneté est **connue** : « Abonné » sans durée
+n'apprendrait rien de plus que le filet doré déjà posé sur la carte.
 
 ### Le style d'une chaîne abonnée (v3.45)
 
@@ -1008,7 +1048,7 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 | `tse:visits` | dates de vos visites par chaîne | tri « Mes plus visités » |
 | `tse:roster` | chaînes suivies aperçues dans la sidebar | poser une carte avant Twitch |
 | `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
-| `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`) | tri « Mes abonnements en tête » |
+| `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois et le passé d'abonné | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
 | `tse:substs` | date du dernier relevé complet | espacer les relevés de 6 h |
 
 `tse.reset()` les efface toutes à tout moment ; vider les données de site de

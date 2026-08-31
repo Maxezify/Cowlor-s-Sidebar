@@ -302,6 +302,15 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
        Relevé conforme aux deux onglets — 3 cartes en « paid », 1 en
        « gifts », exactement ce que la page affiche. */
     subCardSelector:         '[data-a-target="subscription-card"]',
+    /* Blocs d'une carte d'abonnement dont le texte n'est PAS de l'ancienneté :
+       progression vers le prochain badge (« Badge de 3 mois »), invitation au
+       réabonnement, nom de la chaîne, et tous les boutons. Les écarter est ce
+       qui rend le relevé de l'ancienneté lisible par structure plutôt que par
+       traduction — cf. subsPage.mois pour le raisonnement complet. Relevé sur
+       les deux onglets le 31/08/2026. */
+    subCardNoiseSelector:
+      '.sub-badge-progress, .subscription-card__sub-progress, .expired-sub-message, ' +
+      '.subscription-card__channel-name, [data-a-target], [data-test-selector]',
     subOfferSelector:        '[data-a-target="subscribe-button"]',
     showLessStableSelector:  '[data-a-target="side-nav-show-less-button"], [data-test-selector="ShowLess"]',
 
@@ -335,6 +344,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiPreviewLoadingTitle:     'Chargement du titre…',
       uiBadgeCostreamOf:         (nameHtml) => `Co-stream de <strong>${nameHtml}</strong>`,
       uiBadgeCostreamHost:       'Stream Hôte',
+      uiBadgeSubMonths:          (n) => `Abonné ${n} mois`,
+      uiBadgeExSubMonths:        (n) => `Anciennement abonné ${n} mois`,
       uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream avec ${namesHtml}`,
       uiBadgeLiveWith:           (guestHtml, others) => {
         const suffix = others > 0 ? ` et ${others} autre${others > 1 ? 's' : ''}` : '';
@@ -391,6 +402,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiPreviewLoadingTitle:     'Loading title…',
       uiBadgeCostreamOf:         (nameHtml) => `Co-stream of <strong>${nameHtml}</strong>`,
       uiBadgeCostreamHost:       'Host Stream',
+      uiBadgeSubMonths:          (n) => `Subscribed ${n} month${n > 1 ? 's' : ''}`,
+      uiBadgeExSubMonths:        (n) => `Formerly subscribed ${n} month${n > 1 ? 's' : ''}`,
       uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream with ${namesHtml}`,
       uiBadgeLiveWith:           (guestHtml, others) => {
         const suffix = others > 0 ? ` and ${others} other${others > 1 ? 's' : ''}` : '';
@@ -447,6 +460,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiPreviewLoadingTitle:     'Titel wird geladen…',
       uiBadgeCostreamOf:         (nameHtml) => `Co-stream von <strong>${nameHtml}</strong>`,
       uiBadgeCostreamHost:       'Host-Stream',
+      uiBadgeSubMonths:          (n) => `${n} Monat${n > 1 ? 'e' : ''} abonniert`,
+      uiBadgeExSubMonths:        (n) => `Früher ${n} Monat${n > 1 ? 'e' : ''} abonniert`,
       uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream mit ${namesHtml}`,
       uiBadgeLiveWith:           (guestHtml, others) => {
         const suffix = others > 0 ? ` und ${others} ${others > 1 ? 'weiteren' : 'weiterem'}` : '';
@@ -503,6 +518,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiPreviewLoadingTitle:     'Cargando título…',
       uiBadgeCostreamOf:         (nameHtml) => `Co-stream de <strong>${nameHtml}</strong>`,
       uiBadgeCostreamHost:       'Canal anfitrión',
+      uiBadgeSubMonths:          (n) => `Suscrito ${n} mes${n > 1 ? 'es' : ''}`,
+      uiBadgeExSubMonths:        (n) => `Anteriormente suscrito ${n} mes${n > 1 ? 'es' : ''}`,
       uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream con ${namesHtml}`,
       uiBadgeLiveWith:           (guestHtml, others) => {
         const suffix = others > 0 ? ` y ${others} más` : '';
@@ -559,6 +576,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiPreviewLoadingTitle:     'Carregando título…',
       uiBadgeCostreamOf:         (nameHtml) => `Co-stream de <strong>${nameHtml}</strong>`,
       uiBadgeCostreamHost:       'Canal anfitrião',
+      uiBadgeSubMonths:          (n) => `Inscrito há ${n} ${n > 1 ? 'meses' : 'mês'}`,
+      uiBadgeExSubMonths:        (n) => `Anteriormente inscrito ${n} ${n > 1 ? 'meses' : 'mês'}`,
       uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream com ${namesHtml}`,
       uiBadgeLiveWith:           (guestHtml, others) => {
         const suffix = others > 0 ? ` e mais ${others}` : '';
@@ -873,6 +892,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // additif, l'y inclure marquerait « abonné » pour 120 jours quelqu'un qu'on
     // ne l'est plus.
     SUBS_PAGE_TABS:       ['paid', 'gifts', 'mobile'],
+    // Onglet des abonnements RÉVOLUS. Lu à part, et jamais versé dans l'état
+    // d'abonnement : il ne sert qu'à l'ancienneté et au « anciennement
+    // abonné » du badge d'aperçu. Lu EN PREMIER, parce que c'est sur ses
+    // cartes — les plus simples — que se lit sans ambiguïté l'étiquette du
+    // nombre de mois (cf. subsPage.mois).
+    SUBS_PAGE_TABS_PAST:  ['expired'],
     SUBS_PAGE_TTL:        6 * 60 * 60_000,   // 6 h entre deux relevés
     SUBS_PAGE_TIMEOUT:    25_000,            // abandon si la page ne rend rien
     // Un onglet VIDE — pas de sub offert, pas de sub mobile — ne rend aucune
@@ -1929,6 +1954,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     .tse-preview__badge--costream { background: rgba(31, 105, 255, 0.25); color: #7fb3ff; }
     .tse-preview__badge--squad    { background: rgba(145, 71, 255, 0.25); color: #d1b3ff; }
     .tse-preview__badge--sponsor  { background: rgba(0, 184, 90, 0.22);  color: #6bdb9d; }
+    /* Abonnement : le même or que le filet des cartes abonnées, pour qu'on
+       reconnaisse le signal d'une surface à l'autre. La variante « ancien
+       abonné » le désature — c'est un fait révolu, il ne doit pas briller
+       autant qu'un abonnement en cours. */
+    .tse-preview__badge--sub      { background: rgba(255, 201, 102, 0.22); color: #ffd591; }
+    .tse-preview__badge--exsub    { background: rgba(255, 201, 102, 0.10); color: #c9b48c; }
     /* Logo de la marque sponsor (image fournie par Twitch sur fond coloré
        inline). On le rend en mini cadre carré 14×14 dans le badge. Le
        background-color est posé inline depuis getSponsorInfo. */
@@ -3448,23 +3479,37 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    *  apporte la correction — c'est elle, et elle seule, qui peut voir un
    *  désabonnement, puisqu'elle mémorise aussi le NON.
    *
-   *  Stockage : localStorage (clé SUBS_STORAGE_KEY), { login: [sub, ts] }.
+   *  ANCIENNETÉ (v3.48). La page /subscriptions affiche aussi, pour
+   *  chaque abonnement présent OU passé, le nombre total de mois. On le
+   *  garde ici : `m` (mois) et `ex` (déjà abonné par le passé). Les deux
+   *  alimentent le badge de l'aperçu, « Abonné N mois » ou « Anciennement
+   *  abonné N mois ».
+   *
+   *  Stockage : localStorage (clé SUBS_STORAGE_KEY), { login: [sub, ts]
+   *  ou [sub, ts, m, ex] }. La forme courte reste lue telle quelle — une
+   *  mémoire écrite par une version antérieure ne se perd pas.
    *  Effaçable par tse.reset(), comme le reste.
    * ============================================================ */
   const subs = {
-    map: new Map(),   // login -> { sub: boolean, ts: number }
+    // login -> { sub: boolean, ts: number, m?: number, ex?: boolean }
+    map: new Map(),
 
     load() {
       try {
         const obj = JSON.parse(localStorage.getItem(CFG.SUBS_STORAGE_KEY) || 'null');
         if (!obj || typeof obj !== 'object') return;
         for (const [login, v] of Object.entries(obj)) {
-          // Forme compacte [sub, ts] pour tenir dans le quota : on la relit
-          // en tolérant tout ce qui ne lui ressemble pas.
-          if (!Array.isArray(v) || v.length !== 2) continue;
+          // Forme compacte [sub, ts] — ou [sub, ts, mois, ancien] depuis la
+          // 3.48. On relit les deux, en tolérant tout ce qui ne leur
+          // ressemble pas : une mémoire d'avant la 3.48 reste valide.
+          if (!Array.isArray(v) || v.length < 2) continue;
           const ts = Number(v[1]);
           if (!Number.isFinite(ts) || ts <= 0) continue;
-          this.map.set(login, { sub: !!v[0], ts });
+          const e = { sub: !!v[0], ts };
+          const m = Number(v[2]);
+          if (Number.isFinite(m) && m > 0) e.m = m;
+          if (v[3]) e.ex = true;
+          this.map.set(login, e);
         }
         this.prune();
       } catch { /* stockage corrompu / indisponible → on ignore */ }
@@ -3473,7 +3518,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     save() {
       try {
         const obj = {};
-        for (const [login, e] of this.map) obj[login] = [e.sub ? 1 : 0, e.ts];
+        for (const [login, e] of this.map) {
+          // La forme longue n'est écrite que si elle porte quelque chose :
+          // inutile d'alourdir chaque entrée de deux zéros.
+          obj[login] = (e.m || e.ex)
+            ? [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0]
+            : [e.sub ? 1 : 0, e.ts];
+        }
         localStorage.setItem(CFG.SUBS_STORAGE_KEY, JSON.stringify(obj));
       } catch { /* quota → on garde en mémoire */ }
     },
@@ -3498,11 +3549,73 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     record(login, sub) {
       if (!login) return false;
       const avant = this.map.get(login);
-      this.map.set(login, { sub, ts: Date.now() });
+      // L'ancienneté et le passé d'abonné sont CONSERVÉS : ils viennent d'une
+      // autre source (la page /subscriptions) et ne sont pas remis en cause
+      // par une observation de visite. Écraser l'entrée entière, comme le
+      // faisait la version précédente, les aurait effacés à chaque passage
+      // sur la chaîne.
+      const e = { sub, ts: Date.now() };
+      if (avant?.m) e.m = avant.m;
+      if (avant?.ex) e.ex = avant.ex;
+      this.map.set(login, e);
       if (avant && avant.sub === sub) return false;   // rien de neuf
       this.prune();
       this.save();
       return true;
+    },
+
+    /**
+     * Note l'ancienneté relevée sur /subscriptions : `mois` au total, et
+     * `ancien` si la chaîne vient de l'onglet des abonnements EXPIRÉS.
+     *
+     * Ne touche JAMAIS à `sub`. Une chaîne peut figurer dans les expirés pour
+     * une période révolue tout en étant réabonnée aujourd'hui ; en déduire un
+     * « non abonné » dépendrait de l'ordre de lecture des onglets. L'état
+     * d'abonnement reste donc gouverné par record(), et lui seul.
+     */
+    noteMonths(login, mois, ancien, differer = false) {
+      if (!login) return false;
+      const m = Number(mois);
+      if (!Number.isFinite(m) || m <= 0) return false;
+      const avant = this.map.get(login);
+      const e = avant
+        ? { ...avant }
+        : { sub: false, ts: Date.now() };
+      if (e.m === m && (!ancien || e.ex)) return false;   // rien de neuf
+      e.m = m;
+      if (ancien) e.ex = true;
+      // L'horodatage n'est PAS rafraîchi : il date l'observation de
+      // l'ABONNEMENT, c'est lui qui fait périmer l'entrée au bout de
+      // SUBS_TTL_DAYS, et une lecture d'ancienneté ne prouve rien là-dessus.
+      this.map.set(login, e);
+      // `differer` sert au relevé de la page des abonnements révolus, qui en
+      // pose des dizaines d'affilée — 76 sur le compte qui a servi de mesure.
+      // Sans lui, chacune sérialisait la mémoire entière sur le disque.
+      if (!differer) this.flush();
+      return true;
+    },
+
+    // Range et écrit. Séparé pour qu'une rafale d'écritures ne coûte qu'une
+    // seule sérialisation.
+    flush() {
+      this.prune();
+      this.save();
+    },
+
+    // Nombre total de mois d'abonnement relevé, ou 0. Sert au badge de
+    // l'aperçu, qui préfère ne rien dire à dire un chiffre inventé.
+    monthsFor(login) {
+      const e = login ? this.map.get(login) : null;
+      return e?.m || 0;
+    },
+
+    // A été abonné par le passé, et ne l'est plus. Le « ne l'est plus » est
+    // relu au moment de la question : une chaîne des expirés à laquelle on se
+    // réabonne redevient un abonnement ordinaire, sans qu'il faille effacer
+    // quoi que ce soit.
+    wasSub(login) {
+      const e = login ? this.map.get(login) : null;
+      return !!(e && e.ex && !this.isSub(login));
     },
 
     // Abonné à cette chaîne, pour autant qu'on le sache. Une observation
@@ -3524,7 +3637,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
     entries() {
       return [...this.map.entries()]
-        .map(([login, e]) => ({ login, sub: e.sub, ts: e.ts }))
+        .map(([login, e]) => ({ login, sub: e.sub, ts: e.ts, mois: e.m || 0, ancien: !!e.ex }))
         .sort((a, b) => (b.sub - a.sub) || (b.ts - a.ts));
     },
 
@@ -3587,6 +3700,83 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
   const subsPage = (() => {
     let running = false;
 
+    /* ──────────────────────────────────────────────────────────────
+     *  L'ANCIENNETÉ, SANS UN MOT DE FRANÇAIS
+     *  --------------------------------------------------------------
+     *  Chaque carte porte le nombre total de mois d'abonnement, mais
+     *  aucun `data-*` ne le désigne. Relevé le 31/08/2026 :
+     *
+     *    carte PAYANTE — quatre paires « étiquette → valeur » :
+     *      Prochain anniversaire d'abonnement dans : → 9 jours
+     *      Nombre TOTAL de mois abonné :            → 1 mois
+     *      Nombre de mois à la suite :              → 1 mois
+     *      Vos avantages arrivent à expiration le   → 9 sept. 2026
+     *
+     *    carte EXPIRÉE — une seule, une fois écarté le bruit :
+     *      Nombre TOTAL de mois abonné :            → 1 mois
+     *
+     *  Sur la carte payante, « le premier nombre » donnerait 9, et
+     *  distinguer le total de la série demanderait de lire l'étiquette
+     *  — donc six traductions, et une casse à la première refonte.
+     *
+     *  D'où le détour : on APPREND l'étiquette là où la structure la
+     *  désigne seule (carte expirée), puis on la retrouve telle quelle
+     *  sur les cartes payantes, où elle est identique. Aucune chaîne de
+     *  caractères n'est codée en dur, et si Twitch change ce texte, la
+     *  correspondance échoue et le badge disparaît — il ne ment pas.
+     * ────────────────────────────────────────────────────────────── */
+    let etiquette = '';   // « Nombre total de mois abonné : », apprise
+
+    // Feuilles porteuses de texte d'une carte, dans l'ordre du document,
+    // débarrassées du bruit (cf. DOM.subCardNoiseSelector).
+    const feuilles = (carte) => {
+      const out = [];
+      for (const el of carte.querySelectorAll('p, span')) {
+        // closest() remonte jusqu'à la racine, et LA CARTE ELLE-MÊME porte un
+        // data-a-target : sans cette borne, tout descendant était déclaré
+        // « bruit » et l'ancienneté ne se lisait jamais. Le bruit doit être un
+        // bloc INTERNE à la carte, pas la carte.
+        const bruit = el.closest(DOM.subCardNoiseSelector);
+        if (bruit && bruit !== carte) continue;
+        const t = [...el.childNodes]
+          .filter(n => n.nodeType === 3)
+          .map(n => n.textContent.trim())
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+        if (t) out.push({ el, t });
+      }
+      return out;
+    };
+
+    // Premier entier d'un texte du genre « 29 mois ». Rend 0 si rien.
+    const entier = (t) => {
+      const m = /\d+/.exec(t || '');
+      const n = m ? parseInt(m[0], 10) : 0;
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
+
+    /**
+     * Ancienneté d'une carte, en mois. `apprendre` n'est vrai que sur les
+     * cartes EXPIRÉES : ce sont elles qui n'ont qu'une paire, donc elles
+     * seules peuvent enseigner l'étiquette sans risque de la confondre avec
+     * la série en cours.
+     */
+    const mois = (carte, apprendre) => {
+      const f = feuilles(carte);
+      if (apprendre) {
+        // Une seule paire attendue : une étiquette, puis sa valeur chiffrée.
+        // Toute autre forme signale que la page a changé — on n'apprend rien
+        // plutôt que d'apprendre faux.
+        if (f.length !== 2 || entier(f[0].t) || !entier(f[1].t)) return 0;
+        if (!etiquette) etiquette = f[0].t;
+        return entier(f[1].t);
+      }
+      if (!etiquette) return 0;   // rien appris : on préfère ne rien dire
+      const i = f.findIndex(x => x.t === etiquette);
+      return i >= 0 && f[i + 1] ? entier(f[i + 1].t) : 0;
+    };
+
     const horodatage = () => {
       try { return Number(localStorage.getItem(CFG.SUBS_PAGE_STAMP_KEY)) || 0; }
       catch { return 0; }
@@ -3595,10 +3785,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       try { localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY, String(Date.now())); } catch {}
     };
 
-    // Charge un onglet dans une iframe cachée et rend les logins trouvés.
+    // Charge un onglet dans une iframe cachée et rend [{ login, mois }].
     // Résout TOUJOURS — un onglet qui ne rend rien ne doit pas bloquer les
     // suivants ni laisser l'iframe accrochée à la page.
-    const visiter = (onglet) => new Promise(resolve => {
+    // `passe` marque l'onglet des abonnements révolus : c'est le seul sur
+    // lequel l'étiquette de l'ancienneté peut être apprise (cf. mois()).
+    const visiter = (onglet, passe = false) => new Promise(resolve => {
       let cadre = document.createElement('iframe');
       let sondeur = null, limite = null;
       let debout = 0;   // instant où l'application de l'iframe s'est montrée
@@ -3632,6 +3824,18 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           try { doc = cadre?.contentDocument; } catch { return finir([]); }
           if (!doc) return;
           const cartes = doc.querySelectorAll(DOM.subCardSelector);
+          if (cartes.length) {
+            const trouve = [];
+            const vus = new Set();
+            for (const carte of cartes) {
+              const lien = carte.querySelector('a[href^="/"]');
+              const login = loginFromHref(lien?.getAttribute('href') || '');
+              if (!login || vus.has(login)) continue;
+              vus.add(login);
+              trouve.push({ login, mois: mois(carte, passe) });
+            }
+            if (trouve.length) return finir(trouve);
+          }
           if (!cartes.length) {
             // Onglet vide ou page lente ? La barre latérale tranche : elle est
             // rendue par la même application, donc sa présence dit que
@@ -3641,13 +3845,6 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
             if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) return finir([]);
             return;
           }
-          const logins = [];
-          for (const carte of cartes) {
-            const lien = carte.querySelector('a[href^="/"]');
-            const login = loginFromHref(lien?.getAttribute('href') || '');
-            if (login && !logins.includes(login)) logins.push(login);
-          }
-          if (logins.length) finir(logins);
         }, 400);
       }, { once: true });
       document.body.appendChild(cadre);
@@ -3656,6 +3853,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     /**
      * Relève tous les onglets configurés et verse le résultat dans `subs`.
      * `force` ignore le TTL (c'est le chemin de tse.subs.refresh()).
+     *
+     * Les abonnements RÉVOLUS sont lus EN PREMIER, pour deux raisons : leurs
+     * cartes enseignent l'étiquette de l'ancienneté (cf. mois()), et ce qu'on
+     * en tire — ancienneté et passé d'abonné — ne touche jamais à l'état
+     * d'abonnement, que les onglets courants écriront ensuite.
      */
     const refresh = async (force = false) => {
       if (!CFG.SUBS_PAGE_ENABLED || running) return null;
@@ -3664,10 +3866,19 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       running = true;
       const trouves = [];
       try {
-        for (const onglet of CFG.SUBS_PAGE_TABS) {
-          const logins = await visiter(onglet);
-          for (const l of logins) if (!trouves.includes(l)) trouves.push(l);
+        let touche = false;
+        for (const onglet of CFG.SUBS_PAGE_TABS_PAST) {
+          for (const { login, mois: m } of await visiter(onglet, true)) {
+            touche = subs.noteMonths(login, m, true, true) || touche;
+          }
         }
+        for (const onglet of CFG.SUBS_PAGE_TABS) {
+          for (const { login, mois: m } of await visiter(onglet)) {
+            if (!trouves.includes(login)) trouves.push(login);
+            touche = subs.noteMonths(login, m, false, true) || touche;
+          }
+        }
+        if (touche) subs.flush();   // une seule écriture pour toute la rafale
         for (const login of trouves) subs.record(login, true);
         // Horodaté APRÈS l'enregistrement : l'horodatage veut dire « un relevé
         // est allé à son terme », et quiconque le lit doit trouver le résultat
@@ -5520,6 +5731,22 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
                   : '';
         return badgeHtml(cls, escapeHtml(r.text));
       });
+
+      // Badge d'abonnement, en TÊTE : c'est le signal le plus personnel de
+      // l'aperçu, et le seul qui parle de la relation entre vous et la chaîne
+      // plutôt que de ce qui s'y passe. Affiché seulement si l'ancienneté est
+      // CONNUE — sans elle, « Abonné » sans durée n'apprendrait rien de plus
+      // que le filet doré déjà posé sur la carte.
+      const moisAbo = subs.monthsFor(login);
+      if (moisAbo > 0) {
+        if (subs.isSub(login)) {
+          badges.push(badgeHtml('tse-preview__badge--sub',
+                                escapeHtml(S.uiBadgeSubMonths(moisAbo))));
+        } else if (subs.wasSub(login)) {
+          badges.push(badgeHtml('tse-preview__badge--exsub',
+                                escapeHtml(S.uiBadgeExSubMonths(moisAbo))));
+        }
+      }
 
       // Badge co-stream d'événement : rôle DOM (participant+hôte / hôte) via
       // costreamBadgeHtml ; à défaut, repli heuristique (section suivie).

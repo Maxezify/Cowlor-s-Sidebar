@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.47.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.48.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -429,6 +429,45 @@ the veil **waits** for the scan, for at most 4 seconds. On later boots it waits
 for nothing: known subscriptions are read back from disk before the first scan,
 the styling lands with the first card, and the scan merely refreshes in the
 background.
+
+### "Subscribed 4 months" in the preview (v3.48)
+
+The hover preview carries one more badge, beside "Live with" and hype trains:
+**Subscribed N months**, or **Formerly subscribed N months** for a channel you
+have left. The `?tab=expired` tab is read for that — but it feeds tenure and
+the former-subscriber flag only: it **never** touches subscription state. A
+channel can sit in the expired list for a lapsed period while being
+resubscribed today; inferring "not subscribed" from it would depend on the
+order the tabs are read in.
+
+#### Reading a number without reading the language
+
+The month count is on the page, but **no `data-*` designates it**. And a paid
+card carries four lookalikes:
+
+| label | value |
+| --- | --- |
+| Next subscription anniversary in: | 9 **days** |
+| **Total** months subscribed: | 4 months |
+| **Consecutive** months: | 3 months |
+| Your benefits expire on | 9 Sept 2026 |
+
+Taking "the first number" gives **9**. Taking "the last N months" gives **3**.
+Reading the label gives 4 — in French only, and the extension serves six
+languages.
+
+An **expired** card carries just one, once the blocks with known hooks are set
+aside (`.sub-badge-progress`, `.expired-sub-message`, the channel name, the
+buttons). Its structure names it unambiguously.
+
+Hence the detour: the extension **learns** the label where structure names it
+on its own, then finds it verbatim on the paid cards, where the text is
+identical. **No string is hardcoded.** Should Twitch change that wording, the
+match fails and the badge disappears — it does not lie. That is also why the
+expired tab is read **first**.
+
+The badge only appears when tenure is **known**: "Subscribed" without a
+duration would say nothing the card's gold thread does not already say.
 
 ### The styling of a subscribed channel (v3.45)
 
@@ -972,7 +1011,7 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 | `tse:visits` | your visit dates per channel | "Most visited" sort |
 | `tse:roster` | followed channels seen in the sidebar | posting a card before Twitch |
 | `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
-| `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan) | "My subscriptions first" sort |
+| `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months and the former-subscriber flag | "My subscriptions first" sort, card styling, preview badge |
 | `tse:substs` | date of the last full scan | spacing scans 6 h apart |
 
 `tse.reset()` wipes them all at any time; clearing `twitch.tv`'s site data from
