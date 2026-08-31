@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.46.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.47.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -416,6 +416,14 @@ arrière-plan. D'où un relevé **rare** — une fois toutes les 6 heures —, u
 seule fois par page, et jamais deux à la fois. `tse.subs.refresh()` le force à
 la demande.
 
+Un onglet **vide** — pas d'abonnement offert, pas d'abonnement mobile — ne rend
+aucune carte, et rien ne le distingue d'une page lente. Il coûtait donc les 25
+secondes entières du garde-fou, deux fois, pour un compte n'ayant que des
+abonnements payants. La page `/subscriptions` rend aussi la **barre latérale**
+de Twitch : dès qu'elle apparaît, l'application est debout, et si aucune carte
+ne suit dans les 5 secondes, l'onglet est vide et non lent (v3.47). Mesuré sur
+le banc : 12,7 s pour deux onglets vides sans ce raccourci, moins de 7 s avec.
+
 ### Pendant le chargement, pas après (v3.45)
 
 Jusqu'à la 3.44 le relevé partait 25 secondes après le démarrage. La sidebar
@@ -478,10 +486,17 @@ relevé de visite, qui observe la chaîne elle-même.
   la mémoire est vide, « aucun de vos abonnements n'est en direct » quand elle
   ne l'est pas. Envoyer ouvrir une chaîne quelqu'un dont le relevé est déjà
   complet serait un contresens ;
-- une **pastille** au coin bas-droit du bouton compte les abonnements en
-  direct — le même nombre que celui qui décide du grisé, sans quoi un bouton
-  éteint afficherait un compte. Elle s'inverse en blanc sur le bouton actif, et
-  disparaît avec le grisé ;
+- une **pastille** au coin bas-droit du bouton donne le **total** de vos
+  abonnements, qu'ils émettent ou non (v3.47). Les deux nombres répondent à
+  deux questions différentes : le grisé dit « rien à trier maintenant », la
+  pastille dit « vous avez N abonnements ». Elle reste donc **lisible sur un
+  bouton grisé** — l'opacité du grisé porte sur l'icône, pas sur le bouton
+  entier, sinon elle emporterait la pastille avec elle. Elle s'inverse en blanc
+  sur le bouton actif ;
+- le mode de tri **choisi revient** quand il redevient possible (v3.47). Un
+  repli est subi, pas voulu : si le dernier abonné à l'antenne s'éteint, le tri
+  retombe sur « spectateurs », mais votre choix est mémorisé et reprend dès
+  qu'un abonné rallume. Même chose pour les co-streams ;
 - les cartes masquées par un **filtre** comptent quand même : un filtre est un
   choix d'affichage passager, et faire clignoter la disponibilité du tri à
   chaque changement de catégorie rendrait le contrôle instable ;

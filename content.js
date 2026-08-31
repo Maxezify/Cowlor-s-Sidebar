@@ -875,6 +875,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     SUBS_PAGE_TABS:       ['paid', 'gifts', 'mobile'],
     SUBS_PAGE_TTL:        6 * 60 * 60_000,   // 6 h entre deux relevés
     SUBS_PAGE_TIMEOUT:    25_000,            // abandon si la page ne rend rien
+    // Un onglet VIDE — pas de sub offert, pas de sub mobile — ne rend aucune
+    // carte, et rien ne le distingue d'une page lente : sans ce délai, il
+    // coûtait les 25 s entières du garde-fou, deux fois pour un compte qui n'a
+    // que des abonnements payants. On s'appuie donc sur un fait mesuré : la
+    // page /subscriptions rend AUSSI la barre latérale de Twitch. Dès qu'elle
+    // apparaît, l'application est debout ; si aucune carte ne suit dans ce
+    // délai, l'onglet est vide et non lent.
+    SUBS_PAGE_SETTLE:     5_000,
     // Retenue MAXIMALE du voile de chargement, et seulement au tout premier
     // démarrage (rien en mémoire, aucun relevé antérieur). Passé ce délai le
     // voile se lève sans attendre : personne ne doit patienter devant une
@@ -1008,6 +1016,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     //              utilisé uniquement comme état transitoire si jamais
     //              l'état devient inattendu (sécurité).
     sortMode:       'viewers',
+    // Le mode que l'utilisateur a CHOISI, distinct de celui qui s'applique.
+    // Les deux divergent quand le mode choisi devient impossible — plus aucun
+    // co-stream, plus aucun abonné à l'antenne : le tri retombe alors sur
+    // 'viewers'. Sans mémoire du souhait, ce repli serait définitif, et
+    // l'utilisateur perdrait son choix parce qu'un streamer a éteint. Le
+    // souhait le fait revenir dès que le mode redevient possible.
+    sortWish:       'viewers',
     categoryFilter: null,
     languageFilter: null,
     filterDriver:   null,  // facette pilotée par l'utilisateur : 'category' | 'language' | null
@@ -1449,9 +1464,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
        cascade. Dérivée du login et non du rang, elle ne bouge pas quand le
        tri réordonne la liste.
 
-       COÛT. Deux propriétés animées par carte abonnée : un angle (repeint le
-       seul filet d'un pixel) et une opacité (composée par le GPU). Le halo,
-       l'anneau d'avatar et l'ombre interne sont FIXES — rien à recalculer. */
+       COÛT, MESURÉ. Deux propriétés animées par carte abonnée : un angle (qui
+       ne repeint que le filet) et une opacité (composée par le GPU). L'anneau
+       d'avatar et l'ombre interne sont FIXES — rien à recalculer.
+       Relevé dans Chromium sur trente cartes décorées, soit le double de ce
+       qu'un compte ordinaire affiche à un instant donné : 16,62 ms d'intervalle
+       moyen entre images contre 16,56 ms sans la décoration, et aucune image
+       longue (> 20 ms) dans un cas comme dans l'autre. */
     @property --tse-sub-angle {
       syntax: '<angle>';
       inherits: false;
@@ -1656,18 +1675,23 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     .tse-sort-toggle[aria-pressed="true"] .tse-sort-count {
       background: #fff; color: ${CFG.PURPLE}; border-color: ${CFG.PURPLE};
     }
-    /* Un bouton grisé n'a rien à compter : le CSS le dit aussi, pour que la
-       pastille ne survive pas à un état où le tri est indisponible. */
-    .tse-sort-toggle:disabled .tse-sort-count { display: none; }
-
     /* État désactivé : grise le bouton et bloque toute interaction.
        Note : l'attribut HTML "disabled" court-circuite déjà click et focus
-       côté navigateur ; ce style ne fait qu'aligner le rendu. */
+       côté navigateur ; ce style ne fait qu'aligner le rendu.
+
+       L'opacité porte sur l'ICÔNE, pas sur le bouton. Une opacité posée sur le
+       bouton s'applique au groupe entier, pastille comprise — et le nombre
+       d'abonnements, qu'on veut justement pouvoir lire quand aucun n'est en
+       direct, tombait à 35 %. La pastille garde donc sa pleine intensité sur
+       un bouton grisé : c'est exactement ainsi que se comporte une pastille de
+       notification sur une entrée inactive. */
     .tse-sort-toggle:disabled {
-      opacity: 0.35;
       cursor: not-allowed;
       pointer-events: none;
+      background: rgba(0, 0, 0, 0.25);
+      border-color: rgba(255, 255, 255, 0.04);
     }
+    .tse-sort-toggle:disabled svg { opacity: 0.35; }
 
     /* === Ligne des boutons de tri (sous les dropdowns, centrée) === */
     .tse-sort-row {
@@ -3553,11 +3577,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    *  posée dès la première carte, et le relevé ne fait que rafraîchir.
    *
    *  ADDITIF, VOLONTAIREMENT. On marque abonné ce qu'on trouve ; on ne
-   *  marque personne « non abonné » sur une absence. Les onglets lus ne
-   *  couvrent pas tout (mobile, Turbo, autres), et conclure d'une
-   *  absence retirerait à tort le style d'un abonnement bien réel. La
-   *  correction d'un désabonnement reste au relevé de visite, qui, lui,
-   *  observe la chaîne elle-même.
+   *  marque personne « non abonné » sur une absence. Les trois onglets
+   *  lus (payants, offerts, mobiles) ne couvrent pas tout — Turbo et
+   *  « autres abonnements » restent dehors, faute de parler de chaînes —
+   *  et conclure d'une absence retirerait à tort le style d'un abonnement
+   *  bien réel. La correction d'un désabonnement reste au relevé de
+   *  visite, qui, lui, observe la chaîne elle-même.
    * ============================================================ */
   const subsPage = (() => {
     let running = false;
@@ -3576,6 +3601,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     const visiter = (onglet) => new Promise(resolve => {
       let cadre = document.createElement('iframe');
       let sondeur = null, limite = null;
+      let debout = 0;   // instant où l'application de l'iframe s'est montrée
       const finir = (logins) => {
         if (sondeur) { clearInterval(sondeur); sondeur = null; }
         if (limite) { clearTimeout(limite); limite = null; }
@@ -3606,7 +3632,15 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           try { doc = cadre?.contentDocument; } catch { return finir([]); }
           if (!doc) return;
           const cartes = doc.querySelectorAll(DOM.subCardSelector);
-          if (!cartes.length) return;
+          if (!cartes.length) {
+            // Onglet vide ou page lente ? La barre latérale tranche : elle est
+            // rendue par la même application, donc sa présence dit que
+            // l'application est debout. À partir de là on n'attend plus que
+            // SUBS_PAGE_SETTLE — au-delà, il n'y a rien à trouver.
+            if (!debout && doc.querySelector(DOM.sidebarRoot)) debout = Date.now();
+            if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) return finir([]);
+            return;
+          }
           const logins = [];
           for (const carte of cartes) {
             const lien = carte.querySelector('a[href^="/"]');
@@ -3678,8 +3712,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // c'est à la fois « pendant le chargement de la sidebar » et « la session
     // est connectée », en une seule condition qu'on n'a pas à deviner.
     let arme = false, parti = false;
+    // Le déclencheur n'attend qu'une fois. Passé le départ, l'appelant n'a
+    // plus à interroger le DOM du tout — d'où ce test préalable, à deux
+    // booléens, au lieu d'un querySelector inutile à chaque scan pour le
+    // reste de la vie de la page.
+    const enAttente = () => arme && !parti;
     const notifySidebar = (aDesChainesSuivies) => {
-      if (!arme || parti || !aDesChainesSuivies) return;
+      if (!enAttente() || !aDesChainesSuivies) return;
       parti = true;
       demarrer();
     };
@@ -3689,7 +3728,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       arme = true;
     };
 
-    return { init, refresh, horodatage, notifySidebar };
+    return { init, refresh, horodatage, notifySidebar, enAttente };
   })();
 
   /**
@@ -6426,6 +6465,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         // autre bouton (mutuellement exclusif).
         if (state.sortMode === mode) return;
         state.sortMode = mode;
+        state.sortWish = mode;   // c'est un CHOIX : il survit à une indisponibilité
         refreshPressed();
         applySorting();
       });
@@ -6498,6 +6538,16 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     let modeForced = false;
     const buttons = [...row.querySelectorAll('button[data-tse-sort-mode]')];
 
+    // Retour au mode SOUHAITÉ dès qu'il redevient possible. Un abonné rallume
+    // son direct, un co-stream reprend : le choix de l'utilisateur revient de
+    // lui-même, au lieu de rester enterré sous le repli 'viewers' qu'une
+    // indisponibilité passagère avait imposé. Avant la boucle : si le souhait
+    // est de nouveau servi, le repli ci-dessous n'a plus lieu d'être.
+    if (state.sortMode !== state.sortWish && available[state.sortWish] !== false) {
+      state.sortMode = state.sortWish;
+      modeForced = true;
+    }
+
     buttons.forEach(btn => {
       const mode = btn.dataset.tseSortMode;
       const ok = available[mode] !== false;
@@ -6514,21 +6564,28 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         const spec = getSortButtons().find(s => s.mode === mode);
         if (spec) btn.title = spec.label;
       }
-      // Pastille de comptage sur le bouton des abonnements. Créée une seule
-      // fois, et son texte n'est réécrit que s'il CHANGE : une écriture
-      // inconditionnelle dans une fonction appelée à chaque scan émettrait
-      // une mutation, que notre propre observateur relirait comme un signal
-      // de re-scan — soit une boucle entretenue par elle-même (cf. setText).
+      // Pastille de comptage sur le bouton des abonnements. Elle affiche le
+      // TOTAL des abonnements connus — nbConnus, pas nbSubs. Les deux nombres
+      // répondent à deux questions différentes : « ce tri a-t-il quelque chose
+      // à faire maintenant ? » décide du grisé et regarde l'antenne ; « à
+      // combien de chaînes suis-je abonné ? » est un fait sur le compte, vrai
+      // que les chaînes émettent ou non. La pastille répond à la seconde, et
+      // reste donc lisible sur un bouton grisé (cf. le CSS de :disabled).
+      //
+      // Créée une seule fois, et son texte n'est réécrit que s'il CHANGE : une
+      // écriture inconditionnelle dans une fonction appelée à chaque scan
+      // émettrait une mutation, que notre propre observateur relirait comme un
+      // signal de re-scan — soit une boucle entretenue par elle-même (setText).
       if (mode === 'subs') {
         let pastille = btn.querySelector(':scope > .tse-sort-count');
-        if (nbSubs > 0) {
+        if (nbConnus > 0) {
           if (!pastille) {
             pastille = document.createElement('span');
             pastille.className = 'tse-sort-count';
             pastille.setAttribute('aria-hidden', 'true'); // le titre du bouton porte déjà le sens
             btn.appendChild(pastille);
           }
-          setText(pastille, nbSubs > 99 ? '99+' : String(nbSubs));
+          setText(pastille, nbConnus > 99 ? '99+' : String(nbConnus));
         } else if (pastille) {
           pastille.remove();
         }
@@ -6538,6 +6595,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // 'viewers' (le mode par défaut au démarrage). On ne retombe pas sur
       // 'default' car ce mode n'est plus accessible volontairement à
       // l'utilisateur — un mode de tri custom reste toujours actif.
+      // state.sortWish n'est PAS touché : c'est un repli subi, pas un choix,
+      // et le mode reviendra de lui-même dès que la donnée sera là.
       if (!ok && state.sortMode === mode) {
         state.sortMode = 'viewers';
         modeForced = true;
@@ -8351,8 +8410,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // encore la sidebar : au premier scan qui voit une carte SUIVIE, donc à
     // l'instant où Twitch a fini de peupler la barre. Une seule fois par page
     // (le module s'en souvient), et jamais quand la session est déconnectée —
-    // sans chaînes suivies, la condition ne peut pas être vraie.
-    subsPage.notifySidebar(!!document.querySelector(DOM.followedCardSelector));
+    // sans chaînes suivies, la condition ne peut pas être vraie. Le
+    // querySelector n'est fait que tant que le départ est en attente : une
+    // fois parti, il ne servirait plus à rien, à chaque scan.
+    if (subsPage.enAttente()) {
+      subsPage.notifySidebar(!!document.querySelector(DOM.followedCardSelector));
+    }
     const nativeCount = [...cards].filter(c => !isSynthetic(c)).length;
     const stillGrowing = loadingOverlay.notifyScan(hadOfflineActivity, nativeCount);
 

@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.46.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.47.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -400,6 +400,14 @@ The cost is real, though: a whole React application boots in the background.
 Hence a **rare** scan — once every 6 hours — once per page, and never two at
 once. `tse.subs.refresh()` forces one on demand.
 
+An **empty** tab — no gifted subscription, no mobile one — renders no card, and
+nothing tells it apart from a slow page. It therefore cost the guard rail's
+full 25 seconds, twice, for an account holding only paid subscriptions. The
+`/subscriptions` page also renders Twitch's **sidebar**: as soon as it appears
+the application is up, and if no card follows within 5 seconds, the tab is
+empty rather than slow (v3.47). Measured on the bench: 12.7 s for two empty
+tabs without that shortcut, under 7 s with it.
+
 ### During the load, not after it (v3.45)
 
 Up to 3.44 the scan started 25 seconds after boot. The sidebar was therefore
@@ -462,10 +470,17 @@ the visit-time reading, which observes the channel itself.
   spotted" when memory is empty, "none of your subscriptions is live" when it
   is not. Sending someone off to open a channel when their scan is already
   complete would be nonsense;
-- a **badge** in the button's bottom-right corner counts the live
-  subscriptions — the same number that decides the greying, otherwise a dead
-  button would carry a count. It flips to white on the active button, and
-  disappears with the greyed-out state;
+- a **badge** in the button's bottom-right corner gives the **total** number of
+  your subscriptions, whether they stream or not (v3.47). The two numbers
+  answer different questions: the greying says "nothing to sort right now", the
+  badge says "you have N subscriptions". It therefore stays **readable on a
+  greyed-out button** — the greying's opacity is carried by the icon, not by
+  the whole button, which would take the badge down with it. It flips to white
+  on the active button;
+- the **chosen** sort mode comes back when it becomes possible again (v3.47).
+  A fallback is suffered, not wanted: if your last on-air subscription goes
+  offline the sort drops to "viewers", but your choice is remembered and
+  returns as soon as one comes back. Same for co-streams;
 - cards hidden by a **filter** still count: a filter is a passing display
   choice, and flickering the sort's availability on every category change would
   make the control unstable;

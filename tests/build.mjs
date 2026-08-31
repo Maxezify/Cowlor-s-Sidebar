@@ -45,6 +45,10 @@ const subs = [
   // bien cette souveraineté du délai dur qu'on veut voir à l'œuvre.
   [/SUBS_PAGE_TTL:\s*6 \* 60 \* 60_000/, 'SUBS_PAGE_TTL:        4_000'],
   [/SUBS_PAGE_TIMEOUT:\s*[\d_]+/, 'SUBS_PAGE_TIMEOUT:    6_000'],
+  // Délai d'apaisement d'un onglet vide. Réduit dans le même rapport que le
+  // garde-fou (5 s / 25 s en production, 1,2 s / 6 s ici) : c'est le RAPPORT
+  // qui décide si un onglet vide coûte une fraction du garde-fou ou sa totalité.
+  [/SUBS_PAGE_SETTLE:\s*[\d_]+/,  'SUBS_PAGE_SETTLE:     1_200'],
   [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  40'],
   [/BATCH_DELAY:\s*[\d_]+/,       'BATCH_DELAY:    40'],
 ];

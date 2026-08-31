@@ -347,6 +347,10 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
     expired: ['jamais_expire'],
   };
   const tab = new URLSearchParams(location.search).get('tab') || 'paid';
+  // __subsVides : onglets qui ne rendront AUCUNE carte, comme un compte sans
+  // abonnement offert. La barre latérale, elle, est là — c'est justement ce
+  // qui permet de distinguer « vide » de « lent ».
+  if ((window.__subsVides || []).includes(tab)) ONGLETS[tab] = [];
   // __subsDelay règle la lenteur de cette page. Elle sert à éprouver la
   // RETENUE du voile : avec une page lente, le voile doit rester tant que le
   // relevé n'est pas rentré ; sans retenue, il se lèverait bien avant.
