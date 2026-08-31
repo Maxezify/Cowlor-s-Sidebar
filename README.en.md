@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.50.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.51.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -524,17 +524,26 @@ repaired the data. And `tse.reset()` now takes that timestamp with it —
 wiping the subscriptions then forbidding yourself to go and fetch them again
 was not a reset.
 
-### The styling of a subscribed channel (v3.45, reworked in v3.50)
+### The styling of a subscribed channel (v3.45, reworked in v3.51)
 
-A thread of precious metal rings the card. Its hue drifts slowly from gold to
-rose to mauve, two brighter glints travel along it, and a white comet runs
-around it far faster **the other way**. The avatar wears the same thread,
-turning **counter** to the card's: the two read as two parts of one mechanism
-rather than the same gesture repeated. It is also what stays visible in
-collapsed mode, where the card is nothing but a dot.
+The **channel name turns gold**, with a brighter sheen travelling through it on
+a loop — the colour is a gradient clipped to the shape of the letters. In the
+**card's background**, a glow circulates: three coloured washes each drifting at
+its own speed, and a light veil sweeping the card diagonally now and then. The
+avatar keeps a turning ring: it is the only element left in collapsed mode,
+where there is neither background nor text to colour.
 
-Two opposing speeds make a **material**; one alone would have made a neon
-tube. The metal loops in 19 s, the comet in 5 s.
+**How this coexists** with the purple of "fresh stream" and a co-stream's
+colour, which already own the background: the animated layer sits at a
+**negative** `z-index` within the card's stacking context. It therefore paints
+after the card's background — whose hue shows through, being very transparent —
+but before the content, and beneath the left bar. All three signals stay
+readable together: the background says "fresh" or "co-stream", the glow and the
+gold say "subscribed", the bar says which group.
+
+The cost is measured, not asserted: across thirty decorated cards — twice what
+an ordinary account shows — **16.75 ms average frame interval against
+16.76 ms** without the decoration.
 
 This styling **does not touch the card's background**, deliberately. The
 background already belongs to "fresh stream" (purple) and to co-streams (the

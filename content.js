@@ -1500,45 +1500,34 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }
 
     /* === Chaîne dont on est ABONNÉ ===
-       Un liseré de métal précieux cercle la carte : sa teinte dérive
-       lentement de l'or au rose et au blanc, pendant qu'une comète bien plus
-       vive le parcourt dans l'autre sens. L'avatar porte le même liseré, qui
-       tourne avec lui — c'est le seul élément qui subsiste en mode réduit, où
-       la carte n'est plus qu'une pastille.
+       Le nom de la chaîne passe à l'or, et une lueur circule dans le FOND de
+       la carte : trois nappes colorées qui dérivent chacune à sa vitesse, et
+       un voile lumineux qui balaie la carte en diagonale de loin en loin.
+       L'avatar garde son anneau tournant — c'est le seul élément qui subsiste
+       en mode réduit, où il n'y a ni fond ni texte à colorer.
 
-       CE QUE CE STYLE NE FAIT PAS, VOLONTAIREMENT : il ne touche ni au fond de
-       la carte ni à sa barre de gauche. Le fond appartient déjà à « frais »
-       (violet) et au co-stream (couleur du groupe), et la barre — le ::before —
-       leur appartient aussi. En n'occupant que le CONTOUR, le ::after et
-       l'avatar, le style d'abonné se superpose aux deux sans les effacer ni
-       exiger la moindre règle de départage : une carte peut être fraîche, en
-       co-stream ET abonnée, les trois signaux restent lisibles ensemble.
-
-       DEUX MÉTAUX SUPERPOSÉS, et c'est ce qui fait la différence avec un cadre
-       doré ordinaire. Le calque du dessous est un dégradé conique à six
-       teintes qui tourne en 19 s : le liseré n'a jamais la même couleur sur
-       deux côtés à la fois, et cette couleur se déplace. Le calque du dessus
-       est la comète, un éclat blanc à queue d'or et traîne rose qui boucle en
-       5 s dans le SENS INVERSE — deux vitesses contraires donnent une matière,
-       là où une seule donnerait un néon.
+       COMMENT ÇA COHABITE, alors que le fond appartient déjà à « frais »
+       (violet) et au co-stream (couleur du groupe) : la couche animée est
+       posée en z-index NÉGATIF dans le contexte d'empilement de la carte.
+       Elle se peint donc APRÈS le fond de la carte — dont elle laisse passer
+       la teinte, étant elle-même très transparente — mais AVANT le contenu,
+       et sous la barre de gauche qui est en z-index 1. Les trois signaux
+       restent donc lisibles ensemble, sans une seule règle de départage :
+       le fond dit « frais » ou « co-stream », la lueur et l'or disent
+       « abonné », la barre dit le groupe.
 
        PHASE. --tse-sub-phase (0..11) est posée en JS d'après le LOGIN et
-       décale le départ des animations. La lumière ne fait donc pas le tour de
-       toutes les cartes au même instant : elle les parcourt en cascade.
-       Dérivée du login et non du rang, elle ne bouge pas quand le tri
-       réordonne la liste.
+       décale le départ des animations. Les cartes ne battent donc pas à
+       l'unisson : chacune a sa position dans le cycle. Dérivée du login et
+       non du rang, la phase ne bouge pas quand le tri réordonne la liste.
 
-       COÛT, MESURÉ. Les propriétés animées sont des angles — qui ne repeignent
-       que le liseré, large de deux pixels — et une opacité, composée par le
-       GPU. Relevé dans Chromium sur trente cartes décorées, soit le double de
-       ce qu'un compte ordinaire affiche : 16,62 ms d'intervalle moyen entre
-       images contre 16,56 ms sans la décoration, aucune image longue. */
+       COÛT, MESURÉ. Une seule propriété animée par carte — la position des
+       couches de fond — plus le dégradé du nom. Relevé dans Chromium sur
+       trente cartes décorées, soit le double de ce qu'un compte ordinaire
+       affiche : 16,75 ms d'intervalle moyen entre images contre 16,76 ms sans
+       la décoration, et une image longue (> 20 ms) contre une. Autrement dit :
+       rien de mesurable. */
     @property --tse-sub-angle {
-      syntax: '<angle>';
-      inherits: false;
-      initial-value: 0deg;
-    }
-    @property --tse-sub-metal {
       syntax: '<angle>';
       inherits: false;
       initial-value: 0deg;
@@ -1547,80 +1536,81 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       position: relative;
       isolation: isolate;
       border-radius: 5px;
-      box-shadow: inset 0 0 16px -7px rgba(255, 214, 150, 0.6);
     }
+    /* LA LUEUR DE FOND. Quatre couches dans une seule propriété, chacune avec
+       sa taille et sa position propres — c'est ce qui permet de les faire
+       dériver à des vitesses différentes en n'animant qu'UNE propriété.
+       La première est le voile de balayage ; les trois autres sont les nappes.
+       Toutes très transparentes : on ajoute une lueur, on ne repeint pas la
+       carte. */
     .side-nav-card.tse-sub::after {
       content: '';
       position: absolute;
       inset: 0;
-      box-sizing: border-box;
+      z-index: -1;
       border-radius: 5px;
-      padding: 2px;                 /* épaisseur du liseré (cf. masque plus bas) */
-      background:
-        /* 1. LA COMÈTE — vive, étroite, rapide, en sens inverse du métal. */
-        conic-gradient(from var(--tse-sub-angle),
-          rgba(255, 255, 255, 0)      0deg,
-          rgba(255, 201, 102, 0.30)  16deg,   /* la queue s'allume */
-          rgba(255, 244, 214, 0.90)  33deg,
-          rgba(255, 255, 255, 1)     38deg,   /* le cœur, franc */
-          rgba(255, 214, 240, 0.90)  43deg,
-          rgba(255, 138, 196, 0.30)  62deg,   /* la traîne s'éteint */
-          rgba(255, 255, 255, 0)     84deg,
-          rgba(255, 255, 255, 0)    360deg),
-        /* 2. LE MÉTAL — six teintes qui dérivent lentement autour de la carte. */
-        conic-gradient(from var(--tse-sub-metal),
-          rgba(255, 196, 92,  0.52)   0deg,
-          rgba(255, 252, 236, 0.88)  46deg,   /* premier éclat, lent */
-          rgba(255, 240, 200, 0.60)  74deg,
-          rgba(255, 158, 205, 0.50) 120deg,
-          rgba(196, 150, 255, 0.44) 180deg,
-          rgba(255, 252, 236, 0.88) 226deg,   /* second éclat, à l'opposé */
-          rgba(255, 240, 200, 0.60) 254deg,
-          rgba(255, 196, 92,  0.52) 300deg,
-          rgba(255, 196, 92,  0.52) 360deg);
-      /* Le halo suit la comète : le filtre s'applique APRÈS le masque, donc
-         l'ombre portée épouse le liseré — et sa partie la plus lumineuse
-         voyage avec elle. C'est ce qui fait la différence entre un cadre doré
-         et une lumière qui court. */
-      filter: drop-shadow(0 0 5px rgba(255, 205, 150, 0.55));
-      /* Deux masques, l'un sur la boîte de contenu, l'autre sur la boîte
-         entière ; leur DIFFÉRENCE ne laisse que l'anneau du padding. C'est ce
-         qui fait un dégradé conique en bordure, chose qu'aucune propriété
-         « border » ne sait faire. Les deux syntaxes sont posées : la préfixée
-         pour les Chromium plus anciens, la standard pour les autres. */
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
-      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      mask-composite: exclude;
-      animation: tse-sub-turn 5s linear infinite,
-                 tse-sub-metal 19s linear infinite reverse,
-                 tse-sub-breathe 3.6s ease-in-out infinite;
-      animation-delay: calc(var(--tse-sub-phase, 0) * -0.42s),
-                       calc(var(--tse-sub-phase, 0) * -1.58s),
-                       calc(var(--tse-sub-phase, 0) * -0.31s);
       pointer-events: none;
-      z-index: 2;
+      background:
+        linear-gradient(102deg,
+          rgba(255, 255, 255, 0)     40%,
+          rgba(255, 248, 224, 0.13)  48%,
+          rgba(255, 220, 170, 0.07)  53%,
+          rgba(255, 255, 255, 0)     61%),
+        radial-gradient(68% 190% at 14% 45%, rgba(255, 200, 104, 0.115), transparent 68%),
+        radial-gradient(58% 170% at 58% 72%, rgba(255, 146, 200, 0.095), transparent 70%),
+        radial-gradient(78% 210% at 88% 22%, rgba(190, 148, 255, 0.085), transparent 72%);
+      background-size: 300% 100%, 170% 100%, 200% 100%, 230% 100%;
+      background-repeat: no-repeat;
+      animation: tse-sub-lueur 15s linear infinite;
+      animation-delay: calc(var(--tse-sub-phase, 0) * -1.25s);
     }
-    @keyframes tse-sub-turn    { to { --tse-sub-angle: 360deg; } }
-    @keyframes tse-sub-metal   { to { --tse-sub-metal: 360deg; } }
-    @keyframes tse-sub-breathe { 0%, 100% { opacity: 0.78; } 50% { opacity: 1; } }
+    /* Le balayage traverse dans le premier quart du cycle puis reste hors
+       cadre : il passe, il ne clignote pas. Les nappes, elles, dérivent sans
+       interruption — et pas au même rythme, sans quoi elles se déplaceraient
+       en bloc et l'œil y verrait une seule image qui glisse. */
+    @keyframes tse-sub-lueur {
+      0%   { background-position: -110% 0,   0% 50%, 100% 50%,  40% 50%; }
+      25%  { background-position:  210% 0,  35% 50%,  62% 50%,  78% 50%; }
+      60%  { background-position:  210% 0,  78% 50%,  18% 50%,   8% 50%; }
+      100% { background-position:  210% 0, 100% 50%,   0% 50%,  40% 50%; }
+    }
+
+    /* LE NOM, EN OR. Un dégradé qui traverse le texte lui-même : la couleur
+       est celle du fond, découpée à la forme des lettres. La règle de repli
+       pose une couleur pleine d'abord — si background-clip venait à ne pas
+       s'appliquer, le nom reste doré et lisible au lieu de disparaître. */
+    .side-nav-card.tse-sub p[data-a-target="side-nav-title"] {
+      color: #ffd68a;
+      font-weight: 700;
+    }
+    @supports (-webkit-background-clip: text) or (background-clip: text) {
+      .side-nav-card.tse-sub p[data-a-target="side-nav-title"] {
+        background: linear-gradient(100deg,
+          #ffc86e   0%,
+          #fff6dc  32%,
+          #ffb3d9  46%,
+          #ffc86e  64%,
+          #ffc86e 100%) 0 0 / 300% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: tse-sub-titre 7s linear infinite;
+        animation-delay: calc(var(--tse-sub-phase, 0) * -0.58s);
+      }
+    }
+    @keyframes tse-sub-titre { to { background-position: 300% 0; } }
 
     /* L'AVATAR — seul élément qui subsiste en mode réduit, donc le seul qui
-       puisse y porter le signal. Les trois sélecteurs reprennent la cascade de
-       avatarOf() : figure, .tw-avatar, ou l'un dans l'autre selon le rendu de
-       Twitch. Le halo est fixe ; l'anneau, lui, tourne. */
+       puisse y porter le signal : ni fond ni nom n'y sont visibles. Les trois
+       sélecteurs reprennent la cascade de avatarOf() : figure, .tw-avatar, ou
+       l'un dans l'autre selon le rendu de Twitch. */
     .side-nav-card.tse-sub .side-nav-card__avatar figure,
     .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar,
     .side-nav-card.tse-sub figure.tw-avatar {
       position: relative;
       border-radius: 50%;
-      box-shadow: 0 0 8px rgba(255, 201, 102, 0.45);
+      box-shadow: 0 0 8px rgba(255, 201, 102, 0.4);
     }
-    /* Sur un disque, l'angle conique se déplace à vitesse CONSTANTE le long du
-       bord — contrairement au rectangle de la carte, où il file sur les côtés
-       courts. Et il tourne À L'ENVERS de celui de la carte : les deux anneaux
-       se lisent alors comme deux pièces d'un même mécanisme, au lieu de
-       répéter le même geste côte à côte. */
     .side-nav-card.tse-sub .side-nav-card__avatar figure::after,
     .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar::after,
     .side-nav-card.tse-sub figure.tw-avatar::after {
@@ -1637,30 +1627,39 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           rgba(255, 190, 225, 0.65)  44deg,
           rgba(255, 255, 255, 0)     80deg,
           rgba(255, 255, 255, 0)    360deg),
-        conic-gradient(from var(--tse-sub-metal),
+        conic-gradient(from var(--tse-sub-angle),
           rgba(255, 196, 92,  0.62)   0deg,
           rgba(255, 240, 200, 0.78)  90deg,
           rgba(255, 158, 205, 0.58) 180deg,
           rgba(255, 240, 200, 0.78) 270deg,
           rgba(255, 196, 92,  0.62) 360deg);
+      /* Deux masques, l'un sur la boîte de contenu, l'autre sur la boîte
+         entière ; leur DIFFÉRENCE ne laisse que l'anneau du padding. C'est ce
+         qui fait un dégradé conique en bordure, chose qu'aucune propriété
+         « border » ne sait faire. */
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       mask-composite: exclude;
-      animation: tse-sub-turn 5s linear infinite reverse,
-                 tse-sub-metal 19s linear infinite;
-      animation-delay: calc(var(--tse-sub-phase, 0) * -0.42s),
-                       calc(var(--tse-sub-phase, 0) * -1.58s);
+      animation: tse-sub-turn 5s linear infinite;
+      animation-delay: calc(var(--tse-sub-phase, 0) * -0.42s);
       pointer-events: none;
     }
-    /* Mouvement réduit : la demande est explicite, on la respecte. Le liseré
-       reste — c'est lui qui porte l'information — mais plus rien ne bouge. */
+    @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
+
+    /* Mouvement réduit : la demande est explicite, on la respecte. L'or reste
+       — c'est lui qui porte l'information — mais plus rien ne bouge. */
     @media (prefers-reduced-motion: reduce) {
       .side-nav-card.tse-sub::after,
+      .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
       .side-nav-card.tse-sub .side-nav-card__avatar figure::after,
       .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar::after,
       .side-nav-card.tse-sub figure.tw-avatar::after {
         animation: none;
+      }
+      .side-nav-card.tse-sub .side-nav-card__avatar figure::after,
+      .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar::after,
+      .side-nav-card.tse-sub figure.tw-avatar::after {
         background: linear-gradient(135deg,
           rgba(255, 196, 92, 0.9),
           rgba(255, 246, 214, 0.95) 35%,

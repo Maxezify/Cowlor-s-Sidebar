@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.50.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.51.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -543,17 +543,26 @@ précisément le relevé qui aurait réparé la donnée. Et `tse.reset()` emport
 désormais cet horodatage — effacer les abonnements puis s'interdire d'aller
 les rechercher n'était pas une remise à zéro.
 
-### Le style d'une chaîne abonnée (v3.45, refondu en v3.50)
+### Le style d'une chaîne abonnée (v3.45, refondu en v3.51)
 
-Un liseré de métal précieux cercle la carte. Sa teinte dérive lentement de l'or
-au rose et au mauve, deux éclats plus vifs y voyagent, et une comète blanche le
-parcourt bien plus vite **dans l'autre sens**. L'avatar porte le même liseré,
-qui tourne **à l'envers** de celui de la carte : les deux se lisent comme deux
-pièces d'un même mécanisme plutôt que comme le même geste répété. C'est aussi
-lui qui reste visible en mode réduit, où la carte n'est plus qu'une pastille.
+Le **nom de la chaîne passe à l'or**, et un reflet plus clair le traverse en
+boucle — la couleur est celle d'un dégradé découpé à la forme des lettres. Dans
+le **fond de la carte**, une lueur circule : trois nappes colorées qui dérivent
+chacune à sa vitesse, et un voile lumineux qui balaie la carte en diagonale de
+loin en loin. L'avatar garde un anneau tournant : c'est le seul élément qui
+subsiste en mode réduit, où il n'y a ni fond ni texte à colorer.
 
-Deux vitesses contraires donnent une **matière** ; une seule aurait donné un
-néon. Le métal boucle en 19 s, la comète en 5 s.
+**Comment cela cohabite** avec le violet de « stream frais » et la couleur d'un
+co-stream, qui occupent déjà le fond : la couche animée est posée en `z-index`
+**négatif** dans le contexte d'empilement de la carte. Elle se peint donc après
+le fond de la carte — dont elle laisse passer la teinte, étant très
+transparente — mais avant le contenu, et sous la barre de gauche. Les trois
+signaux restent lisibles ensemble : le fond dit « frais » ou « co-stream », la
+lueur et l'or disent « abonné », la barre dit le groupe.
+
+Le coût est mesuré, pas affirmé : sur trente cartes décorées — le double de ce
+qu'un compte ordinaire affiche —, **16,75 ms d'intervalle moyen entre images
+contre 16,76 ms** sans la décoration.
 
 Ce style **ne touche pas au fond de la carte**, volontairement. Le fond
 appartient déjà à « stream frais » (violet) et au co-stream (couleur du

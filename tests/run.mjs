@@ -3931,14 +3931,21 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
     const apres = getComputedStyle(c, '::after');
     const av = c.querySelector('.side-nav-card__avatar figure, .side-nav-card__avatar .tw-avatar');
     const avApres = av ? getComputedStyle(av, '::after') : null;
+    const nom = c.querySelector('p[data-a-target="side-nav-title"]');
+    const nomStyle = nom ? getComputedStyle(nom) : null;
     return {
       classe:    c.classList.contains('tse-sub'),
       phase:     c.style.getPropertyValue('--tse-sub-phase'),
       anim:      apres.animationName,
       pointeur:  apres.pointerEvents,
-      halo:      getComputedStyle(c).boxShadow,
+      // La lueur se peint SOUS le contenu : un z-index négatif dans le
+      // contexte d'empilement de la carte. C'est ce qui lui permet de
+      // cohabiter avec le fond de « frais » et du co-stream.
+      plan:      apres.zIndex,
       avatar:    avApres ? avApres.animationName : null,
-      avatarSens: avApres ? avApres.animationDirection : null,
+      nomAnim:   nomStyle ? nomStyle.animationName : null,
+      nomFill:   nomStyle ? nomStyle.webkitTextFillColor : null,
+      nomPoids:  nomStyle ? nomStyle.fontWeight : null,
     };
   }, login);
 
@@ -3948,22 +3955,25 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
   ok('la chaîne non abonnée ne la porte pas', non && non.classe === false, JSON.stringify(non));
   // La décoration EXISTE vraiment côté rendu : deux animations nommées sur le
   // ::after, et un halo sur la carte. Sans ça, la classe ne prouverait rien.
-  // Trois animations sur le liseré de la carte : la comète, le métal qui
-  // dérive, et la respiration. C'est leur superposition qui fait la matière —
-  // une seule donnerait un néon.
-  ok('le liseré porte ses trois mouvements', !!abo && abo.anim.includes('tse-sub-turn')
-     && abo.anim.includes('tse-sub-metal') && abo.anim.includes('tse-sub-breathe'),
-     String(abo && abo.anim));
-  // L'avatar porte le même liseré — c'est le SEUL élément qui subsiste en mode
-  // réduit, donc le seul qui puisse y porter le signal — et il tourne à
-  // l'envers de celui de la carte.
-  ok('l\'avatar porte le même liseré', !!abo && (abo.avatar || '').includes('tse-sub-turn'),
+  ok('la lueur de fond est animée', abo?.anim === 'tse-sub-lueur', String(abo && abo.anim));
+  // Elle se peint SOUS le contenu de la carte, et sous la barre de gauche de
+  // « frais » et du co-stream : c'est ce plan négatif qui rend la cohabitation
+  // possible sans une seule règle de départage.
+  ok('et posée sous le contenu de la carte', abo?.plan === '-1', String(abo && abo.plan));
+  // Le nom passe à l'or, et le dégradé le traverse.
+  ok('le nom porte le dégradé doré', abo?.nomAnim === 'tse-sub-titre', String(abo && abo.nomAnim));
+  ok('en découpe dans le texte',
+     (abo?.nomFill || '').includes('rgba(0, 0, 0, 0)'), String(abo && abo.nomFill));
+  ok('et il est mis en gras', abo?.nomPoids === '700', String(abo && abo.nomPoids));
+  ok('le nom d\'une chaîne non abonnée est laissé tel quel',
+     !non || (non.nomAnim === 'none' && non.nomPoids !== '700'),
+     JSON.stringify(non && { a: non.nomAnim, p: non.nomPoids }));
+  // L'avatar garde son anneau : c'est le SEUL élément qui subsiste en mode
+  // réduit, où il n'y a ni fond ni nom à colorer.
+  ok('l\'avatar garde son anneau tournant', !!abo && (abo.avatar || '').includes('tse-sub-turn'),
      String(abo && abo.avatar));
-  ok('et il tourne à l\'envers de la carte',
-     (abo?.avatarSens || '').startsWith('reverse'), String(abo && abo.avatarSens));
   ok('la chaîne non abonnée n\'a pas d\'anneau d\'avatar',
      !non || non.avatar === 'none', String(non && non.avatar));
-  ok('la carte porte le halo', !!abo && abo.halo !== 'none', String(abo && abo.halo));
   ok('et le décor ne capte pas les clics', !!abo && abo.pointeur === 'none',
      String(abo && abo.pointeur));
   ok('la chaîne non abonnée n\'anime rien', !!non && non.anim === 'none',
@@ -3987,7 +3997,8 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const calme = await marque('omofficial');
   ok('mouvement réduit : plus d\'animation', calme.anim === 'none', String(calme.anim));
-  ok('sur l\'avatar non plus', calme.avatar === 'none', String(calme.avatar));
+  ok('ni sur le nom', calme.nomAnim === 'none', String(calme.nomAnim));
+  ok('ni sur l\'avatar', calme.avatar === 'none', String(calme.avatar));
   ok('mais la marque demeure', calme.classe === true, JSON.stringify(calme));
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
