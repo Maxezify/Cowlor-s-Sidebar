@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.44.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.45.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -397,9 +397,49 @@ page; the browser authenticates it with its cookies, exactly as if you had
 clicked the link. Nothing leaves your machine.
 
 The cost is real, though: a whole React application boots in the background.
-Hence a **rare** scan — once every 6 hours — **deferred** by 25 seconds after
-startup so it never competes with the sidebar, and never two at once.
-`tse.subs.refresh()` forces one on demand.
+Hence a **rare** scan — once every 6 hours — once per page, and never two at
+once. `tse.subs.refresh()` forces one on demand.
+
+### During the load, not after it (v3.45)
+
+Up to 3.44 the scan started 25 seconds after boot. The sidebar was therefore
+already there, visible and sorted, when the subscriptions arrived: the styling
+of subscribed channels appeared as an afterthought.
+
+The trigger is no longer a timer but a **fact**: the first scan that sees a
+followed card. That is the exact moment Twitch has finished populating the bar
+— the loading veil still covers it, so the scan has time to land before you see
+anything at all.
+
+That trigger carries a second property, for free: **a signed-out session has no
+followed channels.** It therefore never requests the authenticated page. The
+one case where the scan would find nothing is also the one where it costs
+nothing.
+
+And on the very first boot — extension freshly installed, nothing in memory —
+the veil **waits** for the scan, for at most 4 seconds. On later boots it waits
+for nothing: known subscriptions are read back from disk before the first scan,
+the styling lands with the first card, and the scan merely refreshes in the
+background.
+
+### The styling of a subscribed channel (v3.45)
+
+A thread of gold runs around the card, with a comet travelling along it
+endlessly. The avatar wears the same gold as a fixed ring — that is what stays
+visible in collapsed mode, where the card is nothing but a dot.
+
+This styling **does not touch the card's background**, deliberately. The
+background already belongs to "fresh stream" (purple) and to co-streams (the
+group's colour), and the left bar belongs to them too. By occupying only the
+outline, the subscriber decoration layers over both without erasing either: a
+card can be fresh, co-streaming **and** subscribed, all three signals stay
+readable, without a single tie-breaking rule.
+
+The animation's phase is derived from the **login**, not the rank. The light
+therefore does not travel around every card at the same instant — it cascades
+across them — and it does not restart from zero when a change of sort reorders
+the list. `prefers-reduced-motion` stops the comet and keeps the thread: the
+movement goes, the information stays.
 
 The scan is **additive**: it marks as subscribed what it finds, never
 "not subscribed" on an absence. The tabs read (paid, gifts) do not cover
@@ -922,6 +962,9 @@ matters: the extension neither reads nor transmits your token; it asks for a
 page and the browser authenticates it with its cookies, just as for any link
 you would click. Nothing is sent to a third party, and the result never leaves
 `localStorage`. Disable with `SUBS_PAGE_ENABLED: false`.
+
+Since 3.45 that load happens **during** the sidebar's own, and only if the bar
+holds at least one followed channel — that is, never on a signed-out session.
 
 The bundled anti-ad module likewise never talks to third-party servers: it
 intercepts Twitch requests inside the preview iframe and re-asks Twitch for the

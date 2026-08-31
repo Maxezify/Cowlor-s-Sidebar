@@ -36,11 +36,13 @@ const subs = [
   [/GLOBAL_STRUCT_TICK:\s*[\d_]+/,   'GLOBAL_STRUCT_TICK:      600'],
   [/GLOBAL_FULL_WALK_MS:\s*[\d_]+/,  'GLOBAL_FULL_WALK_MS:     3_000'],
   [/GLOBAL_ERROR_COOLDOWN:\s*[\d_]+/, 'GLOBAL_ERROR_COOLDOWN:   1_500'],
-  // Relevé complet des abonnements : 25 s de délai et 6 h de TTL sont des
-  // durées de production. Réduites pour qu'un test puisse l'observer — le
-  // RAPPORT entre délai et TTL n'a pas d'importance ici, seul compte le fait
-  // que le relevé se déclenche puis ne se répète pas.
-  [/SUBS_PAGE_DELAY:\s*[\d_]+/,   'SUBS_PAGE_DELAY:      400'],
+  // Relevé complet des abonnements. Le TTL de 6 h est une durée de production,
+  // réduite pour qu'un test puisse observer qu'un second relevé ne repart pas.
+  // Le DÉCLENCHEMENT, lui, n'a plus de constante à régler : il ne dépend plus
+  // d'un délai mais d'un fait — la première carte suivie vue par un scan.
+  // SUBS_PAGE_HOLD_MAX (4 s) n'est pas accéléré non plus : dans le harnais
+  // c'est LOADING_TIMEOUT_MS (1,2 s) qui borne la retenue le premier, et c'est
+  // bien cette souveraineté du délai dur qu'on veut voir à l'œuvre.
   [/SUBS_PAGE_TTL:\s*6 \* 60 \* 60_000/, 'SUBS_PAGE_TTL:        4_000'],
   [/SUBS_PAGE_TIMEOUT:\s*[\d_]+/, 'SUBS_PAGE_TIMEOUT:    6_000'],
   [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  40'],

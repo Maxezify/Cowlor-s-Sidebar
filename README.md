@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.44.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.45.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -412,9 +412,50 @@ une page ; le navigateur l'authentifie avec ses cookies, exactement comme si
 vous aviez cliqué sur le lien. Rien ne quitte votre machine.
 
 Le prix, lui, est réel : c'est une application React entière qui démarre en
-arrière-plan. D'où un relevé **rare** — une fois toutes les 6 heures —,
-**différé** de 25 secondes après le démarrage pour ne pas concurrencer la
-sidebar, et jamais deux à la fois. `tse.subs.refresh()` le force à la demande.
+arrière-plan. D'où un relevé **rare** — une fois toutes les 6 heures —, une
+seule fois par page, et jamais deux à la fois. `tse.subs.refresh()` le force à
+la demande.
+
+### Pendant le chargement, pas après (v3.45)
+
+Jusqu'à la 3.44 le relevé partait 25 secondes après le démarrage. La sidebar
+était donc déjà là, visible et triée, quand les abonnements arrivaient : la
+décoration des chaînes abonnées apparaissait après coup.
+
+Le déclencheur n'est plus un minuteur mais un **fait** : le premier scan qui
+voit une carte suivie. C'est l'instant précis où Twitch a fini de peupler la
+barre — le voile de chargement la couvre encore, et le relevé a donc le temps
+de rentrer avant que vous ne voyiez quoi que ce soit.
+
+Ce déclencheur porte une seconde propriété, gratuite : **une session
+déconnectée n'a pas de chaînes suivies.** Elle ne demande donc jamais la page
+authentifiée. Le seul cas où le relevé n'aurait rien à trouver est aussi le seul
+où il ne coûte rien.
+
+Et au tout premier démarrage — extension fraîchement installée, rien en mémoire
+— le voile **attend** le relevé, au plus 4 secondes. Aux démarrages suivants il
+n'attend rien : les abonnements connus sont relus du disque avant le premier
+scan, la décoration est posée dès la première carte, et le relevé ne fait que
+rafraîchir en arrière-plan.
+
+### Le style d'une chaîne abonnée (v3.45)
+
+Un filet d'or fait le tour de la carte, et une comète le parcourt sans fin.
+L'avatar porte le même or, en anneau fixe — c'est lui qui reste visible en mode
+réduit, où la carte n'est plus qu'une pastille.
+
+Ce style **ne touche pas au fond de la carte**, volontairement. Le fond
+appartient déjà à « stream frais » (violet) et au co-stream (couleur du
+groupe), et la barre de gauche leur appartient aussi. En n'occupant que le
+contour, la décoration d'abonné se superpose aux deux sans les effacer : une
+carte peut être fraîche, en co-stream **et** abonnée, les trois signaux restent
+lisibles, sans une seule règle de départage.
+
+La phase de l'animation est dérivée du **login**, pas du rang. La lumière ne
+fait donc pas le tour de toutes les cartes au même instant — elle les parcourt
+en cascade — et elle ne repart pas de zéro quand un changement de tri
+réordonne la liste. `prefers-reduced-motion` arrête la comète et garde le
+filet : le mouvement disparaît, l'information reste.
 
 Le relevé est **additif** : on marque abonné ce qu'on trouve, jamais
 « non abonné » sur une absence. Les onglets lus (payants, offerts) ne couvrent
@@ -957,6 +998,10 @@ demande une page et le navigateur l'authentifie avec ses cookies, comme pour
 n'importe quel lien que vous cliqueriez. Rien n'est envoyé à un tiers, et le
 résultat ne quitte pas `localStorage`. Désactivable par `SUBS_PAGE_ENABLED:
 false`.
+
+Depuis la 3.45, ce chargement a lieu **pendant** celui de la sidebar, et
+seulement si la barre contient au moins une chaîne suivie — autrement dit,
+jamais sur une session déconnectée.
 
 Le module anti-pub, lui aussi, ne communique avec aucun serveur tiers : il
 intercepte les requêtes Twitch dans l'iframe d'aperçu et redemande le flux à

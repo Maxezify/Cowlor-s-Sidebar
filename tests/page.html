@@ -92,8 +92,17 @@ window.__failLang = 0;
 
 // Construit une carte fidèle au markup de la sidebar Twitch.
 // Carte d'une section de recommandation (hors « Chaînes suivies »).
+// Le marqueur data-test-selector="followed-channel" est RETIRÉ : sur le vrai
+// Twitch, seules les chaînes SUIVIES le portent, et l'extension s'en sert à
+// trois endroits (exemption des filtres, relevé du roster, déclenchement du
+// relevé d'abonnements). Un harnais qui le laissait sur les recommandées
+// faisait passer ces trois comportements pour de bonnes raisons qu'ils
+// n'avaient pas. La valeur de remplacement importe peu — seule compte
+// l'absence du marqueur « suivi ».
 window.__addReco = (login, cat, viewersText) => {
   const d = window.__addCard(login, cat, viewersText);
+  d.querySelector('a[data-test-selector="followed-channel"]')
+   ?.setAttribute('data-test-selector', 'recommended-channel');
   document.getElementById('reco').appendChild(d);
   return d;
 };
@@ -332,6 +341,9 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
     gifts: ['clem_mlrt'],
   };
   const tab = new URLSearchParams(location.search).get('tab') || 'paid';
+  // __subsDelay règle la lenteur de cette page. Elle sert à éprouver la
+  // RETENUE du voile : avec une page lente, le voile doit rester tant que le
+  // relevé n'est pas rentré ; sans retenue, il se lèverait bien avant.
   setTimeout(() => {
     const zone = document.createElement('div');
     zone.id = 'subs-content';
@@ -345,7 +357,7 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
       zone.appendChild(carte);
     }
     document.getElementById('root').appendChild(zone);
-  }, 600);
+  }, window.__subsDelay || 600);
 }
 
 // Montage TARDIF de la sidebar, piloté par le test (page.addInitScript).

@@ -851,13 +851,24 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
        marqueur stable. L'extension ne touche JAMAIS au jeton : c'est le
        navigateur qui authentifie la navigation, comme pour un clic.
        En contrepartie, c'est une application React complète qui démarre en
-       arrière-plan — donc rarement, et jamais pendant le démarrage de la
-       sidebar. */
+       arrière-plan — donc rarement (SUBS_PAGE_TTL), et une seule fois par
+       page.
+       QUAND. Le relevé part PENDANT le chargement de la sidebar, au premier
+       scan qui y voit une carte suivie — c'est-à-dire à l'instant précis où
+       Twitch a fini de la peupler, pendant que le voile la couvre encore.
+       Ainsi le style des chaînes abonnées, le tri et la pastille sont prêts
+       quand le voile se lève, au lieu d'apparaître après coup.
+       Cette condition fait aussi office de garde : une session déconnectée
+       n'a pas de chaînes suivies, donc ne charge jamais la page. */
     SUBS_PAGE_ENABLED:    true,
     SUBS_PAGE_TABS:       ['paid', 'gifts'],
     SUBS_PAGE_TTL:        6 * 60 * 60_000,   // 6 h entre deux relevés
     SUBS_PAGE_TIMEOUT:    25_000,            // abandon si la page ne rend rien
-    SUBS_PAGE_DELAY:      25_000,            // après le démarrage, pour ne rien concurrencer
+    // Retenue MAXIMALE du voile de chargement, et seulement au tout premier
+    // démarrage (rien en mémoire, aucun relevé antérieur). Passé ce délai le
+    // voile se lève sans attendre : personne ne doit patienter devant une
+    // sidebar prête pour une décoration.
+    SUBS_PAGE_HOLD_MAX:   4_000,
     SUBS_PAGE_STAMP_KEY:  'tse:substs',
 
     SUBS_STORAGE_KEY:     'tse:subs',
@@ -1406,6 +1417,102 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     .side-nav-card.tse-costream.tse-costream-join-top::before {
       top: var(--tse-costream-jt, -8px);
       border-top-right-radius: 0;
+    }
+
+    /* === Chaîne dont on est ABONNÉ ===
+       Un filet d'or fait le tour de la carte, et une comète le parcourt sans
+       fin. L'avatar porte le même or, en anneau fixe : c'est lui qui reste
+       visible en mode réduit, où la carte n'est plus qu'une pastille.
+
+       CE QUE CE STYLE NE FAIT PAS, VOLONTAIREMENT : il ne touche pas au fond
+       de la carte. Le fond appartient déjà à « frais » (violet) et au
+       co-stream (couleur du groupe), et la barre de gauche — le ::before —
+       leur appartient aussi. En n'occupant que le CONTOUR et le ::after, le
+       style d'abonné se superpose aux deux sans les effacer ni exiger la
+       moindre règle de départage : une carte peut être fraîche, en co-stream
+       ET abonnée, les trois signaux restent lisibles.
+
+       PHASE. --tse-sub-phase (0..11) est posée en JS d'après le LOGIN, et
+       décale le départ des deux animations. La lumière ne fait donc pas le
+       tour de toutes les cartes au même instant : elle les parcourt en
+       cascade. Dérivée du login et non du rang, elle ne bouge pas quand le
+       tri réordonne la liste.
+
+       COÛT. Deux propriétés animées par carte abonnée : un angle (repeint le
+       seul filet d'un pixel) et une opacité (composée par le GPU). Le halo,
+       l'anneau d'avatar et l'ombre interne sont FIXES — rien à recalculer. */
+    @property --tse-sub-angle {
+      syntax: '<angle>';
+      inherits: false;
+      initial-value: 0deg;
+    }
+    .side-nav-card.tse-sub {
+      position: relative;
+      isolation: isolate;
+      border-radius: 4px;
+      box-shadow: inset 0 0 14px -6px rgba(255, 214, 150, 0.55);
+    }
+    .side-nav-card.tse-sub::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      box-sizing: border-box;
+      border-radius: 4px;
+      padding: 1.5px;               /* épaisseur du filet (cf. masque ci-dessous) */
+      background:
+        conic-gradient(from var(--tse-sub-angle),
+          rgba(255, 255, 255, 0)      0deg,
+          rgba(255, 201, 102, 0.55)  14deg,   /* la queue, qui s'allume */
+          rgba(255, 224, 160, 0.95)  34deg,
+          rgba(255, 255, 255, 1)     44deg,   /* le cœur de la comète */
+          rgba(255, 180, 210, 0.90)  56deg,
+          rgba(255, 138, 196, 0.45)  76deg,   /* la traîne, qui s'éteint */
+          rgba(255, 255, 255, 0)    110deg,
+          rgba(255, 255, 255, 0)    360deg),
+        linear-gradient(rgba(255, 201, 102, 0.26) 0 0);
+      /* Le halo suit la comète : le filtre s'applique APRÈS le masque, donc
+         l'ombre portée épouse l'anneau — et sa partie la plus lumineuse voyage
+         avec elle. C'est ce qui fait la différence entre un cadre doré et une
+         lumière qui court. */
+      filter: drop-shadow(0 0 3px rgba(255, 201, 102, 0.55));
+      /* Deux masques, l'un sur la boîte de contenu, l'autre sur la boîte
+         entière ; leur DIFFÉRENCE ne laisse que l'anneau du padding. C'est ce
+         qui fait un dégradé conique en bordure, chose qu'aucune propriété
+         « border » ne sait faire. Les deux syntaxes sont posées : la préfixée pour les
+         Chromium plus anciens, la standard pour les autres. */
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      animation: tse-sub-turn 6s linear infinite,
+                 tse-sub-breathe 3.4s ease-in-out infinite;
+      animation-delay: calc(var(--tse-sub-phase, 0) * -0.5s),
+                       calc(var(--tse-sub-phase, 0) * -0.29s);
+      pointer-events: none;
+      z-index: 2;
+    }
+    @keyframes tse-sub-turn    { to { --tse-sub-angle: 360deg; } }
+    @keyframes tse-sub-breathe { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }
+    /* L'avatar, seul élément qui subsiste en mode réduit. Les trois sélecteurs
+       reprennent la cascade de avatarOf() : figure, .tw-avatar, ou l'un dans
+       l'autre selon le rendu de Twitch. */
+    .side-nav-card.tse-sub .side-nav-card__avatar figure,
+    .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar,
+    .side-nav-card.tse-sub figure.tw-avatar {
+      border-radius: 50%;
+      box-shadow: 0 0 0 1.5px rgba(255, 201, 102, 0.90),
+                  0 0 7px rgba(255, 201, 102, 0.45);
+    }
+    /* Mouvement réduit : la demande est explicite, on la respecte. Le filet
+       reste — c'est l'information — mais il ne tourne plus. */
+    @media (prefers-reduced-motion: reduce) {
+      .side-nav-card.tse-sub::after {
+        animation: none;
+        background: linear-gradient(135deg,
+          rgba(255, 201, 102, 0.75),
+          rgba(255, 138, 196, 0.45) 55%,
+          rgba(255, 201, 102, 0.75));
+      }
     }
 
     /* === Masquage du bouton "Afficher moins" (inutile après auto-expansion) === */
@@ -3090,11 +3197,21 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // Top Chaînes, dont les cartes n'existent qu'à la fin de la marche
     // structurelle. Le timeout dur, lui, reste souverain : un verrou oublié
     // ne peut pas laisser la sidebar voilée indéfiniment.
+    //
+    // NOMMÉ, et non booléen unique. Deux verrous coexistent désormais : celui
+    // du mode global, RÉASSERTÉ à chaque scan (donc remis à false dès que la
+    // marche est finie), et celui du relevé des abonnements, posé une fois au
+    // démarrage puis relâché à la fin du relevé. Avec un booléen partagé, le
+    // premier scan venu effaçait le second — le voile se levait alors avant
+    // que les cartes abonnées ne soient décorées, ce que ce verrou existe
+    // précisément pour empêcher.
+    const verrous = new Set();
     let held = false;
-    const setHold = (on) => {
-      if (held === on) return;
-      held = on;
-      if (on) clearStability();
+    const setHold = (on, raison = 'global') => {
+      const avant = held;
+      if (on) verrous.add(raison); else verrous.delete(raison);
+      held = verrous.size > 0;
+      if (held && !avant) clearStability();
     };
 
     const notifyScan = (hadOfflineActivity, cardCount) => {
@@ -3123,7 +3240,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       noter('cycle', raison);
       cycleActive = true;
       lastCardCount = 0; // croissance mesurée à partir de zéro pour ce cycle
-      held = false;      // un nouveau cycle repart sans verrou hérité
+      verrous.clear();   // un nouveau cycle repart sans verrou hérité
+      held = false;
 
       // 1) Pose body.tse-loading dès que possible : rend #side-nav
       //    transparent (CSS) pour qu'aucun fragment de sidebar ne flashe
@@ -3289,10 +3407,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    *  Aucun jeton, aucun cookie, aucune requête supplémentaire — la
    *  promesse d'anonymat de l'extension reste vraie mot pour mot.
    *
-   *  CONTREPARTIE ASSUMÉE, et affichée dans l'interface : on ne connaît
-   *  que les chaînes VISITÉES. Un abonnement à une chaîne jamais ouverte
-   *  est invisible. Une visite ultérieure corrige toujours l'entrée —
-   *  y compris pour un désabonnement, puisqu'on mémorise aussi le NON.
+   *  Ce module-ci ne connaît donc que les chaînes VISITÉES. La liste
+   *  COMPLÈTE vient du module suivant, qui lit la page /subscriptions.
+   *  Les deux se complètent : la page apporte la couverture, la visite
+   *  apporte la correction — c'est elle, et elle seule, qui peut voir un
+   *  désabonnement, puisqu'elle mémorise aussi le NON.
    *
    *  Stockage : localStorage (clé SUBS_STORAGE_KEY), { login: [sub, ts] }.
    *  Effaçable par tse.reset(), comme le reste.
@@ -3402,8 +3521,25 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    *  le navigateur l'authentifie avec ses cookies exactement comme si
    *  vous aviez cliqué sur le lien. Aucune donnée ne quitte la machine.
    *  En revanche c'est une application React entière qui démarre en
-   *  arrière-plan — d'où un relevé RARE (6 h), différé bien après le
-   *  démarrage, et jamais deux à la fois.
+   *  arrière-plan — d'où un relevé RARE (6 h) et jamais deux à la fois.
+   *
+   *  QUAND. Pendant le chargement de la sidebar, et non après. Le
+   *  déclencheur n'est pas un délai mais un FAIT : le premier scan qui
+   *  voit une carte suivie. À cet instant Twitch a fini de peupler la
+   *  barre, le voile la couvre encore, et le relevé a donc le temps de
+   *  rentrer avant que l'utilisateur ne voie quoi que ce soit — le style
+   *  des chaînes abonnées, le tri et la pastille sont prêts d'emblée.
+   *
+   *  Ce déclencheur porte une seconde propriété, gratuite : une session
+   *  DÉCONNECTÉE n'a pas de chaînes suivies. Elle ne charge donc jamais
+   *  la page, et l'unique cas où le relevé n'aurait rien à trouver ne
+   *  coûte rien du tout.
+   *
+   *  Au tout premier démarrage — rien en mémoire, aucun relevé antérieur —
+   *  le voile est RETENU le temps du relevé, au plus SUBS_PAGE_HOLD_MAX.
+   *  Aux démarrages suivants il n'y a rien à attendre : les abonnements
+   *  connus sont relus du disque avant le premier scan, la décoration est
+   *  posée dès la première carte, et le relevé ne fait que rafraîchir.
    *
    *  ADDITIF, VOLONTAIREMENT. On marque abonné ce qu'on trouve ; on ne
    *  marque personne « non abonné » sur une absence. Les onglets lus ne
@@ -3443,6 +3579,15 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       cadre.src = `${location.origin}/subscriptions?tab=${encodeURIComponent(onglet)}`;
       limite = setTimeout(() => finir([]), CFG.SUBS_PAGE_TIMEOUT);
       cadre.addEventListener('load', () => {
+        // Renvoyé ailleurs (connexion expirée, redirection de Twitch) : il n'y
+        // a rien à lire et rien à attendre. On rend la main tout de suite
+        // plutôt que de scruter en vain jusqu'au délai maximal. L'accès à
+        // `location` jette si la redirection a changé d'origine — même
+        // conclusion.
+        try {
+          const chemin = cadre?.contentWindow?.location?.pathname;
+          if (chemin && chemin !== '/subscriptions') return finir([]);
+        } catch { return finir([]); }
         // La page est une SPA : le `load` de l'iframe précède l'apparition
         // des cartes. On scrute jusqu'à en voir, ou jusqu'au délai maximal.
         sondeur = setInterval(() => {
@@ -3489,14 +3634,48 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       return trouves;
     };
 
-    // Différé : la sidebar a la priorité au démarrage, et un onglet ouvert
-    // puis refermé aussitôt n'aurait de toute façon pas eu le temps.
-    const init = () => {
-      if (!CFG.SUBS_PAGE_ENABLED) return;
-      setTimeout(() => { refresh().catch(() => {}); }, CFG.SUBS_PAGE_DELAY);
+    /**
+     * Lance le relevé en retenant le voile SI, ET SEULEMENT SI, on ne sait
+     * rien du tout — ni abonnement en mémoire, ni relevé antérieur. C'est le
+     * cas d'une extension fraîchement installée, et lui seul : ailleurs la
+     * décoration est déjà posée par ce qu'on savait, et faire patienter la
+     * sidebar pour la rafraîchir serait une rançon sans contrepartie.
+     *
+     * La retenue est bornée deux fois : par SUBS_PAGE_HOLD_MAX ici, et par le
+     * délai maximal du voile lui-même, qui reste souverain.
+     */
+    const demarrer = () => {
+      const aveugle = subs.count() === 0 && !horodatage();
+      let relacher = () => {};
+      if (aveugle) {
+        loadingOverlay.setHold(true, 'subs');
+        const secours = setTimeout(() => loadingOverlay.setHold(false, 'subs'),
+                                   CFG.SUBS_PAGE_HOLD_MAX);
+        relacher = () => {
+          clearTimeout(secours);
+          loadingOverlay.setHold(false, 'subs');
+          scheduleScan();   // le voile ne se lève que sur un scan : en voici un
+        };
+      }
+      refresh().catch(() => {}).then(relacher, relacher);
     };
 
-    return { init, refresh, horodatage };
+    // Déclencheur : le premier scan qui voit une carte suivie. Cf. l'en-tête —
+    // c'est à la fois « pendant le chargement de la sidebar » et « la session
+    // est connectée », en une seule condition qu'on n'a pas à deviner.
+    let arme = false, parti = false;
+    const notifySidebar = (aDesChainesSuivies) => {
+      if (!arme || parti || !aDesChainesSuivies) return;
+      parti = true;
+      demarrer();
+    };
+
+    const init = () => {
+      if (!CFG.SUBS_PAGE_ENABLED) return;
+      arme = true;
+    };
+
+    return { init, refresh, horodatage, notifySidebar };
   })();
 
   /**
@@ -4164,6 +4343,44 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     if (!ts) { card.classList.remove('tse-fresh'); return; }
     const ageMin = (Date.now() - new Date(ts).getTime()) / 60_000;
     card.classList.toggle('tse-fresh', ageMin >= 0 && ageMin < CFG.FRESH_MAX_MIN);
+  };
+
+  /**
+   * Empreinte stable d'un login → 0..11, qui sert de phase à l'animation des
+   * cartes abonnées. Dérivée du LOGIN, pas du rang : le tri réordonne les
+   * cartes en permanence, la phase d'une chaîne ne doit pas sauter pour
+   * autant. Hachage polynomial ordinaire — on ne cherche pas une empreinte
+   * cryptographique, seulement une répartition qui ne fasse pas battre douze
+   * cartes à l'unisson.
+   */
+  const subPhase = (login) => {
+    let h = 0;
+    for (let i = 0; i < login.length; i++) h = (h * 31 + login.charCodeAt(i)) % 9973;
+    return h % 12;
+  };
+
+  /**
+   * Décoration « abonné » d'une carte. Écritures CONDITIONNELLES, comme
+   * partout ailleurs ici : reposer la classe ou réécrire la variable à chaque
+   * scan relancerait l'animation depuis zéro — la comète repartirait en
+   * arrière plusieurs fois par seconde — et alimenterait une boucle de
+   * mutations qui redéclencherait le scan suivant.
+   */
+  const applySubStyle = (card, login) => {
+    const abonne = subs.isSub(login);
+    if (card.classList.contains('tse-sub') !== abonne) {
+      card.classList.toggle('tse-sub', abonne);
+    }
+    if (!abonne) {
+      if (card.style.getPropertyValue('--tse-sub-phase')) {
+        card.style.removeProperty('--tse-sub-phase');
+      }
+      return;
+    }
+    const phase = String(subPhase(login));
+    if (card.style.getPropertyValue('--tse-sub-phase') !== phase) {
+      card.style.setProperty('--tse-sub-phase', phase);
+    }
   };
 
   /**
@@ -5798,8 +6015,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       delete card.dataset.tseCategory;
       delete card.dataset.tseLangs;
       removeViewers(card);
+      // Pas de nettoyage de la décoration « abonné » ici : applySubStyle est
+      // appelée deux lignes plus bas avec le NOUVEAU login et retire d'elle-même
+      // ce qui ne lui revient pas. Vérifié par mutation — ces lignes-là, quand
+      // elles existaient, ne faisaient tomber aucune assertion.
     }
     card.dataset.tseLogin = login;
+    applySubStyle(card, login);
 
     // Catégorie affichée par Twitch : AMORCE seulement, tant que l'API n'a
     // rien dit. Une fois la valeur de TseChannels posée (applyChannelData), on
@@ -8080,7 +8302,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // il se lèverait sur une sidebar « stable » — celle des chaînes suivies,
     // qui n'a effectivement pas bougé — avant même la fin de la marche.
     loadingOverlay.setHold(state.globalMode
-      && !document.body.classList.contains('tse-global-ready'));
+      && !document.body.classList.contains('tse-global-ready'), 'global');
+    // Le relevé complet des abonnements part ICI, pendant que le voile couvre
+    // encore la sidebar : au premier scan qui voit une carte SUIVIE, donc à
+    // l'instant où Twitch a fini de peupler la barre. Une seule fois par page
+    // (le module s'en souvient), et jamais quand la session est déconnectée —
+    // sans chaînes suivies, la condition ne peut pas être vraie.
+    subsPage.notifySidebar(!!document.querySelector(DOM.followedCardSelector));
     const nativeCount = [...cards].filter(c => !isSynthetic(c)).length;
     const stillGrowing = loadingOverlay.notifyScan(hadOfflineActivity, nativeCount);
 
@@ -8407,7 +8635,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
                              // que le voile soit posé avant le premier scan
       roster.init();         // avant startObserver : le 1er scan relève déjà
       subs.load();           // idem : le tri doit pouvoir servir dès le 1er scan
-      subsPage.init();       // relevé complet, différé bien après le démarrage
+      subsPage.init();       // arme le relevé complet ; il part au 1er scan peuplé
       liveLag.init();
       visitTracker.init();
       preview.init();

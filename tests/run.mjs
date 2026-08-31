@@ -3259,10 +3259,15 @@ console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
     window.__fx = { omofficial: { id:'1', createdAt:h, viewers:500, game:'G', tags:[] } };
     window.__addCard('omofficial', 'G', '500');
   });
-  // Le relevé est DIFFÉRÉ (400 ms dans le harnais) : rien ne doit avoir été
-  // lu avant, sans quoi il concurrencerait le démarrage de la sidebar.
+  // Le relevé part PENDANT le chargement, et non après un délai : à 250 ms
+  // l'iframe est déjà en place, alors que la page de test ne rendra ses
+  // cartes qu'à 600 ms. Rien n'est donc encore mémorisé, mais le travail,
+  // lui, a commencé.
   await wait(page, 250);
-  ok('rien n\'est relevé pendant le démarrage', (await memoire(page)) === null,
+  const enCours = await page.evaluate(() => [...document.querySelectorAll('iframe')]
+    .filter(f => (f.src || '').includes('/subscriptions')).length);
+  ok('le relevé est en cours dès le chargement de la sidebar', enCours === 1, String(enCours));
+  ok('et rien n\'est encore mémorisé', (await memoire(page)) === null,
      JSON.stringify(await memoire(page)));
 
   await wait(page, 4000);
@@ -3300,6 +3305,176 @@ console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
   const forcees = await page.evaluate(() => window.tse.subs.refresh());
   ok('tse.subs.refresh() force un nouveau relevé',
      Array.isArray(forcees) && forcees.length === 4, JSON.stringify(forcees));
+  await page.close();
+}
+
+console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un minuteur');
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const cadres = (page) => page.evaluate(() => [...document.querySelectorAll('iframe')]
+    .filter(f => (f.src || '').includes('/subscriptions')).length);
+  const stamp = (page) => page.evaluate(() => localStorage.getItem('tse:substs'));
+  const voile = (page) => page.evaluate(() => document.body.classList.contains('tse-loading'));
+
+  // ── a) Sidebar sans chaîne suivie : le relevé ne part JAMAIS. ──────────
+  // C'est la garde « session déconnectée » : personne n'a de chaînes suivies
+  // sans compte, donc la page authentifiée n'est jamais demandée. Une carte
+  // de RECOMMANDATION ne compte pas — elle ne porte pas le marqueur « suivi ».
+  {
+    const page = await freshTwitch(PLAYER, [], '/');
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      window.__fx = { reco1: { id: '9', createdAt: h, viewers: 20, game: 'G', tags: [] } };
+      window.__addReco('reco1', 'G', '20');
+    });
+    await wait(page, 1500);
+    ok('sans chaîne suivie, aucune iframe n\'est ouverte', (await cadres(page)) === 0,
+       String(await cadres(page)));
+    ok('et aucun relevé n\'est horodaté', (await stamp(page)) === null,
+       String(await stamp(page)));
+
+    // La première carte SUIVIE, elle, déclenche le relevé. Le même document,
+    // le même instant : seule la nature de la carte a changé.
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      window.__fx.omofficial = { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] };
+      window.__addCard('omofficial', 'G', '500');
+    });
+    await wait(page, 300);
+    ok('la première carte suivie déclenche le relevé', (await cadres(page)) === 1,
+       String(await cadres(page)));
+    await wait(page, 2500);
+    const su = await page.evaluate(() => Object.keys(
+      JSON.parse(localStorage.getItem('tse:subs') || '{}')).sort().join(','));
+    ok('et il aboutit', su === 'clem_mlrt,etoiles,omofficial,roicheese', su);
+    await page.close();
+  }
+
+  // ── b) Premier démarrage : le voile ATTEND le relevé. ──────────────────
+  // Page d'abonnements ralentie à 500 ms par onglet (≈ 1,1 s pour les deux).
+  // Sans retenue, le voile se lèverait dès la sidebar stable, ~350 ms après
+  // le premier scan. À 700 ms, il doit donc être encore là.
+  const LENT = () => { window.__subsDelay = 500; };
+  {
+    const page = await freshTwitch(PLAYER, [], '/', LENT);
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+      window.__addCard('omofficial', 'G', '500');
+    });
+    await wait(page, 700);
+    ok('rien en mémoire : le voile attend le relevé', (await voile(page)) === true,
+       'voile déjà levé');
+    // Le délai dur du voile reste souverain : la retenue ne peut pas
+    // l'éterniser (1,2 s dans le harnais, 15 s en production).
+    await wait(page, 900);
+    ok('mais le délai dur du voile reste souverain', (await voile(page)) === false,
+       'voile toujours posé');
+    await page.close();
+  }
+
+  // ── c) Démarrage suivant : rien à attendre. ────────────────────────────
+  // Un abonnement est déjà connu du disque, donc la décoration est posée dès
+  // la première carte. Faire patienter la sidebar pour un simple
+  // rafraîchissement serait une rançon sans contrepartie — même page lente,
+  // et cette fois le voile se lève à l'heure.
+  {
+    const TIEDE = () => {
+      window.__subsDelay = 500;
+      try {
+        localStorage.setItem('tse:subs',
+          JSON.stringify({ omofficial: [1, Date.now()] }));
+      } catch { /* stockage refusé : le test échouera, et c'est correct */ }
+    };
+    const page = await freshTwitch(PLAYER, [], '/', TIEDE);
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+      window.__addCard('omofficial', 'G', '500');
+    });
+    await wait(page, 700);
+    ok('un abonnement déjà connu : le voile ne retient rien', (await voile(page)) === false,
+       'voile encore posé');
+    ok('et le relevé tourne quand même en arrière-plan', (await cadres(page)) === 1,
+       String(await cadres(page)));
+    await page.close();
+  }
+}
+
+console.log('\n45. Abonnements — la carte d\'une chaîne abonnée');
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const page = await freshTwitch(PLAYER, [], '/');
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = {
+      omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] },
+      inconnue:   { id: '2', createdAt: h, viewers: 900, game: 'G', tags: [] },
+    };
+    window.__addCard('omofficial', 'G', '500');
+    window.__addCard('inconnue', 'G', '900');
+  });
+  await wait(page, 3000);
+
+  const marque = (login) => page.evaluate((l) => {
+    const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
+    if (!c) return null;
+    const apres = getComputedStyle(c, '::after');
+    return {
+      classe:    c.classList.contains('tse-sub'),
+      phase:     c.style.getPropertyValue('--tse-sub-phase'),
+      anim:      apres.animationName,
+      pointeur:  apres.pointerEvents,
+      halo:      getComputedStyle(c).boxShadow,
+    };
+  }, login);
+
+  const abo = await marque('omofficial');
+  const non = await marque('inconnue');
+  ok('la chaîne abonnée porte la marque', abo && abo.classe === true, JSON.stringify(abo));
+  ok('la chaîne non abonnée ne la porte pas', non && non.classe === false, JSON.stringify(non));
+  // La décoration EXISTE vraiment côté rendu : deux animations nommées sur le
+  // ::after, et un halo sur la carte. Sans ça, la classe ne prouverait rien.
+  ok('le filet tourne et respire', !!abo && abo.anim.includes('tse-sub-turn')
+     && abo.anim.includes('tse-sub-breathe'), String(abo && abo.anim));
+  ok('la carte porte le halo', !!abo && abo.halo !== 'none', String(abo && abo.halo));
+  ok('et le décor ne capte pas les clics', !!abo && abo.pointeur === 'none',
+     String(abo && abo.pointeur));
+  ok('la chaîne non abonnée n\'anime rien', !!non && non.anim === 'none',
+     String(non && non.anim));
+
+  // La phase vient du LOGIN, pas du rang : elle doit survivre à un changement
+  // de tri. Sans quoi l'animation repartirait de zéro à chaque reclassement.
+  const avant = abo.phase;
+  ok('la phase est posée', /^\d+$/.test(avant), String(avant));
+  await page.evaluate(() => {
+    const b = document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"]');
+    if (b) b.click();
+  });
+  await wait(page, 400);
+  const apresTri = await marque('omofficial');
+  ok('et ne bouge pas quand le tri change', apresTri.phase === avant,
+     avant + ' -> ' + apresTri.phase);
+  ok('la marque non plus', apresTri.classe === true, JSON.stringify(apresTri));
+
+  // Mouvement réduit : le filet reste (c'est l'information), il ne tourne plus.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const calme = await marque('omofficial');
+  ok('mouvement réduit : plus d\'animation', calme.anim === 'none', String(calme.anim));
+  ok('mais la marque demeure', calme.classe === true, JSON.stringify(calme));
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+
+  // La décoration suit la CHAÎNE, pas la carte : React recycle ses cartes
+  // d'une chaîne à l'autre, et une marque oubliée décorerait un inconnu.
+  await page.evaluate(() => {
+    const c = [...document.querySelectorAll('.side-nav-card')]
+      .find(x => x.dataset.tseLogin === 'omofficial');
+    c.querySelector('a[href="/omofficial"]').setAttribute('href', '/recyclee');
+  });
+  await wait(page, 600);
+  const recyclee = await marque('recyclee');
+  ok('carte recyclée sur une autre chaîne : la marque tombe',
+     !!recyclee && recyclee.classe === false, JSON.stringify(recyclee));
   await page.close();
 }
 
