@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.45.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.46.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -441,21 +441,34 @@ across them — and it does not restart from zero when a change of sort reorders
 the list. `prefers-reduced-motion` stops the comet and keeps the thread: the
 movement goes, the information stays.
 
-The scan is **additive**: it marks as subscribed what it finds, never
-"not subscribed" on an absence. The tabs read (paid, gifts) do not cover
-everything — mobile, Turbo, other — and concluding from an absence would
-wrongly strip the styling from a genuine subscription. Correcting an
-unsubscribe stays with the visit-time reading, which observes the channel
-itself.
+Three tabs are read (v3.46): `?tab=paid`, `?tab=gifts` and `?tab=mobile` —
+the three that list subscriptions **to channels**. Turbo and "other
+subscriptions" are not about channels. **Expired** subscriptions are left out
+for a stronger reason: an expired subscription is not one, and the scan being
+additive, reading it would mark as "subscribed" for 120 days someone you no
+longer are.
+
+Because the scan is **additive**: it marks as subscribed what it finds, never
+"not subscribed" on an absence. Concluding from an absence would wrongly strip
+the styling from a genuine subscription. Correcting an unsubscribe stays with
+the visit-time reading, which observes the channel itself.
 
 ### Practical consequences
 
-- until a subscription has been spotted, the button is **greyed out** and says
-  why, rather than offering a sort with nothing to sort;
-- as soon as there is one, a **badge** in the button's bottom-right corner gives
-  the count — the only way to tell at a glance what this sort actually has to
-  work with. It flips to white on the active button, and disappears with the
-  greyed-out state;
+- the button is **greyed out** as long as no subscribed channel is **on air**
+  (v3.46). What counts is not what is known but what can be sorted: being
+  subscribed to fifteen channels, none of them streaming, gives nothing to
+  raise. The tooltip gives the right reason of the two — "no subscription
+  spotted" when memory is empty, "none of your subscriptions is live" when it
+  is not. Sending someone off to open a channel when their scan is already
+  complete would be nonsense;
+- a **badge** in the button's bottom-right corner counts the live
+  subscriptions — the same number that decides the greying, otherwise a dead
+  button would carry a count. It flips to white on the active button, and
+  disappears with the greyed-out state;
+- cards hidden by a **filter** still count: a filter is a passing display
+  choice, and flickering the sort's availability on every category change would
+  make the control unstable;
 - the **non**-subscription is stored too, so a later visit corrects an entry
   that has gone stale — including after unsubscribing;
 - past 120 days an observation is no longer believed, otherwise a monthly

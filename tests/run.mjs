@@ -10,6 +10,13 @@ const URL_PAGE = pathToFileURL(join(ICI, 'page.html')).href;
 let pass = 0, fail = 0;
 const ok  = (n, c, extra='') => { c ? (pass++, console.log('  ✓', n)) : (fail++, console.log('  ✗', n, extra)); };
 const wait = (p, ms) => p.waitForTimeout(ms);
+// Attend une CONDITION dans la page, au lieu d'une durée. Un relevé
+// d'abonnements traverse trois onglets, chacun étant une page complète à
+// charger : sa durée dépend de la machine, et un délai fixe finit toujours par
+// être trop court un jour. Une expiration n'échoue pas ici — elle laisse
+// l'assertion qui suit constater et dire ce qui manque.
+const attendre = (p, fn, ms = 10_000) =>
+  p.waitForFunction(fn, null, { timeout: ms }).catch(() => {});
 // Intl insère une espace fine insécable (U+202F) ou insécable (U+00A0) :
 // on normalise avant comparaison, l'espace exacte n'est pas l'objet du test.
 const nz = (s) => (s ?? '').replace(/[\u00a0\u202f\u2009]/g, ' ');
@@ -3195,10 +3202,13 @@ console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requ
     ok('elle affiche 1 dès le premier abonnement repéré',
        (await pastille(page)) === '1', String(await pastille(page)));
 
-    // Un second abonnement, injecté directement dans la mémoire : on teste
-    // le COMPTAGE, pas une seconde fois la détection.
+    // Deux abonnements de plus, injectés dans la mémoire : on teste le
+    // COMPTAGE, pas une seconde fois la détection. « moyen » a une carte dans
+    // la sidebar, « autrechaine » n'en a pas — la pastille compte ce que le
+    // tri peut remonter, donc le premier et pas le second.
     await page.evaluate(() => {
       const m = JSON.parse(localStorage.getItem('tse:subs'));
+      m.moyen = [1, Date.now()];
       m.autrechaine = [1, Date.now()];
       localStorage.setItem('tse:subs', JSON.stringify(m));
     });
@@ -3210,7 +3220,7 @@ console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requ
       document.body.appendChild(b);
     });
     await wait(page, 1800);
-    ok('et 2 quand deux abonnements sont connus',
+    ok('et 2 quand deux abonnements sont à l\'antenne',
        (await pastille(page)) === '2', String(await pastille(page)));
 
     // La pastille ne doit pas entretenir de boucle de scan : son texte n'est
@@ -3270,12 +3280,19 @@ console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
   ok('et rien n\'est encore mémorisé', (await memoire(page)) === null,
      JSON.stringify(await memoire(page)));
 
-  await wait(page, 4000);
+  await attendre(page, () => !!localStorage.getItem('tse:substs'));
   const m = await memoire(page);
   const trouves = Object.keys(m || {}).sort();
-  // Les deux onglets configurés : trois cartes en « paid », une en « gifts ».
-  ok('les quatre abonnements des deux onglets sont relevés',
-     trouves.join(',') === 'clem_mlrt,etoiles,omofficial,roicheese', JSON.stringify(trouves));
+  // Les trois onglets configurés : trois cartes en « paid », une en « gifts »,
+  // une en « mobile ». La page de test en sert deux autres — « turbo » et
+  // « expired » — qui ne doivent PAS remonter : un abonnement expiré n'en est
+  // plus un, et le relevé étant additif, le lire marquerait « abonné » pour
+  // 120 jours quelqu'un qu'on ne l'est plus.
+  ok('les cinq abonnements des trois onglets sont relevés',
+     trouves.join(',') === 'clem_mlrt,etoiles,omofficial,roicheese,zerator', JSON.stringify(trouves));
+  ok('ni Turbo ni les expirés ne sont lus',
+     !trouves.includes('jamais_turbo') && !trouves.includes('jamais_expire'),
+     JSON.stringify(trouves));
   ok('et tous marqués « abonné »',
      Object.values(m || {}).every(v => v[0] === 1), JSON.stringify(m));
 
@@ -3289,7 +3306,14 @@ console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
     const el = document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"] .tse-sort-count');
     return el ? el.textContent : null;
   });
-  ok('la pastille affiche 4', (await pastille()) === '4', String(await pastille()));
+  // La pastille compte les abonnements EN DIRECT, pas les abonnements connus :
+  // seul « omofficial » a une carte dans la sidebar de ce scénario.
+  // L'horodatage dit que le relevé est rentré ; la pastille, elle, attend le
+  // scan qui suit. Deux faits distincts, deux attentes distinctes.
+  await attendre(page, () => !!document.querySelector(
+    '#tse-sort-row [data-tse-sort-mode="subs"] .tse-sort-count'));
+  ok('la pastille compte les abonnements en direct, pas les connus',
+     (await pastille()) === '1', String(await pastille()));
 
   // Le relevé est horodaté : dans le TTL, il ne doit pas recommencer.
   const stamp = await page.evaluate(() => localStorage.getItem('tse:substs'));
@@ -3304,7 +3328,7 @@ console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
   // Forcer le relevé doit, lui, repasser outre le délai.
   const forcees = await page.evaluate(() => window.tse.subs.refresh());
   ok('tse.subs.refresh() force un nouveau relevé',
-     Array.isArray(forcees) && forcees.length === 4, JSON.stringify(forcees));
+     Array.isArray(forcees) && forcees.length === 5, JSON.stringify(forcees));
   await page.close();
 }
 
@@ -3343,10 +3367,10 @@ console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un 
     await wait(page, 300);
     ok('la première carte suivie déclenche le relevé', (await cadres(page)) === 1,
        String(await cadres(page)));
-    await wait(page, 2500);
+    await attendre(page, () => !!localStorage.getItem('tse:substs'));
     const su = await page.evaluate(() => Object.keys(
       JSON.parse(localStorage.getItem('tse:subs') || '{}')).sort().join(','));
-    ok('et il aboutit', su === 'clem_mlrt,etoiles,omofficial,roicheese', su);
+    ok('et il aboutit', su === 'clem_mlrt,etoiles,omofficial,roicheese,zerator', su);
     await page.close();
   }
 
@@ -3401,7 +3425,92 @@ console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un 
   }
 }
 
-console.log('\n45. Abonnements — la carte d\'une chaîne abonnée');
+console.log('\n45. Abonnements — le tri se grise quand aucun abonné n\'émet');
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  // Relevé complet coupé : ce scénario décide de la DISPONIBILITÉ du tri à
+  // partir de ce qui est en mémoire, et la page /subscriptions y verserait
+  // ses propres chaînes.
+  const SANS_PAGE = () => { window.__noSubsPage = true; };
+  // Deux abonnements connus dès le départ, dont un seul aura une carte.
+  const MEMOIRE = () => {
+    window.__noSubsPage = true;
+    try {
+      localStorage.setItem('tse:subs', JSON.stringify({
+        omofficial: [1, Date.now()],
+        absente:    [1, Date.now()],
+      }));
+    } catch { /* stockage refusé : le test échouera, et c'est correct */ }
+  };
+  const bouton = (page) => page.evaluate(() => {
+    const b = document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"]');
+    const p = b && b.querySelector('.tse-sort-count');
+    return b ? { off: b.disabled, titre: b.title, pastille: p ? p.textContent : null } : null;
+  });
+
+  // ── a) des abonnements connus, mais aucun à l'antenne ──────────────────
+  {
+    const page = await freshTwitch(PLAYER, [], '/', MEMOIRE);
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      window.__fx = { autre: { id: '9', createdAt: h, viewers: 300, game: 'G', tags: [] } };
+      window.__addCard('autre', 'G', '300');
+    });
+    await wait(page, 1800);
+    const b = await bouton(page);
+    ok('deux abonnements connus, aucun en direct : le bouton est grisé',
+       b?.off === true, JSON.stringify(b));
+    // L'explication doit être la BONNE des deux : inviter à ouvrir une chaîne
+    // quelqu'un dont le relevé est déjà fait serait un contresens.
+    ok('et l\'explication parle du direct, pas du relevé',
+       /direct/i.test(b?.titre || ''), b?.titre);
+    ok('aucune pastille non plus', b?.pastille === null, JSON.stringify(b));
+
+    // La chaîne abonnée entre en direct : le bouton s'ouvre, sans rien d'autre
+    // qu'une carte de plus. C'est ce qui donne des dents aux trois assertions
+    // précédentes — le grisé vient bien de l'antenne, pas de la mémoire.
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      window.__fx.omofficial = { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] };
+      window.__addCard('omofficial', 'G', '500');
+    });
+    await wait(page, 1200);
+    const c = await bouton(page);
+    ok('un abonné passe en direct : le bouton s\'ouvre', c?.off === false, JSON.stringify(c));
+    ok('et la pastille en compte un', c?.pastille === '1', JSON.stringify(c));
+
+    // Puis il s'éteint. Twitch garde la carte quelques minutes ; l'extension,
+    // elle, l'a déjà marquée hors ligne — et le tri redevient sans objet.
+    await page.evaluate(() => {
+      window.__fx.omofficial = null;
+      const c2 = [...document.querySelectorAll('.side-nav-card')]
+        .find(x => x.dataset.tseLogin === 'omofficial');
+      c2.querySelector('.side-nav-card__avatar').classList.add('side-nav-card__avatar--offline');
+    });
+    await wait(page, 1500);
+    const d = await bouton(page);
+    ok('il s\'éteint : le bouton se regrise', d?.off === true, JSON.stringify(d));
+    await page.close();
+  }
+
+  // ── b) rien en mémoire : l'autre explication ──────────────────────────
+  {
+    const page = await freshTwitch(PLAYER, [], '/', SANS_PAGE);
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      window.__fx = { autre: { id: '9', createdAt: h, viewers: 300, game: 'G', tags: [] } };
+      window.__addCard('autre', 'G', '300');
+    });
+    await wait(page, 1800);
+    const b = await bouton(page);
+    ok('aucun abonnement connu : le bouton est grisé aussi', b?.off === true, JSON.stringify(b));
+    ok('mais l\'explication invite à ouvrir une chaîne',
+       /ouvrez|repér/i.test(b?.titre || ''), b?.titre);
+    await page.close();
+  }
+}
+
+console.log('\n46. Abonnements — la carte d\'une chaîne abonnée');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const page = await freshTwitch(PLAYER, [], '/');
@@ -3414,7 +3523,8 @@ console.log('\n45. Abonnements — la carte d\'une chaîne abonnée');
     window.__addCard('omofficial', 'G', '500');
     window.__addCard('inconnue', 'G', '900');
   });
-  await wait(page, 3000);
+  await attendre(page, () => !!localStorage.getItem('tse:substs'));
+  await wait(page, 400);   // le scan qui applique la décoration suit le relevé
 
   const marque = (login) => page.evaluate((l) => {
     const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);

@@ -336,9 +336,15 @@ for (const type of ['pointerdown', 'click']) {
 // __noSubsPage coupe cette page : certains scénarios éprouvent la lecture
 // PAR VISITE seule, et le relevé complet y ajouterait ses propres chaînes.
 if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
+  // Les trois onglets relevés. « turbo » et « expired » sont ici EXPRÈS, avec
+  // des chaînes qui n'apparaissent nulle part ailleurs : si le module venait à
+  // les lire, le relevé le dirait tout de suite.
   const ONGLETS = {
-    paid:  ['omofficial', 'roicheese', 'etoiles'],
-    gifts: ['clem_mlrt'],
+    paid:    ['omofficial', 'roicheese', 'etoiles'],
+    gifts:   ['clem_mlrt'],
+    mobile:  ['zerator'],
+    turbo:   ['jamais_turbo'],
+    expired: ['jamais_expire'],
   };
   const tab = new URLSearchParams(location.search).get('tab') || 'paid';
   // __subsDelay règle la lenteur de cette page. Elle sert à éprouver la

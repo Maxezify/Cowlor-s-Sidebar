@@ -344,6 +344,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiSortNoCoStreams:         'Aucun co-stream détecté actuellement',
       uiSortLabelSubs:           'Mes abonnements en tête',
       uiSortNoSubs:              'Aucun abonnement repéré pour l\'instant — ouvrez une chaîne à laquelle vous êtes abonné',
+      uiSortSubsOffline:         'Aucun de vos abonnements n\'est en direct',
       consoleNoSubs:             '[tse] Aucun abonnement repéré pour le moment.',
       uiSortLabelViewers:        'Trier par nombre de viewers (décroissant)',
       uiSortLabelPopular:        'Trier par popularité personnelle (visites récentes)',
@@ -399,6 +400,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiSortNoCoStreams:         'No co-streams currently detected',
       uiSortLabelSubs:           'My subscriptions first',
       uiSortNoSubs:              'No subscription spotted yet — open a channel you are subscribed to',
+      uiSortSubsOffline:         'None of your subscriptions is live',
       consoleNoSubs:             '[tse] No subscription spotted yet.',
       uiSortLabelViewers:        'Sort by viewer count (descending)',
       uiSortLabelPopular:        'Sort by personal popularity (recent visits)',
@@ -454,6 +456,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiSortNoCoStreams:         'Derzeit keine Co-streams erkannt',
       uiSortLabelSubs:           'Meine Abos zuerst',
       uiSortNoSubs:              'Noch kein Abo erkannt — öffne einen Kanal, den du abonniert hast',
+      uiSortSubsOffline:         'Keines deiner Abos ist live',
       consoleNoSubs:             '[tse] Noch kein Abo erkannt.',
       uiSortLabelViewers:        'Nach Zuschauerzahl sortieren (absteigend)',
       uiSortLabelPopular:        'Nach persönlicher Beliebtheit sortieren (kürzliche Besuche)',
@@ -509,6 +512,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiSortNoCoStreams:         'No se detectaron co-streams por el momento',
       uiSortLabelSubs:           'Mis suscripciones primero',
       uiSortNoSubs:              'Ninguna suscripción detectada aún — abre un canal al que estés suscrito',
+      uiSortSubsOffline:         'Ninguna de tus suscripciones está en directo',
       consoleNoSubs:             '[tse] Ninguna suscripción detectada por ahora.',
       uiSortLabelViewers:        'Ordenar por número de espectadores (descendente)',
       uiSortLabelPopular:        'Ordenar por popularidad personal (visitas recientes)',
@@ -564,6 +568,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       uiSortNoCoStreams:         'Nenhum co-stream detectado no momento',
       uiSortLabelSubs:           'Minhas inscrições primeiro',
       uiSortNoSubs:              'Nenhuma inscrição detectada ainda — abra um canal em que você é inscrito',
+      uiSortSubsOffline:         'Nenhuma das suas inscrições está ao vivo',
       consoleNoSubs:             '[tse] Nenhuma inscrição detectada por enquanto.',
       uiSortLabelViewers:        'Ordenar por número de espectadores (decrescente)',
       uiSortLabelPopular:        'Ordenar por popularidade pessoal (visitas recentes)',
@@ -861,7 +866,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
        Cette condition fait aussi office de garde : une session déconnectée
        n'a pas de chaînes suivies, donc ne charge jamais la page. */
     SUBS_PAGE_ENABLED:    true,
-    SUBS_PAGE_TABS:       ['paid', 'gifts'],
+    // Les trois onglets qui listent des abonnements À DES CHAÎNES. Turbo et
+    // « autres abonnements » sont écartés délibérément : ils ne parlent pas de
+    // chaînes. Les abonnements EXPIRÉS le sont aussi, pour une raison plus
+    // forte — un abonnement expiré n'est pas un abonnement, et le relevé étant
+    // additif, l'y inclure marquerait « abonné » pour 120 jours quelqu'un qu'on
+    // ne l'est plus.
+    SUBS_PAGE_TABS:       ['paid', 'gifts', 'mobile'],
     SUBS_PAGE_TTL:        6 * 60 * 60_000,   // 6 h entre deux relevés
     SUBS_PAGE_TIMEOUT:    25_000,            // abandon si la page ne rend rien
     // Retenue MAXIMALE du voile de chargement, et seulement au tout premier
@@ -3623,10 +3634,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           const logins = await visiter(onglet);
           for (const l of logins) if (!trouves.includes(l)) trouves.push(l);
         }
-        // Marqué même à vide : un compte sans abonnement ne doit pas
-        // relancer un chargement de page toutes les minutes.
-        marquer();
         for (const login of trouves) subs.record(login, true);
+        // Horodaté APRÈS l'enregistrement : l'horodatage veut dire « un relevé
+        // est allé à son terme », et quiconque le lit doit trouver le résultat
+        // déjà en mémoire. Marqué même à vide, en revanche — un compte sans
+        // abonnement ne doit pas relancer un chargement de page toutes les
+        // minutes.
+        marquer();
         if (trouves.length) scheduleScan();   // la pastille et le tri suivent
       } finally {
         running = false;
@@ -6432,20 +6446,47 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    * Retourne true si le mode a été forcé (signal qu'un applySorting
    * devrait être relancé — ce que scanSidebar fait déjà naturellement).
    */
+  /**
+   * Nombre de chaînes abonnées ACTUELLEMENT AFFICHÉES dans la section suivie.
+   *
+   * C'est ce nombre — et non le total mémorisé — qui décide si le tri « mes
+   * abonnements en tête » a quelque chose à faire. Être abonné à quinze
+   * chaînes dont aucune n'émet ne donne rien à remonter : le bouton serait
+   * actif et inerte, exactement ce que le grisé existe pour éviter.
+   *
+   * Sur la SECTION SUIVIE seule, parce que c'est elle que applySorting trie.
+   * Une carte de recommandation abonnée activerait un bouton sans effet.
+   *
+   * Les cartes masquées par un FILTRE comptent quand même : un filtre est un
+   * choix d'affichage passager, et faire clignoter la disponibilité du tri à
+   * chaque changement de catégorie rendrait le contrôle instable. Le hors
+   * ligne, lui, ne compte pas — c'est un fait sur la chaîne, pas sur la vue.
+   */
+  const countLiveSubs = () => {
+    const section = followedSection();
+    if (!section) return 0;
+    let n = 0;
+    for (const card of section.querySelectorAll('.side-nav-card')) {
+      if (card.dataset.tseOffline === 'true') continue;
+      if (subs.isSub(card.dataset.tseLogin || '')) n += 1;
+    }
+    return n;
+  };
+
   function updateSortButtonsState({ costreamGroups }) {
     const row = document.getElementById(SORT_ROW_ID);
     if (!row) return false;
 
     // Disponibilité par mode. Tous true sauf 'costream' qui requiert
     // qu'au moins un groupe ait été détecté par detectCoStreams().
-    // Compté UNE fois : la valeur sert à la fois à décider si le tri est
-    // disponible et à alimenter la pastille. La recompter reviendrait à
-    // parcourir deux fois la mémoire à chaque scan.
-    const nbSubs = subs.count();
+    // Comptés UNE fois : nbSubs alimente la pastille ET la disponibilité,
+    // nbConnus sert uniquement à choisir la bonne explication.
+    const nbSubs = countLiveSubs();
+    const nbConnus = subs.count();
 
     const available = {
       viewers:  true,
-      // Sans une seule chaîne connue comme abonnée, ce tri ne trierait rien :
+      // Sans une seule chaîne abonnée EN DIRECT, ce tri ne trierait rien :
       // on le grise et on dit pourquoi, plutôt que d'offrir un bouton inerte.
       subs:     nbSubs > 0,
       popular:  true,
@@ -6465,7 +6506,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       if (!ok && mode === 'costream') {
         btn.title = S.uiSortNoCoStreams;
       } else if (!ok && mode === 'subs') {
-        btn.title = S.uiSortNoSubs;
+        // Deux causes, deux explications : on ne connaît aucun abonnement, ou
+        // on en connaît et aucun n'émet. Les confondre enverrait ouvrir une
+        // chaîne quelqu'un dont le relevé est déjà complet.
+        btn.title = nbConnus > 0 ? S.uiSortSubsOffline : S.uiSortNoSubs;
       } else {
         const spec = getSortButtons().find(s => s.mode === mode);
         if (spec) btn.title = spec.label;

@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.45.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.46.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -457,20 +457,34 @@ en cascade — et elle ne repart pas de zéro quand un changement de tri
 réordonne la liste. `prefers-reduced-motion` arrête la comète et garde le
 filet : le mouvement disparaît, l'information reste.
 
-Le relevé est **additif** : on marque abonné ce qu'on trouve, jamais
-« non abonné » sur une absence. Les onglets lus (payants, offerts) ne couvrent
-pas tout — mobile, Turbo, autres — et conclure d'une absence retirerait à tort
-le style d'un abonnement bien réel. La correction d'un désabonnement reste au
+Trois onglets sont lus (v3.46) : `?tab=paid`, `?tab=gifts` et `?tab=mobile`.
+Ce sont les trois qui listent des abonnements **à des chaînes**. Turbo et
+« autres abonnements » n'en parlent pas. Les abonnements **expirés** sont
+écartés pour une raison plus forte : un abonnement expiré n'en est pas un, et
+le relevé étant additif, le lire marquerait « abonné » pour 120 jours quelqu'un
+dont on ne l'est plus.
+
+Car le relevé est **additif** : on marque abonné ce qu'on trouve, jamais
+« non abonné » sur une absence. Conclure d'une absence retirerait à tort le
+style d'un abonnement bien réel. La correction d'un désabonnement reste au
 relevé de visite, qui observe la chaîne elle-même.
 
 ### Les conséquences pratiques
 
-- tant qu'aucun abonnement n'a été repéré, le bouton est **grisé** et explique
-  pourquoi, plutôt que d'offrir un tri qui ne trierait rien ;
-- dès qu'il y en a, une **pastille** au coin bas-droit du bouton en donne le
-  nombre — c'est la seule façon de savoir, d'un coup d'œil, ce que ce tri a
-  réellement sous la main. Elle s'inverse en blanc sur le bouton actif, et
+- le bouton est **grisé** tant qu'aucune chaîne abonnée n'est **à l'antenne**
+  (v3.46). Ce qui compte n'est pas ce qu'on sait mais ce qu'on peut trier :
+  être abonné à quinze chaînes dont aucune n'émet ne donne rien à remonter.
+  Le survol donne la bonne raison des deux — « aucun abonnement repéré » quand
+  la mémoire est vide, « aucun de vos abonnements n'est en direct » quand elle
+  ne l'est pas. Envoyer ouvrir une chaîne quelqu'un dont le relevé est déjà
+  complet serait un contresens ;
+- une **pastille** au coin bas-droit du bouton compte les abonnements en
+  direct — le même nombre que celui qui décide du grisé, sans quoi un bouton
+  éteint afficherait un compte. Elle s'inverse en blanc sur le bouton actif, et
   disparaît avec le grisé ;
+- les cartes masquées par un **filtre** comptent quand même : un filtre est un
+  choix d'affichage passager, et faire clignoter la disponibilité du tri à
+  chaque changement de catégorie rendrait le contrôle instable ;
 - le **non**-abonnement est mémorisé lui aussi : une visite ultérieure corrige
   donc une entrée devenue fausse, y compris après un désabonnement ;
 - au-delà de 120 jours, une observation n'est plus crue — sans quoi un
