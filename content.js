@@ -908,6 +908,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // apparaît, l'application est debout ; si aucune carte ne suit dans ce
     // délai, l'onglet est vide et non lent.
     SUBS_PAGE_SETTLE:     5_000,
+    // Durée pendant laquelle le contenu relevé doit cesser de bouger avant
+    // qu'on le déclare complet. Une liste React s'écrit par morceaux, et
+    // l'écart entre le squelette d'une carte et son corps dépasse largement
+    // une période de scrutation : sans cette attente, on lisait les chaînes
+    // sans leur ancienneté.
+    SUBS_PAGE_STABLE:     1_500,
     // Retenue MAXIMALE du voile de chargement, et seulement au tout premier
     // démarrage (rien en mémoire, aucun relevé antérieur). Passé ce délai le
     // voile se lève sans attendre : personne ne doit patienter devant une
@@ -3644,6 +3650,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     clear() {
       this.map.clear();
       try { localStorage.removeItem(CFG.SUBS_STORAGE_KEY); } catch {}
+      // L'horodatage du relevé complet part AUSSI. Le garder revenait à
+      // effacer les abonnements puis à s'interdire d'aller les rechercher
+      // pendant six heures — un tse.reset() qui laisse la sidebar sans
+      // abonnements jusqu'au lendemain n'est pas une remise à zéro.
+      try { localStorage.removeItem(CFG.SUBS_PAGE_STAMP_KEY); } catch {}
     }
   };
 
@@ -3777,12 +3788,28 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       return i >= 0 && f[i + 1] ? entier(f[i + 1].t) : 0;
     };
 
+    /* L'horodatage porte la VERSION DU LECTEUR qui l'a produit, pas seulement
+       la date. Sans cela, une correction du relevé n'atteignait personne avant
+       six heures : la 3.48.0 lisait les chaînes sans leur ancienneté, et son
+       horodatage tout frais interdisait précisément le nouveau relevé qui
+       aurait réparé la donnée. Changer ce numéro périme d'office les relevés
+       des lecteurs antérieurs.
+         1 — jusqu'à la 3.48.0 (format nu, sans numéro)
+         2 — depuis la 3.48.1 : attente de stabilité du contenu */
+    const LECTEUR = 2;
     const horodatage = () => {
-      try { return Number(localStorage.getItem(CFG.SUBS_PAGE_STAMP_KEY)) || 0; }
-      catch { return 0; }
+      try {
+        const brut = String(localStorage.getItem(CFG.SUBS_PAGE_STAMP_KEY) || '');
+        if (!brut) return 0;
+        const [v, t] = brut.includes(':') ? brut.split(':') : ['1', brut];
+        if (Number(v) !== LECTEUR) return 0;   // relevé d'un lecteur périmé
+        return Number(t) || 0;
+      } catch { return 0; }
     };
     const marquer = () => {
-      try { localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY, String(Date.now())); } catch {}
+      try {
+        localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY, LECTEUR + ':' + Date.now());
+      } catch {}
     };
 
     // Charge un onglet dans une iframe cachée et rend [{ login, mois }].
@@ -3794,6 +3821,8 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       let cadre = document.createElement('iframe');
       let sondeur = null, limite = null;
       let debout = 0;   // instant où l'application de l'iframe s'est montrée
+      let passage = '';        // signature du passage précédent (cf. la scrutation)
+      let stableDepuis = 0;    // instant où cette signature est apparue
       const finir = (logins) => {
         if (sondeur) { clearInterval(sondeur); sondeur = null; }
         if (limite) { clearTimeout(limite); limite = null; }
@@ -3834,7 +3863,27 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
               vus.add(login);
               trouve.push({ login, mois: mois(carte, passe) });
             }
-            if (trouve.length) return finir(trouve);
+            if (trouve.length) {
+              // On ne conclut pas au premier passage. Une liste React ne
+              // s'écrit pas d'un bloc : le lien d'une carte est rendu avant
+              // son ancienneté. Conclure tout de suite revenait à relever les
+              // chaînes et à perdre les mois — donc à n'apprendre jamais
+              // l'étiquette sur l'onglet des expirés, donc à n'afficher aucun
+              // badge nulle part.
+              //
+              // La stabilité se mesure en DURÉE, pas en nombre de passages :
+              // l'écart entre le squelette et le corps peut dépasser une
+              // période de scrutation, et deux passages identiques d'affilée
+              // ne prouveraient alors rien. La signature compte les cartes,
+              // les anciennetés lues et leur somme — tant que l'une des trois
+              // bouge, la page est encore en train de s'écrire.
+              const signature = trouve.length + '/' +
+                trouve.filter(x => x.mois > 0).length + '/' +
+                trouve.reduce((s, x) => s + x.mois, 0);
+              if (signature !== passage) { passage = signature; stableDepuis = Date.now(); return; }
+              if (Date.now() - stableDepuis < CFG.SUBS_PAGE_STABLE) return;
+              return finir(trouve);
+            }
           }
           if (!cartes.length) {
             // Onglet vide ou page lente ? La barre latérale tranche : elle est

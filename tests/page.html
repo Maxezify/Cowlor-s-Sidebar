@@ -391,16 +391,24 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
       const suite = passe ? '' :
         '<p>Nombre de mois à la suite :</p><span>' + Math.max(1, m - 1) + ' mois</span>' +
         '<p>Vos avantages arrivent à expiration le <span>9 sept. 2026</span></p>';
+      // Le SQUELETTE : lien et nom, ce qui suffit à reconnaître la chaîne.
       carte.innerHTML = '<div class="subscription-card-banner">' +
         '<a class="tw-link" href="/' + login + '"></a></div>' +
-        '<p data-a-target="subscription-card__channel-name">' + login + '</p>' +
-        bruit +
+        '<p data-a-target="subscription-card__channel-name">' + login + '</p>';
+      // Le CORPS — dont l'ancienneté — arrive après, comme dans une liste
+      // React qui s'écrit par morceaux. __subsProgressif règle ce décalage.
+      // Un harnais qui poserait la carte entière d'un bloc laisserait passer
+      // un relevé qui conclut au premier passage venu.
+      const corps = bruit +
         (m ? '<p>' + etiquette + '</p><span>' + m + ' mois</span>' : '') +
         suite +
         '<div class="subscription-card__sub-progress"><div class="sub-badge-progress">' +
         '<p class="sub-badge-progress__current-badge--text">Badge de 3 mois</p>' +
         '<p class="sub-badge-progress__next-badge--text">Badge de 6 mois</p>' +
         '</div></div>';
+      const retard = window.__subsProgressif || 0;
+      if (retard) setTimeout(() => { carte.insertAdjacentHTML('beforeend', corps); }, retard);
+      else carte.insertAdjacentHTML('beforeend', corps);
       zone.appendChild(carte);
     }
     document.getElementById('root').appendChild(zone);

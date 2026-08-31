@@ -49,6 +49,10 @@ const subs = [
   // garde-fou (5 s / 25 s en production, 1,2 s / 6 s ici) : c'est le RAPPORT
   // qui décide si un onglet vide coûte une fraction du garde-fou ou sa totalité.
   [/SUBS_PAGE_SETTLE:\s*[\d_]+/,  'SUBS_PAGE_SETTLE:     1_200'],
+  // Stabilité du contenu. Gardée à 900 ms — soit PLUS que le décalage de
+  // 700 ms entre squelette et corps que le harnais simule : c'est ce rapport,
+  // et lui seul, qui décide si le relevé attend le corps ou conclut sans lui.
+  [/SUBS_PAGE_STABLE:\s*[\d_]+/,  'SUBS_PAGE_STABLE:     900'],
   [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  40'],
   [/BATCH_DELAY:\s*[\d_]+/,       'BATCH_DELAY:    40'],
 ];

@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.48.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.48.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -485,6 +485,27 @@ premier**.
 
 Le badge n'apparaît que si l'ancienneté est **connue** : « Abonné » sans durée
 n'apprendrait rien de plus que le filet doré déjà posé sur la carte.
+
+#### Attendre que la page ait fini de s'écrire (v3.48.1)
+
+Une liste React ne s'écrit pas d'un bloc : le lien d'une carte est rendu
+**avant** son ancienneté. Le relevé concluait au premier passage où il voyait
+une carte — il relevait donc les chaînes et perdait les mois, n'apprenait
+jamais l'étiquette sur l'onglet des expirés, et n'affichait aucun badge nulle
+part. Le symptôme était trompeur : le tri, la pastille et le filet doré
+fonctionnaient parfaitement, seul le badge manquait.
+
+Le relevé attend désormais que le contenu **cesse de bouger** pendant 1,5 s.
+La stabilité se mesure en durée et non en nombre de passages : l'écart entre
+le squelette d'une carte et son corps dépasse largement une période de
+scrutation, et deux passages identiques d'affilée ne prouveraient rien.
+
+L'horodatage `tse:substs` porte maintenant le **numéro du lecteur** qui l'a
+produit (`2:<date>`). Sans cela cette correction n'aurait atteint personne
+avant six heures : l'horodatage tout frais laissé par la 3.48.0 interdisait
+précisément le relevé qui aurait réparé la donnée. Et `tse.reset()` emporte
+désormais cet horodatage — effacer les abonnements puis s'interdire d'aller
+les rechercher n'était pas une remise à zéro.
 
 ### Le style d'une chaîne abonnée (v3.45)
 
@@ -1049,7 +1070,7 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 | `tse:roster` | chaînes suivies aperçues dans la sidebar | poser une carte avant Twitch |
 | `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
 | `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois et le passé d'abonné | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
-| `tse:substs` | date du dernier relevé complet | espacer les relevés de 6 h |
+| `tse:substs` | date du dernier relevé complet, précédée du numéro du lecteur qui l'a produit | espacer les relevés de 6 h, et périmer d'office ceux d'une version antérieure |
 
 `tse.reset()` les efface toutes à tout moment ; vider les données de site de
 `twitch.tv` depuis les réglages du navigateur fait de même.

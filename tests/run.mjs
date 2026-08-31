@@ -3322,7 +3322,11 @@ console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
 
   // Le relevé est horodaté : dans le TTL, il ne doit pas recommencer.
   const stamp = await page.evaluate(() => localStorage.getItem('tse:substs'));
-  ok('le relevé est horodaté', !!stamp && Number(stamp) > 0, String(stamp));
+  // L'horodatage porte le NUMÉRO DU LECTEUR qui l'a produit : « 2:<date> ».
+  // C'est ce qui permet à une correction du relevé de périmer d'office les
+  // relevés des versions antérieures, au lieu d'attendre six heures.
+  ok('le relevé est horodaté, avec son numéro de lecteur',
+     /^2:\d+$/.test(stamp || ''), String(stamp));
   const avant = await page.evaluate(() => window.__calls.length);
   await wait(page, 1500);
   ok('et ne recommence pas dans le délai',
@@ -3554,10 +3558,14 @@ console.log('\n46. Abonnements — un onglet vide ne coûte pas le garde-fou');
     JSON.parse(localStorage.getItem('tse:subs') || '{}')).sort().join(','));
   ok('l\'onglet peuplé est relevé quand même',
      trouves === 'antoinedaniel,etoiles,jenfirer,omofficial,roicheese', trouves);
-  // Deux onglets vides à 1,2 s d'apaisement ≈ 2,4 s, contre 12 s si chacun
-  // attendait le garde-fou de 6 s. La borne est posée entre les deux.
+  // Budget du relevé complet dans le harnais : deux onglets PEUPLÉS (rendu à
+  // 600 ms + 900 ms de stabilité chacun) et deux onglets VIDES. Ces derniers
+  // coûtent 1,2 s d'apaisement pièce, soit ~2,4 s — contre 12 s si chacun
+  // attendait le garde-fou de 6 s. La borne est posée entre les deux totaux,
+  // assez large pour ne pas dépendre de la charge de la machine, assez serrée
+  // pour tomber si l'apaisement disparaît (vérifié par mutation).
   ok('et les deux onglets vides n\'ont pas attendu le garde-fou',
-     duree < 7000, `relevé complet en ${duree} ms`);
+     duree < 11_000, `relevé complet en ${duree} ms`);
   ok('aucune iframe ne reste accrochée',
      await page.evaluate(() => document.querySelectorAll('iframe').length) === 0);
   await page.close();
@@ -3679,7 +3687,66 @@ console.log('\n48. Abonnements — l\'ancienneté, lue sans lire le français');
   await page.close();
 }
 
-console.log('\n49. Aperçu — le badge d\'abonnement');
+console.log('\n49. Abonnements — une liste qui s\'écrit par morceaux');
+{
+  // Une liste React n'apparaît pas d'un bloc : le lien d'une carte peut être
+  // rendu avant son ancienneté. Un relevé qui conclut au PREMIER passage où
+  // il voit une carte lit donc la chaîne, et rien d'autre — l'étiquette n'est
+  // jamais apprise, et plus aucun badge n'apparaît nulle part.
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const MORCEAUX = () => { window.__subsProgressif = 700; };
+  const page = await freshTwitch(PLAYER, [], '/', MORCEAUX);
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
+    window.__addCard('roicheese', 'G', '400');
+  });
+  await attendre(page, () => !!localStorage.getItem('tse:substs'), 20_000);
+  await wait(page, 400);
+  const mem = await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs') || '{}'));
+  ok('les chaînes sont relevées malgré le rendu en deux temps',
+     mem.roicheese?.[0] === 1, JSON.stringify(mem.roicheese));
+  ok('et leur ancienneté aussi', mem.roicheese?.[2] === 4, JSON.stringify(mem.roicheese));
+  ok('y compris celle apprise sur les expirés',
+     mem.antoinedaniel?.[2] === 29, JSON.stringify(mem.antoinedaniel));
+  await page.close();
+}
+
+// Une correction du relevé doit atteindre les mémoires déjà écrites. Un
+// horodatage laissé par un lecteur ANTÉRIEUR — la 3.48.0 relevait les chaînes
+// sans leur ancienneté — ne doit pas interdire le nouveau relevé pendant six
+// heures, sinon la correction ne se voit qu'au lendemain.
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const VIEUX = () => {
+    // Format nu, sans numéro de lecteur : celui d'avant la 3.48.1. Et tout
+    // frais, donc parfaitement dans le TTL.
+    try { localStorage.setItem('tse:substs', String(Date.now())); } catch {}
+  };
+  const page = await freshTwitch(PLAYER, [], '/', VIEUX);
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
+    window.__addCard('roicheese', 'G', '400');
+  });
+  await attendre(page, () => /^2:/.test(localStorage.getItem('tse:substs') || ''), 20_000);
+  const mem = await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs') || '{}'));
+  ok('un relevé d\'un lecteur antérieur ne bloque pas la correction',
+     mem.roicheese?.[2] === 4, JSON.stringify(mem.roicheese));
+  ok('et le nouvel horodatage porte son numéro de lecteur',
+     /^2:\d+$/.test(await page.evaluate(() => localStorage.getItem('tse:substs'))),
+     await page.evaluate(() => localStorage.getItem('tse:substs')));
+
+  // tse.reset() doit aussi emporter cet horodatage : effacer les abonnements
+  // puis s'interdire d'aller les rechercher n'est pas une remise à zéro.
+  await page.evaluate(() => window.tse.reset());
+  ok('tse.reset() emporte l\'horodatage du relevé',
+     (await page.evaluate(() => localStorage.getItem('tse:substs'))) === null,
+     String(await page.evaluate(() => localStorage.getItem('tse:substs'))));
+  await page.close();
+}
+
+console.log('\n50. Aperçu — le badge d\'abonnement');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const page = await freshTwitch(PLAYER, [], '/');
@@ -3728,7 +3795,7 @@ console.log('\n49. Aperçu — le badge d\'abonnement');
   await page.close();
 }
 
-console.log('\n50. Abonnements — la carte d\'une chaîne abonnée');
+console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const page = await freshTwitch(PLAYER, [], '/');
