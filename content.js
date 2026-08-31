@@ -914,12 +914,20 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // une période de scrutation : sans cette attente, on lisait les chaînes
     // sans leur ancienneté.
     SUBS_PAGE_STABLE:     1_500,
-    // Retenue MAXIMALE du voile de chargement, et seulement au tout premier
-    // démarrage (rien en mémoire, aucun relevé antérieur). Passé ce délai le
-    // voile se lève sans attendre : personne ne doit patienter devant une
-    // sidebar prête pour une décoration.
-    SUBS_PAGE_HOLD_MAX:   4_000,
+    // Retenue MAXIMALE du voile de chargement, quand aucun relevé n'a encore
+    // abouti — première installation, ou lecteur devenu périmé. Les onglets
+    // étant désormais visités ENSEMBLE, un relevé complet tient dans ce délai
+    // et le voile couvre donc ce qu'il est censé couvrir : la sidebar se
+    // découvre triée, décorée et comptée. Passé ce délai le voile se lève
+    // sans attendre — personne ne doit patienter devant une sidebar prête.
+    SUBS_PAGE_HOLD_MAX:   7_000,
     SUBS_PAGE_STAMP_KEY:  'tse:substs',
+    // L'étiquette du nombre de mois, apprise sur l'onglet des expirés puis
+    // MÉMORISÉE. Tant qu'on ne la connaît pas, cet onglet doit être lu en
+    // premier — les autres ne sauraient pas quoi chercher. Une fois connue,
+    // l'ordre n'a plus d'importance : les onglets peuvent partir ensemble, et
+    // le relevé passe d'une vingtaine de secondes à la durée du plus lent.
+    SUBS_LABEL_KEY:       'tse:submois',
 
     SUBS_STORAGE_KEY:     'tse:subs',
     SUBS_MAX_LOGINS:      400,
@@ -3655,6 +3663,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // pendant six heures — un tse.reset() qui laisse la sidebar sans
       // abonnements jusqu'au lendemain n'est pas une remise à zéro.
       try { localStorage.removeItem(CFG.SUBS_PAGE_STAMP_KEY); } catch {}
+      // Et l'étiquette apprise : elle vient de la même lecture, elle doit
+      // repartir avec elle.
+      try { localStorage.removeItem(CFG.SUBS_LABEL_KEY); } catch {}
     }
   };
 
@@ -3736,7 +3747,17 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
      *  caractères n'est codée en dur, et si Twitch change ce texte, la
      *  correspondance échoue et le badge disparaît — il ne ment pas.
      * ────────────────────────────────────────────────────────────── */
-    let etiquette = '';   // « Nombre total de mois abonné : », apprise
+    // « Nombre total de mois abonné : », apprise puis MÉMORISÉE. La mémoire
+    // vaut mieux qu'un ré-apprentissage : elle affranchit le relevé de l'ordre
+    // des onglets, donc lui permet de les visiter tous en même temps.
+    let etiquette = (() => {
+      try { return localStorage.getItem(CFG.SUBS_LABEL_KEY) || ''; }
+      catch { return ''; }
+    })();
+    const retenirEtiquette = (t) => {
+      etiquette = t;
+      try { localStorage.setItem(CFG.SUBS_LABEL_KEY, t); } catch {}
+    };
 
     // Feuilles porteuses de texte d'une carte, dans l'ordre du document,
     // débarrassées du bruit (cf. DOM.subCardNoiseSelector).
@@ -3780,7 +3801,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         // Toute autre forme signale que la page a changé — on n'apprend rien
         // plutôt que d'apprendre faux.
         if (f.length !== 2 || entier(f[0].t) || !entier(f[1].t)) return 0;
-        if (!etiquette) etiquette = f[0].t;
+        if (etiquette !== f[0].t) retenirEtiquette(f[0].t);
         return entier(f[1].t);
       }
       if (!etiquette) return 0;   // rien appris : on préfère ne rien dire
@@ -3916,17 +3937,40 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       const trouves = [];
       try {
         let touche = false;
-        for (const onglet of CFG.SUBS_PAGE_TABS_PAST) {
-          for (const { login, mois: m } of await visiter(onglet, true)) {
+        const verserPasse = (liste) => {
+          for (const { login, mois: m } of liste) {
             touche = subs.noteMonths(login, m, true, true) || touche;
           }
-        }
-        for (const onglet of CFG.SUBS_PAGE_TABS) {
-          for (const { login, mois: m } of await visiter(onglet)) {
+        };
+        const verserCourant = (liste) => {
+          for (const { login, mois: m } of liste) {
             if (!trouves.includes(login)) trouves.push(login);
             touche = subs.noteMonths(login, m, false, true) || touche;
           }
+        };
+
+        // L'étiquette de l'ancienneté ne s'apprend que sur l'onglet des
+        // expirés. Tant qu'on ne la connaît pas, il PASSE DONC EN PREMIER,
+        // seul — les autres ne sauraient pas quoi chercher. C'est le cas de la
+        // toute première installation, et d'elle seule : l'étiquette est
+        // ensuite mémorisée.
+        if (!etiquette) {
+          for (const onglet of CFG.SUBS_PAGE_TABS_PAST) verserPasse(await visiter(onglet, true));
         }
+
+        // Une fois l'ordre affranchi, tous les onglets partent ENSEMBLE. La
+        // durée du relevé n'est plus la somme des onglets mais celle du plus
+        // lent : c'est ce qui le fait tenir sous la retenue du voile, au lieu
+        // d'apparaître après coup. Le prix est un pic — trois ou quatre pages
+        // de Twitch qui démarrent en même temps, une fois toutes les six
+        // heures, dans des iframes cachées.
+        const encore = etiquette ? CFG.SUBS_PAGE_TABS_PAST : [];
+        const [passees, courantes] = await Promise.all([
+          Promise.all(encore.map(o => visiter(o, true))),
+          Promise.all(CFG.SUBS_PAGE_TABS.map(o => visiter(o))),
+        ]);
+        for (const liste of passees) verserPasse(liste);
+        for (const liste of courantes) verserCourant(liste);
         if (touche) subs.flush();   // une seule écriture pour toute la rafale
         for (const login of trouves) subs.record(login, true);
         // Horodaté APRÈS l'enregistrement : l'horodatage veut dire « un relevé
@@ -3937,6 +3981,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         marquer();
         if (trouves.length) scheduleScan();   // la pastille et le tri suivent
       } finally {
+        // `running` est posé AVANT le premier await, et refresh() rend la main
+        // tout de suite si un relevé tourne déjà : aucun second appel ne peut
+        // s'intercaler entre la lecture et l'écriture. L'analyse statique, qui
+        // ne voit que « écrit après un await », ne peut pas le savoir.
+        // eslint-disable-next-line require-atomic-updates
         running = false;
       }
       return trouves;
@@ -3953,7 +4002,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
      * délai maximal du voile lui-même, qui reste souverain.
      */
     const demarrer = () => {
-      const aveugle = subs.count() === 0 && !horodatage();
+      // La retenue tient à l'absence de RELEVÉ, pas à l'absence d'abonnements.
+      // horodatage() rend 0 aussi quand le relevé mémorisé vient d'un lecteur
+      // devenu périmé : la correction s'applique alors sous le voile, au lieu
+      // d'arriver quelques secondes après lui. Un rafraîchissement de routine,
+      // lui, ne retient rien — ce qu'il rafraîchit est déjà à l'écran.
+      const aveugle = !horodatage();
       let relacher = () => {};
       if (aveugle) {
         loadingOverlay.setHold(true, 'subs');

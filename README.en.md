@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.48.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.49.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -468,6 +468,31 @@ expired tab is read **first**.
 
 The badge only appears when tenure is **known**: "Subscribed" without a
 duration would say nothing the card's gold thread does not already say.
+
+#### Under the veil, not after it (v3.49)
+
+Fixing the wait described below had a side effect: the scan went from roughly
+5 to 20 seconds, while the loading veil only holds for a few. The veil no
+longer covered what it was meant to cover, and subscriptions showed up after
+it.
+
+Two changes put it right:
+
+- **tabs are visited together**, no longer one after another. The scan's
+  duration is no longer their sum but that of the slowest. Measured on the
+  bench: **5.2 s instead of 8.3 s**, and the ratio is far better in
+  production, where empty tabs cost 5 seconds each;
+- **the learned label is remembered** (`tse:submois`). It was the reason the
+  expired tab had to be read first; once known, order no longer matters and
+  everything starts at once. Only the very first install keeps a preliminary
+  pass.
+
+The veil's hold rises to 7 seconds, and above all it no longer depends on the
+absence of **subscriptions** but on the absence of a **completed scan**. That
+was the reported case: subscriptions already known — hence no hold — but
+tenure still missing, arriving a few seconds after the veil.
+
+A routine refresh still holds nothing: what it refreshes is already on screen.
 
 #### Waiting for the page to finish writing itself (v3.48.1)
 
@@ -1034,6 +1059,7 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 | `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
 | `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months and the former-subscriber flag | "My subscriptions first" sort, card styling, preview badge |
 | `tse:substs` | date of the last full scan, prefixed by the reader version that produced it | spacing scans 6 h apart, and expiring those of an earlier version outright |
+| `tse:submois` | the tenure label, learned from the page | reading the month count without depending on the language |
 
 `tse.reset()` wipes them all at any time; clearing `twitch.tv`'s site data from
 your browser settings does the same.

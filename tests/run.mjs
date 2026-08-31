@@ -3418,6 +3418,13 @@ console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un 
       try {
         localStorage.setItem('tse:subs',
           JSON.stringify({ omofficial: [1, Date.now()] }));
+        // Un démarrage TIÈDE, c'est un relevé qui a DÉJÀ abouti : son
+        // horodatage est là, au format du lecteur courant. C'est lui, et non
+        // la présence d'abonnements, qui dit qu'il n'y a rien à attendre.
+        // Daté d'il y a 10 s, donc hors du TTL du harnais (4 s) : un
+        // rafraîchissement de routine part quand même — et ne doit rien
+        // retenir, puisque ce qu'il rafraîchit est déjà à l'écran.
+        localStorage.setItem('tse:substs', '2:' + (Date.now() - 10_000));
       } catch { /* stockage refusé : le test échouera, et c'est correct */ }
     };
     const page = await freshTwitch(PLAYER, [], '/', TIEDE);
@@ -3429,8 +3436,10 @@ console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un 
     await wait(page, 700);
     ok('un abonnement déjà connu : le voile ne retient rien', (await voile(page)) === false,
        'voile encore posé');
-    ok('et le relevé tourne quand même en arrière-plan', (await cadres(page)) === 1,
-       String(await cadres(page)));
+    // Les onglets partent ENSEMBLE depuis la 3.49 : plusieurs iframes
+    // coexistent pendant le relevé, là où il n'y en avait qu'une à la fois.
+    ok('et le rafraîchissement de routine tourne quand même en arrière-plan',
+       (await cadres(page)) >= 1, String(await cadres(page)));
     await page.close();
   }
 }
@@ -3564,6 +3573,10 @@ console.log('\n46. Abonnements — un onglet vide ne coûte pas le garde-fou');
   // attendait le garde-fou de 6 s. La borne est posée entre les deux totaux,
   // assez large pour ne pas dépendre de la charge de la machine, assez serrée
   // pour tomber si l'apaisement disparaît (vérifié par mutation).
+  // Mesuré : 5,2 s avec les onglets lancés ensemble, 8,3 s en les enchaînant,
+  // 15,0 s sans l'apaisement des onglets vides. La borne est posée entre les
+  // deux dernières valeurs : elle tombe si l'apaisement disparaît, et laisse
+  // assez de marge pour ne pas dépendre de la charge de la machine.
   ok('et les deux onglets vides n\'ont pas attendu le garde-fou',
      duree < 11_000, `relevé complet en ${duree} ms`);
   ok('aucune iframe ne reste accrochée',
@@ -3746,6 +3759,32 @@ console.log('\n49. Abonnements — une liste qui s\'écrit par morceaux');
   await page.close();
 }
 
+// LE cas signalé : des abonnements DÉJÀ connus, mais un relevé produit par un
+// lecteur devenu périmé. La sidebar a donc de quoi s'afficher tout de suite —
+// et pourtant il manque l'ancienneté, que seul un nouveau relevé apportera.
+// Le voile doit le couvrir, sans quoi le badge arrive après lui.
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const CONNUS_MAIS_PERIMES = () => {
+    window.__subsDelay = 500;
+    try {
+      localStorage.setItem('tse:subs', JSON.stringify({ roicheese: [1, Date.now()] }));
+      localStorage.setItem('tse:substs', String(Date.now()));   // format sans lecteur
+    } catch { /* stockage refusé : le test échouera, et c'est correct */ }
+  };
+  const page = await freshTwitch(PLAYER, [], '/', CONNUS_MAIS_PERIMES);
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
+    window.__addCard('roicheese', 'G', '400');
+  });
+  await wait(page, 700);
+  ok('abonnements connus mais relevé périmé : le voile attend quand même',
+     (await page.evaluate(() => document.body.classList.contains('tse-loading'))) === true,
+     'voile déjà levé');
+  await page.close();
+}
+
 console.log('\n50. Aperçu — le badge d\'abonnement');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
@@ -3871,6 +3910,72 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
   ok('carte recyclée sur une autre chaîne : la marque tombe',
      !!recyclee && recyclee.classe === false, JSON.stringify(recyclee));
   await page.close();
+}
+
+console.log('\n53. Abonnements — les onglets partent ensemble, l\'étiquette est retenue');
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const poser = (page) => page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
+    window.__addCard('roicheese', 'G', '400');
+  });
+  // Nombre maximal d'iframes /subscriptions coexistant pendant le relevé.
+  // C'est la mesure directe du parallélisme : à une par instant, le relevé
+  // durait la SOMME des onglets et ne pouvait pas tenir sous le voile.
+  const pic = async (page, ms) => {
+    let max = 0;
+    const fin = Date.now() + ms;
+    while (Date.now() < fin) {
+      max = Math.max(max, await page.evaluate(() => [...document.querySelectorAll('iframe')]
+        .filter(f => (f.src || '').includes('/subscriptions')).length));
+      await wait(page, 100);
+    }
+    return max;
+  };
+
+  // ── a) profil neuf : l'étiquette est apprise, puis mémorisée ───────────
+  {
+    const page = await freshTwitch(PLAYER, [], '/');
+    await poser(page);
+    const max = await pic(page, 5000);
+    await attendre(page, () => !!localStorage.getItem('tse:substs'));
+    ok('plusieurs onglets sont lus en même temps', max >= 2, `pic de ${max} iframe(s)`);
+    const etiq = await page.evaluate(() => localStorage.getItem('tse:submois'));
+    ok('l\'étiquette apprise est mémorisée',
+       etiq === 'Nombre total de mois abonné :', String(etiq));
+    // tse.reset() doit l'emporter : elle vient de la même lecture.
+    await page.evaluate(() => window.tse.reset());
+    ok('et tse.reset() l\'emporte',
+       (await page.evaluate(() => localStorage.getItem('tse:submois'))) === null,
+       String(await page.evaluate(() => localStorage.getItem('tse:submois'))));
+    await page.close();
+  }
+
+  // ── b) étiquette déjà connue : plus de passe préalable ─────────────────
+  // Sans elle, l'onglet des expirés doit passer SEUL en premier — les autres
+  // ne sauraient pas quoi chercher. Avec elle, tout part d'un bloc, et c'est
+  // ce qui fait tenir le relevé sous la retenue du voile.
+  {
+    const SU = () => {
+      try { localStorage.setItem('tse:submois', 'Nombre total de mois abonné :'); } catch {}
+    };
+    const page = await freshTwitch(PLAYER, [], '/', SU);
+    await poser(page);
+    // Dès la PREMIÈRE apparition d'iframes, elles doivent être plusieurs.
+    await attendre(page, () => [...document.querySelectorAll('iframe')]
+      .some(f => (f.src || '').includes('/subscriptions')), 8000);
+    const dabord = await page.evaluate(() => [...document.querySelectorAll('iframe')]
+      .filter(f => (f.src || '').includes('/subscriptions')).length);
+    ok('l\'étiquette connue supprime la passe préalable', dabord >= 2,
+       `${dabord} iframe(s) au premier instant`);
+    await attendre(page, () => !!localStorage.getItem('tse:substs'));
+    await wait(page, 400);
+    const mem = await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs') || '{}'));
+    ok('et l\'ancienneté est lue quand même', mem.roicheese?.[2] === 4,
+       JSON.stringify(mem.roicheese));
+    await page.close();
+  }
 }
 
 await browser.close();

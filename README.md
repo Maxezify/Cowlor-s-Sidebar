@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.48.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.49.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -485,6 +485,32 @@ premier**.
 
 Le badge n'apparaît que si l'ancienneté est **connue** : « Abonné » sans durée
 n'apprendrait rien de plus que le filet doré déjà posé sur la carte.
+
+#### Sous le voile, et non après lui (v3.49)
+
+Corriger l'attente ci-dessous avait un effet de bord : le relevé passait d'environ
+5 à 20 secondes, alors que le voile de chargement ne le retient que quelques
+secondes. Le voile ne couvrait donc plus ce qu'il était censé couvrir, et les
+abonnements apparaissaient après lui.
+
+Deux changements le remettent d'aplomb :
+
+- **les onglets sont visités ensemble**, plus l'un après l'autre. La durée du
+  relevé n'est plus leur somme mais celle du plus lent. Mesuré sur le banc :
+  **5,2 s au lieu de 8,3 s**, et le rapport est bien plus favorable en
+  production, où les onglets vides coûtent 5 secondes chacun ;
+- **l'étiquette apprise est mémorisée** (`tse:submois`). C'est elle qui
+  imposait de lire l'onglet des expirés en premier ; une fois connue, l'ordre
+  n'a plus d'importance et tout part d'un bloc. Seule la toute première
+  installation garde une passe préalable.
+
+La retenue du voile passe à 7 secondes, et surtout elle ne tient plus à
+l'absence d'**abonnements** mais à l'absence de **relevé abouti**. C'était le
+cas signalé : des abonnements déjà connus — donc pas de retenue — mais une
+ancienneté encore absente, qui arrivait quelques secondes après le voile.
+
+Un rafraîchissement de routine, lui, ne retient toujours rien : ce qu'il
+rafraîchit est déjà à l'écran.
 
 #### Attendre que la page ait fini de s'écrire (v3.48.1)
 
@@ -1071,6 +1097,7 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 | `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
 | `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois et le passé d'abonné | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
 | `tse:substs` | date du dernier relevé complet, précédée du numéro du lecteur qui l'a produit | espacer les relevés de 6 h, et périmer d'office ceux d'une version antérieure |
+| `tse:submois` | libellé de l'ancienneté, appris sur la page | lire le nombre de mois sans dépendre de la langue |
 
 `tse.reset()` les efface toutes à tout moment ; vider les données de site de
 `twitch.tv` depuis les réglages du navigateur fait de même.
