@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.49.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.50.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -481,7 +481,16 @@ Two changes put it right:
 - **tabs are visited together**, no longer one after another. The scan's
   duration is no longer their sum but that of the slowest. Measured on the
   bench: **5.2 s instead of 8.3 s**, and the ratio is far better in
-  production, where empty tabs cost 5 seconds each;
+  production, where empty tabs cost 5 seconds each. Their starts are
+  **staggered by 400 ms**: four React applications booting on the same
+  millisecond make a compute spike sharp enough to delay the sidebar itself —
+  observed on the bench, where the veil could no longer settle. Each lasting
+  several seconds, that stagger costs almost nothing overall;
+- **an empty tab never holds the veil.** It brings nothing to look at, and its
+  settle delay is the longest of all. The veil lifts as soon as the first tab
+  has returned channels, plus a short grace to let its neighbours land — and
+  the sidebar decorates itself tab by tab, instead of waiting for the whole
+  volley;
 - **the learned label is remembered** (`tse:submois`). It was the reason the
   expired tab had to be read first; once known, order no longer matters and
   everything starts at once. Only the very first install keeps a preliminary
@@ -515,11 +524,17 @@ repaired the data. And `tse.reset()` now takes that timestamp with it —
 wiping the subscriptions then forbidding yourself to go and fetch them again
 was not a reset.
 
-### The styling of a subscribed channel (v3.45)
+### The styling of a subscribed channel (v3.45, reworked in v3.50)
 
-A thread of gold runs around the card, with a comet travelling along it
-endlessly. The avatar wears the same gold as a fixed ring — that is what stays
-visible in collapsed mode, where the card is nothing but a dot.
+A thread of precious metal rings the card. Its hue drifts slowly from gold to
+rose to mauve, two brighter glints travel along it, and a white comet runs
+around it far faster **the other way**. The avatar wears the same thread,
+turning **counter** to the card's: the two read as two parts of one mechanism
+rather than the same gesture repeated. It is also what stays visible in
+collapsed mode, where the card is nothing but a dot.
+
+Two opposing speeds make a **material**; one alone would have made a neon
+tube. The metal loops in 19 s, the comet in 5 s.
 
 This styling **does not touch the card's background**, deliberately. The
 background already belongs to "fresh stream" (purple) and to co-streams (the

@@ -907,20 +907,35 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // page /subscriptions rend AUSSI la barre latérale de Twitch. Dès qu'elle
     // apparaît, l'application est debout ; si aucune carte ne suit dans ce
     // délai, l'onglet est vide et non lent.
-    SUBS_PAGE_SETTLE:     5_000,
+    // Relevé au banc : sous contention, un onglet peuplé a été pris pour vide
+    // et une chaîne a disparu du relevé — bien pire qu'une lenteur. Le délai
+    // est donc généreux. Il ne coûte plus cher : les onglets étant lus
+    // ensemble, il est payé UNE fois et non une fois par onglet vide.
+    SUBS_PAGE_SETTLE:     7_000,
     // Durée pendant laquelle le contenu relevé doit cesser de bouger avant
     // qu'on le déclare complet. Une liste React s'écrit par morceaux, et
     // l'écart entre le squelette d'une carte et son corps dépasse largement
     // une période de scrutation : sans cette attente, on lisait les chaînes
     // sans leur ancienneté.
     SUBS_PAGE_STABLE:     1_500,
+    // Décalage entre deux départs d'onglets. Ils sont lus ENSEMBLE, mais pas
+    // lancés à la même milliseconde : quatre applications React qui démarrent
+    // au même instant font un pic de calcul assez net pour retarder la sidebar
+    // elle-même — mesuré au banc, où le voile n'arrivait plus à se stabiliser.
+    // Chacune durant plusieurs secondes, ce décalage ne coûte presque rien sur
+    // la durée totale, et il étale la dépense.
+    SUBS_PAGE_STAGGER:      600,
     // Retenue MAXIMALE du voile de chargement, quand aucun relevé n'a encore
-    // abouti — première installation, ou lecteur devenu périmé. Les onglets
-    // étant désormais visités ENSEMBLE, un relevé complet tient dans ce délai
-    // et le voile couvre donc ce qu'il est censé couvrir : la sidebar se
-    // découvre triée, décorée et comptée. Passé ce délai le voile se lève
-    // sans attendre — personne ne doit patienter devant une sidebar prête.
+    // abouti — première installation, ou lecteur devenu périmé. Le voile se
+    // lève AVANT ce délai dès que le premier onglet a rendu quelque chose (et
+    // qu'un court répit a laissé ses voisins arriver) : c'est à cet instant
+    // que la sidebar est triée, décorée et comptée. Un onglet VIDE ne retient
+    // donc jamais rien — il n'apporte rien à voir.
     SUBS_PAGE_HOLD_MAX:   7_000,
+    // Répit accordé aux onglets voisins après le premier résultat, avant de
+    // lever le voile. Ils partent à SUBS_PAGE_STAGGER d'intervalle et durent
+    // à peu près autant : ce répit suffit à les laisser rentrer ensemble.
+    SUBS_PAGE_HOLD_GRACE: 1_500,
     SUBS_PAGE_STAMP_KEY:  'tse:substs',
     // L'étiquette du nombre de mois, apprise sur l'onglet des expirés puis
     // MÉMORISÉE. Tant qu'on ne la connaît pas, cet onglet doit être lu en
@@ -1485,32 +1500,45 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }
 
     /* === Chaîne dont on est ABONNÉ ===
-       Un filet d'or fait le tour de la carte, et une comète le parcourt sans
-       fin. L'avatar porte le même or, en anneau fixe : c'est lui qui reste
-       visible en mode réduit, où la carte n'est plus qu'une pastille.
+       Un liseré de métal précieux cercle la carte : sa teinte dérive
+       lentement de l'or au rose et au blanc, pendant qu'une comète bien plus
+       vive le parcourt dans l'autre sens. L'avatar porte le même liseré, qui
+       tourne avec lui — c'est le seul élément qui subsiste en mode réduit, où
+       la carte n'est plus qu'une pastille.
 
-       CE QUE CE STYLE NE FAIT PAS, VOLONTAIREMENT : il ne touche pas au fond
-       de la carte. Le fond appartient déjà à « frais » (violet) et au
-       co-stream (couleur du groupe), et la barre de gauche — le ::before —
-       leur appartient aussi. En n'occupant que le CONTOUR et le ::after, le
-       style d'abonné se superpose aux deux sans les effacer ni exiger la
-       moindre règle de départage : une carte peut être fraîche, en co-stream
-       ET abonnée, les trois signaux restent lisibles.
+       CE QUE CE STYLE NE FAIT PAS, VOLONTAIREMENT : il ne touche ni au fond de
+       la carte ni à sa barre de gauche. Le fond appartient déjà à « frais »
+       (violet) et au co-stream (couleur du groupe), et la barre — le ::before —
+       leur appartient aussi. En n'occupant que le CONTOUR, le ::after et
+       l'avatar, le style d'abonné se superpose aux deux sans les effacer ni
+       exiger la moindre règle de départage : une carte peut être fraîche, en
+       co-stream ET abonnée, les trois signaux restent lisibles ensemble.
 
-       PHASE. --tse-sub-phase (0..11) est posée en JS d'après le LOGIN, et
-       décale le départ des deux animations. La lumière ne fait donc pas le
-       tour de toutes les cartes au même instant : elle les parcourt en
-       cascade. Dérivée du login et non du rang, elle ne bouge pas quand le
-       tri réordonne la liste.
+       DEUX MÉTAUX SUPERPOSÉS, et c'est ce qui fait la différence avec un cadre
+       doré ordinaire. Le calque du dessous est un dégradé conique à six
+       teintes qui tourne en 19 s : le liseré n'a jamais la même couleur sur
+       deux côtés à la fois, et cette couleur se déplace. Le calque du dessus
+       est la comète, un éclat blanc à queue d'or et traîne rose qui boucle en
+       5 s dans le SENS INVERSE — deux vitesses contraires donnent une matière,
+       là où une seule donnerait un néon.
 
-       COÛT, MESURÉ. Deux propriétés animées par carte abonnée : un angle (qui
-       ne repeint que le filet) et une opacité (composée par le GPU). L'anneau
-       d'avatar et l'ombre interne sont FIXES — rien à recalculer.
-       Relevé dans Chromium sur trente cartes décorées, soit le double de ce
-       qu'un compte ordinaire affiche à un instant donné : 16,62 ms d'intervalle
-       moyen entre images contre 16,56 ms sans la décoration, et aucune image
-       longue (> 20 ms) dans un cas comme dans l'autre. */
+       PHASE. --tse-sub-phase (0..11) est posée en JS d'après le LOGIN et
+       décale le départ des animations. La lumière ne fait donc pas le tour de
+       toutes les cartes au même instant : elle les parcourt en cascade.
+       Dérivée du login et non du rang, elle ne bouge pas quand le tri
+       réordonne la liste.
+
+       COÛT, MESURÉ. Les propriétés animées sont des angles — qui ne repeignent
+       que le liseré, large de deux pixels — et une opacité, composée par le
+       GPU. Relevé dans Chromium sur trente cartes décorées, soit le double de
+       ce qu'un compte ordinaire affiche : 16,62 ms d'intervalle moyen entre
+       images contre 16,56 ms sans la décoration, aucune image longue. */
     @property --tse-sub-angle {
+      syntax: '<angle>';
+      inherits: false;
+      initial-value: 0deg;
+    }
+    @property --tse-sub-metal {
       syntax: '<angle>';
       inherits: false;
       initial-value: 0deg;
@@ -1518,69 +1546,126 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     .side-nav-card.tse-sub {
       position: relative;
       isolation: isolate;
-      border-radius: 4px;
-      box-shadow: inset 0 0 14px -6px rgba(255, 214, 150, 0.55);
+      border-radius: 5px;
+      box-shadow: inset 0 0 16px -7px rgba(255, 214, 150, 0.6);
     }
     .side-nav-card.tse-sub::after {
       content: '';
       position: absolute;
       inset: 0;
       box-sizing: border-box;
-      border-radius: 4px;
-      padding: 1.5px;               /* épaisseur du filet (cf. masque ci-dessous) */
+      border-radius: 5px;
+      padding: 2px;                 /* épaisseur du liseré (cf. masque plus bas) */
       background:
+        /* 1. LA COMÈTE — vive, étroite, rapide, en sens inverse du métal. */
         conic-gradient(from var(--tse-sub-angle),
           rgba(255, 255, 255, 0)      0deg,
-          rgba(255, 201, 102, 0.55)  14deg,   /* la queue, qui s'allume */
-          rgba(255, 224, 160, 0.95)  34deg,
-          rgba(255, 255, 255, 1)     44deg,   /* le cœur de la comète */
-          rgba(255, 180, 210, 0.90)  56deg,
-          rgba(255, 138, 196, 0.45)  76deg,   /* la traîne, qui s'éteint */
-          rgba(255, 255, 255, 0)    110deg,
+          rgba(255, 201, 102, 0.30)  16deg,   /* la queue s'allume */
+          rgba(255, 244, 214, 0.90)  33deg,
+          rgba(255, 255, 255, 1)     38deg,   /* le cœur, franc */
+          rgba(255, 214, 240, 0.90)  43deg,
+          rgba(255, 138, 196, 0.30)  62deg,   /* la traîne s'éteint */
+          rgba(255, 255, 255, 0)     84deg,
           rgba(255, 255, 255, 0)    360deg),
-        linear-gradient(rgba(255, 201, 102, 0.26) 0 0);
+        /* 2. LE MÉTAL — six teintes qui dérivent lentement autour de la carte. */
+        conic-gradient(from var(--tse-sub-metal),
+          rgba(255, 196, 92,  0.52)   0deg,
+          rgba(255, 252, 236, 0.88)  46deg,   /* premier éclat, lent */
+          rgba(255, 240, 200, 0.60)  74deg,
+          rgba(255, 158, 205, 0.50) 120deg,
+          rgba(196, 150, 255, 0.44) 180deg,
+          rgba(255, 252, 236, 0.88) 226deg,   /* second éclat, à l'opposé */
+          rgba(255, 240, 200, 0.60) 254deg,
+          rgba(255, 196, 92,  0.52) 300deg,
+          rgba(255, 196, 92,  0.52) 360deg);
       /* Le halo suit la comète : le filtre s'applique APRÈS le masque, donc
-         l'ombre portée épouse l'anneau — et sa partie la plus lumineuse voyage
-         avec elle. C'est ce qui fait la différence entre un cadre doré et une
-         lumière qui court. */
-      filter: drop-shadow(0 0 3px rgba(255, 201, 102, 0.55));
+         l'ombre portée épouse le liseré — et sa partie la plus lumineuse
+         voyage avec elle. C'est ce qui fait la différence entre un cadre doré
+         et une lumière qui court. */
+      filter: drop-shadow(0 0 5px rgba(255, 205, 150, 0.55));
       /* Deux masques, l'un sur la boîte de contenu, l'autre sur la boîte
          entière ; leur DIFFÉRENCE ne laisse que l'anneau du padding. C'est ce
          qui fait un dégradé conique en bordure, chose qu'aucune propriété
-         « border » ne sait faire. Les deux syntaxes sont posées : la préfixée pour les
-         Chromium plus anciens, la standard pour les autres. */
+         « border » ne sait faire. Les deux syntaxes sont posées : la préfixée
+         pour les Chromium plus anciens, la standard pour les autres. */
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       mask-composite: exclude;
-      animation: tse-sub-turn 6s linear infinite,
-                 tse-sub-breathe 3.4s ease-in-out infinite;
-      animation-delay: calc(var(--tse-sub-phase, 0) * -0.5s),
-                       calc(var(--tse-sub-phase, 0) * -0.29s);
+      animation: tse-sub-turn 5s linear infinite,
+                 tse-sub-metal 19s linear infinite reverse,
+                 tse-sub-breathe 3.6s ease-in-out infinite;
+      animation-delay: calc(var(--tse-sub-phase, 0) * -0.42s),
+                       calc(var(--tse-sub-phase, 0) * -1.58s),
+                       calc(var(--tse-sub-phase, 0) * -0.31s);
       pointer-events: none;
       z-index: 2;
     }
     @keyframes tse-sub-turn    { to { --tse-sub-angle: 360deg; } }
-    @keyframes tse-sub-breathe { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }
-    /* L'avatar, seul élément qui subsiste en mode réduit. Les trois sélecteurs
-       reprennent la cascade de avatarOf() : figure, .tw-avatar, ou l'un dans
-       l'autre selon le rendu de Twitch. */
+    @keyframes tse-sub-metal   { to { --tse-sub-metal: 360deg; } }
+    @keyframes tse-sub-breathe { 0%, 100% { opacity: 0.78; } 50% { opacity: 1; } }
+
+    /* L'AVATAR — seul élément qui subsiste en mode réduit, donc le seul qui
+       puisse y porter le signal. Les trois sélecteurs reprennent la cascade de
+       avatarOf() : figure, .tw-avatar, ou l'un dans l'autre selon le rendu de
+       Twitch. Le halo est fixe ; l'anneau, lui, tourne. */
     .side-nav-card.tse-sub .side-nav-card__avatar figure,
     .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar,
     .side-nav-card.tse-sub figure.tw-avatar {
+      position: relative;
       border-radius: 50%;
-      box-shadow: 0 0 0 1.5px rgba(255, 201, 102, 0.90),
-                  0 0 7px rgba(255, 201, 102, 0.45);
+      box-shadow: 0 0 8px rgba(255, 201, 102, 0.45);
     }
-    /* Mouvement réduit : la demande est explicite, on la respecte. Le filet
-       reste — c'est l'information — mais il ne tourne plus. */
+    /* Sur un disque, l'angle conique se déplace à vitesse CONSTANTE le long du
+       bord — contrairement au rectangle de la carte, où il file sur les côtés
+       courts. Et il tourne À L'ENVERS de celui de la carte : les deux anneaux
+       se lisent alors comme deux pièces d'un même mécanisme, au lieu de
+       répéter le même geste côte à côte. */
+    .side-nav-card.tse-sub .side-nav-card__avatar figure::after,
+    .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar::after,
+    .side-nav-card.tse-sub figure.tw-avatar::after {
+      content: '';
+      position: absolute;
+      inset: -2.5px;
+      box-sizing: border-box;
+      border-radius: 50%;
+      padding: 2px;
+      background:
+        conic-gradient(from var(--tse-sub-angle),
+          rgba(255, 255, 255, 0)      0deg,
+          rgba(255, 255, 255, 1)     22deg,
+          rgba(255, 190, 225, 0.65)  44deg,
+          rgba(255, 255, 255, 0)     80deg,
+          rgba(255, 255, 255, 0)    360deg),
+        conic-gradient(from var(--tse-sub-metal),
+          rgba(255, 196, 92,  0.62)   0deg,
+          rgba(255, 240, 200, 0.78)  90deg,
+          rgba(255, 158, 205, 0.58) 180deg,
+          rgba(255, 240, 200, 0.78) 270deg,
+          rgba(255, 196, 92,  0.62) 360deg);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      animation: tse-sub-turn 5s linear infinite reverse,
+                 tse-sub-metal 19s linear infinite;
+      animation-delay: calc(var(--tse-sub-phase, 0) * -0.42s),
+                       calc(var(--tse-sub-phase, 0) * -1.58s);
+      pointer-events: none;
+    }
+    /* Mouvement réduit : la demande est explicite, on la respecte. Le liseré
+       reste — c'est lui qui porte l'information — mais plus rien ne bouge. */
     @media (prefers-reduced-motion: reduce) {
-      .side-nav-card.tse-sub::after {
+      .side-nav-card.tse-sub::after,
+      .side-nav-card.tse-sub .side-nav-card__avatar figure::after,
+      .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar::after,
+      .side-nav-card.tse-sub figure.tw-avatar::after {
         animation: none;
         background: linear-gradient(135deg,
-          rgba(255, 201, 102, 0.75),
-          rgba(255, 138, 196, 0.45) 55%,
-          rgba(255, 201, 102, 0.75));
+          rgba(255, 196, 92, 0.9),
+          rgba(255, 246, 214, 0.95) 35%,
+          rgba(255, 158, 205, 0.8) 65%,
+          rgba(255, 196, 92, 0.9));
       }
     }
 
@@ -3381,7 +3466,13 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 
     return { init, notifyScan,
       setHold, bumpActivity, startCycle,
-      journal: () => journal.slice() };
+      journal: () => journal.slice(),
+      // Les verrous POSÉS, et non leur effet chronométré. Un verrou se
+      // constate ; le déduire de l'instant où le voile se lève revient à
+      // mesurer une décision à travers la charge de la machine — ce qui rend
+      // un banc intermittent, donc muet le jour où il aurait quelque chose à
+      // dire.
+      verrous: () => [...verrous] };
   })();
 
   /* ============================================================
@@ -3838,6 +3929,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // suivants ni laisser l'iframe accrochée à la page.
     // `passe` marque l'onglet des abonnements révolus : c'est le seul sur
     // lequel l'étiquette de l'ancienneté peut être apprise (cf. mois()).
+    // Départ décalé : voir SUBS_PAGE_STAGGER. `rang` est la place de l'onglet
+    // dans la volée.
+    const visiterApres = (onglet, passe, rang) =>
+      new Promise(r => setTimeout(r, rang * CFG.SUBS_PAGE_STAGGER))
+        .then(() => visiter(onglet, passe));
+
     const visiter = (onglet, passe = false) => new Promise(resolve => {
       let cadre = document.createElement('iframe');
       let sondeur = null, limite = null;
@@ -3942,11 +4039,19 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
             touche = subs.noteMonths(login, m, true, true) || touche;
           }
         };
+        // Versé DÈS QU'UN ONGLET RENTRE, et non à la fin de la volée : la
+        // sidebar se décore alors au fil de l'eau, et le voile peut se lever
+        // sans attendre les onglets vides — qui n'apportent rien à voir.
         const verserCourant = (liste) => {
+          if (!liste.length) return;
           for (const { login, mois: m } of liste) {
             if (!trouves.includes(login)) trouves.push(login);
             touche = subs.noteMonths(login, m, false, true) || touche;
+            subs.record(login, true);
           }
+          if (touche) { subs.flush(); touche = false; }
+          scheduleScan();
+          premierResultat();
         };
 
         // L'étiquette de l'ancienneté ne s'apprend que sur l'onglet des
@@ -3965,21 +4070,18 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         // de Twitch qui démarrent en même temps, une fois toutes les six
         // heures, dans des iframes cachées.
         const encore = etiquette ? CFG.SUBS_PAGE_TABS_PAST : [];
-        const [passees, courantes] = await Promise.all([
-          Promise.all(encore.map(o => visiter(o, true))),
-          Promise.all(CFG.SUBS_PAGE_TABS.map(o => visiter(o))),
+        let rang = 0;
+        await Promise.all([
+          ...encore.map(o => visiterApres(o, true, rang++).then(verserPasse)),
+          ...CFG.SUBS_PAGE_TABS.map(o => visiterApres(o, false, rang++).then(verserCourant)),
         ]);
-        for (const liste of passees) verserPasse(liste);
-        for (const liste of courantes) verserCourant(liste);
-        if (touche) subs.flush();   // une seule écriture pour toute la rafale
-        for (const login of trouves) subs.record(login, true);
+        if (touche) subs.flush();   // ce que les onglets d'expirés ont apporté
         // Horodaté APRÈS l'enregistrement : l'horodatage veut dire « un relevé
         // est allé à son terme », et quiconque le lit doit trouver le résultat
         // déjà en mémoire. Marqué même à vide, en revanche — un compte sans
         // abonnement ne doit pas relancer un chargement de page toutes les
         // minutes.
         marquer();
-        if (trouves.length) scheduleScan();   // la pastille et le tri suivent
       } finally {
         // `running` est posé AVANT le premier await, et refresh() rend la main
         // tout de suite si un relevé tourne déjà : aucun second appel ne peut
@@ -4008,23 +4110,39 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       // d'arriver quelques secondes après lui. Un rafraîchissement de routine,
       // lui, ne retient rien — ce qu'il rafraîchit est déjà à l'écran.
       const aveugle = !horodatage();
-      let relacher = () => {};
-      if (aveugle) {
-        loadingOverlay.setHold(true, 'subs');
-        const secours = setTimeout(() => loadingOverlay.setHold(false, 'subs'),
-                                   CFG.SUBS_PAGE_HOLD_MAX);
-        relacher = () => {
-          clearTimeout(secours);
-          loadingOverlay.setHold(false, 'subs');
-          scheduleScan();   // le voile ne se lève que sur un scan : en voici un
-        };
-      }
-      refresh().catch(() => {}).then(relacher, relacher);
+      if (!aveugle) { premierResultat = () => {}; refresh().catch(() => {}); return; }
+
+      loadingOverlay.setHold(true, 'subs');
+      let repit = null;
+      const lever = () => {
+        if (repit) { clearTimeout(repit); repit = null; }
+        clearTimeout(secours);
+        premierResultat = () => {};
+        loadingOverlay.setHold(false, 'subs');
+        scheduleScan();   // le voile ne se lève que sur un scan : en voici un
+      };
+      const secours = setTimeout(lever, CFG.SUBS_PAGE_HOLD_MAX);
+      // Le premier onglet qui rend des chaînes rend la sidebar présentable.
+      // On accorde alors un court répit à ses voisins — ils sont partis à
+      // quelques centaines de millisecondes d'écart — puis on lève. Les
+      // onglets VIDES, eux, ne retiennent rien : ils n'apportent rien à voir,
+      // et leur attente d'apaisement est bien plus longue.
+      premierResultat = () => {
+        if (repit) return;
+        repit = setTimeout(lever, CFG.SUBS_PAGE_HOLD_GRACE);
+      };
+      // Filet : un relevé qui n'aurait RIEN rendu doit quand même rendre la
+      // main, sans attendre le délai maximal.
+      refresh().catch(() => {}).then(lever, lever);
     };
 
     // Déclencheur : le premier scan qui voit une carte suivie. Cf. l'en-tête —
     // c'est à la fois « pendant le chargement de la sidebar » et « la session
     // est connectée », en une seule condition qu'on n'a pas à deviner.
+    // Appelé dès qu'un onglet rend des chaînes : c'est l'instant où la sidebar
+    // devient présentable. demarrer() y accroche la levée du voile.
+    let premierResultat = () => {};
+
     let arme = false, parti = false;
     // Le déclencheur n'attend qu'une fois. Passé le départ, l'appelant n'a
     // plus à interroger le DOM du tout — d'où ce test préalable, à deux
@@ -4516,6 +4634,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // quelle raison, et ce qui l'a fait retomber. Sert à répondre à une
     // question qu'aucun harnais ne peut trancher — ce que fait VRAIMENT une
     // page Twitch au chargement.
+    // Verrous de voile actuellement posés (cf. loadingOverlay.setHold).
+    // 'global' = la marche du mode Top Chaînes ; 'subs' = le relevé des
+    // abonnements au premier démarrage.
+    verrous() { return loadingOverlay.verrous(); },
     cycles() {
       const j = loadingOverlay.journal();
       if (!j.length) { console.log('[tse] aucun cycle de voile enregistré.'); return j; }

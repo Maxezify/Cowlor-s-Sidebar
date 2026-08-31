@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.49.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.50.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -498,7 +498,17 @@ Deux changements le remettent d'aplomb :
 - **les onglets sont visités ensemble**, plus l'un après l'autre. La durée du
   relevé n'est plus leur somme mais celle du plus lent. Mesuré sur le banc :
   **5,2 s au lieu de 8,3 s**, et le rapport est bien plus favorable en
-  production, où les onglets vides coûtent 5 secondes chacun ;
+  production, où les onglets vides coûtent 5 secondes chacun. Leurs départs
+  sont **décalés de 400 ms** : quatre applications React qui démarrent à la
+  même milliseconde font un pic de calcul assez net pour retarder la sidebar
+  elle-même — constaté au banc, où le voile n'arrivait plus à se stabiliser.
+  Chacune durant plusieurs secondes, ce décalage ne coûte presque rien sur la
+  durée totale ;
+- **un onglet vide ne retient jamais le voile.** Il n'apporte rien à voir, et
+  son délai d'apaisement est le plus long de tous. Le voile se lève dès que le
+  premier onglet a rendu des chaînes, plus un court répit pour laisser ses
+  voisins arriver — et la sidebar se décore au fil de l'eau, onglet par
+  onglet, au lieu d'attendre la fin de la volée ;
 - **l'étiquette apprise est mémorisée** (`tse:submois`). C'est elle qui
   imposait de lire l'onglet des expirés en premier ; une fois connue, l'ordre
   n'a plus d'importance et tout part d'un bloc. Seule la toute première
@@ -533,11 +543,17 @@ précisément le relevé qui aurait réparé la donnée. Et `tse.reset()` emport
 désormais cet horodatage — effacer les abonnements puis s'interdire d'aller
 les rechercher n'était pas une remise à zéro.
 
-### Le style d'une chaîne abonnée (v3.45)
+### Le style d'une chaîne abonnée (v3.45, refondu en v3.50)
 
-Un filet d'or fait le tour de la carte, et une comète le parcourt sans fin.
-L'avatar porte le même or, en anneau fixe — c'est lui qui reste visible en mode
-réduit, où la carte n'est plus qu'une pastille.
+Un liseré de métal précieux cercle la carte. Sa teinte dérive lentement de l'or
+au rose et au mauve, deux éclats plus vifs y voyagent, et une comète blanche le
+parcourt bien plus vite **dans l'autre sens**. L'avatar porte le même liseré,
+qui tourne **à l'envers** de celui de la carte : les deux se lisent comme deux
+pièces d'un même mécanisme plutôt que comme le même geste répété. C'est aussi
+lui qui reste visible en mode réduit, où la carte n'est plus qu'une pastille.
+
+Deux vitesses contraires donnent une **matière** ; une seule aurait donné un
+néon. Le métal boucle en 19 s, la comète en 5 s.
 
 Ce style **ne touche pas au fond de la carte**, volontairement. Le fond
 appartient déjà à « stream frais » (violet) et au co-stream (couleur du

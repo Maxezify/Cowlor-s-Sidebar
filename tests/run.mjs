@@ -80,6 +80,31 @@ async function freshTwitch(playerBody, cdnUrls = [], chemin = '/', init = null) 
     route.fulfill({ contentType: 'image/png', body: PIXEL,
                     headers: { 'Cache-Control': 'max-age=300' } });
   });
+  // Veille du voile, posée dans toutes les pages. Elle date sa levée par
+  // rapport au démarrage de LA PAGE : une assertion fondée là-dessus ne dépend
+  // plus de la charge de la machine, alors qu'un « attendre 700 ms puis
+  // regarder » se met à mentir dès que le test tourne à côté d'autre chose.
+  // Posée sur documentElement, qui existe dès document_start, avec subtree :
+  // c'est la classe de <body> qui change, et <body> n'existe pas encore.
+  await page.addInitScript(() => {
+    window.__voileLeve = null;
+    const t0 = Date.now();
+    let vu = false;
+    const mo = new MutationObserver(() => {
+      const pose = document.body && document.body.classList.contains('tse-loading');
+      if (pose) { vu = true; return; }
+      if (vu && window.__voileLeve === null) window.__voileLeve = Date.now() - t0;
+    });
+    // documentElement n'existe pas encore dans toutes les frames à
+    // document_start — l'iframe du lecteur, notamment. On réessaie plutôt que
+    // de jeter : une exception ici ferait échouer la page entière.
+    const armer = () => {
+      if (!document.documentElement) { setTimeout(armer, 0); return; }
+      mo.observe(document.documentElement,
+                 { attributes: true, subtree: true, attributeFilter: ['class'] });
+    };
+    armer();
+  });
   // addInitScript s'exécute dans CHAQUE frame avant tout script de la page :
   // c'est le seul moyen d'atteindre l'iframe /subscriptions, qui est un
   // document neuf que le test ne peut pas préparer autrement.
@@ -3313,10 +3338,14 @@ console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
   // La pastille compte le TOTAL des abonnements connus, pas ceux qui émettent :
   // c'est un fait sur le compte, pas sur l'antenne. Cinq relevés, cinq
   // affichés, alors qu'une seule de ces chaînes a une carte dans la sidebar.
-  // L'horodatage dit que le relevé est rentré ; la pastille, elle, attend le
-  // scan qui suit. Deux faits distincts, deux attentes distinctes.
-  await attendre(page, () => !!document.querySelector(
-    '#tse-sort-row [data-tse-sort-mode="subs"] .tse-sort-count'));
+  // Les onglets rentrant l'un après l'autre depuis la 3.50, la pastille EXISTE
+  // dès le premier — avec un compte partiel. On attend donc qu'elle se pose,
+  // pas qu'elle apparaisse. L'attente est bornée : une pastille qui n'atteint
+  // jamais la bonne valeur fait échouer l'assertion, simplement plus tard.
+  await attendre(page, () => {
+    const el = document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"] .tse-sort-count');
+    return el && el.textContent === '5';
+  });
   ok('la pastille affiche le total des abonnements connus',
      (await pastille()) === '5', String(await pastille()));
 
@@ -3347,7 +3376,6 @@ console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un 
   const cadres = (page) => page.evaluate(() => [...document.querySelectorAll('iframe')]
     .filter(f => (f.src || '').includes('/subscriptions')).length);
   const stamp = (page) => page.evaluate(() => localStorage.getItem('tse:substs'));
-  const voile = (page) => page.evaluate(() => document.body.classList.contains('tse-loading'));
 
   // ── a) Sidebar sans chaîne suivie : le relevé ne part JAMAIS. ──────────
   // C'est la garde « session déconnectée » : personne n'a de chaînes suivies
@@ -3396,14 +3424,27 @@ console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un 
       window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
       window.__addCard('omofficial', 'G', '500');
     });
-    await wait(page, 700);
-    ok('rien en mémoire : le voile attend le relevé', (await voile(page)) === true,
-       'voile déjà levé');
-    // Le délai dur du voile reste souverain : la retenue ne peut pas
-    // l'éterniser (1,2 s dans le harnais, 15 s en production).
-    await wait(page, 900);
-    ok('mais le délai dur du voile reste souverain', (await voile(page)) === false,
-       'voile toujours posé');
+    // Sans retenue, le voile se lève dès la sidebar stable, ~350 ms après le
+    // premier scan. Avec, il va jusqu'à son délai dur (1,2 s dans le harnais).
+    // On mesure QUAND il s'est levé, pas s'il l'était à un instant choisi :
+    // l'assertion ne dépend plus de la vitesse de la machine.
+    // Le verrou est POSÉ — constaté, pas déduit. Il l'est au premier scan qui
+    // voit une carte suivie, donc on l'attend au lieu de le lire à l'aveugle.
+    let pose = [];
+    for (let i = 0; i < 60; i++) {
+      pose = await page.evaluate(() => window.tse.verrous());
+      if (pose.includes('subs')) break;
+      await wait(page, 40);
+    }
+    ok('rien en mémoire : le voile retient', pose.includes('subs'), JSON.stringify(pose));
+    await attendre(page, () => window.__voileLeve !== null, 8000);
+    const leve = await page.evaluate(() => window.__voileLeve);
+    ok('et il attend le relevé', leve !== null && leve > 900,
+       `voile levé après ${leve} ms`);
+    // Et le délai dur reste souverain : la retenue ne peut pas l'éterniser
+    // (1,2 s dans le harnais, 15 s en production).
+    ok('mais le délai dur du voile reste souverain', leve !== null && leve < 4000,
+       `voile levé après ${leve} ms`);
     await page.close();
   }
 
@@ -3414,7 +3455,6 @@ console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un 
   // et cette fois le voile se lève à l'heure.
   {
     const TIEDE = () => {
-      window.__subsDelay = 500;
       try {
         localStorage.setItem('tse:subs',
           JSON.stringify({ omofficial: [1, Date.now()] }));
@@ -3433,11 +3473,25 @@ console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un 
       window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
       window.__addCard('omofficial', 'G', '500');
     });
-    await wait(page, 700);
-    ok('un abonnement déjà connu : le voile ne retient rien', (await voile(page)) === false,
-       'voile encore posé');
-    // Les onglets partent ENSEMBLE depuis la 3.49 : plusieurs iframes
-    // coexistent pendant le relevé, là où il n'y en avait qu'une à la fois.
+    // On observe le VERROU, pas l'instant où le voile se lève. Le relevé fait
+    // démarrer plusieurs pages en arrière-plan ; sous cette charge, le voile
+    // peut atteindre son délai dur pour des raisons qui n'ont rien à voir avec
+    // une retenue. Mesurer la décision plutôt que son effet rend l'assertion
+    // indépendante de la machine — et c'est bien la décision qu'on a changée.
+    let poses = null;
+    for (let i = 0; i < 40; i++) {
+      poses = await page.evaluate(() => window.tse.verrous());
+      if (await page.evaluate(() => [...document.querySelectorAll('iframe')]
+        .some(f => (f.src || '').includes('/subscriptions')))) break;
+      await wait(page, 50);
+    }
+    ok('un abonnement déjà connu : le voile ne retient rien',
+       Array.isArray(poses) && !poses.includes('subs'), JSON.stringify(poses));
+    // Le rafraîchissement de routine, lui, part quand même — simplement sans
+    // rien retenir. Les onglets partant ENSEMBLE depuis la 3.49, plusieurs
+    // iframes coexistent, là où il n'y en avait qu'une à la fois.
+    await attendre(page, () => [...document.querySelectorAll('iframe')]
+      .some(f => (f.src || '').includes('/subscriptions')), 8000);
     ok('et le rafraîchissement de routine tourne quand même en arrière-plan',
        (await cadres(page)) >= 1, String(await cadres(page)));
     await page.close();
@@ -3561,8 +3615,29 @@ console.log('\n46. Abonnements — un onglet vide ne coûte pas le garde-fou');
     window.__addCard('omofficial', 'G', '500');
   });
   const debut = Date.now();
-  await attendre(page, () => !!localStorage.getItem('tse:substs'), 15_000);
+  // LE point de la levée anticipée : l'onglet peuplé rentre vite, les deux
+  // onglets vides s'attardent jusqu'à leur apaisement. Le verrou du voile doit
+  // tomber AVEC le premier — pas avec le dernier. On compare deux événements
+  // entre eux (verrou levé / relevé horodaté) et non à une horloge : un onglet
+  // vide n'a rien à montrer, il n'a donc rien à retenir.
+  let verrouVu = false;
+  let verrouLeveAvantLaFin = null;
+  for (let i = 0; i < 300; i++) {
+    const [verrous, stamp] = await page.evaluate(() => [
+      window.tse.verrous(), localStorage.getItem('tse:substs')]);
+    const pose = verrous.includes('subs');
+    if (pose) verrouVu = true;
+    // On ne conclut qu'APRÈS avoir vu le verrou posé : sans cette condition,
+    // la boucle répondait « levé » au premier tour, avant même que le relevé
+    // n'ait démarré — une assertion qui ne prouvait rien.
+    if (verrouVu && !pose && verrouLeveAvantLaFin === null) verrouLeveAvantLaFin = !stamp;
+    if (stamp) break;
+    await wait(page, 50);
+  }
+  ok('la retenue a bien été posée', verrouVu === true, 'verrou jamais observé');
   const duree = Date.now() - debut;
+  ok('le voile est levé dès le premier onglet peuplé, sans attendre les vides',
+     verrouLeveAvantLaFin === true, String(verrouLeveAvantLaFin));
   const trouves = await page.evaluate(() => Object.keys(
     JSON.parse(localStorage.getItem('tse:subs') || '{}')).sort().join(','));
   ok('l\'onglet peuplé est relevé quand même',
@@ -3778,10 +3853,10 @@ console.log('\n49. Abonnements — une liste qui s\'écrit par morceaux');
     window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
     window.__addCard('roicheese', 'G', '400');
   });
-  await wait(page, 700);
+  await attendre(page, () => window.__voileLeve !== null, 8000);
+  const leve = await page.evaluate(() => window.__voileLeve);
   ok('abonnements connus mais relevé périmé : le voile attend quand même',
-     (await page.evaluate(() => document.body.classList.contains('tse-loading'))) === true,
-     'voile déjà levé');
+     leve !== null && leve > 900, `voile levé après ${leve} ms`);
   await page.close();
 }
 
@@ -3854,12 +3929,16 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
     const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
     if (!c) return null;
     const apres = getComputedStyle(c, '::after');
+    const av = c.querySelector('.side-nav-card__avatar figure, .side-nav-card__avatar .tw-avatar');
+    const avApres = av ? getComputedStyle(av, '::after') : null;
     return {
       classe:    c.classList.contains('tse-sub'),
       phase:     c.style.getPropertyValue('--tse-sub-phase'),
       anim:      apres.animationName,
       pointeur:  apres.pointerEvents,
       halo:      getComputedStyle(c).boxShadow,
+      avatar:    avApres ? avApres.animationName : null,
+      avatarSens: avApres ? avApres.animationDirection : null,
     };
   }, login);
 
@@ -3869,8 +3948,21 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
   ok('la chaîne non abonnée ne la porte pas', non && non.classe === false, JSON.stringify(non));
   // La décoration EXISTE vraiment côté rendu : deux animations nommées sur le
   // ::after, et un halo sur la carte. Sans ça, la classe ne prouverait rien.
-  ok('le filet tourne et respire', !!abo && abo.anim.includes('tse-sub-turn')
-     && abo.anim.includes('tse-sub-breathe'), String(abo && abo.anim));
+  // Trois animations sur le liseré de la carte : la comète, le métal qui
+  // dérive, et la respiration. C'est leur superposition qui fait la matière —
+  // une seule donnerait un néon.
+  ok('le liseré porte ses trois mouvements', !!abo && abo.anim.includes('tse-sub-turn')
+     && abo.anim.includes('tse-sub-metal') && abo.anim.includes('tse-sub-breathe'),
+     String(abo && abo.anim));
+  // L'avatar porte le même liseré — c'est le SEUL élément qui subsiste en mode
+  // réduit, donc le seul qui puisse y porter le signal — et il tourne à
+  // l'envers de celui de la carte.
+  ok('l\'avatar porte le même liseré', !!abo && (abo.avatar || '').includes('tse-sub-turn'),
+     String(abo && abo.avatar));
+  ok('et il tourne à l\'envers de la carte',
+     (abo?.avatarSens || '').startsWith('reverse'), String(abo && abo.avatarSens));
+  ok('la chaîne non abonnée n\'a pas d\'anneau d\'avatar',
+     !non || non.avatar === 'none', String(non && non.avatar));
   ok('la carte porte le halo', !!abo && abo.halo !== 'none', String(abo && abo.halo));
   ok('et le décor ne capte pas les clics', !!abo && abo.pointeur === 'none',
      String(abo && abo.pointeur));
@@ -3895,6 +3987,7 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const calme = await marque('omofficial');
   ok('mouvement réduit : plus d\'animation', calme.anim === 'none', String(calme.anim));
+  ok('sur l\'avatar non plus', calme.avatar === 'none', String(calme.avatar));
   ok('mais la marque demeure', calme.classe === true, JSON.stringify(calme));
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
@@ -3923,24 +4016,39 @@ console.log('\n53. Abonnements — les onglets partent ensemble, l\'étiquette e
   // Nombre maximal d'iframes /subscriptions coexistant pendant le relevé.
   // C'est la mesure directe du parallélisme : à une par instant, le relevé
   // durait la SOMME des onglets et ne pouvait pas tenir sous le voile.
+  const compter = (page) => page.evaluate(() => [...document.querySelectorAll('iframe')]
+    .filter(f => (f.src || '').includes('/subscriptions')).length);
   const pic = async (page, ms) => {
     let max = 0;
     const fin = Date.now() + ms;
     while (Date.now() < fin) {
-      max = Math.max(max, await page.evaluate(() => [...document.querySelectorAll('iframe')]
-        .filter(f => (f.src || '').includes('/subscriptions')).length));
+      max = Math.max(max, await compter(page));
       await wait(page, 100);
     }
     return max;
+  };
+  // Pic mesuré à partir de la PREMIÈRE iframe, sur une fenêtre courte. C'est
+  // ce qui distingue les deux cas : sans étiquette connue, l'onglet des
+  // expirés tourne SEUL pendant ce temps-là ; avec, toute la volée est déjà
+  // partie. Les départs étant décalés (SUBS_PAGE_STAGGER), on ne regarde pas
+  // le tout premier instant mais une fenêtre qui les couvre.
+  const picInitial = async (page, ms) => {
+    await attendre(page, () => [...document.querySelectorAll('iframe')]
+      .some(f => (f.src || '').includes('/subscriptions')), 8000);
+    return pic(page, ms);
   };
 
   // ── a) profil neuf : l'étiquette est apprise, puis mémorisée ───────────
   {
     const page = await freshTwitch(PLAYER, [], '/');
     await poser(page);
+    const debut = await picInitial(page, 900);
     const max = await pic(page, 5000);
     await attendre(page, () => !!localStorage.getItem('tse:substs'));
     ok('plusieurs onglets sont lus en même temps', max >= 2, `pic de ${max} iframe(s)`);
+    // Étiquette inconnue : l'onglet des expirés doit passer SEUL d'abord.
+    ok('mais l\'étiquette inconnue impose une passe préalable, seule',
+       debut === 1, `pic initial de ${debut} iframe(s)`);
     const etiq = await page.evaluate(() => localStorage.getItem('tse:submois'));
     ok('l\'étiquette apprise est mémorisée',
        etiq === 'Nombre total de mois abonné :', String(etiq));
@@ -3962,13 +4070,10 @@ console.log('\n53. Abonnements — les onglets partent ensemble, l\'étiquette e
     };
     const page = await freshTwitch(PLAYER, [], '/', SU);
     await poser(page);
-    // Dès la PREMIÈRE apparition d'iframes, elles doivent être plusieurs.
-    await attendre(page, () => [...document.querySelectorAll('iframe')]
-      .some(f => (f.src || '').includes('/subscriptions')), 8000);
-    const dabord = await page.evaluate(() => [...document.querySelectorAll('iframe')]
-      .filter(f => (f.src || '').includes('/subscriptions')).length);
-    ok('l\'étiquette connue supprime la passe préalable', dabord >= 2,
-       `${dabord} iframe(s) au premier instant`);
+    // Même fenêtre, même mesure : cette fois toute la volée est déjà partie.
+    const dabord = await picInitial(page, 900);
+    ok('l\'étiquette connue supprime la passe préalable', dabord >= 3,
+       `pic initial de ${dabord} iframe(s)`);
     await attendre(page, () => !!localStorage.getItem('tse:substs'));
     await wait(page, 400);
     const mem = await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs') || '{}'));
