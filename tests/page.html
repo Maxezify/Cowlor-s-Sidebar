@@ -114,8 +114,27 @@ window.__addCard = (login, cat, viewersText, live = true) => {
     '<a class="side-nav-card__link" data-a-target="side-nav-card" ' +
         'id="nav-' + login + '" aria-label="' + login + ', ' + cat + '" ' +
         'data-test-selector="followed-channel" href="/' + login + '">' +
-      '<div class="side-nav-card__avatar' + (live ? '' : ' side-nav-card__avatar--offline') + '">' +
-        '<figure class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/' + login + '.png"></figure></div>' +
+      // __avatarNu : cartes dont l'avatar N'EST PAS enveloppé d'un <figure>.
+      // Twitch ne rend pas toujours la même chose — une chaîne avec des
+      // stories, par exemple, porte un décor supplémentaire autour de son
+      // avatar. avatarOf() couvre cinq formes ; un harnais qui n'en sert
+      // qu'une ne peut pas dire si le reste du code les couvre aussi.
+      // __avatarStories : l'avatar n'est PAS dans .side-nav-card__avatar mais
+      // dans un décor de stories, comme Twitch le rend pour une chaîne qui en
+      // publie. C'est la quatrième forme que couvre avatarOf(), et celle que
+      // le CSS ne couvrait pas — d'où un anneau présent sur une carte et
+      // absent sur sa voisine, sans raison visible.
+      ((window.__avatarStories || []).includes(login)
+        ? '<div class="stories-ring' + (live ? '' : ' side-nav-card__avatar--offline') + '">' +
+            ((window.__avatarNu || []).includes(login)
+              ? '<div class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/' + login + '.png"></div>'
+              : '<figure class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/' + login + '.png"></figure>') +
+          '</div>'
+        : '<div class="side-nav-card__avatar' + (live ? '' : ' side-nav-card__avatar--offline') + '">' +
+            ((window.__avatarNu || []).includes(login)
+              ? '<div class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/' + login + '.png"></div>'
+              : '<figure class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/' + login + '.png"></figure>') +
+          '</div>') +
       '<div class="mainblock"><div class="metacell">' +
         '<div data-a-target="side-nav-card-metadata">' +
           '<p data-a-target="side-nav-title">' + login + '</p>' +

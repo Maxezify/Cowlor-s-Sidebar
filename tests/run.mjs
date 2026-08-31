@@ -4182,6 +4182,131 @@ console.log('\n54. Abonnements — l\'origine est retenue, la teinte reste l\'or
   await page.close();
 }
 
+console.log('\n55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa forme');
+{
+  // Twitch ne rend pas toujours le même markup d'avatar : avatarOf() en
+  // couvre cinq formes. Le CSS n'en recopiait que trois — d'où un anneau
+  // présent sur une carte et absent sur sa voisine, pour la même raison
+  // invisible : un <figure> ici, un simple <div class="tw-avatar"> là.
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const NU = () => {
+    window.__noSubsPage = true;
+    // Quatre cartes, quatre formes d'avatar. La dernière — hors du bloc
+    // habituel ET sans <figure> — est celle qu'aucun sélecteur de la feuille
+    // de style n'atteignait : c'est la quatrième branche de avatarOf().
+    window.__avatarNu = ['clem_mlrt', 'domingo'];
+    window.__avatarStories = ['hasanabi', 'domingo'];
+    try {
+      localStorage.setItem('tse:subs', JSON.stringify({
+        etoiles: [1, Date.now()], clem_mlrt: [1, Date.now()],
+        hasanabi: [1, Date.now()], domingo: [1, Date.now()],
+      }));
+    } catch { /* stockage refusé : le test échouera, et c'est correct */ }
+  };
+  const page = await freshTwitch(PLAYER, [], '/', NU);
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = {
+      etoiles:   { id: '3', createdAt: h, viewers: 2600, game: 'G', tags: [] },
+      clem_mlrt: { id: '5', createdAt: h, viewers: 174,  game: 'G', tags: [] },
+      hasanabi:  { id: '7', createdAt: h, viewers: 29800, game: 'G', tags: [] },
+      domingo:   { id: '8', createdAt: h, viewers: 14200, game: 'G', tags: [] },
+    };
+    window.__addCard('etoiles', 'G', '2,6 k');
+    window.__addCard('clem_mlrt', 'G', '174');
+    window.__addCard('hasanabi', 'G', '29,8 k');
+    window.__addCard('domingo', 'G', '14,2 k');
+  });
+  await wait(page, 1800);
+
+  const anneau = (login) => page.evaluate((l) => {
+    const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
+    if (!c) return null;
+    // La cascade COMPLÈTE de avatarOf() : c'est elle qui fait autorité sur
+    // « où est l'avatar », et c'est elle que la décoration doit suivre.
+    const av = c.querySelector('.side-nav-card__avatar figure')
+            || c.querySelector('.side-nav-card__avatar .tw-avatar')
+            || c.querySelector('figure.tw-avatar')
+            || c.querySelector('.tw-avatar')
+            || c.querySelector('img.tw-image-avatar')?.closest('figure, .tw-avatar, div');
+    if (!av) return { forme: 'introuvable' };
+    const ap = getComputedStyle(av, '::after');
+    return {
+      forme:  av.tagName.toLowerCase(),
+      anneau: ap.content !== 'none',
+      anim:   ap.animationName,
+      halo:   getComputedStyle(av).animationName,
+    };
+  }, login);
+
+  const avecFigure = await anneau('etoiles');
+  const sansFigure = await anneau('clem_mlrt');
+  const horsBloc  = await anneau('hasanabi');
+  ok('le harnais sert bien trois formes différentes',
+     avecFigure?.forme === 'figure' && sansFigure?.forme === 'div'
+     && horsBloc?.forme === 'figure',
+     JSON.stringify([avecFigure?.forme, sansFigure?.forme, horsBloc?.forme]));
+  ok('l\'avatar enveloppé d\'un <figure> porte l\'anneau',
+     avecFigure?.anneau === true && avecFigure?.anim === 'tse-sub-turn',
+     JSON.stringify(avecFigure));
+  ok('celui qui n\'en a pas le porte aussi',
+     sansFigure?.anneau === true && sansFigure?.anim === 'tse-sub-turn',
+     JSON.stringify(sansFigure));
+  ok('et son halo respire de même', sansFigure?.halo === 'tse-sub-souffle',
+     JSON.stringify(sansFigure));
+  // LE cas signalé : un avatar rendu hors du bloc habituel — une chaîne qui
+  // publie des stories — n'avait pas d'anneau, alors que sa voisine en avait un.
+  ok('et celui qui est rendu hors du bloc habituel aussi',
+     horsBloc?.anneau === true && horsBloc?.anim === 'tse-sub-turn',
+     JSON.stringify(horsBloc));
+  ok('avec son halo', horsBloc?.halo === 'tse-sub-souffle', JSON.stringify(horsBloc));
+  // LA forme qu'aucun sélecteur n'atteignait : hors du bloc ET sans <figure>.
+  const nulPart = await anneau('domingo');
+  ok('et celui qui cumule les deux différences aussi',
+     nulPart?.anneau === true && nulPart?.anim === 'tse-sub-turn', JSON.stringify(nulPart));
+  // La marque suit l'avatar, et elle est UNIQUE dans la carte : une carte
+  // recyclée ne doit pas garder l'ancienne.
+  ok('une seule marque d\'avatar par carte',
+     await page.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
+       .every(c => c.querySelectorAll('.tse-sub-avatar').length <= 1)));
+  await page.close();
+}
+
+console.log('\n56. Filtres — la rangée de tri est alignée sur celle des filtres');
+{
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const page = await freshTwitch(PLAYER, [], '/');
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { alpha: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+    window.__addCard('alpha', 'G', '500');
+  });
+  await wait(page, 1500);
+  const bords = await page.evaluate(() => {
+    const filtres = document.querySelector('.tse-filter-row');
+    const boutons = [...document.querySelectorAll('#tse-sort-row button[data-tse-sort-mode]')];
+    if (!filtres || boutons.length < 2) return null;
+    const f = filtres.getBoundingClientRect();
+    const p = boutons[0].getBoundingClientRect();
+    const d = boutons[boutons.length - 1].getBoundingClientRect();
+    return { gauche: +(p.left - f.left).toFixed(2), droite: +(f.right - d.right).toFixed(2),
+             largeur: +p.width.toFixed(2), n: boutons.length };
+  });
+  // Les deux rangées vivent dans le même conteneur : leurs bords doivent
+  // coïncider. Un pixel de tolérance pour l'arrondi de rendu.
+  ok('le premier bouton touche le bord gauche des filtres',
+     bords !== null && Math.abs(bords.gauche) <= 1, JSON.stringify(bords));
+  ok('le dernier touche le bord droit',
+     bords !== null && Math.abs(bords.droite) <= 1, JSON.stringify(bords));
+  ok('et les marges gauche et droite sont égales',
+     bords !== null && Math.abs(bords.gauche - bords.droite) <= 1, JSON.stringify(bords));
+  // La contrepartie assumée : des boutons un peu plus larges que les 28 px
+  // d'origine, sans devenir des pavés.
+  ok('les boutons se sont élargis en conséquence',
+     bords !== null && bords.largeur > 28 && bords.largeur <= 44, JSON.stringify(bords));
+  await page.close();
+}
+
 await browser.close();
 console.log(`\n${'═'.repeat(50)}\n${pass} réussis, ${fail} échoués\n`);
 process.exit(fail ? 1 : 0);

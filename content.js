@@ -1650,9 +1650,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }
 
     /* L'AVATAR — seul élément qui subsiste en mode réduit, donc le seul qui
-       puisse y porter le signal : ni fond ni nom n'y sont visibles. Les trois
-       sélecteurs reprennent la cascade de avatarOf() : figure, .tw-avatar, ou
-       l'un dans l'autre selon le rendu de Twitch.
+       puisse y porter le signal : ni fond ni nom n'y sont visibles. Il est
+       désigné par une CLASSE, posée en JS d'après avatarOf() : Twitch rend
+       cinq formes d'avatar différentes, et une feuille de style qui les
+       RECOPIE finit par en oublier une — d'où un anneau présent sur une carte
+       et absent sur sa voisine, sans raison visible (cf. markSubAvatar).
 
        L'OR, POUR TOUT ABONNEMENT, quel que soit l'onglet d'où il vient —
        payant, offert, mobile — et qu'il ait été relevé sur la page ou appris
@@ -1667,9 +1669,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       --tse-sub-or:    rgba(255, 196,  92, 1);
       --tse-sub-clair: rgba(255, 246, 214, 1);
     }
-    .side-nav-card.tse-sub .side-nav-card__avatar figure,
-    .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar,
-    .side-nav-card.tse-sub figure.tw-avatar {
+    .side-nav-card.tse-sub .tse-sub-avatar {
       position: relative;
       border-radius: 50%;
       /* Le halo respire. C'est une ombre portée sur un disque de trente
@@ -1682,9 +1682,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       0%, 100% { box-shadow: 0 0 5px color-mix(in srgb, var(--tse-sub-or) 30%, transparent); }
       50%      { box-shadow: 0 0 11px color-mix(in srgb, var(--tse-sub-or) 62%, transparent); }
     }
-    .side-nav-card.tse-sub .side-nav-card__avatar figure::after,
-    .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar::after,
-    .side-nav-card.tse-sub figure.tw-avatar::after {
+    .side-nav-card.tse-sub .tse-sub-avatar::after {
       content: '';
       position: absolute;
       inset: -2.5px;
@@ -1733,22 +1731,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       .side-nav-card.tse-sub .side-nav-card__metadata p[title]:not([data-a-target="side-nav-title"]),
       .side-nav-card.tse-sub [data-a-target="side-nav-card-metadata"] p[title]:not([data-a-target="side-nav-title"]),
       .side-nav-card.tse-sub [class*="promoted-followed-card__content"] p[title]:not([data-a-target="side-nav-title"]),
-      .side-nav-card.tse-sub .side-nav-card__avatar figure,
-      .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar,
-      .side-nav-card.tse-sub figure.tw-avatar,
-      .side-nav-card.tse-sub .side-nav-card__avatar figure::after,
-      .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar::after,
-      .side-nav-card.tse-sub figure.tw-avatar::after {
+      .side-nav-card.tse-sub .tse-sub-avatar,
+      .side-nav-card.tse-sub .tse-sub-avatar::after {
         animation: none;
       }
-      .side-nav-card.tse-sub .side-nav-card__avatar figure,
-      .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar,
-      .side-nav-card.tse-sub figure.tw-avatar {
+      .side-nav-card.tse-sub .tse-sub-avatar {
         box-shadow: 0 0 8px color-mix(in srgb, var(--tse-sub-or) 45%, transparent);
       }
-      .side-nav-card.tse-sub .side-nav-card__avatar figure::after,
-      .side-nav-card.tse-sub .side-nav-card__avatar .tw-avatar::after,
-      .side-nav-card.tse-sub figure.tw-avatar::after {
+      .side-nav-card.tse-sub .tse-sub-avatar::after {
         background: linear-gradient(135deg,
           rgba(255, 196, 92, 0.9),
           rgba(255, 246, 214, 0.95) 35%,
@@ -1833,9 +1823,14 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     .tse-dd--lang .tse-dd-opt .tse-flag svg { width: 22px; height: 22px; }
 
     .tse-sort-toggle {
-      flex: 0 0 auto;
+      /* S'étire pour remplir la rangée — d'où des boutons un peu plus larges
+         que les 28 px d'origine. La borne haute évite qu'ils ne s'étalent en
+         pavés sur une sidebar large ; la borne basse garde la cible cliquable
+         au-dessus du minimum confortable. */
+      flex: 1 1 0;
+      min-width: 28px; max-width: 44px;
       position: relative;   /* ancre du compteur, cf. .tse-sort-count */
-      width: 28px; height: 28px;
+      width: auto; height: 28px;
       display: inline-flex; align-items: center; justify-content: center;
       padding: 0;
       background: rgba(0, 0, 0, 0.4);
@@ -1905,9 +1900,16 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     }
     .tse-sort-toggle:disabled svg { opacity: 0.35; }
 
-    /* === Ligne des boutons de tri (sous les dropdowns, centrée) === */
+    /* === Ligne des boutons de tri (sous les dropdowns) ===
+       ALIGNÉE SUR LES FILTRES, bord à bord. Les boutons s'étirent pour
+       occuper toute la largeur : le premier touche le bord gauche, le dernier
+       le bord droit, exactement comme les listes déroulantes juste au-dessus.
+       Centrée avec des boutons de largeur fixe, la rangée laissait de part et
+       d'autre une marge qui ne correspondait à rien.
+       Le space-between n'intervient que si les boutons plafonnent (sidebar
+       large) : les bords, eux, restent flush dans tous les cas. */
     .tse-sort-row {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
       margin-top: 4px;
     }
 
@@ -4981,11 +4983,36 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    * arrière plusieurs fois par seconde — et alimenterait une boucle de
    * mutations qui redéclencherait le scan suivant.
    */
+  /**
+   * Marque l'avatar de la carte, pour que le CSS le trouve.
+   *
+   * POURQUOI PASSER PAR LE JS. Twitch ne rend pas toujours le même markup
+   * d'avatar : avatarOf() en couvre cinq formes. La feuille de style en
+   * RECOPIAIT trois — et une carte dont l'avatar prenait l'une des deux
+   * autres n'avait pas d'anneau, sans raison visible pour qui regarde la
+   * sidebar. Recopier une cascade, c'est se condamner à ce qu'elle dérive.
+   * Le JS marque donc l'élément que avatarOf() désigne, et le CSS ne connaît
+   * plus qu'une classe.
+   *
+   * Le nettoyage passe par querySelectorAll : une carte recyclée par React
+   * peut porter la marque sur un ancien élément, qui n'est plus l'avatar.
+   */
+  const markSubAvatar = (card, abonne) => {
+    const cible = abonne ? avatarOf(card) : null;
+    for (const el of card.querySelectorAll('.tse-sub-avatar')) {
+      if (el !== cible) el.classList.remove('tse-sub-avatar');
+    }
+    if (cible && !cible.classList.contains('tse-sub-avatar')) {
+      cible.classList.add('tse-sub-avatar');
+    }
+  };
+
   const applySubStyle = (card, login) => {
     const abonne = subs.isSub(login);
     if (card.classList.contains('tse-sub') !== abonne) {
       card.classList.toggle('tse-sub', abonne);
     }
+    markSubAvatar(card, abonne);
     if (!abonne) {
       if (card.style.getPropertyValue('--tse-sub-phase')) {
         card.style.removeProperty('--tse-sub-phase');

@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.52.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.53.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -556,8 +556,15 @@ Dans le **fond de la carte**, une lueur circule : trois nappes colorées qui
 dérivent chacune à sa vitesse, et un voile lumineux qui balaie la carte en
 diagonale de loin en loin.
 
-L'avatar porte un **anneau d'or tournant**, dont le halo respire. C'est le seul
-élément qui subsiste en mode réduit, où il n'y a ni fond ni texte à colorer —
+L'avatar porte un **anneau d'or tournant**, dont le halo respire. L'élément à
+décorer est **désigné en JS** par `avatarOf()`, la fonction qui fait déjà
+autorité ailleurs dans le code : Twitch rend cinq formes d'avatar différentes,
+et la feuille de style n'en recopiait que trois — d'où un anneau présent sur
+une carte et absent sur sa voisine, sans raison visible. Recopier une cascade,
+c'est se condamner à ce qu'elle dérive.
+
+C'est le seul élément qui subsiste en mode réduit, où il n'y a ni fond ni texte
+à colorer —
 et il est **doré pour tout abonnement**, quel que soit l'onglet d'où il vient.
 Une teinte par origine (or, or rose, platine) a été essayée puis retirée : le
 signal « abonné » est binaire, et le décliner en trois couleurs demandait de
@@ -647,6 +654,12 @@ Le bouton de tri natif de Twitch — les flèches ↕ à droite de « Chaînes s
     ┌─────────────────┬─────────────┐
     │ Chaînes suivies │ Top Chaînes │
     └─────────────────┴─────────────┘
+
+La rangée des six boutons de tri, elle, est **alignée bord à bord sur celle des
+filtres** (v3.53) : les boutons s'étirent pour occuper toute la largeur, le
+premier touchant le bord gauche et le dernier le bord droit, exactement comme
+les listes déroulantes au-dessus. Centrée avec des boutons de largeur fixe, la
+rangée laissait de part et d'autre une marge qui ne correspondait à rien.
 
 Une piste unique, aux mêmes surfaces que les listes déroulantes juste en dessous
 et exactement à la même hauteur, dans laquelle un curseur violet se déplace d'un

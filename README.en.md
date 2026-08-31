@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.52.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.53.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -537,9 +537,15 @@ In the **card's background**, a glow circulates: three coloured washes each
 drifting at its own speed, and a light veil sweeping the card diagonally now
 and then.
 
-The avatar wears a **turning gold ring** whose halo breathes. It is the only
-element left in collapsed mode, where there is neither background nor text to
-colour — and it is **gold for every subscription**, whichever tab it came from.
+The avatar wears a **turning gold ring** whose halo breathes. The element to
+decorate is **named from JS** by `avatarOf()`, the function that already has
+authority elsewhere in the code: Twitch renders five different avatar shapes,
+and the stylesheet only copied three of them — hence a ring present on one card
+and missing on its neighbour, for no visible reason. Copying a cascade is
+condemning it to drift.
+
+It is the only element left in collapsed mode, where there is neither
+background nor text to colour — and it is **gold for every subscription**, whichever tab it came from.
 A tint per origin (gold, rose gold, platinum) was tried and dropped: the
 "subscribed" signal is binary, and splitting it into three colours asked the
 reader to memorise a code for a distinction that does not matter there.
