@@ -1,58 +1,174 @@
-Die Twitch-Sidebar sagt dir, wer live ist. Sie sagt nicht, seit wann, mit wem,
-oder was gerade im Stream passiert. Diese Erweiterung schon — ohne Konto, ohne
-Einstellungen, ohne Werbung.
+★ TWITCH, NUR BESSER! ★
 
+Weißt du, was deiner Twitch-Sidebar fehlt? All die kleinen Infos, die du gern hättest, OHNE überall herumzuklicken. ★ COWLOR'S SIDEBAR ★ setzt sie genau dorthin, wo du sowieso schon hinschaust. Einfach, elegant und so praktisch!
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-WAS DU ZUSÄTZLICH SIEHST
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_______________________________
 
-★ Stream-Dauer auf jeder Karte — seit wann der Kanal sendet.
-★ Vorschau beim Überfahren — eine Sekunde, und der Stream läuft wirklich, mit
-  vollem Titel und Kontext. Ohne Preroll-Werbung.
-★ Farbige Co-Streams — Kanäle, die zusammen streamen, tragen dieselbe Farbe,
-  samt Rolle (Host oder Gast), aus der Seite gelesen.
-★ Gerade gestartete Streams, mit einer Kante markiert.
-★ Hype Trains und Abo-Rabattbanner ausgeblendet, gesponserte Karten
-  vereinheitlicht.
-★ Offline-Kanäle und leere Abschnitte ausgeblendet, die Liste der gefolgten
-  Kanäle klappt von selbst auf.
+✨ WAS SIE WIRKLICH MACHT:
 
+_______________________________
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-DEINE ABOS, ERKANNT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+➤ 📺 EINE LIVE-VORSCHAU BEIM ÜBERFAHREN
+Die Paradefunktion. Fahre eine Sekunde über einen Streamer und zack, seitlich öffnet sich ein Fenster mit:
 
-★ Goldener Name, goldene Kategorie, ein goldener Ring um den Avatar und eine
-  dezente Animation im Hintergrund der Karte.
-★ Eine Sortierung „Meine Abos zuerst" mit der Gesamtzahl auf einem Abzeichen.
-★ In der Vorschau ein Abzeichen „9 Monate abonniert" — oder „Früher 22 Monate
-  abonniert" für einen Kanal, den du in der Vergangenheit unterstützt hast.
-★ Bezahlt, geschenkt, mobil: alle drei zählen und tragen dasselbe Gold.
+- Dem LIVE-Video des Streams (der echte Stream, kein eingefrorenes Vorschaubild)
+- Dem vollständigen Stream-Titel, lesbar bevor du überhaupt klickst
+- Abzeichen, die dir alles über den Kontext sagen (siehe gleich darunter)
 
+Und das funktioniert überall in der Sidebar: gefolgte Kanäle, empfohlene Kanäle, sogar „Zuschauer von X sehen auch". Schluss mit Klicken, nur um zu wissen, was in einem Stream gerade passiert!
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FINDEN, SORTIEREN
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_______________________________
 
-★ Filter nach Kategorie und Sprache, mit Flaggen. Angeboten wird nur, was bei
-  deinen Kanälen wirklich vorkommt — nichts einzustellen.
-★ Sechs Sortierungen: Zuschauer, Abos, eigene Beliebtheit, Stream-Dauer,
-  alphabetisch, Co-Streams gruppiert.
-★ Modus „Top-Kanäle": die 30 meistgesehenen Kanäle auf Twitch, global, nach
-  Kategorie oder nach Sprache. Twitch liefert diese Rangliste nicht; die
-  Erweiterung baut sie neu auf und sagt es, wenn sie keinen Beleg dafür hat.
+➤ 🏷️ ABZEICHEN, DIE DIR ALLES SAGEN
+Im Vorschaufenster fassen farbige Etiketten den Kontext des Streams auf einen Blick zusammen:
 
+- 🤝 ★ CO-STREAM ★ Sagt dir genau, ob der Kanal Host oder Gast ist — und mit wem. Schluss mit „Moment, was ist das für ein Stream, dem ich gar nicht folge?".
+- 👥 ★ LIVE MIT ★ Bei Squads und Multistreams: der Haupt-Co-Streamer und wie viele weitere dabei sind („Live mit Soundso und 3 weiteren").
+- 💜 ★ ABONNIERT ★ Seit wann du den Kanal unterstützt („9 Monate abonniert") — oder dass du es früher getan hast („Früher 22 Monate abonniert").
+- 💰 ★ GESPONSERT VON ★ Bei gesponserten Streams: die Marke mit ihrem farbigen Logo. Du weißt, wer dahintersteckt.
+- 🚂 ★ HYPE TRAIN ★ Auf dem Kanal läuft ein Hype Train? Du erfährst es, ohne klicken zu müssen.
+- 💎 ★ ABO IM ANGEBOT ★ Wenn Twitch im Stream ein vergünstigtes Abo anbietet, steht es genau dort.
+- ⚠️ ★ INHALTSHINWEISE ★ Die offiziellen Twitch-Labels (Inhalte für Erwachsene, Gewalt, Glücksspiel…) tauchen in der Vorschau auf.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SCHNELLER ALS TWITCH
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_______________________________
 
-Twitch braucht 2 bis 4 Minuten, um einen gefolgten Kanal anzuzeigen, der gerade
-live gegangen ist, und 5 bis 10 Minuten, um einen zu entfernen, der gerade
-aufgehört hat. Die Erweiterung aktualisiert alles selbst, alle 30 Sekunden:
-Zuschauer, Kategorie, Sprache, Dauer, Auftauchen und Verschwinden.
+➤ ⏱️ „WIE LANGE STREAMT ER SCHON?"
+Kein Besuch des Streams mehr nötig! Die Erweiterung zeigt die Live-Dauer direkt in der Sidebar, gleich unter der Zuschauerzahl.
 
+- 4h19, 14h29… du siehst es auf einen Blick.
+- Aktualisiert sich von selbst, in Echtzeit.
+- Und wenn ein Stream endet, wechselt der Zähler auf ein dezentes kursives „Beendet", noch bevor Twitch den Streamer aus der Liste nimmt.
+
+_______________________________
+
+➤ 🎯 COLLABS AM AVATAR MARKIERT
+Ein kleiner violetter Punkt erscheint unten rechts am Avatar der Streamer, die einen Co-Stream hosten, samt Teilnehmerzahl. Kein Überfahren nötig, direkt in der Sidebar sichtbar. Sauber, dezent, und du weißt sofort: „aha, der macht was mit 2 anderen zusammen".
+
+_______________________________
+
+➤ 💜 DEINE ABOS, IN GOLD
+Die Kanäle, die du wirklich unterstützt, sollten nicht aussehen wie alle anderen. Ab jetzt tun sie das nicht mehr:
+
+- ★ DIE GANZE KARTE LEUCHTET ★ Goldener Name, goldene Kategorie, ein goldener Ring um den Avatar und ein langsames Schimmern im Hintergrund der Karte. Dezent, aber nicht zu übersehen.
+- ★ EINE EIGENE SORTIERUNG ★ „Meine Abos zuerst" holt sie alle nach oben, mit deiner Gesamtzahl auf einem kleinen Abzeichen.
+- ★ ALLE ARTEN ZÄHLEN ★ Bezahlt, geschenkt, mobil: alle drei werden erkannt, und alle drei tragen dasselbe Gold.
+- ★ SEIT WANN DU DABEI BIST ★ Fahre über einen Kanal, und die Vorschau sagt es dir: „9 Monate abonniert". Und bei einem früher unterstützten Kanal: „Früher 22 Monate abonniert".
+- ★ SIE FINDET ES ALLEIN HERAUS ★ Nichts einzustellen, keine Anmeldung, kein Passwort, kein Token. Wie genau? Das steht im Klartext weiter unten im Abschnitt DATENSCHUTZ.
+
+_______________________________
+
+➤ ✨ VERPASSE NIE WIEDER EINEN STREAM-START!
+Erkenne sofort, welche Streams gerade erst live gegangen sind! Ein dezenter violetter Balken links markiert Streams, die in den letzten Minuten gestartet sind.
+
+- Ein feiner, eleganter visueller Effekt, um den Streamer zu begrüßen.
+- Perfekt, um unter den Ersten zu sein und nie das Intro zu verpassen!
+- Die Animation verblasst nach ein paar Minuten von selbst.
+
+_______________________________
+
+➤ ⚡ SCHNELLER ALS TWITCH SELBST
+Twitch aktualisiert seine eigene Sidebar selten: ein gefolgter Kanal, der gerade live gegangen ist, braucht 2 bis 4 Minuten zum Auftauchen, und ein Kanal, der gerade aufgehört hat, bleibt noch 5 bis 10 Minuten stehen. Die Erweiterung aktualisiert alles selbst, alle 30 Sekunden — Zuschauer, Kategorie, Sprache, Dauer, Erscheinen und Verschwinden. Du siehst es vor Twitch.
+
+_______________________________
+
+➤ 🚂 UND TSCHÜSS, VISUELLES DURCHEINANDER
+Wir haben alles entfernt, was die Sidebar zum Chaos macht:
+
+- Hype Trains, die den halben Platz einnehmen (die Info bleibt als Abzeichen in der Vorschau, keine Sorge, nichts geht verloren)
+- Aufdringliche Banner für vergünstigte Abos
+- Streamer, die gerade offline gegangen sind und trotzdem noch herumstehen
+- Ganze Abschnitte, die am Ende leer sind
+- Überflüssige visuelle Indikatoren (diese mehrdeutigen kleinen farbigen Kreise, nutzlose „DROPS REBROADCAST"-Zeilen…)
+- Sponsoring-Banner, die Streamer-Einträge entstellen: wir räumen das alles weg, und die Info „gesponsert von X" kommt sauberer in der Vorschau zurück.
+
+Ergebnis: deine Sidebar zeigt nur noch, was zählt. Ohne dass du irgendetwas einstellen musst.
+
+_______________________________
+
+➤ 📂 KEIN „MEHR ANZEIGEN" MEHR ZUM KLICKEN
+Die vollständige Liste deiner gefolgten Kanäle wird bei jedem Seitenaufruf automatisch aufgeklappt. Du siehst alles, sofort.
+
+_______________________________
+
+➤ 🔍 KATEGORIEFILTER
+Über deiner Liste erscheint eine Filterleiste. Wähle eine Kategorie (Just Chatting, League of Legends, IRL…) und nur die Streamer, die sie gerade spielen, bleiben sichtbar. Die Kategorieliste wird laufend berechnet: nur die, in denen deine Kanäle tatsächlich live sind.
+
+_______________________________
+
+➤ 🌐 SPRACHFILTER
+Gleiches Prinzip, aber für die Sprache der Streams. Ein Dropdown mit Flaggen zeigt nur die Streamer, die in der gewählten Sprache senden. Auch hier werden nur die Sprachen angeboten, die bei deinen Live-Kanälen wirklich vorkommen: keine endlose Liste, nur was dich betrifft.
+
+_______________________________
+
+➤ 🏆 TOP-KANÄLE: GANZ TWITCH IN DEINER SIDEBAR
+Ein Tab oben in der Sidebar, ein Klick, und es kippt um: statt deiner gefolgten Kanäle die 30 meistgesehenen Kanäle auf Twitch, live.
+
+- 🌍 ★ DIE WELTRANGLISTE ★ Laufend neu berechnet, keine eingefrorene Liste.
+- 🎮 ★ NACH KATEGORIE ★ Wähle Just Chatting, GTA V, League of Legends… und du bekommst die 30 größten Streams AUS dieser Kategorie.
+- 🇩🇪 ★ NACH SPRACHE ★ Wähle eine Sprache und du bekommst eine echte Top 30 dafür — kein grober Filter über einer englischsprachigen Liste.
+- 👀 ★ ALLES ANDERE ZIEHT MIT ★ Vorschau beim Überfahren, Stream-Dauer, Abzeichen, Co-Streams: es sind Karten wie alle anderen.
+- ✅ ★ EHRLICH ★ Wenn die Vollständigkeit der Rangliste nicht garantiert werden kann, sagt es die Erweiterung. Keine erfundenen Zahlen.
+
+Ein Klick hin, ein Klick zurück. Deine gefolgten Kanäle rühren sich keinen Pixel.
+
+_______________________________
+
+➤ 🔄 SECHS ARTEN, DEINE LISTE ZU SORTIEREN
+Sechs Knöpfe oben in der Sidebar, um alles im Handumdrehen neu zu ordnen:
+
+- 👁️ ★ NACH ZUSCHAUERN ★ Twitchs Standardsortierung, sauber.
+- 💎 ★ MEINE ABOS ZUERST ★ Die Kanäle, die du unterstützt, oben gruppiert, mit deiner Gesamtzahl auf einem Abzeichen.
+- ⭐ ★ NACH EIGENER BELIEBTHEIT ★ Auf Basis deines eigenen, lokalen Besuchsverlaufs. Deine Lieblingsstreamer steigen nach oben.
+- ⏰ ★ NACH STREAM-DAUER ★ Aufsteigend: gerade gestartete Streams stehen oben, perfekt, um Anfänge zu erwischen.
+- 🔤 ★ ALPHABETISCH ★ Nach Kanalname. Klassisch, aber wirksam.
+- 🔗 ★ CO-STREAMS ZUERST ★ Alle Co-Streams oben in der Liste gruppiert. Nie wieder eine Collab verpassen!
+
+_______________________________
+
+➤ 📊 DEINE TOP-STREAMER, LOKAL
+Die Erweiterung merkt sich, welche Kanäle du besuchst, wann und wie oft. Diese Daten speisen die Sortierung „Eigene Beliebtheit" und bleiben AUSSCHLIESSLICH in deinem Browser gespeichert. Nichts verlässt deinen Rechner.
+
+Deine Top-Liste kannst du in der DevTools-Konsole (F12) einsehen:
+- tse.scores()       → deine Top-Streamer
+- tse.scores.raw()   → die Rohdaten
+- tse.subs()         → die von der Erweiterung erkannten Abos
+- tse.subs.refresh() → sie sofort neu einlesen
+- tse.reset()        → alles löschen
+
+_______________________________
+
+➤ 🎮 WIE GEHT DAS?
+
+1. Auf „Zu Chrome hinzufügen" klicken (kostenlos!)
+2. Twitch neu laden und… tadaaaa!
+
+Das war's. Wirklich. Keine komplizierte Konfiguration, keine versteckten Menüs, kein Konto anzulegen. Es funktioniert, Punkt.
+
+_______________________________
+
+➤ 💜 WARUM DU SIE LIEBEN WIRST
+
+- ★ SIE IST DEZENT ★ Wir haben dein geliebtes Twitch nicht angerührt, nur verbessert.
+- ★ SIE IST HÜBSCH ★ Flüssige Animationen, Farben, die knallen, Augenschmaus.
+- ★ SIE IST NÜTZLICH ★ Schluss mit Herumklicken für wichtige Infos.
+- ★ SIE IST GRATIS ★ Kein Abo, keine Werbung, kein Konto. Ein Geschenk!
+
+_______________________________
+
+➤ 🌍 IN DEINER SPRACHE
+
+Die Erweiterung erkennt automatisch die Sprache deines Twitch und passt jede Beschriftung, jedes Abzeichen und jeden Tooltip an:
+
+- 🇬🇧 English
+- 🇫🇷 Français
+- 🇩🇪 Deutsch
+- 🇪🇸 Español
+- 🇧🇷🇵🇹 Português (Brasilien und Portugal)
+- 🌐 …und Englisch als Standard für alle anderen Sprachen
+
+Es gibt schlicht nichts einzustellen.
+
+_______________________________
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DATENSCHUTZ
@@ -77,20 +193,22 @@ DATENSCHUTZ
 ★ Alles lässt sich auf einmal löschen: lösche die Website-Daten von twitch.tv in
   den Einstellungen deines Browsers.
 
+_______________________________
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-KOMPATIBILITÄT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+➤ 🤔 FÜR WEN IST DAS?
 
-Chrome 111 oder neuer und jeder aktuelle Chromium-Browser: Edge, Brave, Opera,
-Vivaldi, Arc.
+- ★ DU FOLGST 50 STREAMERN? ★ Sieh auf einen Blick, wer schon lange live ist und wer gerade erst angefangen hat.
+- ★ DU HAST EIN DUTZEND ABOS? ★ Sie sind in Gold, oben gruppiert, mit der Zahl der Monate, die du schon dabei bist.
+- ★ DU VERPASST IMMER DIE CO-STREAMS? ★ Eine eigene Sortierung holt sie nach oben, und ein Abzeichen sagt dir, wer mit wem spielt.
+- ★ DU HASST VISUELLES DURCHEINANDER? ★ Keine Hype Trains mehr, die die Sidebar besetzen, keine Werbebanner, keine leeren Abschnitte.
+- ★ DU LIEBST EINFACH TWITCH? ★ Diese Erweiterung ist für dich gemacht!
 
-Oberfläche auf Deutsch, Französisch, Englisch, Spanisch und Portugiesisch
-(Brasilien und Portugal), automatisch erkannt. Die Erweiterung funktioniert
-unabhängig davon, in welcher Sprache Twitch selbst läuft.
+_______________________________
 
+➤ 🎉 INSTALLIEREN UND GENIESSEN!
 
-Kostenlos. Vollständiger Quellcode und ausführliche Dokumentation:
-https://github.com/Maxezify/Cowlor-s-Sidebar
+Die Erweiterung entwickelt sich dank eures Feedbacks weiter — sagt uns also ruhig, was ihr davon haltet!
 
-Inoffizielle Erweiterung, nicht mit Twitch Interactive, Inc. verbunden.
+★ Installiere COWLOR'S SIDEBAR jetzt und entdecke dein Lieblings-Twitch neu! ★
+
+*P.S.: Diese Erweiterung ist nicht mit Twitch verbunden, aber wir mögen sie trotzdem 💜*

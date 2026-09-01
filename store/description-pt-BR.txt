@@ -1,57 +1,174 @@
-A barra lateral da Twitch diz quem está ao vivo. Não diz há quanto tempo, nem
-com quem, nem o que está acontecendo na live. Esta extensão diz — sem conta, sem
-configuração, sem anúncios.
+★ TWITCH, SÓ QUE MELHOR! ★
 
+Sabe o que falta na sua barra lateral da Twitch? Todas aquelas informaçõezinhas que você adoraria ter SEM ficar clicando em tudo. ★ COWLOR'S SIDEBAR ★ coloca elas bem onde você já está olhando. Simples, elegante e útil demais!
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-O QUE VOCÊ VÊ A MAIS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_______________________________
 
-★ Tempo de live em cada card — há quanto tempo o canal está transmitindo.
-★ Prévia ao passar o mouse — um segundo, e a live abre de verdade, com o título
-  completo e o contexto. Sem anúncios preroll.
-★ Co-streams coloridos — os canais que transmitem juntos compartilham a cor, com
-  o papel (anfitrião ou convidado) lido da página.
-★ Lives que acabaram de começar, marcadas por uma borda.
-★ Hype Trains e faixas de desconto de inscrição ocultos, cards patrocinados
-  normalizados.
-★ Canais offline e seções vazias ocultos, lista de seguidos expandida sozinha.
+✨ O QUE ELA FAZ DE VERDADE:
 
+_______________________________
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUAS INSCRIÇÕES, RECONHECIDAS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+➤ 📺 UMA PRÉVIA AO VIVO AO PASSAR O MOUSE
+O recurso principal. Passe o mouse um segundo sobre um streamer e pronto, abre uma janela do lado com:
 
-★ Nome dourado, categoria dourada, um anel dourado em volta do avatar e uma
-  animação discreta no fundo do card.
-★ Uma ordenação «Minhas inscrições primeiro», com o total em um selo.
-★ Na prévia, um selo «Inscrito há 9 meses» — ou «Anteriormente inscrito 22
-  meses» para um canal que você apoiou no passado.
-★ Pagas, presenteadas, móveis: as três contam e levam o mesmo dourado.
+- O vídeo da live AO VIVO (a transmissão real, não uma miniatura congelada)
+- O título completo da live, legível antes mesmo de clicar
+- Selos que te contam tudo sobre o contexto (logo abaixo)
 
+E funciona na barra lateral inteira: canais seguidos, canais recomendados, e até «Quem assiste X também assiste». Chega de clicar só para saber o que está rolando numa live!
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ACHAR, ORDENAR
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_______________________________
 
-★ Filtros por categoria e por idioma, com bandeiras. Só aparecem os valores
-  realmente presentes entre os seus canais — nada para configurar.
-★ Seis ordens: espectadores, inscrições, popularidade pessoal, tempo de live,
-  alfabética, co-streams agrupados.
-★ Modo «Top Canais»: os 30 canais mais assistidos da Twitch, no geral, por
-  categoria ou por idioma. A Twitch não devolve esse ranking; a extensão o
-  reconstrói, e avisa quando não consegue prová-lo.
+➤ 🏷️ SELOS QUE TE CONTAM TUDO
+Dentro da janela de prévia, etiquetas coloridas resumem o contexto da live num piscar de olhos:
 
+- 🤝 ★ CO-STREAM ★ Diz exatamente se o canal é anfitrião ou convidado, e com quem. Chega de «peraí, que live é essa que eu nem sigo?».
+- 👥 ★ AO VIVO COM ★ Para squads e multistreams, mostra o co-streamer principal e quantos outros tem («Ao vivo com Fulano e mais 3»).
+- 💜 ★ INSCRITO ★ Há quanto tempo você apoia o canal («Inscrito há 9 meses») — ou que já apoiou no passado («Anteriormente inscrito 22 meses»).
+- 💰 ★ PATROCINADO POR ★ Nas lives patrocinadas, mostra a marca com o logo colorido. Você vai saber quem está por trás.
+- 🚂 ★ HYPE TRAIN ★ Tem um Hype Train rolando no canal? Você fica sabendo sem precisar clicar.
+- 💎 ★ INSCRIÇÃO COM DESCONTO ★ Quando a Twitch oferece uma inscrição com desconto na live, fica sinalizado ali mesmo.
+- ⚠️ ★ RÓTULOS DE CONTEÚDO ★ Os rótulos oficiais da Twitch (conteúdo adulto, violência, apostas…) aparecem na prévia.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MAIS RÁPIDA QUE A TWITCH
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_______________________________
 
-A Twitch leva de 2 a 4 minutos para mostrar um canal seguido que acabou de
-começar, e de 5 a 10 minutos para tirar o que acabou de encerrar. A extensão
-atualiza tudo sozinha, a cada 30 segundos: espectadores, categoria, idioma,
-tempo de live, aparecimento e desaparecimento.
+➤ ⏱️ «HÁ QUANTO TEMPO ELE ESTÁ TRANSMITINDO?»
+Não precisa mais entrar na live! A extensão mostra o tempo de transmissão direto na barra lateral, logo abaixo do número de espectadores.
 
+- 4h19, 14h29… você vê num piscar de olhos.
+- Atualiza sozinho, em tempo real.
+- E quando uma live acaba, o contador vira um discreto «Encerrado» em itálico, antes mesmo de a Twitch tirar o streamer da lista.
+
+_______________________________
+
+➤ 🎯 AS COLABS MARCADAS NO AVATAR
+Um pontinho roxo aparece embaixo à direita do avatar dos streamers que hospedam um co-stream, com o número de participantes. Sem precisar passar o mouse, visível direto na barra. Limpo, discreto, e te diz na hora «ah, esse aí está colaborando com mais 2».
+
+_______________________________
+
+➤ 💜 SUAS INSCRIÇÕES, EM DOURADO
+Os canais que você realmente apoia não deveriam parecer todos os outros. Agora não parecem mais:
+
+- ★ O CARD INTEIRO SE ACENDE ★ Nome dourado, categoria dourada, um anel dourado em volta do avatar e um brilho lento no fundo do card. Discreto, mas impossível de não ver.
+- ★ UMA ORDENAÇÃO SÓ PARA ELAS ★ «Minhas inscrições primeiro» leva todas para o topo da lista, com o seu total num selinho.
+- ★ TODO TIPO CONTA ★ Pagas, presenteadas, móveis: os três são reconhecidos, e os três levam o mesmo dourado.
+- ★ HÁ QUANTO TEMPO VOCÊ ESTÁ LÁ ★ Passe o mouse num canal e a prévia te diz: «Inscrito há 9 meses». E para um que você apoiou no passado: «Anteriormente inscrito 22 meses».
+- ★ ELA DESCOBRE SOZINHA ★ Nada para configurar, sem login, sem senha, sem token. Como exatamente? Está explicado com todas as letras na seção PRIVACIDADE mais abaixo.
+
+_______________________________
+
+➤ ✨ NUNCA MAIS PERCA O COMEÇO DE UMA LIVE!
+Identifique na hora as lives que acabaram de começar! Uma discreta barra roxa do lado esquerdo marca as lives iniciadas nos últimos minutos.
+
+- Um efeito visual sutil e elegante para dar as boas-vindas ao streamer.
+- Perfeito para estar entre os primeiros e nunca perder a intro!
+- A animação some sozinha depois de alguns minutos.
+
+_______________________________
+
+➤ ⚡ MAIS RÁPIDA QUE A PRÓPRIA TWITCH
+A Twitch atualiza a própria barra lateral raramente: um canal seguido que acabou de entrar ao vivo pode levar de 2 a 4 minutos para aparecer, e um que acabou de encerrar fica lá por mais 5 a 10. A extensão atualiza tudo sozinha, a cada 30 segundos — espectadores, categoria, idioma, tempo de live, aparecimento e desaparecimento. Você vê antes da Twitch.
+
+_______________________________
+
+➤ 🚂 E ADEUS BAGUNÇA VISUAL
+Tiramos tudo o que transforma a barra lateral numa zona:
+
+- Os Hype Trains que ocupam metade do espaço (a informação continua disponível como selo na prévia, relaxa, nada se perde)
+- As faixas intrusivas de inscrição com desconto
+- Os streamers que acabaram de encerrar e continuam lá parados
+- Seções inteiras que acabam vazias
+- Indicadores visuais redundantes (aquelas bolinhas coloridas ambíguas, as linhas «DROPS REBROADCAST» inúteis…)
+- As faixas de patrocínio que desfiguram as entradas dos streamers: limpamos tudo, e a informação «patrocinado por X» volta dentro da prévia, bem mais limpa.
+
+Resultado: sua barra lateral só mostra o que importa. Sem nada para configurar.
+
+_______________________________
+
+➤ 📂 CHEGA DE «MOSTRAR MAIS» PARA CLICAR
+A lista completa dos seus canais seguidos é expandida automaticamente a cada carregamento de página. Você vê tudo, na hora.
+
+_______________________________
+
+➤ 🔍 FILTRO POR CATEGORIA
+Aparece uma barra de filtros acima da sua lista. Escolha uma categoria (Just Chatting, League of Legends, IRL…) e só ficam visíveis os streamers que estão jogando ela. A lista de categorias é calculada na hora: só aquelas em que seus canais estão realmente ao vivo.
+
+_______________________________
+
+➤ 🌐 FILTRO POR IDIOMA
+Mesmo princípio, mas para o idioma das lives. Um menu suspenso com bandeiras permite mostrar só os streamers que transmitem no idioma escolhido. Aqui também, só aparecem os idiomas realmente presentes entre seus canais ao vivo: nada de lista sem fim, só o que interessa a você.
+
+_______________________________
+
+➤ 🏆 TOP CANAIS: A TWITCH INTEIRA NA SUA BARRA
+Uma aba no topo da barra lateral, um clique, e vira: no lugar dos seus canais seguidos, os 30 canais mais assistidos da Twitch, ao vivo.
+
+- 🌍 ★ O RANKING MUNDIAL ★ Recalculado o tempo todo, não uma lista congelada.
+- 🎮 ★ POR CATEGORIA ★ Escolha Just Chatting, GTA V, League of Legends… e você recebe as 30 maiores lives DAQUELA categoria.
+- 🇧🇷 ★ POR IDIOMA ★ Escolha um idioma e você recebe um top 30 de verdade para ele — não um filtro grosseiro jogado por cima de uma lista em inglês.
+- 👀 ★ TODO O RESTO ACOMPANHA ★ Prévia ao passar o mouse, tempo de live, selos, co-streams: são cards como quaisquer outros.
+- ✅ ★ HONESTA ★ Quando não dá para garantir que o ranking está completo, a extensão avisa. Sem números inventados.
+
+Um clique para ir, um clique para voltar. Seus canais seguidos não saem do lugar.
+
+_______________________________
+
+➤ 🔄 SEIS JEITOS DE ORDENAR SUA LISTA
+Seis botões no topo da barra lateral para reorganizar tudo na hora:
+
+- 👁️ ★ POR ESPECTADORES ★ A ordenação padrão da Twitch, caprichada.
+- 💎 ★ MINHAS INSCRIÇÕES PRIMEIRO ★ Os canais que você apoia, agrupados no topo, com seu total num selo.
+- ⭐ ★ POR POPULARIDADE PESSOAL ★ Baseada no seu próprio histórico de visitas, local. Seus streamers favoritos sobem.
+- ⏰ ★ POR TEMPO DE LIVE ★ Crescente: as lives que acabaram de começar ficam no topo, perfeito para pegar os começos.
+- 🔤 ★ ALFABÉTICA ★ Por nome de canal. Clássico, mas eficaz.
+- 🔗 ★ CO-STREAMS PRIMEIRO ★ Todos os co-streams agrupados no topo da lista. Nunca mais perca uma colab!
+
+_______________________________
+
+➤ 📊 SEU TOP DE STREAMERS, LOCALMENTE
+A extensão lembra quais canais você visita, quando e com que frequência. Esses dados alimentam a ordenação «Popularidade pessoal» e ficam guardados SOMENTE no seu navegador. Nada sai da sua máquina.
+
+Você pode conferir seu top no console do DevTools (F12):
+- tse.scores()       → seu top de streamers
+- tse.scores.raw()   → os dados brutos
+- tse.subs()         → as inscrições identificadas pela extensão
+- tse.subs.refresh() → reler tudo agora mesmo
+- tse.reset()        → apagar tudo
+
+_______________________________
+
+➤ 🎮 COMO FAZ?
+
+1. Clique em «Usar no Chrome» (é grátis!)
+2. Recarregue a Twitch e… tchanãããã!
+
+É isso. Sério. Sem configuração complicada, sem menu escondido, sem conta para criar. Funciona, ponto.
+
+_______________________________
+
+➤ 💜 POR QUE VOCÊ VAI AMAR
+
+- ★ É DISCRETA ★ Não mexemos na sua Twitch de sempre, só melhoramos.
+- ★ É BONITA ★ Animações suaves, cores que saltam aos olhos, um prazer visual.
+- ★ É ÚTIL ★ Chega de clicar em tudo para conseguir as informações importantes.
+- ★ É GRÁTIS ★ Sem assinatura, sem anúncios, sem conta. É de presente!
+
+_______________________________
+
+➤ 🌍 NO SEU IDIOMA
+
+A extensão detecta automaticamente o idioma da sua Twitch e adapta cada rótulo, selo e dica:
+
+- 🇬🇧 English
+- 🇫🇷 Français
+- 🇩🇪 Deutsch
+- 🇪🇸 Español
+- 🇧🇷🇵🇹 Português (Brasil e Portugal)
+- 🌐 …e inglês por padrão para todos os outros idiomas
+
+Não há absolutamente nada para configurar.
+
+_______________________________
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PRIVACIDADE
@@ -75,19 +192,22 @@ PRIVACIDADE
 ★ Tudo se apaga de uma vez: apague os dados do site twitch.tv nas configurações
   do seu navegador.
 
+_______________________________
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-COMPATIBILIDADE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+➤ 🤔 PARA QUEM É?
 
-Chrome 111 ou mais recente, e qualquer navegador Chromium atual: Edge, Brave,
-Opera, Vivaldi, Arc.
+- ★ VOCÊ SEGUE 50 STREAMERS? ★ Veja num piscar de olhos quem está ao vivo faz tempo e quem acabou de começar.
+- ★ VOCÊ É INSCRITO EM UMA DÚZIA DE CANAIS? ★ Eles estão em dourado, agrupados no topo, com os meses que você está lá.
+- ★ VOCÊ SEMPRE PERDE OS CO-STREAMS? ★ Uma ordenação dedicada leva eles para o topo, e um selo diz quem está jogando com quem.
+- ★ VOCÊ ODEIA BAGUNÇA VISUAL? ★ Chega de Hype Trains ocupando a barra, de faixas de anúncio, de seções vazias.
+- ★ VOCÊ SÓ AMA A TWITCH? ★ Esta extensão foi feita para você!
 
-Interface em português (Brasil e Portugal), francês, inglês, alemão e espanhol,
-detectada automaticamente. A extensão funciona em qualquer idioma da Twitch.
+_______________________________
 
+➤ 🎉 INSTALE E APROVEITE!
 
-Grátis. Código-fonte completo e documentação detalhada:
-https://github.com/Maxezify/Cowlor-s-Sidebar
+A extensão evolui graças aos seus comentários, então não hesite em dizer o que achou!
 
-Extensão não oficial, sem relação com a Twitch Interactive, Inc.
+★ Instale a COWLOR'S SIDEBAR agora e redescubra a sua Twitch de sempre! ★
+
+*P.S.: Esta extensão não é afiliada à Twitch, mas a gente gosta deles do mesmo jeito 💜*
