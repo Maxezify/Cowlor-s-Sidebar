@@ -1,0 +1,93 @@
+A barra lateral do Twitch diz quem está em direto. Não diz há quanto tempo, nem
+com quem, nem o que se passa na emissão. Esta extensão diz — sem conta, sem
+configuração, sem anúncios.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O QUE VÊS A MAIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Duração da emissão em cada cartão — há quanto tempo o canal está a transmitir.
+★ Pré-visualização ao passar por cima — um segundo, e a emissão abre a sério,
+  com o título completo e o contexto. Sem anúncios preroll.
+★ Co-streams coloridos — os canais que transmitem juntos partilham a cor, com o
+  papel (anfitrião ou convidado) lido da página.
+★ Emissões acabadas de começar, assinaladas por um rebordo.
+★ Hype Trains e faixas de desconto de subscrição ocultos, cartões patrocinados
+  normalizados.
+★ Canais offline e secções vazias ocultos, lista de seguidos expandida sozinha.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AS TUAS SUBSCRIÇÕES, RECONHECIDAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Nome dourado, categoria dourada, um anel dourado à volta do avatar e uma
+  animação discreta no fundo do cartão.
+★ Uma ordenação «As minhas subscrições primeiro», com o total num selo.
+★ Na pré-visualização, um selo «Inscrito há 9 meses» — ou «Anteriormente
+  inscrito 22 meses» para um canal que apoiaste no passado.
+★ Pagas, oferecidas, móveis: as três contam e levam o mesmo dourado.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ENCONTRAR, ORDENAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Filtros por categoria e por idioma, com bandeiras. Só aparecem os valores
+  realmente presentes entre os teus canais — nada para configurar.
+★ Seis ordens: espectadores, subscrições, popularidade pessoal, duração da
+  emissão, alfabética, co-streams agrupados.
+★ Modo «Top Canais»: os 30 canais mais vistos do Twitch, no geral, por categoria
+  ou por idioma. O Twitch não devolve esse ranking; a extensão reconstrói-o, e
+  di-lo quando não o consegue provar.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MAIS RÁPIDA QUE O TWITCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+O Twitch demora 2 a 4 minutos a mostrar um canal seguido que acabou de começar,
+e 5 a 10 minutos a retirar o que acabou de terminar. A extensão atualiza tudo
+sozinha, a cada 30 segundos: espectadores, categoria, idioma, duração,
+aparecimento e desaparecimento.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIVACIDADE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Nenhuma permissão para além do Twitch. A extensão só pode agir em twitch.tv e
+  player.twitch.tv, e em mais nada.
+★ Nenhum servidor de terceiros. Sem conta, sem telemetria, sem anúncios, sem
+  rastreador, sem venda de dados. Nada sai da tua máquina.
+★ As chamadas à API do Twitch são anónimas: Client-ID público, nenhum token de
+  sessão e nenhum cookie enviados.
+★ Uma exceção, e é esta. Para saber a que canais estás subscrito, a extensão
+  abre a TUA própria página twitch.tv/subscriptions num quadro invisível, no
+  máximo uma vez a cada seis horas, e nunca se não tiveres sessão iniciada. É o
+  teu navegador que autentica essa página com os próprios cookies, exatamente
+  como se clicasses no link: a extensão não lê o teu token e não o passa a
+  ninguém. O que guarda — nomes de canais e um tempo em meses — fica no
+  armazenamento local do teu navegador.
+★ O bloqueio de anúncios vale APENAS para a miniatura da pré-visualização. A
+  emissão que estás mesmo a ver não é tocada.
+★ Tudo se apaga de uma vez: apaga os dados do site twitch.tv nas definições do
+  teu navegador.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPATIBILIDADE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chrome 111 ou mais recente, e qualquer navegador Chromium atual: Edge, Brave,
+Opera, Vivaldi, Arc.
+
+Interface em português (Portugal e Brasil), francês, inglês, alemão e espanhol,
+detetada automaticamente. A extensão funciona seja qual for o idioma do Twitch.
+
+
+Grátis. Código-fonte completo e documentação detalhada:
+https://github.com/Maxezify/Cowlor-s-Sidebar
+
+Extensão não oficial, sem ligação à Twitch Interactive, Inc.

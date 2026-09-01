@@ -1,0 +1,86 @@
+# Fiche Chrome Web Store
+
+Ce dossier est la **source** de ce qui est publié sur la fiche. Le tableau de
+bord du Chrome Web Store n'a pas d'historique lisible : sans copie versionnée
+ici, la seule trace d'une formulation est la fiche elle-même, et une correction
+d'il y a six mois est introuvable. Ces fichiers existent pour ça.
+
+Le texte est en **clair** : le champ « Description détaillée » du tableau de bord
+n'interprète ni Markdown ni HTML. Les `★` et les filets `━` sont donc des
+caractères, pas une mise en forme — ils survivent au copier-coller.
+
+## Les sept fiches
+
+| Fichier | Locale du tableau de bord |
+| --- | --- |
+| `description-fr.txt` | Français |
+| `description-en.txt` | English (la locale par défaut du manifeste) |
+| `description-de.txt` | Deutsch |
+| `description-es.txt` | Español |
+| `description-es-419.txt` | Español (Latinoamérica) |
+| `description-pt-BR.txt` | Português (Brasil) |
+| `description-pt-PT.txt` | Português (Portugal) |
+
+La **description courte** (132 caractères, celle qui s'affiche sous le nom) ne
+se saisit pas ici : elle vient du manifeste, clé `extDescription` de
+`_locales/<langue>/messages.json`. Rien à recopier, le Store la lit du paquet.
+
+## Ce qui doit rester vrai
+
+Trois affirmations de ces fiches sont des affirmations **techniques**, et
+chacune se vérifie dans le code. Si l'une change, la fiche doit changer le même
+jour.
+
+1. **« Aucune permission au-delà de Twitch »** — `manifest.json` ne porte aucune
+   clé `permissions` ni `host_permissions` ; seuls les `matches` du content
+   script donnent accès à `www.twitch.tv`, `twitch.tv` et `player.twitch.tv`.
+2. **« Les appels à l'API de Twitch sont anonymes »** — vrai des requêtes que
+   l'extension émet elle-même : `credentials: 'omit'`, Client-ID public, aucun
+   jeton.
+3. **« Une exception, et la voici »** — le relevé des abonnements charge
+   `twitch.tv/subscriptions` dans une iframe, et cette page-là est authentifiée
+   par le navigateur. La phrase 2 ne la couvre pas ; c'est pourquoi la fiche la
+   nomme séparément au lieu de la ranger sous « anonyme ». Voir la section
+   « Vie privée » du README principal.
+
+## Images
+
+Les captures sont produites par `npm run promo` (1280 × 800, sept langues) et la
+tuile par `npm run tuile-produit` (440 × 280). Elles sortent dans `promo/`, qui
+est ignoré par git : ce sont des artefacts, régénérables à l'identique.
+
+Le Store n'accepte que **cinq** captures. Six sont produites ; l'ordre conseillé,
+et celle qui reste au vestiaire :
+
+| Rang | Fichier | Pourquoi |
+| --- | --- | --- |
+| 1 | `01-hero-<L>.png` | ce que fait l'extension, en une image |
+| 2 | `06-abonnes-<L>.png` | l'or sur les cartes — ce que personne d'autre ne fait |
+| 3 | `02-apercu-<L>.png` | l'aperçu au survol, la fonction la plus démonstrative |
+| 4 | `03-top-<L>.png` | le mode Top Chaînes, la plus grosse fonction |
+| 5 | `05-tri-<L>.png` | les six tris |
+| — | `04-filtres-<L>.png` | filtrer par catégorie et par langue se devine ; c'est la moins distinctive des six |
+
+## Le formulaire « Pratiques de confidentialité »
+
+Le tableau de bord pose ses questions à part, et **aucune réponse ne se déduit
+de la description**. Ce que le code permet de répondre :
+
+- **Objectif unique** — enrichir la barre latérale des chaînes suivies de
+  Twitch. Tout ce que fait l'extension y revient : les informations sur les
+  cartes, les filtres, les tris, l'aperçu, le mode Top Chaînes. Le blocage de
+  publicité n'est pas une seconde fonction offerte à l'utilisateur : il ne
+  s'applique qu'à l'iframe de l'aperçu que l'extension ouvre elle-même, et
+  n'a aucun effet sur le lecteur que l'utilisateur regarde. À dire dans ces
+  termes-là si la question est posée.
+- **Justification des permissions d'hôte** — `www.twitch.tv`, `twitch.tv` et
+  `player.twitch.tv` : l'extension modifie la barre latérale de Twitch et ouvre
+  l'aperçu vidéo sur `player.twitch.tv`. Elle n'a accès à aucun autre domaine.
+- **Usage à distance du code** — non. Aucun script n'est chargé depuis le
+  réseau ; tout ce qui s'exécute est dans le paquet.
+- **Collecte de données** — l'extension n'envoie **rien** nulle part. Ce qu'elle
+  mémorise (historique de visites, abonnements repérés et leur ancienneté) vit
+  dans le `localStorage` de `twitch.tv` et ne quitte jamais la machine. Les
+  trois certifications de la fin du formulaire — pas de revente, pas d'usage
+  étranger à l'objectif unique, pas d'évaluation de solvabilité — sont donc
+  toutes vraies.

@@ -1,0 +1,96 @@
+Die Twitch-Sidebar sagt dir, wer live ist. Sie sagt nicht, seit wann, mit wem,
+oder was gerade im Stream passiert. Diese Erweiterung schon — ohne Konto, ohne
+Einstellungen, ohne Werbung.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WAS DU ZUSÄTZLICH SIEHST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Stream-Dauer auf jeder Karte — seit wann der Kanal sendet.
+★ Vorschau beim Überfahren — eine Sekunde, und der Stream läuft wirklich, mit
+  vollem Titel und Kontext. Ohne Preroll-Werbung.
+★ Farbige Co-Streams — Kanäle, die zusammen streamen, tragen dieselbe Farbe,
+  samt Rolle (Host oder Gast), aus der Seite gelesen.
+★ Gerade gestartete Streams, mit einer Kante markiert.
+★ Hype Trains und Abo-Rabattbanner ausgeblendet, gesponserte Karten
+  vereinheitlicht.
+★ Offline-Kanäle und leere Abschnitte ausgeblendet, die Liste der gefolgten
+  Kanäle klappt von selbst auf.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEINE ABOS, ERKANNT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Goldener Name, goldene Kategorie, ein goldener Ring um den Avatar und eine
+  dezente Animation im Hintergrund der Karte.
+★ Eine Sortierung „Meine Abos zuerst" mit der Gesamtzahl auf einem Abzeichen.
+★ In der Vorschau ein Abzeichen „9 Monate abonniert" — oder „Früher 22 Monate
+  abonniert" für einen Kanal, den du in der Vergangenheit unterstützt hast.
+★ Bezahlt, geschenkt, mobil: alle drei zählen und tragen dasselbe Gold.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINDEN, SORTIEREN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Filter nach Kategorie und Sprache, mit Flaggen. Angeboten wird nur, was bei
+  deinen Kanälen wirklich vorkommt — nichts einzustellen.
+★ Sechs Sortierungen: Zuschauer, Abos, eigene Beliebtheit, Stream-Dauer,
+  alphabetisch, Co-Streams gruppiert.
+★ Modus „Top-Kanäle": die 30 meistgesehenen Kanäle auf Twitch, global, nach
+  Kategorie oder nach Sprache. Twitch liefert diese Rangliste nicht; die
+  Erweiterung baut sie neu auf und sagt es, wenn sie keinen Beleg dafür hat.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCHNELLER ALS TWITCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Twitch braucht 2 bis 4 Minuten, um einen gefolgten Kanal anzuzeigen, der gerade
+live gegangen ist, und 5 bis 10 Minuten, um einen zu entfernen, der gerade
+aufgehört hat. Die Erweiterung aktualisiert alles selbst, alle 30 Sekunden:
+Zuschauer, Kategorie, Sprache, Dauer, Auftauchen und Verschwinden.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATENSCHUTZ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Keine Berechtigungen über Twitch hinaus. Die Erweiterung kann nur auf
+  twitch.tv und player.twitch.tv wirken, sonst nirgends.
+★ Kein Drittserver. Kein Konto, keine Telemetrie, keine Werbung, kein Tracker,
+  kein Datenverkauf. Nichts verlässt deinen Rechner.
+★ Die Aufrufe der Twitch-API sind anonym: öffentliche Client-ID, kein
+  Sitzungstoken und kein Cookie werden gesendet.
+★ Eine Ausnahme, und hier ist sie. Um zu erfahren, welche Kanäle du abonniert
+  hast, öffnet die Erweiterung DEINE eigene Seite twitch.tv/subscriptions in
+  einem unsichtbaren Rahmen, höchstens alle sechs Stunden und nie, wenn du nicht
+  angemeldet bist. Es ist dein Browser, der diese Seite mit seinen eigenen
+  Cookies authentifiziert, genau so, als würdest du den Link anklicken: die
+  Erweiterung liest dein Token nicht und gibt es an niemanden weiter. Was sie
+  behält — Kanalnamen und eine Dauer in Monaten — bleibt im lokalen Speicher
+  deines Browsers.
+★ Die Werbeblockierung betrifft NUR das Vorschaubild beim Überfahren. Der
+  Stream, den du wirklich anschaust, bleibt unangetastet.
+★ Alles lässt sich auf einmal löschen: lösche die Website-Daten von twitch.tv in
+  den Einstellungen deines Browsers.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+KOMPATIBILITÄT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chrome 111 oder neuer und jeder aktuelle Chromium-Browser: Edge, Brave, Opera,
+Vivaldi, Arc.
+
+Oberfläche auf Deutsch, Französisch, Englisch, Spanisch und Portugiesisch
+(Brasilien und Portugal), automatisch erkannt. Die Erweiterung funktioniert
+unabhängig davon, in welcher Sprache Twitch selbst läuft.
+
+
+Kostenlos. Vollständiger Quellcode und ausführliche Dokumentation:
+https://github.com/Maxezify/Cowlor-s-Sidebar
+
+Inoffizielle Erweiterung, nicht mit Twitch Interactive, Inc. verbunden.

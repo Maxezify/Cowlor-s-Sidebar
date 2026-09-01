@@ -1251,8 +1251,11 @@ cowlors-sidebar-for-twitch/
 ├── eslint.config.mjs      règles de lint
 ├── promo.mjs              captures 1280×800 pour le Chrome Web Store
 ├── promo-run.mjs          les scènes et leurs textes
+├── promo-tile.mjs         tuiles promotionnelles 440×280 (variantes A–D)
+├── promo-tile-produit.mjs tuile 440×280 montrant l’extension en fonctionnement
+├── store/                 le texte des sept fiches du Chrome Web Store
 ├── tests/
-│   ├── run.mjs              le harnais : ~353 assertions, 41 scénarios
+│   ├── run.mjs              le harnais : 490 assertions, 57 scénarios
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
 │   ├── build.mjs            copie content.js avec les durées accélérées
 │   └── parity.mjs           parité des clés de traduction entre les 5 langues
@@ -1281,7 +1284,7 @@ Trois vérifications, indépendantes :
 |---|---|
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
-| `npm test` | le harnais Playwright : 41 scénarios, ~353 assertions |
+| `npm test` | le harnais Playwright : 57 scénarios, 490 assertions |
 
 **Le harnais fait tourner l'extension pour de vrai**, dans Chromium, contre un
 faux Twitch : `tests/page.html` reproduit le DOM réel de la barre latérale
@@ -1307,7 +1310,8 @@ langue de diffusion d'un stream est indépendante des étiquettes qu'il affiche.
 ### Captures pour le Chrome Web Store
 
 ```bash
-npm run promo        # → promo/*.png, 1280×800 exactement
+npm run promo           # → promo/*.png, 1280×800 exactement, six scènes × sept langues
+npm run tuile-produit   # → promo/tuile-E-produit.png, 440×280
 ```
 
 Même principe que le harnais, et pour la même raison : **l'extension tourne
@@ -1325,6 +1329,25 @@ fixtures : les chaînes sont **inventées** pour n'emprunter l'identité de
 personne, les avatars sont générés, et la zone vidéo de l'aperçu est un dégradé
 abstrait — une fausse image de jeu laisserait croire à un contenu qui n'existe
 pas.
+
+Deux scènes — l'aperçu et celle des abonnements — ont besoin d'une mémoire
+d'abonnements. Elle est **posée** dans le `localStorage` avant le démarrage du
+script (`ABOS`, dans `promo.mjs`), et le relevé de `/subscriptions` est coupé
+pour toutes les captures. La raison n'est pas la commodité : `tests/page.html`
+sert cet onglet avec de **vrais** pseudos — c'est ce qu'il faut pour éprouver le
+module, et c'est exactement ce qu'une image publiée ne doit pas porter. La scène
+des abonnements vérifie d'ailleurs ce qu'elle photographie : quatre cartes
+dorées, et une pastille à douze. Si le relevé passait outre, la pastille
+compterait treize et plus, et la capture échouerait au lieu de sortir.
+
+### La fiche elle-même
+
+Le texte des sept fiches du Chrome Web Store vit dans **`store/`** — une par
+locale publiée. Le tableau de bord n'a pas d'historique lisible : sans copie
+versionnée ici, la seule trace d'une formulation serait la fiche en ligne. Voir
+`store/README.md` pour la correspondance des locales, l'ordre conseillé des
+captures (le Store n'en accepte que cinq, six sont produites), et les réponses
+au formulaire « pratiques de confidentialité ».
 
 ---
 

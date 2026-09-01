@@ -1,0 +1,96 @@
+La sidebar de Twitch vous dit qui est en direct. Elle ne dit pas depuis quand,
+ni avec qui, ni ce qui se passe sur le stream. Cette extension s'en charge —
+sans compte, sans réglage, sans publicité.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CE QUE VOUS VOYEZ EN PLUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Durée de stream sur chaque carte — depuis combien de temps la chaîne émet.
+★ Aperçu vidéo au survol — une seconde, et le stream s'ouvre vraiment, avec son
+  titre complet et son contexte. Sans publicité préroll.
+★ Co-streams colorés — les chaînes qui streament ensemble portent la même
+  couleur, avec le rôle (hôte ou invité) lu dans la page.
+★ Streams qui viennent de démarrer, signalés d'un liseré.
+★ Hype Trains et bandeaux de réduction d'abonnement masqués, cartes
+  sponsorisées normalisées.
+★ Chaînes déconnectées et sections vides masquées, liste des suivis dépliée
+  toute seule.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VOS ABONNEMENTS, RECONNUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Nom doré, catégorie dorée, anneau doré autour de l'avatar, et une animation
+  discrète dans le fond de la carte.
+★ Un tri « Mes abonnements en tête », avec le total sur une pastille.
+★ Dans l'aperçu, un badge « Abonné 9 mois » — ou « Anciennement abonné 22 mois »
+  pour une chaîne que vous avez soutenue par le passé.
+★ Payants, offerts, mobiles : les trois comptent, et portent le même or.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TROUVER, TRIER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Filtres par catégorie et par langue, avec les drapeaux. Seules les valeurs
+  réellement présentes chez vos suivis sont proposées — rien à configurer.
+★ Six tris : spectateurs, abonnements, popularité perso, durée de stream,
+  alphabétique, co-streams groupés.
+★ Mode « Top Chaînes » : les 30 chaînes les plus regardées de Twitch, au global,
+  par catégorie ou par langue. Twitch ne rend pas ce classement ; l'extension le
+  reconstruit, et sait dire quand elle n'en a pas la preuve.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PLUS RÉACTIF QUE TWITCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Twitch met 2 à 4 minutes à afficher une chaîne suivie qui passe en direct, et 5
+à 10 minutes à retirer celle qui vient de couper. L'extension rafraîchit tout
+elle-même toutes les 30 secondes : spectateurs, catégorie, langue, durée,
+apparition et disparition.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VIE PRIVÉE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Aucune permission au-delà de Twitch. L'extension ne peut agir que sur
+  twitch.tv et player.twitch.tv, et sur rien d'autre.
+★ Aucun serveur tiers. Pas de compte, pas de télémétrie, pas de publicité, pas
+  de traqueur, aucune revente de données. Rien ne quitte votre machine.
+★ Les appels à l'API de Twitch sont anonymes : Client-ID public, aucun jeton de
+  session ni cookie envoyé.
+★ Une exception, et la voici. Pour connaître la liste de vos abonnements,
+  l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible,
+  au plus une fois toutes les six heures, et jamais si vous n'êtes pas connecté.
+  C'est votre navigateur qui authentifie cette page avec ses propres cookies,
+  exactement comme si vous cliquiez sur le lien : l'extension ne lit pas votre
+  jeton et ne le transmet à personne. Ce qu'elle en retient — des noms de
+  chaînes et une ancienneté en mois — reste dans le stockage local de votre
+  navigateur.
+★ Le blocage de publicité ne concerne QUE la vignette d'aperçu au survol. Le
+  stream que vous regardez, lui, n'est pas touché.
+★ Tout s'efface d'un coup : effacez les données de site de twitch.tv depuis les
+  réglages de votre navigateur.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPATIBILITÉ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chrome 111 ou plus récent, et tout navigateur Chromium récent : Edge, Brave,
+Opera, Vivaldi, Arc.
+
+Interface en français, anglais, allemand, espagnol et portugais (Brésil et
+Portugal), détectée automatiquement. L'extension fonctionne quelle que soit la
+langue de Twitch.
+
+
+Gratuit. Code source complet et documentation détaillée :
+https://github.com/Maxezify/Cowlor-s-Sidebar
+
+Extension non officielle, sans lien avec Twitch Interactive, Inc.

@@ -89,6 +89,38 @@ const CSS_TWITCH = `
     font-weight:600; color:#efeff1; text-transform:uppercase; letter-spacing:.4px; }
 `;
 
+/* Mémoire d'abonnements : exactement ce que le relevé de /subscriptions aurait
+   écrit chez quelqu'un qui revient sur Twitch. POSÉE plutôt que relevée, pour
+   deux raisons — la page de test sert cet onglet avec de VRAIS pseudos, que ces
+   captures n'empruntent jamais (d'où aussi le __noSubsPage de pageProduit) ; et
+   une capture ne doit pas dépendre d'une course entre le relevé et l'obturateur.
+   Le format est celui de subs.save() : par chaîne, [abonné, horodatage, mois,
+   révolu]. Partagée entre les captures et la tuile, qui montrent la même
+   mémoire. */
+export const ABOS = (() => {
+  const N = Date.now();
+  // En cours. Les quatre premiers sont suivis — ce sont eux que la barre dore.
+  // Les huit autres n'émettent pas et ne se voient que par le total porté par
+  // la pastille du tri : c'est justement ce que cette pastille compte.
+  const encours = { lumenkai:26, mirabelle:12, kiraplays:9, duskraven:4,
+                    solstice_tv:31, valehart:18, zephyrlane:14, ravencourt:11,
+                    brumefall:7, ombrelune:5, cendrelune:3, halcyonis:1 };
+  // Révolu : ni doré, ni compté. Présent pour que la capture montre un état
+  // réel — on a été abonné à atlasgaming, on ne l'est plus, et sa carte reste
+  // une carte ordinaire.
+  const revolus = { atlasgaming:6 };
+  const o = {};
+  for (const [l, m] of Object.entries(encours)) o[l] = [1, N, m, 0];
+  for (const [l, m] of Object.entries(revolus)) o[l] = [0, N, m, 1];
+  return {
+    'tse:subs': JSON.stringify(o),
+    // Horodatage du relevé, au format du lecteur courant. Il n'est pas seulement
+    // là pour éviter une visite : il dit à la barre qu'elle SAIT déjà, ce qui
+    // lui évite de retenir le voile au démarrage.
+    'tse:substs': '2:' + N,
+  };
+})();
+
 const browser = await chromium.launch();
 
 // Libellé natif de la section suivie, par langue d'interface. detectLanguage()
@@ -110,6 +142,7 @@ const SECTION = {
  * l'identique : mêmes routes, mêmes avatars, même stub, même historique.
  */
 export async function pageProduit({ lang = 'fr', section = null, visites = null,
+                                    stockage = null,
                                     viewport = { width: 1280, height: 800 },
                                     deviceScaleFactor = 2 } = {}) {
   const page = await browser.newPage({ viewport, deviceScaleFactor });
@@ -144,18 +177,34 @@ export async function pageProduit({ lang = 'fr', section = null, visites = null,
   // (« /api-login.png »). Sans le préfixe optionnel, les secondes tombaient
   // toutes sur le même avatar de repli.
   await page.route('https://cdn/**', (r) => r.fulfill(svg(avatar(loginDe(r.request().url())))));
+  // Le relevé de /subscriptions est COUPÉ pour toutes les captures. La page de
+  // test sert cet onglet avec de VRAIS pseudos — c'est ce qu'il faut pour
+  // éprouver le module, et c'est exactement ce qu'une image publiée ne doit pas
+  // porter. Le drapeau vaut aussi dans l'iframe : addInitScript s'installe sur
+  // toutes les frames de la page. Ce que les captures montrent d'abonnements
+  // vient donc de `stockage`, et de lui seul.
+  await page.addInitScript(() => { window.__noSubsPage = true; });
   // L'historique de visites doit exister AVANT le démarrage du script, sinon
   // le tri « popularité perso » n'a rien à classer.
   if (visites) await page.addInitScript((v) => {
     try { localStorage.setItem('tse:visits', JSON.stringify(v)); } catch {}
   }, visites);
+  // Mémoire arbitraire, posée avant le démarrage du script — même raison que
+  // l'historique ci-dessus. Sert au relevé des abonnements : la scène veut un
+  // navigateur qui SAIT déjà, pas un qui va aller lire. Poser aussi
+  // l'horodatage du relevé est indispensable, sinon le module repart en visite
+  // et l'iframe rendrait la page de test avec SES chaînes — de vrais pseudos,
+  // que ces captures n'empruntent jamais.
+  if (stockage) await page.addInitScript((s) => {
+    try { for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v); } catch {}
+  }, stockage);
   await page.goto('https://www.twitch.tv/');
   return page;
 }
 
 export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre, jeu, jeuArg = null, apres,
-                             echelleMax = 1.42, texteEtroit = false, visites = null }) {
-  const page = await pageProduit({ lang, section, visites });
+                             echelleMax = 1.42, texteEtroit = false, visites = null, stockage = null }) {
+  const page = await pageProduit({ lang, section, visites, stockage });
   await page.evaluate(jeu, jeuArg);
   await page.waitForTimeout(2200);
   if (apres) await apres(page);

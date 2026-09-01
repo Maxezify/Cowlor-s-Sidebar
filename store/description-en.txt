@@ -1,0 +1,92 @@
+Twitch's sidebar tells you who is live. It doesn't tell you for how long, with
+whom, or what is happening on the stream. This extension does — no account, no
+setup, no ads.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT YOU GET TO SEE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Stream uptime on every card — how long the channel has been live.
+★ Hover preview — one second, and the stream really opens, with its full title
+  and context. No preroll ads.
+★ Colour-coded co-streams — channels streaming together share a colour, with the
+  role (host or guest) read from the page.
+★ Streams that just went live, marked with an edge.
+★ Hype Trains and sub-discount banners hidden, sponsored cards normalised.
+★ Offline channels and empty sections hidden, followed list expanded on its own.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR SUBSCRIPTIONS, RECOGNISED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Gilded name, gilded category, a gold ring around the avatar, and a quiet
+  animation in the card's background.
+★ A "My subscriptions first" sort, with the total on a badge.
+★ In the preview, a "Subscribed 9 months" badge — or "Formerly subscribed 22
+  months" for a channel you supported in the past.
+★ Paid, gifted, mobile: all three count, and all three wear the same gold.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIND IT, SORT IT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ Filters by category and by language, with flags. Only the values actually
+  present among your followed channels are offered — nothing to configure.
+★ Six sorts: viewers, subscriptions, personal popularity, stream uptime,
+  alphabetical, co-streams grouped.
+★ "Top Channels" mode: the 30 most-watched channels on Twitch, globally, by
+  category or by language. Twitch does not return that ranking; the extension
+  rebuilds it, and says so when it cannot prove it.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUICKER THAN TWITCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Twitch takes 2 to 4 minutes to show a followed channel that just went live, and
+5 to 10 minutes to remove one that just stopped. The extension refreshes all of
+it itself, every 30 seconds: viewers, category, language, uptime, appearance and
+disappearance.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIVACY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+★ No permissions beyond Twitch. The extension can only act on twitch.tv and
+  player.twitch.tv, and on nothing else.
+★ No third-party server. No account, no telemetry, no ads, no tracker, no data
+  ever sold. Nothing leaves your machine.
+★ Calls to Twitch's API are anonymous: public Client-ID, no session token and no
+  cookie sent.
+★ One exception, and here it is. To learn which channels you subscribe to, the
+  extension opens YOUR own twitch.tv/subscriptions page in an invisible frame,
+  at most once every six hours, and never if you are not signed in. It is your
+  browser that authenticates that page with its own cookies, exactly as if you
+  clicked the link: the extension does not read your token and passes it to no
+  one. What it keeps — channel names and a tenure in months — stays in your
+  browser's local storage.
+★ Ad blocking applies ONLY to the hover preview thumbnail. The stream you are
+  actually watching is left alone.
+★ It all clears at once: clear twitch.tv site data from your browser settings.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPATIBILITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chrome 111 or newer, and any recent Chromium browser: Edge, Brave, Opera,
+Vivaldi, Arc.
+
+Interface in English, French, German, Spanish and Portuguese (Brazil and
+Portugal), detected automatically. The extension works whatever language Twitch
+itself is in.
+
+
+Free. Full source code and detailed documentation:
+https://github.com/Maxezify/Cowlor-s-Sidebar
+
+Unofficial extension, not affiliated with Twitch Interactive, Inc.

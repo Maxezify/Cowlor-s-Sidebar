@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { pageProduit, browser } from './promo.mjs';
+import { pageProduit, browser, ABOS } from './promo.mjs';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.PROMO_OUT || join(ICI, 'promo');
@@ -131,7 +131,10 @@ function composer({ CSS, LOGO, GRAIN }) {
   if (!pop) console.log('  ⚠ aperçu absent : la tuile est rendue sans lui');
 }
 
-const page = await pageProduit({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
+// La mémoire d'abonnements est posée ici comme dans les captures : la tuile
+// montre la barre telle qu'un abonné la voit — noms dorés, anneau doré,
+// pastille sur le tri — et l'aperçu porte son badge d'ancienneté.
+const page = await pageProduit({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2, stockage: ABOS });
 await page.evaluate(DECOR);
 await page.waitForTimeout(2400);
 await page.evaluate(() => {

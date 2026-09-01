@@ -1182,8 +1182,11 @@ cowlors-sidebar-for-twitch/
 ├── eslint.config.mjs      lint rules
 ├── promo.mjs              1280×800 captures for the Chrome Web Store
 ├── promo-run.mjs          the scenes and their copy
+├── promo-tile.mjs         440×280 promo tiles (variants A–D)
+├── promo-tile-produit.mjs 440×280 tile showing the extension at work
+├── store/                 the copy of the seven Chrome Web Store listings
 ├── tests/
-│   ├── run.mjs              the harness: ~353 assertions across 41 scenarios
+│   ├── run.mjs              the harness: 490 assertions across 57 scenarios
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
 │   ├── build.mjs            copies content.js with the timings accelerated
 │   └── parity.mjs           translation-key parity across the 5 languages
@@ -1211,7 +1214,7 @@ Three independent checks:
 |---|---|
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
-| `npm test` | the Playwright harness: 41 scenarios, ~353 assertions |
+| `npm test` | the Playwright harness: 57 scenarios, 490 assertions |
 
 **The harness runs the extension for real**, in Chromium, against a fake
 Twitch: `tests/page.html` reproduces the sidebar's actual DOM (captured from
@@ -1236,7 +1239,8 @@ broadcast language is independent of the tags it displays.
 ### Chrome Web Store captures
 
 ```bash
-npm run promo        # → promo/*.png, exactly 1280×800
+npm run promo           # → promo/*.png, exactly 1280×800, six scenes × seven languages
+npm run tuile-produit   # → promo/tuile-E-produit.png, 440×280
 ```
 
 Same principle as the harness, for the same reason: **the extension actually
@@ -1253,6 +1257,25 @@ is an approximation. And the data are fixtures: the channels are **invented** so
 no real identity is borrowed, avatars are generated, and the preview's video
 area is an abstract gradient — a fake gameplay still would suggest content that
 does not exist.
+
+Two scenes — the preview and the subscriptions one — need a subscription memory.
+It is **seeded** into `localStorage` before the script starts (`ABOS`, in
+`promo.mjs`), and the `/subscriptions` sweep is switched off for every capture.
+The reason is not convenience: `tests/page.html` serves that tab with **real**
+handles — which is what it takes to exercise the module, and exactly what a
+published image must never carry. The subscriptions scene checks what it
+photographs, too: four gilded cards, and a badge reading twelve. Were the sweep
+to run anyway, the badge would count thirteen or more and the capture would fail
+instead of shipping.
+
+### The listing itself
+
+The copy of the seven Chrome Web Store listings lives in **`store/`** — one per
+published locale. The dashboard keeps no readable history: without a versioned
+copy here, the only trace of a wording would be the live listing. See
+`store/README.md` for the locale mapping, the recommended capture order (the
+Store accepts only five, six are produced), and the answers to the privacy
+practices form.
 
 ---
 

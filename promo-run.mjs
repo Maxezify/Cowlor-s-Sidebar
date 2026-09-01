@@ -1,4 +1,4 @@
-import { scene, browser } from './promo.mjs';
+import { scene, browser, ABOS } from './promo.mjs';
 
 // Chaînes INVENTÉES : aucune identité réelle empruntée, aucun endossement suggéré.
 const DECOR = (TITRES) => {
@@ -76,11 +76,16 @@ const T = {
             '<p>Par catégorie, par langue — avec les drapeaux. Seules les valeurs ' +
             'réellement présentes chez vos suivis sont proposées.</p>',
             '<b>Cowlor\'s Sidebar</b> · rien à configurer, jamais'],
-    tri:   ['<span class="kicker">Cinq tris</span>' +
+    tri:   ['<span class="kicker">Six tris</span>' +
             '<h1>Votre liste,<br><em>votre</em> ordre.</h1>' +
-            '<p>Spectateurs, popularité perso, durée de stream, alphabétique — ' +
-            'ou les co-streams regroupés en tête.</p>',
-            '<b>Cowlor\'s Sidebar</b> · votre historique reste dans votre navigateur'] },
+            '<p>Spectateurs, abonnements, popularité perso, durée de stream, ' +
+            'alphabétique — ou les co-streams regroupés en tête.</p>',
+            '<b>Cowlor\'s Sidebar</b> · votre historique reste dans votre navigateur'],
+    abo:   ['<span class="kicker">Abonnements</span>' +
+            '<h1>La barre sait<br>qui vous <em>soutenez</em>.</h1>' +
+            '<p>Vos abonnements reconnus, dorés, regroupés en tête. Au survol, ' +
+            'depuis combien de mois vous êtes là — même pour les expirés.</p>',
+            '<b>Cowlor\'s Sidebar</b> · lu dans votre navigateur, jamais envoyé ailleurs'] },
 
   en: { ui:'en', section:'en',
     titres:{ novaflux:"Putting the world to rights before tonight's subathon", kiraplays:'Road to Master before the month ends — day 12' },
@@ -104,11 +109,16 @@ const T = {
             '<p>By category, by language — with flags. Only the values actually ' +
             'present among your followed channels are offered.</p>',
             '<b>Cowlor\'s Sidebar</b> · nothing to configure, ever'],
-    tri:   ['<span class="kicker">Five sorts</span>' +
+    tri:   ['<span class="kicker">Six sorts</span>' +
             '<h1>Your list,<br><em>your</em> order.</h1>' +
-            '<p>Viewers, personal popularity, stream uptime, alphabetical — ' +
-            'or co-streams grouped at the top.</p>',
-            '<b>Cowlor\'s Sidebar</b> · your history stays in your browser'] },
+            '<p>Viewers, subscriptions, personal popularity, stream uptime, ' +
+            'alphabetical — or co-streams grouped at the top.</p>',
+            '<b>Cowlor\'s Sidebar</b> · your history stays in your browser'],
+    abo:   ['<span class="kicker">Subscriptions</span>' +
+            '<h1>Your sidebar knows<br>who you <em>support</em>.</h1>' +
+            '<p>Your subscriptions recognised, gilded, grouped at the top. ' +
+            'Hover for how many months you have been there — expired ones too.</p>',
+            '<b>Cowlor\'s Sidebar</b> · read in your browser, never sent anywhere'] },
 
   de: { ui:'de', section:'de',
     titres:{ novaflux:'Wir lösen die Weltprobleme vor dem Subathon heute Abend', kiraplays:'Auf zu Master vor Monatsende — Tag 12' },
@@ -132,11 +142,16 @@ const T = {
             '<p>Nach Kategorie, nach Sprache — mit Flaggen. Angeboten wird nur, ' +
             'was bei deinen Kanälen wirklich vorkommt.</p>',
             '<b>Cowlor\'s Sidebar</b> · nichts einzustellen, nie'],
-    tri:   ['<span class="kicker">Fünf Sortierungen</span>' +
+    tri:   ['<span class="kicker">Sechs Sortierungen</span>' +
             '<h1>Deine Liste,<br><em>deine</em> Reihenfolge.</h1>' +
-            '<p>Zuschauer, eigene Beliebtheit, Stream-Dauer, alphabetisch — ' +
+            '<p>Zuschauer, Abos, eigene Beliebtheit, Stream-Dauer, alphabetisch — ' +
             'oder Co-Streams ganz oben gruppiert.</p>',
-            '<b>Cowlor\'s Sidebar</b> · dein Verlauf bleibt in deinem Browser'] },
+            '<b>Cowlor\'s Sidebar</b> · dein Verlauf bleibt in deinem Browser'],
+    abo:   ['<span class="kicker">Abos</span>' +
+            '<h1>Deine Sidebar<br>kennt deine <em>Abos</em>.</h1>' +
+            '<p>Erkannt, golden hervorgehoben und nach oben gruppiert. Beim ' +
+            'Überfahren: seit wie vielen Monaten du dabei bist.</p>',
+            '<b>Cowlor\'s Sidebar</b> · im Browser gelesen, nie irgendwohin gesendet'] },
 
   es: { ui:'es', section:'es',
     titres:{ novaflux:'Arreglamos el mundo antes del subatón de esta noche', kiraplays:'Camino a Master antes de fin de mes — día 12' },
@@ -160,11 +175,16 @@ const T = {
             '<p>Por categoría, por idioma — con banderas. Solo se ofrecen los ' +
             'valores realmente presentes entre tus canales.</p>',
             '<b>Cowlor\'s Sidebar</b> · nada que configurar, nunca'],
-    tri:   ['<span class="kicker">Cinco órdenes</span>' +
+    tri:   ['<span class="kicker">Seis órdenes</span>' +
             '<h1>Tu lista,<br><em>tu</em> orden.</h1>' +
-            '<p>Espectadores, popularidad personal, duración, alfabético — ' +
-            'o los co-streams agrupados arriba.</p>',
-            '<b>Cowlor\'s Sidebar</b> · tu historial se queda en tu navegador'] },
+            '<p>Espectadores, suscripciones, popularidad personal, duración, ' +
+            'alfabético — o los co-streams agrupados arriba.</p>',
+            '<b>Cowlor\'s Sidebar</b> · tu historial se queda en tu navegador'],
+    abo:   ['<span class="kicker">Suscripciones</span>' +
+            '<h1>Tu barra sabe<br>a quién <em>apoyas</em>.</h1>' +
+            '<p>Tus suscripciones reconocidas, doradas, agrupadas arriba. Al ' +
+            'pasar por encima, cuántos meses llevas — también las caducadas.</p>',
+            '<b>Cowlor\'s Sidebar</b> · se lee en tu navegador, nunca se envía a ningún sitio'] },
 
   es419: { ui:'es', section:'es',
     titres:{ novaflux:'Arreglamos el mundo antes del subatón de esta noche', kiraplays:'Camino a Master antes de fin de mes — día 12' },
@@ -188,11 +208,16 @@ const T = {
             '<p>Por categoría, por idioma — con banderas. Solo se ofrecen los ' +
             'valores realmente presentes entre tus canales.</p>',
             '<b>Cowlor\'s Sidebar</b> · nada que configurar, nunca'],
-    tri:   ['<span class="kicker">Cinco órdenes</span>' +
+    tri:   ['<span class="kicker">Seis órdenes</span>' +
             '<h1>Tu lista,<br><em>tu</em> orden.</h1>' +
-            '<p>Espectadores, popularidad personal, duración, alfabético — ' +
-            'o los co-streams agrupados arriba.</p>',
-            '<b>Cowlor\'s Sidebar</b> · tu historial se queda en tu navegador'] },
+            '<p>Espectadores, suscripciones, popularidad personal, duración, ' +
+            'alfabético — o los co-streams agrupados arriba.</p>',
+            '<b>Cowlor\'s Sidebar</b> · tu historial se queda en tu navegador'],
+    abo:   ['<span class="kicker">Suscripciones</span>' +
+            '<h1>Tu barra sabe<br>a quién <em>apoyas</em>.</h1>' +
+            '<p>Tus suscripciones reconocidas, doradas, agrupadas arriba. Al ' +
+            'pasar por encima, cuántos meses llevas — también las caducadas.</p>',
+            '<b>Cowlor\'s Sidebar</b> · se lee en tu navegador, nunca se envía a ningún sitio'] },
 
   ptbr: { ui:'pt', section:'ptbr',
     titres:{ novaflux:'Resolvendo o mundo antes do subathon de hoje à noite', kiraplays:'Rumo ao Mestre antes do fim do mês — dia 12' },
@@ -216,11 +241,16 @@ const T = {
             '<p>Por categoria, por idioma — com bandeiras. Só aparecem os valores ' +
             'realmente presentes entre os seus canais.</p>',
             '<b>Cowlor\'s Sidebar</b> · nada para configurar, nunca'],
-    tri:   ['<span class="kicker">Cinco ordens</span>' +
+    tri:   ['<span class="kicker">Seis ordens</span>' +
             '<h1>Sua lista,<br><em>sua</em> ordem.</h1>' +
-            '<p>Espectadores, popularidade pessoal, tempo de live, alfabética — ' +
-            'ou os co-streams agrupados no topo.</p>',
-            '<b>Cowlor\'s Sidebar</b> · seu histórico fica no seu navegador'] },
+            '<p>Espectadores, inscrições, popularidade pessoal, tempo de live, ' +
+            'alfabética — ou os co-streams agrupados no topo.</p>',
+            '<b>Cowlor\'s Sidebar</b> · seu histórico fica no seu navegador'],
+    abo:   ['<span class="kicker">Inscrições</span>' +
+            '<h1>Sua barra sabe<br>quem você <em>apoia</em>.</h1>' +
+            '<p>Suas inscrições reconhecidas, douradas, agrupadas no topo. Ao ' +
+            'passar o mouse, há quantos meses você está lá — e as que expiraram.</p>',
+            '<b>Cowlor\'s Sidebar</b> · lido no seu navegador, nunca enviado a lugar nenhum'] },
 
   ptpt: { ui:'pt', section:'ptpt',
     titres:{ novaflux:'A resolver o mundo antes do subathon desta noite', kiraplays:'Rumo a Mestre antes do fim do mês — dia 12' },
@@ -244,11 +274,16 @@ const T = {
             '<p>Por categoria, por idioma — com bandeiras. Só aparecem os valores ' +
             'realmente presentes entre os teus canais.</p>',
             '<b>Cowlor\'s Sidebar</b> · nada para configurar, nunca'],
-    tri:   ['<span class="kicker">Cinco ordens</span>' +
+    tri:   ['<span class="kicker">Seis ordens</span>' +
             '<h1>A tua lista,<br><em>a tua</em> ordem.</h1>' +
-            '<p>Espectadores, popularidade pessoal, duração, alfabética — ' +
-            'ou os co-streams agrupados no topo.</p>',
-            '<b>Cowlor\'s Sidebar</b> · o teu histórico fica no teu navegador'] },
+            '<p>Espectadores, subscrições, popularidade pessoal, duração, ' +
+            'alfabética — ou os co-streams agrupados no topo.</p>',
+            '<b>Cowlor\'s Sidebar</b> · o teu histórico fica no teu navegador'],
+    abo:   ['<span class="kicker">Subscrições</span>' +
+            '<h1>A tua barra sabe<br>quem <em>apoias</em>.</h1>' +
+            '<p>As tuas subscrições reconhecidas, douradas, agrupadas no topo. ' +
+            'Ao passares por cima, há quantos meses lá estás — e as expiradas.</p>',
+            '<b>Cowlor\'s Sidebar</b> · lido no teu navegador, nunca enviado para lado nenhum'] },
 };
 const LANGUES = process.env.PROMO_LANGS
   ? process.env.PROMO_LANGS.split(',')
@@ -262,8 +297,11 @@ for (const L of LANGUES) {
 
   await scene({ nom:`01-hero-${L}`, lang:S.ui, section:S.section, jeu:DECOR, jeuArg:S.titres, titre:S.hero[0], sousTitre:S.hero[1] });
 
+  // La mémoire d'abonnements est posée ici AUSSI : kiraplays en fait partie,
+  // et c'est ce qui met dans l'aperçu le badge « Abonné 9 mois ». Sans elle la
+  // capture montrerait un aperçu amputé de sa ligne la plus personnelle.
   await scene({ nom:`02-apercu-${L}`, lang:S.ui, section:S.section, jeu:DECOR, jeuArg:S.titres, titre:S.apercu[0], sousTitre:S.apercu[1],
-  echelleMax:1, texteEtroit:true,
+  echelleMax:1, texteEtroit:true, stockage:ABOS,
   apres: async (page) => {
     await page.evaluate(() => {
       const c = [...document.querySelectorAll('.side-nav-card')]
@@ -317,6 +355,32 @@ for (const L of LANGUES) {
       if (b) b.click();
     });
     await page.waitForTimeout(1200);
+  } });
+
+  // Abonnements. Le tri « mes abonnements en tête » est activé pour que l'or
+  // se regroupe en haut de la liste — c'est là qu'on voit d'un coup d'œil ce
+  // que la barre a reconnu — et la pastille du bouton porte le total connu,
+  // douze, dont huit chaînes qui n'émettent pas en ce moment.
+  await scene({ nom:`06-abonnes-${L}`, lang:S.ui, section:S.section, jeu:DECOR, jeuArg:S.titres, titre:S.abo[0], sousTitre:S.abo[1],
+  stockage:ABOS,
+  apres: async (page) => {
+    await page.evaluate(() => {
+      const b = document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"]');
+      if (!b) throw new Error('bouton de tri « abonnements » absent');
+      if (b.disabled) throw new Error('bouton de tri « abonnements » grisé : aucun abonnement en direct');
+      b.click();
+    });
+    await page.waitForTimeout(1200);
+    // Garde-fous. Une capture qui ne montrerait aucune carte dorée serait une
+    // capture mensongère, et rien dans la mise en page ne le signalerait. Le
+    // TOTAL importe autant : s'il dépassait douze, c'est que le relevé aurait
+    // tourné malgré tout et versé les pseudos de la page de test.
+    const vu = await page.evaluate(() => ({
+      dorees: document.querySelectorAll('.tse-sub').length,
+      total: document.querySelector('#tse-sort-row .tse-sort-count')?.textContent || '',
+    }));
+    if (vu.dorees !== 4) throw new Error(`cartes dorées attendues : 4, vues : ${vu.dorees}`);
+    if (vu.total !== '12') throw new Error(`pastille attendue : 12, vue : « ${vu.total} »`);
   } });
 
 }
