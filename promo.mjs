@@ -235,14 +235,21 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
     const m = document.getElementById('promo-marque');
     const rt = t.getBoundingClientRect(), rm = m.getBoundingClientRect();
     const h1 = t.querySelector('h1');
+    // La fenêtre d'aperçu, quand la scène en pose une. Elle est reposée à la
+    // main dans promo-run.mjs, donc rien ne l'empêche de venir mordre sur la
+    // colonne de texte — sauf cette mesure. Elle vaut la distance qui les
+    // sépare : négative, elles se chevauchent.
+    const pv = document.querySelector('.tse-preview');
     return {
       hors: rt.top < 8 || rt.bottom > 792 || rt.right > 1274 || rt.left < 560,
       coupe: h1 ? Math.round(h1.scrollWidth - h1.clientWidth) : 0,
       chevauche: rt.bottom > rm.top - 8,
       marque: Math.round(rm.left) < 560,
+      ecart: pv ? Math.round(rt.left - pv.getBoundingClientRect().right) : null,
     };
   });
-  if (trop.hors || trop.coupe > 0 || trop.chevauche || trop.marque) {
+  if (trop.hors || trop.coupe > 0 || trop.chevauche || trop.marque ||
+      (trop.ecart !== null && trop.ecart < 12)) {
     console.log('  ⚠ mise en page :', nom, JSON.stringify(trop));
   }
 
@@ -290,22 +297,31 @@ function habiller({ titre, sousTitre, CSS, echelleMax, texteEtroit }) {
       padding:10px 6px 12px; border-radius:14px;
       background:#1f1f23; border:1px solid rgba(255,255,255,.08);
       box-shadow:0 34px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(145,71,255,.13); }
-    #promo-texte { position:fixed; right:60px; top:50%; transform:translateY(-50%);
-      width:540px; color:#efeff1; }
-    body.promo-etroit #promo-texte { right:46px; width:352px; }
-    body.promo-etroit #promo-texte h1 { font-size:47px; letter-spacing:-1.3px; }
-    body.promo-etroit #promo-texte p { font-size:20px; max-width:346px; }
-    #promo-texte .kicker { display:inline-block; padding:6px 14px; border-radius:999px;
+    /* La colonne de texte occupe la place LAISSÉE par le cadre : celui-ci
+       s'arrête vers 475 px, et le texte commençait à 680 — deux cent
+       cinquante pixels de vide au milieu, payés par une typographie plus
+       petite qu'elle n'avait besoin de l'être. Élargie, elle porte des
+       corps plus grands sans que rien ne se rapproche du cadre. */
+    #promo-texte { position:fixed; right:56px; top:50%; transform:translateY(-50%);
+      width:620px; color:#efeff1; }
+    /* Variante étroite : la scène de l'aperçu pose la fenêtre de survol au
+       milieu, et c'est ELLE qui borne la colonne, pas le cadre. La marge y
+       est donc gagnée au pixel près (cf. la repose de l'aperçu dans
+       promo-run.mjs), et les corps grandissent moins qu'à côté. */
+    body.promo-etroit #promo-texte { right:40px; width:372px; }
+    body.promo-etroit #promo-texte h1 { font-size:51px; letter-spacing:-1.4px; }
+    body.promo-etroit #promo-texte p { font-size:22px; max-width:366px; }
+    #promo-texte .kicker { display:inline-block; padding:7px 16px; border-radius:999px;
       background:rgba(145,71,255,.16); border:1px solid rgba(145,71,255,.40);
-      color:#c9a6ff; font-size:15px; font-weight:700; letter-spacing:.10em;
-      text-transform:uppercase; margin-bottom:24px; }
-    #promo-texte h1 { margin:0 0 20px; font-size:62px; line-height:1.04;
-      font-weight:800; letter-spacing:-1.8px; }
+      color:#c9a6ff; font-size:17px; font-weight:700; letter-spacing:.10em;
+      text-transform:uppercase; margin-bottom:26px; }
+    #promo-texte h1 { margin:0 0 22px; font-size:70px; line-height:1.04;
+      font-weight:800; letter-spacing:-2px; }
     #promo-texte h1 em { font-style:normal; color:#a970ff; }
-    #promo-texte p { margin:0; font-size:23px; line-height:1.5; color:#bcbcc8;
-      font-weight:400; max-width:520px; }
-    #promo-marque { position:fixed; right:60px; bottom:40px; color:#707082;
-      font-size:16px; font-weight:600; }
+    #promo-texte p { margin:0; font-size:26px; line-height:1.5; color:#bcbcc8;
+      font-weight:400; max-width:604px; }
+    #promo-marque { position:fixed; right:56px; bottom:38px; color:#707082;
+      font-size:18px; font-weight:600; }
     #promo-marque b { color:#dedee3; font-weight:800; }
   `;
   document.head.appendChild(st);

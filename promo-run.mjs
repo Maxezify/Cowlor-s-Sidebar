@@ -315,7 +315,11 @@ for (const L of LANGUES) {
     await page.evaluate(() => {
       const pop = document.querySelector('.tse-preview');
       if (!pop) return;
-      pop.style.left = '374px'; pop.style.top = '150px';
+      // Calée au plus près du cadre — huit pixels de jeu — pour rendre à la
+      // colonne de texte tout ce qui peut l'être : c'est elle qui manquait de
+      // place, et le garde-fou de scene() vérifie que les deux ne se touchent
+      // toujours pas.
+      pop.style.left = '366px'; pop.style.top = '150px';
       pop.style.right = 'auto'; pop.style.bottom = 'auto';
     });
     await page.waitForTimeout(300);
