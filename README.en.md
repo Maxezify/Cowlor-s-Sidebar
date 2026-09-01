@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.53.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.54.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -544,6 +544,11 @@ and the stylesheet only copied three of them — hence a ring present on one car
 and missing on its neighbour, for no visible reason. Copying a cascade is
 condemning it to drift.
 
+The **category** is named the same way, by `cardCategoryEl()` (v3.54). The
+defect slept there identically and had been reported nowhere: the function
+covers five locations, two of which have a `<p>` carrying **no** `title`
+attribute — which the stylesheet's selectors demanded.
+
 It is the only element left in collapsed mode, where there is neither
 background nor text to colour — and it is **gold for every subscription**, whichever tab it came from.
 A tint per origin (gold, rose gold, platinum) was tried and dropped: the
@@ -620,7 +625,14 @@ the visit-time reading, which observes the channel itself.
 - the **non**-subscription is stored too, so a later visit corrects an entry
   that has gone stale — including after unsubscribing;
 - past 120 days an observation is no longer believed, otherwise a monthly
-  subscription left to lapse would stay true forever.
+  subscription left to lapse would stay true forever;
+- when memory overflows its bound, a **current subscription outranks a lapsed
+  one** (v3.54); the date only breaks ties. Since the expired tab started
+  being read, dozens of entries land in the same millisecond as the active
+  ones, and sorting on date alone lost them: on the bench, **not one of the
+  five active subscriptions survived**. The two are not worth the same — a
+  current subscription drives the sort, the badge and the card styling, a
+  lapsed one only feeds a hover badge.
 
 `tse.subs()` lists what has been spotted; `tse.reset()` wipes it with the rest.
 

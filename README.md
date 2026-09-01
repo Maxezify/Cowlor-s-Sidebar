@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.53.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.54.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -563,6 +563,11 @@ et la feuille de style n'en recopiait que trois — d'où un anneau présent sur
 une carte et absent sur sa voisine, sans raison visible. Recopier une cascade,
 c'est se condamner à ce qu'elle dérive.
 
+La **catégorie** est désignée de la même façon, par `cardCategoryEl()` (v3.54).
+Le défaut y dormait à l'identique et n'avait été signalé nulle part : la
+fonction couvre cinq emplacements, dont deux où le `<p>` ne porte **pas**
+d'attribut `title` — que les sélecteurs de la feuille de style exigeaient.
+
 C'est le seul élément qui subsiste en mode réduit, où il n'y a ni fond ni texte
 à colorer —
 et il est **doré pour tout abonnement**, quel que soit l'onglet d'où il vient.
@@ -640,7 +645,15 @@ relevé de visite, qui observe la chaîne elle-même.
 - le **non**-abonnement est mémorisé lui aussi : une visite ultérieure corrige
   donc une entrée devenue fausse, y compris après un désabonnement ;
 - au-delà de 120 jours, une observation n'est plus crue — sans quoi un
-  abonnement mensuel non reconduit resterait vrai pour toujours.
+  abonnement mensuel non reconduit resterait vrai pour toujours ;
+- quand la mémoire déborde sa borne, un **abonnement en cours passe avant un
+  abonnement révolu** (v3.54) ; la date ne départage qu'à égalité. Depuis que
+  l'onglet des expirés est lu, des dizaines d'entrées arrivent dans la même
+  milliseconde que les abonnements actifs, et trier sur la seule date les
+  perdait : sur le banc, **aucun des cinq abonnements actifs ne survivait**.
+  Or les deux ne valent pas la même chose — un abonnement en cours porte le
+  tri, la pastille et le style de la carte, un révolu ne nourrit qu'un badge
+  au survol.
 
 `tse.subs()` liste ce qui a été repéré, `tse.reset()` l'efface avec le reste.
 

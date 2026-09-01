@@ -3356,12 +3356,10 @@ console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
   // relevés des versions antérieures, au lieu d'attendre six heures.
   ok('le relevé est horodaté, avec son numéro de lecteur',
      /^2:\d+$/.test(stamp || ''), String(stamp));
-  const avant = await page.evaluate(() => window.__calls.length);
   await wait(page, 1500);
   ok('et ne recommence pas dans le délai',
      (await page.evaluate(() => localStorage.getItem('tse:substs'))) === stamp,
      'horodatage modifié');
-  void avant;
 
   // Forcer le relevé doit, lui, repasser outre le délai.
   const forcees = await page.evaluate(() => window.tse.subs.refresh());
@@ -3937,11 +3935,9 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
     const avApres = av ? getComputedStyle(av, '::after') : null;
     const nom = c.querySelector('p[data-a-target="side-nav-title"]');
     const nomStyle = nom ? getComputedStyle(nom) : null;
-    // Même cascade que le CSS et que cardCategoryEl : le DOM réel de Twitch
-    // porte .side-nav-card__metadata, que le harnais n'a pas — s'appuyer sur
-    // la seule première forme ne prouvait rien ici.
-    const cat = c.querySelector('.side-nav-card__metadata p[title]:not([data-a-target="side-nav-title"])')
-      || c.querySelector('[data-a-target="side-nav-card-metadata"] p[title]:not([data-a-target="side-nav-title"])');
+    // La catégorie est désormais DÉSIGNÉE par une classe, posée en JS d'après
+    // cardCategoryEl() : plus de cascade à recopier ici non plus.
+    const cat = c.querySelector('.tse-sub-cat');
     const catStyle = cat ? getComputedStyle(cat) : null;
     return {
       classe:    c.classList.contains('tse-sub'),
@@ -4001,8 +3997,19 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
      `${abo && abo.nomDuree} contre ${abo && abo.catDuree}`);
   ok('la catégorie, elle, n\'a qu\'une animation',
      (abo?.catAnim || '').split(',').length === 1, String(abo && abo.catAnim));
-  ok('la catégorie d\'une chaîne non abonnée est laissée telle quelle',
-     !non || non.catAnim === 'none', String(non && non.catAnim));
+  ok('la catégorie d\'une chaîne non abonnée n\'est même pas marquée',
+     non !== null && non.catAnim === null, String(non && non.catAnim));
+  // La catégorie est DÉSIGNÉE par cardCategoryEl, plus cherchée par un
+  // sélecteur qui exigeait un attribut title : c'est ce qui la met à l'abri
+  // du défaut signalé sur l'avatar. On vérifie qu'elle porte bien la marque
+  // et que c'est le bon élément.
+  ok('la catégorie est marquée par la fonction de référence',
+     await page.evaluate(() => {
+       const c = [...document.querySelectorAll('.side-nav-card')]
+         .find(x => x.dataset.tseLogin === 'omofficial');
+       const marque = c.querySelectorAll('.tse-sub-cat');
+       return marque.length === 1 && marque[0].textContent === 'G';
+     }));
   ok('le nom d\'une chaîne non abonnée est laissé tel quel',
      !non || (non.nomAnim === 'none' && non.nomPoids !== '700'),
      JSON.stringify(non && { a: non.nomAnim, p: non.nomPoids }));
@@ -4038,6 +4045,7 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
   ok('mouvement réduit : plus d\'animation', calme.anim === 'none', String(calme.anim));
   ok('ni sur le nom', calme.nomAnim === 'none', String(calme.nomAnim));
   ok('ni sur la catégorie', calme.catAnim === 'none', String(calme.catAnim));
+  ok('et la catégorie reste marquée', calme.catTexte === 'G', String(calme.catTexte));
   ok('ni sur l\'avatar', calme.avatar === 'none', String(calme.avatar));
   ok('ni sur son halo', calme.avSouffle === 'none', String(calme.avSouffle));
   ok('mais la marque demeure', calme.classe === true, JSON.stringify(calme));
@@ -4269,6 +4277,21 @@ console.log('\n55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa 
   ok('une seule marque d\'avatar par carte',
      await page.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
        .every(c => c.querySelectorAll('.tse-sub-avatar').length <= 1)));
+  // La marque doit TOMBER quand la carte cesse d'être abonnée — sinon un
+  // anneau doré survivrait sur une chaîne quelconque, la carte ayant été
+  // recyclée par React.
+  await page.evaluate(() => {
+    const c = [...document.querySelectorAll('.side-nav-card')]
+      .find(x => x.dataset.tseLogin === 'etoiles');
+    c.querySelector('a[href="/etoiles"]').setAttribute('href', '/recyclee');
+  });
+  await wait(page, 600);
+  ok('et elle tombe quand la carte change de chaîne',
+     await page.evaluate(() => {
+       const c = [...document.querySelectorAll('.side-nav-card')]
+         .find(x => x.dataset.tseLogin === 'recyclee');
+       return !!c && c.querySelectorAll('.tse-sub-avatar').length === 0;
+     }));
   await page.close();
 }
 
@@ -4304,6 +4327,34 @@ console.log('\n56. Filtres — la rangée de tri est alignée sur celle des filt
   // d'origine, sans devenir des pavés.
   ok('les boutons se sont élargis en conséquence',
      bords !== null && bords.largeur > 28 && bords.largeur <= 44, JSON.stringify(bords));
+  await page.close();
+}
+
+console.log('\n57. Mémoire — un abonnement en cours passe avant un abonnement révolu');
+{
+  // Depuis que l'onglet des expirés est lu, des dizaines d'entrées arrivent
+  // dans la même milliseconde que les abonnements en cours. Trier la purge sur
+  // la seule date perdait alors des abonnements ACTIFS — ceux qui portent le
+  // tri, la pastille et le style — au profit de révolus qui ne nourrissent
+  // qu'un badge au survol.
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const TROP = () => {
+    window.__noSubsPage = true;
+    const m = {};
+    const t = Date.now();
+    // 420 révolus, au-delà de la borne de 400, tous datés du même instant.
+    for (let i = 0; i < 420; i++) m['revolu' + i] = [0, t, 3, 1];
+    // Et cinq abonnements EN COURS, noyés dedans.
+    for (let i = 0; i < 5; i++) m['actif' + i] = [1, t];
+    try { localStorage.setItem('tse:subs', JSON.stringify(m)); } catch {}
+  };
+  const page = await freshTwitch(PLAYER, [], '/', TROP);
+  await wait(page, 1200);
+  const vue = await page.evaluate(() => window.tse.subs());
+  const actifs = vue.filter(e => e.sub).map(e => e.login).sort();
+  ok('la mémoire est bien ramenée sous la borne', vue.length <= 400, String(vue.length));
+  ok('et les cinq abonnements en cours ont tous survécu',
+     actifs.join(',') === 'actif0,actif1,actif2,actif3,actif4', JSON.stringify(actifs));
   await page.close();
 }
 

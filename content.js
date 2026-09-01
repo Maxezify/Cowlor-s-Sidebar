@@ -1598,13 +1598,12 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       color: #ffd68a;
       font-weight: 700;
     }
-    /* La catégorie. Le :not() écarte le nom, qui porte parfois lui aussi un
-       attribut title (cf. buildAheadCard, qui le renseigne quand il existe) —
-       sans quoi le sélecteur de la catégorie l'attraperait au passage et les
-       deux rangs recevraient le même traitement. */
-    .side-nav-card.tse-sub .side-nav-card__metadata p[title]:not([data-a-target="side-nav-title"]),
-    .side-nav-card.tse-sub [data-a-target="side-nav-card-metadata"] p[title]:not([data-a-target="side-nav-title"]),
-    .side-nav-card.tse-sub [class*="promoted-followed-card__content"] p[title]:not([data-a-target="side-nav-title"]) {
+    /* La catégorie, désignée par une CLASSE posée en JS d'après
+       cardCategoryEl() — pour la même raison que l'avatar : la fonction
+       couvre cinq emplacements, dont deux où le <p> ne porte pas d'attribut
+       title, et une feuille de style qui les recopie finit par en oublier
+       un (cf. markSubPart). */
+    .side-nav-card.tse-sub .tse-sub-cat {
       color: #e6c68d;
     }
     @supports (-webkit-background-clip: text) or (background-clip: text) {
@@ -1627,9 +1626,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         animation-delay: calc(var(--tse-sub-phase, 0) * -0.58s),
                          calc(var(--tse-sub-phase, 0) * -0.46s);
       }
-      .side-nav-card.tse-sub .side-nav-card__metadata p[title]:not([data-a-target="side-nav-title"]),
-      .side-nav-card.tse-sub [data-a-target="side-nav-card-metadata"] p[title]:not([data-a-target="side-nav-title"]),
-      .side-nav-card.tse-sub [class*="promoted-followed-card__content"] p[title]:not([data-a-target="side-nav-title"]) {
+      .side-nav-card.tse-sub .tse-sub-cat {
         background: linear-gradient(100deg,
           #d4b076   0%,
           #f4e3c2  34%,
@@ -1722,15 +1719,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     /* Mouvement réduit : la demande est explicite, on la respecte. L'or reste
        — c'est lui qui porte l'information — mais plus rien ne bouge. */
     @media (prefers-reduced-motion: reduce) {
-      /* Les sélecteurs de la catégorie reprennent le :not() de la règle qui
-         pose l'animation. Sans lui, ils sont MOINS spécifiques qu'elle et la
-         coupure ne s'appliquait pas : la catégorie continuait de scintiller
-         alors que tout le reste s'était arrêté. Attrapé au banc. */
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
-      .side-nav-card.tse-sub .side-nav-card__metadata p[title]:not([data-a-target="side-nav-title"]),
-      .side-nav-card.tse-sub [data-a-target="side-nav-card-metadata"] p[title]:not([data-a-target="side-nav-title"]),
-      .side-nav-card.tse-sub [class*="promoted-followed-card__content"] p[title]:not([data-a-target="side-nav-title"]),
+      .side-nav-card.tse-sub .tse-sub-cat,
       .side-nav-card.tse-sub .tse-sub-avatar,
       .side-nav-card.tse-sub .tse-sub-avatar::after {
         animation: none;
@@ -3739,8 +3730,16 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       const limite = Date.now() - CFG.SUBS_TTL_DAYS * 24 * 60 * 60 * 1000;
       for (const [login, e] of [...this.map]) if (e.ts < limite) this.map.delete(login);
       if (this.map.size <= CFG.SUBS_MAX_LOGINS) return;
+      // L'ABONNEMENT EN COURS PASSE AVANT, l'ancienneté ne départage qu'à
+      // égalité. Trier sur la seule date perdait des abonnements actifs au
+      // profit d'abonnements révolus : depuis que l'onglet des expirés est lu,
+      // des dizaines d'entrées arrivent dans la MÊME milliseconde que les
+      // abonnements en cours, et l'ordre entre elles n'avait plus de sens.
+      // Or les deux ne valent pas la même chose : un abonnement en cours porte
+      // le tri, la pastille et le style de la carte ; un révolu ne nourrit
+      // qu'un badge au survol.
       const gardees = [...this.map.entries()]
-        .sort((a, b) => b[1].ts - a[1].ts)
+        .sort((a, b) => (Number(b[1].sub) - Number(a[1].sub)) || (b[1].ts - a[1].ts))
         .slice(0, CFG.SUBS_MAX_LOGINS);
       this.map = new Map(gardees);
     },
@@ -3750,7 +3749,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
      * changé — sinon un simple passage sur une chaîne déclencherait une
      * écriture localStorage à chaque scan, soit plusieurs par seconde.
      */
-    record(login, sub) {
+    record(login, sub, differer = false) {
       if (!login) return false;
       const avant = this.map.get(login);
       // L'ancienneté et le passé d'abonné sont CONSERVÉS : ils viennent d'une
@@ -3764,8 +3763,9 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       if (avant?.src) e.src = avant.src;
       this.map.set(login, e);
       if (avant && avant.sub === sub) return false;   // rien de neuf
-      this.prune();
-      this.save();
+      // `differer` sert au relevé, qui enregistre une rafale d'abonnements
+      // d'affilée : sans lui, chacun sérialisait la mémoire entière.
+      if (!differer) this.flush();
       return true;
     },
 
@@ -3821,12 +3821,6 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       this.map.set(login, e);
       if (!differer) this.flush();
       return true;
-    },
-
-    // Onglet d'origine, ou '' si inconnu (abonnement appris par visite).
-    sourceFor(login) {
-      const e = login ? this.map.get(login) : null;
-      return (e && e.src) || '';
     },
 
     // Nombre total de mois d'abonnement relevé, ou 0. Sert au badge de
@@ -4175,8 +4169,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
             // — noteSource ne réécrit que si la valeur change, et le premier
             // onglet à trouver une chaîne est celui qui la sert.
             touche = subs.noteSource(login, onglet, true) || touche;
-            subs.record(login, true);
+            touche = subs.record(login, true, true) || touche;
           }
+          // Un seul rangement pour tout l'onglet. Il écrit la mémoire ENTIÈRE,
+          // donc il couvre aussi ce qu'un onglet d'expirés aurait posé entre
+          // temps — d'où la remise à zéro du drapeau sans rien perdre.
           if (touche) { subs.flush(); touche = false; }
           scheduleScan();
           premierResultat();
@@ -4997,22 +4994,42 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
    * Le nettoyage passe par querySelectorAll : une carte recyclée par React
    * peut porter la marque sur un ancien élément, qui n'est plus l'avatar.
    */
-  const markSubAvatar = (card, abonne) => {
-    const cible = abonne ? avatarOf(card) : null;
-    for (const el of card.querySelectorAll('.tse-sub-avatar')) {
-      if (el !== cible) el.classList.remove('tse-sub-avatar');
+  /**
+   * Marque l'avatar ET la catégorie de la carte, pour que le CSS les trouve.
+   *
+   * MÊME RAISON DANS LES DEUX CAS. avatarOf() couvre cinq formes d'avatar,
+   * cardCategoryEl() cinq emplacements de catégorie — dont deux où le <p> ne
+   * porte PAS d'attribut title, que les sélecteurs de la feuille de style
+   * exigeaient. Recopier une cascade dans du CSS, c'est se condamner à ce
+   * qu'elle dérive : le défaut a été signalé sur l'avatar, il dormait à
+   * l'identique sur la catégorie. Le JS marque donc l'élément que la fonction
+   * de référence désigne, et le CSS ne connaît plus qu'une classe.
+   */
+  const markSubPart = (card, abonne, etait, classe, trouver) => {
+    if (!abonne) {
+      // Jamais décorée : rien à défaire, et surtout aucune interrogation du
+      // DOM. C'est le cas de l'immense majorité des cartes, à chaque scan.
+      if (!etait) return;
+      for (const el of card.querySelectorAll('.' + classe)) el.classList.remove(classe);
+      return;
     }
-    if (cible && !cible.classList.contains('tse-sub-avatar')) {
-      cible.classList.add('tse-sub-avatar');
-    }
+    // Déjà marquée : on s'arrête là. Si React avait remplacé l'élément,
+    // l'ancien ne serait plus dans la carte et querySelector ne le trouverait
+    // pas — on le remarquerait donc au passage suivant. Une seule
+    // interrogation ici, au lieu des cinq que peut coûter la cascade.
+    if (card.querySelector('.' + classe)) return;
+    const cible = trouver(card);
+    if (cible) cible.classList.add(classe);
   };
+
+
 
   const applySubStyle = (card, login) => {
     const abonne = subs.isSub(login);
-    if (card.classList.contains('tse-sub') !== abonne) {
-      card.classList.toggle('tse-sub', abonne);
-    }
-    markSubAvatar(card, abonne);
+    const etait = card.classList.contains('tse-sub');
+    if (etait !== abonne) card.classList.toggle('tse-sub', abonne);
+    markSubPart(card, abonne, etait, 'tse-sub-avatar', avatarOf);
+    markSubPart(card, abonne, etait, 'tse-sub-cat', cardCategoryEl);
     if (!abonne) {
       if (card.style.getPropertyValue('--tse-sub-phase')) {
         card.style.removeProperty('--tse-sub-phase');
