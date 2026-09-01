@@ -1258,6 +1258,28 @@ no real identity is borrowed, avatars are generated, and the preview's video
 area is an abstract gradient — a fake gameplay still would suggest content that
 does not exist.
 
+### The typeface, and why it lives in the repository
+
+The container has neither Inter, nor Helvetica, nor Arial: everything fell back
+to DejaVu Sans, a typeface that is nobody's. The flaw showed twice — on Twitch's
+markup, and on the extension itself, whose CSS asks for
+`var(--font-base, "Inter", sans-serif)` and was not getting Inter either.
+
+So **Inter** is embedded, in `promo-fonts/`: two subsets (latin and latin-ext)
+as **variable** files, one file per subset covering every weight. Versioned
+rather than fetched on demand — a capture must not depend on a CDN to be
+reproducible — and inlined as base64 into the stylesheet, with Twitch's exact
+stack declared where Twitch declares it: `--font-base` on the root. The
+extension therefore takes the **real** path, not a fallback that would exist
+only in the harness. SIL Open Font License 1.1, full text in
+`promo-fonts/OFL.txt`.
+
+The avatars no longer carry the channel's initial either: on a real sidebar
+those thirty pixels carry a photo, and a letter said "test capture". They are
+now abstract compositions, deterministic per handle — two hues, one light
+focus, one dark one. At the size they are seen they read as photographs you
+cannot make out, and nobody is depicted in them.
+
 Two scenes — the preview and the subscriptions one — need a subscription memory.
 It is **seeded** into `localStorage` before the script starts (`ABOS`, in
 `promo.mjs`), and the `/subscriptions` sweep is switched off for every capture.
@@ -1268,14 +1290,31 @@ photographs, too: four gilded cards, and a badge reading twelve. Were the sweep
 to run anyway, the badge would count thirteen or more and the capture would fail
 instead of shipping.
 
-Four guards measure every scene before the shot and complain on the console
+Six guards measure every scene before the shot and complain on the console
 rather than let a crooked image out: the headline must not be clipped, the text
 column must never come within twenty-four pixels of the frame (a floor
 **derived** from the frame, whose scale varies from scene to scene), the hover
-preview must not bite into the text, and the kicker must hold on one line — a
-pill on two lines is no longer a pill, and a line break overflows nothing: it
-had to be measured to be seen. That last one is what caught
-"PRÉ-VISUALIZAÇÃO AO PASSAR", eleven pixels too wide in Portuguese.
+preview must not bite into the text, Inter must really be loaded, the kicker
+must hold on one line, and the headline must count exactly the lines it was
+written with.
+
+The last two cover the same blind spot: **a line break overflows nothing**, so
+no overflow measurement can see it. That is how "PRÉ-VISUALIZAÇÃO AO PASSAR"
+got through, eleven pixels too wide for its pill; and that is how thirteen
+scenes at once were caught with a headline taking one line more than written,
+ever since Inter — whose 800 weight is real, where the fallback synthesised its
+bold — replaced the default typeface. Headline size is therefore no longer
+chosen but **measured**: 72 px is the last notch at which "tells you
+everything.", the longest line across the seven languages, fits the column's
+690 px. In the narrow variant the wrap is wanted instead — no legible size fits
+"avant de cliquer" in one go inside 378 px — and the guard tolerates one extra
+line there, and only there.
+
+That 72 was found in the real pipeline, and it took that: a standalone
+measuring bench, rendering the same string in the same typeface at the same
+size, reported that 74 fit. It was off by 5% — enough to push a word onto the
+next line, not enough to notice. A text width cannot be modelled beside the
+page that displays it; it has to be measured in it.
 
 ### The 440 × 280 tile
 

@@ -14,18 +14,46 @@ const OUT  = process.env.PROMO_OUT || join(ICI, 'promo');
 mkdirSync(OUT, { recursive: true });
 const lire = (n) => readFileSync(join(T, n), 'utf8');
 
-// ── Palette d'avatars : SVG déterministe par login, sans emprunter de visage
+/* ── Avatars : image déterministe par login, sans emprunter de visage.
+   Ils portaient l'initiale de la chaîne sur un dégradé. C'était lisible, et
+   c'était visiblement un bouche-trou : sur une vraie barre latérale, ces
+   trente pixels portent une photo, et une lettre disait « capture d'essai ».
+   Ce sont donc maintenant des compositions abstraites — deux teintes tirées du
+   pseudo, un foyer clair et un foyer sombre placés par le même hachage, un
+   liseré. À la taille où on les voit, elles se lisent comme des photos qu'on
+   ne distingue pas ; c'est exactement ce qu'on veut, et personne n'y est
+   représenté. */
 const AV = ['#9147ff','#26d4c8','#f5c518','#7ee081','#4d8cff','#ff7a8a','#c77dff','#ff9f43'];
 const hash = (s) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
 const avatar = (login) => {
-  const c = AV[hash(login) % AV.length];
-  const l = (login[0] || '?').toUpperCase();
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70">
-    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="#18181b"/></linearGradient></defs>
-    <rect width="70" height="70" rx="35" fill="url(#g)"/>
-    <text x="35" y="46" font-family="Inter,Helvetica,Arial" font-size="30" font-weight="700"
-          fill="#fff" text-anchor="middle" opacity=".92">${l}</text></svg>`;
+  const h = hash(login);
+  const a = AV[h % AV.length];
+  const b = AV[(h >> 3) % AV.length];
+  // Positions tirées du hachage : deux chaînes voisines n'ont pas la même
+  // image, et la même chaîne a toujours la sienne — une capture reprise
+  // demain rend le même fichier.
+  const p = (n, min, max) => min + ((h >> n) % 1000) / 1000 * (max - min);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" viewBox="0 0 70 70">
+    <defs>
+      <!-- Le fond couvre le disque ENTIER : un dégradé radial y laissait des
+           coins morts, et l'avatar sortait presque noir. -->
+      <linearGradient id="f" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>
+      <radialGradient id="h" cx="${p(2, 22, 62).toFixed(1)}%" cy="${p(5, 14, 46).toFixed(1)}%" r="58%">
+        <stop offset="0" stop-color="#ffffff" stop-opacity=".42"/>
+        <stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+      <radialGradient id="o" cx="${p(11, 48, 92).toFixed(1)}%" cy="${p(14, 58, 96).toFixed(1)}%" r="62%">
+        <stop offset="0" stop-color="#0b0a0f" stop-opacity=".55"/>
+        <stop offset="1" stop-color="#0b0a0f" stop-opacity="0"/></radialGradient>
+      <clipPath id="d"><circle cx="35" cy="35" r="35"/></clipPath>
+    </defs>
+    <g clip-path="url(#d)">
+      <rect width="70" height="70" fill="url(#f)"/>
+      <rect width="70" height="70" fill="url(#o)"/>
+      <rect width="70" height="70" fill="url(#h)"/>
+    </g>
+    <circle cx="35" cy="35" r="34.5" fill="none" stroke="#000" stroke-opacity=".3"/>
+  </svg>`;
 };
 // Vignette d'aperçu : dégradé abstrait. Volontairement NON figuratif — une
 // fausse image de jeu laisserait croire à un contenu qui n'existe pas.
@@ -41,12 +69,49 @@ const vignette = (login) => {
 };
 
 
+/* Inter — la police de l'interface de Twitch, embarquée.
+
+   Sans elle, rien de ce qui est photographié n'a le bon dessin : le conteneur
+   n'a ni Inter, ni Helvetica, ni Arial, et tout retombait sur DejaVu Sans, une
+   police qui n'est celle de personne. Le défaut se voyait deux fois — sur le
+   markup de Twitch, et sur l'extension elle-même, dont le CSS demande
+   `var(--font-base, "Inter", sans-serif)`.
+
+   Embarquée en base64 plutôt que chargée d'un CDN : une capture ne doit pas
+   dépendre du réseau pour être reproductible. Deux sous-ensembles, latin et
+   latin étendu, en fichier VARIABLE — un seul fichier par sous-ensemble couvre
+   toutes les graisses, ce qui coûte moins que quatre fichiers statiques.
+
+   SIL Open Font License 1.1 — le texte complet est dans promo-fonts/OFL.txt,
+   comme l'exige la licence pour toute redistribution. */
+const woff2 = (n) => 'data:font/woff2;base64,' +
+  readFileSync(join(ICI, 'promo-fonts', n)).toString('base64');
+const POLICE = `
+  @font-face { font-family:'Inter'; font-style:normal; font-weight:100 900;
+    src:url(${woff2('inter-latin.woff2')}) format('woff2');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,
+      U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,
+      U+FEFF,U+FFFD; }
+  @font-face { font-family:'Inter'; font-style:normal; font-weight:100 900;
+    src:url(${woff2('inter-latin-ext.woff2')}) format('woff2');
+    unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,
+      U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,
+      U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+`;
+
 /* Reconstruction de l'habillage de Twitch pour le markup de tests/page.html.
    La page de test reproduit la STRUCTURE du DOM, pas l'apparence : sans ces
    règles, les cartes s'affichent en liens bleus soulignés. Les décorations de
    l'extension (durée, couleurs de co-stream, barre « stream frais », bloc
    filtre, aperçu) sont, elles, produites par le code réel. */
-const CSS_TWITCH = `
+export const CSS_TWITCH = POLICE + `
+  /* La pile de Twitch, à l'identique, et posée là où Twitch la pose : sur la
+     racine, en variable. L'extension lit --font-base — c'est donc le VRAI
+     chemin qu'on éprouve, pas un repli qui n'existerait qu'ici. */
+  :root { --font-base: Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  /* Twitch lisse ses polices ; sans cette ligne le même texte sort plus gras
+     ici que là-bas, ce qui se voit surtout sur les petits corps de la barre. */
+  html, body { font-family: var(--font-base); -webkit-font-smoothing: antialiased; }
   #side-nav { width:240px; background:#1f1f23; padding:0 0 6px; }
   .side-nav__title { padding:14px 10px 8px; }
   .side-nav__title h3 { margin:0; font-size:13px; font-weight:600; color:#efeff1;
@@ -209,6 +274,10 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
   await page.waitForTimeout(2200);
   if (apres) await apres(page);
   await page.evaluate(habiller, { titre, sousTitre, CSS: CSS_TWITCH, echelleMax, texteEtroit });
+  // La police est embarquée, donc immédiate — mais « immédiate » n'est pas
+  // « déjà là ». Attendre ici, et non après la mesure, évite d'aller mesurer
+  // des largeurs de repli qui ne seront pas celles de l'image.
+  await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(500);
   if (process.env.PROMO_DEBUG) {
     console.log(JSON.stringify(await page.evaluate(() => {
@@ -261,8 +330,31 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
       chapo = Math.round(k.getBoundingClientRect().width - rt.width);
       k.style.whiteSpace = avant;
     }
+    // Inter a-t-elle VRAIMENT été prise ? Une police absente ne casse rien :
+    // le navigateur retombe sur son défaut, et l'image sort avec le mauvais
+    // dessin sans que personne ne s'en aperçoive. On compare donc la largeur
+    // d'une même chaîne demandée à Inter et à une famille qui n'existe pas :
+    // si les deux se valent, c'est que le repli a servi les deux fois.
+    const largeur = (f) => {
+      const c = document.createElement('canvas').getContext('2d');
+      c.font = '600 13px ' + f;
+      return c.measureText('Chaînes suivies — kiraplays 18,4 k').width;
+    };
+    const police = largeur('Inter, sans-serif') !== largeur('__absente__, sans-serif');
+    // Le titre se replie où il veut, et ça ne déborde de rien : `coupe` ne peut
+    // pas le voir. Or les coupures sont ÉCRITES, une par <br> — un vers de plus
+    // que prévu, et le rythme voulu n'est plus celui qu'on photographie. On
+    // compte donc les lignes par la hauteur, l'interligne étant fixé juste
+    // au-dessus dans la même feuille.
+    let vers = 0;
+    if (h1) {
+      const st = getComputedStyle(h1);
+      const inter = parseFloat(st.lineHeight) || parseFloat(st.fontSize) * 1.04;
+      vers = Math.round(h1.getBoundingClientRect().height / inter)
+           - (1 + h1.querySelectorAll('br').length);
+    }
     return {
-      plancher, chapo,
+      plancher, chapo, police, vers,
       hors: rt.top < 8 || rt.bottom > 792 || rt.right > 1274 || rt.left < plancher,
       coupe: h1 ? Math.round(h1.scrollWidth - h1.clientWidth) : 0,
       chevauche: rt.bottom > rm.top - 8,
@@ -270,8 +362,14 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
       ecart: pv ? Math.round(rt.left - pv.getBoundingClientRect().right) : null,
     };
   });
-  if (trop.hors || trop.coupe > 0 || trop.chapo > 0 || trop.chevauche || trop.marque ||
-      (trop.ecart !== null && trop.ecart < 12)) {
+  // Un vers de plus est TOLÉRÉ dans la variante étroite, et là seulement : sa
+  // colonne fait 378 px, et aucune taille lisible n'y tient « avant de cliquer »
+  // d'un seul tenant. Le repli y est donc voulu, et le <br> n'est qu'un premier
+  // point de coupure. Dans la colonne large, en revanche, un vers de plus veut
+  // dire que la taille a dépassé ce que la mesure autorisait.
+  const versMax = texteEtroit ? 1 : 0;
+  if (trop.hors || trop.coupe > 0 || trop.chapo > 0 || trop.vers > versMax || trop.chevauche ||
+      trop.marque || !trop.police || (trop.ecart !== null && trop.ecart < 12)) {
     console.log('  ⚠ mise en page :', nom, JSON.stringify(trop));
   }
 
@@ -305,7 +403,7 @@ function habiller({ titre, sousTitre, CSS, echelleMax, texteEtroit }) {
   const st = document.createElement('style');
   st.textContent = CSS + `
     html, body { margin:0; padding:0; width:1280px; height:800px; overflow:hidden;
-      background:#0a0a0c; font-family:Inter,'Helvetica Neue',Helvetica,Arial,sans-serif;
+      background:#0a0a0c; font-family:var(--font-base);
       -webkit-font-smoothing:antialiased; }
     body::before { content:''; position:fixed; inset:0;
       background:
@@ -343,7 +441,7 @@ function habiller({ titre, sousTitre, CSS, echelleMax, texteEtroit }) {
       background:rgba(145,71,255,.16); border:1px solid rgba(145,71,255,.40);
       color:#c9a6ff; font-size:19px; font-weight:700; letter-spacing:.10em;
       text-transform:uppercase; margin-bottom:28px; }
-    #promo-texte h1 { margin:0 0 24px; font-size:78px; line-height:1.04;
+    #promo-texte h1 { margin:0 0 24px; font-size:72px; line-height:1.04;
       font-weight:800; letter-spacing:-2.2px; }
     #promo-texte h1 em { font-style:normal; color:#a970ff; }
     #promo-texte p { margin:0; font-size:29px; line-height:1.5; color:#bcbcc8;

@@ -17,7 +17,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { pageProduit, browser, ABOS } from './promo.mjs';
+import { pageProduit, browser, ABOS, CSS_TWITCH } from './promo.mjs';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.PROMO_OUT || join(ICI, 'promo');
@@ -55,8 +55,10 @@ const DECOR = () => {
 };
 
 // Habillage de Twitch : la page de test porte la structure, pas l'apparence.
-const CSS_TWITCH = readFileSync(join(ICI, 'promo.mjs'), 'utf8')
-  .split('const CSS_TWITCH = `')[1].split('\n`;')[0];
+// IMPORTÉ, et non plus découpé dans le texte source de promo.mjs : depuis que
+// cet habillage embarque la police en base64, il n'existe plus tel quel dans la
+// source — le découpage aurait rendu un « ${...} » littéral, et la tuile serait
+// repartie sans police.
 
 function composer({ CSS, LOGO, GRAIN, ECHELLE, COUPE }) {
   const nav = document.getElementById('side-nav');
@@ -182,6 +184,7 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(1200);
 await page.evaluate(composer, { CSS: CSS_TWITCH, LOGO, GRAIN, ECHELLE, COUPE });
+await page.evaluate(() => document.fonts.ready);
 await page.waitForTimeout(600);
 
 /* Une tuile qui ne montrerait ni or ni cartes lisibles serait une tuile ratée,
@@ -204,8 +207,21 @@ const bilan = await page.evaluate((ECHELLE) => {
   };
   const visibles = [...document.querySelectorAll('.side-nav-card')].filter(entiere);
   const titre = visibles[0]?.querySelector('[data-a-target="side-nav-title"]');
+  // Inter a-t-elle vraiment été prise ? Une police absente ne casse rien : le
+  // navigateur retombe sur son défaut, et la tuile sort avec le mauvais dessin.
+  // On compare donc la même chaîne demandée à Inter et à une famille qui
+  // n'existe pas ; largeurs égales = repli des deux côtés.
+  const largeur = (f) => {
+    const c = document.createElement('canvas').getContext('2d');
+    c.font = '600 13px ' + f;
+    return c.measureText('Chaînes suivies — kiraplays 18,4 k').width;
+  };
   return {
     cartes: visibles.length,
+    police: largeur('Inter, sans-serif') !== largeur('__absente__, sans-serif'),
+    // Ce que le pseudo REND vraiment, famille comprise : si la barre affichait
+    // autre chose qu'Inter, ce nom-là le dirait.
+    rendue: titre ? getComputedStyle(titre).fontFamily.split(',')[0].replace(/["']/g, '') : '',
     dorees: visibles.filter(c => c.classList.contains('tse-sub')).length,
     // Taille RENDUE : la mise à l'échelle ne touche pas au font-size calculé,
     // et c'est pourtant elle qu'on lit sur la tuile.
@@ -219,6 +235,8 @@ if (bilan.cartes < 2)  throw new Error(`cartes entières attendues : au moins 2,
 if (bilan.dorees < bilan.cartes) throw new Error(`cartes dorées attendues : toutes (${bilan.cartes}), vues : ${bilan.dorees}`);
 if (bilan.pseudo < 15) throw new Error(`pseudo attendu à 15 px au moins, mesuré : ${bilan.pseudo}`);
 if (!bilan.tri)        throw new Error('la pastille du tri des abonnements est hors cadre');
+if (!bilan.police)     throw new Error('Inter n\'a pas été chargée : la tuile sortirait dans la police par défaut');
+if (bilan.rendue !== 'Inter') throw new Error(`police rendue attendue : Inter, mesurée : « ${bilan.rendue} »`);
 
 const brut = await page.screenshot({ clip: { x: 0, y: 0, width: 440, height: 280 } });
 await page.close();

@@ -1330,6 +1330,29 @@ personne, les avatars sont générés, et la zone vidéo de l'aperçu est un dé
 abstrait — une fausse image de jeu laisserait croire à un contenu qui n'existe
 pas.
 
+### La police, et pourquoi elle est dans le dépôt
+
+Le conteneur n'a ni Inter, ni Helvetica, ni Arial : tout retombait sur DejaVu
+Sans, une police qui n'est celle de personne. Le défaut se voyait deux fois —
+sur le markup de Twitch, et sur l'extension elle-même, dont le CSS demande
+`var(--font-base, "Inter", sans-serif)` et n'obtenait donc pas Inter non plus.
+
+**Inter** est donc embarquée, dans `promo-fonts/` : deux sous-ensembles (latin
+et latin étendu) en fichier **variable**, soit un seul fichier par
+sous-ensemble pour toutes les graisses. Versionnée plutôt que téléchargée à la
+demande — une capture ne doit pas dépendre d'un CDN pour être reproductible — et
+injectée en base64 dans la feuille, avec la pile exacte de Twitch posée là où
+Twitch la pose : `--font-base` sur la racine. L'extension emprunte ainsi le
+**vrai** chemin, pas un repli qui n'existerait que dans le harnais.
+Licence SIL Open Font 1.1, texte complet dans `promo-fonts/OFL.txt`.
+
+Les avatars, eux, ne portent plus l'initiale de la chaîne : sur une vraie barre
+latérale ces trente pixels portent une photo, et une lettre disait « capture
+d'essai ». Ce sont maintenant des compositions abstraites, déterministes par
+pseudo — deux teintes, un foyer clair, un foyer sombre. À la taille où on les
+voit elles se lisent comme des photos qu'on ne distingue pas, et personne n'y
+est représenté.
+
 Deux scènes — l'aperçu et celle des abonnements — ont besoin d'une mémoire
 d'abonnements. Elle est **posée** dans le `localStorage` avant le démarrage du
 script (`ABOS`, dans `promo.mjs`), et le relevé de `/subscriptions` est coupé
@@ -1340,15 +1363,31 @@ des abonnements vérifie d'ailleurs ce qu'elle photographie : quatre cartes
 dorées, et une pastille à douze. Si le relevé passait outre, la pastille
 compterait treize et plus, et la capture échouerait au lieu de sortir.
 
-Quatre garde-fous mesurent chaque scène avant la capture, et se plaignent en
+Six garde-fous mesurent chaque scène avant la capture, et se plaignent en
 console plutôt que de laisser sortir une image bancale : le titre ne doit pas
 être coupé, la colonne de texte ne doit pas s'approcher du cadre à moins de
 vingt-quatre pixels (plancher **déduit** du cadre, dont l'échelle varie d'une
-scène à l'autre), la fenêtre d'aperçu ne doit pas venir mordre sur le texte, et
-le chapô doit tenir sur une seule ligne — une pastille sur deux lignes n'est
-plus une pastille, et un retour à la ligne ne déborde de rien : il fallait le
-mesurer pour le voir. C'est ce dernier qui a rattrapé
-« PRÉ-VISUALIZAÇÃO AO PASSAR », onze pixels de trop en portugais.
+scène à l'autre), la fenêtre d'aperçu ne doit pas venir mordre sur le texte,
+Inter doit être réellement chargée, le chapô doit tenir sur une seule ligne, et
+le titre doit compter exactement les lignes qu'on lui a écrites.
+
+Les deux derniers gardent la même zone aveugle : **un retour à la ligne ne
+déborde de rien**, donc aucune mesure de débordement ne peut le voir. C'est
+ainsi qu'est passé « PRÉ-VISUALIZAÇÃO AO PASSAR », onze pixels de trop pour sa
+pastille ; et c'est ainsi qu'a été rattrapé, dans treize scènes d'un coup, un
+titre qui prenait un vers de plus que prévu depuis qu'Inter — dont la graisse
+800 est réelle, là où le repli synthétisait son gras — a remplacé la police par
+défaut. La taille des titres n'est donc plus choisie mais **mesurée** : 72 px
+est le dernier cran où « tells you everything. », la plus longue ligne des sept
+langues, tient dans les 690 px de la colonne. Dans la variante étroite le repli
+est en revanche voulu — aucune taille lisible ne tient « avant de cliquer » d'un
+trait dans 378 px — et le garde-fou y tolère un vers de plus, là seulement.
+
+Ce 72 a été trouvé dans la chaîne réelle, et il fallait bien ça : un banc de
+mesure isolé, qui rendait pourtant la même chaîne dans la même police à la même
+taille, annonçait que 74 passait. Il se trompait de 5 % — assez pour faire
+tomber un mot à la ligne suivante, pas assez pour se voir. Une largeur de texte
+ne se modélise pas à côté de la page qui l'affiche ; elle s'y mesure.
 
 ### La tuile 440 × 280
 
