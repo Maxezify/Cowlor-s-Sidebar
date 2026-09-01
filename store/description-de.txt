@@ -170,28 +170,16 @@ Es gibt schlicht nichts einzustellen.
 
 _______________________________
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-DATENSCHUTZ
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+➤ 🔒 RUHIGES GEWISSEN BEIM DATENSCHUTZ
 
-★ Keine Berechtigungen über Twitch hinaus. Die Erweiterung kann nur auf
-  twitch.tv und player.twitch.tv wirken, sonst nirgends.
-★ Kein Drittserver. Kein Konto, keine Telemetrie, keine Werbung, kein Tracker,
-  kein Datenverkauf. Nichts verlässt deinen Rechner.
-★ Die Aufrufe der Twitch-API sind anonym: öffentliche Client-ID, kein
-  Sitzungstoken und kein Cookie werden gesendet.
-★ Eine Ausnahme, und hier ist sie. Um zu erfahren, welche Kanäle du abonniert
-  hast, öffnet die Erweiterung DEINE eigene Seite twitch.tv/subscriptions in
-  einem unsichtbaren Rahmen, höchstens alle sechs Stunden und nie, wenn du nicht
-  angemeldet bist. Es ist dein Browser, der diese Seite mit seinen eigenen
-  Cookies authentifiziert, genau so, als würdest du den Link anklicken: die
-  Erweiterung liest dein Token nicht und gibt es an niemanden weiter. Was sie
-  behält — Kanalnamen und eine Dauer in Monaten — bleibt im lokalen Speicher
-  deines Browsers.
-★ Die Werbeblockierung betrifft NUR das Vorschaubild beim Überfahren. Der
-  Stream, den du wirklich anschaust, bleibt unangetastet.
-★ Alles lässt sich auf einmal löschen: lösche die Website-Daten von twitch.tv in
-  den Einstellungen deines Browsers.
+- ★ Kein Drittserver ★ Die Erweiterung spricht nur mit Twitchs eigener öffentlicher API — genau der, die die Seite ohnehin schon nutzt, um sich aufzubauen. Sonst nichts, nirgends.
+- ★ Anonyme Aufrufe ★ Kein Sitzungstoken, kein Cookie wird je gesendet: diese Anfragen lassen sich nicht auf dein Konto zurückführen.
+- ★ Eine Ausnahme, laut ausgesprochen ★ Um zu wissen, welche Kanäle du abonniert hast, öffnet die Erweiterung DEINE eigene Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen, höchstens alle sechs Stunden und nie, wenn du abgemeldet bist. Dein Browser authentifiziert diese Seite mit seinen eigenen Cookies, genau so, als hättest du den Link angeklickt: die Erweiterung liest dein Token nie und gibt es nie weiter. Was sie behält — Kanalnamen und eine Dauer in Monaten — bleibt in deinem Browser.
+- ★ Kein Tracker, kein Pixel, keine Telemetrie ★
+- ★ Keine dubiosen Berechtigungen ★ Die Erweiterung läuft NUR auf twitch.tv.
+- ★ Werbeblockierung bleibt in ihrer Spur ★ Sie gilt für das Vorschaubild beim Überfahren und für sonst nichts. Der Stream, den du wirklich anschaust, bleibt unangetastet.
+- ★ Dein Verlauf bleibt bei dir ★ Besuche, Abos, Monate: im localStorage deines Browsers gespeichert, Punkt. Lösche die Website-Daten von twitch.tv, und alles ist weg.
+- ★ Quellcode komplett lesbar ★ Direkt im Ordner der Erweiterung. Keine Blackbox.
 
 _______________________________
 

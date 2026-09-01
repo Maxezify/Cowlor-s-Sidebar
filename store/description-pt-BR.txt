@@ -170,27 +170,16 @@ Não há absolutamente nada para configurar.
 
 _______________________________
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PRIVACIDADE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+➤ 🔒 TRANQUILIDADE QUANTO À PRIVACIDADE
 
-★ Nenhuma permissão além da Twitch. A extensão só pode agir em twitch.tv e
-  player.twitch.tv, e em mais nada.
-★ Nenhum servidor de terceiros. Sem conta, sem telemetria, sem anúncios, sem
-  rastreador, sem venda de dados. Nada sai da sua máquina.
-★ As chamadas à API da Twitch são anônimas: Client-ID público, nenhum token de
-  sessão e nenhum cookie enviados.
-★ Uma exceção, e aqui está ela. Para saber a quais canais você é inscrito, a
-  extensão abre a SUA própria página twitch.tv/subscriptions em um quadro
-  invisível, no máximo uma vez a cada seis horas, e nunca se você não estiver
-  conectado. É o seu navegador que autentica essa página com os próprios
-  cookies, exatamente como se você clicasse no link: a extensão não lê o seu
-  token e não o passa a ninguém. O que ela guarda — nomes de canais e um tempo
-  em meses — fica no armazenamento local do seu navegador.
-★ O bloqueio de anúncios vale SOMENTE para a miniatura da prévia. A live que
-  você está realmente assistindo não é tocada.
-★ Tudo se apaga de uma vez: apague os dados do site twitch.tv nas configurações
-  do seu navegador.
+- ★ Nenhum servidor de terceiros ★ A extensão só conversa com a API pública da própria Twitch — a mesma que a página já usa para se montar. Nada além disso, em lugar nenhum.
+- ★ Chamadas anônimas ★ Nenhum token de sessão, nenhum cookie é enviado: essas requisições não têm como ser ligadas à sua conta.
+- ★ Uma exceção, dita em voz alta ★ Para saber a quais canais você é inscrito, a extensão abre a SUA própria página twitch.tv/subscriptions num quadro invisível, no máximo uma vez a cada seis horas, e nunca se você estiver desconectado. É o seu navegador que autentica essa página com os próprios cookies, exatamente como se você tivesse clicado no link: a extensão nunca lê o seu token e nunca o repassa. O que ela guarda — nomes de canais e um tempo em meses — fica no seu navegador.
+- ★ Nenhum rastreador, nenhum pixel, nenhuma telemetria ★
+- ★ Nenhuma permissão suspeita ★ A extensão roda SOMENTE em twitch.tv.
+- ★ O bloqueio de anúncios fica na dele ★ Vale para a miniatura da prévia e para mais nada. A live que você está realmente assistindo não é tocada.
+- ★ Seu histórico fica com você ★ Visitas, inscrições, meses: guardados no localStorage do seu navegador, ponto. Apague os dados do site twitch.tv e some tudo.
+- ★ Código-fonte totalmente legível ★ Direto na pasta da extensão. Sem caixa-preta.
 
 _______________________________
 

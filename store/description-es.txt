@@ -170,27 +170,16 @@ No hay absolutamente nada que configurar.
 
 _______________________________
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PRIVACIDAD
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+➤ 🔒 TRANQUILIDAD EN CUANTO A PRIVACIDAD
 
-★ Ningún permiso más allá de Twitch. La extensión solo puede actuar en twitch.tv
-  y player.twitch.tv, en ningún otro sitio.
-★ Ningún servidor de terceros. Sin cuenta, sin telemetría, sin anuncios, sin
-  rastreadores, sin venta de datos. Nada sale de tu máquina.
-★ Las llamadas a la API de Twitch son anónimas: Client-ID público, sin enviar
-  ningún token de sesión ni cookie.
-★ Una excepción, y aquí está. Para saber a qué canales estás suscrito, la
-  extensión abre TU propia página twitch.tv/subscriptions en un marco invisible,
-  como mucho una vez cada seis horas, y nunca si no has iniciado sesión. Es tu
-  navegador el que autentica esa página con sus propias cookies, exactamente
-  como si hicieras clic en el enlace: la extensión no lee tu token ni se lo pasa
-  a nadie. Lo que retiene — nombres de canales y una antigüedad en meses — se
-  queda en el almacenamiento local de tu navegador.
-★ El bloqueo de anuncios afecta SOLO a la miniatura de vista previa. El directo
-  que estás viendo de verdad no se toca.
-★ Todo se borra de golpe: borra los datos del sitio twitch.tv desde los ajustes
-  de tu navegador.
+- ★ Ningún servidor de terceros ★ La extensión solo habla con la API pública de la propia Twitch — esa misma que la página ya usa para mostrarse. Nada más, en ninguna parte.
+- ★ Llamadas anónimas ★ No se envía nunca ningún token de sesión ni cookie: esas peticiones no se pueden vincular a tu cuenta.
+- ★ Una excepción, dicha en voz alta ★ Para saber a qué canales estás suscrito, la extensión abre TU propia página twitch.tv/subscriptions en un marco invisible, como mucho una vez cada seis horas, y nunca si no has iniciado sesión. Es tu navegador el que autentica esa página con sus propias cookies, exactamente como si hubieras hecho clic en el enlace: la extensión nunca lee tu token y nunca lo pasa a nadie. Lo que retiene — nombres de canales y una antigüedad en meses — se queda en tu navegador.
+- ★ Ningún rastreador, ningún píxel, ninguna telemetría ★
+- ★ Ningún permiso turbio ★ La extensión SOLO funciona en twitch.tv.
+- ★ El bloqueo de anuncios no se sale de su carril ★ Se aplica a la miniatura de vista previa y a nada más. El directo que estás viendo de verdad no se toca.
+- ★ Tu historial se queda contigo ★ Visitas, suscripciones, meses: guardados en el localStorage de tu navegador, y punto. Borra los datos del sitio twitch.tv y desaparece todo.
+- ★ Código fuente totalmente legible ★ Directamente en la carpeta de la extensión. Sin caja negra.
 
 _______________________________
 

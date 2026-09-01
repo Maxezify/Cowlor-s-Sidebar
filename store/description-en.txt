@@ -170,26 +170,16 @@ There is strictly nothing to configure.
 
 _______________________________
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PRIVACY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+➤ 🔒 PRIVACY PEACE OF MIND
 
-★ No permissions beyond Twitch. The extension can only act on twitch.tv and
-  player.twitch.tv, and on nothing else.
-★ No third-party server. No account, no telemetry, no ads, no tracker, no data
-  ever sold. Nothing leaves your machine.
-★ Calls to Twitch's API are anonymous: public Client-ID, no session token and no
-  cookie sent.
-★ One exception, and here it is. To learn which channels you subscribe to, the
-  extension opens YOUR own twitch.tv/subscriptions page in an invisible frame,
-  at most once every six hours, and never if you are not signed in. It is your
-  browser that authenticates that page with its own cookies, exactly as if you
-  clicked the link: the extension does not read your token and passes it to no
-  one. What it keeps — channel names and a tenure in months — stays in your
-  browser's local storage.
-★ Ad blocking applies ONLY to the hover preview thumbnail. The stream you are
-  actually watching is left alone.
-★ It all clears at once: clear twitch.tv site data from your browser settings.
+- ★ No third-party server ★ The extension only talks to Twitch's own public API — the very one the page already uses to render itself. Nothing else, nowhere.
+- ★ Anonymous calls ★ No session token, no cookie is ever sent: those requests cannot be tied back to your account.
+- ★ One exception, said out loud ★ To know which channels you subscribe to, the extension opens YOUR own twitch.tv/subscriptions page in an invisible frame, at most once every six hours, and never when you're signed out. Your browser authenticates that page with its own cookies, exactly as if you had clicked the link: the extension never reads your token and never passes it on. What it keeps — channel names and a tenure in months — stays in your browser.
+- ★ No tracker, no pixel, no telemetry ★
+- ★ No shady permissions ★ The extension ONLY runs on twitch.tv.
+- ★ Ad blocking stays in its lane ★ It applies to the hover preview thumbnail and to nothing else. The stream you're actually watching is untouched.
+- ★ Your history stays with you ★ Visits, subscriptions, months: stored in your browser's localStorage, period. Clear twitch.tv site data and it's all gone.
+- ★ Full source code readable ★ Right in the extension folder. No black box.
 
 _______________________________
 

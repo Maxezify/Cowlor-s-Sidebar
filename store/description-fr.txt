@@ -170,28 +170,16 @@ Il n'y a strictement rien à configurer.
 
 _______________________________
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-VIE PRIVÉE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+➤ 🔒 TRANQUILLITÉ CÔTÉ VIE PRIVÉE
 
-★ Aucune permission au-delà de Twitch. L'extension ne peut agir que sur
-  twitch.tv et player.twitch.tv, et sur rien d'autre.
-★ Aucun serveur tiers. Pas de compte, pas de télémétrie, pas de publicité, pas
-  de traqueur, aucune revente de données. Rien ne quitte votre machine.
-★ Les appels à l'API de Twitch sont anonymes : Client-ID public, aucun jeton de
-  session ni cookie envoyé.
-★ Une exception, et la voici. Pour connaître la liste de vos abonnements,
-  l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible,
-  au plus une fois toutes les six heures, et jamais si vous n'êtes pas connecté.
-  C'est votre navigateur qui authentifie cette page avec ses propres cookies,
-  exactement comme si vous cliquiez sur le lien : l'extension ne lit pas votre
-  jeton et ne le transmet à personne. Ce qu'elle en retient — des noms de
-  chaînes et une ancienneté en mois — reste dans le stockage local de votre
-  navigateur.
-★ Le blocage de publicité ne concerne QUE la vignette d'aperçu au survol. Le
-  stream que vous regardez, lui, n'est pas touché.
-★ Tout s'efface d'un coup : effacez les données de site de twitch.tv depuis les
-  réglages de votre navigateur.
+- ★ Aucun serveur tiers ★ L'extension ne parle qu'à l'API publique de Twitch — celle-là même que la page utilise déjà pour s'afficher. Rien d'autre, nulle part.
+- ★ Des appels anonymes ★ Aucun jeton de session, aucun cookie n'est envoyé : ces requêtes ne peuvent pas être rattachées à votre compte.
+- ★ Une exception, dite tout haut ★ Pour savoir à quelles chaînes vous êtes abonné, l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible, au plus une fois toutes les six heures, et jamais si vous êtes déconnecté. C'est votre navigateur qui authentifie cette page avec ses propres cookies, exactement comme si vous aviez cliqué sur le lien : l'extension ne lit jamais votre jeton et ne le transmet jamais. Ce qu'elle en retient — des noms de chaînes et une ancienneté en mois — reste dans votre navigateur.
+- ★ Aucun traqueur, aucun pixel, aucune télémétrie ★
+- ★ Aucune permission louche ★ L'extension ne tourne QUE sur twitch.tv.
+- ★ Le blocage de pub reste à sa place ★ Il s'applique à la vignette d'aperçu au survol, et à rien d'autre. Le stream que vous regardez vraiment n'est pas touché.
+- ★ Votre historique reste chez vous ★ Visites, abonnements, mois : stockés dans le localStorage de votre navigateur, point. Effacez les données de site de twitch.tv et tout disparaît.
+- ★ Code source entièrement lisible ★ Directement dans le dossier de l'extension. Pas de boîte noire.
 
 _______________________________
 

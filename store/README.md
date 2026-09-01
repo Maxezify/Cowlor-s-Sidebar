@@ -32,30 +32,36 @@ se saisit pas ici : elle vient du manifeste, clé `extDescription` de
 
 ## Ce qui doit rester vrai
 
-Les sept fiches se tiennent par leur structure : **19 sections `➤`**, huit
-lignes commençant par `★`, une section abonnements, un bloc console de cinq
-commandes. Une modification qui n'est portée que dans une langue se voit à ce
-compte-là.
+Les sept fiches se tiennent par leur structure : **20 sections `➤`**, **22
+puces `- ★ … ★`** dont **8 dans la section vie privée**, et un bloc console de
+cinq commandes. Une modification qui n'est portée que dans une langue se voit à
+ce compte-là — c'est le seul contrôle qui existe, il n'y a pas de harnais pour
+du texte de fiche.
 
-Cinq affirmations sont **vérifiables dans le code**, et doivent changer le jour
+Sept affirmations sont **vérifiables dans le code**, et doivent changer le jour
 où le code change :
 
 1. **« Six façons de trier »** — `getSortButtons()` en rend six. C'était cinq
-   avant la 3.44 ; la fiche l'a dit faux pendant quelques versions.
+   avant la 3.44 ; la fiche l'a dit faux pendant une dizaine de versions.
 2. **Le bloc console** — `tse.scores()`, `tse.scores.raw()`, `tse.subs()`,
    `tse.subs.refresh()`, `tse.reset()` existent tous sur `window.tse`.
-3. **« Aucune permission au-delà de Twitch »** — `manifest.json` ne porte
-   aucune clé `permissions` ni `host_permissions` ; seuls les `matches` du
-   content script donnent accès à `www.twitch.tv`, `twitch.tv` et
-   `player.twitch.tv`.
-4. **« Les appels à l'API de Twitch sont anonymes »** — vrai des requêtes que
-   l'extension émet elle-même : `credentials: 'omit'`, Client-ID public, aucun
-   jeton.
-5. **« Une exception, et la voici »** — le relevé des abonnements charge
+3. **« Aucune permission louche — l'extension ne tourne QUE sur twitch.tv »** —
+   `manifest.json` ne porte aucune clé `permissions` ni `host_permissions` ;
+   seuls les `matches` du content script donnent accès à `www.twitch.tv`,
+   `twitch.tv` et `player.twitch.tv`, tous trois sous le même domaine.
+4. **« Des appels anonymes »** — vrai des requêtes que l'extension émet
+   elle-même : `credentials: 'omit'`, Client-ID public, aucun jeton.
+5. **« Une exception, dite tout haut »** — le relevé des abonnements charge
    `twitch.tv/subscriptions` dans une iframe, et cette page-là est authentifiée
    par le navigateur. Le point 4 ne la couvre pas ; c'est pourquoi la fiche la
-   nomme séparément au lieu de la ranger sous « anonyme ». Voir la section
-   « Vie privée » du README principal.
+   nomme séparément, juste après lui, au lieu de la laisser passer sous
+   « anonyme ». Voir la section « Vie privée » du README principal.
+6. **« Le blocage de pub reste à sa place »** — `adblock.js` ne s'active que
+   dans une iframe (garde `window.top !== window`), donc uniquement dans
+   l'aperçu que l'extension ouvre elle-même. Le lecteur principal n'est jamais
+   touché.
+7. **« Code source entièrement lisible »** — `content.js` et `adblock.js` sont
+   livrés tels quels, ni minifiés ni obscurcis, commentaires compris.
 
 ## Images
 
