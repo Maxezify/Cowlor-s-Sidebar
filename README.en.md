@@ -1268,6 +1268,31 @@ photographs, too: four gilded cards, and a badge reading twelve. Were the sweep
 to run anyway, the badge would count thirteen or more and the capture would fail
 instead of shipping.
 
+Four guards measure every scene before the shot and complain on the console
+rather than let a crooked image out: the headline must not be clipped, the text
+column must never come within twenty-four pixels of the frame (a floor
+**derived** from the frame, whose scale varies from scene to scene), the hover
+preview must not bite into the text, and the kicker must hold on one line — a
+pill on two lines is no longer a pill, and a line break overflows nothing: it
+had to be measured to be seen. That last one is what caught
+"PRÉ-VISUALIZAÇÃO AO PASSAR", eleven pixels too wide in Portuguese.
+
+### The 440 × 280 tile
+
+It first carried two panels in perspective — the sidebar at 0.78 and the preview
+at 0.52. It was pretty and illegible: channel names fell to 10 px, on an image
+the Store renders smaller still. The preview alone is 480 px wide, more than the
+whole tile; there is no scale at which it is legible there. So it was dropped,
+and the room given back to the sidebar.
+
+Scaling up is paid for in height: the top of the list sits 152 px below the
+sidebar's top, and each card is 43 px. At scale 1, three cards fit and the name
+is 13 px; at 1.22, two fit and it is 16. The second setting wins, and the
+"subscriptions first" sort is switched on so that those two cards are precisely
+the gilded ones. The script measures what it produces — whole cards, gilded
+cards, the **rendered** name size — and fails rather than ship an illegible
+tile.
+
 ### The listing itself
 
 The copy of the seven Chrome Web Store listings lives in **`store/`** — one per

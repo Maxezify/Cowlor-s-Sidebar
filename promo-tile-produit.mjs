@@ -1,9 +1,19 @@
-/* Tuile promotionnelle « produit » — 440 x 280, sans texte.
+/* Tuile promotionnelle « produit » — 440 x 280, sans texte de présentation.
    Contrairement aux variantes A–D, celle-ci ne met pas en scène le seul logo :
-   elle montre l'extension EN FONCTIONNEMENT. La barre latérale et l'aperçu au
-   survol sont rendus par le vrai code, puis composés en profondeur. Ce qu'on
-   voit est ce que l'utilisateur verra — c'est ce qui donne envie de cliquer,
-   et c'est aussi ce que le Chrome Web Store attend d'une image promotionnelle. */
+   elle montre la barre latérale EN FONCTIONNEMENT, rendue par le vrai code.
+
+   Elle a d'abord porté deux panneaux — la barre et l'aperçu au survol — posés
+   en perspective, l'un à 0,78 et l'autre à 0,52. C'était joli et illisible :
+   les pseudos y tombaient à 10 px sur une image que le Store affiche plus
+   petite encore. L'aperçu fait 480 px de large à lui seul, soit plus que la
+   tuile entière ; il n'existe aucune échelle à laquelle il soit lisible ici.
+   Il a donc été retiré, et toute la place rendue à la barre, agrandie jusqu'à
+   ce que ses pseudos se lisent. Ce que l'aperçu montrait, les captures
+   1280 x 800 le montrent en grand.
+
+   Ce qui reste se vérifie plutôt que de se juger à l'œil : le bilan mesuré
+   plus bas compte les cartes entières, celles qui portent l'or, et la taille
+   RENDUE des pseudos. */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -48,9 +58,8 @@ const DECOR = () => {
 const CSS_TWITCH = readFileSync(join(ICI, 'promo.mjs'), 'utf8')
   .split('const CSS_TWITCH = `')[1].split('\n`;')[0];
 
-function composer({ CSS, LOGO, GRAIN }) {
+function composer({ CSS, LOGO, GRAIN, ECHELLE, COUPE }) {
   const nav = document.getElementById('side-nav');
-  const pop = document.querySelector('.tse-preview');
   document.querySelector('[data-tse-stories="row"]')?.remove();
 
   const st = document.createElement('style');
@@ -68,28 +77,34 @@ function composer({ CSS, LOGO, GRAIN }) {
     #dessus{z-index:9;pointer-events:none}
     .bokeh{position:absolute;border-radius:50%;filter:blur(46px)}
 
-    /* Les deux panneaux sont les nœuds VIVANTS produits par l'extension. On ne
-       les reparente pas : déplacer une iframe dans le DOM la recharge, et
-       l'aperçu perdait son image. On les positionne là où ils sont. */
-    #side-nav{position:fixed!important;z-index:2;
-      left:9px;top:7px;width:240px;height:300px;overflow:hidden;
-      border-radius:13px;background:#1f1f23;
+    /* La barre est le nœud VIVANT produit par l'extension : elle n'est pas
+       redessinée, seulement cadrée. Le cadrage est tout le sujet de cette
+       tuile — 440 px de large, et une barre latérale qui en fait 240 : à
+       l'échelle 1 son texte tombe à 13 px, et le Store affiche la tuile plus
+       petite encore. On l'agrandit donc, et on paie cet agrandissement en
+       hauteur : ce qui ne tient plus est coupé PAR LE HAUT, où se trouve le
+       titre de section — la seule chose que la tuile n'a pas besoin de dire,
+       puisqu'elle montre déjà une barre latérale.
+
+       Le conteneur découpe, la barre est mise à l'échelle dedans : c'est lui
+       qui porte le cadre, l'ombre et le fondu, sans quoi le fondu serait
+       calculé avant la mise à l'échelle et tomberait hors de la tuile. */
+    #tuile-barre{position:fixed;z-index:2;left:6px;top:6px;
+      width:${Math.round(240 * ECHELLE)}px;height:268px;overflow:hidden;
+      border-radius:14px;background:#1f1f23;
       border:1px solid rgba(255,255,255,.09);
       box-shadow:0 26px 54px rgba(0,0,0,.66);
-      transform:perspective(1100px) rotateY(12deg) rotateX(2.5deg) scale(.78);
-      transform-origin:left top;
-      -webkit-mask-image:linear-gradient(180deg,#000 76%,transparent 99%);
-      mask-image:linear-gradient(180deg,#000 76%,transparent 99%)}
-    .tse-preview{position:fixed!important;z-index:3;
-      left:188px!important;top:8px!important;right:auto!important;bottom:auto!important;
-      width:480px!important;max-width:none!important;
-      border-radius:14px;overflow:hidden;
-      border:1px solid rgba(255,255,255,.11);
-      box-shadow:0 30px 62px rgba(0,0,0,.70);
-      transform:perspective(1100px) rotateY(12deg) rotateX(2.5deg) scale(.52);
-      transform-origin:left top}
+      -webkit-mask-image:linear-gradient(180deg,#000 82%,transparent 99%);
+      mask-image:linear-gradient(180deg,#000 82%,transparent 99%)}
+    #side-nav{position:absolute!important;left:0;top:${-Math.round(COUPE * ECHELLE)}px;
+      width:240px;
+      transform:scale(${ECHELLE});transform-origin:left top}
 
-    .logo-wrap{position:absolute;right:10px;bottom:9px;width:86px;height:86px}
+    /* La marque se pose dans la bande laissée libre par le cadre, centrée
+       dedans plutôt que jetée dans un coin : la bande fait
+       ${440 - 6 - Math.round(240 * ECHELLE)} px, le logo 86. */
+    .logo-wrap{position:absolute;right:24px;top:50%;margin-top:-43px;
+      width:86px;height:86px}
     .logo-glow{position:absolute;inset:-30px;border-radius:44px;
       background:conic-gradient(from 25deg,#c77dff 0deg,#ff5f8f 78deg,#9147ff 150deg,
         #26d4c8 230deg,#4d8cff 300deg,#c77dff 360deg);
@@ -125,26 +140,85 @@ function composer({ CSS, LOGO, GRAIN }) {
 
   // #root est masqué par opacity:0, et l'opacité masque TOUS les descendants,
   // fût-ce en position:fixed. La barre latérale doit donc en sortir — elle ne
-  // contient aucune iframe, la déplacer ne coûte rien. L'aperçu, lui, vit déjà
-  // sur <body> : on n'y touche pas, c'est justement ce qui préserve sa vidéo.
-  document.body.appendChild(nav);
-  if (!pop) console.log('  ⚠ aperçu absent : la tuile est rendue sans lui');
+  // contient aucune iframe, la déplacer ne coûte rien.
+  const cadre = document.createElement('div');
+  cadre.id = 'tuile-barre';
+  document.body.appendChild(cadre);
+  cadre.appendChild(nav);
 }
 
+/* Les deux nombres qui décident de tout.
+
+   ECHELLE : l'agrandissement de la barre. Il ne se choisit pas au goût — il se
+   paie. La barre mesure 240 px de large et le haut de sa liste tombe à 152 px
+   de son sommet ; chaque carte en fait 43. Agrandir de x, c'est donc perdre
+   des cartes : à 1,45 il n'en resterait qu'une et demie, à 1 le texte
+   retombe aux 13 px illisibles qu'on cherche à quitter.
+
+   COUPE : ce qu'on retire par le haut, en pixels non mis à l'échelle. 38, soit
+   exactement la hauteur du titre de section — la seule chose qu'une tuile
+   montrant une barre latérale n'a pas besoin d'écrire. Tout le reste survit :
+   la bascule Suivis / Top Chaînes, les deux filtres, les six tris avec leur
+   pastille, et les cartes.
+
+   Le garde-fou plus bas vérifie que le compte y est. */
+const ECHELLE = 1.22;
+const COUPE   = 38;
+
 // La mémoire d'abonnements est posée ici comme dans les captures : la tuile
-// montre la barre telle qu'un abonné la voit — noms dorés, anneau doré,
-// pastille sur le tri — et l'aperçu porte son badge d'ancienneté.
+// montre la barre telle qu'un abonné la voit — noms dorés, catégories dorées,
+// anneau autour de l'avatar, et le total sur la pastille du tri.
 const page = await pageProduit({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2, stockage: ABOS });
 await page.evaluate(DECOR);
 await page.waitForTimeout(2400);
+// Tri « mes abonnements en tête ». Deux cartes seulement entrent dans la tuile :
+// autant que ce soient celles qui portent l'or, sinon l'agrandissement aurait
+// servi à mieux lire des cartes ordinaires.
 await page.evaluate(() => {
-  const c = [...document.querySelectorAll('.side-nav-card')]
-    .find(x => x.dataset.tseLogin === 'kiraplays');
-  c?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+  const b = document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"]');
+  if (!b) throw new Error('bouton de tri « abonnements » absent');
+  if (b.disabled) throw new Error('bouton de tri « abonnements » grisé');
+  b.click();
 });
-await page.waitForTimeout(2600);
-await page.evaluate(composer, { CSS: CSS_TWITCH, LOGO, GRAIN });
+await page.waitForTimeout(1200);
+await page.evaluate(composer, { CSS: CSS_TWITCH, LOGO, GRAIN, ECHELLE, COUPE });
 await page.waitForTimeout(600);
+
+/* Une tuile qui ne montrerait ni or ni cartes lisibles serait une tuile ratée,
+   et rien dans le rendu ne le dirait. On mesure donc ce qu'elle porte vraiment,
+   dans le repère de la tuile : combien de cartes entrent en entier, combien
+   sont dorées, et à quelle taille leur pseudo s'affiche. */
+const bilan = await page.evaluate((ECHELLE) => {
+  // Le conteneur découpe : une carte dont le bas dépasse SON bord est coupée,
+  // même si elle tient encore dans les 280 px de la tuile. C'est donc à lui
+  // qu'on compare, pas au bord de l'image.
+  const rc = document.getElementById('tuile-barre').getBoundingClientRect();
+  const entiere = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.top >= rc.top && r.bottom <= rc.bottom && r.right <= rc.right;
+  };
+  const dansCadre = (el) => {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return r.top >= rc.top && r.bottom <= rc.bottom;
+  };
+  const visibles = [...document.querySelectorAll('.side-nav-card')].filter(entiere);
+  const titre = visibles[0]?.querySelector('[data-a-target="side-nav-title"]');
+  return {
+    cartes: visibles.length,
+    dorees: visibles.filter(c => c.classList.contains('tse-sub')).length,
+    // Taille RENDUE : la mise à l'échelle ne touche pas au font-size calculé,
+    // et c'est pourtant elle qu'on lit sur la tuile.
+    pseudo: titre
+      ? +(parseFloat(getComputedStyle(titre).fontSize) * ECHELLE).toFixed(1) : 0,
+    tri: dansCadre(document.querySelector('#tse-sort-row .tse-sort-count')),
+  };
+}, ECHELLE);
+console.log('  cadrage :', JSON.stringify(bilan));
+if (bilan.cartes < 2)  throw new Error(`cartes entières attendues : au moins 2, vues : ${bilan.cartes}`);
+if (bilan.dorees < bilan.cartes) throw new Error(`cartes dorées attendues : toutes (${bilan.cartes}), vues : ${bilan.dorees}`);
+if (bilan.pseudo < 15) throw new Error(`pseudo attendu à 15 px au moins, mesuré : ${bilan.pseudo}`);
+if (!bilan.tri)        throw new Error('la pastille du tri des abonnements est hors cadre');
 
 const brut = await page.screenshot({ clip: { x: 0, y: 0, width: 440, height: 280 } });
 await page.close();

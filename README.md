@@ -1340,6 +1340,32 @@ des abonnements vérifie d'ailleurs ce qu'elle photographie : quatre cartes
 dorées, et une pastille à douze. Si le relevé passait outre, la pastille
 compterait treize et plus, et la capture échouerait au lieu de sortir.
 
+Quatre garde-fous mesurent chaque scène avant la capture, et se plaignent en
+console plutôt que de laisser sortir une image bancale : le titre ne doit pas
+être coupé, la colonne de texte ne doit pas s'approcher du cadre à moins de
+vingt-quatre pixels (plancher **déduit** du cadre, dont l'échelle varie d'une
+scène à l'autre), la fenêtre d'aperçu ne doit pas venir mordre sur le texte, et
+le chapô doit tenir sur une seule ligne — une pastille sur deux lignes n'est
+plus une pastille, et un retour à la ligne ne déborde de rien : il fallait le
+mesurer pour le voir. C'est ce dernier qui a rattrapé
+« PRÉ-VISUALIZAÇÃO AO PASSAR », onze pixels de trop en portugais.
+
+### La tuile 440 × 280
+
+Elle a d'abord porté deux panneaux en perspective — la barre à 0,78 et l'aperçu
+à 0,52. C'était joli et illisible : les pseudos y tombaient à 10 px, sur une
+image que le Store affiche plus petite encore. L'aperçu fait 480 px de large à
+lui seul, soit plus que la tuile entière ; il n'existe aucune échelle à laquelle
+il y soit lisible. Il a donc été retiré, et la place rendue à la barre.
+
+L'agrandissement se paie en hauteur : le haut de la liste tombe à 152 px du
+sommet de la barre et chaque carte en fait 43. À l'échelle 1, trois cartes
+entrent et le pseudo fait 13 px ; à 1,22, deux cartes entrent et il en fait 16.
+C'est ce second réglage qui est retenu, et le tri « abonnements en tête » est
+activé pour que ces deux cartes-là soient justement celles qui portent l'or.
+Le script mesure ce qu'il produit — cartes entières, cartes dorées, taille
+**rendue** du pseudo — et échoue plutôt que de sortir une tuile illisible.
+
 ### La fiche elle-même
 
 Le texte des sept fiches du Chrome Web Store vit dans **`store/`** — une par

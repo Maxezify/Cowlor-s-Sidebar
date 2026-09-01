@@ -235,20 +235,42 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
     const m = document.getElementById('promo-marque');
     const rt = t.getBoundingClientRect(), rm = m.getBoundingClientRect();
     const h1 = t.querySelector('h1');
+    // Le plancher se DÉDUIT du cadre au lieu d'être un nombre écrit à la main :
+    // l'échelle du cadre dépend de la hauteur de la liste, donc son bord droit
+    // bouge d'une scène à l'autre. Une constante devait valoir pour la scène la
+    // plus large, et interdisait donc au texte des autres scènes la place qu'il
+    // avait pourtant. Vingt-quatre pixels : la gouttière minimale sous laquelle
+    // les deux blocs cessent de se lire comme deux blocs.
+    const plancher = Math.round(
+      document.getElementById('promo-cadre').getBoundingClientRect().right + 24);
     // La fenêtre d'aperçu, quand la scène en pose une. Elle est reposée à la
     // main dans promo-run.mjs, donc rien ne l'empêche de venir mordre sur la
     // colonne de texte — sauf cette mesure. Elle vaut la distance qui les
     // sépare : négative, elles se chevauchent.
     const pv = document.querySelector('.tse-preview');
+    // Le chapô est une pastille : sur deux lignes, ce n'en est plus une, et
+    // rien dans les mesures de la colonne ne le dirait — un retour à la ligne
+    // ne déborde de rien. On lui interdit donc de se replier le temps d'une
+    // mesure, et on regarde de combien il dépasserait. Le style est rendu
+    // avant la capture, qui reste donc celle de la mise en page réelle.
+    const k = t.querySelector('.kicker');
+    let chapo = 0;
+    if (k) {
+      const avant = k.style.whiteSpace;
+      k.style.whiteSpace = 'nowrap';
+      chapo = Math.round(k.getBoundingClientRect().width - rt.width);
+      k.style.whiteSpace = avant;
+    }
     return {
-      hors: rt.top < 8 || rt.bottom > 792 || rt.right > 1274 || rt.left < 560,
+      plancher, chapo,
+      hors: rt.top < 8 || rt.bottom > 792 || rt.right > 1274 || rt.left < plancher,
       coupe: h1 ? Math.round(h1.scrollWidth - h1.clientWidth) : 0,
       chevauche: rt.bottom > rm.top - 8,
-      marque: Math.round(rm.left) < 560,
+      marque: Math.round(rm.left) < plancher,
       ecart: pv ? Math.round(rt.left - pv.getBoundingClientRect().right) : null,
     };
   });
-  if (trop.hors || trop.coupe > 0 || trop.chevauche || trop.marque ||
+  if (trop.hors || trop.coupe > 0 || trop.chapo > 0 || trop.chevauche || trop.marque ||
       (trop.ecart !== null && trop.ecart < 12)) {
     console.log('  ⚠ mise en page :', nom, JSON.stringify(trop));
   }
@@ -302,26 +324,32 @@ function habiller({ titre, sousTitre, CSS, echelleMax, texteEtroit }) {
        cinquante pixels de vide au milieu, payés par une typographie plus
        petite qu'elle n'avait besoin de l'être. Élargie, elle porte des
        corps plus grands sans que rien ne se rapproche du cadre. */
-    #promo-texte { position:fixed; right:56px; top:50%; transform:translateY(-50%);
-      width:620px; color:#efeff1; }
+    #promo-texte { position:fixed; right:46px; top:50%; transform:translateY(-50%);
+      width:690px; color:#efeff1; }
     /* Variante étroite : la scène de l'aperçu pose la fenêtre de survol au
        milieu, et c'est ELLE qui borne la colonne, pas le cadre. La marge y
        est donc gagnée au pixel près (cf. la repose de l'aperçu dans
        promo-run.mjs), et les corps grandissent moins qu'à côté. */
-    body.promo-etroit #promo-texte { right:40px; width:372px; }
-    body.promo-etroit #promo-texte h1 { font-size:51px; letter-spacing:-1.4px; }
-    body.promo-etroit #promo-texte p { font-size:22px; max-width:366px; }
-    #promo-texte .kicker { display:inline-block; padding:7px 16px; border-radius:999px;
+    body.promo-etroit #promo-texte { right:40px; width:378px; }
+    body.promo-etroit #promo-texte h1 { font-size:54px; letter-spacing:-1.5px; }
+    body.promo-etroit #promo-texte p { font-size:24px; max-width:372px; }
+    /* Le chapô ne suit pas les autres corps dans la variante étroite : c'est
+       une pastille, et une pastille sur deux lignes n'est plus une pastille.
+       « PRÉ-VISUALIZAÇÃO AO PASSAR » est le plus long des sept, et c'est lui
+       qui fixe ce nombre. Le garde-fou « chapo » de scene() vérifie qu'aucun
+       autre ne passe à la ligne. */
+    body.promo-etroit #promo-texte .kicker { font-size:17px; }
+    #promo-texte .kicker { display:inline-block; padding:8px 17px; border-radius:999px;
       background:rgba(145,71,255,.16); border:1px solid rgba(145,71,255,.40);
-      color:#c9a6ff; font-size:17px; font-weight:700; letter-spacing:.10em;
-      text-transform:uppercase; margin-bottom:26px; }
-    #promo-texte h1 { margin:0 0 22px; font-size:70px; line-height:1.04;
-      font-weight:800; letter-spacing:-2px; }
+      color:#c9a6ff; font-size:19px; font-weight:700; letter-spacing:.10em;
+      text-transform:uppercase; margin-bottom:28px; }
+    #promo-texte h1 { margin:0 0 24px; font-size:78px; line-height:1.04;
+      font-weight:800; letter-spacing:-2.2px; }
     #promo-texte h1 em { font-style:normal; color:#a970ff; }
-    #promo-texte p { margin:0; font-size:26px; line-height:1.5; color:#bcbcc8;
-      font-weight:400; max-width:604px; }
-    #promo-marque { position:fixed; right:56px; bottom:38px; color:#707082;
-      font-size:18px; font-weight:600; }
+    #promo-texte p { margin:0; font-size:29px; line-height:1.5; color:#bcbcc8;
+      font-weight:400; max-width:674px; }
+    #promo-marque { position:fixed; right:46px; bottom:36px; color:#707082;
+      font-size:20px; font-weight:600; }
     #promo-marque b { color:#dedee3; font-weight:800; }
   `;
   document.head.appendChild(st);
