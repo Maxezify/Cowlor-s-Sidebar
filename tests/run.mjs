@@ -1333,7 +1333,16 @@ titre('30. Aperçu — l\'iframe n\'apparaît qu\'une fois une image affichée')
     const early = await loadedState(page);
     ok('rien n\'est dévoilé avant qu\'une image existe', early !== 'true', String(early));
 
-    await wait(page, 1000);  // premier dessin à 700 ms, bien avant le filet (1500 ms)
+    // On ATTEND le dévoilement au lieu de l'échantillonner à date fixe. Le
+    // premier dessin a lieu à 700 ms et le filet de sécurité à 1500 ms, mais
+    // sous charge un « attendre 1000 ms » s'étire : le prélèvement tombait
+    // avant que le message de l'iframe n'ait été traité, et l'assertion
+    // constatait un non-dévoilement qui n'existait pas. L'attente est bornée —
+    // si le dévoilement n'a jamais lieu, elle expire et l'assertion tombe.
+    await attendre(page, () => {
+      const f = document.querySelector('.tse-preview__iframe');
+      return !!f && f.dataset.tseLoaded === 'true';
+    }, 6000);
     const late = await loadedState(page);
     ok('dévoilée dès la première image', late === 'true', String(late));
     await page.close();
@@ -1354,7 +1363,14 @@ titre('30. Aperçu — l\'iframe n\'apparaît qu\'une fois une image affichée')
     const before = await loadedState(page);
     ok('le filet ne se déclenche pas trop tôt', before !== 'true', String(before));
 
-    await wait(page, 1400);  // au-delà de PREVIEW_REVEAL_FALLBACK_MS (1500 ms)
+    // Le filet se déclenche à PREVIEW_REVEAL_FALLBACK_MS (1500 ms). On l'ATTEND
+    // au lieu de prélever après 1400 ms de plus : sous charge, ce prélèvement
+    // arrive avant que le minuteur de la page n'ait été servi. Borné — sans
+    // filet, l'attente expire et l'assertion tombe.
+    await attendre(page, () => {
+      const f = document.querySelector('.tse-preview__iframe');
+      return !!f && f.dataset.tseLoaded === 'true';
+    }, 6000);
     const after = await loadedState(page);
     ok('sans signal, le filet dévoile quand même', after === 'true', String(after));
     await page.close();
@@ -1471,7 +1487,14 @@ titre('31. Vignette — l\'URL doit être stable, et l\'attente ne doit pas êtr
 
   // L'attente ne doit pas se présenter comme un rectangle noir.
   await hoverCard(page, 0);
-  await wait(page, 300);
+  // La vignette apparaît EN FONDU. Prélever son opacité 300 ms après le survol
+  // revenait à l'attraper en pleine transition : 0,885 relevé sous charge, pour
+  // un seuil de 0,9. On attend donc la fin du fondu — bornée. Le seuil garde
+  // ses dents : une vignette qui resterait invisible ne l'atteindrait jamais.
+  await attendre(page, () => {
+    const i = document.querySelector('.tse-preview__thumb');
+    return !!i && i.dataset.tseLoaded === 'true' && Number(getComputedStyle(i).opacity) > 0.9;
+  }, 5000);
   const look = await page.evaluate(() => {
     const wrap = document.querySelector('.tse-preview__thumb-wrap');
     const img = document.querySelector('.tse-preview__thumb');
@@ -1846,14 +1869,13 @@ titre('34. Chaînes globales — classer ce que l\'API refuse de classer');
   {
     const page = await fresh();
     await decor(page);
-    await page.evaluate(() => {
-      const h = new Date(Date.now() - 30 * 60_000).toISOString();
-      // s00 est en tête du classement global (4000). La sidebar, elle, va
-      // apprendre qu'il n'a plus que 12 spectateurs.
-      window.__fx = { s00: { id: 'id-s00', createdAt: h, viewers: 12,
-                             game: 'Just Chatting', tags: [] } };
-      window.__addCard('s00', 'Just Chatting', '4 k');
-    });
+    // ORDRE IMPORTANT. La carte de s00 n'est posée qu'APRÈS la vérification
+    // de l'état de départ. Elle l'était avant, et sa file TseChannels courait
+    // alors contre la marche : sous charge, le compteur frais (12) arrivait
+    // parfois AVANT l'assertion, qui trouvait s00 déjà rétrogradé et tombait.
+    // Le défaut était dans la mise en scène, pas dans le classement — la
+    // rétrogradation est précisément ce que le reste du bloc éprouve, il ne
+    // faut donc pas la déclencher avant d'avoir constaté le point de départ.
     await page.evaluate(() => window.tse.global.on());
     ok('s00 est bien en tête après la marche',
        await page.evaluate(() => window.tse.global.top(1)[0]?.login) === 's00');
@@ -1863,6 +1885,13 @@ titre('34. Chaînes globales — classer ce que l\'API refuse de classer');
     const posts0 = await page.evaluate(() => {
       window.__globalFail = true;
       return window.__calls.length;
+    });
+    // MAINTENANT la sidebar apprend que s00 n'a plus que 12 spectateurs.
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 30 * 60_000).toISOString();
+      window.__fx = { s00: { id: 'id-s00', createdAt: h, viewers: 12,
+                             game: 'Just Chatting', tags: [] } };
+      window.__addCard('s00', 'Just Chatting', '4 k');
     });
     await wait(page, 1200);
     const rang = await page.evaluate(() => {
@@ -2345,23 +2374,39 @@ titre('35. Top Chaînes — basculer, afficher, revenir');
     ok('le voile de démarrage est bien retombé',
        await page.evaluate(() => !document.body.classList.contains('tse-loading')));
 
+    // On observe un ORDRE, pas un état à un instant choisi. Prélever « le voile
+    // est-il encore là ? » 450 ms après le clic revenait à parier que la
+    // marche n'a pas fini — et sous charge, c'est le PRÉLÈVEMENT qui arrive en
+    // retard, pas la marche qui va vite. Le témoin ci-dessous date les deux
+    // événements dans la page elle-même : la question « le voile a-t-il tenu
+    // jusqu'au classement ? » se répond alors sans dépendre d'aucune horloge
+    // extérieure.
     await page.evaluate(() => {
-      const b = document.querySelector('#tse-mode-row [data-tse-mode="global"]');
-      b.click();
+      window.__ordre = { pret: null, leve: null };
+      const t0 = Date.now();
+      const mo = new MutationObserver(() => {
+        const c = document.body.classList;
+        if (window.__ordre.pret === null && c.contains('tse-global-ready')) {
+          window.__ordre.pret = Date.now() - t0;
+        }
+        if (window.__ordre.leve === null && !c.contains('tse-loading')) {
+          window.__ordre.leve = Date.now() - t0;
+        }
+      });
+      mo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      document.querySelector('#tse-mode-row [data-tse-mode="global"]').click();
     });
     ok('le voile se lève dès le clic',
        await page.evaluate(() => document.body.classList.contains('tse-loading')));
 
-    // Sans le verrou, le voile retomberait ICI : la liste des chaînes suivies
-    // est peuplée et stable, donc « présentable » au sens du cycle de boot —
-    // alors même que le classement n'existe pas encore.
-    await wait(page, 450);
-    const pendant = await page.evaluate(() => ({
-      voile: document.body.classList.contains('tse-loading'),
-      pret:  document.body.classList.contains('tse-global-ready'),
-    }));
+    // Sans le verrou, le voile retomberait AVANT le classement : la liste des
+    // chaînes suivies est peuplée et stable, donc « présentable » au sens du
+    // cycle de boot — alors même que le classement n'existe pas encore.
+    await attendre(page, () => window.__ordre.leve !== null, 8000);
+    const ordre = await page.evaluate(() => window.__ordre);
     ok('il tient tant que le classement n\'est pas rendu',
-       pendant.voile === true && pendant.pret === false, JSON.stringify(pendant));
+       ordre.pret !== null && ordre.leve !== null && ordre.pret <= ordre.leve,
+       JSON.stringify(ordre));
 
     await wait(page, 1400);
     const apres = await page.evaluate(() => ({

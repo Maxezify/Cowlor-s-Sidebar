@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.54.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.54.2 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -659,6 +659,25 @@ relevé de visite, qui observe la chaîne elle-même.
 `tse.rescan()` force un balayage complet — purge du cache de chaînes puis
 re-scan, exactement le chemin qu'emprunte déjà un retour d'onglet après une
 longue absence.
+
+#### Comment les intermittences du banc sont traquées (v3.54.2)
+
+Une assertion qui échoue une fois sur dix est pire qu'une assertion absente :
+on finit par l'ignorer le jour où elle a raison. Le détecteur est simple —
+**faire tourner plusieurs suites de front** pour ralentir les pages à dessein,
+et lire le récapitulatif d'échecs que le banc imprime désormais à la fin.
+
+À trois suites simultanées, tout passait. À six, une assertion tombait ; à
+huit, quatre autres. Toutes de la même famille : **un état transitoire prélevé
+à date fixe**. Sous charge, ce n'est pas la page qui va plus vite, c'est le
+prélèvement qui arrive en retard. La correction n'est jamais de desserrer le
+seuil, mais d'attendre la condition, de constater un ordre d'événements, ou de
+remettre la mise en scène dans le bon ordre.
+
+L'une d'elles a révélé un défaut de PRODUCTION, pas de test : une page
+seulement lente était déclarée vide par le relevé d'abonnements, parce que le
+compte à rebours d'apaisement courait pendant qu'elle se construisait encore.
+Il exige désormais un document qui a cessé de grossir.
 
 ---
 

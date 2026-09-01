@@ -4057,6 +4057,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       let sondeur = null, limite = null;
       let debout = 0;   // instant où l'application de l'iframe s'est montrée
       let passage = '';        // signature du passage précédent (cf. la scrutation)
+      let noeuds = -1;         // taille du document au passage précédent
       let stableDepuis = 0;    // instant où cette signature est apparue
       const finir = (logins) => {
         if (sondeur) { clearInterval(sondeur); sondeur = null; }
@@ -4121,10 +4122,20 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
             }
           }
           if (!cartes.length) {
-            // Onglet vide ou page lente ? La barre latérale tranche : elle est
-            // rendue par la même application, donc sa présence dit que
-            // l'application est debout. À partir de là on n'attend plus que
-            // SUBS_PAGE_SETTLE — au-delà, il n'y a rien à trouver.
+            // Onglet vide ou page lente ? Deux conditions, et il faut les
+            // DEUX. La barre latérale d'abord : rendue par la même
+            // application, sa présence dit que celle-ci est debout. Le
+            // document ensuite : tant qu'il GROSSIT, la page s'écrit encore,
+            // et l'apaisement repart de zéro.
+            //
+            // Sans cette seconde condition, une page seulement lente était
+            // déclarée vide — la barre latérale arrive tôt, et le compte à
+            // rebours courait pendant que le reste se construisait. Une chaîne
+            // disparaissait alors du relevé, sans rien d'observable pour
+            // l'expliquer. Attrapé au banc, en faisant tourner huit suites de
+            // front pour ralentir les pages à dessein.
+            const taille = doc.querySelectorAll('*').length;
+            if (taille !== noeuds) { noeuds = taille; debout = 0; return; }
             if (!debout && doc.querySelector(DOM.sidebarRoot)) debout = Date.now();
             if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) return finir([]);
             return;
