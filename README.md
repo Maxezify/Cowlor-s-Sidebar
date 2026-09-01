@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.54.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.54.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -656,6 +656,9 @@ relevé de visite, qui observe la chaîne elle-même.
   au survol.
 
 `tse.subs()` liste ce qui a été repéré, `tse.reset()` l'efface avec le reste.
+`tse.rescan()` force un balayage complet — purge du cache de chaînes puis
+re-scan, exactement le chemin qu'emprunte déjà un retour d'onglet après une
+longue absence.
 
 ---
 

@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.54.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.54.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -635,6 +635,8 @@ the visit-time reading, which observes the channel itself.
   lapsed one only feeds a hover badge.
 
 `tse.subs()` lists what has been spotted; `tse.reset()` wipes it with the rest.
+`tse.rescan()` forces a full sweep — flush the channel cache, then re-scan:
+exactly the path already taken when returning to a tab after a long absence.
 
 ---
 

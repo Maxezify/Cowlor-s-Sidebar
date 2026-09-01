@@ -8,7 +8,20 @@ import { dirname, join } from 'node:path';
 const ICI = dirname(fileURLToPath(import.meta.url));
 const URL_PAGE = pathToFileURL(join(ICI, 'page.html')).href;
 let pass = 0, fail = 0;
-const ok  = (n, c, extra='') => { c ? (pass++, console.log('  ✓', n)) : (fail++, console.log('  ✗', n, extra)); };
+// Les échecs sont RETENUS, pas seulement imprimés au fil de l'eau, et
+// récapitulés à la fin. Un échec intermittent noyé au milieu de cinq cents
+// lignes est un échec qu'on ne saura pas nommer le lendemain — c'est arrivé,
+// et la cause a mis une session à être retrouvée. Le récapitulatif porte
+// aussi le scénario en cours : « ✗ et son halo respire » ne dit rien sans lui.
+const echecs = [];
+let scenario = '(hors scénario)';
+const titre = (t) => { scenario = t; console.log('\n' + t); };
+const ok  = (n, c, extra='') => {
+  if (c) { pass++; console.log('  ✓', n); return; }
+  fail++;
+  echecs.push({ scenario, assertion: n, detail: String(extra) });
+  console.log('  ✗', n, extra);
+};
 const wait = (p, ms) => p.waitForTimeout(ms);
 // Attend une CONDITION dans la page, au lieu d'une durée. Un relevé
 // d'abonnements traverse trois onglets, chacun étant une page complète à
@@ -153,7 +166,7 @@ const state = (page) => page.evaluate(() => [...document.querySelectorAll('.side
 })));
 
 // ═════════════ 1. Rendu initial ═════════════
-console.log('\n1. Rendu initial — données API substituées au DOM');
+titre('1. Rendu initial — données API substituées au DOM');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -197,7 +210,7 @@ console.log('\n1. Rendu initial — données API substituées au DOM');
 }
 
 // ═════════════ 2. Rafraîchissement périodique ═════════════
-console.log('\n2. Rafraîchissement — le compteur suit l\'API');
+titre('2. Rafraîchissement — le compteur suit l\'API');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -215,7 +228,7 @@ console.log('\n2. Rafraîchissement — le compteur suit l\'API');
 }
 
 // ═════════════ 3. Confirmation hors-ligne ═════════════
-console.log('\n3. Hors-ligne — deux réponses réseau requises, pas deux scans');
+titre('3. Hors-ligne — deux réponses réseau requises, pas deux scans');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -253,7 +266,7 @@ console.log('\n3. Hors-ligne — deux réponses réseau requises, pas deux scans
 }
 
 // ═════════════ 4. Redémarrage (correction du bug G-1) ═════════════
-console.log('\n4. Redémarrage — la carte masquée par l\'extension revient seule');
+titre('4. Redémarrage — la carte masquée par l\'extension revient seule');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -278,7 +291,7 @@ console.log('\n4. Redémarrage — la carte masquée par l\'extension revient se
 }
 
 // ═════════════ 5. Pas de boucle de scan ═════════════
-console.log('\n5. Stabilité — aucune boucle scan → écriture → scan');
+titre('5. Stabilité — aucune boucle scan → écriture → scan');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -301,7 +314,7 @@ console.log('\n5. Stabilité — aucune boucle scan → écriture → scan');
 }
 
 // ═════════════ 6. Découpage des lots (G-2) ═════════════
-console.log('\n6. Découpage — aucune opération ne dépasse GQL_MAX_LOGINS');
+titre('6. Découpage — aucune opération ne dépasse GQL_MAX_LOGINS');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -313,24 +326,34 @@ console.log('\n6. Découpage — aucune opération ne dépasse GQL_MAX_LOGINS');
     }
   });
   await wait(page, 1600);
-  // On MESURE un cycle de régime établi, pas le démarrage. Pendant que les 63
-  // cartes sont insérées, un flush peut partir avec une file à moitié remplie
-  // (35 puis 28, au lieu de 50 puis 13) : c'est la course entre l'insertion et
-  // le debounce, pas un défaut de découpage. Mesurer ça rendait l'assertion
-  // flottante — verte deux fois sur trois. On repart donc d'un journal vide,
-  // une fois les 63 chaînes connues, et on observe le balayage suivant.
-  await page.evaluate(() => { window.__calls.length = 0; });
-  await wait(page, 1400);
+  // ON PROVOQUE UN BALAYAGE COMPLET, on ne l'attend pas.
+  //
+  // Observer un cycle de régime établi ne marche pas : les 63 entrées de cache
+  // ont été écrites à l'arrivée de DEUX réponses, donc elles ne périment pas
+  // au même instant. La file part alors à moitié pleine — 42 puis 21, 49 puis
+  // 14, 32 puis 31 — et le découpage a beau être correct, la MESURE varie.
+  // C'est ce qui rendait cette assertion intermittente : elle encodait un
+  // accident de minutage, pas un invariant.
+  //
+  // tse.rescan() purge le cache d'un coup : les 63 chaînes sont remises en
+  // file dans la même passe synchrone, et flushQueue découpe la file entière.
+  // Le 50 + 13 devient alors ce qu'il prétend être — l'invariant d'un
+  // balayage complet.
+  await page.evaluate(() => { window.__calls.length = 0; window.tse.rescan(); });
+  // Assez pour le debounce (40 ms) et la réponse du stub, trop peu pour qu'une
+  // seconde péremption (LIVE_TTL = 600 ms) ne vienne s'ajouter au journal.
+  await wait(page, 300);
   // Filtrer sur l'opération : la requête Guest Star ne porte pas de `logins`
   // et compterait pour une tranche de taille zéro.
   const calls = await page.evaluate(() => window.__calls.filter(c => c.op === 'TseChannels').map(c => c.n));
   const max = Math.max(...calls);
   ok('taille max d\'une tranche ≤ 50', max <= 50, 'max=' + max);
-  // Invariant : un balayage complet des 63 chaînes tient en 2 opérations
-  // (50 + 13). Indépendant du nombre de cycles observés.
+  // Invariant : un balayage complet des 63 chaînes tient en 2 opérations,
+  // 50 + 13 — le minimum possible pour GQL_MAX_LOGINS = 50.
   const tailles = [...new Set(calls)].sort((a, b) => b - a);
   ok('un balayage complet tient en 2 opérations (50 + 13)',
-     tailles.length === 2 && tailles[0] === 50 && tailles[1] === 13, JSON.stringify(tailles));
+     calls.length === 2 && tailles.length === 2 && tailles[0] === 50 && tailles[1] === 13,
+     JSON.stringify(calls));
   const covered = await page.evaluate(() =>
     [...document.querySelectorAll('.side-nav-card')].filter(c => c.dataset.tseViewers).length);
   ok('les 63 chaînes sont résolues malgré le découpage', covered === 63, covered + '/63');
@@ -339,7 +362,7 @@ console.log('\n6. Découpage — aucune opération ne dépasse GQL_MAX_LOGINS');
 }
 
 // ═════════════ 7. Panne réseau ═════════════
-console.log('\n7. Panne réseau — état préservé, pas de martèlement');
+titre('7. Panne réseau — état préservé, pas de martèlement');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -372,7 +395,7 @@ console.log('\n7. Panne réseau — état préservé, pas de martèlement');
 }
 
 // ═════════════ 8. Tri par viewers ═════════════
-console.log('\n8. Tri — sur les nombres exacts, plus sur le texte localisé');
+titre('8. Tri — sur les nombres exacts, plus sur le texte localisé');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -394,7 +417,7 @@ console.log('\n8. Tri — sur les nombres exacts, plus sur le texte localisé');
 }
 
 // ═════════════ 9. Locale allemande (nombre plein) ═════════════
-console.log('\n9. Locale — l\'allemand garde le nombre plein, comme Twitch');
+titre('9. Locale — l\'allemand garde le nombre plein, comme Twitch');
 {
   const page = await browser.newPage();
   page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
@@ -418,7 +441,7 @@ console.log('\n9. Locale — l\'allemand garde le nombre plein, comme Twitch');
 }
 
 // ═════════════ 10. Garde-fou catégorie ═════════════
-console.log('\n10. Garde-fou — jamais écraser le pseudo par la catégorie');
+titre('10. Garde-fou — jamais écraser le pseudo par la catégorie');
 {
   const page = await browser.newPage();
   page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
@@ -441,7 +464,7 @@ console.log('\n10. Garde-fou — jamais écraser le pseudo par la catégorie');
 }
 
 // ═════════════ 11. Roster appris sans authentification ═════════════
-console.log('\n11. Roster — chaînes suivies apprises par observation');
+titre('11. Roster — chaînes suivies apprises par observation');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -485,7 +508,7 @@ console.log('\n11. Roster — chaînes suivies apprises par observation');
 }
 
 // ═════════════ 12. Mesure du retard de Twitch ═════════════
-console.log('\n12. Mesure — ce qui est compté, et ce qui ne l\'est pas');
+titre('12. Mesure — ce qui est compté, et ce qui ne l\'est pas');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -552,7 +575,7 @@ console.log('\n12 bis. Stockage — un ancien format ne pollue pas la médiane')
 }
 
 // ═══════ 13. users(logins:) — ordre non garanti, logins omis ═══════
-console.log('\n13. Réponse groupée — indexation par login, pas par position');
+titre('13. Réponse groupée — indexation par login, pas par position');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -594,7 +617,7 @@ console.log('\n13. Réponse groupée — indexation par login, pas par position'
 }
 
 // ═════════ 14. Carte posée avant Twitch ═════════
-console.log('\n14. Palier 3 — une chaîne apparaît avant que Twitch la pose');
+titre('14. Palier 3 — une chaîne apparaît avant que Twitch la pose');
 {
   const page = await fresh();
   const h = () => new Date(Date.now() - 60 * 60_000).toISOString();
@@ -681,7 +704,7 @@ console.log('\n14. Palier 3 — une chaîne apparaît avant que Twitch la pose')
 }
 
 // ═════════ 15. Retraits et gardes ═════════
-console.log('\n15. Palier 3 — retraits, garde du voile, carte périmée');
+titre('15. Palier 3 — retraits, garde du voile, carte périmée');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -730,7 +753,7 @@ console.log('\n15. Palier 3 — retraits, garde du voile, carte périmée');
 }
 
 // ═════════ 16. Non-régression des compteurs internes ═════════
-console.log('\n16. Palier 3 — les cartes fabriquées ne faussent rien');
+titre('16. Palier 3 — les cartes fabriquées ne faussent rien');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -769,7 +792,7 @@ console.log('\n16. Palier 3 — les cartes fabriquées ne faussent rien');
 }
 
 // ═════════ 17. Badge collab — comportement préservé après optimisation ═════════
-console.log('\n17. Badge collab — le pré-filtre ne change rien au comportement');
+titre('17. Badge collab — le pré-filtre ne change rien au comportement');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -833,7 +856,7 @@ console.log('\n17. Badge collab — le pré-filtre ne change rien au comportemen
 }
 
 // ═════════ 18. Cohérence des cinq langues ═════════
-console.log('\n18. Localisation — aucune langue ne peut diverger');
+titre('18. Localisation — aucune langue ne peut diverger');
 // Une clé oubliée dans UNE seule langue fait planter tse.lag() ou
 // tse.roster() pour ses utilisateurs, sans que rien ne le signale : c'est
 // exactement ce qui était arrivé au portugais. Analyse statique de la source.
@@ -861,7 +884,7 @@ console.log('\n18. Localisation — aucune langue ne peut diverger');
 }
 
 // ═════════ 19. Cadence réelle de sondage ═════════
-console.log('\n19. Cadence — la période réelle doit coller au TTL');
+titre('19. Cadence — la période réelle doit coller au TTL');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -891,7 +914,7 @@ console.log('\n19. Cadence — la période réelle doit coller au TTL');
 }
 
 // ═════════ 20. Extinction de masse — la sidebar ne doit pas se vider ═════════
-console.log('\n20. Garde-fou — une API qui ment ne vide pas la sidebar');
+titre('20. Garde-fou — une API qui ment ne vide pas la sidebar');
 {
   const page = await fresh();
   const warns = [];
@@ -926,7 +949,7 @@ console.log('\n20. Garde-fou — une API qui ment ne vide pas la sidebar');
 }
 
 // ═════════ 21. Pas de faux positif du garde-fou ═════════
-console.log('\n21. Garde-fou — une extinction isolée passe normalement');
+titre('21. Garde-fou — une extinction isolée passe normalement');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -953,7 +976,7 @@ console.log('\n21. Garde-fou — une extinction isolée passe normalement');
 }
 
 // ═════════ 22. Garde-fou dès le premier cycle (cache encore vide) ═════════
-console.log('\n22. Garde-fou — protège aussi au démarrage, cache vide');
+titre('22. Garde-fou — protège aussi au démarrage, cache vide');
 {
   const page = await fresh();
   const warns = [];
@@ -976,7 +999,7 @@ console.log('\n22. Garde-fou — protège aussi au démarrage, cache vide');
 }
 
 // ═════════ 23. Modèle de clonage neutre ═════════
-console.log('\n23. Clonage — jamais depuis une carte décorée');
+titre('23. Clonage — jamais depuis une carte décorée');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -1021,7 +1044,7 @@ console.log('\n23. Clonage — jamais depuis une carte décorée');
 }
 
 // ═════════════ 24. Co-stream — compteur combiné, ET tri cohérent ═════════════
-console.log('\n24. Co-stream — Twitch affiche le combiné, et le tri doit le suivre');
+titre('24. Co-stream — Twitch affiche le combiné, et le tri doit le suivre');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -1078,7 +1101,7 @@ console.log('\n24. Co-stream — Twitch affiche le combiné, et le tri doit le s
 }
 
 // ═════════════ 25. Aucune requête ne dépend d'un hash ═════════════
-console.log('\n25. Aucun hash — le module sidebar n\'a plus de persisted query');
+titre('25. Aucun hash — le module sidebar n\'a plus de persisted query');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -1122,7 +1145,7 @@ console.log('\n25. Aucun hash — le module sidebar n\'a plus de persisted query
 }
 
 // ═════════════ 26. Guest Star en panne — repli propre ═════════════
-console.log('\n26. Guest Star en panne : repli propre, sans casse');
+titre('26. Guest Star en panne : repli propre, sans casse');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -1145,7 +1168,7 @@ console.log('\n26. Guest Star en panne : repli propre, sans casse');
 }
 
 // ═════════════ 27. Session Guest Star SOLO — pas de compteur combiné ═════════════
-console.log('\n27. Session solo — un host.id sans collaboration ne fabrique rien');
+titre('27. Session solo — un host.id sans collaboration ne fabrique rien');
 {
   const page = await fresh();
   await page.evaluate(() => {
@@ -1181,7 +1204,7 @@ console.log('\n27. Session solo — un host.id sans collaboration ne fabrique ri
 }
 
 // ═════════════ 28. Anti-pub — inerte hors iframe ═════════════
-console.log('\n28. Anti-pub — chargé avec la sidebar, mais strictement inerte en top-level');
+titre('28. Anti-pub — chargé avec la sidebar, mais strictement inerte en top-level');
 {
   const page = await fresh();
   const probe = await page.evaluate(() => ({
@@ -1205,7 +1228,7 @@ console.log('\n28. Anti-pub — chargé avec la sidebar, mais strictement inerte
 }
 
 // ═════════════ 29. Palette co-stream — teintes réellement distinctes ═════════════
-console.log('\n29. Palette — deux collaborations voisines doivent se distinguer');
+titre('29. Palette — deux collaborations voisines doivent se distinguer');
 {
   // Contrôle STATIQUE : la palette est une donnée, pas un comportement. On la
   // lit dans la source plutôt que de l'exposer au global pour les besoins du test.
@@ -1248,7 +1271,7 @@ console.log('\n29. Palette — deux collaborations voisines doivent se distingue
 }
 
 // ═════════════ 30. Aperçu — révélé à la PREMIÈRE IMAGE, pas au `load` ═════════════
-console.log('\n30. Aperçu — l\'iframe n\'apparaît qu\'une fois une image affichée');
+titre('30. Aperçu — l\'iframe n\'apparaît qu\'une fois une image affichée');
 {
   // Le lecteur Twitch est remplacé par une page servie depuis la VRAIE origine
   // player.twitch.tv (interception réseau) : la garde d'hôte du pont s'applique
@@ -1369,7 +1392,7 @@ console.log('\n30. Aperçu — l\'iframe n\'apparaît qu\'une fois une image aff
 }
 
 // ═════════════ 31. Vignette — cache utilisable, et pas de rectangle noir ═════════════
-console.log('\n31. Vignette — l\'URL doit être stable, et l\'attente ne doit pas être noire');
+titre('31. Vignette — l\'URL doit être stable, et l\'attente ne doit pas être noire');
 {
   const cdnUrls = [];
   // Ouvert AVANT la page : depuis le préchargement, les premières miniatures
@@ -1463,7 +1486,7 @@ console.log('\n31. Vignette — l\'URL doit être stable, et l\'attente ne doit 
 }
 
 // ═════════════ 32. Aperçu — l'échelle de qualité doit être plafonnée ═════════════
-console.log('\n32. Qualité — le jeton d\'accès doit être demandé en « autoplay »');
+titre('32. Qualité — le jeton d\'accès doit être demandé en « autoplay »');
 {
   // Le type de lecteur porté par la requête de jeton décide de l'ÉCHELLE que
   // Twitch renvoie. On vérifie ici la réécriture de bout en bout, à travers le
@@ -1520,7 +1543,7 @@ console.log('\n32. Qualité — le jeton d\'accès doit être demandé en « aut
 }
 
 // ═════════════ 33. Préchargement des miniatures ═════════════
-console.log('\n33. Préchargement — réchauffer pendant les périodes calmes');
+titre('33. Préchargement — réchauffer pendant les périodes calmes');
 {
   const poser = (page) => page.evaluate(() => {
     const h = new Date(Date.now() - 3600_000).toISOString();
@@ -1662,8 +1685,20 @@ console.log('\n33. Préchargement — réchauffer pendant les périodes calmes')
     ok('la passe repart à la tranche suivante', tranches2.size > tranches1.size,
        `${tranches1.size} → ${tranches2.size} tranche(s)`);
     // Sans purge du registre, la seconde tranche n'aurait rien redemandé.
-    const derniere = [...tranches2].sort().pop();
-    const vus = new Set(logins(cdn.filter(u => u.endsWith(derniere))));
+    //
+    // On ATTEND que la tranche la plus récente soit complète au lieu de la
+    // prélever au vol : elle vient peut-être de commencer, et n'avoir que deux
+    // chaînes sur trois à cet instant ne dit rien de la purge. L'attente est
+    // bornée — si la purge n'a pas lieu, elle expire et l'assertion tombe avec
+    // ce qui a été vu.
+    let vus = new Set();
+    for (let i = 0; i < 50; i++) {
+      const tr = new Set(cdn.map(u => u.split('?_=')[1]));
+      const derniere = [...tr].sort().pop();
+      vus = new Set(logins(cdn.filter(u => u.endsWith(derniere))));
+      if (['un', 'deux', 'trois'].every(l => vus.has(l))) break;
+      await wait(page, 100);
+    }
     ok('toutes les chaînes sont redemandées après la purge',
        ['un', 'deux', 'trois'].every(l => vus.has(l)), [...vus].join(', '));
     await page.close();
@@ -1671,7 +1706,7 @@ console.log('\n33. Préchargement — réchauffer pendant les périodes calmes')
 }
 
 // ═════════════ 34. Chaînes globales — couche de données ═════════════
-console.log('\n34. Chaînes globales — classer ce que l\'API refuse de classer');
+titre('34. Chaînes globales — classer ce que l\'API refuse de classer');
 {
   // Décor commun. 10 catégories d'amorce portant 40 streams (4000, 3900, …
   // 100 spectateurs, répartis en tourniquet), puis une 11e catégorie
@@ -1972,7 +2007,7 @@ console.log('\n34. Chaînes globales — classer ce que l\'API refuse de classer
 
 // ═════════════ 35. Top Chaînes — la bascule et les cartes ═════════════
 const S_MENU_ARIA = 'Choisir ce qui s\'affiche dans la barre latérale';
-console.log('\n35. Top Chaînes — basculer, afficher, revenir');
+titre('35. Top Chaînes — basculer, afficher, revenir');
 {
   const poser = (page) => page.evaluate(() => {
     const h = new Date(Date.now() - 30 * 60_000).toISOString();
@@ -2384,7 +2419,7 @@ console.log('\n35. Top Chaînes — basculer, afficher, revenir');
 
 
 // ═════════════ 36. Top Chaînes — le filtre catégorie ═════════════
-console.log('\n36. Catégories — choisir, ce n\'est pas filtrer');
+titre('36. Catégories — choisir, ce n\'est pas filtrer');
 {
   // Décor conçu autour d'UN point : « petite » est sous le seuil T, donc la
   // marche mondiale ne l'interroge JAMAIS et ses chaînes n'existent nulle
@@ -2502,7 +2537,7 @@ console.log('\n36. Catégories — choisir, ce n\'est pas filtrer');
 
 
 // ═════════════ 37. Voile — un seul cycle au chargement ═════════════
-console.log('\n37. Voile — la sidebar ne doit s\'initialiser qu\'une fois');
+titre('37. Voile — la sidebar ne doit s\'initialiser qu\'une fois');
 {
   const cycles = (page) => page.evaluate(() => window.tse.global && window.tse
     ? (window.tse.cycles ? window.tse.cycles() : []) : []);
@@ -2571,7 +2606,7 @@ console.log('\n37. Voile — la sidebar ne doit s\'initialiser qu\'une fois');
 
 
 // ═════════════ 38. Monde + langue — une descente, pas un filtre ═════════════
-console.log('\n38. Monde + langue — descendre en langue, pas filtrer un pool');
+titre('38. Monde + langue — descendre en langue, pas filtrer un pool');
 {
   // Le décor rend les deux approches DISCERNABLES, et c'est tout son objet.
   // Chaque grosse catégorie contient 30 chaînes anglaises devant 10 françaises
@@ -2701,7 +2736,7 @@ console.log('\n38. Monde + langue — descendre en langue, pas filtrer un pool')
 }
 
 // ═════════════ 39. Catégorie + langue — une requête dédiée ═════════════
-console.log('\n39. Catégorie + langue — demander, pas filtrer');
+titre('39. Catégorie + langue — demander, pas filtrer');
 {
   // MESURÉ sur quatre catégories réelles : `game(name:){ streams(options:
   // {broadcasterLanguages:[FR]}) }` rend LE SOMMET FRANÇAIS de la catégorie.
@@ -2834,7 +2869,7 @@ console.log('\n39. Catégorie + langue — demander, pas filtrer');
 }
 
 // ═════════════ 40. Top Chaînes — ni trou dans la liste, ni barre en travers ═════════════
-console.log('\n40. Top Chaînes — ce qui est demandé s\'affiche, et rien ne déborde');
+titre('40. Top Chaînes — ce qui est demandé s\'affiche, et rien ne déborde');
 {
   // Deux défauts observés en mode « Top Chaînes », de même racine : le code
   // continuait de traiter le classement comme une liste de chaînes suivies —
@@ -3004,7 +3039,7 @@ console.log('\n40. Top Chaînes — ce qui est demandé s\'affiche, et rien ne d
 }
 
 // ═════════ 41. Le classement n'écrit pas dans le cache des chaînes suivies ═════════
-console.log('\n41. Cache — le mode global ne doit rien laisser derrière lui');
+titre('41. Cache — le mode global ne doit rien laisser derrière lui');
 {
   // « mastu » est SUIVI et figure AUSSI au classement français. Deux
   // conséquences à vérifier, l'une visuelle et l'autre invisible :
@@ -3108,7 +3143,7 @@ console.log('\n41. Cache — le mode global ne doit rien laisser derrière lui')
 }
 
 // ═════════ 42. Abonnements — lus sur la page, jamais demandés ═════════
-console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requête');
+titre('42. Abonnements — le tri « mes abos en tête », sans une requête');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   // Ce scénario éprouve la lecture PAR VISITE. Le relevé complet, testé
@@ -3281,7 +3316,7 @@ console.log('\n42. Abonnements — le tri « mes abos en tête », sans une requ
 }
 
 // ═════ 43. Relevé complet des abonnements via /subscriptions ═════
-console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
+titre('43. Abonnements — la liste complète, lue dans une iframe');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const memoire = (page) => page.evaluate(() => {
@@ -3368,7 +3403,7 @@ console.log('\n43. Abonnements — la liste complète, lue dans une iframe');
   await page.close();
 }
 
-console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un minuteur');
+titre('44. Abonnements — le relevé part avec la sidebar, pas avec un minuteur');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const cadres = (page) => page.evaluate(() => [...document.querySelectorAll('iframe')]
@@ -3496,7 +3531,7 @@ console.log('\n44. Abonnements — le relevé part avec la sidebar, pas avec un 
   }
 }
 
-console.log('\n45. Abonnements — le tri se grise quand aucun abonné n\'émet');
+titre('45. Abonnements — le tri se grise quand aucun abonné n\'émet');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   // Relevé complet coupé : ce scénario décide de la DISPONIBILITÉ du tri à
@@ -3603,7 +3638,7 @@ console.log('\n45. Abonnements — le tri se grise quand aucun abonné n\'émet'
   }
 }
 
-console.log('\n46. Abonnements — un onglet vide ne coûte pas le garde-fou');
+titre('46. Abonnements — un onglet vide ne coûte pas le garde-fou');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   // « gifts » et « mobile » ne rendront aucune carte : c'est le cas d'un compte
@@ -3661,7 +3696,7 @@ console.log('\n46. Abonnements — un onglet vide ne coûte pas le garde-fou');
   await page.close();
 }
 
-console.log('\n47. Tri — le mode choisi revient quand il redevient possible');
+titre('47. Tri — le mode choisi revient quand il redevient possible');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const MEMOIRE = () => {
@@ -3717,7 +3752,7 @@ console.log('\n47. Tri — le mode choisi revient quand il redevient possible');
   await page.close();
 }
 
-console.log('\n48. Abonnements — l\'ancienneté, lue sans lire le français');
+titre('48. Abonnements — l\'ancienneté, lue sans lire le français');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const page = await freshTwitch(PLAYER, [], '/');
@@ -3777,7 +3812,7 @@ console.log('\n48. Abonnements — l\'ancienneté, lue sans lire le français');
   await page.close();
 }
 
-console.log('\n49. Abonnements — une liste qui s\'écrit par morceaux');
+titre('49. Abonnements — une liste qui s\'écrit par morceaux');
 {
   // Une liste React n'apparaît pas d'un bloc : le lien d'une carte peut être
   // rendu avant son ancienneté. Un relevé qui conclut au PREMIER passage où
@@ -3862,7 +3897,7 @@ console.log('\n49. Abonnements — une liste qui s\'écrit par morceaux');
   await page.close();
 }
 
-console.log('\n50. Aperçu — le badge d\'abonnement');
+titre('50. Aperçu — le badge d\'abonnement');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const page = await freshTwitch(PLAYER, [], '/');
@@ -3911,7 +3946,7 @@ console.log('\n50. Aperçu — le badge d\'abonnement');
   await page.close();
 }
 
-console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
+titre('51. Abonnements — la carte d\'une chaîne abonnée');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const page = await freshTwitch(PLAYER, [], '/');
@@ -4065,7 +4100,7 @@ console.log('\n51. Abonnements — la carte d\'une chaîne abonnée');
   await page.close();
 }
 
-console.log('\n53. Abonnements — les onglets partent ensemble, l\'étiquette est retenue');
+titre('53. Abonnements — les onglets partent ensemble, l\'étiquette est retenue');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const poser = (page) => page.evaluate(() => {
@@ -4143,7 +4178,7 @@ console.log('\n53. Abonnements — les onglets partent ensemble, l\'étiquette e
   }
 }
 
-console.log('\n54. Abonnements — l\'origine est retenue, la teinte reste l\'or');
+titre('54. Abonnements — l\'origine est retenue, la teinte reste l\'or');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const page = await freshTwitch(PLAYER, [], '/');
@@ -4190,7 +4225,7 @@ console.log('\n54. Abonnements — l\'origine est retenue, la teinte reste l\'or
   await page.close();
 }
 
-console.log('\n55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa forme');
+titre('55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa forme');
 {
   // Twitch ne rend pas toujours le même markup d'avatar : avatarOf() en
   // couvre cinq formes. Le CSS n'en recopiait que trois — d'où un anneau
@@ -4295,7 +4330,7 @@ console.log('\n55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa 
   await page.close();
 }
 
-console.log('\n56. Filtres — la rangée de tri est alignée sur celle des filtres');
+titre('56. Filtres — la rangée de tri est alignée sur celle des filtres');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const page = await freshTwitch(PLAYER, [], '/');
@@ -4330,7 +4365,7 @@ console.log('\n56. Filtres — la rangée de tri est alignée sur celle des filt
   await page.close();
 }
 
-console.log('\n57. Mémoire — un abonnement en cours passe avant un abonnement révolu');
+titre('57. Mémoire — un abonnement en cours passe avant un abonnement révolu');
 {
   // Depuis que l'onglet des expirés est lu, des dizaines d'entrées arrivent
   // dans la même milliseconde que les abonnements en cours. Trier la purge sur
@@ -4359,5 +4394,14 @@ console.log('\n57. Mémoire — un abonnement en cours passe avant un abonnement
 }
 
 await browser.close();
-console.log(`\n${'═'.repeat(50)}\n${pass} réussis, ${fail} échoués\n`);
+console.log(`\n${'═'.repeat(50)}`);
+if (echecs.length) {
+  console.log(`${echecs.length} ÉCHEC(S) :`);
+  for (const e of echecs) {
+    console.log(`  • ${e.scenario}`);
+    console.log(`      ${e.assertion}${e.detail ? '  —  ' + e.detail : ''}`);
+  }
+  console.log('═'.repeat(50));
+}
+console.log(`${pass} réussis, ${fail} échoués\n`);
 process.exit(fail ? 1 : 0);

@@ -4824,6 +4824,17 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
      Rend la liste des chaînes trouvées, ou null si le relevé est désactivé
      ou déjà en cours. Utile pour vérifier soi-même ce que l'extension lit. */
   tseApi.subs.refresh = () => subsPage.refresh(true);
+  /**
+   * Force un balayage COMPLET : purge du cache de chaînes, oubli des marques
+   * de carte, puis re-scan. C'est exactement le chemin qu'emprunte déjà un
+   * retour d'onglet après une longue absence (cf. REVISIT_RELOAD_MS) — rien
+   * de neuf n'est introduit ici, seulement de quoi le déclencher à la main.
+   *
+   * Utile pour observer un balayage entier d'un coup : au régime établi les
+   * péremptions s'échelonnent, et la file part donc à moitié pleine. C'est
+   * cette différence-là qui rendait une mesure de découpage intermittente.
+   */
+  tseApi.rescan = () => { invalidateAndRescan(); };
 
   // Expose en lecture seule pour éviter qu'un autre script ne l'écrase.
   //
