@@ -5,6 +5,7 @@
    inventées pour n'emprunter l'identité de personne. */
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { deflateSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -186,7 +187,140 @@ export const ABOS = (() => {
   };
 })();
 
+/* ── Encodeur PNG 24 bits, SANS canal alpha ───────────────────────────────
+   Le Chrome Web Store demande la même chose des trois formats qu'il accepte —
+   captures 1280 x 800, tuile 440 x 280, bannière 1400 x 560 : « JPEG ou PNG
+   24 bits (sans alpha) ». Or une capture de Playwright est un PNG RGBA :
+   opaque, mais avec un canal alpha quand même. Les images sortaient donc en
+   type 6, et le Store était en droit de les refuser — ce qu'il fait selon les
+   emplacements. Le JPEG serait la réponse facile, mais son sous-échantillonnage
+   de chrominance abîme précisément ce qui compte ici, les bords colorés du
+   texte doré et du violet.
+
+   D'où cet encodeur : type 2 (truecolor), 8 bits par canal, aucun entrelacement.
+   Chaque ligne est essayée avec les cinq filtres du format et l'on garde celui
+   dont la somme des écarts absolus est la plus faible — l'heuristique de la
+   spécification. Sur un dégradé, elle divise le poids par plus de deux face au
+   filtre « None » systématique. */
+const CRC = (() => {
+  const t = new Int32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c;
+  }
+  return t;
+})();
+const crc32 = (buf) => {
+  let c = -1;
+  for (let i = 0; i < buf.length; i++) c = CRC[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ -1) >>> 0;
+};
+const bloc = (type, data) => {
+  const len = Buffer.alloc(4); len.writeUInt32BE(data.length, 0);
+  const td  = Buffer.concat([Buffer.from(type, 'latin1'), data]);
+  const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(td), 0);
+  return Buffer.concat([len, td, crc]);
+};
+const paeth = (a, b, c) => {
+  const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+  return (pa <= pb && pa <= pc) ? a : (pb <= pc ? b : c);
+};
+export function png24(rgba, w, h) {
+  const bpl = w * 3;                 // octets par ligne, alpha retiré
+  const brut = Buffer.alloc(h * (1 + bpl));
+  const cour = Buffer.alloc(bpl);    // ligne courante, non filtrée
+  const prec = Buffer.alloc(bpl);    // ligne précédente, non filtrée elle aussi :
+                                     // les filtres PNG se réfèrent au signal
+                                     // reconstruit, pas au signal encodé.
+  const essai = Array.from({ length: 5 }, () => Buffer.alloc(bpl));
+  let o = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4, j = x * 3;
+      cour[j] = rgba[i]; cour[j + 1] = rgba[i + 1]; cour[j + 2] = rgba[i + 2];
+    }
+    let meilleur = 0, meilleureSomme = Infinity;
+    for (let f = 0; f < 5; f++) {
+      const out = essai[f];
+      let somme = 0;
+      for (let j = 0; j < bpl; j++) {
+        const a = j >= 3 ? cour[j - 3] : 0;
+        const b = prec[j];
+        const c = j >= 3 ? prec[j - 3] : 0;
+        const v = f === 0 ? cour[j]
+                : f === 1 ? cour[j] - a
+                : f === 2 ? cour[j] - b
+                : f === 3 ? cour[j] - ((a + b) >> 1)
+                :           cour[j] - paeth(a, b, c);
+        out[j] = v & 0xFF;
+        somme += out[j] < 128 ? out[j] : 256 - out[j];
+      }
+      if (somme < meilleureSomme) { meilleureSomme = somme; meilleur = f; }
+    }
+    brut[o++] = meilleur;
+    essai[meilleur].copy(brut, o); o += bpl;
+    cour.copy(prec);
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8;    // 8 bits par canal
+  ihdr[9] = 2;    // type 2 : truecolor, SANS alpha — toute la raison de ce code
+  ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
+  const fichier = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
+    bloc('IHDR', ihdr),
+    bloc('IDAT', deflateSync(brut, { level: 9 })),
+    bloc('IEND', Buffer.alloc(0)),
+  ]);
+  // Contrôle de l'en-tête PRODUIT, pas de l'intention : on relit ce qu'on
+  // s'apprête à rendre. C'est la seule preuve qui vaille pour la contrainte du
+  // Store, et elle ne coûte rien.
+  if (fichier.readUInt32BE(16) !== w || fichier.readUInt32BE(20) !== h) {
+    throw new Error(`taille encodée : ${fichier.readUInt32BE(16)} x ${fichier.readUInt32BE(20)}`);
+  }
+  if (fichier[24] !== 8) throw new Error(`profondeur encodée : ${fichier[24]} bits`);
+  if (fichier[25] !== 2) throw new Error(`type de couleur encodé : ${fichier[25]} (2 attendu)`);
+  return fichier;
+}
+
 const browser = await chromium.launch();
+
+/**
+ * Réduit une capture rendue en 2x à sa taille finale, puis l'encode en PNG 24
+ * bits sans alpha. Le rééchantillonnage est fait par Chromium (canvas, lissage
+ * haute qualité) : aucune dépendance de plus, et un piqué bien meilleur qu'un
+ * rendu direct en 1x.
+ */
+export async function reduireEnPng24(brut, w, h) {
+  const page = await browser.newPage({ viewport: { width: w, height: h } });
+  const b64 = await page.evaluate(async ({ src, w, h }) => {
+    const img = new Image(); img.src = src; await img.decode();
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    // alpha:false : le canvas est opaque, donc rien ne peut se glisser sous
+    // l'image. L'absence d'alpha du FICHIER, elle, est garantie par png24 et
+    // par son contrôle d'en-tête, pas par ce drapeau.
+    const g = c.getContext('2d', { alpha: false });
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.drawImage(img, 0, 0, w, h);
+    const px = g.getImageData(0, 0, w, h).data;
+    // Transfert en base64 : un tableau typé rendu tel quel deviendrait un objet
+    // à plusieurs millions de clés numériques.
+    let s = '';
+    const pas = 0x8000;
+    for (let i = 0; i < px.length; i += pas) {
+      s += String.fromCharCode.apply(null, px.subarray(i, Math.min(i + pas, px.length)));
+    }
+    return btoa(s);
+  }, { src: 'data:image/png;base64,' + brut.toString('base64'), w, h });
+  await page.close();
+  const rgba = Buffer.from(b64, 'base64');
+  if (rgba.length !== w * h * 4) {
+    throw new Error(`pixels attendus : ${w * h * 4} octets, reçus : ${rgba.length}`);
+  }
+  return png24(rgba, w, h);
+}
 
 // Libellé natif de la section suivie, par langue d'interface. detectLanguage()
 // le cherche AVANT de regarder <html lang> : sans cette substitution, toutes
@@ -292,11 +426,8 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
                titre: w('[data-a-target="side-nav-title"]'), statut: w('.side-nav-card__live-status') };
     })));
   }
-  // Rendu en 2x pour la finesse du texte, puis RÉDUIT à 1280x800 : le Chrome
-  // Web Store exige cette taille EXACTE et refuse tout le reste. Le
-  // rééchantillonnage est fait par Chromium lui-même (canvas, lissage haute
-  // qualité) — aucune dépendance de plus, et un piqué bien meilleur qu'un
-  // rendu direct en 1x.
+  // Rendu en 2x pour la finesse du texte, puis réduit à 1280x800 — la taille
+  // EXACTE qu'exige le Store — par reduireEnPng24, qui encode aussi sans alpha.
   // Le texte grandit : un débordement doit se voir ici, pas dans une image
   // publiée. On mesure la colonne de droite et le bandeau de marque.
   const trop = await page.evaluate(() => {
@@ -375,21 +506,9 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
 
   const brut = await page.screenshot();
   await page.close();
-  const reduite = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-  const b64 = await reduite.evaluate(async (src) => {
-    const img = new Image();
-    img.src = src;
-    await img.decode();
-    const c = document.createElement('canvas');
-    c.width = 1280; c.height = 800;
-    const g = c.getContext('2d');
-    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-    g.drawImage(img, 0, 0, 1280, 800);
-    return c.toDataURL('image/png').split(',')[1];
-  }, 'data:image/png;base64,' + brut.toString('base64'));
-  await reduite.close();
-  writeFileSync(join(OUT, `${nom}.png`), Buffer.from(b64, 'base64'));
-  console.log('  ✓', `${nom}.png`);
+  const fichier = await reduireEnPng24(brut, 1280, 800);
+  writeFileSync(join(OUT, `${nom}.png`), fichier);
+  console.log('  ✓', `${nom}.png`, `— ${(fichier.length / 1024).toFixed(0)} Ko, 24 bits sans alpha`);
 }
 
 /* Mise en scène : fond sombre, halo violet, la sidebar RÉELLE agrandie dans un

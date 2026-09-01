@@ -10,6 +10,7 @@
     "promo": "node tests/build.mjs && node promo-run.mjs",
     "tuile": "node promo-tile.mjs",
     "tuile-produit": "node tests/build.mjs && node promo-tile-produit.mjs",
+    "banniere": "node tests/build.mjs && node promo-marquee.mjs",
     "check": "npm run lint && npm run parity && npm test"
   },
   "devDependencies": {

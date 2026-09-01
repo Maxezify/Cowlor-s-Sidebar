@@ -17,7 +17,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { pageProduit, browser, ABOS, CSS_TWITCH } from './promo.mjs';
+import { pageProduit, browser, ABOS, CSS_TWITCH, reduireEnPng24 } from './promo.mjs';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.PROMO_OUT || join(ICI, 'promo');
@@ -241,18 +241,11 @@ if (bilan.rendue !== 'Inter') throw new Error(`police rendue attendue : Inter, m
 const brut = await page.screenshot({ clip: { x: 0, y: 0, width: 440, height: 280 } });
 await page.close();
 
-// Réduction 2x -> 1x par Chromium : la barre latérale, rendue deux fois trop
-// grande puis rééchantillonnée, en ressort nette au lieu de baver.
-const p2 = await browser.newPage({ viewport: { width: 440, height: 280 } });
-const b64 = await p2.evaluate(async (src) => {
-  const img = new Image(); img.src = src; await img.decode();
-  const c = document.createElement('canvas'); c.width = 440; c.height = 280;
-  const g = c.getContext('2d');
-  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-  g.drawImage(img, 0, 0, 440, 280);
-  return c.toDataURL('image/png').split(',')[1];
-}, 'data:image/png;base64,' + brut.toString('base64'));
-await p2.close();
-writeFileSync(join(OUT, 'tuile-E-produit.png'), Buffer.from(b64, 'base64'));
-console.log('  ✓ tuile-E-produit.png');
+// Réduction 2x -> 1x par Chromium — la barre, rendue deux fois trop grande
+// puis rééchantillonnée, en ressort nette au lieu de baver — puis encodage en
+// PNG 24 bits SANS alpha. Cette tuile sortait en RGBA : opaque, mais avec un
+// canal alpha que le Store est en droit de refuser sur cet emplacement.
+const fichier = await reduireEnPng24(brut, 440, 280);
+writeFileSync(join(OUT, 'tuile-E-produit.png'), fichier);
+console.log(`  ✓ tuile-E-produit.png — ${(fichier.length / 1024).toFixed(0)} Ko, 24 bits sans alpha`);
 await browser.close();

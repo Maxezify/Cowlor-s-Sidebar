@@ -65,9 +65,24 @@ où le code change :
 
 ## Images
 
-Les captures sont produites par `npm run promo` (1280 × 800, sept langues) et la
-tuile par `npm run tuile-produit` (440 × 280). Elles sortent dans `promo/`, qui
-est ignoré par git : ce sont des artefacts, régénérables à l'identique.
+Trois emplacements, trois commandes, et une contrainte commune que le tableau de
+bord rappelle sur chacun : **JPEG ou PNG 24 bits, sans alpha**.
+
+| Emplacement | Taille | Commande | Fichiers |
+| --- | --- | --- | --- |
+| Bannière en haut de la page | 1400 × 560 | `npm run banniere` | `00-banniere-<L>.png` |
+| Captures d'écran | 1280 × 800 | `npm run promo` | `01-hero-<L>.png` … `06-abonnes-<L>.png` |
+| Petite tuile promotionnelle | 440 × 280 | `npm run tuile-produit` | `tuile-E-produit.png` |
+
+Tout sort dans `promo/`, ignoré par git : ce sont des artefacts, régénérables à
+l'identique. Et tout sort **sans canal alpha** — ce n'était pas le cas avant
+qu'on écrive la bannière : les images étaient en RGBA, opaques mais de type 6,
+ce que le Store est en droit de refuser. `promo.mjs` encode désormais le PNG
+lui-même et relit son propre en-tête. Pour vérifier de l'extérieur :
+
+```bash
+file promo/*.png    # doit dire « 8-bit/color RGB », jamais « RGBA »
+```
 
 Le Store n'accepte que **cinq** captures. Six sont produites ; l'ordre conseillé,
 et celle qui reste au vestiaire :

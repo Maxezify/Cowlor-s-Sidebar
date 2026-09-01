@@ -1311,8 +1311,19 @@ langue de diffusion d'un stream est indépendante des étiquettes qu'il affiche.
 
 ```bash
 npm run promo           # → promo/*.png, 1280×800 exactement, six scènes × sept langues
+npm run banniere        # → promo/00-banniere-*.png, 1400×560, sept langues
 npm run tuile-produit   # → promo/tuile-E-produit.png, 440×280
 ```
+
+Les trois formats du Store, et la même contrainte pour les trois : **JPEG ou
+PNG 24 bits, sans alpha**. Elle n'était honorée par aucun — une capture de
+Playwright est un PNG RGBA, opaque mais avec un canal alpha quand même, et les
+images sortaient donc en type 6. Le JPEG serait la réponse facile ; son
+sous-échantillonnage de chrominance abîme précisément ce qui compte ici, les
+bords colorés du texte doré et du violet. `promo.mjs` encode donc lui-même en
+type 2 (truecolor), avec le choix de filtre par ligne que recommande la
+spécification — et relit l'en-tête qu'il vient de produire avant de rendre le
+fichier. `file` le confirme de l'extérieur : *PNG image data, 8-bit/color RGB*.
 
 Même principe que le harnais, et pour la même raison : **l'extension tourne
 pour de vrai** et on photographie ce qu'elle produit. Rien n'est redessiné. Le

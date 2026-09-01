@@ -1240,8 +1240,19 @@ broadcast language is independent of the tags it displays.
 
 ```bash
 npm run promo           # → promo/*.png, exactly 1280×800, six scenes × seven languages
+npm run banniere        # → promo/00-banniere-*.png, 1400×560, seven languages
 npm run tuile-produit   # → promo/tuile-E-produit.png, 440×280
 ```
+
+Three Store formats, one shared constraint: **JPEG or 24-bit PNG, no alpha**.
+None of them honoured it — a Playwright screenshot is an RGBA PNG, opaque but
+carrying an alpha channel all the same, so the images were coming out as colour
+type 6. JPEG would be the easy answer; its chroma subsampling damages precisely
+what matters here, the coloured edges of the gilded and purple text. So
+`promo.mjs` encodes type 2 (truecolor) itself, with the per-row filter choice
+the specification recommends — and re-reads the header it just produced before
+handing the file back. `file` confirms it from the outside: *PNG image data,
+8-bit/color RGB*.
 
 Same principle as the harness, for the same reason: **the extension actually
 runs** and we photograph what it produces. Nothing is redrawn. Rendering happens
