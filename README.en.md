@@ -187,43 +187,66 @@ the console (**F12**), and paste:
   const s = document.getElementById('tse-css');
   const native = (f) => { try { return /\[native code\]/.test(Function.prototype.toString.call(f)); }
                           catch { return false; } };
+  const p = s && s.parentElement;
+  const rank = p ? [...p.children].indexOf(s) : -1;
+  const s1 = document.querySelector('script');
+  const beforeScripts = !!s && (!s1 ||
+    !!(s.compareDocumentPosition(s1) & Node.DOCUMENT_POSITION_FOLLOWING));
   const out = [];
   const say = (c, ok, d) => out.push({ check: c, verdict: ok ? '✅' : '❌', detail: String(d) });
-  say('1. MAIN world — window.tse is visible from the page',
+  say('1. MAIN world — window.tse visible from the page',
       window.tse != null && typeof window.tse === 'object', typeof window.tse);
   say('2. the extension CSS is in place', !!s, s ? 'yes' : 'missing');
-  say('3. document_start — the <style> sits BEFORE <head>',
-      !!s && s.parentElement.tagName === 'HTML',
-      s ? '<style> inside <' + s.parentElement.tagName + '>' : '—');
-  say('4. boot ran to completion — history.pushState wrapped',
+  say('3. inserted at the HEAD of whatever existed then',
+      rank === 0, p ? 'first child of <' + p.tagName + '>' : '—');
+  say('4. NO page <script> precedes it', beforeScripts,
+      s1 ? (beforeScripts ? 'the first <script> comes after' : 'a <script> is already before') : 'no script');
+  say('5. boot ran to completion — history.pushState wrapped',
       !native(history.pushState), native(history.pushState) ? 'native' : 'wrapped');
   console.table(out);
-  console.log('children of <html>:',
+  console.log('container:', p ? p.tagName : '—', '| rank:', rank,
+    '| children of <html>:',
     [...document.documentElement.children].map(e => e.tagName + (e.id ? '#' + e.id : '')).join(' , '));
   return out;
 })();
 ```
 
-**Check 3 is the only one that actually speaks about `document_start`.**
-`injectCSS` does `(document.head || document.documentElement).appendChild(tag)`:
-at `document_start`, `<head>` **does not exist yet**, so the `<style>` lands on
-`<html>`, ahead of it. Measured under Chromium with the extension genuinely
-loaded, varying nothing but `run_at`:
+**Check 4 is the one that settles it**, and check 3 completes it. `injectCSS`
+does `(document.head || document.documentElement).appendChild(tag)`: the
+`<style>` therefore lands at the head of whichever container existed at
+injection time. If no page `<script>` precedes it, that `<style>` was in the
+tree before the first script was parsed into it — hence before it ran. That is
+exactly the guarantee we are after.
 
-| `run_at` | Where the `<style>` lands | Children of `<html>` |
+**The container differs between engines, and that is not a defect.** Chromium
+has created only `documentElement` when it injects; Gecko builds a full
+skeleton first. Mozilla states it plainly: *"the parser sets up the initial
+skeleton DOM before unblocking scripts and allowing the
+`document-element-inserted` event to be dispatched, so more than just the
+document element exists when the event is fired"*
+([bug 1333990](https://bugzilla.mozilla.org/show_bug.cgi?id=1333990)). Hence:
+
+| Engine | `<style>` container | Children of `<html>` |
 | --- | --- | --- |
-| `document_start` | `<html>` | `STYLE#tse-css`, `HEAD`, `BODY` |
-| `document_end` | `<head>` | `HEAD`, `BODY` |
-| `document_idle` | `<head>` | `HEAD`, `BODY` |
+| Chromium | `<html>` | `STYLE#tse-css`, `HEAD`, `BODY` |
+| Firefox | `<head>` | `HEAD`, `BODY` |
 
-So the signal discriminates, and it is binary.
+In both cases the `<style>` is the **first child** of its container and precedes
+every script: check 3 says so, check 4 proves it. An earlier version of this
+page demanded `<html>` and so returned a misleading ❌ on Firefox — it was
+measuring a Chromium quirk, not `document_start`.
 
-**If check 3 says `<head>` on Firefox**, that is not necessarily a failure: it
-would mean Gecko creates `<head>` before running its `document_start` scripts,
-which is still *before the page's scripts* — the only thing that matters. The
-court of appeal is then the ad blocker, which does run a real race: hover a
-card, then, in the console's context picker, select the `player.twitch.tv` frame
-and type
+Checked under Chromium with the extension genuinely loaded, varying nothing but
+`run_at`:
+
+| `run_at` | Check 3 | Check 4 |
+| --- | --- | --- |
+| `document_start` | ✅ first child of `<html>` | ✅ the first `<script>` comes after |
+| `document_idle` | ❌ first child of `<head>` | ❌ a `<script>` is already before |
+
+The court of appeal, if doubt remains, is the ad blocker — it runs a **real
+race** for a global. Hover a card, select the `player.twitch.tv` frame in the
+console's context picker, and type
 
 ```js
 /\[native code\]/.test(String(window.__vaft2RealFetch))   // → expect true
