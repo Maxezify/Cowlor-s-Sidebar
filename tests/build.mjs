@@ -55,6 +55,11 @@ const subs = [
   [/SUBS_PAGE_STABLE:\s*[\d_]+/,  'SUBS_PAGE_STABLE:     900'],
   [/SUBS_PAGE_STAGGER:\s*[\d_]+/, 'SUBS_PAGE_STAGGER:    200'],
   [/SUBS_PAGE_HOLD_GRACE:\s*[\d_]+/, 'SUBS_PAGE_HOLD_GRACE: 400'],
+  // Durée de vie du badge « Vient de passer sur … » : dix minutes en
+  // production. Réduite ici pour qu'un test puisse observer sa PÉREMPTION,
+  // qui est la moitié de son comportement — un badge qui ne s'efface pas
+  // finirait par mentir sur la fraîcheur de ce qu'il annonce.
+  [/CATEGORY_SWITCH_TTL:\s*10 \* 60_000/, 'CATEGORY_SWITCH_TTL: 2_500'],
   [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  40'],
   [/BATCH_DELAY:\s*[\d_]+/,       'BATCH_DELAY:    40'],
 ];

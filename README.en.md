@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.56.0 · **Firefox** Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.57.0 · **Firefox** Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 > **Firefox branch.** This repository has two release lines. `claude/chrome`
 > carries the Chrome / Chromium build; this branch carries the Firefox build.
@@ -362,6 +362,111 @@ place makes it fall.
 
 The count is still held by a **ratchet**: `content.js` is allowed zero
 warnings, like every other file. The first one to appear fails `npm run addon`.
+
+---
+
+## The category switch (v3.57)
+
+Twitch announces nowhere that a channel has just changed category. The
+information **is not in its API**: it is born from comparing two readings — and
+the pipeline makes one every 30 seconds, for every channel you follow, since
+3.18. It was thrown away on every round.
+
+Yet that is the moment a "variety" streamer becomes interesting to someone who
+follows one specific game. The hover preview therefore carries a lime badge,
+**"Just switched to X"**, which lives ten minutes and clears itself.
+
+### What the register does not do
+
+**It does not report a stream start.** Going from "offline" to "live on X" is
+not a switch: it is a channel beginning, which the card already says. The
+distinction is read from `stream.id`, which changes with every new session — a
+field the `TseChannels` query already returned and nothing used. Same
+identifier **and** a different category: only then has something happened.
+
+**It does not survive a reload**, and that is not a limitation we suffer. After
+a reload the extension has observed nothing; producing a badge then would be
+inventing it. It reports only what it saw — the same rule as the subscription
+badge, which stays quiet when the tenure is unknown.
+
+### The badge expires, and that is half its behaviour
+
+Ten minutes. Past that, the category shown on the card is enough, and the badge
+would lie by omission by suggesting the switch just happened. The bench tests
+expiry with the same mechanism as every other production duration:
+`tests/build.mjs` brings `CATEGORY_SWITCH_TTL` down to 2.5 s, so it is the real
+code and the real clock that expire the entry.
+
+### The colour, by arithmetic
+
+The eight hues already taken left one wide slot. The optimum is at **93°**, 54°
+from the nearest neighbour; turquoise or cyan would have offered only 26 to 27°
+from sponsor and co-stream. We settle at 91° — 52° from ex-sub, 54° from sub —
+for 7.15:1 of contrast, inside the family's range (6.38 to 7.67).
+
+### A guard doing two jobs
+
+The first draft had the session guard also protecting access to the previous
+category. Removing it to put it to the test therefore did not fail a test: it
+**crashed the page**. A guard doing two jobs breaks silently the moment you
+touch it. They are now separated, one per question, and mutating the session
+guard alone produces exactly the error we want to see — "Just switched to
+Minecraft" on a channel that has merely started.
+
+---
+
+## Ten languages (v3.57)
+
+The interface speaks Italian, Polish, Russian, Japanese and Simplified Chinese,
+on top of the original five. That is **630 strings** across ten tables, which
+`npm run parity` keeps rigorously aligned: a key forgotten in a single language
+used to crash `tse.lag()` for its users with nothing to signal it — which is
+what happened to Portuguese.
+
+### The Slavic plural
+
+French and English have two forms; **Polish and Russian have three**, and the
+third takes over on 11 to 14 despite their units digit:
+
+| n | Polish | Russian |
+| --- | --- | --- |
+| 1, 21, 31… | miesiąc | месяц |
+| 2-4, 22-24… | miesiące | месяца |
+| 5-20, 25-30, **11-14** | miesięcy | месяцев |
+
+The rule is written **once** (`plurielSlave`) rather than copied into six
+functions, where a single wrong branch would have gone unnoticed by any
+non-Slavic reader. Scenario 64 checks it against a table of values written by
+hand from the grammar — never copied from the code's output, which would only
+have confirmed its own bug. The mutation that forgets the 11-14 exception makes
+it fall, naming both offending values.
+
+### What those five languages do not have, and why
+
+The five new languages **have no native Twitch label** in the detection table.
+That step compares exact strings captured from Twitch's DOM ("Chaînes suivies",
+"Followed Channels"…); inventing one would mean writing code that will never
+match while looking like it covers the language.
+
+They are therefore detected through `html.lang` then `navigator.language`,
+which require no knowledge of Twitch's interface, and the sidebar holds on its
+**structural anchors** (`followed-side-nav-header`) — exactly the fallback
+designed from the start for any unlisted language. Scenario 64 removes the
+French label from the harness to reproduce that situation: both fallbacks are
+exercised together.
+
+`zh-TW` falls back to the `zh` table through the two-letter prefix rather than
+to English — Simplified Chinese beats English for a reader in Taiwan.
+
+### Two labels that did not follow the language
+
+The work surfaced an old defect. `refreshLanguage()` runs on every scan and the
+module header advertises self-correction, but the mode tabs and the sort
+buttons set their label **at creation** and never moved it again. A language
+switch after boot — Twitch is an SPA, you can change language without reloading
+— therefore left tabs frozen in the old language while their `aria-label` did
+follow: the interface was saying two things at once. Both are now refreshed,
+by conditional write as everywhere else in this module.
 
 ---
 
@@ -1370,6 +1475,7 @@ popup's `#18181b`, and contrast is measured text against that composite.
 | `--hype` | `rgba(255, 105, 5, .25)` | `#522c16` | `#ffb380` | 24° | 6.94:1 |
 | `--sub` | `rgba(255, 201, 102, .22)` | `#4b3f2c` | `#ffd591` | 37° | 7.43:1 |
 | `--exsub` | `rgba(255, 201, 102, .10)` | `#2f2a23` | `#c9b48c` | 39° | 7.06:1 |
+| `--switch` | `rgba(120, 215, 60, .24)` | `#2f4623` | `#a8e86b` | 91° | 7.15:1 |
 | `--sponsor` | `rgba(0, 184, 90, .22)` | `#133b29` | `#6bdb9d` | 147° | 7.25:1 |
 | `--costream` | `rgba(31, 105, 255, .25)` | `#1a2c54` | `#7fb3ff` | 216° | 6.38:1 |
 | `--squad` | `rgba(145, 71, 255, .25)` | `#362454` | `#d1b3ff` | 264° | 7.56:1 |
@@ -1651,7 +1757,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs 440×280 tile showing the extension at work
 ├── store/                 the copy of the seven Chrome Web Store listings
 ├── tests/
-│   ├── run.mjs              the harness: 521 assertions across 62 scenarios
+│   ├── run.mjs              the harness: 544 assertions across 64 scenarios
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
 │   ├── build.mjs            copies content.js with the timings accelerated
 │   └── parity.mjs           translation-key parity across the 5 languages
@@ -1680,7 +1786,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 62 scenarios, 521 assertions |
+| `npm test` | the Playwright harness: 64 scenarios, 544 assertions |
 
 `npm run addon` deserves a note: its first six assertions are the ones the
 linter cannot know, because they belong to this repository — the version tracks

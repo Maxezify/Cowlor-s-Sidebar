@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.56.0 · Extension **Firefox** (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.57.0 · Extension **Firefox** (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 > **Branche Firefox.** Ce dépôt a deux lignes de publication. `claude/chrome`
 > porte la version Chrome / Chromium ; cette branche porte la version Firefox.
@@ -376,6 +376,119 @@ l'un des deux endroits le fait tomber.
 Le compte reste tenu par un **cliquet** : `content.js` a droit à zéro
 avertissement, comme tous les autres fichiers. Le premier qui apparaît fait
 échouer `npm run addon`.
+
+---
+
+## Le basculement de catégorie (v3.57)
+
+Twitch n'annonce nulle part qu'une chaîne vient de changer de catégorie.
+L'information **n'est pas dans son API** : elle naît de la comparaison de deux
+relevés — et le pipeline en fait un toutes les 30 secondes, pour toutes vos
+chaînes suivies, depuis la 3.18. Elle était jetée à chaque tour.
+
+C'est pourtant le moment où un streamer « variété » devient intéressant pour
+qui suit un jeu précis. L'aperçu au survol porte donc un badge citron vert,
+**« Vient de passer sur X »**, qui vit dix minutes et s'efface tout seul.
+
+### Ce que le registre ne fait pas
+
+**Il ne signale pas un début de stream.** Passer de « hors ligne » à « en ligne
+sur X » n'est pas un basculement : c'est une chaîne qui commence, ce que la
+carte dit déjà. La distinction se lit sur `stream.id`, qui change à chaque
+nouvelle session — un champ que la requête `TseChannels` rapportait déjà et
+que rien n'utilisait. Même identifiant **et** catégorie différente : alors
+seulement il s'est passé quelque chose.
+
+**Il ne survit pas à un rechargement**, et ce n'est pas une limite qu'on subit.
+Après un rechargement, l'extension n'a rien observé ; sortir un badge à ce
+moment-là reviendrait à l'inventer. Elle ne rapporte que ce qu'elle a vu — la
+même règle que pour le badge d'abonnement, qui se tait quand l'ancienneté est
+inconnue.
+
+### Le badge périme, et c'est la moitié de son comportement
+
+Dix minutes. Passé ce délai, la catégorie affichée sur la carte suffit, et le
+badge mentirait par omission en laissant croire que le basculement vient
+d'avoir lieu. Le banc éprouve la péremption avec le même mécanisme que les
+autres durées de production : `tests/build.mjs` ramène `CATEGORY_SWITCH_TTL` à
+2,5 s, donc c'est le vrai code et la vraie horloge qui périment l'entrée.
+
+### La couleur, par le calcul
+
+Les huit teintes déjà prises ne laissaient qu'un créneau large. L'optimum est à
+**93°**, à 54° du voisin le plus proche ; turquoise ou cyan n'auraient offert
+que 26 à 27° du sponsor et du co-stream. On se pose à 91° — 52° de l'ancien
+abonné, 54° de l'abonné — pour 7,15:1 de contraste, dans la fourchette de la
+famille (6,38 à 7,67).
+
+### Une garde qui faisait deux métiers
+
+La première écriture faisait porter à la garde de session la protection de
+l'accès à la catégorie précédente. La retirer pour la mettre à l'épreuve ne
+faisait alors pas échouer un test : elle **plantait la page**. Une garde qui
+fait deux métiers se casse en silence dès qu'on la retouche. Elles sont
+maintenant séparées, une par question, et la mutation de la seule garde de
+session produit exactement l'erreur qu'on veut voir — « Vient de passer sur
+Minecraft » sur une chaîne qui vient simplement de commencer.
+
+---
+
+## Dix langues (v3.57)
+
+L'interface parle italien, polonais, russe, japonais et chinois simplifié, en
+plus des cinq langues d'origine. Soit **630 libellés** répartis sur dix tables,
+que `npm run parity` maintient rigoureusement alignées : une clé oubliée dans
+une seule langue faisait planter `tse.lag()` pour ses utilisateurs sans que
+rien ne le signale — c'est arrivé au portugais.
+
+### Le pluriel slave
+
+Le français et l'anglais ont deux formes ; **le polonais et le russe en ont
+trois**, et la troisième reprend la main sur 11 à 14 malgré leur chiffre des
+unités :
+
+| n | polonais | russe |
+| --- | --- | --- |
+| 1, 21, 31… | miesiąc | месяц |
+| 2-4, 22-24… | miesiące | месяца |
+| 5-20, 25-30, **11-14** | miesięcy | месяцев |
+
+La règle est écrite **une fois** (`plurielSlave`) plutôt que recopiée dans six
+fonctions, où une seule branche fausse serait passée inaperçue pour tout
+lecteur non slavophone. Le scénario 64 la vérifie sur un tableau de valeurs
+écrit à la main d'après la grammaire — jamais recopié de la sortie du code, qui
+n'aurait fait que confirmer son propre bug. La mutation qui oublie l'exception
+des 11-14 le fait tomber en nommant les deux valeurs fautives.
+
+### Ce que ces cinq langues n'ont pas, et pourquoi
+
+Les cinq nouvelles langues **n'ont pas de libellé natif Twitch** dans la table
+de détection. Ce point compare des chaînes exactes relevées dans le DOM de
+Twitch (« Chaînes suivies », « Followed Channels »…) ; en inventer une
+reviendrait à écrire du code qui ne matchera jamais tout en ayant l'air de
+couvrir la langue.
+
+Elles sont donc détectées par `html.lang` puis `navigator.language`, qui
+n'exigent aucune connaissance de l'interface de Twitch, et la sidebar tient sur
+ses **ancres structurelles** (`followed-side-nav-header`) — exactement le repli
+prévu depuis l'origine pour toute langue non listée. Le scénario 64 retire le
+libellé français du harnais pour reproduire cette situation : les deux
+mécanismes de repli sont éprouvés ensemble.
+
+`zh-TW` retombe sur la table `zh` par le préfixe à deux lettres plutôt que sur
+l'anglais — mieux vaut du chinois simplifié que de l'anglais pour un lecteur de
+Taïwan.
+
+### Deux libellés qui ne suivaient pas la langue
+
+Le travail a mis au jour un défaut ancien. `refreshLanguage()` est appelé à
+chaque scan et l'en-tête du module annonce l'auto-correction, mais les onglets
+de mode et les boutons de tri posaient leur libellé **à la création** et n'en
+bougeaient plus. Une bascule de langue après le démarrage — Twitch est une SPA,
+on peut changer de langue sans recharger — laissait donc des onglets figés dans
+l'ancienne langue alors que leur `aria-label`, lui, suivait : l'interface
+disait deux choses à la fois. Les deux sont désormais rafraîchis, par écriture
+conditionnelle comme partout ailleurs dans ce module.
 
 ---
 
@@ -1450,6 +1563,7 @@ le `#18181b` du popup, et le contraste est mesuré texte contre ce composé.
 | `--hype` | `rgba(255, 105, 5, .25)` | `#522c16` | `#ffb380` | 24° | 6,94:1 |
 | `--sub` | `rgba(255, 201, 102, .22)` | `#4b3f2c` | `#ffd591` | 37° | 7,43:1 |
 | `--exsub` | `rgba(255, 201, 102, .10)` | `#2f2a23` | `#c9b48c` | 39° | 7,06:1 |
+| `--switch` | `rgba(120, 215, 60, .24)` | `#2f4623` | `#a8e86b` | 91° | 7,15:1 |
 | `--sponsor` | `rgba(0, 184, 90, .22)` | `#133b29` | `#6bdb9d` | 147° | 7,25:1 |
 | `--costream` | `rgba(31, 105, 255, .25)` | `#1a2c54` | `#7fb3ff` | 216° | 6,38:1 |
 | `--squad` | `rgba(145, 71, 255, .25)` | `#362454` | `#d1b3ff` | 264° | 7,56:1 |
@@ -1741,7 +1855,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs tuile 440×280 montrant l’extension en fonctionnement
 ├── store/                 le texte des sept fiches du Chrome Web Store
 ├── tests/
-│   ├── run.mjs              le harnais : 521 assertions, 62 scénarios
+│   ├── run.mjs              le harnais : 544 assertions, 64 scénarios
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
 │   ├── build.mjs            copie content.js avec les durées accélérées
 │   └── parity.mjs           parité des clés de traduction entre les 5 langues
@@ -1771,7 +1885,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 62 scénarios, 521 assertions |
+| `npm test` | le harnais Playwright : 64 scénarios, 544 assertions |
 
 `npm run addon` mérite un mot : ses six premières assertions sont celles que le
 linter ne peut pas connaître, parce qu'elles appartiennent à ce dépôt — la
