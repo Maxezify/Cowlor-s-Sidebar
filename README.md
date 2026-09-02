@@ -307,16 +307,46 @@ injectait plus tôt encore que Chromium — avant même `documentElement` — l'
 serait `can't access property "lang", document.documentElement is null`, et elle
 serait bruyante. Son absence est donc une information.
 
-### Les douze avertissements du linter
+### Le paquet, et les avertissements qui restent
 
-Ils sont réels, ils restent, et les taire serait malhonnête. Tous du même code
-— `UNSAFE_VAR_ASSIGNMENT` — sur les écritures `innerHTML`,
-`insertAdjacentHTML` et `outerHTML` du rendu. Le linter ne sait pas traverser
-une fonction d'échappement ; les douze sites ont été relus un par un, et toute
-donnée externe y passe par `escapeHtml`, y compris en contexte d'attribut
-(`data-value`, `title`). Ils sont **identiques sur la branche Chrome** : ce
-n'est pas une dette du portage. Le vérificateur interdit seulement qu'il en
-apparaisse de nouveaux, et qu'il en apparaisse d'une autre nature.
+Le premier envoi à AMO a rendu **17 avertissements**, là où le contrôle local
+n'en montrait que 12. L'écart n'était pas un hasard : le `.zip` contenait **tout
+le dépôt** — `promo.mjs`, `promo-marquee.mjs`, le harnais `tests/run.mjs` et sa
+page `tests/page.html` à scripts en ligne — et le validateur jugeait cinq
+fichiers qui ne s'exécutent jamais chez personne.
+
+Le contrôle local, lui, passait `--ignore-files` au linter : il validait un
+paquet **hypothétique**, celui qu'on aurait aimé envoyer. C'est le genre de
+vérification qui rassure sans rien garantir.
+
+`npm run addon` assemble donc maintenant le paquet dans `dist/paquet/` à partir
+d'une **liste blanche** — `manifest.json`, `content.js`, `adblock.js`, `icons/`,
+`_locales/` — puis passe le linter sur **le paquet**, sans exclusion. Une liste
+noire (« ignore ceci, ignore cela ») aurait recréé le défaut au premier fichier
+ajouté : ce qu'on oublie d'exclure part. La liste blanche a le défaut inverse,
+qui est le bon : ce qu'on oublie d'inclure **manque**, et un contrôle le voit —
+chaque fichier que le manifeste nomme doit être présent, et rien ne doit venir
+d'ailleurs que de la liste. `npm run package` en fait le `.zip` à soumettre.
+
+Restent **douze** avertissements, tous dans `content.js`, tous du même code —
+`UNSAFE_VAR_ASSIGNMENT` — sur les écritures `innerHTML`, `insertAdjacentHTML` et
+`outerHTML` du rendu. Ils sont réels et ils restent : le linter ne sait pas
+traverser une fonction d'échappement. Les douze sites ont été relus un par un,
+et toute donnée externe y passe par `escapeHtml`, y compris en contexte
+d'attribut (`data-value`, `title`).
+
+Les faire disparaître ne demande pas un correctif mais une **refonte** : le
+linter n'accepte que du balisage statique, donc il faudrait construire chaque
+fragment par API DOM. Or le contrat d'internationalisation est lui-même en
+HTML — `uiBadgeCostreamOf(nameHtml)` rend `Co-stream de <strong>…</strong>` —
+et le sortir du HTML touche quatre fonctions dans cinq langues, plus les six
+autres sites de rendu. Ce n'est pas une correction de sûreté (l'échappement est
+en place) mais un changement de nature du code, et il n'a pas été fait ici.
+
+Le compte est tenu par un **cliquet**, fichier par fichier : `content.js` a
+droit à douze avertissements de ce code et à rien d'autre ; tout autre fichier a
+droit à zéro. Un treizième, ou un avertissement d'une autre nature, fait échouer
+`npm run addon`.
 
 ---
 

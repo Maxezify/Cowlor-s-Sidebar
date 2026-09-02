@@ -17,3 +17,7 @@ promo/
 # Sortie parasite de « npx playwright test », lancé par erreur : ce dépôt
 # n'a pas de suite Playwright au sens du runner, son banc est tests/run.mjs.
 test-results/
+
+# Paquet d'extension assemblé par `npm run addon` / `npm run package` depuis la
+# liste blanche de tests/addon.mjs. Artefact dérivé, régénéré à la demande.
+dist/

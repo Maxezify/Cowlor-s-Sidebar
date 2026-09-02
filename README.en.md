@@ -294,16 +294,46 @@ injected even earlier than Chromium — before `documentElement` itself — the 
 would be `can't access property "lang", document.documentElement is null`, and it
 would be loud. Its absence is information.
 
-### The linter's twelve warnings
+### The package, and the warnings that remain
 
-They are real, they remain, and hiding them would be dishonest. All of one code
-— `UNSAFE_VAR_ASSIGNMENT` — on the rendering's `innerHTML`,
-`insertAdjacentHTML` and `outerHTML` writes. The linter cannot see through an
-escaping function; the twelve sites were read one by one, and every piece of
-external data goes through `escapeHtml`, attribute contexts included
-(`data-value`, `title`). They are **identical on the Chrome branch**: this is
-not a debt the port introduced. The checker only forbids new ones, and ones of
-a different nature.
+The first submission to AMO returned **17 warnings**, where the local check
+showed only 12. The gap was no accident: the `.zip` contained **the whole
+repository** — `promo.mjs`, `promo-marquee.mjs`, the `tests/run.mjs` harness and
+its `tests/page.html` with inline scripts — and the validator was judging five
+files that never run on anyone's machine.
+
+The local check, for its part, passed `--ignore-files` to the linter: it
+validated a **hypothetical** package, the one we would have liked to send. That
+is the kind of check that reassures without guaranteeing anything.
+
+So `npm run addon` now assembles the package into `dist/paquet/` from an
+**allowlist** — `manifest.json`, `content.js`, `adblock.js`, `icons/`,
+`_locales/` — then runs the linter on **the package**, with no exclusions. A
+denylist ("ignore this, ignore that") would have recreated the flaw with the
+first file added: what you forget to exclude ships. The allowlist has the
+opposite failure mode, which is the right one: what you forget to include is
+**missing**, and a check sees it — every file the manifest names must be
+present, and nothing may come from outside the list. `npm run package` turns it
+into the `.zip` to submit.
+
+**Twelve** warnings remain, all in `content.js`, all of one code —
+`UNSAFE_VAR_ASSIGNMENT` — on the rendering's `innerHTML`, `insertAdjacentHTML`
+and `outerHTML` writes. They are real and they stay: the linter cannot see
+through an escaping function. The twelve sites were read one by one, and every
+piece of external data goes through `escapeHtml`, attribute contexts included
+(`data-value`, `title`).
+
+Removing them is not a fix but a **rewrite**: the linter accepts only static
+markup, so every fragment would have to be built through DOM APIs. But the
+internationalisation contract is itself HTML — `uiBadgeCostreamOf(nameHtml)`
+returns `Co-stream of <strong>…</strong>` — and lifting it out of HTML touches
+four functions across five languages, plus the six other rendering sites. It is
+not a safety fix (the escaping is in place) but a change in the nature of the
+code, and it was not done here.
+
+The count is held by a **ratchet**, file by file: `content.js` is allowed twelve
+warnings of that code and nothing else; every other file is allowed zero. A
+thirteenth, or a warning of a different nature, fails `npm run addon`.
 
 ---
 
