@@ -12,3 +12,7 @@ tests/adblock.test.js
 # Captures de présentation produites par `npm run promo`. Régénérées à la
 # demande depuis promo.mjs : ce sont des artefacts, pas des sources.
 promo/
+
+# Sortie parasite de « npx playwright test », lancé par erreur : ce dépôt
+# n'a pas de suite Playwright au sens du runner, son banc est tests/run.mjs.
+test-results/

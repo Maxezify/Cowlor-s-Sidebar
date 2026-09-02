@@ -1,6 +1,6 @@
 {
   "name": "cowlors-sidebar",
-  "version": "3.54.2",
+  "version": "3.55.0",
   "private": true,
   "description": "Outillage de vérification de l'extension. Le produit livré reste manifest.json + content.js + adblock.js ; rien d'ici n'est empaqueté.",
   "scripts": {

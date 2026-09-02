@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.54.2 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.55.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -10,8 +10,8 @@ coloring of co-streams (with host/participant role extracted from the Twitch
 DOM), detection of the "Live with" (squad / multistream) system, visual
 normalization of sponsored cards, category and language filters (with flags), six sort modes to choose
 from, locally-stored visit history, and live video preview on hover (across all
-sections) with title, contextual badges, and Content Classification Label
-handling.
+sections) with title, contextual badges, and lifting of the content
+classification gate that used to block video on labelled channels.
 
 **New in 3.32.0**: a second mode, **"Top Channels"**, shows the most-watched
 channels on Twitch — globally, within a category, or in a given language.
@@ -934,6 +934,77 @@ It is now rewritten as **`autoplay`**, whose ladder Twitch caps at 640 × 360
 past it, and 640 × 360 is exactly the right size for a 480 × 270 thumbnail.
 `autoplay` is ad-free by the fork's own account, and stripping `parent_domains`
 does not depend on this value.
+
+
+### The content classification gate (v3.55)
+
+Since Content Classification Labels, a labelled stream makes the player show an
+acknowledgement screen — "X's content is intended for certain audiences", with a
+**Start Watching** button. In a hover preview that button will never be clicked:
+nobody clicks inside a thumbnail they are brushing past. Up to 3.54 the
+extension drew the opposite conclusion from the right one: it **did not inject
+the iframe** as soon as `hasCCL` was true, and the preview stayed frozen on its
+JPEG.
+
+Nothing in the embed URL avoids it; Twitch says so itself on its developer forum
+— a non-interactive embed cannot play a labelled stream. The only path is to
+click, and clicking requires being **inside** the player frame. Which the
+manifest gives us: `player.twitch.tv` is declared there, with `all_frames: true`.
+
+That is exactly what FrankerFaceZ does, under the setting
+`player.disable-content-warnings`:
+
+```js
+const btn = cont.querySelector('button[data-a-target=' +
+    '"content-classification-gate-overlay-start-watching-button"]');
+if (btn) btn.click();
+```
+<sub>FrankerFaceZ, `src/sites/shared/player.jsx`, `skipContentWarnings()`</sub>
+
+The preview bridge does the same, with three differences:
+
+- **No React.** FFZ walks up to the instance to find the host node; here the
+  iframe *is* the player, so a `querySelector` on the document is enough.
+- **One click per button, five in total.** A click that fails to close the gate
+  causes mutations, which the observer re-reads, which click again: without a
+  bound that is a loop feeding itself.
+- **The fallback is narrow.** Should Twitch rename the button, we look for any
+  `button` — but **only** inside the `[data-a-target^="content-classification-gate"]`
+  subtree. Clicking an arbitrary player button would mute the sound or open the
+  settings.
+
+#### Two nets, and why a second one was needed
+
+The preview is revealed on its first frame. When that signal never arrives, a
+net reveals anyway after 1.5 s: a black player for a moment beats a thumbnail
+frozen forever. That reasoning **inverts** in the presence of a gate — what we
+would reveal is not a black frame, it is a modal across the preview.
+
+So the bridge tells the parent, by `postMessage`, that it has seen a gate. The
+parent then disarms the ordinary net and arms another: if the video has not
+started after `PREVIEW_GATE_TIMEOUT_MS`, the iframe is removed and **the
+thumbnail takes over again**. The worst case lands exactly on 3.54's behaviour.
+
+#### The flag, and the trap it first was
+
+`TSE_GATE_ENABLED` switches the lift off. It first switched the **reporting**
+off with it — and "going back to the old behaviour" then gave worse than the old
+behaviour: the parent knew nothing of the gate, its ordinary net fired, and the
+preview revealed the modal. The bench said so under mutation; review had not
+seen it. Reporting is now unconditional; only the click depends on the flag.
+
+#### What `hasCCL` no longer decides
+
+A label does not **predict** the gate. The screen also depends on the viewer:
+signed out it appears, signed in the account's content preferences may already
+have accepted it — the screen says as much itself, pointing at "content
+preferences". Deciding on `hasCCL` therefore denied video to viewers who would
+never have seen a gate at all. The decision moved into the iframe, where it
+bears on what is actually on screen.
+
+`hasCCL` now has no consumer. The query still computes it, and the Store listing
+promises a labels badge in the preview which **does not exist**. Both are settled
+together, and neither is done.
 
 
 ### Co-stream colours

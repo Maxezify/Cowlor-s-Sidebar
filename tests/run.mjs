@@ -4438,6 +4438,135 @@ titre('57. Mémoire — un abonnement en cours passe avant un abonnement révolu
   await page.close();
 }
 
+// ═════════ 58. Aperçu — l'interstitielle de classification est levée ═════════
+titre('58. Aperçu — l\'écran « Commencer à regarder » ne doit plus figer la vignette');
+{
+  /* Le lecteur étiqueté, reproduit d'après la capture du 02/09/2026 : un
+     sur-cadre [data-a-target="content-classification-gate-overlay"] contenant
+     le bouton « Commencer à regarder ». La vidéo n'existe QU'APRÈS le clic —
+     c'est tout le problème qu'on corrige : sans clic, aucune image, donc aucun
+     signal de première image, donc une vignette figée pour toujours.
+
+     `cedeAuClic` sépare les deux mondes : à true le bouton fait son office ;
+     à false il est là mais ne ferme rien, ce qui modélise le jour où Twitch
+     changera son interstitielle sans changer le nom du bouton. Le harnais ne
+     peut pas prédire ce jour-là ; il peut vérifier qu'on y dégrade proprement. */
+  const lecteurEtiquete = (cedeAuClic) => `<!doctype html><html><body>
+    <div data-a-target="content-classification-gate-overlay">
+      <p>Le contenu de cette chaîne est destiné à certains publics</p>
+      <button data-a-target="content-classification-gate-overlay-start-watching-button">
+        Commencer à regarder
+      </button>
+      <button data-a-target="content-classification-gate-overlay-go-home-button">
+        Aller sur l'accueil
+      </button>
+    </div>
+    <script>
+      /* L'écouteur est posé AVANT les modules, et l'ordre est tout sauf un
+         détail : à l'inverse, le pont cliquait un bouton encore sourd, la
+         modale ne se fermait pas, et le harnais accusait le produit d'un défaut
+         qui n'était que le sien. Sur le vrai Twitch, React attache son
+         gestionnaire en rendant l'interstitielle — donc bien avant qu'un
+         script tiers ne puisse cliquer. */
+      window.__clics = 0;
+      const zone = document.querySelector('[data-a-target="content-classification-gate-overlay"]');
+      zone.querySelector('button').addEventListener('click', () => {
+        window.__clics++;
+        ${cedeAuClic ? `
+        zone.remove();
+        // La vidéo n'arrive qu'ici : c'est l'acquittement qui la débloque.
+        const c = document.createElement('canvas');
+        c.width = 32; c.height = 18;
+        const ctx = c.getContext('2d');
+        const v = document.createElement('video');
+        v.autoplay = true; v.muted = true; v.playsInline = true;
+        v.srcObject = c.captureStream(25);
+        document.body.appendChild(v);
+        v.play().catch(() => {});
+        setInterval(() => {
+          ctx.fillStyle = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+          ctx.fillRect(0, 0, 32, 18);
+        }, 40);
+        ` : '/* le bouton ne ferme rien : la modale tient bon */'}
+      });
+    </script>
+    <script src="/adblock.test.js"></script>
+    <script src="/content.test.js"></script>
+  </body></html>`;
+
+  const etatIframe = (page) => page.evaluate(() => {
+    const f = document.querySelector('.tse-preview__iframe');
+    return f ? (f.dataset.tseLoaded ?? 'posee') : 'pas-d-iframe';
+  });
+  // Le compteur de clics vit dans l'iframe : on va le chercher par sa frame.
+  const clics = async (page) => {
+    const f = page.frames().find(x => x.url().startsWith('https://player.twitch.tv/'));
+    if (!f) return -1;
+    try { return await f.evaluate(() => window.__clics ?? -1); } catch { return -1; }
+  };
+  const poserCarte = (page, login) => page.evaluate((l) => {
+    window.__fx = { [l]: { id:'1', createdAt:new Date(Date.now()-3600_000).toISOString(),
+                           viewers:1000, game:'G', tags:[],
+                           // L'étiquette qui, jusqu'ici, suffisait à supprimer l'iframe.
+                           ccl: [{ id: 'MatureGame' }] } };
+    window.__addCard(l, 'G', '1 k');
+  }, login);
+
+  // ── a) l'interstitielle cède : la vidéo part, l'aperçu se dévoile ────────
+  {
+    const page = await freshTwitch(lecteurEtiquete(true));
+    await poserCarte(page, 'alpha');
+    await wait(page, 2000);
+    await hoverCard(page, 0);
+
+    // Avant tout : l'iframe doit exister. Jusqu'à la 3.54, une étiquette de
+    // classification la faisait annuler — c'est le renoncement qu'on lève.
+    await attendre(page, () => !!document.querySelector('.tse-preview__iframe'), 4000);
+    ok('une chaîne étiquetée reçoit bien une iframe',
+       (await etatIframe(page)) !== 'pas-d-iframe', await etatIframe(page));
+
+    await attendre(page, () => {
+      const f = document.querySelector('.tse-preview__iframe');
+      return !!f && f.dataset.tseLoaded === 'true';
+    }, 8000);
+    ok('et elle se dévoile, donc la vidéo joue', (await etatIframe(page)) === 'true',
+       await etatIframe(page));
+
+    const n = await clics(page);
+    ok('le bouton « Commencer à regarder » a bien été cliqué', n >= 1, String(n));
+    ok('et une seule fois, sans boucle', n === 1, String(n));
+    await page.close();
+  }
+
+  // ── b) l'interstitielle tient bon : retour à la vignette, pas de modale ──
+  {
+    const page = await freshTwitch(lecteurEtiquete(false));
+    await poserCarte(page, 'beta');
+    await wait(page, 2000);
+    await hoverCard(page, 0);
+
+    await attendre(page, () => !!document.querySelector('.tse-preview__iframe'), 4000);
+    ok('l\'iframe est tentée malgré tout', (await etatIframe(page)) !== 'pas-d-iframe',
+       await etatIframe(page));
+
+    // Le filet ORDINAIRE (1,5 s) dévoilerait ici. Il ne doit pas : ce qu'il
+    // dévoilerait n'est pas un lecteur noir mais une modale en travers de
+    // l'aperçu. C'est l'assertion qui distingue les deux filets.
+    await wait(page, 2000);
+    ok('le filet ordinaire ne dévoile pas la modale', (await etatIframe(page)) !== 'true',
+       await etatIframe(page));
+
+    // Et le filet d'interstitielle rend la main à la vignette.
+    await attendre(page, () => !document.querySelector('.tse-preview__iframe'), 6000);
+    ok('l\'iframe est retirée, la vignette reprend la main',
+       (await etatIframe(page)) === 'pas-d-iframe', await etatIframe(page));
+    const vignette = await page.evaluate(() =>
+      !!document.querySelector('.tse-preview__thumb'));
+    ok('et la vignette est toujours là pour la remplacer', vignette, String(vignette));
+    await page.close();
+  }
+}
+
 await browser.close();
 console.log(`\n${'═'.repeat(50)}`);
 if (echecs.length) {

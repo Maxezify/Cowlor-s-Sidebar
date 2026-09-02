@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.54.2 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.55.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -11,7 +11,8 @@ extrait du DOM Twitch), détection du système « En live avec » (squad /
 multistream), normalisation visuelle des cartes sponsorisées, filtres par
 catégorie et par langue (avec drapeaux), six modes de tri au choix, historique de visites stocké localement,
 et aperçu vidéo en direct au survol d'une chaîne (toutes sections confondues)
-avec titre, badges contextuels et gestion des Content Classification Labels.
+avec titre, badges contextuels, et levage de l'interstitielle de classification
+de contenu qui bloquait la vidéo des chaînes étiquetées.
 
 **Nouveau en 3.32.0** : un second mode, **« Top Chaînes »**, affiche les chaînes
 les plus regardées de Twitch — au global, ou dans une catégorie, ou dans une
@@ -995,6 +996,81 @@ Il est désormais réécrit en **`autoplay`**, dont Twitch plafonne l'échelle �
 ne peut pas le franchir, et 640 × 360 est exactement le bon calibre pour une
 vignette de 480 × 270. `autoplay` est sans publicité de l'aveu même du fork, et
 le retrait de `parent_domains` ne dépend pas de cette valeur.
+
+
+### L'interstitielle de classification (v3.55)
+
+Depuis les Content Classification Labels, un stream étiqueté fait afficher au
+lecteur un écran d'acquittement — « Le contenu de X est destiné à certains
+publics », avec un bouton **Commencer à regarder**. Dans un aperçu au survol,
+ce bouton ne sera jamais cliqué : personne ne clique dans une vignette qu'on
+effleure. Jusqu'à la 3.54, l'extension en tirait la conclusion inverse de la
+bonne : elle **n'injectait pas l'iframe** dès que `hasCCL` était vrai, et
+l'aperçu restait figé sur son JPEG.
+
+Rien dans l'URL d'embed ne permet de l'éviter ; Twitch le dit lui-même sur son
+forum développeurs — un embed non interactif ne peut pas lire un stream
+étiqueté. Le seul chemin est de cliquer, et cliquer demande d'être **dans** la
+frame du lecteur. Ce que le manifeste nous donne : `player.twitch.tv` y est
+déclaré, avec `all_frames: true`.
+
+C'est exactement ce que fait FrankerFaceZ, sous le réglage
+`player.disable-content-warnings` :
+
+```js
+const btn = cont.querySelector('button[data-a-target=' +
+    '"content-classification-gate-overlay-start-watching-button"]');
+if (btn) btn.click();
+```
+<sub>FrankerFaceZ, `src/sites/shared/player.jsx`, `skipContentWarnings()`</sub>
+
+Le pont d'aperçu fait de même, avec trois différences :
+
+- **Pas de React.** FFZ remonte à l'instance pour trouver le nœud hôte ; ici
+  l'iframe *est* le lecteur, un `querySelector` sur le document suffit.
+- **Un clic par bouton, cinq au total.** Un clic qui ne ferme pas
+  l'interstitielle provoque des mutations, que l'observateur relit, qui
+  recliquent : sans borne, c'est une boucle entretenue par elle-même.
+- **Le repli est étroit.** Si Twitch renomme le bouton, on cherche n'importe
+  quel `button`, mais **uniquement** dans le sous-arbre
+  `[data-a-target^="content-classification-gate"]`. Cliquer un bouton
+  quelconque du lecteur couperait le son ou ouvrirait les réglages.
+
+#### Deux filets, et pourquoi il en fallait un second
+
+L'aperçu se dévoile à sa première image. Quand ce signal n'arrive pas, un filet
+dévoile quand même au bout de 1,5 s : mieux vaut un lecteur noir un instant
+qu'une vignette figée pour toujours. Ce raisonnement **s'inverse** en présence
+d'une interstitielle — ce qu'on dévoilerait n'est pas un cadre noir, c'est une
+modale en travers de l'aperçu.
+
+Le pont signale donc au parent, par `postMessage`, qu'il a vu une
+interstitielle. Le parent désarme alors le filet ordinaire et en arme un autre :
+si la vidéo n'est pas partie après `PREVIEW_GATE_TIMEOUT_MS`, l'iframe est
+retirée et **la vignette reprend la main**. Le pire cas retombe exactement sur
+le comportement de la 3.54.
+
+#### Le drapeau, et le piège qu'il a d'abord été
+
+`TSE_GATE_ENABLED` coupe le levage. Il a d'abord coupé le **signalement** avec
+lui — et « revenir au comportement d'avant » donnait alors pire qu'avant : le
+parent ne savait rien de l'interstitielle, son filet ordinaire jouait, et
+l'aperçu dévoilait la modale. Le banc l'a dit en mutation ; la relecture ne
+l'avait pas vu. Le signalement est désormais inconditionnel, le clic seul
+dépend du drapeau.
+
+#### Ce que `hasCCL` ne décide plus
+
+Une étiquette ne **prédit** pas l'interstitielle. L'écran dépend aussi du
+spectateur : déconnecté il apparaît, connecté les préférences de contenu du
+compte peuvent l'avoir déjà accepté — l'écran le dit lui-même, en renvoyant aux
+« préférences de contenu ». Décider sur `hasCCL` revenait donc à refuser la
+vidéo à des spectateurs qui n'auraient jamais vu d'interstitielle. La décision
+est passée dans l'iframe, où elle porte sur ce qui est vraiment à l'écran.
+
+`hasCCL` n'a plus aucun consommateur. La requête le calcule encore, et la fiche
+du Store promet un badge d'étiquettes dans l'aperçu qui, lui, **n'existe pas**.
+Les deux se règlent ensemble, et ce n'est pas fait.
 
 
 ### Couleurs de co-stream

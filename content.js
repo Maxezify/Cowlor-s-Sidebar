@@ -129,11 +129,66 @@
  *  réellement présentée, elle poste un message, et le parent fait
  *  alors son fondu (cf. injectIframe).
  *
- *  Ce module est DÉLIBÉRÉMENT minuscule et passif. Il ne touche ni à
- *  la visibilité, ni au réseau, ni au lecteur — rien qui puisse entrer
- *  en conflit avec le module anti-pub, qui vit dans la même frame.
+ *  Ce module ne touche ni à la visibilité, ni au réseau — rien qui
+ *  puisse entrer en conflit avec le module anti-pub, qui vit dans la
+ *  même frame. Il touche au lecteur en UN point, et un seul : le bouton
+ *  de l'interstitielle de classification (cf. ci-dessous).
+ *
+ *  L'INTERSTITIELLE DE CLASSIFICATION
+ *  -------------------------------------------------------------
+ *  Depuis les Content Classification Labels (2023), un stream étiqueté
+ *  fait afficher au lecteur un écran « Commencer à regarder » qu'il faut
+ *  acquitter avant que la vidéo ne parte. Dans un aperçu au survol, cet
+ *  écran ne sera jamais cliqué : personne ne clique dans une vignette
+ *  qu'on effleure. L'aperçu restait donc figé sur son JPEG — et
+ *  l'extension, jusqu'ici, n'injectait même pas l'iframe dans ce cas.
+ *
+ *  Rien dans l'URL d'embed ne permet de l'éviter : Twitch le dit sur son
+ *  forum développeurs, un embed non interactif ne peut pas lire un
+ *  stream étiqueté. Le seul chemin est de cliquer le bouton, et il
+ *  demande d'être DANS la frame du lecteur — ce que le manifeste nous
+ *  donne (`player.twitch.tv` y est déclaré, `all_frames: true`).
+ *
+ *  C'est exactement ce que fait FrankerFaceZ, sous le réglage
+ *  `player.disable-content-warnings` :
+ *
+ *      const btn = cont.querySelector('button[data-a-target=
+ *          "content-classification-gate-overlay-start-watching-button"]');
+ *      if (btn) btn.click();
+ *
+ *      — FrankerFaceZ, src/sites/shared/player.jsx, skipContentWarnings()
+ *
+ *  Deux différences avec FFZ, toutes deux voulues :
+ *
+ *   • FFZ passe par l'instance React pour trouver le nœud hôte ; ici
+ *     l'iframe EST le lecteur, un querySelector sur le document suffit.
+ *   • FFZ laisse le réglage à `false` par défaut. Ici il est actif : la
+ *     vignette d'aperçu est muette, en 360p, et l'extension AFFICHE
+ *     elle-même les étiquettes de classification dans le même encadré
+ *     (badge « Étiquettes de contenu »). Ce que l'interstitielle sert à
+ *     dire est donc dit — par nous, avant même le survol. Pour revenir
+ *     au comportement de FFZ, passer TSE_GATE_ENABLED à false.
  * ============================================================ */
 const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
+// Signalé au parent dès qu'une interstitielle est VUE. Le parent en a besoin :
+// son filet de révélation dévoilerait sinon la modale à la place de la vidéo.
+const TSE_PREVIEW_GATE_MSG = 'tse:preview-gate';
+
+// Le levage de l'interstitielle. À false, on retrouve le comportement de la
+// 3.54 : les streams étiquetés restent sur leur vignette.
+const TSE_GATE_ENABLED = true;
+// Le sélecteur de FFZ, à l'identique. C'est le seul point de contact avec le
+// lecteur, et il est donc aussi étroit que possible.
+const TSE_GATE_BUTTON =
+  'button[data-a-target="content-classification-gate-overlay-start-watching-button"]';
+// Repli si Twitch renomme le bouton : n'importe quel bouton, mais UNIQUEMENT
+// dans le sous-arbre de l'interstitielle. Cliquer un bouton quelconque du
+// lecteur couperait le son, ouvrirait les réglages, ou pire.
+const TSE_GATE_ZONE = '[data-a-target^="content-classification-gate"]';
+// Borne dure du nombre de clics. Un clic qui ne ferme pas l'interstitielle
+// provoque des mutations, que l'observateur relit, qui recliquent : sans borne,
+// c'est une boucle entretenue par elle-même.
+const TSE_GATE_MAX_CLICKS = 5;
 
 (() => {
   'use strict';
@@ -160,13 +215,53 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
   } catch { targets = null; }
   if (!targets) targets = ['https://www.twitch.tv', 'https://twitch.tv'];
 
+  const poster = (quoi) => {
+    for (const origin of targets) {
+      try { window.parent.postMessage({ tse: quoi }, origin); } catch { /* origine refusée */ }
+    }
+  };
+
   let sent = false;
   const announce = () => {
     if (sent) return;
     sent = true;
-    for (const origin of targets) {
-      try { window.parent.postMessage({ tse: TSE_PREVIEW_FIRST_FRAME_MSG }, origin); } catch { /* origine refusée */ }
+    poster(TSE_PREVIEW_FIRST_FRAME_MSG);
+  };
+
+  /* L'interstitielle de classification. Cf. l'en-tête du module pour le
+     pourquoi ; ici, le comment.
+
+     Un clic par BOUTON, jamais deux : React remonte parfois l'overlay, et le
+     nouveau bouton mérite son clic, mais recliquer le même n'apporte rien et
+     nourrit la boucle décrite plus haut. D'où le WeakSet, doublé d'une borne
+     dure sur le total. */
+  const cliques = new WeakSet();
+  let clics = 0, gateVue = false;
+  const lever = () => {
+    let btn = document.querySelector(TSE_GATE_BUTTON);
+    if (!btn) {
+      const zone = document.querySelector(TSE_GATE_ZONE);
+      btn = zone ? zone.querySelector('button') : null;
     }
+    if (!btn) return;
+
+    /* SIGNALER d'abord, et TOUJOURS — même quand le levage est coupé.
+
+       C'est ce qui rend TSE_GATE_ENABLED honnête. Le drapeau à false a d'abord
+       coupé le signalement avec le clic : le parent ne savait alors rien de
+       l'interstitielle, son filet ordinaire jouait, et l'aperçu dévoilait la
+       modale en travers de la vignette. « Revenir au comportement d'avant »
+       donnait donc pire qu'avant. Le banc l'a dit en mutation, pas la relecture.
+
+       Signaler sans cliquer, c'est l'ancien comportement pour de bon : pas de
+       vidéo sur les chaînes étiquetées, la vignette à la place. */
+    if (!gateVue) { gateVue = true; poster(TSE_PREVIEW_GATE_MSG); }
+
+    if (!TSE_GATE_ENABLED || clics >= TSE_GATE_MAX_CLICKS) return;
+    if (cliques.has(btn)) return;
+    cliques.add(btn);
+    clics += 1;
+    try { btn.click(); } catch { /* nœud retiré entre-temps */ }
   };
 
   const watch = (video) => {
@@ -187,15 +282,24 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     if (video.readyState >= 2) announce();   // HAVE_CURRENT_DATA : une image existe
   };
 
+  let veille = false;
   const scan = () => {
-    const v = document.querySelector('video');
-    if (v) { watch(v); return true; }
-    return false;
+    // L'interstitielle d'abord : sur un stream étiqueté, la <video> n'existe
+    // qu'une fois l'écran acquitté, et regarder la vidéo avant lui reviendrait
+    // à attendre quelque chose qui ne viendra pas.
+    lever();
+    if (!veille) {
+      const v = document.querySelector('video');
+      if (v) { veille = true; watch(v); }
+    }
+    // On ne se retire que lorsqu'il n'y a plus rien à faire : une vidéo sous
+    // surveillance ET plus d'interstitielle à l'écran.
+    return veille && !document.querySelector(TSE_GATE_BUTTON);
   };
 
-  // À document_start il n'y a pas encore de <video>. On l'attend, sans
-  // surveiller indéfiniment : passé le délai, l'observation cesse et le
-  // parent révèle de lui-même par son propre filet.
+  // À document_start il n'y a ni <video> ni interstitielle. On les attend, sans
+  // surveiller indéfiniment : passé le délai, l'observation cesse et le parent
+  // tranche de lui-même par ses propres filets.
   if (!scan()) {
     const root = document.documentElement;
     if (!root) return;
@@ -1041,6 +1145,16 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     // retrouve l'ancien comportement (un lecteur noir un instant), jamais un
     // aperçu bloqué sur sa vignette.
     PREVIEW_REVEAL_FALLBACK_MS: 1_500,
+    // Interstitielle de classification : délai laissé au lecteur pour démarrer
+    // APRÈS que le pont a signalé en avoir vu une. Passé ce délai, on retire
+    // l'iframe et la vignette reprend la main.
+    //
+    // Ce filet-là est l'inverse du précédent, et c'est voulu. Sans
+    // interstitielle, ne rien voir venir veut dire « lecteur lent » : dévoiler
+    // un cadre noir est le moindre mal. Avec interstitielle, ne rien voir venir
+    // veut dire « l'écran est toujours là » : le dévoiler afficherait une modale
+    // en travers de l'aperçu, ce qui est bien pire qu'une vignette.
+    PREVIEW_GATE_TIMEOUT_MS: 2_500,
 
     // === Voile de chargement initial ===
     // Délai de stabilité : le voile se lève quand la sidebar est peuplée
@@ -5696,6 +5810,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
     let iframeTimer = null;    // setTimeout avant injection de l'iframe
     let iframeLoadTimer = null;// timeout de chargement de l'iframe
     let revealTimer = null;    // filet si le signal de première image n'arrive pas
+    let gateTimer = null;      // retour à la vignette si l'interstitielle tient bon
     let revealCleanup = null;  // retire l'écouteur postMessage de l'iframe en cours
     let flagRemoveTimer = null;// retrait différé du flag body.tse-preview-active
     let currentLogin = null;   // login affiché actuellement (anti-race)
@@ -6258,24 +6373,47 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
        * de ce fichier), qui poste un message à la première frame peinte.
        * Cross-origin oblige, on ne peut pas l'observer d'ici.
        */
+      // Le pont peut signaler l'interstitielle AVANT comme APRÈS le `load` du
+      // document : il tourne à document_start. Ce drapeau est ce qui empêche le
+      // handler de `load` de réarmer un filet que le message venait d'annuler.
+      let gateVu = false;
+
       const reveal = () => {
         if (revealTimer) { clearTimeout(revealTimer); revealTimer = null; }
+        if (gateTimer) { clearTimeout(gateTimer); gateTimer = null; }
         if (revealCleanup) { revealCleanup(); revealCleanup = null; }
         // Le popup a pu être refermé, ou pointer une autre chaîne, entre-temps.
         if (currentLogin !== login || !iframe.isConnected) return;
         iframe.dataset.tseLoaded = 'true';
       };
 
-      const onFirstFrame = (e) => {
+      // Retour à la vignette. Rendre la main est ici la bonne issue : mieux vaut
+      // l'image fixe d'avant que la modale de classification en travers.
+      const rendreLaMain = () => {
+        gateTimer = null;
+        if (iframe.dataset.tseLoaded === 'true' || !iframe.isConnected) return;
+        if (revealTimer) { clearTimeout(revealTimer); revealTimer = null; }
+        if (revealCleanup) { revealCleanup(); revealCleanup = null; }
+        try { iframe.src = 'about:blank'; } catch { /* cross-origin edge */ }
+        iframe.remove();
+      };
+
+      const onMessage = (e) => {
         // `source` est la seule vérification qui compte : elle ancre le message
         // à CETTE iframe. Le contenu, lui, ne sert qu'à écarter le bruit des
         // autres scripts de la page (Twitch en poste beaucoup).
         if (e.source !== iframe.contentWindow) return;
-        if (e.data?.tse !== TSE_PREVIEW_FIRST_FRAME_MSG) return;
-        reveal();
+        if (e.data?.tse === TSE_PREVIEW_FIRST_FRAME_MSG) { reveal(); return; }
+        if (e.data?.tse !== TSE_PREVIEW_GATE_MSG) return;
+        // Une interstitielle est à l'écran. Le filet de révélation ne doit plus
+        // jouer — il dévoilerait la modale — et un second filet le remplace,
+        // qui rend la main à la vignette si la vidéo ne part pas.
+        gateVu = true;
+        if (revealTimer) { clearTimeout(revealTimer); revealTimer = null; }
+        if (!gateTimer) gateTimer = setTimeout(rendreLaMain, CFG.PREVIEW_GATE_TIMEOUT_MS);
       };
-      window.addEventListener('message', onFirstFrame);
-      revealCleanup = () => window.removeEventListener('message', onFirstFrame);
+      window.addEventListener('message', onMessage);
+      revealCleanup = () => window.removeEventListener('message', onMessage);
 
       iframe.addEventListener('load', () => {
         if (iframeLoadTimer) { clearTimeout(iframeLoadTimer); iframeLoadTimer = null; }
@@ -6284,6 +6422,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
         // remanié par Twitch, vidéo refusée, navigateur sans les API utilisées
         // — on révèle quand même passé ce délai. Mieux vaut un lecteur noir
         // qu'un aperçu figé sur sa vignette pour toujours.
+        //
+        // SAUF si le pont a vu une interstitielle : là, ce qu'on dévoilerait
+        // n'est pas un lecteur noir mais une modale, et c'est l'autre filet
+        // (rendreLaMain) qui a la main.
+        if (gateVu || gateTimer) return;
         revealTimer = setTimeout(reveal, CFG.PREVIEW_REVEAL_FALLBACK_MS);
       }, { once: true });
 
@@ -6307,6 +6450,7 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
       if (iframeTimer) { clearTimeout(iframeTimer); iframeTimer = null; }
       if (iframeLoadTimer) { clearTimeout(iframeLoadTimer); iframeLoadTimer = null; }
       if (revealTimer) { clearTimeout(revealTimer); revealTimer = null; }
+      if (gateTimer) { clearTimeout(gateTimer); gateTimer = null; }
       // L'écouteur est posé sur window, pas sur l'iframe : il ne part pas avec
       // elle. Le retirer ici est ce qui évite d'en empiler un par survol.
       if (revealCleanup) { revealCleanup(); revealCleanup = null; }
@@ -6432,15 +6576,30 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
           if (currentCard) positionPopup(currentCard);
         }
 
-        // Si le stream est tagué avec un Content Classification Label,
-        // l'iframe player afficherait une interstitielle "Commencer à
-        // regarder" qu'on ne peut pas fermer (cross-origin). On reste
-        // donc sur le JPEG statique : on annule le timer si l'iframe
-        // n'est pas encore injectée, on la retire sinon.
-        if (meta.hasCCL) {
-          if (iframeTimer) { clearTimeout(iframeTimer); iframeTimer = null; }
-          if (el.querySelector('.tse-preview__iframe')) removeIframe();
-        }
+        /* `hasCCL` ne décide plus de rien pour l'iframe, et c'est un
+           changement de fond.
+
+           Jusqu'à la 3.54, une étiquette de classification suffisait à annuler
+           l'iframe : le lecteur aurait montré son interstitielle, qu'on ne
+           savait pas fermer, et l'aperçu serait resté noir. On restait donc sur
+           le JPEG — pour TOUTE chaîne étiquetée.
+
+           C'était doublement trop. D'abord parce que le pont sait maintenant
+           lever cette interstitielle (cf. l'en-tête du module PONT D'APERÇU).
+
+           Ensuite, et surtout, parce qu'une étiquette ne PRÉDIT pas
+           l'interstitielle. L'écran d'acquittement dépend aussi du spectateur :
+           déconnecté, il apparaît ; connecté, les préférences de contenu du
+           compte peuvent l'avoir déjà accepté, et il n'apparaît pas. La même
+           chaîne, la même étiquette, deux comportements — l'écran le dit
+           lui-même, en renvoyant aux « préférences de contenu ». Décider ici,
+           sur `hasCCL`, c'était donc refuser la vidéo à des spectateurs qui
+           n'auraient jamais vu d'interstitielle.
+
+           La décision est passée dans l'iframe, où elle porte sur ce qui est
+           VRAIMENT à l'écran plutôt que sur ce qu'on en devine. `hasCCL` n'a
+           du coup plus aucun consommateur : cf. la note du banc et du README
+           sur le badge d'étiquettes, qui reste à écrire. */
 
         // Filet : si l'ID de chaîne n'était pas encore en cache au survol, la
         // réponse preview vient de le fournir → on (re)tente le badge "En live
