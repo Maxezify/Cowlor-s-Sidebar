@@ -271,6 +271,11 @@ const TSE_GATE_MAX_CLICKS = 5;
   const cliques = new WeakSet();
   let clics = 0, gateVue = false;
   const lever = () => {
+    // Rien de plus à faire : la modale a été signalée, et soit le levage est
+    // coupé, soit la borne de clics est atteinte. Sortir ici épargne deux
+    // querySelector à CHAQUE lot de mutations du lecteur, qui en produit
+    // beaucoup — et `annoncer` garde de son côté ce qu'il lui faut.
+    if (gateVue && (!TSE_GATE_ENABLED || clics >= TSE_GATE_MAX_CLICKS)) return;
     const btn = gateBouton();
     if (!btn) return;
 
@@ -311,13 +316,17 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (video.readyState >= 2) announce();   // HAVE_CURRENT_DATA : une image existe
   };
 
-  let veille = false;
+  /* Le nœud <video> SOUS SURVEILLANCE, et non un simple booléen.
+     Un booléen supposait que l'élément vidéo, une fois trouvé, restait le même.
+     Twitch le remplace — notamment quand la source repart après l'acquittement
+     de l'interstitielle. On aurait alors continué d'écouter un nœud détaché :
+     `playing` n'y arrive jamais, la première image n'est jamais annoncée, et
+     l'aperçu retombe sur sa vignette alors que la vidéo joue juste à côté. */
+  let vue = null;
   const scan = () => {
     lever();
-    if (!veille) {
-      const v = document.querySelector('video');
-      if (v) { veille = true; watch(v); }
-    }
+    const v = document.querySelector('video');
+    if (v && v !== vue) { vue = v; watch(v); }
     // Le signal a pu être retenu par une modale que le passage précédent vient
     // de lever : on le rejoue à chaque tour.
     annoncer();
@@ -2339,8 +2348,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__badge--exsub    { background: rgba(255, 201, 102, 0.10); color: #c9b48c; }
     /* Étiquettes de classification. Ambre, la teinte d'avertissement — et
        délibérément DIFFÉRENTE de l'or des abonnements, qui est une teinte de
-       faveur : deux messages opposés ne doivent pas porter la même couleur. */
-    .tse-preview__badge--ccl      { background: rgba(255, 138, 61, 0.20); color: #ffb37a; }
+       faveur : deux messages opposés ne doivent pas porter la même couleur.
+       max-width autorise le repli : plusieurs étiquettes cumulées feraient
+       sinon un badge plus large que l'aperçu, que le popup couperait net. */
+    .tse-preview__badge--ccl      { background: rgba(255, 138, 61, 0.20); color: #ffb37a;
+                                    max-width: 100%; }
+    /* Les pictogrammes d'avertissement. line-height: 1 les empêche de
+       rehausser le badge : un emoji dépasse sa boîte em, et sans cela la
+       pastille grandissait d'un pixel ou deux par rapport aux autres. */
+    .tse-preview__badge-mark      { flex: 0 0 auto; line-height: 1; }
     /* Logo de la marque sponsor (image fournie par Twitch sur fond coloré
        inline). On le rend en mini cadre carré 14×14 dans le badge. Le
        background-color est posé inline depuis getSponsorInfo. */
@@ -6220,11 +6236,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     // produisant "Scok , Farore". On force donc le texte à former UN SEUL item
     // flex via un span dédié (flux inline normal à l'intérieur → pas de gap
     // parasite). `leadHtml` (logo sponsor) reste hors du span : le gap voulu
-    // entre logo et texte est ainsi préservé.
-    const badgeHtml = (modClass, textHtml, leadHtml = '') =>
+    // entre logo et texte est ainsi préservé — et `trailHtml` (le pictogramme
+    // d'avertissement des étiquettes) profite du même gap de l'autre côté.
+    const badgeHtml = (modClass, textHtml, leadHtml = '', trailHtml = '') =>
       `<span class="tse-preview__badge ${modClass}">` +
       leadHtml +
       `<span class="tse-preview__badge-text">${textHtml}</span>` +
+      trailHtml +
       `</span>`;
 
     // Construit le HTML du badge "En live avec …" pour un login donné.
@@ -6307,8 +6325,14 @@ const TSE_GATE_MAX_CLICKS = 5;
         container.className = 'tse-preview__badges';
         body.appendChild(container);
       }
+      /* Un pictogramme de chaque côté du texte. Ils sont DÉCORATIFS —
+         `aria-hidden` — parce qu'un lecteur d'écran annoncerait sinon
+         « avertissement » deux fois autour d'une phrase qui porte déjà
+         l'information. L'espacement vient du `gap` du badge, pas d'espaces
+         dans le texte : c'est ce qui le garde régulier si le texte se replie. */
+      const marque = '<span class="tse-preview__badge-mark" aria-hidden="true">⚠️</span>';
       container.insertAdjacentHTML('afterbegin',
-        badgeHtml('tse-preview__badge--ccl', escapeHtml(texte)));
+        badgeHtml('tse-preview__badge--ccl', escapeHtml(texte), marque, marque));
       if (currentCard) positionPopup(currentCard); // la hauteur a pu changer
     };
 
@@ -6746,8 +6770,10 @@ const TSE_GATE_MAX_CLICKS = 5;
           if (currentCard) positionPopup(currentCard);
         }
 
-        /* `hasCCL` ne décide plus de rien pour l'iframe, et c'est un
-           changement de fond.
+        /* L'étiquette ne décide plus de rien pour l'iframe, et c'est un
+           changement de fond. Le drapeau qui le faisait — `hasCCL`, retourné
+           par fetchPreviewMeta jusqu'à la 3.54 — n'existe plus ; la méta porte
+           désormais la LISTE des étiquettes, parce qu'elle sert à les afficher.
 
            Jusqu'à la 3.54, une étiquette de classification suffisait à annuler
            l'iframe : le lecteur aurait montré son interstitielle, qu'on ne
@@ -6763,8 +6789,8 @@ const TSE_GATE_MAX_CLICKS = 5;
            compte peuvent l'avoir déjà accepté, et il n'apparaît pas. La même
            chaîne, la même étiquette, deux comportements — l'écran le dit
            lui-même, en renvoyant aux « préférences de contenu ». Décider ici,
-           sur `hasCCL`, c'était donc refuser la vidéo à des spectateurs qui
-           n'auraient jamais vu d'interstitielle.
+           sur la seule présence d'une étiquette, c'était donc refuser la vidéo
+           à des spectateurs qui n'auraient jamais vu d'interstitielle.
 
            La décision est passée dans l'iframe, où elle porte sur ce qui est
            VRAIMENT à l'écran plutôt que sur ce qu'on en devine.

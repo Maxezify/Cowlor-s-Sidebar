@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.55.2 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -1067,6 +1067,27 @@ nulles. Un sur-cadre laissé dans le DOM après coup ferait sinon croire à une
 modale éternelle, et l'aperçu ne se dévoilerait plus jamais : on aurait remplacé
 un défaut par son symétrique.
 
+#### Le nœud `<video>` n'est pas toujours le même (v3.55.2)
+
+Le pont surveillait « une vidéo, la première trouvée », et retenait ce fait dans
+un **booléen**. Il supposait donc qu'un lecteur garde son élément vidéo du début
+à la fin. Twitch le remplace — notamment quand la source repart, ce qui est
+précisément l'effet de l'acquittement. Le pont restait alors accroché à un nœud
+détaché, où `playing` n'arrive jamais : aucune première image annoncée, et le
+filet d'interstitielle rendait la main à la vignette **au moment même** où la
+vidéo jouait, dans l'autre nœud.
+
+Le booléen est devenu le nœud lui-même : on re-surveille dès que
+`querySelector('video')` rend autre chose que ce qu'on regardait. Trouvé à la
+relecture, pas en production — le défaut demandait un remplacement de nœud que
+rien au banc ne provoquait. Un scénario le force désormais au clic, et la
+mutation qui remet le booléen le fait tomber avec le symptôme complet : plus
+d'iframe du tout, vignette pour toujours.
+
+La même relecture a resserré `lever()`, qui refaisait deux `querySelector` à
+chaque lot de mutations du lecteur — nombreux — alors que la modale était déjà
+signalée et le quota de clics épuisé. Elle sort maintenant avant.
+
 #### Deux filets, et pourquoi il en fallait un second
 
 L'aperçu se dévoile à sa première image. Quand ce signal n'arrive pas, un filet
@@ -1113,6 +1134,16 @@ dise.
 
 L'ambre n'est pas l'or des abonnements, et c'est délibéré : deux messages
 opposés — un avertissement, une faveur — ne doivent pas porter la même couleur.
+
+Un pictogramme ⚠️ encadre le texte **des deux côtés** (v3.55.2). À gauche
+seulement, il se lirait comme une puce de liste ; de part et d'autre, il fait un
+panneau. Les deux sont `aria-hidden` : une synthèse vocale doit lire « Jeux
+matures », pas « avertissement Jeux matures avertissement ». Leur
+`line-height: 1` empêche l'emoji — qui déborde sa boîte em — de rehausser la
+pastille d'un pixel par rapport aux badges voisins. Et parce que sept étiquettes
+cumulées font 456 px dans un aperçu large de 482, la pastille se **replie** sur
+deux lignes au lieu d'être coupée net (`max-width: 100%`), les pictogrammes
+restant centrés de part et d'autre du bloc.
 
 
 ### Couleurs de co-stream
@@ -1373,7 +1404,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs tuile 440×280 montrant l’extension en fonctionnement
 ├── store/                 le texte des sept fiches du Chrome Web Store
 ├── tests/
-│   ├── run.mjs              le harnais : 490 assertions, 57 scénarios
+│   ├── run.mjs              le harnais : 510 assertions, 59 scénarios
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
 │   ├── build.mjs            copie content.js avec les durées accélérées
 │   └── parity.mjs           parité des clés de traduction entre les 5 langues
@@ -1402,7 +1433,7 @@ Trois vérifications, indépendantes :
 |---|---|
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
-| `npm test` | le harnais Playwright : 57 scénarios, 490 assertions |
+| `npm test` | le harnais Playwright : 59 scénarios, 510 assertions |
 
 **Le harnais fait tourner l'extension pour de vrai**, dans Chromium, contre un
 faux Twitch : `tests/page.html` reproduit le DOM réel de la barre latérale

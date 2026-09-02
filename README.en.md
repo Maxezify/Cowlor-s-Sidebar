@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.55.2 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -1001,6 +1001,27 @@ The button itself must be **visible** to count — non-zero width and height.
 A container left in the DOM afterwards would otherwise look like an eternal
 gate, and the preview would never reveal again: one flaw traded for its mirror.
 
+#### The `<video>` node is not always the same one (v3.55.2)
+
+The bridge watched "a video, the first one found", and remembered that fact in a
+**boolean**. So it assumed a player keeps its video element from start to
+finish. Twitch replaces it — notably when the source restarts, which is
+precisely what acknowledging the gate causes. The bridge then stayed attached to
+a detached node, where `playing` never arrives: no first frame announced, and
+the gate net handed the floor back to the thumbnail **at the very moment** the
+video was playing, in the other node.
+
+The boolean became the node itself: we re-watch as soon as
+`querySelector('video')` returns something other than what we were looking at.
+Found on review, not in production — the flaw needed a node replacement nothing
+at the bench provoked. A scenario now forces one on click, and the mutation that
+restores the boolean makes it fall with the full symptom: no iframe at all,
+thumbnail forever.
+
+The same review tightened `lever()`, which redid two `querySelector` calls on
+every batch of player mutations — and there are many — while the gate had
+already been reported and the click quota was spent. It now returns before that.
+
 #### Two nets, and why a second one was needed
 
 The preview is revealed on its first frame. When that signal never arrives, a
@@ -1042,6 +1063,15 @@ language could have lost a label without anything saying so.
 
 Amber is not the subscriptions' gold, and that is deliberate: two opposite
 messages — a warning and a favour — must not wear the same colour.
+
+A ⚠️ pictogram frames the text on **both sides** (v3.55.2). On the left alone it
+would read as a list bullet; on either side it makes a sign. Both are
+`aria-hidden`: a screen reader must say "Mature-rated game", not "warning
+Mature-rated game warning". Their `line-height: 1` keeps the emoji — which
+overflows its em box — from raising the pill a pixel above its neighbours. And
+because seven stacked labels come to 456 px in a 482 px-wide preview, the pill
+**wraps** onto two lines instead of being clipped (`max-width: 100%`), with the
+pictograms staying centred on either side of the block.
 
 
 ### Co-stream colours
@@ -1294,7 +1324,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs 440×280 tile showing the extension at work
 ├── store/                 the copy of the seven Chrome Web Store listings
 ├── tests/
-│   ├── run.mjs              the harness: 490 assertions across 57 scenarios
+│   ├── run.mjs              the harness: 510 assertions across 59 scenarios
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
 │   ├── build.mjs            copies content.js with the timings accelerated
 │   └── parity.mjs           translation-key parity across the 5 languages
@@ -1322,7 +1352,7 @@ Three independent checks:
 |---|---|
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
-| `npm test` | the Playwright harness: 57 scenarios, 490 assertions |
+| `npm test` | the Playwright harness: 59 scenarios, 510 assertions |
 
 **The harness runs the extension for real**, in Chromium, against a fake
 Twitch: `tests/page.html` reproduces the sidebar's actual DOM (captured from

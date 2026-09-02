@@ -4642,6 +4642,81 @@ titre('58. Aperçu — l\'écran « Commencer à regarder » ne doit plus figer 
     await page.close();
   }
 
+  /* ── a ter) LE NŒUD <video> EST REMPLACÉ APRÈS L'ACQUITTEMENT ────────────
+
+     Un lecteur ne garde pas forcément le même élément vidéo d'un bout à
+     l'autre : quand la source repart — ce qui est précisément ce que fait
+     l'acquittement de l'interstitielle — Twitch peut jeter son <video> et en
+     poser un neuf. Le pont surveillait « une vidéo, la première trouvée » ; il
+     restait alors accroché à un nœud détaché, où `playing` n'arrive jamais.
+     Aucune première image annoncée, donc le filet d'interstitielle rend la main
+     à la vignette — au moment même où la vidéo joue à côté, dans l'autre nœud.
+
+     Le harnais force ce remplacement au clic. Sans le correctif, l'iframe
+     disparaît ; avec, elle se dévoile et c'est le NOUVEAU nœud qui joue. */
+  {
+    const lecteurVideoRemplacee = `<!doctype html><html><body>
+      <video id="v1" autoplay muted playsinline></video>
+      <script>
+        window.__clics = 0;
+        setTimeout(() => {
+          const zone = document.createElement('div');
+          zone.setAttribute('data-a-target', 'content-classification-gate-overlay');
+          zone.innerHTML = '<p>destiné à certains publics</p>' +
+            '<button data-a-target="content-classification-gate-overlay-start-watching-button"' +
+            ' style="width:120px;height:32px">Commencer à regarder</button>';
+          document.body.appendChild(zone);
+          zone.querySelector('button').addEventListener('click', () => {
+            window.__clics++;
+            zone.remove();
+            // Le point du scénario : l'ancien nœud s'en va, un neuf le remplace.
+            document.getElementById('v1').remove();
+            const c = document.createElement('canvas');
+            c.width = 32; c.height = 18;
+            const ctx = c.getContext('2d');
+            const v = document.createElement('video');
+            v.id = 'v2';
+            v.autoplay = true; v.muted = true; v.playsInline = true;
+            v.srcObject = c.captureStream(25);
+            document.body.appendChild(v);
+            v.play().catch(() => {});
+            setInterval(() => {
+              ctx.fillStyle = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+              ctx.fillRect(0, 0, 32, 18);
+            }, 40);
+          });
+        }, 400);
+      </script>
+      <script src="/adblock.test.js"></script>
+      <script src="/content.test.js"></script>
+    </body></html>`;
+
+    const page = await freshTwitch(lecteurVideoRemplacee);
+    await poserCarte(page, 'sigma');
+    await wait(page, 2000);
+    await hoverCard(page, 0);
+
+    await attendre(page, () => {
+      const f = document.querySelector('.tse-preview__iframe');
+      return !!f && f.dataset.tseLoaded === 'true';
+    }, 9000);
+    const relais = await (async () => {
+      const f = page.frames().find(x => x.url().startsWith('https://player.twitch.tv/'));
+      if (!f) return null;
+      try {
+        return await f.evaluate(() => {
+          const v = document.querySelector('video');
+          return v ? { id: v.id, pause: v.paused, pret: v.readyState } : null;
+        });
+      } catch { return null; }
+    })();
+    ok('un <video> remplacé est repris en surveillance : l\'aperçu joue quand même',
+       (await etatIframe(page)) === 'true'
+       && !!relais && relais.id === 'v2' && relais.pause === false && relais.pret >= 2,
+       JSON.stringify({ iframe: await etatIframe(page), relais }));
+    await page.close();
+  }
+
   // ── b) l'interstitielle tient bon : retour à la vignette, pas de modale ──
   {
     const page = await freshTwitch(lecteurEtiquete(false));
@@ -4701,6 +4776,11 @@ titre('59. Aperçu — ce que l\'interstitielle disait, le badge le dit maintena
       texte: b.querySelector('.tse-preview__badge-text').textContent.trim(),
       // Un avertissement se lit avant le contexte : il doit être le premier.
       premier: zone.firstElementChild === b,
+      // La composition interne du badge, dans l'ordre du DOM.
+      enfants: [...b.children].map(n => ({
+        classe: n.className, texte: n.textContent.trim(),
+        muet: n.getAttribute('aria-hidden'),
+      })),
     };
   });
   const poser = (page, fixtures) => page.evaluate((fx) => {
@@ -4730,6 +4810,18 @@ titre('59. Aperçu — ce que l\'interstitielle disait, le badge le dit maintena
        JSON.stringify(un));
     ok('et le badge passe en tête des autres', !!un && un.premier === true,
        JSON.stringify(un));
+    /* Le pictogramme encadre le texte des DEUX côtés. À gauche seulement, il
+       passerait pour une puce de liste ; de part et d'autre, il fait un
+       panneau. Et il est aria-hidden : une synthèse vocale doit lire « Jeux
+       matures », pas « avertissement Jeux matures avertissement ». */
+    const marques = (un && un.enfants) || [];
+    ok('un pictogramme ⚠️ de chaque côté du texte, muet pour les lecteurs d\'écran',
+       marques.length === 3
+       && marques[0].classe === 'tse-preview__badge-mark' && marques[0].texte === '⚠️'
+       && marques[1].classe === 'tse-preview__badge-text'
+       && marques[2].classe === 'tse-preview__badge-mark' && marques[2].texte === '⚠️'
+       && marques[0].muet === 'true' && marques[2].muet === 'true',
+       JSON.stringify(marques));
     await unhoverCard(page, 0);
 
     await hoverCard(page, 1);
