@@ -189,11 +189,12 @@ const { errors = 0, warnings = 0 } = rapport.summary ?? {};
 for (const e of rapport.errors ?? []) console.log('    ERREUR', e.code, '—', e.message);
 ok('zéro erreur : le paquet est recevable par AMO', errors === 0, String(errors));
 
-/* Le compte d'avertissements est un CLIQUET, fichier par fichier. Il ne
-   prétend pas qu'il n'y en a aucun — il interdit qu'il en apparaisse de
-   nouveaux, ou d'une nature nouvelle. Le README dit lesquels restent et
-   pourquoi. */
-const PLAFOND = { 'content.js': 12 };
+/* Le cliquet est maintenant à ZÉRO partout. Il a d'abord servi à tenir les
+   douze avertissements du rendu pendant qu'ils existaient ; ils ont été
+   supprimés en 3.56.0 (le rendu construit des nœuds, plus des chaînes), et le
+   plafond descend avec eux. Un plafond qu'on ne resserre pas après une
+   correction cesse d'être un cliquet pour devenir une permission. */
+const PLAFOND = {};
 const parFichier = {};
 for (const w of rapport.warnings ?? []) {
   const f = w.file || '(paquet)';
@@ -216,5 +217,5 @@ const outillage = Object.keys(parFichier).filter(f => f !== 'content.js' && f !=
 ok('aucun avertissement venu de l\'outillage — il n\'est plus dans le paquet',
    outillage.length === 0, JSON.stringify(outillage));
 
-console.log(`\n${echecs ? `${echecs} ÉCHEC(S)` : 'paquet Firefox OK'}  (${warnings} avertissements, tous dans content.js)\n`);
+console.log(`\n${echecs ? `${echecs} ÉCHEC(S)` : 'paquet Firefox OK'}  (${warnings} avertissement${warnings > 1 ? 's' : ''})\n`);
 process.exit(echecs ? 1 : 0);

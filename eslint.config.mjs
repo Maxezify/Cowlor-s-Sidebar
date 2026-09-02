@@ -17,7 +17,12 @@ export default [{
       URLSearchParams:'readonly', Request:'readonly',
       // setInterval était déjà déclaré plus haut ; seul clearInterval
       // manquait, pour le nettoyage de subsPage.
-      clearInterval:'readonly' }
+      clearInterval:'readonly',
+      // DOMParser : la seule porte vers un analyseur HTML qui reste dans le
+      // rendu, et elle ne reçoit que du balisage écrit dans content.js
+      // (cf. noeudStatique). Tout ce qui vient de Twitch passe par
+      // textContent ou setAttribute.
+      DOMParser:'readonly' }
   },
   linterOptions: { reportUnusedDisableDirectives: true },
   rules: {

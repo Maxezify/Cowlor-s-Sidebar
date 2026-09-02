@@ -5091,6 +5091,101 @@ titre('61. Firefox — l\'aperçu tient sans les API que Chrome a en plus');
   await page.close();
 }
 
+// ═════════ 62. Le rendu ne construit plus de balisage ═════════
+titre('62. Rendu — une donnée de Twitch est du TEXTE, jamais du balisage');
+{
+  /* Ce scénario existe pour une raison précise. Jusqu'ici le rendu assemblait
+     des chaînes HTML et comptait sur `escapeHtml` à chaque point d'insertion.
+     C'était correct — on l'a relu site par site — mais la correction tenait à
+     ce qu'aucun appel n'oublie l'échappement, et aucune relecture ne garantit
+     ça pour l'avenir. Le rendu construit maintenant des NŒUDS : les valeurs
+     venues de Twitch passent par textContent ou setAttribute, qui ne peuvent
+     rien interpréter. `escapeHtml` a disparu du fichier faute d'appelant.
+
+     Le banc ne couvrait ni le contenu de ces badges ni cette propriété : la
+     refonte aurait pu perdre le <strong> des noms, ou pire, sans rien casser
+     de visible. Trois choses sont donc vérifiées ici — la phrase traduite, le
+     <strong> autour du nom, et qu'un nom hostile reste du texte. */
+  const PIEGE = '<img src=x onerror="window.__injecte=1">Marmotte';
+
+  const page = await freshTwitch('<!doctype html><html><body>lecteur</body></html>');
+  await page.evaluate(() => { window.__injecte = 0; });
+
+  // Carte « squad » : le badge « En live avec … » se déclenche sur un
+  // mini-avatar dont l'alt porte le nom de l'invité (cf. getSquadInfo).
+  await page.evaluate((piege) => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {
+      corbeau: { id: 'c1', createdAt: h, viewers: 1000, game: 'G', tags: [] },
+      // La CATÉGORIE vient de l'API et alimente la liste déroulante des
+      // filtres : c'est l'autre chemin par lequel du texte de Twitch atteint
+      // le DOM, et il passe par le code refondu des options.
+      belette: { id: 'b1', createdAt: h, viewers: 900, game: piege, tags: [] },
+    };
+    window.__addCard('corbeau', 'G', '1 k');
+    window.__addCard('belette', 'G', '900');
+    const carte = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a')?.getAttribute('href') === '/corbeau');
+    const mini = document.createElement('div');
+    mini.className = 'primary-with-small-avatar__mini-avatar';
+    const img = document.createElement('img');
+    img.setAttribute('alt', piege);       // le nom de l'invité, piégé
+    mini.appendChild(img);
+    carte.querySelector('a').appendChild(mini);
+  }, PIEGE);
+  await wait(page, 2500);
+
+  await hoverCard(page, 0);
+  await attendre(page, () => !!document.querySelector('.tse-preview__badge--squad'), 5000);
+  const squad = await page.evaluate(() => {
+    const b = document.querySelector('.tse-preview__badge--squad');
+    if (!b) return null;
+    const fort = b.querySelector('strong');
+    return {
+      texte: b.textContent.trim(),
+      nomEnGras: fort ? fort.textContent : null,
+      // Le piège a-t-il produit un ÉLÉMENT ? C'est la question qui compte.
+      imgInjectee: !!b.querySelector('img'),
+      injecte: window.__injecte,
+    };
+  });
+
+  /* La phrase traduite doit être intacte : le <strong> est sorti des tables de
+     locale, mais pas un mot du libellé. Le harnais tourne en français. */
+  ok('la phrase traduite a survécu à la sortie du HTML des locales',
+     !!squad && squad.texte.startsWith('En live avec '), JSON.stringify(squad?.texte));
+
+  ok('le nom de l\'invité est bien en gras, via la fente',
+     !!squad && squad.nomEnGras === PIEGE, JSON.stringify(squad?.nomEnGras));
+
+  /* LE point du scénario. Sous l'ancien rendu, oublier un escapeHtml ici
+     insérait une <img> et exécutait son onerror. Avec textContent, le même
+     nom est affiché caractère pour caractère et rien ne s'exécute. */
+  ok('un nom hostile reste du texte : aucune balise, aucun code exécuté',
+     !!squad && squad.imgInjectee === false && squad.injecte === 0,
+     JSON.stringify({ img: squad?.imgInjectee, injecte: squad?.injecte }));
+  await unhoverCard(page, 0);
+
+  // L'autre chemin : la catégorie que Twitch renvoie, affichée dans la liste
+  // déroulante des filtres (code des options, refondu lui aussi).
+  const option = await page.evaluate((piege) => {
+    const opts = [...document.querySelectorAll('.tse-dd--cat .tse-dd-opt')];
+    const cible = opts.find(o => o.dataset.value === piege);
+    if (!cible) return { trouvee: false, valeurs: opts.map(o => o.dataset.value) };
+    return {
+      trouvee: true,
+      texte: cible.querySelector('.tse-dd-name')?.textContent ?? null,
+      imgInjectee: !!cible.querySelector('img'),
+      injecte: window.__injecte,
+    };
+  }, PIEGE);
+  ok('une catégorie hostile s\'affiche en toutes lettres, sans rien exécuter',
+     option.trouvee && option.texte === PIEGE
+     && option.imgInjectee === false && option.injecte === 0,
+     JSON.stringify(option));
+  await page.close();
+}
+
 await browser.close();
 console.log(`\n${'═'.repeat(50)}`);
 if (echecs.length) {

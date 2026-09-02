@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.3 · **Firefox** Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.56.0 · **Firefox** Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 > **Firefox branch.** This repository has two release lines. `claude/chrome`
 > carries the Chrome / Chromium build; this branch carries the Firefox build.
@@ -316,24 +316,52 @@ opposite failure mode, which is the right one: what you forget to include is
 present, and nothing may come from outside the list. `npm run package` turns it
 into the `.zip` to submit.
 
-**Twelve** warnings remain, all in `content.js`, all of one code —
+### The rendering no longer builds markup (v3.56.0)
+
+The twelve remaining warnings were all of one code —
 `UNSAFE_VAR_ASSIGNMENT` — on the rendering's `innerHTML`, `insertAdjacentHTML`
-and `outerHTML` writes. They are real and they stay: the linter cannot see
-through an escaping function. The twelve sites were read one by one, and every
-piece of external data goes through `escapeHtml`, attribute contexts included
-(`data-value`, `title`).
+and `outerHTML` writes. They are at zero.
 
-Removing them is not a fix but a **rewrite**: the linter accepts only static
-markup, so every fragment would have to be built through DOM APIs. But the
-internationalisation contract is itself HTML — `uiBadgeCostreamOf(nameHtml)`
-returns `Co-stream of <strong>…</strong>` — and lifting it out of HTML touches
-four functions across five languages, plus the six other rendering sites. It is
-not a safety fix (the escaping is in place) but a change in the nature of the
-code, and it was not done here.
+The linter accepts only **static** markup: a literal passes, a variable does
+not — not even a constant holding nothing but a literal, which was measured and
+which closes the door on any trick. So the only honest way out was to build the
+DOM instead of assembling strings.
 
-The count is held by a **ratchet**, file by file: `content.js` is allowed twelve
-warnings of that code and nothing else; every other file is allowed zero. A
-thirteenth, or a warning of a different nature, fails `npm run addon`.
+This is not a safety fix: the escaping was in place, and the twelve sites had
+been read one by one. It is a **fragility** fix. The safety depended on no call
+ever forgetting `escapeHtml`, and no code review guarantees that for the
+future. From now on the values that come from Twitch — channel names,
+categories, titles, brands — go through `textContent` or `setAttribute`, which
+cannot interpret anything.
+
+**`escapeHtml` has disappeared from the file for want of a caller.** That is the
+shortest proof the conversion is complete: there is no escaping left to forget.
+
+Three things moved:
+
+- **`badgeHtml` returns a node** (`badgeNoeud`), and the six badge sites insert
+  through `replaceWith`, `prepend`, `before`, `appendChild`.
+- **HTML has been lifted out of the locale tables.** `uiBadgeCostreamOf`
+  returned `Co-stream of <strong>${name}</strong>`; it now returns plain text
+  where the name's place is marked by a `\u0000`, and the renderer inserts a
+  DOM-built `<strong>` there. Twenty functions, five languages — **not one word
+  of the wording changed**, only the markup came out.
+- **`noeudStatique` is the one door left to an HTML parser**, and it is reserved
+  for markup written inside `content.js`: SVG icons, flags, skeletons. The
+  addons-linter does not watch `DOMParser` — pushing external data through it
+  would silence the warning without fixing anything, which would be worse than
+  the warning. The rule is written in the code, next to the function.
+
+The bench covered neither those badges' content nor this property: the rewrite
+could have lost the names' `<strong>` without breaking anything visible.
+Scenario 62 now checks it on both paths by which Twitch text reaches the DOM —
+a squad guest's name and a category — with the same payload:
+`<img src=x onerror="…">`. It is displayed character for character, no element
+is created, nothing runs. The mutation that puts an `innerHTML` back at either
+place makes it fall.
+
+The count is still held by a **ratchet**: `content.js` is allowed zero
+warnings, like every other file. The first one to appear fails `npm run addon`.
 
 ---
 
@@ -1623,7 +1651,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs 440×280 tile showing the extension at work
 ├── store/                 the copy of the seven Chrome Web Store listings
 ├── tests/
-│   ├── run.mjs              the harness: 517 assertions across 61 scenarios
+│   ├── run.mjs              the harness: 521 assertions across 62 scenarios
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
 │   ├── build.mjs            copies content.js with the timings accelerated
 │   └── parity.mjs           translation-key parity across the 5 languages
@@ -1652,7 +1680,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 61 scenarios, 517 assertions |
+| `npm test` | the Playwright harness: 62 scenarios, 521 assertions |
 
 `npm run addon` deserves a note: its first six assertions are the ones the
 linter cannot know, because they belong to this repository — the version tracks

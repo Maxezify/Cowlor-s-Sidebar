@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.3 · Extension **Firefox** (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.56.0 · Extension **Firefox** (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 > **Branche Firefox.** Ce dépôt a deux lignes de publication. `claude/chrome`
 > porte la version Chrome / Chromium ; cette branche porte la version Firefox.
@@ -328,25 +328,54 @@ qui est le bon : ce qu'on oublie d'inclure **manque**, et un contrôle le voit �
 chaque fichier que le manifeste nomme doit être présent, et rien ne doit venir
 d'ailleurs que de la liste. `npm run package` en fait le `.zip` à soumettre.
 
-Restent **douze** avertissements, tous dans `content.js`, tous du même code —
+### Le rendu ne construit plus de balisage (v3.56.0)
+
+Les douze avertissements restants portaient tous sur le même code —
 `UNSAFE_VAR_ASSIGNMENT` — sur les écritures `innerHTML`, `insertAdjacentHTML` et
-`outerHTML` du rendu. Ils sont réels et ils restent : le linter ne sait pas
-traverser une fonction d'échappement. Les douze sites ont été relus un par un,
-et toute donnée externe y passe par `escapeHtml`, y compris en contexte
-d'attribut (`data-value`, `title`).
+`outerHTML` du rendu. Ils sont à zéro.
 
-Les faire disparaître ne demande pas un correctif mais une **refonte** : le
-linter n'accepte que du balisage statique, donc il faudrait construire chaque
-fragment par API DOM. Or le contrat d'internationalisation est lui-même en
-HTML — `uiBadgeCostreamOf(nameHtml)` rend `Co-stream de <strong>…</strong>` —
-et le sortir du HTML touche quatre fonctions dans cinq langues, plus les six
-autres sites de rendu. Ce n'est pas une correction de sûreté (l'échappement est
-en place) mais un changement de nature du code, et il n'a pas été fait ici.
+Le linter n'accepte que du balisage **statique** : un littéral passe, une
+variable non — même une constante qui ne contient qu'un littéral, ce qui a été
+mesuré et ferme la porte à toute ruse. La seule sortie honnête était donc de
+construire le DOM plutôt que d'assembler des chaînes.
 
-Le compte est tenu par un **cliquet**, fichier par fichier : `content.js` a
-droit à douze avertissements de ce code et à rien d'autre ; tout autre fichier a
-droit à zéro. Un treizième, ou un avertissement d'une autre nature, fait échouer
-`npm run addon`.
+Ce n'est pas une correction de sûreté : l'échappement était en place, et les
+douze sites avaient été relus un par un. C'est une correction de **fragilité**.
+La sûreté tenait à ce qu'aucun appel n'oublie `escapeHtml`, et aucune relecture
+ne garantit ça pour l'avenir. Désormais les valeurs venues de Twitch — noms de
+chaînes, catégories, titres, marques — passent par `textContent` ou
+`setAttribute`, qui ne peuvent rien interpréter.
+
+**`escapeHtml` a disparu du fichier faute d'appelant.** C'est la preuve la plus
+courte que la conversion est complète : il n'y a plus d'échappement à oublier.
+
+Trois choses ont bougé :
+
+- **`badgeHtml` rend un nœud** (`badgeNoeud`), et les six sites de badges
+  insèrent par `replaceWith`, `prepend`, `before`, `appendChild`.
+- **Le HTML est sorti des tables de locale.** `uiBadgeCostreamOf` rendait
+  `Co-stream de <strong>${nom}</strong>` ; elle rend maintenant du texte pur où
+  la place du nom est marquée par un `\u0000`, et le rendu y insère un
+  `<strong>` construit en DOM. Vingt fonctions, cinq langues — **pas un mot des
+  libellés n'a changé**, seul le balisage en est sorti.
+- **`noeudStatique` est la seule porte qui reste vers un analyseur HTML**, et
+  elle est réservée au balisage écrit dans `content.js` : icônes SVG, drapeaux,
+  ossatures. L'addons-linter ne surveille pas `DOMParser` — y faire passer une
+  donnée externe ferait taire son avertissement sans rien corriger, ce qui
+  serait pire que l'avertissement. La règle est écrite dans le code, à côté de
+  la fonction.
+
+Le banc ne couvrait ni le contenu de ces badges ni cette propriété : la refonte
+aurait pu perdre le `<strong>` des noms sans rien casser de visible. Le scénario
+62 le vérifie désormais sur les deux chemins par lesquels du texte de Twitch
+atteint le DOM — le nom d'un invité squad et une catégorie — avec la même
+charge : `<img src=x onerror="…">`. Elle s'affiche en toutes lettres, aucune
+balise n'est créée, rien ne s'exécute. La mutation qui remet un `innerHTML` à
+l'un des deux endroits le fait tomber.
+
+Le compte reste tenu par un **cliquet** : `content.js` a droit à zéro
+avertissement, comme tous les autres fichiers. Le premier qui apparaît fait
+échouer `npm run addon`.
 
 ---
 
@@ -1712,7 +1741,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs tuile 440×280 montrant l’extension en fonctionnement
 ├── store/                 le texte des sept fiches du Chrome Web Store
 ├── tests/
-│   ├── run.mjs              le harnais : 517 assertions, 61 scénarios
+│   ├── run.mjs              le harnais : 521 assertions, 62 scénarios
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
 │   ├── build.mjs            copie content.js avec les durées accélérées
 │   └── parity.mjs           parité des clés de traduction entre les 5 langues
@@ -1742,7 +1771,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 61 scénarios, 517 assertions |
+| `npm test` | le harnais Playwright : 62 scénarios, 521 assertions |
 
 `npm run addon` mérite un mot : ses six premières assertions sont celles que le
 linter ne peut pas connaître, parce qu'elles appartiennent à ce dépôt — la
