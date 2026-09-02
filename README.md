@@ -157,7 +157,7 @@ La première est **la** divergence du portage. Si son repli était cassé,
 l'aperçu ne se dévoilerait jamais sous Firefox, et rien dans le code ne le
 dirait : le pont resterait simplement muet.
 
-### Ce qui est vérifié, et ce qui ne l'est pas
+### Ce qui est vérifié, et par quoi
 
 Il faut être précis, parce que la différence compte.
 
@@ -173,17 +173,34 @@ redéfinir lève un `TypeError`. La première écriture de ce scénario croyait 
 supprimer et ne supprimait rien ; ses assertions étaient vertes et ne testaient
 personne. C'est une garde sur le décor lui-même qui l'a dit.
 
-**Pas vérifié, et c'est à savoir.** L'extension **n'a pas été exécutée dans un
-vrai Firefox**. La politique réseau de l'environnement de développement bloque
-le téléchargement du binaire Firefox de Playwright ; les 517 assertions du banc
-tournent donc sous Chromium, y compris celles qui simulent Firefox. Ce qui
-reste à confirmer sur la machine de quelqu'un est ce qu'aucune simulation ne
-peut donner : que l'injection en monde `MAIN` à `document_start` arrive bien
-avant les scripts de Twitch dans le moteur de Mozilla. La documentation dit que
-oui — *« les content scripts à `document_start` s'exécutent toujours avant les
-scripts de la page »* — mais une documentation n'est pas une mesure. Un
-chargement temporaire via `about:debugging` sur une page Twitch suffit à
-trancher, et la procédure ci-dessous le fait en une minute.
+**Vérifié sur un vrai Firefox — le point qui restait ouvert est clos.**
+L'environnement de développement ne peut pas lancer Firefox : sa politique
+réseau bloque le téléchargement du binaire de Playwright, et les 517 assertions
+du banc tournent donc sous Chromium, y compris celles qui simulent Firefox.
+Restait ce qu'aucune simulation ne donne : l'injection en monde `MAIN` à
+`document_start` arrive-t-elle avant les scripts de Twitch dans le moteur de
+Mozilla ? La documentation dit que oui — *« les content scripts à
+`document_start` s'exécutent toujours avant les scripts de la page »*
+([bug 1388429](https://bugzilla.mozilla.org/show_bug.cgi?id=1388429)) — mais une
+documentation n'est pas une mesure.
+
+La mesure a été faite, sur Firefox, avec la procédure ci-dessous. Relevé :
+
+| Contrôle | Résultat |
+| --- | --- |
+| monde `MAIN` — `window.tse` visible depuis la console de la page | ✅ `object` |
+| CSS de l'extension posé | ✅ |
+| démarrage allé au bout — `history.pushState` enveloppé | ✅ |
+| **`adblock.js` a capté le `fetch` NATIF dans l'iframe du lecteur** | ✅ `true` |
+
+La dernière ligne est celle qui tranche : la valeur captée avant remplacement
+est le `fetch` natif, donc **personne ne l'avait enveloppée avant nous**.
+`document_start` en monde `MAIN` se comporte sous Gecko comme sous Chromium.
+
+**Ce qui reste appuyé sur le banc, et non sur Firefox.** Le comportement
+fonctionnel — aperçus, levage de l'interstitielle, tris, filtres — reste prouvé
+sous Chromium, plus le scénario 61 qui rejoue les manques de Firefox. Le risque
+de plateforme est levé ; le risque de rendu ne l'est que par transitivité.
 
 ### Comment vérifier `document_start` sous Firefox
 

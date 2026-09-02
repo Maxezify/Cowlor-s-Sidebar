@@ -149,7 +149,7 @@ The first is **the** divergence of the port. If its fallback were broken, the
 preview would never reveal on Firefox, and nothing in the code would say so:
 the bridge would simply stay silent.
 
-### What is verified, and what is not
+### What is verified, and by what
 
 Precision matters here, because the difference does.
 
@@ -165,16 +165,33 @@ variant returns `true` **while removing nothing**, and redefining throws a
 property and was deleting nothing; its assertions were green and were testing
 no one. A guard on the fixture itself is what said so.
 
-**Not verified, and worth knowing.** The extension **has not been run in a real
-Firefox**. The development environment's network policy blocks the download of
-Playwright's Firefox binary, so all 517 bench assertions run under Chromium,
-including the ones that simulate Firefox. What remains to be confirmed on
-someone's machine is the thing no simulation can give: that `MAIN`-world
-injection at `document_start` really does land before Twitch's own scripts in
-Mozilla's engine. The documentation says it does — *"content scripts at
-`document_start` always run before page scripts"* — but documentation is not a
-measurement. A temporary load via `about:debugging` on a Twitch page settles it,
-and the procedure below does it in a minute.
+**Verified on a real Firefox — the open question is closed.** The development
+environment cannot launch Firefox: its network policy blocks the download of
+Playwright's binary, so all 517 bench assertions run under Chromium, including
+the ones that simulate Firefox. What remained was the thing no simulation can
+give: does `MAIN`-world injection at `document_start` land before Twitch's own
+scripts in Mozilla's engine? The documentation says it does — *"content scripts
+at `document_start` always run before page scripts"*
+([bug 1388429](https://bugzilla.mozilla.org/show_bug.cgi?id=1388429)) — but
+documentation is not a measurement.
+
+The measurement was taken, on Firefox, with the procedure below. Reading:
+
+| Check | Result |
+| --- | --- |
+| `MAIN` world — `window.tse` visible from the page's console | ✅ `object` |
+| extension CSS in place | ✅ |
+| boot ran to completion — `history.pushState` wrapped | ✅ |
+| **`adblock.js` captured the NATIVE `fetch` inside the player iframe** | ✅ `true` |
+
+The last line is the one that settles it: the value captured before replacement
+is the native `fetch`, so **nobody had wrapped it before us**. `document_start`
+in the `MAIN` world behaves the same under Gecko as under Chromium.
+
+**What still rests on the bench rather than on Firefox.** The functional
+behaviour — previews, gate lifting, sorting, filters — remains proven under
+Chromium, plus scenario 61 which replays Firefox's gaps. The platform risk is
+cleared; the rendering risk only by transitivity.
 
 ### How to check `document_start` on Firefox
 
