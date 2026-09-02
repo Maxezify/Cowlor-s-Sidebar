@@ -173,7 +173,75 @@ someone's machine is the thing no simulation can give: that `MAIN`-world
 injection at `document_start` really does land before Twitch's own scripts in
 Mozilla's engine. The documentation says it does — *"content scripts at
 `document_start` always run before page scripts"* — but documentation is not a
-measurement. A temporary load via `about:debugging` on a Twitch page settles it.
+measurement. A temporary load via `about:debugging` on a Twitch page settles it,
+and the procedure below does it in a minute.
+
+### How to check `document_start` on Firefox
+
+Load the extension via `about:debugging#/runtime/this-firefox` → **Load
+Temporary Add-on…** → the `manifest.json`. Open `https://www.twitch.tv/`, then
+the console (**F12**), and paste:
+
+```js
+(() => {
+  const s = document.getElementById('tse-css');
+  const native = (f) => { try { return /\[native code\]/.test(Function.prototype.toString.call(f)); }
+                          catch { return false; } };
+  const out = [];
+  const say = (c, ok, d) => out.push({ check: c, verdict: ok ? '✅' : '❌', detail: String(d) });
+  say('1. MAIN world — window.tse is visible from the page',
+      window.tse != null && typeof window.tse === 'object', typeof window.tse);
+  say('2. the extension CSS is in place', !!s, s ? 'yes' : 'missing');
+  say('3. document_start — the <style> sits BEFORE <head>',
+      !!s && s.parentElement.tagName === 'HTML',
+      s ? '<style> inside <' + s.parentElement.tagName + '>' : '—');
+  say('4. boot ran to completion — history.pushState wrapped',
+      !native(history.pushState), native(history.pushState) ? 'native' : 'wrapped');
+  console.table(out);
+  console.log('children of <html>:',
+    [...document.documentElement.children].map(e => e.tagName + (e.id ? '#' + e.id : '')).join(' , '));
+  return out;
+})();
+```
+
+**Check 3 is the only one that actually speaks about `document_start`.**
+`injectCSS` does `(document.head || document.documentElement).appendChild(tag)`:
+at `document_start`, `<head>` **does not exist yet**, so the `<style>` lands on
+`<html>`, ahead of it. Measured under Chromium with the extension genuinely
+loaded, varying nothing but `run_at`:
+
+| `run_at` | Where the `<style>` lands | Children of `<html>` |
+| --- | --- | --- |
+| `document_start` | `<html>` | `STYLE#tse-css`, `HEAD`, `BODY` |
+| `document_end` | `<head>` | `HEAD`, `BODY` |
+| `document_idle` | `<head>` | `HEAD`, `BODY` |
+
+So the signal discriminates, and it is binary.
+
+**If check 3 says `<head>` on Firefox**, that is not necessarily a failure: it
+would mean Gecko creates `<head>` before running its `document_start` scripts,
+which is still *before the page's scripts* — the only thing that matters. The
+court of appeal is then the ad blocker, which does run a real race: hover a
+card, then, in the console's context picker, select the `player.twitch.tv` frame
+and type
+
+```js
+/\[native code\]/.test(String(window.__vaft2RealFetch))   // → expect true
+```
+
+`adblock.js` captures `window.fetch` before replacing it. If the captured value
+is **native**, nobody had wrapped it before us: the race is won. If it showed
+someone else's code, Twitch got there first.
+
+> The same test on the top frame returns `undefined`, and that is correct:
+> `adblock.js` deliberately stands down on the main stream (see its
+> `window.top === window` guard). It only works inside the preview iframe.
+
+Finally, **watch the console for errors on load**. A precise canary:
+`detectLanguage()` reads `document.documentElement.lang` with no guard. If Gecko
+injected even earlier than Chromium — before `documentElement` itself — the error
+would be `can't access property "lang", document.documentElement is null`, and it
+would be loud. Its absence is information.
 
 ### The linter's twelve warnings
 

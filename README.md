@@ -183,7 +183,74 @@ avant les scripts de Twitch dans le moteur de Mozilla. La documentation dit que
 oui — *« les content scripts à `document_start` s'exécutent toujours avant les
 scripts de la page »* — mais une documentation n'est pas une mesure. Un
 chargement temporaire via `about:debugging` sur une page Twitch suffit à
-trancher.
+trancher, et la procédure ci-dessous le fait en une minute.
+
+### Comment vérifier `document_start` sous Firefox
+
+Chargez l'extension via `about:debugging#/runtime/this-firefox` → **Charger un
+module temporaire…** → le `manifest.json`. Ouvrez `https://www.twitch.tv/`,
+puis la console (**F12**), et collez :
+
+```js
+(() => {
+  const s = document.getElementById('tse-css');
+  const natif = (f) => { try { return /\[native code\]/.test(Function.prototype.toString.call(f)); }
+                         catch { return false; } };
+  const out = [];
+  const dit = (c, ok, d) => out.push({ contrôle: c, verdict: ok ? '✅' : '❌', détail: String(d) });
+  dit('1. monde MAIN — window.tse est visible depuis la page',
+      window.tse != null && typeof window.tse === 'object', typeof window.tse);
+  dit('2. le CSS de l\'extension est posé', !!s, s ? 'oui' : 'absent');
+  dit('3. document_start — le <style> est AVANT <head>',
+      !!s && s.parentElement.tagName === 'HTML',
+      s ? '<style> dans <' + s.parentElement.tagName + '>' : '—');
+  dit('4. le démarrage est allé au bout — history.pushState enveloppé',
+      !natif(history.pushState), natif(history.pushState) ? 'natif' : 'enveloppé');
+  console.table(out);
+  console.log('ordre des enfants de <html> :',
+    [...document.documentElement.children].map(e => e.tagName + (e.id ? '#' + e.id : '')).join(' , '));
+  return out;
+})();
+```
+
+**Le contrôle 3 est le seul qui parle vraiment de `document_start`.** `injectCSS`
+fait `(document.head || document.documentElement).appendChild(tag)` : à
+`document_start`, `<head>` **n'existe pas encore**, donc le `<style>` atterrit
+sur `<html>`, avant lui. Mesuré sous Chromium avec l'extension réellement
+chargée, en ne faisant varier que le `run_at` :
+
+| `run_at` | Où atterrit le `<style>` | Enfants de `<html>` |
+| --- | --- | --- |
+| `document_start` | `<html>` | `STYLE#tse-css`, `HEAD`, `BODY` |
+| `document_end` | `<head>` | `HEAD`, `BODY` |
+| `document_idle` | `<head>` | `HEAD`, `BODY` |
+
+Le signal discrimine donc, et il est binaire.
+
+**Si le contrôle 3 dit `<head>` sous Firefox**, ce n'est pas nécessairement un
+échec : cela signifierait que Gecko crée `<head>` avant de lancer ses scripts de
+`document_start`, ce qui reste *avant les scripts de la page* — la seule chose
+qui compte. Le juge d'appel est alors le blocage de pub, qui lui **court une
+vraie course** : survolez une carte, puis, dans le sélecteur de contexte de la
+console, choisissez la frame `player.twitch.tv` et tapez
+
+```js
+/\[native code\]/.test(String(window.__vaft2RealFetch))   // → true attendu
+```
+
+`adblock.js` capture `window.fetch` avant de le remplacer. Si la valeur capturée
+est **native**, personne ne l'avait enveloppé avant nous : la course est gagnée.
+Si elle montrait le code d'un autre, Twitch serait passé en premier.
+
+> Le même test sur la frame du haut renvoie `undefined`, et c'est normal :
+> `adblock.js` se retire délibérément du stream principal (cf. sa garde
+> `window.top === window`). Il ne travaille que dans l'iframe d'aperçu.
+
+Enfin, **surveillez les erreurs de la console au chargement**. Un canari précis :
+`detectLanguage()` lit `document.documentElement.lang` sans garde. Si Gecko
+injectait plus tôt encore que Chromium — avant même `documentElement` — l'erreur
+serait `can't access property "lang", document.documentElement is null`, et elle
+serait bruyante. Son absence est donc une information.
 
 ### Les douze avertissements du linter
 
