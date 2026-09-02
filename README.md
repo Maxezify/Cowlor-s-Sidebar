@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.3 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.56.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -1452,7 +1452,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs tuile 440×280 montrant l’extension en fonctionnement
 ├── store/                 le texte des sept fiches du Chrome Web Store
 ├── tests/
-│   ├── run.mjs              le harnais : 514 assertions, 60 scénarios
+│   ├── run.mjs              le harnais : 521 assertions, 62 scénarios
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
 │   ├── build.mjs            copie content.js avec les durées accélérées
 │   └── parity.mjs           parité des clés de traduction entre les 5 langues
@@ -1483,7 +1483,40 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 60 scénarios, 514 assertions |
+| `npm test` | le harnais Playwright : 62 scénarios, 521 assertions |
+
+### Le rendu ne construit plus de balisage (v3.56.0)
+
+Le validateur d'add-ons de Mozilla — lancé sur la branche `claude/firefox`, qui
+partage ce `content.js` — signalait douze écritures `innerHTML`,
+`insertAdjacentHTML` et `outerHTML` dans le rendu. Elles sont à zéro.
+
+Ce n'était pas une correction de sûreté : l'échappement était en place, et les
+douze sites avaient été relus un par un. C'est une correction de **fragilité**.
+La sûreté tenait à ce qu'aucun appel n'oublie `escapeHtml`, et aucune relecture
+ne garantit ça pour l'avenir. Les valeurs venues de Twitch — noms de chaînes,
+catégories, titres, marques — passent désormais par `textContent` ou
+`setAttribute`, qui ne peuvent rien interpréter.
+
+**`escapeHtml` a disparu du fichier faute d'appelant.** C'est la preuve la plus
+courte que la conversion est complète : il n'y a plus d'échappement à oublier.
+
+Le HTML est également sorti des cinq tables de locale. `uiBadgeCostreamOf`
+rendait `Co-stream de <strong>${nom}</strong>` ; elle rend maintenant du texte
+pur où la place du nom est marquée par un `\u0000`, et le rendu y insère un
+`<strong>` construit en DOM. Vingt fonctions, cinq langues — **pas un mot des
+libellés n'a changé**, seul le balisage en est sorti.
+
+`noeudStatique` est la seule porte qui reste vers un analyseur HTML, réservée au
+balisage écrit dans `content.js` : icônes SVG, drapeaux, ossatures. La règle est
+écrite dans le code, à côté de la fonction.
+
+Le scénario 62 vérifie la propriété sur les deux chemins par lesquels du texte
+de Twitch atteint le DOM — le nom d'un invité squad et une catégorie — avec la
+charge `<img src=x onerror="…">`. La mutation qui remet un `innerHTML` à l'un
+des deux endroits ne se contente pas de faire échouer le test : elle **exécute**
+le `onerror`. C'est ce que l'ancien rendu risquait à chaque oubli.
+
 
 ### Ce qui part dans le paquet
 

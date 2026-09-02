@@ -531,7 +531,14 @@ titre('12. Mesure — ce qui est compté, et ce qui ne l\'est pas');
   await page.evaluate(() => {
     window.__fx.dormant = { id:'s-dormant-1', createdAt:new Date().toISOString(), viewers:500, game:'G', tags:[] };
   });
-  await wait(page, 900);
+  /* On attend le FAIT — la carte fabriquée — et non une durée. Ces deux
+     assertions ont lâché sous charge avec un `wait(900)` : la fabrication
+     dépend d'un debounce de scan et d'un aller-retour de lot, donc de la
+     machine. C'est le travers contre lequel l'en-tête de ce fichier met en
+     garde, présent ici depuis l'origine. L'expiration n'échoue pas d'elle-même :
+     elle laisse l'assertion suivante constater et nommer ce qui manque. */
+  await attendre(page, () =>
+    !!document.querySelector('.side-nav-card[data-tse-synthetic="true"]'), 5000);
   const ahead = await page.evaluate(() => ({
     notre: !!document.querySelector('.side-nav-card[data-tse-synthetic="true"]'),
     lag:   window.tse.lag().length
@@ -540,7 +547,8 @@ titre('12. Mesure — ce qui est compté, et ce qui ne l\'est pas');
   ok('rien n\'est encore compté : Twitch n\'affiche pas', ahead.lag === 0, String(ahead.lag));
 
   await page.evaluate(() => window.__goLive('dormant'));
-  await wait(page, 900);
+  // Même raison : c'est l'ARRIVÉE de la mesure qu'on attend, pas 900 ms.
+  await attendre(page, () => window.tse.lag().length > 0, 5000);
   const got = await page.evaluate(() => window.tse.lag());
   ok('une chaîne déjà présente hors ligne EST mesurée', got.length === 1, JSON.stringify(got));
   ok('mesure attribuée à la bonne chaîne', got[0]?.login === 'dormant', JSON.stringify(got[0]));
@@ -4971,6 +4979,210 @@ titre('60. Aperçu — chaque type de badge a sa couleur, et elles sont distinct
      && (ccl.hTexte >= 330 || ccl.hTexte <= 10),
      JSON.stringify({ texte: [ccl.hTexte, hype.hTexte, ecart(ccl.hTexte, hype.hTexte) + '°'],
                       fond:  [ccl.hFond,  hype.hFond,  ecart(ccl.hFond,  hype.hFond)  + '°'] }));
+  await page.close();
+}
+
+// ═════════ 61. Firefox — le pont privé des API que Chrome a en plus ═════════
+titre('61. Firefox — l\'aperçu tient sans les API que Chrome a en plus');
+{
+  /* Ce dépôt ne peut pas lancer Firefox : la politique réseau de
+     l'environnement bloque le téléchargement du binaire de Playwright. On ne
+     va donc PAS prétendre avoir vérifié le portage bout en bout. Ce qu'on peut
+     faire — et qui vaut mieux qu'une lecture — c'est reproduire dans Chromium
+     les manques exacts de Firefox et regarder le code s'en sortir.
+
+     Deux API que Chrome a et que Firefox n'a pas au plancher déclaré (140),
+     retirées par DEUX mécanismes différents, et la différence n'est pas un
+     détail de mise en œuvre :
+
+      • location.ancestorOrigins — jamais implémentée par Firefox avant ~148
+        (Mozilla la tenait pour une fuite de vie privée). Le pont s'en sert
+        pour VISER son postMessage ; sans elle, il retombe sur les deux
+        origines que le manifeste déclare. C'est LA divergence du portage, et
+        un repli cassé ne se verrait nulle part : l'aperçu ne se dévoilerait
+        simplement jamais sous Firefox.
+
+        Elle est [LegacyUnforgeable] — propriété propre, non configurable —
+        donc impossible à retirer depuis la page. Le retrait se fait à la
+        construction, sur une copie (cf. tests/build.mjs), et ce scénario
+        charge cette variante : /content.firefox.test.js.
+
+      • requestVideoFrameCallback — arrivée en Firefox 132, donc présente au
+        plancher. Elle est tout de même retirée ici, et celle-là POUR DE VRAI
+        depuis la page : le réglage media.rvfc.enabled peut la couper, et la
+        course à trois signaux du pont doit tenir sur les deux qui restent.
+
+     Le décor est VÉRIFIÉ avant tout le reste (window.__fxSansApi). La première
+     version de ce scénario croyait retirer ancestorOrigins par `delete` et ne
+     retirait rien : ses deux assertions vertes ne testaient personne. */
+  const lecteurFirefox = `<!doctype html><html><body>
+    <script>
+      // rVFC vit sur le prototype et s'y supprime pour de bon. ancestorOrigins,
+      // elle, résiste — c'est la variante de build qui s'en charge.
+      delete HTMLVideoElement.prototype.requestVideoFrameCallback;
+      window.__fxSansApi = {
+        rvfc: !('requestVideoFrameCallback' in HTMLVideoElement.prototype),
+      };
+    </script>
+    <script>
+      const c = document.createElement('canvas');
+      c.width = 32; c.height = 18;
+      const ctx = c.getContext('2d');
+      const v = document.createElement('video');
+      v.autoplay = true; v.muted = true; v.playsInline = true;
+      v.srcObject = c.captureStream(25);
+      document.body.appendChild(v);
+      v.play().catch(() => {});
+      setInterval(() => {
+        ctx.fillStyle = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+        ctx.fillRect(0, 0, 32, 18);
+      }, 40);
+    </script>
+    <script src="/adblock.test.js"></script>
+    <script src="/content.firefox.test.js"></script>
+  </body></html>`;
+
+  const page = await freshTwitch(lecteurFirefox);
+  await page.evaluate(() => {
+    window.__fx = { renard: { id: 'r1', createdAt: new Date(Date.now() - 3600_000).toISOString(),
+                              viewers: 1000, game: 'G', tags: [] } };
+    window.__addCard('renard', 'G', '1 k');
+  });
+  await wait(page, 2000);
+  await hoverCard(page, 0);
+
+  await attendre(page, () => {
+    const f = document.querySelector('.tse-preview__iframe');
+    return !!f && f.dataset.tseLoaded === 'true';
+  }, 9000);
+
+  // D'abord : le décor est-il bien celui qu'on croit ? Un `delete` qui aurait
+  // échoué rendrait tout le reste du scénario complaisant.
+  const decor = await (async () => {
+    const f = page.frames().find(x => x.url().startsWith('https://player.twitch.tv/'));
+    if (!f) return null;
+    try {
+      return await f.evaluate(() => ({
+        rvfc: window.__fxSansApi?.rvfc ?? null,
+        // La variante de build est-elle bien celle qui tourne ? On lit la
+        // ligne substituée dans le source servi, pas une intention.
+        variante: [...document.scripts].some(s => s.src.endsWith('/content.firefox.test.js')),
+      }));
+    } catch { return null; }
+  })();
+  ok('le décor est bien celui qu\'on croit : rVFC retirée, variante Firefox chargée',
+     !!decor && decor.rvfc === true && decor.variante === true,
+     JSON.stringify(decor));
+
+  const etat = await page.evaluate(() => {
+    const f = document.querySelector('.tse-preview__iframe');
+    return f ? (f.dataset.tseLoaded ?? 'posee') : 'pas-d-iframe';
+  });
+  ok('sans ancestorOrigins ni rVFC, l\'aperçu se dévoile quand même',
+     etat === 'true', etat);
+
+  /* Le postMessage a bien traversé : c'est LE point du repli d'origines. Le
+     journal ne peut porter « pont » que si un message est arrivé au parent,
+     donc si la cible de repli était la bonne. */
+  const journal = await page.evaluate(() => window.tse.apercu().map(e => e.evt));
+  ok('le pont a parlé et la première image est passée par les origines de repli',
+     journal.includes('pont') && journal.includes('premiere-image'),
+     JSON.stringify(journal));
+  await page.close();
+}
+
+// ═════════ 62. Le rendu ne construit plus de balisage ═════════
+titre('62. Rendu — une donnée de Twitch est du TEXTE, jamais du balisage');
+{
+  /* Ce scénario existe pour une raison précise. Jusqu'ici le rendu assemblait
+     des chaînes HTML et comptait sur `escapeHtml` à chaque point d'insertion.
+     C'était correct — on l'a relu site par site — mais la correction tenait à
+     ce qu'aucun appel n'oublie l'échappement, et aucune relecture ne garantit
+     ça pour l'avenir. Le rendu construit maintenant des NŒUDS : les valeurs
+     venues de Twitch passent par textContent ou setAttribute, qui ne peuvent
+     rien interpréter. `escapeHtml` a disparu du fichier faute d'appelant.
+
+     Le banc ne couvrait ni le contenu de ces badges ni cette propriété : la
+     refonte aurait pu perdre le <strong> des noms, ou pire, sans rien casser
+     de visible. Trois choses sont donc vérifiées ici — la phrase traduite, le
+     <strong> autour du nom, et qu'un nom hostile reste du texte. */
+  const PIEGE = '<img src=x onerror="window.__injecte=1">Marmotte';
+
+  const page = await freshTwitch('<!doctype html><html><body>lecteur</body></html>');
+  await page.evaluate(() => { window.__injecte = 0; });
+
+  // Carte « squad » : le badge « En live avec … » se déclenche sur un
+  // mini-avatar dont l'alt porte le nom de l'invité (cf. getSquadInfo).
+  await page.evaluate((piege) => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {
+      corbeau: { id: 'c1', createdAt: h, viewers: 1000, game: 'G', tags: [] },
+      // La CATÉGORIE vient de l'API et alimente la liste déroulante des
+      // filtres : c'est l'autre chemin par lequel du texte de Twitch atteint
+      // le DOM, et il passe par le code refondu des options.
+      belette: { id: 'b1', createdAt: h, viewers: 900, game: piege, tags: [] },
+    };
+    window.__addCard('corbeau', 'G', '1 k');
+    window.__addCard('belette', 'G', '900');
+    const carte = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a')?.getAttribute('href') === '/corbeau');
+    const mini = document.createElement('div');
+    mini.className = 'primary-with-small-avatar__mini-avatar';
+    const img = document.createElement('img');
+    img.setAttribute('alt', piege);       // le nom de l'invité, piégé
+    mini.appendChild(img);
+    carte.querySelector('a').appendChild(mini);
+  }, PIEGE);
+  await wait(page, 2500);
+
+  await hoverCard(page, 0);
+  await attendre(page, () => !!document.querySelector('.tse-preview__badge--squad'), 5000);
+  const squad = await page.evaluate(() => {
+    const b = document.querySelector('.tse-preview__badge--squad');
+    if (!b) return null;
+    const fort = b.querySelector('strong');
+    return {
+      texte: b.textContent.trim(),
+      nomEnGras: fort ? fort.textContent : null,
+      // Le piège a-t-il produit un ÉLÉMENT ? C'est la question qui compte.
+      imgInjectee: !!b.querySelector('img'),
+      injecte: window.__injecte,
+    };
+  });
+
+  /* La phrase traduite doit être intacte : le <strong> est sorti des tables de
+     locale, mais pas un mot du libellé. Le harnais tourne en français. */
+  ok('la phrase traduite a survécu à la sortie du HTML des locales',
+     !!squad && squad.texte.startsWith('En live avec '), JSON.stringify(squad?.texte));
+
+  ok('le nom de l\'invité est bien en gras, via la fente',
+     !!squad && squad.nomEnGras === PIEGE, JSON.stringify(squad?.nomEnGras));
+
+  /* LE point du scénario. Sous l'ancien rendu, oublier un escapeHtml ici
+     insérait une <img> et exécutait son onerror. Avec textContent, le même
+     nom est affiché caractère pour caractère et rien ne s'exécute. */
+  ok('un nom hostile reste du texte : aucune balise, aucun code exécuté',
+     !!squad && squad.imgInjectee === false && squad.injecte === 0,
+     JSON.stringify({ img: squad?.imgInjectee, injecte: squad?.injecte }));
+  await unhoverCard(page, 0);
+
+  // L'autre chemin : la catégorie que Twitch renvoie, affichée dans la liste
+  // déroulante des filtres (code des options, refondu lui aussi).
+  const option = await page.evaluate((piege) => {
+    const opts = [...document.querySelectorAll('.tse-dd--cat .tse-dd-opt')];
+    const cible = opts.find(o => o.dataset.value === piege);
+    if (!cible) return { trouvee: false, valeurs: opts.map(o => o.dataset.value) };
+    return {
+      trouvee: true,
+      texte: cible.querySelector('.tse-dd-name')?.textContent ?? null,
+      imgInjectee: !!cible.querySelector('img'),
+      injecte: window.__injecte,
+    };
+  }, PIEGE);
+  ok('une catégorie hostile s\'affiche en toutes lettres, sans rien exécuter',
+     option.trouvee && option.texte === PIEGE
+     && option.imgInjectee === false && option.injecte === 0,
+     JSON.stringify(option));
   await page.close();
 }
 

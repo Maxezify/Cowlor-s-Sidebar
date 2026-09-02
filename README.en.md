@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.3 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.56.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -1369,7 +1369,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs 440×280 tile showing the extension at work
 ├── store/                 the copy of the seven Chrome Web Store listings
 ├── tests/
-│   ├── run.mjs              the harness: 514 assertions across 60 scenarios
+│   ├── run.mjs              the harness: 521 assertions across 62 scenarios
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
 │   ├── build.mjs            copies content.js with the timings accelerated
 │   └── parity.mjs           translation-key parity across the 5 languages
@@ -1399,7 +1399,39 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 60 scenarios, 514 assertions |
+| `npm test` | the Playwright harness: 62 scenarios, 521 assertions |
+
+### The rendering no longer builds markup (v3.56.0)
+
+Mozilla's add-on validator — run on the `claude/firefox` branch, which shares
+this `content.js` — flagged twelve `innerHTML`, `insertAdjacentHTML` and
+`outerHTML` writes in the rendering. They are at zero.
+
+This was not a safety fix: the escaping was in place, and the twelve sites had
+been read one by one. It is a **fragility** fix. The safety depended on no call
+ever forgetting `escapeHtml`, and no code review guarantees that for the future.
+The values that come from Twitch — channel names, categories, titles, brands —
+now go through `textContent` or `setAttribute`, which cannot interpret anything.
+
+**`escapeHtml` has disappeared from the file for want of a caller.** That is the
+shortest proof the conversion is complete: there is no escaping left to forget.
+
+HTML has also been lifted out of the five locale tables. `uiBadgeCostreamOf`
+returned `Co-stream of <strong>${name}</strong>`; it now returns plain text
+where the name's place is marked by a `\u0000`, and the renderer inserts a
+DOM-built `<strong>` there. Twenty functions, five languages — **not one word of
+the wording changed**, only the markup came out.
+
+`noeudStatique` is the one door left to an HTML parser, reserved for markup
+written inside `content.js`: SVG icons, flags, skeletons. The rule is written in
+the code, next to the function.
+
+Scenario 62 checks the property on both paths by which Twitch text reaches the
+DOM — a squad guest's name and a category — with the payload
+`<img src=x onerror="…">`. The mutation that puts an `innerHTML` back at either
+place does not merely fail the test: it **executes** the `onerror`. That is what
+the old rendering risked on every omission.
+
 
 ### What goes into the package
 
