@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.0 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.55.1 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -1035,6 +1035,37 @@ Le pont d'aperçu fait de même, avec trois différences :
   quel `button`, mais **uniquement** dans le sous-arbre
   `[data-a-target^="content-classification-gate"]`. Cliquer un bouton
   quelconque du lecteur couperait le son ou ouvrirait les réglages.
+
+#### La veille s'arrêtait avant ce qu'elle attendait (v3.55.1)
+
+La 3.55 est sortie avec un défaut que le banc ne pouvait pas voir. Son
+observateur se retirait dès que **deux** conditions étaient réunies — une
+`<video>` sous surveillance, aucune modale à l'écran — et ce « aucune modale »
+était fondé sur une idée fausse, écrite noir sur blanc dans le code : *« sur un
+stream étiqueté, la `<video>` n'existe qu'une fois l'écran acquitté »*.
+
+Twitch pose son élément `<video>` **avec le lecteur**, avant que l'écran
+d'acquittement ne se rende. La veille voyait donc une vidéo, pas encore de
+modale, concluait qu'il n'y avait plus rien à faire, et se retirait. La modale
+apparaissait ensuite dans une frame que plus personne ne regardait : ni cliquée,
+ni signalée. Le filet ordinaire du parent la dévoilait alors en travers de
+l'aperçu — le pire des trois résultats possibles.
+
+Le harnais ne pouvait pas l'attraper : il rendait sa modale d'emblée, donc
+**avant** la vidéo. L'ordre inverse de la production. Un scénario le reproduit
+désormais — `<video>` sans flux dès le départ, modale 400 ms plus tard — et la
+mutation qui remet la condition de la 3.55 le fait tomber, avec exactement le
+journal observé en production : `iframe, pont, devoilee`, sans `modale`.
+
+L'observateur ne se retire plus que sur la **première image annoncée**. Et le
+signal de première image est retenu tant qu'une modale est visible : sans cette
+retenue, un `readyState` complaisant sur une vidéo vide suffirait à faire
+dévoiler l'écran d'acquittement.
+
+Le bouton, lui, doit être **visible** pour compter — largeur et hauteur non
+nulles. Un sur-cadre laissé dans le DOM après coup ferait sinon croire à une
+modale éternelle, et l'aperçu ne se dévoilerait plus jamais : on aurait remplacé
+un défaut par son symétrique.
 
 #### Deux filets, et pourquoi il en fallait un second
 

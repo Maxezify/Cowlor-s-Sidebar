@@ -4554,6 +4554,94 @@ titre('58. Aperçu — l\'écran « Commencer à regarder » ne doit plus figer 
     await page.close();
   }
 
+  /* ── a bis) L'ORDRE DE LA PRODUCTION : la <video> AVANT la modale ─────────
+
+     Le cas qui a échappé à la 3.55, et le seul qui compte vraiment : Twitch
+     pose son élément <video> avec le lecteur, puis rend l'écran d'acquittement
+     par-dessus. La veille du pont s'arrêtait alors juste avant — « une vidéo
+     est sous surveillance, aucune modale à l'écran, il n'y a plus rien à
+     faire » — et la modale apparaissait dans une frame que plus personne ne
+     regardait. Le harnais ne pouvait pas le voir : il rendait sa modale
+     d'emblée, donc AVANT la vidéo.
+
+     La <video> est ici présente dès le départ mais SANS flux : readyState 0,
+     aucun `playing`. Elle ne reçoit son canvas qu'au clic. C'est exactement ce
+     que fait un lecteur bloqué par son écran d'acquittement. */
+  {
+    const lecteurVideoDAbord = `<!doctype html><html><body>
+      <video id="v" autoplay muted playsinline></video>
+      <script>
+        window.__clics = 0;
+        window.__modaleA = null;
+        // La modale n'arrive qu'APRÈS : 400 ms, largement de quoi laisser la
+        // veille se retirer si elle a le droit de le faire.
+        setTimeout(() => {
+          const zone = document.createElement('div');
+          zone.setAttribute('data-a-target', 'content-classification-gate-overlay');
+          zone.innerHTML = '<p>destiné à certains publics</p>' +
+            '<button data-a-target="content-classification-gate-overlay-start-watching-button"' +
+            ' style="width:120px;height:32px">Commencer à regarder</button>';
+          document.body.appendChild(zone);
+          window.__modaleA = performance.now();
+          zone.querySelector('button').addEventListener('click', () => {
+            window.__clics++;
+            zone.remove();
+            const c = document.createElement('canvas');
+            c.width = 32; c.height = 18;
+            const ctx = c.getContext('2d');
+            const v = document.getElementById('v');
+            v.srcObject = c.captureStream(25);
+            v.play().catch(() => {});
+            setInterval(() => {
+              ctx.fillStyle = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+              ctx.fillRect(0, 0, 32, 18);
+            }, 40);
+          });
+        }, 400);
+      </script>
+      <script src="/adblock.test.js"></script>
+      <script src="/content.test.js"></script>
+    </body></html>`;
+
+    const page = await freshTwitch(lecteurVideoDAbord);
+    await poserCarte(page, 'omega');
+    await wait(page, 2000);
+    await hoverCard(page, 0);
+
+    await attendre(page, () => {
+      const f = document.querySelector('.tse-preview__iframe');
+      return !!f && f.dataset.tseLoaded === 'true';
+    }, 9000);
+    /* Dévoilée ET en train de jouer. La seule chose dévoilée ne prouve rien :
+       sous la régression, le filet ordinaire dévoilait AUSSI — sauf qu'il
+       dévoilait la modale. C'est la lecture effective qui sépare les deux. */
+    const lecture = await (async () => {
+      const f = page.frames().find(x => x.url().startsWith('https://player.twitch.tv/'));
+      if (!f) return null;
+      try {
+        return await f.evaluate(() => {
+          const v = document.getElementById('v');
+          return v ? { pause: v.paused, pret: v.readyState } : null;
+        });
+      } catch { return null; }
+    })();
+    ok('modale rendue APRÈS la vidéo : l\'aperçu se dévoile ET la vidéo joue',
+       (await etatIframe(page)) === 'true'
+       && !!lecture && lecture.pause === false && lecture.pret >= 2,
+       JSON.stringify({ iframe: await etatIframe(page), lecture }));
+    const n = await clics(page);
+    ok('et le bouton a bien été cliqué, la veille ne s\'était pas retirée',
+       n === 1, String(n));
+
+    // Le journal de diagnostic doit raconter la même histoire, dans l'ordre.
+    const journal = await page.evaluate(() => window.tse.apercu().map(e => e.evt));
+    ok('le journal note le pont, la modale, puis la première image',
+       journal.includes('pont') && journal.includes('modale')
+       && journal.indexOf('modale') < journal.indexOf('premiere-image'),
+       JSON.stringify(journal));
+    await page.close();
+  }
+
   // ── b) l'interstitielle tient bon : retour à la vignette, pas de modale ──
   {
     const page = await freshTwitch(lecteurEtiquete(false));

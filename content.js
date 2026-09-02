@@ -173,6 +173,10 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 // Signalé au parent dès qu'une interstitielle est VUE. Le parent en a besoin :
 // son filet de révélation dévoilerait sinon la modale à la place de la vidéo.
 const TSE_PREVIEW_GATE_MSG = 'tse:preview-gate';
+// Signe de vie du pont, posté à son démarrage. Il ne change aucun comportement ;
+// il rend seulement distinguables deux pannes qui se ressemblent — « le pont ne
+// tourne pas dans cette iframe » et « il tourne mais ne trouve pas la modale ».
+const TSE_PREVIEW_HELLO_MSG = 'tse:preview-hello';
 
 // Le levage de l'interstitielle. À false, on retrouve le comportement de la
 // 3.54 : les streams étiquetés restent sur leur vignette.
@@ -221,12 +225,41 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
   };
 
-  let sent = false;
-  const announce = () => {
-    if (sent) return;
+  // Signe de vie, posté au démarrage. Il ne sert qu'au diagnostic (tse.apercu),
+  // et il sert à trancher LA question qu'on ne pouvait pas trancher autrement :
+  // « le pont tourne-t-il seulement dans cette iframe ? ». Sans lui, un pont
+  // muet et un pont qui ne trouve rien se ressemblent exactement.
+  poster(TSE_PREVIEW_HELLO_MSG);
+
+  /* Le bouton d'acquittement, s'il est VISIBLE.
+     La visibilité n'est pas un détail : Twitch peut laisser le sur-cadre dans
+     le DOM après coup. Le chercher sans regarder sa taille ferait croire à une
+     modale éternelle, et l'aperçu ne se dévoilerait alors plus jamais — on
+     aurait remplacé un défaut par son symétrique. */
+  const gateBouton = () => {
+    const visible = (b) => {
+      if (!b) return null;
+      const r = b.getBoundingClientRect();
+      return (r.width > 0 && r.height > 0) ? b : null;
+    };
+    const direct = visible(document.querySelector(TSE_GATE_BUTTON));
+    if (direct) return direct;
+    const zone = document.querySelector(TSE_GATE_ZONE);
+    return zone ? visible(zone.querySelector('button')) : null;
+  };
+
+  let sent = false, imagePrete = false;
+  /* Le signal de première image, RETENU tant qu'une modale est à l'écran.
+     Sans cette retenue, un lecteur qui pose son élément <video> avant que
+     l'écran d'acquittement n'apparaisse — ce que Twitch fait — annonçait une
+     image que personne ne voyait, et le parent dévoilait la modale. */
+  const annoncer = () => {
+    if (sent || !imagePrete) return;
+    if (gateBouton()) return;
     sent = true;
     poster(TSE_PREVIEW_FIRST_FRAME_MSG);
   };
+  const announce = () => { imagePrete = true; annoncer(); };
 
   /* L'interstitielle de classification. Cf. l'en-tête du module pour le
      pourquoi ; ici, le comment.
@@ -238,11 +271,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   const cliques = new WeakSet();
   let clics = 0, gateVue = false;
   const lever = () => {
-    let btn = document.querySelector(TSE_GATE_BUTTON);
-    if (!btn) {
-      const zone = document.querySelector(TSE_GATE_ZONE);
-      btn = zone ? zone.querySelector('button') : null;
-    }
+    const btn = gateBouton();
     if (!btn) return;
 
     /* SIGNALER d'abord, et TOUJOURS — même quand le levage est coupé.
@@ -284,17 +313,26 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   let veille = false;
   const scan = () => {
-    // L'interstitielle d'abord : sur un stream étiqueté, la <video> n'existe
-    // qu'une fois l'écran acquitté, et regarder la vidéo avant lui reviendrait
-    // à attendre quelque chose qui ne viendra pas.
     lever();
     if (!veille) {
       const v = document.querySelector('video');
       if (v) { veille = true; watch(v); }
     }
-    // On ne se retire que lorsqu'il n'y a plus rien à faire : une vidéo sous
-    // surveillance ET plus d'interstitielle à l'écran.
-    return veille && !document.querySelector(TSE_GATE_BUTTON);
+    // Le signal a pu être retenu par une modale que le passage précédent vient
+    // de lever : on le rejoue à chaque tour.
+    annoncer();
+
+    /* On ne se retire QUE sur la première image annoncée.
+       La 3.55 se retirait dès qu'une <video> était sous surveillance et
+       qu'aucune modale n'était à l'écran. C'était fondé sur une idée fausse —
+       « sur un stream étiqueté, la <video> n'existe qu'une fois l'écran
+       acquitté ». Twitch pose son élément <video> avec le lecteur, AVANT que
+       l'écran d'acquittement ne se rende. La veille s'arrêtait donc juste avant
+       ce qu'elle attendait : la modale apparaissait dans une frame que plus
+       personne ne regardait, n'était ni cliquée ni signalée, et le filet
+       ordinaire du parent la dévoilait. Vu en production, pas au banc — le
+       harnais rendait sa modale AVANT la vidéo, l'ordre inverse. */
+    return sent;
   };
 
   // À document_start il n'y a ni <video> ni interstitielle. On les attend, sans
@@ -4943,6 +4981,23 @@ const TSE_GATE_MAX_CLICKS = 5;
       console.table(j.map(e => ({ 'ms depuis le chargement': e.t, événement: e.evt, détail: e.detail })));
       return j;
     },
+    /* Journal du DERNIER aperçu survolé. Il répond à des questions qu'aucun
+       banc ne peut trancher, parce qu'elles portent sur le vrai lecteur :
+         iframe          → l'iframe a été injectée, et sur quelle chaîne
+         pont            → le module d'iframe tourne (sinon : absent)
+         modale          → il a vu l'écran d'acquittement
+         premiere-image  → la vidéo a présenté une image
+         devoilee        → l'aperçu est passé du JPEG à la vidéo
+         retour-vignette → la modale a tenu, on est revenu au JPEG
+       Un journal SANS « pont » veut dire que le script ne tourne pas dans
+       l'iframe. Un journal avec « pont » mais sans « modale » sur une chaîne
+       étiquetée veut dire que le sélecteur du bouton ne correspond plus. */
+    apercu() {
+      const j = preview.journal();
+      if (!j.length) { console.log('[tse] aucun aperçu enregistré — survolez une carte.'); return j; }
+      console.table(j.map(e => ({ 'ms depuis l\'injection': e.t, événement: e.evt, détail: e.detail })));
+      return j;
+    },
     // Chaînes globales — surface de vérification de la couche de données.
     // Aucune interface ne consomme encore le classement : c'est ici, et
     // seulement ici, qu'on peut l'allumer et le lire. Les colonnes sont des
@@ -5860,6 +5915,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     let iframeLoadTimer = null;// timeout de chargement de l'iframe
     let revealTimer = null;    // filet si le signal de première image n'arrive pas
     let gateTimer = null;      // retour à la vignette si l'interstitielle tient bon
+    /* Journal du DERNIER aperçu : ce que l'iframe a dit, et à quel moment.
+       Il ne sert à aucune décision — uniquement à répondre, sur une machine
+       réelle, à une question que le banc ne peut pas trancher : le pont
+       tourne-t-il ? a-t-il vu la modale ? Lu par tse.apercu(). */
+    let journalApercu = [];
     let revealCleanup = null;  // retire l'écouteur postMessage de l'iframe en cours
     let flagRemoveTimer = null;// retrait différé du flag body.tse-preview-active
     let currentLogin = null;   // login affiché actuellement (anti-race)
@@ -6472,6 +6532,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       // handler de `load` de réarmer un filet que le message venait d'annuler.
       let gateVu = false;
 
+      const t0 = Date.now();
+      const noter = (evt, detail = '') => {
+        journalApercu.push({ t: Date.now() - t0, evt, detail });
+        if (journalApercu.length > 24) journalApercu.shift();
+      };
+      journalApercu = [];
+      noter('iframe', login);
+
       const reveal = () => {
         if (revealTimer) { clearTimeout(revealTimer); revealTimer = null; }
         if (gateTimer) { clearTimeout(gateTimer); gateTimer = null; }
@@ -6479,6 +6547,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         // Le popup a pu être refermé, ou pointer une autre chaîne, entre-temps.
         if (currentLogin !== login || !iframe.isConnected) return;
         iframe.dataset.tseLoaded = 'true';
+        noter('devoilee');
       };
 
       // Retour à la vignette. Rendre la main est ici la bonne issue : mieux vaut
@@ -6488,6 +6557,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (iframe.dataset.tseLoaded === 'true' || !iframe.isConnected) return;
         if (revealTimer) { clearTimeout(revealTimer); revealTimer = null; }
         if (revealCleanup) { revealCleanup(); revealCleanup = null; }
+        noter('retour-vignette');
         try { iframe.src = 'about:blank'; } catch { /* cross-origin edge */ }
         iframe.remove();
       };
@@ -6497,8 +6567,14 @@ const TSE_GATE_MAX_CLICKS = 5;
         // à CETTE iframe. Le contenu, lui, ne sert qu'à écarter le bruit des
         // autres scripts de la page (Twitch en poste beaucoup).
         if (e.source !== iframe.contentWindow) return;
-        if (e.data?.tse === TSE_PREVIEW_FIRST_FRAME_MSG) { reveal(); return; }
+        if (e.data?.tse === TSE_PREVIEW_HELLO_MSG) { noter('pont'); return; }
+        if (e.data?.tse === TSE_PREVIEW_FIRST_FRAME_MSG) {
+          noter('premiere-image');
+          reveal();
+          return;
+        }
         if (e.data?.tse !== TSE_PREVIEW_GATE_MSG) return;
+        noter('modale');
         // Une interstitielle est à l'écran. Le filet de révélation ne doit plus
         // jouer — il dévoilerait la modale — et un second filet le remplace,
         // qui rend la main à la vignette si la vidéo ne part pas.
@@ -6833,7 +6909,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       closeIfDetached: () => { if (currentCard && !currentCard.isConnected) close(); },
       // Purge mémoire du cache de métadonnées (appelée périodiquement par les
       // timers). metaCache est reconstructible → éviction sans effet visible.
-      prune: () => pruneCache(metaCache, META_TTL, CFG.META_CACHE_MAX)
+      prune: () => pruneCache(metaCache, META_TTL, CFG.META_CACHE_MAX),
+      // Journal du dernier aperçu (cf. tse.apercu). Copie : personne d'autre
+      // n'écrit dedans, et le rendre tel quel inviterait à le faire.
+      journal: () => journalApercu.slice()
     };
   })();
 

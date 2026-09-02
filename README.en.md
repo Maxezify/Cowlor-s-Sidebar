@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.0 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.55.1 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -972,6 +972,34 @@ The preview bridge does the same, with three differences:
   `button` — but **only** inside the `[data-a-target^="content-classification-gate"]`
   subtree. Clicking an arbitrary player button would mute the sound or open the
   settings.
+
+#### The watch stopped just before what it was waiting for (v3.55.1)
+
+3.55 shipped with a flaw the bench could not see. Its observer disconnected as
+soon as **two** conditions held — a `<video>` under watch, no gate on screen —
+and that "no gate" rested on a false premise, written down in the code: *"on a
+labelled stream the `<video>` only exists once the screen is acknowledged"*.
+
+Twitch creates its `<video>` element **with the player**, before the gate
+renders. So the watch saw a video, no gate yet, concluded there was nothing left
+to do, and withdrew. The gate then appeared in a frame nobody was watching any
+more: neither clicked nor reported. The parent's ordinary net revealed it across
+the preview — the worst of the three possible outcomes.
+
+The harness could not catch it: it rendered its gate immediately, therefore
+**before** the video. The opposite order from production. A scenario now
+reproduces it — a stream-less `<video>` from the start, the gate 400 ms later —
+and the mutation that restores 3.55's condition makes it fall, with exactly the
+journal observed in production: `iframe, pont, devoilee`, no `modale`.
+
+The observer now withdraws only on the **first frame announced**. And that
+first-frame signal is held back while a gate is visible: without that hold, a
+generous `readyState` on an empty video would be enough to reveal the
+acknowledgement screen.
+
+The button itself must be **visible** to count — non-zero width and height.
+A container left in the DOM afterwards would otherwise look like an eternal
+gate, and the preview would never reveal again: one flaw traded for its mirror.
 
 #### Two nets, and why a second one was needed
 
