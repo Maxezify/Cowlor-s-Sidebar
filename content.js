@@ -493,7 +493,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
       uiPreviewLoadingTitle:     'Chargement du titre…',
-      uiBadgeCostreamOf:         (nameHtml) => `Co-stream de <strong>${nameHtml}</strong>`,
+      uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
       uiBadgeSubMonths:          (n) => `Abonné ${n} mois`,
       uiBadgeExSubMonths:        (n) => `Anciennement abonné ${n} mois`,
@@ -510,12 +510,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclProfanityVulgarity:              'Langage cru',
       uiCclDebatedSocialIssuesAndPolitics:  'Politique et sujets sensibles',
       uiCclGeneric:                         'Contenu classifié',
-      uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream avec ${namesHtml}`,
-      uiBadgeLiveWith:           (guestHtml, others) => {
+      uiBadgeCostreamWithNames:  (noms) => `Co-stream avec ${noms}`,
+      uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` et ${others} autre${others > 1 ? 's' : ''}` : '';
-        return `En live avec ${guestHtml}${suffix}`;
+        return `En live avec ${invite}${suffix}`;
       },
-      uiBadgeSponsoredBy:        (nameHtml) => `Sponsorisé par <strong>${nameHtml}</strong>`,
+      uiBadgeSponsoredBy:        (nom) => `Sponsorisé par ${nom}`,
       uiSortNoCoStreams:         'Aucun co-stream détecté actuellement',
       uiSortLabelSubs:           'Mes abonnements en tête',
       uiSortLabelSubsCount:      (n) => `Mes abonnements en tête — ${n} abonnement${n > 1 ? 's' : ''} au total`,
@@ -565,7 +565,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
       uiPreviewLoadingTitle:     'Loading title…',
-      uiBadgeCostreamOf:         (nameHtml) => `Co-stream of <strong>${nameHtml}</strong>`,
+      uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
       uiBadgeSubMonths:          (n) => `Subscribed ${n} month${n > 1 ? 's' : ''}`,
       uiBadgeExSubMonths:        (n) => `Formerly subscribed ${n} month${n > 1 ? 's' : ''}`,
@@ -577,12 +577,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclProfanityVulgarity:              'Strong language',
       uiCclDebatedSocialIssuesAndPolitics:  'Politics & sensitive topics',
       uiCclGeneric:                         'Classified content',
-      uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream with ${namesHtml}`,
-      uiBadgeLiveWith:           (guestHtml, others) => {
+      uiBadgeCostreamWithNames:  (noms) => `Co-stream with ${noms}`,
+      uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` and ${others} other${others > 1 ? 's' : ''}` : '';
-        return `Live with ${guestHtml}${suffix}`;
+        return `Live with ${invite}${suffix}`;
       },
-      uiBadgeSponsoredBy:        (nameHtml) => `Sponsored by <strong>${nameHtml}</strong>`,
+      uiBadgeSponsoredBy:        (nom) => `Sponsored by ${nom}`,
       uiSortNoCoStreams:         'No co-streams currently detected',
       uiSortLabelSubs:           'My subscriptions first',
       uiSortLabelSubsCount:      (n) => `My subscriptions first — ${n} subscription${n > 1 ? 's' : ''} in total`,
@@ -632,7 +632,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
       uiPreviewLoadingTitle:     'Titel wird geladen…',
-      uiBadgeCostreamOf:         (nameHtml) => `Co-stream von <strong>${nameHtml}</strong>`,
+      uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
       uiBadgeSubMonths:          (n) => `${n} Monat${n > 1 ? 'e' : ''} abonniert`,
       uiBadgeExSubMonths:        (n) => `Früher ${n} Monat${n > 1 ? 'e' : ''} abonniert`,
@@ -644,12 +644,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclProfanityVulgarity:              'Derbe Sprache',
       uiCclDebatedSocialIssuesAndPolitics:  'Politik & sensible Themen',
       uiCclGeneric:                         'Klassifizierter Inhalt',
-      uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream mit ${namesHtml}`,
-      uiBadgeLiveWith:           (guestHtml, others) => {
+      uiBadgeCostreamWithNames:  (noms) => `Co-stream mit ${noms}`,
+      uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` und ${others} ${others > 1 ? 'weiteren' : 'weiterem'}` : '';
-        return `Live mit ${guestHtml}${suffix}`;
+        return `Live mit ${invite}${suffix}`;
       },
-      uiBadgeSponsoredBy:        (nameHtml) => `Gesponsert von <strong>${nameHtml}</strong>`,
+      uiBadgeSponsoredBy:        (nom) => `Gesponsert von ${nom}`,
       uiSortNoCoStreams:         'Derzeit keine Co-streams erkannt',
       uiSortLabelSubs:           'Meine Abos zuerst',
       uiSortLabelSubsCount:      (n) => `Meine Abos zuerst — ${n} Abo${n > 1 ? 's' : ''} insgesamt`,
@@ -699,7 +699,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
       uiPreviewLoadingTitle:     'Cargando título…',
-      uiBadgeCostreamOf:         (nameHtml) => `Co-stream de <strong>${nameHtml}</strong>`,
+      uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
       uiBadgeSubMonths:          (n) => `Suscrito ${n} mes${n > 1 ? 'es' : ''}`,
       uiBadgeExSubMonths:        (n) => `Anteriormente suscrito ${n} mes${n > 1 ? 'es' : ''}`,
@@ -711,12 +711,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclProfanityVulgarity:              'Lenguaje soez',
       uiCclDebatedSocialIssuesAndPolitics:  'Política y temas sensibles',
       uiCclGeneric:                         'Contenido clasificado',
-      uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream con ${namesHtml}`,
-      uiBadgeLiveWith:           (guestHtml, others) => {
+      uiBadgeCostreamWithNames:  (noms) => `Co-stream con ${noms}`,
+      uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` y ${others} más` : '';
-        return `En vivo con ${guestHtml}${suffix}`;
+        return `En vivo con ${invite}${suffix}`;
       },
-      uiBadgeSponsoredBy:        (nameHtml) => `Patrocinado por <strong>${nameHtml}</strong>`,
+      uiBadgeSponsoredBy:        (nom) => `Patrocinado por ${nom}`,
       uiSortNoCoStreams:         'No se detectaron co-streams por el momento',
       uiSortLabelSubs:           'Mis suscripciones primero',
       uiSortLabelSubsCount:      (n) => `Mis suscripciones primero — ${n} suscripci${n > 1 ? 'ones' : 'ón'} en total`,
@@ -766,7 +766,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
       uiPreviewLoadingTitle:     'Carregando título…',
-      uiBadgeCostreamOf:         (nameHtml) => `Co-stream de <strong>${nameHtml}</strong>`,
+      uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
       uiBadgeSubMonths:          (n) => `Inscrito há ${n} ${n > 1 ? 'meses' : 'mês'}`,
       uiBadgeExSubMonths:        (n) => `Anteriormente inscrito ${n} ${n > 1 ? 'meses' : 'mês'}`,
@@ -778,12 +778,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclProfanityVulgarity:              'Linguagem forte',
       uiCclDebatedSocialIssuesAndPolitics:  'Política e temas sensíveis',
       uiCclGeneric:                         'Conteúdo classificado',
-      uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream com ${namesHtml}`,
-      uiBadgeLiveWith:           (guestHtml, others) => {
+      uiBadgeCostreamWithNames:  (noms) => `Co-stream com ${noms}`,
+      uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` e mais ${others}` : '';
-        return `Ao vivo com ${guestHtml}${suffix}`;
+        return `Ao vivo com ${invite}${suffix}`;
       },
-      uiBadgeSponsoredBy:        (nameHtml) => `Patrocinado por <strong>${nameHtml}</strong>`,
+      uiBadgeSponsoredBy:        (nom) => `Patrocinado por ${nom}`,
       uiSortNoCoStreams:         'Nenhum co-stream detectado no momento',
       uiSortLabelSubs:           'Minhas inscrições primeiro',
       uiSortLabelSubsCount:      (n) => `Minhas inscrições primeiro — ${n} inscri${n > 1 ? 'ções' : 'ção'} no total`,
@@ -3489,8 +3489,81 @@ const TSE_GATE_MAX_CLICKS = 5;
     return m && !RESERVED.test(m[1]) ? m[1].toLowerCase() : null;
   };
 
-  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  /* ============================================================
+   *  CONSTRUCTION DU DOM — la règle, et pourquoi elle est stricte
+   *  -------------------------------------------------------------
+   *  Plus rien de ce qui vient de Twitch n'est concaténé dans du
+   *  balisage, et `escapeHtml` a disparu du fichier faute d'appelant
+   *  — ce qui est la preuve la plus courte que la conversion est
+   *  complète : il n'y a plus d'échappement à oublier. Les noms de chaînes, les catégories, les titres,
+   *  les libellés d'étiquettes passent par `textContent` ou
+   *  `setAttribute`, qui ne peuvent RIEN interpréter. L'ancienne
+   *  voie — un `escapeHtml` à la main, puis `innerHTML` — était
+   *  correcte, on l'a relue site par site ; mais sa correction
+   *  tenait à ce qu'aucun appel n'oublie l'échappement, et ça,
+   *  aucune relecture ne le garantit pour l'avenir.
+   *
+   *  `noeudStatique` est la seule porte qui reste vers un
+   *  analyseur HTML, et elle est réservée au balisage ÉCRIT DANS
+   *  CE FICHIER : icônes SVG, drapeaux, ossatures. L'addons-linter
+   *  de Mozilla ne surveille pas DOMParser — y faire passer une
+   *  donnée externe ferait donc taire son avertissement sans rien
+   *  corriger, ce qui serait pire que l'avertissement. Si un jour
+   *  un appel lui donne autre chose qu'un littéral de ce fichier,
+   *  c'est un bug, pas une optimisation.
+   *
+   *  Le résultat est CLONÉ à chaque appel : l'analyse n'a lieu
+   *  qu'une fois par balisage, et l'appelant reçoit toujours des
+   *  nœuds neufs qu'il peut insérer sans effet de bord.
+   * ============================================================ */
+  const noeudStatique = (() => {
+    const cache = new Map();
+    return (balisage) => {
+      let modele = cache.get(balisage);
+      if (!modele) {
+        modele = new DOMParser().parseFromString(balisage, 'text/html').body;
+        cache.set(balisage, modele);
+      }
+      const frag = document.createDocumentFragment();
+      for (const n of modele.childNodes) frag.appendChild(n.cloneNode(true));
+      return frag;
+    };
+  })();
+
+  /* La FENTE des phrases traduites.
+     Les libellés d'interface portaient leur `<strong>` dans la traduction :
+     `Co-stream de <strong>${nom}</strong>`. Le balisage a été sorti des cinq
+     tables — le libellé n'a pas bougé d'un mot — et les fonctions rendent
+     maintenant du texte pur où l'emplacement du nom est marqué par ce
+     caractère. Un U+0000 ne peut venir ni d'une traduction, ni de Twitch. */
+  const FENTE = '\u0000';
+
+  /* Découpe une phrase traduite sur ses fentes et remplit les trous par des
+     nœuds. Les morceaux de phrase deviennent des nœuds TEXTE : une traduction
+     ne peut donc pas introduire de balisage, même par accident. */
+  const phraseAvecFente = (phrase, fabriquerRemplissage) => {
+    const frag = document.createDocumentFragment();
+    const morceaux = String(phrase).split(FENTE);
+    morceaux.forEach((t, i) => {
+      if (t) frag.appendChild(document.createTextNode(t));
+      if (i < morceaux.length - 1) frag.appendChild(fabriquerRemplissage());
+    });
+    return frag;
+  };
+
+  /* Une liste de noms en gras, séparés par « , ». Le séparateur est un nœud
+     texte à part : c'est ce qui évitait déjà « Scok , Farore » du temps du
+     HTML, et la raison n'a pas changé — le badge est en flex avec un gap. */
+  const nomsEnGras = (noms) => {
+    const frag = document.createDocumentFragment();
+    noms.forEach((n, i) => {
+      if (i) frag.appendChild(document.createTextNode(', '));
+      const fort = document.createElement('strong');
+      fort.textContent = n;
+      frag.appendChild(fort);
+    });
+    return frag;
+  };
 
   /**
    * Écrit du texte dans un élément UNIQUEMENT s'il change.
@@ -6256,38 +6329,46 @@ const TSE_GATE_MAX_CLICKS = 5;
     // parasite). `leadHtml` (logo sponsor) reste hors du span : le gap voulu
     // entre logo et texte est ainsi préservé — et `trailHtml` (le pictogramme
     // d'avertissement des étiquettes) profite du même gap de l'autre côté.
-    const badgeHtml = (modClass, textHtml, leadHtml = '', trailHtml = '') =>
-      `<span class="tse-preview__badge ${modClass}">` +
-      leadHtml +
-      `<span class="tse-preview__badge-text">${textHtml}</span>` +
-      trailHtml +
-      `</span>`;
+    const badgeNoeud = (modClass, contenu, lead = null, trail = null) => {
+      const badge = document.createElement('span');
+      badge.className = `tse-preview__badge ${modClass}`;
+      if (lead) badge.appendChild(lead);
+      const texte = document.createElement('span');
+      texte.className = 'tse-preview__badge-text';
+      // Une chaîne devient du TEXTE, jamais du balisage. Un nœud est inséré
+      // tel quel : c'est la voie des phrases à fente, déjà construites.
+      if (typeof contenu === 'string') texte.textContent = contenu;
+      else if (contenu) texte.appendChild(contenu);
+      badge.appendChild(texte);
+      if (trail) badge.appendChild(trail);
+      return badge;
+    };
 
     // Construit le HTML du badge "En live avec …" pour un login donné.
     // Priorité à la donnée Guest Star (liste complète et fiable, casse
     // correcte via displayName) ; repli sur la détection squad DOM native.
     // `channelId` optionnel : fourni par la popup pour les sections hors
     // "suivis" où getChannelId peut ne pas suffire. '' si aucun badge.
-    const liveWithBadgeHtml = (login, squadInfo, channelId) => {
+    const liveWithBadgeNoeud = (login, squadInfo, channelId) => {
       const mates = getGuestStarMates(login, channelId);
       if (mates.length) {
         // Nettoyage infaillible au point de rendu : on trimme CHAQUE nom résolu
         // (le displayName Twitch arrive parfois avec une espace de fin, qui
         // produirait "Scok , Farore"), on écarte les vides, puis on joint par
         // ", " → "Scok, Farore, Hiuuugs".
-        const namesHtml = mates
+        const noms = mates
           .map(m => displayNameFor(m.login, m.name).trim())
-          .filter(Boolean)
-          .map(n => `<strong>${escapeHtml(n)}</strong>`)
-          .join(', ');
-        if (!namesHtml) return '';
-        return badgeHtml('tse-preview__badge--squad', S.uiBadgeLiveWith(namesHtml, 0));
+          .filter(Boolean);
+        if (!noms.length) return null;
+        return badgeNoeud('tse-preview__badge--squad',
+          phraseAvecFente(S.uiBadgeLiveWith(FENTE, 0), () => nomsEnGras(noms)));
       }
       if (squadInfo) {
-        const guestHtml = `<strong>${escapeHtml(squadInfo.guest)}</strong>`;
-        return badgeHtml('tse-preview__badge--squad', S.uiBadgeLiveWith(guestHtml, squadInfo.otherCount));
+        return badgeNoeud('tse-preview__badge--squad',
+          phraseAvecFente(S.uiBadgeLiveWith(FENTE, squadInfo.otherCount),
+                          () => nomsEnGras([squadInfo.guest])));
       }
-      return '';
+      return null;
     };
 
     // Insère/rafraîchit le badge "En live avec" dans la popup OUVERTE, sans
@@ -6297,8 +6378,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     // popup a changé de cible entre-temps.
     const updateLiveWithBadge = (login, squadInfo, channelId) => {
       if (!el || currentLogin !== login) return;
-      const html = liveWithBadgeHtml(login, squadInfo, channelId);
-      if (!html) return;
+      const badge = liveWithBadgeNoeud(login, squadInfo, channelId);
+      if (!badge) return;
       const body = el.querySelector('.tse-preview__body');
       if (!body) return;
       let container = el.querySelector('.tse-preview__badges');
@@ -6308,8 +6389,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         body.appendChild(container);
       }
       const existing = container.querySelector('.tse-preview__badge--squad');
-      if (existing) existing.outerHTML = html; // remplace un éventuel badge squad déjà posé
-      else container.insertAdjacentHTML('beforeend', html);
+      if (existing) existing.replaceWith(badge); // remplace un éventuel badge squad déjà posé
+      else container.appendChild(badge);
       if (currentCard) positionPopup(currentCard); // la hauteur a pu changer
     };
 
@@ -6348,9 +6429,9 @@ const TSE_GATE_MAX_CLICKS = 5;
          « avertissement » deux fois autour d'une phrase qui porte déjà
          l'information. L'espacement vient du `gap` du badge, pas d'espaces
          dans le texte : c'est ce qui le garde régulier si le texte se replie. */
-      const marque = '<span class="tse-preview__badge-mark" aria-hidden="true">⚠️</span>';
-      container.insertAdjacentHTML('afterbegin',
-        badgeHtml('tse-preview__badge--ccl', escapeHtml(texte), marque, marque));
+      const marque = () => noeudStatique(
+        '<span class="tse-preview__badge-mark" aria-hidden="true">⚠️</span>');
+      container.prepend(badgeNoeud('tse-preview__badge--ccl', texte, marque(), marque()));
       if (currentCard) positionPopup(currentCard); // la hauteur a pu changer
     };
 
@@ -6359,17 +6440,16 @@ const TSE_GATE_MAX_CLICKS = 5;
     //   - participant + host → "Co-stream de <hôte>" (hostName = casse de repli)
     //   - host               → "Stream Hôte"
     //   - sinon              → '' (pas de badge basé sur le rôle)
-    const costreamBadgeHtml = (info) => {
+    const costreamBadgeNoeud = (info) => {
       if (info?.role === 'participant' && info.host) {
-        return badgeHtml(
-          'tse-preview__badge--costream',
-          S.uiBadgeCostreamOf(escapeHtml(displayNameFor(info.host, info.hostName)))
-        );
+        const nom = displayNameFor(info.host, info.hostName);
+        return badgeNoeud('tse-preview__badge--costream',
+          phraseAvecFente(S.uiBadgeCostreamOf(FENTE), () => nomsEnGras([nom])));
       }
       if (info?.role === 'host') {
-        return badgeHtml('tse-preview__badge--costream', escapeHtml(S.uiBadgeCostreamHost));
+        return badgeNoeud('tse-preview__badge--costream', S.uiBadgeCostreamHost);
       }
-      return '';
+      return null;
     };
 
     // Fusionne la détection DOM (getCostreamInfo) avec l'organizer GraphQL
@@ -6403,8 +6483,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     // reste. Conserve l'ordre des badges (co-stream avant squad/sponsor).
     const updateCostreamBadge = (login, domInfo, channelId, organizer) => {
       if (!el || currentLogin !== login) return;
-      const html = costreamBadgeHtml(resolveCostreamInfo(domInfo, organizer, channelId));
-      if (!html) return;
+      const badge = costreamBadgeNoeud(resolveCostreamInfo(domInfo, organizer, channelId));
+      if (!badge) return;
       const body = el.querySelector('.tse-preview__body');
       if (!body) return;
       let container = el.querySelector('.tse-preview__badges');
@@ -6414,13 +6494,13 @@ const TSE_GATE_MAX_CLICKS = 5;
         body.appendChild(container);
       }
       const existing = container.querySelector('.tse-preview__badge--costream');
-      if (existing) { existing.outerHTML = html; }
+      if (existing) { existing.replaceWith(badge); }
       else {
         // Insérer avant le badge squad (sinon sponsor, sinon en fin) pour
         // garder l'ordre visuel co-stream → "En live avec" → sponsor.
         const anchor = container.querySelector('.tse-preview__badge--squad, .tse-preview__badge--sponsor');
-        if (anchor) anchor.insertAdjacentHTML('beforebegin', html);
-        else container.insertAdjacentHTML('beforeend', html);
+        if (anchor) anchor.before(badge);
+        else container.appendChild(badge);
       }
       if (currentCard) positionPopup(currentCard);
     };
@@ -6458,7 +6538,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const cls = r.type === 'hype' ? 'tse-preview__badge--hype'
                   : r.type === 'discount' ? 'tse-preview__badge--discount'
                   : '';
-        return badgeHtml(cls, escapeHtml(r.text));
+        return badgeNoeud(cls, r.text);
       });
 
       // Badge d'abonnement, en TÊTE : c'est le signal le plus personnel de
@@ -6469,67 +6549,89 @@ const TSE_GATE_MAX_CLICKS = 5;
       const moisAbo = subs.monthsFor(login);
       if (moisAbo > 0) {
         if (subs.isSub(login)) {
-          badges.push(badgeHtml('tse-preview__badge--sub',
-                                escapeHtml(S.uiBadgeSubMonths(moisAbo))));
+          badges.push(badgeNoeud('tse-preview__badge--sub', S.uiBadgeSubMonths(moisAbo)));
         } else if (subs.wasSub(login)) {
-          badges.push(badgeHtml('tse-preview__badge--exsub',
-                                escapeHtml(S.uiBadgeExSubMonths(moisAbo))));
+          badges.push(badgeNoeud('tse-preview__badge--exsub', S.uiBadgeExSubMonths(moisAbo)));
         }
       }
 
       // Badge co-stream d'événement : rôle DOM (participant+hôte / hôte) via
-      // costreamBadgeHtml ; à défaut, repli heuristique (section suivie).
-      let costreamHtml = costreamBadgeHtml(costreamInfo);
-      if (!costreamHtml && costreamMates && costreamMates.length) {
-        const names = costreamMates
-          .map(l => `<strong>${escapeHtml(displayNameFor(l))}</strong>`)
-          .join(', ');
-        costreamHtml = badgeHtml('tse-preview__badge--costream', S.uiBadgeCostreamWithNames(names));
+      // costreamBadgeNoeud ; à défaut, repli heuristique (section suivie).
+      let costreamBadge = costreamBadgeNoeud(costreamInfo);
+      if (!costreamBadge && costreamMates && costreamMates.length) {
+        const noms = costreamMates.map(l => displayNameFor(l));
+        costreamBadge = badgeNoeud('tse-preview__badge--costream',
+          phraseAvecFente(S.uiBadgeCostreamWithNames(FENTE), () => nomsEnGras(noms)));
       }
-      if (costreamHtml) badges.push(costreamHtml);
+      if (costreamBadge) badges.push(costreamBadge);
 
-      // Badge "En live avec" (cf. liveWithBadgeHtml). Source prioritaire :
+      // Badge "En live avec" (cf. liveWithBadgeNoeud). Source prioritaire :
       // Guest Star (liste complète et fiable) ; repli : détection squad native.
       // INDÉPENDANT du badge "Co-stream de X" (événement) : les deux coexistent.
-      const liveWithHtml = liveWithBadgeHtml(login, squadInfo);
-      if (liveWithHtml) badges.push(liveWithHtml);
+      const liveWithBadge = liveWithBadgeNoeud(login, squadInfo);
+      if (liveWithBadge) badges.push(liveWithBadge);
 
       if (sponsorInfo) {
         // Logo dans un mini cadre coloré (reproduit le rendu Twitch).
         // Le bgColor vient du style inline Twitch (couleur de la marque).
         // Si l'URL du logo est absente, on affiche juste le badge texte.
-        // Le logo reste hors du span de texte (leadHtml) pour conserver le gap.
-        const logoHtml = sponsorInfo.logoUrl
-          ? `<span class="tse-preview__sponsor-logo" style="background:${escapeHtml(sponsorInfo.bgColor)}">` +
-            `<img src="${escapeHtml(sponsorInfo.logoUrl)}" alt=""></span>`
-          : '';
-        badges.push(badgeHtml(
+        // Le logo reste hors du span de texte (lead) pour conserver le gap.
+        // L'URL et la couleur viennent de Twitch : elles sont posées par
+        // setAttribute et par la propriété style, jamais dans du balisage.
+        let logo = null;
+        if (sponsorInfo.logoUrl) {
+          logo = document.createElement('span');
+          logo.className = 'tse-preview__sponsor-logo';
+          logo.style.background = sponsorInfo.bgColor;
+          const img = document.createElement('img');
+          img.setAttribute('src', sponsorInfo.logoUrl);
+          img.setAttribute('alt', '');
+          logo.appendChild(img);
+        }
+        badges.push(badgeNoeud(
           'tse-preview__badge--sponsor',
-          S.uiBadgeSponsoredBy(escapeHtml(sponsorInfo.name)),
-          logoHtml
+          phraseAvecFente(S.uiBadgeSponsoredBy(FENTE), () => nomsEnGras([sponsorInfo.name])),
+          logo
         ));
       }
 
-      const thumbUrl = buildThumbUrl(login);
-      const titleHtml = title
-        ? `<p class="tse-preview__title">${escapeHtml(title)}</p>`
-        : `<p class="tse-preview__title" style="color: rgba(255,255,255,0.5)">${escapeHtml(S.uiPreviewLoadingTitle)}</p>`;
+      /* L'ossature vient d'un littéral STATIQUE — aucune donnée n'y entre —
+         et tout ce qui est variable est posé ensuite : le titre et le texte de
+         repli par textContent, l'URL de la miniature par setAttribute. Le
+         rendu est identique à la chaîne qu'on assemblait avant ; ce qui change
+         est qu'aucune valeur venue de Twitch ne traverse plus d'analyseur.
 
-      // NOTE PORTAGE EXTENSION : onerror="…" inline bloqué par la
-      // CSP de Twitch pour les content scripts. Bascule en
-      // addEventListener — sémantique identique.
-      el.innerHTML = `
-        <div class="tse-preview__thumb-wrap">
-          <img class="tse-preview__thumb" alt="" src="${thumbUrl}">
-          <div class="tse-preview__thumb-placeholder" style="display:none">${escapeHtml(S.uiPreviewUnavailable)}</div>
-        </div>
-        <div class="tse-preview__body">
-          ${titleHtml}
-          ${badges.length ? `<div class="tse-preview__badges">${badges.join('')}</div>` : ''}
-        </div>
-      `;
+         NOTE PORTAGE EXTENSION : onerror="…" inline bloqué par la CSP de
+         Twitch pour les content scripts. Bascule en addEventListener —
+         sémantique identique. */
+      el.replaceChildren(noeudStatique(
+        '<div class="tse-preview__thumb-wrap">'
+        + '<img class="tse-preview__thumb" alt="">'
+        + '<div class="tse-preview__thumb-placeholder" style="display:none"></div>'
+        + '</div>'
+        + '<div class="tse-preview__body">'
+        + '<p class="tse-preview__title"></p>'
+        + '</div>'));
+
       const thumbImg = el.querySelector('.tse-preview__thumb');
       const placeholder = el.querySelector('.tse-preview__thumb-placeholder');
+      thumbImg.setAttribute('src', buildThumbUrl(login));
+      placeholder.textContent = S.uiPreviewUnavailable;
+
+      const titreEl = el.querySelector('.tse-preview__title');
+      titreEl.textContent = title || S.uiPreviewLoadingTitle;
+      // Le titre en attente est grisé ; celui qui arrive reprend la couleur du
+      // popup. C'est la même bascule qu'avant, exprimée en style plutôt qu'en
+      // attribut inline dans un gabarit.
+      if (!title) titreEl.style.color = 'rgba(255,255,255,0.5)';
+
+      if (badges.length) {
+        const zone = document.createElement('div');
+        zone.className = 'tse-preview__badges';
+        for (const b of badges) zone.appendChild(b);
+        el.querySelector('.tse-preview__body').appendChild(zone);
+      }
+
       if (thumbImg && placeholder) {
         thumbImg.addEventListener('error', () => {
           thumbImg.style.display = 'none';
@@ -7294,15 +7396,28 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   // Squelette d'un dropdown personnalisé (bouton + menu). `initialCurrent` est
   // le contenu affiché par défaut (libellé « toutes » de la facette).
-  const ddSkeleton = (id, facet, modifier, ariaLabel, initialCurrent) => `
-    <div id="${id}" class="tse-dd ${modifier}" data-facet="${facet}">
-      <button type="button" class="tse-dd-btn" aria-haspopup="listbox" aria-expanded="false"
-              aria-label="${escapeHtml(ariaLabel)}">
-        <span class="tse-dd-current">${initialCurrent}</span>
-        <span class="tse-dd-caret" aria-hidden="true"></span>
-      </button>
-      <div class="tse-dd-menu" role="listbox"></div>
-    </div>`;
+  /* L'ossature d'une liste déroulante. Le squelette est un littéral ; l'id, la
+     facette, le libellé accessible et le contenu initial sont posés après, par
+     attribut ou par nœud. `initialCurrent` est une FONCTION qui fabrique un
+     nœud — le drapeau/globe est du balisage statique, le libellé « toutes
+     catégories » est du texte : les deux savent se produire eux-mêmes. */
+  const ddSquelette = (id, facet, modifier, ariaLabel, fabriquerCourant) => {
+    const frag = noeudStatique(
+      '<div class="tse-dd">'
+      + '<button type="button" class="tse-dd-btn" aria-haspopup="listbox" aria-expanded="false">'
+      + '<span class="tse-dd-current"></span>'
+      + '<span class="tse-dd-caret" aria-hidden="true"></span>'
+      + '</button>'
+      + '<div class="tse-dd-menu" role="listbox"></div>'
+      + '</div>');
+    const dd = frag.firstElementChild;
+    dd.id = id;
+    dd.classList.add(modifier);
+    dd.dataset.facet = facet;
+    dd.querySelector('.tse-dd-btn').setAttribute('aria-label', ariaLabel);
+    dd.querySelector('.tse-dd-current').appendChild(fabriquerCourant());
+    return frag;
+  };
 
   // Crée la barre de filtre : UNE ligne avec deux dropdowns personnalisés
   // identiques — catégorie (extensible, libellé tronqué « … ») à gauche,
@@ -7323,16 +7438,17 @@ const TSE_GATE_MAX_CLICKS = 5;
     const wrap = document.createElement('div');
     wrap.id = FILTER_ID;
     wrap.className = 'tse-filter';
-    wrap.innerHTML = `
-      <div class="tse-filter-row">
-        <div class="tse-filter-field tse-filter-field--cat">
-          ${ddSkeleton(CAT_DD_ID, 'category', 'tse-dd--cat', S.uiFilterAriaLabel, escapeHtml(getAllLabel()))}
-        </div>
-        <div class="tse-filter-field tse-filter-field--lang">
-          ${ddSkeleton(LANG_DD_ID, 'language', 'tse-dd--lang', S.uiFilterLangAriaLabel, GLOBE_MARKUP)}
-        </div>
-      </div>
-    `;
+    wrap.replaceChildren(noeudStatique(
+      '<div class="tse-filter-row">'
+      + '<div class="tse-filter-field tse-filter-field--cat"></div>'
+      + '<div class="tse-filter-field tse-filter-field--lang"></div>'
+      + '</div>'));
+    wrap.querySelector('.tse-filter-field--cat').appendChild(
+      ddSquelette(CAT_DD_ID, 'category', 'tse-dd--cat', S.uiFilterAriaLabel,
+                  () => document.createTextNode(getAllLabel())));
+    wrap.querySelector('.tse-filter-field--lang').appendChild(
+      ddSquelette(LANG_DD_ID, 'language', 'tse-dd--lang', S.uiFilterLangAriaLabel,
+                  () => noeudStatique(GLOBE_MARKUP)));
     section.parentElement.insertBefore(wrap, section);
 
     wireDropdown(wrap.querySelector(`#${CAT_DD_ID}`));
@@ -7460,14 +7576,20 @@ const TSE_GATE_MAX_CLICKS = 5;
     const row = document.createElement('div');
     row.id = SORT_ROW_ID;
     row.className = 'tse-sort-row';
-    row.innerHTML = getSortButtons().map(spec => `
-      <button type="button" class="tse-sort-toggle" data-tse-sort-mode="${spec.mode}"
-              aria-pressed="${state.sortMode === spec.mode ? 'true' : 'false'}"
-              title="${escapeHtml(spec.label)}"
-              aria-label="${escapeHtml(spec.label)}">
-        ${spec.svg}
-      </button>
-    `).join('');
+    /* Le pictogramme est un littéral de ce fichier (SVG_EYE, SVG_GEM…) : il
+       passe par noeudStatique. Le libellé, lui, vient de la table des locales
+       et n'entre que dans des attributs, posés par setAttribute. */
+    row.replaceChildren(...getSortButtons().map(spec => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tse-sort-toggle';
+      b.dataset.tseSortMode = spec.mode;
+      b.setAttribute('aria-pressed', state.sortMode === spec.mode ? 'true' : 'false');
+      b.setAttribute('title', spec.label);
+      b.setAttribute('aria-label', spec.label);
+      b.appendChild(noeudStatique(spec.svg));
+      return b;
+    }));
     filterBar.appendChild(row);
 
     const buttons = [...row.querySelectorAll('button[data-tse-sort-mode]')];
@@ -7767,30 +7889,52 @@ const TSE_GATE_MAX_CLICKS = 5;
     const cur  = dd.querySelector('.tse-dd-current');
     const menu = dd.querySelector('.tse-dd-menu');
 
-    const itemLabel = (v) => kind === 'lang'
-      ? langIcon(v)
-      : `<span class="tse-dd-name">${escapeHtml(v)}</span>`;
-    const allLabel  = kind === 'lang'
-      ? GLOBE_MARKUP
-      : escapeHtml(getAllLabel());
+    /* Chaque libellé se fabrique en NŒUD. Côté langue c'est un drapeau ou le
+       code à deux lettres ; côté catégorie, le nom que Twitch renvoie — et
+       celui-là ne passe que par textContent. */
+    const itemLabel = (v) => {
+      if (kind === 'lang') return langIcon(v);
+      const sp = document.createElement('span');
+      sp.className = 'tse-dd-name';
+      sp.textContent = v;
+      return sp;
+    };
+    const allLabel = () => kind === 'lang'
+      ? noeudStatique(GLOBE_MARKUP)
+      : document.createTextNode(getAllLabel());
     const allTitle  = kind === 'lang' ? S.uiFilterAllLanguages : S.uiFilterAllCategories;
 
     const sig = `${kind}|${disabled ? 'D' : ''}|cur=${current || ''}|${values.map(v => v + '#' + (counts.get(v) || 0)).join('\u00A7')}`;
     if (dd.dataset.tseSig !== sig) {
       dd.dataset.tseSig = sig;
-      cur.innerHTML = current ? itemLabel(current) : allLabel;
-      const allRow = `<div class="tse-dd-opt" role="option" data-value="" aria-selected="${!current}" `
-        + `title="${escapeHtml(allTitle)}">${allLabel}</div>`;
-      const rows = values.map(v =>
-        `<div class="tse-dd-opt" role="option" data-value="${escapeHtml(v)}" aria-selected="${v === current}">`
-        + (() => {
-            const n = fmt(counts.get(v) || 0);
-            // Compteur OMIS quand le formateur rend une chaîne vide : sous
-            // portée catégorie, le nombre décrirait un autre ensemble que
-            // celui qu'on obtiendra en choisissant — autant ne rien dire.
-            return n === '' ? '' : `<span class="tse-dd-n">${escapeHtml(n)} |</span>`;
-          })() + `${itemLabel(v)}</div>`).join('');
-      menu.innerHTML = allRow + rows;
+      cur.replaceChildren(current ? itemLabel(current) : allLabel());
+
+      const option = (valeur, selectionnee, titre, contenu) => {
+        const o = document.createElement('div');
+        o.className = 'tse-dd-opt';
+        o.setAttribute('role', 'option');
+        o.dataset.value = valeur;
+        o.setAttribute('aria-selected', String(selectionnee));
+        if (titre != null) o.setAttribute('title', titre);
+        o.appendChild(contenu);
+        return o;
+      };
+      const lignes = [option('', !current, allTitle, allLabel())];
+      for (const v of values) {
+        const o = option(v, v === current, null, itemLabel(v));
+        const n = fmt(counts.get(v) || 0);
+        // Compteur OMIS quand le formateur rend une chaîne vide : sous portée
+        // catégorie, le nombre décrirait un autre ensemble que celui qu'on
+        // obtiendra en choisissant — autant ne rien dire.
+        if (n !== '') {
+          const c = document.createElement('span');
+          c.className = 'tse-dd-n';
+          c.textContent = `${n} |`;
+          o.insertBefore(c, o.firstChild);
+        }
+        lignes.push(o);
+      }
+      menu.replaceChildren(...lignes);
     }
     btn.disabled = disabled;
     const base = kind === 'lang' ? S.uiFilterLangAriaLabel : S.uiFilterAriaLabel;
@@ -8386,8 +8530,16 @@ const TSE_GATE_MAX_CLICKS = 5;
   };
   // Icône d'une langue pour bouton/menu : drapeau SVG (toujours présent pour
   // une langue supportée), avec repli défensif sur le nom canonique.
-  const langIcon = (canonical) =>
-    flagMarkup(canonical) || `<span class="tse-lang-code">${escapeHtml(canonical)}</span>`;
+  const langIcon = (canonical) => {
+    // Le drapeau est un SVG de ce fichier : balisage statique, donc nœud
+    // statique. Le repli affiche le nom canonique, qui est du TEXTE.
+    const svg = flagMarkup(canonical);
+    if (svg) return noeudStatique(svg);
+    const sp = document.createElement('span');
+    sp.className = 'tse-lang-code';
+    sp.textContent = canonical;
+    return sp;
+  };
 
   // LECTURE PURE du cache TseChannels — plus aucun transport propre.
   //
@@ -8907,10 +9059,15 @@ const TSE_GATE_MAX_CLICKS = 5;
       // Pas d'icône non plus : deux pictogrammes et leurs gouttières coûtent
       // une quarantaine de pixels sur les ~224 disponibles, et le libellé doit
       // rester lisible ENTIER — c'est lui qui porte l'information, pas l'image.
-      const tab = (mode, label) =>
-        `<button type="button" class="tse-mode-tab" data-tse-mode="${mode}">` +
-        `${escapeHtml(label)}</button>`;
-      row.innerHTML = tab('followed', S.followedLabel) + tab('global', S.uiGlobalLabel);
+      const tab = (mode, label) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tse-mode-tab';
+        b.dataset.tseMode = mode;
+        b.textContent = label;          // le libellé est du texte, pas du balisage
+        return b;
+      };
+      row.replaceChildren(tab('followed', S.followedLabel), tab('global', S.uiGlobalLabel));
       row.querySelectorAll('[data-tse-mode]').forEach(btn => {
         btn.addEventListener('click', () => {
           // Recliquer l'onglet actif ne fait rien : un mode est TOUJOURS
