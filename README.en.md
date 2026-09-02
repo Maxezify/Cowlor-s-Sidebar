@@ -179,86 +179,97 @@ and the procedure below does it in a minute.
 ### How to check `document_start` on Firefox
 
 Load the extension via `about:debugging#/runtime/this-firefox` → **Load
-Temporary Add-on…** → the `manifest.json`. Open `https://www.twitch.tv/`, then
-the console (**F12**), and paste:
+Temporary Add-on…** → the `manifest.json`. Firefox does **not** inject into
+already-open tabs: open `https://www.twitch.tv/` *afterwards*, or reload.
+
+#### 1. Is the script running, and in the right world?
+
+Console (**F12**), then:
 
 ```js
 (() => {
   const s = document.getElementById('tse-css');
   const native = (f) => { try { return /\[native code\]/.test(Function.prototype.toString.call(f)); }
                           catch { return false; } };
-  const p = s && s.parentElement;
-  const rank = p ? [...p.children].indexOf(s) : -1;
-  const s1 = document.querySelector('script');
-  const beforeScripts = !!s && (!s1 ||
-    !!(s.compareDocumentPosition(s1) & Node.DOCUMENT_POSITION_FOLLOWING));
   const out = [];
   const say = (c, ok, d) => out.push({ check: c, verdict: ok ? '✅' : '❌', detail: String(d) });
   say('1. MAIN world — window.tse visible from the page',
       window.tse != null && typeof window.tse === 'object', typeof window.tse);
   say('2. the extension CSS is in place', !!s, s ? 'yes' : 'missing');
-  say('3. inserted at the HEAD of whatever existed then',
-      rank === 0, p ? 'first child of <' + p.tagName + '>' : '—');
-  say('4. NO page <script> precedes it', beforeScripts,
-      s1 ? (beforeScripts ? 'the first <script> comes after' : 'a <script> is already before') : 'no script');
-  say('5. boot ran to completion — history.pushState wrapped',
+  say('3. boot ran to completion — history.pushState wrapped',
       !native(history.pushState), native(history.pushState) ? 'native' : 'wrapped');
   console.table(out);
-  console.log('container:', p ? p.tagName : '—', '| rank:', rank,
-    '| children of <html>:',
-    [...document.documentElement.children].map(e => e.tagName + (e.id ? '#' + e.id : '')).join(' , '));
   return out;
 })();
 ```
 
-**Check 4 is the one that settles it**, and check 3 completes it. `injectCSS`
-does `(document.head || document.documentElement).appendChild(tag)`: the
-`<style>` therefore lands at the head of whichever container existed at
-injection time. If no page `<script>` precedes it, that `<style>` was in the
-tree before the first script was parsed into it — hence before it ran. That is
-exactly the guarantee we are after.
+All three must be green. Check 1 is the one that proves the `MAIN` world: in an
+isolated world, `window.tse` would be invisible from the page's console. They
+say **nothing**, however, about when the injection happened.
 
-**The container differs between engines, and that is not a defect.** Chromium
-has created only `documentElement` when it injects; Gecko builds a full
-skeleton first. Mozilla states it plainly: *"the parser sets up the initial
-skeleton DOM before unblocking scripts and allowing the
+#### 2. Ordering: why the DOM cannot answer it
+
+An earlier version of this page suggested looking at **where** the
+`<style id="tse-css">` had landed: first child of its container, ahead of every
+`<script>`. On a static page the measurement is sound and discriminates cleanly
+— verified under Chromium, varying nothing but `run_at`.
+
+On the real Twitch it is worthless, and the reading shows it: the `<style>` sits
+as the **76th** child of `<head>`. Twitch rewrites its `<head>` continuously
+while its SPA boots — preloads, component stylesheets, bundle chunks — and some
+of those nodes are inserted **at the front**, pushing ours back. The position
+you observe is today's, not the injection's. It proves neither earliness nor
+lateness.
+
+The container also differs between engines, without that being a defect:
+Chromium has created only `documentElement` when it injects, where Gecko has
+already built a full skeleton. Mozilla documents it: *"the parser sets up the
+initial skeleton DOM before unblocking scripts and allowing the
 `document-element-inserted` event to be dispatched, so more than just the
 document element exists when the event is fired"*
-([bug 1333990](https://bugzilla.mozilla.org/show_bug.cgi?id=1333990)). Hence:
+([bug 1333990](https://bugzilla.mozilla.org/show_bug.cgi?id=1333990)).
 
-| Engine | `<style>` container | Children of `<html>` |
-| --- | --- | --- |
-| Chromium | `<html>` | `STYLE#tse-css`, `HEAD`, `BODY` |
-| Firefox | `<head>` | `HEAD`, `BODY` |
+#### 3. Ordering: the only measurement that holds
 
-In both cases the `<style>` is the **first child** of its container and precedes
-every script: check 3 says so, check 4 proves it. An earlier version of this
-page demanded `<html>` and so returned a misleading ❌ on Firefox — it was
-measuring a Chromium quirk, not `document_start`.
+What is needed is a fact **captured at injection time** that the page cannot
+rewrite afterwards. The ad blocker provides one: `adblock.js` captures
+`window.fetch` before replacing it, and keeps what it captured. If that value is
+**native**, nobody had wrapped it before us — the race is won, and that is
+precisely the guarantee `document_start` is supposed to offer.
 
-Checked under Chromium with the extension genuinely loaded, varying nothing but
-`run_at`:
+`adblock.js` only works inside the player iframe (it stands down on the main
+stream, see its `window.top === window` guard). But the preview iframe dies the
+moment you leave the hovered card — before you could switch context in the
+tools. So we build one that stays. On `https://www.twitch.tv/`, in the console:
 
-| `run_at` | Check 3 | Check 4 |
-| --- | --- | --- |
-| `document_start` | ✅ first child of `<html>` | ✅ the first `<script>` comes after |
-| `document_idle` | ❌ first child of `<head>` | ❌ a `<script>` is already before |
+```js
+const f = document.createElement('iframe');
+f.id = 'tse-sonde';
+f.src = 'https://player.twitch.tv/?channel=twitch&parent=www.twitch.tv&muted=true';
+f.style.cssText = 'position:fixed;bottom:0;right:0;width:400px;height:225px;z-index:99999';
+document.body.appendChild(f);
+```
 
-The court of appeal, if doubt remains, is the ad blocker — it runs a **real
-race** for a global. Hover a card, select the `player.twitch.tv` frame in the
-console's context picker, and type
+Then, **in the DevTools toolbar, the context picker** — the frame-shaped icon on
+the right; if it is not visible it sits in the `»` overflow menu. Pick the
+`player.twitch.tv` entry. The console now works inside the iframe. Type:
 
 ```js
 /\[native code\]/.test(String(window.__vaft2RealFetch))   // → expect true
 ```
 
-`adblock.js` captures `window.fetch` before replacing it. If the captured value
-is **native**, nobody had wrapped it before us: the race is won. If it showed
-someone else's code, Twitch got there first.
+- **`true`** → `adblock.js` captured the native `fetch`: it got in ahead of every
+  page script. `document_start` is confirmed and the port is sound.
+- **`false`** → someone had already wrapped `fetch`: we came second.
+- **`undefined`** → either the console is still on the top frame (`adblock.js`
+  deliberately stands down there), or the content script was not injected into
+  the iframe.
 
-> The same test on the top frame returns `undefined`, and that is correct:
-> `adblock.js` deliberately stands down on the main stream (see its
-> `window.top === window` guard). It only works inside the preview iframe.
+When done, switch back to the page context and remove the probe:
+
+```js
+document.getElementById('tse-sonde').remove();
+```
 
 Finally, **watch the console for errors on load**. A precise canary:
 `detectLanguage()` reads `document.documentElement.lang` with no guard. If Gecko

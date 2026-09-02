@@ -188,86 +188,101 @@ trancher, et la procédure ci-dessous le fait en une minute.
 ### Comment vérifier `document_start` sous Firefox
 
 Chargez l'extension via `about:debugging#/runtime/this-firefox` → **Charger un
-module temporaire…** → le `manifest.json`. Ouvrez `https://www.twitch.tv/`,
-puis la console (**F12**), et collez :
+module temporaire…** → le `manifest.json`. Firefox n'injecte **pas** dans les
+onglets déjà ouverts : ouvrez `https://www.twitch.tv/` *après*, ou rechargez.
+
+#### 1. Le script tourne-t-il, et dans le bon monde ?
+
+Console (**F12**), puis :
 
 ```js
 (() => {
   const s = document.getElementById('tse-css');
   const natif = (f) => { try { return /\[native code\]/.test(Function.prototype.toString.call(f)); }
                          catch { return false; } };
-  const p = s && s.parentElement;
-  const rang = p ? [...p.children].indexOf(s) : -1;
-  const s1 = document.querySelector('script');
-  const avantLesScripts = !!s && (!s1 ||
-    !!(s.compareDocumentPosition(s1) & Node.DOCUMENT_POSITION_FOLLOWING));
   const out = [];
   const dit = (c, ok, d) => out.push({ contrôle: c, verdict: ok ? '✅' : '❌', détail: String(d) });
   dit('1. monde MAIN — window.tse visible depuis la page',
       window.tse != null && typeof window.tse === 'object', typeof window.tse);
   dit('2. le CSS de l\'extension est posé', !!s, s ? 'oui' : 'absent');
-  dit('3. inséré en TÊTE de ce qui existait alors',
-      rang === 0, p ? '1er enfant de <' + p.tagName + '>' : '—');
-  dit('4. AUCUN <script> de la page ne le précède', avantLesScripts,
-      s1 ? (avantLesScripts ? 'le 1er <script> vient après' : 'un <script> est déjà avant') : 'aucun script');
-  dit('5. le démarrage est allé au bout — history.pushState enveloppé',
+  dit('3. le démarrage est allé au bout — history.pushState enveloppé',
       !natif(history.pushState), natif(history.pushState) ? 'natif' : 'enveloppé');
   console.table(out);
-  console.log('conteneur :', p ? p.tagName : '—', '| rang :', rang,
-    '| enfants de <html> :',
-    [...document.documentElement.children].map(e => e.tagName + (e.id ? '#' + e.id : '')).join(' , '));
   return out;
 })();
 ```
 
-**Le contrôle 4 est celui qui tranche**, et le 3 le complète. `injectCSS` fait
-`(document.head || document.documentElement).appendChild(tag)` : le `<style>`
-atterrit donc en tête du premier conteneur qui existait au moment de
-l'injection. Si aucun `<script>` de la page ne le précède, c'est que ce
-`<style>` était dans l'arbre avant que le premier script n'y soit analysé —
-donc avant qu'il ne s'exécute. C'est exactement la garantie qu'on cherche.
+Les trois doivent être verts. Le contrôle 1 est celui qui prouve le monde
+`MAIN` : en monde isolé, `window.tse` serait invisible depuis la console de la
+page. Ils ne disent en revanche **rien** du moment de l'injection.
 
-**Le conteneur diffère d'un moteur à l'autre, et ce n'est pas un défaut.**
-Chromium n'a créé que `documentElement` quand il injecte ; Gecko, lui, monte
-d'abord un squelette complet. Mozilla le décrit noir sur blanc : *« le parseur
-met en place le squelette DOM initial avant de débloquer les scripts et de
-laisser l'événement `document-element-inserted` se déclencher, de sorte que
-plus que le seul élément document existe au moment où il est émis »*
-([bug 1333990](https://bugzilla.mozilla.org/show_bug.cgi?id=1333990)). D'où :
+#### 2. L'ordre : pourquoi le DOM ne peut pas y répondre
 
-| Moteur | Conteneur du `<style>` | Enfants de `<html>` |
-| --- | --- | --- |
-| Chromium | `<html>` | `STYLE#tse-css`, `HEAD`, `BODY` |
-| Firefox | `<head>` | `HEAD`, `BODY` |
+Une version antérieure de cette page proposait de regarder **où** le
+`<style id="tse-css">` avait atterri : premier enfant de son conteneur, avant
+tout `<script>`. Sur une page statique, la mesure est juste et discrimine
+proprement — vérifié sous Chromium en ne faisant varier que le `run_at`.
 
-Dans les deux cas le `<style>` est le **premier enfant** de son conteneur et
-précède tout script : le contrôle 3 le dit, le 4 le prouve. Une version
-antérieure de cette page exigeait `<html>` et rendait donc un ❌ trompeur sous
-Firefox — elle mesurait une particularité de Chromium, pas `document_start`.
+Sur le vrai Twitch, elle ne vaut rien, et le relevé le montre : le `<style>` y
+est le **76ᵉ** enfant de `<head>`. Twitch réécrit son `<head>` en continu
+pendant le démarrage de son SPA — préchargements, feuilles de style de
+composants, morceaux de bundle — et une partie de ces nœuds est insérée **en
+tête**, ce qui repousse le nôtre. La position observée est donc celle
+d'aujourd'hui, pas celle de l'injection. Elle ne prouve ni la précocité ni le
+retard.
 
-Contrôlé sous Chromium avec l'extension réellement chargée, en ne faisant
-varier que le `run_at` :
+Sur un moteur donné le conteneur diffère d'ailleurs, sans que ce soit un
+défaut : Chromium n'a créé que `documentElement` quand il injecte, là où Gecko
+a déjà monté un squelette complet. Mozilla le documente : *« le parseur met en
+place le squelette DOM initial avant de débloquer les scripts et de laisser
+l'événement `document-element-inserted` se déclencher, de sorte que plus que le
+seul élément document existe au moment où il est émis »*
+([bug 1333990](https://bugzilla.mozilla.org/show_bug.cgi?id=1333990)).
 
-| `run_at` | Contrôle 3 | Contrôle 4 |
-| --- | --- | --- |
-| `document_start` | ✅ 1er enfant de `<html>` | ✅ le 1er `<script>` vient après |
-| `document_idle` | ❌ 1er enfant de `<head>` | ❌ un `<script>` est déjà avant |
+#### 3. L'ordre : la seule mesure qui tienne
 
-Le juge d'appel, si le doute persiste, est le blocage de pub — lui court une
-**vraie course** pour un global. Survolez une carte, choisissez la frame
-`player.twitch.tv` dans le sélecteur de contexte de la console, et tapez
+Il faut un fait **capté au moment de l'injection**, que la page ne puisse pas
+réécrire ensuite. Le blocage de pub en fournit un : `adblock.js` capture
+`window.fetch` avant de le remplacer, et garde la valeur captée. Si elle est
+**native**, personne ne l'avait enveloppée avant nous — la course est gagnée, et
+c'est précisément la garantie que `document_start` doit offrir.
+
+`adblock.js` ne travaille que dans l'iframe du lecteur (il se retire du stream
+principal, cf. sa garde `window.top === window`). Or l'iframe d'aperçu meurt dès
+qu'on quitte la carte du survol, donc avant d'avoir pu changer de contexte dans
+les outils. On s'en fabrique donc une, qui reste. Sur `https://www.twitch.tv/`,
+dans la console :
+
+```js
+const f = document.createElement('iframe');
+f.id = 'tse-sonde';
+f.src = 'https://player.twitch.tv/?channel=twitch&parent=www.twitch.tv&muted=true';
+f.style.cssText = 'position:fixed;bottom:0;right:0;width:400px;height:225px;z-index:99999';
+document.body.appendChild(f);
+```
+
+Puis, **dans la barre d'outils des outils de développement, le sélecteur de
+contexte** — l'icône en forme de cadre, à droite ; si elle n'apparaît pas, elle
+est dans le menu de débordement `»`. Choisissez l'entrée `player.twitch.tv`. La
+console travaille désormais dans l'iframe. Tapez :
 
 ```js
 /\[native code\]/.test(String(window.__vaft2RealFetch))   // → true attendu
 ```
 
-`adblock.js` capture `window.fetch` avant de le remplacer. Si la valeur capturée
-est **native**, personne ne l'avait enveloppée avant nous : la course est gagnée.
-Si elle montrait le code d'un autre, Twitch serait passé en premier.
+- **`true`** → `adblock.js` a capté le `fetch` natif : il est passé avant tout
+  script de la page. `document_start` est confirmé, et le portage est bon.
+- **`false`** → quelqu'un avait déjà enveloppé `fetch` : nous sommes passés
+  après.
+- **`undefined`** → soit la console est restée sur la frame du haut (`adblock.js`
+  s'y retire volontairement), soit le content script n'a pas été injecté dans
+  l'iframe.
 
-> Le même test sur la frame du haut renvoie `undefined`, et c'est normal :
-> `adblock.js` se retire délibérément du stream principal (cf. sa garde
-> `window.top === window`). Il ne travaille que dans l'iframe d'aperçu.
+Pour finir, revenez au contexte de la page et retirez la sonde :
+
+```js
+document.getElementById('tse-sonde').remove();
+```
 
 Enfin, **surveillez les erreurs de la console au chargement**. Un canari précis :
 `detectLanguage()` lit `document.documentElement.lang` sans garde. Si Gecko
