@@ -1470,18 +1470,43 @@ jamais empaquetés.
 ## Vérification
 
 ```bash
-npm install                        # eslint + playwright
+npm install                        # eslint + playwright + web-ext
 npx playwright install chromium    # une fois
-npm run check                      # lint + parité des locales + harnais
+npm run check                      # lint + parité + paquet + harnais
+npm run package                    # le .zip à soumettre
 ```
 
-Trois vérifications, indépendantes :
+Quatre vérifications, indépendantes :
 
 | Commande | Ce qu'elle contrôle |
 |---|---|
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
+| `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
 | `npm test` | le harnais Playwright : 60 scénarios, 514 assertions |
+
+### Ce qui part dans le paquet
+
+`npm run addon` assemble `dist/paquet/` à partir d'une **liste blanche** —
+`manifest.json`, `content.js`, `adblock.js`, `icons/`, `_locales/` — puis
+vérifie que tout ce que le manifeste nomme est présent, que rien ne vient
+d'ailleurs, et que les sept locales ont chacune leur `messages.json`.
+`npm run package` en fait le `.zip`.
+
+La liste blanche n'est pas un détail d'ergonomie. Un `.zip` fabriqué à la main
+depuis le dépôt emporte l'outillage — `promo*.mjs`, `tests/` et sa page à
+scripts en ligne — soit un demi-mégaoctet de code qui ne s'exécute chez
+personne, et que les validateurs de magasin analysent quand même. Le portage
+Firefox l'a découvert à ses dépens : cinq avertissements sur sept, à la
+première soumission, venaient de fichiers de test. Une liste noire aurait
+recréé le défaut au premier fichier ajouté ; une liste blanche a le défaut
+inverse, qui est le bon — ce qu'on oublie d'inclure manque, et le contrôle
+le voit.
+
+Le même fichier `tests/addon.mjs` sert sur la branche `claude/firefox`, où il
+ajoute les contrôles propres à AMO et appelle l'`addons-linter` de Mozilla. Il
+lit le manifeste qu'il trouve : deux copies auraient divergé, celle-ci ne le
+peut pas.
 
 **Le harnais fait tourner l'extension pour de vrai**, dans Chromium, contre un
 faux Twitch : `tests/page.html` reproduit le DOM réel de la barre latérale

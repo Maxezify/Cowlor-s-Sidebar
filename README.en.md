@@ -1386,18 +1386,41 @@ cowlors-sidebar-for-twitch/
 ## Verification
 
 ```bash
-npm install                        # eslint + playwright
+npm install                        # eslint + playwright + web-ext
 npx playwright install chromium    # once
-npm run check                      # lint + locale parity + harness
+npm run check                      # lint + parity + package + harness
+npm run package                    # the .zip to submit
 ```
 
-Three independent checks:
+Four independent checks:
 
 | Command | What it checks |
 |---|---|
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
+| `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
 | `npm test` | the Playwright harness: 60 scenarios, 514 assertions |
+
+### What goes into the package
+
+`npm run addon` assembles `dist/paquet/` from an **allowlist** —
+`manifest.json`, `content.js`, `adblock.js`, `icons/`, `_locales/` — then checks
+that everything the manifest names is present, that nothing comes from
+elsewhere, and that all seven locales have their `messages.json`.
+`npm run package` turns it into the `.zip`.
+
+The allowlist is not an ergonomic detail. A `.zip` built by hand from the
+repository carries the tooling along — `promo*.mjs`, `tests/` and its
+inline-script page — half a megabyte of code that runs on nobody's machine and
+that store validators analyse all the same. The Firefox port found this out the
+hard way: five of seventeen warnings, on the first submission, came from test
+files. A denylist would have recreated the flaw with the first file added; an
+allowlist has the opposite failure mode, which is the right one — what you
+forget to include is missing, and the check sees it.
+
+The same `tests/addon.mjs` serves the `claude/firefox` branch, where it adds
+AMO's own checks and calls Mozilla's `addons-linter`. It reads whichever
+manifest it finds: two copies would have drifted, this one cannot.
 
 **The harness runs the extension for real**, in Chromium, against a fake
 Twitch: `tests/page.html` reproduces the sidebar's actual DOM (captured from

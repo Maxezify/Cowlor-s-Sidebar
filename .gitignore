@@ -7,6 +7,7 @@ package-lock.json
 # à la main — le versionner reviendrait à versionner un artefact dérivé, et à
 # risquer de le voir diverger de sa source.
 tests/content.test.js
+tests/content.firefox.test.js
 tests/adblock.test.js
 
 # Captures de présentation produites par `npm run promo`. Régénérées à la
@@ -16,3 +17,7 @@ promo/
 # Sortie parasite de « npx playwright test », lancé par erreur : ce dépôt
 # n'a pas de suite Playwright au sens du runner, son banc est tests/run.mjs.
 test-results/
+
+# Paquet d'extension assemblé par `npm run addon` / `npm run package` depuis la
+# liste blanche de tests/addon.mjs. Artefact dérivé, régénéré à la demande.
+dist/
