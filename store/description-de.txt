@@ -140,7 +140,7 @@ _______________________________
 
 ➤ 🎮 WIE GEHT DAS?
 
-1. Auf „Zu Chrome hinzufügen" klicken (kostenlos!)
+1. Auf „Zu Firefox hinzufügen" klicken (kostenlos!)
 2. Twitch neu laden und… tadaaaa!
 
 Das war's. Wirklich. Keine komplizierte Konfiguration, keine versteckten Menüs, kein Konto anzulegen. Es funktioniert, Punkt.

@@ -531,7 +531,14 @@ titre('12. Mesure — ce qui est compté, et ce qui ne l\'est pas');
   await page.evaluate(() => {
     window.__fx.dormant = { id:'s-dormant-1', createdAt:new Date().toISOString(), viewers:500, game:'G', tags:[] };
   });
-  await wait(page, 900);
+  /* On attend le FAIT — la carte fabriquée — et non une durée. Ces deux
+     assertions ont lâché sous charge avec un `wait(900)` : la fabrication
+     dépend d'un debounce de scan et d'un aller-retour de lot, donc de la
+     machine. C'est le travers contre lequel l'en-tête de ce fichier met en
+     garde, présent ici depuis l'origine. L'expiration n'échoue pas d'elle-même :
+     elle laisse l'assertion suivante constater et nommer ce qui manque. */
+  await attendre(page, () =>
+    !!document.querySelector('.side-nav-card[data-tse-synthetic="true"]'), 5000);
   const ahead = await page.evaluate(() => ({
     notre: !!document.querySelector('.side-nav-card[data-tse-synthetic="true"]'),
     lag:   window.tse.lag().length
@@ -540,7 +547,8 @@ titre('12. Mesure — ce qui est compté, et ce qui ne l\'est pas');
   ok('rien n\'est encore compté : Twitch n\'affiche pas', ahead.lag === 0, String(ahead.lag));
 
   await page.evaluate(() => window.__goLive('dormant'));
-  await wait(page, 900);
+  // Même raison : c'est l'ARRIVÉE de la mesure qu'on attend, pas 900 ms.
+  await attendre(page, () => window.tse.lag().length > 0, 5000);
   const got = await page.evaluate(() => window.tse.lag());
   ok('une chaîne déjà présente hors ligne EST mesurée', got.length === 1, JSON.stringify(got));
   ok('mesure attribuée à la bonne chaîne', got[0]?.login === 'dormant', JSON.stringify(got[0]));
@@ -4971,6 +4979,115 @@ titre('60. Aperçu — chaque type de badge a sa couleur, et elles sont distinct
      && (ccl.hTexte >= 330 || ccl.hTexte <= 10),
      JSON.stringify({ texte: [ccl.hTexte, hype.hTexte, ecart(ccl.hTexte, hype.hTexte) + '°'],
                       fond:  [ccl.hFond,  hype.hFond,  ecart(ccl.hFond,  hype.hFond)  + '°'] }));
+  await page.close();
+}
+
+// ═════════ 61. Firefox — le pont privé des API que Chrome a en plus ═════════
+titre('61. Firefox — l\'aperçu tient sans les API que Chrome a en plus');
+{
+  /* Ce dépôt ne peut pas lancer Firefox : la politique réseau de
+     l'environnement bloque le téléchargement du binaire de Playwright. On ne
+     va donc PAS prétendre avoir vérifié le portage bout en bout. Ce qu'on peut
+     faire — et qui vaut mieux qu'une lecture — c'est reproduire dans Chromium
+     les manques exacts de Firefox et regarder le code s'en sortir.
+
+     Deux API que Chrome a et que Firefox n'a pas au plancher déclaré (140),
+     retirées par DEUX mécanismes différents, et la différence n'est pas un
+     détail de mise en œuvre :
+
+      • location.ancestorOrigins — jamais implémentée par Firefox avant ~148
+        (Mozilla la tenait pour une fuite de vie privée). Le pont s'en sert
+        pour VISER son postMessage ; sans elle, il retombe sur les deux
+        origines que le manifeste déclare. C'est LA divergence du portage, et
+        un repli cassé ne se verrait nulle part : l'aperçu ne se dévoilerait
+        simplement jamais sous Firefox.
+
+        Elle est [LegacyUnforgeable] — propriété propre, non configurable —
+        donc impossible à retirer depuis la page. Le retrait se fait à la
+        construction, sur une copie (cf. tests/build.mjs), et ce scénario
+        charge cette variante : /content.firefox.test.js.
+
+      • requestVideoFrameCallback — arrivée en Firefox 132, donc présente au
+        plancher. Elle est tout de même retirée ici, et celle-là POUR DE VRAI
+        depuis la page : le réglage media.rvfc.enabled peut la couper, et la
+        course à trois signaux du pont doit tenir sur les deux qui restent.
+
+     Le décor est VÉRIFIÉ avant tout le reste (window.__fxSansApi). La première
+     version de ce scénario croyait retirer ancestorOrigins par `delete` et ne
+     retirait rien : ses deux assertions vertes ne testaient personne. */
+  const lecteurFirefox = `<!doctype html><html><body>
+    <script>
+      // rVFC vit sur le prototype et s'y supprime pour de bon. ancestorOrigins,
+      // elle, résiste — c'est la variante de build qui s'en charge.
+      delete HTMLVideoElement.prototype.requestVideoFrameCallback;
+      window.__fxSansApi = {
+        rvfc: !('requestVideoFrameCallback' in HTMLVideoElement.prototype),
+      };
+    </script>
+    <script>
+      const c = document.createElement('canvas');
+      c.width = 32; c.height = 18;
+      const ctx = c.getContext('2d');
+      const v = document.createElement('video');
+      v.autoplay = true; v.muted = true; v.playsInline = true;
+      v.srcObject = c.captureStream(25);
+      document.body.appendChild(v);
+      v.play().catch(() => {});
+      setInterval(() => {
+        ctx.fillStyle = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+        ctx.fillRect(0, 0, 32, 18);
+      }, 40);
+    </script>
+    <script src="/adblock.test.js"></script>
+    <script src="/content.firefox.test.js"></script>
+  </body></html>`;
+
+  const page = await freshTwitch(lecteurFirefox);
+  await page.evaluate(() => {
+    window.__fx = { renard: { id: 'r1', createdAt: new Date(Date.now() - 3600_000).toISOString(),
+                              viewers: 1000, game: 'G', tags: [] } };
+    window.__addCard('renard', 'G', '1 k');
+  });
+  await wait(page, 2000);
+  await hoverCard(page, 0);
+
+  await attendre(page, () => {
+    const f = document.querySelector('.tse-preview__iframe');
+    return !!f && f.dataset.tseLoaded === 'true';
+  }, 9000);
+
+  // D'abord : le décor est-il bien celui qu'on croit ? Un `delete` qui aurait
+  // échoué rendrait tout le reste du scénario complaisant.
+  const decor = await (async () => {
+    const f = page.frames().find(x => x.url().startsWith('https://player.twitch.tv/'));
+    if (!f) return null;
+    try {
+      return await f.evaluate(() => ({
+        rvfc: window.__fxSansApi?.rvfc ?? null,
+        // La variante de build est-elle bien celle qui tourne ? On lit la
+        // ligne substituée dans le source servi, pas une intention.
+        variante: [...document.scripts].some(s => s.src.endsWith('/content.firefox.test.js')),
+      }));
+    } catch { return null; }
+  })();
+  ok('le décor est bien celui qu\'on croit : rVFC retirée, variante Firefox chargée',
+     !!decor && decor.rvfc === true && decor.variante === true,
+     JSON.stringify(decor));
+
+  const etat = await page.evaluate(() => {
+    const f = document.querySelector('.tse-preview__iframe');
+    return f ? (f.dataset.tseLoaded ?? 'posee') : 'pas-d-iframe';
+  });
+  ok('sans ancestorOrigins ni rVFC, l\'aperçu se dévoile quand même',
+     etat === 'true', etat);
+
+  /* Le postMessage a bien traversé : c'est LE point du repli d'origines. Le
+     journal ne peut porter « pont » que si un message est arrivé au parent,
+     donc si la cible de repli était la bonne. */
+  const journal = await page.evaluate(() => window.tse.apercu().map(e => e.evt));
+  ok('le pont a parlé et la première image est passée par les origines de repli',
+     journal.includes('pont') && journal.includes('premiere-image'),
+     JSON.stringify(journal));
   await page.close();
 }
 

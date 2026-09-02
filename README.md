@@ -1,6 +1,12 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.3 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.55.3 · Extension **Firefox** (Manifest V3) · 🇬🇧 [English version](README.en.md)
+
+> **Branche Firefox.** Ce dépôt a deux lignes de publication. `claude/chrome`
+> porte la version Chrome / Chromium ; cette branche porte la version Firefox.
+> Le **seul** fichier du produit qui diffère entre les deux est `manifest.json`
+> — `content.js` et `adblock.js` sont identiques octet pour octet, et un
+> vérificateur le garantit (cf. « [Le portage Firefox](#le-portage-firefox-v3553) »).
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -47,29 +53,28 @@ détectés automatiquement.
 
 ## Installation
 
-L'extension est publiée sur le **Chrome Web Store** : ouvrez sa fiche
+L'extension est publiée sur **addons.mozilla.org** : ouvrez sa fiche
 (recherchez « Cowlor's Sidebar for Twitch »), cliquez sur **Ajouter à
-Chrome**, puis rechargez un onglet `https://www.twitch.tv/` — la sidebar est
+Firefox**, puis rechargez un onglet `https://www.twitch.tv/` — la sidebar est
 enrichie automatiquement. Les mises à jour sont alors gérées par le navigateur.
 
-### Installation manuelle (mode développeur)
+### Installation manuelle (temporaire)
 
-Vous pouvez aussi l'installer à la main, à partir du dossier
+Vous pouvez aussi la charger à la main, à partir du dossier
 `cowlors-sidebar-for-twitch` (ou du `.zip` décompressé) — utile pour tester une
 version de développement :
 
-1. Ouvrez votre navigateur sur la page des extensions :
-   - Chrome : `chrome://extensions`
-   - Edge : `edge://extensions`
-   - Brave : `brave://extensions`
-   - (équivalent pour Opera, Vivaldi, Arc…)
-2. Activez le **Mode développeur** (interrupteur en haut à droite).
-3. Cliquez sur **Charger l'extension non empaquetée**.
-4. Sélectionnez le dossier `cowlors-sidebar-for-twitch` (celui qui contient
-   `manifest.json`). Si vous êtes parti du `.zip`, décompressez-le d'abord et
-   pointez vers le dossier décompressé, **pas** vers le `.zip` lui-même.
-5. Ouvrez (ou rechargez) un onglet `https://www.twitch.tv/`. La sidebar est
+1. Ouvrez `about:debugging#/runtime/this-firefox`.
+2. Cliquez sur **Charger un module temporaire…**.
+3. Sélectionnez le **`manifest.json`** du dossier (et non le dossier lui-même :
+   c'est la différence avec Chrome, qui attend le dossier). Si vous êtes parti
+   du `.zip`, décompressez-le d'abord.
+4. Ouvrez (ou rechargez) un onglet `https://www.twitch.tv/`. La sidebar est
    enrichie automatiquement.
+
+Un module chargé ainsi est **temporaire** : Firefox l'oublie à la fermeture.
+Pour une installation qui survit au redémarrage, il faut un paquet signé — donc
+passer par AMO.
 
 Aucune permission supplémentaire n'est demandée : l'extension n'agit que sur les
 pages `twitch.tv` et `player.twitch.tv`, et ne communique avec aucun serveur
@@ -80,13 +85,116 @@ de Twitch, miniatures, lecteur `player.twitch.tv` pour l'aperçu).
 
 ## Compatibilité
 
-- **Chrome 111 ou supérieur** (et tout navigateur Chromium récent : Edge, Brave,
-  Opera, Vivaldi, Arc). La version 111 est le minimum car le content script
-  utilise `"world": "MAIN"`, introduit à cette version.
-- **Firefox** : le MV3 de Firefox prend en charge `"world": "MAIN"` sur les
-  versions récentes, mais quelques différences de timing d'injection peuvent
-  exister. Le portage cible Chromium ; sous Firefox, la version userscript
-  d'origine (via Violentmonkey) reste l'option la plus sûre.
+- **Firefox 140 ou supérieur.** Le plancher n'est pas choisi, il est **déduit**
+  de deux clés du manifeste, et c'est la plus récente qui commande :
+
+  | Ce qu'on déclare | Depuis |
+  | --- | --- |
+  | `"world": "MAIN"` dans `content_scripts` | Firefox **128** |
+  | `browser_specific_settings.gecko.data_collection_permissions` | Firefox **140** |
+
+  D'où 140. Descendre à 128 rendrait le manifeste incohérent avec lui-même, et
+  l'`addons-linter` de Mozilla le dit mot pour mot. Le coût est nul : l'ESR 128
+  est hors support depuis le 16 septembre 2025, et l'ESR actif est le 140 — la
+  plage 128-139 n'est plus habitée par aucune version maintenue.
+- **Firefox pour Android 142 ou supérieur** (`gecko_android`), la clé de
+  collecte de données y étant arrivée deux versions plus tard. À noter que la
+  sidebar des chaînes suivies n'existe pas sur le Twitch mobile : la
+  compatibilité y est déclarée par cohérence, pas par utilité.
+- Pour **Chrome, Edge, Brave, Opera, Vivaldi, Arc**, voir la branche
+  `claude/chrome` : même code, manifeste sans le bloc `browser_specific_settings`.
+
+---
+
+## Le portage Firefox (v3.55.3)
+
+### Ce qui change, et c'est peu
+
+**Un seul fichier du produit diffère : `manifest.json`.** `content.js` et
+`adblock.js` sont identiques octet pour octet entre les deux branches, et le
+bloc `content_scripts` est identique lui aussi — un vérificateur le compare à
+une constante et échoue s'il diverge (`npm run addon`). C'est la promesse du
+portage, et elle est tenue par une machine plutôt que par une intention.
+
+Cette étroitesse n'est pas un coup de chance : l'extension **n'appelle aucune
+API d'extension**. Ni `chrome.*`, ni `browser.*`, ni `runtime`, ni `storage`,
+ni arrière-plan, ni popup, ni page d'options, ni la moindre permission. Elle
+n'est qu'un content script. Il n'y a donc rien à traduire d'un dialecte à
+l'autre — le portage se réduit au manifeste.
+
+Ce que le manifeste gagne :
+
+```json
+"browser_specific_settings": {
+  "gecko": {
+    "id": "cowlors-sidebar@maxezify.github.io",
+    "strict_min_version": "140.0",
+    "data_collection_permissions": { "required": ["none"] }
+  },
+  "gecko_android": { "strict_min_version": "142.0" }
+}
+```
+
+- **L'identifiant est obligatoire en MV3** : AMO n'en attribue plus. Sans lui,
+  la soumission est refusée — c'était la seule *erreur* du manifeste Chrome
+  passé au linter de Mozilla.
+- **`data_collection_permissions` est obligatoire** pour toute nouvelle
+  extension depuis le **3 novembre 2025**. La valeur honnête est ici `"none"` :
+  l'extension ne collecte ni ne transmet rien, ce que le reste de ce document
+  détaille et que l'absence totale de permission rend vérifiable.
+
+### Deux API que Chrome a et que Firefox n'a pas
+
+Le code n'a pas eu à changer, mais il fallait établir qu'il **dégrade
+correctement**. Deux appels seulement sont concernés, tous deux déjà gardés :
+
+| API | Firefox | Ce que fait le code sans elle |
+| --- | --- | --- |
+| `location.ancestorOrigins` | absente avant ~148 | le pont d'aperçu retombe sur les deux origines déclarées au manifeste pour viser son `postMessage` |
+| `requestVideoFrameCallback` | depuis 132 (donc présente au plancher) | la course à trois signaux se joue sur les deux restants — `playing` et `readyState` |
+
+La première est **la** divergence du portage. Si son repli était cassé,
+l'aperçu ne se dévoilerait jamais sous Firefox, et rien dans le code ne le
+dirait : le pont resterait simplement muet.
+
+### Ce qui est vérifié, et ce qui ne l'est pas
+
+Il faut être précis, parce que la différence compte.
+
+**Vérifié.** Le manifeste passe l'`addons-linter` de Mozilla — celui-là même
+qu'AMO applique à la soumission — avec **zéro erreur**. Le scénario 61 du banc
+rejoue le comportement de Firefox : `requestVideoFrameCallback` est réellement
+retirée de la page, et la lecture d'`ancestorOrigins` est neutralisée à la
+construction sur une copie (`content.firefox.test.js`), parce qu'elle ne peut
+pas l'être autrement — la propriété est `[LegacyUnforgeable]`, propre et non
+configurable. Mesuré, pas supposé : `delete location.ancestorOrigins` rend
+`false`, la version « prototype » rend `true` **sans rien retirer**, et
+redéfinir lève un `TypeError`. La première écriture de ce scénario croyait la
+supprimer et ne supprimait rien ; ses assertions étaient vertes et ne testaient
+personne. C'est une garde sur le décor lui-même qui l'a dit.
+
+**Pas vérifié, et c'est à savoir.** L'extension **n'a pas été exécutée dans un
+vrai Firefox**. La politique réseau de l'environnement de développement bloque
+le téléchargement du binaire Firefox de Playwright ; les 517 assertions du banc
+tournent donc sous Chromium, y compris celles qui simulent Firefox. Ce qui
+reste à confirmer sur la machine de quelqu'un est ce qu'aucune simulation ne
+peut donner : que l'injection en monde `MAIN` à `document_start` arrive bien
+avant les scripts de Twitch dans le moteur de Mozilla. La documentation dit que
+oui — *« les content scripts à `document_start` s'exécutent toujours avant les
+scripts de la page »* — mais une documentation n'est pas une mesure. Un
+chargement temporaire via `about:debugging` sur une page Twitch suffit à
+trancher.
+
+### Les douze avertissements du linter
+
+Ils sont réels, ils restent, et les taire serait malhonnête. Tous du même code
+— `UNSAFE_VAR_ASSIGNMENT` — sur les écritures `innerHTML`,
+`insertAdjacentHTML` et `outerHTML` du rendu. Le linter ne sait pas traverser
+une fonction d'échappement ; les douze sites ont été relus un par un, et toute
+donnée externe y passe par `escapeHtml`, y compris en contexte d'attribut
+(`data-value`, `title`). Ils sont **identiques sur la branche Chrome** : ce
+n'est pas une dette du portage. Le vérificateur interdit seulement qu'il en
+apparaisse de nouveaux, et qu'il en apparaisse d'une autre nature.
 
 ---
 
@@ -1452,7 +1560,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs tuile 440×280 montrant l’extension en fonctionnement
 ├── store/                 le texte des sept fiches du Chrome Web Store
 ├── tests/
-│   ├── run.mjs              le harnais : 514 assertions, 60 scénarios
+│   ├── run.mjs              le harnais : 517 assertions, 61 scénarios
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
 │   ├── build.mjs            copie content.js avec les durées accélérées
 │   └── parity.mjs           parité des clés de traduction entre les 5 langues
@@ -1470,18 +1578,27 @@ jamais empaquetés.
 ## Vérification
 
 ```bash
-npm install                        # eslint + playwright
+npm install                        # eslint + playwright + web-ext
 npx playwright install chromium    # une fois
-npm run check                      # lint + parité des locales + harnais
+npm run check                      # lint + parité + manifeste Firefox + harnais
 ```
 
-Trois vérifications, indépendantes :
+Quatre vérifications, indépendantes :
 
 | Commande | Ce qu'elle contrôle |
 |---|---|
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
-| `npm test` | le harnais Playwright : 60 scénarios, 514 assertions |
+| `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
+| `npm test` | le harnais Playwright : 61 scénarios, 517 assertions |
+
+`npm run addon` mérite un mot : ses six premières assertions sont celles que le
+linter ne peut pas connaître, parce qu'elles appartiennent à ce dépôt — la
+version suit `package.json`, le plancher Firefox reste cohérent avec la clé la
+plus récente du manifeste, et le bloc `content_scripts` est **mot pour mot**
+celui de la branche Chrome. Un manifeste peut être parfaitement recevable par
+AMO et avoir silencieusement divergé de l'autre branche ; le linter n'y verrait
+rien.
 
 **Le harnais fait tourner l'extension pour de vrai**, dans Chromium, contre un
 faux Twitch : `tests/page.html` reproduit le DOM réel de la barre latérale

@@ -1,11 +1,16 @@
-# Fiche Chrome Web Store
+# Fiche addons.mozilla.org
+
+> **Branche Firefox.** Ces fiches sont celles d'AMO. Elles sont identiques à
+> celles de la branche `claude/chrome` **à une ligne près** par langue : celle
+> qui nomme le bouton d'installation, « Ajouter à Chrome » devenant « Ajouter à
+> Firefox ». Rien d'autre ne change — le produit décrit est le même.
 
 Ce dossier est la **source** de ce qui est publié sur la fiche. Le tableau de
-bord du Chrome Web Store n'a pas d'historique lisible : sans copie versionnée
-ici, la seule trace d'une formulation est la fiche elle-même, et une correction
-d'il y a six mois est introuvable. Ces fichiers existent pour ça.
+bord d'AMO n'a pas d'historique lisible : sans copie versionnée ici, la seule
+trace d'une formulation est la fiche elle-même, et une correction d'il y a six
+mois est introuvable. Ces fichiers existent pour ça.
 
-Le texte est en **clair** : le champ « Description détaillée » du tableau de bord
+Le texte est en **clair** : le champ de description longue du tableau de bord
 n'interprète ni Markdown ni HTML. Les `★`, les `➤`, les émojis et les filets
 `━` sont donc des caractères, pas une mise en forme — ils survivent au
 copier-coller.

@@ -7,6 +7,7 @@ package-lock.json
 # à la main — le versionner reviendrait à versionner un artefact dérivé, et à
 # risquer de le voir diverger de sa source.
 tests/content.test.js
+tests/content.firefox.test.js
 tests/adblock.test.js
 
 # Captures de présentation produites par `npm run promo`. Régénérées à la

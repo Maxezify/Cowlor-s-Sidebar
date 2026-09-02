@@ -63,6 +63,35 @@ for (const [re, to] of subs) {
   src = src.replace(re, to);
 }
 writeFileSync(join(ICI, 'content.test.js'), src);
+
+/* VARIANTE FIREFOX — une seule ligne change, et il faut expliquer pourquoi
+   elle ne peut pas être obtenue autrement.
+
+   Firefox n'implémente pas `location.ancestorOrigins` avant la 148 ; sur le
+   plancher que le manifeste déclare (140), le pont d'aperçu retombe donc sur
+   les origines du manifeste pour viser son postMessage. C'est LA divergence de
+   plateforme du portage, et un repli cassé ne se verrait nulle part : l'aperçu
+   ne se dévoilerait simplement jamais sous Firefox.
+
+   On ne peut pas la simuler à l'exécution. `ancestorOrigins` est déclarée
+   [LegacyUnforgeable] : propriété PROPRE et NON CONFIGURABLE de l'objet
+   location — ni `delete`, ni `defineProperty`. Mesuré, pas supposé : `delete
+   location.ancestorOrigins` rend false, `delete Location.prototype.
+   ancestorOrigins` rend true en ne retirant rien (la propriété n'est pas sur
+   le prototype), et redéfinir lève un TypeError. Un test bâti là-dessus
+   passerait en ne testant rien — c'est exactement ce qui est arrivé.
+
+   La lecture est donc neutralisée ICI, à la construction, sur une COPIE. Le
+   produit livré n'en sait rien ; la substitution est vérifiée comme les
+   autres, et `undefined` est précisément ce que rend la lecture d'une
+   propriété absente. */
+const RE_ANCETRES = /const a = location\.ancestorOrigins;/;
+if (!RE_ANCETRES.test(src)) {
+  console.error('SUBSTITUTION INTROUVABLE (variante Firefox):', RE_ANCETRES);
+  process.exit(1);
+}
+writeFileSync(join(ICI, 'content.firefox.test.js'),
+  src.replace(RE_ANCETRES, 'const a = undefined; /* Firefox < 148 */'));
 // Le module anti-pub est copié TEL QUEL : il ne porte aucune constante de temps
 // à régler, et c'est justement son comportement d'origine qu'on veut éprouver —
 // à savoir qu'il ne fait STRICTEMENT RIEN hors iframe.

@@ -140,7 +140,7 @@ _______________________________
 
 ➤ 🎮 HOW DO WE DO IT?
 
-1. Click "Add to Chrome" (it's free!)
+1. Click "Add to Firefox" (it's free!)
 2. Reload Twitch and… tadaaaa!
 
 That's it. Really. No complicated configuration, no hidden menus, no account to create. It works, period.

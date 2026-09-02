@@ -1,6 +1,12 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.3 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.55.3 · **Firefox** Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+
+> **Firefox branch.** This repository has two release lines. `claude/chrome`
+> carries the Chrome / Chromium build; this branch carries the Firefox build.
+> The **only** shipped file that differs between them is `manifest.json` —
+> `content.js` and `adblock.js` are byte-for-byte identical, and a checker
+> guarantees it (see "[The Firefox port](#the-firefox-port-v3553)").
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -42,28 +48,26 @@ Its own labels are in French, English, German, Spanish or Portuguese
 
 ## Installation
 
-The extension is published on the **Chrome Web Store**: open its listing
-(search for "Cowlor's Sidebar for Twitch"), click **Add to Chrome**, then
+The extension is published on **addons.mozilla.org**: open its listing
+(search for "Cowlor's Sidebar for Twitch"), click **Add to Firefox**, then
 reload a `https://www.twitch.tv/` tab — the sidebar is enhanced automatically.
 Updates are then handled by the browser.
 
-### Manual install (developer mode)
+### Manual install (temporary)
 
-You can also install it by hand, from the `cowlors-sidebar-for-twitch` folder
+You can also load it by hand, from the `cowlors-sidebar-for-twitch` folder
 (or from the decompressed `.zip`) — handy for testing a development build:
 
-1. Open your browser's extensions page:
-   - Chrome: `chrome://extensions`
-   - Edge: `edge://extensions`
-   - Brave: `brave://extensions`
-   - (equivalent for Opera, Vivaldi, Arc…)
-2. Enable **Developer mode** (toggle in the top right corner).
-3. Click **Load unpacked**.
-4. Select the `cowlors-sidebar-for-twitch` folder (the one that contains
-   `manifest.json`). If you started from the `.zip`, unzip it first and point
-   to the unzipped folder — **not** to the `.zip` itself.
-5. Open (or reload) a `https://www.twitch.tv/` tab. The sidebar is enhanced
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Click **Load Temporary Add-on…**.
+3. Select the folder's **`manifest.json`** — not the folder itself. That is the
+   difference from Chrome, which expects the folder. If you started from the
+   `.zip`, unzip it first.
+4. Open (or reload) a `https://www.twitch.tv/` tab. The sidebar is enhanced
    automatically.
+
+An add-on loaded this way is **temporary**: Firefox forgets it on shutdown. An
+install that survives a restart needs a signed package — so, AMO.
 
 No extra permission is requested: the extension only operates on `twitch.tv`
 and `player.twitch.tv` pages, and never communicates with any third-party
@@ -74,12 +78,113 @@ API, thumbnails, `player.twitch.tv` for previews).
 
 ## Compatibility
 
-- **Chrome 111 or higher** (and any recent Chromium-based browser: Edge, Brave,
-  Opera, Vivaldi, Arc). Version 111 is the minimum because the content script
-  uses `"world": "MAIN"`, introduced at that version.
-- **Firefox**: recent Firefox MV3 supports `"world": "MAIN"`, but there can be
-  subtle injection-timing differences. The port targets Chromium; on Firefox,
-  the original userscript (via Violentmonkey) remains the safest option.
+- **Firefox 140 or higher.** The floor is not picked, it is **derived** from
+  two manifest keys, and the more recent one wins:
+
+  | What we declare | Since |
+  | --- | --- |
+  | `"world": "MAIN"` in `content_scripts` | Firefox **128** |
+  | `browser_specific_settings.gecko.data_collection_permissions` | Firefox **140** |
+
+  Hence 140. Dropping to 128 would make the manifest inconsistent with itself,
+  and Mozilla's `addons-linter` says so in as many words. The cost is nil: ESR
+  128 went out of support on 16 September 2025 and the active ESR is 140 — the
+  128-139 range is no longer inhabited by any maintained build.
+- **Firefox for Android 142 or higher** (`gecko_android`), the data-collection
+  key having landed there two versions later. Note that the followed-channels
+  sidebar does not exist on mobile Twitch: compatibility is declared there for
+  consistency, not for usefulness.
+- For **Chrome, Edge, Brave, Opera, Vivaldi, Arc**, see the `claude/chrome`
+  branch: same code, manifest without the `browser_specific_settings` block.
+
+---
+
+## The Firefox port (v3.55.3)
+
+### What changes, and it is little
+
+**Exactly one shipped file differs: `manifest.json`.** `content.js` and
+`adblock.js` are byte-for-byte identical across the two branches, and the
+`content_scripts` block is identical too — a checker compares it against a
+constant and fails if it drifts (`npm run addon`). That is the port's promise,
+and it is kept by a machine rather than by an intention.
+
+That narrowness is no accident: the extension **calls no extension API at
+all**. No `chrome.*`, no `browser.*`, no runtime, no storage, no background, no
+popup, no options page, not a single permission. It is only a content script.
+So there is no dialect to translate — the port reduces to the manifest.
+
+What the manifest gains:
+
+```json
+"browser_specific_settings": {
+  "gecko": {
+    "id": "cowlors-sidebar@maxezify.github.io",
+    "strict_min_version": "140.0",
+    "data_collection_permissions": { "required": ["none"] }
+  },
+  "gecko_android": { "strict_min_version": "142.0" }
+}
+```
+
+- **The ID is mandatory under MV3**: AMO no longer assigns one. Without it the
+  submission is rejected — it was the only *error* the Chrome manifest drew
+  from Mozilla's linter.
+- **`data_collection_permissions` is mandatory** for every new extension since
+  **3 November 2025**. The honest value here is `"none"`: the extension neither
+  collects nor transmits anything, which the rest of this document details and
+  which the total absence of permissions makes checkable.
+
+### Two APIs Chrome has and Firefox does not
+
+The code needed no change, but it had to be established that it **degrades
+correctly**. Only two calls are involved, both already guarded:
+
+| API | Firefox | What the code does without it |
+| --- | --- | --- |
+| `location.ancestorOrigins` | absent before ~148 | the preview bridge falls back to the two manifest-declared origins to target its `postMessage` |
+| `requestVideoFrameCallback` | since 132 (so present at the floor) | the three-signal race runs on the remaining two — `playing` and `readyState` |
+
+The first is **the** divergence of the port. If its fallback were broken, the
+preview would never reveal on Firefox, and nothing in the code would say so:
+the bridge would simply stay silent.
+
+### What is verified, and what is not
+
+Precision matters here, because the difference does.
+
+**Verified.** The manifest passes Mozilla's `addons-linter` — the very one AMO
+runs on submission — with **zero errors**. Bench scenario 61 replays Firefox's
+behaviour: `requestVideoFrameCallback` is genuinely removed from the page, and
+the `ancestorOrigins` read is neutralised at build time on a copy
+(`content.firefox.test.js`), because it cannot be neutralised any other way —
+the property is `[LegacyUnforgeable]`, own and non-configurable. Measured, not
+assumed: `delete location.ancestorOrigins` returns `false`, the prototype
+variant returns `true` **while removing nothing**, and redefining throws a
+`TypeError`. The first draft of that scenario believed it was deleting the
+property and was deleting nothing; its assertions were green and were testing
+no one. A guard on the fixture itself is what said so.
+
+**Not verified, and worth knowing.** The extension **has not been run in a real
+Firefox**. The development environment's network policy blocks the download of
+Playwright's Firefox binary, so all 517 bench assertions run under Chromium,
+including the ones that simulate Firefox. What remains to be confirmed on
+someone's machine is the thing no simulation can give: that `MAIN`-world
+injection at `document_start` really does land before Twitch's own scripts in
+Mozilla's engine. The documentation says it does — *"content scripts at
+`document_start` always run before page scripts"* — but documentation is not a
+measurement. A temporary load via `about:debugging` on a Twitch page settles it.
+
+### The linter's twelve warnings
+
+They are real, they remain, and hiding them would be dishonest. All of one code
+— `UNSAFE_VAR_ASSIGNMENT` — on the rendering's `innerHTML`,
+`insertAdjacentHTML` and `outerHTML` writes. The linter cannot see through an
+escaping function; the twelve sites were read one by one, and every piece of
+external data goes through `escapeHtml`, attribute contexts included
+(`data-value`, `title`). They are **identical on the Chrome branch**: this is
+not a debt the port introduced. The checker only forbids new ones, and ones of
+a different nature.
 
 ---
 
@@ -1369,7 +1474,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs 440×280 tile showing the extension at work
 ├── store/                 the copy of the seven Chrome Web Store listings
 ├── tests/
-│   ├── run.mjs              the harness: 514 assertions across 60 scenarios
+│   ├── run.mjs              the harness: 517 assertions across 61 scenarios
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
 │   ├── build.mjs            copies content.js with the timings accelerated
 │   └── parity.mjs           translation-key parity across the 5 languages
@@ -1386,18 +1491,26 @@ cowlors-sidebar-for-twitch/
 ## Verification
 
 ```bash
-npm install                        # eslint + playwright
+npm install                        # eslint + playwright + web-ext
 npx playwright install chromium    # once
-npm run check                      # lint + locale parity + harness
+npm run check                      # lint + parity + Firefox manifest + harness
 ```
 
-Three independent checks:
+Four independent checks:
 
 | Command | What it checks |
 |---|---|
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
-| `npm test` | the Playwright harness: 60 scenarios, 514 assertions |
+| `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
+| `npm test` | the Playwright harness: 61 scenarios, 517 assertions |
+
+`npm run addon` deserves a note: its first six assertions are the ones the
+linter cannot know, because they belong to this repository — the version tracks
+`package.json`, the Firefox floor stays consistent with the manifest's most
+recent key, and the `content_scripts` block is **word for word** the Chrome
+branch's. A manifest can be perfectly acceptable to AMO and have silently
+drifted from the other branch; the linter would see nothing.
 
 **The harness runs the extension for real**, in Chromium, against a fake
 Twitch: `tests/page.html` reproduces the sidebar's actual DOM (captured from
