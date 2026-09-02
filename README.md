@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.2 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
+Version 3.55.3 · Extension Chrome (Manifest V3) · 🇬🇧 [English version](README.en.md)
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -1132,8 +1132,56 @@ regroupées dans une table imbriquée : `tests/parity.mjs` ne compte que le
 premier niveau, et une langue aurait pu perdre une étiquette sans que rien ne le
 dise.
 
-L'ambre n'est pas l'or des abonnements, et c'est délibéré : deux messages
-opposés — un avertissement, une faveur — ne doivent pas porter la même couleur.
+#### La palette des badges (v3.55.3)
+
+Le badge d'étiquettes est né **ambre**, sur un raisonnement juste — une teinte
+d'avertissement, distincte de l'or des abonnements — et un chiffre jamais
+calculé. Une fois mesuré : son texte tombait à **2° de teinte** de celui du hype
+train, 26° contre 24°. La même couleur à l'œil, sur deux badges qui peuvent
+parfaitement coexister — une chaîne étiquetée lançant un hype train n'a rien
+d'exotique. C'est le défaut que la 3.25 avait déjà corrigé sur les couleurs de
+co-stream, refait ailleurs.
+
+Il est passé au **rouge**. Le créneau est étroit — coincé entre l'orange du hype
+à 24° et le rose de la réduction à 311°, l'optimum théorique est 348° — et on se
+pose à 357°, franchement rouge plutôt que cramoisi, soit 27° du hype sur le
+texte et 31° sur le fond.
+
+Le contraste a dicté le reste. Le rouge est la teinte la plus sombre à luminance
+égale : son canal ne pèse que 0,2126 dans la formule, et les premiers essais
+tombaient à 4,9:1 quand toute la famille tient entre 6,4 et 7,7. D'où un fond
+délibérément sombre — le rouge vif est dans le texte, pas dans la pastille.
+
+Les fonds sont translucides ; la colonne « composé » est ce qu'ils donnent sur
+le `#18181b` du popup, et le contraste est mesuré texte contre ce composé.
+
+| Type | Fond déclaré | Composé | Texte | Teinte | Contraste |
+| --- | --- | --- | --- | --- | --- |
+| `--ccl` | `rgba(200, 25, 42, .26)` | `#46181f` | `#ff868c` | 357° | 6,41:1 |
+| `--hype` | `rgba(255, 105, 5, .25)` | `#522c16` | `#ffb380` | 24° | 6,94:1 |
+| `--sub` | `rgba(255, 201, 102, .22)` | `#4b3f2c` | `#ffd591` | 37° | 7,43:1 |
+| `--exsub` | `rgba(255, 201, 102, .10)` | `#2f2a23` | `#c9b48c` | 39° | 7,06:1 |
+| `--sponsor` | `rgba(0, 184, 90, .22)` | `#133b29` | `#6bdb9d` | 147° | 7,25:1 |
+| `--costream` | `rgba(31, 105, 255, .25)` | `#1a2c54` | `#7fb3ff` | 216° | 6,38:1 |
+| `--squad` | `rgba(145, 71, 255, .25)` | `#362454` | `#d1b3ff` | 264° | 7,56:1 |
+| `--discount` | `rgba(255, 56, 219, .20)` | `#461e41` | `#ffa3ee` | 311° | 7,67:1 |
+| *(sans modificateur)* | `rgba(255, 255, 255, .08)` | `#2a2a2d` | `#efeff1` | — | 12,38:1 |
+
+La dernière ligne n'est pas un oubli : une ligne annexe que `markExtraRows` ne
+sait classer ni en hype train ni en réduction sort avec `type: 'other'` et tombe
+sur le gris de base. C'est sa couleur, définie, et le scénario 60 la traite comme
+telle.
+
+Trois paires restent sous les 20° et **le sont volontairement**. `sub` et `exsub`
+sont le même or à dessein — même signal, l'un désaturé. `hype` ↔ `sub` (13°) et
+`hype` ↔ `exsub` (15°) sont le prix de deux ancrages hors palette : l'orange du
+hype est celui de Twitch, l'or du badge d'abonnement est celui du filet des
+cartes abonnées (`--tse-sub-or`, 38°), qui existe précisément pour qu'on
+reconnaisse le signal d'une surface à l'autre. Les écarter demanderait de rompre
+l'un des deux — un arbitrage de produit, pas une correction.
+
+C'est là toute la différence avec l'ambre : elle n'était ancrée à rien. Elle
+était libre, et elle s'était posée à 2° du hype train.
 
 Un pictogramme ⚠️ encadre le texte **des deux côtés** (v3.55.2). À gauche
 seulement, il se lirait comme une puce de liste ; de part et d'autre, il fait un
@@ -1404,7 +1452,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs tuile 440×280 montrant l’extension en fonctionnement
 ├── store/                 le texte des sept fiches du Chrome Web Store
 ├── tests/
-│   ├── run.mjs              le harnais : 510 assertions, 59 scénarios
+│   ├── run.mjs              le harnais : 514 assertions, 60 scénarios
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
 │   ├── build.mjs            copie content.js avec les durées accélérées
 │   └── parity.mjs           parité des clés de traduction entre les 5 langues
@@ -1433,7 +1481,7 @@ Trois vérifications, indépendantes :
 |---|---|
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
-| `npm test` | le harnais Playwright : 59 scénarios, 510 assertions |
+| `npm test` | le harnais Playwright : 60 scénarios, 514 assertions |
 
 **Le harnais fait tourner l'extension pour de vrai**, dans Chromium, contre un
 faux Twitch : `tests/page.html` reproduit le DOM réel de la barre latérale

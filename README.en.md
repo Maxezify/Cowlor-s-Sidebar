@@ -1,6 +1,6 @@
 # Cowlor's Sidebar for Twitch
 
-Version 3.55.2 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
+Version 3.55.3 · Chrome Extension (Manifest V3) · 🇫🇷 [Version française](README.md)
 
 A browser extension that enhances Twitch's followed-channels sidebar: live
 stream uptime, collaboration badge, hiding of Hype Trains and subscription
@@ -1061,8 +1061,53 @@ The keys are **flat** (`uiCclMatureGame`, `uiCclGambling`…) rather than groupe
 into a nested table: `tests/parity.mjs` only counts the first level, and a
 language could have lost a label without anything saying so.
 
-Amber is not the subscriptions' gold, and that is deliberate: two opposite
-messages — a warning and a favour — must not wear the same colour.
+#### The badge palette (v3.55.3)
+
+The labels badge was born **amber**, on sound reasoning — a warning tint,
+distinct from the subscriptions' gold — and a number nobody had worked out. Once
+measured: its text sat **2° of hue** from the hype train's, 26° against 24°. The
+same colour to the eye, on two badges that can perfectly well coexist — a
+labelled channel running a hype train is nothing exotic. It is the flaw 3.25
+already fixed on the co-stream colours, made again elsewhere.
+
+It has gone **red**. The slot is narrow — wedged between the hype orange at 24°
+and the discount pink at 311°, the theoretical optimum is 348° — and we settle at
+357°, plainly red rather than crimson: 27° from hype on the text, 31° on the fill.
+
+Contrast dictated the rest. Red is the darkest hue at equal luminance — its
+channel carries only 0.2126 in the formula — and the first attempts fell to
+4.9:1 where the whole family sits between 6.4 and 7.7. Hence a deliberately dark
+fill: the bright red lives in the text, not in the pill.
+
+The fills are translucent; the "composited" column is what they give over the
+popup's `#18181b`, and contrast is measured text against that composite.
+
+| Type | Declared fill | Composited | Text | Hue | Contrast |
+| --- | --- | --- | --- | --- | --- |
+| `--ccl` | `rgba(200, 25, 42, .26)` | `#46181f` | `#ff868c` | 357° | 6.41:1 |
+| `--hype` | `rgba(255, 105, 5, .25)` | `#522c16` | `#ffb380` | 24° | 6.94:1 |
+| `--sub` | `rgba(255, 201, 102, .22)` | `#4b3f2c` | `#ffd591` | 37° | 7.43:1 |
+| `--exsub` | `rgba(255, 201, 102, .10)` | `#2f2a23` | `#c9b48c` | 39° | 7.06:1 |
+| `--sponsor` | `rgba(0, 184, 90, .22)` | `#133b29` | `#6bdb9d` | 147° | 7.25:1 |
+| `--costream` | `rgba(31, 105, 255, .25)` | `#1a2c54` | `#7fb3ff` | 216° | 6.38:1 |
+| `--squad` | `rgba(145, 71, 255, .25)` | `#362454` | `#d1b3ff` | 264° | 7.56:1 |
+| `--discount` | `rgba(255, 56, 219, .20)` | `#461e41` | `#ffa3ee` | 311° | 7.67:1 |
+| *(no modifier)* | `rgba(255, 255, 255, .08)` | `#2a2a2d` | `#efeff1` | — | 12.38:1 |
+
+The last row is not an oversight: an extra row `markExtraRows` can classify as
+neither hype train nor discount comes out as `type: 'other'` and falls on the
+base grey. That is its colour, defined, and scenario 60 treats it as such.
+
+Three pairs stay under 20°, and **do so on purpose**. `sub` and `exsub` are the
+same gold by design — the same signal, one desaturated. `hype` ↔ `sub` (13°) and
+`hype` ↔ `exsub` (15°) are the price of two anchors outside the palette: the hype
+orange is Twitch's own, and the subscription badge's gold is the gold of the
+subscribed cards' rail (`--tse-sub-or`, 38°), which exists precisely so the
+signal is recognised from one surface to the next. Pulling them apart would mean
+breaking one of the two anchors — a product call, not a fix.
+
+That is the whole difference with the amber: it was anchored to nothing. It was
+free, and it had landed 2° from the hype train.
 
 A ⚠️ pictogram frames the text on **both sides** (v3.55.2). On the left alone it
 would read as a list bullet; on either side it makes a sign. Both are
@@ -1324,7 +1369,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-tile-produit.mjs 440×280 tile showing the extension at work
 ├── store/                 the copy of the seven Chrome Web Store listings
 ├── tests/
-│   ├── run.mjs              the harness: 510 assertions across 59 scenarios
+│   ├── run.mjs              the harness: 514 assertions across 60 scenarios
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
 │   ├── build.mjs            copies content.js with the timings accelerated
 │   └── parity.mjs           translation-key parity across the 5 languages
@@ -1352,7 +1397,7 @@ Three independent checks:
 |---|---|
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
-| `npm test` | the Playwright harness: 59 scenarios, 510 assertions |
+| `npm test` | the Playwright harness: 60 scenarios, 514 assertions |
 
 **The harness runs the extension for real**, in Chromium, against a fake
 Twitch: `tests/page.html` reproduces the sidebar's actual DOM (captured from

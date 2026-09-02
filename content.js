@@ -2346,12 +2346,30 @@ const TSE_GATE_MAX_CLICKS = 5;
        autant qu'un abonnement en cours. */
     .tse-preview__badge--sub      { background: rgba(255, 201, 102, 0.22); color: #ffd591; }
     .tse-preview__badge--exsub    { background: rgba(255, 201, 102, 0.10); color: #c9b48c; }
-    /* Étiquettes de classification. Ambre, la teinte d'avertissement — et
-       délibérément DIFFÉRENTE de l'or des abonnements, qui est une teinte de
-       faveur : deux messages opposés ne doivent pas porter la même couleur.
+    /* Étiquettes de classification : ROUGE, et il a fallu le mesurer pour le
+       voir. La 3.55 avait choisi l'ambre, en raisonnant juste sur le principe
+       — une teinte d'avertissement, distincte de l'or des abonnements — et
+       faux sur le nombre : son texte tombait à 2° de teinte de celui du hype
+       train (26° contre 24°), c'est-à-dire la MÊME couleur à l'œil. Les deux
+       badges peuvent coexister (une chaîne étiquetée qui lance un hype train
+       n'a rien d'exotique), et le coin chaud de la palette était déjà occupé
+       par sub (37°) et exsub (39°).
+
+       Le rouge est le seul créneau libre, et il est étroit : coincé entre
+       l'orange du hype à 24° et le rose de la réduction à 311°, l'optimum
+       théorique est 348°. On se pose à 357° — franchement rouge plutôt que
+       cramoisi — soit 27° du hype sur le texte et 31° sur le fond.
+
+       Le contraste a dicté le reste. Le rouge est la teinte la plus sombre à
+       luminance égale (le canal rouge ne pèse que 0,2126 dans la formule), et
+       les premiers essais tombaient à 4,9:1 quand toute la famille tient entre
+       6,4 et 7,7. D'où un fond DÉLIBÉRÉMENT sombre (le rouge vif est dans le
+       texte, pas dans la pastille) : 6,41:1, juste au-dessus du plancher de la
+       famille, qui est le badge co-stream à 6,38:1.
+
        max-width autorise le repli : plusieurs étiquettes cumulées feraient
        sinon un badge plus large que l'aperçu, que le popup couperait net. */
-    .tse-preview__badge--ccl      { background: rgba(255, 138, 61, 0.20); color: #ffb37a;
+    .tse-preview__badge--ccl      { background: rgba(200, 25, 42, 0.26); color: #ff868c;
                                     max-width: 100%; }
     /* Les pictogrammes d'avertissement. line-height: 1 les empêche de
        rehausser le badge : un emoji dépasse sa boîte em, et sans cela la

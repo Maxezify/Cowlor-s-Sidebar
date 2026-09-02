@@ -4849,6 +4849,131 @@ titre('59. Aperçu — ce que l\'interstitielle disait, le badge le dit maintena
   }
 }
 
+// ═════════ 60. Aperçu — chaque type de badge a SA couleur ═════════
+titre('60. Aperçu — chaque type de badge a sa couleur, et elles sont distinctes');
+{
+  /* Le défaut que ce scénario existe pour empêcher est déjà arrivé : le badge
+     d'étiquettes est né ambre, à 2° de teinte du badge hype train — la même
+     couleur à l'œil, sur deux badges qui peuvent coexister. Personne ne l'avait
+     vu, parce que « ambre » et « orange » sont deux mots différents et que
+     personne n'avait sorti la calculatrice.
+
+     Deux choses sont vérifiées, et il faut les deux :
+      a) chaque type a une couleur DÉFINIE — une classe sans règle héritera du
+         gris de base sans que rien ne proteste ;
+      b) les couleurs sont DISTINCTES — deux règles peuvent exister et dire la
+         même chose.
+
+     Le type « other » (ligne annexe non identifiée, cf. markExtraRows) est
+     volontairement absent de la liste : il n'a pas de modificateur et tombe sur
+     le gris de base, ce qui est sa couleur définie. */
+  const TYPES = ['hype', 'discount', 'costream', 'squad', 'sponsor', 'sub', 'exsub', 'ccl'];
+
+  const page = await freshTwitch('<!doctype html><html><body>lecteur</body></html>');
+  await wait(page, 2000);
+  const releve = await page.evaluate((types) => {
+    // Les badges sont mesurés DANS le popup : sa couleur de fond compose les
+    // fonds translucides, et c'est la composition qui se voit, pas le rgba.
+    const hote = document.createElement('div');
+    hote.className = 'tse-preview';
+    hote.style.cssText = 'opacity:1;left:0;top:0';
+    hote.innerHTML = '<div class="tse-preview__body"><div class="tse-preview__badges">' +
+      types.map(t => `<span class="tse-preview__badge tse-preview__badge--${t}">x</span>`).join('') +
+      '<span class="tse-preview__badge">base</span>' +
+      '</div></div>';
+    document.body.appendChild(hote);
+    const lus = [...hote.querySelectorAll('.tse-preview__badge')].map(el => {
+      const cs = getComputedStyle(el);
+      return { fond: cs.backgroundColor, texte: cs.color };
+    });
+    const popup = getComputedStyle(hote).backgroundColor;
+    hote.remove();
+    return { lus, popup };
+  }, TYPES);
+
+  const rgba = (s) => (s.match(/[\d.]+/g) || []).map(Number);
+  const composer = ([r, g, b, a = 1], base) =>
+    [r * a + base[0] * (1 - a), g * a + base[1] * (1 - a), b * a + base[2] * (1 - a)];
+  const teinte = ([r, g, b]) => {
+    r /= 255; g /= 255; b /= 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    if (!d) return null;                       // gris : pas de teinte à comparer
+    const h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? ((b - r) / d + 2)
+                                                                    : ((r - g) / d + 4);
+    return Math.round(h * 60);
+  };
+  const ecart = (a, b) => { const d = Math.abs(a - b) % 360; return Math.round(d > 180 ? 360 - d : d); };
+  const fondPopup = rgba(releve.popup);
+  const base = releve.lus[TYPES.length];       // le badge sans modificateur
+  const badges = TYPES.map((t, i) => ({
+    type: t,
+    fond: releve.lus[i].fond, texte: releve.lus[i].texte,
+    hFond: teinte(composer(rgba(releve.lus[i].fond), fondPopup)),
+    hTexte: teinte(rgba(releve.lus[i].texte)),
+  }));
+
+  // a) une couleur DÉFINIE : ni le fond ni le texte ne doivent être ceux du
+  //    badge de base, sinon la classe n'a simplement pas de règle.
+  const sansRegle = badges.filter(b => b.fond === base.fond || b.texte === base.texte);
+  ok('les huit types de badge ont chacun une couleur définie',
+     sansRegle.length === 0, JSON.stringify(sansRegle.map(b => b.type)));
+
+  // b) DISTINCTES : deux règles peuvent exister et dire la même chose.
+  const doublons = [];
+  for (let i = 0; i < badges.length; i++) for (let j = i + 1; j < badges.length; j++) {
+    if (badges[i].fond === badges[j].fond) doublons.push([badges[i].type, badges[j].type, 'fond']);
+    if (badges[i].texte === badges[j].texte) doublons.push([badges[i].type, badges[j].type, 'texte']);
+  }
+  ok('et aucune paire ne partage exactement la même couleur',
+     doublons.length === 0, JSON.stringify(doublons));
+
+  /* c) L'écart de TEINTE, qui est ce que l'œil lit vraiment, avec le seuil de
+        20° sous lequel deux teintes cessent d'être deux couleurs.
+
+        Trois paires en sont dispensées, et aucune ne l'est par commodité :
+
+         • sub ↔ exsub (2°) — c'est le MÊME or à dessein. « Abonné » et « ancien
+           abonné » sont le même signal, l'un désaturé ; les distinguer par la
+           teinte contredirait ce qu'ils disent.
+
+         • hype ↔ sub (13°) et hype ↔ exsub (15°) — les deux teintes sont
+           ANCRÉES hors de la palette : l'orange du hype est celui de Twitch
+           (rgb 255,105,5), l'or du badge d'abonnement est celui du filet des
+           cartes abonnées (--tse-sub-or, 38°), qui existe précisément pour
+           qu'on reconnaisse le signal d'une surface à l'autre. Les écarter
+           demanderait de rompre l'un des deux ancrages — un arbitrage de
+           produit, pas une correction, et il n'a pas été rendu.
+
+        La différence avec l'ambre que le rouge remplace est là : l'ambre
+        n'était ancrée à rien. Elle était libre, et elle s'était posée à 2° du
+        hype train. Cette liste ne doit donc s'allonger que pour une couleur
+        qui, elle aussi, tient à quelque chose d'extérieur. */
+  const ANCREES = new Set(['sub|exsub', 'hype|sub', 'hype|exsub']);
+  const trop = [];
+  for (let i = 0; i < badges.length; i++) for (let j = i + 1; j < badges.length; j++) {
+    const a = badges[i], b = badges[j];
+    if (ANCREES.has(`${a.type}|${b.type}`)) continue;
+    if (a.hTexte == null || b.hTexte == null) continue;
+    const d = ecart(a.hTexte, b.hTexte);
+    if (d < 20) trop.push([a.type, b.type, d + '°']);
+  }
+  ok('aucune paire librement choisie sous 20° de teinte',
+     trop.length === 0, JSON.stringify(trop));
+
+  /* d) La paire qui a motivé le rouge, nommée explicitement. Le badge
+        d'étiquettes et le hype train peuvent coexister sur la même chaîne, et
+        ils étaient à 2°. Sur le TEXTE comme sur le FOND : la 3.55 les avait
+        rapprochés des deux côtés à la fois. */
+  const ccl = badges.find(b => b.type === 'ccl');
+  const hype = badges.find(b => b.type === 'hype');
+  ok('le badge d\'étiquettes est franchement rouge, loin de l\'orange du hype train',
+     ecart(ccl.hTexte, hype.hTexte) >= 20 && ecart(ccl.hFond, hype.hFond) >= 20
+     && (ccl.hTexte >= 330 || ccl.hTexte <= 10),
+     JSON.stringify({ texte: [ccl.hTexte, hype.hTexte, ecart(ccl.hTexte, hype.hTexte) + '°'],
+                      fond:  [ccl.hFond,  hype.hFond,  ecart(ccl.hFond,  hype.hFond)  + '°'] }));
+  await page.close();
+}
+
 await browser.close();
 console.log(`\n${'═'.repeat(50)}`);
 if (echecs.length) {
