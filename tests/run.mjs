@@ -4525,6 +4525,22 @@ titre('58. Aperçu — l\'écran « Commencer à regarder » ne doit plus figer 
     ok('une chaîne étiquetée reçoit bien une iframe',
        (await etatIframe(page)) !== 'pas-d-iframe', await etatIframe(page));
 
+    // La question qui compte pour l'œil : rien ne doit changer AVANT que la
+    // vidéo ne parte. La vignette est dans le même conteneur que l'iframe, qui
+    // se pose PAR-DESSUS et reste transparente jusqu'à sa première image — le
+    // même enchaînement que sur une chaîne sans étiquette. C'est structurel, pas
+    // une affaire d'instant : on le vérifie comme tel.
+    const socle = await page.evaluate(() => {
+      const wrap = document.querySelector('.tse-preview__thumb-wrap');
+      const img = wrap && wrap.querySelector('.tse-preview__thumb');
+      const f = wrap && wrap.querySelector('.tse-preview__iframe');
+      return { vignette: !!img, chargee: img ? (img.dataset.tseLoaded ?? null) : null,
+               memeConteneur: !!(img && f) };
+    });
+    ok('la vignette est posée sous l\'iframe, comme sans modale',
+       socle.vignette && socle.memeConteneur && socle.chargee === 'true',
+       JSON.stringify(socle));
+
     await attendre(page, () => {
       const f = document.querySelector('.tse-preview__iframe');
       return !!f && f.dataset.tseLoaded === 'true';
@@ -4556,6 +4572,19 @@ titre('58. Aperçu — l\'écran « Commencer à regarder » ne doit plus figer 
     ok('le filet ordinaire ne dévoile pas la modale', (await etatIframe(page)) !== 'true',
        await etatIframe(page));
 
+    // Et pendant ces deux secondes, ce que l'utilisateur voit est la vignette :
+    // l'iframe est bien là, mais transparente. C'est ce qui distingue « pas
+    // encore de vidéo » de « une modale en travers de l'aperçu ».
+    const dessous = await page.evaluate(() => {
+      const img = document.querySelector('.tse-preview__thumb');
+      const f = document.querySelector('.tse-preview__iframe');
+      return { chargee: img ? (img.dataset.tseLoaded ?? null) : null,
+               opaciteIframe: f ? getComputedStyle(f).opacity : null };
+    });
+    ok('la vignette reste visible et l\'iframe transparente',
+       dessous.chargee === 'true' && dessous.opaciteIframe === '0',
+       JSON.stringify(dessous));
+
     // Et le filet d'interstitielle rend la main à la vignette.
     await attendre(page, () => !document.querySelector('.tse-preview__iframe'), 6000);
     ok('l\'iframe est retirée, la vignette reprend la main',
@@ -4563,6 +4592,79 @@ titre('58. Aperçu — l\'écran « Commencer à regarder » ne doit plus figer 
     const vignette = await page.evaluate(() =>
       !!document.querySelector('.tse-preview__thumb'));
     ok('et la vignette est toujours là pour la remplacer', vignette, String(vignette));
+    await page.close();
+  }
+}
+
+// ═════════ 59. Aperçu — le badge des étiquettes de classification ═════════
+titre('59. Aperçu — ce que l\'interstitielle disait, le badge le dit maintenant');
+{
+  /* Lever l'écran d'acquittement sans afficher les étiquettes reviendrait à
+     SUPPRIMER l'information au lieu de la déplacer. Ce scénario vérifie qu'elle
+     est bien déplacée — et qu'un identifiant inconnu ne fuit pas brut dans
+     l'interface. Le harnais tourne en français : les libellés attendus sont
+     ceux de la table française. */
+  const PLAYER_NU = '<!doctype html><html><body>lecteur</body></html>';
+  const badgeCcl = (page) => page.evaluate(() => {
+    const b = document.querySelector('.tse-preview__badge--ccl');
+    if (!b) return null;
+    const zone = b.parentElement;
+    return {
+      texte: b.querySelector('.tse-preview__badge-text').textContent.trim(),
+      // Un avertissement se lit avant le contexte : il doit être le premier.
+      premier: zone.firstElementChild === b,
+    };
+  });
+  const poser = (page, fixtures) => page.evaluate((fx) => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {};
+    for (const [login, ccl] of Object.entries(fx)) {
+      window.__fx[login] = { id: 'id-' + login, createdAt: h, viewers: 1000,
+                             game: 'G', tags: [], ccl };
+      window.__addCard(login, 'G', '1 k');
+    }
+  }, fixtures);
+
+  {
+    const page = await freshTwitch(PLAYER_NU);
+    await poser(page, {
+      alpha: [{ id: 'MatureGame' }],
+      beta:  [{ id: 'Gambling' }, { id: 'SexualThemes' }],
+      gamma: [{ id: 'UneEtiquetteQueTwitchAjouteraUnJour' }],
+      delta: [],
+    });
+    await wait(page, 2000);
+
+    await hoverCard(page, 0);
+    await attendre(page, () => !!document.querySelector('.tse-preview__badge--ccl'), 5000);
+    const un = await badgeCcl(page);
+    ok('une étiquette connue est traduite', un && un.texte === 'Jeux matures',
+       JSON.stringify(un));
+    ok('et le badge passe en tête des autres', !!un && un.premier === true,
+       JSON.stringify(un));
+    await unhoverCard(page, 0);
+
+    await hoverCard(page, 1);
+    await attendre(page, () => !!document.querySelector('.tse-preview__badge--ccl'), 5000);
+    const deux = await badgeCcl(page);
+    ok('deux étiquettes tiennent dans un seul badge',
+       !!deux && deux.texte === 'Jeux d\'argent · Thèmes sexuels', JSON.stringify(deux));
+    await unhoverCard(page, 1);
+
+    await hoverCard(page, 2);
+    await attendre(page, () => !!document.querySelector('.tse-preview__badge--ccl'), 5000);
+    const trois = await badgeCcl(page);
+    // Le point qui compte : « UneEtiquetteQueTwitchAjouteraUnJour » dans une
+    // interface française serait pire que rien.
+    ok('une étiquette inconnue passe au libellé générique, jamais son identifiant',
+       !!trois && trois.texte === 'Contenu classifié', JSON.stringify(trois));
+    await unhoverCard(page, 2);
+
+    await hoverCard(page, 3);
+    await wait(page, 1500);
+    const quatre = await badgeCcl(page);
+    ok('et une chaîne sans étiquette n\'a pas de badge du tout', quatre === null,
+       JSON.stringify(quatre));
     await page.close();
   }
 }

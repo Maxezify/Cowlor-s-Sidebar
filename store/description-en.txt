@@ -14,6 +14,7 @@ The flagship feature. Hover a streamer for one second and boom, a popup opens on
 - The LIVE stream video (actual live feed, not a frozen thumbnail)
 - The full stream title, readable before you even click
 - Badges that tell you everything about the context (see right below)
+- And it plays on labelled channels too: Twitch's "Start Watching" screen used to leave the preview stuck on a still image — now it is lifted, and the labels move into a badge (see below)
 
 And it works everywhere in the sidebar: Followed Channels, Recommended Channels, and even "Viewers of X also watch". No more clicking just to find out what's happening on a stream!
 
@@ -28,7 +29,7 @@ Inside the preview popup, colored labels sum up the stream's context at a glance
 - 💰 ★ SPONSORED BY ★ For sponsored streams, displays the brand with its color logo. You'll know who's behind it.
 - 🚂 ★ HYPE TRAIN ★ A Hype Train is running on the channel? You're notified without having to click.
 - 💎 ★ DISCOUNTED SUB ★ When Twitch is offering a discounted subscription on the stream, it's flagged right there.
-- ⚠️ ★ CONTENT LABELS ★ The official Twitch labels (mature content, violence, gambling…) surface inside the preview.
+- ⚠️ ★ CONTENT LABELS ★ The official Twitch labels (mature-rated game, graphic violence, gambling…) are shown as their own badge, first in the row — so you know before you look, without the interstitial that used to block the video.
 
 _______________________________
 

@@ -62,6 +62,13 @@ où le code change :
    touché.
 7. **« Code source entièrement lisible »** — `content.js` et `adblock.js` sont
    livrés tels quels, ni minifiés ni obscurcis, commentaires compris.
+8. **« Étiquettes de contenu … forment leur propre badge »** — `updateCclBadge`
+   les pose en tête des badges de l'aperçu, depuis les identifiants que rend
+   `contentClassificationLabels`. Cette phrase a été FAUSSE de la 3.44 à la
+   3.54 : la fiche promettait un badge que rien n'implémentait, et personne ne
+   s'en était aperçu parce qu'aucun contrôle ne relie une promesse de fiche à
+   une ligne de code. Cette liste-ci est ce contrôle ; elle n'existe que pour
+   ça.
 
 ## Images
 

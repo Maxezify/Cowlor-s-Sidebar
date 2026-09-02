@@ -993,18 +993,27 @@ behaviour: the parent knew nothing of the gate, its ordinary net fired, and the
 preview revealed the modal. The bench said so under mutation; review had not
 seen it. Reporting is now unconditional; only the click depends on the flag.
 
-#### What `hasCCL` no longer decides
+#### The labels change role
 
-A label does not **predict** the gate. The screen also depends on the viewer:
-signed out it appears, signed in the account's content preferences may already
-have accepted it — the screen says as much itself, pointing at "content
-preferences". Deciding on `hasCCL` therefore denied video to viewers who would
-never have seen a gate at all. The decision moved into the iframe, where it
-bears on what is actually on screen.
+They no longer decide, they are displayed. The query no longer returns a boolean
+but the identifiers (`MatureGame`, `Gambling`…), and the preview turns them into
+an amber badge placed **first** among the others: a warning is read before the
+context. That badge is what makes the lift take nothing away from anyone — what
+the gate said, the preview says, and sooner.
 
-`hasCCL` now has no consumer. The query still computes it, and the Store listing
-promises a labels badge in the preview which **does not exist**. Both are settled
-together, and neither is done.
+The translated wording lives in the locale table, not in the query: asking
+GraphQL for `localizedName` would fail the **whole** query if the field does not
+exist under that name, and the preview's title would go down with it. Seven
+labels, five languages, plus a generic wording — «Classified content» — for the
+identifier Twitch may add tomorrow: `DebatedSocialIssuesAndPolitics` shown raw
+in a French interface would be worse than nothing.
+
+The keys are **flat** (`uiCclMatureGame`, `uiCclGambling`…) rather than grouped
+into a nested table: `tests/parity.mjs` only counts the first level, and a
+language could have lost a label without anything saying so.
+
+Amber is not the subscriptions' gold, and that is deliberate: two opposite
+messages — a warning and a favour — must not wear the same colour.
 
 
 ### Co-stream colours

@@ -1059,18 +1059,29 @@ l'aperçu dévoilait la modale. Le banc l'a dit en mutation ; la relecture ne
 l'avait pas vu. Le signalement est désormais inconditionnel, le clic seul
 dépend du drapeau.
 
-#### Ce que `hasCCL` ne décide plus
+#### Les étiquettes changent de rôle
 
-Une étiquette ne **prédit** pas l'interstitielle. L'écran dépend aussi du
-spectateur : déconnecté il apparaît, connecté les préférences de contenu du
-compte peuvent l'avoir déjà accepté — l'écran le dit lui-même, en renvoyant aux
-« préférences de contenu ». Décider sur `hasCCL` revenait donc à refuser la
-vidéo à des spectateurs qui n'auraient jamais vu d'interstitielle. La décision
-est passée dans l'iframe, où elle porte sur ce qui est vraiment à l'écran.
+Elles ne décident plus, elles s'affichent. La requête ne rend plus un booléen
+mais les identifiants (`MatureGame`, `Gambling`…), et l'aperçu en fait un badge
+ambre posé **en tête** des autres : un avertissement se lit avant le contexte.
+C'est ce badge qui fait que le levage ne retire rien à personne — ce que
+l'interstitielle disait, l'aperçu le dit, et plus tôt.
 
-`hasCCL` n'a plus aucun consommateur. La requête le calcule encore, et la fiche
-du Store promet un badge d'étiquettes dans l'aperçu qui, lui, **n'existe pas**.
-Les deux se règlent ensemble, et ce n'est pas fait.
+Le libellé traduit vit dans la table des locales, pas dans la requête : demander
+`localizedName` à GraphQL ferait échouer la requête **entière** si le champ
+n'existe pas sous ce nom, et le titre de l'aperçu partirait avec. Sept
+étiquettes, cinq langues, plus un libellé générique — « Contenu classifié » —
+pour l'identifiant que Twitch ajouterait demain :
+`DebatedSocialIssuesAndPolitics` affiché brut dans une interface française
+serait pire que rien.
+
+Les clés sont **plates** (`uiCclMatureGame`, `uiCclGambling`…) et non
+regroupées dans une table imbriquée : `tests/parity.mjs` ne compte que le
+premier niveau, et une langue aurait pu perdre une étiquette sans que rien ne le
+dise.
+
+L'ambre n'est pas l'or des abonnements, et c'est délibéré : deux messages
+opposés — un avertissement, une faveur — ne doivent pas porter la même couleur.
 
 
 ### Couleurs de co-stream

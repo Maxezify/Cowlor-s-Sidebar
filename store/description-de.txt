@@ -14,6 +14,7 @@ Die Paradefunktion. Fahre eine Sekunde über einen Streamer und zack, seitlich �
 - Dem LIVE-Video des Streams (der echte Stream, kein eingefrorenes Vorschaubild)
 - Dem vollständigen Stream-Titel, lesbar bevor du überhaupt klickst
 - Abzeichen, die dir alles über den Kontext sagen (siehe gleich darunter)
+- Und es läuft auch bei gekennzeichneten Kanälen: Twitchs Bildschirm „Mit dem Zuschauen beginnen" ließ die Vorschau auf einem Standbild hängen — er wird jetzt weggeklickt, und die Kennzeichnungen wandern in ein Abzeichen (siehe unten)
 
 Und das funktioniert überall in der Sidebar: gefolgte Kanäle, empfohlene Kanäle, sogar „Zuschauer von X sehen auch". Schluss mit Klicken, nur um zu wissen, was in einem Stream gerade passiert!
 
@@ -28,7 +29,7 @@ Im Vorschaufenster fassen farbige Etiketten den Kontext des Streams auf einen Bl
 - 💰 ★ GESPONSERT VON ★ Bei gesponserten Streams: die Marke mit ihrem farbigen Logo. Du weißt, wer dahintersteckt.
 - 🚂 ★ HYPE TRAIN ★ Auf dem Kanal läuft ein Hype Train? Du erfährst es, ohne klicken zu müssen.
 - 💎 ★ ABO IM ANGEBOT ★ Wenn Twitch im Stream ein vergünstigtes Abo anbietet, steht es genau dort.
-- ⚠️ ★ INHALTSHINWEISE ★ Die offiziellen Twitch-Labels (Inhalte für Erwachsene, Gewalt, Glücksspiel…) tauchen in der Vorschau auf.
+- ⚠️ ★ INHALTSHINWEISE ★ Die offiziellen Twitch-Labels (Spiel ab 18, explizite Gewalt, Glücksspiel…) bilden ihr eigenes Abzeichen, ganz vorn in der Reihe — du weißt es, bevor du hinschaust, ohne den Zwischenbildschirm, der das Video blockierte.
 
 _______________________________
 

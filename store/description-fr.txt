@@ -14,6 +14,7 @@ La fonction phare. Survolez un streamer une seconde et boum, une fenêtre s'ouvr
 - La vidéo du stream EN DIRECT (le vrai flux, pas une miniature figée)
 - Le titre complet du stream, lisible avant même de cliquer
 - Des badges qui vous disent tout du contexte (voir juste en dessous)
+- Et ça marche aussi sur les chaînes étiquetées : l'écran « Commencer à regarder » de Twitch laissait l'aperçu bloqué sur une image fixe — il est désormais levé, et les étiquettes passent dans un badge (voir plus bas)
 
 Et ça marche partout dans la barre latérale : Chaînes suivies, Chaînes recommandées, et même « Les spectateurs de X regardent aussi ». Fini les clics juste pour savoir ce qui se passe sur un stream !
 
@@ -28,7 +29,7 @@ Dans la fenêtre d'aperçu, des étiquettes colorées résument le contexte du s
 - 💰 ★ SPONSORISÉ PAR ★ Pour les streams sponsorisés, affiche la marque avec son logo en couleur. Vous saurez qui est derrière.
 - 🚂 ★ HYPE TRAIN ★ Un Hype Train est en cours sur la chaîne ? Vous êtes prévenu sans avoir à cliquer.
 - 💎 ★ ABONNEMENT EN PROMO ★ Quand Twitch propose un abonnement à prix réduit sur le stream, c'est signalé là.
-- ⚠️ ★ ÉTIQUETTES DE CONTENU ★ Les étiquettes officielles de Twitch (contenu adulte, violence, jeux d'argent…) remontent dans l'aperçu.
+- ⚠️ ★ ÉTIQUETTES DE CONTENU ★ Les étiquettes officielles de Twitch (jeux matures, violence explicite, jeux d'argent…) forment leur propre badge, en tête de la rangée — vous savez avant de regarder, sans l'interstitielle qui bloquait la vidéo.
 
 _______________________________
 

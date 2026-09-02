@@ -14,6 +14,7 @@ A função principal. Passa por cima de um streamer durante um segundo e pronto,
 - O vídeo da emissão EM DIRECTO (a transmissão real, não uma miniatura congelada)
 - O título completo da emissão, legível antes sequer de clicares
 - Distintivos que te contam tudo sobre o contexto (mesmo aqui em baixo)
+- E funciona também nos canais etiquetados: o ecrã «Começar a ver» do Twitch deixava a pré-visualização presa numa imagem fixa — agora é dispensado, e as etiquetas passam a um distintivo (mais abaixo)
 
 E funciona em toda a barra lateral: canais que segues, canais recomendados, e até «Quem vê X também vê». Acabaram-se os cliques só para saber o que se passa numa emissão!
 
@@ -28,7 +29,7 @@ Dentro da janela de pré-visualização, etiquetas coloridas resumem o contexto 
 - 💰 ★ PATROCINADO POR ★ Nas emissões patrocinadas, mostra a marca com o logótipo a cores. Vais saber quem está por trás.
 - 🚂 ★ HYPE TRAIN ★ Há um Hype Train a decorrer no canal? Ficas a saber sem ter de clicar.
 - 💎 ★ SUBSCRIÇÃO COM DESCONTO ★ Quando o Twitch oferece uma subscrição com desconto na emissão, fica assinalado ali mesmo.
-- ⚠️ ★ ETIQUETAS DE CONTEÚDO ★ As etiquetas oficiais do Twitch (conteúdo adulto, violência, apostas…) aparecem na pré-visualização.
+- ⚠️ ★ ETIQUETAS DE CONTEÚDO ★ As etiquetas oficiais do Twitch (jogo adulto, violência explícita, jogos de azar…) formam o seu próprio distintivo, o primeiro da fila — sabes antes de olhares, sem o ecrã que bloqueava o vídeo.
 
 _______________________________
 

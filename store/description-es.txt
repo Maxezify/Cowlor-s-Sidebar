@@ -14,6 +14,7 @@ La función estrella. Pasa el ratón un segundo por encima de un streamer y ¡pu
 - El vídeo del directo EN VIVO (la emisión real, no una miniatura congelada)
 - El título completo del directo, legible antes incluso de hacer clic
 - Insignias que te cuentan todo el contexto (justo aquí debajo)
+- Y funciona también en los canales etiquetados: la pantalla «Empezar a ver» de Twitch dejaba la vista previa congelada en una imagen fija — ahora se retira, y las etiquetas pasan a una insignia (más abajo)
 
 Y funciona en toda la barra lateral: canales que sigues, canales recomendados, e incluso «Los espectadores de X también ven». ¡Se acabó hacer clic solo para saber qué está pasando en un directo!
 
@@ -28,7 +29,7 @@ Dentro de la ventana de vista previa, unas etiquetas de color resumen el context
 - 💰 ★ PATROCINADO POR ★ En los directos patrocinados, muestra la marca con su logo en color. Sabrás quién está detrás.
 - 🚂 ★ HYPE TRAIN ★ ¿Hay un Hype Train en marcha en el canal? Te enteras sin tener que hacer clic.
 - 💎 ★ SUSCRIPCIÓN CON DESCUENTO ★ Cuando Twitch ofrece una suscripción rebajada en el directo, ahí queda señalado.
-- ⚠️ ★ ETIQUETAS DE CONTENIDO ★ Las etiquetas oficiales de Twitch (contenido adulto, violencia, apuestas…) aparecen en la vista previa.
+- ⚠️ ★ ETIQUETAS DE CONTENIDO ★ Las etiquetas oficiales de Twitch (juego para adultos, violencia explícita, juegos de azar…) forman su propia insignia, la primera de la fila — lo sabes antes de mirar, sin la pantalla que bloqueaba el vídeo.
 
 _______________________________
 

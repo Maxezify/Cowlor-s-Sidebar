@@ -14,6 +14,7 @@ O recurso principal. Passe o mouse um segundo sobre um streamer e pronto, abre u
 - O vídeo da live AO VIVO (a transmissão real, não uma miniatura congelada)
 - O título completo da live, legível antes mesmo de clicar
 - Selos que te contam tudo sobre o contexto (logo abaixo)
+- E funciona também nos canais rotulados: a tela «Começar a assistir» da Twitch deixava a prévia travada numa imagem parada — agora ela é dispensada, e os rótulos viram um selo (mais abaixo)
 
 E funciona na barra lateral inteira: canais seguidos, canais recomendados, e até «Quem assiste X também assiste». Chega de clicar só para saber o que está rolando numa live!
 
@@ -28,7 +29,7 @@ Dentro da janela de prévia, etiquetas coloridas resumem o contexto da live num 
 - 💰 ★ PATROCINADO POR ★ Nas lives patrocinadas, mostra a marca com o logo colorido. Você vai saber quem está por trás.
 - 🚂 ★ HYPE TRAIN ★ Tem um Hype Train rolando no canal? Você fica sabendo sem precisar clicar.
 - 💎 ★ INSCRIÇÃO COM DESCONTO ★ Quando a Twitch oferece uma inscrição com desconto na live, fica sinalizado ali mesmo.
-- ⚠️ ★ RÓTULOS DE CONTEÚDO ★ Os rótulos oficiais da Twitch (conteúdo adulto, violência, apostas…) aparecem na prévia.
+- ⚠️ ★ RÓTULOS DE CONTEÚDO ★ Os rótulos oficiais da Twitch (jogo adulto, violência explícita, jogos de azar…) formam o próprio selo, o primeiro da fila — você sabe antes de olhar, sem a tela que travava o vídeo.
 
 _______________________________
 

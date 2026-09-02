@@ -450,6 +450,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Stream Hôte',
       uiBadgeSubMonths:          (n) => `Abonné ${n} mois`,
       uiBadgeExSubMonths:        (n) => `Anciennement abonné ${n} mois`,
+      // Étiquettes de classification de contenu, en tête des badges de l'aperçu.
+      // Formes COURTES : le badge tient dans 480 px, et Twitch lui-même annonce
+      // « Il peut contenir : Jeux matures », pas la phrase entière de sa
+      // documentation. uiCclGeneric couvre une étiquette qu'il ajouterait sans
+      // que la table la connaisse encore.
+      uiCclMatureGame:                      'Jeux matures',
+      uiCclGambling:                        'Jeux d\'argent',
+      uiCclSexualThemes:                    'Thèmes sexuels',
+      uiCclViolentGraphic:                  'Violence explicite',
+      uiCclDrugsIntoxication:               'Drogues et alcool',
+      uiCclProfanityVulgarity:              'Langage cru',
+      uiCclDebatedSocialIssuesAndPolitics:  'Politique et sujets sensibles',
+      uiCclGeneric:                         'Contenu classifié',
       uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream avec ${namesHtml}`,
       uiBadgeLiveWith:           (guestHtml, others) => {
         const suffix = others > 0 ? ` et ${others} autre${others > 1 ? 's' : ''}` : '';
@@ -509,6 +522,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Host Stream',
       uiBadgeSubMonths:          (n) => `Subscribed ${n} month${n > 1 ? 's' : ''}`,
       uiBadgeExSubMonths:        (n) => `Formerly subscribed ${n} month${n > 1 ? 's' : ''}`,
+      uiCclMatureGame:                      'Mature-rated game',
+      uiCclGambling:                        'Gambling',
+      uiCclSexualThemes:                    'Sexual themes',
+      uiCclViolentGraphic:                  'Graphic violence',
+      uiCclDrugsIntoxication:               'Drugs & intoxication',
+      uiCclProfanityVulgarity:              'Strong language',
+      uiCclDebatedSocialIssuesAndPolitics:  'Politics & sensitive topics',
+      uiCclGeneric:                         'Classified content',
       uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream with ${namesHtml}`,
       uiBadgeLiveWith:           (guestHtml, others) => {
         const suffix = others > 0 ? ` and ${others} other${others > 1 ? 's' : ''}` : '';
@@ -568,6 +589,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Host-Stream',
       uiBadgeSubMonths:          (n) => `${n} Monat${n > 1 ? 'e' : ''} abonniert`,
       uiBadgeExSubMonths:        (n) => `Früher ${n} Monat${n > 1 ? 'e' : ''} abonniert`,
+      uiCclMatureGame:                      'Spiel ab 18',
+      uiCclGambling:                        'Glücksspiel',
+      uiCclSexualThemes:                    'Sexuelle Themen',
+      uiCclViolentGraphic:                  'Explizite Gewalt',
+      uiCclDrugsIntoxication:               'Drogen & Alkohol',
+      uiCclProfanityVulgarity:              'Derbe Sprache',
+      uiCclDebatedSocialIssuesAndPolitics:  'Politik & sensible Themen',
+      uiCclGeneric:                         'Klassifizierter Inhalt',
       uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream mit ${namesHtml}`,
       uiBadgeLiveWith:           (guestHtml, others) => {
         const suffix = others > 0 ? ` und ${others} ${others > 1 ? 'weiteren' : 'weiterem'}` : '';
@@ -627,6 +656,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Canal anfitrión',
       uiBadgeSubMonths:          (n) => `Suscrito ${n} mes${n > 1 ? 'es' : ''}`,
       uiBadgeExSubMonths:        (n) => `Anteriormente suscrito ${n} mes${n > 1 ? 'es' : ''}`,
+      uiCclMatureGame:                      'Juego para adultos',
+      uiCclGambling:                        'Juegos de azar',
+      uiCclSexualThemes:                    'Temas sexuales',
+      uiCclViolentGraphic:                  'Violencia explícita',
+      uiCclDrugsIntoxication:               'Drogas y alcohol',
+      uiCclProfanityVulgarity:              'Lenguaje soez',
+      uiCclDebatedSocialIssuesAndPolitics:  'Política y temas sensibles',
+      uiCclGeneric:                         'Contenido clasificado',
       uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream con ${namesHtml}`,
       uiBadgeLiveWith:           (guestHtml, others) => {
         const suffix = others > 0 ? ` y ${others} más` : '';
@@ -686,6 +723,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Canal anfitrião',
       uiBadgeSubMonths:          (n) => `Inscrito há ${n} ${n > 1 ? 'meses' : 'mês'}`,
       uiBadgeExSubMonths:        (n) => `Anteriormente inscrito ${n} ${n > 1 ? 'meses' : 'mês'}`,
+      uiCclMatureGame:                      'Jogo adulto',
+      uiCclGambling:                        'Jogos de azar',
+      uiCclSexualThemes:                    'Temas sexuais',
+      uiCclViolentGraphic:                  'Violência explícita',
+      uiCclDrugsIntoxication:               'Drogas e álcool',
+      uiCclProfanityVulgarity:              'Linguagem forte',
+      uiCclDebatedSocialIssuesAndPolitics:  'Política e temas sensíveis',
+      uiCclGeneric:                         'Conteúdo classificado',
       uiBadgeCostreamWithNames:  (namesHtml) => `Co-stream com ${namesHtml}`,
       uiBadgeLiveWith:           (guestHtml, others) => {
         const suffix = others > 0 ? ` e mais ${others}` : '';
@@ -2254,6 +2299,10 @@ const TSE_GATE_MAX_CLICKS = 5;
        autant qu'un abonnement en cours. */
     .tse-preview__badge--sub      { background: rgba(255, 201, 102, 0.22); color: #ffd591; }
     .tse-preview__badge--exsub    { background: rgba(255, 201, 102, 0.10); color: #c9b48c; }
+    /* Étiquettes de classification. Ambre, la teinte d'avertissement — et
+       délibérément DIFFÉRENTE de l'or des abonnements, qui est une teinte de
+       faveur : deux messages opposés ne doivent pas porter la même couleur. */
+    .tse-preview__badge--ccl      { background: rgba(255, 138, 61, 0.20); color: #ffb37a; }
     /* Logo de la marque sponsor (image fournie par Twitch sur fond coloré
        inline). On le rend en mini cadre carré 14×14 dans le badge. Le
        background-color est posé inline depuis getSponsorInfo. */
@@ -5819,7 +5868,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     // Cache court des métadonnées par login. Évite les doubles requêtes
     // si l'utilisateur survole 2 fois la même carte rapidement.
     // Deux formes d'entrée possibles :
-    //   { title, hasCCL, ts }  → stream live
+    //   { title, ccl, ts }     → stream live
     //   { offline: true, ts }  → stream confirmé offline par GraphQL
     const metaCache = new Map();
     const META_TTL = 60_000;
@@ -5836,14 +5885,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       '  }' +
       '}';
 
-    // Récupère titre + état CCL (Content Classification Label) d'un stream.
-    // Le CCL détermine si Twitch affiche son interstitielle "Commencer à
-    // regarder" au démarrage du player. Comme on ne peut pas la fermer
-    // (iframe cross-origin), on s'en sert pour décider de ne PAS injecter
-    // l'iframe player et de rester sur le JPEG statique.
+    // Récupère titre et étiquettes de classification (Content Classification
+    // Labels) d'un stream.
+    //
+    // Ces étiquettes ont longtemps servi à décider de ne PAS injecter l'iframe :
+    // le lecteur aurait montré son interstitielle, qu'on ne savait pas fermer.
+    // On sait, depuis la 3.55 (cf. PONT D'APERÇU), et elles ne décident plus
+    // rien — elles s'AFFICHENT. C'est leur seul emploi désormais, et c'est
+    // celui qui rendait vraie la promesse de la fiche du Store.
     //
     // Retourne :
-    //   { title, hasCCL }       → stream live, données extraites
+    //   { title, ccl: [id…] }   → stream live, données extraites
     //   { offline: true }       → stream confirmé OFFLINE par GQL (stream=null)
     //                             Permet à open() de corriger l'état de la
     //                             carte sans attendre l'expiration de son
@@ -5853,7 +5905,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       const hit = metaCache.get(login);
       if (hit && Date.now() - hit.ts < META_TTL) {
         if (hit.offline) return { offline: true };
-        return { title: hit.title, hasCCL: hit.hasCCL, id: hit.id, costreamOrganizer: hit.costreamOrganizer };
+        return { title: hit.title, ccl: hit.ccl, id: hit.id, costreamOrganizer: hit.costreamOrganizer };
       }
       const res = await post([{
         operationName: 'TsePreview',
@@ -5870,8 +5922,15 @@ const TSE_GATE_MAX_CLICKS = 5;
         return { offline: true };
       }
       const title = stream.title || null;
+      // Les identifiants seuls (« MatureGame », « Gambling »…). On ne demande
+      // PAS le libellé traduit à GraphQL : un champ inconnu ferait échouer la
+      // requête ENTIÈRE, et le titre de l'aperçu partirait avec. La table de
+      // traduction vit donc chez nous, avec un repli pour l'identifiant qu'on
+      // ne connaîtrait pas encore.
       const labels = stream.contentClassificationLabels;
-      const hasCCL = Array.isArray(labels) && labels.length > 0;
+      const ccl = (Array.isArray(labels) ? labels : [])
+        .map(l => (l && typeof l.id === 'string') ? l.id : null)
+        .filter(Boolean);
       // id : sert à demander la session Guest Star à la volée (badge "En live
       // avec") pour les sections hors "suivis", où le scan ne le fait pas.
       const id = user?.id ?? null;
@@ -5883,8 +5942,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       const costreamOrganizer = org && org.id
         ? { id: org.id, login: (org.login || '').toLowerCase(), name: (org.displayName || '').trim() || null }
         : null;
-      metaCache.set(login, { title, hasCCL, id, costreamOrganizer, ts: Date.now() });
-      return { title, hasCCL, id, costreamOrganizer };
+      metaCache.set(login, { title, ccl, id, costreamOrganizer, ts: Date.now() });
+      return { title, ccl, id, costreamOrganizer };
     };
 
     // URL du player iframe. parent=twitch.tv est requis par Twitch pour
@@ -6155,6 +6214,41 @@ const TSE_GATE_MAX_CLICKS = 5;
       const existing = container.querySelector('.tse-preview__badge--squad');
       if (existing) existing.outerHTML = html; // remplace un éventuel badge squad déjà posé
       else container.insertAdjacentHTML('beforeend', html);
+      if (currentCard) positionPopup(currentCard); // la hauteur a pu changer
+    };
+
+    /* Badge des étiquettes de classification.
+     *
+     * Il tient la place de ce que l'interstitielle du lecteur disait avant
+     * qu'on ne la lève : « Il peut contenir : Jeux matures ». La lever sans
+     * l'afficher aurait supprimé l'information au lieu de la déplacer — c'est
+     * ce badge qui fait que le levage ne retire rien à personne.
+     *
+     * Posé EN TÊTE des badges : un avertissement se lit avant le contexte.
+     * Un identifiant que la table ne connaît pas n'est jamais affiché brut —
+     * « DebatedSocialIssuesAndPolitics » dans une interface française serait
+     * pire que rien ; on retombe alors sur le libellé générique.
+     */
+    const updateCclBadge = (login, ccl) => {
+      if (!el || currentLogin !== login) return;
+      if (!Array.isArray(ccl) || !ccl.length) return;
+      if (el.querySelector('.tse-preview__badge--ccl')) return;
+      const noms = [];
+      for (const id of ccl) {
+        const nom = S['uiCcl' + id];
+        if (nom && !noms.includes(nom)) noms.push(nom);
+      }
+      const texte = noms.length ? noms.join(' · ') : S.uiCclGeneric;
+      const body = el.querySelector('.tse-preview__body');
+      if (!body) return;
+      let container = el.querySelector('.tse-preview__badges');
+      if (!container) {
+        container = document.createElement('div');
+        container.className = 'tse-preview__badges';
+        body.appendChild(container);
+      }
+      container.insertAdjacentHTML('afterbegin',
+        badgeHtml('tse-preview__badge--ccl', escapeHtml(texte)));
       if (currentCard) positionPopup(currentCard); // la hauteur a pu changer
     };
 
@@ -6597,9 +6691,11 @@ const TSE_GATE_MAX_CLICKS = 5;
            n'auraient jamais vu d'interstitielle.
 
            La décision est passée dans l'iframe, où elle porte sur ce qui est
-           VRAIMENT à l'écran plutôt que sur ce qu'on en devine. `hasCCL` n'a
-           du coup plus aucun consommateur : cf. la note du banc et du README
-           sur le badge d'étiquettes, qui reste à écrire. */
+           VRAIMENT à l'écran plutôt que sur ce qu'on en devine.
+
+           Les étiquettes, elles, ne disparaissent pas pour autant : elles
+           passent du rôle de verrou à celui d'information, et s'affichent. */
+        updateCclBadge(login, meta.ccl);
 
         // Filet : si l'ID de chaîne n'était pas encore en cache au survol, la
         // réponse preview vient de le fournir → on (re)tente le badge "En live
