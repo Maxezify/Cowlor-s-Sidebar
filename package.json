@@ -13,6 +13,7 @@
     "banniere": "node tests/build.mjs && node promo-marquee.mjs",
     "addon": "node tests/addon.mjs",
     "package": "node tests/addon.mjs && npx web-ext build --source-dir dist/paquet --artifacts-dir dist --overwrite-dest",
+    "prod": "node tests/prod.mjs",
     "check": "npm run lint && npm run parity && npm run addon && npm test"
   },
   "devDependencies": {
