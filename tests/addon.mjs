@@ -1,5 +1,5 @@
 /* ============================================================
- *  LE PAQUET FIREFOX — CE QUI PART, ET CE QU'AMO EN DIT
+ *  LE PAQUET D'EXTENSION — CE QUI PART, ET CE QU'AMO EN DIT
  *  ------------------------------------------------------------
  *  Ce script fait trois choses, dans cet ordre :
  *
@@ -26,11 +26,20 @@
  *      linter ne peut pas connaître, parce qu'ils appartiennent à
  *      ce dépôt (la version suit package.json, le plancher reste
  *      cohérent, le bloc content_scripts est mot pour mot celui
- *      de la branche Chrome).
+ *      de l'autre branche).
  *
  *  Le linter tourne sur le PAQUET, jamais sur le dépôt avec des
  *  exclusions. C'est toute la différence entre valider ce qu'on
  *  envoie et valider ce qu'on aurait aimé envoyer.
+ *
+ *  UN SEUL FICHIER POUR LES DEUX BRANCHES. Il lit le manifeste
+ *  qu'il trouve : avec un bloc `browser_specific_settings.gecko`
+ *  il joue les contrôles Firefox et appelle l'addons-linter ;
+ *  sans, il s'en tient à l'assemblage et aux invariants communs —
+ *  l'addons-linter est l'outil d'AMO, et il réclamerait à un
+ *  manifeste Chrome un identifiant que Chrome n'utilise pas.
+ *  Deux versions de ce script auraient divergé ; celle-ci ne le
+ *  peut pas.
  * ============================================================ */
 import { readFileSync, rmSync, mkdirSync, cpSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -75,9 +84,10 @@ const dedans = listerTout(PAQUET);
 
 const man = lire('manifest.json');
 const pkg = lire('package.json');
-const gecko = man.browser_specific_settings?.gecko ?? {};
+const gecko = man.browser_specific_settings?.gecko ?? null;
+const CIBLE = gecko ? 'Firefox' : 'Chrome';
 
-console.log(`\nPaquet Firefox — assemblé dans dist/paquet (${dedans.length} fichiers)`);
+console.log(`\nPaquet ${CIBLE} — assemblé dans dist/paquet (${dedans.length} fichiers)`);
 
 // ── 2. Complet, et rien de plus ──────────────────────────────────────────
 /* Tout ce que le manifeste NOMME doit être là. C'est ce qui empêche la liste
@@ -104,35 +114,42 @@ ok(`les ${locales.length} locales ont toutes leur messages.json`,
    sansMessages.length === 0, JSON.stringify(sansMessages));
 
 // ── 3a. Invariants du dépôt ──────────────────────────────────────────────
-console.log('\nManifeste Firefox — invariants du dépôt');
+console.log(`\nManifeste ${CIBLE} — invariants du dépôt`);
 
 ok('la version du manifeste suit celle de package.json',
    man.version === pkg.version, `${man.version} / ${pkg.version}`);
 
-/* L'identifiant est OBLIGATOIRE en MV3 : AMO n'en attribue plus. Sans lui,
-   ADDON_ID_REQUIRED, et la soumission est refusée. */
-ok('un identifiant d\'extension est déclaré, au format attendu par AMO',
-   typeof gecko.id === 'string' && /^[a-zA-Z0-9\-._]*@[a-zA-Z0-9\-._]+$/.test(gecko.id),
-   gecko.id ?? '(absent)');
+if (gecko) {
+  /* L'identifiant est OBLIGATOIRE en MV3 : AMO n'en attribue plus. Sans lui,
+     ADDON_ID_REQUIRED, et la soumission est refusée. */
+  ok('un identifiant d\'extension est déclaré, au format attendu par AMO',
+     typeof gecko.id === 'string' && /^[a-zA-Z0-9\-._]*@[a-zA-Z0-9\-._]+$/.test(gecko.id),
+     gecko.id ?? '(absent)');
 
-/* Le plancher est DÉDUIT : world:"MAIN" demande 128,
-   data_collection_permissions demande 140. C'est donc 140 qui commande. */
-ok('le plancher Firefox couvre la clé la plus récente du manifeste',
-   parseInt(gecko.strict_min_version, 10) >= 140, gecko.strict_min_version ?? '(absent)');
+  /* Le plancher est DÉDUIT : world:"MAIN" demande 128,
+     data_collection_permissions demande 140. C'est donc 140 qui commande. */
+  ok('le plancher Firefox couvre la clé la plus récente du manifeste',
+     parseInt(gecko.strict_min_version, 10) >= 140, gecko.strict_min_version ?? '(absent)');
 
-/* Obligatoire pour toute NOUVELLE extension depuis le 3 novembre 2025. La
-   valeur honnête est « none » : rien n'est collecté, rien ne sort. */
-ok('la collecte de données est déclarée, et déclarée nulle',
-   gecko.data_collection_permissions?.required?.length === 1
-   && gecko.data_collection_permissions.required[0] === 'none',
-   JSON.stringify(gecko.data_collection_permissions));
+  /* Obligatoire pour toute NOUVELLE extension depuis le 3 novembre 2025. La
+     valeur honnête est « none » : rien n'est collecté, rien ne sort. */
+  ok('la collecte de données est déclarée, et déclarée nulle',
+     gecko.data_collection_permissions?.required?.length === 1
+     && gecko.data_collection_permissions.required[0] === 'none',
+     JSON.stringify(gecko.data_collection_permissions));
+} else {
+  /* Branche Chrome : le manifeste ne doit PAS porter les clés Firefox. Les
+     laisser traîner ferait passer un paquet Chrome pour un paquet AMO. */
+  ok('aucune clé Firefox ne traîne dans un manifeste Chrome',
+     !man.browser_specific_settings, JSON.stringify(man.browser_specific_settings));
+}
 
-ok('aucune permission n\'est demandée, comme sur la branche Chrome',
+ok('aucune permission n\'est demandée, comme sur l\'autre branche',
    !man.permissions && !man.host_permissions && !man.optional_permissions,
    JSON.stringify({ p: man.permissions, h: man.host_permissions }));
 
-/* Le cœur du portage : le bloc content_scripts doit être MOT POUR MOT celui de
-   la branche Chrome, sans quoi les deux extensions cessent d'être le même
+/* Le cœur du portage : le bloc content_scripts doit être MOT POUR MOT le même
+   d'une branche à l'autre, sans quoi les deux extensions cessent d'être le même
    produit — la seule chose que l'auteur a demandé de garantir. */
 const CS_ATTENDU = {
   matches: ['https://www.twitch.tv/*', 'https://twitch.tv/*', 'https://player.twitch.tv/*'],
@@ -141,12 +158,21 @@ const CS_ATTENDU = {
   world: 'MAIN',
   all_frames: true,
 };
-ok('le bloc content_scripts est identique à celui de la branche Chrome',
+ok('le bloc content_scripts est identique à celui de l\'autre branche',
    man.content_scripts?.length === 1
    && JSON.stringify(man.content_scripts[0]) === JSON.stringify(CS_ATTENDU),
    JSON.stringify(man.content_scripts));
 
 // ── 3b. Le juge extérieur ────────────────────────────────────────────────
+if (!gecko) {
+  /* L'addons-linter est l'outil d'AMO. Le lancer sur un manifeste Chrome
+     rendrait ADDON_ID_REQUIRED — une erreur vraie pour Firefox, sans objet
+     pour le Chrome Web Store. On s'arrête donc ici, en le disant. */
+  console.log('\nPaquet Chrome — addons-linter non applicable (outil d\'AMO), ignoré.');
+  console.log(`\n${echecs ? `${echecs} ÉCHEC(S)` : 'paquet Chrome OK'}\n`);
+  process.exit(echecs ? 1 : 0);
+}
+
 console.log('\nPaquet Firefox — verdict de web-ext (addons-linter, celui d\'AMO)');
 let rapport;
 try {
