@@ -17,7 +17,8 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { pageProduit, browser, ABOS, CSS_TWITCH, reduireEnPng24 } from './promo.mjs';
+import { pageProduit, browser, ABOS, CSS_TWITCH, reduireEnPng24,
+         glyphesManquants } from './promo.mjs';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.PROMO_OUT || join(ICI, 'promo');
@@ -44,7 +45,9 @@ const LARGEUR = 1400, HAUTEUR = 560;
    document.fonts.ready, et il s'ancre sur la première carte — pas sur ce qui
    la précède. Ce qui la précède varie ; elle, non. Le garde-fou vérifie
    l'invariant qui compte : la première carte tombe à 69 px du haut du cadre
-   dans les sept langues. */
+   dans les douze langues — le russe, le polonais et le japonais replient eux
+   aussi la bascule, et « coupe » passe de 159 à 200 px sans que la première
+   carte bouge d'un pixel. C'est exactement ce qu'on lui demande. */
 const ECHELLE = 1.5;
 
 // Chaînes INVENTÉES, comme partout ailleurs : aucune identité empruntée.
@@ -97,6 +100,21 @@ const T = {
   ptpt:  { ui:'pt', section:'ptpt',
            phrase:'A tua barra lateral diz-te tudo.',
            pied:'grátis · sem conta · sem publicidade' },
+  it:    { ui:'it', section:'it',
+           phrase:'La tua sidebar ti dice tutto.',
+           pied:'gratis · senza account · senza pubblicità' },
+  pl:    { ui:'pl', section:'pl',
+           phrase:'Twój pasek boczny mówi ci wszystko.',
+           pied:'za darmo · bez konta · bez reklam' },
+  ru:    { ui:'ru', section:'ru',
+           phrase:'Ваша панель расскажет вам всё.',
+           pied:'бесплатно · без аккаунта · без рекламы' },
+  ja:    { ui:'ja', section:'ja',
+           phrase:'サイドバーがすべて教えます。',
+           pied:'無料 · アカウント不要 · 広告なし' },
+  zh:    { ui:'zh', section:'zh',
+           phrase:'侧边栏什么都告诉你。',
+           pied:'免费 · 无需账号 · 没有广告' },
 };
 
 /* Le recadrage vertical, appelé APRÈS composer ET après document.fonts.ready.
@@ -270,13 +288,19 @@ for (const L of LANGUES) {
   if (!bilan.police)      throw new Error('Inter n\'a pas été chargée');
   if (bilan.vers !== 1)   throw new Error(`titre attendu sur une ligne, mesuré : ${bilan.vers}`);
   if (!bilan.tri)         throw new Error('la rangée de tri est coupée par le cadre');
-  // L'invariant qui fait que les sept bannières se ressemblent : la première
+  // L'invariant qui fait que les douze bannières se ressemblent : la première
   // carte tombe au même endroit dans toutes. C'est lui, et non « coupe », qui
   // doit être constant — « coupe », lui, absorbe justement les replis de la
   // bascule anglaise et des filtres espagnols.
   if (Math.abs(bilan.premiere - 69) > 3)
     throw new Error(`première carte attendue à 69 px du haut du cadre, mesurée : ${bilan.premiere}`);
   if (bilan.hors)         throw new Error('le discours sort du cadre ou touche la barre');
+  // Un tofu ne se rattrape pas après publication : on refuse de photographier.
+  const manquants = await glyphesManquants(page);
+  if (manquants.length) {
+    throw new Error(`aucune police embarquée ne couvre « ${manquants.join('')} » — ` +
+                    'relancer « npm run polices » après avoir changé un texte');
+  }
 
   // Rendu en 2x puis réduit par Chromium lui-même : le texte y gagne un piqué
   // qu'un rendu direct en 1x ne donne pas.

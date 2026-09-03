@@ -1850,10 +1850,13 @@ cowlors-sidebar-for-twitch/
 ├── package.json           outillage de vérification UNIQUEMENT (cf. plus bas)
 ├── eslint.config.mjs      règles de lint
 ├── promo.mjs              captures 1280×800 pour le Chrome Web Store
-├── promo-run.mjs          les scènes et leurs textes
+├── promo-run.mjs          les scènes et leurs textes, dans les douze langues
+├── promo-marquee.mjs      bannière 1400×560 en tête de fiche
 ├── promo-tile.mjs         tuiles promotionnelles 440×280 (variantes A–D)
 ├── promo-tile-produit.mjs tuile 440×280 montrant l’extension en fonctionnement
-├── store/                 le texte des sept fiches du Chrome Web Store
+├── promo-polices.mjs      taille les sous-ensembles CJK des captures
+├── promo-fonts/           Inter et Noto embarquées dans les images (OFL 1.1)
+├── store/                 le texte des douze fiches du Chrome Web Store
 ├── tests/
 │   ├── run.mjs              le harnais : 544 assertions, 64 scénarios
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
@@ -1919,9 +1922,10 @@ langue de diffusion d'un stream est indépendante des étiquettes qu'il affiche.
 ### Captures pour le Chrome Web Store
 
 ```bash
-npm run promo           # → promo/*.png, 1280×800 exactement, six scènes × sept langues
-npm run banniere        # → promo/00-banniere-*.png, 1400×560, sept langues
+npm run promo           # → promo/*.png, 1280×800 exactement, six scènes × douze langues
+npm run banniere        # → promo/00-banniere-*.png, 1400×560, douze langues
 npm run tuile-produit   # → promo/tuile-E-produit.png, 440×280
+npm run polices         # → promo-fonts/noto-sans-{jp,sc}-cjk.woff2 (cf. plus bas)
 ```
 
 Les trois formats du Store, et la même contrainte pour les trois : **JPEG ou
@@ -1957,14 +1961,45 @@ Sans, une police qui n'est celle de personne. Le défaut se voyait deux fois —
 sur le markup de Twitch, et sur l'extension elle-même, dont le CSS demande
 `var(--font-base, "Inter", sans-serif)` et n'obtenait donc pas Inter non plus.
 
-**Inter** est donc embarquée, dans `promo-fonts/` : deux sous-ensembles (latin
-et latin étendu) en fichier **variable**, soit un seul fichier par
-sous-ensemble pour toutes les graisses. Versionnée plutôt que téléchargée à la
-demande — une capture ne doit pas dépendre d'un CDN pour être reproductible — et
-injectée en base64 dans la feuille, avec la pile exacte de Twitch posée là où
-Twitch la pose : `--font-base` sur la racine. L'extension emprunte ainsi le
-**vrai** chemin, pas un repli qui n'existerait que dans le harnais.
-Licence SIL Open Font 1.1, texte complet dans `promo-fonts/OFL.txt`.
+**Inter** est donc embarquée, dans `promo-fonts/` : quatre sous-ensembles
+(latin, latin étendu, cyrillique et cyrillique étendu) en fichier **variable**,
+soit un seul fichier par sous-ensemble pour toutes les graisses. Versionnée
+plutôt que téléchargée à la demande — une capture ne doit pas dépendre d'un CDN
+pour être reproductible — et injectée en base64 dans la feuille, avec la pile
+exacte de Twitch posée là où Twitch la pose : `--font-base` sur la racine.
+L'extension emprunte ainsi le **vrai** chemin, pas un repli qui n'existerait que
+dans le harnais.
+
+Le cyrillique n'est arrivé qu'avec la fiche russe, et il a fallu le chercher :
+le contrôle de police mesurait une chaîne **latine**, servie par Inter comme il
+se doit, et déclarait donc la police chargée pendant que le russe sortait en
+DejaVu. Un garde-fou qui ne mesure qu'un cas ne prouve que ce cas-là.
+
+Inter n'a en revanche **aucun idéogramme**, et ce n'est pas un manque : Twitch
+non plus. Sa pile — `Inter, Roobert, "Helvetica Neue", Helvetica, Arial,
+sans-serif` — n'a rien de CJK, et sur une vraie machine japonaise le navigateur
+descend jusqu'à la police système. Les captures reproduisent ce comportement
+avec **Noto Sans JP** et **Noto Sans SC** ajoutées en **dernier** recours, et
+seulement pour la langue du document (`:root:lang(ja)`, `:root:lang(zh)`) —
+sans quoi le chinois sortirait avec les formes japonaises. Une police japonaise
+complète pèse plusieurs mégaoctets ; celles-ci sont **taillées** par
+`npm run polices` aux caractères que ces images écrivent, relevés dans les
+tables `ja` et `zh` de `content.js` et dans le discours des scènes, et font
+moins de deux cents kilo-octets chacune.
+
+Un sous-ensemble se périme : un idéogramme ajouté ailleurs et absent d'ici
+sortirait en carré vide, sans que rien ne le dise. Avant chaque déclenchement,
+`glyphesManquants()` dessine donc **chaque caractère effectivement écrit dans la
+page** deux fois — avec la pile de la page, puis avec une famille qui n'existe
+pas — et compare les pixels. Deux rendus identiques veulent dire que la pile n'a
+rien apporté, et la capture s'arrête au lieu de sortir. La comparaison de
+*largeurs* utilisée jusque-là ne pouvait pas faire ce travail : un idéogramme
+fait exactement un cadratin dans toutes les polices, elle aurait déclaré absent
+un glyphe présent.
+
+Licence SIL Open Font 1.1 pour les trois familles, textes complets dans
+`promo-fonts/OFL.txt` et `promo-fonts/OFL-noto.txt` ; provenance de chaque
+fichier dans `promo-fonts/README.md`.
 
 Les avatars, eux, ne portent plus l'initiale de la chaîne : sur une vraie barre
 latérale ces trente pixels portent une photo, et une lettre disait « capture
@@ -1998,10 +2033,14 @@ pastille ; et c'est ainsi qu'a été rattrapé, dans treize scènes d'un coup, u
 titre qui prenait un vers de plus que prévu depuis qu'Inter — dont la graisse
 800 est réelle, là où le repli synthétisait son gras — a remplacé la police par
 défaut. La taille des titres n'est donc plus choisie mais **mesurée** : 72 px
-est le dernier cran où « tells you everything. », la plus longue ligne des sept
-langues, tient dans les 690 px de la colonne. Dans la variante étroite le repli
-est en revanche voulu — aucune taille lisible ne tient « avant de cliquer » d'un
-trait dans 378 px — et le garde-fou y tolère un vers de plus, là seulement.
+est le dernier cran où « tells you everything. », la plus longue ligne latine
+des douze langues, tient dans les 690 px de la colonne. Le japonais et le
+chinois s'y lisent autrement — un idéogramme fait un cadratin, donc 690 px en
+tiennent neuf, pas un de plus — et c'est ce compte-là qui a fait passer le titre
+japonais du mode Top Chaînes à trois vers : le repli était écrit d'avance,
+autant l'écrire. Dans la variante étroite le repli est de même voulu — aucune
+taille lisible ne tient « avant de cliquer » d'un trait dans 378 px — et le
+garde-fou y tolère un vers de plus, là seulement.
 
 Ce 72 a été trouvé dans la chaîne réelle, et il fallait bien ça : un banc de
 mesure isolé, qui rendait pourtant la même chaîne dans la même police à la même
@@ -2027,12 +2066,21 @@ Le script mesure ce qu'il produit — cartes entières, cartes dorées, taille
 
 ### La fiche elle-même
 
-Le texte des sept fiches du Chrome Web Store vit dans **`store/`** — une par
+Le texte des douze fiches du Chrome Web Store vit dans **`store/`** — une par
 locale publiée. Le tableau de bord n'a pas d'historique lisible : sans copie
 versionnée ici, la seule trace d'une formulation serait la fiche en ligne. Voir
 `store/README.md` pour la correspondance des locales, l'ordre conseillé des
 captures (le Store n'en accepte que cinq, six sont produites), et les réponses
 au formulaire « pratiques de confidentialité ».
+
+`npm run store` tient ce que douze fiches de deux cents lignes rendent
+impossible à relire, et il tient aussi leurs **images**. Douze fiches veulent
+douze jeux d'images ; les cinq langues de la 3.57 ont eu leur texte avant, et
+rien ne l'aurait dit — `promo/` est un dossier d'artefacts, ignoré par git, dont
+personne ne compte les fichiers. Le contrôle compare donc les langues des trois
+tables de discours (`promo-run.mjs`, `promo-marquee.mjs`, et `SECTION` dans
+`promo.mjs`) à la liste des fiches, et vérifie que chaque libellé de section
+existe bien dans `content.js`.
 
 ---
 

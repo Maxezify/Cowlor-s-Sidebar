@@ -8,6 +8,7 @@
     "lint": "eslint content.js adblock.js",
     "parity": "node tests/parity.mjs",
     "store": "node tests/store.mjs",
+    "polices": "node promo-polices.mjs",
     "promo": "node tests/build.mjs && node promo-run.mjs",
     "tuile": "node promo-tile.mjs",
     "tuile-produit": "node tests/build.mjs && node promo-tile-produit.mjs",

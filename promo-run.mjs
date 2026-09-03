@@ -284,6 +284,174 @@ const T = {
             '<p>As tuas subscrições reconhecidas, douradas, agrupadas no topo. ' +
             'Ao passares por cima, há quantos meses lá estás — e as expiradas.</p>',
             '<b>Cowlor\'s Sidebar</b> · lido no teu navegador, nunca enviado para lado nenhum'] },
+
+  it: { ui:'it', section:'it',
+    titres:{ novaflux:'Sistemiamo il mondo prima del subathon di stasera', kiraplays:'Obiettivo Master prima di fine mese — giorno 12' },
+    hero:  ['<span class="kicker">Twitch, ma meglio</span>' +
+            '<h1>La tua sidebar<br><em>ti dice</em> tutto.</h1>' +
+            '<p>Durata della diretta, co-stream colorati, dirette appena iniziate. ' +
+            'Le informazioni che dovevi cercare sono già lì.</p>',
+            '<b>Cowlor\'s Sidebar</b> · gratis, senza account, senza pubblicità'],
+    apercu:['<span class="kicker">Anteprima al passaggio</span>' +
+            '<h1>Guarda<br><em>prima</em> di cliccare.</h1>' +
+            '<p>Un secondo sopra e la diretta si apre dal vivo, con il titolo ' +
+            'completo e il contesto: co-stream, sponsor, Hype Train.</p>',
+            '<b>Cowlor\'s Sidebar</b> · l\'anteprima funziona in tutta la sidebar'],
+    top:   ['<span class="kicker">Canali di punta</span>' +
+            '<h1>Tutto Twitch,<br>nella <em>tua</em> sidebar.</h1>' +
+            '<p>Una scheda, e i 30 canali più visti prendono il posto. Per ' +
+            'categoria, per lingua, ricalcolato di continuo.</p>',
+            '<b>Cowlor\'s Sidebar</b> · un clic per andare, un clic per tornare'],
+    filtre:['<span class="kicker">Filtri</span>' +
+            '<h1>Trova<br>in <em>due clic</em>.</h1>' +
+            '<p>Per categoria, per lingua — con le bandiere. Vengono proposti ' +
+            'solo i valori davvero presenti tra i tuoi canali.</p>',
+            '<b>Cowlor\'s Sidebar</b> · niente da configurare, mai'],
+    tri:   ['<span class="kicker">Sei ordinamenti</span>' +
+            '<h1>La tua lista,<br><em>il tuo</em> ordine.</h1>' +
+            '<p>Spettatori, abbonamenti, popolarità personale, durata della ' +
+            'diretta, alfabetico — o i co-stream raggruppati in cima.</p>',
+            '<b>Cowlor\'s Sidebar</b> · la tua cronologia resta nel tuo browser'],
+    abo:   ['<span class="kicker">Abbonamenti</span>' +
+            '<h1>La sidebar sa<br>chi <em>sostieni</em>.</h1>' +
+            '<p>I tuoi abbonamenti riconosciuti, dorati, raggruppati in cima. Al ' +
+            'passaggio, da quanti mesi ci sei — anche quelli scaduti.</p>',
+            '<b>Cowlor\'s Sidebar</b> · letto nel tuo browser, mai inviato altrove'] },
+
+  pl: { ui:'pl', section:'pl',
+    titres:{ novaflux:'Naprawiamy świat przed dzisiejszym subathonem', kiraplays:'Droga do Mastera przed końcem miesiąca — dzień 12' },
+    hero:  ['<span class="kicker">Twitch, tylko lepszy</span>' +
+            '<h1>Twój pasek<br><em>mówi ci</em> wszystko.</h1>' +
+            '<p>Czas transmisji, kolorowe co-streamy, transmisje, które dopiero ' +
+            'ruszyły. To, czego trzeba było szukać, jest już tutaj.</p>',
+            '<b>Cowlor\'s Sidebar</b> · za darmo, bez konta, bez reklam'],
+    apercu:['<span class="kicker">Podgląd po najechaniu</span>' +
+            '<h1>Zobacz,<br><em>zanim</em> klikniesz.</h1>' +
+            '<p>Sekunda najechania i transmisja rusza na żywo, z pełnym tytułem ' +
+            'i kontekstem: co-stream, sponsor, Hype Train.</p>',
+            '<b>Cowlor\'s Sidebar</b> · podgląd działa w całym pasku'],
+    top:   ['<span class="kicker">Najpopularniejsze kanały</span>' +
+            '<h1>Cały Twitch<br>w <em>twoim</em> pasku.</h1>' +
+            '<p>Jedna zakładka i 30 najczęściej oglądanych kanałów zajmuje ' +
+            'miejsce. Według kategorii, według języka, przeliczane bez przerwy.</p>',
+            '<b>Cowlor\'s Sidebar</b> · jedno kliknięcie tam, jedno z powrotem'],
+    filtre:['<span class="kicker">Filtry</span>' +
+            '<h1>Znajdź<br>w <em>dwa kliknięcia</em>.</h1>' +
+            '<p>Według kategorii, według języka — z flagami. Proponowane są tylko ' +
+            'wartości, które naprawdę występują u twoich kanałów.</p>',
+            '<b>Cowlor\'s Sidebar</b> · nic do ustawiania, nigdy'],
+    tri:   ['<span class="kicker">Sześć sortowań</span>' +
+            '<h1>Twoja lista,<br><em>twoja</em> kolejność.</h1>' +
+            '<p>Widzowie, subskrypcje, osobista popularność, czas transmisji, ' +
+            'alfabetycznie — albo co-streamy zebrane na górze.</p>',
+            '<b>Cowlor\'s Sidebar</b> · twoja historia zostaje w twojej przeglądarce'],
+    abo:   ['<span class="kicker">Subskrypcje</span>' +
+            '<h1>Pasek wie,<br>kogo <em>wspierasz</em>.</h1>' +
+            '<p>Twoje subskrypcje rozpoznane, złote, zebrane na górze. Po ' +
+            'najechaniu — od ilu miesięcy tam jesteś, także te wygasłe.</p>',
+            '<b>Cowlor\'s Sidebar</b> · czytane w przeglądarce, nigdy nigdzie nie wysyłane'] },
+
+  ru: { ui:'ru', section:'ru',
+    titres:{ novaflux:'Решаем судьбы мира перед сегодняшним сабатоном', kiraplays:'Путь к Мастеру до конца месяца — день 12' },
+    hero:  ['<span class="kicker">Twitch, только лучше</span>' +
+            '<h1>Ваша панель<br><em>расскажет</em> всё.</h1>' +
+            '<p>Время эфира, цветные ко-стримы, только что начавшиеся ' +
+            'трансляции. То, что приходилось искать, уже здесь.</p>',
+            '<b>Cowlor\'s Sidebar</b> · бесплатно, без аккаунта, без рекламы'],
+    apercu:['<span class="kicker">Превью при наведении</span>' +
+            '<h1>Смотрите<br><em>до</em> клика.</h1>' +
+            '<p>Секунда наведения — и эфир открывается вживую, с полным ' +
+            'названием и контекстом: ко-стрим, спонсор, Hype Train.</p>',
+            '<b>Cowlor\'s Sidebar</b> · превью работает по всей панели'],
+    top:   ['<span class="kicker">Топ каналов</span>' +
+            '<h1>Весь Twitch<br>в <em>вашей</em> панели.</h1>' +
+            '<p>Одна вкладка — и 30 самых просматриваемых каналов занимают ' +
+            'место. По категории, по языку, пересчитывается непрерывно.</p>',
+            '<b>Cowlor\'s Sidebar</b> · один клик туда, один обратно'],
+    filtre:['<span class="kicker">Фильтры</span>' +
+            '<h1>Найдите<br>в <em>два клика</em>.</h1>' +
+            '<p>По категории, по языку — с флагами. Предлагаются только ' +
+            'значения, которые действительно есть у ваших каналов.</p>',
+            '<b>Cowlor\'s Sidebar</b> · ничего не нужно настраивать, никогда'],
+    tri:   ['<span class="kicker">Шесть сортировок</span>' +
+            '<h1>Ваш список,<br><em>ваш</em> порядок.</h1>' +
+            '<p>Зрители, подписки, личная популярность, время эфира, по ' +
+            'алфавиту — или ко-стримы, собранные вверху.</p>',
+            '<b>Cowlor\'s Sidebar</b> · ваша история остаётся в вашем браузере'],
+    abo:   ['<span class="kicker">Подписки</span>' +
+            '<h1>Панель знает<br>ваши <em>подписки</em>.</h1>' +
+            '<p>Подписки распознаны, отмечены золотом и собраны вверху. При ' +
+            'наведении — сколько месяцев вы рядом, даже для истёкших.</p>',
+            '<b>Cowlor\'s Sidebar</b> · читается в вашем браузере, никуда не отправляется'] },
+
+  ja: { ui:'ja', section:'ja',
+    titres:{ novaflux:'今夜のサブアソンの前に世界を語り尽くす', kiraplays:'月末までにマスター到達へ — 12日目' },
+    hero:  ['<span class="kicker">Twitch をもっと便利に</span>' +
+            '<h1>サイドバーが<br><em>すべて</em>教えます。</h1>' +
+            '<p>配信時間、色分けされたコラボ配信、始まったばかりの配信。' +
+            '探しに行っていた情報が、もうそこにあります。</p>',
+            '<b>Cowlor\'s Sidebar</b> · 無料、アカウント不要、広告なし'],
+    apercu:['<span class="kicker">ホバープレビュー</span>' +
+            '<h1>クリックの<br><em>前に</em>見る。</h1>' +
+            '<p>1秒ホバーするだけで配信がライブで開き、完全なタイトルと文脈が ' +
+            '見えます。コラボ、スポンサー、Hype Train。</p>',
+            '<b>Cowlor\'s Sidebar</b> · プレビューはサイドバーのどこでも動きます'],
+    top:   ['<span class="kicker">トップチャンネル</span>' +
+            // Trois vers, et non deux comme ailleurs : à 72 px, la colonne de
+            // 690 px tient neuf idéogrammes, et « あなたのサイドバーに。 » en
+            // fait onze. Le repli était donc écrit d'avance ; autant l'écrire.
+            '<h1>Twitch のすべてを<br><em>あなたの</em><br>サイドバーに。</h1>' +
+            '<p>タブひとつで、視聴者数の多い30チャンネルが並びます。' +
+            'カテゴリー別、言語別、常に再計算。</p>',
+            '<b>Cowlor\'s Sidebar</b> · 行くのも戻るのもワンクリック'],
+    filtre:['<span class="kicker">フィルター</span>' +
+            '<h1>2クリックで<br><em>見つかる</em>。</h1>' +
+            '<p>カテゴリー別、言語別 — 国旗つき。フォロー中のチャンネルに' +
+            '実際にある値だけが並びます。</p>',
+            '<b>Cowlor\'s Sidebar</b> · 設定は一切不要'],
+    tri:   ['<span class="kicker">6つの並べ替え</span>' +
+            '<h1>あなたのリスト、<br><em>あなたの</em>順番。</h1>' +
+            '<p>視聴者数、サブスク、個人的な人気度、配信時間、名前順 — ' +
+            'コラボ配信を上にまとめることも。</p>',
+            '<b>Cowlor\'s Sidebar</b> · 履歴はブラウザーの中だけ'],
+    abo:   ['<span class="kicker">サブスク</span>' +
+            '<h1>誰を<em>応援</em>して<br>いるか分かる。</h1>' +
+            '<p>サブスクを認識して金色にし、上にまとめます。ホバーすれば' +
+            '何か月続いているかも — 期限切れも含めて。</p>',
+            '<b>Cowlor\'s Sidebar</b> · ブラウザーで読むだけ、どこにも送りません'] },
+
+  zh: { ui:'zh', section:'zh',
+    titres:{ novaflux:'今晚订阅马拉松开始前，先聊聊天下事', kiraplays:'月底前冲上大师 — 第 12 天' },
+    hero:  ['<span class="kicker">Twitch，但更好用</span>' +
+            '<h1>侧边栏<br><em>什么都</em>告诉你。</h1>' +
+            '<p>开播时长、彩色联合直播、刚刚开播的频道。' +
+            '以前要去找的信息，现在就在眼前。</p>',
+            '<b>Cowlor\'s Sidebar</b> · 免费、无需账号、没有广告'],
+    apercu:['<span class="kicker">悬停预览</span>' +
+            '<h1>点击前<br>先<em>看一眼</em>。</h1>' +
+            '<p>悬停一秒，直播就地播放，还带完整标题和上下文：' +
+            '联合直播、赞助、Hype Train。</p>',
+            '<b>Cowlor\'s Sidebar</b> · 预览在整个侧边栏都能用'],
+    top:   ['<span class="kicker">热门频道</span>' +
+            '<h1>整个 Twitch，<br>都在<em>你的</em>侧边栏。</h1>' +
+            '<p>一个标签页，观看人数最多的 30 个频道就位。' +
+            '按分类、按语言，持续重新计算。</p>',
+            '<b>Cowlor\'s Sidebar</b> · 一键前往，一键返回'],
+    filtre:['<span class="kicker">筛选</span>' +
+            '<h1>两次点击<br>就能<em>找到</em>。</h1>' +
+            '<p>按分类、按语言 — 带国旗。只提供你关注的频道中' +
+            '真实存在的选项。</p>',
+            '<b>Cowlor\'s Sidebar</b> · 无需任何设置'],
+    tri:   ['<span class="kicker">六种排序</span>' +
+            '<h1>你的列表，<br><em>你的</em>顺序。</h1>' +
+            '<p>观众数、订阅、个人热度、开播时长、按名称 — ' +
+            '也可以把联合直播集中在最上面。</p>',
+            '<b>Cowlor\'s Sidebar</b> · 你的历史只留在你的浏览器里'],
+    abo:   ['<span class="kicker">订阅</span>' +
+            '<h1>侧边栏知道<br>你在<em>支持</em>谁。</h1>' +
+            '<p>识别你的订阅，标成金色，集中在顶部。悬停就能看到' +
+            '已经订阅了多少个月 — 过期的也算。</p>',
+            '<b>Cowlor\'s Sidebar</b> · 在浏览器里读取，从不外发'] },
 };
 const LANGUES = process.env.PROMO_LANGS
   ? process.env.PROMO_LANGS.split(',')

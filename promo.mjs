@@ -79,12 +79,31 @@ const vignette = (login) => {
    `var(--font-base, "Inter", sans-serif)`.
 
    Embarquée en base64 plutôt que chargée d'un CDN : une capture ne doit pas
-   dépendre du réseau pour être reproductible. Deux sous-ensembles, latin et
-   latin étendu, en fichier VARIABLE — un seul fichier par sous-ensemble couvre
-   toutes les graisses, ce qui coûte moins que quatre fichiers statiques.
+   dépendre du réseau pour être reproductible. Quatre sous-ensembles — latin,
+   latin étendu, cyrillique et cyrillique étendu — en fichier VARIABLE : un seul
+   fichier par sous-ensemble couvre toutes les graisses, ce qui coûte moins que
+   quatre fichiers statiques. Le cyrillique étendu ne sert à AUCUN texte
+   d'aujourd'hui : le russe tient entièrement dans le bloc de base. Il est là
+   parce qu'il est le pendant naturel du latin étendu, qu'il coûte vingt-cinq
+   kilo-octets, et qu'une fiche ukrainienne ou serbe le demanderait sans
+   prévenir. Ce n'est pas un besoin, c'est une provision — et c'est dit.
 
-   SIL Open Font License 1.1 — le texte complet est dans promo-fonts/OFL.txt,
-   comme l'exige la licence pour toute redistribution. */
+   Le cyrillique n'était pas là avant la douzième fiche : sans lui, le russe
+   sortait en DejaVu Sans, la police par défaut du conteneur — un dessin qui
+   n'est celui de personne, et que rien ne signalait puisque le contrôle de
+   police mesurait une chaîne latine, servie par Inter comme il se doit.
+
+   Inter n'a en revanche AUCUN idéogramme, et ce n'est pas un manque : Twitch
+   non plus. Sa pile est « Inter, Roobert, Helvetica Neue, Helvetica, Arial,
+   sans-serif », dont aucun ne couvre le CJK ; sur une vraie machine japonaise,
+   le navigateur descend jusqu'à la police système. On reproduit donc ce
+   comportement, avec Noto Sans JP et Noto Sans SC en DERNIER recours, taillées
+   aux caractères de ces captures par `npm run polices`. Le latin des mêmes
+   pages continue de venir d'Inter, qui passe en premier.
+
+   SIL Open Font License 1.1 pour les trois familles — les textes complets sont
+   dans promo-fonts/OFL.txt et promo-fonts/OFL-noto.txt, comme l'exige la
+   licence pour toute redistribution. */
 const woff2 = (n) => 'data:font/woff2;base64,' +
   readFileSync(join(ICI, 'promo-fonts', n)).toString('base64');
 const POLICE = `
@@ -98,6 +117,17 @@ const POLICE = `
     unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,
       U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,
       U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+  @font-face { font-family:'Inter'; font-style:normal; font-weight:100 900;
+    src:url(${woff2('inter-cyrillic.woff2')}) format('woff2');
+    unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+  @font-face { font-family:'Inter'; font-style:normal; font-weight:100 900;
+    src:url(${woff2('inter-cyrillic-ext.woff2')}) format('woff2');
+    unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,
+      U+FE2E-FE2F; }
+  @font-face { font-family:'Noto Sans JP'; font-style:normal; font-weight:100 900;
+    src:url(${woff2('noto-sans-jp-cjk.woff2')}) format('woff2'); }
+  @font-face { font-family:'Noto Sans SC'; font-style:normal; font-weight:100 900;
+    src:url(${woff2('noto-sans-sc-cjk.woff2')}) format('woff2'); }
 `;
 
 /* Reconstruction de l'habillage de Twitch pour le markup de tests/page.html.
@@ -110,6 +140,16 @@ export const CSS_TWITCH = POLICE + `
      racine, en variable. L'extension lit --font-base — c'est donc le VRAI
      chemin qu'on éprouve, pas un repli qui n'existerait qu'ici. */
   :root { --font-base: Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  /* Le CJK est ajouté APRÈS toute la pile de Twitch, et par :lang() plutôt que
+     par un réglage passé au script : c'est la langue du document qui décide,
+     comme chez le navigateur. Deux raisons de ne pas mettre les deux familles
+     dans la même pile — la première gagnerait toujours, et le chinois sortirait
+     avec les formes japonaises ; et l'ordre importe aussi pour le latin, qui
+     doit continuer de venir d'Inter sur ces deux pages-là. */
+  :root:lang(ja) { --font-base: Inter, Roobert, "Helvetica Neue", Helvetica, Arial,
+                                "Noto Sans JP", sans-serif; }
+  :root:lang(zh) { --font-base: Inter, Roobert, "Helvetica Neue", Helvetica, Arial,
+                                "Noto Sans SC", sans-serif; }
   /* Twitch lisse ses polices ; sans cette ligne le même texte sort plus gras
      ici que là-bas, ce qui se voit surtout sur les petits corps de la barre. */
   html, body { font-family: var(--font-base); -webkit-font-smoothing: antialiased; }
@@ -322,17 +362,102 @@ export async function reduireEnPng24(brut, w, h) {
   return png24(rgba, w, h);
 }
 
-// Libellé natif de la section suivie, par langue d'interface. detectLanguage()
-// le cherche AVANT de regarder <html lang> : sans cette substitution, toutes
-// les scènes rendraient en français quelle que soit la langue demandée.
-// Clé = code de FICHE (es419 et ptpt sont des fiches distinctes), pas code de
-// langue de l'extension : es-419 partage l'interface espagnole, pt-PT et pt-BR
-// partagent l'interface portugaise mais PAS ce libellé, que Twitch traduit
-// différemment de part et d'autre de l'Atlantique.
+/**
+ * Les caractères que la page ÉCRIT et qu'aucune police embarquée ne couvre.
+ *
+ * Une police manquante ne casse rien : le navigateur descend jusqu'à ce qu'il
+ * trouve un dessin, et l'image sort avec la police du conteneur — ou avec un
+ * carré vide. Rien dans le rendu ne le dit, et une fiche publiée le dirait à
+ * tout le monde. Le contrôle qui existait comparait la LARGEUR d'une chaîne
+ * latine demandée à Inter puis à une famille absente : il prouve qu'Inter est
+ * là, et c'est tout ce qu'il prouve. Il ne pouvait rien dire du cyrillique, ni
+ * du CJK — où il aurait même menti, les idéogrammes faisant exactement un cadratin
+ * de large dans toutes les polices : deux largeurs égales, donc « absent »,
+ * dans une police qui a pourtant le glyphe.
+ *
+ * On compare donc des PIXELS. Chaque caractère est dessiné deux fois : avec la
+ * pile de la page, puis avec une famille qui n'existe pas — c'est-à-dire avec
+ * la police par défaut du navigateur. Deux rendus identiques veulent dire que
+ * la pile n'a rien apporté : personne, dans ce qu'on embarque, ne connaît ce
+ * caractère.
+ *
+ * Encore faut-il comparer la bonne pile, et il a fallu DEUX mutations pour
+ * trouver laquelle. On a d'abord dessiné avec `--font-base` telle quelle : elle
+ * finit par `sans-serif`, que le conteneur résout en DejaVu Sans, lequel répond
+ * donc à la place d'Inter — en retirant à Inter sa plage cyrillique, le russe
+ * sortait en DejaVu et la capture passait. Retirer les génériques n'a pas suffi
+ * pour autant : fontconfig aliase `Arial` et `Helvetica` sur Liberation Sans,
+ * qui a le cyrillique lui aussi. Deux noms de la pile de Twitch, qu'on croyait
+ * absents, ne l'étaient pas.
+ *
+ * La pile de contrôle ne se déduit donc pas de ce que la page DEMANDE mais de
+ * ce qu'on EMBARQUE : `document.fonts` porte exactement les @font-face de
+ * POLICE, et on n'en garde que celles que la page nomme, dans son ordre. Sur
+ * une page japonaise cela fait « Inter, Noto Sans JP » ; sur une page française,
+ * « Inter ». Aucune police du système ne peut plus répondre à leur place.
+ */
+export async function glyphesManquants(page) {
+  return page.evaluate(() => {
+    // Ce que la page ÉCRIT, et non ce qu'elle CONTIENT : le premier relevé
+    // remontait les filets « ── » des commentaires du script inline de
+    // page.html, qui sont bien des nœuds texte de <body> et ne se dessinent
+    // nulle part. Un <script> n'a pas de boîte ; on ne garde que les nœuds dont
+    // le parent en a une.
+    const MUETS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'TITLE']);
+    const vus = new Set();
+    const marche = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = marche.nextNode(); n; n = marche.nextNode()) {
+      const p = n.parentElement;
+      if (!p || MUETS.has(p.tagName) || !p.getClientRects().length) continue;
+      for (const c of n.nodeValue) if (!/\s/.test(c)) vus.add(c);
+    }
+    const sansGuillemets = (s) => s.trim().replace(/^["']|["']$/g, '');
+    const embarquees = new Set([...document.fonts].map((f) => sansGuillemets(f.family)));
+    const pile = getComputedStyle(document.documentElement)
+      .getPropertyValue('--font-base')
+      .split(',').map(sansGuillemets)
+      .filter((f) => embarquees.has(f))
+      .map((f) => `"${f}"`)
+      .concat('__absente__').join(', ');
+    const cv = document.createElement('canvas');
+    cv.width = 80; cv.height = 80;
+    const g = cv.getContext('2d', { willReadFrequently: true });
+    const empreinte = (famille, c) => {
+      g.clearRect(0, 0, 80, 80);
+      g.font = '64px ' + famille;
+      g.fillStyle = '#000';
+      g.fillText(c, 8, 64);
+      return g.getImageData(0, 0, 80, 80).data.join(',');
+    };
+    return [...vus].filter((c) => empreinte(pile, c) === empreinte('__absente__', c));
+  });
+}
+
+/* Libellé de la section suivie, par langue d'interface, substitué dans
+   page.html. Clé = code de FICHE (es419 et ptpt sont des fiches distinctes),
+   pas code de langue de l'extension.
+
+   Les SIX premiers sont les libellés NATIFS de Twitch, ceux que
+   detectLanguage() cherche mot pour mot avant de regarder <html lang> : sans
+   cette substitution, les scènes fr/en/de/es/pt rendraient toutes en français
+   quelle que soit la langue demandée. es-419 partage l'interface espagnole ;
+   pt-PT et pt-BR partagent l'interface portugaise mais PAS ce libellé, que
+   Twitch traduit différemment de part et d'autre de l'Atlantique.
+
+   Les CINQ derniers (it, pl, ru, ja, zh) ne peuvent pas être des libellés
+   natifs : content.js n'en liste aucun pour ces langues, délibérément — en
+   inventer un reviendrait à écrire une comparaison qui ne matchera jamais.
+   Ces cinq scènes sont donc détectées par <html lang>, et ce que porte cette
+   table est le libellé de l'EXTENSION, `followedLabel`. C'est de toute façon
+   celui qu'on photographie : renameRootTitle() réécrit le titre de section
+   avec S.followedLabel dès le premier balayage. Le contrôle de tests/store.mjs
+   vérifie que ces cinq chaînes existent bien dans content.js. */
 const SECTION = {
   fr: 'Chaînes suivies', en: 'Followed Channels', de: 'Kanäle, denen du folgst',
   es: 'Canales que sigues', es419: 'Canales que sigues',
   ptbr: 'Canais seguidos', ptpt: 'Canais que segues',
+  it: 'Canali seguiti', pl: 'Obserwowane kanały', ru: 'Отслеживаемые каналы',
+  ja: 'フォロー中のチャンネル', zh: '关注的频道',
 };
 
 /**
@@ -504,6 +629,13 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
     console.log('  ⚠ mise en page :', nom, JSON.stringify(trop));
   }
 
+  // Un tofu ne se rattrape pas après publication : on refuse de photographier.
+  const manquants = await glyphesManquants(page);
+  if (manquants.length) {
+    throw new Error(`${nom} : aucune police embarquée ne couvre « ${manquants.join('')} ` +
+                    `» — relancer « npm run polices » après avoir changé un texte`);
+  }
+
   const brut = await page.screenshot();
   await page.close();
   const fichier = await reduireEnPng24(brut, 1280, 800);
@@ -552,7 +684,7 @@ function habiller({ titre, sousTitre, CSS, echelleMax, texteEtroit }) {
     body.promo-etroit #promo-texte p { font-size:24px; max-width:372px; }
     /* Le chapô ne suit pas les autres corps dans la variante étroite : c'est
        une pastille, et une pastille sur deux lignes n'est plus une pastille.
-       « PRÉ-VISUALIZAÇÃO AO PASSAR » est le plus long des sept, et c'est lui
+       « PRÉ-VISUALIZAÇÃO AO PASSAR » est le plus long des douze, et c'est lui
        qui fixe ce nombre. Le garde-fou « chapo » de scene() vérifie qu'aucun
        autre ne passe à la ligne. */
     body.promo-etroit #promo-texte .kicker { font-size:17px; }
