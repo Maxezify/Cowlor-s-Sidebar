@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Cowlor's Sidebar for Twitch",
+    "description": "chrome://extensions に表示される拡張機能名"
+  },
+  "extShortName": {
+    "message": "Cowlor's Sidebar",
+    "description": "省スペース向けの拡張機能の短い名前"
+  },
+  "extDescription": {
+    "message": "Twitch のサイドバーを改善し、配信情報をより分かりやすく、整理された形で表示します。",
+    "description": "拡張機能の短い説明（Chrome ウェブストアでは最大132文字）"
+  }
+}

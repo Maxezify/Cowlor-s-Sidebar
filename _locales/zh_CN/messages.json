@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Cowlor's Sidebar for Twitch",
+    "description": "在 chrome://extensions 中显示的扩展名称"
+  },
+  "extShortName": {
+    "message": "Cowlor's Sidebar",
+    "description": "用于紧凑场景的扩展简称"
+  },
+  "extDescription": {
+    "message": "改进 Twitch 侧边栏，提供更实用的直播信息和更清晰的排列。",
+    "description": "扩展的简短描述（Chrome 应用商店最多 132 个字符）"
+  }
+}

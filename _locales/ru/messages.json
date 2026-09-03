@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Cowlor's Sidebar for Twitch",
+    "description": "Отображаемое имя расширения в chrome://extensions"
+  },
+  "extShortName": {
+    "message": "Cowlor's Sidebar",
+    "description": "Короткое имя расширения для компактных мест"
+  },
+  "extDescription": {
+    "message": "Улучшает боковую панель Twitch: более полезные сведения о стримах и лучший порядок.",
+    "description": "Краткое описание расширения (максимум 132 символа в Chrome Web Store)"
+  }
+}
