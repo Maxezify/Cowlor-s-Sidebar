@@ -29,6 +29,7 @@ Dans la fenêtre d'aperçu, des étiquettes colorées résument le contexte du s
 - 💰 ★ SPONSORISÉ PAR ★ Pour les streams sponsorisés, affiche la marque avec son logo en couleur. Vous saurez qui est derrière.
 - 🚂 ★ HYPE TRAIN ★ Un Hype Train est en cours sur la chaîne ? Vous êtes prévenu sans avoir à cliquer.
 - 💎 ★ ABONNEMENT EN PROMO ★ Quand Twitch propose un abonnement à prix réduit sur le stream, c'est signalé là.
+- 🆕 ★ VIENT DE PASSER SUR ★ Le streamer a changé de catégorie en cours de route ? Un badge vert le dit pendant dix minutes : « Vient de passer sur Elden Ring ». Twitch ne l'annonce nulle part — l'extension le voit parce qu'elle regarde en continu.
 - ⚠️ ★ ÉTIQUETTES DE CONTENU ★ Les étiquettes officielles de Twitch (jeux matures, violence explicite, jeux d'argent…) forment leur propre badge, en tête de la rangée — vous savez avant de regarder, sans l'interstitielle qui bloquait la vidéo.
 
 _______________________________
@@ -165,6 +166,11 @@ L'extension détecte automatiquement la langue de votre Twitch et adapte chaque 
 - 🇩🇪 Deutsch
 - 🇪🇸 Español
 - 🇧🇷🇵🇹 Português (Brésil et Portugal)
+- 🇮🇹 Italiano
+- 🇵🇱 Polski
+- 🇷🇺 Русский
+- 🇯🇵 日本語
+- 🇨🇳 简体中文
 - 🌐 …et l'anglais par défaut pour toutes les autres langues
 
 Il n'y a strictement rien à configurer.

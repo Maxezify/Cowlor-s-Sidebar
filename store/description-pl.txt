@@ -1,0 +1,209 @@
+★ TWITCH, ALE LEPSZY! ★
+
+Wiesz, czego brakuje Twojemu panelowi bocznemu na Twitchu? Tych wszystkich drobnych informacji, które chciałbyś mieć BEZ klikania wszędzie. ★ COWLOR'S SIDEBAR ★ dodaje je dokładnie tam, gdzie już patrzysz. Proste, eleganckie i strasznie przydatne!
+
+_______________________________
+
+✨ CO TO WŁAŚCIWIE ROBI:
+
+_______________________________
+
+➤ 📺 PODGLĄD NA ŻYWO PO NAJECHANIU MYSZĄ
+Funkcja sztandarowa. Najedź na streamera na sekundę i bum, z boku otwiera się okienko z:
+
+- Wideo transmisji NA ŻYWO (prawdziwy sygnał, nie zamrożona miniatura)
+- Pełnym tytułem transmisji, czytelnym zanim jeszcze klikniesz
+- Etykietami, które mówią wszystko o kontekście (patrz niżej)
+- I działa też na kanałach z oznaczeniami: ekran „Zacznij oglądać” Twitcha zostawiał podgląd zamrożony na nieruchomym obrazie — teraz jest pomijany, a oznaczenia trafiają do etykiety (patrz niżej)
+
+I działa wszędzie w panelu bocznym: Obserwowane kanały, Polecane kanały, a nawet „Widzowie X oglądają też”. Koniec z klikaniem tylko po to, żeby sprawdzić, co się dzieje na transmisji!
+
+_______________________________
+
+➤ 🏷️ ETYKIETY, KTÓRE MÓWIĄ WSZYSTKO
+W okienku podglądu kolorowe etykiety streszczają kontekst transmisji jednym rzutem oka:
+
+- 🤝 ★ CO-STREAM ★ Mówi dokładnie, czy kanał jest gospodarzem czy gościem, i z kim. Koniec z „chwila, czyja to transmisja, której nie obserwuję?”.
+- 👥 ★ NA ŻYWO Z ★ Dla squadów i multistreamów pokazuje głównego współprowadzącego i łączną liczbę pozostałych („Na żywo z Takim-a-takim i jeszcze 3”).
+- 💜 ★ SUBSKRYPCJA ★ Od jak dawna wspierasz kanał („Subskrypcja: 9 miesięcy”) — albo że kiedyś go wspierałeś („Dawna subskrypcja: 22 miesiące”).
+- 💰 ★ SPONSOROWANE PRZEZ ★ Przy transmisjach sponsorowanych pokazuje markę z jej kolorowym logo. Będziesz wiedzieć, kto za tym stoi.
+- 🚂 ★ HYPE TRAIN ★ Na kanale trwa Hype Train? Dowiesz się bez klikania.
+- 💎 ★ SUBSKRYPCJA ZE ZNIŻKĄ ★ Kiedy Twitch proponuje na transmisji subskrypcję ze zniżką, jest to od razu oznaczone.
+- 🆕 ★ WŁAŚNIE PRZESZEDŁ NA ★ Streamer zmienił kategorię w trakcie transmisji? Zielona etykieta mówi o tym przez dziesięć minut: „Właśnie przeszedł na Elden Ring”. Twitch nie ogłasza tego nigdzie — rozszerzenie to widzi, bo patrzy bez przerwy.
+- ⚠️ ★ OZNACZENIA TREŚCI ★ Oficjalne oznaczenia Twitcha (gra dla dorosłych, drastyczna przemoc, hazard…) tworzą własną etykietę, pierwszą w rzędzie — wiesz, zanim spojrzysz, bez ekranu, który blokował wideo.
+
+_______________________________
+
+➤ ⏱️ „OD JAK DAWNA ON STREAMUJE?”
+Nie musisz już wchodzić na transmisję! Rozszerzenie pokazuje czas trwania transmisji bezpośrednio w panelu bocznym, tuż pod liczbą widzów.
+
+- 4h19, 14h29… widzisz to od razu.
+- Aktualizuje się samo, w czasie rzeczywistym.
+- A kiedy transmisja się kończy, licznik zmienia się w dyskretne „Zakończono” kursywą, zanim jeszcze Twitch usunie streamera z listy.
+
+_______________________________
+
+➤ 🎯 WSPÓŁPRACE OZNACZONE NA AWATARZE
+Mała fioletowa kropka pojawia się w prawym dolnym rogu awatara streamerów prowadzących co-stream, wraz z liczbą uczestników. Nie trzeba najeżdżać myszą, widać to wprost w panelu bocznym. Czysto, dyskretnie, i od razu mówi: „aha, ten współpracuje z 2 innymi”.
+
+_______________________________
+
+➤ 💜 TWOJE SUBSKRYPCJE, W ZŁOCIE
+Kanały, które naprawdę wspierasz, nie powinny wyglądać jak wszystkie inne. Teraz już nie wyglądają:
+
+- ★ CAŁA KARTA SIĘ ROZŚWIETLA ★ Złota nazwa, złota kategoria, złoty pierścień wokół awatara i powolny połysk w tle karty. Dyskretnie, ale nie da się przeoczyć.
+- ★ WŁASNE SORTOWANIE ★ „Moje subskrypcje na górze” wypycha je wszystkie na szczyt listy, z Twoją sumą na małej etykiecie.
+- ★ KAŻDY RODZAJ SIĘ LICZY ★ Płatna, podarowana, mobilna: wszystkie trzy są rozpoznawane i wszystkie trzy noszą to samo złoto.
+- ★ OD JAK DAWNA TAM JESTEŚ ★ Najedź na kanał, a podgląd Ci powie: „Subskrypcja: 9 miesięcy”. A dla tego, który wspierałeś w przeszłości: „Dawna subskrypcja: 22 miesiące”.
+- ★ SAMO SIĘ DOMYŚLA ★ Nic do konfigurowania, żadnego logowania, żadnego hasła, żadnego tokenu. Jak dokładnie? Wyjaśniamy to w sekcji PRYWATNOŚĆ niżej, prostymi słowami.
+
+_______________________________
+
+➤ ✨ NIGDY WIĘCEJ NIE PRZEGAP POCZĄTKU TRANSMISJI!
+Natychmiast wychwyć transmisje, które właśnie ruszyły! Dyskretny fioletowy pasek po lewej stronie oznacza transmisje rozpoczęte w ciągu ostatnich kilku minut.
+
+- Dyskretny, elegancki efekt wizualny na powitanie streamera.
+- Idealne, by być wśród pierwszych i nigdy nie przegapić wstępu!
+- Animacja gaśnie sama po kilku minutach.
+
+_______________________________
+
+➤ ⚡ SZYBSZE NIŻ SAM TWITCH
+Twitch rzadko odświeża własny panel boczny: obserwowany kanał, który właśnie wszedł na żywo, może potrzebować 2 do 4 minut, żeby się pojawić, a ten, który właśnie skończył, zostaje tam przez 5 do 10. Rozszerzenie odświeża wszystko samo, co 30 sekund — widzowie, kategoria, język, czas trwania, pojawianie się i znikanie. Widzisz to przed Twitchem.
+
+_______________________________
+
+➤ 🚂 I ŻEGNAJ WIZUALNY BAŁAGANIE
+Wycięliśmy wszystko, co zamienia panel boczny w chaos:
+
+- Hype Trainy zajmujące połowę miejsca (informacja nadal dostępna jako etykieta w podglądzie, spokojnie, nic nie ginie)
+- Nachalne banery ze zniżkami na subskrypcje
+- Streamerzy, którzy właśnie zeszli offline, a wciąż tam wiszą
+- Całe sekcje, które kończą jako puste
+- Zbędne wskaźniki wizualne (te dwuznaczne kolorowe kółeczka, bezużyteczne wiersze „DROPS REBROADCAST”…)
+- Banery sponsorskie oszpecające wpisy streamerów: sprzątamy to wszystko, a informacja „sponsorowane przez X” wraca do podglądu, o wiele czyściej.
+
+Efekt: Twój panel boczny pokazuje tylko to, co się liczy. Bez niczego do konfigurowania.
+
+_______________________________
+
+➤ 📂 KONIEC Z KLIKANIEM „POKAŻ WIĘCEJ”
+Pełna lista obserwowanych kanałów rozwija się automatycznie przy każdym wczytaniu strony. Widzisz wszystko, od razu.
+
+_______________________________
+
+➤ 🔍 FILTR KATEGORII
+Nad Twoją listą pojawia się pasek filtrów. Wybierz kategorię (Just Chatting, League of Legends, IRL…) i widoczni pozostaną tylko streamerzy grający w tę kategorię. Lista kategorii jest wyliczana na bieżąco: tylko te, w których obserwowani streamerzy naprawdę są na żywo.
+
+_______________________________
+
+➤ 🌐 FILTR JĘZYKA
+Ta sama zasada, ale dla języka transmisji. Rozwijana lista z flagami pozwala pokazać tylko streamerów nadających w wybranym języku. Tutaj też proponowane są wyłącznie języki faktycznie obecne wśród Twoich obserwowanych kanałów na żywo: żadnych nieskończonych list, tylko to, co Cię dotyczy.
+
+_______________________________
+
+➤ 🏆 NAJPOPULARNIEJSZE KANAŁY: CAŁY TWITCH W TWOIM PANELU
+Jedna zakładka na górze panelu, jedno kliknięcie i wszystko się przełącza: zamiast obserwowanych kanałów — 30 najczęściej oglądanych kanałów Twitcha, na żywo.
+
+- 🌍 ★ RANKING GLOBALNY ★ Przeliczany bez przerwy, nie zamrożona lista.
+- 🎮 ★ WEDŁUG KATEGORII ★ Wybierz Just Chatting, GTA V, League of Legends… i dostajesz 30 największych transmisji W tej kategorii.
+- 🇬🇧 ★ WEDŁUG JĘZYKA ★ Wybierz język i dostajesz prawdziwą top 30 dla niego — a nie zgrubny filtr doklejony do angielskiej listy.
+- 👀 ★ CAŁA RESZTA IDZIE ZA TYM ★ Podgląd po najechaniu, czas trwania, etykiety, co-streamy: to karty jak wszystkie inne.
+- ✅ ★ UCZCIWIE ★ Kiedy nie można zagwarantować kompletności rankingu, rozszerzenie to mówi. Żadnych wymyślonych liczb.
+
+Jedno kliknięcie tam, jedno z powrotem. Twoje obserwowane kanały nie drgną o piksel.
+
+_______________________________
+
+➤ 🔄 SZEŚĆ SPOSOBÓW SORTOWANIA LISTY
+Sześć przycisków na górze panelu, żeby przestawić wszystko w locie:
+
+- 👁️ ★ WEDŁUG WIDZÓW ★ Domyślne sortowanie Twitcha, czysto.
+- 💎 ★ MOJE SUBSKRYPCJE NA GÓRZE ★ Kanały, które wspierasz, zgrupowane na szczycie, z Twoją sumą na etykiecie.
+- ⭐ ★ WEDŁUG OSOBISTEJ POPULARNOŚCI ★ Na podstawie Twojej lokalnej historii wizyt. Ulubieni streamerzy wypływają na górę.
+- ⏰ ★ WEDŁUG CZASU TRWANIA ★ Rosnąco: dopiero rozpoczęte transmisje są na górze, idealne do łapania początków.
+- 🔤 ★ ALFABETYCZNIE ★ Według nazwy kanału. Klasycznie, ale skutecznie.
+- 🔗 ★ CO-STREAMY NA GÓRZE ★ Wszystkie co-streamy zgrupowane na szczycie listy. Nigdy więcej przegapionej współpracy!
+
+_______________________________
+
+➤ 📊 TWOI ULUBIENI STREAMERZY, LOKALNIE
+Rozszerzenie pamięta, które kanały odwiedzasz, kiedy i jak często. Te dane zasilają sortowanie „Osobista popularność” i pozostają zapisane WYŁĄCZNIE w Twojej przeglądarce. Nic nie opuszcza Twojego komputera.
+
+Swój ranking sprawdzisz w konsoli narzędzi deweloperskich (F12):
+- tse.scores()       → Twoi ulubieni streamerzy
+- tse.scores.raw()   → surowe dane
+- tse.subs()         → subskrypcje wykryte przez rozszerzenie
+- tse.subs.refresh() → odczytać je od razu
+- tse.reset()        → wyczyścić wszystko
+
+_______________________________
+
+➤ 🎮 JAK TO ZROBIĆ?
+
+1. Kliknij „Dodaj do Chrome” (za darmo!)
+2. Odśwież Twitcha i… taaadam!
+
+To wszystko. Naprawdę. Żadnej skomplikowanej konfiguracji, żadnych ukrytych menu, żadnego konta do założenia. Działa, kropka.
+
+_______________________________
+
+➤ 💜 DLACZEGO JE POLUBISZ
+
+- ★ JEST DYSKRETNE ★ Nie ruszaliśmy Twojego ulubionego Twitcha, tylko go ulepszyliśmy.
+- ★ JEST ŁADNE ★ Płynne animacje, kolory, które przyciągają wzrok, przyjemność dla oka.
+- ★ JEST PRZYDATNE ★ Koniec z klikaniem wszędzie po ważne informacje.
+- ★ JEST DARMOWE ★ Żadnej subskrypcji, żadnych reklam, żadnego konta. To prezent!
+
+_______________________________
+
+➤ 🌍 W TWOIM JĘZYKU
+
+Rozszerzenie automatycznie wykrywa język Twojego Twitcha i dostosowuje każdą etykietę, plakietkę i podpowiedź:
+
+- 🇬🇧 English
+- 🇫🇷 Français
+- 🇩🇪 Deutsch
+- 🇪🇸 Español
+- 🇧🇷🇵🇹 Português (Brazylia i Portugalia)
+- 🇮🇹 Italiano
+- 🇵🇱 Polski
+- 🇷🇺 Русский
+- 🇯🇵 日本語
+- 🇨🇳 简体中文
+- 🌐 …oraz angielski domyślnie dla wszystkich pozostałych języków
+
+Nie ma absolutnie nic do konfigurowania.
+
+_______________________________
+
+➤ 🔒 SPOKÓJ O PRYWATNOŚĆ
+
+- ★ Żadnego serwera zewnętrznego ★ Rozszerzenie rozmawia wyłącznie z publicznym API samego Twitcha — dokładnie tym, którego strona już używa, by się wyświetlić. Nic więcej, nigdzie.
+- ★ Anonimowe wywołania ★ Żaden token sesji, żadne ciasteczko nigdy nie jest wysyłane: tych zapytań nie da się powiązać z Twoim kontem.
+- ★ Jeden wyjątek, powiedziany na głos ★ Żeby wiedzieć, które kanały subskrybujesz, rozszerzenie otwiera TWOJĄ własną stronę twitch.tv/subscriptions w niewidocznej ramce, najwyżej raz na sześć godzin i nigdy, gdy jesteś wylogowany. Twoja przeglądarka uwierzytelnia tę stronę własnymi ciasteczkami, dokładnie tak, jakbyś kliknął link: rozszerzenie nigdy nie czyta Twojego tokenu i nigdy go nie przekazuje. To, co zachowuje — nazwy kanałów i staż w miesiącach — zostaje w Twojej przeglądarce.
+- ★ Żadnego trackera, żadnego piksela, żadnej telemetrii ★
+- ★ Żadnych podejrzanych uprawnień ★ Rozszerzenie działa WYŁĄCZNIE na twitch.tv.
+- ★ Blokowanie reklam trzyma się swojego miejsca ★ Dotyczy miniatury podglądu po najechaniu i niczego więcej. Transmisja, którą naprawdę oglądasz, pozostaje nietknięta.
+- ★ Twoja historia zostaje u Ciebie ★ Wizyty, subskrypcje, miesiące: zapisane w localStorage Twojej przeglądarki, kropka. Wyczyść dane witryny twitch.tv i wszystko znika.
+- ★ Pełny kod źródłowy do przeczytania ★ Prosto w katalogu rozszerzenia. Żadnej czarnej skrzynki.
+
+_______________________________
+
+➤ 🤔 DLA KOGO TO JEST?
+
+- ★ OBSERWUJESZ 50 STREAMERÓW? ★ Zobacz od razu, kto jest na żywo od dawna, a kto dopiero zaczął.
+- ★ SUBSKRYBUJESZ KILKANAŚCIE KANAŁÓW? ★ Są w złocie, zgrupowane na górze, z liczbą miesięcy, od których tam jesteś.
+- ★ ZAWSZE PRZEGAPIASZ CO-STREAMY? ★ Dedykowane sortowanie wynosi je na górę, a etykieta mówi, kto z kim gra.
+- ★ NIENAWIDZISZ WIZUALNEGO BAŁAGANU? ★ Koniec z Hype Trainami okupującymi panel, koniec z banerami reklamowymi, koniec z pustymi sekcjami.
+- ★ PO PROSTU KOCHASZ TWITCHA? ★ To rozszerzenie jest dla Ciebie!
+
+_______________________________
+
+➤ 🎉 ZAINSTALUJ I KORZYSTAJ!
+
+Rozszerzenie rozwija się dzięki Twoim opiniom, więc śmiało napisz, co o nim myślisz!
+
+★ Zainstaluj COWLOR'S SIDEBAR już teraz i odkryj na nowo swojego ulubionego Twitcha! ★
+
+*P.S.: To rozszerzenie nie jest powiązane z Twitchem, ale i tak ich kochamy 💜*

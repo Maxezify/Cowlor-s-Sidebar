@@ -29,6 +29,7 @@ Dentro da janela de pré-visualização, etiquetas coloridas resumem o contexto 
 - 💰 ★ PATROCINADO POR ★ Nas emissões patrocinadas, mostra a marca com o logótipo a cores. Vais saber quem está por trás.
 - 🚂 ★ HYPE TRAIN ★ Há um Hype Train a decorrer no canal? Ficas a saber sem ter de clicar.
 - 💎 ★ SUBSCRIÇÃO COM DESCONTO ★ Quando o Twitch oferece uma subscrição com desconto na emissão, fica assinalado ali mesmo.
+- 🆕 ★ ACABOU DE MUDAR PARA ★ O streamer trocou de categoria a meio da transmissão? Um distintivo verde avisa durante dez minutos: «Acabou de mudar para Elden Ring». O Twitch não anuncia isso em lado nenhum — a extensão vê porque está sempre a olhar.
 - ⚠️ ★ ETIQUETAS DE CONTEÚDO ★ As etiquetas oficiais do Twitch (jogo adulto, violência explícita, jogos de azar…) formam o seu próprio distintivo, o primeiro da fila — sabes antes de olhares, sem o ecrã que bloqueava o vídeo.
 
 _______________________________
@@ -165,6 +166,11 @@ A extensão detecta automaticamente o idioma do teu Twitch e adapta cada etiquet
 - 🇩🇪 Deutsch
 - 🇪🇸 Español
 - 🇧🇷🇵🇹 Português (Brasil e Portugal)
+- 🇮🇹 Italiano
+- 🇵🇱 Polski
+- 🇷🇺 Русский
+- 🇯🇵 日本語
+- 🇨🇳 简体中文
 - 🌐 …e inglês por omissão para todos os outros idiomas
 
 Não há rigorosamente nada para configurar.

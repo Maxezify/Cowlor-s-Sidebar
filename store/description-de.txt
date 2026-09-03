@@ -29,6 +29,7 @@ Im Vorschaufenster fassen farbige Etiketten den Kontext des Streams auf einen Bl
 - 💰 ★ GESPONSERT VON ★ Bei gesponserten Streams: die Marke mit ihrem farbigen Logo. Du weißt, wer dahintersteckt.
 - 🚂 ★ HYPE TRAIN ★ Auf dem Kanal läuft ein Hype Train? Du erfährst es, ohne klicken zu müssen.
 - 💎 ★ ABO IM ANGEBOT ★ Wenn Twitch im Stream ein vergünstigtes Abo anbietet, steht es genau dort.
+- 🆕 ★ GERADE GEWECHSELT ZU ★ Der Streamer hat mitten im Stream die Kategorie gewechselt? Ein grünes Abzeichen sagt es zehn Minuten lang: „Gerade gewechselt zu Elden Ring“. Twitch kündigt das nirgends an — die Erweiterung sieht es, weil sie durchgehend hinschaut.
 - ⚠️ ★ INHALTSHINWEISE ★ Die offiziellen Twitch-Labels (Spiel ab 18, explizite Gewalt, Glücksspiel…) bilden ihr eigenes Abzeichen, ganz vorn in der Reihe — du weißt es, bevor du hinschaust, ohne den Zwischenbildschirm, der das Video blockierte.
 
 _______________________________
@@ -165,6 +166,11 @@ Die Erweiterung erkennt automatisch die Sprache deines Twitch und passt jede Bes
 - 🇩🇪 Deutsch
 - 🇪🇸 Español
 - 🇧🇷🇵🇹 Português (Brasilien und Portugal)
+- 🇮🇹 Italiano
+- 🇵🇱 Polski
+- 🇷🇺 Русский
+- 🇯🇵 日本語
+- 🇨🇳 简体中文
 - 🌐 …und Englisch als Standard für alle anderen Sprachen
 
 Es gibt schlicht nichts einzustellen.
