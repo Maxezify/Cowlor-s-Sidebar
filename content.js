@@ -2800,7 +2800,12 @@ const TSE_GATE_MAX_CLICKS = 5;
    *  a besoin par chaîne :
    *    stream.createdAt     → durée de stream + « stream frais »
    *    stream.viewersCount  → compteur rafraîchi (cf. module VIEWERS)
-   *    stream.game.name     → catégorie (filtre + heuristique co-stream)
+   *    stream.game.name     → IDENTITÉ de la catégorie : clé de filtre,
+   *                           clé de regroupement co-stream, terme de
+   *                           comparaison du basculement de catégorie
+   *    stream.game.displayName → le même nom TRADUIT, et rien d'autre :
+   *                           c'est lui qu'on écrit sur les cartes et dans
+   *                           le menu déroulant
    *    stream.freeformTags  → langues (cf. langStore)
    *    user.id              → clé de la résolution Guest Star
    *  stream === null ⇒ la chaîne est réellement hors ligne.
@@ -2846,7 +2851,7 @@ const TSE_GATE_MAX_CLICKS = 5;
    *  n'a rien observé. Sortir un badge à ce moment-là reviendrait
    *  à l'inventer. Elle ne rapporte que ce qu'elle a vu.
    * ============================================================ */
-  const basculements = new Map();   // login -> { vers, ts }
+  const basculements = new Map();   // login -> { vers, libelle, ts }
 
   /* Une garde par question, et c'est délibéré. La première écriture faisait
      porter à la garde de session la protection de `avant.game` : retirer la
@@ -2862,7 +2867,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     const memeSession = avant.stream?.id && apres.stream?.id
                         && avant.stream.id === apres.stream.id;
     if (!memeSession) return;
-    basculements.set(login, { vers: apres.game, ts: Date.now() });
+    // On compare des noms CANONIQUES et on mémorise le libellé TRADUIT. Le
+    // faire dans l'autre sens ferait sortir un faux badge au premier
+    // changement de langue de l'interface : « Just Chatting » deviendrait
+    // « Discussions » sans que la chaîne ait rien changé.
+    basculements.set(login, {
+      vers: apres.game,
+      libelle: apres.gameLabel || apres.game,
+      ts: Date.now()
+    });
     // Purge par le volume, en plus de la péremption à la lecture. Map itère
     // dans l'ordre d'insertion : les plus anciennes entrées sortent d'abord.
     while (basculements.size > CFG.CATEGORY_SWITCH_MAX) {
@@ -2897,12 +2910,29 @@ const TSE_GATE_MAX_CLICKS = 5;
   // stream=null, qui signifie "vraiment hors-ligne".
   const NETWORK_ERROR = Symbol('network-error');
 
+  /* `Accept-Language` : c'est ce qui décide de la langue des CATÉGORIES.
+     Twitch localise `game.displayName` d'après cet en-tête ; sans lui, le
+     navigateur envoie le sien, celui de l'OS — et une personne dont le
+     navigateur est en anglais mais Twitch en français lisait « Just Chatting »
+     sous une interface qui dit « Discussions ». On envoie donc la langue que
+     l'extension a DÉTECTÉE, c'est-à-dire celle de l'interface qu'on décore.
+
+     C'est un en-tête « CORS-safelisted » : il ne s'ajoute pas à la liste du
+     contrôle préalable et ne peut donc pas faire échouer une requête qui
+     passait. Il ne dit rien de plus sur l'utilisateur que ce que le navigateur
+     envoyait déjà de lui-même, et la requête reste anonyme — credentials:
+     'omit', Client-ID public, aucun jeton.
+
+     Lu à CHAQUE appel, et non figé à la construction : refreshLanguage() peut
+     changer LANG en cours de session, et le lot suivant doit repartir dans la
+     nouvelle langue. */
   const post = (payload) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), CFG.GQL_TIMEOUT);
     return fetch(CFG.GQL_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-ID': CFG.CLIENT_ID },
+      headers: { 'Content-Type': 'application/json', 'Client-ID': CFG.CLIENT_ID,
+                 'Accept-Language': S.locale },
       body: JSON.stringify(payload),
       credentials: 'omit',
       signal: controller.signal
@@ -2924,7 +2954,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     '    profileImageURL(width: 70)' +
     '    stream {' +
     '      id createdAt viewersCount' +
-    '      game { id name }' +
+    // DEUX noms pour une catégorie, et ils ne font pas le même métier.
+    // `name` est le nom CANONIQUE, celui des URL de Twitch et le seul que
+    // `game(name:)` accepte : c'est l'identité, elle sert de clé de filtre, de
+    // clé de regroupement co-stream et de terme de comparaison pour détecter un
+    // basculement. `displayName` est le nom TRADUIT — « Discussions » pour
+    // « Just Chatting » — et il ne sert qu'à l'affichage. Les confondre, c'était
+    // écrire l'anglais par-dessus le français que Twitch affichait déjà.
+    '      game { id name displayName }' +
     '      freeformTags { name }' +
     '    }' +
     '  }' +
@@ -3076,6 +3113,11 @@ const TSE_GATE_MAX_CLICKS = 5;
           stream,
           tags,
           game:    stream?.game?.name || null,
+          // Le libellé traduit, avec le nom canonique en repli : si Twitch ne
+          // sert pas de traduction pour cette catégorie — c'est le cas des
+          // titres de jeux, qui ne se traduisent pas — displayName vaut name,
+          // et l'affichage est exactement celui d'avant.
+          gameLabel: stream?.game?.displayName?.trim() || stream?.game?.name || null,
           viewers: Number.isFinite(stream?.viewersCount) ? stream.viewersCount : null,
           // Nom affiché et avatar : nécessaires UNIQUEMENT pour fabriquer une
           // carte que Twitch n'a pas encore posée (cf. module CARTES EN
@@ -3216,7 +3258,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       '      edges { node {' +
       '        id createdAt viewersCount' +
       '        broadcaster { id login displayName profileImageURL(width: 70) }' +
-      '        game { id name }' +
+      // Même paire que dans TseChannels : `name` pour l'identité, `displayName`
+      // pour ce qui s'affiche. Une carte du classement doit lire comme une
+      // carte suivie, sans quoi la même catégorie serait écrite en deux langues
+      // selon l'onglet.
+      '        game { id name displayName }' +
       '        freeformTags { name }' +
       '      } }' +
       '    }' +
@@ -3294,6 +3340,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         avatar:    node.broadcaster.profileImageURL || null,
         viewers,
         game:      node.game?.name || null,
+        gameLabel: node.game?.displayName?.trim() || node.game?.name || null,
         createdAt: node.createdAt || null,
         // Tags bruts, canonicalisés à la LECTURE comme pour TseChannels :
         // c'est ce qui alimentera le filtre pays sans requête supplémentaire.
@@ -5577,7 +5624,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       const vivants = [];
       for (const login of [...basculements.keys()]) {
         const b = basculementFrais(login);
-        if (b) vivants.push({ chaîne: login, 'passée sur': b.vers,
+        if (b) vivants.push({ chaîne: login, 'passée sur': b.libelle || b.vers,
+                              canonique: b.vers,
                               'il y a (s)': Math.round((Date.now() - b.ts) / 1000) });
       }
       if (!vivants.length) {
@@ -5615,7 +5663,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       },
       cats(limit = 25) {
         const rows = globalChannels.cats(limit).map((c, i) => ({
-          rank: i + 1, category: c.display, viewers: c.viewers
+          rank: i + 1, category: c.display, canonique: c.name, viewers: c.viewers
         }));
         console.table(rows);
         return rows;
@@ -7031,7 +7079,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       const bascule = basculementFrais(login);
       if (bascule) {
         badges.unshift(badgeNoeud('tse-preview__badge--switch',
-          phraseAvecFente(S.uiBadgeCategorySwitch(FENTE), () => nomsEnGras([bascule.vers]))));
+          phraseAvecFente(S.uiBadgeCategorySwitch(FENTE),
+                          () => nomsEnGras([bascule.libelle || bascule.vers]))));
       }
 
       // Badge d'abonnement, en TÊTE : c'est le signal le plus personnel de
@@ -7606,8 +7655,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       // Star, déjà alimenté par la détection de co-stream du même scan).
       renderViewers(card, data.viewers, getCollabViewers(data.id));
       if (data.game) {
+        // L'identité va dans tseCategory (filtres, regroupement co-stream), le
+        // libellé traduit dans tseCategoryLabel (menu déroulant). Le second
+        // n'existe que pour être LU par l'affichage : rien ne compare deux
+        // catégories sur lui.
         card.dataset.tseCategory = data.game;
-        renderCategory(card, data.game, card.dataset.tseLogin);
+        card.dataset.tseCategoryLabel = data.gameLabel || data.game;
+        renderCategory(card, data.gameLabel || data.game, card.dataset.tseLogin);
       }
     } else {
       // Confirmation : il faut OFFLINE_CONFIRM réponses "stream=null"
@@ -7684,6 +7738,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       delete card.dataset.tseOfflineTs;
       delete card.dataset.tseGqlOffline;
       delete card.dataset.tseCategory;
+      delete card.dataset.tseCategoryLabel;
       delete card.dataset.tseLangs;
       removeViewers(card);
       // Pas de nettoyage de la décoration « abonné » ici : applySubStyle est
@@ -7702,7 +7757,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     // différentes. La provenance est portée par la simple présence du dataset.
     if (!card.dataset.tseCategory) {
       const category = getCardCategory(card);
-      if (category) card.dataset.tseCategory = category;
+      // Ce que le DOM porte est un LIBELLÉ, déjà traduit par Twitch — pas un
+      // nom canonique. Il sert donc des deux côtés le temps de l'amorçage : de
+      // meilleure identité disponible, faute de mieux, et de libellé, où il est
+      // juste. La réponse de TseChannels corrige le premier et confirme le
+      // second.
+      if (category) {
+        card.dataset.tseCategory = category;
+        card.dataset.tseCategoryLabel = category;
+      }
     }
 
     // Chemin rapide : entrée encore fraîche → application synchrone, sans
@@ -8387,7 +8450,15 @@ const TSE_GATE_MAX_CLICKS = 5;
   //                 Just Chatting » = trois chaînes suivies). En mode Top
   //                 Chaînes le compteur est une AUDIENCE, pas un décompte de
   //                 chaînes : on y passe formatViewers (« 122 k | VALORANT »).
-  function rebuildDropdown(dd, values, counts, current, disabled, kind, fmt = String) {
+  /* `libelle` traduit une VALEUR en ce qu'on en montre, et les deux ne sont
+     pas la même chose côté catégorie : la valeur est le nom canonique — celui
+     qui sert de clé de filtre et que `game(name:)` exige — tandis qu'on
+     affiche le nom traduit par Twitch. Sans cette séparation, le menu
+     proposait « Just Chatting » à qui lisait « Discussions » sur les cartes
+     juste au-dessus. La valeur reste dans dataset.value : le clic filtre
+     toujours sur l'identité, jamais sur la traduction. */
+  function rebuildDropdown(dd, values, counts, current, disabled, kind,
+                           fmt = String, libelle = String) {
     const btn  = dd.querySelector('.tse-dd-btn');
     const cur  = dd.querySelector('.tse-dd-current');
     const menu = dd.querySelector('.tse-dd-menu');
@@ -8399,7 +8470,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (kind === 'lang') return langIcon(v);
       const sp = document.createElement('span');
       sp.className = 'tse-dd-name';
-      sp.textContent = v;
+      sp.textContent = libelle(v);
       return sp;
     };
     const allLabel = () => kind === 'lang'
@@ -8407,7 +8478,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       : document.createTextNode(getAllLabel());
     const allTitle  = kind === 'lang' ? S.uiFilterAllLanguages : S.uiFilterAllCategories;
 
-    const sig = `${kind}|${disabled ? 'D' : ''}|cur=${current || ''}|${values.map(v => v + '#' + (counts.get(v) || 0)).join('\u00A7')}`;
+    // Le libell\u00E9 entre dans la signature, et pas seulement la valeur : au
+    // changement de langue de l'interface, les cat\u00E9gories et leurs compteurs
+    // sont les m\u00EAmes et seuls les libell\u00E9s bougent. Sans eux ici, le menu
+    // resterait \u00E9crit dans la langue pr\u00E9c\u00E9dente jusqu'\u00E0 ce qu'un streamer
+    // change de jeu.
+    const sig = `${kind}|${disabled ? 'D' : ''}|cur=${current || ''}|` +
+      values.map(v => v + '>' + libelle(v) + '#' + (counts.get(v) || 0)).join('\u00A7');
     if (dd.dataset.tseSig !== sig) {
       dd.dataset.tseSig = sig;
       cur.replaceChildren(current ? itemLabel(current) : allLabel());
@@ -8441,7 +8518,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     btn.disabled = disabled;
     const base = kind === 'lang' ? S.uiFilterLangAriaLabel : S.uiFilterAriaLabel;
-    btn.setAttribute('aria-label', current ? `${base} : ${current}` : base);
+    btn.setAttribute('aria-label', current ? `${base} : ${libelle(current)}` : base);
     if (disabled && dd.classList.contains('tse-open')) {  // ferme uniquement CE menu
       dd.classList.remove('tse-open');
       btn.setAttribute('aria-expanded', 'false');
@@ -8492,8 +8569,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       const Lg = state.languageFilter && langsPresent.has(state.languageFilter)
         ? state.languageFilter : null;
       state.languageFilter = Lg;
+      // `c.name` est l'identité — c'est elle que TseCategoryTop interrogera —
+      // et `c.display` le nom traduit, que TseCategories sert déjà et que rien
+      // n'affichait encore.
+      const catLabel = new Map(cats.map(c => [c.name, c.display]));
       rebuildDropdown(catDD, cats.map(c => c.name), catCount,
-                      state.categoryFilter, cats.length === 0, 'cat', formatViewers);
+                      state.categoryFilter, cats.length === 0, 'cat', formatViewers,
+                      (v) => catLabel.get(v) || v);
       rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
                       langCount, Lg, langsPresent.size === 0, 'lang',
                       // Sous portée catégorie, le compteur porterait sur le
@@ -8506,8 +8588,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       return;
     }
 
-    // 1. Cartes live suivies → enregistrements { cat, langs[] }.
+    // 1. Cartes live suivies → enregistrements { cat, langs[] }, plus la table
+    //    des libellés traduits, relevée au même passage.
     const records = [];
+    const catLabel = new Map();
     section.querySelectorAll('.side-nav-card').forEach(card => {
       if (card.dataset.tseOffline === 'true') return;
       const login = card.dataset.tseLogin;
@@ -8516,6 +8600,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (resolved) card.dataset.tseLangs = resolved.length ? '|' + resolved.join('|') + '|' : '';
       const langs = (card.dataset.tseLangs || '').split('|').filter(Boolean);
       records.push({ cat: card.dataset.tseCategory || '', langs });
+      // Le libellé traduit voyage à côté de l'identité, relevé sur la carte qui
+      // le porte déjà. Une catégorie n'a qu'un libellé : le dernier vu fait foi.
+      if (card.dataset.tseCategory) {
+        catLabel.set(card.dataset.tseCategory,
+                     card.dataset.tseCategoryLabel || card.dataset.tseCategory);
+      }
     });
 
     const allCats  = new Set(records.map(r => r.cat).filter(Boolean));
@@ -8584,7 +8674,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     // 6. Reconstruit les deux dropdowns (triés par compteur décroissant). La
     //    sélection AFFICHÉE peut être une valeur forcée (dispC/dispLg).
-    rebuildDropdown(catDD,  [...catOpts].sort(byCountDesc(catCount)),  catCount,  dispC,  catDisabled,  'cat');
+    rebuildDropdown(catDD,  [...catOpts].sort(byCountDesc(catCount)),  catCount,  dispC,  catDisabled,  'cat',
+                    String, (v) => catLabel.get(v) || v);
     rebuildDropdown(langDD, [...langOpts].sort(byCountDesc(langCount)), langCount, dispLg, langDisabled, 'lang');
     const wrap = document.getElementById(FILTER_ID);
     if (wrap) wrap.dataset.tseActive = (C || Lg) ? 'true' : 'false';
@@ -9741,11 +9832,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     // processCard la lit (cf. globalSeedFor) puis laisse la requête suivre son
     // cours : TseChannels reste la voix la plus autorisée sur une chaîne.
     const seed = (rec) => globalSeed.set(rec.login, {
-      id: rec.id, tags: rec.tags, game: rec.game, viewers: rec.viewers,
+      id: rec.id, tags: rec.tags, game: rec.game, gameLabel: rec.gameLabel,
+      viewers: rec.viewers,
       name: rec.name, avatar: rec.avatar, ts: rec.ts,
       stream: {
         createdAt: rec.createdAt,
-        viewersCount: rec.viewers, game: { name: rec.game },
+        viewersCount: rec.viewers,
+        game: { name: rec.game, displayName: rec.gameLabel },
         freeformTags: rec.tags.map(n => ({ name: n }))
       }
     });
@@ -9933,11 +10026,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     setText(nameEl, name);
     if (nameEl.hasAttribute('title')) nameEl.setAttribute('title', name);
 
-    // Catégorie : même élément que celui lu partout ailleurs.
+    // Catégorie : même élément que celui lu partout ailleurs, et le libellé
+    // TRADUIT — une carte fabriquée par l'extension doit être indiscernable
+    // d'une carte de Twitch, y compris dans sa langue.
     const catEl = cardCategoryEl(card);
-    if (catEl && data.game) {
-      setText(catEl, data.game);
-      if (catEl.hasAttribute('title')) catEl.setAttribute('title', data.game);
+    const categorie = data.gameLabel || data.game;
+    if (catEl && categorie) {
+      setText(catEl, categorie);
+      if (catEl.hasAttribute('title')) catEl.setAttribute('title', categorie);
     }
 
     // Avatar.
