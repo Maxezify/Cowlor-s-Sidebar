@@ -863,7 +863,7 @@ titre('17. Badge collab — le pré-filtre ne change rien au comportement');
   await page.close();
 }
 
-// ═════════ 18. Cohérence des cinq langues ═════════
+// ═════════ 18. Cohérence des dix langues ═════════
 titre('18. Localisation — aucune langue ne peut diverger');
 // Une clé oubliée dans UNE seule langue fait planter tse.lag() ou
 // tse.roster() pour ses utilisateurs, sans que rien ne le signale : c'est
@@ -875,7 +875,7 @@ titre('18. Localisation — aucune langue ne peut diverger');
     const b = block.match(new RegExp('\\n    ' + lang + ': Object\\.freeze\\(\\{([\\s\\S]*?)\\n    \\}\\)'));
     return b ? [...b[1].matchAll(/^      ([A-Za-z0-9_]+):/gm)].map(x => x[1]) : [];
   };
-  const langs = ['fr', 'en', 'de', 'es', 'pt'];
+  const langs = ['fr', 'en', 'de', 'es', 'pt', 'it', 'pl', 'ru', 'ja', 'zh'];
   const ref = new Set(keysOf('fr'));
   let issues = [];
   for (const l of langs) {
@@ -887,8 +887,10 @@ titre('18. Localisation — aucune langue ne peut diverger');
     if (extra.length) issues.push(`${l} en trop ${extra}`);
     if (dupes.length) issues.push(`${l} doublons ${dupes}`);
   }
-  ok('jeux de clés identiques dans les 5 langues', issues.length === 0, issues.join(' | '));
-  ok(`même nombre de clés partout (${ref.size})`, keysOf('pt').length === ref.size, `pt=${keysOf('pt').length} fr=${ref.size}`);
+  ok(`jeux de clés identiques dans les ${langs.length} langues`, issues.length === 0, issues.join(' | '));
+  ok(`même nombre de clés partout (${ref.size})`,
+     langs.every(l => keysOf(l).length === ref.size),
+     langs.map(l => `${l}=${keysOf(l).length}`).join(' '));
 }
 
 // ═════════ 19. Cadence réelle de sondage ═════════
@@ -5184,6 +5186,249 @@ titre('62. Rendu — une donnée de Twitch est du TEXTE, jamais du balisage');
      && option.imgInjectee === false && option.injecte === 0,
      JSON.stringify(option));
   await page.close();
+}
+
+// ═════════ 63. Basculement de catégorie ═════════
+titre('63. Aperçu — « Vient de passer sur … », et seulement quand c\'en est un');
+{
+  /* Twitch n'annonce nulle part qu'une chaîne vient de changer de catégorie :
+     l'information naît de la COMPARAISON de deux relevés, que le pipeline fait
+     déjà toutes les 30 s et jetait jusqu'ici.
+
+     Tout le scénario porte sur la DISTINCTION demandée : un basculement en
+     cours de session mérite le badge, un début de stream non. La différence se
+     lit sur `stream.id`, que le harnais sait maintenant piloter (`sid`).
+
+     Le badge est aussi PÉRISSABLE, et sa péremption est vérifiée par le temps
+     réel du navigateur — pas par une horloge simulée : le harnais accélère les
+     cadences du pipeline, jamais Date.now(). On abaisse donc le TTL depuis la
+     page pour que dix minutes tiennent dans un test. */
+  const page = await freshTwitch('<!doctype html><html><body>lecteur</body></html>');
+  const badgeSwitch = (page) => page.evaluate(() => {
+    const b = document.querySelector('.tse-preview__badge--switch');
+    if (!b) return null;
+    const zone = b.parentElement;
+    return { texte: b.textContent.trim(),
+             gras: b.querySelector('strong')?.textContent ?? null,
+             premier: zone.firstElementChild === b };
+  });
+
+  const h = () => new Date(Date.now() - 3600_000).toISOString();
+  await page.evaluate((ts) => {
+    const vieux = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {
+      // Bascule en cours de session : même sid, catégorie qui change.
+      renard:  { id: 'r', sid: 's-fixe', createdAt: vieux, viewers: 1000, game: 'Pêche', tags: [] },
+      // Nouvelle session : le sid changera EN MÊME TEMPS que la catégorie.
+      blaireau:{ id: 'b', sid: 'sess-1',  createdAt: vieux, viewers: 900,  game: 'Pêche', tags: [] },
+      // Témoin : ne bouge pas du tout.
+      loutre:  { id: 'l', sid: 's-loutre', createdAt: vieux, viewers: 800, game: 'Pêche', tags: [] },
+    };
+    window.__addCard('renard', 'Pêche', '1 k');
+    window.__addCard('blaireau', 'Pêche', '900');
+    window.__addCard('loutre', 'Pêche', '800');
+  }, h());
+  await wait(page, 2500);
+
+  // ── a) le témoin, avant tout : aucun badge sans changement ──────────────
+  await hoverCard(page, 2);
+  await wait(page, 1500);
+  ok('une chaîne qui ne change pas de catégorie n\'a pas de badge',
+     (await badgeSwitch(page)) === null, JSON.stringify(await badgeSwitch(page)));
+  await unhoverCard(page, 2);
+
+  // ── b) LE cas : bascule en cours de session ─────────────────────────────
+  await page.evaluate(() => { window.__fx.renard.game = 'Elden Ring'; });
+  await attendre(page, () => (window.tse.bascules?.() || []).length > 0, 6000);
+  await hoverCard(page, 0);
+  await attendre(page, () => !!document.querySelector('.tse-preview__badge--switch'), 5000);
+  const bascule = await badgeSwitch(page);
+  ok('un changement en cours de session affiche « Vient de passer sur … »',
+     !!bascule && bascule.texte === 'Vient de passer sur Elden Ring', JSON.stringify(bascule));
+  ok('le nom du jeu est en gras, via la fente',
+     !!bascule && bascule.gras === 'Elden Ring', JSON.stringify(bascule?.gras));
+  ok('et le badge est en tête : une nouvelle se lit avant le contexte',
+     !!bascule && bascule.premier === true, JSON.stringify(bascule));
+  await unhoverCard(page, 0);
+
+  // ── c) un DÉBUT de stream n'est pas un basculement ──────────────────────
+  /* Le sid change en même temps que la catégorie : c'est une nouvelle session,
+     pas un streamer qui bascule. C'est exactement la confusion que le badge ne
+     doit pas faire, et le seul point où `stream.id` gagne son existence. */
+  await page.evaluate(() => {
+    window.__fx.blaireau.sid = 'sess-2';
+    window.__fx.blaireau.game = 'Minecraft';
+  });
+  await wait(page, 3000);
+  await hoverCard(page, 1);
+  await wait(page, 1500);
+  const debut = await badgeSwitch(page);
+  ok('une NOUVELLE session ne déclenche pas le badge, même si la catégorie diffère',
+     debut === null, JSON.stringify(debut));
+  await unhoverCard(page, 1);
+
+  /* ── d) la péremption ────────────────────────────────────────────────────
+
+     Le badge est PÉRISSABLE, et c'est la moitié de son comportement : celui
+     qui ne s'efface pas finit par mentir sur la fraîcheur de ce qu'il annonce.
+
+     tests/build.mjs ramène CATEGORY_SWITCH_TTL de dix minutes à 2,5 s, comme
+     il le fait pour les autres durées de production. C'est donc la MÊME
+     horloge et le MÊME code qui périment l'entrée — on ne déplace pas un
+     horodatage à la main.
+
+     Ce cas a d'ailleurs corrigé sa première écriture : le basculement de (b)
+     avait déjà péri pendant les 3 s du cas (c), et l'assertion « encore
+     frais » tombait. Elle mesurait l'ordre du scénario, pas le registre. D'où
+     un basculement NEUF, déclenché ici. */
+  await page.evaluate(() => { window.__fx.loutre.game = 'Factorio'; });
+  await attendre(page, () =>
+    window.tse.bascules().some(b => b['passée sur'] === 'Factorio'), 6000);
+  const frais = await page.evaluate(() =>
+    window.tse.bascules().find(b => b['passée sur'] === 'Factorio') ?? null);
+  ok('un basculement neuf est listé, avec sa catégorie et son âge',
+     !!frais && frais['il y a (s)'] >= 0, JSON.stringify(frais));
+
+  await hoverCard(page, 2);
+  await attendre(page, () => !!document.querySelector('.tse-preview__badge--switch'), 5000);
+  ok('et son badge est bien à l\'écran avant la péremption',
+     (await badgeSwitch(page))?.texte === 'Vient de passer sur Factorio',
+     JSON.stringify(await badgeSwitch(page)));
+  await unhoverCard(page, 2);
+
+  await wait(page, 3000);
+  const apres = await page.evaluate(() =>
+    window.tse.bascules().filter(b => b['passée sur'] === 'Factorio').length);
+  ok('passé le délai, le basculement n\'est plus listé', apres === 0, String(apres));
+
+  await hoverCard(page, 2);
+  await wait(page, 1500);
+  ok('et le badge a disparu de l\'aperçu', (await badgeSwitch(page)) === null,
+     JSON.stringify(await badgeSwitch(page)));
+  await page.close();
+}
+
+// ═════════ 64. Les cinq langues ajoutées ═════════
+titre('64. Localisation — italien, polonais, russe, japonais, chinois');
+{
+  /* La parité des clés (scénario 18) dit qu'aucune table n'a de trou. Elle ne
+     dit rien de ce qui compte ici : que la langue se DÉTECTE, et que ce qui
+     s'affiche soit juste dans cette langue.
+
+     a) La DÉTECTION s'observe par un effet mesurable plutôt que par une
+        variable interne : la clé `locale` de chaque table pilote le formatage
+        des nombres. Si la table choisie est la bonne, 29339 s'écrit avec le
+        séparateur du pays ; sinon, avec celui de l'anglais.
+
+     b) Le PLURIEL SLAVE est le point aveugle du lot. Le français et l'anglais
+        n'ont que deux formes ; le polonais et le russe en ont TROIS, et la
+        troisième reprend la main sur 11-14 malgré leur chiffre des unités.
+        Aucune relecture non slavophone ne repère une branche fausse — seul un
+        tableau de valeurs le fait. Il est écrit à la main d'après la
+        grammaire, JAMAIS recopié de la sortie du code : un tableau produit par
+        le code ne ferait que confirmer son propre bug. */
+
+  // ── a) la détection, lue dans deux effets mesurables ─────────────────────
+  /* Le libellé français est RETIRÉ du DOM, et c'est le cœur du montage. La
+     détection consulte d'abord les libellés natifs de Twitch ; le harnais en
+     porte un en français, qui gagnerait sur html.lang et rendrait le test muet
+     — première écriture de ce scénario, six assertions vertes en apparence et
+     « 29,3 k » partout, c'est-à-dire du français.
+
+     Sans ce libellé, on reproduit exactement la situation d'un utilisateur
+     italien, polonais, russe, japonais ou chinois : l'interface de Twitch est
+     dans une langue dont l'extension ne connaît AUCUN libellé, la détection
+     passe donc par html.lang, et la sidebar tient sur son ancre structurelle
+     (followed-side-nav-header). Les deux mécanismes de repli sont éprouvés
+     ensemble, ce qui est bien ce qu'on veut vérifier. */
+  const rendusDe = async (htmlLang) => {
+    const page = await browser.newPage();
+    page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await page.goto(URL_PAGE);
+    await page.evaluate((l) => {
+      document.querySelector('.side-nav-section').removeAttribute('aria-label');
+      document.documentElement.lang = l;
+      window.__fx = { alpha: { id: '1', createdAt: new Date(Date.now() - 3600_000).toISOString(),
+                               viewers: 29339, game: 'G', tags: [] } };
+      window.__addCard('alpha', 'G', '29 339');
+    }, htmlLang);
+    await wait(page, 2000);
+    const s = await state(page);
+    const onglet = await page.evaluate(() =>
+      document.querySelector('.tse-mode-tab')?.textContent ?? null);
+    await page.close();
+    return { nombre: nz(s[0]?.shown ?? ''), onglet };
+  };
+
+  /* Deux signaux, et il faut les deux. Le LIBELLÉ prouve que c'est la bonne
+     table qui est branchée ; le NOMBRE prouve que sa clé `locale` est juste —
+     une table peut être choisie correctement et porter un mauvais code de
+     locale, auquel cas les chiffres sortiraient dans la convention d'un autre
+     pays sans que le texte le laisse voir.
+
+     Les formats sont relevés DANS CHROMIUM, et il fallait le faire : l'ICU de
+     Node rend « 29,3K » pour l'italien là où celle du navigateur rend
+     « 29.339 ». Une valeur attendue prise dans le mauvais moteur fait échouer
+     un test qui n'a rien à reprocher au code — c'est arrivé ici. Le japonais
+     et le chinois comptent par myriades (2.9万), le polonais et le russe
+     écrivent leur abréviation en toutes lettres. */
+  for (const [htmlLang, libelle, nombre, nom] of [
+    ['it-IT', 'Canali seguiti',        '29.339',    'italien'],
+    ['pl-PL', 'Obserwowane kanały',    '29,3 tys.', 'polonais'],
+    ['ru-RU', 'Отслеживаемые каналы',  '29,3 тыс.', 'russe'],
+    ['ja-JP', 'フォロー中のチャンネル',      '2.9万',      'japonais'],
+    ['zh-CN', '关注的频道',              '2.9万',      'chinois'],
+  ]) {
+    const r = await rendusDe(htmlLang);
+    ok(`${nom} : le libellé vient de la bonne table`, r.onglet === libelle, String(r.onglet));
+    ok(`${nom} : et sa clé locale formate les nombres du pays (${nombre})`,
+       r.nombre === nombre, r.nombre);
+  }
+
+  /* zh-TW n'a pas sa table : il retombe sur `zh` par le préfixe à deux lettres,
+     et non sur l'anglais. Mieux vaut du chinois simplifié que de l'anglais pour
+     un lecteur de Taïwan. */
+  const tw = await rendusDe('zh-TW');
+  ok('zh-TW retombe sur la table chinoise, pas sur l\'anglais',
+     tw.onglet === '关注的频道', String(tw.onglet));
+
+  /* Et une langue vraiment inconnue retombe sur l'anglais — le défaut, qui
+     doit rester atteignable maintenant que neuf préfixes le précèdent. */
+  const xx = await rendusDe('xx-XX');
+  ok('une langue inconnue retombe toujours sur l\'anglais',
+     xx.onglet === 'Followed Channels', String(xx.onglet));
+
+  // ── b) le pluriel slave, par analyse statique ────────────────────────────
+  {
+    const src = readFileSync(join(ICI, 'content.test.js'), 'utf8');
+    const regle = src.match(/const plurielSlave = \([\s\S]*?\n {2}\};/)[0];
+    const subMonthsDe = (lang) => {
+      const bloc = src.match(new RegExp('\\n    ' + lang + ': Object\\.freeze\\(\\{([\\s\\S]*?)\\n    \\}\\)'))[1];
+      return bloc.match(/uiBadgeSubMonths:\s*(\(n\) => `[^`]*`)/)[1];
+    };
+    const fabriquer = (lang) => new Function(`${regle}\nreturn ${subMonthsDe(lang)};`)();
+
+    const attendus = {
+      pl: { 1: '1 miesiąc', 2: '2 miesiące', 4: '4 miesiące', 5: '5 miesięcy',
+            11: '11 miesięcy', 12: '12 miesięcy', 14: '14 miesięcy',
+            21: '21 miesiąc', 22: '22 miesiące', 25: '25 miesięcy',
+            111: '111 miesięcy', 122: '122 miesiące' },
+      ru: { 1: '1 месяц', 2: '2 месяца', 4: '4 месяца', 5: '5 месяцев',
+            11: '11 месяцев', 12: '12 месяцев', 14: '14 месяцев',
+            21: '21 месяц', 22: '22 месяца', 25: '25 месяцев',
+            111: '111 месяцев', 122: '122 месяца' },
+    };
+    for (const [lang, table] of Object.entries(attendus)) {
+      const f = fabriquer(lang);
+      const faux = [];
+      for (const [n, attendu] of Object.entries(table)) {
+        const rendu = f(Number(n));
+        if (!rendu.endsWith(attendu)) faux.push(`${n} → « ${rendu} », attendu « …${attendu} »`);
+      }
+      ok(`pluriel ${lang} : les trois formes, y compris le piège des 11-14`,
+         faux.length === 0, faux.join(' | '));
+    }
+  }
 }
 
 await browser.close();

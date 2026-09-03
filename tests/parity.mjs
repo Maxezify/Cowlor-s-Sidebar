@@ -9,10 +9,10 @@ const lines = src.split('\n');
 // Repère les ouvertures de bloc locale : "    fr: {" (indentation 4)
 const starts = [];
 lines.forEach((l, i) => {
-  const m = /^ {4}(fr|en|de|es|pt): Object\.freeze\(\{\s*$/.exec(l);
+  const m = /^ {4}(fr|en|de|es|pt|it|pl|ru|ja|zh): Object\.freeze\(\{\s*$/.exec(l);
   if (m) starts.push({ lang: m[1], line: i });
 });
-if (starts.length !== 5) { console.error('Blocs trouvés :', starts.map(s => s.lang)); process.exit(1); }
+if (starts.length !== 10) { console.error('Blocs trouvés :', starts.map(s => s.lang)); process.exit(1); }
 
 const keysOf = (from) => {
   const out = [];

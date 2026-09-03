@@ -480,6 +480,20 @@ const TSE_GATE_MAX_CLICKS = 5;
   });
 
   /* ----- Libellés UI par langue ----- */
+  /* Pluriel slave à TROIS formes, partagé par le polonais et le russe.
+     Ni l'anglais ni le français ne le préparent : « 1 mois / 2 mois » suffit
+     chez nous, alors qu'en polonais 1 miesiąc, 2 miesiące, 5 miesięcy sont
+     trois mots différents — et que 12, 13, 14 reprennent la forme du grand
+     nombre malgré leur chiffre des unités. Écrire la règle une fois vaut mieux
+     que la recopier dans six fonctions, où une seule oubliée passerait
+     inaperçue pour tout lecteur non slavophone. */
+  const plurielSlave = (n, [un, peu, beaucoup]) => {
+    const d = n % 10, c = n % 100;
+    if (d === 1 && c !== 11) return un;
+    if (d >= 2 && d <= 4 && (c < 12 || c > 14)) return peu;
+    return beaucoup;
+  };
+
   const STRINGS = Object.freeze({
     fr: Object.freeze({
       followedLabel:             'Chaînes suivies',
@@ -511,6 +525,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclDebatedSocialIssuesAndPolitics:  'Politique et sujets sensibles',
       uiCclGeneric:                         'Contenu classifié',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream avec ${noms}`,
+      uiBadgeCategorySwitch:     (jeu) => `Vient de passer sur ${jeu}`,
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` et ${others} autre${others > 1 ? 's' : ''}` : '';
         return `En live avec ${invite}${suffix}`;
@@ -578,6 +593,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclDebatedSocialIssuesAndPolitics:  'Politics & sensitive topics',
       uiCclGeneric:                         'Classified content',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream with ${noms}`,
+      uiBadgeCategorySwitch:     (jeu) => `Just switched to ${jeu}`,
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` and ${others} other${others > 1 ? 's' : ''}` : '';
         return `Live with ${invite}${suffix}`;
@@ -645,6 +661,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclDebatedSocialIssuesAndPolitics:  'Politik & sensible Themen',
       uiCclGeneric:                         'Klassifizierter Inhalt',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream mit ${noms}`,
+      uiBadgeCategorySwitch:     (jeu) => `Gerade gewechselt zu ${jeu}`,
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` und ${others} ${others > 1 ? 'weiteren' : 'weiterem'}` : '';
         return `Live mit ${invite}${suffix}`;
@@ -712,6 +729,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclDebatedSocialIssuesAndPolitics:  'Política y temas sensibles',
       uiCclGeneric:                         'Contenido clasificado',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream con ${noms}`,
+      uiBadgeCategorySwitch:     (jeu) => `Acaba de cambiar a ${jeu}`,
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` y ${others} más` : '';
         return `En vivo con ${invite}${suffix}`;
@@ -779,6 +797,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclDebatedSocialIssuesAndPolitics:  'Política e temas sensíveis',
       uiCclGeneric:                         'Conteúdo classificado',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream com ${noms}`,
+      uiBadgeCategorySwitch:     (jeu) => `Acabou de mudar para ${jeu}`,
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` e mais ${others}` : '';
         return `Ao vivo com ${invite}${suffix}`;
@@ -820,6 +839,346 @@ const TSE_GATE_MAX_CLICKS = 5;
       consoleHealthTagBroken:    'QUEBRADO',
       consoleHealthTagNa:        'N/D',
       locale:                    'pt-BR',
+    }),
+    it: Object.freeze({
+      followedLabel:             'Canali seguiti',
+      uiGlobalLabel:             'Canali di punta',
+      uiModeMenuAria:            'Scegli cosa mostrare nella barra laterale',
+      uiGlobalPartial:           'Classifica parziale: al momento Twitch non espone abbastanza categorie per garantirla completa.',
+      uiFilterAriaLabel:         'Filtra i canali seguiti per categoria',
+      uiFilterAllCategories:     'Tutte le categorie',
+      uiFilterLangAriaLabel:     'Filtra i canali seguiti per lingua',
+      uiFilterAllLanguages:      'Tutte le lingue',
+      uiUptimeEnded:             'Terminato',
+      uiPreviewUnavailable:      'Anteprima non disponibile',
+      uiPreviewLoadingTitle:     'Caricamento del titolo…',
+      uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
+      uiBadgeCostreamHost:       'Stream host',
+      uiBadgeSubMonths:          (n) => `Abbonato da ${n} mes${n > 1 ? 'i' : 'e'}`,
+      uiBadgeExSubMonths:        (n) => `Già abbonato per ${n} mes${n > 1 ? 'i' : 'e'}`,
+      uiCclMatureGame:                      'Gioco per adulti',
+      uiCclGambling:                        'Gioco d\'azzardo',
+      uiCclSexualThemes:                    'Temi sessuali',
+      uiCclViolentGraphic:                  'Violenza esplicita',
+      uiCclDrugsIntoxication:               'Droghe e alcol',
+      uiCclProfanityVulgarity:              'Linguaggio forte',
+      uiCclDebatedSocialIssuesAndPolitics:  'Politica e temi sensibili',
+      uiCclGeneric:                         'Contenuto classificato',
+      uiBadgeCostreamWithNames:  (noms) => `Co-stream con ${noms}`,
+      uiBadgeCategorySwitch:     (jeu) => `È appena passato a ${jeu}`,
+      uiBadgeLiveWith:           (invite, others) => {
+        const suffix = others > 0 ? ` e altri ${others}` : '';
+        return `In diretta con ${invite}${suffix}`;
+      },
+      uiBadgeSponsoredBy:        (nom) => `Sponsorizzato da ${nom}`,
+      uiSortNoCoStreams:         'Nessun co-stream rilevato al momento',
+      uiSortLabelSubs:           'I miei abbonamenti per primi',
+      uiSortLabelSubsCount:      (n) => `I miei abbonamenti per primi — ${n} abbonament${n > 1 ? 'i' : 'o'} in totale`,
+      uiSortNoSubs:              'Nessun abbonamento rilevato finora — apri un canale a cui sei abbonato',
+      uiSortSubsOffline:         'Nessuno dei tuoi abbonamenti è in diretta',
+      consoleNoSubs:             '[tse] Nessun abbonamento rilevato al momento.',
+      uiSortLabelViewers:        'Ordina per numero di spettatori (decrescente)',
+      uiSortLabelPopular:        'Ordina per popolarità personale (visite recenti)',
+      uiSortLabelUptime:         'Ordina per durata dello stream (crescente)',
+      uiSortLabelAlpha:          'Ordina per nome del canale (alfabetico)',
+      uiSortLabelCostream:       'Raggruppa i co-stream in cima',
+      consoleNoVisits:           '[tse] Nessuna visita registrata al momento.',
+      consoleHistoryCleared:     '[tse] Cronologia delle visite cancellata.',
+      consoleColLogin:           'login',
+      consoleColScore:           'punteggio',
+      consoleColVisits:          'visite',
+      consoleColLast:            'ultima visita',
+      consoleColLag:             'ritardo di Twitch',
+      consoleColGain:            'guadagnato dall\'estensione',
+      consoleLagGain:            (n, med) => `[tse] Su ${n} di queste dirette, l'estensione ha anticipato Twitch di ${med} in mediana.`,
+      consoleColSeen:            'visto il',
+      consoleLagEmpty:           '[tse] Nessuna misurazione utilizzabile al momento. Lascia aperta la scheda Twitch: un campione viene raccolto ogni volta che un canale seguito va in diretta sotto i tuoi occhi.',
+      consoleLagSummary:         (n, med, p90) => `[tse] ${n} misurazione/i — ritardo mediano di Twitch: ${med}, 90° percentile: ${p90}.`,
+      consoleRosterEmpty:        '[tse] Nessun canale memorizzato al momento.',
+      consoleRosterSummary:      (n) => `[tse] ${n} canale/i seguito/i memorizzato/i localmente.`,
+      consoleHealthBroken:       '[tse] Alcuni selettori critici non corrispondono più al DOM di Twitch — l\'estensione potrebbe essere parzialmente rotta. Dettagli: tse.diagnose()',
+      consoleHealthAllOk:        '[tse] Tutti i selettori critici rispondono.',
+      consoleMassOffline:        (n, total) => `[tse] Risposta sospetta dall'API di Twitch: ${n} canali su ${total} noti come in diretta sono dichiarati offline tutti insieme. Visualizzazione mantenuta invece di svuotare la barra laterale; nuovo tentativo tra 30 s.`,
+      consoleGlobalDegraded:     (n, s) => `[tse] Canali globali: ${n} errori consecutivi dall'API di Twitch. Cadenza strutturale ridotta a ${s} s per non martellare l'endpoint. La barra laterale « Canali seguiti » non è interessata.`,
+      consoleGlobalRestored:     (s) => `[tse] Canali globali: API di nuovo stabile, cadenza strutturale ripristinata a ${s} s.`,
+      consoleColProbe:           'sonda',
+      consoleColStatus:          'stato',
+      consoleColDetail:          'dettaglio',
+      consoleHealthTagBroken:    'ROTTO',
+      consoleHealthTagNa:        'N/D',
+      locale:                    'it-IT',
+    }),
+    pl: Object.freeze({
+      followedLabel:             'Obserwowane kanały',
+      uiGlobalLabel:             'Najpopularniejsze kanały',
+      uiModeMenuAria:            'Wybierz, co ma wyświetlać panel boczny',
+      uiGlobalPartial:           'Ranking częściowy: Twitch nie udostępnia obecnie wystarczającej liczby kategorii, by zagwarantować jego kompletność.',
+      uiFilterAriaLabel:         'Filtruj obserwowane kanały według kategorii',
+      uiFilterAllCategories:     'Wszystkie kategorie',
+      uiFilterLangAriaLabel:     'Filtruj obserwowane kanały według języka',
+      uiFilterAllLanguages:      'Wszystkie języki',
+      uiUptimeEnded:             'Zakończono',
+      uiPreviewUnavailable:      'Podgląd niedostępny',
+      uiPreviewLoadingTitle:     'Wczytywanie tytułu…',
+      uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
+      uiBadgeCostreamHost:       'Kanał gospodarza',
+      uiBadgeSubMonths:          (n) => `Subskrypcja: ${n} ${plurielSlave(n, ['miesiąc', 'miesiące', 'miesięcy'])}`,
+      uiBadgeExSubMonths:        (n) => `Dawna subskrypcja: ${n} ${plurielSlave(n, ['miesiąc', 'miesiące', 'miesięcy'])}`,
+      uiCclMatureGame:                      'Gra dla dorosłych',
+      uiCclGambling:                        'Hazard',
+      uiCclSexualThemes:                    'Treści seksualne',
+      uiCclViolentGraphic:                  'Drastyczna przemoc',
+      uiCclDrugsIntoxication:               'Narkotyki i alkohol',
+      uiCclProfanityVulgarity:              'Wulgarny język',
+      uiCclDebatedSocialIssuesAndPolitics:  'Polityka i tematy drażliwe',
+      uiCclGeneric:                         'Treść oznaczona',
+      uiBadgeCostreamWithNames:  (noms) => `Co-stream z ${noms}`,
+      uiBadgeCategorySwitch:     (jeu) => `Właśnie przeszedł na ${jeu}`,
+      uiBadgeLiveWith:           (invite, others) => {
+        const suffix = others > 0 ? ` i jeszcze ${others}` : '';
+        return `Na żywo z ${invite}${suffix}`;
+      },
+      uiBadgeSponsoredBy:        (nom) => `Sponsorowane przez ${nom}`,
+      uiSortNoCoStreams:         'Nie wykryto obecnie żadnego co-streamu',
+      uiSortLabelSubs:           'Moje subskrypcje na górze',
+      uiSortLabelSubsCount:      (n) => `Moje subskrypcje na górze — łącznie ${n} ${plurielSlave(n, ['subskrypcja', 'subskrypcje', 'subskrypcji'])}`,
+      uiSortNoSubs:              'Nie wykryto jeszcze żadnej subskrypcji — otwórz kanał, który subskrybujesz',
+      uiSortSubsOffline:         'Żadna z Twoich subskrypcji nie jest na żywo',
+      consoleNoSubs:             '[tse] Nie wykryto jeszcze żadnej subskrypcji.',
+      uiSortLabelViewers:        'Sortuj według liczby widzów (malejąco)',
+      uiSortLabelPopular:        'Sortuj według osobistej popularności (ostatnie wizyty)',
+      uiSortLabelUptime:         'Sortuj według czasu trwania streamu (rosnąco)',
+      uiSortLabelAlpha:          'Sortuj według nazwy kanału (alfabetycznie)',
+      uiSortLabelCostream:       'Grupuj co-streamy na górze',
+      consoleNoVisits:           '[tse] Nie zapisano jeszcze żadnej wizyty.',
+      consoleHistoryCleared:     '[tse] Historia wizyt wyczyszczona.',
+      consoleColLogin:           'login',
+      consoleColScore:           'wynik',
+      consoleColVisits:          'wizyty',
+      consoleColLast:            'ostatnia wizyta',
+      consoleColLag:             'opóźnienie Twitcha',
+      consoleColGain:            'zysk rozszerzenia',
+      consoleLagGain:            (n, med) => `[tse] Na ${n} z tych transmisji rozszerzenie wyprzedziło Twitcha o ${med} w medianie.`,
+      consoleColSeen:            'zauważono',
+      consoleLagEmpty:           '[tse] Brak na razie użytecznych pomiarów. Zostaw kartę Twitcha otwartą: próbka jest pobierana za każdym razem, gdy obserwowany kanał wchodzi na żywo na Twoich oczach.',
+      consoleLagSummary:         (n, med, p90) => `[tse] Pomiary: ${n} — mediana opóźnienia Twitcha: ${med}, 90. percentyl: ${p90}.`,
+      consoleRosterEmpty:        '[tse] Nie zapamiętano jeszcze żadnego kanału.',
+      consoleRosterSummary:      (n) => `[tse] Zapamiętano lokalnie ${n} obserwowanych kanałów.`,
+      consoleHealthBroken:       '[tse] Niektóre krytyczne selektory nie pasują już do DOM Twitcha — rozszerzenie może być częściowo zepsute. Szczegóły: tse.diagnose()',
+      consoleHealthAllOk:        '[tse] Wszystkie krytyczne selektory odpowiadają.',
+      consoleMassOffline:        (n, total) => `[tse] Podejrzana odpowiedź API Twitcha: ${n} z ${total} kanałów znanych jako na żywo zgłoszono naraz jako offline. Zachowano bieżący widok zamiast opróżniać panel boczny; ponowna próba za 30 s.`,
+      consoleGlobalDegraded:     (n, s) => `[tse] Kanały globalne: ${n} kolejnych błędów API Twitcha. Rytm strukturalny zwolniony do ${s} s, aby nie zasypywać punktu końcowego. Panel „Obserwowane kanały” nie jest tym dotknięty.`,
+      consoleGlobalRestored:     (s) => `[tse] Kanały globalne: API znów stabilne, rytm strukturalny przywrócony do ${s} s.`,
+      consoleColProbe:           'sonda',
+      consoleColStatus:          'stan',
+      consoleColDetail:          'szczegół',
+      consoleHealthTagBroken:    'ZEPSUTY',
+      consoleHealthTagNa:        'BD',
+      locale:                    'pl-PL',
+    }),
+    ru: Object.freeze({
+      followedLabel:             'Отслеживаемые каналы',
+      uiGlobalLabel:             'Топ каналов',
+      uiModeMenuAria:            'Выберите, что показывать на боковой панели',
+      uiGlobalPartial:           'Частичный рейтинг: Twitch сейчас отдаёт недостаточно категорий, чтобы гарантировать его полноту.',
+      uiFilterAriaLabel:         'Фильтровать отслеживаемые каналы по категории',
+      uiFilterAllCategories:     'Все категории',
+      uiFilterLangAriaLabel:     'Фильтровать отслеживаемые каналы по языку',
+      uiFilterAllLanguages:      'Все языки',
+      uiUptimeEnded:             'Завершено',
+      uiPreviewUnavailable:      'Предпросмотр недоступен',
+      uiPreviewLoadingTitle:     'Загрузка названия…',
+      uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
+      uiBadgeCostreamHost:       'Канал ведущего',
+      uiBadgeSubMonths:          (n) => `Подписка: ${n} ${plurielSlave(n, ['месяц', 'месяца', 'месяцев'])}`,
+      uiBadgeExSubMonths:        (n) => `Бывшая подписка: ${n} ${plurielSlave(n, ['месяц', 'месяца', 'месяцев'])}`,
+      uiCclMatureGame:                      'Игра для взрослых',
+      uiCclGambling:                        'Азартные игры',
+      uiCclSexualThemes:                    'Сексуальные темы',
+      uiCclViolentGraphic:                  'Жестокое насилие',
+      uiCclDrugsIntoxication:               'Наркотики и алкоголь',
+      uiCclProfanityVulgarity:              'Нецензурная лексика',
+      uiCclDebatedSocialIssuesAndPolitics:  'Политика и острые темы',
+      uiCclGeneric:                         'Помеченный контент',
+      uiBadgeCostreamWithNames:  (noms) => `Ко-стрим с ${noms}`,
+      uiBadgeCategorySwitch:     (jeu) => `Только что перешёл на ${jeu}`,
+      uiBadgeLiveWith:           (invite, others) => {
+        const suffix = others > 0 ? ` и ещё ${others}` : '';
+        return `В эфире с ${invite}${suffix}`;
+      },
+      uiBadgeSponsoredBy:        (nom) => `Спонсор: ${nom}`,
+      uiSortNoCoStreams:         'Ко-стримы сейчас не обнаружены',
+      uiSortLabelSubs:           'Мои подписки сверху',
+      uiSortLabelSubsCount:      (n) => `Мои подписки сверху — всего ${n} ${plurielSlave(n, ['подписка', 'подписки', 'подписок'])}`,
+      uiSortNoSubs:              'Подписки пока не обнаружены — откройте канал, на который вы подписаны',
+      uiSortSubsOffline:         'Ни одна из ваших подписок не в эфире',
+      consoleNoSubs:             '[tse] Подписки пока не обнаружены.',
+      uiSortLabelViewers:        'Сортировать по числу зрителей (по убыванию)',
+      uiSortLabelPopular:        'Сортировать по личной популярности (недавние посещения)',
+      uiSortLabelUptime:         'Сортировать по длительности стрима (по возрастанию)',
+      uiSortLabelAlpha:          'Сортировать по названию канала (по алфавиту)',
+      uiSortLabelCostream:       'Сгруппировать ко-стримы сверху',
+      consoleNoVisits:           '[tse] Посещения пока не записаны.',
+      consoleHistoryCleared:     '[tse] История посещений очищена.',
+      consoleColLogin:           'логин',
+      consoleColScore:           'счёт',
+      consoleColVisits:          'посещения',
+      consoleColLast:            'последнее посещение',
+      consoleColLag:             'отставание Twitch',
+      consoleColGain:            'выигрыш расширения',
+      consoleLagGain:            (n, med) => `[tse] На ${n} из этих эфиров расширение опередило Twitch на ${med} по медиане.`,
+      consoleColSeen:            'замечено',
+      consoleLagEmpty:           '[tse] Пока нет пригодных измерений. Оставьте вкладку Twitch открытой: замер делается каждый раз, когда отслеживаемый канал выходит в эфир у вас на глазах.',
+      consoleLagSummary:         (n, med, p90) => `[tse] Измерений: ${n} — медианное отставание Twitch: ${med}, 90-й процентиль: ${p90}.`,
+      consoleRosterEmpty:        '[tse] Каналы пока не запомнены.',
+      consoleRosterSummary:      (n) => `[tse] Локально запомнено отслеживаемых каналов: ${n}.`,
+      consoleHealthBroken:       '[tse] Некоторые критичные селекторы больше не соответствуют DOM Twitch — расширение может быть частично сломано. Подробности: tse.diagnose()',
+      consoleHealthAllOk:        '[tse] Все критичные селекторы отвечают.',
+      consoleMassOffline:        (n, total) => `[tse] Подозрительный ответ API Twitch: ${n} из ${total} каналов, известных как эфирные, разом объявлены офлайн. Текущее отображение сохранено, чтобы не опустошать панель; повтор через 30 с.`,
+      consoleGlobalDegraded:     (n, s) => `[tse] Глобальные каналы: ${n} подряд ошибок API Twitch. Структурный ритм снижен до ${s} с, чтобы не долбить эндпоинт. Панель «Отслеживаемые каналы» не затронута.`,
+      consoleGlobalRestored:     (s) => `[tse] Глобальные каналы: API снова стабилен, структурный ритм восстановлен до ${s} с.`,
+      consoleColProbe:           'проба',
+      consoleColStatus:          'состояние',
+      consoleColDetail:          'подробности',
+      consoleHealthTagBroken:    'СЛОМАН',
+      consoleHealthTagNa:        'н/д',
+      locale:                    'ru-RU',
+    }),
+    ja: Object.freeze({
+      followedLabel:             'フォロー中のチャンネル',
+      uiGlobalLabel:             'トップチャンネル',
+      uiModeMenuAria:            'サイドバーに表示する内容を選択',
+      uiGlobalPartial:           'ランキングは部分的です。現在 Twitch が公開しているカテゴリーが少なく、完全性を保証できません。',
+      uiFilterAriaLabel:         'フォロー中のチャンネルをカテゴリーで絞り込む',
+      uiFilterAllCategories:     'すべてのカテゴリー',
+      uiFilterLangAriaLabel:     'フォロー中のチャンネルを言語で絞り込む',
+      uiFilterAllLanguages:      'すべての言語',
+      uiUptimeEnded:             '終了',
+      uiPreviewUnavailable:      'プレビューを利用できません',
+      uiPreviewLoadingTitle:     'タイトルを読み込み中…',
+      uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
+      uiBadgeCostreamHost:       'ホスト配信',
+      uiBadgeSubMonths:          (n) => `サブスク${n}か月`,
+      uiBadgeExSubMonths:        (n) => `元サブスク${n}か月`,
+      uiCclMatureGame:                      '成人向けゲーム',
+      uiCclGambling:                        'ギャンブル',
+      uiCclSexualThemes:                    '性的なテーマ',
+      uiCclViolentGraphic:                  '過激な暴力表現',
+      uiCclDrugsIntoxication:               '薬物・飲酒',
+      uiCclProfanityVulgarity:              '過激な言葉遣い',
+      uiCclDebatedSocialIssuesAndPolitics:  '政治・デリケートな話題',
+      uiCclGeneric:                         'ラベル付きコンテンツ',
+      uiBadgeCostreamWithNames:  (noms) => `${noms} とのコラボ配信`,
+      uiBadgeCategorySwitch:     (jeu) => `${jeu} に切り替えたばかり`,
+      uiBadgeLiveWith:           (invite, others) => {
+        const suffix = others > 0 ? `ほか${others}人` : '';
+        return `${invite}${suffix} と配信中`;
+      },
+      uiBadgeSponsoredBy:        (nom) => `${nom} のスポンサー配信`,
+      uiSortNoCoStreams:         '現在コラボ配信は検出されていません',
+      uiSortLabelSubs:           'サブスク中のチャンネルを上に',
+      uiSortLabelSubsCount:      (n) => `サブスク中のチャンネルを上に — 合計${n}件`,
+      uiSortNoSubs:              'サブスクはまだ検出されていません — サブスクしているチャンネルを開いてください',
+      uiSortSubsOffline:         'サブスク中のチャンネルは配信していません',
+      consoleNoSubs:             '[tse] サブスクはまだ検出されていません。',
+      uiSortLabelViewers:        '視聴者数で並べ替え（降順）',
+      uiSortLabelPopular:        '個人的な人気度で並べ替え（最近の訪問）',
+      uiSortLabelUptime:         '配信時間で並べ替え（昇順）',
+      uiSortLabelAlpha:          'チャンネル名で並べ替え（アルファベット順）',
+      uiSortLabelCostream:       'コラボ配信を上にまとめる',
+      consoleNoVisits:           '[tse] 訪問はまだ記録されていません。',
+      consoleHistoryCleared:     '[tse] 訪問履歴を消去しました。',
+      consoleColLogin:           'ログイン名',
+      consoleColScore:           'スコア',
+      consoleColVisits:          '訪問回数',
+      consoleColLast:            '最終訪問',
+      consoleColLag:             'Twitch の遅れ',
+      consoleColGain:            '拡張機能の先行',
+      consoleLagGain:            (n, med) => `[tse] そのうち${n}件の配信で、拡張機能は Twitch より中央値 ${med} 早く表示しました。`,
+      consoleColSeen:            '検出時刻',
+      consoleLagEmpty:           '[tse] 利用できる計測はまだありません。Twitch のタブを開いたままにしてください。フォロー中のチャンネルが目の前で配信を始めるたびに計測されます。',
+      consoleLagSummary:         (n, med, p90) => `[tse] 計測${n}件 — Twitch の遅れの中央値: ${med}、90パーセンタイル: ${p90}。`,
+      consoleRosterEmpty:        '[tse] 記憶しているチャンネルはまだありません。',
+      consoleRosterSummary:      (n) => `[tse] フォロー中のチャンネル${n}件をローカルに記憶しています。`,
+      consoleHealthBroken:       '[tse] 一部の重要なセレクターが Twitch の DOM と一致しなくなりました。拡張機能が部分的に動作していない可能性があります。詳細: tse.diagnose()',
+      consoleHealthAllOk:        '[tse] 重要なセレクターはすべて応答しています。',
+      consoleMassOffline:        (n, total) => `[tse] Twitch API の応答が不審です。配信中と分かっていた${total}件のうち${n}件が一度にオフラインと報告されました。サイドバーを空にせず現在の表示を維持します。30秒後に再試行します。`,
+      consoleGlobalDegraded:     (n, s) => `[tse] グローバルチャンネル: Twitch API が${n}回連続で失敗しました。エンドポイントに負荷をかけないため、構造更新の間隔を${s}秒に緩めます。「フォロー中のチャンネル」には影響しません。`,
+      consoleGlobalRestored:     (s) => `[tse] グローバルチャンネル: API が再び安定したため、構造更新の間隔を${s}秒に戻しました。`,
+      consoleColProbe:           'プローブ',
+      consoleColStatus:          '状態',
+      consoleColDetail:          '詳細',
+      consoleHealthTagBroken:    '故障',
+      consoleHealthTagNa:        '該当なし',
+      locale:                    'ja-JP',
+    }),
+    zh: Object.freeze({
+      followedLabel:             '关注的频道',
+      uiGlobalLabel:             '热门频道',
+      uiModeMenuAria:            '选择侧边栏显示的内容',
+      uiGlobalPartial:           '排名不完整：Twitch 目前公开的分类不足，无法保证排名完整。',
+      uiFilterAriaLabel:         '按分类筛选关注的频道',
+      uiFilterAllCategories:     '全部分类',
+      uiFilterLangAriaLabel:     '按语言筛选关注的频道',
+      uiFilterAllLanguages:      '全部语言',
+      uiUptimeEnded:             '已结束',
+      uiPreviewUnavailable:      '预览不可用',
+      uiPreviewLoadingTitle:     '正在加载标题…',
+      uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
+      uiBadgeCostreamHost:       '主办直播',
+      uiBadgeSubMonths:          (n) => `已订阅 ${n} 个月`,
+      uiBadgeExSubMonths:        (n) => `曾订阅 ${n} 个月`,
+      uiCclMatureGame:                      '成人向游戏',
+      uiCclGambling:                        '赌博',
+      uiCclSexualThemes:                    '性相关内容',
+      uiCclViolentGraphic:                  '血腥暴力',
+      uiCclDrugsIntoxication:               '毒品与酒精',
+      uiCclProfanityVulgarity:              '粗俗语言',
+      uiCclDebatedSocialIssuesAndPolitics:  '政治与敏感话题',
+      uiCclGeneric:                         '已标记内容',
+      uiBadgeCostreamWithNames:  (noms) => `与 ${noms} 联合直播`,
+      uiBadgeCategorySwitch:     (jeu) => `刚刚切换到 ${jeu}`,
+      uiBadgeLiveWith:           (invite, others) => {
+        const suffix = others > 0 ? `等 ${others} 人` : '';
+        return `正在与 ${invite}${suffix} 直播`;
+      },
+      uiBadgeSponsoredBy:        (nom) => `由 ${nom} 赞助`,
+      uiSortNoCoStreams:         '当前未检测到联合直播',
+      uiSortLabelSubs:           '我订阅的频道优先',
+      uiSortLabelSubsCount:      (n) => `我订阅的频道优先 — 共 ${n} 个订阅`,
+      uiSortNoSubs:              '尚未发现订阅 — 请打开一个你已订阅的频道',
+      uiSortSubsOffline:         '你订阅的频道都不在直播',
+      consoleNoSubs:             '[tse] 尚未发现订阅。',
+      uiSortLabelViewers:        '按观众人数排序（降序）',
+      uiSortLabelPopular:        '按个人常看程度排序（近期访问）',
+      uiSortLabelUptime:         '按直播时长排序（升序）',
+      uiSortLabelAlpha:          '按频道名称排序（字母顺序）',
+      uiSortLabelCostream:       '将联合直播归到顶部',
+      consoleNoVisits:           '[tse] 尚未记录任何访问。',
+      consoleHistoryCleared:     '[tse] 访问历史已清除。',
+      consoleColLogin:           '登录名',
+      consoleColScore:           '得分',
+      consoleColVisits:          '访问次数',
+      consoleColLast:            '最近访问',
+      consoleColLag:             'Twitch 的延迟',
+      consoleColGain:            '扩展抢先量',
+      consoleLagGain:            (n, med) => `[tse] 在其中 ${n} 场直播里，扩展比 Twitch 平均（中位数）早 ${med} 显示。`,
+      consoleColSeen:            '发现时间',
+      consoleLagEmpty:           '[tse] 暂无可用测量。请保持 Twitch 标签页打开：每当关注的频道在你眼前开播时都会采样一次。',
+      consoleLagSummary:         (n, med, p90) => `[tse] 测量 ${n} 次 — Twitch 延迟中位数：${med}，第 90 百分位：${p90}。`,
+      consoleRosterEmpty:        '[tse] 尚未记住任何频道。',
+      consoleRosterSummary:      (n) => `[tse] 已在本地记住 ${n} 个关注的频道。`,
+      consoleHealthBroken:       '[tse] 部分关键选择器已与 Twitch 的 DOM 不匹配 — 扩展可能部分失效。详情：tse.diagnose()',
+      consoleHealthAllOk:        '[tse] 所有关键选择器均有响应。',
+      consoleMassOffline:        (n, total) => `[tse] Twitch API 返回可疑：已知在直播的 ${total} 个频道中有 ${n} 个被同时报告为离线。保留当前显示而不清空侧边栏；30 秒后重试。`,
+      consoleGlobalDegraded:     (n, s) => `[tse] 全局频道：Twitch API 连续失败 ${n} 次。为避免频繁请求，结构刷新间隔放宽到 ${s} 秒。“关注的频道”侧边栏不受影响。`,
+      consoleGlobalRestored:     (s) => `[tse] 全局频道：API 恢复稳定，结构刷新间隔已恢复为 ${s} 秒。`,
+      consoleColProbe:           '探针',
+      consoleColStatus:          '状态',
+      consoleColDetail:          '详情',
+      consoleHealthTagBroken:    '已失效',
+      consoleHealthTagNa:        '不适用',
+      locale:                    'zh-CN',
     })
   });
 
@@ -832,19 +1191,33 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (document.querySelector('[aria-label="Canales que sigues"]')) return 'es';
     if (document.querySelector('[aria-label="Canais seguidos"]')) return 'pt';   // pt-BR
     if (document.querySelector('[aria-label="Canais que segues"]')) return 'pt'; // pt-PT
+    /* Les cinq langues ajoutées en 3.57 (it, pl, ru, ja, zh) N'ONT PAS de
+       libellé natif listé ici, et c'est délibéré. Le point 1 compare des
+       chaînes EXACTES relevées dans le DOM de Twitch ; en inventer une revient
+       à écrire du code qui ne matchera jamais tout en ayant l'air de couvrir
+       la langue. Ces cinq-là sont donc détectées par les points 2 et 3, qui
+       n'exigent aucune connaissance de l'interface de Twitch — et le reste du
+       module utilise de toute façon ses ancres structurelles (cf. DOM). */
     // 2. document.documentElement.lang
+    const parPrefixe = (code) => {
+      if (code.startsWith('fr')) return 'fr';
+      if (code.startsWith('de')) return 'de';
+      if (code.startsWith('es')) return 'es';
+      if (code.startsWith('pt')) return 'pt';
+      if (code.startsWith('it')) return 'it';
+      if (code.startsWith('pl')) return 'pl';
+      if (code.startsWith('ru')) return 'ru';
+      if (code.startsWith('ja')) return 'ja';
+      if (code.startsWith('zh')) return 'zh';
+      return null;
+    };
     const htmlLang = (document.documentElement.lang || '').toLowerCase().trim();
-    if (htmlLang.startsWith('fr')) return 'fr';
-    if (htmlLang.startsWith('de')) return 'de';
-    if (htmlLang.startsWith('es')) return 'es';
-    if (htmlLang.startsWith('pt')) return 'pt';
+    const parHtml = parPrefixe(htmlLang);
+    if (parHtml) return parHtml;
     if (htmlLang.startsWith('en')) return 'en';
     // 3. navigator.language
-    const navLang = (navigator.language || '').toLowerCase();
-    if (navLang.startsWith('fr')) return 'fr';
-    if (navLang.startsWith('de')) return 'de';
-    if (navLang.startsWith('es')) return 'es';
-    if (navLang.startsWith('pt')) return 'pt';
+    const parNav = parPrefixe((navigator.language || '').toLowerCase());
+    if (parNav) return parNav;
     // 4. Défaut
     return 'en';
   }
@@ -1247,6 +1620,22 @@ const TSE_GATE_MAX_CLICKS = 5;
     // veut dire « l'écran est toujours là » : le dévoiler afficherait une modale
     // en travers de l'aperçu, ce qui est bien pire qu'une vignette.
     PREVIEW_GATE_TIMEOUT_MS: 2_500,
+
+    // === Changement de catégorie en cours de stream ===
+    // Durée de vie du badge « Vient de passer sur … ». C'est une NOUVELLE,
+    // et une nouvelle se périme : dix minutes après le changement, la
+    // catégorie affichée sur la carte suffit, et le badge ment par omission
+    // s'il laisse croire que le basculement vient d'avoir lieu.
+    //
+    // Dix minutes, et pas plus : le pipeline relève toutes les 30 s, donc un
+    // basculement est vu au pire une demi-minute après coup. La fenêtre est
+    // donc réellement de dix minutes, pas d'un délai flou.
+    CATEGORY_SWITCH_TTL: 10 * 60_000,
+    // Borne mémoire du registre des basculements. Même esprit que
+    // VISIT_MAX_LOGINS : une structure qui ne se purge pas finit par grossir
+    // sans fin sur des mois d'usage. Les entrées périmées partent d'elles-mêmes
+    // à la lecture ; cette borne couvre le cas d'un onglet jamais rouvert.
+    CATEGORY_SWITCH_MAX: 200,
 
     // === Voile de chargement initial ===
     // Délai de stabilité : le voile se lève quand la sidebar est peuplée
@@ -2371,6 +2760,15 @@ const TSE_GATE_MAX_CLICKS = 5;
        sinon un badge plus large que l'aperçu, que le popup couperait net. */
     .tse-preview__badge--ccl      { background: rgba(200, 25, 42, 0.26); color: #ff868c;
                                     max-width: 100%; }
+    /* Basculement de catégorie. Citron vert, et le choix est arithmétique
+       plutôt qu'esthétique : les huit teintes déjà prises laissaient un seul
+       créneau large — l'optimum est à 93°, à 54° du voisin le plus proche,
+       là où turquoise ou cyan n'auraient offert que 26 à 27° du sponsor et du
+       co-stream. On s'y pose à 91°, soit 52° de l'ancien abonné et 54° de
+       l'abonné, pour 7,15:1 de contraste — dans la fourchette de la famille
+       (6,38 à 7,67). Le vert dit « nouveau », ce qui tombe bien : le badge
+       annonce une nouvelle, et il s'efface au bout de dix minutes. */
+    .tse-preview__badge--switch   { background: rgba(120, 215, 60, 0.24); color: #a8e86b; }
     /* Les pictogrammes d'avertissement. line-height: 1 les empêche de
        rehausser le badge : un emoji dépasse sa boîte em, et sans cela la
        pastille grandissait d'un pixel ou deux par rapport aux autres. */
@@ -2420,6 +2818,68 @@ const TSE_GATE_MAX_CLICKS = 5;
    *  donnée strictement publique — comme TsePreview.
    * ============================================================ */
   const cache = new Map();
+
+  /* ============================================================
+   *  BASCULEMENTS DE CATÉGORIE — ce que seule l'observation sait
+   *  -------------------------------------------------------------
+   *  Twitch n'annonce nulle part qu'une chaîne vient de changer de
+   *  catégorie. L'information n'est pas dans son API : elle naît
+   *  de la COMPARAISON de deux relevés, et le pipeline en fait un
+   *  toutes les 30 s pour toutes les chaînes suivies. Elle était
+   *  jusqu'ici jetée à chaque tour.
+   *
+   *  C'est le moment où un streamer « variété » devient
+   *  intéressant pour qui suit un jeu précis, et il ne dure pas :
+   *  d'où un badge à durée de vie (CATEGORY_SWITCH_TTL).
+   *
+   *  DEUX CHOSES QUE CE REGISTRE NE FAIT PAS, toutes deux voulues.
+   *
+   *  Il ne signale PAS un début de stream. Passer de « hors ligne »
+   *  à « en ligne sur X » n'est pas un basculement : c'est une
+   *  chaîne qui commence, ce que la carte dit déjà. La distinction
+   *  se lit sur `stream.id`, qui change à chaque nouvelle session —
+   *  même identifiant ET catégorie différente, alors seulement il
+   *  s'est passé quelque chose.
+   *
+   *  Il ne SURVIT PAS à un rechargement de page, et ce n'est pas
+   *  une limite qu'on subit : après un rechargement, l'extension
+   *  n'a rien observé. Sortir un badge à ce moment-là reviendrait
+   *  à l'inventer. Elle ne rapporte que ce qu'elle a vu.
+   * ============================================================ */
+  const basculements = new Map();   // login -> { vers, ts }
+
+  /* Une garde par question, et c'est délibéré. La première écriture faisait
+     porter à la garde de session la protection de `avant.game` : retirer la
+     garde de session pour la mettre à l'épreuve ne faisait alors pas échouer
+     un test, elle faisait PLANTER la page. Une garde qui fait deux métiers se
+     casse en silence dès qu'on la retouche ; celles-ci se mutent une à une. */
+  const noterBasculement = (login, avant, apres) => {
+    if (!avant || !apres) return;                       // première observation
+    if (!avant.game || !apres.game) return;             // catégorie inconnue d'un côté
+    if (avant.game === apres.game) return;              // rien n'a changé
+    // Même identifiant de stream : c'est bien la MÊME session qui bascule, et
+    // non une chaîne qui vient de commencer — ce que la carte dit déjà.
+    const memeSession = avant.stream?.id && apres.stream?.id
+                        && avant.stream.id === apres.stream.id;
+    if (!memeSession) return;
+    basculements.set(login, { vers: apres.game, ts: Date.now() });
+    // Purge par le volume, en plus de la péremption à la lecture. Map itère
+    // dans l'ordre d'insertion : les plus anciennes entrées sortent d'abord.
+    while (basculements.size > CFG.CATEGORY_SWITCH_MAX) {
+      basculements.delete(basculements.keys().next().value);
+    }
+  };
+
+  /* La catégorie vers laquelle la chaîne vient de basculer, ou null. Périme
+     d'elle-même : une entrée trop vieille est retirée à la lecture, ce qui
+     évite d'avoir à balayer le registre périodiquement. */
+  const basculementFrais = (login) => {
+    const b = basculements.get(login);
+    if (!b) return null;
+    if (Date.now() - b.ts > CFG.CATEGORY_SWITCH_TTL) { basculements.delete(login); return null; }
+    return b;
+  };
+
   let queue = new Map();
   let queueTimer = null;
   let gqlCooldownUntil = 0;   // anti-martèlement après l'échec d'un lot
@@ -2625,6 +3085,10 @@ const TSE_GATE_MAX_CLICKS = 5;
           avatar:  user?.profileImageURL || cache.get(login)?.avatar || null,
           ts:      now
         };
+        /* AVANT d'écraser : l'entrée précédente est encore là, et c'est la
+           seule occasion de comparer deux relevés. Une fois `cache.set` passé,
+           l'information n'existe plus nulle part. */
+        noterBasculement(login, cache.get(login), entry);
         cache.set(login, entry);
         // Le mode global se nourrit du MÊME lot : un compteur frais met à
         // jour le classement sans une seule requête de plus. C'est ce qui
@@ -5105,6 +5569,24 @@ const TSE_GATE_MAX_CLICKS = 5;
       console.table(j.map(e => ({ 'ms depuis l\'injection': e.t, événement: e.evt, détail: e.detail })));
       return j;
     },
+    /* Les basculements de catégorie encore frais. Sert à trancher la question
+       qu'on se pose forcément en production — « le badge ne s'affiche pas :
+       est-ce que rien n'a basculé, ou est-ce que l'affichage est cassé ? ».
+       Les entrées périmées ne sont pas listées : elles n'existent plus. */
+    bascules() {
+      const vivants = [];
+      for (const login of [...basculements.keys()]) {
+        const b = basculementFrais(login);
+        if (b) vivants.push({ chaîne: login, 'passée sur': b.vers,
+                              'il y a (s)': Math.round((Date.now() - b.ts) / 1000) });
+      }
+      if (!vivants.length) {
+        console.log('[tse] aucun basculement de catégorie dans les dix dernières minutes.');
+        return vivants;
+      }
+      console.table(vivants);
+      return vivants;
+    },
     // Chaînes globales — surface de vérification de la couche de données.
     // Aucune interface ne consomme encore le classement : c'est ici, et
     // seulement ici, qu'on peut l'allumer et le lire. Les colonnes sont des
@@ -6541,6 +7023,17 @@ const TSE_GATE_MAX_CLICKS = 5;
         return badgeNoeud(cls, r.text);
       });
 
+      /* Basculement de catégorie, EN TÊTE des badges poussés : c'est une
+         nouvelle, et une nouvelle se lit avant le contexte. Le nom du jeu vient
+         de Twitch et passe donc par la fente, comme les noms de chaînes — il
+         est mis en gras et n'est jamais interprété. Le badge disparaît de
+         lui-même : basculementFrais rend null passé CATEGORY_SWITCH_TTL. */
+      const bascule = basculementFrais(login);
+      if (bascule) {
+        badges.unshift(badgeNoeud('tse-preview__badge--switch',
+          phraseAvecFente(S.uiBadgeCategorySwitch(FENTE), () => nomsEnGras([bascule.vers]))));
+      }
+
       // Badge d'abonnement, en TÊTE : c'est le signal le plus personnel de
       // l'aperçu, et le seul qui parle de la relation entre vous et la chaîne
       // plutôt que de ce qui s'y passe. Affiché seulement si l'ancienneté est
@@ -7595,9 +8088,19 @@ const TSE_GATE_MAX_CLICKS = 5;
     const buttons = [...row.querySelectorAll('button[data-tse-sort-mode]')];
 
     const refreshPressed = () => {
+      // Les libellés des boutons de tri suivent la langue pour la même raison
+      // que les onglets de mode : ils étaient posés à la création et n'en
+      // bougeaient plus. Ils ne vivent que dans title et aria-label — donc
+      // invisibles à l'œil, et d'autant plus faciles à laisser pourrir.
+      const parMode = new Map(getSortButtons().map(sp => [sp.mode, sp.label]));
       buttons.forEach(btn => {
         const mode = btn.dataset.tseSortMode;
         btn.setAttribute('aria-pressed', state.sortMode === mode ? 'true' : 'false');
+        const libelle = parMode.get(mode);
+        if (libelle && btn.getAttribute('title') !== libelle) {
+          btn.setAttribute('title', libelle);
+          btn.setAttribute('aria-label', libelle);
+        }
       });
     };
 
@@ -9084,6 +9587,18 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     row.setAttribute('aria-label', S.uiModeMenuAria);
     row.querySelectorAll('[data-tse-mode]').forEach(btn => {
+      /* Le LIBELLÉ est rafraîchi ici, et pas seulement posé à la création.
+         Sans cela, une bascule de langue après le démarrage — Twitch est une
+         SPA, l'utilisateur peut changer de langue sans recharger — laissait
+         des onglets figés dans l'ancienne, alors que leur aria-label, lui,
+         suivait : l'interface disait deux choses à la fois. refreshLanguage()
+         est fait pour être suivi, encore faut-il que quelqu'un le suive.
+
+         Écriture CONDITIONNELLE, comme partout ailleurs dans ce module : une
+         écriture inconditionnelle dans un scan entretient sa propre boucle
+         (écriture → mutation → scan → écriture). */
+      const libelle = btn.dataset.tseMode === 'global' ? S.uiGlobalLabel : S.followedLabel;
+      if (btn.textContent !== libelle) btn.textContent = libelle;
       const on = (btn.dataset.tseMode === 'global') === state.globalMode;
       if (btn.getAttribute('aria-pressed') !== String(on)) {
         btn.setAttribute('aria-pressed', String(on));

@@ -207,7 +207,10 @@ window.fetch = async (url, opt) => {
       displayName: f && f.name ? f.name : login.charAt(0).toUpperCase() + login.slice(1),
       profileImageURL: 'https://cdn/api-' + login + '.png',
       stream: f ? {
-        id: 's-' + login, createdAt: f.createdAt, viewersCount: f.viewers,
+        // `sid` permet de simuler une NOUVELLE session (Twitch renvoie alors
+        // un autre identifiant de stream). Sans lui, l'identifiant est stable
+        // d'un relevé à l'autre, ce qui est le cas ordinaire d'un stream en cours.
+        id: f.sid || ('s-' + login), createdAt: f.createdAt, viewersCount: f.viewers,
         game: { id: 'g', name: f.game },
         freeformTags: (f.tags || []).map(n => ({ name: n }))
       } : null
