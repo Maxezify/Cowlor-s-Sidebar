@@ -7,6 +7,7 @@
     "test": "node tests/build.mjs && node tests/run.mjs",
     "lint": "eslint content.js adblock.js",
     "parity": "node tests/parity.mjs",
+    "store": "node tests/store.mjs",
     "promo": "node tests/build.mjs && node promo-run.mjs",
     "tuile": "node promo-tile.mjs",
     "tuile-produit": "node tests/build.mjs && node promo-tile-produit.mjs",
@@ -14,7 +15,7 @@
     "addon": "node tests/addon.mjs",
     "package": "node tests/addon.mjs && npx web-ext build --source-dir dist/paquet --artifacts-dir dist --overwrite-dest",
     "prod": "node tests/prod.mjs",
-    "check": "npm run lint && npm run parity && npm run addon && npm test"
+    "check": "npm run lint && npm run parity && npm run store && npm run addon && npm test"
   },
   "devDependencies": {
     "eslint": "^10.1.0",

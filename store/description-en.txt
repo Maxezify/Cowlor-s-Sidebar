@@ -29,6 +29,7 @@ Inside the preview popup, colored labels sum up the stream's context at a glance
 - 💰 ★ SPONSORED BY ★ For sponsored streams, displays the brand with its color logo. You'll know who's behind it.
 - 🚂 ★ HYPE TRAIN ★ A Hype Train is running on the channel? You're notified without having to click.
 - 💎 ★ DISCOUNTED SUB ★ When Twitch is offering a discounted subscription on the stream, it's flagged right there.
+- 🆕 ★ JUST SWITCHED TO ★ The streamer changed category mid-stream? A green badge says so for ten minutes: "Just switched to Elden Ring". Twitch announces it nowhere — the extension sees it because it keeps watching.
 - ⚠️ ★ CONTENT LABELS ★ The official Twitch labels (mature-rated game, graphic violence, gambling…) are shown as their own badge, first in the row — so you know before you look, without the interstitial that used to block the video.
 
 _______________________________
@@ -165,6 +166,11 @@ The extension automatically detects your Twitch language and adapts every label,
 - 🇩🇪 Deutsch
 - 🇪🇸 Español
 - 🇧🇷🇵🇹 Português (Brazil and Portugal)
+- 🇮🇹 Italiano
+- 🇵🇱 Polski
+- 🇷🇺 Русский
+- 🇯🇵 日本語
+- 🇨🇳 简体中文
 - 🌐 …and English by default for every other language
 
 There is strictly nothing to configure.

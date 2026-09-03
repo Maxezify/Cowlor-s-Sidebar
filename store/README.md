@@ -19,17 +19,32 @@ Le ton est celui de la fiche d'origine, écrite par l'auteur : deuxième personn
 enthousiaste, titres en capitales encadrés d'étoiles, un émoji par section. Une
 traduction qui l'aplatirait en prose neutre serait une régression, même exacte.
 
-## Les sept fiches
+`npm run store` tient ce que douze fiches de deux cents lignes rendent
+impossible à relire : leur **squelette** doit être identique — même nombre de
+sections, de séparateurs, de puces et d'étoiles que la fiche anglaise — la liste
+des dix langues doit être complète partout, la ligne d'installation doit nommer
+le bon magasin (le polonais décline le nom, « Firefoksa », donc le contrôle
+cherche la racine et non le mot entier), et les libellés que la fiche cite mot
+pour mot doivent exister dans `content.js`. Ce dernier point vient d'une erreur
+réelle : la fiche a promis un badge d'étiquettes pendant dix versions avant
+qu'il n'existe.
+
+## Les douze fiches
 
 | Fichier | Locale du tableau de bord |
 | --- | --- |
-| `description-en.txt` | English — **la version de référence**, celle d'où partent les six autres |
+| `description-en.txt` | English — **la version de référence**, celle d'où partent les onze autres |
 | `description-fr.txt` | Français |
 | `description-de.txt` | Deutsch |
 | `description-es.txt` | Español (Espagne : *ratón*, *directo*, *vosotros*) |
 | `description-es-419.txt` | Español (Latinoamérica : *mouse*, *en vivo*, voseo) |
 | `description-pt-BR.txt` | Português (Brasil) |
 | `description-pt-PT.txt` | Português (Portugal) |
+| `description-it.txt` | Italiano |
+| `description-pl.txt` | Polski |
+| `description-ru.txt` | Русский |
+| `description-ja.txt` | 日本語 |
+| `description-zh-CN.txt` | 简体中文 |
 
 La **description courte** (132 caractères, celle qui s'affiche sous le nom) ne
 se saisit pas ici : elle vient du manifeste, clé `extDescription` de

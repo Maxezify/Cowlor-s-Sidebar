@@ -29,6 +29,7 @@ Dentro da janela de prévia, etiquetas coloridas resumem o contexto da live num 
 - 💰 ★ PATROCINADO POR ★ Nas lives patrocinadas, mostra a marca com o logo colorido. Você vai saber quem está por trás.
 - 🚂 ★ HYPE TRAIN ★ Tem um Hype Train rolando no canal? Você fica sabendo sem precisar clicar.
 - 💎 ★ INSCRIÇÃO COM DESCONTO ★ Quando a Twitch oferece uma inscrição com desconto na live, fica sinalizado ali mesmo.
+- 🆕 ★ ACABOU DE MUDAR PARA ★ O streamer trocou de categoria no meio da live? Um selo verde avisa por dez minutos: «Acabou de mudar para Elden Ring». A Twitch não anuncia isso em lugar nenhum — a extensão vê porque fica olhando.
 - ⚠️ ★ RÓTULOS DE CONTEÚDO ★ Os rótulos oficiais da Twitch (jogo adulto, violência explícita, jogos de azar…) formam o próprio selo, o primeiro da fila — você sabe antes de olhar, sem a tela que travava o vídeo.
 
 _______________________________
@@ -165,6 +166,11 @@ A extensão detecta automaticamente o idioma da sua Twitch e adapta cada rótulo
 - 🇩🇪 Deutsch
 - 🇪🇸 Español
 - 🇧🇷🇵🇹 Português (Brasil e Portugal)
+- 🇮🇹 Italiano
+- 🇵🇱 Polski
+- 🇷🇺 Русский
+- 🇯🇵 日本語
+- 🇨🇳 简体中文
 - 🌐 …e inglês por padrão para todos os outros idiomas
 
 Não há absolutamente nada para configurar.
