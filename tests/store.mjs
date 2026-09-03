@@ -116,5 +116,79 @@ const rompus = CITES.flatMap(([texte, cle]) => {
 ok('les libellés du contrat sont dans la fiche anglaise ET dans content.js',
    rompus.length === 0, rompus.join(' | '));
 
-console.log(`\n${echecs ? `${echecs} ÉCHEC(S)` : 'fiches de description OK'}\n`);
+/* ============================================================
+ *  LES IMAGES DE PRÉSENTATION
+ *  ------------------------------------------------------------
+ *  Une fiche sans image n'est pas une fiche : le tableau de bord
+ *  en demande une bannière et cinq captures, et une langue qui
+ *  n'aurait pas les siennes serait publiée avec celles d'une
+ *  autre. C'est exactement ce qui s'est passé quand les cinq
+ *  langues de la 3.57 sont arrivées : douze fiches de texte, sept
+ *  jeux d'images. Rien ne le disait — les images sont des
+ *  artefacts, elles ne sont pas dans le dépôt, et personne ne
+ *  compte des fichiers PNG qu'il ne voit pas.
+ *
+ *  Ce qui EST dans le dépôt, c'est le discours de chaque langue :
+ *  la table T de promo-run.mjs, celle de promo-marquee.mjs, et la
+ *  table SECTION de promo.mjs. Les trois doivent couvrir les mêmes
+ *  langues que store/, sans quoi `npm run promo` sortira un jeu
+ *  incomplet — ou s'arrêtera sur « fiche inconnue ».
+ * ============================================================ */
+console.log('\nImages de présentation');
+
+/* La correspondance fiche → clé de capture ne se déduit pas du nom de fichier,
+   et une normalisation « à la main » s'y casserait : es-419 devient « es419 »,
+   mais zh-CN devient « zh » et non « zhcn ». On l'écrit donc, et on vérifie
+   qu'elle décrit exactement les fiches présentes. */
+const IMAGES = {
+  'description-en.txt': 'en',      'description-fr.txt': 'fr',
+  'description-de.txt': 'de',      'description-es.txt': 'es',
+  'description-es-419.txt': 'es419', 'description-pt-BR.txt': 'ptbr',
+  'description-pt-PT.txt': 'ptpt', 'description-it.txt': 'it',
+  'description-pl.txt': 'pl',      'description-ru.txt': 'ru',
+  'description-ja.txt': 'ja',      'description-zh-CN.txt': 'zh',
+};
+const sansImage = fiches.filter(f => !IMAGES[f]);
+const sansFiche = Object.keys(IMAGES).filter(f => !lu.has(f));
+ok('chaque fiche a une clé de capture, et réciproquement',
+   sansImage.length === 0 && sansFiche.length === 0,
+   [...sansImage.map(f => `${f} sans clé`),
+    ...sansFiche.map(f => `${f} sans fiche`)].join(', '));
+
+const attenduCles = new Set(Object.values(IMAGES));
+const lireCles = (fichier, motif) => {
+  const src = readFileSync(join(RACINE, fichier), 'utf8');
+  return new Set([...src.matchAll(motif)].map(m => m[1]));
+};
+const memeJeu = (a, b) => a.size === b.size && [...a].every(k => b.has(k));
+const manque = (a) => [...attenduCles].filter(k => !a.has(k)).join(',') || '—';
+const enTrop = (a) => [...a].filter(k => !attenduCles.has(k)).join(',') || '—';
+
+for (const [fichier, motif] of [
+  ['promo-run.mjs',     /^ {2}([a-z0-9]+): \{ ui:/gm],
+  ['promo-marquee.mjs', /^ {2}([a-z0-9]+):\s+\{ ui:/gm],
+]) {
+  const cles = lireCles(fichier, motif);
+  ok(`${fichier} porte le discours des ${attenduCles.size} langues`,
+     memeJeu(cles, attenduCles), `manquantes : ${manque(cles)} — en trop : ${enTrop(cles)}`);
+}
+
+/* La table SECTION, et ce qu'elle promet. Ses six premières entrées sont les
+   libellés natifs de Twitch que detectLanguage() compare mot pour mot : elles
+   doivent être dans DOM.followedLabels, sinon la scène rendrait en français.
+   Les cinq dernières sont le libellé de l'extension, `followedLabel`. Dans les
+   deux cas la chaîne doit exister dans content.js — une faute de frappe ici ne
+   se verrait que sur l'image publiée. */
+const bloc = /const SECTION = \{([\s\S]*?)\n\};/.exec(
+  readFileSync(join(RACINE, 'promo.mjs'), 'utf8'));
+const section = new Map([...(bloc?.[1] ?? '').matchAll(/([a-z0-9]+): '([^']+)'/g)]
+  .map(m => [m[1], m[2]]));
+ok(`promo.mjs nomme la section dans les ${attenduCles.size} langues`,
+   memeJeu(new Set(section.keys()), attenduCles),
+   `manquantes : ${manque(new Set(section.keys()))} — en trop : ${enTrop(new Set(section.keys()))}`);
+const inconnus = [...section].filter(([, libelle]) => !content.includes(`'${libelle}'`));
+ok('et chacun de ces libellés existe dans content.js',
+   inconnus.length === 0, inconnus.map(([k, v]) => `${k} : « ${v} »`).join(' | '));
+
+console.log(`\n${echecs ? `${echecs} ÉCHEC(S)` : 'fiches et images OK'}\n`);
 process.exit(echecs ? 1 : 0);

@@ -11,6 +11,7 @@
     "addon": "node tests/addon.mjs",
     "package": "node tests/addon.mjs && npx web-ext build --source-dir dist/paquet --artifacts-dir dist --overwrite-dest",
     "prod": "node tests/prod.mjs",
+    "polices": "node promo-polices.mjs",
     "promo": "node tests/build.mjs && node promo-run.mjs",
     "tuile": "node promo-tile.mjs",
     "tuile-produit": "node tests/build.mjs && node promo-tile-produit.mjs",

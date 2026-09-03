@@ -1469,10 +1469,13 @@ cowlors-sidebar-for-twitch/
 ├── package.json           verification tooling ONLY (see below)
 ├── eslint.config.mjs      lint rules
 ├── promo.mjs              1280×800 captures for the Chrome Web Store
-├── promo-run.mjs          the scenes and their copy
+├── promo-run.mjs          the scenes and their copy, in all twelve languages
+├── promo-marquee.mjs      1400×560 marquee at the head of the listing
 ├── promo-tile.mjs         440×280 promo tiles (variants A–D)
 ├── promo-tile-produit.mjs 440×280 tile showing the extension at work
-├── store/                 the copy of the seven Chrome Web Store listings
+├── promo-polices.mjs      cuts the CJK subsets the captures need
+├── promo-fonts/           Inter and Noto embedded in the images (OFL 1.1)
+├── store/                 the copy of the twelve Chrome Web Store listings
 ├── tests/
 │   ├── run.mjs              the harness: 544 assertions across 64 scenarios
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
@@ -1582,9 +1585,10 @@ broadcast language is independent of the tags it displays.
 ### Chrome Web Store captures
 
 ```bash
-npm run promo           # → promo/*.png, exactly 1280×800, six scenes × seven languages
-npm run banniere        # → promo/00-banniere-*.png, 1400×560, seven languages
+npm run promo           # → promo/*.png, exactly 1280×800, six scenes × twelve languages
+npm run banniere        # → promo/00-banniere-*.png, 1400×560, twelve languages
 npm run tuile-produit   # → promo/tuile-E-produit.png, 440×280
+npm run polices         # → promo-fonts/noto-sans-{jp,sc}-cjk.woff2 (see below)
 ```
 
 Three Store formats, one shared constraint: **JPEG or 24-bit PNG, no alpha**.
@@ -1619,14 +1623,42 @@ to DejaVu Sans, a typeface that is nobody's. The flaw showed twice — on Twitch
 markup, and on the extension itself, whose CSS asks for
 `var(--font-base, "Inter", sans-serif)` and was not getting Inter either.
 
-So **Inter** is embedded, in `promo-fonts/`: two subsets (latin and latin-ext)
-as **variable** files, one file per subset covering every weight. Versioned
-rather than fetched on demand — a capture must not depend on a CDN to be
-reproducible — and inlined as base64 into the stylesheet, with Twitch's exact
-stack declared where Twitch declares it: `--font-base` on the root. The
-extension therefore takes the **real** path, not a fallback that would exist
-only in the harness. SIL Open Font License 1.1, full text in
-`promo-fonts/OFL.txt`.
+So **Inter** is embedded, in `promo-fonts/`: four subsets (latin, latin-ext,
+cyrillic and cyrillic-ext) as **variable** files, one file per subset covering
+every weight. Versioned rather than fetched on demand — a capture must not
+depend on a CDN to be reproducible — and inlined as base64 into the stylesheet,
+with Twitch's exact stack declared where Twitch declares it: `--font-base` on
+the root. The extension therefore takes the **real** path, not a fallback that
+would exist only in the harness.
+
+Cyrillic only arrived with the Russian listing, and it had to be hunted down:
+the font guard measured a **latin** string, served by Inter as it should be, and
+therefore reported the font loaded while Russian was coming out in DejaVu. A
+guard that measures one case only proves that case.
+
+Inter has no ideographs at all, and that is not a gap: neither has Twitch. Its
+stack — `Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif` — holds
+nothing CJK, and on a real Japanese machine the browser walks down to the system
+font. The captures reproduce that: **Noto Sans JP** and **Noto Sans SC** are
+appended **last**, and only for the document's language (`:root:lang(ja)`,
+`:root:lang(zh)`) — otherwise Chinese would come out in Japanese glyph forms. A
+complete Japanese face weighs several megabytes; these are **cut** by
+`npm run polices` to the characters these images write, collected from the `ja`
+and `zh` tables of `content.js` and from the scene copy, and weigh under two
+hundred kilobytes each.
+
+A subset goes stale: an ideograph added elsewhere and missing here would come
+out as an empty box, with nothing to say so. Before every shutter,
+`glyphesManquants()` therefore draws **every character the page actually
+writes** twice — once with the page's stack, once with a family that does not
+exist — and compares pixels. Two identical renders mean the stack contributed
+nothing, and the capture stops instead of shipping. The *width* comparison used
+until then could not do this job: an ideograph is exactly one em wide in every
+font, so it would have called a present glyph missing.
+
+SIL Open Font License 1.1 for all three families, full texts in
+`promo-fonts/OFL.txt` and `promo-fonts/OFL-noto.txt`; per-file provenance in
+`promo-fonts/README.md`.
 
 The avatars no longer carry the channel's initial either: on a real sidebar
 those thirty pixels carry a photo, and a letter said "test capture". They are
@@ -1659,9 +1691,13 @@ scenes at once were caught with a headline taking one line more than written,
 ever since Inter — whose 800 weight is real, where the fallback synthesised its
 bold — replaced the default typeface. Headline size is therefore no longer
 chosen but **measured**: 72 px is the last notch at which "tells you
-everything.", the longest line across the seven languages, fits the column's
-690 px. In the narrow variant the wrap is wanted instead — no legible size fits
-"avant de cliquer" in one go inside 378 px — and the guard tolerates one extra
+everything.", the longest latin line across the twelve languages, fits the
+column's 690 px. Japanese and Chinese read differently — an ideograph is one em
+wide, so 690 px hold nine of them and not one more — and it is that count which
+pushed the Japanese Top Channels headline to three lines: the wrap was written
+in advance, so it may as well be written down. In the narrow variant the wrap is
+wanted too — no legible size fits "avant de cliquer" in one go inside 378 px —
+and the guard tolerates one extra
 line there, and only there.
 
 That 72 was found in the real pipeline, and it took that: a standalone
@@ -1688,12 +1724,21 @@ tile.
 
 ### The listing itself
 
-The copy of the seven Chrome Web Store listings lives in **`store/`** — one per
+The copy of the twelve Chrome Web Store listings lives in **`store/`** — one per
 published locale. The dashboard keeps no readable history: without a versioned
 copy here, the only trace of a wording would be the live listing. See
 `store/README.md` for the locale mapping, the recommended capture order (the
 Store accepts only five, six are produced), and the answers to the privacy
 practices form.
+
+`npm run store` holds what twelve two-hundred-line listings make impossible to
+proofread, and it holds their **images** too. Twelve listings want twelve sets
+of images; the five languages of 3.57 got their copy first, and nothing would
+have said so — `promo/` is an artefact directory, git-ignored, whose files
+nobody counts. The check therefore compares the languages of the three copy
+tables (`promo-run.mjs`, `promo-marquee.mjs`, and `SECTION` in `promo.mjs`)
+against the listings present, and verifies that every section label exists in
+`content.js`.
 
 ---
 

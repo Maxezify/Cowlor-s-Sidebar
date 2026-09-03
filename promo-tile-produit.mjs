@@ -17,7 +17,8 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { pageProduit, browser, ABOS, CSS_TWITCH, reduireEnPng24 } from './promo.mjs';
+import { pageProduit, browser, ABOS, CSS_TWITCH, reduireEnPng24,
+         glyphesManquants } from './promo.mjs';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.PROMO_OUT || join(ICI, 'promo');
@@ -237,6 +238,12 @@ if (bilan.pseudo < 15) throw new Error(`pseudo attendu à 15 px au moins, mesur�
 if (!bilan.tri)        throw new Error('la pastille du tri des abonnements est hors cadre');
 if (!bilan.police)     throw new Error('Inter n\'a pas été chargée : la tuile sortirait dans la police par défaut');
 if (bilan.rendue !== 'Inter') throw new Error(`police rendue attendue : Inter, mesurée : « ${bilan.rendue} »`);
+// Un tofu ne se rattrape pas après publication : on refuse de photographier.
+const manquants = await glyphesManquants(page);
+if (manquants.length) {
+  throw new Error(`aucune police embarquée ne couvre « ${manquants.join('')} » — ` +
+                  'relancer « npm run polices » après avoir changé un texte');
+}
 
 const brut = await page.screenshot({ clip: { x: 0, y: 0, width: 440, height: 280 } });
 await page.close();

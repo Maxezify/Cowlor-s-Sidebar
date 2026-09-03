@@ -52,13 +52,12 @@ se saisit pas ici : elle vient du manifeste, clé `extDescription` de
 
 ## Ce qui doit rester vrai
 
-Les sept fiches se tiennent par leur structure : **20 sections `➤`**, **22
-puces `- ★ … ★`** dont **8 dans la section vie privée**, et un bloc console de
-cinq commandes. Une modification qui n'est portée que dans une langue se voit à
-ce compte-là — c'est le seul contrôle qui existe, il n'y a pas de harnais pour
-du texte de fiche.
+Les douze fiches se tiennent par leur structure : **20 sections `➤`**, **21
+séparateurs**, **73 puces** et **88 étoiles**. C'est le profil de la fiche
+anglaise, et `npm run store` le compare à celui des onze autres : une section
+oubliée en traduisant se voit à ce compte-là, immédiatement.
 
-Sept affirmations sont **vérifiables dans le code**, et doivent changer le jour
+Huit affirmations sont **vérifiables dans le code**, et doivent changer le jour
 où le code change :
 
 1. **« Six façons de trier »** — `getSortButtons()` en rend six. C'était cinq
@@ -101,6 +100,15 @@ bord rappelle sur chacun : **JPEG ou PNG 24 bits, sans alpha**.
 | Captures d'écran | 1280 × 800 | `npm run promo` | `01-hero-<L>.png` … `06-abonnes-<L>.png` |
 | Petite tuile promotionnelle | 440 × 280 | `npm run tuile-produit` | `tuile-E-produit.png` |
 
+`<L>` est la clé de capture de la fiche, **une par langue** : `en`, `fr`, `de`,
+`es`, `es419`, `ptbr`, `ptpt`, `it`, `pl`, `ru`, `ja`, `zh`. Douze fiches, douze
+jeux d'images — soit 12 bannières et 72 captures. Les cinq langues arrivées avec
+la 3.57 ont d'abord eu leur texte sans leurs images ; c'est le genre d'écart
+qu'aucune relecture ne rattrape, puisque les images ne sont pas dans le dépôt.
+`npm run store` compte donc les langues des trois tables de discours
+(`promo-run.mjs`, `promo-marquee.mjs`, `SECTION` dans `promo.mjs`) et les
+confronte aux fiches présentes.
+
 Tout sort dans `promo/`, ignoré par git : ce sont des artefacts, régénérables à
 l'identique. Et tout sort **sans canal alpha** — ce n'était pas le cas avant
 qu'on écrive la bannière : les images étaient en RGBA, opaques mais de type 6,
@@ -110,6 +118,18 @@ lui-même et relit son propre en-tête. Pour vérifier de l'extérieur :
 ```bash
 file promo/*.png    # doit dire « 8-bit/color RGB », jamais « RGBA »
 ```
+
+### Les polices
+
+Les captures embarquent les leurs : une image publiée ne doit pas dépendre du
+réseau. Inter couvre le latin et le cyrillique en quatre fichiers figés ; le
+japonais et le chinois sont servis par deux sous-ensembles de Noto **taillés aux
+caractères de ces images**, que `npm run polices` refait. Ces deux-là se
+périment — un idéogramme ajouté dans `content.js` et absent du sous-ensemble
+sortirait en carré vide. C'est pourquoi chaque déclenchement mesure, sur la page
+rendue, tous les caractères qu'elle affiche, et s'arrête plutôt que de
+photographier ce qu'aucune police embarquée ne couvre. Voir
+`promo-fonts/README.md`.
 
 Le Store n'accepte que **cinq** captures. Six sont produites ; l'ordre conseillé,
 et celle qui reste au vestiaire :
