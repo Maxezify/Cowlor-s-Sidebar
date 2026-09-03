@@ -1369,14 +1369,12 @@ Les drapeaux SVG du filtre par langue proviennent du jeu **OpenMoji** (licence C
 
 ## Localisation
 
-L'extension détecte la langue de votre interface Twitch via l'attribut `lang`
-posé par Twitch sur le `<html>` :
-
-- Langue commençant par `fr` (par exemple `fr-fr`) → interface française.
-- Langue commençant par `de` (par exemple `de-de`) → interface allemande.
-- Langue commençant par `es` (par exemple `es-es` ou `es-mx`) → interface espagnole (Espagne et Amérique latine).
-- Langue commençant par `pt` (par exemple `pt-br` ou `pt-pt`) → interface portugaise (Brésil et Portugal).
-- Toute autre langue → interface anglaise (fallback).
+L'extension détecte la langue de votre interface Twitch : d'abord par les
+libellés natifs qu'elle reconnaît dans le DOM, puis par l'attribut `lang` que
+Twitch pose sur le `<html>`, puis par `navigator.language`. Dix interfaces sont
+servies — `fr`, `en`, `de`, `es` (Espagne et Amérique latine), `pt` (Brésil et
+Portugal), `it`, `pl`, `ru`, `ja`, `zh` — et toute autre langue retombe sur
+l'anglais.
 
 Toutes les chaînes de l'extension (badges du popup d'aperçu, libellés du
 filtre et des boutons de tri, messages console) sont traduites en conséquence.
@@ -1386,8 +1384,13 @@ Les libellés natifs Twitch que l'extension recherche dans le DOM (section
 (pt-PT), bouton « Afficher plus » /
 « Show More » / « Mehr anzeigen » / « Mostrar más » / « Mostrar mais », phrase
 d'accessibilité « X et N invités » / « X and N guests » / « X und N Gäste » /
-« X y N invitados » / « X e N convidados », etc.) sont également pris en charge
-dans les cinq langues, avec repli structurel pour toute autre locale.
+« X y N invitados » / « X e N convidados », etc.) ne sont connus que dans ces
+**six** langues-là : ce sont des chaînes relevées mot pour mot dans le DOM de
+Twitch, et en inventer pour les quatre autres reviendrait à écrire une
+comparaison qui n'aboutirait jamais. L'italien, le polonais, le russe, le
+japonais et le chinois se détectent donc par `lang`, et toute la sidebar tient
+sur ses ancres structurelles — ce qu'elle fait de toute façon pour n'importe
+quelle autre locale.
 
 Le compteur de viewers que l'extension affiche (cf. « Rafraîchissement en
 quasi-direct ») est **rendu dans le format de votre locale**, identique à celui
@@ -1399,6 +1402,44 @@ repli tant qu'une chaîne n'a pas encore été résolue.
 
 Si vous changez la langue dans les paramètres Twitch, la page recharge et
 l'extension applique la nouvelle langue automatiquement.
+
+### Le nom des catégories (v3.58)
+
+Sous une interface française, la sidebar affichait **« Just Chatting »** là où
+Twitch écrit **« Discussions »**. Ce n'était pas un oubli de traduction : c'est
+l'extension qui écrasait le libellé français que Twitch avait déjà posé.
+
+Une catégorie a **deux noms** chez Twitch, et ils ne font pas le même métier :
+
+| Champ | Ce que c'est | À quoi il sert |
+| --- | --- | --- |
+| `game.name` | le nom **canonique**, en anglais — celui des URL `/directory/game/…` | l'**identité** : clé du filtre catégorie, clé de regroupement des co-streams, terme de comparaison du basculement de catégorie, et seule valeur que `game(name:)` accepte |
+| `game.displayName` | le même nom **traduit** | l'**affichage**, et rien d'autre |
+
+L'extension ne demandait que le premier, et l'écrivait sur les cartes. Elle
+demande désormais les deux et ne les confond plus : ce qui s'affiche — la carte,
+son infobulle, le menu déroulant, le badge « Vient de passer sur … » — porte le
+nom traduit ; ce qui compare ou filtre continue de travailler sur le nom
+canonique. Le menu déroulant montre donc « Discussions » tout en filtrant sur
+« Just Chatting », et un clic donne le même résultat qu'avant.
+
+Cette séparation n'est pas cosmétique. Si le registre des basculements comparait
+les libellés, **changer la langue de Twitch annoncerait un changement de
+catégorie sur toutes les chaînes à la fois** — « Discussions » deviendrait
+« Nur Chatten » sans que personne n'ait rien fait. Le scénario 65 du banc mute
+précisément cette ligne pour le vérifier.
+
+C'est enfin l'en-tête **`Accept-Language`** qui décide de la langue rendue par
+`displayName`, et l'extension y met la langue de l'**interface qu'elle
+décore**, non celle du navigateur. Sans cela, un navigateur en anglais devant un
+Twitch en français rendait des catégories anglaises sous une interface
+française. L'en-tête est « CORS-safelisted » — il ne s'ajoute pas au contrôle
+préalable — et n'apprend rien de plus sur vous que ce que le navigateur envoyait
+déjà de lui-même : la requête reste anonyme, sans jeton, sans cookie.
+
+Une catégorie que Twitch ne traduit pas — la plupart des titres de jeux —
+renvoie un `displayName` égal au nom canonique, et s'affiche donc exactement
+comme avant.
 
 ---
 

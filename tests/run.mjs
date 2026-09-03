@@ -5431,6 +5431,156 @@ titre('64. Localisation — italien, polonais, russe, japonais, chinois');
   }
 }
 
+// ═════════ 65. Nom canonique et nom traduit ═════════
+titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
+{
+  /* Le défaut, tel qu'il se voyait : sous une interface française, la carte
+     annonçait « Just Chatting » là où Twitch écrivait « Discussions ». La
+     sidebar prenait le nom que rend `game.name` — le nom CANONIQUE, celui des
+     URL — et l'écrivait par-dessus le libellé traduit que Twitch avait déjà
+     posé. L'extension remplaçait donc du français par de l'anglais.
+
+     Le nom canonique n'est pas pour autant à jeter : c'est lui, et lui seul,
+     que `game(name:)` accepte, et c'est de lui que dépendent le filtre, le
+     regroupement des co-streams et la détection d'un basculement. Les deux
+     valeurs existent donc côte à côte — `game` pour l'identité, `gameLabel`
+     pour l'affichage — et ce scénario vérifie qu'aucune des deux ne prend le
+     travail de l'autre.
+
+     Le stub traduit d'après Accept-Language, comme Twitch. Sans cela rien ne
+     distinguerait une extension qui affiche la traduction d'une qui affiche
+     l'anglais : les deux chaînes seraient égales, et six assertions vertes
+     n'auraient rien prouvé. */
+
+  const cartes = (page) => page.evaluate(() =>
+    [...document.querySelectorAll('.side-nav-card')].map(c => {
+      const el = c.querySelector('[data-a-target="side-nav-card-metadata"] p[title]');
+      return { login: c.dataset.tseLogin,
+               texte: el?.textContent?.trim() ?? null,
+               infobulle: el?.getAttribute('title') ?? null,
+               identite: c.dataset.tseCategory ?? null,
+               libelle: c.dataset.tseCategoryLabel ?? null };
+    }));
+
+  const options = (page) => page.evaluate(() =>
+    [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+      .filter(o => o.dataset.value)
+      .map(o => ({ valeur: o.dataset.value,
+                   libelle: o.querySelector('.tse-dd-name')?.textContent ?? null })));
+
+  const monter = async (htmlLang) => {
+    const page = await browser.newPage();
+    page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await page.goto(URL_PAGE);
+    await page.evaluate((l) => {
+      // Le libellé natif du harnais est français et gagnerait sur html.lang :
+      // on le retire pour que la langue demandée soit bien celle qui décide
+      // (même montage qu'au scénario 64).
+      document.querySelector('.side-nav-section').removeAttribute('aria-label');
+      document.documentElement.lang = l;
+      const vieux = new Date(Date.now() - 3600_000).toISOString();
+      window.__fx = {
+        alpha: { id: 'a', sid: 's-a', createdAt: vieux, viewers: 1000,
+                 game: 'Just Chatting', tags: [] },
+        beta:  { id: 'b', sid: 's-b', createdAt: vieux, viewers: 900,
+                 game: 'Elden Ring', tags: [] },
+      };
+      // Le DOM porte le nom canonique : c'est le cas le PLUS défavorable, celui
+      // où l'extension doit écrire quelque chose plutôt que se taire.
+      window.__addCard('alpha', 'Just Chatting', '1 k');
+      window.__addCard('beta',  'Elden Ring',    '900');
+    }, htmlLang);
+    /* On attend que TseChannels ait RÉPONDU et que sa réponse soit posée, pas
+       seulement que les cartes existent : data-tse-category est amorcé depuis
+       le DOM avant toute requête, et s'y fier faisait tout lire une seconde
+       trop tôt — première écriture de ce scénario, quatre assertions rouges
+       qui décrivaient l'état d'avant la réponse. Le compteur repris par
+       l'extension est le signal neutre : il ne peut venir que de l'API, et il
+       ne dit rien des catégories qu'on s'apprête à juger. */
+    await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 2);
+    return page;
+  };
+
+  // ── a) l'en-tête, puisque c'est lui qui décide ──────────────────────────
+  const page = await monter('fr');
+  const entete = await page.evaluate(() => window.__lastAcceptLanguage);
+  ok('la requête annonce la langue de l\'interface, pas celle du navigateur',
+     entete === 'fr-FR', String(entete));
+
+  // ── b) ce que la carte montre, et ce qu'elle retient ────────────────────
+  const fr = await cartes(page);
+  ok('la carte affiche la catégorie traduite',
+     fr[0]?.texte === 'Discussions', JSON.stringify(fr[0]));
+  ok('et son infobulle aussi — c\'est elle que relit getCardCategory',
+     fr[0]?.infobulle === 'Discussions', JSON.stringify(fr[0]?.infobulle));
+  ok('l\'identité, elle, reste le nom canonique',
+     fr[0]?.identite === 'Just Chatting', JSON.stringify(fr[0]?.identite));
+  ok('une catégorie que Twitch ne traduit pas s\'écrit telle quelle',
+     fr[1]?.texte === 'Elden Ring' && fr[1]?.identite === 'Elden Ring',
+     JSON.stringify(fr[1]));
+
+  // ── c) le menu déroulant : libellé traduit, valeur canonique ────────────
+  const opts = await options(page);
+  const oJC = opts.find(o => o.valeur === 'Just Chatting');
+  ok('le menu propose la traduction…', oJC?.libelle === 'Discussions',
+     JSON.stringify(opts));
+  ok('…sous la valeur canonique, qui est ce que le clic filtrera',
+     !!oJC, JSON.stringify(opts.map(o => o.valeur)));
+
+  // ── d) et le filtre marche toujours ─────────────────────────────────────
+  await page.evaluate(() => {
+    const o = [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+      .find(x => x.dataset.value === 'Just Chatting');
+    if (!o) throw new Error('option « Just Chatting » absente');
+    o.click();
+  });
+  await wait(page, 600);
+  const visibles = await page.evaluate(() =>
+    [...document.querySelectorAll('.side-nav-card')]
+      .filter(c => c.style.display !== 'none').map(c => c.dataset.tseLogin));
+  ok('choisir la catégorie traduite filtre bien sur son identité',
+     visibles.length === 1 && visibles[0] === 'alpha', JSON.stringify(visibles));
+  await page.evaluate(() => {
+    document.querySelector('#tse-cat-dd .tse-dd-opt[data-value=""]')?.click();
+  });
+  await wait(page, 600);
+
+  // ── e) le badge de basculement parle la même langue ─────────────────────
+  await page.evaluate(() => { window.__fx.beta.game = 'Just Chatting'; });
+  await attendre(page, () => (window.tse.bascules?.() || []).length > 0, 8000);
+  await hoverCard(page, 1);
+  await attendre(page, () => !!document.querySelector('.tse-preview__badge--switch'), 6000);
+  const badge = await page.evaluate(() => {
+    const b = document.querySelector('.tse-preview__badge--switch');
+    return b ? { texte: b.textContent.trim(), gras: b.querySelector('strong')?.textContent } : null;
+  });
+  ok('« Vient de passer sur … » nomme la catégorie dans la langue de l\'interface',
+     badge?.gras === 'Discussions', JSON.stringify(badge));
+  await unhoverCard(page, 1);
+
+  // ── f) LE piège : changer de langue n'est pas changer de catégorie ──────
+  /* C'est l'assertion qui tient toute la séparation. Si le registre des
+     basculements comparait les LIBELLÉS, passer l'interface en allemand
+     ferait passer « Discussions » à « Nur Chatten » et l'extension
+     annoncerait, sur les deux chaînes à la fois, un changement de catégorie
+     que personne n'a fait. Comparer des noms canoniques est ce qui l'en
+     empêche — et rien d'autre ne l'en empêche. */
+  const avant = await page.evaluate(() => (window.tse.bascules() || []).length);
+  await page.evaluate(() => { document.documentElement.lang = 'de'; });
+  // Signal neutre là encore : l'en-tête du lot suivant, qui ne dit rien de ce
+  // qui sera écrit sur les cartes.
+  await attendre(page, () => window.__lastAcceptLanguage === 'de-DE', 10_000);
+  await wait(page, 800);
+  const de = await cartes(page);
+  ok('la même catégorie repasse en allemand quand l\'interface change',
+     de[0]?.texte === 'Nur Chatten' && de[0]?.identite === 'Just Chatting',
+     JSON.stringify(de[0]));
+  const apres = await page.evaluate(() => (window.tse.bascules() || []).length);
+  ok('et ce changement de langue ne fabrique aucun faux basculement',
+     apres <= avant, `avant=${avant} après=${apres}`);
+  await page.close();
+}
+
 await browser.close();
 console.log(`\n${'═'.repeat(50)}`);
 if (echecs.length) {

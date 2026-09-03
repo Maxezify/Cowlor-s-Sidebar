@@ -1283,14 +1283,11 @@ The language-filter flags come from the **OpenMoji** set (CC BY-SA 4.0 licence).
 
 ## Localization
 
-The extension detects your Twitch UI language via the `lang` attribute Twitch
-sets on `<html>`:
-
-- A language starting with `fr` (e.g. `fr-fr`) → French interface.
-- A language starting with `de` (e.g. `de-de`) → German interface.
-- A language starting with `es` (e.g. `es-es` or `es-mx`) → Spanish interface (Spain and Latin America).
-- A language starting with `pt` (e.g. `pt-br` or `pt-pt`) → Portuguese interface (Brazil and Portugal).
-- Anything else → English interface (fallback).
+The extension detects your Twitch UI language: first from the native labels it
+recognises in the DOM, then from the `lang` attribute Twitch sets on `<html>`,
+then from `navigator.language`. Ten interfaces are served — `fr`, `en`, `de`,
+`es` (Spain and Latin America), `pt` (Brazil and Portugal), `it`, `pl`, `ru`,
+`ja`, `zh` — and anything else falls back to English.
 
 All the extension's own strings (preview popup badges, filter and sort
 buttons, console messages) are translated accordingly. Native Twitch labels
@@ -1299,8 +1296,12 @@ the extension looks for in the DOM ("Chaînes suivies" / "Followed Channels" /
 "Canais que segues" (pt-PT) section,
 "Afficher plus" / "Show More" / "Mehr anzeigen" / "Mostrar más" / "Mostrar mais"
 button, "X et N invités" / "X and N guests" / "X und N Gäste" / "X y N invitados"
-/ "X e N convidados" accessibility text, etc.) are also supported across all five
-languages, with a structural fallback for any other locale.
+/ "X e N convidados" accessibility text, etc.) are known in those **six**
+languages only: they are strings collected word for word from Twitch's DOM, and
+inventing some for the other four would mean writing a comparison that could
+never match. Italian, Polish, Russian, Japanese and Chinese are therefore
+detected from `lang`, and the whole sidebar rides on its structural anchors —
+which is what it does for any other locale anyway.
 
 The viewer count the extension renders (see "Near-live refresh") is **formatted
 in your locale**, matching Twitch's own rendering: decimal abbreviation + suffix
@@ -1311,6 +1312,43 @@ locale, which serves as the fallback until a channel has been resolved.
 
 If you switch languages from Twitch settings, the page reloads and the
 extension picks up the new language automatically.
+
+### Category names (v3.58)
+
+Under a French interface, the sidebar showed **"Just Chatting"** where Twitch
+writes **"Discussions"**. That was not a missing translation: the extension was
+overwriting the French label Twitch had already put there.
+
+A category has **two names** at Twitch, and they do different jobs:
+
+| Field | What it is | What it is for |
+| --- | --- | --- |
+| `game.name` | the **canonical** English name — the one in `/directory/game/…` URLs | **identity**: category-filter key, co-stream grouping key, comparison term for category switching, and the only value `game(name:)` accepts |
+| `game.displayName` | the same name, **translated** | **display**, and nothing else |
+
+The extension asked for the first only, and wrote it onto the cards. It now asks
+for both and no longer confuses them: what is displayed — the card, its tooltip,
+the dropdown, the "Just switched to …" badge — carries the translated name;
+what compares or filters keeps working on the canonical one. The dropdown
+therefore shows "Discussions" while filtering on "Just Chatting", and a click
+gives the same result as before.
+
+The separation is not cosmetic. If the switch register compared labels,
+**changing Twitch's language would announce a category change on every channel
+at once** — "Discussions" would become "Nur Chatten" with nobody having done
+anything. Bench scenario 65 mutates that exact line to prove it.
+
+Finally, it is the **`Accept-Language`** header that decides which language
+`displayName` comes back in, and the extension puts the language of the
+**interface it decorates** there, not the browser's. Without that, an
+English-language browser in front of a French Twitch got English categories
+under a French interface. The header is CORS-safelisted — it does not join the
+preflight — and reveals nothing more about you than what the browser was already
+sending on its own: the request stays anonymous, no token, no cookie.
+
+A category Twitch does not translate — most game titles — returns a
+`displayName` equal to the canonical name, and therefore renders exactly as
+before.
 
 ---
 

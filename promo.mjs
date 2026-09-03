@@ -508,6 +508,13 @@ export async function pageProduit({ lang = 'fr', section = null, visites = null,
   // toutes les frames de la page. Ce que les captures montrent d'abonnements
   // vient donc de `stockage`, et de lui seul.
   await page.addInitScript(() => { window.__noSubsPage = true; });
+  // Catégories NON traduites dans les captures. Le stub sait traduire — le
+  // produit affiche désormais `game.displayName`, et c'est bien ce qu'on veut
+  // voir sur un vrai Twitch — mais on ne dispose pas des traductions réelles de
+  // Twitch pour les douze langues de fiche, et publier une traduction inventée
+  // serait pire que publier l'anglais. Les images gardent donc le nom canonique
+  // dans toutes les langues, ce qui les laisse cohérentes entre elles.
+  await page.addInitScript(() => { window.__i18nCats = {}; });
   // L'historique de visites doit exister AVANT le démarrage du script, sinon
   // le tri « popularité perso » n'a rien à classer.
   if (visites) await page.addInitScript((v) => {

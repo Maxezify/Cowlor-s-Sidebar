@@ -59,6 +59,29 @@ window.__gsMode = 'ok';     // 'ok' | 'down' (l'API refuse)
 window.__calls = [];       // journal : une entrée par POST { n: nb d'opérations, ops:[logins] }
 window.__failNext = 0;     // nb de POST à faire échouer
 
+// ── Traduction des catégories ───────────────────────────────────────
+// Twitch sert DEUX noms par catégorie : `name`, canonique et anglais, celui
+// des URL et le seul que `game(name:)` accepte ; et `displayName`, traduit
+// d'après l'en-tête Accept-Language de la requête. Le stub reproduit ce
+// couple, sans quoi rien ne distinguerait une extension qui affiche la
+// traduction d'une qui affiche l'anglais — les deux chaînes seraient égales.
+// Table : nom canonique -> { <langue> : traduction }. Posée seulement si
+// personne ne l'a fixée avant : les captures de présentation la vident, faute
+// de traductions VÉRIFIÉES pour les douze langues de fiche — une image publiée
+// ne doit pas porter une traduction inventée.
+window.__i18nCats = window.__i18nCats || {
+  'Just Chatting': { fr: 'Discussions', de: 'Nur Chatten', es: 'Solo charlando' },
+};
+// En-tête Accept-Language du DERNIER POST reçu. C'est ce que le test lit pour
+// vérifier que l'extension demande bien la langue de l'interface.
+window.__lastAcceptLanguage = null;
+const traduire = (nom) => {
+  const t = window.__i18nCats[nom];
+  if (!t) return nom;                       // pas de traduction connue : Twitch
+  const l = (window.__lastAcceptLanguage || 'en').slice(0, 2).toLowerCase();
+  return t[l] || nom;                       // rend alors le nom canonique
+};
+
 // ── Chaînes globales ────────────────────────────────────────────────
 // __cats : [{ name, viewers, streams:[{login, viewers, tags?}] }]
 //   `viewers` de la catégorie est LIBRE : les tests s'en servent pour
@@ -167,6 +190,10 @@ window.__goLive = (login) => {
 // window.fetch ne serait plus cette fonction-ci.
 window.fetch = async (url, opt) => {
   const body = JSON.parse(opt.body);
+  // L'en-tête qui décide de la langue des catégories. Relevé AVANT de fabriquer
+  // la réponse : c'est lui que `traduire` consulte, exactement comme Twitch.
+  const enTetes = (opt && opt.headers) || {};
+  window.__lastAcceptLanguage = enTetes['Accept-Language'] || null;
   // Une opération porte désormais une LISTE de logins (users(logins:)).
   const ops = body.flatMap(o => o.variables?.logins || []);
   window.__calls.push({ n: ops.length, ops, op: body[0]?.operationName,
@@ -211,7 +238,7 @@ window.fetch = async (url, opt) => {
         // un autre identifiant de stream). Sans lui, l'identifiant est stable
         // d'un relevé à l'autre, ce qui est le cas ordinaire d'un stream en cours.
         id: f.sid || ('s-' + login), createdAt: f.createdAt, viewersCount: f.viewers,
-        game: { id: 'g', name: f.game },
+        game: { id: 'g', name: f.game, displayName: traduire(f.game) },
         freeformTags: (f.tags || []).map(n => ({ name: n }))
       } : null
     };
@@ -277,7 +304,7 @@ window.fetch = async (url, opt) => {
       if (window.__catsUnsorted) list = list.reverse();
       return { data: { games: { edges: list.slice(0, n).map(c => ({
         node: { id: 'gid-' + c.name, name: c.name,
-                displayName: c.name, viewersCount: c.viewers }
+                displayName: traduire(c.name), viewersCount: c.viewers }
       })) } } };
     }
     // ── Chaînes globales : sommet d'une catégorie ───────────────────────
@@ -325,7 +352,7 @@ window.fetch = async (url, opt) => {
           broadcaster: { id: (window.__fx[s.login] || {}).id || 'id-' + s.login,
                          login: s.login, displayName: s.login,
                          profileImageURL: 'https://cdn/api-' + s.login + '.png' },
-          game: { id: 'gid-' + c.name, name: c.name },
+          game: { id: 'gid-' + c.name, name: c.name, displayName: traduire(c.name) },
           freeformTags: (s.tags || []).map(t => ({ name: t }))
         } })) }
       } } };
