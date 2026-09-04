@@ -328,6 +328,67 @@ qui est le bon : ce qu'on oublie d'inclure **manque**, et un contrôle le voit �
 chaque fichier que le manifeste nomme doit être présent, et rien ne doit venir
 d'ailleurs que de la liste. `npm run package` en fait le `.zip` à soumettre.
 
+### Le paquet part sans ses commentaires (v3.59)
+
+Ce dépôt commente beaucoup, et c'est voulu : la moitié de ce qu'on sait de ce
+produit est écrite dans ses marges. Mais cette moitié-là vit **ici**, dans un
+dépôt public — elle n'a pas à voyager dans chaque installation ni à traverser
+la file de revue. `npm run addon` retire donc les commentaires du code
+assemblé :
+
+| Fichier | Avant | Après | Commentaires |
+| --- | --- | --- | --- |
+| `content.js` | 563 Ko | 291 Ko | 2 721 → **2** |
+| `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
+| **paquet** | **687 Ko** | **391 Ko** | **−43 %** |
+
+Ce que le paquet ne devient **pas** : minifié, ni obscurci. Les noms, les
+retours à la ligne et l'indentation sont ceux du dépôt, ligne pour ligne — la
+promesse « code source entièrement lisible » des douze fiches reste vraie au
+mot près.
+
+**Les mentions légales restent**, et ce n'est pas une politesse : `adblock.js`
+est du code tiers sous licence MIT, laquelle exige que sa notice accompagne
+« toute copie ou portion substantielle du logiciel » ; les drapeaux et le globe
+de `content.js` viennent d'OpenMoji, sous CC BY-SA 4.0, qui exige
+l'attribution. Les retirer aurait été une infraction, pas un gain de place.
+Tout commentaire portant `Copyright`, `Licence` ou `License` est donc conservé
+tel quel — ce sont exactement les quatre qui restent.
+
+#### Deux garde-fous, et ils ne prouvent pas la même chose
+
+Un découpage naïf casserait le fichier en silence, et il n'y a pas de silence
+plus complet qu'une extension qui ne démarre plus chez l'utilisateur. La
+séquence `//` apparaît dans chaque URL du fichier ; un début de bloc peut vivre
+dans une chaîne. Le découpage est donc fait par **acorn**, jamais par une
+expression régulière.
+
+1. **Le flux de jetons**, vérifié à chaque assemblage : les deux textes doivent
+   rendre les mêmes jetons, mêmes valeurs, même ordre. Rien d'autre qu'un
+   commentaire ne peut alors être parti.
+2. **L'exécution**, parce que le premier ne suffit pas. L'insertion automatique
+   de points-virgules ne se voit **pas** dans un flux de jetons : `return`
+   suivi d'un bloc multiligne puis de `5` rend `undefined`, et les mêmes jetons
+   sans le saut de ligne rendent `5`. Un commentaire de bloc contenant un saut
+   de ligne est donc remplacé par un saut de ligne, et le scénario 66 fait
+   tourner six extraits-pièges avant et après pour le vérifier.
+
+Enfin, `npm run prod` — qui publie les branches PROD READY — rejoue le **banc
+complet sur le fichier tel qu'il part**, sans commentaires. Une publication est
+rare ; les cinq minutes que ça coûte sont le meilleur marché du dépôt.
+`npm run test-livre` fait la même chose à la demande.
+
+#### Ce que ça change à la soumission
+
+Le fichier envoyé n'est plus, octet pour octet, celui du dépôt : c'est un
+fichier **produit** par une étape de construction. AMO demande alors de
+pouvoir remonter à la source, et c'est immédiat ici — le dépôt est public, la
+branche de développement porte `content.js` commenté, et `tests/degraisser.mjs`
+est la seule transformation appliquée. Rien n'est minifié ni obscurci, donc la
+règle qui compte vraiment pour la revue (« code lisible ») n'est pas touchée.
+Si le formulaire réclame une archive des sources, c'est la branche
+`claude/firefox` — ou `claude/chrome` — qu'il faut lui donner.
+
 ### Le rendu ne construit plus de balisage (v3.56.0)
 
 Les douze avertissements restants portaient tous sur le même code —
@@ -1731,6 +1792,42 @@ Une catégorie que Twitch ne traduit pas — la plupart des titres de jeux —
 renvoie un `displayName` égal au nom canonique, et s'affiche donc exactement
 comme avant.
 
+#### Vérifier ce que Twitch rend, langue par langue
+
+Le banc éprouve **notre** moitié du chemin dans les dix langues : chacune
+demande bien sa locale, et affiche bien ce que le serveur lui rend (scénario
+65). Il ne peut pas éprouver la moitié de Twitch — il ne l'appelle pas. Pour
+voir les vraies traductions, coller ceci dans la console d'un onglet Twitch
+(`F12`) :
+
+```js
+(async () => {
+  const LOCALES = ['fr-FR','en-US','de-DE','es-MX','pt-BR',
+                   'it-IT','pl-PL','ru-RU','ja-JP','zh-CN'];
+  const lignes = [];
+  for (const l of LOCALES) {
+    const r = await fetch('https://gql.twitch.tv/gql', {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'application/json',
+                 'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+                 'Accept-Language': l },
+      body: JSON.stringify([{ operationName: 'T', variables: {},
+        query: 'query T { game(name: "Just Chatting") { name displayName } }' }]),
+    });
+    const g = (await r.json())[0]?.data?.game;
+    lignes.push({ locale: l, canonique: g?.name, affiché: g?.displayName });
+  }
+  console.table(lignes);
+})();
+```
+
+C'est exactement la requête que l'extension émet — même Client-ID public, même
+`credentials: 'omit'`, même en-tête — à ceci près qu'elle boucle sur les dix
+locales au lieu d'envoyer celle de l'interface. La colonne « affiché » est ce
+que la sidebar écrira dans chacune de ces langues. Une locale qui rendrait le
+nom canonique signifie que **Twitch** ne traduit pas cette catégorie-là, pas
+que l'extension a manqué quelque chose.
+
 ---
 
 ## API console
@@ -1899,10 +1996,14 @@ cowlors-sidebar-for-twitch/
 ├── promo-fonts/           Inter et Noto embarquées dans les images (OFL 1.1)
 ├── store/                 le texte des douze fiches du Chrome Web Store
 ├── tests/
-│   ├── run.mjs              le harnais : 544 assertions, 64 scénarios
+│   ├── run.mjs              le harnais : 561 assertions, 66 scénarios
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
 │   ├── build.mjs            copie content.js avec les durées accélérées
-│   └── parity.mjs           parité des clés de traduction entre les 5 langues
+│   ├── degraisser.mjs       retire les commentaires du code livré (acorn)
+│   ├── addon.mjs            assemble le paquet et le soumet à l'addons-linter
+│   ├── prod.mjs             publie une branche dont l'arbre EST le paquet
+│   ├── store.mjs            squelette des douze fiches + couverture des images
+│   └── parity.mjs           parité des clés de traduction entre les 10 langues
 ├── README.md              ce fichier
 └── README.en.md           version anglaise
 ```

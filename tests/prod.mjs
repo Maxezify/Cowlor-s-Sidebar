@@ -58,6 +58,22 @@ try {
   process.exit(1);
 }
 
+/* 1 bis. Et le banc, sur le fichier TEL QU'IL PART.
+   Depuis que le paquet est dégraissé de ses commentaires, le fichier publié
+   n'est plus, octet pour octet, celui que `npm test` éprouve. L'égalité des
+   flux de jetons, vérifiée à l'assemblage, dit que c'est le même programme —
+   mais c'est une affirmation sur la grammaire. Les 556 assertions en sont une
+   sur le comportement, et c'est celle-là qu'on publie. Une publication est
+   rare ; les cinq minutes que ça coûte sont le meilleur marché du dépôt. */
+console.log('\n→ banc complet sur le code livré (sans commentaires)…');
+try {
+  execFileSync('node', [join(ICI, 'build.mjs'), '--sans-commentaires'], { cwd: RACINE, stdio: 'inherit' });
+  execFileSync('node', [join(ICI, 'run.mjs')], { cwd: RACINE, stdio: 'inherit' });
+} catch {
+  console.error('\n✗ le code livré ne passe pas le banc — rien n\'est publié.');
+  process.exit(1);
+}
+
 /* 2. L'arbre, construit dans un index TEMPORAIRE. */
 const lister = (racine, base = racine) => readdirSync(racine).flatMap((e) => {
   const p = join(racine, e);

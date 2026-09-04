@@ -80,7 +80,13 @@ où le code change :
    l'aperçu que l'extension ouvre elle-même. Le lecteur principal n'est jamais
    touché.
 7. **« Code source entièrement lisible »** — `content.js` et `adblock.js` sont
-   livrés tels quels, ni minifiés ni obscurcis, commentaires compris.
+   livrés **ni minifiés ni obscurcis** : mêmes noms, mêmes lignes, même
+   indentation que dans le dépôt. Depuis la 3.59 le paquet part en revanche
+   **sans les commentaires** (687 → 391 Ko) ; la phrase reste vraie au mot
+   près — c'est de lisibilité qu'elle parle, pas d'annotations — et les
+   commentaires, eux, sont dans le dépôt public. Les mentions légales, elles,
+   restent dans le paquet : la licence MIT d'`adblock.js` et les deux crédits
+   OpenMoji de `content.js` l'exigent. Voir `tests/degraisser.mjs`.
 8. **« Étiquettes de contenu … forment leur propre badge »** — `updateCclBadge`
    les pose en tête des badges de l'aperçu, depuis les identifiants que rend
    `contentClassificationLabels`. Cette phrase a été FAUSSE de la 3.44 à la
