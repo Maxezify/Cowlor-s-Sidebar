@@ -41,10 +41,11 @@
  *  Deux versions de ce script auraient divergé ; celle-ci ne le
  *  peut pas.
  * ============================================================ */
-import { readFileSync, rmSync, mkdirSync, cpSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync, mkdirSync, cpSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, sep } from 'node:path';
+import { degraisser, memeCode } from './degraisser.mjs';
 
 const ICI    = dirname(fileURLToPath(import.meta.url));
 const RACINE = join(ICI, '..');
@@ -88,6 +89,46 @@ const gecko = man.browser_specific_settings?.gecko ?? null;
 const CIBLE = gecko ? 'Firefox' : 'Chrome';
 
 console.log(`\nPaquet ${CIBLE} — assemblé dans dist/paquet (${dedans.length} fichiers)`);
+
+/* ── Le code livré part sans ses commentaires ──────────────────────────────
+   Le dépôt en porte beaucoup, et c'est voulu : la moitié de ce qu'on sait de
+   ce produit est écrite dans ses marges. Cette moitié-là vit dans le dépôt,
+   qui est public ; elle n'a pas à voyager dans chaque installation. Le paquet
+   passe de 687 à 391 Ko, soit 43 % de moins, et c'est du poids en moins sur
+   le disque de chaque utilisateur autant que dans la file de revue.
+
+   Ce que le paquet NE devient PAS : minifié ni obscurci. Les noms, les
+   retours à la ligne et l'indentation sont ceux du dépôt, ligne pour ligne —
+   « code source entièrement lisible », que les douze fiches promettent, reste
+   vrai au mot près. La notice MIT d'adblock.js reste elle aussi, la licence
+   l'exigeant de toute copie : cf. degraisser.mjs.
+
+   Et la preuve est le contrôle ci-dessous, pas la relecture : les deux textes
+   doivent rendre le MÊME flux de jetons. Un retrait qui aurait emporté autre
+   chose qu'un commentaire ne peut pas y survivre. */
+const degraisses = [];
+for (const f of ['content.js', 'adblock.js']) {
+  const p = join(PAQUET, f);
+  if (!existsSync(p)) continue;
+  const avant = readFileSync(p, 'utf8');
+  const apres = degraisser(avant);
+  const souci = memeCode(avant, apres);
+  degraisses.push({ f, souci, avant: Buffer.byteLength(avant), apres: Buffer.byteLength(apres) });
+  if (!souci) writeFileSync(p, apres);
+}
+const casses = degraisses.filter(d => d.souci);
+const gagne = degraisses.reduce((n, d) => n + d.avant - d.apres, 0);
+ok(`les commentaires sont retirés du code livré (${(gagne / 1024).toFixed(0)} Ko de moins)`
+   + ' — mêmes jetons, donc même programme',
+   casses.length === 0, casses.map(d => `${d.f} : ${d.souci}`).join(' | '));
+
+/* La notice de licence du code tiers doit avoir SURVÉCU au dégraissage. Ce
+   n'est pas une question de style : MIT exige que sa notice accompagne toute
+   copie du logiciel, et un paquet qui la perdrait serait en infraction. */
+const adb = existsSync(join(PAQUET, 'adblock.js'))
+  ? readFileSync(join(PAQUET, 'adblock.js'), 'utf8') : '';
+ok('la notice MIT du module anti-pub est toujours dans le paquet',
+   /Licence : MIT/.test(adb) && /Copyright \(c\) 2020-present TwitchAdSolutions/.test(adb));
 
 // ── 2. Complet, et rien de plus ──────────────────────────────────────────
 /* Tout ce que le manifeste NOMME doit être là. C'est ce qui empêche la liste

@@ -1350,6 +1350,42 @@ A category Twitch does not translate — most game titles — returns a
 `displayName` equal to the canonical name, and therefore renders exactly as
 before.
 
+
+#### Checking what Twitch returns, language by language
+
+The bench proves **our** half of the path in all ten languages: each one asks
+for its own locale, and displays what the server returns for it (scenario 65).
+It cannot prove Twitch's half — it never calls Twitch. To see the real
+translations, paste this into the console of a Twitch tab (`F12`):
+
+```js
+(async () => {
+  const LOCALES = ['fr-FR','en-US','de-DE','es-MX','pt-BR',
+                   'it-IT','pl-PL','ru-RU','ja-JP','zh-CN'];
+  const rows = [];
+  for (const l of LOCALES) {
+    const r = await fetch('https://gql.twitch.tv/gql', {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'application/json',
+                 'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+                 'Accept-Language': l },
+      body: JSON.stringify([{ operationName: 'T', variables: {},
+        query: 'query T { game(name: "Just Chatting") { name displayName } }' }]),
+    });
+    const g = (await r.json())[0]?.data?.game;
+    rows.push({ locale: l, canonical: g?.name, displayed: g?.displayName });
+  }
+  console.table(rows);
+})();
+```
+
+That is exactly the request the extension makes — same public Client-ID, same
+`credentials: 'omit'`, same header — except it loops over the ten locales
+instead of sending the interface's own. The "displayed" column is what the
+sidebar will write in each of those languages. A locale that returns the
+canonical name means **Twitch** does not translate that category, not that the
+extension missed something.
+
 ---
 
 ## Console API
@@ -1515,10 +1551,14 @@ cowlors-sidebar-for-twitch/
 ├── promo-fonts/           Inter and Noto embedded in the images (OFL 1.1)
 ├── store/                 the copy of the twelve Chrome Web Store listings
 ├── tests/
-│   ├── run.mjs              the harness: 544 assertions across 64 scenarios
+│   ├── run.mjs              the harness: 561 assertions across 66 scenarios
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
 │   ├── build.mjs            copies content.js with the timings accelerated
-│   └── parity.mjs           translation-key parity across the 5 languages
+│   ├── degraisser.mjs       strips comments from the shipped code (acorn)
+│   ├── addon.mjs            assembles the package and runs the addons-linter
+│   ├── prod.mjs             publishes a branch whose tree IS the package
+│   ├── store.mjs            twelve-listing skeleton + image coverage
+│   └── parity.mjs           translation-key parity across the 10 languages
 ├── README.md              French version of this file
 └── README.en.md           this file
 ```
@@ -1546,6 +1586,65 @@ Four independent checks:
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
 | `npm test` | the Playwright harness: 64 scenarios, 544 assertions |
+
+### The package ships without its comments (v3.59)
+
+This repository comments a lot, and deliberately so: half of what is known
+about this product is written in its margins. But that half lives **here**, in
+a public repository — it has no business travelling into every installation, or
+through the review queue. `npm run addon` therefore strips the comments from
+the assembled code:
+
+| File | Before | After | Comments |
+| --- | --- | --- | --- |
+| `content.js` | 563 KB | 291 KB | 2,721 → **2** |
+| `adblock.js` | 124 KB | 100 KB | 290 → **2** |
+| **package** | **687 KB** | **391 KB** | **−43 %** |
+
+What the package does **not** become: minified, or obfuscated. Names, line
+breaks and indentation are the repository's, line for line — the "full source
+code readable" promise on all twelve listings stays true to the word.
+
+**Legal notices stay**, and that is not politeness: `adblock.js` is third-party
+code under the MIT licence, which requires its notice to accompany "all copies
+or substantial portions of the Software"; the flags and globe in `content.js`
+come from OpenMoji under CC BY-SA 4.0, which requires attribution. Removing
+them would have been an infringement, not a saving. Every comment carrying
+`Copyright`, `Licence` or `License` is therefore kept verbatim — exactly the
+four that remain.
+
+#### Two guards, and they do not prove the same thing
+
+A naive split would break the file silently, and there is no silence more
+complete than an extension that no longer starts. The sequence `//` appears in
+every URL in the file; a block opener can live inside a string. The split is
+therefore done by **acorn**, never by a regular expression.
+
+1. **The token stream**, checked at every assembly: both texts must produce the
+   same tokens, same values, same order. Nothing other than a comment can then
+   have gone.
+2. **Execution**, because the first is not enough. Automatic semicolon
+   insertion is **invisible** in a token stream: `return` followed by a
+   multi-line block and then `5` yields `undefined`, while the same tokens
+   without the line break yield `5`. A block comment containing a line break is
+   therefore replaced by a line break, and bench scenario 66 runs six trap
+   snippets before and after to prove it.
+
+Finally, `npm run prod` — which publishes the PROD READY branches — replays the
+**whole bench on the file as it ships**, comment-free. A release is rare; the
+five minutes it costs are the best bargain in the repository.
+`npm run test-livre` does the same on demand.
+
+#### What this changes at submission time
+
+The submitted file is no longer, byte for byte, the repository's: it is a file
+**produced** by a build step. AMO then asks to be able to get back to the
+source, which is immediate here — the repository is public, the development
+branch carries the commented `content.js`, and `tests/degraisser.mjs` is the
+only transformation applied. Nothing is minified or obfuscated, so the rule
+that actually matters for review ("readable code") is untouched. If the form
+asks for a source archive, hand it the `claude/firefox` — or `claude/chrome` —
+branch.
 
 ### The rendering no longer builds markup (v3.56.0)
 

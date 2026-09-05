@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { degraisser } from './degraisser.mjs';
 
 // Chemins résolus depuis CE fichier, jamais depuis le répertoire courant :
 // `npm test` s'exécute à la racine, un lancement direct depuis tests/ ne s'y
@@ -9,6 +10,20 @@ const ICI    = dirname(fileURLToPath(import.meta.url));
 const RACINE = join(ICI, '..');
 
 let src = readFileSync(join(RACINE, 'content.js'), 'utf8');
+
+/* TSE_SANS_COMMENTAIRES=1 fait tourner le banc sur le fichier tel qu'il est
+   LIVRÉ, c'est-à-dire dégraissé de ses commentaires par tests/addon.mjs.
+   L'égalité des flux de jetons, vérifiée à l'assemblage, dit déjà que le
+   programme est le même ; mais « le même programme » est une affirmation sur
+   la grammaire, et 555 assertions sont une affirmation sur le comportement.
+   Les deux ne coûtent pas cher, et la seconde est celle qu'on publie. */
+/* Deux formes, et la seconde n'est pas un luxe : `VAR=1 npm run …` ne
+   fonctionne pas dans le cmd de Windows, où ce dépôt est aussi ouvert. Le
+   drapeau, lui, traverse. */
+const SANS_COMMENTAIRES = process.env.TSE_SANS_COMMENTAIRES === '1'
+  || process.argv.includes('--sans-commentaires');
+if (SANS_COMMENTAIRES) src = degraisser(src);
+
 // SEULE transformation : accélération des constantes de temps, pour ne pas
 // attendre 30 s réelles par cycle. La logique testée est celle du dépôt.
 const subs = [
@@ -100,5 +115,7 @@ writeFileSync(join(ICI, 'content.firefox.test.js'),
 // Le module anti-pub est copié TEL QUEL : il ne porte aucune constante de temps
 // à régler, et c'est justement son comportement d'origine qu'on veut éprouver —
 // à savoir qu'il ne fait STRICTEMENT RIEN hors iframe.
-writeFileSync(join(ICI, 'adblock.test.js'), readFileSync(join(RACINE, 'adblock.js'), 'utf8'));
-console.log(`content.test.js construit (${subs.length} constantes de temps accélérées) + adblock.test.js copié tel quel`);
+const adb = readFileSync(join(RACINE, 'adblock.js'), 'utf8');
+writeFileSync(join(ICI, 'adblock.test.js'), SANS_COMMENTAIRES ? degraisser(adb) : adb);
+console.log(`content.test.js construit (${subs.length} constantes de temps accélérées) + adblock.test.js copié tel quel`
+  + (SANS_COMMENTAIRES ? ' — SANS COMMENTAIRES, comme le paquet livré' : ''));

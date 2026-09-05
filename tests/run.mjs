@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { degraisser, memeCode, compterCommentaires } from './degraisser.mjs';
 
 // Tout est résolu depuis CE fichier : `npm test` tourne à la racine du dépôt,
 // un lancement direct tourne dans tests/, et les deux doivent marcher.
@@ -5579,6 +5580,153 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
   ok('et ce changement de langue ne fabrique aucun faux basculement',
      apres <= avant, `avant=${avant} après=${apres}`);
   await page.close();
+
+  // ── g) les DIX langues, et pas seulement celles qu'on a sous la main ────
+  /* La question posée est « les catégories ont-elles bien la traduction de
+     Twitch dans les autres langues ». Ce banc ne peut pas répondre pour
+     Twitch — il ne l'appelle pas. Il répond pour NOTRE moitié, qui est la
+     seule qu'on écrive : chaque langue demande-t-elle sa propre locale, et
+     affiche-t-elle ce que le serveur lui rend pour cette locale-là ?
+
+     La catégorie témoin n'a pas de nom réel et sa traduction est fabriquée
+     depuis la langue demandée. C'est délibéré : inventer dix noms que Twitch
+     n'a jamais écrits donnerait un test qui a l'air de connaître les
+     traductions de Twitch, ce qu'aucune ligne d'ici ne peut savoir. Ce qu'on
+     éprouve est le CHEMIN, langue par langue. */
+  const LOCALES = { fr: 'fr-FR', en: 'en-US', de: 'de-DE', es: 'es-MX', pt: 'pt-BR',
+                    it: 'it-IT', pl: 'pl-PL', ru: 'ru-RU', ja: 'ja-JP', zh: 'zh-CN' };
+  const boiteux = [];
+  for (const [lang, locale] of Object.entries(LOCALES)) {
+    const p = await browser.newPage();
+    p.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await p.goto(URL_PAGE);
+    await p.evaluate(({ l, langues }) => {
+      document.querySelector('.side-nav-section').removeAttribute('aria-label');
+      document.documentElement.lang = l;
+      const t = {};
+      for (const x of langues) t[x] = 'témoin-' + x;
+      window.__i18nCats = { 'Catégorie témoin': t };
+      window.__fx = { seul: { id: 's', createdAt: new Date(Date.now() - 3600_000).toISOString(),
+                              viewers: 1000, game: 'Catégorie témoin', tags: [] } };
+      window.__addCard('seul', 'Catégorie témoin', '1 k');
+    }, { l: lang, langues: Object.keys(LOCALES) });
+    await attendre(p, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+    const vu = await p.evaluate(() => {
+      const c = document.querySelector('.side-nav-card');
+      const el = c.querySelector('[data-a-target="side-nav-card-metadata"] p[title]');
+      return { entete: window.__lastAcceptLanguage,
+               texte: el?.textContent?.trim() ?? null,
+               identite: c.dataset.tseCategory ?? null };
+    });
+    await p.close();
+    if (vu.entete !== locale || vu.texte !== 'témoin-' + lang
+        || vu.identite !== 'Catégorie témoin') {
+      boiteux.push(`${lang} → ${JSON.stringify(vu)}`);
+    }
+  }
+  ok('les dix langues demandent leur locale et affichent ce qu\'elle rend',
+     boiteux.length === 0, boiteux.join(' | '));
+}
+
+// ═════════ 66. Le dégraissage du code livré ═════════
+titre('66. Paquet — retirer les commentaires sans toucher au programme');
+{
+  /* Le paquet part sans ses commentaires depuis la 3.59 : 687 Ko deviennent
+     391. Le gain est réel, et le risque aussi — un découpage naïf casserait le
+     fichier en silence, et il n'y a pas de « silence » plus complet qu'une
+     extension qui ne démarre plus chez l'utilisateur.
+
+     Deux garde-fous, et ils ne prouvent PAS la même chose.
+
+     Le premier est le flux de JETONS, vérifié à chaque assemblage : si les
+     deux textes rendent les mêmes jetons dans le même ordre, rien d'autre
+     qu'un commentaire n'est parti. C'est nécessaire, et ce n'est pas
+     suffisant : l'insertion automatique de points-virgules ne se voit PAS
+     dans le flux de jetons. « return /* saut de ligne *\/ 5 » et « return 5 »
+     ont exactement les mêmes jetons et ne rendent pas la même chose — le
+     premier rend undefined. C'est pourquoi un bloc multiligne est remplacé
+     par un saut de ligne au lieu d'être supprimé.
+
+     Le second garde-fou est donc l'EXÉCUTION : on fait tourner des extraits
+     choisis pour leurs pièges, avant et après, et on compare ce qu'ils
+     rendent. */
+
+  const rend = (src) => { try { return JSON.stringify(Function(src)()); }
+                          catch (e) { return 'ERREUR: ' + e.message; } };
+
+  const PIEGES = [
+    ['l\'ASI d\'un return coupé par un bloc multiligne',
+     'return /*\n*/ 5;'],
+    /* Le saut de ligne qui SUIT un commentaire de ligne ne lui appartient pas,
+       et c'est tout sauf un détail : l'emporter avec lui recolle « return » et
+       ce qui vient après, donc rend 5 là où le programme rendait undefined.
+       Deux jetons identiques, deux résultats différents — ce piège-là est le
+       seul qui distingue un découpage juste d'un découpage qui mord. */
+    ['le saut de ligne après un commentaire de ligne ne part pas avec lui',
+     'return // fin\n5;'],
+    ['deux jetons séparés par le seul commentaire ne se recollent pas',
+     'const x = 1; return typeof/* c */x;'],
+    ['un « // » dans une chaîne n\'est pas un commentaire',
+     'return "https://gql.twitch.tv/gql";'],
+    ['un début de bloc dans une chaîne non plus',
+     'return "a /* b */ c";'],
+    ['ni dans un littéral de gabarit',
+     'const x = 1; return `v=${x} // pas un commentaire`;'],
+    ['une expression régulière qui contient des barres obliques',
+     'return "https://x/y".replace(/\\/\\//, "@").length;'],
+    ['un commentaire de ligne en fin de fichier, sans saut final',
+     'const a = 1; return a; // fin'],
+  ];
+  const faux = [];
+  for (const [nom, src] of PIEGES) {
+    const avant = rend(src), apres = rend(degraisser(src));
+    if (avant !== apres) faux.push(`${nom} : ${avant} → ${apres}`);
+  }
+  ok('les pièges du découpage rendent la même chose avant et après',
+     faux.length === 0, faux.join(' | '));
+
+  /* Un dégraisseur qui ne ferait RIEN passerait tout ce qui précède. On mesure
+     donc qu'il enlève vraiment quelque chose, et sur les vrais fichiers. */
+  const RACINE = join(ICI, '..');
+  const mesures = ['content.js', 'adblock.js'].map((f) => {
+    const src = readFileSync(join(RACINE, f), 'utf8');
+    const out = degraisser(src);
+    return { f, souci: memeCode(src, out),
+             avant: Buffer.byteLength(src), apres: Buffer.byteLength(out) };
+  });
+  const abimes = mesures.filter(m => m.souci);
+  ok('content.js et adblock.js gardent leur flux de jetons exact',
+     abimes.length === 0, abimes.map(m => `${m.f} : ${m.souci}`).join(' | '));
+  const gain = 1 - mesures.reduce((n, m) => n + m.apres, 0)
+                 / mesures.reduce((n, m) => n + m.avant, 0);
+  ok(`et le paquet perd au moins un tiers de son poids (${(gain * 100).toFixed(0)} %)`,
+     gain > 0.33, mesures.map(m => `${m.f} ${m.avant}→${m.apres}`).join(' | '));
+
+  /* La notice MIT du code tiers doit survivre : la licence l'exige de toute
+     copie, et un dégraisseur zélé en ferait une infraction sans rien casser
+     de visible. */
+  const adbNu = degraisser(readFileSync(join(RACINE, 'adblock.js'), 'utf8'));
+  ok('la notice MIT du module anti-pub survit au dégraissage',
+     /Licence : MIT/.test(adbNu)
+     && /Copyright \(c\) 2020-present TwitchAdSolutions/.test(adbNu));
+
+  /* …et le reste doit bien être parti, sinon « conserver les mentions
+     légales » deviendrait « ne rien enlever ». La mesure est exacte : après
+     dégraissage, il ne doit rester QUE les notices, ni plus ni moins.
+     content.js passe de 2721 commentaires à 2 — les deux crédits OpenMoji,
+     dont la licence CC BY-SA exige l'attribution — et adblock.js de 290 à 2,
+     qui portent la notice MIT d'amont. */
+  const restants = ['content.js', 'adblock.js'].map((f) => {
+    const src = readFileSync(join(RACINE, f), 'utf8');
+    const a = compterCommentaires(src);
+    const b = compterCommentaires(degraisser(src));
+    return { f, avant: a.total, legaux: a.legaux, apres: b.total };
+  });
+  const boiteuses = restants.filter(r => r.apres !== r.legaux || r.legaux === 0
+                                      || r.avant < r.legaux + 100);
+  ok('après dégraissage il ne reste QUE les notices, dans les deux fichiers',
+     boiteuses.length === 0,
+     restants.map(r => `${r.f} ${r.avant}→${r.apres} (légaux ${r.legaux})`).join(' | '));
 }
 
 await browser.close();
