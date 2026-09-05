@@ -5981,6 +5981,14 @@ titre('67. Arrière-plan — ce qui s\'arrête, et ce qui repart');
      direct, puisque scanSidebar commence par refreshSidebarCollapsed et qu'un
      balayage qui tourne ne peut pas le cacher.
 
+     Le troisième témoin est plus large que les deux autres, et il faut le
+     savoir pour lire un échec : retirer la porte de l'OBSERVATEUR le fait
+     parler aussi, avec `appels: 0, delta: false`. C'est exact — un observateur
+     non gardé sonde le repli en arrière-plan — mais ce n'est pas le défaut que
+     cette assertion nomme, et l'assertion dédiée le dit deux lignes plus bas.
+     Trois témoins dont un seul parle, ce sont les deux muets qu'il faut lire :
+     ils disent qu'aucun balayage n'a tourné.
+
      Le délai est LU dans le fichier construit. build.mjs donne à SCAN_DEBOUNCE
      une valeur distincte de BATCH_DELAY précisément pour que ces lignes
      puissent nommer leur minuteur au lieu d'en attraper un autre. */
