@@ -1597,9 +1597,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 563 KB | 291 KB | 2,721 → **2** |
+| `content.js` | 563 KB | 262 KB | 2,721 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| **package** | **687 KB** | **391 KB** | **−43 %** |
+| **both** | **687 KB** | **362 KB** | **−47 %** |
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
 `dist/paquet/`, never to the repository's files: `content.js` keeps its 2,721
@@ -1636,6 +1636,42 @@ therefore done by **acorn**, never by a regular expression.
    without the line break yield `5`. A block comment containing a line break is
    therefore replaced by a line break, and bench scenario 66 runs six trap
    snippets before and after to prove it.
+
+#### CSS is not JavaScript
+
+The stylesheet lives in a template literal — `const CSS = \`…\`` — and to acorn
+that is a **string**. Its 77 comments are therefore not JavaScript comments,
+and the first pass never sees them. A second pass removes them, and it has
+traps of its own:
+
+- a `/*` inside a CSS string (`content: "/*"`) opens nothing;
+- a comment **glued to a token on both sides** cannot be removed without
+  changing the rule: `foo/*x*/bar` is two identifiers and would become
+  `foobar`, one; replacing it with a space saves nothing either, since in a
+  selector `.a/*x*/.b` is `.a.b` and a space would make it `.a .b`. Neither
+  replacement is right everywhere, so only comments with **whitespace on at
+  least one side** are removed — all 77 qualify;
+- a comment that would straddle a `${…}` interpolation is left alone, for want
+  of a way to decide.
+
+The pass is **targeted by variable name**. Sweeping every template literal
+would break the day one of them held SVG or HTML containing `/*` — there it is
+not a comment, and removing it would change what is displayed. Exactly one
+literal in the file contains that sequence today, and it is the CSS.
+
+**The proof is not made in Node**: the browser is what reads this CSS, so the
+browser is what gets asked. The bench takes the sheet the extension actually
+injected — interpolations resolved — strips it, has Chromium parse both, and
+compares its object model: **139 rules, same order, same declarations**.
+
+That comparison failed at first, and the failure was worth having: Chromium
+**normalises** what it hands back — `#fff` becomes `rgb(255, 255, 255)`,
+shorthands are expanded — **except values containing a `var()`**, which it
+returns as written, mid-value comment included. One rule in the file has one in
+its `background`. Rules are therefore compared with comments removed from both
+sides — which costs nothing, since the one genuinely dangerous case (a comment
+removed between two tokens of a value) falls exactly where Chromium normalises,
+and so stays visible.
 
 Finally, `npm run prod` — which publishes the PROD READY branches — replays the
 **whole bench on the file as it ships**, comment-free. A release is rare; the
