@@ -45,7 +45,7 @@ import { readFileSync, writeFileSync, rmSync, mkdirSync, cpSync, existsSync, rea
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, sep } from 'node:path';
-import { degraisser, memeCode } from './degraisser.mjs';
+import { degraisser, memeCode, compterCommentaires } from './degraisser.mjs';
 
 const ICI    = dirname(fileURLToPath(import.meta.url));
 const RACINE = join(ICI, '..');
@@ -121,6 +121,25 @@ const gagne = degraisses.reduce((n, d) => n + d.avant - d.apres, 0);
 ok(`les commentaires sont retirés du code livré (${(gagne / 1024).toFixed(0)} Ko de moins)`
    + ' — mêmes jetons, donc même programme',
    casses.length === 0, casses.map(d => `${d.f} : ${d.souci}`).join(' | '));
+
+/* LE DÉGRAISSAGE NE SORT PAS DU PAQUET. C'est la moitié de la règle, et c'est
+   celle qui ne se voit pas : le retrait porte sur la COPIE assemblée dans
+   dist/paquet, jamais sur les fichiers du dépôt. Les commentaires sont la
+   moitié de ce qu'on sait de ce produit — les perdre du dépôt en croyant
+   n'alléger qu'un paquet serait une perte sans retour, et elle passerait
+   inaperçue jusqu'au jour où quelqu'un ouvrirait content.js pour comprendre
+   une décision.
+
+   Une ligne d'écriture qui viserait la racine au lieu de PAQUET suffirait, et
+   rien d'autre ici ne la verrait. On relit donc les sources APRÈS l'assemblage
+   pour constater qu'elles ont encore leurs commentaires. */
+const intacts = ['content.js', 'adblock.js'].map((f) => {
+  const src = readFileSync(join(RACINE, f), 'utf8');
+  return { f, ...compterCommentaires(src) };
+});
+ok('les fichiers du dépôt gardent leurs commentaires — seul le paquet est dégraissé',
+   intacts.every(s => s.total > s.legaux + 100),
+   intacts.map(s => `${s.f} : ${s.total} commentaires`).join(', '));
 
 /* La notice de licence du code tiers doit avoir SURVÉCU au dégraissage. Ce
    n'est pas une question de style : MIT exige que sa notice accompagne toute
