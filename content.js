@@ -3601,6 +3601,132 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
   };
 
+  const panneau = {
+
+    sections: {
+      scores() {
+        const lignes = buildScoresReport();
+        return { colonnes: ['login', 'score', 'visits', 'last'], lignes,
+                 resume: { chaines: lignes.length } };
+      },
+      subs() {
+        const lignes = subs.entries();
+        return { colonnes: ['login', 'sub', 'ts', 'mois', 'ancien', 'origine'], lignes,
+                 resume: { chaines: lignes.length,
+                           abonnees: lignes.filter(e => e.sub).length,
+
+                           releve: subsPage.horodatage() } };
+      },
+      roster() {
+        const lignes = roster.entries().map(([login, ts]) => ({ login, ts }));
+        return { colonnes: ['login', 'ts'], lignes, resume: { chaines: lignes.length } };
+      },
+      lag() {
+        const echantillons = liveLag.all();
+        const lags  = echantillons.map(s => s.lag).filter(Number.isFinite);
+        const gains = echantillons.map(s => s.gain).filter(Number.isFinite);
+
+        const quantile = (arr, q) => {
+          if (!arr.length) return null;
+          const a = arr.slice().sort((x, y) => x - y);
+          return a[Math.min(a.length - 1, Math.floor(a.length * q))];
+        };
+        return {
+          colonnes: ['login', 'lag', 'gain', 'ts'],
+          lignes: echantillons.slice().reverse(),
+          resume: { mesures: echantillons.length,
+                    medianeLag: quantile(lags, 0.5), p90Lag: quantile(lags, 0.9),
+                    gains: gains.length, medianeGain: quantile(gains, 0.5) },
+        };
+      },
+      bascules() {
+        const lignes = [];
+        for (const login of [...basculements.keys()]) {
+          const b = basculementFrais(login);
+          if (b) lignes.push({ login, libelle: b.libelle || b.vers, canonique: b.vers,
+                               ts: b.ts, ageSec: Math.round((Date.now() - b.ts) / 1000) });
+        }
+        return { colonnes: ['login', 'libelle', 'canonique', 'ageSec'], lignes,
+                 resume: { bascules: lignes.length } };
+      },
+      cycles() {
+        const lignes = loadingOverlay.journal();
+        return { colonnes: ['t', 'evt', 'detail'], lignes,
+                 resume: { evenements: lignes.length, verrous: loadingOverlay.verrous() } };
+      },
+      apercu() {
+        const lignes = preview.journal();
+        return { colonnes: ['t', 'evt', 'detail'], lignes,
+                 resume: { evenements: lignes.length } };
+      },
+      diagnose() {
+        const lignes = runDiagnostics();
+        return { colonnes: ['label', 'status', 'critical', 'detail'], lignes,
+                 resume: { sondes: lignes.length,
+                           cassees: lignes.filter(p => p.status === 'broken').length,
+                           critiquesCassees: lignes.filter(p => p.critical && p.status === 'broken').length,
+                           casse: hasCriticalBreakage(lignes) } };
+      },
+      global() {
+        const rapport = globalChannels.report();
+        const lignes = globalChannels.top(CFG.GLOBAL_TOP_N)
+          .map((r, i) => ({ rang: i + 1, login: r.login, viewers: r.viewers, game: r.game }));
+        return { colonnes: ['rang', 'login', 'viewers', 'game'], lignes,
+                 resume: { actif: !!state.globalMode, ...rapport } };
+      },
+      categories() {
+        const lignes = globalChannels.cats(25)
+          .map((c, i) => ({ rang: i + 1, libelle: c.display, canonique: c.name, viewers: c.viewers }));
+        return { colonnes: ['rang', 'libelle', 'canonique', 'viewers'], lignes,
+                 resume: { categories: lignes.length, actif: !!state.globalMode } };
+      },
+    },
+
+    actions: {
+      reset()   { tseApi.reset(); return { fait: true }; },
+      rescan()  { tseApi.rescan(); return { fait: true }; },
+      async refreshSubs() {
+        const r = await subsPage.refresh(true);
+        return { fait: r !== null, chaines: Array.isArray(r) ? r.length : 0 };
+      },
+      async globalOn()  { state.globalMode = true;  await globalChannels.warm();
+                          return { actif: true }; },
+      globalOff()       { state.globalMode = false; globalChannels.reset();
+                          return { actif: false }; },
+    },
+  };
+
+  tseApi.panneau = (nom, arg) => {
+    const f = panneau.sections[nom];
+    if (!f) throw new Error(`[tse] section inconnue : ${nom}`);
+    return f(arg);
+  };
+
+  const TSE_PANNEAU_REQ = 'tse-panneau-req';
+  const TSE_PANNEAU_RES = 'tse-panneau-res';
+  window.addEventListener('message', (e) => {
+
+    if (e.source !== window) return;
+    const d = e.data;
+    if (!d || d.tse !== TSE_PANNEAU_REQ || typeof d.id !== 'number') return;
+
+    const repondre = (charge) =>
+      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
+
+    try {
+      const cible = d.action ? panneau.actions[d.action] : panneau.sections[d.section];
+      if (typeof cible !== 'function') {
+        repondre({ ok: false, erreur: 'inconnu' });
+        return;
+      }
+      Promise.resolve(cible(d.arg))
+        .then((data) => repondre({ ok: true, data }))
+        .catch((err) => repondre({ ok: false, erreur: String(err && err.message || err) }));
+    } catch (err) {
+      repondre({ ok: false, erreur: String(err && err.message || err) });
+    }
+  });
+
   tseApi.scores.raw = () => buildScoresReport();
 
   tseApi.subs.refresh = () => subsPage.refresh(true);

@@ -10,5 +10,266 @@
   "extDescription": {
     "message": "Улучшает боковую панель Twitch: более полезные сведения о стримах и лучший порядок.",
     "description": "Краткое описание расширения (максимум 132 символа в Chrome Web Store)"
+  },
+  "panelSubtitle": {
+    "message": "Данные и диагностика"
+  },
+  "grpData": {
+    "message": "Ваши данные"
+  },
+  "grpDiag": {
+    "message": "Диагностика"
+  },
+  "grpGlobal": {
+    "message": "Топ каналов"
+  },
+  "navScores": {
+    "message": "Рейтинг посещений"
+  },
+  "descScores": {
+    "message": "Каналы, упорядоченные по частоте посещений. Читается из локальной истории — ни одного запроса не отправляется."
+  },
+  "navSubs": {
+    "message": "Подписки"
+  },
+  "descSubs": {
+    "message": "Каналы, на которые вы подписаны: замечены при просмотре и прочитаны со страницы подписок."
+  },
+  "navRoster": {
+    "message": "Известные каналы"
+  },
+  "descRoster": {
+    "message": "Все отслеживаемые каналы, которые расширение хотя бы раз видело на боковой панели."
+  },
+  "navDiagnose": {
+    "message": "Состояние селекторов"
+  },
+  "descDiagnose": {
+    "message": "Распознаёт ли расширение разметку Twitch? Сломанный критический зонд означает, что часть перестала работать."
+  },
+  "navLag": {
+    "message": "Задержка Twitch"
+  },
+  "descLag": {
+    "message": "Сколько времени Twitch показывает карточку после начала трансляции и насколько расширение его опередило."
+  },
+  "navCycles": {
+    "message": "Экран загрузки"
+  },
+  "descCycles": {
+    "message": "Когда появился экран загрузки, почему и что его убрало."
+  },
+  "navApercu": {
+    "message": "Предпросмотр при наведении"
+  },
+  "descApercu": {
+    "message": "Что произошло во время последнего предпросмотра при наведении."
+  },
+  "navBascules": {
+    "message": "Смены категории"
+  },
+  "descBascules": {
+    "message": "Каналы, сменившие категорию за последние десять минут."
+  },
+  "navGlobal": {
+    "message": "Рейтинг"
+  },
+  "descGlobal": {
+    "message": "Мировой рейтинг, который расширение строит при включённом режиме «Топ каналов»."
+  },
+  "navCategories": {
+    "message": "Категории"
+  },
+  "descCategories": {
+    "message": "Категории по аудитории — в том виде, в каком их возвращает Twitch."
+  },
+  "colLogin": {
+    "message": "Канал"
+  },
+  "colScore": {
+    "message": "Балл"
+  },
+  "colVisits": {
+    "message": "Посещения"
+  },
+  "colLast": {
+    "message": "Последний визит"
+  },
+  "colSub": {
+    "message": "Подписан"
+  },
+  "colSeen": {
+    "message": "Последний раз"
+  },
+  "colMonths": {
+    "message": "Месяцы"
+  },
+  "colFormer": {
+    "message": "Бывшая"
+  },
+  "colSource": {
+    "message": "Источник"
+  },
+  "colLag": {
+    "message": "Задержка"
+  },
+  "colGain": {
+    "message": "Опережение"
+  },
+  "colElapsed": {
+    "message": "С загрузки"
+  },
+  "colEvent": {
+    "message": "Событие"
+  },
+  "colDetail": {
+    "message": "Подробности"
+  },
+  "colProbe": {
+    "message": "Зонд"
+  },
+  "colStatus": {
+    "message": "Статус"
+  },
+  "colCritical": {
+    "message": "Критичный"
+  },
+  "colRank": {
+    "message": "Место"
+  },
+  "colViewers": {
+    "message": "Зрители"
+  },
+  "colGame": {
+    "message": "Категория"
+  },
+  "colLabel": {
+    "message": "Категория"
+  },
+  "colCanonical": {
+    "message": "Каноническое имя"
+  },
+  "colAge": {
+    "message": "Назад"
+  },
+  "sumChannels": {
+    "message": "каналов"
+  },
+  "sumSubscribed": {
+    "message": "подписок"
+  },
+  "sumSweep": {
+    "message": "последний обход"
+  },
+  "sumProbes": {
+    "message": "зондов"
+  },
+  "sumBroken": {
+    "message": "критических сбоев"
+  },
+  "sumSamples": {
+    "message": "измерений"
+  },
+  "sumMedian": {
+    "message": "медианная задержка"
+  },
+  "sumP90": {
+    "message": "90-й процентиль"
+  },
+  "sumMedianGain": {
+    "message": "медианное опережение"
+  },
+  "sumEvents": {
+    "message": "событий"
+  },
+  "sumLocks": {
+    "message": "удержания"
+  },
+  "sumSwitches": {
+    "message": "смен"
+  },
+  "sumMode": {
+    "message": "режим"
+  },
+  "sumComplete": {
+    "message": "полный"
+  },
+  "sumCategories": {
+    "message": "категорий"
+  },
+  "btnRefreshSubs": {
+    "message": "Обновить сейчас"
+  },
+  "btnRescan": {
+    "message": "Пересканировать панель"
+  },
+  "btnReset": {
+    "message": "Очистить историю"
+  },
+  "btnGlobalOn": {
+    "message": "Включить"
+  },
+  "btnGlobalOff": {
+    "message": "Выключить"
+  },
+  "btnRetry": {
+    "message": "Повторить"
+  },
+  "btnConfirm": {
+    "message": "Очистить"
+  },
+  "btnCancel": {
+    "message": "Отмена"
+  },
+  "stateLoading": {
+    "message": "Загрузка…"
+  },
+  "stateEmpty": {
+    "message": "Пока ничего не записано."
+  },
+  "stateAbsent": {
+    "message": "Откройте вкладку twitch.tv, перейдите на неё и повторите попытку."
+  },
+  "stateError": {
+    "message": "Страница не смогла ответить."
+  },
+  "stateTimeout": {
+    "message": "Страница отвечала слишком долго."
+  },
+  "statusOk": {
+    "message": "ОК"
+  },
+  "statusBroken": {
+    "message": "Сломан"
+  },
+  "statusNa": {
+    "message": "Н/Д"
+  },
+  "valYes": {
+    "message": "Да"
+  },
+  "valNo": {
+    "message": "Нет"
+  },
+  "valNever": {
+    "message": "Никогда"
+  },
+  "valOn": {
+    "message": "Включён"
+  },
+  "valOff": {
+    "message": "Выключен"
+  },
+  "healthOk": {
+    "message": "Селекторы в норме"
+  },
+  "healthBroken": {
+    "message": "Селекторы сломаны"
+  },
+  "resetTitle": {
+    "message": "Очистить всю историю?"
+  },
+  "resetText": {
+    "message": "Баллы посещений, найденные подписки, известные каналы и измерения задержки будут удалены из этого браузера. Это необратимо."
   }
 }

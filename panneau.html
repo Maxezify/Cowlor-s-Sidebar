@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Cowlor's Sidebar</title>
+  <link rel="stylesheet" href="panneau.css">
+</head>
+<body>
+  <!-- Le panneau est peuplé par panneau.js : rien n'est écrit en dur ici, ni
+       libellé ni colonne. Le HTML ne pose que la charpente, parce qu'une page
+       d'extension ne peut pas substituer __MSG_…__ dans son corps — seul le
+       manifeste et le CSS le peuvent. Tout ce qui se lit vient donc de
+       chrome.i18n, en douze locales, posé par data-i18n. -->
+  <header class="tete">
+    <img class="tete-logo" src="icons/icon48.png" alt="" width="26" height="26">
+    <div class="tete-texte">
+      <!-- Le nom du produit vient de la clé que le manifeste utilise déjà :
+           une seconde clé aurait pu diverger de la première. -->
+      <h1 class="tete-titre" data-i18n="extShortName"></h1>
+      <p class="tete-sous" data-i18n="panelSubtitle"></p>
+    </div>
+    <div class="tete-etat" id="etat" hidden>
+      <span class="pastille" id="etat-pastille"></span>
+      <span id="etat-texte"></span>
+    </div>
+  </header>
+
+  <div class="corps">
+    <nav class="rail" id="rail" aria-label="Sections"></nav>
+
+    <main class="vue" id="vue">
+      <div class="vue-tete">
+        <div>
+          <h2 class="vue-titre" id="vue-titre"></h2>
+          <p class="vue-desc" id="vue-desc"></p>
+        </div>
+        <div class="vue-actions" id="vue-actions"></div>
+      </div>
+
+      <div class="resume" id="resume"></div>
+
+      <div class="tableau-cadre" id="tableau-cadre">
+        <table class="tableau" id="tableau">
+          <thead id="tableau-tete"></thead>
+          <tbody id="tableau-corps"></tbody>
+        </table>
+      </div>
+
+      <div class="message" id="message" hidden>
+        <p class="message-texte" id="message-texte"></p>
+        <button class="bouton" id="message-bouton" hidden></button>
+      </div>
+    </main>
+  </div>
+
+  <footer class="pied">
+    <button class="bouton bouton--fantome" id="btn-rescan" data-i18n="btnRescan"></button>
+    <button class="bouton bouton--danger" id="btn-reset" data-i18n="btnReset"></button>
+  </footer>
+
+  <!-- Confirmation des actions irréversibles. Une boîte dans le panneau et non
+       un confirm() natif : confirm() est bloquant, non traduisible, et son
+       apparence n'appartient à personne. -->
+  <div class="voile" id="voile" hidden>
+    <div class="boite" role="alertdialog" aria-modal="true" aria-labelledby="boite-titre">
+      <h3 id="boite-titre" class="boite-titre"></h3>
+      <p class="boite-texte" id="boite-texte"></p>
+      <div class="boite-pied">
+        <button class="bouton" id="boite-annuler" data-i18n="btnCancel"></button>
+        <button class="bouton bouton--danger" id="boite-ok" data-i18n="btnConfirm"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="panneau.js"></script>
+</body>
+</html>

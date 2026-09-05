@@ -10,5 +10,266 @@
   "extDescription": {
     "message": "Migliora la barra laterale di Twitch con informazioni sullo stream più pertinenti e una migliore organizzazione.",
     "description": "Descrizione breve dell'estensione (max 132 caratteri su Chrome Web Store)"
+  },
+  "panelSubtitle": {
+    "message": "Dati e diagnostica"
+  },
+  "grpData": {
+    "message": "I tuoi dati"
+  },
+  "grpDiag": {
+    "message": "Diagnostica"
+  },
+  "grpGlobal": {
+    "message": "Canali di punta"
+  },
+  "navScores": {
+    "message": "Punteggi di popolarità"
+  },
+  "descScores": {
+    "message": "Canali ordinati in base a quanto spesso li visiti. Letto dalla cronologia locale: nessuna richiesta viene inviata."
+  },
+  "navSubs": {
+    "message": "Abbonamenti"
+  },
+  "descSubs": {
+    "message": "Canali a cui sei abbonato, rilevati durante la navigazione e leggendo la tua pagina degli abbonamenti."
+  },
+  "navRoster": {
+    "message": "Canali noti"
+  },
+  "descRoster": {
+    "message": "Tutti i canali seguiti che l'estensione ha visto almeno una volta nella barra laterale."
+  },
+  "navDiagnose": {
+    "message": "Salute dei selettori"
+  },
+  "descDiagnose": {
+    "message": "L'estensione riconosce ancora il markup di Twitch? Una sonda critica rotta significa che una parte ha smesso di funzionare."
+  },
+  "navLag": {
+    "message": "Ritardo di Twitch"
+  },
+  "descLag": {
+    "message": "Quanto tempo impiega Twitch a mostrare una scheda dopo l'inizio di una diretta, e il vantaggio guadagnato dall'estensione."
+  },
+  "navCycles": {
+    "message": "Velo di caricamento"
+  },
+  "descCycles": {
+    "message": "Quando il velo è comparso, perché, e cosa lo ha fatto sparire."
+  },
+  "navApercu": {
+    "message": "Anteprima al passaggio del mouse"
+  },
+  "descApercu": {
+    "message": "Cosa è successo durante l'ultima anteprima su cui sei passato col mouse."
+  },
+  "navBascules": {
+    "message": "Cambi di categoria"
+  },
+  "descBascules": {
+    "message": "Canali che hanno cambiato categoria negli ultimi dieci minuti."
+  },
+  "navGlobal": {
+    "message": "Classifica"
+  },
+  "descGlobal": {
+    "message": "La classifica mondiale che l'estensione costruisce quando Canali di punta è attivo."
+  },
+  "navCategories": {
+    "message": "Categorie"
+  },
+  "descCategories": {
+    "message": "Categorie ordinate per pubblico, così come le restituisce Twitch."
+  },
+  "colLogin": {
+    "message": "Canale"
+  },
+  "colScore": {
+    "message": "Punteggio"
+  },
+  "colVisits": {
+    "message": "Visite"
+  },
+  "colLast": {
+    "message": "Ultima visita"
+  },
+  "colSub": {
+    "message": "Abbonato"
+  },
+  "colSeen": {
+    "message": "Visto l'ultima volta"
+  },
+  "colMonths": {
+    "message": "Mesi"
+  },
+  "colFormer": {
+    "message": "Passato"
+  },
+  "colSource": {
+    "message": "Origine"
+  },
+  "colLag": {
+    "message": "Ritardo"
+  },
+  "colGain": {
+    "message": "Vantaggio"
+  },
+  "colElapsed": {
+    "message": "Dal caricamento"
+  },
+  "colEvent": {
+    "message": "Evento"
+  },
+  "colDetail": {
+    "message": "Dettaglio"
+  },
+  "colProbe": {
+    "message": "Sonda"
+  },
+  "colStatus": {
+    "message": "Stato"
+  },
+  "colCritical": {
+    "message": "Critica"
+  },
+  "colRank": {
+    "message": "Posizione"
+  },
+  "colViewers": {
+    "message": "Spettatori"
+  },
+  "colGame": {
+    "message": "Categoria"
+  },
+  "colLabel": {
+    "message": "Categoria"
+  },
+  "colCanonical": {
+    "message": "Nome canonico"
+  },
+  "colAge": {
+    "message": "Da"
+  },
+  "sumChannels": {
+    "message": "canali"
+  },
+  "sumSubscribed": {
+    "message": "abbonamenti"
+  },
+  "sumSweep": {
+    "message": "ultima rilevazione"
+  },
+  "sumProbes": {
+    "message": "sonde"
+  },
+  "sumBroken": {
+    "message": "guasti critici"
+  },
+  "sumSamples": {
+    "message": "campioni"
+  },
+  "sumMedian": {
+    "message": "ritardo mediano"
+  },
+  "sumP90": {
+    "message": "90° percentile"
+  },
+  "sumMedianGain": {
+    "message": "vantaggio mediano"
+  },
+  "sumEvents": {
+    "message": "eventi"
+  },
+  "sumLocks": {
+    "message": "blocchi"
+  },
+  "sumSwitches": {
+    "message": "cambi"
+  },
+  "sumMode": {
+    "message": "modalità"
+  },
+  "sumComplete": {
+    "message": "completa"
+  },
+  "sumCategories": {
+    "message": "categorie"
+  },
+  "btnRefreshSubs": {
+    "message": "Rileva ora"
+  },
+  "btnRescan": {
+    "message": "Rianalizza la barra"
+  },
+  "btnReset": {
+    "message": "Cancella la cronologia"
+  },
+  "btnGlobalOn": {
+    "message": "Attiva"
+  },
+  "btnGlobalOff": {
+    "message": "Disattiva"
+  },
+  "btnRetry": {
+    "message": "Riprova"
+  },
+  "btnConfirm": {
+    "message": "Cancella"
+  },
+  "btnCancel": {
+    "message": "Annulla"
+  },
+  "stateLoading": {
+    "message": "Caricamento…"
+  },
+  "stateEmpty": {
+    "message": "Ancora nulla di registrato."
+  },
+  "stateAbsent": {
+    "message": "Apri una scheda twitch.tv, portala in primo piano e riprova."
+  },
+  "stateError": {
+    "message": "La pagina non ha potuto rispondere."
+  },
+  "stateTimeout": {
+    "message": "La pagina ha impiegato troppo a rispondere."
+  },
+  "statusOk": {
+    "message": "OK"
+  },
+  "statusBroken": {
+    "message": "Rotta"
+  },
+  "statusNa": {
+    "message": "N/D"
+  },
+  "valYes": {
+    "message": "Sì"
+  },
+  "valNo": {
+    "message": "No"
+  },
+  "valNever": {
+    "message": "Mai"
+  },
+  "valOn": {
+    "message": "Attivo"
+  },
+  "valOff": {
+    "message": "Inattivo"
+  },
+  "healthOk": {
+    "message": "Selettori OK"
+  },
+  "healthBroken": {
+    "message": "Selettori rotti"
+  },
+  "resetTitle": {
+    "message": "Cancellare tutta la cronologia?"
+  },
+  "resetText": {
+    "message": "I punteggi di visita, gli abbonamenti rilevati, i canali noti e le misurazioni del ritardo saranno eliminati da questo browser. L'operazione è irreversibile."
   }
 }

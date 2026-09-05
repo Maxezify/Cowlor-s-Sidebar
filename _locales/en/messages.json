@@ -10,5 +10,353 @@
   "extDescription": {
     "message": "Improves Twitch's sidebar with more relevant stream information and better organization.",
     "description": "Short description of the extension (max 132 chars on Chrome Web Store)"
+  },
+  "panelSubtitle": {
+    "message": "Data and diagnostics",
+    "description": "Sous-titre de l'en-tête du panneau"
+  },
+  "grpData": {
+    "message": "Your data",
+    "description": "Groupe du rail : les données de l'utilisateur"
+  },
+  "grpDiag": {
+    "message": "Diagnostics",
+    "description": "Groupe du rail : diagnostic"
+  },
+  "grpGlobal": {
+    "message": "Top Channels",
+    "description": "Groupe du rail : mode Top Chaînes"
+  },
+  "navScores": {
+    "message": "Popularity scores",
+    "description": "Section : scores de popularité"
+  },
+  "descScores": {
+    "message": "Channels ranked by how often you visit them. Read from your local history — no request is sent.",
+    "description": "Description de la section scores"
+  },
+  "navSubs": {
+    "message": "Subscriptions",
+    "description": "Section : abonnements"
+  },
+  "descSubs": {
+    "message": "Channels you are subscribed to, spotted while browsing and by reading your subscriptions page.",
+    "description": "Description de la section abonnements"
+  },
+  "navRoster": {
+    "message": "Known channels",
+    "description": "Section : chaînes connues"
+  },
+  "descRoster": {
+    "message": "Every followed channel the extension has seen in your sidebar at least once.",
+    "description": "Description de la section chaînes connues"
+  },
+  "navDiagnose": {
+    "message": "Selector health",
+    "description": "Section : santé des sélecteurs"
+  },
+  "descDiagnose": {
+    "message": "Whether the extension still recognises Twitch's markup. A broken critical probe means part of it has stopped working.",
+    "description": "Description de la section diagnostic"
+  },
+  "navLag": {
+    "message": "Twitch's delay",
+    "description": "Section : retard de Twitch"
+  },
+  "descLag": {
+    "message": "How long Twitch takes to show a card after a stream starts, and the head start the extension gained.",
+    "description": "Description de la section retard"
+  },
+  "navCycles": {
+    "message": "Loading overlay",
+    "description": "Section : cycles du voile de chargement"
+  },
+  "descCycles": {
+    "message": "When the overlay went up, why, and what brought it down.",
+    "description": "Description de la section voile"
+  },
+  "navApercu": {
+    "message": "Hover preview",
+    "description": "Section : aperçu au survol"
+  },
+  "descApercu": {
+    "message": "What happened during the last preview you hovered.",
+    "description": "Description de la section aperçu"
+  },
+  "navBascules": {
+    "message": "Category switches",
+    "description": "Section : basculements de catégorie"
+  },
+  "descBascules": {
+    "message": "Channels that changed category in the last ten minutes.",
+    "description": "Description de la section basculements"
+  },
+  "navGlobal": {
+    "message": "Ranking",
+    "description": "Section : classement mondial"
+  },
+  "descGlobal": {
+    "message": "The world ranking the extension builds when Top Channels is on.",
+    "description": "Description de la section classement"
+  },
+  "navCategories": {
+    "message": "Categories",
+    "description": "Section : catégories"
+  },
+  "descCategories": {
+    "message": "Categories ranked by audience, as returned by Twitch.",
+    "description": "Description de la section catégories"
+  },
+  "colLogin": {
+    "message": "Channel",
+    "description": "Colonne : nom de chaîne"
+  },
+  "colScore": {
+    "message": "Score",
+    "description": "Colonne : score"
+  },
+  "colVisits": {
+    "message": "Visits",
+    "description": "Colonne : nombre de visites"
+  },
+  "colLast": {
+    "message": "Last visit",
+    "description": "Colonne : dernière visite"
+  },
+  "colSub": {
+    "message": "Subscribed",
+    "description": "Colonne : abonné ou non"
+  },
+  "colSeen": {
+    "message": "Last seen",
+    "description": "Colonne : dernière observation"
+  },
+  "colMonths": {
+    "message": "Months",
+    "description": "Colonne : mois d'abonnement"
+  },
+  "colFormer": {
+    "message": "Former",
+    "description": "Colonne : abonnement révolu"
+  },
+  "colSource": {
+    "message": "Source",
+    "description": "Colonne : origine de l'information"
+  },
+  "colLag": {
+    "message": "Delay",
+    "description": "Colonne : retard mesuré"
+  },
+  "colGain": {
+    "message": "Head start",
+    "description": "Colonne : avance prise par l'extension"
+  },
+  "colElapsed": {
+    "message": "Since load",
+    "description": "Colonne : temps écoulé depuis le chargement"
+  },
+  "colEvent": {
+    "message": "Event",
+    "description": "Colonne : événement"
+  },
+  "colDetail": {
+    "message": "Detail",
+    "description": "Colonne : détail"
+  },
+  "colProbe": {
+    "message": "Probe",
+    "description": "Colonne : nom de la sonde"
+  },
+  "colStatus": {
+    "message": "Status",
+    "description": "Colonne : état de la sonde"
+  },
+  "colCritical": {
+    "message": "Critical",
+    "description": "Colonne : la sonde est-elle critique"
+  },
+  "colRank": {
+    "message": "Rank",
+    "description": "Colonne : rang au classement"
+  },
+  "colViewers": {
+    "message": "Viewers",
+    "description": "Colonne : spectateurs"
+  },
+  "colGame": {
+    "message": "Category",
+    "description": "Colonne : catégorie du stream"
+  },
+  "colLabel": {
+    "message": "Category",
+    "description": "Colonne : libellé traduit de la catégorie"
+  },
+  "colCanonical": {
+    "message": "Canonical name",
+    "description": "Colonne : nom canonique (anglais) de la catégorie"
+  },
+  "colAge": {
+    "message": "Age",
+    "description": "Colonne : ancienneté du basculement"
+  },
+  "sumChannels": {
+    "message": "channels",
+    "description": "Cartouche : nombre de chaînes"
+  },
+  "sumSubscribed": {
+    "message": "subscribed",
+    "description": "Cartouche : nombre d'abonnements"
+  },
+  "sumSweep": {
+    "message": "last full sweep",
+    "description": "Cartouche : date du dernier relevé complet"
+  },
+  "sumProbes": {
+    "message": "probes",
+    "description": "Cartouche : nombre de sondes"
+  },
+  "sumBroken": {
+    "message": "critical breaks",
+    "description": "Cartouche : sondes critiques cassées"
+  },
+  "sumSamples": {
+    "message": "samples",
+    "description": "Cartouche : nombre de mesures"
+  },
+  "sumMedian": {
+    "message": "median delay",
+    "description": "Cartouche : retard médian"
+  },
+  "sumP90": {
+    "message": "90th percentile",
+    "description": "Cartouche : 90e centile du retard"
+  },
+  "sumMedianGain": {
+    "message": "median head start",
+    "description": "Cartouche : avance médiane"
+  },
+  "sumEvents": {
+    "message": "events",
+    "description": "Cartouche : nombre d'événements"
+  },
+  "sumLocks": {
+    "message": "holds",
+    "description": "Cartouche : verrous de voile posés"
+  },
+  "sumSwitches": {
+    "message": "switches",
+    "description": "Cartouche : nombre de basculements"
+  },
+  "sumMode": {
+    "message": "mode",
+    "description": "Cartouche : état du mode Top Chaînes"
+  },
+  "sumComplete": {
+    "message": "complete",
+    "description": "Cartouche : le classement est-il complet"
+  },
+  "sumCategories": {
+    "message": "categories",
+    "description": "Cartouche : nombre de catégories"
+  },
+  "btnRefreshSubs": {
+    "message": "Sweep now",
+    "description": "Bouton : forcer un relevé complet des abonnements"
+  },
+  "btnRescan": {
+    "message": "Rescan sidebar",
+    "description": "Bouton : forcer un balayage complet de la barre latérale"
+  },
+  "btnReset": {
+    "message": "Erase history",
+    "description": "Bouton : effacer tout l'historique local"
+  },
+  "btnGlobalOn": {
+    "message": "Turn on",
+    "description": "Bouton : activer le mode Top Chaînes"
+  },
+  "btnGlobalOff": {
+    "message": "Turn off",
+    "description": "Bouton : couper le mode Top Chaînes"
+  },
+  "btnRetry": {
+    "message": "Try again",
+    "description": "Bouton : réessayer après un échec"
+  },
+  "btnConfirm": {
+    "message": "Erase",
+    "description": "Bouton : confirmer l'effacement"
+  },
+  "btnCancel": {
+    "message": "Cancel",
+    "description": "Bouton : annuler"
+  },
+  "stateLoading": {
+    "message": "Loading…",
+    "description": "État : chargement en cours"
+  },
+  "stateEmpty": {
+    "message": "Nothing recorded yet.",
+    "description": "État : rien à afficher"
+  },
+  "stateAbsent": {
+    "message": "Open a twitch.tv tab and bring it to the front, then try again.",
+    "description": "État : aucune page Twitch au premier plan"
+  },
+  "stateError": {
+    "message": "The page could not answer.",
+    "description": "État : la page n'a pas pu répondre"
+  },
+  "stateTimeout": {
+    "message": "The page took too long to answer.",
+    "description": "État : la page a mis trop de temps"
+  },
+  "statusOk": {
+    "message": "OK",
+    "description": "État de sonde : répond"
+  },
+  "statusBroken": {
+    "message": "Broken",
+    "description": "État de sonde : cassée"
+  },
+  "statusNa": {
+    "message": "N/A",
+    "description": "État de sonde : non applicable ici"
+  },
+  "valYes": {
+    "message": "Yes",
+    "description": "Valeur booléenne : oui"
+  },
+  "valNo": {
+    "message": "No",
+    "description": "Valeur booléenne : non"
+  },
+  "valNever": {
+    "message": "Never",
+    "description": "Valeur : jamais eu lieu"
+  },
+  "valOn": {
+    "message": "On",
+    "description": "Valeur : mode actif"
+  },
+  "valOff": {
+    "message": "Off",
+    "description": "Valeur : mode coupé"
+  },
+  "healthOk": {
+    "message": "Selectors OK",
+    "description": "Pastille : tous les sélecteurs critiques répondent"
+  },
+  "healthBroken": {
+    "message": "Selectors broken",
+    "description": "Pastille : au moins un sélecteur critique est cassé"
+  },
+  "resetTitle": {
+    "message": "Erase all history?",
+    "description": "Titre de la confirmation d'effacement"
+  },
+  "resetText": {
+    "message": "Visit scores, spotted subscriptions, known channels and delay measurements will be deleted from this browser. This cannot be undone.",
+    "description": "Texte de la confirmation d'effacement"
   }
 }
