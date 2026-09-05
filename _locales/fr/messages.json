@@ -10,5 +10,266 @@
   "extDescription": {
     "message": "Améliore la barre latérale de Twitch avec des informations de stream plus pertinentes et une meilleure organisation.",
     "description": "Description courte de l'extension (max 132 caractères Chrome Web Store)"
+  },
+  "panelSubtitle": {
+    "message": "Données et diagnostic"
+  },
+  "grpData": {
+    "message": "Vos données"
+  },
+  "grpDiag": {
+    "message": "Diagnostic"
+  },
+  "grpGlobal": {
+    "message": "Top Chaînes"
+  },
+  "navScores": {
+    "message": "Scores de popularité"
+  },
+  "descScores": {
+    "message": "Chaînes classées selon la fréquence de vos visites. Lu dans votre historique local — aucune requête n'est envoyée."
+  },
+  "navSubs": {
+    "message": "Abonnements"
+  },
+  "descSubs": {
+    "message": "Chaînes auxquelles vous êtes abonné, repérées au fil de vos visites et par lecture de votre page d'abonnements."
+  },
+  "navRoster": {
+    "message": "Chaînes connues"
+  },
+  "descRoster": {
+    "message": "Toutes les chaînes suivies que l'extension a vues au moins une fois dans votre barre latérale."
+  },
+  "navDiagnose": {
+    "message": "Santé des sélecteurs"
+  },
+  "descDiagnose": {
+    "message": "L'extension reconnaît-elle encore le markup de Twitch ? Une sonde critique cassée signifie qu'une partie a cessé de fonctionner."
+  },
+  "navLag": {
+    "message": "Retard de Twitch"
+  },
+  "descLag": {
+    "message": "Combien de temps Twitch met à afficher une carte après le début d'un direct, et l'avance prise par l'extension."
+  },
+  "navCycles": {
+    "message": "Voile de chargement"
+  },
+  "descCycles": {
+    "message": "Quand le voile est monté, pourquoi, et ce qui l'a fait retomber."
+  },
+  "navApercu": {
+    "message": "Aperçu au survol"
+  },
+  "descApercu": {
+    "message": "Ce qui s'est passé pendant le dernier aperçu que vous avez survolé."
+  },
+  "navBascules": {
+    "message": "Basculements de catégorie"
+  },
+  "descBascules": {
+    "message": "Chaînes ayant changé de catégorie dans les dix dernières minutes."
+  },
+  "navGlobal": {
+    "message": "Classement"
+  },
+  "descGlobal": {
+    "message": "Le classement mondial que l'extension construit quand le mode Top Chaînes est actif."
+  },
+  "navCategories": {
+    "message": "Catégories"
+  },
+  "descCategories": {
+    "message": "Catégories classées par audience, telles que Twitch les rend."
+  },
+  "colLogin": {
+    "message": "Chaîne"
+  },
+  "colScore": {
+    "message": "Score"
+  },
+  "colVisits": {
+    "message": "Visites"
+  },
+  "colLast": {
+    "message": "Dernière visite"
+  },
+  "colSub": {
+    "message": "Abonné"
+  },
+  "colSeen": {
+    "message": "Vu le"
+  },
+  "colMonths": {
+    "message": "Mois"
+  },
+  "colFormer": {
+    "message": "Révolu"
+  },
+  "colSource": {
+    "message": "Origine"
+  },
+  "colLag": {
+    "message": "Retard"
+  },
+  "colGain": {
+    "message": "Avance"
+  },
+  "colElapsed": {
+    "message": "Depuis le chargement"
+  },
+  "colEvent": {
+    "message": "Événement"
+  },
+  "colDetail": {
+    "message": "Détail"
+  },
+  "colProbe": {
+    "message": "Sonde"
+  },
+  "colStatus": {
+    "message": "État"
+  },
+  "colCritical": {
+    "message": "Critique"
+  },
+  "colRank": {
+    "message": "Rang"
+  },
+  "colViewers": {
+    "message": "Spectateurs"
+  },
+  "colGame": {
+    "message": "Catégorie"
+  },
+  "colLabel": {
+    "message": "Catégorie"
+  },
+  "colCanonical": {
+    "message": "Nom canonique"
+  },
+  "colAge": {
+    "message": "Il y a"
+  },
+  "sumChannels": {
+    "message": "chaînes"
+  },
+  "sumSubscribed": {
+    "message": "abonnements"
+  },
+  "sumSweep": {
+    "message": "dernier relevé"
+  },
+  "sumProbes": {
+    "message": "sondes"
+  },
+  "sumBroken": {
+    "message": "critiques cassées"
+  },
+  "sumSamples": {
+    "message": "mesures"
+  },
+  "sumMedian": {
+    "message": "retard médian"
+  },
+  "sumP90": {
+    "message": "90e centile"
+  },
+  "sumMedianGain": {
+    "message": "avance médiane"
+  },
+  "sumEvents": {
+    "message": "événements"
+  },
+  "sumLocks": {
+    "message": "verrous"
+  },
+  "sumSwitches": {
+    "message": "basculements"
+  },
+  "sumMode": {
+    "message": "mode"
+  },
+  "sumComplete": {
+    "message": "complet"
+  },
+  "sumCategories": {
+    "message": "catégories"
+  },
+  "btnRefreshSubs": {
+    "message": "Relever maintenant"
+  },
+  "btnRescan": {
+    "message": "Rebalayer la barre"
+  },
+  "btnReset": {
+    "message": "Effacer l'historique"
+  },
+  "btnGlobalOn": {
+    "message": "Activer"
+  },
+  "btnGlobalOff": {
+    "message": "Couper"
+  },
+  "btnRetry": {
+    "message": "Réessayer"
+  },
+  "btnConfirm": {
+    "message": "Effacer"
+  },
+  "btnCancel": {
+    "message": "Annuler"
+  },
+  "stateLoading": {
+    "message": "Chargement…"
+  },
+  "stateEmpty": {
+    "message": "Rien d'enregistré pour l'instant."
+  },
+  "stateAbsent": {
+    "message": "Ouvrez un onglet twitch.tv et mettez-le au premier plan, puis réessayez."
+  },
+  "stateError": {
+    "message": "La page n'a pas pu répondre."
+  },
+  "stateTimeout": {
+    "message": "La page a mis trop de temps à répondre."
+  },
+  "statusOk": {
+    "message": "OK"
+  },
+  "statusBroken": {
+    "message": "Cassée"
+  },
+  "statusNa": {
+    "message": "S. O."
+  },
+  "valYes": {
+    "message": "Oui"
+  },
+  "valNo": {
+    "message": "Non"
+  },
+  "valNever": {
+    "message": "Jamais"
+  },
+  "valOn": {
+    "message": "Actif"
+  },
+  "valOff": {
+    "message": "Coupé"
+  },
+  "healthOk": {
+    "message": "Sélecteurs OK"
+  },
+  "healthBroken": {
+    "message": "Sélecteurs cassés"
+  },
+  "resetTitle": {
+    "message": "Effacer tout l'historique ?"
+  },
+  "resetText": {
+    "message": "Les scores de visite, les abonnements repérés, les chaînes connues et les mesures de retard seront supprimés de ce navigateur. C'est irréversible."
   }
 }

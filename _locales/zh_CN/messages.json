@@ -10,5 +10,266 @@
   "extDescription": {
     "message": "改进 Twitch 侧边栏，提供更实用的直播信息和更清晰的排列。",
     "description": "扩展的简短描述（Chrome 应用商店最多 132 个字符）"
+  },
+  "panelSubtitle": {
+    "message": "数据与诊断"
+  },
+  "grpData": {
+    "message": "你的数据"
+  },
+  "grpDiag": {
+    "message": "诊断"
+  },
+  "grpGlobal": {
+    "message": "热门频道"
+  },
+  "navScores": {
+    "message": "热度评分"
+  },
+  "descScores": {
+    "message": "按访问频率排列的频道。读取自本地历史记录，不发送任何请求。"
+  },
+  "navSubs": {
+    "message": "订阅"
+  },
+  "descSubs": {
+    "message": "你已订阅的频道，通过浏览过程中的识别和读取订阅页面获得。"
+  },
+  "navRoster": {
+    "message": "已知频道"
+  },
+  "descRoster": {
+    "message": "扩展在侧边栏中至少见过一次的所有关注频道。"
+  },
+  "navDiagnose": {
+    "message": "选择器健康状况"
+  },
+  "descDiagnose": {
+    "message": "扩展是否仍能识别 Twitch 的页面结构。关键探针损坏意味着部分功能已停止工作。"
+  },
+  "navLag": {
+    "message": "Twitch 的延迟"
+  },
+  "descLag": {
+    "message": "直播开始后 Twitch 显示卡片所需的时间，以及扩展抢先的时间。"
+  },
+  "navCycles": {
+    "message": "加载遮罩"
+  },
+  "descCycles": {
+    "message": "遮罩何时出现、为何出现，以及是什么让它消失。"
+  },
+  "navApercu": {
+    "message": "悬停预览"
+  },
+  "descApercu": {
+    "message": "你最后一次悬停预览时发生了什么。"
+  },
+  "navBascules": {
+    "message": "分类切换"
+  },
+  "descBascules": {
+    "message": "过去十分钟内更换过分类的频道。"
+  },
+  "navGlobal": {
+    "message": "排行榜"
+  },
+  "descGlobal": {
+    "message": "开启热门频道模式时扩展构建的全球排行榜。"
+  },
+  "navCategories": {
+    "message": "分类"
+  },
+  "descCategories": {
+    "message": "按观众数排列的分类，直接来自 Twitch。"
+  },
+  "colLogin": {
+    "message": "频道"
+  },
+  "colScore": {
+    "message": "评分"
+  },
+  "colVisits": {
+    "message": "访问次数"
+  },
+  "colLast": {
+    "message": "最近访问"
+  },
+  "colSub": {
+    "message": "已订阅"
+  },
+  "colSeen": {
+    "message": "最近出现"
+  },
+  "colMonths": {
+    "message": "月数"
+  },
+  "colFormer": {
+    "message": "曾订阅"
+  },
+  "colSource": {
+    "message": "来源"
+  },
+  "colLag": {
+    "message": "延迟"
+  },
+  "colGain": {
+    "message": "抢先"
+  },
+  "colElapsed": {
+    "message": "自加载起"
+  },
+  "colEvent": {
+    "message": "事件"
+  },
+  "colDetail": {
+    "message": "详情"
+  },
+  "colProbe": {
+    "message": "探针"
+  },
+  "colStatus": {
+    "message": "状态"
+  },
+  "colCritical": {
+    "message": "关键"
+  },
+  "colRank": {
+    "message": "排名"
+  },
+  "colViewers": {
+    "message": "观众"
+  },
+  "colGame": {
+    "message": "分类"
+  },
+  "colLabel": {
+    "message": "分类"
+  },
+  "colCanonical": {
+    "message": "规范名称"
+  },
+  "colAge": {
+    "message": "距今"
+  },
+  "sumChannels": {
+    "message": "个频道"
+  },
+  "sumSubscribed": {
+    "message": "个订阅"
+  },
+  "sumSweep": {
+    "message": "最近一次扫描"
+  },
+  "sumProbes": {
+    "message": "个探针"
+  },
+  "sumBroken": {
+    "message": "关键损坏"
+  },
+  "sumSamples": {
+    "message": "个样本"
+  },
+  "sumMedian": {
+    "message": "延迟中位数"
+  },
+  "sumP90": {
+    "message": "第 90 百分位"
+  },
+  "sumMedianGain": {
+    "message": "抢先中位数"
+  },
+  "sumEvents": {
+    "message": "个事件"
+  },
+  "sumLocks": {
+    "message": "保持项"
+  },
+  "sumSwitches": {
+    "message": "次切换"
+  },
+  "sumMode": {
+    "message": "模式"
+  },
+  "sumComplete": {
+    "message": "完整"
+  },
+  "sumCategories": {
+    "message": "个分类"
+  },
+  "btnRefreshSubs": {
+    "message": "立即扫描"
+  },
+  "btnRescan": {
+    "message": "重新扫描侧边栏"
+  },
+  "btnReset": {
+    "message": "清除历史记录"
+  },
+  "btnGlobalOn": {
+    "message": "开启"
+  },
+  "btnGlobalOff": {
+    "message": "关闭"
+  },
+  "btnRetry": {
+    "message": "重试"
+  },
+  "btnConfirm": {
+    "message": "清除"
+  },
+  "btnCancel": {
+    "message": "取消"
+  },
+  "stateLoading": {
+    "message": "加载中…"
+  },
+  "stateEmpty": {
+    "message": "尚无记录。"
+  },
+  "stateAbsent": {
+    "message": "请打开一个 twitch.tv 标签页并切换到它，然后重试。"
+  },
+  "stateError": {
+    "message": "页面无法响应。"
+  },
+  "stateTimeout": {
+    "message": "页面响应超时。"
+  },
+  "statusOk": {
+    "message": "正常"
+  },
+  "statusBroken": {
+    "message": "损坏"
+  },
+  "statusNa": {
+    "message": "不适用"
+  },
+  "valYes": {
+    "message": "是"
+  },
+  "valNo": {
+    "message": "否"
+  },
+  "valNever": {
+    "message": "从未"
+  },
+  "valOn": {
+    "message": "开启"
+  },
+  "valOff": {
+    "message": "关闭"
+  },
+  "healthOk": {
+    "message": "选择器正常"
+  },
+  "healthBroken": {
+    "message": "选择器损坏"
+  },
+  "resetTitle": {
+    "message": "要清除全部历史记录吗？"
+  },
+  "resetText": {
+    "message": "访问评分、已识别的订阅、已知频道和延迟测量数据将从此浏览器中删除。此操作无法撤销。"
   }
 }

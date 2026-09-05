@@ -10,5 +10,266 @@
   "extDescription": {
     "message": "Ulepsza panel boczny Twitcha o trafniejsze informacje o transmisjach i lepszą organizację.",
     "description": "Krótki opis rozszerzenia (maks. 132 znaki w Chrome Web Store)"
+  },
+  "panelSubtitle": {
+    "message": "Dane i diagnostyka"
+  },
+  "grpData": {
+    "message": "Twoje dane"
+  },
+  "grpDiag": {
+    "message": "Diagnostyka"
+  },
+  "grpGlobal": {
+    "message": "Najpopularniejsze kanały"
+  },
+  "navScores": {
+    "message": "Wyniki popularności"
+  },
+  "descScores": {
+    "message": "Kanały uszeregowane według częstotliwości odwiedzin. Odczytane z lokalnej historii — nie wysyłamy żadnego zapytania."
+  },
+  "navSubs": {
+    "message": "Subskrypcje"
+  },
+  "descSubs": {
+    "message": "Kanały, które subskrybujesz — wykryte podczas przeglądania i z odczytu strony subskrypcji."
+  },
+  "navRoster": {
+    "message": "Znane kanały"
+  },
+  "descRoster": {
+    "message": "Wszystkie obserwowane kanały, które rozszerzenie widziało choć raz na pasku bocznym."
+  },
+  "navDiagnose": {
+    "message": "Kondycja selektorów"
+  },
+  "descDiagnose": {
+    "message": "Czy rozszerzenie nadal rozpoznaje kod strony Twitcha? Uszkodzona sonda krytyczna oznacza, że część przestała działać."
+  },
+  "navLag": {
+    "message": "Opóźnienie Twitcha"
+  },
+  "descLag": {
+    "message": "Ile czasu Twitch potrzebuje, by pokazać kafelek po rozpoczęciu transmisji, i przewaga zdobyta przez rozszerzenie."
+  },
+  "navCycles": {
+    "message": "Zasłona ładowania"
+  },
+  "descCycles": {
+    "message": "Kiedy pojawiła się zasłona, dlaczego i co ją zdjęło."
+  },
+  "navApercu": {
+    "message": "Podgląd po najechaniu"
+  },
+  "descApercu": {
+    "message": "Co się wydarzyło podczas ostatniego podglądu, na który najechałeś."
+  },
+  "navBascules": {
+    "message": "Zmiany kategorii"
+  },
+  "descBascules": {
+    "message": "Kanały, które zmieniły kategorię w ciągu ostatnich dziesięciu minut."
+  },
+  "navGlobal": {
+    "message": "Ranking"
+  },
+  "descGlobal": {
+    "message": "Światowy ranking budowany przez rozszerzenie, gdy tryb najpopularniejszych kanałów jest włączony."
+  },
+  "navCategories": {
+    "message": "Kategorie"
+  },
+  "descCategories": {
+    "message": "Kategorie uszeregowane według widowni, tak jak zwraca je Twitch."
+  },
+  "colLogin": {
+    "message": "Kanał"
+  },
+  "colScore": {
+    "message": "Wynik"
+  },
+  "colVisits": {
+    "message": "Wizyty"
+  },
+  "colLast": {
+    "message": "Ostatnia wizyta"
+  },
+  "colSub": {
+    "message": "Subskrybowany"
+  },
+  "colSeen": {
+    "message": "Ostatnio widziany"
+  },
+  "colMonths": {
+    "message": "Miesiące"
+  },
+  "colFormer": {
+    "message": "Dawny"
+  },
+  "colSource": {
+    "message": "Źródło"
+  },
+  "colLag": {
+    "message": "Opóźnienie"
+  },
+  "colGain": {
+    "message": "Przewaga"
+  },
+  "colElapsed": {
+    "message": "Od załadowania"
+  },
+  "colEvent": {
+    "message": "Zdarzenie"
+  },
+  "colDetail": {
+    "message": "Szczegół"
+  },
+  "colProbe": {
+    "message": "Sonda"
+  },
+  "colStatus": {
+    "message": "Stan"
+  },
+  "colCritical": {
+    "message": "Krytyczna"
+  },
+  "colRank": {
+    "message": "Miejsce"
+  },
+  "colViewers": {
+    "message": "Widzowie"
+  },
+  "colGame": {
+    "message": "Kategoria"
+  },
+  "colLabel": {
+    "message": "Kategoria"
+  },
+  "colCanonical": {
+    "message": "Nazwa kanoniczna"
+  },
+  "colAge": {
+    "message": "Temu"
+  },
+  "sumChannels": {
+    "message": "kanałów"
+  },
+  "sumSubscribed": {
+    "message": "subskrypcji"
+  },
+  "sumSweep": {
+    "message": "ostatni odczyt"
+  },
+  "sumProbes": {
+    "message": "sond"
+  },
+  "sumBroken": {
+    "message": "awarii krytycznych"
+  },
+  "sumSamples": {
+    "message": "pomiarów"
+  },
+  "sumMedian": {
+    "message": "mediana opóźnienia"
+  },
+  "sumP90": {
+    "message": "90. percentyl"
+  },
+  "sumMedianGain": {
+    "message": "mediana przewagi"
+  },
+  "sumEvents": {
+    "message": "zdarzeń"
+  },
+  "sumLocks": {
+    "message": "blokady"
+  },
+  "sumSwitches": {
+    "message": "zmian"
+  },
+  "sumMode": {
+    "message": "tryb"
+  },
+  "sumComplete": {
+    "message": "kompletny"
+  },
+  "sumCategories": {
+    "message": "kategorii"
+  },
+  "btnRefreshSubs": {
+    "message": "Odczytaj teraz"
+  },
+  "btnRescan": {
+    "message": "Przeskanuj pasek"
+  },
+  "btnReset": {
+    "message": "Wyczyść historię"
+  },
+  "btnGlobalOn": {
+    "message": "Włącz"
+  },
+  "btnGlobalOff": {
+    "message": "Wyłącz"
+  },
+  "btnRetry": {
+    "message": "Spróbuj ponownie"
+  },
+  "btnConfirm": {
+    "message": "Wyczyść"
+  },
+  "btnCancel": {
+    "message": "Anuluj"
+  },
+  "stateLoading": {
+    "message": "Wczytywanie…"
+  },
+  "stateEmpty": {
+    "message": "Nic jeszcze nie zapisano."
+  },
+  "stateAbsent": {
+    "message": "Otwórz kartę twitch.tv, przełącz się na nią i spróbuj ponownie."
+  },
+  "stateError": {
+    "message": "Strona nie mogła odpowiedzieć."
+  },
+  "stateTimeout": {
+    "message": "Strona odpowiadała zbyt długo."
+  },
+  "statusOk": {
+    "message": "OK"
+  },
+  "statusBroken": {
+    "message": "Uszkodzona"
+  },
+  "statusNa": {
+    "message": "Nie dot."
+  },
+  "valYes": {
+    "message": "Tak"
+  },
+  "valNo": {
+    "message": "Nie"
+  },
+  "valNever": {
+    "message": "Nigdy"
+  },
+  "valOn": {
+    "message": "Włączony"
+  },
+  "valOff": {
+    "message": "Wyłączony"
+  },
+  "healthOk": {
+    "message": "Selektory OK"
+  },
+  "healthBroken": {
+    "message": "Selektory uszkodzone"
+  },
+  "resetTitle": {
+    "message": "Wyczyścić całą historię?"
+  },
+  "resetText": {
+    "message": "Wyniki wizyt, wykryte subskrypcje, znane kanały i pomiary opóźnień zostaną usunięte z tej przeglądarki. Tej operacji nie można cofnąć."
   }
 }

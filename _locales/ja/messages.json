@@ -10,5 +10,266 @@
   "extDescription": {
     "message": "Twitch のサイドバーを改善し、配信情報をより分かりやすく、整理された形で表示します。",
     "description": "拡張機能の短い説明（Chrome ウェブストアでは最大132文字）"
+  },
+  "panelSubtitle": {
+    "message": "データと診断"
+  },
+  "grpData": {
+    "message": "あなたのデータ"
+  },
+  "grpDiag": {
+    "message": "診断"
+  },
+  "grpGlobal": {
+    "message": "トップチャンネル"
+  },
+  "navScores": {
+    "message": "人気スコア"
+  },
+  "descScores": {
+    "message": "訪問頻度で並べたチャンネル。ローカル履歴から読み取り、リクエストは送信しません。"
+  },
+  "navSubs": {
+    "message": "サブスクリプション"
+  },
+  "descSubs": {
+    "message": "サブスクライブ中のチャンネル。閲覧中の検出と、サブスクリプションページの読み取りによります。"
+  },
+  "navRoster": {
+    "message": "既知のチャンネル"
+  },
+  "descRoster": {
+    "message": "拡張機能がサイドバーで一度でも見たフォロー中のチャンネルすべて。"
+  },
+  "navDiagnose": {
+    "message": "セレクターの健全性"
+  },
+  "descDiagnose": {
+    "message": "拡張機能が Twitch のマークアップをまだ認識しているか。重要なプローブが壊れていれば、一部が動作を停止しています。"
+  },
+  "navLag": {
+    "message": "Twitch の遅れ"
+  },
+  "descLag": {
+    "message": "配信開始後に Twitch がカードを表示するまでの時間と、拡張機能が稼いだ先行時間。"
+  },
+  "navCycles": {
+    "message": "読み込みオーバーレイ"
+  },
+  "descCycles": {
+    "message": "オーバーレイが表示された時刻と理由、そして解除の要因。"
+  },
+  "navApercu": {
+    "message": "ホバープレビュー"
+  },
+  "descApercu": {
+    "message": "最後にホバーしたプレビューで起きたこと。"
+  },
+  "navBascules": {
+    "message": "カテゴリーの切り替え"
+  },
+  "descBascules": {
+    "message": "過去 10 分間にカテゴリーを変更したチャンネル。"
+  },
+  "navGlobal": {
+    "message": "ランキング"
+  },
+  "descGlobal": {
+    "message": "トップチャンネルモードが有効なときに拡張機能が構築する世界ランキング。"
+  },
+  "navCategories": {
+    "message": "カテゴリー"
+  },
+  "descCategories": {
+    "message": "視聴者数順のカテゴリー。Twitch が返すままの順序です。"
+  },
+  "colLogin": {
+    "message": "チャンネル"
+  },
+  "colScore": {
+    "message": "スコア"
+  },
+  "colVisits": {
+    "message": "訪問数"
+  },
+  "colLast": {
+    "message": "最終訪問"
+  },
+  "colSub": {
+    "message": "サブスク"
+  },
+  "colSeen": {
+    "message": "最終確認"
+  },
+  "colMonths": {
+    "message": "カ月"
+  },
+  "colFormer": {
+    "message": "過去"
+  },
+  "colSource": {
+    "message": "取得元"
+  },
+  "colLag": {
+    "message": "遅れ"
+  },
+  "colGain": {
+    "message": "先行"
+  },
+  "colElapsed": {
+    "message": "読み込みから"
+  },
+  "colEvent": {
+    "message": "イベント"
+  },
+  "colDetail": {
+    "message": "詳細"
+  },
+  "colProbe": {
+    "message": "プローブ"
+  },
+  "colStatus": {
+    "message": "状態"
+  },
+  "colCritical": {
+    "message": "重要"
+  },
+  "colRank": {
+    "message": "順位"
+  },
+  "colViewers": {
+    "message": "視聴者"
+  },
+  "colGame": {
+    "message": "カテゴリー"
+  },
+  "colLabel": {
+    "message": "カテゴリー"
+  },
+  "colCanonical": {
+    "message": "正式名称"
+  },
+  "colAge": {
+    "message": "経過"
+  },
+  "sumChannels": {
+    "message": "チャンネル"
+  },
+  "sumSubscribed": {
+    "message": "サブスク"
+  },
+  "sumSweep": {
+    "message": "最終取得"
+  },
+  "sumProbes": {
+    "message": "プローブ"
+  },
+  "sumBroken": {
+    "message": "重要な破損"
+  },
+  "sumSamples": {
+    "message": "サンプル"
+  },
+  "sumMedian": {
+    "message": "遅れの中央値"
+  },
+  "sumP90": {
+    "message": "90 パーセンタイル"
+  },
+  "sumMedianGain": {
+    "message": "先行の中央値"
+  },
+  "sumEvents": {
+    "message": "イベント"
+  },
+  "sumLocks": {
+    "message": "保留"
+  },
+  "sumSwitches": {
+    "message": "切り替え"
+  },
+  "sumMode": {
+    "message": "モード"
+  },
+  "sumComplete": {
+    "message": "完全"
+  },
+  "sumCategories": {
+    "message": "カテゴリー"
+  },
+  "btnRefreshSubs": {
+    "message": "今すぐ取得"
+  },
+  "btnRescan": {
+    "message": "サイドバーを再スキャン"
+  },
+  "btnReset": {
+    "message": "履歴を消去"
+  },
+  "btnGlobalOn": {
+    "message": "オンにする"
+  },
+  "btnGlobalOff": {
+    "message": "オフにする"
+  },
+  "btnRetry": {
+    "message": "再試行"
+  },
+  "btnConfirm": {
+    "message": "消去"
+  },
+  "btnCancel": {
+    "message": "キャンセル"
+  },
+  "stateLoading": {
+    "message": "読み込み中…"
+  },
+  "stateEmpty": {
+    "message": "まだ記録がありません。"
+  },
+  "stateAbsent": {
+    "message": "twitch.tv のタブを開いて最前面にしてから、もう一度お試しください。"
+  },
+  "stateError": {
+    "message": "ページが応答できませんでした。"
+  },
+  "stateTimeout": {
+    "message": "ページの応答に時間がかかりすぎました。"
+  },
+  "statusOk": {
+    "message": "正常"
+  },
+  "statusBroken": {
+    "message": "破損"
+  },
+  "statusNa": {
+    "message": "対象外"
+  },
+  "valYes": {
+    "message": "はい"
+  },
+  "valNo": {
+    "message": "いいえ"
+  },
+  "valNever": {
+    "message": "なし"
+  },
+  "valOn": {
+    "message": "オン"
+  },
+  "valOff": {
+    "message": "オフ"
+  },
+  "healthOk": {
+    "message": "セレクター正常"
+  },
+  "healthBroken": {
+    "message": "セレクター破損"
+  },
+  "resetTitle": {
+    "message": "すべての履歴を消去しますか？"
+  },
+  "resetText": {
+    "message": "訪問スコア、検出されたサブスクリプション、既知のチャンネル、遅延の測定値がこのブラウザーから削除されます。元に戻せません。"
   }
 }
