@@ -10,5 +10,266 @@
   "extDescription": {
     "message": "Verbessert die Twitch-Sidebar mit relevanteren Stream-Informationen und einer besseren Organisation.",
     "description": "Kurzbeschreibung der Erweiterung (max. 132 Zeichen im Chrome Web Store)"
+  },
+  "panelSubtitle": {
+    "message": "Daten und Diagnose"
+  },
+  "grpData": {
+    "message": "Deine Daten"
+  },
+  "grpDiag": {
+    "message": "Diagnose"
+  },
+  "grpGlobal": {
+    "message": "Top-Kanäle"
+  },
+  "navScores": {
+    "message": "Beliebtheitswerte"
+  },
+  "descScores": {
+    "message": "Kanäle nach Häufigkeit deiner Besuche. Aus deinem lokalen Verlauf gelesen — es wird nichts angefragt."
+  },
+  "navSubs": {
+    "message": "Abonnements"
+  },
+  "descSubs": {
+    "message": "Kanäle, die du abonniert hast — beim Surfen erkannt und von deiner Abonnement-Seite gelesen."
+  },
+  "navRoster": {
+    "message": "Bekannte Kanäle"
+  },
+  "descRoster": {
+    "message": "Alle gefolgten Kanäle, die die Erweiterung mindestens einmal in deiner Seitenleiste gesehen hat."
+  },
+  "navDiagnose": {
+    "message": "Selektor-Zustand"
+  },
+  "descDiagnose": {
+    "message": "Erkennt die Erweiterung das Markup von Twitch noch? Eine defekte kritische Sonde bedeutet, dass ein Teil nicht mehr funktioniert."
+  },
+  "navLag": {
+    "message": "Twitchs Verzögerung"
+  },
+  "descLag": {
+    "message": "Wie lange Twitch braucht, um nach dem Start eines Streams eine Karte anzuzeigen — und der Vorsprung der Erweiterung."
+  },
+  "navCycles": {
+    "message": "Ladeüberlagerung"
+  },
+  "descCycles": {
+    "message": "Wann die Überlagerung erschien, warum, und was sie wieder entfernt hat."
+  },
+  "navApercu": {
+    "message": "Vorschau beim Überfahren"
+  },
+  "descApercu": {
+    "message": "Was während der letzten Vorschau geschah, die du überfahren hast."
+  },
+  "navBascules": {
+    "message": "Kategoriewechsel"
+  },
+  "descBascules": {
+    "message": "Kanäle, die in den letzten zehn Minuten die Kategorie gewechselt haben."
+  },
+  "navGlobal": {
+    "message": "Rangliste"
+  },
+  "descGlobal": {
+    "message": "Die weltweite Rangliste, die die Erweiterung bei aktivem Top-Kanäle-Modus erstellt."
+  },
+  "navCategories": {
+    "message": "Kategorien"
+  },
+  "descCategories": {
+    "message": "Kategorien nach Zuschauerzahl, wie Twitch sie liefert."
+  },
+  "colLogin": {
+    "message": "Kanal"
+  },
+  "colScore": {
+    "message": "Wert"
+  },
+  "colVisits": {
+    "message": "Besuche"
+  },
+  "colLast": {
+    "message": "Letzter Besuch"
+  },
+  "colSub": {
+    "message": "Abonniert"
+  },
+  "colSeen": {
+    "message": "Zuletzt gesehen"
+  },
+  "colMonths": {
+    "message": "Monate"
+  },
+  "colFormer": {
+    "message": "Ehemalig"
+  },
+  "colSource": {
+    "message": "Quelle"
+  },
+  "colLag": {
+    "message": "Verzögerung"
+  },
+  "colGain": {
+    "message": "Vorsprung"
+  },
+  "colElapsed": {
+    "message": "Seit dem Laden"
+  },
+  "colEvent": {
+    "message": "Ereignis"
+  },
+  "colDetail": {
+    "message": "Detail"
+  },
+  "colProbe": {
+    "message": "Sonde"
+  },
+  "colStatus": {
+    "message": "Status"
+  },
+  "colCritical": {
+    "message": "Kritisch"
+  },
+  "colRank": {
+    "message": "Rang"
+  },
+  "colViewers": {
+    "message": "Zuschauer"
+  },
+  "colGame": {
+    "message": "Kategorie"
+  },
+  "colLabel": {
+    "message": "Kategorie"
+  },
+  "colCanonical": {
+    "message": "Kanonischer Name"
+  },
+  "colAge": {
+    "message": "Vor"
+  },
+  "sumChannels": {
+    "message": "Kanäle"
+  },
+  "sumSubscribed": {
+    "message": "abonniert"
+  },
+  "sumSweep": {
+    "message": "letzte Erfassung"
+  },
+  "sumProbes": {
+    "message": "Sonden"
+  },
+  "sumBroken": {
+    "message": "kritische Ausfälle"
+  },
+  "sumSamples": {
+    "message": "Messungen"
+  },
+  "sumMedian": {
+    "message": "mittlere Verzögerung"
+  },
+  "sumP90": {
+    "message": "90. Perzentil"
+  },
+  "sumMedianGain": {
+    "message": "mittlerer Vorsprung"
+  },
+  "sumEvents": {
+    "message": "Ereignisse"
+  },
+  "sumLocks": {
+    "message": "Sperren"
+  },
+  "sumSwitches": {
+    "message": "Wechsel"
+  },
+  "sumMode": {
+    "message": "Modus"
+  },
+  "sumComplete": {
+    "message": "vollständig"
+  },
+  "sumCategories": {
+    "message": "Kategorien"
+  },
+  "btnRefreshSubs": {
+    "message": "Jetzt erfassen"
+  },
+  "btnRescan": {
+    "message": "Seitenleiste neu prüfen"
+  },
+  "btnReset": {
+    "message": "Verlauf löschen"
+  },
+  "btnGlobalOn": {
+    "message": "Einschalten"
+  },
+  "btnGlobalOff": {
+    "message": "Ausschalten"
+  },
+  "btnRetry": {
+    "message": "Erneut versuchen"
+  },
+  "btnConfirm": {
+    "message": "Löschen"
+  },
+  "btnCancel": {
+    "message": "Abbrechen"
+  },
+  "stateLoading": {
+    "message": "Wird geladen…"
+  },
+  "stateEmpty": {
+    "message": "Noch nichts aufgezeichnet."
+  },
+  "stateAbsent": {
+    "message": "Öffne einen twitch.tv-Tab, hole ihn in den Vordergrund und versuche es erneut."
+  },
+  "stateError": {
+    "message": "Die Seite konnte nicht antworten."
+  },
+  "stateTimeout": {
+    "message": "Die Seite hat zu lange gebraucht."
+  },
+  "statusOk": {
+    "message": "OK"
+  },
+  "statusBroken": {
+    "message": "Defekt"
+  },
+  "statusNa": {
+    "message": "K. A."
+  },
+  "valYes": {
+    "message": "Ja"
+  },
+  "valNo": {
+    "message": "Nein"
+  },
+  "valNever": {
+    "message": "Nie"
+  },
+  "valOn": {
+    "message": "An"
+  },
+  "valOff": {
+    "message": "Aus"
+  },
+  "healthOk": {
+    "message": "Selektoren OK"
+  },
+  "healthBroken": {
+    "message": "Selektoren defekt"
+  },
+  "resetTitle": {
+    "message": "Gesamten Verlauf löschen?"
+  },
+  "resetText": {
+    "message": "Besuchswerte, erkannte Abonnements, bekannte Kanäle und Verzögerungsmessungen werden aus diesem Browser gelöscht. Das lässt sich nicht rückgängig machen."
   }
 }

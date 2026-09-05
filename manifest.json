@@ -2,13 +2,25 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "__MSG_extShortName__",
-  "version": "3.61.0",
+  "version": "3.62.0",
   "default_locale": "en",
   "description": "__MSG_extDescription__",
   "icons": {
-    "16":  "icons/icon16.png",
-    "48":  "icons/icon48.png",
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "panneau.html",
+    "default_title": "__MSG_extShortName__",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
@@ -17,10 +29,26 @@
         "https://twitch.tv/*",
         "https://player.twitch.tv/*"
       ],
-      "js": ["adblock.js", "content.js"],
+      "js": [
+        "adblock.js",
+        "content.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN",
       "all_frames": true
+    },
+    {
+      "matches": [
+        "https://www.twitch.tv/*",
+        "https://twitch.tv/*",
+        "https://player.twitch.tv/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_start",
+      "world": "ISOLATED",
+      "all_frames": false
     }
   ]
 }

@@ -1,0 +1,229 @@
+/* ============================================================
+ *  PANNEAU — la feuille de style
+ *  ------------------------------------------------------------
+ *  Le dessin est celui que l'extension pose déjà dans la barre
+ *  latérale de Twitch, repris jeton pour jeton : fonds enfoncés
+ *  rgba(0,0,0,.4), filets blancs à 8 %, rayons de 4 et 6 px,
+ *  violet #9147ff pour l'accent, or #ffc45c pour tout ce qui
+ *  touche aux abonnements. Un panneau qui aurait sa propre
+ *  palette se lirait comme un autre produit.
+ *
+ *  DEUX DIFFÉRENCES ASSUMÉES avec la barre latérale, et elles
+ *  viennent du support. Une popup de barre d'outils est bornée à
+ *  800 × 600 par le navigateur : le contenu doit donc défiler à
+ *  l'intérieur, jamais la fenêtre. Et cette page n'hérite
+ *  d'aucune variable de Twitch — les `var(--color-…)` de la
+ *  barre latérale n'existent pas ici — donc chaque valeur est
+ *  écrite en clair, une seule fois, dans :root.
+ * ============================================================ */
+
+:root {
+  --fond:        #0e0e10;   /* le fond de Twitch, celui de la sidebar */
+  --fond-2:      #18181b;   /* les surfaces posées dessus */
+  --fond-creux:  rgba(0, 0, 0, 0.4);
+  --filet:       rgba(255, 255, 255, 0.08);
+  --filet-fort:  rgba(255, 255, 255, 0.16);
+  --texte:       #efeff1;
+  --texte-doux:  #adadb8;
+  --texte-faible:#7d7d8a;
+  --violet:      #9147ff;
+  --violet-doux: rgba(145, 71, 255, 0.5);
+  --or:          #ffc45c;
+  --or-clair:    #fff6d6;
+  --rouge:       #ec4c4c;
+  --vert:        #3ea6a6;
+  --r-petit:     4px;
+  --r-grand:     6px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  /* 760 px : sous le plafond de 800 px des popups, et assez large pour six
+     colonnes de tableau sans ellipse. La hauteur est fixée pour que le rail
+     et le contenu défilent CHACUN de leur côté — une popup qui grandit avec
+     son contenu saute de taille à chaque changement de section. */
+  width: 760px;
+  height: 580px;
+  overflow: hidden;
+  background: var(--fond);
+  color: var(--texte);
+  font: 13px/1.45 Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── En-tête ─────────────────────────────────────────────────────────────── */
+.tete {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--filet);
+  background: var(--fond-2);
+}
+.tete-logo { flex: 0 0 auto; border-radius: var(--r-petit); }
+.tete-texte { flex: 1 1 auto; min-width: 0; }
+.tete-titre {
+  margin: 0; font-size: 14px; font-weight: 700; letter-spacing: 0.1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tete-sous {
+  margin: 1px 0 0; font-size: 11px; color: var(--texte-faible);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tete-etat {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--texte-doux);
+  padding: 3px 8px; border: 1px solid var(--filet); border-radius: 999px;
+  background: var(--fond-creux);
+}
+.pastille { width: 7px; height: 7px; border-radius: 50%; background: var(--texte-faible); }
+.pastille--ok    { background: var(--vert); }
+.pastille--casse { background: var(--rouge); }
+
+/* ── Corps : rail + vue ──────────────────────────────────────────────────── */
+.corps { display: flex; height: calc(580px - 47px - 45px); }
+
+.rail {
+  flex: 0 0 186px; min-width: 0;
+  border-right: 1px solid var(--filet);
+  background: var(--fond-2);
+  overflow-y: auto; padding: 8px 0 10px;
+}
+.rail-groupe {
+  padding: 10px 14px 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase;
+  color: var(--texte-faible);
+}
+.rail-item {
+  display: block; width: 100%; text-align: left;
+  padding: 7px 14px; border: 0; border-left: 2px solid transparent;
+  background: transparent; color: var(--texte-doux);
+  font: inherit; font-size: 12.5px; cursor: pointer;
+  transition: background-color 0.12s, color 0.12s, border-color 0.12s;
+}
+.rail-item:hover { background: rgba(255, 255, 255, 0.04); color: var(--texte); }
+.rail-item[aria-current="true"] {
+  background: rgba(145, 71, 255, 0.14);
+  border-left-color: var(--violet);
+  color: var(--texte); font-weight: 600;
+}
+.rail-item:focus-visible { outline: 2px solid var(--violet); outline-offset: -2px; }
+
+.vue { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: 12px 14px; overflow: hidden; }
+.vue-tete { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.vue-titre { margin: 0; font-size: 14px; font-weight: 700; }
+.vue-desc  { margin: 2px 0 0; font-size: 11.5px; color: var(--texte-faible); max-width: 46ch; }
+.vue-actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
+
+/* ── Cartouches de résumé ────────────────────────────────────────────────── */
+.resume { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.resume:empty { display: none; }
+.tuile {
+  flex: 0 0 auto; min-width: 78px;
+  padding: 6px 10px;
+  background: var(--fond-creux); border: 1px solid var(--filet);
+  border-radius: var(--r-grand);
+}
+.tuile-val { font-size: 15px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.tuile-cle { font-size: 10px; color: var(--texte-faible); margin-top: 1px; }
+.tuile--or    .tuile-val { color: var(--or); }
+.tuile--casse .tuile-val { color: var(--rouge); }
+.tuile--ok    .tuile-val { color: var(--vert); }
+
+/* ── Tableau ─────────────────────────────────────────────────────────────── */
+.tableau-cadre {
+  flex: 1 1 auto; min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--filet); border-radius: var(--r-grand);
+  background: var(--fond-creux);
+}
+.tableau { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tableau thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: #1f1f23;
+  text-align: left; font-weight: 600; font-size: 10.5px;
+  letter-spacing: 0.4px; text-transform: uppercase; color: var(--texte-doux);
+  padding: 7px 10px; border-bottom: 1px solid var(--filet); white-space: nowrap;
+}
+.tableau tbody td {
+  padding: 6px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--texte); vertical-align: top;
+}
+.tableau tbody tr:last-child td { border-bottom: 0; }
+.tableau tbody tr:hover td { background: rgba(255, 255, 255, 0.03); }
+/* Les nombres s'alignent sur leurs chiffres : sans chasse fixe, une colonne de
+   compteurs se lit de travers dès qu'un ordre de grandeur change. */
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mono { font-variant-numeric: tabular-nums; }
+.faible { color: var(--texte-faible); }
+.abo { color: var(--or); font-weight: 600; }
+
+/* Pastilles d'état des sondes de diagnostic. */
+.etiq {
+  display: inline-block; padding: 1px 7px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 600; white-space: nowrap;
+}
+.etiq--ok     { background: rgba(62, 166, 166, 0.16); color: var(--vert); }
+.etiq--broken { background: rgba(236, 76, 76, 0.16);  color: var(--rouge); }
+.etiq--na     { background: rgba(255, 255, 255, 0.06); color: var(--texte-faible); }
+
+/* ── Messages (vide, chargement, erreur) ─────────────────────────────────── */
+.message {
+  flex: 1 1 auto; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+  border: 1px dashed var(--filet); border-radius: var(--r-grand);
+  color: var(--texte-faible); text-align: center; padding: 20px;
+}
+.message-texte { margin: 0; max-width: 42ch; font-size: 12.5px; }
+
+/* ── Boutons ─────────────────────────────────────────────────────────────── */
+.bouton {
+  height: 28px; padding: 0 12px;
+  background: var(--violet); color: #fff;
+  border: 1px solid transparent; border-radius: var(--r-petit);
+  font: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+}
+.bouton:hover:not(:disabled) { background: #a970ff; }
+.bouton:disabled { opacity: 0.45; cursor: not-allowed; }
+.bouton:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.bouton--fantome {
+  background: var(--fond-creux); color: var(--texte); border-color: var(--filet);
+}
+.bouton--fantome:hover:not(:disabled) { background: rgba(0, 0, 0, 0.55); border-color: var(--violet-doux); }
+.bouton--danger {
+  background: transparent; color: var(--rouge); border-color: rgba(236, 76, 76, 0.4);
+}
+.bouton--danger:hover:not(:disabled) { background: rgba(236, 76, 76, 0.12); border-color: var(--rouge); }
+
+/* ── Pied ────────────────────────────────────────────────────────────────── */
+.pied {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--filet); background: var(--fond-2);
+}
+.pied .bouton--danger { margin-left: auto; }
+
+/* ── Confirmation ────────────────────────────────────────────────────────── */
+.voile {
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+.voile[hidden] { display: none; }
+.boite {
+  width: 340px; padding: 16px;
+  background: var(--fond-2); border: 1px solid var(--filet-fort);
+  border-radius: 8px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+.boite-titre { margin: 0 0 6px; font-size: 14px; }
+.boite-texte { margin: 0 0 14px; font-size: 12.5px; color: var(--texte-doux); }
+.boite-pied  { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ── Mouvement ───────────────────────────────────────────────────────────── */
+/* Le respect de prefers-reduced-motion n'est pas une politesse : une popup
+   qui s'anime à chaque clic devient pénible pour qui y est sensible. */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

@@ -55,7 +55,18 @@ const lire = (f) => JSON.parse(readFileSync(join(RACINE, f), 'utf8'));
 /* LA LISTE BLANCHE. Tout ce qui part, et rien d'autre. Ajouter un fichier au
    produit se fait ICI, sans quoi il ne sera pas dans le paquet — et le
    contrôle 2 le dira. */
-const LIVRE = ['manifest.json', 'content.js', 'adblock.js', 'icons', '_locales'];
+const LIVRE = ['manifest.json', 'content.js', 'adblock.js', 'icons', '_locales',
+               // Le panneau de la barre d'outils et les deux relais qui le
+               // relient à la page. Voir bridge.js pour la raison d'être de
+               // ce découpage en trois fichiers.
+               'bridge.js', 'background.js',
+               'panneau.html', 'panneau.css', 'panneau.js'];
+
+/* Les fichiers JavaScript du paquet, dans l'ordre où on veut les voir passer.
+   Tout ce qui est ici est dégraissé de ses commentaires à l'assemblage ET
+   vérifié intact dans le dépôt : ajouter un fichier au produit sans l'ajouter
+   ici le laisserait partir avec ses commentaires, sans que rien ne le dise. */
+const SCRIPTS = ['content.js', 'adblock.js', 'bridge.js', 'background.js', 'panneau.js'];
 
 let echecs = 0;
 const ok = (nom, cond, detail = '') => {
@@ -109,7 +120,7 @@ console.log(`\nPaquet ${CIBLE} — assemblé dans dist/paquet (${dedans.length} 
    doivent rendre le MÊME flux de jetons. Un retrait qui aurait emporté autre
    chose qu'un commentaire ne peut pas y survivre. */
 const degraisses = [];
-for (const f of ['content.js', 'adblock.js']) {
+for (const f of SCRIPTS) {
   const p = join(PAQUET, f);
   if (!existsSync(p)) continue;
   const avant = readFileSync(p, 'utf8');
@@ -154,24 +165,34 @@ ok(`les commentaires sont retirés du code livré (${(gagne / 1024).toFixed(0)} 
    discrète qu'un contrôle puisse avoir, et la seule qui ne se voit jamais
    dans une sortie verte. */
 const TOLERANCE = 0.03;
-const DOCS = [['README.md', 3], ['README.en.md', 3], ['store/README.md', 1]];
+/* UN PLANCHER ABSOLU, en plus du pourcentage, et il n'est pas cosmétique : les
+   README arrondissent au kilo-octet, et 3 % de 2 Ko valent 60 octets — moins
+   que l'arrondi lui-même. Sans ce plancher, bridge.js échouerait pour avoir
+   été écrit « 2 Ko » alors qu'il en pèse 2,4. Le seuil est donc le plus
+   INDULGENT des deux : il faut se tromper de plus d'un kilo-octet ET de plus
+   de trois pour cent pour être signalé. */
+const PLANCHER_KO = 1;
+const DOCS = [['README.md', 6], ['README.en.md', 6], ['store/README.md', 1]];
 
-const mesure = { '(les deux)': { avant: 0, apres: 0 } };
+const mesure = { '(total)': { avant: 0, apres: 0 } };
 for (const d of degraisses) {
   mesure[d.f] = { avant: d.avant / 1024, apres: d.apres / 1024 };
-  mesure['(les deux)'].avant += d.avant / 1024;
-  mesure['(les deux)'].apres += d.apres / 1024;
+  mesure['(total)'].avant += d.avant / 1024;
+  mesure['(total)'].apres += d.apres / 1024;
 }
 
-/* De quoi cette ligne parle-t-elle ? Le nom d'un fichier livré, ou bien le
-   total — soit la cellule en gras des deux tableaux, soit la forme
-   « 692 → 363 Ko » de la fiche. Une ligne qui ne porte aucune de ces marques
-   n'est pas lue : les README parlent de kilo-octets ailleurs aussi (une
-   miniature décodée en pèse 506), et ces chiffres-là ne sont pas les nôtres. */
-const sujetDe = (l) => l.includes('content.js') ? 'content.js'
-  : l.includes('adblock.js') ? 'adblock.js'
-  : /\*\*(?:les deux|both)\*\*/.test(l) || /\d+\s*→\s*\d+\s*(?:Ko|KB)\b/.test(l) ? '(les deux)'
-  : null;
+/* De quoi cette ligne parle-t-elle ? Du nom d'un fichier livré, ou bien du
+   total. Le total se reconnaît à sa MISE EN FORME et non à ses mots — deux
+   chiffres en gras dans la même ligne — parce que son libellé change avec la
+   langue et avec le nombre de fichiers : « les deux » est devenu « les cinq »
+   le jour où le panneau est arrivé, et la lecture a cessé de le voir. La
+   troisième forme est celle de la fiche, « 727 → 382 Ko ». Une ligne qui ne
+   porte aucune de ces marques n'est pas lue : les README parlent de
+   kilo-octets ailleurs aussi (une miniature décodée en pèse 506), et ces
+   chiffres-là ne sont pas les nôtres. */
+const sujetDe = (l) => SCRIPTS.find(f => l.includes(f))
+  ?? ((l.match(/\*\*\d+\s*(?:Ko|KB)\*\*/g) || []).length >= 2
+      || /\d+\s*→\s*\d+\s*(?:Ko|KB)\b/.test(l) ? '(total)' : null);
 
 /* Deux écritures, parce que les documents en ont deux : la flèche de la fiche
    ne répète pas l'unité, le tableau la répète à chaque cellule. On ne prend
@@ -180,11 +201,8 @@ const sujetDe = (l) => l.includes('content.js') ? 'content.js'
 const chiffresDe = (l) => {
   const fleche = l.match(/(\d+)\s*→\s*(\d+)\s*(?:Ko|KB)\b/);
   if (fleche) return [Number(fleche[1]), Number(fleche[2])];
-  /* \u202f est l'espace fine insécable des milliers en français (« 2 743 ») ;
-     écrite en clair, elle serait indiscernable d'une espace ordinaire à la
-     relecture — et ce dépôt a déjà payé un caractère invisible une fois. */
-  const tous = [...l.matchAll(/(\d[\d,\u202f ]*)\s*(?:Ko|KB)\b/g)]
-    .map(m => Number(m[1].replace(/[,\u202f ]/g, '')));
+  const tous = [...l.matchAll(/(\d[\d,  ]*)\s*(?:Ko|KB)\b/g)]
+    .map(m => Number(m[1].replace(/[,  ]/g, '')));
   return tous.length >= 2 ? [tous[0], tous[1]] : null;
 };
 
@@ -199,7 +217,8 @@ for (const [doc, attendu] of DOCS) {
     const dits = chiffresDe(ligne);
     if (!dits) continue;
     vus++;
-    const derive = (dit, vrai) => Math.abs(dit - vrai) / vrai > TOLERANCE;
+    const derive = (dit, vrai) =>
+      Math.abs(dit - vrai) > PLANCHER_KO && Math.abs(dit - vrai) / vrai > TOLERANCE;
     if (derive(dits[0], mesure[sujet].avant) || derive(dits[1], mesure[sujet].apres)) {
       perimes.push(`${doc} — ${sujet} : ${dits[0]}→${dits[1]} annoncés, `
         + `${mesure[sujet].avant.toFixed(0)}→${mesure[sujet].apres.toFixed(0)} mesurés`);
@@ -223,12 +242,16 @@ ok('et chacune a bien été confrontée — aucune ligne n\'a échappé à la le
    Une ligne d'écriture qui viserait la racine au lieu de PAQUET suffirait, et
    rien d'autre ici ne la verrait. On relit donc les sources APRÈS l'assemblage
    pour constater qu'elles ont encore leurs commentaires. */
-const intacts = ['content.js', 'adblock.js'].map((f) => {
+const intacts = SCRIPTS.map((f) => {
   const src = readFileSync(join(RACINE, f), 'utf8');
   return { f, ...compterCommentaires(src) };
 });
+/* Le seuil est bas exprès : content.js en porte des milliers, mais bridge.js
+   et background.js sont courts. Ce qu'on veut attraper n'est pas « peu de
+   commentaires », c'est ZÉRO — la signature d'une écriture qui aurait visé la
+   racine au lieu du paquet. */
 ok('les fichiers du dépôt gardent leurs commentaires — seul le paquet est dégraissé',
-   intacts.every(s => s.total > s.legaux + 100),
+   intacts.every(s => s.total > s.legaux + 5),
    intacts.map(s => `${s.f} : ${s.total} commentaires`).join(', '));
 
 /* La notice de licence du code tiers doit avoir SURVÉCU au dégraissage. Ce
@@ -246,6 +269,17 @@ const nommes = [
   ...(man.content_scripts ?? []).flatMap(c => c.js ?? []),
   ...Object.values(man.icons ?? {}),
   `_locales/${man.default_locale}/messages.json`,
+  // Le panneau et son icône de barre d'outils. Un default_popup qui pointe
+  // vers un fichier absent donne une popup blanche, sans la moindre erreur
+  // visible : c'est exactement le genre d'oubli que ce contrôle existe pour
+  // attraper, et le linter ne le voit pas.
+  ...(man.action?.default_popup ? [man.action.default_popup] : []),
+  ...Object.values(man.action?.default_icon ?? {}),
+  // Le service worker, sous les deux écritures : Chrome lit `service_worker`,
+  // Firefox lit `scripts`. Les deux nomment le MÊME fichier (cf. l'invariant
+  // plus bas), mais c'est ici qu'on vérifie qu'il est bien dans le paquet.
+  ...(man.background?.service_worker ? [man.background.service_worker] : []),
+  ...(man.background?.scripts ?? []),
 ];
 const manquants = nommes.filter(f => !dedans.includes(f));
 ok('tout ce que le manifeste nomme est dans le paquet',
@@ -301,17 +335,54 @@ ok('aucune permission n\'est demandée, comme sur l\'autre branche',
 /* Le cœur du portage : le bloc content_scripts doit être MOT POUR MOT le même
    d'une branche à l'autre, sans quoi les deux extensions cessent d'être le même
    produit — la seule chose que l'auteur a demandé de garantir. */
-const CS_ATTENDU = {
-  matches: ['https://www.twitch.tv/*', 'https://twitch.tv/*', 'https://player.twitch.tv/*'],
-  js: ['adblock.js', 'content.js'],
-  run_at: 'document_start',
-  world: 'MAIN',
-  all_frames: true,
-};
+const MATCHES = ['https://www.twitch.tv/*', 'https://twitch.tv/*', 'https://player.twitch.tv/*'];
+const CS_ATTENDU = [
+  /* Le produit, en monde MAIN — c'est ce qui lui permet d'exposer window.tse
+     et de lire le JavaScript de Twitch. */
+  { matches: MATCHES, js: ['adblock.js', 'content.js'],
+    run_at: 'document_start', world: 'MAIN', all_frames: true },
+  /* Le pont vers le panneau, en monde ISOLATED — le seul contexte de ce
+     produit qui ait accès aux API chrome.*, et le seul qui en ait besoin.
+     all_frames: false parce qu'il n'a rien à faire dans l'iframe de l'aperçu :
+     un port par iframe, et le service worker ne saurait plus lequel répond
+     pour l'onglet. bridge.js porte de toute façon la même garde à
+     l'exécution — le manifeste évite l'injection, la garde évite le doute. */
+  { matches: MATCHES, js: ['bridge.js'],
+    run_at: 'document_start', world: 'ISOLATED', all_frames: false },
+];
 ok('le bloc content_scripts est identique à celui de l\'autre branche',
-   man.content_scripts?.length === 1
-   && JSON.stringify(man.content_scripts[0]) === JSON.stringify(CS_ATTENDU),
+   JSON.stringify(man.content_scripts) === JSON.stringify(CS_ATTENDU),
    JSON.stringify(man.content_scripts));
+
+/* ── LE FOND DE TÂCHE, ET LA SEULE DIVERGENCE ASSUMÉE DU PORTAGE ──────────
+   Chrome lit `background.service_worker` ; Firefox lit `background.scripts`
+   et IGNORE l'autre. Les deux écritures peuvent cohabiter dans un manifeste
+   unique — c'était la première tentative — mais l'addons-linter rend alors
+   BACKGROUND_SERVICE_WORKER_IGNORED, et le cliquet d'avertissements de ce
+   dépôt est à zéro. Un plafond qu'on relève pour se donner raison cesse
+   d'être un cliquet.
+
+   Chaque branche porte donc la forme que sa cible sait lire. Ce qui ne doit
+   JAMAIS diverger, c'est le FICHIER qu'elle nomme : deux noms différents
+   donneraient un panneau vivant sur un navigateur et muet sur l'autre, sans
+   qu'aucun linter ne s'en émeuve. C'est ce que ce contrôle tient — des deux
+   côtés, puisque ce fichier-ci est le même sur les deux branches. */
+const FOND = 'background.js';
+ok('le fond de tâche est déclaré dans la forme que cette cible sait lire',
+   gecko ? man.background?.scripts?.length === 1 && man.background.scripts[0] === FOND
+         : man.background?.service_worker === FOND,
+   JSON.stringify(man.background));
+ok('…et pas dans celle de l\'autre, que ce navigateur ignorerait',
+   gecko ? man.background?.service_worker === undefined
+         : man.background?.scripts === undefined,
+   JSON.stringify(man.background));
+
+/* L'icône de la barre d'outils ouvre le panneau, et rien d'autre : pas de
+   `default_area`, pas d'onglet, pas de fenêtre. Si `default_popup` disparaît,
+   le clic déclencherait `action.onClicked` — que personne n'écoute ici — et
+   l'icône deviendrait inerte sans le moindre message. */
+ok('l\'icône de la barre d\'outils ouvre bien le panneau',
+   man.action?.default_popup === 'panneau.html', JSON.stringify(man.action));
 
 // ── 3b. Le juge extérieur ────────────────────────────────────────────────
 if (!gecko) {

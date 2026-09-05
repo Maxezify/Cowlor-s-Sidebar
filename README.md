@@ -1513,11 +1513,69 @@ que l'extension a manqué quelque chose.
 
 ---
 
+## Le panneau de la barre d'outils (v3.62)
+
+Tout ce que cette API console rend est désormais lisible **sans console** : un
+clic sur l'icône de l'extension, en haut à droite du navigateur, ouvre un
+panneau qui affiche les dix mêmes relevés en tableaux, avec leurs cartouches de
+résumé et les cinq actions (relever les abonnements, rebalayer, activer ou
+couper Top Chaînes, effacer l'historique). Il est traduit dans les **douze
+locales** du Store.
+
+### Trois fichiers, et l'un d'eux n'est pas facultatif
+
+`content.js` tourne en monde **`MAIN`**. C'est ce qui lui permet d'exposer
+`window.tse` et de lire le JavaScript de Twitch — et c'est aussi ce qui lui
+interdit toute API `chrome.*` : le monde `MAIN` est le contexte de la **page**,
+où l'extension n'a aucune existence. Le panneau, lui, est une page d'extension :
+il a `chrome.*` et n'a pas la page. **Les deux ne peuvent pas se voir.**
+
+D'où le découpage, et il n'est pas décoratif :
+
+| Fichier | Monde | Ce qu'il fait |
+| --- | --- | --- |
+| `panneau.html` / `.css` / `.js` | page d'extension | dessine, traduit, n'appelle rien directement |
+| `bridge.js` | `ISOLATED` | le seul contexte qui ait `chrome.*` **et** le DOM de la page |
+| `background.js` | service worker | garde le port, aiguille, ne comprend rien à ce qu'il transporte |
+
+### Pourquoi c'est l'onglet qui appelle, et non le panneau
+
+Le chemin naturel serait que le panneau appelle `chrome.tabs.sendMessage`. Il
+**exige une permission d'hôte** sur l'onglet visé — exactement ce que la fiche
+promet de ne pas demander, et ce que `npm run addon` vérifie (aucune clé
+`permissions`). On inverse donc le sens : c'est `bridge.js` qui ouvre le port
+par `chrome.runtime.connect()`, ce qu'un content script fait **sans rien
+réclamer**, et le service worker s'en sert pour répondre. Cette inversion est
+tout ce qui sépare « zéro permission » de « permission d'hôte sur twitch.tv ».
+
+Le port ne vit que pendant que **l'onglet est visible**. Un port ouvert
+maintient le service worker éveillé ; le garder branché en permanence tiendrait
+un worker en vie tant qu'un onglet Twitch est ouvert, c'est-à-dire l'exact
+contraire de ce que fait le reste du produit depuis la 3.61. Or l'icône ne peut
+être cliquée que sur l'onglet actif : faire vivre le port sur la visibilité ne
+retire rien.
+
+### Deux tables de traduction, et elles ne se croisent jamais
+
+La barre latérale et la console sont servies par les **dix blocs `STRINGS`** de
+`content.js` ; le panneau est servi par les **douze `_locales/`**, via
+`chrome.i18n`. La couche de données ne transporte donc que des **noms de
+champs**, jamais des libellés : c'est le panneau qui traduit. Faire transiter un
+intitulé de l'une vers l'autre aurait créé une troisième table, désynchronisée
+le jour de sa première modification.
+
+`chrome.i18n.getMessage()` d'une clé inconnue **ne lève pas** : elle rend la
+chaîne vide. Un libellé oublié donne donc un bouton vide, sans erreur, sans
+console — et seulement dans la langue oubliée, que l'auteur ne parle pas.
+`npm run parity` relève donc les clés que le panneau demande et refuse celles
+qui manquent, celles qui ne servent plus, et les messages vides.
+
 ## API console
 
-L'extension expose un objet `tse` dans la console DevTools de la page Twitch
-(onglet **Console**, `F12`). Il permet d'inspecter l'historique de visites qui
-sert au tri « Mes plus visités » :
+L'objet `tse` reste exposé dans la console DevTools de la page Twitch (onglet
+**Console**, `F12`) : le panneau ne le remplace pas, il en est un client de plus.
+Tout ce qu'il affiche est atteignable à la main, et `tse.panneau(section)` rend
+exactement ce qu'il consomme.
 
 - `tse.scores()` — affiche le classement des chaînes les plus visitées (top 10
   par défaut).
@@ -1714,7 +1772,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 67 scénarios, 581 assertions |
+| `npm test` | le harnais Playwright : 68 scénarios, 590 assertions |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
 vient de compter, et échoue si le tableau ment. Un banc dont on annonce la
@@ -1734,9 +1792,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 568 Ko | 263 Ko | 2 743 JS + 77 CSS → **2** |
+| `content.js` | 578 Ko | 268 Ko | 2 754 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| **les deux** | **692 Ko** | **363 Ko** | **−47 %** |
+| `panneau.js` | 15 Ko | 11 Ko | 15 → **0** |
+| `bridge.js` | 7 Ko | 2 Ko | 13 → **0** |
+| `background.js` | 4 Ko | 2 Ko | 13 → **0** |
+| **les cinq** | **728 Ko** | **382 Ko** | **−47 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -1748,7 +1809,7 @@ qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
 d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 743
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 754
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches

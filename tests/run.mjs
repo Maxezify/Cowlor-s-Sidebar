@@ -6226,6 +6226,160 @@ titre('67. Arrière-plan — ce qui s\'arrête, et ce qui repart');
   await p3.close();
 }
 
+// ═════════ 69. Le panneau — ce que la page rend, et par où ═════════
+titre('69. Panneau — la donnée nue, et le pont qui la porte');
+{
+  /* CE QUE CE SCÉNARIO PEUT ÉPROUVER, ET CE QU'IL NE PEUT PAS. Le panneau est
+     une page d'extension : il vit dans un contexte que Playwright ne peut pas
+     ouvrir sans charger l'extension elle-même, et le harnais sert la page en
+     file:// avec un <script> — il n'y a donc ni chrome.runtime, ni service
+     worker, ni monde ISOLATED ici.
+
+     Ce qui EST éprouvable est précisément la moitié qui peut casser en
+     silence : la couche de données de content.js, et le protocole de messages
+     par lequel bridge.js l'interroge. Les deux vivent dans le monde MAIN, que
+     le harnais reproduit fidèlement. Le reste — le port, l'aiguillage — est du
+     transport sans logique propre, et se voit tout de suite à l'usage.
+
+     Le cas qui a motivé ce scénario est réel : la première écriture répondait
+     avec `location.origin` comme targetOrigin. Sur une origine opaque —
+     file://, une iframe bac à sable — cette valeur est la chaîne "null", et le
+     message est jeté SANS ERREUR. Le panneau serait resté à tourner. */
+  const page = await browser.newPage();
+  page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await page.goto(URL_PAGE);
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {
+      alpha: { id: 'a', createdAt: h, viewers: 1000, game: 'Just Chatting', tags: [] },
+      beta:  { id: 'b', createdAt: h, viewers: 900,  game: 'Elden Ring',    tags: [] },
+    };
+    window.__addCard('alpha', 'Just Chatting', '1 k');
+    window.__addCard('beta',  'Elden Ring',    '900');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 2);
+
+  /* ── Les dix sections rendent la forme annoncée ────────────────────────
+     Le panneau dessine ses colonnes à partir de `colonnes`, dans cet ordre :
+     une section qui rendrait un objet sans cette clé donnerait un tableau
+     vide, sans erreur. */
+  const SECTIONS = ['scores', 'subs', 'roster', 'lag', 'bascules',
+                    'cycles', 'apercu', 'diagnose', 'global', 'categories'];
+  const formes = await page.evaluate((noms) => noms.map((n) => {
+    try {
+      const d = window.tse.panneau(n);
+      return { n, ok: Array.isArray(d.colonnes) && d.colonnes.length > 0
+                    && Array.isArray(d.lignes) && !!d.resume && typeof d.resume === 'object' };
+    } catch (e) { return { n, ok: false, err: e.message }; }
+  }), SECTIONS);
+  ok(`les ${SECTIONS.length} sections rendent { colonnes, lignes, resume }`,
+     formes.every(f => f.ok), JSON.stringify(formes.filter(f => !f.ok)));
+
+  /* ── AUCUNE section n'écrit en console ─────────────────────────────────
+     C'est la promesse qui sépare cette couche de l'API console : les deux
+     doivent pouvoir servir en même temps. Une section qui appellerait
+     console.table inonderait la console de l'utilisateur à chaque ouverture
+     du panneau — et rien d'autre ne le verrait. */
+  const bavardage = await page.evaluate((noms) => {
+    const vrais = { log: console.log, table: console.table, warn: console.warn };
+    let n = 0;
+    console.log = console.table = console.warn = () => { n++; };
+    try { for (const s of noms) window.tse.panneau(s); }
+    finally { Object.assign(console, vrais); }
+    return n;
+  }, SECTIONS);
+  ok('aucune section n\'écrit en console — le panneau n\'est pas un spectateur de la console',
+     bavardage === 0, `${bavardage} écritures`);
+
+  /* ── Le panneau connaît-il toutes les colonnes qu'on lui envoie ? ───────
+     Croisement RUNTIME ↔ STATIQUE, et c'est le seul contrôle qui puisse
+     l'attraper : content.js peut gagner un champ, panneau.js l'ignorer, et
+     la colonne disparaîtrait de l'affichage sans le moindre message. Le
+     panneau filtre en effet sur ce qu'il connaît, précisément pour ne jamais
+     afficher d'intitulé non traduit — la contrepartie est ce silence-ci. */
+  const emises = await page.evaluate((noms) => {
+    const vues = new Set();
+    for (const n of noms) for (const c of window.tse.panneau(n).colonnes) vues.add(c);
+    return [...vues];
+  }, SECTIONS);
+  const connues = [...readFileSync(join(ICI, '..', 'panneau.js'), 'utf8')
+    .matchAll(/^\s{2}([a-zA-Zé]+):\s*\{ cle: '/gm)].map(m => m[1]);
+  const inconnues = emises.filter(c => !connues.includes(c));
+  ok('le panneau connaît chaque colonne que la page lui envoie',
+     inconnues.length === 0 && connues.length >= 20,
+     `inconnues : ${JSON.stringify(inconnues)} — ${connues.length} colonnes déclarées`);
+
+  /* ── LE PONT ───────────────────────────────────────────────────────────
+     bridge.js ne fait rien d'autre que ces deux messages ; s'ils marchent
+     ici, ils marchent chez lui. */
+  const pont = (charge) => page.evaluate((c) => new Promise((res) => {
+    const minuteur = setTimeout(() => res({ expire: true }), 3000);
+    window.addEventListener('message', function ecoute(e) {
+      if (e.source !== window || !e.data || e.data.tse !== 'tse-panneau-res'
+          || e.data.id !== c.id) return;
+      clearTimeout(minuteur);
+      window.removeEventListener('message', ecoute);
+      res(e.data);
+    });
+    window.postMessage({ tse: 'tse-panneau-req', ...c }, '*');
+  }), charge);
+
+  const r1 = await pont({ id: 1, section: 'diagnose' });
+  ok('une requête du pont revient, avec son identifiant et ses données',
+     r1.ok === true && r1.id === 1 && Array.isArray(r1.data?.lignes) && r1.data.lignes.length > 0,
+     JSON.stringify(r1).slice(0, 140));
+
+  /* Une section inconnue doit REVENIR EN ÉCHEC, pas se taire. Un panneau qui
+     n'obtient pas de réponse affiche « chargement » indéfiniment ; c'est la
+     pire des trois issues, et la seule qui ne se diagnostique pas. */
+  const r2 = await pont({ id: 2, section: 'nexistepas' });
+  ok('une section inconnue rend un échec nommé, jamais un silence',
+     r2.ok === false && r2.erreur === 'inconnu', JSON.stringify(r2));
+
+  const r3 = await pont({ id: 3, action: 'nexistepas' });
+  ok('une action inconnue aussi', r3.ok === false && r3.erreur === 'inconnu', JSON.stringify(r3));
+
+  /* Une action ordinaire, et son effet. rescan est la moins destructrice des
+     cinq : elle refait ce qu'un retour d'onglet fait déjà tout seul. */
+  const r4 = await pont({ id: 4, action: 'rescan' });
+  ok('une action déclarée s\'exécute et rend son compte-rendu',
+     r4.ok === true && r4.data?.fait === true, JSON.stringify(r4));
+
+  /* ── Ce à quoi le pont NE doit PAS répondre ────────────────────────────
+     Le listener écoute la fenêtre entière : tout script de la page peut y
+     poster. Il ne doit répondre qu'à ce qui porte sa marque ET un identifiant
+     — sans quoi il répondrait à ses PROPRES réponses, en boucle. */
+  const muet = await page.evaluate(() => new Promise((res) => {
+    let n = 0;
+    const compter = (e) => { if (e.data && e.data.tse === 'tse-panneau-res') n++; };
+    window.addEventListener('message', compter);
+    window.postMessage({ tse: 'tse-panneau-req', section: 'scores' }, '*');       // pas d'id
+    window.postMessage({ tse: 'tse-panneau-req', id: 'x', section: 'scores' }, '*'); // id non numérique
+    window.postMessage({ tse: 'autre-chose', id: 9, section: 'scores' }, '*');    // pas notre marque
+    window.postMessage({ tse: 'tse-panneau-res', id: 9, ok: true }, '*');         // une RÉPONSE
+    setTimeout(() => { window.removeEventListener('message', compter); res(n); }, 600);
+  }));
+  ok('un message mal formé, ou une réponse, ne déclenche aucune réponse',
+     muet === 1, `${muet} réponses vues (1 = la nôtre, rejouée en écho)`);
+
+  /* ── reset ─────────────────────────────────────────────────────────────
+     La seule action irréversible, et la seule que le panneau fait confirmer.
+     On vérifie qu'elle fait ce qu'elle dit : après elle, les compteurs sont
+     à zéro. */
+  await page.evaluate(() => { window.tse.panneau('scores'); });
+  const r5 = await pont({ id: 5, action: 'reset' });
+  const apresReset = await page.evaluate(() => ({
+    scores: window.tse.panneau('scores').lignes.length,
+    roster: window.tse.panneau('roster').lignes.length,
+    subs:   window.tse.panneau('subs').lignes.length,
+  }));
+  ok('reset vide bien l\'historique, les abonnements et le roster',
+     r5.ok === true && apresReset.scores === 0 && apresReset.roster === 0 && apresReset.subs === 0,
+     JSON.stringify(apresReset));
+
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
