@@ -271,5 +271,8 @@
   },
   "resetText": {
     "message": "Les scores de visite, les abonnements repérés, les chaînes connues et les mesures de retard seront supprimés de ce navigateur. C'est irréversible."
+  },
+  "stateNoWorker": {
+    "message": "Le fond de tâche de l'extension ne répond pas. Rechargez l'extension, ou réinstallez la version prévue pour ce navigateur."
   }
 }

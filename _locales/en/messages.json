@@ -358,5 +358,9 @@
   "resetText": {
     "message": "Visit scores, spotted subscriptions, known channels and delay measurements will be deleted from this browser. This cannot be undone.",
     "description": "Texte de la confirmation d'effacement"
+  },
+  "stateNoWorker": {
+    "message": "The extension’s background worker is not answering. Reload the extension, or reinstall the build made for this browser.",
+    "description": "État : le service worker ne répond pas (à distinguer de « pas d'onglet Twitch »)"
   }
 }

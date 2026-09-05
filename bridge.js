@@ -29,6 +29,7 @@
     try { port?.postMessage(charge); } catch {   }
   };
 
+  const REPRISE = 200;
   let minuteurReprise = null;
 
   const debrancher = () => {
@@ -52,7 +53,7 @@
       port = null;
 
       if (!document.hidden && !minuteurReprise) {
-        minuteurReprise = setTimeout(() => { minuteurReprise = null; brancher(); }, 1_000);
+        minuteurReprise = setTimeout(() => { minuteurReprise = null; brancher(); }, REPRISE);
       }
     });
     port.onMessage.addListener((m) => {
