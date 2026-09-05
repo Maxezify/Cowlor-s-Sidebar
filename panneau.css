@@ -47,6 +47,16 @@ html, body {
   width: 760px;
   height: 580px;
   overflow: hidden;
+  /* COLONNE FLEXIBLE, et surtout PAS de hauteurs codées en dur. La première
+     écriture donnait au corps `calc(580px - 47px - 45px)`, deux nombres
+     mesurés à la main sur l'en-tête et le pied. L'en-tête en fait 58 : titre
+     de 14 px, sous-titre de 11 px et 20 px de marges ne tiennent pas dans 47.
+     Onze pixels de trop, et le pied sortait de la fenêtre — les deux boutons
+     coupés en deux, sans le moindre débordement visible puisque le corps est
+     en `overflow: hidden`.
+     Ici, le corps prend ce qui reste, quoi que pèsent ses voisins. */
+  display: flex;
+  flex-direction: column;
   background: var(--fond);
   color: var(--texte);
   font: 13px/1.45 Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -55,6 +65,7 @@ html, body {
 
 /* ── En-tête ─────────────────────────────────────────────────────────────── */
 .tete {
+  flex: 0 0 auto;
   display: flex; align-items: center; gap: 10px;
   padding: 10px 14px;
   border-bottom: 1px solid var(--filet);
@@ -70,6 +81,12 @@ html, body {
   margin: 1px 0 0; font-size: 11px; color: var(--texte-faible);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* `hidden` pose `display: none` par la feuille du NAVIGATEUR ; une règle
+   d'auteur qui déclare un display l'emporte, et l'élément reste visible. Le
+   piège a coûté un « Chargement… » affiché sous le tableau qu'il devait
+   remplacer. Partout où l'on masque par attribut ET qu'on déclare un display,
+   il faut redire la règle — ici, sur .message et sur .voile. */
+.tete-etat[hidden] { display: none; }
 .tete-etat {
   flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
   font-size: 11px; color: var(--texte-doux);
@@ -81,10 +98,13 @@ html, body {
 .pastille--casse { background: var(--rouge); }
 
 /* ── Corps : rail + vue ──────────────────────────────────────────────────── */
-.corps { display: flex; height: calc(580px - 47px - 45px); }
+/* min-height: 0 n'est pas décoratif : par défaut un élément flex refuse de
+   descendre sous la taille de son contenu, et un tableau de trois cents
+   lignes ferait grandir le corps au lieu de le faire défiler. */
+.corps { flex: 1 1 auto; min-height: 0; display: flex; }
 
 .rail {
-  flex: 0 0 186px; min-width: 0;
+  flex: 0 0 186px; min-width: 0; min-height: 0;
   border-right: 1px solid var(--filet);
   background: var(--fond-2);
   overflow-y: auto; padding: 8px 0 10px;
@@ -168,6 +188,7 @@ html, body {
 .etiq--na     { background: rgba(255, 255, 255, 0.06); color: var(--texte-faible); }
 
 /* ── Messages (vide, chargement, erreur) ─────────────────────────────────── */
+.message[hidden] { display: none; }
 .message {
   flex: 1 1 auto; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 10px;
@@ -199,6 +220,7 @@ html, body {
 
 /* ── Pied ────────────────────────────────────────────────────────────────── */
 .pied {
+  flex: 0 0 auto;
   display: flex; align-items: center; gap: 8px;
   padding: 8px 14px;
   border-top: 1px solid var(--filet); background: var(--fond-2);

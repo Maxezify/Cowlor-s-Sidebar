@@ -2067,7 +2067,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 68 scenarios, 590 assertions |
+| `npm test` | the Playwright harness: 69 scenarios, 602 assertions |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
 just counted, and fails if the table lies. A bench whose size is advertised

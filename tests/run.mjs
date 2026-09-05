@@ -6380,6 +6380,214 @@ titre('69. Panneau — la donnée nue, et le pont qui la porte');
   await page.close();
 }
 
+// ═════════ 70. Le panneau — ce qu'on voit vraiment ═════════
+titre('70. Panneau — la page rendue, mesurée');
+{
+  /* CE SCÉNARIO EXISTE PARCE QUE J'AVAIS ÉCRIT QU'IL ÉTAIT IMPOSSIBLE. Le
+     panneau est une page d'extension, donc hors de portée de Playwright sans
+     charger l'extension — c'est vrai du PORT et du service worker, ce n'est
+     pas vrai de la PAGE. panneau.html se charge en file:// comme n'importe
+     quelle page ; il suffit de poser un `chrome` de substitution avant elle.
+
+     Deux défauts sont passés en production faute de ce scénario, et tous deux
+     se voient à l'œil sur une capture :
+
+       1. le pied SORTAIT DE LA FENÊTRE. La hauteur du corps était calculée en
+          dur — calc(580px - 47px - 45px) — et l'en-tête en fait 58, pas 47.
+          Les deux boutons étaient coupés en deux. Aucun débordement visible :
+          le corps est en overflow:hidden, il coupe sans rien dire ;
+       2. « Chargement… » S'AFFICHAIT SOUS LE TABLEAU qu'il devait remplacer.
+          L'attribut `hidden` pose display:none par la feuille du NAVIGATEUR,
+          et une règle d'auteur qui déclare un display l'emporte. .message
+          était en display:flex — donc toujours visible. Le piège avait été vu
+          pour .voile et manqué pour les deux autres.
+
+     Ce sont deux fautes de MISE EN PAGE, la seule famille que ni le linter, ni
+     la parité des locales, ni un test de comportement ne peuvent voir. Il faut
+     mesurer la page rendue. */
+  const messages = JSON.parse(
+    readFileSync(join(ICI, '..', '_locales', 'fr', 'messages.json'), 'utf8'));
+
+  /* Le `chrome` de substitution. Il ne simule PAS le pont — celui-ci est
+     éprouvé au scénario 69, côté page — mais l'API que le panneau appelle :
+     i18n, l'onglet actif, et l'aller-retour de messages. */
+  const stub = (msgs) => {
+    const T = (k) => (msgs[k] ? msgs[k].message : '');
+    const paquet = (colonnes, lignes, resume) => ({ ok: true, data: { colonnes, lignes, resume } });
+    const REPONSES = {
+      scores: () => paquet(['login', 'score', 'visits', 'last'],
+        [{ login: 'alpha', score: 3.5, visits: 12, last: Date.now() },
+         { login: 'beta',  score: 1.2, visits: 4,  last: Date.now() }],
+        { chaines: 2 }),
+      subs: () => paquet(['login', 'sub', 'ts', 'mois', 'ancien', 'origine'],
+        [{ login: 'alpha', sub: true, ts: Date.now(), mois: 7, ancien: false, origine: 'page' }],
+        { chaines: 1, abonnees: 1, releve: Date.now() }),
+      roster: () => paquet(['login', 'ts'], [], { chaines: 0 }),   // section VIDE
+      diagnose: () => paquet(['label', 'status', 'critical', 'detail'],
+        [{ label: '#side-nav', status: 'ok', critical: true, detail: '' },
+         { label: 'avatarOf()', status: 'na', critical: false, detail: 'aucune carte' }],
+        { sondes: 2, cassees: 0, critiquesCassees: 0, casse: false }),
+      lag: () => paquet(['login', 'lag', 'gain', 'ts'], [],
+        { mesures: 0, medianeLag: null, p90Lag: null, gains: 0, medianeGain: null }),
+      cycles: () => paquet(['t', 'evt', 'detail'], [], { evenements: 0, verrous: [] }),
+      apercu: () => paquet(['t', 'evt', 'detail'], [], { evenements: 0 }),
+      bascules: () => paquet(['login', 'libelle', 'canonique', 'ageSec'], [], { bascules: 0 }),
+      global: () => paquet(['rang', 'login', 'viewers', 'game'],
+        [{ rang: 1, login: 'ZEVENT', viewers: 703774, game: 'ZEVENT' }],
+        { actif: true, complete: true }),
+      categories: () => paquet(['rang', 'libelle', 'canonique', 'viewers'],
+        [{ rang: 1, libelle: 'Discussions', canonique: 'Just Chatting', viewers: 376011 }],
+        { categories: 1, actif: true }),
+    };
+    window.__envois = [];
+    window.chrome = {
+      i18n: { getMessage: T, getUILanguage: () => 'fr' },
+      tabs: { query: () => Promise.resolve([{ id: 1 }]) },
+      runtime: {
+        sendMessage: (m) => {
+          window.__envois.push(m);
+          if (m.action) return Promise.resolve({ ok: true, data: { fait: true } });
+          const f = REPONSES[m.section];
+          return Promise.resolve(f ? f() : { ok: false, erreur: 'inconnu' });
+        },
+      },
+    };
+  };
+
+  const page = await browser.newPage({ viewport: { width: 760, height: 580 } });
+  page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await page.addInitScript(stub, messages);
+  await page.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href);
+  await attendre(page, () => document.querySelectorAll('.rail-item').length > 0);
+  await attendre(page, () => document.querySelectorAll('.tableau tbody tr').length > 0);
+
+  /* ── LA GÉOMÉTRIE ──────────────────────────────────────────────────────
+     Le pied doit tenir ENTIÈREMENT dans la fenêtre. C'est le défaut n° 1, et
+     il ne se voit que comme ça : on mesure le bas du dernier bouton contre la
+     hauteur de la popup. */
+  const geo = await page.evaluate(() => {
+    const bas = (s) => Math.round(document.querySelector(s).getBoundingClientRect().bottom);
+    return {
+      hauteur: window.innerHeight,
+      piedBas: bas('.pied'),
+      boutonBas: Math.round(Math.max(
+        ...[...document.querySelectorAll('.pied .bouton')].map(b => b.getBoundingClientRect().bottom))),
+      corpsDeborde: document.body.scrollHeight - window.innerHeight,
+      railDeborde: document.getElementById('rail').scrollWidth
+                 - document.getElementById('rail').clientWidth,
+    };
+  });
+  ok('le pied tient entièrement dans la fenêtre — boutons compris',
+     geo.boutonBas <= geo.hauteur && geo.piedBas <= geo.hauteur,
+     JSON.stringify(geo));
+  ok('rien ne déborde de la popup : c\'est le contenu qui défile, pas la page',
+     geo.corpsDeborde <= 0 && geo.railDeborde <= 0, JSON.stringify(geo));
+
+  /* ── L'ATTRIBUT `hidden` MASQUE-T-IL VRAIMENT ? ────────────────────────
+     Le défaut n° 2. On ne demande pas si l'attribut est POSÉ — il l'était —
+     mais si l'élément OCCUPE ENCORE DE LA PLACE. C'est la seule formulation
+     qui distingue les deux. */
+  const place = (s) => page.evaluate((sel) => {
+    const e = document.querySelector(sel);
+    const r = e.getBoundingClientRect();
+    return { attribut: e.hidden, hauteur: Math.round(r.height) };
+  }, s);
+
+  const msgAvecTableau = await place('#message');
+  ok('avec un tableau à l\'écran, le bloc de message n\'occupe aucune place',
+     msgAvecTableau.attribut === true && msgAvecTableau.hauteur === 0,
+     JSON.stringify(msgAvecTableau));
+
+  const etatAvant = await place('#etat');
+  ok('la pastille d\'état reste invisible tant qu\'on n\'a pas vu le diagnostic',
+     etatAvant.attribut === true && etatAvant.hauteur === 0, JSON.stringify(etatAvant));
+
+  const voileAvant = await place('#voile');
+  ok('la boîte de confirmation n\'occupe aucune place au repos',
+     voileAvant.attribut === true && voileAvant.hauteur === 0, JSON.stringify(voileAvant));
+
+  /* ── UNE SECTION VIDE : le message remplace le tableau, il ne s'y ajoute pas ── */
+  await page.evaluate(() => [...document.querySelectorAll('.rail-item')]
+    .find(b => b.dataset.id === 'roster').click());
+  await attendre(page, () => !document.getElementById('message').hidden);
+  const vide = await page.evaluate(() => ({
+    message: Math.round(document.getElementById('message').getBoundingClientRect().height),
+    tableau: Math.round(document.getElementById('tableau-cadre').getBoundingClientRect().height),
+    texte: document.getElementById('message-texte').textContent,
+  }));
+  ok('une section vide montre son message À LA PLACE du tableau',
+     vide.message > 0 && vide.tableau === 0 && vide.texte.length > 0,
+     JSON.stringify(vide));
+
+  /* ── LA TRADUCTION EST-ELLE APPLIQUÉE ? ────────────────────────────────
+     getMessage d'une clé inconnue rend la chaîne vide, et T() retombe alors
+     sur le NOM DE LA CLÉ. Un libellé qui vaut « navScores » est donc la
+     signature exacte d'une clé manquante — visible ici, et nulle part
+     ailleurs. On vérifie aussi qu'aucun libellé n'est vide. */
+  const libelles = await page.evaluate(() => [
+    ...[...document.querySelectorAll('.rail-item, .rail-groupe')].map(e => e.textContent),
+    ...[...document.querySelectorAll('.pied .bouton')].map(e => e.textContent),
+    document.querySelector('.tete-titre').textContent,
+    document.querySelector('.tete-sous').textContent,
+  ]);
+  const CLE = /^(nav|desc|col|sum|btn|state|status|val|health|reset|grp|panel|ext)[A-Z]/;
+  const brutes = libelles.filter(t => CLE.test(t.trim()));
+  const vides  = libelles.filter(t => !t.trim());
+  ok(`les ${libelles.length} libellés visibles sont traduits, aucun n'est un nom de clé`,
+     brutes.length === 0 && vides.length === 0,
+     `bruts : ${JSON.stringify(brutes)} — vides : ${vides.length}`);
+
+  /* ── LE RAIL EST COMPLET ───────────────────────────────────────────────
+     Dix sections, trois groupes. Une section ajoutée à content.js sans être
+     ajoutée ici resterait invisible : le panneau n'affiche que ce qu'il
+     déclare. */
+  const rail = await page.evaluate(() => ({
+    items: document.querySelectorAll('.rail-item').length,
+    groupes: document.querySelectorAll('.rail-groupe').length,
+  }));
+  ok('le rail porte les dix sections, en trois groupes',
+     rail.items === 10 && rail.groupes === 3, JSON.stringify(rail));
+
+  /* ── LES NOMBRES SUIVENT LA LOCALE DU PANNEAU ──────────────────────────
+     376011 doit s'écrire avec un séparateur de milliers français, pas à
+     l'anglaise et pas collé. C'est chrome.i18n.getUILanguage() qui décide,
+     donc la langue de l'INTERFACE et non celle du système. */
+  await page.evaluate(() => [...document.querySelectorAll('.rail-item')]
+    .find(b => b.dataset.id === 'categories').click());
+  await attendre(page, () => document.querySelectorAll('.tableau tbody tr').length > 0);
+  const nombre = await page.evaluate(() =>
+    [...document.querySelectorAll('.tableau tbody td')].map(t => t.textContent).find(t => /376/.test(t)));
+  ok('les nombres sont formatés dans la langue du panneau',
+     /^376[   ]011$/.test(nombre || ''), JSON.stringify(nombre));
+
+  /* ── LA CONFIRMATION D'EFFACEMENT ──────────────────────────────────────
+     La seule action irréversible. Elle ne doit jamais partir sur un clic
+     unique, et Échap doit pouvoir en sortir. */
+  await page.evaluate(() => document.getElementById('btn-reset').click());
+  const ouverte = await place('#voile');
+  const envoisApresOuverture = await page.evaluate(() =>
+    window.__envois.filter(m => m.action === 'reset').length);
+  ok('« Effacer » ouvre une confirmation et n\'efface rien tout seul',
+     ouverte.attribut === false && ouverte.hauteur > 0 && envoisApresOuverture === 0,
+     JSON.stringify({ ouverte, envoisApresOuverture }));
+
+  await page.keyboard.press('Escape');
+  const fermee = await place('#voile');
+  ok('Échap referme la confirmation sans rien effacer',
+     fermee.attribut === true && fermee.hauteur === 0, JSON.stringify(fermee));
+
+  await page.evaluate(() => {
+    document.getElementById('btn-reset').click();
+    document.getElementById('boite-ok').click();
+  });
+  await attendre(page, () => window.__envois.some(m => m.action === 'reset'));
+  const efface = await page.evaluate(() =>
+    window.__envois.filter(m => m.action === 'reset').length);
+  ok('…et la confirmation, elle, envoie bien l\'ordre', efface === 1, String(efface));
+
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
