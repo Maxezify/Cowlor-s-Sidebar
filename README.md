@@ -338,9 +338,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 563 Ko | 291 Ko | 2 721 → **2** |
+| `content.js` | 563 Ko | 262 Ko | 2 721 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| **paquet** | **687 Ko** | **391 Ko** | **−43 %** |
+| **les deux** | **687 Ko** | **362 Ko** | **−47 %** |
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
 `dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 721
@@ -380,6 +380,44 @@ expression régulière.
    sans le saut de ligne rendent `5`. Un commentaire de bloc contenant un saut
    de ligne est donc remplacé par un saut de ligne, et le scénario 66 fait
    tourner six extraits-pièges avant et après pour le vérifier.
+
+#### Le CSS n'est pas du JavaScript
+
+La feuille de style vit dans un littéral de gabarit — `const CSS = \`…\`` — et
+pour acorn c'est une **chaîne**. Ses 77 commentaires ne sont donc pas des
+commentaires JavaScript, et la première passe ne les voit pas. Une seconde
+passe les retire, et elle a ses propres pièges :
+
+- une séquence `/*` dans une chaîne CSS (`content: "/*"`) n'ouvre rien ;
+- un commentaire **collé à un jeton des deux côtés** ne peut pas être retiré
+  sans changer la règle : `foo/*x*/bar` vaut deux identifiants et deviendrait
+  `foobar`, un seul ; le remplacer par une espace ne sauve rien non plus, car
+  dans un sélecteur `.a/*x*/.b` vaut `.a.b` et l'espace en ferait `.a .b`.
+  Aucun des deux remplacements n'est juste partout, donc on ne retire que les
+  commentaires dont **au moins un côté est déjà une espace** — les 77 le sont ;
+- un commentaire qui déborderait sur une interpolation `${…}` est laissé
+  intact, faute de pouvoir décider.
+
+La passe est **ciblée par le nom de la variable**. Balayer tous les littéraux
+de gabarit abîmerait le jour où l'un d'eux porterait du SVG ou du HTML
+contenant `/*` — là ce n'est pas un commentaire, et le retirer changerait ce
+qui s'affiche. Un seul littéral du fichier contient cette séquence aujourd'hui,
+et c'est bien le CSS.
+
+**La preuve, elle, ne se fait pas dans Node** : c'est le navigateur qui lit ce
+CSS, donc c'est lui qu'on interroge. Le banc prend la feuille que l'extension a
+réellement injectée — interpolations résolues comprises —, la dégraisse, fait
+parser les deux par Chromium et compare son modèle objet : **139 règles, même
+ordre, mêmes déclarations**.
+
+Cette comparaison a d'abord échoué, et l'échec valait la peine : Chromium
+**normalise** ce qu'il ressert — `#fff` devient `rgb(255, 255, 255)`, les
+raccourcis sont éclatés — **sauf les valeurs contenant un `var()`**, qu'il rend
+telles qu'on les a écrites, commentaire au milieu compris. Une règle du fichier
+en porte un dans son `background`. Les règles sont donc comparées après retrait
+des commentaires des deux côtés — ce qui ne coûte rien, puisque le seul cas
+vraiment dangereux (un commentaire retiré entre deux jetons d'une valeur) tombe
+précisément là où Chromium normalise, donc reste visible.
 
 Enfin, `npm run prod` — qui publie les branches PROD READY — rejoue le **banc
 complet sur le fichier tel qu'il part**, sans commentaires. Une publication est

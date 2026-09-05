@@ -2,7 +2,8 @@ import { chromium } from 'playwright';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { degraisser, memeCode, compterCommentaires } from './degraisser.mjs';
+import { degraisser, degraisserJs, memeCode, compterCommentaires,
+         sansCommentairesCss } from './degraisser.mjs';
 
 // Tout est résolu depuis CE fichier : `npm test` tourne à la racine du dépôt,
 // un lancement direct tourne dans tests/, et les deux doivent marcher.
@@ -5727,6 +5728,102 @@ titre('66. Paquet — retirer les commentaires sans toucher au programme');
   ok('après dégraissage il ne reste QUE les notices, dans les deux fichiers',
      boiteuses.length === 0,
      restants.map(r => `${r.f} ${r.avant}→${r.apres} (légaux ${r.legaux})`).join(' | '));
+
+  /* ── Le CSS, qui n'est pas du JavaScript ────────────────────────────────
+     La feuille de style vit dans un littéral de gabarit : pour acorn, c'est
+     une chaîne, et ses 77 commentaires ne sont pas des commentaires JS. Un
+     second passage les retire, et il a ses propres pièges — un « /* » dans
+     une chaîne CSS n'ouvre rien, et un commentaire collé à un jeton des deux
+     côtés ne peut pas être retiré sans changer la règle. */
+  const PIEGES_CSS = [
+    ['un commentaire ordinaire part',
+     '.a { color: red; /* rouge */ }', '.a { color: red;  }'],
+    ['une séquence /* dans une chaîne CSS n\'ouvre pas de commentaire',
+     '.a::after { content: "/* pas un commentaire */"; }',
+     '.a::after { content: "/* pas un commentaire */"; }'],
+    ['ni dans une chaîne à apostrophes',
+     '.a::after { content: \'/*\'; color: red; }',
+     '.a::after { content: \'/*\'; color: red; }'],
+    ['un commentaire collé des deux côtés est CONSERVÉ, faute de pouvoir le retirer',
+     '.a/*x*/.b { color: red; }', '.a/*x*/.b { color: red; }'],
+    ['mais une espace d\'un seul côté suffit à le retirer',
+     '.a /*x*/.b { color: red; }', '.a .b { color: red; }'],
+    ['un commentaire non fermé ne fait rien perdre',
+     '.a { color: red; /* ouvert', '.a { color: red; /* ouvert'],
+  ];
+  const fauxCss = [];
+  for (const [nom, entree, attendu] of PIEGES_CSS) {
+    const rendu = sansCommentairesCss(entree);
+    if (rendu !== attendu) fauxCss.push(`${nom} : « ${rendu} »`);
+  }
+  ok('les pièges du CSS sont traités comme du CSS, pas comme du texte',
+     fauxCss.length === 0, fauxCss.join(' | '));
+
+  const cssAvant = readFileSync(join(RACINE, 'content.js'), 'utf8');
+  const gainCss = Buffer.byteLength(degraisserJs(cssAvant))
+                - Buffer.byteLength(degraisser(cssAvant));
+  ok(`le passage CSS retire à lui seul plus de 20 Ko (${(gainCss / 1024).toFixed(0)} Ko)`,
+     gainCss > 20 * 1024, String(gainCss));
+
+  /* LA preuve, et elle ne se fait pas dans Node : c'est le navigateur qui lit
+     ce CSS, donc c'est LUI qu'on interroge. On prend la feuille que
+     l'extension a réellement injectée — interpolations résolues comprises —,
+     on la dégraisse, et on demande à Chromium de parser les deux. S'il rend
+     les mêmes règles, dans le même ordre, avec les mêmes déclarations, les
+     deux feuilles sont la même feuille.
+
+     Les règles sont comparées après un retrait de commentaires des DEUX
+     côtés, et il a fallu une première écriture rouge pour comprendre
+     pourquoi. Chromium NORMALISE ce qu'il ressert — « #fff » devient
+     « rgb(255, 255, 255) », les raccourcis sont éclatés — SAUF les valeurs qui
+     contiennent un `var()` : celles-là, il les rend telles qu'on les a
+     écrites, commentaire au milieu compris. La règle 58 en porte un dans son
+     `background`, et deux textes bruts ne pouvaient donc pas être égaux.
+
+     Normaliser des deux côtés n'affaiblit pas le contrôle : là où Chromium
+     normalise, il a déjà retiré les commentaires pour nous, et tout écart de
+     sélecteur, de valeur ou de nombre de règles reste visible. Le seul cas
+     vraiment dangereux — un commentaire retiré ENTRE deux jetons d'une valeur,
+     « foo/*x*\/bar » devenant « foobar » au lieu de « foo bar » — tombe
+     précisément là où Chromium normalise, donc il est vu. */
+  const pageCss = await browser.newPage();
+  pageCss.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await pageCss.goto(URL_PAGE);
+  await attendre(pageCss, () => !!document.getElementById('tse-css'));
+  const feuille = await pageCss.evaluate(() => document.getElementById('tse-css').textContent);
+  const [avantR, apresR] = await pageCss.evaluate(({ avant, apres }) => {
+    // `media="not all"` : les deux sondes sont analysées sans rien peindre.
+    const regles = (texte) => {
+      const s = document.createElement('style');
+      s.media = 'not all';
+      s.textContent = texte;
+      document.head.appendChild(s);
+      const out = [...s.sheet.cssRules].map(r => r.cssText);
+      s.remove();
+      return out;
+    };
+    return [regles(avant), regles(apres)];
+  }, { avant: feuille, apres: sansCommentairesCss(feuille) });
+  await pageCss.close();
+
+  let ecart = avantR.length !== apresR.length
+    ? `${avantR.length} règles avant, ${apresR.length} après` : null;
+  for (let i = 0; !ecart && i < avantR.length; i++) {
+    const a = sansCommentairesCss(avantR[i]), b = sansCommentairesCss(apresR[i]);
+    if (a !== b) ecart = `règle ${i} : « ${a.slice(0, 90)} » → « ${b.slice(0, 90)} »`;
+  }
+  ok(`Chromium rend les MÊMES règles avant et après (${avantR.length} règles)`,
+     !ecart, ecart ?? '');
+  /* Et la feuille dégraissée n'en porte plus aucun. Le contrôle ci-dessus
+     normalise les deux côtés : à lui seul, il passerait aussi pour un
+     dégraisseur inerte. Celui-ci ferme la porte — et il ne se prononce QUE sur
+     la sortie, car l'entrée n'a déjà plus de commentaires quand le banc tourne
+     sur le code livré (`npm run test-livre`). Le cas « ne fait rien » est
+     couvert deux lignes plus haut, sur le fichier du dépôt, où la mesure vaut
+     dans les deux modes. */
+  ok('…et la feuille servie au navigateur ne porte plus un seul commentaire CSS',
+     !sansCommentairesCss(feuille).includes('/*'),
+     `${(sansCommentairesCss(feuille).match(/\/\*/g) || []).length} restants`);
 }
 
 await browser.close();
