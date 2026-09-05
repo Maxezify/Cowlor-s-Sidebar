@@ -1057,38 +1057,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   };
 
   const CSS = `
-    /* === Voile de chargement initial ===
-       Masque toute la sidebar pendant l'init pour cacher le flash de
-       cartes Déconnecté(e), cartes non triées, hype trains non encore
-       masqués. Levé dès stabilité de la sidebar (debounce piloté par
-       loadingOverlay.notifyScan dans scanSidebar) ou au plus tard
-       après LOADING_TIMEOUT_MS.
-
-       Le masquage est en DEUX couches synchronisées :
-         1) body.tse-loading rend #side-nav transparente (opacity:0).
-            Évite que les sections Twitch (Stories, etc.) "flashent"
-            entre le moment où elles sont montées et le moment où
-            l'overlay JS est positionné dessus. Levée par retrait
-            de la classe → transition fade-in de la sidebar.
-         2) L'overlay flottant (position:fixed, calé sur #side-nav)
-            affiche le fond + le spinner pendant ce temps. Levée par
-            data-tse-fading → fade-out symétrique.
-       Les deux fondus partagent LOADING_FADE_MS pour un crossfade
-       propre : la sidebar se révèle au même rythme que l'overlay
-       disparaît, masquant la barre violette "stream frais" qui
-       attirerait l'œil pendant le fondu sinon. */
-    /* opacity:0 masque la sidebar ; pointer-events:none la rend inerte
-       pendant le voile. Sans ce second point, la sidebar (invisible mais
-       toujours présente dans le layout) resterait survolable et cliquable
-       « à l'aveugle » sous le voile : déclenchement de l'aperçu au survol
-       (délégation mouseenter sur .side-nav-card), états :hover et
-       navigations au clic. pointer-events:none neutralise les trois d'un
-       coup — les events de pointeur ne ciblent plus aucune carte, donc ni
-       les listeners JS ni les pseudo-classes :hover ne s'activent. La règle
-       est portée par body.tse-loading, l'unique source de vérité du voile
-       (posée par startCycle(), retirée en première action de finish()) :
-       l'interaction est donc restaurée pile au lancement du crossfade de
-       sortie, et non à la fin du fondu. */
+    
+    
     body.tse-loading #side-nav { opacity: 0; pointer-events: none; }
     #side-nav { transition: opacity ${CFG.LOADING_FADE_MS}ms ease; }
     .tse-loading-overlay {
@@ -1100,9 +1070,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       pointer-events: none;
     }
     .tse-loading-overlay[data-tse-fading="true"] { opacity: 0; }
-    /* Spinner indépendant de la hauteur de l'overlay. Centré V dans la
-       viewport (top:50% + translateY) et H dans la sidebar (left+width
-       posés par reposition() en JS, translateX:-50% pour centrer dans). */
+    
     .tse-loading-overlay__spinner {
       position: fixed;
       top: 50%;
@@ -1124,13 +1092,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       to { transform: translate(-50%, -50%) rotate(360deg); }
     }
 
-    /* === Compteur de viewers rafraîchi par l'extension ===
-       Notre span est inséré juste après le compteur natif, dans le même
-       parent : il reprend donc exactement sa place dans le flux, sans avoir
-       à rejouer la mise en page de Twitch. Le natif n'est masqué que sur les
-       cartes qui portent déjà une valeur à nous ([data-tse-viewers]) — sur
-       toutes les autres (résolution en cours, sections hors « suivis »),
-       c'est celui de Twitch qui reste affiché. */
+    
     .tse-viewers {
       font-variant-numeric: tabular-nums;
     }
@@ -1139,7 +1101,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       display: none !important;
     }
 
-    /* === Uptime label sous le nombre de viewers === */
+    
     .tse-uptime {
       display: block; width: 100%; margin-top: 1px;
       font-size: 1.2rem; line-height: 1.4; text-align: right;
@@ -1153,7 +1115,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       font-variant-numeric: normal;
     }
 
-    /* === Pastille collab === */
+    
     .tse-collab-host { position: relative !important; }
     .tse-collab-badge {
       position: absolute; bottom: -3px; right: -3px;
@@ -1167,56 +1129,24 @@ const TSE_GATE_MAX_CLICKS = 5;
       font-variant-numeric: tabular-nums;
     }
 
-    /* === Masquages divers === */
+    
     [data-a-target*="hype-train" i],
     [data-test-selector*="hype-train" i],
     [class*="hype-train" i],
     [class*="HypeTrain"] { display: none !important; }
 
-    /* Lignes annexes (hype train, réduction d'abonnement, badges divers)
-       injectées par Twitch sous le bloc principal d'une carte. Elles sont
-       marquées en JS via [data-tse-extra-row] dans processCard(), puis
-       masquées ici. L'approche JS est nécessaire car les sélecteurs CSS
-       avec :has() et :not(:has()) combinés rencontrent des bugs/limitations
-       selon les moteurs et certaines structures (styled-components Twitch). */
+    
     .side-nav-card [data-tse-extra-row="true"] { display: none !important; }
     .side-nav-card .primary-with-small-avatar__mini-avatar { display: none !important; }
 
-    /* Masquage des indicateurs de co-stream que Twitch superpose sur
-       l'avatar principal des cartes (cercle coloré avec icône personnage).
-       Le rôle de la carte dans le co-stream est exposé en suffixe de
-       classe (les autres tokens sont hashés et changent à chaque build) :
-         iconContainer--primary    → la carte est un co-streamer participant (cercle bleu)
-         iconContainer--secondary  → la carte est la chaîne hébergeant      (cercle blanc)
-       On masque les deux : l'info "Co-stream de X" est désormais dans
-       notre popup d'aperçu, plus claire qu'un cercle ambigu.
-       NB : sélecteurs préfixés .side-nav-card pour ne pas affecter les
-       mêmes patterns ailleurs dans Twitch (pages de chaîne, directory).
-       NB 2 : ne PAS confondre avec primary-with-small-avatar__mini-avatar
-       (déjà masqué ci-dessus) qui est le système distinct "En live avec"
-       (squad/multistream, badge +N), à laisser tel quel côté info. */
+    
     .side-nav-card [class*="iconContainer--primary"],
     .side-nav-card [class*="iconContainer--secondary"] { display: none !important; }
 
-    /* Cartes sponsorisées (carte avec layout spécial "promoted-followed") :
-       on masque les éléments propres à la mise en avant publicitaire pour
-       que la carte ressemble à une carte normale. Les classes
-       side-nav-promoted-followed-card__* et side-nav-card__link--promoted-followed
-       sont stables côté Twitch (pas hashées).
-         - gradient violet de fond
-         - bandeau "Sponsorisé • <marque>" en bas
-         - croix "en collaboration avec"
-         - logo de la marque + son cadre coloré (background-color inline) :
-           ciblé par parenté via :has() pour ne pas laisser un cadre vide.
-       L'info sponso est restituée comme badge dans notre popup d'aperçu
-       (cf. getSponsorInfo + renderPopup). */
+    
     .side-nav-card .side-nav-promoted-followed-card__gradient,
     .side-nav-card .side-nav-promoted-followed-card__sponsorship,
-    /* Sélecteurs par alt dupliqués FR + EN + DE (« Logo de/of/von »),
-       indépendants de LANG ; l'espagnol « Logo de … » réutilise la variante
-       FR. La croix « collaboration » reste FR/EN (le masquage structurel
-       --promoted-followed couvre le reste de la mise en page quelle que
-       soit la langue). */
+    
     .side-nav-card img[alt="en collaboration avec"],
     .side-nav-card img[alt="in collaboration with"],
     .side-nav-card img[alt="em colaboração com"],
@@ -1229,23 +1159,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       display: none !important;
     }
 
-    /* Une fois le décor publicitaire masqué, il reste la mise en page
-       "promoted-followed" de Twitch : avatar + statut sur une ligne, PUIS le
-       nom, PUIS la catégorie — empilés verticalement. Résultat : la carte
-       paraît cassée/dédoublée vs les cartes normales. On la remet en forme
-       en une grille « avatar | nom/catégorie | viewers » identique aux autres
-       cartes. Les wrappers intermédiaires sont hashés : on les aplatit via
-       display:contents en s'ancrant UNIQUEMENT sur des classes stables
-       (--promoted-followed, side-nav-card__link__tooltip-arrow,
-       promoted-followed-card__{gradient,title,content}, side-nav-card__live-status,
-       tw-avatar). */
+    
     .side-nav-card a[class*="--promoted-followed"] { display: block; }
 
-    /* Niveau 1 : wrapper interne du lien (hors flèche tooltip) → transparent. */
+    
     .side-nav-card a[class*="--promoted-followed"]
       > div:not(.side-nav-card__link__tooltip-arrow) { display: contents; }
 
-    /* Niveau 2 : bloc de contenu (enfant non-gradient) → grille 3 colonnes. */
+    
     .side-nav-card a[class*="--promoted-followed"]
       > div:not(.side-nav-card__link__tooltip-arrow)
       > div:not([class*="promoted-followed-card__gradient"]) {
@@ -1257,9 +1178,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       width: 100%;
     }
 
-    /* Niveau 3+4 : bloc avatar+statut puis wrapper d'avatar → transparents,
-       pour que avatar, statut, titre et catégorie deviennent les items de la
-       grille définie ci-dessus. */
+    
     .side-nav-card a[class*="--promoted-followed"]
       > div:not(.side-nav-card__link__tooltip-arrow)
       > div:not([class*="promoted-followed-card__gradient"])
@@ -1270,7 +1189,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       > div:not([class*="promoted-followed-card__"])
       > div:not(.side-nav-card__live-status) { display: contents; }
 
-    /* Placement dans la grille (mêmes repères qu'une carte normale). */
+    
     .side-nav-card a[class*="--promoted-followed"] .tw-avatar {
       grid-column: 1; grid-row: 1 / 3;
     }
@@ -1284,11 +1203,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       grid-column: 3; grid-row: 1 / 3;
     }
 
-    /* Twitch peut afficher une 3e ligne pour le titre du stream (ex. "[DROPS]
-       [REBROADCAST] …"). C'est un <div> frère de .side-nav-card__metadata, à
-       l'intérieur du bloc [data-a-target="side-nav-card-metadata"]. On masque
-       tout frère de la metadata, ce qui couvre la 3e ligne sans dépendre
-       d'une classe hashée Twitch. */
+    
     .side-nav-card [data-a-target="side-nav-card-metadata"] > .side-nav-card__metadata ~ * {
       display: none !important;
     }
@@ -1296,17 +1211,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     .side-nav-card[data-tse-offline="true"] { display: none !important; }
     .side-nav-section.tse-section-hidden { display: none !important; }
 
-    /* Masquage des tooltips et panneaux d'aperçu NATIFS de Twitch
-       (notre popup d'aperçu .tse-preview les remplace) :
-       - tooltip-arrow : chevron + message "Utilisez la flèche droite…"
-       - online-side-nav-channel-tooltip : grand panneau d'aperçu live
-         qui s'ouvre au survol prolongé (~2-3s) et masque notre popup
-       - side-nav-costreaming-tooltip   : encart listant les co-streamers
-       - side-nav-card__tooltip         : tooltip simple
-       Pattern [class*="side-nav"][class*="tooltip"] : capture aussi les
-       variantes futures (Twitch hash certains noms de classe). Le
-       pattern reste sûr car notre .tse-preview ne contient pas
-       "side-nav" dans son nom de classe. */
+    
     .side-nav-card .side-nav-card__link__tooltip-arrow,
     [class*="online-side-nav-channel-tooltip"],
     [class*="side-nav-costreaming-tooltip"],
@@ -1316,32 +1221,15 @@ const TSE_GATE_MAX_CLICKS = 5;
       display: none !important;
     }
 
-    /* Modale natif Twitch (.tw-dialog-layer) qui sert de wrapper React au
-       tooltip d'aperçu de carte (.online-side-nav-channel-tooltip). Même
-       avec les tooltips masqués ci-dessus, ce wrapper modal apparaît au
-       survol et clignote derrière notre popup, surtout au mouseout.
-       On le masque uniquement pendant l'affichage de notre popup, via le
-       flag .tse-preview-active posé sur <body> par open()/close(). Hors
-       de ce contexte, .tw-dialog-layer reste fonctionnel pour les modales
-       légitimes (menu utilisateur, paramètres, confirmations). */
+    
     body.tse-preview-active .tw-dialog-layer { display: none !important; }
 
-    /* Masquage du header natif Twitch ("Chaînes suivies / Spectateurs (décroissant) / ↕"
-       qui ouvre la modale de tri Twitch). Plusieurs sélecteurs pour résister
-       aux renames : classe legacy, classe à préfixe similaire, et marqueur
-       JS de secours posé en fallback par hideNativeFollowedHeader(). */
+    
     .followed-side-nav-header,
     [class*="followed-side-nav-header"],
     [data-tse-native-header="hidden"] { display: none !important; }
 
-    /* === Alignement droit du compteur de viewers ===
-       Twitch enveloppe le nombre dans un sous-conteneur flex qui le
-       centre/justifie selon son flux. Pour avoir une grille verticale
-       stable entre "60" et "9,8 k", on force :
-         - la cellule live-status à aligner son contenu à droite
-         - le wrapper interne à occuper toute la largeur, justifier
-           son contenu à la fin, et passer en text-align right
-         - le span numérique en tabular-nums */
+    
     .side-nav-card__live-status,
     [data-a-target="side-nav-live-status"] {
       text-align: right;
@@ -1361,21 +1249,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       font-variant-numeric: tabular-nums;
     }
 
-    /* === Survol progressif des cartes ===
-       Twitch applique un fond de surbrillance INSTANTANÉ au :hover d'une carte.
-       On l'adoucit en ajoutant une transition sur la carte et ses descendants :
-       quel que soit l'élément qui porte réellement ce fond (lien, wrapper
-       interne), le fondu s'applique. On ne transitionne QUE background-color :
-       la transition ne se déclenche donc que sur l'élément qui change de fond,
-       et les dégradés co-stream/fresh (background-image) ne sont pas affectés. */
+    
     .side-nav-card,
     .side-nav-card * {
       transition: background-color 300ms ease;
     }
 
-    /* === Stream frais (< 10 min) ===
-       Effet renforcé : fond violet subtil + barre 3px lumineuse +
-       halo qui pulse. Reste léger pour ne pas saturer la sidebar. */
+    
     .side-nav-card.tse-fresh {
       position: relative;
       isolation: isolate;
@@ -1409,11 +1289,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     }
 
-    /* === Co-stream : même effet que "fresh" mais sans animation et avec
-       une couleur différente par groupe. La couleur est définie via la
-       variable --tse-costream-color posée en JS sur chaque carte.
-       Si une carte est à la fois "fresh" ET "costream", "fresh" gagne
-       visuellement (priorité au violet animé). */
+    
     .side-nav-card.tse-costream {
       position: relative;
       isolation: isolate;
@@ -1437,7 +1313,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       pointer-events: none;
       z-index: 1;
     }
-    /* Si "fresh" et "costream" se cumulent, fresh prend le dessus visuellement. */
+    
     .side-nav-card.tse-fresh.tse-costream { background-image: linear-gradient(
         90deg,
         rgba(145, 71, 255, 0.18) 0%,
@@ -1445,15 +1321,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         transparent 100%
       ); }
     .side-nav-card.tse-fresh.tse-costream::before { background: ${CFG.PURPLE}; }
-    /* Jonction de barres : deux cartes co-stream VISIBLES adjacentes du même
-       groupe (classes posées en JS par applyCostreamJoins) → leurs barres
-       latérales fusionnent en une seule. On prolonge la barre au-delà du bord
-       de la carte vers le voisin et on supprime l'arrondi du côté joint.
-       L'extension exacte (moitié de l'interstice inter-cartes) est mesurée en
-       JS et passée via --tse-costream-jt / --tse-costream-jb : la jointure est ainsi
-       parfaite quel que soit le mode (étendu OU réduit, où l'espacement entre
-       avatars est plus grand). Repli -8px si la mesure n'a pas encore eu lieu.
-       Une carte « du milieu » (3+ membres adjacents) porte les deux classes. */
+    
     .side-nav-card.tse-costream.tse-costream-join-bottom::before {
       bottom: var(--tse-costream-jb, -8px);
       border-bottom-right-radius: 0;
@@ -1463,34 +1331,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       border-top-right-radius: 0;
     }
 
-    /* === Chaîne dont on est ABONNÉ ===
-       Le nom de la chaîne passe à l'or, et une lueur circule dans le FOND de
-       la carte : trois nappes colorées qui dérivent chacune à sa vitesse, et
-       un voile lumineux qui balaie la carte en diagonale de loin en loin.
-       L'avatar garde son anneau tournant — c'est le seul élément qui subsiste
-       en mode réduit, où il n'y a ni fond ni texte à colorer.
-
-       COMMENT ÇA COHABITE, alors que le fond appartient déjà à « frais »
-       (violet) et au co-stream (couleur du groupe) : la couche animée est
-       posée en z-index NÉGATIF dans le contexte d'empilement de la carte.
-       Elle se peint donc APRÈS le fond de la carte — dont elle laisse passer
-       la teinte, étant elle-même très transparente — mais AVANT le contenu,
-       et sous la barre de gauche qui est en z-index 1. Les trois signaux
-       restent donc lisibles ensemble, sans une seule règle de départage :
-       le fond dit « frais » ou « co-stream », la lueur et l'or disent
-       « abonné », la barre dit le groupe.
-
-       PHASE. --tse-sub-phase (0..11) est posée en JS d'après le LOGIN et
-       décale le départ des animations. Les cartes ne battent donc pas à
-       l'unisson : chacune a sa position dans le cycle. Dérivée du login et
-       non du rang, la phase ne bouge pas quand le tri réordonne la liste.
-
-       COÛT, MESURÉ. Une seule propriété animée par carte — la position des
-       couches de fond — plus le dégradé du nom. Relevé dans Chromium sur
-       trente cartes décorées, soit le double de ce qu'un compte ordinaire
-       affiche : 16,75 ms d'intervalle moyen entre images contre 16,76 ms sans
-       la décoration, et une image longue (> 20 ms) contre une. Autrement dit :
-       rien de mesurable. */
+    
     @property --tse-sub-angle {
       syntax: '<angle>';
       inherits: false;
@@ -1501,12 +1342,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       isolation: isolate;
       border-radius: 5px;
     }
-    /* LA LUEUR DE FOND. Quatre couches dans une seule propriété, chacune avec
-       sa taille et sa position propres — c'est ce qui permet de les faire
-       dériver à des vitesses différentes en n'animant qu'UNE propriété.
-       La première est le voile de balayage ; les trois autres sont les nappes.
-       Toutes très transparentes : on ajoute une lueur, on ne repeint pas la
-       carte. */
+    
     .side-nav-card.tse-sub::after {
       content: '';
       position: absolute;
@@ -1528,10 +1364,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       animation: tse-sub-lueur 15s linear infinite;
       animation-delay: calc(var(--tse-sub-phase, 0) * -1.25s);
     }
-    /* Le balayage traverse dans le premier quart du cycle puis reste hors
-       cadre : il passe, il ne clignote pas. Les nappes, elles, dérivent sans
-       interruption — et pas au même rythme, sans quoi elles se déplaceraient
-       en bloc et l'œil y verrait une seule image qui glisse. */
+    
     @keyframes tse-sub-lueur {
       0%   { background-position: -110% 0,   0% 50%, 100% 50%,  40% 50%; }
       25%  { background-position:  210% 0,  35% 50%,  62% 50%,  78% 50%; }
@@ -1539,29 +1372,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       100% { background-position:  210% 0, 100% 50%,   0% 50%,  40% 50%; }
     }
 
-    /* LE TEXTE, EN OR. Un dégradé qui traverse les lettres elles-mêmes : la
-       couleur est celle d'un fond, découpée à la forme du texte. La règle de
-       repli pose une couleur pleine D'ABORD — si background-clip venait à ne
-       pas s'appliquer, le texte reste doré et lisible au lieu de disparaître.
-
-       DEUX RANGS, ET ILS DOIVENT LE RESTER. Le nom est l'information ; la
-       catégorie l'accompagne. Le nom reçoit donc l'or vif, un reflet rapide
-       (7 s) et un halo qui respire ; la catégorie, un champagne plus sourd et
-       un reflet presque deux fois plus lent (11 s), sans halo. Leur donner le
-       même traitement aurait aplati la hiérarchie que Twitch installe par la
-       taille et la couleur — et rendu la carte illisible d'un coup d'œil.
-       Les deux reflets ne défilent pas non plus en cadence : périodes
-       différentes ET décalages différents, sinon l'œil y verrait un seul bloc
-       qui glisse. */
+    
     .side-nav-card.tse-sub p[data-a-target="side-nav-title"] {
       color: #ffd68a;
       font-weight: 700;
     }
-    /* La catégorie, désignée par une CLASSE posée en JS d'après
-       cardCategoryEl() — pour la même raison que l'avatar : la fonction
-       couvre cinq emplacements, dont deux où le <p> ne porte pas d'attribut
-       title, et une feuille de style qui les recopie finit par en oublier
-       un (cf. markSubPart). */
+    
     .side-nav-card.tse-sub .tse-sub-cat {
       color: #e6c68d;
     }
@@ -1576,10 +1392,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
-        /* Le halo est posé par un filtre, non par text-shadow : avec un
-           remplissage transparent, une ombre de texte se verrait AU TRAVERS
-           des lettres, en double flou. Le filtre, lui, s'applique au résultat
-           déjà découpé — il entoure les lettres au lieu de les traverser. */
+        
         animation: tse-sub-titre 7s linear infinite,
                    tse-sub-halo 5.5s ease-in-out infinite;
         animation-delay: calc(var(--tse-sub-phase, 0) * -0.58s),
@@ -1605,22 +1418,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       50%      { filter: drop-shadow(0 0 5px rgba(255, 220, 160, 0.55)); }
     }
 
-    /* L'AVATAR — seul élément qui subsiste en mode réduit, donc le seul qui
-       puisse y porter le signal : ni fond ni nom n'y sont visibles. Il est
-       désigné par une CLASSE, posée en JS d'après avatarOf() : Twitch rend
-       cinq formes d'avatar différentes, et une feuille de style qui les
-       RECOPIE finit par en oublier une — d'où un anneau présent sur une carte
-       et absent sur sa voisine, sans raison visible (cf. markSubAvatar).
-
-       L'OR, POUR TOUT ABONNEMENT, quel que soit l'onglet d'où il vient —
-       payant, offert, mobile — et qu'il ait été relevé sur la page ou appris
-       au passage sur une chaîne. Une teinte par origine a été essayée puis
-       retirée : le signal « abonné » est binaire, et le décliner en trois
-       couleurs demandait au lecteur de retenir un code pour une distinction
-       dont il n'a que faire à cet endroit.
-
-       Les deux variables restent : elles tiennent la teinte en UN point, d'où
-       les dégradés et le halo la lisent tous. */
+    
     .side-nav-card.tse-sub {
       --tse-sub-or:    rgba(255, 196,  92, 1);
       --tse-sub-clair: rgba(255, 246, 214, 1);
@@ -1628,9 +1426,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     .side-nav-card.tse-sub .tse-sub-avatar {
       position: relative;
       border-radius: 50%;
-      /* Le halo respire. C'est une ombre portée sur un disque de trente
-         pixels : le repeint tient dans un mouchoir de poche, et c'est ce qui
-         donne à l'anneau sa présence sans rien ajouter au mouvement déjà là. */
+      
       animation: tse-sub-souffle 4.2s ease-in-out infinite;
       animation-delay: calc(var(--tse-sub-phase, 0) * -0.35s);
     }
@@ -1646,25 +1442,21 @@ const TSE_GATE_MAX_CLICKS = 5;
       border-radius: 50%;
       padding: 2px;
       background:
-        /* L'éclat qui court, blanc quelle que soit la teinte : c'est un
-           reflet, pas une couleur. */
+        
         conic-gradient(from var(--tse-sub-angle),
           rgba(255, 255, 255, 0)      0deg,
           rgba(255, 255, 255, 1)     22deg,
           color-mix(in srgb, var(--tse-sub-clair) 70%, transparent)  44deg,
           rgba(255, 255, 255, 0)     80deg,
           rgba(255, 255, 255, 0)    360deg),
-        /* Le métal, dans la teinte de l'origine. */
+        
         conic-gradient(from var(--tse-sub-angle),
           color-mix(in srgb, var(--tse-sub-or)    62%, transparent)    0deg,
           color-mix(in srgb, var(--tse-sub-clair) 80%, transparent)   90deg,
           color-mix(in srgb, var(--tse-sub-or)    58%, transparent)  180deg,
           color-mix(in srgb, var(--tse-sub-clair) 80%, transparent)  270deg,
           color-mix(in srgb, var(--tse-sub-or)    62%, transparent)  360deg);
-      /* Deux masques, l'un sur la boîte de contenu, l'autre sur la boîte
-         entière ; leur DIFFÉRENCE ne laisse que l'anneau du padding. C'est ce
-         qui fait un dégradé conique en bordure, chose qu'aucune propriété
-         « border » ne sait faire. */
+      
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -1675,8 +1467,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
 
-    /* Mouvement réduit : la demande est explicite, on la respecte. L'or reste
-       — c'est lui qui porte l'information — mais plus rien ne bouge. */
+    
     @media (prefers-reduced-motion: reduce) {
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
@@ -1697,24 +1488,21 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     }
 
-    /* === Masquage du bouton "Afficher moins" (inutile après auto-expansion) === */
+    
     .tse-show-less-hidden { display: none !important; }
 
-    /* === Barre filtre + bouton tri === */
+    
     .tse-filter {
       padding: 8px 12px 4px;
       display: flex; flex-direction: column; gap: 6px;
     }
-    /* Ligne des deux dropdowns : catégorie (extensible) + langue (bord droit). */
+    
     .tse-filter-row { display: flex; align-items: center; gap: 8px; }
-    /* Conteneur d'un dropdown (flex). Le positionnement des menus se fait sur
-       .tse-dd (qui porte position:relative), pas ici. */
+    
     .tse-filter-field { display: flex; align-items: center; }
-    .tse-filter-field--cat  { flex: 1 1 auto; min-width: 0; }       /* place restante */
-    .tse-filter-field--lang { flex: 0 0 auto; margin-left: auto; }  /* compacte, à droite */
-    /* === Dropdowns personnalisés (catégorie + langue), même structure ===
-       On n'utilise plus de <select> natif : un <option> ne peut afficher que
-       du texte (pas les drapeaux SVG) et on veut une mise en forme homogène.  */
+    .tse-filter-field--cat  { flex: 1 1 auto; min-width: 0; }       
+    .tse-filter-field--lang { flex: 0 0 auto; margin-left: auto; }  
+    
     .tse-dd { position: relative; width: 100%; }
     .tse-dd-btn {
       display: flex; align-items: center; gap: 4px;
@@ -1722,7 +1510,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       background-color: rgba(0, 0, 0, 0.4);
       border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 4px;
       color: var(--color-text-base, #efeff1);
-      font-size: 1.15rem;                /* agrandi pour la lisibilité */
+      font-size: 1.15rem;                
       cursor: pointer; outline: none; box-sizing: border-box;
       transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
     }
@@ -1735,7 +1523,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       border-left: 4px solid transparent; border-right: 4px solid transparent;
       border-top: 5px solid #adadb8;
     }
-    /* Menu déroulant : popup sous le bouton, scrollable. */
+    
     .tse-dd-menu {
       display: none;
       position: absolute; top: calc(100% + 4px); z-index: 9999;
@@ -1753,16 +1541,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-dd-opt[aria-selected="true"] { background: rgba(145, 71, 255, 0.4); }
     .tse-dd-n { flex: 0 0 auto; color: #adadb8; font-variant-numeric: tabular-nums; }
 
-    /* Catégorie : prend la place, bouton tronqué « … », menu aligné à gauche
-       et élargi au contenu (noms lisibles), plafonné à la largeur sidebar. */
+    
     .tse-dd--cat .tse-dd-current { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tse-dd--cat .tse-dd-menu { left: 0; right: auto; width: max-content; max-width: 208px; }
     .tse-dd--cat .tse-dd-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
-    /* Langue : compacte, menu aligné à droite. Le bouton est inchangé (caret
-       conservé, juste l'emoji globe passé en SVG). Le centrage demandé ne
-       concerne QUE le menu : chaque ligne y est centrée (option « toutes les
-       langues » = globe seul, options de langue = « N | drapeau »). */
+    
     .tse-dd--lang { width: 50px; }
     .tse-dd--lang .tse-dd-current { justify-content: center; }
     .tse-dd--lang .tse-dd-menu { right: 0; left: auto; min-width: 64px; }
@@ -1773,13 +1557,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-dd--lang .tse-dd-opt .tse-flag svg { width: 22px; height: 22px; }
 
     .tse-sort-toggle {
-      /* S'étire pour remplir la rangée — d'où des boutons un peu plus larges
-         que les 28 px d'origine. La borne haute évite qu'ils ne s'étalent en
-         pavés sur une sidebar large ; la borne basse garde la cible cliquable
-         au-dessus du minimum confortable. */
+      
       flex: 1 1 0;
       min-width: 28px; max-width: 44px;
-      position: relative;   /* ancre du compteur, cf. .tse-sort-count */
+      position: relative;   
       width: auto; height: 28px;
       display: inline-flex; align-items: center; justify-content: center;
       padding: 0;
@@ -1813,11 +1594,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       background: ${CFG.PURPLE_HOVER};
       border-color: ${CFG.PURPLE_HOVER};
     }
-    /* Compteur d'abonnements, en pastille au coin bas-droit du bouton.
-       Le filet de la couleur du fond découpe la pastille dans le bouton au
-       lieu de l'y coller — c'est ce qui la fait lire comme une notification.
-       Sur le bouton ACTIF, le violet du badge se confondrait avec le violet
-       du bouton : les couleurs s'inversent alors. */
+    
     .tse-sort-count {
       position: absolute; right: -5px; bottom: -5px;
       min-width: 15px; height: 15px; padding: 0 3px;
@@ -1832,16 +1609,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-sort-toggle[aria-pressed="true"] .tse-sort-count {
       background: #fff; color: ${CFG.PURPLE}; border-color: ${CFG.PURPLE};
     }
-    /* État désactivé : grise le bouton et bloque toute interaction.
-       Note : l'attribut HTML "disabled" court-circuite déjà click et focus
-       côté navigateur ; ce style ne fait qu'aligner le rendu.
-
-       L'opacité porte sur l'ICÔNE, pas sur le bouton. Une opacité posée sur le
-       bouton s'applique au groupe entier, pastille comprise — et le nombre
-       d'abonnements, qu'on veut justement pouvoir lire quand aucun n'est en
-       direct, tombait à 35 %. La pastille garde donc sa pleine intensité sur
-       un bouton grisé : c'est exactement ainsi que se comporte une pastille de
-       notification sur une entrée inactive. */
+    
     .tse-sort-toggle:disabled {
       cursor: not-allowed;
       pointer-events: none;
@@ -1850,67 +1618,25 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     .tse-sort-toggle:disabled svg { opacity: 0.35; }
 
-    /* === Ligne des boutons de tri (sous les dropdowns) ===
-       ALIGNÉE SUR LES FILTRES, bord à bord. Les boutons s'étirent pour
-       occuper toute la largeur : le premier touche le bord gauche, le dernier
-       le bord droit, exactement comme les listes déroulantes juste au-dessus.
-       Centrée avec des boutons de largeur fixe, la rangée laissait de part et
-       d'autre une marge qui ne correspondait à rien.
-       Le space-between n'intervient que si les boutons plafonnent (sidebar
-       large) : les bords, eux, restent flush dans tous les cas. */
+    
     .tse-sort-row {
       display: flex; align-items: center; justify-content: space-between; gap: 6px;
       margin-top: 4px;
     }
 
-    /* === Bascule de mode : Chaînes suivies ↔ Top Chaînes ===
-       Deux boutons dans NOTRE bloc filtre, posés là où Twitch affichait son
-       en-tête de section. Pas de popup : rien à positionner, rien à refermer,
-       rien que React puisse emporter.
-
-       UN CONTRÔLE SEGMENTÉ, ET NON DEUX BOUTONS. Le mode est un choix
-       exclusif : deux pastilles détachées se lisaient comme deux actions
-       indépendantes, et la pastille violette pleine hauteur pesait plus lourd
-       que tout le reste du bloc filtre. On pose donc une piste unique, qui
-       reprend exactement les surfaces des listes déroulantes juste en dessous
-       — fond enfoncé rgba(0,0,0,.4), filet blanc à 8 %, rayon 6 px — et un
-       curseur violet qui se déplace de l'un à l'autre à l'intérieur.
-
-       Les cotes sont choisies pour que la piste fasse la MÊME HAUTEUR que la
-       rangée de filtres : 22 px de segment + 2×2 px de gouttière + 2×1 px de
-       filet = 28 px, la hauteur de .tse-dd-btn. Le bloc filtre s'aligne ainsi
-       sur une seule trame verticale (le harnais le vérifie).
-
-       Le libellé n'est JAMAIS tronqué — c'est la seule contrainte qui compte
-       ici. Plutôt qu'une ellipse, la rangée autorise le retour à la ligne :
-       en français les deux boutons tiennent côte à côte, et dans une langue
-       plus longue (« Kanäle, denen du folgst ») le second passe en dessous,
-       toujours entièrement lisible. Une ellipse aurait donné « Chaînes su… »,
-       ce qui n'informe plus de rien. */
+    
     .tse-mode-row {
       display: flex; flex-wrap: wrap; gap: 2px;
       padding: 2px; box-sizing: border-box;
-      /* 2 px de plus que la gouttière de .tse-filter (6 px) : la bascule dit
-         CE QU'ON REGARDE, les filtres ne font que restreindre à l'intérieur.
-         Un cran d'espace marque cette différence de niveau sans trait de
-         séparation. */
+      
       margin-bottom: 2px;
       background: rgba(0, 0, 0, 0.4);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 6px;
     }
-    /* Rangée des stories : masquée UNIQUEMENT en mode Top Chaînes. Elle
-       reste intacte sur les chaînes suivies, où elle a du sens. */
+    
     body.tse-global-mode [data-tse-stories="row"] { display: none !important; }
-    /* Twitch ne lui donne d'air qu'AU-DESSUS (style="margin-top: 0.7rem" posé
-       en ligne) : en dessous, elle touchait notre bloc filtre. On lui rend la
-       même valeur en bas, dans la même unité, pour qu'elle respire des deux
-       côtés.
-       Le !important n'est pas décoratif : la marge du haut est déclarée EN
-       LIGNE par Twitch. Tant qu'ils écrivent « margin-top », une règle de
-       feuille suffirait — mais le jour où ils passent au raccourci « margin »,
-       leur déclaration en ligne remettrait notre marge basse à zéro, sans
-       bruit. Un mot met la règle à l'abri de ce changement-là. */
+    
     [data-tse-stories="row"] { margin-bottom: 0.7rem !important; }
     .tse-mode-tab {
       flex: 1 1 auto; min-width: 0;
@@ -1918,28 +1644,23 @@ const TSE_GATE_MAX_CLICKS = 5;
       min-height: 22px; padding: 0 8px;
       border: 0; border-radius: 4px;
       background: transparent; color: var(--color-text-alt-2, #adadb8);
-      /* Même échelle typographique que .tse-dd-btn et .tse-dd-opt : le bloc
-         filtre ne doit pas mélanger deux tailles de texte. */
+      
       font: inherit; font-size: 1.15rem; font-weight: 600; line-height: 1.2;
       white-space: nowrap; text-align: center; cursor: pointer;
       transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
     }
-    /* Le segment inactif n'a pas de filet propre à colorer comme le font les
-       listes déroulantes au survol : c'est donc un lavis de fond qui joue ce
-       rôle. À 8 % il se perdait sur la piste déjà sombre (rendu et regardé) ;
-       12 % se lit sans crier. */
+    
     .tse-mode-tab:hover {
       background: rgba(255, 255, 255, 0.12);
       color: var(--color-text-base, #efeff1);
     }
-    /* Anneau de focus clavier, comme sur le bouton de tri — il manquait ici. */
+    
     .tse-mode-tab:focus-visible {
       outline: none;
       color: var(--color-text-base, #efeff1);
       box-shadow: 0 0 0 1px ${CFG.PURPLE};
     }
-    /* Curseur actif : dégradé vertical léger et ombre portée courte, pour
-       qu'il se lise POSÉ SUR la piste et non découpé dedans. */
+    
     .tse-mode-tab[aria-pressed="true"] {
       background: linear-gradient(180deg, ${CFG.PURPLE_HOVER} 0%, ${CFG.PURPLE} 100%);
       color: #fff;
@@ -1947,15 +1668,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE_HOVER}; }
 
-    /* En mode « Top Chaînes », les cartes de Twitch s'effacent au profit des
-       nôtres. Le bouton « Afficher plus » de la liste suivie n'a plus d'objet,
-       et les modes de tri non plus : le classement EST le tri. */
+    
     body.tse-global-ready .side-nav-card:not([data-tse-global="true"]) { display: none !important; }
     body.tse-global-ready ${DOM.showMoreStableSelector} { display: none !important; }
     body.tse-global-mode #tse-sort-row { display: none; }
 
-    /* Bandeau d'honnêteté : le classement est servi, mais on dit quand il
-       n'est pas PROUVÉ complet (cf. windowFloor dans le module de données). */
+    
     .tse-global-partial {
       margin-top: 4px; padding: 4px 6px;
       font-size: 11px; line-height: 1.3; color: #dedee3;
@@ -1963,28 +1681,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       border-left: 2px solid #ff7a8a; border-radius: 2px;
     }
 
-    /* === Sidebar rétrécie (collapsed) : masque les contrôles custom ===
-       Quand l'utilisateur réduit la sidebar (« Réduire la barre latérale »),
-       Twitch pose .side-nav--collapsed / data-a-target="side-nav-bar-collapsed"
-       sur le conteneur racine et ne montre plus qu'une colonne d'avatars.
-       Notre barre filtre + tri (#tse-filter, qui englobe #tse-sort-row) est
-       dimensionnée pour la largeur étendue : repliée, le label et les
-       contrôles débordent et cassent la mise en page. On la masque donc
-       en mode collapsed pour retrouver le rendu natif.
-
-       Pure CSS (et non JS) : réaction instantanée au basculement
-       collapse/expand, sans observer ni reflow piloté JS, et la barre
-       réapparaît telle quelle à l'expansion. Le tri/filtre appliqué aux
-       cartes reste actif (logique JS indépendante de la visibilité des
-       contrôles) ; l'état est juste non éditable tant que la barre est
-       réduite. Double sélecteur (attribut + classe) par robustesse : si
-       Twitch renomme l'un, l'autre prend le relais. */
+    
     [data-a-target="side-nav-bar-collapsed"] #tse-filter,
     .side-nav--collapsed #tse-filter { display: none !important; }
 
-    /* === Aperçu au survol ===
-       Le popup est positionné via JS (left/top inline). On veut un overlay
-       au-dessus du reste de l'UI Twitch, donc z-index très élevé. */
+    
     .tse-preview {
       position: fixed;
       z-index: 9999;
@@ -2005,14 +1706,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       position: relative;
       width: 100%;
       aspect-ratio: 16 / 9;
-      /* Fond de la même teinte que le popup, et non noir : c'est ce qu'on voit
-         tant que la vignette n'est pas arrivée. Un rectangle noir se lit comme
-         une panne ; la couleur du panneau se lit comme un chargement. */
+      
       background: #18181b;
     }
-    /* La vignette apparaît elle aussi en fondu. Elle est servie par le réseau :
-       même mise en cache, un premier affichage a un délai, et la voir surgir
-       d'un coup sur le fond du panneau accroche l'œil. */
+    
     .tse-preview__thumb {
       display: block;
       width: 100%;
@@ -2022,14 +1719,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       transition: opacity 0.25s ease;
     }
     .tse-preview__thumb[data-tse-loaded="true"] { opacity: 1; }
-    /* L'iframe player est superposé au JPEG dans le même wrapper.
-       Invisible par défaut (data-tse-loaded="false"), elle apparaît en
-       fondu à sa PREMIÈRE IMAGE — pas au chargement de son document,
-       qui la montrerait encore noire (cf. injectIframe). Si l'iframe est
-       démontée (timeout, fermeture), le JPEG reste visible en repli.
-       Le fondu est allongé à 0,35 s : la vignette et la première image
-       montrent presque la même chose, la transition doit se sentir
-       comme un enchaînement, pas comme une bascule. */
+    
     .tse-preview__iframe {
       position: absolute;
       inset: 0;
@@ -2038,10 +1728,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       border: 0;
       opacity: 0;
       transition: opacity 0.35s ease;
-      /* L'iframe ne doit pas capter les clics : le popup entier est
-         pointer-events:none côté .tse-preview, mais l'iframe pourrait
-         intercepter via sa propre composition. Cohérent avec
-         l'approche du module FFZ étudié. */
+      
       pointer-events: none;
     }
     .tse-preview__iframe[data-tse-loaded="true"] { opacity: 1; }
@@ -2060,8 +1747,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       font-weight: 600;
       line-height: 1.3;
       margin: 0;
-      /* Limite à 3 lignes max pour éviter un popup démesuré sur des
-         titres très longs (style speedrun avec catégorie, etc.). */
+      
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
@@ -2080,66 +1766,23 @@ const TSE_GATE_MAX_CLICKS = 5;
       background: rgba(255, 255, 255, 0.08);
       color: #efeff1;
     }
-    /* Palette des badges, par type de contenu :
-         hype     → orange  (Hype Train standard)
-         discount → rose    (Réduction d'abonnement)
-         costream → bleu    (Co-stream : participant / hôte / fallback heuristique)
-         squad    → violet  (Système "En live avec" / multistream Twitch)
-         sponsor  → vert    (Stream sponsorisé)
-       Toutes les couleurs sont distinctes pour qu'elles soient facilement
-       différenciables en un coup d'œil dans le popup. */
+    
     .tse-preview__badge--hype     { background: rgba(255, 105, 5, 0.25); color: #ffb380; }
     .tse-preview__badge--discount { background: rgba(255, 56, 219, 0.20); color: #ffa3ee; }
     .tse-preview__badge--costream { background: rgba(31, 105, 255, 0.25); color: #7fb3ff; }
     .tse-preview__badge--squad    { background: rgba(145, 71, 255, 0.25); color: #d1b3ff; }
     .tse-preview__badge--sponsor  { background: rgba(0, 184, 90, 0.22);  color: #6bdb9d; }
-    /* Abonnement : le même or que le filet des cartes abonnées, pour qu'on
-       reconnaisse le signal d'une surface à l'autre. La variante « ancien
-       abonné » le désature — c'est un fait révolu, il ne doit pas briller
-       autant qu'un abonnement en cours. */
+    
     .tse-preview__badge--sub      { background: rgba(255, 201, 102, 0.22); color: #ffd591; }
     .tse-preview__badge--exsub    { background: rgba(255, 201, 102, 0.10); color: #c9b48c; }
-    /* Étiquettes de classification : ROUGE, et il a fallu le mesurer pour le
-       voir. La 3.55 avait choisi l'ambre, en raisonnant juste sur le principe
-       — une teinte d'avertissement, distincte de l'or des abonnements — et
-       faux sur le nombre : son texte tombait à 2° de teinte de celui du hype
-       train (26° contre 24°), c'est-à-dire la MÊME couleur à l'œil. Les deux
-       badges peuvent coexister (une chaîne étiquetée qui lance un hype train
-       n'a rien d'exotique), et le coin chaud de la palette était déjà occupé
-       par sub (37°) et exsub (39°).
-
-       Le rouge est le seul créneau libre, et il est étroit : coincé entre
-       l'orange du hype à 24° et le rose de la réduction à 311°, l'optimum
-       théorique est 348°. On se pose à 357° — franchement rouge plutôt que
-       cramoisi — soit 27° du hype sur le texte et 31° sur le fond.
-
-       Le contraste a dicté le reste. Le rouge est la teinte la plus sombre à
-       luminance égale (le canal rouge ne pèse que 0,2126 dans la formule), et
-       les premiers essais tombaient à 4,9:1 quand toute la famille tient entre
-       6,4 et 7,7. D'où un fond DÉLIBÉRÉMENT sombre (le rouge vif est dans le
-       texte, pas dans la pastille) : 6,41:1, juste au-dessus du plancher de la
-       famille, qui est le badge co-stream à 6,38:1.
-
-       max-width autorise le repli : plusieurs étiquettes cumulées feraient
-       sinon un badge plus large que l'aperçu, que le popup couperait net. */
+    
     .tse-preview__badge--ccl      { background: rgba(200, 25, 42, 0.26); color: #ff868c;
                                     max-width: 100%; }
-    /* Basculement de catégorie. Citron vert, et le choix est arithmétique
-       plutôt qu'esthétique : les huit teintes déjà prises laissaient un seul
-       créneau large — l'optimum est à 93°, à 54° du voisin le plus proche,
-       là où turquoise ou cyan n'auraient offert que 26 à 27° du sponsor et du
-       co-stream. On s'y pose à 91°, soit 52° de l'ancien abonné et 54° de
-       l'abonné, pour 7,15:1 de contraste — dans la fourchette de la famille
-       (6,38 à 7,67). Le vert dit « nouveau », ce qui tombe bien : le badge
-       annonce une nouvelle, et il s'efface au bout de dix minutes. */
+    
     .tse-preview__badge--switch   { background: rgba(120, 215, 60, 0.24); color: #a8e86b; }
-    /* Les pictogrammes d'avertissement. line-height: 1 les empêche de
-       rehausser le badge : un emoji dépasse sa boîte em, et sans cela la
-       pastille grandissait d'un pixel ou deux par rapport aux autres. */
+    
     .tse-preview__badge-mark      { flex: 0 0 auto; line-height: 1; }
-    /* Logo de la marque sponsor (image fournie par Twitch sur fond coloré
-       inline). On le rend en mini cadre carré 14×14 dans le badge. Le
-       background-color est posé inline depuis getSponsorInfo. */
+    
     .tse-preview__sponsor-logo {
       display: inline-flex;
       width: 14px; height: 14px;
