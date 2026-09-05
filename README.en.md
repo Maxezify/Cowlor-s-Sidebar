@@ -326,9 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 568 KB | 263 KB | 2,743 JS + 77 CSS → **2** |
+| `content.js` | 578 KB | 268 KB | 2,754 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| **both** | **692 KB** | **363 KB** | **−47 %** |
+| `panneau.js` | 15 KB | 11 KB | 15 → **0** |
+| `bridge.js` | 7 KB | 2 KB | 13 → **0** |
+| `background.js` | 4 KB | 2 KB | 13 → **0** |
+| **all five** | **728 KB** | **382 KB** | **−47 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -340,7 +343,7 @@ within 3 %: wide enough for a version's ordinary growth, too narrow for a
 sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,743
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,754
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`
@@ -1813,11 +1816,66 @@ extension missed something.
 
 ---
 
+## The toolbar panel (v3.62)
+
+Everything this console API returns is now readable **without a console**: one
+click on the extension's icon, top right of the browser, opens a panel showing
+the same ten reports as tables, with summary tiles and five actions (sweep
+subscriptions, rescan, turn Top Channels on or off, erase history). It is
+translated into all **twelve** store locales.
+
+### Three files, and one of them is not optional
+
+`content.js` runs in the **`MAIN`** world. That is what lets it expose
+`window.tse` and read Twitch's own JavaScript — and it is also what denies it
+every `chrome.*` API: the `MAIN` world is the **page's** context, where the
+extension does not exist. The panel is an extension page: it has `chrome.*` and
+does not have the page. **The two can never see each other.**
+
+Hence the split, and it is not decorative:
+
+| File | World | What it does |
+| --- | --- | --- |
+| `panneau.html` / `.css` / `.js` | extension page | draws, translates, calls nothing directly |
+| `bridge.js` | `ISOLATED` | the only context with both `chrome.*` and the page's DOM |
+| `background.js` | service worker | holds the port, routes, understands nothing it carries |
+
+### Why the tab calls, and not the panel
+
+The natural path would be for the panel to call `chrome.tabs.sendMessage`. That
+**requires a host permission** on the target tab — precisely what the listing
+promises not to ask for, and what `npm run addon` checks (no `permissions` key).
+So the direction is reversed: `bridge.js` opens the port with
+`chrome.runtime.connect()`, which a content script may do **without requesting
+anything**, and the service worker uses that port to answer. This inversion is
+all that separates "zero permissions" from "host permission on twitch.tv".
+
+The port only lives while **the tab is visible**. An open port keeps the service
+worker awake; leaving it connected would keep a worker alive for as long as a
+Twitch tab is open — the exact opposite of what the rest of the product has done
+since 3.61. And the icon can only be clicked on the active tab, so tying the
+port to visibility takes nothing away.
+
+### Two translation tables that never cross
+
+The sidebar and the console are served by the **ten `STRINGS` blocks** in
+`content.js`; the panel is served by the **twelve `_locales/`**, through
+`chrome.i18n`. The data layer therefore carries only **field names**, never
+labels: the panel does the translating. Passing a label from one to the other
+would have created a third table, out of sync the day it was first edited.
+
+`chrome.i18n.getMessage()` on an unknown key **does not throw**: it returns the
+empty string. A forgotten label gives an empty button, with no error, no console
+— and only in the language that was forgotten, which the author does not speak.
+So `npm run parity` collects the keys the panel asks for and rejects the ones
+that are missing, the ones nothing displays any more, and empty messages.
+
 ## Console API
 
-The extension exposes a `tse` object in the Twitch page's DevTools console
-(**Console** tab, `F12`). It lets you inspect the visit history used by the
-"Most visited" sort:
+The `tse` object is still exposed in the Twitch page's DevTools console
+(**Console** tab, `F12`): the panel does not replace it, it is one more client
+of it. Everything the panel shows is reachable by hand, and
+`tse.panneau(section)` returns exactly what it consumes.
 
 - `tse.scores()` — prints the top-visited channels (top 10 by default).
 - `tse.scores(20)` — same, with the top 20.
@@ -2009,7 +2067,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 67 scenarios, 581 assertions |
+| `npm test` | the Playwright harness: 68 scenarios, 590 assertions |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
 just counted, and fails if the table lies. A bench whose size is advertised

@@ -63,11 +63,21 @@ où le code change :
 1. **« Six façons de trier »** — `getSortButtons()` en rend six. C'était cinq
    avant la 3.44 ; la fiche l'a dit faux pendant une dizaine de versions.
 2. **Le bloc console** — `tse.scores()`, `tse.scores.raw()`, `tse.subs()`,
-   `tse.subs.refresh()`, `tse.reset()` existent tous sur `window.tse`.
+   `tse.subs.refresh()`, `tse.reset()` existent tous sur `window.tse`. Depuis
+   la 3.62 la fiche peut aussi promettre le **panneau de la barre d'outils** :
+   `manifest.json` porte `action.default_popup`, et `npm run addon` vérifie
+   qu'il pointe bien sur `panneau.html`. La console n'est pas remplacée pour
+   autant — le panneau en est un client de plus, et la fiche ne doit pas
+   laisser croire l'inverse.
 3. **« Aucune permission louche — l'extension ne tourne QUE sur twitch.tv »** —
    `manifest.json` ne porte aucune clé `permissions` ni `host_permissions` ;
-   seuls les `matches` du content script donnent accès à `www.twitch.tv`,
-   `twitch.tv` et `player.twitch.tv`, tous trois sous le même domaine.
+   seuls les `matches` des content scripts donnent accès à `www.twitch.tv`,
+   `twitch.tv` et `player.twitch.tv`, tous trois sous le même domaine. Le
+   panneau de la 3.62 n'a rien changé à cela, et ce n'était pas gratuit : la
+   voie courte — le panneau appelant `chrome.tabs.sendMessage` — aurait exigé
+   une permission d'hôte. C'est l'onglet qui appelle, précisément pour que
+   cette phrase reste vraie. Voir la section « Le panneau de la barre
+   d'outils » du README principal.
 4. **« Des appels anonymes »** — vrai des requêtes que l'extension émet
    elle-même : `credentials: 'omit'`, Client-ID public, aucun jeton.
 5. **« Une exception, dite tout haut »** — le relevé des abonnements charge
@@ -83,7 +93,7 @@ où le code change :
    livrés **ni minifiés ni obscurcis** : mêmes noms, mêmes lignes, même
    indentation que dans le dépôt. Depuis la 3.59 le paquet part en revanche
    **sans les commentaires** — ceux du JavaScript, et depuis la 3.60 ceux du
-   CSS aussi (692 → 363 Ko) ; la phrase reste vraie au mot près — c'est de
+   CSS aussi (728 → 382 Ko) ; la phrase reste vraie au mot près — c'est de
    lisibilité qu'elle parle, pas d'annotations — et les commentaires, eux,
    sont dans le dépôt public. Ce chiffre-là est confronté à la mesure par
    `npm run addon` : il a été faux, et personne ne l'a vu. Les mentions

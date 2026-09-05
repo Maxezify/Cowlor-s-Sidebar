@@ -5692,6 +5692,200 @@ const TSE_GATE_MAX_CLICKS = 5;
       return report;
     }
   };
+  /* ============================================================
+   *  COUCHE DE DONNÉES DU PANNEAU
+   *  -------------------------------------------------------------
+   *  Le panneau de la barre d'outils est une PAGE D'EXTENSION. Il ne
+   *  partage ni le monde JS de ce fichier, ni son objet STRINGS, ni
+   *  son contexte de traduction. Ce qu'on lui rend est donc de la
+   *  DONNÉE NUE — des noms de champs, jamais des libellés — et c'est
+   *  lui qui traduit, avec chrome.i18n et les douze locales de
+   *  _locales/.
+   *
+   *  UNE SEULE SOURCE DE TRADUCTION PAR SURFACE, et c'est la raison
+   *  de ce découpage : la console garde ses en-têtes localisés par
+   *  STRINGS (dix langues), le panneau a les siens (douze locales).
+   *  Faire transiter des libellés d'ici vers là aurait créé une
+   *  troisième table à tenir, désynchronisée le jour de sa première
+   *  modification — et rien ne l'aurait dit, puisque npm run parity
+   *  ne connaît que STRINGS.
+   *
+   *  AUCUNE de ces fonctions n'écrit en console. Le panneau n'est pas
+   *  un spectateur de la console : c'est une autre vue sur les mêmes
+   *  données, et les deux doivent pouvoir servir en même temps.
+   *
+   *  Chaque section rend la même forme :
+   *    { colonnes: [noms de champs], lignes: [objets], resume: {…} }
+   *  `colonnes` fixe l'ordre d'affichage — un objet JS ne garantit
+   *  pas l'ordre de ses clés à travers une sérialisation, et le
+   *  panneau doit pouvoir dessiner ses colonnes de façon stable.
+   * ============================================================ */
+  const panneau = {
+    /* Sections de LECTURE : aucune ne change quoi que ce soit. */
+    sections: {
+      scores() {
+        const lignes = buildScoresReport();
+        return { colonnes: ['login', 'score', 'visits', 'last'], lignes,
+                 resume: { chaines: lignes.length } };
+      },
+      subs() {
+        const lignes = subs.entries();
+        return { colonnes: ['login', 'sub', 'ts', 'mois', 'ancien', 'origine'], lignes,
+                 resume: { chaines: lignes.length,
+                           abonnees: lignes.filter(e => e.sub).length,
+                           // 0 = aucun relevé complet encore fait. Le panneau
+                           // le distingue d'une date, et le dit autrement.
+                           releve: subsPage.horodatage() } };
+      },
+      roster() {
+        const lignes = roster.entries().map(([login, ts]) => ({ login, ts }));
+        return { colonnes: ['login', 'ts'], lignes, resume: { chaines: lignes.length } };
+      },
+      lag() {
+        const echantillons = liveLag.all();
+        const lags  = echantillons.map(s => s.lag).filter(Number.isFinite);
+        const gains = echantillons.map(s => s.gain).filter(Number.isFinite);
+        /* La médiane et le 90e centile sont calculés ICI plutôt que dans le
+           panneau : ce sont les mêmes chiffres que ceux de tse.lag(), et deux
+           implémentations du même quantile finissent par diverger d'un indice. */
+        const quantile = (arr, q) => {
+          if (!arr.length) return null;
+          const a = arr.slice().sort((x, y) => x - y);
+          return a[Math.min(a.length - 1, Math.floor(a.length * q))];
+        };
+        return {
+          colonnes: ['login', 'lag', 'gain', 'ts'],
+          lignes: echantillons.slice().reverse(),
+          resume: { mesures: echantillons.length,
+                    medianeLag: quantile(lags, 0.5), p90Lag: quantile(lags, 0.9),
+                    gains: gains.length, medianeGain: quantile(gains, 0.5) },
+        };
+      },
+      bascules() {
+        const lignes = [];
+        for (const login of [...basculements.keys()]) {
+          const b = basculementFrais(login);
+          if (b) lignes.push({ login, libelle: b.libelle || b.vers, canonique: b.vers,
+                               ts: b.ts, ageSec: Math.round((Date.now() - b.ts) / 1000) });
+        }
+        return { colonnes: ['login', 'libelle', 'canonique', 'ageSec'], lignes,
+                 resume: { bascules: lignes.length } };
+      },
+      cycles() {
+        const lignes = loadingOverlay.journal();
+        return { colonnes: ['t', 'evt', 'detail'], lignes,
+                 resume: { evenements: lignes.length, verrous: loadingOverlay.verrous() } };
+      },
+      apercu() {
+        const lignes = preview.journal();
+        return { colonnes: ['t', 'evt', 'detail'], lignes,
+                 resume: { evenements: lignes.length } };
+      },
+      diagnose() {
+        const lignes = runDiagnostics();
+        return { colonnes: ['label', 'status', 'critical', 'detail'], lignes,
+                 resume: { sondes: lignes.length,
+                           cassees: lignes.filter(p => p.status === 'broken').length,
+                           critiquesCassees: lignes.filter(p => p.critical && p.status === 'broken').length,
+                           casse: hasCriticalBreakage(lignes) } };
+      },
+      global() {
+        const rapport = globalChannels.report();
+        const lignes = globalChannels.top(CFG.GLOBAL_TOP_N)
+          .map((r, i) => ({ rang: i + 1, login: r.login, viewers: r.viewers, game: r.game }));
+        return { colonnes: ['rang', 'login', 'viewers', 'game'], lignes,
+                 resume: { actif: !!state.globalMode, ...rapport } };
+      },
+      categories() {
+        const lignes = globalChannels.cats(25)
+          .map((c, i) => ({ rang: i + 1, libelle: c.display, canonique: c.name, viewers: c.viewers }));
+        return { colonnes: ['rang', 'libelle', 'canonique', 'viewers'], lignes,
+                 resume: { categories: lignes.length, actif: !!state.globalMode } };
+      },
+    },
+    /* ACTIONS : celles qui changent quelque chose. Séparées des sections pour
+       que le panneau puisse les traiter autrement — confirmation, état occupé,
+       rafraîchissement de la vue après coup — et pour qu'une faute de frappe
+       dans un nom de section ne puisse jamais déclencher une purge. */
+    actions: {
+      reset()   { tseApi.reset(); return { fait: true }; },
+      rescan()  { tseApi.rescan(); return { fait: true }; },
+      async refreshSubs() {
+        const r = await subsPage.refresh(true);
+        return { fait: r !== null, chaines: Array.isArray(r) ? r.length : 0 };
+      },
+      async globalOn()  { state.globalMode = true;  await globalChannels.warm();
+                          return { actif: true }; },
+      globalOff()       { state.globalMode = false; globalChannels.reset();
+                          return { actif: false }; },
+    },
+  };
+
+  /* Exposé aussi sur window.tse : le panneau n'est qu'un client de plus, et
+     tout ce qu'il peut lire doit rester lisible à la main. */
+  tseApi.panneau = (nom, arg) => {
+    const f = panneau.sections[nom];
+    if (!f) throw new Error(`[tse] section inconnue : ${nom}`);
+    return f(arg);
+  };
+
+  /* ============================================================
+   *  PONT VERS LE PANNEAU (page → extension)
+   *  -------------------------------------------------------------
+   *  Ce fichier tourne en monde MAIN, où les API chrome.* n'existent
+   *  pas. Le panneau, lui, est une page d'extension. Le seul terrain
+   *  commun est le DOM : bridge.js, second content script en monde
+   *  ISOLATED, relaie dans les deux sens par window.postMessage.
+   *
+   *  CE QUE CE LISTENER N'AJOUTE PAS COMME SURFACE, et il faut le
+   *  dire précisément : tout ce qu'il permet est déjà atteignable
+   *  par n'importe quel script de la page, puisque `tse` est posé
+   *  sur `window`. Un script tiers qui voudrait appeler reset()
+   *  écrirait `tse.reset()` — c'est plus court que de forger un
+   *  message. Le pont ne déverrouille rien ; il déplace seulement ce
+   *  qui existe déjà vers un contexte qui ne peut pas le lire.
+   *
+   *  Les gardes servent donc à la CORRECTION, pas au secret : ne
+   *  répondre qu'à nos propres messages, ne jamais appeler autre
+   *  chose qu'un nom déclaré ici, et toujours répondre — même en
+   *  échec — pour qu'un panneau ouvert ne reste pas à tourner.
+   * ============================================================ */
+  const TSE_PANNEAU_REQ = 'tse-panneau-req';
+  const TSE_PANNEAU_RES = 'tse-panneau-res';
+  window.addEventListener('message', (e) => {
+    // Même fenêtre uniquement : un message d'iframe n'a rien à faire ici.
+    if (e.source !== window) return;
+    const d = e.data;
+    if (!d || d.tse !== TSE_PANNEAU_REQ || typeof d.id !== 'number') return;
+    /* targetOrigin '*' — et c'est le choix juste ici, pas un raccourci. La
+       destination est CE document : bridge.js écoute la même fenêtre, dans
+       l'autre monde. Or `location.origin` vaut la chaîne "null" sur une page
+       à origine opaque (un document file://, une iframe bac à sable), et un
+       targetOrigin qui ne correspond à rien fait jeter le message en silence
+       — le panneau resterait à tourner sans jamais rien dire.
+
+       Ce que '*' élargit : les autres écouteurs de CE document, c'est-à-dire
+       les scripts de Twitch. Ils n'y gagnent rien — la charge ne contient que
+       ce que `window.tse` leur rend déjà, à portée d'un appel plus court que
+       de forger un message. */
+    const repondre = (charge) =>
+      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
+    /* Une promesse rejetée ne doit pas laisser le panneau en attente : on
+       enveloppe la résolution ET le rejet, et on répond dans les deux cas. */
+    try {
+      const cible = d.action ? panneau.actions[d.action] : panneau.sections[d.section];
+      if (typeof cible !== 'function') {
+        repondre({ ok: false, erreur: 'inconnu' });
+        return;
+      }
+      Promise.resolve(cible(d.arg))
+        .then((data) => repondre({ ok: true, data }))
+        .catch((err) => repondre({ ok: false, erreur: String(err && err.message || err) }));
+    } catch (err) {
+      repondre({ ok: false, erreur: String(err && err.message || err) });
+    }
+  });
+
   // Sous-commande pour accéder aux données brutes (programmable).
   tseApi.scores.raw = () => buildScoresReport();
   /* Force un relevé complet via /subscriptions, sans attendre les 6 h.
