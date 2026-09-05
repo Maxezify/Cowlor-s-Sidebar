@@ -330,6 +330,13 @@ the assembled code:
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | **package** | **687 KB** | **391 KB** | **−43 %** |
 
+**The stripping affects the package ONLY.** It applies to the copy assembled in
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,721
+comments on the development branches, and `npm run addon` re-reads the sources
+after assembly to confirm it — a write aimed at the root instead of the package
+would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`
+branches are the artefact: they exist only to be downloaded and submitted.
+
 What the package does **not** become: minified, or obfuscated. Names, line
 breaks and indentation are the repository's, line for line — the "full source
 code readable" promise on all twelve listings stays true to the word.

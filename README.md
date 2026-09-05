@@ -342,6 +342,14 @@ assemblé :
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | **paquet** | **687 Ko** | **391 Ko** | **−43 %** |
 
+**Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 721
+commentaires sur les branches de développement, et `npm run addon` relit les
+sources après l'assemblage pour le constater — une ligne d'écriture qui
+viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches
+`claude/firefox-prod` et `claude/chrome-prod`, elles, sont l'artefact : elles
+n'existent que pour être téléchargées et soumises.
+
 Ce que le paquet ne devient **pas** : minifié, ni obscurci. Les noms, les
 retours à la ligne et l'indentation sont ceux du dépôt, ligne pour ligne — la
 promesse « code source entièrement lisible » des douze fiches reste vraie au
