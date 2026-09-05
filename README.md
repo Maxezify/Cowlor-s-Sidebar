@@ -175,8 +175,8 @@ personne. C'est une garde sur le décor lui-même qui l'a dit.
 
 **Vérifié sur un vrai Firefox — le point qui restait ouvert est clos.**
 L'environnement de développement ne peut pas lancer Firefox : sa politique
-réseau bloque le téléchargement du binaire de Playwright, et les 517 assertions
-du banc tournent donc sous Chromium, y compris celles qui simulent Firefox.
+réseau bloque le téléchargement du binaire de Playwright, et tout le banc
+tourne donc sous Chromium, y compris les scénarios qui simulent Firefox.
 Restait ce qu'aucune simulation ne donne : l'injection en monde `MAIN` à
 `document_start` arrive-t-elle avant les scripts de Twitch dans le moteur de
 Mozilla ? La documentation dit que oui — *« les content scripts à
@@ -2084,7 +2084,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-fonts/           Inter et Noto embarquées dans les images (OFL 1.1)
 ├── store/                 le texte des douze fiches du Chrome Web Store
 ├── tests/
-│   ├── run.mjs              le harnais : 561 assertions, 66 scénarios
+│   ├── run.mjs              le harnais Playwright (compté plus bas)
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
 │   ├── build.mjs            copie content.js avec les durées accélérées
 │   ├── degraisser.mjs       retire les commentaires du code livré (acorn)
@@ -2118,9 +2118,17 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 64 scénarios, 544 assertions |
+| `npm test` | le harnais Playwright : 67 scénarios, 581 assertions |
 
-`npm run addon` mérite un mot : ses six premières assertions sont celles que le
+Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
+vient de compter, et échoue si le tableau ment. Un banc dont on annonce la
+taille de mémoire finit toujours par l'annoncer fausse — cette ligne disait
+544 quand il y en avait 579, et l'arborescence ci-dessus en annonçait 561 à
+deux pages d'écart. Le compte des scénarios était faux lui aussi, pour une
+raison qu'aucune relecture n'attrape : la numérotation **saute le 52**, si
+bien qu'on lisait la plus haute étiquette au lieu de compter les blocs.
+
+`npm run addon` mérite un mot : ses six assertions de manifeste sont celles que le
 linter ne peut pas connaître, parce qu'elles appartiennent à ce dépôt — la
 version suit `package.json`, le plancher Firefox reste cohérent avec la clé la
 plus récente du manifeste, et le bloc `content_scripts` est **mot pour mot**

@@ -17,7 +17,8 @@ let pass = 0, fail = 0;
 // aussi le scénario en cours : « ✗ et son halo respire » ne dit rien sans lui.
 const echecs = [];
 let scenario = '(hors scénario)';
-const titre = (t) => { scenario = t; console.log('\n' + t); };
+let nbScenarios = 0;
+const titre = (t) => { scenario = t; nbScenarios++; console.log('\n' + t); };
 const ok  = (n, c, extra='') => {
   if (c) { pass++; console.log('  ✓', n); return; }
   fail++;
@@ -5470,6 +5471,32 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
       .map(o => ({ valeur: o.dataset.value,
                    libelle: o.querySelector('.tse-dd-name')?.textContent ?? null })));
 
+  /* Le menu accuse UN BALAYAGE de retard sur les cartes, et c'est normal : la
+     réponse de l'API écrit sur les cartes, mais c'est le balayage suivant qui
+     rebâtit le menu à partir d'elles. Mesuré ici : au premier regard après la
+     condition d'attente, le menu porte encore « Just Chatting » ; il porte
+     « Discussions » 32 ms plus tard.
+
+     Ce décalage a fait tomber ce scénario dans un banc complet alors qu'il
+     passait trois fois sur trois en isolation — la charge suffit à décaler la
+     lecture dans la fenêtre. Un échec qui ne se reproduit pas est celui qu'on
+     finit par relancer sans le lire, donc par ignorer.
+
+     On attend la STABILITÉ, pas le contenu attendu : deux lectures identiques
+     séparées de plus qu'un balayage. Attendre « Discussions » ferait de
+     l'assertion sa propre condition d'entrée, et elle ne pourrait plus échouer
+     que par expiration — ce qui est une autre façon de ne rien tester. */
+  const optionsStables = async (page) => {
+    let avant = null;
+    for (let i = 0; i < 40; i++) {
+      const vu = JSON.stringify(await options(page));
+      if (vu === avant) return JSON.parse(vu);
+      avant = vu;
+      await wait(page, 150);
+    }
+    return JSON.parse(avant);
+  };
+
   const monter = async (htmlLang) => {
     const page = await browser.newPage();
     page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
@@ -5522,7 +5549,7 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
      JSON.stringify(fr[1]));
 
   // ── c) le menu déroulant : libellé traduit, valeur canonique ────────────
-  const opts = await options(page);
+  const opts = await optionsStables(page);
   const oJC = opts.find(o => o.valeur === 'Just Chatting');
   ok('le menu propose la traduction…', oJC?.libelle === 'Discussions',
      JSON.stringify(opts));
@@ -6189,6 +6216,38 @@ titre('67. Arrière-plan — ce qui s\'arrête, et ce qui repart');
   ok('après un gel RÉEL de la page, la sidebar repart entière',
      degele.cartes === 2 && degele.tri && degele.filtre, JSON.stringify(degele));
   await p3.close();
+}
+
+/* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
+   Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
+   connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
+   se contredisait à deux pages d'intervalle — « 561 assertions, 66 scénarios »
+   d'un côté, « 64 scénarios, 544 assertions » de l'autre, alors qu'il y en
+   avait 579 et 67. Personne ne l'avait vu : rien ne reliait la phrase au banc.
+
+   C'est ici que le lien se fait, parce que c'est ici que le nombre existe.
+   Contrairement aux tailles de paquet, il n'y a AUCUNE tolérance : un banc a
+   un nombre d'assertions exact, et ajouter une assertion sans toucher aux deux
+   README est une omission, pas une dérive. Le message d'échec donne le chiffre
+   à écrire, ce qui rend la corvée d'une dizaine de secondes.
+
+   L'assertion se compte ELLE-MÊME : au moment où elle s'évalue elle n'est pas
+   encore dans le total, d'où le +1. Sans lui, le banc annoncerait éternellement
+   une assertion de moins qu'il n'en a. */
+{
+  titre('68. Le banc — sa taille est celle que les README annoncent');
+  const total = pass + fail + 1;          // +1 : cette assertion-ci
+  const dits = [];
+  for (const doc of ['README.md', 'README.en.md']) {
+    const texte = readFileSync(join(ICI, '..', doc), 'utf8');
+    const m = /(\d+)\s+(?:scénarios|scenarios),\s*(\d+)\s+assertions/.exec(texte);
+    dits.push({ doc, scen: m && Number(m[1]), ass: m && Number(m[2]) });
+  }
+  const faux = dits.filter(d => d.scen !== nbScenarios || d.ass !== total);
+  ok(`les README annoncent la taille réelle du banc (${nbScenarios} scénarios, ${total} assertions)`,
+     faux.length === 0,
+     faux.map(d => `${d.doc} dit ${d.scen} scénarios / ${d.ass} assertions`).join(' | ')
+       || '(ligne introuvable)');
 }
 
 await browser.close();

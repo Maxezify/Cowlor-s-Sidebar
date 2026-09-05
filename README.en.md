@@ -167,8 +167,8 @@ no one. A guard on the fixture itself is what said so.
 
 **Verified on a real Firefox — the open question is closed.** The development
 environment cannot launch Firefox: its network policy blocks the download of
-Playwright's binary, so all 517 bench assertions run under Chromium, including
-the ones that simulate Firefox. What remained was the thing no simulation can
+Playwright's binary, so the whole bench runs under Chromium, including the
+scenarios that simulate Firefox. What remained was the thing no simulation can
 give: does `MAIN`-world injection at `document_start` land before Twitch's own
 scripts in Mozilla's engine? The documentation says it does — *"content scripts
 at `document_start` always run before page scripts"*
@@ -1976,7 +1976,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-fonts/           Inter and Noto embedded in the images (OFL 1.1)
 ├── store/                 the copy of the twelve Chrome Web Store listings
 ├── tests/
-│   ├── run.mjs              the harness: 561 assertions across 66 scenarios
+│   ├── run.mjs              the Playwright harness (counted below)
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
 │   ├── build.mjs            copies content.js with the timings accelerated
 │   ├── degraisser.mjs       strips comments from the shipped code (acorn)
@@ -2009,9 +2009,16 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 64 scenarios, 544 assertions |
+| `npm test` | the Playwright harness: 67 scenarios, 581 assertions |
 
-`npm run addon` deserves a note: its first six assertions are the ones the
+Those two numbers are not decoration: `run.mjs` checks them against what it has
+just counted, and fails if the table lies. A bench whose size is advertised
+eventually advertises it wrong — this line said 544 when there were 579, and
+the tree above said 561 two pages away. The scenario count was wrong too, for a
+reason no amount of proofreading catches: the numbering **skips 52**, so what
+was being read was the highest label rather than a count of the blocks.
+
+`npm run addon` deserves a note: its six manifest assertions are the ones the
 linter cannot know, because they belong to this repository — the version tracks
 `package.json`, the Firefox floor stays consistent with the manifest's most
 recent key, and the `content_scripts` block is **word for word** the Chrome
