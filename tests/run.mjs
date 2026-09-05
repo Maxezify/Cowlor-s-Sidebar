@@ -5826,6 +5826,309 @@ titre('66. Paquet — retirer les commentaires sans toucher au programme');
      `${(sansCommentairesCss(feuille).match(/\/\*/g) || []).length} restants`);
 }
 
+// ═════════ 67. L'onglet qu'on ne regarde plus ═════════
+titre('67. Arrière-plan — ce qui s\'arrête, et ce qui repart');
+{
+  /* Soixante-cinq scénarios, et aucun ne parlait de l'onglet caché. C'était le
+     trou le plus large du banc : tout le chemin de retour — voile, purge,
+     repeuplement — n'avait jamais été joué une seule fois.
+
+     CE QUE CE SCÉNARIO SIMULE, ET CE QU'IL NE SIMULE PAS. Il pose le SIGNAL
+     que le navigateur envoie : `document.hidden`, `visibilityState`,
+     l'événement `visibilitychange`. C'est ce que l'extension lit, et c'est
+     donc sa logique à elle qui est éprouvée. Il ne reproduit PAS le
+     ralentissement que Chrome inflige aux minuteurs d'un onglet caché — cela
+     ne se simule pas depuis la page. Le dernier cas va plus loin et gèle
+     vraiment la page par le protocole DevTools, ce qui est la chose réelle. */
+
+  const cacher = (page, cache) => page.evaluate((c) => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => c });
+    Object.defineProperty(document, 'visibilityState',
+      { configurable: true, get: () => (c ? 'hidden' : 'visible') });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, cache);
+
+  /* Attendre que le pipeline se taise AVANT de cacher l'onglet. Sans cela le
+     test est une course, et il l'a été : un balayage encore programmé, ou un
+     lot encore en vol, retombait pendant la mesure et faisait échouer le
+     scénario UNE FOIS SUR TROIS — sur du code sain. Un banc intermittent est
+     pire qu'un banc absent : il apprend à ignorer ses propres échecs.
+
+     Le silence se constate sur le compteur de requêtes du stub : deux relevés
+     consécutifs identiques, et plus rien ne peut retomber. */
+  const calme = async (page) => {
+    let precedent = -1;
+    for (let i = 0; i < 40; i++) {
+      const n = await page.evaluate(() => window.__calls.length);
+      if (n === precedent) return true;
+      precedent = n;
+      await wait(page, 250);
+    }
+    return false;
+  };
+
+  /* Combien de fois le relevé « sidebar réduite ? » interroge le document.
+     C'est un COMPTEUR, pas un chronomètre : une assertion de coût fondée sur
+     le temps serait à la merci de la charge de la machine, et deviendrait le
+     genre d'échec qu'on finit par ignorer. */
+  const compterReplis = () => {
+    const vrai = Document.prototype.querySelector;
+    window.__replis = 0;
+    Document.prototype.querySelector = function (sel) {
+      if (typeof sel === 'string' && sel.includes('side-nav--collapsed')) window.__replis++;
+      return vrai.call(this, sel);
+    };
+    /* Les minuteurs armés, aussi. La porte de scheduleScan et celle de son
+       rappel font la même promesse — « pas de balayage en arrière-plan » — et
+       la seconde suffit à la tenir : retirer la première ne fait donc tomber
+       aucun test de comportement. Ce qu'elle apporte en propre est de ne pas
+       ARMER de minuteur du tout, et cela ne se voit qu'ici. */
+    const vraiTO = window.setTimeout;
+    window.__armes = 0;
+    window.setTimeout = function (...args) { window.__armes++; return vraiTO.apply(this, args); };
+  };
+
+  const monter = async () => {
+    const page = await browser.newPage();
+    page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await page.addInitScript(compterReplis);
+    await page.goto(URL_PAGE);
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 3600_000).toISOString();
+      window.__fx = {
+        alpha: { id: 'a', createdAt: h, viewers: 1000, game: 'Just Chatting', tags: [] },
+        beta:  { id: 'b', createdAt: h, viewers: 900,  game: 'Elden Ring',    tags: [] },
+      };
+      window.__addCard('alpha', 'Just Chatting', '1 k');
+      window.__addCard('beta',  'Elden Ring',    '900');
+    });
+    await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 2);
+    return page;
+  };
+
+  // ── a) caché : plus de requêtes, plus de décoration ─────────────────────
+  const page = await monter();
+  ok('le pipeline se tait avant qu\'on cache l\'onglet', await calme(page));
+
+  /* ── LA COURSE, reconstruite exprès ────────────────────────────────────
+     Entre la programmation d'un balayage et son départ il s'écoule
+     SCAN_DEBOUNCE, et l'onglet peut se cacher dans cet intervalle. Le
+     minuteur, lui, est déjà armé : sans porte dans son rappel, il part quand
+     même, avec son balayage complet et ses requêtes.
+
+     Ce cas n'a pas été trouvé en lisant le code : c'est le banc qui échouait
+     UNE FOIS SUR TROIS sur du code sain, parce qu'il tombait par hasard dans
+     cette fenêtre. On la reconstruit donc à la main — mutation puis masquage
+     dans la MÊME évaluation, aucun minuteur ne peut s'exécuter entre les
+     deux — au lieu de compter sur le hasard pour la retrouver. */
+  const avantCourse = await page.evaluate(() => window.__calls.length);
+  await page.evaluate(() => {
+    window.__fx.delta = { id: 'd', createdAt: new Date(Date.now() - 600_000).toISOString(),
+                          viewers: 400, game: 'Art', tags: [] };
+    window.__addCard('delta', 'Art', '400');       // arme le minuteur de balayage
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    Object.defineProperty(document, 'visibilityState',
+      { configurable: true, get: () => 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await wait(page, 900);                            // l'échéance est largement passée
+  const course = await page.evaluate(() => ({
+    appels: window.__calls.length,
+    delta: !!document.querySelector('[data-tse-login="delta"]'),
+  }));
+  ok('un balayage déjà armé ne part pas si l\'onglet se cache avant son échéance',
+     course.appels === avantCourse && !course.delta,
+     `${avantCourse} → ${course.appels}, delta ${course.delta}`);
+
+  const appelsAvant = await page.evaluate(() => window.__calls.length);
+  /* Twitch continue de vivre pendant l'absence : une carte apparaît. Avant
+     cette version, chaque mutation de ce genre déclenchait un balayage complet
+     et son lot de requêtes, dans un onglet que personne ne regarde. */
+  await page.evaluate(() => {
+    window.__fx.gamma = { id: 'g', createdAt: new Date(Date.now() - 600_000).toISOString(),
+                          viewers: 500, game: 'Art', tags: [] };
+    window.__addCard('gamma', 'Art', '500');
+  });
+  await wait(page, 1000);
+  const pendant = await page.evaluate(() => ({
+    appels: window.__calls.length,
+    decoree: !!document.querySelector('[data-tse-login="gamma"]'),
+  }));
+  ok('onglet caché : aucune requête ne part',
+     pendant.appels === appelsAvant, `${appelsAvant} → ${pendant.appels}`);
+  ok('onglet caché : la carte apparue n\'est pas traitée',
+     pendant.decoree === false, JSON.stringify(pendant));
+
+  /* ── le COÛT, et pas seulement le comportement ──────────────────────────
+     Le relevé « sidebar réduite ? » coûte 130 µs sur un DOM de la taille de
+     celui de Twitch : un sélecteur de classe sans correspondance oblige le
+     moteur à parcourir tout le document. Il se faisait à CHAQUE lot de
+     mutations, chat compris.
+
+     Deux portes le bornent désormais, et aucune ne se voit dans un test de
+     comportement — c'est pourquoi la première mutation de ce lot n'était
+     tombée nulle part. On compte donc les relevés pendant 300 lots de
+     mutations HORS sidebar, comme en produit un chat qui défile. */
+  const churn = (page) => page.evaluate(async () => {
+    const bruit = document.createElement('div');
+    document.body.appendChild(bruit);
+    window.__replis = 0; window.__armes = 0;
+    for (let i = 0; i < 300; i++) {
+      const d = document.createElement('div');
+      d.innerHTML = '<span>message ' + i + '</span>';
+      bruit.appendChild(d);
+      if (bruit.childElementCount > 40) bruit.firstElementChild.remove();
+      await null;                       // un lot par message, comme un vrai chat
+    }
+    bruit.remove();
+    return { replis: window.__replis, armes: window.__armes };
+  });
+
+  const caches = await churn(page);
+  ok('onglet caché : le relevé du repli ne tourne pas une seule fois',
+     caches.replis === 0, `${caches.replis} relevés pour 300 lots`);
+  ok('onglet caché : aucun minuteur de balayage n\'est même armé',
+     caches.armes === 0, `${caches.armes} minuteurs armés pour 300 lots`);
+
+  // ── b) retour COURT : le balayage retenu est rejoué ─────────────────────
+  /* L'absence dure moins que REVISIT_RELOAD_MS : pas de voile, pas de purge —
+     mais la carte arrivée pendant l'absence doit être rattrapée. C'est
+     exactement ce que le drapeau « scan en retard » existe pour garantir. */
+  /* On redevient visible ET on lit DANS LA MÊME évaluation : aucun minuteur
+     n'a pu s'exécuter entre les deux, donc ce qu'on trouve vient forcément du
+     gestionnaire de retour. Sans cette précaution le test ne prouvait rien —
+     le réveil périodique (5 s en production, 100 ms dans le banc accéléré)
+     finissait par balayer de toute façon, et retirer le rattrapage ne faisait
+     tomber aucune assertion. La différence est pourtant réelle : jusqu'à cinq
+     secondes de sidebar périmée à chaque retour sur l'onglet. */
+  const apresCourt = await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    Object.defineProperty(document, 'visibilityState',
+      { configurable: true, get: () => 'visible' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    return { gamma: !!document.querySelector('[data-tse-login="gamma"]'),
+             delta: !!document.querySelector('[data-tse-login="delta"]'),
+             cartes: document.querySelectorAll('[data-tse-login]').length };
+  });
+  ok('retour court : les deux balayages retenus sont rejoués DANS le gestionnaire',
+     apresCourt.gamma && apresCourt.delta && apresCourt.cartes === 4,
+     JSON.stringify(apresCourt));
+
+  /* Onglet VISIBLE, et du bruit hors sidebar : le relevé ne doit presque
+     jamais tourner. Première écriture de cette assertion, je l'attendais
+     « échantillonnée, entre 1 et 30 » — elle rend zéro, et c'est elle qui
+     avait tort : 300 lots passent en bien moins d'une seconde, donc le filet
+     d'une seconde n'a aucune raison de se déclencher. Sans la porte, ce même
+     bruit produisait 300 relevés à 130 µs.
+
+     Le seuil laisse passer le filet au cas où la rafale chevaucherait une
+     seconde ; ce test compte un ordre de grandeur, il ne chronomètre pas une
+     machine. */
+  await calme(page);
+  const visible = await churn(page);
+  ok('onglet visible : le bruit hors sidebar ne déclenche presque aucun relevé',
+     visible.replis <= 5, `${visible.replis} relevés pour 300 lots`);
+
+  /* LE CONTRÔLE POSITIF, et il est indispensable : sans lui, « ne relève
+     presque jamais » serait aussi satisfait par une porte qui ne s'ouvre
+     jamais — c'est-à-dire par un repli/dépli qu'on ne verrait plus. Une
+     mutation DANS la sidebar doit relever tout de suite. */
+  const replisSidebar = await page.evaluate(async () => {
+    window.__replis = 0;
+    const nav = document.getElementById('side-nav');
+    const d = document.createElement('div');
+    nav.appendChild(d); await null;
+    d.remove(); await null;
+    return window.__replis;
+  });
+  ok('…mais une mutation DANS la sidebar le déclenche immédiatement',
+     replisSidebar > 0, `${replisSidebar} relevés`);
+
+  // ── c) retour LONG : voile, purge, repeuplement ─────────────────────────
+  await cacher(page, true);
+  await wait(page, 2200);            // > REVISIT_RELOAD_MS accéléré (1,5 s)
+  await cacher(page, false);
+  await attendre(page, () =>
+    document.querySelectorAll('[data-tse-login][data-tse-viewers]').length === 4, 8000);
+  const apresLong = await page.evaluate(() => ({
+    cartes: document.querySelectorAll('[data-tse-login][data-tse-viewers]').length,
+    uptime: [...document.querySelectorAll('.tse-uptime')].map(e => e.textContent).filter(Boolean).length,
+  }));
+  ok('retour après une longue absence : les quatre cartes sont repeuplées',
+     apresLong.cartes === 4, JSON.stringify(apresLong));
+  ok('…durées de stream comprises',
+     apresLong.uptime === 4, JSON.stringify(apresLong));
+  await page.close();
+
+  // ── d) l'onglet qui NAÎT caché ──────────────────────────────────────────
+  /* Cas oublié par l'écriture d'origine : `hiddenSince` valait 0, donc le
+     retour ne faisait rien du tout. Une page ouverte dans un onglet
+     d'arrière-plan — un lien ouvert en nouvel onglet, une session restaurée —
+     n'avait alors aucun chemin de rattrapage. */
+  const p2 = await browser.newPage();
+  p2.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await p2.addInitScript(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+  });
+  await p2.goto(URL_PAGE);
+  await p2.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = { seul: { id: 's', createdAt: h, viewers: 700, game: 'Art', tags: [] } };
+    window.__addCard('seul', 'Art', '700');
+  });
+  await wait(p2, 1200);
+  const neCache = await p2.evaluate(() => window.__calls.length);
+  // Lecture synchrone, même raison qu'au retour court : c'est le gestionnaire
+  // qu'on éprouve, pas la patience du réveil périodique.
+  const ne = await p2.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    Object.defineProperty(document, 'visibilityState',
+      { configurable: true, get: () => 'visible' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    return { balaye: !!document.querySelector('[data-tse-login="seul"]') };
+  });
+  /* Le balayage est synchrone, les DONNÉES ne le sont pas : viewers et durée
+     viennent d'une réponse réseau. Exiger les deux dans la même évaluation —
+     première écriture — revenait à demander au gestionnaire de faire un
+     aller-retour GraphQL sans rendre la main. Deux assertions, donc : le
+     gestionnaire balaie, puis les données arrivent. */
+  ok('un onglet né caché est balayé dès le premier regard',
+     ne.balaye, `${JSON.stringify(ne)} — ${neCache} requêtes pendant l'absence`);
+  await attendre(p2, () => !!document.querySelector('[data-tse-login="seul"][data-tse-viewers]'), 8000);
+  const peuple = await p2.evaluate(() => {
+    const c = document.querySelector('[data-tse-login="seul"]');
+    return { viewers: c?.dataset.tseViewers ?? null,
+             uptime: c?.querySelector('.tse-uptime')?.textContent ?? null };
+  });
+  ok('…et se peuple ensuite comme n\'importe quel onglet',
+     !!peuple.viewers && !!peuple.uptime, JSON.stringify(peuple));
+  await p2.close();
+
+  // ── e) un vrai gel, par le protocole DevTools ───────────────────────────
+  /* Ici on ne simule plus : Chrome gèle réellement la page — minuteurs
+     suspendus, rien ne tourne — puis la réveille. C'est ce que fait le
+     navigateur à un onglet d'arrière-plan qu'il juge inutile, et c'est le seul
+     moyen de vérifier que l'extension survit à autre chose qu'un drapeau. */
+  const p3 = await monter();
+  const cdp = await p3.context().newCDPSession(p3);
+  await cacher(p3, true);
+  await cdp.send('Page.setWebLifecycleState', { state: 'frozen' });
+  await new Promise(r => setTimeout(r, 2500));
+  await cdp.send('Page.setWebLifecycleState', { state: 'active' });
+  await cacher(p3, false);
+  await attendre(p3, () =>
+    document.querySelectorAll('[data-tse-login][data-tse-viewers]').length === 2, 10_000);
+  const degele = await p3.evaluate(() => ({
+    cartes: document.querySelectorAll('[data-tse-login][data-tse-viewers]').length,
+    tri: !!document.getElementById('tse-sort-row'),
+    filtre: !!document.getElementById('tse-filter'),
+  }));
+  ok('après un gel RÉEL de la page, la sidebar repart entière',
+     degele.cartes === 2 && degele.tri && degele.filtre, JSON.stringify(degele));
+  await p3.close();
+}
+
 await browser.close();
 console.log(`\n${'═'.repeat(50)}`);
 if (echecs.length) {
