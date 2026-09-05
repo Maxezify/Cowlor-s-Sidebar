@@ -1583,7 +1583,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-fonts/           Inter and Noto embedded in the images (OFL 1.1)
 ├── store/                 the copy of the twelve Chrome Web Store listings
 ├── tests/
-│   ├── run.mjs              the harness: 561 assertions across 66 scenarios
+│   ├── run.mjs              the Playwright harness (counted below)
 │   ├── page.html            fake Twitch (real DOM + GraphQL network stub)
 │   ├── build.mjs            copies content.js with the timings accelerated
 │   ├── degraisser.mjs       strips comments from the shipped code (acorn)
@@ -1617,7 +1617,14 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 64 scenarios, 544 assertions |
+| `npm test` | the Playwright harness: 67 scenarios, 581 assertions |
+
+Those two numbers are not decoration: `run.mjs` checks them against what it has
+just counted, and fails if the table lies. A bench whose size is advertised
+eventually advertises it wrong — this line said 544 when there were 579, and
+the tree above said 561 two pages away. The scenario count was wrong too, for a
+reason no amount of proofreading catches: the numbering **skips 52**, so what
+was being read was the highest label rather than a count of the blocks.
 
 ### The package ships without its comments (v3.59)
 
@@ -1629,12 +1636,21 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 563 KB | 262 KB | 2,721 JS + 77 CSS → **2** |
+| `content.js` | 568 KB | 263 KB | 2,743 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| **both** | **687 KB** | **362 KB** | **−47 %** |
+| **both** | **692 KB** | **363 KB** | **−47 %** |
+
+These figures are **checked against the measurement** on every assembly, here
+as in `README.md` and `store/README.md`. They are not computed, they are
+copied — and a copied number goes stale in silence: the store listing claimed
+a 391 KB package for two versions, which was the JavaScript saving **alone**,
+while the CSS was being stripped too. So `npm run addon` re-reads all three
+documents and compares what they claim against what it has just weighed,
+within 3 %: wide enough for a version's ordinary growth, too narrow for a
+sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,721
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,743
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`

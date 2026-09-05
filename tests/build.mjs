@@ -15,8 +15,8 @@ let src = readFileSync(join(RACINE, 'content.js'), 'utf8');
    LIVRÉ, c'est-à-dire dégraissé de ses commentaires par tests/addon.mjs.
    L'égalité des flux de jetons, vérifiée à l'assemblage, dit déjà que le
    programme est le même ; mais « le même programme » est une affirmation sur
-   la grammaire, et 555 assertions sont une affirmation sur le comportement.
-   Les deux ne coûtent pas cher, et la seconde est celle qu'on publie. */
+   la grammaire, et le banc en est une sur le comportement. Les deux ne coûtent
+   pas cher, et la seconde est celle qu'on publie. */
 /* Deux formes, et la seconde n'est pas un luxe : `VAR=1 npm run …` ne
    fonctionne pas dans le cmd de Windows, où ce dépôt est aussi ouvert. Le
    drapeau, lui, traverse. */
@@ -80,7 +80,13 @@ const subs = [
   // DEUX branches — la courte absence, qui rattrape en silence, et la longue,
   // qui repose le voile et repeuple tout.
   [/REVISIT_RELOAD_MS:\s*60_000/, 'REVISIT_RELOAD_MS: 1_500'],
-  [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  40'],
+  // Les deux valaient 40 ; elles diffèrent maintenant, et pas par coquetterie.
+  // Le scénario 67 doit reconnaître LE minuteur de balayage à l'instant où il
+  // est armé, pour cacher l'onglet avant son échéance. Deux constantes de même
+  // valeur rendent leurs minuteurs indiscernables, et le test aurait attrapé
+  // l'un pour l'autre sans jamais le dire. Cinq millisecondes d'écart suffisent
+  // à les nommer ; le rapport avec le reste de l'échelle accélérée ne change pas.
+  [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  45'],
   [/BATCH_DELAY:\s*[\d_]+/,       'BATCH_DELAY:    40'],
 ];
 for (const [re, to] of subs) {

@@ -1679,7 +1679,7 @@ cowlors-sidebar-for-twitch/
 ├── promo-fonts/           Inter et Noto embarquées dans les images (OFL 1.1)
 ├── store/                 le texte des douze fiches du Chrome Web Store
 ├── tests/
-│   ├── run.mjs              le harnais : 561 assertions, 66 scénarios
+│   ├── run.mjs              le harnais Playwright (compté plus bas)
 │   ├── page.html            faux Twitch (DOM réel + stub réseau GraphQL)
 │   ├── build.mjs            copie content.js avec les durées accélérées
 │   ├── degraisser.mjs       retire les commentaires du code livré (acorn)
@@ -1714,7 +1714,15 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 64 scénarios, 544 assertions |
+| `npm test` | le harnais Playwright : 67 scénarios, 581 assertions |
+
+Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
+vient de compter, et échoue si le tableau ment. Un banc dont on annonce la
+taille de mémoire finit toujours par l'annoncer fausse — cette ligne disait
+544 quand il y en avait 579, et l'arborescence ci-dessus en annonçait 561 à
+deux pages d'écart. Le compte des scénarios était faux lui aussi, pour une
+raison qu'aucune relecture n'attrape : la numérotation **saute le 52**, si
+bien qu'on lisait la plus haute étiquette au lieu de compter les blocs.
 
 ### Le paquet part sans ses commentaires (v3.59)
 
@@ -1726,12 +1734,21 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 563 Ko | 262 Ko | 2 721 JS + 77 CSS → **2** |
+| `content.js` | 568 Ko | 263 Ko | 2 743 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| **les deux** | **687 Ko** | **362 Ko** | **−47 %** |
+| **les deux** | **692 Ko** | **363 Ko** | **−47 %** |
+
+Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
+dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
+recopient — et un nombre recopié se périme sans bruit : la fiche du Store a
+annoncé un paquet de 391 Ko pendant deux versions, c'est-à-dire le gain du
+JavaScript **seul**, alors que le CSS était dégraissé lui aussi. `npm run
+addon` relit donc les trois documents et compare ce qu'ils annoncent à ce
+qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
+d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 721
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 743
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches

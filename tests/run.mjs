@@ -17,7 +17,8 @@ let pass = 0, fail = 0;
 // aussi le scénario en cours : « ✗ et son halo respire » ne dit rien sans lui.
 const echecs = [];
 let scenario = '(hors scénario)';
-const titre = (t) => { scenario = t; console.log('\n' + t); };
+let nbScenarios = 0;
+const titre = (t) => { scenario = t; nbScenarios++; console.log('\n' + t); };
 const ok  = (n, c, extra='') => {
   if (c) { pass++; console.log('  ✓', n); return; }
   fail++;
@@ -5470,6 +5471,32 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
       .map(o => ({ valeur: o.dataset.value,
                    libelle: o.querySelector('.tse-dd-name')?.textContent ?? null })));
 
+  /* Le menu accuse UN BALAYAGE de retard sur les cartes, et c'est normal : la
+     réponse de l'API écrit sur les cartes, mais c'est le balayage suivant qui
+     rebâtit le menu à partir d'elles. Mesuré ici : au premier regard après la
+     condition d'attente, le menu porte encore « Just Chatting » ; il porte
+     « Discussions » 32 ms plus tard.
+
+     Ce décalage a fait tomber ce scénario dans un banc complet alors qu'il
+     passait trois fois sur trois en isolation — la charge suffit à décaler la
+     lecture dans la fenêtre. Un échec qui ne se reproduit pas est celui qu'on
+     finit par relancer sans le lire, donc par ignorer.
+
+     On attend la STABILITÉ, pas le contenu attendu : deux lectures identiques
+     séparées de plus qu'un balayage. Attendre « Discussions » ferait de
+     l'assertion sa propre condition d'entrée, et elle ne pourrait plus échouer
+     que par expiration — ce qui est une autre façon de ne rien tester. */
+  const optionsStables = async (page) => {
+    let avant = null;
+    for (let i = 0; i < 40; i++) {
+      const vu = JSON.stringify(await options(page));
+      if (vu === avant) return JSON.parse(vu);
+      avant = vu;
+      await wait(page, 150);
+    }
+    return JSON.parse(avant);
+  };
+
   const monter = async (htmlLang) => {
     const page = await browser.newPage();
     page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
@@ -5522,7 +5549,7 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
      JSON.stringify(fr[1]));
 
   // ── c) le menu déroulant : libellé traduit, valeur canonique ────────────
-  const opts = await options(page);
+  const opts = await optionsStables(page);
   const oJC = opts.find(o => o.valeur === 'Just Chatting');
   ok('le menu propose la traduction…', oJC?.libelle === 'Discussions',
      JSON.stringify(opts));
@@ -5918,27 +5945,89 @@ titre('67. Arrière-plan — ce qui s\'arrête, et ce qui repart');
 
      Ce cas n'a pas été trouvé en lisant le code : c'est le banc qui échouait
      UNE FOIS SUR TROIS sur du code sain, parce qu'il tombait par hasard dans
-     cette fenêtre. On la reconstruit donc à la main — mutation puis masquage
-     dans la MÊME évaluation, aucun minuteur ne peut s'exécuter entre les
-     deux — au lieu de compter sur le hasard pour la retrouver. */
-  const avantCourse = await page.evaluate(() => window.__calls.length);
-  await page.evaluate(() => {
-    window.__fx.delta = { id: 'd', createdAt: new Date(Date.now() - 600_000).toISOString(),
-                          viewers: 400, game: 'Art', tags: [] };
-    window.__addCard('delta', 'Art', '400');       // arme le minuteur de balayage
-    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
-    Object.defineProperty(document, 'visibilityState',
-      { configurable: true, get: () => 'hidden' });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
-  await wait(page, 900);                            // l'échéance est largement passée
-  const course = await page.evaluate(() => ({
-    appels: window.__calls.length,
-    delta: !!document.querySelector('[data-tse-login="delta"]'),
-  }));
+     cette fenêtre. Trois écritures ont raté sa reconstruction, et les deux
+     premières PASSAIENT — la pire façon de rater :
+
+       1. mutation et masquage dans une seule évaluation synchrone. Le rappel
+          d'un MutationObserver est une microtâche : il ne tournait qu'APRÈS
+          le masquage, prenait sa propre porte, et n'armait donc rien ;
+       2. un tour complet cédé entre les deux. Mesuré : l'observateur n'arme
+          son minuteur que ~19 ms après la mutation, bien après le tour ;
+       3. accrochée à l'armement, mais la carte posée trop tôt — un balayage
+          d'une activité précédente l'a décorée avant qu'on ait rien caché.
+
+     Les deux premières ne testaient rien du tout, et la mutation qui retire
+     la porte du rappel y a survécu deux rondes complètes.
+
+     CE QUI MARCHE, et pourquoi il n'y a plus d'horloge dans le raisonnement :
+     on s'accroche à l'ÉVÉNEMENT « un balayage vient d'être armé » — observable,
+     c'est un setTimeout au délai de SCAN_DEBOUNCE — puis on fait TOUT le reste
+     dans UNE SEULE microtâche : poser la carte, puis cacher l'onglet. Rien ne
+     peut s'intercaler entre les deux, donc aucun balayage ne peut voir la
+     carte tant que l'onglet est visible. Le balayage en attente, lui, expirera
+     forcément onglet caché. La microtâche plutôt que l'appel direct : se
+     glisser au milieu de scheduleScan produirait une réentrance que la
+     production ne connaît pas.
+
+     ON NE PEUT PAS ATTENDRE LE SILENCE D'ABORD — mesuré aussi : au repos, le
+     banc accéléré arme un balayage toutes les 100 ms (REFRESH_TICK), et le
+     plus grand trou observé sur 3 s est de 131 ms. Il n'existe aucun instant
+     tranquille où se placer ; c'est bien pour cela qu'il faut s'accrocher à
+     l'événement plutôt qu'à une accalmie.
+
+     TROIS TÉMOINS pour un seul fait, parce qu'un fait à un seul témoin dans un
+     test asynchrone est une coïncidence en puissance : aucune requête, la
+     carte non décorée, et AUCUN relevé du repli — ce dernier étant le plus
+     direct, puisque scanSidebar commence par refreshSidebarCollapsed et qu'un
+     balayage qui tourne ne peut pas le cacher.
+
+     Le délai est LU dans le fichier construit. build.mjs donne à SCAN_DEBOUNCE
+     une valeur distincte de BATCH_DELAY précisément pour que ces lignes
+     puissent nommer leur minuteur au lieu d'en attraper un autre. */
+  const DEBOUNCE = Number(/SCAN_DEBOUNCE:\s*([\d_]+)/
+    .exec(readFileSync(join(ICI, 'content.test.js'), 'utf8'))[1].replaceAll('_', ''));
+  const course = await page.evaluate((debounce) => new Promise((resolve) => {
+    const vraiTO = window.setTimeout;          // le compteur posé par compterReplis
+    let pris = false;
+    window.setTimeout = function (fn, d, ...r) {
+      const id = vraiTO.call(this, fn, d, ...r);
+      if (d === debounce && !pris) {
+        pris = true;
+        queueMicrotask(() => {
+          window.setTimeout = vraiTO;
+          // La carte, PUIS le masquage — sans rien entre les deux.
+          window.__fx.delta = { id: 'd', createdAt: new Date(Date.now() - 600_000).toISOString(),
+                                viewers: 400, game: 'Art', tags: [] };
+          window.__addCard('delta', 'Art', '400');
+          Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+          Object.defineProperty(document, 'visibilityState',
+            { configurable: true, get: () => 'hidden' });
+          document.dispatchEvent(new Event('visibilitychange'));
+          // Les témoins sont remis à zéro APRÈS le masquage : tout ce qu'ils
+          // compteront désormais aura eu lieu dans un onglet caché.
+          window.__replis = 0;
+          const appels0 = window.__calls.length;
+          vraiTO(() => resolve({
+            arme: true,
+            replis: window.__replis,
+            appels: window.__calls.length - appels0,
+            delta: !!document.querySelector('[data-tse-login="delta"]'),
+          }), debounce * 8);                   // très au-delà de l'échéance
+        });
+      }
+      return id;
+    };
+    vraiTO(() => { window.setTimeout = vraiTO; resolve({ arme: false }); }, 3000);
+  }), DEBOUNCE);
+  /* LA PRÉCONDITION, et elle vaut assertion à part entière : sans balayage
+     armé, il n'y a pas de course, et ce qui suit ne prouve rien. C'est
+     exactement le piège dans lequel les deux premières écritures sont
+     tombées — en vert. */
+  ok(`la course est bien armée : l'onglet se cache pendant qu'un balayage attend (${DEBOUNCE} ms)`,
+     course.arme === true, 'aucun balayage n\'a été armé en 3 s');
   ok('un balayage déjà armé ne part pas si l\'onglet se cache avant son échéance',
-     course.appels === avantCourse && !course.delta,
-     `${avantCourse} → ${course.appels}, delta ${course.delta}`);
+     course.replis === 0 && course.appels === 0 && course.delta === false,
+     JSON.stringify(course));
 
   const appelsAvant = await page.evaluate(() => window.__calls.length);
   /* Twitch continue de vivre pendant l'absence : une carte apparaît. Avant
@@ -6127,6 +6216,38 @@ titre('67. Arrière-plan — ce qui s\'arrête, et ce qui repart');
   ok('après un gel RÉEL de la page, la sidebar repart entière',
      degele.cartes === 2 && degele.tri && degele.filtre, JSON.stringify(degele));
   await p3.close();
+}
+
+/* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
+   Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
+   connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
+   se contredisait à deux pages d'intervalle — « 561 assertions, 66 scénarios »
+   d'un côté, « 64 scénarios, 544 assertions » de l'autre, alors qu'il y en
+   avait 579 et 67. Personne ne l'avait vu : rien ne reliait la phrase au banc.
+
+   C'est ici que le lien se fait, parce que c'est ici que le nombre existe.
+   Contrairement aux tailles de paquet, il n'y a AUCUNE tolérance : un banc a
+   un nombre d'assertions exact, et ajouter une assertion sans toucher aux deux
+   README est une omission, pas une dérive. Le message d'échec donne le chiffre
+   à écrire, ce qui rend la corvée d'une dizaine de secondes.
+
+   L'assertion se compte ELLE-MÊME : au moment où elle s'évalue elle n'est pas
+   encore dans le total, d'où le +1. Sans lui, le banc annoncerait éternellement
+   une assertion de moins qu'il n'en a. */
+{
+  titre('68. Le banc — sa taille est celle que les README annoncent');
+  const total = pass + fail + 1;          // +1 : cette assertion-ci
+  const dits = [];
+  for (const doc of ['README.md', 'README.en.md']) {
+    const texte = readFileSync(join(ICI, '..', doc), 'utf8');
+    const m = /(\d+)\s+(?:scénarios|scenarios),\s*(\d+)\s+assertions/.exec(texte);
+    dits.push({ doc, scen: m && Number(m[1]), ass: m && Number(m[2]) });
+  }
+  const faux = dits.filter(d => d.scen !== nbScenarios || d.ass !== total);
+  ok(`les README annoncent la taille réelle du banc (${nbScenarios} scénarios, ${total} assertions)`,
+     faux.length === 0,
+     faux.map(d => `${d.doc} dit ${d.scen} scénarios / ${d.ass} assertions`).join(' | ')
+       || '(ligne introuvable)');
 }
 
 await browser.close();

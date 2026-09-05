@@ -1,16 +1,16 @@
-# Fiche Chrome Web Store
+# Fiche addons.mozilla.org
 
-> **Branche Chrome.** Ces fiches sont celles du Chrome Web Store. Elles sont
-> identiques à celles de la branche `claude/firefox` **à une ligne près** par
-> langue : celle qui nomme le bouton d'installation. Rien d'autre ne change —
-> le produit décrit est le même, et `npm run store` le vérifie des deux côtés.
+> **Branche Firefox.** Ces fiches sont celles d'AMO. Elles sont identiques à
+> celles de la branche `claude/chrome` **à une ligne près** par langue : celle
+> qui nomme le bouton d'installation, « Ajouter à Chrome » devenant « Ajouter à
+> Firefox ». Rien d'autre ne change — le produit décrit est le même.
 
 Ce dossier est la **source** de ce qui est publié sur la fiche. Le tableau de
-bord du Chrome Web Store n'a pas d'historique lisible : sans copie versionnée ici, la seule
+bord d'AMO n'a pas d'historique lisible : sans copie versionnée ici, la seule
 trace d'une formulation est la fiche elle-même, et une correction d'il y a six
 mois est introuvable. Ces fichiers existent pour ça.
 
-Le texte est en **clair** : le champ « Description détaillée » du tableau de bord
+Le texte est en **clair** : le champ de description longue du tableau de bord
 n'interprète ni Markdown ni HTML. Les `★`, les `➤`, les émojis et les filets
 `━` sont donc des caractères, pas une mise en forme — ils survivent au
 copier-coller.
@@ -82,11 +82,14 @@ où le code change :
 7. **« Code source entièrement lisible »** — `content.js` et `adblock.js` sont
    livrés **ni minifiés ni obscurcis** : mêmes noms, mêmes lignes, même
    indentation que dans le dépôt. Depuis la 3.59 le paquet part en revanche
-   **sans les commentaires** (687 → 391 Ko) ; la phrase reste vraie au mot
-   près — c'est de lisibilité qu'elle parle, pas d'annotations — et les
-   commentaires, eux, sont dans le dépôt public. Les mentions légales, elles,
-   restent dans le paquet : la licence MIT d'`adblock.js` et les deux crédits
-   OpenMoji de `content.js` l'exigent. Voir `tests/degraisser.mjs`.
+   **sans les commentaires** — ceux du JavaScript, et depuis la 3.60 ceux du
+   CSS aussi (692 → 363 Ko) ; la phrase reste vraie au mot près — c'est de
+   lisibilité qu'elle parle, pas d'annotations — et les commentaires, eux,
+   sont dans le dépôt public. Ce chiffre-là est confronté à la mesure par
+   `npm run addon` : il a été faux, et personne ne l'a vu. Les mentions
+   légales, elles, restent dans le paquet : la licence MIT d'`adblock.js` et
+   les deux crédits OpenMoji de `content.js` l'exigent. Voir
+   `tests/degraisser.mjs`.
 8. **« Étiquettes de contenu … forment leur propre badge »** — `updateCclBadge`
    les pose en tête des badges de l'aperçu, depuis les identifiants que rend
    `contentClassificationLabels`. Cette phrase a été FAUSSE de la 3.44 à la
