@@ -80,7 +80,13 @@ const subs = [
   // DEUX branches — la courte absence, qui rattrape en silence, et la longue,
   // qui repose le voile et repeuple tout.
   [/REVISIT_RELOAD_MS:\s*60_000/, 'REVISIT_RELOAD_MS: 1_500'],
-  [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  40'],
+  // Les deux valaient 40 ; elles diffèrent maintenant, et pas par coquetterie.
+  // Le scénario 67 doit reconnaître LE minuteur de balayage à l'instant où il
+  // est armé, pour cacher l'onglet avant son échéance. Deux constantes de même
+  // valeur rendent leurs minuteurs indiscernables, et le test aurait attrapé
+  // l'un pour l'autre sans jamais le dire. Cinq millisecondes d'écart suffisent
+  // à les nommer ; le rapport avec le reste de l'échelle accélérée ne change pas.
+  [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  45'],
   [/BATCH_DELAY:\s*[\d_]+/,       'BATCH_DELAY:    40'],
 ];
 for (const [re, to] of subs) {

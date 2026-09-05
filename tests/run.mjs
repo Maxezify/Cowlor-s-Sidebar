@@ -5918,27 +5918,89 @@ titre('67. Arrière-plan — ce qui s\'arrête, et ce qui repart');
 
      Ce cas n'a pas été trouvé en lisant le code : c'est le banc qui échouait
      UNE FOIS SUR TROIS sur du code sain, parce qu'il tombait par hasard dans
-     cette fenêtre. On la reconstruit donc à la main — mutation puis masquage
-     dans la MÊME évaluation, aucun minuteur ne peut s'exécuter entre les
-     deux — au lieu de compter sur le hasard pour la retrouver. */
-  const avantCourse = await page.evaluate(() => window.__calls.length);
-  await page.evaluate(() => {
-    window.__fx.delta = { id: 'd', createdAt: new Date(Date.now() - 600_000).toISOString(),
-                          viewers: 400, game: 'Art', tags: [] };
-    window.__addCard('delta', 'Art', '400');       // arme le minuteur de balayage
-    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
-    Object.defineProperty(document, 'visibilityState',
-      { configurable: true, get: () => 'hidden' });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
-  await wait(page, 900);                            // l'échéance est largement passée
-  const course = await page.evaluate(() => ({
-    appels: window.__calls.length,
-    delta: !!document.querySelector('[data-tse-login="delta"]'),
-  }));
+     cette fenêtre. Trois écritures ont raté sa reconstruction, et les deux
+     premières PASSAIENT — la pire façon de rater :
+
+       1. mutation et masquage dans une seule évaluation synchrone. Le rappel
+          d'un MutationObserver est une microtâche : il ne tournait qu'APRÈS
+          le masquage, prenait sa propre porte, et n'armait donc rien ;
+       2. un tour complet cédé entre les deux. Mesuré : l'observateur n'arme
+          son minuteur que ~19 ms après la mutation, bien après le tour ;
+       3. accrochée à l'armement, mais la carte posée trop tôt — un balayage
+          d'une activité précédente l'a décorée avant qu'on ait rien caché.
+
+     Les deux premières ne testaient rien du tout, et la mutation qui retire
+     la porte du rappel y a survécu deux rondes complètes.
+
+     CE QUI MARCHE, et pourquoi il n'y a plus d'horloge dans le raisonnement :
+     on s'accroche à l'ÉVÉNEMENT « un balayage vient d'être armé » — observable,
+     c'est un setTimeout au délai de SCAN_DEBOUNCE — puis on fait TOUT le reste
+     dans UNE SEULE microtâche : poser la carte, puis cacher l'onglet. Rien ne
+     peut s'intercaler entre les deux, donc aucun balayage ne peut voir la
+     carte tant que l'onglet est visible. Le balayage en attente, lui, expirera
+     forcément onglet caché. La microtâche plutôt que l'appel direct : se
+     glisser au milieu de scheduleScan produirait une réentrance que la
+     production ne connaît pas.
+
+     ON NE PEUT PAS ATTENDRE LE SILENCE D'ABORD — mesuré aussi : au repos, le
+     banc accéléré arme un balayage toutes les 100 ms (REFRESH_TICK), et le
+     plus grand trou observé sur 3 s est de 131 ms. Il n'existe aucun instant
+     tranquille où se placer ; c'est bien pour cela qu'il faut s'accrocher à
+     l'événement plutôt qu'à une accalmie.
+
+     TROIS TÉMOINS pour un seul fait, parce qu'un fait à un seul témoin dans un
+     test asynchrone est une coïncidence en puissance : aucune requête, la
+     carte non décorée, et AUCUN relevé du repli — ce dernier étant le plus
+     direct, puisque scanSidebar commence par refreshSidebarCollapsed et qu'un
+     balayage qui tourne ne peut pas le cacher.
+
+     Le délai est LU dans le fichier construit. build.mjs donne à SCAN_DEBOUNCE
+     une valeur distincte de BATCH_DELAY précisément pour que ces lignes
+     puissent nommer leur minuteur au lieu d'en attraper un autre. */
+  const DEBOUNCE = Number(/SCAN_DEBOUNCE:\s*([\d_]+)/
+    .exec(readFileSync(join(ICI, 'content.test.js'), 'utf8'))[1].replaceAll('_', ''));
+  const course = await page.evaluate((debounce) => new Promise((resolve) => {
+    const vraiTO = window.setTimeout;          // le compteur posé par compterReplis
+    let pris = false;
+    window.setTimeout = function (fn, d, ...r) {
+      const id = vraiTO.call(this, fn, d, ...r);
+      if (d === debounce && !pris) {
+        pris = true;
+        queueMicrotask(() => {
+          window.setTimeout = vraiTO;
+          // La carte, PUIS le masquage — sans rien entre les deux.
+          window.__fx.delta = { id: 'd', createdAt: new Date(Date.now() - 600_000).toISOString(),
+                                viewers: 400, game: 'Art', tags: [] };
+          window.__addCard('delta', 'Art', '400');
+          Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+          Object.defineProperty(document, 'visibilityState',
+            { configurable: true, get: () => 'hidden' });
+          document.dispatchEvent(new Event('visibilitychange'));
+          // Les témoins sont remis à zéro APRÈS le masquage : tout ce qu'ils
+          // compteront désormais aura eu lieu dans un onglet caché.
+          window.__replis = 0;
+          const appels0 = window.__calls.length;
+          vraiTO(() => resolve({
+            arme: true,
+            replis: window.__replis,
+            appels: window.__calls.length - appels0,
+            delta: !!document.querySelector('[data-tse-login="delta"]'),
+          }), debounce * 8);                   // très au-delà de l'échéance
+        });
+      }
+      return id;
+    };
+    vraiTO(() => { window.setTimeout = vraiTO; resolve({ arme: false }); }, 3000);
+  }), DEBOUNCE);
+  /* LA PRÉCONDITION, et elle vaut assertion à part entière : sans balayage
+     armé, il n'y a pas de course, et ce qui suit ne prouve rien. C'est
+     exactement le piège dans lequel les deux premières écritures sont
+     tombées — en vert. */
+  ok(`la course est bien armée : l'onglet se cache pendant qu'un balayage attend (${DEBOUNCE} ms)`,
+     course.arme === true, 'aucun balayage n\'a été armé en 3 s');
   ok('un balayage déjà armé ne part pas si l\'onglet se cache avant son échéance',
-     course.appels === avantCourse && !course.delta,
-     `${avantCourse} → ${course.appels}, delta ${course.delta}`);
+     course.replis === 0 && course.appels === 0 && course.delta === false,
+     JSON.stringify(course));
 
   const appelsAvant = await page.evaluate(() => window.__calls.length);
   /* Twitch continue de vivre pendant l'absence : une carte apparaît. Avant
