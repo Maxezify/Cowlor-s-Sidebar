@@ -328,9 +328,9 @@ the assembled code:
 | --- | --- | --- | --- |
 | `content.js` | 578 KB | 268 KB | 2,754 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 15 KB | 11 KB | 15 → **0** |
+| `panneau.js` | 17 KB | 11 KB | 15 → **0** |
 | `bridge.js` | 7 KB | 2 KB | 13 → **0** |
-| `background.js` | 4 KB | 2 KB | 13 → **0** |
+| `background.js` | 5 KB | 2 KB | 13 → **0** |
 | **all five** | **728 KB** | **382 KB** | **−47 %** |
 
 These figures are **checked against the measurement** on every assembly, here
@@ -1886,7 +1886,14 @@ of it. Everything the panel shows is reachable by hand, and
   relies on (OK / broken / not applicable) and returns the raw report. A
   background auto-diagnostic also runs and warns in the console (`console.warn`)
   if Twitch changes its markup and a critical selector no longer matches —
-  handy to diagnose a potential breakage.
+  handy to diagnose a potential breakage. That warning **names the failing
+  probe**, not just "some selectors": the browser's Errors page keeps only the
+  `console.warn`, never the table printed right after it, so a user report said
+  nothing actionable.
+- `tse.diagnose.auto()` — replays the **periodic** check, the one with a memory:
+  it warns once per incident and re-arms once everything is green again. Handy
+  to trigger the alert again without waiting for the next maintenance tick.
+  `tse.diagnose()` only prints, and changes nothing.
 - `tse.lag()` — **measures Twitch's lag** on channels going live: how long
   passes between a stream starting and its card appearing in the sidebar (see
   below).
@@ -2067,7 +2074,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 69 scenarios, 602 assertions |
+| `npm test` | the Playwright harness: 70 scenarios, 611 assertions |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
 just counted, and fails if the table lies. A bench whose size is advertised

@@ -6446,6 +6446,14 @@ titre('70. Panneau — la page rendue, mesurée');
       runtime: {
         sendMessage: (m) => {
           window.__envois.push(m);
+          /* Panne simulée : l'envoi lui-même REJETTE. C'est ce que fait Chrome
+             quand personne n'écoute au bout de chrome.runtime — service worker
+             non démarré. À ne pas confondre avec une réponse « absent », qui
+             veut dire l'inverse : le worker répond, mais n'a pas de pont pour
+             cet onglet. */
+          if (window.__panne === 'fond') {
+            return Promise.reject(new Error('Could not establish connection. Receiving end does not exist.'));
+          }
           if (m.action) return Promise.resolve({ ok: true, data: { fait: true } });
           const f = REPONSES[m.section];
           return Promise.resolve(f ? f() : { ok: false, erreur: 'inconnu' });
@@ -6584,6 +6592,188 @@ titre('70. Panneau — la page rendue, mesurée');
   const efface = await page.evaluate(() =>
     window.__envois.filter(m => m.action === 'reset').length);
   ok('…et la confirmation, elle, envoie bien l\'ordre', efface === 1, String(efface));
+
+  /* ── DEUX PANNES QU'IL NE FAUT PAS CONFONDRE ───────────────────────────
+     Rapport réel : le panneau affichait « ouvrez un onglet twitch.tv et
+     mettez-le au premier plan » à quelqu'un qui en avait un sous les yeux,
+     avec la sidebar visiblement décorée par l'extension. Le message accusait
+     l'onglet alors que le fautif était le service worker — sur Chrome, un
+     manifeste déclarant `background.scripts` au lieu de `service_worker`
+     donne exactement cela : content scripts vivants, fond de tâche absent.
+
+     Un message qui désigne le mauvais coupable est pire qu'un message
+     générique : il envoie chercher là où il n'y a rien. */
+  const panne = await page.evaluate(async () => {
+    window.__panne = 'fond';
+    const avant = window.__envois.length;
+    [...document.querySelectorAll('.rail-item')].find(b => b.dataset.id === 'scores').click();
+    // Au-delà du total de l'échelle (250 + 750 + 1800), avec de la marge.
+    await new Promise(r => setTimeout(r, 3400));
+    return { texte: document.getElementById('message-texte').textContent,
+             tentatives: window.__envois.length - avant };
+  });
+  const attenduFond = messages.stateNoWorker.message;
+  const attenduOnglet = messages.stateAbsent.message;
+  ok('un service worker muet est nommé comme tel, et pas comme un onglet manquant',
+     panne.texte.startsWith(attenduFond) && !panne.texte.includes(attenduOnglet),
+     JSON.stringify(panne.texte).slice(0, 160));
+  ok('…et le message du navigateur est reproduit tel quel, pour être recopié',
+     /Receiving end does not exist/.test(panne.texte), JSON.stringify(panne.texte).slice(0, 160));
+  /* L'ASSERTION QUI AURAIT ATTRAPÉ LA COURSE. Le panneau ne réessayait qu'UNE
+     fois, à 500 ms, quand bridge.js reconnectait à 1 000 : la tentative tenait
+     tout entière dans le trou qu'elle devait franchir, et « Réessayer »
+     retombait au même endroit. Compter les tentatives est la seule façon de
+     voir la différence — le message affiché, lui, est identique. */
+  ok('un échec de transport est réessayé plusieurs fois, pas une seule',
+     panne.tentatives >= 4, `${panne.tentatives} tentatives pour une échelle de 3 délais`);
+
+  await page.close();
+}
+
+// ═════════ 71. Le diagnostic — le voit-on jamais détecter quoi que ce soit ? ═════════
+titre('71. Diagnostic — il doit crier au bon moment, et se taire au bon moment');
+{
+  /* CE SCÉNARIO VIENT D'UN RAPPORT RÉEL. Un utilisateur a reçu « des sélecteurs
+     critiques ne correspondent plus au DOM de Twitch » — l'auto-diagnostic, qui
+     est le filet de sécurité de tout le produit. Or jusqu'ici le banc n'en
+     disait qu'UNE chose, et dans un seul sens : « aucune casse sur un décor
+     sain ». Une sonde câblée en dur sur 'ok' aurait passé ce test pour
+     toujours, et le filet n'aurait retenu personne.
+
+     Les deux directions comptent autant l'une que l'autre :
+
+       — une sonde qui ne détecte RIEN laisse l'extension se dégrader en
+         silence, ce qu'elle existe précisément pour empêcher ;
+       — une sonde qui crie À TORT est pire qu'absente : elle apprend à
+         ignorer les suivantes, y compris la vraie.
+
+     Le second cas n'est pas théorique. La sonde `followedSection` rendait
+     « cassé » dès que la section « Chaînes suivies » manquait — c'est-à-dire
+     aussi pour une session DÉCONNECTÉE et pour un compte qui NE SUIT PERSONNE,
+     deux situations parfaitement normales où le markup de Twitch n'a rien
+     changé. Elle utilise désormais le même signal neutre que `cardClass` : le
+     nombre de liens de chaîne dans la barre. */
+  const page = await browser.newPage();
+  page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await page.goto(URL_PAGE);
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {
+      alpha: { id: 'a', createdAt: h, viewers: 1000, game: 'Just Chatting', tags: [] },
+      beta:  { id: 'b', createdAt: h, viewers: 900,  game: 'Elden Ring',    tags: [] },
+    };
+    window.__addCard('alpha', 'Just Chatting', '1 k');
+    window.__addCard('beta',  'Elden Ring',    '900');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 2);
+
+  const sonde = (id) => page.evaluate((n) =>
+    (window.tse.diagnose().find(p => p.id === n) || {}), id);
+
+  const sain = await sonde('followedSection');
+  ok('sur un décor sain, la sonde de section répond « ok »',
+     sain.status === 'ok', JSON.stringify(sain));
+
+  /* ── LE SENS POSITIF : casser pour de vrai, et voir la sonde le dire ────
+     On retire les DEUX prises de la section — l'aria-label et la classe du
+     bandeau — puisque followedSection() a un repli sur la seconde. Une seule
+     des deux ne prouverait rien : c'est le repli, et non la sonde, qu'on
+     mesurerait. */
+  await page.evaluate(() => {
+    /* UNE BARRE VRAIMENT PEUPLÉE. Le signal neutre de la sonde est le nombre de
+       liens de chaîne, et le décor du harnais n'en porte que DEUX — sous le
+       seuil de trois. Sans ces liens, le cas « peuplée » n'était jamais
+       atteint et l'assertion mesurait l'autre branche sans le dire : elle a
+       échoué en rendant 'na' là où elle attendait 'broken'.
+
+       On ajoute des <a> nus, et non des cartes : c'est exactement ce que la
+       sonde compte — un signal indépendant de nos propres classes, choisi pour
+       distinguer « Twitch a renommé son markup » de « la barre est vide ». */
+    const nav = document.getElementById('side-nav');
+    for (let i = 0; i < 5; i++) {
+      const a = document.createElement('a');
+      a.href = '/chaine' + i;
+      nav.appendChild(a);
+    }
+    const sec = document.querySelector('.side-nav-section[aria-label]');
+    sec.removeAttribute('aria-label');
+    sec.querySelectorAll('[class*="followed-side-nav-header"]')
+       .forEach(e => { e.className = 'entete-neutre'; });
+  });
+  const cassee = await sonde('followedSection');
+  ok('section introuvable sur une barre PEUPLÉE : la sonde dit « cassé »',
+     cassee.status === 'broken' && cassee.critical === true, JSON.stringify(cassee));
+
+  /* ── LE SENS NÉGATIF : une barre vide n'est pas une casse ───────────────
+     Même DOM, même section absente — mais plus de cartes ni de liens. C'est
+     la sidebar d'un visiteur déconnecté. La sonde ne doit rien affirmer. */
+  await page.evaluate(() => {
+    document.querySelectorAll('#side-nav a[href^="/"]').forEach(a => a.removeAttribute('href'));
+  });
+  const vide = await sonde('followedSection');
+  ok('même section absente, mais barre quasi vide : « non applicable », pas « cassé »',
+     vide.status === 'na', JSON.stringify(vide));
+
+  /* ── L'AVERTISSEMENT, ET SA MÉMOIRE ───────────────────────────────────
+     Trois questions d'un coup, et TOUT tient dans UNE SEULE évaluation. Ce
+     n'est pas un raccourci : l'auto-diagnostic tourne aussi sur le tour
+     d'entretien, accéléré à 1,2 s dans le banc. Un comptage réparti sur
+     plusieurs allers-retours verrait ce tour consommer l'incident entre deux
+     mesures, et le test échouerait une fois sur deux sur du code sain. Rien
+     ne peut s'intercaler dans une évaluation synchrone.
+
+       1. l'avertissement NOMME-T-IL la sonde fautive ? Le rapport d'origine
+          ne montrait que la phrase générique : la page « Erreurs » du
+          navigateur retient le console.warn et pas le console.table imprimé
+          juste après ;
+       2. ne crie-t-il qu'UNE FOIS par incident ? Répété tous les tours
+          d'entretien, il deviendrait du bruit ;
+       3. se RÉARME-T-IL une fois l'incident résolu ? Sans quoi la deuxième
+          panne serait silencieuse — le pire des trois défauts. */
+  const memoire = await page.evaluate(() => {
+    const sec = document.querySelector('.side-nav-section');
+    const casser  = () => { sec.removeAttribute('aria-label');
+                            sec.querySelectorAll('[class*="followed-side-nav-header"]')
+                               .forEach(e => { e.className = 'entete-neutre'; }); };
+    const reparer = () => sec.setAttribute('aria-label', 'Chaînes suivies');
+    // Une barre PEUPLÉE : c'est la condition pour que l'absence de section
+    // vaille rupture. On rend leurs liens aux cartes.
+    document.querySelectorAll('#side-nav a:not([href])').forEach(a => a.setAttribute('href', '/x'));
+    /* ET LE VOILE DOIT ÊTRE LEVÉ. runSelectorHealthCheck sort immédiatement
+       tant que body porte `tse-loading` — c'est délibéré côté produit : pendant
+       le chargement les cartes ne sont pas rendues, et toute sonde répondrait
+       n'importe quoi. Or les mutations qu'on vient de faire sur #side-nav
+       relancent un cycle de voile. On le lève donc ici, ce qui reproduit la
+       seule situation où ce contrôle s'exécute en production. Sans cette
+       ligne, les trois assertions qui suivent mesuraient un garde-fou et non
+       la mémoire de l'alerte — elles rendaient zéro avertissement. */
+    document.body.classList.remove('tse-loading');
+
+    const vrai = console.warn;
+    const dits = [];
+    console.warn = (...a) => { dits.push(a.join(' ')); };
+    try {
+      // État de départ connu : réparé, et la mémoire remise à zéro.
+      reparer(); window.tse.diagnose.auto();
+      const avant = dits.length;
+      casser();  window.tse.diagnose.auto();       // ← doit crier
+      const premier = dits.length - avant;
+      window.tse.diagnose.auto();
+      window.tse.diagnose.auto();                  // ← ne doit plus rien dire
+      const repetitions = dits.length - avant - premier;
+      reparer(); window.tse.diagnose.auto();       // ← résolution : réarmement
+      casser();  window.tse.diagnose.auto();       // ← doit crier de nouveau
+      const rearme = dits.length - avant - premier - repetitions;
+      return { premier, repetitions, rearme, texte: dits[avant] || '' };
+    } finally { console.warn = vrai; reparer(); }
+  });
+  ok('l\'avertissement nomme la sonde fautive, pas seulement « des sélecteurs »',
+     /followedSection/.test(memoire.texte) && /followedSelector/.test(memoire.texte),
+     JSON.stringify(memoire.texte).slice(0, 200));
+  ok('il est émis une fois à l\'incident, puis se tait',
+     memoire.premier === 1 && memoire.repetitions === 0, JSON.stringify(memoire));
+  ok('…et se réarme une fois l\'incident résolu, pour la panne suivante',
+     memoire.rearme === 1, JSON.stringify(memoire));
 
   await page.close();
 }

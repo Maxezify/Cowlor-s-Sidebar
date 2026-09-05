@@ -271,5 +271,8 @@
   },
   "resetText": {
     "message": "I punteggi di visita, gli abbonamenti rilevati, i canali noti e le misurazioni del ritardo saranno eliminati da questo browser. L'operazione è irreversibile."
+  },
+  "stateNoWorker": {
+    "message": "Il processo in background dell’estensione non risponde. Ricarica l’estensione o reinstalla la versione pensata per questo browser."
   }
 }

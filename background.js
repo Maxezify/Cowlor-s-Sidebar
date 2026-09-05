@@ -75,11 +75,23 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
 
   const port = ports.get(msg.tabId);
   if (!port) {
-    /* Trois causes, et le panneau les distingue par ce seul mot : l'onglet
-       n'est pas une page Twitch, l'extension vient d'être rechargée sans que
-       la page le soit, ou l'onglet n'était pas encore revenu au premier plan
-       quand le clic est parti. Le panneau réessaie une fois avant de le dire. */
-    repondre({ ok: false, erreur: 'absent' });
+    /* CE QU'ON SAIT, ET QU'ON DIT. « Absent » couvre plusieurs situations très
+       différentes, et sans ce détail elles étaient indiscernables depuis le
+       panneau :
+
+         — AUCUN pont connu : bridge.js n'a jamais réussi à se brancher, ou ce
+           worker vient de redémarrer et n'a pas encore été recontacté ;
+         — des ponts, mais pas celui-là : l'onglet actif n'est pas une page
+           Twitch, ou sa page a été ouverte avant l'installation de
+           l'extension — les content scripts n'entrent pas dans un onglet déjà
+           ouvert.
+
+       Le premier cas se répare en attendant une seconde, le second en
+       rechargeant la page. Les confondre envoyait chercher au mauvais endroit,
+       et c'est exactement ce qui est arrivé. */
+    repondre({ ok: false, erreur: 'absent',
+               detail: `onglet ${msg.tabId} — ponts connus : `
+                     + ([...ports.keys()].join(', ') || 'aucun') });
     return false;
   }
 

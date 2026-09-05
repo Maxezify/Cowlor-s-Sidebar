@@ -340,9 +340,9 @@ assemblé :
 | --- | --- | --- | --- |
 | `content.js` | 578 Ko | 268 Ko | 2 754 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 15 Ko | 11 Ko | 15 → **0** |
+| `panneau.js` | 17 Ko | 11 Ko | 15 → **0** |
 | `bridge.js` | 7 Ko | 2 Ko | 13 → **0** |
-| `background.js` | 4 Ko | 2 Ko | 13 → **0** |
+| `background.js` | 5 Ko | 2 Ko | 13 → **0** |
 | **les cinq** | **728 Ko** | **382 Ko** | **−47 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
@@ -1996,7 +1996,15 @@ exactement ce qu'il consomme.
   l'extension (OK / cassé / non applicable) et renvoie le rapport brut. Un
   auto-diagnostic tourne aussi en arrière-plan et avertit dans la console
   (`console.warn`) si Twitch change son markup et qu'un sélecteur critique ne
-  correspond plus — utile pour diagnostiquer une éventuelle panne.
+  correspond plus — utile pour diagnostiquer une éventuelle panne. Cet
+  avertissement **nomme la sonde fautive**, et pas seulement « des sélecteurs » :
+  la page « Erreurs » du navigateur ne retient que le `console.warn`, jamais le
+  tableau imprimé juste après, et un rapport d'utilisateur ne disait donc rien
+  d'exploitable.
+- `tse.diagnose.auto()` — rejoue le contrôle **périodique**, celui qui porte sa
+  mémoire : il n'avertit qu'une fois par incident et se réarme quand tout est
+  redevenu vert. Utile pour reprovoquer l'alerte sans attendre le prochain tour
+  d'entretien. `tse.diagnose()`, lui, ne fait qu'imprimer et ne change rien.
 - `tse.lag()` — **mesure le retard de Twitch** sur les passages en direct :
   combien de temps s'écoule entre le démarrage d'un stream et l'apparition de
   sa carte dans la sidebar (cf. section suivante).
@@ -2179,7 +2187,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 69 scénarios, 602 assertions |
+| `npm test` | le harnais Playwright : 70 scénarios, 611 assertions |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
 vient de compter, et échoue si le tableau ment. Un banc dont on annonce la
