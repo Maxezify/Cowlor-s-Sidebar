@@ -556,7 +556,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       consoleLagSummary:         (n, med, p90) => `[tse] ${n} mesure(s) — retard médian de Twitch : ${med}, 90e centile : ${p90}.`,
       consoleRosterEmpty:        '[tse] Aucune chaîne mémorisée pour le moment.',
       consoleRosterSummary:      (n) => `[tse] ${n} chaîne(s) suivie(s) mémorisée(s) localement.`,
-      consoleHealthBroken:       '[tse] Des sélecteurs critiques ne correspondent plus au DOM de Twitch — l\'extension est peut-être partiellement cassée. Détails : tse.diagnose()',
+      consoleHealthBroken:       '[tse] Des sélecteurs critiques ne correspondent plus au DOM de Twitch — l\'extension est peut-être partiellement cassée. Détails : le panneau de l\'extension (Santé des sélecteurs), ou tse.diagnose()',
       consoleHealthAllOk:        '[tse] Tous les sélecteurs critiques répondent.',
       consoleMassOffline:        (n, total) => `[tse] Réponse suspecte de l'API Twitch : ${n} chaînes sur ${total} que l'on savait en direct sont annoncées hors ligne d'un coup. Affichage conservé en l'état plutôt que de vider la sidebar ; nouvel essai dans 30 s.`,
       consoleGlobalDegraded:     (n, s) => `[tse] Chaînes globales : ${n} échecs consécutifs de l'API Twitch. Cadence structurelle repliée sur ${s} s pour ne pas marteler l'endpoint. La sidebar « Chaînes suivies » n'est pas affectée.`,
@@ -624,7 +624,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       consoleLagSummary:         (n, med, p90) => `[tse] ${n} sample(s) — median Twitch lag: ${med}, 90th percentile: ${p90}.`,
       consoleRosterEmpty:        '[tse] No channel memorised yet.',
       consoleRosterSummary:      (n) => `[tse] ${n} followed channel(s) memorised locally.`,
-      consoleHealthBroken:       '[tse] Some critical selectors no longer match Twitch\'s DOM — the extension may be partially broken. Details: tse.diagnose()',
+      consoleHealthBroken:       '[tse] Some critical selectors no longer match Twitch\'s DOM — the extension may be partially broken. Details: the extension panel (Selector health), or tse.diagnose()',
       consoleHealthAllOk:        '[tse] All critical selectors are responding.',
       consoleMassOffline:        (n, total) => `[tse] Suspicious response from Twitch's API: ${n} of ${total} channels known to be live are reported offline at once. Keeping the current display rather than emptying the sidebar; retrying in 30 s.`,
       consoleGlobalDegraded:     (n, s) => `[tse] Global channels: ${n} consecutive failures from Twitch's API. Structural refresh backed off to ${s} s to avoid hammering the endpoint. The "Followed Channels" sidebar is unaffected.`,
@@ -692,7 +692,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       consoleLagSummary:         (n, med, p90) => `[tse] ${n} Messung(en) — mediane Twitch-Verzögerung: ${med}, 90. Perzentil: ${p90}.`,
       consoleRosterEmpty:        '[tse] Noch keine Kanäle gespeichert.',
       consoleRosterSummary:      (n) => `[tse] ${n} gefolgte(r) Kanal/Kanäle lokal gespeichert.`,
-      consoleHealthBroken:       '[tse] Einige kritische Selektoren stimmen nicht mehr mit dem DOM von Twitch überein — die Erweiterung ist möglicherweise teilweise defekt. Details: tse.diagnose()',
+      consoleHealthBroken:       '[tse] Einige kritische Selektoren stimmen nicht mehr mit dem DOM von Twitch überein — die Erweiterung ist möglicherweise teilweise defekt. Details: das Erweiterungs-Panel (Selektor-Zustand) oder tse.diagnose()',
       consoleHealthAllOk:        '[tse] Alle kritischen Selektoren reagieren.',
       consoleMassOffline:        (n, total) => `[tse] Verdächtige Antwort der Twitch-API: ${n} von ${total} als live bekannten Kanälen werden auf einmal als offline gemeldet. Anzeige wird beibehalten, statt die Seitenleiste zu leeren; neuer Versuch in 30 s.`,
       consoleGlobalDegraded:     (n, s) => `[tse] Globale Kanäle: ${n} aufeinanderfolgende Fehler der Twitch-API. Strukturelle Aktualisierung auf ${s} s gedrosselt, um den Endpunkt nicht zu überlasten. Die Seitenleiste „Kanäle, denen du folgst“ ist nicht betroffen.`,
@@ -760,7 +760,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       consoleLagSummary:         (n, med, p90) => `[tse] ${n} medición(es) — retraso mediano de Twitch: ${med}, percentil 90: ${p90}.`,
       consoleRosterEmpty:        '[tse] Ningún canal memorizado por el momento.',
       consoleRosterSummary:      (n) => `[tse] ${n} canal(es) que sigue memorizado(s) localmente.`,
-      consoleHealthBroken:       '[tse] Algunos selectores críticos ya no coinciden con el DOM de Twitch — puede que la extensión esté parcialmente rota. Detalles: tse.diagnose()',
+      consoleHealthBroken:       '[tse] Algunos selectores críticos ya no coinciden con el DOM de Twitch — puede que la extensión esté parcialmente rota. Detalles: el panel de la extensión (Estado de los selectores) o tse.diagnose()',
       consoleHealthAllOk:        '[tse] Todos los selectores críticos responden.',
       consoleMassOffline:        (n, total) => `[tse] Respuesta sospechosa de la API de Twitch: ${n} de ${total} canales que sabíamos en directo se anuncian desconectados de golpe. Se mantiene la vista actual en vez de vaciar la barra lateral; nuevo intento en 30 s.`,
       consoleGlobalDegraded:     (n, s) => `[tse] Canales globales: ${n} fallos consecutivos de la API de Twitch. Cadencia estructural reducida a ${s} s para no saturar el endpoint. La barra lateral «Canales que sigues» no se ve afectada.`,
@@ -828,7 +828,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       consoleLagSummary:         (n, med, p90) => `[tse] ${n} medição(ões) — atraso mediano da Twitch: ${med}, percentil 90: ${p90}.`,
       consoleRosterEmpty:        '[tse] Nenhum canal memorizado no momento.',
       consoleRosterSummary:      (n) => `[tse] ${n} canal(is) seguido(s) memorizado(s) localmente.`,
-      consoleHealthBroken:       '[tse] Alguns seletores críticos não correspondem mais ao DOM da Twitch — a extensão pode estar parcialmente quebrada. Detalhes: tse.diagnose()',
+      consoleHealthBroken:       '[tse] Alguns seletores críticos não correspondem mais ao DOM da Twitch — a extensão pode estar parcialmente quebrada. Detalhes: o painel da extensão (Saúde dos seletores) ou tse.diagnose()',
       consoleHealthAllOk:        '[tse] Todos os seletores críticos estão respondendo.',
       consoleMassOffline:        (n, total) => `[tse] Resposta suspeita da API da Twitch: ${n} de ${total} canais que sabíamos ao vivo são anunciados offline de uma vez. A exibição é mantida em vez de esvaziar a barra lateral; nova tentativa em 30 s.`,
       consoleGlobalDegraded:     (n, s) => `[tse] Canais globais: ${n} falhas consecutivas da API da Twitch. Cadência estrutural reduzida para ${s} s para não sobrecarregar o endpoint. A barra lateral «Canais seguidos» não é afetada.`,
@@ -896,7 +896,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       consoleLagSummary:         (n, med, p90) => `[tse] ${n} misurazione/i — ritardo mediano di Twitch: ${med}, 90° percentile: ${p90}.`,
       consoleRosterEmpty:        '[tse] Nessun canale memorizzato al momento.',
       consoleRosterSummary:      (n) => `[tse] ${n} canale/i seguito/i memorizzato/i localmente.`,
-      consoleHealthBroken:       '[tse] Alcuni selettori critici non corrispondono più al DOM di Twitch — l\'estensione potrebbe essere parzialmente rotta. Dettagli: tse.diagnose()',
+      consoleHealthBroken:       '[tse] Alcuni selettori critici non corrispondono più al DOM di Twitch — l\'estensione potrebbe essere parzialmente rotta. Dettagli: il pannello dell\'estensione (Salute dei selettori) o tse.diagnose()',
       consoleHealthAllOk:        '[tse] Tutti i selettori critici rispondono.',
       consoleMassOffline:        (n, total) => `[tse] Risposta sospetta dall'API di Twitch: ${n} canali su ${total} noti come in diretta sono dichiarati offline tutti insieme. Visualizzazione mantenuta invece di svuotare la barra laterale; nuovo tentativo tra 30 s.`,
       consoleGlobalDegraded:     (n, s) => `[tse] Canali globali: ${n} errori consecutivi dall'API di Twitch. Cadenza strutturale ridotta a ${s} s per non martellare l'endpoint. La barra laterale « Canali seguiti » non è interessata.`,
@@ -964,7 +964,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       consoleLagSummary:         (n, med, p90) => `[tse] Pomiary: ${n} — mediana opóźnienia Twitcha: ${med}, 90. percentyl: ${p90}.`,
       consoleRosterEmpty:        '[tse] Nie zapamiętano jeszcze żadnego kanału.',
       consoleRosterSummary:      (n) => `[tse] Zapamiętano lokalnie ${n} obserwowanych kanałów.`,
-      consoleHealthBroken:       '[tse] Niektóre krytyczne selektory nie pasują już do DOM Twitcha — rozszerzenie może być częściowo zepsute. Szczegóły: tse.diagnose()',
+      consoleHealthBroken:       '[tse] Niektóre krytyczne selektory nie pasują już do DOM Twitcha — rozszerzenie może być częściowo zepsute. Szczegóły: panel rozszerzenia (Kondycja selektorów) lub tse.diagnose()',
       consoleHealthAllOk:        '[tse] Wszystkie krytyczne selektory odpowiadają.',
       consoleMassOffline:        (n, total) => `[tse] Podejrzana odpowiedź API Twitcha: ${n} z ${total} kanałów znanych jako na żywo zgłoszono naraz jako offline. Zachowano bieżący widok zamiast opróżniać panel boczny; ponowna próba za 30 s.`,
       consoleGlobalDegraded:     (n, s) => `[tse] Kanały globalne: ${n} kolejnych błędów API Twitcha. Rytm strukturalny zwolniony do ${s} s, aby nie zasypywać punktu końcowego. Panel „Obserwowane kanały” nie jest tym dotknięty.`,
@@ -1032,7 +1032,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       consoleLagSummary:         (n, med, p90) => `[tse] Измерений: ${n} — медианное отставание Twitch: ${med}, 90-й процентиль: ${p90}.`,
       consoleRosterEmpty:        '[tse] Каналы пока не запомнены.',
       consoleRosterSummary:      (n) => `[tse] Локально запомнено отслеживаемых каналов: ${n}.`,
-      consoleHealthBroken:       '[tse] Некоторые критичные селекторы больше не соответствуют DOM Twitch — расширение может быть частично сломано. Подробности: tse.diagnose()',
+      consoleHealthBroken:       '[tse] Некоторые критичные селекторы больше не соответствуют DOM Twitch — расширение может быть частично сломано. Подробности: панель расширения («Состояние селекторов») или tse.diagnose()',
       consoleHealthAllOk:        '[tse] Все критичные селекторы отвечают.',
       consoleMassOffline:        (n, total) => `[tse] Подозрительный ответ API Twitch: ${n} из ${total} каналов, известных как эфирные, разом объявлены офлайн. Текущее отображение сохранено, чтобы не опустошать панель; повтор через 30 с.`,
       consoleGlobalDegraded:     (n, s) => `[tse] Глобальные каналы: ${n} подряд ошибок API Twitch. Структурный ритм снижен до ${s} с, чтобы не долбить эндпоинт. Панель «Отслеживаемые каналы» не затронута.`,
@@ -1100,7 +1100,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       consoleLagSummary:         (n, med, p90) => `[tse] 計測${n}件 — Twitch の遅れの中央値: ${med}、90パーセンタイル: ${p90}。`,
       consoleRosterEmpty:        '[tse] 記憶しているチャンネルはまだありません。',
       consoleRosterSummary:      (n) => `[tse] フォロー中のチャンネル${n}件をローカルに記憶しています。`,
-      consoleHealthBroken:       '[tse] 一部の重要なセレクターが Twitch の DOM と一致しなくなりました。拡張機能が部分的に動作していない可能性があります。詳細: tse.diagnose()',
+      consoleHealthBroken:       '[tse] 一部の重要なセレクターが Twitch の DOM と一致しなくなりました。拡張機能が部分的に動作していない可能性があります。詳細: 拡張機能パネル（セレクターの健全性）または tse.diagnose()',
       consoleHealthAllOk:        '[tse] 重要なセレクターはすべて応答しています。',
       consoleMassOffline:        (n, total) => `[tse] Twitch API の応答が不審です。配信中と分かっていた${total}件のうち${n}件が一度にオフラインと報告されました。サイドバーを空にせず現在の表示を維持します。30秒後に再試行します。`,
       consoleGlobalDegraded:     (n, s) => `[tse] グローバルチャンネル: Twitch API が${n}回連続で失敗しました。エンドポイントに負荷をかけないため、構造更新の間隔を${s}秒に緩めます。「フォロー中のチャンネル」には影響しません。`,
@@ -1168,7 +1168,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       consoleLagSummary:         (n, med, p90) => `[tse] 测量 ${n} 次 — Twitch 延迟中位数：${med}，第 90 百分位：${p90}。`,
       consoleRosterEmpty:        '[tse] 尚未记住任何频道。',
       consoleRosterSummary:      (n) => `[tse] 已在本地记住 ${n} 个关注的频道。`,
-      consoleHealthBroken:       '[tse] 部分关键选择器已与 Twitch 的 DOM 不匹配 — 扩展可能部分失效。详情：tse.diagnose()',
+      consoleHealthBroken:       '[tse] 部分关键选择器已与 Twitch 的 DOM 不匹配 — 扩展可能部分失效。详情：扩展面板（选择器健康状况）或 tse.diagnose()',
       consoleHealthAllOk:        '[tse] 所有关键选择器均有响应。',
       consoleMassOffline:        (n, total) => `[tse] Twitch API 返回可疑：已知在直播的 ${total} 个频道中有 ${n} 个被同时报告为离线。保留当前显示而不清空侧边栏；30 秒后重试。`,
       consoleGlobalDegraded:     (n, s) => `[tse] 全局频道：Twitch API 连续失败 ${n} 次。为避免频繁请求，结构刷新间隔放宽到 ${s} 秒。“关注的频道”侧边栏不受影响。`,
@@ -5885,6 +5885,15 @@ const TSE_GATE_MAX_CLICKS = 5;
       repondre({ ok: false, erreur: String(err && err.message || err) });
     }
   });
+
+  /* L'AUTO-DIAGNOSTIC, déclenchable à la main. `tse.diagnose()` imprime le
+     rapport et ne change rien ; celui-ci joue le contrôle PÉRIODIQUE, avec sa
+     mémoire — il avertit une fois par incident et se réarme quand tout est
+     revenu vert. Deux usages, et le second n'est pas le moindre : après avoir
+     reçu l'avertissement, on veut pouvoir le reprovoquer sans attendre le
+     prochain tour d'entretien. Le banc s'en sert pour éprouver la mémoire,
+     que rien d'autre ne peut atteindre. */
+  tseApi.diagnose.auto = () => { runSelectorHealthCheck(); };
 
   // Sous-commande pour accéder aux données brutes (programmable).
   tseApi.scores.raw = () => buildScoresReport();
@@ -10620,9 +10629,22 @@ const TSE_GATE_MAX_CLICKS = 5;
         root ? 'ok' : 'broken',
         root ? '' : 'racine de sidebar introuvable');
 
+    /* Le MÊME signal neutre que pour cardClass, et pour la même raison. Sans
+       lui, cette sonde criait « cassé » dans deux cas parfaitement normaux :
+       une session déconnectée, et un compte qui ne suit personne. Dans les
+       deux, la sidebar existe et la section n'existe pas — ce qui ne prouve
+       rien sur le markup de Twitch. Le nombre de liens de chaîne tranche :
+       au-delà de trois, la barre est peuplée, donc l'absence de section est
+       bien une rupture ; en deçà, on ne sait pas, et on ne prétend pas savoir.
+
+       Une alerte critique fausse coûte plus cher qu'une alerte tardive : elle
+       apprend à ignorer les suivantes. */
     add('followedSection', 'DOM.followedSelector', true,
-        !root ? 'na' : (section ? 'ok' : 'broken'),
-        !root ? 'racine absente' : (section ? '' : 'section « Chaînes suivies » introuvable'));
+        !root ? 'na' : (section ? 'ok' : (navLinks > 3 ? 'broken' : 'na')),
+        !root ? 'racine absente'
+              : section ? ''
+              : navLinks > 3 ? `section « Chaînes suivies » introuvable (${navLinks} liens de chaîne)`
+                             : `sidebar quasi vide (${navLinks} liens) — déconnecté, ou aucun suivi`);
 
     add('cardClass', '.side-nav-card', true,
         !root ? 'na' : (allCards.length ? 'ok' : (navLinks > 3 ? 'broken' : 'na')),
@@ -10688,7 +10710,16 @@ const TSE_GATE_MAX_CLICKS = 5;
     const broken = hasCriticalBreakage(report);
     if (broken && !healthWarned) {
       healthWarned = true;
-      console.warn(S.consoleHealthBroken);
+      /* LES SONDES FAUTIVES SONT NOMMÉES DANS L'AVERTISSEMENT LUI-MÊME, et pas
+         seulement dans le tableau qui suit. La raison vient d'un rapport réel :
+         la page « Erreurs » du navigateur ne retient QUE le console.warn — le
+         console.table imprimé juste après ne l'accompagne pas. L'utilisateur
+         voyait donc « des sélecteurs critiques ne correspondent plus » sans
+         jamais savoir lesquels, et devait rouvrir la console pour le
+         découvrir. Le nom du sélecteur voyage maintenant avec l'alerte. */
+      const fautives = report.filter(p => p.critical && p.status === 'broken');
+      console.warn(S.consoleHealthBroken,
+                   '→ ' + fautives.map(p => `${p.id} (${p.label})${p.detail ? ' : ' + p.detail : ''}`).join(' | '));
       logDiagnostics(report);
     } else if (!broken && healthWarned) {
       healthWarned = false; // incident résolu → ré-armer pour un futur changement

@@ -271,5 +271,8 @@
   },
   "resetText": {
     "message": "As pontuações de visitas, as subscrições detetadas, os canais conhecidos e as medições de atraso serão eliminados deste navegador. É irreversível."
+  },
+  "stateNoWorker": {
+    "message": "O processo em segundo plano da extensão não responde. Recarrega a extensão ou reinstala a versão feita para este navegador."
   }
 }

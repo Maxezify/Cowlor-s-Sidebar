@@ -1672,7 +1672,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 69 scenarios, 602 assertions |
+| `npm test` | the Playwright harness: 70 scenarios, 611 assertions |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
 just counted, and fails if the table lies. A bench whose size is advertised
@@ -1693,9 +1693,9 @@ the assembled code:
 | --- | --- | --- | --- |
 | `content.js` | 578 KB | 268 KB | 2,754 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 15 KB | 11 KB | 15 → **0** |
+| `panneau.js` | 17 KB | 11 KB | 15 → **0** |
 | `bridge.js` | 7 KB | 2 KB | 13 → **0** |
-| `background.js` | 4 KB | 2 KB | 13 → **0** |
+| `background.js` | 5 KB | 2 KB | 13 → **0** |
 | **all five** | **728 KB** | **382 KB** | **−47 %** |
 
 These figures are **checked against the measurement** on every assembly, here

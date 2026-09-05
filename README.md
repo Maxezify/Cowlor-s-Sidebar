@@ -1772,7 +1772,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 69 scénarios, 602 assertions |
+| `npm test` | le harnais Playwright : 70 scénarios, 611 assertions |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
 vient de compter, et échoue si le tableau ment. Un banc dont on annonce la
@@ -1794,9 +1794,9 @@ assemblé :
 | --- | --- | --- | --- |
 | `content.js` | 578 Ko | 268 Ko | 2 754 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 15 Ko | 11 Ko | 15 → **0** |
+| `panneau.js` | 17 Ko | 11 Ko | 15 → **0** |
 | `bridge.js` | 7 Ko | 2 Ko | 13 → **0** |
-| `background.js` | 4 Ko | 2 Ko | 13 → **0** |
+| `background.js` | 5 Ko | 2 Ko | 13 → **0** |
 | **les cinq** | **728 Ko** | **382 Ko** | **−47 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme

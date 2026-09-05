@@ -157,18 +157,49 @@ const idOnglet = () => (ongletP ??= chrome.tabs
   .then(([t]) => (t ? t.id : undefined))
   .catch(() => undefined));
 
-const demander = async (charge, reessai = true) => {
+/* L'ÉCHELLE DE RÉESSAIS, ET POURQUOI ELLE NE PEUT PAS ÊTRE UN SEUL DÉLAI.
+
+   Chrome termine le service worker après une trentaine de secondes
+   d'inactivité, ports compris. bridge.js en rouvre un aussitôt (REPRISE), mais
+   il existe une fenêtre pendant laquelle PERSONNE ne répond pour cet onglet —
+   et un clic tombe dedans une fois de temps en temps.
+
+   La première version réessayait UNE fois, à 500 ms, quand bridge.js
+   reconnectait à 1 000 : le réessai tenait tout entier dans le trou qu'il
+   devait franchir. Le panneau annonçait alors « ouvrez un onglet twitch.tv »
+   à quelqu'un qui en regardait un, et le bouton « Réessayer » retombait dans
+   la même fenêtre. Un rapport d'utilisateur l'a montré.
+
+   Les trois délais couvrent donc largement la reprise (200 ms) plus le
+   démarrage d'un worker froid, et s'arrêtent avant que l'attente ne devienne
+   elle-même le symptôme : environ trois secondes au total, après quoi il vaut
+   mieux dire ce qui ne va pas que continuer à faire tourner un voile. */
+const ATTENTES = [250, 750, 1800];
+
+const demander = async (charge, essai = 0) => {
   const onglet = await idOnglet();
   if (typeof onglet !== 'number') return { ok: false, erreur: 'absent' };
+  /* DEUX ÉCHECS QUI N'ONT RIEN À VOIR, et les confondre coûtait cher : le
+     panneau disait « ouvrez un onglet twitch.tv » à quelqu'un qui en avait un
+     sous les yeux, avec l'extension visiblement à l'œuvre dans sa barre
+     latérale. Le message accusait l'onglet quand le fautif était ailleurs.
+
+       — `fond` : l'envoi lui-même échoue. Personne n'écoute au bout de
+         chrome.runtime, donc le service worker n'a pas démarré. Sur Chrome,
+         un manifeste déclarant `background.scripts` au lieu de
+         `service_worker` produit exactement cela : les content scripts
+         tournent, la sidebar est décorée, et le fond de tâche n'existe pas ;
+       — `absent` : le service worker répond, mais n'a AUCUN port pour cet
+         onglet. C'est bridge.js qui manque — page ouverte avant l'installation
+         de l'extension, ou onglet qui n'est pas une page Twitch.
+
+     Le détail technique est conservé et affiché : c'est ce qu'on demande de
+     recopier quand rien d'autre ne se voit. */
   const r = await chrome.runtime.sendMessage({ type: 'tse-panneau', tabId: onglet, ...charge })
-    .catch(() => ({ ok: false, erreur: 'absent' }));
-  /* Un seul réessai, et il a une raison précise : bridge.js ne branche son
-     port que sur un onglet VISIBLE. Basculer sur l'onglet Twitch puis cliquer
-     aussitôt sur l'icône peut donc arriver avant que le port ne soit ouvert.
-     Un deuxième essai une demi-seconde plus tard le trouve. */
-  if (r && r.erreur === 'absent' && reessai) {
-    await new Promise((res) => setTimeout(res, 500));
-    return demander(charge, false);
+    .catch((e) => ({ ok: false, erreur: 'fond', detail: String((e && e.message) || e) }));
+  if (r && (r.erreur === 'absent' || r.erreur === 'fond') && essai < ATTENTES.length) {
+    await new Promise((res) => setTimeout(res, ATTENTES[essai]));
+    return demander(charge, essai + 1);
   }
   return r || { ok: false, erreur: 'absent' };
 };
@@ -177,16 +208,24 @@ const demander = async (charge, reessai = true) => {
 const $ = (id) => document.getElementById(id);
 let courante = SECTIONS[0].id;
 
-const montrerMessage = (cle, bouton) => {
+const montrerMessage = (cle, bouton, detail) => {
   $('tableau-cadre').hidden = true;
   $('resume').replaceChildren();
   const m = $('message');
   m.hidden = false;
-  $('message-texte').textContent = T(cle);
+  /* Le détail technique n'est pas traduit, et c'est voulu : c'est le message
+     du navigateur, mot pour mot, celui qu'on recopiera dans un rapport. Le
+     traduire le rendrait introuvable. */
+  $('message-texte').textContent = T(cle) + (detail ? ` (${detail})` : '');
   const b = $('message-bouton');
   b.hidden = !bouton;
   if (bouton) b.textContent = T('btnRetry');
 };
+
+/* Quel message pour quel échec. Une seule table, deux appelants — sans elle,
+   les deux listes de cas divergeaient au premier ajout. */
+const CAUSES = { fond: 'stateNoWorker', absent: 'stateAbsent', expiration: 'stateTimeout' };
+const montrerEchec = (r) => montrerMessage(CAUSES[r.erreur] || 'stateError', true, r.detail);
 
 const cellule = (nom, valeur) => {
   const td = document.createElement('td');
@@ -265,11 +304,7 @@ const charger = async (id) => {
   montrerMessage('stateLoading');
   const r = await demander({ section: id });
   if (courante !== id) return;             // l'utilisateur a changé entre-temps
-  if (!r.ok) {
-    montrerMessage(r.erreur === 'absent' ? 'stateAbsent'
-                 : r.erreur === 'expiration' ? 'stateTimeout' : 'stateError', true);
-    return;
-  }
+  if (!r.ok) { montrerEchec(r); return; }
   peindre(section, r.data);
   if (id === 'diagnose') marquerEtat(r.data && r.data.resume);
 };
@@ -289,11 +324,7 @@ const lancer = async (action, bouton) => {
   if (bouton) bouton.disabled = true;
   const r = await demander({ action });
   if (bouton) bouton.disabled = false;
-  if (!r.ok) {
-    montrerMessage(r.erreur === 'absent' ? 'stateAbsent'
-                 : r.erreur === 'expiration' ? 'stateTimeout' : 'stateError', true);
-    return;
-  }
+  if (!r.ok) { montrerEchec(r); return; }
   await charger(courante);                 // la vue reflète ce qui vient d'être fait
 };
 

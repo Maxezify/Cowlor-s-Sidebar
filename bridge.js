@@ -87,12 +87,23 @@
 
      Or le panneau s'ouvre depuis la barre d'outils, au-dessus de l'onglet
      ACTIF : le seul instant où l'on peut cliquer sur l'icône est un instant
-     où l'onglet est visible. Faire vivre le port sur la visibilité ne retire
-     donc rien, et rend au navigateur tout ce qu'il peut endormir.
+     où l'onglet est visible. Lier le port à la visibilité rend donc au
+     navigateur tout ce qu'il peut endormir sans rien retirer au panneau.
 
-     La reconnexion après une coupure n'est pas décorative : le service worker
-     finit par relâcher ses ports, et sans elle le panneau ne trouverait plus
-     personne au bout d'un moment sur un onglet pourtant resté ouvert. */
+     LE COMPROMIS, QU'IL FAUT DIRE EN ENTIER. La première rédaction affirmait
+     que cela « ne retire rien ». C'était faux, et un rapport d'utilisateur l'a
+     montré : Chrome termine le worker après une trentaine de secondes
+     d'inactivité MÊME sous un port ouvert, et la reconnexion qui suit ouvre
+     une fenêtre aveugle. Elle était d'une seconde ; le panneau, lui, ne
+     réessayait qu'une fois à 500 ms — donc entièrement à l'intérieur. Le
+     panneau annonçait « aucun onglet Twitch » à quelqu'un qui en regardait un.
+
+     La reprise est donc RAPIDE, et c'est ce qui décide du compromis réel : un
+     onglet Twitch au premier plan garde le worker éveillé ; dès qu'il passe en
+     arrière-plan, le port tombe et tout s'endort. C'est le bon partage — on ne
+     dépense que pendant qu'on regarde, et l'icône est cliquable à cet
+     instant-là précisément. */
+  const REPRISE = 200;
   let minuteurReprise = null;
 
   const debrancher = () => {
@@ -117,7 +128,7 @@
       /* Reprise seulement si l'onglet est encore regardé : sinon on laisserait
          le worker se rendormir puis le réveillerait aussitôt, en boucle. */
       if (!document.hidden && !minuteurReprise) {
-        minuteurReprise = setTimeout(() => { minuteurReprise = null; brancher(); }, 1_000);
+        minuteurReprise = setTimeout(() => { minuteurReprise = null; brancher(); }, REPRISE);
       }
     });
     port.onMessage.addListener((m) => {

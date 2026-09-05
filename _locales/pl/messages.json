@@ -271,5 +271,8 @@
   },
   "resetText": {
     "message": "Wyniki wizyt, wykryte subskrypcje, znane kanały i pomiary opóźnień zostaną usunięte z tej przeglądarki. Tej operacji nie można cofnąć."
+  },
+  "stateNoWorker": {
+    "message": "Proces w tle rozszerzenia nie odpowiada. Przeładuj rozszerzenie lub zainstaluj wersję przeznaczoną dla tej przeglądarki."
   }
 }
