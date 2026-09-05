@@ -1314,6 +1314,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     // MAINTENANCE_TICK.
     HEALTH_INITIAL_DELAY: 8_000,
     SCAN_DEBOUNCE:  250,
+    /* Cadence maximale du relevé « sidebar réduite ? » hors mutation de la
+       barre. La détection coûte 130 µs (sélecteur de classe sans
+       correspondance = parcours du document entier) et se faisait à chaque lot
+       de mutations, chat compris. Une seconde : un repli est un geste
+       d'utilisateur, il passe par une mutation de la barre et reste donc vu
+       tout de suite ; ce filet ne sert qu'au cas où le marqueur bougerait sur
+       un ancêtre, sans que la barre elle-même ne change. */
+    COLLAPSE_POLL_MS: 1_000,
     FRESH_MAX_MIN:  10,
     GQL_TIMEOUT:    15_000,       // ms — au-delà, on considère la requête HS
     // Pause après l'échec d'un lot TseChannels (réseau coupé, throttle, lot
@@ -10224,9 +10232,42 @@ const TSE_GATE_MAX_CLICKS = 5;
   };
 
   let scanTimer = null;
+  /* Un balayage dû, mais pas fait : l'onglet était caché quand on l'a demandé.
+     Ce drapeau est la contrepartie de la porte de l'observateur — sans lui,
+     tout ce qui a bougé pendant l'absence serait perdu pour les absences trop
+     courtes pour déclencher la remise à zéro du retour (REVISIT_RELOAD_MS). */
+  let scanEnRetard = false;
+
   const scheduleScan = () => {
+    // En arrière-plan, on ne programme rien : ni le balayage, ni les requêtes
+    // qu'il aurait déclenchées. Les navigateurs y ralentissent minuteurs et
+    // fetch, donc ces requêtes reviendraient tronquées ou en délai dépassé —
+    // et une réponse tronquée, c'est un « Terminé » de trop sur des chaînes
+    // qui émettent. C'est exactement la raison pour laquelle le réveil de
+    // rafraîchissement s'abstient déjà ; la porte manquait seulement ici.
+    if (document.hidden) { scanEnRetard = true; return; }
     if (scanTimer) return;
-    scanTimer = setTimeout(() => { scanTimer = null; scanSidebar(); }, CFG.SCAN_DEBOUNCE);
+    scanTimer = setTimeout(() => {
+      scanTimer = null;
+      /* La porte est ici AUSSI, et pas seulement à la programmation. Entre le
+         moment où un balayage est programmé et celui où il part, il s'écoule
+         SCAN_DEBOUNCE — et l'onglet peut se cacher pendant cet intervalle. Le
+         minuteur, lui, était déjà armé : il partait quand même, avec son
+         balayage complet et ses requêtes, dans un onglet caché. Le banc l'a
+         montré en échouant sur du code sain, une fois sur trois. */
+      if (document.hidden) { scanEnRetard = true; return; }
+      scanSidebar();
+    }, CFG.SCAN_DEBOUNCE);
+  };
+
+  /* Le balayage qu'on doit à l'absence, et rien de plus. Rend true s'il a eu
+     lieu — le retour d'onglet s'en sert pour ne pas balayer deux fois quand il
+     a déjà décidé d'une remise à zéro complète. */
+  const rattraperScan = () => {
+    if (!scanEnRetard) return false;
+    scanEnRetard = false;
+    scanSidebar();
+    return true;
   };
 
   const startObserver = () => {
@@ -10241,8 +10282,17 @@ const TSE_GATE_MAX_CLICKS = 5;
     // « bascule » : voile + purge du cache + re-scan complet, en plein
     // chargement. L'utilisateur voit alors la sidebar s'initialiser deux fois.
     let lastObservedCollapsed = null;
+    let dernierReplis = 0;   // dernier relevé de l'état réduit/étendu
 
     const obs = new MutationObserver((mutations) => {
+      /* Onglet caché : on ne balaie pas. Twitch continue de muter son DOM —
+         le chat surtout, mais aussi la sidebar quand un stream s'arrête — et
+         chacun de ces lots déclenchait un scan complet, donc des requêtes,
+         dans un onglet que personne ne regarde. On note simplement qu'il y a
+         eu du mouvement ; scheduleScan s'en souvient et le retour rattrape.
+         Sortir ICI, avant même la boucle, est ce qui rend l'observateur
+         quasiment gratuit en arrière-plan. */
+      if (document.hidden) { scheduleScan(); return; }
       // Un SEUL passage sur les mutations calcule deux choses :
       //  (a) cardRemoved — Twitch a-t-il RETIRÉ des cartes de la sidebar ?
       //      C'est le cas quand un stream se termine : Twitch nettoie sa
@@ -10295,7 +10345,23 @@ const TSE_GATE_MAX_CLICKS = 5;
       // VOLONTAIREMENT inconditionnel (hors porte) : le marqueur collapsed est
       // posé sur un ANCÊTRE de #side-nav, donc en dehors de la porte ; on le
       // vérifie donc à chaque mutation pour ne jamais manquer une bascule.
-      if (nav) {
+      /* MESURÉ, et c'est ce qui a motivé la porte ci-dessous : sur un DOM de
+         la taille de celui de Twitch (~5 000 éléments), cette recherche coûte
+         130 µs — mille fois le prix d'un querySelector par identifiant, parce
+         qu'un sélecteur de classe sans correspondance oblige le moteur à
+         parcourir le document entier. Faite à CHAQUE lot de mutations, chat
+         compris, elle représentait à elle seule l'essentiel du coût de cet
+         observateur : un chat actif produit des dizaines de lots par seconde.
+
+         On la fait donc quand elle peut apprendre quelque chose — une mutation
+         DANS la sidebar, ce qu'est forcément un repli/dépli, puisqu'il fait
+         reconstruire les cartes par Twitch — et sinon une fois par seconde, en
+         filet, pour le cas que redoutait le commentaire d'origine : un
+         marqueur posé sur un ancêtre sans que la barre elle-même ne bouge.
+         Le prédicat n'a pas changé ; seule sa cadence d'échantillonnage. */
+      const maintenant = Date.now();
+      if (nav && (relevant || maintenant - dernierReplis >= CFG.COLLAPSE_POLL_MS)) {
+        dernierReplis = maintenant;
         const collapsedNow = detectSidebarCollapsed();
         if (lastObservedCollapsed === null) {
           // Première observation avec une sidebar réellement montée : c'est
@@ -10446,14 +10512,21 @@ const TSE_GATE_MAX_CLICKS = 5;
     scanSidebar();
   };
 
+  /* Rafraîchissement local de l'affichage : durée de stream et « stream frais ».
+     Aucune requête, seulement de l'écriture dans le DOM — mais de l'écriture
+     que personne ne lit quand l'onglet est caché, et un querySelectorAll de
+     41 µs pour rien toutes les minutes. Le retour d'onglet le rappelle. */
+  const rafraichirAffichage = () => {
+    document.querySelectorAll('.side-nav-card[data-tse-started-at]').forEach(card => {
+      refreshUptime(card);
+      updateFreshness(card);
+    });
+  };
+
   const startTimers = () => {
-    // Rafraîchissement local de l'affichage (uptime / freshness).
-    // Pas de requête réseau, donc OK même en arrière-plan.
     setInterval(() => {
-      document.querySelectorAll('.side-nav-card[data-tse-started-at]').forEach(card => {
-        refreshUptime(card);
-        updateFreshness(card);
-      });
+      if (document.hidden) return;
+      rafraichirAffichage();
     }, CFG.UI_TICK);
 
     // Réveil de rafraîchissement. Il ne fait QUE programmer un scan : les
@@ -10514,12 +10587,26 @@ const TSE_GATE_MAX_CLICKS = 5;
     let hiddenSince = 0;
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) { hiddenSince = Date.now(); return; }
-      if (!hiddenSince) return; // onglet ouvert en arrière-plan au boot : rien à faire
-      const awayMs = Date.now() - hiddenSince;
+      // Absence assez longue pour que l'état soit devenu incertain : voile,
+      // purge, tout est repeuplé. `hiddenSince` vaut 0 si l'onglet a démarré
+      // en arrière-plan — on n'a alors rien vu se périmer, et le rattrapage
+      // ci-dessous suffit.
+      const awayMs = hiddenSince ? Date.now() - hiddenSince : 0;
       hiddenSince = 0;
-      if (awayMs < CFG.REVISIT_RELOAD_MS) return;
-      loadingOverlay.startCycle('retour d\'onglet');
-      invalidateAndRescan();
+      if (awayMs >= CFG.REVISIT_RELOAD_MS) {
+        scanEnRetard = false;   // la remise à zéro couvre tout ce qui a bougé
+        loadingOverlay.startCycle('retour d\'onglet');
+        invalidateAndRescan();
+        return;
+      }
+      // Absence courte, ou onglet enfin regardé pour la première fois : on
+      // rejoue le balayage que la porte de scheduleScan a retenu. Sans cette
+      // ligne, tout ce que Twitch a changé pendant l'absence resterait
+      // invisible jusqu'à la mutation suivante.
+      rattraperScan();
+      // L'affichage local a pu vieillir d'une minute pendant l'absence : le
+      // réveil qui le tient s'arrête lui aussi en arrière-plan.
+      rafraichirAffichage();
     });
 
     // 1er auto-diagnostic des sélecteurs, après que Twitch ait monté la sidebar.

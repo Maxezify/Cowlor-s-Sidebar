@@ -405,12 +405,44 @@ AHEAD_ENABLED:        true,   // false → only ever show Twitch's own cards
 At `false`, the extension keeps learning the roster and measuring Twitch's lag,
 but displays only what Twitch posts.
 
-### Backgrounded tab
+### Backgrounded tab (revisited in v3.61)
 
 Refreshing is **suspended** while the tab is not visible: browsers heavily
 throttle timers and requests there, and truncated responses would produce false
-"Ended" labels. On returning to the tab, the sidebar is fully repopulated behind
-the loading veil.
+"Ended" labels.
+
+That sentence was true of the **periodic wake-up**, and of nothing else. Twitch
+keeps mutating its DOM in a hidden tab — chat above all, but also the sidebar
+when a stream ends — and every one of those mutations triggered a full sweep,
+and therefore requests, in a tab nobody is looking at. The gate was missing on
+that path. It is there now.
+
+**What stops, tab hidden:**
+
+| | Before | After |
+| --- | --- | --- |
+| Refresh wake-up (5 s) | already stopped | stopped |
+| Mutation-driven sweep | **every mutation** | noted, not run |
+| GraphQL requests | **yes** | none |
+| Local display refresh (60 s) | ran for nothing | stopped |
+| Observer cost, per mutation batch | **149 µs** | **0.35 µs** |
+
+**What comes back, and how.** The return distinguishes two cases. An absence of
+a minute or more counts as a restart: veil, cache purge, full repopulation —
+the state has become too uncertain to patch. A shorter absence simply replays
+the **withheld sweep**: everything Twitch changed while away is caught up in one
+pass, with no veil. And the local display — stream uptime, "fresh stream" — is
+refreshed along with it, since its own wake-up had stopped too.
+
+One case was missing, and nothing covered it: **the tab that is born hidden** —
+a link opened in the background, a session restored at browser startup. The code
+asked "did I see this tab go hidden?"; the answer was no, and the return
+therefore did nothing at all. The catch-up now applies to that first look too.
+
+Bench scenario 67 exercises all five cases, and the last one simulates nothing:
+it **actually freezes the page** through the DevTools protocol — timers
+suspended, nothing running — then wakes it, and checks the sidebar comes back
+whole.
 
 ### Tuning the cadence
 

@@ -75,6 +75,11 @@ const subs = [
   // qui est la moitié de son comportement — un badge qui ne s'efface pas
   // finirait par mentir sur la fraîcheur de ce qu'il annonce.
   [/CATEGORY_SWITCH_TTL:\s*10 \* 60_000/, 'CATEGORY_SWITCH_TTL: 2_500'],
+  // Absence au-delà de laquelle le retour sur l'onglet vaut un redémarrage :
+  // une minute en production. Réduite ici pour qu'un test puisse observer LES
+  // DEUX branches — la courte absence, qui rattrape en silence, et la longue,
+  // qui repose le voile et repeuple tout.
+  [/REVISIT_RELOAD_MS:\s*60_000/, 'REVISIT_RELOAD_MS: 1_500'],
   [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  40'],
   [/BATCH_DELAY:\s*[\d_]+/,       'BATCH_DELAY:    40'],
 ];

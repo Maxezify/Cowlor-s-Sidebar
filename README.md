@@ -428,12 +428,45 @@ AHEAD_ENABLED:        true,   // false → l'extension n'affiche que les cartes 
 À `false`, l'extension continue d'apprendre le roster et de mesurer le retard de
 Twitch, mais n'affiche plus que ce que Twitch pose.
 
-### Onglet en arrière-plan
+### Onglet en arrière-plan (revu en v3.61)
 
 Le rafraîchissement est **suspendu** quand l'onglet n'est pas visible : les
 navigateurs y ralentissent fortement minuteurs et requêtes, et les réponses
-tronquées produiraient de faux « Terminé ». Au retour sur l'onglet, la sidebar
-est intégralement repeuplée sous le voile de chargement.
+tronquées produiraient de faux « Terminé ».
+
+Cette phrase était vraie du **réveil périodique**, et de lui seul. Twitch, lui,
+continue de muter son DOM dans un onglet caché — le chat surtout, mais aussi la
+sidebar quand un stream s'arrête — et chacune de ces mutations déclenchait un
+balayage complet, donc des requêtes, dans un onglet que personne ne regarde.
+La porte manquait sur ce chemin-là. Elle y est.
+
+**Ce qui s'arrête maintenant, onglet caché :**
+
+| | Avant | Après |
+| --- | --- | --- |
+| Réveil de rafraîchissement (5 s) | déjà à l'arrêt | à l'arrêt |
+| Balayage déclenché par une mutation | **à chaque mutation** | noté, pas fait |
+| Requêtes GraphQL | **oui** | aucune |
+| Rafraîchissement de l'affichage (60 s) | tournait pour rien | à l'arrêt |
+| Coût de l'observateur, par lot de mutations | **149 µs** | **0,35 µs** |
+
+**Ce qui repart, et comment.** Le retour distingue deux cas. Une absence d'au
+moins une minute vaut un redémarrage : voile, purge du cache, repeuplement
+complet — l'état est devenu trop incertain pour être rafistolé. Une absence
+plus courte rejoue simplement le **balayage retenu** : tout ce que Twitch a
+changé pendant l'absence est rattrapé en une passe, sans voile. Et l'affichage
+local — durées de stream, « stream frais » — est rafraîchi dans la foulée,
+puisque son réveil s'était arrêté lui aussi.
+
+Un cas manquait, et il n'était couvert par rien : **l'onglet qui naît caché**
+— un lien ouvert en arrière-plan, une session restaurée au démarrage du
+navigateur. Le code testait « ai-je vu cet onglet se cacher ? » ; la réponse
+était non, et le retour ne faisait donc rien du tout. Le rattrapage s'applique
+désormais aussi à ce premier regard.
+
+Le scénario 67 du banc éprouve les cinq cas, et le dernier ne simule rien :
+il **gèle réellement la page** par le protocole DevTools — minuteurs suspendus,
+rien ne tourne — puis la réveille, et vérifie que la sidebar repart entière.
 
 ### Régler la cadence
 
