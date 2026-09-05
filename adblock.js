@@ -51,33 +51,15 @@
 
 const TSE_ADBLOCK_ENABLED = true;
 
-// Same core trick as vaft: when a playlist carries ad markers, refetch the channel under a
-// different playerType and serve that. Rewritten around it: worker authored as worker source (not
-// toString of page functions), no silent failures, options can undo their own persistent state,
-// access token falls back to the full GQL document.
-//
-// Logs under [TSE-AdBlock].
-
 (function () {
     'use strict';
 
-    // ═══ ADAPTATIONS (b) et (c) — ajoutées pour Cowlor's Sidebar ═══
-    // (b) Interrupteur : passer TSE_ADBLOCK_ENABLED à false neutralise
-    //     entièrement le module sans toucher au reste du fichier.
     if (!TSE_ADBLOCK_ENABLED) return;
-    // (c) PORTÉE IFRAME UNIQUEMENT. Le module ne travaille que dans notre
-    //     iframe d'aperçu ; sur le stream principal il se met en retrait,
-    //     l'utilisateur qui regarde vraiment un stream acceptant le modèle
-    //     économique de Twitch. C'est un choix de l'extension, pas du fork.
-    //     window.top peut lever une SecurityError en cross-origin : dans le
-    //     doute on continue, la garde du fork ci-dessous fera le tri.
+
     try {
         if (window.top === window) return;
-    } catch { /* frame cross-origin → on continue */ }
-    // ═══════════════════════════════════════════════════════════════
+    } catch {   }
 
-    // @match covers every *.twitch.tv frame, including hidden auth/ads ones. frameElement is no
-    // help: it returns null instead of throwing on a cross-origin parent.
     if (window.self !== window.top) {
         const host = document.location.hostname;
         const path = document.location.pathname;
@@ -92,9 +74,6 @@ const TSE_ADBLOCK_ENABLED = true;
         }
     }
 
-    // Install two ad blockers and exactly one runs, whichever got there first; otherwise both hook
-    // Worker and fetch. twitchAdSolutionsVersion is the name vaft and the pixeltris original use --
-    // dropping it would make the two scripts invisible to each other.
     const OUR_VERSION = 1;
     const VERSION_MARKERS = ['vaftVersion', 'twitchAdSolutionsVersion'];
     const claimedBy = VERSION_MARKERS.find((name) => {
@@ -107,134 +86,60 @@ const TSE_ADBLOCK_ENABLED = true;
     VERSION_MARKERS.forEach((name) => { window[name] = OUR_VERSION; });
 
     const Config = {
-        // -- ad blocking ---------------------------------------------------------------------
+
         BlockAds: true,
         AdSignifier: 'stitched',
-        // In order. Server-side ads are decided on the pair playerType + platform, the only two
-        // client-controlled fields that reach the signed token. mobile_feed asked as android is the
-        // one combination that is both ad-free and uncapped: 1080p on avc, 1440p hev1 on HEVC, so a
-        // break costs no rendition change at all.
-        // popout sits second as the full-quality second chance: each request is its own ad auction
-        // and it comes back clean about four times in ten, which is worth one round-trip on the
-        // rare path where mobile_feed fails. autoplay is last and ad-free too, but capped at 640x360.
+
         BackupPlayerTypes: ['mobile_feed', 'popout', 'autoplay'],
-        // Also strips parent_domains, which is what stops the embed-shaped fake ads.
-        //
-        // ADAPTATION (h) : 'popout' → 'autoplay'. Le type demandé au jeton d'accès
-        // décide de l'ÉCHELLE DE QUALITÉ que Twitch renvoie, et celle d'autoplay
-        // est plafonnée par Twitch à 640x360 (documenté deux fois en amont). Pour
-        // une vignette de 480x270, c'est exactement le bon plafond — et c'est un
-        // plafond SERVEUR, donc l'adaptation de débit ne peut pas le franchir,
-        // contrairement au quality=360p30 de l'URL qui n'est qu'une préférence
-        // que le lecteur reste libre d'ignorer ou de dépasser.
-        //
-        // Sans lui, l'échelle de popout monte jusqu'à la source : le lecteur y
-        // grimpe tout seul en quelques secondes, et la qualité « s'améliore » à
-        // vue d'œil dans une vignette qui n'en tirera rien.
-        //
-        // Ce que ça ne change pas : autoplay est sans publicité de l'aveu même du
-        // fork, et le retrait de parent_domains ne dépend pas de la VALEUR — seule
-        // une valeur vide désactiverait la réécriture (cf. doc/config.md du fork).
+
         ForceAccessTokenPlayerType: 'autoplay',
         StripAdSegments: true,
-        // Renumbers the served playlist onto the numbering the player already believes in. Without
-        // it the gap between the two sessions grows by one break's worth of segments every time and
-        // never comes back, and each break loses (gap x segment duration) of video. Turn off only
-        // to compare against the old behaviour.
+
         RenumberSequence: true,
-        // OFF: where a new player session buys a pre-roll, the end-of-break reload buys another ad,
-        // which ends, which reloads again. Pause/play is used instead and resyncs fine.
+
         ReloadPlayerAfterAd: false,
-        // Grace before declaring a break over, for pods where markers vanish briefly. Costs its own
-        // duration in stalled video; raise only if the log shows 'ad markers returned after Nms'.
+
         AdEndGraceSeconds: 0,
-        // Loop guard: a second reload inside this window degrades to pause/play.
+
         ReloadCooldownSeconds: 90,
-        // Prime suspect in that loop; first thing to try if it reappears.
+
         RefreshTokenOnReload: true,
 
-        // -- overlay / squeezeback ads -------------------------------------------------------
-        // Nothing is stitched into the segments and the stream never stops: the picture is shrunk,
-        // or an ad pod plays above chat. Detection only -- DeclineClientSideAds stops these, and
-        // this stays on to catch one that gets through anyway.
         WatchOverlayAds: true,
 
-        // -- client-side (display) ads --------------------------------------------------------
-        // Decided in the browser, so none of the playlist machinery above ever sees them. Twitch's
-        // ad manager drains its queue as:
-        //     this.declineReason ? cmd.decline(this.declineReason) : this.isReady && cmd.fn()
-        // cmd.fn() holds the fetch to the ad edge, so setting declineReason stops the request that
-        // would have produced the creative -- upstream of the container, not around it.
         DeclineClientSideAds: true,
-        // From Twitch's own enum: the reason is passed to each declined command and tracked from
-        // there, so an invented string would stand out.
+
         AdDeclineReason: 'player_size',
-        // 500ms apart. The bundle defining the manager can take ~20s to arrive on a cold cache.
+
         AdDeclineAttempts: 240,
 
-        // -- page visibility -----------------------------------------------------------------
-        // Always reports the page as visible: no pause of a backgrounded player mid-ad, and no
-        // background downscale (a hidden tab fell 720p60 -> 360p30 in ~2 min without it). Cost:
-        // player-core's onSinkStop only touches the player when the document is not hidden, so a
-        // stalled sink now reaches a local pause() -- the only reason RecoverBlockedPlayback exists.
         HideVisibility: true,
-        // Minimising stops the media sink, and with document.hidden forced false player-core pauses
-        // in the branch that emits no event at all, so nothing else notices.
+
         ResumeOnFocus: true,
 
-        // -- quality -------------------------------------------------------------------------
-        // Twitch's own 'video-quality-highest-available'. Does NOT prevent the background downscale
-        // despite vaft's similarly-named option claiming so -- measured: with quality pinned it
-        // still fell to 360p on schedule. HideVisibility is what stops that.
-        // ADAPTATION (f) : OFF. En amont ce réglage sert une session de visionnage
-        // plein écran ; ici le lecteur vit dans une vignette de 480x270 au survol,
-        // pour laquelle la sidebar demande déjà 360p30 par l'URL. Épingler « la
-        // meilleure qualité disponible » écrit dans le localStorage de
-        // player.twitch.tv et travaille donc CONTRE ce choix, pour un flux qu'on
-        // affiche de toute façon dans un huitième de sa surface.
         PinHighestQuality: false,
 
-        // -- recovery ------------------------------------------------------------------------
-        // onSinkStop has three exits: unmuted -> mute and replay (AudioBlocked); muted -> pause +
-        // PlaybackBlocked with no retry; else a silent pause. Only the middle one strands the
-        // stream with nobody coming, so it is the only one acted on.
         RecoverBlockedPlayback: true,
         ResumeVerifyDelayMs: 2000,
         ResumeVerifyAttempts: 2,
 
-        // OFF: player-core runs its own playback monitor on the same condition and a second loop
-        // fights it. Enable only if the player dies outright and stays dead.
         StallBackstop: false,
         StallBackstopSeconds: 20,
 
-        // A decode error tears the media element down and player-core does not retry: it renders
-        // "Errore #3000" and waits for a click. Nothing else in here noticed -- the player sat
-        // dead for six minutes with not one line in the log -- so this is the backstop for the
-        // player being not merely stalled but destroyed. Held for a while before acting, because
-        // the same signature appears for a second or two during any ordinary load.
         RecoverDeadPlayer: true,
         DeadPlayerSeconds: 12,
 
-        // Stripping freezes the picture for the whole break. Instead, step down to the best variant
-        // of a different codec: costs a second of rebuffer and a rung of quality, both given back
-        // when the break ends. OFF makes stripping the final answer again.
         StepDownCodecInsteadOfStripping: true,
 
-        // -- diagnostics ---------------------------------------------------------------------
-        // ADAPTATION (g) : OFF. La bannière est un encart noir posé en haut à
-        // gauche du lecteur. Sur une vignette de 480 px elle mange le coin de
-        // l'image, et l'aperçu n'est pas un endroit où l'on diagnostique — la
-        // console suffit pour ça. (La v37 la masquait déjà, pour cette raison.)
         ShowBanner: false,
-        // 'debug' | 'info' | 'warn' | 'off'
+
         LogLevel: 'info',
-        // Report the player's own stitchedadstart/stitchedadend next to our own detection: one
-        // without the other means AdSignifier has drifted.
+
         CrossCheckAdEvents: true
     };
 
     const LEVELS = { debug: 10, info: 20, warn: 30, off: 99 };
-    const VERSION = '2.0.4';   // ADAPTATION (d) : GM_info n'existe pas hors userscript
+    const VERSION = '2.0.4';
     const seenOnce = new Map();
 
     function log(level, message) {
@@ -249,7 +154,6 @@ const TSE_ADBLOCK_ENABLED = true;
         }
     }
 
-    // For conditions that repeat every playlist request: the first occurrence is never swallowed.
     function logOnce(key, level, message) {
         if (seenOnce.get(key) === message) {
             return;
@@ -274,8 +178,6 @@ const TSE_ADBLOCK_ENABLED = true;
         counters: { breaks: 0, reloads: 0, backupFailures: 0, recoveries: 0, deadPlayers: 0 }
     };
 
-    // Anything writing persistent state here also removes it: leaving the key behind when the
-    // option is off silently invalidates any measurement made without it.
     const QUALITY_KEY = 'video-quality-highest-available';
     const QUALITY_STAMP_KEY = 's-qs-ts';
 
@@ -283,8 +185,7 @@ const TSE_ADBLOCK_ENABLED = true;
         try {
             if (enabled) {
                 localStorage.setItem(QUALITY_STAMP_KEY, Date.now());
-                // Must stay a string: Twitch reads it through a facade that JSON.parses on the
-                // way out, and anything that is not valid JSON makes it drop the key entirely.
+
                 localStorage.setItem(QUALITY_KEY, 'true');
             } else {
                 localStorage.removeItem(QUALITY_KEY);
@@ -299,8 +200,7 @@ const TSE_ADBLOCK_ENABLED = true;
         if (!Config.HideVisibility) {
             return;
         }
-        // Captured before the overrides go in, so the rest of the script can still ask the real
-        // question.
+
         const nativeHidden = document.__lookupGetter__('hidden');
         const nativeWebkitHidden = document.__lookupGetter__('webkitHidden');
         Visibility.isReallyHidden = () =>
@@ -319,24 +219,20 @@ const TSE_ADBLOCK_ENABLED = true;
         define(/Firefox/.test(navigator.userAgent) ? 'mozHidden' : 'webkitHidden', false);
 
         const swallow = (e) => {
-            // We run first and see the real event before swallowing it -- the only chance to
-            // notice the window going away or coming back.
+
             const reallyHidden = Visibility.isReallyHidden();
             const video = document.getElementsByTagName('video')[0];
             if (reallyHidden) {
                 Visibility.wasPlaying = !!(video && !video.paused && !video.ended);
             } else if (Config.ResumeOnFocus && Visibility.wasPlaying && video && video.paused && !video.ended) {
-                // With document.hidden forced false, onSinkStop reaches a local pause() in the
-                // branch that emits nothing, so RecoverBlockedPlayback never hears about it.
+
                 Visibility.wasPlaying = false;
                 log('debug', 'window came back with the stream paused, resuming');
                 const found = getPlayer();
                 playPlayer(found ? found.player : video, 'window focus');
                 verifyResumed(true);
             }
-            // A stream opened straight into a background tab needs the first real visibilitychange
-            // to reach Twitch or the video never starts. Unprefixed only: all three aliases share
-            // this handler, and the first to fire would otherwise consume the single allowance.
+
             if (Visibility.allowNextVisibilityChange && e.type === 'visibilitychange' && !reallyHidden) {
                 Visibility.allowNextVisibilityChange = false;
                 log('debug', 'letting the first visibilitychange through so a background-opened stream starts');
@@ -349,7 +245,7 @@ const TSE_ADBLOCK_ENABLED = true;
         ['visibilitychange', 'webkitvisibilitychange', 'mozvisibilitychange'].forEach((name) => {
             document.addEventListener(name, swallow, true);
         });
-        // Backstop: minimising does not reliably produce a visibilitychange on every platform.
+
         window.addEventListener('focus', () => {
             if (!Config.ResumeOnFocus) {
                 return;
@@ -418,8 +314,6 @@ const TSE_ADBLOCK_ENABLED = true;
         return instance && controller ? { player: instance, controller } : null;
     }
 
-    // play() hands back a promise. Dropping it loses the difference between the browser refusing
-    // the call and the call going through with the player staying paused anyway.
     function playPlayer(player, context) {
         try {
             const result = player.play();
@@ -436,8 +330,7 @@ const TSE_ADBLOCK_ENABLED = true;
             return;
         }
         if (isNewAttempt) {
-            // Only on a genuinely new resume, not on this function rescheduling itself: without
-            // the distinction one failed escalation disables recovery for the page's life.
+
             Resume.attempts = 0;
         }
         clearTimeout(Resume.timer);
@@ -445,13 +338,13 @@ const TSE_ADBLOCK_ENABLED = true;
             try {
                 const found = getPlayer();
                 const video = found?.player?.getHTMLVideoElement?.();
-                // The <video> is ground truth: isPaused() and core.paused can go stale against it.
+
                 if (!found || !video || (!video.paused && !video.ended)) {
                     Resume.attempts = 0;
                     return;
                 }
                 if (found.player.core?.state?.state === 'Buffering') {
-                    // Working on it, not stranded. A reload looks exactly like this while it starts.
+
                     verifyResumed(false);
                     return;
                 }
@@ -485,15 +378,14 @@ const TSE_ADBLOCK_ENABLED = true;
         };
 
         if (Config.RecoverBlockedPlayback) {
-            // The one case player-core abandons: muted, sink stopped, pauses with no retry.
+
             on('PlayerPlaybackBlocked', () => {
                 State.counters.recoveries++;
                 log('info', 'PlaybackBlocked -- Twitch paused the muted stream and will not retry; resuming');
                 playPlayer(player, 'playback blocked');
                 verifyResumed(true);
             });
-            // Reported, not undone: unmuting walks back into the same sink stop, and the browser
-            // will not allow audible playback without a real gesture anyway.
+
             on('PlayerAudioBlocked', () => {
                 log('warn', 'AudioBlocked -- Twitch muted the stream to keep it playing; unmute manually to get sound back');
             });
@@ -511,7 +403,6 @@ const TSE_ADBLOCK_ENABLED = true;
         }
     }
 
-    // The player instance is replaced on reload, so re-check when we touch it rather than polling.
     function ensurePlayerWired() {
         const found = getPlayer();
         if (found?.player) {
@@ -520,9 +411,6 @@ const TSE_ADBLOCK_ENABLED = true;
         return found;
     }
 
-    // A paused player and a destroyed one look identical through the player object: both report
-    // isPaused() and sit in Idle. The <video> tells them apart -- a user pause leaves the media
-    // loaded, a decode error leaves readyState 0, no buffered ranges and no frame.
     function mediaIsTornDown() {
         try {
             const video = document.getElementsByTagName('video')[0];
@@ -535,8 +423,6 @@ const TSE_ADBLOCK_ENABLED = true;
         }
     }
 
-    // hev1 and hvc1 are the same decoder; everything else compares on the part before the first
-    // dot. Duplicated from the worker's copy: different realms, and the worker is built from text.
     function codecFamilyOf(codecs) {
         const base = String(codecs || '').split(',')[0].trim().split('.')[0].toLowerCase();
         if (base === 'hev1' || base === 'hvc1') { return 'hevc'; }
@@ -558,8 +444,7 @@ const TSE_ADBLOCK_ENABLED = true;
                 const same = ladder.filter((q) => codecFamilyOf(q.codecs) === mine).length;
                 siblings = ', ' + same + '/' + ladder.length + ' variant(s) share the codec';
             } catch {}
-            // The label is the player's opinion and goes stale during a backup swap: it keeps the
-            // name it had while we hand it a different variant. videoWidth is what was decoded.
+
             let real = '';
             try {
                 const video = document.getElementsByTagName('video')[0];
@@ -575,21 +460,6 @@ const TSE_ADBLOCK_ENABLED = true;
         }
     }
 
-    // Codec step-down, the escape hatch from stripping.
-    //
-    // On an hevc-source channel the ladder is one hevc rung and five avc transcodes, so a backup
-    // search that insists on the same codec has one candidate and a break reaching that rung has
-    // nowhere to go. Stepping down to the top avc rung unlocks the five that were always there.
-    //
-    // Must be the player's own setQuality, not a playlist swapped in underneath: handing an avc
-    // playlist to a pipeline opened for hevc stops playback dead, while setQuality rebuilds the
-    // pipeline. Measured on 1440p60 hevc: Buffering at 300ms, Playing again at 1000ms.
-    //
-    // It does NOT touch 'video-quality-highest-available' -- Twitch writes that from its own menu
-    // handler, which setQuality on the instance goes around -- so the pin survives a tab closed
-    // mid-break. wasAuto matters as much as the name: setQuality takes the player out of automatic,
-    // so restoring a name to someone on Auto would leave them quietly pinned to a rung they never
-    // chose.
     const QualityFallback = { originalName: null, wasAuto: false, active: false };
 
     function stepDownFromStrippedCodec() {
@@ -611,9 +481,7 @@ const TSE_ADBLOCK_ENABLED = true;
                 log('warn', 'stripping with no way out: every variant in the ladder is ' + mine);
                 return;
             }
-            // Down, never up. Where the only hevc rung is the source, a viewer on 360p avc has one
-            // other-family option and it is that 2k source -- they picked 360p for a reason, and an
-            // ad break is not the moment to overrule it.
+
             const affordable = others
                 .filter((q) => pixels(q) <= pixels(current))
                 .sort((a, b) => pixels(b) - pixels(a));
@@ -629,9 +497,7 @@ const TSE_ADBLOCK_ENABLED = true;
             QualityFallback.wasAuto = !!player.isAutoQualityMode?.();
             QualityFallback.active = true;
             player.setQuality(target);
-            // Told to the worker rather than inferred: setQuality restarts the player at the bottom
-            // of the ladder, so anything read from it for the next few seconds names the wrong
-            // rendition, and the backup search only gets one shot.
+
             postToWorkers({
                 key: 'PreferVariant',
                 value: {
@@ -657,7 +523,7 @@ const TSE_ADBLOCK_ENABLED = true;
         const wanted = QualityFallback.originalName;
         const wasAuto = QualityFallback.wasAuto;
         QualityFallback.active = false;
-        // Leaving the override in place would aim every later break at a rendition nobody asked for.
+
         postToWorkers({ key: 'PreferVariant', value: null });
         QualityFallback.originalName = null;
         QualityFallback.wasAuto = false;
@@ -668,8 +534,7 @@ const TSE_ADBLOCK_ENABLED = true;
                 log('info', 'break over, handing quality back to automatic');
                 return;
             }
-            // By name: the ladder is rebuilt across a break, and the old objects are not the ones
-            // setQuality accepts.
+
             const target = (player?.getQualities?.() || []).find((q) => q.name === wanted);
             if (!target) {
                 log('warn', 'cannot return to ' + wanted + ', it is no longer in the ladder');
@@ -690,15 +555,14 @@ const TSE_ADBLOCK_ENABLED = true;
             log('warn', 'asked to reload but the player could not be found');
             return;
         }
-        // Never act on a pause the user made -- unless the media is gone, in which case there is
-        // no user pause to respect.
+
         if ((found.player.isPaused?.() || found.player.core?.paused) && !mediaIsTornDown()) {
             log('debug', 'skipping reload, the player is paused');
             return;
         }
         const sinceLast = Date.now() - lastReloadAt;
         if (lastReloadAt && sinceLast < Config.ReloadCooldownSeconds * 1000) {
-            // Repeating a reload that settled nothing is what turns a mitigation into a loop.
+
             log('warn', 'second reload requested ' + Math.round(sinceLast / 1000) + 's after the last one' +
                 ' -- using pause/play instead, the reload is not settling the break');
             pauseResumePlayer();
@@ -736,8 +600,6 @@ const TSE_ADBLOCK_ENABLED = true;
         verifyResumed(true);
     }
 
-    // Coarse and off by default: player-core already recovers shallow underruns. The only gap
-    // worth covering is a player frozen long enough that nobody is coming for it.
     function startStallBackstop() {
         if (!Config.StallBackstop) {
             return;
@@ -776,9 +638,6 @@ const TSE_ADBLOCK_ENABLED = true;
         }, 2000);
     }
 
-    // Separate from the stall backstop: that one watches a player alive but not advancing, and
-    // competes with player-core. This one watches for the player being gone, which player-core
-    // does not retry -- so there is nobody else to fight.
     function startDeadPlayerWatch() {
         if (!Config.RecoverDeadPlayer) {
             return;
@@ -790,7 +649,7 @@ const TSE_ADBLOCK_ENABLED = true;
             try {
                 if (!mediaIsTornDown()) {
                     // One healthy sample licenses the watcher: without it a destroyed player and a
-                    // page still loading look the same.
+
                     everHealthy = true;
                     deadSince = 0;
                     reported = false;
@@ -842,27 +701,15 @@ const TSE_ADBLOCK_ENABLED = true;
         }
         const text = overlay.querySelector('p');
         if (text) {
-            // No backup player type: the banner ends up in screenshots and recordings. It stays in
-            // the console and in status(). Stripping stays, it warns the picture is about to freeze.
+
             text.textContent = 'Blocking' + (State.adIsMidroll ? ' midroll' : '') + ' ads' +
                 (State.strippingSegments ? ' (stripping)' : '');
         }
         overlay.style.display = State.adActive ? 'block' : 'none';
     }
 
-    // Twitch is a single-page app: switching channel replaces the stream without a reload, and the
-    // playlist that would report the end of the break stops being polled. Nothing expires on its
-    // own -- not the banner, and not the codec step-down, which otherwise keeps the viewer off
-    // automatic and aims the next backup search at the previous channel's ladder.
     const Navigation = { channel: null, left: null };
 
-    // A playlist response for the channel being left can land after the reset and repopulate it.
-    // Narrow on purpose: dropping anything that is not the current channel would also drop real
-    // breaks on embed players, where the location names no channel at all. A stale label costs less.
-    //
-    // left holds one channel, so A -> B -> C stops filtering A. Deliberate: the window is a single
-    // playlist round-trip, and two channel changes inside it are not reachable by hand. The reset
-    // has already cleared the state either way -- this only keeps a late message from undoing it.
     function messageIsStale(data) {
         const channel = data.channel && String(data.channel).toLowerCase();
         if (!channel || channel === 'simulation' || !Navigation.left) {
@@ -871,7 +718,6 @@ const TSE_ADBLOCK_ENABLED = true;
         return channel === Navigation.left && channel !== Navigation.channel;
     }
 
-    // Not exhaustive on purpose: a page mistaken for a channel still reads as a change on the way out.
     const NOT_A_CHANNEL = {
         directory: 1, videos: 1, settings: 1, subscriptions: 1, wallet: 1, drops: 1,
         friends: 1, downloads: 1, jobs: 1, turbo: 1, prime: 1, search: 1, u: 1, p: 1, '': 1
@@ -904,8 +750,6 @@ const TSE_ADBLOCK_ENABLED = true;
         clearOnce('blocking');
         clearOnce('leak');
 
-        // setQuality is what took the viewer out of automatic, so that much is ours to undo. The
-        // remembered rung is not re-applied: it names a ladder that no longer exists.
         const stepped = QualityFallback.active;
         const wasAuto = QualityFallback.wasAuto;
         QualityFallback.active = false;
@@ -919,11 +763,8 @@ const TSE_ADBLOCK_ENABLED = true;
             }
         }
 
-        // Releases the worker's copy of the break and the step-down's variant preference.
         postToWorkers({ key: 'ChannelChanged', value: previous });
 
-        // Swept, not left to updateBanner: that only reaches the overlay under the current
-        // .video-player, and React may have replaced it.
         try {
             document.querySelectorAll('.vaft2-overlay').forEach((el) => { el.style.display = 'none'; });
         } catch (err) {
@@ -931,7 +772,6 @@ const TSE_ADBLOCK_ENABLED = true;
         }
         updateBanner();
 
-        // No pause/play and no reload: Twitch is already rebuilding the stream.
         const from = previous || 'a non-channel page';
         const to = next || 'a non-channel page';
         if (carried) {
@@ -941,11 +781,9 @@ const TSE_ADBLOCK_ENABLED = true;
         }
     }
 
-    // Keyed on history rather than on anything of Twitch's: pushState, replaceState and popstate are
-    // the only ways a single-page app changes the URL, and they do not get renamed in a rebuild.
     function installNavigationWatch() {
         Navigation.channel = channelFromLocation();
-        // how is logged: every change arriving as 'poll' means the history hooks are not reached.
+
         const onNavigate = (how) => {
             try {
                 const next = channelFromLocation();
@@ -966,21 +804,16 @@ const TSE_ADBLOCK_ENABLED = true;
             }
             history[name] = function () {
                 const result = original.apply(this, arguments);
-                // After the call: the location only updates once the original has run.
+
                 onNavigate(name);
                 return result;
             };
         });
         window.addEventListener('popstate', () => onNavigate('popstate'));
-        // Backstop for a navigation landing through neither: two seconds of stale banner at worst,
-        // against the state staying stuck for the session.
+
         setInterval(() => onNavigate('poll'), 2000);
     }
 
-    // Detection keys on an effect no implementation can avoid -- the video getting smaller than
-    // its container -- and records into a rolling buffer, because by the time an occurrence is
-    // noticed the ad is over and the DOM is clean. pbyp state is context, not a trigger: watched
-    // during a live occurrence it stayed idle throughout.
     const OverlayAds = {
         pbypInstance: null,
         buffer: [],
@@ -1038,13 +871,11 @@ const TSE_ADBLOCK_ENABLED = true;
             vh: videoRect ? Math.round(videoRect.height) : null,
             cw: containerRect ? Math.round(containerRect.width) : null,
             ch: containerRect ? Math.round(containerRect.height) : null,
-            // Normal playback sits at 1.
+
             ratio: videoRect && containerRect && containerRect.width
                 ? Math.round((videoRect.width / containerRect.width) * 100) / 100
                 : null,
-            // Letterboxing shrinks the picture legitimately when the container is not the stream's
-            // aspect. A squeezeback leaves the two aspects equal: the box could have fitted the
-            // whole picture and did not.
+
             videoAspect: videoRect && videoRect.height
                 ? Math.round((videoRect.width / videoRect.height) * 100) / 100 : null,
             containerAspect: containerRect && containerRect.height
@@ -1069,15 +900,11 @@ const TSE_ADBLOCK_ENABLED = true;
             if (OverlayAds.buffer.length > OverlayAds.bufferLimit) {
                 OverlayAds.buffer.shift();
             }
-            // Iframe count is recorded but is NOT a trigger: it fired on every page load, because
-            // the baseline came from the first sample, before Twitch's ordinary iframes existed.
-            // Aspect equality is what separates a squeezeback from letterboxing -- without it every
-            // non-16:9 window looks like an ad.
+
             const sameAspect = sample.videoAspect !== null && sample.containerAspect !== null &&
                 Math.abs(sample.videoAspect - sample.containerAspect) <= sample.containerAspect * 0.05;
             const shrunk = sample.ratio !== null && sample.ratio < 0.9 && sameAspect;
-            // hasMetadata is out: it means the subsystem has metadata loaded, not that an ad is on
-            // screen. Every occurrence with it as the only true field had no mini player up.
+
             const pbypActive = !!(sample.pbyp && (sample.pbyp.showingMirrorPod || sample.pbyp.isShowing ||
                 sample.pbyp.rollType || sample.pbyp.adSessionID));
             const anomalous = shrunk || pbypActive;
@@ -1089,7 +916,7 @@ const TSE_ADBLOCK_ENABLED = true;
                 log('warn', 'OVERLAY AD suspected (shrunk=' + shrunk +
                     ' pbypActive=' + pbypActive + ') -- ' + JSON.stringify(sample));
                 log('debug', 'OVERLAY AD layout: ' + JSON.stringify(describeOverlayLayout()));
-                // What moved first is what a future detector should key on.
+
                 const before = OverlayAds.buffer.slice(-21, -1);
                 log('debug', 'OVERLAY AD preceding 20 samples: ' + JSON.stringify(before));
             } else if (!anomalous && OverlayAds.anomalyActive) {
@@ -1101,8 +928,6 @@ const TSE_ADBLOCK_ENABLED = true;
         }
     }
 
-    // Observation only. Twitch's class names are hashed and change between builds, so this records
-    // what was there rather than matching by name.
     function describeOverlayLayout() {
         const video = document.getElementsByTagName('video')[0];
         if (!video) {
@@ -1123,9 +948,6 @@ const TSE_ADBLOCK_ENABLED = true;
         return { chain };
     }
 
-    // -- client-side ad manager ---------------------------------------------------------------
-    // Found through webpack's module registry by the names of its static methods, which
-    // minification keeps. No module id, asset hash or url is hardcoded, so it survives releases.
     const AdManager = { applied: false, attempts: 0, reason: null, moduleId: null };
 
     function webpackRequire() {
@@ -1134,8 +956,7 @@ const TSE_ADBLOCK_ENABLED = true;
         if (!queue || typeof queue.push !== 'function') {
             return null;
         }
-        // The runtime callback fires synchronously, but only once webpack owns the array. Before
-        // that this is a plain append, so the entry has to be taken back out.
+
         let req = null;
         const entry = [[Symbol('vaft2')], {}, (r) => { req = r; }];
         queue.push(entry);
@@ -1156,8 +977,7 @@ const TSE_ADBLOCK_ENABLED = true;
             try {
                 source = Function.prototype.toString.call(factories[id]);
             } catch { continue; }
-            // Both markers: the component that calls startProcessingRequests matches the first
-            // alone and does not hold the class.
+
             if (source.indexOf('startProcessingRequests') === -1 || source.indexOf('declineReason') === -1) {
                 continue;
             }
@@ -1194,16 +1014,13 @@ const TSE_ADBLOCK_ENABLED = true;
         }
         AdManager.moduleId = found.id + '.' + found.name;
         if (found.manager.declineReason) {
-            // Twitch got there first -- turbo, an experiment, a savant flag. Logged apart only so
-            // the reason is attributable.
+
             AdManager.applied = true;
             AdManager.reason = String(found.manager.declineReason);
             log('info', 'client-side ad manager was already declined by Twitch (' + AdManager.reason + ')');
             return true;
         }
-        // {sendEvent:false} is their own switch for not reporting the decline, so this costs no
-        // telemetry -- unlike faking currentUser.hasTurbo, which reaches the same gate but is
-        // echoed back to them on every pageview.
+
         found.manager.decline(Config.AdDeclineReason, { sendEvent: false });
         AdManager.reason = String(found.manager.declineReason || '');
         AdManager.applied = !!AdManager.reason;
@@ -1220,8 +1037,7 @@ const TSE_ADBLOCK_ENABLED = true;
         if (!Config.DeclineClientSideAds) {
             return;
         }
-        // Applying before Twitch calls startProcessingRequests() is the point: the queue checks
-        // declineReason when it drains, so the first request of the session never leaves either.
+
         (function attempt() {
             AdManager.attempts++;
             let done = false;
@@ -1246,13 +1062,11 @@ const TSE_ADBLOCK_ENABLED = true;
         if (!Config.WatchOverlayAds) {
             return;
         }
-        // 500ms: fast enough that a shrink transition lands in the buffer, and it costs two
-        // getBoundingClientRect calls.
+
         setInterval(pollOverlayAds, 500);
         pollOverlayAds();
     }
 
-    // The worker cannot see the page's auth headers.
     const GQL = {
         clientId: 'kimne78kx3ncx6brgo4mv6wki5h1ko',
         deviceId: null,
@@ -1287,9 +1101,6 @@ const TSE_ADBLOCK_ENABLED = true;
         });
     }
 
-    // fetch takes a string, a URL or a Request, and Twitch uses all three. Testing for a string
-    // skipped the other two: fetch(new Request(url, {...})) never reached the pbyp denial, and its
-    // body is not in init either -- it lives in the Request and only comes out through a clone.
     function urlOfRequest(input) {
         try {
             if (typeof input === 'string') { return input; }
@@ -1304,8 +1115,7 @@ const TSE_ADBLOCK_ENABLED = true;
         window.__vaft2RealFetch = realFetch;
 
         window.fetch = function (input, init) {
-            // Not async on purpose: anything thrown here escapes synchronously into Twitch's own
-            // code, so every access below has to tolerate the shape it is given.
+
             const caller = this;
             const original = arguments;
             try {
@@ -1318,8 +1128,7 @@ const TSE_ADBLOCK_ENABLED = true;
                             return rewritten;
                         }
                     } else if (input && typeof input.clone === 'function' && typeof input.text === 'function') {
-                        // Reading a Request body consumes it, so the clone is not optional. On any
-                        // failure the original call goes through untouched.
+
                         return input.clone().text().then((body) => {
                             const shim = { body, headers: input.headers };
                             const rewritten = rewriteGqlBody(shim, realFetch);
@@ -1344,8 +1153,7 @@ const TSE_ADBLOCK_ENABLED = true;
         if (!headers) {
             return undefined;
         }
-        // Headers.get is case-insensitive, a plain object is not, so neither shape can be handled
-        // by bracket access alone.
+
         if (typeof headers.get === 'function') {
             return headers.get(name) ?? undefined;
         }
@@ -1392,12 +1200,10 @@ const TSE_ADBLOCK_ENABLED = true;
         const isPictureByPicture = (op) => typeof op?.variables?.playerType === 'string' &&
             op.variables.playerType.includes('picture-by-picture');
 
-        // Mini player above chat. Denied locally rather than by sending something the server will
-        // reject: a rejection shaped like an error is the kind Twitch retries.
         if (operations.length > 0 && operations.every(isPictureByPicture)) {
             const denied = () => ({ data: { streamPlaybackAccessToken: null, videoPlaybackAccessToken: null } });
             const body = Array.isArray(parsed) ? operations.map(denied) : denied();
-            // At info: the only record that this defence runs at all.
+
             log('info', 'denied a picture-by-picture token locally');
             return Promise.resolve(new Response(JSON.stringify(body), {
                 status: 200,
@@ -1405,9 +1211,7 @@ const TSE_ADBLOCK_ENABLED = true;
             }));
         }
         if (Array.isArray(parsed) && operations.some(isPictureByPicture)) {
-            // Responses are matched by position, so the batch goes out without the mini-player
-            // entries and their denials are spliced back at the indices they came from. Emptying
-            // the body instead would take the real player's token down with it.
+
             const indici = [];
             const resto = [];
             operations.forEach((op, i) => { (isPictureByPicture(op) ? indici : resto).push(i); });
@@ -1453,8 +1257,6 @@ const TSE_ADBLOCK_ENABLED = true;
         return null;
     }
 
-    // Authored as worker code, not page functions put through toString(), so there is no hidden
-    // dependency on page scope. No template literals below: this block is itself inside one.
     const WORKER_SOURCE = `
 'use strict';
 
@@ -2398,9 +2200,6 @@ installFetchHook();
                     return;
                 }
 
-                // Embedded, not posted. See the note at the top of WORKER_SOURCE: a config message
-                // races Twitch's own worker startup and its onmessage throws on anything it did
-                // not send itself.
                 const init = {
                     config: {
                         blockAds: Config.BlockAds,
@@ -2450,9 +2249,7 @@ installFetchHook();
                             State.counters.breaks++;
                             State.adActive = true;
                             State.adIsMidroll = !!data.isMidroll;
-                            // Codec belongs on this line: which path a break takes is decided by
-                            // whether the backup ladder can match it, so a line without it cannot
-                            // be read afterwards.
+
                             log('info', 'ad break started on ' + data.channel +
                                 (data.isMidroll ? ' (midroll)' : '') + ' -- ' + describePlayback());
                             if (Config.CrossCheckAdEvents && State.playerAdEvent !== 'start') {
@@ -2467,9 +2264,7 @@ installFetchHook();
                                 ? 'serving a clean stream via ' + data.playerType +
                                     (data.resolution ? ' at ' + data.resolution : '')
                                 : 'no clean stream available, stripping ad segments');
-                            // Stripping keeps the player alive but the picture frozen for the whole
-                            // break, so it is a floor, not an outcome. Reaching it is the signal to
-                            // widen the search rather than to settle.
+
                             if (!data.playerType) {
                                 stepDownFromStrippedCodec();
                             }
@@ -2481,9 +2276,7 @@ installFetchHook();
                             State.strippingSegments = false;
                             clearOnce('blocking');
                             clearOnce('leak');
-                            // Before the restore, not after: setQuality is not immediate, so
-                            // logging afterwards prints the rung being left beside the line
-                            // announcing the return.
+
                             log('info', 'ad break finished on ' + data.channel +
                                 ' -- watched at ' + describePlayback());
                             restoreQualityAfterAdBreak();
@@ -2508,8 +2301,6 @@ installFetchHook();
         });
     }
 
-    // Status surface
-    // A report that says "ads are getting through" is not actionable. This is.
     window.vaft2 = {
         config: Config,
         status() {
@@ -2548,14 +2339,12 @@ installFetchHook();
                 workers: State.workers.length
             };
         },
-        // The last 90 seconds of overlay-ad sampling. Call it right after seeing one and the
-        // evidence is already there -- reacting to the event in real time is always too late.
+
         overlayBuffer() {
             return OverlayAds.buffer.slice();
         },
         overlayLayout: describeOverlayLayout,
-        // Depth picks how far down BackupPlayerTypes to fall: 1 takes the first that works, 3
-        // forces it to autoplay, the codec-mismatch case on a 2k/4k channel. 0 turns it off.
+
         simulateAd(depth) {
             const value = Math.max(0, depth | 0);
             postToWorkers({ key: 'SimulateAd', value });
@@ -2572,8 +2361,7 @@ installFetchHook();
             Config.LogLevel = level;
         },
         reloadPlayer,
-        // Read off the object, so a new entry point cannot be added and forgotten here. Names in
-        // full: a bare 'status()' is not something you can paste into a console.
+
         help() {
             const names = Object.keys(window.vaft2)
                 .map((k) => 'window.vaft2.' + k + (typeof window.vaft2[k] === 'function' ? '()' : ''))
@@ -2582,23 +2370,17 @@ installFetchHook();
         }
     };
 
-    // Bootstrap
-    // Fetch hook first: the worker bridge calls back through __vaft2RealFetch, so it has to exist
-    // before any worker can be wrapped
     installFetchHook();
     installWorkerHook();
     applyQualityPreference(Config.PinHighestQuality);
 
-    // Whether the tab was already hidden at document-start decides if the one-shot
-    // visibilitychange allowance is needed at all.
     try {
         Visibility.allowNextVisibilityChange = document.visibilityState === 'hidden';
     } catch {}
     installVisibilityLayer();
-    // At document-start: the first channel has to be recorded before any navigation can happen.
+
     installNavigationWatch();
-    // Not in onReady: the first ad request of a session can be issued before DOMContentLoaded, and
-    // the retry loop costs nothing while the bundle is still loading.
+
     startAdManagerDecline();
 
     function onReady() {
@@ -2606,8 +2388,7 @@ installFetchHook();
         startStallBackstop();
         startDeadPlayerWatch();
         startOverlayAdWatch();
-        // The player instance is replaced on every reload, and there is no event for that, so
-        // re-wire on the cheap signals we already get rather than polling for it.
+
         document.addEventListener('click', () => ensurePlayerWired(), true);
         setTimeout(function rewire() {
             ensurePlayerWired();
@@ -2620,12 +2401,5 @@ installFetchHook();
     } else {
         window.addEventListener('DOMContentLoaded', onReady);
     }
-
-    // Printed straight to the console rather than through log(), so raising LogLevel to warn does
-    // not hide the one line that says how to lower it again.
-    // ADAPTATION (e) : bannière de démarrage retirée. En amont elle s'affiche
-    // une fois par page ; ici le module vit dans l'iframe d'aperçu, recréée à
-    // CHAQUE survol de carte — la console serait noyée. help() reste appelable.
-    // window.vaft2.help();
 
 })();
