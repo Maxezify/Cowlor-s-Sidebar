@@ -40,7 +40,9 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
   const port = ports.get(msg.tabId);
   if (!port) {
 
-    repondre({ ok: false, erreur: 'absent' });
+    repondre({ ok: false, erreur: 'absent',
+               detail: `onglet ${msg.tabId} — ponts connus : `
+                     + ([...ports.keys()].join(', ') || 'aucun') });
     return false;
   }
 

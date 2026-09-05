@@ -271,5 +271,8 @@
   },
   "resetText": {
     "message": "Besuchswerte, erkannte Abonnements, bekannte Kanäle und Verzögerungsmessungen werden aus diesem Browser gelöscht. Das lässt sich nicht rückgängig machen."
+  },
+  "stateNoWorker": {
+    "message": "Der Hintergrunddienst der Erweiterung antwortet nicht. Lade die Erweiterung neu oder installiere die für diesen Browser gedachte Version."
   }
 }

@@ -116,15 +116,17 @@ const idOnglet = () => (ongletP ??= chrome.tabs
   .then(([t]) => (t ? t.id : undefined))
   .catch(() => undefined));
 
-const demander = async (charge, reessai = true) => {
+const ATTENTES = [250, 750, 1800];
+
+const demander = async (charge, essai = 0) => {
   const onglet = await idOnglet();
   if (typeof onglet !== 'number') return { ok: false, erreur: 'absent' };
-  const r = await chrome.runtime.sendMessage({ type: 'tse-panneau', tabId: onglet, ...charge })
-    .catch(() => ({ ok: false, erreur: 'absent' }));
 
-  if (r && r.erreur === 'absent' && reessai) {
-    await new Promise((res) => setTimeout(res, 500));
-    return demander(charge, false);
+  const r = await chrome.runtime.sendMessage({ type: 'tse-panneau', tabId: onglet, ...charge })
+    .catch((e) => ({ ok: false, erreur: 'fond', detail: String((e && e.message) || e) }));
+  if (r && (r.erreur === 'absent' || r.erreur === 'fond') && essai < ATTENTES.length) {
+    await new Promise((res) => setTimeout(res, ATTENTES[essai]));
+    return demander(charge, essai + 1);
   }
   return r || { ok: false, erreur: 'absent' };
 };
@@ -132,16 +134,20 @@ const demander = async (charge, reessai = true) => {
 const $ = (id) => document.getElementById(id);
 let courante = SECTIONS[0].id;
 
-const montrerMessage = (cle, bouton) => {
+const montrerMessage = (cle, bouton, detail) => {
   $('tableau-cadre').hidden = true;
   $('resume').replaceChildren();
   const m = $('message');
   m.hidden = false;
-  $('message-texte').textContent = T(cle);
+
+  $('message-texte').textContent = T(cle) + (detail ? ` (${detail})` : '');
   const b = $('message-bouton');
   b.hidden = !bouton;
   if (bouton) b.textContent = T('btnRetry');
 };
+
+const CAUSES = { fond: 'stateNoWorker', absent: 'stateAbsent', expiration: 'stateTimeout' };
+const montrerEchec = (r) => montrerMessage(CAUSES[r.erreur] || 'stateError', true, r.detail);
 
 const cellule = (nom, valeur) => {
   const td = document.createElement('td');
@@ -217,11 +223,7 @@ const charger = async (id) => {
   montrerMessage('stateLoading');
   const r = await demander({ section: id });
   if (courante !== id) return;
-  if (!r.ok) {
-    montrerMessage(r.erreur === 'absent' ? 'stateAbsent'
-                 : r.erreur === 'expiration' ? 'stateTimeout' : 'stateError', true);
-    return;
-  }
+  if (!r.ok) { montrerEchec(r); return; }
   peindre(section, r.data);
   if (id === 'diagnose') marquerEtat(r.data && r.data.resume);
 };
@@ -238,11 +240,7 @@ const lancer = async (action, bouton) => {
   if (bouton) bouton.disabled = true;
   const r = await demander({ action });
   if (bouton) bouton.disabled = false;
-  if (!r.ok) {
-    montrerMessage(r.erreur === 'absent' ? 'stateAbsent'
-                 : r.erreur === 'expiration' ? 'stateTimeout' : 'stateError', true);
-    return;
-  }
+  if (!r.ok) { montrerEchec(r); return; }
   await charger(courante);
 };
 
