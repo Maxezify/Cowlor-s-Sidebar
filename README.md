@@ -338,12 +338,21 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 563 Ko | 262 Ko | 2 721 JS + 77 CSS → **2** |
+| `content.js` | 568 Ko | 263 Ko | 2 743 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| **les deux** | **687 Ko** | **362 Ko** | **−47 %** |
+| **les deux** | **692 Ko** | **363 Ko** | **−47 %** |
+
+Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
+dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
+recopient — et un nombre recopié se périme sans bruit : la fiche du Store a
+annoncé un paquet de 391 Ko pendant deux versions, c'est-à-dire le gain du
+JavaScript **seul**, alors que le CSS était dégraissé lui aussi. `npm run
+addon` relit donc les trois documents et compare ce qu'ils annoncent à ce
+qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
+d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 721
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 743
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches

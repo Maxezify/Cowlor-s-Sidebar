@@ -94,8 +94,10 @@ console.log(`\nPaquet ${CIBLE} — assemblé dans dist/paquet (${dedans.length} 
    Le dépôt en porte beaucoup, et c'est voulu : la moitié de ce qu'on sait de
    ce produit est écrite dans ses marges. Cette moitié-là vit dans le dépôt,
    qui est public ; elle n'a pas à voyager dans chaque installation. Le paquet
-   passe de 687 à 391 Ko, soit 43 % de moins, et c'est du poids en moins sur
-   le disque de chaque utilisateur autant que dans la file de revue.
+   perd près de la moitié de son poids — le chiffre exact est celui que le
+   contrôle ci-dessous imprime, et aucun autre n'est écrit ici : un nombre
+   recopié dans un commentaire se périme en silence, et c'est précisément ce
+   qui est arrivé aux README que ce même contrôle confronte maintenant.
 
    Ce que le paquet NE devient PAS : minifié ni obscurci. Les noms, les
    retours à la ligne et l'indentation sont ceux du dépôt, ligne pour ligne —
@@ -121,6 +123,94 @@ const gagne = degraisses.reduce((n, d) => n + d.avant - d.apres, 0);
 ok(`les commentaires sont retirés du code livré (${(gagne / 1024).toFixed(0)} Ko de moins)`
    + ' — mêmes jetons, donc même programme',
    casses.length === 0, casses.map(d => `${d.f} : ${d.souci}`).join(' | '));
+
+/* ── LES CHIFFRES PUBLIÉS SONT-ILS CEUX QU'ON VIENT DE MESURER ? ───────────
+   Trois README annoncent la taille du paquet, avant et après dégraissage.
+   Aucun des trois ne peut la connaître : ils la RECOPIENT. Et un nombre
+   recopié se périme sans bruit — store/README.md a annoncé « 687 → 391 Ko »
+   pendant toute la 3.60 et la 3.61, c'est-à-dire le gain du JavaScript SEUL,
+   alors que le CSS était dégraissé lui aussi depuis la 3.60. Personne ne l'a
+   vu, parce que rien ne reliait la phrase à la mesure. C'est exactement le
+   défaut que la liste des huit affirmations vérifiables de store/README.md
+   existe pour empêcher, et il s'est produit sur l'affirmation numéro 7.
+
+   La tolérance est de 3 %. content.js grossit à chaque version : faire
+   échouer l'assemblage pour deux kilo-octets d'écart ferait de ce contrôle
+   une corvée, donc un contrôle qu'on désarme. Trois pour cent valent une
+   quinzaine de kilo-octets — assez pour laisser passer la croissance
+   ordinaire, trop peu pour laisser passer une phrase qui décrit une AUTRE
+   version du produit.
+
+   Ce que ce contrôle NE fait donc PAS, et il faut le savoir pour ne pas lui
+   faire dire plus qu'il ne dit : il n'aurait pas signalé le tableau resté à
+   « 563 Ko » quand le fichier en pesait 568. Un écart de cet ordre n'est pas
+   un mensonge sur le produit, et le prix à payer pour l'attraper serait un
+   README à retoucher à chaque commit. Il attrape la péremption d'une
+   VERSION, pas celle d'un kilo-octet.
+
+   Le NOMBRE de confrontations est vérifié lui aussi, document par document.
+   Sans lui, reformuler une ligne au point que la lecture ne la reconnaisse
+   plus ferait passer ce contrôle en ne comparant rien — la panne la plus
+   discrète qu'un contrôle puisse avoir, et la seule qui ne se voit jamais
+   dans une sortie verte. */
+const TOLERANCE = 0.03;
+const DOCS = [['README.md', 3], ['README.en.md', 3], ['store/README.md', 1]];
+
+const mesure = { '(les deux)': { avant: 0, apres: 0 } };
+for (const d of degraisses) {
+  mesure[d.f] = { avant: d.avant / 1024, apres: d.apres / 1024 };
+  mesure['(les deux)'].avant += d.avant / 1024;
+  mesure['(les deux)'].apres += d.apres / 1024;
+}
+
+/* De quoi cette ligne parle-t-elle ? Le nom d'un fichier livré, ou bien le
+   total — soit la cellule en gras des deux tableaux, soit la forme
+   « 692 → 363 Ko » de la fiche. Une ligne qui ne porte aucune de ces marques
+   n'est pas lue : les README parlent de kilo-octets ailleurs aussi (une
+   miniature décodée en pèse 506), et ces chiffres-là ne sont pas les nôtres. */
+const sujetDe = (l) => l.includes('content.js') ? 'content.js'
+  : l.includes('adblock.js') ? 'adblock.js'
+  : /\*\*(?:les deux|both)\*\*/.test(l) || /\d+\s*→\s*\d+\s*(?:Ko|KB)\b/.test(l) ? '(les deux)'
+  : null;
+
+/* Deux écritures, parce que les documents en ont deux : la flèche de la fiche
+   ne répète pas l'unité, le tableau la répète à chaque cellule. On ne prend
+   que les DEUX premiers nombres — la colonne « commentaires » du tableau en
+   porte d'autres, qui ne sont pas des tailles. */
+const chiffresDe = (l) => {
+  const fleche = l.match(/(\d+)\s*→\s*(\d+)\s*(?:Ko|KB)\b/);
+  if (fleche) return [Number(fleche[1]), Number(fleche[2])];
+  /* \u202f est l'espace fine insécable des milliers en français (« 2 743 ») ;
+     écrite en clair, elle serait indiscernable d'une espace ordinaire à la
+     relecture — et ce dépôt a déjà payé un caractère invisible une fois. */
+  const tous = [...l.matchAll(/(\d[\d,\u202f ]*)\s*(?:Ko|KB)\b/g)]
+    .map(m => Number(m[1].replace(/[,\u202f ]/g, '')));
+  return tous.length >= 2 ? [tous[0], tous[1]] : null;
+};
+
+const perimes = [];
+const comptes = [];
+for (const [doc, attendu] of DOCS) {
+  if (!existsSync(join(RACINE, doc))) { comptes.push(`${doc} : absent`); continue; }
+  let vus = 0;
+  for (const ligne of readFileSync(join(RACINE, doc), 'utf8').split('\n')) {
+    const sujet = sujetDe(ligne);
+    if (!sujet || !mesure[sujet]) continue;
+    const dits = chiffresDe(ligne);
+    if (!dits) continue;
+    vus++;
+    const derive = (dit, vrai) => Math.abs(dit - vrai) / vrai > TOLERANCE;
+    if (derive(dits[0], mesure[sujet].avant) || derive(dits[1], mesure[sujet].apres)) {
+      perimes.push(`${doc} — ${sujet} : ${dits[0]}→${dits[1]} annoncés, `
+        + `${mesure[sujet].avant.toFixed(0)}→${mesure[sujet].apres.toFixed(0)} mesurés`);
+    }
+  }
+  if (vus !== attendu) comptes.push(`${doc} : ${vus} chiffres lus, ${attendu} attendus`);
+}
+ok('les tailles annoncées par les README sont celles du paquet qu\'on vient d\'assembler',
+   perimes.length === 0, perimes.join(' | '));
+ok('et chacune a bien été confrontée — aucune ligne n\'a échappé à la lecture',
+   comptes.length === 0, comptes.join(' | '));
 
 /* LE DÉGRAISSAGE NE SORT PAS DU PAQUET. C'est la moitié de la règle, et c'est
    celle qui ne se voit pas : le retrait porte sur la COPIE assemblée dans

@@ -326,12 +326,21 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 563 KB | 262 KB | 2,721 JS + 77 CSS → **2** |
+| `content.js` | 568 KB | 263 KB | 2,743 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| **both** | **687 KB** | **362 KB** | **−47 %** |
+| **both** | **692 KB** | **363 KB** | **−47 %** |
+
+These figures are **checked against the measurement** on every assembly, here
+as in `README.md` and `store/README.md`. They are not computed, they are
+copied — and a copied number goes stale in silence: the store listing claimed
+a 391 KB package for two versions, which was the JavaScript saving **alone**,
+while the CSS was being stripped too. So `npm run addon` re-reads all three
+documents and compares what they claim against what it has just weighed,
+within 3 %: wide enough for a version's ordinary growth, too narrow for a
+sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,721
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,743
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`
