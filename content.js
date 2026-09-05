@@ -916,6 +916,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     HEALTH_INITIAL_DELAY: 8_000,
     SCAN_DEBOUNCE:  250,
+
+    COLLAPSE_POLL_MS: 1_000,
     FRESH_MAX_MIN:  10,
     GQL_TIMEOUT:    15_000,
 
@@ -6318,16 +6320,36 @@ const TSE_GATE_MAX_CLICKS = 5;
   };
 
   let scanTimer = null;
+
+  let scanEnRetard = false;
+
   const scheduleScan = () => {
+
+    if (document.hidden) { scanEnRetard = true; return; }
     if (scanTimer) return;
-    scanTimer = setTimeout(() => { scanTimer = null; scanSidebar(); }, CFG.SCAN_DEBOUNCE);
+    scanTimer = setTimeout(() => {
+      scanTimer = null;
+
+      if (document.hidden) { scanEnRetard = true; return; }
+      scanSidebar();
+    }, CFG.SCAN_DEBOUNCE);
+  };
+
+  const rattraperScan = () => {
+    if (!scanEnRetard) return false;
+    scanEnRetard = false;
+    scanSidebar();
+    return true;
   };
 
   const startObserver = () => {
 
     let lastObservedCollapsed = null;
+    let dernierReplis = 0;
 
     const obs = new MutationObserver((mutations) => {
+
+      if (document.hidden) { scheduleScan(); return; }
 
       const nav = document.querySelector(DOM.sidebarRoot);
       let cardRemoved = false;
@@ -6354,7 +6376,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
       if (cardRemoved) loadingOverlay.bumpActivity();
 
-      if (nav) {
+      const maintenant = Date.now();
+      if (nav && (relevant || maintenant - dernierReplis >= CFG.COLLAPSE_POLL_MS)) {
+        dernierReplis = maintenant;
         const collapsedNow = detectSidebarCollapsed();
         if (lastObservedCollapsed === null) {
 
@@ -6473,13 +6497,17 @@ const TSE_GATE_MAX_CLICKS = 5;
     scanSidebar();
   };
 
-  const startTimers = () => {
+  const rafraichirAffichage = () => {
+    document.querySelectorAll('.side-nav-card[data-tse-started-at]').forEach(card => {
+      refreshUptime(card);
+      updateFreshness(card);
+    });
+  };
 
+  const startTimers = () => {
     setInterval(() => {
-      document.querySelectorAll('.side-nav-card[data-tse-started-at]').forEach(card => {
-        refreshUptime(card);
-        updateFreshness(card);
-      });
+      if (document.hidden) return;
+      rafraichirAffichage();
     }, CFG.UI_TICK);
 
     setInterval(() => {
@@ -6506,12 +6534,19 @@ const TSE_GATE_MAX_CLICKS = 5;
     let hiddenSince = 0;
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) { hiddenSince = Date.now(); return; }
-      if (!hiddenSince) return;
-      const awayMs = Date.now() - hiddenSince;
+
+      const awayMs = hiddenSince ? Date.now() - hiddenSince : 0;
       hiddenSince = 0;
-      if (awayMs < CFG.REVISIT_RELOAD_MS) return;
-      loadingOverlay.startCycle('retour d\'onglet');
-      invalidateAndRescan();
+      if (awayMs >= CFG.REVISIT_RELOAD_MS) {
+        scanEnRetard = false;
+        loadingOverlay.startCycle('retour d\'onglet');
+        invalidateAndRescan();
+        return;
+      }
+
+      rattraperScan();
+
+      rafraichirAffichage();
     });
 
     setTimeout(runSelectorHealthCheck, CFG.HEALTH_INITIAL_DELAY);
