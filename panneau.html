@@ -56,9 +56,33 @@
   <footer class="pied">
     <button class="bouton bouton--fantome" id="btn-rapport" data-i18n="btnReport"></button>
     <button class="bouton bouton--fantome" id="btn-rescan" data-i18n="btnRescan"></button>
-    <span class="pied-note" id="pied-note" hidden></span>
     <button class="bouton bouton--danger" id="btn-reset" data-i18n="btnReset"></button>
   </footer>
+
+  <!-- LE RAPPORT, EN PLEIN PANNEAU. Une vue qui recouvre tout plutôt qu'un
+       fichier téléchargé : ce qu'on fait d'un rapport, c'est le coller dans une
+       conversation, pas l'attacher. Et une zone de texte qu'on peut lire avant
+       de copier est la seule façon de VÉRIFIER ce qu'on envoie — le fichier ne
+       faisait que le promettre. -->
+  <section class="rapport" id="rapport" hidden role="dialog" aria-modal="true"
+           aria-labelledby="rapport-titre">
+    <header class="rapport-tete">
+      <div class="rapport-texte-tete">
+        <h2 class="rapport-titre" id="rapport-titre" data-i18n="reportTitle"></h2>
+        <p class="rapport-desc" data-i18n="reportDesc"></p>
+      </div>
+      <button class="bouton bouton--fantome" id="rapport-fermer" data-i18n="btnClose"></button>
+    </header>
+    <!-- readonly, pas disabled : un champ désactivé n'est ni sélectionnable ni
+         copiable, et c'est tout ce qu'on lui demande. -->
+    <textarea class="rapport-zone" id="rapport-zone" readonly spellcheck="false"
+              aria-describedby="rapport-titre"></textarea>
+    <footer class="rapport-pied">
+      <button class="bouton" id="rapport-copier" data-i18n="btnCopy"></button>
+      <button class="bouton bouton--fantome" id="rapport-actualiser" data-i18n="btnRefresh"></button>
+      <span class="pied-note" id="rapport-note" hidden></span>
+    </footer>
+  </section>
 
   <!-- Confirmation des actions irréversibles. Une boîte dans le panneau et non
        un confirm() natif : confirm() est bloquant, non traduisible, et son

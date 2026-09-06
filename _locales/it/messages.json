@@ -278,19 +278,25 @@
   "btnReport": {
     "message": "Esporta un report"
   },
-  "reportSaved": {
-    "message": "Report salvato: $FILE$",
-    "placeholders": {
-      "file": {
-        "content": "$1",
-        "example": "cowlors-sidebar-20260905-1432.txt"
-      }
-    }
-  },
   "reportCopied": {
     "message": "Report copiato negli appunti"
   },
   "reportFailed": {
     "message": "Impossibile scrivere il report. Usa tse.panneau.rapport() nella console."
+  },
+  "reportTitle": {
+    "message": "Report diagnostico"
+  },
+  "reportDesc": {
+    "message": "Copia questo e invialo se qualcosa non va. Non contiene alcun elenco personale — né i canali che visiti né i tuoi abbonamenti —, solo i loro conteggi. Leggilo prima di inviarlo."
+  },
+  "btnCopy": {
+    "message": "Copia"
+  },
+  "btnRefresh": {
+    "message": "Aggiorna"
+  },
+  "btnClose": {
+    "message": "Chiudi"
   }
 }

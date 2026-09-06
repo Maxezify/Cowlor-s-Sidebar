@@ -367,16 +367,6 @@
     "message": "Export a report",
     "description": "Bouton du pied : écrit le rapport de diagnostic dans un fichier"
   },
-  "reportSaved": {
-    "message": "Report saved: $FILE$",
-    "placeholders": {
-      "file": {
-        "content": "$1",
-        "example": "cowlors-sidebar-20260905-1432.txt"
-      }
-    },
-    "description": "Confirmation : le fichier a été téléchargé. $FILE$ est son nom"
-  },
   "reportCopied": {
     "message": "Report copied to the clipboard",
     "description": "Repli : le téléchargement a échoué, le rapport est dans le presse-papier"
@@ -384,5 +374,25 @@
   "reportFailed": {
     "message": "Could not write the report. Use tse.panneau.rapport() in the console.",
     "description": "Échec total : ni téléchargement ni presse-papier"
+  },
+  "reportTitle": {
+    "message": "Diagnostic report",
+    "description": "Titre de la vue plein panneau du rapport"
+  },
+  "reportDesc": {
+    "message": "Copy this and send it when something goes wrong. It carries no personal lists — not the channels you visit, not your subscriptions — only their counts. Read it before sending it.",
+    "description": "Description sous le titre : dit ce que le rapport contient et ne contient pas"
+  },
+  "btnCopy": {
+    "message": "Copy",
+    "description": "Bouton : copie le rapport"
+  },
+  "btnRefresh": {
+    "message": "Refresh",
+    "description": "Bouton : reconstruit le rapport à l'instant"
+  },
+  "btnClose": {
+    "message": "Close",
+    "description": "Bouton : referme la vue du rapport"
   }
 }

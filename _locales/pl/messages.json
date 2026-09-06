@@ -278,19 +278,25 @@
   "btnReport": {
     "message": "Eksportuj raport"
   },
-  "reportSaved": {
-    "message": "Raport zapisany: $FILE$",
-    "placeholders": {
-      "file": {
-        "content": "$1",
-        "example": "cowlors-sidebar-20260905-1432.txt"
-      }
-    }
-  },
   "reportCopied": {
     "message": "Raport skopiowany do schowka"
   },
   "reportFailed": {
     "message": "Nie udało się zapisać raportu. Użyj tse.panneau.rapport() w konsoli."
+  },
+  "reportTitle": {
+    "message": "Raport diagnostyczny"
+  },
+  "reportDesc": {
+    "message": "Skopiuj to i wyślij, gdy coś nie działa. Nie zawiera żadnych list osobistych — ani odwiedzanych kanałów, ani subskrypcji — tylko ich liczby. Przeczytaj przed wysłaniem."
+  },
+  "btnCopy": {
+    "message": "Kopiuj"
+  },
+  "btnRefresh": {
+    "message": "Odśwież"
+  },
+  "btnClose": {
+    "message": "Zamknij"
   }
 }

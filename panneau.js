@@ -244,11 +244,6 @@ const lancer = async (action, bouton) => {
   await charger(courante);
 };
 
-const pad = (n) => String(n).padStart(2, '0');
-const horoFichier = (d) =>
-  `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`
-  + `-${pad(d.getHours())}${pad(d.getMinutes())}`;
-
 const bloc = (titre, lignes) => [`── ${titre} ${'─'.repeat(Math.max(0, 58 - titre.length))}`, ...lignes, ''];
 const paire = (cle, val) => `  ${String(cle).padEnd(22)} ${val === undefined || val === null ? '—' : val}`;
 
@@ -332,37 +327,53 @@ const construireRapport = (r, transport) => {
 };
 
 const noter = (texte, erreur) => {
-  const n = $('pied-note');
+  const n = $('rapport-note');
   n.textContent = texte;
   n.className = 'pied-note' + (erreur ? ' pied-note--erreur' : '');
   n.hidden = false;
 };
 
-const exporter = async (bouton) => {
-  bouton.disabled = true;
-  $('pied-note').hidden = true;
+const remplirRapport = async () => {
+  const zone = $('rapport-zone');
+  const boutons = [$('rapport-copier'), $('rapport-actualiser')];
+  boutons.forEach(b => { b.disabled = true; });
+  $('rapport-note').hidden = true;
+  zone.value = T('stateLoading');
   const onglet = await idOnglet();
   const r = await demander({ rapport: true });
-  const texte = construireRapport(r.ok ? r.data : null,
+  zone.value = construireRapport(r.ok ? r.data : null,
     { onglet, ok: r.ok, erreur: r.erreur, detail: r.detail });
+  zone.scrollTop = 0;
+  boutons.forEach(b => { b.disabled = false; });
+};
 
-  const nom = `cowlors-sidebar-${horoFichier(new Date())}.txt`;
+const ouvrirRapport = async () => {
+  $('rapport').hidden = false;
+  $('rapport-fermer').focus();
+  await remplirRapport();
+};
+
+const fermerRapport = () => {
+  $('rapport').hidden = true;
+  $('rapport-note').hidden = true;
+  $('btn-rapport').focus();
+};
+
+const copierRapport = async () => {
+  const zone = $('rapport-zone');
   try {
-    const url = URL.createObjectURL(new Blob([texte], { type: 'text/plain;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = nom;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    noter(T('reportSaved', nom));
+    await navigator.clipboard.writeText(zone.value);
+    noter(T('reportCopied'));
+    return;
+  } catch {   }
+  try {
+    zone.focus();
+    zone.setSelectionRange(0, zone.value.length);
+    if (!document.execCommand('copy')) throw new Error('refusé');
+    noter(T('reportCopied'));
   } catch {
-    try {
-      await navigator.clipboard.writeText(texte);
-      noter(T('reportCopied'));
-    } catch {
-      noter(T('reportFailed'), true);
-    }
+    noter(T('reportFailed'), true);
   }
-  bouton.disabled = false;
 };
 
 let aConfirmer = null;
@@ -405,7 +416,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('message-bouton').addEventListener('click', () => charger(courante));
   $('btn-rescan').addEventListener('click', () => lancer('rescan', $('btn-rescan')));
-  $('btn-rapport').addEventListener('click', () => exporter($('btn-rapport')));
+  $('btn-rapport').addEventListener('click', ouvrirRapport);
+  $('rapport-fermer').addEventListener('click', fermerRapport);
+  $('rapport-copier').addEventListener('click', copierRapport);
+  $('rapport-actualiser').addEventListener('click', remplirRapport);
   $('btn-reset').addEventListener('click', () =>
     confirmer('resetTitle', 'resetText', () => lancer('reset', $('btn-reset'))));
 
@@ -415,8 +429,11 @@ document.addEventListener('DOMContentLoaded', () => {
     $('voile').hidden = true; aConfirmer = null;
     if (suite) suite();
   });
+
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !$('voile').hidden) { $('voile').hidden = true; aConfirmer = null; }
+    if (e.key !== 'Escape') return;
+    if (!$('voile').hidden) { $('voile').hidden = true; aConfirmer = null; return; }
+    if (!$('rapport').hidden) fermerRapport();
   });
 
   charger(courante);
