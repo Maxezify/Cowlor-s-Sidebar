@@ -278,19 +278,25 @@
   "btnReport": {
     "message": "导出报告"
   },
-  "reportSaved": {
-    "message": "报告已保存：$FILE$",
-    "placeholders": {
-      "file": {
-        "content": "$1",
-        "example": "cowlors-sidebar-20260905-1432.txt"
-      }
-    }
-  },
   "reportCopied": {
     "message": "报告已复制到剪贴板"
   },
   "reportFailed": {
     "message": "无法写出报告。请在控制台使用 tse.panneau.rapport()。"
+  },
+  "reportTitle": {
+    "message": "诊断报告"
+  },
+  "reportDesc": {
+    "message": "出问题时请复制并发送。其中不含任何个人列表——既没有你访问过的频道，也没有你的订阅——只有它们的数量。发送前请先阅读。"
+  },
+  "btnCopy": {
+    "message": "复制"
+  },
+  "btnRefresh": {
+    "message": "刷新"
+  },
+  "btnClose": {
+    "message": "关闭"
   }
 }

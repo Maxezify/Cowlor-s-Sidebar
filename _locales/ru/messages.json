@@ -278,19 +278,25 @@
   "btnReport": {
     "message": "Выгрузить отчёт"
   },
-  "reportSaved": {
-    "message": "Отчёт сохранён: $FILE$",
-    "placeholders": {
-      "file": {
-        "content": "$1",
-        "example": "cowlors-sidebar-20260905-1432.txt"
-      }
-    }
-  },
   "reportCopied": {
     "message": "Отчёт скопирован в буфер обмена"
   },
   "reportFailed": {
     "message": "Не удалось записать отчёт. Используйте tse.panneau.rapport() в консоли."
+  },
+  "reportTitle": {
+    "message": "Отчёт диагностики"
+  },
+  "reportDesc": {
+    "message": "Скопируйте это и отправьте, если что-то не так. Здесь нет личных списков — ни каналов, которые вы смотрите, ни подписок, — только их количество. Прочитайте перед отправкой."
+  },
+  "btnCopy": {
+    "message": "Копировать"
+  },
+  "btnRefresh": {
+    "message": "Обновить"
+  },
+  "btnClose": {
+    "message": "Закрыть"
   }
 }

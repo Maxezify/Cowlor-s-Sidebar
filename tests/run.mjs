@@ -6658,45 +6658,45 @@ titre('70. Panneau — la page rendue, mesurée');
      panne.tentatives >= 4, `${panne.tentatives} tentatives pour une échelle de 3 délais`);
 
   /* ── LE RAPPORT DE DIAGNOSTIC ──────────────────────────────────────────
-     On n'attend pas le téléchargement : une popup de test ne sait pas où
-     écrire, et ce n'est pas le sujet. Ce qui compte est le TEXTE construit —
-     on intercepte donc le Blob au moment où il est fabriqué.
+     Une VUE, plus un fichier. Le changement n'est pas cosmétique : un fichier
+     téléchargé ne se relit pas avant d'être envoyé, et toutes les promesses
+     du rapport — aucune liste personnelle, du texte lisible — n'étaient alors
+     vérifiables qu'après coup. À l'écran, elles le sont avant le geste.
 
-     Deux familles d'assertions, et la seconde est la seule qui protège une
-     PROMESSE plutôt qu'un comportement. Le rapport est la seule chose de ce
-     produit faite pour quitter la machine : si un jour quelqu'un ajoute la
-     liste des abonnements « parce que ça peut servir », rien d'autre ne le
-     dira. */
-  const rapport = await page.evaluate(async () => {
-    window.__panne = null;
-    let capture = null;
-    const vraiBlob = window.Blob;
-    window.Blob = function (parts, opts) { capture = String(parts[0]); return new vraiBlob(parts, opts); };
-    // Le clic ouvrirait un téléchargement : on neutralise le seul geste qui
-    // sort du bac à sable, et on garde tout le reste du chemin.
-    const vraiClick = HTMLAnchorElement.prototype.click;
-    HTMLAnchorElement.prototype.click = function () {};
-    try {
-      document.getElementById('btn-rapport').click();
-      for (let i = 0; i < 40 && capture === null; i++) await new Promise(r => setTimeout(r, 50));
-    } finally { window.Blob = vraiBlob; HTMLAnchorElement.prototype.click = vraiClick; }
-    return { texte: capture, note: document.getElementById('pied-note').textContent,
-             noteVisible: !document.getElementById('pied-note').hidden };
+     Le banc y gagne aussi : on lit la zone de texte, au lieu d'intercepter un
+     Blob et de neutraliser un clic de téléchargement. Ce qu'on mesure est
+     exactement ce que l'utilisateur voit. */
+  await page.evaluate(() => { window.__panne = null; });
+  const vue = await page.evaluate(async () => {
+    document.getElementById('btn-rapport').click();
+    const zone = document.getElementById('rapport-zone');
+    for (let i = 0; i < 60 && !/SONDES/.test(zone.value); i++) {
+      await new Promise(r => setTimeout(r, 50));
+    }
+    const r = document.getElementById('rapport');
+    return {
+      ouverte: !r.hidden && Math.round(r.getBoundingClientRect().height) > 0,
+      texte: zone.value,
+      titre: document.getElementById('rapport-titre').textContent,
+      desc: document.querySelector('.rapport-desc').textContent,
+      // Le pied doit tenir : c'est le défaut qui avait coupé les boutons du
+      // panneau, et cette vue a sa propre colonne flexible.
+      piedBas: Math.round(document.querySelector('.rapport-pied').getBoundingClientRect().bottom),
+      hauteur: window.innerHeight,
+    };
   });
 
-  ok('le bouton écrit un rapport, et le confirme',
-     typeof rapport.texte === 'string' && rapport.texte.length > 400 && rapport.noteVisible,
-     JSON.stringify({ taille: rapport.texte && rapport.texte.length, note: rapport.note }));
+  ok('le bouton ouvre le rapport EN PLEIN PANNEAU, avec titre et description',
+     vue.ouverte && vue.titre.length > 0 && vue.desc.length > 40,
+     JSON.stringify({ ouverte: vue.ouverte, titre: vue.titre }));
+  ok('…et son pied tient dans la fenêtre, boutons compris',
+     vue.piedBas <= vue.hauteur, `${vue.piedBas} / ${vue.hauteur}`);
 
-  /* Null-safe : quand la construction échoue, les assertions qui suivent
-     doivent ÉCHOUER, pas lever. Une exception interrompt le scénario entier et
-     emporte avec elle tout ce qui restait à vérifier — le banc dit alors
-     beaucoup moins que ce qu'il sait. */
-  const contient = (x) => typeof rapport.texte === 'string' && rapport.texte.includes(x);
+  const contient = (x) => typeof vue.texte === 'string' && vue.texte.includes(x);
   ok('le rapport porte l\'environnement, le transport et les sondes',
      contient('ENVIRONNEMENT') && contient('TRANSPORT') && contient('SONDES')
      && contient('followedSection') && contient('broken'),
-     JSON.stringify((rapport.texte || '').slice(0, 120)));
+     JSON.stringify((vue.texte || '').slice(0, 120)));
   ok('…les compteurs et l\'état de la page, avec leurs valeurs',
      contient('137') && contient('/domingo') && contient('42'),
      'visites 137, chemin /domingo, 42 cartes');
@@ -6705,35 +6705,77 @@ titre('70. Panneau — la page rendue, mesurée');
      raison d'apparaître : le rapport ne transporte que des comptes. Si l'un
      d'eux s'y trouve, c'est qu'une liste personnelle a été ajoutée — et c'est
      exactement ce que cette assertion existe pour interdire. */
-  const logins = ['alpha', 'beta', 'gamma', 'delta'];
-  const fuites = logins.filter(l => contient(l));
+  const fuites = ['alpha', 'beta', 'gamma', 'delta'].filter(l => contient(l));
   ok('le rapport ne contient AUCUNE liste personnelle — seulement des comptes',
      fuites.length === 0, `fuites : ${JSON.stringify(fuites)}`);
   ok('…et il le dit lui-même, dans les deux langues, en tête de fichier',
      contient('AUCUNE LISTE PERSONNELLE') && contient('NO PERSONAL LISTS'));
 
-  /* IL DOIT MARCHER QUAND RIEN NE MARCHE — c'est son seul moment utile. Sans
-     la page, le rapport doit tout de même porter l'environnement et dire
-     pourquoi le reste manque. */
-  const rapportSansPage = await page.evaluate(async () => {
+  /* ── COPIER ────────────────────────────────────────────────────────────
+     navigator.clipboard n'existe pas sur une page file:// : c'est donc le
+     REPLI qui s'exécute ici — sélection du textarea puis execCommand. Le
+     tester est plus utile que de tester la voie propre, puisque c'est celui
+     qui rattrape les navigateurs qui refusent l'autre. */
+  const copie = await page.evaluate(async () => {
+    let copie = null;
+    document.execCommand = (cmd) => {
+      if (cmd === 'copy') { copie = document.getElementById('rapport-zone').value; return true; }
+      return false;
+    };
+    document.getElementById('rapport-copier').click();
+    for (let i = 0; i < 40 && copie === null; i++) await new Promise(r => setTimeout(r, 50));
+    return { copie, note: document.getElementById('rapport-note').textContent,
+             visible: !document.getElementById('rapport-note').hidden };
+  });
+  ok('« Copier » met le rapport ENTIER dans le presse-papier, et le confirme',
+     copie.copie === vue.texte && copie.visible && copie.note.length > 0,
+     JSON.stringify({ egal: copie.copie === vue.texte, note: copie.note }));
+
+  /* ── ACTUALISER ────────────────────────────────────────────────────────
+     Le rapport date l'instant où on le lit, pas celui où le panneau s'est
+     ouvert. Le bouton doit donc REDEMANDER à la page, pas réafficher ce qu'il
+     a déjà — c'est toute la différence entre actualiser et ne rien faire. */
+  const actualise = await page.evaluate(async () => {
+    const avant = window.__envois.filter(m => m.rapport).length;
+    window.__rapport.compteurs.visites = 999;      // la page a changé entre-temps
+    document.getElementById('rapport-actualiser').click();
+    const zone = document.getElementById('rapport-zone');
+    for (let i = 0; i < 60 && !/999/.test(zone.value); i++) await new Promise(r => setTimeout(r, 50));
+    return { demandes: window.__envois.filter(m => m.rapport).length - avant,
+             frais: /999/.test(zone.value) };
+  });
+  ok('« Actualiser » redemande à la page, et affiche la mesure neuve',
+     actualise.demandes >= 1 && actualise.frais, JSON.stringify(actualise));
+
+  /* ── FERMER ────────────────────────────────────────────────────────────
+     La vue recouvre tout : si elle ne se referme pas, le panneau est perdu. */
+  const rapportFerme = await page.evaluate(async () => {
+    document.getElementById('rapport-fermer').click();
+    await new Promise(r => setTimeout(r, 50));
+    const r = document.getElementById('rapport');
+    return { attribut: r.hidden, hauteur: Math.round(r.getBoundingClientRect().height) };
+  });
+  ok('« Fermer » rend le panneau, et la vue n\'occupe plus aucune place',
+     rapportFerme.attribut === true && rapportFerme.hauteur === 0,
+     JSON.stringify(rapportFerme));
+
+  /* ── IL DOIT MARCHER QUAND RIEN NE MARCHE ──────────────────────────────
+     C'est son seul moment utile : sans réponse de la page, le rapport doit
+     tout de même porter l'environnement et dire POURQUOI le reste manque. */
+  const sansPage = await page.evaluate(async () => {
     window.__panne = 'fond';
-    let capture = null;
-    const vraiBlob = window.Blob;
-    window.Blob = function (parts, opts) { capture = String(parts[0]); return new vraiBlob(parts, opts); };
-    const vraiClick = HTMLAnchorElement.prototype.click;
-    HTMLAnchorElement.prototype.click = function () {};
-    try {
-      document.getElementById('btn-rapport').click();
-      for (let i = 0; i < 120 && capture === null; i++) await new Promise(r => setTimeout(r, 50));
-    } finally { window.Blob = vraiBlob; HTMLAnchorElement.prototype.click = vraiClick; window.__panne = null; }
-    return capture;
+    document.getElementById('btn-rapport').click();
+    const zone = document.getElementById('rapport-zone');
+    for (let i = 0; i < 160 && !/TRANSPORT/.test(zone.value); i++) {
+      await new Promise(r => setTimeout(r, 50));
+    }
+    window.__panne = null;
+    return zone.value;
   });
   ok('sans réponse de la page, le rapport existe quand même et dit pourquoi',
-     typeof rapportSansPage === 'string'
-     && /ENVIRONNEMENT/.test(rapportSansPage)
-     && /Receiving end does not exist/.test(rapportSansPage)
-     && /did not answer/.test(rapportSansPage),
-     JSON.stringify((rapportSansPage || '').slice(-200)));
+     /ENVIRONNEMENT/.test(sansPage) && /Receiving end does not exist/.test(sansPage)
+     && /did not answer/.test(sansPage),
+     JSON.stringify((sansPage || '').slice(-180)));
 
   await page.close();
 }

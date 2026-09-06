@@ -328,10 +328,10 @@ the assembled code:
 | --- | --- | --- | --- |
 | `content.js` | 584 KB | 271 KB | 2,762 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 25 KB | 16 KB | 23 → **0** |
+| `panneau.js` | 26 KB | 16 KB | 27 → **0** |
 | `bridge.js` | 7 KB | 2 KB | 13 → **0** |
 | `background.js` | 5 KB | 2 KB | 13 → **0** |
-| **all five** | **745 KB** | **390 KB** | **−48 %** |
+| **all five** | **747 KB** | **391 KB** | **−48 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2074,7 +2074,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 70 scenarios, 617 assertions |
+| `npm test` | the Playwright harness: 70 scenarios, 621 assertions |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
 just counted, and fails if the table lies. A bench whose size is advertised

@@ -355,11 +355,6 @@ const lancer = async (action, bouton) => {
  *  rapport. Un rapport vide le jour de la panne n'aurait servi à
  *  personne.
  * ============================================================ */
-const pad = (n) => String(n).padStart(2, '0');
-const horoFichier = (d) =>
-  `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`
-  + `-${pad(d.getHours())}${pad(d.getMinutes())}`;
-
 const bloc = (titre, lignes) => [`── ${titre} ${'─'.repeat(Math.max(0, 58 - titre.length))}`, ...lignes, ''];
 const paire = (cle, val) => `  ${String(cle).padEnd(22)} ${val === undefined || val === null ? '—' : val}`;
 
@@ -446,47 +441,78 @@ const construireRapport = (r, transport) => {
   return L.join('\n');
 };
 
+/* ── LA VUE, ET NON UN FICHIER ────────────────────────────────────────────
+   Première écriture : un <a download> sur un blob. Ce n'était pas faux, mais
+   c'était le mauvais objet. Ce qu'on fait d'un rapport, c'est le COLLER dans
+   une conversation — pas l'attacher ; et surtout, un fichier ne se relit pas
+   avant d'être envoyé. Toutes les promesses ci-dessus (aucune liste
+   personnelle, du texte lisible) n'étaient alors que des affirmations : le
+   seul moyen de les vérifier était d'ouvrir le fichier après coup.
+
+   Une zone de texte, à l'écran, dans le panneau, les rend VÉRIFIABLES avant
+   le geste. C'est la même raison qui avait fait choisir le texte contre le
+   JSON, poussée jusqu'au bout. */
 const noter = (texte, erreur) => {
-  const n = $('pied-note');
+  const n = $('rapport-note');
   n.textContent = texte;
   n.className = 'pied-note' + (erreur ? ' pied-note--erreur' : '');
   n.hidden = false;
 };
 
-const exporter = async (bouton) => {
-  bouton.disabled = true;
-  $('pied-note').hidden = true;
+/* Le rapport est reconstruit à CHAQUE ouverture et à chaque actualisation :
+   il date l'instant où on le lit, pas celui où le panneau s'est ouvert. C'est
+   tout l'objet du bouton « Actualiser » — reprendre la mesure après avoir
+   rechargé la page, sans refermer la vue. */
+const remplirRapport = async () => {
+  const zone = $('rapport-zone');
+  const boutons = [$('rapport-copier'), $('rapport-actualiser')];
+  boutons.forEach(b => { b.disabled = true; });
+  $('rapport-note').hidden = true;
+  zone.value = T('stateLoading');
   const onglet = await idOnglet();
   const r = await demander({ rapport: true });
-  const texte = construireRapport(r.ok ? r.data : null,
+  zone.value = construireRapport(r.ok ? r.data : null,
     { onglet, ok: r.ok, erreur: r.erreur, detail: r.detail });
+  zone.scrollTop = 0;
+  boutons.forEach(b => { b.disabled = false; });
+};
 
-  /* UN LIEN DE TÉLÉCHARGEMENT, ET PAS chrome.downloads. L'API demanderait la
-     permission « downloads », c'est-à-dire exactement ce que la fiche promet
-     de ne pas demander — pour un bouton qui écrit un fichier texte. Un <a
-     download> sur un blob n'exige rien.
+const ouvrirRapport = async () => {
+  $('rapport').hidden = false;
+  $('rapport-fermer').focus();
+  await remplirRapport();
+};
 
-     Le repli n'est pas décoratif : si le téléchargement est refusé (politique
-     d'entreprise, disque plein), le presse-papier reste, et le rapport
-     s'obtient quand même. Un outil de dépannage qui tombe en panne le jour de
-     la panne ne sert à rien. */
-  const nom = `cowlors-sidebar-${horoFichier(new Date())}.txt`;
+const fermerRapport = () => {
+  $('rapport').hidden = true;
+  $('rapport-note').hidden = true;
+  $('btn-rapport').focus();
+};
+
+/* COPIER SANS PERMISSION. navigator.clipboard est la voie propre, mais elle
+   peut être refusée — document non focalisé, politique du navigateur. Le repli
+   n'exige rien de plus qu'un textarea réel : on sélectionne son contenu et on
+   laisse le navigateur faire ce qu'il fait depuis toujours. C'est d'ailleurs
+   la raison pour laquelle cette vue utilise un <textarea> plutôt qu'un <pre> :
+   un <pre> ne se sélectionne pas par programme aussi sûrement.
+
+   Et si les deux échouent, le texte reste À L'ÉCRAN, sélectionnable à la main.
+   Un outil de dépannage ne doit pas avoir de mode « rien à offrir ». */
+const copierRapport = async () => {
+  const zone = $('rapport-zone');
   try {
-    const url = URL.createObjectURL(new Blob([texte], { type: 'text/plain;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = nom;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    noter(T('reportSaved', nom));
+    await navigator.clipboard.writeText(zone.value);
+    noter(T('reportCopied'));
+    return;
+  } catch { /* on tente le repli */ }
+  try {
+    zone.focus();
+    zone.setSelectionRange(0, zone.value.length);
+    if (!document.execCommand('copy')) throw new Error('refusé');
+    noter(T('reportCopied'));
   } catch {
-    try {
-      await navigator.clipboard.writeText(texte);
-      noter(T('reportCopied'));
-    } catch {
-      noter(T('reportFailed'), true);
-    }
+    noter(T('reportFailed'), true);
   }
-  bouton.disabled = false;
 };
 
 /* ── Confirmation ────────────────────────────────────────────────────────── */
@@ -531,7 +557,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('message-bouton').addEventListener('click', () => charger(courante));
   $('btn-rescan').addEventListener('click', () => lancer('rescan', $('btn-rescan')));
-  $('btn-rapport').addEventListener('click', () => exporter($('btn-rapport')));
+  $('btn-rapport').addEventListener('click', ouvrirRapport);
+  $('rapport-fermer').addEventListener('click', fermerRapport);
+  $('rapport-copier').addEventListener('click', copierRapport);
+  $('rapport-actualiser').addEventListener('click', remplirRapport);
   $('btn-reset').addEventListener('click', () =>
     confirmer('resetTitle', 'resetText', () => lancer('reset', $('btn-reset'))));
 
@@ -541,8 +570,13 @@ document.addEventListener('DOMContentLoaded', () => {
     $('voile').hidden = true; aConfirmer = null;
     if (suite) suite();
   });
+  /* Échap ferme ce qui est ouvert, en commençant par le plus haut : la
+     confirmation est POSÉE SUR le rapport, et refermer le rapport d'abord
+     laisserait une boîte flottant sur un panneau qu'elle ne concerne plus. */
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !$('voile').hidden) { $('voile').hidden = true; aConfirmer = null; }
+    if (e.key !== 'Escape') return;
+    if (!$('voile').hidden) { $('voile').hidden = true; aConfirmer = null; return; }
+    if (!$('rapport').hidden) fermerRapport();
   });
 
   charger(courante);

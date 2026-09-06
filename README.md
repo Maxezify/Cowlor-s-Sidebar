@@ -340,10 +340,10 @@ assemblé :
 | --- | --- | --- | --- |
 | `content.js` | 584 Ko | 271 Ko | 2 762 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 25 Ko | 16 Ko | 23 → **0** |
+| `panneau.js` | 26 Ko | 16 Ko | 27 → **0** |
 | `bridge.js` | 7 Ko | 2 Ko | 13 → **0** |
 | `background.js` | 5 Ko | 2 Ko | 13 → **0** |
-| **les cinq** | **745 Ko** | **390 Ko** | **−48 %** |
+| **les cinq** | **747 Ko** | **391 Ko** | **−48 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2187,7 +2187,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 70 scénarios, 617 assertions |
+| `npm test` | le harnais Playwright : 70 scénarios, 621 assertions |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
 vient de compter, et échoue si le tableau ment. Un banc dont on annonce la
