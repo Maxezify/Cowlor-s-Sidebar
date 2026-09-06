@@ -274,5 +274,23 @@
   },
   "stateNoWorker": {
     "message": "Le fond de tâche de l'extension ne répond pas. Rechargez l'extension, ou réinstallez la version prévue pour ce navigateur."
+  },
+  "btnReport": {
+    "message": "Exporter un rapport"
+  },
+  "reportSaved": {
+    "message": "Rapport enregistré : $FILE$",
+    "placeholders": {
+      "file": {
+        "content": "$1",
+        "example": "cowlors-sidebar-20260905-1432.txt"
+      }
+    }
+  },
+  "reportCopied": {
+    "message": "Rapport copié dans le presse-papier"
+  },
+  "reportFailed": {
+    "message": "Impossible d'écrire le rapport. Utilisez tse.panneau.rapport() dans la console."
   }
 }

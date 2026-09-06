@@ -274,5 +274,23 @@
   },
   "stateNoWorker": {
     "message": "拡張機能のバックグラウンド処理が応答していません。拡張機能を再読み込みするか、このブラウザー向けのビルドを入れ直してください。"
+  },
+  "btnReport": {
+    "message": "レポートを書き出す"
+  },
+  "reportSaved": {
+    "message": "レポートを保存しました: $FILE$",
+    "placeholders": {
+      "file": {
+        "content": "$1",
+        "example": "cowlors-sidebar-20260905-1432.txt"
+      }
+    }
+  },
+  "reportCopied": {
+    "message": "レポートをクリップボードにコピーしました"
+  },
+  "reportFailed": {
+    "message": "レポートを書き出せませんでした。コンソールで tse.panneau.rapport() をお使いください。"
   }
 }

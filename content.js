@@ -3682,6 +3682,48 @@ const TSE_GATE_MAX_CLICKS = 5;
       },
     },
 
+    rapport() {
+      const nav    = document.querySelector(DOM.sidebarRoot);
+      const cartes = [...document.querySelectorAll('.side-nav-card')];
+      const abonnements = subs.entries();
+      const mesures = liveLag.all();
+      return {
+        genere: Date.now(),
+
+        page: {
+
+          chemin: location.pathname,
+          cachee: document.hidden,
+          sidebar: !!nav,
+          repliee: nav ? detectSidebarCollapsed() : null,
+          voile: document.body.classList.contains('tse-loading'),
+          cartes: cartes.length,
+          fabriquees: cartes.filter(isSynthetic).length,
+          decorees: cartes.filter(c => c.dataset.tseLogin).length,
+          liens: nav ? nav.querySelectorAll('a[href^="/"]').length : 0,
+        },
+        langue: { interface: S.locale, page: LANG },
+        mode: { global: !!state.globalMode },
+        sondes: runDiagnostics(),
+        compteurs: {
+          visites:     visits.map.size,
+          abonnements: abonnements.length,
+          abonnes:     abonnements.filter(e => e.sub).length,
+          roster:      roster.entries().length,
+          mesures:     mesures.length,
+          bascules:    [...basculements.keys()].filter(l => basculementFrais(l)).length,
+          cache:       cache.size,
+        },
+        relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
+        global: globalChannels.report(),
+        journaux: {
+          verrous: loadingOverlay.verrous(),
+          cycles:  loadingOverlay.journal(),
+          apercu:  preview.journal(),
+        },
+      };
+    },
+
     actions: {
       reset()   { tseApi.reset(); return { fait: true }; },
       rescan()  { tseApi.rescan(); return { fait: true }; },
@@ -3702,6 +3744,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     return f(arg);
   };
 
+  tseApi.panneau.rapport = () => panneau.rapport();
+
   const TSE_PANNEAU_REQ = 'tse-panneau-req';
   const TSE_PANNEAU_RES = 'tse-panneau-res';
   window.addEventListener('message', (e) => {
@@ -3714,7 +3758,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
 
     try {
-      const cible = d.action ? panneau.actions[d.action] : panneau.sections[d.section];
+      const cible = d.rapport ? panneau.rapport
+                  : d.action  ? panneau.actions[d.action]
+                              : panneau.sections[d.section];
       if (typeof cible !== 'function') {
         repondre({ ok: false, erreur: 'inconnu' });
         return;
