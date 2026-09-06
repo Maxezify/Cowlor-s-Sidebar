@@ -278,19 +278,25 @@
   "btnReport": {
     "message": "Exporter un rapport"
   },
-  "reportSaved": {
-    "message": "Rapport enregistré : $FILE$",
-    "placeholders": {
-      "file": {
-        "content": "$1",
-        "example": "cowlors-sidebar-20260905-1432.txt"
-      }
-    }
-  },
   "reportCopied": {
     "message": "Rapport copié dans le presse-papier"
   },
   "reportFailed": {
     "message": "Impossible d'écrire le rapport. Utilisez tse.panneau.rapport() dans la console."
+  },
+  "reportTitle": {
+    "message": "Rapport de diagnostic"
+  },
+  "reportDesc": {
+    "message": "Copiez ceci et envoyez-le en cas de problème. Il ne contient aucune liste personnelle — ni les chaînes que vous visitez, ni vos abonnements — seulement leurs comptes. Relisez-le avant de l'envoyer."
+  },
+  "btnCopy": {
+    "message": "Copier"
+  },
+  "btnRefresh": {
+    "message": "Actualiser"
+  },
+  "btnClose": {
+    "message": "Fermer"
   }
 }
