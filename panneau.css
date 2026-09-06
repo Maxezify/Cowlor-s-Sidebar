@@ -236,6 +236,45 @@ html, body {
 }
 .pied-note--erreur { color: var(--rouge); }
 
+/* ── Le rapport, en plein panneau ────────────────────────────────────────── */
+/* `hidden` a besoin d'être redit partout où l'on déclare un display : la règle
+   du navigateur perd contre une règle d'auteur. Cf. .message, .voile. */
+.rapport[hidden] { display: none; }
+.rapport {
+  position: fixed; inset: 0; z-index: 20;
+  display: flex; flex-direction: column;
+  background: var(--fond);
+}
+.rapport-tete {
+  flex: 0 0 auto;
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--filet); background: var(--fond-2);
+}
+.rapport-texte-tete { flex: 1 1 auto; min-width: 0; }
+.rapport-titre { margin: 0; font-size: 14px; font-weight: 700; }
+.rapport-desc  { margin: 2px 0 0; font-size: 11.5px; color: var(--texte-faible); max-width: 78ch; }
+.rapport-zone {
+  /* min-height: 0 : sans lui, un textarea flex refuse de descendre sous sa
+     hauteur de contenu et pousse le pied hors de la fenêtre — exactement le
+     défaut qui avait coupé les boutons en bas du panneau. */
+  flex: 1 1 auto; min-height: 0;
+  margin: 10px 14px; padding: 10px;
+  background: var(--fond-creux); color: var(--texte);
+  border: 1px solid var(--filet); border-radius: var(--r-grand);
+  font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Le rapport est fait de colonnes alignées : un retour à la ligne
+     automatique les casserait. On défile horizontalement à la place. */
+  white-space: pre; overflow: auto; resize: none;
+}
+.rapport-zone:focus-visible { outline: 2px solid var(--violet); outline-offset: -1px; }
+.rapport-pied {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--filet); background: var(--fond-2);
+}
+
 /* ── Confirmation ────────────────────────────────────────────────────────── */
 .voile {
   position: fixed; inset: 0; z-index: 10;

@@ -278,19 +278,25 @@
   "btnReport": {
     "message": "Exportar um relatório"
   },
-  "reportSaved": {
-    "message": "Relatório guardado: $FILE$",
-    "placeholders": {
-      "file": {
-        "content": "$1",
-        "example": "cowlors-sidebar-20260905-1432.txt"
-      }
-    }
-  },
   "reportCopied": {
     "message": "Relatório copiado para a área de transferência"
   },
   "reportFailed": {
     "message": "Não foi possível escrever o relatório. Usa tse.panneau.rapport() na consola."
+  },
+  "reportTitle": {
+    "message": "Relatório de diagnóstico"
+  },
+  "reportDesc": {
+    "message": "Copia isto e envia-o se algo correr mal. Não contém nenhuma lista pessoal — nem os canais que visitas nem as tuas subscrições —, apenas as suas contagens. Lê-o antes de o enviares."
+  },
+  "btnCopy": {
+    "message": "Copiar"
+  },
+  "btnRefresh": {
+    "message": "Atualizar"
+  },
+  "btnClose": {
+    "message": "Fechar"
   }
 }
