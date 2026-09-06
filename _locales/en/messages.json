@@ -362,5 +362,27 @@
   "stateNoWorker": {
     "message": "The extension’s background worker is not answering. Reload the extension, or reinstall the build made for this browser.",
     "description": "État : le service worker ne répond pas (à distinguer de « pas d'onglet Twitch »)"
+  },
+  "btnReport": {
+    "message": "Export a report",
+    "description": "Bouton du pied : écrit le rapport de diagnostic dans un fichier"
+  },
+  "reportSaved": {
+    "message": "Report saved: $FILE$",
+    "placeholders": {
+      "file": {
+        "content": "$1",
+        "example": "cowlors-sidebar-20260905-1432.txt"
+      }
+    },
+    "description": "Confirmation : le fichier a été téléchargé. $FILE$ est son nom"
+  },
+  "reportCopied": {
+    "message": "Report copied to the clipboard",
+    "description": "Repli : le téléchargement a échoué, le rapport est dans le presse-papier"
+  },
+  "reportFailed": {
+    "message": "Could not write the report. Use tse.panneau.rapport() in the console.",
+    "description": "Échec total : ni téléchargement ni presse-papier"
   }
 }

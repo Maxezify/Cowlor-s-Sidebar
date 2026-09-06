@@ -274,5 +274,23 @@
   },
   "stateNoWorker": {
     "message": "O processo em segundo plano da extensão não responde. Recarrega a extensão ou reinstala a versão feita para este navegador."
+  },
+  "btnReport": {
+    "message": "Exportar um relatório"
+  },
+  "reportSaved": {
+    "message": "Relatório guardado: $FILE$",
+    "placeholders": {
+      "file": {
+        "content": "$1",
+        "example": "cowlors-sidebar-20260905-1432.txt"
+      }
+    }
+  },
+  "reportCopied": {
+    "message": "Relatório copiado para a área de transferência"
+  },
+  "reportFailed": {
+    "message": "Não foi possível escrever o relatório. Usa tse.panneau.rapport() na consola."
   }
 }

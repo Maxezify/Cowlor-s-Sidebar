@@ -274,5 +274,23 @@
   },
   "stateNoWorker": {
     "message": "Il processo in background dell’estensione non risponde. Ricarica l’estensione o reinstalla la versione pensata per questo browser."
+  },
+  "btnReport": {
+    "message": "Esporta un report"
+  },
+  "reportSaved": {
+    "message": "Report salvato: $FILE$",
+    "placeholders": {
+      "file": {
+        "content": "$1",
+        "example": "cowlors-sidebar-20260905-1432.txt"
+      }
+    }
+  },
+  "reportCopied": {
+    "message": "Report copiato negli appunti"
+  },
+  "reportFailed": {
+    "message": "Impossibile scrivere il report. Usa tse.panneau.rapport() nella console."
   }
 }

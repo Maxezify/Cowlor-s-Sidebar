@@ -5803,6 +5803,83 @@ const TSE_GATE_MAX_CLICKS = 5;
                  resume: { categories: lignes.length, actif: !!state.globalMode } };
       },
     },
+    /* ============================================================
+     *  LE RAPPORT DE DIAGNOSTIC
+     *  ------------------------------------------------------------
+     *  Ce que le panneau assemble en un fichier, pour qu'on puisse
+     *  l'envoyer quand quelque chose ne va pas.
+     *
+     *  CE QU'IL CONTIENT, ET CE QU'IL NE CONTIENDRA JAMAIS. C'est la
+     *  SEULE chose de ce produit qui soit faite pour quitter la
+     *  machine. Il porte donc tout le TECHNIQUE en entier — les neuf
+     *  sondes, les journaux, l'état de la page, l'environnement — et
+     *  AUCUNE liste personnelle : ni les chaînes visitées, ni les
+     *  abonnements, ni le roster. Seulement leurs COMPTES.
+     *
+     *  Ce n'est pas de la prudence de principe, c'est le constat
+     *  d'usage : sur tous les incidents traités jusqu'ici, pas un
+     *  n'aurait été résolu plus vite avec la liste des chaînes, et
+     *  tous l'auraient été avec les sondes et les compteurs. Une
+     *  donnée qui n'aide pas à diagnostiquer n'a rien à faire dans un
+     *  fichier qu'on envoie.
+     *
+     *  Deux exceptions assumées, et il faut les nommer : le CHEMIN de
+     *  la page (sans requête ni ancre), parce que savoir sur quelle
+     *  sorte de page l'incident s'est produit est la moitié du
+     *  diagnostic ; et les journaux d'aperçu, dont le détail porte le
+     *  login de la chaîne survolée — c'est précisément ce qu'on
+     *  cherche quand un aperçu ne se dévoile pas.
+     *
+     *  Le fichier est en TEXTE LISIBLE. Un rapport que l'utilisateur
+     *  ne peut pas relire avant de l'envoyer ne tient aucune des
+     *  promesses ci-dessus : elles ne seraient que des affirmations.
+     * ============================================================ */
+    rapport() {
+      const nav    = document.querySelector(DOM.sidebarRoot);
+      const cartes = [...document.querySelectorAll('.side-nav-card')];
+      const abonnements = subs.entries();
+      const mesures = liveLag.all();
+      return {
+        genere: Date.now(),
+        /* Pas de numéro de version ICI. content.js tourne en monde MAIN, où
+           chrome.runtime n'existe pas : il ne peut que recopier une constante,
+           qui se périmerait au premier oubli. Le panneau, lui, lit le
+           manifeste — une seule source, et c'est la bonne. */
+        page: {
+          // Le CHEMIN seul : ni requête, ni ancre. « /domingo » dit qu'on
+          // était sur une chaîne, ce qui compte ; le reste ne dit rien.
+          chemin: location.pathname,
+          cachee: document.hidden,
+          sidebar: !!nav,
+          repliee: nav ? detectSidebarCollapsed() : null,
+          voile: document.body.classList.contains('tse-loading'),
+          cartes: cartes.length,
+          fabriquees: cartes.filter(isSynthetic).length,
+          decorees: cartes.filter(c => c.dataset.tseLogin).length,
+          liens: nav ? nav.querySelectorAll('a[href^="/"]').length : 0,
+        },
+        langue: { interface: S.locale, page: LANG },
+        mode: { global: !!state.globalMode },
+        sondes: runDiagnostics(),
+        compteurs: {
+          visites:     visits.map.size,
+          abonnements: abonnements.length,
+          abonnes:     abonnements.filter(e => e.sub).length,
+          roster:      roster.entries().length,
+          mesures:     mesures.length,
+          bascules:    [...basculements.keys()].filter(l => basculementFrais(l)).length,
+          cache:       cache.size,
+        },
+        relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
+        global: globalChannels.report(),
+        journaux: {
+          verrous: loadingOverlay.verrous(),
+          cycles:  loadingOverlay.journal(),
+          apercu:  preview.journal(),
+        },
+      };
+    },
+
     /* ACTIONS : celles qui changent quelque chose. Séparées des sections pour
        que le panneau puisse les traiter autrement — confirmation, état occupé,
        rafraîchissement de la vue après coup — et pour qu'une faute de frappe
@@ -5828,6 +5905,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!f) throw new Error(`[tse] section inconnue : ${nom}`);
     return f(arg);
   };
+  /* Le rapport, lisible à la main comme le reste. Le panneau en fait un
+     fichier ; la console en rend l'objet. */
+  tseApi.panneau.rapport = () => panneau.rapport();
 
   /* ============================================================
    *  PONT VERS LE PANNEAU (page → extension)
@@ -5873,7 +5953,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* Une promesse rejetée ne doit pas laisser le panneau en attente : on
        enveloppe la résolution ET le rejet, et on répond dans les deux cas. */
     try {
-      const cible = d.action ? panneau.actions[d.action] : panneau.sections[d.section];
+      const cible = d.rapport ? panneau.rapport
+                  : d.action  ? panneau.actions[d.action]
+                              : panneau.sections[d.section];
       if (typeof cible !== 'function') {
         repondre({ ok: false, erreur: 'inconnu' });
         return;

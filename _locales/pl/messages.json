@@ -274,5 +274,23 @@
   },
   "stateNoWorker": {
     "message": "Proces w tle rozszerzenia nie odpowiada. Przeładuj rozszerzenie lub zainstaluj wersję przeznaczoną dla tej przeglądarki."
+  },
+  "btnReport": {
+    "message": "Eksportuj raport"
+  },
+  "reportSaved": {
+    "message": "Raport zapisany: $FILE$",
+    "placeholders": {
+      "file": {
+        "content": "$1",
+        "example": "cowlors-sidebar-20260905-1432.txt"
+      }
+    }
+  },
+  "reportCopied": {
+    "message": "Raport skopiowany do schowka"
+  },
+  "reportFailed": {
+    "message": "Nie udało się zapisać raportu. Użyj tse.panneau.rapport() w konsoli."
   }
 }
