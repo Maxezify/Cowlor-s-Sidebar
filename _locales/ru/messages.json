@@ -274,5 +274,23 @@
   },
   "stateNoWorker": {
     "message": "Фоновый процесс расширения не отвечает. Перезагрузите расширение или установите сборку для этого браузера."
+  },
+  "btnReport": {
+    "message": "Выгрузить отчёт"
+  },
+  "reportSaved": {
+    "message": "Отчёт сохранён: $FILE$",
+    "placeholders": {
+      "file": {
+        "content": "$1",
+        "example": "cowlors-sidebar-20260905-1432.txt"
+      }
+    }
+  },
+  "reportCopied": {
+    "message": "Отчёт скопирован в буфер обмена"
+  },
+  "reportFailed": {
+    "message": "Не удалось записать отчёт. Используйте tse.panneau.rapport() в консоли."
   }
 }

@@ -244,6 +244,127 @@ const lancer = async (action, bouton) => {
   await charger(courante);
 };
 
+const pad = (n) => String(n).padStart(2, '0');
+const horoFichier = (d) =>
+  `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`
+  + `-${pad(d.getHours())}${pad(d.getMinutes())}`;
+
+const bloc = (titre, lignes) => [`── ${titre} ${'─'.repeat(Math.max(0, 58 - titre.length))}`, ...lignes, ''];
+const paire = (cle, val) => `  ${String(cle).padEnd(22)} ${val === undefined || val === null ? '—' : val}`;
+
+const aplatir = (obj, prefixe = '') => {
+  const out = [];
+  for (const [k, v] of Object.entries(obj || {})) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) out.push(...aplatir(v, prefixe + k + '.'));
+    else out.push(paire(prefixe + k, Array.isArray(v) ? (v.join(', ') || '—') : v));
+  }
+  return out;
+};
+
+const construireRapport = (r, transport) => {
+  const m = chrome.runtime.getManifest();
+  const d = new Date();
+  const L = [
+    `Cowlor's Sidebar — rapport de diagnostic / diagnostic report`,
+    `généré / generated : ${d.toISOString()}`,
+    '',
+    `CE FICHIER NE CONTIENT AUCUNE LISTE PERSONNELLE : ni les chaînes visitées,`,
+    `ni les abonnements, ni le roster — seulement leurs COMPTES. Il porte en`,
+    `revanche tout le diagnostic technique. Relisez-le avant de l'envoyer.`,
+    '',
+    `THIS FILE CONTAINS NO PERSONAL LISTS: not the channels you visit, not your`,
+    `subscriptions, not the roster — only their COUNTS. It does carry the full`,
+    `technical diagnostic. Read it before sending it.`,
+    '',
+  ];
+
+  L.push(...bloc('ENVIRONNEMENT / ENVIRONMENT', [
+    paire('extension', `${m.version} (${m.browser_specific_settings ? 'firefox' : 'chrome'})`),
+    paire('fond / background', m.background?.service_worker ? 'service_worker'
+                             : m.background?.scripts ? 'scripts' : '—'),
+    paire('action.popup', m.action?.default_popup ?? '—'),
+    paire('permissions', (m.permissions || []).join(', ') || 'aucune / none'),
+    paire('panneau / panel UI', LOCALE),
+    paire('navigateur / browser', navigator.userAgent),
+  ]));
+
+  L.push(...bloc('TRANSPORT', [
+    paire('onglet / tab', transport.onglet),
+    paire('résultat / result', transport.ok ? 'ok' : (transport.erreur || 'échec')),
+    ...(transport.detail ? [paire('détail / detail', transport.detail)] : []),
+  ]));
+
+  if (!r) {
+    L.push('La page n\'a pas répondu : tout ce qui suit manque, et c\'est le',
+           'bloc TRANSPORT ci-dessus qui dit pourquoi.',
+           'The page did not answer: everything below is missing, and the',
+           'TRANSPORT block above says why.', '');
+    return L.join('\n');
+  }
+
+  L.push(...bloc('PAGE', aplatir(r.page)));
+  L.push(...bloc('LANGUE / LANGUAGE', aplatir(r.langue)));
+  L.push(...bloc('MODE', aplatir(r.mode)));
+  L.push(...bloc('COMPTEURS / COUNTS', aplatir(r.compteurs)));
+  L.push(...bloc('ABONNEMENTS — RELEVÉ / SUBSCRIPTIONS SWEEP', [
+    paire('horodatage', r.relevesAbonnements?.horodatage
+      ? new Date(r.relevesAbonnements.horodatage).toISOString() : 'jamais / never'),
+    paire('en attente / pending', r.relevesAbonnements?.enAttente),
+  ]));
+  L.push(...bloc('TOP CHAÎNES / TOP CHANNELS', aplatir(r.global)));
+
+  L.push(...bloc(`SONDES / PROBES (${(r.sondes || []).length})`,
+    (r.sondes || []).map(p =>
+      `  ${(p.critical ? '!' : ' ')} ${String(p.status).padEnd(7)} `
+      + `${String(p.id).padEnd(16)} ${String(p.label).padEnd(34)} ${p.detail || ''}`.trimEnd())
+      .concat(['', '  « ! » = sonde critique / critical probe'])));
+
+  const journal = (nom, entrees) => bloc(nom,
+    (entrees || []).length
+      ? entrees.map(e => `  ${String(e.t).padStart(7)} ms  ${String(e.evt).padEnd(18)} ${e.detail || ''}`.trimEnd())
+      : ['  (vide / empty)']);
+  L.push(...bloc('VERROUS DE VOILE / OVERLAY HOLDS',
+    [paire('verrous', (r.journaux?.verrous || []).join(', ') || 'aucun / none')]));
+  L.push(...journal('JOURNAL — VOILE / OVERLAY', r.journaux?.cycles));
+  L.push(...journal('JOURNAL — APERÇU / PREVIEW', r.journaux?.apercu));
+
+  return L.join('\n');
+};
+
+const noter = (texte, erreur) => {
+  const n = $('pied-note');
+  n.textContent = texte;
+  n.className = 'pied-note' + (erreur ? ' pied-note--erreur' : '');
+  n.hidden = false;
+};
+
+const exporter = async (bouton) => {
+  bouton.disabled = true;
+  $('pied-note').hidden = true;
+  const onglet = await idOnglet();
+  const r = await demander({ rapport: true });
+  const texte = construireRapport(r.ok ? r.data : null,
+    { onglet, ok: r.ok, erreur: r.erreur, detail: r.detail });
+
+  const nom = `cowlors-sidebar-${horoFichier(new Date())}.txt`;
+  try {
+    const url = URL.createObjectURL(new Blob([texte], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = nom;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    noter(T('reportSaved', nom));
+  } catch {
+    try {
+      await navigator.clipboard.writeText(texte);
+      noter(T('reportCopied'));
+    } catch {
+      noter(T('reportFailed'), true);
+    }
+  }
+  bouton.disabled = false;
+};
+
 let aConfirmer = null;
 const confirmer = (titre, texte, suite) => {
   aConfirmer = suite;
@@ -284,6 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('message-bouton').addEventListener('click', () => charger(courante));
   $('btn-rescan').addEventListener('click', () => lancer('rescan', $('btn-rescan')));
+  $('btn-rapport').addEventListener('click', () => exporter($('btn-rapport')));
   $('btn-reset').addEventListener('click', () =>
     confirmer('resetTitle', 'resetText', () => lancer('reset', $('btn-reset'))));
 

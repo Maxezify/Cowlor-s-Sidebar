@@ -226,6 +226,15 @@ html, body {
   border-top: 1px solid var(--filet); background: var(--fond-2);
 }
 .pied .bouton--danger { margin-left: auto; }
+/* La confirmation d'export, à côté des boutons. `hidden` a besoin d'être
+   redit ici comme partout où l'on déclare un display — cf. .message. */
+.pied-note[hidden] { display: none; }
+.pied-note {
+  display: inline-block; min-width: 0;
+  font-size: 11px; color: var(--vert);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pied-note--erreur { color: var(--rouge); }
 
 /* ── Confirmation ────────────────────────────────────────────────────────── */
 .voile {

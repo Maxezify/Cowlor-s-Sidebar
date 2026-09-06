@@ -274,5 +274,23 @@
   },
   "stateNoWorker": {
     "message": "Der Hintergrunddienst der Erweiterung antwortet nicht. Lade die Erweiterung neu oder installiere die für diesen Browser gedachte Version."
+  },
+  "btnReport": {
+    "message": "Bericht exportieren"
+  },
+  "reportSaved": {
+    "message": "Bericht gespeichert: $FILE$",
+    "placeholders": {
+      "file": {
+        "content": "$1",
+        "example": "cowlors-sidebar-20260905-1432.txt"
+      }
+    }
+  },
+  "reportCopied": {
+    "message": "Bericht in die Zwischenablage kopiert"
+  },
+  "reportFailed": {
+    "message": "Bericht konnte nicht geschrieben werden. Nutze tse.panneau.rapport() in der Konsole."
   }
 }
