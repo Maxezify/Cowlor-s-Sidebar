@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 578 Ko | 268 Ko | 2 754 JS + 77 CSS → **2** |
+| `content.js` | 584 Ko | 271 Ko | 2 762 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 17 Ko | 11 Ko | 15 → **0** |
+| `panneau.js` | 25 Ko | 16 Ko | 23 → **0** |
 | `bridge.js` | 7 Ko | 2 Ko | 13 → **0** |
 | `background.js` | 5 Ko | 2 Ko | 13 → **0** |
-| **les cinq** | **728 Ko** | **382 Ko** | **−47 %** |
+| **les cinq** | **745 Ko** | **390 Ko** | **−48 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -355,7 +355,7 @@ qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
 d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 754
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 762
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches
@@ -2187,7 +2187,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 70 scénarios, 611 assertions |
+| `npm test` | le harnais Playwright : 70 scénarios, 617 assertions |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
 vient de compter, et échoue si le tableau ment. Un banc dont on annonce la

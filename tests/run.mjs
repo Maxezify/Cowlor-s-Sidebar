@@ -6440,10 +6440,39 @@ titre('70. Panneau — la page rendue, mesurée');
         { categories: 1, actif: true }),
     };
     window.__envois = [];
+    /* Un rapport de fixture qui porte des VALEURS RECONNAISSABLES : c'est ce
+       qui permet d'affirmer ensuite que le fichier les contient — ou, pour les
+       listes personnelles, qu'il ne les contient pas. */
+    window.__rapport = {
+      genere: Date.now(),
+      page: { chemin: '/domingo', cachee: false, sidebar: true, repliee: false,
+              voile: false, cartes: 42, fabriquees: 3, decorees: 39, liens: 44 },
+      langue: { interface: 'fr', page: 'fr' },
+      mode: { global: false },
+      sondes: [
+        { id: 'sidebarRoot', label: '#side-nav', critical: true, status: 'ok', detail: '' },
+        { id: 'followedSection', label: 'DOM.followedSelector', critical: true,
+          status: 'broken', detail: 'section introuvable' },
+      ],
+      compteurs: { visites: 137, abonnements: 12, abonnes: 5, roster: 88, mesures: 6,
+                   bascules: 1, cache: 40 },
+      relevesAbonnements: { horodatage: 0, enAttente: false },
+      global: { enabled: false, complete: false },
+      journaux: { verrous: [], cycles: [{ t: 12, evt: 'depart', detail: 'boot' }], apercu: [] },
+    };
     window.chrome = {
       i18n: { getMessage: T, getUILanguage: () => 'fr' },
       tabs: { query: () => Promise.resolve([{ id: 1 }]) },
       runtime: {
+        /* Le manifeste, tel que le rapport le lit. Sa forme compte autant que
+           son contenu : c'est elle qui dit « chrome » ou « firefox » et quelle
+           écriture du fond de tâche est déclarée — les deux premières lignes
+           qu'on regarde quand un panneau ne répond pas. */
+        getManifest: () => ({
+          version: '9.9.9',
+          background: { service_worker: 'background.js' },
+          action: { default_popup: 'panneau.html' },
+        }),
         sendMessage: (m) => {
           window.__envois.push(m);
           /* Panne simulée : l'envoi lui-même REJETTE. C'est ce que fait Chrome
@@ -6454,6 +6483,7 @@ titre('70. Panneau — la page rendue, mesurée');
           if (window.__panne === 'fond') {
             return Promise.reject(new Error('Could not establish connection. Receiving end does not exist.'));
           }
+          if (m.rapport) return Promise.resolve({ ok: true, data: window.__rapport });
           if (m.action) return Promise.resolve({ ok: true, data: { fait: true } });
           const f = REPONSES[m.section];
           return Promise.resolve(f ? f() : { ok: false, erreur: 'inconnu' });
@@ -6626,6 +6656,84 @@ titre('70. Panneau — la page rendue, mesurée');
      voir la différence — le message affiché, lui, est identique. */
   ok('un échec de transport est réessayé plusieurs fois, pas une seule',
      panne.tentatives >= 4, `${panne.tentatives} tentatives pour une échelle de 3 délais`);
+
+  /* ── LE RAPPORT DE DIAGNOSTIC ──────────────────────────────────────────
+     On n'attend pas le téléchargement : une popup de test ne sait pas où
+     écrire, et ce n'est pas le sujet. Ce qui compte est le TEXTE construit —
+     on intercepte donc le Blob au moment où il est fabriqué.
+
+     Deux familles d'assertions, et la seconde est la seule qui protège une
+     PROMESSE plutôt qu'un comportement. Le rapport est la seule chose de ce
+     produit faite pour quitter la machine : si un jour quelqu'un ajoute la
+     liste des abonnements « parce que ça peut servir », rien d'autre ne le
+     dira. */
+  const rapport = await page.evaluate(async () => {
+    window.__panne = null;
+    let capture = null;
+    const vraiBlob = window.Blob;
+    window.Blob = function (parts, opts) { capture = String(parts[0]); return new vraiBlob(parts, opts); };
+    // Le clic ouvrirait un téléchargement : on neutralise le seul geste qui
+    // sort du bac à sable, et on garde tout le reste du chemin.
+    const vraiClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {};
+    try {
+      document.getElementById('btn-rapport').click();
+      for (let i = 0; i < 40 && capture === null; i++) await new Promise(r => setTimeout(r, 50));
+    } finally { window.Blob = vraiBlob; HTMLAnchorElement.prototype.click = vraiClick; }
+    return { texte: capture, note: document.getElementById('pied-note').textContent,
+             noteVisible: !document.getElementById('pied-note').hidden };
+  });
+
+  ok('le bouton écrit un rapport, et le confirme',
+     typeof rapport.texte === 'string' && rapport.texte.length > 400 && rapport.noteVisible,
+     JSON.stringify({ taille: rapport.texte && rapport.texte.length, note: rapport.note }));
+
+  /* Null-safe : quand la construction échoue, les assertions qui suivent
+     doivent ÉCHOUER, pas lever. Une exception interrompt le scénario entier et
+     emporte avec elle tout ce qui restait à vérifier — le banc dit alors
+     beaucoup moins que ce qu'il sait. */
+  const contient = (x) => typeof rapport.texte === 'string' && rapport.texte.includes(x);
+  ok('le rapport porte l\'environnement, le transport et les sondes',
+     contient('ENVIRONNEMENT') && contient('TRANSPORT') && contient('SONDES')
+     && contient('followedSection') && contient('broken'),
+     JSON.stringify((rapport.texte || '').slice(0, 120)));
+  ok('…les compteurs et l\'état de la page, avec leurs valeurs',
+     contient('137') && contient('/domingo') && contient('42'),
+     'visites 137, chemin /domingo, 42 cartes');
+
+  /* LA PROMESSE, TENUE PAR UN CONTRÔLE. Les logins de la fixture n'ont AUCUNE
+     raison d'apparaître : le rapport ne transporte que des comptes. Si l'un
+     d'eux s'y trouve, c'est qu'une liste personnelle a été ajoutée — et c'est
+     exactement ce que cette assertion existe pour interdire. */
+  const logins = ['alpha', 'beta', 'gamma', 'delta'];
+  const fuites = logins.filter(l => contient(l));
+  ok('le rapport ne contient AUCUNE liste personnelle — seulement des comptes',
+     fuites.length === 0, `fuites : ${JSON.stringify(fuites)}`);
+  ok('…et il le dit lui-même, dans les deux langues, en tête de fichier',
+     contient('AUCUNE LISTE PERSONNELLE') && contient('NO PERSONAL LISTS'));
+
+  /* IL DOIT MARCHER QUAND RIEN NE MARCHE — c'est son seul moment utile. Sans
+     la page, le rapport doit tout de même porter l'environnement et dire
+     pourquoi le reste manque. */
+  const rapportSansPage = await page.evaluate(async () => {
+    window.__panne = 'fond';
+    let capture = null;
+    const vraiBlob = window.Blob;
+    window.Blob = function (parts, opts) { capture = String(parts[0]); return new vraiBlob(parts, opts); };
+    const vraiClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {};
+    try {
+      document.getElementById('btn-rapport').click();
+      for (let i = 0; i < 120 && capture === null; i++) await new Promise(r => setTimeout(r, 50));
+    } finally { window.Blob = vraiBlob; HTMLAnchorElement.prototype.click = vraiClick; window.__panne = null; }
+    return capture;
+  });
+  ok('sans réponse de la page, le rapport existe quand même et dit pourquoi',
+     typeof rapportSansPage === 'string'
+     && /ENVIRONNEMENT/.test(rapportSansPage)
+     && /Receiving end does not exist/.test(rapportSansPage)
+     && /did not answer/.test(rapportSansPage),
+     JSON.stringify((rapportSansPage || '').slice(-200)));
 
   await page.close();
 }
