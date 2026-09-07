@@ -6459,6 +6459,11 @@ titre('70. Panneau — la page rendue, mesurée');
       relevesAbonnements: { horodatage: 0, enAttente: false },
       global: { enabled: false, complete: false },
       journaux: { verrous: [], cycles: [{ t: 12, evt: 'depart', detail: 'boot' }], apercu: [] },
+      reseau: { pauseGqlMs: 12000 },
+      retards: { medianeMs: 90000, p90Ms: 210000 },
+      ancienneteMs: 43000,
+      erreurs: [{ t: 5120, source: 'stockage', message: 'visites : QuotaExceededError',
+                  detail: '', n: 3 }],
     };
     window.chrome = {
       i18n: { getMessage: T, getUILanguage: () => 'fr' },
@@ -6701,6 +6706,17 @@ titre('70. Panneau — la page rendue, mesurée');
      contient('137') && contient('/domingo') && contient('42'),
      'visites 137, chemin /domingo, 42 cartes');
 
+  /* LE BLOC DES ERREURS, qui n'existait pas et qui était le plus grand trou du
+     rapport : l'extension n'en consignait aucune, donc il n'en portait aucune.
+     On vérifie qu'il rend l'entrée ET son compteur de répétitions — une erreur
+     vue trois fois n'est pas la même information qu'une erreur vue une fois. */
+  ok('le rapport porte le journal d\'erreurs, avec le compte des répétitions',
+     contient('ERREURS') && contient('QuotaExceededError') && contient('×3'),
+     JSON.stringify((vue.texte || '').slice(0, 60)));
+  ok('…l\'état du réseau et les quantiles de retard',
+     contient('pauseGqlMs') && contient('12000') && contient('210000'),
+     'pause GraphQL et p90');
+
   /* LA PROMESSE, TENUE PAR UN CONTRÔLE. Les logins de la fixture n'ont AUCUNE
      raison d'apparaître : le rapport ne transporte que des comptes. Si l'un
      d'eux s'y trouve, c'est qu'une liste personnelle a été ajoutée — et c'est
@@ -6924,6 +6940,136 @@ titre('71. Diagnostic — il doit crier au bon moment, et se taire au bon moment
      memoire.premier === 1 && memoire.repetitions === 0, JSON.stringify(memoire));
   ok('…et se réarme une fois l\'incident résolu, pour la panne suivante',
      memoire.rearme === 1, JSON.stringify(memoire));
+
+  await page.close();
+}
+
+// ═════════ 72. Le journal d'erreurs ═════════
+titre('72. Erreurs — ce que le rapport ne pouvait pas dire');
+{
+  /* CE MODULE N'EXISTAIT PAS, et son absence était le plus grand trou du
+     rapport de diagnostic. L'extension ne consignait AUCUNE erreur : ni
+     window.onerror, ni un seul console.error, et vingt-quatre `catch {}`
+     muets. Un utilisateur dont l'historique se vide à chaque rechargement —
+     quota de stockage dépassé — n'avait aucune trace de la cause, et personne
+     ne pouvait la lui demander.
+
+     LES DEUX DIRECTIONS COMPTENT AUTANT, et la seconde davantage. Le monde
+     MAIN est PARTAGÉ avec le JavaScript de Twitch : un journal sans filtre se
+     remplirait de centaines d'exceptions qui ne nous concernent pas, et
+     chasserait les nôtres de sa fenêtre. Un journal noyé ne vaut pas mieux
+     qu'un journal absent — il coûte seulement plus cher à lire. */
+  const page = await browser.newPage();
+  page.on('pageerror', () => {});   // on PROVOQUE des erreurs ici : elles sont l'objet du test
+  await page.goto(URL_PAGE);
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = { alpha: { id: 'a', createdAt: h, viewers: 1000, game: 'Art', tags: [] } };
+    window.__addCard('alpha', 'Art', '1 k');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+
+  const journal = () => page.evaluate(() => window.tse.panneau.rapport().erreurs);
+
+  const vierge = await journal();
+  ok('sur une page saine, le journal est vide — et c\'est une information',
+     Array.isArray(vierge) && vierge.length === 0, JSON.stringify(vierge).slice(0, 160));
+
+  /* ── LE QUOTA DE STOCKAGE ──────────────────────────────────────────────
+     Le cas qui a motivé ce module : localStorage.setItem lève, le `catch`
+     avale, et l'utilisateur voit son historique disparaître à chaque
+     rechargement sans que rien n'explique pourquoi.
+
+     PREMIÈRE ÉCRITURE DE CE TEST, il appelait tse.reset() en boucle et
+     n'obtenait rien : reset() n'écrit pas, il appelle removeItem. Les points
+     instrumentés sont les ÉCRITURES. On passe donc par le roster, qui se
+     sérialise sur le tour d'entretien — le seul chemin qui produise vraiment
+     un setItem sans rien simuler d'autre. */
+  const quota = await page.evaluate(async () => {
+    const vrai = Storage.prototype.setItem;
+    Storage.prototype.setItem = function () {
+      const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e;
+    };
+    try {
+      // Chaque carte neuve salit le roster ; le tour d'entretien le sérialise,
+      // et l'écriture échoue. Trois fois : la MÊME panne, trois fois.
+      for (const nom of ['gamma', 'delta', 'epsilon']) {
+        window.__fx[nom] = { id: nom, createdAt: new Date(Date.now() - 600_000).toISOString(),
+                             viewers: 100, game: 'Art', tags: [] };
+        window.__addCard(nom, 'Art', '100');
+        await new Promise(r => setTimeout(r, 1500));   // > MAINTENANCE_TICK accéléré
+      }
+    } finally { Storage.prototype.setItem = vrai; }
+    return window.tse.panneau.rapport().erreurs;
+  });
+  const stockage = (quota || []).filter(e => e.source === 'stockage');
+  ok('un quota de stockage dépassé laisse enfin une trace',
+     stockage.length > 0 && /Quota/.test(stockage[0].message),
+     JSON.stringify(quota).slice(0, 220));
+  ok('…et la même panne répétée est COMPTÉE, pas empilée',
+     stockage.length === 1 && stockage[0].n > 1,
+     JSON.stringify(stockage.map(e => ({ m: e.message, n: e.n }))));
+
+  /* ── LE FILTRE, dans les deux sens ─────────────────────────────────────
+     Une exception levée par un script qui n'est PAS le nôtre ne doit pas
+     entrer. C'est ce qui sépare un journal lisible d'un déversoir : le monde
+     MAIN est partagé, et Twitch y lève des exceptions par dizaines. */
+  const avant = (await journal()).length;
+  await page.evaluate(() => {
+    const sc = document.createElement('script');
+    sc.textContent = 'setTimeout(function(){ throw new Error("erreur de Twitch"); }, 0);';
+    document.head.appendChild(sc);
+  });
+  await wait(page, 300);
+  const apresTwitch = await journal();
+  ok('une exception venue du JavaScript de Twitch n\'entre PAS dans le journal',
+     apresTwitch.length === avant && !apresTwitch.some(e => /Twitch/.test(e.message)),
+     JSON.stringify(apresTwitch.map(e => e.message)).slice(0, 200));
+
+  /* ── …ET LA NÔTRE, ELLE, DOIT ENTRER ───────────────────────────────────
+     L'autre moitié du filtre, et la plus facile à casser sans s'en rendre
+     compte : un filtre trop serré ne retiendrait plus rien, et le journal
+     serait vide pour une raison qu'aucun test ne dirait.
+
+     ON NE PASSE PAS PAR window.onerror, ET C'EST TOUT L'OBJET DE CE BLOC.
+     Mesuré ici même : une exception de notre script arrive au gestionnaire
+     `error` sous la forme « Script error. », filename et pile VIDES — masquage
+     cross-origin, qui vaut aussi en production puisque notre code vient de
+     chrome-extension:// et la page de https://www.twitch.tv. Le filtre par URL
+     ne peut donc pas la reconnaître.
+
+     C'est la GARDE qui la rattrape : elle enveloppe nos points d'entrée et ne
+     dépend d'aucune origine. On la déclenche par le pont, dont une demande
+     inconnue est un défaut réel — panneau et page sont livrés ensemble. */
+  const nôtre = await page.evaluate(() => new Promise((res) => {
+    window.postMessage({ tse: 'tse-panneau-req', id: 4242, section: 'ça-nexiste-pas' }, '*');
+    setTimeout(() => res(window.tse.panneau.rapport().erreurs), 200);
+  }));
+  ok('…mais un défaut venu de NOTRE code y entre, sans dépendre de l\'origine',
+     nôtre.some(e => e.source === 'panneau' && /ça-nexiste-pas/.test(e.message)),
+     JSON.stringify(nôtre.map(e => `${e.source}:${e.message}`)).slice(0, 220));
+
+  /* ── LE JOURNAL EST BORNÉ ──────────────────────────────────────────────
+     Quarante entrées au plus. Sans borne, une extension laissée ouverte une
+     journée finirait par tenir en mémoire tout ce qui a jamais mal tourné.
+
+     Les messages sont DISTINCTS à dessein : le dédoublonnage masquerait
+     autrement ce qu'on mesure. Et on exige que le journal soit PLEIN — une
+     borne vérifiée sur un journal vide ne vérifie rien, et c'est exactement ce
+     que faisait la première version de ce test : elle passait sur zéro
+     entrée. */
+  const borne = await page.evaluate(() => new Promise((res) => {
+    for (let i = 0; i < 80; i++) {
+      window.postMessage({ tse: 'tse-panneau-req', id: 5000 + i, section: 'inconnue-' + i }, '*');
+    }
+    setTimeout(() => res(window.tse.panneau.rapport().erreurs), 400);
+  }));
+  ok('le journal est borné, et il est bien PLEIN quand on le mesure',
+     borne.length === 40, `${borne.length} entrées après 80 défauts distincts`);
+  ok('…et ce sont les PLUS RÉCENTES qui restent',
+     /inconnue-79/.test(borne[borne.length - 1].message)
+     && !borne.some(e => /inconnue-0\b/.test(e.message)),
+     JSON.stringify([borne[0].message, borne[borne.length - 1].message]));
 
   await page.close();
 }

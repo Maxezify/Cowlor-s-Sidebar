@@ -386,6 +386,7 @@ const construireRapport = (r, transport) => {
 
   L.push(...bloc('ENVIRONNEMENT / ENVIRONMENT', [
     paire('extension', `${m.version} (${m.browser_specific_settings ? 'firefox' : 'chrome'})`),
+    paire('page ouverte depuis', r ? `${Math.round((r.ancienneteMs || 0) / 1000)} s` : '—'),
     paire('fond / background', m.background?.service_worker ? 'service_worker'
                              : m.background?.scripts ? 'scripts' : '—'),
     paire('action.popup', m.action?.default_popup ?? '—'),
@@ -419,7 +420,23 @@ const construireRapport = (r, transport) => {
       ? new Date(r.relevesAbonnements.horodatage).toISOString() : 'jamais / never'),
     paire('en attente / pending', r.relevesAbonnements?.enAttente),
   ]));
+  L.push(...bloc('RÉSEAU / NETWORK', [
+    ...aplatir(r.reseau),
+    paire('retards.medianeMs', r.retards?.medianeMs),
+    paire('retards.p90Ms', r.retards?.p90Ms),
+  ]));
   L.push(...bloc('TOP CHAÎNES / TOP CHANNELS', aplatir(r.global)));
+
+  /* LES ERREURS EN PREMIER PARMI LES JOURNAUX, et jamais repliées : c'est la
+     section qu'on cherche quand on ouvre un rapport. « (aucune) » est une
+     information à part entière — elle dit que le problème n'est pas une
+     exception, ce qui écarte d'emblée toute une famille de causes. */
+  L.push(...bloc(`ERREURS / ERRORS (${(r.erreurs || []).length})`,
+    (r.erreurs || []).length
+      ? r.erreurs.map(e =>
+          `  ${String(e.t).padStart(8)} ms  ${String(e.source).padEnd(10)}`
+          + `${e.n > 1 ? ` ×${e.n}` : '   '}  ${e.message}${e.detail ? '  — ' + e.detail : ''}`)
+      : ['  (aucune / none)']));
 
   /* Les sondes en tableau aligné : c'est la partie qu'on lit en premier quand
      quelque chose ne va pas, et une colonne qui glisse la rend illisible. */
