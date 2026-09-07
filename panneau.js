@@ -407,13 +407,29 @@ const aplatir = (obj, prefixe = '') => {
    elle n'a pas fini de démarrer, elle en renvoie quand même ce qu'elle a — et
    c'est alors le seul contenu du rapport qui explique quoi que ce soit. Deux
    rédactions du même bloc auraient divergé au premier champ ajouté. */
-const blocErreurs = (liste, origine) => bloc(
+const blocErreurs = (liste, origine, bilan) => bloc(
   `ERREURS / ERRORS (${(liste || []).length})${origine ? ' — ' + origine : ''}`,
-  (liste || []).length
-    ? liste.map(e =>
-        `  ${String(e.t).padStart(8)} ms  ${String(e.source).padEnd(10)}`
-        + `${e.n > 1 ? ` ×${e.n}` : '   '}  ${e.message}${e.detail ? '  — ' + e.detail : ''}`)
-    : ['  (aucune / none)']);
+  [
+    /* LE BILAN EN TÊTE DU BLOC, avant les lignes. Le journal est borné à
+       quarante PROBLÈMES DISTINCTS ; ces compteurs-là, eux, ne sont jamais
+       évincés. Une panne réseau qui produit trois cents lignes n'occupe
+       qu'une entrée du journal — mais le total dit qu'elle a eu lieu trois
+       cents fois, et la dernière apparition dit si elle dure encore. C'est
+       la différence entre « il y a eu un incident » et « il est en cours ». */
+    ...(bilan && bilan.total
+      ? [`  total consigné / total recorded : ${bilan.total}`,
+         ...bilan.sources.map(c =>
+           `    ${String(c.source).padEnd(12)} ${String(c.n).padStart(5)}`
+           + `   1re ${c.premiere} ms · dernière ${c.derniere} ms`),
+         '']
+      : []),
+    ...((liste || []).length
+      ? liste.map(e =>
+          `  ${String(e.t).padStart(8)} ms  ${String(e.source).padEnd(10)}`
+          + `${e.n > 1 ? ` ×${e.n}` : '   '}  ${e.message}${e.detail ? '  — ' + e.detail : ''}`
+          + (e.dernier && e.n > 1 ? `  (dernière : ${e.dernier} ms)` : ''))
+      : ['  (aucune / none)']),
+  ]);
 
 const construireRapport = (r, transport, fond) => {
   const m = chrome.runtime.getManifest();
@@ -438,6 +454,13 @@ const construireRapport = (r, transport, fond) => {
     paire('démarrage / boot', r?.demarrage
       ? `${r.demarrage.etape} (${r.demarrage.dureeMs} ms)`
       : (transport.partiel ? `${transport.partiel.etape} — INACHEVÉ / UNFINISHED` : '—')),
+    /* L'ÉCHELLE, et pas seulement le total. « pret en 812 ms » ne dit pas où
+       ces 812 ms sont passées ; le palier qui saute d'un coup nomme le
+       coupable sans qu'on ait à le deviner. Six entrées, une ligne. */
+    ...(r?.demarrage?.etapes?.length
+      ? [paire('étapes / stages',
+          r.demarrage.etapes.map(e => `${e.etape} ${e.ms}`).join(' · ') + ' ms')]
+      : []),
     paire('fond / background', m.background?.service_worker ? 'service_worker'
                              : m.background?.scripts ? 'scripts' : '—'),
     paire('action.popup', m.action?.default_popup ?? '—'),
@@ -482,7 +505,8 @@ const construireRapport = (r, transport, fond) => {
       paire('page — cachée / hidden', obs.cachee),
       paire('pont / bridge', `${obs.pont}, ${obs.reprises} reprise(s)`),
       paire('page — âge / age', `${obs.pageMs} ms`),
-    ] : [paire('observations du pont', '— (le pont n\'a pas répondu)')]),
+    ] : [paire('observations du pont',
+               'aucune — le pont lui-même n\'a rien rendu / bridge silent')]),
     ...(transport.partiel ? [
       paire('page — étape / stage', transport.partiel.etape),
       paire('page — depuis / since', `${transport.partiel.depuisMs} ms`),
@@ -522,7 +546,7 @@ const construireRapport = (r, transport, fond) => {
      section qu'on cherche quand on ouvre un rapport. « (aucune) » est une
      information à part entière — elle dit que le problème n'est pas une
      exception, ce qui écarte d'emblée toute une famille de causes. */
-  L.push(...blocErreurs(r.erreurs));
+  L.push(...blocErreurs(r.erreurs, '', r.bilanErreurs));
 
   /* Les sondes en tableau aligné : c'est la partie qu'on lit en premier quand
      quelque chose ne va pas, et une colonne qui glisse la rend illisible. */

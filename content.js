@@ -411,7 +411,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   const TSE_PANNEAU_REQ = 'tse-panneau-req';
   const TSE_PANNEAU_RES = 'tse-panneau-res';
 
-  const demarrage = { t: Date.now(), etape: 'entree' };
+  const demarrage = { t: Date.now(), etape: 'entree', etapes: [] };
   /* Deux points d'accroche remplis plus bas. Ils ne peuvent pas être des
      références directes : `erreurs` et `panneau` sont des `const` déclarées
      bien après, et les lire avant leur initialisation lèverait une
@@ -422,6 +422,14 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const jalon = (nom) => {
     demarrage.etape = nom;
+    /* L'INSTANT DE CHAQUE ÉTAPE, ET NON LA DURÉE LUE À L'ARRIVÉE. La
+       première rédaction calculait `Date.now() - demarrage.t` au moment du
+       rapport : sur une page ouverte depuis 44 s, elle affichait
+       « pret (44303 ms) ». Ce n'était pas la durée du démarrage, c'était
+       l'âge de la page — déjà donné deux lignes plus haut. Un champ qui a
+       l'air d'une mesure et n'en est pas est pire qu'un champ absent : on
+       le lit, et on en conclut quelque chose de faux. */
+    demarrage.etapes.push({ etape: nom, ms: Date.now() - demarrage.t });
     try { document.documentElement.setAttribute('data-tse-boot', nom); }
     catch { /* pas de documentElement : document exotique, rien à marquer */ }
   };
@@ -1370,16 +1378,46 @@ const TSE_GATE_MAX_CLICKS = 5;
     const MOI = (typeof document !== 'undefined' && document.currentScript
                  && document.currentScript.src) || '';
 
+    /* ── LES COMPTEURS SURVIVENT À L'ÉVICTION, et le journal non ──────────
+       Quarante entrées, c'est quarante lignes à lire. Ce n'est pas quarante
+       incidents : une panne réseau en produit des centaines, et si elle
+       chassait tout le reste, le rapport ne montrerait plus que la dernière
+       famille d'erreurs — en donnant l'impression qu'il n'y en a jamais eu
+       d'autre. Un compteur par source, jamais évincé, dit ce que la fenêtre
+       a laissé tomber. C'est deux entiers par famille ; ça ne se discute
+       pas contre le fait de savoir qu'il s'est passé quelque chose. */
+    const compteurs = new Map();      // source → { n, premiere, derniere }
+    let total = 0;
+
     const noter = (source, message, detail) => {
       const t = Math.round(performance.now());
       const texte = String(message == null ? '(sans message)' : message).slice(0, 300);
-      const dernier = liste[liste.length - 1];
-      if (dernier && dernier.source === source && dernier.message === texte) {
-        dernier.n++; dernier.dernier = t; return;
-      }
-      liste.push({ t, source, message: texte, detail: detail ? String(detail).slice(0, 200) : '', n: 1 });
+      total++;
+      const c = compteurs.get(source);
+      if (c) { c.n++; c.derniere = t; }
+      else compteurs.set(source, { n: 1, premiere: t, derniere: t });
+
+      /* DÉDOUBLONNAGE SUR TOUTE LA LISTE, et non sur la seule dernière
+         entrée. Deux défauts qui alternent — un échec réseau et le repli qui
+         le suit — se réinsèrent l'un l'autre indéfiniment quand on ne compare
+         qu'au précédent, et vident la fenêtre en quelques secondes. Vu sur le
+         banc, pas déduit. La liste porte donc quarante PROBLÈMES DISTINCTS,
+         chacun avec sa première et sa dernière apparition. */
+      const vu = liste.find(e => e.source === source && e.message === texte);
+      if (vu) { vu.n++; vu.dernier = t; return; }
+      liste.push({ t, source, message: texte,
+                   detail: detail ? String(detail).slice(0, 200) : '', n: 1 });
       if (liste.length > MAX) liste.shift();
     };
+
+    /* Les compteurs, mis à plat pour le rapport. Triés par volume : c'est la
+       famille la plus bruyante qu'on cherche d'abord. */
+    const bilan = () => ({
+      total,
+      sources: [...compteurs.entries()]
+        .map(([source, c]) => ({ source, ...c }))
+        .sort((a, b) => b.n - a.n),
+    });
 
     const nous = (pile, fichier) => {
       const ou = String(pile || '') + ' ' + String(fichier || '');
@@ -1424,7 +1462,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       catch (e) { noter('interne', `${nom} : ${(e && e.message) || e}`); throw e; }
     };
 
-    return { noter, garde, tout: () => liste.slice() };
+    return { noter, garde, tout: () => liste.slice(), bilan };
   })();
 
   /* Le pont posé plus haut peut désormais servir le journal, même s'il ne
@@ -1433,6 +1471,18 @@ const TSE_GATE_MAX_CLICKS = 5;
      quand le démarrage échoue. */
   journalErreurs = erreurs.tout;
   jalon('journal');
+
+  /* ── EFFACER, ET SAVOIR QUAND ÇA N'A PAS EFFACÉ ──────────────────────────
+     Six `try { localStorage.removeItem(…) } catch {}` identiques, tous muets.
+     C'est le chemin de `tse.reset()` et des boutons du panneau : quand il
+     échoue — navigation privée, stockage plein, profil verrouillé —
+     l'utilisateur voit ses données revenir au rechargement et l'extension
+     n'a rien à lui dire. « J'ai effacé et ça revient » est une plainte qu'on
+     ne peut pas instruire sans cette ligne. */
+  const oublier = (cle, quoi) => {
+    try { localStorage.removeItem(cle); }
+    catch (e) { erreurs.noter('stockage', `effacement ${quoi} : ` + ((e && e.name) || e)); }
+  };
 
   /* Re-évalue la langue et met à jour S si elle a changé.
    * À appeler en début de chaque scan ; coût négligeable. */
@@ -3143,9 +3193,33 @@ const TSE_GATE_MAX_CLICKS = 5;
      Lu à CHAQUE appel, et non figé à la construction : refreshLanguage() peut
      changer LANG en cours de session, et le lot suivant doit repartir dans la
      nouvelle langue. */
+  /* ── LE SEUL POINT DE PASSAGE DU RÉSEAU, DONC LE SEUL À INSTRUMENTER ─────
+     Tout ce que l'extension demande à Twitch passe par ici. La première
+     rédaction repliait CINQ échecs très différents sur une même sentinelle
+     muette : un 429 (on tape trop vite), un 5xx (Twitch est en panne), un
+     abandon au bout de GQL_TIMEOUT (réseau lent), un `fetch` qui rejette
+     (hors ligne, bloqueur, extension concurrente) et un corps illisible.
+
+     Ils ne se réparent pas de la même façon, et jusqu'ici un rapport les
+     montrait tous sous la forme d'un cache vide, sans un mot sur la cause.
+     C'est LA panne la plus probable d'une extension dont tout l'affichage
+     dépend d'une API tierce, et c'était l'angle mort le plus large.
+
+     Le comportement, lui, ne change pas d'un iota : la sentinelle reste la
+     même, les appelants ne voient aucune différence. On nomme, on compte, on
+     rend exactement ce qu'on rendait. */
+  const reseau = { appels: 0, echecs: 0, dernierEchec: 0, dernierSucces: 0 };
+  const echecReseau = (quoi, detail) => {
+    reseau.echecs++;
+    reseau.dernierEchec = Date.now();
+    erreurs.noter('gql', quoi, detail);
+    return NETWORK_ERROR;
+  };
+
   const post = (payload) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), CFG.GQL_TIMEOUT);
+    reseau.appels++;
     return fetch(CFG.GQL_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Client-ID': CFG.CLIENT_ID,
@@ -3154,11 +3228,44 @@ const TSE_GATE_MAX_CLICKS = 5;
       credentials: 'omit',
       signal: controller.signal
     })
-      .then(r => {
-        if (!r.ok) return NETWORK_ERROR;
-        return r.json().catch(() => NETWORK_ERROR);
-      })
-      .catch(() => NETWORK_ERROR)
+      /* Deux arguments à `then` plutôt qu'un `.catch` en aval : le second ne
+         voit QUE le rejet de fetch. Un `.catch` terminal attraperait aussi ce
+         qui casse dans le premier, et compterait deux fois le même échec sous
+         le mauvais nom. */
+      .then(
+        (r) => {
+          if (!r.ok) {
+            /* Le statut est recopié tel quel. 429 dit « on tape trop vite »
+               et se répare en ralentissant ; 401/403 dit que la requête
+               anonyme n'est plus acceptée ; 5xx n'est pas de notre fait et
+               n'appelle qu'à attendre. Trois conclusions opposées, une seule
+               ligne pour les distinguer. */
+            return echecReseau(`HTTP ${r.status}`, r.statusText || '');
+          }
+          return r.json().then(
+            (j) => {
+              reseau.dernierSucces = Date.now();
+              /* 200 AVEC UN CORPS D'ERREURS. GraphQL répond volontiers « tout
+                 va bien » en HTTP et glisse ses refus dans le corps — requête
+                 persistée retirée, champ renommé. Le cache reste alors vide
+                 sans le moindre signe côté transport. On NE CHANGE RIEN au
+                 flux : les appelants savent déjà ignorer une tranche
+                 incomplète. On l'écrit, c'est tout. */
+              const lots = Array.isArray(j) ? j : [j];
+              const fautifs = lots.filter(o => o && Array.isArray(o.errors) && o.errors.length);
+              if (fautifs.length) {
+                erreurs.noter('gql', 'réponse 200 avec erreurs GraphQL',
+                  String(fautifs[0].errors[0]?.message || '').slice(0, 120));
+              }
+              return j;
+            },
+            () => echecReseau('corps illisible (JSON)', ''));
+        },
+        (e) => echecReseau(
+          e && e.name === 'AbortError'
+            ? `abandon après ${CFG.GQL_TIMEOUT} ms`
+            : 'échec de fetch',
+          (e && (e.name || e.message)) || ''))
       .finally(() => clearTimeout(timer));
   };
 
@@ -4639,7 +4746,13 @@ const TSE_GATE_MAX_CLICKS = 5;
           if (cleaned.length) this.map.set(login, cleaned);
         }
         this.prune(); // borne le nombre de chaînes au chargement
-      } catch { /* localStorage corrompu / quota / privacy mode → on ignore */ }
+      } catch (e) {
+        /* UNE LECTURE QUI ÉCHOUE, C'EST L'HISTORIQUE PERDU. L'écriture était
+           consignée, celle-ci non — et c'est pourtant elle qui explique une
+           mémoire vide au rechargement : JSON corrompu par une écriture
+           interrompue, quota, ou stockage refusé en navigation privée. */
+        erreurs.noter('stockage', 'lecture visites : ' + ((e && e.name) || e));
+      }
     },
 
     // Borne le nombre de chaînes suivies à VISIT_MAX_LOGINS, en gardant celles
@@ -4754,7 +4867,9 @@ const TSE_GATE_MAX_CLICKS = 5;
           this.map.set(login, e);
         }
         this.prune();
-      } catch { /* stockage corrompu / indisponible → on ignore */ }
+      } catch (e) {
+        erreurs.noter('stockage', 'lecture abonnements : ' + ((e && e.name) || e));
+      }
     },
 
     save() {
@@ -4912,15 +5027,15 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     clear() {
       this.map.clear();
-      try { localStorage.removeItem(CFG.SUBS_STORAGE_KEY); } catch {}
+      oublier(CFG.SUBS_STORAGE_KEY, 'abonnements');
       // L'horodatage du relevé complet part AUSSI. Le garder revenait à
       // effacer les abonnements puis à s'interdire d'aller les rechercher
       // pendant six heures — un tse.reset() qui laisse la sidebar sans
       // abonnements jusqu'au lendemain n'est pas une remise à zéro.
-      try { localStorage.removeItem(CFG.SUBS_PAGE_STAMP_KEY); } catch {}
+      oublier(CFG.SUBS_PAGE_STAMP_KEY, 'horodatage du relevé');
       // Et l'étiquette apprise : elle vient de la même lecture, elle doit
       // repartir avec elle.
-      try { localStorage.removeItem(CFG.SUBS_LABEL_KEY); } catch {}
+      oublier(CFG.SUBS_LABEL_KEY, 'étiquette d\'ancienneté');
     }
   };
 
@@ -5011,7 +5126,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     })();
     const retenirEtiquette = (t) => {
       etiquette = t;
-      try { localStorage.setItem(CFG.SUBS_LABEL_KEY, t); } catch {}
+      try { localStorage.setItem(CFG.SUBS_LABEL_KEY, t); }
+      catch (e) { erreurs.noter('stockage', 'étiquette : ' + ((e && e.name) || e)); }
     };
 
     // Feuilles porteuses de texte d'une carte, dans l'ordre du document,
@@ -5085,7 +5201,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     const marquer = () => {
       try {
         localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY, LECTEUR + ':' + Date.now());
-      } catch {}
+      } catch (e) {
+        /* Sans cet horodatage, le relevé complet repart à CHAQUE chargement
+           de page : trois pages en iframe, à chaque fois. Un échec ici est
+           donc invisible mais coûteux, et il fallait pouvoir le voir. */
+        erreurs.noter('stockage', 'horodatage du relevé : ' + ((e && e.name) || e));
+      }
     };
 
     // Charge un onglet dans une iframe cachée et rend [{ login, mois }].
@@ -5118,7 +5239,15 @@ const TSE_GATE_MAX_CLICKS = 5;
         'position:fixed;left:-10000px;top:0;width:1280px;height:900px;' +
         'opacity:0;pointer-events:none;border:0';
       cadre.src = `${location.origin}/subscriptions?tab=${encodeURIComponent(onglet)}`;
-      limite = setTimeout(() => finir([]), CFG.SUBS_PAGE_TIMEOUT);
+      limite = setTimeout(() => {
+        /* VINGT-CINQ SECONDES POUR RIEN, et pas une ligne pour le dire. Le
+           relevé rendait une liste vide, indiscernable d'un onglet
+           légitimement vide — c'est-à-dire de « vous n'avez aucun
+           abonnement ». Deux verdicts opposés sous la même apparence. */
+        erreurs.noter('abonnements',
+          `onglet « ${onglet} » : rien rendu en ${CFG.SUBS_PAGE_TIMEOUT} ms`);
+        finir([]);
+      }, CFG.SUBS_PAGE_TIMEOUT);
       cadre.addEventListener('load', () => {
         // Renvoyé ailleurs (connexion expirée, redirection de Twitch) : il n'y
         // a rien à lire et rien à attendre. On rend la main tout de suite
@@ -5127,13 +5256,32 @@ const TSE_GATE_MAX_CLICKS = 5;
         // conclusion.
         try {
           const chemin = cadre?.contentWindow?.location?.pathname;
-          if (chemin && chemin !== '/subscriptions') return finir([]);
-        } catch { return finir([]); }
+          if (chemin && chemin !== '/subscriptions') {
+            /* RENVOYÉ AILLEURS. Session expirée, redirection de Twitch : la
+               page des abonnements exige d'être connecté, et son échec ne se
+               voit nulle part ailleurs. C'est la première cause d'un relevé
+               vide chez quelqu'un qui a des abonnements, et l'extension n'en
+               disait rien — ni console, ni rapport. Le chemin est recopié :
+               « /login » et « / » ne veulent pas dire la même chose. */
+            erreurs.noter('abonnements', `onglet « ${onglet} » : renvoyé vers ${chemin}`,
+                          'session expirée ou non connectée ?');
+            return finir([]);
+          }
+        } catch (e) {
+          erreurs.noter('abonnements', `onglet « ${onglet} » : origine illisible`,
+                        (e && e.name) || '');
+          return finir([]);
+        }
         // La page est une SPA : le `load` de l'iframe précède l'apparition
         // des cartes. On scrute jusqu'à en voir, ou jusqu'au délai maximal.
         sondeur = setInterval(() => {
           let doc = null;
-          try { doc = cadre?.contentDocument; } catch { return finir([]); }
+          try { doc = cadre?.contentDocument; }
+          catch (e) {
+            erreurs.noter('abonnements', `onglet « ${onglet} » : document inaccessible`,
+                          (e && e.name) || '');
+            return finir([]);
+          }
           if (!doc) return;
           const cartes = doc.querySelectorAll(DOM.subCardSelector);
           if (cartes.length) {
@@ -5184,7 +5332,16 @@ const TSE_GATE_MAX_CLICKS = 5;
             const taille = doc.querySelectorAll('*').length;
             if (taille !== noeuds) { noeuds = taille; debout = 0; return; }
             if (!debout && doc.querySelector(DOM.sidebarRoot)) debout = Date.now();
-            if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) return finir([]);
+            if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) {
+              /* La page s'est montrée, s'est stabilisée, et ne porte AUCUNE
+                 carte. C'est légitime — un onglet peut être vide — mais c'est
+                 aussi ce que rend un sélecteur devenu faux. On ne peut pas
+                 trancher ici ; on date le fait, et le rapport le confronte au
+                 compte d'abonnements connus. */
+              erreurs.noter('abonnements', `onglet « ${onglet} » : stabilisé sans carte`,
+                            DOM.subCardSelector);
+              return finir([]);
+            }
             return;
           }
         }, 400);
@@ -5293,7 +5450,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       // d'arriver quelques secondes après lui. Un rafraîchissement de routine,
       // lui, ne retient rien — ce qu'il rafraîchit est déjà à l'écran.
       const aveugle = !horodatage();
-      if (!aveugle) { premierResultat = () => {}; refresh().catch(() => {}); return; }
+      if (!aveugle) {
+        premierResultat = () => {};
+        refresh().catch((e) => erreurs.noter('abonnements',
+          'relevé de routine : ' + ((e && e.message) || e)));
+        return;
+      }
 
       loadingOverlay.setHold(true, 'subs');
       let repit = null;
@@ -5316,7 +5478,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       };
       // Filet : un relevé qui n'aurait RIEN rendu doit quand même rendre la
       // main, sans attendre le délai maximal.
-      refresh().catch(() => {}).then(lever, lever);
+      refresh()
+        .catch((e) => erreurs.noter('abonnements',
+          'relevé sous voile : ' + ((e && e.message) || e)))
+        .then(lever, lever);
     };
 
     // Déclencheur : le premier scan qui voit une carte suivie. Cf. l'en-tête —
@@ -5409,7 +5574,9 @@ const TSE_GATE_MAX_CLICKS = 5;
         }
         ordered = null;
         prune();
-      } catch { /* stockage corrompu / quota / navigation privée → on ignore */ }
+      } catch (e) {
+        erreurs.noter('stockage', 'lecture roster : ' + ((e && e.name) || e));
+      }
     };
 
     // Évince ce qui n'a plus été vu depuis ROSTER_MAX_AGE : c'est le seul
@@ -5465,7 +5632,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       entries: () => (ordered ??= [...map.entries()].sort((a, b) => b[1] - a[1])),
       clear:   () => {
         map.clear(); dirty = false; ordered = null;
-        try { localStorage.removeItem(CFG.ROSTER_STORAGE_KEY); } catch {}
+        oublier(CFG.ROSTER_STORAGE_KEY, 'roster');
       }
     };
   })();
@@ -5523,7 +5690,9 @@ const TSE_GATE_MAX_CLICKS = 5;
         samples = raw.samples
           .filter(x => x && Number.isFinite(x.lag) && Number.isFinite(x.ts))
           .slice(-CFG.LAG_MAX_SAMPLES);
-      } catch { /* ignoré */ }
+      } catch (e) {
+        erreurs.noter('stockage', 'lecture mesures : ' + ((e && e.name) || e));
+      }
     };
 
     const save = () => {
@@ -5612,7 +5781,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       all:   () => samples.slice(),
       clear: () => {
         samples = []; aheadAt.clear(); done.clear();
-        try { localStorage.removeItem(CFG.LAG_STORAGE_KEY); } catch {}
+        oublier(CFG.LAG_STORAGE_KEY, 'mesures');
       }
     };
   })();
@@ -5745,7 +5914,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     },
     reset() {
       visits.map.clear();
-      try { localStorage.removeItem(CFG.VISIT_STORAGE_KEY); } catch {}
+      oublier(CFG.VISIT_STORAGE_KEY, 'visites');
       roster.clear();
       subs.clear();
       liveLag.clear();
@@ -6077,7 +6246,13 @@ const TSE_GATE_MAX_CLICKS = 5;
            justement ce qui rend lisible celle qui ne le vaut pas : le champ
            existe dans les deux cas, au même endroit, et on n'a pas à savoir
            qu'il aurait dû être là pour remarquer qu'il manque. */
-        demarrage: { etape: demarrage.etape, dureeMs: Date.now() - demarrage.t },
+        demarrage: {
+          etape: demarrage.etape,
+          // La durée jusqu'au DERNIER jalon franchi, pas jusqu'à maintenant.
+          dureeMs: demarrage.etapes.length
+            ? demarrage.etapes[demarrage.etapes.length - 1].ms : 0,
+          etapes: demarrage.etapes.slice(),
+        },
         /* Pas de numéro de version ICI. content.js tourne en monde MAIN, où
            chrome.runtime n'existe pas : il ne peut que recopier une constante,
            qui se périmerait au premier oubli. Le panneau, lui, lit le
@@ -6114,7 +6289,19 @@ const TSE_GATE_MAX_CLICKS = 5;
            dire pourquoi il l'était. Les valeurs sont RELATIVES à maintenant :
            un horodatage absolu obligerait à faire la soustraction à la main,
            et « dans 12 s » se lit d'un coup d'œil. */
-        reseau: { pauseGqlMs: Math.max(0, gqlCooldownUntil - maintenant) },
+        reseau: {
+          pauseGqlMs: Math.max(0, gqlCooldownUntil - maintenant),
+          /* CE QUE LE RÉSEAU A RÉELLEMENT FAIT. Le rapport donnait la pause
+             en cours et rien d'autre : on voyait qu'il n'y avait pas de
+             pause, sans savoir si un seul appel avait abouti. Trois appels
+             sur trois échoués et zéro appel passé se ressemblaient. */
+          appels: reseau.appels,
+          echecs: reseau.echecs,
+          dernierSuccesIlYaMs: reseau.dernierSucces
+            ? maintenant - reseau.dernierSucces : null,
+          dernierEchecIlYaMs: reseau.dernierEchec
+            ? maintenant - reseau.dernierEchec : null,
+        },
         /* Les quantiles, calculés ICI et non dans le panneau : ce sont les
            mêmes chiffres que ceux de tse.lag(), et deux implémentations du
            même quantile finissent par diverger d'un indice. */
@@ -6122,6 +6309,13 @@ const TSE_GATE_MAX_CLICKS = 5;
         /* LE JOURNAL D'ERREURS. Le plus grand trou du rapport jusqu'ici :
            l'extension n'en consignait aucune, donc il n'en portait aucune. */
         erreurs: erreurs.tout(),
+        /* LE BILAN, à côté du journal et non à sa place. Le journal est
+           borné à quarante lignes ; une panne réseau en produit des
+           centaines, et les compteurs disent ce que la fenêtre a laissé
+           tomber. Sans eux, un rapport pouvait montrer quatre erreurs de
+           stockage et taire les trois cents appels réseau échoués juste
+           avant. */
+        bilanErreurs: erreurs.bilan(),
         global: globalChannels.report(),
         journaux: {
           verrous: loadingOverlay.verrous(),
@@ -6252,9 +6446,15 @@ const TSE_GATE_MAX_CLICKS = 5;
       writable: false,
       configurable: false
     });
-  } catch {
-    // Déjà posé par une exécution précédente — on garde l'objet en place et
-    // on poursuit le démarrage normalement.
+  } catch (e) {
+    /* Déjà posé par une exécution précédente — on garde l'objet en place et
+       on poursuit le démarrage normalement. Mais on le DIT : deux exécutions
+       sur le même document veut dire deux observateurs, deux jeux de timers
+       et deux fois le réseau. C'est visible en tant que lenteur et
+       indétectable autrement — la garde, en rattrapant l'erreur, effaçait
+       aussi le seul signe qu'il se passait quelque chose. */
+    erreurs.noter('page', 'window.tse déjà défini — seconde exécution du script',
+                  (e && e.name) || '');
   }
 
   /* ============================================================
@@ -11046,6 +11246,16 @@ const TSE_GATE_MAX_CLICKS = 5;
       console.warn(S.consoleHealthBroken,
                    '→ ' + fautives.map(p => `${p.id} (${p.label})${p.detail ? ' : ' + p.detail : ''}`).join(' | '));
       logDiagnostics(report);
+      /* AU JOURNAL AUSSI, et pas seulement en console. Twitch qui change son
+         markup est la panne la plus probable de ce produit — c'est même la
+         raison d'être des sondes. Elle n'apparaissait pourtant PAS dans le
+         bloc ERREURS du rapport : elle ne se lisait que dans le tableau des
+         sondes, qui donne l'état de MAINTENANT et non l'instant où il a
+         basculé. Un rapport pris après un rechargement réussi ne gardait donc
+         aucune trace d'un incident survenu dix minutes plus tôt. */
+      for (const p of fautives) {
+        erreurs.noter('sondes', `${p.id} ne correspond plus`, p.detail || p.label);
+      }
     } else if (!broken && healthWarned) {
       healthWarned = false; // incident résolu → ré-armer pour un futur changement
     }

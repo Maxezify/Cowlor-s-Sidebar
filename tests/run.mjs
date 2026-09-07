@@ -32,8 +32,8 @@ const wait = (p, ms) => p.waitForTimeout(ms);
 // charger : sa durée dépend de la machine, et un délai fixe finit toujours par
 // être trop court un jour. Une expiration n'échoue pas ici — elle laisse
 // l'assertion qui suit constater et dire ce qui manque.
-const attendre = (p, fn, ms = 10_000) =>
-  p.waitForFunction(fn, null, { timeout: ms }).catch(() => {});
+const attendre = (p, fn, ms = 10_000, arg = null) =>
+  p.waitForFunction(fn, arg, { timeout: ms }).catch(() => {});
 // Intl insère une espace fine insécable (U+202F) ou insécable (U+00A0) :
 // on normalise avant comparaison, l'espace exacte n'est pas l'objet du test.
 const nz = (s) => (s ?? '').replace(/[\u00a0\u202f\u2009]/g, ' ');
@@ -7032,6 +7032,18 @@ titre('72. Erreurs — ce que le rapport ne pouvait pas dire');
      qu'un journal absent — il coûte seulement plus cher à lire. */
   const page = await browser.newPage();
   page.on('pageerror', () => {});   // on PROVOQUE des erreurs ici : elles sont l'objet du test
+  /* UN RELEVÉ RÉCENT, et il faut dire pourquoi. Ce scénario affirme qu'une
+     page saine ne consigne RIEN — l'affirmation ne vaut que si tout ce qui
+     tourne peut réussir. Or le relevé d'abonnements ouvre une iframe sur
+     `location.origin + '/subscriptions'`, et `location.origin` vaut la
+     chaîne "null" sur un document file:// : il échoue toujours ici, et
+     désormais il le DIT. C'est un artefact du harnais, pas du produit.
+     On pose donc un horodatage frais — l'état de quelqu'un qui a relevé il
+     y a cinq minutes — ce qui écarte le relevé par le chemin normal du
+     TTL, sans rien désactiver. */
+  await page.addInitScript(() => {
+    try { localStorage.setItem('tse:substs', '2:' + Date.now()); } catch { /* file:// */ }
+  });
   await page.goto(URL_PAGE);
   await page.evaluate(() => {
     const h = new Date(Date.now() - 3600_000).toISOString();
@@ -7049,14 +7061,31 @@ titre('72. Erreurs — ce que le rapport ne pouvait pas dire');
      tiennent : content.js l'écrit sur <html>, bridge.js le lit depuis le monde
      ISOLATED (scénario 73), le panneau l'imprime (scénario 70). Ici, le
      premier — sans lui les deux autres n'observent rien. */
-  const boot = await page.evaluate(() => ({
-    marque: document.documentElement.getAttribute('data-tse-boot'),
-    etape: window.tse.panneau.rapport().demarrage.etape,
-  }));
+  const boot = await page.evaluate(() => {
+    const r = window.tse.panneau.rapport();
+    const e = r.demarrage.etapes;
+    return {
+      marque: document.documentElement.getAttribute('data-tse-boot'),
+      etape: r.demarrage.etape,
+      dureeMs: r.demarrage.dureeMs,
+      dernierJalon: e.length ? e[e.length - 1].ms : null,
+      age: r.ancienneteMs,
+    };
+  });
   ok('content.js pose son jalon sur <html>, et il va jusqu\'à « pret »',
      boot.marque === 'pret', JSON.stringify(boot.marque));
   ok('…et le rapport porte la même étape, pour être lisible sans le DOM',
      boot.etape === 'pret', JSON.stringify(boot.etape));
+  /* LA DURÉE DOIT ÊTRE UNE DURÉE. Elle était calculée à la LECTURE du
+     rapport — `Date.now() - début` — donc elle valait l'âge de la page,
+     déjà donné deux lignes plus haut : un rapport d'utilisateur affichait
+     « pret (44303 ms) » sur une page ouverte depuis 44 s. Un champ qui a
+     l'air d'une mesure sans en être une est pire qu'un champ absent : on
+     le lit, et on en conclut quelque chose de faux. Elle est maintenant
+     figée au jalon franchi, ce qui se vérifie de deux façons. */
+  ok('…et la durée de démarrage est FIGÉE au jalon, pas relue à l\'arrivée',
+     boot.dureeMs === boot.dernierJalon && boot.dureeMs < boot.age - 200,
+     JSON.stringify(boot));
 
   const journal = () => page.evaluate(() => window.tse.panneau.rapport().erreurs);
 
@@ -7095,8 +7124,15 @@ titre('72. Erreurs — ce que le rapport ne pouvait pas dire');
   ok('un quota de stockage dépassé laisse enfin une trace',
      stockage.length > 0 && /Quota/.test(stockage[0].message),
      JSON.stringify(quota).slice(0, 220));
+  /* CE QU'ON ÉPROUVE ICI, c'est qu'une panne répétée occupe UNE ligne et
+     porte son compte — pas que le journal n'en contienne qu'une. La
+     première rédaction confondait les deux, et elle est tombée dès qu'un
+     second point d'écriture a été instrumenté sous le même quota : elle
+     mesurait le nombre de sites instrumentés, pas le dédoublonnage. */
+  const rosterQuota = stockage.filter(e => /roster/.test(e.message));
   ok('…et la même panne répétée est COMPTÉE, pas empilée',
-     stockage.length === 1 && stockage[0].n > 1,
+     rosterQuota.length === 1 && rosterQuota[0].n > 1
+     && new Set(stockage.map(e => e.message)).size === stockage.length,
      JSON.stringify(stockage.map(e => ({ m: e.message, n: e.n }))));
 
   /* ── LE FILTRE, dans les deux sens ─────────────────────────────────────
@@ -7274,6 +7310,13 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
     const r = await p;
     ok('…et sa réponse revient intacte jusqu\'au panneau',
        r && r.ok === true && r.data && r.data.genere === 42, JSON.stringify(r));
+    /* Les observations du pont n'étaient jointes qu'aux ÉCHECS, et le
+       rapport d'un utilisateur dont tout marchait affichait donc « le pont
+       n'a pas répondu » — sur une réponse qu'il venait de rendre. Un champ
+       de diagnostic qui ment dans le cas nominal fait douter des autres. */
+    ok('…accompagnée de ce que le pont voit, MÊME quand tout va bien',
+       r.observations && r.observations.marque === 'pret'
+       && r.observations.pont === 'branché', JSON.stringify(r.observations));
   }
 
   /* ── LA CLASSE, PAS L'INSTANCE ──────────────────────────────────────────
@@ -7320,6 +7363,263 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
        e && e.ok === true && e.ponts.join() === '7' && typeof e.workerMs === 'number',
        JSON.stringify(e));
   }
+}
+
+titre('74. Erreurs — la taxonomie, et ce qu\'elle rend visible');
+{
+  /* CE SCÉNARIO EXISTE PARCE QUE « le rapport porte les erreurs » ÉTAIT VRAI
+     ET NE VOULAIT PRESQUE RIEN DIRE. Le journal existait ; ce qui le
+     remplissait, non. Sur les cinquante-deux `catch` du fichier, sept étaient
+     instrumentés — et pas ceux qui comptent.
+
+     Le trou le plus large : `post()`, l'unique point de passage du réseau,
+     repliait CINQ échecs sur une même sentinelle muette. Un 429, un 5xx, un
+     abandon au délai, un `fetch` qui rejette et un corps illisible se lisaient
+     tous comme un cache vide. C'est LA panne la plus probable d'une extension
+     dont tout l'affichage dépend d'une API tierce, et le rapport n'en disait
+     pas un mot. Ce qui suit exige que chacune ait son nom. */
+  const page = await freshTwitch();
+  page.on('pageerror', () => {});
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = { alpha: { id: 'a', createdAt: h, viewers: 1000, game: 'Art', tags: [] } };
+    window.__addCard('alpha', 'Art', '1 k');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+
+  /* Chaque levier se consomme en un appel : on arme, on force un balayage, et
+     on attend que le journal ait GRANDI — pas une durée fixe, qui mentirait
+     dès que la machine est chargée. */
+  const provoquer = async (etat) => {
+    const avant = await page.evaluate(() => window.tse.panneau.rapport().erreurs.length);
+    await page.evaluate((e) => { Object.assign(window, e); window.tse.rescan(); }, etat);
+    await attendre(page, (n) => window.tse.panneau.rapport().erreurs.length > n, 6000, avant);
+  };
+  await provoquer({ __httpStatus: 429 });
+  await provoquer({ __abort: true });
+  await provoquer({ __badJson: true });
+  await provoquer({ __failNext: 1 });
+  await provoquer({ __gqlErrors: true });
+
+  const gql = await page.evaluate(() =>
+    window.tse.panneau.rapport().erreurs.filter(e => e.source === 'gql').map(e => e.message));
+  const porte = (m) => gql.some(x => x.includes(m));
+  ok('un statut HTTP est recopié tel quel — 429 ne se répare pas comme un 503',
+     porte('HTTP 429'), JSON.stringify(gql));
+  ok('un abandon au délai est nommé abandon, et dit son délai',
+     gql.some(x => /^abandon après \d+ ms$/.test(x)), JSON.stringify(gql));
+  ok('un corps illisible n\'est pas confondu avec une panne de réseau',
+     porte('corps illisible'), JSON.stringify(gql));
+  ok('un fetch qui rejette est nommé échec de fetch',
+     porte('échec de fetch'), JSON.stringify(gql));
+  /* CELUI-CI EST LE PLUS SOURNOIS : HTTP 200, transport parfait, et un corps
+     qui ne porte que des refus. Rien dans la couche réseau ne bronchait, et le
+     cache restait vide sans la moindre trace. */
+  ok('un 200 porteur d\'erreurs GraphQL est consigné, sans rien changer au flux',
+     porte('erreurs GraphQL'), JSON.stringify(gql));
+
+  const res = await page.evaluate(() => window.tse.panneau.rapport().reseau);
+  ok('le rapport dit combien d\'appels ont été passés, et combien ont échoué',
+     res.appels >= 5 && res.echecs >= 4, JSON.stringify(res));
+  ok('…et depuis quand le dernier a réussi — zéro appel et zéro succès se ressemblaient',
+     Number.isFinite(res.dernierSuccesIlYaMs), JSON.stringify(res.dernierSuccesIlYaMs));
+
+  /* ── LES COMPTEURS SURVIVENT À CE QUE LA FENÊTRE LAISSE TOMBER ─────────── */
+  const bilan = await page.evaluate(async () => {
+    const av = window.tse.panneau.rapport().bilanErreurs.total;
+    for (let i = 0; i < 80; i++) {
+      window.postMessage({ tse: 'tse-panneau-req', id: 9000 + i, section: 'noyade-' + i }, '*');
+    }
+    await new Promise(r => setTimeout(r, 400));
+    const r = window.tse.panneau.rapport();
+    return { av, total: r.bilanErreurs.total, sources: r.bilanErreurs.sources,
+             journal: r.erreurs.length,
+             gqlEncore: r.erreurs.some(e => e.source === 'gql') };
+  });
+  ok('quatre-vingts défauts n\'entrent pas dans une fenêtre de quarante',
+     bilan.journal === 40, `${bilan.journal} entrées`);
+  ok('…mais le TOTAL, lui, les compte tous — la fenêtre ne ment plus par omission',
+     bilan.total >= bilan.av + 80, JSON.stringify({ av: bilan.av, total: bilan.total }));
+  ok('…et la fenêtre a bien évincé les erreurs réseau — sans quoi le total ne prouve rien',
+     bilan.gqlEncore === false, 'des entrées gql sont encore dans le journal');
+  ok('…et chaque famille garde son compte, sa première et sa dernière apparition',
+     bilan.sources.some(s => s.source === 'gql' && s.n >= 5
+                             && s.premiere > 0 && s.derniere >= s.premiere),
+     JSON.stringify(bilan.sources.find(s => s.source === 'gql')));
+
+  /* ── DEUX DÉFAUTS QUI ALTERNENT NE DOIVENT PAS VIDER LE JOURNAL ─────────
+     Le dédoublonnage ne comparait qu'à la DERNIÈRE entrée. Deux problèmes qui
+     se succèdent — un échec réseau et le repli qui le suit — se réinsèrent
+     alors l'un l'autre indéfiniment et chassent tout le reste en quelques
+     secondes. La comparaison porte maintenant sur toute la liste. */
+  const alterne = await page.evaluate(async () => {
+    for (let i = 0; i < 60; i++) {
+      window.postMessage({ tse: 'tse-panneau-req', id: 20000 + i,
+                           section: i % 2 ? 'ping' : 'pong' }, '*');
+    }
+    await new Promise(r => setTimeout(r, 400));
+    const j = window.tse.panneau.rapport().erreurs;
+    return { deux: j.filter(e => /ping|pong/.test(e.message)),
+             autres: j.filter(e => /noyade-/.test(e.message)).length };
+  });
+  ok('deux défauts qui alternent tiennent en DEUX entrées, comptées',
+     alterne.deux.length === 2 && alterne.deux.every(e => e.n === 30),
+     JSON.stringify(alterne.deux.map(e => [e.message, e.n])));
+  ok('…donc ils n\'ont chassé personne du journal',
+     alterne.autres > 0, `${alterne.autres} entrées antérieures survivantes`);
+
+  /* ── LES SONDES CASSÉES ENTRENT AU JOURNAL ────────────────────────────────
+     Twitch qui change son markup est la panne la plus probable de ce produit —
+     c'est la raison d'être des sondes. Elle n'apparaissait pourtant pas dans
+     le bloc ERREURS : elle ne se lisait que dans le tableau des sondes, qui
+     donne l'état de MAINTENANT. Un rapport pris après un rechargement réussi
+     n'en gardait aucune trace. */
+  const sondes = await page.evaluate(() => {
+    const vrai = console.warn; console.warn = () => {};
+    try {
+      /* On casse `followedSection`, et PAS `#side-nav` : sans racine, le
+         contrôle sort avant d'avoir sondé quoi que ce soit, et l'assertion
+         mesurerait un garde-fou. Le seuil de la sonde demande par ailleurs
+         une barre peuplée — le harnais n'a que deux liens — d'où les cinq
+         ancres ajoutées, et le voile levé comme au scénario 71. */
+      const nav = document.getElementById('side-nav');
+      for (let i = 0; i < 5; i++) {
+        const a = document.createElement('a'); a.href = '/x' + i; nav.appendChild(a);
+      }
+      const sec = document.querySelector('.side-nav-section[aria-label]');
+      sec.removeAttribute('aria-label');
+      sec.querySelectorAll('[class*="followed-side-nav-header"]')
+         .forEach(e => { e.className = 'entete-neutre'; });
+      document.body.classList.remove('tse-loading');
+      window.tse.diagnose.auto();
+      return window.tse.panneau.rapport().erreurs.filter(e => e.source === 'sondes');
+    } finally { console.warn = vrai; }
+  });
+  ok('une sonde critique cassée est DATÉE au journal, pas seulement affichée',
+     sondes.length > 0 && sondes.some(e => /followedSection/.test(e.message)),
+     JSON.stringify(sondes.map(e => e.message)));
+
+  await page.close();
+
+  /* ── LE STOCKAGE : LA LECTURE COMPTE AUTANT QUE L'ÉCRITURE ────────────────
+     Les quatre ÉCRITURES étaient instrumentées, les quatre LECTURES non. C'est
+     pourtant la lecture qui explique « mon historique a disparu » : un JSON
+     corrompu par une écriture interrompue se lit comme une mémoire vide, et
+     l'extension repartait de zéro sans un mot. On empoisonne les quatre
+     magasins AVANT le chargement de la page — c'est le seul moment où load()
+     tourne. */
+  const poison = await freshTwitch(undefined, [], '/', () => {
+    try {
+      for (const k of ['tse:visits', 'tse:subs', 'tse:roster', 'tse:livelag']) {
+        localStorage.setItem(k, '{ceci n\'est pas du JSON');
+      }
+    } catch { /* stockage refusé : le test s'en apercevra */ }
+  });
+  poison.on('pageerror', () => {});
+  await attendre(poison, () => !!(window.tse && window.tse.panneau));
+  const lectures = await poison.evaluate(() =>
+    window.tse.panneau.rapport().erreurs
+      .filter(e => e.source === 'stockage').map(e => e.message));
+  ok('les QUATRE magasins signalent leur lecture illisible, chacun par son nom',
+     ['visites', 'abonnements', 'roster', 'mesures']
+       .every(m => lectures.some(x => x.includes('lecture ' + m))),
+     JSON.stringify(lectures));
+
+  /* ── EFFACER, ET SAVOIR QUE ÇA N'A PAS EFFACÉ ─────────────────────────── */
+  const efface = await poison.evaluate(() => {
+    const vrai = Storage.prototype.removeItem;
+    Storage.prototype.removeItem = function () {
+      throw new DOMException('refusé', 'SecurityError');
+    };
+    try { window.tse.reset(); } catch { /* on veut le journal, pas l'exception */ }
+    finally { Storage.prototype.removeItem = vrai; }
+    return window.tse.panneau.rapport().erreurs
+      .filter(e => /effacement/.test(e.message)).map(e => e.message);
+  });
+  ok('un effacement refusé est consigné — « j\'ai effacé et ça revient » s\'instruit',
+     efface.length > 0 && efface.some(m => /SecurityError/.test(m)),
+     JSON.stringify(efface));
+
+  await poison.close();
+}
+
+titre('75. Abonnements — un relevé vide et une session expirée ne sont pas la même chose');
+{
+  /* LA CAUSE N°1 D'UN RELEVÉ VIDE CHEZ QUELQU'UN QUI A DES ABONNEMENTS : la
+     page /subscriptions exige d'être connecté, et Twitch renvoie ailleurs
+     quand la session a expiré. L'extension rendait alors une liste vide —
+     rigoureusement indiscernable de « vous n'avez aucun abonnement ». Deux
+     verdicts opposés sous la même apparence, et rien nulle part pour trancher.
+
+     DEUX FORMES, ET ELLES NE SE RÉPARENT PAS PAREIL :
+       — la page répond, mais ailleurs. Le chemin est LISIBLE, et il porte
+         l'information : « /login » dit une session expirée ;
+       — la page n'est même pas lisible. `contentWindow.location` jette une
+         SecurityError, et on ne sait rien de plus que « ce n'est pas nous ».
+
+     Sur la première, la simulation mérite un mot. Une redirection HTTP servie
+     par le harnais donne au cadre une ORIGINE OPAQUE — mesuré : la cible du
+     302 n'est pas ré-interceptée, part sur le vrai réseau et échoue. Elle
+     produit donc la SECONDE forme, pas la première. Pour obtenir la première,
+     le document servi change son propre chemin par `history.replaceState` :
+     l'observable dont dépend le produit — `contentWindow.location.pathname`,
+     même origine, différent de '/subscriptions' — est reproduit exactement,
+     et c'est le seul observable qu'il lise. */
+  const relever = async (mode) => {
+    const page = await browser.newPage();
+    page.on('pageerror', () => {});
+    await page.route('https://www.twitch.tv/**', (route) => {
+      const url = route.request().url();
+      const name = url.split('/').pop().split('?')[0];
+      if (name.endsWith('.js')) {
+        return route.fulfill({ contentType: 'application/javascript; charset=utf-8',
+                               body: fileText(name) });
+      }
+      if (url.includes('/subscriptions')) {
+        return mode === 'chemin'
+          ? route.fulfill({ contentType: 'text/html; charset=utf-8',
+              body: '<!doctype html><meta charset="utf-8">'
+                  + '<script>history.replaceState(null, "", "/login");</script>' })
+          : route.fulfill({ status: 302,
+                            headers: { location: 'https://www.twitch.tv/login' } });
+      }
+      return route.fulfill({ contentType: 'text/html; charset=utf-8',
+                             body: fileText('page.html') });
+    });
+    await page.route('https://static-cdn.jtvnw.net/**',
+                     (r) => r.fulfill({ contentType: 'image/png', body: PIXEL }));
+    await page.goto('https://www.twitch.tv/alpha');
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 3600_000).toISOString();
+      window.__fx = { alpha: { id: 'a', createdAt: h, viewers: 1000, game: 'Art', tags: [] } };
+      window.__addCard('alpha', 'Art', '1 k');
+    });
+    await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+    await page.evaluate(() => { window.tse.subs.refresh(); });
+    await attendre(page,
+      () => window.tse.panneau.rapport().erreurs.some(e => e.source === 'abonnements'), 20_000);
+    const abo = await page.evaluate(() => window.tse.panneau.rapport().erreurs
+      .filter(e => e.source === 'abonnements').map(e => ({ m: e.message, d: e.detail })));
+    await page.close();
+    return abo;
+  };
+
+  const parChemin = await relever('chemin');
+  ok('une session expirée est NOMMÉE, avec le chemin où Twitch a renvoyé',
+     parChemin.some(e => /renvoyé vers \/login/.test(e.m)), JSON.stringify(parChemin));
+  ok('…et l\'onglet fautif est nommé — trois onglets sont relevés, trois verdicts possibles',
+     parChemin.some(e => /onglet « \w+ »/.test(e.m)), JSON.stringify(parChemin.map(e => e.m)));
+  ok('…et le détail oriente vers la bonne réparation',
+     parChemin.some(e => /session expirée/.test(e.d || '')),
+     JSON.stringify(parChemin.map(e => e.d)));
+
+  const parOrigine = await relever('opaque');
+  ok('un cadre devenu illisible est distingué d\'un cadre qui répond ailleurs',
+     parOrigine.some(e => /origine illisible/.test(e.m))
+     && !parOrigine.some(e => /renvoyé vers/.test(e.m)), JSON.stringify(parOrigine));
+  ok('…et il nomme l\'exception, qui est tout ce qu\'on sait de lui',
+     parOrigine.some(e => /SecurityError/.test(e.d || '')),
+     JSON.stringify(parOrigine.map(e => e.d)));
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

@@ -1625,6 +1625,64 @@ mort en route). Ils rendaient tous le mot « expiration », et le panneau n'en
 donnait donc qu'un seul message — celui qui invite à patienter, y compris quand
 attendre ne servait à rien.
 
+### Ce que le journal d'erreurs consigne vraiment (v3.67)
+
+« Le rapport porte les erreurs » était vrai depuis la 3.65 et ne voulait presque
+rien dire : le journal existait, ce qui le remplissait beaucoup moins. Sur les
+**cinquante-deux `catch`** du fichier, sept étaient instrumentés — et pas ceux
+qui comptent.
+
+**Le réseau, qui était l'angle mort le plus large.** `post()` est l'unique point
+de passage de tout ce que l'extension demande à Twitch, et il repliait **cinq
+échecs très différents** sur une même sentinelle muette. Chacun a maintenant son
+nom, parce qu'aucun ne se répare comme les autres :
+
+| Ce qui arrive | Ce que le rapport écrit | Ce que ça veut dire |
+| --- | --- | --- |
+| statut ≥ 400 | `HTTP 429`, `HTTP 503`… | trop vite / refus / Twitch en panne |
+| dépassement de `GQL_TIMEOUT` | `abandon après … ms` | réseau lent, pas cassé |
+| `fetch` qui rejette | `échec de fetch` | hors ligne, bloqueur, extension tierce |
+| corps illisible | `corps illisible (JSON)` | réponse tronquée ou interceptée |
+| **200 avec un corps d'erreurs** | `réponse 200 avec erreurs GraphQL` | requête persistée retirée, champ renommé |
+
+Le dernier est le plus sournois : transport parfait, aucun signe côté HTTP, et
+un cache qui reste vide. Le rapport donne en plus le nombre d'appels, le nombre
+d'échecs et l'âge du dernier succès — trois appels sur trois échoués et zéro
+appel passé se ressemblaient jusqu'ici.
+
+**Les lectures de stockage**, dont aucune n'était consignée alors que les quatre
+écritures l'étaient. C'est pourtant la lecture qui explique « mon historique a
+disparu » : un JSON corrompu par une écriture interrompue se lit comme une
+mémoire vide, et l'extension repartait de zéro sans un mot. Les six
+**effacements** aussi — « j'ai effacé et ça revient » ne pouvait pas s'instruire.
+
+**Le relevé d'abonnements**, et en particulier sa panne n°1 : la page
+`/subscriptions` exige d'être connecté, et une session expirée y fait renvoyer
+ailleurs. L'extension rendait alors une liste vide, **rigoureusement
+indiscernable** de « vous n'avez aucun abonnement ». Le chemin de redirection est
+maintenant recopié, l'onglet fautif nommé, et le délai de 25 secondes écoulé
+pour rien ne passe plus inaperçu.
+
+**Les sondes cassées**, enfin : Twitch qui change son markup est la panne la plus
+probable de ce produit — c'est la raison d'être des sondes — et elle n'entrait
+pas dans le bloc ERREURS. Elle ne se lisait que dans le tableau des sondes, qui
+donne l'état de **maintenant** : un rapport pris après un rechargement réussi ne
+gardait aucune trace d'un incident survenu dix minutes plus tôt.
+
+#### Deux défauts du journal lui-même
+
+Le dédoublonnage ne comparait qu'à la **dernière** entrée. Deux problèmes qui
+alternent — un échec réseau et le repli qui le suit — se réinsèrent alors l'un
+l'autre indéfiniment et vident la fenêtre en quelques secondes. Mesuré au banc :
+soixante messages alternés laissaient **quarante entrées de compte 1 et zéro
+survivant**. La comparaison porte désormais sur toute la liste, qui tient donc
+quarante *problèmes distincts* et non quarante *événements*.
+
+Et parce qu'une fenêtre bornée ment par omission, des **compteurs par famille**
+l'accompagnent, jamais évincés, avec la première et la dernière apparition. Un
+rapport pouvait montrer quatre erreurs de stockage et taire les trois cents
+appels réseau échoués juste avant.
+
 
 ### Deux tables de traduction, et elles ne se croisent jamais
 
@@ -1843,7 +1901,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 72 scénarios, 647 assertions |
+| `npm test` | le harnais Playwright : 74 scénarios, 670 assertions |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
 vient de compter, et échoue si le tableau ment. Un banc dont on annonce la
@@ -1863,12 +1921,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 597 Ko | 274 Ko | 2 777 JS + 77 CSS → **2** |
+| `content.js` | 608 Ko | 278 Ko | 2 791 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 32 Ko | 19 Ko | 36 → **0** |
-| `bridge.js` | 11 Ko | 3 Ko | 19 → **0** |
+| `panneau.js` | 34 Ko | 20 Ko | 38 → **0** |
+| `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 8 Ko | 2 Ko | 18 → **0** |
-| **les cinq** | **772 Ko** | **398 Ko** | **−48 %** |
+| **les cinq** | **785 Ko** | **403 Ko** | **−49 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
