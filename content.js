@@ -116,13 +116,15 @@ const TSE_GATE_MAX_CLICKS = 5;
   const TSE_PANNEAU_REQ = 'tse-panneau-req';
   const TSE_PANNEAU_RES = 'tse-panneau-res';
 
-  const demarrage = { t: Date.now(), etape: 'entree' };
+  const demarrage = { t: Date.now(), etape: 'entree', etapes: [] };
 
   let journalErreurs = null;
   let servirPanneau = null;
 
   const jalon = (nom) => {
     demarrage.etape = nom;
+
+    demarrage.etapes.push({ etape: nom, ms: Date.now() - demarrage.t });
     try { document.documentElement.setAttribute('data-tse-boot', nom); }
     catch {   }
   };
@@ -929,16 +931,30 @@ const TSE_GATE_MAX_CLICKS = 5;
     const MOI = (typeof document !== 'undefined' && document.currentScript
                  && document.currentScript.src) || '';
 
+    const compteurs = new Map();
+    let total = 0;
+
     const noter = (source, message, detail) => {
       const t = Math.round(performance.now());
       const texte = String(message == null ? '(sans message)' : message).slice(0, 300);
-      const dernier = liste[liste.length - 1];
-      if (dernier && dernier.source === source && dernier.message === texte) {
-        dernier.n++; dernier.dernier = t; return;
-      }
-      liste.push({ t, source, message: texte, detail: detail ? String(detail).slice(0, 200) : '', n: 1 });
+      total++;
+      const c = compteurs.get(source);
+      if (c) { c.n++; c.derniere = t; }
+      else compteurs.set(source, { n: 1, premiere: t, derniere: t });
+
+      const vu = liste.find(e => e.source === source && e.message === texte);
+      if (vu) { vu.n++; vu.dernier = t; return; }
+      liste.push({ t, source, message: texte,
+                   detail: detail ? String(detail).slice(0, 200) : '', n: 1 });
       if (liste.length > MAX) liste.shift();
     };
+
+    const bilan = () => ({
+      total,
+      sources: [...compteurs.entries()]
+        .map(([source, c]) => ({ source, ...c }))
+        .sort((a, b) => b.n - a.n),
+    });
 
     const nous = (pile, fichier) => {
       const ou = String(pile || '') + ' ' + String(fichier || '');
@@ -962,11 +978,16 @@ const TSE_GATE_MAX_CLICKS = 5;
       catch (e) { noter('interne', `${nom} : ${(e && e.message) || e}`); throw e; }
     };
 
-    return { noter, garde, tout: () => liste.slice() };
+    return { noter, garde, tout: () => liste.slice(), bilan };
   })();
 
   journalErreurs = erreurs.tout;
   jalon('journal');
+
+  const oublier = (cle, quoi) => {
+    try { localStorage.removeItem(cle); }
+    catch (e) { erreurs.noter('stockage', `effacement ${quoi} : ` + ((e && e.name) || e)); }
+  };
 
   function refreshLanguage() {
     const newLang = detectLanguage();
@@ -1933,9 +1954,18 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const NETWORK_ERROR = Symbol('network-error');
 
+  const reseau = { appels: 0, echecs: 0, dernierEchec: 0, dernierSucces: 0 };
+  const echecReseau = (quoi, detail) => {
+    reseau.echecs++;
+    reseau.dernierEchec = Date.now();
+    erreurs.noter('gql', quoi, detail);
+    return NETWORK_ERROR;
+  };
+
   const post = (payload) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), CFG.GQL_TIMEOUT);
+    reseau.appels++;
     return fetch(CFG.GQL_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Client-ID': CFG.CLIENT_ID,
@@ -1944,11 +1974,32 @@ const TSE_GATE_MAX_CLICKS = 5;
       credentials: 'omit',
       signal: controller.signal
     })
-      .then(r => {
-        if (!r.ok) return NETWORK_ERROR;
-        return r.json().catch(() => NETWORK_ERROR);
-      })
-      .catch(() => NETWORK_ERROR)
+
+      .then(
+        (r) => {
+          if (!r.ok) {
+
+            return echecReseau(`HTTP ${r.status}`, r.statusText || '');
+          }
+          return r.json().then(
+            (j) => {
+              reseau.dernierSucces = Date.now();
+
+              const lots = Array.isArray(j) ? j : [j];
+              const fautifs = lots.filter(o => o && Array.isArray(o.errors) && o.errors.length);
+              if (fautifs.length) {
+                erreurs.noter('gql', 'réponse 200 avec erreurs GraphQL',
+                  String(fautifs[0].errors[0]?.message || '').slice(0, 120));
+              }
+              return j;
+            },
+            () => echecReseau('corps illisible (JSON)', ''));
+        },
+        (e) => echecReseau(
+          e && e.name === 'AbortError'
+            ? `abandon après ${CFG.GQL_TIMEOUT} ms`
+            : 'échec de fetch',
+          (e && (e.name || e.message)) || ''))
       .finally(() => clearTimeout(timer));
   };
 
@@ -2888,7 +2939,10 @@ const TSE_GATE_MAX_CLICKS = 5;
           if (cleaned.length) this.map.set(login, cleaned);
         }
         this.prune();
-      } catch {   }
+      } catch (e) {
+
+        erreurs.noter('stockage', 'lecture visites : ' + ((e && e.name) || e));
+      }
     },
 
     prune() {
@@ -2955,7 +3009,9 @@ const TSE_GATE_MAX_CLICKS = 5;
           this.map.set(login, e);
         }
         this.prune();
-      } catch {   }
+      } catch (e) {
+        erreurs.noter('stockage', 'lecture abonnements : ' + ((e && e.name) || e));
+      }
     },
 
     save() {
@@ -3062,11 +3118,11 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     clear() {
       this.map.clear();
-      try { localStorage.removeItem(CFG.SUBS_STORAGE_KEY); } catch {}
+      oublier(CFG.SUBS_STORAGE_KEY, 'abonnements');
 
-      try { localStorage.removeItem(CFG.SUBS_PAGE_STAMP_KEY); } catch {}
+      oublier(CFG.SUBS_PAGE_STAMP_KEY, 'horodatage du relevé');
 
-      try { localStorage.removeItem(CFG.SUBS_LABEL_KEY); } catch {}
+      oublier(CFG.SUBS_LABEL_KEY, 'étiquette d\'ancienneté');
     }
   };
 
@@ -3079,7 +3135,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     })();
     const retenirEtiquette = (t) => {
       etiquette = t;
-      try { localStorage.setItem(CFG.SUBS_LABEL_KEY, t); } catch {}
+      try { localStorage.setItem(CFG.SUBS_LABEL_KEY, t); }
+      catch (e) { erreurs.noter('stockage', 'étiquette : ' + ((e && e.name) || e)); }
     };
 
     const feuilles = (carte) => {
@@ -3131,7 +3188,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     const marquer = () => {
       try {
         localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY, LECTEUR + ':' + Date.now());
-      } catch {}
+      } catch (e) {
+
+        erreurs.noter('stockage', 'horodatage du relevé : ' + ((e && e.name) || e));
+      }
     };
 
     const visiterApres = (onglet, passe, rang) =>
@@ -3157,17 +3217,36 @@ const TSE_GATE_MAX_CLICKS = 5;
         'position:fixed;left:-10000px;top:0;width:1280px;height:900px;' +
         'opacity:0;pointer-events:none;border:0';
       cadre.src = `${location.origin}/subscriptions?tab=${encodeURIComponent(onglet)}`;
-      limite = setTimeout(() => finir([]), CFG.SUBS_PAGE_TIMEOUT);
+      limite = setTimeout(() => {
+
+        erreurs.noter('abonnements',
+          `onglet « ${onglet} » : rien rendu en ${CFG.SUBS_PAGE_TIMEOUT} ms`);
+        finir([]);
+      }, CFG.SUBS_PAGE_TIMEOUT);
       cadre.addEventListener('load', () => {
 
         try {
           const chemin = cadre?.contentWindow?.location?.pathname;
-          if (chemin && chemin !== '/subscriptions') return finir([]);
-        } catch { return finir([]); }
+          if (chemin && chemin !== '/subscriptions') {
+
+            erreurs.noter('abonnements', `onglet « ${onglet} » : renvoyé vers ${chemin}`,
+                          'session expirée ou non connectée ?');
+            return finir([]);
+          }
+        } catch (e) {
+          erreurs.noter('abonnements', `onglet « ${onglet} » : origine illisible`,
+                        (e && e.name) || '');
+          return finir([]);
+        }
 
         sondeur = setInterval(() => {
           let doc = null;
-          try { doc = cadre?.contentDocument; } catch { return finir([]); }
+          try { doc = cadre?.contentDocument; }
+          catch (e) {
+            erreurs.noter('abonnements', `onglet « ${onglet} » : document inaccessible`,
+                          (e && e.name) || '');
+            return finir([]);
+          }
           if (!doc) return;
           const cartes = doc.querySelectorAll(DOM.subCardSelector);
           if (cartes.length) {
@@ -3195,7 +3274,12 @@ const TSE_GATE_MAX_CLICKS = 5;
             const taille = doc.querySelectorAll('*').length;
             if (taille !== noeuds) { noeuds = taille; debout = 0; return; }
             if (!debout && doc.querySelector(DOM.sidebarRoot)) debout = Date.now();
-            if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) return finir([]);
+            if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) {
+
+              erreurs.noter('abonnements', `onglet « ${onglet} » : stabilisé sans carte`,
+                            DOM.subCardSelector);
+              return finir([]);
+            }
             return;
           }
         }, 400);
@@ -3255,7 +3339,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     const demarrer = () => {
 
       const aveugle = !horodatage();
-      if (!aveugle) { premierResultat = () => {}; refresh().catch(() => {}); return; }
+      if (!aveugle) {
+        premierResultat = () => {};
+        refresh().catch((e) => erreurs.noter('abonnements',
+          'relevé de routine : ' + ((e && e.message) || e)));
+        return;
+      }
 
       loadingOverlay.setHold(true, 'subs');
       let repit = null;
@@ -3273,7 +3362,10 @@ const TSE_GATE_MAX_CLICKS = 5;
         repit = setTimeout(lever, CFG.SUBS_PAGE_HOLD_GRACE);
       };
 
-      refresh().catch(() => {}).then(lever, lever);
+      refresh()
+        .catch((e) => erreurs.noter('abonnements',
+          'relevé sous voile : ' + ((e && e.message) || e)))
+        .then(lever, lever);
     };
 
     let premierResultat = () => {};
@@ -3319,7 +3411,9 @@ const TSE_GATE_MAX_CLICKS = 5;
         }
         ordered = null;
         prune();
-      } catch {   }
+      } catch (e) {
+        erreurs.noter('stockage', 'lecture roster : ' + ((e && e.name) || e));
+      }
     };
 
     const prune = () => {
@@ -3366,7 +3460,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       entries: () => (ordered ??= [...map.entries()].sort((a, b) => b[1] - a[1])),
       clear:   () => {
         map.clear(); dirty = false; ordered = null;
-        try { localStorage.removeItem(CFG.ROSTER_STORAGE_KEY); } catch {}
+        oublier(CFG.ROSTER_STORAGE_KEY, 'roster');
       }
     };
   })();
@@ -3388,7 +3482,9 @@ const TSE_GATE_MAX_CLICKS = 5;
         samples = raw.samples
           .filter(x => x && Number.isFinite(x.lag) && Number.isFinite(x.ts))
           .slice(-CFG.LAG_MAX_SAMPLES);
-      } catch {   }
+      } catch (e) {
+        erreurs.noter('stockage', 'lecture mesures : ' + ((e && e.name) || e));
+      }
     };
 
     const save = () => {
@@ -3457,7 +3553,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       all:   () => samples.slice(),
       clear: () => {
         samples = []; aheadAt.clear(); done.clear();
-        try { localStorage.removeItem(CFG.LAG_STORAGE_KEY); } catch {}
+        oublier(CFG.LAG_STORAGE_KEY, 'mesures');
       }
     };
   })();
@@ -3564,7 +3660,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     },
     reset() {
       visits.map.clear();
-      try { localStorage.removeItem(CFG.VISIT_STORAGE_KEY); } catch {}
+      oublier(CFG.VISIT_STORAGE_KEY, 'visites');
       roster.clear();
       subs.clear();
       liveLag.clear();
@@ -3792,7 +3888,13 @@ const TSE_GATE_MAX_CLICKS = 5;
 
         ancienneteMs: Math.round(performance.now()),
 
-        demarrage: { etape: demarrage.etape, dureeMs: Date.now() - demarrage.t },
+        demarrage: {
+          etape: demarrage.etape,
+
+          dureeMs: demarrage.etapes.length
+            ? demarrage.etapes[demarrage.etapes.length - 1].ms : 0,
+          etapes: demarrage.etapes.slice(),
+        },
 
         page: {
 
@@ -3820,11 +3922,22 @@ const TSE_GATE_MAX_CLICKS = 5;
         },
         relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
 
-        reseau: { pauseGqlMs: Math.max(0, gqlCooldownUntil - maintenant) },
+        reseau: {
+          pauseGqlMs: Math.max(0, gqlCooldownUntil - maintenant),
+
+          appels: reseau.appels,
+          echecs: reseau.echecs,
+          dernierSuccesIlYaMs: reseau.dernierSucces
+            ? maintenant - reseau.dernierSucces : null,
+          dernierEchecIlYaMs: reseau.dernierEchec
+            ? maintenant - reseau.dernierEchec : null,
+        },
 
         retards: { medianeMs: quantile(lags, 0.5), p90Ms: quantile(lags, 0.9) },
 
         erreurs: erreurs.tout(),
+
+        bilanErreurs: erreurs.bilan(),
         global: globalChannels.report(),
         journaux: {
           verrous: loadingOverlay.verrous(),
@@ -3891,8 +4004,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       writable: false,
       configurable: false
     });
-  } catch {
+  } catch (e) {
 
+    erreurs.noter('page', 'window.tse déjà défini — seconde exécution du script',
+                  (e && e.name) || '');
   }
 
   const liveStatusOf = (card) =>
@@ -6768,6 +6883,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       console.warn(S.consoleHealthBroken,
                    '→ ' + fautives.map(p => `${p.id} (${p.label})${p.detail ? ' : ' + p.detail : ''}`).join(' | '));
       logDiagnostics(report);
+
+      for (const p of fautives) {
+        erreurs.noter('sondes', `${p.id} ne correspond plus`, p.detail || p.label);
+      }
     } else if (!broken && healthWarned) {
       healthWarned = false;
     }

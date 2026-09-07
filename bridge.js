@@ -41,7 +41,8 @@
     clearTimeout(attente.minuteur);
 
     const { tse: _t, id: _i, ...reponse } = d;
-    envoyer({ reqId: attente.reqId, ...reponse, ok: !!d.ok });
+
+    envoyer({ reqId: attente.reqId, ...reponse, ok: !!d.ok, observations: observations() });
   });
 
   const envoyer = (charge) => {
