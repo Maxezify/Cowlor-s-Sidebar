@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 584 KB | 271 KB | 2,762 JS + 77 CSS → **2** |
+| `content.js` | 592 KB | 274 KB | 2,770 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 26 KB | 16 KB | 27 → **0** |
+| `panneau.js` | 27 KB | 17 KB | 28 → **0** |
 | `bridge.js` | 7 KB | 2 KB | 13 → **0** |
 | `background.js` | 5 KB | 2 KB | 13 → **0** |
-| **all five** | **747 KB** | **391 KB** | **−48 %** |
+| **all five** | **756 KB** | **394 KB** | **−48 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -343,7 +343,7 @@ within 3 %: wide enough for a version's ordinary growth, too narrow for a
 sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,762
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,770
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`
@@ -2074,7 +2074,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 70 scenarios, 621 assertions |
+| `npm test` | the Playwright harness: 71 scenarios, 630 assertions |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
 just counted, and fails if the table lies. A bench whose size is advertised

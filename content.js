@@ -1225,6 +1225,107 @@ const TSE_GATE_MAX_CLICKS = 5;
   let LANG = detectLanguage();
   let S = STRINGS[LANG];
 
+  /* ============================================================
+   *  JOURNAL D'ERREURS
+   *  ------------------------------------------------------------
+   *  Ce module n'existait pas, et son absence était le plus grand
+   *  trou du rapport de diagnostic. L'extension ne consignait
+   *  AUCUNE erreur : pas de window.onerror, pas un seul
+   *  console.error, et vingt-quatre `catch {}` muets. Un
+   *  utilisateur dont l'historique se vide à chaque rechargement —
+   *  quota de stockage dépassé — n'avait aucune trace de la cause,
+   *  et personne ne pouvait la lui demander.
+   *
+   *  IL EST POSÉ TRÈS TÔT, avant tout le reste du fichier : une
+   *  erreur au démarrage est celle qui compte le plus, et un
+   *  journal installé à la fin ne l'aurait jamais vue.
+   *
+   *  CE QU'IL NE CAPTURE PAS, ET IL FAUT LE SAVOIR POUR LIRE UN
+   *  RAPPORT VIDE :
+   *    — les erreurs du JavaScript de TWITCH. Le monde MAIN est
+   *      partagé : sans filtre, le journal serait noyé sous des
+   *      centaines d'exceptions qui ne nous concernent pas. On ne
+   *      retient donc que celles dont la pile mentionne NOTRE
+   *      script ;
+   *    — ce qui casse avant que ce module ne tourne, c'est-à-dire
+   *      les tout premiers milliers de caractères du fichier ;
+   *    — ce qu'un `catch` avale sans rien dire. Les quatre points
+   *      qui comptent (les écritures de stockage) et les échecs
+   *      réseau sont instrumentés à la main ; les autres restent
+   *      muets, faute de savoir lesquels méritent une ligne.
+   *
+   *  BORNÉ ET DÉDOUBLONNÉ. Une erreur dans une boucle en produirait
+   *  des centaines identiques et chasserait tout le reste du
+   *  journal : les répétitions sont comptées, pas empilées.
+   * ============================================================ */
+  const erreurs = (() => {
+    const MAX = 40;
+    const liste = [];
+    /* L'URL de NOTRE script, relevée pendant qu'il s'exécute. C'est le seul
+       moyen, en monde MAIN, de distinguer nos exceptions de celles de Twitch :
+       on n'a pas d'identité d'extension à interroger, mais on a notre propre
+       adresse. Elle peut manquer (script injecté autrement) — le filtre
+       retombe alors sur le nom de fichier, moins sûr mais mieux que rien. */
+    const MOI = (typeof document !== 'undefined' && document.currentScript
+                 && document.currentScript.src) || '';
+
+    const noter = (source, message, detail) => {
+      const t = Math.round(performance.now());
+      const texte = String(message == null ? '(sans message)' : message).slice(0, 300);
+      const dernier = liste[liste.length - 1];
+      if (dernier && dernier.source === source && dernier.message === texte) {
+        dernier.n++; dernier.dernier = t; return;
+      }
+      liste.push({ t, source, message: texte, detail: detail ? String(detail).slice(0, 200) : '', n: 1 });
+      if (liste.length > MAX) liste.shift();
+    };
+
+    const nous = (pile, fichier) => {
+      const ou = String(pile || '') + ' ' + String(fichier || '');
+      return MOI ? ou.includes(MOI) : /content\.js/.test(ou);
+    };
+
+    try {
+      window.addEventListener('error', (e) => {
+        if (!nous(e.error && e.error.stack, e.filename)) return;
+        noter('exception', e.message, `${e.filename}:${e.lineno}`);
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        const r = e.reason;
+        if (!nous(r && r.stack, '')) return;
+        noter('promesse', (r && r.message) || r, '');
+      });
+    } catch { /* environnement sans window : rien à écouter */ }
+
+    /* ── LA GARDE, et pourquoi window.onerror ne suffit pas ────────────────
+       Mesuré, pas supposé : une exception levée par notre script arrive au
+       gestionnaire `error` de la page sous la forme « Script error. », avec un
+       `filename` VIDE et une pile VIDE. C'est le masquage cross-origin, et il
+       n'est pas propre au harnais : en production, notre code vient de
+       `chrome-extension://` tandis que la page est `https://www.twitch.tv` —
+       deux origines, donc un rapport d'erreur opaque.
+
+       Deux conséquences, et la seconde est celle qui compte : le filtre par
+       URL ne peut PAS reconnaître nos exceptions ainsi masquées, et tout
+       enregistrer reviendrait à noyer le journal sous les « Script error. » de
+       Twitch, dont il y en a des dizaines.
+
+       La garde ne dépend d'aucune origine : elle enveloppe NOS points
+       d'entrée, là où le code démarre — un rappel d'observateur, un balayage,
+       un message du panneau. Ce qui casse à l'intérieur est nommé et daté,
+       quelle que soit la politique du navigateur.
+
+       ELLE RELANCE TOUJOURS. Avaler l'exception changerait le comportement du
+       produit pour le confort du diagnostic : un défaut cesserait d'être
+       visible là où il l'était, et le journal servirait à le cacher. */
+    const garde = (nom, fn) => function (...args) {
+      try { return fn.apply(this, args); }
+      catch (e) { noter('interne', `${nom} : ${(e && e.message) || e}`); throw e; }
+    };
+
+    return { noter, garde, tout: () => liste.slice() };
+  })();
+
   /* Re-évalue la langue et met à jour S si elle a changé.
    * À appeler en début de chaque scan ; coût négligeable. */
   function refreshLanguage() {
@@ -3029,6 +3130,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       // pendant laquelle plus rien n'est mis en file (cf. GQL_ERROR_COOLDOWN).
       if (isResultsUnusable(results) || !Array.isArray(list)) {
         gqlCooldownUntil = Date.now() + CFG.GQL_ERROR_COOLDOWN;
+        // La pause était posée en silence : le rapport voyait un cache vide
+        // sans jamais pouvoir dire que le réseau avait lâché.
+        erreurs.noter('gql', 'tranche inexploitable', `${slice.length} logins`);
         return null;
       }
       const byLogin = new Map();
@@ -3080,6 +3184,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       massOfflineStreak++;
       console.warn(S.consoleMassOffline(nowOffline, wasLive));
       gqlCooldownUntil = Date.now() + CFG.GQL_ERROR_COOLDOWN;
+      erreurs.noter('gql', 'extinction de masse écartée', `${nowOffline}/${wasLive}`);
       logins.forEach(login => {
         (pending.get(login) || []).forEach(fn => fn(UPTIME_UNKNOWN));
       });
@@ -3766,6 +3871,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       failStreak += 1;
       okStreak    = 0;
       cooldownUntil = Date.now() + CFG.GLOBAL_ERROR_COOLDOWN;
+      erreurs.noter('global', 'échec de marche', `série ${failStreak}`);
       if (!degraded && failStreak >= CFG.GLOBAL_FAIL_DEGRADE) {
         degraded = true;
         console.warn(S.consoleGlobalDegraded(
@@ -3974,6 +4080,12 @@ const TSE_GATE_MAX_CLICKS = 5;
           language:   state.globalMode ? state.languageFilter : null,
           scope,
           scopeSize:  scopeRanking.length,
+          /* La pause après échec, RELATIVE à maintenant. Elle vit ici parce
+             que c'est ce module qui la pose ; l'exposer ailleurs aurait
+             demandé de sortir `cooldownUntil` de sa portée, et un second
+             endroit où lire la même vérité finit toujours par en dire une
+             autre. 0 = aucune pause en cours. */
+          pauseMs:    Math.max(0, cooldownUntil - Date.now()),
           degraded,
           threshold,
           windowFloor,
@@ -4438,7 +4550,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       try {
         const obj = Object.fromEntries(this.map);
         localStorage.setItem(CFG.VISIT_STORAGE_KEY, JSON.stringify(obj));
-      } catch { /* quota dépassé → on ignore, le tracking continue en mémoire */ }
+      } catch (e) { erreurs.noter('stockage', 'visites : ' + (e && e.name || e)); }
     },
 
     // Enregistre une visite si la fenêtre VISIT_SESSION_MS est dépassée.
@@ -4548,7 +4660,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           else obj[login] = [e.sub ? 1 : 0, e.ts];
         }
         localStorage.setItem(CFG.SUBS_STORAGE_KEY, JSON.stringify(obj));
-      } catch { /* quota → on garde en mémoire */ }
+      } catch (e) { erreurs.noter('stockage', 'abonnements : ' + (e && e.name || e)); }
     },
 
     // Borne le nombre de chaînes, en gardant les observations les plus
@@ -5216,7 +5328,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       try {
         localStorage.setItem(CFG.ROSTER_STORAGE_KEY,
           JSON.stringify(Object.fromEntries(map)));
-      } catch { /* quota → on garde en mémoire */ }
+      } catch (e) { erreurs.noter('stockage', 'roster : ' + (e && e.name || e)); }
     };
 
     const record = (login) => {
@@ -5310,7 +5422,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       try {
         localStorage.setItem(CFG.LAG_STORAGE_KEY,
           JSON.stringify({ v: CFG.LAG_FORMAT, samples }));
-      } catch { /* quota → on garde en mémoire */ }
+      } catch (e) { erreurs.noter('stockage', 'mesures : ' + (e && e.name || e)); }
     };
 
     // NOUS venons de poser une carte pour ce stream, avant Twitch. On retient
@@ -5839,8 +5951,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       const cartes = [...document.querySelectorAll('.side-nav-card')];
       const abonnements = subs.entries();
       const mesures = liveLag.all();
+      const lags = mesures.map(m => m.lag).filter(Number.isFinite);
+      const quantile = (arr, q) => {
+        if (!arr.length) return null;
+        const a = arr.slice().sort((x, y) => x - y);
+        return a[Math.min(a.length - 1, Math.floor(a.length * q))];
+      };
+      const maintenant = Date.now();
       return {
-        genere: Date.now(),
+        genere: maintenant,
+        /* Depuis combien de temps cette page tourne. Une extension qui semble
+           inerte à la seconde 2 et une qui l'est depuis vingt minutes ne
+           posent pas le même problème, et rien ne le disait. */
+        ancienneteMs: Math.round(performance.now()),
         /* Pas de numéro de version ICI. content.js tourne en monde MAIN, où
            chrome.runtime n'existe pas : il ne peut que recopier une constante,
            qui se périmerait au premier oubli. Le panneau, lui, lit le
@@ -5871,6 +5994,20 @@ const TSE_GATE_MAX_CLICKS = 5;
           cache:       cache.size,
         },
         relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
+        /* L'ÉTAT DU RÉSEAU, qui n'y figurait pas. Une pause GraphQL en cours
+           explique à elle seule une sidebar qui ne se met plus à jour — et
+           c'était invisible : le rapport montrait un cache vide sans jamais
+           dire pourquoi il l'était. Les valeurs sont RELATIVES à maintenant :
+           un horodatage absolu obligerait à faire la soustraction à la main,
+           et « dans 12 s » se lit d'un coup d'œil. */
+        reseau: { pauseGqlMs: Math.max(0, gqlCooldownUntil - maintenant) },
+        /* Les quantiles, calculés ICI et non dans le panneau : ce sont les
+           mêmes chiffres que ceux de tse.lag(), et deux implémentations du
+           même quantile finissent par diverger d'un indice. */
+        retards: { medianeMs: quantile(lags, 0.5), p90Ms: quantile(lags, 0.9) },
+        /* LE JOURNAL D'ERREURS. Le plus grand trou du rapport jusqu'ici :
+           l'extension n'en consignait aucune, donc il n'en portait aucune. */
+        erreurs: erreurs.tout(),
         global: globalChannels.report(),
         journaux: {
           verrous: loadingOverlay.verrous(),
@@ -5957,6 +6094,11 @@ const TSE_GATE_MAX_CLICKS = 5;
                   : d.action  ? panneau.actions[d.action]
                               : panneau.sections[d.section];
       if (typeof cible !== 'function') {
+        /* Le panneau et la page sont livrés ensemble : une demande que la page
+           ne sait pas servir n'est pas une faute d'utilisateur, c'est une
+           désynchronisation entre deux fichiers du même paquet. Elle a sa place
+           au journal. */
+        erreurs.noter('panneau', `demande inconnue : ${d.action || d.section}`);
         repondre({ ok: false, erreur: 'inconnu' });
         return;
       }
@@ -10449,7 +10591,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     });
   };
 
-  const scanSidebar = () => {
+  const scanSidebar = erreurs.garde('balayage', () => {
     // Re-évaluer la langue en premier : auto-correction si LANG
     // initial était erroné (DOM Twitch pas encore prêt au boot).
     refreshLanguage();
@@ -10514,7 +10656,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     // pour attraper la prochaine vague, même si aucune autre mutation ne le
     // déclenche.
     if (hadOfflineActivity || stillGrowing) scheduleScan();
-  };
+  });
 
   let scanTimer = null;
   /* Un balayage dû, mais pas fait : l'onglet était caché quand on l'a demandé.
@@ -10569,7 +10711,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     let lastObservedCollapsed = null;
     let dernierReplis = 0;   // dernier relevé de l'état réduit/étendu
 
-    const obs = new MutationObserver((mutations) => {
+    const obs = new MutationObserver(erreurs.garde('observateur', (mutations) => {
       /* Onglet caché : on ne balaie pas. Twitch continue de muter son DOM —
          le chat surtout, mais aussi la sidebar quand un stream s'arrête — et
          chacun de ces lots déclenchait un scan complet, donc des requêtes,
@@ -10661,7 +10803,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
 
       if (relevant) scheduleScan(); // porte : pas de scan pour les mutations hors sidebar
-    });
+    }));
     obs.observe(document.body, { childList: true, subtree: true });
     scanSidebar();
   };
