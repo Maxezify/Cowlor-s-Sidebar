@@ -236,6 +236,22 @@
   "stateTimeout": {
     "message": "A página demorou demasiado a responder."
   },
+  "stateBooting": {
+    "message": "A extensão ainda está a iniciar nesta página. Tenta de novo daqui a instantes.",
+    "description": "État : la page démarre encore"
+  },
+  "statePageMissing": {
+    "message": "A extensão não está a correr neste separador. Recarrega a página do Twitch.",
+    "description": "État : l'extension ne tourne pas dans cet onglet"
+  },
+  "stateTimeoutPage": {
+    "message": "A página não respondeu. Recarrega a página do Twitch.",
+    "description": "État : la page ne répond pas"
+  },
+  "stateTimeoutBridge": {
+    "message": "A ligação ao separador perdeu-se. Tenta de novo.",
+    "description": "État : la liaison avec l'onglet est perdue"
+  },
   "statusOk": {
     "message": "OK"
   },

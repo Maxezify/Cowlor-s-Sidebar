@@ -236,6 +236,22 @@
   "stateTimeout": {
     "message": "Страница отвечала слишком долго."
   },
+  "stateBooting": {
+    "message": "Расширение ещё запускается на этой странице. Повторите попытку через мгновение.",
+    "description": "État : la page démarre encore"
+  },
+  "statePageMissing": {
+    "message": "Расширение не работает в этой вкладке. Перезагрузите страницу Twitch.",
+    "description": "État : l'extension ne tourne pas dans cet onglet"
+  },
+  "stateTimeoutPage": {
+    "message": "Страница не ответила. Перезагрузите страницу Twitch.",
+    "description": "État : la page ne répond pas"
+  },
+  "stateTimeoutBridge": {
+    "message": "Связь с вкладкой потеряна. Повторите попытку.",
+    "description": "État : la liaison avec l'onglet est perdue"
+  },
   "statusOk": {
     "message": "ОК"
   },

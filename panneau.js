@@ -176,9 +176,22 @@ const idOnglet = () => (ongletP ??= chrome.tabs
    mieux dire ce qui ne va pas que continuer à faire tourner un voile. */
 const ATTENTES = [250, 750, 1800];
 
-const demander = async (charge, essai = 0) => {
+/* L'ÉTAT DU SERVICE WORKER, demandé sans passer par le pont — c'est tout
+   l'intérêt : on s'en sert quand le pont ne répond pas. Ne sert qu'au
+   rapport. */
+const etatFond = () => chrome.runtime.sendMessage({ type: 'tse-panneau-etat' })
+  .catch((e) => ({ ok: false, erreur: 'fond', detail: String((e && e.message) || e) }));
+
+/* LA TRACE DES ESSAIS. Un échec après quatre tentatives et un échec au premier
+   coup ne se réparent pas pareil, et le panneau n'en gardait rien : le rapport
+   montrait la dernière erreur comme s'il n'y en avait eu qu'une. */
+const demander = async (charge, essai = 0, trace = []) => {
+  const t0 = Date.now();
   const onglet = await idOnglet();
-  if (typeof onglet !== 'number') return { ok: false, erreur: 'absent' };
+  if (typeof onglet !== 'number') {
+    trace.push({ essai, ms: Date.now() - t0, erreur: 'onglet' });
+    return { ok: false, erreur: 'absent', detail: 'aucun onglet actif', trace };
+  }
   /* DEUX ÉCHECS QUI N'ONT RIEN À VOIR, et les confondre coûtait cher : le
      panneau disait « ouvrez un onglet twitch.tv » à quelqu'un qui en avait un
      sous les yeux, avec l'extension visiblement à l'œuvre dans sa barre
@@ -197,11 +210,14 @@ const demander = async (charge, essai = 0) => {
      recopier quand rien d'autre ne se voit. */
   const r = await chrome.runtime.sendMessage({ type: 'tse-panneau', tabId: onglet, ...charge })
     .catch((e) => ({ ok: false, erreur: 'fond', detail: String((e && e.message) || e) }));
+  trace.push({ essai, ms: Date.now() - t0,
+               erreur: r && r.ok ? 'ok' : ((r && r.erreur) || 'vide'),
+               detail: r && r.detail });
   if (r && (r.erreur === 'absent' || r.erreur === 'fond') && essai < ATTENTES.length) {
     await new Promise((res) => setTimeout(res, ATTENTES[essai]));
-    return demander(charge, essai + 1);
+    return demander(charge, essai + 1, trace);
   }
-  return r || { ok: false, erreur: 'absent' };
+  return { ...(r || { ok: false, erreur: 'absent' }), trace };
 };
 
 /* ── Rendu ───────────────────────────────────────────────────────────────── */
@@ -224,7 +240,26 @@ const montrerMessage = (cle, bouton, detail) => {
 
 /* Quel message pour quel échec. Une seule table, deux appelants — sans elle,
    les deux listes de cas divergeaient au premier ajout. */
-const CAUSES = { fond: 'stateNoWorker', absent: 'stateAbsent', expiration: 'stateTimeout' };
+const CAUSES = {
+  fond: 'stateNoWorker',
+  absent: 'stateAbsent',
+  /* Trois silences, trois réparations. Ils rendaient tous le mot « expiration »
+     et le panneau n'en donnait donc qu'un seul message — celui qui invite à
+     patienter, y compris quand attendre ne servait à rien.
+       — `demarrage`      : content.js est entré mais n'a pas fini ; il porte
+                            l'étape et ses erreurs, il n'y a rien à attendre ;
+       — `page-absente`   : content.js n'a jamais tourné dans cet onglet. Une
+                            page ouverte avant l'installation, ou un script
+                            bloqué : il faut RECHARGER ;
+       — `expiration-page`: il tourne et ne répond pas — le seul des trois qui
+                            soit un bogue de notre côté ;
+       — `expiration-pont`: le port est mort en route. */
+  demarrage: 'stateBooting',
+  'page-absente': 'statePageMissing',
+  'expiration-page': 'stateTimeoutPage',
+  'expiration-pont': 'stateTimeoutBridge',
+  expiration: 'stateTimeout',
+};
 const montrerEchec = (r) => montrerMessage(CAUSES[r.erreur] || 'stateError', true, r.detail);
 
 const cellule = (nom, valeur) => {
@@ -367,7 +402,20 @@ const aplatir = (obj, prefixe = '') => {
   return out;
 };
 
-const construireRapport = (r, transport) => {
+/* LES ERREURS SE LISENT DANS LES DEUX CAS, et c'est pour cela que ce bloc est
+   une fonction. Quand la page répond, elles viennent de son journal ; quand
+   elle n'a pas fini de démarrer, elle en renvoie quand même ce qu'elle a — et
+   c'est alors le seul contenu du rapport qui explique quoi que ce soit. Deux
+   rédactions du même bloc auraient divergé au premier champ ajouté. */
+const blocErreurs = (liste, origine) => bloc(
+  `ERREURS / ERRORS (${(liste || []).length})${origine ? ' — ' + origine : ''}`,
+  (liste || []).length
+    ? liste.map(e =>
+        `  ${String(e.t).padStart(8)} ms  ${String(e.source).padEnd(10)}`
+        + `${e.n > 1 ? ` ×${e.n}` : '   '}  ${e.message}${e.detail ? '  — ' + e.detail : ''}`)
+    : ['  (aucune / none)']);
+
+const construireRapport = (r, transport, fond) => {
   const m = chrome.runtime.getManifest();
   const d = new Date();
   const L = [
@@ -387,6 +435,9 @@ const construireRapport = (r, transport) => {
   L.push(...bloc('ENVIRONNEMENT / ENVIRONMENT', [
     paire('extension', `${m.version} (${m.browser_specific_settings ? 'firefox' : 'chrome'})`),
     paire('page ouverte depuis', r ? `${Math.round((r.ancienneteMs || 0) / 1000)} s` : '—'),
+    paire('démarrage / boot', r?.demarrage
+      ? `${r.demarrage.etape} (${r.demarrage.dureeMs} ms)`
+      : (transport.partiel ? `${transport.partiel.etape} — INACHEVÉ / UNFINISHED` : '—')),
     paire('fond / background', m.background?.service_worker ? 'service_worker'
                              : m.background?.scripts ? 'scripts' : '—'),
     paire('action.popup', m.action?.default_popup ?? '—'),
@@ -403,11 +454,51 @@ const construireRapport = (r, transport) => {
     ...(transport.detail ? [paire('détail / detail', transport.detail)] : []),
   ]));
 
+  /* ── CE QUI NE TRAVERSE PAS LE PONT ───────────────────────────────────────
+     Écrit TOUJOURS, et c'est tout l'objet de ce bloc. Le rapport d'un
+     utilisateur est revenu avec deux lignes utiles : « expiration », puis
+     « la page n'a pas répondu ». Rien sur le nombre d'essais, rien sur ce que
+     le worker connaissait comme ponts, rien sur ce que le monde ISOLATED
+     voyait de la page — alors que ces trois sources répondaient, elles, et
+     qu'aucune n'avait besoin de la page pour parler.
+
+     Le rendre conditionnel à l'échec serait la même faute en plus discret :
+     un champ qu'on ne voit que lorsque ça va mal ne se compare à rien. */
+  const obs = transport.observations;
+  L.push(...bloc('DIAGNOSTIC HORS PAGE / OFF-PAGE DIAGNOSTIC', [
+    paire('worker — ponts', fond?.ok ? (fond.ponts.join(', ') || 'aucun / none')
+                                     : `injoignable (${fond?.erreur || '—'})`),
+    ...(fond?.ok ? [paire('worker — âge', `${fond.workerMs} ms`),
+                    paire('worker — en vol', fond.enVol)] : []),
+    paire('essais / attempts', (transport.trace || [])
+      .map(t => `#${t.essai} ${t.erreur} (${t.ms} ms)`).join('  →  ') || '—'),
+    /* Vu depuis le monde ISOLATED, qui partage le DOM avec content.js sans
+       partager son contexte. `marque` est le jalon posé par content.js : vide,
+       il n'a jamais tourné dans cet onglet. */
+    ...(obs ? [
+      paire('page — jalon / marker', obs.marque || 'ABSENT'),
+      paire('page — readyState', obs.etat),
+      paire('page — hôte / host', obs.hote),
+      paire('page — cachée / hidden', obs.cachee),
+      paire('pont / bridge', `${obs.pont}, ${obs.reprises} reprise(s)`),
+      paire('page — âge / age', `${obs.pageMs} ms`),
+    ] : [paire('observations du pont', '— (le pont n\'a pas répondu)')]),
+    ...(transport.partiel ? [
+      paire('page — étape / stage', transport.partiel.etape),
+      paire('page — depuis / since', `${transport.partiel.depuisMs} ms`),
+    ] : []),
+  ]));
+
   if (!r) {
-    L.push('La page n\'a pas répondu : tout ce qui suit manque, et c\'est le',
-           'bloc TRANSPORT ci-dessus qui dit pourquoi.',
-           'The page did not answer: everything below is missing, and the',
-           'TRANSPORT block above says why.', '');
+    /* LE JOURNAL D'ERREURS SURVIT À L'ÉCHEC quand content.js a démarré assez
+       loin pour l'avoir rempli : son pont répond avant même de savoir servir
+       le reste, et il joint ce qu'il a. C'est le seul bloc du rapport qui
+       explique une panne de démarrage, et il manquait entièrement. */
+    L.push(...blocErreurs(transport.partiel?.erreurs, 'démarrage inachevé / partial boot'));
+    L.push('La page n\'a pas répondu en entier : les blocs qui suivraient',
+           'manquent. Les deux blocs ci-dessus disent ce qu\'on sait sans elle.',
+           'The page did not fully answer: the blocks that would follow are',
+           'missing. The two blocks above say what is known without it.', '');
     return L.join('\n');
   }
 
@@ -431,12 +522,7 @@ const construireRapport = (r, transport) => {
      section qu'on cherche quand on ouvre un rapport. « (aucune) » est une
      information à part entière — elle dit que le problème n'est pas une
      exception, ce qui écarte d'emblée toute une famille de causes. */
-  L.push(...bloc(`ERREURS / ERRORS (${(r.erreurs || []).length})`,
-    (r.erreurs || []).length
-      ? r.erreurs.map(e =>
-          `  ${String(e.t).padStart(8)} ms  ${String(e.source).padEnd(10)}`
-          + `${e.n > 1 ? ` ×${e.n}` : '   '}  ${e.message}${e.detail ? '  — ' + e.detail : ''}`)
-      : ['  (aucune / none)']));
+  L.push(...blocErreurs(r.erreurs));
 
   /* Les sondes en tableau aligné : c'est la partie qu'on lit en premier quand
      quelque chose ne va pas, et une colonne qui glisse la rend illisible. */
@@ -487,9 +573,14 @@ const remplirRapport = async () => {
   $('rapport-note').hidden = true;
   zone.value = T('stateLoading');
   const onglet = await idOnglet();
-  const r = await demander({ rapport: true });
+  /* Les deux en parallèle : l'état du worker ne dépend pas de la page, et
+     l'attendre en série ajouterait son aller-retour à une demande qui peut
+     déjà tenir trois secondes. */
+  const [r, fond] = await Promise.all([demander({ rapport: true }), etatFond()]);
   zone.value = construireRapport(r.ok ? r.data : null,
-    { onglet, ok: r.ok, erreur: r.erreur, detail: r.detail });
+    { onglet, ok: r.ok, erreur: r.erreur, detail: r.detail,
+      trace: r.trace, observations: r.observations, partiel: r.partiel },
+    fond);
   zone.scrollTop = 0;
   boutons.forEach(b => { b.disabled = false; });
 };

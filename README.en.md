@@ -1457,8 +1457,73 @@ all that separates "zero permissions" from "host permission on twitch.tv".
 The port only lives while **the tab is visible**. An open port keeps the service
 worker awake; leaving it connected would keep a worker alive for as long as a
 Twitch tab is open — the exact opposite of what the rest of the product has done
-since 3.61. And the icon can only be clicked on the active tab, so tying the
-port to visibility takes nothing away.
+since 3.61. And the icon can only be clicked on the active tab.
+
+**The trade-off, in full.** The first draft of this paragraph claimed it "takes
+nothing away". That was false, and a user report showed it: Chrome terminates
+the worker after about thirty seconds of inactivity **even under an open port**,
+and the reconnection that follows opens a blind window. It was one second long;
+the panel retried once, at 500 ms — entirely inside it. Reconnection is now
+200 ms and the panel retries at 250, 750 and 1,800 ms.
+
+### The transport contract, and the empty report that exposed it (v3.66)
+
+A user asked for a diagnostic report and got **fifteen lines**: environment,
+transport, `result: expiration`, then "the page did not answer". Out of a report
+that runs to two hundred.
+
+The cause was not a fault on their machine. **The report could never have
+worked**: the panel sent `{ rapport: true }`, `background.js` copied the request
+**field by field** — `section`, `action`, `arg` — and silently dropped
+`rapport`; `bridge.js` then required `section` or `action` and returned without
+answering. The request left, arrived nowhere, and the panel waited out its
+35-second guard to display nothing but its own block.
+
+The harness was green. Its 25 panel assertions wire an extension page to a stub
+`chrome` that answers directly — so they skip exactly the two files that
+disagreed. This was not a coverage hole in the executed-lines sense: the guilty
+line was covered elsewhere. It was a **contract** hole — three files each
+enumerated the same list of fields, and one of them only had to forget one.
+
+None of the three needs that list: what a request contains concerns only the
+panel and `content.js`. The two intermediate hops now forward the **whole**
+request, minus what belongs to that hop alone. Scenario 73 loads the **real**
+`background.js` and `bridge.js` in a `vm` context, around a pair of fake ports,
+and proves that a field **nobody wrote anywhere** still makes it across. Writing
+it caught a **third** instance of the same defect, on the return path.
+
+### What a report must say when the page says nothing
+
+That is its only useful moment, and it was the one where it fell silent. Three
+sources were answering at that very instant, and none was recorded:
+
+- **the service worker**, which knows the bridges it holds and how long it has
+  been running. A worker born 200 ms ago explains a port not yet reconnected; a
+  worker running for ten minutes that has never seen a bridge says the opposite.
+  Two opposite repairs, and no way to choose until now. The panel asks it
+  **without going through the bridge** — that is the whole point;
+- **the bridge**, which shares the page's DOM without sharing its context;
+- **the panel itself**, which now keeps the trace of its four attempts.
+
+`content.js` therefore writes a **marker** on `<html>` (`data-tse-boot`),
+updated at six stages of its start-up. It is the only sign the `ISOLATED` world
+can read without us, and it separates two failures that used to look alike: no
+marker and `content.js` **never entered** that tab — reload it; marker present
+but stuck at `i18n` and it entered and **fell over on the way** — that one is a
+bug on our side. The bridge then answers **immediately** instead of waiting
+30 seconds on a page that is not listening.
+
+Finally, **the panel's listener is now the first thing `content.js` does**,
+rather than a declaration on line 6,000. Any exception thrown before it took the
+bridge down with it. It now answers even when it has nothing to serve — with the
+stage reached and the error journal filled so far, which is then the only part
+of the report that explains anything at all.
+
+The three silences also stopped sharing a name: `page-absente` (reload),
+`expiration-page` (a bug on our side), `expiration-pont` (port died in transit).
+They all returned the word "expiration", so the panel had only one message for
+them — the one inviting you to wait, including when waiting was pointless.
+
 
 ### Two translation tables that never cross
 
@@ -1672,7 +1737,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 71 scenarios, 630 assertions |
+| `npm test` | the Playwright harness: 72 scenarios, 647 assertions |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
 just counted, and fails if the table lies. A bench whose size is advertised
@@ -1691,12 +1756,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 592 KB | 274 KB | 2,770 JS + 77 CSS → **2** |
+| `content.js` | 597 KB | 274 KB | 2,777 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 27 KB | 17 KB | 28 → **0** |
-| `bridge.js` | 7 KB | 2 KB | 13 → **0** |
-| `background.js` | 5 KB | 2 KB | 13 → **0** |
-| **all five** | **756 KB** | **394 KB** | **−48 %** |
+| `panneau.js` | 32 KB | 19 KB | 36 → **0** |
+| `bridge.js` | 11 KB | 3 KB | 19 → **0** |
+| `background.js` | 8 KB | 2 KB | 18 → **0** |
+| **all five** | **772 KB** | **398 KB** | **−48 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
