@@ -311,6 +311,22 @@
     "message": "The page took too long to answer.",
     "description": "État : la page a mis trop de temps"
   },
+  "stateBooting": {
+    "message": "The extension is still starting on this page. Try again in a moment.",
+    "description": "État : la page démarre encore"
+  },
+  "statePageMissing": {
+    "message": "The extension is not running in this tab. Reload the Twitch page.",
+    "description": "État : l'extension ne tourne pas dans cet onglet"
+  },
+  "stateTimeoutPage": {
+    "message": "The page did not answer. Reload the Twitch page.",
+    "description": "État : la page ne répond pas"
+  },
+  "stateTimeoutBridge": {
+    "message": "The link to the tab was lost. Try again.",
+    "description": "État : la liaison avec l'onglet est perdue"
+  },
   "statusOk": {
     "message": "OK",
     "description": "État de sonde : répond"

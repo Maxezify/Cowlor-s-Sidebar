@@ -6,6 +6,7 @@ const CANAL = 'tse-panneau';
 
 const EXPIRATION = 35_000;
 
+const NE = Date.now();
 const ports = new Map();
 
 const enVol = new Map();
@@ -30,11 +31,20 @@ chrome.runtime.onConnect.addListener((port) => {
     if (!attente) return;
     enVol.delete(m.reqId);
     clearTimeout(attente.minuteur);
-    attente.repondre({ ok: !!m.ok, data: m.data, erreur: m.erreur });
+
+    const { reqId: _r, ...reponse } = m;
+    attente.repondre({ ...reponse, ok: !!m.ok });
   });
 });
 
 chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
+
+  if (msg && msg.type === CANAL + '-etat') {
+    repondre({ ok: true, ponts: [...ports.keys()], enVol: enVol.size,
+               workerMs: Date.now() - NE });
+    return false;
+  }
+
   if (!msg || msg.type !== CANAL) return false;
 
   const port = ports.get(msg.tabId);
@@ -49,12 +59,16 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
   const reqId = ++suivant;
   const minuteur = setTimeout(() => {
     enVol.delete(reqId);
-    repondre({ ok: false, erreur: 'expiration' });
+
+    repondre({ ok: false, erreur: 'expiration-pont',
+               detail: `${EXPIRATION} ms sans réponse du pont` });
   }, EXPIRATION);
   enVol.set(reqId, { repondre, minuteur });
 
   try {
-    port.postMessage({ reqId, section: msg.section, action: msg.action, arg: msg.arg });
+
+    const { type: _t, tabId: _o, ...demande } = msg;
+    port.postMessage({ reqId, ...demande });
   } catch {
 
     enVol.delete(reqId);

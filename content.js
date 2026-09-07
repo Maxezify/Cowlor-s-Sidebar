@@ -113,6 +113,46 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (window.top !== window) return;
   } catch { return; }
 
+  const TSE_PANNEAU_REQ = 'tse-panneau-req';
+  const TSE_PANNEAU_RES = 'tse-panneau-res';
+
+  const demarrage = { t: Date.now(), etape: 'entree' };
+
+  let journalErreurs = null;
+  let servirPanneau = null;
+
+  const jalon = (nom) => {
+    demarrage.etape = nom;
+    try { document.documentElement.setAttribute('data-tse-boot', nom); }
+    catch {   }
+  };
+  jalon('entree');
+
+  window.addEventListener('message', (e) => {
+
+    if (e.source !== window) return;
+    const d = e.data;
+    if (!d || d.tse !== TSE_PANNEAU_REQ || typeof d.id !== 'number') return;
+
+    const repondre = (charge) =>
+      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
+
+    if (!servirPanneau) {
+      repondre({
+        ok: false,
+        erreur: 'demarrage',
+        detail: `étape ${demarrage.etape}`,
+        partiel: {
+          etape: demarrage.etape,
+          depuisMs: Date.now() - demarrage.t,
+          erreurs: journalErreurs ? journalErreurs() : [],
+        },
+      });
+      return;
+    }
+    servirPanneau(d, repondre);
+  });
+
   const DOM = Object.freeze({
 
     sidebarRoot:             '#side-nav',
@@ -880,6 +920,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   let LANG = detectLanguage();
   let S = STRINGS[LANG];
+  jalon('i18n');
 
   const erreurs = (() => {
     const MAX = 40;
@@ -923,6 +964,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     return { noter, garde, tout: () => liste.slice() };
   })();
+
+  journalErreurs = erreurs.tout;
+  jalon('journal');
 
   function refreshLanguage() {
     const newLang = detectLanguage();
@@ -3748,6 +3792,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
         ancienneteMs: Math.round(performance.now()),
 
+        demarrage: { etape: demarrage.etape, dureeMs: Date.now() - demarrage.t },
+
         page: {
 
           chemin: location.pathname,
@@ -3810,16 +3856,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   tseApi.panneau.rapport = () => panneau.rapport();
 
-  const TSE_PANNEAU_REQ = 'tse-panneau-req';
-  const TSE_PANNEAU_RES = 'tse-panneau-res';
-  window.addEventListener('message', (e) => {
-
-    if (e.source !== window) return;
-    const d = e.data;
-    if (!d || d.tse !== TSE_PANNEAU_REQ || typeof d.id !== 'number') return;
-
-    const repondre = (charge) =>
-      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
+  servirPanneau = (d, repondre) => {
 
     try {
       const cible = d.rapport ? panneau.rapport
@@ -3837,7 +3874,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     } catch (err) {
       repondre({ ok: false, erreur: String(err && err.message || err) });
     }
-  });
+  };
+  jalon('pont');
 
   tseApi.diagnose.auto = () => { runSelectorHealthCheck(); };
 
@@ -6813,10 +6851,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       preview.init();
       startObserver();
       startTimers();
+      jalon('pret');
     };
     if (document.body) ready();
     else document.addEventListener('DOMContentLoaded', ready, { once: true });
   };
 
+  jalon('boot');
   boot();
 })();

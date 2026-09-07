@@ -236,6 +236,22 @@
   "stateTimeout": {
     "message": "ページの応答に時間がかかりすぎました。"
   },
+  "stateBooting": {
+    "message": "このページで拡張機能がまだ起動中です。しばらくしてからもう一度お試しください。",
+    "description": "État : la page démarre encore"
+  },
+  "statePageMissing": {
+    "message": "このタブで拡張機能が動作していません。Twitch のページを再読み込みしてください。",
+    "description": "État : l'extension ne tourne pas dans cet onglet"
+  },
+  "stateTimeoutPage": {
+    "message": "ページから応答がありませんでした。Twitch のページを再読み込みしてください。",
+    "description": "État : la page ne répond pas"
+  },
+  "stateTimeoutBridge": {
+    "message": "タブとの接続が切れました。もう一度お試しください。",
+    "description": "État : la liaison avec l'onglet est perdue"
+  },
   "statusOk": {
     "message": "正常"
   },
