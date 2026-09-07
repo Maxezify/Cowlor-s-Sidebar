@@ -118,17 +118,27 @@ const idOnglet = () => (ongletP ??= chrome.tabs
 
 const ATTENTES = [250, 750, 1800];
 
-const demander = async (charge, essai = 0) => {
+const etatFond = () => chrome.runtime.sendMessage({ type: 'tse-panneau-etat' })
+  .catch((e) => ({ ok: false, erreur: 'fond', detail: String((e && e.message) || e) }));
+
+const demander = async (charge, essai = 0, trace = []) => {
+  const t0 = Date.now();
   const onglet = await idOnglet();
-  if (typeof onglet !== 'number') return { ok: false, erreur: 'absent' };
+  if (typeof onglet !== 'number') {
+    trace.push({ essai, ms: Date.now() - t0, erreur: 'onglet' });
+    return { ok: false, erreur: 'absent', detail: 'aucun onglet actif', trace };
+  }
 
   const r = await chrome.runtime.sendMessage({ type: 'tse-panneau', tabId: onglet, ...charge })
     .catch((e) => ({ ok: false, erreur: 'fond', detail: String((e && e.message) || e) }));
+  trace.push({ essai, ms: Date.now() - t0,
+               erreur: r && r.ok ? 'ok' : ((r && r.erreur) || 'vide'),
+               detail: r && r.detail });
   if (r && (r.erreur === 'absent' || r.erreur === 'fond') && essai < ATTENTES.length) {
     await new Promise((res) => setTimeout(res, ATTENTES[essai]));
-    return demander(charge, essai + 1);
+    return demander(charge, essai + 1, trace);
   }
-  return r || { ok: false, erreur: 'absent' };
+  return { ...(r || { ok: false, erreur: 'absent' }), trace };
 };
 
 const $ = (id) => document.getElementById(id);
@@ -146,7 +156,16 @@ const montrerMessage = (cle, bouton, detail) => {
   if (bouton) b.textContent = T('btnRetry');
 };
 
-const CAUSES = { fond: 'stateNoWorker', absent: 'stateAbsent', expiration: 'stateTimeout' };
+const CAUSES = {
+  fond: 'stateNoWorker',
+  absent: 'stateAbsent',
+
+  demarrage: 'stateBooting',
+  'page-absente': 'statePageMissing',
+  'expiration-page': 'stateTimeoutPage',
+  'expiration-pont': 'stateTimeoutBridge',
+  expiration: 'stateTimeout',
+};
 const montrerEchec = (r) => montrerMessage(CAUSES[r.erreur] || 'stateError', true, r.detail);
 
 const cellule = (nom, valeur) => {
@@ -256,7 +275,15 @@ const aplatir = (obj, prefixe = '') => {
   return out;
 };
 
-const construireRapport = (r, transport) => {
+const blocErreurs = (liste, origine) => bloc(
+  `ERREURS / ERRORS (${(liste || []).length})${origine ? ' — ' + origine : ''}`,
+  (liste || []).length
+    ? liste.map(e =>
+        `  ${String(e.t).padStart(8)} ms  ${String(e.source).padEnd(10)}`
+        + `${e.n > 1 ? ` ×${e.n}` : '   '}  ${e.message}${e.detail ? '  — ' + e.detail : ''}`)
+    : ['  (aucune / none)']);
+
+const construireRapport = (r, transport, fond) => {
   const m = chrome.runtime.getManifest();
   const d = new Date();
   const L = [
@@ -276,6 +303,9 @@ const construireRapport = (r, transport) => {
   L.push(...bloc('ENVIRONNEMENT / ENVIRONMENT', [
     paire('extension', `${m.version} (${m.browser_specific_settings ? 'firefox' : 'chrome'})`),
     paire('page ouverte depuis', r ? `${Math.round((r.ancienneteMs || 0) / 1000)} s` : '—'),
+    paire('démarrage / boot', r?.demarrage
+      ? `${r.demarrage.etape} (${r.demarrage.dureeMs} ms)`
+      : (transport.partiel ? `${transport.partiel.etape} — INACHEVÉ / UNFINISHED` : '—')),
     paire('fond / background', m.background?.service_worker ? 'service_worker'
                              : m.background?.scripts ? 'scripts' : '—'),
     paire('action.popup', m.action?.default_popup ?? '—'),
@@ -290,11 +320,36 @@ const construireRapport = (r, transport) => {
     ...(transport.detail ? [paire('détail / detail', transport.detail)] : []),
   ]));
 
+  const obs = transport.observations;
+  L.push(...bloc('DIAGNOSTIC HORS PAGE / OFF-PAGE DIAGNOSTIC', [
+    paire('worker — ponts', fond?.ok ? (fond.ponts.join(', ') || 'aucun / none')
+                                     : `injoignable (${fond?.erreur || '—'})`),
+    ...(fond?.ok ? [paire('worker — âge', `${fond.workerMs} ms`),
+                    paire('worker — en vol', fond.enVol)] : []),
+    paire('essais / attempts', (transport.trace || [])
+      .map(t => `#${t.essai} ${t.erreur} (${t.ms} ms)`).join('  →  ') || '—'),
+
+    ...(obs ? [
+      paire('page — jalon / marker', obs.marque || 'ABSENT'),
+      paire('page — readyState', obs.etat),
+      paire('page — hôte / host', obs.hote),
+      paire('page — cachée / hidden', obs.cachee),
+      paire('pont / bridge', `${obs.pont}, ${obs.reprises} reprise(s)`),
+      paire('page — âge / age', `${obs.pageMs} ms`),
+    ] : [paire('observations du pont', '— (le pont n\'a pas répondu)')]),
+    ...(transport.partiel ? [
+      paire('page — étape / stage', transport.partiel.etape),
+      paire('page — depuis / since', `${transport.partiel.depuisMs} ms`),
+    ] : []),
+  ]));
+
   if (!r) {
-    L.push('La page n\'a pas répondu : tout ce qui suit manque, et c\'est le',
-           'bloc TRANSPORT ci-dessus qui dit pourquoi.',
-           'The page did not answer: everything below is missing, and the',
-           'TRANSPORT block above says why.', '');
+
+    L.push(...blocErreurs(transport.partiel?.erreurs, 'démarrage inachevé / partial boot'));
+    L.push('La page n\'a pas répondu en entier : les blocs qui suivraient',
+           'manquent. Les deux blocs ci-dessus disent ce qu\'on sait sans elle.',
+           'The page did not fully answer: the blocks that would follow are',
+           'missing. The two blocks above say what is known without it.', '');
     return L.join('\n');
   }
 
@@ -314,12 +369,7 @@ const construireRapport = (r, transport) => {
   ]));
   L.push(...bloc('TOP CHAÎNES / TOP CHANNELS', aplatir(r.global)));
 
-  L.push(...bloc(`ERREURS / ERRORS (${(r.erreurs || []).length})`,
-    (r.erreurs || []).length
-      ? r.erreurs.map(e =>
-          `  ${String(e.t).padStart(8)} ms  ${String(e.source).padEnd(10)}`
-          + `${e.n > 1 ? ` ×${e.n}` : '   '}  ${e.message}${e.detail ? '  — ' + e.detail : ''}`)
-      : ['  (aucune / none)']));
+  L.push(...blocErreurs(r.erreurs));
 
   L.push(...bloc(`SONDES / PROBES (${(r.sondes || []).length})`,
     (r.sondes || []).map(p =>
@@ -353,9 +403,12 @@ const remplirRapport = async () => {
   $('rapport-note').hidden = true;
   zone.value = T('stateLoading');
   const onglet = await idOnglet();
-  const r = await demander({ rapport: true });
+
+  const [r, fond] = await Promise.all([demander({ rapport: true }), etatFond()]);
   zone.value = construireRapport(r.ok ? r.data : null,
-    { onglet, ok: r.ok, erreur: r.erreur, detail: r.detail });
+    { onglet, ok: r.ok, erreur: r.erreur, detail: r.detail,
+      trace: r.trace, observations: r.observations, partiel: r.partiel },
+    fond);
   zone.scrollTop = 0;
   boutons.forEach(b => { b.disabled = false; });
 };

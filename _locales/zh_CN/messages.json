@@ -236,6 +236,22 @@
   "stateTimeout": {
     "message": "页面响应超时。"
   },
+  "stateBooting": {
+    "message": "扩展仍在此页面上启动。请稍后重试。",
+    "description": "État : la page démarre encore"
+  },
+  "statePageMissing": {
+    "message": "扩展未在此标签页中运行。请重新加载 Twitch 页面。",
+    "description": "État : l'extension ne tourne pas dans cet onglet"
+  },
+  "stateTimeoutPage": {
+    "message": "页面未响应。请重新加载 Twitch 页面。",
+    "description": "État : la page ne répond pas"
+  },
+  "stateTimeoutBridge": {
+    "message": "与标签页的连接已断开。请重试。",
+    "description": "État : la liaison avec l'onglet est perdue"
+  },
   "statusOk": {
     "message": "正常"
   },

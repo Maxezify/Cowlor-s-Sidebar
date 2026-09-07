@@ -12,7 +12,24 @@
 
   let port = null;
   let suivant = 0;
+  let reprises = 0;
+  const NE = Date.now();
   const attentes = new Map();
+
+  const marque = () => {
+    try { return document.documentElement.getAttribute('data-tse-boot'); }
+    catch { return null; }
+  };
+
+  const observations = () => ({
+    marque: marque(),
+    etat: document.readyState,
+    hote: location.hostname,
+    cachee: document.hidden,
+    pont: port ? 'branché' : 'coupé',
+    reprises,
+    pageMs: Date.now() - NE,
+  });
 
   window.addEventListener('message', (e) => {
     if (e.source !== window) return;
@@ -22,7 +39,9 @@
     if (!attente) return;
     attentes.delete(d.id);
     clearTimeout(attente.minuteur);
-    envoyer({ reqId: attente.reqId, ok: !!d.ok, data: d.data, erreur: d.erreur });
+
+    const { tse: _t, id: _i, ...reponse } = d;
+    envoyer({ reqId: attente.reqId, ...reponse, ok: !!d.ok });
   });
 
   const envoyer = (charge) => {
@@ -53,19 +72,32 @@
       port = null;
 
       if (!document.hidden && !minuteurReprise) {
+        reprises++;
         minuteurReprise = setTimeout(() => { minuteurReprise = null; brancher(); }, REPRISE);
       }
     });
     port.onMessage.addListener((m) => {
-      if (!m || (!m.section && !m.action)) return;
+
+      if (!m || typeof m.reqId !== 'number') return;
+      const { reqId: _r, ...demande } = m;
+      if (!Object.keys(demande).length) return;
+
+      if (!marque()) {
+        envoyer({ reqId: m.reqId, ok: false, erreur: 'page-absente',
+                  observations: observations() });
+        return;
+      }
+
       const id = ++suivant;
       const minuteur = setTimeout(() => {
         attentes.delete(id);
-        envoyer({ reqId: m.reqId, ok: false, erreur: 'expiration' });
+
+        envoyer({ reqId: m.reqId, ok: false, erreur: 'expiration-page',
+                  observations: observations() });
       }, EXPIRATION);
       attentes.set(id, { reqId: m.reqId, minuteur });
 
-      window.postMessage({ tse: REQ, id, section: m.section, action: m.action, arg: m.arg }, '*');
+      window.postMessage({ tse: REQ, id, ...demande }, '*');
     });
   };
 

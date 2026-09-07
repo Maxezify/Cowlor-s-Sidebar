@@ -236,6 +236,22 @@
   "stateTimeout": {
     "message": "Die Seite hat zu lange gebraucht."
   },
+  "stateBooting": {
+    "message": "Die Erweiterung startet auf dieser Seite noch. Versuche es gleich erneut.",
+    "description": "État : la page démarre encore"
+  },
+  "statePageMissing": {
+    "message": "Die Erweiterung läuft in diesem Tab nicht. Lade die Twitch-Seite neu.",
+    "description": "État : l'extension ne tourne pas dans cet onglet"
+  },
+  "stateTimeoutPage": {
+    "message": "Die Seite hat nicht geantwortet. Lade die Twitch-Seite neu.",
+    "description": "État : la page ne répond pas"
+  },
+  "stateTimeoutBridge": {
+    "message": "Die Verbindung zum Tab ist verloren gegangen. Versuche es erneut.",
+    "description": "État : la liaison avec l'onglet est perdue"
+  },
   "statusOk": {
     "message": "OK"
   },
