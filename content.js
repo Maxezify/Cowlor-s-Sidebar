@@ -881,6 +881,49 @@ const TSE_GATE_MAX_CLICKS = 5;
   let LANG = detectLanguage();
   let S = STRINGS[LANG];
 
+  const erreurs = (() => {
+    const MAX = 40;
+    const liste = [];
+
+    const MOI = (typeof document !== 'undefined' && document.currentScript
+                 && document.currentScript.src) || '';
+
+    const noter = (source, message, detail) => {
+      const t = Math.round(performance.now());
+      const texte = String(message == null ? '(sans message)' : message).slice(0, 300);
+      const dernier = liste[liste.length - 1];
+      if (dernier && dernier.source === source && dernier.message === texte) {
+        dernier.n++; dernier.dernier = t; return;
+      }
+      liste.push({ t, source, message: texte, detail: detail ? String(detail).slice(0, 200) : '', n: 1 });
+      if (liste.length > MAX) liste.shift();
+    };
+
+    const nous = (pile, fichier) => {
+      const ou = String(pile || '') + ' ' + String(fichier || '');
+      return MOI ? ou.includes(MOI) : /content\.js/.test(ou);
+    };
+
+    try {
+      window.addEventListener('error', (e) => {
+        if (!nous(e.error && e.error.stack, e.filename)) return;
+        noter('exception', e.message, `${e.filename}:${e.lineno}`);
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        const r = e.reason;
+        if (!nous(r && r.stack, '')) return;
+        noter('promesse', (r && r.message) || r, '');
+      });
+    } catch {   }
+
+    const garde = (nom, fn) => function (...args) {
+      try { return fn.apply(this, args); }
+      catch (e) { noter('interne', `${nom} : ${(e && e.message) || e}`); throw e; }
+    };
+
+    return { noter, garde, tout: () => liste.slice() };
+  })();
+
   function refreshLanguage() {
     const newLang = detectLanguage();
     if (newLang === LANG) return false;
@@ -1917,6 +1960,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       if (isResultsUnusable(results) || !Array.isArray(list)) {
         gqlCooldownUntil = Date.now() + CFG.GQL_ERROR_COOLDOWN;
+
+        erreurs.noter('gql', 'tranche inexploitable', `${slice.length} logins`);
         return null;
       }
       const byLogin = new Map();
@@ -1951,6 +1996,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       massOfflineStreak++;
       console.warn(S.consoleMassOffline(nowOffline, wasLive));
       gqlCooldownUntil = Date.now() + CFG.GQL_ERROR_COOLDOWN;
+      erreurs.noter('gql', 'extinction de masse écartée', `${nowOffline}/${wasLive}`);
       logins.forEach(login => {
         (pending.get(login) || []).forEach(fn => fn(UPTIME_UNKNOWN));
       });
@@ -2377,6 +2423,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       failStreak += 1;
       okStreak    = 0;
       cooldownUntil = Date.now() + CFG.GLOBAL_ERROR_COOLDOWN;
+      erreurs.noter('global', 'échec de marche', `série ${failStreak}`);
       if (!degraded && failStreak >= CFG.GLOBAL_FAIL_DEGRADE) {
         degraded = true;
         console.warn(S.consoleGlobalDegraded(
@@ -2530,6 +2577,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           language:   state.globalMode ? state.languageFilter : null,
           scope,
           scopeSize:  scopeRanking.length,
+
+          pauseMs:    Math.max(0, cooldownUntil - Date.now()),
           degraded,
           threshold,
           windowFloor,
@@ -2810,7 +2859,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       try {
         const obj = Object.fromEntries(this.map);
         localStorage.setItem(CFG.VISIT_STORAGE_KEY, JSON.stringify(obj));
-      } catch {   }
+      } catch (e) { erreurs.noter('stockage', 'visites : ' + (e && e.name || e)); }
     },
 
     record(login) {
@@ -2875,7 +2924,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           else obj[login] = [e.sub ? 1 : 0, e.ts];
         }
         localStorage.setItem(CFG.SUBS_STORAGE_KEY, JSON.stringify(obj));
-      } catch {   }
+      } catch (e) { erreurs.noter('stockage', 'abonnements : ' + (e && e.name || e)); }
     },
 
     prune() {
@@ -3246,7 +3295,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       try {
         localStorage.setItem(CFG.ROSTER_STORAGE_KEY,
           JSON.stringify(Object.fromEntries(map)));
-      } catch {   }
+      } catch (e) { erreurs.noter('stockage', 'roster : ' + (e && e.name || e)); }
     };
 
     const record = (login) => {
@@ -3302,7 +3351,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       try {
         localStorage.setItem(CFG.LAG_STORAGE_KEY,
           JSON.stringify({ v: CFG.LAG_FORMAT, samples }));
-      } catch {   }
+      } catch (e) { erreurs.noter('stockage', 'mesures : ' + (e && e.name || e)); }
     };
 
     const noteAhead = (streamId) => {
@@ -3687,8 +3736,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       const cartes = [...document.querySelectorAll('.side-nav-card')];
       const abonnements = subs.entries();
       const mesures = liveLag.all();
+      const lags = mesures.map(m => m.lag).filter(Number.isFinite);
+      const quantile = (arr, q) => {
+        if (!arr.length) return null;
+        const a = arr.slice().sort((x, y) => x - y);
+        return a[Math.min(a.length - 1, Math.floor(a.length * q))];
+      };
+      const maintenant = Date.now();
       return {
-        genere: Date.now(),
+        genere: maintenant,
+
+        ancienneteMs: Math.round(performance.now()),
 
         page: {
 
@@ -3715,6 +3773,12 @@ const TSE_GATE_MAX_CLICKS = 5;
           cache:       cache.size,
         },
         relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
+
+        reseau: { pauseGqlMs: Math.max(0, gqlCooldownUntil - maintenant) },
+
+        retards: { medianeMs: quantile(lags, 0.5), p90Ms: quantile(lags, 0.9) },
+
+        erreurs: erreurs.tout(),
         global: globalChannels.report(),
         journaux: {
           verrous: loadingOverlay.verrous(),
@@ -3762,6 +3826,8 @@ const TSE_GATE_MAX_CLICKS = 5;
                   : d.action  ? panneau.actions[d.action]
                               : panneau.sections[d.section];
       if (typeof cible !== 'function') {
+
+        erreurs.noter('panneau', `demande inconnue : ${d.action || d.section}`);
         repondre({ ok: false, erreur: 'inconnu' });
         return;
       }
@@ -6450,7 +6516,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     });
   };
 
-  const scanSidebar = () => {
+  const scanSidebar = erreurs.garde('balayage', () => {
 
     refreshLanguage();
     refreshSidebarCollapsed();
@@ -6491,7 +6557,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const stillGrowing = loadingOverlay.notifyScan(hadOfflineActivity, nativeCount);
 
     if (hadOfflineActivity || stillGrowing) scheduleScan();
-  };
+  });
 
   let scanTimer = null;
 
@@ -6521,7 +6587,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     let lastObservedCollapsed = null;
     let dernierReplis = 0;
 
-    const obs = new MutationObserver((mutations) => {
+    const obs = new MutationObserver(erreurs.garde('observateur', (mutations) => {
 
       if (document.hidden) { scheduleScan(); return; }
 
@@ -6566,7 +6632,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
 
       if (relevant) scheduleScan();
-    });
+    }));
     obs.observe(document.body, { childList: true, subtree: true });
     scanSidebar();
   };
