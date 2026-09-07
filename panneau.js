@@ -275,13 +275,24 @@ const aplatir = (obj, prefixe = '') => {
   return out;
 };
 
-const blocErreurs = (liste, origine) => bloc(
+const blocErreurs = (liste, origine, bilan) => bloc(
   `ERREURS / ERRORS (${(liste || []).length})${origine ? ' — ' + origine : ''}`,
-  (liste || []).length
-    ? liste.map(e =>
-        `  ${String(e.t).padStart(8)} ms  ${String(e.source).padEnd(10)}`
-        + `${e.n > 1 ? ` ×${e.n}` : '   '}  ${e.message}${e.detail ? '  — ' + e.detail : ''}`)
-    : ['  (aucune / none)']);
+  [
+
+    ...(bilan && bilan.total
+      ? [`  total consigné / total recorded : ${bilan.total}`,
+         ...bilan.sources.map(c =>
+           `    ${String(c.source).padEnd(12)} ${String(c.n).padStart(5)}`
+           + `   1re ${c.premiere} ms · dernière ${c.derniere} ms`),
+         '']
+      : []),
+    ...((liste || []).length
+      ? liste.map(e =>
+          `  ${String(e.t).padStart(8)} ms  ${String(e.source).padEnd(10)}`
+          + `${e.n > 1 ? ` ×${e.n}` : '   '}  ${e.message}${e.detail ? '  — ' + e.detail : ''}`
+          + (e.dernier && e.n > 1 ? `  (dernière : ${e.dernier} ms)` : ''))
+      : ['  (aucune / none)']),
+  ]);
 
 const construireRapport = (r, transport, fond) => {
   const m = chrome.runtime.getManifest();
@@ -306,6 +317,11 @@ const construireRapport = (r, transport, fond) => {
     paire('démarrage / boot', r?.demarrage
       ? `${r.demarrage.etape} (${r.demarrage.dureeMs} ms)`
       : (transport.partiel ? `${transport.partiel.etape} — INACHEVÉ / UNFINISHED` : '—')),
+
+    ...(r?.demarrage?.etapes?.length
+      ? [paire('étapes / stages',
+          r.demarrage.etapes.map(e => `${e.etape} ${e.ms}`).join(' · ') + ' ms')]
+      : []),
     paire('fond / background', m.background?.service_worker ? 'service_worker'
                              : m.background?.scripts ? 'scripts' : '—'),
     paire('action.popup', m.action?.default_popup ?? '—'),
@@ -336,7 +352,8 @@ const construireRapport = (r, transport, fond) => {
       paire('page — cachée / hidden', obs.cachee),
       paire('pont / bridge', `${obs.pont}, ${obs.reprises} reprise(s)`),
       paire('page — âge / age', `${obs.pageMs} ms`),
-    ] : [paire('observations du pont', '— (le pont n\'a pas répondu)')]),
+    ] : [paire('observations du pont',
+               'aucune — le pont lui-même n\'a rien rendu / bridge silent')]),
     ...(transport.partiel ? [
       paire('page — étape / stage', transport.partiel.etape),
       paire('page — depuis / since', `${transport.partiel.depuisMs} ms`),
@@ -369,7 +386,7 @@ const construireRapport = (r, transport, fond) => {
   ]));
   L.push(...bloc('TOP CHAÎNES / TOP CHANNELS', aplatir(r.global)));
 
-  L.push(...blocErreurs(r.erreurs));
+  L.push(...blocErreurs(r.erreurs, '', r.bilanErreurs));
 
   L.push(...bloc(`SONDES / PROBES (${(r.sondes || []).length})`,
     (r.sondes || []).map(p =>
