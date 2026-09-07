@@ -105,7 +105,13 @@
        démarrage inachevé, c'est-à-dire le seul contenu utile d'un rapport
        quand la page va mal. Le banc l'a pris en flagrant délit. */
     const { tse: _t, id: _i, ...reponse } = d;
-    envoyer({ reqId: attente.reqId, ...reponse, ok: !!d.ok });
+    /* LES OBSERVATIONS VOYAGENT AUSSI QUAND TOUT VA BIEN. Elles n'étaient
+       jointes qu'aux échecs, et le rapport d'un utilisateur dont TOUT
+       fonctionnait affichait donc « le pont n'a pas répondu » — sur une
+       réponse que le pont venait de rendre. Un champ de diagnostic qui ment
+       dans le cas nominal fait douter de tous les autres. Elles sont de
+       surcroît le seul point de comparaison quand ça se met à aller mal. */
+    envoyer({ reqId: attente.reqId, ...reponse, ok: !!d.ok, observations: observations() });
   });
 
   /* Le port peut mourir sous nos pieds : le service worker s'endort, l'onglet

@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 597 KB | 274 KB | 2,777 JS + 77 CSS → **2** |
+| `content.js` | 608 KB | 278 KB | 2,791 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 32 KB | 19 KB | 36 → **0** |
-| `bridge.js` | 11 KB | 3 KB | 19 → **0** |
+| `panneau.js` | 34 KB | 20 KB | 38 → **0** |
+| `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 8 KB | 2 KB | 18 → **0** |
-| **all five** | **772 KB** | **398 KB** | **−48 %** |
+| **all five** | **785 KB** | **403 KB** | **−49 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -1920,6 +1920,79 @@ The three silences also stopped sharing a name: `page-absente` (reload),
 They all returned the word "expiration", so the panel had only one message for
 them — the one inviting you to wait, including when waiting was pointless.
 
+### What the error journal actually records (v3.67)
+
+"The report carries the errors" had been true since 3.65 and meant almost
+nothing: the journal existed, what filled it much less so. Of the **fifty-two
+`catch` blocks** in the file, seven were instrumented — and not the ones that
+matter.
+
+**The network, which was the widest blind spot.** `post()` is the single point
+every request to Twitch goes through, and it collapsed **five very different
+failures** onto one silent sentinel. Each now has a name, because none of them
+is repaired the same way:
+
+| What happens | What the report writes | What it means |
+| --- | --- | --- |
+| status ≥ 400 | `HTTP 429`, `HTTP 503`… | too fast / refused / Twitch is down |
+| `GQL_TIMEOUT` exceeded | `abandon après … ms` | slow network, not a broken one |
+| `fetch` rejects | `échec de fetch` | offline, blocker, third-party extension |
+| unreadable body | `corps illisible (JSON)` | truncated or intercepted response |
+| **200 with an error body** | `réponse 200 avec erreurs GraphQL` | persisted query withdrawn, field renamed |
+
+The last is the sneakiest: perfect transport, nothing wrong at the HTTP layer,
+and a cache that stays empty. The report also gives the number of calls, the
+number of failures and the age of the last success — three calls all failing and
+zero calls made used to look alike.
+
+**Storage reads**, none of which were recorded although all four writes were. Yet
+it is the read that explains "my history is gone": JSON corrupted by an
+interrupted write reads as an empty memory, and the extension started over
+without a word. The six **deletions** too — "I cleared it and it came back" could
+not be investigated.
+
+**The subscriptions sweep**, and in particular its number-one failure: the
+`/subscriptions` page requires being signed in, and an expired session gets
+redirected away. The extension then returned an empty list, **strictly
+indistinguishable** from "you have no subscriptions". The redirect path is now
+copied out, the offending tab named, and 25 seconds spent for nothing no longer
+goes unnoticed.
+
+**Broken probes**, finally: Twitch changing its markup is this product's most
+likely failure — it is the whole reason the probes exist — and it did not appear
+in the ERRORS block. It could only be read in the probe table, which gives the
+state of **now**: a report taken after a successful reload kept no trace of an
+incident ten minutes earlier.
+
+#### Two defects in the journal itself
+
+Deduplication only compared against the **last** entry. Two alternating problems
+— a network failure and the fallback that follows it — then keep reinserting each
+other and empty the window in seconds. Measured on the harness: sixty alternating
+messages left **forty entries with a count of 1 and zero survivors**. The
+comparison now spans the whole list, which therefore holds forty *distinct
+problems* rather than forty *events*.
+
+And because a bounded window lies by omission, **per-family counters** now
+accompany it, never evicted, with first and last occurrence. A report could show
+four storage errors and say nothing of the three hundred failed network calls
+just before.
+
+
+### Two translation tables that never cross
+
+The sidebar and the console are served by the **ten `STRINGS` blocks** in
+`content.js`; the panel is served by the **twelve `_locales/`**, through
+`chrome.i18n`. The data layer therefore carries only **field names**, never
+labels: the panel does the translating. Passing a label from one to the other
+would have created a third table, out of sync the day it was first edited.
+
+`chrome.i18n.getMessage()` on an unknown key **does not throw**: it returns the
+empty string. A forgotten label gives an empty button, with no error, no console
+— and only in the language that was forgotten, which the author does not speak.
+So `npm run parity` collects the keys the panel asks for and rejects the ones
+that are missing, the ones nothing displays any more, and empty messages.
+
 ### Two translation tables that never cross
 
 The sidebar and the console are served by the **ten `STRINGS` blocks** in
@@ -2138,7 +2211,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 72 scenarios, 647 assertions |
+| `npm test` | the Playwright harness: 74 scenarios, 670 assertions |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
 just counted, and fails if the table lies. A bench whose size is advertised
