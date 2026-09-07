@@ -53,7 +53,36 @@
 
   let port = null;
   let suivant = 0;
+  let reprises = 0;             // reconnexions depuis le chargement de la page
+  const NE = Date.now();
   const attentes = new Map();   // id local → { reqId du panneau, minuteur }
+
+  /* ── CE QUE CE FICHIER PEUT DIRE TOUT SEUL ────────────────────────────────
+     Il ne lit rien de la page, et ce n'est pas ce qui change ici : il ne lit
+     toujours ni sections, ni contenu. Mais il PARTAGE LE DOM avec content.js,
+     et c'est la seule chose qu'il puisse observer sans lui.
+
+     Pourquoi c'est nécessaire. Un rapport d'utilisateur est revenu avec
+     « expiration » pour tout contenu. Cela voulait dire : port branché, page
+     silencieuse — et rien de plus. Or « content.js n'a jamais tourné » et
+     « content.js a tourné puis est tombé » sont deux pannes qui se réparent
+     autrement (recharger la page contre corriger un bogue), et elles étaient
+     indiscernables. L'attribut posé sur <html> par content.js les sépare :
+     absent, il n'est jamais entré ; présent, il dit jusqu'où il est allé. */
+  const marque = () => {
+    try { return document.documentElement.getAttribute('data-tse-boot'); }
+    catch { return null; }
+  };
+
+  const observations = () => ({
+    marque: marque(),
+    etat: document.readyState,
+    hote: location.hostname,
+    cachee: document.hidden,
+    pont: port ? 'branché' : 'coupé',
+    reprises,
+    pageMs: Date.now() - NE,
+  });
 
   /* La réponse de la page. On ne répond QUE sur un identifiant qu'on a
      nous-même émis : un script de la page peut poster ce qu'il veut, mais il
@@ -68,7 +97,15 @@
     if (!attente) return;
     attentes.delete(d.id);
     clearTimeout(attente.minuteur);
-    envoyer({ reqId: attente.reqId, ok: !!d.ok, data: d.data, erreur: d.erreur });
+    /* La réponse ENTIÈRE, moins ce qui n'appartient qu'à ce saut. Recopier
+       `ok`, `data`, `erreur` un par un est le défaut qui a rendu le rapport de
+       diagnostic inutilisable — trois fichiers tenaient chacun leur liste de
+       champs, et le troisième saut jetait ce que les deux autres avaient
+       laissé passer. Ici, ce serait `partiel` : le journal d'erreurs d'un
+       démarrage inachevé, c'est-à-dire le seul contenu utile d'un rapport
+       quand la page va mal. Le banc l'a pris en flagrant délit. */
+    const { tse: _t, id: _i, ...reponse } = d;
+    envoyer({ reqId: attente.reqId, ...reponse, ok: !!d.ok });
   });
 
   /* Le port peut mourir sous nos pieds : le service worker s'endort, l'onglet
@@ -128,21 +165,46 @@
       /* Reprise seulement si l'onglet est encore regardé : sinon on laisserait
          le worker se rendormir puis le réveillerait aussitôt, en boucle. */
       if (!document.hidden && !minuteurReprise) {
+        reprises++;
         minuteurReprise = setTimeout(() => { minuteurReprise = null; brancher(); }, REPRISE);
       }
     });
     port.onMessage.addListener((m) => {
-      if (!m || (!m.section && !m.action)) return;
+      /* Même règle qu'au saut précédent : on ne connaît PAS la liste des
+         champs d'une demande, on la transporte. La version qui exigeait
+         `m.section || m.action` rejetait sans un mot la demande de rapport,
+         qui n'a ni l'un ni l'autre. Ce qu'on vérifie, c'est qu'il y a un
+         identifiant à qui répondre et quelque chose à demander. */
+      if (!m || typeof m.reqId !== 'number') return;
+      const { reqId: _r, ...demande } = m;
+      if (!Object.keys(demande).length) return;
+
+      /* PAS DE CONTENT.JS, PAS D'ATTENTE. Sans le jalon, personne ne peut
+         répondre dans le monde MAIN — le message partirait pour ne jamais
+         revenir, et le panneau attendrait trente secondes avant d'annoncer
+         un silence qu'on connaissait déjà à cet instant précis. On rend la
+         main tout de suite, en disant ce qu'on a vu. */
+      if (!marque()) {
+        envoyer({ reqId: m.reqId, ok: false, erreur: 'page-absente',
+                  observations: observations() });
+        return;
+      }
+
       const id = ++suivant;
       const minuteur = setTimeout(() => {
         attentes.delete(id);
-        envoyer({ reqId: m.reqId, ok: false, erreur: 'expiration' });
+        /* NOMMÉ, et pas simplement « expiration » : background.js a lui aussi
+           un garde-fou qui rend ce mot-là. Les deux répondaient à l'identique,
+           donc un rapport ne disait pas lequel avait lâché — c'est-à-dire ne
+           disait pas si le silence venait de la page ou du port. */
+        envoyer({ reqId: m.reqId, ok: false, erreur: 'expiration-page',
+                  observations: observations() });
       }, EXPIRATION);
       attentes.set(id, { reqId: m.reqId, minuteur });
       /* targetOrigin '*' pour la même raison que dans content.js : la cible
          est CE document, et `location.origin` vaut la chaîne "null" sur une
          origine opaque — le message serait jeté sans un mot. */
-      window.postMessage({ tse: REQ, id, section: m.section, action: m.action, arg: m.arg }, '*');
+      window.postMessage({ tse: REQ, id, ...demande }, '*');
     });
   };
 

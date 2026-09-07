@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
+import { createContext, runInContext } from 'node:vm';
 import { dirname, join } from 'node:path';
 import { degraisser, degraisserJs, memeCode, compterCommentaires,
          sansCommentairesCss } from './degraisser.mjs';
@@ -6462,6 +6463,7 @@ titre('70. Panneau — la page rendue, mesurée');
       reseau: { pauseGqlMs: 12000 },
       retards: { medianeMs: 90000, p90Ms: 210000 },
       ancienneteMs: 43000,
+      demarrage: { etape: 'pret', dureeMs: 812 },
       erreurs: [{ t: 5120, source: 'stockage', message: 'visites : QuotaExceededError',
                   detail: '', n: 3 }],
     };
@@ -6487,6 +6489,29 @@ titre('70. Panneau — la page rendue, mesurée');
              cet onglet. */
           if (window.__panne === 'fond') {
             return Promise.reject(new Error('Could not establish connection. Receiving end does not exist.'));
+          }
+          /* L'ÉTAT DU WORKER passe AVANT les pannes de page, et l'ordre est le
+             fond du sujet : cette demande ne traverse pas le pont, donc une
+             page en panne ne doit pas l'empêcher de répondre. C'est même la
+             seule raison qu'elle existe. */
+          if (m.type === 'tse-panneau-etat') {
+            return Promise.resolve({ ok: true, ponts: [1], enVol: 0, workerMs: 4200 });
+          }
+          /* DÉMARRAGE INACHEVÉ. content.js est entré mais n'a pas fini : son
+             pont, posé en tête de fichier, répond quand même — avec l'étape
+             atteinte et le journal d'erreurs déjà rempli. C'est le seul cas où
+             un rapport en échec explique quelque chose, et il ne pouvait pas
+             se produire avant : l'écouteur était déclaré cinq mille lignes
+             trop loin, et le panneau n'obtenait qu'une expiration muette. */
+          if (window.__panne === 'demarrage') {
+            return Promise.resolve({ ok: false, erreur: 'demarrage',
+              detail: 'étape i18n',
+              partiel: { etape: 'i18n', depuisMs: 137,
+                         erreurs: [{ t: 12, source: 'interne',
+                                     message: 'STRINGS[LANG] is not defined',
+                                     detail: '', n: 2 }] },
+              observations: { marque: 'i18n', etat: 'loading', hote: 'www.twitch.tv',
+                              cachee: false, pont: 'branché', reprises: 0, pageMs: 900 } });
           }
           if (m.rapport) return Promise.resolve({ ok: true, data: window.__rapport });
           if (m.action) return Promise.resolve({ ok: true, data: { fait: true } });
@@ -6716,6 +6741,15 @@ titre('70. Panneau — la page rendue, mesurée');
   ok('…l\'état du réseau et les quantiles de retard',
      contient('pauseGqlMs') && contient('12000') && contient('210000'),
      'pause GraphQL et p90');
+  /* L'ÉTAPE DE DÉMARRAGE FIGURE AUSSI QUAND TOUT VA BIEN. Un champ qu'on ne
+     voit que le jour de la panne ne se compare à rien : il faut savoir qu'il
+     aurait dû être là pour remarquer qu'il manque. Ici il vaut « pret », ne
+     dit rien de neuf, et c'est précisément ce qui rend lisible le rapport où
+     il vaut autre chose. Même raison pour le bloc HORS PAGE. */
+  ok('…l\'étape de démarrage et le bloc HORS PAGE, MÊME sur un rapport réussi',
+     contient('démarrage / boot') && contient('pret (812 ms)')
+     && contient('DIAGNOSTIC HORS PAGE') && contient('worker — âge'),
+     JSON.stringify((vue.texte.match(/démarrage \/ boot.*/) || [])[0]));
 
   /* LA PROMESSE, TENUE PAR UN CONTRÔLE. Les logins de la fixture n'ont AUCUNE
      raison d'apparaître : le rapport ne transporte que des comptes. Si l'un
@@ -6790,8 +6824,45 @@ titre('70. Panneau — la page rendue, mesurée');
   });
   ok('sans réponse de la page, le rapport existe quand même et dit pourquoi',
      /ENVIRONNEMENT/.test(sansPage) && /Receiving end does not exist/.test(sansPage)
-     && /did not answer/.test(sansPage),
+     && /did not fully answer/.test(sansPage),
      JSON.stringify((sansPage || '').slice(-180)));
+  /* CE QUE LE RAPPORT D'ÉCHEC DOIT PORTER, et ne portait pas. Le rapport
+     envoyé par un utilisateur tenait en quinze lignes : environnement,
+     transport, « la page n'a pas répondu ». Or trois sources répondaient à cet
+     instant-là — le worker, le pont, et le panneau lui-même — et aucune
+     n'était consignée. Un rapport vide le jour de la panne ne sert à
+     personne : c'est le seul jour où il sert. */
+  ok('…et il porte le bloc HORS PAGE, avec la trace des essais',
+     /DIAGNOSTIC HORS PAGE/.test(sansPage)
+     && /essais \/ attempts\s+#0 fond/.test(sansPage)
+     && /#3 fond/.test(sansPage),
+     JSON.stringify((sansPage.match(/essais.*/) || [])[0]));
+  ok('…et l\'état du worker, demandé SANS passer par le pont',
+     /worker — ponts\s+injoignable \(fond\)/.test(sansPage),
+     JSON.stringify((sansPage.match(/worker — ponts.*/) || [])[0]));
+
+  /* ── LE DÉMARRAGE INACHEVÉ ─────────────────────────────────────────────── */
+  const sansBoot = await page.evaluate(async () => {
+    window.__panne = 'demarrage';
+    document.getElementById('rapport-actualiser').click();
+    const zone = document.getElementById('rapport-zone');
+    for (let i = 0; i < 160 && !/HORS PAGE/.test(zone.value); i++) {
+      await new Promise(r => setTimeout(r, 50));
+    }
+    window.__panne = null;
+    return zone.value;
+  });
+  ok('un démarrage inachevé rend SON JOURNAL D\'ERREURS, seul contenu utile ce jour-là',
+     /ERREURS \/ ERRORS \(1\) — démarrage inachevé/.test(sansBoot)
+     && /STRINGS\[LANG\] is not defined/.test(sansBoot) && /×2/.test(sansBoot),
+     JSON.stringify((sansBoot.match(/ERREURS.*/) || [])[0]));
+  ok('…et il dit l\'étape atteinte, dans le bloc ENVIRONNEMENT',
+     /démarrage \/ boot\s+i18n — INACHEVÉ/.test(sansBoot),
+     JSON.stringify((sansBoot.match(/démarrage \/ boot.*/) || [])[0]));
+  ok('…et ce que le monde ISOLATED voyait de la page (jalon, readyState)',
+     /page — jalon \/ marker\s+i18n/.test(sansBoot)
+     && /page — readyState\s+loading/.test(sansBoot),
+     JSON.stringify((sansBoot.match(/page — jalon.*/) || [])[0]));
 
   await page.close();
 }
@@ -6969,6 +7040,24 @@ titre('72. Erreurs — ce que le rapport ne pouvait pas dire');
   });
   await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
 
+  /* ── LE JALON DE DÉMARRAGE, qui est le PREMIER maillon de tout ce qui
+     précède ────────────────────────────────────────────────────────────────
+     Un rapport d'utilisateur est revenu avec « expiration » pour tout
+     contenu : port branché, page muette, et rien pour dire laquelle des deux
+     pannes c'était — content.js jamais entré, ou content.js tombé en route.
+     Le jalon les sépare, et il ne peut le faire que si les trois maillons
+     tiennent : content.js l'écrit sur <html>, bridge.js le lit depuis le monde
+     ISOLATED (scénario 73), le panneau l'imprime (scénario 70). Ici, le
+     premier — sans lui les deux autres n'observent rien. */
+  const boot = await page.evaluate(() => ({
+    marque: document.documentElement.getAttribute('data-tse-boot'),
+    etape: window.tse.panneau.rapport().demarrage.etape,
+  }));
+  ok('content.js pose son jalon sur <html>, et il va jusqu\'à « pret »',
+     boot.marque === 'pret', JSON.stringify(boot.marque));
+  ok('…et le rapport porte la même étape, pour être lisible sans le DOM',
+     boot.etape === 'pret', JSON.stringify(boot.etape));
+
   const journal = () => page.evaluate(() => window.tse.panneau.rapport().erreurs);
 
   const vierge = await journal();
@@ -7072,6 +7161,165 @@ titre('72. Erreurs — ce que le rapport ne pouvait pas dire');
      JSON.stringify([borne[0].message, borne[borne.length - 1].message]));
 
   await page.close();
+}
+
+titre('73. Le transport — les trois sauts doivent se comprendre');
+{
+  /* CE SCÉNARIO EXISTE PARCE QUE SON ABSENCE A LAISSÉ PASSER UNE FONCTION QUI
+     NE MARCHAIT PAS DU TOUT. Le rapport de diagnostic ne pouvait PAS
+     fonctionner : le panneau envoyait `{ rapport: true }`, background.js
+     recopiait la demande champ par champ — `section`, `action`, `arg` — et
+     jetait `rapport` en silence ; bridge.js exigeait ensuite `section` ou
+     `action` et rendait la main sans répondre. La demande n'arrivait nulle
+     part, et le panneau attendait 35 secondes pour n'afficher que son propre
+     bloc TRANSPORT. Un utilisateur l'a signalé, avec un rapport de quinze
+     lignes à l'appui.
+
+     LE BANC ÉTAIT VERT. Les 25 assertions du scénario 70 branchent le panneau
+     sur un `chrome` de substitution qui répond directement — donc sautent
+     exactement les deux fichiers qui se contredisaient. Ce n'est pas un trou
+     de couverture au sens des lignes exécutées : la ligne fautive était
+     couverte par le scénario 69, côté page. C'est un trou de CONTRAT — trois
+     fichiers énuméraient chacun la même liste de champs, et il suffisait
+     qu'un seul en oublie un.
+
+     On charge donc les VRAIS background.js et bridge.js, dans un contexte
+     `vm`, autour d'un couple de ports factices. Ce qu'on éprouve n'est pas
+     leur comportement pris un par un : c'est qu'une demande entre d'un bout
+     et ressorte à l'autre AVEC LES MÊMES CHAMPS. */
+  const contexteTransport = ({ marque = 'pret' } = {}) => {
+    const journal = { versPage: [], reponses: [] };
+    let ecouteurPage = null;      // l'écouteur 'message' posé par bridge.js
+    let onConnect = null, onMessageFond = null;
+
+    /* Un couple de ports : ce que `chrome.runtime.connect()` rend d'un côté,
+       ce que `onConnect` reçoit de l'autre. Les deux se parlent en direct —
+       c'est tout ce qu'un port est. */
+    const couple = (tabId) => {
+      const f = { auts: [], fins: [] }, b = { auts: [], fins: [] };
+      const faire = (moi, autre, sender) => ({
+        name: 'tse-panneau',
+        sender,
+        postMessage: (m) => { for (const l of autre.auts) l(m); },
+        disconnect:  ()  => { for (const l of autre.fins) l(); },
+        onMessage:    { addListener: (l) => moi.auts.push(l) },
+        onDisconnect: { addListener: (l) => moi.fins.push(l) },
+      });
+      return [faire(f, b, undefined), faire(b, f, { tab: { id: tabId } })];
+    };
+
+    const ctxFond = createContext({
+      chrome: {
+        runtime: {
+          onConnect: { addListener: (l) => { onConnect = l; } },
+          onMessage: { addListener: (l) => { onMessageFond = l; } },
+        },
+      },
+      setTimeout, clearTimeout, Date, console,
+    });
+    runInContext(readFileSync(join(ICI, '..', 'background.js'), 'utf8'), ctxFond);
+
+    const fen = {
+      addEventListener: (t, l) => { if (t === 'message') ecouteurPage = l; },
+      postMessage: (m) => journal.versPage.push(m),
+    };
+    fen.top = fen;                             // cadre principal : la garde passe
+    const ctxPont = createContext({
+      window: fen,
+      document: {
+        hidden: false,
+        readyState: 'complete',
+        documentElement: { getAttribute: () => marque },
+        addEventListener: () => {},
+      },
+      location: { hostname: 'www.twitch.tv' },
+      chrome: {
+        runtime: {
+          connect: () => {
+            const [cotePont, coteFond] = couple(7);
+            onConnect(coteFond);
+            return cotePont;
+          },
+        },
+      },
+      setTimeout, clearTimeout, Date, console,
+    });
+    runInContext(readFileSync(join(ICI, '..', 'bridge.js'), 'utf8'), ctxPont);
+
+    /* Le geste du panneau, à l'identique : c'est `demander()` qui pose cette
+       enveloppe, et c'est elle qu'on doit reproduire pour que le test porte. */
+    const depuisPanneau = (charge, tabId = 7) => new Promise((res) => {
+      const rendu = onMessageFond({ type: 'tse-panneau', tabId, ...charge }, {},
+                                  (r) => { journal.reponses.push(r); res(r); });
+      if (rendu === false && !journal.reponses.length) res(undefined);
+    });
+    // La page répond, dans le monde MAIN : bridge.js écoute la même fenêtre.
+    const pageRepond = (charge) =>
+      ecouteurPage({ source: fen, data: { tse: 'tse-panneau-res', ...charge } });
+
+    return { journal, depuisPanneau, pageRepond,
+             etat: () => new Promise((res) => {
+               onMessageFond({ type: 'tse-panneau-etat' }, {}, res);
+             }) };
+  };
+
+  /* ── LE DÉFAUT LUI-MÊME ─────────────────────────────────────────────────── */
+  {
+    const t = contexteTransport();
+    const p = t.depuisPanneau({ rapport: true });
+    ok('la demande de rapport ATTEINT la page (le défaut signalé)',
+       t.journal.versPage.length === 1 && t.journal.versPage[0].rapport === true,
+       JSON.stringify(t.journal.versPage));
+    t.pageRepond({ id: t.journal.versPage[0]?.id, ok: true, data: { genere: 42 } });
+    const r = await p;
+    ok('…et sa réponse revient intacte jusqu\'au panneau',
+       r && r.ok === true && r.data && r.data.genere === 42, JSON.stringify(r));
+  }
+
+  /* ── LA CLASSE, PAS L'INSTANCE ──────────────────────────────────────────
+     Corriger `rapport` sans corriger la recopie champ par champ aurait laissé
+     le prochain champ tomber dans le même trou. On éprouve donc un nom que
+     personne n'a écrit nulle part : s'il traverse, c'est que plus aucun des
+     deux sauts ne tient de liste. */
+  {
+    const t = contexteTransport();
+    const p = t.depuisPanneau({ champInedit: 'xyz', arg: 3 });
+    ok('un champ que ni background.js ni bridge.js ne connaissent traverse quand même',
+       t.journal.versPage[0]?.champInedit === 'xyz' && t.journal.versPage[0]?.arg === 3,
+       JSON.stringify(t.journal.versPage[0]));
+    t.pageRepond({ id: t.journal.versPage[0].id, ok: false, erreur: 'x',
+                   observations: { marque: 'pret' }, partiel: { etape: 'i18n' } });
+    const r = await p;
+    ok('…et les champs d\'EXPLICATION de la réponse aussi (observations, partiel)',
+       r?.observations?.marque === 'pret' && r?.partiel?.etape === 'i18n',
+       JSON.stringify(r));
+  }
+
+  /* ── PAS DE CONTENT.JS : ON LE DIT TOUT DE SUITE ───────────────────────── */
+  {
+    const t = contexteTransport({ marque: null });
+    const r = await t.depuisPanneau({ rapport: true });
+    ok('sans le jalon de content.js, le pont répond SANS attendre l\'expiration',
+       r && r.ok === false && r.erreur === 'page-absente', JSON.stringify(r));
+    ok('…et il n\'a rien envoyé à une page qui n\'écoute pas',
+       t.journal.versPage.length === 0, `${t.journal.versPage.length} envoi(s)`);
+    ok('…en disant ce qu\'il voit à la place (hôte, readyState, pont)',
+       r.observations && r.observations.hote === 'www.twitch.tv'
+       && r.observations.etat === 'complete' && r.observations.pont === 'branché',
+       JSON.stringify(r.observations));
+  }
+
+  /* ── L'ONGLET SANS PONT, ET L'ÉTAT DU WORKER ───────────────────────────── */
+  {
+    const t = contexteTransport();
+    const r = await t.depuisPanneau({ rapport: true }, 999);
+    ok('un onglet sans pont rend « absent », et nomme les ponts connus',
+       r && r.erreur === 'absent' && /7/.test(r.detail || ''), JSON.stringify(r));
+    const e = await t.etat();
+    ok('le worker sait se décrire sans passer par le pont',
+       e && e.ok === true && e.ponts.join() === '7' && typeof e.workerMs === 'number',
+       JSON.stringify(e));
+  }
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

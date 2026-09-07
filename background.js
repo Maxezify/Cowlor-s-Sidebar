@@ -39,6 +39,11 @@ const EXPIRATION = 35_000;
 
 /** Ports vivants, un par onglet. Un onglet dont la page est cachée n'y est
  *  pas : bridge.js se débranche pour laisser ce worker s'endormir. */
+/** Instant de démarrage de CETTE instance du worker. Chrome en tue une toutes
+ *  les trente secondes d'inactivité et en refait une à la demande : savoir
+ *  qu'elle a deux cents millisecondes explique à elle seule un port pas encore
+ *  rebranché, et c'est une information qu'aucun rapport ne portait. */
+const NE = Date.now();
 const ports = new Map();          // tabId → Port
 /** Demandes du panneau en attente de réponse de l'onglet. */
 const enVol = new Map();          // reqId → { repondre, minuteur }
@@ -66,11 +71,29 @@ chrome.runtime.onConnect.addListener((port) => {
     if (!attente) return;                  // déjà expirée, ou déjà répondue
     enVol.delete(m.reqId);
     clearTimeout(attente.minuteur);
-    attente.repondre({ ok: !!m.ok, data: m.data, erreur: m.erreur });
+    /* Même raison qu'à l'aller : on rend la réponse ENTIÈRE. La rédaction qui
+       recopiait `ok`, `data`, `erreur` aurait jeté en silence les champs
+       ajoutés depuis — `detail`, `partiel`, `observations` — c'est-à-dire
+       exactement ce qui est là pour expliquer un échec. */
+    const { reqId: _r, ...reponse } = m;
+    attente.repondre({ ...reponse, ok: !!m.ok });
   });
 });
 
 chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
+  /* ── CE QUE LE WORKER SAIT DE LUI-MÊME ────────────────────────────────────
+     Demandé par le rapport de diagnostic, et par lui seul. Il ne traverse
+     aucun pont : c'est exprès, puisqu'on s'en sert justement quand le pont
+     ne répond pas. Sans cela, un rapport d'échec ne disait pas si le worker
+     venait de naître (auquel cas il faut attendre) ou s'il tournait depuis
+     longtemps sans jamais avoir vu un seul pont (auquel cas il faut recharger
+     la page) — deux réparations opposées, aucun moyen de choisir. */
+  if (msg && msg.type === CANAL + '-etat') {
+    repondre({ ok: true, ponts: [...ports.keys()], enVol: enVol.size,
+               workerMs: Date.now() - NE });
+    return false;
+  }
+
   if (!msg || msg.type !== CANAL) return false;
 
   const port = ports.get(msg.tabId);
@@ -98,12 +121,33 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
   const reqId = ++suivant;
   const minuteur = setTimeout(() => {
     enVol.delete(reqId);
-    repondre({ ok: false, erreur: 'expiration' });
+    /* NOMMÉ. bridge.js a son propre garde-fou, qui rendait lui aussi le mot
+       « expiration » : les deux étaient indiscernables dans un rapport, donc
+       on ne savait pas si le silence venait de la page ou du port. Atteindre
+       CELUI-CI veut dire que le pont n'a même pas rendu le sien — le port est
+       mort entre-temps, ou l'onglet a disparu. */
+    repondre({ ok: false, erreur: 'expiration-pont',
+               detail: `${EXPIRATION} ms sans réponse du pont` });
   }, EXPIRATION);
   enVol.set(reqId, { repondre, minuteur });
 
   try {
-    port.postMessage({ reqId, section: msg.section, action: msg.action, arg: msg.arg });
+    /* ON RELAIE LA DEMANDE ENTIÈRE, moins ce qui n'appartient qu'à ce saut.
+       La première rédaction recopiait les champs un par un — `section`,
+       `action`, `arg` — et c'était un bogue en attente : le panneau a plus
+       tard gagné un quatrième champ, `rapport`, que cette ligne ne connaissait
+       pas et jetait donc en silence. Le rapport de diagnostic ne pouvait PAS
+       fonctionner, jamais : la demande partait, n'arrivait nulle part, et le
+       panneau attendait l'expiration de 35 s pour n'afficher que son propre
+       bloc TRANSPORT. Un utilisateur l'a signalé ; aucun test ne l'avait vu,
+       parce que le banc branchait le panneau sur un `chrome` simulé et
+       sautait précisément ces deux sauts.
+
+       Trois fichiers énuméraient chacun la même liste de champs. Il suffisait
+       qu'un seul en oublie un. Aucun des trois n'a besoin de cette liste :
+       le contenu de la demande ne regarde que le panneau et content.js. */
+    const { type: _t, tabId: _o, ...demande } = msg;
+    port.postMessage({ reqId, ...demande });
   } catch {
     // Port mort entre la lecture et l'envoi : on rend la main tout de suite.
     enVol.delete(reqId);

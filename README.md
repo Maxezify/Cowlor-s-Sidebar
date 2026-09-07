@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 592 Ko | 274 Ko | 2 770 JS + 77 CSS → **2** |
+| `content.js` | 597 Ko | 274 Ko | 2 777 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 27 Ko | 17 Ko | 28 → **0** |
-| `bridge.js` | 7 Ko | 2 Ko | 13 → **0** |
-| `background.js` | 5 Ko | 2 Ko | 13 → **0** |
-| **les cinq** | **756 Ko** | **394 Ko** | **−48 %** |
+| `panneau.js` | 32 Ko | 19 Ko | 36 → **0** |
+| `bridge.js` | 11 Ko | 3 Ko | 19 → **0** |
+| `background.js` | 8 Ko | 2 Ko | 18 → **0** |
+| **les cinq** | **772 Ko** | **398 Ko** | **−48 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -1960,8 +1960,78 @@ Le port ne vit que pendant que **l'onglet est visible**. Un port ouvert
 maintient le service worker éveillé ; le garder branché en permanence tiendrait
 un worker en vie tant qu'un onglet Twitch est ouvert, c'est-à-dire l'exact
 contraire de ce que fait le reste du produit depuis la 3.61. Or l'icône ne peut
-être cliquée que sur l'onglet actif : faire vivre le port sur la visibilité ne
-retire rien.
+être cliquée que sur l'onglet actif.
+
+**Le compromis, en entier.** La première rédaction de ce paragraphe affirmait
+que cela « ne retire rien ». C'était faux, et un rapport d'utilisateur l'a
+montré : Chrome termine le worker après une trentaine de secondes d'inactivité
+**même sous un port ouvert**, et la reconnexion qui suit ouvre une fenêtre
+aveugle. Elle était d'une seconde ; le panneau ne réessayait qu'une fois à
+500 ms — donc entièrement à l'intérieur. La reprise est passée à 200 ms et le
+panneau réessaie à 250, 750 puis 1 800 ms.
+
+### Le contrat de transport, et le rapport vide qui l'a révélé (v3.66)
+
+Un utilisateur a demandé un rapport de diagnostic et reçu **quinze lignes** :
+l'environnement, le transport, `résultat : expiration`, puis « la page n'a pas
+répondu ». Sur un rapport qui en fait deux cents.
+
+La cause n'était pas une panne de sa machine. **Le rapport ne pouvait pas
+fonctionner, jamais** : le panneau envoyait `{ rapport: true }`,
+`background.js` recopiait la demande **champ par champ** — `section`, `action`,
+`arg` — et jetait `rapport` en silence ; `bridge.js` exigeait ensuite `section`
+ou `action` et rendait la main sans répondre. La demande partait, n'arrivait
+nulle part, et le panneau attendait les 35 secondes de son garde-fou pour
+n'afficher que son propre bloc.
+
+Le banc était vert. Ses 25 assertions sur le panneau branchaient une page
+d'extension sur un `chrome` de substitution qui répond directement — donc
+sautaient exactement les deux fichiers qui se contredisaient. Ce n'était pas un
+trou de couverture au sens des lignes exécutées : la ligne fautive était
+couverte ailleurs. C'était un trou de **contrat** — trois fichiers énuméraient
+chacun la même liste de champs, et il suffisait qu'un seul en oublie un.
+
+Aucun des trois n'a besoin de cette liste : le contenu d'une demande ne regarde
+que le panneau et `content.js`. Les deux sauts intermédiaires transportent donc
+désormais la demande **entière**, moins ce qui n'appartient qu'à eux. Le
+scénario 73 charge les **vrais** `background.js` et `bridge.js` dans un contexte
+`vm`, autour d'un couple de ports factices, et éprouve qu'un champ **que
+personne n'a écrit nulle part** traverse quand même. En l'écrivant, il a pris
+une **troisième** occurrence du même défaut, sur le chemin du retour.
+
+### Ce qu'un rapport doit dire quand la page ne dit rien
+
+C'est son seul moment utile, et c'était celui où il se taisait. Trois sources
+répondaient pourtant à cet instant précis, et aucune n'était consignée :
+
+- **le service worker**, qui sait quels ponts il connaît et depuis quand il
+  tourne. Un worker né il y a 200 ms explique un port pas encore rebranché ; un
+  worker qui tourne depuis dix minutes sans avoir jamais vu de pont dit
+  l'inverse. Deux réparations opposées, aucun moyen de choisir jusqu'ici. Le
+  panneau le lui demande **sans passer par le pont** — c'est tout l'intérêt ;
+- **le pont**, qui partage le DOM de la page sans partager son contexte ;
+- **le panneau lui-même**, qui garde maintenant la trace de ses quatre essais.
+
+`content.js` pose donc un **jalon** sur `<html>` (`data-tse-boot`), mis à jour à
+six étapes de son démarrage. C'est le seul signe que le monde `ISOLATED` puisse
+lire sans nous, et il sépare deux pannes qui se ressemblaient : jalon absent,
+`content.js` n'est **jamais entré** dans cet onglet — il faut recharger ; jalon
+présent et bloqué à `i18n`, il est entré et **tombé en route** — c'est un bogue
+de notre côté. Le pont répond alors **immédiatement** au lieu d'attendre
+30 secondes une page qui n'écoute pas.
+
+Enfin, **l'écouteur du panneau est désormais la première chose que fait
+`content.js`**, et non plus une déclaration à la ligne 6 000. N'importe quelle
+exception levée avant elle emportait le pont avec elle. Il répond maintenant
+même quand il n'a rien à servir — avec l'étape atteinte et le journal d'erreurs
+déjà rempli, qui est alors le seul contenu du rapport qui explique quoi que ce
+soit.
+
+Les trois silences ont aussi cessé de porter le même nom : `page-absente`
+(recharger), `expiration-page` (bogue de notre côté), `expiration-pont` (port
+mort en route). Ils rendaient tous le mot « expiration », et le panneau n'en
+donnait donc qu'un seul message — celui qui invite à patienter, y compris quand
+attendre ne servait à rien.
 
 ### Deux tables de traduction, et elles ne se croisent jamais
 
@@ -2187,7 +2257,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 71 scénarios, 630 assertions |
+| `npm test` | le harnais Playwright : 72 scénarios, 647 assertions |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
 vient de compter, et échoue si le tableau ment. Un banc dont on annonce la

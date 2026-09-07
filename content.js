@@ -367,6 +367,106 @@ const TSE_GATE_MAX_CLICKS = 5;
   } catch { return; }
 
   /* ============================================================
+   *  LE PONT DU PANNEAU — POSÉ AVANT TOUT LE RESTE
+   *  ------------------------------------------------------------
+   *  CE BLOC EST ICI À CAUSE D'UN RAPPORT VIDE. Un utilisateur a
+   *  ouvert le panneau, demandé un rapport de diagnostic, et reçu
+   *  ceci :
+   *
+   *      TRANSPORT
+   *        résultat / result    expiration
+   *      La page n'a pas répondu : tout ce qui suit manque.
+   *
+   *  Deux lignes, sur un rapport qui en fait deux cents. Or
+   *  « expiration » ne peut vouloir dire qu'une chose : le pont
+   *  ISOLATED était bien branché — sinon la réponse aurait été
+   *  « absent » — mais PERSONNE n'a répondu dans le monde MAIN.
+   *  C'est-à-dire ici. C'est-à-dire que ce fichier n'a pas atteint
+   *  son écouteur.
+   *
+   *  ET C'ÉTAIT FACILE. L'écouteur du panneau était déclaré à la
+   *  ligne 6000 et quelques, cinq mille lignes après ce point.
+   *  N'IMPORTE QUELLE exception levée entre les deux pendant
+   *  l'évaluation du script emportait le pont avec elle, et le
+   *  panneau n'avait plus qu'à attendre trente secondes pour
+   *  annoncer un silence dont il ne savait rien dire. Le seul
+   *  moment où le rapport sert vraiment est celui où la page va
+   *  mal ; c'est exactement le moment où il ne disait plus rien.
+   *
+   *  L'écouteur est donc désormais la PREMIÈRE chose que fait ce
+   *  fichier. Il répond toujours — même quand il n'a rien à
+   *  servir — et sa réponse porte alors l'étape atteinte et le
+   *  journal d'erreurs s'il existe déjà. Un échec instantané et
+   *  situé vaut mieux qu'une expiration muette.
+   *
+   *  LE JALON DANS LE DOM, pour le cas que ce bloc ne couvre pas :
+   *  celui où ce fichier ne tourne PAS DU TOUT (injection refusée,
+   *  CSP, script bloqué). Aucun écouteur ne peut alors répondre,
+   *  par construction. Mais le monde ISOLATED partage le DOM avec
+   *  nous : un attribut sur <html> est le seul signe que bridge.js
+   *  puisse lire sans nous. Sa présence distingue « content.js
+   *  n'est jamais entré » de « content.js est entré puis est
+   *  tombé », deux pannes qui se ressemblaient jusqu'ici.
+   * ============================================================ */
+  const TSE_PANNEAU_REQ = 'tse-panneau-req';
+  const TSE_PANNEAU_RES = 'tse-panneau-res';
+
+  const demarrage = { t: Date.now(), etape: 'entree' };
+  /* Deux points d'accroche remplis plus bas. Ils ne peuvent pas être des
+     références directes : `erreurs` et `panneau` sont des `const` déclarées
+     bien après, et les lire avant leur initialisation lèverait une
+     ReferenceError (zone morte temporelle) — y compris sous `typeof`. Une
+     variable mutable, nulle jusqu'à ce qu'elle ne le soit plus, se teste. */
+  let journalErreurs = null;
+  let servirPanneau = null;
+
+  const jalon = (nom) => {
+    demarrage.etape = nom;
+    try { document.documentElement.setAttribute('data-tse-boot', nom); }
+    catch { /* pas de documentElement : document exotique, rien à marquer */ }
+  };
+  jalon('entree');
+
+  window.addEventListener('message', (e) => {
+    // Même fenêtre uniquement : un message d'iframe n'a rien à faire ici.
+    if (e.source !== window) return;
+    const d = e.data;
+    if (!d || d.tse !== TSE_PANNEAU_REQ || typeof d.id !== 'number') return;
+    /* targetOrigin '*' — et c'est le choix juste ici, pas un raccourci. La
+       destination est CE document : bridge.js écoute la même fenêtre, dans
+       l'autre monde. Or `location.origin` vaut la chaîne "null" sur une page
+       à origine opaque (un document file://, une iframe bac à sable), et un
+       targetOrigin qui ne correspond à rien fait jeter le message en silence
+       — le panneau resterait à tourner sans jamais rien dire.
+
+       Ce que '*' élargit : les autres écouteurs de CE document, c'est-à-dire
+       les scripts de Twitch. Ils n'y gagnent rien — la charge ne contient que
+       ce que `window.tse` leur rend déjà, à portée d'un appel plus court que
+       de forger un message. */
+    const repondre = (charge) =>
+      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
+
+    /* PAS ENCORE PRÊT — et on le dit, au lieu de laisser expirer. Le champ
+       `partiel` est tout ce qu'on a : l'étape atteinte, depuis combien de
+       temps, et les erreurs déjà consignées. C'est peu ; c'est infiniment
+       plus qu'une expiration de trente secondes. */
+    if (!servirPanneau) {
+      repondre({
+        ok: false,
+        erreur: 'demarrage',
+        detail: `étape ${demarrage.etape}`,
+        partiel: {
+          etape: demarrage.etape,
+          depuisMs: Date.now() - demarrage.t,
+          erreurs: journalErreurs ? journalErreurs() : [],
+        },
+      });
+      return;
+    }
+    servirPanneau(d, repondre);
+  });
+
+  /* ============================================================
    *  I18N — DÉTECTION DE LANGUE + CHAÎNES LOCALISABLES
    *  -------------------------------------------------------------
    *  Deux niveaux :
@@ -1224,6 +1324,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   let LANG = detectLanguage();
   let S = STRINGS[LANG];
+  jalon('i18n');
 
   /* ============================================================
    *  JOURNAL D'ERREURS
@@ -1325,6 +1426,13 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     return { noter, garde, tout: () => liste.slice() };
   })();
+
+  /* Le pont posé plus haut peut désormais servir le journal, même s'il ne
+     peut encore rien servir d'autre. C'est le seul contenu qui ait un sens
+     avant que le reste du fichier n'existe — et c'est celui qu'on cherche
+     quand le démarrage échoue. */
+  journalErreurs = erreurs.tout;
+  jalon('journal');
 
   /* Re-évalue la langue et met à jour S si elle a changé.
    * À appeler en début de chaque scan ; coût négligeable. */
@@ -5964,6 +6072,12 @@ const TSE_GATE_MAX_CLICKS = 5;
            inerte à la seconde 2 et une qui l'est depuis vingt minutes ne
            posent pas le même problème, et rien ne le disait. */
         ancienneteMs: Math.round(performance.now()),
+        /* L'ÉTAPE DE DÉMARRAGE, y compris quand tout va bien. Sur un rapport
+           réussi elle vaut « pret » et ne dit rien de neuf — mais c'est
+           justement ce qui rend lisible celle qui ne le vaut pas : le champ
+           existe dans les deux cas, au même endroit, et on n'a pas à savoir
+           qu'il aurait dû être là pour remarquer qu'il manque. */
+        demarrage: { etape: demarrage.etape, dureeMs: Date.now() - demarrage.t },
         /* Pas de numéro de version ICI. content.js tourne en monde MAIN, où
            chrome.runtime n'existe pas : il ne peut que recopier une constante,
            qui se périmerait au premier oubli. Le panneau, lui, lit le
@@ -6067,26 +6181,12 @@ const TSE_GATE_MAX_CLICKS = 5;
    *  chose qu'un nom déclaré ici, et toujours répondre — même en
    *  échec — pour qu'un panneau ouvert ne reste pas à tourner.
    * ============================================================ */
-  const TSE_PANNEAU_REQ = 'tse-panneau-req';
-  const TSE_PANNEAU_RES = 'tse-panneau-res';
-  window.addEventListener('message', (e) => {
-    // Même fenêtre uniquement : un message d'iframe n'a rien à faire ici.
-    if (e.source !== window) return;
-    const d = e.data;
-    if (!d || d.tse !== TSE_PANNEAU_REQ || typeof d.id !== 'number') return;
-    /* targetOrigin '*' — et c'est le choix juste ici, pas un raccourci. La
-       destination est CE document : bridge.js écoute la même fenêtre, dans
-       l'autre monde. Or `location.origin` vaut la chaîne "null" sur une page
-       à origine opaque (un document file://, une iframe bac à sable), et un
-       targetOrigin qui ne correspond à rien fait jeter le message en silence
-       — le panneau resterait à tourner sans jamais rien dire.
-
-       Ce que '*' élargit : les autres écouteurs de CE document, c'est-à-dire
-       les scripts de Twitch. Ils n'y gagnent rien — la charge ne contient que
-       ce que `window.tse` leur rend déjà, à portée d'un appel plus court que
-       de forger un message. */
-    const repondre = (charge) =>
-      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
+  /* L'ÉCOUTEUR N'EST PLUS ICI — il est en tête de fichier, et c'est un
+     correctif, pas un rangement (cf. le bloc « LE PONT DU PANNEAU — POSÉ
+     AVANT TOUT LE RESTE »). Ne reste ici que ce qu'il SERT, qui a besoin de
+     tout ce qui précède. Tant que cette ligne n'a pas tourné, le pont répond
+     `demarrage` avec l'étape atteinte ; à partir d'elle, il sert le panneau. */
+  servirPanneau = (d, repondre) => {
     /* Une promesse rejetée ne doit pas laisser le panneau en attente : on
        enveloppe la résolution ET le rejet, et on répond dans les deux cas. */
     try {
@@ -6108,7 +6208,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     } catch (err) {
       repondre({ ok: false, erreur: String(err && err.message || err) });
     }
-  });
+  };
+  jalon('pont');
 
   /* L'AUTO-DIAGNOSTIC, déclenchable à la main. `tse.diagnose()` imprime le
      rapport et ne change rien ; celui-ci joue le contrôle PÉRIODIQUE, avec sa
@@ -11081,10 +11182,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       preview.init();
       startObserver();
       startTimers();
+      jalon('pret');
     };
     if (document.body) ready();
     else document.addEventListener('DOMContentLoaded', ready, { once: true });
   };
 
+  jalon('boot');
   boot();
 })();
