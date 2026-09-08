@@ -7,6 +7,7 @@ const CANAL = 'tse-panneau';
 const EXPIRATION = 35_000;
 
 const NE = Date.now();
+
 const ports = new Map();
 
 const enVol = new Map();
@@ -37,15 +38,15 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
-chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
+const PROMESSE = typeof browser !== 'undefined' && !!browser.runtime;
 
-  if (msg && msg.type === CANAL + '-etat') {
+const traiter = (msg) => new Promise((repondre) => {
+
+  if (msg.type === CANAL + '-etat') {
     repondre({ ok: true, ponts: [...ports.keys()], enVol: enVol.size,
                workerMs: Date.now() - NE });
-    return false;
+    return;
   }
-
-  if (!msg || msg.type !== CANAL) return false;
 
   const port = ports.get(msg.tabId);
   if (!port) {
@@ -53,7 +54,7 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
     repondre({ ok: false, erreur: 'absent',
                detail: `onglet ${msg.tabId} — ponts connus : `
                      + ([...ports.keys()].join(', ') || 'aucun') });
-    return false;
+    return;
   }
 
   const reqId = ++suivant;
@@ -74,7 +75,13 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
     enVol.delete(reqId);
     clearTimeout(minuteur);
     repondre({ ok: false, erreur: 'absent' });
-    return false;
   }
+});
+
+chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
+  if (!msg || (msg.type !== CANAL && msg.type !== CANAL + '-etat')) return false;
+  const promesse = traiter(msg);
+  if (PROMESSE) return promesse;
+  promesse.then(repondre);
   return true;
 });
