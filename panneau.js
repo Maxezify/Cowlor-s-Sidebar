@@ -2,9 +2,11 @@
 
 'use strict';
 
-const T = (cle, sub) => chrome.i18n.getMessage(cle, sub) || cle;
+const API = (typeof browser !== 'undefined' && browser.runtime) ? browser : chrome;
 
-const LOCALE = (chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || 'en';
+const T = (cle, sub) => API.i18n.getMessage(cle, sub) || cle;
+
+const LOCALE = (API.i18n.getUILanguage && API.i18n.getUILanguage()) || 'en';
 const NOMBRE = new Intl.NumberFormat(LOCALE);
 
 const fmt = {
@@ -111,14 +113,14 @@ const cleNav  = (id) => 'nav'  + MAJ(id);
 const cleDesc = (id) => 'desc' + MAJ(id);
 
 let ongletP = null;
-const idOnglet = () => (ongletP ??= chrome.tabs
+const idOnglet = () => (ongletP ??= API.tabs
   .query({ active: true, currentWindow: true })
   .then(([t]) => (t ? t.id : undefined))
   .catch(() => undefined));
 
 const ATTENTES = [250, 750, 1800];
 
-const etatFond = () => chrome.runtime.sendMessage({ type: 'tse-panneau-etat' })
+const etatFond = () => API.runtime.sendMessage({ type: 'tse-panneau-etat' })
   .catch((e) => ({ ok: false, erreur: 'fond', detail: String((e && e.message) || e) }));
 
 const demander = async (charge, essai = 0, trace = []) => {
@@ -129,7 +131,7 @@ const demander = async (charge, essai = 0, trace = []) => {
     return { ok: false, erreur: 'absent', detail: 'aucun onglet actif', trace };
   }
 
-  const r = await chrome.runtime.sendMessage({ type: 'tse-panneau', tabId: onglet, ...charge })
+  const r = await API.runtime.sendMessage({ type: 'tse-panneau', tabId: onglet, ...charge })
     .catch((e) => ({ ok: false, erreur: 'fond', detail: String((e && e.message) || e) }));
   trace.push({ essai, ms: Date.now() - t0,
                erreur: r && r.ok ? 'ok' : ((r && r.erreur) || 'vide'),
@@ -295,7 +297,7 @@ const blocErreurs = (liste, origine, bilan) => bloc(
   ]);
 
 const construireRapport = (r, transport, fond) => {
-  const m = chrome.runtime.getManifest();
+  const m = API.runtime.getManifest();
   const d = new Date();
   const L = [
     `Cowlor's Sidebar — rapport de diagnostic / diagnostic report`,
