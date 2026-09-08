@@ -3276,8 +3276,6 @@ const TSE_GATE_MAX_CLICKS = 5;
             if (!debout && doc.querySelector(DOM.sidebarRoot)) debout = Date.now();
             if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) {
 
-              erreurs.noter('abonnements', `onglet « ${onglet} » : stabilisé sans carte`,
-                            DOM.subCardSelector);
               return finir([]);
             }
             return;
@@ -3329,6 +3327,15 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (touche) subs.flush();
 
         marquer();
+
+        if (!trouves.length) {
+          const connus = subs.entries().filter(e => e.sub).length;
+          if (connus) {
+            erreurs.noter('abonnements',
+              `relevé complet sans résultat, ${connus} abonnement(s) déjà connu(s)`,
+              CFG.SUBS_PAGE_TABS.join(', '));
+          }
+        }
       } finally {
 
         running = false;
@@ -5118,6 +5125,12 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) close();
+      });
+
+      document.documentElement.addEventListener('mouseleave', () => {
+        lastMouseX = -1;
+        lastMouseY = -1;
+        close();
       });
     };
 
