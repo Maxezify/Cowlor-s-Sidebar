@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 611 KB | 279 KB | 2,793 JS + 77 CSS → **2** |
+| `content.js` | 630 KB | 288 KB | 2,837 JS + 80 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 35 KB | 20 KB | 39 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **790 KB** | **403 KB** | **−49 %** |
+| **all five** | **809 KB** | **413 KB** | **−49 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2112,6 +2112,68 @@ the first pass**: the redirect served by the harness in scenario 75, which
 yields an opaque origin under Blink, and the window exit in scenario 76, whose
 mouse event ordering is not guaranteed to be identical.
 
+## The category trail (v3.70)
+
+Twitch shows the sequence of categories a stream has gone through **nowhere**
+while it is live: its chapters only exist on the VOD, after the fact, and only
+if the channel keeps one. The pipeline was seeing that information go by every
+30 seconds — and throwing it away.
+
+It is now kept, and the preview renders it under the card:
+
+```
+EARLIER ON THIS STREAM
+▨▨▨▨▨▨▨▨▨▨▨│███│██████████│█████████████████████│██
+  not observed                                 1h35
+  Just Chatting                                 24m
+  Hades II                                     1h47
+  Overwatch                                    3h21
+▸ League of Legends                12m · ongoing
+```
+
+A **proportional bar** then a **list**, and both are needed: the bar gives the
+shape of the stream at a glance — three hours of Overwatch against twelve
+minutes of LoL is visible without reading; the list gives the names and exact
+durations. The bar is `aria-hidden`: a bar carrying the information by colour
+alone would be unreadable to anyone who cannot tell them apart.
+
+### What the trail knows, and what it admits
+
+It only knows **what it saw**. A tab opened in the third hour of a stream knows
+nothing of the first two, and presenting the first observed segment as the start
+of the stream would be an invention. We know when the stream started: the
+unobserved part is therefore **measured**, drawn hatched, **at its true
+proportion**. A grey segment at its real size is an admission to scale; a first
+segment presented as the beginning would be a lie.
+
+Three further rules, each for a reason:
+
+- **the block does not appear** until a switch has been observed. A single
+  category teaches nothing the card does not already say, and would suggest the
+  stream only ever had that one;
+- **a new session clears everything.** The stream id changes on every restart;
+  keeping the trail would give the new stream the old one's durations;
+- **nothing is persisted.** After a reload the extension has observed nothing —
+  rebuilding the trail from storage would assert a continuity it never saw.
+
+### Two traps, and how they are held
+
+**Canonical versus label.** Twitch returns two names per category: `name`
+(stable) and `displayName` (translated). Comparing labels would spawn a false
+segment at the first interface language change; keeping only the canonical would
+display English names in a French interface. The comparison is canonical, the
+label is remembered — **and refreshed** on every observation, a defect the
+harness found: it was frozen at segment creation, so a translation arriving
+later never surfaced.
+
+**The colours.** The first draft projected a hash of the name onto the full 360°
+circle: stable, no list to maintain, and wrong in practice. On the very first
+screenshot, "Hades II" and "League of Legends" were two nearly identical pinks,
+side by side. The palette is now **closed** — eight well-spaced hues — the hash
+picks the index, and a second pass moves collisions **within a single trail**.
+A colour's stability is a convenience; distinctness is what makes the bar
+readable.
+
 ## Console API
 
 The `tse` object is still exposed in the Twitch page's DevTools console
@@ -2316,7 +2378,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 76 scenarios, 686 assertions |
+| `npm test` | the Playwright harness: 77 scenarios, 698 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
