@@ -1642,6 +1642,51 @@ empty string. A forgotten label gives an empty button, with no error, no console
 So `npm run parity` collects the keys the panel asks for and rejects the ones
 that are missing, the ones nothing displays any more, and empty messages.
 
+### What the Chrome/Firefox audit found (v3.69)
+
+The harness had only ever run on Chromium, although the product ships for
+**two** browsers. Everything that separates Gecko from Blink was therefore
+tested nowhere, and two dependencies on **unverified** behaviour had settled in.
+They are not fixed by betting on the right answer, but by no longer needing an
+answer.
+
+**1. The panel called a namespace that does not have the same promises.**
+`chrome.runtime.sendMessage(…).catch(…)` and `chrome.tabs.query(…).then(…)`.
+Chrome has returned promises since MV3; Firefox exposes `browser.*` (promises)
+**and** `chrome.*` (a compatibility façade, callback-based). If that façade
+returns nothing, `.catch` is applied to `undefined`, the function throws, and
+the panel displays **nothing** — no section, no report, not even an error
+message, since it is the transport that breaks before any display. The code now
+uses `browser` where it exists: both paths have guaranteed promises.
+
+**2. The service worker spoke only one reply dialect.** An asynchronous reply to
+`runtime.onMessage` is signalled in two mutually exclusive ways: Chrome wants
+`return true` plus `sendResponse`, Firefox wants a **promise**. The work is now
+written once, as a promise, and only the final gesture changes per target.
+
+Scenario 77 loads the panel under a `chrome.*` façade that **returns nothing** —
+the worst hypothesis — and requires it to render anyway. Scenario 73 requires
+both worker dialects. Neither claims to say what Firefox *does*: they remove the
+question.
+
+**What I could not do.** There is no Firefox on the machine where this was
+written, and its egress policy blocks Playwright's download host. The Gecko
+verdict therefore belongs to the first machine that has the binary:
+
+```
+npx playwright install firefox
+npm run test-firefox        # the same 686 assertions, under Gecko
+```
+
+The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
+announces which at the top of its output and repeats it in its verdict — a log
+that does not say so compares to nothing. Nothing is adapted or worked around: a
+failure there is information, either about the product or about what the harness
+took for granted. **Two provocations are the most likely to need adjusting on
+the first pass**: the redirect served by the harness in scenario 75, which
+yields an opaque origin under Blink, and the window exit in scenario 76, whose
+mouse event ordering is not guaranteed to be identical.
+
 ## Console API
 
 The `tse` object is still exposed in the Twitch page's DevTools console
@@ -1840,7 +1885,8 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 75 scenarios, 678 assertions |
+| `npm test` | the Playwright harness: 76 scenarios, 686 assertions |
+| `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
 just counted, and fails if the table lies. A bench whose size is advertised
@@ -1861,10 +1907,10 @@ the assembled code:
 | --- | --- | --- | --- |
 | `content.js` | 611 KB | 279 KB | 2,793 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 34 KB | 20 KB | 38 → **0** |
+| `panneau.js` | 35 KB | 20 KB | 39 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
-| `background.js` | 8 KB | 2 KB | 18 → **0** |
-| **all five** | **788 KB** | **403 KB** | **−49 %** |
+| `background.js` | 9 KB | 2 KB | 21 → **0** |
+| **all five** | **790 KB** | **403 KB** | **−49 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

@@ -1,4 +1,4 @@
-import { chromium } from 'playwright';
+import { chromium, firefox } from 'playwright';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
@@ -142,11 +142,41 @@ const hoverLogin = (page, login) => page.evaluate((l) => {
   card.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
 }, login);
 
-// Chromium est celui que Playwright a installé (`npx playwright install
-// chromium`). TSE_CHROMIUM force un binaire précis, pour les environnements
-// où le navigateur est fourni autrement.
-const browser = await chromium.launch(
-  process.env.TSE_CHROMIUM ? { executablePath: process.env.TSE_CHROMIUM } : {});
+/* ── LE MOTEUR EST UN CHOIX, ET IL SE DIT ─────────────────────────────────────
+   Ce banc n'a jamais tourné que sur Chromium, alors que le produit est publié
+   pour DEUX navigateurs et que la branche Firefox n'est vérifiée que par le
+   linter d'AMO et par un manifeste. Tout ce qui distingue Gecko de Blink —
+   l'ordre des événements de souris, la mise en page, les API absentes — n'était
+   donc éprouvé nulle part.
+
+   `TSE_MOTEUR=firefox npm test` fait tourner les mêmes scénarios sous Gecko.
+   Rien n'est adapté ni contourné : si un scénario échoue là-bas, c'est un
+   renseignement, pas une gêne — soit le produit s'y comporte autrement, soit
+   le harnais tenait pour acquis quelque chose de propre à Blink. Les deux
+   méritent d'être sus.
+
+   AVERTISSEMENT HONNÊTE : la première passe Firefox n'a PAS pu être jouée là
+   où ce code a été écrit — la politique de sortie de cette machine bloque le
+   domaine de téléchargement de Playwright (403), et il n'y a pas de Firefox
+   installé. Ce qui suit est donc l'outillage, éprouvé sur Chromium ; le
+   verdict Gecko appartient à la première machine qui aura le binaire. */
+const MOTEUR = (process.env.TSE_MOTEUR || 'chromium').toLowerCase();
+if (!['chromium', 'firefox'].includes(MOTEUR)) {
+  console.error(`TSE_MOTEUR inconnu : « ${MOTEUR} » (attendu : chromium ou firefox)`);
+  process.exit(2);
+}
+const LANCEUR = MOTEUR === 'firefox' ? firefox : chromium;
+// TSE_CHROMIUM / TSE_FIREFOX forcent un binaire précis, pour les
+// environnements où le navigateur est fourni autrement.
+const BINAIRE = MOTEUR === 'firefox' ? process.env.TSE_FIREFOX : process.env.TSE_CHROMIUM;
+const browser = await LANCEUR.launch(BINAIRE ? { executablePath: BINAIRE } : {})
+  .catch((e) => {
+    console.error(`\nImpossible de lancer ${MOTEUR} : ${e.message.split('\n')[0]}`);
+    console.error(`Installez-le avec :  npx playwright install ${MOTEUR}`);
+    console.error(`ou désignez un binaire par ${MOTEUR === 'firefox' ? 'TSE_FIREFOX' : 'TSE_CHROMIUM'}.\n`);
+    process.exit(2);
+  });
+console.log(`moteur : ${MOTEUR} ${browser.version()}`);
 
 async function fresh() {
   const page = await browser.newPage();
@@ -7241,7 +7271,7 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
      `vm`, autour d'un couple de ports factices. Ce qu'on éprouve n'est pas
      leur comportement pris un par un : c'est qu'une demande entre d'un bout
      et ressorte à l'autre AVEC LES MÊMES CHAMPS. */
-  const contexteTransport = ({ marque = 'pret' } = {}) => {
+  const contexteTransport = ({ marque = 'pret', firefox = false } = {}) => {
     const journal = { versPage: [], reponses: [] };
     let ecouteurPage = null;      // l'écouteur 'message' posé par bridge.js
     let onConnect = null, onMessageFond = null;
@@ -7262,13 +7292,17 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
       return [faire(f, b, undefined), faire(b, f, { tab: { id: tabId } })];
     };
 
-    const ctxFond = createContext({
-      chrome: {
-        runtime: {
-          onConnect: { addListener: (l) => { onConnect = l; } },
-          onMessage: { addListener: (l) => { onMessageFond = l; } },
-        },
+    const chromeFond = {
+      runtime: {
+        onConnect: { addListener: (l) => { onConnect = l; } },
+        onMessage: { addListener: (l) => { onMessageFond = l; } },
       },
+    };
+    const ctxFond = createContext({
+      chrome: chromeFond,
+      /* `browser` n'existe QUE sur Firefox, et c'est ce qui fait basculer le
+         dialecte de réponse. On le définit ou non selon la cible simulée. */
+      ...(firefox ? { browser: chromeFond } : {}),
       setTimeout, clearTimeout, Date, console,
     });
     runInContext(readFileSync(join(ICI, '..', 'background.js'), 'utf8'), ctxFond);
@@ -7305,7 +7339,13 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
     const depuisPanneau = (charge, tabId = 7) => new Promise((res) => {
       const rendu = onMessageFond({ type: 'tse-panneau', tabId, ...charge }, {},
                                   (r) => { journal.reponses.push(r); res(r); });
-      if (rendu === false && !journal.reponses.length) res(undefined);
+      journal.rendu = rendu;
+      /* Les deux dialectes : Chrome rend `true` et répond par le rappel,
+         Firefox rend une PROMESSE et ignore le rappel. Le harnais doit lire
+         les deux, sans quoi il ne pourrait éprouver que celui qu'il connaît. */
+      if (rendu && typeof rendu.then === 'function') {
+        rendu.then((r) => { journal.reponses.push(r); res(r); });
+      } else if (rendu === false && !journal.reponses.length) res(undefined);
     });
     // La page répond, dans le monde MAIN : bridge.js écoute la même fenêtre.
     const pageRepond = (charge) =>
@@ -7368,6 +7408,32 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
        r.observations && r.observations.hote === 'www.twitch.tv'
        && r.observations.etat === 'complete' && r.observations.pont === 'branché',
        JSON.stringify(r.observations));
+  }
+
+  /* ── LES DEUX DIALECTES DE RÉPONSE ────────────────────────────────────────
+     Une réponse asynchrone à `runtime.onMessage` se signale de deux façons qui
+     s'excluent : Chrome veut `return true` plus `sendResponse`, Firefox veut
+     une PROMESSE. Ce fichier ne parlait que le premier. Je n'ai pas pu
+     l'exécuter sur un vrai Firefox — il n'y en a pas sur cette machine — donc
+     le code ne PARIE plus : il parle les deux, et c'est ici qu'on l'exige. */
+  {
+    const t = contexteTransport();
+    const p = t.depuisPanneau({ rapport: true });
+    ok('sur Chrome, l\'écouteur rend `true` et répond par sendResponse',
+       t.journal.rendu === true, JSON.stringify(String(t.journal.rendu)));
+    t.pageRepond({ id: t.journal.versPage[0].id, ok: true, data: { genere: 1 } });
+    ok('…et la réponse arrive bien par ce chemin-là', (await p)?.ok === true);
+  }
+  {
+    const t = contexteTransport({ firefox: true });
+    const p = t.depuisPanneau({ rapport: true });
+    ok('sur Firefox, il rend une PROMESSE — `true` n\'y suffit pas',
+       !!t.journal.rendu && typeof t.journal.rendu.then === 'function',
+       JSON.stringify(String(t.journal.rendu)));
+    t.pageRepond({ id: t.journal.versPage[0].id, ok: true, data: { genere: 2 } });
+    const r = await p;
+    ok('…et cette promesse porte la réponse, sans passer par sendResponse',
+       r && r.ok === true && r.data.genere === 2, JSON.stringify(r));
   }
 
   /* ── L'ONGLET SANS PONT, ET L'ÉTAT DU WORKER ───────────────────────────── */
@@ -7762,6 +7828,107 @@ titre('76. Aperçu — la souris qui sort de la fenêtre par la gauche');
   await page.close();
 }
 
+titre('77. Firefox — le panneau sous un `chrome.*` qui ne rend pas de promesse');
+{
+  /* DEUX NAMESPACES QUI NE SE COMPORTENT PAS PAREIL. Firefox expose
+     `browser.*` (promesses) ET `chrome.*` (façade de compatibilité, à
+     rappels) ; Chrome n'expose que `chrome.*`, promesses comprises depuis MV3.
+
+     Le panneau appelait `chrome.runtime.sendMessage(…).catch(…)` et
+     `chrome.tabs.query(…).then(…)`. Si la façade de Firefox ne rend rien, ces
+     deux lignes lèvent une TypeError sur `undefined`, et le panneau n'affiche
+     RIEN — pas une section, pas un rapport, pas même un message d'erreur,
+     puisque c'est le transport qui casse avant tout affichage.
+
+     JE N'AI PAS PU L'EXÉCUTER : il n'y a pas de Firefox sur cette machine, et
+     une extension ne se charge pas dans un navigateur absent. Ce scénario ne
+     prétend donc pas dire ce que Firefox FAIT — il exige que le panneau tienne
+     dans l'hypothèse la PIRE, celle d'une façade qui ne rend rien. Si Firefox
+     est plus généreux, le test reste vrai ; s'il ne l'est pas, il l'était déjà.
+     Le code ne dépend plus de la réponse, et c'est tout l'objet. */
+  const messages = JSON.parse(
+    readFileSync(join(ICI, '..', '_locales', 'fr', 'messages.json'), 'utf8'));
+
+  const stubFirefox = (msgs) => {
+    const T = (k) => (msgs[k] ? msgs[k].message : '');
+    const paquet = { ok: true, data: {
+      colonnes: ['login', 'score', 'visits', 'last'],
+      lignes: [{ login: 'alpha', score: 3.5, visits: 12, last: Date.now() }],
+      resume: { chaines: 1, sondes: 1, critiquesCassees: 0, casse: false,
+                mesures: 0, evenements: 0, bascules: 0, categories: 0,
+                actif: false, complete: false, abonnees: 0 } } };
+    /* Le namespace de Firefox : celui dont les promesses sont garanties. */
+    const promesses = {
+      i18n: { getMessage: T, getUILanguage: () => 'fr' },
+      tabs: { query: () => Promise.resolve([{ id: 1 }]) },
+      runtime: {
+        getManifest: () => ({ version: '9.9.9',
+                              background: { scripts: ['background.js'] },
+                              action: { default_popup: 'panneau.html' } }),
+        sendMessage: (m) => {
+          if (m.type === 'tse-panneau-etat') {
+            return Promise.resolve({ ok: true, ponts: [1], enVol: 0, workerMs: 12 });
+          }
+          if (m.rapport) {
+            return Promise.resolve({ ok: true, data: {
+              genere: Date.now(), ancienneteMs: 1000,
+              demarrage: { etape: 'pret', dureeMs: 42, etapes: [{ etape: 'pret', ms: 42 }] },
+              page: { chemin: '/x', cachee: false, sidebar: true, cartes: 1 },
+              langue: { interface: 'fr', page: 'fr' }, mode: { global: false },
+              sondes: [], compteurs: { visites: 1 },
+              relevesAbonnements: { horodatage: 0, enAttente: false },
+              reseau: { pauseGqlMs: 0, appels: 3, echecs: 0 },
+              retards: { medianeMs: null, p90Ms: null },
+              erreurs: [], bilanErreurs: { total: 0, sources: [] },
+              global: { enabled: false },
+              journaux: { verrous: [], cycles: [], apercu: [] } } });
+          }
+          return Promise.resolve(paquet);
+        },
+      },
+    };
+    window.browser = promesses;
+    /* LA FAÇADE `chrome` DE FIREFOX, dans l'hypothèse pessimiste : elle
+       fonctionne par RAPPEL et ne rend rien. C'est précisément ce sur quoi le
+       panneau s'appuyait, et ce dont il ne doit plus dépendre. */
+    window.chrome = {
+      i18n: promesses.i18n,
+      runtime: {
+        getManifest: promesses.runtime.getManifest,
+        sendMessage: (m, cb) => { promesses.runtime.sendMessage(m).then((r) => cb && cb(r)); },
+      },
+      tabs: { query: (q, cb) => { promesses.tabs.query(q).then((t) => cb && cb(t)); } },
+    };
+  };
+
+  const page = await browser.newPage({ viewport: { width: 760, height: 580 } });
+  const plantages = [];
+  page.on('pageerror', (e) => plantages.push(e.message));
+  await page.addInitScript(stubFirefox, messages);
+  await page.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href);
+  await attendre(page, () => document.querySelectorAll('.rail-item').length > 0, 5000);
+
+  ok('le panneau se construit — aucune exception au chargement',
+     plantages.length === 0, JSON.stringify(plantages).slice(0, 200));
+  const lignes = await page.evaluate(() =>
+    document.querySelectorAll('.tableau tbody tr').length);
+  ok('…et sa première section affiche ses lignes, donc le transport a répondu',
+     lignes > 0, `${lignes} lignes`);
+
+  await page.evaluate(() => document.getElementById('btn-rapport').click());
+  await attendre(page, () => /ENVIRONNEMENT/.test(
+    document.getElementById('rapport-zone').value), 6000);
+  const texte = await page.evaluate(() => document.getElementById('rapport-zone').value);
+  ok('…et le rapport se construit aussi, worker compris',
+     /ENVIRONNEMENT/.test(texte) && /worker — ponts\s+1/.test(texte),
+     JSON.stringify((texte.match(/worker — ponts.*/) || [])[0]));
+  ok('…en lisant le manifeste par le namespace disponible (forme Firefox du fond)',
+     /fond \/ background\s+scripts/.test(texte),
+     JSON.stringify((texte.match(/fond \/ background.*/) || [])[0]));
+
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
@@ -7804,5 +7971,5 @@ if (echecs.length) {
   }
   console.log('═'.repeat(50));
 }
-console.log(`${pass} réussis, ${fail} échoués\n`);
+console.log(`${pass} réussis, ${fail} échoués — moteur ${MOTEUR}\n`);
 process.exit(fail ? 1 : 0);

@@ -22,7 +22,11 @@ export default [{
       // rendu, et elle ne reçoit que du balisage écrit dans content.js
       // (cf. noeudStatique). Tout ce qui vient de Twitch passe par
       // textContent ou setAttribute.
-      DOMParser:'readonly' }
+      DOMParser:'readonly',
+      // `browser` : le namespace de Firefox, celui qui rend des promesses.
+      // Chrome ne le définit pas — d'où les gardes `typeof browser` dans
+      // panneau.js et background.js, et d'où sa présence ici.
+      browser:'readonly' }
   },
   linterOptions: { reportUnusedDisableDirectives: true },
   rules: {
