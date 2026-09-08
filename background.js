@@ -37,13 +37,13 @@ const CANAL = 'tse-panneau';
    deux garde-fous qui expirent ensemble ne diraient pas lequel a lâché. */
 const EXPIRATION = 35_000;
 
-/** Ports vivants, un par onglet. Un onglet dont la page est cachée n'y est
- *  pas : bridge.js se débranche pour laisser ce worker s'endormir. */
 /** Instant de démarrage de CETTE instance du worker. Chrome en tue une toutes
  *  les trente secondes d'inactivité et en refait une à la demande : savoir
  *  qu'elle a deux cents millisecondes explique à elle seule un port pas encore
  *  rebranché, et c'est une information qu'aucun rapport ne portait. */
 const NE = Date.now();
+/** Ports vivants, un par onglet. Un onglet dont la page est cachée n'y est
+ *  pas : bridge.js se débranche pour laisser ce worker s'endormir. */
 const ports = new Map();          // tabId → Port
 /** Demandes du panneau en attente de réponse de l'onglet. */
 const enVol = new Map();          // reqId → { repondre, minuteur }
@@ -80,7 +80,21 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
-chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
+/* ── DEUX DIALECTES POUR RÉPONDRE, ET ILS NE SONT PAS INTERCHANGEABLES ──────
+   Une réponse ASYNCHRONE à `runtime.onMessage` se signale de deux façons qui
+   s'excluent : Chrome veut qu'on garde `sendResponse` et qu'on retourne `true` ;
+   Firefox veut qu'on retourne une PROMESSE. Retourner une promesse sur Chrome
+   ne signale rien — le canal se ferme et l'appelant reçoit `undefined` ; et
+   `return true` n'a été honoré sur Firefox qu'à partir d'une version que je
+   n'ai PAS PU VÉRIFIER ici, faute de Firefox sur cette machine.
+
+   Ce fichier ne faisait que le premier. Plutôt que de parier sur la seconde
+   moitié de la phrase, on parle les deux dialectes : le travail est écrit une
+   fois, sous forme de promesse, et seul le geste final change. `browser`
+   n'existe que sur Firefox, ce qui suffit à choisir. */
+const PROMESSE = typeof browser !== 'undefined' && !!browser.runtime;
+
+const traiter = (msg) => new Promise((repondre) => {
   /* ── CE QUE LE WORKER SAIT DE LUI-MÊME ────────────────────────────────────
      Demandé par le rapport de diagnostic, et par lui seul. Il ne traverse
      aucun pont : c'est exprès, puisqu'on s'en sert justement quand le pont
@@ -88,13 +102,11 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
      venait de naître (auquel cas il faut attendre) ou s'il tournait depuis
      longtemps sans jamais avoir vu un seul pont (auquel cas il faut recharger
      la page) — deux réparations opposées, aucun moyen de choisir. */
-  if (msg && msg.type === CANAL + '-etat') {
+  if (msg.type === CANAL + '-etat') {
     repondre({ ok: true, ponts: [...ports.keys()], enVol: enVol.size,
                workerMs: Date.now() - NE });
-    return false;
+    return;
   }
-
-  if (!msg || msg.type !== CANAL) return false;
 
   const port = ports.get(msg.tabId);
   if (!port) {
@@ -115,7 +127,7 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
     repondre({ ok: false, erreur: 'absent',
                detail: `onglet ${msg.tabId} — ponts connus : `
                      + ([...ports.keys()].join(', ') || 'aucun') });
-    return false;
+    return;
   }
 
   const reqId = ++suivant;
@@ -153,7 +165,13 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
     enVol.delete(reqId);
     clearTimeout(minuteur);
     repondre({ ok: false, erreur: 'absent' });
-    return false;
   }
+});
+
+chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
+  if (!msg || (msg.type !== CANAL && msg.type !== CANAL + '-etat')) return false;
+  const promesse = traiter(msg);
+  if (PROMESSE) return promesse;           // Firefox
+  promesse.then(repondre);                 // Chrome
   return true;                             // réponse asynchrone
 });

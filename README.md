@@ -340,10 +340,10 @@ assemblé :
 | --- | --- | --- | --- |
 | `content.js` | 611 Ko | 279 Ko | 2 793 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 34 Ko | 20 Ko | 38 → **0** |
+| `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
-| `background.js` | 8 Ko | 2 Ko | 18 → **0** |
-| **les cinq** | **788 Ko** | **403 Ko** | **−49 %** |
+| `background.js` | 9 Ko | 2 Ko | 21 → **0** |
+| **les cinq** | **790 Ko** | **403 Ko** | **−49 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2186,6 +2186,54 @@ console — et seulement dans la langue oubliée, que l'auteur ne parle pas.
 `npm run parity` relève donc les clés que le panneau demande et refuse celles
 qui manquent, celles qui ne servent plus, et les messages vides.
 
+### Ce que l'audit Chrome/Firefox a trouvé (v3.69)
+
+Le banc n'avait jamais tourné que sur Chromium, alors que le produit est publié
+pour **deux** navigateurs. Tout ce qui distingue Gecko de Blink n'était donc
+éprouvé nulle part, et deux dépendances à un comportement **non vérifié** s'y
+étaient installées. Elles ne se réparent pas en pariant sur la bonne réponse,
+mais en cessant d'avoir besoin d'une réponse.
+
+**1. Le panneau appelait un namespace qui n'a pas les mêmes promesses.**
+`chrome.runtime.sendMessage(…).catch(…)` et `chrome.tabs.query(…).then(…)`.
+Chrome rend des promesses depuis MV3 ; Firefox expose `browser.*` (promesses)
+**et** `chrome.*` (façade de compatibilité, à rappels). Si cette façade ne rend
+rien, `.catch` s'applique à `undefined`, la fonction lève, et le panneau
+n'affiche **rien** — ni section, ni rapport, ni même un message d'erreur,
+puisque c'est le transport qui casse avant tout affichage. Le code emploie
+désormais `browser` quand il existe : les deux chemins ont des promesses
+garanties.
+
+**2. Le service worker ne parlait qu'un seul dialecte de réponse.** Une réponse
+asynchrone à `runtime.onMessage` se signale de deux façons qui s'excluent :
+Chrome veut `return true` plus `sendResponse`, Firefox veut une **promesse**.
+Le travail est maintenant écrit une fois, sous forme de promesse, et seul le
+geste final change selon la cible.
+
+Le scénario 77 charge le panneau sous une façade `chrome.*` **qui ne rend
+rien** — l'hypothèse la pire — et exige qu'il s'affiche quand même. Le
+scénario 73 exige les deux dialectes du worker. Aucun des deux ne prétend dire
+ce que Firefox *fait* : ils suppriment la question.
+
+**Ce que je n'ai pas pu faire.** Il n'y a pas de Firefox sur la machine où ceci
+a été écrit, et la politique de sortie y bloque le domaine de téléchargement de
+Playwright. Le verdict Gecko appartient donc à la première machine qui aura le
+binaire :
+
+```
+npx playwright install firefox
+npm run test-firefox        # les mêmes 686 assertions, sous Gecko
+```
+
+Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
+lequel en tête de sortie et le rappelle dans son verdict — un journal qui ne le
+dit pas ne se compare à rien. Rien n'est adapté ni contourné : un échec là-bas
+est un renseignement, soit sur le produit, soit sur ce que le harnais tenait
+pour acquis. **Deux provocations sont les plus susceptibles de demander un
+ajustement à la première passe** : la redirection servie par le harnais au
+scénario 75, qui donne une origine opaque sous Blink, et la sortie de fenêtre du
+scénario 76, dont l'ordre des événements de souris n'est pas garanti identique.
+
 ## API console
 
 L'objet `tse` reste exposé dans la console DevTools de la page Twitch (onglet
@@ -2395,7 +2443,8 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 75 scénarios, 678 assertions |
+| `npm test` | le harnais Playwright : 76 scénarios, 686 assertions |
+| `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
 vient de compter, et échoue si le tableau ment. Un banc dont on annonce la

@@ -21,12 +21,31 @@
  * ============================================================ */
 'use strict';
 
-const T = (cle, sub) => chrome.i18n.getMessage(cle, sub) || cle;
+/* ── QUEL NAMESPACE, ET POURQUOI CE N'EST PAS UN DÉTAIL ──────────────────────
+   Ce fichier appelait `chrome.runtime.sendMessage(…).catch(…)` et
+   `chrome.tabs.query(…).then(…)`. Sur Chrome, ces API rendent des promesses
+   depuis MV3 et tout va bien. Sur Firefox, les deux namespaces coexistent et
+   ne se comportent PAS de la même façon : `browser.*` rend des promesses,
+   `chrome.*` est la façade de compatibilité, à rappels. Si elle ne rend rien,
+   `.catch` s'applique à `undefined`, la fonction lève, et le panneau ne montre
+   RIEN — aucune section, aucun rapport, aucun message d'erreur non plus,
+   puisque c'est le transport lui-même qui casse.
+
+   JE N'AI PAS PU L'EXÉCUTER : il n'y a pas de Firefox sur cette machine, et
+   une extension ne se charge pas dans un navigateur qu'on n'a pas. Plutôt que
+   de parier sur la réponse, on rend le code INDÉPENDANT de la question : quand
+   `browser` existe — c'est-à-dire sur Firefox — on l'emploie, puisque c'est
+   celui dont les promesses sont garanties. Chrome ne le définit pas et garde
+   `chrome`, dont les promesses sont garanties aussi. Les deux chemins sont
+   sûrs, et aucun ne dépend de ce que je n'ai pas pu vérifier. */
+const API = (typeof browser !== 'undefined' && browser.runtime) ? browser : chrome;
+
+const T = (cle, sub) => API.i18n.getMessage(cle, sub) || cle;
 
 /* Locale d'affichage pour les nombres et les dates. On suit celle de
    l'INTERFACE de l'extension, pas celle du système : si le panneau parle
    allemand, ses milliers doivent se grouper comme en allemand. */
-const LOCALE = (chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || 'en';
+const LOCALE = (API.i18n.getUILanguage && API.i18n.getUILanguage()) || 'en';
 const NOMBRE = new Intl.NumberFormat(LOCALE);
 
 /* ── Mise en forme des valeurs ───────────────────────────────────────────── */
@@ -152,7 +171,7 @@ const cleDesc = (id) => 'desc' + MAJ(id);
    onglet. Demander la permission juste pour lire une URL qu'on n'utiliserait
    pas serait le contraire de ce que la fiche promet. */
 let ongletP = null;
-const idOnglet = () => (ongletP ??= chrome.tabs
+const idOnglet = () => (ongletP ??= API.tabs
   .query({ active: true, currentWindow: true })
   .then(([t]) => (t ? t.id : undefined))
   .catch(() => undefined));
@@ -179,7 +198,7 @@ const ATTENTES = [250, 750, 1800];
 /* L'ÉTAT DU SERVICE WORKER, demandé sans passer par le pont — c'est tout
    l'intérêt : on s'en sert quand le pont ne répond pas. Ne sert qu'au
    rapport. */
-const etatFond = () => chrome.runtime.sendMessage({ type: 'tse-panneau-etat' })
+const etatFond = () => API.runtime.sendMessage({ type: 'tse-panneau-etat' })
   .catch((e) => ({ ok: false, erreur: 'fond', detail: String((e && e.message) || e) }));
 
 /* LA TRACE DES ESSAIS. Un échec après quatre tentatives et un échec au premier
@@ -208,7 +227,7 @@ const demander = async (charge, essai = 0, trace = []) => {
 
      Le détail technique est conservé et affiché : c'est ce qu'on demande de
      recopier quand rien d'autre ne se voit. */
-  const r = await chrome.runtime.sendMessage({ type: 'tse-panneau', tabId: onglet, ...charge })
+  const r = await API.runtime.sendMessage({ type: 'tse-panneau', tabId: onglet, ...charge })
     .catch((e) => ({ ok: false, erreur: 'fond', detail: String((e && e.message) || e) }));
   trace.push({ essai, ms: Date.now() - t0,
                erreur: r && r.ok ? 'ok' : ((r && r.erreur) || 'vide'),
@@ -432,7 +451,7 @@ const blocErreurs = (liste, origine, bilan) => bloc(
   ]);
 
 const construireRapport = (r, transport, fond) => {
-  const m = chrome.runtime.getManifest();
+  const m = API.runtime.getManifest();
   const d = new Date();
   const L = [
     `Cowlor's Sidebar — rapport de diagnostic / diagnostic report`,
