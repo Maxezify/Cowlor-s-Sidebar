@@ -7990,14 +7990,23 @@ titre('78. Aperçu — la frise des catégories traversées');
     };
   });
 
-  /* ── LE SILENCE, ÉPROUVÉ EN PREMIER ─────────────────────────────────────
-     Une seule catégorie observée n'apprend rien : la carte l'affiche déjà, et
-     un bloc qui la répéterait laisserait croire que le live n'a connu qu'elle
-     — ce qu'on ne sait pas. Cette assertion est celle qui empêche le bloc de
-     s'afficher partout, tout le temps. */
+  /* ── DÈS LA PREMIÈRE OBSERVATION ─────────────────────────────────────────
+     La première rédaction exigeait un BASCULEMENT avant d'afficher quoi que ce
+     soit, au motif qu'une catégorie seule ne dirait rien de neuf. Un rapport
+     d'utilisateur a réglé la question dans les cinq minutes suivant
+     l'installation — « je n'ai pas la nouveauté » — et il avait raison deux
+     fois : une fonctionnalité qui peut rester invisible des heures ne se
+     distingue pas d'une fonctionnalité cassée, et un segment unique dit bel et
+     bien ce que la carte tait. La carte donne la durée du LIVE (6h04) ; la
+     frise donne la durée dans la CATÉGORIE (24m). L'écart entre les deux est
+     précisément ce que la part hachurée rend visible. */
   await survoler();
-  ok('sans basculement observé, la frise ne s\'affiche pas du tout',
-     (await frise()) === null, 'un bloc est apparu sans rien à dire');
+  const f0 = await frise();
+  ok('dès la première observation, la frise situe la catégorie dans le live',
+     f0 !== null && f0.lignes.length === 2, JSON.stringify(f0 && f0.lignes));
+  ok('…la part non observée d\'un côté, la catégorie en cours de l\'autre',
+     f0.lignes[0].inconnu === true && f0.lignes[1].encours === true,
+     JSON.stringify(f0.lignes.map(l => [l.nom, l.inconnu, l.encours])));
   await relacher();
 
   /* Deux durées franchement différentes, pour que la proportion se mesure. */
@@ -8094,8 +8103,197 @@ titre('78. Aperçu — la frise des catégories traversées');
   await attendre(page,
     () => document.querySelector('.side-nav-card')?.dataset.tseCategory === 'Just Chatting', 8000);
   await survoler();
-  ok('une nouvelle session efface la frise de la précédente',
+  const f4 = await frise();
+  ok('une nouvelle session repart d\'une seule catégorie',
+     f4 !== null && f4.lignes.length === 1 && f4.lignes[0].encours === true,
+     JSON.stringify(f4 && f4.lignes.map(l => l.nom)));
+  /* Et sans part hachurée : le stream vient de commencer, on l'a vu depuis le
+     début, il n'y a rien à avouer. C'est le seul cas où la frise est complète. */
+  ok('…et sans part non observée, puisqu\'on l\'a vue depuis son début',
+     f4.parts.length === 1 && f4.parts[0].inconnu === false,
+     JSON.stringify(f4.parts));
+
+  /* ── LE SEUL VRAI SILENCE ────────────────────────────────────────────────
+     Une catégorie inconnue — Twitch en sert parfois sans — n'est pas un
+     segment : on ne saurait ni le nommer ni le comparer au suivant. La frise
+     est alors oubliée plutôt que remplie de trous. */
+  await relacher();
+  await page.evaluate(() => { window.__fx.alpha.game = null; window.tse.rescan(); });
+  await wait(page, 600);
+  await survoler();
+  ok('une catégorie inconnue efface la frise plutôt que d\'y laisser un trou',
      (await frise()) === null, JSON.stringify(await frise()));
+
+  await page.close();
+}
+
+titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
+{
+  /* « FAUDRA LE CONNAÎTRE MÊME SI ON N'ÉTAIT PAS SUR TWITCH. » La frise ne
+     savait que ce qu'elle avait vu, et la capture d'un utilisateur le montrait
+     crûment : « non observé 6h04 » écrasant deux segments de deux minutes.
+
+     Il existe une source, et une seule. Twitch n'expose nulle part
+     l'historique de catégories d'un stream EN COURS — mais si la chaîne
+     archive ses diffusions, le VOD existe dès le début et gagne un « moment »
+     à chaque changement de jeu.
+
+     CE SCÉNARIO NE PROUVE PAS QUE LA REQUÊTE EST JUSTE. Elle n'a jamais été
+     exécutée contre le vrai Twitch : la machine où elle a été écrite n'a pas
+     accès à twitch.tv. Ce qu'il prouve, c'est que la FUSION est correcte et
+     que TOUT échec retombe sans rien casser — y compris celui qui arriverait
+     si la requête était fausse. C'est la seule garantie qu'on puisse donner
+     sans exécuter, et c'est celle qui compte : au pire, l'utilisateur retrouve
+     la frise d'aujourd'hui. */
+  const page = await freshTwitch();
+  const H = 60 * 60_000;
+  const DEBUT = Date.now() - 3 * H;
+  await page.evaluate((d) => {
+    const iso = new Date(d).toISOString();
+    const mk = (g) => ({ id: 'x', createdAt: iso, viewers: 900, game: g, tags: [] });
+    window.__fx = { alpha: mk('Overwatch'), beta: mk('Overwatch'), gamma: mk('Overwatch'),
+                    epsilon: mk('Overwatch'),
+                    delta: { id: 'x', createdAt: new Date().toISOString(),
+                             viewers: 900, game: 'Overwatch', tags: [] } };
+    window.__vod = {
+      // Trois chapitres : le live a commencé sur Discussions.
+      alpha: { createdAt: iso, chapitres: [
+        { pos: 0, jeu: 'Just Chatting' },
+        { pos: 24 * 60_000, jeu: 'Hades II' },
+        { pos: 131 * 60_000, jeu: 'Overwatch' }] },
+      // Ce que rendrait un champ que le schéma ne connaît pas.
+      beta: 'erreur',
+      // Une chaîne qui n'archive pas ses diffusions.
+      gamma: 'sansvod',
+      /* Un chapitre DANS LE FUTUR par rapport à notre observation. Ce n'est
+         pas une lubie : la base de temps du VOD peut être postérieure au
+         départ du stream, et les positions se traduisent alors en instants
+         plus tardifs que la réalité. Sans garde, notre segment observé
+         s'ajouterait APRÈS un chapitre qui commence plus tard que lui — une
+         frise qui remonte le temps. */
+      epsilon: { createdAt: iso, chapitres: [
+        { pos: 0, jeu: 'Just Chatting' },
+        { pos: 4 * 60 * 60_000, jeu: 'Hades II' }] },
+    };
+    for (const l of ['alpha', 'beta', 'gamma', 'delta', 'epsilon']) {
+      window.__addCard(l, 'Overwatch', '900');
+    }
+  }, DEBUT);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
+
+  const survoler = async (login) => {
+    await hoverLogin(page, login);
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+  };
+  const relacher = async (login) => {
+    await page.evaluate((l) => {
+      [...document.querySelectorAll('.side-nav-card')]
+        .find(c => c.dataset.tseLogin === l)
+        ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+    }, login);
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  };
+  const lignes = () => page.evaluate(() =>
+    [...document.querySelectorAll('.tse-preview__frise-ligne')].map(l => ({
+      nom: l.querySelector('.tse-preview__frise-nom').textContent,
+      duree: l.querySelector('.tse-preview__frise-duree')?.textContent || '',
+      inconnu: l.classList.contains('tse-preview__frise-ligne--inconnu'),
+    })));
+  const appelsVod = () => page.evaluate(() =>
+    window.__calls.filter(c => (c.names || []).includes('TseVodChapters')).length);
+
+  /* ── LE CAS QUI MOTIVE TOUT ──────────────────────────────────────────────── */
+  await survoler('alpha');
+  await attendre(page,
+    () => document.querySelectorAll('.tse-preview__frise-ligne').length >= 3, 8000);
+  const a = await lignes();
+  ok('les chapitres du VOD comblent le passé : la frise part du début du live',
+     a.length === 3 && !a.some(l => l.inconnu),
+     JSON.stringify(a.map(l => l.nom + ' ' + l.duree)));
+  ok('…dans l\'ordre, avec les durées que les positions imposent',
+     a[0].duree === '24m' && a[1].duree === '1h47',
+     JSON.stringify(a.map(l => [l.nom, l.duree])));
+
+  /* ── LA FUSION : CE QUE LES CHAPITRES NE SAVENT PAS ENCORE ────────────────
+     Twitch met un moment à publier un chapitre. Un basculement observé APRÈS
+     la récupération doit s'ajouter — sans quoi la frise serait figée à l'état
+     du VOD, en retard sur ce qu'on voit. */
+  await relacher('alpha');
+  await page.evaluate(() => { window.__fx.alpha.game = 'Minecraft'; window.tse.rescan(); });
+  await attendre(page, () => [...document.querySelectorAll('.side-nav-card')]
+    .find(c => c.dataset.tseLogin === 'alpha')?.dataset.tseCategory === 'Minecraft', 8000);
+  await survoler('alpha');
+  await attendre(page,
+    () => document.querySelectorAll('.tse-preview__frise-ligne').length >= 4, 8000);
+  const b = await lignes();
+  ok('un basculement observé APRÈS les chapitres s\'ajoute à leur suite',
+     b.length === 4 && b[3].nom === 'Minecraft' && !b.some(l => l.inconnu),
+     JSON.stringify(b.map(l => l.nom)));
+
+  /* ── LES TROIS ÉCHECS, ET LE SEUL COMPORTEMENT ADMIS : NE RIEN CASSER ───── */
+  await relacher('alpha');
+  await survoler('beta');
+  await wait(page, 900);
+  const c = await lignes();
+  /* EXACTEMENT ce que la frise rendait avant les chapitres : la part non
+     observée, puis la seule catégorie qu'on ait vue. La première rédaction de
+     cette assertion tolérait « une ou deux lignes » — une tolérance qui ne
+     vient jamais d'une incertitude du produit mais d'une paresse de l'auteur,
+     et qui laisse passer les deux cas qu'elle prétend distinguer. */
+  ok('une requête REFUSÉE par le schéma retombe sur la frise observée',
+     c.length === 2 && c[0].inconnu === true && c[1].nom === 'Overwatch',
+     JSON.stringify(c.map(l => [l.nom, l.inconnu])));
+  const journal = await page.evaluate(() => window.tse.panneau.rapport().erreurs
+    .filter(e => e.source === 'gql' || e.source === 'chapitres').map(e => e.message));
+  ok('…et elle est CONSIGNÉE — c\'est ainsi qu\'on saura si la requête est fausse',
+     journal.some(m => /erreurs GraphQL/.test(m)), JSON.stringify(journal));
+
+  await relacher('beta');
+  await survoler('gamma');
+  await wait(page, 900);
+  const d = await lignes();
+  ok('une chaîne qui n\'archive pas ses diffusions garde la frise observée',
+     d.length >= 1 && d[0].inconnu === true, JSON.stringify(d.map(l => [l.nom, l.inconnu])));
+
+  /* ── LA REQUÊTE QU'ON NE FAIT PAS ────────────────────────────────────────
+     Une chaîne suivie depuis le début de son live n'a rien à combler. Une
+     requête qui n'apprend rien est une requête de trop, et c'est la seule
+     assertion qui empêche ce module de doubler le trafic de l'aperçu. */
+  await relacher('gamma');
+  const avant = await appelsVod();
+  await survoler('delta');
+  await wait(page, 900);
+  ok('aucune requête pour un live vu depuis son début : rien à combler',
+     (await appelsVod()) === avant, `${await appelsVod()} appels contre ${avant}`);
+
+  /* ── UNE FRISE NE REMONTE PAS LE TEMPS ──────────────────────────────────
+     Le dernier chapitre est postérieur à notre propre observation. Notre
+     segment ne doit PAS s'ajouter derrière lui : il commencerait avant ce qui
+     le précède, et la durée du chapitre serait négative. La frise doit donc
+     s'en tenir aux chapitres. */
+  await relacher('delta');
+  await survoler('epsilon');
+  await attendre(page,
+    () => document.querySelectorAll('.tse-preview__frise-ligne').length >= 2, 8000);
+  const e = await lignes();
+  ok('un segment observé ANTÉRIEUR au dernier chapitre n\'est pas ajouté',
+     e.length === 2 && e[1].nom === 'Hades II'
+     && !e.some(l => l.nom === 'Overwatch'),
+     JSON.stringify(e.map(l => l.nom)));
+  await relacher('epsilon');
+
+  /* ── ET UNE SEULE PAR STREAM ─────────────────────────────────────────── */
+  await relacher('delta');
+  const avantB = await appelsVod();
+  await survoler('alpha');
+  await wait(page, 700);
+  await relacher('alpha');
+  await survoler('alpha');
+  await wait(page, 700);
+  ok('les chapitres sont mémorisés : deux survols, aucune requête de plus',
+     (await appelsVod()) === avantB, `${await appelsVod()} appels contre ${avantB}`);
 
   await page.close();
 }

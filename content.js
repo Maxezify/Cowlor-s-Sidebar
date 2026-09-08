@@ -3376,28 +3376,72 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
   };
 
-  /* La frise prête à afficher, ou null. Deux refus, et le second compte :
-       — aucune frise pour cette chaîne ;
-       — un seul segment, c'est-à-dire AUCUN basculement observé. Afficher
-         « Overwatch depuis 40m » ne dirait rien que la carte ne dise déjà, et
-         laisserait croire que le live n'a connu que cette catégorie — ce qu'on
-         ne sait pas. Le bloc n'apparaît que lorsqu'il a quelque chose à
-         apprendre. */
-  const friseDe = (login) => {
+  /* La frise prête à afficher, ou null.
+
+     UN SEUL REFUS : ne rien avoir observé du tout. La première rédaction en
+     avait deux, et le second exigeait un BASCULEMENT — au motif qu'une seule
+     catégorie « ne dirait rien que la carte ne dise déjà ». C'était faux à
+     deux titres, et un rapport d'utilisateur l'a montré dans les cinq minutes
+     qui ont suivi l'installation : « je n'ai pas la nouveauté ».
+
+     Faux d'abord parce qu'une fonctionnalité qui peut rester invisible des
+     HEURES après l'installation ne se distingue pas d'une fonctionnalité
+     cassée. C'est le premier réflexe de qui vient de mettre à jour : survoler
+     une carte, ne rien voir, et conclure que ça ne marche pas.
+
+     Faux ensuite parce qu'un segment unique dit bel et bien quelque chose que
+     la carte tait : la carte donne la durée du LIVE, la frise donne la durée
+     dans la CATÉGORIE. « En ligne depuis 6h04 » et « sur Hadès II depuis
+     24m » ne sont pas la même information, et c'est justement l'écart entre
+     les deux que la part hachurée rend visible. */
+  const friseDe = (login, prelude = null) => {
     const f = frises.get(login);
-    if (!f || f.segments.length < 2) return null;
+    if (!f || !f.segments.length) return null;
     const maintenant = Date.now();
-    const segments = f.segments.map((s, i) => {
-      const fin = i + 1 < f.segments.length ? f.segments[i + 1].debut : maintenant;
+
+    /* ── LE PRÉLUDE, ET COMMENT IL SE RACCORDE À CE QU'ON A VU ───────────────
+       Les chapitres du VOD savent ce qui s'est passé avant notre arrivée. Ils
+       sont plus JUSTES que nos observations là où les deux se recouvrent :
+       Twitch date le changement à la seconde, nous au prochain relevé, donc
+       jusqu'à trente secondes plus tard. On part donc d'eux, puis on n'ajoute
+       de notre côté que ce qu'ils ne portent pas encore — un basculement
+       survenu depuis leur récupération.
+
+       La comparaison se fait sur le nom CANONIQUE et sur l'ordre du temps :
+       un segment observé n'est ajouté que s'il change de catégorie ET s'il
+       vient après le dernier connu. Sans cette seconde garde, un chapitre en
+       retard ferait naître un segment qui remonte le temps. */
+    const bruts = [];
+    for (const p of (prelude || [])) {
+      const dernier = bruts[bruts.length - 1];
+      if (dernier && dernier.jeu === p.jeu) continue;   // Twitch répète parfois
+      bruts.push({ jeu: p.jeu, libelle: p.libelle, debut: p.debut });
+    }
+    for (const o of f.segments) {
+      const dernier = bruts[bruts.length - 1];
+      if (!dernier) { bruts.push({ ...o }); continue; }
+      if (dernier.jeu === o.jeu) {
+        // Même catégorie : le libellé de Twitch fait foi, mais on garde le
+        // nôtre s'il est traduit et pas le sien.
+        continue;
+      }
+      if (o.debut <= dernier.debut) continue;
+      bruts.push({ ...o });
+    }
+
+    const segments = bruts.map((s, i) => {
+      const fin = i + 1 < bruts.length ? bruts[i + 1].debut : maintenant;
       return { jeu: s.jeu, libelle: s.libelle, debut: s.debut, fin,
                dureeMs: Math.max(0, fin - s.debut),
-               encours: i + 1 === f.segments.length };
+               encours: i + 1 === bruts.length };
     });
     /* La part que nous n'avons PAS vue, mesurée et non devinée : du départ du
        stream à notre première observation. En deçà de la tolérance, c'est
        notre propre latence de relevé et non une ignorance — on la tait plutôt
-       que de faire porter un aveu à un artefact. */
-    const brut = f.debutStream ? f.vuDepuis - f.debutStream : 0;
+       que de faire porter un aveu à un artefact. Un prélude la comble : il
+       part du début du live, il n'y a plus rien à avouer. */
+    const brut = (prelude && prelude.length) || !f.debutStream
+      ? 0 : f.vuDepuis - f.debutStream;
     const inconnuMs = brut > CFG.CATEGORY_TRAIL_TOLERANCE ? brut : 0;
     return {
       debutStream: f.debutStream,
@@ -7587,6 +7631,106 @@ const TSE_GATE_MAX_CLICKS = 5;
     const metaCache = new Map();
     const META_TTL = 60_000;
 
+    /* ── LE PASSÉ DU LIVE, QUAND TWITCH VEUT BIEN LE DIRE ────────────────────
+       La frise ne savait que ce qu'ELLE avait vu. Un rapport d'utilisateur l'a
+       pointé aussitôt : « faudra le connaître même si on n'était pas sur
+       Twitch et que le live avait commencé » — sa capture montrait « non
+       observé 6h04 » écrasant deux segments de deux minutes.
+
+       IL EXISTE UNE SOURCE, ET UNE SEULE. Twitch n'expose nulle part
+       l'historique de catégories d'un stream EN COURS ; mais si la chaîne
+       archive ses diffusions, le VOD existe DÈS LE DÉBUT du live et
+       s'enrichit d'un « moment » à chaque changement de jeu. Ce sont les
+       chapitres qu'on voit sur la barre de lecture d'un replay. Ils portent
+       exactement ce qui nous manque : la catégorie et sa position en
+       millisecondes depuis le début.
+
+       CE QUE JE N'AI PAS PU VÉRIFIER, ET IL FAUT LE SAVOIR EN LISANT CE CODE :
+       cette requête n'a jamais été exécutée contre le vrai Twitch. La machine
+       où elle a été écrite n'a pas accès à twitch.tv — le proxy refuse la
+       connexion. Sa forme suit le schéma public et ce que le lecteur de Twitch
+       demande lui-même, mais c'est une reconstitution, pas une observation.
+       Trois conséquences assumées :
+         — elle est SÉPARÉE de TsePreview. Greffée dessus, un champ inexistant
+           ferait échouer la requête entière et emporterait le titre et les
+           étiquettes de l'aperçu. Isolée, son échec ne coûte rien ;
+         — tout échec RETOMBE en silence sur la frise observée, celle
+           d'aujourd'hui. L'utilisateur ne perd rien, il ne gagne pas ;
+         — et il est CONSIGNÉ au journal d'erreurs, donc le premier rapport
+           reçu dira si la requête est juste. C'est le seul moyen honnête de
+           tester ce qu'on ne peut pas exécuter.
+
+       ELLE NE COÛTE UNE REQUÊTE QUE QUAND ELLE PEUT SERVIR : au survol
+       seulement, une fois par stream, et uniquement si la frise a une part non
+       observée à combler. Une chaîne suivie depuis le début du live n'en
+       déclenche aucune. */
+    const CHAPITRES_QUERY =
+      'query TseVodChapters($login: String!) {' +
+      '  user(login: $login) {' +
+      '    stream {' +
+      '      id' +
+      '      archiveVideo {' +
+      '        id createdAt' +
+      '        moments(momentRequestType: VIDEO_CHAPTER_MARKERS) {' +
+      '          edges { node {' +
+      '            positionMilliseconds' +
+      '            details { ... on GameChangeMomentDetails { game { name displayName } } }' +
+      '          } }' +
+      '        }' +
+      '      }' +
+      '    }' +
+      '  }' +
+      '}';
+
+    /* streamId → { ts, segments } ; `segments` à null veut dire « demandé, et
+       rien d'exploitable » — une chaîne qui n'archive pas ses diffusions, par
+       exemple. On le mémorise aussi, sinon chaque survol relancerait la même
+       requête pour la même réponse vide. */
+    const chapitres = new Map();
+    const CHAPITRES_TTL = 10 * 60_000;
+
+    const fetchChapitres = async (login, streamId, debutStream) => {
+      const vu = chapitres.get(streamId);
+      if (vu && Date.now() - vu.ts < CHAPITRES_TTL) return vu.segments;
+
+      const res = await post([{
+        operationName: 'TseVodChapters',
+        variables: { login },
+        query: CHAPITRES_QUERY
+      }]);
+      if (isResultsUnusable(res)) return null;   // réseau : on ne mémorise pas
+
+      const vod = res?.[0]?.data?.user?.stream?.archiveVideo;
+      const aretes = vod?.moments?.edges;
+      if (!Array.isArray(aretes) || !aretes.length) {
+        chapitres.set(streamId, { ts: Date.now(), segments: null });
+        return null;
+      }
+      /* La base de temps : celle de l'ENREGISTREMENT, qui peut démarrer une
+         poignée de secondes après le stream. On borne au début du stream pour
+         qu'aucun segment ne commence avant lui — une frise dont le premier
+         segment précède le live serait absurde à l'affichage. */
+      const base = Date.parse(vod.createdAt) || debutStream;
+      const segments = [];
+      for (const arete of aretes) {
+        const n = arete?.node;
+        const jeu = n?.details?.game?.name;
+        if (!jeu || !Number.isFinite(n.positionMilliseconds)) continue;
+        segments.push({
+          jeu,
+          libelle: n.details.game.displayName?.trim() || jeu,
+          debut: Math.max(debutStream, base + n.positionMilliseconds),
+        });
+      }
+      segments.sort((a, b) => a.debut - b.debut);
+      const utile = segments.length ? segments : null;
+      chapitres.set(streamId, { ts: Date.now(), segments: utile });
+      if (!utile) {
+        erreurs.noter('chapitres', `aucun moment exploitable pour ${aretes.length} arête(s)`);
+      }
+      return utile;
+    };
+
     const PREVIEW_QUERY =
       'query TsePreview($channelLogin: String!) {' +
       '  user(login: $channelLogin) {' +
@@ -8154,11 +8298,20 @@ const TSE_GATE_MAX_CLICKS = 5;
       return d;
     };
 
+    /* Le prélude connu pour cette chaîne, s'il y en a un. Lu par
+       l'identifiant de STREAM et non par le login : deux sessions successives
+       de la même chaîne n'ont rien à voir, et resservir les chapitres de la
+       précédente daterait le live d'hier. */
+    const preludeDe = (login) => {
+      const id = cache.get(login)?.stream?.id;
+      return (id && chapitres.get(id)?.segments) || null;
+    };
+
     /* Le bloc entier, ou rien. `friseDe` refuse déjà une frise sans
        basculement observé : ce qui suit ne se pose donc jamais la question de
        savoir s'il a quelque chose à dire. */
-    const friseNoeud = (login) => {
-      const f = friseDe(login);
+    const friseNoeud = (login, prelude) => {
+      const f = friseDe(login, prelude);
       if (!f || !f.totalMs) return null;
 
       const bloc = document.createElement('div');
@@ -8200,6 +8353,23 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
       bloc.appendChild(liste);
       return bloc;
+    };
+
+    /* Le bloc est reconstruit EN PLACE quand les chapitres arrivent : ils
+       peuvent mettre une seconde, et refaire tout le popup ferait clignoter le
+       titre et les badges déjà posés. La garde sur `currentLogin` est la même
+       que pour le titre — l'utilisateur a pu survoler ailleurs entre-temps. */
+    const majFrise = (login) => {
+      if (!el || currentLogin !== login) return;
+      const corps = el.querySelector('.tse-preview__body');
+      if (!corps) return;
+      const ancienne = corps.querySelector('.tse-preview__frise');
+      const neuve = friseNoeud(login, preludeDe(login));
+      if (ancienne && neuve) ancienne.replaceWith(neuve);
+      else if (ancienne) ancienne.remove();
+      else if (neuve) corps.appendChild(neuve);
+      // La hauteur a changé : le popup peut sortir du viewport.
+      if (currentCard) positionPopup(currentCard);
     };
 
     const renderPopup = (login, title, extraRows, costreamInfo, costreamMates, squadInfo, sponsorInfo) => {
@@ -8318,7 +8488,7 @@ const TSE_GATE_MAX_CLICKS = 5;
          lorsqu'un basculement a été observé — sinon elle n'a rien à dire, et
          un bloc vide dans un popup de survol se paie en hauteur à chaque
          carte. */
-      const frise = friseNoeud(login);
+      const frise = friseNoeud(login, preludeDe(login));
       if (frise) el.querySelector('.tse-preview__body').appendChild(frise);
 
       if (thumbImg && placeholder) {
@@ -8545,6 +8715,21 @@ const TSE_GATE_MAX_CLICKS = 5;
         requestGuestStar(id).then(() => updateLiveWithBadge(login, squadInfo, id));
       };
       requestLiveWith(getChannelId(login)); // ID souvent déjà connu (scan)
+
+      /* ── COMBLER LE PASSÉ, ET SEULEMENT S'IL Y EN A UN À COMBLER ──────────
+         Une requête de plus, au survol, une seule fois par stream — et
+         uniquement si la frise porte une part non observée. Une chaîne suivie
+         depuis le début de son live n'en déclenche aucune : il n'y aurait rien
+         à apprendre, et une requête qui n'apprend rien est une requête de
+         trop. L'échec est silencieux côté affichage et bruyant côté journal
+         (cf. l'en-tête de CHAPITRES_QUERY). */
+      const flux = cache.get(login)?.stream;
+      const dejaVue = friseDe(login, preludeDe(login));
+      if (flux?.id && dejaVue && dejaVue.inconnuMs > 0) {
+        fetchChapitres(login, flux.id, Date.parse(flux.createdAt) || 0)
+          .then(() => majFrise(login))
+          .catch((e) => erreurs.noter('chapitres', (e && e.message) || e));
+      }
 
       // Fetch métadonnées (titre + CCL) en arrière-plan. Si l'utilisateur
       // a déjà refermé entre-temps, currentLogin aura changé et on ignore

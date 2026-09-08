@@ -1749,6 +1749,58 @@ picks the index, and a second pass moves collisions **within a single trail**.
 A colour's stability is a convenience; distinctness is what makes the bar
 readable.
 
+### The stream's past, when Twitch will say it (v3.71)
+
+The trail only knew what **it** had seen. A user report made that plain at once
+— *"we'll need to know it even if we weren't on Twitch and the stream had
+started"* — with a screenshot to match: `not observed 6h04` dwarfing two
+two-minute segments.
+
+There is one source, and only one. Twitch exposes the category history of a
+**live** stream nowhere; but if the channel archives its broadcasts, the VOD
+exists **from the start** of the stream and gains a "moment" at every game
+change — those are the chapters on a replay's scrub bar. They carry exactly what
+is missing: the category and its position in milliseconds from the start.
+
+**This query has never been run against the real Twitch.** The machine it was
+written on has no access to `twitch.tv` — the proxy refuses the connection. Its
+shape follows the public schema and what Twitch's own player asks for, but it is
+a reconstruction, not an observation. Three accepted consequences:
+
+- it is **separate** from `TsePreview`. Grafted onto it, a non-existent field
+  would fail the whole query and take the preview's title and labels with it.
+  Isolated, its failure costs nothing;
+- every failure **falls back silently** to the observed trail. The user loses
+  nothing, and gains nothing;
+- and it is **recorded in the error journal**, so the first report received will
+  say whether the query is right. That is the only honest way to test what
+  cannot be executed.
+
+Scenario 79 therefore does not prove the query is right: it proves the **merge**
+is correct and that **every** failure falls back without breaking anything —
+schema refusal, channel without archive, VOD without moments. At worst the user
+gets yesterday's trail.
+
+**One extra request, and only where it can help**: on hover, once per stream,
+and only if the trail has an unobserved part. A channel followed since its
+stream began triggers none — a request that teaches nothing is one request too
+many, and an assertion forbids it.
+
+**The merge prefers the chapters.** Where the two overlap, Twitch dates the
+change to the second; we date it at the next poll, so up to thirty seconds
+later. We start from the chapters and add only what they do not yet carry — on
+condition that it is **later** than the last known one, otherwise a lagging
+chapter would spawn a segment that runs backwards in time.
+
+### The display threshold, corrected by the first hover
+
+The first version required an **observed switch** before showing anything. The
+report landed within five minutes of installation: *"I don't have the new
+thing"*. That was right twice over — a feature that can stay invisible for hours
+is indistinguishable from a broken one, and a single segment does say what the
+card leaves out: the card gives the **stream's** duration (6h04), the trail the
+duration in the **category** (24m).
+
 ## Console API
 
 The `tse` object is still exposed in the Twitch page's DevTools console
@@ -1947,7 +1999,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 77 scenarios, 698 assertions |
+| `npm test` | the Playwright harness: 78 scenarios, 710 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -1967,12 +2019,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 630 KB | 288 KB | 2,837 JS + 80 CSS → **2** |
+| `content.js` | 639 KB | 292 KB | 2,849 JS + 80 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 35 KB | 20 KB | 39 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **809 KB** | **413 KB** | **−49 %** |
+| **all five** | **818 KB** | **416 KB** | **−49 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
