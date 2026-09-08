@@ -1683,6 +1683,54 @@ l'accompagnent, jamais évincés, avec la première et la dernière apparition. 
 rapport pouvait montrer quatre erreurs de stockage et taire les trois cents
 appels réseau échoués juste avant.
 
+#### Ce que le premier rapport reçu a corrigé dans le journal lui-même
+
+Il portait une ligne, et elle ne disait rien : `onglet « mobile » : stabilisé
+sans carte`. L'onglet mobile de `/subscriptions` est vide pour presque tout le
+monde — les abonnements achetés dans une application le sont rarement — donc
+chaque rapport arborait un défaut qui n'en était pas un. **Un journal d'erreurs
+qu'on apprend à ignorer ne sert plus à rien.**
+
+Le verdict ne se rend donc plus par onglet mais à la fin du relevé, et seulement
+quand les deux chiffres se contredisent : *« relevé complet sans résultat, 7
+abonnement(s) déjà connu(s) »* est une panne, `0 trouvé / 0 connu` est le compte
+de quelqu'un sans abonnement. Un onglet vide, lui, ne dit rien et ne s'écrit
+plus.
+
+### L'aperçu qui restait affiché (v3.68)
+
+Rapport d'utilisateur, avec un **second écran à gauche** : l'aperçu d'une chaîne
+restait à l'écran après que la souris eut quitté la fenêtre, et plus rien ne le
+refermait jamais.
+
+La cause est le garde-fou censé le protéger. Le `mouseleave` d'une carte relit
+`elementFromPoint(lastMouseX, lastMouseY)` pour distinguer un vrai départ d'une
+**réconciliation React** — Twitch déplace ses cartes par `appendChild`, ce qui
+émet un `mouseleave` parasite alors que la souris n'a pas bougé. Or `lastMouse*`
+ne bouge qu'au rythme des `mousemove` reçus, et il n'en arrive plus une fois le
+pointeur hors de la fenêtre : **la dernière position connue est celle du bord**.
+La barre latérale touchant le bord gauche, cette position est encore sur la
+carte. Le garde-fou concluait « toujours dessus » et gardait l'aperçu ouvert.
+
+Sortir par le bas ou par la droite ne le faisait pas — la dernière position y
+tombe hors de la carte. C'est la seule direction où le garde-fou se trompe, et
+c'est celle qui mène au second écran.
+
+Le signal juste est le `mouseleave` de `<html>`, qui ne se produit que lorsque le
+pointeur quitte réellement la page. Mesuré dans les trois situations qui
+comptent :
+
+| Situation | `<html>` mouseleave | Ce qu'on veut |
+| --- | --- | --- |
+| la souris quitte la fenêtre | **oui** | fermer |
+| une carte est détachée puis rattachée, souris immobile | non | ne pas fermer |
+| la souris entre dans une iframe de la page | non | ne pas fermer |
+
+Les deux derniers comptent autant que le premier : un correctif qui fermerait
+aussi sur une réconciliation aurait rendu l'aperçu inutilisable pendant que
+Twitch trie sa barre, c'est-à-dire tout le temps. Le scénario 76 éprouve les
+deux sens.
+
 
 ### Deux tables de traduction, et elles ne se croisent jamais
 
@@ -1901,7 +1949,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 74 scénarios, 670 assertions |
+| `npm test` | le harnais Playwright : 75 scénarios, 678 assertions |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
 vient de compter, et échoue si le tableau ment. Un banc dont on annonce la
@@ -1921,12 +1969,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 608 Ko | 278 Ko | 2 791 JS + 77 CSS → **2** |
+| `content.js` | 611 Ko | 279 Ko | 2 793 JS + 77 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 34 Ko | 20 Ko | 38 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 8 Ko | 2 Ko | 18 → **0** |
-| **les cinq** | **785 Ko** | **403 Ko** | **−49 %** |
+| **les cinq** | **788 Ko** | **403 Ko** | **−49 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

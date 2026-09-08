@@ -1582,6 +1582,51 @@ accompany it, never evicted, with first and last occurrence. A report could show
 four storage errors and say nothing of the three hundred failed network calls
 just before.
 
+#### What the first report received fixed in the journal itself
+
+It carried one line, and that line said nothing: `onglet « mobile » : stabilisé
+sans carte`. The mobile tab of `/subscriptions` is empty for almost everyone —
+subscriptions bought inside an app are rare — so every report displayed a defect
+that was not one. **An error journal you learn to ignore is no longer of any
+use.**
+
+The verdict is therefore no longer rendered per tab but at the end of the sweep,
+and only when the two numbers contradict each other: *"complete sweep with no
+result, 7 subscription(s) already known"* is a failure, `0 found / 0 known` is
+simply someone with no subscriptions. An empty tab says nothing, and is no
+longer written down.
+
+### The preview that stayed on screen (v3.68)
+
+User report, with a **second monitor on the left**: a channel preview stayed on
+screen after the mouse had left the window, and nothing ever closed it again.
+
+The cause is the very guard meant to protect it. A card's `mouseleave` re-reads
+`elementFromPoint(lastMouseX, lastMouseY)` to tell a real departure from a
+**React reconciliation** — Twitch moves its cards with `appendChild`, which emits
+a spurious `mouseleave` although the mouse has not moved. But `lastMouse*` only
+moves at the rate of the `mousemove` events received, and none arrive once the
+pointer is outside the window: **the last known position is the one at the
+edge**. Since the sidebar sits flush against the left edge, that position is
+still over the card. The guard concluded "still on it" and kept the preview open.
+
+Leaving through the bottom or the right did not do it — the last position there
+falls outside the card. It is the only direction where the guard is wrong, and it
+is the one that leads to the second monitor.
+
+The correct signal is `<html>`'s `mouseleave`, which only fires when the pointer
+actually leaves the page. Measured in the three situations that matter:
+
+| Situation | `<html>` mouseleave | What we want |
+| --- | --- | --- |
+| the mouse leaves the window | **yes** | close |
+| a card is detached then reattached, mouse still | no | do not close |
+| the mouse enters an iframe in the page | no | do not close |
+
+The last two matter as much as the first: a fix that also closed on a
+reconciliation would have made the preview unusable while Twitch sorts its
+sidebar — that is, all the time. Scenario 76 tests both directions.
+
 
 ### Two translation tables that never cross
 
@@ -1795,7 +1840,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 74 scenarios, 670 assertions |
+| `npm test` | the Playwright harness: 75 scenarios, 678 assertions |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
 just counted, and fails if the table lies. A bench whose size is advertised
@@ -1814,12 +1859,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 608 KB | 278 KB | 2,791 JS + 77 CSS → **2** |
+| `content.js` | 611 KB | 279 KB | 2,793 JS + 77 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 34 KB | 20 KB | 38 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 8 KB | 2 KB | 18 → **0** |
-| **all five** | **785 KB** | **403 KB** | **−49 %** |
+| **all five** | **788 KB** | **403 KB** | **−49 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

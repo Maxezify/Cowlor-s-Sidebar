@@ -6368,12 +6368,30 @@ titre('69. Panneau — la donnée nue, et le pont qui la porte');
      On vérifie qu'elle fait ce qu'elle dit : après elle, les compteurs sont
      à zéro. */
   await page.evaluate(() => { window.tse.panneau('scores'); });
-  const r5 = await pont({ id: 5, action: 'reset' });
-  const apresReset = await page.evaluate(() => ({
-    scores: window.tse.panneau('scores').lignes.length,
-    roster: window.tse.panneau('roster').lignes.length,
-    subs:   window.tse.panneau('subs').lignes.length,
+  /* LES COMPTEURS SE LISENT DANS LA MÊME TÂCHE QUE LA RÉPONSE, et c'est une
+     course réelle qu'on ferme ici — vue une fois en vert sur une branche et en
+     rouge sur l'autre, à code identique. Le roster REPEUPLE légitimement : il
+     enregistre les cartes visibles à chaque balayage, et le harnais balaie à
+     cadence accélérée. Un aller-retour de plus entre l'effacement et la lecture
+     suffisait donc à en voir revenir deux, et l'assertion accusait `reset` d'un
+     défaut qui n'était pas le sien. Lire depuis le gestionnaire de la réponse
+     ne laisse aucun tour de boucle s'intercaler. */
+  const reset = await page.evaluate(() => new Promise((res) => {
+    const minuteur = setTimeout(() => res({ expire: true }), 3000);
+    window.addEventListener('message', function ecoute(e) {
+      if (e.source !== window || !e.data || e.data.tse !== 'tse-panneau-res'
+          || e.data.id !== 5) return;
+      clearTimeout(minuteur);
+      window.removeEventListener('message', ecoute);
+      res({ reponse: e.data,
+            scores: window.tse.panneau('scores').lignes.length,
+            roster: window.tse.panneau('roster').lignes.length,
+            subs:   window.tse.panneau('subs').lignes.length });
+    });
+    window.postMessage({ tse: 'tse-panneau-req', id: 5, action: 'reset' }, '*');
   }));
+  const r5 = reset.reponse || {};
+  const apresReset = reset;
   ok('reset vide bien l\'historique, les abonnements et le roster',
      r5.ok === true && apresReset.scores === 0 && apresReset.roster === 0 && apresReset.subs === 0,
      JSON.stringify(apresReset));
@@ -7565,9 +7583,18 @@ titre('75. Abonnements — un relevé vide et une session expirée ne sont pas l
      l'observable dont dépend le produit — `contentWindow.location.pathname`,
      même origine, différent de '/subscriptions' — est reproduit exactement,
      et c'est le seul observable qu'il lise. */
-  const relever = async (mode) => {
+  const relever = async (mode, connus = 0) => {
     const page = await browser.newPage();
     page.on('pageerror', () => {});
+    /* La mémoire d'avant le relevé. C'est elle qui décide si « rien
+       trouvé » est une panne ou le compte de quelqu'un sans abonnement. */
+    await page.addInitScript((n) => {
+      try {
+        const m = {};
+        for (let i = 0; i < n; i++) m['abo' + i] = [1, Date.now()];
+        localStorage.setItem('tse:subs', JSON.stringify(m));
+      } catch { /* stockage refusé */ }
+    }, connus);
     await page.route('https://www.twitch.tv/**', (route) => {
       const url = route.request().url();
       const name = url.split('/').pop().split('?')[0];
@@ -7595,16 +7622,28 @@ titre('75. Abonnements — un relevé vide et une session expirée ne sont pas l
       window.__addCard('alpha', 'Art', '1 k');
     });
     await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
-    await page.evaluate(() => { window.tse.subs.refresh(); });
+    /* ON ATTEND LA FIN DU RELEVÉ, pas sa première erreur. La rédaction
+       précédente lisait le journal dès qu'une entrée `abonnements` paraissait,
+       c'est-à-dire au premier onglet renvoyé — donc AVANT le verdict d'ensemble,
+       qui ne se rend qu'à la fin. Elle faisait échouer l'assertion qui le
+       cherche, et surtout elle rendait VIDE celle qui vérifie son silence : on
+       constatait une absence qui n'avait pas encore eu lieu.
+       L'horodatage est écrit juste avant ce verdict, dans le même bloc
+       synchrone : le voir frais, c'est savoir que le relevé est allé au bout. */
+    const t0 = await page.evaluate(() => {
+      const t = Date.now();
+      window.tse.subs.refresh();
+      return t;
+    });
     await attendre(page,
-      () => window.tse.panneau.rapport().erreurs.some(e => e.source === 'abonnements'), 20_000);
+      (d) => window.tse.panneau.rapport().relevesAbonnements.horodatage >= d, 30_000, t0);
     const abo = await page.evaluate(() => window.tse.panneau.rapport().erreurs
       .filter(e => e.source === 'abonnements').map(e => ({ m: e.message, d: e.detail })));
     await page.close();
     return abo;
   };
 
-  const parChemin = await relever('chemin');
+  const parChemin = await relever('chemin', 3);
   ok('une session expirée est NOMMÉE, avec le chemin où Twitch a renvoyé',
      parChemin.some(e => /renvoyé vers \/login/.test(e.m)), JSON.stringify(parChemin));
   ok('…et l\'onglet fautif est nommé — trois onglets sont relevés, trois verdicts possibles',
@@ -7613,6 +7652,25 @@ titre('75. Abonnements — un relevé vide et une session expirée ne sont pas l
      parChemin.some(e => /session expirée/.test(e.d || '')),
      JSON.stringify(parChemin.map(e => e.d)));
 
+  /* ── LE VERDICT DU RELEVÉ ENTIER, ET SON SILENCE ─────────────────────────
+     Une première rédaction consignait « onglet vide » pour CHAQUE onglet sans
+     carte. L'onglet « mobile » l'est pour presque tout le monde — les
+     abonnements achetés dans une application mobile sont rares — et le premier
+     rapport reçu portait donc une ligne rouge qui ne disait rien. Un journal
+     qu'on apprend à ignorer ne sert plus. Le verdict ne se rend qu'à la fin,
+     et seulement quand les deux chiffres se contredisent. */
+  ok('un relevé entier sans résultat est signalé QUAND on connaissait des abonnements',
+     parChemin.some(e => /relevé complet sans résultat, 3 abonnement\(s\)/.test(e.m)),
+     JSON.stringify(parChemin.map(e => e.m)));
+
+  const sansMemoire = await relever('chemin', 0);
+  ok('…et il se TAIT pour un compte sans abonnement, où « rien » est la bonne réponse',
+     !sansMemoire.some(e => /relevé complet sans résultat/.test(e.m)),
+     JSON.stringify(sansMemoire.map(e => e.m)));
+  ok('…sans pour autant taire la redirection, qui reste une panne dans les deux cas',
+     sansMemoire.some(e => /renvoyé vers \/login/.test(e.m)),
+     JSON.stringify(sansMemoire.map(e => e.m)));
+
   const parOrigine = await relever('opaque');
   ok('un cadre devenu illisible est distingué d\'un cadre qui répond ailleurs',
      parOrigine.some(e => /origine illisible/.test(e.m))
@@ -7620,6 +7678,88 @@ titre('75. Abonnements — un relevé vide et une session expirée ne sont pas l
   ok('…et il nomme l\'exception, qui est tout ce qu\'on sait de lui',
      parOrigine.some(e => /SecurityError/.test(e.d || '')),
      JSON.stringify(parOrigine.map(e => e.d)));
+}
+
+titre('76. Aperçu — la souris qui sort de la fenêtre par la gauche');
+{
+  /* RAPPORT D'UTILISATEUR, second écran à GAUCHE : l'aperçu restait affiché
+     après que la souris eut quitté la fenêtre, et plus rien ne le refermait
+     jamais.
+
+     LA CAUSE EST LE GARDE-FOU LUI-MÊME. Le `mouseleave` d'une carte relit
+     `elementFromPoint(lastMouseX, lastMouseY)` pour distinguer un vrai
+     départ d'une réconciliation React — Twitch déplace ses cartes, ce qui
+     émet un mouseleave parasite alors que la souris n'a pas bougé. Or
+     `lastMouse*` ne bouge qu'au rythme des `mousemove` REÇUS, et il n'en
+     arrive plus une fois le pointeur hors de la fenêtre : la dernière
+     position connue est celle du bord. La barre latérale touchant le bord
+     GAUCHE, cette position est encore sur la carte — le garde-fou concluait
+     « toujours dessus » et gardait l'aperçu ouvert.
+
+     LES DEUX SENS SONT ÉPROUVÉS ICI, et le second davantage : un correctif
+     qui refermerait aussi sur une réconciliation aurait rendu l'aperçu
+     inutilisable pendant que Twitch trie sa barre — c'est-à-dire tout le
+     temps. */
+  const page = await freshTwitch();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = { alpha: { id: 'a', createdAt: h, viewers: 1000, game: 'Art', tags: [] } };
+    window.__addCard('alpha', 'Art', '1 k');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+  const carte = await page.evaluate(() => {
+    const r = document.querySelector('.side-nav-card').getBoundingClientRect();
+    return { x: r.x, y: r.y, w: r.width, h: r.height };
+  });
+  const centreY = carte.y + carte.h / 2;
+  const visible = () => page.evaluate(() =>
+    !!document.querySelector('.tse-preview[data-tse-visible="true"]'));
+  const survoler = async () => {
+    await page.mouse.move(carte.x + carte.w / 2, centreY);
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+    return visible();
+  };
+
+  ok('un survol ouvre bien l\'aperçu — sans quoi le reste ne prouverait rien',
+     await survoler(), 'aperçu non ouvert au survol');
+
+  /* LA CONDITION EXACTE DU DÉFAUT, ET ELLE SE VÉRIFIE — sans quoi l'assertion
+     qui suit passerait sans rien prouver. Ce qui piège le garde-fou n'est pas
+     la coordonnée 0 : c'est que la DERNIÈRE position reçue soit encore sur la
+     carte. En production la barre touche le bord gauche, donc c'est le cas ;
+     dans le harnais la carte commence à quelques pixels du bord, et viser le
+     bord littéral aurait produit un test vert et vide. On part donc du dernier
+     point INTÉRIEUR à la carte, ce qui reproduit l'état exact du défaut : plus
+     aucun mousemove ne viendra, et `lastMouse*` reste sur la carte. */
+  const dernierPoint = Math.round(carte.x + 2);
+  const surLaCarte = await page.evaluate(([x, y]) => {
+    const u = document.elementFromPoint(x, y);
+    const c = document.querySelector('.side-nav-card');
+    return !!(u && c.contains(u));
+  }, [dernierPoint, centreY]);
+  ok('…et la dernière position avant la sortie est bien SUR la carte (la condition du défaut)',
+     surLaCarte === true, 'sans cela le garde-fou refermerait de lui-même : test vide');
+
+  await page.mouse.move(dernierPoint, centreY);
+  await page.mouse.move(-8, centreY);
+  await wait(page, 400);
+  ok('la souris sortie de la fenêtre referme l\'aperçu',
+     (await visible()) === false, 'aperçu resté ouvert après la sortie');
+
+  /* ── L'AUTRE SENS : ce qui ne doit PAS refermer ────────────────────────── */
+  ok('un nouveau survol rouvre normalement', await survoler(), 'aperçu non rouvert');
+  await page.evaluate(() => {
+    // Détache puis rattache la carte sous une souris IMMOBILE : c'est ce que
+    // fait React, et c'est ce que le garde-fou existe pour absorber.
+    const c = document.querySelector('.side-nav-card');
+    c.parentElement.appendChild(c);
+  });
+  await wait(page, 400);
+  ok('…et une carte détachée puis rattachée sous une souris immobile ne le referme pas',
+     (await visible()) === true, 'l\'anti-fantôme a été cassé par le correctif');
+
+  await page.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

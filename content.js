@@ -5334,12 +5334,15 @@ const TSE_GATE_MAX_CLICKS = 5;
             if (!debout && doc.querySelector(DOM.sidebarRoot)) debout = Date.now();
             if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) {
               /* La page s'est montrée, s'est stabilisée, et ne porte AUCUNE
-                 carte. C'est légitime — un onglet peut être vide — mais c'est
-                 aussi ce que rend un sélecteur devenu faux. On ne peut pas
-                 trancher ici ; on date le fait, et le rapport le confronte au
-                 compte d'abonnements connus. */
-              erreurs.noter('abonnements', `onglet « ${onglet} » : stabilisé sans carte`,
-                            DOM.subCardSelector);
+                 carte. CE N'EST PAS UNE ERREUR, et une première rédaction en
+                 faisait une : l'onglet « mobile » est vide pour la plupart des
+                 gens — les abonnements achetés dans une application mobile sont
+                 rares — et chaque rapport portait donc une ligne rouge qui ne
+                 disait rien. Un journal d'erreurs qu'on apprend à ignorer ne
+                 sert plus à rien, et c'est le premier rapport reçu qui l'a
+                 montré. Le verdict ne peut se rendre qu'à la FIN du relevé,
+                 quand on sait ce que les AUTRES onglets ont donné (cf. la fin
+                 de refresh()). */
               return finir([]);
             }
             return;
@@ -5422,6 +5425,21 @@ const TSE_GATE_MAX_CLICKS = 5;
         // abonnement ne doit pas relancer un chargement de page toutes les
         // minutes.
         marquer();
+        /* UN RELEVÉ ENTIER QUI NE TROUVE RIEN, ALORS QU'ON SAVAIT DES
+           ABONNEMENTS. C'est le seul énoncé qui vaille une ligne au journal :
+           un onglet vide est ordinaire, trois onglets vides chez quelqu'un dont
+           la mémoire porte des abonnés ne l'est pas. Les deux chiffres partent
+           ensemble parce que c'est leur RAPPORT qui informe — « 0 trouvé, 0
+           connu » est le compte de quelqu'un sans abonnement, « 0 trouvé, 7
+           connus » est une panne. */
+        if (!trouves.length) {
+          const connus = subs.entries().filter(e => e.sub).length;
+          if (connus) {
+            erreurs.noter('abonnements',
+              `relevé complet sans résultat, ${connus} abonnement(s) déjà connu(s)`,
+              CFG.SUBS_PAGE_TABS.join(', '));
+          }
+        }
       } finally {
         // `running` est posé AVANT le premier await, et refresh() rend la main
         // tout de suite si un relevé tourne déjà : aucun second appel ne peut
@@ -8321,6 +8339,40 @@ const TSE_GATE_MAX_CLICKS = 5;
       // au mouseleave naturel.
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) close();
+      });
+
+      /* ── LA SOURIS QUI QUITTE LA FENÊTRE PAR LA GAUCHE ─────────────────────
+         Rapport d'utilisateur, avec un second écran à gauche : l'aperçu restait
+         affiché après que la souris eut quitté la fenêtre. Reproduit et mesuré,
+         et la cause est le test anti-fantôme juste au-dessus.
+
+         Ce test relit `elementFromPoint(lastMouseX, lastMouseY)` pour savoir si
+         la souris est encore sur la carte. Or `lastMouse*` n'est mis à jour que
+         par les `mousemove` REÇUS, et il n'en arrive plus une fois le pointeur
+         hors de la fenêtre : la dernière position connue est celle du bord. La
+         barre latérale étant collée au bord GAUCHE, cette position est encore
+         SUR LA CARTE — `elementFromPoint` rendait « metacell », le test
+         concluait à une réconciliation React, et l'aperçu restait ouvert pour
+         toujours, puisque plus aucun événement ne viendrait.
+
+         Sortir par le bas ou par la droite ne le faisait pas : la dernière
+         position y tombe hors de la carte. C'est la seule direction où le
+         garde-fou se trompe, et c'est celle qui mène au second écran.
+
+         Le signal juste est le `mouseleave` de <html> : il ne se produit QUE
+         lorsque le pointeur quitte réellement la page. Mesuré dans les trois
+         situations qui comptent — sortie de fenêtre : il arrive ; détachement
+         puis rattachement d'une carte sous une souris immobile : il n'arrive
+         pas, donc l'anti-fantôme reste entier ; entrée dans une iframe de la
+         page : il n'arrive pas non plus.
+
+         On remet aussi la position à une valeur hors écran. Elle est périmée
+         dès l'instant où le pointeur est sorti, et la laisser telle quelle
+         serait un piège pour le prochain qui la lira. */
+      document.documentElement.addEventListener('mouseleave', () => {
+        lastMouseX = -1;
+        lastMouseY = -1;
+        close();
       });
     };
 
