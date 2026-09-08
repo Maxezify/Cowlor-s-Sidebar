@@ -7929,6 +7929,177 @@ titre('77. Firefox — le panneau sous un `chrome.*` qui ne rend pas de promesse
   await page.close();
 }
 
+titre('78. Aperçu — la frise des catégories traversées');
+{
+  /* CE QUE CE BLOC SAIT ET QUE TWITCH NE MONTRE PAS. Les chapitres d'un
+     stream n'existent, chez Twitch, que sur le VOD et après coup. Pour un live
+     EN COURS, la suite des catégories traversées n'est affichée nulle part —
+     alors que le pipeline la voit passer toutes les 30 s et la jetait.
+
+     LA FRISE NE SAIT QUE CE QU'ELLE A VU, et c'est le point le plus délicat de
+     l'affichage : un onglet ouvert à la troisième heure d'un live ignore les
+     deux premières. Présenter le premier segment observé comme le début du
+     live serait une invention. On connaît l'heure de départ du stream, donc la
+     part non observée est MESURÉE et dessinée à sa vraie proportion. */
+  const page = await freshTwitch();
+  const DEBUT = Date.now() - 30 * 60_000;          // live commencé il y a 30 min
+  await page.evaluate((d) => {
+    window.__fx = { alpha: { id: 'a', createdAt: new Date(d).toISOString(),
+                             viewers: 1000, game: 'Just Chatting', tags: [] } };
+    window.__addCard('alpha', 'Just Chatting', '1 k');
+  }, DEBUT);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+
+  const survoler = async () => {
+    await hoverLogin(page, 'alpha');
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+  };
+  const relacher = async () => {
+    await page.evaluate(() => {
+      const c = document.querySelector('.side-nav-card');
+      c.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+    });
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  };
+  // Bascule de catégorie : on change la fixture, on force un relevé, et on
+  // attend que la CARTE porte la nouvelle catégorie — pas une durée fixe, qui
+  // mentirait dès que la machine est chargée.
+  const basculer = async (jeu) => {
+    await page.evaluate((j) => { window.__fx.alpha.game = j; window.tse.rescan(); }, jeu);
+    await attendre(page,
+      (j) => document.querySelector('.side-nav-card')?.dataset.tseCategory === j, 8000, jeu);
+  };
+  const frise = () => page.evaluate(() => {
+    const bloc = document.querySelector('.tse-preview__frise');
+    if (!bloc) return null;
+    return {
+      parts: [...bloc.querySelectorAll('.tse-preview__frise-part')].map(p => ({
+        poids: parseFloat(p.style.flex),
+        inconnu: p.classList.contains('tse-preview__frise-part--inconnu'),
+      })),
+      lignes: [...bloc.querySelectorAll('.tse-preview__frise-ligne')].map(l => ({
+        nom: l.querySelector('.tse-preview__frise-nom').textContent,
+        duree: l.querySelector('.tse-preview__frise-duree')?.textContent || '',
+        inconnu: l.classList.contains('tse-preview__frise-ligne--inconnu'),
+        encours: l.classList.contains('tse-preview__frise-ligne--encours'),
+      })),
+      barreCachee: bloc.querySelector('.tse-preview__frise-barre')
+                       .getAttribute('aria-hidden') === 'true',
+    };
+  });
+
+  /* ── LE SILENCE, ÉPROUVÉ EN PREMIER ─────────────────────────────────────
+     Une seule catégorie observée n'apprend rien : la carte l'affiche déjà, et
+     un bloc qui la répéterait laisserait croire que le live n'a connu qu'elle
+     — ce qu'on ne sait pas. Cette assertion est celle qui empêche le bloc de
+     s'afficher partout, tout le temps. */
+  await survoler();
+  ok('sans basculement observé, la frise ne s\'affiche pas du tout',
+     (await frise()) === null, 'un bloc est apparu sans rien à dire');
+  await relacher();
+
+  /* Deux durées franchement différentes, pour que la proportion se mesure. */
+  await basculer('Hades II');
+  await wait(page, 450);
+  await basculer('Overwatch');
+  await wait(page, 120);
+  await survoler();
+
+  const f = await frise();
+  ok('après deux basculements, la frise apparaît',
+     f !== null && f.lignes.length > 0, JSON.stringify(f));
+  ok('…avec les trois catégories traversées, dans l\'ordre du temps',
+     f.lignes.filter(l => !l.inconnu).map(l => l.nom).join(' → ')
+       .includes('Hades II') && f.lignes.length === 4,
+     JSON.stringify(f.lignes.map(l => l.nom)));
+  ok('…la dernière étant marquée « en cours »',
+     f.lignes[f.lignes.length - 1].encours === true
+     && f.lignes.filter(l => l.encours).length === 1,
+     JSON.stringify(f.lignes.map(l => [l.nom, l.encours])));
+
+  /* ── L'AVEU À L'ÉCHELLE ─────────────────────────────────────────────────
+     Trente minutes de live avant notre première vue : le segment hachuré doit
+     exister ET peser trente minutes, pas un ornement de taille fixe. C'est ce
+     qui distingue un aveu d'une décoration. */
+  ok('la part NON OBSERVÉE est dessinée, et à sa taille réelle',
+     f.parts[0].inconnu === true && f.parts[0].poids > 25 * 60_000
+     && f.parts[0].poids < 35 * 60_000,
+     JSON.stringify(f.parts[0]));
+  ok('…et elle est nommée dans la liste, pas seulement dessinée',
+     f.lignes[0].inconnu === true && /^\d+h\d\d$|^\d+m$/.test(f.lignes[0].duree),
+     JSON.stringify(f.lignes[0]));
+  /* LA PROPORTION, ÉPROUVÉE SUR DES DURÉES QU'ON A IMPOSÉES. Hadès II a duré
+     450 ms de test, Overwatch 120 : le rapport doit se retrouver dans les
+     largeurs, sans quoi la barre serait un ornement plutôt qu'une mesure. La
+     première rédaction de cette assertion attendait « le plus long est le
+     premier » — c'était faux de MON propre test : le premier segment ne dure
+     que le temps qui sépare la première observation du premier basculement,
+     soit 75 ms ici. L'assertion mesurait mal ce que le test faisait. */
+  ok('les segments pèsent leur durée : Hadès II tient plus du triple d\'Overwatch',
+     f.parts.length === 4 && f.parts[2].poids > f.parts[3].poids * 2.5,
+     JSON.stringify(f.parts.map(p => Math.round(p.poids))));
+  /* La barre porte la couleur, la liste porte le sens. Une barre annoncée aux
+     lecteurs d'écran ferait lire quatre div vides. */
+  ok('la barre est décorative — c\'est la liste qui porte l\'information',
+     f.barreCachee === true, 'la barre n\'est pas aria-hidden');
+
+  /* ── CANONIQUE CONTRE LIBELLÉ, DANS LES DEUX SENS ────────────────────────
+     Twitch rend deux noms pour une catégorie : `name` (canonique, stable) et
+     `displayName` (traduit, variable). Comparer les LIBELLÉS ferait naître un
+     faux segment au premier changement de langue de l'interface ; comparer
+     seulement les canoniques sans mémoriser le libellé afficherait des noms
+     anglais dans une interface française. Les deux sens comptent. */
+  await relacher();
+  const langue = await page.evaluate(() => (window.__lastAcceptLanguage || 'en').slice(0, 2));
+  await page.evaluate((l) => {
+    // MÊME canonique, libellé qui change : Twitch se met à traduire.
+    window.__i18nCats['Overwatch'] = { [l]: 'Surveillance' };
+    window.tse.rescan();
+  }, langue);
+  await wait(page, 400);
+  await survoler();
+  const f2 = await frise();
+  ok('un LIBELLÉ qui change ne crée pas de segment — la comparaison est canonique',
+     f2.lignes.length === 4, JSON.stringify(f2.lignes.map(l => l.nom)));
+  ok('…mais c\'est bien le libellé traduit qui s\'affiche',
+     f2.lignes[f2.lignes.length - 1].nom === 'Surveillance',
+     JSON.stringify(f2.lignes[f2.lignes.length - 1].nom));
+
+  await relacher();
+  await page.evaluate((l) => {
+    // DEUX canoniques différents, un SEUL libellé : le segment doit naître
+    // quand même. C'est le test qui échouerait si l'on comparait les libellés.
+    window.__i18nCats['Fortnite'] = { [l]: 'Surveillance' };
+  }, langue);
+  await basculer('Fortnite');
+  await survoler();
+  const f3 = await frise();
+  ok('deux catégories qui portent le MÊME libellé restent deux segments',
+     f3.lignes.length === 5
+     && f3.lignes.slice(-2).every(l => l.nom === 'Surveillance'),
+     JSON.stringify(f3.lignes.map(l => l.nom)));
+
+  /* ── UNE NOUVELLE SESSION REPART DE ZÉRO ─────────────────────────────────
+     L'identifiant de stream change à chaque redémarrage. Garder la frise
+     ferait porter au nouveau live les durées de l'ancien. */
+  await relacher();
+  await page.evaluate(() => {
+    window.__fx.alpha.sid = 's-neuve';
+    window.__fx.alpha.createdAt = new Date().toISOString();
+    window.__fx.alpha.game = 'Just Chatting';
+    window.tse.rescan();
+  });
+  await attendre(page,
+    () => document.querySelector('.side-nav-card')?.dataset.tseCategory === 'Just Chatting', 8000);
+  await survoler();
+  ok('une nouvelle session efface la frise de la précédente',
+     (await frise()) === null, JSON.stringify(await frise()));
+
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

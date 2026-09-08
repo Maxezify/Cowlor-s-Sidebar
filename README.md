@@ -1795,6 +1795,70 @@ ajustement à la première passe** : la redirection servie par le harnais au
 scénario 75, qui donne une origine opaque sous Blink, et la sortie de fenêtre du
 scénario 76, dont l'ordre des événements de souris n'est pas garanti identique.
 
+## La frise des catégories (v3.70)
+
+Twitch n'affiche la suite des catégories traversées par un stream **nulle
+part** tant qu'il est en cours : ses chapitres n'existent que sur le VOD, après
+coup, et seulement si la chaîne en garde un. Le pipeline, lui, voyait cette
+information passer toutes les 30 secondes — et la jetait.
+
+Elle est désormais gardée, et l'aperçu la rend sous la carte :
+
+```
+PRÉCÉDEMMENT SUR CE LIVE
+▨▨▨▨▨▨▨▨▨▨▨│███│██████████│█████████████████████│██
+  non observé                                  1h35
+  Discussions                                   24m
+  Hades II                                     1h47
+  Overwatch                                    3h21
+▸ League of Legends                12m · en cours
+```
+
+Une **barre proportionnelle** puis une **liste**, et les deux sont nécessaires :
+la barre donne la forme du live d'un coup d'œil — trois heures d'Overwatch
+contre douze minutes de LoL se voient sans lire ; la liste donne les noms et les
+durées exactes. La barre est `aria-hidden` : une barre qui porterait
+l'information par la seule couleur serait illisible à qui ne les distingue pas.
+
+### Ce que la frise sait, et ce qu'elle avoue
+
+Elle ne sait que **ce qu'elle a vu**. Un onglet ouvert à la troisième heure d'un
+live ignore les deux premières, et présenter le premier segment observé comme le
+début du stream serait une invention. On connaît l'heure de départ du live : la
+part non observée est donc **mesurée**, dessinée hachurée, **à sa vraie
+proportion**. Un segment gris à sa taille réelle est un aveu à l'échelle ; un
+premier segment présenté comme le début serait un mensonge.
+
+Trois autres règles, chacune pour une raison :
+
+- **le bloc n'apparaît pas** tant qu'aucun basculement n'a été observé. Une
+  seule catégorie n'apprend rien que la carte ne dise déjà, et laisserait croire
+  que le live n'a connu qu'elle ;
+- **une nouvelle session efface tout.** L'identifiant de stream change à chaque
+  redémarrage ; garder la frise ferait porter au nouveau live les durées de
+  l'ancien ;
+- **rien n'est persisté.** Après un rechargement, l'extension n'a rien observé —
+  reconstituer la frise depuis un stockage affirmerait une continuité qu'on n'a
+  pas vue.
+
+### Deux pièges, et comment ils sont tenus
+
+**Canonique contre libellé.** Twitch rend deux noms par catégorie : `name`
+(stable) et `displayName` (traduit). Comparer les libellés ferait naître un faux
+segment au premier changement de langue ; ne garder que le canonique afficherait
+des noms anglais dans une interface française. La comparaison est canonique, le
+libellé est mémorisé — **et rafraîchi** à chaque observation, défaut trouvé par
+le banc : il était figé à la création du segment, si bien qu'une traduction
+arrivant plus tard ne remontait jamais.
+
+**Les couleurs.** La première rédaction projetait un hachage du nom sur les 360°
+du cercle : stable, sans liste à tenir, et fausse à l'usage. Sur la toute
+première capture, « Hades II » et « League of Legends » étaient deux roses
+presque identiques, côte à côte. La palette est maintenant **fermée** — huit
+teintes espacées — le hachage en choisit l'index, et une seconde passe déplace
+les collisions **au sein d'une même frise**. La stabilité d'une couleur est un
+confort ; la distinction est ce qui fait qu'on lit la barre.
+
 ## API console
 
 L'objet `tse` reste exposé dans la console DevTools de la page Twitch (onglet
@@ -1997,7 +2061,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 76 scénarios, 686 assertions |
+| `npm test` | le harnais Playwright : 77 scénarios, 698 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -2018,12 +2082,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 611 Ko | 279 Ko | 2 793 JS + 77 CSS → **2** |
+| `content.js` | 630 Ko | 288 Ko | 2 837 JS + 80 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **790 Ko** | **403 Ko** | **−49 %** |
+| **les cinq** | **809 Ko** | **413 Ko** | **−49 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

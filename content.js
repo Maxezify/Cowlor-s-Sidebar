@@ -615,6 +615,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
       uiPreviewLoadingTitle:     'Chargement du titre…',
+      uiTrailTitle:              'Précédemment sur ce live',
+      uiTrailUnseen:             'non observé',
+      uiTrailNow:                'en cours',
+      uiTrailTruncated:          'début non gardé',
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
       uiBadgeSubMonths:          (n) => `Abonné ${n} mois`,
@@ -688,6 +692,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
       uiPreviewLoadingTitle:     'Loading title…',
+      uiTrailTitle:              'Earlier on this stream',
+      uiTrailUnseen:             'not observed',
+      uiTrailNow:                'ongoing',
+      uiTrailTruncated:          'start not kept',
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
       uiBadgeSubMonths:          (n) => `Subscribed ${n} month${n > 1 ? 's' : ''}`,
@@ -756,6 +764,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
       uiPreviewLoadingTitle:     'Titel wird geladen…',
+      uiTrailTitle:              'Vorher in diesem Stream',
+      uiTrailUnseen:             'nicht beobachtet',
+      uiTrailNow:                'läuft',
+      uiTrailTruncated:          'Anfang nicht behalten',
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
       uiBadgeSubMonths:          (n) => `${n} Monat${n > 1 ? 'e' : ''} abonniert`,
@@ -824,6 +836,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
       uiPreviewLoadingTitle:     'Cargando título…',
+      uiTrailTitle:              'Antes en este directo',
+      uiTrailUnseen:             'no observado',
+      uiTrailNow:                'en curso',
+      uiTrailTruncated:          'inicio no conservado',
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
       uiBadgeSubMonths:          (n) => `Suscrito ${n} mes${n > 1 ? 'es' : ''}`,
@@ -892,6 +908,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
       uiPreviewLoadingTitle:     'Carregando título…',
+      uiTrailTitle:              'Antes nesta live',
+      uiTrailUnseen:             'não observado',
+      uiTrailNow:                'em andamento',
+      uiTrailTruncated:          'início não guardado',
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
       uiBadgeSubMonths:          (n) => `Inscrito há ${n} ${n > 1 ? 'meses' : 'mês'}`,
@@ -960,6 +980,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
       uiPreviewLoadingTitle:     'Caricamento del titolo…',
+      uiTrailTitle:              'Prima in questa diretta',
+      uiTrailUnseen:             'non osservato',
+      uiTrailNow:                'in corso',
+      uiTrailTruncated:          'inizio non conservato',
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
       uiBadgeCostreamHost:       'Stream host',
       uiBadgeSubMonths:          (n) => `Abbonato da ${n} mes${n > 1 ? 'i' : 'e'}`,
@@ -1028,6 +1052,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
       uiPreviewLoadingTitle:     'Wczytywanie tytułu…',
+      uiTrailTitle:              'Wcześniej na tej transmisji',
+      uiTrailUnseen:             'nieobserwowane',
+      uiTrailNow:                'trwa',
+      uiTrailTruncated:          'początek niezachowany',
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
       uiBadgeCostreamHost:       'Kanał gospodarza',
       uiBadgeSubMonths:          (n) => `Subskrypcja: ${n} ${plurielSlave(n, ['miesiąc', 'miesiące', 'miesięcy'])}`,
@@ -1096,6 +1124,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
       uiPreviewLoadingTitle:     'Загрузка названия…',
+      uiTrailTitle:              'Ранее на этом стриме',
+      uiTrailUnseen:             'не наблюдалось',
+      uiTrailNow:                'идёт сейчас',
+      uiTrailTruncated:          'начало не сохранено',
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
       uiBadgeCostreamHost:       'Канал ведущего',
       uiBadgeSubMonths:          (n) => `Подписка: ${n} ${plurielSlave(n, ['месяц', 'месяца', 'месяцев'])}`,
@@ -1164,6 +1196,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
       uiPreviewLoadingTitle:     'タイトルを読み込み中…',
+      uiTrailTitle:              'この配信のこれまで',
+      uiTrailUnseen:             '未観測',
+      uiTrailNow:                '進行中',
+      uiTrailTruncated:          '冒頭は未保持',
       uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
       uiBadgeCostreamHost:       'ホスト配信',
       uiBadgeSubMonths:          (n) => `サブスク${n}か月`,
@@ -1232,6 +1268,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
       uiPreviewLoadingTitle:     '正在加载标题…',
+      uiTrailTitle:              '本次直播此前',
+      uiTrailUnseen:             '未观测',
+      uiTrailNow:                '进行中',
+      uiTrailTruncated:          '开头未保留',
       uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
       uiBadgeCostreamHost:       '主办直播',
       uiBadgeSubMonths:          (n) => `已订阅 ${n} 个月`,
@@ -1903,6 +1943,22 @@ const TSE_GATE_MAX_CLICKS = 5;
     // sans fin sur des mois d'usage. Les entrées périmées partent d'elles-mêmes
     // à la lecture ; cette borne couvre le cas d'un onglet jamais rouvert.
     CATEGORY_SWITCH_MAX: 200,
+
+    // === Frise des catégories d'un live ===
+    // Nombre de streams dont on garde la frise. Bien plus bas que
+    // CATEGORY_SWITCH_MAX : une frise pèse une liste, pas une entrée, et on
+    // n'en affiche qu'une à la fois — celle de la chaîne survolée.
+    CATEGORY_TRAIL_MAX: 40,
+    // Segments gardés par frise. Un stream de variété en enchaîne rarement
+    // plus de six ; au-delà, on tronque par la TÊTE et on le dit, plutôt que
+    // de laisser une liste s'allonger jusqu'à sortir du popup.
+    CATEGORY_TRAIL_SEGMENTS: 12,
+    // En deçà, on considère avoir vu le stream depuis son début. Le relevé
+    // tourne toutes les 30 s : sans cette tolérance, TOUTE frise porterait un
+    // segment « non observé » de quelques secondes, dû à notre seule latence
+    // et non à une ignorance réelle. Trois cycles, pour couvrir un premier
+    // relevé retardé par une file chargée.
+    CATEGORY_TRAIL_TOLERANCE: 90_000,
 
     // === Voile de chargement initial ===
     // Délai de stabilité : le voile se lève quand la sidebar est peuplée
@@ -3051,6 +3107,80 @@ const TSE_GATE_MAX_CLICKS = 5;
       overflow: hidden;
     }
     .tse-preview__sponsor-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+    /* ── LA FRISE DES CATÉGORIES ────────────────────────────────────────────
+       Une barre proportionnelle PUIS une liste, et les deux sont nécessaires.
+       La barre donne la forme du live d'un coup d'œil — trois heures
+       d'Overwatch contre douze minutes de LoL se voient sans lire ; la liste
+       donne les noms et les durées exactes. La barre seule ne porterait
+       l'information que par la couleur, ce qui la rendrait illisible à qui ne
+       les distingue pas : elle est donc aria-hidden, et c'est la liste qui
+       parle. */
+    .tse-preview__frise {
+      margin-top: 9px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .tse-preview__frise-titre {
+      margin: 0 0 6px;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.42);
+    }
+    .tse-preview__frise-barre {
+      display: flex;
+      gap: 1px;
+      height: 7px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    /* Une largeur plancher : un segment de deux minutes sur six heures ferait
+       moins d'un pixel et disparaîtrait de la barre alors qu'il figure dans la
+       liste. Mieux vaut une proportion légèrement fausse qu'un segment
+       invisible — la valeur exacte est écrite à côté. */
+    .tse-preview__frise-part { min-width: 3px; }
+    /* Le temps qu'on n'a PAS observé : hachuré, à sa taille réelle. C'est un
+       aveu à l'échelle, et il est dessiné avant les segments connus parce que
+       c'est là qu'il se situe — avant notre première vue. */
+    .tse-preview__frise-part--inconnu {
+      background-image: repeating-linear-gradient(45deg,
+        rgba(255, 255, 255, 0.17) 0 3px, rgba(255, 255, 255, 0.05) 3px 6px);
+    }
+    .tse-preview__frise-liste { margin: 8px 0 0; padding: 0; list-style: none; }
+    .tse-preview__frise-ligne {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .tse-preview__frise-puce {
+      flex: 0 0 auto;
+      width: 7px;
+      height: 7px;
+      border-radius: 2px;
+    }
+    .tse-preview__frise-nom {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #dedee3;
+    }
+    .tse-preview__frise-duree {
+      flex: 0 0 auto;
+      color: rgba(255, 255, 255, 0.52);
+      font-variant-numeric: tabular-nums;
+    }
+    .tse-preview__frise-ligne--encours .tse-preview__frise-nom { color: #fff; font-weight: 600; }
+    .tse-preview__frise-ligne--encours .tse-preview__frise-duree { color: rgba(255, 255, 255, 0.75); }
+    .tse-preview__frise-ligne--inconnu .tse-preview__frise-nom {
+      color: rgba(255, 255, 255, 0.40);
+      font-style: italic;
+    }
   `;
 
   const injectCSS = () => {
@@ -3158,6 +3288,125 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!b) return null;
     if (Date.now() - b.ts > CFG.CATEGORY_SWITCH_TTL) { basculements.delete(login); return null; }
     return b;
+  };
+
+  /* ============================================================
+   *  FRISE DES CATÉGORIES — ce qu'un live a traversé
+   *  ------------------------------------------------------------
+   *  Le registre ci-dessus ne retient que le DERNIER basculement, et
+   *  dix minutes durant. Or la même observation, gardée, raconte
+   *  autre chose : « Discussions, puis Hadès II, puis Overwatch, et
+   *  maintenant League of Legends ». Twitch ne le montre nulle part
+   *  pour un stream EN COURS — ses chapitres n'existent que sur le
+   *  VOD, après coup, et seulement si la chaîne en garde un.
+   *
+   *  D'OÙ VIENT CETTE INFORMATION, ET CE QU'ELLE VAUT. De nulle part
+   *  ailleurs que de nos propres relevés : le pipeline demande la
+   *  catégorie de chaque chaîne suivie toutes les 30 s, et jusqu'ici
+   *  la jetait. On ne fait donc que GARDER ce qu'on voyait déjà.
+   *
+   *  LA CONSÉQUENCE, QU'IL FAUT DIRE ET NON MASQUER : la frise
+   *  commence quand NOUS avons commencé à regarder, pas quand le
+   *  stream a commencé. Un onglet ouvert à la troisième heure d'un
+   *  live ne saura rien des deux premières. C'est pourquoi la part
+   *  non observée est MESURÉE — on connaît l'heure de départ du
+   *  stream — et DESSINÉE à sa vraie proportion, en gris. Un premier
+   *  segment présenté comme le début du live serait une invention ;
+   *  un segment gris à sa taille réelle est un aveu à l'échelle.
+   *
+   *  ELLE NE SURVIT PAS À UN RECHARGEMENT, pour la même raison que
+   *  le registre au-dessus : après un rechargement, on n'a rien
+   *  observé. La reconstituer depuis un stockage reviendrait à
+   *  affirmer une continuité qu'on n'a pas vue.
+   * ============================================================ */
+  const frises = new Map();   // login → { streamId, debutStream, vuDepuis, segments, tronquee }
+
+  const suivreCategorie = (login, apres) => {
+    const flux = apres?.stream;
+    const id = flux?.id || null;
+    const jeu = apres?.game || null;
+    /* Hors ligne, ou catégorie inconnue : on oublie. Garder la frise d'un
+       stream fini la ferait resservir au prochain, avec des durées qui
+       n'auraient plus de sens. */
+    if (!id || !jeu) { frises.delete(login); return; }
+
+    const maintenant = Date.now();
+    const debutStream = Date.parse(flux.createdAt) || null;
+    let f = frises.get(login);
+    /* Un identifiant de stream change à chaque nouvelle session. C'est le seul
+       signal fiable qu'il faut repartir de zéro : une chaîne qui coupe et
+       reprend garde son login mais n'a plus rien à voir avec la frise d'avant. */
+    if (!f || f.streamId !== id) {
+      f = { streamId: id, debutStream, vuDepuis: maintenant, segments: [], tronquee: false };
+      frises.set(login, f);
+      // Purge par le volume. Map itère dans l'ordre d'insertion : les plus
+      // anciennes sortent d'abord, comme pour les basculements.
+      while (frises.size > CFG.CATEGORY_TRAIL_MAX) {
+        frises.delete(frises.keys().next().value);
+      }
+    }
+
+    const dernier = f.segments[f.segments.length - 1];
+    if (dernier && dernier.jeu === jeu) {
+      /* Même catégorie : aucun segment à ouvrir — mais le LIBELLÉ, lui, a pu
+         changer. Il était figé à la création du segment, si bien qu'un
+         changement de langue de l'interface laissait la frise en anglais quand
+         tout le reste passait en français. Le banc l'a montré : la traduction
+         arrivait, la frise gardait l'ancien nom. On rafraîchit donc le libellé
+         sans toucher au reste — la comparaison, elle, reste canonique. */
+      dernier.libelle = apres.gameLabel || jeu;
+      return;
+    }
+
+    /* Le premier segment démarre à notre PREMIÈRE VUE, pas à maintenant : sans
+       cela, la frise d'un stream qu'on observe depuis une heure sans
+       changement afficherait « 0m » au moment du premier basculement. */
+    f.segments.push({
+      jeu,
+      // Le libellé TRADUIT est mémorisé, le nom canonique sert à comparer.
+      // L'inverse ferait naître un faux segment au premier changement de
+      // langue de l'interface — « Just Chatting » deviendrait « Discussions »
+      // sans que la chaîne ait rien fait.
+      libelle: apres.gameLabel || jeu,
+      debut: dernier ? maintenant : f.vuDepuis,
+    });
+    if (f.segments.length > CFG.CATEGORY_TRAIL_SEGMENTS) {
+      f.segments.shift();
+      f.tronquee = true;   // la tête est perdue, et l'affichage doit le dire
+    }
+  };
+
+  /* La frise prête à afficher, ou null. Deux refus, et le second compte :
+       — aucune frise pour cette chaîne ;
+       — un seul segment, c'est-à-dire AUCUN basculement observé. Afficher
+         « Overwatch depuis 40m » ne dirait rien que la carte ne dise déjà, et
+         laisserait croire que le live n'a connu que cette catégorie — ce qu'on
+         ne sait pas. Le bloc n'apparaît que lorsqu'il a quelque chose à
+         apprendre. */
+  const friseDe = (login) => {
+    const f = frises.get(login);
+    if (!f || f.segments.length < 2) return null;
+    const maintenant = Date.now();
+    const segments = f.segments.map((s, i) => {
+      const fin = i + 1 < f.segments.length ? f.segments[i + 1].debut : maintenant;
+      return { jeu: s.jeu, libelle: s.libelle, debut: s.debut, fin,
+               dureeMs: Math.max(0, fin - s.debut),
+               encours: i + 1 === f.segments.length };
+    });
+    /* La part que nous n'avons PAS vue, mesurée et non devinée : du départ du
+       stream à notre première observation. En deçà de la tolérance, c'est
+       notre propre latence de relevé et non une ignorance — on la tait plutôt
+       que de faire porter un aveu à un artefact. */
+    const brut = f.debutStream ? f.vuDepuis - f.debutStream : 0;
+    const inconnuMs = brut > CFG.CATEGORY_TRAIL_TOLERANCE ? brut : 0;
+    return {
+      debutStream: f.debutStream,
+      vuDepuis: f.vuDepuis,
+      inconnuMs,
+      tronquee: f.tronquee,
+      segments,
+      totalMs: inconnuMs + segments.reduce((n, s) => n + s.dureeMs, 0),
+    };
   };
 
   let queue = new Map();
@@ -3459,6 +3708,9 @@ const TSE_GATE_MAX_CLICKS = 5;
            seule occasion de comparer deux relevés. Une fois `cache.set` passé,
            l'information n'existe plus nulle part. */
         noterBasculement(login, cache.get(login), entry);
+        // La MÊME observation, gardée en entier : le registre ci-dessus n'en
+        // retient que le dernier pas, la frise en garde le chemin.
+        suivreCategorie(login, entry);
         cache.set(login, entry);
         // Le mode global se nourrit du MÊME lot : un compteur frais met à
         // jour le classement sans une seule requête de plus. C'est ce qui
@@ -4324,6 +4576,17 @@ const TSE_GATE_MAX_CLICKS = 5;
     const start = new Date(createdAt).getTime();
     if (!Number.isFinite(start)) return '';
     const totalMin = Math.max(0, Math.floor((Date.now() - start) / 60_000));
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return h === 0 ? `${m}m` : `${h}h${String(m).padStart(2, '0')}`;
+  };
+
+  /* La MÊME forme que l'uptime des cartes — « 24m », « 1h47 » — parce que les
+     deux se lisent côte à côte dans l'aperçu, et que deux conventions de durée
+     dans un même popup se comparent mal. Ici on formate un INTERVALLE, là-bas
+     un écart à maintenant : c'est la seule différence. */
+  const formatDuree = (ms) => {
+    const totalMin = Math.max(0, Math.round(ms / 60_000));
     const h = Math.floor(totalMin / 60);
     const m = totalMin % 60;
     return h === 0 ? `${m}m` : `${h}h${String(m).padStart(2, '0')}`;
@@ -7817,6 +8080,128 @@ const TSE_GATE_MAX_CLICKS = 5;
     // Badge sponsor : affiché si sponsorInfo non-null. Texte
     // "Sponsorisé par <marque>" + mini logo coloré à gauche du texte
     // (reproduction du cadre coloré natif Twitch).
+    /* ── LES COULEURS DE LA FRISE ────────────────────────────────────────────
+       Une palette FERMÉE, et non une teinte calculée. La première rédaction
+       projetait un hachage du nom sur les 360° du cercle : stable, sans liste
+       à tenir, et fausse à l'usage — deux catégories tombaient à quelques
+       degrés l'une de l'autre et devenaient indiscernables dans la barre. Vu
+       sur la toute première capture : « Hades II » et « League of Legends »
+       étaient deux roses presque identiques, côte à côte.
+
+       Huit teintes espacées, choisies pour tenir sur le fond sombre du popup
+       sans crier. Le hachage choisit l'index — une catégorie garde donc sa
+       couleur d'un survol à l'autre — et une seconde passe déplace les
+       collisions DANS UNE MÊME FRISE vers le prochain emplacement libre. La
+       stabilité est un confort ; la distinction, elle, est ce qui fait qu'on
+       lit la barre. En cas de conflit, c'est la distinction qui l'emporte. */
+    const PALETTE_FRISE = ['#7aa2f7', '#9ece6a', '#e0af68', '#bb9af7',
+                           '#7dcfff', '#f7768e', '#73daca', '#ff9e64'];
+
+    const indexCategorie = (jeu) => {
+      let h = 0;
+      for (let i = 0; i < jeu.length; i++) h = (h * 31 + jeu.charCodeAt(i)) | 0;
+      return Math.abs(h) % PALETTE_FRISE.length;
+    };
+
+    /* Le nom CANONIQUE et non le libellé traduit : sinon « Just Chatting » et
+       « Discussions » prendraient deux couleurs pour une seule catégorie. */
+    const couleursFrise = (segments) => {
+      const pris = new Set();
+      const table = new Map();
+      for (const seg of segments) {
+        if (table.has(seg.jeu)) continue;
+        let i = indexCategorie(seg.jeu);
+        // Au plus un tour complet : au-delà de huit segments distincts, la
+        // palette est épuisée et l'on réutilise — la liste, elle, reste
+        // toujours lisible, et c'est elle qui porte les noms.
+        for (let n = 0; n < PALETTE_FRISE.length && pris.has(i); n++) {
+          i = (i + 1) % PALETTE_FRISE.length;
+        }
+        pris.add(i);
+        table.set(seg.jeu, PALETTE_FRISE[i]);
+      }
+      return table;
+    };
+
+    const friseLigne = (nom, duree, couleur, modif) => {
+      const li = document.createElement('li');
+      li.className = 'tse-preview__frise-ligne' + (modif ? ' tse-preview__frise-ligne--' + modif : '');
+      const puce = document.createElement('span');
+      puce.className = 'tse-preview__frise-puce';
+      // Le hachuré du gris vient de la barre ; ici une pastille sourde suffit.
+      puce.style.background = couleur || 'rgba(255,255,255,0.18)';
+      const texte = document.createElement('span');
+      texte.className = 'tse-preview__frise-nom';
+      // textContent : ce nom vient de Twitch (cf. l'en-tête CONSTRUCTION DU DOM).
+      texte.textContent = nom;
+      li.append(puce, texte);
+      if (duree) {
+        const d = document.createElement('span');
+        d.className = 'tse-preview__frise-duree';
+        d.textContent = duree;
+        li.appendChild(d);
+      }
+      return li;
+    };
+
+    const frisePart = (poids, couleur, modif) => {
+      const d = document.createElement('div');
+      d.className = 'tse-preview__frise-part' + (modif ? ' ' + modif : '');
+      // flex-grow proportionnel à la durée, base nulle : les segments se
+      // partagent la largeur exactement comme le temps s'est partagé.
+      d.style.flex = `${poids} 0 0`;
+      if (couleur) d.style.background = couleur;
+      return d;
+    };
+
+    /* Le bloc entier, ou rien. `friseDe` refuse déjà une frise sans
+       basculement observé : ce qui suit ne se pose donc jamais la question de
+       savoir s'il a quelque chose à dire. */
+    const friseNoeud = (login) => {
+      const f = friseDe(login);
+      if (!f || !f.totalMs) return null;
+
+      const bloc = document.createElement('div');
+      bloc.className = 'tse-preview__frise';
+      const titre = document.createElement('p');
+      titre.className = 'tse-preview__frise-titre';
+      titre.textContent = S.uiTrailTitle;
+      bloc.appendChild(titre);
+
+      const couleurs = couleursFrise(f.segments);
+      const barre = document.createElement('div');
+      barre.className = 'tse-preview__frise-barre';
+      // L'information est dans la liste ; la barre n'en est que la forme.
+      barre.setAttribute('aria-hidden', 'true');
+      if (f.inconnuMs) {
+        barre.appendChild(frisePart(f.inconnuMs, null, 'tse-preview__frise-part--inconnu'));
+      }
+      for (const seg of f.segments) {
+        barre.appendChild(frisePart(seg.dureeMs, couleurs.get(seg.jeu)));
+      }
+      bloc.appendChild(barre);
+
+      const liste = document.createElement('ul');
+      liste.className = 'tse-preview__frise-liste';
+      // Dans l'ordre du temps : ce qu'on n'a pas vu, ce qu'on a laissé
+      // tomber, puis ce qu'on a gardé.
+      if (f.inconnuMs) {
+        liste.appendChild(friseLigne(S.uiTrailUnseen, formatDuree(f.inconnuMs), null, 'inconnu'));
+      }
+      if (f.tronquee) {
+        liste.appendChild(friseLigne(S.uiTrailTruncated, '', null, 'inconnu'));
+      }
+      for (const seg of f.segments) {
+        liste.appendChild(friseLigne(
+          seg.libelle,
+          formatDuree(seg.dureeMs) + (seg.encours ? ` · ${S.uiTrailNow}` : ''),
+          couleurs.get(seg.jeu),
+          seg.encours ? 'encours' : ''));
+      }
+      bloc.appendChild(liste);
+      return bloc;
+    };
+
     const renderPopup = (login, title, extraRows, costreamInfo, costreamMates, squadInfo, sponsorInfo) => {
       const badges = (extraRows || []).map(r => {
         const cls = r.type === 'hype' ? 'tse-preview__badge--hype'
@@ -7927,6 +8312,14 @@ const TSE_GATE_MAX_CLICKS = 5;
         for (const b of badges) zone.appendChild(b);
         el.querySelector('.tse-preview__body').appendChild(zone);
       }
+
+      /* La frise EN DERNIER, sous les badges : les badges disent ce qui se
+         passe maintenant, la frise dit d'où ça vient. Elle n'apparaît que
+         lorsqu'un basculement a été observé — sinon elle n'a rien à dire, et
+         un bloc vide dans un popup de survol se paie en hauteur à chaque
+         carte. */
+      const frise = friseNoeud(login);
+      if (frise) el.querySelector('.tse-preview__body').appendChild(frise);
 
       if (thumbImg && placeholder) {
         thumbImg.addEventListener('error', () => {
