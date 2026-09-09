@@ -2041,6 +2041,27 @@ juste.
   espacement ; il n'y en a plus qu'un, et une assertion mesure les deux écarts
   sur le rendu.
 
+#### Pourquoi le repli n'a pas servi (v3.75)
+
+Le rapport suivant a rendu `replis 12, replisServis 0` : la seconde porte avait
+été tentée douze fois et n'avait jamais servi. Impossible d'en tirer quoi que ce
+soit — requête refusée, chaîne sans la moindre archive, ou archive d'un autre
+jour ? **Trois causes, trois suites différentes**, et une seule d'entre elles
+justifierait de continuer à dépenser une requête. Même angle mort que la fois
+d'avant, même remède : `replisErreur`, `replisVides` et `replisHorsSujet` les
+séparent, et leur somme vaut le nombre de tentatives.
+
+Si le prochain rapport donne `replisVides 12`, la réponse sera définitive :
+**pour une chaîne qui n'archive pas ses diffusions, Twitch ne conserve aucune
+trace des catégories passées.** Il n'y a alors rien à récupérer — pas parce que
+la requête est mauvaise, mais parce que la donnée n'existe pas.
+
+Le gap du corps de l'aperçu passe par ailleurs de six à dix pixels, valeur
+demandée à l'usage. C'est le seul nombre à changer : la frise n'a pas de marge
+propre, précisément pour qu'il n'y ait qu'un endroit qui décide. Une assertion
+vérifie la valeur et non seulement l'égalité des deux respirations — sans quoi
+elles pourraient dériver ensemble sans que rien ne le dise.
+
 ## API console
 
 L'objet `tse` reste exposé dans la console DevTools de la page Twitch (onglet
@@ -2243,7 +2264,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 79 scénarios, 723 assertions |
+| `npm test` | le harnais Playwright : 79 scénarios, 727 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

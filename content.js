@@ -3017,7 +3017,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     .tse-preview__body {
       padding: 10px 12px;
-      display: flex; flex-direction: column; gap: 6px;
+      /* DIX PIXELS, demandés à l'œil après en avoir vu six. C'est l'UNIQUE
+         endroit qui décide de l'espacement entre le titre, les badges et la
+         frise — la frise n'a pas de marge propre, précisément pour que ce
+         nombre-ci soit le seul à changer quand on veut respirer autrement. */
+      display: flex; flex-direction: column; gap: 10px;
     }
     .tse-preview__title {
       font-size: 1.4rem;
@@ -3130,7 +3134,9 @@ const TSE_GATE_MAX_CLICKS = 5;
          charge, et il n'y a plus qu'un endroit qui décide de cet espacement.
          Le rembourrage sous le filet vaut le même : le trait est ainsi centré
          dans sa respiration. */
-      padding-top: 6px;
+      /* Le rembourrage suit le gap du corps : le filet est ainsi centré dans
+         sa respiration, au lieu d'être collé au bloc qui le suit. */
+      padding-top: 10px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
     .tse-preview__frise-titre {
@@ -7809,7 +7815,17 @@ const TSE_GATE_MAX_CLICKS = 5;
        SUPPLÉMENTAIRES et non des issues. */
     const bilanChapitres = { demandes: 0, servis: 0, continus: 0, sansMoment: 0,
                              inexploitables: 0, sansVod: 0, sansStream: 0, reseau: 0,
-                             replis: 0, replisServis: 0 };
+                             /* LE REPLI, DÉTAILLÉ PAR CAUSE. La première version
+                                ne comptait que « tenté » et « servi », et un
+                                rapport a rendu 12 / 0 : impossible de savoir si
+                                la requête était refusée, si la chaîne n'avait
+                                aucune archive, ou si l'archive trouvée était
+                                celle d'hier. Trois causes, trois suites
+                                différentes — dont une seule justifierait de
+                                continuer à dépenser une requête. Même angle
+                                mort que la fois d'avant, même remède. */
+                             replis: 0, replisServis: 0, replisErreur: 0,
+                             replisVides: 0, replisHorsSujet: 0 };
 
     /* Un nœud de VOD → des segments datés. Écrit une fois : les deux voies
        d'accès à l'enregistrement (archiveVideo, puis le repli par `videos`)
@@ -7904,11 +7920,15 @@ const TSE_GATE_MAX_CLICKS = 5;
           variables: { login },
           query: RECENT_QUERY
         }]);
-        if (!isResultsUnusable(res2)) {
+        if (isResultsUnusable(res2)) {
+          bilanChapitres.replisErreur++;
+        } else {
           const candidat = res2?.[0]?.data?.user?.videos?.edges?.[0]?.node;
           /* Il faut que ce soit LE VOD DE CE LIVE, et non celui d'hier. Le
              départ de l'enregistrement doit tomber sur celui du stream. */
-          if (candidat && vodCouvre(candidat, debutStream)) {
+          if (!candidat) bilanChapitres.replisVides++;
+          else if (!vodCouvre(candidat, debutStream)) bilanChapitres.replisHorsSujet++;
+          else {
             vod = candidat;
             bilanChapitres.replisServis++;
           }

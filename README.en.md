@@ -1923,6 +1923,27 @@ which can be any of them. Absolute value is the only correct form.
   and badges have six. Two places decided one spacing; there is only one now,
   and an assertion measures both gaps on the rendered page.
 
+#### Why the fallback never served (v3.75)
+
+The next report returned `replis 12, replisServis 0`: the second door had been
+tried twelve times and had never served. Nothing could be concluded from it —
+query refused, channel without any archive, or an archive from another day?
+**Three causes, three different sequels**, and only one of them would justify
+spending a request. Same blind spot as the time before, same remedy:
+`replisErreur`, `replisVides` and `replisHorsSujet` separate them, and their sum
+equals the number of attempts.
+
+If the next report gives `replisVides 12`, the answer is final: **for a channel
+that does not archive its broadcasts, Twitch keeps no trace of past
+categories.** There is then nothing to retrieve — not because the query is
+wrong, but because the data does not exist.
+
+The preview body's gap also goes from six to ten pixels, a value asked for in
+use. It is the only number to change: the trail has no margin of its own,
+precisely so that one place decides. An assertion checks the value and not only
+the equality of the two gaps — otherwise they could drift together without
+anything saying so.
+
 ## Console API
 
 The `tse` object is still exposed in the Twitch page's DevTools console
@@ -2121,7 +2142,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 79 scenarios, 723 assertions |
+| `npm test` | the Playwright harness: 79 scenarios, 727 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
