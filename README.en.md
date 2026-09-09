@@ -1971,6 +1971,70 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## Two menus that should not have been tied together (v3.82)
+
+3.80 made the **category** list depend on the chosen language, so its counts
+would follow that language. The source of that list — a Twitch query that turned
+out not to exist, see below — returned **empty** lists. The category menu
+emptied with it and greyed out:
+
+> picking a language made the category unpickable, and picking the category
+> first saw it grey out the moment a language was added.
+
+The two filters must be settable in **any order**. The category list is
+therefore, once and for all, the world's again. What depends on the other filter
+is the **number** in the language menu, and in that direction only — a number
+cannot grey out a menu.
+
+## `games(options: {…})`: two names, two refusals, and the conclusion (v3.82)
+
+The idea was to ask Twitch for a language's categories, and get both the
+language's audience and the category menu's counts out of one response. Two
+argument names were tried, and the two reports are conclusive:
+
+| name tried | Twitch's answer | what it teaches |
+| --- | --- | --- |
+| `freeformTags` | `In field "freeformTags": Unknown field.` | `games`'s input type has no such field |
+| `tags` | accepted, **31 empty lists** | the field exists, but does not expect a language name |
+
+That `streams` accepts `freeformTags` proved nothing: two connections of the
+same schema do not share their options. And `tags` in all likelihood expects tag
+**IDs**, which we do not have and would have to fetch with a third query — also
+guessed.
+
+**We stop there, and not out of weariness: the data was already in the house.**
+The world walk harvests ~1,700 streams, each carrying its viewer count **and**
+its language tags — the same response brings both. Summing them gives exactly
+"the total number of French-speaking viewers", measured, with no extra request.
+The thirty-one operations per TTL disappear along with the route they served.
+
+What that sum is not: Twitch's total. It is the **top of the ranking**, where
+the overwhelming majority of the audience sits. The nuance is stated here rather
+than hidden behind a figure that would look official.
+
+## Viewers, not channels (v3.82)
+
+The language menu counted **channels**: "212" meant "212 French-speaking
+channels among what we harvested". Next to it, the category menu shows an
+**audience**. Two neighbouring units, only one of which answers the question you
+open the menu with.
+
+It now counts viewers, and **the chosen category carries the count**: "how many
+French-speaking viewers in this category". With no category, it is the whole
+world.
+
+Two precautions, and the bench holds both:
+
+- **options come from the world, counts from the category.** Confusing them
+  costs the filter: a category whose thirty biggest channels are English would
+  stop *offering* French, even though the language-filtered query does find
+  some. Written the other way round first, and caught by the bench within the
+  minute;
+- **zero is not written.** A language the pool did not meet in this category is
+  not necessarily empty there: our sample stops at the top. Writing "0" would
+  discourage a choice that does query the API and may well find plenty. Nothing
+  at all reads as "unknown", which is the truth.
+
 ## `freeformTags` on `games`: the word that does not exist (v3.81)
 
 3.80 asked for a language's categories with
@@ -2458,7 +2522,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 86 scenarios, 782 assertions |
+| `npm test` | the Playwright harness: 85 scenarios, 773 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -2478,12 +2542,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 706 KB | 310 KB | 2,944 → **2** |
+| `content.js` | 696 KB | 306 KB | 2,910 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 35 KB | 20 KB | 39 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **885 KB** | **435 KB** | **−51 %** |
+| **all five** | **875 KB** | **431 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

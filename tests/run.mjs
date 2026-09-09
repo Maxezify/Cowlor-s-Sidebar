@@ -8973,154 +8973,108 @@ titre('83. Langues — la table doit être celle de Twitch, au caractère près'
      'orphelins : ' + JSON.stringify(drapeaux.filter(d => !codes.includes(d))));
 }
 
-titre('84. Filtres — l\'audience par langue, et la garde qui décide de l\'afficher');
+titre('84. Filtres — deux menus indépendants, et des spectateurs plutôt que des chaînes');
 {
-  /* DEUX MENUS QUI NE PARLAIENT PAS LA MÊME LANGUE. Le filtre catégorie
-     affichait l'audience que Twitch publie (« 122 k | VALORANT ») ; le filtre
-     langue, lui, affichait un décompte de NOTRE pool (« 212 »), c'est-à-dire
-     le nombre de chaînes de cette langue parmi celles qu'on avait récoltées.
-     Un nombre vrai, qui ne parle que de nous, à côté d'un nombre qui parle de
-     Twitch. On demande donc à Twitch la même chose pour les langues que pour
-     les catégories.
+  /* DEUX DÉFAUTS QU'UN UTILISATEUR A VUS AVANT MOI, et ils ont la même cause.
 
-     LE PIÈGE, ET C'EST LUI QUI FAIT L'INTÉRÊT DE CE SCÉNARIO. Que Twitch
-     accepte `freeformTags` sur `games` ne dit pas que les COMPTEURS soient
-     portés par la langue : le filtre pourrait ne choisir que les catégories
-     rendues, en laissant à chacune son audience mondiale. On afficherait
-     alors « Català : 2,1 M ». Impossible de le vérifier d'ici — mais possible
-     de le faire vérifier PAR LE CODE, à l'exécution : la somme des audiences
-     par langue vaut à peu près l'audience mondiale si les compteurs sont
-     portés, et autant de fois l'audience mondiale qu'il y a de langues sinon.
-     Le décor `'monde'` reproduit exactement ce cas-là. */
+     Une version a lié la liste des CATÉGORIES à la langue choisie, pour que
+     ses compteurs suivent la langue. La source de cette liste — une requête à
+     Twitch qui s'est révélée inexistante sous les deux noms essayés — rendait
+     des listes VIDES. Le menu catégorie se vidait donc avec elle et se
+     grisait : choisir une langue rendait la catégorie inchoisissable, et
+     l'inverse aussi dès qu'on ajoutait la langue après. Les deux filtres
+     doivent se poser dans N'IMPORTE QUEL ORDRE.
+
+     Et le menu langue comptait des CHAÎNES là où celui d'à côté affiche une
+     AUDIENCE : « 212 » contre « 122 k », deux unités voisines dont une seule
+     répond à la question qu'on se pose en ouvrant le menu.
+
+     LA DONNÉE ÉTAIT DÉJÀ LÀ. Chaque enregistrement du pool porte son nombre de
+     spectateurs ET ses tags de langue — la même réponse les a apportés. Les
+     sommer ne coûte aucune requête, et la somme se restreint à la catégorie
+     choisie quand il y en a une. */
   const options = (page, dd) => page.evaluate((id) =>
     [...document.querySelectorAll('#' + id + ' .tse-dd-opt')]
       .map(o => ({ v: o.dataset.value,
-                   n: (o.querySelector('.tse-dd-n')?.textContent || '').replace(' |', '') }))
+                   n: (o.querySelector('.tse-dd-n')?.textContent || '').replace(' |', '').trim() }))
       .filter(o => o.v), dd);
-  const choisirLangue = (page, val) => page.evaluate((v) => {
-    const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
+  const grise = (page, dd) => page.evaluate((id) =>
+    document.querySelector('#' + id + ' .tse-dd-btn').disabled, dd);
+  const choisir = (page, dd, val) => page.evaluate(([id, v]) => {
+    const opt = [...document.querySelectorAll('#' + id + ' .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
-    if (!opt) throw new Error('langue absente : ' + JSON.stringify(v));
+    if (!opt) throw new Error('option absente de #' + id + ' : ' + JSON.stringify(v));
     opt.click();
-  }, val);
-  /* Un décor mondial modeste et des langues qui en sont des SOUS-ENSEMBLES :
-     c'est ce qui rend le facteur de portée proche de 1. */
-  const monter = async (page, langCats) => {
-    await page.evaluate((lc) => {
-      window.__fx = { suivi1: { id: 'id-suivi1', createdAt: new Date(Date.now() - 1800_000).toISOString(),
-                                viewers: 400, game: 'Just Chatting', tags: [] } };
-      window.__addCard('suivi1', 'Just Chatting', '400');
-      const cats = [];
-      for (let i = 0; i < 6; i++) {
-        const streams = [];
-        for (let k = 0; k < 5; k++) {
-          streams.push({ login: `s${i}_${k}`, viewers: 9000 - i * 100 - k,
-                         tags: k === 0 ? ['Français'] : ['English'] });
-        }
-        cats.push({ name: 'cat' + i, viewers: 100_000 - i * 1000, streams });
-      }
-      window.__cats = cats;
-      window.__langCats = lc;
-    }, langCats);
-    await wait(page, 1500);
-    await page.evaluate(() =>
-      document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
-    await wait(page, 2500);
-  };
+  }, [dd, val]);
 
-  /* ── QUAND LES COMPTEURS SONT BIEN PORTÉS ─────────────────────────────── */
-  {
-    const page = await fresh();
-    await monter(page, {
-      'Français': [{ name: 'cat0', viewers: 20_000 }, { name: 'cat3', viewers: 5_000 }],
-      'English':  [{ name: 'cat1', viewers: 60_000 }],
-      'Català':   [{ name: 'cat2', viewers: 300 }],
-    });
-    await attendre(page,
-      () => window.tse.global.report().langues?.portee === true, 9000);
+  const page = await fresh();
+  await page.evaluate(() => {
+    window.__fx = { suivi1: { id: 'id-suivi1', createdAt: new Date(Date.now() - 1800_000).toISOString(),
+                              viewers: 400, game: 'Just Chatting', tags: [] } };
+    window.__addCard('suivi1', 'Just Chatting', '400');
+    /* Deux catégories, chacune avec du français ET de l'anglais, en
+       proportions DIFFÉRENTES : c'est ce qui rend le compteur de langue
+       mesurable, et sa dépendance à la catégorie visible. */
+    window.__cats = [
+      { name: 'cat0', viewers: 100_000, streams: [
+        { login: 'a1', viewers: 9000, tags: ['Français'] },
+        { login: 'a2', viewers: 1000, tags: ['Français'] },
+        { login: 'a3', viewers: 5000, tags: ['English'] },
+      ] },
+      { name: 'cat1', viewers: 90_000, streams: [
+        { login: 'b1', viewers: 8000, tags: ['English'] },
+        { login: 'b2', viewers: 2000, tags: ['Français'] },
+      ] },
+    ];
+  });
+  await wait(page, 1500);
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(1).length > 0, 9000);
+  await wait(page, 600);
 
-    const langs = await options(page, 'tse-lang-dd');
-    const par = new Map(langs.map(o => [o.v, o.n]));
-    ok('le menu langue propose TOUTES les langues de Twitch, pas seulement celles du pool',
-       langs.length === 31, `${langs.length} option(s)`);
-    ok('…et le catalan y figure alors qu\'aucune carte ne le porte',
-       par.has('Català'), JSON.stringify(langs.map(o => o.v)));
-    /* L'unité a changé, et c'est tout l'objet : « 25 k », pas « 2 ». Le
-       formateur d'audience insère une espace insécable avant le k. */
-    ok('le compteur d\'une langue est une AUDIENCE, pas un décompte de chaînes',
-       /\d/.test(par.get('Français') || '') && /k$/.test((par.get('Français') || '').trim()),
-       `Français → « ${par.get('Français')} »`);
-    ok('…et l\'anglais, plus regardé, passe devant le français',
-       langs.findIndex(o => o.v === 'English') < langs.findIndex(o => o.v === 'Français'),
-       JSON.stringify(langs.slice(0, 4).map(o => o.v)));
+  /* ── LE COMPTEUR EST UNE AUDIENCE ─────────────────────────────────────── */
+  const monde = new Map((await options(page, 'tse-lang-dd')).map(o => [o.v, o.n]));
+  ok('le menu langue compte des SPECTATEURS, pas des chaînes',
+     /k$/.test(monde.get('Français') || ''), `Français → « ${monde.get('Français')} »`);
+  ok('…et la somme est celle du monde : 9 000 + 1 000 + 2 000 = 12 k',
+     /^12\s*k$/.test(monde.get('Français') || ''), JSON.stringify([...monde]));
+  ok('…l\'anglais, à 13 000, passant devant',
+     /^13\s*k$/.test(monde.get('English') || ''), JSON.stringify([...monde]));
 
-    /* ── LE FILTRE CATÉGORIE SUIT LA LANGUE CHOISIE ─────────────────────── */
-    const avant = await options(page, 'tse-cat-dd');
-    ok('sous le globe, les catégories sont les six du monde',
-       avant.length === 6, JSON.stringify(avant.map(o => o.v)));
-    await choisirLangue(page, 'Français');
-    await wait(page, 900);
-    const apres = await options(page, 'tse-cat-dd');
-    ok('une langue choisie, le menu catégorie ne montre que LES SIENNES',
-       apres.length === 2 && apres.map(o => o.v).join(',') === 'cat0,cat3',
-       JSON.stringify(apres));
-    ok('…avec l\'audience DE CETTE LANGUE, et non le total mondial',
-       /^20\s*k$/.test(apres[0].n.trim()),
-       `cat0 → « ${apres[0].n} » (mondial : 100 k)`);
-    await page.close();
-  }
+  /* ── LES DEUX MENUS RESTENT UTILISABLES, DANS LES DEUX ORDRES ─────────── */
+  await choisir(page, 'tse-lang-dd', 'Français');
+  await wait(page, 1200);
+  ok('une langue choisie, le menu CATÉGORIE reste utilisable',
+     (await grise(page, 'tse-cat-dd')) === false, 'le menu catégorie est grisé');
+  ok('…et il propose toujours toutes les catégories du monde',
+     (await options(page, 'tse-cat-dd')).length === 2,
+     JSON.stringify(await options(page, 'tse-cat-dd')));
 
-  /* ── QUAND ILS NE LE SONT PAS : ON SE TAIT ────────────────────────────── */
-  {
-    const page = await fresh();
-    // Chaque langue rend les catégories MONDIALES : le filtre a choisi, il n'a
-    // pas porté. La somme vaudra trente et une fois l'audience mondiale.
-    const monde = {};
-    for (const l of ['Français', 'English', 'Català', 'Deutsch']) monde[l] = 'monde';
-    await monter(page, monde);
-    await attendre(page,
-      () => window.tse.global.report().langues?.portee === false, 9000);
+  await choisir(page, 'tse-cat-dd', 'cat0');
+  await wait(page, 1500);
+  ok('la catégorie ajoutée par-dessus, aucun des deux menus n\'est grisé',
+     (await grise(page, 'tse-cat-dd')) === false
+     && (await grise(page, 'tse-lang-dd')) === false,
+     `cat=${await grise(page, 'tse-cat-dd')} lang=${await grise(page, 'tse-lang-dd')}`);
 
-    const r = await page.evaluate(() => window.tse.global.report().langues);
-    ok('la garde voit que la somme des langues dépasse de loin le monde',
-       r.portee === false && r.facteur > 2, JSON.stringify(r));
-    const langs = await options(page, 'tse-lang-dd');
-    ok('…donc AUCUNE audience n\'est affichée : on retombe sur le décompte de pool',
-       langs.length > 0 && langs.every(o => !/k$/.test(o.n.trim())),
-       JSON.stringify(langs));
-    ok('…et le menu ne propose que les langues que le pool a croisées',
-       langs.length < 31, `${langs.length} option(s)`);
+  /* ── ET LE COMPTEUR SUIT LA CATÉGORIE CHOISIE ─────────────────────────── */
+  const dansCat0 = new Map((await options(page, 'tse-lang-dd')).map(o => [o.v, o.n]));
+  ok('le compteur de langue porte alors sur CETTE catégorie : 9 000 + 1 000',
+     /^10\s*k$/.test(dansCat0.get('Français') || ''),
+     `Français → « ${dansCat0.get('Français')} » (monde : ${monde.get('Français')})`);
+  ok('…et il a donc CHANGÉ en choisissant la catégorie',
+     dansCat0.get('Français') !== monde.get('Français'),
+     `${monde.get('Français')} puis ${dansCat0.get('Français')}`);
 
-    /* UNE RÉPONSE COMPRISE VAUT SON TTL, MÊME QUAND ELLE N'APPREND RIEN.
-       Écrit d'abord dans l'autre sens — l'horodatage n'était posé que sur des
-       données utiles — et le banc l'a pris tout de suite : `demandes` montait
-       à 62, puis 93. Trente et une opérations relancées à chaque marche pour
-       reposer une question déjà répondue. */
-    const n1 = await page.evaluate(() => window.tse.global.report().langues.demandes);
-    await page.evaluate(() => window.tse.global.on());
-    await wait(page, 2500);
-    const n2 = await page.evaluate(() => window.tse.global.report().langues.demandes);
-    // 32 : la sonde d'une opération, puis les trente et une langues.
-    ok('…et l\'on ne repose pas la question à chaque marche',
-       n1 === 32 && n2 === n1, `${n1} puis ${n2} demandes`);
-    await page.close();
-  }
-
-  /* ── ET QUAND LE SCHÉMA REFUSE ────────────────────────────────────────── */
-  {
-    const page = await fresh();
-    await page.evaluate(() => { window.__langCatsErreur = true; });
-    await monter(page, {});
-    await wait(page, 2000);
-    const r = await page.evaluate(() => window.tse.global.report().langues);
-    ok('un refus du schéma est consigné, et la requête abandonnée pour la session',
-       r.refus >= 1 && r.refuse === true && r.portee === null, JSON.stringify(r));
-    const langs = await options(page, 'tse-lang-dd');
-    ok('…tandis que le filtre langue continue de fonctionner comme avant',
-       langs.length > 0 && langs.every(o => !/k$/.test(o.n.trim())),
-       JSON.stringify(langs));
-    await page.close();
-  }
+  /* Revenir au globe côté catégorie rend les totaux mondiaux. */
+  await choisir(page, 'tse-cat-dd', '');
+  await wait(page, 1500);
+  const revenu = new Map((await options(page, 'tse-lang-dd')).map(o => [o.v, o.n]));
+  ok('« toutes les catégories » redonne la somme du monde',
+     revenu.get('Français') === monde.get('Français'),
+     `${revenu.get('Français')} contre ${monde.get('Français')}`);
+  await page.close();
 }
 
 titre('85. La carte sans catégorie — le pseudo se recentre');
@@ -9288,76 +9242,6 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
     await p2.close();
   }
 }
-
-titre('87. Catégories par langue — la sonde coûte UNE opération, pas trente et une');
-{
-  /* CE SCÉNARIO EST NÉ D'UNE FACTURE. La 3.80 a demandé les trente et une
-     langues d'un coup avec un nom d'argument qui n'existait pas, et Twitch a
-     répondu trente et une fois « In field "freeformTags": Unknown field. ».
-     Trente et une opérations pour apprendre un mot.
-
-     Le nom est maintenant cherché par une SONDE — une langue, une opération —
-     et la liste des candidats avance d'un cran à chaque refus. Ce qui se
-     vérifie ici n'est pas quel nom est le bon : le banc ne peut pas le savoir,
-     et le décor l'impose. C'est le COÛT d'une erreur, et le fait qu'on
-     n'insiste pas une fois les candidats épuisés. */
-  const opsLang = (page) => page.evaluate(() =>
-    window.__calls.flatMap(c => c.names || []).filter(n => n === 'TseLangCats').length);
-  const monter = async (page) => {
-    await page.evaluate(() => {
-      window.__fx = { suivi1: { id: 'id-suivi1', createdAt: new Date(Date.now() - 1800_000).toISOString(),
-                                viewers: 400, game: 'Just Chatting', tags: [] } };
-      window.__addCard('suivi1', 'Just Chatting', '400');
-      const cats = [];
-      for (let i = 0; i < 3; i++) {
-        cats.push({ name: 'cat' + i, viewers: 100_000 - i, streams: [
-          { login: 'en' + i, viewers: 9000 - i, tags: ['English'] }] });
-      }
-      window.__cats = cats;
-    });
-    await wait(page, 1500);
-    await page.evaluate(() =>
-      document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
-    await wait(page, 2500);
-  };
-
-  /* ── LE NOM QUE LE SCHÉMA REFUSE ─────────────────────────────────────── */
-  {
-    const page = await fresh();
-    await page.evaluate(() => { window.__langCatsArg = 'unNomQueRienNaccepte'; });
-    await monter(page);
-    const r = await page.evaluate(() => window.tse.global.report().langues);
-    ok('un nom refusé coûte UNE opération, et non une par langue',
-       r.demandes === 1 && r.refus === 1, JSON.stringify(r));
-    ok('…les candidats épuisés, la voie est close pour la session',
-       r.refuse === true && r.argument === null, JSON.stringify(r));
-    const avant = await opsLang(page);
-    await page.evaluate(() => window.tse.global.on());
-    await wait(page, 1500);
-    ok('…et l\'on n\'insiste plus',
-       (await opsLang(page)) === avant, `${await opsLang(page)} contre ${avant}`);
-    await page.close();
-  }
-
-  /* ── LE NOM QUE LE SCHÉMA ACCEPTE ────────────────────────────────────── */
-  {
-    const page = await fresh();
-    await page.evaluate(() => {
-      window.__langCatsArg = 'tags';
-      window.__langCats = { 'English': [{ name: 'cat0', viewers: 40_000 }] };
-    });
-    await monter(page);
-    await attendre(page,
-      () => window.tse.global.report().langues.demandes > 1, 9000);
-    const r = await page.evaluate(() => window.tse.global.report().langues);
-    ok('une sonde qui passe déclenche la demande complète',
-       r.demandes === 32 && r.refus === 0, JSON.stringify(r));
-    ok('…et le rapport nomme l\'argument employé',
-       r.argument === 'tags', JSON.stringify(r));
-    await page.close();
-  }
-}
-
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
