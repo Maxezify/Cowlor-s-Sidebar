@@ -211,6 +211,11 @@ window.fetch = async (url, opt) => {
                                   .map(o => o.variables?.name),
                         firsts: body.filter(o => o.operationName === 'TseCategoryTop')
                                     .map(o => o.variables?.n),
+                        // Même chose pour la voie du tag. Relevé parce que
+                        // c'est CE nombre qui a coûté une version : cent
+                        // demandés là où Twitch en accorde trente.
+                        tagN: body.filter(o => o.operationName === 'TseTagTop')
+                                  .map(o => o.variables?.n),
                         // Codes de langue interpolés dans le texte de la
                         // requête : c'est là qu'on peut les compter.
                         langs: body.flatMap(o =>
@@ -370,6 +375,16 @@ window.fetch = async (url, opt) => {
            scénario qui ne s'en occupe pas doit voir le repli, pas la voie
            neuve. */
     if (o.operationName === 'TseTagTop') {
+      /* LE PLAFOND DE TWITCH, REPRODUIT ICI, et ce n'est pas une coquetterie :
+         il a coûté une version. `streams(first:)` est borné à 30, et demander
+         cent faisait répondre « argument 'first' value must be between 1 and
+         30 » — un 200 porteur d'erreurs, donc une voie du tag abandonnée pour
+         toute la session. Le harnais l'applique désormais : relever
+         GLOBAL_TAG_MAX au-dessus de trente fait échouer le scénario 81 au
+         lieu de laisser la limite se redécouvrir en production. */
+      if (Number(o.variables?.n) > 30) {
+        return { errors: [{ message: "argument 'first' value must be between 1 and 30." }] };
+      }
       const t = window.__tagTop && window.__tagTop[o.variables?.tag];
       if (!t || t === 'erreur') return { errors: [{ message: 'Unknown argument freeformTags' }] };
       return { data: { streams: { edges: t.map(x => ({ node: {

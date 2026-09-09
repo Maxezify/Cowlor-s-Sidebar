@@ -2528,7 +2528,7 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
-## Le classement par tag de langue (v3.77)
+## Le classement par tag de langue (v3.77, confirmé en v3.78)
 
 Idée venue d'un utilisateur, et elle vise juste. Twitch publie
 `/directory/all/tags/Français` : un classement mondial, trié par spectateurs,
@@ -2551,8 +2551,9 @@ un plancher de fenêtre. La voie du tag demande directement le classement
 mondial trié — le tri est fait par le **serveur**, exactement comme pour la
 page. Une page ne peut pas afficher un classement qu'elle n'a pas demandé : il
 n'y a rien dans `/directory/all/tags/Français` qui ne soit dans la réponse
-GraphQL qui la remplit. La complétude y est même **plus forte** : les cent
-premiers d'une liste déjà triée contiennent forcément les trente affichés.
+GraphQL qui la remplit. Et la complétude n'est plus à démontrer par un plancher
+de fenêtre : les trente premiers d'une liste **déjà triée par le serveur** sont
+les trente affichés, par construction.
 
 **Pourquoi pas une iframe sur la page, comme pour les abonnements.** Le relevé
 d'abonnements charge `/subscriptions` dans une iframe parce que cette page
@@ -2562,18 +2563,43 @@ page des tags, elle, est publique : la contrainte n'existe pas, et passer par
 elle reviendrait à payer le rendu complet d'une page Twitch — React, images,
 aperçus vidéo — pour lire ce qu'un POST rend en JSON.
 
-**Cette requête n'a jamais été exécutée contre le vrai Twitch**, comme celle des
-chapitres avant elle. Le nom de l'argument de filtre est une reconstitution.
-Même dispositif, qui a déjà tranché deux fois : requête **isolée**, échec qui
+**Cette requête n'avait jamais été exécutée contre le vrai Twitch** quand elle a
+été écrite : le nom de l'argument de filtre était une reconstitution. Le
+dispositif habituel a donc été monté autour — requête **isolée**, échec qui
 retombe **en silence** sur la descente d'aujourd'hui, et compteurs par issue
 dans le rapport (`tags.demandes`, `.servis`, `.vides`, `.refus`, `.reseau`). Un
-refus du schéma est mémorisé pour la session — un nom d'argument ne devient pas
+refus du schéma est mémorisé pour la session : un nom d'argument ne devient pas
 valide en cours de route.
+
+**Et le premier rapport a tranché** — c'est tout l'intérêt du dispositif :
+
+```
+tags.demandes 1 · tags.servis 0 · tags.refus 1 · tags.refuse true
+ERREURS (1)
+  gql  réponse 200 avec erreurs GraphQL — argument 'first' value must be between 1 and 30.
+```
+
+Ce message vaut **deux** renseignements, et le second est le plus important.
+D'abord la borne : `streams(first:)` est plafonné à trente. Ensuite, et
+surtout : l'erreur porte sur la **valeur** d'un argument, pas sur son **nom**.
+La requête a donc été validée par le schéma — noms de champs et d'arguments
+compris, `freeformTags` inclus. Un argument inconnu aurait produit une erreur de
+schéma, pas une erreur de plage. **La voie du tag n'était pas refusée : elle
+demandait trop.** `GLOBAL_TAG_MAX` est passé de 100 à 30, et le harnais
+applique désormais la même borne (scénario 81) pour que la limite ne se
+redécouvre pas en production.
+
+Le plafond de Twitch et la profondeur du classement affiché sont maintenant
+**liés** : la voie du tag n'annonce un classement complet que si une seule
+réponse suffit à le couvrir. Au-delà, elle se retire et laisse la descente
+reprendre la main, plutôt que de compléter les rangs manquants avec le report
+de la passe précédente — du vieux présenté comme exact. Le banc lit les deux
+constantes à la source et refuse qu'on les désaccorde.
 
 **Ce qu'elle ne fait pas encore** : servir les langues que `LANG_API` ne connaît
 pas. `wantedLang()` les écarte en amont faute de code d'énumération, alors que
-le tag n'en a pas besoin. C'est un gain à prendre une fois la requête confirmée
-par un rapport.
+le tag n'en a pas besoin. La requête étant désormais confirmée, ce gain est à
+portée — il n'attendait que ça.
 
 ## API console
 
@@ -2784,7 +2810,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 80 scénarios, 737 assertions |
+| `npm test` | le harnais Playwright : 80 scénarios, 739 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

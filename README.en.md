@@ -2396,7 +2396,7 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
-## The language-tag ranking (v3.77)
+## The language-tag ranking (v3.77, confirmed in v3.78)
 
 An idea from a user, and it aims true. Twitch publishes
 `/directory/all/tags/Français`: a worldwide ranking, sorted by viewers, filtered
@@ -2419,8 +2419,9 @@ floor. The tag route asks directly for the sorted worldwide ranking — the sort
 is done by the **server**, exactly as for the page. A page cannot display a
 ranking it did not request: there is nothing in
 `/directory/all/tags/Français` that is not in the GraphQL response filling it.
-Completeness is even **stronger** there: the first hundred of an already sorted
-list necessarily contain the thirty displayed.
+And completeness no longer has to be proven with a window floor: the first
+thirty of a list **already sorted by the server** are the thirty displayed, by
+construction.
 
 **Why not an iframe on the page, as for subscriptions.** The subscriptions sweep
 loads `/subscriptions` in an iframe because that page **requires being signed
@@ -2430,17 +2431,41 @@ constraint does not exist, and going through it would mean paying for a full
 Twitch page render — React, images, video previews — to read what a POST returns
 as JSON.
 
-**This query has never been run against the real Twitch**, like the chapters one
-before it. The filter argument's name is a reconstruction. Same apparatus, which
-has already settled the question twice: **isolated** query, failure falling back
-**silently** to today's descent, and per-outcome counters in the report
-(`tags.demandes`, `.servis`, `.vides`, `.refus`, `.reseau`). A schema refusal is
-remembered for the session — an argument name does not become valid mid-run.
+**This query had never been run against the real Twitch** when it was written:
+the filter argument's name was a reconstruction. So the usual apparatus was
+built around it — **isolated** query, failure falling back **silently** to
+today's descent, and per-outcome counters in the report (`tags.demandes`,
+`.servis`, `.vides`, `.refus`, `.reseau`). A schema refusal is remembered for
+the session: an argument name does not become valid mid-run.
+
+**And the first report settled it** — which is the whole point of the apparatus:
+
+```
+tags.demandes 1 · tags.servis 0 · tags.refus 1 · tags.refuse true
+ERREURS (1)
+  gql  réponse 200 avec erreurs GraphQL — argument 'first' value must be between 1 and 30.
+```
+
+That message carries **two** pieces of information, and the second matters
+more. First the bound: `streams(first:)` is capped at thirty. Second, and above
+all: the error is about an argument's **value**, not its **name**. The query was
+therefore validated by the schema — field and argument names included,
+`freeformTags` among them. An unknown argument would have produced a schema
+error, not a range error. **The tag route was not refused: it was asking for too
+much.** `GLOBAL_TAG_MAX` went from 100 to 30, and the harness now enforces the
+same bound (scenario 81) so the limit is not rediscovered in production.
+
+Twitch's cap and the depth of the displayed ranking are now **tied together**:
+the tag route only announces a complete ranking if a single response covers it.
+Beyond that it withdraws and lets the descent take over, rather than filling the
+missing ranks from the previous pass's carry-over — stale data presented as
+exact. The bench reads both constants from the source and refuses to let them
+drift apart.
 
 **What it does not do yet**: serve the languages `LANG_API` does not know.
 `wantedLang()` rules them out upstream for lack of an enumeration code, whereas
-the tag needs none. That is a gain to take once the query is confirmed by a
-report.
+the tag needs none. Now that the query is confirmed, that gain is there for the
+taking — a report showing `tags.servis` climbing is what it was waiting for.
 
 ## Console API
 
@@ -2646,7 +2671,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 80 scenarios, 737 assertions |
+| `npm test` | the Playwright harness: 80 scenarios, 739 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
