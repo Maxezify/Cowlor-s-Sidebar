@@ -1191,6 +1191,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     CATEGORY_TRAIL_SEGMENTS: 12,
 
+    CATEGORY_TRAIL_VOD_ECART: 120_000,
+
     CATEGORY_TRAIL_TOLERANCE: 90_000,
 
     LOADING_STABILITY_MS:   1_500,
@@ -2101,8 +2103,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!f || !f.segments.length) return null;
     const maintenant = Date.now();
 
+    const chapitresVod = (prelude && prelude.segments) || [];
+    const continu = !!(prelude && prelude.continu);
+
     const bruts = [];
-    for (const p of (prelude || [])) {
+    for (const p of chapitresVod) {
       const dernier = bruts[bruts.length - 1];
       if (dernier && dernier.jeu === p.jeu) continue;
       bruts.push({ jeu: p.jeu, libelle: p.libelle, debut: p.debut });
@@ -2118,6 +2123,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       bruts.push({ ...o });
     }
 
+    if (continu && bruts.length && f.debutStream) {
+      bruts[0] = { ...bruts[0], debut: f.debutStream };
+    }
+
     const segments = bruts.map((s, i) => {
       const fin = i + 1 < bruts.length ? bruts[i + 1].debut : maintenant;
       return { jeu: s.jeu, libelle: s.libelle, debut: s.debut, fin,
@@ -2128,9 +2137,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     const depuisLeDebut = !!f.debutStream
       && f.vuDepuis - f.debutStream <= CFG.CATEGORY_TRAIL_TOLERANCE;
 
-    if (bruts.length < 2 && !(prelude && prelude.length) && !depuisLeDebut) return null;
+    if (bruts.length < 2 && !chapitresVod.length && !continu && !depuisLeDebut) return null;
 
-    const brut = (prelude && prelude.length) || depuisLeDebut || !f.debutStream
+    const brut = chapitresVod.length || continu || depuisLeDebut || !f.debutStream
       ? 0 : f.vuDepuis - f.debutStream;
     const inconnuMs = brut > CFG.CATEGORY_TRAIL_TOLERANCE ? brut : 0;
     return {
@@ -4716,7 +4725,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const chapitres = new Map();
     const CHAPITRES_TTL = 10 * 60_000;
 
-    const bilanChapitres = { demandes: 0, servis: 0, sansMoment: 0,
+    const bilanChapitres = { demandes: 0, servis: 0, continus: 0, sansMoment: 0,
                              sansVod: 0, sansStream: 0, reseau: 0 };
 
     const fetchChapitres = async (login, streamId, debutStream) => {
@@ -4739,10 +4748,21 @@ const TSE_GATE_MAX_CLICKS = 5;
       const aretes = vod?.moments?.edges;
       if (!Array.isArray(aretes) || !aretes.length) {
 
-        if (!flux) bilanChapitres.sansStream++;
-        else if (!vod) bilanChapitres.sansVod++;
-        else bilanChapitres.sansMoment++;
-        chapitres.set(streamId, { ts: Date.now(), segments: null });
+        if (!flux) { bilanChapitres.sansStream++; }
+        else if (!vod) { bilanChapitres.sansVod++; }
+        else {
+          bilanChapitres.sansMoment++;
+
+          const depart = Date.parse(vod.createdAt);
+          const couvre = Number.isFinite(depart) && debutStream
+            && depart - debutStream <= CFG.CATEGORY_TRAIL_VOD_ECART;
+          if (couvre) {
+            bilanChapitres.continus++;
+            chapitres.set(streamId, { ts: Date.now(), segments: null, continu: true });
+            return chapitres.get(streamId);
+          }
+        }
+        chapitres.set(streamId, { ts: Date.now(), segments: null, continu: false });
         return null;
       }
 
@@ -4760,8 +4780,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
       segments.sort((a, b) => a.debut - b.debut);
       const utile = segments.length ? segments : null;
-      chapitres.set(streamId, { ts: Date.now(), segments: utile });
-      if (utile) bilanChapitres.servis++;
+      chapitres.set(streamId, { ts: Date.now(), segments: utile, continu: false });
+      if (utile) { bilanChapitres.servis++; return chapitres.get(streamId); }
       else {
 
         bilanChapitres.sansMoment++;
@@ -4989,12 +5009,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!badge) return;
       const body = el.querySelector('.tse-preview__body');
       if (!body) return;
-      let container = el.querySelector('.tse-preview__badges');
-      if (!container) {
-        container = document.createElement('div');
-        container.className = 'tse-preview__badges';
-        body.appendChild(container);
-      }
+      const container = zoneBadges(body);
       const existing = container.querySelector('.tse-preview__badge--squad');
       if (existing) existing.replaceWith(badge);
       else container.appendChild(badge);
@@ -5013,12 +5028,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       const texte = noms.length ? noms.join(' · ') : S.uiCclGeneric;
       const body = el.querySelector('.tse-preview__body');
       if (!body) return;
-      let container = el.querySelector('.tse-preview__badges');
-      if (!container) {
-        container = document.createElement('div');
-        container.className = 'tse-preview__badges';
-        body.appendChild(container);
-      }
+      const container = zoneBadges(body);
 
       const marque = () => noeudStatique(
         '<span class="tse-preview__badge-mark" aria-hidden="true">⚠️</span>');
@@ -5062,12 +5072,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!badge) return;
       const body = el.querySelector('.tse-preview__body');
       if (!body) return;
-      let container = el.querySelector('.tse-preview__badges');
-      if (!container) {
-        container = document.createElement('div');
-        container.className = 'tse-preview__badges';
-        body.appendChild(container);
-      }
+      const container = zoneBadges(body);
       const existing = container.querySelector('.tse-preview__badge--costream');
       if (existing) { existing.replaceWith(badge); }
       else {
@@ -5134,9 +5139,24 @@ const TSE_GATE_MAX_CLICKS = 5;
       return d;
     };
 
+    const zoneBadges = (body) => {
+      let zone = body.querySelector('.tse-preview__badges');
+      if (zone) return zone;
+      zone = document.createElement('div');
+      zone.className = 'tse-preview__badges';
+      const frise = body.querySelector('.tse-preview__frise');
+      if (frise) body.insertBefore(zone, frise);
+      else body.appendChild(zone);
+      return zone;
+    };
+
     const preludeDe = (login) => {
       const id = cache.get(login)?.stream?.id;
-      return (id && chapitres.get(id)?.segments) || null;
+      if (!id) return null;
+      const e = chapitres.get(id);
+
+      if (!e || (!e.segments && !e.continu)) return null;
+      return e;
     };
 
     const friseNoeud = (login, prelude) => {
@@ -5270,10 +5290,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!title) titreEl.style.color = 'rgba(255,255,255,0.5)';
 
       if (badges.length) {
-        const zone = document.createElement('div');
-        zone.className = 'tse-preview__badges';
+        const zone = zoneBadges(el.querySelector('.tse-preview__body'));
         for (const b of badges) zone.appendChild(b);
-        el.querySelector('.tse-preview__body').appendChild(zone);
       }
 
       const frise = friseNoeud(login, preludeDe(login));
