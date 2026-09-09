@@ -214,6 +214,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Toutes les catégories',
       uiFilterLangAriaLabel:     'Filtrer les chaînes suivies par langue',
       uiFilterAllLanguages:      'Toutes les langues',
+      uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
       uiPreviewLoadingTitle:     'Chargement du titre…',
@@ -287,6 +288,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'All categories',
       uiFilterLangAriaLabel:     'Filter followed channels by language',
       uiFilterAllLanguages:      'All languages',
+      uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
       uiPreviewLoadingTitle:     'Loading title…',
@@ -359,6 +361,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Alle Kategorien',
       uiFilterLangAriaLabel:     'Gefolgte Kanäle nach Sprache filtern',
       uiFilterAllLanguages:      'Alle Sprachen',
+      uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
       uiPreviewLoadingTitle:     'Titel wird geladen…',
@@ -431,6 +434,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas las categorías',
       uiFilterLangAriaLabel:     'Filtrar los canales que sigues por idioma',
       uiFilterAllLanguages:      'Todos los idiomas',
+      uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
       uiPreviewLoadingTitle:     'Cargando título…',
@@ -503,6 +507,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas as categorias',
       uiFilterLangAriaLabel:     'Filtrar os canais seguidos por idioma',
       uiFilterAllLanguages:      'Todos os idiomas',
+      uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
       uiPreviewLoadingTitle:     'Carregando título…',
@@ -575,6 +580,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Tutte le categorie',
       uiFilterLangAriaLabel:     'Filtra i canali seguiti per lingua',
       uiFilterAllLanguages:      'Tutte le lingue',
+      uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
       uiPreviewLoadingTitle:     'Caricamento del titolo…',
@@ -647,6 +653,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Wszystkie kategorie',
       uiFilterLangAriaLabel:     'Filtruj obserwowane kanały według języka',
       uiFilterAllLanguages:      'Wszystkie języki',
+      uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
       uiPreviewLoadingTitle:     'Wczytywanie tytułu…',
@@ -719,6 +726,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Все категории',
       uiFilterLangAriaLabel:     'Фильтровать отслеживаемые каналы по языку',
       uiFilterAllLanguages:      'Все языки',
+      uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
       uiPreviewLoadingTitle:     'Загрузка названия…',
@@ -791,6 +799,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'すべてのカテゴリー',
       uiFilterLangAriaLabel:     'フォロー中のチャンネルを言語で絞り込む',
       uiFilterAllLanguages:      'すべての言語',
+      uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
       uiPreviewLoadingTitle:     'タイトルを読み込み中…',
@@ -863,6 +872,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     '全部分类',
       uiFilterLangAriaLabel:     '按语言筛选关注的频道',
       uiFilterAllLanguages:      '全部语言',
+      uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
       uiPreviewLoadingTitle:     '正在加载标题…',
@@ -1373,6 +1383,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       display: none !important;
     }
 
+    
+    .side-nav-card[data-tse-nocat="true"] [data-a-target="side-nav-card-metadata"] {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
     .side-nav-card[data-tse-offline="true"] { display: none !important; }
     .side-nav-section.tse-section-hidden { display: none !important; }
 
@@ -1844,6 +1862,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       font-size: 11px; line-height: 1.3; color: #dedee3;
       background: rgba(255, 122, 138, 0.14);
       border-left: 2px solid #ff7a8a; border-radius: 2px;
+    }
+
+    
+    .tse-global-empty {
+      margin-top: 4px; padding: 6px;
+      font-size: 11px; line-height: 1.3; color: #adadb8; text-align: center;
+      background: rgba(255, 255, 255, 0.05); border-radius: 2px;
     }
 
     
@@ -2625,12 +2650,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
-    const LANG_CATS_QUERY =
+    const LANG_CATS_ARGS = ['tags'];
+    let langCatsArg = 0;
+
+    const langCatsQuery = (arg) =>
       'query TseLangCats($tag: String!, $n: Int!) {' +
-      '  games(first: $n, options: { sort: VIEWER_COUNT, freeformTags: [$tag] }) {' +
+      '  games(first: $n, options: { sort: VIEWER_COUNT, ' + arg + ': [$tag] }) {' +
       '    edges { node { id name displayName viewersCount } }' +
       '  }' +
       '}';
+
+    const LANG_CATS_SONDE = 'English';
 
     const bilanLangCats = { demandes: 0, servis: 0, vides: 0, refus: 0, reseau: 0 };
 
@@ -2643,15 +2673,31 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     let langAudienceMap = null;
 
+    const opLangCats = (l) => ({
+      operationName: 'TseLangCats',
+      variables: { tag: l, n: CFG.GLOBAL_LANG_CATS_MAX },
+      query: langCatsQuery(LANG_CATS_ARGS[langCatsArg])
+    });
+
+    const sonderLangCats = async () => {
+      bilanLangCats.demandes += 1;
+      const { out, transport } = await send([opLangCats(LANG_CATS_SONDE)]);
+      if (Array.isArray(out?.[0]?.games?.edges)) return true;
+      if (transport) { bilanLangCats.reseau++; return false; }
+      bilanLangCats.refus++;
+
+      langCatsArg++;
+      if (langCatsArg >= LANG_CATS_ARGS.length) langCatsRefuse = true;
+      return false;
+    };
+
     const majLangCats = async (langues) => {
       if (langCatsEnCours || langCatsRefuse) return;
       langCatsEnCours = true;
       try {
-        const ops = langues.map(l => ({
-          operationName: 'TseLangCats',
-          variables: { tag: l, n: CFG.GLOBAL_LANG_CATS_MAX },
-          query: LANG_CATS_QUERY
-        }));
+
+        if (!langCatsTs && !(await sonderLangCats())) return;
+        const ops = langues.map(opLangCats);
         bilanLangCats.demandes += ops.length;
         const { out, transport } = await send(ops);
 
@@ -2707,7 +2753,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
+    let publieUneFois = false;
+
     const publish = (pool) => {
+      publieUneFois = true;
       ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
       rankingTs    = Date.now();
@@ -3055,12 +3104,21 @@ const TSE_GATE_MAX_CLICKS = 5;
         return categories.slice(0, n);
       },
 
+      resolu() {
+        const want = wantedScope();
+
+        if (want) return want.key === scope;
+
+        return publieUneFois && (wantedLang()?.lang || null) === worldLang;
+      },
+
       langsProposables() {
         return this.langAudience() ? [...langCats.keys()] : null;
       },
       bilanLangues() {
         return { ...bilanLangCats, refuse: langCatsRefuse, portee: porteeLang,
                  facteur: porteeFacteur, connues: langCats.size,
+                 argument: LANG_CATS_ARGS[langCatsArg] || null,
                  ageMs: langCatsTs ? Date.now() - langCatsTs : null };
       },
 
@@ -3094,7 +3152,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
           langues: { ...bilanLangCats, refuse: langCatsRefuse,
                      portee: porteeLang, facteur: porteeFacteur,
-                     connues: langCats.size },
+                     connues: langCats.size,
+                     argument: LANG_CATS_ARGS[langCatsArg] || null },
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -5508,9 +5567,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!corps) return;
       const ancienne = corps.querySelector('.tse-preview__frise');
       const neuve = friseNoeud(login, preludeDe(login));
+
       if (ancienne && neuve) ancienne.replaceWith(neuve);
-      else if (ancienne) ancienne.remove();
-      else if (neuve) corps.appendChild(neuve);
+      else if (ancienne) { ancienne.remove(); bilanFrises.affichees--; bilanFrises.muettes++; }
+      else if (neuve) { corps.appendChild(neuve); bilanFrises.muettes--; bilanFrises.affichees++; }
 
       if (currentCard) positionPopup(currentCard);
     };
@@ -5912,6 +5972,9 @@ const TSE_GATE_MAX_CLICKS = 5;
         card.dataset.tseCategoryLabel = data.gameLabel || data.game;
         renderCategory(card, data.gameLabel || data.game, card.dataset.tseLogin);
       }
+
+      if (data.game) delete card.dataset.tseNocat;
+      else card.dataset.tseNocat = 'true';
     } else {
 
       const counted = card.dataset.tseOfflineTs === String(data.ts);
@@ -7189,6 +7252,24 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (el.textContent !== S.uiGlobalPartial) setText(el, S.uiGlobalPartial);
   }
 
+  const GLOBAL_EMPTY_ID = 'tse-global-empty';
+
+  function ensureGlobalEmpty() {
+    const bar = document.getElementById(FILTER_ID);
+    let el = document.getElementById(GLOBAL_EMPTY_ID);
+    const show = state.globalMode
+      && globalChannels.resolu()
+      && globalChannels.top(1).length === 0;
+    if (!show || !bar) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement('div');
+      el.id = GLOBAL_EMPTY_ID;
+      el.className = 'tse-global-empty';
+      bar.appendChild(el);
+    }
+    if (el.textContent !== S.uiGlobalEmpty) setText(el, S.uiGlobalEmpty);
+  }
+
   let globalTemplate = null;
   let globalContainer = null;
 
@@ -7454,6 +7535,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     ensureModeRow();
     tagStoriesRow();
     ensureGlobalBanner();
+    ensureGlobalEmpty();
     hideNativeFollowedHeader();
     renameRootTitle();
     recomputeFilters();
