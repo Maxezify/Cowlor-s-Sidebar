@@ -7825,7 +7825,23 @@ const TSE_GATE_MAX_CLICKS = 5;
                                 continuer à dépenser une requête. Même angle
                                 mort que la fois d'avant, même remède. */
                              replis: 0, replisServis: 0, replisErreur: 0,
-                             replisVides: 0, replisHorsSujet: 0 };
+                             replisVides: 0, replisHorsSujet: 0,
+                             /* ── DE QUEL CÔTÉ LE CANDIDAT EST-IL REJETÉ ? ──
+                                Un rapport a rendu « replisHorsSujet 4 » :
+                                quatre archives trouvées, quatre écartées. Mais
+                                « trop tôt » et « trop tard » sont deux verdicts
+                                opposés. Trop tard de dix minutes, c'est un
+                                enregistrement qui a démarré en retard et ne
+                                peut rien dire du début. Trop tôt de trente
+                                HEURES, c'est le VOD d'hier — et la chaîne
+                                n'archive donc pas ce live-ci : il n'y a rien à
+                                récupérer, jamais. Trop tôt de vingt MINUTES,
+                                en revanche, c'est le VOD de ce live sur un
+                                stream qui a reconnecté, et celui-là, il faut
+                                le prendre. Les écarts extrêmes tranchent entre
+                                ces trois lectures sans qu'on ait à deviner. */
+                             replisTropTot: 0, replisTropTard: 0,
+                             repliEcartMinMin: null, repliEcartMaxMin: null };
 
     /* Un nœud de VOD → des segments datés. Écrit une fois : les deux voies
        d'accès à l'enregistrement (archiveVideo, puis le repli par `videos`)
@@ -7927,8 +7943,23 @@ const TSE_GATE_MAX_CLICKS = 5;
           /* Il faut que ce soit LE VOD DE CE LIVE, et non celui d'hier. Le
              départ de l'enregistrement doit tomber sur celui du stream. */
           if (!candidat) bilanChapitres.replisVides++;
-          else if (!vodCouvre(candidat, debutStream)) bilanChapitres.replisHorsSujet++;
-          else {
+          else if (!vodCouvre(candidat, debutStream)) {
+            bilanChapitres.replisHorsSujet++;
+            /* L'écart signé, en minutes, et ses deux extrêmes. Deux entiers
+               qui disent ce qu'aucun compteur d'échecs ne dira : de combien on
+               est passé à côté, et donc s'il s'agit d'un autre jour ou d'une
+               reconnexion. */
+            const ecart = Math.round((Date.parse(candidat.createdAt) - debutStream) / 60_000);
+            if (Number.isFinite(ecart)) {
+              if (ecart < 0) bilanChapitres.replisTropTot++;
+              else bilanChapitres.replisTropTard++;
+              const b = bilanChapitres;
+              b.repliEcartMinMin = b.repliEcartMinMin === null
+                ? ecart : Math.min(b.repliEcartMinMin, ecart);
+              b.repliEcartMaxMin = b.repliEcartMaxMin === null
+                ? ecart : Math.max(b.repliEcartMaxMin, ecart);
+            }
+          } else {
             vod = candidat;
             bilanChapitres.replisServis++;
           }

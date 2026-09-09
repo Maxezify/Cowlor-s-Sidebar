@@ -2501,6 +2501,33 @@ propre, précisément pour qu'il n'y ait qu'un endroit qui décide. Une assertio
 vérifie la valeur et non seulement l'égalité des deux respirations — sans quoi
 elles pourraient dériver ensemble sans que rien ne le dise.
 
+#### De quel côté le candidat est rejeté (v3.76)
+
+Le rapport suivant a répondu, et **pas ce qui était pronostiqué** :
+
+```
+chapitres.replisErreur      0    ← la requête fonctionne
+chapitres.replisVides       1    ← une seule chaîne sans aucune archive
+chapitres.replisHorsSujet   4    ← quatre archives trouvées, puis écartées
+```
+
+Ce n'est donc pas Twitch qui manque de données : c'est la garde qui les jette.
+Mais « hors sujet » couvrait deux verdicts **opposés**, et les compter ensemble
+laissait la question ouverte :
+
+- trop **tôt** de trente heures, c'est le VOD d'hier. La chaîne n'archive pas ce
+  live-ci, et il n'y a rien à récupérer — jamais ;
+- trop **tôt** de vingt minutes, ce serait le VOD de ce live sur un stream qui a
+  reconnecté : `stream.createdAt` repart à la reconnexion, l'enregistrement non.
+  Celui-là mériterait d'être pris ;
+- trop **tard**, c'est un enregistrement démarré en retard, qui ne peut rien
+  dire du début.
+
+Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
+`repliEcartMaxMin` — tranchent entre ces trois lectures sans qu'on ait à
+deviner. C'est la troisième fois que la même discipline s'applique : un
+compteur qui agrège des causes contraires ne renseigne sur aucune.
+
 ## API console
 
 L'objet `tse` reste exposé dans la console DevTools de la page Twitch (onglet
@@ -2710,7 +2737,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 79 scénarios, 727 assertions |
+| `npm test` | le harnais Playwright : 79 scénarios, 728 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

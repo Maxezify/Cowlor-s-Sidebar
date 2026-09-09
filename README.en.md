@@ -2369,6 +2369,33 @@ precisely so that one place decides. An assertion checks the value and not only
 the equality of the two gaps — otherwise they could drift together without
 anything saying so.
 
+#### Which side the candidate is rejected on (v3.76)
+
+The next report answered, and **not what was predicted**:
+
+```
+chapitres.replisErreur      0    ← the query works
+chapitres.replisVides       1    ← one channel with no archive at all
+chapitres.replisHorsSujet   4    ← four archives found, then discarded
+```
+
+So it is not Twitch that lacks data: it is the guard that throws it away. But
+"off-topic" covered two **opposite** verdicts, and counting them together left
+the question open:
+
+- too **early** by thirty hours is yesterday's VOD. The channel is not archiving
+  this stream, and there is nothing to retrieve — ever;
+- too **early** by twenty minutes would be this stream's VOD on a broadcast that
+  reconnected: `stream.createdAt` restarts on reconnection, the recording does
+  not. That one would deserve to be taken;
+- too **late** is a recording started behind, which can say nothing about the
+  beginning.
+
+The sign and the amplitude — two integers, `repliEcartMinMin` and
+`repliEcartMaxMin` — settle between these three readings without guessing. It is
+the third time the same discipline applies: a counter that aggregates opposite
+causes informs about none of them.
+
 ## Console API
 
 The `tse` object is still exposed in the Twitch page's DevTools console
@@ -2573,7 +2600,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 79 scenarios, 727 assertions |
+| `npm test` | the Playwright harness: 79 scenarios, 728 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

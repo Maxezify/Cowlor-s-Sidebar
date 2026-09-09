@@ -8423,6 +8423,17 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
      b1.replisVides >= 1 && b1.replisHorsSujet >= 1
      && Object.prototype.hasOwnProperty.call(b1, 'replisErreur'),
      JSON.stringify(b1));
+  /* ── DE QUEL CÔTÉ, ET DE COMBIEN ─────────────────────────────────────────
+     « Hors sujet » couvre deux verdicts opposés. Trop TÔT de trente heures,
+     c'est le VOD d'hier : la chaîne n'archive pas ce live-ci, il n'y a rien à
+     récupérer. Trop tôt de vingt MINUTES, ce serait le VOD de ce live sur un
+     stream qui a reconnecté — et celui-là mériterait d'être pris. Sans le
+     signe et l'amplitude, les deux se ressemblent et la question reste
+     ouverte indéfiniment. Ici, iota est à moins trente heures. */
+  ok('…et le rejet dit de quel CÔTÉ, avec son amplitude',
+     b1.replisTropTot >= 1 && b1.repliEcartMinMin < -60,
+     JSON.stringify({ tot: b1.replisTropTot, tard: b1.replisTropTard,
+                      min: b1.repliEcartMinMin, max: b1.repliEcartMaxMin }));
   ok('…leur somme valant exactement le nombre de tentatives',
      b1.replisServis + b1.replisErreur + b1.replisVides + b1.replisHorsSujet
      === b1.replis, JSON.stringify(b1));
