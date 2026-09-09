@@ -1966,11 +1966,31 @@ const TSE_GATE_MAX_CLICKS = 5;
     // à la lecture ; cette borne couvre le cas d'un onglet jamais rouvert.
     CATEGORY_SWITCH_MAX: 200,
 
-    // === Frise des catégories d'un live ===
-    // Nombre de streams dont on garde la frise. Bien plus bas que
-    // CATEGORY_SWITCH_MAX : une frise pèse une liste, pas une entrée, et on
-    // n'en affiche qu'une à la fois — celle de la chaîne survolée.
-    CATEGORY_TRAIL_MAX: 40,
+    /* === Frise des catégories d'un live ===
+       Nombre de streams dont on garde la frise.
+
+       CETTE BORNE VALAIT 40, ET C'ÉTAIT LA PANNE. Le raisonnement d'origine
+       était : « on n'en affiche qu'une à la fois, celle de la chaîne
+       survolée ». Il confondait ce qu'on AFFICHE avec ce qu'on ALIMENTE.
+       `suivreCategorie` est appelé pour CHAQUE login de CHAQUE lot — tout le
+       cache de streams, pas la carte sous la souris. Un rapport en montrait
+       210 en cache et 128 cartes à l'écran, contre quarante places.
+
+       Ce que ça donnait : à chaque relevé, les 170 logins en trop créaient
+       une frise, chacune en évinçant une autre. Trente secondes plus tard les
+       mêmes revenaient, ne se retrouvaient plus, et repartaient de zéro —
+       `vuDepuis` remis à maintenant, segments perdus. Survoler une carte
+       n'avait donc qu'une chance sur cinq de trouver une frise, et sans frise
+       il n'y a ni affichage NI requête de chapitres. Les compteurs de
+       chapitres ne pouvaient pas le voir : ils ne comptent que les demandes
+       parties.
+
+       La borne doit donc couvrir la population qui l'alimente, et c'est
+       LIVE_CACHE_MAX. Le banc lit les deux constantes à la source et refuse
+       qu'on les désaccorde. Le coût est modeste : une frise porte au plus
+       CATEGORY_TRAIL_SEGMENTS segments de trois champs courts, et la plupart
+       n'en portent qu'un — bien moins qu'une entrée du cache qu'elle suit. */
+    CATEGORY_TRAIL_MAX: 500,
     // Segments gardés par frise. Un stream de variété en enchaîne rarement
     // plus de six ; au-delà, on tronque par la TÊTE et on le dit, plutôt que
     // de laisser une liste s'allonger jusqu'à sortir du popup.
@@ -3363,6 +3383,38 @@ const TSE_GATE_MAX_CLICKS = 5;
    * ============================================================ */
   const frises = new Map();   // login → { streamId, debutStream, vuDepuis, segments, tronquee }
 
+  /* ── CE QUE LE RAPPORT NE POUVAIT PAS VOIR ────────────────────────────────
+     Les compteurs de chapitres ne comptent que les requêtes PARTIES. Or la
+     panne corrigée en 3.79 les empêchait justement de partir : sans frise en
+     mémoire, pas d'affichage et pas de requête — donc pas une ligne dans le
+     rapport. Un utilisateur voyait « des Précédemment qui ne marchent pas »,
+     et tous les compteurs disaient que tout allait bien.
+
+     Ces trois-là comptent le survol lui-même, avant toute requête, et ils sont
+     EXCLUSIFS : leur somme vaut `survols`. `absentes` élevé voudra dire que le
+     registre perd des frises ; `vides` élevé, qu'on survole des cartes jamais
+     relevées ; `peuplees` est le cas nominal.
+
+     ET `evincees` EST CELUI QUI AURAIT NOMMÉ LA PANNE. Les trois ci-dessus ne
+     l'auraient PAS vue, et le banc le montre : sous la borne fautive,
+     `absentes` reste à zéro. La frise d'alpha était bien là au survol — elle
+     venait d'être RECRÉÉE vide au relevé d'avant, son passé perdu. Un survol
+     sur une frise amnésique ressemble en tout point à un survol sain.
+
+     Le seul signal qui distingue les deux est le nombre d'évictions. En
+     régime sain il vaut zéro : une chaîne qui s'éteint voit sa frise retirée
+     nommément, et la borne couvre le cache. Un rapport qui en porte des
+     milliers dit que le registre tourne sur lui-même, et il le dit sans qu'on
+     ait à deviner. */
+  const bilanFrises = { survols: 0, absentes: 0, vides: 0, peuplees: 0, evincees: 0 };
+  const noterSurvolFrise = (login) => {
+    bilanFrises.survols++;
+    const f = frises.get(login);
+    if (!f) bilanFrises.absentes++;
+    else if (!f.segments.length) bilanFrises.vides++;
+    else bilanFrises.peuplees++;
+  };
+
   const suivreCategorie = (login, apres) => {
     const flux = apres?.stream;
     const id = flux?.id || null;
@@ -3381,11 +3433,27 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!f || f.streamId !== id) {
       f = { streamId: id, debutStream, vuDepuis: maintenant, segments: [], tronquee: false };
       frises.set(login, f);
-      // Purge par le volume. Map itère dans l'ordre d'insertion : les plus
-      // anciennes sortent d'abord, comme pour les basculements.
-      while (frises.size > CFG.CATEGORY_TRAIL_MAX) {
-        frises.delete(frises.keys().next().value);
-      }
+    } else {
+      /* ── L'ÉVICTION ÉVINÇAIT LA PLUS RICHE ────────────────────────────────
+         `Map` itère dans l'ordre de PREMIÈRE insertion, et `set` sur une clé
+         existante ne la déplace pas. Purger par `keys().next()` sortait donc
+         la frise entrée en premier — c'est-à-dire celle qui accumule depuis
+         le plus longtemps, la seule qui ait un passé à raconter. La frise
+         d'une chaîne apparue il y a dix secondes survivait à celle qu'on
+         suivait depuis une heure.
+
+         La réinsertion ci-dessous fait de cet ordre un vrai « moins
+         récemment observé » : une frise ne vieillit que si sa chaîne cesse
+         de passer dans les relevés. Coût constant, et rien d'autre n'itère
+         ce registre. */
+      frises.delete(login);
+      frises.set(login, f);
+    }
+    // Purge par le volume, en dernier recours : une chaîne qui s'éteint voit
+    // déjà sa frise retirée plus haut.
+    while (frises.size > CFG.CATEGORY_TRAIL_MAX) {
+      frises.delete(frises.keys().next().value);
+      bilanFrises.evincees++;
     }
 
     const dernier = f.segments[f.segments.length - 1];
@@ -6872,6 +6940,12 @@ const TSE_GATE_MAX_CLICKS = 5;
           bascules:    [...basculements.keys()].filter(l => basculementFrais(l)).length,
           cache:       cache.size,
         },
+        /* LA FRISE, AVANT TOUTE REQUÊTE. `reseau.chapitres` ne compte que ce
+           qui est parti sur le réseau ; ce bloc-ci compte ce qui se passe en
+           amont, là où la panne de 3.79 se tenait. `resident` contre `cache`
+           dit d'un coup d'œil si le registre couvre la population qu'il suit :
+           c'est le rapport qui manquait pour voir 210 en cache et 40 places. */
+        frise: { resident: frises.size, max: CFG.CATEGORY_TRAIL_MAX, ...bilanFrises },
         relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
         /* L'ÉTAT DU RÉSEAU, qui n'y figurait pas. Une pause GraphQL en cours
            explique à elle seule une sidebar qui ne se met plus à jour — et
@@ -9233,6 +9307,7 @@ const TSE_GATE_MAX_CLICKS = 5;
          trop. L'échec est silencieux côté affichage et bruyant côté journal
          (cf. l'en-tête de CHAPITRES_QUERY). */
       const flux = cache.get(login)?.stream;
+      noterSurvolFrise(login);
       if (flux?.id && !preludeDe(login) && friseACombler(login)) {
         fetchChapitres(login, flux.id, Date.parse(flux.createdAt) || 0)
           .then(() => majFrise(login))

@@ -1971,6 +1971,65 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## The trail that erased itself (v3.79)
+
+A report said "not all the *Previously* blocks work", with impeccable chapter
+counters: **55 requests, 0 errors, 0 network failures**, and an exact sum of
+outcomes. They had nothing to answer for — they only count requests that were
+**sent**. The fault was upstream, where no counter was looking.
+
+The trail registry was capped at **forty** entries. The original reasoning fit
+in one sentence, and that sentence was the mistake: "we only display one at a
+time, the hovered channel's". It confused what we **display** with what we
+**feed**. `suivreCategorie` receives every login of every batch — that is, the
+whole stream cache. The same report said `cache 210` and `cartes 128`, two
+pages higher.
+
+What that produced, every thirty seconds:
+
+| | |
+| --- | --- |
+| logins polled per cycle | ~210 |
+| slots in the registry | 40 |
+| trails destroyed then recreated each cycle | ~170 |
+
+And eviction targeted **the richest one**. `Map` iterates in *first*-insertion
+order, and `set` on an existing key does not move it: purging from the head
+removed the trail that had been accumulating the longest — precisely the one
+with a past to tell. A channel that appeared ten seconds ago outlived the one
+we had been following for an hour.
+
+For the user: hovering a card had only a **one-in-five** chance of finding a
+trail. And with no trail there is neither display **nor a chapters request** —
+hence serene counters on a silent feature.
+
+**What changes.** The bound now covers the population that feeds it
+(`LIVE_CACHE_MAX`), and the bench reads both constants from the source and
+refuses to let them drift apart. Volume purging becomes a last resort — a
+channel going offline already has its trail removed by name — and it now drops
+the least recently **observed**, not the first **inserted**.
+
+**And the report can see this fault now.** That is the part worth reading,
+because the obvious counters would not have been enough:
+
+```
+── FRISE DES CATÉGORIES / CATEGORY TRAIL ─────────────────────
+  resident               201
+  max                    500
+  survols                2
+  absentes               0
+  vides                  0
+  peuplees               2
+  evincees               0
+```
+
+Under the faulty bound, `absentes` stays at **zero** and `peuplees` is two: the
+trail *was* there on hover — recreated empty on the previous poll. A hover on an
+amnesiac trail looks exactly like a healthy one. Only `resident` against `max`,
+and above all `evincees`, tell a healthy registry from one cycling on itself.
+The bench checks it both ways: putting the bound back to forty drops four
+assertions, including the one requiring `evincees === 0`.
+
 ## The language-tag ranking (v3.77, confirmed in v3.78)
 
 An idea from a user, and it aims true. Twitch publishes
@@ -2240,7 +2299,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 80 scenarios, 739 assertions |
+| `npm test` | the Playwright harness: 81 scenarios, 746 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
