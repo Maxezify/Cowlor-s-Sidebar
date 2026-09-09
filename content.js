@@ -1952,8 +1952,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     
     .tse-preview__frise {
-      margin-top: 9px;
-      padding-top: 8px;
+      
+      padding-top: 6px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
     .tse-preview__frise-titre {
@@ -1966,8 +1966,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__frise-barre {
       display: flex;
       gap: 1px;
-      height: 7px;
-      border-radius: 4px;
+      
+      height: 9px;
+      border-radius: 5px;
       overflow: hidden;
       background: rgba(255, 255, 255, 0.06);
     }
@@ -1988,8 +1989,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     .tse-preview__frise-puce {
       flex: 0 0 auto;
-      width: 7px;
-      height: 7px;
+      width: 9px;
+      height: 9px;
       border-radius: 2px;
     }
     .tse-preview__frise-nom {
@@ -4722,49 +4723,33 @@ const TSE_GATE_MAX_CLICKS = 5;
       '  }' +
       '}';
 
+    const RECENT_QUERY =
+      'query TseVodRecent($login: String!) {' +
+      '  user(login: $login) {' +
+      '    videos(first: 1, sort: TIME, type: ARCHIVE) {' +
+      '      edges { node {' +
+      '        id createdAt' +
+      '        moments(momentRequestType: VIDEO_CHAPTER_MARKERS) {' +
+      '          edges { node {' +
+      '            positionMilliseconds' +
+      '            details { ... on GameChangeMomentDetails { game { name displayName } } }' +
+      '          } }' +
+      '        }' +
+      '      } }' +
+      '    }' +
+      '  }' +
+      '}';
+
     const chapitres = new Map();
     const CHAPITRES_TTL = 10 * 60_000;
 
     const bilanChapitres = { demandes: 0, servis: 0, continus: 0, sansMoment: 0,
-                             sansVod: 0, sansStream: 0, reseau: 0 };
+                             inexploitables: 0, sansVod: 0, sansStream: 0, reseau: 0,
+                             replis: 0, replisServis: 0 };
 
-    const fetchChapitres = async (login, streamId, debutStream) => {
-      const vu = chapitres.get(streamId);
-      if (vu && Date.now() - vu.ts < CHAPITRES_TTL) return vu.segments;
-
-      bilanChapitres.demandes++;
-      const res = await post([{
-        operationName: 'TseVodChapters',
-        variables: { login },
-        query: CHAPITRES_QUERY
-      }]);
-      if (isResultsUnusable(res)) {
-        bilanChapitres.reseau++;
-        return null;
-      }
-
-      const flux = res?.[0]?.data?.user?.stream;
-      const vod = flux?.archiveVideo;
+    const segmentsDuVod = (vod, debutStream) => {
       const aretes = vod?.moments?.edges;
-      if (!Array.isArray(aretes) || !aretes.length) {
-
-        if (!flux) { bilanChapitres.sansStream++; }
-        else if (!vod) { bilanChapitres.sansVod++; }
-        else {
-          bilanChapitres.sansMoment++;
-
-          const depart = Date.parse(vod.createdAt);
-          const couvre = Number.isFinite(depart) && debutStream
-            && depart - debutStream <= CFG.CATEGORY_TRAIL_VOD_ECART;
-          if (couvre) {
-            bilanChapitres.continus++;
-            chapitres.set(streamId, { ts: Date.now(), segments: null, continu: true });
-            return chapitres.get(streamId);
-          }
-        }
-        chapitres.set(streamId, { ts: Date.now(), segments: null, continu: false });
-        return null;
-      }
+      if (!Array.isArray(aretes)) return { segments: null, aretes: 0 };
 
       const base = Date.parse(vod.createdAt) || debutStream;
       const segments = [];
@@ -4779,15 +4764,78 @@ const TSE_GATE_MAX_CLICKS = 5;
         });
       }
       segments.sort((a, b) => a.debut - b.debut);
-      const utile = segments.length ? segments : null;
-      chapitres.set(streamId, { ts: Date.now(), segments: utile, continu: false });
-      if (utile) { bilanChapitres.servis++; return chapitres.get(streamId); }
-      else {
+      return { segments: segments.length ? segments : null, aretes: aretes.length };
+    };
 
-        bilanChapitres.sansMoment++;
-        erreurs.noter('chapitres', `aucun moment exploitable sur ${aretes.length} arête(s)`);
+    const vodCouvre = (vod, debutStream) => {
+      const depart = Date.parse(vod?.createdAt);
+
+      return Number.isFinite(depart) && !!debutStream
+        && Math.abs(depart - debutStream) <= CFG.CATEGORY_TRAIL_VOD_ECART;
+    };
+
+    const retenir = (streamId, segments, continu) => {
+      chapitres.set(streamId, { ts: Date.now(), segments, continu });
+      return (segments || continu) ? chapitres.get(streamId) : null;
+    };
+
+    const fetchChapitres = async (login, streamId, debutStream) => {
+      const vu = chapitres.get(streamId);
+      if (vu && Date.now() - vu.ts < CHAPITRES_TTL) {
+        return (vu.segments || vu.continu) ? vu : null;
       }
-      return utile;
+
+      bilanChapitres.demandes++;
+      const res = await post([{
+        operationName: 'TseVodChapters',
+        variables: { login },
+        query: CHAPITRES_QUERY
+      }]);
+      if (isResultsUnusable(res)) {
+        bilanChapitres.reseau++;
+        return null;
+      }
+
+      const flux = res?.[0]?.data?.user?.stream;
+      if (!flux) { bilanChapitres.sansStream++; return retenir(streamId, null, false); }
+
+      let vod = flux.archiveVideo;
+
+      if (!vod) {
+        bilanChapitres.replis++;
+        const res2 = await post([{
+          operationName: 'TseVodRecent',
+          variables: { login },
+          query: RECENT_QUERY
+        }]);
+        if (!isResultsUnusable(res2)) {
+          const candidat = res2?.[0]?.data?.user?.videos?.edges?.[0]?.node;
+
+          if (candidat && vodCouvre(candidat, debutStream)) {
+            vod = candidat;
+            bilanChapitres.replisServis++;
+          }
+        }
+      }
+
+      if (!vod) { bilanChapitres.sansVod++; return retenir(streamId, null, false); }
+
+      const { segments, aretes } = segmentsDuVod(vod, debutStream);
+      if (segments) { bilanChapitres.servis++; return retenir(streamId, segments, false); }
+
+      if (aretes) {
+
+        bilanChapitres.inexploitables++;
+        erreurs.noter('chapitres', `aucun moment exploitable sur ${aretes} arête(s)`);
+        return retenir(streamId, null, false);
+      }
+
+      if (vodCouvre(vod, debutStream)) {
+        bilanChapitres.continus++;
+        return retenir(streamId, null, true);
+      }
+      bilanChapitres.sansMoment++;
+      return retenir(streamId, null, false);
     };
 
     const PREVIEW_QUERY =
@@ -5084,8 +5132,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (currentCard) positionPopup(currentCard);
     };
 
-    const PALETTE_FRISE = ['#7aa2f7', '#9ece6a', '#e0af68', '#bb9af7',
-                           '#7dcfff', '#f7768e', '#73daca', '#ff9e64'];
+    const PALETTE_FRISE = ['#4ea3ff', '#3ddc84', '#ffc233', '#c07cff',
+                           '#ff5f8f', '#17d7d0', '#ff8a3d', '#a6e844'];
 
     const indexCategorie = (jeu) => {
       let h = 0;
