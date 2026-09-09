@@ -9243,6 +9243,214 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
   }
 }
 
+titre('86bis. Filtres — le tri, la symétrie, et ce qu\'une sélection apprend');
+{
+  /* TROIS RETOURS D'UN MÊME UTILISATEUR, SUR LA MÊME CAPTURE.
+
+     1. Les langues sans chiffre remontaient AU-DESSUS de l'anglais à 130 k.
+        `Map.get` rend `undefined` pour une langue non mesurée, et
+        `undefined - 130100` vaut NaN : un comparateur qui rend NaN ne trie
+        pas, il laisse l'ordre au moteur.
+
+     2. Drapeau français choisi, et le menu catégorie affichait toujours les
+        totaux du MONDE. Le menu langue suivait la catégorie ; l'inverse
+        n'était pas vrai.
+
+     3. Un drapeau sans chiffre, une fois choisi, montrait deux chaînes. Nous
+        les avions — la passe de portée en langue les a demandées — et nous ne
+        les gardions pas. */
+  const options = (page, dd) => page.evaluate((id) =>
+    [...document.querySelectorAll('#' + id + ' .tse-dd-opt')]
+      .map(o => ({ v: o.dataset.value,
+                   n: (o.querySelector('.tse-dd-n')?.textContent || '').replace(' |', '').trim() }))
+      .filter(o => o.v), dd);
+  const choisir = (page, dd, val) => page.evaluate(([id, v]) => {
+    const opt = [...document.querySelectorAll('#' + id + ' .tse-dd-opt')]
+      .find(o => (o.dataset.value || '') === v);
+    if (!opt) throw new Error('option absente de #' + id + ' : ' + JSON.stringify(v));
+    opt.click();
+  }, [dd, val]);
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    window.__fx = { suivi1: { id: 'id-s1', createdAt: new Date(Date.now() - 1800_000).toISOString(),
+                              viewers: 400, game: 'Just Chatting', tags: [] } };
+    window.__addCard('suivi1', 'Just Chatting', '400');
+    /* Le pool mondial ne verra QUE de l'anglais et du français : le tchèque
+       existe sur « cat0 » mais trop bas pour y figurer. C'est exactement la
+       situation de la capture — un drapeau sans chiffre qui, choisi, rend
+       deux chaînes. */
+    /* LA SITUATION DE LA CAPTURE, REPRODUITE. Sur « cat0 », vingt-neuf
+       chaînes anglaises et une française occupent tout le top que la marche
+       récolte : les deux tchèques, à quarante et vingt spectateurs, en sont
+       exclues. Le tchèque EXISTE pourtant dans le monde — « cat2 » en porte —
+       donc il est proposé au menu, mais sans chiffre sur cette catégorie-là.
+       C'est exactement ce que l'utilisateur décrit : un drapeau sans nombre
+       qui, choisi, rend deux chaînes. */
+    const gros = [{ login: 'f1', viewers: 8500, tags: ['Français'] }];
+    for (let k = 0; k < 29; k++) {
+      gros.push({ login: 'e' + k, viewers: 9000 - k, tags: ['English'] });
+    }
+    window.__cats = [
+      { name: 'cat0', viewers: 100_000, streams: [
+        ...gros,
+        { login: 'c1', viewers: 40, lang: 'CS', tags: ['Čeština'] },
+        { login: 'c2', viewers: 20, lang: 'CS', tags: ['Čeština'] },
+      ] },
+      { name: 'cat1', viewers: 90_000, streams: [
+        { login: 'z2', viewers: 8000, tags: ['English'] },
+      ] },
+      // Le tchèque quelque part dans le monde : sans quoi il ne serait pas
+      // même PROPOSÉ, et le scénario ne pourrait pas le choisir.
+      { name: 'cat2', viewers: 80_000, streams: [
+        { login: 'c9', viewers: 500, lang: 'CS', tags: ['Čeština'] },
+      ] },
+    ];
+  });
+  await wait(page, 1500);
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(1).length > 0, 9000);
+  await wait(page, 600);
+
+  /* ── 1. LE TRI ───────────────────────────────────────────────────────── */
+  await choisir(page, 'tse-cat-dd', 'cat0');
+  await wait(page, 1500);
+  const langs = await options(page, 'tse-lang-dd');
+  const chiffres = langs.filter(o => o.n).map(o => o.v);
+  ok('les langues chiffrées sont EN TÊTE, décroissantes',
+     langs.slice(0, chiffres.length).every(o => o.n)
+     && chiffres[0] === 'English' && chiffres[1] === 'Français',
+     JSON.stringify(langs.slice(0, 5)));
+  ok('…et celles qu\'on n\'a pas mesurées suivent, sans « 0 »',
+     langs.slice(chiffres.length).every(o => o.n === ''),
+     JSON.stringify(langs.slice(chiffres.length, chiffres.length + 3)));
+
+  /* ── 3. CE QU'UNE SÉLECTION APPREND ──────────────────────────────────── */
+  const avant = new Map(langs.map(o => [o.v, o.n]));
+  ok('le tchèque n\'a aucun chiffre : le pool mondial ne descend pas si bas',
+     avant.get('Čeština') === '', `Čeština → « ${avant.get('Čeština')} »`);
+  await choisir(page, 'tse-lang-dd', 'Čeština');
+  await attendre(page, () => window.tse.global.report().scopeSize > 0, 9000);
+  await wait(page, 800);
+  const apres = new Map((await options(page, 'tse-lang-dd')).map(o => [o.v, o.n]));
+  ok('…et une fois choisi, ce qu\'il pèse est mesuré ET gardé',
+     /\d/.test(apres.get('Čeština') || ''), `Čeština → « ${apres.get('Čeština')} »`);
+
+  /* ── 2. LA SYMÉTRIE ──────────────────────────────────────────────────── */
+  await choisir(page, 'tse-cat-dd', '');
+  await wait(page, 1200);
+  await choisir(page, 'tse-lang-dd', 'Français');
+  await attendre(page, () => window.tse.global.report().worldLang === 'Français', 9000);
+  await wait(page, 800);
+  const cats = await options(page, 'tse-cat-dd');
+  const parCat = new Map(cats.map(o => [o.v, o.n]));
+  ok('une langue choisie, le menu CATÉGORIE ne montre plus les totaux du monde',
+     parCat.get('cat0') !== '' && !/^100\s*k$/.test(parCat.get('cat0') || ''),
+     `cat0 → « ${parCat.get('cat0')} » (mondial : 100 k)`);
+  ok('…mais bien ce que cette langue y pèse : 8 500',
+     /^8,5\s*k$/.test(parCat.get('cat0') || ''), `cat0 → « ${parCat.get('cat0')} »`);
+  ok('…et la catégorie où elle n\'a personne ne porte pas « 0 »',
+     parCat.get('cat1') === '', `cat1 → « ${parCat.get('cat1')} »`);
+  ok('…la liste des catégories restant complète et utilisable',
+     cats.length === 3
+     && (await page.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-btn').disabled)) === false,
+     JSON.stringify(cats));
+  await page.close();
+}
+
+titre('87. La troisième porte — les clips, pour qui n\'archive pas');
+{
+  /* UN QUART DES SURVOLS N'A AUCUN ENREGISTREMENT. Un rapport : dix-neuf
+     chaînes sur soixante-dix-sept, dont cinq sans la moindre archive. Ces
+     chaînes ne permettent pas le replay ; leur passé n'existe nulle part sous
+     forme de VOD. Restent les clips, seule trace publique de ce qu'une chaîne
+     diffusait à un instant passé.
+
+     CE QU'UN CLIP PROUVE : sa date et sa catégorie, donc « à cet instant, elle
+     était là-dessus ». CE QU'IL NE PROUVE PAS : ce qui s'est passé entre deux
+     clips. Un segment ne commence donc qu'au PREMIER clip d'une suite portant
+     la même catégorie — jamais avant — et la part qui précède reste avouée.
+
+     LA PRÉSENTATION EN DÉCOULE. Une frise de clips ne se lit pas comme une
+     frise de chapitres : ses bornes sont des minorants. Elle le DIT. */
+  const page = await freshTwitch();
+  const DEBUT = Date.now() - 240 * 60_000;          // live commencé il y a 4 h
+  await page.evaluate((d) => {
+    window.__fx = { sansvod: { id: 'sv', createdAt: new Date(d).toISOString(),
+                               viewers: 1200, game: 'Hades II', tags: [] } };
+    window.__addCard('sansvod', 'Hades II', '1,2 k');
+    /* « sansvod » = un stream bien vivant, mais AUCUN archiveVideo. Un login
+       absent de `__vod` voudrait dire « aucun stream », ce qui est un tout
+       autre cas et n'atteint jamais la troisième porte. */
+    window.__vod = { sansvod: 'sansvod' }; window.__vodRecent = {};
+    window.__clips = { sansvod: [
+      { jeu: 'Just Chatting', ilYaMin: 230 },
+      { jeu: 'Just Chatting', ilYaMin: 215 },
+      { jeu: 'Hades II',      ilYaMin: 150 },
+      { jeu: 'Hades II',      ilYaMin: 40 },
+    ] };
+  }, DEBUT);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+
+  await hoverLogin(page, 'sansvod');
+  await attendre(page,
+    () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 9000);
+  const f = await page.evaluate(() => {
+    const bloc = document.querySelector('.tse-preview__frise');
+    return {
+      clips: bloc.classList.contains('tse-preview__frise--clips'),
+      source: bloc.querySelector('.tse-preview__frise-source')?.textContent || null,
+      lignes: [...bloc.querySelectorAll('.tse-preview__frise-ligne')].map(l => ({
+        nom: l.querySelector('.tse-preview__frise-nom').textContent,
+        inconnu: l.classList.contains('tse-preview__frise-ligne--inconnu'),
+      })),
+    };
+  });
+  ok('une chaîne sans enregistrement obtient tout de même une frise',
+     f.lignes.length >= 3, JSON.stringify(f));
+  ok('…qui porte les deux catégories que les clips attestent, dans l\'ordre',
+     f.lignes.filter(l => !l.inconnu).map(l => l.nom).join(' → ')
+       === 'Discussions → Hades II', JSON.stringify(f.lignes));
+  ok('…et DIT qu\'elle vient des clips, parce qu\'elle ne se lit pas pareil',
+     f.clips === true && f.source === 'd\'après les clips', JSON.stringify(f));
+  ok('…la part antérieure au premier clip étant nommée pour ce qu\'elle est',
+     f.lignes[0].inconnu === true && f.lignes[0].nom === 'avant le premier clip',
+     JSON.stringify(f.lignes[0]));
+
+  const b = await page.evaluate(() => window.tse.panneau.rapport().reseau.chapitres);
+  ok('le rapport compte la troisième porte à part, par issue',
+     b.clips === 1 && b.clipsServis === 1
+     && b.clipsServis + b.clipsHorsSujet + b.clipsRefus + b.clipsErreur === b.clips,
+     JSON.stringify(b));
+  await page.close();
+
+  /* ── ET QUAND LE SCHÉMA REFUSE ───────────────────────────────────────── */
+  {
+    const p2 = await freshTwitch();
+    await p2.evaluate((d) => {
+      window.__fx = { sansvod: { id: 'sv2', createdAt: new Date(d).toISOString(),
+                                 viewers: 1200, game: 'Hades II', tags: [] } };
+      window.__addCard('sansvod', 'Hades II', '1,2 k');
+      window.__vod = { sansvod: 'sansvod' }; window.__vodRecent = {};
+      window.__clips = { sansvod: 'erreur' };
+    }, DEBUT);
+    await attendre(p2, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+    await hoverLogin(p2, 'sansvod');
+    await attendre(p2,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+    await wait(p2, 1500);
+    ok('un refus se solde par le silence, jamais par une frise inventée',
+       (await p2.evaluate(() => !!document.querySelector('.tse-preview__frise'))) === false);
+    const b2 = await p2.evaluate(() => window.tse.panneau.rapport().reseau.chapitres);
+    ok('…et il est consigné comme incident, non comme absence de clips',
+       b2.clips === 1 && b2.clipsServis === 0 && b2.clipsHorsSujet === 0,
+       JSON.stringify(b2));
+    await p2.close();
+  }
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

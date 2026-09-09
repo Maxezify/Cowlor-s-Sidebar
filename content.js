@@ -618,6 +618,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Chargement du titre…',
       uiTrailTitle:              'Précédemment sur ce live',
       uiTrailUnseen:             'non observé',
+      uiTrailFromClips:          'd\'après les clips',
+      uiTrailBeforeClip:         'avant le premier clip',
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
@@ -696,6 +698,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Loading title…',
       uiTrailTitle:              'Earlier on this stream',
       uiTrailUnseen:             'not observed',
+      uiTrailFromClips:          'from clips',
+      uiTrailBeforeClip:         'before the first clip',
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
@@ -769,6 +773,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Titel wird geladen…',
       uiTrailTitle:              'Vorher in diesem Stream',
       uiTrailUnseen:             'nicht beobachtet',
+      uiTrailFromClips:          'laut Clips',
+      uiTrailBeforeClip:         'vor dem ersten Clip',
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
@@ -842,6 +848,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Cargando título…',
       uiTrailTitle:              'Antes en este directo',
       uiTrailUnseen:             'no observado',
+      uiTrailFromClips:          'según los clips',
+      uiTrailBeforeClip:         'antes del primer clip',
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
@@ -915,6 +923,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Carregando título…',
       uiTrailTitle:              'Antes nesta live',
       uiTrailUnseen:             'não observado',
+      uiTrailFromClips:          'segundo os clipes',
+      uiTrailBeforeClip:         'antes do primeiro clipe',
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
@@ -988,6 +998,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Caricamento del titolo…',
       uiTrailTitle:              'Prima in questa diretta',
       uiTrailUnseen:             'non osservato',
+      uiTrailFromClips:          'secondo le clip',
+      uiTrailBeforeClip:         'prima della prima clip',
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
@@ -1061,6 +1073,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Wczytywanie tytułu…',
       uiTrailTitle:              'Wcześniej na tej transmisji',
       uiTrailUnseen:             'nieobserwowane',
+      uiTrailFromClips:          'według klipów',
+      uiTrailBeforeClip:         'przed pierwszym klipem',
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
@@ -1134,6 +1148,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Загрузка названия…',
       uiTrailTitle:              'Ранее на этом стриме',
       uiTrailUnseen:             'не наблюдалось',
+      uiTrailFromClips:          'по клипам',
+      uiTrailBeforeClip:         'до первого клипа',
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
@@ -1207,6 +1223,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'タイトルを読み込み中…',
       uiTrailTitle:              'この配信のこれまで',
       uiTrailUnseen:             '未観測',
+      uiTrailFromClips:          'クリップによる',
+      uiTrailBeforeClip:         '最初のクリップより前',
       uiTrailNow:                '進行中',
       uiTrailTruncated:          '冒頭は未保持',
       uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
@@ -1280,6 +1298,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     '正在加载标题…',
       uiTrailTitle:              '本次直播此前',
       uiTrailUnseen:             '未观测',
+      uiTrailFromClips:          '据剪辑推断',
+      uiTrailBeforeClip:         '首个剪辑之前',
       uiTrailNow:                '进行中',
       uiTrailTruncated:          '开头未保留',
       uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
@@ -2010,6 +2030,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     // ces deux minutes : l'absence de chapitre n'y prouve rien. Au-delà, on ne
     // conclut donc pas — la frise retombe sur ce qu'elle a observé.
     CATEGORY_TRAIL_VOD_ECART: 120_000,
+    /* Clips demandés à une chaîne qui n'archive pas. Trente : assez pour
+       couvrir une soirée de plusieurs catégories, et c'est la valeur qu'on
+       sait acceptée ailleurs — `streams(first:)` plafonne à trente, et rien
+       ne dit que `clips(first:)` soit plus généreux. Demander moins que ce
+       plafond ne coûte rien ; le dépasser a déjà coûté une version. */
+    CATEGORY_TRAIL_CLIPS: 30,
     // En deçà, on considère avoir vu le stream depuis son début. Le relevé
     // tourne toutes les 30 s : sans cette tolérance, TOUTE frise porterait un
     // segment « non observé » de quelques secondes, dû à notre seule latence
@@ -3224,6 +3250,23 @@ const TSE_GATE_MAX_CLICKS = 5;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.42);
     }
+    /* La provenance, quand elle change la lecture. Elle suit le titre sur la
+       même ligne, en plus discret encore : c'est une nuance, pas un
+       avertissement. */
+    .tse-preview__frise-source {
+      margin-left: 6px;
+      text-transform: none;
+      letter-spacing: 0;
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.32);
+    }
+    /* Les traits d'une frise de clips sont des minorants. La barre le montre
+       sans un mot : ses parts sont hachurées de biais, comme la part inconnue
+       l'est déjà — même vocabulaire visuel pour la même idée. */
+    .tse-preview__frise--clips .tse-preview__frise-part {
+      background-image: repeating-linear-gradient(
+        135deg, rgba(0, 0, 0, 0.28) 0 3px, rgba(0, 0, 0, 0) 3px 6px);
+    }
     .tse-preview__frise-barre {
       display: flex;
       gap: 1px;
@@ -3588,6 +3631,10 @@ const TSE_GATE_MAX_CLICKS = 5;
        observé jusqu'au départ du stream. */
     const chapitresVod = (prelude && prelude.segments) || [];
     const continu = !!(prelude && prelude.continu);
+    // D'où vient ce prélude : 'clips' quand il a été reconstitué à partir des
+    // clips d'une chaîne qui n'archive pas. L'affichage le DIT, parce qu'une
+    // frise de clips a des bornes qui sont des minorants.
+    const source = (prelude && prelude.source) || null;
 
     const bruts = [];
     for (const p of chapitresVod) {
@@ -3652,13 +3699,22 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* La part que nous n'avons PAS vue, mesurée et non devinée : du départ du
        stream à notre première observation. Un prélude la comble — il part du
        début du live — et l'avoir vu depuis le début la rend nulle. */
-    const brut = chapitresVod.length || continu || depuisLeDebut || !f.debutStream
-      ? 0 : f.vuDepuis - f.debutStream;
+    /* LA PART INCONNUE SE LIT SUR LE PREMIER SEGMENT, ET NON SUR NOTRE
+       PREMIÈRE VUE. Les deux coïncidaient tant que le seul prélude possible
+       venait d'un VOD, qui commence avec le live. Une frise de CLIPS, elle,
+       commence au premier clip — plus tôt que notre arrivée, plus tard que le
+       départ du stream. Écrire zéro là ferait passer pour le début du live un
+       instant qui ne l'est pas. On mesure donc l'écart réel, quelle que soit
+       la source, et les cas d'avant gardent exactement leur valeur d'avant :
+       un chapitre de VOD tombe sur le départ du stream, l'écart y est nul. */
+    const brut = continu || depuisLeDebut || !f.debutStream || !bruts.length
+      ? 0 : bruts[0].debut - f.debutStream;
     const inconnuMs = brut > CFG.CATEGORY_TRAIL_TOLERANCE ? brut : 0;
     return {
       debutStream: f.debutStream,
       vuDepuis: f.vuDepuis,
       inconnuMs,
+      source,
       tronquee: f.tronquee,
       segments,
       totalMs: inconnuMs + segments.reduce((n, s) => n + s.dureeMs, 0),
@@ -4460,6 +4516,52 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     // Pool de départ d'une passe : le classement courant, tel quel. Il n'est
     // PAS reconstruit à vide — voir reconcile() pour la raison.
+    /* ══════════════════════════════════════════════════════════════════════
+       CE QU'UNE SÉLECTION NOUS APPREND, ET QU'ON GARDE
+       ──────────────────────────────────────────────────────────────────────
+       Le pool mondial ne descend pas très bas dans une petite langue : sur
+       « Grand Theft Auto V », il connaît l'anglais, le français et l'allemand,
+       et rien du tchèque. Le menu n'affichait donc aucun chiffre en face du
+       drapeau tchèque — et un utilisateur a fait remarquer, à raison, que le
+       choisir révélait DEUX chaînes. Nous les avions ; nous ne les gardions
+       pas.
+
+       Une passe de portée menée EN LANGUE mesure exactement ce couple-là :
+       « le tchèque sur GTA V pèse tant ». On le garde, et le menu s'enrichit
+       de ce qu'on a réellement demandé. Ce n'est pas une extrapolation : c'est
+       une mesure, rangée sous la clé qui l'a produite.
+
+       BORNÉ ET PÉRISSABLE, comme tout ce qui décrit un direct : une audience
+       d'il y a un quart d'heure ne décrit plus rien, et la lire vieille serait
+       pire que ne rien lire. */
+    const mesuresCatLangue = new Map();   // "catégorie\0langue" → { v, ts }
+    const CAT_LANGUE_MAX = 300;
+
+    const noterMesure = (categorie, langue, somme) => {
+      if (!categorie || !langue || !Number.isFinite(somme)) return;
+      const cle = categorie + '\u0000' + langue;
+      mesuresCatLangue.delete(cle);              // réinsertion : ordre = fraîcheur
+      mesuresCatLangue.set(cle, { v: somme, ts: Date.now() });
+      while (mesuresCatLangue.size > CAT_LANGUE_MAX) {
+        mesuresCatLangue.delete(mesuresCatLangue.keys().next().value);
+      }
+    };
+
+    /* Applique les mesures fraîches à une Map de compteurs. `axe` dit laquelle
+       des deux moitiés de la clé sert de filtre, et laquelle sert d'entrée. */
+    const appliquerMesures = (m, axe, valeur) => {
+      const limite = Date.now() - CFG.GLOBAL_PRUNE_AGE;
+      for (const [cle, mes] of mesuresCatLangue) {
+        if (mes.ts < limite) continue;
+        const i = cle.indexOf('\u0000');
+        const cat = cle.slice(0, i), lg = cle.slice(i + 1);
+        if (axe === 'categorie' ? cat === valeur : lg === valeur) {
+          m.set(axe === 'categorie' ? lg : cat, mes.v);
+        }
+      }
+      return m;
+    };
+
     const carryOver = () => new Map(ranking.map(r => [r.login, r]));
 
     // ── Marche complète ─────────────────────────────────────────────────
@@ -4786,6 +4888,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       scopeRanking = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       scopeDirty   = false;
       scopeTs      = Date.now();
+      /* La passe vient de mesurer ce couple : on le garde pour le menu. Elle
+         n'est retenue que si le filtre de langue a RÉELLEMENT été appliqué par
+         l'API — sinon la somme décrirait toutes les langues et se rangerait
+         sous une seule, ce qui serait faux. */
+      if (applique && want.lang) {
+        noterMesure(want.name, want.lang,
+                    scopeRanking.reduce((n, r) => n + (r.viewers || 0), 0));
+      }
       stats.scoped += 1;
       stats.lastMs  = scopeTs - started;
       return { ok: true };
@@ -4999,6 +5109,9 @@ const TSE_GATE_MAX_CLICKS = 5;
             }
           }
         }
+        // Ce qu'une sélection précédente a mesuré prime sur ce que le pool
+        // devine : c'est une réponse de l'API sur ce couple exact.
+        if (categorie) appliquerMesures(compte, 'categorie', categorie);
         return { toutes, compte: categorie ? compte : toutes };
       },
       /* Top des catégories, avec leur audience — celle de Twitch, tous
@@ -5008,6 +5121,29 @@ const TSE_GATE_MAX_CLICKS = 5;
          grisait, rendant la catégorie inchoisissable dès qu'une langue était
          prise. Les deux filtres doivent pouvoir se poser dans n'importe quel
          ordre ; les lier a coûté cette liberté-là. */
+      /* ── LES COMPTEURS DU MENU CATÉGORIE ────────────────────────────────
+         Sous le globe : les totaux de Twitch, tous parlers confondus. C'est
+         la meilleure donnée qui existe, et elle vient de `TseCategories`.
+
+         SOUS UNE LANGUE, ILS DOIVENT PARLER DE CETTE LANGUE. Un utilisateur
+         l'a signalé : drapeau français choisi, et « Discussions 400 k » — le
+         chiffre du monde entier sous un filtre qui n'en montre qu'une part.
+         On somme donc le pool par catégorie pour cette langue, et l'on y
+         superpose ce que les passes de portée ont réellement mesuré.
+
+         LA LISTE, ELLE, NE BOUGE PAS. C'est la leçon de la 3.80 : lier la
+         liste au filtre l'a vidée puis grisée. Seuls les chiffres suivent. */
+      catCounts(langue = null) {
+        if (!langue) return new Map(categories.map(c => [c.name, c.viewers]));
+        const monde = allLangPool.length ? allLangPool
+          : (ranking.length ? ranking : []);
+        const m = new Map();
+        for (const r of monde) {
+          if (!r.game || !r.tags.includes(langue)) continue;
+          m.set(r.game, (m.get(r.game) || 0) + (r.viewers || 0));
+        }
+        return appliquerMesures(m, 'langue', langue);
+      },
       cats(n = CFG.GLOBAL_CATEGORIES_MAX) {
         return categories.slice(0, n);
       },
@@ -8256,6 +8392,15 @@ const TSE_GATE_MAX_CLICKS = 5;
        SUPPLÉMENTAIRES et non des issues. */
     const bilanChapitres = { demandes: 0, servis: 0, continus: 0, sansMoment: 0,
                              inexploitables: 0, sansVod: 0, sansStream: 0, reseau: 0,
+                             /* LA TROISIÈME PORTE, comptée à part comme les
+                                deux autres. `clips` compte les tentatives —
+                                une par stream sans enregistrement — et les
+                                quatre suivantes en sont les issues, exclusives
+                                entre elles : servi, aucun clip pendant ce live,
+                                schéma qui refuse, incident. Leur somme vaut
+                                `clips`. */
+                             clips: 0, clipsServis: 0, clipsHorsSujet: 0,
+                             clipsRefus: 0, clipsErreur: 0,
                              /* LE REPLI, DÉTAILLÉ PAR CAUSE. La première version
                                 ne comptait que « tenté » et « servi », et un
                                 rapport a rendu 12 / 0 : impossible de savoir si
@@ -8365,8 +8510,74 @@ const TSE_GATE_MAX_CLICKS = 5;
       return depart + duree * 1000 >= debutStream;
     };
 
-    const retenir = (streamId, segments, continu) => {
-      chapitres.set(streamId, { ts: Date.now(), segments, continu });
+    /* ══════════════════════════════════════════════════════════════════════
+       LA TROISIÈME PORTE : LES CLIPS
+       ──────────────────────────────────────────────────────────────────────
+       UN QUART DES SURVOLS N'A AUCUN ENREGISTREMENT. Le rapport d'un
+       utilisateur : dix-neuf chaînes sur soixante-dix-sept, dont cinq sans la
+       moindre archive et quatorze dont l'archive la plus récente datait de
+       huit heures à dix-sept jours avant le live. Ces chaînes ne permettent
+       pas le replay ; leur passé n'existe donc nulle part sous forme de VOD.
+
+       IL RESTE LES CLIPS, ET RIEN D'AUTRE. J'ai fait le tour de ce qu'une
+       requête anonyme peut atteindre : `archiveVideo` (première porte),
+       `videos(type: ARCHIVE)` (deuxième), les types HIGHLIGHT et UPLOAD — qui
+       dérivent d'un VOD et manquent donc exactement là où il manque —, et
+       `broadcastSettings`, qui ne dit que le présent. Les clips sont la seule
+       trace publique de ce qu'une chaîne diffusait à un instant passé.
+
+       CE QU'UN CLIP PROUVE, ET CE QU'IL NE PROUVE PAS. Il porte sa date et sa
+       catégorie : « à 19 h 42, elle était sur Hadès II » est une OBSERVATION,
+       au même titre que les nôtres. Mais deux clips ne disent rien de
+       l'intervalle qui les sépare : placer un basculement à l'heure d'un clip
+       serait inventer, et c'est précisément ce que tout ce module refuse.
+
+       D'OÙ LA RÈGLE, ET ELLE EST ÉTROITE. Un segment ne commence qu'à un
+       instant OBSERVÉ — le premier clip d'une suite de clips portant la même
+       catégorie. La part qui précède le premier clip reste avouée, et
+       l'affichage DIT que cette frise vient des clips : ses bornes sont des
+       minorants, non des heures exactes. Une frise de clips ne se lit pas
+       comme une frise de chapitres, et elle ne doit pas en avoir l'air. */
+    const CLIPS_QUERY =
+      'query TseClips($login: String!, $n: Int!) {' +
+      '  user(login: $login) {' +
+      '    clips(first: $n, criteria: { period: LAST_DAY, sort: CREATED_AT_DESC }) {' +
+      '      edges { node { id createdAt game { name displayName } } }' +
+      '    }' +
+      '  }' +
+      '}';
+
+    /* Un refus du schéma est définitif pour la session : `criteria`, `period`
+       et `sort` sont reconstitués d'après ce que la page « Clips » de Twitch
+       demande, et n'ont pas pu être exécutés d'ici. Le premier refus ferme la
+       porte, et le rapport le dit. */
+    let clipsRefuse = false;
+
+    const segmentsDesClips = (aretes, debutStream) => {
+      if (!Array.isArray(aretes)) return null;
+      const points = [];
+      for (const a of aretes) {
+        const n = a?.node;
+        const jeu = n?.game?.name;
+        const t = Date.parse(n?.createdAt);
+        if (!jeu || !Number.isFinite(t) || t < debutStream) continue;
+        points.push({ jeu, libelle: n.game.displayName?.trim() || jeu, debut: t });
+      }
+      if (!points.length) return null;
+      points.sort((x, y) => x.debut - y.debut);
+      /* Une SUITE de clips portant la même catégorie ne fait qu'un segment,
+         qui commence au premier d'entre eux — le seul instant où l'on SAIT
+         que cette catégorie était en cours. */
+      const segments = [];
+      for (const p of points) {
+        const dernier = segments[segments.length - 1];
+        if (!dernier || dernier.jeu !== p.jeu) segments.push(p);
+      }
+      return segments;
+    };
+
+    const retenir = (streamId, segments, continu, source = null) => {
+      chapitres.set(streamId, { ts: Date.now(), segments, continu, source });
       return (segments || continu) ? chapitres.get(streamId) : null;
     };
 
@@ -8443,7 +8654,49 @@ const TSE_GATE_MAX_CLICKS = 5;
         }
       }
 
-      if (!vod) { bilanChapitres.sansVod++; return retenir(streamId, null, false); }
+      /* ── PAS D'ENREGISTREMENT : LA TROISIÈME PORTE ──────────────────────
+         Ni `archiveVideo` ni la liste des archives n'ont rendu le VOD de ce
+         live. La chaîne ne permet pas le replay, ou pas ce jour-là. Les clips
+         sont alors la seule trace publique de ce qu'elle diffusait, et ils ne
+         coûtent qu'une opération, une fois par stream, sur les chaînes qui
+         n'ont rien donné par ailleurs. */
+      if (!vod) {
+        bilanChapitres.sansVod++;
+        if (clipsRefuse) return retenir(streamId, null, false);
+        bilanChapitres.clips++;
+        const res3 = await post([{
+          operationName: 'TseClips',
+          variables: { login, n: CFG.CATEGORY_TRAIL_CLIPS },
+          query: CLIPS_QUERY
+        }]);
+        if (isResultsUnusable(res3)) {
+          bilanChapitres.clipsErreur++;
+          /* Réseau ou schéma, on ne peut pas les distinguer ici — `post` les
+             replie sur la même sentinelle. On ne ferme donc PAS la porte sur
+             un seul échec : `clipsErreur` le dira, et le rapport tranchera.
+             Fermer sur une coupure priverait la session entière d'une source
+             qui marche peut-être très bien. */
+          return retenir(streamId, null, false);
+        }
+        const aretes = res3?.[0]?.data?.user?.clips?.edges;
+        if (!Array.isArray(aretes)) {
+          bilanChapitres.clipsRefus++;
+          // Écriture après `await`, et `true` est absorbant : un schéma qui
+          // refuse cette requête ne l'acceptera pas au survol suivant.
+          // eslint-disable-next-line require-atomic-updates
+          clipsRefuse = true;      // le schéma ne connaît pas cette requête
+          return retenir(streamId, null, false);
+        }
+        const segClips = segmentsDesClips(aretes, debutStream);
+        if (!segClips) {
+          /* Des clips, mais aucun pendant CE live : ils datent d'avant. La
+             chaîne en a, ils ne nous apprennent simplement rien ici. */
+          bilanChapitres.clipsHorsSujet++;
+          return retenir(streamId, null, false);
+        }
+        bilanChapitres.clipsServis++;
+        return retenir(streamId, segClips, false, 'clips');
+      }
 
       const { segments, aretes } = segmentsDuVod(vod, debutStream);
       if (segments) { bilanChapitres.servis++; return retenir(streamId, segments, false); }
@@ -9083,6 +9336,20 @@ const TSE_GATE_MAX_CLICKS = 5;
       const titre = document.createElement('p');
       titre.className = 'tse-preview__frise-titre';
       titre.textContent = S.uiTrailTitle;
+      /* ── LA FRISE DE CLIPS SE PRÉSENTE AUTREMENT, ET C'EST NÉCESSAIRE ────
+         Ses bornes ne sont pas des heures : ce sont les instants où un clip
+         PROUVE qu'une catégorie était en cours. Le début réel de chaque
+         segment est antérieur, d'autant que les clips sont espacés. La
+         présenter comme une frise de chapitres — mêmes traits, même
+         assurance — reviendrait à faire passer des minorants pour des
+         mesures. La mention le dit, en petit et à sa place. */
+      if (f.source === 'clips') {
+        const src = document.createElement('span');
+        src.className = 'tse-preview__frise-source';
+        src.textContent = S.uiTrailFromClips;
+        titre.appendChild(src);
+        bloc.classList.add('tse-preview__frise--clips');
+      }
       bloc.appendChild(titre);
 
       const couleurs = couleursFrise(f.segments);
@@ -9103,7 +9370,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       // Dans l'ordre du temps : ce qu'on n'a pas vu, ce qu'on a laissé
       // tomber, puis ce qu'on a gardé.
       if (f.inconnuMs) {
-        liste.appendChild(friseLigne(S.uiTrailUnseen, formatDuree(f.inconnuMs), null, 'inconnu'));
+        /* « non observé » dit ce que NOUS n'avons pas vu. Sur une frise de
+           clips ce n'est pas la bonne phrase : la part en tête n'est pas
+           celle qu'on a manquée, c'est celle qu'aucun clip ne couvre. */
+        liste.appendChild(friseLigne(
+          f.source === 'clips' ? S.uiTrailBeforeClip : S.uiTrailUnseen,
+          formatDuree(f.inconnuMs), null, 'inconnu'));
       }
       if (f.tronquee) {
         liste.appendChild(friseLigne(S.uiTrailTruncated, '', null, 'inconnu'));
@@ -10595,8 +10867,14 @@ const TSE_GATE_MAX_CLICKS = 5;
   }
 
   // Comparateur : nombre de streamers décroissant, puis alpha (rendu stable).
+  /* UNE VALEUR ABSENTE VAUT ZÉRO, ET NON `undefined`. Depuis que les
+     compteurs se restreignent à la catégorie choisie, une langue peut n'avoir
+     AUCUNE mesure — `Map.get` rend alors `undefined`, dont la soustraction
+     vaut NaN. Un comparateur qui rend NaN ne trie pas : il laisse l'ordre à la
+     discrétion du moteur, et les langues sans chiffre remontaient au-dessus de
+     l'anglais à 130 k. Un utilisateur l'a vu avant le banc. */
   const byCountDesc = (counts) => (a, b) =>
-    (counts.get(b) - counts.get(a)) || a.localeCompare(b, S.locale);
+    ((counts.get(b) || 0) - (counts.get(a) || 0)) || a.localeCompare(b, S.locale);
 
   /**
    * Reconstruit un dropdown personnalisé (catégorie ou langue) :
@@ -10744,7 +11022,7 @@ const TSE_GATE_MAX_CLICKS = 5;
          sens-là seulement : « combien de spectateurs francophones sur cette
          catégorie ». Un chiffre ne peut pas griser un menu. */
       const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX);
-      const catCount = new Map(cats.map(c => [c.name, c.viewers]));
+      const catCount = globalChannels.catCounts(state.languageFilter || null);
       // `c.name` est l'identité — c'est elle que TseCategoryTop interrogera —
       // et `c.display` le nom traduit, que TseCategories sert déjà et que rien
       // n'affichait encore.
@@ -10763,8 +11041,20 @@ const TSE_GATE_MAX_CLICKS = 5;
         ? state.languageFilter : null;
       state.languageFilter = Lg;
 
-      rebuildDropdown(catDD, cats.map(c => c.name), catCount,
-                      state.categoryFilter, cats.length === 0, 'cat', formatViewers,
+      /* L'ORDRE SUIT LES CHIFFRES AFFICHÉS, comme côté langue. Sous une
+         langue, le classement mondial n'est plus celui qu'on montre : garder
+         l'ordre du monde mettrait en tête des catégories où cette langue ne
+         pèse rien. Les catégories sans mesure passent derrière, à leur rang
+         mondial relatif — elles ne sont pas vides, elles sont inconnues. */
+      const catNoms = state.languageFilter
+        ? cats.map(c => c.name).sort(byCountDesc(catCount))
+        : cats.map(c => c.name);
+      rebuildDropdown(catDD, catNoms, catCount,
+                      state.categoryFilter, cats.length === 0, 'cat',
+                      // Même règle que côté langue : un zéro non mesuré ne
+                      // s'écrit pas. Sous le globe la question ne se pose pas,
+                      // Twitch donnant un total pour chaque catégorie.
+                      (n) => (n > 0 ? formatViewers(n) : ''),
                       (v) => catLabel.get(v) || v);
       rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
                       langCount, Lg, langsPresent.size === 0, 'lang',

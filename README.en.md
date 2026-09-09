@@ -1971,6 +1971,76 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## The third door: clips (v3.83)
+
+A quarter of hovers have **no recording at all**: nineteen channels out of
+seventy-seven in one report, five of them with no archive whatsoever and
+fourteen whose most recent one dated from eight hours to seventeen days before
+the live. Those channels do not allow replays; their past exists nowhere as a
+VOD.
+
+**Everything an anonymous query can reach was surveyed**: `archiveVideo` (first
+door), `videos(type: ARCHIVE)` (second), the `HIGHLIGHT` and `UPLOAD` types —
+which *derive* from a VOD and are therefore missing exactly where it is missing
+— and `broadcastSettings`, which only tells the present. Clips are the only
+public trace of what a channel was streaming at a past moment.
+
+### What a clip proves, and what it does not
+
+It carries its date and its category: "at 19:42 she was on Hades II" is an
+**observation**, exactly like ours. But two clips say nothing about the interval
+between them. Placing a switch at a clip's timestamp would be inventing.
+
+Hence a narrow rule: **a segment only starts at an observed instant** — the
+first clip of a run of clips carrying the same category. Never earlier.
+
+### And it does not present itself like the others
+
+| | chapter trail | clip trail |
+| --- | --- | --- |
+| where bounds come from | Twitch, to the second | a clip, so a **lower bound** |
+| head of the trail | the live's start | "before the first clip", measured |
+| mention | none | *from clips* |
+| bar | solid | diagonally hatched |
+
+The hatching reuses the visual vocabulary already used for the unknown part:
+same idea, same stroke. A clip trail does not read like a chapter trail, and it
+must not look like one.
+
+The bench holds it both ways: making the first segment start at the live's
+beginning — the invention the rule refuses — drops three assertions, including
+the one that names the head.
+
+## The two filters finally answer each other (v3.83)
+
+Three reports, on the same screenshot, and three distinct faults.
+
+**The sort.** Languages with no figure floated above English at 130 k.
+`Map.get` returns `undefined` for an unmeasured language, and
+`undefined - 130100` is `NaN`: a comparator returning NaN does not sort, it
+leaves the order to the engine. A missing value now counts as zero, and the
+figured languages lead, descending.
+
+**The symmetry.** The language menu followed the chosen category; the reverse
+was not true — French flag, and "Just Chatting 400 k", the whole world's figure
+under a filter showing only a slice of it. The category menu's counts now follow
+the language, and their **order** with them. The *list* still does not move:
+that is 3.80's lesson, where tying it to the filter emptied and then greyed it.
+
+**What a selection teaches.** The world pool does not reach far down in a small
+language: on "Grand Theft Auto V" it knows English, French and German, and
+nothing Czech. So the menu showed no figure beside the Czech flag — and picking
+it revealed **two** channels. We had them; we were not keeping them.
+
+A scope pass run in a language measures exactly that pair: "Czech on GTA V
+weighs this much". It is kept, bounded to three hundred pairs and expiring after
+ten minutes — an audience from a quarter of an hour ago no longer describes
+anything. The menu therefore grows richer from what we actually asked for, with
+no extra request.
+
+**And zero is still not written**, on either side: a category or a language the
+pool has not met is not empty, it is *unknown*.
+
 ## Two menus that should not have been tied together (v3.82)
 
 3.80 made the **category** list depend on the chosen language, so its counts
@@ -2522,7 +2592,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 85 scenarios, 773 assertions |
+| `npm test` | the Playwright harness: 87 scenarios, 788 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -2542,12 +2612,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 696 KB | 306 KB | 2,910 → **2** |
+| `content.js` | 713 KB | 312 KB | 2,941 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 35 KB | 20 KB | 39 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **875 KB** | **431 KB** | **−51 %** |
+| **all five** | **891 KB** | **436 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
