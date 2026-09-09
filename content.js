@@ -1092,7 +1092,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     GLOBAL_STREAMS_MAX:      30,
 
-    GLOBAL_TAG_MAX:          100,
+    GLOBAL_TAG_MAX:          30,
 
     GLOBAL_BATCH_OPS:        20,
 
@@ -2624,7 +2624,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       categories   = cats;
       categoriesTs = started;
 
-      if (wl?.lang && !tagRefuse) {
+      if (wl?.lang && !tagRefuse && CFG.GLOBAL_TOP_N <= CFG.GLOBAL_TAG_MAX) {
         const parTag = await tagTop(wl.lang);
         if (gen !== walkGen) return { ok: true, complete: false };
         if (parTag) {
