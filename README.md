@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 706 Ko | 310 Ko | 2 944 → **2** |
+| `content.js` | 696 Ko | 306 Ko | 2 910 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **885 Ko** | **435 Ko** | **−51 %** |
+| **les cinq** | **875 Ko** | **431 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2531,6 +2531,72 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## Deux menus qu'il ne fallait pas lier (v3.82)
+
+La 3.80 avait fait dépendre la liste des **catégories** de la langue choisie,
+pour que ses compteurs suivent la langue. La source de cette liste — une
+requête à Twitch qui s'est révélée inexistante, voir ci-dessous — rendait des
+listes **vides**. Le menu catégorie se vidait donc avec elle et se grisait :
+
+> choisir une langue rendait la catégorie inchoisissable, et choisir la
+> catégorie d'abord la voyait se griser dès qu'on ajoutait une langue.
+
+Les deux filtres doivent se poser dans **n'importe quel ordre**. La liste des
+catégories est donc de nouveau, et définitivement, celle du monde. Ce qui
+dépend de l'autre filtre est le **chiffre** du menu langue, et dans ce sens-là
+seulement — un chiffre ne peut pas griser un menu.
+
+## `games(options: {…})` : deux noms, deux refus, et la conclusion (v3.82)
+
+L'idée était de demander à Twitch les catégories d'une langue pour en tirer
+d'un coup l'audience de la langue et les compteurs du menu catégorie. Deux noms
+d'argument ont été essayés, et les deux rapports sont sans appel :
+
+| nom essayé | réponse de Twitch | ce qu'elle apprend |
+| --- | --- | --- |
+| `freeformTags` | `In field "freeformTags": Unknown field.` | le type d'entrée de `games` n'a pas ce champ |
+| `tags` | accepté, **31 listes vides** | le champ existe, mais n'attend pas un nom de langue |
+
+Que `streams` accepte `freeformTags` ne prouvait rien : deux connexions du même
+schéma ne partagent pas leurs options. Et `tags` attend selon toute
+vraisemblance des **identifiants** de tag, que nous n'avons pas et qu'il
+faudrait aller chercher par une troisième requête, elle aussi devinée.
+
+**On s'arrête là, et pas par lassitude : la donnée était déjà dans la maison.**
+La marche mondiale récolte ~1 700 streams portant chacun son nombre de
+spectateurs **et** ses tags de langue — la même réponse les apporte. Les sommer
+donne exactement « le nombre total de spectateurs francophones », mesuré et
+sans une requête de plus. Les trente et une opérations par TTL disparaissent
+avec la voie qu'elles servaient.
+
+Ce que cette somme n'est pas : le total de Twitch. C'est celui du **haut du
+classement**, là où se trouve l'immense majorité de l'audience. La nuance est
+dite ici plutôt que masquée par un chiffre qui aurait l'air officiel.
+
+## Des spectateurs, et non des chaînes (v3.82)
+
+Le menu langue comptait des **chaînes** : « 212 » voulait dire « 212 chaînes
+francophones dans ce qu'on a récolté ». À côté, le menu catégorie affiche une
+**audience**. Deux unités voisines, dont une seule répond à la question qu'on se
+pose en ouvrant le menu.
+
+Il compte désormais des spectateurs, et **la catégorie choisie porte le
+compte** : « combien de spectateurs francophones sur cette catégorie ». Sans
+catégorie, c'est le monde entier.
+
+Deux précautions, et le banc tient les deux :
+
+- **les options viennent du monde, les compteurs de la catégorie.** Les
+  confondre coûte le filtre : une catégorie dont les trente plus grosses
+  chaînes sont anglaises cesserait de *proposer* le français, alors que la
+  requête en langue, elle, en trouve. Écrit d'abord dans l'autre sens, et pris
+  par le banc dans la minute ;
+- **zéro ne s'écrit pas.** Une langue que le pool n'a pas croisée dans cette
+  catégorie n'y a pas forcément personne : notre échantillon s'arrête au
+  sommet. Écrire « 0 » découragerait un choix qui, lui, part interroger l'API
+  et peut très bien trouver du monde. Rien du tout se lit « on ne sait pas », et
+  c'est la vérité.
+
 ## `freeformTags` sur `games` : le mot qui n'existe pas (v3.81)
 
 La 3.80 demandait les catégories d'une langue avec
@@ -3037,7 +3103,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 86 scénarios, 782 assertions |
+| `npm test` | le harnais Playwright : 85 scénarios, 773 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

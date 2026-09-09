@@ -1673,35 +1673,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     // (vérifié : 100 reçus, décroissants). C'est la colonne vertébrale de
     // tout le module — et accessoirement la source du filtre catégorie.
     GLOBAL_CATEGORIES_MAX:   100,
-    /* === L'AUDIENCE PAR LANGUE === (v3.80)
-       Le filtre langue affichait un DÉCOMPTE DE NOTRE POOL : « 212 », le
-       nombre de chaînes de cette langue parmi les ~1 900 qu'on avait
-       récoltées. Un nombre vrai, mais qui ne parle que de nous. À côté, le
-       filtre catégorie affiche l'audience réelle que Twitch publie. Deux
-       unités dans deux menus voisins, dont une seule décrit Twitch.
-
-       On demande donc à Twitch la même chose pour les langues que pour les
-       catégories : `games(options: { freeformTags: [langue] })`, c'est-à-dire
-       les catégories PORTÉES par cette langue avec leur audience. Cette
-       réponse sert deux besoins d'un coup — la somme donne l'audience de la
-       langue, la liste donne les compteurs du filtre catégorie quand cette
-       langue est choisie.
-
-       CADENCE. Une opération par langue, loties par `send`, une fois par
-       TTL et seulement en mode Top Chaînes. C'est le prix d'un menu juste ;
-       il se paie une fois toutes les cinq minutes, pas à chaque scan. */
-    GLOBAL_LANG_CATS_MAX:    100,
-    GLOBAL_LANG_CATS_TTL:    5 * 60_000,
-    /* La garde qui décide si ces chiffres sont AFFICHABLES. Voir `porteeLang`
-       dans le module : rien ne prouvait que `freeformTags` porte les COMPTEURS
-       sur la langue plutôt que de seulement choisir les catégories rendues.
-       Si les compteurs n'étaient pas portés, la somme d'une langue vaudrait
-       l'audience mondiale — et l'on afficherait « Català : 2,1 M ». La somme
-       de toutes les langues est donc comparée au total mondial : portée, elle
-       le vaut à peu près ; non portée, elle le vaut TRENTE FOIS. Ce facteur
-       tranche entre 1 et 31, et ce seuil est au milieu de nulle part, là où
-       aucune dérive de mesure ne peut le franchir. */
-    GLOBAL_LANG_PORTEE_MAX:  2,
     // Catégories de tête interrogées à chaque passe structurelle : elles
     // portent l'essentiel du top N, et les re-lire à chaque cycle évite
     // d'attendre la marche complète pour voir une chaîne grimper CHEZ ELLES.
@@ -4438,205 +4409,39 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     /* ══════════════════════════════════════════════════════════════════════
-       L'AUDIENCE PAR LANGUE, ET LES CATÉGORIES QU'ELLE PORTE
+       L'AUDIENCE PAR LANGUE — CE QUE TWITCH NE VEUT PAS DIRE, ET CE QU'ON SAIT
        ──────────────────────────────────────────────────────────────────────
-       Même requête que la liste des catégories, avec le filtre de tag qui a
-       fait ses preuves sur `streams`. Elle rend, pour une langue, ses
-       catégories classées par audience — d'où DEUX renseignements que
-       l'interface demandait séparément :
-         — la SOMME, c'est-à-dire l'audience de cette langue, à afficher à
-           côté de son drapeau ;
-         — la LISTE, c'est-à-dire les compteurs du filtre catégorie quand
-           cette langue est choisie (le globe garde les totaux mondiaux).
+       DEUX VERSIONS ONT CHERCHÉ ICI UNE REQUÊTE QUI N'EXISTE PAS, et le
+       chemin mérite d'être écrit parce qu'il conclut.
 
-       CE QUI N'EST PAS ACQUIS, ET QUI SE VÉRIFIE PLUS BAS. Que le filtre soit
-       accepté ne dit pas que les COMPTEURS soient portés par la langue : il
-       se pourrait qu'il choisisse seulement quelles catégories reviennent, en
-       laissant à chacune son audience mondiale. On afficherait alors
-       « Català : 2,1 M ». C'est `porteeLang` qui tranche — voir plus bas ; en
-       attendant, rien n'est affiché. */
-    /* ── LE NOM DE L'ARGUMENT, APPRIS À L'USAGE ────────────────────────────
-       La 3.80 avait écrit `freeformTags`, par analogie avec `streams` où il
-       fonctionne. Twitch a répondu :
+       L'idée était de demander à Twitch les catégories d'une langue —
+       `games(options: { … })` avec un filtre de tag — pour en tirer d'un coup
+       l'audience de la langue et les compteurs du menu catégorie. Deux noms
+       d'argument ont été essayés, et les deux rapports sont sans appel :
 
-         Argument "options" has invalid value {sort: VIEWER_COUNT,
-         freeformTags: [$tag]}. In field "freeformTags": Unknown field.
+         `freeformTags` → « In field "freeformTags": Unknown field. »
+                          Le type d'entrée de `games` n'a pas ce champ. Que
+                          `streams` l'accepte ne prouvait rien : deux
+                          connexions du même schéma ne partagent pas leurs
+                          options.
+         `tags`         → accepté, et TRENTE ET UNE listes vides. Le champ
+                          existe donc, mais il n'attend pas un nom de langue —
+                          selon toute vraisemblance des identifiants de tag,
+                          que nous n'avons pas et qu'il faudrait aller
+                          chercher par une troisième requête, elle aussi
+                          devinée.
 
-       Et cette erreur ne dit pas la même chose que celle du plafond `first`.
-       Là, la valeur d'un argument reconnu était hors bornes — donc le nom
-       était bon. Ici l'erreur porte sur le NOM : le type d'entrée de `games`
-       n'a pas ce champ. Deux connexions du même schéma ne partagent pas leurs
-       options, et l'analogie était une supposition, pas un raisonnement.
+       ON S'ARRÊTE LÀ, et pas par lassitude : la donnée demandée est DÉJÀ dans
+       la maison. La marche mondiale récolte ~1 700 streams avec, pour chacun,
+       son nombre de spectateurs ET ses tags de langue. Sommer les premiers
+       par les seconds donne exactement « le nombre total de spectateurs
+       francophones » — mesuré, pas deviné, et sans une requête de plus.
 
-       D'où une LISTE de candidats plutôt qu'un nom en dur, et surtout une
-       sonde : on essaie sur UNE langue avant de partir sur les trente et une.
-       Un nom faux coûte désormais une opération, pas trente et une, et le
-       rapport dit lequel a été essayé. `freeformTags` est retiré de la liste —
-       il est réfuté, le réessayer serait brûler une sonde pour rien. */
-    const LANG_CATS_ARGS = ['tags'];
-    let langCatsArg = 0;
-
-    const langCatsQuery = (arg) =>
-      'query TseLangCats($tag: String!, $n: Int!) {' +
-      '  games(first: $n, options: { sort: VIEWER_COUNT, ' + arg + ': [$tag] }) {' +
-      '    edges { node { id name displayName viewersCount } }' +
-      '  }' +
-      '}';
-
-    /* La langue de la sonde. L'anglais parce qu'il a forcément des catégories :
-       une réponse VIDE devient alors un renseignement — le champ existe, mais
-       il n'attend pas un nom de tag — au lieu d'être ambiguë. */
-    const LANG_CATS_SONDE = 'English';
-
-    const bilanLangCats = { demandes: 0, servis: 0, vides: 0, refus: 0, reseau: 0 };
-    /* null tant qu'on n'a pas de quoi trancher, puis true/false — et jamais
-       revisité à la légère : le rapport porte le facteur mesuré, qui vaut
-       explication à lui seul. */
-    let porteeLang = null;
-    let porteeFacteur = null;
-    let langCatsRefuse = false;
-    let langCatsTs = 0;
-    let langCatsEnCours = false;
-    const langCats = new Map();     // langue → [{ name, display, viewers }]
-    // L'audience par langue, sommée à l'arrivée des données. `null` tant
-    // qu'il n'y a rien : c'est ce que `langAudience()` rend, et l'interface
-    // le lit comme « on ne sait pas ».
-    let langAudienceMap = null;
-
-    const opLangCats = (l) => ({
-      operationName: 'TseLangCats',
-      variables: { tag: l, n: CFG.GLOBAL_LANG_CATS_MAX },
-      query: langCatsQuery(LANG_CATS_ARGS[langCatsArg])
-    });
-
-    /* ── LA SONDE : UNE OPÉRATION POUR SAVOIR SI LES TRENTE VALENT LA PEINE ──
-       Tant qu'aucune réponse n'a été comprise, on ne demande qu'UNE langue.
-       Un nom d'argument faux coûte alors une opération, et le candidat suivant
-       est essayé au prochain tour. C'est la leçon de la 3.80, qui a dépensé
-       trente et une opérations pour apprendre un mot. */
-    const sonderLangCats = async () => {
-      bilanLangCats.demandes += 1;
-      const { out, transport } = await send([opLangCats(LANG_CATS_SONDE)]);
-      if (Array.isArray(out?.[0]?.games?.edges)) return true;
-      if (transport) { bilanLangCats.reseau++; return false; }
-      bilanLangCats.refus++;
-      /* Candidat réfuté PAR LE SERVEUR. On passe au suivant ; s'il n'y en a
-         plus, la voie est close pour la session — insister n'apprendrait
-         rien de neuf, un nom de champ ne devient pas valide en cours de route. */
-      langCatsArg++;
-      if (langCatsArg >= LANG_CATS_ARGS.length) langCatsRefuse = true;
-      return false;
-    };
-
-    const majLangCats = async (langues) => {
-      if (langCatsEnCours || langCatsRefuse) return;
-      langCatsEnCours = true;
-      try {
-        /* La sonde ne s'exécute que tant qu'aucune réponse n'a été comprise.
-           Elle échoue en silence : `langCatsTs` reste à zéro, donc le TTL
-           laissera repartir une sonde — une seule opération — à la marche
-           suivante, avec le candidat suivant s'il y en a un. */
-        if (!langCatsTs && !(await sonderLangCats())) return;
-        const ops = langues.map(opLangCats);
-        bilanLangCats.demandes += ops.length;
-        const { out, transport } = await send(ops);
-        /* `repondus` N'EST PAS `servis`, et les confondre coûterait la
-           requête. Les compteurs du rapport sont EXCLUSIFS — une langue est
-           servie, ou vide, ou refusée, ou perdue — si bien que `servis` ne
-           compte que les listes NON VIDES. Or une langue sans la moindre
-           catégorie est une réponse parfaitement valide : s'en servir pour
-           décider d'un refus de schéma condamnerait la requête le jour où
-           l'on interroge trente langues confidentielles. On compte donc à
-           part ce qui a été COMPRIS, vide ou non. */
-        let repondus = 0;
-        const frais = new Map();
-        out.forEach((d, i) => {
-          const edges = d?.games?.edges;
-          if (!Array.isArray(edges)) {
-            if (transport) bilanLangCats.reseau++;
-            else bilanLangCats.refus++;
-            return;
-          }
-          repondus++;
-          const liste = [];
-          for (const e of edges) {
-            const n = e?.node;
-            if (!n?.name || !Number.isFinite(n.viewersCount)) continue;
-            liste.push({ name: n.name,
-                         display: n.displayName?.trim() || n.name,
-                         viewers: n.viewersCount });
-          }
-          /* UNE LANGUE SANS CATÉGORIE EST MÉMORISÉE, ET C'EST TOUT LE POINT.
-             « Elle n'a aucun stream » et « nous n'avons pas pu demander » sont
-             deux choses que le menu ne doit pas confondre : la première
-             s'affiche « 0 », la seconde ne s'affiche pas du tout. En ne
-             gardant que les listes non vides, une langue dont l'opération
-             s'était perdue en route aurait porté un « 0 » aussi faux
-             qu'affirmatif. On garde donc la liste vide comme une réponse. */
-          if (!liste.length) { bilanLangCats.vides++; frais.set(langues[i], []); return; }
-          bilanLangCats.servis++;
-          liste.sort((a, b) => b.viewers - a.viewers);
-          frais.set(langues[i], liste);
-        });
-        /* UN REFUS DU SCHÉMA EST DÉFINITIF POUR LA SESSION, une coupure ne
-           l'est pas — même règle que la voie du tag. `refus` n'est incrémenté
-           que hors transport, donc il ne peut pas venir d'une perte de
-           connexion. Aucune opération comprise et aucun incident réseau :
-           c'est le schéma. */
-        // Deux écritures après un `await`, et le linter a raison de les
-        // pointer. Elles sont sûres ici parce que `langCatsEnCours` interdit
-        // une seconde exécution concurrente, et parce que la valeur écrite ne
-        // dépend pas de celle qu'on a lue : `true` est absorbant, un refus de
-        // schéma ne se dé-refuse pas.
-        // eslint-disable-next-line require-atomic-updates
-        if (!repondus && !transport && ops.length) { langCatsRefuse = true; return; }
-        /* L'HORODATAGE MARQUE LA TENTATIVE, PAS LA RÉUSSITE — et c'est le banc
-           qui l'a imposé. En le posant seulement sur des données utiles, un
-           serveur qui rend trente et une listes vides faisait repartir les
-           trente et une opérations à CHAQUE marche, indéfiniment. Une réponse
-           comprise, fût-elle vide, est une réponse : elle vaut son TTL. Une
-           coupure réseau, elle, n'apprend rien et ne retarde donc rien. */
-        // Écriture après `await`, protégée par `langCatsEnCours` comme les
-        // deux autres : un seul passage peut être ici à la fois.
-        // eslint-disable-next-line require-atomic-updates
-        if (!transport) langCatsTs = Date.now();
-        if (!frais.size) return;
-
-        /* ── LA GARDE : CES CHIFFRES SONT-ILS PORTÉS PAR LA LANGUE ? ────────
-           On ne peut pas comparer catégorie par catégorie : les audiences
-           bougent à la seconde, et la liste mondiale n'a pas été relevée au
-           même instant. Un écart y serait donc la règle, portée ou non.
-
-           On compare des SOMMES, ce que la dérive ne peut pas fausser. Chaque
-           spectateur regarde un stream, et un stream porte sa langue : la
-           somme des audiences par langue vaut donc à peu près l'audience
-           mondiale. Si le filtre ne portait PAS les compteurs, chaque langue
-           rendrait l'audience mondiale, et la somme la vaudrait autant de
-           fois qu'il y a de langues. Le verdict se joue entre 1 et 31 ; le
-           seuil est posé à 2, au large des deux. */
-        const mondiale = categories.reduce((n, c) => n + (c.viewers || 0), 0);
-        if (mondiale > 0) {
-          let somme = 0;
-          for (const liste of frais.values()) {
-            somme += liste.reduce((n, c) => n + c.viewers, 0);
-          }
-          porteeFacteur = Math.round((somme / mondiale) * 100) / 100;
-          porteeLang = porteeFacteur <= CFG.GLOBAL_LANG_PORTEE_MAX;
-        }
-        langCats.clear();
-        for (const [l, liste] of frais) langCats.set(l, liste);
-        const audience = new Map();
-        for (const [l, liste] of langCats) {
-          audience.set(l, liste.reduce((n, c) => n + c.viewers, 0));
-        }
-        langAudienceMap = audience.size ? audience : null;
-      } finally {
-        // Même raison qu'au-dessus : c'est CE passage qui a posé le drapeau à
-        // l'entrée, et lui seul peut le retirer.
-        // eslint-disable-next-line require-atomic-updates
-        langCatsEnCours = false;
-      }
-    };
+       Ce que cette somme n'est pas : le total de Twitch. C'est celui du haut
+       du classement, là où se trouve l'immense majorité de l'audience. La
+       nuance est réelle et elle est dite ici plutôt que masquée par un chiffre
+       qui aurait l'air officiel.
+       ══════════════════════════════════════════════════════════════════════ */
 
     /* Une marche mondiale a-t-elle abouti, ne serait-ce qu'une fois ? Ce
        n'est pas la même question que « le classement est-il vide » : avant
@@ -4672,16 +4477,6 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!cats) return { ok: false, complete: false };
       categories   = cats;
       categoriesTs = started;
-
-      /* L'audience par langue, rafraîchie ici parce que c'est ici qu'on tient
-         la liste mondiale dont sa garde a besoin — et LANCÉE SANS ATTENDRE.
-         Trente et une opérations pour peupler un menu ne doivent pas retarder
-         d'une seconde le classement, qui est ce que l'utilisateur regarde. Le
-         menu se remplira au scan suivant ; jusque-là il montre ce qu'il
-         montrait avant. */
-      if (!langCatsRefuse && Date.now() - langCatsTs > CFG.GLOBAL_LANG_CATS_TTL) {
-        majLangCats([...LANG_SET]).catch(() => {});
-      }
 
       /* ── LA VOIE DU TAG, ESSAYÉE EN PREMIER ─────────────────────────────
          Une requête au lieu d'une descente, et un signal plus juste (cf. le
@@ -5149,42 +4944,71 @@ const TSE_GATE_MAX_CLICKS = 5;
       //
       // Repli sur la portée tant que la marche mondiale n'a rien produit —
       // au premier scan, mieux vaut une liste courte que pas de liste.
-      langs() {
-        const m = new Map();
-        const src = allLangPool.length ? allLangPool
+      /* ── DES SPECTATEURS, ET NON DES CHAÎNES ────────────────────────────
+         Ce menu comptait des CHAÎNES : « 212 » voulait dire « 212 chaînes
+         francophones dans ce qu'on a récolté ». À côté, le menu catégorie
+         affiche une AUDIENCE. Deux unités dans deux menus voisins, dont une
+         seule répondait à la question qu'on se pose en les ouvrant.
+
+         On somme donc les spectateurs, par tag de langue. Chaque
+         enregistrement du pool porte les deux — c'est la même réponse qui les
+         a apportés — et la somme ne coûte donc aucune requête.
+
+         PORTÉE PAR LA CATÉGORIE CHOISIE, parce que c'est ce qu'on veut savoir
+         en croisant les deux filtres : « combien de spectateurs francophones
+         sur cette catégorie ». Sans catégorie, c'est le monde entier.
+
+         D'OÙ VIENT LA SOURCE, ET POURQUOI PAS TOUJOURS LA PORTÉE. Le
+         classement de portée est récolté EN LANGUE dès qu'une langue est
+         choisie : y compter les langues rendrait zéro pour toutes les autres,
+         par construction. On ne s'en sert donc que lorsqu'il est toutes
+         langues, et l'on retombe sinon sur le pool mondial filtré par jeu —
+         moins profond sur une petite catégorie, mais jamais faux. */
+      langs(categorie = null) {
+        const monde = allLangPool.length ? allLangPool
           : (ranking.length ? ranking : this.base());
-        for (const r of src) {
+        /* DEUX SORTIES, ET LES CONFONDRE COÛTE LE FILTRE. La première
+           rédaction n'en rendait qu'une, et le banc l'a prise dans la minute :
+           une catégorie dont les trente plus grosses chaînes sont anglaises
+           ne PROPOSAIT plus le français, alors que la requête en langue, elle,
+           en trouve. Les OPTIONS se calculent donc sur le monde — c'est ce qui
+           rend le filtre utilisable — et seuls les COMPTEURS se restreignent à
+           la catégorie choisie. */
+        const toutes = new Map();
+        const compte = new Map();
+        /* La portée n'est employée que si elle est TOUTES LANGUES : récoltée
+           en langue, elle rendrait zéro pour toutes les autres, par
+           construction. Sinon on filtre le pool mondial par jeu — moins
+           profond sur une petite catégorie, mais jamais faux. */
+        const portee = categorie
+          && scope && !scopeLangApplied && wantedScope()?.name === categorie
+          ? scopeRanking : null;
+        for (const r of monde) {
           for (const t of r.tags) {
-            if (LANG_SET.has(t)) m.set(t, (m.get(t) || 0) + 1);
+            if (!LANG_SET.has(t)) continue;
+            toutes.set(t, (toutes.get(t) || 0) + (r.viewers || 0));
+            if (categorie && !portee && r.game === categorie) {
+              compte.set(t, (compte.get(t) || 0) + (r.viewers || 0));
+            }
           }
         }
-        return m;
-      },
-      /* L'AUDIENCE PAR LANGUE, ou null tant qu'on ne peut pas l'affirmer.
-         Null couvre trois cas qui se valent du point de vue de l'affichage —
-         schéma refusé, rien encore reçu, compteurs non portés par la langue —
-         et dans les trois l'interface retombe sur le décompte de pool
-         d'aujourd'hui. Ce qu'on ne peut pas affirmer, on ne l'affiche pas. */
-      /* CALCULÉE UNE FOIS, PAS À CHAQUE SCAN. Écrite d'abord en sommant les
-         trente et une listes à chaque appel — soit jusqu'à trois mille
-         additions par passe de `recomputeFilters`, laquelle tourne à chaque
-         mutation du DOM de Twitch. Pour un menu qui ne change qu'une fois
-         toutes les cinq minutes. La somme est donc faite là où la donnée
-         arrive, et relue telle quelle ici. */
-      langAudience() {
-        return porteeLang === true ? langAudienceMap : null;
-      },
-      // Top des catégories, avec leur audience. Alimentera le filtre
-      // catégorie du mode global (« 523k | Dota 2 »).
-      // `lang` demande les catégories PORTÉES par cette langue, avec leur
-      // audience dans cette langue — c'est ce que le filtre catégorie doit
-      // montrer quand une langue est choisie. Sans langue, ou sans données
-      // sûres, on rend la liste mondiale : le globe, c'est-à-dire les totaux.
-      cats(n = CFG.GLOBAL_CATEGORIES_MAX, lang = null) {
-        if (lang && porteeLang === true) {
-          const liste = langCats.get(lang);
-          if (liste) return liste.slice(0, n);
+        if (portee) {
+          for (const r of portee) {
+            for (const t of r.tags) {
+              if (LANG_SET.has(t)) compte.set(t, (compte.get(t) || 0) + (r.viewers || 0));
+            }
+          }
         }
+        return { toutes, compte: categorie ? compte : toutes };
+      },
+      /* Top des catégories, avec leur audience — celle de Twitch, tous
+         parlers confondus. Le menu catégorie ne dépend d'AUCUN filtre de
+         langue, et c'est délibéré depuis qu'une version l'a essayé : lorsque
+         la liste par langue revenait vide, ce menu se vidait avec elle et se
+         grisait, rendant la catégorie inchoisissable dès qu'une langue était
+         prise. Les deux filtres doivent pouvoir se poser dans n'importe quel
+         ordre ; les lier a coûté cette liberté-là. */
+      cats(n = CFG.GLOBAL_CATEGORIES_MAX) {
         return categories.slice(0, n);
       },
       /* ── « RIEN » ET « PAS ENCORE » NE SE RESSEMBLENT QUE DE LOIN ────────
@@ -5221,15 +5045,6 @@ const TSE_GATE_MAX_CLICKS = 5;
          langue disparaît du menu pour un cycle, au lieu d'y figurer avec un
          zéro qu'on n'a pas mesuré. En marche nominale, Twitch répond pour les
          trente et une et le menu les porte toutes. */
-      langsProposables() {
-        return this.langAudience() ? [...langCats.keys()] : null;
-      },
-      bilanLangues() {
-        return { ...bilanLangCats, refuse: langCatsRefuse, portee: porteeLang,
-                 facteur: porteeFacteur, connues: langCats.size,
-                 argument: LANG_CATS_ARGS[langCatsArg] || null,
-                 ageMs: langCatsTs ? Date.now() - langCatsTs : null };
-      },
       // Compteur frais venu de TseChannels. viewers === null → la chaîne
       // n'est plus en direct : on la retire du classement plutôt que de la
       // laisser figée sur sa dernière valeur connue.
@@ -5278,24 +5093,12 @@ const TSE_GATE_MAX_CLICKS = 5;
              si l'argument de filtre est le bon. Même dispositif que pour les
              chapitres de VOD, qui a tranché deux fois. */
           tags: { ...bilanTags, refuse: tagRefuse },
-          /* L'AUDIENCE PAR LANGUE, ET SURTOUT SON VERDICT DE PORTÉE.
-             `portee` est la seule ligne qui compte : true, les chiffres sont
-             affichés ; false, ils sont tus parce qu'ils décriraient le monde
-             et non la langue ; null, on n'a pas encore de quoi trancher.
-             `facteur` porte la mesure qui a servi à décider — proche de 1,
-             les compteurs sont portés ; proche du nombre de langues, ils ne
-             le sont pas. Sans lui, `portee: false` serait un verdict sans
-             motif, et le prochain rapport ne dirait pas s'il faut corriger le
-             seuil ou abandonner la requête. */
-          /* `argument` DIT CE QUI A ÉTÉ ESSAYÉ, et c'est le renseignement qui
-             manquait au rapport précédent : on y lisait « refus 31 » sans
-             savoir sur quel nom. Le message d'erreur le portait, mais rien ne
-             garantit qu'un rapport contienne le journal d'erreurs — il est
-             borné, et une session bavarde l'aurait chassé. */
-          langues: { ...bilanLangCats, refuse: langCatsRefuse,
-                     portee: porteeLang, facteur: porteeFacteur,
-                     connues: langCats.size,
-                     argument: LANG_CATS_ARGS[langCatsArg] || null },
+          /* L'AUDIENCE PAR LANGUE VIENT DÉSORMAIS DU POOL, et non d'une
+             requête : il n'y a donc plus de compteurs à publier ici. Ce que
+             deux versions ont appris est consigné dans le module — la voie
+             `games(options:{…})` n'existe pas sous les deux noms essayés — et
+             les chiffres du menu se lisent maintenant sur `pool`, juste
+             au-dessous. */
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -10928,42 +10731,55 @@ const TSE_GATE_MAX_CLICKS = 5;
              catégories DE CETTE LANGUE avec leur audience dans cette langue.
              Le globe rend les totaux mondiaux, qui sont ceux d'aujourd'hui.
          Sans elle, tout ce bloc se comporte exactement comme avant. */
-      const langAudience = globalChannels.langAudience();
-      // La sélection n'est PAS validée contre les catégories connues : la
-      // liste peut être vide au tout premier scan, et invalider le choix de
-      // l'utilisateur à cet instant le lui ferait perdre sans raison.
-      /* UN SEUL PARCOURS DU POOL, ET C'EST UNE CORRECTION D'AUDIT. La
-         première écriture demandait les langues proposables PUIS leur
-         décompte, et dans le chemin de repli les deux relisaient le pool —
-         près de deux mille enregistrements, deux fois, à chaque scan. Le
-         décompte de repli sert désormais aussi de liste. */
-      const langCount = langAudience || globalChannels.langs();
-      const langsPresent = new Set(globalChannels.langsProposables()
-                                   || langCount.keys());
-      const Lg = state.languageFilter && langsPresent.has(state.languageFilter)
-        ? state.languageFilter : null;
-      state.languageFilter = Lg;
-      const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX, Lg);
+      /* ── LES DEUX MENUS SONT INDÉPENDANTS, ET C'EST UNE RÉPARATION ──────
+         Une version a lié la liste des catégories à la langue choisie. Quand
+         la source par langue rendait une liste vide — ce qu'elle a fait pour
+         les trente et une — le menu catégorie se vidait avec elle et se
+         grisait : choisir une langue rendait la catégorie inchoisissable, et
+         choisir la catégorie d'abord la voyait se griser dès qu'on ajoutait
+         une langue. Les deux filtres doivent se poser dans n'importe quel
+         ordre. La liste des catégories est donc TOUJOURS celle du monde.
+
+         Ce qui dépend de l'autre, c'est le CHIFFRE du menu langue — et dans ce
+         sens-là seulement : « combien de spectateurs francophones sur cette
+         catégorie ». Un chiffre ne peut pas griser un menu. */
+      const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX);
       const catCount = new Map(cats.map(c => [c.name, c.viewers]));
       // `c.name` est l'identité — c'est elle que TseCategoryTop interrogera —
       // et `c.display` le nom traduit, que TseCategories sert déjà et que rien
       // n'affichait encore.
       const catLabel = new Map(cats.map(c => [c.name, c.display]));
+
+      /* Les langues, comptées EN SPECTATEURS et sur la catégorie choisie s'il
+         y en a une. Un seul parcours du pool par scan : la même Map sert de
+         liste d'options et de source de compteurs. */
+      const { toutes: langToutes, compte: langCount } =
+        globalChannels.langs(state.categoryFilter || null);
+      const langsPresent = new Set(langToutes.keys());
+      // La sélection n'est PAS validée contre les catégories connues : la
+      // liste peut être vide au tout premier scan, et invalider le choix de
+      // l'utilisateur à cet instant le lui ferait perdre sans raison.
+      const Lg = state.languageFilter && langsPresent.has(state.languageFilter)
+        ? state.languageFilter : null;
+      state.languageFilter = Lg;
+
       rebuildDropdown(catDD, cats.map(c => c.name), catCount,
                       state.categoryFilter, cats.length === 0, 'cat', formatViewers,
                       (v) => catLabel.get(v) || v);
       rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
                       langCount, Lg, langsPresent.size === 0, 'lang',
-                      /* Sous portée catégorie, le décompte de POOL porterait
-                         sur le monde alors que la sélection interrogera la
-                         catégorie : deux ensembles, donc silence. L'audience
-                         par langue, elle, n'a pas ce défaut — mais elle décrit
-                         la langue entière, pas la catégorie choisie, et le
-                         nombre mentirait tout autant. Silence dans les deux
-                         cas ; ce qui change, c'est l'unité quand il n'y a pas
-                         de catégorie choisie. */
-                      state.categoryFilter ? () => ''
-                        : (langAudience ? formatViewers : String));
+                      /* Le compteur n'est plus tu sous portée catégorie : il
+                         décrit désormais CETTE catégorie, ce qui était
+                         précisément la raison du silence.
+
+                         ZÉRO NE S'ÉCRIT PAS. Une langue que le pool n'a pas
+                         croisée DANS cette catégorie n'y a pas forcément
+                         personne : notre échantillon s'arrête au sommet.
+                         Écrire « 0 » découragerait un choix qui, lui, part
+                         interroger l'API et peut très bien trouver du monde.
+                         Rien du tout se lit « on ne sait pas », et c'est la
+                         vérité. */
+                      (n) => (n > 0 ? formatViewers(n) : ''))
       const wrapG = document.getElementById(FILTER_ID);
       if (wrapG) wrapG.dataset.tseActive = (state.categoryFilter || Lg) ? 'true' : 'false';
       applyCategoryFilter();
