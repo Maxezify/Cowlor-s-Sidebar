@@ -2090,18 +2090,37 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
   };
 
-  const friseDe = (login) => {
+  const friseDe = (login, prelude = null) => {
     const f = frises.get(login);
-    if (!f || f.segments.length < 2) return null;
+    if (!f || !f.segments.length) return null;
     const maintenant = Date.now();
-    const segments = f.segments.map((s, i) => {
-      const fin = i + 1 < f.segments.length ? f.segments[i + 1].debut : maintenant;
+
+    const bruts = [];
+    for (const p of (prelude || [])) {
+      const dernier = bruts[bruts.length - 1];
+      if (dernier && dernier.jeu === p.jeu) continue;
+      bruts.push({ jeu: p.jeu, libelle: p.libelle, debut: p.debut });
+    }
+    for (const o of f.segments) {
+      const dernier = bruts[bruts.length - 1];
+      if (!dernier) { bruts.push({ ...o }); continue; }
+      if (dernier.jeu === o.jeu) {
+
+        continue;
+      }
+      if (o.debut <= dernier.debut) continue;
+      bruts.push({ ...o });
+    }
+
+    const segments = bruts.map((s, i) => {
+      const fin = i + 1 < bruts.length ? bruts[i + 1].debut : maintenant;
       return { jeu: s.jeu, libelle: s.libelle, debut: s.debut, fin,
                dureeMs: Math.max(0, fin - s.debut),
-               encours: i + 1 === f.segments.length };
+               encours: i + 1 === bruts.length };
     });
 
-    const brut = f.debutStream ? f.vuDepuis - f.debutStream : 0;
+    const brut = (prelude && prelude.length) || !f.debutStream
+      ? 0 : f.vuDepuis - f.debutStream;
     const inconnuMs = brut > CFG.CATEGORY_TRAIL_TOLERANCE ? brut : 0;
     return {
       debutStream: f.debutStream,
@@ -4663,6 +4682,66 @@ const TSE_GATE_MAX_CLICKS = 5;
     const metaCache = new Map();
     const META_TTL = 60_000;
 
+    const CHAPITRES_QUERY =
+      'query TseVodChapters($login: String!) {' +
+      '  user(login: $login) {' +
+      '    stream {' +
+      '      id' +
+      '      archiveVideo {' +
+      '        id createdAt' +
+      '        moments(momentRequestType: VIDEO_CHAPTER_MARKERS) {' +
+      '          edges { node {' +
+      '            positionMilliseconds' +
+      '            details { ... on GameChangeMomentDetails { game { name displayName } } }' +
+      '          } }' +
+      '        }' +
+      '      }' +
+      '    }' +
+      '  }' +
+      '}';
+
+    const chapitres = new Map();
+    const CHAPITRES_TTL = 10 * 60_000;
+
+    const fetchChapitres = async (login, streamId, debutStream) => {
+      const vu = chapitres.get(streamId);
+      if (vu && Date.now() - vu.ts < CHAPITRES_TTL) return vu.segments;
+
+      const res = await post([{
+        operationName: 'TseVodChapters',
+        variables: { login },
+        query: CHAPITRES_QUERY
+      }]);
+      if (isResultsUnusable(res)) return null;
+
+      const vod = res?.[0]?.data?.user?.stream?.archiveVideo;
+      const aretes = vod?.moments?.edges;
+      if (!Array.isArray(aretes) || !aretes.length) {
+        chapitres.set(streamId, { ts: Date.now(), segments: null });
+        return null;
+      }
+
+      const base = Date.parse(vod.createdAt) || debutStream;
+      const segments = [];
+      for (const arete of aretes) {
+        const n = arete?.node;
+        const jeu = n?.details?.game?.name;
+        if (!jeu || !Number.isFinite(n.positionMilliseconds)) continue;
+        segments.push({
+          jeu,
+          libelle: n.details.game.displayName?.trim() || jeu,
+          debut: Math.max(debutStream, base + n.positionMilliseconds),
+        });
+      }
+      segments.sort((a, b) => a.debut - b.debut);
+      const utile = segments.length ? segments : null;
+      chapitres.set(streamId, { ts: Date.now(), segments: utile });
+      if (!utile) {
+        erreurs.noter('chapitres', `aucun moment exploitable pour ${aretes.length} arête(s)`);
+      }
+      return utile;
+    };
+
     const PREVIEW_QUERY =
       'query TsePreview($channelLogin: String!) {' +
       '  user(login: $channelLogin) {' +
@@ -5027,8 +5106,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       return d;
     };
 
-    const friseNoeud = (login) => {
-      const f = friseDe(login);
+    const preludeDe = (login) => {
+      const id = cache.get(login)?.stream?.id;
+      return (id && chapitres.get(id)?.segments) || null;
+    };
+
+    const friseNoeud = (login, prelude) => {
+      const f = friseDe(login, prelude);
       if (!f || !f.totalMs) return null;
 
       const bloc = document.createElement('div');
@@ -5069,6 +5153,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
       bloc.appendChild(liste);
       return bloc;
+    };
+
+    const majFrise = (login) => {
+      if (!el || currentLogin !== login) return;
+      const corps = el.querySelector('.tse-preview__body');
+      if (!corps) return;
+      const ancienne = corps.querySelector('.tse-preview__frise');
+      const neuve = friseNoeud(login, preludeDe(login));
+      if (ancienne && neuve) ancienne.replaceWith(neuve);
+      else if (ancienne) ancienne.remove();
+      else if (neuve) corps.appendChild(neuve);
+
+      if (currentCard) positionPopup(currentCard);
     };
 
     const renderPopup = (login, title, extraRows, costreamInfo, costreamMates, squadInfo, sponsorInfo) => {
@@ -5151,7 +5248,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         el.querySelector('.tse-preview__body').appendChild(zone);
       }
 
-      const frise = friseNoeud(login);
+      const frise = friseNoeud(login, preludeDe(login));
       if (frise) el.querySelector('.tse-preview__body').appendChild(frise);
 
       if (thumbImg && placeholder) {
@@ -5319,6 +5416,14 @@ const TSE_GATE_MAX_CLICKS = 5;
         requestGuestStar(id).then(() => updateLiveWithBadge(login, squadInfo, id));
       };
       requestLiveWith(getChannelId(login));
+
+      const flux = cache.get(login)?.stream;
+      const dejaVue = friseDe(login, preludeDe(login));
+      if (flux?.id && dejaVue && dejaVue.inconnuMs > 0) {
+        fetchChapitres(login, flux.id, Date.parse(flux.createdAt) || 0)
+          .then(() => majFrise(login))
+          .catch((e) => erreurs.noter('chapitres', (e && e.message) || e));
+      }
 
       fetchPreviewMeta(login).then(meta => {
         if (currentLogin !== login || !el) return;
