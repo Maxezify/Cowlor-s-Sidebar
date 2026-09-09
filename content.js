@@ -1681,10 +1681,28 @@ const TSE_GATE_MAX_CLICKS = 5;
     // "argument 'first' value must be between 1 and 30." Ce n'est donc pas une
     // observation mais une limite déclarée.
     GLOBAL_STREAMS_MAX:      30,
-    // Profondeur demandée au classement par TAG. Plus large que GLOBAL_TOP_N
-    // (30) : on affiche les trente premiers, mais un pool plus profond absorbe
-    // les allers-retours de rang sans faire clignoter le bas du tableau.
-    GLOBAL_TAG_MAX:          100,
+    /* Profondeur demandée au classement par TAG. TRENTE, et pas un de plus :
+       c'est le plafond du champ, et il a été appris de la seule façon
+       possible ici — par un rapport d'utilisateur. La première rédaction
+       demandait cent, au motif qu'un pool plus profond absorbe les
+       allers-retours de rang. Twitch a répondu, mot pour mot :
+
+         « argument 'first' value must be between 1 and 30. »
+
+       CE MESSAGE VAUT DEUX RENSEIGNEMENTS, et le second est le plus
+       important. D'abord la borne. Ensuite : l'erreur porte sur la VALEUR
+       d'un argument, pas sur son nom. La requête a donc été validée — noms de
+       champs et d'arguments compris, `freeformTags` inclus. Un argument
+       inconnu aurait produit une erreur de schéma, pas de plage. La voie du
+       tag n'était pas refusée ; elle demandait trop.
+
+       CETTE BORNE EST CELLE DE TWITCH, PAS UN RÉGLAGE. On ne la relève pas
+       pour obtenir un classement plus profond : au-delà de trente, le serveur
+       ne rend RIEN — pas trente lignes, zéro — et la voie du tag est
+       abandonnée pour la session entière. C'est très exactement ce qui s'est
+       produit en production avec `first: 100`. Le banc reproduit la borne
+       (scénario 81) : la relever ici y fait tomber trois assertions. */
+    GLOBAL_TAG_MAX:          30,
     // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
     // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
     // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
@@ -4189,19 +4207,26 @@ const TSE_GATE_MAX_CLICKS = 5;
        exactement comme pour la page — une page ne peut pas afficher un
        classement qu'elle n'a pas demandé.
 
-       JE N'AI PAS PU L'EXÉCUTER contre le vrai Twitch : cette machine n'a pas
-       accès à twitch.tv. Le nom de l'argument de filtre est donc une
-       reconstitution. La même méthode que pour les chapitres de VOD s'applique,
-       et elle a déjà donné raison deux fois : requête ISOLÉE, échec qui retombe
-       EN SILENCE sur la descente d'aujourd'hui, et compteurs par issue dans le
-       rapport. Un refus du schéma est mémorisé pour la session — on n'insiste
-       pas cinquante fois sur une requête que le serveur n'accepte pas.
+       ÉCRITE SANS POUVOIR L'EXÉCUTER : cette machine n'a pas accès à
+       twitch.tv, et le nom de l'argument de filtre était donc une
+       reconstitution. D'où la méthode déjà employée pour les chapitres de VOD
+       — requête ISOLÉE, échec qui retombe EN SILENCE sur la descente
+       d'aujourd'hui, compteurs par issue dans le rapport — et un refus du
+       schéma mémorisé pour la session, parce qu'on n'insiste pas cinquante
+       fois sur une requête que le serveur n'accepte pas.
+
+       LE PREMIER RAPPORT A TRANCHÉ, et c'est exactement à cela que servait le
+       dispositif. Twitch a répondu « argument 'first' value must be between 1
+       and 30 » : une erreur de PLAGE, portant sur la valeur d'un argument et
+       non sur son nom. Le schéma avait donc validé la requête, `freeformTags`
+       compris — un argument inconnu aurait produit tout autre chose. La voie
+       du tag n'était pas refusée : elle demandait trop. Voir GLOBAL_TAG_MAX.
 
        CE QU'ELLE NE FAIT PAS ENCORE : servir les langues que `LANG_API` ne
        connaît pas. `wantedLang()` les écarte en amont parce qu'elles n'ont pas
-       de code d'énumération — alors que le tag, lui, n'en a pas besoin. C'est
-       un gain à prendre plus tard, une fois la requête confirmée par un
-       rapport. Une chose à la fois, et mesurée.
+       de code d'énumération — alors que le tag, lui, n'en a pas besoin. La
+       requête étant maintenant confirmée, ce gain est à portée. Une chose à
+       la fois, et mesurée.
        ══════════════════════════════════════════════════════════════════════ */
     const TAG_TOP_QUERY =
       'query TseTagTop($tag: String!, $n: Int!) {' +
@@ -4310,7 +4335,16 @@ const TSE_GATE_MAX_CLICKS = 5;
          alimente le menu déroulant, qui se périmerait si la voie du tag
          court-circuitait tout. Une opération, contre les dizaines que la
          descente économise. */
-      if (wl?.lang && !tagRefuse) {
+      /* La troisième condition n'est pas une précaution de style. La voie du
+         tag publie un classement ANNONCÉ COMPLET, et elle en a le droit tant
+         qu'une seule réponse suffit à couvrir le top affiché. Twitch plafonne
+         cette réponse à GLOBAL_TAG_MAX ; si l'on demandait un jour un top plus
+         profond que ce plafond, les rangs manquants seraient comblés par le
+         report de la passe précédente — du vieux, présenté comme exact. Plutôt
+         que d'écrire cette dépendance en commentaire et d'espérer qu'on la
+         lise, on la fait tenir : au-delà du plafond, la descente reprend la
+         main, silencieusement, comme dans tous les autres cas d'échec. */
+      if (wl?.lang && !tagRefuse && CFG.GLOBAL_TOP_N <= CFG.GLOBAL_TAG_MAX) {
         const parTag = await tagTop(wl.lang);
         if (gen !== walkGen) return { ok: true, complete: false };
         if (parTag) {

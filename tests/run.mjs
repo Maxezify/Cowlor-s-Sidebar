@@ -8671,6 +8671,17 @@ titre('81. Top Chaînes — le classement par TAG de langue');
     const b = await bilanTags(page);
     ok('une seule requête de tag a suffi là où la descente en demandait des dizaines',
        b.servis >= 1 && b.demandes >= 1 && b.refus === 0, JSON.stringify(b));
+
+    /* LA BORNE, NOMMÉE PLUTÔT QUE SUBIE. Les trois assertions ci-dessus
+       tombent déjà si l'on demande trop — mais elles tombent en montrant un
+       classement vide, c'est-à-dire le symptôme. Celle-ci montre la cause :
+       le nombre demandé. C'est la question à laquelle il a fallu une version
+       et un rapport d'utilisateur pour répondre. */
+    const demandes = await page.evaluate(() =>
+      window.__calls.flatMap(c => c.tagN || []));
+    ok('…et elle n\'a jamais demandé plus que les trente qu\'accorde Twitch',
+       demandes.length >= 1 && demandes.every(n => n >= 1 && n <= 30),
+       JSON.stringify(demandes));
     await page.close();
   }
 
@@ -8701,6 +8712,32 @@ titre('81. Top Chaînes — le classement par TAG de langue');
     ok('…tandis que le classement, lui, continue d\'être servi',
        (await classement(page)).length > 0, 'classement vide après le repli');
     await page.close();
+  }
+
+  /* ── UNE DÉPENDANCE ENTRE DEUX RÉGLAGES, TENUE ICI ───────────────────────
+     La voie du tag publie un classement ANNONCÉ COMPLET. Elle n'en a le droit
+     que si UNE réponse couvre le top affiché : au-delà, les rangs manquants
+     viendraient du report de la passe précédente, du vieux présenté comme
+     exact. Le code s'en garde (`GLOBAL_TOP_N <= GLOBAL_TAG_MAX` conditionne
+     l'entrée dans la voie du tag), mais cette garde est SILENCIEUSE — elle
+     ferait retomber l'extension sur la descente sans que personne ne
+     comprenne pourquoi la requête neuve a cessé de servir.
+
+     D'où cette lecture des deux constantes à la source. Elle ne teste pas un
+     comportement : elle empêche un réglage de rendre l'autre inopérant, et
+     elle le dit au moment où l'on écrit le réglage. Porter GLOBAL_TOP_N à
+     quarante la fait tomber — c'est le seul but. */
+  {
+    const src = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+    const lire = (nom) => {
+      const m = new RegExp(nom + ':\\s*(\\d+)').exec(src);
+      return m && Number(m[1]);
+    };
+    const topN = lire('GLOBAL_TOP_N');
+    const capTag = lire('GLOBAL_TAG_MAX');
+    ok('le top affiché tient dans UNE réponse de tag — sinon la voie se ferme',
+       topN >= 1 && capTag >= 1 && topN <= capTag,
+       `GLOBAL_TOP_N=${topN}, GLOBAL_TAG_MAX=${capTag}`);
   }
 }
 
