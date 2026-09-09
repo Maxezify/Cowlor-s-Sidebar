@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 630 Ko | 288 Ko | 2 837 JS + 80 CSS → **2** |
+| `content.js` | 639 Ko | 292 Ko | 2 849 JS + 80 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **809 Ko** | **413 Ko** | **−49 %** |
+| **les cinq** | **818 Ko** | **416 Ko** | **−49 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2298,6 +2298,60 @@ teintes espacées — le hachage en choisit l'index, et une seconde passe dépla
 les collisions **au sein d'une même frise**. La stabilité d'une couleur est un
 confort ; la distinction est ce qui fait qu'on lit la barre.
 
+### Le passé du live, quand Twitch veut bien le dire (v3.71)
+
+La frise ne savait que ce qu'**elle** avait vu. Un rapport d'utilisateur l'a
+pointé aussitôt — *« faudra le connaître même si on n'était pas sur Twitch et
+que le live avait commencé »* — capture à l'appui : `non observé 6h04` écrasant
+deux segments de deux minutes.
+
+Il existe une source, et une seule. Twitch n'expose nulle part l'historique de
+catégories d'un stream **en cours** ; mais si la chaîne archive ses diffusions,
+le VOD existe **dès le début** du live et gagne un « moment » à chaque
+changement de jeu — ce sont les chapitres de la barre de lecture d'un replay.
+Ils portent exactement ce qui manque : la catégorie et sa position en
+millisecondes depuis le départ.
+
+**Cette requête n'a jamais été exécutée contre le vrai Twitch.** La machine où
+elle a été écrite n'a pas accès à `twitch.tv` — le proxy refuse la connexion. Sa
+forme suit le schéma public et ce que le lecteur de Twitch demande lui-même,
+mais c'est une reconstitution, pas une observation. Trois conséquences assumées :
+
+- elle est **séparée** de `TsePreview`. Greffée dessus, un champ inexistant
+  ferait échouer la requête entière et emporterait le titre et les étiquettes de
+  l'aperçu. Isolée, son échec ne coûte rien ;
+- tout échec **retombe en silence** sur la frise observée. L'utilisateur ne perd
+  rien, il ne gagne pas ;
+- et il est **consigné au journal d'erreurs**, donc le premier rapport reçu dira
+  si la requête est juste. C'est le seul moyen honnête d'éprouver ce qu'on ne
+  peut pas exécuter.
+
+Le scénario 79 ne prouve donc pas que la requête est juste : il prouve que la
+**fusion** est correcte et que **tout** échec retombe sans rien casser — schéma
+qui refuse, chaîne sans archive, VOD sans moment. Au pire, l'utilisateur
+retrouve la frise d'hier.
+
+**Une requête de plus, et seulement quand elle peut servir** : au survol, une
+fois par stream, et uniquement si la frise porte une part non observée. Une
+chaîne suivie depuis le début de son live n'en déclenche aucune — une requête
+qui n'apprend rien est une requête de trop, et une assertion l'interdit.
+
+**La fusion préfère les chapitres.** Là où les deux se recouvrent, Twitch date
+le changement à la seconde ; nous, au prochain relevé, donc jusqu'à trente
+secondes plus tard. On part des chapitres et l'on n'ajoute de son côté que ce
+qu'ils ne portent pas encore — à condition que ce soit **postérieur** au dernier
+connu, sans quoi un chapitre en retard ferait naître un segment qui remonte le
+temps.
+
+### Le seuil d'affichage, corrigé par le premier survol
+
+La première version exigeait un **basculement observé** avant d'afficher quoi
+que ce soit. Le rapport est tombé dans les cinq minutes suivant l'installation :
+*« je n'ai pas la nouveauté »*. C'était juste deux fois — une fonctionnalité qui
+peut rester invisible des heures ne se distingue pas d'une fonctionnalité
+cassée, et un segment unique dit bel et bien ce que la carte tait : la carte
+donne la durée du **live** (6h04), la frise la durée dans la **catégorie** (24m).
+
 ## API console
 
 L'objet `tse` reste exposé dans la console DevTools de la page Twitch (onglet
@@ -2507,7 +2561,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 77 scénarios, 698 assertions |
+| `npm test` | le harnais Playwright : 78 scénarios, 710 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
