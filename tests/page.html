@@ -427,6 +427,34 @@ window.fetch = async (url, opt) => {
                 displayName: traduire(c.name), viewersCount: c.viewers }
       })) } } };
     }
+    /* ── Chaînes globales : catégories PORTÉES par une langue ────────────
+       Le décor pose `window.__langCats = { 'Français': [{name, viewers}] }`.
+       Trois comportements, et le DÉFAUT est délibérément neutre :
+         — 'erreur' → 200 porteur d'erreurs GraphQL, ce que rendrait un
+           argument que le schéma ne connaît pas ;
+         — 'monde'  → les catégories MONDIALES telles quelles, c'est-à-dire
+           un filtre qui choisit les catégories sans porter les compteurs.
+           C'est le piège que la garde de portée doit attraper ;
+         — absent   → liste vide. Ni refus ni données : les scénarios qui ne
+           s'occupent pas de cette requête gardent exactement l'affichage
+           d'avant, ce qui est ce qu'on veut d'un décor par défaut. */
+    if (o.operationName === 'TseLangCats') {
+      /* Le refus de SCHÉMA porte sur la requête, donc sur TOUTES les langues
+         à la fois — c'est ce qui le distingue d'une langue sans catégories.
+         Un décor qui n'en refuserait que deux simulerait autre chose. */
+      if (window.__langCatsErreur) {
+        return { errors: [{ message: 'Unknown argument freeformTags' }] };
+      }
+      const t = window.__langCats && window.__langCats[o.variables?.tag];
+      if (t === 'erreur') return { errors: [{ message: 'Unknown argument freeformTags' }] };
+      const src = t === 'monde' ? (window.__cats || []) : (t || []);
+      const n = o.variables?.n ?? 100;
+      const list = src.slice().sort((a, b) => b.viewers - a.viewers).slice(0, n);
+      return { data: { games: { edges: list.map(c => ({
+        node: { id: 'gid-' + c.name, name: c.name,
+                displayName: traduire(c.name), viewersCount: c.viewers }
+      })) } } };
+    }
     // ── Chaînes globales : sommet d'une catégorie ───────────────────────
     // SÉLECTION PAR RANG, puis DÉSORDRE. C'est le comportement mesuré de
     // l'API : le sommet est bien celui qu'on demande, mais il n'arrive pas

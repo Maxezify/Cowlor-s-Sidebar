@@ -8889,6 +8889,239 @@ titre('82. Frise — elle ne doit pas s\'effacer parce que d\'autres chaînes ar
   }
 }
 
+titre('83. Langues — la table doit être celle de Twitch, au caractère près');
+{
+  /* CES CLÉS NE SONT PAS DES LIBELLÉS. Ce sont les noms de TAGS que Twitch
+     pose sur les streams, et `LANG_SET` les compare EXACTEMENT. Un caractère
+     de trop ou de moins et la langue cesse d'exister pour l'extension : ni
+     détectée sur une carte, ni proposable dans le filtre, ni interrogeable par
+     la voie du tag. Sans erreur, sans compteur, sans rien dans un rapport.
+
+     C'EST EXACTEMENT CE QUI EST ARRIVÉ AU THAÏ. La table portait « ไทย » là où
+     Twitch nomme son tag « ภาษาไทย ». La langue était dans le menu, dans les
+     drapeaux, dans LANG_API — et n'avait jamais rien détecté. Rien dans le
+     code ne pouvait le dire : il faut comparer à une source EXTÉRIEURE.
+
+     CETTE SOURCE, LA VOICI, et elle est solide : les URLs de
+     `/directory/all/tags/…`, relevées par un utilisateur sur Twitch même. Le
+     dernier segment d'une de ces URLs EST le nom du tag, à ceci près que les
+     espaces y sont retirés — d'où la comparaison sans espaces, et deux
+     assertions séparées pour les noms composés.
+
+     Ce n'est pas une liste que j'ai devinée : c'est celle que Twitch publie. */
+  const TWITCH = [
+    'Čeština', 'Ελληνικά', 'Български', 'Русский', 'Українська', 'العربية',
+    'بهاسملايو', 'ภาษาไทย', '中文', '日本語', '한국어', 'Bahasa Indonesia',
+    'Català', 'Dansk', 'Deutsch', 'English', 'Español', 'Français', 'Italiano',
+    'Magyar', 'Nederlands', 'Norsk', 'Polski', 'Português', 'Română',
+    'Slovenčina', 'Suomi', 'Svenska', 'Türkçe', 'Tagalog', 'Tiếng Việt',
+  ];
+
+  const src = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+  /* Les clés d'un littéral d'objet, extraites du bloc qui le déclare. Les
+     tables sont écrites à la main dans une forme stable ; on lit donc le texte
+     plutôt que d'évaluer du code source, ce qui exécuterait le fichier pour
+     répondre à une question qui n'en a pas besoin. */
+  const clesDe = (nom) => {
+    const debut = src.indexOf(`const ${nom} = {`);
+    if (debut < 0) return null;
+    const fin = src.indexOf('\n  };', debut);
+    const bloc = src.slice(debut, fin);
+    return [...bloc.matchAll(/'([^']+)'\s*:/g)].map(m => m[1]);
+  };
+  const cc = clesDe('LANG_CC');
+  const api = clesDe('LANG_API');
+  const sansEspace = (s) => s.replace(/ /g, '');
+
+  ok('les trente et une langues de Twitch sont dans la table',
+     !!cc && TWITCH.every(l => cc.includes(l)),
+     'manquantes : ' + JSON.stringify((TWITCH).filter(l => !cc?.includes(l))));
+  ok('…et la table n\'en invente aucune que Twitch ne propose pas',
+     !!cc && cc.every(l => TWITCH.includes(l)),
+     'en trop : ' + JSON.stringify((cc || []).filter(l => !TWITCH.includes(l))));
+  /* Le thaï nommément. L'assertion ci-dessus le couvre déjà, mais elle dirait
+     « manquantes: [ภาษาไทย] » sans expliquer que la faute a duré des versions.
+     Celle-ci nomme le piège pour qui la fera tomber un jour. */
+  ok('le tag thaï est le nom COMPLET, et non le seul mot « thaï »',
+     !!cc && cc.includes('ภาษาไทย') && !cc.includes('ไทย'),
+     JSON.stringify((cc || []).filter(l => l.includes('ไทย'))));
+  ok('les deux noms composés gardent leur espace — les URLs, elles, le retirent',
+     !!cc && cc.includes('Bahasa Indonesia') && cc.includes('Tiếng Việt')
+        && TWITCH.map(sansEspace).includes('BahasaIndonesia'),
+     JSON.stringify((cc || []).filter(l => l.includes(' '))));
+
+  /* LES TROIS TABLES DOIVENT S'ACCORDER. LANG_CC donne le drapeau, LANG_API le
+     code d'énumération ; une langue présente dans l'une et pas dans l'autre
+     s'afficherait sans drapeau, ou ne serait jamais demandable. */
+  ok('chaque langue a un code d\'API, et réciproquement',
+     !!api && cc.length === api.length && cc.every(l => api.includes(l)),
+     `LANG_CC=${cc?.length}, LANG_API=${api?.length}`);
+  /* Et chaque code de drapeau doit exister dans FLAG_SVG, sinon `flagMarkup`
+     rend null et le menu retombe sur le nom canonique — lisible, mais hors
+     sujet dans une colonne de drapeaux. */
+  const codes = [...src.slice(src.indexOf('const LANG_CC = {'),
+                              src.indexOf('\n  };', src.indexOf('const LANG_CC = {')))
+                    .matchAll(/'[^']+'\s*:\s*'([A-Z]{2})'/g)].map(m => m[1]);
+  const drapeaux = [...src.slice(src.indexOf('const FLAG_SVG = {'),
+                                 src.indexOf('\n  };', src.indexOf('const FLAG_SVG = {')))
+                       .matchAll(/'([A-Z]{2})'\s*:\s*`/g)].map(m => m[1]);
+  ok('chaque langue a son drapeau dessiné',
+     codes.length === cc.length && codes.every(c => drapeaux.includes(c)),
+     'sans drapeau : ' + JSON.stringify(codes.filter(c => !drapeaux.includes(c))));
+  ok('…et aucun drapeau ne dort sans langue qui le porte',
+     drapeaux.every(d => codes.includes(d)),
+     'orphelins : ' + JSON.stringify(drapeaux.filter(d => !codes.includes(d))));
+}
+
+titre('84. Filtres — l\'audience par langue, et la garde qui décide de l\'afficher');
+{
+  /* DEUX MENUS QUI NE PARLAIENT PAS LA MÊME LANGUE. Le filtre catégorie
+     affichait l'audience que Twitch publie (« 122 k | VALORANT ») ; le filtre
+     langue, lui, affichait un décompte de NOTRE pool (« 212 »), c'est-à-dire
+     le nombre de chaînes de cette langue parmi celles qu'on avait récoltées.
+     Un nombre vrai, qui ne parle que de nous, à côté d'un nombre qui parle de
+     Twitch. On demande donc à Twitch la même chose pour les langues que pour
+     les catégories.
+
+     LE PIÈGE, ET C'EST LUI QUI FAIT L'INTÉRÊT DE CE SCÉNARIO. Que Twitch
+     accepte `freeformTags` sur `games` ne dit pas que les COMPTEURS soient
+     portés par la langue : le filtre pourrait ne choisir que les catégories
+     rendues, en laissant à chacune son audience mondiale. On afficherait
+     alors « Català : 2,1 M ». Impossible de le vérifier d'ici — mais possible
+     de le faire vérifier PAR LE CODE, à l'exécution : la somme des audiences
+     par langue vaut à peu près l'audience mondiale si les compteurs sont
+     portés, et autant de fois l'audience mondiale qu'il y a de langues sinon.
+     Le décor `'monde'` reproduit exactement ce cas-là. */
+  const options = (page, dd) => page.evaluate((id) =>
+    [...document.querySelectorAll('#' + id + ' .tse-dd-opt')]
+      .map(o => ({ v: o.dataset.value,
+                   n: (o.querySelector('.tse-dd-n')?.textContent || '').replace(' |', '') }))
+      .filter(o => o.v), dd);
+  const choisirLangue = (page, val) => page.evaluate((v) => {
+    const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
+      .find(o => (o.dataset.value || '') === v);
+    if (!opt) throw new Error('langue absente : ' + JSON.stringify(v));
+    opt.click();
+  }, val);
+  /* Un décor mondial modeste et des langues qui en sont des SOUS-ENSEMBLES :
+     c'est ce qui rend le facteur de portée proche de 1. */
+  const monter = async (page, langCats) => {
+    await page.evaluate((lc) => {
+      window.__fx = { suivi1: { id: 'id-suivi1', createdAt: new Date(Date.now() - 1800_000).toISOString(),
+                                viewers: 400, game: 'Just Chatting', tags: [] } };
+      window.__addCard('suivi1', 'Just Chatting', '400');
+      const cats = [];
+      for (let i = 0; i < 6; i++) {
+        const streams = [];
+        for (let k = 0; k < 5; k++) {
+          streams.push({ login: `s${i}_${k}`, viewers: 9000 - i * 100 - k,
+                         tags: k === 0 ? ['Français'] : ['English'] });
+        }
+        cats.push({ name: 'cat' + i, viewers: 100_000 - i * 1000, streams });
+      }
+      window.__cats = cats;
+      window.__langCats = lc;
+    }, langCats);
+    await wait(page, 1500);
+    await page.evaluate(() =>
+      document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+    await wait(page, 2500);
+  };
+
+  /* ── QUAND LES COMPTEURS SONT BIEN PORTÉS ─────────────────────────────── */
+  {
+    const page = await fresh();
+    await monter(page, {
+      'Français': [{ name: 'cat0', viewers: 20_000 }, { name: 'cat3', viewers: 5_000 }],
+      'English':  [{ name: 'cat1', viewers: 60_000 }],
+      'Català':   [{ name: 'cat2', viewers: 300 }],
+    });
+    await attendre(page,
+      () => window.tse.global.report().langues?.portee === true, 9000);
+
+    const langs = await options(page, 'tse-lang-dd');
+    const par = new Map(langs.map(o => [o.v, o.n]));
+    ok('le menu langue propose TOUTES les langues de Twitch, pas seulement celles du pool',
+       langs.length === 31, `${langs.length} option(s)`);
+    ok('…et le catalan y figure alors qu\'aucune carte ne le porte',
+       par.has('Català'), JSON.stringify(langs.map(o => o.v)));
+    /* L'unité a changé, et c'est tout l'objet : « 25 k », pas « 2 ». Le
+       formateur d'audience insère une espace insécable avant le k. */
+    ok('le compteur d\'une langue est une AUDIENCE, pas un décompte de chaînes',
+       /\d/.test(par.get('Français') || '') && /k$/.test((par.get('Français') || '').trim()),
+       `Français → « ${par.get('Français')} »`);
+    ok('…et l\'anglais, plus regardé, passe devant le français',
+       langs.findIndex(o => o.v === 'English') < langs.findIndex(o => o.v === 'Français'),
+       JSON.stringify(langs.slice(0, 4).map(o => o.v)));
+
+    /* ── LE FILTRE CATÉGORIE SUIT LA LANGUE CHOISIE ─────────────────────── */
+    const avant = await options(page, 'tse-cat-dd');
+    ok('sous le globe, les catégories sont les six du monde',
+       avant.length === 6, JSON.stringify(avant.map(o => o.v)));
+    await choisirLangue(page, 'Français');
+    await wait(page, 900);
+    const apres = await options(page, 'tse-cat-dd');
+    ok('une langue choisie, le menu catégorie ne montre que LES SIENNES',
+       apres.length === 2 && apres.map(o => o.v).join(',') === 'cat0,cat3',
+       JSON.stringify(apres));
+    ok('…avec l\'audience DE CETTE LANGUE, et non le total mondial',
+       /^20\s*k$/.test(apres[0].n.trim()),
+       `cat0 → « ${apres[0].n} » (mondial : 100 k)`);
+    await page.close();
+  }
+
+  /* ── QUAND ILS NE LE SONT PAS : ON SE TAIT ────────────────────────────── */
+  {
+    const page = await fresh();
+    // Chaque langue rend les catégories MONDIALES : le filtre a choisi, il n'a
+    // pas porté. La somme vaudra trente et une fois l'audience mondiale.
+    const monde = {};
+    for (const l of ['Français', 'English', 'Català', 'Deutsch']) monde[l] = 'monde';
+    await monter(page, monde);
+    await attendre(page,
+      () => window.tse.global.report().langues?.portee === false, 9000);
+
+    const r = await page.evaluate(() => window.tse.global.report().langues);
+    ok('la garde voit que la somme des langues dépasse de loin le monde',
+       r.portee === false && r.facteur > 2, JSON.stringify(r));
+    const langs = await options(page, 'tse-lang-dd');
+    ok('…donc AUCUNE audience n\'est affichée : on retombe sur le décompte de pool',
+       langs.length > 0 && langs.every(o => !/k$/.test(o.n.trim())),
+       JSON.stringify(langs));
+    ok('…et le menu ne propose que les langues que le pool a croisées',
+       langs.length < 31, `${langs.length} option(s)`);
+
+    /* UNE RÉPONSE COMPRISE VAUT SON TTL, MÊME QUAND ELLE N'APPREND RIEN.
+       Écrit d'abord dans l'autre sens — l'horodatage n'était posé que sur des
+       données utiles — et le banc l'a pris tout de suite : `demandes` montait
+       à 62, puis 93. Trente et une opérations relancées à chaque marche pour
+       reposer une question déjà répondue. */
+    const n1 = await page.evaluate(() => window.tse.global.report().langues.demandes);
+    await page.evaluate(() => window.tse.global.on());
+    await wait(page, 2500);
+    const n2 = await page.evaluate(() => window.tse.global.report().langues.demandes);
+    ok('…et l\'on ne repose pas la question à chaque marche',
+       n1 === 31 && n2 === n1, `${n1} puis ${n2} demandes`);
+    await page.close();
+  }
+
+  /* ── ET QUAND LE SCHÉMA REFUSE ────────────────────────────────────────── */
+  {
+    const page = await fresh();
+    await page.evaluate(() => { window.__langCatsErreur = true; });
+    await monter(page, {});
+    await wait(page, 2000);
+    const r = await page.evaluate(() => window.tse.global.report().langues);
+    ok('un refus du schéma est consigné, et la requête abandonnée pour la session',
+       r.refus >= 1 && r.refuse === true && r.portee === null, JSON.stringify(r));
+    const langs = await options(page, 'tse-lang-dd');
+    ok('…tandis que le filtre langue continue de fonctionner comme avant',
+       langs.length > 0 && langs.every(o => !/k$/.test(o.n.trim())),
+       JSON.stringify(langs));
+    await page.close();
+  }
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

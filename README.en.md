@@ -1971,6 +1971,84 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## Thirty-one languages, and the Thai that did not exist (v3.80)
+
+The language filter offered twenty-six. Twitch publishes **thirty-one**, and the
+list is checkable: `/directory/all/tags/Català`, `…/Български`,
+`…/Slovenčina`, `…/Tagalog`, `…/بهاسملايو`. Those five were neither offered
+**nor even detectable** — `LANG_SET` derives from the same table, so a `Català`
+tag on a stream was invisible.
+
+**And a sixth language was there without being there.** The table wrote `ไทย`;
+Twitch names its tag `ภาษาไทย` — literally "Thai language". The match being
+**exact**, Thai appeared in the menu, had its flag, had its API code… and had
+never detected anything. No error, no counter, nothing in any report: a
+stillborn language whose absence only a comparison with Twitch's own list could
+reveal.
+
+That is what the bench now does (scenario 83): it confronts the table with the
+thirty-one tag names, requires every language to have a flag **and** a code, and
+refuses to let a flag sleep without a language. Putting `ไทย` back drops four
+assertions.
+
+## Per-language audience, and the guard that decides to show it (v3.80)
+
+The two dropdowns did not speak the same language. The category filter showed
+the audience **Twitch** publishes — "122 k | VALORANT". The language filter
+showed a count of **our pool** — "212", the number of channels of that language
+among the ~1,900 we had harvested. A true number, which only talks about us,
+next to a number that talks about Twitch.
+
+So we ask Twitch the same thing for languages as for categories:
+`games(options: { sort: VIEWER_COUNT, freeformTags: [language] })`. One
+response, two pieces of information:
+
+| | |
+| --- | --- |
+| the **sum** of audiences | what that language weighs, next to its flag |
+| the **list** of categories | the category filter's counts when that language is picked |
+
+The globe keeps the worldwide totals; picking a language reshuffles both menus.
+One operation per language, batched into a handful of requests, **once every
+five minutes** and only in Top Channels mode — fired without awaiting, so a menu
+never delays the ranking.
+
+**What was not settled, and is verified at runtime.** Twitch accepting
+`freeformTags` on `games` does not mean the **counts** are scoped to the
+language: the filter might only choose which categories come back, leaving each
+one its worldwide audience. We would then display "Català: 2.1 M". Impossible to
+check from a machine with no access to twitch.tv — but possible to have **the
+code** check it:
+
+> The sum of per-language audiences is roughly the worldwide audience if the
+> counts are scoped, and **thirty-one times** the worldwide audience if not.
+
+The verdict therefore falls between 1 and 31, and the threshold sits at 2 — well
+clear of both, where no measurement drift can cross it. Until the guard has
+ruled, or if it rules against, **nothing is displayed**: the menu keeps
+yesterday's pool count. The report carries the verdict and the measurement that
+produced it (`langues.portee`, `langues.facteur`); without it, a refusal would be
+a verdict with no grounds.
+
+The bench reproduces the trap: loosening the threshold makes `Català`,
+`Deutsch`, `English` and `Français` all show **585 k** — the whole world's
+audience, four times over. That is exactly what the guard exists not to show.
+
+## What the trail still says, and what it withholds (v3.80)
+
+3.79 made the trail registry healthy (`evincees 0`, `peuplees 123` out of 125
+hovers) — and rare trails were still invisible. Both were true at once: the
+trail **existed** and **kept quiet**, having nothing to say. A live started
+before we arrived, a single observed category, no recording to query: the rule
+is to keep quiet rather than invent.
+
+The hover counters described the registry's state; they did not say whether the
+trail had been **shown**. `affichees` and `muettes` measure exactly that gap, at
+the moment the verdict is taken — that is, after the VOD chapters have had time
+to arrive. They do not add up with the other three, and the report says so:
+confusing a datum's state with what was done with it is the surest way to make a
+counter useless.
+
 ## The trail that erased itself (v3.79)
 
 A report said "not all the *Previously* blocks work", with impeccable chapter
@@ -2299,7 +2377,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 81 scenarios, 746 assertions |
+| `npm test` | the Playwright harness: 83 scenarios, 766 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -2319,12 +2397,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 653 KB | 294 KB | 2,873 JS + 83 CSS → **2** |
+| `content.js` | 695 KB | 307 KB | 2,928 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 35 KB | 20 KB | 39 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **831 KB** | **419 KB** | **−50 %** |
+| **all five** | **874 KB** | **432 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

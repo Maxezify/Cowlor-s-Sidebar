@@ -254,6 +254,54 @@ ok('les fichiers du dépôt gardent leurs commentaires — seul le paquet est d�
    intacts.every(s => s.total > s.legaux + 5),
    intacts.map(s => `${s.f} : ${s.total} commentaires`).join(', '));
 
+/* ── ET LA COLONNE « COMMENTAIRES » DU TABLEAU, QUI DÉRIVAIT ───────────────
+   Les tailles de ce tableau sont confrontées à la mesure depuis longtemps ;
+   la colonne d'à côté, non. Elle annonçait « 2 873 JS + 83 CSS » pour
+   content.js alors que le compteur en trouvait 2 889 — et personne ne
+   pouvait le voir, puisque rien ne reliait la phrase au fichier. Exactement
+   le défaut que ce bloc existe pour empêcher, une colonne plus loin.
+
+   La lecture prend les nombres AVANT la flèche, sommés — le tableau écrit
+   parfois « 2 845 JS + 83 CSS », parfois « 290 » — et celui d'après comme le
+   nombre de commentaires légaux conservés. La tolérance est celle des
+   tailles : ces chiffres illustrent un ordre de grandeur, ils ne servent pas
+   à compter. */
+const commParFichier = new Map(intacts.map(s => [s.f, s]));
+const commDerive = [];
+for (const [doc] of DOCS) {
+  if (!existsSync(join(RACINE, doc))) continue;
+  for (const ligne of readFileSync(join(RACINE, doc), 'utf8').split('\n')) {
+    const f = SCRIPTS.find(x => ligne.includes(x));
+    const s = f && commParFichier.get(f);
+    if (!s) continue;
+    const m = ligne.match(/\|([^|]*→[^|]*)\|\s*$/);
+    if (!m) continue;
+    const [avant, apres] = m[1].split('→');
+    /* Les deux documents n'écrivent pas les milliers pareil : « 2 928 » avec
+       une espace fine côté français, « 2,928 » avec une virgule côté anglais.
+       Les deux séparateurs sont donc retirés avant lecture — sans quoi la
+       version anglaise se lisait « 2 » puis « 928 ». */
+    const dits = [...avant.matchAll(/(\d[\d,   ]*)/g)]
+      .reduce((n, x) => n + Number(x[1].replace(/[,   ]/g, '')), 0);
+    const legaux = Number((apres.match(/(\d+)/) || [])[1]);
+    /* AUCUNE TOLÉRANCE ICI, contrairement aux tailles. Un kilo-octet est une
+       mesure qui bouge à chaque caractère ; un nombre de commentaires est un
+       ENTIER qu'on peut annoncer juste. La colonne portait « 2 873 JS + 83
+       CSS », une décomposition que rien ne sait recalculer et qui dérivait
+       sous la tolérance sans jamais alerter. Elle porte désormais le total
+       que `compterCommentaires` trouve, et il doit tomber au commentaire
+       près. */
+    if (dits !== s.total) {
+      commDerive.push(`${doc} — ${f} : ${dits} annoncés, ${s.total} comptés`);
+    }
+    if (Number.isFinite(legaux) && legaux !== s.legaux) {
+      commDerive.push(`${doc} — ${f} : ${legaux} légaux annoncés, ${s.legaux} comptés`);
+    }
+  }
+}
+ok('…et la colonne « Commentaires » du tableau dit ce que le compteur trouve',
+   commDerive.length === 0, commDerive.join(' | '));
+
 /* La notice de licence du code tiers doit avoir SURVÉCU au dégraissage. Ce
    n'est pas une question de style : MIT exige que sa notice accompagne toute
    copie du logiciel, et un paquet qui la perdrait serait en infraction. */

@@ -970,9 +970,12 @@ l'extension l'apprend au premier essai, retombe sur le filtrage par tags et
 cesse d'annoncer l'exactitude. Une coupure réseau, elle, ne condamne rien :
 elle n'apprend rien sur la validité du code.
 
-**Mesuré le 21/08/2026** : les vingt-six codes sont acceptés par l'API. Une
-requête, vingt-six opérations, une par langue — aucune erreur, et vingt-trois
-ont ramené un stream d'exemple.
+**Mesuré le 21/08/2026** : les vingt-six codes d'alors sont acceptés par
+l'API. Une requête, vingt-six opérations, une par langue — aucune erreur, et
+vingt-trois ont ramené un stream d'exemple. Les **cinq ajoutés en 3.80**
+(`BG`, `SK`, `TL`, `MS`, `CA`) n'ont pas été mesurés : ils suivent la même
+convention, et s'ils étaient refusés le repli décrit ci-dessus s'en
+chargerait — sans compter que la voie du tag, elle, n'a besoin d'aucun code.
 
 Ce qui ne veut **pas** dire que le repli est devenu inutile, et il n'est pas
 question de le retirer. Deux raisons. La mesure dit ce qui était vrai ce
@@ -2089,6 +2092,85 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## Trente et une langues, et le thaï qui n'existait pas (v3.80)
+
+Le filtre langue en proposait vingt-six. Twitch en publie **trente et une**, et
+la liste est vérifiable : `/directory/all/tags/Català`, `…/Български`,
+`…/Slovenčina`, `…/Tagalog`, `…/بهاسملايو`. Ces cinq-là n'étaient ni
+proposables **ni même détectables** — `LANG_SET` se dérive de la même table, si
+bien qu'un tag `Català` posé sur un stream ne se voyait pas.
+
+**Et une sixième langue était là sans y être.** La table écrivait `ไทย` ;
+Twitch nomme son tag `ภาษาไทย` — littéralement « langue thaïe ». La
+correspondance étant **exacte**, le thaï figurait dans le menu, avait son
+drapeau, avait son code d'API… et n'avait jamais rien détecté. Aucune erreur,
+aucun compteur, rien dans un rapport : une langue morte-née dont seule une
+comparaison avec la liste de Twitch pouvait révéler l'absence.
+
+C'est ce que le banc fait désormais (scénario 83) : il confronte la table aux
+trente et un noms de tags, exige que chaque langue ait un drapeau **et** un
+code, et refuse qu'un drapeau dorme sans langue. Remettre `ไทย` fait tomber
+quatre assertions.
+
+## L'audience par langue, et la garde qui décide de l'afficher (v3.80)
+
+Les deux menus déroulants ne parlaient pas la même langue. Le filtre catégorie
+affichait l'audience que **Twitch** publie — « 122 k | VALORANT ». Le filtre
+langue affichait un décompte de **notre pool** — « 212 », le nombre de chaînes
+de cette langue parmi les ~1 900 qu'on avait récoltées. Un nombre vrai, qui ne
+parle que de nous, à côté d'un nombre qui parle de Twitch.
+
+On demande donc à Twitch la même chose pour les langues que pour les
+catégories : `games(options: { sort: VIEWER_COUNT, freeformTags: [langue] })`.
+Une réponse, deux renseignements :
+
+| | |
+| --- | --- |
+| la **somme** des audiences | ce que pèse cette langue, à côté de son drapeau |
+| la **liste** des catégories | les compteurs du filtre catégorie quand cette langue est choisie |
+
+Le globe garde les totaux mondiaux ; choisir une langue rebat les deux menus.
+Une opération par langue, loties en une poignée de requêtes, **une fois toutes
+les cinq minutes** et seulement en mode Top Chaînes — lancées sans attendre,
+pour qu'un menu ne retarde jamais le classement.
+
+**Ce qui n'était pas acquis, et qui se vérifie à l'exécution.** Que Twitch
+accepte `freeformTags` sur `games` ne dit pas que les **compteurs** soient
+portés par la langue : le filtre pourrait ne choisir que les catégories
+rendues, en laissant à chacune son audience mondiale. On afficherait alors
+« Català : 2,1 M ». Impossible de le vérifier depuis une machine sans accès à
+twitch.tv — mais possible de le faire vérifier **par le code** :
+
+> La somme des audiences par langue vaut à peu près l'audience mondiale si les
+> compteurs sont portés, et **trente et une fois** l'audience mondiale sinon.
+
+Le verdict se joue donc entre 1 et 31, et le seuil est posé à 2 — au large des
+deux, là où aucune dérive de mesure ne peut le franchir. Tant que la garde n'a
+pas tranché, ou si elle tranche contre, **rien n'est affiché** : le menu garde
+le décompte de pool d'hier. Le rapport porte le verdict et la mesure qui l'a
+produit (`langues.portee`, `langues.facteur`), sans quoi un refus serait un
+verdict sans motif.
+
+Le banc reproduit le piège : desserrer le seuil fait apparaître
+`Català`, `Deutsch`, `English` et `Français` tous à **585 k** — l'audience du
+monde entier, quatre fois. C'est exactement ce que la garde existe pour ne pas
+montrer.
+
+## Ce que la frise dit encore, et ce qu'elle tait (v3.80)
+
+La 3.79 a rendu le registre des frises sain (`evincees 0`, `peuplees 123` sur
+125 survols) — et de rares frises restaient invisibles. Les deux étaient vrais
+en même temps : la frise **existait** et **se taisait**, faute d'avoir quelque
+chose à dire. Un live commencé avant nous, une seule catégorie observée, aucun
+enregistrement à interroger : la règle est de se taire plutôt que d'inventer.
+
+Les compteurs de survol décrivaient l'état du registre ; ils ne disaient pas si
+la frise avait été **montrée**. `affichees` et `muettes` mesurent exactement cet
+écart, au moment où le verdict se prend — c'est-à-dire après que les chapitres
+du VOD ont eu le temps d'arriver. Ils ne s'additionnent pas avec les trois
+autres, et le rapport le dit : confondre l'état d'une donnée avec ce qu'on en a
+fait est la façon la plus sûre de rendre un compteur inutile.
+
 ## La frise qui s'effaçait (v3.79)
 
 Un rapport disait « y'a pas tous les *Précédemment* qui fonctionne », avec des
@@ -2425,7 +2507,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 81 scénarios, 746 assertions |
+| `npm test` | le harnais Playwright : 83 scénarios, 766 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -2446,12 +2528,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 653 Ko | 294 Ko | 2 873 JS + 83 CSS → **2** |
+| `content.js` | 695 Ko | 307 Ko | 2 928 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **831 Ko** | **419 Ko** | **−50 %** |
+| **les cinq** | **874 Ko** | **432 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
