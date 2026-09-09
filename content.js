@@ -1663,6 +1663,35 @@ const TSE_GATE_MAX_CLICKS = 5;
     // (vérifié : 100 reçus, décroissants). C'est la colonne vertébrale de
     // tout le module — et accessoirement la source du filtre catégorie.
     GLOBAL_CATEGORIES_MAX:   100,
+    /* === L'AUDIENCE PAR LANGUE === (v3.80)
+       Le filtre langue affichait un DÉCOMPTE DE NOTRE POOL : « 212 », le
+       nombre de chaînes de cette langue parmi les ~1 900 qu'on avait
+       récoltées. Un nombre vrai, mais qui ne parle que de nous. À côté, le
+       filtre catégorie affiche l'audience réelle que Twitch publie. Deux
+       unités dans deux menus voisins, dont une seule décrit Twitch.
+
+       On demande donc à Twitch la même chose pour les langues que pour les
+       catégories : `games(options: { freeformTags: [langue] })`, c'est-à-dire
+       les catégories PORTÉES par cette langue avec leur audience. Cette
+       réponse sert deux besoins d'un coup — la somme donne l'audience de la
+       langue, la liste donne les compteurs du filtre catégorie quand cette
+       langue est choisie.
+
+       CADENCE. Une opération par langue, loties par `send`, une fois par
+       TTL et seulement en mode Top Chaînes. C'est le prix d'un menu juste ;
+       il se paie une fois toutes les cinq minutes, pas à chaque scan. */
+    GLOBAL_LANG_CATS_MAX:    100,
+    GLOBAL_LANG_CATS_TTL:    5 * 60_000,
+    /* La garde qui décide si ces chiffres sont AFFICHABLES. Voir `porteeLang`
+       dans le module : rien ne prouvait que `freeformTags` porte les COMPTEURS
+       sur la langue plutôt que de seulement choisir les catégories rendues.
+       Si les compteurs n'étaient pas portés, la somme d'une langue vaudrait
+       l'audience mondiale — et l'on afficherait « Català : 2,1 M ». La somme
+       de toutes les langues est donc comparée au total mondial : portée, elle
+       le vaut à peu près ; non portée, elle le vaut TRENTE FOIS. Ce facteur
+       tranche entre 1 et 31, et ce seuil est au milieu de nulle part, là où
+       aucune dérive de mesure ne peut le franchir. */
+    GLOBAL_LANG_PORTEE_MAX:  2,
     // Catégories de tête interrogées à chaque passe structurelle : elles
     // portent l'essentiel du top N, et les re-lire à chaque cycle évite
     // d'attendre la marche complète pour voir une chaîne grimper CHEZ ELLES.
@@ -3406,7 +3435,14 @@ const TSE_GATE_MAX_CLICKS = 5;
      nommément, et la borne couvre le cache. Un rapport qui en porte des
      milliers dit que le registre tourne sur lui-même, et il le dit sans qu'on
      ait à deviner. */
-  const bilanFrises = { survols: 0, absentes: 0, vides: 0, peuplees: 0, evincees: 0 };
+  /* DEUX TRIOS, ET ILS NE MESURENT PAS LA MÊME CHOSE. `survols/absentes/
+     vides/peuplees` décrivent le REGISTRE au moment du survol ; `affichees/
+     muettes` décrivent le VERDICT D'AFFICHAGE, pris plus tard — après que les
+     chapitres du VOD ont eu le temps d'arriver. Leurs totaux ne coïncident
+     donc pas, et c'est voulu : les additionner reviendrait à confondre l'état
+     d'une donnée avec ce qu'on en a fait. */
+  const bilanFrises = { survols: 0, absentes: 0, vides: 0, peuplees: 0,
+                        affichees: 0, muettes: 0, evincees: 0 };
   const noterSurvolFrise = (login) => {
     bilanFrises.survols++;
     const f = frises.get(login);
@@ -4365,6 +4401,152 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
+    /* ══════════════════════════════════════════════════════════════════════
+       L'AUDIENCE PAR LANGUE, ET LES CATÉGORIES QU'ELLE PORTE
+       ──────────────────────────────────────────────────────────────────────
+       Même requête que la liste des catégories, avec le filtre de tag qui a
+       fait ses preuves sur `streams`. Elle rend, pour une langue, ses
+       catégories classées par audience — d'où DEUX renseignements que
+       l'interface demandait séparément :
+         — la SOMME, c'est-à-dire l'audience de cette langue, à afficher à
+           côté de son drapeau ;
+         — la LISTE, c'est-à-dire les compteurs du filtre catégorie quand
+           cette langue est choisie (le globe garde les totaux mondiaux).
+
+       CE QUI N'EST PAS ACQUIS, ET QUI SE VÉRIFIE PLUS BAS. Que le filtre soit
+       accepté ne dit pas que les COMPTEURS soient portés par la langue : il
+       se pourrait qu'il choisisse seulement quelles catégories reviennent, en
+       laissant à chacune son audience mondiale. On afficherait alors
+       « Català : 2,1 M ». C'est `porteeLang` qui tranche — voir plus bas ; en
+       attendant, rien n'est affiché. */
+    const LANG_CATS_QUERY =
+      'query TseLangCats($tag: String!, $n: Int!) {' +
+      '  games(first: $n, options: { sort: VIEWER_COUNT, freeformTags: [$tag] }) {' +
+      '    edges { node { id name displayName viewersCount } }' +
+      '  }' +
+      '}';
+
+    const bilanLangCats = { demandes: 0, servis: 0, vides: 0, refus: 0, reseau: 0 };
+    /* null tant qu'on n'a pas de quoi trancher, puis true/false — et jamais
+       revisité à la légère : le rapport porte le facteur mesuré, qui vaut
+       explication à lui seul. */
+    let porteeLang = null;
+    let porteeFacteur = null;
+    let langCatsRefuse = false;
+    let langCatsTs = 0;
+    let langCatsEnCours = false;
+    const langCats = new Map();     // langue → [{ name, display, viewers }]
+    // L'audience par langue, sommée à l'arrivée des données. `null` tant
+    // qu'il n'y a rien : c'est ce que `langAudience()` rend, et l'interface
+    // le lit comme « on ne sait pas ».
+    let langAudienceMap = null;
+
+    const majLangCats = async (langues) => {
+      if (langCatsEnCours || langCatsRefuse) return;
+      langCatsEnCours = true;
+      try {
+        const ops = langues.map(l => ({
+          operationName: 'TseLangCats',
+          variables: { tag: l, n: CFG.GLOBAL_LANG_CATS_MAX },
+          query: LANG_CATS_QUERY
+        }));
+        bilanLangCats.demandes += ops.length;
+        const { out, transport } = await send(ops);
+        /* `repondus` N'EST PAS `servis`, et les confondre coûterait la
+           requête. Les compteurs du rapport sont EXCLUSIFS — une langue est
+           servie, ou vide, ou refusée, ou perdue — si bien que `servis` ne
+           compte que les listes NON VIDES. Or une langue sans la moindre
+           catégorie est une réponse parfaitement valide : s'en servir pour
+           décider d'un refus de schéma condamnerait la requête le jour où
+           l'on interroge trente langues confidentielles. On compte donc à
+           part ce qui a été COMPRIS, vide ou non. */
+        let repondus = 0;
+        const frais = new Map();
+        out.forEach((d, i) => {
+          const edges = d?.games?.edges;
+          if (!Array.isArray(edges)) {
+            if (transport) bilanLangCats.reseau++;
+            else bilanLangCats.refus++;
+            return;
+          }
+          repondus++;
+          const liste = [];
+          for (const e of edges) {
+            const n = e?.node;
+            if (!n?.name || !Number.isFinite(n.viewersCount)) continue;
+            liste.push({ name: n.name,
+                         display: n.displayName?.trim() || n.name,
+                         viewers: n.viewersCount });
+          }
+          /* UNE LANGUE SANS CATÉGORIE EST MÉMORISÉE, ET C'EST TOUT LE POINT.
+             « Elle n'a aucun stream » et « nous n'avons pas pu demander » sont
+             deux choses que le menu ne doit pas confondre : la première
+             s'affiche « 0 », la seconde ne s'affiche pas du tout. En ne
+             gardant que les listes non vides, une langue dont l'opération
+             s'était perdue en route aurait porté un « 0 » aussi faux
+             qu'affirmatif. On garde donc la liste vide comme une réponse. */
+          if (!liste.length) { bilanLangCats.vides++; frais.set(langues[i], []); return; }
+          bilanLangCats.servis++;
+          liste.sort((a, b) => b.viewers - a.viewers);
+          frais.set(langues[i], liste);
+        });
+        /* UN REFUS DU SCHÉMA EST DÉFINITIF POUR LA SESSION, une coupure ne
+           l'est pas — même règle que la voie du tag. `refus` n'est incrémenté
+           que hors transport, donc il ne peut pas venir d'une perte de
+           connexion. Aucune opération comprise et aucun incident réseau :
+           c'est le schéma. */
+        // Deux écritures après un `await`, et le linter a raison de les
+        // pointer. Elles sont sûres ici parce que `langCatsEnCours` interdit
+        // une seconde exécution concurrente, et parce que la valeur écrite ne
+        // dépend pas de celle qu'on a lue : `true` est absorbant, un refus de
+        // schéma ne se dé-refuse pas.
+        // eslint-disable-next-line require-atomic-updates
+        if (!repondus && !transport && ops.length) { langCatsRefuse = true; return; }
+        /* L'HORODATAGE MARQUE LA TENTATIVE, PAS LA RÉUSSITE — et c'est le banc
+           qui l'a imposé. En le posant seulement sur des données utiles, un
+           serveur qui rend trente et une listes vides faisait repartir les
+           trente et une opérations à CHAQUE marche, indéfiniment. Une réponse
+           comprise, fût-elle vide, est une réponse : elle vaut son TTL. Une
+           coupure réseau, elle, n'apprend rien et ne retarde donc rien. */
+        if (!transport) langCatsTs = Date.now();
+        if (!frais.size) return;
+
+        /* ── LA GARDE : CES CHIFFRES SONT-ILS PORTÉS PAR LA LANGUE ? ────────
+           On ne peut pas comparer catégorie par catégorie : les audiences
+           bougent à la seconde, et la liste mondiale n'a pas été relevée au
+           même instant. Un écart y serait donc la règle, portée ou non.
+
+           On compare des SOMMES, ce que la dérive ne peut pas fausser. Chaque
+           spectateur regarde un stream, et un stream porte sa langue : la
+           somme des audiences par langue vaut donc à peu près l'audience
+           mondiale. Si le filtre ne portait PAS les compteurs, chaque langue
+           rendrait l'audience mondiale, et la somme la vaudrait autant de
+           fois qu'il y a de langues. Le verdict se joue entre 1 et 31 ; le
+           seuil est posé à 2, au large des deux. */
+        const mondiale = categories.reduce((n, c) => n + (c.viewers || 0), 0);
+        if (mondiale > 0) {
+          let somme = 0;
+          for (const liste of frais.values()) {
+            somme += liste.reduce((n, c) => n + c.viewers, 0);
+          }
+          porteeFacteur = Math.round((somme / mondiale) * 100) / 100;
+          porteeLang = porteeFacteur <= CFG.GLOBAL_LANG_PORTEE_MAX;
+        }
+        langCats.clear();
+        for (const [l, liste] of frais) langCats.set(l, liste);
+        const audience = new Map();
+        for (const [l, liste] of langCats) {
+          audience.set(l, liste.reduce((n, c) => n + c.viewers, 0));
+        }
+        langAudienceMap = audience.size ? audience : null;
+      } finally {
+        // Même raison qu'au-dessus : c'est CE passage qui a posé le drapeau à
+        // l'entrée, et lui seul peut le retirer.
+        // eslint-disable-next-line require-atomic-updates
+        langCatsEnCours = false;
+      }
+    };
+
     const publish = (pool) => {
       ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
@@ -4391,6 +4573,16 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!cats) return { ok: false, complete: false };
       categories   = cats;
       categoriesTs = started;
+
+      /* L'audience par langue, rafraîchie ici parce que c'est ici qu'on tient
+         la liste mondiale dont sa garde a besoin — et LANCÉE SANS ATTENDRE.
+         Trente et une opérations pour peupler un menu ne doivent pas retarder
+         d'une seconde le classement, qui est ce que l'utilisateur regarde. Le
+         menu se remplira au scan suivant ; jusque-là il montre ce qu'il
+         montrait avant. */
+      if (!langCatsRefuse && Date.now() - langCatsTs > CFG.GLOBAL_LANG_CATS_TTL) {
+        majLangCats([...LANG_SET]).catch(() => {});
+      }
 
       /* ── LA VOIE DU TAG, ESSAYÉE EN PREMIER ─────────────────────────────
          Une requête au lieu d'une descente, et un signal plus juste (cf. le
@@ -4869,9 +5061,50 @@ const TSE_GATE_MAX_CLICKS = 5;
         }
         return m;
       },
+      /* L'AUDIENCE PAR LANGUE, ou null tant qu'on ne peut pas l'affirmer.
+         Null couvre trois cas qui se valent du point de vue de l'affichage —
+         schéma refusé, rien encore reçu, compteurs non portés par la langue —
+         et dans les trois l'interface retombe sur le décompte de pool
+         d'aujourd'hui. Ce qu'on ne peut pas affirmer, on ne l'affiche pas. */
+      /* CALCULÉE UNE FOIS, PAS À CHAQUE SCAN. Écrite d'abord en sommant les
+         trente et une listes à chaque appel — soit jusqu'à trois mille
+         additions par passe de `recomputeFilters`, laquelle tourne à chaque
+         mutation du DOM de Twitch. Pour un menu qui ne change qu'une fois
+         toutes les cinq minutes. La somme est donc faite là où la donnée
+         arrive, et relue telle quelle ici. */
+      langAudience() {
+        return porteeLang === true ? langAudienceMap : null;
+      },
       // Top des catégories, avec leur audience. Alimentera le filtre
       // catégorie du mode global (« 523k | Dota 2 »).
-      cats(n = CFG.GLOBAL_CATEGORIES_MAX) { return categories.slice(0, n); },
+      // `lang` demande les catégories PORTÉES par cette langue, avec leur
+      // audience dans cette langue — c'est ce que le filtre catégorie doit
+      // montrer quand une langue est choisie. Sans langue, ou sans données
+      // sûres, on rend la liste mondiale : le globe, c'est-à-dire les totaux.
+      cats(n = CFG.GLOBAL_CATEGORIES_MAX, lang = null) {
+        if (lang && porteeLang === true) {
+          const liste = langCats.get(lang);
+          if (liste) return liste.slice(0, n);
+        }
+        return categories.slice(0, n);
+      },
+      // Les langues à PROPOSER. Toutes celles que Twitch connaît dès qu'on
+      // sait ce qu'elles pèsent ; à défaut, celles que le pool a croisées —
+      // proposer une langue sans savoir si elle a la moindre chaîne rendrait
+      // une barre latérale vide sans rien annoncer.
+      /* Celles dont on SAIT quelque chose, et pas « toutes celles qui
+         existent ». La nuance compte le jour où une opération se perd : la
+         langue disparaît du menu pour un cycle, au lieu d'y figurer avec un
+         zéro qu'on n'a pas mesuré. En marche nominale, Twitch répond pour les
+         trente et une et le menu les porte toutes. */
+      langsProposables() {
+        return this.langAudience() ? [...langCats.keys()] : null;
+      },
+      bilanLangues() {
+        return { ...bilanLangCats, refuse: langCatsRefuse, portee: porteeLang,
+                 facteur: porteeFacteur, connues: langCats.size,
+                 ageMs: langCatsTs ? Date.now() - langCatsTs : null };
+      },
       // Compteur frais venu de TseChannels. viewers === null → la chaîne
       // n'est plus en direct : on la retire du classement plutôt que de la
       // laisser figée sur sa dernière valeur connue.
@@ -4920,6 +5153,18 @@ const TSE_GATE_MAX_CLICKS = 5;
              si l'argument de filtre est le bon. Même dispositif que pour les
              chapitres de VOD, qui a tranché deux fois. */
           tags: { ...bilanTags, refuse: tagRefuse },
+          /* L'AUDIENCE PAR LANGUE, ET SURTOUT SON VERDICT DE PORTÉE.
+             `portee` est la seule ligne qui compte : true, les chiffres sont
+             affichés ; false, ils sont tus parce qu'ils décriraient le monde
+             et non la langue ; null, on n'a pas encore de quoi trancher.
+             `facteur` porte la mesure qui a servi à décider — proche de 1,
+             les compteurs sont portés ; proche du nombre de langues, ils ne
+             le sont pas. Sans lui, `portee: false` serait un verdict sans
+             motif, et le prochain rapport ne dirait pas s'il faut corriger le
+             seuil ou abandonner la requête. */
+          langues: { ...bilanLangCats, refuse: langCatsRefuse,
+                     portee: porteeLang, facteur: porteeFacteur,
+                     connues: langCats.size },
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -9072,7 +9317,16 @@ const TSE_GATE_MAX_CLICKS = 5;
          un bloc vide dans un popup de survol se paie en hauteur à chaque
          carte. */
       const frise = friseNoeud(login, preludeDe(login));
-      if (frise) el.querySelector('.tse-preview__body').appendChild(frise);
+      /* LE VERDICT D'AFFICHAGE, COMPTÉ LÀ OÙ IL SE PREND. Les trois compteurs
+         de survol disent l'état du REGISTRE ; ils ne disent pas si la frise a
+         été montrée. Un rapport portait `peuplees 123` sur 125 survols — un
+         registre en parfaite santé — pendant que l'utilisateur signalait « de
+         rares frises non visibles ». Les deux étaient vrais : la frise
+         existait et se taisait, faute d'avoir quelque chose à dire.
+         `muettes` mesure exactement cet écart, et sépare une fonctionnalité
+         qui se tait à bon escient d'une fonctionnalité en panne. */
+      if (frise) { bilanFrises.affichees++; el.querySelector('.tse-preview__body').appendChild(frise); }
+      else bilanFrises.muettes++;
 
       if (thumbImg && placeholder) {
         thumbImg.addEventListener('error', () => {
@@ -10511,17 +10765,33 @@ const TSE_GATE_MAX_CLICKS = 5;
     // depuis que le classement a cessé d'être re-filtré (cf.
     // applyCardVisibility).
     if (state.globalMode) {
-      const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX);
-      const catCount = new Map(cats.map(c => [c.name, c.viewers]));
+      /* ── LES DEUX MENUS SE RÉPONDENT ────────────────────────────────────
+         L'audience par langue, quand Twitch la sert et qu'elle est portée,
+         change les DEUX menus d'un coup :
+           — le menu langue passe d'un décompte de notre pool (« 212 ») à
+             l'audience réelle (« 214 k »), et propose TOUTES les langues de
+             Twitch plutôt que celles que le pool a croisées ;
+           — le menu catégorie, lorsqu'une langue est choisie, montre les
+             catégories DE CETTE LANGUE avec leur audience dans cette langue.
+             Le globe rend les totaux mondiaux, qui sont ceux d'aujourd'hui.
+         Sans elle, tout ce bloc se comporte exactement comme avant. */
+      const langAudience = globalChannels.langAudience();
       // La sélection n'est PAS validée contre les catégories connues : la
       // liste peut être vide au tout premier scan, et invalider le choix de
       // l'utilisateur à cet instant le lui ferait perdre sans raison.
-      // Les langues viennent du POOL récolté, pas des cartes affichées.
-      const langCount = globalChannels.langs();
-      const langsPresent = new Set(langCount.keys());
+      /* UN SEUL PARCOURS DU POOL, ET C'EST UNE CORRECTION D'AUDIT. La
+         première écriture demandait les langues proposables PUIS leur
+         décompte, et dans le chemin de repli les deux relisaient le pool —
+         près de deux mille enregistrements, deux fois, à chaque scan. Le
+         décompte de repli sert désormais aussi de liste. */
+      const langCount = langAudience || globalChannels.langs();
+      const langsPresent = new Set(globalChannels.langsProposables()
+                                   || langCount.keys());
       const Lg = state.languageFilter && langsPresent.has(state.languageFilter)
         ? state.languageFilter : null;
       state.languageFilter = Lg;
+      const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX, Lg);
+      const catCount = new Map(cats.map(c => [c.name, c.viewers]));
       // `c.name` est l'identité — c'est elle que TseCategoryTop interrogera —
       // et `c.display` le nom traduit, que TseCategories sert déjà et que rien
       // n'affichait encore.
@@ -10531,10 +10801,16 @@ const TSE_GATE_MAX_CLICKS = 5;
                       (v) => catLabel.get(v) || v);
       rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
                       langCount, Lg, langsPresent.size === 0, 'lang',
-                      // Sous portée catégorie, le compteur porterait sur le
-                      // pool mondial alors que la sélection interrogera la
-                      // catégorie : deux ensembles différents, donc silence.
-                      state.categoryFilter ? () => '' : String);
+                      /* Sous portée catégorie, le décompte de POOL porterait
+                         sur le monde alors que la sélection interrogera la
+                         catégorie : deux ensembles, donc silence. L'audience
+                         par langue, elle, n'a pas ce défaut — mais elle décrit
+                         la langue entière, pas la catégorie choisie, et le
+                         nombre mentirait tout autant. Silence dans les deux
+                         cas ; ce qui change, c'est l'unité quand il n'y a pas
+                         de catégorie choisie. */
+                      state.categoryFilter ? () => ''
+                        : (langAudience ? formatViewers : String));
       const wrapG = document.getElementById(FILTER_ID);
       if (wrapG) wrapG.dataset.tseActive = (state.categoryFilter || Lg) ? 'true' : 'false';
       applyCategoryFilter();
@@ -11027,19 +11303,49 @@ const TSE_GATE_MAX_CLICKS = 5;
     'TH': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#fff"/><rect x="5" y="30" width="62" height="12" fill="#1e50a0"/><rect x="5" y="50" width="62" height="5" fill="#d22f27"/><rect x="5" y="17" width="62" height="5" fill="#d22f27"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
     'VN': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#d22f27"/><polygon fill="#f1b31c" stroke="#f1b31c" stroke-linecap="round" stroke-linejoin="round" points="28.89 47 36.193 25 42.488 46.663 25 33.61 47 33.067 28.89 47"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
     'ID': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#d22f27"/><rect x="5" y="36" width="62" height="19" fill="#fff"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
-    'UA': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#61b2e4"/><rect x="5" y="36" width="62" height="19" fill="#fcea2b"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`
+    'UA': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#61b2e4"/><rect x="5" y="36" width="62" height="19" fill="#fcea2b"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
+    /* ── LES CINQ AJOUTÉES EN 3.80 ────────────────────────────────────────
+       Twitch propose trente et une langues ; la table n'en portait que
+       vingt-six. Ces cinq-là n'étaient donc NI proposables NI même
+       détectables — `LANG_SET` se dérive de cette table, si bien qu'un tag
+       « Català » sur un stream ne se voyait pas.
+       Dessin : même gabarit que les autres (viewBox 72, drapeau en 5,17,
+       62×38, contour noir de 2). La Slovaquie porte son écusson, sans quoi
+       elle serait le drapeau russe ; les Philippines et la Malaisie sont
+       simplifiées à ce qu'on distingue encore à vingt pixels. */
+    'BG': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#d22f27"/><rect x="5" y="30" width="62" height="12" fill="#5c9e31"/><rect x="5" y="17" width="62" height="13" fill="#fff"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
+    'SK': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#d22f27"/><rect x="5" y="17" width="62" height="13" fill="#fff"/><rect x="5" y="30" width="62" height="12" fill="#1e50a0"/><path fill="#d22f27" stroke="#fff" stroke-width="2" stroke-linejoin="round" d="M17,25h14v11c0,6-7,10-7,10s-7-4-7-10z"/><line x1="24" x2="24" y1="28" y2="42" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="20.5" x2="27.5" y1="31.5" y2="31.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="19" x2="29" y1="36" y2="36" stroke="#fff" stroke-width="2" stroke-linecap="round"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
+    'PH': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#d22f27"/><rect x="5" y="17" width="62" height="19" fill="#1e50a0"/><polygon points="5,17 5,55 38,36" fill="#fff"/><circle cx="15" cy="36" r="4" fill="#f1b31c"/><circle cx="9.5" cy="21.5" r="1.6" fill="#f1b31c"/><circle cx="9.5" cy="50.5" r="1.6" fill="#f1b31c"/><circle cx="33" cy="36" r="1.6" fill="#f1b31c"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
+    'MY': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#fff"/><rect x="5" y="17" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="22.4" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="27.8" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="33.2" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="38.6" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="44" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="49.4" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="17" width="33" height="21.7" fill="#1e50a0"/><circle cx="17" cy="27.5" r="6" fill="#f1b31c"/><circle cx="19.6" cy="27.5" r="5" fill="#1e50a0"/><circle cx="28" cy="27.5" r="2.7" fill="#f1b31c"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
+    'CT': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#f1b31c"/><rect x="5" y="21.2" width="62" height="4.2" fill="#d22f27"/><rect x="5" y="29.7" width="62" height="4.2" fill="#d22f27"/><rect x="5" y="38.1" width="62" height="4.2" fill="#d22f27"/><rect x="5" y="46.6" width="62" height="4.2" fill="#d22f27"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`
   };
   // Nom de langue canonique → clé de drapeau FLAG_SVG (code pays, ou code de
   // langue pour les bi-drapeaux combinés : English→EN, Português→PT).
   // C'est aussi la liste des langues SUPPORTÉES (toutes ont un drapeau).
+  /* ── LE NOM DOIT ÊTRE CELUI DE TWITCH, AU CARACTÈRE PRÈS ──────────────────
+     Ces clés ne sont pas des libellés : ce sont les noms de TAGS que Twitch
+     pose sur les streams, et la correspondance est EXACTE (cf. LANG_SET).
+     Un caractère de trop ou de moins, et la langue n'existe plus pour
+     l'extension — ni détectée sur les cartes, ni proposable dans le filtre,
+     ni interrogeable par la voie du tag.
+
+     C'EST ARRIVÉ, ET PERSONNE NE POUVAIT LE VOIR. Le thaï était écrit « ไทย »
+     ici, alors que Twitch nomme son tag « ภาษาไทย » — littéralement « langue
+     thaïe ». Aucune erreur, aucun compteur, aucun rapport : simplement une
+     langue qui n'a jamais rien détecté depuis qu'elle a été ajoutée. La faute
+     ne pouvait se voir qu'en comparant cette table à la liste de Twitch, ce
+     que le banc fait désormais (scénario 83) à partir des URLs de
+     `/directory/all/tags/`, qui sont les noms de tags eux-mêmes. */
   const LANG_CC = {
     'Français':'FR', 'English':'EN', 'Deutsch':'DE', 'Español':'ES',
     'Italiano':'IT', 'Português':'PT', 'Русский':'RU', '日本語':'JP',
     '한국어':'KR', '中文':'CN', 'Nederlands':'NL', 'Polski':'PL',
     'Türkçe':'TR', 'العربية':'SA', 'Čeština':'CZ', 'Svenska':'SE',
     'Dansk':'DK', 'Norsk':'NO', 'Suomi':'FI', 'Ελληνικά':'GR',
-    'Magyar':'HU', 'Română':'RO', 'ไทย':'TH', 'Tiếng Việt':'VN',
-    'Bahasa Indonesia':'ID', 'Українська':'UA'
+    'Magyar':'HU', 'Română':'RO', 'ภาษาไทย':'TH', 'Tiếng Việt':'VN',
+    'Bahasa Indonesia':'ID', 'Українська':'UA',
+    'Български':'BG', 'Slovenčina':'SK', 'Tagalog':'PH',
+    'بهاسملايو':'MY', 'Català':'CT'
   };
   // Code attendu par l'API pour `broadcasterLanguages`, en ISO 639-1 majuscule.
   // DISTINCT du code drapeau de LANG_CC, et les confondre ferait échouer la
@@ -11053,8 +11359,16 @@ const TSE_GATE_MAX_CLICKS = 5;
     '한국어':'KO', '中文':'ZH', 'Nederlands':'NL', 'Polski':'PL',
     'Türkçe':'TR', 'العربية':'AR', 'Čeština':'CS', 'Svenska':'SV',
     'Dansk':'DA', 'Norsk':'NO', 'Suomi':'FI', 'Ελληνικά':'EL',
-    'Magyar':'HU', 'Română':'RO', 'ไทย':'TH', 'Tiếng Việt':'VI',
-    'Bahasa Indonesia':'ID', 'Українська':'UK'
+    'Magyar':'HU', 'Română':'RO', 'ภาษาไทย':'TH', 'Tiếng Việt':'VI',
+    'Bahasa Indonesia':'ID', 'Українська':'UK',
+    /* Les cinq ajoutées. Leurs codes suivent l'ISO 639-1 comme les autres,
+       mais ils n'ont PAS été vus à l'œuvre : rien ne dit que l'énumération de
+       Twitch les porte, ni sous cette forme. C'est sans conséquence, et par
+       construction — `langApiRejected` retire un code que le serveur refuse,
+       une fois pour la session, et la voie du tag n'a de toute façon besoin
+       d'aucun code : elle interroge le NOM du tag. */
+    'Български':'BG', 'Slovenčina':'SK', 'Tagalog':'TL',
+    'بهاسملايو':'MS', 'Català':'CA'
   };
   // Langues dont l'API a refusé le code. On cesse de le lui proposer et on
   // retombe sur le filtrage du pool : mieux vaut un classement approché qu'une
