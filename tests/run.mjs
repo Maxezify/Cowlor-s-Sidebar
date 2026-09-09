@@ -8161,6 +8161,7 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
     window.__fx = { alpha: mk('Overwatch'), beta: mk('Overwatch'), gamma: mk('Overwatch'),
                     epsilon: mk('Overwatch'), zeta: mk('Overwatch'), eta: mk('Overwatch'),
                     theta: mk('Overwatch'), iota: mk('Overwatch'), kappa: mk('Overwatch'),
+                    lambda: mk('Overwatch'),
                     delta: { id: 'x', createdAt: new Date().toISOString(),
                              viewers: 900, game: 'Overwatch', tags: [] } };
     window.__vod = {
@@ -8195,6 +8196,7 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
       theta: 'sansvod',
       iota: 'sansvod',
       kappa: 'sansvod',
+      lambda: 'sansvod',
     };
     /* LE REPLI. `archiveVideo` a rendu null pour ces deux-là — ce qui peut
        vouloir dire « la chaîne n'archive pas », définitif, ou seulement que
@@ -8202,18 +8204,32 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
        porte tranche : theta a bien une archive qui couvre son live, iota n'en
        a qu'une d'hier, qui ne prouve rien. */
     window.__vodRecent = {
-      theta: { createdAt: iso, chapitres: [
+      theta: { createdAt: iso, lengthSeconds: 3 * 3600, chapitres: [
         { pos: 0, jeu: 'Just Chatting' },
         { pos: 60 * 60_000, jeu: 'Hades II' }] },
-      iota: { createdAt: new Date(d - 30 * 60 * 60_000).toISOString(), chapitres: [] },
+      /* iota : le VOD d'il y a trente heures, long de quatre. Il s'est terminé
+         vingt-six heures avant que ce live ne commence — aucun recouvrement,
+         rejet juste. C'est le cas que la valeur absolue attrapait déjà. */
+      iota: { createdAt: new Date(d - 30 * 60 * 60_000).toISOString(),
+              lengthSeconds: 4 * 3600, chapitres: [] },
+      /* lambda : LE CAS QUE LA VALEUR ABSOLUE JETAIT. L'enregistrement a
+         commencé quarante minutes AVANT ce live et tourne toujours : c'est un
+         stream qui a reconnecté, `stream.createdAt` est reparti, le VOD non.
+         Il recouvre donc le live, et ses chapitres nous regardent. Le rapport
+         d'un utilisateur a montré dix rejets de ce type, dont un à −39 min. */
+      lambda: { createdAt: new Date(d - 40 * 60_000).toISOString(),
+                lengthSeconds: 4 * 3600, chapitres: [
+                  { pos: 0, jeu: 'Just Chatting' },
+                  { pos: 20 * 60_000, jeu: 'Hades II' },
+                  { pos: (40 + 90) * 60_000, jeu: 'Overwatch' }] },
       // kappa : rien du tout. La chaîne n'archive pas, un point c'est tout.
     };
     for (const l of ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta',
-                     'theta', 'iota', 'kappa']) {
+                     'theta', 'iota', 'kappa', 'lambda']) {
       window.__addCard(l, 'Overwatch', '900');
     }
   }, DEBUT);
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 10);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 11);
 
   const survoler = async (login) => {
     await hoverLogin(page, login);
@@ -8372,6 +8388,25 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
   ok('une chaîne sans la moindre archive ne produit rien non plus',
      (await lignes()).length === 0, JSON.stringify(await lignes()));
 
+  /* ── LE STREAM QUI A RECONNECTÉ ──────────────────────────────────────────
+     L'enregistrement a commencé quarante minutes avant ce live et tourne
+     toujours. Une garde par valeur absolue le rejetait — un rapport en a
+     montré dix de ce type, dont un à moins trente-neuf minutes. Le critère
+     juste n'est pas un seuil mais un RECOUVREMENT : l'archive doit s'étendre
+     jusqu'au départ du live. Et ce qui la précède se replie sur ce départ :
+     le dernier moment antérieur est la catégorie sur laquelle le live a
+     commencé, les autres ne le regardent pas. */
+  await relacher('kappa');
+  await survoler('lambda');
+  await attendre(page,
+    () => document.querySelectorAll('.tse-preview__frise-ligne').length >= 2, 8000);
+  const lam = await lignes();
+  ok('un enregistrement ANTÉRIEUR au live, mais qui le recouvre, est retenu',
+     lam.length >= 2 && !lam.some(l => l.inconnu), JSON.stringify(lam.map(l => l.nom)));
+  ok('…et ce qui précède le live se replie en UN segment, pas en une pile de zéros',
+     lam[0].nom === 'Hades II' && lam[0].duree === '1h30',
+     JSON.stringify(lam.map(l => [l.nom, l.duree])));
+
   /* ── UNE FRISE NE REMONTE PAS LE TEMPS ──────────────────────────────────
      Le dernier chapitre est postérieur à notre propre observation. Notre
      segment ne doit PAS s'ajouter derrière lui : il commencerait avant ce qui
@@ -8410,8 +8445,8 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
   ok('…les sept issues sont exclusives, et leur somme vaut le nombre de demandes',
      b1.servis + b1.continus + b1.sansMoment + b1.inexploitables
      + b1.sansVod + b1.sansStream + b1.reseau === b1.demandes, JSON.stringify(b1));
-  ok('…et le repli est compté à part : tenté trois fois, servi une seule',
-     b1.replis >= 3 && b1.replisServis >= 1 && b1.replisServis < b1.replis,
+  ok('…et le repli est compté à part : tenté quatre fois, servi deux',
+     b1.replis >= 4 && b1.replisServis >= 2 && b1.replisServis < b1.replis,
      JSON.stringify(b1));
   /* ── POURQUOI LE REPLI N'A PAS SERVI ─────────────────────────────────────
      Un rapport a rendu « replis 12, replisServis 0 ». Impossible d'en tirer
@@ -8541,6 +8576,132 @@ titre('80. Aperçu — l\'ordre du corps : les badges ensemble, la frise en dern
      ordre.titreBadges === 10, `${ordre.titreBadges} px`);
 
   await page.close();
+}
+
+titre('81. Top Chaînes — le classement par TAG de langue');
+{
+  /* IDÉE VENUE D'UN UTILISATEUR, et elle vise juste. Twitch publie
+     `/directory/all/tags/Français` : un classement mondial trié par
+     spectateurs, filtré sur le TAG de langue. L'extension filtrait jusqu'ici
+     sur `broadcasterLanguages`, et les deux ne mesurent pas la même chose —
+     la déclaration des réglages d'un côté, la langue posée sur CE stream de
+     l'autre. Un francophone qui fait une soirée en anglais garde « FR » dans
+     ses réglages et met le tag « English ».
+
+     ET C'EST UNE REQUÊTE, PAS TRENTE. La descente visite les catégories une à
+     une ; la voie du tag demande directement le classement trié.
+
+     CE SCÉNARIO NE PROUVE PAS QUE LA REQUÊTE EST JUSTE — elle n'a jamais pu
+     être exécutée contre le vrai Twitch. Il prouve que la voie du tag REMPLACE
+     la descente quand elle aboutit, et que TOUT échec retombe sur la descente
+     d'aujourd'hui sans que l'utilisateur perde quoi que ce soit. */
+  const monter = (page) => page.evaluate(() => {
+    const h = new Date(Date.now() - 30 * 60_000).toISOString();
+    window.__fx = { suivi1: { id: 'id-suivi1', createdAt: h, viewers: 400,
+                              game: 'Just Chatting', tags: [] } };
+    window.__addCard('suivi1', 'Just Chatting', '400');
+    const cats = [];
+    for (let i = 0; i < 4; i++) {
+      const streams = [];
+      for (let k = 0; k < 30; k++) {
+        streams.push({ login: `en${i}_${k}`, viewers: 9000 - i * 100 - k, tags: ['English'] });
+      }
+      cats.push({ name: 'c' + i, viewers: 500_000 - i, streams });
+    }
+    // Une catégorie qui fait EXISTER « Français » dans la liste des langues :
+    // sans elle, la langue ne serait pas proposable et rien ne se déclencherait.
+    cats.push({ name: 'frcat', viewers: 499_000, streams: [
+      { login: 'vis1', viewers: 100, tags: ['Français'] },
+      { login: 'vis2', viewers: 90,  tags: ['Français'] },
+    ] });
+    window.__cats = cats;
+  });
+  const choisirLangue = (page, val) => page.evaluate((v) => {
+    const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
+      .find(o => (o.dataset.value || '') === v);
+    if (!opt) throw new Error('langue absente : ' + JSON.stringify(v));
+    opt.click();
+  }, val);
+  const opsTag = (page) => page.evaluate(() =>
+    window.__calls.flatMap(c => c.names || []).filter(n => n === 'TseTagTop').length);
+  const bilanTags = (page) => page.evaluate(() => window.tse.global.report().tags);
+  const classement = (page) => page.evaluate(() =>
+    window.tse.global.top(30).map(r => `${r.login}:${r.viewers}`));
+
+  /* ── LA VOIE DU TAG QUAND ELLE ABOUTIT ─────────────────────────────────── */
+  {
+    const page = await fresh();
+    await monter(page);
+    await page.evaluate(() => {
+      // Un classement que la DESCENTE ne pourrait pas trouver : ces chaînes
+      // n'existent dans aucune catégorie du harnais. Si elles apparaissent,
+      // c'est que la réponse vient du tag et de nulle part ailleurs.
+      window.__tagTop = { 'Français': [
+        { login: 'tagA', viewers: 5000, game: 'Just Chatting', tags: ['Français'] },
+        { login: 'tagB', viewers: 3000, game: 'VALORANT',      tags: ['Français'] },
+        { login: 'tagC', viewers: 1000, game: 'Just Chatting', tags: [] },
+      ] };
+    });
+    await wait(page, 1500);
+    await page.evaluate(() =>
+      document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+    await wait(page, 1800);
+    await choisirLangue(page, 'Français');
+    await attendre(page, () => window.tse.global.report().worldLang === 'Français', 8000);
+    await wait(page, 400);
+
+    const top = await classement(page);
+    ok('le classement vient du TAG, et non de la descente par catégories',
+       top.length === 3 && top.every(t => /^tag[ABC]:/.test(t)), JSON.stringify(top));
+    ok('…trié par spectateurs décroissants',
+       top.join(' ') === 'tagA:5000 tagB:3000 tagC:1000', JSON.stringify(top));
+    /* CE QUI N'EST PAS ÉPROUVÉ ICI, ET POURQUOI JE LE DIS. La voie du tag
+       pose le tag demandé sur les enregistrements qui ne le portent pas —
+       même geste que `scopePass` et `fullWalk`, pour que le filtre
+       d'affichage ne rejette pas une chaîne que la requête vient de
+       sélectionner. Cette ligne n'a PAS d'assertion : elle ne se manifeste que
+       lorsque `worldLang` diffère de la langue choisie, c'est-à-dire dans la
+       fenêtre entre le clic et la fin de la marche — une course, pas un état.
+       L'API console ne projette que rang/login/viewers/jeu, et les cartes ne
+       portent pas leurs langues dans cet état du harnais. Plutôt qu'une
+       assertion que je ne peux pas faire échouer, aucune, et cette note. */
+    ok('le classement est annoncé COMPLET — le serveur a trié, pas nous',
+       await page.evaluate(() => window.tse.global.report().complete) === true);
+
+    const b = await bilanTags(page);
+    ok('une seule requête de tag a suffi là où la descente en demandait des dizaines',
+       b.servis >= 1 && b.demandes >= 1 && b.refus === 0, JSON.stringify(b));
+    await page.close();
+  }
+
+  /* ── ET QUAND LE SCHÉMA LA REFUSE ────────────────────────────────────────
+     C'est l'hypothèse à prendre au sérieux, puisque la requête n'a jamais été
+     exécutée contre le vrai Twitch. L'utilisateur ne doit rien perdre : la
+     descente d'aujourd'hui reprend la main, et l'on n'insiste pas — un nom
+     d'argument ne devient pas valide en cours de session. */
+  {
+    const page = await fresh();
+    await monter(page);
+    await page.evaluate(() => { window.__tagTop = { 'Français': 'erreur' }; });
+    await wait(page, 1500);
+    await page.evaluate(() =>
+      document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+    await wait(page, 1800);
+    await choisirLangue(page, 'Français');
+    await wait(page, 2500);
+
+    const b = await bilanTags(page);
+    ok('un refus du schéma est consigné, et la voie du tag est abandonnée',
+       b.refus >= 1 && b.refuse === true, JSON.stringify(b));
+    const avant = await opsTag(page);
+    await page.evaluate(() => window.tse.global.on());
+    await wait(page, 1500);
+    ok('…et l\'on n\'insiste plus : aucune requête de tag supplémentaire',
+       (await opsTag(page)) === avant, `${await opsTag(page)} contre ${avant}`);
+    ok('…tandis que le classement, lui, continue d\'être servi',
+       (await classement(page)).length > 0, 'classement vide après le repli');
+    await page.close();
+  }
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
