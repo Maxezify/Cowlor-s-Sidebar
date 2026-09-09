@@ -1189,7 +1189,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     CATEGORY_SWITCH_MAX: 200,
 
-    CATEGORY_TRAIL_MAX: 40,
+    CATEGORY_TRAIL_MAX: 500,
 
     CATEGORY_TRAIL_SEGMENTS: 12,
 
@@ -2058,6 +2058,15 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const frises = new Map();
 
+  const bilanFrises = { survols: 0, absentes: 0, vides: 0, peuplees: 0, evincees: 0 };
+  const noterSurvolFrise = (login) => {
+    bilanFrises.survols++;
+    const f = frises.get(login);
+    if (!f) bilanFrises.absentes++;
+    else if (!f.segments.length) bilanFrises.vides++;
+    else bilanFrises.peuplees++;
+  };
+
   const suivreCategorie = (login, apres) => {
     const flux = apres?.stream;
     const id = flux?.id || null;
@@ -2072,10 +2081,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!f || f.streamId !== id) {
       f = { streamId: id, debutStream, vuDepuis: maintenant, segments: [], tronquee: false };
       frises.set(login, f);
+    } else {
 
-      while (frises.size > CFG.CATEGORY_TRAIL_MAX) {
-        frises.delete(frises.keys().next().value);
-      }
+      frises.delete(login);
+      frises.set(login, f);
+    }
+
+    while (frises.size > CFG.CATEGORY_TRAIL_MAX) {
+      frises.delete(frises.keys().next().value);
+      bilanFrises.evincees++;
     }
 
     const dernier = f.segments[f.segments.length - 1];
@@ -4232,6 +4246,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           bascules:    [...basculements.keys()].filter(l => basculementFrais(l)).length,
           cache:       cache.size,
         },
+
+        frise: { resident: frises.size, max: CFG.CATEGORY_TRAIL_MAX, ...bilanFrises },
         relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
 
         reseau: {
@@ -5632,6 +5648,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       requestLiveWith(getChannelId(login));
 
       const flux = cache.get(login)?.stream;
+      noterSurvolFrise(login);
       if (flux?.id && !preludeDe(login) && friseACombler(login)) {
         fetchChapitres(login, flux.id, Date.parse(flux.createdAt) || 0)
           .then(() => majFrise(login))
