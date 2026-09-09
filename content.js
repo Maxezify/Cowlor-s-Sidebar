@@ -1898,7 +1898,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     .tse-preview__body {
       padding: 10px 12px;
-      display: flex; flex-direction: column; gap: 6px;
+      
+      display: flex; flex-direction: column; gap: 10px;
     }
     .tse-preview__title {
       font-size: 1.4rem;
@@ -1953,7 +1954,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     
     .tse-preview__frise {
       
-      padding-top: 6px;
+      
+      padding-top: 10px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
     .tse-preview__frise-titre {
@@ -4745,7 +4747,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const bilanChapitres = { demandes: 0, servis: 0, continus: 0, sansMoment: 0,
                              inexploitables: 0, sansVod: 0, sansStream: 0, reseau: 0,
-                             replis: 0, replisServis: 0 };
+
+                             replis: 0, replisServis: 0, replisErreur: 0,
+                             replisVides: 0, replisHorsSujet: 0 };
 
     const segmentsDuVod = (vod, debutStream) => {
       const aretes = vod?.moments?.edges;
@@ -4808,10 +4812,14 @@ const TSE_GATE_MAX_CLICKS = 5;
           variables: { login },
           query: RECENT_QUERY
         }]);
-        if (!isResultsUnusable(res2)) {
+        if (isResultsUnusable(res2)) {
+          bilanChapitres.replisErreur++;
+        } else {
           const candidat = res2?.[0]?.data?.user?.videos?.edges?.[0]?.node;
 
-          if (candidat && vodCouvre(candidat, debutStream)) {
+          if (!candidat) bilanChapitres.replisVides++;
+          else if (!vodCouvre(candidat, debutStream)) bilanChapitres.replisHorsSujet++;
+          else {
             vod = candidat;
             bilanChapitres.replisServis++;
           }
