@@ -5,7 +5,22 @@
      filtre, 1,4rem pour un titre d'aperçu, 1,1rem pour un badge). Sans cette
      règle, le harnais rendait ces tailles sur une base de 16 px — 18,4 px au
      lieu de 11,5 — et toute mesure de largeur ou de hauteur y était fausse. -->
-<style>html { font-size: 62.5%; }</style>
+<style>
+html { font-size: 62.5%; }
+/* ── LA RANGÉE D'UNE CARTE, MODÉLISÉE ────────────────────────────────────
+   Ce harnais n'a pas la feuille de style de Twitch. Sans mise en page, une
+   question de CENTRAGE VERTICAL n'a pas de sens : tout mesure zéro.
+   On reproduit donc ce que la capture d'écran montre, et rien de plus — deux
+   colonnes côte à côte, chacune de deux lignes : à gauche le pseudo puis la
+   catégorie, à droite les spectateurs puis la durée. C'est une MODÉLISATION,
+   pas un relevé du CSS de Twitch, et l'assertion qu'elle sert ne prouve donc
+   que ceci : notre règle centre bien ce qu'elle vise dans une rangée ainsi
+   faite. Le marqueur, lui, est éprouvé sans elle. */
+.metacell { display: flex; align-items: flex-start; }
+.metacell > [data-a-target="side-nav-card-metadata"] { flex: 1; }
+.metacell p, .metacell span { display: block; line-height: 16px; margin: 0; }
+.side-nav-card__live-status { min-height: 32px; }
+</style>
 </head>
 <body>
 <div id="root">
@@ -168,7 +183,10 @@ window.__addCard = (login, cat, viewersText, live = true) => {
       '<div class="mainblock"><div class="metacell">' +
         '<div data-a-target="side-nav-card-metadata">' +
           '<p data-a-target="side-nav-title">' + login + '</p>' +
-          '<p title="' + cat + '">' + cat + '</p>' +
+          // UNE CATÉGORIE ABSENTE EST UN <p> ABSENT, pas un <p> vide : c'est
+          // ce que Twitch rend pour une chaîne qui n'en déclare pas, et c'est
+          // ce qui laisse le pseudo seul sur une rangée haute de deux lignes.
+          (cat ? '<p title="' + cat + '">' + cat + '</p>' : '') +
         '</div>' +
         '<div class="side-nav-card__live-status"><div><div>' +
           (live ? '<span class="tw-channel-status-indicator"></span>' : '') +
@@ -444,6 +462,19 @@ window.fetch = async (url, opt) => {
          Un décor qui n'en refuserait que deux simulerait autre chose. */
       if (window.__langCatsErreur) {
         return { errors: [{ message: 'Unknown argument freeformTags' }] };
+      }
+      /* LE NOM DE L'ARGUMENT EST INTERPOLÉ dans la requête, pas passé en
+         variable — le stub le lit donc là où il se trouve, exactement comme
+         pour `broadcasterLanguages`. Un nom que ce schéma simulé ne connaît
+         pas fait échouer la requête, ce qu'a fait Twitch en 3.80 :
+           « In field "freeformTags": Unknown field. »
+         Le décor choisit le nom accepté, ce qui rend la recherche du bon
+         candidat éprouvable au lieu d'être une supposition de plus. */
+      const mArg = /options:\s*\{[^}]*?VIEWER_COUNT,\s*(\w+):/.exec(o.query || '');
+      const attendu = window.__langCatsArg || 'tags';
+      if (!mArg || mArg[1] !== attendu) {
+        return { errors: [{ message: 'Argument "options" has invalid value. In field "'
+                                     + (mArg ? mArg[1] : '?') + '": Unknown field.' }] };
       }
       const t = window.__langCats && window.__langCats[o.variables?.tag];
       if (t === 'erreur') return { errors: [{ message: 'Unknown argument freeformTags' }] };
