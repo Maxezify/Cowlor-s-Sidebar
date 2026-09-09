@@ -8741,6 +8741,154 @@ titre('81. Top Chaînes — le classement par TAG de langue');
   }
 }
 
+titre('82. Frise — elle ne doit pas s\'effacer parce que d\'autres chaînes arrivent');
+{
+  /* LA PANNE QUE LES COMPTEURS NE POUVAIENT PAS VOIR. Un rapport disait
+     « y'a pas tous les Précédemment qui fonctionne », avec des compteurs de
+     chapitres impeccables : 55 demandes, 0 erreur, 0 échec réseau. Ils
+     n'avaient rien à se reprocher — ils ne comptent que les requêtes PARTIES.
+
+     Le registre des frises était borné à quarante entrées. Or il n'est pas
+     alimenté par la carte survolée : `suivreCategorie` reçoit CHAQUE login de
+     CHAQUE lot, c'est-à-dire tout le cache de streams — 210 dans ce rapport,
+     pour 128 cartes à l'écran. Les 170 en trop créaient chacune une frise en
+     évinçant une autre, et trente secondes plus tard les mêmes revenaient sans
+     se retrouver. Survoler une carte n'avait qu'une chance sur cinq de trouver
+     une frise ; sans frise, il n'y a ni affichage ni requête de chapitres.
+
+     ET L'ÉVICTION VISAIT LA PLUS RICHE. `Map` itère dans l'ordre de PREMIÈRE
+     insertion et `set` ne déplace pas une clé existante : purger par la tête
+     sortait la frise qui accumulait depuis le plus longtemps — exactement
+     celle qui avait un passé à raconter.
+
+     CE SCÉNARIO REPRODUIT LE SYMPTÔME, pas la cause supposée : on construit
+     une frise, on fait arriver des chaînes, on regarde si elle est encore là.
+     C'est ce que fait l'utilisateur.
+
+     CE QU'IL N'ÉPROUVE PAS, ET POURQUOI JE LE DIS. Le passage de la purge FIFO
+     à un « moins récemment observé » n'a AUCUN effet observable ici, et n'en
+     aurait aucun dans un banc raisonnable. La purge par le volume ne se
+     déclenche plus : la borne couvre le cache, et une chaîne qui s'éteint voit
+     sa frise retirée nommément. La faire tomber demanderait de fabriquer plus
+     de chaînes que le cache n'en garde — et à ce compte-là, AUCUNE politique
+     ne sauve la frise qu'on regarde : on ne tient pas 601 entrées dans 500
+     places. J'ai écrit puis jeté ce scénario-là plutôt que de le publier vert
+     pour de mauvaises raisons. La réinsertion reste, parce qu'elle est juste
+     et qu'elle ne coûte rien ; l'assertion de borne ci-dessous est ce qui
+     garde la porte. */
+  const page = await freshTwitch();
+  const DEBUT = Date.now() - 30 * 60_000;
+  await page.evaluate((d) => {
+    window.__fx = { alpha: { id: 'a', createdAt: new Date(d).toISOString(),
+                             viewers: 90_000, game: 'Just Chatting', tags: [] } };
+    window.__addCard('alpha', 'Just Chatting', '90 k');
+  }, DEBUT);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+
+  const survoler = async () => {
+    await hoverLogin(page, 'alpha');
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+  };
+  const relacher = async () => {
+    await page.evaluate(() => {
+      const c = [...document.querySelectorAll('.side-nav-card')]
+        .find(x => x.dataset.tseLogin === 'alpha');
+      c.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+    });
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  };
+  const basculer = async (jeu) => {
+    await page.evaluate((j) => { window.__fx.alpha.game = j; window.tse.rescan(); }, jeu);
+    await attendre(page, (j) => [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.dataset.tseLogin === 'alpha')?.dataset.tseCategory === j, 8000, jeu);
+  };
+  const lignes = () => page.evaluate(() => {
+    const bloc = document.querySelector('.tse-preview__frise');
+    if (!bloc) return null;
+    return [...bloc.querySelectorAll('.tse-preview__frise-nom')].map(n => n.textContent);
+  });
+
+  /* Deux basculements : la frise a désormais un passé, et c'est ce passé qui
+     doit survivre. */
+  await basculer('Hades II');
+  await wait(page, 400);
+  await basculer('Overwatch');
+  await wait(page, 120);
+  await survoler();
+  const avant = await lignes();
+  ok('une frise construite sur deux basculements s\'affiche',
+     !!avant && avant.length >= 3, JSON.stringify(avant));
+  await relacher();
+
+  /* L'AFFLUX. Deux cents chaînes de plus — bien moins que les 210 du rapport,
+     et bien plus que les quarante places d'alors. Elles portent moins de
+     spectateurs qu'alpha pour que le tri ne la déplace pas hors de portée. */
+  const FLOT = 200;
+  await page.evaluate((n) => {
+    for (let i = 0; i < n; i++) {
+      const l = 'flot' + i;
+      window.__fx[l] = { id: 'f' + i, createdAt: new Date(Date.now() - 3600_000).toISOString(),
+                         viewers: 100 + i, game: 'G' + (i % 5), tags: [] };
+      window.__addCard(l, 'G' + (i % 5), '100');
+    }
+    window.tse.rescan();
+  }, FLOT);
+  // On attend que le pipeline ait RELEVÉ tout le monde : une carte décorée est
+  // une carte passée par le cache, donc par `suivreCategorie`.
+  await attendre(page,
+    (n) => document.querySelectorAll('[data-tse-viewers]').length >= n + 1, 20_000, FLOT);
+  await wait(page, 600);
+
+  await survoler();
+  const apres = await lignes();
+  ok('…et elle est TOUJOURS là après deux cents chaînes de plus',
+     !!apres && apres.length >= 3, JSON.stringify(apres));
+  ok('…avec le même passé, et non un redémarrage à zéro',
+     !!apres && !!avant && apres.slice(-3).join(' → ') === avant.slice(-3).join(' → '),
+     `avant ${JSON.stringify(avant)} · après ${JSON.stringify(apres)}`);
+  await relacher();
+
+  /* Le rapport doit désormais pouvoir MONTRER cette panne s'il elle revient :
+     `resident` contre `max`, et les survols par issue. */
+  const bf = await page.evaluate(() => window.tse.panneau.rapport().frise);
+  ok('le rapport dit combien de frises tiennent en mémoire, et pour quelle borne',
+     bf && bf.resident >= FLOT && bf.max >= bf.resident,
+     JSON.stringify(bf));
+  ok('…et les survols sont comptés par issue, exclusivement',
+     bf.survols >= 2 && bf.absentes + bf.vides + bf.peuplees === bf.survols,
+     JSON.stringify(bf));
+  /* LE COMPTEUR QUI AURAIT NOMMÉ LA PANNE, et le seul. Sous la borne fautive,
+     les trois ci-dessus restent muets : `absentes` vaut zéro, `peuplees` deux.
+     La frise d'alpha était bien présente au survol — recréée vide au relevé
+     précédent. Seul le nombre d'évictions distingue un registre sain d'un
+     registre qui tourne sur lui-même. */
+  ok('…et aucune frise n\'a été évincée : le registre ne tourne pas sur lui-même',
+     bf.evincees === 0, JSON.stringify(bf));
+  await page.close();
+
+  /* ── LA BORNE DOIT COUVRIR CE QUI L'ALIMENTE ─────────────────────────────
+     Le scénario ci-dessus prouve le symptôme à deux cents chaînes. Il ne peut
+     pas prouver la borne elle-même sans en fabriquer cinq cents, ce qui
+     coûterait une minute de banc pour un renseignement qu'une lecture donne.
+     Cette assertion-ci le dit à l'endroit où la faute se commet : le registre
+     des frises suit le cache de streams, donc sa borne ne peut pas être plus
+     petite que celle du cache. La ramener à quarante la fait tomber. */
+  {
+    const src = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+    const lire = (nom) => {
+      const m = new RegExp(nom + ':\\s*(\\d+)').exec(src);
+      return m && Number(m[1]);
+    };
+    const frises = lire('CATEGORY_TRAIL_MAX');
+    const streams = lire('LIVE_CACHE_MAX');
+    ok('le registre des frises couvre le cache qui l\'alimente',
+       frises >= 1 && streams >= 1 && frises >= streams,
+       `CATEGORY_TRAIL_MAX=${frises}, LIVE_CACHE_MAX=${streams}`);
+  }
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

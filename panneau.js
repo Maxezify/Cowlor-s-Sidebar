@@ -549,6 +549,7 @@ const construireRapport = (r, transport, fond) => {
   L.push(...bloc('LANGUE / LANGUAGE', aplatir(r.langue)));
   L.push(...bloc('MODE', aplatir(r.mode)));
   L.push(...bloc('COMPTEURS / COUNTS', aplatir(r.compteurs)));
+  L.push(...bloc('FRISE DES CATÉGORIES / CATEGORY TRAIL', aplatir(r.frise)));
   L.push(...bloc('ABONNEMENTS — RELEVÉ / SUBSCRIPTIONS SWEEP', [
     paire('horodatage', r.relevesAbonnements?.horodatage
       ? new Date(r.relevesAbonnements.horodatage).toISOString() : 'jamais / never'),

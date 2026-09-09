@@ -2528,6 +2528,67 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## La frise qui s'effaçait (v3.79)
+
+Un rapport disait « y'a pas tous les *Précédemment* qui fonctionne », avec des
+compteurs de chapitres irréprochables : **55 demandes, 0 erreur, 0 échec
+réseau**, et une somme d'issues exacte. Ils n'avaient rien à se reprocher — ils
+ne comptent que les requêtes **parties**. La panne était en amont, là où aucun
+compteur ne regardait.
+
+Le registre des frises était borné à **quarante** entrées. Le raisonnement
+d'origine tenait en une phrase, et c'est cette phrase qui était fausse : « on
+n'en affiche qu'une à la fois, celle de la chaîne survolée ». Elle confondait ce
+qu'on **affiche** avec ce qu'on **alimente**. `suivreCategorie` reçoit chaque
+login de chaque lot — c'est-à-dire tout le cache de streams. Le même rapport
+disait `cache 210` et `cartes 128`, deux pages plus haut.
+
+Ce que ça donnait, toutes les trente secondes :
+
+| | |
+| --- | --- |
+| logins relevés par cycle | ~210 |
+| places dans le registre | 40 |
+| frises détruites puis recréées à chaque cycle | ~170 |
+
+Et l'éviction visait **la plus riche**. `Map` itère dans l'ordre de *première*
+insertion, et `set` sur une clé existante ne la déplace pas : purger par la tête
+sortait la frise qui accumulait depuis le plus longtemps — précisément celle qui
+avait un passé à raconter. Une chaîne apparue dix secondes plus tôt survivait à
+celle qu'on suivait depuis une heure.
+
+Pour l'utilisateur : survoler une carte n'avait qu'**une chance sur cinq** de
+trouver une frise. Et sans frise, il n'y a ni affichage **ni requête de
+chapitres** — d'où des compteurs sereins sur une fonctionnalité muette.
+
+**Ce qui change.** La borne couvre désormais la population qui l'alimente
+(`LIVE_CACHE_MAX`), et le banc lit les deux constantes à la source pour refuser
+qu'on les désaccorde. La purge par le volume devient un dernier recours — une
+chaîne qui s'éteint voit déjà sa frise retirée nommément — et elle sort
+maintenant la moins récemment **observée**, non la première **insérée**.
+
+**Et le rapport peut voir cette panne, désormais.** C'est la partie qui mérite
+d'être lue, parce que les compteurs évidents n'auraient pas suffi :
+
+```
+── FRISE DES CATÉGORIES / CATEGORY TRAIL ─────────────────────
+  resident               201
+  max                    500
+  survols                2
+  absentes               0
+  vides                  0
+  peuplees               2
+  evincees               0
+```
+
+Sous la borne fautive, `absentes` reste à **zéro** et `peuplees` vaut deux : la
+frise était bien présente au survol — recréée vide au relevé d'avant. Un survol
+sur une frise amnésique ressemble en tout point à un survol sain. Seuls
+`resident` contre `max`, et surtout `evincees`, distinguent un registre sain
+d'un registre qui tourne sur lui-même. Le banc le vérifie dans les deux sens :
+ramener la borne à quarante fait tomber quatre assertions, dont celle qui exige
+`evincees === 0`.
+
 ## Le classement par tag de langue (v3.77, confirmé en v3.78)
 
 Idée venue d'un utilisateur, et elle vise juste. Twitch publie
@@ -2810,7 +2871,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 80 scénarios, 739 assertions |
+| `npm test` | le harnais Playwright : 81 scénarios, 746 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
