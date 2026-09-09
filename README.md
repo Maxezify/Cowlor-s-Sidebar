@@ -2343,14 +2343,53 @@ qu'ils ne portent pas encore — à condition que ce soit **postérieur** au der
 connu, sans quoi un chapitre en retard ferait naître un segment qui remonte le
 temps.
 
-### Le seuil d'affichage, corrigé par le premier survol
+#### Le seuil d'affichage, corrigé deux fois par deux rapports
 
-La première version exigeait un **basculement observé** avant d'afficher quoi
-que ce soit. Le rapport est tombé dans les cinq minutes suivant l'installation :
-*« je n'ai pas la nouveauté »*. C'était juste deux fois — une fonctionnalité qui
-peut rester invisible des heures ne se distingue pas d'une fonctionnalité
-cassée, et un segment unique dit bel et bien ce que la carte tait : la carte
-donne la durée du **live** (6h04), la frise la durée dans la **catégorie** (24m).
+Il a bougé deux fois, et les deux mouvements viennent d'un retour d'utilisateur
+— c'est-à-dire de la seule source qui pouvait trancher.
+
+**D'abord un basculement était exigé.** Cinq minutes après l'installation :
+*« je n'ai pas la nouveauté »*. Une fonctionnalité qui peut rester invisible des
+heures ne se distingue pas d'une fonctionnalité cassée.
+
+**Puis le seuil est tombé à un segment**, et l'affichage est devenu ceci :
+
+```
+  non observé    2h52
+▸ Discussions    3m · en cours
+```
+
+Deuxième rapport : *« il faut pas qu'on puisse avoir la partie non observé »*.
+Il avait raison — cette barre-là ne dit rien du **live**, elle dit que nous
+regardons depuis trois minutes.
+
+Le point d'équilibre est donc **« avoir quelque chose à dire »** : deux segments,
+**ou** un prélude venu du VOD, **ou** un live vu depuis son début. Ce qu'on ne
+fait **pas**, c'est prolonger la catégorie courante jusqu'au départ du stream
+pour faire disparaître le hachuré : un streamer qui a basculé cinq minutes avant
+qu'on ouvre Twitch se verrait attribuer sept heures d'une catégorie qu'il vient
+de prendre. Se taire coûte un bloc ; inventer coûte la confiance qu'on peut
+avoir dans tous les autres.
+
+**Un défaut est né de cette correction, et le banc l'a pris dans la minute.**
+« Qu'affiche-t-on ? » et « faut-il aller chercher le passé ? » n'ont pas la même
+réponse, et la porte de la requête posait la seconde question à la fonction
+d'affichage. Dès que celle-ci s'est tue sur le cas dégénéré, la requête de
+chapitres a cessé de partir — précisément dans le cas qu'elle existe pour
+combler.
+
+#### Ce que Twitch a répondu, compté
+
+Le premier rapport reçu après la mise en service des chapitres portait
+`ERREURS (0)` et `echecs 0`. La requête n'avait donc rien cassé — mais rien ne
+disait si elle avait seulement été **envoyée**, ni ce qu'elle avait rendu. Trois
+causes possibles, trois réparations opposées, aucun moyen de choisir.
+
+Le bloc `RÉSEAU` porte maintenant `chapitres.demandes`, `.servis`, `.sansVod`,
+`.sansMoment`, `.sansStream` et `.reseau`. Ces compteurs ne vont **pas** au
+journal d'erreurs : une chaîne qui n'archive pas ses diffusions est un cas
+ordinaire, pas un défaut. C'est la leçon de l'onglet « mobile », appliquée avant
+de la répéter.
 
 ## API console
 
@@ -2561,7 +2600,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 78 scénarios, 710 assertions |
+| `npm test` | le harnais Playwright : 78 scénarios, 711 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
