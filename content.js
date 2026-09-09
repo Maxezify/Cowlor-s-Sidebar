@@ -3394,6 +3394,22 @@ const TSE_GATE_MAX_CLICKS = 5;
      dans la CATÉGORIE. « En ligne depuis 6h04 » et « sur Hadès II depuis
      24m » ne sont pas la même information, et c'est justement l'écart entre
      les deux que la part hachurée rend visible. */
+  /* ── DEUX QUESTIONS DIFFÉRENTES, ET LES CONFONDRE COÛTE LA FONCTION ────────
+     « Qu'affiche-t-on ? » et « faut-il aller chercher le passé ? » n'ont pas
+     la même réponse. La première rédaction posait la seconde à `friseDe` : dès
+     que celle-ci s'est tue sur le cas dégénéré — un live commencé avant nous
+     dont on ne connaît qu'une catégorie — la requête de chapitres a cessé de
+     partir. C'est-à-dire précisément dans le cas qu'elle existe pour combler.
+     Le banc l'a pris dans la minute.
+
+     Celle-ci ne regarde donc que les faits : a-t-on une frise, connaît-on le
+     départ du live, et l'a-t-on manqué de plus que notre latence de relevé. */
+  const friseACombler = (login) => {
+    const f = frises.get(login);
+    return !!f && !!f.debutStream
+           && f.vuDepuis - f.debutStream > CFG.CATEGORY_TRAIL_TOLERANCE;
+  };
+
   const friseDe = (login, prelude = null) => {
     const f = frises.get(login);
     if (!f || !f.segments.length) return null;
@@ -3435,12 +3451,32 @@ const TSE_GATE_MAX_CLICKS = 5;
                dureeMs: Math.max(0, fin - s.debut),
                encours: i + 1 === bruts.length };
     });
+    /* Avons-nous vu ce live depuis son DÉBUT ? La tolérance absorbe notre
+       propre latence de relevé — trente secondes de cycle — qui n'est pas une
+       ignorance. Sans `debutStream`, on ne sait rien : on répond non, ce qui
+       est le seul défaut sûr. */
+    const depuisLeDebut = !!f.debutStream
+      && f.vuDepuis - f.debutStream <= CFG.CATEGORY_TRAIL_TOLERANCE;
+
+    /* ── QUAND LA FRISE N'A RIEN À DIRE, ELLE SE TAIT ────────────────────────
+       Un segment unique, aucun prélude, et un live commencé avant notre
+       arrivée : la frise ne raconte alors que NOTRE fenêtre d'observation.
+       « non observé 2h52 / Discussions 3m » ne dit rien du live — cela dit que
+       nous regardons depuis trois minutes. Un rapport d'utilisateur l'a
+       nommé : « il faut pas qu'on puisse avoir la partie non observé ».
+
+       ET ON NE COMBLE PAS PAR HYPOTHÈSE. Prolonger la catégorie courante
+       jusqu'au début du live ferait disparaître le hachuré, oui — au prix
+       d'une affirmation qu'on ne peut pas tenir : un streamer qui a basculé
+       cinq minutes avant qu'on ouvre Twitch se verrait attribuer sept heures
+       d'une catégorie qu'il vient de prendre. Se taire ne coûte qu'un bloc ;
+       inventer coûte la confiance qu'on peut avoir dans tous les autres. */
+    if (bruts.length < 2 && !(prelude && prelude.length) && !depuisLeDebut) return null;
+
     /* La part que nous n'avons PAS vue, mesurée et non devinée : du départ du
-       stream à notre première observation. En deçà de la tolérance, c'est
-       notre propre latence de relevé et non une ignorance — on la tait plutôt
-       que de faire porter un aveu à un artefact. Un prélude la comble : il
-       part du début du live, il n'y a plus rien à avouer. */
-    const brut = (prelude && prelude.length) || !f.debutStream
+       stream à notre première observation. Un prélude la comble — il part du
+       début du live — et l'avoir vu depuis le début la rend nulle. */
+    const brut = (prelude && prelude.length) || depuisLeDebut || !f.debutStream
       ? 0 : f.vuDepuis - f.debutStream;
     const inconnuMs = brut > CFG.CATEGORY_TRAIL_TOLERANCE ? brut : 0;
     return {
@@ -6622,6 +6658,12 @@ const TSE_GATE_MAX_CLICKS = 5;
              sur trois échoués et zéro appel passé se ressemblaient. */
           appels: reseau.appels,
           echecs: reseau.echecs,
+          /* LES CHAPITRES DE VOD, comptés par issue. Le premier rapport reçu
+             après leur mise en service ne disait ni s'ils avaient été demandés
+             ni ce qui était revenu — et c'est précisément ce qu'il fallait
+             savoir, puisque cette requête n'a jamais pu être exécutée contre
+             le vrai Twitch. */
+          chapitres: preview.bilanChapitres(),
           dernierSuccesIlYaMs: reseau.dernierSucces
             ? maintenant - reseau.dernierSucces : null,
           dernierEchecIlYaMs: reseau.dernierEchec
@@ -7689,20 +7731,48 @@ const TSE_GATE_MAX_CLICKS = 5;
     const chapitres = new Map();
     const CHAPITRES_TTL = 10 * 60_000;
 
+    /* ── CE QUE TWITCH A RÉPONDU, COMPTÉ ─────────────────────────────────────
+       Le premier rapport reçu après la mise en service portait « ERREURS (0) »
+       et « echecs 0 » : la requête n'avait donc rien cassé — mais rien ne
+       disait si elle avait seulement été ENVOYÉE, ni ce qu'elle avait rendu.
+       Impossible de distinguer « la chaîne n'archive pas » de « le champ
+       n'existe pas » de « on n'a jamais demandé ». Trois causes, trois
+       réparations, aucun moyen de choisir.
+
+       Ces compteurs le disent, et ils ne sont PAS des erreurs : une chaîne qui
+       n'archive pas ses diffusions est un cas ordinaire, pas un défaut. Les
+       mettre au journal d'erreurs le noierait — la leçon de l'onglet
+       « mobile ». Ils vont au rapport, à leur place. */
+    const bilanChapitres = { demandes: 0, servis: 0, sansMoment: 0,
+                             sansVod: 0, sansStream: 0, reseau: 0 };
+
     const fetchChapitres = async (login, streamId, debutStream) => {
       const vu = chapitres.get(streamId);
       if (vu && Date.now() - vu.ts < CHAPITRES_TTL) return vu.segments;
 
+      bilanChapitres.demandes++;
       const res = await post([{
         operationName: 'TseVodChapters',
         variables: { login },
         query: CHAPITRES_QUERY
       }]);
-      if (isResultsUnusable(res)) return null;   // réseau : on ne mémorise pas
+      if (isResultsUnusable(res)) {
+        bilanChapitres.reseau++;
+        return null;                             // réseau : on ne mémorise pas
+      }
 
-      const vod = res?.[0]?.data?.user?.stream?.archiveVideo;
+      const flux = res?.[0]?.data?.user?.stream;
+      const vod = flux?.archiveVideo;
       const aretes = vod?.moments?.edges;
       if (!Array.isArray(aretes) || !aretes.length) {
+        /* Trois silences distincts, et le rapport doit les séparer :
+             — pas de stream du tout (la chaîne vient de couper) ;
+             — un stream mais aucun VOD : la chaîne n'archive pas. C'est le cas
+               ORDINAIRE, et il n'a rien d'une erreur ;
+             — un VOD sans le moindre moment. */
+        if (!flux) bilanChapitres.sansStream++;
+        else if (!vod) bilanChapitres.sansVod++;
+        else bilanChapitres.sansMoment++;
         chapitres.set(streamId, { ts: Date.now(), segments: null });
         return null;
       }
@@ -7725,8 +7795,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       segments.sort((a, b) => a.debut - b.debut);
       const utile = segments.length ? segments : null;
       chapitres.set(streamId, { ts: Date.now(), segments: utile });
-      if (!utile) {
-        erreurs.noter('chapitres', `aucun moment exploitable pour ${aretes.length} arête(s)`);
+      if (utile) bilanChapitres.servis++;
+      else {
+        /* CELUI-CI est bien une anomalie : Twitch a rendu des moments, et
+           aucun n'était exploitable. Forme inattendue, champ renommé — c'est
+           exactement ce qu'on veut savoir, et c'est le seul des quatre cas qui
+           mérite le journal d'erreurs. */
+        bilanChapitres.sansMoment++;
+        erreurs.noter('chapitres', `aucun moment exploitable sur ${aretes.length} arête(s)`);
       }
       return utile;
     };
@@ -8724,8 +8800,7 @@ const TSE_GATE_MAX_CLICKS = 5;
          trop. L'échec est silencieux côté affichage et bruyant côté journal
          (cf. l'en-tête de CHAPITRES_QUERY). */
       const flux = cache.get(login)?.stream;
-      const dejaVue = friseDe(login, preludeDe(login));
-      if (flux?.id && dejaVue && dejaVue.inconnuMs > 0) {
+      if (flux?.id && !preludeDe(login) && friseACombler(login)) {
         fetchChapitres(login, flux.id, Date.parse(flux.createdAt) || 0)
           .then(() => majFrise(login))
           .catch((e) => erreurs.noter('chapitres', (e && e.message) || e));
@@ -8966,7 +9041,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       prune: () => pruneCache(metaCache, META_TTL, CFG.META_CACHE_MAX),
       // Journal du dernier aperçu (cf. tse.apercu). Copie : personne d'autre
       // n'écrit dedans, et le rendre tel quel inviterait à le faire.
-      journal: () => journalApercu.slice()
+      journal: () => journalApercu.slice(),
+      /* Ce que Twitch a répondu aux demandes de chapitres. Au rapport et non
+         au journal d'erreurs : une chaîne qui n'archive pas ses diffusions
+         est un cas ordinaire. */
+      bilanChapitres: () => ({ ...bilanChapitres })
     };
   })();
 

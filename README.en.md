@@ -1792,14 +1792,50 @@ later. We start from the chapters and add only what they do not yet carry — on
 condition that it is **later** than the last known one, otherwise a lagging
 chapter would spawn a segment that runs backwards in time.
 
-### The display threshold, corrected by the first hover
+#### The display threshold, corrected twice by two reports
 
-The first version required an **observed switch** before showing anything. The
-report landed within five minutes of installation: *"I don't have the new
-thing"*. That was right twice over — a feature that can stay invisible for hours
-is indistinguishable from a broken one, and a single segment does say what the
-card leaves out: the card gives the **stream's** duration (6h04), the trail the
-duration in the **category** (24m).
+It moved twice, and both moves came from user feedback — the only source that
+could settle it.
+
+**First a switch was required.** Five minutes after installation: *"I don't have
+the new thing"*. A feature that can stay invisible for hours is
+indistinguishable from a broken one.
+
+**Then the threshold dropped to one segment**, and the display became this:
+
+```
+  not observed   2h52
+▸ Just Chatting  3m · ongoing
+```
+
+Second report: *"we mustn't be able to get the 'not observed' part"*. He was
+right — that bar says nothing about the **stream**, it says we have been
+watching for three minutes.
+
+The balance point is therefore **"having something to say"**: two segments,
+**or** a prelude from the VOD, **or** a stream seen from its start. What we do
+**not** do is extend the current category back to the stream's start to make the
+hatching disappear: a streamer who switched five minutes before you opened
+Twitch would be credited with seven hours of a category they just took. Staying
+silent costs one block; inventing costs the trust in every other one.
+
+**A defect was born of this fix, and the harness caught it within the minute.**
+"What do we display?" and "should we go fetch the past?" do not have the same
+answer, and the request gate was asking the second question of the display
+function. As soon as that function fell silent on the degenerate case, the
+chapter request stopped going out — in precisely the case it exists to fill.
+
+#### What Twitch answered, counted
+
+The first report received after the chapters went live carried `ERREURS (0)` and
+`echecs 0`. So the query had broken nothing — but nothing said whether it had
+even been **sent**, nor what it returned. Three possible causes, three opposite
+repairs, no way to choose.
+
+The `RÉSEAU` block now carries `chapitres.demandes`, `.servis`, `.sansVod`,
+`.sansMoment`, `.sansStream` and `.reseau`. These counters do **not** go to the
+error journal: a channel that does not archive its broadcasts is an ordinary
+case, not a defect. That is the "mobile" tab lesson, applied before repeating it.
 
 ## Console API
 
@@ -1999,7 +2035,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 78 scenarios, 710 assertions |
+| `npm test` | the Playwright harness: 78 scenarios, 711 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

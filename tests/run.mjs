@@ -7990,23 +7990,30 @@ titre('78. Aperçu — la frise des catégories traversées');
     };
   });
 
-  /* ── DÈS LA PREMIÈRE OBSERVATION ─────────────────────────────────────────
-     La première rédaction exigeait un BASCULEMENT avant d'afficher quoi que ce
-     soit, au motif qu'une catégorie seule ne dirait rien de neuf. Un rapport
-     d'utilisateur a réglé la question dans les cinq minutes suivant
-     l'installation — « je n'ai pas la nouveauté » — et il avait raison deux
-     fois : une fonctionnalité qui peut rester invisible des heures ne se
-     distingue pas d'une fonctionnalité cassée, et un segment unique dit bel et
-     bien ce que la carte tait. La carte donne la durée du LIVE (6h04) ; la
-     frise donne la durée dans la CATÉGORIE (24m). L'écart entre les deux est
-     précisément ce que la part hachurée rend visible. */
+  /* ── LE CAS OÙ LA FRISE N'A RIEN À DIRE ──────────────────────────────────
+     Ce seuil a bougé DEUX fois, et les deux mouvements viennent de rapports
+     d'utilisateur — c'est-à-dire de la seule source qui puisse trancher.
+
+     D'abord un basculement était EXIGÉ. « Je n'ai pas la nouveauté », cinq
+     minutes après l'installation : une fonctionnalité qui peut rester
+     invisible des heures ne se distingue pas d'une fonctionnalité cassée.
+
+     Puis le seuil est tombé à un segment, et l'affichage est devenu ceci :
+     « non observé 2h52 / Discussions 3m ». Deuxième rapport : « il faut pas
+     qu'on puisse avoir la partie non observé ». Il avait raison — cette
+     barre-là ne dit rien du LIVE, elle dit que nous regardons depuis trois
+     minutes.
+
+     LE POINT D'ÉQUILIBRE est donc « avoir quelque chose à dire », et non
+     « avoir vu un basculement » : deux segments, OU un prélude venu du VOD,
+     OU un live vu depuis son début. Ce que l'on ne fait PAS, c'est prolonger
+     la catégorie courante jusqu'au départ du stream pour faire disparaître le
+     hachuré : un streamer qui a basculé cinq minutes avant qu'on ouvre Twitch
+     se verrait attribuer sept heures d'une catégorie qu'il vient de prendre. */
   await survoler();
-  const f0 = await frise();
-  ok('dès la première observation, la frise situe la catégorie dans le live',
-     f0 !== null && f0.lignes.length === 2, JSON.stringify(f0 && f0.lignes));
-  ok('…la part non observée d\'un côté, la catégorie en cours de l\'autre',
-     f0.lignes[0].inconnu === true && f0.lignes[1].encours === true,
-     JSON.stringify(f0.lignes.map(l => [l.nom, l.inconnu, l.encours])));
+  ok('un live commencé avant nous, dont on ne connaît qu\'une catégorie, se tait',
+     (await frise()) === null,
+     'la frise a montré une barre presque entièrement hachurée');
   await relacher();
 
   /* Deux durées franchement différentes, pour que la proportion se mesure. */
@@ -8203,6 +8210,7 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
     })));
   const appelsVod = () => page.evaluate(() =>
     window.__calls.filter(c => (c.names || []).includes('TseVodChapters')).length);
+  const bilan = () => page.evaluate(() => window.tse.panneau.rapport().reseau.chapitres);
 
   /* ── LE CAS QUI MOTIVE TOUT ──────────────────────────────────────────────── */
   await survoler('alpha');
@@ -8212,8 +8220,10 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
   ok('les chapitres du VOD comblent le passé : la frise part du début du live',
      a.length === 3 && !a.some(l => l.inconnu),
      JSON.stringify(a.map(l => l.nom + ' ' + l.duree)));
+  /* Défensive : une assertion qui LÈVE au lieu d'échouer emporte le banc
+     entier et masque les scénarios suivants. C'est arrivé ici même. */
   ok('…dans l\'ordre, avec les durées que les positions imposent',
-     a[0].duree === '24m' && a[1].duree === '1h47',
+     a.length === 3 && a[0].duree === '24m' && a[1].duree === '1h47',
      JSON.stringify(a.map(l => [l.nom, l.duree])));
 
   /* ── LA FUSION : CE QUE LES CHAPITRES NE SAVENT PAS ENCORE ────────────────
@@ -8232,19 +8242,17 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
      b.length === 4 && b[3].nom === 'Minecraft' && !b.some(l => l.inconnu),
      JSON.stringify(b.map(l => l.nom)));
 
-  /* ── LES TROIS ÉCHECS, ET LE SEUL COMPORTEMENT ADMIS : NE RIEN CASSER ───── */
+  /* ── LES TROIS ÉCHECS, ET LE SEUL COMPORTEMENT ADMIS : NE RIEN CASSER ─────
+     Aucun d'eux ne doit produire d'affichage faux. Comme la chaîne n'a qu'une
+     catégorie observée et que son live a commencé avant nous, le repli correct
+     est le SILENCE — le même que sans chapitres du tout. Ce qui doit parler,
+     en revanche, ce sont les compteurs : c'est par eux, et par eux seuls,
+     qu'on saura ce que Twitch a répondu. */
   await relacher('alpha');
   await survoler('beta');
   await wait(page, 900);
-  const c = await lignes();
-  /* EXACTEMENT ce que la frise rendait avant les chapitres : la part non
-     observée, puis la seule catégorie qu'on ait vue. La première rédaction de
-     cette assertion tolérait « une ou deux lignes » — une tolérance qui ne
-     vient jamais d'une incertitude du produit mais d'une paresse de l'auteur,
-     et qui laisse passer les deux cas qu'elle prétend distinguer. */
-  ok('une requête REFUSÉE par le schéma retombe sur la frise observée',
-     c.length === 2 && c[0].inconnu === true && c[1].nom === 'Overwatch',
-     JSON.stringify(c.map(l => [l.nom, l.inconnu])));
+  ok('une requête REFUSÉE par le schéma ne produit aucun affichage faux',
+     (await lignes()).length === 0, JSON.stringify(await lignes()));
   const journal = await page.evaluate(() => window.tse.panneau.rapport().erreurs
     .filter(e => e.source === 'gql' || e.source === 'chapitres').map(e => e.message));
   ok('…et elle est CONSIGNÉE — c\'est ainsi qu\'on saura si la requête est fausse',
@@ -8253,9 +8261,23 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
   await relacher('beta');
   await survoler('gamma');
   await wait(page, 900);
-  const d = await lignes();
-  ok('une chaîne qui n\'archive pas ses diffusions garde la frise observée',
-     d.length >= 1 && d[0].inconnu === true, JSON.stringify(d.map(l => [l.nom, l.inconnu])));
+  ok('une chaîne qui n\'archive pas ses diffusions ne produit rien non plus',
+     (await lignes()).length === 0, JSON.stringify(await lignes()));
+  /* ── LE COMPTEUR, QUI EST LA VRAIE LEÇON DE CE SCÉNARIO ───────────────────
+     Le premier rapport reçu après la mise en service portait « ERREURS (0) »
+     et « echecs 0 ». On ne pouvait donc PAS savoir si la requête avait été
+     envoyée, ni ce qu'elle avait rendu — trois causes possibles, trois
+     réparations opposées, aucun moyen de choisir. Ces compteurs ferment cette
+     question, et ils ne vont PAS au journal d'erreurs : une chaîne qui
+     n'archive pas ses diffusions est un cas ordinaire, pas un défaut. C'est la
+     leçon de l'onglet « mobile », appliquée avant de la répéter. */
+  const b1 = await bilan();
+  ok('le rapport dit combien de fois les chapitres ont été DEMANDÉS',
+     b1.demandes >= 3, JSON.stringify(b1));
+  ok('…et sépare « servis », « sans VOD » et « sans stream » — trois causes distinctes',
+     b1.servis >= 1 && b1.sansVod >= 1
+     && Object.prototype.hasOwnProperty.call(b1, 'sansStream'),
+     JSON.stringify(b1));
 
   /* ── LA REQUÊTE QU'ON NE FAIT PAS ────────────────────────────────────────
      Une chaîne suivie depuis le début de son live n'a rien à combler. Une
