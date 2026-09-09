@@ -1096,11 +1096,6 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     GLOBAL_CATEGORIES_MAX:   100,
 
-    GLOBAL_LANG_CATS_MAX:    100,
-    GLOBAL_LANG_CATS_TTL:    5 * 60_000,
-
-    GLOBAL_LANG_PORTEE_MAX:  2,
-
     GLOBAL_SEED_CATEGORIES:  10,
 
     GLOBAL_CATEGORY_BUDGET:  90,
@@ -2650,109 +2645,6 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
-    const LANG_CATS_ARGS = ['tags'];
-    let langCatsArg = 0;
-
-    const langCatsQuery = (arg) =>
-      'query TseLangCats($tag: String!, $n: Int!) {' +
-      '  games(first: $n, options: { sort: VIEWER_COUNT, ' + arg + ': [$tag] }) {' +
-      '    edges { node { id name displayName viewersCount } }' +
-      '  }' +
-      '}';
-
-    const LANG_CATS_SONDE = 'English';
-
-    const bilanLangCats = { demandes: 0, servis: 0, vides: 0, refus: 0, reseau: 0 };
-
-    let porteeLang = null;
-    let porteeFacteur = null;
-    let langCatsRefuse = false;
-    let langCatsTs = 0;
-    let langCatsEnCours = false;
-    const langCats = new Map();
-
-    let langAudienceMap = null;
-
-    const opLangCats = (l) => ({
-      operationName: 'TseLangCats',
-      variables: { tag: l, n: CFG.GLOBAL_LANG_CATS_MAX },
-      query: langCatsQuery(LANG_CATS_ARGS[langCatsArg])
-    });
-
-    const sonderLangCats = async () => {
-      bilanLangCats.demandes += 1;
-      const { out, transport } = await send([opLangCats(LANG_CATS_SONDE)]);
-      if (Array.isArray(out?.[0]?.games?.edges)) return true;
-      if (transport) { bilanLangCats.reseau++; return false; }
-      bilanLangCats.refus++;
-
-      langCatsArg++;
-      if (langCatsArg >= LANG_CATS_ARGS.length) langCatsRefuse = true;
-      return false;
-    };
-
-    const majLangCats = async (langues) => {
-      if (langCatsEnCours || langCatsRefuse) return;
-      langCatsEnCours = true;
-      try {
-
-        if (!langCatsTs && !(await sonderLangCats())) return;
-        const ops = langues.map(opLangCats);
-        bilanLangCats.demandes += ops.length;
-        const { out, transport } = await send(ops);
-
-        let repondus = 0;
-        const frais = new Map();
-        out.forEach((d, i) => {
-          const edges = d?.games?.edges;
-          if (!Array.isArray(edges)) {
-            if (transport) bilanLangCats.reseau++;
-            else bilanLangCats.refus++;
-            return;
-          }
-          repondus++;
-          const liste = [];
-          for (const e of edges) {
-            const n = e?.node;
-            if (!n?.name || !Number.isFinite(n.viewersCount)) continue;
-            liste.push({ name: n.name,
-                         display: n.displayName?.trim() || n.name,
-                         viewers: n.viewersCount });
-          }
-
-          if (!liste.length) { bilanLangCats.vides++; frais.set(langues[i], []); return; }
-          bilanLangCats.servis++;
-          liste.sort((a, b) => b.viewers - a.viewers);
-          frais.set(langues[i], liste);
-        });
-
-        if (!repondus && !transport && ops.length) { langCatsRefuse = true; return; }
-
-        if (!transport) langCatsTs = Date.now();
-        if (!frais.size) return;
-
-        const mondiale = categories.reduce((n, c) => n + (c.viewers || 0), 0);
-        if (mondiale > 0) {
-          let somme = 0;
-          for (const liste of frais.values()) {
-            somme += liste.reduce((n, c) => n + c.viewers, 0);
-          }
-          porteeFacteur = Math.round((somme / mondiale) * 100) / 100;
-          porteeLang = porteeFacteur <= CFG.GLOBAL_LANG_PORTEE_MAX;
-        }
-        langCats.clear();
-        for (const [l, liste] of frais) langCats.set(l, liste);
-        const audience = new Map();
-        for (const [l, liste] of langCats) {
-          audience.set(l, liste.reduce((n, c) => n + c.viewers, 0));
-        }
-        langAudienceMap = audience.size ? audience : null;
-      } finally {
-
-        langCatsEnCours = false;
-      }
-    };
-
     let publieUneFois = false;
 
     const publish = (pool) => {
@@ -2774,10 +2666,6 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!cats) return { ok: false, complete: false };
       categories   = cats;
       categoriesTs = started;
-
-      if (!langCatsRefuse && Date.now() - langCatsTs > CFG.GLOBAL_LANG_CATS_TTL) {
-        majLangCats([...LANG_SET]).catch(() => {});
-      }
 
       if (wl?.lang && !tagRefuse && CFG.GLOBAL_TOP_N <= CFG.GLOBAL_TAG_MAX) {
         const parTag = await tagTop(wl.lang);
@@ -3080,27 +2968,36 @@ const TSE_GATE_MAX_CLICKS = 5;
         return liste.filter(r => r.tags.includes(lang)).slice(0, n);
       },
 
-      langs() {
-        const m = new Map();
-        const src = allLangPool.length ? allLangPool
+      langs(categorie = null) {
+        const monde = allLangPool.length ? allLangPool
           : (ranking.length ? ranking : this.base());
-        for (const r of src) {
+
+        const toutes = new Map();
+        const compte = new Map();
+
+        const portee = categorie
+          && scope && !scopeLangApplied && wantedScope()?.name === categorie
+          ? scopeRanking : null;
+        for (const r of monde) {
           for (const t of r.tags) {
-            if (LANG_SET.has(t)) m.set(t, (m.get(t) || 0) + 1);
+            if (!LANG_SET.has(t)) continue;
+            toutes.set(t, (toutes.get(t) || 0) + (r.viewers || 0));
+            if (categorie && !portee && r.game === categorie) {
+              compte.set(t, (compte.get(t) || 0) + (r.viewers || 0));
+            }
           }
         }
-        return m;
-      },
-
-      langAudience() {
-        return porteeLang === true ? langAudienceMap : null;
-      },
-
-      cats(n = CFG.GLOBAL_CATEGORIES_MAX, lang = null) {
-        if (lang && porteeLang === true) {
-          const liste = langCats.get(lang);
-          if (liste) return liste.slice(0, n);
+        if (portee) {
+          for (const r of portee) {
+            for (const t of r.tags) {
+              if (LANG_SET.has(t)) compte.set(t, (compte.get(t) || 0) + (r.viewers || 0));
+            }
+          }
         }
+        return { toutes, compte: categorie ? compte : toutes };
+      },
+
+      cats(n = CFG.GLOBAL_CATEGORIES_MAX) {
         return categories.slice(0, n);
       },
 
@@ -3110,16 +3007,6 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (want) return want.key === scope;
 
         return publieUneFois && (wantedLang()?.lang || null) === worldLang;
-      },
-
-      langsProposables() {
-        return this.langAudience() ? [...langCats.keys()] : null;
-      },
-      bilanLangues() {
-        return { ...bilanLangCats, refuse: langCatsRefuse, portee: porteeLang,
-                 facteur: porteeFacteur, connues: langCats.size,
-                 argument: LANG_CATS_ARGS[langCatsArg] || null,
-                 ageMs: langCatsTs ? Date.now() - langCatsTs : null };
       },
 
       setViewers(login, viewers) {
@@ -3150,10 +3037,6 @@ const TSE_GATE_MAX_CLICKS = 5;
 
           tags: { ...bilanTags, refuse: tagRefuse },
 
-          langues: { ...bilanLangCats, refuse: langCatsRefuse,
-                     portee: porteeLang, facteur: porteeFacteur,
-                     connues: langCats.size,
-                     argument: LANG_CATS_ARGS[langCatsArg] || null },
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -6543,26 +6426,26 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     if (state.globalMode) {
 
-      const langAudience = globalChannels.langAudience();
-
-      const langCount = langAudience || globalChannels.langs();
-      const langsPresent = new Set(globalChannels.langsProposables()
-                                   || langCount.keys());
-      const Lg = state.languageFilter && langsPresent.has(state.languageFilter)
-        ? state.languageFilter : null;
-      state.languageFilter = Lg;
-      const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX, Lg);
+      const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX);
       const catCount = new Map(cats.map(c => [c.name, c.viewers]));
 
       const catLabel = new Map(cats.map(c => [c.name, c.display]));
+
+      const { toutes: langToutes, compte: langCount } =
+        globalChannels.langs(state.categoryFilter || null);
+      const langsPresent = new Set(langToutes.keys());
+
+      const Lg = state.languageFilter && langsPresent.has(state.languageFilter)
+        ? state.languageFilter : null;
+      state.languageFilter = Lg;
+
       rebuildDropdown(catDD, cats.map(c => c.name), catCount,
                       state.categoryFilter, cats.length === 0, 'cat', formatViewers,
                       (v) => catLabel.get(v) || v);
       rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
                       langCount, Lg, langsPresent.size === 0, 'lang',
 
-                      state.categoryFilter ? () => ''
-                        : (langAudience ? formatViewers : String));
+                      (n) => (n > 0 ? formatViewers(n) : ''))
       const wrapG = document.getElementById(FILTER_ID);
       if (wrapG) wrapG.dataset.tseActive = (state.categoryFilter || Lg) ? 'true' : 'false';
       applyCategoryFilter();
