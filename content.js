@@ -1092,6 +1092,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     GLOBAL_STREAMS_MAX:      30,
 
+    GLOBAL_TAG_MAX:          100,
+
     GLOBAL_BATCH_OPS:        20,
 
     GLOBAL_STRUCT_TICK:      30_000,
@@ -2546,6 +2548,63 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
+    const TAG_TOP_QUERY =
+      'query TseTagTop($tag: String!, $n: Int!) {' +
+      '  streams(first: $n, options: { sort: VIEWER_COUNT, freeformTags: [$tag] }) {' +
+      '    edges { node {' +
+      '      id createdAt viewersCount' +
+      '      broadcaster { id login displayName profileImageURL(width: 70) }' +
+      '      game { id name displayName }' +
+      '      freeformTags { name }' +
+      '    } }' +
+      '  }' +
+      '}';
+
+    const bilanTags = { demandes: 0, servis: 0, vides: 0, refus: 0, reseau: 0 };
+
+    let tagRefuse = false;
+
+    const tagTop = async (langue) => {
+      bilanTags.demandes++;
+      const { out, transport } = await send([{
+        operationName: 'TseTagTop',
+        variables: { tag: langue, n: CFG.GLOBAL_TAG_MAX },
+        query: TAG_TOP_QUERY
+      }]);
+      const edges = out?.[0]?.streams?.edges;
+      if (!Array.isArray(edges)) {
+        if (transport) bilanTags.reseau++;
+        else { bilanTags.refus++; tagRefuse = true; }
+        return null;
+      }
+      const now = Date.now();
+      const frais = new Map();
+      for (const e of edges) {
+        const rec = readStream(e?.node, now);
+        if (!rec) continue;
+
+        if (!rec.tags.includes(langue)) rec.tags = [...rec.tags, langue];
+        frais.set(rec.login, rec);
+      }
+      if (!frais.size) { bilanTags.vides++; return null; }
+      bilanTags.servis++;
+      return frais;
+    };
+
+    const oublierAbsents = (pool, vus, now) => {
+      const cutoff = now - CFG.GLOBAL_PRUNE_AGE;
+      for (const [login, rec] of pool) {
+        if (vus.has(login)) { rec.misses = 0; continue; }
+        if (rec.ts < cutoff) { pool.delete(login); stats.evicted += 1; continue; }
+        rec.misses = (rec.misses || 0) + 1;
+        stats.misses += 1;
+        if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM) {
+          pool.delete(login);
+          stats.evicted += 1;
+        }
+      }
+    };
+
     const publish = (pool) => {
       ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
@@ -2564,6 +2623,27 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!cats) return { ok: false, complete: false };
       categories   = cats;
       categoriesTs = started;
+
+      if (wl?.lang && !tagRefuse) {
+        const parTag = await tagTop(wl.lang);
+        if (gen !== walkGen) return { ok: true, complete: false };
+        if (parTag) {
+          const poolTag = (wl.lang === langAvant) ? carryOver() : new Map();
+          const vus = new Set();
+          for (const rec of parTag.values()) { vus.add(rec.login); poolTag.set(rec.login, rec); }
+          oublierAbsents(poolTag, vus, Date.now());
+          publish(poolTag);
+
+          complete = true;
+          windowFloor = 0;
+
+          worldLang = wl.lang;
+          lastFullWalk = rankingTs;
+          stats.walks += 1;
+          stats.lastMs = rankingTs - started;
+          return { ok: true, complete: true };
+        }
+      }
 
       const pool = (wl?.lang || null) === langAvant ? carryOver() : new Map();
       const seed = cats.slice(0, CFG.GLOBAL_SEED_CATEGORIES);
@@ -2884,6 +2964,8 @@ const TSE_GATE_MAX_CLICKS = 5;
                                     : worldLang === state.languageFilter)),
           langApplied: !!(wantedScope() ? scopeLangApplied
                                         : worldLang && worldLang === state.languageFilter),
+
+          tags: { ...bilanTags, refuse: tagRefuse },
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -4730,7 +4812,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       '  user(login: $login) {' +
       '    videos(first: 1, sort: TIME, type: ARCHIVE) {' +
       '      edges { node {' +
-      '        id createdAt' +
+
+      '        id createdAt lengthSeconds' +
       '        moments(momentRequestType: VIDEO_CHAPTER_MARKERS) {' +
       '          edges { node {' +
       '            positionMilliseconds' +
@@ -4759,26 +4842,40 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!Array.isArray(aretes)) return { segments: null, aretes: 0 };
 
       const base = Date.parse(vod.createdAt) || debutStream;
-      const segments = [];
+      const bruts = [];
       for (const arete of aretes) {
         const n = arete?.node;
         const jeu = n?.details?.game?.name;
         if (!jeu || !Number.isFinite(n.positionMilliseconds)) continue;
-        segments.push({
+        bruts.push({
           jeu,
           libelle: n.details.game.displayName?.trim() || jeu,
-          debut: Math.max(debutStream, base + n.positionMilliseconds),
+          debut: base + n.positionMilliseconds,
         });
       }
-      segments.sort((a, b) => a.debut - b.debut);
+      bruts.sort((a, b) => a.debut - b.debut);
+
+      const avant = bruts.filter(s => s.debut < debutStream);
+      const apres = bruts.filter(s => s.debut >= debutStream);
+      const segments = avant.length
+        ? [{ ...avant[avant.length - 1], debut: debutStream }, ...apres]
+        : apres;
       return { segments: segments.length ? segments : null, aretes: aretes.length };
     };
 
     const vodCouvre = (vod, debutStream) => {
       const depart = Date.parse(vod?.createdAt);
-
       return Number.isFinite(depart) && !!debutStream
-        && Math.abs(depart - debutStream) <= CFG.CATEGORY_TRAIL_VOD_ECART;
+        && depart - debutStream <= CFG.CATEGORY_TRAIL_VOD_ECART;
+    };
+
+    const vodDuLive = (vod, debutStream) => {
+      const depart = Date.parse(vod?.createdAt);
+      if (!Number.isFinite(depart) || !debutStream) return false;
+      if (depart - debutStream > CFG.CATEGORY_TRAIL_VOD_ECART) return false;
+      const duree = Number(vod.lengthSeconds);
+      if (!Number.isFinite(duree) || duree <= 0) return false;
+      return depart + duree * 1000 >= debutStream;
     };
 
     const retenir = (streamId, segments, continu) => {
@@ -4821,7 +4918,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           const candidat = res2?.[0]?.data?.user?.videos?.edges?.[0]?.node;
 
           if (!candidat) bilanChapitres.replisVides++;
-          else if (!vodCouvre(candidat, debutStream)) {
+          else if (!vodDuLive(candidat, debutStream)) {
             bilanChapitres.replisHorsSujet++;
 
             const ecart = Math.round((Date.parse(candidat.createdAt) - debutStream) / 60_000);
