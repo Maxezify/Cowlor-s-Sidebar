@@ -1086,6 +1086,11 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     GLOBAL_CATEGORIES_MAX:   100,
 
+    GLOBAL_LANG_CATS_MAX:    100,
+    GLOBAL_LANG_CATS_TTL:    5 * 60_000,
+
+    GLOBAL_LANG_PORTEE_MAX:  2,
+
     GLOBAL_SEED_CATEGORIES:  10,
 
     GLOBAL_CATEGORY_BUDGET:  90,
@@ -2058,7 +2063,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const frises = new Map();
 
-  const bilanFrises = { survols: 0, absentes: 0, vides: 0, peuplees: 0, evincees: 0 };
+  const bilanFrises = { survols: 0, absentes: 0, vides: 0, peuplees: 0,
+                        affichees: 0, muettes: 0, evincees: 0 };
   const noterSurvolFrise = (login) => {
     bilanFrises.survols++;
     const f = frises.get(login);
@@ -2619,6 +2625,88 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
+    const LANG_CATS_QUERY =
+      'query TseLangCats($tag: String!, $n: Int!) {' +
+      '  games(first: $n, options: { sort: VIEWER_COUNT, freeformTags: [$tag] }) {' +
+      '    edges { node { id name displayName viewersCount } }' +
+      '  }' +
+      '}';
+
+    const bilanLangCats = { demandes: 0, servis: 0, vides: 0, refus: 0, reseau: 0 };
+
+    let porteeLang = null;
+    let porteeFacteur = null;
+    let langCatsRefuse = false;
+    let langCatsTs = 0;
+    let langCatsEnCours = false;
+    const langCats = new Map();
+
+    let langAudienceMap = null;
+
+    const majLangCats = async (langues) => {
+      if (langCatsEnCours || langCatsRefuse) return;
+      langCatsEnCours = true;
+      try {
+        const ops = langues.map(l => ({
+          operationName: 'TseLangCats',
+          variables: { tag: l, n: CFG.GLOBAL_LANG_CATS_MAX },
+          query: LANG_CATS_QUERY
+        }));
+        bilanLangCats.demandes += ops.length;
+        const { out, transport } = await send(ops);
+
+        let repondus = 0;
+        const frais = new Map();
+        out.forEach((d, i) => {
+          const edges = d?.games?.edges;
+          if (!Array.isArray(edges)) {
+            if (transport) bilanLangCats.reseau++;
+            else bilanLangCats.refus++;
+            return;
+          }
+          repondus++;
+          const liste = [];
+          for (const e of edges) {
+            const n = e?.node;
+            if (!n?.name || !Number.isFinite(n.viewersCount)) continue;
+            liste.push({ name: n.name,
+                         display: n.displayName?.trim() || n.name,
+                         viewers: n.viewersCount });
+          }
+
+          if (!liste.length) { bilanLangCats.vides++; frais.set(langues[i], []); return; }
+          bilanLangCats.servis++;
+          liste.sort((a, b) => b.viewers - a.viewers);
+          frais.set(langues[i], liste);
+        });
+
+        if (!repondus && !transport && ops.length) { langCatsRefuse = true; return; }
+
+        if (!transport) langCatsTs = Date.now();
+        if (!frais.size) return;
+
+        const mondiale = categories.reduce((n, c) => n + (c.viewers || 0), 0);
+        if (mondiale > 0) {
+          let somme = 0;
+          for (const liste of frais.values()) {
+            somme += liste.reduce((n, c) => n + c.viewers, 0);
+          }
+          porteeFacteur = Math.round((somme / mondiale) * 100) / 100;
+          porteeLang = porteeFacteur <= CFG.GLOBAL_LANG_PORTEE_MAX;
+        }
+        langCats.clear();
+        for (const [l, liste] of frais) langCats.set(l, liste);
+        const audience = new Map();
+        for (const [l, liste] of langCats) {
+          audience.set(l, liste.reduce((n, c) => n + c.viewers, 0));
+        }
+        langAudienceMap = audience.size ? audience : null;
+      } finally {
+
+        langCatsEnCours = false;
+      }
+    };
+
     const publish = (pool) => {
       ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
@@ -2637,6 +2725,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!cats) return { ok: false, complete: false };
       categories   = cats;
       categoriesTs = started;
+
+      if (!langCatsRefuse && Date.now() - langCatsTs > CFG.GLOBAL_LANG_CATS_TTL) {
+        majLangCats([...LANG_SET]).catch(() => {});
+      }
 
       if (wl?.lang && !tagRefuse && CFG.GLOBAL_TOP_N <= CFG.GLOBAL_TAG_MAX) {
         const parTag = await tagTop(wl.lang);
@@ -2951,7 +3043,26 @@ const TSE_GATE_MAX_CLICKS = 5;
         return m;
       },
 
-      cats(n = CFG.GLOBAL_CATEGORIES_MAX) { return categories.slice(0, n); },
+      langAudience() {
+        return porteeLang === true ? langAudienceMap : null;
+      },
+
+      cats(n = CFG.GLOBAL_CATEGORIES_MAX, lang = null) {
+        if (lang && porteeLang === true) {
+          const liste = langCats.get(lang);
+          if (liste) return liste.slice(0, n);
+        }
+        return categories.slice(0, n);
+      },
+
+      langsProposables() {
+        return this.langAudience() ? [...langCats.keys()] : null;
+      },
+      bilanLangues() {
+        return { ...bilanLangCats, refuse: langCatsRefuse, portee: porteeLang,
+                 facteur: porteeFacteur, connues: langCats.size,
+                 ageMs: langCatsTs ? Date.now() - langCatsTs : null };
+      },
 
       setViewers(login, viewers) {
 
@@ -2980,6 +3091,10 @@ const TSE_GATE_MAX_CLICKS = 5;
                                         : worldLang && worldLang === state.languageFilter),
 
           tags: { ...bilanTags, refuse: tagRefuse },
+
+          langues: { ...bilanLangCats, refuse: langCatsRefuse,
+                     portee: porteeLang, facteur: porteeFacteur,
+                     connues: langCats.size },
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -5479,7 +5594,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
 
       const frise = friseNoeud(login, preludeDe(login));
-      if (frise) el.querySelector('.tse-preview__body').appendChild(frise);
+
+      if (frise) { bilanFrises.affichees++; el.querySelector('.tse-preview__body').appendChild(frise); }
+      else bilanFrises.muettes++;
 
       if (thumbImg && placeholder) {
         thumbImg.addEventListener('error', () => {
@@ -6362,14 +6479,17 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!section) return;
 
     if (state.globalMode) {
-      const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX);
-      const catCount = new Map(cats.map(c => [c.name, c.viewers]));
 
-      const langCount = globalChannels.langs();
-      const langsPresent = new Set(langCount.keys());
+      const langAudience = globalChannels.langAudience();
+
+      const langCount = langAudience || globalChannels.langs();
+      const langsPresent = new Set(globalChannels.langsProposables()
+                                   || langCount.keys());
       const Lg = state.languageFilter && langsPresent.has(state.languageFilter)
         ? state.languageFilter : null;
       state.languageFilter = Lg;
+      const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX, Lg);
+      const catCount = new Map(cats.map(c => [c.name, c.viewers]));
 
       const catLabel = new Map(cats.map(c => [c.name, c.display]));
       rebuildDropdown(catDD, cats.map(c => c.name), catCount,
@@ -6378,7 +6498,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
                       langCount, Lg, langsPresent.size === 0, 'lang',
 
-                      state.categoryFilter ? () => '' : String);
+                      state.categoryFilter ? () => ''
+                        : (langAudience ? formatViewers : String));
       const wrapG = document.getElementById(FILTER_ID);
       if (wrapG) wrapG.dataset.tseActive = (state.categoryFilter || Lg) ? 'true' : 'false';
       applyCategoryFilter();
@@ -6654,7 +6775,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     'TH': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#fff"/><rect x="5" y="30" width="62" height="12" fill="#1e50a0"/><rect x="5" y="50" width="62" height="5" fill="#d22f27"/><rect x="5" y="17" width="62" height="5" fill="#d22f27"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
     'VN': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#d22f27"/><polygon fill="#f1b31c" stroke="#f1b31c" stroke-linecap="round" stroke-linejoin="round" points="28.89 47 36.193 25 42.488 46.663 25 33.61 47 33.067 28.89 47"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
     'ID': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#d22f27"/><rect x="5" y="36" width="62" height="19" fill="#fff"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
-    'UA': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#61b2e4"/><rect x="5" y="36" width="62" height="19" fill="#fcea2b"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`
+    'UA': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#61b2e4"/><rect x="5" y="36" width="62" height="19" fill="#fcea2b"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
+
+    'BG': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#d22f27"/><rect x="5" y="30" width="62" height="12" fill="#5c9e31"/><rect x="5" y="17" width="62" height="13" fill="#fff"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
+    'SK': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#d22f27"/><rect x="5" y="17" width="62" height="13" fill="#fff"/><rect x="5" y="30" width="62" height="12" fill="#1e50a0"/><path fill="#d22f27" stroke="#fff" stroke-width="2" stroke-linejoin="round" d="M17,25h14v11c0,6-7,10-7,10s-7-4-7-10z"/><line x1="24" x2="24" y1="28" y2="42" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="20.5" x2="27.5" y1="31.5" y2="31.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="19" x2="29" y1="36" y2="36" stroke="#fff" stroke-width="2" stroke-linecap="round"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
+    'PH': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#d22f27"/><rect x="5" y="17" width="62" height="19" fill="#1e50a0"/><polygon points="5,17 5,55 38,36" fill="#fff"/><circle cx="15" cy="36" r="4" fill="#f1b31c"/><circle cx="9.5" cy="21.5" r="1.6" fill="#f1b31c"/><circle cx="9.5" cy="50.5" r="1.6" fill="#f1b31c"/><circle cx="33" cy="36" r="1.6" fill="#f1b31c"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
+    'MY': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#fff"/><rect x="5" y="17" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="22.4" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="27.8" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="33.2" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="38.6" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="44" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="49.4" width="62" height="2.7" fill="#d22f27"/><rect x="5" y="17" width="33" height="21.7" fill="#1e50a0"/><circle cx="17" cy="27.5" r="6" fill="#f1b31c"/><circle cx="19.6" cy="27.5" r="5" fill="#1e50a0"/><circle cx="28" cy="27.5" r="2.7" fill="#f1b31c"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`,
+    'CT': `<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><g><rect x="5" y="17" width="62" height="38" fill="#f1b31c"/><rect x="5" y="21.2" width="62" height="4.2" fill="#d22f27"/><rect x="5" y="29.7" width="62" height="4.2" fill="#d22f27"/><rect x="5" y="38.1" width="62" height="4.2" fill="#d22f27"/><rect x="5" y="46.6" width="62" height="4.2" fill="#d22f27"/></g><g><rect x="5" y="17" width="62" height="38" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></g></svg>`
   };
 
   const LANG_CC = {
@@ -6663,8 +6790,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     '한국어':'KR', '中文':'CN', 'Nederlands':'NL', 'Polski':'PL',
     'Türkçe':'TR', 'العربية':'SA', 'Čeština':'CZ', 'Svenska':'SE',
     'Dansk':'DK', 'Norsk':'NO', 'Suomi':'FI', 'Ελληνικά':'GR',
-    'Magyar':'HU', 'Română':'RO', 'ไทย':'TH', 'Tiếng Việt':'VN',
-    'Bahasa Indonesia':'ID', 'Українська':'UA'
+    'Magyar':'HU', 'Română':'RO', 'ภาษาไทย':'TH', 'Tiếng Việt':'VN',
+    'Bahasa Indonesia':'ID', 'Українська':'UA',
+    'Български':'BG', 'Slovenčina':'SK', 'Tagalog':'PH',
+    'بهاسملايو':'MY', 'Català':'CT'
   };
 
   const LANG_API = {
@@ -6673,8 +6802,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     '한국어':'KO', '中文':'ZH', 'Nederlands':'NL', 'Polski':'PL',
     'Türkçe':'TR', 'العربية':'AR', 'Čeština':'CS', 'Svenska':'SV',
     'Dansk':'DA', 'Norsk':'NO', 'Suomi':'FI', 'Ελληνικά':'EL',
-    'Magyar':'HU', 'Română':'RO', 'ไทย':'TH', 'Tiếng Việt':'VI',
-    'Bahasa Indonesia':'ID', 'Українська':'UK'
+    'Magyar':'HU', 'Română':'RO', 'ภาษาไทย':'TH', 'Tiếng Việt':'VI',
+    'Bahasa Indonesia':'ID', 'Українська':'UK',
+
+    'Български':'BG', 'Slovenčina':'SK', 'Tagalog':'TL',
+    'بهاسملايو':'MS', 'Català':'CA'
   };
 
   const langApiRejected = new Set();
