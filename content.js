@@ -4749,7 +4749,10 @@ const TSE_GATE_MAX_CLICKS = 5;
                              inexploitables: 0, sansVod: 0, sansStream: 0, reseau: 0,
 
                              replis: 0, replisServis: 0, replisErreur: 0,
-                             replisVides: 0, replisHorsSujet: 0 };
+                             replisVides: 0, replisHorsSujet: 0,
+
+                             replisTropTot: 0, replisTropTard: 0,
+                             repliEcartMinMin: null, repliEcartMaxMin: null };
 
     const segmentsDuVod = (vod, debutStream) => {
       const aretes = vod?.moments?.edges;
@@ -4818,8 +4821,20 @@ const TSE_GATE_MAX_CLICKS = 5;
           const candidat = res2?.[0]?.data?.user?.videos?.edges?.[0]?.node;
 
           if (!candidat) bilanChapitres.replisVides++;
-          else if (!vodCouvre(candidat, debutStream)) bilanChapitres.replisHorsSujet++;
-          else {
+          else if (!vodCouvre(candidat, debutStream)) {
+            bilanChapitres.replisHorsSujet++;
+
+            const ecart = Math.round((Date.parse(candidat.createdAt) - debutStream) / 60_000);
+            if (Number.isFinite(ecart)) {
+              if (ecart < 0) bilanChapitres.replisTropTot++;
+              else bilanChapitres.replisTropTard++;
+              const b = bilanChapitres;
+              b.repliEcartMinMin = b.repliEcartMinMin === null
+                ? ecart : Math.min(b.repliEcartMinMin, ecart);
+              b.repliEcartMaxMin = b.repliEcartMaxMin === null
+                ? ecart : Math.max(b.repliEcartMaxMin, ecart);
+            }
+          } else {
             vod = candidat;
             bilanChapitres.replisServis++;
           }
