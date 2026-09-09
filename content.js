@@ -3122,8 +3122,15 @@ const TSE_GATE_MAX_CLICKS = 5;
        les distingue pas : elle est donc aria-hidden, et c'est la liste qui
        parle. */
     .tse-preview__frise {
-      margin-top: 9px;
-      padding-top: 8px;
+      /* AUCUNE MARGE PROPRE, et c'est voulu. Le corps du popup est une colonne
+         flex à « gap: 6px » : cette marge s'ajoutait au gap et creusait quinze
+         pixels au-dessus du filet là où le titre et les badges n'en ont que
+         six. Signalé à l'œil — « la marge entre le titre et les badges doit
+         être la même que celle entre le badge et le filet ». Le gap seul s'en
+         charge, et il n'y a plus qu'un endroit qui décide de cet espacement.
+         Le rembourrage sous le filet vaut le même : le trait est ainsi centré
+         dans sa respiration. */
+      padding-top: 6px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
     .tse-preview__frise-titre {
@@ -3136,8 +3143,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__frise-barre {
       display: flex;
       gap: 1px;
-      height: 7px;
-      border-radius: 4px;
+      /* Neuf pixels et non sept : sur une barre plus fine, deux teintes
+         voisines se lisent mal, et c'est la barre entière qui perd son objet. */
+      height: 9px;
+      border-radius: 5px;
       overflow: hidden;
       background: rgba(255, 255, 255, 0.06);
     }
@@ -3163,8 +3172,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     .tse-preview__frise-puce {
       flex: 0 0 auto;
-      width: 7px;
-      height: 7px;
+      width: 9px;
+      height: 9px;
       border-radius: 2px;
     }
     .tse-preview__frise-nom {
@@ -7752,6 +7761,26 @@ const TSE_GATE_MAX_CLICKS = 5;
       '  }' +
       '}';
 
+    /* La seconde porte vers l'enregistrement en cours : la liste des archives
+       de la chaîne, la plus récente d'abord — c'est ce que la page « Vidéos »
+       de Twitch demande. Employée UNIQUEMENT quand `archiveVideo` rend null. */
+    const RECENT_QUERY =
+      'query TseVodRecent($login: String!) {' +
+      '  user(login: $login) {' +
+      '    videos(first: 1, sort: TIME, type: ARCHIVE) {' +
+      '      edges { node {' +
+      '        id createdAt' +
+      '        moments(momentRequestType: VIDEO_CHAPTER_MARKERS) {' +
+      '          edges { node {' +
+      '            positionMilliseconds' +
+      '            details { ... on GameChangeMomentDetails { game { name displayName } } }' +
+      '          } }' +
+      '        }' +
+      '      } }' +
+      '    }' +
+      '  }' +
+      '}';
+
     /* streamId → { ts, segments } ; `segments` à null veut dire « demandé, et
        rien d'exploitable » — une chaîne qui n'archive pas ses diffusions, par
        exemple. On le mémorise aussi, sinon chaque survol relancerait la même
@@ -7771,65 +7800,24 @@ const TSE_GATE_MAX_CLICKS = 5;
        n'archive pas ses diffusions est un cas ordinaire, pas un défaut. Les
        mettre au journal d'erreurs le noierait — la leçon de l'onglet
        « mobile ». Ils vont au rapport, à leur place. */
+    /* ILS S'ADDITIONNENT, et ce n'était pas le cas. La première rédaction
+       incrémentait `sansMoment` PUIS `continus` sur le même appel : un rapport
+       affichait « demandes 16 » et des issues qui totalisaient 23. Un lecteur
+       qui additionne des compteurs et tombe à côté cesse, à juste titre, de
+       leur faire confiance. Les six issues sont désormais exclusives, et leur
+       somme vaut `demandes` — moins les replis, qui comptent des requêtes
+       SUPPLÉMENTAIRES et non des issues. */
     const bilanChapitres = { demandes: 0, servis: 0, continus: 0, sansMoment: 0,
-                             sansVod: 0, sansStream: 0, reseau: 0 };
+                             inexploitables: 0, sansVod: 0, sansStream: 0, reseau: 0,
+                             replis: 0, replisServis: 0 };
 
-    const fetchChapitres = async (login, streamId, debutStream) => {
-      const vu = chapitres.get(streamId);
-      if (vu && Date.now() - vu.ts < CHAPITRES_TTL) return vu.segments;
-
-      bilanChapitres.demandes++;
-      const res = await post([{
-        operationName: 'TseVodChapters',
-        variables: { login },
-        query: CHAPITRES_QUERY
-      }]);
-      if (isResultsUnusable(res)) {
-        bilanChapitres.reseau++;
-        return null;                             // réseau : on ne mémorise pas
-      }
-
-      const flux = res?.[0]?.data?.user?.stream;
-      const vod = flux?.archiveVideo;
+    /* Un nœud de VOD → des segments datés. Écrit une fois : les deux voies
+       d'accès à l'enregistrement (archiveVideo, puis le repli par `videos`)
+       le lisent de la même façon, et deux lectures d'une même forme finiraient
+       par diverger sur le premier champ ajouté. */
+    const segmentsDuVod = (vod, debutStream) => {
       const aretes = vod?.moments?.edges;
-      if (!Array.isArray(aretes) || !aretes.length) {
-        /* Trois silences distincts, et le rapport doit les séparer :
-             — pas de stream du tout (la chaîne vient de couper) ;
-             — un stream mais aucun VOD : la chaîne n'archive pas. C'est le cas
-               ORDINAIRE, et il n'a rien d'une erreur ;
-             — un VOD sans le moindre moment. */
-        if (!flux) { bilanChapitres.sansStream++; }
-        else if (!vod) { bilanChapitres.sansVod++; }
-        else {
-          bilanChapitres.sansMoment++;
-          /* ── UN VOD SANS MOMENT EST UNE RÉPONSE, PAS UN SILENCE ──────────
-             Les chapitres marquent les CHANGEMENTS de jeu. Un enregistrement
-             qui couvre tout le live et n'en porte aucun atteste donc que la
-             catégorie n'a pas bougé depuis le départ — la frise peut remonter
-             au début sans rien inventer.
-
-             CE N'EST PLUS UNE HYPOTHÈSE. Le premier rapport d'utilisateur
-             portant les compteurs l'a corroborée : sur dix-neuf demandes, six
-             ont rendu des moments (donc le champ existe et fonctionne) et huit
-             ont rendu un VOD sans aucun moment, sans la moindre erreur
-             GraphQL. Ce sont les lives qui n'ont jamais changé de catégorie.
-
-             LA GARDE QUI REND LA CONCLUSION LÉGITIME : l'enregistrement doit
-             couvrir le live. Un VOD démarré dix minutes après le stream ne
-             peut rien dire de ces dix minutes-là, et l'absence de chapitre n'y
-             prouve rien. */
-          const depart = Date.parse(vod.createdAt);
-          const couvre = Number.isFinite(depart) && debutStream
-            && depart - debutStream <= CFG.CATEGORY_TRAIL_VOD_ECART;
-          if (couvre) {
-            bilanChapitres.continus++;
-            chapitres.set(streamId, { ts: Date.now(), segments: null, continu: true });
-            return chapitres.get(streamId);
-          }
-        }
-        chapitres.set(streamId, { ts: Date.now(), segments: null, continu: false });
-        return null;
-      }
+      if (!Array.isArray(aretes)) return { segments: null, aretes: 0 };
       /* La base de temps : celle de l'ENREGISTREMENT, qui peut démarrer une
          poignée de secondes après le stream. On borne au début du stream pour
          qu'aucun segment ne commence avant lui — une frise dont le premier
@@ -7847,18 +7835,117 @@ const TSE_GATE_MAX_CLICKS = 5;
         });
       }
       segments.sort((a, b) => a.debut - b.debut);
-      const utile = segments.length ? segments : null;
-      chapitres.set(streamId, { ts: Date.now(), segments: utile, continu: false });
-      if (utile) { bilanChapitres.servis++; return chapitres.get(streamId); }
-      else {
-        /* CELUI-CI est bien une anomalie : Twitch a rendu des moments, et
-           aucun n'était exploitable. Forme inattendue, champ renommé — c'est
-           exactement ce qu'on veut savoir, et c'est le seul des quatre cas qui
-           mérite le journal d'erreurs. */
-        bilanChapitres.sansMoment++;
-        erreurs.noter('chapitres', `aucun moment exploitable sur ${aretes.length} arête(s)`);
+      return { segments: segments.length ? segments : null, aretes: aretes.length };
+    };
+
+    /* L'enregistrement couvre-t-il le live ? C'est la question qui autorise —
+       ou non — à conclure de l'absence de chapitre. Un VOD démarré dix minutes
+       après le stream ne peut rien dire de ces dix minutes-là. */
+    const vodCouvre = (vod, debutStream) => {
+      const depart = Date.parse(vod?.createdAt);
+      /* BORNÉ DES DEUX CÔTÉS, et la première rédaction ne l'était que d'un.
+         Elle vérifiait `depart - debutStream <= ÉCART`, ce qui est vrai pour un
+         enregistrement commencé après le live — et vrai AUSSI pour celui
+         d'hier, dont l'écart vaut moins trente heures. Sans conséquence tant
+         que le VOD venait d'`archiveVideo`, qui est celui du live par
+         construction ; faux dès que le repli propose la dernière archive
+         connue, qui peut être n'importe laquelle. Un enregistrement ne
+         commence pas non plus avant son stream : la valeur absolue est la
+         seule forme juste. */
+      return Number.isFinite(depart) && !!debutStream
+        && Math.abs(depart - debutStream) <= CFG.CATEGORY_TRAIL_VOD_ECART;
+    };
+
+    const retenir = (streamId, segments, continu) => {
+      chapitres.set(streamId, { ts: Date.now(), segments, continu });
+      return (segments || continu) ? chapitres.get(streamId) : null;
+    };
+
+    const fetchChapitres = async (login, streamId, debutStream) => {
+      const vu = chapitres.get(streamId);
+      if (vu && Date.now() - vu.ts < CHAPITRES_TTL) {
+        return (vu.segments || vu.continu) ? vu : null;
       }
-      return utile;
+
+      bilanChapitres.demandes++;
+      const res = await post([{
+        operationName: 'TseVodChapters',
+        variables: { login },
+        query: CHAPITRES_QUERY
+      }]);
+      if (isResultsUnusable(res)) {
+        bilanChapitres.reseau++;
+        return null;                             // réseau : on ne mémorise pas
+      }
+
+      const flux = res?.[0]?.data?.user?.stream;
+      if (!flux) { bilanChapitres.sansStream++; return retenir(streamId, null, false); }
+
+      let vod = flux.archiveVideo;
+
+      /* ── LE REPLI, POUR LES QUATRE QUI RESTAIENT MUETTES ─────────────────────
+         Le rapport d'un utilisateur montrait quatre chaînes en `sansVod` : le
+         champ `archiveVideo` rendait null. Cela peut vouloir dire « cette
+         chaîne n'archive pas » — et c'est alors définitif — mais aussi que
+         l'enregistrement en cours n'est pas exposé par CE champ-là. Twitch a
+         une seconde porte, celle que sa propre page « Vidéos » emprunte :
+         la liste des archives, la plus récente d'abord.
+
+         SÉPARÉE, ET SEULEMENT SUR CE CHEMIN. La greffer sur la requête
+         principale ferait tomber les douze cas qui marchent si l'un de ses
+         arguments est faux. Elle ne part donc que là où l'autre a échoué, une
+         fois par stream, et elle est comptée à part : le prochain rapport dira
+         si elle sert à quelque chose. Même méthode que pour la première
+         requête, qui s'est révélée juste par ce moyen exactement. */
+      if (!vod) {
+        bilanChapitres.replis++;
+        const res2 = await post([{
+          operationName: 'TseVodRecent',
+          variables: { login },
+          query: RECENT_QUERY
+        }]);
+        if (!isResultsUnusable(res2)) {
+          const candidat = res2?.[0]?.data?.user?.videos?.edges?.[0]?.node;
+          /* Il faut que ce soit LE VOD DE CE LIVE, et non celui d'hier. Le
+             départ de l'enregistrement doit tomber sur celui du stream. */
+          if (candidat && vodCouvre(candidat, debutStream)) {
+            vod = candidat;
+            bilanChapitres.replisServis++;
+          }
+        }
+      }
+
+      if (!vod) { bilanChapitres.sansVod++; return retenir(streamId, null, false); }
+
+      const { segments, aretes } = segmentsDuVod(vod, debutStream);
+      if (segments) { bilanChapitres.servis++; return retenir(streamId, segments, false); }
+
+      if (aretes) {
+        /* Twitch a rendu des moments, et aucun n'était exploitable. Forme
+           inattendue, champ renommé — c'est la seule anomalie de toute cette
+           fonction, et le seul cas qui mérite le journal d'erreurs. */
+        bilanChapitres.inexploitables++;
+        erreurs.noter('chapitres', `aucun moment exploitable sur ${aretes} arête(s)`);
+        return retenir(streamId, null, false);
+      }
+
+      /* ── UN VOD SANS MOMENT EST UNE RÉPONSE, PAS UN SILENCE ──────────────────
+         Les chapitres marquent les CHANGEMENTS de jeu. Un enregistrement qui
+         couvre tout le live et n'en porte aucun atteste donc que la catégorie
+         n'a pas bougé depuis le départ — la frise peut remonter au début sans
+         rien inventer.
+
+         CE N'EST PLUS UNE HYPOTHÈSE. Le rapport d'un utilisateur l'a
+         corroborée : sur dix-neuf demandes, six ont rendu des moments — donc
+         le champ existe et fonctionne — et huit ont rendu un VOD sans aucun
+         moment, sans la moindre erreur GraphQL. Ce sont les lives qui n'ont
+         jamais changé de catégorie. */
+      if (vodCouvre(vod, debutStream)) {
+        bilanChapitres.continus++;
+        return retenir(streamId, null, true);
+      }
+      bilanChapitres.sansMoment++;
+      return retenir(streamId, null, false);
     };
 
     const PREVIEW_QUERY =
@@ -8353,8 +8440,15 @@ const TSE_GATE_MAX_CLICKS = 5;
        collisions DANS UNE MÊME FRISE vers le prochain emplacement libre. La
        stabilité est un confort ; la distinction, elle, est ce qui fait qu'on
        lit la barre. En cas de conflit, c'est la distinction qui l'emporte. */
-    const PALETTE_FRISE = ['#7aa2f7', '#9ece6a', '#e0af68', '#bb9af7',
-                           '#7dcfff', '#f7768e', '#73daca', '#ff9e64'];
+    /* HUIT TEINTES FRANCHES. La première palette était choisie pour ne pas
+       crier sur le fond sombre du popup — trop bien choisie : sur une barre de
+       sept pixels de haut, un utilisateur a signalé qu'on distinguait mal les
+       couleurs entre elles. Une barre dont on ne lit pas les frontières ne
+       remplit pas son seul office, qui est de montrer les proportions d'un
+       coup d'œil ; la sobriété n'y était plus une qualité. Chroma nettement
+       relevée, et des teintes espacées d'environ quarante-cinq degrés. */
+    const PALETTE_FRISE = ['#4ea3ff', '#3ddc84', '#ffc233', '#c07cff',
+                           '#ff5f8f', '#17d7d0', '#ff8a3d', '#a6e844'];
 
     const indexCategorie = (jeu) => {
       let h = 0;
