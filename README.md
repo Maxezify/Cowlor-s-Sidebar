@@ -1952,6 +1952,55 @@ journal d'erreurs : une chaîne qui n'archive pas ses diffusions est un cas
 ordinaire, pas un défaut. C'est la leçon de l'onglet « mobile », appliquée avant
 de la répéter.
 
+#### Ce que le VOD atteste, et ce qu'il n'atteste pas (v3.73)
+
+Le rapport suivant a tranché ce que je ne pouvais pas trancher :
+
+```
+chapitres.demandes     19
+chapitres.servis        6      ← la requête FONCTIONNE contre le vrai Twitch
+chapitres.sansMoment    8      ← VOD présent, zéro moment
+chapitres.sansVod       5
+ERREURS (0)
+```
+
+`servis: 6` prouve que `archiveVideo`, `moments(momentRequestType:
+VIDEO_CHAPTER_MARKERS)` et `GameChangeMomentDetails` existent bien — la requête
+reconstituée était juste. Et comme le journal d'erreurs est vide, les huit
+`sansMoment` sont tous des **VOD sans le moindre moment**.
+
+Or les chapitres marquent les **changements** de jeu. Un enregistrement qui
+couvre tout le live et n'en porte aucun **atteste** donc que la catégorie n'a
+pas bougé depuis le départ. Ce n'est pas une hypothèse : c'est une réponse.
+La frise peut remonter au début du live sans rien inventer — ce qui répond au
+troisième rapport, *« j'aimerais quand même avoir cette fonctionnalité même s'il
+y a une seule catégorie durant le stream »*.
+
+**La garde qui rend la conclusion légitime** : l'enregistrement doit couvrir le
+live. Un VOD démarré dix minutes après le stream ne peut rien dire de ces dix
+minutes, et l'absence de chapitre n'y prouve rien. Au-delà de deux minutes
+d'écart, on ne conclut pas et la frise se tait.
+
+Le compteur `chapitres.continus` sépare désormais ce cas des trois autres.
+
+#### Le badge « Contenu classé » sous la frise
+
+Quatrième rapport : *« j'ai l'impression que le badge Mature est en dessous de
+la partie Précédemment »*. C'était exact, et la cause était une duplication —
+**trois** fonctions créaient la zone des badges, toutes trois par `appendChild`
+sur le corps du popup. C'était juste tant que la frise n'existait pas ; elle est
+ajoutée en dernier, et ce badge-là arrive **après** elle, puisqu'il attend la
+réponse de `TsePreview`. La zone se créait alors sous la frise.
+
+La règle n'existe plus qu'à un endroit : on insère avant la frise quand elle est
+là. Trois copies d'une même règle finissent toujours par diverger.
+
+**Le premier scénario écrit pour ce défaut ne le reproduisait pas.** Il faisait
+naître la frise d'une requête de chapitres — donc *après* le badge — et l'ordre
+était bon par accident : la mutation qui casse l'insertion ne le faisait pas
+échouer. Il provoque maintenant un basculement, ce qui donne une frise
+construite dès le rendu, synchrone, comme dans le cas signalé.
+
 ## API console
 
 L'objet `tse` reste exposé dans la console DevTools de la page Twitch (onglet
@@ -2154,7 +2203,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 78 scénarios, 711 assertions |
+| `npm test` | le harnais Playwright : 79 scénarios, 719 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
