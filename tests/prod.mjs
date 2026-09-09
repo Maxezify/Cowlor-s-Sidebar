@@ -62,7 +62,7 @@ try {
    Depuis que le paquet est dégraissé de ses commentaires, le fichier publié
    n'est plus, octet pour octet, celui que `npm test` éprouve. L'égalité des
    flux de jetons, vérifiée à l'assemblage, dit que c'est le même programme —
-   mais c'est une affirmation sur la grammaire. Les 556 assertions en sont une
+   mais c'est une affirmation sur la grammaire. Les assertions du banc en sont une
    sur le comportement, et c'est celle-là qu'on publie. Une publication est
    rare ; les cinq minutes que ça coûte sont le meilleur marché du dépôt. */
 console.log('\n→ banc complet sur le code livré (sans commentaires)…');
