@@ -8160,7 +8160,7 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
     const mk = (g) => ({ id: 'x', createdAt: iso, viewers: 900, game: g, tags: [] });
     window.__fx = { alpha: mk('Overwatch'), beta: mk('Overwatch'), gamma: mk('Overwatch'),
                     epsilon: mk('Overwatch'), zeta: mk('Overwatch'), eta: mk('Overwatch'),
-                    theta: mk('Overwatch'), iota: mk('Overwatch'),
+                    theta: mk('Overwatch'), iota: mk('Overwatch'), kappa: mk('Overwatch'),
                     delta: { id: 'x', createdAt: new Date().toISOString(),
                              viewers: 900, game: 'Overwatch', tags: [] } };
     window.__vod = {
@@ -8191,9 +8191,10 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
       /* Le même, MAIS l'enregistrement a démarré bien après le live. Il ne
          couvre pas le début, donc il n'atteste rien de ce début. */
       eta: { createdAt: new Date(Date.now() - 10 * 60_000).toISOString(), chapitres: [] },
-      // theta et iota n'exposent PAS archiveVideo : le repli doit s'en charger.
+      // theta, iota et kappa n'exposent PAS archiveVideo : le repli s'en charge.
       theta: 'sansvod',
       iota: 'sansvod',
+      kappa: 'sansvod',
     };
     /* LE REPLI. `archiveVideo` a rendu null pour ces deux-là — ce qui peut
        vouloir dire « la chaîne n'archive pas », définitif, ou seulement que
@@ -8205,13 +8206,14 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
         { pos: 0, jeu: 'Just Chatting' },
         { pos: 60 * 60_000, jeu: 'Hades II' }] },
       iota: { createdAt: new Date(d - 30 * 60 * 60_000).toISOString(), chapitres: [] },
+      // kappa : rien du tout. La chaîne n'archive pas, un point c'est tout.
     };
     for (const l of ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta',
-                     'theta', 'iota']) {
+                     'theta', 'iota', 'kappa']) {
       window.__addCard(l, 'Overwatch', '900');
     }
   }, DEBUT);
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 9);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 10);
 
   const survoler = async (login) => {
     await hoverLogin(page, login);
@@ -8361,6 +8363,15 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
   ok('une archive d\'hier n\'est pas prise pour l\'enregistrement du live',
      (await lignes()).length === 0, JSON.stringify(await lignes()));
 
+  /* Une chaîne qui n'archive vraiment pas : le repli ne trouve aucune vidéo.
+     Ce cas doit se distinguer des deux autres, sans quoi « le repli n'a jamais
+     servi » resterait indéchiffrable. */
+  await relacher('iota');
+  await survoler('kappa');
+  await wait(page, 900);
+  ok('une chaîne sans la moindre archive ne produit rien non plus',
+     (await lignes()).length === 0, JSON.stringify(await lignes()));
+
   /* ── UNE FRISE NE REMONTE PAS LE TEMPS ──────────────────────────────────
      Le dernier chapitre est postérieur à notre propre observation. Notre
      segment ne doit PAS s'ajouter derrière lui : il commencerait avant ce qui
@@ -8399,9 +8410,22 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
   ok('…les sept issues sont exclusives, et leur somme vaut le nombre de demandes',
      b1.servis + b1.continus + b1.sansMoment + b1.inexploitables
      + b1.sansVod + b1.sansStream + b1.reseau === b1.demandes, JSON.stringify(b1));
-  ok('…et le repli est compté à part : tenté deux fois, servi une seule',
-     b1.replis >= 2 && b1.replisServis >= 1 && b1.replisServis < b1.replis,
+  ok('…et le repli est compté à part : tenté trois fois, servi une seule',
+     b1.replis >= 3 && b1.replisServis >= 1 && b1.replisServis < b1.replis,
      JSON.stringify(b1));
+  /* ── POURQUOI LE REPLI N'A PAS SERVI ─────────────────────────────────────
+     Un rapport a rendu « replis 12, replisServis 0 ». Impossible d'en tirer
+     quoi que ce soit : requête refusée, chaîne sans archive, ou archive d'un
+     autre jour ? Trois causes, trois suites différentes — dont une seule
+     justifierait de continuer à dépenser une requête. Le compteur les sépare
+     désormais, et sa somme vaut le nombre de tentatives. */
+  ok('…et ses causes sont séparées : sans archive, hors sujet, refusé',
+     b1.replisVides >= 1 && b1.replisHorsSujet >= 1
+     && Object.prototype.hasOwnProperty.call(b1, 'replisErreur'),
+     JSON.stringify(b1));
+  ok('…leur somme valant exactement le nombre de tentatives',
+     b1.replisServis + b1.replisErreur + b1.replisVides + b1.replisHorsSujet
+     === b1.replis, JSON.stringify(b1));
 
   /* ── ET UNE SEULE PAR STREAM ─────────────────────────────────────────── */
   await relacher('delta');
@@ -8499,6 +8523,11 @@ titre('80. Aperçu — l\'ordre du corps : les badges ensemble, la frise en dern
   ok('…et les deux respirations sont ÉGALES : titre→badges = badges→filet',
      ordre.titreBadges === ordre.badgesFilet && ordre.titreBadges > 0,
      JSON.stringify({ titreBadges: ordre.titreBadges, badgesFilet: ordre.badgesFilet }));
+  /* La VALEUR, et pas seulement l'égalité. Six pixels ont été jugés trop
+     serrés à l'usage ; dix ont été demandés. Une assertion qui ne vérifierait
+     que l'égalité laisserait les deux dériver ensemble sans rien dire. */
+  ok('…et elles valent les dix pixels demandés',
+     ordre.titreBadges === 10, `${ordre.titreBadges} px`);
 
   await page.close();
 }
