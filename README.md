@@ -2001,6 +2001,46 @@ naître la frise d'une requête de chapitres — donc *après* le badge — et l
 échouer. Il provoque maintenant un basculement, ce qui donne une frise
 construite dès le rendu, synchrone, comme dans le cas signalé.
 
+#### Ce qui restait muet, et la seconde porte (v3.74)
+
+Le rapport suivant montrait quatre chaînes en `sansVod` : `archiveVideo` rendait
+`null`. Cela peut vouloir dire *« cette chaîne n'archive pas »* — et c'est alors
+définitif — mais aussi que l'enregistrement en cours n'est pas exposé par **ce
+champ-là**. Twitch a une seconde porte, celle que sa propre page « Vidéos »
+emprunte : la liste des archives, la plus récente d'abord.
+
+Elle est **séparée**, et ne part que là où la première a échoué : la greffer sur
+la requête principale ferait tomber les douze cas qui marchent si l'un de ses
+arguments est faux. Une requête de plus par stream, comptée à part
+(`chapitres.replis` / `.replisServis`), et le prochain rapport dira si elle sert.
+
+**Le banc y a trouvé un défaut que la première voie masquait.** La garde qui
+vérifie que l'enregistrement couvre le live ne bornait l'écart que **par le
+haut** : `depart - debutStream <= ÉCART`. C'est vrai pour un VOD commencé après
+le stream — et vrai aussi pour celui d'hier, dont l'écart vaut *moins* trente
+heures. Sans conséquence tant que le VOD venait d'`archiveVideo`, qui est celui
+du live par construction ; faux dès que le repli propose la dernière archive
+connue, qui peut être n'importe laquelle. La valeur absolue est la seule forme
+juste.
+
+#### Trois retouches d'affichage
+
+- **Les compteurs s'additionnent.** Un rapport affichait `demandes 16` et des
+  issues totalisant 23 : `sansMoment` était incrémenté *puis* `continus` sur le
+  même appel. Un lecteur qui additionne des compteurs et tombe à côté cesse, à
+  juste titre, de leur faire confiance. Les sept issues sont exclusives, et une
+  assertion vérifie que leur somme vaut `demandes`.
+- **Les couleurs de la frise.** La première palette était choisie pour ne pas
+  crier sur le fond sombre — trop bien choisie : sur une barre de sept pixels,
+  on distinguait mal les teintes. Une barre dont on ne lit pas les frontières ne
+  remplit pas son seul office. Chroma nettement relevée, teintes espacées d'une
+  quarantaine de degrés, barre à neuf pixels.
+- **Les respirations.** Le corps du popup est une colonne flex à `gap: 6px`, et
+  la frise y ajoutait 9 px de marge propre — quinze pixels au-dessus du filet là
+  où le titre et les badges n'en ont que six. Deux endroits décidaient d'un même
+  espacement ; il n'y en a plus qu'un, et une assertion mesure les deux écarts
+  sur le rendu.
+
 ## API console
 
 L'objet `tse` reste exposé dans la console DevTools de la page Twitch (onglet
@@ -2203,7 +2243,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 79 scénarios, 719 assertions |
+| `npm test` | le harnais Playwright : 79 scénarios, 723 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -2224,12 +2264,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 639 Ko | 292 Ko | 2 849 JS + 80 CSS → **2** |
+| `content.js` | 653 Ko | 294 Ko | 2 873 JS + 83 CSS → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **818 Ko** | **416 Ko** | **−49 %** |
+| **les cinq** | **831 Ko** | **419 Ko** | **−50 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

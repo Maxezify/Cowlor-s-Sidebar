@@ -1886,6 +1886,43 @@ right by accident: the mutation that breaks the insertion did not make it fail.
 It now provokes a switch, which yields a trail built at render time,
 synchronously, as in the reported case.
 
+#### What stayed silent, and the second door (v3.74)
+
+The next report showed four channels as `sansVod`: `archiveVideo` returned
+`null`. That can mean *"this channel does not archive"* — final — but also that
+the current recording is not exposed by **that field**. Twitch has a second
+door, the one its own "Videos" page uses: the list of archives, most recent
+first.
+
+It is **separate**, and only goes out where the first failed: grafting it onto
+the main query would bring down the twelve cases that work if one of its
+arguments is wrong. One extra request per stream, counted apart
+(`chapitres.replis` / `.replisServis`), and the next report will say whether it
+earns its place.
+
+**The harness found a defect there that the first path was hiding.** The guard
+checking that the recording covers the stream bounded the drift only from
+**above**: `depart - debutStream <= DRIFT`. That is true for a VOD started after
+the stream — and also true for yesterday's, whose drift is *minus* thirty hours.
+Harmless while the VOD came from `archiveVideo`, which is the stream's by
+construction; wrong as soon as the fallback offers the latest known archive,
+which can be any of them. Absolute value is the only correct form.
+
+#### Three display fixes
+
+- **The counters add up.** A report showed `demandes 16` with outcomes totalling
+  23: `sansMoment` was incremented *then* `continus` on the same call. A reader
+  who adds counters and lands elsewhere rightly stops trusting them. The seven
+  outcomes are exclusive, and an assertion checks their sum equals `demandes`.
+- **The trail's colours.** The first palette was chosen not to shout on the dark
+  background — chosen too well: on a seven-pixel bar the hues were hard to tell
+  apart. A bar whose boundaries cannot be read fails at its only job. Chroma
+  clearly raised, hues about forty degrees apart, bar at nine pixels.
+- **The spacing.** The popup body is a flex column with `gap: 6px`, and the
+  trail added 9px of its own margin — fifteen pixels above the rule where title
+  and badges have six. Two places decided one spacing; there is only one now,
+  and an assertion measures both gaps on the rendered page.
+
 ## Console API
 
 The `tse` object is still exposed in the Twitch page's DevTools console
@@ -2084,7 +2121,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 79 scenarios, 719 assertions |
+| `npm test` | the Playwright harness: 79 scenarios, 723 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -2104,12 +2141,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 639 KB | 292 KB | 2,849 JS + 80 CSS → **2** |
+| `content.js` | 653 KB | 294 KB | 2,873 JS + 83 CSS → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 35 KB | 20 KB | 39 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **818 KB** | **416 KB** | **−49 %** |
+| **all five** | **831 KB** | **419 KB** | **−50 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

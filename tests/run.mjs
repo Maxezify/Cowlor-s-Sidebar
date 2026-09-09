@@ -8160,6 +8160,7 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
     const mk = (g) => ({ id: 'x', createdAt: iso, viewers: 900, game: g, tags: [] });
     window.__fx = { alpha: mk('Overwatch'), beta: mk('Overwatch'), gamma: mk('Overwatch'),
                     epsilon: mk('Overwatch'), zeta: mk('Overwatch'), eta: mk('Overwatch'),
+                    theta: mk('Overwatch'), iota: mk('Overwatch'),
                     delta: { id: 'x', createdAt: new Date().toISOString(),
                              viewers: 900, game: 'Overwatch', tags: [] } };
     window.__vod = {
@@ -8190,12 +8191,27 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
       /* Le même, MAIS l'enregistrement a démarré bien après le live. Il ne
          couvre pas le début, donc il n'atteste rien de ce début. */
       eta: { createdAt: new Date(Date.now() - 10 * 60_000).toISOString(), chapitres: [] },
+      // theta et iota n'exposent PAS archiveVideo : le repli doit s'en charger.
+      theta: 'sansvod',
+      iota: 'sansvod',
     };
-    for (const l of ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta']) {
+    /* LE REPLI. `archiveVideo` a rendu null pour ces deux-là — ce qui peut
+       vouloir dire « la chaîne n'archive pas », définitif, ou seulement que
+       l'enregistrement en cours n'est pas exposé par CE champ. La seconde
+       porte tranche : theta a bien une archive qui couvre son live, iota n'en
+       a qu'une d'hier, qui ne prouve rien. */
+    window.__vodRecent = {
+      theta: { createdAt: iso, chapitres: [
+        { pos: 0, jeu: 'Just Chatting' },
+        { pos: 60 * 60_000, jeu: 'Hades II' }] },
+      iota: { createdAt: new Date(d - 30 * 60 * 60_000).toISOString(), chapitres: [] },
+    };
+    for (const l of ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta',
+                     'theta', 'iota']) {
       window.__addCard(l, 'Overwatch', '900');
     }
   }, DEBUT);
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 7);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 9);
 
   const survoler = async (login) => {
     await hoverLogin(page, login);
@@ -8280,15 +8296,6 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
      question, et ils ne vont PAS au journal d'erreurs : une chaîne qui
      n'archive pas ses diffusions est un cas ordinaire, pas un défaut. C'est la
      leçon de l'onglet « mobile », appliquée avant de la répéter. */
-  const b1 = await bilan();
-  ok('le rapport dit combien de fois les chapitres ont été DEMANDÉS',
-     b1.demandes >= 3, JSON.stringify(b1));
-  ok('…et sépare « servis », « sans VOD » et « sans stream » — trois causes distinctes',
-     b1.servis >= 1 && b1.sansVod >= 1
-     && Object.prototype.hasOwnProperty.call(b1, 'sansStream'),
-     JSON.stringify(b1));
-  ok('…et compte à part les VOD qui ATTESTENT une catégorie unique',
-     Object.prototype.hasOwnProperty.call(b1, 'continus'), JSON.stringify(b1));
 
   /* ── LA REQUÊTE QU'ON NE FAIT PAS ────────────────────────────────────────
      Une chaîne suivie depuis le début de son live n'a rien à combler. Une
@@ -8328,6 +8335,32 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
   ok('un VOD démarré APRÈS le live n\'atteste rien, et la frise se tait',
      (await lignes()).length === 0, JSON.stringify(await lignes()));
 
+  /* ── LA SECONDE PORTE VERS L'ENREGISTREMENT ──────────────────────────────
+     Un rapport montrait quatre chaînes muettes en `sansVod`. « archiveVideo
+     rend null » ne veut pas forcément dire « cette chaîne n'archive pas » : il
+     se peut que l'enregistrement en cours ne soit pas exposé par CE champ.
+     Twitch a une seconde porte — la liste des archives, la plus récente
+     d'abord — et c'est celle que sa propre page « Vidéos » emprunte. */
+  await relacher('eta');
+  await survoler('theta');
+  await attendre(page,
+    () => document.querySelectorAll('.tse-preview__frise-ligne').length >= 2, 8000);
+  const t = await lignes();
+  ok('quand archiveVideo est vide, la liste des archives prend le relais',
+     t.length === 3 && !t.some(l => l.inconnu)
+     && t[t.length - 1].nom === 'Overwatch', JSON.stringify(t.map(l => l.nom)));
+
+  /* ── ET CE QU'ELLE NE DOIT PAS FAIRE ─────────────────────────────────────
+     La plus récente archive d'une chaîne peut être celle d'HIER. La prendre
+     pour l'enregistrement du live en cours daterait la frise de trente heures
+     en arrière. La même garde que pour la continuité s'applique : le départ de
+     l'archive doit tomber sur celui du stream. */
+  await relacher('theta');
+  await survoler('iota');
+  await wait(page, 900);
+  ok('une archive d\'hier n\'est pas prise pour l\'enregistrement du live',
+     (await lignes()).length === 0, JSON.stringify(await lignes()));
+
   /* ── UNE FRISE NE REMONTE PAS LE TEMPS ──────────────────────────────────
      Le dernier chapitre est postérieur à notre propre observation. Notre
      segment ne doit PAS s'ajouter derrière lui : il commencerait avant ce qui
@@ -8343,6 +8376,32 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
      && !e.some(l => l.nom === 'Overwatch'),
      JSON.stringify(e.map(l => l.nom)));
   await relacher('epsilon');
+
+  /* ── LES COMPTEURS, LUS QUAND TOUS LES CAS SONT PASSÉS ───────────────────
+     Lus trop tôt, ils ne portent que sur les premiers survols — et une
+     assertion qui mesure un état incomplet ne mesure rien. Ici, les sept
+     issues ont toutes été rencontrées.
+
+     ILS S'ADDITIONNENT, et ce n'était pas le cas : un rapport a affiché
+     « demandes 16 » et des issues qui totalisaient 23, parce que `sansMoment`
+     était incrémenté PUIS `continus` sur le même appel. Un lecteur qui
+     additionne des compteurs et tombe à côté cesse, à juste titre, de leur
+     faire confiance. Les replis, eux, comptent des requêtes SUPPLÉMENTAIRES
+     et non des issues : ils restent à part, et c'est pour cela qu'ils ne sont
+     pas dans la somme. */
+  const b1 = await bilan();
+  ok('le rapport dit combien de fois les chapitres ont été DEMANDÉS',
+     b1.demandes >= 6, JSON.stringify(b1));
+  ok('…et sépare les issues : servies, attestées, sans VOD, sans stream',
+     b1.servis >= 1 && b1.continus >= 1 && b1.sansVod >= 1
+     && Object.prototype.hasOwnProperty.call(b1, 'sansStream'),
+     JSON.stringify(b1));
+  ok('…les sept issues sont exclusives, et leur somme vaut le nombre de demandes',
+     b1.servis + b1.continus + b1.sansMoment + b1.inexploitables
+     + b1.sansVod + b1.sansStream + b1.reseau === b1.demandes, JSON.stringify(b1));
+  ok('…et le repli est compté à part : tenté deux fois, servi une seule',
+     b1.replis >= 2 && b1.replisServis >= 1 && b1.replisServis < b1.replis,
+     JSON.stringify(b1));
 
   /* ── ET UNE SEULE PAR STREAM ─────────────────────────────────────────── */
   await relacher('delta');
@@ -8408,11 +8467,21 @@ titre('80. Aperçu — l\'ordre du corps : les badges ensemble, la frise en dern
   const ordre = await page.evaluate(() => {
     const corps = document.querySelector('.tse-preview__body');
     const badge = corps.querySelector('.tse-preview__badge--ccl');
+    // L'écart VISUEL entre deux blocs : du bas de l'un au haut de l'autre.
+    // Mesuré sur le rendu, pas lu dans la feuille de style — une marge peut
+    // s'ajouter à un gap flex sans que rien ne le dise dans la règle.
+    const ecart = (a, b) =>
+      Math.round(b.getBoundingClientRect().top - a.getBoundingClientRect().bottom);
+    const titre = corps.querySelector('.tse-preview__title');
+    const zone = corps.querySelector('.tse-preview__badges');
+    const frise = corps.querySelector('.tse-preview__frise');
     return {
       enfants: [...corps.children].map(e => e.className.split(' ')[0]),
       badgeDansLaZone: !!badge && !!badge.closest('.tse-preview__badges'),
       zones: corps.querySelectorAll('.tse-preview__badges').length,
       dernier: corps.lastElementChild?.className.split(' ')[0] || null,
+      titreBadges: ecart(titre, zone),
+      badgesFilet: ecart(zone, frise),
     };
   });
   ok('le badge « Contenu classé », arrivé tard, rejoint la ZONE des badges',
@@ -8421,6 +8490,15 @@ titre('80. Aperçu — l\'ordre du corps : les badges ensemble, la frise en dern
      ordre.zones === 1, `${ordre.zones} zones de badges`);
   ok('…la frise restant le DERNIER élément du corps',
      ordre.dernier === 'tse-preview__frise', JSON.stringify(ordre.enfants));
+  /* ── LES DEUX RESPIRATIONS SONT ÉGALES ───────────────────────────────────
+     Signalé à l'œil : « la marge entre le titre et les badges doit être la
+     même que celle entre le badge et le filet ». Elle ne l'était pas — le
+     corps est une colonne flex à 6 px de gap, et la frise y ajoutait 9 px de
+     marge propre, soit quinze au lieu de six. Deux endroits décidaient d'un
+     même espacement ; il n'y en a plus qu'un. */
+  ok('…et les deux respirations sont ÉGALES : titre→badges = badges→filet',
+     ordre.titreBadges === ordre.badgesFilet && ordre.titreBadges > 0,
+     JSON.stringify({ titreBadges: ordre.titreBadges, badgesFilet: ordre.badgesFilet }));
 
   await page.close();
 }
