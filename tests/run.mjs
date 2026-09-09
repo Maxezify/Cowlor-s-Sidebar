@@ -8159,7 +8159,7 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
     const iso = new Date(d).toISOString();
     const mk = (g) => ({ id: 'x', createdAt: iso, viewers: 900, game: g, tags: [] });
     window.__fx = { alpha: mk('Overwatch'), beta: mk('Overwatch'), gamma: mk('Overwatch'),
-                    epsilon: mk('Overwatch'),
+                    epsilon: mk('Overwatch'), zeta: mk('Overwatch'), eta: mk('Overwatch'),
                     delta: { id: 'x', createdAt: new Date().toISOString(),
                              viewers: 900, game: 'Overwatch', tags: [] } };
     window.__vod = {
@@ -8181,12 +8181,21 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
       epsilon: { createdAt: iso, chapitres: [
         { pos: 0, jeu: 'Just Chatting' },
         { pos: 4 * 60 * 60_000, jeu: 'Hades II' }] },
+      /* UN VOD QUI COUVRE LE LIVE ET NE PORTE AUCUN CHANGEMENT. C'est le cas
+         que le premier rapport d'utilisateur a révélé — huit sur dix-neuf — et
+         ce n'est pas un silence : les chapitres marquent les CHANGEMENTS, donc
+         leur absence sur un enregistrement complet atteste que la catégorie
+         n'a pas bougé. */
+      zeta: { createdAt: iso, chapitres: [] },
+      /* Le même, MAIS l'enregistrement a démarré bien après le live. Il ne
+         couvre pas le début, donc il n'atteste rien de ce début. */
+      eta: { createdAt: new Date(Date.now() - 10 * 60_000).toISOString(), chapitres: [] },
     };
-    for (const l of ['alpha', 'beta', 'gamma', 'delta', 'epsilon']) {
+    for (const l of ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta']) {
       window.__addCard(l, 'Overwatch', '900');
     }
   }, DEBUT);
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 7);
 
   const survoler = async (login) => {
     await hoverLogin(page, login);
@@ -8278,6 +8287,8 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
      b1.servis >= 1 && b1.sansVod >= 1
      && Object.prototype.hasOwnProperty.call(b1, 'sansStream'),
      JSON.stringify(b1));
+  ok('…et compte à part les VOD qui ATTESTENT une catégorie unique',
+     Object.prototype.hasOwnProperty.call(b1, 'continus'), JSON.stringify(b1));
 
   /* ── LA REQUÊTE QU'ON NE FAIT PAS ────────────────────────────────────────
      Une chaîne suivie depuis le début de son live n'a rien à combler. Une
@@ -8289,6 +8300,33 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
   await wait(page, 900);
   ok('aucune requête pour un live vu depuis son début : rien à combler',
      (await appelsVod()) === avant, `${await appelsVod()} appels contre ${avant}`);
+
+  /* ── LE VOD QUI ATTESTE LA CONTINUITÉ ────────────────────────────────────
+     C'est la réponse au deuxième rapport : « j'aimerais quand même avoir cette
+     fonctionnalité même s'il y a une seule catégorie durant le stream ». On ne
+     l'obtient PAS en prolongeant la catégorie courante par hypothèse — on
+     l'obtient parce que l'enregistrement, qui couvre tout le live, ne porte
+     aucun changement de jeu. C'est une preuve, pas une supposition. */
+  await relacher('epsilon');
+  await survoler('zeta');
+  await attendre(page,
+    () => document.querySelectorAll('.tse-preview__frise-ligne').length >= 1, 8000);
+  const z = await lignes();
+  ok('un VOD complet SANS changement fait remonter la frise au début du live',
+     z.length === 1 && z[0].nom === 'Overwatch' && !z[0].inconnu,
+     JSON.stringify(z));
+  ok('…et la durée couvre le live entier, pas notre fenêtre d\'observation',
+     /^3h0\d$/.test(z[0].duree.split(' ')[0]), JSON.stringify(z[0].duree));
+
+  /* ── ET CELUI QUI N'ATTESTE RIEN ─────────────────────────────────────────
+     L'enregistrement a démarré dix minutes après le live : l'absence de
+     chapitre ne dit rien des trois heures précédentes. Sans cette garde, la
+     preuve deviendrait une hypothèse déguisée. */
+  await relacher('zeta');
+  await survoler('eta');
+  await wait(page, 900);
+  ok('un VOD démarré APRÈS le live n\'atteste rien, et la frise se tait',
+     (await lignes()).length === 0, JSON.stringify(await lignes()));
 
   /* ── UNE FRISE NE REMONTE PAS LE TEMPS ──────────────────────────────────
      Le dernier chapitre est postérieur à notre propre observation. Notre
@@ -8316,6 +8354,73 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
   await wait(page, 700);
   ok('les chapitres sont mémorisés : deux survols, aucune requête de plus',
      (await appelsVod()) === avantB, `${await appelsVod()} appels contre ${avantB}`);
+
+  await page.close();
+}
+
+titre('80. Aperçu — l\'ordre du corps : les badges ensemble, la frise en dernier');
+{
+  /* RAPPORT D'UTILISATEUR : « j'ai l'impression que le badge Mature est en
+     dessous de la partie Précédemment. Mais le [il devrait être] au même
+     endroit que les badges. »
+
+     C'était exact, et la cause est une duplication. TROIS fonctions créaient la
+     zone des badges, toutes trois par `appendChild` sur le corps du popup —
+     juste tant que la frise n'existait pas. Or la frise est ajoutée en
+     dernier, et le badge « Contenu classé » arrive APRÈS elle : il attend la
+     réponse de TsePreview, qui est asynchrone. La zone se créait alors sous la
+     frise, et le badge avec elle.
+
+     Trois copies d'une même règle finissent toujours par diverger. Elle
+     n'existe plus qu'à un endroit, et cette assertion la tient. */
+  const page = await freshTwitch();
+  const DEBUT = Date.now() - 2 * 60 * 60_000;
+  await page.evaluate((d) => {
+    const iso = new Date(d).toISOString();
+    window.__fx = { alpha: { id: 'a', createdAt: iso, viewers: 900,
+                             game: 'Just Chatting', tags: [],
+                             // Ce qui déclenche le badge, et il arrive TARD.
+                             ccl: [{ id: 'MatureGame' }] } };
+    window.__addCard('alpha', 'Just Chatting', '900');
+  }, DEBUT);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+
+  /* LA FRISE DOIT ÊTRE LÀ AVANT LE BADGE, sans quoi le test ne porte pas sur
+     le défaut signalé. La première rédaction la faisait naître d'une requête
+     de chapitres — donc APRÈS le badge — et l'ordre était bon par accident :
+     la mutation qui casse l'insertion ne la faisait pas échouer. On provoque
+     donc un basculement, ce qui donne deux segments OBSERVÉS et une frise
+     construite dès le rendu, synchrone. Le badge « Contenu classé », lui,
+     attend la réponse de TsePreview. */
+  await page.evaluate(() => { window.__fx.alpha.game = 'Overwatch'; window.tse.rescan(); });
+  await attendre(page, () => document.querySelector('.side-nav-card')
+    ?.dataset.tseCategory === 'Overwatch', 8000);
+
+  await hoverLogin(page, 'alpha');
+  await attendre(page,
+    () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+  // On attend que LES DEUX soient là : le badge tardif et la frise.
+  ok('la frise est posée DÈS le rendu — c\'est la condition du défaut',
+     await page.evaluate(() => !!document.querySelector('.tse-preview__frise')),
+     'sans frise au rendu, le badge tardif ne pourrait pas passer dessous');
+  await attendre(page, () => !!document.querySelector('.tse-preview__badge--ccl'), 8000);
+
+  const ordre = await page.evaluate(() => {
+    const corps = document.querySelector('.tse-preview__body');
+    const badge = corps.querySelector('.tse-preview__badge--ccl');
+    return {
+      enfants: [...corps.children].map(e => e.className.split(' ')[0]),
+      badgeDansLaZone: !!badge && !!badge.closest('.tse-preview__badges'),
+      zones: corps.querySelectorAll('.tse-preview__badges').length,
+      dernier: corps.lastElementChild?.className.split(' ')[0] || null,
+    };
+  });
+  ok('le badge « Contenu classé », arrivé tard, rejoint la ZONE des badges',
+     ordre.badgeDansLaZone === true, JSON.stringify(ordre.enfants));
+  ok('…et il n\'a pas fabriqué une seconde zone au passage',
+     ordre.zones === 1, `${ordre.zones} zones de badges`);
+  ok('…la frise restant le DERNIER élément du corps',
+     ordre.dernier === 'tse-preview__frise', JSON.stringify(ordre.enfants));
 
   await page.close();
 }

@@ -2262,6 +2262,55 @@ The `RÉSEAU` block now carries `chapitres.demandes`, `.servis`, `.sansVod`,
 error journal: a channel that does not archive its broadcasts is an ordinary
 case, not a defect. That is the "mobile" tab lesson, applied before repeating it.
 
+#### What the VOD attests, and what it does not (v3.73)
+
+The next report settled what I could not:
+
+```
+chapitres.demandes     19
+chapitres.servis        6      ← the query WORKS against the real Twitch
+chapitres.sansMoment    8      ← VOD present, zero moments
+chapitres.sansVod       5
+ERREURS (0)
+```
+
+`servis: 6` proves that `archiveVideo`, `moments(momentRequestType:
+VIDEO_CHAPTER_MARKERS)` and `GameChangeMomentDetails` do exist — the
+reconstructed query was right. And since the error journal is empty, the eight
+`sansMoment` are all **VODs without a single moment**.
+
+But chapters mark game **changes**. A recording that covers the whole stream and
+carries none therefore **attests** that the category has not moved since the
+start. That is not a hypothesis: it is an answer. The trail can go back to the
+start of the stream without inventing anything — which answers the third report,
+*"I'd still like this feature even if there is only one category during the
+stream"*.
+
+**The guard that makes the conclusion legitimate**: the recording must cover the
+stream. A VOD started ten minutes after the stream can say nothing about those
+ten minutes, and the absence of a chapter proves nothing there. Beyond two
+minutes of drift we draw no conclusion and the trail stays silent.
+
+The `chapitres.continus` counter now separates this case from the other three.
+
+#### The content-classification badge below the trail
+
+Fourth report: *"I get the impression the Mature badge is below the 'Previously'
+part"*. That was exact, and the cause was duplication — **three** functions
+created the badge zone, all three with `appendChild` on the popup body. That was
+right while the trail did not exist; it is added last, and that badge arrives
+**after** it, since it waits for `TsePreview`'s answer. The zone was then created
+below the trail.
+
+The rule now exists in one place only: insert before the trail when it is there.
+Three copies of one rule always end up diverging.
+
+**The first scenario written for this defect did not reproduce it.** It had the
+trail born from a chapter request — so *after* the badge — and the order was
+right by accident: the mutation that breaks the insertion did not make it fail.
+It now provokes a switch, which yields a trail built at render time,
+synchronously, as in the reported case.
+
 ## Console API
 
 The `tse` object is still exposed in the Twitch page's DevTools console
@@ -2466,7 +2515,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 78 scenarios, 711 assertions |
+| `npm test` | the Playwright harness: 79 scenarios, 719 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

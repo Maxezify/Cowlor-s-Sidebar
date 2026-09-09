@@ -1953,6 +1953,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     // plus de six ; au-delà, on tronque par la TÊTE et on le dit, plutôt que
     // de laisser une liste s'allonger jusqu'à sortir du popup.
     CATEGORY_TRAIL_SEGMENTS: 12,
+    // Écart admis entre le départ du STREAM et celui de son enregistrement.
+    // Un VOD qui commence deux minutes après le live ne peut rien attester de
+    // ces deux minutes : l'absence de chapitre n'y prouve rien. Au-delà, on ne
+    // conclut donc pas — la frise retombe sur ce qu'elle a observé.
+    CATEGORY_TRAIL_VOD_ECART: 120_000,
     // En deçà, on considère avoir vu le stream depuis son début. Le relevé
     // tourne toutes les 30 s : sans cette tolérance, TOUTE frise porterait un
     // segment « non observé » de quelques secondes, dû à notre seule latence
@@ -3426,9 +3431,18 @@ const TSE_GATE_MAX_CLICKS = 5;
        La comparaison se fait sur le nom CANONIQUE et sur l'ordre du temps :
        un segment observé n'est ajouté que s'il change de catégorie ET s'il
        vient après le dernier connu. Sans cette seconde garde, un chapitre en
-       retard ferait naître un segment qui remonte le temps. */
+       retard ferait naître un segment qui remonte le temps.
+
+       LE PRÉLUDE PORTE DEUX RENSEIGNEMENTS DE NATURE DIFFÉRENTE : une liste de
+       chapitres, ou — quand le VOD couvre le live sans porter le moindre
+       changement — le seul fait que la catégorie n'a pas bougé. Le second ne
+       fournit aucun segment ; il autorise à faire remonter le PREMIER segment
+       observé jusqu'au départ du stream. */
+    const chapitresVod = (prelude && prelude.segments) || [];
+    const continu = !!(prelude && prelude.continu);
+
     const bruts = [];
-    for (const p of (prelude || [])) {
+    for (const p of chapitresVod) {
       const dernier = bruts[bruts.length - 1];
       if (dernier && dernier.jeu === p.jeu) continue;   // Twitch répète parfois
       bruts.push({ jeu: p.jeu, libelle: p.libelle, debut: p.debut });
@@ -3445,6 +3459,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       bruts.push({ ...o });
     }
 
+    /* LE VOD ATTESTE LA CONTINUITÉ : on ramène le premier segment au départ du
+       live. Le premier SEULEMENT — si l'on a observé un basculement depuis,
+       c'est que le VOD était en retard sur ses chapitres, et il n'atteste plus
+       rien au-delà de ce qu'il couvrait.
+
+       AVANT le calcul ci-dessous, et pas après : `segments` LIT `bruts`, si
+       bien qu'un recalage postérieur ne changeait rien à l'affichage. Écrit
+       dans le mauvais ordre du premier coup, et pris par le banc — la frise
+       montrait « 0m » là où elle devait montrer trois heures. */
+    if (continu && bruts.length && f.debutStream) {
+      bruts[0] = { ...bruts[0], debut: f.debutStream };
+    }
+
     const segments = bruts.map((s, i) => {
       const fin = i + 1 < bruts.length ? bruts[i + 1].debut : maintenant;
       return { jeu: s.jeu, libelle: s.libelle, debut: s.debut, fin,
@@ -3457,6 +3484,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        est le seul défaut sûr. */
     const depuisLeDebut = !!f.debutStream
       && f.vuDepuis - f.debutStream <= CFG.CATEGORY_TRAIL_TOLERANCE;
+
 
     /* ── QUAND LA FRISE N'A RIEN À DIRE, ELLE SE TAIT ────────────────────────
        Un segment unique, aucun prélude, et un live commencé avant notre
@@ -3471,12 +3499,12 @@ const TSE_GATE_MAX_CLICKS = 5;
        cinq minutes avant qu'on ouvre Twitch se verrait attribuer sept heures
        d'une catégorie qu'il vient de prendre. Se taire ne coûte qu'un bloc ;
        inventer coûte la confiance qu'on peut avoir dans tous les autres. */
-    if (bruts.length < 2 && !(prelude && prelude.length) && !depuisLeDebut) return null;
+    if (bruts.length < 2 && !chapitresVod.length && !continu && !depuisLeDebut) return null;
 
     /* La part que nous n'avons PAS vue, mesurée et non devinée : du départ du
        stream à notre première observation. Un prélude la comble — il part du
        début du live — et l'avoir vu depuis le début la rend nulle. */
-    const brut = (prelude && prelude.length) || depuisLeDebut || !f.debutStream
+    const brut = chapitresVod.length || continu || depuisLeDebut || !f.debutStream
       ? 0 : f.vuDepuis - f.debutStream;
     const inconnuMs = brut > CFG.CATEGORY_TRAIL_TOLERANCE ? brut : 0;
     return {
@@ -7743,7 +7771,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        n'archive pas ses diffusions est un cas ordinaire, pas un défaut. Les
        mettre au journal d'erreurs le noierait — la leçon de l'onglet
        « mobile ». Ils vont au rapport, à leur place. */
-    const bilanChapitres = { demandes: 0, servis: 0, sansMoment: 0,
+    const bilanChapitres = { demandes: 0, servis: 0, continus: 0, sansMoment: 0,
                              sansVod: 0, sansStream: 0, reseau: 0 };
 
     const fetchChapitres = async (login, streamId, debutStream) => {
@@ -7770,10 +7798,36 @@ const TSE_GATE_MAX_CLICKS = 5;
              — un stream mais aucun VOD : la chaîne n'archive pas. C'est le cas
                ORDINAIRE, et il n'a rien d'une erreur ;
              — un VOD sans le moindre moment. */
-        if (!flux) bilanChapitres.sansStream++;
-        else if (!vod) bilanChapitres.sansVod++;
-        else bilanChapitres.sansMoment++;
-        chapitres.set(streamId, { ts: Date.now(), segments: null });
+        if (!flux) { bilanChapitres.sansStream++; }
+        else if (!vod) { bilanChapitres.sansVod++; }
+        else {
+          bilanChapitres.sansMoment++;
+          /* ── UN VOD SANS MOMENT EST UNE RÉPONSE, PAS UN SILENCE ──────────
+             Les chapitres marquent les CHANGEMENTS de jeu. Un enregistrement
+             qui couvre tout le live et n'en porte aucun atteste donc que la
+             catégorie n'a pas bougé depuis le départ — la frise peut remonter
+             au début sans rien inventer.
+
+             CE N'EST PLUS UNE HYPOTHÈSE. Le premier rapport d'utilisateur
+             portant les compteurs l'a corroborée : sur dix-neuf demandes, six
+             ont rendu des moments (donc le champ existe et fonctionne) et huit
+             ont rendu un VOD sans aucun moment, sans la moindre erreur
+             GraphQL. Ce sont les lives qui n'ont jamais changé de catégorie.
+
+             LA GARDE QUI REND LA CONCLUSION LÉGITIME : l'enregistrement doit
+             couvrir le live. Un VOD démarré dix minutes après le stream ne
+             peut rien dire de ces dix minutes-là, et l'absence de chapitre n'y
+             prouve rien. */
+          const depart = Date.parse(vod.createdAt);
+          const couvre = Number.isFinite(depart) && debutStream
+            && depart - debutStream <= CFG.CATEGORY_TRAIL_VOD_ECART;
+          if (couvre) {
+            bilanChapitres.continus++;
+            chapitres.set(streamId, { ts: Date.now(), segments: null, continu: true });
+            return chapitres.get(streamId);
+          }
+        }
+        chapitres.set(streamId, { ts: Date.now(), segments: null, continu: false });
         return null;
       }
       /* La base de temps : celle de l'ENREGISTREMENT, qui peut démarrer une
@@ -7794,8 +7848,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
       segments.sort((a, b) => a.debut - b.debut);
       const utile = segments.length ? segments : null;
-      chapitres.set(streamId, { ts: Date.now(), segments: utile });
-      if (utile) bilanChapitres.servis++;
+      chapitres.set(streamId, { ts: Date.now(), segments: utile, continu: false });
+      if (utile) { bilanChapitres.servis++; return chapitres.get(streamId); }
       else {
         /* CELUI-CI est bien une anomalie : Twitch a rendu des moments, et
            aucun n'était exploitable. Forme inattendue, champ renommé — c'est
@@ -8149,12 +8203,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!badge) return;
       const body = el.querySelector('.tse-preview__body');
       if (!body) return;
-      let container = el.querySelector('.tse-preview__badges');
-      if (!container) {
-        container = document.createElement('div');
-        container.className = 'tse-preview__badges';
-        body.appendChild(container);
-      }
+      const container = zoneBadges(body);
       const existing = container.querySelector('.tse-preview__badge--squad');
       if (existing) existing.replaceWith(badge); // remplace un éventuel badge squad déjà posé
       else container.appendChild(badge);
@@ -8185,12 +8234,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       const texte = noms.length ? noms.join(' · ') : S.uiCclGeneric;
       const body = el.querySelector('.tse-preview__body');
       if (!body) return;
-      let container = el.querySelector('.tse-preview__badges');
-      if (!container) {
-        container = document.createElement('div');
-        container.className = 'tse-preview__badges';
-        body.appendChild(container);
-      }
+      const container = zoneBadges(body);
       /* Un pictogramme de chaque côté du texte. Ils sont DÉCORATIFS —
          `aria-hidden` — parce qu'un lecteur d'écran annoncerait sinon
          « avertissement » deux fois autour d'une phrase qui porte déjà
@@ -8254,12 +8298,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!badge) return;
       const body = el.querySelector('.tse-preview__body');
       if (!body) return;
-      let container = el.querySelector('.tse-preview__badges');
-      if (!container) {
-        container = document.createElement('div');
-        container.className = 'tse-preview__badges';
-        body.appendChild(container);
-      }
+      const container = zoneBadges(body);
       const existing = container.querySelector('.tse-preview__badge--costream');
       if (existing) { existing.replaceWith(badge); }
       else {
@@ -8374,13 +8413,40 @@ const TSE_GATE_MAX_CLICKS = 5;
       return d;
     };
 
+    /* ── OÙ VONT LES BADGES, ET POURQUOI ÇA S'ÉCRIT UNE SEULE FOIS ────────────
+       Trois endroits créaient cette zone, et tous trois par `appendChild` sur
+       le corps du popup. C'était juste tant que la frise n'existait pas ; elle
+       est ajoutée en dernier, si bien qu'un badge arrivant APRÈS elle — le
+       badge « Contenu classé », qui attend la réponse de TsePreview —
+       atterrissait sous la frise au lieu de rejoindre ses semblables. Un
+       utilisateur l'a vu avant moi.
+
+       La frise reste donc le DERNIER enfant du corps, par construction : on
+       insère avant elle quand elle est là. Trois copies d'une même règle
+       finissent toujours par diverger — celle-ci n'existe plus qu'ici. */
+    const zoneBadges = (body) => {
+      let zone = body.querySelector('.tse-preview__badges');
+      if (zone) return zone;
+      zone = document.createElement('div');
+      zone.className = 'tse-preview__badges';
+      const frise = body.querySelector('.tse-preview__frise');
+      if (frise) body.insertBefore(zone, frise);
+      else body.appendChild(zone);
+      return zone;
+    };
+
     /* Le prélude connu pour cette chaîne, s'il y en a un. Lu par
        l'identifiant de STREAM et non par le login : deux sessions successives
        de la même chaîne n'ont rien à voir, et resservir les chapitres de la
        précédente daterait le live d'hier. */
     const preludeDe = (login) => {
       const id = cache.get(login)?.stream?.id;
-      return (id && chapitres.get(id)?.segments) || null;
+      if (!id) return null;
+      const e = chapitres.get(id);
+      // Une entrée qui ne porte NI segments NI continuité n'apprend rien :
+      // la rendre ferait croire au reste du code qu'on sait quelque chose.
+      if (!e || (!e.segments && !e.continu)) return null;
+      return e;
     };
 
     /* Le bloc entier, ou rien. `friseDe` refuse déjà une frise sans
@@ -8553,10 +8619,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!title) titreEl.style.color = 'rgba(255,255,255,0.5)';
 
       if (badges.length) {
-        const zone = document.createElement('div');
-        zone.className = 'tse-preview__badges';
+        const zone = zoneBadges(el.querySelector('.tse-preview__body'));
         for (const b of badges) zone.appendChild(b);
-        el.querySelector('.tse-preview__body').appendChild(zone);
       }
 
       /* La frise EN DERNIER, sous les badges : les badges disent ce qui se
