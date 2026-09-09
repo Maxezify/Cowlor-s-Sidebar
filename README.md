@@ -2089,6 +2089,53 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## Le classement par tag de langue (v3.77)
+
+Idée venue d'un utilisateur, et elle vise juste. Twitch publie
+`/directory/all/tags/Français` : un classement mondial, trié par spectateurs,
+filtré sur le **tag** de langue. L'extension filtrait jusqu'ici sur
+`broadcasterLanguages`, et les deux ne mesurent pas la même chose :
+
+| | Ce que ça sélectionne |
+| --- | --- |
+| `broadcasterLanguages: [FR]` | la langue **déclarée dans les réglages** de la chaîne |
+| tag `Français` | la langue **posée sur ce stream-là**, ce jour-là |
+
+Un francophone qui fait une soirée en anglais garde `FR` dans ses réglages et
+met le tag `English`. **Le tag suit le contenu, la déclaration suit le compte** —
+et pour un classement, c'est le contenu qui compte. C'est d'ailleurs le tag que
+Twitch emploie pour sa propre page.
+
+**Et c'est une requête, pas trente.** La descente visite les catégories une à
+une en appliquant le filtre de langue à chacune, puis prouve sa complétude par
+un plancher de fenêtre. La voie du tag demande directement le classement
+mondial trié — le tri est fait par le **serveur**, exactement comme pour la
+page. Une page ne peut pas afficher un classement qu'elle n'a pas demandé : il
+n'y a rien dans `/directory/all/tags/Français` qui ne soit dans la réponse
+GraphQL qui la remplit. La complétude y est même **plus forte** : les cent
+premiers d'une liste déjà triée contiennent forcément les trente affichés.
+
+**Pourquoi pas une iframe sur la page, comme pour les abonnements.** Le relevé
+d'abonnements charge `/subscriptions` dans une iframe parce que cette page
+**exige d'être connecté** — GraphQL anonyme ne peut pas voir vos abonnements,
+jamais. Ce n'est pas un choix de simplicité, c'est une contrainte absolue. La
+page des tags, elle, est publique : la contrainte n'existe pas, et passer par
+elle reviendrait à payer le rendu complet d'une page Twitch — React, images,
+aperçus vidéo — pour lire ce qu'un POST rend en JSON.
+
+**Cette requête n'a jamais été exécutée contre le vrai Twitch**, comme celle des
+chapitres avant elle. Le nom de l'argument de filtre est une reconstitution.
+Même dispositif, qui a déjà tranché deux fois : requête **isolée**, échec qui
+retombe **en silence** sur la descente d'aujourd'hui, et compteurs par issue
+dans le rapport (`tags.demandes`, `.servis`, `.vides`, `.refus`, `.reseau`). Un
+refus du schéma est mémorisé pour la session — un nom d'argument ne devient pas
+valide en cours de route.
+
+**Ce qu'elle ne fait pas encore** : servir les langues que `LANG_API` ne connaît
+pas. `wantedLang()` les écarte en amont faute de code d'énumération, alors que
+le tag n'en a pas besoin. C'est un gain à prendre une fois la requête confirmée
+par un rapport.
+
 ## API console
 
 L'objet `tse` reste exposé dans la console DevTools de la page Twitch (onglet
@@ -2291,7 +2338,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 79 scénarios, 728 assertions |
+| `npm test` | le harnais Playwright : 80 scénarios, 737 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

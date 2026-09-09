@@ -1681,6 +1681,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     // "argument 'first' value must be between 1 and 30." Ce n'est donc pas une
     // observation mais une limite déclarée.
     GLOBAL_STREAMS_MAX:      30,
+    // Profondeur demandée au classement par TAG. Plus large que GLOBAL_TOP_N
+    // (30) : on affiche les trente premiers, mais un pool plus profond absorbe
+    // les allers-retours de rang sans faire clignoter le bas du tableau.
+    GLOBAL_TAG_MAX:          100,
     // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
     // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
     // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
@@ -4160,6 +4164,114 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
+    /* ══════════════════════════════════════════════════════════════════════
+       LE CLASSEMENT PAR TAG DE LANGUE
+       ----------------------------------------------------------------------
+       IDÉE VENUE D'UN UTILISATEUR, et elle vise juste. Twitch publie
+       `/directory/all/tags/Français` : un classement mondial, trié par
+       spectateurs, filtré sur le TAG de langue. Or l'extension filtrait
+       jusqu'ici sur `broadcasterLanguages`, et les deux ne mesurent pas la
+       même chose :
+
+         — `broadcasterLanguages` porte la langue DÉCLARÉE dans les réglages
+           de la chaîne. Elle ne bouge pas d'un stream à l'autre ;
+         — le tag porte la langue POSÉE SUR CE STREAM-LÀ, ce jour-là.
+
+       Un francophone qui fait une soirée en anglais garde `FR` dans ses
+       réglages et met le tag `English`. Le tag suit le contenu, la déclaration
+       suit le compte — et pour un classement, c'est le contenu qui compte.
+       C'est d'ailleurs le tag que Twitch emploie pour sa propre page.
+
+       ET C'EST UNE REQUÊTE, PAS TRENTE. La descente actuelle visite les
+       catégories une à une en appliquant le filtre de langue à chacune, puis
+       prouve sa complétude par un plancher de fenêtre. La voie du tag demande
+       directement le classement mondial trié : le tri est fait par le serveur,
+       exactement comme pour la page — une page ne peut pas afficher un
+       classement qu'elle n'a pas demandé.
+
+       JE N'AI PAS PU L'EXÉCUTER contre le vrai Twitch : cette machine n'a pas
+       accès à twitch.tv. Le nom de l'argument de filtre est donc une
+       reconstitution. La même méthode que pour les chapitres de VOD s'applique,
+       et elle a déjà donné raison deux fois : requête ISOLÉE, échec qui retombe
+       EN SILENCE sur la descente d'aujourd'hui, et compteurs par issue dans le
+       rapport. Un refus du schéma est mémorisé pour la session — on n'insiste
+       pas cinquante fois sur une requête que le serveur n'accepte pas.
+
+       CE QU'ELLE NE FAIT PAS ENCORE : servir les langues que `LANG_API` ne
+       connaît pas. `wantedLang()` les écarte en amont parce qu'elles n'ont pas
+       de code d'énumération — alors que le tag, lui, n'en a pas besoin. C'est
+       un gain à prendre plus tard, une fois la requête confirmée par un
+       rapport. Une chose à la fois, et mesurée.
+       ══════════════════════════════════════════════════════════════════════ */
+    const TAG_TOP_QUERY =
+      'query TseTagTop($tag: String!, $n: Int!) {' +
+      '  streams(first: $n, options: { sort: VIEWER_COUNT, freeformTags: [$tag] }) {' +
+      '    edges { node {' +
+      '      id createdAt viewersCount' +
+      '      broadcaster { id login displayName profileImageURL(width: 70) }' +
+      '      game { id name displayName }' +
+      '      freeformTags { name }' +
+      '    } }' +
+      '  }' +
+      '}';
+
+    const bilanTags = { demandes: 0, servis: 0, vides: 0, refus: 0, reseau: 0 };
+    /* Un refus du SCHÉMA est définitif pour la session : le nom d'un argument
+       ne change pas en cours de route. Une coupure réseau, elle, n'apprend
+       rien — on retentera. Les confondre condamnerait la voie du tag sur une
+       simple perte de connexion. */
+    let tagRefuse = false;
+
+    const tagTop = async (langue) => {
+      bilanTags.demandes++;
+      const { out, transport } = await send([{
+        operationName: 'TseTagTop',
+        variables: { tag: langue, n: CFG.GLOBAL_TAG_MAX },
+        query: TAG_TOP_QUERY
+      }]);
+      const edges = out?.[0]?.streams?.edges;
+      if (!Array.isArray(edges)) {
+        if (transport) bilanTags.reseau++;
+        else { bilanTags.refus++; tagRefuse = true; }
+        return null;
+      }
+      const now = Date.now();
+      const frais = new Map();
+      for (const e of edges) {
+        const rec = readStream(e?.node, now);
+        if (!rec) continue;
+        /* L'API vient d'affirmer que ce stream porte ce tag. On le pose quand
+           il manque, pour la même raison que dans scopePass : le filtre
+           d'affichage lit nos tags, et rejetterait sinon une chaîne que la
+           requête vient précisément de sélectionner. */
+        if (!rec.tags.includes(langue)) rec.tags = [...rec.tags, langue];
+        frais.set(rec.login, rec);
+      }
+      if (!frais.size) { bilanTags.vides++; return null; }
+      bilanTags.servis++;
+      return frais;
+    };
+
+    /* Absence dans une réponse de TAG. La requête est UNE, globale et
+       ordonnée : tout ce qui porte le tag y était en lice, donc une absence
+       est réelle et non un défaut d'échantillonnage par catégorie. On garde
+       néanmoins la prudence de `reconcile` — rien ne dit que Twitch
+       n'échantillonne pas ici aussi, et il faut GLOBAL_MISS_CONFIRM absences
+       d'affilée pour retirer une chaîne du classement. */
+    const oublierAbsents = (pool, vus, now) => {
+      const cutoff = now - CFG.GLOBAL_PRUNE_AGE;
+      for (const [login, rec] of pool) {
+        if (vus.has(login)) { rec.misses = 0; continue; }
+        if (rec.ts < cutoff) { pool.delete(login); stats.evicted += 1; continue; }
+        rec.misses = (rec.misses || 0) + 1;
+        stats.misses += 1;
+        if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM) {
+          pool.delete(login);
+          stats.evicted += 1;
+        }
+      }
+    };
+
     const publish = (pool) => {
       ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
@@ -4186,6 +4298,41 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!cats) return { ok: false, complete: false };
       categories   = cats;
       categoriesTs = started;
+
+      /* ── LA VOIE DU TAG, ESSAYÉE EN PREMIER ─────────────────────────────
+         Une requête au lieu d'une descente, et un signal plus juste (cf. le
+         bloc LE CLASSEMENT PAR TAG DE LANGUE). Si elle aboutit, on publie et
+         l'on s'arrête là ; si elle échoue — schéma qui refuse, réseau,
+         réponse vide — on tombe SANS BRUIT sur la descente ci-dessous, celle
+         d'aujourd'hui. L'utilisateur ne peut donc rien perdre.
+
+         La liste des catégories est rafraîchie AVANT, et non après : elle
+         alimente le menu déroulant, qui se périmerait si la voie du tag
+         court-circuitait tout. Une opération, contre les dizaines que la
+         descente économise. */
+      if (wl?.lang && !tagRefuse) {
+        const parTag = await tagTop(wl.lang);
+        if (gen !== walkGen) return { ok: true, complete: false };
+        if (parTag) {
+          const poolTag = (wl.lang === langAvant) ? carryOver() : new Map();
+          const vus = new Set();
+          for (const rec of parTag.values()) { vus.add(rec.login); poolTag.set(rec.login, rec); }
+          oublierAbsents(poolTag, vus, Date.now());
+          publish(poolTag);
+          /* COMPLET, et c'est plus fort qu'avec la descente. Celle-ci prouve
+             sa complétude par un plancher de fenêtre, faute de pouvoir tout
+             visiter ; le tag rend un classement DÉJÀ TRIÉ par le serveur, dont
+             les cent premiers contiennent forcément les trente affichés. */
+          complete = true;
+          windowFloor = 0;
+          // eslint-disable-next-line require-atomic-updates
+          worldLang = wl.lang;
+          lastFullWalk = rankingTs;
+          stats.walks += 1;
+          stats.lastMs = rankingTs - started;
+          return { ok: true, complete: true };
+        }
+      }
 
       // Changer de langue invalide le pool : les chaînes portées ne sont pas
       // celles de la nouvelle. On repart à vide plutôt que de mélanger.
@@ -4666,6 +4813,11 @@ const TSE_GATE_MAX_CLICKS = 5;
                                     : worldLang === state.languageFilter)),
           langApplied: !!(wantedScope() ? scopeLangApplied
                                         : worldLang && worldLang === state.languageFilter),
+          /* CE QUE LA VOIE DU TAG A DONNÉ. Elle n'a jamais pu être exécutée
+             contre le vrai Twitch : ces compteurs sont le seul moyen de savoir
+             si l'argument de filtre est le bon. Même dispositif que pour les
+             chapitres de VOD, qui a tranché deux fois. */
+          tags: { ...bilanTags, refuse: tagRefuse },
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -7775,7 +7927,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       '  user(login: $login) {' +
       '    videos(first: 1, sort: TIME, type: ARCHIVE) {' +
       '      edges { node {' +
-      '        id createdAt' +
+      // `lengthSeconds` est ce qui permet de savoir si l'enregistrement
+      // s'étend jusqu'au départ du live, ou s'il s'est terminé avant.
+      '        id createdAt lengthSeconds' +
       '        moments(momentRequestType: VIDEO_CHAPTER_MARKERS) {' +
       '          edges { node {' +
       '            positionMilliseconds' +
@@ -7855,37 +8009,73 @@ const TSE_GATE_MAX_CLICKS = 5;
          qu'aucun segment ne commence avant lui — une frise dont le premier
          segment précède le live serait absurde à l'affichage. */
       const base = Date.parse(vod.createdAt) || debutStream;
-      const segments = [];
+      const bruts = [];
       for (const arete of aretes) {
         const n = arete?.node;
         const jeu = n?.details?.game?.name;
         if (!jeu || !Number.isFinite(n.positionMilliseconds)) continue;
-        segments.push({
+        bruts.push({
           jeu,
           libelle: n.details.game.displayName?.trim() || jeu,
-          debut: Math.max(debutStream, base + n.positionMilliseconds),
+          debut: base + n.positionMilliseconds,
         });
       }
-      segments.sort((a, b) => a.debut - b.debut);
+      bruts.sort((a, b) => a.debut - b.debut);
+
+      /* ── CE QUI PRÉCÈDE LE LIVE SE REPLIE SUR SON DÉPART ──────────────────
+         Un enregistrement peut commencer AVANT le stream courant : c'est le
+         cas d'une reconnexion, où le VOD continue pendant que `createdAt`
+         repart. Ses moments antérieurs ne regardent pas ce live — sauf le
+         DERNIER d'entre eux, qui est la catégorie sur laquelle le live a
+         commencé. La première rédaction les écrasait TOUS sur `debutStream`
+         par un `Math.max`, ce qui empilait des segments de durée nulle au
+         même instant. */
+      const avant = bruts.filter(s => s.debut < debutStream);
+      const apres = bruts.filter(s => s.debut >= debutStream);
+      const segments = avant.length
+        ? [{ ...avant[avant.length - 1], debut: debutStream }, ...apres]
+        : apres;
       return { segments: segments.length ? segments : null, aretes: aretes.length };
     };
 
-    /* L'enregistrement couvre-t-il le live ? C'est la question qui autorise —
-       ou non — à conclure de l'absence de chapitre. Un VOD démarré dix minutes
-       après le stream ne peut rien dire de ces dix minutes-là. */
+    /* L'enregistrement couvre-t-il le DÉBUT du live ? C'est la question qui
+       autorise — ou non — à conclure de l'absence de chapitre. Un VOD démarré
+       dix minutes après le stream ne peut rien dire de ces dix minutes-là. Le
+       test est UNILATÉRAL, et c'est juste : un enregistrement commencé AVANT
+       couvre le live d'autant mieux. Il n'est employé que sur `archiveVideo`,
+       qui est le VOD du live par construction. */
     const vodCouvre = (vod, debutStream) => {
       const depart = Date.parse(vod?.createdAt);
-      /* BORNÉ DES DEUX CÔTÉS, et la première rédaction ne l'était que d'un.
-         Elle vérifiait `depart - debutStream <= ÉCART`, ce qui est vrai pour un
-         enregistrement commencé après le live — et vrai AUSSI pour celui
-         d'hier, dont l'écart vaut moins trente heures. Sans conséquence tant
-         que le VOD venait d'`archiveVideo`, qui est celui du live par
-         construction ; faux dès que le repli propose la dernière archive
-         connue, qui peut être n'importe laquelle. Un enregistrement ne
-         commence pas non plus avant son stream : la valeur absolue est la
-         seule forme juste. */
       return Number.isFinite(depart) && !!debutStream
-        && Math.abs(depart - debutStream) <= CFG.CATEGORY_TRAIL_VOD_ECART;
+        && depart - debutStream <= CFG.CATEGORY_TRAIL_VOD_ECART;
+    };
+
+    /* ── EST-CE L'ENREGISTREMENT DE CE LIVE ? ────────────────────────────────
+       Question différente, et c'est celle du repli : la liste des archives rend
+       la plus récente, qui peut être celle d'avant-hier. La première rédaction
+       la tranchait par une valeur absolue — |écart| ≤ 2 min — et un rapport a
+       montré ce que cela coûtait : DIX candidats rejetés, tous « trop tôt »,
+       avec des écarts allant de −7 171 minutes (cinq jours : le VOD d'un autre
+       live, rejet juste) à −39 MINUTES. Ce dernier est le VOD de ce live-ci sur
+       un stream qui a RECONNECTÉ — `stream.createdAt` repart à la reconnexion,
+       l'enregistrement non — et le jeter était une perte sèche.
+
+       Le critère juste n'est pas un seuil, c'est un RECOUVREMENT : l'archive
+       doit commencer avant (ou juste après) le live ET s'étendre au moins
+       jusqu'à son départ. Cinq jours plus tôt et quatre heures de long, elle
+       s'est terminée bien avant — écartée sans qu'aucun nombre arbitraire n'ait
+       à être choisi. Trente-neuf minutes plus tôt et toujours en cours, elle
+       recouvre — retenue.
+
+       Sans durée exploitable, on refuse : c'est le comportement d'aujourd'hui,
+       donc rien ne se dégrade si le champ venait à manquer. */
+    const vodDuLive = (vod, debutStream) => {
+      const depart = Date.parse(vod?.createdAt);
+      if (!Number.isFinite(depart) || !debutStream) return false;
+      if (depart - debutStream > CFG.CATEGORY_TRAIL_VOD_ECART) return false;
+      const duree = Number(vod.lengthSeconds);
+      if (!Number.isFinite(duree) || duree <= 0) return false;
+      return depart + duree * 1000 >= debutStream;
     };
 
     const retenir = (streamId, segments, continu) => {
@@ -7943,7 +8133,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           /* Il faut que ce soit LE VOD DE CE LIVE, et non celui d'hier. Le
              départ de l'enregistrement doit tomber sur celui du stream. */
           if (!candidat) bilanChapitres.replisVides++;
-          else if (!vodCouvre(candidat, debutStream)) {
+          else if (!vodDuLive(candidat, debutStream)) {
             bilanChapitres.replisHorsSujet++;
             /* L'écart signé, en minutes, et ses deux extrêmes. Deux entiers
                qui disent ce qu'aucun compteur d'échecs ne dira : de combien on

@@ -1971,6 +1971,52 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## The language-tag ranking (v3.77)
+
+An idea from a user, and it aims true. Twitch publishes
+`/directory/all/tags/Français`: a worldwide ranking, sorted by viewers, filtered
+on the language **tag**. The extension filtered on `broadcasterLanguages` until
+now, and the two do not measure the same thing:
+
+| | What it selects |
+| --- | --- |
+| `broadcasterLanguages: [FR]` | the language **declared in the channel's settings** |
+| tag `Français` | the language **put on that stream**, that day |
+
+A French speaker doing an evening in English keeps `FR` in their settings and
+sets the `English` tag. **The tag follows the content, the declaration follows
+the account** — and for a ranking, content is what counts. It is also the tag
+Twitch uses for its own page.
+
+**And it is one request, not thirty.** The descent visits categories one by one
+applying the language filter to each, then proves completeness with a window
+floor. The tag route asks directly for the sorted worldwide ranking — the sort
+is done by the **server**, exactly as for the page. A page cannot display a
+ranking it did not request: there is nothing in
+`/directory/all/tags/Français` that is not in the GraphQL response filling it.
+Completeness is even **stronger** there: the first hundred of an already sorted
+list necessarily contain the thirty displayed.
+
+**Why not an iframe on the page, as for subscriptions.** The subscriptions sweep
+loads `/subscriptions` in an iframe because that page **requires being signed
+in** — anonymous GraphQL can never see your subscriptions. That is not a
+simplicity choice, it is an absolute constraint. The tags page is public: the
+constraint does not exist, and going through it would mean paying for a full
+Twitch page render — React, images, video previews — to read what a POST returns
+as JSON.
+
+**This query has never been run against the real Twitch**, like the chapters one
+before it. The filter argument's name is a reconstruction. Same apparatus, which
+has already settled the question twice: **isolated** query, failure falling back
+**silently** to today's descent, and per-outcome counters in the report
+(`tags.demandes`, `.servis`, `.vides`, `.refus`, `.reseau`). A schema refusal is
+remembered for the session — an argument name does not become valid mid-run.
+
+**What it does not do yet**: serve the languages `LANG_API` does not know.
+`wantedLang()` rules them out upstream for lack of an enumeration code, whereas
+the tag needs none. That is a gain to take once the query is confirmed by a
+report.
+
 ## Console API
 
 The `tse` object is still exposed in the Twitch page's DevTools console
@@ -2169,7 +2215,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 79 scenarios, 728 assertions |
+| `npm test` | the Playwright harness: 80 scenarios, 737 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
