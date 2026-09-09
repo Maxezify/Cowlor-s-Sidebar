@@ -2090,6 +2090,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
   };
 
+  const friseACombler = (login) => {
+    const f = frises.get(login);
+    return !!f && !!f.debutStream
+           && f.vuDepuis - f.debutStream > CFG.CATEGORY_TRAIL_TOLERANCE;
+  };
+
   const friseDe = (login, prelude = null) => {
     const f = frises.get(login);
     if (!f || !f.segments.length) return null;
@@ -2119,7 +2125,12 @@ const TSE_GATE_MAX_CLICKS = 5;
                encours: i + 1 === bruts.length };
     });
 
-    const brut = (prelude && prelude.length) || !f.debutStream
+    const depuisLeDebut = !!f.debutStream
+      && f.vuDepuis - f.debutStream <= CFG.CATEGORY_TRAIL_TOLERANCE;
+
+    if (bruts.length < 2 && !(prelude && prelude.length) && !depuisLeDebut) return null;
+
+    const brut = (prelude && prelude.length) || depuisLeDebut || !f.debutStream
       ? 0 : f.vuDepuis - f.debutStream;
     const inconnuMs = brut > CFG.CATEGORY_TRAIL_TOLERANCE ? brut : 0;
     return {
@@ -4134,6 +4145,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
           appels: reseau.appels,
           echecs: reseau.echecs,
+
+          chapitres: preview.bilanChapitres(),
           dernierSuccesIlYaMs: reseau.dernierSucces
             ? maintenant - reseau.dernierSucces : null,
           dernierEchecIlYaMs: reseau.dernierEchec
@@ -4703,20 +4716,32 @@ const TSE_GATE_MAX_CLICKS = 5;
     const chapitres = new Map();
     const CHAPITRES_TTL = 10 * 60_000;
 
+    const bilanChapitres = { demandes: 0, servis: 0, sansMoment: 0,
+                             sansVod: 0, sansStream: 0, reseau: 0 };
+
     const fetchChapitres = async (login, streamId, debutStream) => {
       const vu = chapitres.get(streamId);
       if (vu && Date.now() - vu.ts < CHAPITRES_TTL) return vu.segments;
 
+      bilanChapitres.demandes++;
       const res = await post([{
         operationName: 'TseVodChapters',
         variables: { login },
         query: CHAPITRES_QUERY
       }]);
-      if (isResultsUnusable(res)) return null;
+      if (isResultsUnusable(res)) {
+        bilanChapitres.reseau++;
+        return null;
+      }
 
-      const vod = res?.[0]?.data?.user?.stream?.archiveVideo;
+      const flux = res?.[0]?.data?.user?.stream;
+      const vod = flux?.archiveVideo;
       const aretes = vod?.moments?.edges;
       if (!Array.isArray(aretes) || !aretes.length) {
+
+        if (!flux) bilanChapitres.sansStream++;
+        else if (!vod) bilanChapitres.sansVod++;
+        else bilanChapitres.sansMoment++;
         chapitres.set(streamId, { ts: Date.now(), segments: null });
         return null;
       }
@@ -4736,8 +4761,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       segments.sort((a, b) => a.debut - b.debut);
       const utile = segments.length ? segments : null;
       chapitres.set(streamId, { ts: Date.now(), segments: utile });
-      if (!utile) {
-        erreurs.noter('chapitres', `aucun moment exploitable pour ${aretes.length} arête(s)`);
+      if (utile) bilanChapitres.servis++;
+      else {
+
+        bilanChapitres.sansMoment++;
+        erreurs.noter('chapitres', `aucun moment exploitable sur ${aretes.length} arête(s)`);
       }
       return utile;
     };
@@ -5418,8 +5446,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       requestLiveWith(getChannelId(login));
 
       const flux = cache.get(login)?.stream;
-      const dejaVue = friseDe(login, preludeDe(login));
-      if (flux?.id && dejaVue && dejaVue.inconnuMs > 0) {
+      if (flux?.id && !preludeDe(login) && friseACombler(login)) {
         fetchChapitres(login, flux.id, Date.parse(flux.createdAt) || 0)
           .then(() => majFrise(login))
           .catch((e) => erreurs.noter('chapitres', (e && e.message) || e));
@@ -5529,7 +5556,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       prune: () => pruneCache(metaCache, META_TTL, CFG.META_CACHE_MAX),
 
-      journal: () => journalApercu.slice()
+      journal: () => journalApercu.slice(),
+
+      bilanChapitres: () => ({ ...bilanChapitres })
     };
   })();
 
