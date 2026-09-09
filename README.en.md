@@ -1971,6 +1971,87 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## `freeformTags` on `games`: the word that does not exist (v3.81)
+
+3.80 asked for a language's categories with
+`games(options: { sort: VIEWER_COUNT, freeformTags: [language] })`, by analogy
+with `streams` where that filter works. Twitch answered, thirty-one times:
+
+```
+Argument "options" has invalid value {sort: VIEWER_COUNT, freeformTags: [$tag]}.
+In field "freeformTags": Unknown field.
+```
+
+**And that error does not say the same thing as the `first` cap did.** There, a
+*recognised* argument's value was out of range — so the name was right. Here the
+error is about the **name**: `games`'s input type has no such field. Two
+connections of the same schema do not share their options, and the analogy was a
+guess, not a deduction. The fallback did its job — no visible error, the globe's
+figures preserved — but the feature never ran, which is exactly what a user
+reported: *"the figures stay the same between French and the globe"*.
+
+**What changes is not only the name.** Above all, the cost of being wrong:
+
+| | 3.80 | 3.81 |
+| --- | --- | --- |
+| cost of a wrong name | **31 operations** | **1** |
+| candidates testable per session | 1 | as many as there are |
+| the report says which name was tried | no | `langues.argument` |
+
+A **probe** goes out first on a single language — English, because it is bound
+to have categories, which makes an *empty* answer informative rather than
+ambiguous. It alone decides whether the other thirty are worth it. A refuted
+candidate advances the list by one; once the list is exhausted, the route closes
+for the session.
+
+`freeformTags` is **removed** from the candidates: it is refuted, and retrying it
+would burn a probe for nothing.
+
+## The card with no category (v3.81)
+
+Not every channel announces a category. The row then keeps the height its
+right-hand column gives it — viewers above, uptime below — while the left has
+only one line, pinned to the top. The nickname floats above a void.
+
+The marker is set **where the knowledge is**: on the `TseChannels` response,
+which is authoritative, and not on a DOM read — Twitch may not have written the
+category yet, and centring on that reading would make the card flicker at every
+poll. Two CSS declarations, and both are needed: `align-self: stretch` gives the
+metadata its row's height (without it there would be nothing to centre), and the
+centred flex column places the line in it. Neither depends on a hashed Twitch
+class, and were the row to stop being a flexbox they would go inert rather than
+wrong.
+
+## "No live channel matches this filter" (v3.81)
+
+A category crossed with a language may have no live stream at all. Without a
+word, an empty sidebar under menus that look like they work reads as a fault,
+and you replay your filter wondering what is broken.
+
+**The trap is the timing.** The ranking is empty for the fraction of a second
+following every filter change, while the matching pass arrives: a message keyed
+on "the list is empty" would flash at every click and then contradict itself. So
+it only appears on a **resolved** selection — the ranking being carried is the
+one being asked for.
+
+**And a failure is not a result.** "No channel matches" and "I could not load
+anything" produce the same empty bar, and the first sentence would be a lie
+about the second. So a walk must also have **completed** at least once —
+otherwise a network outage would announce itself as a result. The bench holds
+both: removing that guard makes the message appear on a broken network, and the
+assertion says so in those words.
+
+## The counter that counted at the wrong moment (v3.81)
+
+`affichees` and `muettes`, introduced in 3.80, counted when the preview
+**opened**. But VOD chapters arrive later: on first paint the trail often keeps
+quiet, then appears. A report gave `muettes 102` out of 129 hovers when the
+chapter outcomes announced **64** as displayable — thirty-seven trails counted
+mute that showed a fraction of a second later.
+
+The count now follows **presence**, corrected at the moment it changes. It is
+therefore right at any instant, with no need to wait for the preview to close.
+
 ## Thirty-one languages, and the Thai that did not exist (v3.80)
 
 The language filter offered twenty-six. Twitch publishes **thirty-one**, and the
@@ -2377,7 +2458,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 83 scenarios, 766 assertions |
+| `npm test` | the Playwright harness: 86 scenarios, 782 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -2397,12 +2478,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 695 KB | 307 KB | 2,928 → **2** |
+| `content.js` | 706 KB | 310 KB | 2,944 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 35 KB | 20 KB | 39 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **874 KB** | **432 KB** | **−51 %** |
+| **all five** | **885 KB** | **435 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

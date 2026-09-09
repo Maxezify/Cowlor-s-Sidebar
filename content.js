@@ -612,6 +612,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Toutes les catégories',
       uiFilterLangAriaLabel:     'Filtrer les chaînes suivies par langue',
       uiFilterAllLanguages:      'Toutes les langues',
+      uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
       uiPreviewLoadingTitle:     'Chargement du titre…',
@@ -689,6 +690,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'All categories',
       uiFilterLangAriaLabel:     'Filter followed channels by language',
       uiFilterAllLanguages:      'All languages',
+      uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
       uiPreviewLoadingTitle:     'Loading title…',
@@ -761,6 +763,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Alle Kategorien',
       uiFilterLangAriaLabel:     'Gefolgte Kanäle nach Sprache filtern',
       uiFilterAllLanguages:      'Alle Sprachen',
+      uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
       uiPreviewLoadingTitle:     'Titel wird geladen…',
@@ -833,6 +836,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas las categorías',
       uiFilterLangAriaLabel:     'Filtrar los canales que sigues por idioma',
       uiFilterAllLanguages:      'Todos los idiomas',
+      uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
       uiPreviewLoadingTitle:     'Cargando título…',
@@ -905,6 +909,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas as categorias',
       uiFilterLangAriaLabel:     'Filtrar os canais seguidos por idioma',
       uiFilterAllLanguages:      'Todos os idiomas',
+      uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
       uiPreviewLoadingTitle:     'Carregando título…',
@@ -977,6 +982,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Tutte le categorie',
       uiFilterLangAriaLabel:     'Filtra i canali seguiti per lingua',
       uiFilterAllLanguages:      'Tutte le lingue',
+      uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
       uiPreviewLoadingTitle:     'Caricamento del titolo…',
@@ -1049,6 +1055,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Wszystkie kategorie',
       uiFilterLangAriaLabel:     'Filtruj obserwowane kanały według języka',
       uiFilterAllLanguages:      'Wszystkie języki',
+      uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
       uiPreviewLoadingTitle:     'Wczytywanie tytułu…',
@@ -1121,6 +1128,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Все категории',
       uiFilterLangAriaLabel:     'Фильтровать отслеживаемые каналы по языку',
       uiFilterAllLanguages:      'Все языки',
+      uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
       uiPreviewLoadingTitle:     'Загрузка названия…',
@@ -1193,6 +1201,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'すべてのカテゴリー',
       uiFilterLangAriaLabel:     'フォロー中のチャンネルを言語で絞り込む',
       uiFilterAllLanguages:      'すべての言語',
+      uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
       uiPreviewLoadingTitle:     'タイトルを読み込み中…',
@@ -1265,6 +1274,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     '全部分类',
       uiFilterLangAriaLabel:     '按语言筛选关注的频道',
       uiFilterAllLanguages:      '全部语言',
+      uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
       uiPreviewLoadingTitle:     '正在加载标题…',
@@ -2328,6 +2338,22 @@ const TSE_GATE_MAX_CLICKS = 5;
       display: none !important;
     }
 
+    /* Le pseudo d'une carte SANS catégorie, recentré sur la hauteur de la
+       rangée. Deux déclarations, et il faut les deux :
+         — align-self: stretch fait occuper à la metadata toute la hauteur
+           que lui offre sa rangée, même si Twitch alignait ses colonnes en
+           haut. Sans elle, il n'y aurait rien à centrer : la boîte ferait la
+           hauteur de sa seule ligne ;
+         — la colonne flex centrée place cette ligne au milieu.
+       Aucune ne dépend d'une classe hashée de Twitch, et si la rangée cessait
+       d'être une flexbox les deux deviendraient inertes plutôt que fausses. */
+    .side-nav-card[data-tse-nocat="true"] [data-a-target="side-nav-card-metadata"] {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
     .side-nav-card[data-tse-offline="true"] { display: none !important; }
     .side-nav-section.tse-section-hidden { display: none !important; }
 
@@ -2996,6 +3022,16 @@ const TSE_GATE_MAX_CLICKS = 5;
       font-size: 11px; line-height: 1.3; color: #dedee3;
       background: rgba(255, 122, 138, 0.14);
       border-left: 2px solid #ff7a8a; border-radius: 2px;
+    }
+
+    /* Le filtre ne rend personne, et on le DIT. Un classement vide sous des
+       menus qui ont l'air de marcher se lit comme une panne ; une phrase le
+       lit comme un résultat. Ton neutre — ce n'est pas une anomalie — là où
+       le bandeau au-dessus est un avertissement. */
+    .tse-global-empty {
+      margin-top: 4px; padding: 6px;
+      font-size: 11px; line-height: 1.3; color: #adadb8; text-align: center;
+      background: rgba(255, 255, 255, 0.05); border-radius: 2px;
     }
 
     /* === Sidebar rétrécie (collapsed) : masque les contrôles custom ===
@@ -4419,12 +4455,38 @@ const TSE_GATE_MAX_CLICKS = 5;
        laissant à chacune son audience mondiale. On afficherait alors
        « Català : 2,1 M ». C'est `porteeLang` qui tranche — voir plus bas ; en
        attendant, rien n'est affiché. */
-    const LANG_CATS_QUERY =
+    /* ── LE NOM DE L'ARGUMENT, APPRIS À L'USAGE ────────────────────────────
+       La 3.80 avait écrit `freeformTags`, par analogie avec `streams` où il
+       fonctionne. Twitch a répondu :
+
+         Argument "options" has invalid value {sort: VIEWER_COUNT,
+         freeformTags: [$tag]}. In field "freeformTags": Unknown field.
+
+       Et cette erreur ne dit pas la même chose que celle du plafond `first`.
+       Là, la valeur d'un argument reconnu était hors bornes — donc le nom
+       était bon. Ici l'erreur porte sur le NOM : le type d'entrée de `games`
+       n'a pas ce champ. Deux connexions du même schéma ne partagent pas leurs
+       options, et l'analogie était une supposition, pas un raisonnement.
+
+       D'où une LISTE de candidats plutôt qu'un nom en dur, et surtout une
+       sonde : on essaie sur UNE langue avant de partir sur les trente et une.
+       Un nom faux coûte désormais une opération, pas trente et une, et le
+       rapport dit lequel a été essayé. `freeformTags` est retiré de la liste —
+       il est réfuté, le réessayer serait brûler une sonde pour rien. */
+    const LANG_CATS_ARGS = ['tags'];
+    let langCatsArg = 0;
+
+    const langCatsQuery = (arg) =>
       'query TseLangCats($tag: String!, $n: Int!) {' +
-      '  games(first: $n, options: { sort: VIEWER_COUNT, freeformTags: [$tag] }) {' +
+      '  games(first: $n, options: { sort: VIEWER_COUNT, ' + arg + ': [$tag] }) {' +
       '    edges { node { id name displayName viewersCount } }' +
       '  }' +
       '}';
+
+    /* La langue de la sonde. L'anglais parce qu'il a forcément des catégories :
+       une réponse VIDE devient alors un renseignement — le champ existe, mais
+       il n'attend pas un nom de tag — au lieu d'être ambiguë. */
+    const LANG_CATS_SONDE = 'English';
 
     const bilanLangCats = { demandes: 0, servis: 0, vides: 0, refus: 0, reseau: 0 };
     /* null tant qu'on n'a pas de quoi trancher, puis true/false — et jamais
@@ -4441,15 +4503,41 @@ const TSE_GATE_MAX_CLICKS = 5;
     // le lit comme « on ne sait pas ».
     let langAudienceMap = null;
 
+    const opLangCats = (l) => ({
+      operationName: 'TseLangCats',
+      variables: { tag: l, n: CFG.GLOBAL_LANG_CATS_MAX },
+      query: langCatsQuery(LANG_CATS_ARGS[langCatsArg])
+    });
+
+    /* ── LA SONDE : UNE OPÉRATION POUR SAVOIR SI LES TRENTE VALENT LA PEINE ──
+       Tant qu'aucune réponse n'a été comprise, on ne demande qu'UNE langue.
+       Un nom d'argument faux coûte alors une opération, et le candidat suivant
+       est essayé au prochain tour. C'est la leçon de la 3.80, qui a dépensé
+       trente et une opérations pour apprendre un mot. */
+    const sonderLangCats = async () => {
+      bilanLangCats.demandes += 1;
+      const { out, transport } = await send([opLangCats(LANG_CATS_SONDE)]);
+      if (Array.isArray(out?.[0]?.games?.edges)) return true;
+      if (transport) { bilanLangCats.reseau++; return false; }
+      bilanLangCats.refus++;
+      /* Candidat réfuté PAR LE SERVEUR. On passe au suivant ; s'il n'y en a
+         plus, la voie est close pour la session — insister n'apprendrait
+         rien de neuf, un nom de champ ne devient pas valide en cours de route. */
+      langCatsArg++;
+      if (langCatsArg >= LANG_CATS_ARGS.length) langCatsRefuse = true;
+      return false;
+    };
+
     const majLangCats = async (langues) => {
       if (langCatsEnCours || langCatsRefuse) return;
       langCatsEnCours = true;
       try {
-        const ops = langues.map(l => ({
-          operationName: 'TseLangCats',
-          variables: { tag: l, n: CFG.GLOBAL_LANG_CATS_MAX },
-          query: LANG_CATS_QUERY
-        }));
+        /* La sonde ne s'exécute que tant qu'aucune réponse n'a été comprise.
+           Elle échoue en silence : `langCatsTs` reste à zéro, donc le TTL
+           laissera repartir une sonde — une seule opération — à la marche
+           suivante, avec le candidat suivant s'il y en a un. */
+        if (!langCatsTs && !(await sonderLangCats())) return;
+        const ops = langues.map(opLangCats);
         bilanLangCats.demandes += ops.length;
         const { out, transport } = await send(ops);
         /* `repondus` N'EST PAS `servis`, et les confondre coûterait la
@@ -4508,6 +4596,9 @@ const TSE_GATE_MAX_CLICKS = 5;
            trente et une opérations à CHAQUE marche, indéfiniment. Une réponse
            comprise, fût-elle vide, est une réponse : elle vaut son TTL. Une
            coupure réseau, elle, n'apprend rien et ne retarde donc rien. */
+        // Écriture après `await`, protégée par `langCatsEnCours` comme les
+        // deux autres : un seul passage peut être ici à la fois.
+        // eslint-disable-next-line require-atomic-updates
         if (!transport) langCatsTs = Date.now();
         if (!frais.size) return;
 
@@ -4547,7 +4638,15 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
+    /* Une marche mondiale a-t-elle abouti, ne serait-ce qu'une fois ? Ce
+       n'est pas la même question que « le classement est-il vide » : avant
+       toute réponse, et après une marche qui a échoué, il est vide LUI AUSSI.
+       Voir `resolu()` : c'est ce drapeau qui empêche d'annoncer « aucune
+       chaîne » quand la vérité est « on n'a rien pu charger ». */
+    let publieUneFois = false;
+
     const publish = (pool) => {
+      publieUneFois = true;
       ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
       rankingTs    = Date.now();
@@ -5088,6 +5187,31 @@ const TSE_GATE_MAX_CLICKS = 5;
         }
         return categories.slice(0, n);
       },
+      /* ── « RIEN » ET « PAS ENCORE » NE SE RESSEMBLENT QUE DE LOIN ────────
+         `top()` rend une liste vide dans deux situations que rien ne
+         distinguait de l'extérieur : le classement porté n'est pas celui
+         qu'on demande — on converge encore, et le voile couvre — ou bien il
+         l'est et la sélection ne donne réellement personne. Annoncer « aucune
+         chaîne » dans le premier cas serait un mensonge d'une demi-seconde à
+         chaque changement de filtre.
+
+         `base()` connaît la différence : c'est elle qui rend la liste vide sur
+         une portée qui ne correspond pas. On expose donc le test, plutôt que
+         de le deviner depuis l'interface à partir d'un âge ou d'un délai. */
+      resolu() {
+        const want = wantedScope();
+        /* Portée catégorie : `scope` n'est posé qu'au terme d'une passe
+           RÉUSSIE, si bien que l'égalité des clés suffit à prouver qu'on a
+           demandé et obtenu. */
+        if (want) return want.key === scope;
+        /* Monde : `worldLang` vaut null avant toute marche COMME après une
+           marche qui a échoué, et `wantedLang()` vaut null quand aucune langue
+           n'est choisie. Les deux se valent donc trivialement, et sans le
+           drapeau ci-dessous une panne de réseau se serait annoncée « aucune
+           chaîne en direct avec ce filtre » — un résultat, là où il fallait
+           dire une panne. */
+        return publieUneFois && (wantedLang()?.lang || null) === worldLang;
+      },
       // Les langues à PROPOSER. Toutes celles que Twitch connaît dès qu'on
       // sait ce qu'elles pèsent ; à défaut, celles que le pool a croisées —
       // proposer une langue sans savoir si elle a la moindre chaîne rendrait
@@ -5103,6 +5227,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       bilanLangues() {
         return { ...bilanLangCats, refuse: langCatsRefuse, portee: porteeLang,
                  facteur: porteeFacteur, connues: langCats.size,
+                 argument: LANG_CATS_ARGS[langCatsArg] || null,
                  ageMs: langCatsTs ? Date.now() - langCatsTs : null };
       },
       // Compteur frais venu de TseChannels. viewers === null → la chaîne
@@ -5162,9 +5287,15 @@ const TSE_GATE_MAX_CLICKS = 5;
              le sont pas. Sans lui, `portee: false` serait un verdict sans
              motif, et le prochain rapport ne dirait pas s'il faut corriger le
              seuil ou abandonner la requête. */
+          /* `argument` DIT CE QUI A ÉTÉ ESSAYÉ, et c'est le renseignement qui
+             manquait au rapport précédent : on y lisait « refus 31 » sans
+             savoir sur quel nom. Le message d'erreur le portait, mais rien ne
+             garantit qu'un rapport contienne le journal d'erreurs — il est
+             borné, et une session bavarde l'aurait chassé. */
           langues: { ...bilanLangCats, refuse: langCatsRefuse,
                      portee: porteeLang, facteur: porteeFacteur,
-                     connues: langCats.size },
+                     connues: langCats.size,
+                     argument: LANG_CATS_ARGS[langCatsArg] || null },
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -9195,9 +9326,18 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!corps) return;
       const ancienne = corps.querySelector('.tse-preview__frise');
       const neuve = friseNoeud(login, preludeDe(login));
+      /* LE COMPTEUR SUIT LA PRÉSENCE, PAS LE PREMIER RENDU — et c'est une
+         correction de la 3.80, qui comptait au mauvais moment. Les chapitres
+         du VOD arrivent APRÈS l'ouverture de l'aperçu : au premier rendu la
+         frise se tait souvent, puis paraît ici. Compter à l'ouverture donnait
+         donc `muettes 102` sur 129 survols quand les issues de chapitres en
+         annonçaient 64 affichables — trente-sept frises comptées muettes qui
+         s'affichaient une fraction de seconde plus tard.
+         On corrige le compte au moment où la présence CHANGE, ce qui le rend
+         juste à tout instant sans qu'il faille attendre la fermeture. */
       if (ancienne && neuve) ancienne.replaceWith(neuve);
-      else if (ancienne) ancienne.remove();
-      else if (neuve) corps.appendChild(neuve);
+      else if (ancienne) { ancienne.remove(); bilanFrises.affichees--; bilanFrises.muettes++; }
+      else if (neuve) { corps.appendChild(neuve); bilanFrises.muettes--; bilanFrises.affichees++; }
       // La hauteur a changé : le popup peut sortir du viewport.
       if (currentCard) positionPopup(currentCard);
     };
@@ -9870,6 +10010,19 @@ const TSE_GATE_MAX_CLICKS = 5;
         card.dataset.tseCategoryLabel = data.gameLabel || data.game;
         renderCategory(card, data.gameLabel || data.game, card.dataset.tseLogin);
       }
+      /* ── LA CARTE SANS CATÉGORIE, ET SON PSEUDO EN L'AIR ──────────────────
+         Toutes les chaînes n'en déclarent pas. La carte garde alors la hauteur
+         que lui donne sa colonne de droite — spectateurs au-dessus, durée en
+         dessous — pendant que la gauche n'a plus qu'une ligne, calée en haut.
+         Le pseudo flotte au-dessus d'un vide, et la rangée se lit de travers.
+
+         LE MARQUEUR EST POSÉ ICI, ET NULLE PART AILLEURS. C'est le seul
+         endroit qui SAIT : la réponse de TseChannels fait autorité, là où le
+         DOM de Twitch peut n'avoir pas encore écrit la catégorie. Le poser sur
+         la lecture du DOM ferait clignoter la carte à chaque scan — centrée
+         tant que la catégorie n'est pas arrivée, puis remontée. */
+      if (data.game) delete card.dataset.tseNocat;
+      else card.dataset.tseNocat = 'true';
     } else {
       // Confirmation : il faut OFFLINE_CONFIRM réponses "stream=null"
       // consécutives pour basculer en "Terminé". Évite les faux positifs
@@ -11980,6 +12133,35 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (el.textContent !== S.uiGlobalPartial) setText(el, S.uiGlobalPartial);
   }
 
+  const GLOBAL_EMPTY_ID = 'tse-global-empty';
+  /* ── LE FILTRE QUI NE REND PERSONNE ────────────────────────────────────────
+     Une catégorie croisée avec une langue peut n'avoir aucun direct — c'est
+     un résultat, pas une panne. Sans un mot, la barre latérale vide sous des
+     menus qui ont l'air de fonctionner se lit comme un bug, et l'utilisateur
+     rejoue son filtre en se demandant ce qui ne marche pas.
+
+     LA CONDITION EST `resolu()`, ET C'EST TOUT L'ENJEU. Le classement est vide
+     pendant la demi-seconde qui suit chaque changement de filtre, le temps que
+     la passe correspondante arrive. Annoncer « aucune chaîne » à cet
+     instant-là serait faux à chaque clic — le message clignoterait avant de
+     se démentir. On n'annonce donc que sur un classement dont la portée
+     PORTÉE est bien celle qui est demandée. */
+  function ensureGlobalEmpty() {
+    const bar = document.getElementById(FILTER_ID);
+    let el = document.getElementById(GLOBAL_EMPTY_ID);
+    const show = state.globalMode
+      && globalChannels.resolu()
+      && globalChannels.top(1).length === 0;
+    if (!show || !bar) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement('div');
+      el.id = GLOBAL_EMPTY_ID;
+      el.className = 'tse-global-empty';
+      bar.appendChild(el);
+    }
+    if (el.textContent !== S.uiGlobalEmpty) setText(el, S.uiGlobalEmpty);
+  }
+
   /**
    * Réconcilie les cartes du mode global avec le classement courant.
    * Idempotent, comme syncAheadCards : ne crée que ce qui manque, ne retire
@@ -12445,6 +12627,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     ensureModeRow();
     tagStoriesRow();
     ensureGlobalBanner();
+    ensureGlobalEmpty();
     hideNativeFollowedHeader();
     renameRootTitle();
     recomputeFilters();

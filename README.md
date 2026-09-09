@@ -2092,6 +2092,90 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## `freeformTags` sur `games` : le mot qui n'existe pas (v3.81)
+
+La 3.80 demandait les catégories d'une langue avec
+`games(options: { sort: VIEWER_COUNT, freeformTags: [langue] })`, par analogie
+avec `streams` où ce filtre fonctionne. Twitch a répondu, trente et une fois :
+
+```
+Argument "options" has invalid value {sort: VIEWER_COUNT, freeformTags: [$tag]}.
+In field "freeformTags": Unknown field.
+```
+
+**Et cette erreur ne dit pas la même chose que celle du plafond `first`.** Là,
+la valeur d'un argument *reconnu* était hors bornes — donc le nom était bon.
+Ici l'erreur porte sur le **nom** : le type d'entrée de `games` n'a pas ce
+champ. Deux connexions du même schéma ne partagent pas leurs options, et
+l'analogie était une supposition, pas un raisonnement. Le repli a fait son
+travail — aucune erreur visible, les chiffres du globe conservés — mais la
+fonctionnalité n'a jamais servi, et c'est exactement ce qu'un utilisateur a
+signalé : *« les chiffres restent les mêmes entre le français et le globe »*.
+
+**Ce qui change n'est pas seulement le nom.** Le coût d'une erreur, surtout :
+
+| | 3.80 | 3.81 |
+| --- | --- | --- |
+| coût d'un nom faux | **31 opérations** | **1** |
+| candidats essayables par session | 1 | autant qu'il y en a |
+| le rapport dit quel nom a été essayé | non | `langues.argument` |
+
+Une **sonde** part d'abord sur une seule langue — l'anglais, parce qu'il a
+forcément des catégories, ce qui rend une réponse *vide* informative plutôt
+qu'ambiguë. Elle seule décide si les trente autres valent la peine. Un candidat
+réfuté fait avancer la liste d'un cran ; la liste épuisée, la voie se ferme
+pour la session.
+
+`freeformTags` est **retiré** des candidats : il est réfuté, le réessayer
+brûlerait une sonde pour rien.
+
+## La carte sans catégorie (v3.81)
+
+Toutes les chaînes n'annoncent pas de catégorie. La rangée garde alors la
+hauteur que lui donne sa colonne de droite — spectateurs au-dessus, durée en
+dessous — pendant que la gauche n'a plus qu'une ligne, calée en haut. Le pseudo
+flotte au-dessus d'un vide.
+
+Le marqueur est posé **là où on sait** : sur la réponse de `TseChannels`, qui
+fait autorité, et non sur la lecture du DOM — Twitch peut n'avoir pas encore
+écrit la catégorie, et centrer sur cette lecture-là ferait clignoter la carte à
+chaque relevé. Deux déclarations CSS, et il faut les deux : `align-self:
+stretch` donne à la metadata la hauteur de sa rangée (sans quoi il n'y aurait
+rien à centrer), la colonne flex centrée y place la ligne. Ni l'une ni l'autre
+ne dépend d'une classe hashée de Twitch, et si la rangée cessait d'être une
+flexbox elles deviendraient inertes plutôt que fausses.
+
+## « Aucune chaîne en direct avec ce filtre » (v3.81)
+
+Une catégorie croisée avec une langue peut n'avoir aucun direct. Sans un mot,
+la barre latérale vide sous des menus qui ont l'air de fonctionner se lit comme
+une panne, et l'on rejoue son filtre en se demandant ce qui ne marche pas.
+
+**Le piège est le moment.** Le classement est vide pendant la fraction de
+seconde qui suit chaque changement de filtre, le temps que la passe arrive : un
+message posé sur « la liste est vide » clignoterait à chaque clic avant de se
+démentir. Il n'apparaît donc que sur une sélection **résolue** — le classement
+porté est bien celui qui est demandé.
+
+**Et une panne n'est pas un résultat.** « Aucune chaîne ne correspond » et « je
+n'ai rien pu charger » donnent la même barre vide, et la première phrase serait
+un mensonge sur la seconde. Il faut donc, en plus, qu'une marche ait **abouti**
+au moins une fois — sans quoi une coupure réseau se serait annoncée comme un
+résultat. Le banc tient les deux : retirer cette garde fait apparaître le
+message sur un réseau en panne, et l'assertion le dit dans ces termes.
+
+## Le compteur qui comptait au mauvais moment (v3.81)
+
+`affichees` et `muettes`, introduits en 3.80, comptaient à l'**ouverture** de
+l'aperçu. Or les chapitres du VOD arrivent après : au premier rendu la frise se
+tait souvent, puis paraît. Un rapport a donné `muettes 102` sur 129 survols
+quand les issues de chapitres en annonçaient **64** affichables — trente-sept
+frises comptées muettes qui s'affichaient une fraction de seconde plus tard.
+
+Le compte suit désormais la **présence**, corrigée au moment où elle change. Il
+est donc juste à tout instant, sans qu'il faille attendre la fermeture de
+l'aperçu pour trancher.
+
 ## Trente et une langues, et le thaï qui n'existait pas (v3.80)
 
 Le filtre langue en proposait vingt-six. Twitch en publie **trente et une**, et
@@ -2507,7 +2591,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 83 scénarios, 766 assertions |
+| `npm test` | le harnais Playwright : 86 scénarios, 782 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -2528,12 +2612,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 695 Ko | 307 Ko | 2 928 → **2** |
+| `content.js` | 706 Ko | 310 Ko | 2 944 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **874 Ko** | **432 Ko** | **−51 %** |
+| **les cinq** | **885 Ko** | **435 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

@@ -9100,8 +9100,9 @@ titre('84. Filtres — l\'audience par langue, et la garde qui décide de l\'aff
     await page.evaluate(() => window.tse.global.on());
     await wait(page, 2500);
     const n2 = await page.evaluate(() => window.tse.global.report().langues.demandes);
+    // 32 : la sonde d'une opération, puis les trente et une langues.
     ok('…et l\'on ne repose pas la question à chaque marche',
-       n1 === 31 && n2 === n1, `${n1} puis ${n2} demandes`);
+       n1 === 32 && n2 === n1, `${n1} puis ${n2} demandes`);
     await page.close();
   }
 
@@ -9121,6 +9122,242 @@ titre('84. Filtres — l\'audience par langue, et la garde qui décide de l\'aff
     await page.close();
   }
 }
+
+titre('85. La carte sans catégorie — le pseudo se recentre');
+{
+  /* TOUTES LES CHAÎNES N'ANNONCENT PAS DE CATÉGORIE. La rangée garde alors la
+     hauteur que lui donne sa colonne de droite — spectateurs au-dessus, durée
+     en dessous — pendant que la gauche n'a plus qu'une ligne, calée en haut.
+     Le pseudo flotte au-dessus d'un vide.
+
+     DEUX ASSERTIONS DE NATURES DIFFÉRENTES, ET IL FAUT LES DEUX. Le MARQUEUR
+     est éprouvé sans rien supposer de Twitch : il vient de la réponse de
+     TseChannels, qui fait autorité là où le DOM peut être en retard. La
+     GÉOMÉTRIE, elle, ne peut se mesurer que dans une rangée mise en page — et
+     ce harnais n'a pas la feuille de style de Twitch. Il en porte donc une
+     modélisation, décrite en tête de page.html, et l'assertion qui s'en sert
+     ne prouve que ceci : notre règle centre bien ce qu'elle vise. */
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {
+      avecjeu: { id: 'a1', createdAt: h, viewers: 1000, game: 'Just Chatting', tags: [] },
+      sansjeu: { id: 'a2', createdAt: h, viewers: 900,  game: null,            tags: [] },
+    };
+    window.__addCard('avecjeu', 'Just Chatting', '1 k');
+    // Catégorie absente : Twitch n'écrit alors AUCUN <p>, il n'en écrit pas un
+    // vide. Le harnais fait pareil (cf. __addCard).
+    window.__addCard('sansjeu', '', '900');
+  });
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 2, 9000);
+  await attendre(page, () => !!document.querySelector('[data-tse-nocat="true"]'), 9000);
+
+  const etat = await page.evaluate(() => {
+    const carte = (l) => [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.dataset.tseLogin === l);
+    const lire = (l) => {
+      const c = carte(l);
+      const meta = c.querySelector('[data-a-target="side-nav-card-metadata"]');
+      const rangee = c.querySelector('.metacell');
+      const m = meta.getBoundingClientRect(), r = rangee.getBoundingClientRect();
+      const p = meta.querySelector('p').getBoundingClientRect();
+      return {
+        nocat: c.dataset.tseNocat || null,
+        justify: getComputedStyle(meta).justifyContent,
+        // Écart entre le centre du PSEUDO et le centre de la rangée.
+        ecart: Math.round((p.top + p.height / 2) - (r.top + r.height / 2)),
+        hauteurRangee: Math.round(r.height),
+        hauteurMeta: Math.round(m.height),
+      };
+    };
+    return { avec: lire('avecjeu'), sans: lire('sansjeu') };
+  });
+
+  ok('la carte sans catégorie est marquée, celle qui en a une ne l\'est pas',
+     etat.sans.nocat === 'true' && etat.avec.nocat === null, JSON.stringify(etat));
+  ok('…et le marqueur vient de la réponse de l\'API, pas d\'un <p> vide',
+     await page.evaluate(() => {
+       const c = [...document.querySelectorAll('.side-nav-card')]
+         .find(x => x.dataset.tseLogin === 'sansjeu');
+       return c.querySelectorAll('[data-a-target="side-nav-card-metadata"] p').length;
+     }) === 1, 'la carte porte un second <p>, le décor ne modélise pas le bon cas');
+  ok('la metadata sans catégorie occupe toute la hauteur de sa rangée',
+     etat.sans.hauteurMeta === etat.sans.hauteurRangee && etat.sans.hauteurRangee > 0,
+     JSON.stringify(etat.sans));
+  ok('…et le pseudo y est CENTRÉ, à un pixel près',
+     Math.abs(etat.sans.ecart) <= 1, JSON.stringify(etat.sans));
+  /* La carte qui a une catégorie ne doit RIEN changer : c'est ce qui prouve
+     que la règle vise le bon sous-ensemble et non toutes les cartes. */
+  ok('la carte AVEC catégorie garde son pseudo en haut',
+     etat.avec.ecart < -1 && etat.avec.justify !== 'center', JSON.stringify(etat.avec));
+  await page.close();
+}
+
+titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
+{
+  /* UN CLASSEMENT VIDE SOUS DES MENUS QUI ONT L'AIR DE MARCHER se lit comme
+     une panne. Une catégorie croisée avec une langue peut n'avoir aucun
+     direct — c'est un résultat, et il vaut une phrase.
+
+     LE PIÈGE EST LE MOMENT. Le classement est vide pendant la fraction de
+     seconde qui suit chaque changement de filtre, le temps que la passe
+     correspondante arrive. Un message posé sur « la liste est vide » clignote
+     donc à chaque clic avant de se démentir. C'est la moitié de ce scénario. */
+  const page = await fresh();
+  await page.evaluate(() => {
+    window.__fx = { suivi1: { id: 'id-suivi1', createdAt: new Date(Date.now() - 1800_000).toISOString(),
+                              viewers: 400, game: 'Just Chatting', tags: [] } };
+    window.__addCard('suivi1', 'Just Chatting', '400');
+    const cats = [];
+    for (let i = 0; i < 3; i++) {
+      const streams = [];
+      for (let k = 0; k < 5; k++) {
+        streams.push({ login: `en${i}_${k}`, viewers: 9000 - i * 100 - k, tags: ['English'] });
+      }
+      cats.push({ name: 'cat' + i, viewers: 100_000 - i, streams });
+    }
+    // Une catégorie SANS aucun direct : c'est elle qui doit produire le message.
+    cats.push({ name: 'desert', viewers: 90_000, streams: [] });
+    window.__cats = cats;
+  });
+  await wait(page, 1500);
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(1).length > 0, 9000);
+
+  const message = () => page.evaluate(() => {
+    const el = document.getElementById('tse-global-empty');
+    return el ? { texte: el.textContent, apres: el.previousElementSibling?.id || null } : null;
+  });
+  ok('un classement peuplé n\'affiche aucun message',
+     (await message()) === null);
+
+  // Le menu se reconstruit au scan : on ATTEND l'option plutôt que de la
+  // supposer présente à l'instant où le classement se peuple.
+  await attendre(page, () => [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+    .some(o => o.dataset.value === 'desert'), 9000);
+  await page.evaluate(() => {
+    [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+      .find(o => o.dataset.value === 'desert').click();
+  });
+  await attendre(page, () => !!document.getElementById('tse-global-empty'), 9000);
+  const m = await message();
+  ok('une catégorie sans le moindre direct affiche le message',
+     !!m && m.texte.length > 0, JSON.stringify(m));
+  ok('…et il est posé SOUS les commandes, après la rangée de tri',
+     m.apres === 'tse-sort-row', JSON.stringify(m));
+  ok('…dans la langue de l\'interface',
+     m.texte === 'Aucune chaîne en direct avec ce filtre', JSON.stringify(m));
+
+  /* IL DISPARAÎT quand la sélection redonne du monde. Sans cette assertion,
+     un message qui ne s'effacerait jamais passerait pour un succès. */
+  await page.evaluate(() => {
+    const opt = [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+      .find(o => (o.dataset.value || '') === '');
+    opt.click();
+  });
+  await attendre(page, () => !document.getElementById('tse-global-empty'), 9000);
+  ok('…et il s\'efface dès que la sélection redonne des chaînes',
+     (await message()) === null);
+  await page.close();
+
+  /* ── ET CE QUI N'EST PAS UN RÉSULTAT : UNE PANNE ────────────────────────
+     « Aucune chaîne ne correspond » et « je n'ai rien pu charger » donnent la
+     même barre latérale vide, et la première phrase serait un mensonge sur la
+     seconde. Sans marche aboutie, on ne dit rien — le voile, lui, est là pour
+     ça. Cette assertion tient la garde qui le distingue : la retirer fait
+     apparaître le message sur un réseau en panne. */
+  {
+    const p2 = await fresh();
+    await p2.evaluate(() => {
+      window.__globalFail = true;   // TseCategories et TseCategoryTop échouent
+      window.__fx = { suivi1: { id: 'id-s1', createdAt: new Date(Date.now() - 1800_000).toISOString(),
+                                viewers: 400, game: 'Just Chatting', tags: [] } };
+      window.__addCard('suivi1', 'Just Chatting', '400');
+      window.__cats = [{ name: 'cat0', viewers: 100_000, streams: [] }];
+    });
+    await wait(p2, 1500);
+    await p2.evaluate(() =>
+      document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+    await wait(p2, 3000);
+    const vide = await p2.evaluate(() => window.tse.global.top(1).length);
+    ok('un classement vide FAUTE DE RÉSEAU ne s\'annonce pas comme un résultat',
+       vide === 0 && !(await p2.evaluate(() => !!document.getElementById('tse-global-empty'))),
+       'le message est apparu alors qu\'aucune marche n\'a abouti');
+    await p2.close();
+  }
+}
+
+titre('87. Catégories par langue — la sonde coûte UNE opération, pas trente et une');
+{
+  /* CE SCÉNARIO EST NÉ D'UNE FACTURE. La 3.80 a demandé les trente et une
+     langues d'un coup avec un nom d'argument qui n'existait pas, et Twitch a
+     répondu trente et une fois « In field "freeformTags": Unknown field. ».
+     Trente et une opérations pour apprendre un mot.
+
+     Le nom est maintenant cherché par une SONDE — une langue, une opération —
+     et la liste des candidats avance d'un cran à chaque refus. Ce qui se
+     vérifie ici n'est pas quel nom est le bon : le banc ne peut pas le savoir,
+     et le décor l'impose. C'est le COÛT d'une erreur, et le fait qu'on
+     n'insiste pas une fois les candidats épuisés. */
+  const opsLang = (page) => page.evaluate(() =>
+    window.__calls.flatMap(c => c.names || []).filter(n => n === 'TseLangCats').length);
+  const monter = async (page) => {
+    await page.evaluate(() => {
+      window.__fx = { suivi1: { id: 'id-suivi1', createdAt: new Date(Date.now() - 1800_000).toISOString(),
+                                viewers: 400, game: 'Just Chatting', tags: [] } };
+      window.__addCard('suivi1', 'Just Chatting', '400');
+      const cats = [];
+      for (let i = 0; i < 3; i++) {
+        cats.push({ name: 'cat' + i, viewers: 100_000 - i, streams: [
+          { login: 'en' + i, viewers: 9000 - i, tags: ['English'] }] });
+      }
+      window.__cats = cats;
+    });
+    await wait(page, 1500);
+    await page.evaluate(() =>
+      document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+    await wait(page, 2500);
+  };
+
+  /* ── LE NOM QUE LE SCHÉMA REFUSE ─────────────────────────────────────── */
+  {
+    const page = await fresh();
+    await page.evaluate(() => { window.__langCatsArg = 'unNomQueRienNaccepte'; });
+    await monter(page);
+    const r = await page.evaluate(() => window.tse.global.report().langues);
+    ok('un nom refusé coûte UNE opération, et non une par langue',
+       r.demandes === 1 && r.refus === 1, JSON.stringify(r));
+    ok('…les candidats épuisés, la voie est close pour la session',
+       r.refuse === true && r.argument === null, JSON.stringify(r));
+    const avant = await opsLang(page);
+    await page.evaluate(() => window.tse.global.on());
+    await wait(page, 1500);
+    ok('…et l\'on n\'insiste plus',
+       (await opsLang(page)) === avant, `${await opsLang(page)} contre ${avant}`);
+    await page.close();
+  }
+
+  /* ── LE NOM QUE LE SCHÉMA ACCEPTE ────────────────────────────────────── */
+  {
+    const page = await fresh();
+    await page.evaluate(() => {
+      window.__langCatsArg = 'tags';
+      window.__langCats = { 'English': [{ name: 'cat0', viewers: 40_000 }] };
+    });
+    await monter(page);
+    await attendre(page,
+      () => window.tse.global.report().langues.demandes > 1, 9000);
+    const r = await page.evaluate(() => window.tse.global.report().langues);
+    ok('une sonde qui passe déclenche la demande complète',
+       r.demandes === 32 && r.refus === 0, JSON.stringify(r));
+    ok('…et le rapport nomme l\'argument employé',
+       r.argument === 'tags', JSON.stringify(r));
+    await page.close();
+  }
+}
+
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
