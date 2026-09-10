@@ -41,6 +41,12 @@
   "descRoster": {
     "message": "Todos los canales que sigues y que la extensión ha visto al menos una vez en tu barra lateral."
   },
+  "navRythme": {
+    "message": "Ritmo"
+  },
+  "descRythme": {
+    "message": "Cuándo abres un canal, en hora local. Una visita cuenta una vez por canal cada tres horas: es un ritmo, no un tiempo de visionado."
+  },
   "navDiagnose": {
     "message": "Estado de los selectores"
   },
@@ -154,6 +160,15 @@
   },
   "sumChannels": {
     "message": "canales"
+  },
+  "sumVisits": {
+    "message": "visitas"
+  },
+  "sumPeakSlot": {
+    "message": "franja más activa"
+  },
+  "sumSince": {
+    "message": "historial"
   },
   "sumSubscribed": {
     "message": "suscripciones"
@@ -275,6 +290,12 @@
   },
   "valOff": {
     "message": "Inactivo"
+  },
+  "valLess": {
+    "message": "menos"
+  },
+  "valMore": {
+    "message": "más"
   },
   "healthOk": {
     "message": "Selectores OK"

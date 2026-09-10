@@ -6523,7 +6523,10 @@ titre('70. Panneau — la page rendue, mesurée');
      i18n, l'onglet actif, et l'aller-retour de messages. */
   const stub = (msgs) => {
     const T = (k) => (msgs[k] ? msgs[k].message : '');
-    const paquet = (colonnes, lignes, resume) => ({ ok: true, data: { colonnes, lignes, resume } });
+    /* `extra` porte ce qui n'est ni colonne, ni ligne, ni résumé — la grille
+       du rythme, aujourd'hui. Le panneau passe le paquet ENTIER au dessin. */
+    const paquet = (colonnes, lignes, resume, extra) =>
+      ({ ok: true, data: { colonnes, lignes, resume, ...(extra || {}) } });
     const REPONSES = {
       scores: () => paquet(['login', 'score', 'visits', 'last'],
         [{ login: 'alpha', score: 3.5, visits: 12, last: Date.now() },
@@ -6533,6 +6536,18 @@ titre('70. Panneau — la page rendue, mesurée');
         [{ login: 'alpha', sub: true, ts: Date.now(), mois: 7, ancien: false, origine: 'page' }],
         { chaines: 1, abonnees: 1, releve: Date.now() }),
       roster: () => paquet(['login', 'ts'], [], { chaines: 0 }),   // section VIDE
+      /* Le rythme n'a PAS de tableau : ni colonnes, ni lignes, et pourtant du
+         contenu. C'est le cas qui a demandé de séparer « rien à tabuler » de
+         « rien à montrer » — cf. scénario 89, qui l'éprouve pour de bon. */
+      rythme: () => paquet([], [], { visites: 3, chaines: 2,
+                                     pic: { jour: 2, heure: 21, n: 2 },
+                                     premier: Date.now() - 3 * 86_400_000,
+                                     dernier: Date.now() },
+        { grille: (() => {
+            const g = Array.from({ length: 7 }, () => new Array(24).fill(0));
+            g[2][21] = 2; g[5][9] = 1;
+            return g;
+          })() }),
       diagnose: () => paquet(['label', 'status', 'critical', 'detail'],
         [{ label: '#side-nav', status: 'ok', critical: true, detail: '' },
          { label: 'avatarOf()', status: 'na', critical: false, detail: 'aucune carte' }],
@@ -6722,8 +6737,8 @@ titre('70. Panneau — la page rendue, mesurée');
     items: document.querySelectorAll('.rail-item').length,
     groupes: document.querySelectorAll('.rail-groupe').length,
   }));
-  ok('le rail porte les dix sections, en trois groupes',
-     rail.items === 10 && rail.groupes === 3, JSON.stringify(rail));
+  ok('le rail porte les onze sections, en trois groupes',
+     rail.items === 11 && rail.groupes === 3, JSON.stringify(rail));
 
   /* ── LES NOMBRES SUIVENT LA LOCALE DU PANNEAU ──────────────────────────
      376011 doit s'écrire avec un séparateur de milliers français, pas à
@@ -9705,6 +9720,176 @@ titre('88. Les bornes de mémoire — celle qui manquait, celle qui ne couvrait 
        (bloc.match(/frises\.set\(login, f\)/g) || []).length === 1,
        `${(bloc.match(/frises\.set\(login, f\)/g) || []).length} écriture(s)`);
   }
+}
+
+titre('89. Le panneau dessine — la semaine des visites, la courbe des retards');
+{
+  /* DEUX VUES QUI NE SE TABULENT PAS, et deux pièges qu'elles ont révélés.
+
+     LE PREMIER TIENT AU PANNEAU LUI-MÊME. Il affichait « rien à afficher » dès
+     qu'une section ne portait aucune LIGNE — ce qui était vrai tant que toute
+     section était un tableau. Le rythme n'en est pas un : sa semaine EST le
+     contenu, et il n'a ni colonne ni ligne. La vacuité se juge donc désormais
+     sur les deux, et c'est la première chose qu'on éprouve ici.
+
+     LE SECOND EST UN DÉFAUT DE DESSIN, trouvé en photographiant la courbe sur
+     un décor réaliste. En abscisse LINÉAIRE, deux relevés lointains — une
+     demi-heure, quand la masse tient sous deux minutes — écrasaient toute la
+     distribution dans les trois premiers pour cent de la largeur. La cumulée
+     ne dégénère pas en ordonnée, mais elle dégénère en abscisse dès que la
+     queue est lourde, et une distribution de latences l'est toujours.
+     L'assertion qui garde cette porte mesure exactement cela : où tombe la
+     médiane sur la largeur du tracé. */
+  const semaine = () => {
+    const g = Array.from({ length: 7 }, () => new Array(24).fill(0));
+    g[3][21] = 9;      // le pic
+    g[3][20] = 3;
+    g[1][9]  = 1;      // une seule visite : un palier, mais pas le dernier
+    return g;
+  };
+  /* Une masse sous deux minutes et deux traînards à une demi-heure : le décor
+     exact qui avait mis la première version de la courbe en défaut. */
+  const retards = [];
+  for (let i = 0; i < 120; i++) retards.push(2000 + Math.round(i * 900));
+  retards.push(1_800_000, 2_100_000);
+
+  const stub = ([msg, grille, retards]) => {
+    const T = (k) => (msg[k] ? msg[k].message : k);
+    const paquet = (colonnes, lignes, resume, extra) =>
+      ({ ok: true, data: { colonnes, lignes, resume, ...(extra || {}) } });
+    const trie = retards.slice().sort((a, b) => a - b);
+    const q = (p) => trie[Math.min(trie.length - 1, Math.floor(trie.length * p))];
+    const REPONSES = {
+      rythme: () => paquet([], [], { visites: 13, chaines: 4,
+                                     pic: { jour: 3, heure: 21, n: 9 },
+                                     premier: Date.now() - 20 * 86_400_000,
+                                     dernier: Date.now() }, { grille }),
+      lag: () => paquet(['login', 'lag', 'gain', 'ts'],
+        retards.map((l, i) => ({ login: 'ch' + i, lag: l, gain: null, ts: Date.now() })),
+        { mesures: retards.length, medianeLag: q(0.5), p90Lag: q(0.9),
+          gains: 0, medianeGain: null }),
+      /* Trois relevés : le tableau les montre, la courbe se tait. Quatre
+         marches ne sont pas une distribution. */
+      cycles: () => paquet(['login', 'lag', 'gain', 'ts'],
+        [{ login: 'a', lag: 1000, gain: null, ts: Date.now() },
+         { login: 'b', lag: 2000, gain: null, ts: Date.now() },
+         { login: 'c', lag: 3000, gain: null, ts: Date.now() }],
+        { evenements: 3, verrous: [] }),
+    };
+    window.chrome = {
+      i18n: { getMessage: T, getUILanguage: () => 'fr' },
+      tabs: { query: () => Promise.resolve([{ id: 1 }]) },
+      runtime: {
+        getManifest: () => ({ version: '9.9.9' }),
+        sendMessage: (m) => {
+          if (m.type === 'tse-panneau-etat') return Promise.resolve({ ok: true, ponts: [1] });
+          const f = REPONSES[m.section];
+          return Promise.resolve(f ? f() : paquet(['login'], [], {}));
+        },
+      },
+    };
+  };
+
+  const messages = JSON.parse(readFileSync(join(ICI, '..', '_locales', 'fr', 'messages.json'), 'utf8'));
+  const page = await browser.newPage({ viewport: { width: 760, height: 580 } });
+  page.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await page.addInitScript(stub, [messages, semaine(), retards]);
+  await page.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href);
+  await attendre(page, () => document.querySelectorAll('.rail-item').length > 0);
+
+  const aller = async (id) => {
+    await page.evaluate((i) => [...document.querySelectorAll('.rail-item')]
+      .find((b) => b.dataset.id === i).click(), id);
+    await attendre(page, () => document.getElementById('message').hidden
+                            || !document.getElementById('visuel').hidden, 6000);
+  };
+
+  /* ── LA SEMAINE ────────────────────────────────────────────────────────── */
+  await aller('rythme');
+  const sem = await page.evaluate(() => {
+    const cases = [...document.querySelectorAll('.rythme-grille .rythme-case')];
+    const palier = (el) => {
+      const m = /rythme-case--(\d)/.exec(el.className);
+      return m ? Number(m[1]) : 0;
+    };
+    return {
+      cases: cases.length,
+      jours: document.querySelectorAll('.rythme-jour').length,
+      heures: [...document.querySelectorAll('.rythme-heure')].filter(e => e.textContent).length,
+      paliers: cases.map(palier),
+      barres: document.querySelectorAll('.rythme-barre').length,
+      hauteurs: [...document.querySelectorAll('.rythme-barre')].map(b => parseFloat(b.style.height)),
+      messageCache: document.getElementById('message').hidden,
+      tableauCache: document.getElementById('tableau-cadre').hidden,
+      infobulle: cases.filter(c => c.title).length,
+    };
+  });
+  ok('la semaine se dessine : sept jours, vingt-quatre heures, cent soixante-huit cases',
+     sem.cases === 168 && sem.jours === 7 && sem.heures === 8, JSON.stringify(
+       { cases: sem.cases, jours: sem.jours, heures: sem.heures }));
+  /* SANS CETTE ASSERTION, LE PANNEAU DIRAIT « RIEN À AFFICHER » AU-DESSUS
+     D'UNE GRILLE PLEINE. C'est le défaut que la section a révélé : la
+     vacuité se jugeait sur les seules lignes. */
+  ok('…une section sans tableau n\'est pas une section vide',
+     sem.messageCache === true && sem.tableauCache === true, JSON.stringify(
+       { message: sem.messageCache, tableau: sem.tableauCache }));
+  const pleins = sem.paliers.filter((p) => p > 0);
+  ok('…et les paliers distinguent le vide, le peu et le pic',
+     sem.paliers.filter((p) => p === 4).length === 1
+     && pleins.length === 3
+     && pleins.filter((p) => p > 0 && p < 4).length === 2,
+     JSON.stringify(sem.paliers.filter(Boolean)));
+  ok('…chaque case porte sa valeur en infobulle, la couleur n\'étant pas une donnée',
+     sem.infobulle === 168, `${sem.infobulle} case(s) sur 168`);
+  /* LE PROFIL EST LA PROJECTION DE LA GRILLE, et non un second dessin : la
+     colonne de 21 h pèse neuf visites, celle de 9 h une seule. */
+  ok('le profil horaire projette la grille : 21 h domine 9 h dans le même rapport',
+     sem.barres === 24 && sem.hauteurs[21] === 100
+     && Math.abs(sem.hauteurs[9] - 100 / 9) < 0.5,
+     JSON.stringify({ h21: sem.hauteurs[21], h9: sem.hauteurs[9] }));
+
+  /* ── LA COURBE ─────────────────────────────────────────────────────────── */
+  await aller('lag');
+  const cb = await page.evaluate(() => {
+    const svg = document.querySelector('.courbe');
+    if (!svg) return null;
+    const d = svg.querySelector('.courbe-trait').getAttribute('d');
+    const pts = d.split(/[ML]/).filter(Boolean)
+      .map((p) => p.split(',').map(Number));
+    const verticales = [...svg.querySelectorAll('.courbe-repere')]
+      .filter((l) => l.getAttribute('x1') === l.getAttribute('x2'))
+      .map((l) => Number(l.getAttribute('x1'))).sort((a, b) => a - b);
+    return { pts, verticales,
+             graduations: [...svg.querySelectorAll('.courbe-texte')].map(t => t.textContent) };
+  });
+  ok('la courbe existe et ne redescend jamais : une cumulée ne peut que monter',
+     cb !== null && cb.pts.every((p, i) => i === 0 || p[1] <= cb.pts[i - 1][1] + 0.05),
+     cb ? `${cb.pts.length} points` : '(aucune courbe)');
+  ok('…elle atteint le bord droit à 100 %, sans diagonale de fermeture',
+     cb.pts[cb.pts.length - 1][0] === 540 && cb.pts[cb.pts.length - 1][1] === 10,
+     JSON.stringify(cb.pts[cb.pts.length - 1]));
+  /* L'ASSERTION QUI GARDE L'AXE. Sur ce décor, la médiane vaut environ une
+     minute et le maximum trente-cinq : en abscisse linéaire elle tomberait à
+     moins de trois pour cent de la largeur, illisible. En logarithmique elle
+     se pose au-delà du tiers. Le seuil est choisi loin des deux valeurs pour
+     que l'assertion dise « lisible » et non « exactement ceci ». */
+  const largeur = 540 - 6;
+  ok('…et deux traînards n\'écrasent pas la masse : la médiane reste lisible',
+     cb.verticales.length === 2 && (cb.verticales[0] - 6) / largeur > 0.25,
+     JSON.stringify(cb.verticales.map((x) => Math.round((x - 6) / largeur * 100) + ' %')));
+  ok('…l\'axe est gradué en durées rondes, pas en puissances de dix',
+     cb.graduations.some((t) => /^1 min$/.test(t)) && !cb.graduations.some((t) => /00$/.test(t)),
+     JSON.stringify(cb.graduations));
+
+  /* ── SOUS CINQ RELEVÉS, PAS DE COURBE ──────────────────────────────────── */
+  await aller('cycles');
+  const maigre = await page.evaluate(() => ({
+    courbe: !!document.querySelector('.courbe'),
+    lignes: document.querySelectorAll('.tableau tbody tr').length,
+  }));
+  ok('trois relevés se tabulent et ne se courbent pas',
+     maigre.courbe === false && maigre.lignes === 3, JSON.stringify(maigre));
+  await page.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

@@ -2092,6 +2092,111 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## Le panneau se met à dessiner (v3.88)
+
+Deux vues qui ne se tabulent pas, et une refonte de la frise. Les trois sont du
+**dessin**, et le dessin ne se juge pas sur du code : chacune a été
+photographiée avant d'être gardée, et chacune a perdu quelque chose au
+développement de la photo.
+
+### Le rythme — ce que la mémoire des visites savait déjà
+
+L'extension relève les visites depuis toujours, pour classer les chaînes par
+popularité personnelle : jusqu'à vingt horodatages par chaîne, quatre cents
+chaînes. Le score n'en tire qu'une décroissance exponentielle et **jette le
+reste** — or ces horodatages portent une seconde information, entière et
+gratuite : *quand* on regarde.
+
+Sept lignes, vingt-quatre colonnes, à l'heure locale de qui lit. **Aucun
+stockage nouveau**, aucune requête, aucune permission : c'est la même donnée,
+lue par l'autre bout.
+
+Ce que la vue **n'est pas**, et la description le dit en toutes lettres sous son
+titre : ce n'est pas un temps de visionnage. Une visite se compte une fois par
+chaîne et par tranche de trois heures, après un séjour minimal sur la page. Six
+heures sur une seule chaîne pèsent donc moins que trois chaînes ouvertes coup
+sur coup. C'est un **rythme** — le moment où l'on vient — et le présenter
+autrement serait mentir sur la mesure.
+
+La grille quantifie en quatre paliers, ce qui efface les écarts fins entre deux
+heures voisines ; un **profil horaire** les rend, sur les mêmes verticales et
+sans palier. C'est la projection de la grille sur ses colonnes, pas un second
+dessin.
+
+Deux corrections sont venues de la capture :
+
+- l'**échelle du profil** était alignée en bas, avec les barres — c'est-à-dire
+  à l'endroit exact où la valeur vaut zéro. Un maximum se pose là où il est
+  atteint ;
+- le profil **flottait** trop loin sous l'axe des heures et se lisait comme un
+  objet séparé.
+
+### La courbe des retards — et l'axe qu'il a fallu changer
+
+La section « Retard de Twitch » donnait quatre nombres. Elle donne maintenant la
+**forme** derrière eux : une cumulée, où la médiane et le 90e centile sont
+littéralement les endroits où la courbe croise 50 % et 90 %. Le dessin explique
+les cartouches au lieu de les répéter — et il ne coûte **aucune donnée de
+plus**, la section envoyant déjà chaque relevé pour son tableau.
+
+**J'avais écrit qu'une cumulée ne dégénère jamais. C'est faux, et la capture
+l'a montré.** Elle ne dégénère pas en *ordonnée* — elle monte de 0 à 100 % quoi
+qu'il arrive — mais elle dégénère en *abscisse* dès que la queue est lourde, et
+une distribution de latences l'est toujours. Sur un décor réaliste — deux cent
+quarante relevés sous deux minutes, deux traînards à une demi-heure — la courbe
+montait à la verticale dans les **trois premiers pour cent** de la largeur puis
+courait à plat sur tout le reste. Ni la médiane ni le 90e centile ne s'y
+lisaient, et leurs deux étiquettes se chevauchaient dans le coin gauche.
+
+L'axe est donc **logarithmique**, ce qui ne cache rien : les deux traînards
+restent sur le tracé, simplement à une distance qui laisse voir le reste. Le
+prix est un axe qu'il faut graduer — en durées rondes, parce que « 100 s » ne
+veut rien dire pour personne. Deux détails ont suivi sur la même capture : le
+haut de l'axe est **arrondi au palier suivant**, sans quoi les deux dernières
+graduations se touchaient ; et le plateau final va **jusqu'au bord**, sans quoi
+l'aire se refermait en diagonale — une pente qui se lisait comme une
+décroissance alors qu'il ne s'était rien passé.
+
+Le banc garde cette porte par l'assertion qui mesure **où tombe la médiane sur
+la largeur du tracé**. Vérifié par mutation : en repassant l'abscisse en
+linéaire, elle tombe à 2 %, et l'assertion tombe avec.
+
+### La frise, redessinée
+
+Elle tenait ; elle ne se tenait pas **ensemble**. Trois défauts précis :
+
+1. **La barre était fragmentée.** Un intervalle d'un pixel entre les parts, sur
+   un fond clair qui transparaissait : à quatre segments on lisait quatre objets
+   posés côte à côte plutôt qu'une seule durée découpée. Le temps d'un live est
+   *continu*. Les parts sont désormais jointives, séparées par une couture
+   sombre tirée à l'intérieur de chacune — le ruban redevient un, ses frontières
+   restent nettes.
+2. **La pastille de la liste ne ressemblait pas à ce qu'elle nommait.** Un carré
+   plat de neuf pixels en face d'une part hachurée : pour la ligne « non
+   observé », la légende et le ruban ne se répondaient tout simplement pas. La
+   pastille est devenue un **trait vertical** — une tranche du ruban,
+   littéralement — et la ligne non observée porte un trait discontinu, comme sa
+   part est hachurée.
+3. **La frise ne disait pas sur quoi elle porte.** Un ruban sans échelle n'est
+   qu'une proportion : « deux tiers, un tiers » de quoi ? La **durée totale**
+   est maintenant en tête, à droite du libellé. C'est le seul ajout
+   d'information de la refonte, et il coûte un nombre qu'on avait déjà.
+
+Là encore, la capture a corrigé le dessin. La durée totale sortait en
+**capitales** — « 4H12 » — parce que l'en-tête en porte pour son libellé. Et une
+*tête de lecture* avait été posée au bord droit du segment en cours : elle ne
+survit pas à sa propre boîte, le ruban étant une pilule à coins ronds en
+débordement caché, où deux pixels tirés le long d'une extrémité courbe sont
+rognés à presque rien. Elle était invisible sur les quatre cas photographiés, et
+elle n'avait de toute façon rien à marquer — le bord droit du ruban *est*
+maintenant, par construction.
+
+Un piège mérite d'être écrit, parce qu'il est silencieux : la couleur des parts
+et des pastilles est posée en ligne par `backgroundColor` et **non** par le
+raccourci `background`, qui remet `background-image` à `none` et emporterait le
+dégradé, la hachure des clips et celle de la part inconnue — trois règles qui
+auraient l'air posées et ne s'appliqueraient pas.
+
 ## Une jumelle et un interrupteur mort (v3.87)
 
 L'audit de la 3.86 avait laissé deux points de côté, jugés cosmétiques. Ils le
@@ -3005,7 +3110,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 88 scénarios, 803 assertions |
+| `npm test` | le harnais Playwright : 89 scénarios, 813 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -3026,12 +3131,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 727 Ko | 315 Ko | 2 968 → **2** |
+| `content.js` | 727 Ko | 315 Ko | 2 975 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
+| `panneau.js` | 53 Ko | 27 Ko | 70 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **905 Ko** | **440 Ko** | **−51 %** |
+| **les cinq** | **942 Ko** | **450 Ko** | **−52 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -3043,7 +3148,7 @@ qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
 d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 968
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 975
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches

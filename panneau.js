@@ -107,6 +107,25 @@ const SECTIONS = [
   { id: 'scores',  groupe: 'grpData',
     tuiles: (r) => [['sumChannels', fmt.nombre(r.chaines)]] },
 
+  /* LE RYTHME SUIT LES SCORES, et cet ordre n'est pas arbitraire : les deux
+     lisent le MÊME registre de visites. Les scores en tirent qui l'on
+     regarde, le rythme en tire quand — deux questions sur une seule mémoire,
+     qu'il vaut mieux garder voisines.
+
+     `visuel` est enveloppé dans une flèche plutôt que passé par son nom : les
+     fonctions de dessin sont déclarées plus bas dans ce fichier, et lire leur
+     référence ici, au moment où ce tableau se construit, tomberait dans leur
+     zone morte. L'enveloppe ne les lit qu'à l'appel. */
+  { id: 'rythme',  groupe: 'grpData',
+    visuel: (p) => dessinRythme(p),
+    tuiles: (r) => [
+      ['sumVisits',   fmt.nombre(r.visites)],
+      ['sumChannels', fmt.nombre(r.chaines)],
+      ['sumPeakSlot', r.pic && r.pic.n
+        ? `${JOURS_COURTS[r.pic.jour]} ${heureLisible(r.pic.heure)}` : '—'],
+      ['sumSince',    r.premier ? enJours(r.dernier - r.premier) : '—'],
+    ] },
+
   { id: 'subs',    groupe: 'grpData',
     actions: [{ id: 'refreshSubs', cle: 'btnRefreshSubs' }],
     tuiles: (r) => [
@@ -124,7 +143,11 @@ const SECTIONS = [
       ['sumBroken', fmt.nombre(r.critiquesCassees), r.casse ? 'casse' : 'ok'],
     ] },
 
+  /* LA COURBE NE COÛTE AUCUNE DONNÉE DE PLUS. La section envoie déjà chaque
+     relevé dans `lignes` — c'est ce que le tableau affiche — et la cumulée se
+     construit à partir de là. Rien de neuf ne traverse les trois sauts. */
   { id: 'lag',     groupe: 'grpDiag',
+    visuel: (p) => dessinLag(p),
     tuiles: (r) => [
       ['sumSamples',    fmt.nombre(r.mesures)],
       ['sumMedian',     fmt.duree(r.medianeLag)],
@@ -158,6 +181,295 @@ const SECTIONS = [
 const MAJ = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const cleNav  = (id) => 'nav'  + MAJ(id);
 const cleDesc = (id) => 'desc' + MAJ(id);
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LES DESSINS
+   ────────────────────────────────────────────────────────────────────────────
+   Deux vues seulement, et pour une raison qui se dit en une phrase : une
+   semaine d'habitudes et une distribution de retards sont des FORMES. Mises en
+   colonnes il faudrait les relire ligne à ligne pour retrouver ce qu'un coup
+   d'œil donne. Partout ailleurs le tableau reste le bon outil, et ce fichier
+   n'a pas gagné une bibliothèque de graphiques pour autant : une grille CSS
+   d'un côté, un SVG construit nœud par nœud de l'autre.
+
+   AUCUN CALCUL D'ANALYSE ICI. Le pic de la semaine et les quantiles des
+   retards sont calculés dans content.js, là où les données vivent, et pour la
+   même raison qu'ils l'étaient déjà : deux implémentations du même maximum
+   finissent par désigner deux cases différentes. Ce bloc ne fait que placer.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Noms de jours de la locale, indexés comme `Date.prototype.getDay` : 0 pour
+   dimanche. Le 7 janvier 2024 était un dimanche, et minuit LOCAL garantit que
+   `getDay` y répond 0 sous tous les fuseaux — construire ces dates en UTC les
+   aurait décalées d'un jour à l'ouest de Greenwich. */
+const JOURS_COURTS = (() => {
+  const f = new Intl.DateTimeFormat(LOCALE, { weekday: 'short' });
+  return Array.from({ length: 7 }, (_, j) => f.format(new Date(2024, 0, 7 + j)));
+})();
+
+/* Heure telle que la locale l'écrit : « 21 h » ici, « 9 PM » ailleurs. Sert au
+   cartouche du pic, jamais à l'axe — un axe est une échelle, et des chiffres
+   nus s'y lisent mieux qu'une forme longue répétée huit fois. */
+const heureLisible = (h) => new Intl.DateTimeFormat(LOCALE, { hour: 'numeric' })
+  .format(new Date(2024, 0, 7, h));
+
+/* PREMIER JOUR DE LA SEMAINE, demandé à la locale et non supposé. Dix des
+   douze fiches commencent le lundi, mais l'anglais et le japonais commencent
+   le dimanche : imposer le lundi aurait décalé la lecture pour ceux-là. L'API
+   existe sous deux formes selon les moteurs — méthode ou propriété — et sous
+   aucune des deux sur les plus anciens, d'où le repli sur lundi, qui est le
+   défaut de la norme ISO. */
+const PREMIER_JOUR = (() => {
+  try {
+    const l = new Intl.Locale(LOCALE);
+    const info = (typeof l.getWeekInfo === 'function') ? l.getWeekInfo() : l.weekInfo;
+    const d = info && info.firstDay;
+    if (Number.isInteger(d) && d >= 1 && d <= 7) return d % 7;   // 7 (dimanche) → 0
+  } catch { /* moteur sans weekInfo : lundi */ }
+  return 1;
+})();
+
+/* Étendue de l'historique, en jours, dans l'unité de la locale. `style: unit`
+   n'existe pas partout ; sans lui on rend le nombre seul, ce qui reste juste
+   sous l'intitulé « Historique ». */
+const enJours = (ms) => {
+  const n = Math.max(1, Math.round(ms / 86_400_000));
+  try {
+    return new Intl.NumberFormat(LOCALE, { style: 'unit', unit: 'day', unitDisplay: 'short' })
+      .format(n);
+  } catch { return NOMBRE.format(n); }
+};
+
+const div = (classe, texte) => {
+  const d = document.createElement('div');
+  d.className = classe;
+  if (texte !== undefined) d.textContent = texte;
+  return d;
+};
+
+/* ── LA SEMAINE ──────────────────────────────────────────────────────────────
+   Sept lignes, vingt-quatre colonnes, quatre paliers de densité. La grille est
+   `aria-hidden` et les cartouches disent en toutes lettres ce qu'elle montre —
+   même règle que la frise de la barre latérale : la forme pour l'œil, le texte
+   pour l'information. Chaque case porte tout de même son infobulle, qui est un
+   confort de souris et non le support de l'accessibilité. */
+const dessinRythme = (paquet) => {
+  const grille = paquet && paquet.grille;
+  const r = (paquet && paquet.resume) || {};
+  if (!Array.isArray(grille) || !r.visites) return null;
+  const max = (r.pic && r.pic.n) || 1;
+
+  const hote = div('rythme');
+  const cases = div('rythme-grille');
+  cases.setAttribute('aria-hidden', 'true');
+
+  /* L'ordre des lignes suit la locale : `PREMIER_JOUR` dit par quel indice de
+     `getDay` la semaine commence, les sept suivants s'enroulent. */
+  const ordre = Array.from({ length: 7 }, (_, i) => (PREMIER_JOUR + i) % 7);
+  for (const j of ordre) {
+    cases.appendChild(div('rythme-jour', JOURS_COURTS[j]));
+    for (let h = 0; h < 24; h++) {
+      const n = grille[j][h] || 0;
+      /* Quatre paliers, bornés par le pic : la case la plus dense de la
+         semaine est toujours au palier 4, quelle qu'en soit la valeur
+         absolue. Une échelle fixe rendrait la grille vide chez qui regarde
+         peu et saturée chez qui regarde beaucoup. */
+      const palier = n === 0 ? 0 : Math.min(4, Math.ceil((n / max) * 4));
+      const c = div('rythme-case' + (palier ? ' rythme-case--' + palier : ''));
+      c.title = `${JOURS_COURTS[j]} ${heureLisible(h)} — ${NOMBRE.format(n)}`;
+      cases.appendChild(c);
+    }
+  }
+  hote.appendChild(cases);
+
+  /* L'axe des heures, sous la grille et dans la même grille : une colonne sur
+     trois porte son numéro, les autres sont des cases vides qui tiennent
+     l'alignement. Des chiffres nus plutôt que la forme longue de la locale —
+     « 9 PM » huit fois de suite encombrerait un axe que « 21 » suffit à
+     graduer. */
+  const axe = div('rythme-grille');
+  axe.setAttribute('aria-hidden', 'true');
+  axe.appendChild(div('rythme-heure'));
+  for (let h = 0; h < 24; h++) {
+    axe.appendChild(div('rythme-heure', h % 3 === 0 ? String(h).padStart(2, '0') : ''));
+  }
+  hote.appendChild(axe);
+
+  /* ── LE PROFIL HORAIRE ─────────────────────────────────────────────────────
+     La projection de la grille sur ses colonnes. La grille quantifie en quatre
+     paliers, ce qui efface les écarts fins entre deux heures voisines ; le
+     profil les rend, sur la même donnée et les mêmes verticales. La gouttière
+     porte le maximum, sans quoi les barres n'auraient pas d'échelle. */
+  const colonnes = Array.from({ length: 24 }, (_, h) =>
+    ordre.reduce((s, j) => s + (grille[j][h] || 0), 0));
+  const hautMax = Math.max(1, ...colonnes);
+  const profil = div('rythme-profil');
+  profil.setAttribute('aria-hidden', 'true');
+  profil.appendChild(div('rythme-echelle', NOMBRE.format(hautMax)));
+  for (let h = 0; h < 24; h++) {
+    const b = div('rythme-barre');
+    b.style.height = (colonnes[h] / hautMax * 100).toFixed(2) + '%';
+    b.title = `${heureLisible(h)} — ${NOMBRE.format(colonnes[h])}`;
+    profil.appendChild(b);
+  }
+  hote.appendChild(profil);
+
+  const legende = div('rythme-legende');
+  legende.setAttribute('aria-hidden', 'true');
+  legende.appendChild(div('rythme-legende-mot', T('valLess')));
+  for (let p = 0; p <= 4; p++) legende.appendChild(div('rythme-case' + (p ? ' rythme-case--' + p : '')));
+  legende.appendChild(div('rythme-legende-mot', T('valMore')));
+  hote.appendChild(legende);
+  return hote;
+};
+
+/* ── LA COURBE DES RETARDS ───────────────────────────────────────────────────
+   Cumulative, et c'est un choix documenté dans la feuille de style : une
+   distribution de durées penche toujours à droite, un histogramme s'y écrase
+   et un seul relevé lointain aplatit le reste. La courbe cumulée monte de 0 à
+   100 % quoi qu'il arrive, et la médiane et le 90e centile sont les endroits
+   où elle croise 50 % et 90 % — le dessin explique les deux cartouches au lieu
+   de les répéter. */
+const NS_SVG = 'http://www.w3.org/2000/svg';
+const svgEl = (nom, attrs) => {
+  const e = document.createElementNS(NS_SVG, nom);
+  for (const k of Object.keys(attrs || {})) e.setAttribute(k, String(attrs[k]));
+  return e;
+};
+
+/* Les graduations de l'axe : des durées RONDES, pas des puissances de dix.
+   « 100 s » ne veut rien dire pour personne ; une minute, cinq minutes, une
+   heure, si. On ne garde que celles qui tombent dans l'étendue mesurée. */
+const PALIERS_LAG = [1e3, 5e3, 15e3, 30e3, 60e3, 5 * 60e3, 15 * 60e3,
+                     30 * 60e3, 60 * 60e3, 2 * 60 * 60e3];
+
+const dessinLag = (paquet) => {
+  const lignes = (paquet && paquet.lignes) || [];
+  const lags = lignes.map((s) => s.lag).filter(Number.isFinite).sort((a, b) => a - b);
+  /* Sous cinq relevés, une cumulée n'est pas une courbe : c'est un escalier de
+     quatre marches qui donnerait à trois mesures l'allure d'une statistique.
+     Le tableau, lui, les montre telles quelles. */
+  if (lags.length < 5) return null;
+  const max = lags[lags.length - 1];
+  if (!(max > 0)) return null;
+
+  /* ── L'AXE EST LOGARITHMIQUE, ET LA CAPTURE L'A EXIGÉ ──────────────────────
+     Première version : axe linéaire de zéro au maximum. Sur un décor réaliste
+     — deux cent quarante relevés sous deux minutes et deux traînards à une
+     demi-heure — la courbe montait à la verticale dans les trois premiers
+     pour cent de la largeur puis courait à plat sur tout le reste. Rien ne s'y
+     lisait : ni la médiane, ni le 90e centile, dont les deux étiquettes se
+     chevauchaient dans le coin gauche.
+
+     Une cumulée ne dégénère pas en ORDONNÉE — elle monte de 0 à 100 % quoi
+     qu'il arrive — mais elle dégénère en ABSCISSE dès que la queue est
+     lourde, et une distribution de latences l'est toujours. J'avais écrit
+     l'inverse ; le dessin m'a contredit.
+
+     Le logarithme est l'outil de ce cas exact, et il ne CACHE RIEN : les deux
+     traînards restent sur le tracé, à leur place, simplement à une distance
+     qui laisse voir le reste. Le prix est un axe qu'il faut graduer, sans quoi
+     l'œil lirait des écarts qui n'existent pas — d'où les paliers ci-dessus.
+
+     Le plancher est à une seconde : le retard se déduit de `createdAt`, dont
+     la seconde est la résolution. Prétendre distinguer 120 ms de 300 ms serait
+     donner du sens à du bruit. */
+  const bas = 1000;
+  /* LE HAUT DE L'AXE EST ARRONDI AU PALIER SUIVANT, et la capture l'a demandé.
+     Laissé sur le maximum brut — quarante minutes, c'est-à-dire un traînard —
+     la dernière graduation tombait à quelques pixels de l'avant-dernière et
+     les deux étiquettes se touchaient. Portée à l'heure ronde, la dernière se
+     pose exactement au bord droit, là où l'œil attend la fin d'une échelle, et
+     l'avant-dernière retrouve sa place. Le tracé, lui, ne bouge pas d'un
+     relevé : on étend le cadre, on ne déplace pas la mesure. */
+  const brut = Math.max(max, bas * 2);
+  const haut = PALIERS_LAG.find((p) => p >= brut) || brut;
+  const lb = Math.log(bas), lh = Math.log(haut);
+
+  /* Le panneau a une largeur FIXE (cf. la feuille) : le contenu de la vue en
+     fait 546. Le viewBox est donc à l'échelle 1, et les traits d'un pixel
+     restent des traits d'un pixel. */
+  const W = 546, H = 104;
+  const gx = 6, dx = 540, hy = 10, by = 80;      // bornes du tracé
+  const svg = svgEl('svg', { class: 'courbe', viewBox: `0 0 ${W} ${H}`,
+                             width: W, height: H, 'aria-hidden': 'true' });
+  const defs = svgEl('defs');
+  const grad = svgEl('linearGradient', { id: 'tse-degrade-courbe', x1: 0, y1: 0, x2: 0, y2: 1 });
+  grad.appendChild(svgEl('stop', { offset: '0%',   'stop-color': '#9147ff', 'stop-opacity': '0.34' }));
+  grad.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#9147ff', 'stop-opacity': '0.02' }));
+  defs.appendChild(grad);
+  svg.appendChild(defs);
+
+  const X = (ms) => gx + (Math.log(Math.max(bas, ms)) - lb) / (lh - lb) * (dx - gx);
+  const Y = (part) => by - part * (by - hy);
+
+  /* Les graduations AVANT tout le reste : elles sont le fond du dessin, et
+     rien ne doit passer dessous. Deux paliers trop proches ne se lisent pas —
+     on saute le second. */
+  let dernierX = -Infinity;
+  for (const ms of PALIERS_LAG) {
+    if (ms < bas || ms > haut) continue;
+    const x = X(ms);
+    if (x - dernierX < 46) continue;
+    dernierX = x;
+    svg.appendChild(svgEl('line', { class: 'courbe-axe', x1: x, y1: hy, x2: x, y2: by,
+                                    opacity: '0.45' }));
+    /* Aux extrémités, l'ancrage bascule : centrée sur la première graduation,
+       une étiquette sortirait du cadre à gauche et serait coupée à droite. */
+    const t = svgEl('text', { class: 'courbe-texte', x: x, y: by + 13,
+                              'text-anchor': x < gx + 20 ? 'start'
+                                           : x > dx - 30 ? 'end' : 'middle' });
+    /* « 1 min 00 » sur un axe est une graduation qui bafouille. Les paliers
+       au-delà de la minute sont tous ronds : on les écrit comme tels, et
+       `fmt.duree` garde les secondes, où la précision compte. */
+    t.textContent = ms >= 3600e3 && ms % 3600e3 === 0 ? `${ms / 3600e3} h`
+                  : ms >= 60e3 && ms % 60e3 === 0 ? `${ms / 60e3} min`
+                  : fmt.duree(ms);
+    svg.appendChild(t);
+  }
+
+  /* Les deux repères horizontaux, sous la courbe : c'est ce qui les rend
+     discrets sans les rendre inutiles. Ils nomment ce que les cartouches
+     chiffrent, et l'endroit où ils croisent le tracé se lit sur l'axe. */
+  for (const [part, cle] of [[0.5, 'sumMedian'], [0.9, 'sumP90']]) {
+    const y = Y(part);
+    svg.appendChild(svgEl('line', { class: 'courbe-repere', x1: gx, y1: y, x2: dx, y2: y }));
+    const t = svgEl('text', { class: 'courbe-texte', x: gx + 1, y: y - 3 });
+    t.textContent = T(cle);
+    svg.appendChild(t);
+  }
+
+  /* LA CUMULÉE. Le i-ième relevé trié atteint la part (i+1)/n : on relie ces
+     points, en partant du plancher de l'axe parce qu'aucune durée n'est
+     mesurable en deçà. Deux tracés pour un seul chemin — l'aire remplie et le
+     trait par-dessus — de sorte que le trait garde son épaisseur au sommet. */
+  const pts = [[X(bas), Y(0)]];
+  for (let i = 0; i < lags.length; i++) pts.push([X(lags[i]), Y((i + 1) / lags.length)]);
+  /* LE PLATEAU VA JUSQU'AU BORD, et ce n'est pas une extrapolation : une
+     cumulée vaut 100 % pour toute durée supérieure au plus grand relevé, par
+     définition. Sans ce point, l'aire se refermait en DIAGONALE depuis le
+     dernier relevé jusqu'au coin — une pente qui se lisait comme une
+     décroissance alors qu'il ne s'était rien passé. Vu sur capture, dès que
+     le haut de l'axe a été arrondi au-delà du maximum. */
+  pts.push([dx, Y(1)]);
+  const trace = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  svg.appendChild(svgEl('path', { class: 'courbe-aire', d: `${trace} L${dx},${Y(0)} Z` }));
+  svg.appendChild(svgEl('path', { class: 'courbe-trait', d: trace }));
+  svg.appendChild(svgEl('line', { class: 'courbe-axe', x1: gx, y1: by, x2: dx, y2: by }));
+
+  /* La descente des deux repères jusqu'à l'axe : c'est elle qui transforme un
+     croisement en abscisse lisible. Aucune étiquette de durée ici — les
+     cartouches au-dessus les donnent au chiffre près, et les répéter sur un
+     axe déjà gradué ne ferait que se chevaucher quand la distribution est
+     serrée, ce qu'elle est le plus souvent. */
+  for (const [ms, part] of [[paquet.resume && paquet.resume.medianeLag, 0.5],
+                            [paquet.resume && paquet.resume.p90Lag, 0.9]]) {
+    if (!Number.isFinite(ms)) continue;
+    const x = Math.min(dx, Math.max(gx, X(ms)));
+    svg.appendChild(svgEl('line', { class: 'courbe-repere', x1: x, y1: Y(part), x2: x, y2: by }));
+  }
+  return svg;
+};
 
 /* ── Transport ───────────────────────────────────────────────────────────── */
 /* On mémorise la PROMESSE, pas la valeur. Deux sections chargées coup sur
@@ -245,6 +557,11 @@ let courante = SECTIONS[0].id;
 
 const montrerMessage = (cle, bouton, detail) => {
   $('tableau-cadre').hidden = true;
+  /* Le dessin part avec le tableau. Sans cette ligne, la grille de la section
+     précédente restait affichée sous « Chargement… » — un dessin qui survit à
+     sa section décrit des données qui ne sont plus celles qu'on regarde. */
+  $('visuel').hidden = true;
+  $('visuel').replaceChildren();
   $('resume').replaceChildren();
   const m = $('message');
   m.hidden = false;
@@ -316,10 +633,23 @@ const peindre = (section, paquet) => {
     return d;
   }));
 
-  if (!lignes.length) { montrerMessage('stateEmpty'); return; }
+  /* LE DESSIN D'ABORD, PARCE QU'IL DÉCIDE DU VIDE. Une section peut n'avoir
+     aucune ligne à tabuler et tout de même quelque chose à montrer — c'est le
+     cas du rythme, dont la semaine EST le contenu. Annoncer « rien à
+     afficher » au-dessus d'une grille pleine serait le genre de contradiction
+     qu'un panneau ne se permet pas. La vacuité se juge donc sur les deux :
+     ni ligne, ni dessin. */
+  const dessin = section.visuel ? section.visuel(paquet || {}) : null;
+  $('visuel').replaceChildren(...(dessin ? [dessin] : []));
+  $('visuel').hidden = !dessin;
+
+  if (!lignes.length && !dessin) { montrerMessage('stateEmpty'); return; }
 
   $('message').hidden = true;
-  $('tableau-cadre').hidden = false;
+  /* Le tableau se montre s'il a de quoi : une section sans colonnes n'en a
+     pas, et le cadre vide laisserait un rectangle creux sous le dessin. */
+  $('tableau-cadre').hidden = !(colonnes.length && lignes.length);
+  if ($('tableau-cadre').hidden) return;
 
   const affichees = colonnes.filter((c) => COL[c]);
   const tr = document.createElement('tr');

@@ -41,6 +41,12 @@
   "descRoster": {
     "message": "拡張機能がサイドバーで一度でも見たフォロー中のチャンネルすべて。"
   },
+  "navRythme": {
+    "message": "視聴リズム"
+  },
+  "descRythme": {
+    "message": "チャンネルを開いた時刻（ローカル時間）。1 チャンネルにつき 3 時間ごとに 1 回だけ数えます。視聴時間ではなくリズムです。"
+  },
   "navDiagnose": {
     "message": "セレクターの健全性"
   },
@@ -154,6 +160,15 @@
   },
   "sumChannels": {
     "message": "チャンネル"
+  },
+  "sumVisits": {
+    "message": "訪問"
+  },
+  "sumPeakSlot": {
+    "message": "最も多い時間帯"
+  },
+  "sumSince": {
+    "message": "履歴"
   },
   "sumSubscribed": {
     "message": "サブスク"
@@ -275,6 +290,12 @@
   },
   "valOff": {
     "message": "オフ"
+  },
+  "valLess": {
+    "message": "少"
+  },
+  "valMore": {
+    "message": "多"
   },
   "healthOk": {
     "message": "セレクター正常"

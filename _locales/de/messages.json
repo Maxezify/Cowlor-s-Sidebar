@@ -41,6 +41,12 @@
   "descRoster": {
     "message": "Alle gefolgten Kanäle, die die Erweiterung mindestens einmal in deiner Seitenleiste gesehen hat."
   },
+  "navRythme": {
+    "message": "Rhythmus"
+  },
+  "descRythme": {
+    "message": "Wann Sie einen Kanal öffnen, in Ortszeit. Ein Besuch zählt einmal pro Kanal und Drei-Stunden-Fenster: Das ist ein Rhythmus, keine Sehdauer."
+  },
   "navDiagnose": {
     "message": "Selektor-Zustand"
   },
@@ -154,6 +160,15 @@
   },
   "sumChannels": {
     "message": "Kanäle"
+  },
+  "sumVisits": {
+    "message": "Besuche"
+  },
+  "sumPeakSlot": {
+    "message": "dichtestes Zeitfenster"
+  },
+  "sumSince": {
+    "message": "Verlauf"
   },
   "sumSubscribed": {
     "message": "abonniert"
@@ -275,6 +290,12 @@
   },
   "valOff": {
     "message": "Aus"
+  },
+  "valLess": {
+    "message": "weniger"
+  },
+  "valMore": {
+    "message": "mehr"
   },
   "healthOk": {
     "message": "Selektoren OK"
