@@ -93,7 +93,7 @@ où le code change :
    livrés **ni minifiés ni obscurcis** : mêmes noms, mêmes lignes, même
    indentation que dans le dépôt. Depuis la 3.59 le paquet part en revanche
    **sans les commentaires** — ceux du JavaScript, et depuis la 3.60 ceux du
-   CSS aussi (969 → 456 Ko) ; la phrase reste vraie au mot près — c'est de
+   CSS aussi (972 → 459 Ko) ; la phrase reste vraie au mot près — c'est de
    lisibilité qu'elle parle, pas d'annotations — et les commentaires, eux,
    sont dans le dépôt public. Ce chiffre-là est confronté à la mesure par
    `npm run addon` : il a été faux, et personne ne l'a vu. Les mentions

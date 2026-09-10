@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 754 Ko | 321 Ko | 2 981 → **2** |
+| `content.js` | 775 Ko | 328 Ko | 3 007 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 53 Ko | 27 Ko | 70 → **0** |
+| `panneau.js` | 53 Ko | 27 Ko | 71 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **969 Ko** | **456 Ko** | **−53 %** |
+| **les cinq** | **972 Ko** | **459 Ko** | **−53 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -355,7 +355,7 @@ qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
 d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 981
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 3 007
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches
@@ -2531,6 +2531,170 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## La carte d'un subathon (v3.90)
+
+Un **subathon** est un direct que les abonnements prolongent : il ne s'arrête
+pas, il dure des jours, il traverse des dizaines de catégories. C'est le format
+le plus singulier de la plateforme, et jusqu'ici la sidebar le montrait comme
+n'importe quel autre direct : une ligne, un compteur, rien.
+
+Deux marques, et rien de plus : un **anneau de lumière** qui fait le tour de la
+carte, et une **pastille de jour** collée à la durée — `J9 31h05`.
+
+### Ce qu'on n'emploie pas pour le reconnaître : l'ancienneté
+
+C'était le signal évident, et il est faux. Un subathon **à sa deuxième heure du
+premier jour en est un** ; un rediffuseur qui laisse tourner sa chaîne
+vingt-quatre heures n'en est pas un. `createdAt` mesure la **session**, pas le
+format — et une reconnexion la remet à zéro sans interrompre l'événement.
+
+La durée ne prouve donc rien dans un sens ni dans l'autre. La faire entrer dans
+la règle n'aurait fait qu'ajouter un faux négatif au début et un faux positif à
+la fin.
+
+### Ce qu'on emploie : les deux endroits où le streamer le dit
+
+Le titre et les tags. Trois règles, dont **deux sont des conjonctions** :
+
+| | Ce qui déclenche | Exemple |
+|---|---|---|
+| (a) | le titre **nomme** l'événement — `subathon`, `sub-a-thon`, `SUB A THON` | `SUBATHON DAY 12` |
+| (b) | un mot en **`thon`** *et* un numéro de jour | `!MOUSEATHON DAY 9` |
+| (c) | un **tag** `Subathon` *et* un numéro de jour dans le titre | `Chill stream jour 5` |
+
+**Pourquoi (b) et (c) exigent le numéro de jour.** *Marathon* est un jeu de
+Bungie sorti en 2025 : un direct de deux heures qui y joue porte un mot en
+« thon » et n'est rien d'autre qu'une partie. Le numéro de jour est ce qui
+distingue un **nom** d'un **événement** — personne n'écrit « jour 9 » sur une
+soirée. La conjonction n'est pas une prudence ajoutée : c'est elle qui rend la
+règle juste.
+
+Le mot **nu** `thon` est exclu — deux lettres sont exigées devant lui. C'est le
+poisson, en français, et « je mange du thon jour 4 » ne décore rien.
+
+### Le numéro de jour, dans les écritures qui ne s'écrivent pas comme la nôtre
+
+Le nombre ne se pose pas au même endroit selon la langue : `day 9` en tête,
+`9日目` en queue, `第9天` de part et d'autre. Trois formes d'expression le
+couvrent, et les bornes de mot sont écrites en **propriétés Unicode** et non en
+`\b`, qui ne connaît que l'ASCII et couperait `día` en deux.
+
+La liste des mots qui disent « jour » couvre les langues où l'on diffuse en
+volume, et elle en **écarte délibérément** certaines : le tchèque `den`, le
+croate `dan` et le hongrois `nap` sont tous des mots anglais courants, et
+`nap 3` n'annonce pas une diffusion de trois jours. Mieux vaut manquer une
+langue que décorer une carte au hasard.
+
+Les quatre cas en écriture non latine sont le vrai enjeu de la règle (c) : le
+titre n'y porte **aucun mot latin**, et sans le tag rien ne les rattraperait.
+
+### Le faux positif connu, nommé plutôt que tu
+
+`python` est un mot en « thon ». Un titre `Python — Day 3` d'une série de code
+sera pris pour un subathon. Le cas est rare, sans conséquence — une carte
+décorée à tort — et le resserrer à `athon` le supprimerait au prix des noms
+fabriqués en `-thon` sans `a`, que la règle demandée couvre expressément.
+
+Il a sa ligne dans le banc, avec son verdict attendu. Si un jour il faut
+trancher autrement, cette ligne dira exactement ce qu'on perd.
+
+### Les deux marques, et pourquoi ce sont celles-là
+
+**Le périmètre de la carte n'était pris par rien.** Le trait de « fraîchement
+en ligne » est intérieur et à gauche ; la lueur d'abonné est un fond. Une
+lumière qui fait le **tour** dit « ça tourne encore » sans rien recouvrir — et
+une carte peut porter les trois signaux à la fois sans qu'aucun ne se perde.
+
+L'anneau est un **élément injecté**, et non un pseudo-élément : `::before`
+appartient déjà à « frais », `::after` à « abonné ». Il est `aria-hidden` de
+bout en bout — c'est la pastille qui porte le sens.
+
+**Une capture a corrigé l'anneau.** La première rédaction faisait partir le
+dégradé conique d'un secteur **entièrement transparent** : sur les trois quarts
+du tour il n'y avait pas d'anneau du tout, et l'œil lisait non pas une lumière
+qui tourne mais une **bordure cassée**, un défaut de rendu. Le socle est
+désormais continu — faible, mais présent sur les 360° — et la portion vive s'y
+déplace. C'est le contraste avec le socle qui dessine le mouvement, pas
+l'absence de socle.
+
+Sans `mask-composite`, l'anneau **reste vide** : le contour se fabrique en
+peignant tout le cadre puis en découpant l'intérieur, et là où ce découpage
+n'a pas lieu, le dégradé recouvrirait la carte entière.
+
+### La pastille s'ajoute, elle ne réécrit pas
+
+`J9 31h05`. Le compteur de durée est réécrit **toutes les minutes**, et
+l'écraser entier ferait disparaître la pastille entre deux relevés. L'écriture
+vise donc le **nœud texte** de fin plutôt que l'élément.
+
+**La carte ordinaire ne change pas de chemin**, et c'est voulu : sans pastille,
+on repasse par l'écriture d'avant, donc le contenu et le `textContent` de
+l'élément sont exactement ceux d'hier — ce que le banc lit en quatre endroits.
+
+Un subathon peut **ne pas se compter** : `24H SUBATHON` nomme l'événement sans
+en numéroter le jour. La carte le marque alors sans pastille. On ne montre pas
+un nombre qu'on n'a pas, et surtout on ne retombe pas sur `J1` par défaut, ce
+qui serait une invention.
+
+Le titre est **lu, jamais écrit**. Il n'entre dans l'extension que pour y
+chercher un motif, et seul un **nombre** en ressort — le libellé (`J9`, `D9`,
+`T9`, `第9天`) est bâti par la table de langue.
+
+### Ce que le banc a trouvé, et que la relecture n'avait pas vu
+
+La marque doit savoir **se défaire** : un streamer retire « subathon » de son
+titre au milieu de sa diffusion, et React réutilise la même carte d'une chaîne
+à l'autre. Elle se défaisait — mais **l'espace laissé derrière ne partait
+pas**. L'espace qui sépare la pastille de la durée vit dans le nœud texte, pas
+dans la pastille : la retirer seule laissait `␣31h05` sur la carte jusqu'au
+relevé suivant.
+
+Le relevé suivant le rattrapait. « À la minute prochaine » n'est pas une
+réponse quand le décalage se voit.
+
+L'assertion qui l'a trouvé compare le compteur à celui d'une **carte ordinaire
+de même ancienneté**, plutôt que de recopier un format : `mouse.texte === 'J9 '
++ ordi.texte`. Un `includes` ne l'aurait pas vu.
+
+### Le rapport de diagnostic dit laquelle des trois règles porte les cas
+
+Cette détection ne tourne que sur ce que Twitch écrit dans le titre, et elle
+n'a jamais pu être exécutée contre le vrai Twitch. Le rapport est donc le seul
+œil qu'on aura :
+
+- `detectes` vient du **cache**, `marquees` du **DOM**. Une carte non décorée
+  peut vouloir dire que la détection n'a rien vu, ou qu'elle a vu et que la
+  pose n'a pas suivi ; leur écart désigne le coupable sans avoir à deviner ;
+- `voies` compte les cas par règle. Un rapport où tout arrive par `thon`
+  dirait qu'on décore des parties de *Marathon* ; un rapport où `tag` ne sort
+  jamais dirait que Twitch ne sert pas ce tag dans les tags libres, et que la
+  règle (c) est lettre morte ;
+- `sansJour` compte les subathons nommés mais non numérotés — ceux qui gardent
+  l'anneau sans la pastille.
+
+Tout est **relu à la demande** du cache et du DOM. Aucun compteur cumulatif :
+un compteur qui s'incrémente à chaque passe dérive, et celui-ci doit dire un
+**état**.
+
+### Le titre coûte une soixantaine d'octets par chaîne
+
+C'est un champ de plus dans une requête qui part de toute façon : aucune
+opération supplémentaire, aucune permission, rien qui change au contrat
+anonyme. Le volume est réel et se chiffre — environ **six kilo-octets par
+balayage** sur les trente que pèse `TseChannels`, soit **+20 %**.
+
+Ce qu'il achète, c'est le **numéro du jour**, qu'aucun calcul ne donne. Il
+n'est écrit nulle part ailleurs : ni dans `createdAt`, qui repart à chaque
+reconnexion, ni dans les tags, qui ne comptent rien.
+
+### Le mouvement réduit garde l'information et perd le mouvement
+
+`prefers-reduced-motion` fige les deux marques sans en retirer aucune : la
+chaleur du compteur se pose sur une teinte pleine, l'anneau devient un liseré
+immobile et **uniforme**. Uniforme, parce qu'un anneau figé garderait sa
+portion vive arrêtée à un endroit du tour — c'est-à-dire exactement la bordure
+asymétrique qu'on venait de corriger.
+
 ## La frise d'un subathon (v3.89)
 
 Un utilisateur envoie une capture : **Ironmouse en subathon**, un direct qui ne
@@ -3643,7 +3807,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 90 scénarios, 824 assertions |
+| `npm test` | le harnais Playwright : 91 scénarios, 841 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

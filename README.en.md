@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 754 KB | 321 KB | 2,981 → **2** |
+| `content.js` | 775 KB | 328 KB | 3,007 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 53 KB | 27 KB | 70 → **0** |
+| `panneau.js` | 53 KB | 27 KB | 71 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **969 KB** | **456 KB** | **−53 %** |
+| **all five** | **972 KB** | **459 KB** | **−53 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -343,7 +343,7 @@ within 3 %: wide enough for a version's ordinary growth, too narrow for a
 sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,981
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 3,007
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`
@@ -2396,6 +2396,167 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## A subathon's card (v3.90)
+
+A **subathon** is a stream that subscriptions keep extending: it doesn't stop,
+it runs for days, it crosses dozens of categories. It's the platform's most
+distinctive format, and until now the sidebar showed it like any other stream:
+one row, one counter, nothing.
+
+Two marks, and nothing more: a **ring of light** travelling around the card,
+and a **day pill** against the duration — `D9 31h05`.
+
+### What we don't use to recognise it: uptime
+
+That was the obvious signal, and it's wrong. A subathon **in its second hour of
+day one is one**; a rerun channel left running for twenty-four hours is not.
+`createdAt` measures the **session**, not the format — and a reconnection
+resets it without interrupting the event.
+
+Duration therefore proves nothing either way. Folding it into the rule would
+only have added a false negative at the start and a false positive at the end.
+
+### What we do use: the two places the streamer says so
+
+The title and the tags. Three rules, **two of them conjunctions**:
+
+| | What triggers | Example |
+|---|---|---|
+| (a) | the title **names** the event — `subathon`, `sub-a-thon`, `SUB A THON` | `SUBATHON DAY 12` |
+| (b) | a word ending in **`thon`** *and* a day number | `!MOUSEATHON DAY 9` |
+| (c) | a `Subathon` **tag** *and* a day number in the title | `Chill stream jour 5` |
+
+**Why (b) and (c) require the day number.** *Marathon* is a Bungie game
+released in 2025: a two-hour stream playing it carries a word ending in "thon"
+and is nothing but a session. The day number is what separates a **name** from
+an **event** — nobody writes "day 9" on an evening. The conjunction isn't
+added caution: it's what makes the rule correct.
+
+The **bare** word `thon` is excluded — two letters are required in front of it.
+It's the French word for tuna, and "je mange du thon jour 4" decorates nothing.
+
+### The day number, in scripts that aren't written like ours
+
+The number doesn't sit in the same place across languages: `day 9` in front,
+`9日目` behind, `第9天` on both sides. Three expression shapes cover it, and the
+word boundaries are written with **Unicode properties** rather than `\b`, which
+only knows ASCII and would cut `día` in half.
+
+The list of words meaning "day" covers the languages people stream in at
+volume, and **deliberately leaves some out**: Czech `den`, Croatian `dan` and
+Hungarian `nap` are all common English words, and `nap 3` doesn't announce a
+three-day broadcast. Better to miss a language than decorate a card at random.
+
+The four non-Latin-script cases are what rule (c) is really for: their titles
+carry **no Latin word at all**, and without the tag nothing would catch them.
+
+### The known false positive, named rather than hidden
+
+`python` is a word ending in "thon". A `Python — Day 3` title from a coding
+series will be taken for a subathon. The case is rare and harmless — one card
+decorated wrongly — and tightening it to `athon` would remove it at the cost of
+coined `-thon` names without the `a`, which the requested rule expressly
+covers.
+
+It has its own line in the harness, with its expected verdict. If the trade-off
+ever has to change, that line says exactly what is lost.
+
+### The two marks, and why those
+
+**Nothing had claimed the card's perimeter.** The "recently live" stroke is
+inside and to the left; the subscriber glow is a background. A light that goes
+**around** says "still running" without covering anything — and a card can
+carry all three signals at once without any of them being lost.
+
+The ring is an **injected element**, not a pseudo-element: `::before` already
+belongs to "fresh", `::after` to "subscribed". It is `aria-hidden` throughout —
+the pill is what carries the meaning.
+
+**A screenshot corrected the ring.** The first version started the conic
+gradient from a **fully transparent** sector: over three quarters of the turn
+there was no ring at all, and the eye read not a travelling light but a
+**broken border**, a rendering fault. The base is now continuous — faint, but
+present across all 360° — and the lit portion moves along it. It's the contrast
+with the base that draws the movement, not the absence of a base.
+
+Without `mask-composite`, the ring **stays empty**: the outline is built by
+painting the whole frame and then cutting out the inside, and where that
+cut-out doesn't happen, the gradient would cover the entire card.
+
+### The pill adds itself, it doesn't rewrite
+
+`D9 31h05`. The uptime counter is rewritten **every minute**, and overwriting
+it whole would make the pill vanish between two sweeps. The write therefore
+targets the trailing **text node** rather than the element.
+
+**The ordinary card doesn't change path**, and that's deliberate: with no pill,
+we go back through the previous write, so the element's content and
+`textContent` are exactly yesterday's — which the harness reads in four places.
+
+A subathon may **not count itself**: `24H SUBATHON` names the event without
+numbering the day. The card marks it without a pill. We don't show a number we
+don't have, and above all we don't fall back to `D1`, which would be an
+invention.
+
+The title is **read, never written**. It enters the extension only to be
+searched for a pattern, and only a **number** comes back out — the label (`J9`,
+`D9`, `T9`, `第9天`) is built from the language table.
+
+### What the harness found, and review had not
+
+The mark has to know how to **undo itself**: a streamer drops "subathon" from
+their title mid-stream, and React reuses the same card from one channel to the
+next. It did undo — but **the space left behind didn't go**. The space
+separating the pill from the duration lives in the text node, not in the pill:
+removing the pill alone left `␣31h05` on the card until the next sweep.
+
+The next sweep did catch it. "By next minute" is not an answer when the offset
+is visible.
+
+The assertion that found it compares the counter against an **ordinary card of
+the same age** rather than copying a format: `mouse.texte === 'J9 ' +
+ordi.texte`. An `includes` would not have seen it.
+
+### The diagnostic report says which of the three rules carries the cases
+
+This detection runs only on what Twitch writes in the title, and it has never
+been possible to run it against the real Twitch. The report is the only eye
+we'll have:
+
+- `detectes` comes from the **cache**, `marquees` from the **DOM**. An
+  undecorated card can mean the detection saw nothing, or that it saw and the
+  application didn't follow; the gap between them names the culprit without
+  guessing;
+- `voies` counts cases by rule. A report where everything arrives through
+  `thon` would say we're decorating *Marathon* sessions; a report where `tag`
+  never appears would say Twitch doesn't serve that tag among the freeform
+  tags, and that rule (c) is dead letter;
+- `sansJour` counts subathons named but unnumbered — the ones that keep the
+  ring without the pill.
+
+Everything is **re-read on demand** from the cache and the DOM. No cumulative
+counters: a counter incremented on every pass drifts, and this one has to
+report a **state**.
+
+### The title costs about sixty bytes per channel
+
+It's one more field in a request that goes out anyway: no extra operation, no
+permission, nothing that changes the anonymous contract. The volume is real and
+measurable — about **six kilobytes per sweep** out of the thirty `TseChannels`
+weighs, or **+20%**.
+
+What it buys is the **day number**, which no computation yields. It is written
+nowhere else: not in `createdAt`, which restarts on every reconnection, nor in
+the tags, which count nothing.
+
+### Reduced motion keeps the information and drops the movement
+
+`prefers-reduced-motion` freezes both marks without removing either: the
+counter's heat settles on a solid colour, the ring becomes a still and
+**uniform** outline. Uniform, because a frozen ring would keep its lit portion
+stopped at one point of the turn — which is exactly the asymmetric border we
+had just corrected.
+
 ## A subathon's trail (v3.89)
 
 A user sends a screenshot: **Ironmouse on a subathon**, a stream that never
@@ -3468,7 +3629,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 90 scenarios, 824 assertions |
+| `npm test` | the Playwright harness: 91 scenarios, 841 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

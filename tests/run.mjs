@@ -6581,6 +6581,12 @@ titre('70. Panneau — la page rendue, mesurée');
       ],
       compteurs: { visites: 137, abonnements: 12, abonnes: 5, roster: 88, mesures: 6,
                    bascules: 1, cache: 40 },
+      /* `detectes` ET `marquees` VOLONTAIREMENT DIFFÉRENTS. C'est l'écart qui
+         fait tout l'intérêt de ce bloc — trois subathons dans le cache, deux
+         cartes décorées — et deux nombres distincts sont aussi ce qui empêche
+         une assertion de passer sur un bloc qui n'en rendrait qu'un. */
+      subathons: { detectes: 3, sansJour: 1, voies: { nom: 1, thon: 1, tag: 1 },
+                   marquees: 2 },
       relevesAbonnements: { horodatage: 0, enAttente: false },
       global: { enabled: false, complete: false },
       journaux: { verrous: [], cycles: [{ t: 12, evt: 'depart', detail: 'boot' }], apercu: [] },
@@ -6865,6 +6871,17 @@ titre('70. Panneau — la page rendue, mesurée');
   ok('…l\'état du réseau et les quantiles de retard',
      contient('pauseGqlMs') && contient('12000') && contient('210000'),
      'pause GraphQL et p90');
+  /* LE BLOC DES SUBATHONS. La règle qui les reconnaît ne lit que le titre du
+     direct et n'a jamais pu être exécutée contre le vrai Twitch : ce bloc est
+     la seule mesure qu'on en aura, et un bloc absent du rapport ne mesure
+     rien. On exige les DEUX nombres — celui du cache et celui du DOM, qui
+     diffèrent dans la fixture — et le détail par règle : un bloc qui ne
+     rendrait que le total passerait sans dire ce qu'on lui demande. */
+  ok('…le bloc des subathons : l\'écart cache/DOM, et la règle qui a tranché',
+     contient('SUBATHONS') && /detectes\s+3/.test(vue.texte)
+     && /marquees\s+2/.test(vue.texte) && /voies\.thon\s+1/.test(vue.texte)
+     && /sansJour\s+1/.test(vue.texte),
+     JSON.stringify((vue.texte.match(/SUBATHONS[\s\S]{0,160}/) || [])[0]));
   /* L'ÉTAPE DE DÉMARRAGE FIGURE AUSSI QUAND TOUT VA BIEN. Un champ qu'on ne
      voit que le jour de la panne ne se compare à rien : il faut savoir qu'il
      aurait dû être là pour remarquer qu'il manque. Ici il vaut « pret », ne
@@ -10096,6 +10113,259 @@ titre('90. La frise d\'un subathon — une ligne par catégorie, pas par bascule
      `${cent.parts} trait(s), ${cent.debord} px de débordement`);
   ok('…et la liste, elle, reste à neuf lignes',
      cent.lignes.length === 9, `${cent.lignes.length} ligne(s)`);
+  await page.close();
+}
+
+titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
+{
+  /* DEUX MOITIÉS, ET ELLES NE SE PROUVENT PAS DE LA MÊME FAÇON. La RÈGLE est
+     une fonction pure : on l'extrait de la source et on la nourrit de titres
+     réels, ce qui permet d'en couvrir trente d'un coup. La CARTE, elle, ne se
+     juge que dans un navigateur, à travers le vrai relevé — c'est là que se
+     tiennent les défauts qu'une fonction pure ne peut pas avoir : la pose qui
+     empile, la marque qui ne se défait pas, l'espace laissé derrière.
+
+     POURQUOI CE SCÉNARIO EXISTE À CE POINT DE DÉTAIL. Cette détection ne
+     tourne que sur ce que Twitch écrit dans le titre, et je n'ai aucun moyen
+     de l'exécuter contre le vrai Twitch. Le banc est donc la SEULE preuve, et
+     il doit valoir pour les langues où l'on diffuse — le numéro de jour ne
+     s'écrit pas au même endroit en japonais qu'en anglais. */
+
+  // ── LA RÈGLE, EXTRAITE DE LA SOURCE ET JOUÉE TELLE QUELLE ────────────────
+  /* On n'en recopie pas une deuxième version : deux rédactions de la même
+     expression finissent toujours par diverger d'un caractère, et c'est
+     l'originale qu'il faut mettre en cause. */
+  const srcTse = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+  const debRegle = srcTse.indexOf('  const RE_SUBATHON_NOM');
+  const finRegle = srcTse.indexOf('  const TSE_CHANNELS_QUERY');
+  const ctxRegle = createContext({});
+  runInContext(srcTse.slice(debRegle, finRegle)
+    + '\nglobalThis.__detecter = detecterSubathon;', ctxRegle);
+  const detecter = ctxRegle.__detecter;
+  ok('la règle s\'extrait de la source, et c\'est bien une fonction',
+     debRegle > 0 && finRegle > debRegle && typeof detecter === 'function');
+
+  /* « voie:jour » en une chaîne : le verdict ET la règle qui l'a rendu. Sans
+     la voie, un cas passant par la mauvaise règle passerait inaperçu — et
+     c'est exactement ce que le rapport de diagnostic aura à dire. */
+  const dit = (t, tags = []) => {
+    const r = detecter(t, tags);
+    return r === null ? 'NON' : r.voie + ':' + r.jour;
+  };
+  const juger = (cas) => cas
+    .filter(([t, tags, attendu]) => dit(t, tags) !== attendu)
+    .map(([t, tags, attendu]) => `${JSON.stringify(t)}${tags.length ? ' ' + JSON.stringify(tags) : ''}`
+      + ` -> ${dit(t, tags)} (attendu ${attendu})`);
+
+  /* (a) LE TITRE NOMME L'ÉVÉNEMENT — il suffit, avec ou sans numéro. Les
+     séparateurs sont ceux qu'on lit vraiment : « SUB-A-THON », « SUB A THON »,
+     « sub_a_thon ». Et « 24H SUBATHON » est nommé sans être numéroté : la
+     carte le marquera sans pastille, ce qui est la vérité. */
+  const ecartsA = juger([
+    ['SUBATHON DAY 12 | !socials',        [], 'nom:12'],
+    ['[SUB-A-THON JOUR 3] on continue !', [], 'nom:3'],
+    ['SUB A THON - Tag 7',                [], 'nom:7'],
+    ['sub_a_thon Dia 4',                  [], 'nom:4'],
+    ['subathon day9',                     [], 'nom:9'],
+    ['SUBATHON DAY 9/30',                 [], 'nom:9'],
+    ['Subathon',                          [], 'nom:null'],
+    ['24H SUBATHON',                      [], 'nom:null'],
+  ]);
+  ok('le titre qui NOMME un subathon suffit — et son numéro est lu quand il y en a un',
+     ecartsA.length === 0, ecartsA.join(' | '));
+
+  /* (b) UN MOT EN « thon » NE SUFFIT PAS : il lui faut le numéro de jour.
+     C'est la conjonction qui fait la justesse de la règle, et les deux
+     dernières lignes sont là pour la prouver — « Marathon » est un jeu, et
+     une soirée dessus n'est pas un événement de plusieurs jours. */
+  const ecartsB = juger([
+    ['!MOUSEATHON DAY 9 AHHHH 50% TO IMMUNE DEFICIENCY FOUNDATION', [], 'thon:9'],
+    ['Kabathon dzien 8',    [], 'thon:8'],
+    ['SLEEPATHON dia 2',    [], 'thon:2'],
+    ['Marathon - Day 3',    [], 'thon:3'],
+    ['Marathon avec les potes', [], 'NON'],
+    ['Marathon',            [], 'NON'],
+  ]);
+  ok('un mot en « thon » ne vaut QUE s\'il est accompagné d\'un numéro de jour',
+     ecartsB.length === 0, ecartsB.join(' | '));
+
+  /* (c) LE TAG NE SUFFIT PAS NON PLUS. Twitch propose « Subathon » et
+     « SubathonStream » ; on les ramène à leurs lettres avant de comparer,
+     donc la casse et la ponctuation ne comptent pas. Les quatre lignes en
+     écriture non latine sont le vrai enjeu de cette règle : le titre n'y
+     porte aucun mot latin, et sans le tag rien ne le rattraperait. */
+  const ecartsC = juger([
+    ['Chill stream jour 5',  ['Subathon'],       'tag:5'],
+    ['Chill stream Day 5',   ['subathonstream'], 'tag:5'],
+    ['Chill stream Day 5',   ['Français', 'Subathon 2026'], 'tag:5'],
+    ['サブアソン 9日目', ['Subathon'], 'tag:9'],
+    ['第12天 挑战',                  ['subathon'], 'tag:12'],
+    ['서브어톰 3일차',       ['SubathonStream'], 'tag:3'],
+    ['Стрим день 21', ['Subathon'], 'tag:21'],
+    ['Chill stream',         ['Subathon'],       'NON'],
+    ['Chill stream Day 5',   ['Français', 'FPS'], 'NON'],
+  ]);
+  ok('le tag ne vaut QUE s\'il est accompagné d\'un numéro de jour, en toute écriture',
+     ecartsC.length === 0, ecartsC.join(' | '));
+
+  /* (d) CE QUI NE DOIT RIEN DÉCLENCHER. « Decathlon » et « Triathlon » se
+     terminent en « hlon » et non en « thon » — la règle les laisse passer
+     d'elle-même. Le mot NU « thon » est le poisson : deux lettres sont exigées
+     devant lui, et « du thon jour 4 » ne décore rien.
+
+     LA DERNIÈRE LIGNE EST UN FAUX POSITIF CONNU, ET IL EST ICI POUR ÊTRE VU.
+     « Python » est un mot en « thon » : une série de code numérotée par jours
+     sera prise pour un subathon. Le resserrer à « athon » le supprimerait au
+     prix des noms fabriqués en « -thon » sans « a », que la règle demandée
+     couvre expressément. On le nomme plutôt que de le taire — et si un jour
+     il faut trancher autrement, cette ligne dira ce qu'on perd. */
+  const ecartsD = juger([
+    ['GTA RP tranquille',           [], 'NON'],
+    ['Je mange du thon jour 4',     [], 'NON'],
+    ['Decathlon sponsor day 2',     [], 'NON'],
+    ['Triathlon day 2',             [], 'NON'],
+    ['DAY 1 OF ASKING for a follow', [], 'NON'],
+    [null,                          [], 'NON'],
+    ['',                            ['Subathon'], 'NON'],
+    ['Python - Day 3',              [], 'thon:3'],
+  ]);
+  ok('rien d\'autre ne déclenche — et le seul faux positif connu est nommé, pas tu',
+     ecartsD.length === 0, ecartsD.join(' | '));
+
+  // ── LA CARTE, DANS LE NAVIGATEUR, À TRAVERS LE VRAI RELEVÉ ───────────────
+  const page = await fresh();
+  await page.evaluate(() => {
+    /* MÊME `createdAt` POUR « mouse » ET « ordi », ET C'EST LE POINT. La
+       durée affichée doit être EXACTEMENT la même de part et d'autre : on la
+       compare l'une à l'autre plutôt que de recopier un format, ce qui prouve
+       que la pastille s'AJOUTE et ne réécrit rien. */
+    const h = new Date(Date.now() - 1865 * 60_000).toISOString();     // 31 h 05
+    const court = new Date(Date.now() - 74 * 60_000).toISOString();   //  1 h 14
+    window.__fx = {
+      mouse: { id:'1', createdAt:h, viewers:8400, game:'Watch Your Plastic Duck',
+               tags:[], title:'!MOUSEATHON DAY 9 AHHHH 50% TO IMMUNE DEFICIENCY FOUNDATION' },
+      nomme: { id:'2', createdAt:court, viewers:2100, game:'Just Chatting',
+               tags:[], title:'24H SUBATHON' },
+      partag:{ id:'3', createdAt:court, viewers:900,  game:'Just Chatting',
+               tags:['Français', 'Subathon'], title:'Chill stream jour 5' },
+      ordi:  { id:'4', createdAt:h, viewers:7800, game:'Just Chatting',
+               tags:[], title:'GTA RP tranquille' },
+    };
+    window.__addCard('mouse',  'Watch Your Plastic Duck', '8,4 k');
+    window.__addCard('nomme',  'Just Chatting', '2,1 k');
+    window.__addCard('partag', 'Just Chatting', '900');
+    window.__addCard('ordi',   'Just Chatting', '7,8 k');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 4);
+
+  const lire = () => page.evaluate(() => {
+    const out = {};
+    for (const c of document.querySelectorAll('.side-nav-card')) {
+      const up = c.querySelector('.tse-uptime');
+      out[c.dataset.tseLogin] = {
+        marquee:  c.dataset.tseSubathon === 'true',
+        jour:     c.dataset.tseSubathonDay ?? null,
+        anneaux:  c.querySelectorAll('.tse-subathon-anneau').length,
+        cache:    !!c.querySelector('.tse-subathon-anneau[aria-hidden="true"]'),
+        pastille: up ? (up.querySelector('.tse-subathon-jour')?.textContent ?? null) : null,
+        texte:    up ? up.textContent : null,
+        noeuds:   up ? up.childNodes.length : 0,
+        toutLeTexte: c.textContent,
+      };
+    }
+    return out;
+  });
+  const v = await lire();
+
+  ok('la carte d\'un subathon porte l\'anneau et la pastille de son jour',
+     v.mouse.marquee && v.mouse.anneaux === 1 && v.mouse.cache
+     && v.mouse.pastille === 'J9' && v.mouse.jour === '9',
+     JSON.stringify(v.mouse));
+  /* LA DURÉE EST LE RENSEIGNEMENT PRINCIPAL DE CETTE LIGNE, et la pastille ne
+     doit pas l'abîmer. La comparaison est faite avec une carte ORDINAIRE de
+     même ancienneté : si `ecrireUptime` écrasait le contenu au lieu de viser
+     le nœud texte, les deux ne se ressembleraient plus. */
+  ok('…et la durée reste EXACTEMENT celle d\'une carte ordinaire, précédée du jour',
+     /^\d+h\d+$/.test(v.ordi.texte) && v.mouse.texte === 'J9 ' + v.ordi.texte,
+     `subathon « ${v.mouse.texte} » / ordinaire « ${v.ordi.texte} »`);
+  /* UN SUBATHON PEUT NE PAS SE COMPTER. « 24H SUBATHON » nomme l'événement
+     sans en numéroter le jour : la carte le marque et n'affiche pas de
+     pastille. On ne montre pas un nombre qu'on n'a pas — et surtout on ne
+     retombe pas sur « J1 » par défaut, ce qui serait une invention. */
+  ok('un subathon NOMMÉ mais non numéroté garde l\'anneau et n\'invente pas de pastille',
+     v.nomme.marquee && v.nomme.anneaux === 1 && v.nomme.pastille === null
+     && v.nomme.jour === null && v.nomme.noeuds === 1,
+     JSON.stringify(v.nomme));
+  ok('le tag « Subathon » décore la carte dès que le titre porte un numéro',
+     v.partag.marquee && v.partag.pastille === 'J5' && v.partag.jour === '5',
+     JSON.stringify(v.partag));
+  /* LA CARTE ORDINAIRE EST LE VRAI RISQUE DE CE CHANTIER : c'est elle qu'il y
+     a des milliers de fois, et c'est son compteur que quatre autres scénarios
+     lisent. Un seul nœud, aucun attribut, aucun anneau. */
+  ok('la carte ordinaire ne change pas d\'un caractère : un seul nœud, aucune marque',
+     !v.ordi.marquee && v.ordi.anneaux === 0 && v.ordi.noeuds === 1
+     && v.ordi.pastille === null,
+     JSON.stringify(v.ordi));
+  /* LE TITRE EST LU, JAMAIS ÉCRIT. Il n'entre dans l'extension que pour y
+     chercher un motif, et seul un NOMBRE en ressort. Cette assertion est la
+     seule qui le vérifie, et elle vaut d'être là : c'est du texte d'un tiers. */
+  ok('rien du titre ne traverse jusqu\'à la carte — seul un nombre en ressort',
+     !v.mouse.toutLeTexte.includes('MOUSEATHON')
+     && !v.mouse.toutLeTexte.includes('IMMUNE')
+     && !v.partag.toutLeTexte.includes('Chill'),
+     JSON.stringify([v.mouse.toutLeTexte, v.partag.toutLeTexte]));
+
+  /* LE RAPPORT EST LE SEUL ŒIL QU'ON AURA SUR LE VRAI TWITCH. `detectes` vient
+     du cache, `marquees` du DOM : leur écart désignerait laquelle des deux
+     moitiés est en panne. Et `voies` dit quelle règle porte les cas — ici les
+     trois, une chacune, ce qui prouve que les trois chemins sont vivants. */
+  const rap = await page.evaluate(() => window.tse.panneau.rapport().subathons);
+  ok('le rapport compte ce que le DOM montre, et NOMME la règle qui a tranché',
+     rap.detectes === 3 && rap.marquees === 3 && rap.sansJour === 1
+     && rap.voies.nom === 1 && rap.voies.thon === 1 && rap.voies.tag === 1,
+     JSON.stringify(rap));
+
+  /* IDEMPOTENCE. La pose est rejouée à CHAQUE relevé — toutes les trente
+     secondes en production, plusieurs fois par seconde ici. Une pose qui
+     ajoute au lieu de converger empilerait un anneau par relevé, et le défaut
+     ne se verrait qu'au bout de quelques minutes d'utilisation réelle. */
+  await wait(page, 2500);
+  const encore = await lire();
+  ok('rejouée à chaque relevé, la marque n\'empile rien',
+     encore.mouse.anneaux === 1 && encore.mouse.noeuds === 2
+     && encore.mouse.texte === 'J9 ' + encore.ordi.texte,
+     JSON.stringify(encore.mouse));
+
+  /* ET ELLE SE DÉFAIT. Un streamer retire « subathon » de son titre au milieu
+     de sa diffusion ; React réutilise aussi la même carte d'une chaîne à
+     l'autre. Une marque qui ne sait que se poser resterait sur une carte qui
+     ne la mérite plus — et l'anneau, lui, se verrait. */
+  await page.evaluate(() => { window.__fx.mouse.title = 'GTA RP tranquille'; });
+  /* L'ATTENTE NE PORTE QUE SUR L'ATTRIBUT, et c'est délibéré : une attente
+     fondée sur l'anneau la rendrait solidaire de la façon dont l'anneau est
+     écrit, et une mutation SANS RAPPORT — retirer son `aria-hidden` — la
+     ferait rendre la main tout de suite, sur un DOM qui n'a pas encore
+     bougé. Les assertions qui suivent liraient alors un état intermédiaire
+     et échoueraient pour la mauvaise raison. La mutation l'a montré. */
+  await attendre(page, () => ![...document.querySelectorAll('.side-nav-card')]
+    .find(c => c.dataset.tseLogin === 'mouse')?.dataset.tseSubathon, 6000);
+  const apres = await lire();
+  ok('le titre cesse de le dire : l\'anneau, la pastille et l\'attribut partent ensemble',
+     !apres.mouse.marquee && apres.mouse.anneaux === 0
+     && apres.mouse.pastille === null && apres.mouse.jour === null,
+     JSON.stringify(apres.mouse));
+  /* LE DÉFAUT QUE CETTE LIGNE A TROUVÉ. L'espace qui séparait la pastille de
+     la durée vit dans le nœud texte, pas dans la pastille : la retirer seule
+     laissait « ␣31h05 » sur la carte jusqu'au relevé suivant. Comparer au
+     texte d'une carte ordinaire le dit immédiatement ; un `includes` ne
+     l'aurait pas vu. */
+  ok('…et le compteur retrouve EXACTEMENT la forme d\'une carte ordinaire',
+     apres.mouse.noeuds === 1 && apres.mouse.texte === apres.ordi.texte,
+     `« ${apres.mouse.texte} » contre « ${apres.ordi.texte} »`);
+  const rapApres = await page.evaluate(() => window.tse.panneau.rapport().subathons);
+  ok('…et le rapport le compte en moins, des deux côtés',
+     rapApres.detectes === 2 && rapApres.marquees === 2 && rapApres.voies.thon === 0,
+     JSON.stringify(rapApres));
   await page.close();
 }
 
