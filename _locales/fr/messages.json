@@ -41,6 +41,12 @@
   "descRoster": {
     "message": "Toutes les chaînes suivies que l'extension a vues au moins une fois dans votre barre latérale."
   },
+  "navRythme": {
+    "message": "Rythme"
+  },
+  "descRythme": {
+    "message": "Quand vous ouvrez une chaîne, à l'heure locale. Une visite compte une fois par chaîne et par tranche de trois heures : c'est un rythme, pas un temps de visionnage."
+  },
   "navDiagnose": {
     "message": "Santé des sélecteurs"
   },
@@ -154,6 +160,15 @@
   },
   "sumChannels": {
     "message": "chaînes"
+  },
+  "sumVisits": {
+    "message": "visites"
+  },
+  "sumPeakSlot": {
+    "message": "créneau le plus dense"
+  },
+  "sumSince": {
+    "message": "historique"
   },
   "sumSubscribed": {
     "message": "abonnements"
@@ -275,6 +290,12 @@
   },
   "valOff": {
     "message": "Coupé"
+  },
+  "valLess": {
+    "message": "moins"
+  },
+  "valMore": {
+    "message": "plus"
   },
   "healthOk": {
     "message": "Sélecteurs OK"

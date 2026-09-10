@@ -60,6 +60,16 @@ const SECTIONS = [
   { id: 'scores',  groupe: 'grpData',
     tuiles: (r) => [['sumChannels', fmt.nombre(r.chaines)]] },
 
+  { id: 'rythme',  groupe: 'grpData',
+    visuel: (p) => dessinRythme(p),
+    tuiles: (r) => [
+      ['sumVisits',   fmt.nombre(r.visites)],
+      ['sumChannels', fmt.nombre(r.chaines)],
+      ['sumPeakSlot', r.pic && r.pic.n
+        ? `${JOURS_COURTS[r.pic.jour]} ${heureLisible(r.pic.heure)}` : '—'],
+      ['sumSince',    r.premier ? enJours(r.dernier - r.premier) : '—'],
+    ] },
+
   { id: 'subs',    groupe: 'grpData',
     actions: [{ id: 'refreshSubs', cle: 'btnRefreshSubs' }],
     tuiles: (r) => [
@@ -78,6 +88,7 @@ const SECTIONS = [
     ] },
 
   { id: 'lag',     groupe: 'grpDiag',
+    visuel: (p) => dessinLag(p),
     tuiles: (r) => [
       ['sumSamples',    fmt.nombre(r.mesures)],
       ['sumMedian',     fmt.duree(r.medianeLag)],
@@ -111,6 +122,177 @@ const SECTIONS = [
 const MAJ = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const cleNav  = (id) => 'nav'  + MAJ(id);
 const cleDesc = (id) => 'desc' + MAJ(id);
+
+const JOURS_COURTS = (() => {
+  const f = new Intl.DateTimeFormat(LOCALE, { weekday: 'short' });
+  return Array.from({ length: 7 }, (_, j) => f.format(new Date(2024, 0, 7 + j)));
+})();
+
+const heureLisible = (h) => new Intl.DateTimeFormat(LOCALE, { hour: 'numeric' })
+  .format(new Date(2024, 0, 7, h));
+
+const PREMIER_JOUR = (() => {
+  try {
+    const l = new Intl.Locale(LOCALE);
+    const info = (typeof l.getWeekInfo === 'function') ? l.getWeekInfo() : l.weekInfo;
+    const d = info && info.firstDay;
+    if (Number.isInteger(d) && d >= 1 && d <= 7) return d % 7;
+  } catch {   }
+  return 1;
+})();
+
+const enJours = (ms) => {
+  const n = Math.max(1, Math.round(ms / 86_400_000));
+  try {
+    return new Intl.NumberFormat(LOCALE, { style: 'unit', unit: 'day', unitDisplay: 'short' })
+      .format(n);
+  } catch { return NOMBRE.format(n); }
+};
+
+const div = (classe, texte) => {
+  const d = document.createElement('div');
+  d.className = classe;
+  if (texte !== undefined) d.textContent = texte;
+  return d;
+};
+
+const dessinRythme = (paquet) => {
+  const grille = paquet && paquet.grille;
+  const r = (paquet && paquet.resume) || {};
+  if (!Array.isArray(grille) || !r.visites) return null;
+  const max = (r.pic && r.pic.n) || 1;
+
+  const hote = div('rythme');
+  const cases = div('rythme-grille');
+  cases.setAttribute('aria-hidden', 'true');
+
+  const ordre = Array.from({ length: 7 }, (_, i) => (PREMIER_JOUR + i) % 7);
+  for (const j of ordre) {
+    cases.appendChild(div('rythme-jour', JOURS_COURTS[j]));
+    for (let h = 0; h < 24; h++) {
+      const n = grille[j][h] || 0;
+
+      const palier = n === 0 ? 0 : Math.min(4, Math.ceil((n / max) * 4));
+      const c = div('rythme-case' + (palier ? ' rythme-case--' + palier : ''));
+      c.title = `${JOURS_COURTS[j]} ${heureLisible(h)} — ${NOMBRE.format(n)}`;
+      cases.appendChild(c);
+    }
+  }
+  hote.appendChild(cases);
+
+  const axe = div('rythme-grille');
+  axe.setAttribute('aria-hidden', 'true');
+  axe.appendChild(div('rythme-heure'));
+  for (let h = 0; h < 24; h++) {
+    axe.appendChild(div('rythme-heure', h % 3 === 0 ? String(h).padStart(2, '0') : ''));
+  }
+  hote.appendChild(axe);
+
+  const colonnes = Array.from({ length: 24 }, (_, h) =>
+    ordre.reduce((s, j) => s + (grille[j][h] || 0), 0));
+  const hautMax = Math.max(1, ...colonnes);
+  const profil = div('rythme-profil');
+  profil.setAttribute('aria-hidden', 'true');
+  profil.appendChild(div('rythme-echelle', NOMBRE.format(hautMax)));
+  for (let h = 0; h < 24; h++) {
+    const b = div('rythme-barre');
+    b.style.height = (colonnes[h] / hautMax * 100).toFixed(2) + '%';
+    b.title = `${heureLisible(h)} — ${NOMBRE.format(colonnes[h])}`;
+    profil.appendChild(b);
+  }
+  hote.appendChild(profil);
+
+  const legende = div('rythme-legende');
+  legende.setAttribute('aria-hidden', 'true');
+  legende.appendChild(div('rythme-legende-mot', T('valLess')));
+  for (let p = 0; p <= 4; p++) legende.appendChild(div('rythme-case' + (p ? ' rythme-case--' + p : '')));
+  legende.appendChild(div('rythme-legende-mot', T('valMore')));
+  hote.appendChild(legende);
+  return hote;
+};
+
+const NS_SVG = 'http://www.w3.org/2000/svg';
+const svgEl = (nom, attrs) => {
+  const e = document.createElementNS(NS_SVG, nom);
+  for (const k of Object.keys(attrs || {})) e.setAttribute(k, String(attrs[k]));
+  return e;
+};
+
+const PALIERS_LAG = [1e3, 5e3, 15e3, 30e3, 60e3, 5 * 60e3, 15 * 60e3,
+                     30 * 60e3, 60 * 60e3, 2 * 60 * 60e3];
+
+const dessinLag = (paquet) => {
+  const lignes = (paquet && paquet.lignes) || [];
+  const lags = lignes.map((s) => s.lag).filter(Number.isFinite).sort((a, b) => a - b);
+
+  if (lags.length < 5) return null;
+  const max = lags[lags.length - 1];
+  if (!(max > 0)) return null;
+
+  const bas = 1000;
+
+  const brut = Math.max(max, bas * 2);
+  const haut = PALIERS_LAG.find((p) => p >= brut) || brut;
+  const lb = Math.log(bas), lh = Math.log(haut);
+
+  const W = 546, H = 104;
+  const gx = 6, dx = 540, hy = 10, by = 80;
+  const svg = svgEl('svg', { class: 'courbe', viewBox: `0 0 ${W} ${H}`,
+                             width: W, height: H, 'aria-hidden': 'true' });
+  const defs = svgEl('defs');
+  const grad = svgEl('linearGradient', { id: 'tse-degrade-courbe', x1: 0, y1: 0, x2: 0, y2: 1 });
+  grad.appendChild(svgEl('stop', { offset: '0%',   'stop-color': '#9147ff', 'stop-opacity': '0.34' }));
+  grad.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#9147ff', 'stop-opacity': '0.02' }));
+  defs.appendChild(grad);
+  svg.appendChild(defs);
+
+  const X = (ms) => gx + (Math.log(Math.max(bas, ms)) - lb) / (lh - lb) * (dx - gx);
+  const Y = (part) => by - part * (by - hy);
+
+  let dernierX = -Infinity;
+  for (const ms of PALIERS_LAG) {
+    if (ms < bas || ms > haut) continue;
+    const x = X(ms);
+    if (x - dernierX < 46) continue;
+    dernierX = x;
+    svg.appendChild(svgEl('line', { class: 'courbe-axe', x1: x, y1: hy, x2: x, y2: by,
+                                    opacity: '0.45' }));
+
+    const t = svgEl('text', { class: 'courbe-texte', x: x, y: by + 13,
+                              'text-anchor': x < gx + 20 ? 'start'
+                                           : x > dx - 30 ? 'end' : 'middle' });
+
+    t.textContent = ms >= 3600e3 && ms % 3600e3 === 0 ? `${ms / 3600e3} h`
+                  : ms >= 60e3 && ms % 60e3 === 0 ? `${ms / 60e3} min`
+                  : fmt.duree(ms);
+    svg.appendChild(t);
+  }
+
+  for (const [part, cle] of [[0.5, 'sumMedian'], [0.9, 'sumP90']]) {
+    const y = Y(part);
+    svg.appendChild(svgEl('line', { class: 'courbe-repere', x1: gx, y1: y, x2: dx, y2: y }));
+    const t = svgEl('text', { class: 'courbe-texte', x: gx + 1, y: y - 3 });
+    t.textContent = T(cle);
+    svg.appendChild(t);
+  }
+
+  const pts = [[X(bas), Y(0)]];
+  for (let i = 0; i < lags.length; i++) pts.push([X(lags[i]), Y((i + 1) / lags.length)]);
+
+  pts.push([dx, Y(1)]);
+  const trace = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  svg.appendChild(svgEl('path', { class: 'courbe-aire', d: `${trace} L${dx},${Y(0)} Z` }));
+  svg.appendChild(svgEl('path', { class: 'courbe-trait', d: trace }));
+  svg.appendChild(svgEl('line', { class: 'courbe-axe', x1: gx, y1: by, x2: dx, y2: by }));
+
+  for (const [ms, part] of [[paquet.resume && paquet.resume.medianeLag, 0.5],
+                            [paquet.resume && paquet.resume.p90Lag, 0.9]]) {
+    if (!Number.isFinite(ms)) continue;
+    const x = Math.min(dx, Math.max(gx, X(ms)));
+    svg.appendChild(svgEl('line', { class: 'courbe-repere', x1: x, y1: Y(part), x2: x, y2: by }));
+  }
+  return svg;
+};
 
 let ongletP = null;
 const idOnglet = () => (ongletP ??= API.tabs
@@ -148,6 +330,9 @@ let courante = SECTIONS[0].id;
 
 const montrerMessage = (cle, bouton, detail) => {
   $('tableau-cadre').hidden = true;
+
+  $('visuel').hidden = true;
+  $('visuel').replaceChildren();
   $('resume').replaceChildren();
   const m = $('message');
   m.hidden = false;
@@ -202,10 +387,16 @@ const peindre = (section, paquet) => {
     return d;
   }));
 
-  if (!lignes.length) { montrerMessage('stateEmpty'); return; }
+  const dessin = section.visuel ? section.visuel(paquet || {}) : null;
+  $('visuel').replaceChildren(...(dessin ? [dessin] : []));
+  $('visuel').hidden = !dessin;
+
+  if (!lignes.length && !dessin) { montrerMessage('stateEmpty'); return; }
 
   $('message').hidden = true;
-  $('tableau-cadre').hidden = false;
+
+  $('tableau-cadre').hidden = !(colonnes.length && lignes.length);
+  if ($('tableau-cadre').hidden) return;
 
   const affichees = colonnes.filter((c) => COL[c]);
   const tr = document.createElement('tr');

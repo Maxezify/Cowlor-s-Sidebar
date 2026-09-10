@@ -2007,59 +2007,100 @@ const TSE_GATE_MAX_CLICKS = 5;
     
     .tse-preview__frise {
       
-      
       padding-top: 10px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
+    
     .tse-preview__frise-titre {
-      margin: 0 0 6px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin: 0 0 7px;
       font-size: 10px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.42);
     }
     
+    .tse-preview__frise-libelle { flex: 0 0 auto; }
+    
     .tse-preview__frise-source {
-      margin-left: 6px;
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       text-transform: none;
       letter-spacing: 0;
       font-style: italic;
       color: rgba(255, 255, 255, 0.32);
     }
     
-    .tse-preview__frise--clips .tse-preview__frise-part {
-      background-image: repeating-linear-gradient(
-        135deg, rgba(0, 0, 0, 0.28) 0 3px, rgba(0, 0, 0, 0) 3px 6px);
+    .tse-preview__frise-total {
+      flex: 0 0 auto;
+      margin-left: auto;
+      letter-spacing: 0;
+      
+      text-transform: none;
+      font-variant-numeric: tabular-nums;
+      color: rgba(255, 255, 255, 0.34);
     }
+    
     .tse-preview__frise-barre {
       display: flex;
-      gap: 1px;
       
-      height: 9px;
-      border-radius: 5px;
+      height: 10px;
+      border-radius: 999px;
       overflow: hidden;
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(0, 0, 0, 0.32);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
     }
     
-    .tse-preview__frise-part { min-width: 3px; }
+    .tse-preview__frise-part {
+      min-width: 4px;
+      background-image: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
+    }
     
-    .tse-preview__frise-part--inconnu {
+    .tse-preview__frise-part + .tse-preview__frise-part {
+      box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.45);
+    }
+    
+    
+    .tse-preview__frise--clips .tse-preview__frise-part {
+      background-image:
+        repeating-linear-gradient(135deg,
+          rgba(0, 0, 0, 0.30) 0 3px, rgba(0, 0, 0, 0) 3px 6px),
+        linear-gradient(180deg,
+          rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
+    }
+    
+    .tse-preview__frise .tse-preview__frise-part--inconnu {
       background-image: repeating-linear-gradient(45deg,
-        rgba(255, 255, 255, 0.17) 0 3px, rgba(255, 255, 255, 0.05) 3px 6px);
+        rgba(255, 255, 255, 0.16) 0 3px, rgba(255, 255, 255, 0.04) 3px 6px);
     }
-    .tse-preview__frise-liste { margin: 8px 0 0; padding: 0; list-style: none; }
+    
+    .tse-preview__frise-liste { margin: 9px 0 0; padding: 0; list-style: none; }
     .tse-preview__frise-ligne {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 8px;
       font-size: 12px;
-      line-height: 1.55;
+      line-height: 1.6;
     }
+    
     .tse-preview__frise-puce {
       flex: 0 0 auto;
-      width: 9px;
-      height: 9px;
+      width: 4px;
+      height: 14px;
       border-radius: 2px;
+      background-image: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
+    }
+    
+    .tse-preview__frise-ligne--inconnu .tse-preview__frise-puce {
+      background-image: repeating-linear-gradient(180deg,
+        rgba(255, 255, 255, 0.34) 0 3px, rgba(255, 255, 255, 0) 3px 6px);
     }
     .tse-preview__frise-nom {
       flex: 1 1 auto;
@@ -2076,6 +2117,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     .tse-preview__frise-ligne--encours .tse-preview__frise-nom { color: #fff; font-weight: 600; }
     .tse-preview__frise-ligne--encours .tse-preview__frise-duree { color: rgba(255, 255, 255, 0.75); }
+    
     .tse-preview__frise-ligne--inconnu .tse-preview__frise-nom {
       color: rgba(255, 255, 255, 0.40);
       font-style: italic;
@@ -4354,6 +4396,35 @@ const TSE_GATE_MAX_CLICKS = 5;
         const lignes = roster.entries().map(([login, ts]) => ({ login, ts }));
         return { colonnes: ['login', 'ts'], lignes, resume: { chaines: lignes.length } };
       },
+
+      rythme() {
+        const grille = Array.from({ length: 7 }, () => new Array(24).fill(0));
+        let visites = 0;
+        let premier = 0;
+        let dernier = 0;
+        let pic = { jour: 0, heure: 0, n: 0 };
+        for (const liste of visits.map.values()) {
+          for (const ts of liste) {
+            if (!Number.isFinite(ts)) continue;
+            const d = new Date(ts);
+            const jour = d.getDay();
+            const heure = d.getHours();
+
+            if (!(jour >= 0 && jour < 7) || !(heure >= 0 && heure < 24)) continue;
+            const n = ++grille[jour][heure];
+            if (n > pic.n) pic = { jour, heure, n };
+            visites++;
+            if (!premier || ts < premier) premier = ts;
+            if (ts > dernier) dernier = ts;
+          }
+        }
+
+        return {
+          colonnes: [], lignes: [],
+          grille,
+          resume: { visites, chaines: visits.map.size, pic, premier, dernier },
+        };
+      },
       lag() {
         const echantillons = liveLag.all();
         const lags  = echantillons.map(s => s.lag).filter(Number.isFinite);
@@ -5603,7 +5674,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       const puce = document.createElement('span');
       puce.className = 'tse-preview__frise-puce';
 
-      puce.style.background = couleur || 'rgba(255,255,255,0.18)';
+      puce.style.backgroundColor = couleur || 'rgba(255,255,255,0.22)';
       const texte = document.createElement('span');
       texte.className = 'tse-preview__frise-nom';
 
@@ -5623,7 +5694,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       d.className = 'tse-preview__frise-part' + (modif ? ' ' + modif : '');
 
       d.style.flex = `${poids} 0 0`;
-      if (couleur) d.style.background = couleur;
+
+      if (couleur) d.style.backgroundColor = couleur;
       return d;
     };
 
@@ -5653,9 +5725,13 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       const bloc = document.createElement('div');
       bloc.className = 'tse-preview__frise';
+
       const titre = document.createElement('p');
       titre.className = 'tse-preview__frise-titre';
-      titre.textContent = S.uiTrailTitle;
+      const libelle = document.createElement('span');
+      libelle.className = 'tse-preview__frise-libelle';
+      libelle.textContent = S.uiTrailTitle;
+      titre.appendChild(libelle);
 
       if (f.source === 'clips') {
         const src = document.createElement('span');
@@ -5664,6 +5740,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         titre.appendChild(src);
         bloc.classList.add('tse-preview__frise--clips');
       }
+
+      const total = document.createElement('span');
+      total.className = 'tse-preview__frise-total';
+      total.textContent = formatDuree(f.totalMs);
+      titre.appendChild(total);
       bloc.appendChild(titre);
 
       const couleurs = couleursFrise(f.segments);
@@ -5675,7 +5756,9 @@ const TSE_GATE_MAX_CLICKS = 5;
         barre.appendChild(frisePart(f.inconnuMs, null, 'tse-preview__frise-part--inconnu'));
       }
       for (const seg of f.segments) {
-        barre.appendChild(frisePart(seg.dureeMs, couleurs.get(seg.jeu)));
+
+        barre.appendChild(frisePart(seg.dureeMs, couleurs.get(seg.jeu),
+          seg.encours ? 'tse-preview__frise-part--encours' : ''));
       }
       bloc.appendChild(barre);
 

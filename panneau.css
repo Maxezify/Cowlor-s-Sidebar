@@ -150,6 +150,103 @@ html, body {
 .tuile--casse .tuile-val { color: var(--rouge); }
 .tuile--ok    .tuile-val { color: var(--vert); }
 
+/* ── Dessins ─────────────────────────────────────────────────────────────────
+   DEUX VUES QUI NE SE TABULENT PAS. Une semaine d'habitudes et une
+   distribution de retards sont des FORMES : mises en colonnes, il faudrait
+   les relire ligne à ligne pour retrouver ce qu'un coup d'œil donne. Le reste
+   du panneau garde ses tableaux — ce bloc n'est pas une mode, il est réservé
+   aux deux endroits où la forme EST l'information.
+
+   Aucune bibliothèque : une grille CSS pour la semaine, un SVG construit nœud
+   par nœud pour la courbe. Le produit livré n'a aucune dépendance et ce n'est
+   pas un dessin qui va lui en donner une. */
+.visuel[hidden] { display: none; }
+.visuel { flex: 0 0 auto; margin-bottom: 10px; }
+
+/* ── La semaine, sept lignes et vingt-quatre colonnes ───────────────────────
+   Le gouttière des jours et les vingt-quatre colonnes sont déclarées DEUX
+   fois, à l'identique : la grille des cases et le profil horaire qui la suit
+   doivent tomber sur les mêmes verticales, sinon le second ne se lit plus
+   comme la projection du premier. C'est la seule raison de cette répétition,
+   et elle vaut mieux qu'une variable qu'on croirait libre de changer d'un
+   côté seulement. */
+.rythme-grille,
+.rythme-profil {
+  display: grid;
+  grid-template-columns: 30px repeat(24, minmax(0, 1fr));
+  gap: 2px;
+}
+.rythme-grille { align-items: center; }
+.rythme-jour {
+  font-size: 10px; color: var(--texte-faible);
+  text-align: right; padding-right: 5px; white-space: nowrap;
+  overflow: hidden; text-overflow: clip;
+}
+/* La case vide n'est pas transparente : une grille dont les creux ne se
+   voient pas n'a plus de trame, et l'œil perd les alignements qui font qu'on
+   sait lire « mardi, 21 h » sans compter les cases. */
+.rythme-case {
+  height: 19px; border-radius: 3px;
+  background: rgba(255, 255, 255, 0.045);
+}
+/* QUATRE PALIERS, ET NON UN DÉGRADÉ CONTINU. Une échelle continue oblige à
+   comparer deux violets pour deux valeurs : personne ne le fait. Quatre
+   paliers se comptent d'un regard, et la valeur exacte reste dans l'infobulle
+   de chaque case. Ils sont espacés en OPACITÉ et non en clarté, pour que la
+   case la plus dense soit exactement l'accent du produit. */
+.rythme-case--1 { background: rgba(145, 71, 255, 0.28); }
+.rythme-case--2 { background: rgba(145, 71, 255, 0.48); }
+.rythme-case--3 { background: rgba(145, 71, 255, 0.70); }
+.rythme-case--4 { background: var(--violet); }
+.rythme-heure {
+  font-size: 9.5px; color: var(--texte-faible);
+  text-align: center; font-variant-numeric: tabular-nums;
+  padding-top: 3px;
+}
+/* ── Le profil horaire : la projection de la grille sur ses colonnes ────────
+   La grille quantifie en quatre paliers, ce qui efface les écarts fins entre
+   deux heures voisines. Le profil les rend : c'est la même donnée, sommée sur
+   les sept jours et dessinée sans palier. Les barres partent du bas, d'où
+   l'alignement en fin de colonne. */
+.rythme-profil { align-items: end; height: 62px; margin-top: 6px; }
+.rythme-barre {
+  min-height: 1px; border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, #a970ff 0%, rgba(145, 71, 255, 0.30) 100%);
+}
+/* L'échelle du profil, dans la gouttière des jours : sans elle les barres ne
+   sont qu'un contour. EN HAUT, et la capture a corrigé ce point : alignée en
+   bas, avec les barres, le nombre se lisait comme l'étiquette de la première
+   colonne au lieu du sommet de l'axe — c'est-à-dire à l'endroit exact où la
+   valeur vaut zéro. Un maximum se pose là où il est atteint. */
+.rythme-echelle {
+  align-self: start;
+  font-size: 9.5px; color: var(--texte-faible);
+  text-align: right; padding-right: 5px;
+  font-variant-numeric: tabular-nums; line-height: 1.1;
+}
+.rythme-legende {
+  display: flex; align-items: center; justify-content: flex-end; gap: 5px;
+  margin-top: 9px; font-size: 10px; color: var(--texte-faible);
+}
+.rythme-legende .rythme-case { width: 13px; height: 13px; }
+
+/* ── La courbe des retards ──────────────────────────────────────────────────
+   CUMULATIVE, ET C'EST UN CHOIX. Un histogramme de durées penche toujours à
+   droite : la masse s'écrase dans les deux premières colonnes et un seul
+   relevé lointain aplatit tout le reste. La courbe cumulée ne dégénère
+   jamais — elle monte de 0 à 100 % quoi qu'il arrive — et surtout elle REND
+   LISIBLES les deux cartouches au-dessus d'elle : la médiane et le 90e
+   centile sont les endroits où elle croise 50 % et 90 %. Le dessin explique
+   les nombres au lieu de les répéter. */
+.courbe { display: block; width: 100%; height: auto; }
+.courbe-aire   { fill: url(#tse-degrade-courbe); }
+.courbe-trait  { fill: none; stroke: #a970ff; stroke-width: 1.6; stroke-linejoin: round; }
+.courbe-repere { stroke: rgba(255, 255, 255, 0.20); stroke-width: 1; stroke-dasharray: 2 3; }
+.courbe-axe    { stroke: var(--filet); stroke-width: 1; }
+.courbe-texte  { fill: var(--texte-faible); font-size: 9.5px; font-variant-numeric: tabular-nums; }
+.courbe-valeur { fill: var(--texte-doux); font-size: 10px; font-weight: 600;
+                 font-variant-numeric: tabular-nums; }
+
 /* ── Tableau ─────────────────────────────────────────────────────────────── */
 .tableau-cadre {
   flex: 1 1 auto; min-height: 0;
