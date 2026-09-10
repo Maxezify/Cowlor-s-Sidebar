@@ -224,6 +224,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'avant le premier clip',
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
+      uiTrailOthers:             (n) => `+ ${n} autres catégories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
       uiBadgeSubMonths:          (n) => `Abonné ${n} mois`,
@@ -300,6 +301,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'before the first clip',
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
+      uiTrailOthers:             (n) => `+ ${n} other categories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
       uiBadgeSubMonths:          (n) => `Subscribed ${n} month${n > 1 ? 's' : ''}`,
@@ -375,6 +377,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'vor dem ersten Clip',
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
+      uiTrailOthers:             (n) => `+ ${n} weitere Kategorien`,
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
       uiBadgeSubMonths:          (n) => `${n} Monat${n > 1 ? 'e' : ''} abonniert`,
@@ -450,6 +453,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes del primer clip',
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
+      uiTrailOthers:             (n) => `+ ${n} categorías más`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
       uiBadgeSubMonths:          (n) => `Suscrito ${n} mes${n > 1 ? 'es' : ''}`,
@@ -525,6 +529,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes do primeiro clipe',
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
+      uiTrailOthers:             (n) => `+ ${n} outras categorias`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
       uiBadgeSubMonths:          (n) => `Inscrito há ${n} ${n > 1 ? 'meses' : 'mês'}`,
@@ -600,6 +605,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'prima della prima clip',
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
+      uiTrailOthers:             (n) => `+ altre ${n} categorie`,
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
       uiBadgeCostreamHost:       'Stream host',
       uiBadgeSubMonths:          (n) => `Abbonato da ${n} mes${n > 1 ? 'i' : 'e'}`,
@@ -675,6 +681,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'przed pierwszym klipem',
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
+      uiTrailOthers:             (n) => `+ ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'inne kategorie' : 'innych kategorii'}`,
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
       uiBadgeCostreamHost:       'Kanał gospodarza',
       uiBadgeSubMonths:          (n) => `Subskrypcja: ${n} ${plurielSlave(n, ['miesiąc', 'miesiące', 'miesięcy'])}`,
@@ -750,6 +757,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'до первого клипа',
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
+      uiTrailOthers:             (n) => `+ ещё ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'категории' : 'категорий'}`,
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
       uiBadgeCostreamHost:       'Канал ведущего',
       uiBadgeSubMonths:          (n) => `Подписка: ${n} ${plurielSlave(n, ['месяц', 'месяца', 'месяцев'])}`,
@@ -825,6 +833,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '最初のクリップより前',
       uiTrailNow:                '進行中',
       uiTrailTruncated:          '冒頭は未保持',
+      uiTrailOthers:             (n) => `ほか ${n} カテゴリー`,
       uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
       uiBadgeCostreamHost:       'ホスト配信',
       uiBadgeSubMonths:          (n) => `サブスク${n}か月`,
@@ -900,6 +909,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '首个剪辑之前',
       uiTrailNow:                '进行中',
       uiTrailTruncated:          '开头未保留',
+      uiTrailOthers:             (n) => `另外 ${n} 个分类`,
       uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
       uiBadgeCostreamHost:       '主办直播',
       uiBadgeSubMonths:          (n) => `已订阅 ${n} 个月`,
@@ -2057,7 +2067,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     
     .tse-preview__frise-part {
-      min-width: 4px;
+      
+      min-width: min(4px, calc(60% / var(--tse-parts, 1)));
       background-image: linear-gradient(180deg,
         rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
     }
@@ -2110,10 +2121,25 @@ const TSE_GATE_MAX_CLICKS = 5;
       white-space: nowrap;
       color: #dedee3;
     }
+    
+    .tse-preview__frise-fois {
+      flex: 0 0 auto;
+      font-size: 10.5px;
+      color: rgba(255, 255, 255, 0.34);
+      font-variant-numeric: tabular-nums;
+    }
     .tse-preview__frise-duree {
       flex: 0 0 auto;
       color: rgba(255, 255, 255, 0.52);
       font-variant-numeric: tabular-nums;
+    }
+    
+    .tse-preview__frise-ligne--autres .tse-preview__frise-nom {
+      color: rgba(255, 255, 255, 0.44);
+    }
+    .tse-preview__frise-ligne--autres .tse-preview__frise-puce {
+      background-image: repeating-linear-gradient(180deg,
+        rgba(255, 255, 255, 0.30) 0 1.5px, rgba(255, 255, 255, 0) 1.5px 3px);
     }
     .tse-preview__frise-ligne--encours .tse-preview__frise-nom { color: #fff; font-weight: 600; }
     .tse-preview__frise-ligne--encours .tse-preview__frise-duree { color: rgba(255, 255, 255, 0.75); }
@@ -2268,6 +2294,23 @@ const TSE_GATE_MAX_CLICKS = 5;
     const brut = continu || depuisLeDebut || !f.debutStream || !bruts.length
       ? 0 : bruts[0].debut - f.debutStream;
     const inconnuMs = brut > CFG.CATEGORY_TRAIL_TOLERANCE ? brut : 0;
+
+    const categories = [];
+    const parJeu = new Map();
+    for (const s of segments) {
+      let e = parJeu.get(s.jeu);
+      if (!e) {
+        e = { jeu: s.jeu, libelle: s.libelle, dureeMs: 0, fois: 0, encours: false };
+        parJeu.set(s.jeu, e);
+        categories.push(e);
+      }
+      e.dureeMs += s.dureeMs;
+      e.fois += 1;
+
+      if (s.libelle) e.libelle = s.libelle;
+      if (s.encours) e.encours = true;
+    }
+
     return {
       debutStream: f.debutStream,
       vuDepuis: f.vuDepuis,
@@ -2275,6 +2318,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       source,
       tronquee: f.tronquee,
       segments,
+      categories,
       totalMs: inconnuMs + segments.reduce((n, s) => n + s.dureeMs, 0),
     };
   };
@@ -5668,7 +5712,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       return table;
     };
 
-    const friseLigne = (nom, duree, couleur, modif) => {
+    const friseLigne = (nom, duree, couleur, modif, fois) => {
       const li = document.createElement('li');
       li.className = 'tse-preview__frise-ligne' + (modif ? ' tse-preview__frise-ligne--' + modif : '');
       const puce = document.createElement('span');
@@ -5680,6 +5724,13 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       texte.textContent = nom;
       li.append(puce, texte);
+
+      if (fois > 1) {
+        const n = document.createElement('span');
+        n.className = 'tse-preview__frise-fois';
+        n.textContent = '×' + fois;
+        li.appendChild(n);
+      }
       if (duree) {
         const d = document.createElement('span');
         d.className = 'tse-preview__frise-duree';
@@ -5747,7 +5798,20 @@ const TSE_GATE_MAX_CLICKS = 5;
       titre.appendChild(total);
       bloc.appendChild(titre);
 
-      const couleurs = couleursFrise(f.segments);
+      const MAX_LIGNES = PALETTE_FRISE.length;
+      let montrees = f.categories;
+      let repliees = [];
+      if (f.categories.length > MAX_LIGNES) {
+        const gardees = new Set(f.categories.filter(c => c.encours).map(c => c.jeu));
+        for (const c of f.categories.slice().sort((a, b) => b.dureeMs - a.dureeMs)) {
+          if (gardees.size >= MAX_LIGNES) break;
+          gardees.add(c.jeu);
+        }
+        montrees = f.categories.filter(c => gardees.has(c.jeu));
+        repliees = f.categories.filter(c => !gardees.has(c.jeu));
+      }
+
+      const couleurs = couleursFrise([...montrees, ...repliees]);
       const barre = document.createElement('div');
       barre.className = 'tse-preview__frise-barre';
 
@@ -5760,6 +5824,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         barre.appendChild(frisePart(seg.dureeMs, couleurs.get(seg.jeu),
           seg.encours ? 'tse-preview__frise-part--encours' : ''));
       }
+
+      barre.style.setProperty('--tse-parts', String(barre.childElementCount));
       bloc.appendChild(barre);
 
       const liste = document.createElement('ul');
@@ -5774,12 +5840,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (f.tronquee) {
         liste.appendChild(friseLigne(S.uiTrailTruncated, '', null, 'inconnu'));
       }
-      for (const seg of f.segments) {
+      for (const c of montrees) {
         liste.appendChild(friseLigne(
-          seg.libelle,
-          formatDuree(seg.dureeMs) + (seg.encours ? ` · ${S.uiTrailNow}` : ''),
-          couleurs.get(seg.jeu),
-          seg.encours ? 'encours' : ''));
+          c.libelle,
+          formatDuree(c.dureeMs) + (c.encours ? ` · ${S.uiTrailNow}` : ''),
+          couleurs.get(c.jeu),
+          c.encours ? 'encours' : '',
+          c.fois));
+      }
+      if (repliees.length) {
+        liste.appendChild(friseLigne(
+          S.uiTrailOthers(repliees.length),
+          formatDuree(repliees.reduce((n, c) => n + c.dureeMs, 0)),
+          null, 'autres'));
       }
       bloc.appendChild(liste);
       return bloc;
