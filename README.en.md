@@ -1971,6 +1971,101 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## What an audit finds when nothing is broken (v3.86)
+
+Every other entry on this page starts from a symptom: someone saw something
+wrong. This one starts from nothing — a systematic re-reading asked for with no
+failure to repair. That is a different exercise, and its result is worth stating
+in full, including what it did **not** find.
+
+### The one substantive defect: a memo that never forgot
+
+The VOD chapters registry — `streamId → { segments, continu, source }` — had
+**no ceiling at all**. No volume bound, no periodic purge, no residency in the
+report. It was the only one in that state: `LIVE_CACHE_MAX`, `META_CACHE_MAX`,
+`GS_CACHE_MAX`, `CATEGORY_TRAIL_MAX`, `CAT_LANGUE_MAX` and
+`CATEGORY_SWITCH_MAX` bound every other one, and the last one's comment states
+the rule: *a structure that never purges ends up growing without end over
+months of use.*
+
+What hid the omission is that this registry **does** have a TTL. It simply draws
+no conclusion from it: `CHAPITRES_TTL` decides whether to **ask again**, never
+whether to forget, and `preludeDe` reads the entry without consulting it — on
+purpose, since a stream's past does not retract itself. One entry per hovered
+broadcast therefore accumulated for the lifetime of the tab, with up to thirty
+segments each when the source is clips.
+
+**The bound is on volume, never on age**, and the distinction is not cosmetic.
+Evicting an eleven-minute-old entry would fix nothing — it is not wrong, it is
+old — and would send a fresh request on the next hover for an answer already
+known. That would be the opposite of the rule governing this whole door: *a
+request that learns nothing is one request too many.* So entries are evicted
+only under memory pressure, least recently learned first.
+
+The ceiling holds **at write time**, in `retenir`, rather than when a timer
+wakes: it therefore holds at every instant. And the report now carries
+`resident` against `max`, on the model of `frise`. The two go together — **a
+bound you cannot observe is a bound you cannot verify**, and this was precisely
+the structure whose occupancy appeared nowhere.
+
+### The reinsertion that covered one case out of two
+
+3.79 fixed eviction in the trail registry: `Map` iterates in **first**-insertion
+order and `set` does not move an existing key, so purging from the head removed
+the richest trail. The fix — a `delete` before the `set` — was only written into
+the "the channel is continuing its stream" branch. The other branch, a channel
+that **restarts** a broadcast, did a bare `set` on a key that was already there.
+
+The consequence: a long-followed channel restarting a stream kept the **oldest**
+position and would be evicted first — at the very moment it had just been
+observed. The neighbouring paragraph promised the opposite: *"a trail only ages
+if its channel stops appearing in the sweeps".*
+
+The `delete` has therefore moved above the branch. It does nothing for an
+unknown channel, and puts the other two back at the tail of the queue.
+
+**What this does not change, and it must be said.** No observable effect while
+the registry stays under its bound, and making it fall would take more than five
+hundred cached channels. Scenario 82 had already settled that question and
+refused to build the scenery: *we do not publish green a scenario costing a
+minute for something a reading gives.* What guards the door is therefore written
+where the fault is committed — in the **shape** of the writing code, the one
+thing a future regression would necessarily touch.
+
+### Three documents that had stopped telling the truth
+
+In a repository where half of what is known about the product lives in its
+margins, a false comment costs more than a missing one: it sends you hunting for
+a bug that is not there.
+
+- **Two adjacent blocks contradicted each other.** The 3.80 one announced that
+  the category menu, under a chosen language, would show "the categories of that
+  language" — that was the `games(options:)` route 3.82 removed for not existing
+  in the schema. The repair is written right below it; the sentence had stayed.
+  Only its second half was false: the language menu does offer all of Twitch's
+  languages with their real audience.
+- **Four lines were written as escape sequences** (`libell\u00E9`), introduced in
+  3.58 and unreadable ever since. The only ones in the repository.
+- **`friseDe` promised a label preference that never existed**: "we keep ours if
+  it is translated and theirs is not". There is no reason to write it — both
+  labels come from the same source, `game.displayName` falling back to
+  `game.name`, so one cannot be translated when the other is not.
+
+### What the audit did not find
+
+The rest was sifted and comes out intact: **zero** dead `CFG` constants out of
+100, **zero** dead UI strings out of 70 × 10 tables, **zero** dead or missing
+`_locales` keys out of 103 × 12 locales in both directions, **zero** dead CSS
+classes, **zero** unreferenced functions out of 283, **zero** silent `catch {}`,
+**zero** listener or timer leaks, and **two** duplicated blocks in 13,522 lines.
+
+Performance was **measured** rather than guessed: `rescan()` costs 13.5 ms on a
+pool of 1,800 channels, and that cost does not follow the pool size (60 →
+11.8 ms; 1,800 → 15.1 ms) but the number of cards, at ~78 µs each. With a 250 ms
+debounce and the hidden-tab freeze, that caps at a few percent of one core. **No
+optimisation is therefore proposed**: reporting one here would have been
+inventing a problem in order to have something to fix.
+
 ## The category menu under a language (v3.85)
 
 Under the globe, the category menu's figures are Twitch's own and they are
@@ -2712,7 +2807,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 87 scenarios, 792 assertions |
+| `npm test` | the Playwright harness: 88 scenarios, 800 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -2732,7 +2827,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 727 KB | 315 KB | 2,966 → **2** |
+| `content.js` | 727 KB | 315 KB | 2,968 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 35 KB | 20 KB | 39 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
@@ -2749,7 +2844,7 @@ within 3 %: wide enough for a version's ordinary growth, too narrow for a
 sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,770
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,968
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`

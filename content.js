@@ -1682,6 +1682,17 @@ const TSE_GATE_MAX_CLICKS = 5;
     // chaînes affichées sont re-set en boucle par le scan, seules les entrées
     // ponctuelles vieillissent jusqu'à l'éviction.
     GS_PRUNE_AGE:    5 * 60_000,
+    /* Plafond du mémo de chapitres de VOD, et il se borne PAR LE VOLUME SEUL —
+       pas par l'âge, contrairement aux deux caches ci-dessus. La différence
+       tient à ce que cette donnée décrit : le PASSÉ d'un direct, qui ne change
+       plus une fois connu. Une entrée périmée n'est donc pas fausse, elle est
+       simplement vieille, et la jeter ferait repartir au survol suivant une
+       requête dont on connaît déjà la réponse — le contraire de la règle qui
+       gouverne toute cette porte (« une requête qui n'apprend rien est une
+       requête de trop »). On ne l'évince donc que sous la pression mémoire, et
+       la moins récemment apprise en premier. Tenu à l'écriture (cf. `retenir`)
+       plutôt qu'à la purge périodique : le plafond vaut alors à tout instant. */
+    CHAPITRES_MAX:   300,
 
     // === CHAÎNES GLOBALES — couche de données ===
     // Taille du classement rendu. 30 n'est pas une limite technique mais un
@@ -3518,28 +3529,33 @@ const TSE_GATE_MAX_CLICKS = 5;
     const maintenant = Date.now();
     const debutStream = Date.parse(flux.createdAt) || null;
     let f = frises.get(login);
+    /* ── L'ÉVICTION ÉVINÇAIT LA PLUS RICHE ──────────────────────────────────
+       `Map` itère dans l'ordre de PREMIÈRE insertion, et `set` sur une clé
+       existante ne la déplace pas. Purger par `keys().next()` sortait donc la
+       frise entrée en premier — c'est-à-dire celle qui accumule depuis le plus
+       longtemps, la seule qui ait un passé à raconter. La frise d'une chaîne
+       apparue il y a dix secondes survivait à celle qu'on suivait depuis une
+       heure.
+
+       LA RÉINSERTION VAUT POUR LES DEUX CAS, et elle ne le faisait pas. Elle
+       ne couvrait que la frise qu'on POURSUIT ; celle d'une chaîne qui
+       REDÉMARRE une diffusion passait par un `set` sec sur une clé déjà
+       présente, donc sans déplacement. Une chaîne suivie de longue date qui
+       relance un direct gardait ainsi la position la plus ANCIENNE et serait
+       sortie la première, à l'instant même où on venait de l'observer — quand
+       le paragraphe ci-dessus promet l'inverse. Le `delete` est donc remonté
+       avant l'aiguillage : il ne fait rien sur une chaîne inconnue, et remet
+       les deux autres en queue de file.
+
+       Coût constant, et rien d'autre n'itère ce registre. */
+    frises.delete(login);
     /* Un identifiant de stream change à chaque nouvelle session. C'est le seul
        signal fiable qu'il faut repartir de zéro : une chaîne qui coupe et
        reprend garde son login mais n'a plus rien à voir avec la frise d'avant. */
     if (!f || f.streamId !== id) {
       f = { streamId: id, debutStream, vuDepuis: maintenant, segments: [], tronquee: false };
-      frises.set(login, f);
-    } else {
-      /* ── L'ÉVICTION ÉVINÇAIT LA PLUS RICHE ────────────────────────────────
-         `Map` itère dans l'ordre de PREMIÈRE insertion, et `set` sur une clé
-         existante ne la déplace pas. Purger par `keys().next()` sortait donc
-         la frise entrée en premier — c'est-à-dire celle qui accumule depuis
-         le plus longtemps, la seule qui ait un passé à raconter. La frise
-         d'une chaîne apparue il y a dix secondes survivait à celle qu'on
-         suivait depuis une heure.
-
-         La réinsertion ci-dessous fait de cet ordre un vrai « moins
-         récemment observé » : une frise ne vieillit que si sa chaîne cesse
-         de passer dans les relevés. Coût constant, et rien d'autre n'itère
-         ce registre. */
-      frises.delete(login);
-      frises.set(login, f);
     }
+    frises.set(login, f);
     // Purge par le volume, en dernier recours : une chaîne qui s'éteint voit
     // déjà sa frise retirée plus haut.
     while (frises.size > CFG.CATEGORY_TRAIL_MAX) {
@@ -3651,8 +3667,16 @@ const TSE_GATE_MAX_CLICKS = 5;
       const dernier = bruts[bruts.length - 1];
       if (!dernier) { bruts.push({ ...o }); continue; }
       if (dernier.jeu === o.jeu) {
-        // Même catégorie : le libellé de Twitch fait foi, mais on garde le
-        // nôtre s'il est traduit et pas le sien.
+        /* Même catégorie : rien à ouvrir, et le libellé déjà en place — celui
+           du chapitre de VOD — est conservé tel quel.
+
+           CE COMMENTAIRE PROMETTAIT AUTRE CHOSE : « on garde le nôtre s'il est
+           traduit et pas le sien ». Aucune ligne ne l'a jamais fait, et il n'y
+           a pas lieu de l'écrire : les deux libellés viennent de la même
+           source (`game.displayName`, à défaut `game.name`), donc l'un ne peut
+           pas être traduit quand l'autre ne l'est pas. Un commentaire qui
+           décrit une préférence inexistante fait chercher un bogue là où il
+           n'y a qu'un `continue`. */
         continue;
       }
       if (o.debut <= dernier.debut) continue;
@@ -8562,7 +8586,22 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* streamId → { ts, segments } ; `segments` à null veut dire « demandé, et
        rien d'exploitable » — une chaîne qui n'archive pas ses diffusions, par
        exemple. On le mémorise aussi, sinon chaque survol relancerait la même
-       requête pour la même réponse vide. */
+       requête pour la même réponse vide.
+
+       BORNÉ, COMME TOUS SES PAIRS — et il était le seul à ne pas l'être. Le
+       TTL ci-dessous ne décide que d'une chose : faut-il REDEMANDER. Il
+       n'efface rien, et `preludeDe` lit ce registre sans le consulter, à
+       dessein — le passé d'un direct ne se dément pas. Restait donc une Map
+       qui ne faisait que grandir, une entrée par diffusion survolée, jusqu'à
+       trente segments chacune quand la source est les clips ; tous les autres
+       caches reconstructibles ont leur plafond (LIVE_CACHE_MAX,
+       META_CACHE_MAX, GS_CACHE_MAX, CATEGORY_TRAIL_MAX, CAT_LANGUE_MAX,
+       CATEGORY_SWITCH_MAX), et le projet écrit lui-même la règle en tête de
+       CATEGORY_SWITCH_MAX. Elle s'applique ici aussi.
+
+       Le plafond se tient à L'ÉCRITURE et non à la purge périodique : il vaut
+       alors à tout instant, et non seulement au prochain réveil du minuteur.
+       Voir CHAPITRES_MAX pour la raison de ne pas borner aussi par l'âge. */
     const chapitres = new Map();
     const CHAPITRES_TTL = 10 * 60_000;
 
@@ -8790,7 +8829,16 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const retenir = (streamId, segments, continu, source = null) => {
+      /* Réinsertion avant écriture : `Map` itère dans l'ordre de PREMIÈRE
+         insertion et `set` sur une clé existante ne la déplace pas. Sans le
+         `delete`, la purge sortirait l'entrée entrée en premier plutôt que la
+         moins récemment apprise. Même correction que pour le registre des
+         frises, et pour la même raison. */
+      chapitres.delete(streamId);
       chapitres.set(streamId, { ts: Date.now(), segments, continu, source });
+      while (chapitres.size > CFG.CHAPITRES_MAX) {
+        chapitres.delete(chapitres.keys().next().value);
+      }
       return (segments || continu) ? chapitres.get(streamId) : null;
     };
 
@@ -10246,7 +10294,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       bilanChapitres: () => ({ ...bilanChapitres,
                                // La forme en jeu, sans quoi « clipsRefus 3 »
                                // ne dirait pas laquelle a été réfutée.
-                               clipsForme: CLIPS_FORMES[clipsForme] || null })
+                               clipsForme: CLIPS_FORMES[clipsForme] || null,
+                               /* CE QUE LE MÉMO OCCUPE, sur le modèle de
+                                  `frise: { resident, max }`. Les compteurs
+                                  ci-dessus disent ce qui est PARTI sur le
+                                  réseau ; aucun ne disait ce qui restait en
+                                  mémoire — c'était la seule structure du
+                                  produit dont l'occupation était invisible,
+                                  et c'est précisément celle qui n'avait pas
+                                  de plafond. Les deux vont ensemble : une
+                                  borne qu'on ne peut pas observer ne se
+                                  vérifie pas. */
+                               resident: chapitres.size,
+                               max: CFG.CHAPITRES_MAX })
     };
   })();
 
@@ -11143,10 +11203,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       : document.createTextNode(getAllLabel());
     const allTitle  = kind === 'lang' ? S.uiFilterAllLanguages : S.uiFilterAllCategories;
 
-    // Le libell\u00E9 entre dans la signature, et pas seulement la valeur : au
-    // changement de langue de l'interface, les cat\u00E9gories et leurs compteurs
-    // sont les m\u00EAmes et seuls les libell\u00E9s bougent. Sans eux ici, le menu
-    // resterait \u00E9crit dans la langue pr\u00E9c\u00E9dente jusqu'\u00E0 ce qu'un streamer
+    // Le libellé entre dans la signature, et pas seulement la valeur : au
+    // changement de langue de l'interface, les catégories et leurs compteurs
+    // sont les mêmes et seuls les libellés bougent. Sans eux ici, le menu
+    // resterait écrit dans la langue précédente jusqu'à ce qu'un streamer
     // change de jeu.
     const sig = `${kind}|${disabled ? 'D' : ''}|cur=${current || ''}|` +
       /* LA SIGNATURE DOIT VOIR CE QUE LE RENDU VOIT. Elle écrivait
@@ -11236,16 +11296,19 @@ const TSE_GATE_MAX_CLICKS = 5;
     // depuis que le classement a cessé d'être re-filtré (cf.
     // applyCardVisibility).
     if (state.globalMode) {
-      /* ── LES DEUX MENUS SE RÉPONDENT ────────────────────────────────────
-         L'audience par langue, quand Twitch la sert et qu'elle est portée,
-         change les DEUX menus d'un coup :
-           — le menu langue passe d'un décompte de notre pool (« 212 ») à
-             l'audience réelle (« 214 k »), et propose TOUTES les langues de
-             Twitch plutôt que celles que le pool a croisées ;
-           — le menu catégorie, lorsqu'une langue est choisie, montre les
-             catégories DE CETTE LANGUE avec leur audience dans cette langue.
-             Le globe rend les totaux mondiaux, qui sont ceux d'aujourd'hui.
-         Sans elle, tout ce bloc se comporte exactement comme avant. */
+      /* ── CE QUE L'AUDIENCE PAR LANGUE A CHANGÉ ──────────────────────────
+         Le menu langue est passé d'un décompte de notre pool (« 212 ») à
+         l'audience réelle (« 214 k »), et propose TOUTES les langues de
+         Twitch plutôt que celles que le pool a croisées.
+
+         CE BLOC EN DISAIT UNE SECONDE, ET ELLE A CESSÉ D'ÊTRE VRAIE : que le
+         menu catégorie, sous une langue choisie, montrerait « les catégories
+         DE CETTE LANGUE ». C'était la route `games(options:)` de la 3.80, que
+         la 3.82 a retirée — le schéma ne la porte pas — et la réparation qui
+         a suivi est écrite juste en dessous. La phrase, elle, était restée :
+         deux paragraphes voisins affirmaient donc l'inverse l'un de l'autre,
+         et c'est le premier qui avait tort. Ce qui dépend bien de la langue
+         est le CHIFFRE du menu catégorie, jamais sa liste. */
       /* ── LES DEUX MENUS SONT INDÉPENDANTS, ET C'EST UNE RÉPARATION ──────
          Une version a lié la liste des catégories à la langue choisie. Quand
          la source par langue rendait une liste vide — ce qu'elle a fait pour

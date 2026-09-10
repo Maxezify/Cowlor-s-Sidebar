@@ -2092,6 +2092,105 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## Ce qu'un audit trouve quand rien n'est cassé (v3.86)
+
+Toutes les entrées de cette page partent d'un symptôme : quelqu'un a vu quelque
+chose qui n'allait pas. Celle-ci part de rien — d'une relecture systématique
+demandée sans panne à réparer. C'est un exercice différent, et il vaut la peine
+d'en dire le résultat en entier, y compris ce qu'il n'a **pas** trouvé.
+
+### Le seul défaut de fond : un mémo qui ne s'oubliait jamais
+
+Le registre des chapitres de VOD — `streamId → { segments, continu, source }`
+— n'avait **aucun plafond**. Ni borne de volume, ni purge périodique, ni
+résidence au rapport. Il était le seul dans ce cas : `LIVE_CACHE_MAX`,
+`META_CACHE_MAX`, `GS_CACHE_MAX`, `CATEGORY_TRAIL_MAX`, `CAT_LANGUE_MAX`,
+`CATEGORY_SWITCH_MAX` bornent tous les autres, et le commentaire de ce dernier
+énonce la règle : *une structure qui ne se purge pas finit par grossir sans fin
+sur des mois d'usage.*
+
+Ce qui a masqué l'omission est que ce registre **a** un TTL. Il n'en tire
+simplement aucune conséquence : `CHAPITRES_TTL` décide s'il faut **redemander**,
+jamais s'il faut oublier, et `preludeDe` lit l'entrée sans le consulter — à
+dessein, puisque le passé d'un direct ne se dément pas. Une entrée par
+diffusion survolée s'ajoutait donc pour la durée de l'onglet, avec jusqu'à
+trente segments chacune quand la source est les clips.
+
+**La borne est posée par le volume, jamais par l'âge**, et la distinction n'est
+pas cosmétique. Évincer une entrée vieille de onze minutes ne corrigerait rien
+— elle n'est pas fausse, elle est ancienne — et ferait repartir au survol
+suivant une requête dont la réponse est déjà connue. Ce serait le contraire de
+la règle qui gouverne toute cette porte : *une requête qui n'apprend rien est
+une requête de trop.* On n'évince donc que sous la pression mémoire, la moins
+récemment apprise en premier.
+
+Le plafond se tient **à l'écriture**, dans `retenir`, et non au réveil d'un
+minuteur : il vaut alors à tout instant. Et le rapport porte désormais
+`resident` contre `max`, sur le modèle de `frise`. Les deux vont ensemble —
+**une borne qu'on ne peut pas observer ne se vérifie pas**, et c'était
+précisément la structure dont l'occupation n'apparaissait nulle part.
+
+### La réinsertion qui ne couvrait qu'un cas sur deux
+
+La 3.79 avait corrigé l'éviction du registre des frises : `Map` itère dans
+l'ordre de **première** insertion et `set` ne déplace pas une clé existante, si
+bien que purger par la tête sortait la frise la plus riche. La correction — un
+`delete` avant le `set` — n'a été écrite que dans la branche « la chaîne
+poursuit son direct ». L'autre branche, celle d'une chaîne qui **redémarre**
+une diffusion, faisait un `set` sec sur une clé déjà présente.
+
+Conséquence : une chaîne suivie de longue date qui relance un live gardait la
+position la plus **ancienne**, et serait sortie la première — à l'instant même
+où on venait de l'observer. Le paragraphe voisin promettait pourtant l'inverse :
+*« une frise ne vieillit que si sa chaîne cesse de passer dans les relevés ».*
+
+Le `delete` est donc remonté avant l'aiguillage. Il ne fait rien sur une chaîne
+inconnue, et remet les deux autres en queue de file.
+
+**Ce que cela ne change pas, et il faut le dire.** Aucun effet observable tant
+que le registre reste sous sa borne, et la faire tomber demanderait plus de
+cinq cents chaînes en cache. Le scénario 82 avait déjà tranché cette question
+et refusé de fabriquer le décor : *on ne publie pas vert un scénario qui coûte
+une minute pour un renseignement qu'une lecture donne.* Ce qui garde la porte
+est donc écrit là où la faute se commet — dans la **forme** du code
+d'écriture, seule chose qu'une régression future toucherait forcément.
+
+### Trois documents qui avaient cessé de dire vrai
+
+Dans un dépôt où la moitié de ce qu'on sait du produit est dans les marges, un
+commentaire faux coûte plus qu'un commentaire absent : il envoie chercher un
+bogue là où il n'y en a pas.
+
+- **Deux blocs voisins s'y contredisaient.** Celui de la 3.80 annonçait que le
+  menu catégorie, sous une langue choisie, montrerait « les catégories de cette
+  langue » — c'était la route `games(options:)` que la 3.82 a retirée, faute
+  d'exister dans le schéma. La réparation est écrite juste en dessous ; la
+  phrase, elle, était restée. Seule sa seconde moitié était fausse : le menu
+  langue propose bien toutes les langues de Twitch avec leur audience réelle.
+- **Quatre lignes étaient écrites en séquences d'échappement** (`libell\u00E9`),
+  entrées en 3.58 et illisibles depuis. Les seules du dépôt.
+- **`friseDe` promettait une préférence de libellé qui n'a jamais existé** :
+  « on garde le nôtre s'il est traduit et pas le sien ». Il n'y a pas lieu de
+  l'écrire — les deux libellés viennent de la même source, `game.displayName` à
+  défaut `game.name`, donc l'un ne peut pas être traduit quand l'autre ne l'est
+  pas.
+
+### Ce que l'audit n'a pas trouvé
+
+Le reste est passé au crible et ressort intact : **zéro** constante de `CFG`
+morte sur 100, **zéro** libellé mort sur 70 × 10 tables, **zéro** clé `_locales`
+morte ou manquante sur 103 × 12 locales dans les deux sens, **zéro** classe CSS
+morte, **zéro** fonction non référencée sur 283, **zéro** `catch {}` muet,
+**zéro** fuite d'écouteur ou de minuteur, et **deux** blocs dupliqués dans
+13 522 lignes.
+
+La performance a été **mesurée** plutôt que devinée : `rescan()` coûte 13,5 ms
+sur un pool de 1 800 chaînes, et ce coût ne suit pas la taille du pool (60 →
+11,8 ms ; 1 800 → 15,1 ms) mais le nombre de cartes, à ~78 µs l'unité. Avec un
+anti-rebond de 250 ms et le gel en onglet caché, cela plafonne à quelques
+pour cent d'un cœur. **Aucune optimisation n'est donc proposée** : en signaler
+une ici aurait été inventer un problème pour avoir quelque chose à corriger.
+
 ## Le menu catégorie sous une langue (v3.85)
 
 Sous le globe, les chiffres du menu catégorie sont ceux de Twitch et ils sont
@@ -2857,7 +2956,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 87 scénarios, 792 assertions |
+| `npm test` | le harnais Playwright : 88 scénarios, 800 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -2878,7 +2977,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 727 Ko | 315 Ko | 2 966 → **2** |
+| `content.js` | 727 Ko | 315 Ko | 2 968 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
@@ -2895,7 +2994,7 @@ qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
 d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 770
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 968
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches

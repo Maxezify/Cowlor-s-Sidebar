@@ -9517,6 +9517,146 @@ titre('87. La troisième porte — les clips, pour qui n\'archive pas');
   }
 }
 
+titre('88. Les bornes de mémoire — celle qui manquait, celle qui ne couvrait qu\'un cas');
+{
+  /* DEUX OMISSIONS DE LA MÊME FAMILLE, trouvées par un audit et non par une
+     panne. C'est exactement pourquoi ce scénario existe : rien ne les avait
+     signalées, et rien n'empêchait la seconde de revenir.
+
+     LE MÉMO DE CHAPITRES N'AVAIT AUCUN PLAFOND. Une entrée par diffusion
+     survolée — jusqu'à trente segments chacune quand la source est les clips
+     — et jamais rien qui l'efface : le TTL décide de REDEMANDER, pas
+     d'oublier, et `preludeDe` lit ce registre sans le consulter, à dessein,
+     le passé d'un direct ne se dément pas. Tous ses pairs sont bornés
+     (LIVE_CACHE_MAX, META_CACHE_MAX, GS_CACHE_MAX, CATEGORY_TRAIL_MAX,
+     CAT_LANGUE_MAX, CATEGORY_SWITCH_MAX). Il était le seul à ne pas l'être —
+     et le seul dont l'occupation n'était pas au rapport. Les deux vont
+     ensemble : une borne qu'on ne peut pas observer ne se vérifie pas.
+
+     LA RÉINSERTION DES FRISES NE COUVRAIT QU'UN CAS SUR DEUX. Écrite pour la
+     frise qu'on POURSUIT, elle laissait celle d'une chaîne qui REDÉMARRE une
+     diffusion passer par un `set` sec sur une clé déjà présente — que `Map`
+     ne déplace pas. Une chaîne suivie de longue date qui relance un direct
+     gardait donc la position la plus ANCIENNE et serait sortie la première,
+     à l'instant même où on venait de l'observer. */
+  const page = await freshTwitch();
+  const DEBUT = Date.now() - 240 * 60_000;          // live commencé il y a 4 h
+  await page.evaluate((d) => {
+    const iso = new Date(d).toISOString();
+    window.__fx = {
+      archive:  { id: 'st-arch', createdAt: iso, viewers: 3000, game: 'Hades II',     tags: [] },
+      immobile: { id: 'st-imm',  createdAt: iso, viewers: 2000, game: 'Just Chatting', tags: [] },
+      muette:   { id: 'st-mue',  createdAt: iso, viewers: 1000, game: 'Hades II',     tags: [] },
+    };
+    window.__addCard('archive',  'Hades II',      '3 k');
+    window.__addCard('immobile', 'Just Chatting', '2 k');
+    window.__addCard('muette',   'Hades II',      '1 k');
+    /* TROIS ISSUES DIFFÉRENTES, et le mémo doit garder les trois. Mémoriser
+       un ÉCHEC est tout son intérêt : sans cela, chaque survol relancerait la
+       même requête pour la même réponse vide. */
+    window.__vod = {
+      archive: { createdAt: iso, chapitres: [{ pos: 0, jeu: 'Just Chatting' },
+                                             { pos: 60 * 60_000, jeu: 'Hades II' }] },
+      immobile: 'vide',        // archive bien là, mais aucun changement de jeu
+      muette:   'sansvod',     // n'archive pas — et sans clip, la porte se ferme
+    };
+    window.__vodRecent = {}; window.__clips = {};
+  }, DEBUT);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 3);
+
+  const chap = () => page.evaluate(() => window.tse.panneau.rapport().reseau.chapitres);
+  const survoler = async (login) => {
+    await hoverLogin(page, login);
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+    await page.evaluate((l) => {
+      const c = [...document.querySelectorAll('.side-nav-card')]
+        .find(x => x.dataset.tseLogin === l);
+      c.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+    }, login);
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  };
+
+  for (const l of ['archive', 'immobile', 'muette']) await survoler(l);
+  await attendre(page, () => window.tse.panneau.rapport().reseau.chapitres.demandes >= 3, 12_000);
+  const b1 = await chap();
+  ok('trois diffusions survolées, trois entrées au mémo — les issues muettes comprises',
+     b1.demandes === 3 && b1.resident === 3, JSON.stringify(b1));
+  /* LA BORNE ET SON TÉMOIN. `resident` contre `max`, sur le modèle de
+     `frise: { resident, max }` — c'était la seule structure du produit dont
+     l'occupation n'apparaissait nulle part. */
+  ok('…et le rapport DIT ce que le mémo occupe, et pour quelle borne',
+     Number.isInteger(b1.resident) && Number.isInteger(b1.max)
+     && b1.max > 0 && b1.resident <= b1.max, JSON.stringify(b1));
+
+  /* LE MÉMO SERT, ET IL SERT LES DEUX FORMES. « archive » repasse par
+     `preludeDe`, qui trouve des segments ; « muette » n'en a aucun et repasse
+     par le TTL de `fetchChapitres`. Deux chemins distincts, une seule
+     exigence : aucune requête de plus, aucune entrée de plus. */
+  await survoler('archive');
+  await survoler('muette');
+  await wait(page, 800);
+  const b2 = await chap();
+  ok('re-survolées, elles ne coûtent plus rien : ni requête, ni entrée',
+     b2.demandes === 3 && b2.resident === 3, JSON.stringify(b2));
+  await page.close();
+
+  /* ── CE QU'UN BANC RAISONNABLE NE PEUT PAS ÉPROUVER, ET QU'IL DIT ────────
+     Faire tomber l'une ou l'autre de ces bornes demanderait trois cents
+     diffusions survolées et cinq cent une chaînes en cache. Le scénario 82 a
+     déjà tranché cette question pour le registre des frises, et sa conclusion
+     vaut ici : on ne publie pas vert un scénario qui coûte une minute pour un
+     renseignement qu'une lecture donne. Ce qui garde la porte est donc écrit
+     à l'endroit où la faute se commet — dans la forme du code d'écriture,
+     seule chose qu'une régression future toucherait forcément. */
+  {
+    const src = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+
+    const max = /CHAPITRES_MAX:\s*(\d+)/.exec(src);
+    ok('le mémo de chapitres a une borne, déclarée avec ses pairs',
+       !!max && Number(max[1]) > 0, max ? max[0] : '(CHAPITRES_MAX absent de CFG)');
+
+    /* `retenir` est le SEUL point d'écriture du mémo : la borne y tient donc
+       à tout instant, et non seulement au réveil d'un minuteur. */
+    const ret = /const retenir = [\s\S]*?\n    \};/.exec(src);
+    const corps = ret ? ret[0] : '';
+    ok('…tenue à l\'écriture, contre CFG.CHAPITRES_MAX',
+       /while\s*\(chapitres\.size > CFG\.CHAPITRES_MAX\)/.test(corps)
+       && /chapitres\.delete\(chapitres\.keys\(\)\.next\(\)\.value\)/.test(corps),
+       corps ? '(borne absente de retenir)' : '(retenir introuvable)');
+    /* Sans la réinsertion, la purge sortirait l'entrée apprise en PREMIER
+       plutôt que la moins récemment apprise — la faute même que le registre
+       des frises a payée. */
+    ok('…et l\'entrée est réinsérée avant d\'être écrite, sinon la purge vise à l\'envers',
+       corps.indexOf('chapitres.delete(streamId)') >= 0
+       && corps.indexOf('chapitres.delete(streamId)') < corps.indexOf('chapitres.set(streamId'),
+       corps ? '(réinsertion absente)' : '(retenir introuvable)');
+
+    /* LA RÉINSERTION DES FRISES DOIT PRÉCÉDER L'AIGUILLAGE. Placée dans une
+       seule branche, elle ne couvre que la frise qu'on poursuit ; placée
+       avant, elle couvre aussi celle qui redémarre. Un `set` resté dans une
+       branche ramènerait exactement le défaut corrigé. */
+    /* LA TRANCHE COMMENCE À `let f`, ET CE N'EST PAS UN DÉTAIL. Plus haut dans
+       la même fonction, le chemin hors-ligne porte son propre
+       `frises.delete(login)` — celui qui retire la frise d'un stream fini.
+       Chercher la première occurrence dans toute la fonction tombait donc sur
+       CELUI-LÀ, et l'assertion restait verte même en remettant la réinsertion
+       dans la branche. Elle passait sans rien prouver ; la mutation l'a dit. */
+    const sc = /const suivreCategorie = [\s\S]*?const friseACombler/.exec(src);
+    const entier = sc ? sc[0] : '';
+    const bloc = entier.slice(entier.indexOf('let f = frises.get(login);'));
+    const iDel = bloc.indexOf('frises.delete(login)');
+    const iBranche = bloc.indexOf('if (!f || f.streamId !== id)');
+    ok('le registre des frises réinsère AVANT l\'aiguillage, donc dans les deux cas',
+       iDel >= 0 && iBranche >= 0 && iDel < iBranche,
+       `delete@${iDel} branche@${iBranche}`);
+    ok('…et il n\'écrit qu\'une fois, hors de toute branche',
+       (bloc.match(/frises\.set\(login, f\)/g) || []).length === 1,
+       `${(bloc.match(/frises\.set\(login, f\)/g) || []).length} écriture(s)`);
+  }
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
