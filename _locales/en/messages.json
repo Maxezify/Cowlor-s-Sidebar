@@ -51,6 +51,12 @@
     "message": "Every followed channel the extension has seen in your sidebar at least once.",
     "description": "Description de la section chaînes connues"
   },
+  "navRythme": {
+    "message": "Rhythm"
+  },
+  "descRythme": {
+    "message": "When you open a channel, in local time. A visit counts once per channel per three-hour window: this is a rhythm, not watch time."
+  },
   "navDiagnose": {
     "message": "Selector health",
     "description": "Section : santé des sélecteurs"
@@ -202,6 +208,15 @@
   "sumChannels": {
     "message": "channels",
     "description": "Cartouche : nombre de chaînes"
+  },
+  "sumVisits": {
+    "message": "visits"
+  },
+  "sumPeakSlot": {
+    "message": "busiest slot"
+  },
+  "sumSince": {
+    "message": "history"
   },
   "sumSubscribed": {
     "message": "subscribed",
@@ -358,6 +373,12 @@
   "valOff": {
     "message": "Off",
     "description": "Valeur : mode coupé"
+  },
+  "valLess": {
+    "message": "less"
+  },
+  "valMore": {
+    "message": "more"
   },
   "healthOk": {
     "message": "Selectors OK",

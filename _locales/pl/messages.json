@@ -41,6 +41,12 @@
   "descRoster": {
     "message": "Wszystkie obserwowane kanały, które rozszerzenie widziało choć raz na pasku bocznym."
   },
+  "navRythme": {
+    "message": "Rytm"
+  },
+  "descRythme": {
+    "message": "Kiedy otwierasz kanał, czas lokalny. Wizyta liczy się raz na kanał w oknie trzech godzin: to rytm, a nie czas oglądania."
+  },
   "navDiagnose": {
     "message": "Kondycja selektorów"
   },
@@ -154,6 +160,15 @@
   },
   "sumChannels": {
     "message": "kanałów"
+  },
+  "sumVisits": {
+    "message": "wizyty"
+  },
+  "sumPeakSlot": {
+    "message": "najgęstszy przedział"
+  },
+  "sumSince": {
+    "message": "historia"
   },
   "sumSubscribed": {
     "message": "subskrypcji"
@@ -275,6 +290,12 @@
   },
   "valOff": {
     "message": "Wyłączony"
+  },
+  "valLess": {
+    "message": "mniej"
+  },
+  "valMore": {
+    "message": "więcej"
   },
   "healthOk": {
     "message": "Selektory OK"

@@ -3238,13 +3238,44 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__sponsor-logo img { width: 100%; height: 100%; object-fit: contain; }
 
     /* ── LA FRISE DES CATÉGORIES ────────────────────────────────────────────
-       Une barre proportionnelle PUIS une liste, et les deux sont nécessaires.
-       La barre donne la forme du live d'un coup d'œil — trois heures
+       Un ruban proportionnel PUIS une liste, et les deux sont nécessaires.
+       Le ruban donne la forme du live d'un coup d'œil — trois heures
        d'Overwatch contre douze minutes de LoL se voient sans lire ; la liste
-       donne les noms et les durées exactes. La barre seule ne porterait
+       donne les noms et les durées exactes. Le ruban seul ne porterait
        l'information que par la couleur, ce qui la rendrait illisible à qui ne
-       les distingue pas : elle est donc aria-hidden, et c'est la liste qui
-       parle. */
+       les distingue pas : il est donc aria-hidden, et c'est la liste qui
+       parle.
+
+       ── LA REFONTE, ET LES TROIS DÉFAUTS QU'ELLE CORRIGE ──────────────────
+       Le dessin d'origine tenait ; il ne se tenait pas ENSEMBLE. Trois points
+       précis, chacun réparé par une règle de ce bloc :
+
+       1. LA BARRE ÉTAIT FRAGMENTÉE. Un gap d'un pixel entre les parts, sur un
+          fond clair qui transparaissait : à quatre segments on lisait quatre
+          objets posés côte à côte plutôt qu'une seule durée découpée. Le
+          temps d'un live est CONTINU, et le dessin doit le dire. Les parts
+          sont donc jointives et séparées par une couture SOMBRE tirée à
+          l'intérieur de chacune — le ruban redevient un, ses frontières
+          restent nettes.
+
+       2. LA PASTILLE DE LA LISTE NE RESSEMBLAIT PAS À CE QU'ELLE NOMMAIT. Un
+          carré plat de neuf pixels en face d'une part hachurée : pour la ligne
+          « non observé », la légende et le ruban ne se répondaient tout
+          simplement pas. La pastille est devenue un TRAIT vertical — une
+          tranche du ruban, littéralement — et la ligne non observée porte un
+          trait discontinu, comme sa part est hachurée. Une légende doit se
+          reconnaître dans ce qu'elle légende.
+
+       3. LA FRISE NE DISAIT PAS SUR QUOI ELLE PORTE. Un ruban sans échelle
+          n'est qu'une proportion : « deux tiers, un tiers » de quoi ? La
+          durée totale est maintenant en tête, alignée à droite du libellé.
+          C'est le seul ajout d'INFORMATION de cette refonte, et il coûte un
+          nombre qu'on avait déjà.
+
+       Le reste est une question de matière : un dégradé très léger du haut
+       vers le bas donne du relief aux parts et aux traits, le fond du ruban
+       est creusé plutôt que clair, et le segment en cours porte une tête de
+       lecture à son extrémité droite. */
     .tse-preview__frise {
       /* AUCUNE MARGE PROPRE, et c'est voulu. Le corps du popup est une colonne
          flex à « gap: 6px » : cette marge s'ajoutait au gap et creusait quinze
@@ -3254,70 +3285,160 @@ const TSE_GATE_MAX_CLICKS = 5;
          charge, et il n'y a plus qu'un endroit qui décide de cet espacement.
          Le rembourrage sous le filet vaut le même : le trait est ainsi centré
          dans sa respiration. */
-      /* Le rembourrage suit le gap du corps : le filet est ainsi centré dans
-         sa respiration, au lieu d'être collé au bloc qui le suit. */
       padding-top: 10px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
+    /* L'en-tête est une LIGNE, et non plus un libellé auquel on accroche des
+       choses : le libellé à gauche, la provenance juste après quand il y en a
+       une, la durée totale poussée à droite. Aligné sur la ligne de base pour
+       que trois tailles de texte se posent sur le même appui. */
     .tse-preview__frise-titre {
-      margin: 0 0 6px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin: 0 0 7px;
       font-size: 10px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.42);
     }
-    /* La provenance, quand elle change la lecture. Elle suit le titre sur la
-       même ligne, en plus discret encore : c'est une nuance, pas un
-       avertissement. */
+    /* Le libellé ne cède JAMAIS de place : c'est le nom du bloc. Sans cette
+       ligne il se serait rétréci comme n'importe quel élément flex, et une
+       provenance un peu longue aurait mangé « Précédemment » avant elle-même. */
+    .tse-preview__frise-libelle { flex: 0 0 auto; }
+    /* La provenance, quand elle change la lecture : c'est une nuance, pas un
+       avertissement. C'est ELLE qui cède la place quand le popup est étroit —
+       d'où le rétrécissement autorisé et l'ellipse. */
     .tse-preview__frise-source {
-      margin-left: 6px;
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       text-transform: none;
       letter-spacing: 0;
       font-style: italic;
       color: rgba(255, 255, 255, 0.32);
     }
-    /* Les traits d'une frise de clips sont des minorants. La barre le montre
-       sans un mot : ses parts sont hachurées de biais, comme la part inconnue
-       l'est déjà — même vocabulaire visuel pour la même idée. */
-    .tse-preview__frise--clips .tse-preview__frise-part {
-      background-image: repeating-linear-gradient(
-        135deg, rgba(0, 0, 0, 0.28) 0 3px, rgba(0, 0, 0, 0) 3px 6px);
+    /* L'ÉCHELLE DU RUBAN, en tête et à droite. Sans elle une proportion ne se
+       rapporte à rien : « deux tiers » de vingt minutes et « deux tiers » de
+       six heures se dessinent pareil et ne disent pas la même chose. Chasse
+       fixe, parce qu'elle change à chaque seconde qui passe. */
+    .tse-preview__frise-total {
+      flex: 0 0 auto;
+      margin-left: auto;
+      letter-spacing: 0;
+      /* PAS DE MAJUSCULES : l'en-tête en porte pour son libellé, et elles
+         descendaient sur la durée — « 4h12 » s'affichait « 4H12 ». Une unité
+         de temps n'a pas de casse à discuter, et la capitale la rendait
+         moins lisible qu'elle ne la mettait en valeur. Vu sur capture. */
+      text-transform: none;
+      font-variant-numeric: tabular-nums;
+      color: rgba(255, 255, 255, 0.34);
     }
+    /* ── LE RUBAN ───────────────────────────────────────────────────────────
+       Creusé plutôt que clair : le fond visible entre deux parts appartient au
+       popup, pas à la frise, et un fond clair faisait ressortir les vides
+       autant que les pleins. Le filet intérieur redonne au ruban une arête
+       nette sans dessiner de bordure — même procédé que les fonds enfoncés du
+       panneau. */
     .tse-preview__frise-barre {
       display: flex;
-      gap: 1px;
-      /* Neuf pixels et non sept : sur une barre plus fine, deux teintes
-         voisines se lisent mal, et c'est la barre entière qui perd son objet. */
-      height: 9px;
-      border-radius: 5px;
+      /* Dix pixels : sur une barre plus fine, deux teintes voisines se lisent
+         mal, et c'est le ruban entier qui perd son objet. */
+      height: 10px;
+      border-radius: 999px;
       overflow: hidden;
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(0, 0, 0, 0.32);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
     }
     /* Une largeur plancher : un segment de deux minutes sur six heures ferait
-       moins d'un pixel et disparaîtrait de la barre alors qu'il figure dans la
+       moins d'un pixel et disparaîtrait du ruban alors qu'il figure dans la
        liste. Mieux vaut une proportion légèrement fausse qu'un segment
-       invisible — la valeur exacte est écrite à côté. */
-    .tse-preview__frise-part { min-width: 3px; }
+       invisible — la valeur exacte est écrite à côté.
+
+       LA COULEUR EST POSÉE EN LIGNE, mais par « backgroundColor » et NON par
+       le raccourci « background » : le raccourci remet « background-image » à
+       « none »,
+       ce qui effacerait le dégradé ci-dessous et les hachures plus bas. Le
+       piège est silencieux — la règle a l'air appliquée, elle est simplement
+       écrasée par l'attribut de style. */
+    .tse-preview__frise-part {
+      min-width: 4px;
+      background-image: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
+    }
+    /* LA COUTURE, TIRÉE À L'INTÉRIEUR. Un gap laisserait voir le fond du ruban
+       et redécouperait le temps en objets séparés ; une ombre intérieure
+       sépare les parts sans rien retirer à leur largeur. Elle ne s'applique
+       pas à la première : un ruban n'a pas de couture à son bord. */
+    .tse-preview__frise-part + .tse-preview__frise-part {
+      box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.45);
+    }
+    /* PAS DE TÊTE DE LECTURE, ET LA CAPTURE L'A TRANCHÉ. Un liseré clair au
+       bord droit du dernier segment avait été posé pour marquer « maintenant ».
+       Il ne survit pas à sa propre boîte : le ruban est une pilule à coins
+       ronds en overflow caché, et deux pixels tirés le long d'une extrémité
+       courbe sont rognés à presque rien. Ils l'étaient — invisibles sur les
+       quatre cas photographiés.
+       Il n'y avait de toute façon rien à marquer : le bord droit du ruban EST
+       maintenant, par construction, et la ligne en cours est déjà nommée en
+       gras dans la liste. Une marque redondante qu'on ne voit pas est deux
+       fois inutile. La classe reste posée sur la part — elle ne coûte rien et
+       nomme le segment pour qui lira le DOM. */
+    /* Les traits d'une frise de clips sont des minorants. Le ruban le montre
+       sans un mot : ses parts sont hachurées de biais, comme la part inconnue
+       l'est déjà — même vocabulaire visuel pour la même idée. La hachure vient
+       PAR-DESSUS le dégradé, et non à sa place : les deux se cumulent dans une
+       seule déclaration, faute de quoi la seconde efface la première. */
+    .tse-preview__frise--clips .tse-preview__frise-part {
+      background-image:
+        repeating-linear-gradient(135deg,
+          rgba(0, 0, 0, 0.30) 0 3px, rgba(0, 0, 0, 0) 3px 6px),
+        linear-gradient(180deg,
+          rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
+    }
     /* Le temps qu'on n'a PAS observé : hachuré, à sa taille réelle. C'est un
        aveu à l'échelle, et il est dessiné avant les segments connus parce que
-       c'est là qu'il se situe — avant notre première vue. */
-    .tse-preview__frise-part--inconnu {
+       c'est là qu'il se situe — avant notre première vue.
+
+       DEUX CLASSES DANS LE SÉLECTEUR, et c'est délibéré : la règle des clips
+       ci-dessus en porte deux elle aussi, et sur une frise de clips elle
+       l'emportait — la part « avant le premier clip » prenait alors la hachure
+       des clips au lieu de la sienne. Une part inconnue doit se lire comme
+       inconnue, quelle que soit la source du reste. */
+    .tse-preview__frise .tse-preview__frise-part--inconnu {
       background-image: repeating-linear-gradient(45deg,
-        rgba(255, 255, 255, 0.17) 0 3px, rgba(255, 255, 255, 0.05) 3px 6px);
+        rgba(255, 255, 255, 0.16) 0 3px, rgba(255, 255, 255, 0.04) 3px 6px);
     }
-    .tse-preview__frise-liste { margin: 8px 0 0; padding: 0; list-style: none; }
+    /* ── LA LISTE ───────────────────────────────────────────────────────────
+       Elle porte le sens ; le ruban n'en est que la forme. */
+    .tse-preview__frise-liste { margin: 9px 0 0; padding: 0; list-style: none; }
     .tse-preview__frise-ligne {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 8px;
       font-size: 12px;
-      line-height: 1.55;
+      line-height: 1.6;
     }
+    /* LA PASTILLE EST UNE TRANCHE DU RUBAN. Un carré plat ne ressemblait à
+       rien de ce qu'il nommait ; un trait vertical, arrondi et dégradé comme
+       les parts, se reconnaît immédiatement dans la barre au-dessus. */
     .tse-preview__frise-puce {
       flex: 0 0 auto;
-      width: 9px;
-      height: 9px;
+      width: 4px;
+      height: 14px;
       border-radius: 2px;
+      background-image: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
+    }
+    /* Le trait de la ligne non observée est DISCONTINU : quatre pixels de
+       large ne peuvent pas porter une hachure de biais, mais ils peuvent
+       s'interrompre — et « interrompu » est exactement ce que cette ligne
+       raconte. Même idée que la hachure, à l'échelle d'un trait. */
+    .tse-preview__frise-ligne--inconnu .tse-preview__frise-puce {
+      background-image: repeating-linear-gradient(180deg,
+        rgba(255, 255, 255, 0.34) 0 3px, rgba(255, 255, 255, 0) 3px 6px);
     }
     .tse-preview__frise-nom {
       flex: 1 1 auto;
@@ -3334,6 +3455,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     .tse-preview__frise-ligne--encours .tse-preview__frise-nom { color: #fff; font-weight: 600; }
     .tse-preview__frise-ligne--encours .tse-preview__frise-duree { color: rgba(255, 255, 255, 0.75); }
+    /* AUCUNE MARQUE DE PLUS sur le trait de la ligne en cours. Un halo d'un
+       pixel avait été essayé : sur quatre pixels de large il ne se lit pas
+       comme une mise en valeur mais comme un flou. La ligne se distingue déjà
+       par son nom en blanc et en gras, et par le mot « maintenant » à côté de
+       sa durée — deux signaux qui se lisent, contre un troisième qui salit. */
     .tse-preview__frise-ligne--inconnu .tse-preview__frise-nom {
       color: rgba(255, 255, 255, 0.40);
       font-style: italic;
@@ -7323,6 +7449,66 @@ const TSE_GATE_MAX_CLICKS = 5;
         const lignes = roster.entries().map(([login, ts]) => ({ login, ts }));
         return { colonnes: ['login', 'ts'], lignes, resume: { chaines: lignes.length } };
       },
+      /* ══════════════════════════════════════════════════════════════════════
+         LE RYTHME — CE QUE LA MÉMOIRE DES VISITES SAIT DÉJÀ
+         ──────────────────────────────────────────────────────────────────────
+         AUCUN STOCKAGE NOUVEAU, et c'est la condition de l'idée. Les visites
+         sont relevées depuis toujours pour classer les chaînes par popularité
+         personnelle : jusqu'à vingt horodatages par chaîne, quatre cents
+         chaînes. Le score n'en tire qu'une décroissance exponentielle et jette
+         le reste — or ces horodatages portent une seconde information, entière
+         et gratuite : QUAND on regarde.
+
+         SEPT LIGNES, VINGT-QUATRE COLONNES, ET L'HEURE LOCALE. Le jour et
+         l'heure sont lus sur chaque horodatage au moment où il a été pris,
+         donc dans le fuseau et l'heure d'été qui avaient cours alors — c'est
+         ce que `getDay` et `getHours` font, et c'est la seule lecture qui
+         corresponde à ce dont on se souvient de sa propre semaine.
+
+         CE QUE CE RELEVÉ N'EST PAS, et le panneau le dit en toutes lettres :
+         ce n'est pas un temps de visionnage. Une visite se compte une fois par
+         chaîne et par tranche de VISIT_SESSION_MS, après un séjour d'au moins
+         VISIT_MIN_DWELL_MS. Six heures sur une seule chaîne pèsent donc moins
+         que trois chaînes ouvertes coup sur coup. C'est un rythme — le moment
+         où l'on vient — et le présenter autrement serait mentir sur la mesure.
+
+         LE PIC EST CALCULÉ ICI, comme les quantiles de la section `lag` et
+         pour la même raison : il sert DEUX fois — l'échelle de couleur de la
+         grille et le cartouche qui le nomme — et deux calculs du même maximum
+         finissent par désigner deux cases différentes. */
+      rythme() {
+        const grille = Array.from({ length: 7 }, () => new Array(24).fill(0));
+        let visites = 0;
+        let premier = 0;
+        let dernier = 0;
+        let pic = { jour: 0, heure: 0, n: 0 };
+        for (const liste of visits.map.values()) {
+          for (const ts of liste) {
+            if (!Number.isFinite(ts)) continue;
+            const d = new Date(ts);
+            const jour = d.getDay();
+            const heure = d.getHours();
+            /* Une date illisible ne doit pas écrire hors de la grille : le
+               tableau est de taille fixe et un indice NaN y créerait une
+               propriété fantôme que le panneau lirait comme une case. */
+            if (!(jour >= 0 && jour < 7) || !(heure >= 0 && heure < 24)) continue;
+            const n = ++grille[jour][heure];
+            if (n > pic.n) pic = { jour, heure, n };
+            visites++;
+            if (!premier || ts < premier) premier = ts;
+            if (ts > dernier) dernier = ts;
+          }
+        }
+        /* `lignes` reste VIDE et c'est délibéré : cette section n'a pas de
+           tableau. Le panneau distingue « rien à montrer » de « rien à
+           tabuler » — sans quoi il annoncerait une section vide au-dessus
+           d'une grille pleine. */
+        return {
+          colonnes: [], lignes: [],
+          grille,
+          resume: { visites, chaines: visits.map.size, pic, premier, dernier },
+        };
+      },
       lag() {
         const echantillons = liveLag.all();
         const lags  = echantillons.map(s => s.lag).filter(Number.isFinite);
@@ -9532,8 +9718,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       li.className = 'tse-preview__frise-ligne' + (modif ? ' tse-preview__frise-ligne--' + modif : '');
       const puce = document.createElement('span');
       puce.className = 'tse-preview__frise-puce';
-      // Le hachuré du gris vient de la barre ; ici une pastille sourde suffit.
-      puce.style.background = couleur || 'rgba(255,255,255,0.18)';
+      /* `backgroundColor` et NON `background` : le raccourci effacerait le
+         dégradé et, sur la ligne non observée, le trait discontinu que la
+         feuille pose en `background-image`. La couleur de fond est tout ce
+         qui vient d'ici ; la matière vient du CSS. */
+      puce.style.backgroundColor = couleur || 'rgba(255,255,255,0.22)';
       const texte = document.createElement('span');
       texte.className = 'tse-preview__frise-nom';
       // textContent : ce nom vient de Twitch (cf. l'en-tête CONSTRUCTION DU DOM).
@@ -9554,7 +9743,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       // flex-grow proportionnel à la durée, base nulle : les segments se
       // partagent la largeur exactement comme le temps s'est partagé.
       d.style.flex = `${poids} 0 0`;
-      if (couleur) d.style.background = couleur;
+      /* Même règle que pour la pastille : `backgroundColor` seul. Le raccourci
+         `background` remettrait `background-image` à `none` et emporterait le
+         dégradé des parts, la hachure des clips et celle de la part inconnue —
+         trois règles qui auraient l'air posées et ne s'appliqueraient pas. */
+      if (couleur) d.style.backgroundColor = couleur;
       return d;
     };
 
@@ -9603,9 +9796,16 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       const bloc = document.createElement('div');
       bloc.className = 'tse-preview__frise';
+      /* L'EN-TÊTE EST UNE LIGNE À TROIS PLACES : le libellé, la provenance
+         quand il y en a une, et la durée totale poussée à droite. Le libellé
+         a donc sa propre boîte — sans elle, le texte nu et les span ajoutés
+         ensuite ne pouvaient pas se répartir. */
       const titre = document.createElement('p');
       titre.className = 'tse-preview__frise-titre';
-      titre.textContent = S.uiTrailTitle;
+      const libelle = document.createElement('span');
+      libelle.className = 'tse-preview__frise-libelle';
+      libelle.textContent = S.uiTrailTitle;
+      titre.appendChild(libelle);
       /* ── LA FRISE DE CLIPS SE PRÉSENTE AUTREMENT, ET C'EST NÉCESSAIRE ────
          Ses bornes ne sont pas des heures : ce sont les instants où un clip
          PROUVE qu'une catégorie était en cours. Le début réel de chaque
@@ -9620,6 +9820,20 @@ const TSE_GATE_MAX_CLICKS = 5;
         titre.appendChild(src);
         bloc.classList.add('tse-preview__frise--clips');
       }
+      /* ── CE QUE LE RUBAN COUVRE, écrit une fois pour toutes ───────────────
+         Une proportion ne se rapporte à rien tant qu'on ignore son étendue :
+         « deux tiers, un tiers » se dessine pareil sur vingt minutes et sur
+         six heures. Le total est déjà calculé — part non observée comprise,
+         donc il couvre exactement ce que le ruban dessine — et il n'a jamais
+         été montré. C'est le seul renseignement que cette refonte ajoute.
+
+         AUCUN LIBELLÉ N'EST NÉCESSAIRE : une durée en tête d'une frise ne
+         peut désigner que l'étendue de la frise, et un mot de plus dans dix
+         langues pour le redire serait un mot de trop. */
+      const total = document.createElement('span');
+      total.className = 'tse-preview__frise-total';
+      total.textContent = formatDuree(f.totalMs);
+      titre.appendChild(total);
       bloc.appendChild(titre);
 
       const couleurs = couleursFrise(f.segments);
@@ -9631,7 +9845,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         barre.appendChild(frisePart(f.inconnuMs, null, 'tse-preview__frise-part--inconnu'));
       }
       for (const seg of f.segments) {
-        barre.appendChild(frisePart(seg.dureeMs, couleurs.get(seg.jeu)));
+        /* La tête de lecture sur le segment EN COURS, qui est le dernier et se
+           termine au bord droit du ruban — c'est-à-dire à maintenant. Le
+           modificateur ne change rien à la mesure : seul un liseré s'ajoute. */
+        barre.appendChild(frisePart(seg.dureeMs, couleurs.get(seg.jeu),
+          seg.encours ? 'tse-preview__frise-part--encours' : ''));
       }
       bloc.appendChild(barre);
 

@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 727 KB | 315 KB | 2,968 → **2** |
+| `content.js` | 727 KB | 315 KB | 2,975 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 35 KB | 20 KB | 39 → **0** |
+| `panneau.js` | 53 KB | 27 KB | 70 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **905 KB** | **440 KB** | **−51 %** |
+| **all five** | **942 KB** | **450 KB** | **−52 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -343,7 +343,7 @@ within 3 %: wide enough for a version's ordinary growth, too narrow for a
 sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,968
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,975
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`
@@ -2396,6 +2396,104 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## The panel starts drawing (v3.88)
+
+Two views that do not tabulate, and a redesigned trail. All three are
+**drawings**, and a drawing is not judged on code: each one was photographed
+before being kept, and each one lost something in the developing tray.
+
+### Rhythm — what the visit memory already knew
+
+The extension has always recorded visits, to rank channels by personal
+popularity: up to twenty timestamps per channel, four hundred channels. The
+score draws an exponential decay from them and **throws the rest away** — yet
+those timestamps carry a second piece of information, whole and free: *when* you
+watch.
+
+Seven rows, twenty-four columns, in the reader's local time. **No new storage**,
+no request, no permission: it is the same data, read from the other end.
+
+What the view **is not**, and the description says so in full under its title:
+it is not watch time. A visit counts once per channel per three-hour window,
+after a minimum dwell on the page. Six hours on a single channel therefore weigh
+less than three channels opened back to back. It is a **rhythm** — when you come
+— and presenting it otherwise would misstate the measure.
+
+The grid quantises into four steps, which erases fine differences between
+neighbouring hours; an **hourly profile** restores them, on the same verticals
+and without steps. It is the grid projected onto its columns, not a second
+drawing.
+
+Two corrections came from the capture:
+
+- the profile's **scale label** was bottom-aligned with the bars — that is, at
+  the exact place where the value is zero. A maximum belongs where it is
+  reached;
+- the profile **floated** too far below the hour axis and read as a separate
+  object.
+
+### The delay curve — and the axis that had to change
+
+The "Twitch's delay" section gave four numbers. It now gives the **shape**
+behind them: a cumulative curve, where the median and the 90th percentile are
+literally where it crosses 50 % and 90 %. The drawing explains the tiles instead
+of repeating them — and it costs **no extra data**, the section already sending
+every sample for its table.
+
+**I had written that a cumulative curve never degenerates. That is false, and
+the capture showed it.** It does not degenerate in the *ordinate* — it climbs
+from 0 to 100 % whatever happens — but it degenerates in the *abscissa* as soon
+as the tail is heavy, and a latency distribution always is. On a realistic
+scene — two hundred and forty samples under two minutes, two stragglers at half
+an hour — the curve rose vertically within the **first three percent** of the
+width and then ran flat across all the rest. Neither the median nor the 90th
+percentile could be read, and their two labels overlapped in the left corner.
+
+The axis is therefore **logarithmic**, which hides nothing: both stragglers stay
+on the trace, simply at a distance that lets the rest be seen. The price is an
+axis that must be graduated — in round durations, because "100 s" means nothing
+to anyone. Two details followed from the same capture: the top of the axis is
+**rounded up to the next step**, without which the last two graduations touched;
+and the final plateau runs **to the edge**, without which the area closed on a
+diagonal — a slope that read as a decline when nothing had happened.
+
+The harness guards this door with the assertion that measures **where the median
+falls across the width of the trace**. Verified by mutation: switching the
+abscissa back to linear drops it to 2 %, and the assertion falls with it.
+
+### The trail, redrawn
+
+It held; it did not hold **together**. Three precise faults:
+
+1. **The bar was fragmented.** A one-pixel gap between parts, over a light
+   background showing through: at four segments you read four objects set side
+   by side rather than a single duration cut up. A stream's time is *continuous*.
+   The parts are now butted together, separated by a dark seam drawn inside each
+   one — the ribbon becomes one again, its boundaries stay crisp.
+2. **The list's swatch did not resemble what it named.** A flat nine-pixel
+   square facing a hatched part: for the "unobserved" row, the legend and the
+   ribbon simply did not answer each other. The swatch is now a **vertical
+   tick** — a slice of the ribbon, literally — and the unobserved row carries a
+   broken tick, as its part is hatched.
+3. **The trail did not say what it spans.** A ribbon without a scale is only a
+   proportion: "two thirds, one third" of what? The **total duration** now sits
+   in the header, to the right of the label. It is the redesign's only addition
+   of information, and it costs a number we already had.
+
+Here too the capture corrected the drawing. The total came out in **capitals** —
+"4H12" — because the header carries them for its label. And a *playhead* had
+been placed at the right edge of the current segment: it does not survive its own
+box, the ribbon being a pill with rounded corners in hidden overflow, where two
+pixels drawn along a curved end are clipped to almost nothing. It was invisible
+in all four photographed cases, and it had nothing to mark anyway — the ribbon's
+right edge *is* now, by construction.
+
+One trap is worth writing down, because it is silent: the colour of parts and
+swatches is set inline through `backgroundColor` and **not** through the
+`background` shorthand, which resets `background-image` to `none` and would take
+away the gradient, the clips hatching and the unknown part's hatching — three
+rules that would look applied and would not be.
+
 ## A twin and a dead switch (v3.87)
 
 The 3.86 audit left two points aside as cosmetic. They are — but one of them
@@ -3286,7 +3384,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 88 scenarios, 803 assertions |
+| `npm test` | the Playwright harness: 89 scenarios, 813 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
