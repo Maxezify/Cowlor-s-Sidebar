@@ -41,6 +41,12 @@
   "descRoster": {
     "message": "扩展在侧边栏中至少见过一次的所有关注频道。"
   },
+  "navRythme": {
+    "message": "观看节奏"
+  },
+  "descRythme": {
+    "message": "你打开频道的时间（本地时间）。每个频道每三小时只计一次：这是节奏，不是观看时长。"
+  },
   "navDiagnose": {
     "message": "选择器健康状况"
   },
@@ -154,6 +160,15 @@
   },
   "sumChannels": {
     "message": "个频道"
+  },
+  "sumVisits": {
+    "message": "访问"
+  },
+  "sumPeakSlot": {
+    "message": "最密集时段"
+  },
+  "sumSince": {
+    "message": "历史跨度"
   },
   "sumSubscribed": {
     "message": "个订阅"
@@ -275,6 +290,12 @@
   },
   "valOff": {
     "message": "关闭"
+  },
+  "valLess": {
+    "message": "少"
+  },
+  "valMore": {
+    "message": "多"
   },
   "healthOk": {
     "message": "选择器正常"
