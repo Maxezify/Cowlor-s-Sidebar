@@ -4473,25 +4473,26 @@ const TSE_GATE_MAX_CLICKS = 5;
       return frais;
     };
 
-    /* Absence dans une réponse de TAG. La requête est UNE, globale et
-       ordonnée : tout ce qui porte le tag y était en lice, donc une absence
-       est réelle et non un défaut d'échantillonnage par catégorie. On garde
-       néanmoins la prudence de `reconcile` — rien ne dit que Twitch
-       n'échantillonne pas ici aussi, et il faut GLOBAL_MISS_CONFIRM absences
-       d'affilée pour retirer une chaîne du classement. */
-    const oublierAbsents = (pool, vus, now) => {
-      const cutoff = now - CFG.GLOBAL_PRUNE_AGE;
-      for (const [login, rec] of pool) {
-        if (vus.has(login)) { rec.misses = 0; continue; }
-        if (rec.ts < cutoff) { pool.delete(login); stats.evicted += 1; continue; }
-        rec.misses = (rec.misses || 0) + 1;
-        stats.misses += 1;
-        if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM) {
-          pool.delete(login);
-          stats.evicted += 1;
-        }
-      }
-    };
+    /* ── ABSENCE DANS UNE RÉPONSE DE TAG ─────────────────────────────────────
+       La requête est UNE, globale et ordonnée : tout ce qui porte le tag y
+       était en lice, donc une absence est réelle et non un défaut
+       d'échantillonnage par catégorie. On garde néanmoins la prudence de
+       `reconcile` — rien ne dit que Twitch n'échantillonne pas ici aussi, et
+       il faut GLOBAL_MISS_CONFIRM absences d'affilée pour retirer une chaîne
+       du classement.
+
+       ET C'EST DONC `reconcile` QU'ON APPELLE. Une fonction jumelle a vécu
+       ici, onze lignes identiques sur douze : elle ne se distinguait que par
+       l'ABSENCE de la garde « pas regardée, pas jugée » — inutile sur cette
+       voie, puisque la requête de tag regarde tout. Deux corps qui doivent
+       évoluer ensemble finissent par ne plus le faire : on corrige la règle
+       d'éviction dans l'un, on oublie l'autre, et rien ne le signale.
+
+       La différence s'exprime donc par un ARGUMENT et non par une copie. Le
+       paramètre `queried` répond à « cette catégorie a-t-elle été
+       interrogée ? » ; sur la voie du tag la réponse est oui pour toutes, et
+       c'est exactement ce que dit l'ensemble ci-dessous. */
+    const TOUT_REGARDE = Object.freeze({ has: () => true });
 
     /* ══════════════════════════════════════════════════════════════════════
        L'AUDIENCE PAR LANGUE — CE QUE TWITCH NE VEUT PAS DIRE, ET CE QU'ON SAIT
@@ -4824,7 +4825,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           const poolTag = (wl.lang === langAvant) ? carryOver() : new Map();
           const vus = new Set();
           for (const rec of parTag.values()) { vus.add(rec.login); poolTag.set(rec.login, rec); }
-          oublierAbsents(poolTag, vus, Date.now());
+          reconcile(poolTag, TOUT_REGARDE, vus, Date.now());
           publish(poolTag);
           /* COMPLET, et c'est plus fort qu'avec la descente. Celle-ci prouve
              sa complétude par un plancher de fenêtre, faute de pouvoir tout

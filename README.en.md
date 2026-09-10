@@ -1971,6 +1971,54 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## A twin and a dead switch (v3.87)
+
+The 3.86 audit left two points aside as cosmetic. They are — but one of them
+was hiding a coverage gap, and looking at it closely is how that came out.
+
+### Two bodies that had to change together
+
+`oublierAbsents` and `reconcile` were the same function: **eleven identical
+lines out of twelve**. The only difference was a guard — "not looked at, not
+judged" — which has no place on the tag route, since the tag query looks at
+everything carrying the tag.
+
+The danger of a twin is not the space it takes, it is that the eviction rule
+gets fixed in one and forgotten in the other, with nothing to flag it. The
+difference is therefore now expressed as an **argument**:
+`reconcile(poolTag, TOUT_REGARDE, vus, now)`, where `TOUT_REGARDE` is a set
+containing everything. There is a single body to maintain, and the one thing
+particular to the tag route is written where it is read.
+
+The repository goes from two duplicated blocks to **one** — the remaining one
+is the GraphQL fragment shared by two distinct queries, and factoring it out
+would make both queries less readable, not more.
+
+### The switch that had never been used
+
+The test scenery carried two flags **no scenario has ever set to `true`**, ever
+since the harness entered the repository. They did not describe a tested case:
+only an intention.
+
+`__catOrdered` would have made the stub return `streams` already sorted. The
+scenery always returns them reversed, and that is what gives the ordering
+assertions their value — an already-sorted response would let them pass
+whatever the module does. The switch is gone, the behaviour stays.
+
+`__upperCaseLogins`, on the other hand, aimed at a real hazard, and **it is the
+only coverage gap in the whole audit**. Twitch treats logins without regard to
+case and nothing obliges its response to return exactly the string asked for —
+yet that is the field the batch re-indexes on. The normalisation did exist
+(three boundaries apply it); it was simply **never exercised**.
+
+Scenario 13 now covers it, and the failure it catches is not its neighbour's:
+reversed order makes the data change **owner**, changed case makes it reach
+**nobody** — every channel passes for a login Twitch omitted, the cards stay
+bare, and the cache stays empty. Verified by mutation: removing the
+`toLowerCase()` from the indexing makes all three new assertions fall —
+`cache 0` included — while the five before them stay green. The added coverage
+is therefore genuinely new.
+
 ## What an audit finds when nothing is broken (v3.86)
 
 Every other entry on this page starts from a symptom: someone saw something
@@ -2807,7 +2855,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 88 scenarios, 800 assertions |
+| `npm test` | the Playwright harness: 88 scenarios, 803 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

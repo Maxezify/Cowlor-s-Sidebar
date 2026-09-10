@@ -115,9 +115,14 @@ window.__cats = [];
 // L'API rend `games` classé. Mis à true, le stub le rend À L'ENVERS : c'est
 // ainsi qu'on vérifie que le module NE FAIT PAS confiance à cet ordre.
 window.__catsUnsorted = false;
-// L'API rend `streams` en DÉSORDRE (mesuré). Le stub reproduit ce défaut par
-// défaut ; mis à true, il rend l'ordre décroissant.
-window.__catOrdered = false;
+// L'API rend `streams` en DÉSORDRE (mesuré). Le stub reproduit ce défaut
+// TOUJOURS, et c'est ce qui donne leur valeur aux assertions de classement :
+// une réponse déjà triée les laisserait passer quoi que fasse le module.
+//
+// Un interrupteur permettait de rendre l'ordre décroissant. Aucun scénario ne
+// l'a jamais mis à true depuis l'entrée du harnais dans le dépôt : il ne
+// décrivait donc pas un cas éprouvé, seulement une intention. Le décor n'a
+// qu'un seul comportement, et il est ici.
 // Fait échouer les SEULES opérations du mode global. Sert à vérifier que la
 // panne reste confinée : la sidebar « Chaînes suivies » doit continuer.
 window.__globalFail = false;
@@ -285,6 +290,13 @@ window.fetch = async (url, opt) => {
     if (f === undefined) return null;          // login inconnu : omis par Twitch
     return {
       id: f ? f.id : 'id-' + login,
+      /* LA CASSE DU LOGIN N'EST PAS GARANTIE. Twitch traite les logins sans
+         égard à la casse, et rien n'oblige la réponse à rendre exactement la
+         chaîne demandée. Or c'est SUR CE CHAMP que le lot se réindexe : une
+         comparaison sensible à la casse ferait passer chaque chaîne pour un
+         login que Twitch aurait omis, et les cartes resteraient nues.
+         Mis à true, ce décor rend donc « GROS » là où la carte dit « gros ».
+         Cf. scénario 13. */
       login: window.__upperCaseLogins ? login.toUpperCase() : login,
       displayName: f && f.name ? f.name : login.charAt(0).toUpperCase() + login.slice(1),
       profileImageURL: 'https://cdn/api-' + login + '.png',
@@ -533,7 +545,7 @@ window.fetch = async (url, opt) => {
         .filter(s => !(window.__hidden || []).includes(s.login))
         .filter(s => !mLang || parle(s));
       const top = visibles.slice().sort((a, b) => b.viewers - a.viewers).slice(0, n);
-      const out = window.__catOrdered ? top : top.slice().reverse();
+      const out = top.slice().reverse();       // cf. l'en-tête : jamais trié
       return { data: { game: {
         id: 'gid-' + c.name, name: c.name, viewersCount: c.viewers,
         streams: { edges: out.map(s => ({ node: {

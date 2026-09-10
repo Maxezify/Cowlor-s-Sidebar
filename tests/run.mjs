@@ -656,6 +656,56 @@ titre('13. Réponse groupée — indexation par login, pas par position');
   ok('les autres cartes restent intactes',
      (await state(page)).find(c => c.login === 'gros')?.viewers === '33333');
   await page.close();
+
+  /* ── ET QUAND LA RÉPONSE CHANGE LA CASSE DU LOGIN ───────────────────────
+     Twitch traite les logins sans égard à la casse, et rien n'oblige la
+     réponse à rendre exactement la chaîne demandée. Le lot se réindexe
+     pourtant SUR CE CHAMP : une comparaison sensible à la casse ferait passer
+     chaque chaîne pour un login omis — le cas déjà éprouvé juste au-dessus —
+     et les cartes resteraient nues. Ce n'est donc pas la même panne que
+     l'ordre inversé : là, les données changeaient de propriétaire ; ici, elles
+     n'arrivent à personne.
+
+     LE DÉCOR SAVAIT LE FAIRE DEPUIS TOUJOURS, ET PERSONNE NE LE LUI AVAIT
+     DEMANDÉ. `__upperCaseLogins` est entré dans le dépôt avec le harnais et
+     aucun scénario ne l'a jamais mis à true : la normalisation existait, elle
+     n'était pas éprouvée. Un audit l'a relevé — c'est le seul trou de
+     couverture qu'il ait trouvé. */
+  {
+    const p2 = await fresh();
+    await p2.evaluate(() => {
+      window.__upperCaseLogins = true;
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      window.__fx = {
+        petit: { id:'1', createdAt:h, viewers:111,   game:'Cat-A', tags:['Français'] },
+        gros:  { id:'3', createdAt:h, viewers:33333, game:'Cat-C', tags:['Deutsch'] },
+      };
+      window.__addCard('petit', 'x', '0');
+      window.__addCard('gros',  'x', '0');
+    });
+    await wait(p2, 1500);
+    const cases = Object.fromEntries((await state(p2)).map(c => [c.login, c]));
+    ok('une réponse qui change la casse du login est tout de même indexée',
+       cases.petit?.viewers === '111' && cases.gros?.viewers === '33333',
+       JSON.stringify(Object.entries(cases).map(([k, v]) => [k, v.viewers])));
+    ok('…et c\'est le NŒUD entier qui suit, pas seulement le compteur',
+       cases.petit?.cat === 'Cat-A' && cases.gros?.cat === 'Cat-C'
+       && cases.petit?.langs === '|Français|' && cases.gros?.langs === '|Deutsch|',
+       JSON.stringify(Object.entries(cases).map(([k, v]) => [k, v.cat, v.langs])));
+    /* ET ELLES ENTRENT AU CACHE, ce que la carte seule ne dit pas. Un login
+       que l'index ne retrouve pas rend UPTIME_UNKNOWN et n'écrit RIEN : le
+       cache resterait vide, et avec lui tout ce qui s'y adosse ensuite — le
+       survol, le tri, la frise. C'est donc la portée réelle de la panne, et
+       non le seul aspect des cartes.
+
+       Vérifié par MUTATION : en retirant le `toLowerCase()` de l'indexation,
+       cette assertion tombe avec les deux précédentes, tandis que les cinq du
+       dessus restent vertes. La couverture ajoutée est donc bien nouvelle. */
+    const compteurs = await p2.evaluate(() => window.tse.panneau.rapport().compteurs);
+    ok('…et les deux entrent au cache, sous le login que tout le reste emploie',
+       compteurs.cache === 2, JSON.stringify(compteurs));
+    await p2.close();
+  }
 }
 
 // ═════════ 14. Carte posée avant Twitch ═════════

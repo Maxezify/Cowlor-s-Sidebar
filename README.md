@@ -2092,6 +2092,55 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## Une jumelle et un interrupteur mort (v3.87)
+
+L'audit de la 3.86 avait laissé deux points de côté, jugés cosmétiques. Ils le
+sont — mais l'un des deux cachait un trou de couverture, et c'est en le
+regardant de près qu'on s'en est aperçu.
+
+### Deux corps qui devaient évoluer ensemble
+
+`oublierAbsents` et `reconcile` étaient la même fonction : **onze lignes
+identiques sur douze**. La seule différence tenait à une garde — « pas
+regardée, pas jugée » — qui n'a pas lieu d'être sur la voie du tag, puisque la
+requête de tag regarde tout ce qui porte le tag.
+
+Le danger d'une jumelle n'est pas la place qu'elle prend, c'est qu'on corrige
+la règle d'éviction dans l'une et qu'on oublie l'autre — et que rien ne le
+signale. La différence s'exprime donc maintenant par un **argument** :
+`reconcile(poolTag, TOUT_REGARDE, vus, now)`, où `TOUT_REGARDE` est un ensemble
+qui contient tout. Il n'y a plus qu'un corps à maintenir, et la seule chose que
+la voie du tag ait de particulier est écrite là où on la lit.
+
+Le dépôt passe de deux blocs dupliqués à **un** — celui qui reste est le
+fragment GraphQL partagé par deux requêtes distinctes, et le factoriser
+rendrait les deux requêtes moins lisibles, pas plus.
+
+### L'interrupteur qui n'avait jamais servi
+
+Le décor de test portait deux drapeaux que **aucun scénario n'a jamais mis à
+`true`**, depuis l'entrée du harnais dans le dépôt. Ils ne décrivaient donc pas
+un cas éprouvé : seulement une intention.
+
+`__catOrdered` aurait fait rendre au stub des `streams` déjà triés. Le décor
+les rend toujours à l'envers, et c'est ce qui donne leur valeur aux assertions
+de classement — une réponse déjà triée les laisserait passer quoi que fasse le
+module. L'interrupteur est retiré, le comportement reste.
+
+`__upperCaseLogins`, lui, visait un vrai danger, et **c'est le seul trou de
+couverture de tout l'audit**. Twitch traite les logins sans égard à la casse et
+rien n'oblige sa réponse à rendre exactement la chaîne demandée — or c'est sur
+ce champ que le lot se réindexe. La normalisation existait bien (trois
+frontières la posent), elle n'était simplement **jamais éprouvée**.
+
+Le scénario 13 s'en charge désormais, et la panne qu'il attrape n'est pas celle
+de son voisin : l'ordre inversé fait changer les données de **propriétaire**,
+la casse fait qu'elles n'arrivent **à personne** — chaque chaîne passe pour un
+login que Twitch aurait omis, les cartes restent nues, et le cache reste vide.
+Vérifié par mutation : en retirant le `toLowerCase()` de l'indexation, les
+trois nouvelles assertions tombent — y compris `cache 0` — tandis que les cinq
+qui les précèdent restent vertes. La couverture ajoutée est donc bien nouvelle.
+
 ## Ce qu'un audit trouve quand rien n'est cassé (v3.86)
 
 Toutes les entrées de cette page partent d'un symptôme : quelqu'un a vu quelque
@@ -2956,7 +3005,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 88 scénarios, 800 assertions |
+| `npm test` | le harnais Playwright : 88 scénarios, 803 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
