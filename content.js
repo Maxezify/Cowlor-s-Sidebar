@@ -4540,7 +4540,10 @@ const TSE_GATE_MAX_CLICKS = 5;
        d'il y a un quart d'heure ne décrit plus rien, et la lire vieille serait
        pire que ne rien lire. */
     const mesuresCatLangue = new Map();   // "catégorie\0langue" → { v, ts }
-    const CAT_LANGUE_MAX = 300;
+    /* Cent catégories par langue parcourue, plus trente et une langues par
+       catégorie : trois cents places s'épuisaient dès qu'on regardait deux
+       langues, et les premières mesures disparaissaient sous les suivantes. */
+    const CAT_LANGUE_MAX = 800;
 
     /* `categorie` vaut la chaîne vide pour le MONDE. Une clé vide et une clé
        absente ne se ressemblent qu'en apparence : le monde est une portée
@@ -4620,14 +4623,45 @@ const TSE_GATE_MAX_CLICKS = 5;
       '}';
 
     const bilanMesures = { passes: 0, servies: 0, vides: 0, echecs: 0 };
-    let mesuresEnCours = false;
+    /* UNE GARDE PAR CLÉ, ET NON UNE POUR TOUT LE MONDE. Un unique drapeau
+       « un relevé est en cours » faisait TOMBER la demande suivante — celle
+       d'une autre portée, qui n'avait rien à voir. Choisir une langue juste
+       après une catégorie perdait donc silencieusement sa mesure, et le menu
+       restait sans chiffres jusqu'au prochain tick. Deux relevés de portées
+       différentes peuvent parfaitement voyager ensemble ; ce qu'il faut
+       empêcher, c'est de redemander CE QU'ON EST DÉJÀ EN TRAIN DE DEMANDER. */
+    const mesuresEnVol = new Set();
     const mesuresTs = new Map();     // portée → dernier relevé
 
+    /* ── LES DEUX SENS D'UNE MÊME MESURE ────────────────────────────────────
+       Le registre range des couples (catégorie, langue). Deux questions le
+       lisent, et il faut le remplir DANS LES DEUX SENS pour y répondre :
+
+         « combien de francophones sur GTA V ? »   → menu LANGUE
+              une catégorie fixée, toutes les langues  (31 opérations)
+         « combien de francophones sur chaque catégorie ? » → menu CATÉGORIE
+              une langue fixée, toutes les catégories  (100 opérations)
+
+       La 3.84 n'écrivait que le premier. Le second restait donc vide, et le
+       menu catégorie n'affichait aucun chiffre dès qu'une langue était
+       choisie — un utilisateur l'a vu tout de suite, le tri étant retombé
+       alphabétique faute de nombres à comparer.
+
+       Les clés de péremption sont préfixées par le SENS : une même catégorie
+       et une même langue ne partagent pas leur horloge, sans quoi mesurer
+       l'une empêcherait de mesurer l'autre pendant cinq minutes. */
     const mesurerLangues = async (categorie) => {
+      /* DEUX CLÉS, ET LES CONFONDRE A COÛTÉ LES MESURES. `cle` range dans le
+         registre — c'est la catégorie elle-même, telle que `catCounts` et
+         `langs` la cherchent. `cleTTL` ne sert qu'à l'horloge, et porte le
+         préfixe du SENS pour que mesurer une catégorie n'empêche pas de
+         mesurer une langue. Écrit d'abord avec une seule variable : le
+         registre s'est rempli sous « C\0cat0 », que personne ne lit. */
       const cle = categorie || '';
-      if (mesuresEnCours) return;
-      if (Date.now() - (mesuresTs.get(cle) || 0) < CFG.GLOBAL_LANG_MESURE_TTL) return;
-      mesuresEnCours = true;
+      const cleTTL = 'C\u0000' + cle;
+      if (mesuresEnVol.has(cleTTL)) return;
+      if (Date.now() - (mesuresTs.get(cleTTL) || 0) < CFG.GLOBAL_LANG_MESURE_TTL) return;
+      mesuresEnVol.add(cleTTL);
       try {
         const langues = [...LANG_SET].filter(l => !categorie
           || (LANG_API[l] && !langApiRejected.has(l)));
@@ -4644,7 +4678,17 @@ const TSE_GATE_MAX_CLICKS = 5;
         let servies = 0;
         out.forEach((d, i) => {
           const edges = categorie ? d?.game?.streams?.edges : d?.streams?.edges;
-          if (!Array.isArray(edges)) { bilanMesures.echecs++; return; }
+          if (!Array.isArray(edges)) {
+            bilanMesures.echecs++;
+            /* `d` À NULL SANS INCIDENT DE TRANSPORT VEUT DIRE QUE LE SERVEUR A
+               REFUSÉ CETTE OPÉRATION — et sur ce chemin la seule chose qui
+               varie d'une opération à l'autre est le code d'énumération. On
+               l'apprend donc ici aussi, sans quoi chaque relevé rejouerait
+               les mêmes codes morts : un rapport en montrait vingt-six par
+               passe, toutes les cinq minutes, pour rien. */
+            if (categorie && d === null && !transport) langApiRejected.add(langues[i]);
+            return;
+          }
           servies++;
           const somme = edges.reduce((n, e) =>
             n + (Number.isFinite(e?.node?.viewersCount) ? e.node.viewersCount : 0), 0);
@@ -4655,10 +4699,59 @@ const TSE_GATE_MAX_CLICKS = 5;
         bilanMesures.servies += servies;
         if (!servies) bilanMesures.vides++;
         // Une passe comprise vaut son TTL ; une coupure n'apprend rien.
+        if (!transport) mesuresTs.set(cleTTL, Date.now());
+      } finally {
+        mesuresEnVol.delete(cleTTL);
+      }
+    };
+
+    /* Une langue fixée, toutes les catégories. Cent opérations LÉGÈRES — un
+       entier par chaîne — une fois par langue et par période. C'est le prix
+       d'un menu dont les chiffres décrivent ce qu'on a choisi, et il ne se
+       paie que lorsqu'une langue est effectivement sélectionnée.
+
+       LA MÊME REQUÊTE QUE LA SÉLECTION, ici encore : choisir la catégorie
+       lancera `scopePass`, qui demande exactement ceci. Le nombre annoncé et
+       le nombre obtenu sont donc le même, par construction. */
+    const mesurerCategories = async (langue) => {
+      const code = langue && !langApiRejected.has(langue) ? LANG_API[langue] : null;
+      if (!code || !categories.length) return;
+      /* ── ON NE MESURE QUE CE QU'ON SAIT SERVIR ──────────────────────────
+         Le code d'énumération de cette langue doit avoir été ACCEPTÉ par
+         l'API, et la seule preuve en est que le classement la porte. Sans
+         cette garde, choisir une langue dont le code est faux envoyait cent
+         opérations vouées à l'échec — en parallèle de la descente qui, elle,
+         est en train de l'apprendre. Le banc l'a pris : une langue refusée
+         était tentée trois fois au lieu d'une. Mesurer les catégories d'une
+         langue qu'on ne peut pas servir n'a de toute façon aucun sens. */
+      const servie = wantedScope() ? scopeLangApplied : worldLang === langue;
+      if (!servie) return;
+      const cle = 'L\u0000' + langue;
+      if (mesuresEnVol.has(cle)) return;
+      if (Date.now() - (mesuresTs.get(cle) || 0) < CFG.GLOBAL_LANG_MESURE_TTL) return;
+      mesuresEnVol.add(cle);
+      try {
+        const noms = categories.slice(0, CFG.GLOBAL_CATEGORIES_MAX).map(c => c.name);
+        const ops = noms.map(name => ({
+          operationName: 'TseCatLangCount',
+          variables: { name, n: CFG.GLOBAL_TOP_N },
+          query: catLangCountQuery(code)
+        }));
+        bilanMesures.passes += 1;
+        const { out, transport } = await send(ops);
+        let servies = 0;
+        out.forEach((d, i) => {
+          const edges = d?.game?.streams?.edges;
+          if (!Array.isArray(edges)) { bilanMesures.echecs++; return; }
+          servies++;
+          noterMesure(noms[i], langue, edges.reduce((n, e) =>
+            n + (Number.isFinite(e?.node?.viewersCount) ? e.node.viewersCount : 0), 0));
+        });
+        bilanMesures.servies += servies;
+        if (!servies) bilanMesures.vides++;
         if (!transport) mesuresTs.set(cle, Date.now());
       } finally {
-        // eslint-disable-next-line require-atomic-updates
-        mesuresEnCours = false;
+        mesuresEnVol.delete(cle);
       }
     };
 
@@ -5026,16 +5119,21 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const tick = () => {
-      if (!state.globalMode || running) return;
+      if (!state.globalMode) return;
+
+      /* LES CHIFFRES DES MENUS PASSENT AVANT LES GARDES DE LA MARCHE, et ce
+         n'est pas un détail d'ordre : placés après, ils étaient inatteignables
+         pendant qu'une marche tournait — c'est-à-dire précisément à l'instant
+         où l'on vient de changer de filtre, donc où ils sont périmés. Ils ne
+         partagent ni le verrou `running` ni la pause d'après-échec : ce sont
+         des requêtes indépendantes, et chacune se tait d'elle-même tant que
+         son TTL n'est pas écoulé. */
+      mesurerLangues(state.categoryFilter || null).catch(() => {});
+      mesurerCategories(state.languageFilter || null).catch(() => {});
+
+      if (running) return;
       const now = Date.now();
       if (now < cooldownUntil) return;
-
-      /* Les chiffres des menus, mesurés SUR LA PORTÉE COURANTE et sans
-         retarder quoi que ce soit. `mesurerLangues` se tait d'elle-même tant
-         que son TTL n'est pas écoulé, si bien qu'appeler à chaque tick ne
-         coûte qu'une comparaison. Elle est lancée AVANT le retour anticipé
-         ci-dessous : une portée stable n'empêche pas ses chiffres d'exister. */
-      mesurerLangues(state.categoryFilter || null).catch(() => {});
 
       // Une catégorie est choisie : une opération suffit, et la marche
       // mondiale n'a plus lieu d'être tant qu'on y reste.
@@ -5235,7 +5333,11 @@ const TSE_GATE_MAX_CLICKS = 5;
            catégorie pour une petite langue ne donne pas un ordre de grandeur,
            cela donne du bruit. Les couples mesurés sont ceux que l'utilisateur
            a lui-même demandés en choisissant une catégorie. */
-        return appliquerMesures(new Map(), 'langue', langue);
+        const m = appliquerMesures(new Map(), 'langue', langue);
+        // La mesure MONDIALE de cette langue est rangée sous la catégorie
+        // vide : elle n'a pas sa place dans un menu de catégories.
+        m.delete('');
+        return m;
       },
       cats(n = CFG.GLOBAL_CATEGORIES_MAX) {
         return categories.slice(0, n);
@@ -11047,7 +11149,16 @@ const TSE_GATE_MAX_CLICKS = 5;
     // resterait \u00E9crit dans la langue pr\u00E9c\u00E9dente jusqu'\u00E0 ce qu'un streamer
     // change de jeu.
     const sig = `${kind}|${disabled ? 'D' : ''}|cur=${current || ''}|` +
-      values.map(v => v + '>' + libelle(v) + '#' + (counts.get(v) || 0)).join('\u00A7');
+      /* LA SIGNATURE DOIT VOIR CE QUE LE RENDU VOIT. Elle écrivait
+         `counts.get(v) || 0`, ce qui donnait le MÊME texte à une valeur
+         absente et à une valeur mesurée à zéro — or ces deux-là ne s'affichent
+         plus pareil depuis qu'« on ne sait pas » et « personne » sont
+         distingués. Une catégorie passant d'inconnue à zéro ne changeait donc
+         pas la signature, le menu ne se reconstruisait pas, et le zéro
+         n'apparaissait jamais. Sonder en isolation a été le seul moyen de le
+         voir : le symptôme est ailleurs que la faute. */
+      values.map(v => v + '>' + libelle(v) + '#'
+                    + (counts.has(v) ? counts.get(v) : 'ø')).join('\u00A7');
     if (dd.dataset.tseSig !== sig) {
       dd.dataset.tseSig = sig;
       cur.replaceChildren(current ? itemLabel(current) : allLabel());
@@ -11065,7 +11176,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       const lignes = [option('', !current, allTitle, allLabel())];
       for (const v of values) {
         const o = option(v, v === current, null, itemLabel(v));
-        const n = fmt(counts.get(v) || 0);
+        /* ABSENT ET ZÉRO NE SE VALENT PAS, et le formateur doit pouvoir les
+           distinguer. « Aucune mesure » se lit « on ne sait pas » ; « mesuré
+           à zéro » est une réponse, et la taire ferait croire qu'on n'a pas
+           regardé. On passe donc la valeur BRUTE, `undefined` compris. */
+        const n = fmt(counts.has(v) ? counts.get(v) : undefined);
         // Compteur OMIS quand le formateur rend une chaîne vide : sous portée
         // catégorie, le nombre décrirait un autre ensemble que celui qu'on
         // obtiendra en choisissant — autant ne rien dire.
@@ -11173,10 +11288,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         : cats.map(c => c.name);
       rebuildDropdown(catDD, catNoms, catCount,
                       state.categoryFilter, cats.length === 0, 'cat',
-                      // Même règle que côté langue : un zéro non mesuré ne
-                      // s'écrit pas. Sous le globe la question ne se pose pas,
-                      // Twitch donnant un total pour chaque catégorie.
-                      (n) => (n > 0 ? formatViewers(n) : ''),
+                      // Sous le globe la question ne se pose pas : Twitch
+                      // donne un total pour chaque catégorie. Sous une langue,
+                      // seules les catégories mesurées portent un nombre — et
+                      // celles mesurées à zéro portent leur zéro.
+                      (n) => (n === undefined ? '' : formatViewers(n)),
                       (v) => catLabel.get(v) || v);
       rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
                       langCount, Lg, langsPresent.size === 0, 'lang',
@@ -11191,7 +11307,7 @@ const TSE_GATE_MAX_CLICKS = 5;
                          interroger l'API et peut très bien trouver du monde.
                          Rien du tout se lit « on ne sait pas », et c'est la
                          vérité. */
-                      (n) => (n > 0 ? formatViewers(n) : ''))
+                      (n) => (n === undefined ? '' : formatViewers(n)))
       const wrapG = document.getElementById(FILTER_ID);
       if (wrapG) wrapG.dataset.tseActive = (state.categoryFilter || Lg) ? 'true' : 'false';
       applyCategoryFilter();

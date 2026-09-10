@@ -2092,6 +2092,72 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## Le menu catégorie sous une langue (v3.85)
+
+Sous le globe, les chiffres du menu catégorie sont ceux de Twitch et ils sont
+justes. Sous un drapeau, ils **disparaissaient** — et le tri retombait
+alphabétique, ce qui se voyait au premier coup d'œil sur une capture : Albion
+Online, Always On, Animaux…
+
+**Deux fautes, et la seconde n'était pas là où le symptôme se voyait.**
+
+### Le registre n'était rempli que dans un sens
+
+Les mesures se rangent par couple (catégorie, langue). Deux questions les
+lisent, et il fallait remplir **les deux sens** :
+
+| question | ce qu'on fixe | ce qu'on parcourt | coût |
+| --- | --- | --- | --- |
+| combien de francophones **sur GTA V** ? | la catégorie | les 31 langues | 31 opérations |
+| combien de francophones **sur chaque catégorie** ? | la langue | les 100 catégories | 100 opérations |
+
+La 3.84 n'écrivait que le premier. Le second restait vide, donc le menu
+catégorie n'avait aucun chiffre à afficher dès qu'une langue était choisie.
+Chaque relevé emploie la requête que la sélection emploierait — ici
+`game(name:){ streams(broadcasterLanguages: [code]) }`, celle de la passe de
+portée — de sorte que le nombre annoncé et le nombre obtenu soient le même.
+
+### Et la signature du menu ne voyait pas la différence
+
+Le menu ne se réécrit que si sa **signature** change ; c'est ce qui l'empêche de
+se fermer sous la souris à chaque scan. Or elle était calculée avec
+`counts.get(v) || 0` : une catégorie passant d'**inconnue** à **mesurée à zéro**
+donnait exactement le même texte. La signature ne bougeait pas, le menu ne se
+reconstruisait pas, et le zéro n'apparaissait jamais.
+
+Depuis que « on ne sait pas » et « personne » s'affichent différemment, la
+signature doit voir cette différence-là aussi. C'est une faute dont le symptôme
+était ailleurs que la cause, et seule une sonde en isolation l'a montrée — le
+banc, lui, la reproduisait sans la nommer.
+
+### Absent n'est pas zéro
+
+| état | affichage | ce que ça dit |
+| --- | --- | --- |
+| jamais mesuré | *rien* | on ne sait pas |
+| mesuré à zéro | `0` | cette langue n'a personne ici |
+
+Les deux se ressemblaient ; ils ne se ressemblent plus, ni au rendu, ni dans la
+signature, ni dans le tri.
+
+## Un code refusé n'est plus jamais renvoyé (v3.85)
+
+Effet de bord heureux, et éprouvé : le relevé qui remplit les chiffres
+interroge **tous** les codes de langue dès la première catégorie choisie. Il
+apprend là ceux que le schéma refuse et les partage avec la descente. Quand on
+choisit ensuite une langue dont le code est mauvais, plus une seule requête ne
+part avec lui — là où le banc en tolérait une.
+
+Deux gardes ont été resserrées au passage :
+
+- **une garde par clé**, et non une pour tout le monde. Un unique drapeau « un
+  relevé est en cours » faisait *tomber* la demande suivante — celle d'une
+  autre portée, qui n'avait rien à voir ;
+- **les chiffres des menus passent avant les gardes de la marche.** Placés
+  après, ils étaient inatteignables pendant qu'une marche tournait, c'est-à-dire
+  précisément à l'instant où l'on vient de changer de filtre — donc où ils sont
+  périmés.
+
 ## « 21 » là où il y en avait 318 (v3.84)
 
 Un utilisateur a compté à la main : le drapeau hongrois annonçait **21**, et le
@@ -2791,7 +2857,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 87 scénarios, 790 assertions |
+| `npm test` | le harnais Playwright : 87 scénarios, 792 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -2812,12 +2878,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 720 Ko | 314 Ko | 2 955 → **2** |
+| `content.js` | 727 Ko | 315 Ko | 2 966 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **898 Ko** | **438 Ko** | **−51 %** |
+| **les cinq** | **905 Ko** | **440 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
