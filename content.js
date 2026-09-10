@@ -1112,6 +1112,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     GS_PRUNE_AGE:    5 * 60_000,
 
+    CHAPITRES_MAX:   300,
+
     GLOBAL_TOP_N:            30,
 
     GLOBAL_CATEGORIES_MAX:   100,
@@ -2141,14 +2143,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     const debutStream = Date.parse(flux.createdAt) || null;
     let f = frises.get(login);
 
+    frises.delete(login);
+
     if (!f || f.streamId !== id) {
       f = { streamId: id, debutStream, vuDepuis: maintenant, segments: [], tronquee: false };
-      frises.set(login, f);
-    } else {
-
-      frises.delete(login);
-      frises.set(login, f);
     }
+    frises.set(login, f);
 
     while (frises.size > CFG.CATEGORY_TRAIL_MAX) {
       frises.delete(frises.keys().next().value);
@@ -5167,7 +5167,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const retenir = (streamId, segments, continu, source = null) => {
+
+      chapitres.delete(streamId);
       chapitres.set(streamId, { ts: Date.now(), segments, continu, source });
+      while (chapitres.size > CFG.CHAPITRES_MAX) {
+        chapitres.delete(chapitres.keys().next().value);
+      }
       return (segments || continu) ? chapitres.get(streamId) : null;
     };
 
@@ -6088,7 +6093,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       bilanChapitres: () => ({ ...bilanChapitres,
 
-                               clipsForme: CLIPS_FORMES[clipsForme] || null })
+                               clipsForme: CLIPS_FORMES[clipsForme] || null,
+
+                               resident: chapitres.size,
+                               max: CFG.CHAPITRES_MAX })
     };
   })();
 
