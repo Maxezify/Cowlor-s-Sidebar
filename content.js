@@ -1693,6 +1693,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     // (vérifié : 100 reçus, décroissants). C'est la colonne vertébrale de
     // tout le module — et accessoirement la source du filtre catégorie.
     GLOBAL_CATEGORIES_MAX:   100,
+    /* Cadence des mesures par langue. Trente et une opérations LÉGÈRES — un
+       entier par chaîne, rien d'autre — une fois par portée et par période.
+       Cinq minutes : assez court pour qu'un chiffre reste crédible, assez
+       long pour que parcourir le menu n'en déclenche pas une par clic. */
+    GLOBAL_LANG_MESURE_TTL:  5 * 60_000,
     // Catégories de tête interrogées à chaque passe structurelle : elles
     // portent l'essentiel du top N, et les re-lire à chaque cycle évite
     // d'attendre la marche complète pour voir une chaîne grimper CHEZ ELLES.
@@ -4537,8 +4542,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     const mesuresCatLangue = new Map();   // "catégorie\0langue" → { v, ts }
     const CAT_LANGUE_MAX = 300;
 
+    /* `categorie` vaut la chaîne vide pour le MONDE. Une clé vide et une clé
+       absente ne se ressemblent qu'en apparence : le monde est une portée
+       comme une autre, et lui refuser sa case obligerait à tenir deux
+       registres qui finiraient par diverger. */
     const noterMesure = (categorie, langue, somme) => {
-      if (!categorie || !langue || !Number.isFinite(somme)) return;
+      if (categorie == null || !langue || !Number.isFinite(somme)) return;
       const cle = categorie + '\u0000' + langue;
       mesuresCatLangue.delete(cle);              // réinsertion : ordre = fraîcheur
       mesuresCatLangue.set(cle, { v: somme, ts: Date.now() });
@@ -4560,6 +4569,97 @@ const TSE_GATE_MAX_CLICKS = 5;
         }
       }
       return m;
+    };
+
+    /* ══════════════════════════════════════════════════════════════════════
+       LE CHIFFRE D'UN DRAPEAU EST LA SOMME DE CE QU'IL DONNERA
+       ──────────────────────────────────────────────────────────────────────
+       LE MENU DISAIT 21 LÀ OÙ LA SÉLECTION EN MONTRAIT 318. Un utilisateur a
+       compté à la main, et il avait raison : ce n'était pas une approximation,
+       c'était un autre nombre — quinze fois plus petit.
+
+       La cause tient en une ligne du même rapport : `pool 14`. Le compteur
+       sommait le pool MONDIAL par tag de langue, or ce pool est un TOP. Les
+       chaînes hongroises pèsent 127, 22, 21, 17 spectateurs : elles passent
+       toutes sous le seuil mondial, et le pool n'en connaissait qu'une. Sommer
+       un échantillon qui exclut par construction ce qu'on veut compter ne
+       donne pas un ordre de grandeur, cela donne du bruit.
+
+       IL N'Y A QU'UNE DÉFINITION QUI TIENNE, et c'est celle que l'utilisateur
+       a employée sans le dire : le chiffre en face d'un drapeau doit être la
+       somme de ce qu'on obtient EN LE CHOISISSANT. On le mesure donc avec la
+       requête même que la sélection emploierait, et sur la même profondeur :
+         — sans catégorie, la voie du tag, `streams(freeformTags: [langue])` ;
+         — avec une catégorie, la passe de portée,
+           `game(name:){ streams(broadcasterLanguages: [code]) }`.
+       Le nombre affiché et le nombre visible sont alors le MÊME nombre, par
+       construction et non par chance.
+
+       CE QU'ON N'A PAS MESURÉ NE S'ÉCRIT PAS. Le repli sur le pool est retiré,
+       pas corrigé : il ne répondait à aucune question qu'un utilisateur puisse
+       se poser. */
+    const LANG_COUNT_QUERY =
+      'query TseTagCount($tag: String!, $n: Int!) {' +
+      '  streams(first: $n, options: { sort: VIEWER_COUNT, freeformTags: [$tag] }) {' +
+      '    edges { node { viewersCount } }' +
+      '  }' +
+      '}';
+
+    /* Sous une catégorie, c'est `broadcasterLanguages` qui filtre — le même
+       argument que la passe de portée, interpolé de la même façon et pour la
+       même raison (cf. catTopQuery). Employer ici le tag donnerait un nombre
+       que la sélection ne reproduirait pas. */
+    const catLangCountQuery = (code) =>
+      'query TseCatLangCount($name: String!, $n: Int!) {' +
+      '  game(name: $name) {' +
+      '    streams(first: $n, options: { sort: VIEWER_COUNT' +
+      `, broadcasterLanguages: [${code}] }) {` +
+      '      edges { node { viewersCount } }' +
+      '    }' +
+      '  }' +
+      '}';
+
+    const bilanMesures = { passes: 0, servies: 0, vides: 0, echecs: 0 };
+    let mesuresEnCours = false;
+    const mesuresTs = new Map();     // portée → dernier relevé
+
+    const mesurerLangues = async (categorie) => {
+      const cle = categorie || '';
+      if (mesuresEnCours) return;
+      if (Date.now() - (mesuresTs.get(cle) || 0) < CFG.GLOBAL_LANG_MESURE_TTL) return;
+      mesuresEnCours = true;
+      try {
+        const langues = [...LANG_SET].filter(l => !categorie
+          || (LANG_API[l] && !langApiRejected.has(l)));
+        if (!langues.length) return;
+        const ops = langues.map(l => categorie
+          ? { operationName: 'TseCatLangCount',
+              variables: { name: categorie, n: CFG.GLOBAL_TOP_N },
+              query: catLangCountQuery(LANG_API[l]) }
+          : { operationName: 'TseTagCount',
+              variables: { tag: l, n: CFG.GLOBAL_TAG_MAX },
+              query: LANG_COUNT_QUERY });
+        bilanMesures.passes += 1;
+        const { out, transport } = await send(ops);
+        let servies = 0;
+        out.forEach((d, i) => {
+          const edges = categorie ? d?.game?.streams?.edges : d?.streams?.edges;
+          if (!Array.isArray(edges)) { bilanMesures.echecs++; return; }
+          servies++;
+          const somme = edges.reduce((n, e) =>
+            n + (Number.isFinite(e?.node?.viewersCount) ? e.node.viewersCount : 0), 0);
+          // Zéro est une MESURE : cette langue n'a personne ici, et le dire
+          // vaut mieux que de laisser croire qu'on n'a pas regardé.
+          noterMesure(cle, langues[i], somme);
+        });
+        bilanMesures.servies += servies;
+        if (!servies) bilanMesures.vides++;
+        // Une passe comprise vaut son TTL ; une coupure n'apprend rien.
+        if (!transport) mesuresTs.set(cle, Date.now());
+      } finally {
+        // eslint-disable-next-line require-atomic-updates
+        mesuresEnCours = false;
+      }
     };
 
     const carryOver = () => new Map(ranking.map(r => [r.login, r]));
@@ -4930,6 +5030,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       const now = Date.now();
       if (now < cooldownUntil) return;
 
+      /* Les chiffres des menus, mesurés SUR LA PORTÉE COURANTE et sans
+         retarder quoi que ce soit. `mesurerLangues` se tait d'elle-même tant
+         que son TTL n'est pas écoulé, si bien qu'appeler à chaque tick ne
+         coûte qu'une comparaison. Elle est lancée AVANT le retour anticipé
+         ci-dessous : une portée stable n'empêche pas ses chiffres d'exister. */
+      mesurerLangues(state.categoryFilter || null).catch(() => {});
+
       // Une catégorie est choisie : une opération suffit, et la marche
       // mondiale n'a plus lieu d'être tant qu'on y reste.
       const want = wantedScope();
@@ -5074,6 +5181,10 @@ const TSE_GATE_MAX_CLICKS = 5;
          par construction. On ne s'en sert donc que lorsqu'il est toutes
          langues, et l'on retombe sinon sur le pool mondial filtré par jeu —
          moins profond sur une petite catégorie, mais jamais faux. */
+      /* Les OPTIONS viennent toujours du pool mondial — c'est ce qui rend le
+         filtre utilisable, cf. plus bas. Les COMPTEURS, eux, ne viennent plus
+         que des mesures : sommer le pool donnait 21 là où la sélection en
+         montrait 318. */
       langs(categorie = null) {
         const monde = allLangPool.length ? allLangPool
           : (ranking.length ? ranking : this.base());
@@ -5085,34 +5196,18 @@ const TSE_GATE_MAX_CLICKS = 5;
            rend le filtre utilisable — et seuls les COMPTEURS se restreignent à
            la catégorie choisie. */
         const toutes = new Map();
-        const compte = new Map();
-        /* La portée n'est employée que si elle est TOUTES LANGUES : récoltée
-           en langue, elle rendrait zéro pour toutes les autres, par
-           construction. Sinon on filtre le pool mondial par jeu — moins
-           profond sur une petite catégorie, mais jamais faux. */
-        const portee = categorie
-          && scope && !scopeLangApplied && wantedScope()?.name === categorie
-          ? scopeRanking : null;
         for (const r of monde) {
-          for (const t of r.tags) {
-            if (!LANG_SET.has(t)) continue;
-            toutes.set(t, (toutes.get(t) || 0) + (r.viewers || 0));
-            if (categorie && !portee && r.game === categorie) {
-              compte.set(t, (compte.get(t) || 0) + (r.viewers || 0));
-            }
-          }
+          for (const t of r.tags) if (LANG_SET.has(t)) toutes.set(t, 1);
         }
-        if (portee) {
-          for (const r of portee) {
-            for (const t of r.tags) {
-              if (LANG_SET.has(t)) compte.set(t, (compte.get(t) || 0) + (r.viewers || 0));
-            }
-          }
-        }
-        // Ce qu'une sélection précédente a mesuré prime sur ce que le pool
-        // devine : c'est une réponse de l'API sur ce couple exact.
-        if (categorie) appliquerMesures(compte, 'categorie', categorie);
-        return { toutes, compte: categorie ? compte : toutes };
+        /* Les mesures, et rien qu'elles. Une langue non mesurée n'a pas de
+           chiffre — ce qui se lit « on ne sait pas encore », et non « zéro ».
+           Une langue mesurée à zéro, elle, porte bien son zéro : c'est une
+           réponse. */
+        const compte = appliquerMesures(new Map(), 'categorie', categorie || '');
+        // Toute langue mesurée est proposable, même absente du pool : c'est
+        // même le cas qui compte, le pool ne descendant pas jusqu'aux petites.
+        for (const l of compte.keys()) toutes.set(l, 1);
+        return { toutes, compte };
       },
       /* Top des catégories, avec leur audience — celle de Twitch, tous
          parlers confondus. Le menu catégorie ne dépend d'AUCUN filtre de
@@ -5135,14 +5230,12 @@ const TSE_GATE_MAX_CLICKS = 5;
          liste au filtre l'a vidée puis grisée. Seuls les chiffres suivent. */
       catCounts(langue = null) {
         if (!langue) return new Map(categories.map(c => [c.name, c.viewers]));
-        const monde = allLangPool.length ? allLangPool
-          : (ranking.length ? ranking : []);
-        const m = new Map();
-        for (const r of monde) {
-          if (!r.game || !r.tags.includes(langue)) continue;
-          m.set(r.game, (m.get(r.game) || 0) + (r.viewers || 0));
-        }
-        return appliquerMesures(m, 'langue', langue);
+        /* Sous une langue, seules les mesures parlent — même règle que côté
+           langue, et pour la même raison : sommer le pool mondial par
+           catégorie pour une petite langue ne donne pas un ordre de grandeur,
+           cela donne du bruit. Les couples mesurés sont ceux que l'utilisateur
+           a lui-même demandés en choisissant une catégorie. */
+        return appliquerMesures(new Map(), 'langue', langue);
       },
       cats(n = CFG.GLOBAL_CATEGORIES_MAX) {
         return categories.slice(0, n);
@@ -5229,12 +5322,12 @@ const TSE_GATE_MAX_CLICKS = 5;
              si l'argument de filtre est le bon. Même dispositif que pour les
              chapitres de VOD, qui a tranché deux fois. */
           tags: { ...bilanTags, refuse: tagRefuse },
-          /* L'AUDIENCE PAR LANGUE VIENT DÉSORMAIS DU POOL, et non d'une
-             requête : il n'y a donc plus de compteurs à publier ici. Ce que
-             deux versions ont appris est consigné dans le module — la voie
-             `games(options:{…})` n'existe pas sous les deux noms essayés — et
-             les chiffres du menu se lisent maintenant sur `pool`, juste
-             au-dessous. */
+          /* LES MESURES QUI REMPLISSENT LES MENUS. `passes` compte les lots
+             partis, `servies` les langues dont la somme est revenue. Un
+             rapport où `servies` reste à zéro dirait que la requête de
+             comptage est refusée — et le menu, lui, n'afficherait aucun
+             chiffre, ce qui se verrait mais ne s'expliquerait pas. */
+          mesures: { ...bilanMesures, connues: mesuresCatLangue.size },
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -8400,7 +8493,7 @@ const TSE_GATE_MAX_CLICKS = 5;
                                 schéma qui refuse, incident. Leur somme vaut
                                 `clips`. */
                              clips: 0, clipsServis: 0, clipsHorsSujet: 0,
-                             clipsRefus: 0, clipsErreur: 0,
+                             clipsRefus: 0, clipsErreur: 0, clipsForme: null,
                              /* LE REPLI, DÉTAILLÉ PAR CAUSE. La première version
                                 ne comptait que « tenté » et « servi », et un
                                 rapport a rendu 12 / 0 : impossible de savoir si
@@ -8538,19 +8631,37 @@ const TSE_GATE_MAX_CLICKS = 5;
        l'affichage DIT que cette frise vient des clips : ses bornes sont des
        minorants, non des heures exactes. Une frise de clips ne se lit pas
        comme une frise de chapitres, et elle ne doit pas en avoir l'air. */
-    const CLIPS_QUERY =
+    /* ── LA FORME DE LA REQUÊTE, CHERCHÉE UNE OPÉRATION À LA FOIS ──────────
+       La première rédaction demandait
+       `criteria: { period: LAST_DAY, sort: CREATED_AT_DESC }`, et Twitch a
+       répondu cinq fois « server error » — un 200 porteur d'erreurs. Ce
+       message-là n'est PAS un refus de schéma : un argument inconnu se serait
+       fait nommer (« In field … : Unknown field »), comme pour `games`. La
+       requête a donc été VALIDÉE, et c'est le résolveur qui a échoué : quelque
+       chose dans la combinaison ne lui convient pas.
+
+       On essaie donc plusieurs formes, une par tentative, et l'on avance d'un
+       cran à chaque refus DU SERVEUR — jamais sur une coupure réseau, qui
+       n'apprend rien sur la forme. La première est retirée : elle est
+       réfutée, la réessayer brûlerait une tentative. Le rapport dit laquelle
+       est en jeu, de sorte qu'un seul retour suffise à trancher. */
+    const CLIPS_FORMES = [
+      'criteria: { period: LAST_DAY }',
+      'criteria: { sort: CREATED_AT_DESC }',
+      '',
+    ];
+    let clipsForme = 0;
+
+    const clipsQuery = (criteria) =>
       'query TseClips($login: String!, $n: Int!) {' +
       '  user(login: $login) {' +
-      '    clips(first: $n, criteria: { period: LAST_DAY, sort: CREATED_AT_DESC }) {' +
+      '    clips(first: $n' + (criteria ? ', ' + criteria : '') + ') {' +
       '      edges { node { id createdAt game { name displayName } } }' +
       '    }' +
       '  }' +
       '}';
 
-    /* Un refus du schéma est définitif pour la session : `criteria`, `period`
-       et `sort` sont reconstitués d'après ce que la page « Clips » de Twitch
-       demande, et n'ont pas pu être exécutés d'ici. Le premier refus ferme la
-       porte, et le rapport le dit. */
+    // Toutes les formes épuisées : la porte se ferme pour la session.
     let clipsRefuse = false;
 
     const segmentsDesClips = (aretes, debutStream) => {
@@ -8667,24 +8778,32 @@ const TSE_GATE_MAX_CLICKS = 5;
         const res3 = await post([{
           operationName: 'TseClips',
           variables: { login, n: CFG.CATEGORY_TRAIL_CLIPS },
-          query: CLIPS_QUERY
+          query: clipsQuery(CLIPS_FORMES[clipsForme])
         }]);
+        /* DEUX ÉCHECS QU'IL FAUT SÉPARER, et les confondre a coûté cinq
+           tentatives identiques. Une réponse ARRIVÉE et porteuse d'erreurs
+           GraphQL dit quelque chose de la FORME : on passe à la suivante. Une
+           coupure de transport ne dit rien : on retentera la même. */
+        const repondu = Array.isArray(res3) && res3.some(r => r && r.errors);
+        if (repondu) {
+          bilanChapitres.clipsRefus++;
+          clipsForme++;
+          // eslint-disable-next-line require-atomic-updates
+          if (clipsForme >= CLIPS_FORMES.length) clipsRefuse = true;
+          return retenir(streamId, null, false);
+        }
         if (isResultsUnusable(res3)) {
           bilanChapitres.clipsErreur++;
-          /* Réseau ou schéma, on ne peut pas les distinguer ici — `post` les
-             replie sur la même sentinelle. On ne ferme donc PAS la porte sur
-             un seul échec : `clipsErreur` le dira, et le rapport tranchera.
-             Fermer sur une coupure priverait la session entière d'une source
-             qui marche peut-être très bien. */
           return retenir(streamId, null, false);
         }
         const aretes = res3?.[0]?.data?.user?.clips?.edges;
         if (!Array.isArray(aretes)) {
+          /* Réponse comprise, sans erreur, mais sans le champ attendu : la
+             forme passe et ne rend rien d'exploitable. Elle vaut un refus. */
           bilanChapitres.clipsRefus++;
-          // Écriture après `await`, et `true` est absorbant : un schéma qui
-          // refuse cette requête ne l'acceptera pas au survol suivant.
+          clipsForme++;
           // eslint-disable-next-line require-atomic-updates
-          clipsRefuse = true;      // le schéma ne connaît pas cette requête
+          if (clipsForme >= CLIPS_FORMES.length) clipsRefuse = true;
           return retenir(streamId, null, false);
         }
         const segClips = segmentsDesClips(aretes, debutStream);
@@ -10022,7 +10141,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       /* Ce que Twitch a répondu aux demandes de chapitres. Au rapport et non
          au journal d'erreurs : une chaîne qui n'archive pas ses diffusions
          est un cas ordinaire. */
-      bilanChapitres: () => ({ ...bilanChapitres })
+      bilanChapitres: () => ({ ...bilanChapitres,
+                               // La forme en jeu, sans quoi « clipsRefus 3 »
+                               // ne dirait pas laquelle a été réfutée.
+                               clipsForme: CLIPS_FORMES[clipsForme] || null })
     };
   })();
 

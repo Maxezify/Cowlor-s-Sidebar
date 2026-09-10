@@ -465,6 +465,38 @@ window.fetch = async (url, opt) => {
                 displayName: traduire(c.name), viewersCount: c.viewers }
       })) } } };
     }
+    /* ── LES COMPTAGES QUI REMPLISSENT LES MENUS ─────────────────────────
+       Deux requêtes légères — un entier par chaîne — dont la SOMME doit
+       valoir exactement ce que la sélection correspondante affichera. Le
+       décor les calcule donc à partir des MÊMES streams et avec le MÊME
+       critère que la requête que la sélection emploierait : le tag pour le
+       monde, `broadcasterLanguages` sous une catégorie. Un stub qui prendrait
+       un raccourci ici rendrait le scénario incapable de voir un écart. */
+    if (o.operationName === 'TseTagCount') {
+      const tag = o.variables?.tag;
+      const n = o.variables?.n ?? 30;
+      const tous = (window.__cats || []).flatMap(c => c.streams || [])
+        .filter(x => (x.tags || []).includes(tag))
+        .sort((a, b) => b.viewers - a.viewers).slice(0, n);
+      return { data: { streams: { edges: tous.map(x => ({
+        node: { viewersCount: x.viewers } })) } } };
+    }
+    if (o.operationName === 'TseCatLangCount') {
+      const c = (window.__cats || []).find(x => x.name === o.variables?.name);
+      if (!c) return { data: { game: null } };
+      const m = /broadcasterLanguages:\s*\[(\w+)\]/.exec(o.query || '');
+      const codeToTag = { FR: 'Français', EN: 'English', DE: 'Deutsch',
+                          CS: 'Čeština', ES: 'Español' };
+      if (!m || !codeToTag[m[1]]) {
+        return { errors: [{ message: 'Unknown enum value ' + (m ? m[1] : '?') }] };
+      }
+      const n = o.variables?.n ?? 30;
+      const parle = (x) => x.lang ? x.lang === m[1] : (x.tags || []).includes(codeToTag[m[1]]);
+      const tous = (c.streams || []).filter(parle)
+        .sort((a, b) => b.viewers - a.viewers).slice(0, n);
+      return { data: { game: { streams: { edges: tous.map(x => ({
+        node: { viewersCount: x.viewers } })) } } } };
+    }
     // ── Chaînes globales : sommet d'une catégorie ───────────────────────
     // SÉLECTION PAR RANG, puis DÉSORDRE. C'est le comportement mesuré de
     // l'API : le sommet est bien celui qu'on demande, mais il n'arrive pas

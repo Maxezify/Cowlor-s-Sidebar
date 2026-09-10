@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 713 Ko | 312 Ko | 2 941 → **2** |
+| `content.js` | 720 Ko | 314 Ko | 2 955 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **891 Ko** | **436 Ko** | **−51 %** |
+| **les cinq** | **898 Ko** | **438 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2531,6 +2531,67 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## « 21 » là où il y en avait 318 (v3.84)
+
+Un utilisateur a compté à la main : le drapeau hongrois annonçait **21**, et le
+sélectionner en montrait **environ 318**. Il avait raison, et l'écart n'était
+pas une approximation — c'était un autre nombre, quinze fois plus grand.
+
+La cause tient en une ligne du même rapport : **`pool 14`**. Le compteur sommait
+le pool mondial par tag de langue, or ce pool est un **top**. Les chaînes
+hongroises pèsent 127, 22, 21, 17 spectateurs : elles passent toutes sous le
+seuil mondial, et le pool n'en connaissait qu'une. Sommer un échantillon qui
+exclut par construction ce qu'on veut compter ne donne pas un ordre de grandeur,
+cela donne du bruit.
+
+**Il n'y a qu'une définition qui tienne**, et c'est celle que l'utilisateur a
+employée sans le dire :
+
+> le chiffre en face d'un drapeau est la somme de ce qu'on obtient **en le
+> choisissant**.
+
+On le mesure donc avec la requête même que la sélection emploierait, et sur la
+même profondeur :
+
+| portée | requête de mesure | ce que la sélection emploie |
+| --- | --- | --- |
+| sans catégorie | `streams(freeformTags: [langue])` | la voie du tag — la même |
+| avec une catégorie | `game(name:){ streams(broadcasterLanguages: [code]) }` | la passe de portée — la même |
+
+Le nombre affiché et le nombre visible sont alors le **même nombre**, par
+construction et non par chance. Le banc le vérifie littéralement : il somme les
+chaînes servies et les compare au libellé du menu.
+
+Trente et une opérations **légères** — un entier par chaîne, rien d'autre — une
+fois par portée et par période de cinq minutes. Le repli sur le pool est
+**retiré**, pas corrigé : il ne répondait à aucune question qu'un utilisateur
+puisse se poser. Ce qu'on n'a pas mesuré ne s'écrit pas ; ce qu'on a mesuré à
+zéro porte son zéro, parce que c'est une réponse.
+
+## Les clips : « server error » n'est pas « unknown field » (v3.84)
+
+Le premier rapport portant la troisième porte donnait `clips 5 · clipsErreur 5`,
+et le journal : `réponse 200 avec erreurs GraphQL — server error`.
+
+**Ce message ne dit pas la même chose qu'un refus de schéma.** Un argument
+inconnu se fait nommer — `In field "freeformTags": Unknown field` — comme
+`games` l'a montré deux versions plus tôt. Ici la requête a été **validée**, et
+c'est le résolveur qui a échoué : quelque chose dans la combinaison ne lui
+convient pas.
+
+Deux défauts, donc, et le second est le plus coûteux :
+
+1. la forme `criteria: { period: LAST_DAY, sort: CREATED_AT_DESC }` est réfutée ;
+2. **la même forme a été redemandée cinq fois.** Une réponse *arrivée* et
+   porteuse d'erreurs dit quelque chose de la forme ; une coupure de transport
+   ne dit rien. Les replier sur la même sentinelle faisait rejouer une question
+   déjà tranchée.
+
+Les deux échecs sont désormais séparés. Un refus du serveur fait **avancer d'un
+cran** une liste de formes ; une coupure retente la même. La liste épuisée, la
+porte se ferme pour la session, et le rapport porte `clipsForme` — sans quoi
+« clipsRefus 3 » ne dirait pas laquelle a été réfutée.
+
 ## La troisième porte : les clips (v3.83)
 
 Un quart des survols n'a **aucun enregistrement** : dix-neuf chaînes sur
@@ -3176,7 +3237,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 87 scénarios, 788 assertions |
+| `npm test` | le harnais Playwright : 87 scénarios, 790 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
