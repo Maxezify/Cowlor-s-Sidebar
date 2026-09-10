@@ -220,6 +220,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Chargement du titre…',
       uiTrailTitle:              'Précédemment sur ce live',
       uiTrailUnseen:             'non observé',
+      uiTrailFromClips:          'd\'après les clips',
+      uiTrailBeforeClip:         'avant le premier clip',
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
@@ -294,6 +296,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Loading title…',
       uiTrailTitle:              'Earlier on this stream',
       uiTrailUnseen:             'not observed',
+      uiTrailFromClips:          'from clips',
+      uiTrailBeforeClip:         'before the first clip',
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
@@ -367,6 +371,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Titel wird geladen…',
       uiTrailTitle:              'Vorher in diesem Stream',
       uiTrailUnseen:             'nicht beobachtet',
+      uiTrailFromClips:          'laut Clips',
+      uiTrailBeforeClip:         'vor dem ersten Clip',
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
@@ -440,6 +446,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Cargando título…',
       uiTrailTitle:              'Antes en este directo',
       uiTrailUnseen:             'no observado',
+      uiTrailFromClips:          'según los clips',
+      uiTrailBeforeClip:         'antes del primer clip',
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
@@ -513,6 +521,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Carregando título…',
       uiTrailTitle:              'Antes nesta live',
       uiTrailUnseen:             'não observado',
+      uiTrailFromClips:          'segundo os clipes',
+      uiTrailBeforeClip:         'antes do primeiro clipe',
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
@@ -586,6 +596,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Caricamento del titolo…',
       uiTrailTitle:              'Prima in questa diretta',
       uiTrailUnseen:             'non osservato',
+      uiTrailFromClips:          'secondo le clip',
+      uiTrailBeforeClip:         'prima della prima clip',
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
@@ -659,6 +671,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Wczytywanie tytułu…',
       uiTrailTitle:              'Wcześniej na tej transmisji',
       uiTrailUnseen:             'nieobserwowane',
+      uiTrailFromClips:          'według klipów',
+      uiTrailBeforeClip:         'przed pierwszym klipem',
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
@@ -732,6 +746,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'Загрузка названия…',
       uiTrailTitle:              'Ранее на этом стриме',
       uiTrailUnseen:             'не наблюдалось',
+      uiTrailFromClips:          'по клипам',
+      uiTrailBeforeClip:         'до первого клипа',
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
@@ -805,6 +821,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     'タイトルを読み込み中…',
       uiTrailTitle:              'この配信のこれまで',
       uiTrailUnseen:             '未観測',
+      uiTrailFromClips:          'クリップによる',
+      uiTrailBeforeClip:         '最初のクリップより前',
       uiTrailNow:                '進行中',
       uiTrailTruncated:          '冒頭は未保持',
       uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
@@ -878,6 +896,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiPreviewLoadingTitle:     '正在加载标题…',
       uiTrailTitle:              '本次直播此前',
       uiTrailUnseen:             '未观测',
+      uiTrailFromClips:          '据剪辑推断',
+      uiTrailBeforeClip:         '首个剪辑之前',
       uiTrailNow:                '进行中',
       uiTrailTruncated:          '开头未保留',
       uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
@@ -1204,6 +1224,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     CATEGORY_TRAIL_SEGMENTS: 12,
 
     CATEGORY_TRAIL_VOD_ECART: 120_000,
+
+    CATEGORY_TRAIL_CLIPS: 30,
 
     CATEGORY_TRAIL_TOLERANCE: 90_000,
 
@@ -1992,6 +2014,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.42);
     }
+    
+    .tse-preview__frise-source {
+      margin-left: 6px;
+      text-transform: none;
+      letter-spacing: 0;
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.32);
+    }
+    
+    .tse-preview__frise--clips .tse-preview__frise-part {
+      background-image: repeating-linear-gradient(
+        135deg, rgba(0, 0, 0, 0.28) 0 3px, rgba(0, 0, 0, 0) 3px 6px);
+    }
     .tse-preview__frise-barre {
       display: flex;
       gap: 1px;
@@ -2151,6 +2186,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     const chapitresVod = (prelude && prelude.segments) || [];
     const continu = !!(prelude && prelude.continu);
 
+    const source = (prelude && prelude.source) || null;
+
     const bruts = [];
     for (const p of chapitresVod) {
       const dernier = bruts[bruts.length - 1];
@@ -2184,13 +2221,14 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     if (bruts.length < 2 && !chapitresVod.length && !continu && !depuisLeDebut) return null;
 
-    const brut = chapitresVod.length || continu || depuisLeDebut || !f.debutStream
-      ? 0 : f.vuDepuis - f.debutStream;
+    const brut = continu || depuisLeDebut || !f.debutStream || !bruts.length
+      ? 0 : bruts[0].debut - f.debutStream;
     const inconnuMs = brut > CFG.CATEGORY_TRAIL_TOLERANCE ? brut : 0;
     return {
       debutStream: f.debutStream,
       vuDepuis: f.vuDepuis,
       inconnuMs,
+      source,
       tronquee: f.tronquee,
       segments,
       totalMs: inconnuMs + segments.reduce((n, s) => n + s.dureeMs, 0),
@@ -2655,6 +2693,32 @@ const TSE_GATE_MAX_CLICKS = 5;
       threshold    = nthViewers(pool, CFG.GLOBAL_TOP_N);
     };
 
+    const mesuresCatLangue = new Map();
+    const CAT_LANGUE_MAX = 300;
+
+    const noterMesure = (categorie, langue, somme) => {
+      if (!categorie || !langue || !Number.isFinite(somme)) return;
+      const cle = categorie + '\u0000' + langue;
+      mesuresCatLangue.delete(cle);
+      mesuresCatLangue.set(cle, { v: somme, ts: Date.now() });
+      while (mesuresCatLangue.size > CAT_LANGUE_MAX) {
+        mesuresCatLangue.delete(mesuresCatLangue.keys().next().value);
+      }
+    };
+
+    const appliquerMesures = (m, axe, valeur) => {
+      const limite = Date.now() - CFG.GLOBAL_PRUNE_AGE;
+      for (const [cle, mes] of mesuresCatLangue) {
+        if (mes.ts < limite) continue;
+        const i = cle.indexOf('\u0000');
+        const cat = cle.slice(0, i), lg = cle.slice(i + 1);
+        if (axe === 'categorie' ? cat === valeur : lg === valeur) {
+          m.set(axe === 'categorie' ? lg : cat, mes.v);
+        }
+      }
+      return m;
+    };
+
     const carryOver = () => new Map(ranking.map(r => [r.login, r]));
 
     const fullWalk = async (wl) => {
@@ -2848,6 +2912,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       scopeRanking = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       scopeDirty   = false;
       scopeTs      = Date.now();
+
+      if (applique && want.lang) {
+        noterMesure(want.name, want.lang,
+                    scopeRanking.reduce((n, r) => n + (r.viewers || 0), 0));
+      }
       stats.scoped += 1;
       stats.lastMs  = scopeTs - started;
       return { ok: true };
@@ -2994,9 +3063,22 @@ const TSE_GATE_MAX_CLICKS = 5;
             }
           }
         }
+
+        if (categorie) appliquerMesures(compte, 'categorie', categorie);
         return { toutes, compte: categorie ? compte : toutes };
       },
 
+      catCounts(langue = null) {
+        if (!langue) return new Map(categories.map(c => [c.name, c.viewers]));
+        const monde = allLangPool.length ? allLangPool
+          : (ranking.length ? ranking : []);
+        const m = new Map();
+        for (const r of monde) {
+          if (!r.game || !r.tags.includes(langue)) continue;
+          m.set(r.game, (m.get(r.game) || 0) + (r.viewers || 0));
+        }
+        return appliquerMesures(m, 'langue', langue);
+      },
       cats(n = CFG.GLOBAL_CATEGORIES_MAX) {
         return categories.slice(0, n);
       },
@@ -4904,6 +4986,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     const bilanChapitres = { demandes: 0, servis: 0, continus: 0, sansMoment: 0,
                              inexploitables: 0, sansVod: 0, sansStream: 0, reseau: 0,
 
+                             clips: 0, clipsServis: 0, clipsHorsSujet: 0,
+                             clipsRefus: 0, clipsErreur: 0,
+
                              replis: 0, replisServis: 0, replisErreur: 0,
                              replisVides: 0, replisHorsSujet: 0,
 
@@ -4951,8 +5036,40 @@ const TSE_GATE_MAX_CLICKS = 5;
       return depart + duree * 1000 >= debutStream;
     };
 
-    const retenir = (streamId, segments, continu) => {
-      chapitres.set(streamId, { ts: Date.now(), segments, continu });
+    const CLIPS_QUERY =
+      'query TseClips($login: String!, $n: Int!) {' +
+      '  user(login: $login) {' +
+      '    clips(first: $n, criteria: { period: LAST_DAY, sort: CREATED_AT_DESC }) {' +
+      '      edges { node { id createdAt game { name displayName } } }' +
+      '    }' +
+      '  }' +
+      '}';
+
+    let clipsRefuse = false;
+
+    const segmentsDesClips = (aretes, debutStream) => {
+      if (!Array.isArray(aretes)) return null;
+      const points = [];
+      for (const a of aretes) {
+        const n = a?.node;
+        const jeu = n?.game?.name;
+        const t = Date.parse(n?.createdAt);
+        if (!jeu || !Number.isFinite(t) || t < debutStream) continue;
+        points.push({ jeu, libelle: n.game.displayName?.trim() || jeu, debut: t });
+      }
+      if (!points.length) return null;
+      points.sort((x, y) => x.debut - y.debut);
+
+      const segments = [];
+      for (const p of points) {
+        const dernier = segments[segments.length - 1];
+        if (!dernier || dernier.jeu !== p.jeu) segments.push(p);
+      }
+      return segments;
+    };
+
+    const retenir = (streamId, segments, continu, source = null) => {
+      chapitres.set(streamId, { ts: Date.now(), segments, continu, source });
       return (segments || continu) ? chapitres.get(streamId) : null;
     };
 
@@ -5011,7 +5128,36 @@ const TSE_GATE_MAX_CLICKS = 5;
         }
       }
 
-      if (!vod) { bilanChapitres.sansVod++; return retenir(streamId, null, false); }
+      if (!vod) {
+        bilanChapitres.sansVod++;
+        if (clipsRefuse) return retenir(streamId, null, false);
+        bilanChapitres.clips++;
+        const res3 = await post([{
+          operationName: 'TseClips',
+          variables: { login, n: CFG.CATEGORY_TRAIL_CLIPS },
+          query: CLIPS_QUERY
+        }]);
+        if (isResultsUnusable(res3)) {
+          bilanChapitres.clipsErreur++;
+
+          return retenir(streamId, null, false);
+        }
+        const aretes = res3?.[0]?.data?.user?.clips?.edges;
+        if (!Array.isArray(aretes)) {
+          bilanChapitres.clipsRefus++;
+
+          clipsRefuse = true;
+          return retenir(streamId, null, false);
+        }
+        const segClips = segmentsDesClips(aretes, debutStream);
+        if (!segClips) {
+
+          bilanChapitres.clipsHorsSujet++;
+          return retenir(streamId, null, false);
+        }
+        bilanChapitres.clipsServis++;
+        return retenir(streamId, segClips, false, 'clips');
+      }
 
       const { segments, aretes } = segmentsDuVod(vod, debutStream);
       if (segments) { bilanChapitres.servis++; return retenir(streamId, segments, false); }
@@ -5409,6 +5555,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       const titre = document.createElement('p');
       titre.className = 'tse-preview__frise-titre';
       titre.textContent = S.uiTrailTitle;
+
+      if (f.source === 'clips') {
+        const src = document.createElement('span');
+        src.className = 'tse-preview__frise-source';
+        src.textContent = S.uiTrailFromClips;
+        titre.appendChild(src);
+        bloc.classList.add('tse-preview__frise--clips');
+      }
       bloc.appendChild(titre);
 
       const couleurs = couleursFrise(f.segments);
@@ -5428,7 +5582,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       liste.className = 'tse-preview__frise-liste';
 
       if (f.inconnuMs) {
-        liste.appendChild(friseLigne(S.uiTrailUnseen, formatDuree(f.inconnuMs), null, 'inconnu'));
+
+        liste.appendChild(friseLigne(
+          f.source === 'clips' ? S.uiTrailBeforeClip : S.uiTrailUnseen,
+          formatDuree(f.inconnuMs), null, 'inconnu'));
       }
       if (f.tronquee) {
         liste.appendChild(friseLigne(S.uiTrailTruncated, '', null, 'inconnu'));
@@ -6357,7 +6514,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   }
 
   const byCountDesc = (counts) => (a, b) =>
-    (counts.get(b) - counts.get(a)) || a.localeCompare(b, S.locale);
+    ((counts.get(b) || 0) - (counts.get(a) || 0)) || a.localeCompare(b, S.locale);
 
   function rebuildDropdown(dd, values, counts, current, disabled, kind,
                            fmt = String, libelle = String) {
@@ -6427,7 +6584,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (state.globalMode) {
 
       const cats = globalChannels.cats(CFG.GLOBAL_CATEGORIES_MAX);
-      const catCount = new Map(cats.map(c => [c.name, c.viewers]));
+      const catCount = globalChannels.catCounts(state.languageFilter || null);
 
       const catLabel = new Map(cats.map(c => [c.name, c.display]));
 
@@ -6439,8 +6596,13 @@ const TSE_GATE_MAX_CLICKS = 5;
         ? state.languageFilter : null;
       state.languageFilter = Lg;
 
-      rebuildDropdown(catDD, cats.map(c => c.name), catCount,
-                      state.categoryFilter, cats.length === 0, 'cat', formatViewers,
+      const catNoms = state.languageFilter
+        ? cats.map(c => c.name).sort(byCountDesc(catCount))
+        : cats.map(c => c.name);
+      rebuildDropdown(catDD, catNoms, catCount,
+                      state.categoryFilter, cats.length === 0, 'cat',
+
+                      (n) => (n > 0 ? formatViewers(n) : ''),
                       (v) => catLabel.get(v) || v);
       rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
                       langCount, Lg, langsPresent.size === 0, 'lang',
