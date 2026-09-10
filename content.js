@@ -622,6 +622,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'avant le premier clip',
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
+      uiSubathonShort:           (n) => `J${n}`,
       uiTrailOthers:             (n) => `+ ${n} autres catégories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
@@ -703,6 +704,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'before the first clip',
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
+      uiSubathonShort:           (n) => `D${n}`,
       uiTrailOthers:             (n) => `+ ${n} other categories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
@@ -779,6 +781,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'vor dem ersten Clip',
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
+      uiSubathonShort:           (n) => `T${n}`,
       uiTrailOthers:             (n) => `+ ${n} weitere Kategorien`,
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
@@ -855,6 +858,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes del primer clip',
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
+      uiSubathonShort:           (n) => `D${n}`,
       uiTrailOthers:             (n) => `+ ${n} categorías más`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
@@ -931,6 +935,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes do primeiro clipe',
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
+      uiSubathonShort:           (n) => `D${n}`,
       uiTrailOthers:             (n) => `+ ${n} outras categorias`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
@@ -1007,6 +1012,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'prima della prima clip',
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
+      uiSubathonShort:           (n) => `G${n}`,
       uiTrailOthers:             (n) => `+ altre ${n} categorie`,
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
       uiBadgeCostreamHost:       'Stream host',
@@ -1083,6 +1089,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'przed pierwszym klipem',
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
+      uiSubathonShort:           (n) => `D${n}`,
       uiTrailOthers:             (n) => `+ ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'inne kategorie' : 'innych kategorii'}`,
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
       uiBadgeCostreamHost:       'Kanał gospodarza',
@@ -1159,6 +1166,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'до первого клипа',
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
+      uiSubathonShort:           (n) => `Д${n}`,
       uiTrailOthers:             (n) => `+ ещё ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'категории' : 'категорий'}`,
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
       uiBadgeCostreamHost:       'Канал ведущего',
@@ -1235,6 +1243,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '最初のクリップより前',
       uiTrailNow:                '進行中',
       uiTrailTruncated:          '冒頭は未保持',
+      uiSubathonShort:           (n) => `${n}日目`,
       uiTrailOthers:             (n) => `ほか ${n} カテゴリー`,
       uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
       uiBadgeCostreamHost:       'ホスト配信',
@@ -1311,6 +1320,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '首个剪辑之前',
       uiTrailNow:                '进行中',
       uiTrailTruncated:          '开头未保留',
+      uiSubathonShort:           (n) => `第${n}天`,
       uiTrailOthers:             (n) => `另外 ${n} 个分类`,
       uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
       uiBadgeCostreamHost:       '主办直播',
@@ -2759,9 +2769,145 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
 
+    /* ══ LE SUBATHON, SUR LA CARTE ═══════════════════════════════════════════
+       Deux marques, et chacune occupe un canal que RIEN n'utilisait — c'est la
+       contrainte qui a dicté le dessin. Trois signaux se partagent déjà la
+       carte et ont été faits pour cohabiter : « frais » et « co-stream »
+       tiennent le trait de gauche et le fond, « abonné » tient la lueur de
+       fond et l'or du texte. Un quatrième qui reprendrait l'un des trois ne
+       ferait pas quatre signaux, il en casserait un.
+
+       A · LE COMPTEUR QUI CHAUFFE. L'élément d'ancienneté appartient à
+       l'extension : elle l'écrit, personne d'autre n'y touche. Il porte donc
+       le numéro de jour — le seul renseignement qu'aucun calcul ne donne — et
+       prend une chaleur qui circule. « Surboosté » au sens propre.
+
+       LE ROUGE PLUTÔT QUE L'ORANGE, ET C'EST ARITHMÉTIQUE. L'or de l'abonné
+       est à 37° ; un orange à 25° lui serait voisin, et sur une carte à la
+       fois abonnée et en subathon les deux se seraient fondus en un même
+       camaïeu chaud. On se pose à 9°, soit vingt-huit degrés d'écart — de quoi
+       lire deux signaux là où il y en a deux.
+
+       B · LE CONTOUR D'ENDURANCE. Le PÉRIMÈTRE n'est pris par rien : le trait
+       de gauche est intérieur, la lueur d'abonné est un fond. Une lumière qui
+       fait le tour dit « ça tourne encore » sans rien recouvrir. Elle est
+       portée par un ÉLÉMENT INJECTÉ et non par un pseudo-élément : « ::before »
+       appartient à « frais », « ::after » à « abonné », et une carte peut être
+       les trois à la fois. */
+    .side-nav-card[data-tse-subathon] {
+      position: relative;
+      isolation: isolate;
+      border-radius: 5px;
+    }
+    /* La pastille du jour, à gauche de la durée. Sa couleur est posée en dur :
+       le compteur qui l'entoure passe en « color: transparent » pour laisser
+       voir son dégradé, et cette transparence-là descendrait jusqu'ici. */
+    .tse-subathon-jour {
+      display: inline-block;
+      margin-right: 5px;
+      padding: 0 5px;
+      border-radius: 999px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.5;
+      vertical-align: 1px;
+      /* CONTRASTE MESURÉ, comme pour les badges de l'aperçu : le brun très
+         sombre sur le clair du dégradé donne 10,3:1, et sur son extrémité la
+         plus foncée 5,65:1 — au-dessus du plancher de 4,5:1 d'un petit texte
+         sur toute la longueur de la pastille, et non seulement en son milieu. */
+      color: #2a0d05;
+      background: linear-gradient(140deg, #ffb37a, #ff5233);
+    }
+    /* Repli d'abord : si le découpage du fond à la forme du texte n'était pas
+       appliqué, une couleur transparente ferait DISPARAÎTRE la durée. On pose
+       donc une couleur pleine, et le dégradé ne vient que par-dessus. */
+    .side-nav-card[data-tse-subathon] .tse-uptime {
+      color: #ff8a5c;
+      font-weight: 700;
+    }
+    @supports (-webkit-background-clip: text) or (background-clip: text) {
+      .side-nav-card[data-tse-subathon] .tse-uptime {
+        color: transparent;
+        background: linear-gradient(100deg,
+          #ff5233   0%,
+          #ffd0b0  28%,
+          #ff3d2e  52%,
+          #ff5233  78%) 0 0 / 300% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: tse-subathon-braise 6s linear infinite;
+      }
+    }
+    @keyframes tse-subathon-braise { to { background-position: 300% 0; } }
+
+    @property --tse-subathon-ang {
+      syntax: '<angle>';
+      inherits: false;
+      initial-value: 0deg;
+    }
+    /* SANS MASQUE, PAS D'ANNEAU. Le contour se fabrique en peignant tout le
+       cadre puis en découpant l'intérieur ; là où « mask-composite » n'existe
+       pas, ce découpage n'a pas lieu et le dégradé recouvrirait la carte
+       entière. L'élément reste donc vide par défaut, et ne prend son fond que
+       sous la garde ci-dessous. */
+    .tse-subathon-anneau {
+      position: absolute;
+      inset: 0;
+      border-radius: 5px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    @supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+      /* CORRIGÉ SUR CAPTURE. Le dégradé partait d'un secteur ENTIÈREMENT
+         transparent : sur trois quarts du tour il n'y avait pas d'anneau du
+         tout, et l'œil lisait non pas une lumière qui tourne mais une bordure
+         cassée, un défaut de rendu. Le socle est donc continu — faible, mais
+         présent sur les 360° — et la portion vive s'y déplace. L'anneau est
+         alors ce qu'il prétend être : un contour allumé que parcourt un reflet.
+         Le secteur clair reste étroit (environ 100° sur 360) pour que le
+         déplacement se voie ; c'est le contraste avec le socle qui le dessine,
+         plus l'absence de socle. */
+      .tse-subathon-anneau {
+        padding: 1px;
+        background: conic-gradient(from var(--tse-subathon-ang, 0deg),
+          rgba(255, 122, 80, 0.3)   0deg,
+          rgba(255, 122, 80, 0.3) 190deg,
+          #ff8a5c                 268deg,
+          #ffe0c8                 312deg,
+          #ff5a3d                 342deg,
+          rgba(255, 122, 80, 0.3) 360deg);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+                mask-composite: exclude;
+        animation: tse-subathon-tour 4.5s linear infinite;
+      }
+    }
+    @keyframes tse-subathon-tour { to { --tse-subathon-ang: 360deg; } }
+
     /* Mouvement réduit : la demande est explicite, on la respecte. L'or reste
        — c'est lui qui porte l'information — mais plus rien ne bouge. */
     @media (prefers-reduced-motion: reduce) {
+      /* Le subathon garde ses DEUX marques et perd ses deux mouvements : la
+         chaleur du compteur se fige sur une teinte pleine, l'anneau sur un
+         liseré immobile. La carte reste distinguée, elle cesse de bouger. */
+      .side-nav-card[data-tse-subathon] .tse-uptime,
+      .tse-subathon-anneau {
+        animation: none;
+      }
+      .side-nav-card[data-tse-subathon] .tse-uptime {
+        background: none;
+        color: #ff8a5c;
+      }
+      /* L'anneau figé garderait sa portion vive arrêtée à un endroit du tour,
+         c'est-à-dire exactement la bordure asymétrique qu'on vient de corriger.
+         Immobile, il devient donc uniforme. La garde « @supports » est
+         rejouée ici : sans découpage, ce fond couvrirait toute la carte. */
+      @supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+        .tse-subathon-anneau {
+          background: rgba(255, 122, 80, 0.55);
+        }
+      }
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
       .side-nav-card.tse-sub .tse-sub-cat,
@@ -4083,6 +4229,125 @@ const TSE_GATE_MAX_CLICKS = 5;
       .finally(() => clearTimeout(timer));
   };
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     LE SUBATHON — LE RECONNAÎTRE SANS RIEN INVENTER
+     ──────────────────────────────────────────────────────────────────────────
+     Un subathon est un direct que les abonnements prolongent : il ne s'arrête
+     pas, il dure des jours, et il traverse des dizaines de catégories.
+
+     CE QU'ON N'EMPLOIE PAS : L'ANCIENNETÉ. Elle semblait le signal évident, et
+     elle ne l'est pas. Un subathon à sa deuxième heure du premier jour EN EST
+     un ; un rediffuseur qui laisse tourner sa chaîne vingt-quatre heures n'en
+     est pas un. La durée mesure la session, pas le format — et une reconnexion
+     la remet à zéro sans interrompre l'événement. Elle ne prouve donc rien
+     dans un sens ni dans l'autre, et la faire entrer dans la règle ne ferait
+     qu'ajouter un faux négatif au début et un faux positif à la fin.
+
+     CE QU'ON EMPLOIE, ce sont les deux endroits où le streamer le DIT :
+
+       1. le TITRE porte le nom de l'événement — « subathon », « sub-a-thon »,
+          ou un nom fabriqué sur le même modèle (« mouseathon ») ;
+       2. les TAGS portent « Subathon », que Twitch propose lui-même.
+
+     TROIS RÈGLES, ET DEUX D'ENTRE ELLES SONT DES CONJONCTIONS :
+
+       (a) le titre nomme explicitement un subathon              → il suffit ;
+       (b) le titre porte un mot en « thon » ET un numéro de jour → subathon ;
+       (c) un tag dit « subathon » ET le titre porte un numéro    → subathon.
+
+     POURQUOI (b) ET (c) EXIGENT LE NUMÉRO DE JOUR. « Marathon » est un jeu
+     de Bungie sorti en 2025 : un direct de deux heures qui y joue porte un mot
+     en « thon » et n'est rien d'autre qu'une partie. Le numéro de jour est ce
+     qui distingue un nom d'un ÉVÉNEMENT — personne n'écrit « jour 9 » sur une
+     soirée. La conjonction n'est donc pas une prudence ajoutée : c'est elle
+     qui rend la règle juste.
+
+     CE QUI RESTE, ET QUE JE NOMME PLUTÔT QUE DE LE TAIRE. « python » est un
+     mot en « thon » : un titre « Python — Day 3 » d'une série de code sera
+     pris pour un subathon. Le cas est rare, sans conséquence — une carte
+     décorée à tort — et le resserrer à « athon » le supprimerait au prix des
+     noms fabriqués en « -thon » sans « a ». La règle demandée est celle-ci ;
+     le choix tient en un mot de l'expression ci-dessous.
+
+     LE MOT NU « thon » EST EXCLU (deux lettres exigées devant) : c'est le
+     poisson, en français, et il n'a rien à faire ici. */
+  const RE_SUBATHON_NOM = /(?<![\p{L}])sub[\s._-]*a?[\s._-]*thon(?![\p{L}])/iu;
+  const RE_MOT_THON     = /(?<![\p{L}])\p{L}{2,}thon(?![\p{L}])/iu;
+
+  /* Les mots qui disent « jour ». La liste couvre les langues où l'on diffuse
+     en volume, et elle écarte délibérément celles dont le mot est un mot
+     courant d'une AUTRE langue : le tchèque « den », le croate « dan » et le
+     hongrois « nap » sont tous des mots anglais, et « nap 3 » n'annonce pas
+     une diffusion de trois jours. Mieux vaut manquer une langue que décorer
+     une carte au hasard. */
+  const JOUR_MOTS = [
+    'day', 'days',                    // anglais
+    'jour', 'jours',                  // français
+    'tag', 'tage',                    // allemand
+    'dia', 'día', 'dias', 'días',     // espagnol, portugais
+    'giorno', 'giorni',               // italien
+    'dzien', 'dzień', 'dni',          // polonais
+    'dag', 'dagen',                   // néerlandais, suédois, norvégien, danois
+    'gün', 'gun',                     // turc
+    'päivä', 'paiva',                 // finnois
+    'ziua',                           // roumain
+    'hari',                           // indonésien
+  ];
+  /* Trois formes, parce que les langues ne posent pas le nombre au même
+     endroit : « day 9 » en tête, « 9日目 » en queue, « 第9天 » de part et
+     d'autre. Les bornes de mot sont écrites en propriétés Unicode et non en
+     `\b`, qui ne connaît que l'ASCII et couperait « día » en deux.
+     Aucune de ces expressions ne porte le drapeau global : une expression
+     globale garde un curseur entre deux appels et sauterait un titre sur
+     deux. */
+  const RE_JOURS = [
+    new RegExp('(?<![\\p{L}\\p{N}])(?:' + JOUR_MOTS.join('|')
+      + ')(?![\\p{L}])\\s*[:#.\\-–—]?\\s*(\\d{1,3})(?![\\p{N}])', 'iu'),
+    /(?<![\p{L}\p{N}])(?:день|дня|дней)(?![\p{L}])\s*[:#.\-]?\s*(\d{1,3})(?![\p{N}])/iu,
+    /(\d{1,3})\s*(?:日目|일차|日|일)/u,
+    /第\s*(\d{1,3})\s*天/u,
+  ];
+
+  const jourDansTitre = (titre) => {
+    for (const re of RE_JOURS) {
+      const m = re.exec(titre);
+      if (!m) continue;
+      const n = Number(m[1]);
+      if (Number.isInteger(n) && n >= 1 && n <= 999) return n;
+    }
+    return null;
+  };
+
+  /* Un tag Twitch n'a ni espace ni casse garantie : on le ramène à ses lettres
+     et chiffres avant de comparer. « Subathon », « SubathonStream » et
+     « subathon2026 » disent tous la même chose. */
+  const tagDitSubathon = (tags) => Array.isArray(tags) && tags.some(t =>
+    typeof t === 'string'
+    && t.toLowerCase().replace(/[^a-z0-9]/g, '').startsWith('subathon'));
+
+  /* Rend `{ jour, voie }` — `jour` pouvant être null quand le nom suffit sans
+     qu'un numéro soit écrit — ou null si ce n'est pas un subathon.
+
+     `voie` NOMME LA RÈGLE QUI A TRANCHÉ, et c'est du diagnostic, pas de
+     l'affichage : rien ne la lit dans le DOM. Cette détection n'a jamais pu
+     être exécutée contre le vrai Twitch, et le rapport est le seul endroit où
+     l'on saura laquelle des trois porte réellement les cas. Un rapport où
+     tout arrive par « thon » dirait qu'on décore des parties de Marathon ;
+     un rapport où « tag » ne sort jamais dirait que Twitch ne sert pas ce
+     tag dans les tags libres, et que la règle (c) est lettre morte. Aucun
+     compteur cumulatif n'est tenu : l'état RÉSIDENT se relit du cache à la
+     demande, et ne dérive pas d'une passe à l'autre. */
+  const detecterSubathon = (titre, tags) => {
+    const t = typeof titre === 'string' ? titre : '';
+    const jour = jourDansTitre(t);
+    const nomme = RE_SUBATHON_NOM.test(t);
+    if (!nomme && jour === null) return null;
+    if (nomme) return { jour, voie: 'nom' };
+    if (RE_MOT_THON.test(t)) return { jour, voie: 'thon' };
+    if (tagDitSubathon(tags)) return { jour, voie: 'tag' };
+    return null;
+  };
+
   const TSE_CHANNELS_QUERY =
     'query TseChannels($logins: [String!]) {' +
     '  users(logins: $logins) {' +
@@ -4091,7 +4356,20 @@ const TSE_GATE_MAX_CLICKS = 5;
     '    displayName' +
     '    profileImageURL(width: 70)' +
     '    stream {' +
-    '      id createdAt viewersCount' +
+    /* LE TITRE, ET CE QU'IL COÛTE. C'est un champ de plus dans une requête qui
+       part de toute façon : aucune opération supplémentaire, aucune permission,
+       rien qui change au contrat anonyme. Le volume, lui, est réel et se
+       chiffre — une soixantaine d'octets par chaîne en direct, soit environ six
+       kilo-octets par relevé sur une barre de cent chaînes, pour trente
+       aujourd'hui. Un cinquième de plus toutes les trente secondes.
+
+       CE QU'IL ACHÈTE ne s'obtient pas autrement : le NUMÉRO DE JOUR d'un
+       subathon. L'ancienneté mesure la SESSION — elle repart à zéro à chaque
+       reconnexion — quand le titre mesure l'ÉVÉNEMENT. La capture qui a lancé
+       ce travail montre les deux en désaccord : la carte disait 31 h, le titre
+       « DAY 9 ». Aucun calcul ne comble cet écart, et rien de ce que nous
+       gardons ne survit à la session : ce numéro se lit, ou il n'existe pas. */
+    '      id createdAt viewersCount title' +
     // DEUX noms pour une catégorie, et ils ne font pas le même métier.
     // `name` est le nom CANONIQUE, celui des URL de Twitch et le seul que
     // `game(name:)` accepte : c'est l'identité, elle sert de clé de filtre, de
@@ -4254,6 +4532,11 @@ const TSE_GATE_MAX_CLICKS = 5;
           id,
           stream,
           tags,
+          /* Le titre du direct, tel que Twitch le rend. Il n'est JAMAIS écrit
+             dans le DOM depuis ici : on ne fait que le lire pour y chercher un
+             motif, et seul un NOMBRE en ressort. Le popup, lui, l'affiche —
+             par textContent, comme tout ce qui vient de Twitch. */
+          subathon: detecterSubathon(stream?.title, tags),
           game:    stream?.game?.name || null,
           // Le libellé traduit, avec le nom canonique en repli : si Twitch ne
           // sert pas de traduction pour cette catégorie — c'est le cas des
@@ -7765,6 +8048,29 @@ const TSE_GATE_MAX_CLICKS = 5;
            dit d'un coup d'œil si le registre couvre la population qu'il suit :
            c'est le rapport qui manquait pour voir 210 en cache et 40 places. */
         frise: { resident: frises.size, max: CFG.CATEGORY_TRAIL_MAX, ...bilanFrises },
+        /* LES SUBATHONS, RELUS DU CACHE ET DU DOM. Deux chiffres pour deux
+           pannes qui se ressemblent de l'extérieur — une carte non décorée
+           peut vouloir dire que la détection n'a rien vu, ou qu'elle a vu et
+           que la pose n'a pas suivi. `detectes` compte le premier, `marquees`
+           le second : leur écart désigne le coupable sans avoir à deviner.
+           `voies` dit LAQUELLE des trois règles porte les cas — c'est la
+           seule mesure qu'on aura d'une détection qui n'a jamais tourné
+           contre le vrai Twitch. Et `sansJour` compte les subathons nommés
+           dont le titre ne porte pas de numéro : ceux-là gardent l'anneau
+           mais pas la pastille, ce qui se voit à l'écran et devait se lire
+           ici. Tout est recalculé à la demande — aucun compteur ne dérive. */
+        subathons: (() => {
+          const v = { nom: 0, thon: 0, tag: 0 };
+          let detectes = 0, sansJour = 0;
+          cache.forEach((e) => {
+            if (!e || !e.subathon) return;
+            detectes++;
+            if (e.subathon.jour === null) sansJour++;
+            if (e.subathon.voie in v) v[e.subathon.voie]++;
+          });
+          return { detectes, sansJour, voies: v,
+                   marquees: cartes.filter(c => c.dataset.tseSubathon).length };
+        })(),
         relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
         /* L'ÉTAT DU RÉSEAU, qui n'y figurait pas. Une pause GraphQL en cours
            explique à elle seule une sidebar qui ne se met plus à jour — et
@@ -8311,11 +8617,31 @@ const TSE_GATE_MAX_CLICKS = 5;
     return span;
   };
 
+  /* ── ÉCRIRE LA DURÉE SANS EMPORTER CE QUI L'ACCOMPAGNE ────────────────────
+     `setText` écrase le contenu entier, ce qui était sans conséquence tant que
+     ce compteur ne portait qu'un texte. Depuis qu'une pastille de jour peut s'y
+     tenir, l'écraser toutes les minutes la ferait disparaître entre deux scans.
+
+     LA CARTE ORDINAIRE NE CHANGE PAS DE CHEMIN, et c'est voulu : sans pastille,
+     on repasse par `setText`, donc le contenu et le `textContent` de l'élément
+     sont exactement ceux d'avant — ce que le banc lit en quatre endroits.
+     L'espace devant la durée n'existe que dans le cas contraire, et il est
+     juste : « J9 31h05 » est ce que la ligne dit. */
+  const ecrireUptime = (span, texte) => {
+    if (!span.firstElementChild) { setText(span, texte); return; }
+    const dernier = span.lastChild;
+    if (dernier && dernier.nodeType === 3) {
+      if (dernier.nodeValue !== ' ' + texte) dernier.nodeValue = ' ' + texte;
+    } else {
+      span.appendChild(document.createTextNode(' ' + texte));
+    }
+  };
+
   const renderUptime = (card, createdAt) => {
     const span = ensureUptimeSpan(card);
     if (!span) return;
     delete span.dataset.tseEnded;
-    setText(span, formatUptime(createdAt));
+    ecrireUptime(span, formatUptime(createdAt));
   };
 
   // Le stream a pris fin : on ne supprime PAS le label, on le mute en
@@ -8327,7 +8653,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const span = ensureUptimeSpan(card);
     if (!span) return;
     span.dataset.tseEnded = 'true';
-    setText(span, S.uiUptimeEnded);
+    ecrireUptime(span, S.uiUptimeEnded);
   };
 
   const refreshUptime = (card) => {
@@ -8335,7 +8661,71 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!ts) return;
     const span = card.querySelector('.tse-uptime');
     if (!span || span.dataset.tseEnded === 'true') return;
-    setText(span, formatUptime(ts));
+    ecrireUptime(span, formatUptime(ts));
+  };
+
+  /* ── LA MARQUE DE SUBATHON, POSÉE ET RETIRÉE ──────────────────────────────
+     Idempotente comme tout ce que le scan applique : elle est rejouée à chaque
+     relevé, et doit converger sans rien empiler. Elle sait aussi DÉFAIRE — un
+     streamer qui retire « subathon » de son titre au milieu de sa diffusion
+     doit voir la carte redevenir ordinaire, et la carte est réutilisée par
+     React d'une chaîne à l'autre.
+
+     L'ANNEAU EST UN ÉLÉMENT, pas un pseudo-élément : les deux pseudo-éléments
+     de la carte appartiennent déjà à « frais » et à « abonné », et une carte
+     peut porter les trois signaux ensemble. */
+  const appliquerSubathon = (card, sub) => {
+    const anneau = () => card.querySelector(':scope > .tse-subathon-anneau');
+    const puce   = () => card.querySelector('.tse-uptime > .tse-subathon-jour');
+    /* RETIRER LA PASTILLE, C'EST AUSSI RETIRER SON ESPACE. L'espace qui la
+       sépare de la durée vit dans le nœud texte qui suit ; la pastille partie,
+       il n'a plus rien à séparer et la carte afficherait « ␣31h05 ».
+       Le relevé suivant le rattraperait — `ecrireUptime` repasse par `setText`
+       dès qu'il n'y a plus d'élément — mais « à la minute prochaine » n'est pas
+       une réponse quand le décalage se voit et que le banc lit ce texte. */
+    const retirerPuce = () => {
+      const p = puce();
+      if (!p) return;
+      const span = p.parentNode;
+      p.remove();
+      const reste = span.lastChild;
+      if (reste && reste.nodeType === 3) setText(span, reste.nodeValue.trim());
+    };
+    if (!sub) {
+      delete card.dataset.tseSubathon;
+      delete card.dataset.tseSubathonDay;
+      anneau()?.remove();
+      retirerPuce();
+      return;
+    }
+    card.dataset.tseSubathon = 'true';
+    if (!anneau()) {
+      const a = document.createElement('span');
+      a.className = 'tse-subathon-anneau';
+      // Décoratif de bout en bout : c'est la pastille qui porte le sens.
+      a.setAttribute('aria-hidden', 'true');
+      card.appendChild(a);
+    }
+    /* Le numéro de jour peut manquer — un titre qui dit « Subathon » sans le
+       compter reste un subathon. La carte garde alors ses deux marques et
+       n'affiche pas de pastille : on ne montre pas un nombre qu'on n'a pas. */
+    if (!Number.isInteger(sub.jour)) {
+      delete card.dataset.tseSubathonDay;
+      retirerPuce();
+      return;
+    }
+    card.dataset.tseSubathonDay = String(sub.jour);
+    const span = card.querySelector('.tse-uptime');
+    if (!span) return;
+    let p = puce();
+    if (!p) {
+      p = document.createElement('span');
+      p.className = 'tse-subathon-jour';
+      span.insertBefore(p, span.firstChild);
+    }
+    /* Le nombre vient d'une capture de CHIFFRES passée par `Number` : rien du
+       titre ne traverse, et le libellé est bâti par la table de langue. */
+    setText(p, S.uiSubathonShort(sub.jour));
   };
 
   /* ============================================================
@@ -10771,6 +11161,10 @@ const TSE_GATE_MAX_CLICKS = 5;
          tant que la catégorie n'est pas arrivée, puis remontée. */
       if (data.game) delete card.dataset.tseNocat;
       else card.dataset.tseNocat = 'true';
+      /* APRÈS l'ancienneté, et l'ordre compte : la pastille du jour se pose
+         DANS le compteur, qui doit donc exister. `renderUptime` l'a créé
+         quelques lignes plus haut. */
+      appliquerSubathon(card, data.subathon);
     } else {
       // Confirmation : il faut OFFLINE_CONFIRM réponses "stream=null"
       // consécutives pour basculer en "Terminé". Évite les faux positifs
@@ -13208,7 +13602,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   // la carte fabriquée hériterait de l'uptime, du compteur, du badge collab et
   // de la couleur de co-stream de la chaîne clonée.
   const scrubClone = (el) => {
-    el.querySelectorAll('.tse-uptime, .tse-viewers, .tse-collab-badge, [data-tse-extra-row]')
+    el.querySelectorAll('.tse-uptime, .tse-viewers, .tse-collab-badge,'
+                        + ' .tse-subathon-anneau, [data-tse-extra-row]')
       .forEach(n => n.remove());
     const strip = (node) => {
       for (const attr of [...node.attributes]) {

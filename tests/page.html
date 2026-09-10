@@ -305,6 +305,11 @@ window.fetch = async (url, opt) => {
         // un autre identifiant de stream). Sans lui, l'identifiant est stable
         // d'un relevé à l'autre, ce qui est le cas ordinaire d'un stream en cours.
         id: f.sid || ('s-' + login), createdAt: f.createdAt, viewersCount: f.viewers,
+        /* Le TITRE du direct. Absent par défaut — un décor qui ne s'y
+           intéresse pas ne doit rien avoir à déclarer — et servi tel quel
+           quand le scénario en pose un. C'est là que la détection de subathon
+           va chercher le nom de l'événement et le numéro de jour. */
+        title: f.title || '',
         game: { id: 'g', name: f.game, displayName: traduire(f.game) },
         freeformTags: (f.tags || []).map(n => ({ name: n }))
       } : null

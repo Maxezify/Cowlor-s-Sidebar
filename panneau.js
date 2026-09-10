@@ -880,6 +880,17 @@ const construireRapport = (r, transport, fond) => {
   L.push(...bloc('MODE', aplatir(r.mode)));
   L.push(...bloc('COMPTEURS / COUNTS', aplatir(r.compteurs)));
   L.push(...bloc('FRISE DES CATÉGORIES / CATEGORY TRAIL', aplatir(r.frise)));
+  /* LE SUBATHON A SON PROPRE BLOC, et il en a besoin. La règle qui le
+     reconnaît ne lit que le titre du direct : elle n'a jamais pu être
+     exécutée contre le vrai Twitch, et ces six lignes sont la seule mesure
+     qu'on en aura. `detectes` vient du cache, `marquees` du DOM : leur écart
+     dit laquelle des deux moitiés est en panne. `voies.*` dit quelle règle
+     porte les cas.
+
+     ÉCRIT MÊME À ZÉRO. Un rapport où tout vaut zéro n'est pas un rapport
+     vide : il dit que la sidebar de cet utilisateur ne suit aucun subathon,
+     ce qui écarte d'emblée la moitié des causes qu'on chercherait sinon. */
+  L.push(...bloc('SUBATHONS', aplatir(r.subathons)));
   L.push(...bloc('ABONNEMENTS — RELEVÉ / SUBSCRIPTIONS SWEEP', [
     paire('horodatage', r.relevesAbonnements?.horodatage
       ? new Date(r.relevesAbonnements.horodatage).toISOString() : 'jamais / never'),
