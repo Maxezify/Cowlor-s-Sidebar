@@ -224,6 +224,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'avant le premier clip',
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
+      uiSubathonShort:           (n) => `J${n}`,
       uiTrailOthers:             (n) => `+ ${n} autres catégories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
@@ -301,6 +302,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'before the first clip',
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
+      uiSubathonShort:           (n) => `D${n}`,
       uiTrailOthers:             (n) => `+ ${n} other categories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
@@ -377,6 +379,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'vor dem ersten Clip',
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
+      uiSubathonShort:           (n) => `T${n}`,
       uiTrailOthers:             (n) => `+ ${n} weitere Kategorien`,
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
@@ -453,6 +456,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes del primer clip',
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
+      uiSubathonShort:           (n) => `D${n}`,
       uiTrailOthers:             (n) => `+ ${n} categorías más`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
@@ -529,6 +533,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes do primeiro clipe',
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
+      uiSubathonShort:           (n) => `D${n}`,
       uiTrailOthers:             (n) => `+ ${n} outras categorias`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
@@ -605,6 +610,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'prima della prima clip',
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
+      uiSubathonShort:           (n) => `G${n}`,
       uiTrailOthers:             (n) => `+ altre ${n} categorie`,
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
       uiBadgeCostreamHost:       'Stream host',
@@ -681,6 +687,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'przed pierwszym klipem',
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
+      uiSubathonShort:           (n) => `D${n}`,
       uiTrailOthers:             (n) => `+ ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'inne kategorie' : 'innych kategorii'}`,
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
       uiBadgeCostreamHost:       'Kanał gospodarza',
@@ -757,6 +764,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'до первого клипа',
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
+      uiSubathonShort:           (n) => `Д${n}`,
       uiTrailOthers:             (n) => `+ ещё ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'категории' : 'категорий'}`,
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
       uiBadgeCostreamHost:       'Канал ведущего',
@@ -833,6 +841,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '最初のクリップより前',
       uiTrailNow:                '進行中',
       uiTrailTruncated:          '冒頭は未保持',
+      uiSubathonShort:           (n) => `${n}日目`,
       uiTrailOthers:             (n) => `ほか ${n} カテゴリー`,
       uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
       uiBadgeCostreamHost:       'ホスト配信',
@@ -909,6 +918,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '首个剪辑之前',
       uiTrailNow:                '进行中',
       uiTrailTruncated:          '开头未保留',
+      uiSubathonShort:           (n) => `第${n}天`,
       uiTrailOthers:             (n) => `另外 ${n} 个分类`,
       uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
       uiBadgeCostreamHost:       '主办直播',
@@ -1682,7 +1692,95 @@ const TSE_GATE_MAX_CLICKS = 5;
     @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
 
     
+    .side-nav-card[data-tse-subathon] {
+      position: relative;
+      isolation: isolate;
+      border-radius: 5px;
+    }
+    
+    .tse-subathon-jour {
+      display: inline-block;
+      margin-right: 5px;
+      padding: 0 5px;
+      border-radius: 999px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.5;
+      vertical-align: 1px;
+      
+      color: #2a0d05;
+      background: linear-gradient(140deg, #ffb37a, #ff5233);
+    }
+    
+    .side-nav-card[data-tse-subathon] .tse-uptime {
+      color: #ff8a5c;
+      font-weight: 700;
+    }
+    @supports (-webkit-background-clip: text) or (background-clip: text) {
+      .side-nav-card[data-tse-subathon] .tse-uptime {
+        color: transparent;
+        background: linear-gradient(100deg,
+          #ff5233   0%,
+          #ffd0b0  28%,
+          #ff3d2e  52%,
+          #ff5233  78%) 0 0 / 300% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: tse-subathon-braise 6s linear infinite;
+      }
+    }
+    @keyframes tse-subathon-braise { to { background-position: 300% 0; } }
+
+    @property --tse-subathon-ang {
+      syntax: '<angle>';
+      inherits: false;
+      initial-value: 0deg;
+    }
+    
+    .tse-subathon-anneau {
+      position: absolute;
+      inset: 0;
+      border-radius: 5px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    @supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+      
+      .tse-subathon-anneau {
+        padding: 1px;
+        background: conic-gradient(from var(--tse-subathon-ang, 0deg),
+          rgba(255, 122, 80, 0.3)   0deg,
+          rgba(255, 122, 80, 0.3) 190deg,
+          #ff8a5c                 268deg,
+          #ffe0c8                 312deg,
+          #ff5a3d                 342deg,
+          rgba(255, 122, 80, 0.3) 360deg);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+                mask-composite: exclude;
+        animation: tse-subathon-tour 4.5s linear infinite;
+      }
+    }
+    @keyframes tse-subathon-tour { to { --tse-subathon-ang: 360deg; } }
+
+    
     @media (prefers-reduced-motion: reduce) {
+      
+      .side-nav-card[data-tse-subathon] .tse-uptime,
+      .tse-subathon-anneau {
+        animation: none;
+      }
+      .side-nav-card[data-tse-subathon] .tse-uptime {
+        background: none;
+        color: #ff8a5c;
+      }
+      
+      @supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+        .tse-subathon-anneau {
+          background: rgba(255, 122, 80, 0.55);
+        }
+      }
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
       .side-nav-card.tse-sub .tse-sub-cat,
@@ -2385,6 +2483,56 @@ const TSE_GATE_MAX_CLICKS = 5;
       .finally(() => clearTimeout(timer));
   };
 
+  const RE_SUBATHON_NOM = /(?<![\p{L}])sub[\s._-]*a?[\s._-]*thon(?![\p{L}])/iu;
+  const RE_MOT_THON     = /(?<![\p{L}])\p{L}{2,}thon(?![\p{L}])/iu;
+
+  const JOUR_MOTS = [
+    'day', 'days',
+    'jour', 'jours',
+    'tag', 'tage',
+    'dia', 'día', 'dias', 'días',
+    'giorno', 'giorni',
+    'dzien', 'dzień', 'dni',
+    'dag', 'dagen',
+    'gün', 'gun',
+    'päivä', 'paiva',
+    'ziua',
+    'hari',
+  ];
+
+  const RE_JOURS = [
+    new RegExp('(?<![\\p{L}\\p{N}])(?:' + JOUR_MOTS.join('|')
+      + ')(?![\\p{L}])\\s*[:#.\\-–—]?\\s*(\\d{1,3})(?![\\p{N}])', 'iu'),
+    /(?<![\p{L}\p{N}])(?:день|дня|дней)(?![\p{L}])\s*[:#.\-]?\s*(\d{1,3})(?![\p{N}])/iu,
+    /(\d{1,3})\s*(?:日目|일차|日|일)/u,
+    /第\s*(\d{1,3})\s*天/u,
+  ];
+
+  const jourDansTitre = (titre) => {
+    for (const re of RE_JOURS) {
+      const m = re.exec(titre);
+      if (!m) continue;
+      const n = Number(m[1]);
+      if (Number.isInteger(n) && n >= 1 && n <= 999) return n;
+    }
+    return null;
+  };
+
+  const tagDitSubathon = (tags) => Array.isArray(tags) && tags.some(t =>
+    typeof t === 'string'
+    && t.toLowerCase().replace(/[^a-z0-9]/g, '').startsWith('subathon'));
+
+  const detecterSubathon = (titre, tags) => {
+    const t = typeof titre === 'string' ? titre : '';
+    const jour = jourDansTitre(t);
+    const nomme = RE_SUBATHON_NOM.test(t);
+    if (!nomme && jour === null) return null;
+    if (nomme) return { jour, voie: 'nom' };
+    if (RE_MOT_THON.test(t)) return { jour, voie: 'thon' };
+    if (tagDitSubathon(tags)) return { jour, voie: 'tag' };
+    return null;
+  };
+
   const TSE_CHANNELS_QUERY =
     'query TseChannels($logins: [String!]) {' +
     '  users(logins: $logins) {' +
@@ -2393,7 +2541,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     '    displayName' +
     '    profileImageURL(width: 70)' +
     '    stream {' +
-    '      id createdAt viewersCount' +
+
+    '      id createdAt viewersCount title' +
 
     '      game { id name displayName }' +
     '      freeformTags { name }' +
@@ -2508,6 +2657,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           id,
           stream,
           tags,
+
+          subathon: detecterSubathon(stream?.title, tags),
           game:    stream?.game?.name || null,
 
           gameLabel: stream?.game?.displayName?.trim() || stream?.game?.name || null,
@@ -4581,6 +4732,19 @@ const TSE_GATE_MAX_CLICKS = 5;
         },
 
         frise: { resident: frises.size, max: CFG.CATEGORY_TRAIL_MAX, ...bilanFrises },
+
+        subathons: (() => {
+          const v = { nom: 0, thon: 0, tag: 0 };
+          let detectes = 0, sansJour = 0;
+          cache.forEach((e) => {
+            if (!e || !e.subathon) return;
+            detectes++;
+            if (e.subathon.jour === null) sansJour++;
+            if (e.subathon.voie in v) v[e.subathon.voie]++;
+          });
+          return { detectes, sansJour, voies: v,
+                   marquees: cartes.filter(c => c.dataset.tseSubathon).length };
+        })(),
         relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
 
         reseau: {
@@ -4898,11 +5062,21 @@ const TSE_GATE_MAX_CLICKS = 5;
     return span;
   };
 
+  const ecrireUptime = (span, texte) => {
+    if (!span.firstElementChild) { setText(span, texte); return; }
+    const dernier = span.lastChild;
+    if (dernier && dernier.nodeType === 3) {
+      if (dernier.nodeValue !== ' ' + texte) dernier.nodeValue = ' ' + texte;
+    } else {
+      span.appendChild(document.createTextNode(' ' + texte));
+    }
+  };
+
   const renderUptime = (card, createdAt) => {
     const span = ensureUptimeSpan(card);
     if (!span) return;
     delete span.dataset.tseEnded;
-    setText(span, formatUptime(createdAt));
+    ecrireUptime(span, formatUptime(createdAt));
   };
 
   const removeUptime = (card) => {
@@ -4911,7 +5085,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const span = ensureUptimeSpan(card);
     if (!span) return;
     span.dataset.tseEnded = 'true';
-    setText(span, S.uiUptimeEnded);
+    ecrireUptime(span, S.uiUptimeEnded);
   };
 
   const refreshUptime = (card) => {
@@ -4919,7 +5093,53 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!ts) return;
     const span = card.querySelector('.tse-uptime');
     if (!span || span.dataset.tseEnded === 'true') return;
-    setText(span, formatUptime(ts));
+    ecrireUptime(span, formatUptime(ts));
+  };
+
+  const appliquerSubathon = (card, sub) => {
+    const anneau = () => card.querySelector(':scope > .tse-subathon-anneau');
+    const puce   = () => card.querySelector('.tse-uptime > .tse-subathon-jour');
+
+    const retirerPuce = () => {
+      const p = puce();
+      if (!p) return;
+      const span = p.parentNode;
+      p.remove();
+      const reste = span.lastChild;
+      if (reste && reste.nodeType === 3) setText(span, reste.nodeValue.trim());
+    };
+    if (!sub) {
+      delete card.dataset.tseSubathon;
+      delete card.dataset.tseSubathonDay;
+      anneau()?.remove();
+      retirerPuce();
+      return;
+    }
+    card.dataset.tseSubathon = 'true';
+    if (!anneau()) {
+      const a = document.createElement('span');
+      a.className = 'tse-subathon-anneau';
+
+      a.setAttribute('aria-hidden', 'true');
+      card.appendChild(a);
+    }
+
+    if (!Number.isInteger(sub.jour)) {
+      delete card.dataset.tseSubathonDay;
+      retirerPuce();
+      return;
+    }
+    card.dataset.tseSubathonDay = String(sub.jour);
+    const span = card.querySelector('.tse-uptime');
+    if (!span) return;
+    let p = puce();
+    if (!p) {
+      p = document.createElement('span');
+      p.className = 'tse-subathon-jour';
+      span.insertBefore(p, span.firstChild);
+    }
+
+    setText(p, S.uiSubathonShort(sub.jour));
   };
 
   const nativeViewersEl = (card) =>
@@ -6277,6 +6497,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       if (data.game) delete card.dataset.tseNocat;
       else card.dataset.tseNocat = 'true';
+
+      appliquerSubathon(card, data.subathon);
     } else {
 
       const counted = card.dataset.tseOfflineTs === String(data.ts);
@@ -7695,7 +7917,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   };
 
   const scrubClone = (el) => {
-    el.querySelectorAll('.tse-uptime, .tse-viewers, .tse-collab-badge, [data-tse-extra-row]')
+    el.querySelectorAll('.tse-uptime, .tse-viewers, .tse-collab-badge,'
+                        + ' .tse-subathon-anneau, [data-tse-extra-row]')
       .forEach(n => n.remove());
     const strip = (node) => {
       for (const attr of [...node.attributes]) {
