@@ -2770,14 +2770,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
 
     /* ══ LE SUBATHON, SUR LA CARTE ═══════════════════════════════════════════
-       Deux marques, et chacune occupe un canal que RIEN n'utilisait — c'est la
-       contrainte qui a dicté le dessin. Trois signaux se partagent déjà la
-       carte et ont été faits pour cohabiter : « frais » et « co-stream »
-       tiennent le trait de gauche et le fond, « abonné » tient la lueur de
-       fond et l'or du texte. Un quatrième qui reprendrait l'un des trois ne
-       ferait pas quatre signaux, il en casserait un.
+       UNE SEULE MARQUE, ET ELLE OCCUPE UN CANAL QUE RIEN N'UTILISAIT. Trois
+       signaux se partagent déjà la carte et ont été faits pour cohabiter :
+       « frais » et « co-stream » tiennent le trait de gauche et le fond,
+       « abonné » tient la lueur de fond et l'or du texte. Un quatrième qui
+       reprendrait l'un des trois ne ferait pas quatre signaux, il en
+       casserait un.
 
-       A · LE COMPTEUR QUI CHAUFFE. L'élément d'ancienneté appartient à
+       LE COMPTEUR QUI CHAUFFE. L'élément d'ancienneté appartient à
        l'extension : elle l'écrit, personne d'autre n'y touche. Il porte donc
        le numéro de jour — le seul renseignement qu'aucun calcul ne donne — et
        prend une chaleur qui circule. « Surboosté » au sens propre.
@@ -2788,35 +2788,84 @@ const TSE_GATE_MAX_CLICKS = 5;
        camaïeu chaud. On se pose à 9°, soit vingt-huit degrés d'écart — de quoi
        lire deux signaux là où il y en a deux.
 
-       B · LE CONTOUR D'ENDURANCE. Le PÉRIMÈTRE n'est pris par rien : le trait
-       de gauche est intérieur, la lueur d'abonné est un fond. Une lumière qui
-       fait le tour dit « ça tourne encore » sans rien recouvrir. Elle est
-       portée par un ÉLÉMENT INJECTÉ et non par un pseudo-élément : « ::before »
-       appartient à « frais », « ::after » à « abonné », et une carte peut être
-       les trois à la fois. */
-    .side-nav-card[data-tse-subathon] {
-      position: relative;
-      isolation: isolate;
-      border-radius: 5px;
-    }
-    /* La pastille du jour, à gauche de la durée. Sa couleur est posée en dur :
-       le compteur qui l'entoure passe en « color: transparent » pour laisser
-       voir son dégradé, et cette transparence-là descendrait jusqu'ici. */
-    .tse-subathon-jour {
+       UN CONTOUR D'ENDURANCE A ÉTÉ ESSAYÉ, PUIS RETIRÉ. Une lumière qui
+       faisait le tour de la carte disait « ça tourne encore » sans rien
+       recouvrir, et le périmètre était bien le dernier canal libre. Sur la
+       capture d'une sidebar réelle, elle prenait toute l'attention d'une
+       colonne qui en compte quinze : la carte ne se distinguait plus, elle
+       criait. Un signal qui écrase ses voisins ne renseigne plus sur le sien.
+       Ce qui reste tient sur l'élément que l'extension écrit déjà. */
+    /* ── LA PASTILLE DU JOUR ──────────────────────────────────────────────
+       CREUSE, ET NON PLEINE. Une pastille pleine était un bloc de couleur posé
+       dans une colonne qui n'en porte aucun : elle pesait plus que la durée
+       qu'elle qualifie, alors qu'elle n'en est que le préfixe. Réduite à son
+       contour, elle dit la même chose et cesse de crier. Son fond n'est pas
+       une couleur : il n'y en a pas — la carte se voit au travers, quelle que
+       soit la sienne (survol, sélection, carte d'abonné).
+
+       ALIGNÉE SUR LA DURÉE, ET LA MESURE A CORRIGÉ CE QUE JE CROYAIS. La
+       rédaction précédente montait la pastille d'un pixel (« vertical-align:
+       1px ») : c'est ce décalage-là, et lui seul, qui se voyait sur la
+       capture. Une boîte « inline-block » aligne SA PROPRE ligne de base sur
+       celle du texte voisin — il suffit de ne pas la déplacer, et l'écart
+       mesuré tombe alors à zéro pixel exactement, à toutes les tailles. Je
+       m'étais d'abord persuadé du contraire en comparant des RECTANGLES DE
+       GLYPHES, dont le bas descend avec le corps : deux textes de tailles
+       différentes n'y ont jamais le même bas, alignés ou non. La sonde qui
+       tranche est une boîte de hauteur nulle en « vertical-align: baseline »,
+       dont le bord inférieur EST la ligne de base.
+
+       LE CORPS EST DONC CELUI DE LA DURÉE, et pas un corps réduit. Rien
+       n'obligeait à rapetisser : contour et remplissage compris, la boîte fait
+       15,19 px dans une ligne qui en fait 16,80, et la carte ne grandit pas
+       d'un pixel. « font-size: inherit » plutôt qu'une valeur recopiée — la
+       pastille suit le compteur par construction, et les deux ne peuvent plus
+       diverger le jour où l'un des deux change. Mesuré, cf. le scénario 91.
+
+       LE SÉLECTEUR PORTE DEUX CLASSES, ET C'EST LUI QUI CORRIGE LA CARTE À
+       DEUX ÉTAGES. Nous injectons dans une page dont nous n'écrivons pas la
+       feuille : une règle de l'hôte aussi banale que
+       « .quelqueChose span { display: block } » bat une classe seule, et la
+       pastille cesse d'être en ligne — pleine largeur, sur son propre étage,
+       le compteur seize pixels plus bas. Ce n'est pas une hypothèse : le décor
+       du banc porte exactement cette règle, et la carte y mesurait 34 px de
+       haut contre 16. Deux classes passent devant.
+
+       J'AI D'ABORD ACCUSÉ LE RETOUR À LA LIGNE, ET AJOUTÉ UN « nowrap » QUI NE
+       SERVAIT À RIEN. La colonne de droite s'élargit d'elle-même quand son
+       contenu grandit — mesuré : 66,9 px pour « 168h40 », 75,7 px pour
+       « J120 168h40 », sur une seule ligne avec ou sans la règle. Aucun décor
+       ne pouvait la rendre nécessaire, et un mutant qui la retirait survivait à
+       tout le banc. Une règle qu'aucune mesure ne défend se fait passer pour
+       la cause du défaut qu'une autre a corrigé : elle est donc retirée. */
+    .tse-uptime > .tse-subathon-jour {
       display: inline-block;
-      margin-right: 5px;
-      padding: 0 5px;
-      border-radius: 999px;
-      font-size: 1.05rem;
+      margin-right: 4px;
+      padding: 0 3px;
+      border: 1px solid currentColor;
+      border-radius: 3px;
+      font-size: inherit;
       font-weight: 700;
-      line-height: 1.5;
-      vertical-align: 1px;
-      /* CONTRASTE MESURÉ, comme pour les badges de l'aperçu : le brun très
-         sombre sur le clair du dégradé donne 10,3:1, et sur son extrémité la
-         plus foncée 5,65:1 — au-dessus du plancher de 4,5:1 d'un petit texte
-         sur toute la longueur de la pastille, et non seulement en son milieu. */
-      color: #2a0d05;
-      background: linear-gradient(140deg, #ffb37a, #ff5233);
+      /* HAUTEUR DE LIGNE À 1, ET LA MESURE L'A IMPOSÉ. À 1,1 la boîte faisait
+         15,2 px : elle tenait dans la ligne de 16,8 px de notre feuille, et
+         dépassait de deux dixièmes celle d'un hôte qui serrerait à 16 px — ce
+         que le décor du banc fait. Deux dixièmes suffisent à faire grandir la
+         carte, et la carte grandie décale la colonne. À 1, la boîte fait 14 px
+         et tient dans l'une comme dans l'autre. */
+      line-height: 1;
+      /* LA COULEUR EST POSÉE EN DUR, et il le faut : le compteur qui l'entoure
+         passe en « color: transparent » pour laisser voir son dégradé, et
+         cette transparence-là descendrait jusqu'ici — contour compris, puisque
+         celui-ci se peint en « currentColor ».
+
+         CONTRASTE MESURÉ SUR LES TROIS FONDS QUE LA CARTE PREND, et non sur
+         le seul fond au repos : la sidebar (#18181b) donne 7,63:1, le fond de
+         survol (#1f1f23) 7,07:1, le fond du panneau (#0e0e10) 8,30:1. Le pire
+         des trois reste au-dessus du plancher de 4,5:1 d'un petit texte, et
+         c'est le pire des trois qui compte — une couleur vérifiée au repos
+         seulement se dégrade exactement au moment où on la regarde. */
+      color: #ff8a5c;
+      background: none;
     }
     /* Repli d'abord : si le découpage du fond à la forme du texte n'était pas
        appliqué, une couleur transparente ferait DISPARAÎTRE la durée. On pose
@@ -2840,73 +2889,16 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     @keyframes tse-subathon-braise { to { background-position: 300% 0; } }
 
-    @property --tse-subathon-ang {
-      syntax: '<angle>';
-      inherits: false;
-      initial-value: 0deg;
-    }
-    /* SANS MASQUE, PAS D'ANNEAU. Le contour se fabrique en peignant tout le
-       cadre puis en découpant l'intérieur ; là où « mask-composite » n'existe
-       pas, ce découpage n'a pas lieu et le dégradé recouvrirait la carte
-       entière. L'élément reste donc vide par défaut, et ne prend son fond que
-       sous la garde ci-dessous. */
-    .tse-subathon-anneau {
-      position: absolute;
-      inset: 0;
-      border-radius: 5px;
-      pointer-events: none;
-      z-index: 2;
-    }
-    @supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
-      /* CORRIGÉ SUR CAPTURE. Le dégradé partait d'un secteur ENTIÈREMENT
-         transparent : sur trois quarts du tour il n'y avait pas d'anneau du
-         tout, et l'œil lisait non pas une lumière qui tourne mais une bordure
-         cassée, un défaut de rendu. Le socle est donc continu — faible, mais
-         présent sur les 360° — et la portion vive s'y déplace. L'anneau est
-         alors ce qu'il prétend être : un contour allumé que parcourt un reflet.
-         Le secteur clair reste étroit (environ 100° sur 360) pour que le
-         déplacement se voie ; c'est le contraste avec le socle qui le dessine,
-         plus l'absence de socle. */
-      .tse-subathon-anneau {
-        padding: 1px;
-        background: conic-gradient(from var(--tse-subathon-ang, 0deg),
-          rgba(255, 122, 80, 0.3)   0deg,
-          rgba(255, 122, 80, 0.3) 190deg,
-          #ff8a5c                 268deg,
-          #ffe0c8                 312deg,
-          #ff5a3d                 342deg,
-          rgba(255, 122, 80, 0.3) 360deg);
-        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-                mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor;
-                mask-composite: exclude;
-        animation: tse-subathon-tour 4.5s linear infinite;
-      }
-    }
-    @keyframes tse-subathon-tour { to { --tse-subathon-ang: 360deg; } }
-
     /* Mouvement réduit : la demande est explicite, on la respecte. L'or reste
        — c'est lui qui porte l'information — mais plus rien ne bouge. */
     @media (prefers-reduced-motion: reduce) {
-      /* Le subathon garde ses DEUX marques et perd ses deux mouvements : la
-         chaleur du compteur se fige sur une teinte pleine, l'anneau sur un
-         liseré immobile. La carte reste distinguée, elle cesse de bouger. */
-      .side-nav-card[data-tse-subathon] .tse-uptime,
-      .tse-subathon-anneau {
-        animation: none;
-      }
+      /* Le subathon garde sa marque et perd son mouvement : la chaleur du
+         compteur se fige sur une teinte pleine. La pastille du jour, elle, ne
+         bougeait pas — elle n'a rien à perdre, et elle porte le sens. */
       .side-nav-card[data-tse-subathon] .tse-uptime {
+        animation: none;
         background: none;
         color: #ff8a5c;
-      }
-      /* L'anneau figé garderait sa portion vive arrêtée à un endroit du tour,
-         c'est-à-dire exactement la bordure asymétrique qu'on vient de corriger.
-         Immobile, il devient donc uniforme. La garde « @supports » est
-         rejouée ici : sans découpage, ce fond couvrirait toute la carte. */
-      @supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
-        .tse-subathon-anneau {
-          background: rgba(255, 122, 80, 0.55);
-        }
       }
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
@@ -3544,6 +3536,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__frise-part + .tse-preview__frise-part {
       box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.45);
     }
+    /* SAUF APRÈS UNE BORNE DOUTEUSE, ET LA CAPTURE L'A EXIGÉ. Le fondu disait
+       « le basculement est quelque part là-dedans » ; la couture, tracée juste
+       après, redessinait un trait net au milieu — c'est-à-dire exactement
+       l'affirmation que le fondu venait de retirer. Les deux se contredisaient
+       à un pixel d'écart. La couture s'efface donc là où l'on doute, et le
+       dégradé se poursuit sans rupture dans la part suivante. */
+    .tse-preview__frise-part--flou + .tse-preview__frise-part {
+      box-shadow: none;
+    }
     /* PAS DE TÊTE DE LECTURE, ET LA CAPTURE L'A TRANCHÉ. Un liseré clair au
        bord droit du dernier segment avait été posé pour marquer « maintenant ».
        Il ne survit pas à sa propre boîte : le ruban est une pilule à coins
@@ -3566,6 +3567,56 @@ const TSE_GATE_MAX_CLICKS = 5;
           rgba(0, 0, 0, 0.30) 0 3px, rgba(0, 0, 0, 0) 3px 6px),
         linear-gradient(180deg,
           rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
+    }
+    /* ── LA BORNE QU'ON NE SAIT PAS PLACER ────────────────────────────────
+       Un chapitre de VOD donne l'heure du basculement. Un CLIP ne donne que la
+       preuve qu'à telle minute, telle catégorie était en cours : entre le
+       dernier clip de l'une et le premier de la suivante, le changement a eu
+       lieu quelque part, et rien ne dit où. Un trait net à cet endroit
+       affirmerait une minute qu'on ignore — exactement ce que tout ce module
+       refuse de faire ailleurs.
+
+       LE DÉGRADÉ EST DONC UN AVEU, ET IL EST À L'ÉCHELLE. Sa largeur est celle
+       de l'intervalle douteux, en proportion du segment, comme la part « avant
+       le premier clip » est déjà dessinée à sa taille réelle. Dix minutes de
+       doute donnent dix minutes de fondu ; deux clips consécutifs à une minute
+       d'écart donnent une borne presque nette, parce qu'elle l'est presque.
+       On ne fait pas semblant de savoir, et on ne fait pas non plus semblant
+       d'ignorer plus qu'on n'ignore.
+
+       IL S'EMPILE SUR CE QUI EST DÉJÀ LÀ. La lumière du haut et la hachure des
+       clips sont posées par d'autres règles en « background-image » ; les trois
+       doivent tenir dans UNE déclaration, faute de quoi la dernière efface les
+       précédentes. Le sélecteur porte les deux classes pour repasser devant
+       celui des clips, qui en porte deux lui aussi.
+
+       ET LE FONDU EST LA COUCHE DU DESSOUS, ce que la capture a corrigé. Posé
+       en tête de pile, il était OPAQUE à sa fin et recouvrait la hachure : la
+       part perdait son grain juste avant la borne pour le retrouver après,
+       et cette disparition-réapparition redessinait la rupture que le fondu
+       devait effacer. En dernier, il se mêle à la couleur de fond — la hachure
+       et la lumière lui passent par-dessus sans discontinuer. La liste va du
+       dessus vers le dessous : hachure, lumière, fondu.
+
+       QUATRE ARRÊTS ET NON DEUX, et c'est encore la capture. Un dégradé qui
+       part de « transparent » ne mélange pas deux couleurs : il pose la
+       seconde en transparence PAR-DESSUS la première, et un orange à moitié
+       opaque sur du cyan donne un olive terne qui n'est ni l'une ni l'autre.
+       Le fondu porte donc les DEUX couleurs en clair — celle du segment puis
+       celle du suivant — et ne reste transparent qu'avant la zone de doute,
+       où il n'a rien à dire. La rampe est alors une vraie rampe d'une teinte
+       à l'autre, et la borne se lit comme une hésitation et non comme une
+       salissure. */
+    .tse-preview__frise--clips .tse-preview__frise-part--flou {
+      background-image:
+        repeating-linear-gradient(135deg,
+          rgba(0, 0, 0, 0.30) 0 3px, rgba(0, 0, 0, 0) 3px 6px),
+        linear-gradient(180deg,
+          rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%),
+        linear-gradient(90deg,
+          transparent 0 calc(100% - var(--tse-flou, 0%)),
+          var(--tse-flou-de, transparent) calc(100% - var(--tse-flou, 0%)),
+          var(--tse-flou-vers, transparent) 100%);
     }
     /* Le temps qu'on n'a PAS observé : hachuré, à sa taille réelle. C'est un
        aveu à l'échelle, et il est dessiné avant les segments connus parce que
@@ -3609,24 +3660,48 @@ const TSE_GATE_MAX_CLICKS = 5;
       background-image: repeating-linear-gradient(180deg,
         rgba(255, 255, 255, 0.34) 0 3px, rgba(255, 255, 255, 0) 3px 6px);
     }
+    /* LE NOM NE POUSSE PLUS, IL SE CONTENTE DE SA LARGEUR. Sous « flex: 1 1
+       auto » sa BOÎTE prenait tout l'espace libre — 392 px mesurés pour un
+       texte qui en occupe soixante-dix — et le « ×7 », posé juste après cette
+       boîte, se retrouvait à trois cents pixels du mot qu'il compte. Le texte,
+       lui, restait calé à gauche : c'est cet écart-là qu'on voyait.
+
+       LE PIÈGE ÉTAIT DANS LA MESURE, ET IL A FAILLI ME FAIRE ANNULER LA
+       CORRECTION. Un mutant remettant « 1 1 auto » a d'abord survécu, parce
+       que l'assertion comparait le bord DE LA BOÎTE du nom au « ×7 » : cet
+       écart vaut cinq pixels dans les deux cas, la boîte grandissant avec le
+       nom. Ce qui se voit est la distance au TEXTE, et un texte se mesure par
+       une plage, jamais par la boîte qui le contient. L'assertion corrigée
+       tue le mutant ; la règle ci-dessous est bien la cause.
+
+       Le nom rétrécit toujours — c'est lui qui prend l'ellipse quand la ligne
+       est trop longue — mais il ne s'étire plus. */
     .tse-preview__frise-nom {
-      flex: 1 1 auto;
+      flex: 0 1 auto;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       color: #dedee3;
     }
-    /* Le nombre de retours. Discret par construction : il qualifie la durée
-       qui le suit, il ne la concurrence pas. */
+    /* Le nombre de retours, COLLÉ AU NOM qu'il qualifie : « Discussions ×7 »
+       se lit d'un bloc. Discret par construction — il qualifie, il ne
+       concurrence pas. La gouttière propre à cette paire est plus étroite que
+       celle de la ligne : huit pixels entre un nom et son propre exposant les
+       auraient séparés autant que deux colonnes. */
     .tse-preview__frise-fois {
       flex: 0 0 auto;
+      margin-left: -3px;
       font-size: 10.5px;
       color: rgba(255, 255, 255, 0.34);
       font-variant-numeric: tabular-nums;
     }
+    /* LA DURÉE SE POUSSE ELLE-MÊME À DROITE. C'est elle, et non le nom, qui
+       tient la colonne que l'œil parcourt verticalement ; « margin-left: auto »
+       la met au bord quoi qu'il y ait devant. */
     .tse-preview__frise-duree {
       flex: 0 0 auto;
+      margin-left: auto;
       color: rgba(255, 255, 255, 0.52);
       font-variant-numeric: tabular-nums;
     }
@@ -3976,7 +4051,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     for (const p of chapitresVod) {
       const dernier = bruts[bruts.length - 1];
       if (dernier && dernier.jeu === p.jeu) continue;   // Twitch répète parfois
-      bruts.push({ jeu: p.jeu, libelle: p.libelle, debut: p.debut });
+      /* `flou` traverse : c'est la largeur de l'intervalle pendant lequel le
+         basculement A EU LIEU sans qu'on sache quand. Seule une frise de clips
+         en porte ; un chapitre de VOD donne l'heure exacte. */
+      bruts.push({ jeu: p.jeu, libelle: p.libelle, debut: p.debut, flou: p.flou });
     }
     for (const o of f.segments) {
       const dernier = bruts[bruts.length - 1];
@@ -4011,10 +4089,25 @@ const TSE_GATE_MAX_CLICKS = 5;
       bruts[0] = { ...bruts[0], debut: f.debutStream };
     }
 
+    /* LE FLOU SE PORTE SUR LE SEGMENT QUI PRÉCÈDE LA BORNE, et non sur celui
+       qui la suit — c'est une question de place sur la frise, pas de style.
+       L'intervalle douteux va du dernier clip de A au premier clip de B ;
+       comme le segment B est dessiné à partir de son premier clip, cet
+       intervalle tombe ENTIÈREMENT dans la fin du segment A. L'estomper au
+       début de B le placerait après la borne, c'est-à-dire là où l'on sait.
+
+       `flouFin` est donc la largeur du doute lue sur le segment SUIVANT, et
+       `versJeu` la catégorie vers laquelle il fond. On la borne à la durée du
+       segment : un doute plus long que le segment lui-même — deux clips très
+       espacés — estompe la part entière, ce qui est exactement ce qu'il dit. */
     const segments = bruts.map((s, i) => {
-      const fin = i + 1 < bruts.length ? bruts[i + 1].debut : maintenant;
-      return { jeu: s.jeu, libelle: s.libelle, debut: s.debut, fin,
-               dureeMs: Math.max(0, fin - s.debut),
+      const suivant = i + 1 < bruts.length ? bruts[i + 1] : null;
+      const fin = suivant ? suivant.debut : maintenant;
+      const dureeMs = Math.max(0, fin - s.debut);
+      const flouFin = suivant && suivant.flou > 0
+        ? Math.min(suivant.flou, dureeMs) : 0;
+      return { jeu: s.jeu, libelle: s.libelle, debut: s.debut, fin, dureeMs,
+               flouFin, versJeu: flouFin ? suivant.jeu : null,
                encours: i + 1 === bruts.length };
     });
     /* Avons-nous vu ce live depuis son DÉBUT ? La tolérance absorbe notre
@@ -8671,12 +8764,13 @@ const TSE_GATE_MAX_CLICKS = 5;
      doit voir la carte redevenir ordinaire, et la carte est réutilisée par
      React d'une chaîne à l'autre.
 
-     L'ANNEAU EST UN ÉLÉMENT, pas un pseudo-élément : les deux pseudo-éléments
-     de la carte appartiennent déjà à « frais » et à « abonné », et une carte
-     peut porter les trois signaux ensemble. */
+     RIEN N'EST INJECTÉ DANS LA CARTE ELLE-MÊME. Un anneau posé sur son
+     périmètre a existé, puis a été retiré : il prenait toute l'attention d'une
+     colonne qui compte quinze cartes. Tout se joue désormais dans l'élément
+     d'ancienneté, que l'extension écrit déjà — un attribut sur la carte, une
+     pastille dans le compteur, et pas un nœud de plus. */
   const appliquerSubathon = (card, sub) => {
-    const anneau = () => card.querySelector(':scope > .tse-subathon-anneau');
-    const puce   = () => card.querySelector('.tse-uptime > .tse-subathon-jour');
+    const puce = () => card.querySelector('.tse-uptime > .tse-subathon-jour');
     /* RETIRER LA PASTILLE, C'EST AUSSI RETIRER SON ESPACE. L'espace qui la
        sépare de la durée vit dans le nœud texte qui suit ; la pastille partie,
        il n'a plus rien à séparer et la carte afficherait « ␣31h05 ».
@@ -8694,21 +8788,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!sub) {
       delete card.dataset.tseSubathon;
       delete card.dataset.tseSubathonDay;
-      anneau()?.remove();
       retirerPuce();
       return;
     }
     card.dataset.tseSubathon = 'true';
-    if (!anneau()) {
-      const a = document.createElement('span');
-      a.className = 'tse-subathon-anneau';
-      // Décoratif de bout en bout : c'est la pastille qui porte le sens.
-      a.setAttribute('aria-hidden', 'true');
-      card.appendChild(a);
-    }
     /* Le numéro de jour peut manquer — un titre qui dit « Subathon » sans le
-       compter reste un subathon. La carte garde alors ses deux marques et
-       n'affiche pas de pastille : on ne montre pas un nombre qu'on n'a pas. */
+       compter reste un subathon. Le compteur garde alors sa chaleur, portée
+       par l'attribut ci-dessus, et n'affiche pas de pastille : on ne montre
+       pas un nombre qu'on n'a pas. */
     if (!Number.isInteger(sub.jour)) {
       delete card.dataset.tseSubathonDay;
       retirerPuce();
@@ -9494,11 +9581,28 @@ const TSE_GATE_MAX_CLICKS = 5;
       points.sort((x, y) => x.debut - y.debut);
       /* Une SUITE de clips portant la même catégorie ne fait qu'un segment,
          qui commence au premier d'entre eux — le seul instant où l'on SAIT
-         que cette catégorie était en cours. */
+         que cette catégorie était en cours.
+
+         ET L'ON MESURE CE QU'ON NE SAIT PAS. Entre le DERNIER clip de la
+         catégorie précédente et le PREMIER de celle-ci, le basculement a eu
+         lieu — quelque part. On connaît les deux bornes de cet intervalle sans
+         connaître l'instant : c'est une ignorance CHIFFRÉE, et une ignorance
+         chiffrée se dessine. `flou` porte sa largeur en millisecondes ; le
+         ruban en fera un dégradé de cette largeur exacte, à l'échelle du
+         temps, comme la part « avant le premier clip » est déjà dessinée à sa
+         taille réelle. Zéro flou = une borne sûre, et rien à estomper.
+
+         LE PREMIER SEGMENT N'EN PORTE PAS : ce qui le précède n'est pas un
+         intervalle douteux entre deux catégories connues, c'est du temps dont
+         aucun clip ne dit rien — et cela se dit déjà, en hachuré. */
       const segments = [];
+      let precedent = null;
       for (const p of points) {
         const dernier = segments[segments.length - 1];
-        if (!dernier || dernier.jeu !== p.jeu) segments.push(p);
+        if (!dernier || dernier.jeu !== p.jeu) {
+          segments.push(dernier ? { ...p, flou: p.debut - precedent.debut } : p);
+        }
+        precedent = p;
       }
       return segments;
     };
@@ -10223,9 +10327,13 @@ const TSE_GATE_MAX_CLICKS = 5;
 
          Le signe multiplié suivi d'un chiffre se lit dans les dix langues de
          l'interface : c'est une notation, pas une phrase, et lui inventer dix
-         traductions ne la rendrait pas plus claire. Il se pose AVANT la durée
-         pour que la colonne des durées reste alignée à droite, qui est la
-         seule que l'œil parcourt verticalement. */
+         traductions ne la rendrait pas plus claire.
+
+         IL SE POSE CONTRE LE NOM, ET NON CONTRE LA DURÉE. L'ordre du DOM était
+         déjà celui-ci ; c'est la feuille qui le rejetait à droite, le nom
+         s'étirant sur tout l'espace libre. « Discussions ×7 » nomme une
+         catégorie et le nombre de fois qu'on y est revenu : les deux vont
+         ensemble, et la durée n'a rien à voir dans cette paire. */
       if (fois > 1) {
         const n = document.createElement('span');
         n.className = 'tse-preview__frise-fois';
@@ -10241,7 +10349,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       return li;
     };
 
-    const frisePart = (poids, couleur, modif) => {
+    const frisePart = (poids, couleur, modif, flou) => {
       const d = document.createElement('div');
       d.className = 'tse-preview__frise-part' + (modif ? ' ' + modif : '');
       // flex-grow proportionnel à la durée, base nulle : les segments se
@@ -10252,6 +10360,22 @@ const TSE_GATE_MAX_CLICKS = 5;
          dégradé des parts, la hachure des clips et celle de la part inconnue —
          trois règles qui auraient l'air posées et ne s'appliqueraient pas. */
       if (couleur) d.style.backgroundColor = couleur;
+      /* LA BORNE DOUTEUSE, PASSÉE À LA FEUILLE EN DEUX VARIABLES et non en un
+         `background-image` posé ici. Le dégradé doit se SUPERPOSER à ce que la
+         feuille pose déjà — la lumière du haut, la hachure des clips — et une
+         écriture en ligne les remplacerait toutes. La règle correspondante les
+         empile dans une seule déclaration ; d'ici on ne fournit que la largeur
+         du doute et la couleur vers laquelle il fond. */
+      if (flou && flou.part > 0) {
+        d.classList.add('tse-preview__frise-part--flou');
+        d.style.setProperty('--tse-flou', flou.part.toFixed(2) + '%');
+        /* LES DEUX BOUTS DE LA RAMPE. Celle du segment est déjà sa couleur de
+           fond ; la reposer ici ne change rien à l'œil et rend le dégradé
+           opaque, seule façon d'obtenir une vraie transition d'une teinte à
+           l'autre plutôt qu'une superposition en transparence. */
+        d.style.setProperty('--tse-flou-de', flou.de);
+        d.style.setProperty('--tse-flou-vers', flou.vers);
+      }
       return d;
     };
 
@@ -10393,11 +10517,21 @@ const TSE_GATE_MAX_CLICKS = 5;
         barre.appendChild(frisePart(f.inconnuMs, null, 'tse-preview__frise-part--inconnu'));
       }
       for (const seg of f.segments) {
+        /* LE DOUTE SUR LA BORNE DE DROITE, converti en part de CE segment.
+           `flouFin` est en millisecondes ; la part, elle, est dessinée en
+           proportion de sa durée — le pourcentage est donc le rapport des
+           deux, et le dégradé couvre exactement l'intervalle pendant lequel on
+           ignore laquelle des deux catégories était en cours. */
+        const flou = seg.flouFin && seg.dureeMs
+          ? { part: Math.min(100, seg.flouFin / seg.dureeMs * 100),
+              de:   couleurs.get(seg.jeu)     || 'rgba(255,255,255,0.22)',
+              vers: couleurs.get(seg.versJeu) || 'rgba(255,255,255,0.22)' }
+          : null;
         /* La tête de lecture sur le segment EN COURS, qui est le dernier et se
            termine au bord droit du ruban — c'est-à-dire à maintenant. Le
            modificateur ne change rien à la mesure : seul un liseré s'ajoute. */
         barre.appendChild(frisePart(seg.dureeMs, couleurs.get(seg.jeu),
-          seg.encours ? 'tse-preview__frise-part--encours' : ''));
+          seg.encours ? 'tse-preview__frise-part--encours' : '', flou));
       }
       /* LE COMPTE DES PARTS, transmis à la feuille. C'est elle qui en tire la
          largeur plancher, et elle ne peut pas le compter seule — cf. la règle
@@ -13603,7 +13737,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   // de la couleur de co-stream de la chaîne clonée.
   const scrubClone = (el) => {
     el.querySelectorAll('.tse-uptime, .tse-viewers, .tse-collab-badge,'
-                        + ' .tse-subathon-anneau, [data-tse-extra-row]')
+                        + ' [data-tse-extra-row]')
       .forEach(n => n.remove());
     const strip = (node) => {
       for (const attr of [...node.attributes]) {
