@@ -9542,6 +9542,30 @@ titre('87. La troisième porte — les clips, pour qui n\'archive pas');
         nom: l.querySelector('.tse-preview__frise-nom').textContent,
         inconnu: l.classList.contains('tse-preview__frise-ligne--inconnu'),
       })),
+      /* LES COULEURS SE COMPARENT APRÈS NORMALISATION. Une propriété
+         personnalisée rend le TEXTE écrit — « #3ddc84 » — quand
+         `style.backgroundColor` rend la forme calculée du navigateur —
+         « rgb(61, 220, 132) ». Les deux désignent la même couleur et ne sont
+         pas la même chaîne : comparer les textes bruts faisait échouer une
+         assertion sur une différence de notation, pas de teinte. On passe donc
+         chacune par le moteur, qui rend une forme unique. */
+      parts: (() => {
+        const sonde = document.createElement('span');
+        const teinte = (v) => {
+          if (!v) return '';
+          sonde.style.color = ''; sonde.style.color = v;
+          return sonde.style.color;
+        };
+        return [...bloc.querySelectorAll('.tse-preview__frise-part')].map(p => ({
+          inconnu: p.classList.contains('tse-preview__frise-part--inconnu'),
+          flou:  p.classList.contains('tse-preview__frise-part--flou'),
+          large: p.style.getPropertyValue('--tse-flou').trim(),
+          vers:  teinte(p.style.getPropertyValue('--tse-flou-vers').trim()),
+          de:    teinte(p.style.getPropertyValue('--tse-flou-de').trim()),
+          couleur: teinte(p.style.backgroundColor),
+          couture: getComputedStyle(p).boxShadow,
+        }));
+      })(),
     };
   });
   ok('une chaîne sans enregistrement obtient tout de même une frise',
@@ -9554,6 +9578,47 @@ titre('87. La troisième porte — les clips, pour qui n\'archive pas');
   ok('…la part antérieure au premier clip étant nommée pour ce qu\'elle est',
      f.lignes[0].inconnu === true && f.lignes[0].nom === 'avant le premier clip',
      JSON.stringify(f.lignes[0]));
+
+  /* ── LA BORNE QU'ON NE SAIT PAS PLACER, ET SA LARGEUR EXACTE ─────────────
+     LE DÉCOR DONNE UN NOMBRE VÉRIFIABLE À LA MAIN, et c'est pour cela qu'on
+     l'éprouve ici plutôt que sur une frise inventée. Les clips tombent à
+     −230 et −215 pour « Discussions », puis à −150 et −40 pour « Hades II ».
+     Le segment Discussions est donc dessiné de −230 à −150, soit 80 minutes ;
+     mais le DERNIER clip qui prouve « Discussions » date de −215, et le
+     PREMIER qui prouve « Hades II » de −150. Entre les deux — 65 minutes — le
+     basculement a eu lieu sans que rien ne dise quand.
+
+     65 sur 80 font 81,25 % du segment, et c'est cette proportion-là que le
+     ruban doit estomper : ni une largeur forfaitaire, ni le segment entier.
+     Une tolérance d'un dixième de point absorbe l'arrondi à deux décimales
+     que le rendu écrit ; elle ne laisserait passer aucune autre règle.
+
+     LE FONDU VA VERS LA COULEUR DU SUIVANT, et part de la sienne : ce sont
+     les deux bouts d'une rampe opaque, et les intervertir donnerait une borne
+     qui fond dans le mauvais sens — visuellement plausible, et fausse. */
+  const douteuse = f.parts[1];
+  ok('la borne que les clips ne datent pas est estompée, et à sa largeur RÉELLE',
+     douteuse.flou === true
+     && Math.abs(parseFloat(douteuse.large) - 81.25) < 0.1,
+     JSON.stringify({ large: douteuse.large, parts: f.parts.map(p => p.flou) }));
+  ok('…d\'une teinte à l\'autre, dans le sens du temps',
+     douteuse.de === douteuse.couleur
+     && douteuse.vers === f.parts[2].couleur && douteuse.vers !== douteuse.de,
+     JSON.stringify({ de: douteuse.de, vers: douteuse.vers,
+                      suivante: f.parts[2].couleur }));
+  /* LA COUTURE SE TAIT LÀ OÙ L'ON DOUTE. Un trait net tracé au milieu du
+     fondu réaffirmerait la minute que le fondu vient de retirer : les deux se
+     contredisaient à un pixel d'écart, et la capture l'a montré. */
+  ok('…et la couture ne redessine pas la rupture qu\'on vient d\'effacer',
+     f.parts[2].couture === 'none' && f.parts[0].couture === 'none',
+     JSON.stringify(f.parts.map(p => p.couture)));
+  /* NI LA PART INCONNUE NI LA DERNIÈRE N'ONT DE FONDU. La première n'est pas
+     une borne douteuse entre deux catégories connues — c'est du temps dont
+     aucun clip ne dit rien, et cela se dit déjà en hachuré. La dernière n'a
+     pas de borne après elle : elle finit à maintenant, qui est certain. */
+  ok('…tandis que la part inconnue et la part en cours n\'ont rien à estomper',
+     f.parts[0].flou === false && f.parts[2].flou === false,
+     JSON.stringify(f.parts.map(p => ({ inconnu: p.inconnu, flou: p.flou }))));
 
   const b = await page.evaluate(() => window.tse.panneau.rapport().reseau.chapitres);
   ok('le rapport compte la troisième porte à part, par issue',
@@ -10005,10 +10070,36 @@ titre('90. La frise d\'un subathon — une ligne par catégorie, pas par bascule
       const bloc = document.querySelector('.tse-preview__frise');
       if (!bloc) return null;
       const barre = bloc.querySelector('.tse-preview__frise-barre');
+      const l0 = bloc.querySelector('.tse-preview__frise-ligne');
+      const n0 = l0.querySelector('.tse-preview__frise-nom');
+      const f0 = l0.querySelector('.tse-preview__frise-fois');
+      const d0 = l0.querySelector('.tse-preview__frise-duree');
       return {
         total: bloc.querySelector('.tse-preview__frise-total').textContent,
         parts: barre.querySelectorAll('.tse-preview__frise-part').length,
         debord: Math.round(barre.scrollWidth - barre.clientWidth),
+        /* AUCUNE BORNE ESTOMPÉE sur une frise de chapitres : chaque heure y
+           est donnée par Twitch, et un fondu y avouerait un doute qu'on n'a
+           pas. Le compte doit être exactement zéro. */
+        flous: barre.querySelectorAll('.tse-preview__frise-part--flou').length,
+        /* LA GÉOMÉTRIE DE LA PREMIÈRE LIGNE, MESURÉE SUR LE TEXTE ET NON SUR
+           LA BOÎTE. C'est la correction que la mutation a imposée : sous
+           l'ancienne règle, la boîte du nom s'étirait sur tout l'espace libre
+           — 392 px pour un texte de soixante-dix — et le « ×7 » suivait cette
+           boîte à cinq pixels. Comparer les BORDS DE BOÎTE donnait donc cinq
+           pixels dans les deux cas, et l'assertion passait sans rien prouver.
+           Ce qui se voit est la distance au TEXTE : une plage la donne, une
+           boîte ne la donne pas. */
+        ecartNom: f0 && n0 ? (() => {
+          const t = [...n0.childNodes].find(x => x.nodeType === 3);
+          if (!t) return null;
+          const r = document.createRange(); r.selectNodeContents(t);
+          return Math.round(f0.getBoundingClientRect().left - r.getBoundingClientRect().right);
+        })() : null,
+        ecartDuree: f0 && d0 ? Math.round(d0.getBoundingClientRect().left
+                                          - f0.getBoundingClientRect().right) : null,
+        bordDuree: d0 && barre ? Math.round(barre.getBoundingClientRect().right
+                                            - d0.getBoundingClientRect().right) : null,
         lignes: [...bloc.querySelectorAll('.tse-preview__frise-ligne')].map((l) => ({
           nom: l.querySelector('.tse-preview__frise-nom').textContent,
           duree: l.querySelector('.tse-preview__frise-duree')?.textContent || '',
@@ -10057,6 +10148,29 @@ titre('90. La frise d\'un subathon — une ligne par catégorie, pas par bascule
      JSON.stringify(sub.lignes.filter((l) => l.encours).map((l) => l.nom)));
   ok('…et le total couvre bien les trente et une heures',
      sub.total === '31h07', sub.total);
+  /* ── LE « ×N » APPARTIENT AU NOM, PAS À LA DURÉE ─────────────────────────
+     Il était rejeté contre la colonne des durées : le nom portait
+     « flex: 1 1 auto » et prenait tout l'espace libre, si bien que « ×7 » se
+     retrouvait à l'autre bout de la ligne, à trois centimètres de la
+     catégorie qu'il compte. « Discussions ×7 » est UNE information ; la
+     couper en deux morceaux éloignés obligeait l'œil à faire le chemin.
+
+     LA MESURE PORTE SUR LE TEXTE, et c'est la mutation qui l'a exigé. Écrite
+     sur les bords de boîte, elle rendait cinq pixels quelle que soit la règle
+     — la boîte du nom s'étirant avec l'espace libre, le « ×7 » la suit de près
+     tout en étant loin du mot. L'assertion passait alors sans rien prouver, et
+     j'ai failli en conclure que la correction était inutile. Sur le texte,
+     l'écart vaut cinq pixels avec la règle et plus de trois cents sans elle. */
+  ok('« ×7 » se lit contre le nom qu\'il compte, et non contre la durée',
+     sub.ecartNom !== null && sub.ecartNom < sub.ecartDuree && sub.ecartNom <= 6,
+     JSON.stringify({ auNom: sub.ecartNom, aLaDuree: sub.ecartDuree }));
+  /* ET LA COLONNE DES DURÉES NE BOUGE PAS. C'est elle que l'œil parcourt
+     verticalement ; le nom ne la poussait plus une fois qu'il a cessé de
+     s'étirer, d'où le « margin-left: auto » qui la remet au bord. */
+  ok('…et la durée reste collée au bord droit, comme la colonne l\'exige',
+     sub.bordDuree === 0, `${sub.bordDuree} px du bord`);
+  ok('…aucune borne n\'est estompée : les chapitres donnent l\'heure exacte',
+     sub.flous === 0, `${sub.flous} part(s) estompée(s)`);
 
   /* ── LE CAS ORDINAIRE NE PAIE RIEN ──────────────────────────────────────── */
   const simple = await lire('simple');
@@ -10250,26 +10364,46 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
                tags:['Français', 'Subathon'], title:'Chill stream jour 5' },
       ordi:  { id:'4', createdAt:h, viewers:7800, game:'Just Chatting',
                tags:[], title:'GTA RP tranquille' },
+      /* LE CAS LE PLUS LARGE QUE LA COLONNE AIT À PORTER, et il n'est pas
+         théorique : un subathon de quatre mois affiche « J120 » devant une
+         durée à trois chiffres. La colonne de droite prend sa largeur du
+         NOMBRE DE SPECTATEURS, ici volontairement court ; le compteur y
+         déborde donc franchement, et c'est la seule façon d'éprouver la règle
+         qui l'empêche de se couper en deux. Avec « 8,4 k » au-dessus, la
+         colonne était assez large pour que le défaut ne paraisse pas — le
+         mutant qui retirait la règle a d'abord SURVÉCU, faute de ce décor. */
+      long:  { id:'5', createdAt:new Date(Date.now() - 10120 * 60_000).toISOString(),
+               viewers:900, game:'Just Chatting', tags:[], title:'SUBATHON DAY 120' },
     };
     window.__addCard('mouse',  'Watch Your Plastic Duck', '8,4 k');
     window.__addCard('nomme',  'Just Chatting', '2,1 k');
     window.__addCard('partag', 'Just Chatting', '900');
     window.__addCard('ordi',   'Just Chatting', '7,8 k');
+    window.__addCard('long',   'Just Chatting', '900');
   });
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 4);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
 
   const lire = () => page.evaluate(() => {
     const out = {};
     for (const c of document.querySelectorAll('.side-nav-card')) {
       const up = c.querySelector('.tse-uptime');
+      const pu = up && up.querySelector('.tse-subathon-jour');
       out[c.dataset.tseLogin] = {
         marquee:  c.dataset.tseSubathon === 'true',
         jour:     c.dataset.tseSubathonDay ?? null,
-        anneaux:  c.querySelectorAll('.tse-subathon-anneau').length,
-        cache:    !!c.querySelector('.tse-subathon-anneau[aria-hidden="true"]'),
-        pastille: up ? (up.querySelector('.tse-subathon-jour')?.textContent ?? null) : null,
+        /* AUCUN NŒUD N'EST INJECTÉ DANS LA CARTE. L'anneau qui s'y posait a
+           été retiré ; ce compteur reste pour l'attester, parce qu'un signal
+           supprimé qu'on cesse de mesurer revient tôt ou tard. */
+        ajouts:   c.querySelectorAll(':scope > :not(a)').length,
+        pastille: pu ? pu.textContent : null,
         texte:    up ? up.textContent : null,
         noeuds:   up ? up.childNodes.length : 0,
+        /* LES MESURES DE LA PASTILLE, prises sur le rendu et non déduites. */
+        hauteurLigne: up ? +up.getBoundingClientRect().height.toFixed(2) : 0,
+        corps:        up ? getComputedStyle(up).fontSize : null,
+        corpsPastille: pu ? getComputedStyle(pu).fontSize : null,
+        fondPastille:  pu ? getComputedStyle(pu).backgroundColor : null,
+        bordPastille:  pu ? getComputedStyle(pu).borderTopWidth : null,
         toutLeTexte: c.textContent,
       };
     }
@@ -10277,9 +10411,9 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
   });
   const v = await lire();
 
-  ok('la carte d\'un subathon porte l\'anneau et la pastille de son jour',
-     v.mouse.marquee && v.mouse.anneaux === 1 && v.mouse.cache
-     && v.mouse.pastille === 'J9' && v.mouse.jour === '9',
+  ok('la carte d\'un subathon porte la pastille de son jour, et rien de plus',
+     v.mouse.marquee && v.mouse.pastille === 'J9' && v.mouse.jour === '9'
+     && v.mouse.ajouts === 0,
      JSON.stringify(v.mouse));
   /* LA DURÉE EST LE RENSEIGNEMENT PRINCIPAL DE CETTE LIGNE, et la pastille ne
      doit pas l'abîmer. La comparaison est faite avec une carte ORDINAIRE de
@@ -10288,12 +10422,49 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
   ok('…et la durée reste EXACTEMENT celle d\'une carte ordinaire, précédée du jour',
      /^\d+h\d+$/.test(v.ordi.texte) && v.mouse.texte === 'J9 ' + v.ordi.texte,
      `subathon « ${v.mouse.texte} » / ordinaire « ${v.ordi.texte} »`);
+  /* ── LA PASTILLE SE MESURE, ELLE NE SE REGARDE PAS ────────────────────────
+     Trois grandeurs, et chacune répond à une demande précise.
+
+     LE CORPS. « À la même taille que le temps de stream » : les deux valeurs
+     calculées doivent être ÉGALES, et non voisines. La feuille l'obtient par
+     « font-size: inherit », si bien qu'elles ne peuvent plus diverger — mais
+     c'est une propriété du rendu qu'on vérifie ici, pas une déclaration.
+
+     LA HAUTEUR DE LIGNE. Une pastille bordée est plus haute que le texte nu ;
+     si elle dépasse la ligne, la carte grandit et la colonne entière se
+     décale d'un pixel — un défaut qui ne se voit que sur quinze cartes à la
+     fois, c'est-à-dire jamais pendant qu'on l'écrit. On exige donc l'égalité
+     STRICTE avec la ligne d'une carte ordinaire de même contenu.
+
+     LE FOND. « Le fond de l'élément est la couleur de fond standard de la
+     carte » : pas une couleur choisie qui lui ressemble — AUCUNE couleur, de
+     sorte que la carte se voie au travers quel que soit son état (survol,
+     abonné, sélection). Ce qui se mesure est donc une transparence totale. */
+  ok('…la pastille est au corps EXACT de la durée, et ne fait pas grandir la ligne',
+     v.mouse.corpsPastille === v.mouse.corps
+     && v.mouse.hauteurLigne === v.ordi.hauteurLigne,
+     JSON.stringify({ corps: v.mouse.corps, pastille: v.mouse.corpsPastille,
+                      ligne: v.mouse.hauteurLigne, ordinaire: v.ordi.hauteurLigne }));
+  ok('…creuse et non pleine : un contour, et le fond de la carte au travers',
+     v.mouse.fondPastille === 'rgba(0, 0, 0, 0)' && v.mouse.bordPastille === '1px',
+     JSON.stringify({ fond: v.mouse.fondPastille, bord: v.mouse.bordPastille }));
+  /* LE CAS QUI FAIT DÉBORDER LA COLONNE. « J120 » devant une durée à trois
+     chiffres est plus large que la place que le nombre de spectateurs laisse ;
+     sans règle, le compteur passe à la ligne et la carte double de hauteur —
+     ce qui décale toute la colonne, et ne se voit qu'à quinze cartes. On exige
+     donc que MÊME CELLE-LÀ tienne sur une ligne, à la hauteur d'une carte
+     ordinaire. */
+  ok('…et le compteur le plus large tient sur une ligne, sans grandir la carte',
+     v.long.pastille === 'J120' && /^J120 \d{2,}h\d{2}$/.test(v.long.texte)
+     && v.long.hauteurLigne === v.ordi.hauteurLigne,
+     JSON.stringify({ texte: v.long.texte, ligne: v.long.hauteurLigne,
+                      ordinaire: v.ordi.hauteurLigne }));
   /* UN SUBATHON PEUT NE PAS SE COMPTER. « 24H SUBATHON » nomme l'événement
      sans en numéroter le jour : la carte le marque et n'affiche pas de
      pastille. On ne montre pas un nombre qu'on n'a pas — et surtout on ne
      retombe pas sur « J1 » par défaut, ce qui serait une invention. */
-  ok('un subathon NOMMÉ mais non numéroté garde l\'anneau et n\'invente pas de pastille',
-     v.nomme.marquee && v.nomme.anneaux === 1 && v.nomme.pastille === null
+  ok('un subathon NOMMÉ mais non numéroté garde sa chaleur et n\'invente pas de pastille',
+     v.nomme.marquee && v.nomme.pastille === null
      && v.nomme.jour === null && v.nomme.noeuds === 1,
      JSON.stringify(v.nomme));
   ok('le tag « Subathon » décore la carte dès que le titre porte un numéro',
@@ -10303,7 +10474,7 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
      a des milliers de fois, et c'est son compteur que quatre autres scénarios
      lisent. Un seul nœud, aucun attribut, aucun anneau. */
   ok('la carte ordinaire ne change pas d\'un caractère : un seul nœud, aucune marque',
-     !v.ordi.marquee && v.ordi.anneaux === 0 && v.ordi.noeuds === 1
+     !v.ordi.marquee && v.ordi.ajouts === 0 && v.ordi.noeuds === 1
      && v.ordi.pastille === null,
      JSON.stringify(v.ordi));
   /* LE TITRE EST LU, JAMAIS ÉCRIT. Il n'entre dans l'extension que pour y
@@ -10321,8 +10492,8 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
      trois, une chacune, ce qui prouve que les trois chemins sont vivants. */
   const rap = await page.evaluate(() => window.tse.panneau.rapport().subathons);
   ok('le rapport compte ce que le DOM montre, et NOMME la règle qui a tranché',
-     rap.detectes === 3 && rap.marquees === 3 && rap.sansJour === 1
-     && rap.voies.nom === 1 && rap.voies.thon === 1 && rap.voies.tag === 1,
+     rap.detectes === 4 && rap.marquees === 4 && rap.sansJour === 1
+     && rap.voies.nom === 2 && rap.voies.thon === 1 && rap.voies.tag === 1,
      JSON.stringify(rap));
 
   /* IDEMPOTENCE. La pose est rejouée à CHAQUE relevé — toutes les trente
@@ -10332,8 +10503,9 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
   await wait(page, 2500);
   const encore = await lire();
   ok('rejouée à chaque relevé, la marque n\'empile rien',
-     encore.mouse.anneaux === 1 && encore.mouse.noeuds === 2
-     && encore.mouse.texte === 'J9 ' + encore.ordi.texte,
+     encore.mouse.ajouts === 0 && encore.mouse.noeuds === 2
+     && encore.mouse.texte === 'J9 ' + encore.ordi.texte
+     && encore.mouse.pastille === 'J9',
      JSON.stringify(encore.mouse));
 
   /* ET ELLE SE DÉFAIT. Un streamer retire « subathon » de son titre au milieu
@@ -10350,9 +10522,9 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
   await attendre(page, () => ![...document.querySelectorAll('.side-nav-card')]
     .find(c => c.dataset.tseLogin === 'mouse')?.dataset.tseSubathon, 6000);
   const apres = await lire();
-  ok('le titre cesse de le dire : l\'anneau, la pastille et l\'attribut partent ensemble',
-     !apres.mouse.marquee && apres.mouse.anneaux === 0
-     && apres.mouse.pastille === null && apres.mouse.jour === null,
+  ok('le titre cesse de le dire : la pastille et l\'attribut partent ensemble',
+     !apres.mouse.marquee && apres.mouse.pastille === null
+     && apres.mouse.jour === null && apres.mouse.ajouts === 0,
      JSON.stringify(apres.mouse));
   /* LE DÉFAUT QUE CETTE LIGNE A TROUVÉ. L'espace qui séparait la pastille de
      la durée vit dans le nœud texte, pas dans la pastille : la retirer seule
@@ -10364,7 +10536,7 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
      `« ${apres.mouse.texte} » contre « ${apres.ordi.texte} »`);
   const rapApres = await page.evaluate(() => window.tse.panneau.rapport().subathons);
   ok('…et le rapport le compte en moins, des deux côtés',
-     rapApres.detectes === 2 && rapApres.marquees === 2 && rapApres.voies.thon === 0,
+     rapApres.detectes === 3 && rapApres.marquees === 3 && rapApres.voies.thon === 0,
      JSON.stringify(rapApres));
   await page.close();
 }

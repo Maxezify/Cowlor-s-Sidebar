@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 775 KB | 328 KB | 3,007 → **2** |
+| `content.js` | 785 KB | 327 KB | 3,011 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 53 KB | 27 KB | 71 → **0** |
+| `panneau.js` | 54 KB | 27 KB | 71 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **972 KB** | **459 KB** | **−53 %** |
+| **all five** | **983 KB** | **459 KB** | **−53 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -343,7 +343,7 @@ within 3 %: wide enough for a version's ordinary growth, too narrow for a
 sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 3,007
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 3,011
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`
@@ -2396,6 +2396,123 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## Four corrections from real use (v3.91)
+
+Two screenshots of a real sidebar, and four requests. None of them was a new
+idea: each corrects something the render showed and reading the code could not.
+
+### The ring is gone
+
+The v3.90 light outline occupied the card's perimeter, the one channel nothing
+else claimed. In an isolated screenshot it kept its promise; in a column of
+fifteen cards it **took all the attention**. The card no longer stood out, it
+shouted.
+
+So **one mark remains**: the heating counter and its day pill. Nothing is
+injected into the card any more — an attribute, a pill inside an element the
+extension already wrote, and not one node more. The harness checks it by
+counting the card's direct children that are not its link: zero.
+
+### The pill: hollow, and aligned to the pixel
+
+Filled, it was a block of colour in a column that carries none — it weighed
+more than the duration it merely prefixes. It is now reduced to its **outline**,
+with the card's background showing through: not a colour picked to resemble the
+card's, but **no** colour, so that it follows hover, selection and the
+subscriber glow without our having to anticipate them.
+
+Three quantities are measured rather than eyeballed, and the harness demands
+them:
+
+| | Expected | Measured |
+|---|---|---|
+| text size | the duration's | `12px` against `12px` |
+| baseline | the same | offset **0.00 px** |
+| line height | unchanged | `16.80` against `16.80` |
+
+**What I misdiagnosed.** The screenshot showed the pill sitting one notch high,
+and I first blamed the sizes: I shrank the text. The probe said otherwise. An
+`inline-block` box aligns its own baseline with the neighbouring text; the only
+offset came from the `vertical-align: 1px` that v3.90 applied. Removed, the
+offset drops to zero **at every size** — so the pill can keep the duration's
+exact size, which was the request.
+
+I had convinced myself otherwise by comparing **glyph rectangles**, whose
+bottom descends with the size: two texts of different sizes never share that
+bottom, aligned or not. The probe that settles it is a zero-height box with
+`vertical-align: baseline`, whose bottom edge *is* the baseline.
+
+### The two-storey card, and the rule that had nothing to do with it
+
+On the harness's narrow fixture, the subathon card measured **34 px tall
+against 16**. The pill moved onto its own storey.
+
+The cause: we inject into a page whose stylesheet we do not write. A host rule
+as ordinary as `.something span { display: block }` beats a single class, and
+the pill stops being inline. The selector therefore carries **two classes** —
+`.tse-uptime > .tse-subathon-jour` — and wins.
+
+**I first blamed line wrapping** and added a `white-space: nowrap`. Measurement
+refuted it: the right-hand column widens by itself as its content grows —
+66.9 px for `168h40`, 75.7 px for `J120 168h40`, on a single line with or
+without the rule. No fixture could make it necessary, and a mutant removing it
+survived the whole harness. **It is gone**: a rule no measurement defends
+passes itself off as the cause of a defect another one fixed.
+
+### The `×7` belongs to the name, not the duration
+
+`Discussions … … … ×7  7h25`: the return count read three hundred pixels away
+from the category it counts. `Discussions ×7` is **one** piece of information;
+cutting it into two distant halves made the eye travel.
+
+The name carried `flex: 1 1 auto`: its **box** took all the free space — 392 px
+measured for a text occupying seventy — and the `×7`, placed just after that
+box, ended up far away while the text stayed flush left. The name no longer
+stretches; the duration pushes itself to the right edge with `margin-left: auto`,
+since it, and not the name, holds the column the eye scans vertically.
+
+**And the trap was in the measurement.** A mutant restoring `flex: 1 1 auto`
+first *survived*: the assertion compared the name's **box** edge to the `×7`,
+and that gap is five pixels either way, the box growing with the name. I nearly
+concluded the fix was useless and removed it. What is visible is the distance to
+the **text** — a range gives it, a box does not. On the text, the gap is 5 px
+with the rule and **333 px** without.
+
+### The boundary clips cannot date
+
+A VOD chapter gives the hour of the switch. A **clip** only proves that at a
+given minute, a given category was live. Between the last clip of one and the
+first of the next, the change happened somewhere, and nothing says where. A
+sharp edge there asserted a minute we do not know — exactly what the rest of
+this module refuses to do.
+
+The ribbon therefore **fades** those boundaries, and the fade is **to scale**:
+its width is that of the uncertain interval. Ten minutes of doubt give ten
+minutes of fade; two consecutive clips a minute apart give an almost sharp
+boundary, **because it almost is one**. A chapter trail carries none: the
+harness requires zero faded parts on a trail whose every hour comes from Twitch.
+
+The fixture gives a number checkable by hand. Clips fall at −230 and −215 for
+*Discussions*, then at −150 and −40 for *Hades II*. The *Discussions* segment is
+drawn from −230 to −150, so **80 minutes**; but the last clip proving it dates
+from −215, and the first proving *Hades II* from −150. **65 minutes of doubt out
+of 80**, the `81.25 %` the ribbon must fade — neither a flat width nor the whole
+segment.
+
+The fade sits on **the end of the preceding segment**, not the start of the
+next: the next segment begins at its first clip, so the uncertain interval falls
+entirely in the tail of the previous one. Fading the other side would place it
+where we do know.
+
+**Two corrections came from the screenshot.** The seam between parts drew a
+sharp line in the middle of the fade — that is, the very assertion the fade had
+just withdrawn; it now falls silent where we doubt. And the gradient, placed at
+the top of the stack, was opaque at its end and **covered the hatching**: the
+part lost its grain just before the boundary and regained it after, redrawing
+the break. It moves to the bottom layer, and carries **both** colours explicitly
+rather than fading from `transparent` — a half-opaque orange over cyan gives a
+dull olive that is neither.
+
 ## A subathon's card (v3.90)
 
 A **subathon** is a stream that subscriptions keep extending: it doesn't stop,
@@ -2461,27 +2578,23 @@ covers.
 It has its own line in the harness, with its expected verdict. If the trade-off
 ever has to change, that line says exactly what is lost.
 
-### The two marks, and why those
+### The two marks — one of which did not survive
 
-**Nothing had claimed the card's perimeter.** The "recently live" stroke is
-inside and to the left; the subscriber glow is a background. A light that goes
-**around** says "still running" without covering anything — and a card can
-carry all three signals at once without any of them being lost.
+The uptime counter **heats up**: it belongs to the extension, nobody else
+touches it, and it carries the day number. That is the free channel, and it is
+the one that was kept.
 
-The ring is an **injected element**, not a pseudo-element: `::before` already
-belongs to "fresh", `::after` to "subscribed". It is `aria-hidden` throughout —
-the pill is what carries the meaning.
+A **ring of light** travelled around the card. The perimeter was the last
+channel nothing occupied — the "recently live" stroke is inside, the subscriber
+glow is a background — and it said "still running" without covering anything.
+**It was removed in v3.91**: in a real sidebar it took all the attention of a
+column that holds fifteen cards. A signal that drowns its neighbours no longer
+reports on its own.
 
-**A screenshot corrected the ring.** The first version started the conic
-gradient from a **fully transparent** sector: over three quarters of the turn
-there was no ring at all, and the eye read not a travelling light but a
-**broken border**, a rendering fault. The base is now continuous — faint, but
-present across all 360° — and the lit portion moves along it. It's the contrast
-with the base that draws the movement, not the absence of a base.
-
-Without `mask-composite`, the ring **stays empty**: the outline is built by
-painting the whole frame and then cutting out the inside, and where that
-cut-out doesn't happen, the gradient would cover the entire card.
+Red **rather than orange**, and that is arithmetic: the subscriber gold sits at
+37°, an orange at 25° would be its neighbour, and on a card that is both
+subscribed and in subathon the two would have merged into one warm wash. We sit
+at 9°, twenty-eight degrees apart.
 
 ### The pill adds itself, it doesn't rewrite
 
@@ -2551,11 +2664,9 @@ the tags, which count nothing.
 
 ### Reduced motion keeps the information and drops the movement
 
-`prefers-reduced-motion` freezes both marks without removing either: the
-counter's heat settles on a solid colour, the ring becomes a still and
-**uniform** outline. Uniform, because a frozen ring would keep its lit portion
-stopped at one point of the turn — which is exactly the asymmetric border we
-had just corrected.
+`prefers-reduced-motion` freezes the mark without removing it: the counter's
+heat settles on a solid colour. The day pill never moved — it has nothing to
+lose, and it is what carries the meaning.
 
 ## A subathon's trail (v3.89)
 
@@ -3629,7 +3740,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 91 scenarios, 841 assertions |
+| `npm test` | the Playwright harness: 91 scenarios, 851 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

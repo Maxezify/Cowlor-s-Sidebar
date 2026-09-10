@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 775 Ko | 328 Ko | 3 007 → **2** |
+| `content.js` | 785 Ko | 327 Ko | 3 011 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 53 Ko | 27 Ko | 71 → **0** |
+| `panneau.js` | 54 Ko | 27 Ko | 71 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **972 Ko** | **459 Ko** | **−53 %** |
+| **les cinq** | **983 Ko** | **459 Ko** | **−53 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -355,7 +355,7 @@ qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
 d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 3 007
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 3 011
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches
@@ -2531,6 +2531,131 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## Quatre corrections sur retour d'usage (v3.91)
+
+Deux captures d'une sidebar réelle, et quatre demandes. Aucune n'était une
+idée neuve : chacune corrige quelque chose que le rendu montrait et que la
+relecture du code ne pouvait pas montrer.
+
+### L'anneau est retiré
+
+Le contour lumineux de la v3.90 occupait le périmètre de la carte, seul canal
+que rien ne prenait. Sur une capture isolée il tenait sa promesse ; dans une
+colonne de quinze cartes il **prenait toute l'attention**. La carte ne se
+distinguait plus, elle criait.
+
+Il ne reste donc **qu'une marque** : le compteur qui chauffe et sa pastille de
+jour. Rien n'est plus injecté dans la carte — un attribut, une pastille dans
+un élément que l'extension écrivait déjà, et pas un nœud de plus. Le banc le
+vérifie en comptant les enfants directs de la carte qui ne sont pas son lien :
+zéro.
+
+### La pastille : creuse, et alignée au pixel
+
+Pleine, elle était un bloc de couleur dans une colonne qui n'en porte aucun —
+elle pesait plus que la durée dont elle n'est que le préfixe. Elle est
+désormais réduite à son **contour**, avec le fond de la carte au travers :
+pas une couleur choisie qui ressemble à celle de la carte, **aucune** couleur,
+de sorte qu'elle suive le survol, la sélection et la lueur d'abonné sans qu'on
+ait à les prévoir.
+
+Trois grandeurs se mesurent plutôt que de se regarder, et le banc les exige :
+
+| | Attendu | Mesuré |
+|---|---|---|
+| corps du texte | celui de la durée | `12px` contre `12px` |
+| ligne de base | la même | écart **0,00 px** |
+| hauteur de la ligne | inchangée | `16,80` contre `16,80` |
+
+**Ce que j'avais mal diagnostiqué.** La capture montrait la pastille montée
+d'un cran, et j'ai d'abord cru à un problème de tailles : j'ai réduit le corps.
+La sonde a dit le contraire. Une boîte `inline-block` aligne sa propre ligne de
+base sur celle du texte voisin ; le seul décalage venait du `vertical-align: 1px`
+que la v3.90 posait. Retiré, l'écart tombe à zéro **à toutes les tailles** — et
+la pastille peut donc garder le corps exact de la durée, ce qui était la
+demande.
+
+Je m'étais persuadé du contraire en comparant des **rectangles de glyphes**,
+dont le bas descend avec le corps : deux textes de tailles différentes n'y ont
+jamais le même bas, alignés ou non. La sonde qui tranche est une boîte de
+hauteur nulle en `vertical-align: baseline`, dont le bord inférieur *est* la
+ligne de base.
+
+### La carte à deux étages, et la règle qui n'y était pour rien
+
+Sur le décor étroit du banc, la carte de subathon mesurait **34 px de haut
+contre 16**. La pastille passait sur son propre étage.
+
+La cause : nous injectons dans une page dont nous n'écrivons pas la feuille.
+Une règle de l'hôte aussi banale que `.quelqueChose span { display: block }`
+bat une classe seule, et la pastille cesse d'être en ligne. Le sélecteur porte
+donc **deux classes** — `.tse-uptime > .tse-subathon-jour` — et passe devant.
+
+**J'ai d'abord accusé le retour à la ligne** et ajouté un `white-space: nowrap`.
+La mesure l'a réfuté : la colonne de droite s'élargit d'elle-même quand son
+contenu grandit — 66,9 px pour `168h40`, 75,7 px pour `J120 168h40`, sur une
+seule ligne avec ou sans la règle. Aucun décor ne pouvait la rendre nécessaire,
+et un mutant qui la retirait survivait à tout le banc. **Elle est retirée** :
+une règle qu'aucune mesure ne défend se fait passer pour la cause du défaut
+qu'une autre a corrigé.
+
+### Le « ×7 » appartient au nom, pas à la durée
+
+`Discussions … … … ×7  7h25` : le nombre de retours se lisait à trois cents
+pixels de la catégorie qu'il compte. `Discussions ×7` est **une** information ;
+la couper en deux morceaux éloignés obligeait l'œil à faire le chemin.
+
+Le nom portait `flex: 1 1 auto` : sa **boîte** prenait tout l'espace libre —
+392 px mesurés pour un texte qui en occupe soixante-dix — et le `×7`, posé
+juste après cette boîte, se retrouvait au loin pendant que le texte restait
+calé à gauche. Le nom ne s'étire plus ; la durée se pousse au bord droit par
+`margin-left: auto`, puisque c'est elle, et non le nom, qui tient la colonne
+que l'œil parcourt verticalement.
+
+**Et le piège était dans la mesure.** Un mutant remettant `flex: 1 1 auto` a
+d'abord *survécu* : l'assertion comparait le bord de la **boîte** du nom au
+`×7`, et cet écart vaut cinq pixels dans les deux cas, la boîte grandissant
+avec le nom. J'ai failli en conclure que la correction était inutile et la
+retirer. Ce qui se voit est la distance au **texte** — une plage la donne, une
+boîte ne la donne pas. Sur le texte, l'écart vaut 5 px avec la règle et
+**333 px** sans elle.
+
+### La borne que les clips ne savent pas dater
+
+Un chapitre de VOD donne l'heure du basculement. Un **clip** ne donne que la
+preuve qu'à telle minute, telle catégorie était en cours. Entre le dernier clip
+de l'une et le premier de la suivante, le changement a eu lieu quelque part, et
+rien ne dit où. Un trait net à cet endroit affirmait une minute qu'on ignore —
+exactement ce que le reste de ce module refuse de faire.
+
+Le ruban **estompe** donc ces bornes-là, et le fondu est **à l'échelle** : sa
+largeur est celle de l'intervalle douteux. Dix minutes de doute donnent dix
+minutes de fondu ; deux clips consécutifs à une minute d'écart donnent une
+borne presque nette, **parce qu'elle l'est presque**. Une frise de chapitres
+n'en porte aucun : le banc exige zéro part estompée sur une frise dont chaque
+heure est donnée par Twitch.
+
+Le décor du banc donne un nombre vérifiable à la main. Les clips tombent à
+−230 et −215 pour *Discussions*, puis à −150 et −40 pour *Hades II*. Le segment
+*Discussions* est dessiné de −230 à −150, soit **80 minutes** ; mais le dernier
+clip qui le prouve date de −215, et le premier qui prouve *Hades II* de −150.
+**65 minutes de doute sur 80**, soit les `81,25 %` que le ruban doit estomper —
+ni une largeur forfaitaire, ni le segment entier.
+
+Le fondu se pose sur **la fin du segment qui précède** la borne, et non sur le
+début du suivant : le segment suivant commence à son premier clip, si bien que
+l'intervalle douteux tombe entièrement dans la queue du précédent. L'estomper
+de l'autre côté le placerait là où l'on sait.
+
+**Deux corrections sont venues de la capture.** La couture entre parts traçait
+un trait net au milieu du fondu — c'est-à-dire l'affirmation que le fondu venait
+de retirer ; elle s'efface là où l'on doute. Et le dégradé, posé en tête de
+pile, était opaque à sa fin et **recouvrait la hachure** : la part perdait son
+grain juste avant la borne pour le retrouver après, ce qui redessinait la
+rupture. Il passe en dernière couche, et porte les **deux** couleurs en clair
+plutôt que de fondre depuis `transparent` — un orange à moitié opaque sur du
+cyan donne un olive terne qui n'est ni l'un ni l'autre.
+
 ## La carte d'un subathon (v3.90)
 
 Un **subathon** est un direct que les abonnements prolongent : il ne s'arrête
@@ -2598,28 +2723,23 @@ fabriqués en `-thon` sans `a`, que la règle demandée couvre expressément.
 Il a sa ligne dans le banc, avec son verdict attendu. Si un jour il faut
 trancher autrement, cette ligne dira exactement ce qu'on perd.
 
-### Les deux marques, et pourquoi ce sont celles-là
+### Les deux marques — dont une n'a pas survécu
 
-**Le périmètre de la carte n'était pris par rien.** Le trait de « fraîchement
-en ligne » est intérieur et à gauche ; la lueur d'abonné est un fond. Une
-lumière qui fait le **tour** dit « ça tourne encore » sans rien recouvrir — et
-une carte peut porter les trois signaux à la fois sans qu'aucun ne se perde.
+Le compteur d'ancienneté **chauffe** : il appartient à l'extension, personne
+d'autre n'y touche, et il porte le numéro de jour. C'est le canal libre, et
+c'est celui qui a été gardé.
 
-L'anneau est un **élément injecté**, et non un pseudo-élément : `::before`
-appartient déjà à « frais », `::after` à « abonné ». Il est `aria-hidden` de
-bout en bout — c'est la pastille qui porte le sens.
+Un **anneau de lumière** faisait le tour de la carte. Le périmètre était le
+dernier canal que rien n'occupait — le trait de « fraîchement en ligne » est
+intérieur, la lueur d'abonné est un fond — et il disait « ça tourne encore »
+sans rien recouvrir. **Il a été retiré en v3.91** : sur une sidebar réelle il
+prenait toute l'attention d'une colonne qui compte quinze cartes. Un signal qui
+écrase ses voisins ne renseigne plus sur le sien.
 
-**Une capture a corrigé l'anneau.** La première rédaction faisait partir le
-dégradé conique d'un secteur **entièrement transparent** : sur les trois quarts
-du tour il n'y avait pas d'anneau du tout, et l'œil lisait non pas une lumière
-qui tourne mais une **bordure cassée**, un défaut de rendu. Le socle est
-désormais continu — faible, mais présent sur les 360° — et la portion vive s'y
-déplace. C'est le contraste avec le socle qui dessine le mouvement, pas
-l'absence de socle.
-
-Sans `mask-composite`, l'anneau **reste vide** : le contour se fabrique en
-peignant tout le cadre puis en découpant l'intérieur, et là où ce découpage
-n'a pas lieu, le dégradé recouvrirait la carte entière.
+Le rouge **plutôt que l'orange**, et c'est arithmétique : l'or de l'abonné est
+à 37°, un orange à 25° lui serait voisin, et sur une carte à la fois abonnée et
+en subathon les deux se seraient fondus en un même camaïeu chaud. On se pose à
+9°, soit vingt-huit degrés d'écart.
 
 ### La pastille s'ajoute, elle ne réécrit pas
 
@@ -2689,11 +2809,9 @@ reconnexion, ni dans les tags, qui ne comptent rien.
 
 ### Le mouvement réduit garde l'information et perd le mouvement
 
-`prefers-reduced-motion` fige les deux marques sans en retirer aucune : la
-chaleur du compteur se pose sur une teinte pleine, l'anneau devient un liseré
-immobile et **uniforme**. Uniforme, parce qu'un anneau figé garderait sa
-portion vive arrêtée à un endroit du tour — c'est-à-dire exactement la bordure
-asymétrique qu'on venait de corriger.
+`prefers-reduced-motion` fige la marque sans la retirer : la chaleur du
+compteur se pose sur une teinte pleine. La pastille du jour, elle, n'a jamais
+bougé — elle n'a rien à perdre, et c'est elle qui porte le sens.
 
 ## La frise d'un subathon (v3.89)
 
@@ -3807,7 +3925,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 91 scénarios, 841 assertions |
+| `npm test` | le harnais Playwright : 91 scénarios, 851 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
