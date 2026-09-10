@@ -1116,6 +1116,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     GLOBAL_CATEGORIES_MAX:   100,
 
+    GLOBAL_LANG_MESURE_TTL:  5 * 60_000,
+
     GLOBAL_SEED_CATEGORIES:  10,
 
     GLOBAL_CATEGORY_BUDGET:  90,
@@ -2697,7 +2699,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const CAT_LANGUE_MAX = 300;
 
     const noterMesure = (categorie, langue, somme) => {
-      if (!categorie || !langue || !Number.isFinite(somme)) return;
+      if (categorie == null || !langue || !Number.isFinite(somme)) return;
       const cle = categorie + '\u0000' + langue;
       mesuresCatLangue.delete(cle);
       mesuresCatLangue.set(cle, { v: somme, ts: Date.now() });
@@ -2717,6 +2719,65 @@ const TSE_GATE_MAX_CLICKS = 5;
         }
       }
       return m;
+    };
+
+    const LANG_COUNT_QUERY =
+      'query TseTagCount($tag: String!, $n: Int!) {' +
+      '  streams(first: $n, options: { sort: VIEWER_COUNT, freeformTags: [$tag] }) {' +
+      '    edges { node { viewersCount } }' +
+      '  }' +
+      '}';
+
+    const catLangCountQuery = (code) =>
+      'query TseCatLangCount($name: String!, $n: Int!) {' +
+      '  game(name: $name) {' +
+      '    streams(first: $n, options: { sort: VIEWER_COUNT' +
+      `, broadcasterLanguages: [${code}] }) {` +
+      '      edges { node { viewersCount } }' +
+      '    }' +
+      '  }' +
+      '}';
+
+    const bilanMesures = { passes: 0, servies: 0, vides: 0, echecs: 0 };
+    let mesuresEnCours = false;
+    const mesuresTs = new Map();
+
+    const mesurerLangues = async (categorie) => {
+      const cle = categorie || '';
+      if (mesuresEnCours) return;
+      if (Date.now() - (mesuresTs.get(cle) || 0) < CFG.GLOBAL_LANG_MESURE_TTL) return;
+      mesuresEnCours = true;
+      try {
+        const langues = [...LANG_SET].filter(l => !categorie
+          || (LANG_API[l] && !langApiRejected.has(l)));
+        if (!langues.length) return;
+        const ops = langues.map(l => categorie
+          ? { operationName: 'TseCatLangCount',
+              variables: { name: categorie, n: CFG.GLOBAL_TOP_N },
+              query: catLangCountQuery(LANG_API[l]) }
+          : { operationName: 'TseTagCount',
+              variables: { tag: l, n: CFG.GLOBAL_TAG_MAX },
+              query: LANG_COUNT_QUERY });
+        bilanMesures.passes += 1;
+        const { out, transport } = await send(ops);
+        let servies = 0;
+        out.forEach((d, i) => {
+          const edges = categorie ? d?.game?.streams?.edges : d?.streams?.edges;
+          if (!Array.isArray(edges)) { bilanMesures.echecs++; return; }
+          servies++;
+          const somme = edges.reduce((n, e) =>
+            n + (Number.isFinite(e?.node?.viewersCount) ? e.node.viewersCount : 0), 0);
+
+          noterMesure(cle, langues[i], somme);
+        });
+        bilanMesures.servies += servies;
+        if (!servies) bilanMesures.vides++;
+
+        if (!transport) mesuresTs.set(cle, Date.now());
+      } finally {
+
+        mesuresEnCours = false;
+      }
     };
 
     const carryOver = () => new Map(ranking.map(r => [r.login, r]));
@@ -2950,6 +3011,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       const now = Date.now();
       if (now < cooldownUntil) return;
 
+      mesurerLangues(state.categoryFilter || null).catch(() => {});
+
       const want = wantedScope();
       if (want) {
         const neuf = want.key !== scope;
@@ -3042,42 +3105,20 @@ const TSE_GATE_MAX_CLICKS = 5;
           : (ranking.length ? ranking : this.base());
 
         const toutes = new Map();
-        const compte = new Map();
-
-        const portee = categorie
-          && scope && !scopeLangApplied && wantedScope()?.name === categorie
-          ? scopeRanking : null;
         for (const r of monde) {
-          for (const t of r.tags) {
-            if (!LANG_SET.has(t)) continue;
-            toutes.set(t, (toutes.get(t) || 0) + (r.viewers || 0));
-            if (categorie && !portee && r.game === categorie) {
-              compte.set(t, (compte.get(t) || 0) + (r.viewers || 0));
-            }
-          }
-        }
-        if (portee) {
-          for (const r of portee) {
-            for (const t of r.tags) {
-              if (LANG_SET.has(t)) compte.set(t, (compte.get(t) || 0) + (r.viewers || 0));
-            }
-          }
+          for (const t of r.tags) if (LANG_SET.has(t)) toutes.set(t, 1);
         }
 
-        if (categorie) appliquerMesures(compte, 'categorie', categorie);
-        return { toutes, compte: categorie ? compte : toutes };
+        const compte = appliquerMesures(new Map(), 'categorie', categorie || '');
+
+        for (const l of compte.keys()) toutes.set(l, 1);
+        return { toutes, compte };
       },
 
       catCounts(langue = null) {
         if (!langue) return new Map(categories.map(c => [c.name, c.viewers]));
-        const monde = allLangPool.length ? allLangPool
-          : (ranking.length ? ranking : []);
-        const m = new Map();
-        for (const r of monde) {
-          if (!r.game || !r.tags.includes(langue)) continue;
-          m.set(r.game, (m.get(r.game) || 0) + (r.viewers || 0));
-        }
-        return appliquerMesures(m, 'langue', langue);
+
+        return appliquerMesures(new Map(), 'langue', langue);
       },
       cats(n = CFG.GLOBAL_CATEGORIES_MAX) {
         return categories.slice(0, n);
@@ -3119,6 +3160,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
           tags: { ...bilanTags, refuse: tagRefuse },
 
+          mesures: { ...bilanMesures, connues: mesuresCatLangue.size },
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -4987,7 +5029,7 @@ const TSE_GATE_MAX_CLICKS = 5;
                              inexploitables: 0, sansVod: 0, sansStream: 0, reseau: 0,
 
                              clips: 0, clipsServis: 0, clipsHorsSujet: 0,
-                             clipsRefus: 0, clipsErreur: 0,
+                             clipsRefus: 0, clipsErreur: 0, clipsForme: null,
 
                              replis: 0, replisServis: 0, replisErreur: 0,
                              replisVides: 0, replisHorsSujet: 0,
@@ -5036,10 +5078,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       return depart + duree * 1000 >= debutStream;
     };
 
-    const CLIPS_QUERY =
+    const CLIPS_FORMES = [
+      'criteria: { period: LAST_DAY }',
+      'criteria: { sort: CREATED_AT_DESC }',
+      '',
+    ];
+    let clipsForme = 0;
+
+    const clipsQuery = (criteria) =>
       'query TseClips($login: String!, $n: Int!) {' +
       '  user(login: $login) {' +
-      '    clips(first: $n, criteria: { period: LAST_DAY, sort: CREATED_AT_DESC }) {' +
+      '    clips(first: $n' + (criteria ? ', ' + criteria : '') + ') {' +
       '      edges { node { id createdAt game { name displayName } } }' +
       '    }' +
       '  }' +
@@ -5135,18 +5184,28 @@ const TSE_GATE_MAX_CLICKS = 5;
         const res3 = await post([{
           operationName: 'TseClips',
           variables: { login, n: CFG.CATEGORY_TRAIL_CLIPS },
-          query: CLIPS_QUERY
+          query: clipsQuery(CLIPS_FORMES[clipsForme])
         }]);
+
+        const repondu = Array.isArray(res3) && res3.some(r => r && r.errors);
+        if (repondu) {
+          bilanChapitres.clipsRefus++;
+          clipsForme++;
+
+          if (clipsForme >= CLIPS_FORMES.length) clipsRefuse = true;
+          return retenir(streamId, null, false);
+        }
         if (isResultsUnusable(res3)) {
           bilanChapitres.clipsErreur++;
-
           return retenir(streamId, null, false);
         }
         const aretes = res3?.[0]?.data?.user?.clips?.edges;
         if (!Array.isArray(aretes)) {
-          bilanChapitres.clipsRefus++;
 
-          clipsRefuse = true;
+          bilanChapitres.clipsRefus++;
+          clipsForme++;
+
+          if (clipsForme >= CLIPS_FORMES.length) clipsRefuse = true;
           return retenir(streamId, null, false);
         }
         const segClips = segmentsDesClips(aretes, debutStream);
@@ -5978,7 +6037,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       journal: () => journalApercu.slice(),
 
-      bilanChapitres: () => ({ ...bilanChapitres })
+      bilanChapitres: () => ({ ...bilanChapitres,
+
+                               clipsForme: CLIPS_FORMES[clipsForme] || null })
     };
   })();
 
