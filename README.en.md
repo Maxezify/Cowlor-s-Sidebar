@@ -1971,6 +1971,62 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## "21" where there were 318 (v3.84)
+
+A user counted by hand: the Hungarian flag announced **21**, and selecting it
+showed **about 318**. They were right, and the gap was not an approximation — it
+was a different number, fifteen times larger.
+
+The cause is one line of the same report: **`pool 14`**. The counter summed the
+world pool by language tag, but that pool is a **top**. Hungarian channels weigh
+127, 22, 21, 17 viewers: they all fall below the world threshold, and the pool
+knew of one. Summing a sample that excludes by construction what you want to
+count does not give an order of magnitude, it gives noise.
+
+**Only one definition holds**, and it is the one the user used without saying so:
+
+> the figure beside a flag is the sum of what you get **by picking it**.
+
+So it is measured with the very query the selection would use, at the same
+depth:
+
+| scope | measuring query | what the selection uses |
+| --- | --- | --- |
+| no category | `streams(freeformTags: [language])` | the tag route — the same |
+| with a category | `game(name:){ streams(broadcasterLanguages: [code]) }` | the scope pass — the same |
+
+The displayed number and the visible number are then the **same number**, by
+construction and not by luck. The bench checks it literally: it sums the served
+channels and compares them to the menu's label.
+
+Thirty-one **light** operations — one integer per channel, nothing else — once
+per scope per five-minute period. The pool fallback is **removed**, not fixed:
+it answered no question a user could ask. What has not been measured is not
+written; what was measured as zero carries its zero, because that is an answer.
+
+## Clips: "server error" is not "unknown field" (v3.84)
+
+The first report carrying the third door gave `clips 5 · clipsErreur 5`, and the
+log: `réponse 200 avec erreurs GraphQL — server error`.
+
+**That message does not say what a schema refusal says.** An unknown argument
+gets named — `In field "freeformTags": Unknown field` — as `games` showed two
+versions earlier. Here the query was **validated**, and the resolver failed:
+something in the combination does not suit it.
+
+Two faults, then, and the second is the costlier:
+
+1. the shape `criteria: { period: LAST_DAY, sort: CREATED_AT_DESC }` is refuted;
+2. **the same shape was asked five times over.** A response that *arrived*
+   carrying errors says something about the shape; a transport failure says
+   nothing. Folding them onto the same sentinel replayed a question already
+   settled.
+
+The two failures are now separated. A server refusal **advances** a list of
+shapes by one; a cut-off retries the same. Once the list is exhausted the door
+closes for the session, and the report carries `clipsForme` — without which
+"clipsRefus 3" would not say which one was refuted.
+
 ## The third door: clips (v3.83)
 
 A quarter of hovers have **no recording at all**: nineteen channels out of
@@ -2592,7 +2648,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 87 scenarios, 788 assertions |
+| `npm test` | the Playwright harness: 87 scenarios, 790 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -2612,12 +2668,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 713 KB | 312 KB | 2,941 → **2** |
+| `content.js` | 720 KB | 314 KB | 2,955 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 35 KB | 20 KB | 39 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **891 KB** | **436 KB** | **−51 %** |
+| **all five** | **898 KB** | **438 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

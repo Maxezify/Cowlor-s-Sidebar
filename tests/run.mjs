@@ -9042,6 +9042,20 @@ titre('84. Filtres — deux menus indépendants, et des spectateurs plutôt que 
   ok('…l\'anglais, à 13 000, passant devant',
      /^13\s*k$/.test(monde.get('English') || ''), JSON.stringify([...monde]));
 
+  /* SANS CATÉGORIE AUSSI, le chiffre doit valoir ce que la sélection donne.
+     C'est le cas que l'utilisateur a rencontré — aucune catégorie choisie, un
+     drapeau annonçant 21 pour 318 affichés. Le monde se mesure par la voie du
+     tag, celle-là même qui servira le classement quand on cliquera. */
+  await choisir(page, 'tse-lang-dd', 'Français');
+  await attendre(page, () => window.tse.global.report().worldLang === 'Français', 9000);
+  await wait(page, 800);
+  const vuFr = await page.evaluate(() =>
+    window.tse.global.top(30).reduce((n, r) => n + r.viewers, 0));
+  ok('le chiffre du monde vaut lui aussi la somme affichée',
+     vuFr === 12_000, `${vuFr} affichés contre « ${monde.get('Français')} » annoncés`);
+  await choisir(page, 'tse-lang-dd', '');
+  await wait(page, 1200);
+
   /* ── LES DEUX MENUS RESTENT UTILISABLES, DANS LES DEUX ORDRES ─────────── */
   await choisir(page, 'tse-lang-dd', 'Français');
   await wait(page, 1200);
@@ -9326,16 +9340,31 @@ titre('86bis. Filtres — le tri, la symétrie, et ce qu\'une sélection apprend
      langs.slice(chiffres.length).every(o => o.n === ''),
      JSON.stringify(langs.slice(chiffres.length, chiffres.length + 3)));
 
-  /* ── 3. CE QU'UNE SÉLECTION APPREND ──────────────────────────────────── */
+  /* ── 3. LE CHIFFRE EST CELUI QUE LA SÉLECTION DONNERA ────────────────────
+     C'EST LE CŒUR DE CE SCÉNARIO, et il vient d'un utilisateur qui a compté à
+     la main : « le drapeau hongrois me donne 21, et j'en vois environ 318 ».
+     Il avait raison, et l'écart n'était pas une approximation — c'était un
+     autre nombre, quinze fois plus grand. Le compteur sommait alors le pool
+     MONDIAL, qui est un TOP : les chaînes d'une petite langue passent toutes
+     sous son seuil, si bien que la somme portait sur ce qui restait, c'est-à-
+     dire presque rien.
+
+     Le tchèque reproduit exactement ce cas : deux chaînes à quarante et vingt
+     spectateurs, invisibles du pool mondial. La seule définition qui tienne
+     est donc celle-ci, et elle se vérifie en la comparant à l'affichage. */
   const avant = new Map(langs.map(o => [o.v, o.n]));
-  ok('le tchèque n\'a aucun chiffre : le pool mondial ne descend pas si bas',
-     avant.get('Čeština') === '', `Čeština → « ${avant.get('Čeština')} »`);
+  ok('un drapeau porte un chiffre même quand le pool mondial l\'ignore',
+     /\d/.test(avant.get('Čeština') || ''), `Čeština → « ${avant.get('Čeština')} »`);
   await choisir(page, 'tse-lang-dd', 'Čeština');
   await attendre(page, () => window.tse.global.report().scopeSize > 0, 9000);
   await wait(page, 800);
+  const somme = await page.evaluate(() =>
+    window.tse.global.top(30).reduce((n, r) => n + r.viewers, 0));
   const apres = new Map((await options(page, 'tse-lang-dd')).map(o => [o.v, o.n]));
-  ok('…et une fois choisi, ce qu\'il pèse est mesuré ET gardé',
-     /\d/.test(apres.get('Čeština') || ''), `Čeština → « ${apres.get('Čeština')} »`);
+  ok('…et il vaut EXACTEMENT la somme de ce que la sélection affiche',
+     somme === 60 && avant.get('Čeština') === apres.get('Čeština')
+     && apres.get('Čeština') === '60',
+     `menu « ${apres.get('Čeština')} » contre ${somme} affichés`);
 
   /* ── 2. LA SYMÉTRIE ──────────────────────────────────────────────────── */
   await choisir(page, 'tse-cat-dd', '');
@@ -9436,6 +9465,9 @@ titre('87. La troisième porte — les clips, pour qui n\'archive pas');
       window.__vod = { sansvod: 'sansvod' }; window.__vodRecent = {};
       window.__clips = { sansvod: 'erreur' };
     }, DEBUT);
+    // La forme en jeu AVANT le refus : c'est son changement qu'on éprouve.
+    const avantForme = await p2.evaluate(() =>
+      window.tse.panneau.rapport().reseau.chapitres.clipsForme);
     await attendre(p2, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
     await hoverLogin(p2, 'sansvod');
     await attendre(p2,
@@ -9444,9 +9476,18 @@ titre('87. La troisième porte — les clips, pour qui n\'archive pas');
     ok('un refus se solde par le silence, jamais par une frise inventée',
        (await p2.evaluate(() => !!document.querySelector('.tse-preview__frise'))) === false);
     const b2 = await p2.evaluate(() => window.tse.panneau.rapport().reseau.chapitres);
-    ok('…et il est consigné comme incident, non comme absence de clips',
-       b2.clips === 1 && b2.clipsServis === 0 && b2.clipsHorsSujet === 0,
+    /* UNE RÉPONSE ARRIVÉE ET PORTEUSE D'ERREURS N'EST PAS UN INCIDENT RÉSEAU,
+       et les confondre a coûté cinq tentatives identiques : Twitch a répondu
+       cinq fois « server error » à la même forme de requête, et l'extension
+       l'a redemandée telle quelle à chaque chaîne. Le refus doit se compter
+       comme un refus — et faire AVANCER le candidat. */
+    ok('…et il est consigné comme REFUS, non comme incident réseau',
+       b2.clips === 1 && b2.clipsRefus === 1 && b2.clipsErreur === 0
+       && b2.clipsServis === 0 && b2.clipsHorsSujet === 0,
        JSON.stringify(b2));
+    ok('…et la forme essayée a changé : on ne redemande pas la même',
+       typeof b2.clipsForme === 'string' && b2.clipsForme !== avantForme,
+       `${avantForme} puis ${b2.clipsForme}`);
     await p2.close();
   }
 }
