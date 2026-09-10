@@ -9892,6 +9892,213 @@ titre('89. Le panneau dessine — la semaine des visites, la courbe des retards'
   await page.close();
 }
 
+titre('90. La frise d\'un subathon — une ligne par catégorie, pas par basculement');
+{
+  /* LE CAS VIENT D'UN UTILISATEUR, ET IL EST RÉEL. Une chaîne en subathon :
+     un direct qui ne s'arrête pas. Trente et une heures sur la capture reçue,
+     quinze basculements, dont HUIT retours à « Discussions » — entre deux
+     jeux, une streameuse repasse par sa catégorie de discussion. La frise
+     comptait chaque retour comme une entrée neuve et faisait deux fois la
+     hauteur de la vignette.
+
+     ET LA LISTE N'ÉTAIT PAS BORNÉE. CATEGORY_TRAIL_SEGMENTS plafonne le
+     registre OBSERVÉ à douze ; les chapitres du VOD, eux, arrivent tous. D'où
+     quinze lignes là où douze étaient la limite supposée — et cent sur une
+     diffusion de plusieurs jours. Ce scénario tient les deux bouts : ce que la
+     liste montre, et ce que le ruban supporte.
+
+     LES DURÉES SONT CELLES DE LA CAPTURE, à la minute près, de sorte que les
+     sommes attendues ci-dessous soient vérifiables à la main. */
+  const MIN = 60_000;
+  const SUB = [
+    ['Just Chatting', 14], ['We Were Here Together', 177], ['Just Chatting', 96],
+    ['Watch Your Plastic Duck', 434], ['Just Chatting', 88], ['ROBLOX', 160],
+    ['Just Chatting', 166], ['Grounded 2', 1], ['How to Fish', 297],
+    ['Just Chatting', 17], ['A Weird Game About Sausage', 204], ['Just Chatting', 5],
+    ['Welcome to Elderfield', 80], ['Just Chatting', 60], ['Watch Your Plastic Duck', 68],
+  ];
+  const TOTAL_MIN = SUB.reduce((n, s) => n + s[1], 0);          // 1867 = 31 h 07
+
+  const page = await freshTwitch();
+  await page.evaluate(([SUB, TOTAL_MIN, MIN]) => {
+    const debut = Date.now() - TOTAL_MIN * MIN;
+    const iso = (t) => new Date(t).toISOString();
+    /* Positions cumulées : le chapitre n° i commence à la somme des durées
+       qui le précèdent. Le dernier court jusqu'à maintenant. */
+    let pos = 0;
+    const chapitres = SUB.map(([jeu, min]) => {
+      const c = { pos: pos * MIN, jeu };
+      pos += min;
+      return c;
+    });
+    /* Douze catégories DISTINCTES : au-delà de la palette, le repli entre en
+       jeu. La dernière est la plus COURTE et se trouve être celle en cours —
+       elle doit survivre au repli malgré sa durée. */
+    const variete = Array.from({ length: 12 }, (_, k) => ({
+      pos: k * 100 * MIN, jeu: 'Jeu ' + (k + 1),
+    }));
+    /* CENT SOIXANTE BASCULEMENTS, ET LE NOMBRE EST MESURÉ, PAS CHOISI. Le
+       ruban fait 456 px dans un popup de 480 ; sous l'ancienne largeur
+       plancher de quatre pixels, il faut donc dépasser 114 traits pour qu'il
+       déborde. Une première rédaction en posait cent : l'assertion passait —
+       et elle passait SANS RIEN PROUVER, quatre cents pixels tenant encore
+       dans quatre cent cinquante-six. La mutation l'a dit. Cent soixante
+       traits demandent 644 px sous l'ancienne règle : le débordement est
+       alors certain, et c'est lui qu'on mesure.
+
+       Ce n'est pas un décor extravagant : un subathon de deux semaines à
+       une douzaine de basculements par jour y arrive. */
+    const cent = Array.from({ length: 160 }, (_, k) => ({
+      pos: k * 30 * MIN, jeu: k % 2 ? 'Just Chatting' : 'Jeu ' + (k % 9),
+    }));
+
+    window.__fx = {
+      mouse:  { id: 's-mouse',  createdAt: iso(debut), viewers: 8400,
+                game: 'Watch Your Plastic Duck', tags: [] },
+      simple: { id: 's-simple', createdAt: iso(Date.now() - 155 * MIN), viewers: 900,
+                game: 'VALORANT', tags: [] },
+      varie:  { id: 's-varie',  createdAt: iso(Date.now() - 1200 * MIN), viewers: 700,
+                game: 'Jeu 12', tags: [] },
+      cent:   { id: 's-cent',   createdAt: iso(Date.now() - 4830 * MIN), viewers: 600,
+                game: 'Jeu 1', tags: [] },
+    };
+    window.__addCard('mouse',  'Watch Your Plastic Duck', '8,4 k');
+    window.__addCard('simple', 'VALORANT', '900');
+    window.__addCard('varie',  'Jeu 12', '700');
+    window.__addCard('cent',   'Jeu 1', '600');
+    window.__vod = {
+      mouse:  { createdAt: iso(debut), chapitres },
+      // Deux catégories, aucun retour : le cas ordinaire ne doit RIEN payer.
+      simple: { createdAt: iso(Date.now() - 155 * MIN),
+                chapitres: [{ pos: 0, jeu: 'League of Legends' },
+                            { pos: 95 * MIN, jeu: 'VALORANT' }] },
+      varie:  { createdAt: iso(Date.now() - 1200 * MIN), chapitres: variete },
+      cent:   { createdAt: iso(Date.now() - 4830 * MIN), chapitres: cent },
+    };
+    window.__vodRecent = {}; window.__clips = {};
+  }, [SUB, TOTAL_MIN, MIN]);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 4);
+
+  const lire = async (login) => {
+    await hoverLogin(page, login);
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+    await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 9000);
+    const vu = await page.evaluate(() => {
+      const bloc = document.querySelector('.tse-preview__frise');
+      if (!bloc) return null;
+      const barre = bloc.querySelector('.tse-preview__frise-barre');
+      return {
+        total: bloc.querySelector('.tse-preview__frise-total').textContent,
+        parts: barre.querySelectorAll('.tse-preview__frise-part').length,
+        debord: Math.round(barre.scrollWidth - barre.clientWidth),
+        lignes: [...bloc.querySelectorAll('.tse-preview__frise-ligne')].map((l) => ({
+          nom: l.querySelector('.tse-preview__frise-nom').textContent,
+          duree: l.querySelector('.tse-preview__frise-duree')?.textContent || '',
+          fois: l.querySelector('.tse-preview__frise-fois')?.textContent || '',
+          teinte: l.querySelector('.tse-preview__frise-puce').style.backgroundColor,
+          encours: l.classList.contains('tse-preview__frise-ligne--encours'),
+          autres: l.classList.contains('tse-preview__frise-ligne--autres'),
+        })),
+      };
+    });
+    await page.evaluate((l) => {
+      const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
+      c.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+    }, login);
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+    return vu;
+  };
+
+  /* ── LE SUBATHON ────────────────────────────────────────────────────────── */
+  const sub = await lire('mouse');
+  ok('quinze basculements ne font plus quinze lignes, mais huit catégories',
+     sub !== null && sub.lignes.length === 8 && sub.parts === 15,
+     sub ? `${sub.lignes.length} ligne(s), ${sub.parts} trait(s)` : '(aucune frise)');
+  /* LA SOMME EST LE RENSEIGNEMENT QUE LA LISTE NE DONNAIT PAS. Sept passages
+     par « Discussions » pèsent 7 h 26 ; deux par Plastic Duck, 8 h 22 — un
+     chiffre que personne n'additionnait. */
+  const parNom = Object.fromEntries(sub.lignes.map((l) => [l.nom, l]));
+  ok('…chaque catégorie porte la SOMME de ses passages, et leur nombre',
+     parNom.Discussions?.duree === '7h26' && parNom.Discussions?.fois === '×7'
+     && parNom['Watch Your Plastic Duck']?.duree.startsWith('8h22')
+     && parNom['Watch Your Plastic Duck']?.fois === '×2',
+     JSON.stringify(sub.lignes.map((l) => [l.nom, l.duree, l.fois])));
+  /* L'ORDRE EST CELUI DE LA PREMIÈRE APPARITION, et il n'est pas décoratif :
+     c'est ce qui permet de suivre le ruban de gauche à droite et de retrouver
+     les lignes dans le même ordre. Un tri par durée mettrait Plastic Duck en
+     tête et casserait la correspondance. */
+  ok('…dans l\'ordre de PREMIÈRE apparition, celui du ruban',
+     sub.lignes.map((l) => l.nom).join(' → ')
+       === 'Discussions → We Were Here Together → Watch Your Plastic Duck → ROBLOX'
+        + ' → Grounded 2 → How to Fish → A Weird Game About Sausage → Welcome to Elderfield',
+     JSON.stringify(sub.lignes.map((l) => l.nom)));
+  ok('…une seule ligne est « en cours », et c\'est la catégorie du moment',
+     sub.lignes.filter((l) => l.encours).length === 1
+     && sub.lignes.find((l) => l.encours).nom === 'Watch Your Plastic Duck',
+     JSON.stringify(sub.lignes.filter((l) => l.encours).map((l) => l.nom)));
+  ok('…et le total couvre bien les trente et une heures',
+     sub.total === '31h07', sub.total);
+
+  /* ── LE CAS ORDINAIRE NE PAIE RIEN ──────────────────────────────────────── */
+  const simple = await lire('simple');
+  ok('un direct sans retour rend exactement ce qu\'il rendait : deux lignes, aucun « × »',
+     simple.lignes.length === 2 && simple.parts === 2
+     && simple.lignes.every((l) => l.fois === ''),
+     JSON.stringify(simple.lignes.map((l) => [l.nom, l.duree, l.fois])));
+
+  /* ── AU-DELÀ DE LA PALETTE, LE REPLI ────────────────────────────────────── */
+  const varie = await lire('varie');
+  const repli = varie.lignes.find((l) => l.autres);
+  ok('douze catégories distinctes : huit lignes, puis une ligne de repli',
+     varie.lignes.length === 9 && !!repli && repli.duree !== '',
+     JSON.stringify(varie.lignes.map((l) => [l.nom, l.duree])));
+  /* LA CATÉGORIE EN COURS SURVIT AU REPLI, quelle que soit sa durée. Ici elle
+     est la DERNIÈRE et la plus courte : triée sur la seule durée, elle serait
+     tombée — et le survol n'aurait plus répondu à la question qu'on lui pose. */
+  ok('…la catégorie EN COURS est gardée même quand elle est la plus courte',
+     varie.lignes.some((l) => l.encours && !l.autres),
+     JSON.stringify(varie.lignes.map((l) => [l.nom, l.encours])));
+  /* LE DÉFAUT QUE LA CAPTURE A TROUVÉ. La palette s'épuise à huit ; servie
+     dans l'ordre chronologique, elle donnait à une ligne AFFICHÉE la teinte
+     d'une autre ligne affichée. Une légende dont deux entrées se ressemblent
+     ne légende plus rien. */
+  const teintes = varie.lignes.filter((l) => !l.autres).map((l) => l.teinte);
+  ok('…et les huit lignes affichées ont huit teintes DISTINCTES',
+     teintes.length === 8 && new Set(teintes).size === 8,
+     JSON.stringify(teintes));
+
+  /* ── CENT BASCULEMENTS : LE RUBAN NE DÉBORDE PAS ────────────────────────── */
+  const cent = await lire('cent');
+  /* La largeur plancher des parts était fixe : cent fois quatre pixels
+     dépassent la largeur du popup, et le ruban étant en débordement caché,
+     les derniers segments — dont celui EN COURS — disparaissaient sans un
+     mot. La mesure est directe : ce qui dépasse, en pixels.
+
+     CENT SOIXANTE ET UN, ET NON CENT SOIXANTE : le décor pose cent soixante
+     chapitres de VOD, et notre PROPRE observation en ajoute un. Le dernier
+     chapitre est « Discussions », la carte porte « Jeu 1 » — deux catégories
+     différentes, donc un segment de plus, celui que nous avons vu nous-mêmes.
+     J'attendais le compte rond ; le banc a eu raison, et le compte exact vaut
+     mieux qu'une inégalité qui laisserait aussi passer une frise tronquée. */
+  /* UN PIXEL EST TOLÉRÉ, ET LE CHIFFRE VIENT D'UNE MESURE. Flexbox répartit
+     en sous-pixels puis arrondit chaque part ; sur cent soixante et une, les
+     arrondis s'additionnent en une fraction de pixel, et `scrollWidth` étant
+     entier, il la rend comme 1. Mesuré en isolation : la somme exacte des
+     parts vaut 455,3 px pour 456 de large — rien ne dépasse réellement.
+     L'écart qu'on garde est celui qui compte : 188 px sous l'ancienne règle,
+     soit une quarantaine de segments avalés, contre au plus un pixel
+     aujourd'hui. Exiger zéro serait exiger que le moteur de rendu compte en
+     nombres exacts, ce qu'il ne fait pas. */
+  ok('cent soixante basculements tiennent dans le ruban, sans rien rogner à sa fin',
+     cent.parts === 161 && cent.debord <= 1,
+     `${cent.parts} trait(s), ${cent.debord} px de débordement`);
+  ok('…et la liste, elle, reste à neuf lignes',
+     cent.lignes.length === 9, `${cent.lignes.length} ligne(s)`);
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

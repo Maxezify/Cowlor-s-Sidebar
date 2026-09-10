@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 727 Ko | 315 Ko | 2 975 → **2** |
+| `content.js` | 754 Ko | 321 Ko | 2 981 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 53 Ko | 27 Ko | 70 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **942 Ko** | **450 Ko** | **−52 %** |
+| **les cinq** | **969 Ko** | **456 Ko** | **−53 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -355,7 +355,7 @@ qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
 d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 975
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 2 981
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches
@@ -2531,6 +2531,93 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## La frise d'un subathon (v3.89)
+
+Un utilisateur envoie une capture : **Ironmouse en subathon**, un direct qui ne
+s'arrête pas. Trente et une heures au compteur, quinze basculements de
+catégorie — et une frise qui faisait **deux fois la hauteur de la vignette**.
+
+### Ce que la capture montrait vraiment
+
+Huit des quinze lignes portaient « Discussions ». Entre deux jeux, une
+streameuse repasse par sa catégorie de discussion, et la frise comptait chaque
+retour comme une entrée neuve. Le bloc énumérait donc sept fois le même nom
+sans jamais dire ce qui aurait été utile : **combien de temps au total**.
+
+Et le défaut n'était pas qu'esthétique : **la liste n'était pas bornée**.
+`CATEGORY_TRAIL_SEGMENTS` plafonne à douze le registre *observé* ; les chapitres
+du VOD, eux, arrivent tous, sans plafond. D'où quinze lignes là où douze
+étaient la limite supposée — et cent soixante sur une diffusion de deux
+semaines.
+
+### Une ligne par catégorie, et non par basculement
+
+| | Avant | Après |
+|---|---|---|
+| Discussions | 7 lignes : 14m, 1h36, 1h28, 2h46, 17m, 5m, 1h00 | **une** : `Discussions ×7 7h26` |
+| Watch Your Plastic Duck | 2 lignes : 7h14 et 1h08 | **une** : `×2 8h22 · en cours` |
+| Hauteur du bloc | 15 lignes | **8** |
+
+Le regroupement ne perd rien, et c'est ce qui le rend acceptable :
+
+- la **somme par catégorie** est un renseignement que la liste n'a jamais
+  donné — huit heures vingt-deux de Plastic Duck, jusqu'ici coupées en deux
+  sans que rien ne les additionne ;
+- le **nombre de retours** est dit par `×7`, donc « elle y est revenue » ne
+  disparaît pas ;
+- la **chronologie reste entière dans le ruban**, qui garde un trait par
+  basculement. C'est déjà le partage des rôles : le ruban donne la forme, la
+  liste donne les noms.
+
+L'ordre est celui de la **première apparition**, et non celui des durées : l'œil
+doit pouvoir suivre le ruban de gauche à droite et retrouver les lignes dans le
+même ordre. Trier par durée mettrait Plastic Duck en tête et casserait la seule
+chose qui relie les deux blocs.
+
+**Un direct sans retour ne paie rien** : autant de lignes que de segments, aucun
+`×N`. Le cas ordinaire est inchangé, au pixel près.
+
+### Le plafond, et pourquoi il vaut exactement huit
+
+Au-delà de huit catégories distinctes, deux lignes porteraient la même couleur —
+la palette en compte huit — et une légende dont deux entrées se ressemblent ne
+légende plus rien. Le plafond est donc **la taille de la palette**, ce qui n'est
+pas un nombre choisi mais un nombre déduit.
+
+On garde la catégorie **en cours** d'abord, quoi qu'il arrive — c'est la seule à
+laquelle un survol répond vraiment — puis les plus longues. Le reste se replie
+en une ligne : `+ 4 autres catégories · 3h52`.
+
+**Une capture a corrigé le tri des couleurs.** Servie dans l'ordre
+chronologique, la palette pouvait donner à une ligne *affichée* la teinte d'une
+autre ligne affichée : un jeu repris en douzième position, gardé parce qu'il est
+en cours, tombait sur la couleur d'un voisin de la liste. Toute la raison d'être
+du plafond s'effondrait avec ça. Les couleurs vont désormais **aux lignes
+affichées d'abord** ; les repliées prennent ce qui reste, et une teinte partagée
+n'y trompe personne puisque aucune légende ne la désigne.
+
+### Le ruban ne déborde plus
+
+Second défaut, trouvé en poussant le décor : la largeur plancher des traits
+était **fixe**, à quatre pixels. Le ruban fait 456 px ; au-delà de 114 traits, il
+déborde — et comme il est en débordement caché, les derniers segments,
+**dont celui en cours**, disparaissaient sans un mot.
+
+Le plancher vaut désormais quatre pixels tant qu'il y a la place, et la part de
+chacun sinon : `min(4px, calc(60% / var(--tse-parts)))`. Les soixante pour cent
+laissent la marge nécessaire — si la somme des planchers valait exactement la
+largeur, la moindre part qui grandit au-delà du sien la ferait déborder de
+nouveau, les autres ne pouvant plus lui céder un pixel.
+
+### Ce que la mutation a corrigé dans le banc lui-même
+
+La première rédaction de l'assertion qui garde ce plancher posait **cent**
+basculements. Elle passait — et elle passait **sans rien prouver** : cent fois
+quatre pixels tiennent encore dans quatre cent cinquante-six. La mutation l'a
+dit ; le décor en pose maintenant cent soixante, qui en demanderaient 644 sous
+l'ancienne règle. Le débordement mesuré sous mutation est de **188 px**, soit
+exactement la différence.
+
 ## Le panneau se met à dessiner (v3.88)
 
 Deux vues qui ne se tabulent pas, et une refonte de la frise. Les trois sont du
@@ -3556,7 +3643,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 89 scénarios, 813 assertions |
+| `npm test` | le harnais Playwright : 90 scénarios, 824 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
