@@ -2696,7 +2696,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const mesuresCatLangue = new Map();
-    const CAT_LANGUE_MAX = 300;
+
+    const CAT_LANGUE_MAX = 800;
 
     const noterMesure = (categorie, langue, somme) => {
       if (categorie == null || !langue || !Number.isFinite(somme)) return;
@@ -2739,14 +2740,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       '}';
 
     const bilanMesures = { passes: 0, servies: 0, vides: 0, echecs: 0 };
-    let mesuresEnCours = false;
+
+    const mesuresEnVol = new Set();
     const mesuresTs = new Map();
 
     const mesurerLangues = async (categorie) => {
+
       const cle = categorie || '';
-      if (mesuresEnCours) return;
-      if (Date.now() - (mesuresTs.get(cle) || 0) < CFG.GLOBAL_LANG_MESURE_TTL) return;
-      mesuresEnCours = true;
+      const cleTTL = 'C\u0000' + cle;
+      if (mesuresEnVol.has(cleTTL)) return;
+      if (Date.now() - (mesuresTs.get(cleTTL) || 0) < CFG.GLOBAL_LANG_MESURE_TTL) return;
+      mesuresEnVol.add(cleTTL);
       try {
         const langues = [...LANG_SET].filter(l => !categorie
           || (LANG_API[l] && !langApiRejected.has(l)));
@@ -2763,7 +2767,12 @@ const TSE_GATE_MAX_CLICKS = 5;
         let servies = 0;
         out.forEach((d, i) => {
           const edges = categorie ? d?.game?.streams?.edges : d?.streams?.edges;
-          if (!Array.isArray(edges)) { bilanMesures.echecs++; return; }
+          if (!Array.isArray(edges)) {
+            bilanMesures.echecs++;
+
+            if (categorie && d === null && !transport) langApiRejected.add(langues[i]);
+            return;
+          }
           servies++;
           const somme = edges.reduce((n, e) =>
             n + (Number.isFinite(e?.node?.viewersCount) ? e.node.viewersCount : 0), 0);
@@ -2773,10 +2782,44 @@ const TSE_GATE_MAX_CLICKS = 5;
         bilanMesures.servies += servies;
         if (!servies) bilanMesures.vides++;
 
+        if (!transport) mesuresTs.set(cleTTL, Date.now());
+      } finally {
+        mesuresEnVol.delete(cleTTL);
+      }
+    };
+
+    const mesurerCategories = async (langue) => {
+      const code = langue && !langApiRejected.has(langue) ? LANG_API[langue] : null;
+      if (!code || !categories.length) return;
+
+      const servie = wantedScope() ? scopeLangApplied : worldLang === langue;
+      if (!servie) return;
+      const cle = 'L\u0000' + langue;
+      if (mesuresEnVol.has(cle)) return;
+      if (Date.now() - (mesuresTs.get(cle) || 0) < CFG.GLOBAL_LANG_MESURE_TTL) return;
+      mesuresEnVol.add(cle);
+      try {
+        const noms = categories.slice(0, CFG.GLOBAL_CATEGORIES_MAX).map(c => c.name);
+        const ops = noms.map(name => ({
+          operationName: 'TseCatLangCount',
+          variables: { name, n: CFG.GLOBAL_TOP_N },
+          query: catLangCountQuery(code)
+        }));
+        bilanMesures.passes += 1;
+        const { out, transport } = await send(ops);
+        let servies = 0;
+        out.forEach((d, i) => {
+          const edges = d?.game?.streams?.edges;
+          if (!Array.isArray(edges)) { bilanMesures.echecs++; return; }
+          servies++;
+          noterMesure(noms[i], langue, edges.reduce((n, e) =>
+            n + (Number.isFinite(e?.node?.viewersCount) ? e.node.viewersCount : 0), 0));
+        });
+        bilanMesures.servies += servies;
+        if (!servies) bilanMesures.vides++;
         if (!transport) mesuresTs.set(cle, Date.now());
       } finally {
-
-        mesuresEnCours = false;
+        mesuresEnVol.delete(cle);
       }
     };
 
@@ -3007,11 +3050,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const tick = () => {
-      if (!state.globalMode || running) return;
-      const now = Date.now();
-      if (now < cooldownUntil) return;
+      if (!state.globalMode) return;
 
       mesurerLangues(state.categoryFilter || null).catch(() => {});
+      mesurerCategories(state.languageFilter || null).catch(() => {});
+
+      if (running) return;
+      const now = Date.now();
+      if (now < cooldownUntil) return;
 
       const want = wantedScope();
       if (want) {
@@ -3118,7 +3164,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       catCounts(langue = null) {
         if (!langue) return new Map(categories.map(c => [c.name, c.viewers]));
 
-        return appliquerMesures(new Map(), 'langue', langue);
+        const m = appliquerMesures(new Map(), 'langue', langue);
+
+        m.delete('');
+        return m;
       },
       cats(n = CFG.GLOBAL_CATEGORIES_MAX) {
         return categories.slice(0, n);
@@ -6596,7 +6645,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     const allTitle  = kind === 'lang' ? S.uiFilterAllLanguages : S.uiFilterAllCategories;
 
     const sig = `${kind}|${disabled ? 'D' : ''}|cur=${current || ''}|` +
-      values.map(v => v + '>' + libelle(v) + '#' + (counts.get(v) || 0)).join('\u00A7');
+
+      values.map(v => v + '>' + libelle(v) + '#'
+                    + (counts.has(v) ? counts.get(v) : 'ø')).join('\u00A7');
     if (dd.dataset.tseSig !== sig) {
       dd.dataset.tseSig = sig;
       cur.replaceChildren(current ? itemLabel(current) : allLabel());
@@ -6614,7 +6665,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       const lignes = [option('', !current, allTitle, allLabel())];
       for (const v of values) {
         const o = option(v, v === current, null, itemLabel(v));
-        const n = fmt(counts.get(v) || 0);
+
+        const n = fmt(counts.has(v) ? counts.get(v) : undefined);
 
         if (n !== '') {
           const c = document.createElement('span');
@@ -6663,12 +6715,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       rebuildDropdown(catDD, catNoms, catCount,
                       state.categoryFilter, cats.length === 0, 'cat',
 
-                      (n) => (n > 0 ? formatViewers(n) : ''),
+                      (n) => (n === undefined ? '' : formatViewers(n)),
                       (v) => catLabel.get(v) || v);
       rebuildDropdown(langDD, [...langsPresent].sort(byCountDesc(langCount)),
                       langCount, Lg, langsPresent.size === 0, 'lang',
 
-                      (n) => (n > 0 ? formatViewers(n) : ''))
+                      (n) => (n === undefined ? '' : formatViewers(n)))
       const wrapG = document.getElementById(FILTER_ID);
       if (wrapG) wrapG.dataset.tseActive = (state.categoryFilter || Lg) ? 'true' : 'false';
       applyCategoryFilter();
