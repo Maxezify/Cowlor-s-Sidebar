@@ -622,6 +622,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'avant le premier clip',
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
+      uiTrailOthers:             (n) => `+ ${n} autres catégories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
       uiBadgeSubMonths:          (n) => `Abonné ${n} mois`,
@@ -702,6 +703,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'before the first clip',
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
+      uiTrailOthers:             (n) => `+ ${n} other categories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
       uiBadgeSubMonths:          (n) => `Subscribed ${n} month${n > 1 ? 's' : ''}`,
@@ -777,6 +779,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'vor dem ersten Clip',
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
+      uiTrailOthers:             (n) => `+ ${n} weitere Kategorien`,
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
       uiBadgeSubMonths:          (n) => `${n} Monat${n > 1 ? 'e' : ''} abonniert`,
@@ -852,6 +855,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes del primer clip',
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
+      uiTrailOthers:             (n) => `+ ${n} categorías más`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
       uiBadgeSubMonths:          (n) => `Suscrito ${n} mes${n > 1 ? 'es' : ''}`,
@@ -927,6 +931,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes do primeiro clipe',
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
+      uiTrailOthers:             (n) => `+ ${n} outras categorias`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
       uiBadgeSubMonths:          (n) => `Inscrito há ${n} ${n > 1 ? 'meses' : 'mês'}`,
@@ -1002,6 +1007,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'prima della prima clip',
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
+      uiTrailOthers:             (n) => `+ altre ${n} categorie`,
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
       uiBadgeCostreamHost:       'Stream host',
       uiBadgeSubMonths:          (n) => `Abbonato da ${n} mes${n > 1 ? 'i' : 'e'}`,
@@ -1077,6 +1083,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'przed pierwszym klipem',
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
+      uiTrailOthers:             (n) => `+ ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'inne kategorie' : 'innych kategorii'}`,
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
       uiBadgeCostreamHost:       'Kanał gospodarza',
       uiBadgeSubMonths:          (n) => `Subskrypcja: ${n} ${plurielSlave(n, ['miesiąc', 'miesiące', 'miesięcy'])}`,
@@ -1152,6 +1159,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'до первого клипа',
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
+      uiTrailOthers:             (n) => `+ ещё ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'категории' : 'категорий'}`,
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
       uiBadgeCostreamHost:       'Канал ведущего',
       uiBadgeSubMonths:          (n) => `Подписка: ${n} ${plurielSlave(n, ['месяц', 'месяца', 'месяцев'])}`,
@@ -1227,6 +1235,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '最初のクリップより前',
       uiTrailNow:                '進行中',
       uiTrailTruncated:          '冒頭は未保持',
+      uiTrailOthers:             (n) => `ほか ${n} カテゴリー`,
       uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
       uiBadgeCostreamHost:       'ホスト配信',
       uiBadgeSubMonths:          (n) => `サブスク${n}か月`,
@@ -1302,6 +1311,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '首个剪辑之前',
       uiTrailNow:                '进行中',
       uiTrailTruncated:          '开头未保留',
+      uiTrailOthers:             (n) => `另外 ${n} 个分类`,
       uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
       uiBadgeCostreamHost:       '主办直播',
       uiBadgeSubMonths:          (n) => `已订阅 ${n} 个月`,
@@ -3364,7 +3374,20 @@ const TSE_GATE_MAX_CLICKS = 5;
        piège est silencieux — la règle a l'air appliquée, elle est simplement
        écrasée par l'attribut de style. */
     .tse-preview__frise-part {
-      min-width: 4px;
+      /* ── LA LARGEUR PLANCHER NE DOIT JAMAIS DÉBORDER SON RUBAN ─────────────
+         Quatre pixels tant qu'il y a la place, la part de chacun sinon. Le
+         plancher fixe était juste tant qu'une frise portait cinq segments ;
+         un subathon en porte cent, et cent fois quatre pixels dépassent la
+         largeur du popup. Le ruban étant en débordement caché, les derniers
+         segments — dont CELUI EN COURS — auraient été rognés en silence.
+
+         La variable « --tse-parts » est posée par le rendu, qui seul connaît
+         le compte. Les
+         soixante pour cent laissent de la marge : si la somme des planchers
+         valait exactement la largeur, la moindre part qui grandit au-delà du
+         sien la ferait déborder de nouveau — les autres ne pouvant plus lui
+         céder un pixel. */
+      min-width: min(4px, calc(60% / var(--tse-parts, 1)));
       background-image: linear-gradient(180deg,
         rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
     }
@@ -3448,10 +3471,30 @@ const TSE_GATE_MAX_CLICKS = 5;
       white-space: nowrap;
       color: #dedee3;
     }
+    /* Le nombre de retours. Discret par construction : il qualifie la durée
+       qui le suit, il ne la concurrence pas. */
+    .tse-preview__frise-fois {
+      flex: 0 0 auto;
+      font-size: 10.5px;
+      color: rgba(255, 255, 255, 0.34);
+      font-variant-numeric: tabular-nums;
+    }
     .tse-preview__frise-duree {
       flex: 0 0 auto;
       color: rgba(255, 255, 255, 0.52);
       font-variant-numeric: tabular-nums;
+    }
+    /* La ligne de repli — « + 4 autres catégories ». Sourde comme la ligne non
+       observée, mais PAS en italique : celle-ci n'avoue rien, elle totalise.
+       Son trait est POINTILLÉ FIN là où celui de la ligne non observée est
+       tirété : deux façons de n'être pas une catégorie, deux dessins, et l'on
+       ne les confond pas. */
+    .tse-preview__frise-ligne--autres .tse-preview__frise-nom {
+      color: rgba(255, 255, 255, 0.44);
+    }
+    .tse-preview__frise-ligne--autres .tse-preview__frise-puce {
+      background-image: repeating-linear-gradient(180deg,
+        rgba(255, 255, 255, 0.30) 0 1.5px, rgba(255, 255, 255, 0) 1.5px 3px);
     }
     .tse-preview__frise-ligne--encours .tse-preview__frise-nom { color: #fff; font-weight: 600; }
     .tse-preview__frise-ligne--encours .tse-preview__frise-duree { color: rgba(255, 255, 255, 0.75); }
@@ -3865,6 +3908,60 @@ const TSE_GATE_MAX_CLICKS = 5;
     const brut = continu || depuisLeDebut || !f.debutStream || !bruts.length
       ? 0 : bruts[0].debut - f.debutStream;
     const inconnuMs = brut > CFG.CATEGORY_TRAIL_TOLERANCE ? brut : 0;
+
+    /* ══════════════════════════════════════════════════════════════════════
+       UNE LIGNE PAR CATÉGORIE, ET NON PAR BASCULEMENT
+       ──────────────────────────────────────────────────────────────────────
+       LE CAS QUI L'A EXIGÉ : UN SUBATHON. Une chaîne dont le direct ne
+       s'arrête pas — trente et une heures sur la capture reçue, et ces
+       diffusions-là durent parfois des semaines. Quinze basculements, donc
+       quinze lignes, dont HUIT portaient « Discussions » : entre deux jeux,
+       une streameuse repasse par sa catégorie de discussion, et la frise
+       comptait chaque retour comme une entrée neuve. Le bloc faisait deux
+       fois la hauteur de la vignette.
+
+       ET CE N'ÉTAIT PAS SEULEMENT DISGRACIEUX : LA LISTE N'ÉTAIT PAS BORNÉE.
+       CATEGORY_TRAIL_SEGMENTS plafonne le registre OBSERVÉ à douze, mais les
+       chapitres du VOD arrivent tous, sans plafond — d'où quinze lignes là
+       où douze étaient la limite supposée. Sur une diffusion de plusieurs
+       jours, il y en aurait cent.
+
+       LE REGROUPEMENT NE PERD RIEN, et c'est ce qui le rend acceptable :
+         — la SOMME par catégorie est un renseignement que la liste n'a jamais
+           donné (huit heures vingt-deux de Plastic Duck, aujourd'hui coupées
+           en 7h14 et 1h08 sans que rien ne les additionne) ;
+         — le NOMBRE DE RETOURS est dit par « ×7 », donc l'information « elle
+           y est revenue » ne disparaît pas ;
+         — la CHRONOLOGIE reste entière dans le ruban, qui garde un trait par
+           basculement. C'est déjà le partage des rôles : le ruban donne la
+           forme, la liste donne les noms.
+
+       L'ORDRE EST CELUI DE LA PREMIÈRE APPARITION, et non celui des durées :
+       l'œil doit pouvoir suivre le ruban de gauche à droite et retrouver les
+       lignes dans le même ordre. Un tri par durée casserait cette
+       correspondance, qui est la seule chose qui relie les deux blocs.
+
+       UNE FRISE SANS RÉPÉTITION EST INCHANGÉE : autant de lignes que de
+       segments, aucun « ×N ». Le cas ordinaire ne paie rien pour le cas
+       extrême. */
+    const categories = [];
+    const parJeu = new Map();
+    for (const s of segments) {
+      let e = parJeu.get(s.jeu);
+      if (!e) {
+        e = { jeu: s.jeu, libelle: s.libelle, dureeMs: 0, fois: 0, encours: false };
+        parJeu.set(s.jeu, e);
+        categories.push(e);
+      }
+      e.dureeMs += s.dureeMs;
+      e.fois += 1;
+      /* Le libellé le plus RÉCENT fait foi : il vient de la même source que
+         les autres, mais un changement de langue de l'interface entre deux
+         segments laisserait sinon le plus ancien, c'est-à-dire le mauvais. */
+      if (s.libelle) e.libelle = s.libelle;
+      if (s.encours) e.encours = true;
+    }
+
     return {
       debutStream: f.debutStream,
       vuDepuis: f.vuDepuis,
@@ -3872,6 +3969,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       source,
       tronquee: f.tronquee,
       segments,
+      categories,
       totalMs: inconnuMs + segments.reduce((n, s) => n + s.dureeMs, 0),
     };
   };
@@ -9713,7 +9811,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       return table;
     };
 
-    const friseLigne = (nom, duree, couleur, modif) => {
+    const friseLigne = (nom, duree, couleur, modif, fois) => {
       const li = document.createElement('li');
       li.className = 'tse-preview__frise-ligne' + (modif ? ' tse-preview__frise-ligne--' + modif : '');
       const puce = document.createElement('span');
@@ -9728,6 +9826,22 @@ const TSE_GATE_MAX_CLICKS = 5;
       // textContent : ce nom vient de Twitch (cf. l'en-tête CONSTRUCTION DU DOM).
       texte.textContent = nom;
       li.append(puce, texte);
+      /* LE NOMBRE DE RETOURS, et seulement quand il y en a. « ×1 » sur chaque
+         ligne d'une frise ordinaire serait du bruit posé sur toutes pour
+         renseigner sur aucune — la marque ne paraît qu'à partir du second
+         passage, où elle dit quelque chose.
+
+         Le signe multiplié suivi d'un chiffre se lit dans les dix langues de
+         l'interface : c'est une notation, pas une phrase, et lui inventer dix
+         traductions ne la rendrait pas plus claire. Il se pose AVANT la durée
+         pour que la colonne des durées reste alignée à droite, qui est la
+         seule que l'œil parcourt verticalement. */
+      if (fois > 1) {
+        const n = document.createElement('span');
+        n.className = 'tse-preview__frise-fois';
+        n.textContent = '×' + fois;
+        li.appendChild(n);
+      }
       if (duree) {
         const d = document.createElement('span');
         d.className = 'tse-preview__frise-duree';
@@ -9836,7 +9950,51 @@ const TSE_GATE_MAX_CLICKS = 5;
       titre.appendChild(total);
       bloc.appendChild(titre);
 
-      const couleurs = couleursFrise(f.segments);
+      /* ── COMBIEN DE LIGNES, ET POURQUOI EXACTEMENT CELLES-LÀ ────────────────
+         Le plafond est la TAILLE DE LA PALETTE, et ce n'est pas une
+         coïncidence commode : au-delà, deux lignes porteraient la même
+         couleur, et une légende dont deux entrées se ressemblent ne légende
+         plus rien. Huit lignes, huit teintes, une correspondance bijective
+         avec le ruban.
+
+         CE QU'ON GARDE quand il y en a davantage : la catégorie EN COURS,
+         d'abord et quoi qu'il arrive — c'est la seule à laquelle le survol
+         répond vraiment — puis les plus longues. Ce qui reste est replié en
+         une ligne qui dit son nombre et sa somme. Rien n'est perdu : le ruban
+         garde ces segments, à leur place et à leur couleur.
+
+         LE REPLI SE POSE EN DERNIER, hors de la chronologie, parce que c'est
+         un total et non un moment. Même statut que la ligne « non observé »,
+         qui se pose en tête pour la raison inverse. */
+      const MAX_LIGNES = PALETTE_FRISE.length;
+      let montrees = f.categories;
+      let repliees = [];
+      if (f.categories.length > MAX_LIGNES) {
+        const gardees = new Set(f.categories.filter(c => c.encours).map(c => c.jeu));
+        for (const c of f.categories.slice().sort((a, b) => b.dureeMs - a.dureeMs)) {
+          if (gardees.size >= MAX_LIGNES) break;
+          gardees.add(c.jeu);
+        }
+        montrees = f.categories.filter(c => gardees.has(c.jeu));
+        repliees = f.categories.filter(c => !gardees.has(c.jeu));
+      }
+
+      /* LES COULEURS SE DISTRIBUENT AUX LIGNES AFFICHÉES D'ABORD, et la
+         capture a montré pourquoi. La palette s'épuise à huit : au-delà, les
+         catégories suivantes reprennent des teintes déjà prises. Servie dans
+         l'ordre chronologique, elle pouvait donner à une ligne AFFICHÉE la
+         couleur d'une autre ligne affichée — un jeu de variété repris en
+         douzième position, gardé parce qu'il est en cours, tombait sur la
+         teinte d'un voisin de la liste. Toute la raison d'être du plafond
+         s'effondrait avec ça.
+
+         En servant les affichées d'abord, elles sont huit au plus et repartent
+         donc avec huit teintes distinctes, par construction. Les repliées
+         prennent ce qui reste : elles ne paraissent que dans le ruban, où une
+         teinte partagée ne trompe personne puisque aucune légende ne la
+         désigne. Sur une frise ordinaire — huit catégories ou moins — cet
+         ordre est exactement le précédent, et rien ne bouge. */
+      const couleurs = couleursFrise([...montrees, ...repliees]);
       const barre = document.createElement('div');
       barre.className = 'tse-preview__frise-barre';
       // L'information est dans la liste ; la barre n'en est que la forme.
@@ -9851,6 +10009,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         barre.appendChild(frisePart(seg.dureeMs, couleurs.get(seg.jeu),
           seg.encours ? 'tse-preview__frise-part--encours' : ''));
       }
+      /* LE COMPTE DES PARTS, transmis à la feuille. C'est elle qui en tire la
+         largeur plancher, et elle ne peut pas le compter seule — cf. la règle
+         de `.tse-preview__frise-part`. Sans lui, une frise de subathon voyait
+         ses derniers segments rognés par le débordement caché du ruban. */
+      barre.style.setProperty('--tse-parts', String(barre.childElementCount));
       bloc.appendChild(barre);
 
       const liste = document.createElement('ul');
@@ -9868,12 +10031,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (f.tronquee) {
         liste.appendChild(friseLigne(S.uiTrailTruncated, '', null, 'inconnu'));
       }
-      for (const seg of f.segments) {
+      for (const c of montrees) {
         liste.appendChild(friseLigne(
-          seg.libelle,
-          formatDuree(seg.dureeMs) + (seg.encours ? ` · ${S.uiTrailNow}` : ''),
-          couleurs.get(seg.jeu),
-          seg.encours ? 'encours' : ''));
+          c.libelle,
+          formatDuree(c.dureeMs) + (c.encours ? ` · ${S.uiTrailNow}` : ''),
+          couleurs.get(c.jeu),
+          c.encours ? 'encours' : '',
+          c.fois));
+      }
+      if (repliees.length) {
+        liste.appendChild(friseLigne(
+          S.uiTrailOthers(repliees.length),
+          formatDuree(repliees.reduce((n, c) => n + c.dureeMs, 0)),
+          null, 'autres'));
       }
       bloc.appendChild(liste);
       return bloc;

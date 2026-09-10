@@ -1971,6 +1971,90 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## A subathon's trail (v3.89)
+
+A user sends a screenshot: **Ironmouse on a subathon**, a stream that never
+ends. Thirty-one hours on the clock, fifteen category switches — and a trail
+**twice the height of the thumbnail**.
+
+### What the screenshot actually showed
+
+Eight of the fifteen rows read "Just Chatting". Between two games a streamer
+goes back to her chatting category, and the trail counted every return as a new
+entry. The block therefore listed the same name seven times without ever saying
+the useful thing: **how long in total**.
+
+And the fault was not merely cosmetic: **the list was unbounded**.
+`CATEGORY_TRAIL_SEGMENTS` caps the *observed* registry at twelve; the VOD's
+chapters all arrive, with no cap. Hence fifteen rows where twelve was the
+assumed limit — and a hundred and sixty on a two-week broadcast.
+
+### One row per category, not per switch
+
+| | Before | After |
+|---|---|---|
+| Just Chatting | 7 rows: 14m, 1h36, 1h28, 2h46, 17m, 5m, 1h00 | **one**: `Just Chatting ×7 7h26` |
+| Watch Your Plastic Duck | 2 rows: 7h14 and 1h08 | **one**: `×2 8h22 · now` |
+| Block height | 15 rows | **8** |
+
+The grouping loses nothing, and that is what makes it acceptable:
+
+- the **per-category total** is something the list never gave — eight hours
+  twenty-two of Plastic Duck, until now split in two with nothing adding them
+  up;
+- the **number of returns** is stated by `×7`, so "she came back to it" does not
+  vanish;
+- the **chronology stays whole in the ribbon**, which keeps one tick per switch.
+  That is already the division of labour: the ribbon gives the shape, the list
+  gives the names.
+
+The order is **first appearance**, not duration: the eye must be able to follow
+the ribbon left to right and find the rows in the same order. Sorting by
+duration would put Plastic Duck first and break the one thing that ties the two
+blocks together.
+
+**A stream without returns pays nothing**: as many rows as segments, no `×N`.
+The ordinary case is unchanged, to the pixel.
+
+### The cap, and why it is exactly eight
+
+Beyond eight distinct categories two rows would carry the same colour — the
+palette holds eight — and a legend with two lookalike entries no longer
+legends anything. The cap is therefore **the size of the palette**, which is not
+a number chosen but a number deduced.
+
+The **current** category is kept first whatever happens — it is the only one a
+hover truly answers — then the longest ones. The rest folds into one row:
+`+ 4 other categories · 3h52`.
+
+**A capture corrected the colour ordering.** Served in chronological order, the
+palette could hand a *displayed* row the hue of another displayed row: a game
+picked up again in twelfth position, kept because it is current, landed on a
+neighbour's colour. The cap's whole reason for being collapsed with it. Colours
+now go to **displayed rows first**; folded ones take what is left, and a shared
+hue misleads nobody there since no legend points at it.
+
+### The ribbon no longer overflows
+
+A second fault, found by pushing the scene: the ticks' floor width was **fixed**
+at four pixels. The ribbon is 456 px wide; past 114 ticks it overflows — and
+since it is in hidden overflow, the last segments, **including the current one**,
+vanished without a word.
+
+The floor is now four pixels while there is room, and each one's share
+otherwise: `min(4px, calc(60% / var(--tse-parts)))`. The sixty percent leave the
+necessary margin — if the floors summed exactly to the width, the slightest tick
+growing past its own would overflow again, the others having no pixel left to
+give.
+
+### What mutation corrected in the harness itself
+
+The first draft of the assertion guarding that floor used **a hundred** switches.
+It passed — and it passed **proving nothing**: a hundred times four pixels still
+fit in four hundred and fifty-six. Mutation said so; the scene now poses a
+hundred and sixty, which would demand 644 under the old rule. The overflow
+measured under mutation is **188 px**, exactly the difference.
+
 ## The panel starts drawing (v3.88)
 
 Two views that do not tabulate, and a redesigned trail. All three are
@@ -2953,7 +3037,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 89 scenarios, 813 assertions |
+| `npm test` | the Playwright harness: 90 scenarios, 824 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -2973,12 +3057,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 727 KB | 315 KB | 2,975 → **2** |
+| `content.js` | 754 KB | 321 KB | 2,981 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 53 KB | 27 KB | 70 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **942 KB** | **450 KB** | **−52 %** |
+| **all five** | **969 KB** | **456 KB** | **−53 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2990,7 +3074,7 @@ within 3 %: wide enough for a version's ordinary growth, too narrow for a
 sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,975
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 2,981
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`
