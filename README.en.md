@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 720 KB | 314 KB | 2,955 → **2** |
+| `content.js` | 727 KB | 315 KB | 2,966 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 35 KB | 20 KB | 39 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **898 KB** | **438 KB** | **−51 %** |
+| **all five** | **905 KB** | **440 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2396,6 +2396,70 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## The category menu under a language (v3.85)
+
+Under the globe, the category menu's figures are Twitch's own and they are
+right. Under a flag they **vanished** — and the sort fell back to alphabetical,
+visible at a glance on a screenshot: Albion Online, Always On, Animaux…
+
+**Two faults, and the second was not where the symptom showed.**
+
+### The registry was only filled in one direction
+
+Measurements are stored per (category, language) pair. Two questions read them,
+and **both directions** had to be filled:
+
+| question | what is fixed | what is walked | cost |
+| --- | --- | --- | --- |
+| how many French speakers **on GTA V**? | the category | the 31 languages | 31 operations |
+| how many French speakers **on each category**? | the language | the 100 categories | 100 operations |
+
+3.84 only wrote the first. The second stayed empty, so the category menu had no
+figure to show as soon as a language was picked. Each measurement uses the query
+the selection itself would use — here `game(name:){ streams(broadcasterLanguages:
+[code]) }`, the scope pass's own — so that the announced number and the obtained
+number are the same one.
+
+### And the menu's signature could not see the difference
+
+The menu is only rewritten when its **signature** changes; that is what stops it
+closing under the cursor on every scan. But it was computed with
+`counts.get(v) || 0`: a category going from **unknown** to **measured at zero**
+produced exactly the same text. The signature did not move, the menu was not
+rebuilt, and the zero never appeared.
+
+Now that "we don't know" and "nobody" render differently, the signature has to
+see that difference too. It is a fault whose symptom sat elsewhere than its
+cause, and only an isolated probe showed it — the bench reproduced it without
+naming it.
+
+### Absent is not zero
+
+| state | display | what it says |
+| --- | --- | --- |
+| never measured | *nothing* | we don't know |
+| measured at zero | `0` | this language has nobody here |
+
+The two used to look alike; they no longer do, neither in the rendering, nor in
+the signature, nor in the sort.
+
+## A refused code is never sent again (v3.85)
+
+A happy side effect, and a tested one: the pass that fills the figures queries
+**every** language code as soon as a first category is picked. It learns there
+which ones the schema refuses and shares them with the descent. When a language
+whose code is bad is then picked, not a single request goes out with it — where
+the bench used to tolerate one.
+
+Two guards were tightened along the way:
+
+- **one guard per key**, not one for everybody. A single "a measurement is in
+  flight" flag *dropped* the next request — one for a different scope, which had
+  nothing to do with it;
+- **the menus' figures come before the walk's guards.** Placed after, they were
+  unreachable while a walk was running — that is, exactly at the moment a filter
+  has just changed, and so exactly when they are stale.
+
 ## "21" where there were 318 (v3.84)
 
 A user counted by hand: the Hungarian flag announced **21**, and selecting it
@@ -3079,7 +3143,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 87 scenarios, 790 assertions |
+| `npm test` | the Playwright harness: 87 scenarios, 792 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

@@ -2921,7 +2921,18 @@ titre('39. Catégorie + langue — demander, pas filtrer');
   await wait(page, 2000);
   const tentatives = await page.evaluate((k) => window.__calls.slice(k)
     .flatMap(c => c.langs || []).filter(l => l === 'IT').length, avantIT);
-  ok('le code refusé n\'est tenté qu\'une seule fois', tentatives === 1,
+  /* ZÉRO, ET NON PLUS UN — ET C'EST UN PROGRÈS, PAS UN RELÂCHEMENT.
+     Le relevé qui remplit les chiffres des menus interroge toutes les langues
+     d'une catégorie, donc TOUS les codes, dès la première catégorie choisie.
+     Il apprend là ceux que le schéma refuse, et les partage avec la descente
+     par `langApiRejected`. Quand l'utilisateur choisit enfin l'italien, son
+     code est déjà connu mauvais : plus une seule requête ne part avec lui.
+
+     L'invariant que cette ligne tenait — « on n'insiste pas sur un code
+     refusé » — est donc éprouvé PLUS FORT qu'avant : non pas une fois, mais
+     zéro. Et il ne peut pas passer à vide : les trois assertions qui suivent
+     exigent que le repli ait bien eu lieu et que la barre soit peuplée. */
+  ok('un code déjà connu refusé n\'est plus jamais renvoyé', tentatives === 0,
      `${tentatives} tentative(s)`);
   ok('et la portée est bien re-demandée sans lui',
      await page.evaluate(() => window.tse.global.report().langApplied) === false);
@@ -9379,8 +9390,22 @@ titre('86bis. Filtres — le tri, la symétrie, et ce qu\'une sélection apprend
      `cat0 → « ${parCat.get('cat0')} » (mondial : 100 k)`);
   ok('…mais bien ce que cette langue y pèse : 8 500',
      /^8,5\s*k$/.test(parCat.get('cat0') || ''), `cat0 → « ${parCat.get('cat0')} »`);
-  ok('…et la catégorie où elle n\'a personne ne porte pas « 0 »',
-     parCat.get('cat1') === '', `cat1 → « ${parCat.get('cat1')} »`);
+  /* UN ZÉRO MESURÉ PORTE SON ZÉRO. C'est une réponse — « le français n'a
+     personne sur cette catégorie » — et la taire ferait croire qu'on n'a pas
+     regardé. Ce qui reste muet, c'est ce qu'on n'a PAS mesuré, et l'on ne
+     peut donc pas confondre les deux d'un coup d'œil. */
+  ok('…et la catégorie où elle n\'a personne porte un « 0 » mesuré',
+     parCat.get('cat1') === '0', `cat1 → « ${parCat.get('cat1')} »`);
+  /* CHAQUE CATÉGORIE OÙ CETTE LANGUE EXISTE PORTE SON CHIFFRE, et pas
+     seulement celle qu'on avait déjà visitée. C'est le trou de la 3.84 : le
+     registre n'était rempli que dans un sens — une catégorie fixée, toutes
+     les langues — si bien que choisir une langue laissait le menu catégorie
+     sans le moindre nombre. Le tri retombait alphabétique, ce qui se voyait
+     tout de suite sur une capture. */
+  ok('…et la mesure couvre TOUTES les catégories, pas la seule visitée',
+     [...parCat.values()].every(n => n !== ''), JSON.stringify([...parCat]));
+  ok('…l\'ordre suivant ces chiffres, et non l\'alphabet',
+     cats[0].v === 'cat0', JSON.stringify(cats.map(o => o.v)));
   ok('…la liste des catégories restant complète et utilisable',
      cats.length === 3
      && (await page.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-btn').disabled)) === false,
