@@ -74,6 +74,7 @@ window.__gsMode = 'ok';     // 'ok' | 'down' (l'API refuse)
 window.__calls = [];       // journal : une entrée par POST { n: nb d'opérations, ops:[logins] }
 window.__vod = {};         // chapitres de VOD par login (cf. TseVodChapters)
 window.__vodRecent = {};   // archive récente par login (cf. TseVodRecent, le repli)
+window.__clips = {};       // clips par login (cf. TseClips, la troisième porte)
 window.__tagTop = {};      // classement par tag de langue (cf. TseTagTop)
 window.__failNext = 0;     // nb de POST à faire échouer
 window.__httpStatus = 0;   // statut HTTP à rendre une fois (429, 503, …)
@@ -380,6 +381,25 @@ window.fetch = async (url, opt) => {
          — { createdAt, chapitres:[…] } → une archive candidate ;
          — 'erreur' → 200 porteur d'erreurs GraphQL ;
          — absent → aucune archive. */
+    /* TseClips : la TROISIÈME porte, pour les chaînes qui n'archivent pas.
+       `__clips[login]` vaut :
+         — un tableau [{ jeu, ilYaMin }] → des clips, datés en minutes AVANT
+           maintenant (plus lisible qu'un horodatage absolu dans un décor) ;
+         — 'erreur' → 200 porteur d'erreurs GraphQL, ce que rendrait un schéma
+           qui ne connaît pas `criteria` ;
+         — absent → aucun clip. Le défaut est donc « la chaîne n'en a pas »,
+           et non un refus : c'est le cas ordinaire, et les scénarios qui ne
+           s'occupent pas des clips gardent l'affichage d'avant. */
+    if (o.operationName === 'TseClips') {
+      const c = window.__clips && window.__clips[o.variables?.login];
+      if (c === 'erreur') return { errors: [{ message: 'Unknown argument criteria' }] };
+      const n = o.variables?.n ?? 30;
+      return { data: { user: { clips: { edges: (c || []).slice(0, n).map(x => ({ node: {
+        id: 'clip-' + x.jeu + '-' + x.ilYaMin,
+        createdAt: new Date(Date.now() - x.ilYaMin * 60_000).toISOString(),
+        game: { name: x.jeu, displayName: traduire(x.jeu) }
+      } })) } } } };
+    }
     /* TseTagTop : le classement mondial filtré sur un TAG de langue, trié par
        le serveur. `__tagTop[tag]` vaut :
          — un tableau [{ login, viewers, game?, tags? }] → réponse peuplée, et
@@ -456,7 +476,13 @@ window.fetch = async (url, opt) => {
       // Filtre de langue : l'option est INTERPOLÉE dans la requête, pas
       // passée en variable — le stub la lit donc là où elle se trouve.
       const mLang = /broadcasterLanguages:\s*\[(\w+)\]/.exec(o.query || '');
-      const codeToTag = { FR: 'Français', EN: 'English', DE: 'Deutsch' };
+      /* Le schéma simulé doit connaître les codes que LANG_API envoie, sinon
+         il rejette la requête et l'extension retombe sur le filtrage par
+         pool — ce qui ferait passer pour un défaut du produit une lacune du
+         décor. Cinq suffisent aux scénarios ; en ajouter un est le geste à
+         faire le jour où l'un d'eux en demande un sixième. */
+      const codeToTag = { FR: 'Français', EN: 'English', DE: 'Deutsch',
+                          CS: 'Čeština', ES: 'Español' };
       const wantTag = mLang ? codeToTag[mLang[1]] : null;
       if (mLang && !wantTag) {
         // Code inconnu du schéma simulé : l'API rejette la requête ENTIÈRE,

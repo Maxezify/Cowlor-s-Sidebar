@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 696 Ko | 306 Ko | 2 910 → **2** |
+| `content.js` | 713 Ko | 312 Ko | 2 941 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 35 Ko | 20 Ko | 39 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **875 Ko** | **431 Ko** | **−51 %** |
+| **les cinq** | **891 Ko** | **436 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2531,6 +2531,79 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## La troisième porte : les clips (v3.83)
+
+Un quart des survols n'a **aucun enregistrement** : dix-neuf chaînes sur
+soixante-dix-sept dans un rapport, dont cinq sans la moindre archive et
+quatorze dont la plus récente datait de huit heures à dix-sept jours avant le
+live. Ces chaînes ne permettent pas le replay ; leur passé n'existe nulle part
+sous forme de VOD.
+
+**Le tour de ce qu'une requête anonyme peut atteindre a été fait** :
+`archiveVideo` (première porte), `videos(type: ARCHIVE)` (deuxième), les types
+`HIGHLIGHT` et `UPLOAD` — qui *dérivent* d'un VOD et manquent donc exactement
+là où il manque — et `broadcastSettings`, qui ne dit que le présent. Les clips
+sont la seule trace publique de ce qu'une chaîne diffusait à un instant passé.
+
+### Ce qu'un clip prouve, et ce qu'il ne prouve pas
+
+Il porte sa date et sa catégorie : « à 19 h 42, elle était sur Hadès II » est
+une **observation**, au même titre que les nôtres. Mais deux clips ne disent
+rien de l'intervalle qui les sépare. Placer un basculement à l'heure d'un clip
+serait inventer.
+
+D'où une règle étroite : **un segment ne commence qu'à un instant observé** — le
+premier clip d'une suite de clips portant la même catégorie. Jamais avant.
+
+### Et elle ne se présente pas comme les autres
+
+| | frise de chapitres | frise de clips |
+| --- | --- | --- |
+| origine des bornes | Twitch, à la seconde | un clip, donc un **minorant** |
+| tête de la frise | le début du live | « avant le premier clip », mesuré |
+| mention | aucune | *d'après les clips* |
+| barre | pleine | hachurée en biais |
+
+La hachure reprend le vocabulaire visuel déjà employé pour la part inconnue :
+même idée, même trait. Une frise de clips ne se lit pas comme une frise de
+chapitres, et elle ne doit pas en avoir l'air.
+
+Le banc le tient dans les deux sens : faire commencer le premier segment au
+départ du live — l'invention que la règle refuse — fait tomber trois
+assertions, dont celle qui nomme la part de tête.
+
+## Les deux filtres se répondent enfin (v3.83)
+
+Trois retours, sur la même capture, et trois défauts distincts.
+
+**Le tri.** Les langues sans chiffre remontaient au-dessus de l'anglais à
+130 k. `Map.get` rend `undefined` pour une langue non mesurée, et
+`undefined - 130100` vaut `NaN` : un comparateur qui rend NaN ne trie pas, il
+laisse l'ordre à la discrétion du moteur. Une valeur absente vaut désormais
+zéro, et les langues chiffrées sont en tête, décroissantes.
+
+**La symétrie.** Le menu langue suivait la catégorie choisie ; l'inverse
+n'était pas vrai — drapeau français, et « Discussions 400 k », le chiffre du
+monde entier sous un filtre qui n'en montre qu'une part. Les compteurs du menu
+catégorie suivent maintenant la langue, et leur **ordre** avec eux. La *liste*,
+elle, ne bouge toujours pas : c'est la leçon de la 3.80, où la lier au filtre
+l'avait vidée puis grisée.
+
+**Ce qu'une sélection apprend.** Le pool mondial ne descend pas très bas dans
+une petite langue : sur « Grand Theft Auto V » il connaît l'anglais, le
+français et l'allemand, et rien du tchèque. Le menu n'affichait donc aucun
+chiffre en face du drapeau tchèque — et le choisir révélait **deux** chaînes.
+Nous les avions ; nous ne les gardions pas.
+
+Une passe de portée menée en langue mesure exactement ce couple : « le tchèque
+sur GTA V pèse tant ». C'est gardé, borné à trois cents couples et périmé au
+bout de dix minutes — une audience d'il y a un quart d'heure ne décrit plus
+rien. Le menu s'enrichit donc de ce qu'on a réellement demandé, sans une
+requête de plus.
+
+**Et zéro ne s'écrit toujours pas**, des deux côtés : une catégorie ou une
+langue que le pool n'a pas croisée n'est pas vide, elle est *inconnue*.
+
 ## Deux menus qu'il ne fallait pas lier (v3.82)
 
 La 3.80 avait fait dépendre la liste des **catégories** de la langue choisie,
@@ -3103,7 +3176,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 85 scénarios, 773 assertions |
+| `npm test` | le harnais Playwright : 87 scénarios, 788 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
