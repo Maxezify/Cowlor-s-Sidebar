@@ -2671,19 +2671,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       return frais;
     };
 
-    const oublierAbsents = (pool, vus, now) => {
-      const cutoff = now - CFG.GLOBAL_PRUNE_AGE;
-      for (const [login, rec] of pool) {
-        if (vus.has(login)) { rec.misses = 0; continue; }
-        if (rec.ts < cutoff) { pool.delete(login); stats.evicted += 1; continue; }
-        rec.misses = (rec.misses || 0) + 1;
-        stats.misses += 1;
-        if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM) {
-          pool.delete(login);
-          stats.evicted += 1;
-        }
-      }
-    };
+    const TOUT_REGARDE = Object.freeze({ has: () => true });
 
     let publieUneFois = false;
 
@@ -2842,7 +2830,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           const poolTag = (wl.lang === langAvant) ? carryOver() : new Map();
           const vus = new Set();
           for (const rec of parTag.values()) { vus.add(rec.login); poolTag.set(rec.login, rec); }
-          oublierAbsents(poolTag, vus, Date.now());
+          reconcile(poolTag, TOUT_REGARDE, vus, Date.now());
           publish(poolTag);
 
           complete = true;
