@@ -31,6 +31,26 @@ Dans la fenêtre d'aperçu, des étiquettes colorées résument le contexte du s
 - 💎 ★ ABONNEMENT EN PROMO ★ Quand Twitch propose un abonnement à prix réduit sur le stream, c'est signalé là.
 - 🆕 ★ VIENT DE PASSER SUR ★ Le streamer a changé de catégorie en cours de route ? Un badge vert le dit pendant dix minutes : « Vient de passer sur Elden Ring ». Twitch ne l'annonce nulle part — l'extension le voit parce qu'elle regarde en continu.
 - ⚠️ ★ ÉTIQUETTES DE CONTENU ★ Les étiquettes officielles de Twitch (jeux matures, violence explicite, jeux d'argent…) forment leur propre badge, en tête de la rangée — vous savez avant de regarder, sans l'interstitielle qui bloquait la vidéo.
+- 🌈 ★ SUBATHON ★ La chaîne est en subathon ? Le badge le dit et donne le jour en cours (« Subathon · jour 10 »).
+
+_______________________________
+
+➤ 🎞️ « PRÉCÉDEMMENT SUR CE LIVE »
+Vous arrivez au milieu d'un stream de huit heures. Qu'est-ce qui s'est passé avant ? L'aperçu vous le montre : un ruban coloré, une couleur par catégorie, et la liste en dessous.
+
+- ★ TOUT LE PARCOURS ★ Chaque catégorie traversée, avec le temps qu'elle a duré et le nombre de fois où le streamer y est revenu (« Discussions ×7 »).
+- ★ À L'ÉCHELLE ★ La largeur de chaque bande, c'est du temps réel. Un coup d'œil suffit pour voir où est passée la soirée.
+- ★ MÊME SANS REPLAY ★ Une chaîne qui n'archive pas ? L'extension reconstitue le parcours à partir des clips, et le DIT.
+- ★ ELLE AVOUE CE QU'ELLE IGNORE ★ Quand l'heure exacte d'un changement n'est pas connue, la couleur se fond au lieu de trancher net, et la durée porte un « ~ ». Jamais un chiffre inventé.
+
+_______________________________
+
+➤ 🌈 LES SUBATHONS, REPÉRÉS TOUT SEULS
+Un subathon, c'est ce direct que les abonnements prolongent sans fin — des jours, parfois des semaines. L'extension les reconnaît et les distingue de tous les autres.
+
+- ★ LE JOUR, CONTRE LE PSEUDO ★ Une petite pastille « J9 » à côté du nom : vous savez tout de suite où en est l'événement.
+- ★ UNE COULEUR QUI N'EST À PERSONNE ★ Pastille et badge défilent en arc-en-ciel, parce qu'un événement exceptionnel ne se range pas dans la palette des autres.
+- ★ SANS RIEN DEVINER ★ C'est le titre du stream et les tags qui le disent, pas la durée : un subathon à sa deuxième heure en est déjà un.
 
 _______________________________
 
@@ -136,6 +156,15 @@ Vous pouvez consulter votre top dans la console DevTools (F12) :
 - tse.subs()         → les abonnements repérés par l'extension
 - tse.subs.refresh() → les relire tout de suite
 - tse.reset()        → tout effacer
+
+_______________________________
+
+➤ 🎛️ UN PANNEAU DANS LA BARRE D'OUTILS
+Un clic sur l'icône de l'extension et tout ce qu'elle a appris s'ouvre dans un panneau — sans passer par la console.
+
+- ★ VOS HABITUDES, EN IMAGE ★ Les heures où vous regardez vraiment, dessinées en une grille de sept jours sur vingt-quatre heures.
+- ★ VOS CHIFFRES ★ Top streamers, abonnements repérés, chaînes suivies en mémoire : tout est là, lisible.
+- ★ UN RAPPORT À COLLER ★ Un bouton fabrique un rapport de diagnostic complet, sans aucune liste personnelle dedans — de quoi signaler un problème sans rien révéler.
 
 _______________________________
 

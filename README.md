@@ -2092,6 +2092,85 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## Le ruban à plat, et la fiche remise à jour (v3.94)
+
+### La hachure est retirée
+
+Les parts d'une frise de clips étaient hachurées de biais, et la part inconnue
+avec elles. C'était le seul moyen, à l'époque, d'avouer que ces bornes-là ne
+sont pas des heures. Deux choses l'ont rendue inutile, et une troisième
+nuisible.
+
+**Ce qui la remplace le dit mieux.** La vague `~` nomme l'approche là où elle
+est — sur les durées de catégorie, et pas sur le total ni sur la part antérieure
+au premier clip, qui sont exacts. Le fondu, lui, dessine l'intervalle douteux
+**à sa largeur**. La hachure, elle, disait « tout ceci est approché » sur des
+parts dont certaines ne le sont pas.
+
+**Et elle salissait le reste.** Posée par-dessus les couleurs, elle en
+assombrissait la moitié et rendait deux teintes voisines difficiles à
+distinguer — sur un ruban dont *toute* la fonction est de faire correspondre des
+couleurs à une légende.
+
+Quatre règles se réduisent à une. Le temps qu'on n'a pas observé n'a plus besoin
+d'être hachuré : il n'a aucune couleur de fond, et le ruban laisse voir son
+propre socle — un creux sombre là où les autres parts portent une teinte. Un
+vide se lit comme un vide.
+
+La liste, elle, garde ses deux traits discontinus : le tireté de « avant le
+premier clip » et le pointillé de la ligne de repli. Ce ne sont pas des
+hachures mais des traits de quatre pixels, et ils distinguent deux lignes qui ne
+sont pas des catégories.
+
+### L'arc-en-ciel passe à une seconde et demie
+
+Vitesse demandée, vitesse appliquée — sur la pastille **comme** sur le badge :
+les deux sont visibles en même temps dès qu'on survole une carte de subathon, et
+deux cycles de durées différentes se décaleraient en quelques secondes.
+
+**Un mot sur ce que cette vitesse engage.** Huit arrêts en une seconde et demie,
+c'est un changement toutes les 187 ms, et la luminance relative varie jusqu'à
+0,41 d'un arrêt au voisin. Ce rythme **dépasse** le critère de fréquence de la
+règle WCAG 2.3.1 — plus de trois variations par seconde — et ce n'est pas lui
+qui met l'effet hors de cause : c'est l'**aire**. Le critère ne s'applique
+qu'au-delà de 25 % d'un champ de dix degrés, soit environ 21 800 px² ; le badge
+en occupe 2 478 (11 %) et la pastille 392 (1,8 %).
+
+La marge tient donc à la **taille** de ces deux éléments, et à elle seule : les
+agrandir franchement demanderait de ralentir le cycle d'autant. `prefers-reduced-motion`
+l'arrête complètement, ce qui reste la seule sortie qui vaille.
+
+### Ce que la mutation a corrigé dans le banc
+
+L'échantillonneur de l'arc-en-ciel **recopiait** la durée du cycle : douze
+secondes, écrites en dur. Passée à une seconde et demie, il parcourait huit
+tours au lieu d'un, deux arrêts par pas — et le contrôle du fondu tombait sur un
+code parfaitement sain. Un banc qui recopie une constante du produit mesure sa
+propre copie. La durée se lit désormais sur l'animation elle-même.
+
+### La fiche du Store rattrape trois fonctionnalités
+
+Douze fiches, douze langues, et trois sections qui manquaient — le produit avait
+pris de l'avance sur sa description :
+
+- **« Précédemment sur ce live »** — la frise des catégories, son ruban à
+  l'échelle, sa reconstruction par les clips et ses aveux d'ignorance ;
+- **les subathons** — la pastille du jour, le badge, l'arc-en-ciel, et le fait
+  que rien n'est deviné de la durée ;
+- **le panneau de la barre d'outils** — les habitudes dessinées, les chiffres,
+  et le rapport de diagnostic sans aucune liste personnelle.
+
+Plus une puce de badge dans la section qui les énumère. Le squelette des douze
+fiches passe de 20 à **23 sections**, de 73 à **84 puces**, de 88 à **110
+étoiles** — et `npm run store` le vérifie sur les douze d'un coup, parce qu'une
+section oubliée en traduisant ne se voit pas autrement.
+
+**Une promesse de plus entre au contrat.** La liste des libellés que la fiche
+cite mot pour mot et que le code doit porter passe de huit à neuf entrées :
+`Subathon · day` s'y ajoute. Cette liste existe parce que la fiche a promis un
+badge d'étiquettes pendant dix versions avant qu'il n'existe ; on ne recommence
+pas.
+
 ## L'arc-en-ciel du subathon, et trois corrections de frise (v3.93)
 
 ### Un badge dans l'aperçu, et une couleur qui les traverse toutes
@@ -3758,7 +3837,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 93 scénarios, 872 assertions |
+| `npm test` | le harnais Playwright : 93 scénarios, 873 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -3784,7 +3863,7 @@ assemblé :
 | `panneau.js` | 54 Ko | 27 Ko | 72 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1001 Ko** | **464 Ko** | **−54 %** |
+| **les cinq** | **1001 Ko** | **463 Ko** | **−54 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

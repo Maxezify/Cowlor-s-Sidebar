@@ -105,6 +105,11 @@ const CITES = [
   ['Just switched to', 'uiBadgeCategorySwitch'],
   ['Formerly subscribed', 'uiBadgeExSubMonths'],
   ['Live with', 'uiBadgeLiveWith'],
+  /* Le badge de subathon entre au contrat le jour où la fiche le promet. La
+     fiche cite « Subathon · day 10 » ; la clé, elle, compose le nombre, donc
+     on confronte la partie STABLE du libellé. C'est la leçon du badge
+     d'étiquettes, qui fut promis dix versions avant d'exister. */
+  ['Subathon · day', 'uiBadgeSubathon'],
 ];
 const en = lu.get(REF);
 const rompus = CITES.flatMap(([texte, cle]) => {

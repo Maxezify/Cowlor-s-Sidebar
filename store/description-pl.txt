@@ -31,6 +31,26 @@ W okienku podglądu kolorowe etykiety streszczają kontekst transmisji jednym rz
 - 💎 ★ SUBSKRYPCJA ZE ZNIŻKĄ ★ Kiedy Twitch proponuje na transmisji subskrypcję ze zniżką, jest to od razu oznaczone.
 - 🆕 ★ WŁAŚNIE PRZESZEDŁ NA ★ Streamer zmienił kategorię w trakcie transmisji? Zielona etykieta mówi o tym przez dziesięć minut: „Właśnie przeszedł na Elden Ring”. Twitch nie ogłasza tego nigdzie — rozszerzenie to widzi, bo patrzy bez przerwy.
 - ⚠️ ★ OZNACZENIA TREŚCI ★ Oficjalne oznaczenia Twitcha (gra dla dorosłych, drastyczna przemoc, hazard…) tworzą własną etykietę, pierwszą w rzędzie — wiesz, zanim spojrzysz, bez ekranu, który blokował wideo.
+- 🌈 ★ SUBATHON ★ Kanał prowadzi subathon? Plakietka to mówi i podaje bieżący dzień („Subathon · dzień 10”).
+
+_______________________________
+
+➤ 🎞️ „POPRZEDNIO NA TYM STREAMIE”
+Wchodzisz w połowie ośmiogodzinnego streama. Co było wcześniej? Podgląd Ci to pokaże: kolorowa wstęga, jeden kolor na kategorię, a pod nią lista.
+
+- ★ CAŁA DROGA ★ Każda przebyta kategoria, z czasem jej trwania i liczbą powrotów streamera („Just Chatting ×7”).
+- ★ W SKALI ★ Szerokość każdego pasma to prawdziwy czas. Jedno spojrzenie i wiesz, gdzie poszedł wieczór.
+- ★ NAWET BEZ POWTÓRKI ★ Kanał bez archiwum? Rozszerzenie odtwarza drogę z klipów — i MÓWI o tym.
+- ★ PRZYZNAJE SIĘ DO NIEWIEDZY ★ Gdy dokładna godzina zmiany nie jest znana, kolor przechodzi płynnie zamiast ciąć ostro, a czas nosi „~”. Nigdy zmyślona liczba.
+
+_______________________________
+
+➤ 🌈 SUBATHONY, ROZPOZNANE SAME
+Subathon to ten stream, który subskrypcje przedłużają bez końca — dni, czasem tygodnie. Rozszerzenie je rozpoznaje i odróżnia od wszystkich innych.
+
+- ★ DZIEŃ, PRZY NAZWIE ★ Mała plakietka „D9” obok nazwy: od razu wiesz, na którym dniu jest wydarzenie.
+- ★ KOLOR, KTÓRY DO NIKOGO NIE NALEŻY ★ Plakietka i odznaka przechodzą przez tęczę, bo wyjątkowe wydarzenie nie mieści się w cudzej palecie.
+- ★ NIC NA WYCZUCIE ★ Mówi o tym tytuł streama i tagi, nie czas trwania: subathon jest nim już w drugiej godzinie.
 
 _______________________________
 
@@ -136,6 +156,15 @@ Swój ranking sprawdzisz w konsoli narzędzi deweloperskich (F12):
 - tse.subs()         → subskrypcje wykryte przez rozszerzenie
 - tse.subs.refresh() → odczytać je od razu
 - tse.reset()        → wyczyścić wszystko
+
+_______________________________
+
+➤ 🎛️ PANEL NA PASKU NARZĘDZI
+Jedno kliknięcie ikony rozszerzenia i wszystko, czego się nauczyło, otwiera się w panelu — bez konsoli.
+
+- ★ TWOJE NAWYKI, NARYSOWANE ★ Godziny, w których naprawdę oglądasz, ułożone w siatkę siedmiu dni na dwadzieścia cztery godziny.
+- ★ TWOJE LICZBY ★ Top streamerów, wykryte subskrypcje, zapamiętane obserwowane kanały: wszystko tam, czytelnie.
+- ★ RAPORT DO WKLEJENIA ★ Jeden przycisk tworzy pełny raport diagnostyczny, bez żadnej osobistej listy w środku — tyle, by zgłosić problem, nic nie ujawniając.
 
 _______________________________
 

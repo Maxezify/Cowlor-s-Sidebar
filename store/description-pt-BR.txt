@@ -31,6 +31,26 @@ Dentro da janela de prévia, etiquetas coloridas resumem o contexto da live num 
 - 💎 ★ INSCRIÇÃO COM DESCONTO ★ Quando a Twitch oferece uma inscrição com desconto na live, fica sinalizado ali mesmo.
 - 🆕 ★ ACABOU DE MUDAR PARA ★ O streamer trocou de categoria no meio da live? Um selo verde avisa por dez minutos: «Acabou de mudar para Elden Ring». A Twitch não anuncia isso em lugar nenhum — a extensão vê porque fica olhando.
 - ⚠️ ★ RÓTULOS DE CONTEÚDO ★ Os rótulos oficiais da Twitch (jogo adulto, violência explícita, jogos de azar…) formam o próprio selo, o primeiro da fila — você sabe antes de olhar, sem a tela que travava o vídeo.
+- 🌈 ★ SUBATHON ★ O canal está em subathon? O selo avisa e dá o dia atual ("Subathon · dia 10").
+
+_______________________________
+
+➤ 🎞️ "ANTERIORMENTE NESTA LIVE"
+Você chega no meio de uma live de oito horas. O que rolou antes? A prévia mostra: uma faixa colorida, uma cor por categoria, e a lista embaixo.
+
+- ★ O CAMINHO INTEIRO ★ Cada categoria por onde passou, com quanto durou e quantas vezes o streamer voltou pra ela ("Just Chatting ×7").
+- ★ EM ESCALA ★ A largura de cada faixa é tempo real. Um olhar basta pra ver pra onde foi a noite.
+- ★ ATÉ SEM REPLAY ★ Um canal que não arquiva? A extensão reconstrói o caminho a partir dos clipes, e AVISA.
+- ★ ELA ADMITE O QUE NÃO SABE ★ Quando a hora exata de uma troca não é conhecida, a cor se funde em vez de cortar seco, e a duração leva um "~". Nunca um número inventado.
+
+_______________________________
+
+➤ 🌈 SUBATHONS, RECONHECIDOS SOZINHOS
+Subathon é aquela live que as inscrições esticam sem fim — dias, às vezes semanas. A extensão reconhece e separa das outras.
+
+- ★ O DIA, COLADO NO NOME ★ Uma plaquinha "D9" ao lado do nome: você sabe na hora em que pé está o evento.
+- ★ UMA COR QUE NÃO É DE NINGUÉM ★ Plaquinha e selo percorrem um arco-íris, porque evento excepcional não cabe na paleta de ninguém.
+- ★ SEM CHUTAR NADA ★ Quem diz é o título da live e as tags, não a duração: um subathon já é um na segunda hora.
 
 _______________________________
 
@@ -136,6 +156,15 @@ Você pode conferir seu top no console do DevTools (F12):
 - tse.subs()         → as inscrições identificadas pela extensão
 - tse.subs.refresh() → reler tudo agora mesmo
 - tse.reset()        → apagar tudo
+
+_______________________________
+
+➤ 🎛️ UM PAINEL NA BARRA DE FERRAMENTAS
+Um clique no ícone da extensão e tudo o que ela aprendeu abre num painel — sem precisar do console.
+
+- ★ SEUS HÁBITOS, DESENHADOS ★ As horas em que você assiste de verdade, num quadro de sete dias por vinte e quatro horas.
+- ★ SEUS NÚMEROS ★ Top streamers, inscrições detectadas, canais seguidos na memória: tudo ali, legível.
+- ★ UM RELATÓRIO PRA COLAR ★ Um botão monta um relatório de diagnóstico completo, sem nenhuma lista pessoal dentro — o bastante pra relatar um problema sem revelar nada.
 
 _______________________________
 
