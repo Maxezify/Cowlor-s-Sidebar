@@ -1753,7 +1753,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       
       color: #83f9fb;
       
-      animation: tse-subathon-teinte 12s linear infinite;
+      animation: tse-subathon-teinte 1.5s linear infinite;
       background: none;
       
     }
@@ -2089,7 +2089,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__badge--subathon {
       background: rgba(10, 250, 255, 0.26);
       color: #83f9fb;
-      animation: tse-subathon-badge 12s linear infinite;
+      animation: tse-subathon-badge 1.5s linear infinite;
     }
     
     .tse-preview__badge-mark      { flex: 0 0 auto; line-height: 1; }
@@ -2171,18 +2171,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     
     
-    .tse-preview__frise--clips .tse-preview__frise-part {
-      background-image:
-        repeating-linear-gradient(135deg,
-          rgba(0, 0, 0, 0.30) 0 3px, rgba(0, 0, 0, 0) 3px 6px),
-        linear-gradient(180deg,
-          rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
-    }
     
-    .tse-preview__frise--clips .tse-preview__frise-part--flou {
+    .tse-preview__frise .tse-preview__frise-part--flou {
       background-image:
-        repeating-linear-gradient(135deg,
-          rgba(0, 0, 0, 0.30) 0 3px, rgba(0, 0, 0, 0) 3px 6px),
         linear-gradient(180deg,
           rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%),
         linear-gradient(90deg,
@@ -2191,20 +2182,6 @@ const TSE_GATE_MAX_CLICKS = 5;
           var(--tse-flou-vers, transparent) 100%);
     }
     
-    .tse-preview__frise .tse-preview__frise-part--inconnu {
-      background-image: repeating-linear-gradient(45deg,
-        rgba(255, 255, 255, 0.16) 0 3px, rgba(255, 255, 255, 0.04) 3px 6px);
-    }
-    
-    .tse-preview__frise .tse-preview__frise-part--inconnu.tse-preview__frise-part--flou {
-      background-image:
-        repeating-linear-gradient(45deg,
-          rgba(255, 255, 255, 0.16) 0 3px, rgba(255, 255, 255, 0.04) 3px 6px),
-        linear-gradient(90deg,
-          transparent 0 calc(100% - var(--tse-flou, 0%)),
-          var(--tse-flou-de, transparent) calc(100% - var(--tse-flou, 0%)),
-          var(--tse-flou-vers, transparent) 100%);
-    }
     
     .tse-preview__frise-liste { margin: 9px 0 0; padding: 0; list-style: none; }
     
