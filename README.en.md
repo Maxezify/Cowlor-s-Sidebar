@@ -1713,6 +1713,33 @@ And no more than that, because the cost is paid in the other direction: past
 roughly a quarter of a second, an interface response stops being felt as
 immediate. 150 ms would let slow traversals through; 300 would be noticed.
 
+#### The little grey window (v3.95.1)
+
+A user report, on release day: **a tiny window appears just before the
+preview**. It is Twitch's `.tw-dialog-layer` — the React container for its own
+card preview tooltip. The extension has long hidden it through
+`body.tse-preview-active`, but that flag was set by `open()`.
+
+As long as hovering opened instantly, "the pointer entered" and "the preview is
+open" were the same moment. The intent delay opened **two tenths of a second**
+between them, during which nothing hid Twitch's modal: it had all the time it
+needed to appear, on its own.
+
+The veil therefore now follows **the wait** rather than the opening: set when
+the pointer enters, lifted — with the same 500 ms delay as before, so Twitch can
+close its own — as soon as the wait is abandoned. That second half is not a
+courtesy: without it, simply running down the list would leave
+`tse-preview-active` set forever, and the user menu and settings would stop
+appearing — they go through the same layer.
+
+Three more assertions in scenario 94, and they measure the **effect** rather
+than the flag: a real `.tw-dialog-layer` is injected and the `display` the
+browser computes for it is what gets read. Checking for the class would have
+said the intention is there, not that the rule bites.
+
+This hiding had **never been exercised** — no fixture in the bench carried a
+`.tw-dialog-layer`. That is exactly why the regression got through.
+
 #### Four ways to abandon the wait, and they break separately
 
 A card is "pending" between the pointer entering it and the preview opening.
@@ -2121,7 +2148,7 @@ forgotten in translation is not visible any other way.
 
 **One more promise enters the contract.** The list of labels the listing quotes
 verbatim and the code must carry goes from eight entries to nine:
-`Subathon · day` joins it. That list exists because the listing promised a
+`Subathon · DAY` joins it. That list exists because the listing promised a
 content-label badge for ten versions before it existed; we do not do that twice.
 
 ## The subathon rainbow, and three trail corrections (v3.93)
@@ -2129,7 +2156,7 @@ content-label badge for ten versions before it existed; we do not do that twice.
 ### A badge in the preview, and a colour that goes through them all
 
 A subathon is an exceptional event. It now carries its own badge —
-`Subathon · day 10` — and, to say so, a colour that belongs to nobody because it
+`Subathon · DAY 10` — and, to say so, a colour that belongs to nobody because it
 travels through all of them: eight stops, a fade from one to the next, twelve
 seconds for the turn. The card's `J…` pill follows the same one.
 
@@ -3725,7 +3752,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 94 scenarios, 881 assertions |
+| `npm test` | the Playwright harness: 94 scenarios, 884 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -3745,7 +3772,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 803 KB | 332 KB | 3,046 → **2** |
+| `content.js` | 803 KB | 332 KB | 3,044 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 54 KB | 27 KB | 73 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |

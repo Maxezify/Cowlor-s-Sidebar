@@ -31,7 +31,7 @@ W okienku podglądu kolorowe etykiety streszczają kontekst transmisji jednym rz
 - 💎 ★ SUBSKRYPCJA ZE ZNIŻKĄ ★ Kiedy Twitch proponuje na transmisji subskrypcję ze zniżką, jest to od razu oznaczone.
 - 🆕 ★ WŁAŚNIE PRZESZEDŁ NA ★ Streamer zmienił kategorię w trakcie transmisji? Zielona etykieta mówi o tym przez dziesięć minut: „Właśnie przeszedł na Elden Ring”. Twitch nie ogłasza tego nigdzie — rozszerzenie to widzi, bo patrzy bez przerwy.
 - ⚠️ ★ OZNACZENIA TREŚCI ★ Oficjalne oznaczenia Twitcha (gra dla dorosłych, drastyczna przemoc, hazard…) tworzą własną etykietę, pierwszą w rzędzie — wiesz, zanim spojrzysz, bez ekranu, który blokował wideo.
-- 🌈 ★ SUBATHON ★ Kanał prowadzi subathon? Plakietka to mówi i podaje bieżący dzień („Subathon · dzień 10”).
+- 🌈 ★ SUBATHON ★ Kanał prowadzi subathon? Plakietka to mówi i podaje bieżący dzień („Subathon · DZIEŃ 10”).
 
 _______________________________
 

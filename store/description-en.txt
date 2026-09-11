@@ -31,7 +31,7 @@ Inside the preview popup, colored labels sum up the stream's context at a glance
 - 💎 ★ DISCOUNTED SUB ★ When Twitch is offering a discounted subscription on the stream, it's flagged right there.
 - 🆕 ★ JUST SWITCHED TO ★ The streamer changed category mid-stream? A green badge says so for ten minutes: "Just switched to Elden Ring". Twitch announces it nowhere — the extension sees it because it keeps watching.
 - ⚠️ ★ CONTENT LABELS ★ The official Twitch labels (mature-rated game, graphic violence, gambling…) are shown as their own badge, first in the row — so you know before you look, without the interstitial that used to block the video.
-- 🌈 ★ SUBATHON ★ The channel is running a subathon? The badge says so and gives the current day ("Subathon · day 10").
+- 🌈 ★ SUBATHON ★ The channel is running a subathon? The badge says so and gives the current day ("Subathon · DAY 10").
 
 _______________________________
 

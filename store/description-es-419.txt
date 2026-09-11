@@ -31,7 +31,7 @@ Dentro de la ventana de vista previa, unas etiquetas de color resumen el context
 - 💎 ★ SUSCRIPCIÓN CON DESCUENTO ★ Cuando Twitch ofrece una suscripción rebajada en el stream, queda señalado ahí mismo.
 - 🆕 ★ ACABA DE CAMBIAR A ★ ¿El streamer cambió de categoría a mitad del vivo? Una insignia verde lo indica durante diez minutos: «Acaba de cambiar a Elden Ring». Twitch no lo anuncia en ningún lado — la extensión lo ve porque mira sin parar.
 - ⚠️ ★ ETIQUETAS DE CONTENIDO ★ Las etiquetas oficiales de Twitch (juego para adultos, violencia explícita, juegos de azar…) forman su propia insignia, la primera de la fila — lo sabés antes de mirar, sin la pantalla que bloqueaba el video.
-- 🌈 ★ SUBATÓN ★ ¿El canal está en subatón? La insignia lo dice y da el día en curso («Subatón · día 10»).
+- 🌈 ★ SUBATÓN ★ ¿El canal está en subatón? La insignia lo dice y da el día en curso («Subatón · DÍA 10»).
 
 _______________________________
 

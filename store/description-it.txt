@@ -31,7 +31,7 @@ Dentro il riquadro dell'anteprima, delle etichette colorate riassumono il contes
 - 💎 ★ ABBONAMENTO SCONTATO ★ Quando Twitch propone un abbonamento scontato sulla diretta, te lo segnala lì.
 - 🆕 ★ È APPENA PASSATO A ★ Lo streamer ha cambiato categoria a metà diretta? Un'etichetta verde lo dice per dieci minuti: «È appena passato a Elden Ring». Twitch non lo annuncia da nessuna parte — l'estensione lo vede perché guarda di continuo.
 - ⚠️ ★ ETICHETTE DI CONTENUTO ★ Le etichette ufficiali di Twitch (gioco per adulti, violenza esplicita, gioco d'azzardo…) formano un badge a sé, il primo della fila — lo sai prima di guardare, senza la schermata che bloccava il video.
-- 🌈 ★ SUBATHON ★ Il canale è in subathon? Il badge lo dice e indica il giorno in corso («Subathon · giorno 10»).
+- 🌈 ★ SUBATHON ★ Il canale è in subathon? Il badge lo dice e indica il giorno in corso («Subathon · GIORNO 10»).
 
 _______________________________
 

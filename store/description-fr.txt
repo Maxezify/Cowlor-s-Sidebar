@@ -31,7 +31,7 @@ Dans la fenêtre d'aperçu, des étiquettes colorées résument le contexte du s
 - 💎 ★ ABONNEMENT EN PROMO ★ Quand Twitch propose un abonnement à prix réduit sur le stream, c'est signalé là.
 - 🆕 ★ VIENT DE PASSER SUR ★ Le streamer a changé de catégorie en cours de route ? Un badge vert le dit pendant dix minutes : « Vient de passer sur Elden Ring ». Twitch ne l'annonce nulle part — l'extension le voit parce qu'elle regarde en continu.
 - ⚠️ ★ ÉTIQUETTES DE CONTENU ★ Les étiquettes officielles de Twitch (jeux matures, violence explicite, jeux d'argent…) forment leur propre badge, en tête de la rangée — vous savez avant de regarder, sans l'interstitielle qui bloquait la vidéo.
-- 🌈 ★ SUBATHON ★ La chaîne est en subathon ? Le badge le dit et donne le jour en cours (« Subathon · jour 10 »).
+- 🌈 ★ SUBATHON ★ La chaîne est en subathon ? Le badge le dit et donne le jour en cours (« Subathon · JOUR 10 »).
 
 _______________________________
 

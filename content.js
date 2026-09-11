@@ -623,7 +623,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
       uiSubathonShort:           (n) => `J${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · jour ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · JOUR ${n}`,
       uiTrailOthers:             (n) => `+ ${n} autres catégories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
@@ -706,7 +706,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · day ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DAY ${n}`,
       uiTrailOthers:             (n) => `+ ${n} other categories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
@@ -784,7 +784,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
       uiSubathonShort:           (n) => `T${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · Tag ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · TAG ${n}`,
       uiTrailOthers:             (n) => `+ ${n} weitere Kategorien`,
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
@@ -862,7 +862,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subatón' : `Subatón · día ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subatón' : `Subatón · DÍA ${n}`,
       uiTrailOthers:             (n) => `+ ${n} categorías más`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
@@ -940,7 +940,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · dia ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DIA ${n}`,
       uiTrailOthers:             (n) => `+ ${n} outras categorias`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
@@ -1018,7 +1018,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
       uiSubathonShort:           (n) => `G${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · giorno ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · GIORNO ${n}`,
       uiTrailOthers:             (n) => `+ altre ${n} categorie`,
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
       uiBadgeCostreamHost:       'Stream host',
@@ -1096,7 +1096,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · dzień ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DZIEŃ ${n}`,
       uiTrailOthers:             (n) => `+ ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'inne kategorie' : 'innych kategorii'}`,
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
       uiBadgeCostreamHost:       'Kanał gospodarza',
@@ -1174,7 +1174,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
       uiSubathonShort:           (n) => `Д${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Сабатон' : `Сабатон · день ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Сабатон' : `Сабатон · ДЕНЬ ${n}`,
       uiTrailOthers:             (n) => `+ ещё ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'категории' : 'категорий'}`,
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
       uiBadgeCostreamHost:       'Канал ведущего',
@@ -2450,10 +2450,16 @@ const TSE_GATE_MAX_CLICKS = 5;
        tooltip d'aperçu de carte (.online-side-nav-channel-tooltip). Même
        avec les tooltips masqués ci-dessus, ce wrapper modal apparaît au
        survol et clignote derrière notre popup, surtout au mouseout.
-       On le masque uniquement pendant l'affichage de notre popup, via le
-       flag .tse-preview-active posé sur <body> par open()/close(). Hors
-       de ce contexte, .tw-dialog-layer reste fonctionnel pour les modales
-       légitimes (menu utilisateur, paramètres, confirmations). */
+       On le masque via le flag .tse-preview-active posé sur <body>, et ce
+       flag suit L'ATTENTE du survol — il est posé dès l'entrée du pointeur
+       sur une carte, pas à l'ouverture de notre popup. La nuance a coûté un
+       rapport d'usage : tant que le survol ouvrait dans l'instant les deux
+       moments se confondaient, mais le délai d'intention de la 3.95 a ouvert
+       entre eux deux dixièmes de seconde pendant lesquels cette modale
+       apparaissait, seule, avant l'aperçu. Hors de ce contexte,
+       .tw-dialog-layer reste fonctionnel pour les modales légitimes (menu
+       utilisateur, paramètres, confirmations) : le voile est levé, avec
+       retard, dès que l'attente est abandonnée. */
     body.tse-preview-active .tw-dialog-layer { display: none !important; }
 
     /* Masquage du header natif Twitch ("Chaînes suivies / Spectateurs (décroissant) / ↕"
@@ -11203,6 +11209,34 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
+    /* ── LE VOILE SUR LA MODALE DE TWITCH ─────────────────────────────────
+       `body.tse-preview-active` masque la `.tw-dialog-layer` que Twitch pose
+       au survol d'une carte (cf. la règle CSS et son commentaire). Deux gestes,
+       et ils sont dissymétriques exprès : on la masque À L'INSTANT, on la
+       démasque AVEC RETARD — Twitch ferme la sienne ~300 ms après le départ du
+       pointeur, et lever le voile tout de suite la ferait réapparaître le temps
+       de sa propre fermeture.
+
+       CES DEUX GESTES NE SONT PLUS CEUX DE L'APERÇU. Ils étaient écrits dans
+       open() et close(), ce qui allait de soi tant que le survol ouvrait dans
+       l'instant. Le délai d'intention de la 3.95 a ouvert entre les deux une
+       fenêtre de deux dixièmes de seconde pendant laquelle plus rien ne
+       masquait la modale de Twitch : elle avait tout le temps d'apparaître, et
+       un rapport d'usage l'a montrée — une petite fenêtre grise juste avant
+       l'aperçu. Le voile suit donc désormais L'ATTENTE, qui commence à l'entrée
+       du pointeur, et non l'ouverture, qui vient après. */
+    const voiler = () => {
+      if (flagRemoveTimer) { clearTimeout(flagRemoveTimer); flagRemoveTimer = null; }
+      document.body.classList.add('tse-preview-active');
+    };
+    const devoilerBientot = () => {
+      if (flagRemoveTimer) clearTimeout(flagRemoveTimer);
+      flagRemoveTimer = setTimeout(() => {
+        flagRemoveTimer = null;
+        document.body.classList.remove('tse-preview-active');
+      }, 500);
+    };
+
     /* Abandonne l'attente en cours, s'il y en a une. `raison` n'a d'effet que
        sur le compteur : un abandon parce que le pointeur est reparti n'a pas
        le même sens qu'un abandon parce que la carte a quitté le DOM. */
@@ -11211,6 +11245,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
       pendingCard = null;
       if (raison === 'detache') bilanSurvol.detaches++; else bilanSurvol.annules++;
+      /* Et on rend la modale à Twitch. Sans cette ligne, une simple traversée
+         de la liste laisserait `tse-preview-active` posé pour toujours : le
+         menu utilisateur, les paramètres et toute modale légitime cesseraient
+         de s'afficher. C'est le prix exact du voile posé plus tôt. */
+      devoilerBientot();
     };
 
     /* Arme l'attente sur une carte. L'ouverture ne se fait que si la carte est
@@ -11220,6 +11259,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     const armerAttente = (card) => {
       annulerAttente();
       bilanSurvol.armes++;
+      // Le voile AVANT le minuteur, et non à son échéance : c'est toute la
+      // correction. `annulerAttente` ci-dessus vient d'en programmer la levée ;
+      // `voiler` l'annule et le repose. L'ordre compte.
+      voiler();
       pendingCard = card;
       pendingTimer = setTimeout(() => {
         pendingTimer = null;
@@ -11239,17 +11282,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         el.dataset.tseVisible = 'false';
         // Garder le DOM en place (singleton), juste invisible.
       }
-      // Retrait DIFFÉRÉ du flag .tse-preview-active : Twitch ferme sa
-      // .tw-dialog-layer avec ~300 ms de délai après le mouseleave. Si on
-      // retire le flag instantanément, la modale redevient visible le
-      // temps de sa propre fermeture → flash. On laisse 500 ms pour que
-      // Twitch finisse, puis on libère le flag pour ne pas bloquer les
-      // modales légitimes ultérieures. Annulé si open() est rappelé.
-      if (flagRemoveTimer) clearTimeout(flagRemoveTimer);
-      flagRemoveTimer = setTimeout(() => {
-        flagRemoveTimer = null;
-        document.body.classList.remove('tse-preview-active');
-      }, 500);
+      // Et on rend la modale à Twitch, avec retard (cf. devoilerBientot).
+      devoilerBientot();
     };
 
     const open = (card) => {
@@ -11292,11 +11326,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       // Rendu initial sans titre (chargement async).
       renderPopup(login, null, extraRows, costreamInfo, mates, squadInfo, sponsorInfo);
       el.dataset.tseVisible = 'true';
-      // Active le flag qui masque la .tw-dialog-layer parasite via CSS
-      // (cf. règle body.tse-preview-active). Annule un éventuel retrait
-      // différé en attente depuis un close() précédent (passage A → B).
-      if (flagRemoveTimer) { clearTimeout(flagRemoveTimer); flagRemoveTimer = null; }
-      document.body.classList.add('tse-preview-active');
+      /* Le voile est déjà posé : l'attente s'en charge à l'entrée du pointeur,
+         et open() n'est atteint que par l'échéance de cette attente. L'appel
+         reste, et ce n'est pas une superstition — il est idempotent, et il
+         évite que open() ne DÉPENDE de ce que son appelant a fait avant lui.
+         Une fonction qui ouvre l'aperçu doit poser elle-même ce que l'aperçu
+         exige ; le jour où un second appelant apparaît, il n'aura rien à
+         savoir de cette histoire. */
+      voiler();
       positionPopup(card);
 
       // Badge "En live avec" (Guest Star) hors section "suivis" (Chaînes live,
