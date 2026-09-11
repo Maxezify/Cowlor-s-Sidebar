@@ -242,6 +242,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Contenu classifié',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream avec ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Vient de passer sur ${jeu}`,
+      uiBadgeReprise:            'Reprise après coupure',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` et ${others} autre${others > 1 ? 's' : ''}` : '';
         return `En live avec ${invite}${suffix}`;
@@ -320,6 +321,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Classified content',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream with ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Just switched to ${jeu}`,
+      uiBadgeReprise:            'Back after a drop',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` and ${others} other${others > 1 ? 's' : ''}` : '';
         return `Live with ${invite}${suffix}`;
@@ -398,6 +400,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Klassifizierter Inhalt',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream mit ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Gerade gewechselt zu ${jeu}`,
+      uiBadgeReprise:            'Zurück nach Abbruch',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` und ${others} ${others > 1 ? 'weiteren' : 'weiterem'}` : '';
         return `Live mit ${invite}${suffix}`;
@@ -476,6 +479,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Contenido clasificado',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream con ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Acaba de cambiar a ${jeu}`,
+      uiBadgeReprise:            'De vuelta tras un corte',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` y ${others} más` : '';
         return `En vivo con ${invite}${suffix}`;
@@ -554,6 +558,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Conteúdo classificado',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream com ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Acabou de mudar para ${jeu}`,
+      uiBadgeReprise:            'De volta após uma queda',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` e mais ${others}` : '';
         return `Ao vivo com ${invite}${suffix}`;
@@ -632,6 +637,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Contenuto classificato',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream con ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `È appena passato a ${jeu}`,
+      uiBadgeReprise:            "Ritorno dopo un'interruzione",
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` e altri ${others}` : '';
         return `In diretta con ${invite}${suffix}`;
@@ -710,6 +716,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Treść oznaczona',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream z ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Właśnie przeszedł na ${jeu}`,
+      uiBadgeReprise:            'Powrót po przerwaniu',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` i jeszcze ${others}` : '';
         return `Na żywo z ${invite}${suffix}`;
@@ -788,6 +795,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Помеченный контент',
       uiBadgeCostreamWithNames:  (noms) => `Ко-стрим с ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Только что перешёл на ${jeu}`,
+      uiBadgeReprise:            'Возвращение после обрыва',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` и ещё ${others}` : '';
         return `В эфире с ${invite}${suffix}`;
@@ -866,6 +874,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'ラベル付きコンテンツ',
       uiBadgeCostreamWithNames:  (noms) => `${noms} とのコラボ配信`,
       uiBadgeCategorySwitch:     (jeu) => `${jeu} に切り替えたばかり`,
+      uiBadgeReprise:            '切断から復帰',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? `ほか${others}人` : '';
         return `${invite}${suffix} と配信中`;
@@ -944,6 +953,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         '已标记内容',
       uiBadgeCostreamWithNames:  (noms) => `与 ${noms} 联合直播`,
       uiBadgeCategorySwitch:     (jeu) => `刚刚切换到 ${jeu}`,
+      uiBadgeReprise:            '断线后重新开播',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? `等 ${others} 人` : '';
         return `正在与 ${invite}${suffix} 直播`;
@@ -1255,6 +1265,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     CATEGORY_SWITCH_TTL: 10 * 60_000,
 
     CATEGORY_SWITCH_MAX: 200,
+
+    RECONNECT_GAP_MAX:   10 * 60_000,
+    RECONNECT_TTL:       10 * 60_000,
+    RECONNECT_MAX:       200,
 
     CATEGORY_TRAIL_MAX: 500,
 
@@ -2289,6 +2303,36 @@ const TSE_GATE_MAX_CLICKS = 5;
     return b;
   };
 
+  const derniersDirects = new Map();
+  const reprises        = new Map();
+
+  const noterReprise = (login, apres) => {
+    const neuf = apres?.stream?.id ? apres.stream : null;
+    const memoire = derniersDirects.get(login);
+    if (neuf && memoire && memoire.id !== neuf.id
+        && Date.now() - memoire.vu <= CFG.RECONNECT_GAP_MAX) {
+      const debut = Date.parse(neuf.createdAt);
+      if (Number.isFinite(debut) && Date.now() - debut < CFG.FRESH_MAX_MIN * 60_000) {
+        reprises.set(login, { ts: Date.now() });
+        while (reprises.size > CFG.RECONNECT_MAX) {
+          reprises.delete(reprises.keys().next().value);
+        }
+      }
+    }
+
+    if (neuf) derniersDirects.set(login, { id: neuf.id, vu: Date.now() });
+    while (derniersDirects.size > CFG.RECONNECT_MAX) {
+      derniersDirects.delete(derniersDirects.keys().next().value);
+    }
+  };
+
+  const repriseFraiche = (login) => {
+    const r = reprises.get(login);
+    if (!r) return null;
+    if (Date.now() - r.ts > CFG.RECONNECT_TTL) { reprises.delete(login); return null; }
+    return r;
+  };
+
   const frises = new Map();
 
   const bilanFrises = { survols: 0, absentes: 0, vides: 0, peuplees: 0,
@@ -2678,6 +2722,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         };
 
         noterBasculement(login, cache.get(login), entry);
+
+        noterReprise(login, entry);
 
         suivreCategorie(login, entry);
         cache.set(login, entry);
@@ -4771,6 +4817,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           roster:      roster.entries().length,
           mesures:     mesures.length,
           bascules:    [...basculements.keys()].filter(l => basculementFrais(l)).length,
+
+          reprises:    [...reprises.keys()].filter(l => repriseFraiche(l)).length,
           cache:       cache.size,
         },
 
@@ -4944,6 +4992,11 @@ const TSE_GATE_MAX_CLICKS = 5;
   const updateFreshness = (card) => {
     const ts = card.dataset.tseStartedAt;
     if (!ts) { card.classList.remove('tse-fresh'); return; }
+
+    if (repriseFraiche(card.dataset.tseLogin)) {
+      card.classList.remove('tse-fresh');
+      return;
+    }
     const ageMin = (Date.now() - new Date(ts).getTime()) / 60_000;
     card.classList.toggle('tse-fresh', ageMin >= 0 && ageMin < CFG.FRESH_MAX_MIN);
   };
@@ -6181,6 +6234,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         badges.unshift(badgeNoeud('tse-preview__badge--switch',
           phraseAvecFente(S.uiBadgeCategorySwitch(FENTE),
                           () => nomsEnGras([bascule.libelle || bascule.vers]))));
+      }
+
+      if (repriseFraiche(login)) {
+        badges.unshift(badgeNoeud('tse-preview__badge--switch tse-preview__badge--reprise',
+                                  S.uiBadgeReprise));
       }
 
       const sub = subathonDe(login);
