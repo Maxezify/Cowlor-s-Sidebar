@@ -110,6 +110,7 @@ const CITES = [
      on confronte la partie STABLE du libellé. C'est la leçon du badge
      d'étiquettes, qui fut promis dix versions avant d'exister. */
   ['Subathon · DAY', 'uiBadgeSubathon'],
+  ['Back after a drop', 'uiBadgeReprise'],
 ];
 const en = lu.get(REF);
 const rompus = CITES.flatMap(([texte, cle]) => {

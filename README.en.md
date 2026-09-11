@@ -326,7 +326,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 803 KB | 331 KB | 3,044 → **2** |
+| `content.js` | 803 KB | 331 KB | 3,057 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 54 KB | 27 KB | 73 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
@@ -2217,6 +2217,74 @@ nothing: there is no ghost to absorb. Both guards stay — they cost one line ea
 and the fourth form does exist — but no assertion will claim to exercise them.
 The same measurement shows that scenario 76's "a card detached and reattached
 does not close the preview" touches nothing either.
+## Back after a drop (v3.97)
+
+`createdAt` measures the **session**, not the broadcast. A streamer who loses
+their connection and comes back restarts from zero: the card reads "2m", and the
+purple "just went live" bar lights up on a stream that is six hours old.
+
+This was not an approximation. It was **the one thing in the product that
+asserted the opposite of the truth**: "you are not late" to someone who
+completely is. Everywhere else the extension owns up to what it does not know —
+the trail fades its colours, durations carry a "~"; here it asserted, and it was
+wrong.
+
+### The exact complement of the category-switch badge
+
+The switch registry requires `memeSession`: the same stream id on both sides. A
+resumption is its complement — the id has **changed**, and not because the
+channel just opened.
+
+That calls for a memory of its own, and it is the one delicate point: the cache
+loses `stream` the moment the channel goes off, so by the time the new broadcast
+appears, the previous entry no longer carries the old id. So, outside the cache,
+we keep per login the last broadcast **seen live** and when it was seen. That
+memory survives the outage; and it only updates on a live observation, because
+it is precisely while the channel is down that we need to remember what it was
+broadcasting just before.
+
+### Three conditions, three questions
+
+| Condition | What it rules out |
+| --- | --- |
+| the stream id changed | an ordinary poll of the same session |
+| the old one was live less than 10 min ago | yesterday's broadcast, or a genuinely new one |
+| the new one is less than 10 min old | a broadcast returning with hours already on the clock |
+
+The third one bounds the damage: **we never mark a resumption we would not be
+repairing**. If the counter did not restart from zero, there is nothing to
+correct, so nothing to announce.
+
+### The badge, and why it has no colour of its own
+
+It is the same kind of news as "Just switched to …" — *here is what just
+happened on this stream* — so it carries the `--switch` class, which is that
+green. Scenario 60 requires each badge **type** to have a distinct hue;
+inventing a second one for the same family of news would work against what it
+protects. The `--reprise` class carries no colour: it names the thing, for the
+DOM and for the bench.
+
+It does go **in front of** the switch badge, though: a resumption explains the
+whole card — the counter back to zero, the bar that stays off — where a category
+change explains one line.
+
+### Scenario 95, and the fixture that lied
+
+Four cases, and all four are needed: two say what the rule must catch, two what
+it must not. Over-firing would cost the most — a "resumption" badge on a channel
+that really did just open would be worse than no badge at all.
+
+The first draft of the "long outage" case cut nothing: it waited past the
+threshold **while leaving the channel live**, then changed its id. But the
+last-broadcast memory refreshes on every poll as long as the channel is
+broadcasting — so the measured gap stayed one poll wide, and the test announced
+a long outage without having produced one. The fixture was wrong, not the rule:
+it was right to see a resumption.
+
+Four mutants, four guards, four distinct assertions that fall — and the one that
+removes the bar correction reproduces the original defect exactly: `frais: true`
+on a six-hour stream.
+
 ## The category trail (v3.70)
 
 Twitch shows the sequence of categories a stream has gone through **nowhere**
@@ -2567,7 +2635,7 @@ run ahead of its description:
   with no personal list inside.
 
 Plus one badge bullet in the section that enumerates them. The twelve listings'
-skeleton goes from 20 to **23 sections**, 73 to **84 bullets**, 88 to **110
+skeleton goes from 20 to **23 sections**, 73 to **85 bullets**, 88 to **112
 stars** — and `npm run store` checks all twelve at once, because a section
 forgotten in translation is not visible any other way.
 
@@ -4183,7 +4251,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 94 scenarios, 884 assertions |
+| `npm test` | the Playwright harness: 95 scenarios, 892 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

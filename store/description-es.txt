@@ -30,6 +30,7 @@ Dentro de la ventana de vista previa, unas etiquetas de color resumen el context
 - 🚂 ★ HYPE TRAIN ★ ¿Hay un Hype Train en marcha en el canal? Te enteras sin tener que hacer clic.
 - 💎 ★ SUSCRIPCIÓN CON DESCUENTO ★ Cuando Twitch ofrece una suscripción rebajada en el directo, ahí queda señalado.
 - 🆕 ★ ACABA DE CAMBIAR A ★ ¿El streamer cambió de categoría a mitad del directo? Una insignia verde lo indica durante diez minutos: «Acaba de cambiar a Elden Ring». Twitch no lo anuncia en ninguna parte — la extensión lo ve porque mira sin parar.
+- 🔁 ★ DE VUELTA TRAS UN CORTE ★ ¿El streamer se cayó y volvió? Su contador de duración vuelve a cero y Twitch no dice nada. El distintivo sí — y la barra «acaba de empezar» ya no se enciende en un directo que lleva seis horas («De vuelta tras un corte»).
 - ⚠️ ★ ETIQUETAS DE CONTENIDO ★ Las etiquetas oficiales de Twitch (juego para adultos, violencia explícita, juegos de azar…) forman su propia insignia, la primera de la fila — lo sabes antes de mirar, sin la pantalla que bloqueaba el vídeo.
 - 🌈 ★ SUBATÓN ★ ¿El canal está en subatón? El distintivo lo dice y da el día en curso («Subatón · DÍA 10»).
 

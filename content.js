@@ -644,6 +644,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Contenu classifié',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream avec ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Vient de passer sur ${jeu}`,
+      uiBadgeReprise:            'Reprise après coupure',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` et ${others} autre${others > 1 ? 's' : ''}` : '';
         return `En live avec ${invite}${suffix}`;
@@ -722,6 +723,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Classified content',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream with ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Just switched to ${jeu}`,
+      uiBadgeReprise:            'Back after a drop',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` and ${others} other${others > 1 ? 's' : ''}` : '';
         return `Live with ${invite}${suffix}`;
@@ -800,6 +802,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Klassifizierter Inhalt',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream mit ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Gerade gewechselt zu ${jeu}`,
+      uiBadgeReprise:            'Zurück nach Abbruch',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` und ${others} ${others > 1 ? 'weiteren' : 'weiterem'}` : '';
         return `Live mit ${invite}${suffix}`;
@@ -878,6 +881,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Contenido clasificado',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream con ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Acaba de cambiar a ${jeu}`,
+      uiBadgeReprise:            'De vuelta tras un corte',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` y ${others} más` : '';
         return `En vivo con ${invite}${suffix}`;
@@ -956,6 +960,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Conteúdo classificado',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream com ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Acabou de mudar para ${jeu}`,
+      uiBadgeReprise:            'De volta após uma queda',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` e mais ${others}` : '';
         return `Ao vivo com ${invite}${suffix}`;
@@ -1034,6 +1039,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Contenuto classificato',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream con ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `È appena passato a ${jeu}`,
+      uiBadgeReprise:            "Ritorno dopo un'interruzione",
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` e altri ${others}` : '';
         return `In diretta con ${invite}${suffix}`;
@@ -1112,6 +1118,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Treść oznaczona',
       uiBadgeCostreamWithNames:  (noms) => `Co-stream z ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Właśnie przeszedł na ${jeu}`,
+      uiBadgeReprise:            'Powrót po przerwaniu',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` i jeszcze ${others}` : '';
         return `Na żywo z ${invite}${suffix}`;
@@ -1190,6 +1197,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'Помеченный контент',
       uiBadgeCostreamWithNames:  (noms) => `Ко-стрим с ${noms}`,
       uiBadgeCategorySwitch:     (jeu) => `Только что перешёл на ${jeu}`,
+      uiBadgeReprise:            'Возвращение после обрыва',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? ` и ещё ${others}` : '';
         return `В эфире с ${invite}${suffix}`;
@@ -1268,6 +1276,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         'ラベル付きコンテンツ',
       uiBadgeCostreamWithNames:  (noms) => `${noms} とのコラボ配信`,
       uiBadgeCategorySwitch:     (jeu) => `${jeu} に切り替えたばかり`,
+      uiBadgeReprise:            '切断から復帰',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? `ほか${others}人` : '';
         return `${invite}${suffix} と配信中`;
@@ -1346,6 +1355,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiCclGeneric:                         '已标记内容',
       uiBadgeCostreamWithNames:  (noms) => `与 ${noms} 联合直播`,
       uiBadgeCategorySwitch:     (jeu) => `刚刚切换到 ${jeu}`,
+      uiBadgeReprise:            '断线后重新开播',
       uiBadgeLiveWith:           (invite, others) => {
         const suffix = others > 0 ? `等 ${others} 人` : '';
         return `正在与 ${invite}${suffix} 直播`;
@@ -2067,6 +2077,32 @@ const TSE_GATE_MAX_CLICKS = 5;
     // sans fin sur des mois d'usage. Les entrées périmées partent d'elles-mêmes
     // à la lecture ; cette borne couvre le cas d'un onglet jamais rouvert.
     CATEGORY_SWITCH_MAX: 200,
+
+    /* === Reprise après coupure ===
+       `createdAt` mesure la SESSION, pas le direct. Un streamer qui perd sa
+       connexion et revient repart de zéro : la carte affiche « 2m », et la
+       barre violette « vient de démarrer » s'allume sur un live qui en est à
+       sa sixième heure. Le signal ne dit pas seulement autre chose que la
+       vérité — il dit le CONTRAIRE : « tu n'as rien raté » quand tout est
+       derrière.
+
+       TROIS CONSTANTES, TROIS QUESTIONS DIFFÉRENTES, et elles valent la même
+       chose sans être la même :
+
+       — GAP : au-delà de combien de temps une chaîne qui revient n'est plus
+         une reprise mais un NOUVEAU direct. Dix minutes, parce qu'au-delà
+         « vient de démarrer » redevient vrai et qu'il n'y a plus rien à
+         corriger.
+       — TTL : combien de temps le badge le dit. C'est une nouvelle, et une
+         nouvelle se périme — même raisonnement, et même valeur, que pour
+         « Vient de passer sur … ».
+       — MAX : la borne de volume du registre, comme pour les basculements.
+
+       Les écrire séparément coûte deux lignes et évite qu'un réglage de l'une
+       ne déplace silencieusement les deux autres. */
+    RECONNECT_GAP_MAX:   10 * 60_000,
+    RECONNECT_TTL:       10 * 60_000,
+    RECONNECT_MAX:       200,
 
     /* === Frise des catégories d'un live ===
        Nombre de streams dont on garde la frise.
@@ -3975,6 +4011,59 @@ const TSE_GATE_MAX_CLICKS = 5;
     return b;
   };
 
+  /* ── REPRISE APRÈS COUPURE ────────────────────────────────────────────────
+     Le registre des basculements exige `memeSession` : même identifiant de
+     stream des deux côtés. Ce qui suit est exactement son complément —
+     l'identifiant a CHANGÉ, et pas parce que la chaîne vient d'ouvrir.
+
+     IL FAUT UNE MÉMOIRE À PART, et c'est le seul point délicat. Le cache perd
+     `stream` dès que la chaîne coupe : au moment où le nouveau direct paraît,
+     l'entrée précédente ne porte plus l'identifiant de l'ancien, et la
+     comparaison n'a plus rien à comparer. On retient donc, hors du cache, le
+     dernier direct VU EN LIGNE pour chaque login et l'instant de cette vue.
+     C'est cette mémoire-là qui survit à la coupure. */
+  const derniersDirects = new Map();  // login -> { id, vu }
+  const reprises        = new Map();  // login -> { ts }
+
+  /* Trois conditions, et chacune répond à sa propre question :
+       — l'identifiant a changé          → ce n'est pas la même session ;
+       — l'ancien était en ligne récemment → la coupure est courte, donc c'est
+         une reprise et non un direct d'hier ;
+       — le nouveau vient de commencer    → c'est bien maintenant que le
+         compteur est reparti de zéro, donc maintenant que la carte ment.
+     La troisième est aussi ce qui borne le dégât : on ne marque jamais une
+     reprise qu'on ne serait pas en train de corriger. */
+  const noterReprise = (login, apres) => {
+    const neuf = apres?.stream?.id ? apres.stream : null;
+    const memoire = derniersDirects.get(login);
+    if (neuf && memoire && memoire.id !== neuf.id
+        && Date.now() - memoire.vu <= CFG.RECONNECT_GAP_MAX) {
+      const debut = Date.parse(neuf.createdAt);
+      if (Number.isFinite(debut) && Date.now() - debut < CFG.FRESH_MAX_MIN * 60_000) {
+        reprises.set(login, { ts: Date.now() });
+        while (reprises.size > CFG.RECONNECT_MAX) {
+          reprises.delete(reprises.keys().next().value);
+        }
+      }
+    }
+    /* La mémoire ne se met à jour que sur une observation EN LIGNE. Une chaîne
+       hors ligne ne l'efface pas — c'est tout l'intérêt : c'est précisément
+       pendant qu'elle est coupée qu'on a besoin de se souvenir de ce qu'elle
+       diffusait juste avant. Le vieillissement de `vu` s'en charge tout seul,
+       et GAP tranche. */
+    if (neuf) derniersDirects.set(login, { id: neuf.id, vu: Date.now() });
+    while (derniersDirects.size > CFG.RECONNECT_MAX) {
+      derniersDirects.delete(derniersDirects.keys().next().value);
+    }
+  };
+
+  const repriseFraiche = (login) => {
+    const r = reprises.get(login);
+    if (!r) return null;
+    if (Date.now() - r.ts > CFG.RECONNECT_TTL) { reprises.delete(login); return null; }
+    return r;
+  };
+
   /* ============================================================
    *  FRISE DES CATÉGORIES — ce qu'un live a traversé
    *  ------------------------------------------------------------
@@ -4787,6 +4876,11 @@ const TSE_GATE_MAX_CLICKS = 5;
            seule occasion de comparer deux relevés. Une fois `cache.set` passé,
            l'information n'existe plus nulle part. */
         noterBasculement(login, cache.get(login), entry);
+        // Le complément du précédent : lui exige le même identifiant de
+        // stream, celui-ci exige qu'il ait changé. Sa mémoire lui est propre
+        // (cf. derniersDirects) — le cache, lui, oublie le stream dès la
+        // coupure, et c'est justement ce qu'il faudrait retenir.
+        noterReprise(login, entry);
         // La MÊME observation, gardée en entier : le registre ci-dessus n'en
         // retient que le dernier pas, la frise en garde le chemin.
         suivreCategorie(login, entry);
@@ -8371,6 +8465,11 @@ const TSE_GATE_MAX_CLICKS = 5;
           roster:      roster.entries().length,
           mesures:     mesures.length,
           bascules:    [...basculements.keys()].filter(l => basculementFrais(l)).length,
+          /* Les reprises fraîches. À côté des basculements parce que c'est la
+             même espèce de nouvelle — et parce que leur écart dit quelque
+             chose : beaucoup de reprises pour peu de basculements, ce sont des
+             chaînes qui coupent, pas des chaînes qui changent de jeu. */
+          reprises:    [...reprises.keys()].filter(l => repriseFraiche(l)).length,
           cache:       cache.size,
         },
         /* LA FRISE, AVANT TOUTE REQUÊTE. `reseau.chapitres` ne compte que ce
@@ -8702,6 +8801,16 @@ const TSE_GATE_MAX_CLICKS = 5;
   const updateFreshness = (card) => {
     const ts = card.dataset.tseStartedAt;
     if (!ts) { card.classList.remove('tse-fresh'); return; }
+    /* UNE REPRISE N'EST PAS UN DÉBUT. Le compteur est bien reparti de zéro,
+       mais le direct, lui, dure depuis des heures : allumer la barre violette
+       dirait « tu n'es pas en retard » à quelqu'un qui l'est complètement.
+       C'est le seul endroit du produit où un signal pouvait affirmer le
+       contraire de la vérité, et c'est pourquoi la suppression est ici plutôt
+       que dans l'affichage du badge. */
+    if (repriseFraiche(card.dataset.tseLogin)) {
+      card.classList.remove('tse-fresh');
+      return;
+    }
     const ageMin = (Date.now() - new Date(ts).getTime()) / 60_000;
     card.classList.toggle('tse-fresh', ageMin >= 0 && ageMin < CFG.FRESH_MAX_MIN);
   };
@@ -10940,6 +11049,24 @@ const TSE_GATE_MAX_CLICKS = 5;
         badges.unshift(badgeNoeud('tse-preview__badge--switch',
           phraseAvecFente(S.uiBadgeCategorySwitch(FENTE),
                           () => nomsEnGras([bascule.libelle || bascule.vers]))));
+      }
+
+      /* LA REPRISE, EN TÊTE ET DANS LE MÊME VERT. C'est la même espèce de
+         nouvelle que le basculement — « voilà ce qui vient de se passer sur ce
+         live » — et elle porte donc la classe `--switch`, qui est ce vert-là.
+         Pas de modificateur de couleur à elle : le scénario 60 exige que
+         chaque TYPE de badge ait une teinte distincte, et en inventer une
+         seconde pour la même famille de nouvelle irait contre ce qu'il
+         protège. La seconde classe `--reprise` ne porte aucune couleur ; elle
+         nomme la chose, pour le DOM et pour le banc.
+
+         Et elle passe DEVANT le basculement : une reprise explique la carte
+         tout entière — le compteur reparti de zéro, la barre « frais » qui ne
+         s'allume pas — là où un changement de catégorie n'explique qu'une
+         ligne. */
+      if (repriseFraiche(login)) {
+        badges.unshift(badgeNoeud('tse-preview__badge--switch tse-preview__badge--reprise',
+                                  S.uiBadgeReprise));
       }
 
       /* Badge de subathon. Il se pose APRÈS la nouvelle du basculement et
