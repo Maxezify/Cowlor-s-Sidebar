@@ -1692,24 +1692,20 @@ const TSE_GATE_MAX_CLICKS = 5;
     @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
 
     
-    .side-nav-card[data-tse-subathon] {
-      position: relative;
-      isolation: isolate;
-      border-radius: 5px;
-    }
     
-    .tse-subathon-jour {
+    .tse-uptime > .tse-subathon-jour {
       display: inline-block;
-      margin-right: 5px;
-      padding: 0 5px;
-      border-radius: 999px;
-      font-size: 1.05rem;
+      margin-right: 4px;
+      padding: 0 3px;
+      border: 1px solid currentColor;
+      border-radius: 3px;
+      font-size: inherit;
       font-weight: 700;
-      line-height: 1.5;
-      vertical-align: 1px;
       
-      color: #2a0d05;
-      background: linear-gradient(140deg, #ffb37a, #ff5233);
+      line-height: 1;
+      
+      color: #ff8a5c;
+      background: none;
     }
     
     .side-nav-card[data-tse-subathon] .tse-uptime {
@@ -1731,55 +1727,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     @keyframes tse-subathon-braise { to { background-position: 300% 0; } }
 
-    @property --tse-subathon-ang {
-      syntax: '<angle>';
-      inherits: false;
-      initial-value: 0deg;
-    }
-    
-    .tse-subathon-anneau {
-      position: absolute;
-      inset: 0;
-      border-radius: 5px;
-      pointer-events: none;
-      z-index: 2;
-    }
-    @supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
-      
-      .tse-subathon-anneau {
-        padding: 1px;
-        background: conic-gradient(from var(--tse-subathon-ang, 0deg),
-          rgba(255, 122, 80, 0.3)   0deg,
-          rgba(255, 122, 80, 0.3) 190deg,
-          #ff8a5c                 268deg,
-          #ffe0c8                 312deg,
-          #ff5a3d                 342deg,
-          rgba(255, 122, 80, 0.3) 360deg);
-        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-                mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor;
-                mask-composite: exclude;
-        animation: tse-subathon-tour 4.5s linear infinite;
-      }
-    }
-    @keyframes tse-subathon-tour { to { --tse-subathon-ang: 360deg; } }
-
     
     @media (prefers-reduced-motion: reduce) {
       
-      .side-nav-card[data-tse-subathon] .tse-uptime,
-      .tse-subathon-anneau {
-        animation: none;
-      }
       .side-nav-card[data-tse-subathon] .tse-uptime {
+        animation: none;
         background: none;
         color: #ff8a5c;
-      }
-      
-      @supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
-        .tse-subathon-anneau {
-          background: rgba(255, 122, 80, 0.55);
-        }
       }
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
@@ -2175,6 +2129,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.45);
     }
     
+    .tse-preview__frise-part--flou + .tse-preview__frise-part {
+      box-shadow: none;
+    }
+    
     
     .tse-preview__frise--clips .tse-preview__frise-part {
       background-image:
@@ -2182,6 +2140,18 @@ const TSE_GATE_MAX_CLICKS = 5;
           rgba(0, 0, 0, 0.30) 0 3px, rgba(0, 0, 0, 0) 3px 6px),
         linear-gradient(180deg,
           rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
+    }
+    
+    .tse-preview__frise--clips .tse-preview__frise-part--flou {
+      background-image:
+        repeating-linear-gradient(135deg,
+          rgba(0, 0, 0, 0.30) 0 3px, rgba(0, 0, 0, 0) 3px 6px),
+        linear-gradient(180deg,
+          rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%),
+        linear-gradient(90deg,
+          transparent 0 calc(100% - var(--tse-flou, 0%)),
+          var(--tse-flou-de, transparent) calc(100% - var(--tse-flou, 0%)),
+          var(--tse-flou-vers, transparent) 100%);
     }
     
     .tse-preview__frise .tse-preview__frise-part--inconnu {
@@ -2211,8 +2181,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       background-image: repeating-linear-gradient(180deg,
         rgba(255, 255, 255, 0.34) 0 3px, rgba(255, 255, 255, 0) 3px 6px);
     }
+    
     .tse-preview__frise-nom {
-      flex: 1 1 auto;
+      flex: 0 1 auto;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -2222,12 +2193,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     
     .tse-preview__frise-fois {
       flex: 0 0 auto;
+      margin-left: -3px;
       font-size: 10.5px;
       color: rgba(255, 255, 255, 0.34);
       font-variant-numeric: tabular-nums;
     }
+    
     .tse-preview__frise-duree {
       flex: 0 0 auto;
+      margin-left: auto;
       color: rgba(255, 255, 255, 0.52);
       font-variant-numeric: tabular-nums;
     }
@@ -2360,7 +2334,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     for (const p of chapitresVod) {
       const dernier = bruts[bruts.length - 1];
       if (dernier && dernier.jeu === p.jeu) continue;
-      bruts.push({ jeu: p.jeu, libelle: p.libelle, debut: p.debut });
+
+      bruts.push({ jeu: p.jeu, libelle: p.libelle, debut: p.debut, flou: p.flou });
     }
     for (const o of f.segments) {
       const dernier = bruts[bruts.length - 1];
@@ -2378,9 +2353,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     const segments = bruts.map((s, i) => {
-      const fin = i + 1 < bruts.length ? bruts[i + 1].debut : maintenant;
-      return { jeu: s.jeu, libelle: s.libelle, debut: s.debut, fin,
-               dureeMs: Math.max(0, fin - s.debut),
+      const suivant = i + 1 < bruts.length ? bruts[i + 1] : null;
+      const fin = suivant ? suivant.debut : maintenant;
+      const dureeMs = Math.max(0, fin - s.debut);
+      const flouFin = suivant && suivant.flou > 0
+        ? Math.min(suivant.flou, dureeMs) : 0;
+      return { jeu: s.jeu, libelle: s.libelle, debut: s.debut, fin, dureeMs,
+               flouFin, versJeu: flouFin ? suivant.jeu : null,
                encours: i + 1 === bruts.length };
     });
 
@@ -5097,8 +5076,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   };
 
   const appliquerSubathon = (card, sub) => {
-    const anneau = () => card.querySelector(':scope > .tse-subathon-anneau');
-    const puce   = () => card.querySelector('.tse-uptime > .tse-subathon-jour');
+    const puce = () => card.querySelector('.tse-uptime > .tse-subathon-jour');
 
     const retirerPuce = () => {
       const p = puce();
@@ -5111,18 +5089,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!sub) {
       delete card.dataset.tseSubathon;
       delete card.dataset.tseSubathonDay;
-      anneau()?.remove();
       retirerPuce();
       return;
     }
     card.dataset.tseSubathon = 'true';
-    if (!anneau()) {
-      const a = document.createElement('span');
-      a.className = 'tse-subathon-anneau';
-
-      a.setAttribute('aria-hidden', 'true');
-      card.appendChild(a);
-    }
 
     if (!Number.isInteger(sub.jour)) {
       delete card.dataset.tseSubathonDay;
@@ -5482,9 +5452,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       points.sort((x, y) => x.debut - y.debut);
 
       const segments = [];
+      let precedent = null;
       for (const p of points) {
         const dernier = segments[segments.length - 1];
-        if (!dernier || dernier.jeu !== p.jeu) segments.push(p);
+        if (!dernier || dernier.jeu !== p.jeu) {
+          segments.push(dernier ? { ...p, flou: p.debut - precedent.debut } : p);
+        }
+        precedent = p;
       }
       return segments;
     };
@@ -5960,13 +5934,21 @@ const TSE_GATE_MAX_CLICKS = 5;
       return li;
     };
 
-    const frisePart = (poids, couleur, modif) => {
+    const frisePart = (poids, couleur, modif, flou) => {
       const d = document.createElement('div');
       d.className = 'tse-preview__frise-part' + (modif ? ' ' + modif : '');
 
       d.style.flex = `${poids} 0 0`;
 
       if (couleur) d.style.backgroundColor = couleur;
+
+      if (flou && flou.part > 0) {
+        d.classList.add('tse-preview__frise-part--flou');
+        d.style.setProperty('--tse-flou', flou.part.toFixed(2) + '%');
+
+        d.style.setProperty('--tse-flou-de', flou.de);
+        d.style.setProperty('--tse-flou-vers', flou.vers);
+      }
       return d;
     };
 
@@ -6041,8 +6023,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
       for (const seg of f.segments) {
 
+        const flou = seg.flouFin && seg.dureeMs
+          ? { part: Math.min(100, seg.flouFin / seg.dureeMs * 100),
+              de:   couleurs.get(seg.jeu)     || 'rgba(255,255,255,0.22)',
+              vers: couleurs.get(seg.versJeu) || 'rgba(255,255,255,0.22)' }
+          : null;
+
         barre.appendChild(frisePart(seg.dureeMs, couleurs.get(seg.jeu),
-          seg.encours ? 'tse-preview__frise-part--encours' : ''));
+          seg.encours ? 'tse-preview__frise-part--encours' : '', flou));
       }
 
       barre.style.setProperty('--tse-parts', String(barre.childElementCount));
@@ -7918,7 +7906,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const scrubClone = (el) => {
     el.querySelectorAll('.tse-uptime, .tse-viewers, .tse-collab-badge,'
-                        + ' .tse-subathon-anneau, [data-tse-extra-row]')
+                        + ' [data-tse-extra-row]')
       .forEach(n => n.remove());
     const strip = (node) => {
       for (const attr of [...node.attributes]) {
