@@ -1692,49 +1692,39 @@ const TSE_GATE_MAX_CLICKS = 5;
     @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
 
     
+    .side-nav-card[data-tse-subathon-day] p[data-a-target="side-nav-title"] {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
     
-    .tse-uptime > .tse-subathon-jour {
+    .side-nav-card[data-tse-subathon-day] .tse-subathon-nom {
+      
+      min-width: 0;
+      
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .side-nav-card[data-tse-subathon-day] .tse-subathon-jour {
       display: inline-block;
-      margin-right: 4px;
-      padding: 0 3px;
+      margin-right: 2px;
+      padding: 1px 4px;
       border: 1px solid currentColor;
       border-radius: 3px;
-      font-size: inherit;
-      font-weight: 700;
-      
+      font-size: 10px;
+      font-weight: 600;
       line-height: 1;
       
       color: #ff8a5c;
       background: none;
+      
     }
-    
-    .side-nav-card[data-tse-subathon] .tse-uptime {
-      color: #ff8a5c;
-      font-weight: 700;
-    }
-    @supports (-webkit-background-clip: text) or (background-clip: text) {
-      .side-nav-card[data-tse-subathon] .tse-uptime {
-        color: transparent;
-        background: linear-gradient(100deg,
-          #ff5233   0%,
-          #ffd0b0  28%,
-          #ff3d2e  52%,
-          #ff5233  78%) 0 0 / 300% 100%;
-        -webkit-background-clip: text;
-        background-clip: text;
-        animation: tse-subathon-braise 6s linear infinite;
-      }
-    }
-    @keyframes tse-subathon-braise { to { background-position: 300% 0; } }
 
     
     @media (prefers-reduced-motion: reduce) {
       
-      .side-nav-card[data-tse-subathon] .tse-uptime {
-        animation: none;
-        background: none;
-        color: #ff8a5c;
-      }
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
       .side-nav-card.tse-sub .tse-sub-cat,
@@ -3499,13 +3489,44 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (el && el.textContent !== text) el.textContent = text;
   };
 
+  const bilanSection = { voie: null, vides: 0, parCartes: 0, aucune: 0 };
+
   const followedSection = () => {
+    const candidats = [];
+    const ajouter = (sec) => { if (sec && !candidats.includes(sec)) candidats.push(sec); };
     for (const el of document.querySelectorAll(DOM.followedSelector)) {
-      const sec = el.closest('.side-nav-section');
-      if (sec) return sec;
+      ajouter(el.closest('.side-nav-section'));
     }
-    return document.querySelector(`${DOM.sidebarRoot} ${DOM.followedHeaderSelector}`)
-      ?.closest('.side-nav-section') || null;
+    ajouter(document.querySelector(`${DOM.sidebarRoot} ${DOM.followedHeaderSelector}`)
+      ?.closest('.side-nav-section'));
+
+    const peuplee = candidats.find(sec => sec.querySelector('.side-nav-card'));
+    if (peuplee) {
+
+      if (candidats[0] !== peuplee) bilanSection.parCartes++;
+      bilanSection.voie = candidats[0] === peuplee ? 'libelle' : 'cartes';
+      return peuplee;
+    }
+
+    const native = [...document.querySelectorAll(
+      `${DOM.sidebarRoot} ${DOM.followedCardSelector}`)]
+      .map(a => a.closest('.side-nav-card'))
+      .find(c => c && !isSynthetic(c));
+    const parMarqueur = native?.closest('.side-nav-section') || null;
+    if (parMarqueur) {
+      bilanSection.voie = 'marqueur';
+      bilanSection.parCartes++;
+      return parMarqueur;
+    }
+
+    if (candidats.length) {
+      bilanSection.voie = 'libelle-vide';
+      bilanSection.vides++;
+      return candidats[0];
+    }
+    bilanSection.voie = null;
+    bilanSection.aucune++;
+    return null;
   };
 
   const loadingOverlay = (() => {
@@ -4697,6 +4718,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           decorees: cartes.filter(c => c.dataset.tseLogin).length,
           liens: nav ? nav.querySelectorAll('a[href^="/"]').length : 0,
         },
+
+        sectionSuivie: { ...bilanSection },
         langue: { interface: S.locale, page: LANG },
         mode: { global: !!state.globalMode },
         sondes: runDiagnostics(),
@@ -5041,21 +5064,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     return span;
   };
 
-  const ecrireUptime = (span, texte) => {
-    if (!span.firstElementChild) { setText(span, texte); return; }
-    const dernier = span.lastChild;
-    if (dernier && dernier.nodeType === 3) {
-      if (dernier.nodeValue !== ' ' + texte) dernier.nodeValue = ' ' + texte;
-    } else {
-      span.appendChild(document.createTextNode(' ' + texte));
-    }
-  };
-
   const renderUptime = (card, createdAt) => {
     const span = ensureUptimeSpan(card);
     if (!span) return;
     delete span.dataset.tseEnded;
-    ecrireUptime(span, formatUptime(createdAt));
+    setText(span, formatUptime(createdAt));
   };
 
   const removeUptime = (card) => {
@@ -5064,7 +5077,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const span = ensureUptimeSpan(card);
     if (!span) return;
     span.dataset.tseEnded = 'true';
-    ecrireUptime(span, S.uiUptimeEnded);
+    setText(span, S.uiUptimeEnded);
   };
 
   const refreshUptime = (card) => {
@@ -5072,44 +5085,57 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!ts) return;
     const span = card.querySelector('.tse-uptime');
     if (!span || span.dataset.tseEnded === 'true') return;
-    ecrireUptime(span, formatUptime(ts));
+    setText(span, formatUptime(ts));
   };
 
   const appliquerSubathon = (card, sub) => {
-    const puce = () => card.querySelector('.tse-uptime > .tse-subathon-jour');
+    const titre = () => card.querySelector('p[data-a-target="side-nav-title"]');
+    const nom   = () => card.querySelector(
+      'p[data-a-target="side-nav-title"] > .tse-subathon-nom');
+    const puce  = () => card.querySelector(
+      'p[data-a-target="side-nav-title"] > .tse-subathon-jour');
 
-    const retirerPuce = () => {
-      const p = puce();
-      if (!p) return;
-      const span = p.parentNode;
-      p.remove();
-      const reste = span.lastChild;
-      if (reste && reste.nodeType === 3) setText(span, reste.nodeValue.trim());
+    const defaire = () => {
+      puce()?.remove();
+      const n = nom();
+      if (!n) return;
+      const pere = n.parentNode;
+      while (n.firstChild) pere.insertBefore(n.firstChild, n);
+      n.remove();
     };
     if (!sub) {
       delete card.dataset.tseSubathon;
       delete card.dataset.tseSubathonDay;
-      retirerPuce();
+      defaire();
       return;
     }
     card.dataset.tseSubathon = 'true';
 
     if (!Number.isInteger(sub.jour)) {
       delete card.dataset.tseSubathonDay;
-      retirerPuce();
+      defaire();
       return;
     }
+    const p = titre();
+    if (!p) return;
     card.dataset.tseSubathonDay = String(sub.jour);
-    const span = card.querySelector('.tse-uptime');
-    if (!span) return;
-    let p = puce();
-    if (!p) {
-      p = document.createElement('span');
-      p.className = 'tse-subathon-jour';
-      span.insertBefore(p, span.firstChild);
+    let b = puce();
+    if (!b) {
+      b = document.createElement('span');
+      b.className = 'tse-subathon-jour';
+    }
+    let n = nom();
+    if (!n) {
+      n = document.createElement('span');
+      n.className = 'tse-subathon-nom';
+
+      for (const noeud of [...p.childNodes]) if (noeud !== b) n.appendChild(noeud);
+      p.insertBefore(n, p.firstChild);
     }
 
-    setText(p, S.uiSubathonShort(sub.jour));
+    if (b.parentNode !== p || b.previousSibling !== n) p.appendChild(b);
+
+    setText(b, S.uiSubathonShort(sub.jour));
   };
 
   const nativeViewersEl = (card) =>
@@ -5724,7 +5750,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       const card = document.querySelector(`.side-nav-card[data-tse-login="${login}"]`);
       if (card) {
         const p = card.querySelector('p[data-a-target="side-nav-title"]');
-        const name = (p?.getAttribute('title') || p?.textContent || '').trim();
+
+        const enveloppe = p?.querySelector(':scope > .tse-subathon-nom');
+        const name = (p?.getAttribute('title')
+                      || (enveloppe || p)?.textContent || '').trim();
         if (name) return name;
       }
       const fb = (fallback || '').trim();
@@ -7906,7 +7935,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const scrubClone = (el) => {
     el.querySelectorAll('.tse-uptime, .tse-viewers, .tse-collab-badge,'
-                        + ' [data-tse-extra-row]')
+                        + ' .tse-subathon-jour, [data-tse-extra-row]')
       .forEach(n => n.remove());
     const strip = (node) => {
       for (const attr of [...node.attributes]) {
