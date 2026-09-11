@@ -225,6 +225,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
       uiSubathonShort:           (n) => `J${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · jour ${n}`,
       uiTrailOthers:             (n) => `+ ${n} autres catégories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
@@ -303,6 +304,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
       uiSubathonShort:           (n) => `D${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · day ${n}`,
       uiTrailOthers:             (n) => `+ ${n} other categories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
@@ -380,6 +382,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
       uiSubathonShort:           (n) => `T${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · Tag ${n}`,
       uiTrailOthers:             (n) => `+ ${n} weitere Kategorien`,
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
@@ -457,6 +460,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
       uiSubathonShort:           (n) => `D${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subatón' : `Subatón · día ${n}`,
       uiTrailOthers:             (n) => `+ ${n} categorías más`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
@@ -534,6 +538,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
       uiSubathonShort:           (n) => `D${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · dia ${n}`,
       uiTrailOthers:             (n) => `+ ${n} outras categorias`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
@@ -611,6 +616,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
       uiSubathonShort:           (n) => `G${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · giorno ${n}`,
       uiTrailOthers:             (n) => `+ altre ${n} categorie`,
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
       uiBadgeCostreamHost:       'Stream host',
@@ -688,6 +694,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
       uiSubathonShort:           (n) => `D${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · dzień ${n}`,
       uiTrailOthers:             (n) => `+ ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'inne kategorie' : 'innych kategorii'}`,
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
       uiBadgeCostreamHost:       'Kanał gospodarza',
@@ -765,6 +772,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
       uiSubathonShort:           (n) => `Д${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Сабатон' : `Сабатон · день ${n}`,
       uiTrailOthers:             (n) => `+ ещё ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'категории' : 'категорий'}`,
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
       uiBadgeCostreamHost:       'Канал ведущего',
@@ -842,6 +850,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                '進行中',
       uiTrailTruncated:          '冒頭は未保持',
       uiSubathonShort:           (n) => `${n}日目`,
+      uiBadgeSubathon:           (n) => n === null ? 'サブアソン' : `サブアソン · ${n}日目`,
       uiTrailOthers:             (n) => `ほか ${n} カテゴリー`,
       uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
       uiBadgeCostreamHost:       'ホスト配信',
@@ -919,6 +928,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                '进行中',
       uiTrailTruncated:          '开头未保留',
       uiSubathonShort:           (n) => `第${n}天`,
+      uiBadgeSubathon:           (n) => n === null ? '订阅马拉松' : `订阅马拉松 · 第${n}天`,
       uiTrailOthers:             (n) => `另外 ${n} 个分类`,
       uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
       uiBadgeCostreamHost:       '主办直播',
@@ -1692,6 +1702,30 @@ const TSE_GATE_MAX_CLICKS = 5;
     @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
 
     
+    @keyframes tse-subathon-teinte {
+      0% { color: #ff8f8f; }
+      12.5% { color: #ffe38f; }
+      25% { color: #c7ff8f; }
+      37.5% { color: #8fffb4; }
+      50% { color: #8ffdff; }
+      62.5% { color: #8fabff; }
+      75% { color: #c78fff; }
+      87.5% { color: #ff8fe3; }
+      100% { color: #ff8f8f; }
+    }
+    @keyframes tse-subathon-badge {
+      0% { color: #ff8f8f; background-color: rgba(214, 0, 0, 0.24); }
+      12.5% { color: #ffe38f; background-color: rgba(255, 230, 154, 0.24); }
+      25% { color: #c7ff8f; background-color: rgba(216, 255, 177, 0.24); }
+      37.5% { color: #8fffb4; background-color: rgba(177, 255, 203, 0.24); }
+      50% { color: #8ffdff; background-color: rgba(177, 254, 255, 0.24); }
+      62.5% { color: #8fabff; background-color: rgba(0, 57, 230, 0.24); }
+      75% { color: #c78fff; background-color: rgba(88, 0, 175, 0.24); }
+      87.5% { color: #ff8fe3; background-color: rgba(236, 0, 177, 0.24); }
+      100% { color: #ff8f8f; background-color: rgba(214, 0, 0, 0.24); }
+    }
+
+    
     .side-nav-card[data-tse-subathon-day] p[data-a-target="side-nav-title"] {
       display: flex;
       align-items: center;
@@ -1717,7 +1751,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       font-weight: 600;
       line-height: 1;
       
-      color: #ff8a5c;
+      color: #83f9fb;
+      
+      animation: tse-subathon-teinte 12s linear infinite;
       background: none;
       
     }
@@ -1725,6 +1761,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     
     @media (prefers-reduced-motion: reduce) {
       
+      .tse-subathon-jour,
+      .tse-preview__badge--subathon {
+        animation: none;
+      }
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
       .side-nav-card.tse-sub .tse-sub-cat,
@@ -2045,6 +2085,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     
     .tse-preview__badge--switch   { background: rgba(120, 215, 60, 0.24); color: #a8e86b; }
     
+    
+    .tse-preview__badge--subathon {
+      background: rgba(10, 250, 255, 0.26);
+      color: #83f9fb;
+      animation: tse-subathon-badge 12s linear infinite;
+    }
+    
     .tse-preview__badge-mark      { flex: 0 0 auto; line-height: 1; }
     
     .tse-preview__sponsor-logo {
@@ -2149,14 +2196,26 @@ const TSE_GATE_MAX_CLICKS = 5;
         rgba(255, 255, 255, 0.16) 0 3px, rgba(255, 255, 255, 0.04) 3px 6px);
     }
     
+    .tse-preview__frise .tse-preview__frise-part--inconnu.tse-preview__frise-part--flou {
+      background-image:
+        repeating-linear-gradient(45deg,
+          rgba(255, 255, 255, 0.16) 0 3px, rgba(255, 255, 255, 0.04) 3px 6px),
+        linear-gradient(90deg,
+          transparent 0 calc(100% - var(--tse-flou, 0%)),
+          var(--tse-flou-de, transparent) calc(100% - var(--tse-flou, 0%)),
+          var(--tse-flou-vers, transparent) 100%);
+    }
+    
     .tse-preview__frise-liste { margin: 9px 0 0; padding: 0; list-style: none; }
+    
     .tse-preview__frise-ligne {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       gap: 8px;
       font-size: 12px;
       line-height: 1.6;
     }
+    .tse-preview__frise-ligne > .tse-preview__frise-puce { align-self: center; }
     
     .tse-preview__frise-puce {
       flex: 0 0 auto;
@@ -2653,6 +2712,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   }
 
   const getChannelId = (login) => cache.get(login)?.id ?? null;
+
+  const subathonDe = (login) => cache.get(login)?.subathon ?? null;
 
   const getFreshChannel = (login) => {
     const hit = cache.get(login);
@@ -5089,6 +5150,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   };
 
   const appliquerSubathon = (card, sub) => {
+
+    if (sub === undefined) return;
     const titre = () => card.querySelector('p[data-a-target="side-nav-title"]');
     const nom   = () => card.querySelector(
       'p[data-a-target="side-nav-title"] > .tse-subathon-nom');
@@ -6048,7 +6111,14 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       barre.setAttribute('aria-hidden', 'true');
       if (f.inconnuMs) {
-        barre.appendChild(frisePart(f.inconnuMs, null, 'tse-preview__frise-part--inconnu'));
+
+        const prem = f.segments[0];
+        const flouInc = f.source === 'clips' && prem
+          ? { part: 100, de: 'transparent',
+              vers: couleurs.get(prem.jeu) || 'rgba(255,255,255,0.22)' }
+          : null;
+        barre.appendChild(frisePart(f.inconnuMs, null,
+          'tse-preview__frise-part--inconnu', flouInc));
       }
       for (const seg of f.segments) {
 
@@ -6068,6 +6138,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       const liste = document.createElement('ul');
       liste.className = 'tse-preview__frise-liste';
 
+      const approche = (t) => (f.source === 'clips' ? '~' : '') + t;
+
       if (f.inconnuMs) {
 
         liste.appendChild(friseLigne(
@@ -6080,7 +6152,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       for (const c of montrees) {
         liste.appendChild(friseLigne(
           c.libelle,
-          formatDuree(c.dureeMs) + (c.encours ? ` · ${S.uiTrailNow}` : ''),
+          approche(formatDuree(c.dureeMs)) + (c.encours ? ` · ${S.uiTrailNow}` : ''),
           couleurs.get(c.jeu),
           c.encours ? 'encours' : '',
           c.fois));
@@ -6088,7 +6160,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (repliees.length) {
         liste.appendChild(friseLigne(
           S.uiTrailOthers(repliees.length),
-          formatDuree(repliees.reduce((n, c) => n + c.dureeMs, 0)),
+          approche(formatDuree(repliees.reduce((n, c) => n + c.dureeMs, 0))),
           null, 'autres'));
       }
       bloc.appendChild(liste);
@@ -6122,6 +6194,12 @@ const TSE_GATE_MAX_CLICKS = 5;
         badges.unshift(badgeNoeud('tse-preview__badge--switch',
           phraseAvecFente(S.uiBadgeCategorySwitch(FENTE),
                           () => nomsEnGras([bascule.libelle || bascule.vers]))));
+      }
+
+      const sub = subathonDe(login);
+      if (sub) {
+        badges.push(badgeNoeud('tse-preview__badge--subathon',
+                               S.uiBadgeSubathon(sub.jour)));
       }
 
       const moisAbo = subs.monthsFor(login);
