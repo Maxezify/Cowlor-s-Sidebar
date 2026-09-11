@@ -1687,6 +1687,84 @@ the first pass**: the redirect served by the harness in scenario 75, which
 yields an opaque origin under Blink, and the window exit in scenario 76, whose
 mouse event ordering is not guaranteed to be identical.
 
+### The hover intent delay (v3.95)
+
+`mouseenter` called `open()` with no detour. Running down the list on the way
+somewhere else therefore opened a preview **per card crossed**, each costing a
+render, a `TsePreview` request and an overwritten journal. On an expanded
+sidebar — and it always is, the extension unfolds "Show more" on every page load
+— an ordinary gesture lit up a dozen. The bench puts a number on it: five cards
+crossed, **five requests**.
+
+`PREVIEW_IFRAME_DELAY` covered none of that, whatever a stray comment claimed:
+it only holds back the iframe, and it only arms once the panel is open and the
+request has gone.
+
+#### Two hundred milliseconds, and the number is derived
+
+A sidebar row is **42 px** — measured on Twitch's geometry, the one `CSS_TWITCH`
+reconstructs for the Store captures. A pointer running down at speed *v* spends
+42/*v* on each card, so the preview is filtered for any traversal faster than
+42 / 0.2 s = **210 px/s**. Two hundred and ten pixels per second is five rows a
+second — already a slow gesture, and any movement that is *going* somewhere is
+far beyond it.
+
+And no more than that, because the cost is paid in the other direction: past
+roughly a quarter of a second, an interface response stops being felt as
+immediate. 150 ms would let slow traversals through; 300 would be noticed.
+
+#### Four ways to abandon the wait, and they break separately
+
+A card is "pending" between the pointer entering it and the preview opening.
+That new state required revisiting **every** cancellation path, because each
+guarded itself with `card !== currentCard` — a card still pending was recognised
+by none of them:
+
+| Path | What would have happened without the rework |
+| --- | --- |
+| pointer leaves the card | the timer ran on, the preview opened **after** the departure |
+| pointer leaves the window | same, and nothing would ever have come to close it |
+| tab goes to the background | a preview, and a request, on a screen nobody is looking at |
+| card leaves the DOM | a timer holding a dead card |
+
+The first is the worst of the four: it opened the preview **later** than the
+defect being fixed, and on a card the user is no longer pointing at.
+
+#### What the report says about it
+
+The panel's `SURVOL — DÉLAI D'INTENTION / HOVER INTENT` block carries `armes`
+(pointer entries) and `ouverts` (those that held the 200 ms). Their difference
+is the number of previews — and requests — the filter spared; their ratio is the
+only way to learn, on real machines, whether the number is right: `ouverts` at
+zero would say it is too long, `ouverts == armes` that it does nothing.
+
+#### Scenario 94, and what it does not prove
+
+It hovers with a **real pointer** (`page.mouse.move`) rather than fabricated
+`MouseEvent`s: it is the browser that must decide which cards are entered and
+left. The price was paid immediately — the loading veil covers the sidebar, a
+real pointer does not go through it, and the first five assertions were passing
+without having hovered anything at all. The veil has to lift first.
+
+Two guards, on the other hand, are **out of the bench's reach**, and that is
+written into the scenario rather than papered over with a complacent assertion.
+The wait is protected against React reconciliation by the `mouseleave`
+anti-ghost test and by a `card === pendingCard` on entry. Yet, measured on this
+engine, with the pointer motionless at the centre of a card:
+
+| DOM rearrangement | Events emitted |
+| --- | --- |
+| `parentElement.appendChild(card)` | *none* |
+| `remove()` then `append()`, same task | *none* |
+| `remove()`, two frames, `append()` | `enter` only |
+| `display:none` then back | `leave` then `enter` |
+
+It is the **first** form that Twitch and `applySorting` produce, and it emits
+nothing: there is no ghost to absorb. Both guards stay — they cost one line each
+and the fourth form does exist — but no assertion will claim to exercise them.
+The same measurement shows that scenario 76's "a card detached and reattached
+does not close the preview" touches nothing either.
+
 ## The category trail (v3.70)
 
 Twitch shows the sequence of categories a stream has gone through **nowhere**
@@ -3647,7 +3725,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 93 scenarios, 873 assertions |
+| `npm test` | the Playwright harness: 94 scenarios, 881 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -3667,9 +3745,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 803 KB | 332 KB | 3,024 → **2** |
+| `content.js` | 803 KB | 332 KB | 3,046 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 54 KB | 27 KB | 72 → **0** |
+| `panneau.js` | 54 KB | 27 KB | 73 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1001 KB** | **463 KB** | **−54 %** |

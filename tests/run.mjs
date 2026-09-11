@@ -4927,16 +4927,33 @@ titre('59. Aperçu — ce que l\'interstitielle disait, le badge le dit maintena
        && marques[2].classe === 'tse-preview__badge-mark' && marques[2].texte === '⚠️'
        && marques[0].muet === 'true' && marques[2].muet === 'true',
        JSON.stringify(marques));
+    /* ATTENDRE LA FERMETURE, PUIS LA RÉOUVERTURE, et pas seulement le badge.
+       Le popup est un singleton : il reste dans le document, invisible, avec
+       les badges de la carte précédente. « il existe un badge CCL » était donc
+       vrai AVANT que la carte suivante n'ait rendu quoi que ce soit, et cette
+       attente-là se satisfaisait du badge de la carte d'avant. Elle passait par
+       chance tant que l'aperçu s'ouvrait dans l'instant ; le délai d'intention
+       de la 3.95 a fait apparaître ce qu'elle mesurait vraiment. Le repère
+       juste est la VISIBILITÉ, que open() ne pose qu'après avoir reconstruit
+       toute la rangée de badges. */
     await unhoverCard(page, 0);
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
 
     await hoverCard(page, 1);
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 5000);
     await attendre(page, () => !!document.querySelector('.tse-preview__badge--ccl'), 5000);
     const deux = await badgeCcl(page);
     ok('deux étiquettes tiennent dans un seul badge',
        !!deux && deux.texte === 'Jeux d\'argent · Thèmes sexuels', JSON.stringify(deux));
     await unhoverCard(page, 1);
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
 
     await hoverCard(page, 2);
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 5000);
     await attendre(page, () => !!document.querySelector('.tse-preview__badge--ccl'), 5000);
     const trois = await badgeCcl(page);
     // Le point qui compte : « UneEtiquetteQueTwitchAjouteraUnJour » dans une
@@ -4944,6 +4961,8 @@ titre('59. Aperçu — ce que l\'interstitielle disait, le badge le dit maintena
     ok('une étiquette inconnue passe au libellé générique, jamais son identifiant',
        !!trois && trois.texte === 'Contenu classifié', JSON.stringify(trois));
     await unhoverCard(page, 2);
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
 
     await hoverCard(page, 3);
     await wait(page, 1500);
@@ -8136,7 +8155,7 @@ titre('78. Aperçu — la frise des catégories traversées');
 
   /* Deux durées franchement différentes, pour que la proportion se mesure. */
   await basculer('Hades II');
-  await wait(page, 450);
+  await wait(page, 1200);
   await basculer('Overwatch');
   await wait(page, 120);
   await survoler();
@@ -8165,8 +8184,15 @@ titre('78. Aperçu — la frise des catégories traversées');
      f.lignes[0].inconnu === true && /^\d+h\d\d$|^\d+m$/.test(f.lignes[0].duree),
      JSON.stringify(f.lignes[0]));
   /* LA PROPORTION, ÉPROUVÉE SUR DES DURÉES QU'ON A IMPOSÉES. Hadès II a duré
-     450 ms de test, Overwatch 120 : le rapport doit se retrouver dans les
-     largeurs, sans quoi la barre serait un ornement plutôt qu'une mesure. La
+     1 200 ms de test, Overwatch 120 : le rapport doit se retrouver dans les
+     largeurs, sans quoi la barre serait un ornement plutôt qu'une mesure.
+
+     POURQUOI 1 200 ET NON 450, qui suffisait avant la 3.95 : le dernier
+     segment est « en cours », donc son poids se calcule AU RENDU — et le rendu
+     n'arrive plus qu'après le délai d'intention. Overwatch pèse désormais ses
+     120 ms plus les 200 du délai, soit près du triple de ce qu'on croyait lui
+     donner. L'écart imposé doit rester franc devant cette latence, sinon c'est
+     elle que l'assertion mesure. La
      première rédaction de cette assertion attendait « le plus long est le
      premier » — c'était faux de MON propre test : le premier segment ne dure
      que le temps qui sépare la première observation du premier basculement,
@@ -11256,6 +11282,196 @@ titre('93. Le subathon dans l\'aperçu — un badge, un arc-en-ciel, et pas un c
   }
 }
 
+titre('94. L\'aperçu au survol — un délai d\'intention, et ce qu\'il filtre');
+{
+  /* ── CE QUE CE SCÉNARIO GARDE ────────────────────────────────────────────
+     `mouseenter` appelait `open()` sans détour. Descendre la liste pour aller
+     ailleurs ouvrait donc un aperçu PAR CARTE FRANCHIE, chacun payé d'un
+     rendu, d'une requête TsePreview et d'un journal écrasé. Le délai
+     d'intention de la 3.95 répare ça, et ce scénario tient les quatre
+     comportements qui le composent — parce qu'ils se cassent séparément.
+
+     LE POINTEUR EST UN VRAI POINTEUR. Les autres scénarios fabriquent des
+     MouseEvent à la main, ce qui suffit tant qu'on regarde ce que fait un
+     handler. Ici c'est le NAVIGATEUR qui doit décider quelles cartes sont
+     entrées et lesquelles sont quittées, et dans quel ordre — un événement
+     fabriqué court-circuiterait précisément la mécanique qu'on éprouve.
+     D'où `page.mouse.move`, et des coordonnées relevées sur le rendu. */
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+    window.__fx = {};
+    for (const l of ['un', 'deux', 'trois', 'quatre', 'cinq']) {
+      window.__fx[l] = { id: 'i-' + l, createdAt: h(90), viewers: 500,
+                         game: 'Just Chatting', tags: [] };
+      window.__addCard(l, 'Discussions', '500');
+    }
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
+  /* ATTENDRE QUE LE VOILE SE LÈVE, et ce n'est pas une précaution de confort :
+     le voile de chargement couvre la barre, et un VRAI pointeur ne traverse
+     pas un élément posé par-dessus. Tant qu'il est là, aucune carte ne reçoit
+     d'entrée — le scénario passait donc ses cinq premières assertions sans
+     avoir rien survolé du tout. Un MouseEvent fabriqué, lui, aurait ignoré le
+     voile et n'aurait rien appris. C'est le prix du vrai pointeur, et il se
+     paie une fois. */
+  await attendre(page, () => !document.body.classList.contains('tse-loading'), 8000);
+
+  const centres = await page.evaluate(() =>
+    [...document.querySelectorAll('.side-nav-card')].map((c) => {
+      const r = c.getBoundingClientRect();
+      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+    }));
+  // Un point FRANCHEMENT hors de la liste, pour poser et reposer le pointeur
+  // entre deux épreuves sans frôler une carte au passage.
+  const ailleurs = { x: 900, y: 40 };
+
+  const visible = () => page.evaluate(() =>
+    !!document.querySelector('.tse-preview[data-tse-visible="true"]'));
+  const survol = () => page.evaluate(() => window.tse.panneau.rapport().survol);
+  const demandes = () => page.evaluate(() =>
+    window.__calls.filter(c => (c.names || []).includes('TsePreview')).length);
+  const remiseAZero = () => page.evaluate(() => { window.__calls.length = 0; });
+
+  await page.mouse.move(ailleurs.x, ailleurs.y);
+  await remiseAZero();
+
+  /* ── LA TRAVERSÉE ────────────────────────────────────────────────────────
+     Soixante millisecondes par carte : c'est ce qu'un pointeur passe sur une
+     rangée de 42 px lorsqu'il descend à 700 px/s, soit un geste ordinaire.
+     Bien en deçà des 200 ms du délai, donc rien ne doit s'ouvrir — et c'est
+     la première fois qu'on le demande. */
+  const vuPendant = [];
+  for (const c of centres) {
+    await page.mouse.move(c.x, c.y);
+    await wait(page, 60);
+    /* RELEVÉ PENDANT, ET PAS SEULEMENT APRÈS. La première forme de cette
+       assertion regardait l'écran une fois la traversée finie, où l'aperçu
+       s'était de toute façon refermé : elle survivait au défaut qu'elle était
+       censée décrire. Ce que l'utilisateur voit, c'est la série de battements
+       PENDANT le geste ; c'est donc elle qu'il faut relever. */
+    vuPendant.push(await visible());
+  }
+  await page.mouse.move(ailleurs.x, ailleurs.y);
+  await wait(page, 600);          // largement au-delà du délai
+
+  ok('traverser la liste n\'ouvre aucun aperçu, pas même le temps d\'un battement',
+     vuPendant.every(v => v === false) && (await visible()) === false,
+     JSON.stringify(vuPendant));
+  /* L'ASSERTION QUI COMPTE VRAIMENT. Un aperçu qu'on n'affiche pas mais dont
+     on a quand même payé la requête n'aurait rien réparé : le défaut était
+     autant une dépense qu'une gêne. */
+  ok('…et n\'émet aucune requête d\'aperçu', (await demandes()) === 0,
+     `${await demandes()} requête(s) TsePreview`);
+  const apresTraversee = await survol();
+  ok('…ce que le rapport dit en toutes lettres',
+     apresTraversee.armes >= 5 && apresTraversee.ouverts === 0
+     && apresTraversee.delaiMs > 0,
+     JSON.stringify(apresTraversee));
+
+  /* ── L'INTENTION ─────────────────────────────────────────────────────────
+     L'autre moitié du contrat, et celle qu'un délai trop long casserait sans
+     qu'aucune des assertions précédentes ne bronche. */
+  await page.mouse.move(centres[1].x, centres[1].y);
+  await attendre(page,
+    () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  ok('une carte tenue sous le pointeur ouvre bien l\'aperçu', await visible());
+  ok('…et c\'est elle, et elle seule, qui a coûté la requête',
+     (await demandes()) >= 1 && (await survol()).ouverts === 1,
+     JSON.stringify({ demandes: await demandes(), survol: await survol() }));
+
+  /* ── LE DÉPART PENDANT L'ATTENTE ─────────────────────────────────────────
+     LE PIÈGE, et il a bien failli être posé. Le handler de sortie se gardait
+     par `card !== currentCard` : sur une carte encore en attente, il ne
+     reconnaissait rien et laissait le minuteur courir jusqu'au bout. L'aperçu
+     se serait ouvert APRÈS le départ du pointeur — plus tard que le défaut
+     qu'on répare, et sur une carte que l'utilisateur ne désigne plus. */
+  await page.mouse.move(ailleurs.x, ailleurs.y);
+  await attendre(page,
+    () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  const avantDepart = (await survol()).ouverts;
+  await page.mouse.move(centres[3].x, centres[3].y);
+  await wait(page, 100);          // la moitié du délai : l'attente est en cours
+  await page.mouse.move(ailleurs.x, ailleurs.y);
+  await wait(page, 700);          // trois fois et demie le délai
+  ok('repartir pendant l\'attente n\'ouvre rien, ni maintenant ni plus tard',
+     (await visible()) === false && (await survol()).ouverts === avantDepart,
+     JSON.stringify(await survol()));
+
+  /* ── LA SORTIE DE LA FENÊTRE PENDANT L'ATTENTE ───────────────────────────
+     Le troisième chemin d'annulation, et il ne passe pas par la carte : c'est
+     le `mouseleave` de <html>, celui qui ne se produit que lorsque le pointeur
+     quitte vraiment la page. Sans lui, un minuteur armé survivrait au pointeur
+     qui l'a armé — plus aucun événement ne viendrait, et l'aperçu s'ouvrirait
+     sur un écran que personne ne regarde.
+
+     ICI L'ÉVÉNEMENT EST POSÉ, ET C'EST LA SEULE FAÇON. Ailleurs dans ce
+     scénario le pointeur est un vrai pointeur ; pas pour cette épreuve-là,
+     parce qu'elle est irreproductible autrement. `mouse.move(-8, y)` fait
+     dispatcher au navigateur un `mousemove` À CETTE POSITION : la dernière
+     position connue devient extérieure, la sortie de la carte se voit donc
+     toute seule, et le handler de <html> n'a plus rien à rattraper — mesuré,
+     le mutant qui le vide passe ce test sans broncher. Le défaut réel est
+     l'inverse : sur une machine à deux écrans, le curseur part sur l'écran de
+     gauche et la page ne reçoit PLUS AUCUN mousemove, si bien que la dernière
+     position connue est encore sur la carte. C'est cet état-là qu'on pose —
+     le signal que le navigateur envoie, comme on pose `visibilitychange`
+     juste en dessous. */
+  const avantSortie = (await survol()).ouverts;
+  await page.mouse.move(centres[4].x, centres[4].y);
+  await wait(page, 60);           // l'attente court, bien en deçà du délai
+  await page.evaluate(() =>
+    document.documentElement.dispatchEvent(new MouseEvent('mouseleave')));
+  await wait(page, 700);
+  ok('quitter la fenêtre pendant l\'attente ne laisse rien s\'ouvrir',
+     (await visible()) === false && (await survol()).ouverts === avantSortie,
+     JSON.stringify(await survol()));
+
+  /* ── L'ONGLET QUI PASSE EN ARRIÈRE-PLAN PENDANT L'ATTENTE ────────────────
+     Le quatrième chemin. Un minuteur armé ne doit pas ouvrir un aperçu — ni
+     partir en requête — sur un onglet que personne ne regarde plus. On pose le
+     SIGNAL que le navigateur enverrait ; c'est lui que l'extension lit. */
+  const cacher = (p, c) => p.evaluate((v) => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => v });
+    Object.defineProperty(document, 'visibilityState',
+      { configurable: true, get: () => (v ? 'hidden' : 'visible') });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, c);
+  const avantCache = (await survol()).ouverts;
+  await page.mouse.move(centres[2].x, centres[2].y);
+  await wait(page, 60);
+  await cacher(page, true);
+  await wait(page, 700);
+  ok('un onglet qui s\'efface pendant l\'attente n\'ouvre rien non plus',
+     (await visible()) === false && (await survol()).ouverts === avantCache,
+     JSON.stringify(await survol()));
+  await cacher(page, false);
+
+  /* ── CE QUE CE SCÉNARIO NE PROUVE PAS, ET POURQUOI ───────────────────────
+     L'attente est aussi protégée contre la RÉCONCILIATION REACT : une carte
+     déplacée sous un pointeur immobile ne doit ni annuler le minuteur ni le
+     réarmer. Deux gardes le tiennent — le test anti-fantôme du `mouseleave`,
+     partagé avec l'aperçu déjà ouvert, et le `card === pendingCard` de
+     l'entrée.
+
+     Aucun des deux n'est éprouvé ici, et ce n'est pas un oubli : ils sont
+     INATTEIGNABLES depuis ce banc. Mesuré, sur ce moteur, pointeur immobile
+     au centre d'une carte :
+
+       parentElement.appendChild(carte)   → aucun événement
+       remove() puis append() même tâche  → aucun événement
+       remove(), deux images, append()    → « enter » seul
+       display:none puis retour           → « leave » puis « enter »
+
+     Or c'est la PREMIÈRE forme que produisent Twitch et applySorting, et elle
+     n'émet rien du tout : il n'y a pas de fantôme à absorber. Les deux gardes
+     restent — ils coûtent une ligne chacun et la quatrième forme, elle, existe
+     — mais on n'écrira pas ici d'assertion qui passerait sans rien toucher.
+     C'est le même relevé qui montre que l'assertion « une carte détachée puis
+     rattachée ne referme pas l'aperçu » du scénario 76 ne touche rien non plus. */
+
+  await page.close();
+}
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
