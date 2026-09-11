@@ -11092,11 +11092,11 @@ titre('93. Le subathon dans l\'aperçu — un badge, un arc-en-ciel, et pas un c
              : null;
   });
   ok('une chaîne en subathon porte un badge qui en donne le jour',
-     avec !== null && avec.texte === 'Subathon · jour 10', JSON.stringify(avec));
+     avec !== null && avec.texte === 'Subathon · JOUR 10', JSON.stringify(avec));
   await quitter('mouse');
 
   /* UN SUBATHON NOMMÉ SANS NUMÉRO garde son badge et n'invente pas de jour.
-     « Subathon · jour null » serait le seul défaut que ce cas puisse produire,
+     « Subathon · JOUR null » serait le seul défaut que ce cas puisse produire,
      et il se produirait sur un titre parfaitement ordinaire — « 24H SUBATHON »
      nomme l'événement sans le compter. Le libellé connaît donc son cas nul. */
   await survoler('nomme');
@@ -11446,6 +11446,55 @@ titre('94. L\'aperçu au survol — un délai d\'intention, et ce qu\'il filtre'
      (await visible()) === false && (await survol()).ouverts === avantCache,
      JSON.stringify(await survol()));
   await cacher(page, false);
+
+  /* ── LA MODALE DE TWITCH, PENDANT L'ATTENTE ──────────────────────────────
+     LE DÉFAUT QU'UN UTILISATEUR A VU AVANT CE BANC. Twitch pose une
+     `.tw-dialog-layer` au survol d'une carte — le conteneur React de son
+     propre tooltip d'aperçu. L'extension la masque par
+     `body.tse-preview-active`, et ce drapeau était posé par open(). Tant que
+     le survol ouvrait dans l'instant, les deux moments se confondaient ; le
+     délai d'intention a ouvert entre eux deux dixièmes de seconde pendant
+     lesquels la modale de Twitch apparaissait seule. Une petite fenêtre grise,
+     juste avant l'aperçu.
+
+     ON MESURE L'EFFET, PAS LE DRAPEAU. Vérifier que <body> porte la classe
+     dirait que l'intention est là, pas que la règle mord : un sélecteur mal
+     écrit passerait. On injecte donc une vraie `.tw-dialog-layer` et on lit le
+     `display` que le navigateur lui calcule. C'est aussi la première fois que
+     ce masquage est éprouvé — il n'existait dans aucun décor du banc, ce qui
+     est précisément pourquoi la régression est passée. */
+  await page.evaluate(() => {
+    const d = document.createElement('div');
+    d.className = 'tw-dialog-layer';
+    d.id = 'sonde-modale';
+    d.textContent = 'modale de Twitch';
+    document.body.appendChild(d);
+  });
+  const modale = () => page.evaluate(() =>
+    getComputedStyle(document.getElementById('sonde-modale')).display);
+
+  await page.mouse.move(ailleurs.x, ailleurs.y);
+  await wait(page, 700);          // le voile se lève avec retard
+  ok('hors survol, la modale de Twitch reste la sienne',
+     (await modale()) !== 'none', await modale());
+
+  await page.mouse.move(centres[0].x, centres[0].y);
+  await wait(page, 60);           // PENDANT l'attente : l'aperçu n'est pas là
+  const pendantAttente = await modale();
+  const apercuPasEncore = await visible();
+  ok('dès l\'entrée du pointeur, et avant même l\'aperçu, elle est masquée',
+     pendantAttente === 'none' && apercuPasEncore === false,
+     JSON.stringify({ modale: pendantAttente, apercu: apercuPasEncore }));
+
+  /* ET ELLE DOIT REVENIR. Le voile posé plus tôt se paie ici : une simple
+     traversée de la liste ne doit pas laisser Twitch sans ses modales — le
+     menu utilisateur et les paramètres passent par la même couche. */
+  await page.mouse.move(ailleurs.x, ailleurs.y);
+  await attendre(page,
+    () => getComputedStyle(document.getElementById('sonde-modale')).display !== 'none',
+    3000);
+  ok('…et une attente abandonnée la lui rend',
+     (await modale()) !== 'none', await modale());
 
   /* ── CE QUE CE SCÉNARIO NE PROUVE PAS, ET POURQUOI ───────────────────────
      L'attente est aussi protégée contre la RÉCONCILIATION REACT : une carte

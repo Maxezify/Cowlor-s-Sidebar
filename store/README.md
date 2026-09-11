@@ -103,7 +103,7 @@ où le code change :
    légales, elles, restent dans le paquet : la licence MIT d'`adblock.js` et
    les deux crédits OpenMoji de `content.js` l'exigent. Voir
    `tests/degraisser.mjs`.
-8. **« Subathon · jour 10 »** — le badge de subathon existe (`uiBadgeSubathon`,
+8. **« Subathon · JOUR 10 »** — le badge de subathon existe (`uiBadgeSubathon`,
    les dix tables), et la détection qui le déclenche ne lit QUE le titre du
    direct et les tags. La fiche promet aussi la pastille « J9 » contre le
    pseudo et l'arc-en-ciel : les deux sont posés par `appliquerSubathon` et par

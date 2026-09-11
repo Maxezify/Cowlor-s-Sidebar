@@ -338,7 +338,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 803 Ko | 331 Ko | 3 046 → **2** |
+| `content.js` | 803 Ko | 331 Ko | 3 044 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 54 Ko | 27 Ko | 73 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
@@ -2264,6 +2264,34 @@ Et pas plus, parce que le coût se paie dans l'autre sens : au-delà d'un quart 
 seconde environ, une réponse d'interface cesse d'être perçue comme immédiate.
 150 ms laisserait passer les traversées lentes, 300 se sentirait.
 
+#### La petite fenêtre grise (v3.95.1)
+
+Un rapport d'usage, le jour de la sortie : **une toute petite fenêtre apparaît
+juste avant l'aperçu**. C'est la `.tw-dialog-layer` de Twitch — le conteneur
+React de son propre tooltip d'aperçu de carte. L'extension la masque depuis
+longtemps par `body.tse-preview-active`, mais ce drapeau était posé par
+`open()`.
+
+Tant que le survol ouvrait dans l'instant, « le pointeur est entré » et
+« l'aperçu est ouvert » étaient le même moment. Le délai d'intention a ouvert
+entre les deux **deux dixièmes de seconde** pendant lesquels plus rien ne
+masquait la modale de Twitch : elle avait tout le temps d'apparaître, seule.
+
+Le voile suit donc désormais **l'attente** et non l'ouverture : posé à l'entrée
+du pointeur, levé — avec le même retard de 500 ms qu'avant, pour laisser Twitch
+refermer la sienne — dès que l'attente est abandonnée. Cette seconde moitié
+n'est pas une politesse : sans elle, une simple traversée de la liste laisserait
+`tse-preview-active` posé pour toujours, et le menu utilisateur comme les
+paramètres cesseraient de s'afficher — ils passent par la même couche.
+
+Trois assertions de plus au scénario 94, et elles mesurent **l'effet** plutôt
+que le drapeau : une vraie `.tw-dialog-layer` est injectée, et c'est le `display`
+que le navigateur lui calcule qui est lu. Vérifier la présence de la classe
+aurait dit que l'intention est là, pas que la règle mord.
+
+Ce masquage n'avait **jamais été éprouvé** — aucun décor du banc ne portait de
+`.tw-dialog-layer`. C'est exactement pourquoi la régression est passée.
+
 #### Quatre façons d'abandonner l'attente, et elles se cassent séparément
 
 Une carte est « en attente » entre l'entrée du pointeur et l'ouverture. Ce
@@ -2686,7 +2714,7 @@ section oubliée en traduisant ne se voit pas autrement.
 
 **Une promesse de plus entre au contrat.** La liste des libellés que la fiche
 cite mot pour mot et que le code doit porter passe de huit à neuf entrées :
-`Subathon · day` s'y ajoute. Cette liste existe parce que la fiche a promis un
+`Subathon · DAY` s'y ajoute. Cette liste existe parce que la fiche a promis un
 badge d'étiquettes pendant dix versions avant qu'il n'existe ; on ne recommence
 pas.
 
@@ -2695,7 +2723,7 @@ pas.
 ### Un badge dans l'aperçu, et une couleur qui les traverse toutes
 
 Un subathon est un événement exceptionnel. Il porte désormais son propre badge —
-`Subathon · jour 10` — et, pour le dire, une couleur qui n'appartient à personne
+`Subathon · JOUR 10` — et, pour le dire, une couleur qui n'appartient à personne
 parce qu'elle les parcourt toutes : huit arrêts, un fondu de l'un à l'autre,
 douze secondes pour le tour. La pastille `J…` de la carte suit la même.
 
@@ -4363,7 +4391,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 94 scénarios, 881 assertions |
+| `npm test` | le harnais Playwright : 94 scénarios, 884 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
