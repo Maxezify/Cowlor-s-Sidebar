@@ -31,6 +31,26 @@ Dentro da janela de pré-visualização, etiquetas coloridas resumem o contexto 
 - 💎 ★ SUBSCRIÇÃO COM DESCONTO ★ Quando o Twitch oferece uma subscrição com desconto na emissão, fica assinalado ali mesmo.
 - 🆕 ★ ACABOU DE MUDAR PARA ★ O streamer trocou de categoria a meio da transmissão? Um distintivo verde avisa durante dez minutos: «Acabou de mudar para Elden Ring». O Twitch não anuncia isso em lado nenhum — a extensão vê porque está sempre a olhar.
 - ⚠️ ★ ETIQUETAS DE CONTEÚDO ★ As etiquetas oficiais do Twitch (jogo adulto, violência explícita, jogos de azar…) formam o seu próprio distintivo, o primeiro da fila — sabes antes de olhares, sem o ecrã que bloqueava o vídeo.
+- 🌈 ★ SUBATHON ★ O canal está em subathon? O emblema di-lo e dá o dia atual ("Subathon · dia 10").
+
+_______________________________
+
+➤ 🎞️ "ANTERIORMENTE NESTA TRANSMISSÃO"
+Chega a meio de uma transmissão de oito horas. O que aconteceu antes? A pré-visualização mostra-lho: uma faixa colorida, uma cor por categoria, e a lista por baixo.
+
+- ★ TODO O PERCURSO ★ Cada categoria por onde passou, com o tempo que durou e quantas vezes o streamer lá voltou ("Just Chatting ×7").
+- ★ À ESCALA ★ A largura de cada faixa é tempo real. Um olhar chega para ver por onde foi a noite.
+- ★ MESMO SEM GRAVAÇÃO ★ Um canal que não arquiva? A extensão reconstitui o percurso a partir dos clipes, e DI-LO.
+- ★ ADMITE O QUE DESCONHECE ★ Quando a hora exata de uma mudança não é conhecida, a cor esbate-se em vez de cortar a direito, e a duração leva um "~". Nunca um número inventado.
+
+_______________________________
+
+➤ 🌈 SUBATHONS, DETETADOS SOZINHOS
+Um subathon é aquela transmissão que as subscrições prolongam sem fim — dias, por vezes semanas. A extensão reconhece-os e distingue-os de todos os outros.
+
+- ★ O DIA, JUNTO AO NOME ★ Uma pequena placa "D9" ao lado do nome: fica logo a saber em que ponto vai o evento.
+- ★ UMA COR QUE NÃO É DE NINGUÉM ★ Placa e emblema percorrem um arco-íris, porque um evento excecional não cabe na paleta de ninguém.
+- ★ SEM ADIVINHAR NADA ★ Quem o diz é o título da transmissão e as etiquetas, não a duração: um subathon já o é à segunda hora.
 
 _______________________________
 
@@ -136,6 +156,15 @@ Podes consultar o teu top na consola das DevTools (F12):
 - tse.subs()         → as subscrições detectadas pela extensão
 - tse.subs.refresh() → voltar a lê-las agora mesmo
 - tse.reset()        → apagar tudo
+
+_______________________________
+
+➤ 🎛️ UM PAINEL NA BARRA DE FERRAMENTAS
+Um clique no ícone da extensão e tudo o que ela aprendeu abre-se num painel — sem passar pela consola.
+
+- ★ OS SEUS HÁBITOS, DESENHADOS ★ As horas a que vê mesmo, traçadas numa grelha de sete dias por vinte e quatro horas.
+- ★ OS SEUS NÚMEROS ★ Top de streamers, subscrições detetadas, canais seguidos em memória: está tudo lá, legível.
+- ★ UM RELATÓRIO PARA COLAR ★ Um botão constrói um relatório de diagnóstico completo, sem qualquer lista pessoal lá dentro — o suficiente para comunicar um problema sem revelar nada.
 
 _______________________________
 

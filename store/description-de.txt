@@ -31,6 +31,26 @@ Im Vorschaufenster fassen farbige Etiketten den Kontext des Streams auf einen Bl
 - 💎 ★ ABO IM ANGEBOT ★ Wenn Twitch im Stream ein vergünstigtes Abo anbietet, steht es genau dort.
 - 🆕 ★ GERADE GEWECHSELT ZU ★ Der Streamer hat mitten im Stream die Kategorie gewechselt? Ein grünes Abzeichen sagt es zehn Minuten lang: „Gerade gewechselt zu Elden Ring“. Twitch kündigt das nirgends an — die Erweiterung sieht es, weil sie durchgehend hinschaut.
 - ⚠️ ★ INHALTSHINWEISE ★ Die offiziellen Twitch-Labels (Spiel ab 18, explizite Gewalt, Glücksspiel…) bilden ihr eigenes Abzeichen, ganz vorn in der Reihe — du weißt es, bevor du hinschaust, ohne den Zwischenbildschirm, der das Video blockierte.
+- 🌈 ★ SUBATHON ★ Läuft auf dem Kanal ein Subathon? Das Badge sagt es und nennt den aktuellen Tag („Subathon · Tag 10“).
+
+_______________________________
+
+➤ 🎞️ „ZUVOR IN DIESEM STREAM“
+Sie kommen mitten in einen achtstündigen Stream. Was ist vorher passiert? Die Vorschau zeigt es Ihnen: ein farbiges Band, eine Farbe pro Kategorie, und darunter die Liste.
+
+- ★ DER GANZE WEG ★ Jede gespielte Kategorie, mit ihrer Dauer und wie oft der Streamer dorthin zurückgekehrt ist („Just Chatting ×7“).
+- ★ MASSSTABSGETREU ★ Die Breite jedes Bandes ist echte Zeit. Ein Blick genügt, um zu sehen, wo der Abend geblieben ist.
+- ★ AUCH OHNE AUFZEICHNUNG ★ Ein Kanal ohne Archiv? Die Erweiterung rekonstruiert den Weg aus den Clips — und SAGT es.
+- ★ SIE GIBT ZU, WAS SIE NICHT WEISS ★ Ist die genaue Uhrzeit eines Wechsels unbekannt, verläuft die Farbe weich statt scharf zu schneiden, und die Dauer trägt ein „~“. Niemals eine erfundene Zahl.
+
+_______________________________
+
+➤ 🌈 SUBATHONS, GANZ VON SELBST ERKANNT
+Ein Subathon ist jener Stream, den Abos endlos verlängern — Tage, manchmal Wochen. Die Erweiterung erkennt sie und hebt sie von allen anderen ab.
+
+- ★ DER TAG, NEBEN DEM NAMEN ★ Eine kleine Plakette „T9“ neben dem Namen: Sie wissen sofort, wo das Ereignis steht.
+- ★ EINE FARBE, DIE NIEMANDEM GEHÖRT ★ Plakette und Badge durchlaufen einen Regenbogen, denn ein außergewöhnliches Ereignis passt in keine fremde Palette.
+- ★ NICHTS GERATEN ★ Es sind Streamtitel und Tags, die es sagen, nicht die Dauer: ein Subathon ist schon in seiner zweiten Stunde einer.
 
 _______________________________
 
@@ -136,6 +156,15 @@ Deine Top-Liste kannst du in der DevTools-Konsole (F12) einsehen:
 - tse.subs()         → die von der Erweiterung erkannten Abos
 - tse.subs.refresh() → sie sofort neu einlesen
 - tse.reset()        → alles löschen
+
+_______________________________
+
+➤ 🎛️ EIN PANEL IN DER SYMBOLLEISTE
+Ein Klick auf das Symbol der Erweiterung, und alles, was sie gelernt hat, öffnet sich in einem Panel — ganz ohne Konsole.
+
+- ★ IHRE GEWOHNHEITEN, GEZEICHNET ★ Die Stunden, in denen Sie wirklich zusehen, als Raster aus sieben Tagen mal vierundzwanzig Stunden.
+- ★ IHRE ZAHLEN ★ Top-Streamer, erkannte Abos, gemerkte gefolgte Kanäle: alles da, alles lesbar.
+- ★ EIN BERICHT ZUM EINFÜGEN ★ Ein Knopf baut einen vollständigen Diagnosebericht, ohne jede persönliche Liste darin — genug, um ein Problem zu melden, ohne etwas preiszugeben.
 
 _______________________________
 

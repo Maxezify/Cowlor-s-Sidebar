@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 803 KB | 332 KB | 3,024 → **2** |
+| `content.js` | 803 KB | 331 KB | 3,024 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 54 KB | 27 KB | 72 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1001 KB** | **464 KB** | **−54 %** |
+| **all five** | **1001 KB** | **463 KB** | **−54 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2396,6 +2396,81 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## The ribbon goes flat, and the listing catches up (v3.94)
+
+### The hatching is gone
+
+The parts of a clip-derived trail were hatched diagonally, and the unknown part
+with them. At the time that was the only way to confess that those bounds are
+not hours. Two things made it unnecessary, and a third made it harmful.
+
+**What replaces it says it better.** The `~` tilde names the approximation where
+it actually is — on category durations, and not on the total nor on the part
+before the first clip, which are exact. The fade draws the uncertain interval
+**at its width**. The hatching, meanwhile, said "all of this is approximate"
+across parts, some of which are not.
+
+**And it dirtied everything else.** Laid over the colours, it darkened half of
+them and made two neighbouring hues hard to tell apart — on a ribbon whose
+*entire* purpose is to match colours to a legend.
+
+Four rules collapse into one. Time we did not observe no longer needs hatching:
+it has no background colour at all, so the ribbon shows its own base — a dark
+hollow where the other parts carry a hue. A gap reads as a gap.
+
+The list keeps its two broken strokes: the dashed one for "before the first
+clip" and the dotted one for the fold row. Those are not hatching but four-pixel
+strokes, and they distinguish two rows that are not categories.
+
+### The rainbow moves to a second and a half
+
+Speed requested, speed applied — on the pill **as well as** the badge: both are
+visible at once the moment you hover a subathon card, and two cycles of
+different durations would drift apart within seconds.
+
+**A word on what that speed commits to.** Eight stops in a second and a half is
+one change every 187 ms, and relative luminance varies by up to 0.41 from one
+stop to its neighbour. That rate **exceeds** the frequency criterion of WCAG
+2.3.1 — more than three changes per second — and it is not what puts the effect
+in the clear: the **area** is. The criterion only applies beyond 25% of a
+ten-degree field, roughly 21,800 px²; the badge occupies 2,478 (11%) and the
+pill 392 (1.8%).
+
+The margin therefore rests on the **size** of those two elements, and on that
+alone: enlarging them substantially would require slowing the cycle by as much.
+`prefers-reduced-motion` stops it entirely, which remains the only exit that
+counts.
+
+### What the mutation corrected in the harness
+
+The rainbow sampler **copied** the cycle's duration: twelve seconds, written by
+hand. Moved to a second and a half, it ran through eight turns instead of one,
+two stops per step — and the fade check failed on perfectly healthy code. A
+harness that copies a constant from the product measures its own copy. The
+duration is now read from the animation itself.
+
+### The Store listing catches up on three features
+
+Twelve listings, twelve languages, and three sections missing — the product had
+run ahead of its description:
+
+- **"Previously on this stream"** — the category trail, its to-scale ribbon, its
+  reconstruction from clips and its admissions of ignorance;
+- **subathons** — the day pill, the badge, the rainbow, and the fact that
+  nothing is guessed from duration;
+- **the toolbar panel** — habits drawn, the numbers, and the diagnostic report
+  with no personal list inside.
+
+Plus one badge bullet in the section that enumerates them. The twelve listings'
+skeleton goes from 20 to **23 sections**, 73 to **84 bullets**, 88 to **110
+stars** — and `npm run store` checks all twelve at once, because a section
+forgotten in translation is not visible any other way.
+
+**One more promise enters the contract.** The list of labels the listing quotes
+verbatim and the code must carry goes from eight entries to nine:
+`Subathon · day` joins it. That list exists because the listing promised a
+content-label badge for ten versions before it existed; we do not do that twice.
+
 ## The subathon rainbow, and three trail corrections (v3.93)
 
 ### A badge in the preview, and a colour that goes through them all
@@ -4003,7 +4078,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 93 scenarios, 872 assertions |
+| `npm test` | the Playwright harness: 93 scenarios, 873 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

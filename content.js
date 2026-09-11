@@ -2802,7 +2802,19 @@ const TSE_GATE_MAX_CLICKS = 5;
            le plancher d'un petit texte est à 4,5:1 ;
          • texte sur le fond composé du badge : 7,03 à 7,41:1, quand la famille
            des badges tient entre 6,38 et 7,67:1. L'arc-en-ciel est donc plus
-           CONSTANT que les badges fixes qui l'entourent. */
+           CONSTANT que les badges fixes qui l'entourent.
+
+       UN MOT SUR LA VITESSE, PARCE QU'ELLE SE MESURE AUSSI. Le tour dure une
+       seconde et demie : huit arrêts, soit un changement toutes les 187 ms, et
+       la luminance relative varie jusqu'à 0,41 d'un arrêt au voisin. Ce rythme
+       DÉPASSE le critère de fréquence de la règle WCAG 2.3.1 (plus de trois
+       variations par seconde), et ce n'est pas lui qui met l'effet hors de
+       cause : c'est l'AIRE. Le critère ne s'applique qu'au-delà de 25 % d'un
+       champ de dix degrés, soit environ 21 800 px² ; le badge en occupe 2 478
+       (11 %) et la pastille 392 (1,8 %). La marge tient donc à la TAILLE de ces
+       deux éléments, et à elle seule : les agrandir franchement demanderait de
+       ralentir le cycle d'autant. Et « prefers-reduced-motion » l'arrête
+       complètement, ce qui reste la seule sortie qui vaille. */
     @keyframes tse-subathon-teinte {
       0% { color: #ff8f8f; }
       12.5% { color: #ffe38f; }
@@ -2926,8 +2938,14 @@ const TSE_GATE_MAX_CLICKS = 5;
          dans le panneau. */
       color: #83f9fb;
       /* L'ARC-EN-CIEL. La pastille ne porte que la teinte : son contour se
-         peint en « currentColor », et suit donc sans qu'on l'anime deux fois. */
-      animation: tse-subathon-teinte 12s linear infinite;
+         peint en « currentColor », et suit donc sans qu'on l'anime deux fois.
+
+         MÊME DURÉE QUE LE BADGE, ET CE N'EST PAS UN DÉTAIL : les deux sont
+         visibles EN MÊME TEMPS dès qu'on survole une carte de subathon. Deux
+         cycles de durées différentes se décaleraient en quelques secondes, et
+         deux surfaces qui montrent la même chose de deux couleurs à la fois se
+         lisent comme deux choses. */
+      animation: tse-subathon-teinte 1.5s linear infinite;
       background: none;
       /* PAS DE « vertical-align », ET CE N'EST PAS UN OUBLI. La valeur demandée
          était « center », qui n'existe pas en CSS — le navigateur écarte la
@@ -3446,7 +3464,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__badge--subathon {
       background: rgba(10, 250, 255, 0.26);
       color: #83f9fb;
-      animation: tse-subathon-badge 12s linear infinite;
+      animation: tse-subathon-badge 1.5s linear infinite;
     }
     /* Les pictogrammes d'avertissement. line-height: 1 les empêche de
        rehausser le badge : un emoji dépasse sa boîte em, et sans cela la
@@ -3635,18 +3653,23 @@ const TSE_GATE_MAX_CLICKS = 5;
        gras dans la liste. Une marque redondante qu'on ne voit pas est deux
        fois inutile. La classe reste posée sur la part — elle ne coûte rien et
        nomme le segment pour qui lira le DOM. */
-    /* Les traits d'une frise de clips sont des minorants. Le ruban le montre
-       sans un mot : ses parts sont hachurées de biais, comme la part inconnue
-       l'est déjà — même vocabulaire visuel pour la même idée. La hachure vient
-       PAR-DESSUS le dégradé, et non à sa place : les deux se cumulent dans une
-       seule déclaration, faute de quoi la seconde efface la première. */
-    .tse-preview__frise--clips .tse-preview__frise-part {
-      background-image:
-        repeating-linear-gradient(135deg,
-          rgba(0, 0, 0, 0.30) 0 3px, rgba(0, 0, 0, 0) 3px 6px),
-        linear-gradient(180deg,
-          rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%);
-    }
+    /* ── LA HACHURE A ÉTÉ RETIRÉE, ET CE QU'ELLE DISAIT EST MIEUX DIT ───────
+       Les parts d'une frise de clips étaient hachurées de biais, et la part
+       inconnue avec elles : c'était le seul moyen d'avouer que ces bornes-là
+       ne sont pas des heures. Deux choses l'ont rendue inutile, et une
+       troisième nuisible.
+
+       CE QUI LA REMPLACE LE DIT MIEUX. La vague « ~ » nomme l'approche là où
+       elle est — sur les durées de catégorie, et pas sur le total ni sur la
+       part antérieure au premier clip, qui sont exacts. Le fondu, lui, dessine
+       l'intervalle douteux À SA LARGEUR. La hachure, elle, disait « tout ceci
+       est approché » sur des parts dont certaines ne le sont pas.
+
+       ET ELLE SALISSAIT LE RESTE. Posée par-dessus les couleurs, elle en
+       assombrissait la moitié et rendait deux teintes voisines difficiles à
+       distinguer — sur un ruban dont TOUTE la fonction est de faire
+       correspondre des couleurs à une légende. Le ruban se lit maintenant à
+       plat, et ce qu'on ignore se lit dans les mots. */
     /* ── LA BORNE QU'ON NE SAIT PAS PLACER ────────────────────────────────
        Un chapitre de VOD donne l'heure du basculement. Un CLIP ne donne que la
        preuve qu'à telle minute, telle catégorie était en cours : entre le
@@ -3686,10 +3709,8 @@ const TSE_GATE_MAX_CLICKS = 5;
        où il n'a rien à dire. La rampe est alors une vraie rampe d'une teinte
        à l'autre, et la borne se lit comme une hésitation et non comme une
        salissure. */
-    .tse-preview__frise--clips .tse-preview__frise-part--flou {
+    .tse-preview__frise .tse-preview__frise-part--flou {
       background-image:
-        repeating-linear-gradient(135deg,
-          rgba(0, 0, 0, 0.30) 0 3px, rgba(0, 0, 0, 0) 3px 6px),
         linear-gradient(180deg,
           rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0) 62%),
         linear-gradient(90deg,
@@ -3697,36 +3718,12 @@ const TSE_GATE_MAX_CLICKS = 5;
           var(--tse-flou-de, transparent) calc(100% - var(--tse-flou, 0%)),
           var(--tse-flou-vers, transparent) 100%);
     }
-    /* Le temps qu'on n'a PAS observé : hachuré, à sa taille réelle. C'est un
-       aveu à l'échelle, et il est dessiné avant les segments connus parce que
-       c'est là qu'il se situe — avant notre première vue.
-
-       DEUX CLASSES DANS LE SÉLECTEUR, et c'est délibéré : la règle des clips
-       ci-dessus en porte deux elle aussi, et sur une frise de clips elle
-       l'emportait — la part « avant le premier clip » prenait alors la hachure
-       des clips au lieu de la sienne. Une part inconnue doit se lire comme
-       inconnue, quelle que soit la source du reste. */
-    .tse-preview__frise .tse-preview__frise-part--inconnu {
-      background-image: repeating-linear-gradient(45deg,
-        rgba(255, 255, 255, 0.16) 0 3px, rgba(255, 255, 255, 0.04) 3px 6px);
-    }
-    /* LA PART INCONNUE QUI S'ESTOMPE : trois classes dans le sélecteur, et il
-       les faut toutes. La règle des clips en porte deux, celle de la part
-       inconnue deux aussi, et chacune écrit « background-image » en entier —
-       la dernière déclarée l'emporterait et emporterait le fondu avec elle.
-       Ici les deux couches s'empilent dans UNE déclaration : la hachure de la
-       part inconnue par-dessus, le fondu dessous. Pas la hachure des clips :
-       cette part-là n'est pas un segment approché, c'est du temps que rien ne
-       couvre, et elle doit se lire comme tel quelle que soit la source. */
-    .tse-preview__frise .tse-preview__frise-part--inconnu.tse-preview__frise-part--flou {
-      background-image:
-        repeating-linear-gradient(45deg,
-          rgba(255, 255, 255, 0.16) 0 3px, rgba(255, 255, 255, 0.04) 3px 6px),
-        linear-gradient(90deg,
-          transparent 0 calc(100% - var(--tse-flou, 0%)),
-          var(--tse-flou-de, transparent) calc(100% - var(--tse-flou, 0%)),
-          var(--tse-flou-vers, transparent) 100%);
-    }
+    /* LE TEMPS QU'ON N'A PAS OBSERVÉ N'A PLUS BESOIN D'ÊTRE HACHURÉ : il n'a
+       aucune couleur de fond, et le ruban laisse donc voir son propre socle —
+       un creux sombre là où les autres parts portent une teinte. Un vide se
+       lit comme un vide, et c'est exactement ce qu'il est. Quatre règles se
+       réduisent ainsi à une : celle du fondu ci-dessus, qui vaut pour toute
+       part douteuse, inconnue comprise. */
     /* ── LA LISTE ───────────────────────────────────────────────────────────
        Elle porte le sens ; le ruban n'en est que la forme. */
     .tse-preview__frise-liste { margin: 9px 0 0; padding: 0; list-style: none; }

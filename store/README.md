@@ -52,12 +52,15 @@ se saisit pas ici : elle vient du manifeste, clé `extDescription` de
 
 ## Ce qui doit rester vrai
 
-Les douze fiches se tiennent par leur structure : **20 sections `➤`**, **21
-séparateurs**, **73 puces** et **88 étoiles**. C'est le profil de la fiche
+Les douze fiches se tiennent par leur structure : **23 sections `➤`**, **24
+séparateurs**, **84 puces** et **110 étoiles**. C'est le profil de la fiche
 anglaise, et `npm run store` le compare à celui des onze autres : une section
-oubliée en traduisant se voit à ce compte-là, immédiatement.
+oubliée en traduisant se voit à ce compte-là, immédiatement. Ces nombres ne se
+recopient pas : le script les DÉDUIT de la fiche anglaise, si bien qu'ajouter
+une section aux douze les met à jour toute seule — ils sont ici pour être lus,
+pas pour être tenus à jour à la main.
 
-Huit affirmations sont **vérifiables dans le code**, et doivent changer le jour
+Neuf affirmations sont **vérifiables dans le code**, et doivent changer le jour
 où le code change :
 
 1. **« Six façons de trier »** — `getSortButtons()` en rend six. C'était cinq
@@ -93,14 +96,20 @@ où le code change :
    livrés **ni minifiés ni obscurcis** : mêmes noms, mêmes lignes, même
    indentation que dans le dépôt. Depuis la 3.59 le paquet part en revanche
    **sans les commentaires** — ceux du JavaScript, et depuis la 3.60 ceux du
-   CSS aussi (1001 → 464 Ko) ; la phrase reste vraie au mot près — c'est de
+   CSS aussi (1001 → 463 Ko) ; la phrase reste vraie au mot près — c'est de
    lisibilité qu'elle parle, pas d'annotations — et les commentaires, eux,
    sont dans le dépôt public. Ce chiffre-là est confronté à la mesure par
    `npm run addon` : il a été faux, et personne ne l'a vu. Les mentions
    légales, elles, restent dans le paquet : la licence MIT d'`adblock.js` et
    les deux crédits OpenMoji de `content.js` l'exigent. Voir
    `tests/degraisser.mjs`.
-8. **« Étiquettes de contenu … forment leur propre badge »** — `updateCclBadge`
+8. **« Subathon · jour 10 »** — le badge de subathon existe (`uiBadgeSubathon`,
+   les dix tables), et la détection qui le déclenche ne lit QUE le titre du
+   direct et les tags. La fiche promet aussi la pastille « J9 » contre le
+   pseudo et l'arc-en-ciel : les deux sont posés par `appliquerSubathon` et par
+   les keyframes `tse-subathon-teinte` / `tse-subathon-badge`. Le contrôle
+   `CITES` de `tests/store.mjs` tient la partie stable du libellé.
+9. **« Étiquettes de contenu … forment leur propre badge »** — `updateCclBadge`
    les pose en tête des badges de l'aperçu, depuis les identifiants que rend
    `contentClassificationLabels`. Cette phrase a été FAUSSE de la 3.44 à la
    3.54 : la fiche promettait un badge que rien n'implémentait, et personne ne

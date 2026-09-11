@@ -31,6 +31,26 @@ Dentro de la ventana de vista previa, unas etiquetas de color resumen el context
 - 💎 ★ SUSCRIPCIÓN CON DESCUENTO ★ Cuando Twitch ofrece una suscripción rebajada en el stream, queda señalado ahí mismo.
 - 🆕 ★ ACABA DE CAMBIAR A ★ ¿El streamer cambió de categoría a mitad del vivo? Una insignia verde lo indica durante diez minutos: «Acaba de cambiar a Elden Ring». Twitch no lo anuncia en ningún lado — la extensión lo ve porque mira sin parar.
 - ⚠️ ★ ETIQUETAS DE CONTENIDO ★ Las etiquetas oficiales de Twitch (juego para adultos, violencia explícita, juegos de azar…) forman su propia insignia, la primera de la fila — lo sabés antes de mirar, sin la pantalla que bloqueaba el video.
+- 🌈 ★ SUBATÓN ★ ¿El canal está en subatón? La insignia lo dice y da el día en curso («Subatón · día 10»).
+
+_______________________________
+
+➤ 🎞️ «ANTERIORMENTE EN ESTE EN VIVO»
+Llegás a la mitad de un en vivo de ocho horas. ¿Qué pasó antes? La vista previa te lo muestra: una cinta de colores, un color por categoría, y la lista debajo.
+
+- ★ TODO EL RECORRIDO ★ Cada categoría que pasó, con lo que duró y las veces que el streamer volvió a ella («Just Chatting ×7»).
+- ★ A ESCALA ★ El ancho de cada banda es tiempo real. Un vistazo alcanza para ver adónde se fue la tarde.
+- ★ INCLUSO SIN REPETICIÓN ★ ¿Un canal que no archiva? La extensión reconstruye el recorrido a partir de los clips, y lo DICE.
+- ★ ADMITE LO QUE NO SABE ★ Cuando no se conoce la hora exacta de un cambio, el color se funde en vez de cortar en seco, y la duración lleva una «~». Nunca un número inventado.
+
+_______________________________
+
+➤ 🌈 LOS SUBATONES, DETECTADOS SOLOS
+Un subatón es ese en vivo que las suscripciones alargan sin fin: días, a veces semanas. La extensión los reconoce y los distingue de todos los demás.
+
+- ★ EL DÍA, AL LADO DEL NOMBRE ★ Una placa chiquita «D9» junto al nombre: sabés al toque por dónde va el evento.
+- ★ UN COLOR QUE NO ES DE NADIE ★ Placa e insignia recorren un arcoíris, porque un evento excepcional no entra en la paleta de nadie.
+- ★ SIN ADIVINAR NADA ★ Lo dicen el título del en vivo y las etiquetas, no la duración: un subatón ya lo es en su segunda hora.
 
 _______________________________
 
@@ -136,6 +156,15 @@ Podés consultar tu top en la consola DevTools (F12):
 - tse.subs()         → las suscripciones detectadas por la extensión
 - tse.subs.refresh() → volver a leerlas ahora mismo
 - tse.reset()        → borrar todo
+
+_______________________________
+
+➤ 🎛️ UN PANEL EN LA BARRA DE HERRAMIENTAS
+Un clic en el ícono de la extensión y todo lo que aprendió se abre en un panel, sin pasar por la consola.
+
+- ★ TUS HÁBITOS, DIBUJADOS ★ Las horas en que mirás de verdad, trazadas en una grilla de siete días por veinticuatro horas.
+- ★ TUS NÚMEROS ★ Top de streamers, suscripciones detectadas, canales seguidos en memoria: todo ahí, legible.
+- ★ UN INFORME PARA PEGAR ★ Un botón arma un informe de diagnóstico completo, sin ninguna lista personal adentro: lo justo para avisar de un problema sin revelar nada.
 
 _______________________________
 

@@ -9591,6 +9591,12 @@ titre('87. La troisième porte — les clips, pour qui n\'archive pas');
           de:    teinte(p.style.getPropertyValue('--tse-flou-de').trim()),
           couleur: teinte(p.style.backgroundColor),
           couture: getComputedStyle(p).boxShadow,
+          /* LA HACHURE A ÉTÉ RETIRÉE : elle assombrissait les couleurs d'un
+             ruban dont toute la fonction est de les faire correspondre à une
+             légende, et ce qu'elle avouait est mieux dit par la vague et le
+             fondu. Un motif répété qui reviendrait ici serait une régression,
+             et rien d'autre ne l'attraperait. */
+          hachuree: getComputedStyle(p).backgroundImage.includes('repeating'),
         }));
       })(),
     };
@@ -9677,6 +9683,13 @@ titre('87. La troisième porte — les clips, pour qui n\'archive pas');
   ok('…tandis que la part en cours n\'a pas de borne après elle',
      f.parts[2].flou === false,
      JSON.stringify(f.parts.map(p => ({ inconnu: p.inconnu, flou: p.flou }))));
+  /* AUCUNE PART N'EST HACHURÉE, PAS MÊME L'INCONNUE. C'est une frise de clips,
+     celle qui l'était le plus : ses parts ET sa part inconnue portaient chacune
+     leur propre hachure. Zéro sur les trois, et le contrôle vaut pour toutes
+     les frises puisque c'est ici qu'il y en avait le plus. */
+  ok('…et plus aucune part n\'est hachurée, sur la frise qui l\'était le plus',
+     f.parts.every(p => !p.hachuree),
+     JSON.stringify(f.parts.map(p => p.hachuree)));
 
   const b = await page.evaluate(() => window.tse.panneau.rapport().reseau.chapitres);
   ok('le rapport compte la troisième porte à part, par issue',
@@ -11113,7 +11126,13 @@ titre('93. Le subathon dans l\'aperçu — un badge, un arc-en-ciel, et pas un c
     const puce  = document.querySelector('.tse-subathon-jour');
     const fondApercu = getComputedStyle(document.querySelector('.tse-preview')).backgroundColor;
     const anims = document.getAnimations();
-    const duree = 12000;
+    /* LA DURÉE SE LIT SUR L'ANIMATION, ELLE NE SE RECOPIE PAS. Écrite en dur,
+       elle a menti dès que le cycle a changé de vitesse : l'échantillonnage
+       parcourait alors huit tours au lieu d'un, deux arrêts par pas, et le
+       contrôle du fondu tombait sur un code parfaitement sain. Un banc qui
+       recopie une constante du produit mesure sa propre copie. */
+    const duree = anims.reduce((m, a) =>
+      Math.max(m, Number(a.effect.getComputedTiming().duration) || 0), 0);
     /* LE PLUS GRAND SAUT D'UNE IMAGE À L'AUTRE, en distance RGB. C'est ce qui
        distingue un FONDU d'une succession de paliers, et compter les couleurs
        distinctes ne le distingue pas : la première rédaction le faisait, et un
@@ -11142,7 +11161,7 @@ titre('93. Le subathon dans l\'aperçu — un badge, un arc-en-ciel, et pas un c
     anims.forEach(a => a.play());
     return { pireBadge: +pireBadge.toFixed(2), maxBadge: +maxBadge.toFixed(2),
              pirePuce: +pirePuce.toFixed(2), maxSaut: +maxSaut.toFixed(1),
-             vues: vues.size,
+             vues: vues.size, duree,
              anime: !!badge.getAnimations().length };
   });
   /* DEUX PROPRIÉTÉS, ET IL LES FAUT TOUTES DEUX — chacune seule laisse passer

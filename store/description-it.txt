@@ -31,6 +31,26 @@ Dentro il riquadro dell'anteprima, delle etichette colorate riassumono il contes
 - 💎 ★ ABBONAMENTO SCONTATO ★ Quando Twitch propone un abbonamento scontato sulla diretta, te lo segnala lì.
 - 🆕 ★ È APPENA PASSATO A ★ Lo streamer ha cambiato categoria a metà diretta? Un'etichetta verde lo dice per dieci minuti: «È appena passato a Elden Ring». Twitch non lo annuncia da nessuna parte — l'estensione lo vede perché guarda di continuo.
 - ⚠️ ★ ETICHETTE DI CONTENUTO ★ Le etichette ufficiali di Twitch (gioco per adulti, violenza esplicita, gioco d'azzardo…) formano un badge a sé, il primo della fila — lo sai prima di guardare, senza la schermata che bloccava il video.
+- 🌈 ★ SUBATHON ★ Il canale è in subathon? Il badge lo dice e indica il giorno in corso («Subathon · giorno 10»).
+
+_______________________________
+
+➤ 🎞️ «IN PRECEDENZA IN QUESTA LIVE»
+Arrivi a metà di una live di otto ore. Cos'è successo prima? L'anteprima te lo mostra: un nastro colorato, un colore per categoria, e sotto l'elenco.
+
+- ★ TUTTO IL PERCORSO ★ Ogni categoria attraversata, con quanto è durata e quante volte lo streamer ci è tornato («Just Chatting ×7»).
+- ★ IN SCALA ★ La larghezza di ogni banda è tempo reale. Un'occhiata basta per capire dov'è finita la serata.
+- ★ ANCHE SENZA REPLAY ★ Un canale che non archivia? L'estensione ricostruisce il percorso dalle clip, e lo DICE.
+- ★ AMMETTE CIÒ CHE NON SA ★ Quando l'ora esatta di un cambio non è nota, il colore sfuma invece di tagliare netto, e la durata porta una «~». Mai un numero inventato.
+
+_______________________________
+
+➤ 🌈 I SUBATHON, RICONOSCIUTI DA SOLI
+Un subathon è quella live che gli abbonamenti allungano senza fine: giorni, a volte settimane. L'estensione li riconosce e li distingue da tutti gli altri.
+
+- ★ IL GIORNO, ACCANTO AL NOME ★ Una piccola targhetta «G9» vicino al nome: sai subito a che punto è l'evento.
+- ★ UN COLORE CHE NON È DI NESSUNO ★ Targhetta e badge scorrono in arcobaleno, perché un evento eccezionale non entra nella tavolozza di nessuno.
+- ★ SENZA INDOVINARE NULLA ★ Lo dicono il titolo della live e i tag, non la durata: un subathon lo è già alla seconda ora.
 
 _______________________________
 
@@ -136,6 +156,15 @@ Puoi consultare la tua classifica nella console degli strumenti per sviluppatori
 - tse.subs()         → gli abbonamenti rilevati dall'estensione
 - tse.subs.refresh() → rileggerli subito
 - tse.reset()        → cancellare tutto
+
+_______________________________
+
+➤ 🎛️ UN PANNELLO NELLA BARRA DEGLI STRUMENTI
+Un clic sull'icona dell'estensione e tutto ciò che ha imparato si apre in un pannello — senza passare dalla console.
+
+- ★ LE TUE ABITUDINI, DISEGNATE ★ Le ore in cui guardi davvero, tracciate in una griglia di sette giorni per ventiquattro ore.
+- ★ I TUOI NUMERI ★ Top streamer, abbonamenti rilevati, canali seguiti in memoria: tutto lì, leggibile.
+- ★ UN RAPPORTO DA INCOLLARE ★ Un pulsante crea un rapporto diagnostico completo, senza alcun elenco personale dentro — quanto basta per segnalare un problema senza rivelare nulla.
 
 _______________________________
 
