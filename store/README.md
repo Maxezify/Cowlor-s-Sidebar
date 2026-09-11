@@ -125,12 +125,12 @@ bord rappelle sur chacun : **JPEG ou PNG 24 bits, sans alpha**.
 | Emplacement | Taille | Commande | Fichiers |
 | --- | --- | --- | --- |
 | Bannière en haut de la page | 1400 × 560 | `npm run banniere` | `00-banniere-<L>.png` |
-| Captures d'écran | 1280 × 800 | `npm run promo` | `01-hero-<L>.png` … `06-abonnes-<L>.png` |
+| Captures d'écran | 1280 × 800 | `npm run promo` | `01-apercu-<L>.png` … `05-abonnes-<L>.png` |
 | Petite tuile promotionnelle | 440 × 280 | `npm run tuile-produit` | `tuile-E-produit.png` |
 
 `<L>` est la clé de capture de la fiche, **une par langue** : `en`, `fr`, `de`,
 `es`, `es419`, `ptbr`, `ptpt`, `it`, `pl`, `ru`, `ja`, `zh`. Douze fiches, douze
-jeux d'images — soit 12 bannières et 72 captures. Les cinq langues arrivées avec
+jeux d'images — soit 12 bannières et 60 captures. Les cinq langues arrivées avec
 la 3.57 ont d'abord eu leur texte sans leurs images ; c'est le genre d'écart
 qu'aucune relecture ne rattrape, puisque les images ne sont pas dans le dépôt.
 `npm run store` compte donc les langues des trois tables de discours
@@ -159,17 +159,50 @@ rendue, tous les caractères qu'elle affiche, et s'arrête plutôt que de
 photographier ce qu'aucune police embarquée ne couvre. Voir
 `promo-fonts/README.md`.
 
-Le Store n'accepte que **cinq** captures. Six sont produites ; l'ordre conseillé,
-et celle qui reste au vestiaire :
+### Les cinq captures, et leur ordre
 
-| Rang | Fichier | Pourquoi |
+Le Store n'en accepte que **cinq**, et il en sortait six : une restait donc au
+vestiaire, et la fiche choisissait à chaque publication ce qu'elle n'allait PAS
+montrer. Elles sont désormais cinq, écrites pour être cinq. Le numéro du fichier
+EST le rang : la première image est celle que la vignette du Store montre à tout
+le monde, la cinquième celle que presque personne ne fait défiler jusqu'à voir.
+
+| Rang | Fichier | Pourquoi là |
 | --- | --- | --- |
-| 1 | `01-hero-<L>.png` | ce que fait l'extension, en une image |
-| 2 | `06-abonnes-<L>.png` | l'or sur les cartes — ce que personne d'autre ne fait |
-| 3 | `02-apercu-<L>.png` | l'aperçu au survol, la fonction la plus démonstrative |
-| 4 | `03-top-<L>.png` | le mode Top Chaînes, la plus grosse fonction |
-| 5 | `05-tri-<L>.png` | les six tris |
-| — | `04-filtres-<L>.png` | filtrer par catégorie et par langue se devine ; c'est la moins distinctive des six |
+| 1 | `01-apercu-<L>.png` | la fonction phare, et la seule image vue par tout le monde : elle doit dire « barre latérale Twitch » ET « voilà ce qu'elle fait de mieux » |
+| 2 | `02-carte-<L>.png` | la valeur de tous les jours, celle qu'on voit sans rien faire : durée, co-streams, subathons |
+| 3 | `03-frise-<L>.png` | « Précédemment sur ce live » — ce qui n'existe nulle part ailleurs, et ce qui demande le plus à être montré pour être compris |
+| 4 | `04-top-<L>.png` | la portée : l'extension ne s'arrête pas aux chaînes suivies |
+| 5 | `05-abonnes-<L>.png` | le plus personnel, et l'endroit où la promesse de vie privée se dit le mieux |
+
+Ce qui a disparu au passage : les filtres et les tris n'ont plus d'image à eux.
+Ils se devinent, ils ne distinguent l'extension de rien, et ils occupaient deux
+des six emplacements. Ils sont restés en tant que **points** — une ligne dans la
+cinquième image — ce qui est exactement le poids qu'ils méritent.
+
+### Ce que porte chaque image
+
+Chaque capture a la même charpente : un chapô, un titre de 72 pixels sur deux
+lignes, **trois points**, une ligne de marque. Les points ont remplacé le
+paragraphe des fiches précédentes, et c'est la seule décision de cette refonte
+qui ait une raison mesurable : un paragraphe de trois lignes à 29 px se lit à
+1280 px de large et ne se lit plus du tout dans la vignette du Store, qui en
+fait 440. Trois amorces en gras s'attrapent à n'importe quelle taille, et
+chacune porte sa preuve derrière un tiret.
+
+La ligne de marque n'est pas décorative non plus : elle porte un argument
+DIFFÉRENT par image — gratuit, le fouillis en moins, jamais un chiffre inventé,
+un clic pour revenir, lu dans votre navigateur. Cinq images, cinq raisons
+d'installer, sans qu'aucune ne coûte une ligne au discours.
+
+Deux plans de page, et ils ne sont pas un choix de goût :
+
+- **« cote »** (images 2 à 5) — le produit à gauche dans 500 px, le discours à
+  droite dans 666 px. La barre y tient à l'échelle 1,72, soit des rangées de
+  75 px : c'est ce qui rend un pseudo lisible dans une vignette.
+- **« empile »** (image 1) — le titre en bandeau, le produit dessous. Il n'existe
+  que parce que cette image doit montrer la barre ET l'aperçu côte à côte, soit
+  766 px de produit, qui ne laisseraient que 430 px au texte.
 
 ## Le formulaire « Pratiques de confidentialité »
 

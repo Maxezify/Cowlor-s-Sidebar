@@ -4118,7 +4118,7 @@ broadcast language is independent of the tags it displays.
 ### Chrome Web Store captures
 
 ```bash
-npm run promo           # → promo/*.png, exactly 1280×800, six scenes × twelve languages
+npm run promo           # → promo/*.png, exactly 1280×800, five scenes × twelve languages
 npm run banniere        # → promo/00-banniere-*.png, 1400×560, twelve languages
 npm run tuile-produit   # → promo/tuile-E-produit.png, 440×280
 npm run polices         # → promo-fonts/noto-sans-{jp,sc}-cjk.woff2 (see below)
@@ -4204,40 +4204,87 @@ It is **seeded** into `localStorage` before the script starts (`ABOS`, in
 `promo.mjs`), and the `/subscriptions` sweep is switched off for every capture.
 The reason is not convenience: `tests/page.html` serves that tab with **real**
 handles — which is what it takes to exercise the module, and exactly what a
-published image must never carry. The subscriptions scene checks what it
-photographs, too: four gilded cards, and a badge reading twelve. Were the sweep
-to run anyway, the badge would count thirteen or more and the capture would fail
-instead of shipping.
+published image must never carry.
 
-Six guards measure every scene before the shot and complain on the console
-rather than let a crooked image out: the headline must not be clipped, the text
-column must never come within twenty-four pixels of the frame (a floor
-**derived** from the frame, whose scale varies from scene to scene), the hover
-preview must not bite into the text, Inter must really be loaded, the kicker
-must hold on one line, and the headline must count exactly the lines it was
-written with.
+Every scene checks what it photographs, too, and refuses to ship an image that
+has lost its subject: three gilded cards and a badge reading twelve for the
+subscriptions — were the sweep to run anyway, the badge would count thirteen or
+more and the capture would fail; at least three badges in the preview; a
+subathon pill, a co-stream, a fresh stream and five uptimes on the card scene;
+five rows and eight segments in the trail; and, for Top Channels, two handles
+that exist only in the global ranking. A pretty but mute capture is the one
+defect the layout guards cannot report.
+
+**Five scenes, and exactly five.** The Store accepts only five images; six were
+being produced, one of which stayed in the cloakroom. Filters and sorts, which
+took two of the six, no longer have an image of their own: they are easy to
+guess and they set the extension apart from nothing. They survive as a **bullet**
+— one line in the fifth image. In their place, two features that had no image at
+all: the "Previously on this stream" trail, and subathons. The file numbering
+**is** the publication rank; the reasoning is in `store/README.md`.
+
+Every image carries a kicker, a headline, **three bullets** and a brand line.
+The bullets replaced the paragraph of the previous set, and that is the one
+decision in this rework with a measurable reason: a three-line paragraph at
+29 px reads at 1280 px wide and stops reading altogether in the Store thumbnail,
+which is 440 px. Three bold openers catch the eye at any size, and each carries
+its proof after a dash. The dot in front of them is **drawn in CSS**, not written
+as a character: a "▸" is in none of the embedded fonts and would come out in the
+container's own — or as an empty box.
+
+Two page plans, and they are not a matter of taste. In **"cote"** — images 2 to
+5 — the product fits 500 px on the left and the discourse 666 px on the right;
+the sidebar runs at scale 1.72 there, which is 75 px rows against 61 before, and
+that is what makes a handle legible in a thumbnail. In **"empile"** — image 1
+only — the headline goes left, the bullets right, and the product spreads below:
+that image has to show the sidebar **and** the preview side by side, 766 px of
+product, which would leave the text only 430 px.
+
+Its headline keeps the same 72 px. It was set to 62 out of caution, and the
+caution was pointless: what pushes the product down is not the headline but the
+**bullet column**, taller than it in all twelve languages. Growing the headline
+up to it therefore costs nothing — and this is the image the Store thumbnail
+shows to everybody.
+
+Eight guards measure every scene before the shot and complain on the console
+rather than let a crooked image out: the headline must not be clipped, product
+and discourse must keep twenty-four pixels between them (a gap **derived** from
+the render, the product's scale varying from scene to scene), nothing may leave
+the canvas, nothing may cover the brand line, no bullet may carry a word longer
+than its column, Inter must really be loaded, the kicker must hold on one line,
+and the headline must count exactly the lines it was written with.
+
+The brand-line guard tests **all three** blocks — text, bullets and product —
+not just the one you would suspect, because the margin really is thin: in the
+"cote" plan the frame comes down to 752 px where the brand line starts at 742,
+and the longest of the twelve reaches back to 536 px, three pixels from the
+frame's edge. It was proven the way the rest of the repository is, by being made
+to fail: a brand line four words longer trips it, and without that it would
+prove nothing.
 
 The last two cover the same blind spot: **a line break overflows nothing**, so
 no overflow measurement can see it. That is how "PRÉ-VISUALIZAÇÃO AO PASSAR"
 got through, eleven pixels too wide for its pill; and that is how thirteen
 scenes at once were caught with a headline taking one line more than written,
 ever since Inter — whose 800 weight is real, where the fallback synthesised its
-bold — replaced the default typeface. Headline size is therefore no longer
-chosen but **measured**: 72 px is the last notch at which "tells you
-everything.", the longest latin line across the twelve languages, fits the
-column's 690 px. Japanese and Chinese read differently — an ideograph is one em
-wide, so 690 px hold nine of them and not one more — and it is that count which
-pushed the Japanese Top Channels headline to three lines: the wrap was written
-in advance, so it may as well be written down. In the narrow variant the wrap is
-wanted too — no legible size fits "avant de cliquer" in one go inside 378 px —
-and the guard tolerates one extra
-line there, and only there.
+bold — replaced the default typeface. Headline size is therefore not chosen but
+**measured**: 72 px is the last notch at which the longest latin line across the
+twelve languages fits the column's 666 px. Japanese and Chinese read differently
+— an ideograph is one em wide, so 666 px hold nine of them and not one more —
+and it is that count which puts the Japanese Top Channels headline on three
+lines: the wrap was written in advance, so it may as well be written down.
 
-That 72 was found in the real pipeline, and it took that: a standalone
+That count was found in the real pipeline, and it took that: a standalone
 measuring bench, rendering the same string in the same typeface at the same
-size, reported that 74 fit. It was off by 5% — enough to push a word onto the
-next line, not enough to notice. A text width cannot be modelled beside the
+size, reported two notches more. It was off by 5% — enough to push a word onto
+the next line, not enough to notice. A text width cannot be modelled beside the
 page that displays it; it has to be measured in it.
+
+Same lesson, one notch further: the layout now waits for `document.fonts.ready`
+before measuring anything. It did not, and the German listing said so — its
+three bullets take three lines in Inter and two in the fallback, so the product
+was placed four pixels **too high** and came to bite into them. An embedded font
+is immediate; it is not already there.
 
 ### The 440 × 280 tile
 

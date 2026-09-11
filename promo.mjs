@@ -533,66 +533,76 @@ export async function pageProduit({ lang = 'fr', section = null, visites = null,
   return page;
 }
 
-export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre, jeu, jeuArg = null, apres,
-                             echelleMax = 1.42, texteEtroit = false, visites = null, stockage = null }) {
+/* ── La mise en page des captures ─────────────────────────────────────────
+ *
+ * Deux plans, et deux seulement. Ils ne sont pas un choix de goût : ils sont
+ * imposés par la LARGEUR de ce qu'il y a à photographier.
+ *
+ *  « cote »   — le produit à gauche, le discours à droite. Le produit tient
+ *               dans 514 px, ce qui laisse 676 px au texte : de quoi porter un
+ *               titre de 68 px sur deux lignes dans les douze langues. C'est le
+ *               plan de toutes les scènes dont le produit est la barre (478 px
+ *               à l'échelle 1,72) ou l'aperçu seul (504 px à 1,05).
+ *
+ *  « empile » — le titre en bandeau, le produit dessous. Il n'existe que pour
+ *               la scène qui doit montrer la barre ET l'aperçu côte à côte :
+ *               278 + 480 px à l'échelle 1, soit 766 px de produit, qui ne
+ *               laisseraient que 430 px au texte. En empilant, le titre prend
+ *               toute la largeur — et c'est précisément la scène qui en a le
+ *               plus besoin, puisque c'est la première de la fiche, celle que
+ *               la vignette du Store montre à tout le monde.
+ *
+ * Dans les deux cas le discours est le même : un chapô, un titre, et TROIS
+ * points. Les points remplacent le paragraphe des fiches précédentes. Un
+ * paragraphe de trois lignes à 29 px se lit à 1280 px de large et ne se lit
+ * plus du tout dans la vignette du Store, qui en fait 440 ; trois amorces en
+ * gras, elles, s'attrapent du coin de l'œil à n'importe quelle taille, et
+ * chacune porte sa preuve derrière un tiret.
+ */
+
+export async function scene({ nom, lang = 'fr', section = null,
+                              plan = 'cote', produit = 'barre',
+                              chapo, titre, points = [], marque,
+                              jeu, jeuArg = null, apres,
+                              echelleMax = null, visites = null, stockage = null }) {
   const page = await pageProduit({ lang, section, visites, stockage });
   await page.evaluate(jeu, jeuArg);
   await page.waitForTimeout(2200);
   if (apres) await apres(page);
-  await page.evaluate(habiller, { titre, sousTitre, CSS: CSS_TWITCH, echelleMax, texteEtroit });
+  await page.evaluate(habiller,
+    { plan, produit, chapo, titre, points, marque, CSS: CSS_TWITCH, echelleMax });
   // La police est embarquée, donc immédiate — mais « immédiate » n'est pas
   // « déjà là ». Attendre ici, et non après la mesure, évite d'aller mesurer
   // des largeurs de repli qui ne seront pas celles de l'image.
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(500);
-  if (process.env.PROMO_DEBUG) {
-    console.log(JSON.stringify(await page.evaluate(() => {
-      const c = document.querySelector('.side-nav-card');
-      const w = (s) => { const e = c.querySelector(s); return e ? +e.getBoundingClientRect().width.toFixed(1) : null; };
-      const cadre = document.getElementById('promo-cadre').getBoundingClientRect();
-      const nav = document.getElementById('side-nav').getBoundingClientRect();
-      return { cadre: [Math.round(cadre.top), Math.round(cadre.bottom), Math.round(cadre.width)],
-               navH: Math.round(nav.height), cartes: document.querySelectorAll('.side-nav-card').length,
-               av: w('.side-nav-card__avatar'), img: w('.side-nav-card__avatar img'),
-               lien: w('.side-nav-card__link'), main: w('.mainblock'), meta: w('.metacell'),
-               titre: w('[data-a-target="side-nav-title"]'), statut: w('.side-nav-card__live-status') };
-    })));
-  }
-  // Rendu en 2x pour la finesse du texte, puis réduit à 1280x800 — la taille
-  // EXACTE qu'exige le Store — par reduireEnPng24, qui encode aussi sans alpha.
-  // Le texte grandit : un débordement doit se voir ici, pas dans une image
-  // publiée. On mesure la colonne de droite et le bandeau de marque.
+
+  // Le texte grandit d'une langue à l'autre ; un débordement doit se voir ici,
+  // pas dans une image publiée. Tout ce qui suit est mesuré sur le rendu.
   const trop = await page.evaluate(() => {
-    const t = document.getElementById('promo-texte');
-    const m = document.getElementById('promo-marque');
-    const rt = t.getBoundingClientRect(), rm = m.getBoundingClientRect();
-    const h1 = t.querySelector('h1');
-    // Le plancher se DÉDUIT du cadre au lieu d'être un nombre écrit à la main :
-    // l'échelle du cadre dépend de la hauteur de la liste, donc son bord droit
-    // bouge d'une scène à l'autre. Une constante devait valoir pour la scène la
-    // plus large, et interdisait donc au texte des autres scènes la place qu'il
-    // avait pourtant. Vingt-quatre pixels : la gouttière minimale sous laquelle
-    // les deux blocs cessent de se lire comme deux blocs.
-    const plancher = Math.round(
-      document.getElementById('promo-cadre').getBoundingClientRect().right + 24);
-    // La fenêtre d'aperçu, quand la scène en pose une. Elle est reposée à la
-    // main dans promo-run.mjs, donc rien ne l'empêche de venir mordre sur la
-    // colonne de texte — sauf cette mesure. Elle vaut la distance qui les
-    // sépare : négative, elles se chevauchent.
-    const pv = document.querySelector('.tse-preview');
+    const t   = document.getElementById('promo-texte');
+    const m   = document.getElementById('promo-marque');
+    const pts = document.getElementById('promo-points');
+    const grp = document.getElementById('promo-produit');
+    const h1  = t.querySelector('h1');
+    const k   = t.querySelector('.kicker');
+    const empile = document.body.classList.contains('promo-empile');
+    const r = (e) => e.getBoundingClientRect();
+    const rt = r(t), rm = r(m), rp = pts ? r(pts) : null, rg = r(grp);
+
     // Le chapô est une pastille : sur deux lignes, ce n'en est plus une, et
     // rien dans les mesures de la colonne ne le dirait — un retour à la ligne
     // ne déborde de rien. On lui interdit donc de se replier le temps d'une
     // mesure, et on regarde de combien il dépasserait. Le style est rendu
     // avant la capture, qui reste donc celle de la mise en page réelle.
-    const k = t.querySelector('.kicker');
     let chapo = 0;
     if (k) {
       const avant = k.style.whiteSpace;
       k.style.whiteSpace = 'nowrap';
-      chapo = Math.round(k.getBoundingClientRect().width - rt.width);
+      chapo = Math.round(r(k).width - rt.width);
       k.style.whiteSpace = avant;
     }
+
     // Inter a-t-elle VRAIMENT été prise ? Une police absente ne casse rien :
     // le navigateur retombe sur son défaut, et l'image sort avec le mauvais
     // dessin sans que personne ne s'en aperçoive. On compare donc la largeur
@@ -604,36 +614,61 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
       return c.measureText('Chaînes suivies — kiraplays 18,4 k').width;
     };
     const police = largeur('Inter, sans-serif') !== largeur('__absente__, sans-serif');
+
     // Le titre se replie où il veut, et ça ne déborde de rien : `coupe` ne peut
     // pas le voir. Or les coupures sont ÉCRITES, une par <br> — un vers de plus
     // que prévu, et le rythme voulu n'est plus celui qu'on photographie. On
-    // compte donc les lignes par la hauteur, l'interligne étant fixé juste
-    // au-dessus dans la même feuille.
+    // compte donc les lignes par la hauteur, l'interligne étant fixé dans la
+    // même feuille.
     let vers = 0;
     if (h1) {
       const st = getComputedStyle(h1);
-      const inter = parseFloat(st.lineHeight) || parseFloat(st.fontSize) * 1.04;
-      vers = Math.round(h1.getBoundingClientRect().height / inter)
-           - (1 + h1.querySelectorAll('br').length);
+      const inter = parseFloat(st.lineHeight) || parseFloat(st.fontSize) * 1.05;
+      vers = Math.round(r(h1).height / inter) - (1 + h1.querySelectorAll('br').length);
     }
+
+    /* L'écart entre le produit et le discours. Il ne se déduit pas d'une
+       constante : l'échelle du produit dépend de sa hauteur mesurée, donc son
+       bord bouge d'une scène à l'autre. En plan « cote » c'est un écart
+       HORIZONTAL, en plan « empile » un écart VERTICAL — et c'est le seul
+       endroit où les deux plans diffèrent pour le contrôle. */
+    const ecart = empile ? Math.round(rg.top - Math.max(rt.bottom, rp ? rp.bottom : 0))
+                         : Math.round(rt.left - rg.right);
+
+    /* Les points débordent-ils de leur colonne ? Ils se replient, donc ils ne
+       débordent jamais en largeur — sauf un mot plus long que la colonne, ce
+       qu'aucune langue ne garantit de ne pas produire. scrollWidth le dit. */
+    const motLong = [...(pts ? pts.querySelectorAll('li') : [])]
+      .reduce((n, li) => Math.max(n, li.scrollWidth - li.clientWidth), 0);
+
+    /* La ligne de marque est la dernière chose posée et la première à se faire
+       recouvrir. Par la colonne de texte, par les points, ou par le produit
+       lui-même — et il faut donc éprouver les trois, pas seulement celui qu'on
+       soupçonne. La marge est étroite pour de vrai : en plan « cote » le cadre
+       descend à 752 px quand la ligne de marque commence à 742, et la plus
+       longue des douze (« lido no teu navegador, nunca enviado para lado
+       nenhum ») remonte jusqu'à 536 px, soit trois pixels du bord du cadre.
+       Huit pixels de jeu exigés autour, sans quoi « ne se touchent pas » ne
+       veut rien dire à l'œil. */
+    const recouvre = (b) => !!b && b.left < rm.right + 8 && rm.left - 8 < b.right
+                                && b.top < rm.bottom + 8 && rm.top - 8 < b.bottom;
+    const bas = Math.max(rt.bottom, rp ? rp.bottom : 0, rg.bottom);
+    const haut = Math.min(rt.top, rp ? rp.top : 800, rg.top);
     return {
-      plancher, chapo, police, vers,
-      hors: rt.top < 8 || rt.bottom > 792 || rt.right > 1274 || rt.left < plancher,
+      chapo, police, vers, ecart, motLong,
+      hors: haut < 8 || bas > 792 || rt.right > 1246 || (rp && rp.right > 1246),
       coupe: h1 ? Math.round(h1.scrollWidth - h1.clientWidth) : 0,
-      chevauche: rt.bottom > rm.top - 8,
-      marque: Math.round(rm.left) < plancher,
-      ecart: pv ? Math.round(rt.left - pv.getBoundingClientRect().right) : null,
+      chevauche: [rt, rp, rg].filter(recouvre).length,
+      geo: { texte: [Math.round(rt.left), Math.round(rt.top), Math.round(rt.bottom)],
+             prod: [Math.round(rg.left), Math.round(rg.top),
+                    Math.round(rg.right), Math.round(rg.bottom)] },
     };
   });
-  // Un vers de plus est TOLÉRÉ dans la variante étroite, et là seulement : sa
-  // colonne fait 378 px, et aucune taille lisible n'y tient « avant de cliquer »
-  // d'un seul tenant. Le repli y est donc voulu, et le <br> n'est qu'un premier
-  // point de coupure. Dans la colonne large, en revanche, un vers de plus veut
-  // dire que la taille a dépassé ce que la mesure autorisait.
-  const versMax = texteEtroit ? 1 : 0;
-  if (trop.hors || trop.coupe > 0 || trop.chapo > 0 || trop.vers > versMax || trop.chevauche ||
-      trop.marque || !trop.police || (trop.ecart !== null && trop.ecart < 12)) {
+  if (trop.hors || trop.coupe > 0 || trop.chapo > 0 || trop.vers > 0 || trop.motLong > 0 ||
+      trop.chevauche > 0 || !trop.police || trop.ecart < 24) {
     console.log('  ⚠ mise en page :', nom, JSON.stringify(trop));
+  } else if (process.env.PROMO_DEBUG) {
+    console.log('    ', nom, JSON.stringify(trop.geo), 'écart', trop.ecart);
   }
 
   // Un tofu ne se rattrape pas après publication : on refuse de photographier.
@@ -643,6 +678,8 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
                     `» — relancer « npm run polices » après avoir changé un texte`);
   }
 
+  // Rendu en 2x pour la finesse du texte, puis réduit à 1280x800 — la taille
+  // EXACTE qu'exige le Store — par reduireEnPng24, qui encode aussi sans alpha.
   const brut = await page.screenshot();
   await page.close();
   const fichier = await reduireEnPng24(brut, 1280, 800);
@@ -650,14 +687,15 @@ export async function scene({ nom, lang = 'fr', section = null, titre, sousTitre
   console.log('  ✓', `${nom}.png`, `— ${(fichier.length / 1024).toFixed(0)} Ko, 24 bits sans alpha`);
 }
 
-/* Mise en scène : fond sombre, halo violet, la sidebar RÉELLE agrandie dans un
-   cadre, et le discours à droite. Rien n'est redessiné — on déplace et on
-   agrandit le nœud que l'extension a produit. */
-function habiller({ titre, sousTitre, CSS, echelleMax, texteEtroit }) {
+/* Mise en scène : fond sombre, halo violet, le produit RÉEL agrandi, et le
+   discours à côté. Rien n'est redessiné — on déplace et on agrandit les nœuds
+   que l'extension a produits. */
+function habiller({ plan, produit, chapo, titre, points, marque, CSS, echelleMax }) {
+  const empile = plan === 'empile';
   const nav = document.getElementById('side-nav');
   const stories = document.querySelector('[data-tse-stories="row"]');
-  const bloc = document.createElement('div');
-  bloc.id = 'promo-cadre';
+  const apercu = document.querySelector('.tse-preview');
+
   const st = document.createElement('style');
   st.textContent = CSS + `
     html, body { margin:0; padding:0; width:1280px; height:800px; overflow:hidden;
@@ -669,84 +707,174 @@ function habiller({ titre, sousTitre, CSS, echelleMax, texteEtroit }) {
         radial-gradient(720px 520px at 92% 92%, rgba(38,212,200,.10), transparent 60%),
         linear-gradient(158deg,#111014 0%,#0a0a0c 55%,#131017 100%); }
     #root { position:fixed; inset:0; pointer-events:none; }
-    #promo-cadre { position:absolute; left:80px; top:400px;
-      transform:translateY(-50%) scale(var(--promo-scale,1.4)); transform-origin:left center;
-      width:264px; max-height:var(--promo-max,520px); overflow:hidden;
+
+    /* Le produit. Un groupe en ligne plutôt qu'un bloc par pièce : quand la
+       scène montre la barre ET l'aperçu, c'est le GROUPE qu'on mesure, qu'on
+       met à l'échelle et qu'on centre — sans quoi il faudrait recalculer la
+       position de la seconde pièce à chaque changement d'échelle de la
+       première. */
+    #promo-produit { position:fixed; display:flex; align-items:flex-start; gap:10px;
+      transform-origin:top left; }
+    #promo-cadre { width:264px; overflow:hidden; flex:0 0 auto;
       padding:10px 6px 12px; border-radius:14px;
       background:#1f1f23; border:1px solid rgba(255,255,255,.08);
       box-shadow:0 34px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(145,71,255,.13); }
-    /* La colonne de texte occupe la place LAISSÉE par le cadre : celui-ci
-       s'arrête vers 475 px, et le texte commençait à 680 — deux cent
-       cinquante pixels de vide au milieu, payés par une typographie plus
-       petite qu'elle n'avait besoin de l'être. Élargie, elle porte des
-       corps plus grands sans que rien ne se rapproche du cadre. */
-    #promo-texte { position:fixed; right:46px; top:50%; transform:translateY(-50%);
-      width:690px; color:#efeff1; }
-    /* Variante étroite : la scène de l'aperçu pose la fenêtre de survol au
-       milieu, et c'est ELLE qui borne la colonne, pas le cadre. La marge y
-       est donc gagnée au pixel près (cf. la repose de l'aperçu dans
-       promo-run.mjs), et les corps grandissent moins qu'à côté. */
-    body.promo-etroit #promo-texte { right:40px; width:378px; }
-    body.promo-etroit #promo-texte h1 { font-size:54px; letter-spacing:-1.5px; }
-    body.promo-etroit #promo-texte p { font-size:24px; max-width:372px; }
-    /* Le chapô ne suit pas les autres corps dans la variante étroite : c'est
-       une pastille, et une pastille sur deux lignes n'est plus une pastille.
-       « PRÉ-VISUALIZAÇÃO AO PASSAR » est le plus long des douze, et c'est lui
-       qui fixe ce nombre. Le garde-fou « chapo » de scene() vérifie qu'aucun
-       autre ne passe à la ligne. */
-    body.promo-etroit #promo-texte .kicker { font-size:17px; }
+    /* L'aperçu est en position:fixed dans le produit : c'est l'extension qui
+       le pose, et on ne réécrit pas son CSS. On le rend statique le temps de
+       la photo pour qu'il prenne sa place dans le groupe. */
+    #promo-produit .tse-preview { position:static !important; opacity:1 !important;
+      flex:0 0 auto; box-shadow:0 34px 80px rgba(0,0,0,.7); }
+
+    /* Le discours. */
+    #promo-texte, #promo-points { position:fixed; color:#efeff1; }
     #promo-texte .kicker { display:inline-block; padding:8px 17px; border-radius:999px;
       background:rgba(145,71,255,.16); border:1px solid rgba(145,71,255,.40);
       color:#c9a6ff; font-size:19px; font-weight:700; letter-spacing:.10em;
-      text-transform:uppercase; margin-bottom:28px; }
-    #promo-texte h1 { margin:0 0 24px; font-size:72px; line-height:1.04;
+      text-transform:uppercase; margin:0 0 26px; }
+    /* 72 px : le dernier cran où la plus longue ligne latine des douze fiches
+       tient dans les 666 px de la colonne. Ce nombre est MESURÉ, pas choisi —
+       le garde-fou « vers » compte les lignes rendues et les compare aux
+       coupures écrites, et c'est lui qui a le dernier mot. */
+    #promo-texte h1 { margin:0; font-size:72px; line-height:1.05;
       font-weight:800; letter-spacing:-2.2px; }
     #promo-texte h1 em { font-style:normal; color:#a970ff; }
-    #promo-texte p { margin:0; font-size:29px; line-height:1.5; color:#bcbcc8;
-      font-weight:400; max-width:674px; }
-    #promo-marque { position:fixed; right:46px; bottom:36px; color:#707082;
+    /* Les trois points. La pastille est dessinée en CSS et non écrite en
+       caractère : un « ▸ » n'est dans aucune des polices embarquées, il
+       sortirait de celle du conteneur — ou en carré vide. */
+    #promo-points ul { margin:0; padding:0; list-style:none; }
+    #promo-points li { position:relative; padding-left:28px; font-size:26px;
+      line-height:1.34; font-weight:400; color:#a6a6b6; }
+    #promo-points li + li { margin-top:22px; }
+    #promo-points li::before { content:''; position:absolute; left:0; top:.54em;
+      width:11px; height:11px; border-radius:50%; background:#a970ff; }
+    #promo-points li b { color:#efeff1; font-weight:700; }
+
+    #promo-marque { position:fixed; right:44px; bottom:34px; color:#707082;
       font-size:20px; font-weight:600; }
     #promo-marque b { color:#dedee3; font-weight:800; }
+
+    /* Plan « empile » : le titre à gauche, les points à droite, le produit
+       dessous. Le titre garde ses 72 px — il a été à 62, et c'était une
+       précaution inutile : ce qui repousse le produit vers le bas, ce n'est
+       pas le titre mais la COLONNE DES POINTS, plus haute que lui dans les
+       douze langues. Grandir le titre jusqu'à elle ne coûte donc rien, et
+       cette image-ci est celle que la vignette du Store montre à tout le
+       monde. Les points, eux, baissent d'un cran : leur colonne fait 496 px
+       et non 666. */
+    body.promo-empile #promo-points li { font-size:24px; }
+    body.promo-empile #promo-points li + li { margin-top:18px; }
   `;
   document.head.appendChild(st);
-  document.body.appendChild(bloc);
+  if (empile) document.body.classList.add('promo-empile');
   if (stories) stories.remove();
-  bloc.appendChild(nav);
 
-  if (texteEtroit) document.body.classList.add('promo-etroit');
+  const groupe = document.createElement('div');
+  groupe.id = 'promo-produit';
+  document.body.appendChild(groupe);
+
+  /* Le cadre est monté MÊME quand la scène ne le montre pas, et emporté hors
+     champ plutôt que masqué. Un `display:none` mettrait toutes les cartes à
+     zéro pixel, et l'extension, qui continue de tourner pendant la demi-seconde
+     qui précède l'obturateur, mesure ces boîtes. La scène de la frise avait
+     d'abord simplement laissé la barre là où elle était : elle s'est
+     photographiée toute seule dans le coin.  */
+  const cadre = document.createElement('div');
+  cadre.id = 'promo-cadre';
+  cadre.appendChild(nav);
+  if (produit === 'apercu') {
+    cadre.style.cssText = 'position:fixed; left:-2000px; top:0';
+    document.body.appendChild(cadre);
+  } else {
+    groupe.appendChild(cadre);
+  }
+  if (produit !== 'barre' && apercu) groupe.appendChild(apercu);
 
   const txt = document.createElement('div');
   txt.id = 'promo-texte';
-  txt.innerHTML = titre;
+  txt.innerHTML = `<span class="kicker">${chapo}</span><h1>${titre}</h1>`;
   document.body.appendChild(txt);
 
-  /* L'échelle n'est pas choisie à l'avance : elle se déduit de la hauteur
-     réelle de la liste, pour que le cadre tienne dans les 800 px sans jamais
-     couper une carte en deux. Au-delà, un fondu en bas dit que la liste
-     continue — plutôt qu'une coupe nette qui aurait l'air d'un bug. */
-  requestAnimationFrame(() => {
+  const pts = document.createElement('div');
+  pts.id = 'promo-points';
+  pts.innerHTML = '<ul>' + points.map(p => `<li>${p}</li>`).join('') + '</ul>';
+  document.body.appendChild(pts);
+
+  const mq = document.createElement('div');
+  mq.id = 'promo-marque';
+  mq.innerHTML = marque;
+  document.body.appendChild(mq);
+
+  /* La mise en place se fait sur des tailles MESURÉES : l'échelle du produit
+     dépend de sa hauteur réelle, laquelle dépend du nombre de cartes, de la
+     longueur des badges et de la frise — autant de choses qu'aucune constante
+     ne peut prévoir pour douze langues.
+
+     Et elle attend `document.fonts.ready`, ce qui n'est pas une précaution de
+     style : mesurée avant, la colonne des points est celle de la police de
+     REPLI. La fiche allemande l'a montré — ses points tiennent en trois lignes
+     avec Inter et en deux avec DejaVu, le produit était donc posé quatre
+     pixels TROP HAUT et venait mordre dessus. Un tour de boucle en plus
+     ensuite, pour que la mise en page consécutive au chargement soit faite. */
+  document.fonts.ready.then(() => requestAnimationFrame(() => {
     // Mesure à l'échelle 1, sinon on mesurerait le résultat de l'échelle qu'on
     // cherche justement à calculer.
-    bloc.style.setProperty('--promo-scale', '1');
-    bloc.style.setProperty('--promo-max', 'none');
-    void bloc.offsetHeight;
-    const h = nav.getBoundingClientRect().height;
-    const DISPO = 700;
-    const echelle = Math.max(1, Math.min(echelleMax, DISPO / h));
-    bloc.style.setProperty('--promo-scale', echelle.toFixed(3));
-    // Débordement : plutôt qu'une coupe nette qui aurait l'air d'un bug, un
-    // fondu en bas — la liste continue, et ça se voit.
-    if (h * echelle > DISPO) {
-      bloc.style.setProperty('--promo-max', Math.round(DISPO / echelle) + 'px');
-      bloc.style.maskImage = 'linear-gradient(#000 76%, transparent 99%)';
-      bloc.style.webkitMaskImage = 'linear-gradient(#000 76%, transparent 99%)';
-    }
-  });
+    groupe.style.transform = 'scale(1)';
+    groupe.style.left = '0px'; groupe.style.top = '0px';
+    // La barre, quand la scène la montre : c'est elle, et elle seule, qu'on
+    // peut fondre en bas si la liste dépasse.
+    const barre = cadre.parentNode === groupe ? cadre : null;
+    if (barre) barre.style.maxHeight = 'none';
+    void groupe.offsetHeight;
+    const g = groupe.getBoundingClientRect();
 
-  const marque = document.createElement('div');
-  marque.id = 'promo-marque';
-  marque.innerHTML = sousTitre;
-  document.body.appendChild(marque);
+    if (!empile) {
+      /* Plan « cote ». Deux colonnes : le produit dans 500 px à gauche, le
+         discours dans 666 px à droite. La gouttière ne se règle pas au jugé —
+         elle vaut ce qui reste, soit 30 px au pire (produit au maximum de sa
+         zone), et le garde-fou `ecart` la mesure sur le rendu. */
+      const ZONE = { x: 44, w: 500 }, HAUT = 700;
+      const k = Math.min(echelleMax || 1.72, ZONE.w / g.width, HAUT / g.height);
+      poser(groupe, ZONE.x + (ZONE.w - g.width * k) / 2,
+                    400 - Math.min(g.height * k, HAUT) / 2, k);
+      // Si la barre dépasse encore, un fondu en bas plutôt qu'une coupe nette :
+      // la liste continue, et ça se voit.
+      if (barre && g.height * k > HAUT) fondre(barre, HAUT / k);
+
+      txt.style.left = '574px'; txt.style.width = '666px';
+      pts.style.left = '574px'; pts.style.width = '666px';
+      // Le bloc titre + points est centré verticalement d'un seul tenant : les
+      // deux ne sont deux éléments que parce qu'ils n'ont pas la même feuille.
+      const ht = txt.getBoundingClientRect().height;
+      const hp = pts.getBoundingClientRect().height;
+      const y = 400 - (ht + 38 + hp) / 2;
+      txt.style.top = Math.round(y) + 'px';
+      pts.style.top = Math.round(y + ht + 38) + 'px';
+    } else {
+      /* Plan « empile ». Le titre à gauche, les points à droite, le produit
+         dessous sur toute la largeur. */
+      txt.style.left = '60px'; txt.style.width = '648px'; txt.style.top = '56px';
+      pts.style.left = '744px'; pts.style.width = '496px'; pts.style.top = '64px';
+      const bas = Math.max(txt.getBoundingClientRect().bottom,
+                           pts.getBoundingClientRect().bottom);
+      const y = Math.round(bas + 28);
+      /* 726 : le haut de la ligne de marque (800 − 34 de fond − 24 de corps)
+         moins les 8 px de jeu que le garde-fou `chevauche` exige. Ce n'est pas
+         une marge choisie, c'est la place qui reste. */
+      const k = Math.min(echelleMax || 1.30, 1160 / g.width, (726 - y) / g.height);
+      poser(groupe, (1280 - g.width * k) / 2, y, k);
+    }
+  }));
+
+  function poser(el, x, y, k) {
+    el.style.left = Math.round(x) + 'px';
+    el.style.top = Math.round(y) + 'px';
+    el.style.transform = `scale(${k.toFixed(3)})`;
+  }
+  function fondre(el, hauteur) {
+    el.style.maxHeight = Math.round(hauteur) + 'px';
+    el.style.maskImage = 'linear-gradient(#000 76%, transparent 99%)';
+    el.style.webkitMaskImage = 'linear-gradient(#000 76%, transparent 99%)';
+  }
 }
 
 export { browser };

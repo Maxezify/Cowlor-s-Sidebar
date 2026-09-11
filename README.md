@@ -4326,7 +4326,7 @@ langue de diffusion d'un stream est indépendante des étiquettes qu'il affiche.
 ### Captures pour le Chrome Web Store
 
 ```bash
-npm run promo           # → promo/*.png, 1280×800 exactement, six scènes × douze langues
+npm run promo           # → promo/*.png, 1280×800 exactement, cinq scènes × douze langues
 npm run banniere        # → promo/00-banniere-*.png, 1400×560, douze langues
 npm run tuile-produit   # → promo/tuile-E-produit.png, 440×280
 npm run polices         # → promo-fonts/noto-sans-{jp,sc}-cjk.woff2 (cf. plus bas)
@@ -4417,18 +4417,66 @@ d'abonnements. Elle est **posée** dans le `localStorage` avant le démarrage du
 script (`ABOS`, dans `promo.mjs`), et le relevé de `/subscriptions` est coupé
 pour toutes les captures. La raison n'est pas la commodité : `tests/page.html`
 sert cet onglet avec de **vrais** pseudos — c'est ce qu'il faut pour éprouver le
-module, et c'est exactement ce qu'une image publiée ne doit pas porter. La scène
-des abonnements vérifie d'ailleurs ce qu'elle photographie : quatre cartes
-dorées, et une pastille à douze. Si le relevé passait outre, la pastille
-compterait treize et plus, et la capture échouerait au lieu de sortir.
+module, et c'est exactement ce qu'une image publiée ne doit pas porter.
 
-Six garde-fous mesurent chaque scène avant la capture, et se plaignent en
+Chaque scène vérifie d'ailleurs ce qu'elle photographie, et refuse de sortir une
+image qui aurait perdu son sujet : trois cartes dorées et une pastille à douze
+pour les abonnements — si le relevé passait outre, la pastille compterait treize
+et plus, et la capture échouerait ; trois badges au moins dans l'aperçu ; une
+pastille de subathon, un co-stream, un stream frais et cinq durées sur la scène
+de la carte ; cinq lignes et huit segments dans la frise ; et, pour Top Chaînes,
+deux pseudos qui n'existent que dans le classement mondial. Une capture jolie et
+muette est le seul défaut que la mise en page ne peut pas signaler.
+
+**Cinq scènes, et cinq exactement.** Le Store n'accepte que cinq images ; il en
+sortait six, dont une restait au vestiaire. Les filtres et les tris, qui en
+occupaient deux, n'ont plus d'image à eux : ils se devinent et ne distinguent
+l'extension de rien. Ils sont restés en tant que **point**, une ligne dans la
+cinquième image. À leur place, deux fonctions qui n'avaient pas d'image du tout
+— la frise « Précédemment sur ce live » et les subathons. L'ordre des fichiers
+EST le rang de publication ; il est justifié dans `store/README.md`.
+
+Chaque image porte un chapô, un titre, **trois points** et une ligne de marque.
+Les points ont remplacé le paragraphe des fiches précédentes, et c'est la seule
+décision de cette refonte qui ait une raison mesurable : un paragraphe de trois
+lignes à 29 px se lit à 1280 px de large, et ne se lit plus du tout dans la
+vignette du Store, qui en fait 440. Trois amorces en gras s'attrapent à
+n'importe quelle taille, et chacune porte sa preuve derrière un tiret. La
+pastille qui les précède est **dessinée en CSS** et non écrite en caractère :
+un « ▸ » n'est dans aucune des polices embarquées et sortirait de celle du
+conteneur — ou en carré vide.
+
+Deux plans de page, et ils ne sont pas un choix de goût. En **« cote »** —
+images 2 à 5 — le produit tient dans 500 px à gauche et le discours dans 666 px
+à droite ; la barre y passe à l'échelle 1,72, soit des rangées de 75 px contre
+61 auparavant, ce qui est ce qui rend un pseudo lisible dans une vignette. En
+**« empile »** — image 1 seulement — le titre passe à gauche, les points à
+droite, et le produit s'étale dessous : cette image-là doit montrer la barre
+**et** l'aperçu côte à côte, soit 766 px de produit, qui ne laisseraient que
+430 px au texte.
+
+Le titre y garde ses 72 px. Il a été mis à 62 par précaution, et c'était une
+précaution inutile : ce qui repousse le produit vers le bas n'est pas le titre
+mais la **colonne des points**, plus haute que lui dans les douze langues.
+Grandir le titre jusqu'à elle ne coûte donc rien — et c'est l'image que la
+vignette du Store montre à tout le monde.
+
+Huit garde-fous mesurent chaque scène avant la capture, et se plaignent en
 console plutôt que de laisser sortir une image bancale : le titre ne doit pas
-être coupé, la colonne de texte ne doit pas s'approcher du cadre à moins de
-vingt-quatre pixels (plancher **déduit** du cadre, dont l'échelle varie d'une
-scène à l'autre), la fenêtre d'aperçu ne doit pas venir mordre sur le texte,
-Inter doit être réellement chargée, le chapô doit tenir sur une seule ligne, et
-le titre doit compter exactement les lignes qu'on lui a écrites.
+être coupé, le produit et le discours doivent garder vingt-quatre pixels entre
+eux (écart **déduit** du rendu, l'échelle du produit variant d'une scène à
+l'autre), rien ne doit sortir du cadre, rien ne doit recouvrir la ligne de
+marque, aucun point ne doit porter un mot plus long que sa colonne, Inter doit
+être réellement chargée, le chapô doit tenir sur une seule ligne, et le titre
+doit compter exactement les lignes qu'on lui a écrites.
+
+Celui de la ligne de marque éprouve les **trois** blocs — le texte, les points
+et le produit — et pas seulement celui qu'on soupçonnerait, parce que la marge
+y est mince pour de vrai : en plan « cote » le cadre descend à 752 px quand la
+ligne de marque commence à 742, et la plus longue des douze remonte jusqu'à
+536 px, soit trois pixels du bord du cadre. Il a été éprouvé comme le reste du
+dépôt, en le faisant échouer : une ligne de marque rallongée de quatre mots le
+fait sortir, et sans elle il ne prouverait rien.
 
 Les deux derniers gardent la même zone aveugle : **un retour à la ligne ne
 déborde de rien**, donc aucune mesure de débordement ne peut le voir. C'est
@@ -4436,21 +4484,25 @@ ainsi qu'est passé « PRÉ-VISUALIZAÇÃO AO PASSAR », onze pixels de trop pou
 pastille ; et c'est ainsi qu'a été rattrapé, dans treize scènes d'un coup, un
 titre qui prenait un vers de plus que prévu depuis qu'Inter — dont la graisse
 800 est réelle, là où le repli synthétisait son gras — a remplacé la police par
-défaut. La taille des titres n'est donc plus choisie mais **mesurée** : 72 px
-est le dernier cran où « tells you everything. », la plus longue ligne latine
-des douze langues, tient dans les 690 px de la colonne. Le japonais et le
-chinois s'y lisent autrement — un idéogramme fait un cadratin, donc 690 px en
-tiennent neuf, pas un de plus — et c'est ce compte-là qui a fait passer le titre
-japonais du mode Top Chaînes à trois vers : le repli était écrit d'avance,
-autant l'écrire. Dans la variante étroite le repli est de même voulu — aucune
-taille lisible ne tient « avant de cliquer » d'un trait dans 378 px — et le
-garde-fou y tolère un vers de plus, là seulement.
+défaut. La taille des titres n'est donc pas choisie mais **mesurée** : 72 px est
+le dernier cran où la plus longue ligne latine des douze langues tient dans les
+666 px de la colonne. Le japonais et le chinois s'y lisent autrement — un
+idéogramme fait un cadratin, donc 666 px en tiennent neuf, pas un de plus — et
+c'est ce compte-là qui met le titre japonais du mode Top Chaînes sur trois vers :
+le repli était écrit d'avance, autant l'écrire.
 
-Ce 72 a été trouvé dans la chaîne réelle, et il fallait bien ça : un banc de
+Ce compte a été trouvé dans la chaîne réelle, et il fallait bien ça : un banc de
 mesure isolé, qui rendait pourtant la même chaîne dans la même police à la même
-taille, annonçait que 74 passait. Il se trompait de 5 % — assez pour faire
+taille, annonçait deux crans de plus. Il se trompait de 5 % — assez pour faire
 tomber un mot à la ligne suivante, pas assez pour se voir. Une largeur de texte
 ne se modélise pas à côté de la page qui l'affiche ; elle s'y mesure.
+
+Même leçon, un cran plus loin : la mise en page attend `document.fonts.ready`
+avant de mesurer quoi que ce soit. Elle ne l'attendait pas, et la fiche
+allemande l'a dit — ses trois points tiennent en trois lignes avec Inter et en
+deux avec la police de repli, si bien que le produit était posé quatre pixels
+**trop haut** et venait mordre dessus. Une police embarquée est immédiate ; elle
+n'est pas déjà là.
 
 ### La tuile 440 × 280
 
