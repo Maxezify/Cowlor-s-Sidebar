@@ -1971,6 +1971,106 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## The subathon rainbow, and three trail corrections (v3.93)
+
+### A badge in the preview, and a colour that goes through them all
+
+A subathon is an exceptional event. It now carries its own badge —
+`Subathon · day 10` — and, to say so, a colour that belongs to nobody because it
+travels through all of them: eight stops, a fade from one to the next, twelve
+seconds for the turn. The card's `J…` pill follows the same one.
+
+**The contrast holds along the whole path, not just at the stops.** That is this
+animation's trap: the browser interpolates in sRGB between two stops, and the
+middle of a segment is neither — a neighbouring red and green cross at a dull
+olive, darker than both. The entire path was therefore sampled, not only the
+eight colours written down.
+
+**And lightness cannot be guessed from hue.** At equal HSL lightness, a blue
+weighs three times less than a yellow in luminance: a rainbow set at the same
+lightness throughout goes dark on blue and violet. The eight text colours are
+therefore at constant saturation and lightness, and it is the **badge
+background** that is recomputed hue by hue.
+
+| Measured across the cycle's 40 steps | Result |
+|---|---|
+| text on the three card backgrounds | never below **6.87:1** (floor: 4.5:1) |
+| text on the badge's composited background | **7.03 to 7.41:1** |
+| the fixed badge family, for comparison | 6.38 to 7.67:1 |
+
+The rainbow is therefore **more constant** than the fixed badges around it. A
+mutant placing a "naive lightness" blue at a single stop drops the pill to
+**2.71:1** — precisely what this computation exists to prevent.
+
+**Reduced motion keeps the colour and drops the movement.** What remains is not
+a random hue: it is the cyan the badge computation had designated — the only hue
+slot still free, at 181°, 34° from the sponsor green and 35° from the co-stream
+blue, for 7.06:1 on its composited background. Users who refuse motion will see
+only that one: it deserved to be chosen, not drawn at random.
+
+### The "Top Channels" blink
+
+"The `J…` element blinks every 30 seconds." The cause was not in the animation.
+
+A ranking card is decorated **twice per sweep**: first with a seed built by hand
+from the ranking, then with the `TseChannels` response. The ranking does not
+request titles — it would weigh sixteen hundred of them for a decorative mark —
+so the seed has nothing to say about the subathon. And **a missing field read as
+"this is not one"**: the pill dropped at the seed and came back at the response.
+Once per sweep, indefinitely.
+
+Three states, then, not two: `undefined` means *we don't know* and touches
+nothing; `null` means *we know it isn't* and undoes the mark. Treating an absence
+of information as information is exactly what the rest of the module refuses to
+do.
+
+The harness samples it **frame by frame** — the gap lasted one network
+round-trip. Two sweeps, one reading per screen refresh, zero absences tolerated.
+
+### The tilde, and exactly what it qualifies
+
+On a clip-derived trail, a category's duration is an **approximation**: its
+bounds are the moments a clip proves it was live, and the true start is earlier.
+`~2h28` says so in one character.
+
+It is not placed on everything, and that is what gives it meaning:
+
+| | Exact | Approximate |
+|---|---|---|
+| header total (stream duration) | `8h36` | |
+| before the first clip (two known instants) | `40m` | |
+| a category's duration | | `~2h28` |
+
+A tilde everywhere would be decorative; on the approximate alone, it reads. The
+harness requires **both directions** — present on the categories, absent on the
+two exact durations — otherwise a prefix glued to every duration would pass.
+
+### The first clip's boundary fades too
+
+The first segment begins at the first clip that **proves** it. But the category
+had started earlier — somewhere between the stream's start and that clip, and
+nothing says where. The uncertain interval is therefore the **whole** unknown
+part, hence a 100% fade: it does not say "it was this category", it says "it
+became that somewhere in here".
+
+The hatching stays on top, because the fade does not redeem the ignorance. On a
+**chapter** trail, none of this: the VOD gives the hour of the first change as it
+does the others, and fading one would confess a doubt we do not have.
+
+### The "×8" did not rest on the same line as its name
+
+The return count is written smaller than the category it counts — 10.5 px against
+12. The row **centred** them, and two different sizes centred do not sit on the
+same baseline: measured, **0.81 px** apart.
+
+Less than a pixel, and perfectly visible — because a list gives eight of them one
+under the other, and the eye reads the column, not the line. A user saw it before
+the harness did.
+
+The row now aligns on **baselines**. The colour swatch stays centred: it is a
+14 px stroke with no text, whose "baseline" is its bottom edge — aligned like
+text, it would sink below the row.
+
 ## The sidebar that emptied itself, and why nothing said so (v3.92)
 
 A user: "every so often, all my followed channels have disappeared." The
@@ -3472,7 +3572,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 92 scenarios, 861 assertions |
+| `npm test` | the Playwright harness: 93 scenarios, 872 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -3492,12 +3592,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 790 KB | 328 KB | 3,019 → **2** |
+| `content.js` | 803 KB | 332 KB | 3,024 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 54 KB | 27 KB | 72 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **988 KB** | **460 KB** | **−53 %** |
+| **all five** | **1001 KB** | **464 KB** | **−54 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -3509,7 +3609,7 @@ within 3 %: wide enough for a version's ordinary growth, too narrow for a
 sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 3,019
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 3,024
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`

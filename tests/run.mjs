@@ -9563,8 +9563,10 @@ titre('87. La troisième porte — les clips, pour qui n\'archive pas');
     return {
       clips: bloc.classList.contains('tse-preview__frise--clips'),
       source: bloc.querySelector('.tse-preview__frise-source')?.textContent || null,
+      total: bloc.querySelector('.tse-preview__frise-total').textContent,
       lignes: [...bloc.querySelectorAll('.tse-preview__frise-ligne')].map(l => ({
         nom: l.querySelector('.tse-preview__frise-nom').textContent,
+        duree: l.querySelector('.tse-preview__frise-duree')?.textContent || '',
         inconnu: l.classList.contains('tse-preview__frise-ligne--inconnu'),
       })),
       /* LES COULEURS SE COMPARENT APRÈS NORMALISATION. Une propriété
@@ -9637,12 +9639,43 @@ titre('87. La troisième porte — les clips, pour qui n\'archive pas');
   ok('…et la couture ne redessine pas la rupture qu\'on vient d\'effacer',
      f.parts[2].couture === 'none' && f.parts[0].couture === 'none',
      JSON.stringify(f.parts.map(p => p.couture)));
-  /* NI LA PART INCONNUE NI LA DERNIÈRE N'ONT DE FONDU. La première n'est pas
-     une borne douteuse entre deux catégories connues — c'est du temps dont
-     aucun clip ne dit rien, et cela se dit déjà en hachuré. La dernière n'a
-     pas de borne après elle : elle finit à maintenant, qui est certain. */
-  ok('…tandis que la part inconnue et la part en cours n\'ont rien à estomper',
-     f.parts[0].flou === false && f.parts[2].flou === false,
+  /* ── LA PART INCONNUE S'ESTOMPE SUR TOUTE SA LARGEUR ────────────────────
+     Elle ne se réduit pas à « du temps qu'aucun clip ne couvre ». Le premier
+     segment commence au premier clip qui le PROUVE ; la catégorie, elle, avait
+     commencé avant — quelque part entre le départ du direct et ce clip. Cet
+     intervalle douteux est donc la part inconnue TOUT ENTIÈRE, d'où 100 % :
+     le fondu ne dit pas « c'était cette catégorie », il dit « ça l'est devenu
+     quelque part là-dedans ». La hachure reste par-dessus, parce que le fondu
+     ne rachète pas l'ignorance.
+
+     LA DERNIÈRE PART, ELLE, N'A RIEN À ESTOMPER : elle finit à maintenant,
+     qui est certain. Deux parts estompées sur trois, et pas trois. */
+  /* ── LA VAGUE, ET CE QU'ELLE QUALIFIE EXACTEMENT ────────────────────────
+     Sur une frise de clips, la durée d'une catégorie est une APPROCHE : ses
+     bornes sont les instants où un clip prouve qu'elle était en cours, et le
+     vrai début est antérieur. « ~2h28 » le dit en un caractère.
+
+     ELLE NE SE POSE PAS SUR TOUT, ET C'EST CE QUI LUI DONNE SON SENS. La part
+     « avant le premier clip » va du départ du direct au premier clip : deux
+     instants CONNUS, donc une durée exacte. Le total de l'en-tête est la durée
+     du direct, exacte elle aussi. Une vague posée partout serait décorative ;
+     posée sur le seul approché, elle se lit. On exige donc les deux sens —
+     présente sur les catégories, ABSENTE sur les deux durées exactes — faute
+     de quoi un préfixe collé à toutes les durées passerait le contrôle. */
+  const lignesClips = f.lignes;
+  ok('la vague ne marque que les durées APPROCHÉES, et les deux exactes s\'en passent',
+     lignesClips.filter(l => !l.inconnu).every(l => l.duree.startsWith('~'))
+     && lignesClips.filter(l => !l.inconnu).length >= 2
+     && !lignesClips.find(l => l.inconnu).duree.startsWith('~')
+     && !f.total.startsWith('~'),
+     JSON.stringify({ total: f.total, lignes: lignesClips.map(l => [l.nom, l.duree]) }));
+  ok('…la part antérieure au premier clip s\'estompe, elle, sur TOUTE sa largeur',
+     f.parts[0].flou === true && parseFloat(f.parts[0].large) === 100
+     && f.parts[0].vers === f.parts[1].couleur,
+     JSON.stringify({ large: f.parts[0].large, vers: f.parts[0].vers,
+                      premiere: f.parts[1].couleur }));
+  ok('…tandis que la part en cours n\'a pas de borne après elle',
+     f.parts[2].flou === false,
      JSON.stringify(f.parts.map(p => ({ inconnu: p.inconnu, flou: p.flou }))));
 
   const b = await page.evaluate(() => window.tse.panneau.rapport().reseau.chapitres);
@@ -10123,6 +10156,22 @@ titre('90. La frise d\'un subathon — une ligne par catégorie, pas par bascule
         })() : null,
         ecartDuree: f0 && d0 ? Math.round(d0.getBoundingClientRect().left
                                           - f0.getBoundingClientRect().right) : null,
+        /* L'ÉCART DE LIGNE DE BASE entre le « ×N » et le nom qu'il compte. Le
+           « ×N » est écrit plus petit ; centrés verticalement, deux corps
+           différents ne reposent pas sur la même ligne. La sonde est une boîte
+           de hauteur nulle en « vertical-align: baseline », dont le bord
+           inférieur EST la ligne de base — comparer des rectangles de glyphes
+           de corps différents ne dirait rien, leurs bas ne coïncidant jamais. */
+        ecartBase: (f0 && n0) ? (() => {
+          const sonde = () => { const i = document.createElement('i');
+            i.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+            return i; };
+          const a = sonde(), b = sonde();
+          n0.appendChild(a); f0.appendChild(b);
+          const d = b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom;
+          a.remove(); b.remove();
+          return +d.toFixed(2);
+        })() : null,
         bordDuree: d0 && barre ? Math.round(barre.getBoundingClientRect().right
                                             - d0.getBoundingClientRect().right) : null,
         lignes: [...bloc.querySelectorAll('.tse-preview__frise-ligne')].map((l) => ({
@@ -10189,13 +10238,34 @@ titre('90. La frise d\'un subathon — une ligne par catégorie, pas par bascule
   ok('« ×7 » se lit contre le nom qu\'il compte, et non contre la durée',
      sub.ecartNom !== null && sub.ecartNom < sub.ecartDuree && sub.ecartNom <= 6,
      JSON.stringify({ auNom: sub.ecartNom, aLaDuree: sub.ecartDuree }));
+  /* ── ET IL REPOSE SUR LA MÊME LIGNE QUE LUI ──────────────────────────────
+     Un utilisateur l'a vu avant le banc : « les ×8 ou ×2 ne sont pas bien
+     alignés avec les catégories ». Le « ×N » fait 10,5 px contre 12 pour le
+     nom ; la rangée les centrait, et deux corps différents centrés ne reposent
+     pas sur la même ligne — mesuré, 0,81 px d'écart. Moins d'un pixel, et
+     parfaitement visible, parce qu'une liste en donne huit exemplaires l'un
+     sous l'autre et que l'œil lit la colonne, pas la ligne. On exige donc
+     l'égalité STRICTE des lignes de base. */
+  ok('…et il repose EXACTEMENT sur la ligne de base du nom, malgré son corps plus petit',
+     sub.ecartBase === 0, `${sub.ecartBase} px d'écart de ligne de base`);
   /* ET LA COLONNE DES DURÉES NE BOUGE PAS. C'est elle que l'œil parcourt
      verticalement ; le nom ne la poussait plus une fois qu'il a cessé de
      s'étirer, d'où le « margin-left: auto » qui la remet au bord. */
   ok('…et la durée reste collée au bord droit, comme la colonne l\'exige',
      sub.bordDuree === 0, `${sub.bordDuree} px du bord`);
+  /* SUR UNE FRISE DE CHAPITRES, RIEN NE S'ESTOMPE — pas même la part en tête.
+     Le VOD donne l'heure du premier changement comme celle des suivants : il
+     n'y a aucune borne douteuse à avouer, et en dessiner une serait avouer un
+     doute qu'on n'a pas. C'est l'exact pendant de la frise de clips, où deux
+     parts sur trois s'estompent. */
   ok('…aucune borne n\'est estompée : les chapitres donnent l\'heure exacte',
      sub.flous === 0, `${sub.flous} part(s) estompée(s)`);
+  /* ET AUCUNE VAGUE NON PLUS. Le pendant de l'assertion des clips : une frise
+     de chapitres donne des heures, pas des approches. Sans ce contrôle, un
+     préfixe posé sur toutes les frises passerait pour une correction. */
+  ok('…ni aucune vague : une durée de chapitre n\'est pas une approche',
+     sub.lignes.every(l => !l.duree.startsWith('~')),
+     JSON.stringify(sub.lignes.map(l => l.duree)));
 
   /* ── LE CAS ORDINAIRE NE PAIE RIEN ──────────────────────────────────────── */
   const simple = await lire('simple');
@@ -10931,6 +11001,239 @@ titre('92. La section suivie — une section vide fait taire toute l\'extension'
        vu.cartes === 0 && vu.voie === 'libelle-vide' && vu.vides >= 1,
        JSON.stringify(vu));
     await page.close();
+  }
+}
+
+titre('93. Le subathon dans l\'aperçu — un badge, un arc-en-ciel, et pas un clignotement');
+{
+  /* ── CE QUE CE SCÉNARIO GARDE ────────────────────────────────────────────
+     Trois demandes d'un même retour d'usage, et elles ne se vérifient pas de
+     la même façon : un badge est du DOM, un arc-en-ciel est une animation dont
+     seuls les pixels comptent, et un clignotement ne se voit qu'en rejouant le
+     cycle de relevé qui le produisait. */
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+    window.__fx = {
+      mouse: { id: '1', createdAt: h(2277), viewers: 8400, game: 'Just Chatting',
+               tags: [], title: '!MOUSEATHON DAY 10 AHHHH' },
+      nomme: { id: '2', createdAt: h(74), viewers: 2100, game: 'Just Chatting',
+               tags: [], title: '24H SUBATHON' },
+      ordi:  { id: '3', createdAt: h(74), viewers: 7800, game: 'Just Chatting',
+               tags: [], title: 'GTA RP tranquille' },
+    };
+    window.__addCard('mouse', 'Discussions', '8,4 k');
+    window.__addCard('nomme', 'Discussions', '2,1 k');
+    window.__addCard('ordi',  'Discussions', '7,8 k');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 3);
+
+  const survoler = async (login) => {
+    await hoverLogin(page, login);
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+    await wait(page, 400);
+  };
+  const quitter = async (login) => {
+    await page.evaluate((l) => {
+      [...document.querySelectorAll('.side-nav-card')]
+        .find(c => c.dataset.tseLogin === l)
+        ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+    }, login);
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  };
+
+  /* ── LE BADGE ────────────────────────────────────────────────────────── */
+  await survoler('mouse');
+  const avec = await page.evaluate(() => {
+    const b = document.querySelector('.tse-preview__badge--subathon');
+    return b ? { texte: b.textContent.trim(),
+                 rang: [...document.querySelectorAll('.tse-preview__badge')].indexOf(b) }
+             : null;
+  });
+  ok('une chaîne en subathon porte un badge qui en donne le jour',
+     avec !== null && avec.texte === 'Subathon · jour 10', JSON.stringify(avec));
+  await quitter('mouse');
+
+  /* UN SUBATHON NOMMÉ SANS NUMÉRO garde son badge et n'invente pas de jour.
+     « Subathon · jour null » serait le seul défaut que ce cas puisse produire,
+     et il se produirait sur un titre parfaitement ordinaire — « 24H SUBATHON »
+     nomme l'événement sans le compter. Le libellé connaît donc son cas nul. */
+  await survoler('nomme');
+  const sansJour = await page.evaluate(() =>
+    document.querySelector('.tse-preview__badge--subathon')?.textContent.trim() ?? null);
+  ok('…et un subathon non numéroté garde le badge sans inventer de jour',
+     sansJour === 'Subathon', JSON.stringify(sansJour));
+  await quitter('nomme');
+
+  await survoler('ordi');
+  const sans = await page.evaluate(() =>
+    !!document.querySelector('.tse-preview__badge--subathon'));
+  ok('…et une chaîne ordinaire n\'en porte aucun',  !sans, String(sans));
+  await quitter('ordi');
+
+  /* ── L'ARC-EN-CIEL, ÉCHANTILLONNÉ SUR TOUT SON CYCLE ──────────────────────
+     C'est ici que le contrôle doit être plus qu'un coup d'œil. Le navigateur
+     interpole en sRGB entre deux arrêts : le MILIEU d'un segment n'est ni
+     l'un ni l'autre, et deux couleurs voisines peuvent se croiser en une
+     teinte plus sombre que les deux. Contrôler les huit arrêts écrits dans la
+     feuille ne dirait donc rien du chemin entre eux.
+
+     ET LA CLARTÉ NE SE DEVINE PAS DE LA TEINTE : à clarté HSL égale, un bleu
+     pèse trois fois moins qu'un jaune en luminance. Un arc-en-ciel écrit sans
+     mesure s'éteint sur le bleu et le violet — c'est exactement le défaut que
+     ce contrôle existe pour attraper.
+
+     On rejoue donc l'animation pas à pas, on lit la couleur CALCULÉE à chaque
+     pas, et on calcule le contraste comme le ferait un outil d'accessibilité.
+     Quarante pas sur douze secondes : un tous les trois dixièmes. */
+  await survoler('mouse');
+  const arc = await page.evaluate(async () => {
+    const lum = (c) => {
+      const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map(Number)
+        .map(v => v / 255).map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const contraste = (a, b) => {
+      const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+      return (x + 0.05) / (y + 0.05);
+    };
+    /* LE FOND DU BADGE EST TRANSLUCIDE : le texte ne se lit pas sur la couleur
+       écrite, mais sur sa COMPOSITION par-dessus le fond de l'aperçu. Un
+       contraste calculé sur la couleur brute serait faux — et faux dans le
+       sens rassurant, ce qui est le pire. */
+    const composer = (couche, dessous) => {
+      const c = couche.match(/[\d.]+/g).map(Number);
+      const d = dessous.match(/[\d.]+/g).slice(0, 3).map(Number);
+      const a = c.length > 3 ? c[3] : 1;
+      return 'rgb(' + c.slice(0, 3).map((v, i) => v * a + d[i] * (1 - a)).join(', ') + ')';
+    };
+    const badge = document.querySelector('.tse-preview__badge--subathon');
+    const puce  = document.querySelector('.tse-subathon-jour');
+    const fondApercu = getComputedStyle(document.querySelector('.tse-preview')).backgroundColor;
+    const anims = document.getAnimations();
+    const duree = 12000;
+    /* LE PLUS GRAND SAUT D'UNE IMAGE À L'AUTRE, en distance RGB. C'est ce qui
+       distingue un FONDU d'une succession de paliers, et compter les couleurs
+       distinctes ne le distingue pas : la première rédaction le faisait, et un
+       mutant qui remplaçait le fondu par « steps(8) » lui a survécu. Sur
+       quarante pas et huit arrêts, un fondu ne parcourt qu'un cinquième de
+       segment par pas ; des paliers font le segment entier d'un coup. */
+    let pireBadge = Infinity, pirePuce = Infinity, maxBadge = 0, maxSaut = 0;
+    let precedente = null;
+    const vues = new Set();
+    for (let i = 0; i < 40; i++) {
+      anims.forEach(a => { a.pause(); a.currentTime = i * duree / 40; });
+      await new Promise(r => requestAnimationFrame(r));
+      const cb = getComputedStyle(badge);
+      const rb = contraste(cb.color, composer(cb.backgroundColor, fondApercu));
+      const rp = contraste(getComputedStyle(puce).color, getComputedStyle(puce.closest('.side-nav-card')
+        ? document.body : document.body).backgroundColor || 'rgb(24, 24, 27)');
+      pireBadge = Math.min(pireBadge, rb); maxBadge = Math.max(maxBadge, rb);
+      pirePuce = Math.min(pirePuce, rp);
+      const v = cb.color.match(/[\d.]+/g).slice(0, 3).map(Number);
+      if (precedente) {
+        maxSaut = Math.max(maxSaut, Math.hypot(...v.map((x, k) => x - precedente[k])));
+      }
+      precedente = v;
+      vues.add(cb.color);
+    }
+    anims.forEach(a => a.play());
+    return { pireBadge: +pireBadge.toFixed(2), maxBadge: +maxBadge.toFixed(2),
+             pirePuce: +pirePuce.toFixed(2), maxSaut: +maxSaut.toFixed(1),
+             vues: vues.size,
+             anime: !!badge.getAnimations().length };
+  });
+  /* DEUX PROPRIÉTÉS, ET IL LES FAUT TOUTES DEUX — chacune seule laisse passer
+     un défaut que l'autre attrape :
+
+       • il TRAVERSE. Sans cela, une animation supprimée laisserait le badge sur
+         sa couleur de repos, parfaitement contrastée et parfaitement immobile :
+         le contrôle du contraste passerait, celui du saut aussi. Le mutant qui
+         retire l'animation a survécu à la première rédaction pour cette raison,
+         et `anims.length` ne le voyait pas — la pastille, elle, était toujours
+         animée. On interroge donc LE BADGE.
+
+       • il FOND. Quarante pas pour huit arrêts : un fondu avance d'un cinquième
+         de segment par pas, des paliers franchissent le segment d'un coup. Le
+         seuil est posé entre les deux et loin de chacun.
+
+     Compter les couleurs ne suffit pas non plus : un « steps(8) » posé ENTRE
+     chaque arrêt en rend soixante-quatre, ce qui fond encore — cette mutation
+     n'était pas un défaut, et c'est « steps(1) » qui en est un. */
+  ok('la couleur traverse l\'arc-en-ciel, et elle y fond au lieu d\'y sauter',
+     arc.anime && arc.vues >= 20 && arc.maxSaut <= 45, JSON.stringify(arc));
+  /* LE CONTRASTE TENU SUR TOUT LE CHEMIN. La famille des badges tient entre
+     6,38 et 7,67:1 ; l'arc-en-ciel doit y rester à chacun des quarante pas,
+     et non seulement à ses arrêts. Le plancher d'un petit texte est 4,5:1 :
+     on exige la fourchette de la famille, qui est bien plus étroite. */
+  ok('…et le contraste du badge reste dans la fourchette de ses voisins, à chaque pas',
+     arc.pireBadge >= 6.38 && arc.maxBadge <= 7.67,
+     `${arc.pireBadge} à ${arc.maxBadge}:1 (famille : 6,38 à 7,67)`);
+  ok('…la pastille de la carte ne s\'éteint sur aucune teinte',
+     arc.pirePuce >= 4.5, `${arc.pirePuce}:1 au pire`);
+  await quitter('mouse');
+  await page.close();
+
+  /* ── LE CLIGNOTEMENT DE « TOP CHAÎNES » ──────────────────────────────────
+     « En Top Chaînes, l'élément J… clignote toutes les 30 secondes. » La cause
+     n'est pas dans l'animation : c'est l'AMORCE du mode. Une carte du
+     classement est décorée deux fois par relevé — d'abord avec une entrée
+     bâtie à la main depuis le classement, puis avec la réponse de TseChannels.
+     Le classement ne demande pas les titres (il en pèserait mille six cents
+     pour une marque décorative), donc son amorce n'a rien à dire du subathon —
+     et une absence de champ se lisait comme « ce n'en est pas un ». La
+     pastille tombait à l'amorce et revenait à la réponse. Une fois par relevé,
+     indéfiniment.
+
+     ON L'ÉCHANTILLONNE IMAGE PAR IMAGE, et c'est la seule façon de l'attraper :
+     le trou dure le temps d'un aller-retour réseau. Deux relevés complets sous
+     les durées accélérées du banc, une lecture à chaque rafraîchissement
+     d'écran, et l'on compte les images où la pastille a disparu APRÈS être
+     apparue. Zéro est la seule réponse acceptable. */
+  {
+    const p2 = await fresh();
+    await p2.evaluate(() => {
+      window.__cats = [{ name: 'cSub', viewers: 9000,
+                         streams: [{ login: 'mouseglobal', viewers: 8400 }] }];
+      window.__fx = {
+        mouseglobal: { id: 'g1',
+          createdAt: new Date(Date.now() - 2277 * 60_000).toISOString(),
+          viewers: 8400, game: 'Just Chatting', tags: [],
+          title: '!MOUSEATHON DAY 10 AHHHH' },
+        /* UNE CARTE DE TWITCH DOIT ÊTRE LÀ, et ce n'est pas un artifice de
+           décor : le mode Top Chaînes CLONE une carte native pour fabriquer
+           les siennes. Sans modèle, il n'en fabrique aucune, et le scénario
+           ne mesurerait rien du tout — c'est ce qui est arrivé à la première
+           rédaction, qui veillait sur une sidebar vide. */
+        modele: { id: 'm',
+          createdAt: new Date(Date.now() - 60 * 60_000).toISOString(),
+          viewers: 1000, game: 'Just Chatting', tags: [], title: 'rien' },
+      };
+      window.__addCard('modele', 'Discussions', '1 k');
+    });
+    await attendre(p2, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+    await p2.evaluate(() => window.tse.global.on());
+    await attendre(p2, () => !!document.querySelector('.tse-subathon-jour'), 12000);
+
+    const veille = await p2.evaluate(() => new Promise((resolve) => {
+      const fin = performance.now() + 3000;
+      let images = 0, absences = 0, jours = new Set();
+      const pas = () => {
+        const p = document.querySelector('.side-nav-card[data-tse-global="true"] .tse-subathon-jour');
+        images++;
+        if (!p) absences++; else jours.add(p.textContent);
+        if (performance.now() < fin) requestAnimationFrame(pas);
+        else resolve({ images, absences, jours: [...jours] });
+      };
+      requestAnimationFrame(pas);
+    }));
+    ok('en Top Chaînes, la pastille ne disparaît plus une seule image sur deux relevés',
+       veille.absences === 0 && veille.images > 60
+       && veille.jours.length === 1 && veille.jours[0] === 'J10',
+       JSON.stringify(veille));
+    await p2.close();
   }
 }
 
