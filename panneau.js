@@ -564,6 +564,8 @@ const construireRapport = (r, transport, fond) => {
   }
 
   L.push(...bloc('PAGE', aplatir(r.page)));
+
+  L.push(...bloc('SECTION SUIVIE / FOLLOWED SECTION', aplatir(r.sectionSuivie)));
   L.push(...bloc('LANGUE / LANGUAGE', aplatir(r.langue)));
   L.push(...bloc('MODE', aplatir(r.mode)));
   L.push(...bloc('COMPTEURS / COUNTS', aplatir(r.compteurs)));
