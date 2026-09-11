@@ -338,9 +338,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 803 Ko | 331 Ko | 3 024 → **2** |
+| `content.js` | 803 Ko | 331 Ko | 3 046 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 54 Ko | 27 Ko | 72 → **0** |
+| `panneau.js` | 54 Ko | 27 Ko | 73 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1001 Ko** | **463 Ko** | **−54 %** |
@@ -2237,6 +2237,86 @@ ajustement à la première passe** : la redirection servie par le harnais au
 scénario 75, qui donne une origine opaque sous Blink, et la sortie de fenêtre du
 scénario 76, dont l'ordre des événements de souris n'est pas garanti identique.
 
+
+### Le délai d'intention du survol (v3.95)
+
+`mouseenter` appelait `open()` sans détour. Descendre la liste pour aller
+ailleurs ouvrait donc un aperçu **par carte franchie**, et chacun coûtait un
+rendu, une requête `TsePreview` et un journal écrasé. Sur une barre dépliée — et
+elle l'est toujours, l'extension déplie « Voir plus » à chaque chargement — un
+geste ordinaire en allumait une dizaine. Le banc le chiffre : cinq cartes
+traversées, **cinq requêtes**.
+
+`PREVIEW_IFRAME_DELAY` ne couvrait rien de tout cela, contrairement à ce qu'un
+commentaire égaré laissait croire : il ne retient que l'iframe, et il ne s'arme
+qu'une fois le panneau ouvert et la requête partie.
+
+#### Deux cents millisecondes, et le nombre se déduit
+
+Une rangée de la barre mesure **42 px** — mesuré sur la géométrie de Twitch,
+celle que `CSS_TWITCH` reconstruit pour les captures du Store. Un pointeur qui
+descend à la vitesse *v* passe 42/*v* sur chaque carte : l'aperçu est donc filtré
+pour toute traversée plus rapide que 42 / 0,2 s = **210 px/s**. Deux cent dix
+pixels par seconde, c'est cinq rangées par seconde — un geste déjà lent, et tout
+déplacement qui *va* quelque part est bien au-delà.
+
+Et pas plus, parce que le coût se paie dans l'autre sens : au-delà d'un quart de
+seconde environ, une réponse d'interface cesse d'être perçue comme immédiate.
+150 ms laisserait passer les traversées lentes, 300 se sentirait.
+
+#### Quatre façons d'abandonner l'attente, et elles se cassent séparément
+
+Une carte est « en attente » entre l'entrée du pointeur et l'ouverture. Ce
+nouvel état a exigé de reprendre **tous** les chemins d'annulation, parce que
+chacun se gardait par `card !== currentCard` — une carte encore en attente n'y
+était reconnue par personne :
+
+| Chemin | Ce qui serait arrivé sans la reprise |
+| --- | --- |
+| le pointeur quitte la carte | le minuteur courait, l'aperçu s'ouvrait **après** le départ |
+| le pointeur quitte la fenêtre | idem, et plus aucun événement ne serait venu le refermer |
+| l'onglet passe en arrière-plan | un aperçu, et une requête, sur un écran que personne ne regarde |
+| la carte quitte le DOM | un minuteur tenant une carte morte |
+
+Le premier est le pire des quatre : il ouvrait l'aperçu **plus tard** que le
+défaut qu'on répare, et sur une carte que l'utilisateur ne désigne plus.
+
+#### Ce que le rapport en dit
+
+Le bloc `SURVOL — DÉLAI D'INTENTION` du panneau porte `armes` (les entrées du
+pointeur) et `ouverts` (celles qui ont tenu les 200 ms). Leur écart est le
+nombre d'aperçus — et de requêtes — que le filtre a épargnés, et leur rapport
+est le seul moyen de savoir, sur de vraies machines, si le nombre est juste :
+`ouverts` à zéro dirait qu'il est trop long, `ouverts == armes` qu'il ne sert à
+rien.
+
+#### Le scénario 94, et ce qu'il ne prouve pas
+
+Il survole avec un **vrai pointeur** (`page.mouse.move`) et non des `MouseEvent`
+fabriqués : c'est le navigateur qui doit décider quelles cartes sont entrées et
+quittées. Le prix s'est payé tout de suite — le voile de chargement couvre la
+barre, un vrai pointeur ne le traverse pas, et les cinq premières assertions
+passaient sans avoir rien survolé. Il faut attendre que le voile se lève.
+
+Deux gardes restent en revanche **hors de portée du banc**, et c'est écrit dans
+le scénario plutôt que masqué par une assertion complaisante. L'attente est
+protégée contre la réconciliation React par le test anti-fantôme du `mouseleave`
+et par un `card === pendingCard` à l'entrée. Or, mesuré sur ce moteur, pointeur
+immobile au centre d'une carte :
+
+| Remaniement du DOM | Événements émis |
+| --- | --- |
+| `parentElement.appendChild(carte)` | *aucun* |
+| `remove()` puis `append()`, même tâche | *aucun* |
+| `remove()`, deux images, `append()` | `enter` seul |
+| `display:none` puis retour | `leave` puis `enter` |
+
+C'est la **première** forme que produisent Twitch et `applySorting`, et elle
+n'émet rien : il n'y a pas de fantôme à absorber. Les deux gardes restent — ils
+coûtent une ligne chacun et la quatrième forme, elle, existe — mais aucune
+assertion ne prétendra les éprouver. Le même relevé montre que l'assertion « une
+carte détachée puis rattachée ne referme pas l'aperçu » du scénario 76 ne touche
+rien non plus.
 ## La frise des catégories (v3.70)
 
 Twitch n'affiche la suite des catégories traversées par un stream **nulle
@@ -4283,7 +4363,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 93 scénarios, 873 assertions |
+| `npm test` | le harnais Playwright : 94 scénarios, 881 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

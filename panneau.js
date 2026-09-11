@@ -896,6 +896,13 @@ const construireRapport = (r, transport, fond) => {
      vide : il dit que la sidebar de cet utilisateur ne suit aucun subathon,
      ce qui écarte d'emblée la moitié des causes qu'on chercherait sinon. */
   L.push(...bloc('SUBATHONS', aplatir(r.subathons)));
+  /* LE DÉLAI D'INTENTION DU SURVOL. Le seul réglage du produit dont on ne
+     puisse pas dire depuis ici s'il est bien choisi : deux cents millisecondes
+     se déduisent d'une géométrie (42 px de rangée) et d'un seuil de perception,
+     pas d'une mesure sur de vraies mains. `armes` contre `ouverts` donne ce que
+     le filtre a épargné ; leur rapport est ce qu'il faudra lire le jour où
+     quelqu'un trouvera l'aperçu trop lent — ou trop bavard. */
+  L.push(...bloc('SURVOL — DÉLAI D\'INTENTION / HOVER INTENT', aplatir(r.survol)));
   L.push(...bloc('ABONNEMENTS — RELEVÉ / SUBSCRIPTIONS SWEEP', [
     paire('horodatage', r.relevesAbonnements?.horodatage
       ? new Date(r.relevesAbonnements.horodatage).toISOString() : 'jamais / never'),

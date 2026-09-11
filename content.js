@@ -1984,9 +1984,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     // chaque fois qu'elle a refroidi.
     PREVIEW_THUMB_CDN_W:  480,
     PREVIEW_THUMB_CDN_H:  270,
-    // Délai avant de basculer du JPEG statique au player iframe. Permet
-    // de ne pas spawner d'iframes si l'utilisateur balaie plusieurs cartes
-    // rapidement (un iframe player Twitch = ~5-10 MB de RAM).
     // Granularité du contournement de cache de la vignette (cf. buildThumbUrl).
     // Pendant une tranche, l'URL ne change pas : les re-survols sont instantanés.
     // 2 min 30 : Twitch régénère ces images toutes les quelques minutes, la
@@ -2002,6 +1999,35 @@ const TSE_GATE_MAX_CLICKS = 5;
     PREVIEW_PRELOAD_ENABLED:     true,
     PREVIEW_PRELOAD_CONCURRENCY: 3,
     PREVIEW_PRELOAD_MAX:         200,
+    /* DÉLAI D'INTENTION. Le temps qu'une carte doit rester sous le pointeur
+       avant que l'aperçu ne s'ouvre.
+
+       Il n'existait pas. `mouseenter` appelait `open()` sans détour : traverser
+       la liste pour aller ailleurs ouvrait un aperçu PAR CARTE FRANCHIE, et
+       chacun coûtait un rendu, une requête TsePreview et une entrée de journal.
+       Sur une barre dépliée — et elle l'est toujours, l'extension déplie
+       « Voir plus » à chaque chargement — un geste ordinaire en allumait une
+       dizaine. `PREVIEW_IFRAME_DELAY` ne couvrait rien de tout ça : il ne
+       retient que l'iframe, et il ne s'arme qu'une fois le panneau déjà ouvert
+       et la requête déjà partie.
+
+       DEUX CENTS MILLISECONDES, ET LE NOMBRE SE DÉDUIT. Une rangée de la barre
+       latérale mesure 42 px (mesuré sur la géométrie de Twitch, celle que
+       reconstruit CSS_TWITCH pour les captures). Un pointeur qui descend la
+       liste à la vitesse v passe 42/v sur chaque carte : l'aperçu est donc
+       filtré pour toute traversée plus rapide que 42 / 0,2 s = 210 px/s. Deux
+       cent dix pixels par seconde, c'est cinq rangées par seconde — un geste
+       déjà lent. Tout déplacement qui VA quelque part est bien au-delà.
+
+       Et pas plus, parce que le coût se paie dans l'autre sens : au-delà d'un
+       quart de seconde environ, une réponse d'interface cesse d'être perçue
+       comme immédiate. 200 ms tient des deux côtés ; 150 laisserait passer les
+       traversées lentes, 300 se sentirait. */
+    PREVIEW_HOVER_DELAY: 200,
+    // Délai avant de basculer du JPEG statique au player iframe. Il n'a jamais
+    // servi à filtrer les traversées — c'est PREVIEW_HOVER_DELAY qui le fait —
+    // mais à laisser à un survol bref le temps de se raviser avant qu'on ne
+    // paie l'iframe (un player Twitch = ~5-10 Mo de RAM).
     PREVIEW_IFRAME_DELAY: 150,
     // Quality demandée à player.twitch.tv. "360p30" est le sweet spot pour
     // un aperçu : bande passante raisonnable, qualité suffisante. Valeurs
@@ -8347,6 +8373,14 @@ const TSE_GATE_MAX_CLICKS = 5;
            dit d'un coup d'œil si le registre couvre la population qu'il suit :
            c'est le rapport qui manquait pour voir 210 en cache et 40 places. */
         frise: { resident: frises.size, max: CFG.CATEGORY_TRAIL_MAX, ...bilanFrises },
+        /* LE DÉLAI D'INTENTION, ET CE QU'IL COÛTE. `armes` compte les entrées
+           du pointeur sur une carte, `ouverts` celles qui ont tenu les 200 ms.
+           L'écart entre les deux est le nombre d'aperçus — et de requêtes
+           TsePreview — que le filtre a épargnés. C'est le seul endroit où l'on
+           saura si le nombre est juste sur de vraies machines : `ouverts` à
+           zéro dirait qu'il est trop long, `ouverts == armes` qu'il ne sert à
+           rien. */
+        survol: { delaiMs: CFG.PREVIEW_HOVER_DELAY, ...preview.bilanSurvol() },
         /* LES SUBATHONS, RELUS DU CACHE ET DU DOM. Deux chiffres pour deux
            pannes qui se ressemblent de l'extérieur — une carte non décorée
            peut vouloir dire que la détection n'a rien vu, ou qu'elle a vu et
@@ -9490,6 +9524,23 @@ const TSE_GATE_MAX_CLICKS = 5;
     let flagRemoveTimer = null;// retrait différé du flag body.tse-preview-active
     let currentLogin = null;   // login affiché actuellement (anti-race)
     let currentCard = null;    // carte sous laquelle on est ancré
+    /* L'ATTENTE D'INTENTION. Une carte est « en attente » entre le moment où
+       le pointeur y entre et celui où l'aperçu s'ouvre — soit PREVIEW_HOVER_DELAY
+       plus tard, soit jamais si le pointeur repart avant. Deux états distincts
+       donc, et il FAUT les distinguer : le handler de sortie se gardait par
+       `card !== currentCard`, ce qui, sur une carte encore en attente, ne
+       reconnaissait rien et laissait le minuteur courir. L'aperçu se serait
+       ouvert après le départ du pointeur — exactement le défaut qu'on répare,
+       en pire. */
+    let pendingCard = null;    // carte sous le pointeur, aperçu pas encore ouvert
+    let pendingTimer = null;   // minuteur d'intention en cours
+    /* Ce que le filtre a réellement fait, pour le rapport. `armes` compte les
+       entrées de pointeur, `ouverts` celles qui sont allées au bout : leur
+       rapport EST le taux de filtrage, et c'est le seul moyen de savoir, sur
+       une machine réelle, si 200 ms est le bon nombre. Un rapport où les deux
+       sont égaux dirait que le délai ne sert à rien ; un rapport où `ouverts`
+       reste à zéro dirait qu'il est trop long. */
+    const bilanSurvol = { armes: 0, ouverts: 0, annules: 0, detaches: 0 };
 
     // Cache court des métadonnées par login. Évite les doubles requêtes
     // si l'utilisateur survole 2 fois la même carte rapidement.
@@ -11152,6 +11203,34 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
+    /* Abandonne l'attente en cours, s'il y en a une. `raison` n'a d'effet que
+       sur le compteur : un abandon parce que le pointeur est reparti n'a pas
+       le même sens qu'un abandon parce que la carte a quitté le DOM. */
+    const annulerAttente = (raison) => {
+      if (!pendingTimer && !pendingCard) return;
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+      pendingCard = null;
+      if (raison === 'detache') bilanSurvol.detaches++; else bilanSurvol.annules++;
+    };
+
+    /* Arme l'attente sur une carte. L'ouverture ne se fait que si la carte est
+       TOUJOURS celle qu'on attendait et qu'elle est toujours dans le document :
+       entre l'armement et l'échéance, la sidebar a pu être retriée, une chaîne
+       a pu couper, l'onglet a pu passer en arrière-plan. */
+    const armerAttente = (card) => {
+      annulerAttente();
+      bilanSurvol.armes++;
+      pendingCard = card;
+      pendingTimer = setTimeout(() => {
+        pendingTimer = null;
+        const cible = pendingCard;
+        pendingCard = null;
+        if (!cible || !cible.isConnected) { bilanSurvol.detaches++; return; }
+        bilanSurvol.ouverts++;
+        open(cible);
+      }, CFG.PREVIEW_HOVER_DELAY);
+    };
+
     const close = () => {
       removeIframe();
       currentLogin = null;
@@ -11389,11 +11468,24 @@ const TSE_GATE_MAX_CLICKS = 5;
         // canonique (cf. resolveCard pour le cas du mode réduit).
         if (t !== card) return;
         if (card === currentCard) return;
+        /* Déjà en attente sur cette carte : ne rien faire, surtout pas réarmer.
+           Une réconciliation React émet une paire sortie/entrée parasite sur
+           une carte que le pointeur n'a pas quittée ; réarmer à chaque fois
+           repousserait l'échéance indéfiniment sur une sidebar qui se retrie,
+           et l'aperçu ne s'ouvrirait jamais. */
+        if (card === pendingCard) return;
+        /* Fermer l'aperçu de la carte PRÉCÉDENTE tout de suite, et n'ouvrir
+           celui-ci qu'après le délai. L'alternative — garder l'ancien affiché
+           le temps d'attendre le nouveau — donnerait une transition plus douce
+           en montrant, pendant deux dixièmes de seconde, l'aperçu d'une chaîne
+           que le pointeur a déjà quittée. Ce produit ne fait pas ça.
+           Conditionnel : `close()` arme un minuteur de 500 ms pour libérer le
+           flag de modale, et le payer à chaque carte franchie serait absurde. */
+        if (currentCard) close();
         // L'aperçu s'active pour TOUTES les cartes de la sidebar, toutes
         // sections confondues (Chaînes suivies, Chaînes live recommandées,
         // Spectateurs de X regardent aussi).
-        close();
-        open(card);
+        armerAttente(card);
       }, true);
 
       document.addEventListener('mouseleave', (e) => {
@@ -11402,7 +11494,10 @@ const TSE_GATE_MAX_CLICKS = 5;
         const card = resolveCard(t);
         if (!card) return;
         if (t !== card) return;
-        if (card !== currentCard) return;
+        // La carte concernée est soit celle dont l'aperçu est ouvert, soit
+        // celle dont l'ouverture est en attente. Ne reconnaître que la
+        // première laissait le minuteur de la seconde courir jusqu'au bout.
+        if (card !== currentCard && card !== pendingCard) return;
 
         // Test anti-fantôme : si le nœud actuellement sous la souris
         // est toujours dans la carte (ou est la carte), c'est que
@@ -11413,13 +11508,17 @@ const TSE_GATE_MAX_CLICKS = 5;
         // (le mouseleave est tiré pendant le détachement, donc on
         // ne peut pas faire le check au tick courant).
         requestAnimationFrame(() => {
-          if (card !== currentCard) return; // déjà refermé entre-temps
+          // Déjà refermé — ou déjà réarmé sur une autre carte — entre-temps.
+          if (card !== currentCard && card !== pendingCard) return;
           const under = document.elementFromPoint(lastMouseX, lastMouseY);
           if (under && card.contains(under)) {
             // Le DOM s'est restabilisé, souris toujours sur la carte → ignore.
+            // Vaut pour l'attente comme pour l'aperçu ouvert : le minuteur
+            // continue de courir, et c'est ce qu'on veut.
             return;
           }
-          close();
+          if (card === pendingCard) annulerAttente();
+          if (card === currentCard) close();
         });
       }, true);
 
@@ -11431,7 +11530,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       // volontaire de l'utilisateur, ce n'est pas grave — il fermera
       // au mouseleave naturel.
       document.addEventListener('visibilitychange', () => {
-        if (document.hidden) close();
+        if (document.hidden) { annulerAttente(); close(); }
       });
 
       /* ── LA SOURIS QUI QUITTE LA FENÊTRE PAR LA GAUCHE ─────────────────────
@@ -11465,6 +11564,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       document.documentElement.addEventListener('mouseleave', () => {
         lastMouseX = -1;
         lastMouseY = -1;
+        // L'attente aussi : sortir de la fenêtre est le plus net des signaux
+        // de non-intention, et le minuteur n'a aucune raison de survivre au
+        // pointeur qui l'a armé.
+        annulerAttente();
         close();
       });
     };
@@ -11475,13 +11578,20 @@ const TSE_GATE_MAX_CLICKS = 5;
       // pendant le survol). Appelée depuis scanSidebar : le retrait d'une carte
       // est une mutation de #side-nav → déclenche un scan → fermeture proactive,
       // sans dépendre d'un mouseleave (peu fiable quand le nœud survolé est retiré).
-      closeIfDetached: () => { if (currentCard && !currentCard.isConnected) close(); },
+      closeIfDetached: () => {
+        // L'attente d'abord : une carte retirée pendant le délai d'intention
+        // n'a pas d'aperçu à fermer, mais elle a un minuteur à éteindre.
+        if (pendingCard && !pendingCard.isConnected) annulerAttente('detache');
+        if (currentCard && !currentCard.isConnected) close();
+      },
       // Purge mémoire du cache de métadonnées (appelée périodiquement par les
       // timers). metaCache est reconstructible → éviction sans effet visible.
       prune: () => pruneCache(metaCache, META_TTL, CFG.META_CACHE_MAX),
       // Journal du dernier aperçu (cf. tse.apercu). Copie : personne d'autre
       // n'écrit dedans, et le rendre tel quel inviterait à le faire.
       journal: () => journalApercu.slice(),
+      // Ce qu'a fait le délai d'intention. Copie, même raison.
+      bilanSurvol: () => ({ ...bilanSurvol }),
       /* Ce que Twitch a répondu aux demandes de chapitres. Au rapport et non
          au journal d'erreurs : une chaîne qui n'archive pas ses diffusions
          est un cas ordinaire. */
