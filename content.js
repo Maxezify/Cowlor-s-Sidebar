@@ -225,7 +225,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
       uiSubathonShort:           (n) => `J${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · jour ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · JOUR ${n}`,
       uiTrailOthers:             (n) => `+ ${n} autres catégories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
@@ -304,7 +304,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · day ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DAY ${n}`,
       uiTrailOthers:             (n) => `+ ${n} other categories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
@@ -382,7 +382,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
       uiSubathonShort:           (n) => `T${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · Tag ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · TAG ${n}`,
       uiTrailOthers:             (n) => `+ ${n} weitere Kategorien`,
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
@@ -460,7 +460,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subatón' : `Subatón · día ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subatón' : `Subatón · DÍA ${n}`,
       uiTrailOthers:             (n) => `+ ${n} categorías más`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
@@ -538,7 +538,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · dia ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DIA ${n}`,
       uiTrailOthers:             (n) => `+ ${n} outras categorias`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
@@ -616,7 +616,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
       uiSubathonShort:           (n) => `G${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · giorno ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · GIORNO ${n}`,
       uiTrailOthers:             (n) => `+ altre ${n} categorie`,
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
       uiBadgeCostreamHost:       'Stream host',
@@ -694,7 +694,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · dzień ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DZIEŃ ${n}`,
       uiTrailOthers:             (n) => `+ ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'inne kategorie' : 'innych kategorii'}`,
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
       uiBadgeCostreamHost:       'Kanał gospodarza',
@@ -772,7 +772,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
       uiSubathonShort:           (n) => `Д${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Сабатон' : `Сабатон · день ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Сабатон' : `Сабатон · ДЕНЬ ${n}`,
       uiTrailOthers:             (n) => `+ ещё ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'категории' : 'категорий'}`,
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
       uiBadgeCostreamHost:       'Канал ведущего',
@@ -6364,16 +6364,32 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
+    const voiler = () => {
+      if (flagRemoveTimer) { clearTimeout(flagRemoveTimer); flagRemoveTimer = null; }
+      document.body.classList.add('tse-preview-active');
+    };
+    const devoilerBientot = () => {
+      if (flagRemoveTimer) clearTimeout(flagRemoveTimer);
+      flagRemoveTimer = setTimeout(() => {
+        flagRemoveTimer = null;
+        document.body.classList.remove('tse-preview-active');
+      }, 500);
+    };
+
     const annulerAttente = (raison) => {
       if (!pendingTimer && !pendingCard) return;
       if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
       pendingCard = null;
       if (raison === 'detache') bilanSurvol.detaches++; else bilanSurvol.annules++;
+
+      devoilerBientot();
     };
 
     const armerAttente = (card) => {
       annulerAttente();
       bilanSurvol.armes++;
+
+      voiler();
       pendingCard = card;
       pendingTimer = setTimeout(() => {
         pendingTimer = null;
@@ -6394,11 +6410,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       }
 
-      if (flagRemoveTimer) clearTimeout(flagRemoveTimer);
-      flagRemoveTimer = setTimeout(() => {
-        flagRemoveTimer = null;
-        document.body.classList.remove('tse-preview-active');
-      }, 500);
+      devoilerBientot();
     };
 
     const open = (card) => {
@@ -6434,8 +6446,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       renderPopup(login, null, extraRows, costreamInfo, mates, squadInfo, sponsorInfo);
       el.dataset.tseVisible = 'true';
 
-      if (flagRemoveTimer) { clearTimeout(flagRemoveTimer); flagRemoveTimer = null; }
-      document.body.classList.add('tse-preview-active');
+      voiler();
       positionPopup(card);
 
       const requestLiveWith = (id) => {
