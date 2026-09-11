@@ -1906,6 +1906,76 @@ assertion ne prétendra les éprouver. Le même relevé montre que l'assertion �
 carte détachée puis rattachée ne referme pas l'aperçu » du scénario 76 ne touche
 rien non plus.
 
+## La reprise après coupure (v3.97)
+
+`createdAt` mesure la **session**, pas le direct. Un streamer qui perd sa
+connexion et revient repart de zéro : la carte affiche « 2m », et la barre
+violette « vient de démarrer » s'allume sur un live qui en est à sa sixième
+heure.
+
+Ce n'était pas une information approximative. C'était **la seule du produit qui
+affirmait le contraire de la vérité** : « tu n'es pas en retard » à quelqu'un
+qui l'est complètement. Le reste de l'extension avoue ce qu'elle ignore — la
+frise fond ses couleurs, les durées portent un « ~ » ; ici elle affirmait, et
+elle se trompait.
+
+### Le complément exact du badge de basculement
+
+Le registre des basculements exige `memeSession` : même identifiant de stream
+des deux côtés. La reprise est son complément — l'identifiant a **changé**, et
+pas parce que la chaîne vient d'ouvrir.
+
+Il faut pour cela une mémoire à part, et c'est le seul point délicat : le cache
+perd `stream` dès que la chaîne coupe, si bien qu'au moment où le nouveau direct
+paraît, l'entrée précédente ne porte plus l'identifiant de l'ancien. On retient
+donc hors du cache, par login, le dernier direct **vu en ligne** et l'instant de
+cette vue. Cette mémoire-là survit à la coupure ; et elle ne se met à jour que
+sur une observation en ligne, parce que c'est précisément pendant que la chaîne
+est coupée qu'il faut se souvenir de ce qu'elle diffusait juste avant.
+
+### Trois conditions, trois questions
+
+| Condition | Ce qu'elle écarte |
+| --- | --- |
+| l'identifiant de stream a changé | un simple relevé de la même session |
+| l'ancien était en ligne il y a moins de 10 min | un direct d'hier, ou une vraie nouvelle diffusion |
+| le nouveau a moins de 10 min | un direct qui revient avec déjà des heures au compteur |
+
+La troisième borne le dégât : **on ne marque jamais une reprise qu'on ne serait
+pas en train de réparer**. Si le compteur n'est pas reparti de zéro, il n'y a
+rien à corriger, donc rien à annoncer.
+
+### Le badge, et pourquoi il n'a pas de couleur à lui
+
+C'est la même espèce de nouvelle que « Vient de passer sur … » — *voilà ce qui
+vient de se passer sur ce live* — et il porte donc la classe `--switch`, qui est
+ce vert-là. Le scénario 60 exige qu'un **type** de badge ait une teinte
+distincte ; en inventer une seconde pour la même famille de nouvelle irait
+contre ce qu'il protège. La classe `--reprise` ne porte aucune couleur : elle
+nomme la chose, pour le DOM et pour le banc.
+
+Il passe en revanche **devant** le basculement : une reprise explique la carte
+tout entière — le compteur reparti de zéro, la barre qui ne s'allume pas — là où
+un changement de catégorie n'explique qu'une ligne.
+
+### Le scénario 95, et son décor qui mentait
+
+Quatre cas, et il faut les quatre : deux disent ce que la règle doit attraper,
+deux ce qu'elle ne doit pas. Le sur-déclenchement coûterait le plus cher — un
+badge « reprise » sur une chaîne qui vient réellement d'ouvrir serait pire que
+pas de badge du tout.
+
+La première rédaction du cas « coupure longue » ne coupait rien : elle attendait
+au-delà du seuil **en laissant la chaîne en ligne**, puis changeait son
+identifiant. Or la mémoire du dernier direct se rafraîchit à chaque relevé tant
+que la chaîne émet — l'écart mesuré restait donc celui d'un relevé, et le test
+annonçait une coupure longue sans en avoir produit aucune. C'est le décor qui
+était faux, pas la règle : elle avait raison d'y voir une reprise.
+
+Quatre mutants, quatre gardes, quatre assertions distinctes qui tombent —
+et celui qui retire la correction de la barre reproduit exactement le défaut
+d'origine : `frais: true` sur un direct de six heures.
+
 ## La frise des catégories (v3.70)
 
 Twitch n'affiche la suite des catégories traversées par un stream **nulle
@@ -2269,7 +2339,7 @@ pris de l'avance sur sa description :
   et le rapport de diagnostic sans aucune liste personnelle.
 
 Plus une puce de badge dans la section qui les énumère. Le squelette des douze
-fiches passe de 20 à **23 sections**, de 73 à **84 puces**, de 88 à **110
+fiches passe de 20 à **23 sections**, de 73 à **85 puces**, de 88 à **112
 étoiles** — et `npm run store` le vérifie sur les douze d'un coup, parce qu'une
 section oubliée en traduisant ne se voit pas autrement.
 
@@ -3945,7 +4015,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 94 scénarios, 884 assertions |
+| `npm test` | le harnais Playwright : 95 scénarios, 892 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -3966,7 +4036,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 803 Ko | 332 Ko | 3 044 → **2** |
+| `content.js` | 803 Ko | 332 Ko | 3 057 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 54 Ko | 27 Ko | 73 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |

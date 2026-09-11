@@ -30,6 +30,7 @@ Dentro da janela de prévia, etiquetas coloridas resumem o contexto da live num 
 - 🚂 ★ HYPE TRAIN ★ Tem um Hype Train rolando no canal? Você fica sabendo sem precisar clicar.
 - 💎 ★ INSCRIÇÃO COM DESCONTO ★ Quando a Twitch oferece uma inscrição com desconto na live, fica sinalizado ali mesmo.
 - 🆕 ★ ACABOU DE MUDAR PARA ★ O streamer trocou de categoria no meio da live? Um selo verde avisa por dez minutos: «Acabou de mudar para Elden Ring». A Twitch não anuncia isso em lugar nenhum — a extensão vê porque fica olhando.
+- 🔁 ★ DE VOLTA APÓS UMA QUEDA ★ O streamer caiu e voltou? O tempo de live recomeça do zero e a Twitch não diz nada. O selo diz — e a barra "acabou de começar" não acende mais numa live que já dura seis horas ("De volta após uma queda").
 - ⚠️ ★ RÓTULOS DE CONTEÚDO ★ Os rótulos oficiais da Twitch (jogo adulto, violência explícita, jogos de azar…) formam o próprio selo, o primeiro da fila — você sabe antes de olhar, sem a tela que travava o vídeo.
 - 🌈 ★ SUBATHON ★ O canal está em subathon? O selo avisa e dá o dia atual ("Subathon · DIA 10").
 

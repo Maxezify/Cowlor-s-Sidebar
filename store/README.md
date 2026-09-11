@@ -53,7 +53,7 @@ se saisit pas ici : elle vient du manifeste, clé `extDescription` de
 ## Ce qui doit rester vrai
 
 Les douze fiches se tiennent par leur structure : **23 sections `➤`**, **24
-séparateurs**, **84 puces** et **110 étoiles**. C'est le profil de la fiche
+séparateurs**, **85 puces** et **112 étoiles**. C'est le profil de la fiche
 anglaise, et `npm run store` le compare à celui des onze autres : une section
 oubliée en traduisant se voit à ce compte-là, immédiatement. Ces nombres ne se
 recopient pas : le script les DÉDUIT de la fiche anglaise, si bien qu'ajouter

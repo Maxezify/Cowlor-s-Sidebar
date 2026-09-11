@@ -30,6 +30,7 @@ Dans la fenêtre d'aperçu, des étiquettes colorées résument le contexte du s
 - 🚂 ★ HYPE TRAIN ★ Un Hype Train est en cours sur la chaîne ? Vous êtes prévenu sans avoir à cliquer.
 - 💎 ★ ABONNEMENT EN PROMO ★ Quand Twitch propose un abonnement à prix réduit sur le stream, c'est signalé là.
 - 🆕 ★ VIENT DE PASSER SUR ★ Le streamer a changé de catégorie en cours de route ? Un badge vert le dit pendant dix minutes : « Vient de passer sur Elden Ring ». Twitch ne l'annonce nulle part — l'extension le voit parce qu'elle regarde en continu.
+- 🔁 ★ REPRISE APRÈS COUPURE ★ Le streamer a sauté puis est revenu ? Son compteur de durée repart de zéro et Twitch n'en dit rien. Le badge, lui, le dit — et la barre « vient de démarrer » ne s'allume plus sur un direct qui dure depuis six heures (« Reprise après coupure »).
 - ⚠️ ★ ÉTIQUETTES DE CONTENU ★ Les étiquettes officielles de Twitch (jeux matures, violence explicite, jeux d'argent…) forment leur propre badge, en tête de la rangée — vous savez avant de regarder, sans l'interstitielle qui bloquait la vidéo.
 - 🌈 ★ SUBATHON ★ La chaîne est en subathon ? Le badge le dit et donne le jour en cours (« Subathon · JOUR 10 »).
 

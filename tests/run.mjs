@@ -11521,6 +11521,163 @@ titre('94. L\'aperçu au survol — un délai d\'intention, et ce qu\'il filtre'
 
   await page.close();
 }
+titre('95. La reprise après coupure — un badge, et une barre qui cesse de mentir');
+{
+  /* ── CE QUE CE SCÉNARIO GARDE ────────────────────────────────────────────
+     `createdAt` mesure la SESSION, pas le direct. Un streamer qui perd sa
+     connexion et revient repart de zéro, et la barre violette « vient de
+     démarrer » s'allume sur un live qui en est à sa sixième heure. Ce n'est
+     pas une information approximative, c'est la seule du produit qui affirmait
+     le CONTRAIRE de la vérité : « tu n'as rien raté » à quelqu'un qui a tout
+     raté.
+
+     QUATRE CAS, ET IL FAUT LES QUATRE. Deux disent ce que la règle doit
+     attraper, deux ce qu'elle ne doit pas : une règle qui ne se trompe jamais
+     dans un sens se trompe toujours dans l'autre, et c'est le sur-déclenchement
+     qui coûterait le plus cher ici — un badge « reprise » sur une chaîne qui
+     vient réellement d'ouvrir serait pire que pas de badge du tout. */
+  const page = await fresh();
+  const h = (min) => new Date(Date.now() - min * 60_000).toISOString();
+  await page.evaluate((debuts) => {
+    window.__fx = {
+      coupe:   { id: 'c1', sid: 's-coupe-1',  createdAt: debuts.vieux, viewers: 900,
+                 game: 'Just Chatting', tags: [] },
+      neuve:   { id: 'c2', sid: 's-neuve-1',  createdAt: debuts.vieux, viewers: 800,
+                 game: 'Just Chatting', tags: [] },
+      longue:  { id: 'c3', sid: 's-longue-1', createdAt: debuts.vieux, viewers: 700,
+                 game: 'Just Chatting', tags: [] },
+      agee:    { id: 'c4', sid: 's-agee-1',   createdAt: debuts.vieux, viewers: 600,
+                 game: 'Just Chatting', tags: [] },
+    };
+    for (const l of ['coupe', 'neuve', 'longue', 'agee']) {
+      window.__addCard(l, 'Discussions', '900');
+    }
+  }, { vieux: h(360) });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 4);
+
+  const etat = (login) => page.evaluate((l) => {
+    const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
+    return c ? { frais: c.classList.contains('tse-fresh'),
+                 debut: c.dataset.tseStartedAt } : null;
+  }, login);
+  const compteurs = () => page.evaluate(() => window.tse.panneau.rapport().compteurs);
+
+  /* Reprend le direct d'une chaîne : nouvel identifiant de stream, nouveau
+     départ. C'est exactement ce que Twitch sert après une reconnexion. */
+  const reprendre = (login, ilYaMin) => page.evaluate(([l, iso]) => {
+    window.__fx[l].sid = 's-' + l + '-2';
+    window.__fx[l].createdAt = iso;
+    window.tse.rescan();
+  }, [login, new Date(Date.now() - ilYaMin * 60_000).toISOString()]);
+
+  const survoler = async (login) => {
+    await hoverLogin(page, login);
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+    return page.evaluate(() => [...document.querySelectorAll('.tse-preview__badge')]
+      .map(b => ({ classe: b.className, texte: b.textContent.trim() })));
+  };
+  const relacher = async (login) => {
+    await page.evaluate((l) => {
+      [...document.querySelectorAll('.side-nav-card')]
+        .find(c => c.dataset.tseLogin === l)
+        ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+    }, login);
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  };
+
+  /* ── 1. LA REPRISE ───────────────────────────────────────────────────────
+     Six heures de direct, une coupure, et le revoilà avec un compteur à zéro. */
+  const avant = await etat('coupe');
+  ok('avant la coupure, la carte n\'est évidemment pas « fraîche »',
+     avant !== null && avant.frais === false, JSON.stringify(avant));
+
+  await reprendre('coupe', 0);
+  await attendre(page, async () => true);
+  await wait(page, 900);           // le temps d'un relevé à la cadence du banc
+
+  const apres = await etat('coupe');
+  /* L'ASSERTION QUI COMPTE. Sans la correction, `createdAt` vaut « maintenant »
+     et la barre violette s'allume — le produit dirait « vient de démarrer »
+     d'un live commencé il y a six heures. */
+  ok('une reprise ne rallume pas la barre « vient de démarrer »',
+     apres !== null && apres.frais === false,
+     JSON.stringify(apres));
+
+  const badges = await survoler('coupe');
+  const reprise = badges.find(b => b.classe.includes('tse-preview__badge--reprise'));
+  ok('…et l\'aperçu le dit, dans un badge',
+     !!reprise && reprise.texte.length > 0, JSON.stringify(badges));
+  /* LE VERT DU BASCULEMENT, ET PAS UNE SECONDE TEINTE. C'est la même espèce de
+     nouvelle, et le scénario 60 exige qu'un TYPE de badge ait une couleur à
+     lui : en inventer une pour celui-ci irait contre ce qu'il protège. La
+     classe `--reprise` nomme la chose ; c'est `--switch` qui la colore. */
+  ok('…en portant le vert du badge de basculement, et non une teinte de plus',
+     !!reprise && reprise.classe.includes('tse-preview__badge--switch'),
+     reprise && reprise.classe);
+  await relacher('coupe');
+
+  ok('le rapport compte la reprise', (await compteurs()).reprises === 1,
+     JSON.stringify(await compteurs()));
+
+  /* ── 2. CE QUI N'EST PAS UNE REPRISE ─────────────────────────────────────
+     Trois façons de sur-déclencher, trois gardes, et chacune se mute seule. */
+
+  /* a) Le direct qui n'a jamais été vu ailleurs : première observation. La
+        chaîne « neuve » n'a pas changé d'identifiant, elle a juste rajeuni —
+        ce que fait un simple relevé. */
+  await page.evaluate(() => {
+    window.__fx.neuve.createdAt = new Date().toISOString();
+    window.tse.rescan();
+  });
+  await wait(page, 900);
+  const neuve = await etat('neuve');
+  ok('un direct qui rajeunit SANS changer d\'identifiant reste un direct frais',
+     neuve !== null && neuve.frais === true, JSON.stringify(neuve));
+
+  /* b) La coupure LONGUE. Au-delà de RECONNECT_GAP_MAX, une chaîne qui revient
+        ouvre un nouveau direct : « vient de démarrer » redevient vrai, et il
+        n'y a plus rien à corriger.
+
+        IL FAUT VRAIMENT LA COUPER, et la première rédaction ne le faisait pas :
+        elle attendait 3,2 s en laissant la chaîne EN LIGNE, puis changeait son
+        identifiant. Or la mémoire du dernier direct se rafraîchit à chaque
+        relevé tant que la chaîne émet — l'écart mesuré restait donc celui d'un
+        relevé, jamais 3,2 s, et le test disait « coupure longue » en n'en
+        ayant produit aucune. C'est le décor qui était faux, pas la règle : elle
+        avait raison de voir une reprise. On la met donc hors ligne pour de
+        bon, ce qui est la seule façon d'arrêter cette mémoire. */
+  await page.evaluate(() => { window.__fx.longue = null; window.tse.rescan(); });
+  await wait(page, 3400);          // hors ligne, bien au-delà de RECONNECT_GAP_MAX
+  await page.evaluate(() => {
+    window.__fx.longue = { id: 'c3', sid: 's-longue-2',
+                           createdAt: new Date().toISOString(), viewers: 700,
+                           game: 'Just Chatting', tags: [] };
+    window.tse.rescan();
+  });
+  await wait(page, 900);
+  const longue = await etat('longue');
+  ok('après une coupure LONGUE, le direct est neuf et sa barre s\'allume',
+     longue !== null && longue.frais === true, JSON.stringify(longue));
+
+  /* c) Le direct qui revient AVEC DE L'ÂGE. Identifiant neuf, coupure courte,
+        mais un départ qui ne date pas d'aujourd'hui : il n'y a pas de compteur
+        reparti de zéro, donc rien à corriger, donc rien à annoncer. C'est la
+        garde qui borne le dégât — on ne marque jamais une reprise qu'on ne
+        serait pas en train de réparer. */
+  await reprendre('agee', 180);
+  await wait(page, 900);
+  const agee = await etat('agee');
+  const badgesAgee = await survoler('agee');
+  ok('un direct qui revient avec trois heures au compteur n\'est pas une reprise',
+     agee !== null && agee.frais === false
+     && !badgesAgee.some(b => b.classe.includes('--reprise')),
+     JSON.stringify({ agee, badges: badgesAgee.map(b => b.texte) }));
+  await relacher('agee');
+
+  await page.close();
+}
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

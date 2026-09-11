@@ -75,6 +75,14 @@ const subs = [
   // qui est la moitié de son comportement — un badge qui ne s'efface pas
   // finirait par mentir sur la fraîcheur de ce qu'il annonce.
   [/CATEGORY_SWITCH_TTL:\s*10 \* 60_000/, 'CATEGORY_SWITCH_TTL: 2_500'],
+  /* Reprise après coupure. Deux durées de production de dix minutes, réduites
+     dans le même rapport que le badge de basculement juste au-dessus. Le banc
+     doit pouvoir observer LES DEUX BORNES : une coupure courte, qui est une
+     reprise, et une coupure longue, qui n'en est pas une. Sans accélération il
+     faudrait attendre dix minutes pour éprouver la seconde, c'est-à-dire qu'on
+     ne l'éprouverait pas. */
+  [/RECONNECT_GAP_MAX:\s*10 \* 60_000/, 'RECONNECT_GAP_MAX:   2_500'],
+  [/RECONNECT_TTL:\s*10 \* 60_000/,     'RECONNECT_TTL:       2_500'],
   // Absence au-delà de laquelle le retour sur l'onglet vaut un redémarrage :
   // une minute en production. Réduite ici pour qu'un test puisse observer LES
   // DEUX branches — la courte absence, qui rattrape en silence, et la longue,
