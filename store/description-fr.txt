@@ -163,6 +163,7 @@ _______________________________
 ➤ 🎛️ UN PANNEAU DANS LA BARRE D'OUTILS
 Un clic sur l'icône de l'extension et tout ce qu'elle a appris s'ouvre dans un panneau — sans passer par la console.
 
+- ★ UN MODE D'EMPLOI, D'EMBLÉE ★ Le panneau s'ouvre sur un guide de treize chapitres qui montre tout ce que l'extension ajoute, exemples dessinés à l'appui — et il s'affiche même sans onglet Twitch ouvert.
 - ★ VOS HABITUDES, EN IMAGE ★ Les heures où vous regardez vraiment, dessinées en une grille de sept jours sur vingt-quatre heures.
 - ★ VOS CHIFFRES ★ Top streamers, abonnements repérés, chaînes suivies en mémoire : tout est là, lisible.
 - ★ UN RAPPORT À COLLER ★ Un bouton fabrique un rapport de diagnostic complet, sans aucune liste personnelle dedans — de quoi signaler un problème sans rien révéler.

@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 803 KB | 331 KB | 3,057 → **2** |
+| `content.js` | 803 KB | 331 KB | 3,069 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 54 KB | 27 KB | 73 → **0** |
+| `panneau.js` | 68 KB | 34 KB | 84 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1001 KB** | **463 KB** | **−54 %** |
+| **all five** | **1034 KB** | **473 KB** | **−54 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 686 assertions, under Gecko
+npm run test-firefox        # the same 906 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2217,6 +2217,154 @@ nothing: there is no ghost to absorb. Both guards stay — they cost one line ea
 and the fourth form does exist — but no assertion will claim to exercise them.
 The same measurement shows that scenario 76's "a card detached and reattached
 does not close the preview" touches nothing either.
+## The user guide (v3.98)
+
+The extension has no settings. No options, no switches, no account: it works
+from the first Twitch reload, and that has held since version one. What it was
+missing, then, was not a preferences screen — it was **the list of what exists**.
+
+A good half of what the product adds is only discovered by putting the pointer
+in the right place: the ten preview badges, the category trail, the day pill on
+a subathon, the sort that groups co-streams. Nothing, anywhere, said to do it.
+The store listing says it — but you read that once, before installing, and never
+again.
+
+### Why it is the first page
+
+`courante` is seeded from `SECTIONS[0]`: putting this chapter at the head of the
+table is enough to make it the landing view, with no special case at startup.
+
+It is the second property that really matters: **this view asks the page for
+nothing**. The other eleven sections go through the bridge, and therefore
+through a Twitch tab in front; and someone who has just installed the extension
+and clicks its icon does not necessarily have one. The first sentence they would
+have read was "open a twitch.tv tab and bring it to the front" — a panel that
+opens with a reproach, for a product just installed.
+
+Hence the `statique` flag, the only one in that table, and the short-circuit
+that goes with it:
+
+```js
+if (section.statique) { montrerGuide(); return; }
+```
+
+It sits **before** `montrerMessage('stateLoading')`. And putting the guide away
+happens **on entry** to `charger`, not at each of its exits: a data section can
+end in a table, in a drawing, in "nothing to show" or in a transport failure —
+four exits, each of which would have had to be remembered separately.
+
+### Thirteen chapters, and drawn examples
+
+A golden pill, a ribbon of categories, a purple bar that breathes: those things
+are recognised by eye and told badly. Every chapter therefore carries a
+**mock-up** — the geometry and palette of the sidebar, at panel scale — and the
+text says the same thing in words right underneath. The mock-ups are
+`aria-hidden`, like the trail and the rhythm grid: shape for the eye, text for
+the information.
+
+The sidebar card is a single parameterised mock-up, shared by six chapters that
+each change one detail — the duration, the day pill, the collab counter, the
+purple bar, the gold of a subscription. Six copies would have drifted apart.
+
+Two staging rules, and neither is decorative:
+
+- **channel names are invented.** Quoting real streamers in a mock-up would make
+  them look like partners of the extension, which they are not. That is already
+  the rule for the store screenshots;
+- **categories are taken among those Twitch does not translate.** "Just
+  Chatting" becomes "Discussions" in French, and a mock-up showing it in English
+  in the middle of French prose would read as a missed translation. Game names,
+  on the other hand, are the same in all twelve languages.
+
+The palette of the ten badges is **copied** into the panel's stylesheet, hue for
+hue. Same boundary as for labels: this page does not have `content.js`'s CSS,
+which lives in Twitch's sidebar. Bringing them closer together would make them
+indistinct precisely where they are being explained.
+
+### One message per chapter, line breaks included
+
+A chapter's body is **a single translation key**; its lines starting with "•"
+become bullets, the others paragraphs. Splitting every bullet into its own key
+would have added one hundred and sixty entries across twelve files — and, worse,
+would have frozen the NUMBER of bullets, when a language sometimes needs two
+sentences where French uses one.
+
+Forty-five new keys, twelve listings: five hundred and forty messages. Fifteen
+of them are labels the product already displays — the ten badges, the "Ended"
+counter, the day pill, the tab name — and they were **copied from `STRINGS`**,
+word for word, language by language. The panel cannot read `STRINGS` (two
+surfaces, two tables, no label in transit), but nothing required reinventing the
+translation: a mock-up must show what the user will see, not a paraphrase.
+
+`tests/parity.mjs` recognises those keys because its prefix expression gained
+`guide`. A key that does not follow the convention is never collected as
+"requested" — it would pass for an orphan, and the check would declare it dead
+while it is on screen.
+
+### What scenario 96 catches
+
+The panel was only tested through its **data contract**: scenario 69 checks that
+the page serves the columns `panneau.js` knows how to paint, scenario 70
+measures the rendered page, and the parity check verifies that every requested
+key exists in all twelve listings. None of the three looked at the displayed
+text.
+
+And a thirteen-chapter guide is exactly the kind of thing that breaks in
+silence. `chrome.i18n.getMessage` on an unknown key does not throw: it returns
+the empty string, and `T()` then falls back on the **key name**, which shows in
+plain sight in the middle of a paragraph — no error, no console, and only in the
+language that was forgotten.
+
+So the scenario opens `panneau.html` for real, with a stand-in `chrome` that
+reads the **actual** `_locales` listings and has **no tab** to offer: the exact
+case this view exists to cover. Eleven assertions, each killed by at least one
+mutant.
+
+| Mutant | Assertions that fall |
+| --- | --- |
+| the guide is no longer `SECTIONS[0]` | 5 |
+| no short-circuit: the guide goes through the bridge | 5 |
+| the guide does not put itself away on leaving | 1 |
+| a chapter key is misspelled | 2 |
+| bullets are no longer bullets | 2 |
+| "resumption" gains a hue of its own | 1 |
+| a badge loses its hue and keeps the default one | 1 |
+| the subathon rainbow no longer runs | 1 |
+| the mock-ups are read aloud | 1 |
+| the guide no longer scrolls on its own | 1 |
+| a chapter disappears from the table | 3 |
+| a Japanese label is empty | 1 |
+
+The `tabs.query` call counter is the real subject of the second assertion: it
+says whether this view asked the browser for anything at all. It is the first
+thing `demander` does, before even sending anything to the service worker — a
+forgotten short-circuit shows up there, and nowhere else.
+
+Two mutants demanded a stronger assertion than the one first written. "Ten
+badges, nine colours" could not see that a badge had lost its own: a wrong hue
+is still a hue, and the count of distinct hues did not move. The assertion
+therefore also measures the colour of a badge **with no modifier**, appended to
+the page and then removed — that is the value a badge takes when its rule did
+not apply, and the only palette defect that actually happens.
+
+**What this scenario does not prove.** It reads `panneau.js` as it stands in the
+repository, comments included: `tests/build.mjs` strips only `content.js` and
+`adblock.js`. The shipped panel remains covered by the token-stream equality
+verified at packaging time — which is a claim about grammar, not about
+behaviour.
+
+### Two neighbouring scenarios the change moved
+
+The rail carries one more section and one more group: scenario 70 counts them,
+and its comment says why. It also used to start by waiting for a table on load,
+which no longer arrives — so it now goes and fetches a data section before
+measuring the layout.
+
+Scenario 77 tests the transport under Firefox's `chrome.*` façade. It read "the
+first section shows its rows"; the first section no longer crosses the bridge.
+It now asks for a data section by name, which makes the assertion more candid
+than it was: it names what it checks instead of relying on the rail's order.
+
 ## Back after a drop (v3.97)
 
 `createdAt` measures the **session**, not the broadcast. A streamer who loses
@@ -2284,6 +2432,52 @@ it was right to see a resumption.
 Four mutants, four guards, four distinct assertions that fall — and the one that
 removes the bar correction reproduces the original defect exactly: `frais: true`
 on a six-hour stream.
+
+### The duration that survives the outage (v3.98)
+
+3.97 stopped the purple bar from lying. It left the counter free to do it: "2m"
+on a stream that is six hours in, because `createdAt` belongs to the **segment**
+and not to the stream.
+
+The per-login memory therefore carries a third value, the **origin** — the
+`createdAt` of the channel's first segment — and `applyChannelData` writes that
+into `tseStartedAt` rather than the one from the poll:
+
+```js
+const debutReel = (login, createdAt) => {
+  const m = derniersDirects.get(login);
+  return (m && m.origine) || createdAt;
+};
+```
+
+The origin is handed from segment to segment for as long as resumptions follow
+one another; a long outage resets it to that of the new stream. Same bound as
+the badge, and for the same reason: past ten minutes it is no longer the same
+stream, and there is nothing left to splice.
+
+**A probe found the defect that re-reading had not.** The first draft
+recomputed `origine` on every poll: the value survived a single cycle, and the
+counter fell back onto the segment thirty seconds later. Nothing showed it to
+the eye — you have to watch two consecutive polls to notice, and the first one
+is right. A temporary field added to the report made it readable in one pass;
+the fix is the distinction between "same session" and "new session":
+
+```js
+const memeSession = memoire && memoire.id === neuf.id;
+let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
+```
+
+Scenario 95 goes from eight assertions to eleven, and three mutants kill them:
+writing `stream.createdAt` into `tseStartedAt`, recomputing the origin on every
+poll, or failing to carry it from one segment to the next — four assertions fall
+in each of the three cases.
+
+The explicit freshness suppression went away with it: with the true origin, the
+card is old **by construction**, and a rule that can no longer fire is a rule
+you remove. Lastly, a sub-test that modelled an impossible case — a stream
+growing younger without changing id — was replaced by the ordinary case that was
+actually worth keeping: **a channel going live for the first time must keep its
+"just went live" bar**.
 
 ## The category trail (v3.70)
 
@@ -4251,7 +4445,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 95 scenarios, 892 assertions |
+| `npm test` | the Playwright harness: 96 scenarios, 906 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

@@ -6676,6 +6676,12 @@ titre('70. Panneau — la page rendue, mesurée');
   await page.addInitScript(stub, messages);
   await page.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href);
   await attendre(page, () => document.querySelectorAll('.rail-item').length > 0);
+  /* LE PANNEAU S'OUVRE SUR LE MODE D'EMPLOI, qui ne montre aucun tableau — il
+     ne demande rien à la page, c'est tout son objet (scénario 96). Ce
+     scénario-ci mesure la mise en page d'une section de DONNÉES : on va donc
+     en chercher une, au lieu d'attendre un tableau qui n'arriverait jamais. */
+  await page.evaluate(() => [...document.querySelectorAll('.rail-item')]
+    .find(b => b.dataset.id === 'scores').click());
   await attendre(page, () => document.querySelectorAll('.tableau tbody tr').length > 0);
 
   /* ── LA GÉOMÉTRIE ──────────────────────────────────────────────────────
@@ -6747,7 +6753,7 @@ titre('70. Panneau — la page rendue, mesurée');
     document.querySelector('.tete-titre').textContent,
     document.querySelector('.tete-sous').textContent,
   ]);
-  const CLE = /^(nav|desc|col|sum|btn|state|status|val|health|reset|grp|panel|ext)[A-Z]/;
+  const CLE = /^(nav|desc|col|sum|btn|state|status|val|health|reset|grp|panel|ext|guide)[A-Z]/;
   const brutes = libelles.filter(t => CLE.test(t.trim()));
   const vides  = libelles.filter(t => !t.trim());
   ok(`les ${libelles.length} libellés visibles sont traduits, aucun n'est un nom de clé`,
@@ -6755,15 +6761,16 @@ titre('70. Panneau — la page rendue, mesurée');
      `bruts : ${JSON.stringify(brutes)} — vides : ${vides.length}`);
 
   /* ── LE RAIL EST COMPLET ───────────────────────────────────────────────
-     Dix sections, trois groupes. Une section ajoutée à content.js sans être
+     Douze sections, quatre groupes. Une section ajoutée à content.js sans être
      ajoutée ici resterait invisible : le panneau n'affiche que ce qu'il
-     déclare. */
+     déclare. Le douzième est le mode d'emploi, qui ouvre son propre groupe en
+     tête — c'est cette place-là qui en fait la page d'accueil. */
   const rail = await page.evaluate(() => ({
     items: document.querySelectorAll('.rail-item').length,
     groupes: document.querySelectorAll('.rail-groupe').length,
   }));
-  ok('le rail porte les onze sections, en trois groupes',
-     rail.items === 11 && rail.groupes === 3, JSON.stringify(rail));
+  ok('le rail porte les douze sections, en quatre groupes',
+     rail.items === 12 && rail.groupes === 4, JSON.stringify(rail));
 
   /* ── LES NOMBRES SUIVENT LA LOCALE DU PANNEAU ──────────────────────────
      376011 doit s'écrire avec un séparateur de milliers français, pas à
@@ -8047,9 +8054,17 @@ titre('77. Firefox — le panneau sous un `chrome.*` qui ne rend pas de promesse
 
   ok('le panneau se construit — aucune exception au chargement',
      plantages.length === 0, JSON.stringify(plantages).slice(0, 200));
+  /* LA SECTION D'ACCUEIL NE TRAVERSE PAS LE PONT — c'est le mode d'emploi, et
+     il s'affiche justement sans lui. Pour éprouver le transport il faut donc
+     demander une section qui l'emprunte, ce qui rend d'ailleurs l'assertion
+     plus franche qu'avant : elle nomme ce qu'elle vérifie au lieu de compter
+     sur l'ordre du rail. */
+  await page.evaluate(() => [...document.querySelectorAll('.rail-item')]
+    .find(b => b.dataset.id === 'scores').click());
+  await attendre(page, () => document.querySelectorAll('.tableau tbody tr').length > 0, 5000);
   const lignes = await page.evaluate(() =>
     document.querySelectorAll('.tableau tbody tr').length);
-  ok('…et sa première section affiche ses lignes, donc le transport a répondu',
+  ok('…et une section de données affiche ses lignes, donc le transport a répondu',
      lignes > 0, `${lignes} lignes`);
 
   await page.evaluate(() => document.getElementById('btn-rapport').click());
@@ -11542,33 +11557,34 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
     window.__fx = {
       coupe:   { id: 'c1', sid: 's-coupe-1',  createdAt: debuts.vieux, viewers: 900,
                  game: 'Just Chatting', tags: [] },
-      neuve:   { id: 'c2', sid: 's-neuve-1',  createdAt: debuts.vieux, viewers: 800,
-                 game: 'Just Chatting', tags: [] },
       longue:  { id: 'c3', sid: 's-longue-1', createdAt: debuts.vieux, viewers: 700,
                  game: 'Just Chatting', tags: [] },
       agee:    { id: 'c4', sid: 's-agee-1',   createdAt: debuts.vieux, viewers: 600,
                  game: 'Just Chatting', tags: [] },
     };
+    // « neuve » a une carte dès le départ mais AUCUNE entrée dans __fx : elle
+    // est donc hors ligne, comme une chaîne suivie qui n'émet pas encore.
     for (const l of ['coupe', 'neuve', 'longue', 'agee']) {
       window.__addCard(l, 'Discussions', '900');
     }
   }, { vieux: h(360) });
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 4);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 3);
 
   const etat = (login) => page.evaluate((l) => {
     const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
     return c ? { frais: c.classList.contains('tse-fresh'),
-                 debut: c.dataset.tseStartedAt } : null;
+                 debut: c.dataset.tseStartedAt,
+                 duree: c.querySelector('.tse-uptime')?.textContent || '' } : null;
   }, login);
   const compteurs = () => page.evaluate(() => window.tse.panneau.rapport().compteurs);
 
   /* Reprend le direct d'une chaîne : nouvel identifiant de stream, nouveau
      départ. C'est exactement ce que Twitch sert après une reconnexion. */
-  const reprendre = (login, ilYaMin) => page.evaluate(([l, iso]) => {
-    window.__fx[l].sid = 's-' + l + '-2';
+  const reprendre = (login, ilYaMin, n = 2) => page.evaluate(([l, iso, k]) => {
+    window.__fx[l].sid = 's-' + l + '-' + k;
     window.__fx[l].createdAt = iso;
     window.tse.rescan();
-  }, [login, new Date(Date.now() - ilYaMin * 60_000).toISOString()]);
+  }, [login, new Date(Date.now() - ilYaMin * 60_000).toISOString(), n]);
 
   const survoler = async (login) => {
     await hoverLogin(page, login);
@@ -11605,6 +11621,30 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
      apres !== null && apres.frais === false,
      JSON.stringify(apres));
 
+  /* ── LE COMPTEUR, ET C'EST LÀ QUE ÇA SE JOUE ─────────────────────────────
+     Éteindre la barre violette ne suffisait pas : la carte affichait toujours
+     « 2m » sur un direct de six heures. Ce que le spectateur lit doit être la
+     durée du DIRECT, pas celle du tronçon — sinon l'extension corrige un
+     signal et en laisse un autre mentir juste à côté. */
+  ok('…et le compteur repart de l\'origine du direct, pas de celle du tronçon',
+     apres !== null && Date.parse(apres.debut) === Date.parse(avant.debut),
+     JSON.stringify({ avant: avant.debut, apres: apres && apres.debut }));
+  ok('…ce qui se lit sur la carte : des heures, et non deux minutes',
+     apres !== null && /^(\d+)h\d\d$/.test(apres.duree)
+     && Number(/^(\d+)h/.exec(apres.duree)[1]) >= 5,
+     JSON.stringify(apres));
+
+  /* LA CHAÎNE DE REPRISES. Un direct qui saute trois fois ne redémarre pas
+     trois fois : la troisième doit encore compter depuis la première. C'est
+     l'origine MÉMORISÉE qu'on reprend, et non le départ du tronçon d'avant —
+     sans quoi chaque coupure grignoterait le compteur d'un tronçon. */
+  await reprendre('coupe', 0, 3);
+  await wait(page, 900);
+  const troisieme = await etat('coupe');
+  ok('une deuxième coupure garde encore l\'origine de la première',
+     troisieme !== null && Date.parse(troisieme.debut) === Date.parse(avant.debut),
+     JSON.stringify({ origine: avant.debut, apres2: troisieme && troisieme.debut }));
+
   const badges = await survoler('coupe');
   const reprise = badges.find(b => b.classe.includes('tse-preview__badge--reprise'));
   ok('…et l\'aperçu le dit, dans un badge',
@@ -11624,17 +11664,30 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
   /* ── 2. CE QUI N'EST PAS UNE REPRISE ─────────────────────────────────────
      Trois façons de sur-déclencher, trois gardes, et chacune se mute seule. */
 
-  /* a) Le direct qui n'a jamais été vu ailleurs : première observation. La
-        chaîne « neuve » n'a pas changé d'identifiant, elle a juste rajeuni —
-        ce que fait un simple relevé. */
+  /* a) LE CAS ORDINAIRE, et le plus important des trois : une chaîne suivie
+        qui passe en direct. Jamais vue en ligne auparavant, donc aucune
+        mémoire à reprendre — son départ est le sien, et la barre violette doit
+        s'allumer comme avant. Si la règle mordait ici, elle éteindrait le
+        signal « vient de démarrer » sur toutes les chaînes qui démarrent : une
+        régression bien plus grave que le défaut réparé.
+
+        La première rédaction éprouvait autre chose : elle faisait RAJEUNIR un
+        direct sans changer son identifiant de stream. Cela ne peut pas
+        arriver — `createdAt` appartient au stream, s'il change c'est que le
+        stream a changé — et le cas ne décrivait donc rien de réel. */
   await page.evaluate(() => {
-    window.__fx.neuve.createdAt = new Date().toISOString();
+    window.__fx.neuve = { id: 'c2', sid: 's-neuve-1', createdAt: new Date().toISOString(),
+                          viewers: 800, game: 'Just Chatting', tags: [] };
     window.tse.rescan();
   });
   await wait(page, 900);
   const neuve = await etat('neuve');
-  ok('un direct qui rajeunit SANS changer d\'identifiant reste un direct frais',
-     neuve !== null && neuve.frais === true, JSON.stringify(neuve));
+  const badgesNeuve = await survoler('neuve');
+  ok('une chaîne qui passe en direct garde sa barre « vient de démarrer »',
+     neuve !== null && neuve.frais === true
+     && !badgesNeuve.some(b => b.classe.includes('--reprise')),
+     JSON.stringify({ neuve, badges: badgesNeuve.map(b => b.texte) }));
+  await relacher('neuve');
 
   /* b) La coupure LONGUE. Au-delà de RECONNECT_GAP_MAX, une chaîne qui revient
         ouvre un nouveau direct : « vient de démarrer » redevient vrai, et il
@@ -11678,6 +11731,268 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
 
   await page.close();
 }
+titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin de rien');
+{
+  /* ── CE QUE CE SCÉNARIO ATTRAPE, ET POURQUOI IL A FALLU L'ÉCRIRE ──────────
+     Le panneau n'était jusqu'ici éprouvé que par le CONTRAT DE DONNÉES : le
+     scénario 69 vérifie que la page rend bien les colonnes que panneau.js sait
+     peindre, et la parité vérifie que chaque clé demandée existe dans les
+     douze fiches. Ni l'un ni l'autre n'ouvre la page. Personne, donc, ne
+     regardait ce que panneau.html affiche — et un mode d'emploi de treize
+     chapitres est précisément le genre de chose qui peut se casser en silence :
+     une clé oubliée rend une chaîne VIDE, un chapitre mal formé rend un bloc
+     blanc, et rien n'écrit en console.
+
+     On l'ouvre donc pour de vrai, en remplaçant `chrome.*` par un bouchon qui
+     lit les VRAIES fiches de _locales. Le bouchon n'a aucun onglet à offrir,
+     ce qui est le cas de figure exact que cette vue existe pour couvrir :
+     quelqu'un qui vient d'installer l'extension et clique sur son icône. */
+  const URL_PANNEAU = pathToFileURL(join(ICI, '..', 'panneau.html')).href;
+  const fiche = (loc) => JSON.parse(
+    readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'));
+
+  const ouvrirPanneau = async (loc) => {
+    const p = await browser.newPage({ viewport: { width: 760, height: 600 } });
+    p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    /* Le mouvement est refusé pour la durée du relevé de couleurs : l'arc-en-ciel
+       du subathon traverse toutes les teintes, et comparer dix badges pendant
+       qu'un onzième change rendrait le résultat dépendant de l'instant. La
+       feuille honore `prefers-reduced-motion`, on s'en sert. */
+    await p.emulateMedia({ reducedMotion: 'reduce' });
+    await p.addInitScript((d) => {
+      /* Le compteur d'appels est le vrai sujet de la deuxième assertion : il
+         dit si cette vue a demandé quoi que ce soit au navigateur. */
+      window.__queries = 0;
+      const table = d.table;
+      window.chrome = {
+        i18n: { getMessage: (k) => (table[k] ? table[k].message : ''),
+                getUILanguage: () => d.loc.replace('_', '-') },
+        tabs: { query: async () => { window.__queries++; return []; } },
+        runtime: { sendMessage: async () => ({ ok: false, erreur: 'absent' }),
+                   getManifest: () => ({ version: '0.0.0', action: {}, permissions: [] }) },
+      };
+    }, { table: fiche(loc), loc });
+    await p.goto(URL_PANNEAU);
+    await attendre(p, () => !document.getElementById('guide').hidden, 5000);
+    return p;
+  };
+
+  const page = await ouvrirPanneau('en');
+  const en = fiche('en');
+
+  /* ── 1. C'EST LA PAGE D'ACCUEIL ──────────────────────────────────────────── */
+  const accueil = await page.evaluate(() => ({
+    titre: document.getElementById('vue-titre').textContent,
+    visible: !document.getElementById('guide').hidden,
+    courant: [...document.querySelectorAll('.rail-item')]
+      .filter(b => b.getAttribute('aria-current') === 'true').map(b => b.dataset.id),
+    premier: document.querySelector('.rail-item').dataset.id,
+  }));
+  ok('le panneau s\'ouvre sur le mode d\'emploi, et le rail le marque',
+     accueil.visible && accueil.titre === en.navGuide.message
+     && accueil.courant.length === 1 && accueil.courant[0] === 'guide'
+     && accueil.premier === 'guide',
+     JSON.stringify(accueil));
+
+  /* ── 2. SANS RIEN DEMANDER À PERSONNE ─────────────────────────────────────
+     L'assertion qui porte tout le reste : cette vue doit s'afficher sans
+     onglet Twitch. Le compteur est posé sur `tabs.query`, qui est la PREMIÈRE
+     chose que fait `demander` — avant même d'envoyer quoi que ce soit au
+     service worker. Un court-circuit oublié se voit donc ici, et nulle part
+     ailleurs : le panneau afficherait « ouvrez un onglet twitch.tv » en guise
+     de bienvenue, ce qui est un message parfaitement fonctionnel. */
+  const q = await page.evaluate(() => ({ n: window.__queries,
+                                         message: !document.getElementById('message').hidden }));
+  ok('…sans interroger le navigateur, et sans réclamer d\'onglet Twitch',
+     q.n === 0 && q.message === false, JSON.stringify(q));
+
+  /* ── 3. LES TREIZE CHAPITRES ─────────────────────────────────────────────── */
+  const plan = await page.evaluate(() => {
+    const chaps = [...document.querySelectorAll('#guide .guide-chapitre')];
+    return {
+      n: chaps.length,
+      nums: chaps.map(c => c.querySelector('.guide-num').textContent),
+      titres: chaps.map(c => c.querySelector('.guide-titre').textContent
+                              .replace(/^\d+/, '').trim()),
+      sansCorps: chaps.filter(c => !c.querySelector('.guide-p, .guide-liste li')).length,
+      intro: (document.querySelector('#guide .guide-intro') || {}).textContent || '',
+    };
+  });
+  ok('treize chapitres, numérotés de 1 à 13, chacun avec un titre et du texte',
+     plan.n === 13
+     && plan.nums.join(',') === Array.from({ length: 13 }, (_, i) => i + 1).join(',')
+     && plan.titres.every(t => t.length > 2)
+     && plan.sansCorps === 0
+     && plan.intro.length > 40,
+     JSON.stringify({ n: plan.n, nums: plan.nums, sansCorps: plan.sansCorps }));
+
+  /* ── 4. AUCUN LIBELLÉ MANQUANT ────────────────────────────────────────────
+     `chrome.i18n.getMessage` d'une clé inconnue ne lève pas : elle rend la
+     chaîne vide, et `T` rend alors le NOM DE LA CLÉ. Un libellé oublié
+     s'affiche donc en clair — « guideAboTitre » au milieu du texte — sans
+     erreur et sans console. On cherche les cent cinquante-cinq noms de clés
+     dans ce qui est rendu : aucun n'a le droit d'y être. */
+  const rendu = await page.evaluate(() => document.getElementById('guide').textContent);
+  const fuites = Object.keys(en).filter(k => rendu.includes(k));
+  ok('aucun nom de clé ne s\'affiche à la place de son libellé',
+     fuites.length === 0, fuites.join(', '));
+
+  /* ── 5. LES PUCES SONT DES PUCES ──────────────────────────────────────────
+     Le corps d'un chapitre est un seul message à retours à la ligne : une
+     ligne qui commence par « • » devient un élément de liste, les autres des
+     paragraphes. Si cette grammaire cesse d'être appliquée, le texte s'affiche
+     quand même — avec ses puces en caractères, dans des paragraphes. C'est le
+     genre de régression qu'on ne voit pas en relisant le code. */
+  const puces = await page.evaluate(() => ({
+    items: document.querySelectorAll('#guide .guide-liste li').length,
+    paraAvecPuce: [...document.querySelectorAll('#guide .guide-p')]
+      .filter(p => p.textContent.trim().startsWith('•')).length,
+    itemAvecPuce: [...document.querySelectorAll('#guide .guide-liste li')]
+      .filter(li => li.textContent.trim().startsWith('•')).length,
+    vides: [...document.querySelectorAll('#guide .guide-liste li, #guide .guide-p')]
+      .filter(e => !e.textContent.trim()).length,
+  }));
+  ok('les puces sont devenues des éléments de liste, marqueur retiré',
+     puces.items >= 30 && puces.paraAvecPuce === 0 && puces.itemAvecPuce === 0
+     && puces.vides === 0,
+     JSON.stringify(puces));
+
+  /* ── 6. LA PALETTE DES BADGES ─────────────────────────────────────────────
+     Dix badges, NEUF couleurs, et l'exception est le sujet de l'assertion.
+     Chaque type de badge a sa teinte, choisie par un calcul qui cherche le
+     créneau libre le plus large — les recopier ici sans les distinguer
+     donnerait une maquette monochrome qui n'explique plus rien. Mais
+     « reprise » n'a jamais eu de couleur à lui : c'est la même espèce de
+     nouvelle que le basculement, et il porte sa classe. Cette parenté doit
+     survivre à la recopie, sinon la maquette contredirait le produit. */
+  const teintes = await page.evaluate(() => {
+    const out = {};
+    for (const b of document.querySelectorAll('#guide .d-badge')) {
+      const mod = [...b.classList].find(c => c.startsWith('d-badge--'));
+      if (mod && !(mod in out)) out[mod] = getComputedStyle(b).color;
+    }
+    /* La couleur d'un badge SANS modificateur, mesurée et non recopiée : c'est
+       la valeur que prend un badge dont la règle n'a pas pris — classe mal
+       orthographiée, règle perdue dans une réécriture. Compter les teintes
+       distinctes ne le verrait pas (une teinte fausse reste une teinte), et
+       c'est pourtant le seul défaut de palette qui arrive vraiment. */
+    const temoin = document.createElement('span');
+    temoin.className = 'd-badge';
+    document.querySelector('#guide .d-badges').appendChild(temoin);
+    out.__nu = getComputedStyle(temoin).color;
+    temoin.remove();
+    return out;
+  });
+  const nu = teintes.__nu;
+  delete teintes.__nu;
+  const mods = Object.keys(teintes);
+  const distinctes = new Set(Object.values(teintes));
+  ok('dix badges, neuf couleurs, aucune par défaut — et « reprise » porte celle du basculement',
+     mods.length === 10 && distinctes.size === 9
+     && teintes['d-badge--reprise'] === teintes['d-badge--switch']
+     && !Object.values(teintes).includes(nu),
+     JSON.stringify({ mods: mods.length, distinctes: distinctes.size, nu, teintes }));
+
+  /* ── 7. L'ARC-EN-CIEL COURT VRAIMENT ──────────────────────────────────────
+     Le badge de subathon est le seul qui n'ait pas de couleur : il les
+     traverse toutes. Au repos — mouvement refusé — il vaut le cyan qu'on vient
+     de compter ; mouvement autorisé, il doit CHANGER. Sans cette assertion, une
+     animation supprimée laisserait un badge cyan parfaitement plausible. */
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const teinteSub = () => page.evaluate(() =>
+    getComputedStyle(document.querySelector('#guide .d-badge--subathon')).color);
+  const t1 = await teinteSub();
+  await wait(page, 400);
+  const t2 = await teinteSub();
+  ok('…et le badge de subathon les traverse toutes, en mouvement',
+     t1 !== t2, `${t1} → ${t2}`);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+
+  /* ── 8. LES MAQUETTES NE SE LISENT PAS À VOIX HAUTE ───────────────────────
+     Même règle que la frise et la grille du rythme : la forme pour l'œil, le
+     texte pour l'information. Une maquette lue par une synthèse vocale ne
+     donnerait qu'une bouillie de pseudos inventés et de durées, et le chapitre
+     dit déjà tout en toutes lettres. */
+  const muettes = await page.evaluate(() => {
+    const cadres = [...document.querySelectorAll('#guide .d-cadre')];
+    return { n: cadres.length,
+             nues: cadres.filter(c => c.getAttribute('aria-hidden') !== 'true').length,
+             texteDedans: cadres.some(c => c.querySelector('.guide-p, .guide-liste')) };
+  });
+  ok('les maquettes sont masquées à la synthèse vocale, et ne portent aucun texte du guide',
+     muettes.n >= 8 && muettes.nues === 0 && muettes.texteDedans === false,
+     JSON.stringify(muettes));
+
+  /* ── 9. ÇA DÉFILE DEDANS, PAS DEHORS ──────────────────────────────────────
+     Une popup de barre d'outils ne défile pas : elle est bornée par le
+     navigateur, et ce qui dépasse est simplement coupé — sans barre, sans
+     erreur, sans rien. Un guide de trois mille pixels de haut dans un conteneur
+     qui ne défile pas, ce sont douze chapitres sur treize invisibles. */
+  const defile = await page.evaluate(() => {
+    const g = document.getElementById('guide');
+    return { haut: g.scrollHeight, visible: g.clientHeight,
+             page: document.documentElement.scrollHeight,
+             largeurPage: document.documentElement.scrollWidth,
+             largeurGuide: [g.scrollWidth, g.clientWidth] };
+  });
+  ok('le guide défile pour son compte, et rien ne déborde en largeur',
+     defile.haut > defile.visible * 3 && defile.page <= 600
+     && defile.largeurPage <= 760 && defile.largeurGuide[0] <= defile.largeurGuide[1] + 1,
+     JSON.stringify(defile));
+
+  /* ── 10. IL SE RANGE, ET IL REVIENT ───────────────────────────────────────
+     Le guide est posé dans la même vue que les tableaux. S'il ne se range pas
+     en partant, il resterait affiché SOUS la section suivante — et comme
+     celle-ci échoue faute d'onglet, on aurait un message d'erreur posé sur un
+     mode d'emploi. */
+  await page.click('.rail-item[data-id="scores"]');
+  await attendre(page, () => document.getElementById('guide').hidden, 5000);
+  const parti = await page.evaluate(() => ({
+    guide: document.getElementById('guide').hidden,
+    message: !document.getElementById('message').hidden,
+    queries: window.__queries,
+  }));
+  await page.click('.rail-item[data-id="guide"]');
+  await attendre(page, () => !document.getElementById('guide').hidden, 5000);
+  const revenu = await page.evaluate(() => ({
+    guide: !document.getElementById('guide').hidden,
+    chapitres: document.querySelectorAll('#guide .guide-chapitre').length,
+    message: !document.getElementById('message').hidden,
+  }));
+  ok('une autre section le range et demande la page ; y revenir le repose intact',
+     parti.guide === true && parti.message === true && parti.queries > 0
+     && revenu.guide === true && revenu.chapitres === 13 && revenu.message === false,
+     JSON.stringify({ parti, revenu }));
+  await page.close();
+
+  /* ── 11. LES DOUZE FICHES, ET PAS SEULEMENT L'ANGLAISE ────────────────────
+     La parité garantit que les douze fiches portent les mêmes clés, non
+     vides ; elle ne peut pas dire si le RENDU tient dans une autre langue. Le
+     japonais est le cas le plus éloigné de l'anglais qu'on ait : pas d'espaces
+     entre les mots, des chiffres à chasse pleine, et des puces écrites de la
+     même main que le reste. S'il passe, la grammaire du corps ne dépend pas de
+     la langue. */
+  const pageJa = await ouvrirPanneau('ja');
+  const ja = fiche('ja');
+  const rendJa = await pageJa.evaluate(() => {
+    const g = document.getElementById('guide');
+    return { titre: document.getElementById('vue-titre').textContent,
+             chapitres: g.querySelectorAll('.guide-chapitre').length,
+             items: g.querySelectorAll('.guide-liste li').length,
+             puces: [...g.querySelectorAll('.guide-p, .guide-liste li')]
+               .filter(e => e.textContent.trim().startsWith('•')).length,
+             texte: g.textContent,
+             largeur: document.documentElement.scrollWidth };
+  });
+  ok('le mode d\'emploi se rend aussi en japonais, sans clé nue ni débordement',
+     rendJa.titre === ja.navGuide.message && rendJa.chapitres === 13
+     && rendJa.items >= 30 && rendJa.puces === 0 && rendJa.largeur <= 760
+     && !Object.keys(ja).some(k => rendJa.texte.includes(k)),
+     JSON.stringify({ titre: rendJa.titre, chapitres: rendJa.chapitres,
+                      items: rendJa.items, puces: rendJa.puces, largeur: rendJa.largeur }));
+  await pageJa.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

@@ -94,7 +94,7 @@ for (const [loc, m] of messages) {
    d'une majuscule. Un littéral qui a cette forme est une clé, où qu'il soit
    écrit — ternaire compris ; et une clé qui a cette forme sans exister dans
    _locales est une faute de frappe, que ce relevé attrape aussi. */
-const PREFIXES = /^(nav|desc|col|sum|btn|state|status|val|health|reset|report|grp|panel|ext)[A-Z]/;
+const PREFIXES = /^(nav|desc|col|sum|btn|state|status|val|health|reset|report|grp|panel|ext|guide)[A-Z]/;
 const html = readFileSync(join(ICI, '..', 'panneau.html'), 'utf8');
 const js   = readFileSync(join(ICI, '..', 'panneau.js'), 'utf8');
 const MAJ  = (x) => x.charAt(0).toUpperCase() + x.slice(1);

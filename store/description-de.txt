@@ -163,6 +163,7 @@ _______________________________
 ➤ 🎛️ EIN PANEL IN DER SYMBOLLEISTE
 Ein Klick auf das Symbol der Erweiterung, und alles, was sie gelernt hat, öffnet sich in einem Panel — ganz ohne Konsole.
 
+- ★ EINE ANLEITUNG, GLEICH ZU BEGINN ★ Das Panel öffnet sich mit einer Anleitung in dreizehn Kapiteln über alles, was die Erweiterung hinzufügt, mit gezeichneten Beispielen — und sie erscheint auch ohne offenen Twitch-Tab.
 - ★ IHRE GEWOHNHEITEN, GEZEICHNET ★ Die Stunden, in denen Sie wirklich zusehen, als Raster aus sieben Tagen mal vierundzwanzig Stunden.
 - ★ IHRE ZAHLEN ★ Top-Streamer, erkannte Abos, gemerkte gefolgte Kanäle: alles da, alles lesbar.
 - ★ EIN BERICHT ZUM EINFÜGEN ★ Ein Knopf baut einen vollständigen Diagnosebericht, ohne jede persönliche Liste darin — genug, um ein Problem zu melden, ohne etwas preiszugeben.

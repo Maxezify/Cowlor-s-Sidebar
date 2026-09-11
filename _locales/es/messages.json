@@ -14,6 +14,9 @@
   "panelSubtitle": {
     "message": "Datos y diagnóstico"
   },
+  "grpGuide": {
+    "message": "Primeros pasos"
+  },
   "grpData": {
     "message": "Tus datos"
   },
@@ -22,6 +25,12 @@
   },
   "grpGlobal": {
     "message": "Top Canales"
+  },
+  "navGuide": {
+    "message": "Cómo funciona"
+  },
+  "descGuide": {
+    "message": "Todo lo que la extensión añade a tu barra lateral, con ejemplos. Nada que configurar: ya está activo."
   },
   "navScores": {
     "message": "Puntuaciones de popularidad"
@@ -335,5 +344,131 @@
   },
   "btnClose": {
     "message": "Cerrar"
+  },
+  "guideIntro": {
+    "message": "La extensión no tiene ajustes: funciona en cuanto recargas una página de Twitch. Lo que sigue es la lista de lo que añade, en el orden en que te la vas a encontrar."
+  },
+  "guideHoverTitre": {
+    "message": "La vista previa al pasar el ratón"
+  },
+  "guideHoverTexte": {
+    "message": "Pon el puntero sobre un canal y déjalo un instante: se abre una ventana al lado, con el vídeo en directo —no una miniatura congelada—, el título completo y unas insignias que resumen el contexto.\n• Un breve retardo antes de abrirse: atravesar la lista para ir a otra cosa no abre nada.\n• En toda la barra lateral: canales que sigues, recomendaciones, «los espectadores de X también ven».\n• La publicidad se quita de esa miniatura y de nada más: el directo que estás viendo no se toca nunca."
+  },
+  "guideDureeTitre": {
+    "message": "Cuánto lleva emitiendo"
+  },
+  "guideDureeTexte": {
+    "message": "Debajo del número de espectadores, cada tarjeta lleva la duración del directo. Se actualiza sola, sin que abras el canal.\n• «4h19» son cuatro horas diecinueve. Por debajo de la hora, solo minutos: «24m».\n• Cuando el directo acaba, el contador pasa a «Finalizado» en cursiva, a menudo antes de que Twitch retire la tarjeta de la lista."
+  },
+  "guideBadgesTitre": {
+    "message": "Las insignias de la vista previa"
+  },
+  "guideBadgesTexte": {
+    "message": "En la vista previa, unas etiquetas de color dan el contexto de un vistazo. Cada color pertenece a un único tipo, y no hay dos insignias que se parezcan.\n• Las dos verdes son NOVEDADES, no estados: se borran a los diez minutos.\n• La roja recoge las etiquetas oficiales de Twitch (juego para adultos, violencia explícita, juegos de azar…): lo sabes antes de mirar.\n• La dorada dice desde cuándo apoyas el canal, y se apaga cuando la suscripción ya pasó."
+  },
+  "guideFriseTitre": {
+    "message": "Antes en este directo"
+  },
+  "guideFriseTexte": {
+    "message": "Llegas a la mitad de un directo de ocho horas: ¿qué ha pasado antes? La vista previa te lo enseña: una cinta, un color por categoría, y la lista debajo.\n• Cada franja está a escala del tiempo real: un vistazo dice dónde se fue la tarde.\n• «×3» significa que el streamer volvió tres veces a esa categoría.\n• ¿Un canal que no archiva sus directos? El recorrido se reconstruye a partir de los clips, y lo dice.\n• Cuando no se conoce la hora exacta de un cambio, el color se difumina en vez de cortar en seco y la duración lleva una «~». Nunca una cifra inventada."
+  },
+  "guideSubathonTitre": {
+    "message": "Los subatones"
+  },
+  "guideSubathonTexte": {
+    "message": "Un subatón es ese directo que las suscripciones alargan sin fin: días, a veces semanas.\n• Una etiqueta junto al nombre da el día en curso: sabes al instante por dónde va el evento.\n• Etiqueta e insignia recorren un arcoíris. Ninguna otra señal del producto lleva ese color, porque un evento excepcional no se archiva en la paleta de los demás.\n• No se adivina nada: lo dicen el título del directo y las etiquetas, no la duración. Un subatón ya lo es en su segunda hora."
+  },
+  "guideCostreamTitre": {
+    "message": "Los co-streams"
+  },
+  "guideCostreamTexte": {
+    "message": "Un punto morado en la esquina del avatar, con el número de participantes: ese canal emite acompañado. Visible en la lista, sin pasar el ratón por nada.\n• La vista previa dice entonces quién recibe y quién es invitado, y con quién.\n• Un orden propio los agrupa arriba de la lista (capítulo 9)."
+  },
+  "guideDebutTitre": {
+    "message": "Los comienzos y las vueltas"
+  },
+  "guideDebutTexte": {
+    "message": "Una barra morada que late en el borde izquierdo de una tarjeta: ese directo empezó hace menos de diez minutos. Justo para pillar la intro. Se apaga sola.\n• Si el streamer se cae y vuelve antes de diez minutos, NO se enciende otra vez: es su contador el que ha vuelto a cero, no su directo.\n• La duración mostrada sigue siendo la del directo entero, corte incluido, y la vista previa lleva una insignia que dice lo que pasó."
+  },
+  "guideAboTitre": {
+    "message": "Tus suscripciones, en oro"
+  },
+  "guideAboTexte": {
+    "message": "Los canales a los que apoyas ya no se parecen a los demás: nombre dorado, categoría dorada, un anillo de oro alrededor del avatar y un reflejo lento sobre la tarjeta.\n• El orden «Mis suscripciones primero» las sube todas arriba, con su número en una etiqueta.\n• La vista previa dice desde cuándo, y se acuerda cuando ya pasó.\n• Las tres formas cuentan: pagada, regalada, móvil.\n• Nada que configurar, ningún usuario, ninguna contraseña. El último capítulo dice cómo."
+  },
+  "guideTriTitre": {
+    "message": "Ordenar y filtrar"
+  },
+  "guideTriTexte": {
+    "message": "Seis botones encima de la lista la reorganizan al vuelo:\n• Por espectadores: el orden de Twitch, limpio.\n• Mis suscripciones primero: con el total en una etiqueta.\n• Por popularidad personal: según tus propias visitas, guardadas en tu máquina.\n• Por duración del directo: los más recientes arriba, para pillar los comienzos.\n• Por nombre de canal: orden alfabético.\n• Los co-streams primero: para no perderte ni una colaboración.\nJusto debajo, dos filtros: la categoría y el idioma. Las dos listas solo ofrecen lo que tus canales están emitiendo de verdad en ese momento; nada de menús interminables."
+  },
+  "guideTopTitre": {
+    "message": "Top Canales"
+  },
+  "guideTopTexte": {
+    "message": "Una pestaña arriba de la barra lateral, un clic, y cambia: en lugar de tus canales seguidos, los treinta canales más vistos de Twitch, en directo.\n• Por categoría o por idioma: un top treinta de verdad para cada uno, no un filtro colocado sobre una lista inglesa.\n• Todo lo demás sigue ahí: vista previa, duración, insignias, co-streams. Son tarjetas como las otras.\n• Cuando no se puede garantizar que la clasificación esté completa, la extensión lo dice en lugar de inventar.\nUn clic para ir, un clic para volver. Tus canales seguidos no se mueven ni un píxel."
+  },
+  "guideViteTitre": {
+    "message": "Más rápida que Twitch, y más limpia"
+  },
+  "guideViteTexte": {
+    "message": "Twitch refresca su barra lateral pocas veces: un canal que empieza tarda de dos a cuatro minutos en aparecer, y uno que para se queda ahí de cinco a diez. La extensión la refresca ella misma cada treinta segundos: espectadores, categoría, idioma, duración, llegadas y salidas.\n• La lista completa se despliega en cada carga: se acabó el «Ver más».\n• Hype trains que ocupan medio hueco, banners de descuento, secciones vacías, franjas de patrocinio: fuera. La información no se pierde por ello: vuelve dentro de la vista previa, como insignia."
+  },
+  "guidePanneauTitre": {
+    "message": "Este panel"
+  },
+  "guidePanneauTexte": {
+    "message": "A la izquierda, las secciones. «Tus datos» enseña lo que la extensión ha guardado: tus canales más visitados, tus horas de visionado dibujadas en semana, las suscripciones detectadas. «Diagnóstico» solo sirve el día en que algo falla.\n• Esas secciones leen la pestaña de Twitch que tengas delante: si no hay ninguna, lo dicen. Este capítulo, en cambio, se muestra siempre.\n• «Exportar un informe» escribe un texto que puedes releer antes de enviarlo. No contiene ninguna lista personal —ni tus canales ni tus suscripciones—, solo sus recuentos.\n• «Borrar el historial» lo deja todo a cero, definitivamente."
+  },
+  "guideVieTitre": {
+    "message": "Privacidad, en claro"
+  },
+  "guideVieTexte": {
+    "message": "• Ningún servidor de terceros. La extensión solo habla con la API pública de Twitch, la misma que la página ya usa para dibujarse.\n• Esas llamadas son anónimas: no llevan ningún token de sesión ni ninguna cookie. No se pueden vincular a tu cuenta.\n• Una excepción, dicha en voz alta: para conocer tus suscripciones, la extensión abre TU página twitch.tv/subscriptions en un marco invisible, como mucho una vez cada seis horas, y nunca si has cerrado sesión. Tu navegador la autentica con sus propias cookies, igual que si hubieras pulsado el enlace; la extensión nunca lee tu token ni lo transmite.\n• Tus visitas, tus suscripciones y su antigüedad se quedan en el almacenamiento local de tu navegador. Borra los datos del sitio twitch.tv y no queda nada.\n• Ningún permiso pedido, ningún rastreador, ninguna telemetría. La extensión solo se ejecuta en twitch.tv."
+  },
+  "guideBadgeCcl": {
+    "message": "Juego para adultos"
+  },
+  "guideBadgeReprise": {
+    "message": "De vuelta tras un corte"
+  },
+  "guideBadgeSwitch": {
+    "message": "Acaba de cambiar a Elden Ring"
+  },
+  "guideBadgeCostream": {
+    "message": "Co-stream de Nyxaria"
+  },
+  "guideBadgeSquad": {
+    "message": "En vivo con Korbek y 3 más"
+  },
+  "guideBadgeSub": {
+    "message": "Suscrito 9 meses"
+  },
+  "guideBadgeSponsor": {
+    "message": "Patrocinado por Norvex"
+  },
+  "guideBadgeHype": {
+    "message": "Hype Train"
+  },
+  "guideBadgeDiscount": {
+    "message": "Suscripción con descuento"
+  },
+  "guideBadgeSubathon": {
+    "message": "Subatón · DÍA 10"
+  },
+  "guideDemoTitre": {
+    "message": "Acabamos la mazmorra y luego preguntas"
+  },
+  "guideDemoEnded": {
+    "message": "Finalizado"
+  },
+  "guideDemoJour": {
+    "message": "D9"
+  },
+  "guideDemoSuivies": {
+    "message": "Canales que sigues"
+  },
+  "guideDemoEnCours": {
+    "message": "en curso"
   }
 }
