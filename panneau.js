@@ -876,6 +876,11 @@ const construireRapport = (r, transport, fond) => {
   }
 
   L.push(...bloc('PAGE', aplatir(r.page)));
+  /* LA SECTION SUIVIE, ET COMMENT ELLE A ÉTÉ TROUVÉE. Quinze appelants en
+     dépendent ; quand elle se trompe, ils se taisent tous ensemble et le
+     rapport ne portait rien qui le dise. Quatre lignes, juste après PAGE
+     parce que c'est du même ordre : l'état du DOM sous nos pieds. */
+  L.push(...bloc('SECTION SUIVIE / FOLLOWED SECTION', aplatir(r.sectionSuivie)));
   L.push(...bloc('LANGUE / LANGUAGE', aplatir(r.langue)));
   L.push(...bloc('MODE', aplatir(r.mode)));
   L.push(...bloc('COMPTEURS / COUNTS', aplatir(r.compteurs)));

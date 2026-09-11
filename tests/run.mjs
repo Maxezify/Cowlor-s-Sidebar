@@ -7077,6 +7077,17 @@ titre('71. Diagnostic — il doit crier au bon moment, et se taire au bon moment
     sec.removeAttribute('aria-label');
     sec.querySelectorAll('[class*="followed-side-nav-header"]')
        .forEach(e => { e.className = 'entete-neutre'; });
+    /* ── ET LA TROISIÈME PRISE, DEPUIS LA 3.92 ─────────────────────────
+       Ce décor retirait les DEUX prises connues : l'aria-label et la classe du
+       bandeau. Il en existe une troisième — le marqueur que Twitch pose sur
+       SES cartes suivies, sur lequel `followedSection()` se rabat désormais
+       quand aucun candidat libellé ne porte de carte. La laisser en place
+       reviendrait à mesurer ce repli au lieu de la sonde, ce qui est
+       exactement ce que le commentaire ci-dessus interdit : c'est bien la
+       sonde qu'on éprouve, et une sonde ne peut crier que si l'extension a
+       RÉELLEMENT perdu la section. On retire donc les trois. */
+    document.querySelectorAll('a[data-test-selector="followed-channel"]')
+      .forEach(a => a.setAttribute('data-test-selector', 'recommended-channel'));
   });
   const cassee = await sonde('followedSection');
   ok('section introuvable sur une barre PEUPLÉE : la sonde dit « cassé »',
@@ -7110,10 +7121,19 @@ titre('71. Diagnostic — il doit crier au bon moment, et se taire au bon moment
           panne serait silencieuse — le pire des trois défauts. */
   const memoire = await page.evaluate(() => {
     const sec = document.querySelector('.side-nav-section');
+    /* LES TROIS PRISES, et non plus deux : depuis la 3.92, `followedSection()`
+       se rabat sur le marqueur que Twitch pose sur ses cartes suivies. En
+       laisser une seule intacte ferait mesurer le repli au lieu de la sonde. */
+    const marqueurs = () => [...document.querySelectorAll(
+      'a[data-test-selector="followed-channel"], a[data-test-selector="recommended-channel"]')];
     const casser  = () => { sec.removeAttribute('aria-label');
                             sec.querySelectorAll('[class*="followed-side-nav-header"]')
-                               .forEach(e => { e.className = 'entete-neutre'; }); };
-    const reparer = () => sec.setAttribute('aria-label', 'Chaînes suivies');
+                               .forEach(e => { e.className = 'entete-neutre'; });
+                            marqueurs().forEach(a =>
+                              a.setAttribute('data-test-selector', 'recommended-channel')); };
+    const reparer = () => { sec.setAttribute('aria-label', 'Chaînes suivies');
+                            marqueurs().forEach(a =>
+                              a.setAttribute('data-test-selector', 'followed-channel')); };
     // Une barre PEUPLÉE : c'est la condition pour que l'absence de section
     // vaille rupture. On rend leurs liens aux cartes.
     document.querySelectorAll('#side-nav a:not([href])').forEach(a => a.setAttribute('href', '/x'));
@@ -7667,6 +7687,11 @@ titre('74. Erreurs — la taxonomie, et ce qu\'elle rend visible');
       sec.removeAttribute('aria-label');
       sec.querySelectorAll('[class*="followed-side-nav-header"]')
          .forEach(e => { e.className = 'entete-neutre'; });
+      /* La troisième prise, depuis la 3.92 : le marqueur de Twitch, sur lequel
+         `followedSection()` se rabat. Une sonde ne peut crier que si
+         l'extension a réellement perdu la section. */
+      document.querySelectorAll('a[data-test-selector="followed-channel"]')
+        .forEach(a => a.setAttribute('data-test-selector', 'recommended-channel'));
       document.body.classList.remove('tse-loading');
       window.tse.diagnose.auto();
       return window.tse.panneau.rapport().erreurs.filter(e => e.source === 'sondes');
@@ -10347,8 +10372,30 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
      ecartsD.length === 0, ecartsD.join(' | '));
 
   // ── LA CARTE, DANS LE NAVIGATEUR, À TRAVERS LE VRAI RELEVÉ ───────────────
+  /* VINGT-QUATRE CARACTÈRES, ce qui est une longueur de pseudo Twitch
+     ordinaire et non un cas tordu : la colonne du nom fait environ 128 px,
+     soit une quinzaine de caractères. Il DOIT dépasser, faute de quoi
+     l'assertion sur l'abrègement ne prouverait rien. */
+  const LONG = 'unpseudovraimenttreslong';
   const page = await fresh();
-  await page.evaluate(() => {
+  /* LE DÉCOR NE CONTRAINT PAS LA LARGEUR, ET TWITCH SI. La colonne du pseudo
+     fait environ 128 px dans la vraie sidebar ; la page de banc, elle, laisse
+     la carte s'étendre sur toute la fenêtre, si bien qu'aucun pseudo n'y est
+     jamais trop long et que la règle qu'on veut éprouver ne joue pas — mesuré :
+     la pastille à 1062 px du bord, le nom jamais abrégé. On repose donc la
+     contrainte réelle, et sur elle seule : c'est la seule chose qui manque au
+     décor pour que le cas existe. */
+  await page.addStyleTag({ content:
+    '[data-a-target="side-nav-card-metadata"] { max-width: 128px; }' });
+  /* ── LE TÉMOIN POSÉ SUR LE NŒUD DE TEXTE DE TWITCH ────────────────────────
+     La seule chose qui distingue « déplacer » de « recopier » est l'IDENTITÉ
+     du nœud, et une identité ne traverse pas la frontière du banc : elle se
+     vérifie dans la page. On marque donc chaque nœud de texte de pseudo au
+     moment où la carte paraît, d'une propriété que seul cet objet-là porte ;
+     si l'enveloppe contient un nœud sans le témoin, c'est une copie — et
+     React, qui écrit dans l'original, écrirait désormais dans un nœud
+     détaché : le pseudo cesserait de suivre la chaîne affichée. */
+  await page.evaluate((LONG) => {
     /* MÊME `createdAt` POUR « mouse » ET « ordi », ET C'EST LE POINT. La
        durée affichée doit être EXACTEMENT la même de part et d'autre : on la
        compare l'une à l'autre plutôt que de recopier un format, ce qui prouve
@@ -10372,22 +10419,38 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
          qui l'empêche de se couper en deux. Avec « 8,4 k » au-dessus, la
          colonne était assez large pour que le défaut ne paraisse pas — le
          mutant qui retirait la règle a d'abord SURVÉCU, faute de ce décor. */
-      long:  { id:'5', createdAt:new Date(Date.now() - 10120 * 60_000).toISOString(),
+      [LONG]: { id:'5', createdAt:new Date(Date.now() - 10120 * 60_000).toISOString(),
                viewers:900, game:'Just Chatting', tags:[], title:'SUBATHON DAY 120' },
     };
     window.__addCard('mouse',  'Watch Your Plastic Duck', '8,4 k');
     window.__addCard('nomme',  'Just Chatting', '2,1 k');
     window.__addCard('partag', 'Just Chatting', '900');
     window.__addCard('ordi',   'Just Chatting', '7,8 k');
-    window.__addCard('long',   'Just Chatting', '900');
-  });
+    window.__addCard(LONG,     'Just Chatting', '900');
+    /* LA SESSION GUEST STAR SE POSE AVEC LE DÉCOR, ET NON PLUS TARD. Elle se
+       relève par LOTS, au rythme des relevés : posée après le premier, le lot
+       a déjà retenu « aucune session » et le badge ne paraît jamais. Elle sert
+       tout en bas du scénario, où l'on vérifie que le pseudo de la chaîne en
+       subathon reste « mouse » dans la phrase d'un badge. */
+    window.__gs = { '4': { hostId: '4', hostLogin: 'ordi',
+                           guests: [{ id: '1', login: 'mouse', combined: 9000 }] } };
+    /* MARQUÉ ICI, ET PAS PLUS TARD. La décoration est asynchrone : au moment
+       où ce bloc se termine, les <p> portent encore le nœud de texte que
+       Twitch y a mis, et lui seul. Marquer après coup marquerait une copie
+       éventuelle, ce qui ne prouverait rien. */
+    for (const p of document.querySelectorAll('p[data-a-target="side-nav-title"]')) {
+      for (const n of p.childNodes) if (n.nodeType === 3) n.__tseTemoin = true;
+    }
+  }, LONG);
   await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
 
   const lire = () => page.evaluate(() => {
     const out = {};
     for (const c of document.querySelectorAll('.side-nav-card')) {
       const up = c.querySelector('.tse-uptime');
-      const pu = up && up.querySelector('.tse-subathon-jour');
+      const t  = c.querySelector('p[data-a-target="side-nav-title"]');
+      const pu = t && t.querySelector(':scope > .tse-subathon-jour');
+      const nm = t && t.querySelector(':scope > .tse-subathon-nom');
       out[c.dataset.tseLogin] = {
         marquee:  c.dataset.tseSubathon === 'true',
         jour:     c.dataset.tseSubathonDay ?? null,
@@ -10396,14 +10459,48 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
            supprimé qu'on cesse de mesurer revient tôt ou tard. */
         ajouts:   c.querySelectorAll(':scope > :not(a)').length,
         pastille: pu ? pu.textContent : null,
+        /* LE PSEUDO TEL QUE LE RESTE DU CODE LE LIRA. Sur une carte de
+           subathon le <p> porte aussi la pastille : son `textContent` vaut
+           « SardocheJ9 », qui n'est le pseudo de personne. */
+        titreTexte: t ? t.textContent : null,
+        nomEnveloppe: nm ? nm.textContent : null,
+        /* LE COMPTEUR D'ANCIENNETÉ, qui ne doit plus rien porter du tout —
+           ni pastille, ni couleur à part, ni second nœud. */
         texte:    up ? up.textContent : null,
         noeuds:   up ? up.childNodes.length : 0,
-        /* LES MESURES DE LA PASTILLE, prises sur le rendu et non déduites. */
-        hauteurLigne: up ? +up.getBoundingClientRect().height.toFixed(2) : 0,
-        corps:        up ? getComputedStyle(up).fontSize : null,
+        couleurDuree: up ? getComputedStyle(up).color : null,
+        graisseDuree: up ? getComputedStyle(up).fontWeight : null,
+        /* LES MESURES DE LA PASTILLE, prises sur le rendu et non déduites.
+           La ligne de référence est celle du PSEUDO, contre lequel elle se
+           pose désormais. */
+        hauteurTitre: t ? +t.getBoundingClientRect().height.toFixed(2) : 0,
         corpsPastille: pu ? getComputedStyle(pu).fontSize : null,
         fondPastille:  pu ? getComputedStyle(pu).backgroundColor : null,
         bordPastille:  pu ? getComputedStyle(pu).borderTopWidth : null,
+        /* CENTRÉE SUR LE NOM : on compare les MILIEUX des deux boîtes, seule
+           mesure qui vaille pour un alignement demandé « au centre ». */
+        ecartCentre: (pu && nm) ? +(
+          (pu.getBoundingClientRect().top + pu.getBoundingClientRect().bottom) / 2
+          - (nm.getBoundingClientRect().top + nm.getBoundingClientRect().bottom) / 2
+        ).toFixed(2) : null,
+        /* LA PASTILLE DÉBORDE-T-ELLE DU <p> ? C'est ce qui arrive sur un
+           pseudo long si le nom refuse de rétrécir. */
+        debordPastille: (pu && t) ? Math.round(
+          pu.getBoundingClientRect().right - t.getBoundingClientRect().right) : null,
+        nomAbrege: nm ? nm.scrollWidth > nm.clientWidth : null,
+        /* LE MÉCANISME DE L'ELLIPSE, à défaut de son effet : le caractère « … »
+           n'existe que dans les pixels, il n'ajoute aucun nœud et ne change
+           aucun rectangle. On contrôle donc que les deux propriétés sont bien
+           calculées sur l'enveloppe. Plus faible qu'un contrôle d'effet, et
+           c'est dit — mais sans elles le nom serait coupé net par-dessus la
+           pastille au lieu d'être abrégé devant elle. */
+        coupeNom: nm ? getComputedStyle(nm).overflow + '/' + getComputedStyle(nm).textOverflow
+                     : null,
+        /* Le nœud de Twitch a-t-il SURVÉCU à l'enveloppement, ou a-t-il été
+           recopié ? Le témoin ne voyage pas : une copie ne l'a pas. */
+        noeudDorigine: nm ? [...nm.childNodes].some(n => n.nodeType === 3 && n.__tseTemoin)
+                          : (t ? [...t.childNodes].some(n => n.nodeType === 3 && n.__tseTemoin)
+                               : null),
         toutLeTexte: c.textContent,
       };
     }
@@ -10411,17 +10508,45 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
   });
   const v = await lire();
 
-  ok('la carte d\'un subathon porte la pastille de son jour, et rien de plus',
+  ok('la carte d\'un subathon porte la pastille de son jour, contre le pseudo',
      v.mouse.marquee && v.mouse.pastille === 'J9' && v.mouse.jour === '9'
-     && v.mouse.ajouts === 0,
+     && v.mouse.ajouts === 0 && v.mouse.nomEnveloppe === 'mouse',
      JSON.stringify(v.mouse));
   /* LA DURÉE EST LE RENSEIGNEMENT PRINCIPAL DE CETTE LIGNE, et la pastille ne
      doit pas l'abîmer. La comparaison est faite avec une carte ORDINAIRE de
      même ancienneté : si `ecrireUptime` écrasait le contenu au lieu de viser
      le nœud texte, les deux ne se ressembleraient plus. */
-  ok('…et la durée reste EXACTEMENT celle d\'une carte ordinaire, précédée du jour',
-     /^\d+h\d+$/.test(v.ordi.texte) && v.mouse.texte === 'J9 ' + v.ordi.texte,
-     `subathon « ${v.mouse.texte} » / ordinaire « ${v.ordi.texte} »`);
+  /* ── LE COMPTEUR D'ANCIENNETÉ REDEVIENT CELUI DE TOUT LE MONDE ───────────
+     Il a porté la pastille, puis une chaleur en braise, et les deux ont été
+     retirés : un chiffre qu'on lit pour lui-même n'a pas à être repeint, et
+     deux cartes voisines dont l'une est teinte ne se comparent plus. On exige
+     donc l'identité STRICTE avec une carte ordinaire de même ancienneté —
+     texte, nombre de nœuds, couleur et graisse. Quatre autres scénarios lisent
+     ce texte : c'est l'invariant le plus chargé de la carte. */
+  ok('…et le compteur d\'ancienneté est EXACTEMENT celui d\'une carte ordinaire',
+     /^\d+h\d+$/.test(v.ordi.texte) && v.mouse.texte === v.ordi.texte
+     && v.mouse.noeuds === 1
+     && v.mouse.couleurDuree === v.ordi.couleurDuree
+     && v.mouse.graisseDuree === v.ordi.graisseDuree,
+     JSON.stringify({ subathon: v.mouse.texte, ordinaire: v.ordi.texte,
+                      couleur: v.mouse.couleurDuree, ordCouleur: v.ordi.couleurDuree,
+                      graisse: v.mouse.graisseDuree, noeuds: v.mouse.noeuds }));
+  /* LE PSEUDO RESTE LISIBLE PAR LE RESTE DU CODE. Le <p> porte maintenant deux
+     enfants, et son `textContent` vaut « mouseJ9 » : c'est l'enveloppe qu'il
+     faut lire, et `displayNameFor` le fait — sans quoi l'aperçu titrerait une
+     chaîne qui n'existe pas. */
+  ok('…le pseudo se lit dans son enveloppe, et non collé au numéro de jour',
+     v.mouse.titreTexte === 'mouseJ9' && v.mouse.nomEnveloppe === 'mouse',
+     JSON.stringify({ p: v.mouse.titreTexte, nom: v.mouse.nomEnveloppe }));
+  /* ENVELOPPER, C'EST DÉPLACER — JAMAIS RECOPIER. React tient une référence
+     sur CE nœud de texte pour y écrire le pseudo. Le recopier dans un élément
+     neuf et jeter l'original le ferait écrire dans un nœud détaché de la page,
+     et le nom cesserait de suivre la chaîne que la carte affiche — un défaut
+     qui ne se voit qu'après un recyclage de carte, c'est-à-dire jamais pendant
+     qu'on l'écrit. Le témoin le dit tout de suite. */
+  ok('…et l\'enveloppe DÉPLACE le nœud de Twitch, elle ne le recopie pas',
+     v.mouse.noeudDorigine === true && v.ordi.noeudDorigine === true,
+     JSON.stringify({ subathon: v.mouse.noeudDorigine, ordinaire: v.ordi.noeudDorigine }));
   /* ── LA PASTILLE SE MESURE, ELLE NE SE REGARDE PAS ────────────────────────
      Trois grandeurs, et chacune répond à une demande précise.
 
@@ -10440,11 +10565,11 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
      carte » : pas une couleur choisie qui lui ressemble — AUCUNE couleur, de
      sorte que la carte se voie au travers quel que soit son état (survol,
      abonné, sélection). Ce qui se mesure est donc une transparence totale. */
-  ok('…la pastille est au corps EXACT de la durée, et ne fait pas grandir la ligne',
-     v.mouse.corpsPastille === v.mouse.corps
-     && v.mouse.hauteurLigne === v.ordi.hauteurLigne,
-     JSON.stringify({ corps: v.mouse.corps, pastille: v.mouse.corpsPastille,
-                      ligne: v.mouse.hauteurLigne, ordinaire: v.ordi.hauteurLigne }));
+  ok('…au corps demandé, centrée sur le nom, sans grandir la rangée du pseudo',
+     v.mouse.corpsPastille === '10px' && v.mouse.ecartCentre === 0
+     && v.mouse.hauteurTitre === v.ordi.hauteurTitre,
+     JSON.stringify({ corps: v.mouse.corpsPastille, ecartCentre: v.mouse.ecartCentre,
+                      titre: v.mouse.hauteurTitre, ordinaire: v.ordi.hauteurTitre }));
   ok('…creuse et non pleine : un contour, et le fond de la carte au travers',
      v.mouse.fondPastille === 'rgba(0, 0, 0, 0)' && v.mouse.bordPastille === '1px',
      JSON.stringify({ fond: v.mouse.fondPastille, bord: v.mouse.bordPastille }));
@@ -10454,11 +10579,24 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
      ce qui décale toute la colonne, et ne se voit qu'à quinze cartes. On exige
      donc que MÊME CELLE-LÀ tienne sur une ligne, à la hauteur d'une carte
      ordinaire. */
-  ok('…et le compteur le plus large tient sur une ligne, sans grandir la carte',
-     v.long.pastille === 'J120' && /^J120 \d{2,}h\d{2}$/.test(v.long.texte)
-     && v.long.hauteurLigne === v.ordi.hauteurLigne,
-     JSON.stringify({ texte: v.long.texte, ligne: v.long.hauteurLigne,
-                      ordinaire: v.ordi.hauteurLigne }));
+  /* ── LE PSEUDO LONG, ET CE QUI CÈDE ──────────────────────────────────────
+     Le <p> du titre porte l'ellipse de Twitch. Tant que le pseudo y était un
+     nœud de texte NU, il devenait sous flex un élément anonyme — et un élément
+     anonyme ne peut pas recevoir « min-width: 0 », donc refuse de rétrécir :
+     c'est la PASTILLE qui sortait de la boîte, mesurée à 98 px hors cadre, et
+     disparaissait. Enveloppé, le nom s'abrège et la pastille reste entière.
+
+     C'EST LE BON ARBITRAGE, et il n'est pas arbitraire : « J9 » abrégé ne veut
+     plus rien dire, « UnPseudoTresLong… » se lit encore. On exige donc les
+     deux à la fois — pastille dans le cadre, ET nom effectivement abrégé,
+     faute de quoi le décor serait trop court pour prouver quoi que ce soit. */
+  ok('…et un pseudo trop long abrège LE NOM, jamais la pastille',
+     v[LONG].pastille === 'J120' && v[LONG].debordPastille <= 0
+     && v[LONG].nomAbrege === true && v[LONG].coupeNom === 'hidden/ellipsis'
+     && v[LONG].hauteurTitre === v.ordi.hauteurTitre,
+     JSON.stringify({ debord: v[LONG].debordPastille, abrege: v[LONG].nomAbrege,
+                      coupe: v[LONG].coupeNom,
+                      titre: v[LONG].hauteurTitre, ordinaire: v.ordi.hauteurTitre }));
   /* UN SUBATHON PEUT NE PAS SE COMPTER. « 24H SUBATHON » nomme l'événement
      sans en numéroter le jour : la carte le marque et n'affiche pas de
      pastille. On ne montre pas un nombre qu'on n'a pas — et surtout on ne
@@ -10503,10 +10641,61 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
   await wait(page, 2500);
   const encore = await lire();
   ok('rejouée à chaque relevé, la marque n\'empile rien',
-     encore.mouse.ajouts === 0 && encore.mouse.noeuds === 2
-     && encore.mouse.texte === 'J9 ' + encore.ordi.texte
-     && encore.mouse.pastille === 'J9',
+     encore.mouse.ajouts === 0 && encore.mouse.pastille === 'J9'
+     && encore.mouse.nomEnveloppe === 'mouse'
+     && encore.mouse.titreTexte === 'mouseJ9'
+     && encore.mouse.texte === encore.ordi.texte,
      JSON.stringify(encore.mouse));
+  /* ET LA DURÉE NE SE RETEINT PAS EN CHEMIN. Le premier relevé passe par
+     `renderUptime`, les suivants par `refreshUptime` : une couleur reposée
+     dans le second seulement ne se verrait pas sur un contrôle fait à
+     l'ouverture. On revérifie donc APRÈS plusieurs relevés — c'est là qu'un
+     mutant a survécu à la première rédaction. */
+  ok('…et la durée n\'a pas repris de couleur à part en cours de route',
+     encore.mouse.couleurDuree === encore.ordi.couleurDuree
+     && encore.mouse.graisseDuree === encore.ordi.graisseDuree,
+     JSON.stringify({ subathon: encore.mouse.couleurDuree,
+                      ordinaire: encore.ordi.couleurDuree,
+                      graisse: encore.mouse.graisseDuree }));
+
+  /* ── LE PSEUDO TEL QUE LE RESTE DE L'EXTENSION LE LIT ────────────────────
+     `displayNameFor` résout un login en pseudo affichable, et il le lit dans le
+     <p> du titre — celui-là même qui porte maintenant la pastille. Lu en bloc,
+     il rendrait « mouseJ9 », un pseudo qui n'est celui de personne, et ce nom-là
+     part dans les badges de l'aperçu et dans les phrases de co-stream.
+
+     C'EST LE SEUL ENDROIT OÙ LA CORRUPTION SE VERRAIT, et aucune autre
+     assertion ne l'atteignait : le mutant qui relisait le <p> entier a survécu
+     à tout le reste du scénario. On monte donc un Guest Star qui NOMME la
+     chaîne de subathon depuis la carte d'une autre, et l'on lit le nom en gras
+     du badge — exactement ce qu'un utilisateur verrait.
+
+     ET CE CONTRÔLE SE PLACE AVANT CELUI QUI DÉFAIT LA MARQUE. Écrit après, il
+     interrogeait une carte dont la pastille venait d'être retirée : le <p> y
+     était redevenu un simple « mouse », et le mutant passait encore. Une
+     assertion posée au mauvais moment du scénario ne prouve rien de plus
+     qu'une assertion absente. */
+  await hoverLogin(page, 'ordi');
+  await attendre(page, () => !!document.querySelector('.tse-preview__badge--squad'), 6000);
+  const nomBadge = await page.evaluate(() => {
+    const b = document.querySelector('.tse-preview__badge--squad');
+    return b ? { gras: b.querySelector('strong')?.textContent ?? null,
+                 texte: b.textContent.trim() }
+             : { gras: null, texte: null,
+                 badgesVus: [...document.querySelectorAll('.tse-preview__badge')]
+                   .map(x => x.className + ' :: ' + x.textContent.trim()).join(' | '),
+                 apercu: !!document.querySelector('.tse-preview[data-tse-visible="true"]') };
+  });
+  ok('le pseudo d\'une chaîne en subathon reste « mouse » partout ailleurs',
+     nomBadge.gras === 'mouse' && !nomBadge.texte.includes('J9'),
+     JSON.stringify(nomBadge));
+  await page.evaluate(() => {
+    const c = [...document.querySelectorAll('.side-nav-card')]
+      .find(x => x.dataset.tseLogin === 'ordi');
+    c.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+  });
+  await attendre(page,
+    () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
 
   /* ET ELLE SE DÉFAIT. Un streamer retire « subathon » de son titre au milieu
      de sa diffusion ; React réutilise aussi la même carte d'une chaîne à
@@ -10531,14 +10720,218 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
      laissait « ␣31h05 » sur la carte jusqu'au relevé suivant. Comparer au
      texte d'une carte ordinaire le dit immédiatement ; un `includes` ne
      l'aurait pas vu. */
-  ok('…et le compteur retrouve EXACTEMENT la forme d\'une carte ordinaire',
-     apres.mouse.noeuds === 1 && apres.mouse.texte === apres.ordi.texte,
-     `« ${apres.mouse.texte} » contre « ${apres.ordi.texte} »`);
+  /* LE <p> REND SON NŒUD DE TEXTE À SA PLACE, sans enveloppe et sans copie.
+     C'est là que React écrit le pseudo : une enveloppe oubliée, ou un nœud
+     recopié, et le nom cesserait de suivre la chaîne que la carte affiche. */
+  ok('…et le <p> du pseudo retrouve EXACTEMENT la forme de toutes les autres cartes',
+     apres.mouse.nomEnveloppe === null && apres.mouse.titreTexte === 'mouse'
+     && apres.mouse.hauteurTitre === apres.ordi.hauteurTitre
+     && apres.mouse.noeuds === 1 && apres.mouse.texte === apres.ordi.texte,
+     JSON.stringify({ titre: apres.mouse.titreTexte, enveloppe: apres.mouse.nomEnveloppe,
+                      duree: apres.mouse.texte }));
   const rapApres = await page.evaluate(() => window.tse.panneau.rapport().subathons);
   ok('…et le rapport le compte en moins, des deux côtés',
      rapApres.detectes === 3 && rapApres.marquees === 3 && rapApres.voies.thon === 0,
      JSON.stringify(rapApres));
   await page.close();
+}
+
+titre('92. La section suivie — une section vide fait taire toute l\'extension');
+{
+  /* ── LE DÉFAUT VIENT D'UN RAPPORT, ET IL ÉTAIT MUET ──────────────────────
+     « De temps en temps l'ensemble de mes chaînes suivies a disparu. » Le
+     rapport joint ne portait aucune erreur, aucun échec réseau, aucune pause :
+     `appels 1676`, `echecs 0`, `erreurs (0)`. Il portait en revanche trois
+     chiffres qui, ensemble, ne peuvent pas être vrais :
+
+       cartes 9 · decorees 9 · roster 128 · cache 136 · fabriquees 0
+
+     Cent vingt-huit chaînes connues, cent trente-six en cache, neuf cartes à
+     l'écran — et AUCUNE carte fabriquée. Le module des cartes en avance existe
+     précisément pour ce cas. Et les sondes disaient la contradiction en
+     toutes lettres : « cardClass ok — 9 carte(s) » à côté de « cardLink na —
+     aucune carte à sonder ». Neuf cartes existaient, et il n'y en avait
+     aucune à sonder.
+
+     LA CAUSE. Les sondes ne prélèvent que DANS la section suivie ; le module
+     des cartes en avance y cherche son modèle de clonage. `followedSection()`
+     rendait une section RÉELLE mais VIDE : tous ses appelants concluaient que
+     la barre était vide, et se taisaient ensemble — sans erreur, sans
+     compteur, sans rien qui dise pourquoi. Rendre `null` aurait au moins été
+     honnête ; rendre une section vide fait croire à une sidebar déserte.
+
+     DEUX CAUSES MÈNENT À CE MÊME SYMPTÔME, et ce scénario les monte toutes
+     les deux, parce qu'aucune n'est écartable depuis un rapport : un autre
+     nœud portant le même `aria-label` qui usurpe la section, et un remaniement
+     de Twitch où l'en-tête et la liste cessent de partager une section. */
+
+  /* ── (a) L'USURPATEUR ────────────────────────────────────────────────────
+     Un nœud qui porte le libellé de la section, dans une section À LUI, posée
+     AVANT la vraie. `querySelectorAll` rend les nœuds dans l'ordre du
+     document : l'ancienne rédaction prenait donc le premier, c'est-à-dire le
+     mauvais, et n'y trouvait aucune carte. */
+  {
+    const page = await fresh();
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      window.__fx = {
+        alpha: { id:'1', createdAt:h, viewers:1000, game:'VALORANT', tags:[] },
+        beta:  { id:'2', createdAt:h, viewers:2000, game:'VALORANT', tags:[] },
+      };
+      window.__addCard('alpha', 'VALORANT', '1 k');
+      window.__addCard('beta',  'VALORANT', '2 k');
+      /* L'imposteur : même libellé, sa propre section, aucune carte, et placé
+         en tête de la barre. */
+      const faux = document.createElement('div');
+      faux.className = 'side-nav-section';
+      const dedans = document.createElement('div');
+      dedans.setAttribute('aria-label', 'Chaînes suivies');
+      faux.appendChild(dedans);
+      const nav = document.querySelector('#side-nav');
+      nav.insertBefore(faux, nav.firstChild);
+    });
+    await wait(page, 1800);
+
+    const vu = await page.evaluate(() => {
+      const sec = window.tse.panneau.rapport();
+      const sondes = Object.fromEntries(sec.sondes.map(s => [s.id, s.status]));
+      return { voie: sec.sectionSuivie.voie, parCartes: sec.sectionSuivie.parCartes,
+               cartes: sec.page.cartes, decorees: sec.page.decorees,
+               cardClass: sondes.cardClass, cardLink: sondes.cardLink,
+               liveStatus: sondes.liveStatus };
+    });
+    /* LA SECTION EST CELLE QUI PORTE LES CARTES, et le rapport le DIT : c'est
+       « cartes » qu'on veut lire, pas « libelle ». Un rapport qui ne nomme pas
+       la voie prise laisse à déduire ce qu'il pouvait écrire. */
+    ok('un nœud qui usurpe le libellé ne fait plus passer la barre pour vide',
+       vu.voie === 'cartes' && vu.parCartes >= 1,
+       JSON.stringify(vu));
+    /* LA CONTRADICTION DU RAPPORT REÇU, retournée en assertion : des cartes
+       existent ET il y en a à sonder. C'est elle qui doit devenir impossible. */
+    ok('…et les sondes cessent de dire « aucune carte à sonder » avec 2 cartes',
+       vu.cardClass === 'ok' && vu.cardLink === 'ok' && vu.liveStatus === 'ok'
+       && vu.cartes === 2 && vu.decorees === 2,
+       JSON.stringify(vu));
+    await page.close();
+  }
+
+  /* ── (b) LE REMANIEMENT ──────────────────────────────────────────────────
+     L'en-tête reste dans sa section ; les cartes passent dans une section
+     SŒUR. Plus aucun candidat désigné par le libellé ne porte de carte, et
+     c'est le marqueur de Twitch — `data-test-selector="followed-channel"`,
+     que les recommandations ne portent pas — qui tranche. */
+  {
+    const page = await fresh();
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      window.__fx = {
+        alpha: { id:'1', createdAt:h, viewers:1000, game:'VALORANT', tags:[] },
+        beta:  { id:'2', createdAt:h, viewers:2000, game:'VALORANT', tags:[] },
+      };
+      window.__addCard('alpha', 'VALORANT', '1 k');
+      window.__addCard('beta',  'VALORANT', '2 k');
+      /* On déplace le conteneur des cartes hors de la section qui porte le
+         libellé, dans une section sœur sans libellé — exactement la forme
+         qu'aurait un remaniement de Twitch. */
+      const nav = document.querySelector('#side-nav');
+      const ancienne = document.querySelector('.side-nav-section[aria-label="Chaînes suivies"]');
+      const soeur = document.createElement('div');
+      soeur.className = 'side-nav-section';
+      soeur.appendChild(document.getElementById('cards'));
+      ancienne.after(soeur);
+    });
+    await wait(page, 1800);
+    const vu = await page.evaluate(() => {
+      const r = window.tse.panneau.rapport();
+      const sondes = Object.fromEntries(r.sondes.map(s => [s.id, s.status]));
+      return { voie: r.sectionSuivie.voie, decorees: r.page.decorees,
+               cardLink: sondes.cardLink, liveStatus: sondes.liveStatus };
+    });
+    ok('un remaniement qui sépare l\'en-tête des cartes est rattrapé par le marqueur',
+       vu.voie === 'marqueur' && vu.cardLink === 'ok' && vu.liveStatus === 'ok'
+       && vu.decorees === 2,
+       JSON.stringify(vu));
+    await page.close();
+  }
+
+  /* ── (c) CE QUE LE SILENCE COÛTAIT VRAIMENT ──────────────────────────────
+     Le symptôme que l'utilisateur décrit n'est pas « les sondes sont na » :
+     c'est « mes chaînes ont disparu ». Elles disparaissent parce que le module
+     des CARTES EN AVANCE cherche son modèle de clonage DANS la section suivie.
+     Section vide, pas de modèle, `return` — et la chaîne que Twitch n'a pas
+     encore posée n'apparaît nulle part. C'est `fabriquees 0` du rapport, avec
+     un roster de 128.
+
+     On monte donc le cas complet : une chaîne apprise, que Twitch retire de sa
+     barre puis qui repasse en direct, sous un libellé usurpé. Sans la
+     correction, elle reste invisible. */
+  {
+    const page = await fresh();
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      window.__fx = {
+        alpha:  { id:'1', createdAt:h, viewers:1000, game:'VALORANT', tags:[] },
+        tardif: null,                       // suivie, hors ligne : elle entre au roster
+      };
+      window.__addCard('alpha',  'VALORANT', '1 k');
+      window.__addCard('tardif', 'Discussions', '0', false);
+      const faux = document.createElement('div');
+      faux.className = 'side-nav-section';
+      const dedans = document.createElement('div');
+      dedans.setAttribute('aria-label', 'Chaînes suivies');
+      faux.appendChild(dedans);
+      const nav = document.querySelector('#side-nav');
+      nav.insertBefore(faux, nav.firstChild);
+    });
+    await wait(page, 1500);
+    ok('la chaîne hors ligne entre bien au roster malgré l\'usurpateur',
+       (await page.evaluate(() => window.tse.roster().map(e => e[0]))).includes('tardif'));
+
+    // Twitch retire sa carte, puis la chaîne repasse en direct sans qu'il
+    // repose quoi que ce soit : c'est à nous de la fabriquer.
+    await page.evaluate(() => {
+      [...document.querySelectorAll('.side-nav-card')]
+        .find(c => c.querySelector('a[href="/tardif"]'))?.remove();
+      window.__fx.tardif = { id:'9', name:'TardifTV',
+                             createdAt:new Date(Date.now() - 120_000).toISOString(),
+                             viewers:4200, game:'Rocket League', tags:['Français'] };
+    });
+    await wait(page, 2500);
+    const faite = await page.evaluate(() => {
+      const c = [...document.querySelectorAll('.side-nav-card')]
+        .find(x => x.dataset.tseLogin === 'tardif');
+      return { existe: !!c, fabriquee: c?.dataset.tseSynthetic === 'true',
+               nom: c?.querySelector('p[data-a-target="side-nav-title"]')?.textContent ?? null,
+               visible: c ? getComputedStyle(c).display !== 'none' : false,
+               compte: window.tse.panneau.rapport().page.fabriquees };
+    });
+    /* L'ASSERTION QUI PORTE LE SYMPTÔME. Sans la correction, `faite.existe`
+       est faux et `compte` vaut zéro — c'est mot pour mot le rapport reçu. */
+    ok('la chaîne que Twitch n\'affiche plus est fabriquée, malgré l\'usurpateur',
+       faite.existe && faite.fabriquee && faite.visible
+       && faite.nom === 'TardifTV' && faite.compte >= 1,
+       JSON.stringify(faite));
+    await page.close();
+  }
+
+  /* ── (d) LE CAS NORMAL NE CHANGE PAS ─────────────────────────────────────
+     Une section suivie qui ne porte aucune carte est parfaitement ordinaire :
+     personne n'est en ligne, ou l'utilisateur ne suit personne. On rendait une
+     section, on continue d'en rendre une — changer cela ferait sortir quinze
+     appelants sur `if (!section) return` pour un cas qui n'a rien d'anormal. */
+  {
+    const page = await fresh();
+    await wait(page, 1200);
+    const vu = await page.evaluate(() => {
+      const r = window.tse.panneau.rapport();
+      return { voie: r.sectionSuivie.voie, vides: r.sectionSuivie.vides,
+               cartes: r.page.cartes };
+    });
+    ok('une barre réellement vide rend toujours sa section, et le rapport le nomme',
+       vu.cartes === 0 && vu.voie === 'libelle-vide' && vu.vides >= 1,
+       JSON.stringify(vu));
+    await page.close();
+  }
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 785 KB | 327 KB | 3,011 → **2** |
+| `content.js` | 790 KB | 328 KB | 3,019 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 54 KB | 27 KB | 71 → **0** |
+| `panneau.js` | 54 KB | 27 KB | 72 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **983 KB** | **459 KB** | **−53 %** |
+| **all five** | **988 KB** | **460 KB** | **−53 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -343,7 +343,7 @@ within 3 %: wide enough for a version's ordinary growth, too narrow for a
 sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 3,011
+`dist/paquet/`, never to the repository's files: `content.js` keeps its 3,019
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`
@@ -2396,6 +2396,169 @@ The sign and the amplitude — two integers, `repliEcartMinMin` and
 the third time the same discipline applies: a counter that aggregates opposite
 causes informs about none of them.
 
+## The sidebar that emptied itself, and why nothing said so (v3.92)
+
+A user: "every so often, all my followed channels have disappeared." The
+attached report carried **no error** — `appels 1676`, `echecs 0`,
+`erreurs (0)`, no network pause. It did carry four numbers that cannot all be
+true together:
+
+```
+cartes 9 · decorees 9 · roster 128 · cache 136 · fabriquees 0
+```
+
+A hundred and twenty-eight known channels, a hundred and thirty-six cached,
+nine cards on screen — and **not one card fabricated**. The ahead-of-Twitch
+card module exists for exactly this case.
+
+### The contradiction was spelled out
+
+The probes said two incompatible things three lines apart:
+
+```
+! ok   cardClass   .side-nav-card              9 carte(s)
+  na   cardLink    DOM.cardLinkSelector        aucune carte à sonder
+! na   liveStatus  liveStatusOf()              aucune carte live à sonder
+```
+
+Nine cards existed, and there was **no card to probe**. The difference between
+the two measurements is their scope: `cardClass` counts across the whole
+document, the others sample only **inside the followed section**.
+
+### An empty section is worse than no section
+
+`followedSection()` is the module's pivot: some fifteen callers depend on it,
+and every one of them follows with `section.querySelectorAll('.side-nav-card')`.
+It was returning a section that was **real but empty**.
+
+Returning `null` would at least have been honest: every caller bails out on
+`if (!section) return`. Returning an empty section makes them conclude the bar
+**is** empty — and they all fall silent together, with no error, no counter,
+nothing to say why.
+
+The **ahead-of-Twitch** module looks there for its cloning template. No card, no
+template, `return` — and the channel Twitch has not yet placed appears nowhere:
+not through Twitch, not through us. That is `fabriquees 0` with a roster of 128.
+The roster harvest goes through the same section: it had stopped learning too.
+
+### The section that holds the cards wins
+
+The label names a **candidate**; the **cards** decide between several
+candidates, or disqualify an empty one. Two causes lead to the same symptom, and
+one rule covers both:
+
+- another node carrying the same `aria-label` **usurps** the section — this had
+  already happened once, with a button of the extension itself;
+- Twitch **restructures** its bar, and the header stops sharing a
+  `.side-nav-section` with the list.
+
+When no candidate holds a card, one anchor remains that language cannot reach:
+Twitch marks its followed cards with `data-test-selector="followed-channel"`,
+and its recommendations with another (`recommended-channel`,
+`similarity-channel`). **The section containing such cards is the followed
+section**, whatever its header says — and this fallback cannot pick the wrong
+neighbour, since the marker is not there. Our own fabricated cards are excluded:
+they are clones, they carry their template's marker and would point at the
+section where **we** put them.
+
+As a last resort, the previous behaviour: the first candidate, even empty. A bar
+where nobody is live is perfectly ordinary, and returning `null` where a section
+used to be returned would change fifteen callers' behaviour for nothing.
+
+### The report now says how the section was found
+
+```
+── SECTION SUIVIE / FOLLOWED SECTION ─────────────────────────
+  voie                   cartes
+  vides                  0
+  parCartes              3
+  aucune                 0
+```
+
+`libelle` is the ordinary case; **`cartes`** means an empty candidate was
+discarded; **`marqueur`**, that the label yielded nothing and the structure
+decided; **`libelle-vide`**, that a card-less section is being returned — normal
+if nobody is live, abnormal otherwise. None of this was in the report received:
+the cause could only be inferred from the strangeness of the probes.
+
+### What the harness shows
+
+Scenario 92 stages **both** causes, since a report rules out neither, then the
+full symptom: a learned channel that Twitch drops from its bar and that comes
+back live under a usurped label.
+
+Against the previous version all six assertions fall, and they fall quoting the
+report back: `cardLink "na"` with two decorated cards, and
+`{"existe":false,"fabriquee":false}` where the user read `fabriquees 0`.
+
+## The pill moves to the right of the username (v3.92)
+
+The day number says **which event** this channel is running. That is a property
+of the channel, not a nuance of its duration: its place is against its name, not
+inside the uptime counter.
+
+And the counter **goes back to being everyone's**. It had carried the pill, then
+an ember heat; both are gone. A figure read for itself does not need repainting,
+and two neighbouring cards no longer compare when one of them is tinted.
+
+| | v3.91 | v3.92 |
+|---|---|---|
+| position | inside the counter | right of the username |
+| size | the duration's (12 px) | `10px` |
+| weight | 700 | 600 |
+| duration | ember `#ff8a5c`, weight 700 | standard colour and weight |
+
+### The name becomes an element, and it has to
+
+Twitch leaves the username as a **bare text node**. Under `display: flex`, that
+node becomes an *anonymous* item — and an anonymous item cannot take
+`min-width: 0`. It therefore refuses to shrink, and it is the **pill** that
+leaves the box: measured at **98 px outside the frame**, invisible.
+
+So the node is wrapped in a `<span>`. The ellipsis then falls on the name, which
+is what can be abbreviated, and the pill stays legible to the end. The trade-off
+is not arbitrary: `J9` abbreviated means nothing, `AVeryLongName…` still reads.
+
+**We move Twitch's node, we do not copy it.** React keeps a reference to *that*
+node to write the username into; copying it into a fresh element and discarding
+the original would have React writing into a node detached from the page, and
+the name would stop following the channel the card displays — a defect visible
+only after a card is recycled. The harness marks the node before decoration and
+checks that the **same object** ends up inside the wrapper.
+
+### The username the rest of the code reads
+
+The `<p>` now has two children: its `textContent` is `mouseJ9`, a username
+belonging to nobody. `displayNameFor` therefore reads the wrapper when it is
+there — otherwise that name went into preview badges and co-stream sentences.
+
+The mutant that reads the whole `<p>` produces `Live with **mouseJ9**`. It first
+**survived**: the assertion meant to kill it sat *after* the step that undoes the
+mark, where the `<p>` had gone back to a plain `mouse`. An assertion placed at
+the wrong point of a scenario proves no more than an absent one.
+
+### Two declarations the mutation corrected
+
+`flex: 0 0 auto` on the pill: I wrote it believing it was what kept the pill from
+yielding. Removing it, or setting it to `0 1 auto`, changes **nothing** — a flex
+item without `overflow` has `min-width: auto`, that is, its content width, and
+`J120` cannot shrink below `J120`. The declaration is gone.
+
+`text-overflow: ellipsis` on the wrapper, conversely, is genuinely needed — and
+**no harness measurement can attest to it**: the `…` character adds no node and
+changes no rectangle. The scenario therefore checks that both properties are
+*computed* on the element. That is a mechanism check, weaker than an effect
+check, and it is labelled as such.
+
+### A requested value that does not exist
+
+The `vertical-align: center` that was passed on is not valid CSS — the browser
+drops the declaration and falls back to `baseline`. The intent was clear and is
+achieved otherwise: in a flex row, `vertical-align` has no effect on items, and
+it is `align-items: center` on the title that centres the pill on the name.
+Writing the inert property alongside would suggest it was doing work. The
+harness measures the gap between the two boxes' **centres**: zero.
+
 ## Four corrections from real use (v3.91)
 
 Two screenshots of a real sidebar, and four requests. None of them was a new
@@ -3740,7 +3903,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 91 scenarios, 851 assertions |
+| `npm test` | the Playwright harness: 92 scenarios, 861 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

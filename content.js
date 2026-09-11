@@ -2770,136 +2770,117 @@ const TSE_GATE_MAX_CLICKS = 5;
     @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
 
     /* ══ LE SUBATHON, SUR LA CARTE ═══════════════════════════════════════════
-       UNE SEULE MARQUE, ET ELLE OCCUPE UN CANAL QUE RIEN N'UTILISAIT. Trois
-       signaux se partagent déjà la carte et ont été faits pour cohabiter :
-       « frais » et « co-stream » tiennent le trait de gauche et le fond,
-       « abonné » tient la lueur de fond et l'or du texte. Un quatrième qui
-       reprendrait l'un des trois ne ferait pas quatre signaux, il en
-       casserait un.
+       UNE SEULE MARQUE, ET ELLE NE PREND LA PLACE DE RIEN : une pastille qui
+       porte le numéro de jour, posée à droite du pseudo. Trois signaux se
+       partagent déjà la carte et ont été faits pour cohabiter — « frais » et
+       « co-stream » tiennent le trait de gauche et le fond, « abonné » tient la
+       lueur de fond et l'or du texte. Un quatrième qui reprendrait l'un des
+       trois ne ferait pas quatre signaux, il en casserait un.
 
-       LE COMPTEUR QUI CHAUFFE. L'élément d'ancienneté appartient à
-       l'extension : elle l'écrit, personne d'autre n'y touche. Il porte donc
-       le numéro de jour — le seul renseignement qu'aucun calcul ne donne — et
-       prend une chaleur qui circule. « Surboosté » au sens propre.
+       DEUX TENTATIVES ONT ÉTÉ RETIRÉES, ET LES DEUX POUR LA MÊME RAISON. Un
+       CONTOUR lumineux faisait le tour de la carte ; il prenait toute
+       l'attention d'une colonne qui en compte quinze. Le COMPTEUR D'ANCIENNETÉ
+       passait ensuite en braise, chaleur circulante comprise ; il repeignait un
+       chiffre que l'utilisateur lit pour lui-même et non pour son éclat, et
+       deux cartes voisines ne se comparaient plus. La durée reprend donc la
+       couleur de toutes les autres. Ce qui reste tient dans une pastille de
+       vingt pixels de large.
 
-       LE ROUGE PLUTÔT QUE L'ORANGE, ET C'EST ARITHMÉTIQUE. L'or de l'abonné
-       est à 37° ; un orange à 25° lui serait voisin, et sur une carte à la
-       fois abonnée et en subathon les deux se seraient fondus en un même
-       camaïeu chaud. On se pose à 9°, soit vingt-huit degrés d'écart — de quoi
-       lire deux signaux là où il y en a deux.
+       À DROITE DU PSEUDO, PAS DANS LE COMPTEUR. Le numéro de jour dit QUEL
+       ÉVÉNEMENT diffuse cette chaîne — c'est une propriété de la chaîne, pas
+       une nuance de sa durée. Sa place est donc contre son nom. */
+    .side-nav-card[data-tse-subathon-day] p[data-a-target="side-nav-title"] {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    /* LE NOM DEVIENT UN ÉLÉMENT, ET IL LE FAUT. Twitch laisse le pseudo en
+       nœud de texte nu ; sous « display: flex » ce nœud devient un élément
+       anonyme, et un élément anonyme ne peut pas recevoir « min-width: 0 » —
+       il refuse donc de rétrécir, et c'est la PASTILLE qui sort de la boîte et
+       disparaît sur un pseudo long. Mesuré : 98 px hors cadre. En enveloppant
+       le nœud (sans le recopier — cf. appliquerSubathon), l'ellipse retombe
+       sur le nom, qui est ce qu'on peut abréger, et la pastille reste lisible
+       jusqu'au bout. */
+    .side-nav-card[data-tse-subathon-day] .tse-subathon-nom {
+      /* « min-width: 0 » est REDONDANT AUJOURD'HUI, et il est gardé en le
+         sachant : « overflow: hidden » ramène déjà à zéro le « min-width: auto »
+         d'un élément flex, si bien que le retirer ne change rien — la mutation
+         le confirme. Les deux ne disent pourtant pas la même chose, et le jour
+         où l'on touchera à l'un, l'autre devra encore tenir. */
+      min-width: 0;
+      /* C'EST « overflow: hidden » QUI PORTE L'ELLIPSE, et aucune mesure du
+         banc ne peut l'attester : « text-overflow » n'ajoute pas de nœud, ne
+         change aucun rectangle, et le caractère « … » n'existe que dans les
+         pixels. Le mutant qui retire cette ligne survit donc à toute assertion
+         de géométrie. Ce qu'on peut contrôler — et ce que le scénario 91
+         contrôle — est que les deux déclarations sont bien CALCULÉES sur
+         l'élément : c'est un contrôle de mécanisme, plus faible qu'un contrôle
+         d'effet, et il vaut mieux que rien. Sans elles, le nom ne serait pas
+         abrégé mais coupé net au bord du <p>, par-dessus la pastille. */
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    /* LA PASTILLE DU JOUR — CREUSE, ET NON PLEINE. Une pastille pleine était un
+       bloc de couleur posé dans une colonne qui n'en porte aucun. Réduite à son
+       contour, elle dit la même chose et cesse de crier. Son fond n'est pas une
+       couleur : il n'y en a pas — la carte se voit au travers, quelle que soit
+       la sienne (survol, sélection, carte d'abonné).
 
-       UN CONTOUR D'ENDURANCE A ÉTÉ ESSAYÉ, PUIS RETIRÉ. Une lumière qui
-       faisait le tour de la carte disait « ça tourne encore » sans rien
-       recouvrir, et le périmètre était bien le dernier canal libre. Sur la
-       capture d'une sidebar réelle, elle prenait toute l'attention d'une
-       colonne qui en compte quinze : la carte ne se distinguait plus, elle
-       criait. Un signal qui écrase ses voisins ne renseigne plus sur le sien.
-       Ce qui reste tient sur l'élément que l'extension écrit déjà. */
-    /* ── LA PASTILLE DU JOUR ──────────────────────────────────────────────
-       CREUSE, ET NON PLEINE. Une pastille pleine était un bloc de couleur posé
-       dans une colonne qui n'en porte aucun : elle pesait plus que la durée
-       qu'elle qualifie, alors qu'elle n'en est que le préfixe. Réduite à son
-       contour, elle dit la même chose et cesse de crier. Son fond n'est pas
-       une couleur : il n'y en a pas — la carte se voit au travers, quelle que
-       soit la sienne (survol, sélection, carte d'abonné).
+       LE SÉLECTEUR PORTE DEUX CLASSES, ET CE N'EST PAS DU CONFORT. Nous
+       injectons dans une page dont nous n'écrivons pas la feuille : une règle
+       de l'hôte aussi banale que « .quelqueChose span { display: block } » bat
+       une classe seule, et la pastille cesse d'être en ligne — pleine largeur,
+       sur son propre étage. Ce n'est pas une hypothèse : le décor du banc porte
+       exactement cette règle, et la carte y mesurait 34 px de haut contre 16.
 
-       ALIGNÉE SUR LA DURÉE, ET LA MESURE A CORRIGÉ CE QUE JE CROYAIS. La
-       rédaction précédente montait la pastille d'un pixel (« vertical-align:
-       1px ») : c'est ce décalage-là, et lui seul, qui se voyait sur la
-       capture. Une boîte « inline-block » aligne SA PROPRE ligne de base sur
-       celle du texte voisin — il suffit de ne pas la déplacer, et l'écart
-       mesuré tombe alors à zéro pixel exactement, à toutes les tailles. Je
-       m'étais d'abord persuadé du contraire en comparant des RECTANGLES DE
-       GLYPHES, dont le bas descend avec le corps : deux textes de tailles
-       différentes n'y ont jamais le même bas, alignés ou non. La sonde qui
-       tranche est une boîte de hauteur nulle en « vertical-align: baseline »,
-       dont le bord inférieur EST la ligne de base.
-
-       LE CORPS EST DONC CELUI DE LA DURÉE, et pas un corps réduit. Rien
-       n'obligeait à rapetisser : contour et remplissage compris, la boîte fait
-       15,19 px dans une ligne qui en fait 16,80, et la carte ne grandit pas
-       d'un pixel. « font-size: inherit » plutôt qu'une valeur recopiée — la
-       pastille suit le compteur par construction, et les deux ne peuvent plus
-       diverger le jour où l'un des deux change. Mesuré, cf. le scénario 91.
-
-       LE SÉLECTEUR PORTE DEUX CLASSES, ET C'EST LUI QUI CORRIGE LA CARTE À
-       DEUX ÉTAGES. Nous injectons dans une page dont nous n'écrivons pas la
-       feuille : une règle de l'hôte aussi banale que
-       « .quelqueChose span { display: block } » bat une classe seule, et la
-       pastille cesse d'être en ligne — pleine largeur, sur son propre étage,
-       le compteur seize pixels plus bas. Ce n'est pas une hypothèse : le décor
-       du banc porte exactement cette règle, et la carte y mesurait 34 px de
-       haut contre 16. Deux classes passent devant.
-
-       J'AI D'ABORD ACCUSÉ LE RETOUR À LA LIGNE, ET AJOUTÉ UN « nowrap » QUI NE
-       SERVAIT À RIEN. La colonne de droite s'élargit d'elle-même quand son
-       contenu grandit — mesuré : 66,9 px pour « 168h40 », 75,7 px pour
-       « J120 168h40 », sur une seule ligne avec ou sans la règle. Aucun décor
-       ne pouvait la rendre nécessaire, et un mutant qui la retirait survivait à
-       tout le banc. Une règle qu'aucune mesure ne défend se fait passer pour
-       la cause du défaut qu'une autre a corrigé : elle est donc retirée. */
-    .tse-uptime > .tse-subathon-jour {
+       CE QUI LA SAUVE DU PSEUDO LONG N'EST PAS UNE DÉCLARATION, C'EST SA
+       TAILLE MINIMALE. J'avais écrit « flex: 0 0 auto » en croyant que c'était
+       lui qui l'empêchait de céder ; la mutation l'a réfuté — le retirer, ou le
+       ramener à « 0 1 auto », ne change rien du tout. Un élément flex sans
+       « overflow » a « min-width: auto », c'est-à-dire sa largeur de contenu :
+       « J120 » ne peut pas rétrécir plus que « J120 ». La déclaration est donc
+       retirée, et c'est le NOM — lui seul a de quoi s'abréger — qui cède.
+       L'arbitrage n'est pas arbitraire : « J9 » abrégé ne veut plus rien dire,
+       « UnPseudoTresLong… » se lit encore. */
+    .side-nav-card[data-tse-subathon-day] .tse-subathon-jour {
       display: inline-block;
-      margin-right: 4px;
-      padding: 0 3px;
+      margin-right: 2px;
+      padding: 1px 4px;
       border: 1px solid currentColor;
       border-radius: 3px;
-      font-size: inherit;
-      font-weight: 700;
-      /* HAUTEUR DE LIGNE À 1, ET LA MESURE L'A IMPOSÉ. À 1,1 la boîte faisait
-         15,2 px : elle tenait dans la ligne de 16,8 px de notre feuille, et
-         dépassait de deux dixièmes celle d'un hôte qui serrerait à 16 px — ce
-         que le décor du banc fait. Deux dixièmes suffisent à faire grandir la
-         carte, et la carte grandie décale la colonne. À 1, la boîte fait 14 px
-         et tient dans l'une comme dans l'autre. */
+      font-size: 10px;
+      font-weight: 600;
       line-height: 1;
-      /* LA COULEUR EST POSÉE EN DUR, et il le faut : le compteur qui l'entoure
-         passe en « color: transparent » pour laisser voir son dégradé, et
+      /* LA COULEUR EST POSÉE EN DUR, et il le faut : sur une carte d'abonné le
+         pseudo passe en « color: transparent » pour laisser voir son or, et
          cette transparence-là descendrait jusqu'ici — contour compris, puisque
          celui-ci se peint en « currentColor ».
 
-         CONTRASTE MESURÉ SUR LES TROIS FONDS QUE LA CARTE PREND, et non sur
-         le seul fond au repos : la sidebar (#18181b) donne 7,63:1, le fond de
+         CONTRASTE MESURÉ SUR LES TROIS FONDS QUE LA CARTE PREND, et non sur le
+         seul fond au repos : la sidebar (#18181b) donne 7,63:1, le fond de
          survol (#1f1f23) 7,07:1, le fond du panneau (#0e0e10) 8,30:1. Le pire
          des trois reste au-dessus du plancher de 4,5:1 d'un petit texte, et
          c'est le pire des trois qui compte — une couleur vérifiée au repos
          seulement se dégrade exactement au moment où on la regarde. */
       color: #ff8a5c;
       background: none;
+      /* PAS DE « vertical-align », ET CE N'EST PAS UN OUBLI. La valeur demandée
+         était « center », qui n'existe pas en CSS — le navigateur écarte la
+         déclaration et retombe sur « baseline ». L'intention, elle, est claire
+         et se réalise autrement : dans une rangée flex, « vertical-align » n'a
+         aucun effet sur les éléments, et c'est « align-items: center » posé sur
+         le titre qui centre la pastille sur le nom. Écrire la propriété inerte
+         à côté ferait croire qu'elle travaille. */
     }
-    /* Repli d'abord : si le découpage du fond à la forme du texte n'était pas
-       appliqué, une couleur transparente ferait DISPARAÎTRE la durée. On pose
-       donc une couleur pleine, et le dégradé ne vient que par-dessus. */
-    .side-nav-card[data-tse-subathon] .tse-uptime {
-      color: #ff8a5c;
-      font-weight: 700;
-    }
-    @supports (-webkit-background-clip: text) or (background-clip: text) {
-      .side-nav-card[data-tse-subathon] .tse-uptime {
-        color: transparent;
-        background: linear-gradient(100deg,
-          #ff5233   0%,
-          #ffd0b0  28%,
-          #ff3d2e  52%,
-          #ff5233  78%) 0 0 / 300% 100%;
-        -webkit-background-clip: text;
-        background-clip: text;
-        animation: tse-subathon-braise 6s linear infinite;
-      }
-    }
-    @keyframes tse-subathon-braise { to { background-position: 300% 0; } }
 
     /* Mouvement réduit : la demande est explicite, on la respecte. L'or reste
        — c'est lui qui porte l'information — mais plus rien ne bouge. */
     @media (prefers-reduced-motion: reduce) {
-      /* Le subathon garde sa marque et perd son mouvement : la chaleur du
-         compteur se fige sur une teinte pleine. La pastille du jour, elle, ne
-         bougeait pas — elle n'a rien à perdre, et elle porte le sens. */
-      .side-nav-card[data-tse-subathon] .tse-uptime {
-        animation: none;
-        background: none;
-        color: #ff8a5c;
-      }
+      /* RIEN À FIGER DU CÔTÉ DU SUBATHON : sa seule marque est une pastille
+         immobile, qui n'a donc rien à perdre ici. Le compteur d'ancienneté a
+         repris la couleur de toutes les autres cartes. */
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
       .side-nav-card.tse-sub .tse-sub-cat,
@@ -6209,13 +6190,88 @@ const TSE_GATE_MAX_CLICKS = 5;
   // n'importe quel nœud portant aria-label="Chaînes suivies" usurpe la section
   // et la sidebar se croit vide : c'est arrivé avec un bouton de l'extension
   // elle-même, dont le libellé de mode valait le nom de la section.
+  /* COMMENT CETTE SECTION A ÉTÉ TROUVÉE, pour le rapport de diagnostic. Cette
+     fonction est le pivot de tout le module : une quinzaine d'appelants la
+     suivent, et quand elle se trompe ils se taisent tous en même temps — sans
+     une erreur, sans un compteur, sans rien qui dise pourquoi. La voie prise
+     est donc consignée, et c'est le rapport qui la rendra. */
+  const bilanSection = { voie: null, vides: 0, parCartes: 0, aucune: 0 };
+
+  /* ── LA SECTION « CHAÎNES SUIVIES » ───────────────────────────────────────
+     UNE SECTION VIDE EST PIRE QUE PAS DE SECTION, et c'est le défaut qu'un
+     rapport d'utilisateur a mis au jour. Tous les appelants enchaînent sur
+     `section.querySelectorAll('.side-nav-card')` : rendre une section qui n'en
+     porte aucune leur fait conclure que la barre est vide. Le module des
+     CARTES EN AVANCE, lui, y cherche son modèle de clonage — sans carte, pas
+     de modèle, et il sort sans rien fabriquer. C'est exactement ce que disait
+     le rapport reçu : `roster 128`, `cache 136`, et `fabriquees 0`, pour neuf
+     cartes à l'écran. L'utilisateur voyait « toutes mes chaînes suivies ont
+     disparu » ; l'extension, elle, croyait la sidebar vide et se taisait
+     poliment. Rendre `null` aurait au moins été honnête — les appelants
+     sortent sur `if (!section) return` — mais ne réparait rien non plus.
+
+     ON CHOISIT DONC LA SECTION QUI PORTE LES CARTES. Le libellé désigne un
+     candidat ; ce sont les cartes qui tranchent entre plusieurs candidats, ou
+     qui disqualifient un candidat vide. Deux causes possibles mènent au même
+     symptôme, et la même règle les couvre toutes deux : un autre nœud portant
+     le même `aria-label` qui usurpe la section, ou un remaniement de Twitch où
+     le header et la liste cessent d'être dans la même `.side-nav-section`.
+
+     ET S'IL N'Y A AUCUN CANDIDAT PEUPLÉ, il reste un ancrage que la langue
+     n'atteint pas : Twitch marque SES cartes suivies d'un
+     `data-test-selector="followed-channel"`, et ses recommandations d'un autre
+     (`recommended-channel`, `similarity-channel`). La section qui contient de
+     telles cartes EST la section suivie, quel que soit son en-tête — et ce
+     repli ne peut pas se tromper de voisine, puisque le marqueur ne s'y trouve
+     pas. Nos propres cartes fabriquées sont écartées : elles sont des clones,
+     elles porteraient le marqueur du modèle et pourraient donc désigner la
+     section où nous les avons nous-mêmes posées.
+
+     EN DERNIER RECOURS, LE COMPORTEMENT D'AVANT : le premier candidat, même
+     vide. Une sidebar dont toutes les chaînes sont hors ligne est un cas
+     normal, et rendre `null` là où l'on rendait une section changerait le
+     comportement de quinze appelants pour un cas qui n'a rien d'anormal. */
   const followedSection = () => {
+    const candidats = [];
+    const ajouter = (sec) => { if (sec && !candidats.includes(sec)) candidats.push(sec); };
     for (const el of document.querySelectorAll(DOM.followedSelector)) {
-      const sec = el.closest('.side-nav-section');
-      if (sec) return sec;
+      ajouter(el.closest('.side-nav-section'));
     }
-    return document.querySelector(`${DOM.sidebarRoot} ${DOM.followedHeaderSelector}`)
-      ?.closest('.side-nav-section') || null;
+    ajouter(document.querySelector(`${DOM.sidebarRoot} ${DOM.followedHeaderSelector}`)
+      ?.closest('.side-nav-section'));
+
+    const peuplee = candidats.find(sec => sec.querySelector('.side-nav-card'));
+    if (peuplee) {
+      // Une section vide a été écartée au profit d'une peuplée : le cas que le
+      // rapport doit pouvoir raconter.
+      if (candidats[0] !== peuplee) bilanSection.parCartes++;
+      bilanSection.voie = candidats[0] === peuplee ? 'libelle' : 'cartes';
+      return peuplee;
+    }
+
+    /* Le repli structurel, et il ne part QUE des cartes de Twitch. Une carte
+       fabriquée par nous est un clone : elle porte le marqueur de son modèle,
+       et désignerait la section où nous l'avons posée plutôt que celle d'où
+       elle vient. */
+    const native = [...document.querySelectorAll(
+      `${DOM.sidebarRoot} ${DOM.followedCardSelector}`)]
+      .map(a => a.closest('.side-nav-card'))
+      .find(c => c && !isSynthetic(c));
+    const parMarqueur = native?.closest('.side-nav-section') || null;
+    if (parMarqueur) {
+      bilanSection.voie = 'marqueur';
+      bilanSection.parCartes++;
+      return parMarqueur;
+    }
+
+    if (candidats.length) {
+      bilanSection.voie = 'libelle-vide';
+      bilanSection.vides++;
+      return candidats[0];
+    }
+    bilanSection.voie = null;
+    bilanSection.aucune++;
+    return null;
   };
 
   /* ============================================================
@@ -8123,6 +8179,22 @@ const TSE_GATE_MAX_CLICKS = 5;
           decorees: cartes.filter(c => c.dataset.tseLogin).length,
           liens: nav ? nav.querySelectorAll('a[href^="/"]').length : 0,
         },
+        /* COMMENT LA SECTION SUIVIE A ÉTÉ TROUVÉE, et combien de fois il a
+           fallu la rattraper. C'est le pivot du module : quinze appelants la
+           suivent, et quand elle se trompe ils se taisent TOUS, sans une
+           erreur ni un compteur. Un rapport a montré neuf cartes à l'écran,
+           un roster de 128 et zéro carte fabriquée — le seul indice était
+           l'étrangeté des sondes, qui déclaraient « aucune carte à sonder »
+           en même temps que « 9 carte(s) ». Ces quatre lignes disent
+           directement ce qu'il fallait déduire :
+             • `voie` — « libelle » est le cas ordinaire ; « cartes » signifie
+               qu'un candidat vide a été écarté ; « marqueur » que le libellé
+               n'a rien donné et que la structure a tranché ; « libelle-vide »
+               qu'on rend une section sans cartes, ce qui est normal si rien
+               n'est en ligne et anormal sinon ;
+             • `parCartes` compte les rattrapages, `vides` les fois où il n'y
+               en avait pas à faire. */
+        sectionSuivie: { ...bilanSection },
         langue: { interface: S.locale, page: LANG },
         mode: { global: !!state.globalMode },
         sondes: runDiagnostics(),
@@ -8710,31 +8782,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     return span;
   };
 
-  /* ── ÉCRIRE LA DURÉE SANS EMPORTER CE QUI L'ACCOMPAGNE ────────────────────
-     `setText` écrase le contenu entier, ce qui était sans conséquence tant que
-     ce compteur ne portait qu'un texte. Depuis qu'une pastille de jour peut s'y
-     tenir, l'écraser toutes les minutes la ferait disparaître entre deux scans.
-
-     LA CARTE ORDINAIRE NE CHANGE PAS DE CHEMIN, et c'est voulu : sans pastille,
-     on repasse par `setText`, donc le contenu et le `textContent` de l'élément
-     sont exactement ceux d'avant — ce que le banc lit en quatre endroits.
-     L'espace devant la durée n'existe que dans le cas contraire, et il est
-     juste : « J9 31h05 » est ce que la ligne dit. */
-  const ecrireUptime = (span, texte) => {
-    if (!span.firstElementChild) { setText(span, texte); return; }
-    const dernier = span.lastChild;
-    if (dernier && dernier.nodeType === 3) {
-      if (dernier.nodeValue !== ' ' + texte) dernier.nodeValue = ' ' + texte;
-    } else {
-      span.appendChild(document.createTextNode(' ' + texte));
-    }
-  };
-
   const renderUptime = (card, createdAt) => {
     const span = ensureUptimeSpan(card);
     if (!span) return;
     delete span.dataset.tseEnded;
-    ecrireUptime(span, formatUptime(createdAt));
+    setText(span, formatUptime(createdAt));
   };
 
   // Le stream a pris fin : on ne supprime PAS le label, on le mute en
@@ -8746,7 +8798,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const span = ensureUptimeSpan(card);
     if (!span) return;
     span.dataset.tseEnded = 'true';
-    ecrireUptime(span, S.uiUptimeEnded);
+    setText(span, S.uiUptimeEnded);
   };
 
   const refreshUptime = (card) => {
@@ -8754,7 +8806,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!ts) return;
     const span = card.querySelector('.tse-uptime');
     if (!span || span.dataset.tseEnded === 'true') return;
-    ecrireUptime(span, formatUptime(ts));
+    setText(span, formatUptime(ts));
   };
 
   /* ── LA MARQUE DE SUBATHON, POSÉE ET RETIRÉE ──────────────────────────────
@@ -8764,55 +8816,78 @@ const TSE_GATE_MAX_CLICKS = 5;
      doit voir la carte redevenir ordinaire, et la carte est réutilisée par
      React d'une chaîne à l'autre.
 
-     RIEN N'EST INJECTÉ DANS LA CARTE ELLE-MÊME. Un anneau posé sur son
-     périmètre a existé, puis a été retiré : il prenait toute l'attention d'une
-     colonne qui compte quinze cartes. Tout se joue désormais dans l'élément
-     d'ancienneté, que l'extension écrit déjà — un attribut sur la carte, une
-     pastille dans le compteur, et pas un nœud de plus. */
+     ELLE TIENT DANS LE <p> DU PSEUDO, ET NULLE PART AILLEURS. Le compteur
+     d'ancienneté a porté la pastille un temps ; le numéro de jour dit QUEL
+     ÉVÉNEMENT diffuse cette chaîne, ce qui est une propriété de la chaîne et
+     non une nuance de sa durée. Il se pose donc contre son nom.
+
+     ON DÉPLACE LE NŒUD DE TEXTE DE TWITCH, ON NE LE RECOPIE PAS. React garde
+     une référence sur CE nœud-là pour le mettre à jour ; le recopier dans un
+     élément neuf et jeter l'original lui ferait écrire dans un nœud détaché,
+     et le pseudo cesserait de suivre la chaîne que la carte affiche. Déplacé,
+     il reste le même objet : React continue d'écrire dedans, à sa nouvelle
+     place. Et si React reconstruit le <p> pour son compte, l'enveloppe
+     disparaît avec — le relevé suivant la repose, ce qui est précisément ce
+     qu'« idempotente » veut dire. */
   const appliquerSubathon = (card, sub) => {
-    const puce = () => card.querySelector('.tse-uptime > .tse-subathon-jour');
-    /* RETIRER LA PASTILLE, C'EST AUSSI RETIRER SON ESPACE. L'espace qui la
-       sépare de la durée vit dans le nœud texte qui suit ; la pastille partie,
-       il n'a plus rien à séparer et la carte afficherait « ␣31h05 ».
-       Le relevé suivant le rattraperait — `ecrireUptime` repasse par `setText`
-       dès qu'il n'y a plus d'élément — mais « à la minute prochaine » n'est pas
-       une réponse quand le décalage se voit et que le banc lit ce texte. */
-    const retirerPuce = () => {
-      const p = puce();
-      if (!p) return;
-      const span = p.parentNode;
-      p.remove();
-      const reste = span.lastChild;
-      if (reste && reste.nodeType === 3) setText(span, reste.nodeValue.trim());
+    const titre = () => card.querySelector('p[data-a-target="side-nav-title"]');
+    const nom   = () => card.querySelector(
+      'p[data-a-target="side-nav-title"] > .tse-subathon-nom');
+    const puce  = () => card.querySelector(
+      'p[data-a-target="side-nav-title"] > .tse-subathon-jour');
+    /* DÉFAIRE REND LE <p> À L'ÉTAT OÙ TWITCH L'AVAIT LAISSÉ : la pastille
+       part, et l'enveloppe rend ses enfants à leur place AVANT de se retirer.
+       Les rendre plutôt que les jeter, là encore, pour que le nœud de texte
+       que React tient survive à l'opération. */
+    const defaire = () => {
+      puce()?.remove();
+      const n = nom();
+      if (!n) return;
+      const pere = n.parentNode;
+      while (n.firstChild) pere.insertBefore(n.firstChild, n);
+      n.remove();
     };
     if (!sub) {
       delete card.dataset.tseSubathon;
       delete card.dataset.tseSubathonDay;
-      retirerPuce();
+      defaire();
       return;
     }
     card.dataset.tseSubathon = 'true';
     /* Le numéro de jour peut manquer — un titre qui dit « Subathon » sans le
-       compter reste un subathon. Le compteur garde alors sa chaleur, portée
-       par l'attribut ci-dessus, et n'affiche pas de pastille : on ne montre
-       pas un nombre qu'on n'a pas. */
+       compter reste un subathon. La carte n'affiche alors PAS de pastille : on
+       ne montre pas un nombre qu'on n'a pas, et l'on ne retombe pas sur « J1 »
+       par défaut, ce qui serait une invention. L'attribut du jour s'en va avec
+       elle, et c'est lui qui porte la mise en rangée du titre : un <p> sans
+       pastille redevient donc exactement le <p> de toutes les autres cartes. */
     if (!Number.isInteger(sub.jour)) {
       delete card.dataset.tseSubathonDay;
-      retirerPuce();
+      defaire();
       return;
     }
+    const p = titre();
+    if (!p) return;
     card.dataset.tseSubathonDay = String(sub.jour);
-    const span = card.querySelector('.tse-uptime');
-    if (!span) return;
-    let p = puce();
-    if (!p) {
-      p = document.createElement('span');
-      p.className = 'tse-subathon-jour';
-      span.insertBefore(p, span.firstChild);
+    let b = puce();
+    if (!b) {
+      b = document.createElement('span');
+      b.className = 'tse-subathon-jour';
     }
+    let n = nom();
+    if (!n) {
+      n = document.createElement('span');
+      n.className = 'tse-subathon-nom';
+      /* Tout ce que Twitch a mis là passe dans l'enveloppe — tout SAUF notre
+         propre pastille, qui pourrait déjà s'y trouver si React a reconstruit
+         le nom seul. Les nœuds sont déplacés un à un, dans l'ordre. */
+      for (const noeud of [...p.childNodes]) if (noeud !== b) n.appendChild(noeud);
+      p.insertBefore(n, p.firstChild);
+    }
+    // La pastille se pose APRÈS le nom, toujours : « à droite du pseudo ».
+    if (b.parentNode !== p || b.previousSibling !== n) p.appendChild(b);
     /* Le nombre vient d'une capture de CHIFFRES passée par `Number` : rien du
        titre ne traverse, et le libellé est bâti par la table de langue. */
-    setText(p, S.uiSubathonShort(sub.jour));
+    setText(b, S.uiSubathonShort(sub.jour));
   };
 
   /* ============================================================
@@ -10008,7 +10083,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       const card = document.querySelector(`.side-nav-card[data-tse-login="${login}"]`);
       if (card) {
         const p = card.querySelector('p[data-a-target="side-nav-title"]');
-        const name = (p?.getAttribute('title') || p?.textContent || '').trim();
+        /* LE NOM SE LIT DANS SON ENVELOPPE QUAND IL Y EN A UNE. Sur une carte
+           de subathon le <p> porte aussi la pastille du jour, et son
+           `textContent` vaut alors « SardocheJ9 » — un pseudo qui n'existe
+           pas, recopié tel quel dans le titre de l'aperçu et dans les badges
+           de co-stream. On vise donc l'enveloppe du nom si elle est là. */
+        const enveloppe = p?.querySelector(':scope > .tse-subathon-nom');
+        const name = (p?.getAttribute('title')
+                      || (enveloppe || p)?.textContent || '').trim();
         if (name) return name;
       }
       const fb = (fallback || '').trim();
@@ -13737,7 +13819,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   // de la couleur de co-stream de la chaîne clonée.
   const scrubClone = (el) => {
     el.querySelectorAll('.tse-uptime, .tse-viewers, .tse-collab-badge,'
-                        + ' [data-tse-extra-row]')
+                        + ' .tse-subathon-jour, [data-tse-extra-row]')
       .forEach(n => n.remove());
     const strip = (node) => {
       for (const attr of [...node.attributes]) {

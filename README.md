@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 785 Ko | 327 Ko | 3 011 → **2** |
+| `content.js` | 790 Ko | 328 Ko | 3 019 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 54 Ko | 27 Ko | 71 → **0** |
+| `panneau.js` | 54 Ko | 27 Ko | 72 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **983 Ko** | **459 Ko** | **−53 %** |
+| **les cinq** | **988 Ko** | **460 Ko** | **−53 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -355,7 +355,7 @@ qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
 d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 3 011
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 3 019
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches
@@ -2531,6 +2531,178 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## La sidebar qui se vidait, et pourquoi rien ne le disait (v3.92)
+
+Un utilisateur : « de temps en temps, l'ensemble de mes chaînes suivies a
+disparu ». Le rapport joint ne portait **aucune erreur** — `appels 1676`,
+`echecs 0`, `erreurs (0)`, aucune pause réseau. Il portait en revanche quatre
+chiffres qui, ensemble, ne peuvent pas être vrais :
+
+```
+cartes 9 · decorees 9 · roster 128 · cache 136 · fabriquees 0
+```
+
+Cent vingt-huit chaînes connues, cent trente-six en cache, neuf cartes à
+l'écran — et **aucune carte fabriquée**. Le module des cartes en avance existe
+exactement pour ce cas.
+
+### La contradiction était écrite en toutes lettres
+
+Les sondes disaient deux choses incompatibles à trois lignes d'écart :
+
+```
+! ok   cardClass   .side-nav-card              9 carte(s)
+  na   cardLink    DOM.cardLinkSelector        aucune carte à sonder
+! na   liveStatus  liveStatusOf()              aucune carte live à sonder
+```
+
+Neuf cartes existaient, et il n'y en avait **aucune à sonder**. La différence
+entre les deux mesures est leur portée : `cardClass` compte dans tout le
+document, les autres ne prélèvent que **dans la section suivie**.
+
+### Une section vide est pire que pas de section
+
+`followedSection()` est le pivot du module : une quinzaine d'appelants en
+dépendent, et tous enchaînent sur `section.querySelectorAll('.side-nav-card')`.
+Elle rendait une section **réelle mais vide**.
+
+Rendre `null` aurait au moins été honnête : les appelants sortent tous sur
+`if (!section) return`. Rendre une section vide leur fait conclure que la barre
+**est** vide — et ils se taisent tous ensemble, sans une erreur, sans un
+compteur, sans rien qui dise pourquoi.
+
+Le module des **cartes en avance** y cherche son modèle de clonage. Pas de
+carte, pas de modèle, `return` — et la chaîne que Twitch n'a pas encore posée
+n'apparaît nulle part : ni par Twitch, ni par nous. C'est `fabriquees 0` avec
+un roster de 128. Le relevé du roster passe par la même section : il avait cessé
+d'apprendre, lui aussi.
+
+### La section qui porte les cartes l'emporte
+
+Le libellé désigne un **candidat** ; ce sont les **cartes** qui tranchent entre
+plusieurs candidats, ou qui disqualifient un candidat vide. Deux causes mènent
+au même symptôme, et la même règle les couvre toutes deux :
+
+- un autre nœud portant le même `aria-label` **usurpe** la section — le cas
+  s'était déjà produit une fois, avec un bouton de l'extension elle-même ;
+- Twitch **remanie** sa barre, et l'en-tête cesse de partager une
+  `.side-nav-section` avec la liste.
+
+Quand aucun candidat ne porte de carte, il reste un ancrage que la langue
+n'atteint pas : Twitch marque ses cartes suivies d'un
+`data-test-selector="followed-channel"`, et ses recommandations d'un autre
+(`recommended-channel`, `similarity-channel`). **La section qui contient de
+telles cartes est la section suivie**, quel que soit son en-tête — et ce repli
+ne peut pas se tromper de voisine, puisque le marqueur ne s'y trouve pas. Nos
+propres cartes fabriquées en sont écartées : ce sont des clones, elles portent
+le marqueur de leur modèle et désigneraient la section où **nous** les avons
+posées.
+
+En dernier recours, le comportement d'avant : le premier candidat, même vide.
+Une barre dont personne n'est en ligne est un cas parfaitement normal, et
+rendre `null` là où l'on rendait une section changerait le comportement de
+quinze appelants pour rien.
+
+### Le rapport dit désormais par où la section a été trouvée
+
+```
+── SECTION SUIVIE / FOLLOWED SECTION ─────────────────────────
+  voie                   cartes
+  vides                  0
+  parCartes              3
+  aucune                 0
+```
+
+`libelle` est le cas ordinaire ; **`cartes`** signifie qu'un candidat vide a été
+écarté ; **`marqueur`**, que le libellé n'a rien donné et que la structure a
+tranché ; **`libelle-vide`**, qu'on rend une section sans cartes — normal si
+personne n'est en ligne, anormal sinon. Il n'y avait rien de tout cela dans le
+rapport reçu : la cause ne se déduisait que de l'étrangeté des sondes.
+
+### Ce que le banc montre
+
+Le scénario 92 monte les **deux** causes, parce qu'un rapport ne permet d'en
+écarter aucune, puis le symptôme complet : une chaîne apprise, que Twitch
+retire de sa barre et qui repasse en direct sous un libellé usurpé.
+
+Contre la rédaction d'avant, les six assertions tombent, et elles tombent en
+recopiant le rapport reçu : `cardLink "na"` avec deux cartes décorées, et
+`{"existe":false,"fabriquee":false}` là où l'utilisateur lisait `fabriquees 0`.
+
+## La pastille passe à droite du pseudo (v3.92)
+
+Le numéro de jour dit **quel événement** diffuse cette chaîne. C'est une
+propriété de la chaîne, pas une nuance de sa durée : sa place est contre son
+nom, et non dans le compteur d'ancienneté.
+
+Et le compteur **redevient celui de tout le monde**. Il avait porté la pastille,
+puis une chaleur en braise ; les deux sont retirés. Un chiffre qu'on lit pour
+lui-même n'a pas à être repeint, et deux cartes voisines dont l'une est teinte
+ne se comparent plus.
+
+| | v3.91 | v3.92 |
+|---|---|---|
+| place | dans le compteur | à droite du pseudo |
+| corps | celui de la durée (12 px) | `10px` |
+| graisse | 700 | 600 |
+| durée | braise `#ff8a5c`, graisse 700 | couleur et graisse standard |
+
+### Le nom devient un élément, et il le faut
+
+Twitch laisse le pseudo en **nœud de texte nu**. Sous `display: flex`, ce nœud
+devient un élément *anonyme* — et un élément anonyme ne peut pas recevoir
+`min-width: 0`. Il refuse donc de rétrécir, et c'est la **pastille** qui sort de
+la boîte : mesuré à **98 px hors cadre**, invisible.
+
+Le nœud est donc enveloppé dans un `<span>`. L'ellipse retombe alors sur le nom,
+qui est ce qu'on peut abréger, et la pastille reste lisible jusqu'au bout.
+L'arbitrage n'est pas arbitraire : `J9` abrégé ne veut plus rien dire,
+`UnPseudoTresLong…` se lit encore.
+
+**On déplace le nœud de Twitch, on ne le recopie pas.** React garde une
+référence sur *ce* nœud-là pour y écrire le pseudo ; le recopier dans un élément
+neuf et jeter l'original le ferait écrire dans un nœud détaché de la page, et le
+nom cesserait de suivre la chaîne que la carte affiche — un défaut qui ne se
+verrait qu'après un recyclage de carte. Le banc pose un témoin sur le nœud avant
+la décoration et vérifie que c'est **le même objet** qui se retrouve dans
+l'enveloppe.
+
+### Le pseudo que le reste du code lit
+
+Le `<p>` porte maintenant deux enfants : son `textContent` vaut `mouseJ9`, un
+pseudo qui n'est celui de personne. `displayNameFor` lit donc l'enveloppe quand
+elle est là — sans quoi ce nom-là partait dans les badges de l'aperçu et dans
+les phrases de co-stream.
+
+Le mutant qui relit le `<p>` entier rend `En live avec **mouseJ9**`. Il avait
+d'abord **survécu** : l'assertion qui devait le tuer était placée *après*
+l'étape qui défait la marque, où le `<p>` était redevenu un simple `mouse`. Une
+assertion posée au mauvais moment du scénario ne prouve rien de plus qu'une
+assertion absente.
+
+### Deux déclarations que la mutation a corrigées
+
+`flex: 0 0 auto` sur la pastille : je l'avais écrit en croyant que c'était lui
+qui l'empêchait de céder. Le retirer, ou le ramener à `0 1 auto`, ne change
+**rien** — un élément flex sans `overflow` a `min-width: auto`, c'est-à-dire sa
+largeur de contenu, et `J120` ne peut pas rétrécir plus que `J120`. La
+déclaration est retirée.
+
+`text-overflow: ellipsis` sur l'enveloppe, à l'inverse, est bien nécessaire — et
+**aucune mesure du banc ne peut l'attester** : le caractère `…` n'ajoute aucun
+nœud et ne change aucun rectangle. Le scénario contrôle donc que les deux
+propriétés sont bien *calculées* sur l'élément. C'est un contrôle de mécanisme,
+plus faible qu'un contrôle d'effet, et c'est dit comme tel.
+
+### Une valeur demandée qui n'existe pas
+
+Le `vertical-align: center` transmis n'est pas du CSS valide — le navigateur
+écarte la déclaration et retombe sur `baseline`. L'intention était claire et se
+réalise autrement : dans une rangée flex, `vertical-align` n'a aucun effet sur
+les éléments, et c'est `align-items: center` posé sur le titre qui centre la
+pastille sur le nom. Écrire la propriété inerte à côté ferait croire qu'elle
+travaille. Le banc mesure l'écart entre les **milieux** des deux boîtes : zéro.
+
 ## Quatre corrections sur retour d'usage (v3.91)
 
 Deux captures d'une sidebar réelle, et quatre demandes. Aucune n'était une
@@ -3925,7 +4097,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 91 scénarios, 851 assertions |
+| `npm test` | le harnais Playwright : 92 scénarios, 861 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
