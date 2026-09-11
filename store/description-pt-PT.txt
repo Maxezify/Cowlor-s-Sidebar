@@ -163,6 +163,7 @@ _______________________________
 ➤ 🎛️ UM PAINEL NA BARRA DE FERRAMENTAS
 Um clique no ícone da extensão e tudo o que ela aprendeu abre-se num painel — sem passar pela consola.
 
+- ★ UM GUIA, LOGO À ENTRADA ★ O painel abre num guia de treze capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhum separador do Twitch aberto.
 - ★ OS SEUS HÁBITOS, DESENHADOS ★ As horas a que vê mesmo, traçadas numa grelha de sete dias por vinte e quatro horas.
 - ★ OS SEUS NÚMEROS ★ Top de streamers, subscrições detetadas, canais seguidos em memória: está tudo lá, legível.
 - ★ UM RELATÓRIO PARA COLAR ★ Um botão constrói um relatório de diagnóstico completo, sem qualquer lista pessoal lá dentro — o suficiente para comunicar um problema sem revelar nada.

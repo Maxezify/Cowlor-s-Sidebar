@@ -2103,6 +2103,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     RECONNECT_GAP_MAX:   10 * 60_000,
     RECONNECT_TTL:       10 * 60_000,
     RECONNECT_MAX:       200,
+    /* La mémoire des directs en cours, elle, n'a pas le même volume : une
+       entrée par chaîne EN LIGNE, et non une par événement rare. Un roster de
+       cent cinquante chaînes en remplit cent cinquante. Six cents laisse la
+       marge d'une grosse barre latérale, et l'éviction se fait par ÂGE et non
+       par ordre d'insertion — `Map.set` sur une clé existante ne la déplace
+       pas dans l'ordre d'itération, si bien qu'une éviction FIFO sortirait la
+       chaîne la plus anciennement VUE POUR LA PREMIÈRE FOIS, qui est peut-être
+       celle qui émet depuis le début. */
+    RECONNECT_MEMORY_MAX: 600,
 
     /* === Frise des catégories d'un live ===
        Nombre de streams dont on garde la frise.
@@ -4022,7 +4031,7 @@ const TSE_GATE_MAX_CLICKS = 5;
      comparaison n'a plus rien à comparer. On retient donc, hors du cache, le
      dernier direct VU EN LIGNE pour chaque login et l'instant de cette vue.
      C'est cette mémoire-là qui survit à la coupure. */
-  const derniersDirects = new Map();  // login -> { id, vu }
+  const derniersDirects = new Map();  // login -> { id, vu, origine }
   const reprises        = new Map();  // login -> { ts }
 
   /* Trois conditions, et chacune répond à sa propre question :
@@ -4036,11 +4045,29 @@ const TSE_GATE_MAX_CLICKS = 5;
   const noterReprise = (login, apres) => {
     const neuf = apres?.stream?.id ? apres.stream : null;
     const memoire = derniersDirects.get(login);
-    if (neuf && memoire && memoire.id !== neuf.id
+    /* L'ORIGINE DU DIRECT, et c'est la moitié la plus utile de ce module.
+       Par défaut c'est le départ de la session courante — ce que Twitch sert,
+       et ce qui est juste dans le cas ordinaire. Sur une reprise, en revanche,
+       on REPREND celle du tronçon précédent : la session a recommencé, pas le
+       direct. Et comme on reprend l'origine MÉMORISÉE et non le `createdAt`
+       d'avant, une chaîne qui saute trois fois de suite garde le départ de la
+       première — la chaîne de reprises se propage d'elle-même. */
+    if (!neuf) return;                 // hors ligne : la mémoire ne bouge pas
+    /* MÊME SESSION : ON GARDE L'ORIGINE. Cette ligne-là est le cœur, et elle a
+       manqué à la première écriture — qui remettait `origine` au `createdAt`
+       courant à CHAQUE relevé où rien n'avait changé. La reprise était bien
+       détectée et l'origine bien reprise, puis le relevé suivant l'écrasait,
+       trente secondes plus tard. Le badge, lui, survivait (il est posé une
+       fois), si bien que l'aperçu disait « reprise » pendant que le compteur
+       repartait quand même de zéro. C'est le scénario qui l'a vu. */
+    const memeSession = memoire && memoire.id === neuf.id;
+    let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
+    if (!memeSession && memoire
         && Date.now() - memoire.vu <= CFG.RECONNECT_GAP_MAX) {
       const debut = Date.parse(neuf.createdAt);
       if (Number.isFinite(debut) && Date.now() - debut < CFG.FRESH_MAX_MIN * 60_000) {
         reprises.set(login, { ts: Date.now() });
+        origine = memoire.origine || origine;
         while (reprises.size > CFG.RECONNECT_MAX) {
           reprises.delete(reprises.keys().next().value);
         }
@@ -4051,10 +4078,30 @@ const TSE_GATE_MAX_CLICKS = 5;
        pendant qu'elle est coupée qu'on a besoin de se souvenir de ce qu'elle
        diffusait juste avant. Le vieillissement de `vu` s'en charge tout seul,
        et GAP tranche. */
-    if (neuf) derniersDirects.set(login, { id: neuf.id, vu: Date.now() });
-    while (derniersDirects.size > CFG.RECONNECT_MAX) {
-      derniersDirects.delete(derniersDirects.keys().next().value);
+    derniersDirects.set(login, { id: neuf.id, vu: Date.now(), origine });
+    // Éviction par ÂGE (cf. RECONNECT_MEMORY_MAX) : la plus anciennement vue
+    // sort la première, et une chaîne qui émet encore n'est jamais évincée
+    // avant une chaîne qu'on n'a pas revue depuis longtemps.
+    if (derniersDirects.size > CFG.RECONNECT_MEMORY_MAX) {
+      const parAge = [...derniersDirects.entries()].sort((a, b) => a[1].vu - b[1].vu);
+      for (const [l] of parAge.slice(0, derniersDirects.size - CFG.RECONNECT_MEMORY_MAX)) {
+        derniersDirects.delete(l);
+      }
     }
+  };
+
+  /* Le départ RÉEL du direct : celui du premier tronçon quand la chaîne a
+     repris, celui de la session sinon. C'est ce que la carte doit compter —
+     « 2m » sur un direct de six heures n'est pas une approximation, c'est le
+     contraire de la vérité.
+
+     Le décompte ne se périme pas, lui, contrairement au badge : la nouvelle
+     « il vient de reprendre » cesse d'être une nouvelle au bout de dix
+     minutes, mais le direct, lui, dure toujours depuis six heures. Les deux
+     durées de vie sont différentes parce que les deux choses le sont. */
+  const debutReel = (login, createdAt) => {
+    const m = derniersDirects.get(login);
+    return (m && m.origine) || createdAt;
   };
 
   const repriseFraiche = (login) => {
@@ -8801,16 +8848,14 @@ const TSE_GATE_MAX_CLICKS = 5;
   const updateFreshness = (card) => {
     const ts = card.dataset.tseStartedAt;
     if (!ts) { card.classList.remove('tse-fresh'); return; }
-    /* UNE REPRISE N'EST PAS UN DÉBUT. Le compteur est bien reparti de zéro,
-       mais le direct, lui, dure depuis des heures : allumer la barre violette
-       dirait « tu n'es pas en retard » à quelqu'un qui l'est complètement.
-       C'est le seul endroit du produit où un signal pouvait affirmer le
-       contraire de la vérité, et c'est pourquoi la suppression est ici plutôt
-       que dans l'affichage du badge. */
-    if (repriseFraiche(card.dataset.tseLogin)) {
-      card.classList.remove('tse-fresh');
-      return;
-    }
+    /* UNE REPRISE N'EST PAS UN DÉBUT, et il n'y a rien à faire ici pour ça.
+       `tseStartedAt` porte le départ RÉEL du direct (cf. debutReel) : sur une
+       reprise il vaut six heures, donc l'âge calculé ci-dessous dépasse le
+       seuil et la barre ne s'allume pas. Une garde explicite a existé à cette
+       ligne, et elle a été retirée : la corriger en deux endroits, c'était
+       deux vérités à tenir d'accord. Le scénario 95 continue d'exiger qu'une
+       reprise ne soit pas « fraîche » — c'est le départ réel qui le lui
+       donne maintenant, et l'assertion tombe toujours si on le casse. */
     const ageMin = (Date.now() - new Date(ts).getTime()) / 60_000;
     card.classList.toggle('tse-fresh', ageMin >= 0 && ageMin < CFG.FRESH_MAX_MIN);
   };
@@ -11813,7 +11858,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       // jusqu'ici que pour les cartes non hors-ligne) ; observe() écarte de
       // lui-même les cartes que l'extension a fabriquées.
       liveLag.observe(card, stream);
-      card.dataset.tseStartedAt = stream.createdAt;
+      /* LE DÉPART RÉEL, ET NON CELUI DE LA SESSION. Sur une chaîne qui n'a pas
+         coupé, les deux sont le même horodatage et rien ne change. Sur une
+         reprise, c'est ici que le compteur cesse de mentir : il repart de
+         l'origine du direct au lieu de celle du tronçon.
+         `liveLag.observe` reçoit le `stream` intact : lui mesure le retard de
+         Twitch sur CETTE session, ce qui est bien la session et non le direct. */
+      card.dataset.tseStartedAt = debutReel(card.dataset.tseLogin, stream.createdAt);
       card.dataset.tseOfflineHits = '0';
       delete card.dataset.tseOfflineTs;
       // Le streamer redémarre après une période offline confirmée : on retire
@@ -11822,7 +11873,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       // que l'entrée de cache périme (LIVE_TTL), sans attendre autre chose.
       delete card.dataset.tseGqlOffline;
       delete card.dataset.tseOffline;
-      renderUptime(card, stream.createdAt);
+      // Le même départ que celui qu'on vient d'écrire sur la carte, et pas
+      // `stream.createdAt` : les deux ne diffèrent que sur une reprise, et
+      // c'est exactement le cas où l'affichage doit suivre le dataset.
+      renderUptime(card, card.dataset.tseStartedAt);
       updateFreshness(card);
       // Données fraîches issues de la même réponse. Le compteur affiché est
       // celui du co-stream quand il y en a un (lecture pure du cache Guest

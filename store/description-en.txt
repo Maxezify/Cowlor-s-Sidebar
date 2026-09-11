@@ -163,6 +163,7 @@ _______________________________
 ➤ 🎛️ A PANEL IN YOUR TOOLBAR
 One click on the extension's icon and everything it has learned opens in a panel — no console needed.
 
+- ★ A GUIDE, FIRST THING ★ The panel opens on a thirteen-chapter walkthrough of everything the extension adds, with drawn examples — and it shows even with no Twitch tab open.
 - ★ YOUR HABITS, DRAWN ★ The hours you actually watch, laid out as a seven-day by twenty-four-hour grid.
 - ★ YOUR NUMBERS ★ Top streamers, subscriptions spotted, followed channels in memory: all there, readable.
 - ★ A REPORT TO PASTE ★ One button builds a full diagnostic report, with no personal list inside it — enough to report a problem without revealing a thing.

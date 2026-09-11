@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 686 assertions, sous Gecko
+npm run test-firefox        # les mêmes 906 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -1906,6 +1906,158 @@ assertion ne prétendra les éprouver. Le même relevé montre que l'assertion �
 carte détachée puis rattachée ne referme pas l'aperçu » du scénario 76 ne touche
 rien non plus.
 
+## Le mode d'emploi (v3.98)
+
+L'extension n'a aucun réglage. Pas d'options, pas d'interrupteurs, pas de
+compte : elle travaille dès le premier rechargement de Twitch, et c'est un parti
+pris qui tient depuis la première version. Ce qui lui manquait n'était donc pas
+un écran de préférences — c'était **la liste de ce qui existe**.
+
+Une bonne moitié de ce que le produit ajoute ne se découvre qu'en posant le
+pointeur au bon endroit : les dix badges de l'aperçu, la frise des catégories,
+la pastille de jour d'un subathon, le tri qui regroupe les co-streams. Rien,
+nulle part, ne disait de le faire. La fiche du magasin le dit — mais on la lit
+une fois, avant d'installer, et jamais après.
+
+### Pourquoi c'est la première page
+
+`courante` est amorcée sur `SECTIONS[0]` : mettre ce chapitre en tête de la
+table suffit à en faire la page d'accueil, sans cas particulier au démarrage.
+
+C'est la seconde propriété qui compte vraiment : **cette vue ne demande rien à
+la page**. Les onze autres sections passent par le pont, donc par un onglet
+Twitch au premier plan ; et quelqu'un qui vient d'installer l'extension, puis
+clique sur son icône, n'en a pas forcément un. La première phrase qu'il aurait
+lue était « ouvrez un onglet twitch.tv et revenez au premier plan » — un panneau
+qui commence par un reproche, pour un produit qu'on vient d'installer.
+
+D'où le drapeau `statique`, seul de cette table, et le court-circuit qui va avec :
+
+```js
+if (section.statique) { montrerGuide(); return; }
+```
+
+Il est posé **avant** `montrerMessage('stateLoading')`. Et le rangement du guide
+l'est **à l'entrée** de `charger`, pas à chacune de ses sorties : une section de
+données peut finir en tableau, en dessin, en « rien à afficher » ou en échec de
+transport — quatre sorties, qu'il aurait fallu penser à couvrir une par une.
+
+### Treize chapitres, et des exemples dessinés
+
+Une pastille dorée, un ruban de catégories, une barre violette qui respire : ces
+choses-là se reconnaissent à l'œil et se racontent mal. Chaque chapitre porte
+donc une **maquette** — la géométrie et la palette de la barre latérale, à
+l'échelle du panneau — et le texte dit la même chose en toutes lettres juste en
+dessous. Les maquettes sont `aria-hidden`, comme la frise et la grille du
+rythme : la forme pour l'œil, le texte pour l'information.
+
+La carte de la barre latérale est une seule maquette paramétrée, que six
+chapitres se partagent en n'en changeant qu'un détail — la durée, la pastille de
+jour, le compteur de collab, la barre violette, l'or de l'abonnement. Six copies
+auraient fini par ne plus se ressembler.
+
+Deux règles de décor, et aucune n'est décorative :
+
+- **les noms de chaînes sont inventés.** Citer de vrais streamers dans une
+  maquette les ferait paraître partenaires de l'extension, ce qu'ils ne sont
+  pas. C'est déjà la règle des captures de la fiche ;
+- **les catégories sont prises parmi celles que Twitch ne traduit pas.** « Just
+  Chatting » devient « Discussions » en français, et une maquette qui
+  l'afficherait en anglais au milieu d'un texte français se lirait comme un
+  oubli de traduction. Les noms de jeux, eux, sont les mêmes dans les douze
+  langues.
+
+La palette des dix badges est **recopiée** dans la feuille du panneau, teinte
+pour teinte. C'est la même frontière que pour les libellés : cette page n'a pas
+le CSS de `content.js`, qui vit dans la barre latérale de Twitch. Les rapprocher
+les rendrait indistincts justement là où on les explique.
+
+### Un message par chapitre, retours à la ligne compris
+
+Le corps d'un chapitre est **une seule clé de traduction** ; ses lignes qui
+commencent par « • » deviennent des puces, les autres des paragraphes. Découper
+chaque puce en sa propre clé aurait donné cent soixante entrées de plus dans
+douze fichiers — et surtout aurait figé le NOMBRE de puces, alors qu'une langue
+a parfois besoin de deux phrases là où le français en met une.
+
+Quarante-cinq clés nouvelles, douze fiches : cinq cent quarante messages. Quinze
+d'entre elles sont des libellés que le produit affiche déjà — les dix badges, le
+compteur « Terminé », la pastille de jour, le nom de l'onglet — et elles ont été
+**recopiées de `STRINGS`**, mot pour mot, langue par langue. Le panneau ne peut
+pas lire `STRINGS` (deux surfaces, deux tables, aucun libellé qui transite),
+mais rien n'obligeait à réinventer la traduction : une maquette doit montrer ce
+que l'utilisateur verra, pas une paraphrase.
+
+`tests/parity.mjs` reconnaît ces clés parce que son expression de préfixes a
+gagné `guide`. Une clé qui ne suit pas la convention n'est jamais relevée comme
+« demandée » — elle passerait donc pour orpheline, et le contrôle la déclarerait
+morte alors qu'elle s'affiche.
+
+### Ce que le scénario 96 attrape
+
+Le panneau n'était éprouvé que par son **contrat de données** : le scénario 69
+vérifie que la page rend les colonnes que `panneau.js` sait peindre, le scénario
+70 mesure la page rendue, et la parité vérifie que chaque clé demandée existe
+dans les douze fiches. Aucun des trois ne regardait le texte affiché.
+
+Or un mode d'emploi de treize chapitres est exactement le genre de chose qui se
+casse en silence. `chrome.i18n.getMessage` d'une clé inconnue ne lève pas : elle
+rend la chaîne vide, et `T()` retombe alors sur le **nom de la clé**, qui
+s'affiche en clair au milieu d'un paragraphe — sans erreur, sans console, et
+seulement dans la langue oubliée.
+
+Le scénario ouvre donc `panneau.html` pour de vrai, avec un `chrome` de
+substitution qui lit les **vraies** fiches de `_locales` et n'a **aucun onglet**
+à offrir : le cas de figure exact que cette vue existe pour couvrir. Onze
+assertions, chacune tuée par au moins un mutant.
+
+| Mutant | Assertions qui tombent |
+| --- | --- |
+| le guide n'est plus `SECTIONS[0]` | 5 |
+| pas de court-circuit : le guide passe par le pont | 5 |
+| le guide ne se range pas en partant | 1 |
+| une clé de chapitre mal orthographiée | 2 |
+| les puces ne sont plus des puces | 2 |
+| « reprise » gagne une couleur à lui | 1 |
+| un badge perd sa teinte et garde celle par défaut | 1 |
+| l'arc-en-ciel du subathon ne court plus | 1 |
+| les maquettes se lisent à voix haute | 1 |
+| le guide ne défile plus pour son compte | 1 |
+| un chapitre disparaît de la table | 3 |
+| un libellé japonais est vide | 1 |
+
+Le compteur d'appels à `tabs.query` est le vrai sujet de la deuxième assertion :
+il dit si cette vue a demandé quoi que ce soit au navigateur. C'est la première
+chose que fait `demander`, avant même d'envoyer quoi que ce soit au service
+worker — un court-circuit oublié se voit donc là, et nulle part ailleurs.
+
+Deux mutants ont demandé une assertion plus forte que celle d'abord écrite.
+« Dix badges, neuf couleurs » ne voyait pas qu'un badge avait perdu la sienne :
+une teinte fausse reste une teinte, et le compte des teintes distinctes ne
+bougeait pas. L'assertion mesure donc aussi la couleur d'un badge **sans
+modificateur**, posée dans la page puis retirée — c'est la valeur que prend un
+badge dont la règle n'a pas pris, et le seul défaut de palette qui arrive
+vraiment.
+
+**Ce que ce scénario ne prouve pas.** Il lit `panneau.js` tel qu'il est dans le
+dépôt, commentaires compris : `tests/build.mjs` ne dégraisse que `content.js` et
+`adblock.js`. La version livrée du panneau reste couverte par l'égalité des flux
+de jetons vérifiée à l'assemblage — qui est une affirmation sur la grammaire, et
+non sur le comportement.
+
+### Deux scénarios voisins que le changement a déplacés
+
+Le rail porte une section et un groupe de plus : le scénario 70 les compte, et
+son attente en dit la raison. Il commençait aussi par attendre un tableau au
+chargement, qui n'arrive plus — il va donc chercher une section de données avant
+de mesurer la mise en page.
+
+Le scénario 77, lui, éprouve le transport sous la façade `chrome.*` de Firefox.
+Il lisait « la première section affiche ses lignes » ; la première section ne
+traverse plus le pont. Il demande désormais une section de données par son nom,
+ce qui rend l'assertion plus franche qu'avant : elle nomme ce qu'elle vérifie au
+lieu de compter sur l'ordre du rail.
+
 ## La reprise après coupure (v3.97)
 
 `createdAt` mesure la **session**, pas le direct. Un streamer qui perd sa
@@ -1975,6 +2127,54 @@ annonçait une coupure longue sans en avoir produit aucune. C'est le décor qui
 Quatre mutants, quatre gardes, quatre assertions distinctes qui tombent —
 et celui qui retire la correction de la barre reproduit exactement le défaut
 d'origine : `frais: true` sur un direct de six heures.
+
+### La durée qui traverse la coupure (v3.98)
+
+La 3.97 a empêché la barre violette de mentir. Elle laissait le compteur le
+faire : « 2m » sur un direct qui en est à sa sixième heure, parce que
+`createdAt` est celui du **tronçon** et non du direct.
+
+La mémoire par login porte donc une troisième valeur, l'**origine** — le
+`createdAt` du premier tronçon de la chaîne — et `applyChannelData` écrit
+celle-ci dans `tseStartedAt` plutôt que celui du relevé :
+
+```js
+const debutReel = (login, createdAt) => {
+  const m = derniersDirects.get(login);
+  return (m && m.origine) || createdAt;
+};
+```
+
+L'origine se transmet de tronçon en tronçon tant que les reprises s'enchaînent ;
+une coupure longue la remet à celle du nouveau direct. C'est la même borne que
+le badge, et pour la même raison : au-delà de dix minutes, ce n'est plus le même
+direct, et il n'y a plus rien à raccorder.
+
+**Une sonde a trouvé le défaut que la relecture n'avait pas vu.** La première
+écriture recalculait `origine` à chaque relevé : la valeur ne survivait qu'un
+cycle, et le compteur retombait sur le tronçon trente secondes plus tard. Rien
+ne le montrait à l'œil — il faut regarder deux relevés de suite pour s'en
+apercevoir, et le premier est juste. Un champ temporaire ajouté au rapport a
+rendu la chose lisible en une lecture ; la correction tient dans la distinction
+entre « même session » et « session neuve » :
+
+```js
+const memeSession = memoire && memoire.id === neuf.id;
+let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
+```
+
+Le scénario 95 passe de huit à onze assertions, et trois mutants les tuent :
+écrire `stream.createdAt` dans `tseStartedAt`, recalculer l'origine à chaque
+relevé, ou ne pas la reporter d'un tronçon au suivant — quatre assertions
+tombent dans chacun des trois cas.
+
+La suppression explicite de la fraîcheur a disparu au passage : avec la vraie
+origine, la carte est vieille **par construction**, et une règle qui ne peut
+plus se déclencher est une règle qu'on retire. Enfin, un sous-test qui modélisait
+un cas impossible — un direct qui rajeunit sans changer d'identifiant — a été
+remplacé par le cas ordinaire qu'il fallait vraiment garder : **une chaîne qui
+passe en direct pour la première fois doit garder sa barre « vient de
+démarrer »**.
 
 ## La frise des catégories (v3.70)
 
@@ -4015,7 +4215,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 95 scénarios, 892 assertions |
+| `npm test` | le harnais Playwright : 96 scénarios, 906 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -4036,12 +4236,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 803 Ko | 332 Ko | 3 057 → **2** |
+| `content.js` | 803 Ko | 332 Ko | 3 069 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 54 Ko | 27 Ko | 73 → **0** |
+| `panneau.js` | 68 Ko | 34 Ko | 84 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1001 Ko** | **463 Ko** | **−54 %** |
+| **les cinq** | **1034 Ko** | **473 Ko** | **−54 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

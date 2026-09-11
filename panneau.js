@@ -104,6 +104,19 @@ const COL = {
 };
 
 const SECTIONS = [
+  /* LE MODE D'EMPLOI EN PREMIER, ET C'EST LUI QUI S'OUVRE. `courante` est
+     amorcée sur SECTIONS[0] : mettre ce chapitre en tête suffit à en faire la
+     page d'accueil du panneau, sans cas particulier au démarrage.
+
+     `statique` est le seul drapeau de cette table, et il dit une chose : cette
+     section ne passe pas par le pont. Toutes les autres commencent par
+     demander leurs données à l'onglet Twitch au premier plan ; celle-ci n'a
+     rien à demander, et c'est précisément ce qu'on veut de la première vue —
+     quelqu'un qui vient d'installer l'extension et clique sur son icône n'a
+     pas forcément Twitch devant lui, et aurait lu « ouvrez un onglet
+     twitch.tv » en guise de bienvenue. */
+  { id: 'guide',   groupe: 'grpGuide', statique: true },
+
   { id: 'scores',  groupe: 'grpData',
     tuiles: (r) => [['sumChannels', fmt.nombre(r.chaines)]] },
 
@@ -471,6 +484,243 @@ const dessinLag = (paquet) => {
   return svg;
 };
 
+/* ════════════════════════════════════════════════════════════════════════════
+   LE MODE D'EMPLOI
+   ────────────────────────────────────────────────────────────────────────────
+   Ce produit n'a pas de réglages : ni options, ni interrupteurs, ni compte.
+   Ce qui lui manquait n'était donc pas un écran de préférences, c'était la
+   LISTE DE CE QUI EXISTE — la moitié de ce qu'il ajoute ne se découvre qu'en
+   posant le pointeur au bon endroit, et rien nulle part ne disait de le faire.
+
+   IL NE DEMANDE RIEN À LA PAGE, et c'est ce qui le rend lisible le premier
+   jour. Les onze autres sections passent par le pont, donc par un onglet
+   Twitch au premier plan ; celle-ci s'affiche toujours, y compris sur un
+   navigateur qui n'a pas encore rouvert Twitch depuis l'installation.
+
+   LES EXEMPLES SONT DESSINÉS, PAS DÉCRITS. Une pastille dorée, un ruban de
+   catégories, une barre violette qui respire : ces choses-là se reconnaissent
+   à l'œil et se racontent mal. Les maquettes qui suivent reprennent la
+   géométrie et la palette de la barre latérale, à l'échelle du panneau, et
+   elles sont `aria-hidden` — le texte de chaque chapitre dit la même chose en
+   toutes lettres, comme la frise et la grille du rythme le font déjà.
+
+   LES NOMS DE CHAÎNES SONT INVENTÉS, et les catégories choisies parmi celles
+   que Twitch NE traduit PAS. Citer de vrais streamers dans une maquette les
+   ferait paraître partenaires de l'extension — c'est la règle des captures de
+   la fiche, et elle vaut ici. Quant aux catégories : « Just Chatting » devient
+   « Discussions » en français, et une maquette qui l'afficherait en anglais au
+   milieu d'un texte français se lirait comme un oubli de traduction. Les noms
+   de jeux, eux, sont les mêmes dans les douze langues.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const elt = (nom, classe, texte) => {
+  const e = document.createElement(nom);
+  e.className = classe;
+  if (texte !== undefined) e.textContent = texte;
+  return e;
+};
+
+/* LA PALETTE DES BADGES EST RECOPIÉE DANS LA FEUILLE DU PANNEAU, et c'est la
+   même frontière que pour les libellés : cette page n'a pas le CSS de
+   content.js, qui vit dans la barre latérale de Twitch. On recopie donc les
+   dix modificateurs, et le scénario 96 vérifie qu'ils ne se sont pas mis à
+   rendre tous la même couleur — une maquette de badges monochrome
+   n'expliquerait plus rien. */
+const badgeDemo = (mod, cle) => elt('span', 'd-badge d-badge--' + mod, T(cle));
+
+/* LA CARTE DE LA BARRE LATÉRALE, EN PETIT. Six chapitres en montrent une, et
+   chacun n'en change qu'un détail : la durée, la pastille de jour, le compteur
+   de collab, la barre violette, l'or de l'abonnement. Une seule maquette
+   paramétrée plutôt que six recopiées — sans quoi la cinquième aurait fini par
+   ne plus ressembler aux quatre autres. */
+const demoCarte = (o) => {
+  const carte = div('d-carte' + (o.frais ? ' d-carte--frais' : '')
+                              + (o.or ? ' d-carte--or' : ''));
+  const avatar = div('d-avatar');
+  if (o.collab) avatar.appendChild(elt('span', 'd-collab', o.collab));
+  carte.appendChild(avatar);
+
+  const texte = div('d-carte-texte');
+  const nom = div('d-nom');
+  nom.appendChild(document.createTextNode(o.nom));
+  if (o.jour) nom.appendChild(elt('span', 'd-jour', T('guideDemoJour')));
+  texte.append(nom, div('d-cat', o.cat));
+  carte.appendChild(texte);
+
+  const droite = div('d-droite');
+  const vues = div('d-vues');
+  vues.append(elt('span', 'd-point'), document.createTextNode(NOMBRE.format(o.vues)));
+  droite.append(vues, div('d-uptime' + (o.fini ? ' d-uptime--fini' : ''),
+                          o.fini ? T('guideDemoEnded') : o.duree));
+  carte.appendChild(droite);
+  return carte;
+};
+
+const demoApercu = () => {
+  const hote = div('d-apercu');
+  const video = div('d-video');
+  /* « LIVE » n'est pas un libellé du produit mais la pastille que Twitch pose
+     sur ses propres vignettes : elle n'a pas de clé, et n'en veut pas. */
+  video.appendChild(elt('span', 'd-live', 'LIVE'));
+  hote.append(video, elt('p', 'd-titre', T('guideDemoTitre')));
+  const rangee = div('d-badges');
+  rangee.append(badgeDemo('switch', 'guideBadgeSwitch'),
+                badgeDemo('sub', 'guideBadgeSub'));
+  hote.appendChild(rangee);
+  return hote;
+};
+
+/* Les dix badges, dans l'ordre où l'aperçu les pose : l'étiquette de
+   classification d'abord — elle se lit avant de regarder — puis les deux
+   nouvelles qui s'effacent d'elles-mêmes, puis le contexte, et le subathon en
+   dernier parce qu'il traverse toutes les couleurs. */
+const BADGES_DEMO = [
+  ['ccl',      'guideBadgeCcl'],
+  ['reprise',  'guideBadgeReprise'],
+  ['switch',   'guideBadgeSwitch'],
+  ['costream', 'guideBadgeCostream'],
+  ['squad',    'guideBadgeSquad'],
+  ['sub',      'guideBadgeSub'],
+  ['sponsor',  'guideBadgeSponsor'],
+  ['hype',     'guideBadgeHype'],
+  ['discount', 'guideBadgeDiscount'],
+  ['subathon', 'guideBadgeSubathon'],
+];
+
+const demoBadges = () => {
+  const rangee = div('d-badges');
+  for (const [mod, cle] of BADGES_DEMO) rangee.appendChild(badgeDemo(mod, cle));
+  return rangee;
+};
+
+/* LE RUBAN DE LA FRISE. Les largeurs sont celles des durées écrites en face —
+   2 h 10, 1 h 05, 55 min sur 4 h 10 au total — parce qu'une maquette « à
+   l'échelle » qui ne le serait pas contredirait le chapitre qu'elle illustre.
+   La dernière bande est celle qui court : elle s'estompe, et sa durée porte le
+   « ~ » que le produit met quand il ne connaît pas l'heure exacte du passage. */
+const FRISE_DEMO = [
+  { jeu: 'Elden Ring', part: 52, duree: '2h10', teinte: '#9147ff' },
+  { jeu: 'Valorant',   part: 26, duree: '1h05', fois: 3, teinte: '#1f69ff' },
+  { jeu: 'Minecraft',  part: 22, duree: '~55m', flou: true, teinte: '#00b85a' },
+];
+
+const demoFrise = () => {
+  const hote = div('d-frise');
+  const ruban = div('d-ruban');
+  for (const b of FRISE_DEMO) {
+    const bande = div('d-bande' + (b.flou ? ' d-bande--flou' : ''));
+    bande.style.width = b.part + '%';
+    bande.style.background = b.flou
+      ? `linear-gradient(90deg, ${b.teinte}, rgba(0, 0, 0, 0))` : b.teinte;
+    ruban.appendChild(bande);
+  }
+  hote.appendChild(ruban);
+  for (const b of FRISE_DEMO) {
+    const ligne = div('d-frise-ligne');
+    const pastille = div('d-puce');
+    pastille.style.background = b.teinte;
+    ligne.append(pastille,
+                 div('d-frise-jeu', b.jeu + (b.fois ? ` ×${b.fois}` : '')),
+                 div('d-frise-duree', b.flou ? `${b.duree} · ${T('guideDemoEnCours')}` : b.duree));
+    hote.appendChild(ligne);
+  }
+  return hote;
+};
+
+const demoOnglets = () => {
+  const hote = div('d-onglets');
+  hote.append(elt('span', 'd-onglet', T('guideDemoSuivies')),
+              elt('span', 'd-onglet d-onglet--actif', T('grpGlobal')));
+  return hote;
+};
+
+/* Une maquette qui porte une carte ET le badge que l'aperçu montrerait dessus.
+   Les deux ensemble, parce que c'est ainsi qu'on les rencontre : le signal
+   discret dans la liste, et la phrase entière au survol. */
+const carteEtBadge = (carte, mod, cle) => {
+  const hote = div('d-pile');
+  hote.append(carte, badgeDemo(mod, cle));
+  return hote;
+};
+
+const GUIDE = [
+  { titre: 'guideHoverTitre',    texte: 'guideHoverTexte',    demo: () => demoApercu() },
+  { titre: 'guideDureeTitre',    texte: 'guideDureeTexte',
+    demo: () => {
+      const hote = div('d-pile');
+      hote.append(demoCarte({ nom: 'Nyxaria', cat: 'Elden Ring', vues: 1243, duree: '4h19' }),
+                  demoCarte({ nom: 'Korbek', cat: 'Minecraft', vues: 318, fini: true }));
+      return hote;
+    } },
+  { titre: 'guideBadgesTitre',   texte: 'guideBadgesTexte',   demo: () => demoBadges() },
+  { titre: 'guideFriseTitre',    texte: 'guideFriseTexte',    demo: () => demoFrise() },
+  { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Velmoria', cat: 'Minecraft', vues: 4820, duree: '61h04', jour: true }),
+      'subathon', 'guideBadgeSubathon') },
+  { titre: 'guideCostreamTitre', texte: 'guideCostreamTexte',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Korbek', cat: 'Valorant', vues: 962, duree: '1h47', collab: '3' }),
+      'squad', 'guideBadgeSquad') },
+  { titre: 'guideDebutTitre',    texte: 'guideDebutTexte',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Aeltris', cat: 'Elden Ring', vues: 87, duree: '4m', frais: true }),
+      'reprise', 'guideBadgeReprise') },
+  { titre: 'guideAboTitre',      texte: 'guideAboTexte',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Nyxaria', cat: 'Elden Ring', vues: 1243, duree: '4h19', or: true }),
+      'sub', 'guideBadgeSub') },
+  { titre: 'guideTriTitre',      texte: 'guideTriTexte' },
+  { titre: 'guideTopTitre',      texte: 'guideTopTexte',      demo: () => demoOnglets() },
+  { titre: 'guideViteTitre',     texte: 'guideViteTexte' },
+  { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte' },
+  { titre: 'guideVieTitre',      texte: 'guideVieTexte' },
+];
+
+/* LE CORPS D'UN CHAPITRE EST UN SEUL MESSAGE, retours à la ligne compris, et
+   ce n'est pas de la paresse : découper chaque puce en sa propre clé aurait
+   donné cent soixante entrées de plus dans douze fichiers, et surtout aurait
+   figé le NOMBRE de puces — une langue qui a besoin de deux phrases là où le
+   français en met une n'aurait pas eu où les mettre. Une ligne qui commence
+   par « • » est une puce, les autres sont des paragraphes ; c'est toute la
+   grammaire, et elle tient dans la tête de qui traduit. */
+const corpsGuide = (texte) => {
+  const out = [];
+  let liste = null;
+  for (const brut of String(texte).split('\n')) {
+    const ligne = brut.trim();
+    if (!ligne) continue;
+    if (ligne.startsWith('•')) {
+      if (!liste) { liste = elt('ul', 'guide-liste'); out.push(liste); }
+      liste.appendChild(elt('li', '', ligne.replace(/^•\s*/, '')));
+      continue;
+    }
+    liste = null;
+    out.push(elt('p', 'guide-p', ligne));
+  }
+  return out;
+};
+
+const construireGuide = () => {
+  const blocs = [elt('p', 'guide-intro', T('guideIntro'))];
+  GUIDE.forEach((chapitre, i) => {
+    const section = elt('section', 'guide-chapitre');
+    const titre = elt('h3', 'guide-titre');
+    titre.append(elt('span', 'guide-num', String(i + 1)),
+                 document.createTextNode(T(chapitre.titre)));
+    section.appendChild(titre);
+    if (chapitre.demo) {
+      const cadre = div('d-cadre');
+      cadre.setAttribute('aria-hidden', 'true');
+      cadre.appendChild(chapitre.demo());
+      section.appendChild(cadre);
+    }
+    section.append(...corpsGuide(T(chapitre.texte)));
+    blocs.push(section);
+  });
+  return blocs;
+};
+
 /* ── Transport ───────────────────────────────────────────────────────────── */
 /* On mémorise la PROMESSE, pas la valeur. Deux sections chargées coup sur
    coup — un clic pendant que la précédente arrive — liraient sinon toutes
@@ -574,6 +824,22 @@ const montrerMessage = (cle, bouton, detail) => {
   if (bouton) b.textContent = T('btnRetry');
 };
 
+/* Le mode d'emploi prend toute la vue : il n'a ni cartouches, ni dessin, ni
+   tableau, et le message de chargement n'a pas lieu d'être puisque rien n'est
+   chargé. On range donc les quatre blocs avant de le poser — sans quoi le
+   tableau de la section précédente resterait sous le premier chapitre. */
+const montrerGuide = () => {
+  $('message').hidden = true;
+  $('resume').replaceChildren();
+  $('visuel').hidden = true;
+  $('visuel').replaceChildren();
+  $('tableau-cadre').hidden = true;
+  const g = $('guide');
+  g.replaceChildren(...construireGuide());
+  g.hidden = false;
+  g.scrollTop = 0;
+};
+
 /* Quel message pour quel échec. Une seule table, deux appelants — sans elle,
    les deux listes de cas divergeaient au premier ajout. */
 const CAUSES = {
@@ -671,6 +937,12 @@ const peindre = (section, paquet) => {
 const charger = async (id) => {
   courante = id;
   const section = SECTIONS.find((s) => s.id === id);
+  /* Le mode d'emploi se range ici et NULLE PART AILLEURS. Une section de
+     données peut finir en tableau, en dessin, en « rien à afficher » ou en
+     échec de transport : quatre sorties, qu'il aurait fallu penser à couvrir
+     chacune. Le ranger à l'entrée, avant de savoir laquelle on prendra, n'en
+     laisse aucune de côté. */
+  $('guide').hidden = true;
   for (const b of document.querySelectorAll('.rail-item')) {
     b.setAttribute('aria-current', String(b.dataset.id === id));
   }
@@ -684,6 +956,8 @@ const charger = async (id) => {
     b.addEventListener('click', () => lancer(a.id, b));
     return b;
   }));
+
+  if (section.statique) { montrerGuide(); return; }
 
   montrerMessage('stateLoading');
   const r = await demander({ section: id });

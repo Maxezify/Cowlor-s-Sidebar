@@ -163,6 +163,7 @@ _______________________________
 ➤ 🎛️ PANEL NA PASKU NARZĘDZI
 Jedno kliknięcie ikony rozszerzenia i wszystko, czego się nauczyło, otwiera się w panelu — bez konsoli.
 
+- ★ INSTRUKCJA, OD RAZU ★ Panel otwiera się na przewodniku w trzynastu rozdziałach, pokazującym wszystko, co rozszerzenie dodaje, z rysowanymi przykładami — i wyświetla się nawet bez otwartej karty Twitcha.
 - ★ TWOJE NAWYKI, NARYSOWANE ★ Godziny, w których naprawdę oglądasz, ułożone w siatkę siedmiu dni na dwadzieścia cztery godziny.
 - ★ TWOJE LICZBY ★ Top streamerów, wykryte subskrypcje, zapamiętane obserwowane kanały: wszystko tam, czytelnie.
 - ★ RAPORT DO WKLEJENIA ★ Jeden przycisk tworzy pełny raport diagnostyczny, bez żadnej osobistej listy w środku — tyle, by zgłosić problem, nic nie ujawniając.

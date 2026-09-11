@@ -163,6 +163,7 @@ _______________________________
 ➤ 🎛️ UN PANEL EN LA BARRA DE HERRAMIENTAS
 Un clic en el icono de la extensión y todo lo que ha aprendido se abre en un panel, sin pasar por la consola.
 
+- ★ UN MODO DE EMPLEO, DE ENTRADA ★ El panel se abre con una guía de trece capítulos que enseña todo lo que la extensión añade, con ejemplos dibujados, y se muestra incluso sin ninguna pestaña de Twitch abierta.
 - ★ VUESTROS HÁBITOS, DIBUJADOS ★ Las horas en que veis de verdad, trazadas en una cuadrícula de siete días por veinticuatro horas.
 - ★ VUESTRAS CIFRAS ★ Top de streamers, suscripciones detectadas, canales seguidos en memoria: todo ahí, legible.
 - ★ UN INFORME PARA PEGAR ★ Un botón crea un informe de diagnóstico completo, sin ninguna lista personal dentro: lo justo para avisar de un problema sin revelar nada.

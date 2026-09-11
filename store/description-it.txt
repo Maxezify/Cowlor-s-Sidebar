@@ -163,6 +163,7 @@ _______________________________
 ➤ 🎛️ UN PANNELLO NELLA BARRA DEGLI STRUMENTI
 Un clic sull'icona dell'estensione e tutto ciò che ha imparato si apre in un pannello — senza passare dalla console.
 
+- ★ UNA GUIDA, SUBITO ★ Il pannello si apre su una guida di tredici capitoli che mostra tutto ciò che l'estensione aggiunge, con esempi disegnati — e si vede anche senza nessuna scheda Twitch aperta.
 - ★ LE TUE ABITUDINI, DISEGNATE ★ Le ore in cui guardi davvero, tracciate in una griglia di sette giorni per ventiquattro ore.
 - ★ I TUOI NUMERI ★ Top streamer, abbonamenti rilevati, canali seguiti in memoria: tutto lì, leggibile.
 - ★ UN RAPPORTO DA INCOLLARE ★ Un pulsante crea un rapporto diagnostico completo, senza alcun elenco personale dentro — quanto basta per segnalare un problema senza rivelare nulla.
