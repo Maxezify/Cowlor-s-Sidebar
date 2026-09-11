@@ -1239,6 +1239,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     PREVIEW_PRELOAD_ENABLED:     true,
     PREVIEW_PRELOAD_CONCURRENCY: 3,
     PREVIEW_PRELOAD_MAX:         200,
+
+    PREVIEW_HOVER_DELAY: 200,
+
     PREVIEW_IFRAME_DELAY: 150,
 
     PREVIEW_IFRAME_QUALITY: '360p30',
@@ -4773,6 +4776,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
         frise: { resident: frises.size, max: CFG.CATEGORY_TRAIL_MAX, ...bilanFrises },
 
+        survol: { delaiMs: CFG.PREVIEW_HOVER_DELAY, ...preview.bilanSurvol() },
+
         subathons: (() => {
           const v = { nom: 0, thon: 0, tag: 0 };
           let detectes = 0, sansJour = 0;
@@ -5390,6 +5395,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     let flagRemoveTimer = null;
     let currentLogin = null;
     let currentCard = null;
+
+    let pendingCard = null;
+    let pendingTimer = null;
+
+    const bilanSurvol = { armes: 0, ouverts: 0, annules: 0, detaches: 0 };
 
     const metaCache = new Map();
     const META_TTL = 60_000;
@@ -6354,6 +6364,27 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
+    const annulerAttente = (raison) => {
+      if (!pendingTimer && !pendingCard) return;
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+      pendingCard = null;
+      if (raison === 'detache') bilanSurvol.detaches++; else bilanSurvol.annules++;
+    };
+
+    const armerAttente = (card) => {
+      annulerAttente();
+      bilanSurvol.armes++;
+      pendingCard = card;
+      pendingTimer = setTimeout(() => {
+        pendingTimer = null;
+        const cible = pendingCard;
+        pendingCard = null;
+        if (!cible || !cible.isConnected) { bilanSurvol.detaches++; return; }
+        bilanSurvol.ouverts++;
+        open(cible);
+      }, CFG.PREVIEW_HOVER_DELAY);
+    };
+
     const close = () => {
       removeIframe();
       currentLogin = null;
@@ -6484,8 +6515,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (t !== card) return;
         if (card === currentCard) return;
 
-        close();
-        open(card);
+        if (card === pendingCard) return;
+
+        if (currentCard) close();
+
+        armerAttente(card);
       }, true);
 
       document.addEventListener('mouseleave', (e) => {
@@ -6494,26 +6528,31 @@ const TSE_GATE_MAX_CLICKS = 5;
         const card = resolveCard(t);
         if (!card) return;
         if (t !== card) return;
-        if (card !== currentCard) return;
+
+        if (card !== currentCard && card !== pendingCard) return;
 
         requestAnimationFrame(() => {
-          if (card !== currentCard) return;
+
+          if (card !== currentCard && card !== pendingCard) return;
           const under = document.elementFromPoint(lastMouseX, lastMouseY);
           if (under && card.contains(under)) {
 
             return;
           }
-          close();
+          if (card === pendingCard) annulerAttente();
+          if (card === currentCard) close();
         });
       }, true);
 
       document.addEventListener('visibilitychange', () => {
-        if (document.hidden) close();
+        if (document.hidden) { annulerAttente(); close(); }
       });
 
       document.documentElement.addEventListener('mouseleave', () => {
         lastMouseX = -1;
         lastMouseY = -1;
+
+        annulerAttente();
         close();
       });
     };
@@ -6521,11 +6560,17 @@ const TSE_GATE_MAX_CLICKS = 5;
     return {
       init,
 
-      closeIfDetached: () => { if (currentCard && !currentCard.isConnected) close(); },
+      closeIfDetached: () => {
+
+        if (pendingCard && !pendingCard.isConnected) annulerAttente('detache');
+        if (currentCard && !currentCard.isConnected) close();
+      },
 
       prune: () => pruneCache(metaCache, META_TTL, CFG.META_CACHE_MAX),
 
       journal: () => journalApercu.slice(),
+
+      bilanSurvol: () => ({ ...bilanSurvol }),
 
       bilanChapitres: () => ({ ...bilanChapitres,
 
