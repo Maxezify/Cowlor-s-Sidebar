@@ -623,6 +623,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
       uiSubathonShort:           (n) => `J${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · jour ${n}`,
       uiTrailOthers:             (n) => `+ ${n} autres catégories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
@@ -705,6 +706,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
       uiSubathonShort:           (n) => `D${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · day ${n}`,
       uiTrailOthers:             (n) => `+ ${n} other categories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
@@ -782,6 +784,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
       uiSubathonShort:           (n) => `T${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · Tag ${n}`,
       uiTrailOthers:             (n) => `+ ${n} weitere Kategorien`,
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
@@ -859,6 +862,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
       uiSubathonShort:           (n) => `D${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subatón' : `Subatón · día ${n}`,
       uiTrailOthers:             (n) => `+ ${n} categorías más`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
@@ -936,6 +940,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
       uiSubathonShort:           (n) => `D${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · dia ${n}`,
       uiTrailOthers:             (n) => `+ ${n} outras categorias`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
@@ -1013,6 +1018,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
       uiSubathonShort:           (n) => `G${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · giorno ${n}`,
       uiTrailOthers:             (n) => `+ altre ${n} categorie`,
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
       uiBadgeCostreamHost:       'Stream host',
@@ -1090,6 +1096,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
       uiSubathonShort:           (n) => `D${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · dzień ${n}`,
       uiTrailOthers:             (n) => `+ ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'inne kategorie' : 'innych kategorii'}`,
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
       uiBadgeCostreamHost:       'Kanał gospodarza',
@@ -1167,6 +1174,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
       uiSubathonShort:           (n) => `Д${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Сабатон' : `Сабатон · день ${n}`,
       uiTrailOthers:             (n) => `+ ещё ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'категории' : 'категорий'}`,
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
       uiBadgeCostreamHost:       'Канал ведущего',
@@ -1244,6 +1252,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                '進行中',
       uiTrailTruncated:          '冒頭は未保持',
       uiSubathonShort:           (n) => `${n}日目`,
+      uiBadgeSubathon:           (n) => n === null ? 'サブアソン' : `サブアソン · ${n}日目`,
       uiTrailOthers:             (n) => `ほか ${n} カテゴリー`,
       uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
       uiBadgeCostreamHost:       'ホスト配信',
@@ -1321,6 +1330,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailNow:                '进行中',
       uiTrailTruncated:          '开头未保留',
       uiSubathonShort:           (n) => `第${n}天`,
+      uiBadgeSubathon:           (n) => n === null ? '订阅马拉松' : `订阅马拉松 · 第${n}天`,
       uiTrailOthers:             (n) => `另外 ${n} 个分类`,
       uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
       uiBadgeCostreamHost:       '主办直播',
@@ -2769,6 +2779,53 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
 
+    /* ══ L'ARC-EN-CIEL DU SUBATHON ═════════════════════════════════════
+       Un subathon est un événement exceptionnel : il se signale par une
+       couleur qui n'appartient à personne, parce qu'elle les traverse toutes.
+       Huit arrêts, un fondu de l'un à l'autre, douze secondes pour le tour.
+
+       LE CONTRASTE EST TENU SUR TOUT LE CHEMIN, ET NON AUX SEULS ARRÊTS. C'est
+       le piège de cette animation : le navigateur interpole en sRGB entre deux
+       arrêts, et le milieu d'un segment n'est ni l'un ni l'autre — un rouge et
+       un vert voisins se croisent en un olive terne, plus sombre que les deux.
+       Le chemin ENTIER a donc été échantillonné, pas seulement les huit
+       couleurs écrites ci-dessous.
+
+       ET LA CLARTÉ NE SE DEVINE PAS DE LA TEINTE. À clarté HSL égale, un bleu
+       pèse trois fois moins qu'un jaune en luminance : un arc-en-ciel posé à
+       la même clarté partout s'éteint sur le bleu et le violet. Les huit textes
+       sont donc à saturation et clarté constantes, et c'est le FOND du badge
+       qui est recalculé teinte par teinte pour tenir le contraste.
+
+       CE QUE ÇA DONNE, MESURÉ SUR TOUT LE CHEMIN :
+         • texte sur les trois fonds de carte : jamais moins de 6,87:1, quand
+           le plancher d'un petit texte est à 4,5:1 ;
+         • texte sur le fond composé du badge : 7,03 à 7,41:1, quand la famille
+           des badges tient entre 6,38 et 7,67:1. L'arc-en-ciel est donc plus
+           CONSTANT que les badges fixes qui l'entourent. */
+    @keyframes tse-subathon-teinte {
+      0% { color: #ff8f8f; }
+      12.5% { color: #ffe38f; }
+      25% { color: #c7ff8f; }
+      37.5% { color: #8fffb4; }
+      50% { color: #8ffdff; }
+      62.5% { color: #8fabff; }
+      75% { color: #c78fff; }
+      87.5% { color: #ff8fe3; }
+      100% { color: #ff8f8f; }
+    }
+    @keyframes tse-subathon-badge {
+      0% { color: #ff8f8f; background-color: rgba(214, 0, 0, 0.24); }
+      12.5% { color: #ffe38f; background-color: rgba(255, 230, 154, 0.24); }
+      25% { color: #c7ff8f; background-color: rgba(216, 255, 177, 0.24); }
+      37.5% { color: #8fffb4; background-color: rgba(177, 255, 203, 0.24); }
+      50% { color: #8ffdff; background-color: rgba(177, 254, 255, 0.24); }
+      62.5% { color: #8fabff; background-color: rgba(0, 57, 230, 0.24); }
+      75% { color: #c78fff; background-color: rgba(88, 0, 175, 0.24); }
+      87.5% { color: #ff8fe3; background-color: rgba(236, 0, 177, 0.24); }
+      100% { color: #ff8f8f; background-color: rgba(214, 0, 0, 0.24); }
+    }
+
     /* ══ LE SUBATHON, SUR LA CARTE ═══════════════════════════════════════════
        UNE SEULE MARQUE, ET ELLE NE PREND LA PLACE DE RIEN : une pastille qui
        porte le numéro de jour, posée à droite du pseudo. Trois signaux se
@@ -2858,13 +2915,19 @@ const TSE_GATE_MAX_CLICKS = 5;
          cette transparence-là descendrait jusqu'ici — contour compris, puisque
          celui-ci se peint en « currentColor ».
 
-         CONTRASTE MESURÉ SUR LES TROIS FONDS QUE LA CARTE PREND, et non sur le
-         seul fond au repos : la sidebar (#18181b) donne 7,63:1, le fond de
-         survol (#1f1f23) 7,07:1, le fond du panneau (#0e0e10) 8,30:1. Le pire
-         des trois reste au-dessus du plancher de 4,5:1 d'un petit texte, et
-         c'est le pire des trois qui compte — une couleur vérifiée au repos
-         seulement se dégrade exactement au moment où on la regarde. */
-      color: #ff8a5c;
+         LA VALEUR ÉCRITE ICI EST CELLE DU REPOS, et elle n'est pas prise au
+         hasard : c'est le cyan que le calcul des badges désignait avant que
+         l'arc-en-ciel ne les traverse tous — le seul créneau de teinte encore
+         libre (181°, à 34° du sponsor et 35° du co-stream), au contraste de la
+         famille. Elle sert quand le mouvement est refusé, et c'est la seule
+         couleur que verront alors ces utilisateurs : elle méritait d'être
+         choisie, pas tirée au sort. Contraste mesuré sur les trois fonds que
+         la carte prend : 14,26:1 sur la sidebar, 13,22:1 au survol, 15,53:1
+         dans le panneau. */
+      color: #83f9fb;
+      /* L'ARC-EN-CIEL. La pastille ne porte que la teinte : son contour se
+         peint en « currentColor », et suit donc sans qu'on l'anime deux fois. */
+      animation: tse-subathon-teinte 12s linear infinite;
       background: none;
       /* PAS DE « vertical-align », ET CE N'EST PAS UN OUBLI. La valeur demandée
          était « center », qui n'existe pas en CSS — le navigateur écarte la
@@ -2878,9 +2941,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* Mouvement réduit : la demande est explicite, on la respecte. L'or reste
        — c'est lui qui porte l'information — mais plus rien ne bouge. */
     @media (prefers-reduced-motion: reduce) {
-      /* RIEN À FIGER DU CÔTÉ DU SUBATHON : sa seule marque est une pastille
-         immobile, qui n'a donc rien à perdre ici. Le compteur d'ancienneté a
-         repris la couleur de toutes les autres cartes. */
+      /* LE SUBATHON GARDE SA MARQUE ET PERD SON MOUVEMENT. L'arc-en-ciel
+         s'arrête, et ce qui reste n'est pas une couleur au hasard : c'est le
+         cyan que le calcul des badges désignait, écrit en dur dans les deux
+         règles. La pastille et le badge restent donc lisibles, distincts de
+         tous leurs voisins, et parfaitement immobiles. */
+      .tse-subathon-jour,
+      .tse-preview__badge--subathon {
+        animation: none;
+      }
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
       .side-nav-card.tse-sub .tse-sub-cat,
@@ -3350,6 +3419,35 @@ const TSE_GATE_MAX_CLICKS = 5;
        (6,38 à 7,67). Le vert dit « nouveau », ce qui tombe bien : le badge
        annonce une nouvelle, et il s'efface au bout de dix minutes. */
     .tse-preview__badge--switch   { background: rgba(120, 215, 60, 0.24); color: #a8e86b; }
+    /* Subathon. CYAN, et le choix se calcule comme les précédents. Les neuf
+       teintes déjà prises laissent un seul trou large : entre le vert du
+       sponsor (147°) et le bleu du co-stream (216°), soit 69° — l'optimum y
+       est à 181°, à 34° du premier et 35° du second. Les quatre autres trous
+       ne laissaient que 23 à 28° au voisin le plus proche.
+
+       LE CONTRASTE EST CELUI DE LA FAMILLE, mesuré sur le fond COMPOSÉ du
+       badge — sa couleur translucide par-dessus le #18181b du popup — et non
+       sur le popup nu : 7,06:1, pour une famille qui tient entre 6,38 (le
+       co-stream) et 7,67 (la réduction). On se pose au milieu.
+
+       SATURATION ET CLARTÉ DANS L'ENVELOPPE DE LA FAMILLE, aussi : S 94 %,
+       L 75 % — le texte des autres badges tient entre 36 et 100 % de
+       saturation et 64 et 85 % de clarté. Un premier calcul ne visait que la
+       teinte et le contraste, et rendait un cyan à 60 % de clarté : juste sur
+       les deux chiffres visés, et néon à côté de ses voisins. */
+    /* Subathon : LE SEUL BADGE QUI N'A PAS DE COULEUR, parce qu'il les
+       traverse toutes — un événement exceptionnel ne se range pas dans la
+       palette des autres. Les valeurs écrites ici sont celles du REPOS, quand
+       le mouvement est refusé, et elles ont été choisies par le même calcul
+       que leurs voisines : le cyan occupait le seul créneau de teinte encore
+       libre — 181°, à 34° du vert du sponsor et 35° du bleu du co-stream, les
+       quatre autres trous ne laissant que 23 à 28° — pour 7,06:1 sur son fond
+       composé, quand la famille tient entre 6,38 et 7,67:1. */
+    .tse-preview__badge--subathon {
+      background: rgba(10, 250, 255, 0.26);
+      color: #83f9fb;
+      animation: tse-subathon-badge 12s linear infinite;
+    }
     /* Les pictogrammes d'avertissement. line-height: 1 les empêche de
        rehausser le badge : un emoji dépasse sa boîte em, et sans cela la
        pastille grandissait d'un pixel ou deux par rapport aux autres. */
@@ -3612,16 +3710,46 @@ const TSE_GATE_MAX_CLICKS = 5;
       background-image: repeating-linear-gradient(45deg,
         rgba(255, 255, 255, 0.16) 0 3px, rgba(255, 255, 255, 0.04) 3px 6px);
     }
+    /* LA PART INCONNUE QUI S'ESTOMPE : trois classes dans le sélecteur, et il
+       les faut toutes. La règle des clips en porte deux, celle de la part
+       inconnue deux aussi, et chacune écrit « background-image » en entier —
+       la dernière déclarée l'emporterait et emporterait le fondu avec elle.
+       Ici les deux couches s'empilent dans UNE déclaration : la hachure de la
+       part inconnue par-dessus, le fondu dessous. Pas la hachure des clips :
+       cette part-là n'est pas un segment approché, c'est du temps que rien ne
+       couvre, et elle doit se lire comme tel quelle que soit la source. */
+    .tse-preview__frise .tse-preview__frise-part--inconnu.tse-preview__frise-part--flou {
+      background-image:
+        repeating-linear-gradient(45deg,
+          rgba(255, 255, 255, 0.16) 0 3px, rgba(255, 255, 255, 0.04) 3px 6px),
+        linear-gradient(90deg,
+          transparent 0 calc(100% - var(--tse-flou, 0%)),
+          var(--tse-flou-de, transparent) calc(100% - var(--tse-flou, 0%)),
+          var(--tse-flou-vers, transparent) 100%);
+    }
     /* ── LA LISTE ───────────────────────────────────────────────────────────
        Elle porte le sens ; le ruban n'en est que la forme. */
     .tse-preview__frise-liste { margin: 9px 0 0; padding: 0; list-style: none; }
+    /* ── LA RANGÉE S'ALIGNE SUR LES LIGNES DE BASE, PAS SUR LES MILIEUX ──────
+       Le « ×8 » est écrit plus petit que le nom qu'il compte (10,5 px contre
+       12). Centrés verticalement, deux corps différents ne reposent PAS sur la
+       même ligne : mesuré, la base du « ×8 » tombait 0,81 px au-dessus de
+       celle de « Discussions ». Moins d'un pixel, et parfaitement visible —
+       un utilisateur l'a vu avant le banc, parce qu'une liste en donne huit
+       exemplaires l'un sous l'autre et que l'œil lit la colonne, pas la ligne.
+
+       On aligne donc sur les lignes de base. La PASTILLE de couleur, elle,
+       reste centrée : c'est un trait de 14 px sans texte, dont la « ligne de
+       base » est le bord inférieur — alignée comme du texte, elle plongerait
+       sous la rangée. */
     .tse-preview__frise-ligne {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       gap: 8px;
       font-size: 12px;
       line-height: 1.6;
     }
+    .tse-preview__frise-ligne > .tse-preview__frise-puce { align-self: center; }
     /* LA PASTILLE EST UNE TRANCHE DU RUBAN. Un carré plat ne ressemblait à
        rien de ce qu'il nommait ; un trait vertical, arrondi et dégradé comme
        les parts, se reconnaît immédiatement dans la barre au-dessus. */
@@ -4653,6 +4781,15 @@ const TSE_GATE_MAX_CLICKS = 5;
   // ID numérique d'une chaîne si on l'a déjà appris, sinon null.
   // Sert de clé à la résolution Guest Star (cf. module co-stream).
   const getChannelId = (login) => cache.get(login)?.id ?? null;
+
+  /* Le subathon d'une chaîne, tel que le dernier relevé l'a vu. Lecture SANS
+     borne de fraîcheur, contrairement à `getFreshChannel` : le badge de
+     l'aperçu doit montrer ce qu'on sait, et une entrée un peu vieille dit la
+     même chose qu'une fraîche — un subathon ne cesse pas d'en être un en
+     trente secondes. Rendre null sur une entrée périmée ferait disparaître le
+     badge d'un survol à l'autre alors que la carte, elle, garde sa pastille :
+     deux surfaces qui se contredisent sur la même donnée. */
+  const subathonDe = (login) => cache.get(login)?.subathon ?? null;
 
   // Entrée de cache ENCORE FRAÎCHE, ou null. Lecture pure : n'enfile rien.
   // C'est le chemin rapide des scans — un simple lookup de Map, sans promesse
@@ -8830,6 +8967,24 @@ const TSE_GATE_MAX_CLICKS = 5;
      disparaît avec — le relevé suivant la repose, ce qui est précisément ce
      qu'« idempotente » veut dire. */
   const appliquerSubathon = (card, sub) => {
+    /* ── TROIS ÉTATS, ET NON DEUX ─────────────────────────────────────────
+       `undefined` ne veut pas dire « ce n'est pas un subathon » : il veut dire
+       QU'ON N'EN SAIT RIEN, et les deux ne se traitent pas pareil. Seule une
+       réponse de TseChannels fait autorité — elle pose toujours le champ, à
+       `null` quand le titre ne dit rien. L'AMORCE du mode Top Chaînes, elle,
+       est bâtie à la main depuis le classement : le classement ne demande pas
+       les titres (il en pèserait mille six cents pour une marque décorative),
+       donc elle ne porte pas ce champ du tout.
+
+       C'EST LE DÉFAUT QU'UN UTILISATEUR A VU : « en Top Chaînes, l'élément J…
+       clignote toutes les trente secondes ». `processCard` applique l'amorce
+       AVANT d'attendre la requête — la pastille disparaissait — puis la
+       réponse la reposait. Une fois par relevé, indéfiniment. Traiter
+       l'absence d'information comme une information est exactement ce que
+       tout ce module refuse de faire ailleurs : ici on ne touche à rien, et
+       la réponse tranchera. `null`, lui, défait bien la marque : c'est ainsi
+       qu'un streamer qui retire « subathon » de son titre la perd. */
+    if (sub === undefined) return;
     const titre = () => card.querySelector('p[data-a-target="side-nav-title"]');
     const nom   = () => card.querySelector(
       'p[data-a-target="side-nav-title"] > .tse-subathon-nom');
@@ -10596,7 +10751,25 @@ const TSE_GATE_MAX_CLICKS = 5;
       // L'information est dans la liste ; la barre n'en est que la forme.
       barre.setAttribute('aria-hidden', 'true');
       if (f.inconnuMs) {
-        barre.appendChild(frisePart(f.inconnuMs, null, 'tse-preview__frise-part--inconnu'));
+        /* ── LA BORNE DU PREMIER CLIP EST DOUTEUSE ELLE AUSSI ──────────────
+           Le premier segment commence au premier clip qui le PROUVE. Mais la
+           catégorie, elle, avait commencé avant — quelque part entre le départ
+           du direct et ce clip, et rien ne dit où. L'intervalle douteux est
+           donc la part inconnue TOUT ENTIÈRE, d'où un fondu à 100 % : il ne
+           dit pas « c'était cette catégorie », il dit « ça l'est devenu
+           quelque part là-dedans », ce qui est exactement ce qu'on sait.
+
+           La hachure reste par-dessus : cette part demeure du temps que nul
+           clip ne couvre, et le fondu ne le rachète pas. Sur une frise de
+           CHAPITRES, rien de tout cela — le VOD donne l'heure du premier
+           changement, et la borne est nette. */
+        const prem = f.segments[0];
+        const flouInc = f.source === 'clips' && prem
+          ? { part: 100, de: 'transparent',
+              vers: couleurs.get(prem.jeu) || 'rgba(255,255,255,0.22)' }
+          : null;
+        barre.appendChild(frisePart(f.inconnuMs, null,
+          'tse-preview__frise-part--inconnu', flouInc));
       }
       for (const seg of f.segments) {
         /* LE DOUTE SUR LA BORNE DE DROITE, converti en part de CE segment.
@@ -10624,6 +10797,20 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       const liste = document.createElement('ul');
       liste.className = 'tse-preview__frise-liste';
+      /* ── LA VAGUE, ET CE QU'ELLE QUALIFIE EXACTEMENT ────────────────────
+         Sur une frise de clips, la durée d'une catégorie est une APPROCHE :
+         ses bornes sont les instants où un clip prouve qu'elle était en cours,
+         et le vrai début est antérieur. « ~2h28 » le dit en un caractère.
+
+         ELLE NE SE POSE PAS SUR TOUT, et c'est ce qui lui donne son sens. La
+         part « avant le premier clip » va du départ du direct au premier clip :
+         deux instants CONNUS, donc une durée exacte. Le total de l'en-tête est
+         la durée du direct, exacte elle aussi. Mettre la vague partout la
+         rendrait décorative ; ne la mettre que sur l'approché la rend lisible.
+
+         Un caractère plutôt qu'un mot : « ~ » se lit dans les dix langues de
+         l'interface, et une notation n'a pas à être traduite. */
+      const approche = (t) => (f.source === 'clips' ? '~' : '') + t;
       // Dans l'ordre du temps : ce qu'on n'a pas vu, ce qu'on a laissé
       // tomber, puis ce qu'on a gardé.
       if (f.inconnuMs) {
@@ -10640,7 +10827,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       for (const c of montrees) {
         liste.appendChild(friseLigne(
           c.libelle,
-          formatDuree(c.dureeMs) + (c.encours ? ` · ${S.uiTrailNow}` : ''),
+          approche(formatDuree(c.dureeMs)) + (c.encours ? ` · ${S.uiTrailNow}` : ''),
           couleurs.get(c.jeu),
           c.encours ? 'encours' : '',
           c.fois));
@@ -10648,7 +10835,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (repliees.length) {
         liste.appendChild(friseLigne(
           S.uiTrailOthers(repliees.length),
-          formatDuree(repliees.reduce((n, c) => n + c.dureeMs, 0)),
+          approche(formatDuree(repliees.reduce((n, c) => n + c.dureeMs, 0))),
           null, 'autres'));
       }
       bloc.appendChild(liste);
@@ -10699,6 +10886,21 @@ const TSE_GATE_MAX_CLICKS = 5;
         badges.unshift(badgeNoeud('tse-preview__badge--switch',
           phraseAvecFente(S.uiBadgeCategorySwitch(FENTE),
                           () => nomsEnGras([bascule.libelle || bascule.vers]))));
+      }
+
+      /* Badge de subathon. Il se pose APRÈS la nouvelle du basculement et
+         AVANT le badge d'abonnement : une nouvelle se lit d'abord, puis ce que
+         la chaîne EST en train de faire, puis le lien qu'on a avec elle. Le
+         numéro de jour peut manquer — un titre qui dit « Subathon » sans le
+         compter reste un subathon — et le libellé le sait : il rend alors le
+         seul nom de l'événement, sans inventer un « jour 1 ».
+
+         MÊME COULEUR QUE LA PASTILLE de la carte, et c'est le but : la même
+         chose dite à deux endroits doit se dire de la même couleur. */
+      const sub = subathonDe(login);
+      if (sub) {
+        badges.push(badgeNoeud('tse-preview__badge--subathon',
+                               S.uiBadgeSubathon(sub.jour)));
       }
 
       // Badge d'abonnement, en TÊTE : c'est le signal le plus personnel de

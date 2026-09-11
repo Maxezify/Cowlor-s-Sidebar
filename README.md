@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 790 Ko | 328 Ko | 3 019 → **2** |
+| `content.js` | 803 Ko | 332 Ko | 3 024 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 54 Ko | 27 Ko | 72 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **988 Ko** | **460 Ko** | **−53 %** |
+| **les cinq** | **1001 Ko** | **464 Ko** | **−54 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -355,7 +355,7 @@ qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
 d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 3 019
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 3 024
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches
@@ -2531,6 +2531,113 @@ Le signe et l'amplitude — deux entiers, `repliEcartMinMin` et
 deviner. C'est la troisième fois que la même discipline s'applique : un
 compteur qui agrège des causes contraires ne renseigne sur aucune.
 
+## L'arc-en-ciel du subathon, et trois corrections de frise (v3.93)
+
+### Un badge dans l'aperçu, et une couleur qui les traverse toutes
+
+Un subathon est un événement exceptionnel. Il porte désormais son propre badge —
+`Subathon · jour 10` — et, pour le dire, une couleur qui n'appartient à personne
+parce qu'elle les parcourt toutes : huit arrêts, un fondu de l'un à l'autre,
+douze secondes pour le tour. La pastille `J…` de la carte suit la même.
+
+**Le contraste est tenu sur tout le chemin, et non aux seuls arrêts.** C'est le
+piège de cette animation : le navigateur interpole en sRGB entre deux arrêts, et
+le milieu d'un segment n'est ni l'un ni l'autre — un rouge et un vert voisins se
+croisent en un olive terne, plus sombre que les deux. Le chemin entier a donc
+été échantillonné, pas seulement les huit couleurs écrites.
+
+**Et la clarté ne se devine pas de la teinte.** À clarté HSL égale, un bleu pèse
+trois fois moins qu'un jaune en luminance : un arc-en-ciel posé à la même clarté
+partout s'éteint sur le bleu et le violet. Les huit textes sont donc à
+saturation et clarté constantes, et c'est le **fond du badge** qui est recalculé
+teinte par teinte.
+
+| Mesuré sur les 40 pas du cycle | Résultat |
+|---|---|
+| texte sur les trois fonds de carte | jamais moins de **6,87:1** (plancher : 4,5:1) |
+| texte sur le fond composé du badge | **7,03 à 7,41:1** |
+| la famille des badges fixes, pour comparaison | 6,38 à 7,67:1 |
+
+L'arc-en-ciel est donc **plus constant** que les badges fixes qui l'entourent.
+Un mutant qui pose un bleu « à clarté naïve » à un seul arrêt fait tomber la
+pastille à **2,71:1** — c'est exactement ce que ce calcul existe pour empêcher.
+
+**Le mouvement réduit garde la couleur et perd le mouvement.** Ce qui reste
+n'est pas une teinte au hasard : c'est le cyan que le calcul des badges
+désignait — le seul créneau de teinte encore libre, à 181°, à 34° du vert du
+sponsor et 35° du bleu du co-stream, pour 7,06:1 sur son fond composé. Les
+utilisateurs qui refusent le mouvement ne verront que celle-là : elle méritait
+d'être choisie, pas tirée au sort.
+
+### Le clignotement de « Top Chaînes »
+
+« L'élément `J…` clignote toutes les 30 secondes. » La cause n'était pas dans
+l'animation.
+
+Une carte du classement est décorée **deux fois par relevé** : d'abord avec une
+amorce bâtie à la main depuis le classement, puis avec la réponse de
+`TseChannels`. Le classement ne demande pas les titres — il en pèserait mille
+six cents pour une marque décorative — donc l'amorce n'a rien à dire du
+subathon. Et **une absence de champ se lisait comme « ce n'en est pas un »** :
+la pastille tombait à l'amorce et revenait à la réponse. Une fois par relevé,
+indéfiniment.
+
+Trois états, donc, et non deux : `undefined` veut dire *on n'en sait rien* et ne
+touche à rien ; `null` veut dire *on sait que non* et défait la marque. Traiter
+l'absence d'information comme une information est exactement ce que le reste du
+module refuse de faire.
+
+Le banc l'échantillonne **image par image** — le trou durait le temps d'un
+aller-retour réseau. Deux relevés, une lecture à chaque rafraîchissement
+d'écran, zéro absence tolérée.
+
+### La vague, et ce qu'elle qualifie exactement
+
+Sur une frise de clips, la durée d'une catégorie est une **approche** : ses
+bornes sont les instants où un clip prouve qu'elle était en cours, et le vrai
+début est antérieur. `~2h28` le dit en un caractère.
+
+Elle ne se pose pas sur tout, et c'est ce qui lui donne son sens :
+
+| | Exact | Approché |
+|---|---|---|
+| total de l'en-tête (durée du direct) | `8h36` | |
+| avant le premier clip (deux instants connus) | `40m` | |
+| durée d'une catégorie | | `~2h28` |
+
+Une vague posée partout serait décorative ; posée sur le seul approché, elle se
+lit. Le banc exige les **deux sens** — présente sur les catégories, absente sur
+les deux durées exactes — faute de quoi un préfixe collé à toutes les durées
+passerait le contrôle.
+
+### La borne du premier clip s'estompe aussi
+
+Le premier segment commence au premier clip qui le **prouve**. Mais la
+catégorie, elle, avait commencé avant — quelque part entre le départ du direct
+et ce clip, et rien ne dit où. L'intervalle douteux est donc la part inconnue
+**tout entière**, d'où un fondu à 100 % : il ne dit pas « c'était cette
+catégorie », il dit « ça l'est devenu quelque part là-dedans ».
+
+La hachure reste par-dessus, parce que le fondu ne rachète pas l'ignorance. Sur
+une frise de **chapitres**, rien de tout cela : le VOD donne l'heure du premier
+changement comme celle des suivants, et en estomper une serait avouer un doute
+qu'on n'a pas.
+
+### Le « ×8 » ne reposait pas sur la même ligne que son nom
+
+Le nombre de retours est écrit plus petit que la catégorie qu'il compte —
+10,5 px contre 12. La rangée les **centrait**, et deux corps différents centrés
+ne reposent pas sur la même ligne : mesuré, **0,81 px** d'écart.
+
+Moins d'un pixel, et parfaitement visible — parce qu'une liste en donne huit
+exemplaires l'un sous l'autre, et que l'œil lit la colonne, pas la ligne. Un
+utilisateur l'a vu avant le banc.
+
+La rangée s'aligne désormais sur les **lignes de base**. La pastille de couleur,
+elle, reste centrée : c'est un trait de 14 px sans texte, dont la « ligne de
+base » est le bord inférieur — alignée comme du texte, elle plongerait sous la
+rangée.
+
 ## La sidebar qui se vidait, et pourquoi rien ne le disait (v3.92)
 
 Un utilisateur : « de temps en temps, l'ensemble de mes chaînes suivies a
@@ -4097,7 +4204,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 92 scénarios, 861 assertions |
+| `npm test` | le harnais Playwright : 93 scénarios, 872 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
