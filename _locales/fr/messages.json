@@ -14,6 +14,9 @@
   "panelSubtitle": {
     "message": "Données et diagnostic"
   },
+  "grpGuide": {
+    "message": "Bien démarrer"
+  },
   "grpData": {
     "message": "Vos données"
   },
@@ -22,6 +25,12 @@
   },
   "grpGlobal": {
     "message": "Top Chaînes"
+  },
+  "navGuide": {
+    "message": "Mode d'emploi"
+  },
+  "descGuide": {
+    "message": "Tout ce que l'extension ajoute à votre barre latérale, avec des exemples. Rien à régler : c'est déjà actif."
   },
   "navScores": {
     "message": "Scores de popularité"
@@ -335,5 +344,131 @@
   },
   "btnClose": {
     "message": "Fermer"
+  },
+  "guideIntro": {
+    "message": "L'extension n'a aucun réglage : elle fonctionne dès que vous rechargez une page Twitch. Ce qui suit est la liste de ce qu'elle ajoute, dans l'ordre où vous allez la rencontrer."
+  },
+  "guideHoverTitre": {
+    "message": "L'aperçu au survol"
+  },
+  "guideHoverTexte": {
+    "message": "Posez le pointeur sur une chaîne et laissez-le un instant : une fenêtre s'ouvre à côté, avec la vidéo en direct — pas une miniature figée —, le titre complet, et des badges qui résument le contexte.\n• Un court délai avant l'ouverture : traverser la liste pour aller ailleurs n'ouvre rien.\n• Partout dans la barre latérale : chaînes suivies, recommandations, « les spectateurs de X regardent aussi ».\n• La publicité est retirée de cette vignette-là, et de rien d'autre : le direct que vous regardez n'est jamais touché."
+  },
+  "guideDureeTitre": {
+    "message": "Depuis combien de temps il diffuse"
+  },
+  "guideDureeTexte": {
+    "message": "Sous le nombre de spectateurs, chaque carte porte la durée du direct. Elle se met à jour toute seule, sans que vous ayez à ouvrir la chaîne.\n• « 4h19 » se lit quatre heures dix-neuf. Sous l'heure, les minutes seules : « 24m ».\n• Quand le direct s'arrête, le compteur passe à « Terminé » en italique — souvent avant que Twitch ne retire la carte de la liste."
+  },
+  "guideBadgesTitre": {
+    "message": "Les badges de l'aperçu"
+  },
+  "guideBadgesTexte": {
+    "message": "Dans l'aperçu, des pastilles colorées disent le contexte d'un coup d'œil. Chaque couleur appartient à un seul type, et deux badges ne se ressemblent jamais.\n• Les deux verts sont des NOUVELLES, pas des états : ils s'effacent au bout de dix minutes.\n• Le rouge reprend les étiquettes officielles de Twitch (jeux matures, violence explicite, jeux d'argent…) : vous savez avant de regarder.\n• L'or dit depuis combien de temps vous soutenez la chaîne, et se désature quand l'abonnement est révolu."
+  },
+  "guideFriseTitre": {
+    "message": "Précédemment sur ce live"
+  },
+  "guideFriseTexte": {
+    "message": "Vous arrivez au milieu d'un direct de huit heures : que s'est-il passé avant ? L'aperçu le montre — un ruban, une couleur par catégorie, et la liste dessous.\n• Chaque bande est à l'échelle du temps réel : un coup d'œil dit où la soirée est passée.\n• « ×3 » veut dire que le streamer est revenu trois fois sur cette catégorie.\n• Une chaîne qui n'archive pas ses directs ? La frise est reconstruite à partir des clips, et elle le dit.\n• Quand l'heure exacte d'un passage n'est pas connue, la couleur s'estompe au lieu de couper net et la durée porte un « ~ ». Jamais un chiffre inventé."
+  },
+  "guideSubathonTitre": {
+    "message": "Les subathons"
+  },
+  "guideSubathonTexte": {
+    "message": "Un subathon est ce direct que les abonnements prolongent sans fin — des jours, parfois des semaines.\n• Une pastille contre le pseudo donne le jour en cours : vous savez tout de suite où en est l'événement.\n• Pastille et badge traversent un arc-en-ciel. Aucun autre signal du produit n'a cette couleur, parce qu'un événement exceptionnel ne se range pas dans la palette des autres.\n• Rien n'est deviné : c'est le titre du direct et les tags qui le disent, pas la durée. Un subathon en est un dès sa deuxième heure."
+  },
+  "guideCostreamTitre": {
+    "message": "Les co-streams"
+  },
+  "guideCostreamTexte": {
+    "message": "Une pastille violette au coin de l'avatar, avec le nombre de participants : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• L'aperçu dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre 9)."
+  },
+  "guideDebutTitre": {
+    "message": "Les débuts, et les reprises"
+  },
+  "guideDebutTexte": {
+    "message": "Une barre violette qui respire sur le bord gauche d'une carte : ce direct a commencé il y a moins de dix minutes. De quoi attraper les intros. Elle s'éteint d'elle-même.\n• Si le streamer perd sa connexion et revient dans les dix minutes, elle NE se rallume pas : c'est son compteur qui est reparti de zéro, pas son direct.\n• La durée affichée reste celle du direct entier, coupure comprise, et l'aperçu porte un badge qui dit ce qui s'est passé."
+  },
+  "guideAboTitre": {
+    "message": "Vos abonnements, en or"
+  },
+  "guideAboTexte": {
+    "message": "Les chaînes que vous soutenez ne ressemblent plus aux autres : pseudo doré, catégorie dorée, anneau d'or autour de l'avatar et un reflet lent sur la carte.\n• Le tri « Mes abonnements en tête » les remonte toutes en haut, avec leur nombre sur une pastille.\n• L'aperçu dit depuis combien de temps, et s'en souvient quand c'est révolu.\n• Les trois formes comptent : payant, offert, mobile.\n• Rien à configurer, aucun identifiant, aucun mot de passe. Le dernier chapitre dit comment."
+  },
+  "guideTriTitre": {
+    "message": "Trier et filtrer"
+  },
+  "guideTriTexte": {
+    "message": "Six boutons en haut de la liste la réorganisent à la volée :\n• Par spectateurs — le tri de Twitch, propre.\n• Mes abonnements en tête — avec leur total sur une pastille.\n• Par popularité personnelle — d'après vos propres visites, gardées sur votre machine.\n• Par durée du direct — les plus récents en tête, pour attraper les débuts.\n• Par pseudo — l'ordre alphabétique.\n• Les co-streams en tête — pour ne plus rater une collaboration.\nDeux filtres suivent, juste dessous : la catégorie et la langue. Les deux listes ne proposent que ce que vos chaînes diffusent réellement à cet instant — pas de menu interminable."
+  },
+  "guideTopTitre": {
+    "message": "Top Chaînes"
+  },
+  "guideTopTexte": {
+    "message": "Un onglet en haut de la barre latérale, un clic, et elle bascule : à la place de vos chaînes suivies, les trente chaînes les plus regardées de Twitch, en direct.\n• Par catégorie ou par langue — un vrai top trente pour chacune, pas un filtre posé sur une liste anglaise.\n• Tout le reste suit : aperçu, durée, badges, co-streams. Ce sont des cartes comme les autres.\n• Quand le classement ne peut pas être garanti complet, l'extension le dit plutôt que d'inventer.\nUn clic pour y aller, un clic pour revenir. Vos chaînes suivies ne bougent pas d'un pixel."
+  },
+  "guideViteTitre": {
+    "message": "Plus rapide que Twitch, et plus propre"
+  },
+  "guideViteTexte": {
+    "message": "Twitch rafraîchit sa barre latérale rarement : une chaîne qui démarre met deux à quatre minutes à y apparaître, et une qui s'arrête y traîne cinq à dix. L'extension la rafraîchit elle-même toutes les trente secondes — spectateurs, catégorie, langue, durée, arrivées et départs.\n• La liste complète est dépliée à chaque chargement : plus de « Voir plus » à cliquer.\n• Hype trains encombrants, bandeaux de réduction, sections vides, bannières de sponsor : retirés. L'information n'est pas perdue pour autant — elle revient dans l'aperçu, en badge."
+  },
+  "guidePanneauTitre": {
+    "message": "Ce panneau"
+  },
+  "guidePanneauTexte": {
+    "message": "À gauche, les sections. « Vos données » montre ce que l'extension a retenu : vos chaînes les plus visitées, vos heures d'écoute dessinées en semaine, les abonnements repérés. « Diagnostic » ne sert que le jour où quelque chose cloche.\n• Ces sections lisent l'onglet Twitch au premier plan : s'il n'y en a pas, elles le disent. Ce chapitre-ci, lui, s'affiche toujours.\n• « Exporter un rapport » écrit un texte que vous pouvez relire avant de l'envoyer. Il ne contient aucune liste personnelle — ni vos chaînes, ni vos abonnements — seulement des comptes.\n• « Effacer l'historique » remet tout à zéro, définitivement."
+  },
+  "guideVieTitre": {
+    "message": "Vie privée, en clair"
+  },
+  "guideVieTexte": {
+    "message": "• Aucun serveur tiers. L'extension ne parle qu'à l'API publique de Twitch, celle que la page utilise déjà pour s'afficher.\n• Ces appels sont anonymes : aucun jeton de session, aucun cookie n'y est joint. Ils ne peuvent pas être rattachés à votre compte.\n• Une exception, dite tout haut : pour connaître vos abonnements, l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible, au plus une fois toutes les six heures, et jamais si vous êtes déconnecté. Votre navigateur l'authentifie avec ses propres cookies, comme si vous aviez cliqué le lien ; l'extension ne lit ni ne transmet votre jeton.\n• Vos visites, vos abonnements et leur ancienneté restent dans le stockage local de votre navigateur. Effacez les données du site twitch.tv et il n'en reste rien.\n• Aucune permission demandée, aucun traceur, aucune télémétrie. L'extension ne tourne que sur twitch.tv."
+  },
+  "guideBadgeCcl": {
+    "message": "Jeux matures"
+  },
+  "guideBadgeReprise": {
+    "message": "Reprise après coupure"
+  },
+  "guideBadgeSwitch": {
+    "message": "Vient de passer sur Elden Ring"
+  },
+  "guideBadgeCostream": {
+    "message": "Co-stream de Nyxaria"
+  },
+  "guideBadgeSquad": {
+    "message": "En live avec Korbek et 3 autres"
+  },
+  "guideBadgeSub": {
+    "message": "Abonné 9 mois"
+  },
+  "guideBadgeSponsor": {
+    "message": "Sponsorisé par Norvex"
+  },
+  "guideBadgeHype": {
+    "message": "Hype Train"
+  },
+  "guideBadgeDiscount": {
+    "message": "Abonnement à prix réduit"
+  },
+  "guideBadgeSubathon": {
+    "message": "Subathon · JOUR 10"
+  },
+  "guideDemoTitre": {
+    "message": "On finit le donjon, puis questions-réponses"
+  },
+  "guideDemoEnded": {
+    "message": "Terminé"
+  },
+  "guideDemoJour": {
+    "message": "J9"
+  },
+  "guideDemoSuivies": {
+    "message": "Chaînes suivies"
+  },
+  "guideDemoEnCours": {
+    "message": "en cours"
   }
 }

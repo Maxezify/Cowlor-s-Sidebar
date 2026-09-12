@@ -37,6 +37,16 @@
         <div class="vue-actions" id="vue-actions"></div>
       </div>
 
+      <!-- LE GUIDE, ET POURQUOI IL A SON PROPRE CONTENEUR. C'est la seule vue
+           du panneau qui ne montre AUCUNE donnée : elle n'a ni cartouches, ni
+           dessin, ni tableau, et surtout elle ne demande rien à la page. Lui
+           faire emprunter le bloc `#message` — le seul autre à ne porter que
+           du texte — l'aurait centré, borné à 42 caractères et privé de
+           défilement, c'est-à-dire rendu illisible au troisième chapitre.
+           Vide, il ne coûte rien : `hidden` le retire, et la règle est redite
+           dans la feuille puisqu'on lui déclare un display. -->
+      <div class="guide" id="guide" hidden></div>
+
       <div class="resume" id="resume"></div>
 
       <!-- LA PLACE DU DESSIN, entre les cartouches et le tableau. Toutes les
