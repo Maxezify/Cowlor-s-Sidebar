@@ -1270,6 +1270,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     RECONNECT_TTL:       10 * 60_000,
     RECONNECT_MAX:       200,
 
+    RECONNECT_MEMORY_MAX: 600,
+
     CATEGORY_TRAIL_MAX: 500,
 
     CATEGORY_TRAIL_SEGMENTS: 12,
@@ -2309,21 +2311,36 @@ const TSE_GATE_MAX_CLICKS = 5;
   const noterReprise = (login, apres) => {
     const neuf = apres?.stream?.id ? apres.stream : null;
     const memoire = derniersDirects.get(login);
-    if (neuf && memoire && memoire.id !== neuf.id
+
+    if (!neuf) return;
+
+    const memeSession = memoire && memoire.id === neuf.id;
+    let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
+    if (!memeSession && memoire
         && Date.now() - memoire.vu <= CFG.RECONNECT_GAP_MAX) {
       const debut = Date.parse(neuf.createdAt);
       if (Number.isFinite(debut) && Date.now() - debut < CFG.FRESH_MAX_MIN * 60_000) {
         reprises.set(login, { ts: Date.now() });
+        origine = memoire.origine || origine;
         while (reprises.size > CFG.RECONNECT_MAX) {
           reprises.delete(reprises.keys().next().value);
         }
       }
     }
 
-    if (neuf) derniersDirects.set(login, { id: neuf.id, vu: Date.now() });
-    while (derniersDirects.size > CFG.RECONNECT_MAX) {
-      derniersDirects.delete(derniersDirects.keys().next().value);
+    derniersDirects.set(login, { id: neuf.id, vu: Date.now(), origine });
+
+    if (derniersDirects.size > CFG.RECONNECT_MEMORY_MAX) {
+      const parAge = [...derniersDirects.entries()].sort((a, b) => a[1].vu - b[1].vu);
+      for (const [l] of parAge.slice(0, derniersDirects.size - CFG.RECONNECT_MEMORY_MAX)) {
+        derniersDirects.delete(l);
+      }
     }
+  };
+
+  const debutReel = (login, createdAt) => {
+    const m = derniersDirects.get(login);
+    return (m && m.origine) || createdAt;
   };
 
   const repriseFraiche = (login) => {
@@ -4993,10 +5010,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     const ts = card.dataset.tseStartedAt;
     if (!ts) { card.classList.remove('tse-fresh'); return; }
 
-    if (repriseFraiche(card.dataset.tseLogin)) {
-      card.classList.remove('tse-fresh');
-      return;
-    }
     const ageMin = (Date.now() - new Date(ts).getTime()) / 60_000;
     card.classList.toggle('tse-fresh', ageMin >= 0 && ageMin < CFG.FRESH_MAX_MIN);
   };
@@ -6664,13 +6677,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (stream?.createdAt) {
 
       liveLag.observe(card, stream);
-      card.dataset.tseStartedAt = stream.createdAt;
+
+      card.dataset.tseStartedAt = debutReel(card.dataset.tseLogin, stream.createdAt);
       card.dataset.tseOfflineHits = '0';
       delete card.dataset.tseOfflineTs;
 
       delete card.dataset.tseGqlOffline;
       delete card.dataset.tseOffline;
-      renderUptime(card, stream.createdAt);
+
+      renderUptime(card, card.dataset.tseStartedAt);
       updateFreshness(card);
 
       renderViewers(card, data.viewers, getCollabViewers(data.id));

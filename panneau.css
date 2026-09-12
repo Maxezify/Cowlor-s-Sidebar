@@ -247,6 +247,266 @@ html, body {
 .courbe-valeur { fill: var(--texte-doux); font-size: 10px; font-weight: 600;
                  font-variant-numeric: tabular-nums; }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   LE MODE D'EMPLOI
+   ────────────────────────────────────────────────────────────────────────────
+   La seule vue du panneau qui soit un TEXTE LONG, et la seule qui défile pour
+   son propre compte. Les autres tiennent dans leur cadre de tableau ; celle-ci
+   fait deux à trois hauteurs de fenêtre, et c'est voulu — on ne résume pas
+   treize fonctionnalités en un écran sans les rendre toutes également vagues.
+
+   LES MAQUETTES REPRENNENT LA PALETTE DE LA BARRE LATÉRALE, jeton pour jeton :
+   le violet de l'accent, l'or des abonnements, les dix teintes des badges.
+   Elles sont recopiées et non partagées, parce que cette page n'a pas le CSS
+   de content.js — c'est la même frontière que pour les libellés, et la même
+   raison : deux surfaces, deux feuilles, aucun octet qui transite.
+   ══════════════════════════════════════════════════════════════════════════ */
+.guide[hidden] { display: none; }
+.guide {
+  /* min-height: 0, sans quoi un enfant flex refuse de descendre sous la taille
+     de son contenu et c'est la POPUP qui grandirait — jusqu'à sortir ses
+     boutons de pied de la fenêtre, exactement comme le tableau l'a fait. */
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto;
+  /* La barre de défilement vient chercher son espace dans la marge droite du
+     texte plutôt que de le voler à la dernière lettre de chaque ligne. */
+  padding-right: 8px;
+}
+.guide-intro {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--filet); border-left: 2px solid var(--violet);
+  border-radius: var(--r-grand);
+  background: rgba(145, 71, 255, 0.07);
+  font-size: 12.5px; color: var(--texte);
+}
+.guide-chapitre { margin: 0 0 18px; }
+.guide-chapitre:last-child { margin-bottom: 4px; }
+.guide-titre {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 7px; font-size: 13px; font-weight: 700;
+}
+/* Le numéro de chapitre : une pastille, et non un « 1. » collé au titre. On
+   parcourt ce texte en diagonale avant de le lire, et une colonne de chiffres
+   alignés donne le nombre d'étapes d'un coup d'œil. */
+.guide-num {
+  flex: 0 0 auto;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(145, 71, 255, 0.18); color: #c9a6ff;
+  font-size: 10.5px; font-weight: 700; line-height: 18px; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.guide-p { margin: 0 0 6px; font-size: 12.5px; color: var(--texte-doux); }
+.guide-liste { margin: 0 0 6px; padding-left: 0; list-style: none; }
+.guide-liste li {
+  position: relative; padding-left: 14px; margin-bottom: 3px;
+  font-size: 12.5px; color: var(--texte-doux);
+}
+.guide-liste li::before {
+  content: '';
+  position: absolute; left: 3px; top: 7px;
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--texte-faible);
+}
+
+/* ── Le cadre des maquettes ──────────────────────────────────────────────────
+   Un fond enfoncé, comme les cartouches : il dit « ceci est une image de la
+   barre latérale », et non un élément du panneau sur lequel on pourrait
+   cliquer. Rien n'y est interactif, et rien n'y répond au survol.
+
+   IL SE SERRE SUR SON CONTENU, et c'est ce que `inline-block` achète : une
+   maquette de carte fait trois cents pixels de large, et un cadre étendu sur
+   les cinq cent quarante-six de la vue aurait posé un rectangle aux deux tiers
+   vide à côté d'elle. La rangée de badges, elle, déborderait sur une seule
+   ligne : `max-width: 100%` la ramène dans la vue, où elle se replie. */
+.d-cadre {
+  display: inline-block; max-width: 100%;
+  margin: 0 0 8px; padding: 10px 12px;
+  background: var(--fond-creux); border: 1px solid var(--filet);
+  border-radius: var(--r-grand);
+}
+.d-pile { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+
+/* ── La carte de la barre latérale, en petit ─────────────────────────────── */
+/* La largeur est FIXE, et non « 100 % jusqu'à 300 » : dans un cadre qui se
+   serre sur son contenu, un pourcentage n'a pas de référence — il se résout
+   sur le contenu, qui se résout sur lui. Trois cents pixels, c'est à peu près
+   ce que la barre latérale de Twitch mesure une fois dépliée. */
+.d-carte {
+  position: relative; isolation: isolate;
+  display: flex; align-items: center; gap: 9px;
+  width: 300px;
+  padding: 5px 8px; border-radius: 4px;
+}
+.d-avatar {
+  position: relative; flex: 0 0 auto;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, #3a3a44, #26262c);
+}
+/* La pastille de collab, posée au coin de l'avatar comme sur la vraie carte :
+   son anneau est de la couleur du FOND, ce qui la détache du visage sans
+   dessiner de contour. */
+.d-collab {
+  position: absolute; bottom: -3px; right: -3px;
+  min-width: 15px; height: 15px; padding: 0 4px; box-sizing: border-box;
+  background: var(--violet); color: #fff;
+  font-size: 9.5px; font-weight: 700; line-height: 15px; text-align: center;
+  border-radius: 999px; box-shadow: 0 0 0 2px var(--fond);
+  font-variant-numeric: tabular-nums;
+}
+.d-carte-texte { flex: 1 1 auto; min-width: 0; }
+.d-nom {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; color: var(--texte);
+}
+.d-cat { font-size: 11px; color: var(--texte-faible); }
+.d-droite { flex: 0 0 auto; text-align: right; }
+.d-vues {
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px;
+  font-size: 11px; color: var(--texte-doux); font-variant-numeric: tabular-nums;
+}
+.d-point { width: 6px; height: 6px; border-radius: 50%; background: var(--rouge); }
+/* Le compteur de durée : c'est l'ajout du produit, il porte donc la couleur de
+   l'accent. « Terminé » passe en italique atone — l'information reste, le
+   signal s'éteint. */
+.d-uptime {
+  font-size: 11px; font-weight: 600; color: #c9a6ff;
+  font-variant-numeric: tabular-nums;
+}
+.d-uptime--fini { color: var(--texte-faible); font-weight: 400; font-style: italic; }
+
+/* Le direct qui vient de commencer : fond dégradé et barre qui respire, la
+   même que dans la barre latérale, à la même cadence. */
+.d-carte--frais {
+  background: linear-gradient(90deg,
+    rgba(145, 71, 255, 0.18) 0%, rgba(145, 71, 255, 0.06) 40%, transparent 100%);
+}
+.d-carte--frais::before {
+  content: '';
+  position: absolute; left: 0; top: 3px; bottom: 3px;
+  width: 3px; border-radius: 0 3px 3px 0; background: var(--violet);
+  animation: d-respire 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes d-respire {
+  0%, 100% { opacity: 0.7; box-shadow: 0 0 6px var(--violet), 0 0 2px var(--violet); }
+  50%      { opacity: 1;   box-shadow: 0 0 14px var(--violet), 0 0 6px var(--violet); }
+}
+
+/* L'abonnement : or sur le pseudo, or sur la catégorie, anneau d'or autour de
+   l'avatar. Le reflet lent de la vraie carte n'est pas repris — il court sur
+   quinze secondes, personne ne le verrait passer dans une maquette. */
+.d-carte--or {
+  background: linear-gradient(90deg,
+    rgba(255, 196, 92, 0.12) 0%, rgba(255, 196, 92, 0.04) 55%, transparent 100%);
+}
+.d-carte--or .d-nom { color: var(--or); }
+.d-carte--or .d-cat { color: rgba(255, 196, 92, 0.62); }
+.d-carte--or .d-avatar {
+  box-shadow: 0 0 0 2px var(--or), 0 0 9px rgba(255, 196, 92, 0.45);
+}
+
+/* La pastille de jour du subathon, contre le pseudo. Elle traverse l'arc-en-ciel
+   comme son badge, et à la MÊME cadence : les deux sont visibles ensemble dès
+   qu'on survole une carte de subathon, et deux cycles de durées différentes se
+   décaleraient en quelques secondes. */
+.d-jour {
+  padding: 0 5px; border-radius: 999px;
+  font-size: 9.5px; font-weight: 700; line-height: 15px;
+  border: 1px solid currentColor; color: #83f9fb;
+  animation: d-arcenciel 1.5s linear infinite;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── L'aperçu au survol, en petit ────────────────────────────────────────── */
+.d-apercu {
+  width: 300px;
+  background: var(--fond-2); border: 1px solid var(--filet);
+  border-radius: var(--r-grand); overflow: hidden;
+}
+.d-video {
+  position: relative; height: 78px;
+  background: linear-gradient(135deg, #2a2a33 0%, #17171c 60%, #202028 100%);
+}
+.d-live {
+  position: absolute; top: 6px; left: 6px;
+  padding: 0 5px; border-radius: 3px;
+  background: #eb0400; color: #fff;
+  font-size: 9px; font-weight: 700; line-height: 15px; letter-spacing: 0.4px;
+}
+.d-titre {
+  margin: 0; padding: 8px 9px 6px;
+  font-size: 11.5px; font-weight: 600; color: var(--texte);
+}
+.d-apercu .d-badges { padding: 0 9px 9px; }
+
+/* ── Les badges, et leur palette ─────────────────────────────────────────────
+   Recopiée de content.js, teinte pour teinte. Les dix couleurs y sont choisies
+   par le calcul — chaque nouvelle occupe le créneau de teinte le plus large
+   encore libre — et les rapprocher ici les rendrait indistinctes justement là
+   où on les explique. */
+.d-badges { display: flex; flex-wrap: wrap; gap: 5px; }
+.d-badge {
+  display: inline-flex; align-items: center;
+  padding: 1px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 600; line-height: 1.55;
+  background: rgba(255, 255, 255, 0.08); color: var(--texte);
+}
+.d-badge--hype     { background: rgba(255, 105, 5, 0.25);   color: #ffb380; }
+.d-badge--discount { background: rgba(255, 56, 219, 0.20);  color: #ffa3ee; }
+.d-badge--costream { background: rgba(31, 105, 255, 0.25);  color: #7fb3ff; }
+.d-badge--squad    { background: rgba(145, 71, 255, 0.25);  color: #d1b3ff; }
+.d-badge--sponsor  { background: rgba(0, 184, 90, 0.22);    color: #6bdb9d; }
+.d-badge--sub      { background: rgba(255, 201, 102, 0.22); color: #ffd591; }
+.d-badge--ccl      { background: rgba(200, 25, 42, 0.26);   color: #ff868c; }
+.d-badge--switch,
+.d-badge--reprise  { background: rgba(120, 215, 60, 0.24);  color: #a8e86b; }
+.d-badge--subathon {
+  background: rgba(10, 250, 255, 0.26); color: #83f9fb;
+  animation: d-arcenciel 1.5s linear infinite;
+}
+@keyframes d-arcenciel {
+  0%     { color: #ff8f8f; background-color: rgba(214, 0, 0, 0.24); }
+  12.5%  { color: #ffe38f; background-color: rgba(255, 230, 154, 0.24); }
+  25%    { color: #c7ff8f; background-color: rgba(216, 255, 177, 0.24); }
+  37.5%  { color: #8fffb4; background-color: rgba(177, 255, 203, 0.24); }
+  50%    { color: #8ffdff; background-color: rgba(177, 254, 255, 0.24); }
+  62.5%  { color: #8fabff; background-color: rgba(0, 57, 230, 0.24); }
+  75%    { color: #c78fff; background-color: rgba(88, 0, 175, 0.24); }
+  87.5%  { color: #ff8fe3; background-color: rgba(236, 0, 177, 0.24); }
+  100%   { color: #ff8f8f; background-color: rgba(214, 0, 0, 0.24); }
+}
+/* La pastille de jour n'a pas de fond à teinter : l'animation lui donnerait un
+   rectangle coloré qu'elle n'a pas dans la barre latérale. On neutralise donc
+   le fond que les images clés posent, et seule la couleur court. */
+.d-jour { background-color: transparent !important; }
+
+/* ── Le ruban de la frise ────────────────────────────────────────────────── */
+.d-frise { width: 320px; }
+.d-ruban {
+  display: flex; height: 9px; border-radius: 3px; overflow: hidden;
+  margin-bottom: 8px; background: rgba(255, 255, 255, 0.05);
+}
+.d-bande { height: 100%; }
+.d-frise-ligne {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--texte-doux); padding: 1px 0;
+}
+.d-puce { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 2px; }
+.d-frise-jeu { flex: 1 1 auto; min-width: 0; }
+.d-frise-duree {
+  flex: 0 0 auto; color: var(--texte-faible);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Les deux onglets du haut de la barre latérale ───────────────────────── */
+.d-onglets { display: flex; gap: 4px; }
+.d-onglet {
+  padding: 4px 10px; border-radius: var(--r-petit);
+  font-size: 11px; font-weight: 600; color: var(--texte-faible);
+  background: rgba(255, 255, 255, 0.04);
+}
+.d-onglet--actif { background: rgba(145, 71, 255, 0.20); color: #c9a6ff; }
+
 /* ── Tableau ─────────────────────────────────────────────────────────────── */
 .tableau-cadre {
   flex: 1 1 auto; min-height: 0;

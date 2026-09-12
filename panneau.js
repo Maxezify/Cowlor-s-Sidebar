@@ -57,6 +57,9 @@ const COL = {
 };
 
 const SECTIONS = [
+
+  { id: 'guide',   groupe: 'grpGuide', statique: true },
+
   { id: 'scores',  groupe: 'grpData',
     tuiles: (r) => [['sumChannels', fmt.nombre(r.chaines)]] },
 
@@ -294,6 +297,183 @@ const dessinLag = (paquet) => {
   return svg;
 };
 
+const elt = (nom, classe, texte) => {
+  const e = document.createElement(nom);
+  e.className = classe;
+  if (texte !== undefined) e.textContent = texte;
+  return e;
+};
+
+const badgeDemo = (mod, cle) => elt('span', 'd-badge d-badge--' + mod, T(cle));
+
+const demoCarte = (o) => {
+  const carte = div('d-carte' + (o.frais ? ' d-carte--frais' : '')
+                              + (o.or ? ' d-carte--or' : ''));
+  const avatar = div('d-avatar');
+  if (o.collab) avatar.appendChild(elt('span', 'd-collab', o.collab));
+  carte.appendChild(avatar);
+
+  const texte = div('d-carte-texte');
+  const nom = div('d-nom');
+  nom.appendChild(document.createTextNode(o.nom));
+  if (o.jour) nom.appendChild(elt('span', 'd-jour', T('guideDemoJour')));
+  texte.append(nom, div('d-cat', o.cat));
+  carte.appendChild(texte);
+
+  const droite = div('d-droite');
+  const vues = div('d-vues');
+  vues.append(elt('span', 'd-point'), document.createTextNode(NOMBRE.format(o.vues)));
+  droite.append(vues, div('d-uptime' + (o.fini ? ' d-uptime--fini' : ''),
+                          o.fini ? T('guideDemoEnded') : o.duree));
+  carte.appendChild(droite);
+  return carte;
+};
+
+const demoApercu = () => {
+  const hote = div('d-apercu');
+  const video = div('d-video');
+
+  video.appendChild(elt('span', 'd-live', 'LIVE'));
+  hote.append(video, elt('p', 'd-titre', T('guideDemoTitre')));
+  const rangee = div('d-badges');
+  rangee.append(badgeDemo('switch', 'guideBadgeSwitch'),
+                badgeDemo('sub', 'guideBadgeSub'));
+  hote.appendChild(rangee);
+  return hote;
+};
+
+const BADGES_DEMO = [
+  ['ccl',      'guideBadgeCcl'],
+  ['reprise',  'guideBadgeReprise'],
+  ['switch',   'guideBadgeSwitch'],
+  ['costream', 'guideBadgeCostream'],
+  ['squad',    'guideBadgeSquad'],
+  ['sub',      'guideBadgeSub'],
+  ['sponsor',  'guideBadgeSponsor'],
+  ['hype',     'guideBadgeHype'],
+  ['discount', 'guideBadgeDiscount'],
+  ['subathon', 'guideBadgeSubathon'],
+];
+
+const demoBadges = () => {
+  const rangee = div('d-badges');
+  for (const [mod, cle] of BADGES_DEMO) rangee.appendChild(badgeDemo(mod, cle));
+  return rangee;
+};
+
+const FRISE_DEMO = [
+  { jeu: 'Elden Ring', part: 52, duree: '2h10', teinte: '#9147ff' },
+  { jeu: 'Valorant',   part: 26, duree: '1h05', fois: 3, teinte: '#1f69ff' },
+  { jeu: 'Minecraft',  part: 22, duree: '~55m', flou: true, teinte: '#00b85a' },
+];
+
+const demoFrise = () => {
+  const hote = div('d-frise');
+  const ruban = div('d-ruban');
+  for (const b of FRISE_DEMO) {
+    const bande = div('d-bande' + (b.flou ? ' d-bande--flou' : ''));
+    bande.style.width = b.part + '%';
+    bande.style.background = b.flou
+      ? `linear-gradient(90deg, ${b.teinte}, rgba(0, 0, 0, 0))` : b.teinte;
+    ruban.appendChild(bande);
+  }
+  hote.appendChild(ruban);
+  for (const b of FRISE_DEMO) {
+    const ligne = div('d-frise-ligne');
+    const pastille = div('d-puce');
+    pastille.style.background = b.teinte;
+    ligne.append(pastille,
+                 div('d-frise-jeu', b.jeu + (b.fois ? ` ×${b.fois}` : '')),
+                 div('d-frise-duree', b.flou ? `${b.duree} · ${T('guideDemoEnCours')}` : b.duree));
+    hote.appendChild(ligne);
+  }
+  return hote;
+};
+
+const demoOnglets = () => {
+  const hote = div('d-onglets');
+  hote.append(elt('span', 'd-onglet', T('guideDemoSuivies')),
+              elt('span', 'd-onglet d-onglet--actif', T('grpGlobal')));
+  return hote;
+};
+
+const carteEtBadge = (carte, mod, cle) => {
+  const hote = div('d-pile');
+  hote.append(carte, badgeDemo(mod, cle));
+  return hote;
+};
+
+const GUIDE = [
+  { titre: 'guideHoverTitre',    texte: 'guideHoverTexte',    demo: () => demoApercu() },
+  { titre: 'guideDureeTitre',    texte: 'guideDureeTexte',
+    demo: () => {
+      const hote = div('d-pile');
+      hote.append(demoCarte({ nom: 'Nyxaria', cat: 'Elden Ring', vues: 1243, duree: '4h19' }),
+                  demoCarte({ nom: 'Korbek', cat: 'Minecraft', vues: 318, fini: true }));
+      return hote;
+    } },
+  { titre: 'guideBadgesTitre',   texte: 'guideBadgesTexte',   demo: () => demoBadges() },
+  { titre: 'guideFriseTitre',    texte: 'guideFriseTexte',    demo: () => demoFrise() },
+  { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Velmoria', cat: 'Minecraft', vues: 4820, duree: '61h04', jour: true }),
+      'subathon', 'guideBadgeSubathon') },
+  { titre: 'guideCostreamTitre', texte: 'guideCostreamTexte',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Korbek', cat: 'Valorant', vues: 962, duree: '1h47', collab: '3' }),
+      'squad', 'guideBadgeSquad') },
+  { titre: 'guideDebutTitre',    texte: 'guideDebutTexte',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Aeltris', cat: 'Elden Ring', vues: 87, duree: '4m', frais: true }),
+      'reprise', 'guideBadgeReprise') },
+  { titre: 'guideAboTitre',      texte: 'guideAboTexte',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Nyxaria', cat: 'Elden Ring', vues: 1243, duree: '4h19', or: true }),
+      'sub', 'guideBadgeSub') },
+  { titre: 'guideTriTitre',      texte: 'guideTriTexte' },
+  { titre: 'guideTopTitre',      texte: 'guideTopTexte',      demo: () => demoOnglets() },
+  { titre: 'guideViteTitre',     texte: 'guideViteTexte' },
+  { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte' },
+  { titre: 'guideVieTitre',      texte: 'guideVieTexte' },
+];
+
+const corpsGuide = (texte) => {
+  const out = [];
+  let liste = null;
+  for (const brut of String(texte).split('\n')) {
+    const ligne = brut.trim();
+    if (!ligne) continue;
+    if (ligne.startsWith('•')) {
+      if (!liste) { liste = elt('ul', 'guide-liste'); out.push(liste); }
+      liste.appendChild(elt('li', '', ligne.replace(/^•\s*/, '')));
+      continue;
+    }
+    liste = null;
+    out.push(elt('p', 'guide-p', ligne));
+  }
+  return out;
+};
+
+const construireGuide = () => {
+  const blocs = [elt('p', 'guide-intro', T('guideIntro'))];
+  GUIDE.forEach((chapitre, i) => {
+    const section = elt('section', 'guide-chapitre');
+    const titre = elt('h3', 'guide-titre');
+    titre.append(elt('span', 'guide-num', String(i + 1)),
+                 document.createTextNode(T(chapitre.titre)));
+    section.appendChild(titre);
+    if (chapitre.demo) {
+      const cadre = div('d-cadre');
+      cadre.setAttribute('aria-hidden', 'true');
+      cadre.appendChild(chapitre.demo());
+      section.appendChild(cadre);
+    }
+    section.append(...corpsGuide(T(chapitre.texte)));
+    blocs.push(section);
+  });
+  return blocs;
+};
+
 let ongletP = null;
 const idOnglet = () => (ongletP ??= API.tabs
   .query({ active: true, currentWindow: true })
@@ -341,6 +521,18 @@ const montrerMessage = (cle, bouton, detail) => {
   const b = $('message-bouton');
   b.hidden = !bouton;
   if (bouton) b.textContent = T('btnRetry');
+};
+
+const montrerGuide = () => {
+  $('message').hidden = true;
+  $('resume').replaceChildren();
+  $('visuel').hidden = true;
+  $('visuel').replaceChildren();
+  $('tableau-cadre').hidden = true;
+  const g = $('guide');
+  g.replaceChildren(...construireGuide());
+  g.hidden = false;
+  g.scrollTop = 0;
 };
 
 const CAUSES = {
@@ -418,6 +610,8 @@ const peindre = (section, paquet) => {
 const charger = async (id) => {
   courante = id;
   const section = SECTIONS.find((s) => s.id === id);
+
+  $('guide').hidden = true;
   for (const b of document.querySelectorAll('.rail-item')) {
     b.setAttribute('aria-current', String(b.dataset.id === id));
   }
@@ -431,6 +625,8 @@ const charger = async (id) => {
     b.addEventListener('click', () => lancer(a.id, b));
     return b;
   }));
+
+  if (section.statique) { montrerGuide(); return; }
 
   montrerMessage('stateLoading');
   const r = await demander({ section: id });
