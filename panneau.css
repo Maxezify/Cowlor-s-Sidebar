@@ -244,8 +244,6 @@ html, body {
 .courbe-repere { stroke: rgba(255, 255, 255, 0.20); stroke-width: 1; stroke-dasharray: 2 3; }
 .courbe-axe    { stroke: var(--filet); stroke-width: 1; }
 .courbe-texte  { fill: var(--texte-faible); font-size: 9.5px; font-variant-numeric: tabular-nums; }
-.courbe-valeur { fill: var(--texte-doux); font-size: 10px; font-weight: 600;
-                 font-variant-numeric: tabular-nums; }
 
 /* ════════════════════════════════════════════════════════════════════════════
    LE MODE D'EMPLOI

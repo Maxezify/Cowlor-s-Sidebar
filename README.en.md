@@ -326,7 +326,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 840 KB | 339 KB | 3,103 → **2** |
+| `content.js` | 840 KB | 339 KB | 3,110 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 68 KB | 34 KB | 84 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
@@ -2479,6 +2479,96 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## What an audit found (v4.1.1)
+
+A full re-reading of the last four versions — dead code, debug traces, memory
+bounds, cost on hot paths, and above all the gap between what comments promise
+and what the code does. Five points, none visible on screen, all real.
+
+### The resumption registry did not re-insert
+
+`Map` iterates in FIRST-insertion order, and `set` on an existing key does not
+move it. Purging `reprises` therefore evicted the oldest-INSERTED entry — that
+is, on a channel that drops several times, the one just seen again.
+
+This exact trap had already been paid twice in this file, and fixed twice — for
+the trail registry, then for the chapter one, each with its own comment. The
+third registry reproduced it. The `delete` before the `set` is back, and the
+comment now says it is the third time.
+
+Real impact: low — the cap is two hundred simultaneous resumptions. But a defect
+named twice and repeated a third time gets fixed without discussing its impact.
+
+### A counter you had to divide to read
+
+`global.tagsEmpiles` counted the READS rejected by the language-tag rule, while
+the README announced "the number of channels". Not the same thing: a full walk
+comes round every two and a half minutes, so a single stacker present for three
+hours weighed more than seventy.
+
+A number you have to divide by a cadence to interpret is not readable in a pasted
+report — and that is exactly what this file criticises in other counters
+elsewhere. So LOGINS are kept, in a registry bounded like its peers, and the
+report returns its cardinality: "2" means two channels.
+
+### One dead style rule
+
+`.courbe-valeur` was declared in the panel stylesheet and applied nowhere: it
+styled the duration labels on the delay curve, since removed — the drawing had
+made them redundant with the tiles above. The rule outlived what it dressed.
+
+It is the only dead rule in either stylesheet. The twenty-two other classes a
+naive read flags are built by concatenation (`'tuile--' + ton`,
+`'d-badge d-badge--' + mod`) and are very much applied.
+
+### Two readers of the same truth
+
+The "is this a subathon?" guard read `cache.get(login)?.subathon` directly, while
+`subathonDe(login)` exists and says exactly that. Two readers of one field always
+end up saying two different things; one is left.
+
+### What a category's duration absorbs, and did not say
+
+During an outage the trail observes nothing: the ongoing segment extends to now,
+so ITS category's duration counts the dead minutes. "Valorant 2h10" includes the
+three minutes the channel was off.
+
+That is accepted — it is even what the total is asked for, "as if there had been
+no outage" — but it was written nowhere. Splitting the segment and subtracting
+the gap would give a truer number and a less readable trail: two bands of one
+category separated by a hair. The ribbon mark exists so the gap is not invisible,
+and the comment now says so.
+
+### What the audit checked and found nothing
+
+- **No debug traces.** The three `console.log` calls in `content.js` are the
+  public console API (`tse.cycles()`, `tse.apercu()`, `tse.bascules()`), not
+  leftovers. No `TODO`, `FIXME` or `debugger`.
+- **No dead identifier** among the twenty-one added since 3.98: each is declared
+  and read.
+- **No dead `.tse-*` rule** in the sidebar stylesheet — the three a naive read
+  flags are built by concatenation.
+- **Every memory is bounded**: `derniersDirects` (600), `reprises` (200), outage
+  marks (24), stackers (200), trails (500), chapters — and the offline hold is
+  bounded by TIME, which a scenario 95 assertion tests through the report.
+- **All three new counters do reach the pasteable report**: `frise.retenues` /
+  `frise.lachees`, `reseau.chapitres.vodTardif` and `global.tagsEmpiles`. This is
+  the panel's usual trap — a field added to `rapport()` is silently lost without
+  a block — and all three go through blocks that flatten their whole object.
+- **No side entrance into the ranking.** The language-tag rule sits on
+  `readStream`, the single mandatory path; `setViewers`, the third possible door,
+  only updates entries already present and never adds one.
+
+### One redundancy left in place, and why
+
+`friseDe` is computed four times per hover — twice for the ribbon, twice for the
+switch badge — where once would do. That is duplicated work, and it stayed.
+
+The reason is a trade-off, not an oversight: the function is O(n) on small n
+(twelve observed segments, as many chapters in the ordinary case), a few
+microseconds per hover, against reworking two functions covered by some thirty
+assertions. A nil gain against a non-nil risk is declined.
+
 ## Stacked language tags (v4.1)
 
 Language tags are free-form. Nothing stops a streamer from putting ten of them
@@ -2528,9 +2618,13 @@ belongs to you is filtered by this rule.
 
 ### The exclusion is counted
 
-`global.tagsEmpiles` carries the number of channels ruled out for this reason. A
-silent exclusion is one we would never know was biting too hard; this one is
-readable in the report, next to the rest of the ranking's tally.
+`global.tagsEmpiles` carries the number of **distinct channels** ruled out for
+this reason. The first draft counted rejected READS, which is not the same
+thing: a full walk comes round every two and a half minutes, so a single stacker
+present for three hours weighed more than seventy in the report. A number you
+have to divide by a cadence to read is not a readable number. So logins are kept
+— a registry bounded like its peers — and the report returns its cardinality:
+"2" means two channels.
 
 ### Scenario 98
 

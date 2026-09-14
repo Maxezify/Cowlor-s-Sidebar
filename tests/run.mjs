@@ -12550,7 +12550,7 @@ titre('98. Les tags de langue empilés — dix langues n\'en font parler aucune'
   /* L'EXCLUSION SE COMPTE. Une exclusion silencieuse est une exclusion dont on
      ne saura jamais si elle mord trop : le rapport porte le nombre. */
   const bilan = await page.evaluate(() => window.tse.global.report().tagsEmpiles);
-  ok('le rapport dit combien de chaînes ont été écartées pour cela',
+  ok('le rapport dit combien de CHAÎNES distinctes ont été écartées pour cela',
      Number.isFinite(bilan) && bilan >= 2, String(bilan));
 
   /* ── LA SECONDE VOIE D'ENTRÉE ────────────────────────────────────────────
