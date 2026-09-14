@@ -326,7 +326,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 840 KB | 339 KB | 3,086 → **2** |
+| `content.js` | 840 KB | 339 KB | 3,100 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 68 KB | 34 KB | 84 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 913 assertions, under Gecko
+npm run test-firefox        # the same 923 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,147 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## What the VOD knew and we refused to read (v4.0)
+
+Three things, and they share a root: the recording knows more than we do, and
+the previous version had forbidden itself from consulting it.
+
+### 3.99's premise was false, and this file already said so
+
+3.99 refused any chapter request as soon as an outage was known, on the grounds
+that "Twitch opens one recording per SESSION". That was a deduction, not an
+observation — and the counter-evidence had been in the repository since 3.76,
+written inside `segmentsDuVod`:
+
+> A recording can start BEFORE the current stream: that is the reconnection
+> case, where the VOD continues while `createdAt` restarts.
+
+The user report that had those lines written measured the gap: **thirty-nine
+minutes**, on a recording still running. In other words the history from before
+the outage is not lost — it is in the current VOD, and 3.99 had just forbidden
+going to get it.
+
+So there was nothing to add, only a date to fix. Everything in that module
+compares instants to one number — which moments concern this stream, whether the
+recording covers its start, whether the archive list returned the right one —
+and that number was the SEGMENT's start. It had to be the stream's **origin**:
+
+```js
+fetchChapitres(login, flux.id,
+               Date.parse(debutReel(login, flux.createdAt)) || 0)
+```
+
+One line, and the four hours from before the outage come back — including for
+someone who did not have Twitch open.
+
+### The splice must no longer lose what we saw
+
+That left the case where Twitch really would open a new recording. The splice
+put the VOD's chapters first, then only appended our segments if they came LATER
+than the last known one: ours, being older, fell into the `continue` and
+vanished.
+
+That case is not specific to outages either — a channel enabling archiving
+mid-stream produces it too. So what we observed BEFORE the first chapter now
+goes in front: the VOD does not cover it, it has nothing to say about it, and it
+is time we saw with our own eyes. Where the two overlap, the VOD still wins — it
+dates to the second, we date to the next poll.
+
+### Should we go looking for PREVIOUS archives?
+
+The question stands for the one remaining case: a channel that resumed, and for
+which Twitch opened a fresh recording. The history would then be in the previous
+archive, which we could read — `videos(first: 2, sort: TIME)` returns its
+`createdAt` and `lengthSeconds`, hence its end; a gap of under ten minutes from
+the stream's start would say "this is the continuation".
+
+**The answer, today, is no — and it is not a refusal on principle.**
+
+First because that case has never been observed: the only overlap ever measured
+on a reconnection is a VOD that CONTINUES. Then because it would take a fourth
+door, with its own failures to tell apart and instrument, for a gain that may
+not exist. And finally because the splice above already means nothing is LOST in
+that case: what we saw stays, only what we did not see is missing.
+
+And because I could not measure it: the machine this is written on has no access
+to `gql.twitch.tv` — the egress proxy answers 403 to CONNECT. The distribution of
+gaps between two consecutive archives of the same channel is therefore out of
+reach from here.
+
+**So we instrument instead of guessing.** `chapitres.vodTardif` counts served
+recordings that start AFTER the stream's origin — that is, exactly how often the
+second world showed up. At zero across reports carrying resumptions, the door has
+no reason to exist; non-zero, it becomes justified, and we will know by how much.
+
+### The "Just switched to …" badge, learned from the trail
+
+The badge was born of an OBSERVATION: two consecutive polls, same stream id, two
+categories. It could therefore only appear on a channel we were already watching
+at the moment of the change — and it was missing precisely where it helps most.
+Feedback from use shows it: the trail says "7m · ongoing" on a category taken
+seven minutes ago, and no badge says so.
+
+The trail does know: its chapters come from the VOD, which dates changes to the
+second and does not need us to see them. If its last segment is less than ten
+minutes old, the streamer has just switched. Same information, learned
+differently — so the badge is a fallback, used when observation gave nothing.
+
+**Three refusals, and each avoids a false claim:**
+
+| Refusal | What it avoids |
+| --- | --- |
+| a CLIPS trail | its bounds are lower bounds: a category's first clip comes after its start, sometimes by a lot |
+| a single segment | that is not a switch but the start of a stream — "just switched to" would say they changed when they began |
+| past `CATEGORY_SWITCH_TTL` | the same expiry as the observed badge, read from the same constant: two pieces of news of the same nature going out at two different times would be two different pieces of news |
+
+The badge is re-laid when the chapters arrive, which is AFTER the popup opens:
+it therefore carries a marker (`data-tse-bascule-frise`) that lets it be replaced
+without duplication, and it slots in behind the content-label badge and the
+resumption one — the first is read before you look, the second explains the whole
+card.
+
+### A subathon does not drop, it restarts
+
+Twitch requires a broadcast to be restarted at least every forty-eight hours. A
+subathon, which runs for days, is therefore **made of restarts**, and each of
+them looks exactly like a resumption after an outage: new id, counter at zero, a
+few minutes of interruption.
+
+Chaining them would produce a trail spanning days, unreadable by construction —
+the ribbon is a few hundred pixels wide, and a week of streaming would crush
+every category below a single line. The outage count, for its part, would
+announce "14 outages" where nothing abnormal happened: an alarm for a routine.
+
+On a subathon, a restart is therefore a **new stream**: no badge, no count, no
+origin carried over, and the trail restarts. The day number keeps saying where
+the event stands — the pill is what carries the long duration, and it carries it
+better than a ribbon would.
+
+Detection reads the title on **both sides**, the one arriving and the one we had:
+on a restart the mention is almost always still there, but a streamer writing it
+after the fact would let through a chaining that the earlier memory would have
+refused.
+
+### Scenario 97
+
+Eight assertions, six mutants, no survivors:
+
+| Mutant | Assertions that fall |
+| --- | --- |
+| the chapter request starts from the segment | 1 |
+| our segments predating the VOD are lost | 1 |
+| the badge is no longer derived from the trail | 1 |
+| a single segment would be enough for the badge | 1 |
+| a clips trail gives the badge | 1 |
+| the badge ignores expiry | 1 |
+
+**Three of the refusals were first tested on empty, and it was the fixture that
+lied.** `CATEGORY_SWITCH_TTL` is ten minutes in production and two and a half
+seconds in the bench: a switch "seven minutes old" is expired there, and the
+three refusal assertions were therefore passing through the segment's AGE rather
+than the rule they claimed to test. They fell to no mutant at all. Each case now
+sets its instant just before its own hover.
 
 ## The trail that does not start over (v3.99)
 
@@ -4613,7 +4754,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 96 scenarios, 913 assertions |
+| `npm test` | the Playwright harness: 97 scenarios, 923 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

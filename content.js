@@ -4123,6 +4123,28 @@ const TSE_GATE_MAX_CLICKS = 5;
        trente secondes plus tard. Le badge, lui, survivait (il est posé une
        fois), si bien que l'aperçu disait « reprise » pendant que le compteur
        repartait quand même de zéro. C'est le scénario qui l'a vu. */
+    /* ── LE SUBATHON NE COUPE PAS, IL RECOMMENCE ───────────────────────────
+       Twitch impose de relancer une diffusion au moins toutes les quarante-huit
+       heures : un subathon, qui dure des jours, est donc FAIT de redémarrages,
+       et chacun d'eux ressemble trait pour trait à une reprise après coupure —
+       identifiant neuf, compteur à zéro, quelques minutes d'interruption.
+
+       Les chaîner produirait une frise de plusieurs jours, illisible par
+       construction : le ruban n'a que quelques centaines de pixels, et une
+       semaine de direct y écraserait chaque catégorie à moins d'un trait. Le
+       compte des coupures, lui, annoncerait « 14 coupures » là où il ne s'est
+       rien passé d'anormal — une alarme pour une routine.
+
+       Sur un subathon, un redémarrage est donc un NOUVEAU DIRECT : pas de
+       badge, pas de compte, pas d'origine reprise, et la frise repart. Le
+       numéro de jour, lui, continue de dire où en est l'événement — c'est lui
+       qui porte la durée longue, et il la porte bien mieux qu'un ruban.
+
+       LE TITRE DES DEUX CÔTÉS. On regarde l'entrée qui arrive ET celle qu'on
+       avait : au redémarrage, le titre porte encore la mention dans l'immense
+       majorité des cas, mais un streamer qui l'écrit après coup laisserait
+       passer un chaînage que la mémoire d'avant, elle, aurait refusé. */
+    const enSubathon = !!(apres.subathon || cache.get(login)?.subathon);
     const memeSession = memoire && memoire.id === neuf.id;
     let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
     /* Le compte des coupures et leurs marques suivent l'ORIGINE : ils
@@ -4130,7 +4152,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        neuve qui n'est pas une reprise repart donc de zéro, comme l'origine. */
     let coupures = memeSession ? (memoire.coupures || 0) : 0;
     let marques  = memeSession ? (memoire.marques || []) : [];
-    if (!memeSession && memoire
+    if (!memeSession && !enSubathon && memoire
         && Date.now() - memoire.vu <= CFG.RECONNECT_GAP_MAX) {
       const debut = Date.parse(neuf.createdAt);
       if (Number.isFinite(debut) && Date.now() - debut < CFG.FRESH_MAX_MIN * 60_000) {
@@ -4443,22 +4465,23 @@ const TSE_GATE_MAX_CLICKS = 5;
      départ du live, et l'a-t-on manqué de plus que notre latence de relevé. */
   const friseACombler = (login) => {
     const f = frises.get(login);
-    /* ── UN DIRECT COUPÉ N'A PAS DE PASSÉ À ALLER CHERCHER ──────────────────
-       Twitch ouvre un VOD par SESSION. Sur une chaîne qui a repris, le VOD du
-       tronçon courant ne couvre que lui — et ses chapitres, datés d'après sa
-       propre naissance, viendraient se placer APRÈS ce que nous avons observé
-       avant la coupure. Le raccord les met en tête, puis n'ajoute nos segments
-       que s'ils sont postérieurs : tout notre passé disparaîtrait au profit
-       d'un prélude qui ne parle que des dix dernières minutes.
+    /* ── UN DIRECT COUPÉ A UN PASSÉ, ET IL EST DANS LE VOD ──────────────────
+       La 3.99 refusait ici toute demande dès qu'une coupure était connue, au
+       motif que Twitch ouvre un enregistrement par session et que ses chapitres
+       effaceraient ce qu'on avait observé avant. La prémisse était fausse, et
+       ce fichier portait déjà la preuve du contraire : `segmentsDuVod` traite
+       nommément le cas d'« un enregistrement qui commence AVANT le stream
+       courant : c'est le cas d'une reconnexion, où le VOD continue pendant que
+       createdAt repart ». Un rapport d'utilisateur l'avait mesuré — un VOD
+       démarré trente-neuf minutes avant le `createdAt` du live, et toujours en
+       cours.
 
-       Pire, `continu` — « le VOD couvre le live sans le moindre changement » —
-       ferait remonter la catégorie courante jusqu'à l'origine de la CHAÎNE,
-       c'est-à-dire six heures plus tôt, sur la foi d'un enregistrement qui n'en
-       couvre que dix minutes. Une invention, et de la pire espèce : plausible.
-
-       On ne demande donc rien, et on n'utilise rien (cf. preludeDe). Ce qu'on
-       a vu de nos yeux reste, ce qui est exactement ce que la frise promet. */
-    if (coupuresDe(login)) return false;
+       AUTREMENT DIT, LE PASSÉ D'AVANT LA COUPURE EST ENREGISTRÉ, et refuser de
+       le demander était perdre précisément ce que la continuité cherche. La
+       garde juste n'est pas « il y a eu une coupure » mais « jusqu'où le VOD
+       remonte-t-il » : elle se lit toute seule dès lors que ce module compare
+       ses instants à l'ORIGINE du direct et non au départ du tronçon
+       (cf. l'appel à fetchChapitres), et le raccord protège le reste. */
     return !!f && !!f.debutStream
            && f.vuDepuis - f.debutStream > CFG.CATEGORY_TRAIL_TOLERANCE;
   };
@@ -4494,6 +4517,27 @@ const TSE_GATE_MAX_CLICKS = 5;
     const source = (prelude && prelude.source) || null;
 
     const bruts = [];
+    /* ── CE QUE NOUS AVONS VU AVANT QUE LE VOD NE COMMENCE ────────────────────
+       Le raccord pose les chapitres du VOD d'abord, puis n'ajoute nos segments
+       que s'ils sont POSTÉRIEURS au dernier connu. Tant que l'enregistrement
+       commence avec le live, c'est sans conséquence : il n'y a rien avant lui.
+       Mais deux cas mettent le VOD en retard sur nous — une chaîne qui active
+       l'archivage en cours de route, et surtout une reprise pour laquelle
+       Twitch aurait ouvert un enregistrement NEUF. Nos segments d'avant
+       tombaient alors dans le `continue` et disparaissaient, remplacés par un
+       prélude qui ne parle que de la fin.
+
+       On met donc en tête ce que nous avons observé AVANT le premier chapitre :
+       le VOD ne le couvre pas, il n'a rien à en dire, et c'est du temps qu'on a
+       vu de nos yeux. Là où les deux se recouvrent, le VOD reste prioritaire —
+       il date à la seconde, nous au prochain relevé. */
+    const premierVod = chapitresVod.length ? chapitresVod[0].debut : Infinity;
+    for (const o of f.segments) {
+      if (o.debut >= premierVod) break;
+      const dernier = bruts[bruts.length - 1];
+      if (dernier && dernier.jeu === o.jeu) continue;
+      bruts.push({ ...o });
+    }
     for (const p of chapitresVod) {
       const dernier = bruts[bruts.length - 1];
       if (dernier && dernier.jeu === p.jeu) continue;   // Twitch répète parfois
@@ -10019,7 +10063,20 @@ const TSE_GATE_MAX_CLICKS = 5;
        leur faire confiance. Les six issues sont désormais exclusives, et leur
        somme vaut `demandes` — moins les replis, qui comptent des requêtes
        SUPPLÉMENTAIRES et non des issues. */
+    /* `vodTardif` MESURE UNE QUESTION QU'ON NE PEUT PAS TRANCHER D'ICI. Sur une
+       chaîne qui a repris, deux mondes sont possibles : ou bien
+       l'enregistrement a continué pendant la coupure — c'est ce qu'un rapport
+       d'utilisateur a montré, à trente-neuf minutes d'écart — et le passé
+       d'avant est dans CE vod-là ; ou bien Twitch en a ouvert un neuf, et il
+       faudrait aller chercher le PRÉCÉDENT dans la liste des archives pour
+       retrouver ce passé.
+
+       Le second cas demanderait une porte de plus, avec ses propres échecs. On
+       ne l'ouvre pas sur une intuition : ce compteur dit combien de fois un VOD
+       servi commence APRÈS l'origine du direct, c'est-à-dire combien de fois le
+       second monde s'est présenté. À zéro, la porte n'a pas lieu d'être. */
     const bilanChapitres = { demandes: 0, servis: 0, continus: 0, sansMoment: 0,
+                             vodTardif: 0,
                              inexploitables: 0, sansVod: 0, sansStream: 0, reseau: 0,
                              /* LA TROISIÈME PORTE, comptée à part comme les
                                 deux autres. `clips` compte les tentatives —
@@ -10379,6 +10436,10 @@ const TSE_GATE_MAX_CLICKS = 5;
         return retenir(streamId, segClips, false, 'clips');
       }
 
+      // Cf. l'en-tête de `vodTardif` : un enregistrement qui commence après
+      // l'origine ne peut rien dire de ce qui précède, et c'est exactement la
+      // mesure qui décidera s'il vaut la peine d'aller chercher le précédent.
+      if (!vodCouvre(vod, debutStream)) bilanChapitres.vodTardif++;
       const { segments, aretes } = segmentsDuVod(vod, debutStream);
       if (segments) { bilanChapitres.servis++; return retenir(streamId, segments, false); }
 
@@ -11046,13 +11107,6 @@ const TSE_GATE_MAX_CLICKS = 5;
        de la même chaîne n'ont rien à voir, et resservir les chapitres de la
        précédente daterait le live d'hier. */
     const preludeDe = (login) => {
-      /* Un direct qui a repris n'a pas de prélude utilisable : son VOD ne
-         couvre que le tronçon courant (cf. friseACombler). La garde est ici
-         AUSSI, et non seulement à la demande, parce qu'un prélude peut avoir
-         été récupéré AVANT la coupure — pour l'ancien identifiant, certes,
-         mais rien n'interdit à Twitch de réutiliser un identifiant, et surtout
-         rien ne garantit l'ordre des deux événements. */
-      if (coupuresDe(login)) return null;
       const id = cache.get(login)?.stream?.id;
       if (!id) return null;
       const e = chapitres.get(id);
@@ -11304,6 +11358,73 @@ const TSE_GATE_MAX_CLICKS = 5;
       return bloc;
     };
 
+    /* ══════════════════════════════════════════════════════════════════════
+       LE BASCULEMENT QU'ON N'A PAS VU PASSER
+       ──────────────────────────────────────────────────────────────────────
+       Le badge « Vient de passer sur … » naissait d'une OBSERVATION : deux
+       relevés consécutifs, même identifiant de stream, deux catégories. Il ne
+       pouvait donc paraître que sur une chaîne qu'on regardait déjà au moment
+       du changement — et il manquait précisément là où il servirait le plus :
+       on ouvre Twitch, on survole, la frise annonce « 7m · en cours » sur une
+       catégorie prise il y a sept minutes, et aucun badge ne le dit.
+
+       LA FRISE SAIT CE QUE LE REGISTRE IGNORE. Ses chapitres viennent du VOD,
+       qui date les changements à la seconde et n'a pas besoin de nous pour les
+       voir. Si son dernier segment a moins de dix minutes, le streamer vient
+       de basculer — c'est la même information, apprise autrement.
+
+       TROIS REFUS, ET CHACUN ÉVITE UNE AFFIRMATION FAUSSE :
+         — une frise de CLIPS ne borne rien, elle minore : le premier clip d'une
+           catégorie est postérieur à son début, parfois de beaucoup. « Vient de
+           passer » y serait une déduction sur une borne inférieure ;
+         — UN SEUL segment, ce n'est pas un basculement mais un début de live,
+           et « vient de passer sur » dirait qu'il a changé quand il a commencé ;
+         — le MÊME seuil que le badge observé (CATEGORY_SWITCH_TTL), lu sur la
+           même constante : deux nouvelles de même nature qui s'éteindraient à
+           deux moments différents seraient deux nouvelles différentes. */
+    const basculeDeLaFrise = (login) => {
+      const f = friseDe(login, preludeDe(login));
+      if (!f || f.source === 'clips') return null;
+      const segs = f.segments || [];
+      if (segs.length < 2) return null;
+      const dernier = segs[segs.length - 1];
+      const age = Date.now() - dernier.debut;
+      if (!Number.isFinite(age) || age < 0 || age > CFG.CATEGORY_SWITCH_TTL) return null;
+      return dernier.libelle || dernier.jeu;
+    };
+
+    const badgeBasculeFrise = (login) => {
+      const jeu = basculeDeLaFrise(login);
+      if (!jeu) return null;
+      const b = badgeNoeud('tse-preview__badge--switch',
+        phraseAvecFente(S.uiBadgeCategorySwitch(FENTE), () => nomsEnGras([jeu])));
+      // La marque sert au remplacement : les chapitres arrivent APRÈS
+      // l'ouverture, et ce badge-là doit pouvoir être reposé sans doublon.
+      b.dataset.tseBasculeFrise = 'true';
+      return b;
+    };
+
+    /* Reposé quand la frise change, c'est-à-dire quand les chapitres arrivent.
+       L'observé garde la priorité : il est né d'un fait vu, l'autre d'une
+       lecture — et surtout ils diraient la même chose deux fois. */
+    const majBasculeFrise = (login) => {
+      if (!el || currentLogin !== login) return;
+      const corps = el.querySelector('.tse-preview__body');
+      if (!corps) return;
+      corps.querySelector('[data-tse-bascule-frise]')?.remove();
+      if (basculementFrais(login)) return;
+      const neuf = badgeBasculeFrise(login);
+      if (!neuf) return;
+      const zone = zoneBadges(corps);
+      /* Devant, mais DERRIÈRE l'étiquette de classification et la reprise :
+         l'une se lit avant de regarder, l'autre explique la carte entière. */
+      const devant = [...zone.children].filter(b =>
+        b.classList.contains('tse-preview__badge--ccl')
+        || b.classList.contains('tse-preview__badge--reprise')).pop();
+      if (devant) devant.insertAdjacentElement('afterend', neuf);
+      else zone.prepend(neuf);
+    };
+
     /* Le bloc est reconstruit EN PLACE quand les chapitres arrivent : ils
        peuvent mettre une seconde, et refaire tout le popup ferait clignoter le
        titre et les badges déjà posés. La garde sur `currentLogin` est la même
@@ -11326,6 +11447,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (ancienne && neuve) ancienne.replaceWith(neuve);
       else if (ancienne) { ancienne.remove(); bilanFrises.affichees--; bilanFrises.muettes++; }
       else if (neuve) { corps.appendChild(neuve); bilanFrises.muettes--; bilanFrises.affichees++; }
+      // Les chapitres viennent peut-être d'apprendre un basculement que nous
+      // n'avons pas vu passer : le badge se repose avec la frise.
+      majBasculeFrise(login);
       // La hauteur a changé : le popup peut sortir du viewport.
       if (currentCard) positionPopup(currentCard);
     };
@@ -11371,6 +11495,17 @@ const TSE_GATE_MAX_CLICKS = 5;
         badges.unshift(badgeNoeud('tse-preview__badge--switch',
           phraseAvecFente(S.uiBadgeCategorySwitch(FENTE),
                           () => nomsEnGras([bascule.libelle || bascule.vers]))));
+      }
+
+      /* … ET LE MÊME BADGE, APPRIS AUTREMENT. Sans observation, la frise peut
+         encore le savoir : son dernier segment porte l'heure du basculement,
+         que les chapitres du VOD datent à la seconde. Le repli ne se pose que
+         si l'observation n'a rien donné — sinon les deux diraient la même
+         chose deux fois. Il sera reposé à l'arrivée des chapitres, qui viennent
+         après l'ouverture du popup (cf. majBasculeFrise). */
+      if (!bascule) {
+        const parFrise = badgeBasculeFrise(login);
+        if (parFrise) badges.unshift(parFrise);
       }
 
       /* LA REPRISE, EN TÊTE ET DANS LE MÊME VERT. C'est la même espèce de
@@ -11806,7 +11941,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       const flux = cache.get(login)?.stream;
       noterSurvolFrise(login);
       if (flux?.id && !preludeDe(login) && friseACombler(login)) {
-        fetchChapitres(login, flux.id, Date.parse(flux.createdAt) || 0)
+        /* L'ORIGINE, ET NON LE DÉPART DU TRONÇON. Tout ce module compare des
+           instants à ce nombre : quels moments du VOD regardent ce live, si
+           l'enregistrement en couvre le début, si la liste des archives a
+           rendu le bon. Lui donner le départ de la SESSION sur une chaîne qui
+           a repris, c'était jeter le passé d'avant la coupure — celui-là même
+           que le VOD, lui, a continué d'enregistrer. */
+        fetchChapitres(login, flux.id,
+                       Date.parse(debutReel(login, flux.createdAt)) || 0)
           .then(() => majFrise(login))
           .catch((e) => erreurs.noter('chapitres', (e && e.message) || e));
       }

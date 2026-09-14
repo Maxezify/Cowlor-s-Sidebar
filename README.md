@@ -338,7 +338,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 840 Ko | 339 Ko | 3 086 → **2** |
+| `content.js` | 840 Ko | 339 Ko | 3 100 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 68 Ko | 34 Ko | 84 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 913 assertions, sous Gecko
+npm run test-firefox        # les mêmes 923 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2613,6 +2613,152 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Ce que le VOD savait et qu'on refusait de lire (v4.0)
+
+Trois choses, et elles ont la même racine : l'enregistrement en sait plus que
+nous, et la version précédente s'était interdit de le consulter.
+
+### La prémisse de la 3.99 était fausse, et ce fichier le disait déjà
+
+La 3.99 refusait toute demande de chapitres dès qu'une coupure était connue, au
+motif que « Twitch ouvre un enregistrement par SESSION ». C'était une déduction,
+pas une observation — et la contre-preuve était dans le dépôt depuis la 3.76,
+écrite dans `segmentsDuVod` :
+
+> Un enregistrement peut commencer AVANT le stream courant : c'est le cas d'une
+> reconnexion, où le VOD continue pendant que `createdAt` repart.
+
+Le rapport d'utilisateur qui avait fait écrire ces lignes mesurait l'écart :
+**trente-neuf minutes**, sur un enregistrement toujours en cours. Autrement dit
+le passé d'avant la coupure n'est pas perdu — il est dans le VOD courant, et la
+3.99 venait d'interdire d'aller le chercher.
+
+Il n'y avait donc rien à ajouter, seulement une date à corriger. Tout ce module
+compare des instants à un nombre — quels moments regardent ce live, si
+l'enregistrement en couvre le début, si la liste des archives a rendu le bon —
+et ce nombre était le départ du TRONÇON. C'est l'**origine** du direct qu'il
+fallait lui donner :
+
+```js
+fetchChapitres(login, flux.id,
+               Date.parse(debutReel(login, flux.createdAt)) || 0)
+```
+
+Une ligne, et les quatre heures d'avant la coupure reviennent — y compris pour
+quelqu'un qui n'avait pas Twitch ouvert.
+
+### Le raccord ne doit plus perdre ce qu'on a vu
+
+Restait le cas où Twitch ouvrirait bel et bien un enregistrement neuf. Le
+raccord posait les chapitres du VOD d'abord, puis n'ajoutait nos segments que
+s'ils étaient POSTÉRIEURS au dernier connu : les nôtres, plus anciens, tombaient
+dans le `continue` et disparaissaient.
+
+Ce cas-là n'est d'ailleurs pas propre aux coupures — une chaîne qui active
+l'archivage en cours de diffusion le produit aussi. On met donc en tête ce que
+nous avons observé AVANT le premier chapitre : le VOD ne le couvre pas, il n'a
+rien à en dire, et c'est du temps qu'on a vu de nos yeux. Là où les deux se
+recouvrent, le VOD reste prioritaire — il date à la seconde, nous au prochain
+relevé.
+
+### Faut-il aller chercher les archives PRÉCÉDENTES ?
+
+La question se pose pour le seul cas qui reste : une chaîne qui a repris, et
+dont Twitch aurait ouvert un enregistrement neuf. Le passé serait alors dans
+l'archive d'avant, qu'on pourrait lire — `videos(first: 2, sort: TIME)` rend son
+`createdAt` et son `lengthSeconds`, donc sa fin ; un écart de moins de dix
+minutes avec le départ du live dirait « c'est la suite ».
+
+**La réponse, aujourd'hui, est non — et ce n'est pas un refus de principe.**
+
+D'abord parce que ce cas n'a jamais été observé : le seul recouvrement mesuré
+sur une reconnexion est celui d'un VOD qui CONTINUE. Ensuite parce qu'il faudrait
+une quatrième porte, avec ses propres échecs à distinguer et à instrumenter, pour
+un gain qui n'existe peut-être pas. Enfin parce que le raccord ci-dessus fait
+déjà que rien n'est PERDU dans ce cas : ce qu'on a vu reste, seul manque ce qu'on
+n'a pas vu.
+
+Et parce que je n'ai pas pu le mesurer : la machine où ceci est écrit n'a pas
+accès à `gql.twitch.tv` — le mandataire de sortie répond 403 au CONNECT. La
+distribution des écarts entre deux archives consécutives d'une même chaîne est
+donc hors de portée d'ici.
+
+**On instrumente donc au lieu de deviner.** `chapitres.vodTardif` compte les
+enregistrements servis qui commencent APRÈS l'origine du direct — c'est-à-dire
+exactement le nombre de fois où le second monde s'est présenté. À zéro sur des
+rapports portant des reprises, la porte n'a pas lieu d'être ; non nul, elle
+devient justifiée, et on saura de combien.
+
+### Le badge « Vient de passer sur … », appris de la frise
+
+Le badge naissait d'une OBSERVATION : deux relevés consécutifs, même identifiant
+de stream, deux catégories. Il ne pouvait donc paraître que sur une chaîne qu'on
+regardait déjà au moment du changement — et il manquait précisément là où il
+sert le plus. Un retour d'usage le montre : la frise annonce « 7m · en cours »
+sur une catégorie prise il y a sept minutes, et aucun badge ne le dit.
+
+La frise, elle, le sait : ses chapitres viennent du VOD, qui date les changements
+à la seconde et n'a pas besoin de nous pour les voir. Si son dernier segment a
+moins de dix minutes, le streamer vient de basculer. C'est la même information,
+apprise autrement — et le badge se pose donc en repli, quand l'observation n'a
+rien donné.
+
+**Trois refus, et chacun éviterait une affirmation fausse :**
+
+| Refus | Ce qu'il éviterait |
+| --- | --- |
+| une frise de CLIPS | ses bornes sont des minorants : le premier clip d'une catégorie est postérieur à son début, parfois de beaucoup |
+| un seul segment | ce n'est pas un basculement mais un début de live — « vient de passer sur » dirait qu'il a changé quand il a commencé |
+| au-delà de `CATEGORY_SWITCH_TTL` | la même péremption que le badge observé, lue sur la même constante : deux nouvelles de même nature qui s'éteindraient à deux moments différents seraient deux nouvelles différentes |
+
+Le badge est reposé quand les chapitres arrivent, qui est APRÈS l'ouverture du
+popup : il porte donc une marque (`data-tse-bascule-frise`) qui permet de le
+remplacer sans doublon, et il s'insère derrière l'étiquette de classification et
+la reprise — l'une se lit avant de regarder, l'autre explique la carte entière.
+
+### Le subathon ne coupe pas, il recommence
+
+Twitch impose de relancer une diffusion au moins toutes les quarante-huit heures.
+Un subathon, qui dure des jours, est donc **fait de redémarrages**, et chacun
+d'eux ressemble trait pour trait à une reprise après coupure : identifiant neuf,
+compteur à zéro, quelques minutes d'interruption.
+
+Les chaîner produirait une frise de plusieurs jours, illisible par
+construction — le ruban n'a que quelques centaines de pixels, et une semaine de
+direct y écraserait chaque catégorie à moins d'un trait. Le compte des coupures,
+lui, annoncerait « 14 coupures » là où il ne s'est rien passé d'anormal : une
+alarme pour une routine.
+
+Sur un subathon, un redémarrage est donc un **nouveau direct** : pas de badge,
+pas de compte, pas d'origine reprise, et la frise repart. Le numéro de jour, lui,
+continue de dire où en est l'événement — c'est la pastille qui porte la durée
+longue, et elle la porte mieux qu'un ruban.
+
+La détection lit le titre **des deux côtés**, celui qui arrive et celui qu'on
+avait : au redémarrage la mention est presque toujours encore là, mais un
+streamer qui l'écrit après coup laisserait passer un chaînage que la mémoire
+d'avant, elle, aurait refusé.
+
+### Le scénario 97
+
+Huit assertions, six mutants, aucun survivant :
+
+| Mutant | Assertions qui tombent |
+| --- | --- |
+| la demande de chapitres repart du tronçon | 1 |
+| nos segments antérieurs au VOD sont perdus | 1 |
+| le badge ne se déduit plus de la frise | 1 |
+| un seul segment suffirait au badge | 1 |
+| une frise de clips donne le badge | 1 |
+| le badge ignore la péremption | 1 |
+
+**Trois des refus ont d'abord été éprouvés à vide, et c'est le décor qui mentait.**
+`CATEGORY_SWITCH_TTL` vaut dix minutes en production et deux secondes et demie
+dans le banc : un basculement « vieux de sept minutes » y est périmé, et les
+trois assertions de refus passaient donc par l'ÂGE du segment et non par la règle
+qu'elles prétendaient éprouver. Elles ne tombaient sous aucun mutant. Chaque cas
+pose désormais son instant juste avant son survol.
 
 ## La frise qui ne recommence pas (v3.99)
 
@@ -4833,7 +4979,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 96 scénarios, 913 assertions |
+| `npm test` | le harnais Playwright : 97 scénarios, 923 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
