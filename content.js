@@ -1180,6 +1180,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     GLOBAL_LANG_TAGS_MAX:    2,
 
+    GLOBAL_LANG_SPAM_MAX:  200,
+
     GLOBAL_BATCH_OPS:        20,
 
     GLOBAL_STRUCT_TICK:      30_000,
@@ -2350,7 +2352,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     if (!neuf) return;
 
-    const enSubathon = !!(apres.subathon || cache.get(login)?.subathon);
+    const enSubathon = !!(apres.subathon || subathonDe(login));
     const memeSession = memoire && memoire.id === neuf.id;
     let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
 
@@ -2360,6 +2362,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         && Date.now() - memoire.vu <= CFG.RECONNECT_GAP_MAX) {
       const debut = Date.parse(neuf.createdAt);
       if (Number.isFinite(debut) && Date.now() - debut < CFG.FRESH_MAX_MIN * 60_000) {
+
+        reprises.delete(login);
         reprises.set(login, { ts: Date.now() });
         origine = memoire.origine || origine;
 
@@ -2908,9 +2912,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     let running       = false;
     let complete      = false;
     let windowFloor   = 0;
-
     const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
-                    misses: 0, evicted: 0, lastMs: 0, tagsEmpiles: 0 };
+                    misses: 0, evicted: 0, lastMs: 0 };
+
+    const empileurs = new Set();
 
     const send = async (ops) => {
       if (!ops.length) return { out: [], transport: false };
@@ -2941,7 +2946,14 @@ const TSE_GATE_MAX_CLICKS = 5;
         ? node.freeformTags.map(t => t?.name).filter(Boolean) : [];
 
       const langues = new Set(tags.filter(t => LANG_SET.has(t)));
-      if (langues.size > CFG.GLOBAL_LANG_TAGS_MAX) { stats.tagsEmpiles++; return null; }
+      if (langues.size > CFG.GLOBAL_LANG_TAGS_MAX) {
+        empileurs.delete(login);
+        empileurs.add(login);
+        while (empileurs.size > CFG.GLOBAL_LANG_SPAM_MAX) {
+          empileurs.delete(empileurs.values().next().value);
+        }
+        return null;
+      }
       return {
         login,
         id:        node.broadcaster.id ?? null,
@@ -3618,6 +3630,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           rankingAge: rankingTs ? Date.now() - rankingTs : null,
           walkAge:    lastFullWalk ? Date.now() - lastFullWalk : null,
           categoriesAge: categoriesTs ? Date.now() - categoriesTs : null,
+
+          tagsEmpiles: empileurs.size,
           ...stats
         };
       }
