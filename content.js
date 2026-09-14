@@ -1817,6 +1817,11 @@ const TSE_GATE_MAX_CLICKS = 5;
        n'aurait pas de sens. Le prix est connu et assumé : un événement
        réellement diffusé en trois langues disparaît lui aussi. */
     GLOBAL_LANG_TAGS_MAX:    2,
+    // Combien d'empileurs distincts on retient POUR LE RAPPORT. Deux cents est
+    // très au-delà de ce qu'un classement de trente peut rencontrer : la borne
+    // n'est là que pour qu'aucun registre de ce fichier ne puisse croître sans
+    // fin, et sa saturation serait elle-même un renseignement.
+    GLOBAL_LANG_SPAM_MAX:  200,
     // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
     // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
     // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
@@ -4162,7 +4167,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        avait : au redémarrage, le titre porte encore la mention dans l'immense
        majorité des cas, mais un streamer qui l'écrit après coup laisserait
        passer un chaînage que la mémoire d'avant, elle, aurait refusé. */
-    const enSubathon = !!(apres.subathon || cache.get(login)?.subathon);
+    const enSubathon = !!(apres.subathon || subathonDe(login));
     const memeSession = memoire && memoire.id === neuf.id;
     let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
     /* Le compte des coupures et leurs marques suivent l'ORIGINE : ils
@@ -4174,6 +4179,14 @@ const TSE_GATE_MAX_CLICKS = 5;
         && Date.now() - memoire.vu <= CFG.RECONNECT_GAP_MAX) {
       const debut = Date.parse(neuf.createdAt);
       if (Number.isFinite(debut) && Date.now() - debut < CFG.FRESH_MAX_MIN * 60_000) {
+        /* RÉINSERTION AVANT ÉCRITURE, comme pour les frises et les chapitres.
+           `Map` itère dans l'ordre de PREMIÈRE insertion et `set` sur une clé
+           existante ne la déplace pas : sans le `delete`, la purge ci-dessous
+           sortirait la reprise entrée en premier — c'est-à-dire, sur une chaîne
+           qui saute plusieurs fois, celle qu'on vient justement de revoir. Le
+           dépôt a payé deux fois ce piège ; il n'y a pas de raison de le payer
+           une troisième. */
+        reprises.delete(login);
         reprises.set(login, { ts: Date.now() });
         origine = memoire.origine || origine;
         /* ── LA COUPURE ELLE-MÊME, GARDÉE POUR LA FRISE ────────────────────
@@ -5349,12 +5362,24 @@ const TSE_GATE_MAX_CLICKS = 5;
     let running       = false;
     let complete      = false; // le dernier classement est-il PROUVÉ complet ?
     let windowFloor   = 0;     // total de la dernière catégorie de la fenêtre
-    /* `tagsEmpiles` compte les chaînes écartées pour avoir déclaré plus de
-       GLOBAL_LANG_TAGS_MAX langues. Compté plutôt que silencieux : c'est une
-       exclusion, et une exclusion qu'on ne mesure pas est une exclusion dont
-       on ne saura jamais si elle mord trop. */
     const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
-                    misses: 0, evicted: 0, lastMs: 0, tagsEmpiles: 0 };
+                    misses: 0, evicted: 0, lastMs: 0 };
+
+    /* ── LES CHAÎNES ÉCARTÉES, ET POURQUOI ON COMPTE DES CHAÎNES ────────────
+       Une exclusion qu'on ne mesure pas est une exclusion dont on ne saura
+       jamais si elle mord trop. Reste à choisir CE QU'ON COMPTE, et le premier
+       jet comptait mal : un simple compteur incrémenté à chaque rejet donnait
+       le nombre de LECTURES écartées, pas de chaînes. Une marche complète
+       repasse toutes les deux minutes et demie, si bien qu'un seul empileur
+       présent trois heures durant pesait plus de soixante-dix dans le
+       rapport — un nombre qu'on ne peut lire qu'en connaissant la cadence des
+       marches, c'est-à-dire un nombre illisible.
+
+       On retient donc les LOGINS, et le rapport en rend le cardinal : « 2 »
+       veut alors dire deux chaînes, sans rien savoir du reste. Le registre est
+       borné comme ses pairs — au-delà, la plus anciennement vue sort, et la
+       saturation dirait de toute façon ce qu'il y a à savoir. */
+    const empileurs = new Set();
 
     // ── Transport ───────────────────────────────────────────────────────
     // Envoie un lot d'opérations et rend un tableau de `data` ALIGNÉ sur les
@@ -5411,7 +5436,14 @@ const TSE_GATE_MAX_CLICKS = 5;
          elle-même celui qu'elle vient de demander : ce qu'on juge est ce que
          la chaîne déclare, pas ce que nous lui posons. */
       const langues = new Set(tags.filter(t => LANG_SET.has(t)));
-      if (langues.size > CFG.GLOBAL_LANG_TAGS_MAX) { stats.tagsEmpiles++; return null; }
+      if (langues.size > CFG.GLOBAL_LANG_TAGS_MAX) {
+        empileurs.delete(login);            // réinsertion : cf. le registre des reprises
+        empileurs.add(login);
+        while (empileurs.size > CFG.GLOBAL_LANG_SPAM_MAX) {
+          empileurs.delete(empileurs.values().next().value);
+        }
+        return null;
+      }
       return {
         login,
         id:        node.broadcaster.id ?? null,
@@ -6630,6 +6662,9 @@ const TSE_GATE_MAX_CLICKS = 5;
           rankingAge: rankingTs ? Date.now() - rankingTs : null,
           walkAge:    lastFullWalk ? Date.now() - lastFullWalk : null,
           categoriesAge: categoriesTs ? Date.now() - categoriesTs : null,
+          /* Le CARDINAL, pas le nombre de rejets : deux chaînes écartées se
+             lisent « 2 », quelle que soit la cadence des marches. */
+          tagsEmpiles: empileurs.size,
           ...stats
         };
       }
@@ -11327,7 +11362,20 @@ const TSE_GATE_MAX_CLICKS = 5;
          pas des parts et ne doivent pas entrer dans son compte, sans quoi la
          largeur plancher des vraies parts se mettrait à dépendre du nombre de
          coupures. */
-      /* UN DEMI POUR CENT RÉSERVÉ À DROITE, et ce n'est pas une marge de
+      /* ── CE QUE LA MARQUE AVOUE, ET QUE LE CHIFFRE TAIT ────────────────────
+         Pendant la coupure, la frise n'observe rien : le segment en cours
+         s'étend jusqu'à maintenant, donc la durée de SA catégorie absorbe les
+         minutes mortes. « Valorant 2h10 » compte les trois minutes où la
+         chaîne était éteinte.
+
+         C'est assumé, et c'est même ce qu'on a demandé au total : la durée du
+         direct « comme s'il n'y avait pas eu de coupure ». Découper le segment
+         en deux et retrancher le trou donnerait un chiffre plus juste et une
+         frise moins lisible — deux bandes d'une même catégorie séparées d'un
+         cheveu. La marque, elle, est là pour que l'écart ne soit pas invisible :
+         c'est le ruban qui dit ce que le chiffre tait.
+
+         UN DEMI POUR CENT RÉSERVÉ À DROITE, et ce n'est pas une marge de
          confort. Une coupure qui vient d'avoir lieu tombe à cent pour cent du
          ruban : la marque commencerait au bord droit, et le débordement caché
          la taillerait à néant — invisible précisément dans le cas où elle est

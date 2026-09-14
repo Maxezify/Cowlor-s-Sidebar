@@ -2175,6 +2175,106 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Ce qu'un audit a trouvé (v4.1.1)
+
+Relecture complète des quatre dernières versions — code mort, traces de débogage,
+bornes de mémoire, coût des chemins chauds, et surtout l'écart entre ce que les
+commentaires promettent et ce que le code fait. Cinq points, aucun visible à
+l'écran, tous réels.
+
+### Le registre des reprises ne se réinsérait pas
+
+`Map` itère dans l'ordre de PREMIÈRE insertion, et `set` sur une clé existante ne
+la déplace pas. La purge de `reprises` sortait donc l'entrée la plus anciennement
+INSÉRÉE — c'est-à-dire, sur une chaîne qui saute plusieurs fois, celle qu'on
+venait justement de revoir.
+
+Ce piège exact avait déjà été payé deux fois dans ce fichier, et corrigé deux
+fois — pour le registre des frises, puis pour celui des chapitres, chacun avec
+son commentaire. Le troisième registre l'a reproduit. Le `delete` avant le `set`
+est revenu, et le commentaire dit désormais que c'est la troisième fois.
+
+Portée réelle : faible — le plafond est à deux cents reprises simultanées. Mais
+un défaut qu'on a nommé deux fois et qu'on refait une troisième est un défaut
+qu'il faut corriger sans discuter de sa portée.
+
+### Un compteur qu'il fallait savoir diviser pour le lire
+
+`global.tagsEmpiles` comptait les LECTURES écartées par la règle des tags de
+langue, et le README annonçait « le nombre de chaînes ». Ce n'est pas la même
+chose : une marche complète repasse toutes les deux minutes et demie, si bien
+qu'un seul empileur présent trois heures durant pesait plus de soixante-dix.
+
+Un nombre qu'il faut diviser par une cadence pour l'interpréter n'est pas
+lisible dans un rapport collé — et c'est précisément ce que ce fichier reproche
+ailleurs à d'autres compteurs. On retient donc les LOGINS, dans un registre borné
+comme ses pairs, et le rapport en rend le cardinal : « 2 » veut dire deux
+chaînes.
+
+### Une règle de style morte
+
+`.courbe-valeur` était déclarée dans la feuille du panneau et appliquée nulle
+part : elle stylait les étiquettes de durée de la courbe des retards, retirées
+depuis — le dessin les avait rendues redondantes avec les cartouches. La règle,
+elle, avait survécu à ce qu'elle habillait.
+
+C'est la seule règle morte des deux feuilles. Les vingt-deux autres classes que
+la lecture naïve signale sont construites par concaténation (`'tuile--' + ton`,
+`'d-badge d-badge--' + mod`) et bel et bien appliquées.
+
+### Deux lectures de la même vérité
+
+La garde « est-ce un subathon ? » lisait `cache.get(login)?.subathon` en direct,
+alors que `subathonDe(login)` existe et dit exactement cela. Deux lecteurs d'un
+même champ finissent toujours par en dire deux choses différentes ; il n'en reste
+qu'un.
+
+### Ce que la durée d'une catégorie absorbe, et qu'elle ne disait pas
+
+Pendant une coupure, la frise n'observe rien : le segment en cours s'étend
+jusqu'à maintenant, donc la durée de SA catégorie compte les minutes mortes.
+« Valorant 2h10 » inclut les trois minutes où la chaîne était éteinte.
+
+C'est assumé — c'est même ce qu'on demande au total, « comme s'il n'y avait pas
+eu de coupure » — mais ce n'était écrit nulle part. Découper le segment et
+retrancher le trou donnerait un chiffre plus juste et une frise moins lisible :
+deux bandes d'une même catégorie séparées d'un cheveu. La marque sur le ruban
+est là pour que l'écart ne soit pas invisible, et le commentaire le dit
+maintenant.
+
+### Ce que l'audit a vérifié sans rien trouver
+
+- **Aucune trace de débogage.** Les trois `console.log` de `content.js` sont
+  l'API publique de la console (`tse.cycles()`, `tse.apercu()`, `tse.bascules()`),
+  pas des oublis. Aucun `TODO`, `FIXME` ni `debugger`.
+- **Aucun identifiant mort** parmi les vingt et un ajoutés depuis la 3.98 :
+  chacun est déclaré et lu.
+- **Aucune règle `.tse-*` morte** dans la feuille de la barre latérale — les
+  trois que la lecture naïve signale sont construites par concaténation.
+- **Toutes les mémoires sont bornées** : `derniersDirects` (600),
+  `reprises` (200), les marques de coupure (24), les empileurs (200), les
+  frises (500), les chapitres — et la retenue hors ligne est bornée par le
+  TEMPS, ce qu'une assertion du scénario 95 éprouve sur le rapport.
+- **Les trois compteurs neufs arrivent bien dans le rapport collable** :
+  `frise.retenues` / `frise.lachees`, `reseau.chapitres.vodTardif` et
+  `global.tagsEmpiles`. C'est le piège habituel du panneau — un champ ajouté à
+  `rapport()` est perdu en silence s'il n'a pas de bloc — et les trois passent
+  par des blocs qui aplatissent leur objet entier.
+- **Aucune entrée dérobée dans le classement.** La règle des tags de langue est
+  posée sur `readStream`, seul passage obligé ; `setViewers`, la troisième porte
+  possible, ne met à jour que des entrées déjà présentes et n'en ajoute jamais.
+
+### Une redondance laissée en place, et pourquoi
+
+`friseDe` est calculée quatre fois par survol — deux fois pour le ruban, deux
+fois pour le badge de basculement — là où une seule suffirait. C'est du travail
+en double, et il est resté.
+
+La raison est un arbitrage, pas un oubli : la fonction est en O(n) sur n petit
+(douze segments observés, autant de chapitres dans le cas ordinaire), soit
+quelques microsecondes par survol, contre une refonte de deux fonctions couvertes
+par une trentaine d'assertions. Un gain nul contre un risque non nul se refuse.
+
 ## Les tags de langue empilés (v4.1)
 
 Les tags de langue sont libres. Rien n'empêche un streamer d'en poser dix pour
@@ -2226,9 +2326,14 @@ filtré par cette règle.
 
 ### L'exclusion se compte
 
-`global.tagsEmpiles` porte le nombre de chaînes écartées pour cette raison. Une
-exclusion silencieuse est une exclusion dont on ne saura jamais si elle mord
-trop ; celle-ci se lit dans le rapport, à côté du reste du bilan du classement.
+`global.tagsEmpiles` porte le nombre de **chaînes distinctes** écartées pour
+cette raison. Le premier jet comptait les LECTURES rejetées, ce qui n'est pas la
+même chose : une marche complète repasse toutes les deux minutes et demie, si
+bien qu'un seul empileur présent trois heures durant pesait plus de soixante-dix
+dans le rapport. Un nombre qu'il faut savoir diviser par une cadence pour le
+lire n'est pas un nombre lisible. On retient donc les logins — registre borné
+comme ses pairs — et le rapport en rend le cardinal : « 2 » veut dire deux
+chaînes.
 
 ### Le scénario 98
 
@@ -4624,7 +4729,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 840 Ko | 339 Ko | 3 103 → **2** |
+| `content.js` | 840 Ko | 339 Ko | 3 110 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 68 Ko | 34 Ko | 84 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
