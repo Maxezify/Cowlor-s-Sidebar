@@ -2348,12 +2348,13 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     if (!neuf) return;
 
+    const enSubathon = !!(apres.subathon || cache.get(login)?.subathon);
     const memeSession = memoire && memoire.id === neuf.id;
     let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
 
     let coupures = memeSession ? (memoire.coupures || 0) : 0;
     let marques  = memeSession ? (memoire.marques || []) : [];
-    if (!memeSession && memoire
+    if (!memeSession && !enSubathon && memoire
         && Date.now() - memoire.vu <= CFG.RECONNECT_GAP_MAX) {
       const debut = Date.parse(neuf.createdAt);
       if (Number.isFinite(debut) && Date.now() - debut < CFG.FRESH_MAX_MIN * 60_000) {
@@ -2477,7 +2478,6 @@ const TSE_GATE_MAX_CLICKS = 5;
   const friseACombler = (login) => {
     const f = frises.get(login);
 
-    if (coupuresDe(login)) return false;
     return !!f && !!f.debutStream
            && f.vuDepuis - f.debutStream > CFG.CATEGORY_TRAIL_TOLERANCE;
   };
@@ -2493,6 +2493,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     const source = (prelude && prelude.source) || null;
 
     const bruts = [];
+
+    const premierVod = chapitresVod.length ? chapitresVod[0].debut : Infinity;
+    for (const o of f.segments) {
+      if (o.debut >= premierVod) break;
+      const dernier = bruts[bruts.length - 1];
+      if (dernier && dernier.jeu === o.jeu) continue;
+      bruts.push({ ...o });
+    }
     for (const p of chapitresVod) {
       const dernier = bruts[bruts.length - 1];
       if (dernier && dernier.jeu === p.jeu) continue;
@@ -5595,6 +5603,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const CHAPITRES_TTL = 10 * 60_000;
 
     const bilanChapitres = { demandes: 0, servis: 0, continus: 0, sansMoment: 0,
+                             vodTardif: 0,
                              inexploitables: 0, sansVod: 0, sansStream: 0, reseau: 0,
 
                              clips: 0, clipsServis: 0, clipsHorsSujet: 0,
@@ -5796,6 +5805,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         return retenir(streamId, segClips, false, 'clips');
       }
 
+      if (!vodCouvre(vod, debutStream)) bilanChapitres.vodTardif++;
       const { segments, aretes } = segmentsDuVod(vod, debutStream);
       if (segments) { bilanChapitres.servis++; return retenir(streamId, segments, false); }
 
@@ -6194,8 +6204,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const preludeDe = (login) => {
-
-      if (coupuresDe(login)) return null;
       const id = cache.get(login)?.stream?.id;
       if (!id) return null;
       const e = chapitres.get(id);
@@ -6324,6 +6332,44 @@ const TSE_GATE_MAX_CLICKS = 5;
       return bloc;
     };
 
+    const basculeDeLaFrise = (login) => {
+      const f = friseDe(login, preludeDe(login));
+      if (!f || f.source === 'clips') return null;
+      const segs = f.segments || [];
+      if (segs.length < 2) return null;
+      const dernier = segs[segs.length - 1];
+      const age = Date.now() - dernier.debut;
+      if (!Number.isFinite(age) || age < 0 || age > CFG.CATEGORY_SWITCH_TTL) return null;
+      return dernier.libelle || dernier.jeu;
+    };
+
+    const badgeBasculeFrise = (login) => {
+      const jeu = basculeDeLaFrise(login);
+      if (!jeu) return null;
+      const b = badgeNoeud('tse-preview__badge--switch',
+        phraseAvecFente(S.uiBadgeCategorySwitch(FENTE), () => nomsEnGras([jeu])));
+
+      b.dataset.tseBasculeFrise = 'true';
+      return b;
+    };
+
+    const majBasculeFrise = (login) => {
+      if (!el || currentLogin !== login) return;
+      const corps = el.querySelector('.tse-preview__body');
+      if (!corps) return;
+      corps.querySelector('[data-tse-bascule-frise]')?.remove();
+      if (basculementFrais(login)) return;
+      const neuf = badgeBasculeFrise(login);
+      if (!neuf) return;
+      const zone = zoneBadges(corps);
+
+      const devant = [...zone.children].filter(b =>
+        b.classList.contains('tse-preview__badge--ccl')
+        || b.classList.contains('tse-preview__badge--reprise')).pop();
+      if (devant) devant.insertAdjacentElement('afterend', neuf);
+      else zone.prepend(neuf);
+    };
+
     const majFrise = (login) => {
       if (!el || currentLogin !== login) return;
       const corps = el.querySelector('.tse-preview__body');
@@ -6334,6 +6380,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (ancienne && neuve) ancienne.replaceWith(neuve);
       else if (ancienne) { ancienne.remove(); bilanFrises.affichees--; bilanFrises.muettes++; }
       else if (neuve) { corps.appendChild(neuve); bilanFrises.muettes--; bilanFrises.affichees++; }
+
+      majBasculeFrise(login);
 
       if (currentCard) positionPopup(currentCard);
     };
@@ -6356,6 +6404,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         badges.unshift(badgeNoeud('tse-preview__badge--switch',
           phraseAvecFente(S.uiBadgeCategorySwitch(FENTE),
                           () => nomsEnGras([bascule.libelle || bascule.vers]))));
+      }
+
+      if (!bascule) {
+        const parFrise = badgeBasculeFrise(login);
+        if (parFrise) badges.unshift(parFrise);
       }
 
       if (repriseFraiche(login)) {
@@ -6638,7 +6691,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       const flux = cache.get(login)?.stream;
       noterSurvolFrise(login);
       if (flux?.id && !preludeDe(login) && friseACombler(login)) {
-        fetchChapitres(login, flux.id, Date.parse(flux.createdAt) || 0)
+
+        fetchChapitres(login, flux.id,
+                       Date.parse(debutReel(login, flux.createdAt)) || 0)
           .then(() => majFrise(login))
           .catch((e) => erreurs.noter('chapitres', (e && e.message) || e));
       }
