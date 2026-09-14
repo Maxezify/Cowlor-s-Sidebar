@@ -352,13 +352,13 @@
     "message": "L'anteprima al passaggio del mouse"
   },
   "guideHoverTexte": {
-    "message": "Porta il puntatore su un canale e lascialo lì un istante: si apre una finestra di fianco, con il video in diretta — non una miniatura congelata —, il titolo completo e dei badge che riassumono il contesto.\n• Un breve ritardo prima dell'apertura: attraversare l'elenco per andare altrove non apre nulla.\n• Ovunque nella barra laterale: canali seguiti, consigliati, «anche gli spettatori di X guardano».\n• La pubblicità viene tolta da quella miniatura e da nient'altro: la diretta che stai guardando non viene mai toccata."
+    "message": "Porta il puntatore su un canale e lascialo lì un istante: si apre una finestra di fianco, con il video in diretta — non una miniatura congelata —, il titolo completo e dei badge che riassumono il contesto."
   },
   "guideDureeTitre": {
     "message": "Da quanto tempo è in diretta"
   },
   "guideDureeTexte": {
-    "message": "Sotto il numero di spettatori, ogni scheda porta la durata della diretta. Si aggiorna da sola, senza che tu apra il canale.\n• «4h19» si legge quattro ore e diciannove. Sotto l'ora, solo i minuti: «24m».\n• Quando la diretta finisce, il contatore passa a «Terminato» in corsivo — spesso prima che Twitch tolga la scheda dall'elenco."
+    "message": "Sotto il numero di spettatori, ogni scheda porta la durata della diretta. Si aggiorna da sola, senza che tu apra il canale."
   },
   "guideBadgesTitre": {
     "message": "I badge dell'anteprima"
@@ -370,43 +370,43 @@
     "message": "Prima in questa diretta"
   },
   "guideFriseTexte": {
-    "message": "Arrivi a metà di una diretta di otto ore: cos'è successo prima? L'anteprima te lo mostra — un nastro, un colore per categoria, e sotto l'elenco.\n• Ogni banda è in scala sul tempo reale: un'occhiata dice dov'è finita la serata.\n• «×3» vuol dire che lo streamer è tornato tre volte su quella categoria.\n• Un canale che non archivia le sue dirette? Il percorso viene ricostruito dalle clip, e l'estensione lo dice.\n• Quando l'ora esatta di un passaggio non si conosce, il colore sfuma invece di tagliare netto e la durata porta una «~». Mai un numero inventato."
+    "message": "Arrivi a metà di una diretta di otto ore: cos'è successo prima? L'anteprima te lo mostra — un nastro, un colore per categoria, e sotto l'elenco.\n• Ogni banda è in scala sul tempo reale: un'occhiata dice com'è andata la serata.\n• «×3» vuol dire che lo streamer è tornato tre volte su quella categoria.\n• Un canale che non archivia le sue dirette? Il percorso viene ricostruito dalle clip, e l'estensione lo dice.\n• Quando l'ora esatta di un passaggio non si conosce, il colore sfuma invece di tagliare netto e la durata porta una «~». Mai un numero inventato."
   },
   "guideSubathonTitre": {
     "message": "I subathon"
   },
   "guideSubathonTexte": {
-    "message": "Un subathon è quella diretta che gli abbonamenti prolungano senza fine — giorni, a volte settimane.\n• Una pastiglia accanto al nome dà il giorno in corso: sai subito a che punto è l'evento.\n• Pastiglia e badge attraversano un arcobaleno. Nient'altro nel prodotto ha quel colore, perché un evento eccezionale non si sistema nella tavolozza degli altri.\n• Niente viene indovinato: lo dicono il titolo della diretta e i tag, non la durata. Un subathon lo è già alla sua seconda ora."
+    "message": "Un subathon è quella diretta che gli abbonamenti prolungano senza fine — giorni, a volte settimane.\n• Una pastiglia a destra del nome dà il giorno in corso: sai subito a che punto è l'evento."
   },
   "guideCostreamTitre": {
     "message": "I co-stream"
   },
   "guideCostreamTexte": {
-    "message": "Un pallino viola all'angolo dell'avatar, con il numero di partecipanti: questo canale trasmette in compagnia. Visibile nell'elenco, senza passare sopra niente.\n• L'anteprima dice allora chi ospita e chi è invitato, e con chi.\n• Un ordinamento apposito li raggruppa in cima all'elenco (capitolo 9)."
+    "message": "Un pallino viola all'angolo dell'avatar, con il numero di partecipanti: questo canale trasmette in compagnia. Visibile nell'elenco, senza passare sopra niente.\n• Un badge viola dice allora chi ospita e chi è invitato, e con chi.\n• Un ordinamento apposito li raggruppa in cima all'elenco (capitolo 9)."
   },
   "guideDebutTitre": {
     "message": "Gli inizi, e i ritorni"
   },
   "guideDebutTexte": {
-    "message": "Una barra viola che respira sul bordo sinistro di una scheda: quella diretta è cominciata da meno di dieci minuti. Quanto basta per prendere l'intro. Si spegne da sola.\n• Se lo streamer cade e torna entro dieci minuti, NON si riaccende: è il suo contatore a essere ripartito da zero, non la sua diretta.\n• La durata mostrata resta quella della diretta intera, interruzione compresa, e l'anteprima porta un badge che dice cos'è successo."
+    "message": "Una barra viola compare sul bordo sinistro di una scheda: quella diretta è cominciata da meno di dieci minuti. Si spegne da sola allo scadere del decimo minuto.\n• Se lo streamer perde la connessione e torna entro dieci minuti, la barra viola non si riaccende, ma il suo contatore riparte da zero.\n• Nell'anteprima, la durata mostrata resta quella della diretta intera, interruzione compresa, e un badge avvisa di quel che è successo."
   },
   "guideAboTitre": {
     "message": "I tuoi abbonamenti, in oro"
   },
   "guideAboTexte": {
-    "message": "I canali che sostieni non somigliano più agli altri: nome dorato, categoria dorata, un anello d'oro attorno all'avatar e un riflesso lento sulla scheda.\n• L'ordinamento «I miei abbonamenti per primi» li porta tutti in cima, con il loro numero su una pastiglia.\n• L'anteprima dice da quanto tempo, e se ne ricorda quando è finita.\n• Contano tutte e tre le forme: pagato, regalato, da mobile.\n• Niente da configurare, nessun account, nessuna password. L'ultimo capitolo dice come."
+    "message": "I canali che sostieni non somigliano più agli altri: nome dorato, categoria dorata, un anello d'oro attorno all'avatar e un riflesso lento sulla scheda.\n• Compare un badge che dice da quanto tempo.\n• Contano tutte e tre le forme di abbonamento: pagato, regalato, da mobile."
   },
   "guideTriTitre": {
     "message": "Ordinare e filtrare"
   },
   "guideTriTexte": {
-    "message": "Sei pulsanti in cima all'elenco lo riorganizzano al volo:\n• Per spettatori — l'ordinamento di Twitch, pulito.\n• I miei abbonamenti per primi — con il totale su una pastiglia.\n• Per popolarità personale — dalle tue stesse visite, tenute sulla tua macchina.\n• Per durata della diretta — le più recenti in cima, per prendere gli inizi.\n• Per nome del canale — ordine alfabetico.\n• I co-stream per primi — per non perdere più una collaborazione.\nSubito sotto, due filtri: la categoria e la lingua. Le due liste propongono solo ciò che i tuoi canali stanno davvero trasmettendo in quel momento — niente menu interminabili."
+    "message": "Sei pulsanti in cima all'elenco lo riorganizzano al volo:\n• Per spettatori — l'ordinamento di Twitch, pulito.\n• I miei abbonamenti per primi — con il totale dei miei abbonamenti in corso (anche quelli offline) su una pastiglia.\n• Per popolarità personale — dalle tue stesse visite, tenute sulla tua macchina.\n• Per durata della diretta — le più recenti in cima, per prendere gli inizi.\n• Per nome del canale — ordine alfabetico.\n• I co-stream per primi — per non perdere più una collaborazione.\nSubito sotto, due filtri: la categoria e la lingua. Le due liste propongono solo ciò che i tuoi canali stanno davvero trasmettendo in quel momento."
   },
   "guideTopTitre": {
     "message": "Canali di punta"
   },
   "guideTopTexte": {
-    "message": "Una scheda in cima alla barra laterale, un clic, e si ribalta: al posto dei canali che segui, i trenta canali più guardati di Twitch, in diretta.\n• Per categoria o per lingua — una vera top trenta per ciascuna, non un filtro messo sopra un elenco inglese.\n• Tutto il resto segue: anteprima, durata, badge, co-stream. Sono schede come le altre.\n• Quando la classifica non può essere garantita completa, l'estensione lo dice invece di inventare.\nUn clic per andarci, un clic per tornare. I canali che segui non si spostano di un pixel."
+    "message": "Una scheda in cima alla barra laterale, un clic, e si ribalta: al posto dei canali che segui, i trenta canali più guardati di Twitch, in diretta.\n• Per categoria o per lingua — una vera top 30 per ciascuna.\nUn clic per andarci, un clic per tornare. I canali che segui non si spostano di un pixel."
   },
   "guideViteTitre": {
     "message": "Più veloce di Twitch, e più pulita"
@@ -442,7 +442,7 @@
     "message": "In diretta con Korbek e altri 3"
   },
   "guideBadgeSub": {
-    "message": "Abbonato da 9 mesi"
+    "message": "Abbonato • 9 MESI"
   },
   "guideBadgeSponsor": {
     "message": "Sponsorizzato da Norvex"
@@ -454,7 +454,7 @@
     "message": "Abbonamento scontato"
   },
   "guideBadgeSubathon": {
-    "message": "Subathon · GIORNO 10"
+    "message": "Subathon • GIORNO 10"
   },
   "guideDemoTitre": {
     "message": "Finiamo il dungeon, poi domande"

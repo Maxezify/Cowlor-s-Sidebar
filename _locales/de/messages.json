@@ -352,13 +352,13 @@
     "message": "Die Vorschau beim Überfahren"
   },
   "guideHoverTexte": {
-    "message": "Halte den Zeiger einen Moment auf einem Kanal: Daneben öffnet sich ein Fenster mit dem Live-Video — kein eingefrorenes Vorschaubild —, dem vollständigen Titel und Abzeichen, die den Kontext zusammenfassen.\n• Eine kurze Verzögerung vor dem Öffnen: Wer die Liste nur überquert, öffnet nichts.\n• Überall in der Sidebar: gefolgte Kanäle, Empfehlungen, „Zuschauer von X sehen auch“.\n• Werbung wird aus genau diesem Vorschaubild entfernt und aus nichts sonst: Der Stream, den du wirklich siehst, bleibt unangetastet."
+    "message": "Halte den Zeiger einen Moment auf einem Kanal: Daneben öffnet sich ein Fenster mit dem Live-Video — kein eingefrorenes Vorschaubild —, dem vollständigen Titel und Abzeichen, die den Kontext zusammenfassen."
   },
   "guideDureeTitre": {
     "message": "Wie lange er schon sendet"
   },
   "guideDureeTexte": {
-    "message": "Unter der Zuschauerzahl trägt jede Karte die Dauer des Streams. Sie aktualisiert sich von selbst, ohne dass du den Kanal öffnen musst.\n• „4h19“ heißt vier Stunden neunzehn. Unter einer Stunde nur Minuten: „24m“.\n• Endet der Stream, wird der Zähler kursiv zu „Beendet“ — oft bevor Twitch die Karte aus der Liste nimmt."
+    "message": "Unter der Zuschauerzahl trägt jede Karte die Dauer des Streams. Sie aktualisiert sich von selbst, ohne dass du den Kanal öffnen musst."
   },
   "guideBadgesTitre": {
     "message": "Die Abzeichen der Vorschau"
@@ -370,43 +370,43 @@
     "message": "Vorher in diesem Stream"
   },
   "guideFriseTexte": {
-    "message": "Du kommst mitten in einen achtstündigen Stream: Was war vorher? Die Vorschau zeigt es — ein Band, eine Farbe je Kategorie, und darunter die Liste.\n• Jeder Streifen ist auf echte Zeit skaliert: Ein Blick sagt, wo der Abend geblieben ist.\n• „×3“ heißt, dass der Streamer dreimal zu dieser Kategorie zurückgekehrt ist.\n• Ein Kanal, der seine Streams nicht archiviert? Der Verlauf wird aus den Clips rekonstruiert — und die Erweiterung sagt es.\n• Ist der genaue Zeitpunkt eines Wechsels unbekannt, läuft die Farbe aus, statt scharf zu schneiden, und die Dauer trägt ein „~“. Nie eine erfundene Zahl."
+    "message": "Du kommst mitten in einen achtstündigen Stream: Was war vorher? Die Vorschau zeigt es — ein Band, eine Farbe je Kategorie, und darunter die Liste.\n• Jeder Streifen ist auf echte Zeit skaliert: Ein Blick sagt, wie der Abend verlaufen ist.\n• „×3“ heißt, dass der Streamer dreimal zu dieser Kategorie zurückgekehrt ist.\n• Ein Kanal, der seine Streams nicht archiviert? Der Verlauf wird aus den Clips rekonstruiert — und die Erweiterung sagt es.\n• Ist der genaue Zeitpunkt eines Wechsels unbekannt, läuft die Farbe aus, statt scharf zu schneiden, und die Dauer trägt ein „~“. Nie eine erfundene Zahl."
   },
   "guideSubathonTitre": {
     "message": "Subathons"
   },
   "guideSubathonTexte": {
-    "message": "Ein Subathon ist der Stream, den Abos ohne Ende verlängern — Tage, manchmal Wochen.\n• Eine Plakette am Namen nennt den laufenden Tag: Du weißt sofort, wo das Ereignis steht.\n• Plakette und Abzeichen laufen durch einen Regenbogen. Nichts anderes im Produkt trägt diese Farbe, denn ein außergewöhnliches Ereignis reiht sich nicht in fremde Paletten ein.\n• Nichts wird geraten: Titel und Tags des Streams sagen es, nicht die Dauer. Ein Subathon ist schon in seiner zweiten Stunde einer."
+    "message": "Ein Subathon ist der Stream, den Abos ohne Ende verlängern — Tage, manchmal Wochen.\n• Eine Plakette rechts neben dem Namen nennt den laufenden Tag: Du weißt sofort, wo das Ereignis steht."
   },
   "guideCostreamTitre": {
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Ein violetter Punkt an der Ecke des Avatars, mit der Zahl der Beteiligten: Dieser Kanal sendet zu mehreren. In der Liste sichtbar, ohne etwas zu überfahren.\n• Die Vorschau sagt dann, wer Gastgeber und wer Gast ist — und mit wem.\n• Eine eigene Sortierung gruppiert sie oben in der Liste (Kapitel 9)."
+    "message": "Ein violetter Punkt an der Ecke des Avatars, mit der Zahl der Beteiligten: Dieser Kanal sendet zu mehreren. In der Liste sichtbar, ohne etwas zu überfahren.\n• Ein violettes Abzeichen sagt dann, wer Gastgeber und wer Gast ist — und mit wem.\n• Eine eigene Sortierung gruppiert sie oben in der Liste (Kapitel 9)."
   },
   "guideDebutTitre": {
     "message": "Starts und Rückkehr"
   },
   "guideDebutTexte": {
-    "message": "Ein violetter Balken, der am linken Rand einer Karte atmet: Dieser Stream hat vor weniger als zehn Minuten begonnen. Genug, um das Intro zu erwischen. Er erlischt von selbst.\n• Bricht der Streamer ab und kommt binnen zehn Minuten zurück, leuchtet er NICHT erneut: Sein Zähler ist bei null gestartet, nicht sein Stream.\n• Die angezeigte Dauer bleibt die des ganzen Streams, Abbruch eingeschlossen, und die Vorschau trägt ein Abzeichen, das sagt, was passiert ist."
+    "message": "Ein violetter Balken erscheint am linken Rand einer Karte: Dieser Stream hat vor weniger als zehn Minuten begonnen. Er erlischt von selbst mit der zehnten Minute.\n• Verliert der Streamer seine Verbindung und kommt binnen zehn Minuten zurück, leuchtet der violette Balken nicht erneut — sein Zähler aber startet wieder bei null.\n• In der Vorschau bleibt die angezeigte Dauer die des ganzen Streams, Abbruch eingeschlossen, und ein Abzeichen sagt, was passiert ist."
   },
   "guideAboTitre": {
     "message": "Deine Abos, in Gold"
   },
   "guideAboTexte": {
-    "message": "Die Kanäle, die du unterstützt, sehen nicht mehr aus wie alle anderen: goldener Name, goldene Kategorie, ein goldener Ring um den Avatar und ein langsamer Schimmer über der Karte.\n• Die Sortierung „Meine Abos zuerst“ holt sie alle nach oben, mit ihrer Zahl auf einer Plakette.\n• Die Vorschau sagt, seit wann — und erinnert sich, wenn es vorbei ist.\n• Alle drei Arten zählen: bezahlt, geschenkt, mobil.\n• Nichts einzurichten, kein Login, kein Passwort. Das letzte Kapitel sagt, wie."
+    "message": "Die Kanäle, die du unterstützt, sehen nicht mehr aus wie alle anderen: goldener Name, goldene Kategorie, ein goldener Ring um den Avatar und ein langsamer Schimmer über der Karte.\n• Ein Abzeichen erscheint und sagt, seit wann.\n• Alle drei Abo-Arten zählen: bezahlt, geschenkt, mobil."
   },
   "guideTriTitre": {
     "message": "Sortieren und filtern"
   },
   "guideTriTexte": {
-    "message": "Sechs Schaltflächen über der Liste ordnen sie im Handumdrehen neu:\n• Nach Zuschauern — Twitchs eigene Sortierung, sauber.\n• Meine Abos zuerst — mit der Gesamtzahl auf einer Plakette.\n• Nach persönlicher Beliebtheit — aus deinen eigenen Besuchen, die auf deinem Rechner bleiben.\n• Nach Stream-Dauer — die jüngsten oben, um Anfänge zu erwischen.\n• Nach Kanalname — alphabetisch.\n• Co-streams zuerst — nie wieder eine Kollaboration verpassen.\nDirekt darunter zwei Filter: Kategorie und Sprache. Beide Listen bieten nur, was deine Kanäle in diesem Moment wirklich senden — kein endloses Menü."
+    "message": "Sechs Schaltflächen über der Liste ordnen sie im Handumdrehen neu:\n• Nach Zuschauern — Twitchs eigene Sortierung, sauber.\n• Meine Abos zuerst — mit der Gesamtzahl meiner laufenden Abos (auch der offline) auf einer Plakette.\n• Nach persönlicher Beliebtheit — aus deinen eigenen Besuchen, die auf deinem Rechner bleiben.\n• Nach Stream-Dauer — die jüngsten oben, um Anfänge zu erwischen.\n• Nach Kanalname — alphabetisch.\n• Co-streams zuerst — nie wieder eine Kollaboration verpassen.\nDirekt darunter zwei Filter: Kategorie und Sprache. Beide Listen bieten nur, was deine Kanäle in diesem Moment wirklich senden."
   },
   "guideTopTitre": {
     "message": "Top-Kanäle"
   },
   "guideTopTexte": {
-    "message": "Ein Reiter oben in der Sidebar, ein Klick, und sie kippt: statt deiner gefolgten Kanäle die dreißig meistgesehenen Kanäle auf Twitch, live.\n• Nach Kategorie oder Sprache — eine echte Top dreißig für jede, kein grober Filter über einer englischen Liste.\n• Alles andere folgt: Vorschau, Dauer, Abzeichen, Co-streams. Es sind Karten wie alle anderen.\n• Lässt sich die Vollständigkeit der Rangliste nicht garantieren, sagt die Erweiterung es, statt zu erfinden.\nEin Klick hin, ein Klick zurück. Deine gefolgten Kanäle rühren sich nicht um einen Pixel."
+    "message": "Ein Reiter oben in der Sidebar, ein Klick, und sie kippt: statt deiner gefolgten Kanäle die dreißig meistgesehenen Kanäle auf Twitch, live.\n• Nach Kategorie oder Sprache — eine echte Top 30 für jede.\nEin Klick hin, ein Klick zurück. Deine gefolgten Kanäle rühren sich nicht um einen Pixel."
   },
   "guideViteTitre": {
     "message": "Schneller als Twitch, und aufgeräumter"
@@ -442,7 +442,7 @@
     "message": "Live mit Korbek und 3 weiteren"
   },
   "guideBadgeSub": {
-    "message": "9 Monate abonniert"
+    "message": "Abonniert • 9 MONATE"
   },
   "guideBadgeSponsor": {
     "message": "Gesponsert von Norvex"
@@ -454,7 +454,7 @@
     "message": "Rabattiertes Abo"
   },
   "guideBadgeSubathon": {
-    "message": "Subathon · TAG 10"
+    "message": "Subathon • TAG 10"
   },
   "guideDemoTitre": {
     "message": "Wir beenden den Dungeon, dann Q&A"
