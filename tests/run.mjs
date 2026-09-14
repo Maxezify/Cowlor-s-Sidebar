@@ -11622,14 +11622,19 @@ titre('95. La reprise après coupure — un badge, une barre, et une frise qui n
                  game: 'Just Chatting', tags: [] },
       brieve:  { id: 'c5', sid: 's-brieve-1', createdAt: debuts.vieux, viewers: 500,
                  game: 'Just Chatting', tags: [] },
+      // Un subathon, reconnu à son titre. Il redémarrera comme les autres —
+      // et ne devra PAS être compté comme une coupure (cf. plus bas).
+      marathon: { id: 'c6', sid: 's-marathon-1', createdAt: debuts.vieux, viewers: 400,
+                  game: 'Just Chatting', tags: [],
+                  title: 'SUBATHON JOUR 6 — on continue !' },
     };
     // « neuve » a une carte dès le départ mais AUCUNE entrée dans __fx : elle
     // est donc hors ligne, comme une chaîne suivie qui n'émet pas encore.
-    for (const l of ['coupe', 'neuve', 'longue', 'agee', 'brieve']) {
+    for (const l of ['coupe', 'neuve', 'longue', 'agee', 'brieve', 'marathon']) {
       window.__addCard(l, 'Discussions', '900');
     }
   }, { vieux: h(360) });
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 4);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
 
   const etat = (login) => page.evaluate((l) => {
     const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
@@ -11925,6 +11930,39 @@ titre('95. La reprise après coupure — un badge, une barre, et une frise qui n
      JSON.stringify({ retenues: bf.retenues, lachees: bf.lachees,
                       resident: bf.resident }));
 
+  /* b bis) LE SUBATHON, QUI NE COUPE PAS MAIS RECOMMENCE ───────────────────
+        Twitch impose de relancer une diffusion au moins toutes les
+        quarante-huit heures. Un subathon est donc FAIT de redémarrages, et
+        chacun ressemble trait pour trait à une reprise : identifiant neuf,
+        compteur à zéro, quelques minutes d'interruption. Les chaîner
+        produirait une frise de plusieurs jours — illisible par construction,
+        le ruban n'ayant que quelques centaines de pixels — et un compte de
+        coupures qui alarmerait sur une routine.
+
+        Le numéro de jour, lui, continue de dire où en est l'événement : c'est
+        la pastille qui porte la durée longue, et elle la porte mieux qu'un
+        ruban. */
+  await changerJeu('marathon', 'Elden Ring');
+  await wait(page, 900);
+  await reprendre('marathon', 0);
+  await wait(page, 900);
+  const badgesMarathon = await survoler('marathon');
+  const friseMarathon = await frise();
+  await relacher('marathon');
+  ok('un subathon qui redémarre n\'est pas une reprise : ni badge, ni compte',
+     !badgesMarathon.some(b => b.classe.includes('--reprise'))
+     && badgesMarathon.some(b => b.classe.includes('--subathon'))
+     && (friseMarathon === null || friseMarathon.coupures === ''),
+     JSON.stringify({ badges: badgesMarathon.map(b => b.texte),
+                      coupures: friseMarathon && friseMarathon.coupures }));
+  /* La frise d'avant portait DEUX catégories et six heures ; celle d'après
+     n'en porte qu'une, celle du moment, et se compte en minutes. C'est bien un
+     nouveau direct, pas la suite de l'ancien. */
+  ok('…et sa frise repart avec lui, au lieu de s\'étendre sur des jours',
+     friseMarathon === null
+     || (friseMarathon.lignes.length === 1 && /^\d+m$/.test(friseMarathon.total)),
+     JSON.stringify(friseMarathon));
+
   /* c) Le direct qui revient AVEC DE L'ÂGE. Identifiant neuf, coupure courte,
         mais un départ qui ne date pas d'aujourd'hui : il n'y a pas de compteur
         reparti de zéro, donc rien à corriger, donc rien à annoncer. C'est la
@@ -12207,6 +12245,238 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      JSON.stringify({ titre: rendJa.titre, chapitres: rendJa.chapitres,
                       items: rendJa.items, puces: rendJa.puces, largeur: rendJa.largeur }));
   await pageJa.close();
+}
+
+titre('97. Le passé d\'avant la coupure, et le basculement qu\'on n\'a pas vu passer');
+{
+  /* ── DEUX CHOSES QUE LE VOD SAIT ET QUE NOUS IGNORONS ─────────────────────
+     Ce scénario éprouve une correction et un ajout, qui ont la même racine :
+     l'enregistrement en sait plus que nous, et on s'interdisait de le lire.
+
+     LA CORRECTION. La 3.99 refusait toute demande de chapitres dès qu'une
+     coupure était connue, au motif que Twitch ouvre un enregistrement par
+     session. La prémisse était fausse, et ce dépôt portait déjà la preuve du
+     contraire : `segmentsDuVod` traite nommément « un enregistrement qui
+     commence AVANT le stream courant : c'est le cas d'une reconnexion, où le
+     VOD continue pendant que createdAt repart », et un rapport d'utilisateur
+     l'avait mesuré à trente-neuf minutes. Le passé d'avant la coupure est donc
+     enregistré — il suffisait de dater la demande sur l'ORIGINE du direct et
+     non sur le départ du tronçon.
+
+     L'AJOUT. Le badge « Vient de passer sur … » naissait d'une observation :
+     deux relevés, même identifiant, deux catégories. Il manquait donc
+     exactement là où il sert — on ouvre Twitch, on survole, la frise dit
+     « 7m · en cours » et rien ne le signale. Les chapitres du VOD datent ce
+     basculement à la seconde ; le badge peut s'en déduire. */
+  const page = await freshTwitch();
+  const M = 60_000;
+  const ORIGINE = Date.now() - 240 * M;             // direct commencé il y a 4 h
+
+  await page.evaluate((o) => {
+    const iso = new Date(o).toISOString();
+    window.__fx = {
+      // Le direct qui va se couper : quatre heures, trois catégories, et la
+      // dernière prise à l'instant (l'instant exact est posé plus bas).
+      coupe: { id: 'c1', sid: 's-coupe-1', createdAt: iso, viewers: 900,
+               game: 'Valorant', tags: [] },
+      // « neuf » n'entre en direct qu'au moment de son épreuve : il faut que
+      // son unique catégorie soit prise À L'INSTANT, sinon le refus qu'on
+      // éprouve serait acquis par l'âge et non par la règle (cf. plus bas).
+      // Une chaîne qui n'archive pas : son passé ne tient qu'aux clips, dont
+      // les bornes sont des minorants.
+      clipe: { id: 'c3', sid: 's-clipe-1', createdAt: iso, viewers: 200,
+               game: 'Hades II', tags: [] },
+      // Un basculement qui date d'une heure : la frise le porte, le badge non.
+      vieux: { id: 'c4', sid: 's-vieux-1', createdAt: iso, viewers: 400,
+               game: 'Overwatch', tags: [] },
+      // Une chaîne dont l'enregistrement commence APRÈS notre arrivée — celle
+      // qui a activé l'archivage en cours de route. Son VOD est posé plus bas,
+      // une fois qu'on l'a déjà observée un moment.
+      tardif: { id: 'c5', sid: 's-tardif-1', createdAt: iso, viewers: 500,
+                game: 'Minecraft', tags: [] },
+    };
+    window.__vod = {
+      coupe: { createdAt: iso, chapitres: [
+        { pos: 0,          jeu: 'Just Chatting' },
+        { pos: 180 * 60_000, jeu: 'Elden Ring' },
+        { pos: 233 * 60_000, jeu: 'Valorant' }] },
+      clipe: 'sansvod',
+      vieux: { createdAt: iso, chapitres: [
+        { pos: 0,           jeu: 'Just Chatting' },
+        { pos: 180 * 60_000, jeu: 'Overwatch' }] },
+    };
+    window.__vodRecent = {};
+    /* Le dernier clip date de MAINTENANT — le stub les horodate à la requête,
+       donc il l'est encore au survol. Sans cela, le refus des frises de clips
+       serait acquis par l'âge du segment et non par sa nature, et la règle
+       qu'on croit éprouver ne le serait pas. */
+    window.__clips = { clipe: [
+      { jeu: 'Just Chatting', ilYaMin: 200 },
+      { jeu: 'Just Chatting', ilYaMin: 160 },
+      { jeu: 'Hades II',      ilYaMin: 0.01 }] };
+    for (const l of ['coupe', 'neuf', 'clipe', 'vieux', 'tardif']) {
+      window.__addCard(l, l, '900');
+    }
+  }, ORIGINE);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 4);
+
+  const survoler = async (login) => {
+    await page.evaluate(() => {
+      for (const c of document.querySelectorAll('.side-nav-card')) {
+        c.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+      }
+    });
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+    await hoverLogin(page, login);
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+  };
+  const vue = () => page.evaluate(() => {
+    const f = document.querySelector('.tse-preview__frise');
+    return {
+      lignes: f ? [...f.querySelectorAll('.tse-preview__frise-nom')].map(n => n.textContent) : null,
+      total: f ? f.querySelector('.tse-preview__frise-total').textContent : null,
+      coupures: f ? (f.querySelector('.tse-preview__frise-coupures')?.textContent || '') : null,
+      badges: [...document.querySelectorAll('.tse-preview__badge')]
+        .map(b => ({ classe: b.className, texte: b.textContent.trim(),
+                     frise: b.dataset.tseBasculeFrise === 'true' })),
+    };
+  });
+
+  /* ── 1. LE PASSÉ, AVANT MÊME LA COUPURE ──────────────────────────────────
+     Rien n'a été observé : l'onglet vient de s'ouvrir. Les trois catégories
+     ne peuvent venir que des chapitres.
+
+     LE DERNIER CHAPITRE EST DATÉ JUSTE AVANT LE SURVOL, et ce n'est pas du
+     confort de décor. CATEGORY_SWITCH_TTL vaut dix minutes en production et
+     deux secondes et demie dans ce banc : un chapitre « vieux de sept minutes »
+     y serait périmé, et l'assertion sur le badge passerait ou tomberait pour
+     une raison qui n'a rien à voir avec ce qu'elle prétend éprouver. On pose
+     donc l'instant du basculement à la seconde où l'on va survoler. */
+  await page.evaluate((o) => {
+    const ch = window.__vod.coupe.chapitres;
+    ch[ch.length - 1].pos = Date.now() - o - 200;
+  }, ORIGINE);
+  await survoler('coupe');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 9000);
+  await attendre(page, () => document.querySelectorAll('.tse-preview__frise-nom').length >= 3, 9000);
+  const avant = await vue();
+  ok('les chapitres du VOD rendent les trois catégories du direct',
+     avant.lignes !== null && avant.lignes.length === 3
+     && /Just Chatting|Discussions/.test(avant.lignes[0])
+     && /Elden Ring/.test(avant.lignes[1]) && /Valorant/.test(avant.lignes[2]),
+     JSON.stringify(avant.lignes));
+
+  /* L'AJOUT, ET SA RAISON D'ÊTRE : aucun basculement n'a été OBSERVÉ ici —
+     l'extension vient d'arriver. Le badge ne peut donc venir que de la frise,
+     et sa marque le dit. */
+  const badgeAvant = avant.badges.find(b => b.classe.includes('--switch'));
+  ok('…et le dernier, tout frais, met le badge « vient de passer sur »',
+     !!badgeAvant && badgeAvant.frise === true && /Valorant/.test(badgeAvant.texte),
+     JSON.stringify(avant.badges));
+
+  /* ── 2. LA COUPURE, ET CE QU'ELLE NE DOIT PAS EMPORTER ───────────────────
+     Nouvel identifiant, compteur à zéro, et le VOD qui continue : c'est ce que
+     Twitch sert après une reconnexion. La frise doit garder ses quatre heures. */
+  await page.evaluate(() => {
+    document.querySelectorAll('.side-nav-card').forEach(c =>
+      c.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false })));
+    window.__fx.coupe.sid = 's-coupe-2';
+    window.__fx.coupe.createdAt = new Date().toISOString();
+    window.tse.rescan();
+  });
+  await wait(page, 900);
+  await survoler('coupe');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 9000);
+  await attendre(page, () => document.querySelectorAll('.tse-preview__frise-nom').length >= 3, 9000);
+  const apres = await vue();
+  ok('après la coupure, les chapitres d\'AVANT sont toujours là',
+     apres.lignes !== null && apres.lignes.length === 3
+     && /Elden Ring/.test(apres.lignes[1]) && /Valorant/.test(apres.lignes[2]),
+     JSON.stringify(apres.lignes));
+  /* SANS LA CORRECTION, la demande partait sur le départ du TRONÇON : les
+     trois chapitres, tous antérieurs, se repliaient sur cet instant et la
+     frise ne montrait plus que quelques minutes. Le total est donc l'assertion
+     qui tient la correction. */
+  ok('…et le total couvre les quatre heures, pas les deux minutes du tronçon',
+     apres.total !== null && /^(\d+)h\d\d$/.test(apres.total)
+     && Number(/^(\d+)h/.exec(apres.total)[1]) >= 3,
+     JSON.stringify({ total: apres.total, coupures: apres.coupures }));
+
+  /* ── 3. CE QUI NE MÉRITE PAS LE BADGE ────────────────────────────────────
+     Deux refus, et chacun éviterait une affirmation fausse. */
+
+  /* a) UN DÉBUT N'EST PAS UN BASCULEMENT. Une seule catégorie, prise à
+        l'instant parce que le direct commence à l'instant : dire « vient de
+        passer sur Minecraft » ferait croire qu'il a changé quand il a
+        commencé. Le direct naît ici même, pour que son unique segment tombe
+        DANS la fenêtre du badge — sans quoi le refus serait acquis par l'âge. */
+  await page.evaluate(() => {
+    window.__fx.neuf = { id: 'c2', sid: 's-neuf-1',
+                         createdAt: new Date().toISOString(),
+                         viewers: 300, game: 'Minecraft', tags: [] };
+    window.tse.rescan();
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 3, 6000);
+  await survoler('neuf');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
+  const neuf = await vue();
+  ok('un direct qui vient de commencer n\'a pas « vient de passer sur »',
+     !neuf.badges.some(b => b.classe.includes('--switch')),
+     JSON.stringify({ lignes: neuf.lignes, badges: neuf.badges.map(b => b.texte) }));
+
+  /* b) UNE FRISE DE CLIPS NE BORNE PAS, ELLE MINORE. Le dernier clip a trois
+        minutes, mais la catégorie avait commencé avant — de combien, rien ne
+        le dit. Déduire « vient de passer » d'un minorant, c'est affirmer une
+        heure qu'on n'a pas. */
+  await survoler('clipe');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 9000);
+  await wait(page, 600);
+  const clipe = await vue();
+  ok('une frise de CLIPS ne met pas le badge : ses bornes sont des minorants',
+     clipe.lignes !== null && clipe.lignes.length >= 2
+     && !clipe.badges.some(b => b.classe.includes('--switch')),
+     JSON.stringify({ lignes: clipe.lignes, badges: clipe.badges.map(b => b.texte) }));
+
+  /* c) UN BASCULEMENT D'IL Y A UNE HEURE N'EST PAS UNE NOUVELLE. La frise le
+        porte — c'est son métier — mais le badge annonce ce qui VIENT de se
+        passer, et il a la même péremption que celui qu'on observe. */
+  await survoler('vieux');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 9000);
+  await attendre(page, () => document.querySelectorAll('.tse-preview__frise-nom').length >= 2, 9000);
+  const vieux = await vue();
+  ok('un basculement ancien reste dans la frise, sans badge',
+     vieux.lignes !== null && vieux.lignes.length === 2
+     && !vieux.badges.some(b => b.classe.includes('--switch')),
+     JSON.stringify({ lignes: vieux.lignes, badges: vieux.badges.map(b => b.texte) }));
+
+  /* ── 4. LE VOD EN RETARD SUR NOUS ────────────────────────────────────────
+     Une chaîne qui active l'archivage en cours de diffusion : son
+     enregistrement commence APRÈS notre première observation. Le raccord pose
+     les chapitres d'abord puis n'ajoute nos segments que s'ils sont
+     postérieurs — les nôtres, plus anciens, tombaient donc dans le vide. Ce
+     que nous avons vu de nos yeux doit rester devant ce que le VOD raconte. */
+  await page.evaluate(() => {
+    window.__vod.tardif = { createdAt: new Date().toISOString(),
+                            chapitres: [{ pos: 0, jeu: 'Overwatch' }] };
+    window.__fx.tardif.game = 'Overwatch';
+    window.tse.rescan();
+  });
+  await wait(page, 900);
+  await survoler('tardif');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 9000);
+  await attendre(page, () => document.querySelectorAll('.tse-preview__frise-nom').length >= 2, 9000);
+  const tardif = await vue();
+  /* La part non observée ouvre la liste — le live a quatre heures et nous
+     n'en avons vu que la fin. Ce qui compte ici est l'ORDRE des deux
+     catégories, et surtout la présence de la nôtre. */
+  const ordre = (tardif.lignes || []).filter(n => /Minecraft|Overwatch/.test(n));
+  ok('un VOD commencé après nous ne fait pas disparaître ce qu\'on a observé',
+     ordre.length === 2 && /Minecraft/.test(ordre[0]) && /Overwatch/.test(ordre[1]),
+     JSON.stringify(tardif.lignes));
+
+  await page.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
