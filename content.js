@@ -1178,6 +1178,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     GLOBAL_TAG_MAX:          30,
 
+    GLOBAL_LANG_TAGS_MAX:    2,
+
     GLOBAL_BATCH_OPS:        20,
 
     GLOBAL_STRUCT_TICK:      30_000,
@@ -2906,8 +2908,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     let running       = false;
     let complete      = false;
     let windowFloor   = 0;
+
     const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
-                    misses: 0, evicted: 0, lastMs: 0 };
+                    misses: 0, evicted: 0, lastMs: 0, tagsEmpiles: 0 };
 
     const send = async (ops) => {
       if (!ops.length) return { out: [], transport: false };
@@ -2934,6 +2937,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       const login   = node?.broadcaster?.login;
       const viewers = node?.viewersCount;
       if (!login || !Number.isFinite(viewers)) return null;
+      const tags = Array.isArray(node.freeformTags)
+        ? node.freeformTags.map(t => t?.name).filter(Boolean) : [];
+
+      const langues = new Set(tags.filter(t => LANG_SET.has(t)));
+      if (langues.size > CFG.GLOBAL_LANG_TAGS_MAX) { stats.tagsEmpiles++; return null; }
       return {
         login,
         id:        node.broadcaster.id ?? null,
@@ -2944,8 +2952,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         gameLabel: node.game?.displayName?.trim() || node.game?.name || null,
         createdAt: node.createdAt || null,
 
-        tags:      Array.isArray(node.freeformTags)
-          ? node.freeformTags.map(t => t?.name).filter(Boolean) : [],
+        tags,
         ts:        now
       };
     };
