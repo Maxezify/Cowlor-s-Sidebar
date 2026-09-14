@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 923 assertions, under Gecko
+npm run test-firefox        # the same 928 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,74 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Stacked language tags (v4.1)
+
+Language tags are free-form. Nothing stops a streamer from putting ten of them
+on to show up in ten rankings — and a user report says this is being done. A
+channel does not broadcast in ten languages at once: past a certain number, the
+tag no longer says what is spoken, it says one wants to be found everywhere.
+
+**Two, because two exists.** A bilingual stream is common — a French speaker
+doing their evening in English, a dubbed event — and ruling it out would punish a
+real use. Three no longer is. Past two declared languages, the channel leaves the
+ranking.
+
+### One read, therefore one place to filter
+
+The ranking module has **two entry paths**: the descent through categories,
+which visits them one by one, and the tag path, which asks Twitch directly for
+the ranking sorted on a language tag. Two paths, two requests, two pool
+reconstructions — but **one read**: `readStream`, which turns a stream node into
+a flat record.
+
+So the filter goes there, and nowhere else. Placed in the descent, it would have
+let through by the tag path everything it rules out — and that is precisely the
+path a tag-stacker is aiming for.
+
+### What is counted, and what is not
+
+We count tags that are **exactly** one of the thirty-one canonical language names
+Twitch uses (`LANG_SET`, derived from the flag table). A stream carrying
+"Français", "Speedrun", "English" and "LGBTQIAPlus" declares **two**: it stays.
+Counting tags rather than languages would rule out any well-described channel,
+which has nothing to do with the abuse being targeted.
+
+We also count **Twitch's** tags, before the tag path adds the one it has just
+asked for. What is being judged is what the channel declares, not what we put on
+it.
+
+### What the rule costs, and where it does not apply
+
+The price is known: **an event genuinely broadcast in three languages disappears
+too**. That is the accepted consequence of a bound at two; it moves by one digit
+if reports show it bites too hard.
+
+And it applies **only to the ranking**. Your followed list is not a ranking but
+your own choice: a followed channel that stacks tags stays in your sidebar, and
+its language filter keeps filing it under each language it declares. Nothing that
+belongs to you is filtered by this rule.
+
+### The exclusion is counted
+
+`global.tagsEmpiles` carries the number of channels ruled out for this reason. A
+silent exclusion is one we would never know was biting too hard; this one is
+readable in the report, next to the rest of the ranking's tally.
+
+### Scenario 98
+
+Five assertions, four mutants, no survivors:
+
+| Mutant | Assertions that fall |
+| --- | --- |
+| the bound is gone (no filter) | 3 |
+| the bound counts ALL tags | 1 |
+| the bound is set at three | 1 |
+| the counter stops counting | 1 |
+
+The first one makes the **tag path** assertion fall alongside the descent's:
+that is what proves both paths really go through the same filter, without having
+to cripple one of them to check.
 
 ## What the VOD knew and we refused to read (v4.0)
 
@@ -4323,7 +4391,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 97 scenarios, 923 assertions |
+| `npm test` | the Playwright harness: 98 scenarios, 928 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -4343,7 +4411,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 840 KB | 339 KB | 3,100 → **2** |
+| `content.js` | 840 KB | 339 KB | 3,103 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 68 KB | 34 KB | 84 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
