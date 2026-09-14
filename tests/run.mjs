@@ -12479,6 +12479,109 @@ titre('97. Le passé d\'avant la coupure, et le basculement qu\'on n\'a pas vu p
   await page.close();
 }
 
+titre('98. Les tags de langue empilés — dix langues n\'en font parler aucune');
+{
+  /* ── LE SIGNALEMENT, ET CE QU'IL DÉCRIT ──────────────────────────────────
+     Les tags de langue sont libres : rien n'empêche un streamer d'en poser
+     dix pour figurer dans dix classements. Une chaîne ne diffuse pas en dix
+     langues à la fois — le tag ne dit alors plus ce qu'on parle, il dit qu'on
+     veut être trouvé partout.
+
+     DEUX, PARCE QUE DEUX EXISTE. Un stream bilingue est courant : un
+     francophone qui fait sa soirée en anglais, un événement doublé. L'écarter
+     serait punir un usage réel. Trois ne l'est plus.
+
+     CE QUE CE SCÉNARIO TIENT VRAIMENT. Trois choses se cassent séparément :
+     la borne elle-même, le fait qu'on compte les tags de LANGUE et non tous
+     les tags, et le fait que la règle s'applique aux DEUX voies d'entrée du
+     classement — la descente par catégories et la voie du tag. La dernière
+     est la plus facile à perdre : deux chemins, un seul filtre. */
+  const LANGUES_EMPILEES = ['Français', 'English', 'Deutsch', 'Español',
+                            'Italiano', 'Polski', 'Русский', '日本語'];
+
+  const monter = (page) => page.evaluate((huit) => {
+    const h = new Date(Date.now() - 30 * 60_000).toISOString();
+    window.__fx = { suivi1: { id: 'id-suivi1', createdAt: h, viewers: 400,
+                              game: 'Just Chatting', tags: [] } };
+    window.__addCard('suivi1', 'Just Chatting', '400');
+    const cats = [];
+    // Du remplissage, pour que la descente ait un pool crédible à parcourir.
+    for (let i = 0; i < 3; i++) {
+      const streams = [];
+      for (let k = 0; k < 30; k++) {
+        streams.push({ login: `en${i}_${k}`, viewers: 500 - k, tags: ['English'] });
+      }
+      cats.push({ name: 'c' + i, viewers: 400_000 - i, streams });
+    }
+    /* Les cinq cas, tous assez gros pour être en tête du classement : s'ils
+       n'y sont pas, c'est la règle qui les a écartés et rien d'autre. */
+    cats.push({ name: 'vitrine', viewers: 399_000, streams: [
+      { login: 'mono',  viewers: 9000, tags: ['Français'] },
+      { login: 'bi',    viewers: 8000, tags: ['Français', 'English'] },
+      // DEUX langues, et deux tags qui n'en sont pas : elle passe. C'est la
+      // différence entre « compter les tags » et « compter les langues ».
+      { login: 'mixte', viewers: 7000,
+        tags: ['Français', 'Speedrun', 'English', 'LGBTQIAPlus'] },
+      { login: 'tri',   viewers: 6000, tags: ['Français', 'English', 'Deutsch'] },
+      { login: 'spam',  viewers: 5000, tags: huit },
+    ] });
+    window.__cats = cats;
+  }, LANGUES_EMPILEES);
+
+  const page = await fresh();
+  await monter(page);
+  await wait(page, 1500);
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(30).length > 0, 9000);
+  await wait(page, 1500);
+
+  const top = await page.evaluate(() => window.tse.global.top(30).map(r => r.login));
+  ok('une chaîne qui déclare une ou deux langues reste au classement',
+     top.includes('mono') && top.includes('bi'), JSON.stringify(top.slice(0, 8)));
+  ok('…celle qui en déclare trois ou huit en sort',
+     !top.includes('tri') && !top.includes('spam'), JSON.stringify(top.slice(0, 8)));
+  /* LA RÈGLE COMPTE LES LANGUES, PAS LES TAGS. « mixte » en porte quatre, dont
+     deux seulement sont des langues : un filtre qui compterait les tags
+     l'écarterait, et écarterait avec elle toute chaîne un peu renseignée. */
+  ok('…et quatre tags dont deux langues, c\'est deux langues',
+     top.includes('mixte'), JSON.stringify(top.slice(0, 8)));
+
+  /* L'EXCLUSION SE COMPTE. Une exclusion silencieuse est une exclusion dont on
+     ne saura jamais si elle mord trop : le rapport porte le nombre. */
+  const bilan = await page.evaluate(() => window.tse.global.report().tagsEmpiles);
+  ok('le rapport dit combien de chaînes ont été écartées pour cela',
+     Number.isFinite(bilan) && bilan >= 2, String(bilan));
+
+  /* ── LA SECONDE VOIE D'ENTRÉE ────────────────────────────────────────────
+     Le classement par TAG de langue ne passe pas par la descente : c'est une
+     requête à part, dont les réponses entrent par la même lecture. Si le
+     filtre avait été posé dans la descente plutôt que dans cette lecture, la
+     voie du tag laisserait passer tout ce que l'autre écarte — et c'est
+     précisément la voie qu'un empileur de tags cherche à atteindre. */
+  await page.evaluate((huit) => {
+    window.__tagTop = { 'Français': [
+      { login: 'tagPropre', viewers: 5000, game: 'Just Chatting', tags: ['Français'] },
+      { login: 'tagSpam',   viewers: 4000, game: 'Just Chatting', tags: huit },
+    ] };
+  }, LANGUES_EMPILEES);
+  await page.evaluate(() => {
+    const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
+      .find(o => (o.dataset.value || '') === 'Français');
+    if (!opt) throw new Error('langue absente du menu');
+    opt.click();
+  });
+  await attendre(page,
+    () => window.tse.global.top(30).some(r => r.login === 'tagPropre'), 9000);
+  await wait(page, 400);
+  const parTag = await page.evaluate(() => window.tse.global.top(30).map(r => r.login));
+  ok('la voie du tag applique la même règle : l\'empileur n\'y entre pas non plus',
+     parTag.includes('tagPropre') && !parTag.includes('tagSpam'),
+     JSON.stringify(parTag.slice(0, 8)));
+
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

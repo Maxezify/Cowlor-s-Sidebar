@@ -338,7 +338,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 840 Ko | 339 Ko | 3 100 → **2** |
+| `content.js` | 840 Ko | 339 Ko | 3 103 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 68 Ko | 34 Ko | 84 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 923 assertions, sous Gecko
+npm run test-firefox        # les mêmes 928 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2613,6 +2613,76 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Les tags de langue empilés (v4.1)
+
+Les tags de langue sont libres. Rien n'empêche un streamer d'en poser dix pour
+figurer dans dix classements — et le signalement d'un utilisateur dit que cela
+se pratique. Une chaîne ne diffuse pas en dix langues à la fois : passé un
+certain nombre, le tag ne dit plus ce qu'on parle, il dit qu'on veut être trouvé
+partout.
+
+**Deux, parce que deux existe.** Un stream bilingue est courant — un francophone
+qui fait sa soirée en anglais, un événement doublé — et l'écarter serait punir un
+usage réel. Trois ne l'est plus. Au-delà de deux langues déclarées, la chaîne
+sort du classement.
+
+### Une seule lecture, donc un seul endroit où filtrer
+
+Le module du classement a **deux voies d'entrée** : la descente par catégories,
+qui visite les catégories une à une, et la voie du tag, qui demande directement
+à Twitch le classement trié sur un tag de langue. Deux chemins, deux requêtes,
+deux reconstructions de pool — mais **une seule lecture** : `readStream`, qui
+traduit un nœud de stream en enregistrement plat.
+
+Le filtre se pose donc là, et nulle part ailleurs. Posé dans la descente, il
+aurait laissé passer par la voie du tag tout ce qu'il écarte — et c'est
+précisément la voie qu'un empileur de tags cherche à atteindre.
+
+### Ce qu'on compte, et ce qu'on ne compte pas
+
+On compte les tags qui sont **exactement** l'un des trente et un noms canoniques
+de langue que Twitch pose (`LANG_SET`, dérivé de la table des drapeaux). Un
+stream qui porte « Français », « Speedrun », « English » et « LGBTQIAPlus » en
+déclare **deux** : il reste. Compter les tags plutôt que les langues écarterait
+toute chaîne un peu renseignée, ce qui n'a rien à voir avec l'abus qu'on vise.
+
+On compte aussi les tags **de Twitch**, avant que la voie du tag n'ajoute
+elle-même celui qu'elle vient de demander. Ce qu'on juge est ce que la chaîne
+déclare, pas ce que nous lui posons.
+
+### Ce que la règle coûte, et où elle ne s'applique pas
+
+Le prix est connu : **un événement réellement diffusé en trois langues disparaît
+lui aussi** du classement. C'est la conséquence assumée d'une borne à deux ; elle
+se relève d'un chiffre si les rapports montrent qu'elle mord trop.
+
+Et elle ne s'applique **qu'au classement**. La liste de vos chaînes suivies n'est
+pas un classement mais votre propre choix : une chaîne suivie qui empile les tags
+reste dans votre barre latérale, et son filtre de langue continue de la ranger
+sous chacune des langues qu'elle déclare. Rien de ce qui vous appartient n'est
+filtré par cette règle.
+
+### L'exclusion se compte
+
+`global.tagsEmpiles` porte le nombre de chaînes écartées pour cette raison. Une
+exclusion silencieuse est une exclusion dont on ne saura jamais si elle mord
+trop ; celle-ci se lit dans le rapport, à côté du reste du bilan du classement.
+
+### Le scénario 98
+
+Cinq assertions, quatre mutants, aucun survivant :
+
+| Mutant | Assertions qui tombent |
+| --- | --- |
+| la borne saute (aucun filtre) | 3 |
+| la borne compte TOUS les tags | 1 |
+| la borne est posée à trois | 1 |
+| le compteur ne compte plus | 1 |
+
+Le premier fait tomber l'assertion de la **voie du tag** en même temps que celle
+de la descente : c'est ce qui prouve que les deux chemins passent bien par le
+même filtre, sans avoir à mutiler l'un des deux pour le vérifier.
 
 ## Ce que le VOD savait et qu'on refusait de lire (v4.0)
 
@@ -4979,7 +5049,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 97 scénarios, 923 assertions |
+| `npm test` | le harnais Playwright : 98 scénarios, 928 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

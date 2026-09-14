@@ -1799,6 +1799,24 @@ const TSE_GATE_MAX_CLICKS = 5;
        produit en production avec `first: 100`. Le banc reproduit la borne
        (scénario 81) : la relever ici y fait tomber trois assertions. */
     GLOBAL_TAG_MAX:          30,
+    /* ── COMBIEN DE LANGUES UNE CHAÎNE PEUT-ELLE DÉCLARER ? ────────────────
+       Les tags de langue sont libres : rien n'empêche un streamer d'en poser
+       dix pour apparaître dans dix classements. C'est le signalement d'un
+       utilisateur, et c'est un abus qui se voit — une chaîne ne diffuse pas
+       en dix langues à la fois.
+
+       DEUX, PARCE QUE DEUX EXISTE. Un stream bilingue est courant — un
+       francophone qui fait sa soirée en anglais, un événement doublé — et
+       l'écarter serait punir un usage réel. Trois ne l'est plus : à ce
+       compte-là, le tag ne dit plus ce qu'on parle, il dit qu'on veut être
+       trouvé partout.
+
+       LA CHAÎNE SORT DU CLASSEMENT ENTIER, et non du seul classement par
+       langue. C'est ce que demande la règle : une chaîne qui empile les tags
+       cherche un rang qu'elle n'a pas mérité, et le lui refuser à moitié
+       n'aurait pas de sens. Le prix est connu et assumé : un événement
+       réellement diffusé en trois langues disparaît lui aussi. */
+    GLOBAL_LANG_TAGS_MAX:    2,
     // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
     // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
     // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
@@ -5331,8 +5349,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     let running       = false;
     let complete      = false; // le dernier classement est-il PROUVÉ complet ?
     let windowFloor   = 0;     // total de la dernière catégorie de la fenêtre
+    /* `tagsEmpiles` compte les chaînes écartées pour avoir déclaré plus de
+       GLOBAL_LANG_TAGS_MAX langues. Compté plutôt que silencieux : c'est une
+       exclusion, et une exclusion qu'on ne mesure pas est une exclusion dont
+       on ne saura jamais si elle mord trop. */
     const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
-                    misses: 0, evicted: 0, lastMs: 0 };
+                    misses: 0, evicted: 0, lastMs: 0, tagsEmpiles: 0 };
 
     // ── Transport ───────────────────────────────────────────────────────
     // Envoie un lot d'opérations et rend un tableau de `data` ALIGNÉ sur les
@@ -5375,6 +5397,21 @@ const TSE_GATE_MAX_CLICKS = 5;
       const login   = node?.broadcaster?.login;
       const viewers = node?.viewersCount;
       if (!login || !Number.isFinite(viewers)) return null;
+      const tags = Array.isArray(node.freeformTags)
+        ? node.freeformTags.map(t => t?.name).filter(Boolean) : [];
+      /* ── LES TAGS DE LANGUE EMPILÉS ────────────────────────────────────────
+         Une chaîne qui déclare plus de deux langues ne dit plus laquelle elle
+         parle : elle demande à figurer dans tous les classements. Elle sort
+         donc du pool — et c'est ici qu'il faut le faire, parce que c'est le
+         SEUL passage obligé : la descente par catégories et la voie du tag
+         lisent toutes deux leurs nœuds à travers cette fonction. Un filtre
+         posé plus loin en aurait manqué une.
+
+         On compte les tags DE TWITCH, avant que la voie du tag n'ajoute
+         elle-même celui qu'elle vient de demander : ce qu'on juge est ce que
+         la chaîne déclare, pas ce que nous lui posons. */
+      const langues = new Set(tags.filter(t => LANG_SET.has(t)));
+      if (langues.size > CFG.GLOBAL_LANG_TAGS_MAX) { stats.tagsEmpiles++; return null; }
       return {
         login,
         id:        node.broadcaster.id ?? null,
@@ -5386,8 +5423,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         createdAt: node.createdAt || null,
         // Tags bruts, canonicalisés à la LECTURE comme pour TseChannels :
         // c'est ce qui alimentera le filtre pays sans requête supplémentaire.
-        tags:      Array.isArray(node.freeformTags)
-          ? node.freeformTags.map(t => t?.name).filter(Boolean) : [],
+        tags,
         ts:        now
       };
     };
