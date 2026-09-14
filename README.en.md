@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 906 assertions, under Gecko
+npm run test-firefox        # the same 913 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2008,15 +2008,14 @@ Four mutants, four guards, four distinct assertions that fall — and the one th
 removes the bar correction reproduces the original defect exactly: `frais: true`
 on a six-hour stream.
 
-### The duration that survives the outage (v3.98)
+### The stream's origin, and where it is read (v3.98, moved in v3.99)
 
 3.97 stopped the purple bar from lying. It left the counter free to do it: "2m"
 on a stream that is six hours in, because `createdAt` belongs to the **segment**
 and not to the stream.
 
 The per-login memory therefore carries a third value, the **origin** — the
-`createdAt` of the channel's first segment — and `applyChannelData` writes that
-into `tseStartedAt` rather than the one from the poll:
+`createdAt` of the channel's first segment:
 
 ```js
 const debutReel = (login, createdAt) => {
@@ -2042,17 +2041,186 @@ const memeSession = memoire && memoire.id === neuf.id;
 let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
 ```
 
-Scenario 95 goes from eight assertions to eleven, and three mutants kill them:
-writing `stream.createdAt` into `tseStartedAt`, recomputing the origin on every
-poll, or failing to carry it from one segment to the next — four assertions fall
-in each of the three cases.
+**WHERE THAT ORIGIN IS READ CHANGED IN THE NEXT VERSION.** 3.98 wrote it into
+`tseStartedAt`, that is, onto the card: the counter there showed the whole
+stream's duration. 3.99 moved it to where it has room — the trail's header, in
+the preview — and gave the card back the SESSION's duration, the one Twitch
+serves. The next section says why, and what the trail does with it. The
+mechanism described here has not moved a line: it is its exit point that
+relocated.
 
-The explicit freshness suppression went away with it: with the true origin, the
-card is old **by construction**, and a rule that can no longer fire is a rule
-you remove. Lastly, a sub-test that modelled an impossible case — a stream
-growing younger without changing id — was replaced by the ordinary case that was
-actually worth keeping: **a channel going live for the first time must keep its
-"just went live" bar**.
+A sub-test that modelled an impossible case — a stream growing younger without
+changing id — was replaced along the way by the ordinary case that was actually
+worth keeping: **a channel going live for the first time must keep its "just
+went live" bar**.
+
+## The trail that does not start over (v3.99)
+
+3.97 turned off the purple bar on a resumption; 3.98 put the whole stream's
+duration on the card. Feedback from use decided otherwise, and it was right on
+both counts.
+
+**The card counts the session, like Twitch.** Two truths about one thing are
+worth less than one well placed, and a sidebar card only has room for one
+duration. What would be wrong is not that the counter restarts from zero — it is
+letting you believe you missed nothing. And that is not what the counter says,
+it is what the purple bar says. So the bar stays off (the guard is back in
+`updateFreshness`, at the exact line where it had been removed), the counter
+restarts from zero as Twitch serves it, and the whole stream is read in the
+preview — which does have room for both.
+
+**The trail, though, was starting over**, and that was the real damage. It was
+invisible from the code: `suivreCategorie` resets as soon as the stream id
+changes, and it changes on every resumption. Anyone hovering after a three-minute
+outage saw nothing of the stream any more — "Earlier on this stream" restarted at
+its sixth hour, which is exactly the opposite of what that block promises.
+
+### The right criterion is not the id, it is the origin
+
+`debutReel` gives the start of the CHAIN of segments: it does not move while
+resumptions follow one another, and it jumps as soon as a genuinely new stream
+begins. Same origin, same stream — keep everything and adopt the new id:
+
+```js
+const memeDirect = !!f && f.streamId !== id
+                   && !!f.debutStream && f.debutStream === debutStream;
+```
+
+The comparison requires a non-null `debutStream`, and that is not routine
+caution: two `null`s are equal without proving anything, and an unreadable
+`createdAt` would then make any session pass for the continuation of the
+previous one.
+
+The trail is dated from that origin, which makes it **the only place in the
+product whose scale covers the whole stream**. Its total — displayed in the
+header since 3.94 — therefore becomes the accurate duration, outages included.
+
+### A three-minute outage falls across six polls
+
+Continuity by origin was not enough. The trail was destroyed on the first
+offline poll (`frises.delete(login)`), and at a thirty-second cadence a
+three-minute outage produces six of them: there was nothing left to splice on
+return.
+
+So it is **held** instead of thrown away, and for exactly the same span as the
+badge — beyond it, it is no longer the same stream, and it is the same question
+being asked. The hold is bounded by time, not by good intentions: past
+`RECONNECT_GAP_MAX` the trail goes, and the registry cannot fill up with dead
+channels.
+
+That bound **is not visible on screen**, which is what made its assertion
+interesting: the origin comparison alone would restart the trail from zero even
+if the registry kept the dead entry forever. The mutant that removes the release
+therefore survived every display assertion. What is at stake is not rendering
+but MEMORY — and the report is what says it: `frise.retenues` counts the trails
+put on hold, `frise.lachees` those the wait ended up carrying away.
+
+### What the ribbon says about it
+
+The outage count sits **to the left of the total**, against it, because it is
+about that total: "6h12" on a stream that dropped twice reads as six unbroken
+hours, which is not what happened.
+
+On the ribbon, each outage is a **notch** — placed absolutely over the parts
+rather than inserted between them: each segment's share is computed from its
+duration, and slipping one more box into the row would shift everything after it.
+
+**An interval is drawn, not an instant**, and that is the only honest thing to
+draw. We know when the channel was last seen live, and when it came back;
+somewhere in between, the outage happened at a moment we do not know. The mark
+therefore covers that gap, at its place and at its width, with a two-pixel floor
+— without which three minutes out of six hours would come to nothing at all.
+
+Half a percent is reserved on the right. An outage that has just happened falls
+at a hundred percent of the ribbon: the mark would start at the right edge and
+the hidden overflow would trim it to nothing — invisible precisely when it is
+most useful. Half a percent is roughly the two pixels of the floor at popup
+width, which is less than the ribbon can show anyway.
+
+The COUNT is not bounded: it is an integer, it costs nothing, and announcing it
+wrong would be worse than not announcing it. Only the MARKS are, at twenty-four
+— beyond that, closer lines stop being distinguishable from one another.
+
+### The VOD has nothing left to say about a stream that dropped
+
+Twitch opens one recording per SESSION. On a channel that resumed, the current
+segment's VOD covers only that segment, and its chapters — dated from its own
+birth — would land AFTER what we observed before the outage. The splice puts
+them first and then only appends our segments if they come later: **our whole
+past would disappear** in favour of a prelude that only speaks of the last ten
+minutes.
+
+Worse, `continu` — "the VOD covers the stream without a single change" — would
+extend the current category back to the chain's origin, six hours earlier, on
+the strength of a recording that covers ten minutes of it. An invention, and of
+the worst kind: a plausible one.
+
+As soon as an outage is known, nothing is requested (`friseACombler`) and
+nothing is used (`preludeDe`). The guard is in both places: a prelude may have
+been fetched BEFORE the outage, and nothing guarantees the order of the two
+events.
+
+### Badges take a bullet
+
+Four labels change shape, and it is a matter of the row they live in: in a run
+of pills, a label and its value read better apart than stuck together.
+
+| Before | After |
+| --- | --- |
+| `Subathon · DAY 12` | `Subathon • DAY 12` |
+| `Subscribed 2 months` | `Subscribed • 2 MONTHS` |
+| `Formerly subscribed 1 month` | `Former sub • 1 MONTH` |
+| `Watch streak 1` | `Watch streak • 1` |
+
+The first three are ours: thirty rewrites, ten languages, and the Slavic plural
+rule untouched — scenario 64 still tests it on the twelve cases of the 11-14
+trap, in capitals now.
+
+**The fourth is Twitch's**, and that bounds what can be done with it. Those rows
+are injected under the card in the interface language; we pick them up as badges
+as they are. Recomposing the sentence would mean rewriting it in ten languages
+from a string we cannot read from here — inventing ten translations and hoping.
+So the FINAL NUMBER is detached, a number being a number everywhere, and the
+words stay Twitch's. The transformation only touches "other" rows: hype trains
+and sub discounts have their own phrasing, often with no trailing number, and
+touching those could cut a sentence in two.
+
+### Scenario 95, and what it had to be taught
+
+It goes from eight assertions to seventeen, and its fixture changed twice. It
+first needed **a trail worth saving**: a single segment does not make a trail,
+the block staying silent when all it would have to tell is our own observation
+window. So the channel switches category once before the outage.
+
+It then needed **an outage seen going by**. The other cases change id from one
+poll to the next — the channel is never observed offline, which is the most
+frequent case at a thirty-second cadence. The hold, however, can only be tested
+on a channel genuinely seen going dark.
+
+Nine mutants, no survivors:
+
+| Mutant | Assertions that fall |
+| --- | --- |
+| the trail restarts on every id change | 5 |
+| the trail is destroyed on the first offline poll | 1 |
+| the hold never ends | 1 |
+| the hold is released at once | 2 |
+| the trail is dated from the segment, not the stream | 5 |
+| no mark is kept | 3 |
+| the outage count is not displayed | 3 |
+| the count restarts on every resumption | 1 |
+| the card no longer counts the session | 1 |
+
+The last one says best what this version settled: putting the whole stream's
+duration back on the card makes an assertion fall, because that is no longer
+where it belongs.
+
+**Two neighbouring scenarios had to follow.** Scenario 78 checked that "a new
+session restarts from a single category" by simply changing the stream id — which
+today describes a resumption, whose trail is precisely what is preserved. Its
+fixture now produces a genuine outage, past the bound. And scenario 88, which
+reads the SOURCE to require that the registry's re-insertion precedes the
+branching, was looking for a branch whose text has changed.
 
 ## The category trail (v3.70)
 
@@ -4014,7 +4182,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 96 scenarios, 906 assertions |
+| `npm test` | the Playwright harness: 96 scenarios, 913 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -4034,7 +4202,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 803 KB | 332 KB | 3,069 → **2** |
+| `content.js` | 840 KB | 339 KB | 3,086 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 68 KB | 34 KB | 84 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |

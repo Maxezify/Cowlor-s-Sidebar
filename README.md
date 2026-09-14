@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 906 assertions, sous Gecko
+npm run test-firefox        # les mêmes 913 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2128,15 +2128,14 @@ Quatre mutants, quatre gardes, quatre assertions distinctes qui tombent —
 et celui qui retire la correction de la barre reproduit exactement le défaut
 d'origine : `frais: true` sur un direct de six heures.
 
-### La durée qui traverse la coupure (v3.98)
+### L'origine du direct, et où elle se lit (v3.98, déplacée en v3.99)
 
 La 3.97 a empêché la barre violette de mentir. Elle laissait le compteur le
 faire : « 2m » sur un direct qui en est à sa sixième heure, parce que
 `createdAt` est celui du **tronçon** et non du direct.
 
 La mémoire par login porte donc une troisième valeur, l'**origine** — le
-`createdAt` du premier tronçon de la chaîne — et `applyChannelData` écrit
-celle-ci dans `tseStartedAt` plutôt que celui du relevé :
+`createdAt` du premier tronçon de la chaîne :
 
 ```js
 const debutReel = (login, createdAt) => {
@@ -2163,18 +2162,191 @@ const memeSession = memoire && memoire.id === neuf.id;
 let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
 ```
 
-Le scénario 95 passe de huit à onze assertions, et trois mutants les tuent :
-écrire `stream.createdAt` dans `tseStartedAt`, recalculer l'origine à chaque
-relevé, ou ne pas la reporter d'un tronçon au suivant — quatre assertions
-tombent dans chacun des trois cas.
+**OÙ CETTE ORIGINE SE LIT A CHANGÉ À LA VERSION SUIVANTE.** La 3.98 l'écrivait
+dans `tseStartedAt`, c'est-à-dire sur la carte : le compteur y affichait alors la
+durée du direct entier. La 3.99 l'a ramenée là où elle a de la place — en tête
+de la frise, dans l'aperçu — et a rendu à la carte la durée de la SESSION, celle
+que Twitch sert. La section suivante dit pourquoi, et ce que la frise en fait.
+Le mécanisme décrit ici, lui, n'a pas bougé d'une ligne : c'est son point de
+sortie qui a déménagé.
 
-La suppression explicite de la fraîcheur a disparu au passage : avec la vraie
-origine, la carte est vieille **par construction**, et une règle qui ne peut
-plus se déclencher est une règle qu'on retire. Enfin, un sous-test qui modélisait
-un cas impossible — un direct qui rajeunit sans changer d'identifiant — a été
-remplacé par le cas ordinaire qu'il fallait vraiment garder : **une chaîne qui
-passe en direct pour la première fois doit garder sa barre « vient de
-démarrer »**.
+Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
+changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
+fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
+doit garder sa barre « vient de démarrer »**.
+
+## La frise qui ne recommence pas (v3.99)
+
+La 3.97 avait éteint la barre violette sur une reprise ; la 3.98 avait mis la
+durée du direct entier sur la carte. Un retour d'usage a tranché autrement, et
+il avait raison sur les deux points.
+
+**La carte compte la session, comme Twitch.** Deux vérités pour une même chose
+valent moins qu'une seule bien placée, et une carte de barre latérale n'a de
+place que pour une durée. Ce qui serait faux, ce n'est pas que le compteur
+reparte de zéro — c'est de laisser croire qu'on n'a rien raté. Or cela, ce n'est
+pas le compteur qui le dit, c'est la barre violette. Elle reste donc éteinte (la
+garde est revenue dans `updateFreshness`, à l'endroit exact où elle avait été
+retirée), le compteur repart de zéro comme chez Twitch, et le direct entier se
+lit dans l'aperçu — qui, lui, a la place de dire les deux.
+
+**Mais la frise, elle, recommençait**, et c'était le vrai dégât. Il ne se voyait
+pas depuis le code : `suivreCategorie` repart de zéro dès que l'identifiant de
+stream change, et il change à chaque reprise. Un spectateur qui survolait après
+une coupure de trois minutes ne voyait plus rien du direct — « Précédemment sur
+ce live » redémarrait à la sixième heure, ce qui est exactement le contraire de
+ce que ce bloc promet.
+
+### Le bon critère n'est pas l'identifiant, c'est l'origine
+
+`debutReel` rend le départ de la CHAÎNE de tronçons : il ne bouge pas tant que
+les reprises s'enchaînent, et il saute dès qu'un vrai nouveau direct commence.
+Même origine, même direct — on garde tout et on adopte le nouvel identifiant :
+
+```js
+const memeDirect = !!f && f.streamId !== id
+                   && !!f.debutStream && f.debutStream === debutStream;
+```
+
+La comparaison exige `debutStream` non nul, et ce n'est pas de la prudence
+d'usage : deux `null` sont égaux sans rien prouver, et un `createdAt` illisible
+ferait alors passer n'importe quelle session pour la suite de la précédente.
+
+La frise est datée de cette origine, ce qui en fait **le seul endroit du produit
+dont l'échelle couvre le direct entier**. Son total — déjà affiché en tête
+depuis la 3.94 — devient donc la durée juste, coupures comprises.
+
+### Une coupure de trois minutes tombe sur six relevés
+
+La continuité par l'origine ne suffisait pas. La frise était détruite au premier
+relevé hors ligne (`frises.delete(login)`), et à trente secondes de cadence une
+coupure de trois minutes en produit six : il ne restait plus rien à raccorder au
+retour.
+
+Elle est donc **retenue** au lieu d'être jetée, et pour exactement la même durée
+que le badge — au-delà, ce n'est plus le même direct, et c'est la même question
+qui se pose. La retenue est bornée par le temps et non par la bonne volonté :
+passé `RECONNECT_GAP_MAX`, la frise part, et le registre ne peut pas se remplir
+de chaînes éteintes.
+
+Cette borne-là **ne se voit pas à l'écran**, et c'est ce qui a rendu son
+assertion intéressante : la comparaison d'origine suffirait à faire repartir la
+frise de zéro même si le registre gardait l'entrée morte jusqu'à la fin des
+temps. Le mutant qui supprime la libération survivait donc à toutes les
+assertions d'affichage. Ce qui se joue n'est pas le rendu mais la MÉMOIRE — et
+c'est le rapport qui la dit : `frise.retenues` compte les frises entrées en
+attente, `frise.lachees` celles que l'attente a fini par emporter.
+
+### Ce que le ruban en dit
+
+Le compte des coupures se pose **à gauche du total**, contre lui, parce que
+c'est de lui qu'il parle : « 6h12 » sur un direct qui a sauté deux fois se lit
+comme six heures d'affilée, ce qui n'est pas ce qui s'est passé.
+
+Sur le ruban, chaque coupure est une **entaille** — posée en absolu par-dessus
+les parts, et non insérée entre elles : la part de chaque segment est calculée
+sur sa durée, et glisser une boîte de plus dans la rangée décalerait tout ce qui
+suit.
+
+**On dessine un intervalle, pas un instant**, et c'est la seule chose honnête à
+dessiner. On sait quand la chaîne a été vue en ligne pour la dernière fois, et
+quand elle est revenue ; entre les deux, la coupure a eu lieu à un moment qu'on
+ignore. La marque couvre donc ce trou, à sa place et à sa largeur, avec un
+plancher de deux pixels — sans quoi trois minutes sur six heures ne feraient
+rien du tout.
+
+Un demi pour cent est réservé à droite. Une coupure qui vient d'avoir lieu tombe
+à cent pour cent du ruban : la marque commencerait au bord droit et le
+débordement caché la taillerait à néant — invisible précisément dans le cas où
+elle est la plus utile. Un demi pour cent vaut à peu près les deux pixels du
+plancher sur la largeur d'un popup, soit moins que ce que le ruban sait montrer.
+
+Le COMPTE, lui, n'est pas borné : c'est un entier, il ne coûte rien, et
+l'annoncer faux serait pire que ne pas l'annoncer. Seules les MARQUES le sont,
+à vingt-quatre — au-delà, des traits plus serrés ne se distinguent plus les uns
+des autres.
+
+### Le VOD n'a plus rien à dire sur un direct coupé
+
+Twitch ouvre un enregistrement par SESSION. Sur une chaîne qui a repris, le VOD
+du tronçon courant ne couvre que lui, et ses chapitres — datés d'après sa propre
+naissance — viendraient se placer APRÈS ce que nous avons observé avant la
+coupure. Le raccord les met en tête puis n'ajoute nos segments que s'ils sont
+postérieurs : **tout notre passé disparaîtrait** au profit d'un prélude qui ne
+parle que des dix dernières minutes.
+
+Pire, `continu` — « le VOD couvre le live sans le moindre changement » — ferait
+remonter la catégorie courante jusqu'à l'origine de la chaîne, six heures plus
+tôt, sur la foi d'un enregistrement qui n'en couvre que dix minutes. Une
+invention, et de la pire espèce : plausible.
+
+Dès qu'une coupure est connue, on ne demande donc plus rien (`friseACombler`) et
+on n'utilise rien (`preludeDe`). La garde est aux deux endroits : un prélude a
+pu être récupéré AVANT la coupure, et rien ne garantit l'ordre des deux
+événements.
+
+### Les badges prennent une puce
+
+Quatre libellés changent de forme, et c'est une question de rangée : dans une
+suite de pastilles, l'intitulé et sa valeur se lisent mieux séparés que collés.
+
+| Avant | Après |
+| --- | --- |
+| `Subathon · JOUR 12` | `Subathon • JOUR 12` |
+| `Abonné 2 mois` | `Abonné • 2 MOIS` |
+| `Anciennement abonné 1 mois` | `Ancien abonné • 1 MOIS` |
+| `Série de visionnage 1` | `Série de visionnage • 1` |
+
+Les trois premiers sont à nous : trente écritures, dix langues, et la règle de
+pluriel slave inchangée — le scénario 64 continue de l'éprouver sur les douze
+cas du piège des 11-14, en capitales désormais.
+
+**Le quatrième est à Twitch**, et c'est ce qui borne ce qu'on peut en faire. Ces
+lignes-là sont injectées sous la carte dans la langue de l'interface ; on les
+reprend en badge telles quelles. Recomposer la phrase — « Série • 1 Visionnage »
+— demanderait de la réécrire dans dix langues à partir d'une chaîne qu'on ne
+peut pas lire d'ici, c'est-à-dire d'inventer dix traductions et d'espérer. On
+détache donc le NOMBRE FINAL, qui est un nombre partout, et les mots restent les
+siens. La transformation ne touche que les lignes « autres » : le hype train et
+la réduction d'abonnement ont leur propre formulation, souvent sans nombre
+terminal, et les toucher pourrait couper une phrase en deux.
+
+### Le scénario 95, et ce qu'il a fallu lui apprendre
+
+Il passe de huit assertions à dix-sept, et son décor a changé deux fois. Il
+fallait d'abord **une frise à sauver** : un seul segment ne fait pas une frise,
+le bloc se taisant quand il n'aurait à raconter que notre propre fenêtre
+d'observation. La chaîne bascule donc une fois avant la coupure.
+
+Il fallait ensuite **une coupure qu'on voit passer**. Les autres cas changent
+d'identifiant d'un relevé à l'autre — la chaîne n'est jamais observée hors
+ligne, ce qui est le cas le plus fréquent à trente secondes de cadence. La
+retenue, elle, ne s'éprouve que sur une chaîne qu'on a vraiment vue s'éteindre.
+
+Neuf mutants, aucun survivant :
+
+| Mutant | Assertions qui tombent |
+| --- | --- |
+| la frise repart à chaque changement d'identifiant | 5 |
+| la frise est détruite dès le premier relevé hors ligne | 1 |
+| la retenue ne s'arrête jamais | 1 |
+| la retenue est lâchée aussitôt | 2 |
+| la frise date du tronçon, pas du direct | 5 |
+| aucune marque n'est gardée | 3 |
+| le compte des coupures n'est pas affiché | 3 |
+| le compte repart à chaque reprise | 1 |
+| la carte ne compte plus la session | 1 |
+
+Le dernier de la liste est celui qui dit le mieux ce que cette version a
+tranché : rétablir la durée du direct sur la carte fait tomber une assertion,
+parce que ce n'est plus là qu'elle doit être.
+
+**Deux scénarios voisins ont dû suivre.** Le 78 vérifiait qu'« une nouvelle
+session repart d'une seule catégorie » en changeant simplement l'identifiant de
+stream — ce qui décrit aujourd'hui une reprise, dont la frise est justement
+conservée. Son décor produit donc maintenant une vraie coupure, au-delà de la
+borne. Et le 88, qui lit le SOURCE pour exiger que la réinsertion du registre
+précède l'aiguillage, cherchait un aiguillage qui a changé de texte.
 
 ## La frise des catégories (v3.70)
 
@@ -4215,7 +4387,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 96 scénarios, 906 assertions |
+| `npm test` | le harnais Playwright : 96 scénarios, 913 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -4236,7 +4408,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 803 Ko | 332 Ko | 3 069 → **2** |
+| `content.js` | 840 Ko | 339 Ko | 3 086 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 68 Ko | 34 Ko | 84 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |

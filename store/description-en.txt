@@ -25,14 +25,14 @@ Inside the preview popup, colored labels sum up the stream's context at a glance
 
 - 🤝 ★ CO-STREAM ★ Tells you precisely whether the channel is the host or a guest, and with whom. No more "wait, who is this stream I didn't follow?".
 - 👥 ★ LIVE WITH ★ For squads and multistreams, shows the main co-streamer and total count of others ("Live with So-and-So and 3 others").
-- 💜 ★ SUBSCRIBED ★ How long you've been supporting the channel ("Subscribed 9 months") — or that you used to ("Formerly subscribed 22 months").
+- 💜 ★ SUBSCRIBED ★ How long you've been supporting the channel ("Subscribed • 9 MONTHS") — or that you used to ("Former sub • 22 MONTHS").
 - 💰 ★ SPONSORED BY ★ For sponsored streams, displays the brand with its color logo. You'll know who's behind it.
 - 🚂 ★ HYPE TRAIN ★ A Hype Train is running on the channel? You're notified without having to click.
 - 💎 ★ DISCOUNTED SUB ★ When Twitch is offering a discounted subscription on the stream, it's flagged right there.
 - 🆕 ★ JUST SWITCHED TO ★ The streamer changed category mid-stream? A green badge says so for ten minutes: "Just switched to Elden Ring". Twitch announces it nowhere — the extension sees it because it keeps watching.
 - 🔁 ★ BACK AFTER A DROP ★ The streamer dropped and came back? Their uptime restarts from zero and Twitch says nothing about it. The badge does — and the "just went live" bar no longer lights up on a stream that has been running for six hours ("Back after a drop").
 - ⚠️ ★ CONTENT LABELS ★ The official Twitch labels (mature-rated game, graphic violence, gambling…) are shown as their own badge, first in the row — so you know before you look, without the interstitial that used to block the video.
-- 🌈 ★ SUBATHON ★ The channel is running a subathon? The badge says so and gives the current day ("Subathon · DAY 10").
+- 🌈 ★ SUBATHON ★ The channel is running a subathon? The badge says so and gives the current day ("Subathon • DAY 10").
 
 _______________________________
 
@@ -75,7 +75,7 @@ The channels you actually support shouldn't look like all the others. Now they d
 - ★ THE WHOLE CARD LIGHTS UP ★ Golden name, golden category, a gold ring around the avatar, and a slow shimmer in the background of the card. Discreet, but you can't miss it.
 - ★ A SORT OF THEIR OWN ★ "My subscriptions first" pushes them all to the top of the list, with your total on a little badge.
 - ★ EVERY KIND COUNTS ★ Paid, gifted, mobile: all three are recognized, and all three wear the same gold.
-- ★ HOW LONG YOU'VE BEEN THERE ★ Hover a channel and the preview tells you: "Subscribed 9 months". And for one you supported in the past: "Formerly subscribed 22 months".
+- ★ HOW LONG YOU'VE BEEN THERE ★ Hover a channel and the preview tells you: "Subscribed • 9 MONTHS". And for one you supported in the past: "Former sub • 22 MONTHS".
 - ★ IT FIGURES IT OUT ALONE ★ Nothing to configure, no login, no password, no token. How exactly? It's spelled out in the PRIVACY section further down, in plain words.
 
 _______________________________
