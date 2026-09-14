@@ -352,13 +352,13 @@
     "message": "A pré-visualização ao passar o rato"
   },
   "guideHoverTexte": {
-    "message": "Ponha o ponteiro sobre um canal e deixe-o um instante: abre-se uma janela ao lado, com o vídeo em direto — não uma miniatura congelada —, o título completo e emblemas que resumem o contexto.\n• Um pequeno atraso antes de abrir: atravessar a lista para ir a outro lado não abre nada.\n• Em toda a barra lateral: canais seguidos, recomendações, «os espectadores de X também veem».\n• A publicidade é retirada dessa miniatura e de mais nada: a transmissão que está a ver nunca é tocada."
+    "message": "Ponha o ponteiro sobre um canal e deixe-o um instante: abre-se uma janela ao lado, com o vídeo em direto — não uma miniatura congelada —, o título completo e emblemas que resumem o contexto."
   },
   "guideDureeTitre": {
     "message": "Há quanto tempo está em direto"
   },
   "guideDureeTexte": {
-    "message": "Por baixo do número de espectadores, cada cartão traz a duração da transmissão. Atualiza-se sozinha, sem ter de abrir o canal.\n• «4h19» lê-se quatro horas e dezanove. Abaixo da hora, só minutos: «24m».\n• Quando a transmissão acaba, o contador passa a «Encerrado» em itálico — muitas vezes antes de o Twitch retirar o cartão da lista."
+    "message": "Por baixo do número de espectadores, cada cartão traz a duração da transmissão. Atualiza-se sozinha, sem ter de abrir o canal."
   },
   "guideBadgesTitre": {
     "message": "Os emblemas da pré-visualização"
@@ -370,43 +370,43 @@
     "message": "Antes nesta live"
   },
   "guideFriseTexte": {
-    "message": "Chega a meio de uma transmissão de oito horas: o que aconteceu antes? A pré-visualização mostra-o — uma faixa, uma cor por categoria, e a lista por baixo.\n• Cada banda está à escala do tempo real: um relance diz para onde foi a noite.\n• «×3» quer dizer que o streamer voltou três vezes a essa categoria.\n• Um canal que não arquiva as suas transmissões? O percurso é reconstruído a partir dos clips, e a extensão di-lo.\n• Quando a hora exata de uma mudança não é conhecida, a cor esbate-se em vez de cortar a direito e a duração leva um «~». Nunca um número inventado."
+    "message": "Chega a meio de uma transmissão de oito horas: o que aconteceu antes? A pré-visualização mostra-o — uma faixa, uma cor por categoria, e a lista por baixo.\n• Cada banda está à escala do tempo real: um relance diz como correu a noite.\n• «×3» quer dizer que o streamer voltou três vezes a essa categoria.\n• Um canal que não arquiva as suas transmissões? O percurso é reconstruído a partir dos clips, e a extensão di-lo.\n• Quando a hora exata de uma mudança não é conhecida, a cor esbate-se em vez de cortar a direito e a duração leva um «~». Nunca um número inventado."
   },
   "guideSubathonTitre": {
     "message": "Os subathons"
   },
   "guideSubathonTexte": {
-    "message": "Um subathon é aquela transmissão que as inscrições prolongam sem fim — dias, às vezes semanas.\n• Uma etiqueta junto ao nome dá o dia em curso: fica logo a saber onde vai o evento.\n• Etiqueta e emblema percorrem um arco-íris. Mais nada no produto tem essa cor, porque um evento excecional não se arruma na paleta dos outros.\n• Nada é adivinhado: são o título da transmissão e as tags que o dizem, não a duração. Um subathon já o é na sua segunda hora."
+    "message": "Um subathon é aquela transmissão que as inscrições prolongam sem fim — dias, às vezes semanas.\n• Uma etiqueta à direita do nome dá o dia em curso: fica logo a saber onde vai o evento."
   },
   "guideCostreamTitre": {
     "message": "Os co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Um ponto roxo ao canto do avatar, com o número de participantes: este canal transmite acompanhado. Visível na lista, sem passar o rato por nada.\n• A pré-visualização diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa-os no topo da lista (capítulo 9)."
+    "message": "Um ponto roxo ao canto do avatar, com o número de participantes: este canal transmite acompanhado. Visível na lista, sem passar o rato por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa-os no topo da lista (capítulo 9)."
   },
   "guideDebutTitre": {
     "message": "Os começos e os regressos"
   },
   "guideDebutTexte": {
-    "message": "Uma barra roxa que respira na margem esquerda de um cartão: essa transmissão começou há menos de dez minutos. O suficiente para apanhar a introdução. Apaga-se sozinha.\n• Se o streamer cair e voltar em menos de dez minutos, ela NÃO se acende outra vez: foi o contador dele que recomeçou do zero, não a transmissão.\n• A duração mostrada continua a ser a da transmissão inteira, queda incluída, e a pré-visualização traz um emblema que diz o que aconteceu."
+    "message": "Uma barra roxa aparece na margem esquerda de um cartão: essa transmissão começou há menos de dez minutos. Apaga-se sozinha ao fim do décimo minuto.\n• Se o streamer perder a ligação e voltar em menos de dez minutos, a barra roxa não se acende outra vez, mas o contador dele recomeça do zero.\n• Na pré-visualização, a duração mostrada continua a ser a da transmissão inteira, queda incluída, e um emblema avisa o que aconteceu."
   },
   "guideAboTitre": {
     "message": "As suas inscrições, a ouro"
   },
   "guideAboTexte": {
-    "message": "Os canais que apoia já não se parecem com os outros: nome dourado, categoria dourada, um anel de ouro à volta do avatar e um reflexo lento sobre o cartão.\n• A ordenação «Minhas inscrições primeiro» sobe-os todos para o topo, com o seu número numa etiqueta.\n• A pré-visualização diz desde quando, e lembra-se quando já terminou.\n• As três formas contam: paga, oferecida, móvel.\n• Nada para configurar, nenhum utilizador, nenhuma palavra-passe. O último capítulo diz como."
+    "message": "Os canais que apoia já não se parecem com os outros: nome dourado, categoria dourada, um anel de ouro à volta do avatar e um reflexo lento sobre o cartão.\n• Aparece um emblema que diz desde quando.\n• As três formas de inscrição contam: paga, oferecida, móvel."
   },
   "guideTriTitre": {
     "message": "Ordenar e filtrar"
   },
   "guideTriTexte": {
-    "message": "Seis botões no topo da lista reorganizam-na num instante:\n• Por espectadores — a ordenação do Twitch, limpa.\n• Minhas inscrições primeiro — com o total numa etiqueta.\n• Por popularidade pessoal — a partir das suas próprias visitas, guardadas na sua máquina.\n• Por duração da transmissão — as mais recentes no topo, para apanhar os começos.\n• Por nome do canal — ordem alfabética.\n• Co-streams primeiro — para não perder nenhuma colaboração.\nLogo abaixo, dois filtros: a categoria e o idioma. Ambas as listas só oferecem o que os seus canais estão mesmo a transmitir nesse momento — nada de menus intermináveis."
+    "message": "Seis botões no topo da lista reorganizam-na num instante:\n• Por espectadores — a ordenação do Twitch, limpa.\n• Minhas inscrições primeiro — com o total das minhas inscrições atuais (mesmo as que estão offline) numa etiqueta.\n• Por popularidade pessoal — a partir das suas próprias visitas, guardadas na sua máquina.\n• Por duração da transmissão — as mais recentes no topo, para apanhar os começos.\n• Por nome do canal — ordem alfabética.\n• Co-streams primeiro — para não perder nenhuma colaboração.\nLogo abaixo, dois filtros: a categoria e o idioma. Ambas as listas só oferecem o que os seus canais estão mesmo a transmitir nesse momento."
   },
   "guideTopTitre": {
     "message": "Top Canais"
   },
   "guideTopTexte": {
-    "message": "Um separador no topo da barra lateral, um clique, e ela muda: em vez dos seus canais seguidos, os trinta canais mais vistos do Twitch, em direto.\n• Por categoria ou por idioma — um verdadeiro top trinta para cada um, não um filtro colocado sobre uma lista inglesa.\n• Tudo o resto acompanha: pré-visualização, duração, emblemas, co-streams. São cartões como os outros.\n• Quando não se pode garantir que a classificação está completa, a extensão di-lo em vez de inventar.\nUm clique para ir, um clique para voltar. Os seus canais seguidos não se mexem um pixel."
+    "message": "Um separador no topo da barra lateral, um clique, e ela muda: em vez dos seus canais seguidos, os trinta canais mais vistos do Twitch, em direto.\n• Por categoria ou por idioma — um verdadeiro top 30 para cada um.\nUm clique para ir, um clique para voltar. Os seus canais seguidos não se mexem um pixel."
   },
   "guideViteTitre": {
     "message": "Mais rápida do que o Twitch, e mais limpa"
@@ -442,7 +442,7 @@
     "message": "Ao vivo com Korbek e mais 3"
   },
   "guideBadgeSub": {
-    "message": "Inscrito há 9 meses"
+    "message": "Inscrito • 9 MESES"
   },
   "guideBadgeSponsor": {
     "message": "Patrocinado por Norvex"
@@ -454,7 +454,7 @@
     "message": "Inscrição com desconto"
   },
   "guideBadgeSubathon": {
-    "message": "Subathon · DIA 10"
+    "message": "Subathon • DIA 10"
   },
   "guideDemoTitre": {
     "message": "Acabamos a masmorra e depois perguntas"

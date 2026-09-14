@@ -224,13 +224,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'avant le premier clip',
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
+      uiTrailCuts:               (n) => `${n} coupure${n > 1 ? 's' : ''}`,
       uiSubathonShort:           (n) => `J${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · JOUR ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • JOUR ${n}`,
       uiTrailOthers:             (n) => `+ ${n} autres catégories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
-      uiBadgeSubMonths:          (n) => `Abonné ${n} mois`,
-      uiBadgeExSubMonths:        (n) => `Anciennement abonné ${n} mois`,
+      uiBadgeSubMonths:          (n) => `Abonné • ${n} MOIS`,
+      uiBadgeExSubMonths:        (n) => `Ancien abonné • ${n} MOIS`,
 
       uiCclMatureGame:                      'Jeux matures',
       uiCclGambling:                        'Jeux d\'argent',
@@ -304,13 +305,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'before the first clip',
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
+      uiTrailCuts:               (n) => `${n} outage${n > 1 ? 's' : ''}`,
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DAY ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • DAY ${n}`,
       uiTrailOthers:             (n) => `+ ${n} other categories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
-      uiBadgeSubMonths:          (n) => `Subscribed ${n} month${n > 1 ? 's' : ''}`,
-      uiBadgeExSubMonths:        (n) => `Formerly subscribed ${n} month${n > 1 ? 's' : ''}`,
+      uiBadgeSubMonths:          (n) => `Subscribed • ${n} MONTH${n > 1 ? 'S' : ''}`,
+      uiBadgeExSubMonths:        (n) => `Former sub • ${n} MONTH${n > 1 ? 'S' : ''}`,
       uiCclMatureGame:                      'Mature-rated game',
       uiCclGambling:                        'Gambling',
       uiCclSexualThemes:                    'Sexual themes',
@@ -383,13 +385,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'vor dem ersten Clip',
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
+      uiTrailCuts:               (n) => `${n} Unterbrechung${n > 1 ? 'en' : ''}`,
       uiSubathonShort:           (n) => `T${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · TAG ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • TAG ${n}`,
       uiTrailOthers:             (n) => `+ ${n} weitere Kategorien`,
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
-      uiBadgeSubMonths:          (n) => `${n} Monat${n > 1 ? 'e' : ''} abonniert`,
-      uiBadgeExSubMonths:        (n) => `Früher ${n} Monat${n > 1 ? 'e' : ''} abonniert`,
+      uiBadgeSubMonths:          (n) => `Abonniert • ${n} MONAT${n > 1 ? 'E' : ''}`,
+      uiBadgeExSubMonths:        (n) => `Ehemals abonniert • ${n} MONAT${n > 1 ? 'E' : ''}`,
       uiCclMatureGame:                      'Spiel ab 18',
       uiCclGambling:                        'Glücksspiel',
       uiCclSexualThemes:                    'Sexuelle Themen',
@@ -462,13 +465,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes del primer clip',
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
+      uiTrailCuts:               (n) => `${n} corte${n > 1 ? 's' : ''}`,
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subatón' : `Subatón · DÍA ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subatón' : `Subatón • DÍA ${n}`,
       uiTrailOthers:             (n) => `+ ${n} categorías más`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
-      uiBadgeSubMonths:          (n) => `Suscrito ${n} mes${n > 1 ? 'es' : ''}`,
-      uiBadgeExSubMonths:        (n) => `Anteriormente suscrito ${n} mes${n > 1 ? 'es' : ''}`,
+      uiBadgeSubMonths:          (n) => `Suscrito • ${n} ${n > 1 ? 'MESES' : 'MES'}`,
+      uiBadgeExSubMonths:        (n) => `Exsuscriptor • ${n} ${n > 1 ? 'MESES' : 'MES'}`,
       uiCclMatureGame:                      'Juego para adultos',
       uiCclGambling:                        'Juegos de azar',
       uiCclSexualThemes:                    'Temas sexuales',
@@ -541,13 +545,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes do primeiro clipe',
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
+      uiTrailCuts:               (n) => `${n} queda${n > 1 ? 's' : ''}`,
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DIA ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • DIA ${n}`,
       uiTrailOthers:             (n) => `+ ${n} outras categorias`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
-      uiBadgeSubMonths:          (n) => `Inscrito há ${n} ${n > 1 ? 'meses' : 'mês'}`,
-      uiBadgeExSubMonths:        (n) => `Anteriormente inscrito ${n} ${n > 1 ? 'meses' : 'mês'}`,
+      uiBadgeSubMonths:          (n) => `Inscrito • ${n} ${n > 1 ? 'MESES' : 'MÊS'}`,
+      uiBadgeExSubMonths:        (n) => `Ex-inscrito • ${n} ${n > 1 ? 'MESES' : 'MÊS'}`,
       uiCclMatureGame:                      'Jogo adulto',
       uiCclGambling:                        'Jogos de azar',
       uiCclSexualThemes:                    'Temas sexuais',
@@ -620,13 +625,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'prima della prima clip',
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
+      uiTrailCuts:               (n) => `${n} interruzion${n > 1 ? 'i' : 'e'}`,
       uiSubathonShort:           (n) => `G${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · GIORNO ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • GIORNO ${n}`,
       uiTrailOthers:             (n) => `+ altre ${n} categorie`,
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
       uiBadgeCostreamHost:       'Stream host',
-      uiBadgeSubMonths:          (n) => `Abbonato da ${n} mes${n > 1 ? 'i' : 'e'}`,
-      uiBadgeExSubMonths:        (n) => `Già abbonato per ${n} mes${n > 1 ? 'i' : 'e'}`,
+      uiBadgeSubMonths:          (n) => `Abbonato • ${n} MES${n > 1 ? 'I' : 'E'}`,
+      uiBadgeExSubMonths:        (n) => `Ex abbonato • ${n} MES${n > 1 ? 'I' : 'E'}`,
       uiCclMatureGame:                      'Gioco per adulti',
       uiCclGambling:                        'Gioco d\'azzardo',
       uiCclSexualThemes:                    'Temi sessuali',
@@ -699,13 +705,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'przed pierwszym klipem',
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
+      uiTrailCuts:               (n) => `${n} ${plurielSlave(n, ['przerwa', 'przerwy', 'przerw'])}`,
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DZIEŃ ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • DZIEŃ ${n}`,
       uiTrailOthers:             (n) => `+ ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'inne kategorie' : 'innych kategorii'}`,
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
       uiBadgeCostreamHost:       'Kanał gospodarza',
-      uiBadgeSubMonths:          (n) => `Subskrypcja: ${n} ${plurielSlave(n, ['miesiąc', 'miesiące', 'miesięcy'])}`,
-      uiBadgeExSubMonths:        (n) => `Dawna subskrypcja: ${n} ${plurielSlave(n, ['miesiąc', 'miesiące', 'miesięcy'])}`,
+      uiBadgeSubMonths:          (n) => `Subskrypcja • ${n} ${plurielSlave(n, ['MIESIĄC', 'MIESIĄCE', 'MIESIĘCY'])}`,
+      uiBadgeExSubMonths:        (n) => `Dawna subskrypcja • ${n} ${plurielSlave(n, ['MIESIĄC', 'MIESIĄCE', 'MIESIĘCY'])}`,
       uiCclMatureGame:                      'Gra dla dorosłych',
       uiCclGambling:                        'Hazard',
       uiCclSexualThemes:                    'Treści seksualne',
@@ -778,13 +785,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'до первого клипа',
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
+      uiTrailCuts:               (n) => `${n} ${plurielSlave(n, ['обрыв', 'обрыва', 'обрывов'])}`,
       uiSubathonShort:           (n) => `Д${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Сабатон' : `Сабатон · ДЕНЬ ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Сабатон' : `Сабатон • ДЕНЬ ${n}`,
       uiTrailOthers:             (n) => `+ ещё ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'категории' : 'категорий'}`,
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
       uiBadgeCostreamHost:       'Канал ведущего',
-      uiBadgeSubMonths:          (n) => `Подписка: ${n} ${plurielSlave(n, ['месяц', 'месяца', 'месяцев'])}`,
-      uiBadgeExSubMonths:        (n) => `Бывшая подписка: ${n} ${plurielSlave(n, ['месяц', 'месяца', 'месяцев'])}`,
+      uiBadgeSubMonths:          (n) => `Подписка • ${n} ${plurielSlave(n, ['МЕСЯЦ', 'МЕСЯЦА', 'МЕСЯЦЕВ'])}`,
+      uiBadgeExSubMonths:        (n) => `Бывшая подписка • ${n} ${plurielSlave(n, ['МЕСЯЦ', 'МЕСЯЦА', 'МЕСЯЦЕВ'])}`,
       uiCclMatureGame:                      'Игра для взрослых',
       uiCclGambling:                        'Азартные игры',
       uiCclSexualThemes:                    'Сексуальные темы',
@@ -857,13 +865,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '最初のクリップより前',
       uiTrailNow:                '進行中',
       uiTrailTruncated:          '冒頭は未保持',
+      uiTrailCuts:               (n) => `切断${n}回`,
       uiSubathonShort:           (n) => `${n}日目`,
-      uiBadgeSubathon:           (n) => n === null ? 'サブアソン' : `サブアソン · ${n}日目`,
+      uiBadgeSubathon:           (n) => n === null ? 'サブアソン' : `サブアソン • ${n}日目`,
       uiTrailOthers:             (n) => `ほか ${n} カテゴリー`,
       uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
       uiBadgeCostreamHost:       'ホスト配信',
-      uiBadgeSubMonths:          (n) => `サブスク${n}か月`,
-      uiBadgeExSubMonths:        (n) => `元サブスク${n}か月`,
+      uiBadgeSubMonths:          (n) => `サブスク • ${n}か月`,
+      uiBadgeExSubMonths:        (n) => `元サブスク • ${n}か月`,
       uiCclMatureGame:                      '成人向けゲーム',
       uiCclGambling:                        'ギャンブル',
       uiCclSexualThemes:                    '性的なテーマ',
@@ -936,13 +945,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '首个剪辑之前',
       uiTrailNow:                '进行中',
       uiTrailTruncated:          '开头未保留',
+      uiTrailCuts:               (n) => `断线 ${n} 次`,
       uiSubathonShort:           (n) => `第${n}天`,
-      uiBadgeSubathon:           (n) => n === null ? '订阅马拉松' : `订阅马拉松 · 第${n}天`,
+      uiBadgeSubathon:           (n) => n === null ? '订阅马拉松' : `订阅马拉松 • 第${n}天`,
       uiTrailOthers:             (n) => `另外 ${n} 个分类`,
       uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
       uiBadgeCostreamHost:       '主办直播',
-      uiBadgeSubMonths:          (n) => `已订阅 ${n} 个月`,
-      uiBadgeExSubMonths:        (n) => `曾订阅 ${n} 个月`,
+      uiBadgeSubMonths:          (n) => `已订阅 • ${n} 个月`,
+      uiBadgeExSubMonths:        (n) => `曾订阅 • ${n} 个月`,
       uiCclMatureGame:                      '成人向游戏',
       uiCclGambling:                        '赌博',
       uiCclSexualThemes:                    '性相关内容',
@@ -1271,6 +1281,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     RECONNECT_MAX:       200,
 
     RECONNECT_MEMORY_MAX: 600,
+
+    RECONNECT_CUTS_MAX:  24,
 
     CATEGORY_TRAIL_MAX: 500,
 
@@ -2154,6 +2166,16 @@ const TSE_GATE_MAX_CLICKS = 5;
       color: rgba(255, 255, 255, 0.32);
     }
     
+    
+    .tse-preview__frise-coupures {
+      flex: 0 0 auto;
+      margin-left: auto;
+      letter-spacing: 0;
+      text-transform: none;
+      font-variant-numeric: tabular-nums;
+      color: rgba(255, 196, 92, 0.72);
+    }
+    .tse-preview__frise-coupures + .tse-preview__frise-total { margin-left: 6px; }
     .tse-preview__frise-total {
       flex: 0 0 auto;
       margin-left: auto;
@@ -2167,11 +2189,23 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__frise-barre {
       display: flex;
       
+      position: relative;
+      
       height: 10px;
       border-radius: 999px;
       overflow: hidden;
       background: rgba(0, 0, 0, 0.32);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+    }
+    
+    .tse-preview__frise-coupure {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      min-width: 2px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+      pointer-events: none;
     }
     
     .tse-preview__frise-part {
@@ -2316,19 +2350,28 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const memeSession = memoire && memoire.id === neuf.id;
     let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
+
+    let coupures = memeSession ? (memoire.coupures || 0) : 0;
+    let marques  = memeSession ? (memoire.marques || []) : [];
     if (!memeSession && memoire
         && Date.now() - memoire.vu <= CFG.RECONNECT_GAP_MAX) {
       const debut = Date.parse(neuf.createdAt);
       if (Number.isFinite(debut) && Date.now() - debut < CFG.FRESH_MAX_MIN * 60_000) {
         reprises.set(login, { ts: Date.now() });
         origine = memoire.origine || origine;
+
+        coupures = (memoire.coupures || 0) + 1;
+        marques = [...(memoire.marques || []), { fin: memoire.vu, reprise: debut }];
+        if (marques.length > CFG.RECONNECT_CUTS_MAX) {
+          marques = marques.slice(-CFG.RECONNECT_CUTS_MAX);
+        }
         while (reprises.size > CFG.RECONNECT_MAX) {
           reprises.delete(reprises.keys().next().value);
         }
       }
     }
 
-    derniersDirects.set(login, { id: neuf.id, vu: Date.now(), origine });
+    derniersDirects.set(login, { id: neuf.id, vu: Date.now(), origine, coupures, marques });
 
     if (derniersDirects.size > CFG.RECONNECT_MEMORY_MAX) {
       const parAge = [...derniersDirects.entries()].sort((a, b) => a[1].vu - b[1].vu);
@@ -2343,6 +2386,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     return (m && m.origine) || createdAt;
   };
 
+  const coupuresDe = (login) => {
+    const m = derniersDirects.get(login);
+    if (!m || !m.coupures) return null;
+    return { n: m.coupures, marques: m.marques || [] };
+  };
+
   const repriseFraiche = (login) => {
     const r = reprises.get(login);
     if (!r) return null;
@@ -2353,7 +2402,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   const frises = new Map();
 
   const bilanFrises = { survols: 0, absentes: 0, vides: 0, peuplees: 0,
-                        affichees: 0, muettes: 0, evincees: 0 };
+                        affichees: 0, muettes: 0, evincees: 0,
+                        retenues: 0, lachees: 0 };
   const noterSurvolFrise = (login) => {
     bilanFrises.survols++;
     const f = frises.get(login);
@@ -2366,18 +2416,38 @@ const TSE_GATE_MAX_CLICKS = 5;
     const flux = apres?.stream;
     const id = flux?.id || null;
     const jeu = apres?.game || null;
-
-    if (!id || !jeu) { frises.delete(login); return; }
-
     const maintenant = Date.now();
-    const debutStream = Date.parse(flux.createdAt) || null;
+    if (!id || !jeu) {
+      const tenue = frises.get(login);
+      if (!tenue) return;
+
+      if (id) { frises.delete(login); return; }
+
+      if (tenue.horsLigneDepuis === undefined) {
+        tenue.horsLigneDepuis = maintenant;
+        bilanFrises.retenues++;
+      }
+      if (maintenant - tenue.horsLigneDepuis > CFG.RECONNECT_GAP_MAX) {
+        frises.delete(login);
+        bilanFrises.lachees++;
+      }
+      return;
+    }
+
+    const debutStream = Date.parse(debutReel(login, flux.createdAt)) || null;
     let f = frises.get(login);
 
     frises.delete(login);
 
-    if (!f || f.streamId !== id) {
+    const memeDirect = !!f && f.streamId !== id
+                       && !!f.debutStream && f.debutStream === debutStream;
+    if (!f || (f.streamId !== id && !memeDirect)) {
       f = { streamId: id, debutStream, vuDepuis: maintenant, segments: [], tronquee: false };
+    } else if (f.streamId !== id) {
+      f.streamId = id;
     }
+
+    delete f.horsLigneDepuis;
     frises.set(login, f);
 
     while (frises.size > CFG.CATEGORY_TRAIL_MAX) {
@@ -2406,6 +2476,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const friseACombler = (login) => {
     const f = frises.get(login);
+
+    if (coupuresDe(login)) return false;
     return !!f && !!f.debutStream
            && f.vuDepuis - f.debutStream > CFG.CATEGORY_TRAIL_TOLERANCE;
   };
@@ -2478,6 +2550,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (s.encours) e.encours = true;
     }
 
+    const totalMs = inconnuMs + segments.reduce((n, s) => n + s.dureeMs, 0);
+
+    const coupures = coupuresDe(login);
+    const debutRuban = maintenant - totalMs;
     return {
       debutStream: f.debutStream,
       vuDepuis: f.vuDepuis,
@@ -2486,7 +2562,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       tronquee: f.tronquee,
       segments,
       categories,
-      totalMs: inconnuMs + segments.reduce((n, s) => n + s.dureeMs, 0),
+      totalMs,
+      coupures: coupures ? coupures.n : 0,
+      marques: coupures
+        ? coupures.marques.filter(m => m.reprise > debutRuban && m.fin < maintenant)
+        : [],
+      debutRuban,
     };
   };
 
@@ -5010,6 +5091,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     const ts = card.dataset.tseStartedAt;
     if (!ts) { card.classList.remove('tse-fresh'); return; }
 
+    if (repriseFraiche(card.dataset.tseLogin)) {
+      card.classList.remove('tse-fresh');
+      return;
+    }
     const ageMin = (Date.now() - new Date(ts).getTime()) / 60_000;
     card.classList.toggle('tse-fresh', ageMin >= 0 && ageMin < CFG.FRESH_MAX_MIN);
   };
@@ -6109,6 +6194,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const preludeDe = (login) => {
+
+      if (coupuresDe(login)) return null;
       const id = cache.get(login)?.stream?.id;
       if (!id) return null;
       const e = chapitres.get(id);
@@ -6139,6 +6226,12 @@ const TSE_GATE_MAX_CLICKS = 5;
         bloc.classList.add('tse-preview__frise--clips');
       }
 
+      if (f.coupures) {
+        const coup = document.createElement('span');
+        coup.className = 'tse-preview__frise-coupures';
+        coup.textContent = S.uiTrailCuts(f.coupures);
+        titre.appendChild(coup);
+      }
       const total = document.createElement('span');
       total.className = 'tse-preview__frise-total';
       total.textContent = formatDuree(f.totalMs);
@@ -6186,6 +6279,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
 
       barre.style.setProperty('--tse-parts', String(barre.childElementCount));
+
+      for (const m of f.marques) {
+        const trait = document.createElement('span');
+        trait.className = 'tse-preview__frise-coupure';
+        const large  = Math.min(100, Math.max(0, m.reprise - m.fin) / f.totalMs * 100);
+        const gauche = (m.fin - f.debutRuban) / f.totalMs * 100;
+        trait.style.left = Math.max(0, Math.min(100 - Math.max(large, 0.5), gauche))
+          .toFixed(3) + '%';
+        trait.style.width = large.toFixed(3) + '%';
+        barre.appendChild(trait);
+      }
       bloc.appendChild(barre);
 
       const liste = document.createElement('ul');
@@ -6234,12 +6338,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (currentCard) positionPopup(currentCard);
     };
 
+    const ponctuerLigne = (texte) => {
+      const m = /^(.*\S)[\s:]+(\d+)$/.exec(String(texte || ''));
+      return m ? `${m[1]} • ${m[2]}` : texte;
+    };
+
     const renderPopup = (login, title, extraRows, costreamInfo, costreamMates, squadInfo, sponsorInfo) => {
       const badges = (extraRows || []).map(r => {
         const cls = r.type === 'hype' ? 'tse-preview__badge--hype'
                   : r.type === 'discount' ? 'tse-preview__badge--discount'
                   : '';
-        return badgeNoeud(cls, r.text);
+        return badgeNoeud(cls, r.type === 'other' ? ponctuerLigne(r.text) : r.text);
       });
 
       const bascule = basculementFrais(login);
@@ -6678,7 +6787,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       liveLag.observe(card, stream);
 
-      card.dataset.tseStartedAt = debutReel(card.dataset.tseLogin, stream.createdAt);
+      card.dataset.tseStartedAt = stream.createdAt;
       card.dataset.tseOfflineHits = '0';
       delete card.dataset.tseOfflineTs;
 
