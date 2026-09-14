@@ -25,14 +25,14 @@ Dentro de la ventana de vista previa, unas etiquetas de color resumen el context
 
 - 🤝 ★ CO-STREAM ★ Te dice exactamente si el canal es anfitrión o invitado, y con quién. Se acabó el «espera, ¿qué directo es este que yo no sigo?».
 - 👥 ★ EN DIRECTO CON ★ Para squads y multistreams, muestra el co-streamer principal y cuántos más hay («En directo con Fulanito y 3 más»).
-- 💜 ★ SUSCRITO ★ Cuánto tiempo llevas apoyando al canal («Suscrito 9 meses») — o que lo hiciste en el pasado («Anteriormente suscrito 22 meses»).
+- 💜 ★ SUSCRITO ★ Cuánto tiempo llevas apoyando al canal («Suscrito • 9 MESES») — o que lo hiciste en el pasado («Exsuscriptor • 22 MESES»).
 - 💰 ★ PATROCINADO POR ★ En los directos patrocinados, muestra la marca con su logo en color. Sabrás quién está detrás.
 - 🚂 ★ HYPE TRAIN ★ ¿Hay un Hype Train en marcha en el canal? Te enteras sin tener que hacer clic.
 - 💎 ★ SUSCRIPCIÓN CON DESCUENTO ★ Cuando Twitch ofrece una suscripción rebajada en el directo, ahí queda señalado.
 - 🆕 ★ ACABA DE CAMBIAR A ★ ¿El streamer cambió de categoría a mitad del directo? Una insignia verde lo indica durante diez minutos: «Acaba de cambiar a Elden Ring». Twitch no lo anuncia en ninguna parte — la extensión lo ve porque mira sin parar.
 - 🔁 ★ DE VUELTA TRAS UN CORTE ★ ¿El streamer se cayó y volvió? Su contador de duración vuelve a cero y Twitch no dice nada. El distintivo sí — y la barra «acaba de empezar» ya no se enciende en un directo que lleva seis horas («De vuelta tras un corte»).
 - ⚠️ ★ ETIQUETAS DE CONTENIDO ★ Las etiquetas oficiales de Twitch (juego para adultos, violencia explícita, juegos de azar…) forman su propia insignia, la primera de la fila — lo sabes antes de mirar, sin la pantalla que bloqueaba el vídeo.
-- 🌈 ★ SUBATÓN ★ ¿El canal está en subatón? El distintivo lo dice y da el día en curso («Subatón · DÍA 10»).
+- 🌈 ★ SUBATÓN ★ ¿El canal está en subatón? El distintivo lo dice y da el día en curso («Subatón • DÍA 10»).
 
 _______________________________
 
@@ -75,7 +75,7 @@ Los canales a los que de verdad apoyas no deberían parecerse a todos los demás
 - ★ TODA LA TARJETA SE ENCIENDE ★ Nombre dorado, categoría dorada, un anillo dorado alrededor del avatar y un lento destello en el fondo de la tarjeta. Discreto, pero imposible de pasar por alto.
 - ★ UN ORDEN SOLO PARA ELLAS ★ «Mis suscripciones primero» las sube todas arriba del todo, con tu total en una pequeña insignia.
 - ★ TODOS LOS TIPOS CUENTAN ★ De pago, regaladas, móviles: los tres se reconocen, y los tres llevan el mismo oro.
-- ★ CUÁNTO LLEVAS AHÍ ★ Pasa el ratón por un canal y la vista previa te lo dice: «Suscrito 9 meses». Y para uno que apoyaste en el pasado: «Anteriormente suscrito 22 meses».
+- ★ CUÁNTO LLEVAS AHÍ ★ Pasa el ratón por un canal y la vista previa te lo dice: «Suscrito • 9 MESES». Y para uno que apoyaste en el pasado: «Exsuscriptor • 22 MESES».
 - ★ LO AVERIGUA SOLA ★ Nada que configurar, sin iniciar sesión, sin contraseña, sin token. ¿Cómo exactamente? Se explica con todas las letras en la sección PRIVACIDAD más abajo.
 
 _______________________________

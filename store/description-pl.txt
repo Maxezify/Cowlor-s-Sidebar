@@ -25,14 +25,14 @@ W okienku podglądu kolorowe etykiety streszczają kontekst transmisji jednym rz
 
 - 🤝 ★ CO-STREAM ★ Mówi dokładnie, czy kanał jest gospodarzem czy gościem, i z kim. Koniec z „chwila, czyja to transmisja, której nie obserwuję?”.
 - 👥 ★ NA ŻYWO Z ★ Dla squadów i multistreamów pokazuje głównego współprowadzącego i łączną liczbę pozostałych („Na żywo z Takim-a-takim i jeszcze 3”).
-- 💜 ★ SUBSKRYPCJA ★ Od jak dawna wspierasz kanał („Subskrypcja: 9 miesięcy”) — albo że kiedyś go wspierałeś („Dawna subskrypcja: 22 miesiące”).
+- 💜 ★ SUBSKRYPCJA ★ Od jak dawna wspierasz kanał („Subskrypcja • 9 MIESIĘCY”) — albo że kiedyś go wspierałeś („Dawna subskrypcja • 22 MIESIĄCE”).
 - 💰 ★ SPONSOROWANE PRZEZ ★ Przy transmisjach sponsorowanych pokazuje markę z jej kolorowym logo. Będziesz wiedzieć, kto za tym stoi.
 - 🚂 ★ HYPE TRAIN ★ Na kanale trwa Hype Train? Dowiesz się bez klikania.
 - 💎 ★ SUBSKRYPCJA ZE ZNIŻKĄ ★ Kiedy Twitch proponuje na transmisji subskrypcję ze zniżką, jest to od razu oznaczone.
 - 🆕 ★ WŁAŚNIE PRZESZEDŁ NA ★ Streamer zmienił kategorię w trakcie transmisji? Zielona etykieta mówi o tym przez dziesięć minut: „Właśnie przeszedł na Elden Ring”. Twitch nie ogłasza tego nigdzie — rozszerzenie to widzi, bo patrzy bez przerwy.
 - 🔁 ★ POWRÓT PO PRZERWANIU ★ Streamerowi zerwało połączenie i wrócił? Czas transmisji rusza od zera, a Twitch nic o tym nie mówi. Plakietka mówi — i pasek „dopiero ruszyła” nie zapala się już przy transmisji trwającej od sześciu godzin („Powrót po przerwaniu”).
 - ⚠️ ★ OZNACZENIA TREŚCI ★ Oficjalne oznaczenia Twitcha (gra dla dorosłych, drastyczna przemoc, hazard…) tworzą własną etykietę, pierwszą w rzędzie — wiesz, zanim spojrzysz, bez ekranu, który blokował wideo.
-- 🌈 ★ SUBATHON ★ Kanał prowadzi subathon? Plakietka to mówi i podaje bieżący dzień („Subathon · DZIEŃ 10”).
+- 🌈 ★ SUBATHON ★ Kanał prowadzi subathon? Plakietka to mówi i podaje bieżący dzień („Subathon • DZIEŃ 10”).
 
 _______________________________
 
@@ -75,7 +75,7 @@ Kanały, które naprawdę wspierasz, nie powinny wyglądać jak wszystkie inne. 
 - ★ CAŁA KARTA SIĘ ROZŚWIETLA ★ Złota nazwa, złota kategoria, złoty pierścień wokół awatara i powolny połysk w tle karty. Dyskretnie, ale nie da się przeoczyć.
 - ★ WŁASNE SORTOWANIE ★ „Moje subskrypcje na górze” wypycha je wszystkie na szczyt listy, z Twoją sumą na małej etykiecie.
 - ★ KAŻDY RODZAJ SIĘ LICZY ★ Płatna, podarowana, mobilna: wszystkie trzy są rozpoznawane i wszystkie trzy noszą to samo złoto.
-- ★ OD JAK DAWNA TAM JESTEŚ ★ Najedź na kanał, a podgląd Ci powie: „Subskrypcja: 9 miesięcy”. A dla tego, który wspierałeś w przeszłości: „Dawna subskrypcja: 22 miesiące”.
+- ★ OD JAK DAWNA TAM JESTEŚ ★ Najedź na kanał, a podgląd Ci powie: „Subskrypcja • 9 MIESIĘCY”. A dla tego, który wspierałeś w przeszłości: „Dawna subskrypcja • 22 MIESIĄCE”.
 - ★ SAMO SIĘ DOMYŚLA ★ Nic do konfigurowania, żadnego logowania, żadnego hasła, żadnego tokenu. Jak dokładnie? Wyjaśniamy to w sekcji PRYWATNOŚĆ niżej, prostymi słowami.
 
 _______________________________

@@ -452,13 +452,13 @@
     "message": "The hover preview"
   },
   "guideHoverTexte": {
-    "message": "Put the pointer on a channel and leave it there a moment: a window opens beside it, with the live video — not a frozen thumbnail — the full title, and badges that sum up the context.\n• A short delay before it opens: sweeping across the list to reach something else opens nothing.\n• Everywhere in the sidebar: followed channels, recommendations, \"viewers of X also watch\".\n• Ads are stripped from that thumbnail and from nothing else: the stream you are actually watching is never touched."
+    "message": "Put the pointer on a channel and leave it there a moment: a window opens beside it, with the live video — not a frozen thumbnail — the full title, and badges that sum up the context."
   },
   "guideDureeTitre": {
     "message": "How long they have been live"
   },
   "guideDureeTexte": {
-    "message": "Under the viewer count, every card carries the stream's duration. It updates on its own, with no need to open the channel.\n• \"4h19\" reads four hours nineteen. Under the hour, minutes alone: \"24m\".\n• When the stream ends, the counter turns to \"Ended\" in italics — often before Twitch removes the card from the list."
+    "message": "Under the viewer count, every card carries the stream's duration. It updates on its own, with no need to open the channel."
   },
   "guideBadgesTitre": {
     "message": "The preview badges"
@@ -470,43 +470,43 @@
     "message": "Earlier on this stream"
   },
   "guideFriseTexte": {
-    "message": "You walk in halfway through an eight-hour stream: what happened before? The preview shows you — a ribbon, one colour per category, and the list underneath.\n• Each band is scaled to real time: one glance says where the evening went.\n• \"×3\" means the streamer came back to that category three times.\n• A channel that does not archive its streams? The trail is rebuilt from the clips, and it says so.\n• When the exact time of a switch is not known, the colour fades instead of cutting sharp and the duration carries a \"~\". Never an invented number."
+    "message": "You walk in halfway through an eight-hour stream: what happened before? The preview shows you — a ribbon, one colour per category, and the list underneath.\n• Each band is scaled to real time: one glance says how the evening went.\n• \"×3\" means the streamer came back to that category three times.\n• A channel that does not archive its streams? The trail is rebuilt from the clips, and it says so.\n• When the exact time of a switch is not known, the colour fades instead of cutting sharp and the duration carries a \"~\". Never an invented number."
   },
   "guideSubathonTitre": {
     "message": "Subathons"
   },
   "guideSubathonTexte": {
-    "message": "A subathon is that stream subscriptions keep extending without end — days, sometimes weeks.\n• A pill against the username gives the current day: you know at once where the event stands.\n• Pill and badge run through a rainbow. Nothing else in the product wears that colour, because an exceptional event does not file into anyone else's palette.\n• Nothing is guessed: it is the stream title and the tags that say so, not the duration. A subathon already is one in its second hour."
+    "message": "A subathon is that stream subscriptions keep extending without end — days, sometimes weeks.\n• A pill to the right of the username gives the current day: you know at once where the event stands."
   },
   "guideCostreamTitre": {
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "A purple dot in the corner of the avatar, with the number of participants: this channel is streaming with others. Visible in the list, with nothing to hover.\n• The preview then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter 9)."
+    "message": "A purple dot in the corner of the avatar, with the number of participants: this channel is streaming with others. Visible in the list, with nothing to hover.\n• A purple badge then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter 9)."
   },
   "guideDebutTitre": {
     "message": "Starts, and comebacks"
   },
   "guideDebutTexte": {
-    "message": "A purple bar breathing on the left edge of a card: that stream started less than ten minutes ago. Enough to catch the intro. It fades on its own.\n• If the streamer drops and comes back within ten minutes, it does NOT light up again: it is their counter that restarted from zero, not their stream.\n• The duration shown stays that of the whole stream, outage included, and the preview carries a badge that says what happened."
+    "message": "A purple bar appears on the left edge of a card: that stream started less than ten minutes ago. It goes out on its own at the tenth minute.\n• If the streamer loses their connection and comes back within ten minutes, the purple bar does not light up again, but their counter does restart from zero.\n• In the preview, the duration shown stays that of the whole stream, outage included, and a badge tells you what happened."
   },
   "guideAboTitre": {
     "message": "Your subscriptions, in gold"
   },
   "guideAboTexte": {
-    "message": "The channels you support no longer look like the others: golden name, golden category, a gold ring around the avatar and a slow shimmer across the card.\n• The \"My subscriptions first\" sort pushes them all to the top, with your total on a pill.\n• The preview says how long you have been there, and remembers once it is over.\n• All three kinds count: paid, gifted, mobile.\n• Nothing to configure, no login, no password. The last chapter says how."
+    "message": "The channels you support no longer look like the others: golden name, golden category, a gold ring around the avatar and a slow shimmer across the card.\n• A badge appears and says how long you have been there.\n• All three kinds of subscription count: paid, gifted, mobile."
   },
   "guideTriTitre": {
     "message": "Sorting and filtering"
   },
   "guideTriTexte": {
-    "message": "Six buttons at the top of the list rearrange it on the fly:\n• By viewers — Twitch's own sort, clean.\n• My subscriptions first — with your total on a pill.\n• By personal popularity — from your own visits, kept on your machine.\n• By stream duration — the newest at the top, to catch beginnings.\n• By channel name — alphabetical order.\n• Co-streams first — never miss a collab again.\nTwo filters follow, right below: category and language. Both lists only offer what your channels are actually streaming at that moment — no endless menu."
+    "message": "Six buttons at the top of the list rearrange it on the fly:\n• By viewers — Twitch's own sort, clean.\n• My subscriptions first — with the total of my current subscriptions (offline ones included) on a pill.\n• By personal popularity — from your own visits, kept on your machine.\n• By stream duration — the newest at the top, to catch beginnings.\n• By channel name — alphabetical order.\n• Co-streams first — never miss a collab again.\nTwo filters follow, right below: category and language. Both lists only offer what your channels are actually streaming at that moment."
   },
   "guideTopTitre": {
     "message": "Top Channels"
   },
   "guideTopTexte": {
-    "message": "One tab at the top of the sidebar, one click, and it flips: instead of your followed channels, the thirty most-watched channels on Twitch, live.\n• By category or by language — a genuine top thirty for each, not a rough filter slapped on an English list.\n• Everything else follows: preview, duration, badges, co-streams. They are cards like any other.\n• When the ranking cannot be guaranteed complete, the extension says so rather than inventing.\nOne click to get there, one click back. Your followed channels do not move a pixel."
+    "message": "One tab at the top of the sidebar, one click, and it flips: instead of your followed channels, the thirty most-watched channels on Twitch, live.\n• By category or by language — a genuine top 30 for each.\nOne click to get there, one click back. Your followed channels do not move a pixel."
   },
   "guideViteTitre": {
     "message": "Quicker than Twitch, and tidier"
@@ -547,7 +547,7 @@
     "description": "Maquette : badge « En live avec »"
   },
   "guideBadgeSub": {
-    "message": "Subscribed 9 months",
+    "message": "Subscribed • 9 MONTHS",
     "description": "Maquette : badge d'abonnement"
   },
   "guideBadgeSponsor": {
@@ -563,7 +563,7 @@
     "description": "Maquette : badge de réduction d'abonnement"
   },
   "guideBadgeSubathon": {
-    "message": "Subathon · DAY 10",
+    "message": "Subathon • DAY 10",
     "description": "Maquette : badge de subathon"
   },
   "guideDemoTitre": {

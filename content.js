@@ -622,13 +622,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'avant le premier clip',
       uiTrailNow:                'en cours',
       uiTrailTruncated:          'début non gardé',
+      uiTrailCuts:               (n) => `${n} coupure${n > 1 ? 's' : ''}`,
       uiSubathonShort:           (n) => `J${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · JOUR ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • JOUR ${n}`,
       uiTrailOthers:             (n) => `+ ${n} autres catégories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Stream Hôte',
-      uiBadgeSubMonths:          (n) => `Abonné ${n} mois`,
-      uiBadgeExSubMonths:        (n) => `Anciennement abonné ${n} mois`,
+      uiBadgeSubMonths:          (n) => `Abonné • ${n} MOIS`,
+      uiBadgeExSubMonths:        (n) => `Ancien abonné • ${n} MOIS`,
       // Étiquettes de classification de contenu, en tête des badges de l'aperçu.
       // Formes COURTES : le badge tient dans 480 px, et Twitch lui-même annonce
       // « Il peut contenir : Jeux matures », pas la phrase entière de sa
@@ -706,13 +707,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'before the first clip',
       uiTrailNow:                'ongoing',
       uiTrailTruncated:          'start not kept',
+      uiTrailCuts:               (n) => `${n} outage${n > 1 ? 's' : ''}`,
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DAY ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • DAY ${n}`,
       uiTrailOthers:             (n) => `+ ${n} other categories`,
       uiBadgeCostreamOf:         (nom) => `Co-stream of ${nom}`,
       uiBadgeCostreamHost:       'Host Stream',
-      uiBadgeSubMonths:          (n) => `Subscribed ${n} month${n > 1 ? 's' : ''}`,
-      uiBadgeExSubMonths:        (n) => `Formerly subscribed ${n} month${n > 1 ? 's' : ''}`,
+      uiBadgeSubMonths:          (n) => `Subscribed • ${n} MONTH${n > 1 ? 'S' : ''}`,
+      uiBadgeExSubMonths:        (n) => `Former sub • ${n} MONTH${n > 1 ? 'S' : ''}`,
       uiCclMatureGame:                      'Mature-rated game',
       uiCclGambling:                        'Gambling',
       uiCclSexualThemes:                    'Sexual themes',
@@ -785,13 +787,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'vor dem ersten Clip',
       uiTrailNow:                'läuft',
       uiTrailTruncated:          'Anfang nicht behalten',
+      uiTrailCuts:               (n) => `${n} Unterbrechung${n > 1 ? 'en' : ''}`,
       uiSubathonShort:           (n) => `T${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · TAG ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • TAG ${n}`,
       uiTrailOthers:             (n) => `+ ${n} weitere Kategorien`,
       uiBadgeCostreamOf:         (nom) => `Co-stream von ${nom}`,
       uiBadgeCostreamHost:       'Host-Stream',
-      uiBadgeSubMonths:          (n) => `${n} Monat${n > 1 ? 'e' : ''} abonniert`,
-      uiBadgeExSubMonths:        (n) => `Früher ${n} Monat${n > 1 ? 'e' : ''} abonniert`,
+      uiBadgeSubMonths:          (n) => `Abonniert • ${n} MONAT${n > 1 ? 'E' : ''}`,
+      uiBadgeExSubMonths:        (n) => `Ehemals abonniert • ${n} MONAT${n > 1 ? 'E' : ''}`,
       uiCclMatureGame:                      'Spiel ab 18',
       uiCclGambling:                        'Glücksspiel',
       uiCclSexualThemes:                    'Sexuelle Themen',
@@ -864,13 +867,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes del primer clip',
       uiTrailNow:                'en curso',
       uiTrailTruncated:          'inicio no conservado',
+      uiTrailCuts:               (n) => `${n} corte${n > 1 ? 's' : ''}`,
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subatón' : `Subatón · DÍA ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subatón' : `Subatón • DÍA ${n}`,
       uiTrailOthers:             (n) => `+ ${n} categorías más`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrión',
-      uiBadgeSubMonths:          (n) => `Suscrito ${n} mes${n > 1 ? 'es' : ''}`,
-      uiBadgeExSubMonths:        (n) => `Anteriormente suscrito ${n} mes${n > 1 ? 'es' : ''}`,
+      uiBadgeSubMonths:          (n) => `Suscrito • ${n} ${n > 1 ? 'MESES' : 'MES'}`,
+      uiBadgeExSubMonths:        (n) => `Exsuscriptor • ${n} ${n > 1 ? 'MESES' : 'MES'}`,
       uiCclMatureGame:                      'Juego para adultos',
       uiCclGambling:                        'Juegos de azar',
       uiCclSexualThemes:                    'Temas sexuales',
@@ -943,13 +947,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'antes do primeiro clipe',
       uiTrailNow:                'em andamento',
       uiTrailTruncated:          'início não guardado',
+      uiTrailCuts:               (n) => `${n} queda${n > 1 ? 's' : ''}`,
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DIA ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • DIA ${n}`,
       uiTrailOthers:             (n) => `+ ${n} outras categorias`,
       uiBadgeCostreamOf:         (nom) => `Co-stream de ${nom}`,
       uiBadgeCostreamHost:       'Canal anfitrião',
-      uiBadgeSubMonths:          (n) => `Inscrito há ${n} ${n > 1 ? 'meses' : 'mês'}`,
-      uiBadgeExSubMonths:        (n) => `Anteriormente inscrito ${n} ${n > 1 ? 'meses' : 'mês'}`,
+      uiBadgeSubMonths:          (n) => `Inscrito • ${n} ${n > 1 ? 'MESES' : 'MÊS'}`,
+      uiBadgeExSubMonths:        (n) => `Ex-inscrito • ${n} ${n > 1 ? 'MESES' : 'MÊS'}`,
       uiCclMatureGame:                      'Jogo adulto',
       uiCclGambling:                        'Jogos de azar',
       uiCclSexualThemes:                    'Temas sexuais',
@@ -1022,13 +1027,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'prima della prima clip',
       uiTrailNow:                'in corso',
       uiTrailTruncated:          'inizio non conservato',
+      uiTrailCuts:               (n) => `${n} interruzion${n > 1 ? 'i' : 'e'}`,
       uiSubathonShort:           (n) => `G${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · GIORNO ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • GIORNO ${n}`,
       uiTrailOthers:             (n) => `+ altre ${n} categorie`,
       uiBadgeCostreamOf:         (nom) => `Co-stream di ${nom}`,
       uiBadgeCostreamHost:       'Stream host',
-      uiBadgeSubMonths:          (n) => `Abbonato da ${n} mes${n > 1 ? 'i' : 'e'}`,
-      uiBadgeExSubMonths:        (n) => `Già abbonato per ${n} mes${n > 1 ? 'i' : 'e'}`,
+      uiBadgeSubMonths:          (n) => `Abbonato • ${n} MES${n > 1 ? 'I' : 'E'}`,
+      uiBadgeExSubMonths:        (n) => `Ex abbonato • ${n} MES${n > 1 ? 'I' : 'E'}`,
       uiCclMatureGame:                      'Gioco per adulti',
       uiCclGambling:                        'Gioco d\'azzardo',
       uiCclSexualThemes:                    'Temi sessuali',
@@ -1101,13 +1107,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'przed pierwszym klipem',
       uiTrailNow:                'trwa',
       uiTrailTruncated:          'początek niezachowany',
+      uiTrailCuts:               (n) => `${n} ${plurielSlave(n, ['przerwa', 'przerwy', 'przerw'])}`,
       uiSubathonShort:           (n) => `D${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon · DZIEŃ ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Subathon' : `Subathon • DZIEŃ ${n}`,
       uiTrailOthers:             (n) => `+ ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'inne kategorie' : 'innych kategorii'}`,
       uiBadgeCostreamOf:         (nom) => `Co-stream u ${nom}`,
       uiBadgeCostreamHost:       'Kanał gospodarza',
-      uiBadgeSubMonths:          (n) => `Subskrypcja: ${n} ${plurielSlave(n, ['miesiąc', 'miesiące', 'miesięcy'])}`,
-      uiBadgeExSubMonths:        (n) => `Dawna subskrypcja: ${n} ${plurielSlave(n, ['miesiąc', 'miesiące', 'miesięcy'])}`,
+      uiBadgeSubMonths:          (n) => `Subskrypcja • ${n} ${plurielSlave(n, ['MIESIĄC', 'MIESIĄCE', 'MIESIĘCY'])}`,
+      uiBadgeExSubMonths:        (n) => `Dawna subskrypcja • ${n} ${plurielSlave(n, ['MIESIĄC', 'MIESIĄCE', 'MIESIĘCY'])}`,
       uiCclMatureGame:                      'Gra dla dorosłych',
       uiCclGambling:                        'Hazard',
       uiCclSexualThemes:                    'Treści seksualne',
@@ -1180,13 +1187,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         'до первого клипа',
       uiTrailNow:                'идёт сейчас',
       uiTrailTruncated:          'начало не сохранено',
+      uiTrailCuts:               (n) => `${n} ${plurielSlave(n, ['обрыв', 'обрыва', 'обрывов'])}`,
       uiSubathonShort:           (n) => `Д${n}`,
-      uiBadgeSubathon:           (n) => n === null ? 'Сабатон' : `Сабатон · ДЕНЬ ${n}`,
+      uiBadgeSubathon:           (n) => n === null ? 'Сабатон' : `Сабатон • ДЕНЬ ${n}`,
       uiTrailOthers:             (n) => `+ ещё ${n} ${n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'категории' : 'категорий'}`,
       uiBadgeCostreamOf:         (nom) => `Ко-стрим у ${nom}`,
       uiBadgeCostreamHost:       'Канал ведущего',
-      uiBadgeSubMonths:          (n) => `Подписка: ${n} ${plurielSlave(n, ['месяц', 'месяца', 'месяцев'])}`,
-      uiBadgeExSubMonths:        (n) => `Бывшая подписка: ${n} ${plurielSlave(n, ['месяц', 'месяца', 'месяцев'])}`,
+      uiBadgeSubMonths:          (n) => `Подписка • ${n} ${plurielSlave(n, ['МЕСЯЦ', 'МЕСЯЦА', 'МЕСЯЦЕВ'])}`,
+      uiBadgeExSubMonths:        (n) => `Бывшая подписка • ${n} ${plurielSlave(n, ['МЕСЯЦ', 'МЕСЯЦА', 'МЕСЯЦЕВ'])}`,
       uiCclMatureGame:                      'Игра для взрослых',
       uiCclGambling:                        'Азартные игры',
       uiCclSexualThemes:                    'Сексуальные темы',
@@ -1259,13 +1267,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '最初のクリップより前',
       uiTrailNow:                '進行中',
       uiTrailTruncated:          '冒頭は未保持',
+      uiTrailCuts:               (n) => `切断${n}回`,
       uiSubathonShort:           (n) => `${n}日目`,
-      uiBadgeSubathon:           (n) => n === null ? 'サブアソン' : `サブアソン · ${n}日目`,
+      uiBadgeSubathon:           (n) => n === null ? 'サブアソン' : `サブアソン • ${n}日目`,
       uiTrailOthers:             (n) => `ほか ${n} カテゴリー`,
       uiBadgeCostreamOf:         (nom) => `${nom} のコラボ配信`,
       uiBadgeCostreamHost:       'ホスト配信',
-      uiBadgeSubMonths:          (n) => `サブスク${n}か月`,
-      uiBadgeExSubMonths:        (n) => `元サブスク${n}か月`,
+      uiBadgeSubMonths:          (n) => `サブスク • ${n}か月`,
+      uiBadgeExSubMonths:        (n) => `元サブスク • ${n}か月`,
       uiCclMatureGame:                      '成人向けゲーム',
       uiCclGambling:                        'ギャンブル',
       uiCclSexualThemes:                    '性的なテーマ',
@@ -1338,13 +1347,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiTrailBeforeClip:         '首个剪辑之前',
       uiTrailNow:                '进行中',
       uiTrailTruncated:          '开头未保留',
+      uiTrailCuts:               (n) => `断线 ${n} 次`,
       uiSubathonShort:           (n) => `第${n}天`,
-      uiBadgeSubathon:           (n) => n === null ? '订阅马拉松' : `订阅马拉松 · 第${n}天`,
+      uiBadgeSubathon:           (n) => n === null ? '订阅马拉松' : `订阅马拉松 • 第${n}天`,
       uiTrailOthers:             (n) => `另外 ${n} 个分类`,
       uiBadgeCostreamOf:         (nom) => `${nom} 的联合直播`,
       uiBadgeCostreamHost:       '主办直播',
-      uiBadgeSubMonths:          (n) => `已订阅 ${n} 个月`,
-      uiBadgeExSubMonths:        (n) => `曾订阅 ${n} 个月`,
+      uiBadgeSubMonths:          (n) => `已订阅 • ${n} 个月`,
+      uiBadgeExSubMonths:        (n) => `曾订阅 • ${n} 个月`,
       uiCclMatureGame:                      '成人向游戏',
       uiCclGambling:                        '赌博',
       uiCclSexualThemes:                    '性相关内容',
@@ -2112,6 +2122,14 @@ const TSE_GATE_MAX_CLICKS = 5;
        chaîne la plus anciennement VUE POUR LA PREMIÈRE FOIS, qui est peut-être
        celle qui émet depuis le début. */
     RECONNECT_MEMORY_MAX: 600,
+    /* Les coupures gardées POUR LE DESSIN. Le COMPTE, lui, n'est pas borné —
+       c'est un entier, il ne coûte rien, et l'annoncer faux serait pire que ne
+       pas l'annoncer. Ce plafond ne borne que les marques du ruban, dont
+       vingt-quatre est déjà au-delà du lisible : sur dix pixels de haut et
+       quelques centaines de large, des traits plus serrés que cela ne se
+       distinguent plus les uns des autres. Ce sont les DERNIÈRES qu'on garde,
+       parce qu'une frise se lit surtout par sa droite. */
+    RECONNECT_CUTS_MAX:  24,
 
     /* === Frise des catégories d'un live ===
        Nombre de streams dont on garde la frise.
@@ -3646,6 +3664,27 @@ const TSE_GATE_MAX_CLICKS = 5;
        rapporte à rien : « deux tiers » de vingt minutes et « deux tiers » de
        six heures se dessinent pareil et ne disent pas la même chose. Chasse
        fixe, parce qu'elle change à chaque seconde qui passe. */
+    /* ── LE COMPTE DES COUPURES, CONTRE LA DURÉE ────────────────────────────
+       Il ne paraît que sur les directs qui ont sauté, donc presque jamais, et
+       c'est ce qui lui vaut sa place : collé à gauche du total, il qualifie
+       la durée qu'on vient de lire au lieu de flotter quelque part dans
+       l'en-tête. C'est lui qui porte la marge automatique — le total la
+       perdrait sinon au profit d'un partage à deux, et les deux se seraient
+       éloignés l'un de l'autre au milieu de la ligne.
+
+       AMBRE, ET NON ROUGE. Une coupure n'est pas une erreur du streamer et
+       encore moins une de l'extension : c'est un fait, et le rouge du produit
+       est réservé aux étiquettes de classification. L'ambre se distingue du
+       gris de l'en-tête sans crier. */
+    .tse-preview__frise-coupures {
+      flex: 0 0 auto;
+      margin-left: auto;
+      letter-spacing: 0;
+      text-transform: none;
+      font-variant-numeric: tabular-nums;
+      color: rgba(255, 196, 92, 0.72);
+    }
+    .tse-preview__frise-coupures + .tse-preview__frise-total { margin-left: 6px; }
     .tse-preview__frise-total {
       flex: 0 0 auto;
       margin-left: auto;
@@ -3666,6 +3705,11 @@ const TSE_GATE_MAX_CLICKS = 5;
        panneau. */
     .tse-preview__frise-barre {
       display: flex;
+      /* Les marques de coupure se posent en absolu par-dessus les parts : il
+         faut donc que le ruban soit leur référence. Elles restent taillées par
+         son débordement caché, ce qui est exactement ce qu'on veut — une
+         marque ne sort jamais de la pilule. */
+      position: relative;
       /* Dix pixels : sur une barre plus fine, deux teintes voisines se lisent
          mal, et c'est le ruban entier qui perd son objet. */
       height: 10px;
@@ -3673,6 +3717,25 @@ const TSE_GATE_MAX_CLICKS = 5;
       overflow: hidden;
       background: rgba(0, 0, 0, 0.32);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+    }
+    /* ── LA MARQUE D'UNE COUPURE ────────────────────────────────────────────
+       Un trait clair bordé de noir, et les deux sont nécessaires : le ruban
+       porte huit teintes possibles, dont un citron et un or clair sur lesquels
+       un trait blanc seul disparaîtrait. Le liseré sombre lui rend son arête
+       quelle que soit la couleur en dessous.
+
+       PAS D'ARRONDI, PAS DE MARGE : c'est une entaille dans le ruban, pas un
+       objet posé dessus. Elle va d'un bord à l'autre de sa hauteur, et sa
+       largeur est celle du trou — plancher de deux pixels, sans quoi trois
+       minutes sur six heures ne feraient rien du tout. */
+    .tse-preview__frise-coupure {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      min-width: 2px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+      pointer-events: none;
     }
     /* Une largeur plancher : un segment de deux minutes sur six heures ferait
        moins d'un pixel et disparaîtrait du ruban alors qu'il figure dans la
@@ -4031,7 +4094,7 @@ const TSE_GATE_MAX_CLICKS = 5;
      comparaison n'a plus rien à comparer. On retient donc, hors du cache, le
      dernier direct VU EN LIGNE pour chaque login et l'instant de cette vue.
      C'est cette mémoire-là qui survit à la coupure. */
-  const derniersDirects = new Map();  // login -> { id, vu, origine }
+  const derniersDirects = new Map();  // login -> { id, vu, origine, coupures, marques }
   const reprises        = new Map();  // login -> { ts }
 
   /* Trois conditions, et chacune répond à sa propre question :
@@ -4062,12 +4125,41 @@ const TSE_GATE_MAX_CLICKS = 5;
        repartait quand même de zéro. C'est le scénario qui l'a vu. */
     const memeSession = memoire && memoire.id === neuf.id;
     let origine = memeSession ? (memoire.origine || neuf.createdAt) : neuf.createdAt;
+    /* Le compte des coupures et leurs marques suivent l'ORIGINE : ils
+       appartiennent à la chaîne de tronçons, pas à la session. Une session
+       neuve qui n'est pas une reprise repart donc de zéro, comme l'origine. */
+    let coupures = memeSession ? (memoire.coupures || 0) : 0;
+    let marques  = memeSession ? (memoire.marques || []) : [];
     if (!memeSession && memoire
         && Date.now() - memoire.vu <= CFG.RECONNECT_GAP_MAX) {
       const debut = Date.parse(neuf.createdAt);
       if (Number.isFinite(debut) && Date.now() - debut < CFG.FRESH_MAX_MIN * 60_000) {
         reprises.set(login, { ts: Date.now() });
         origine = memoire.origine || origine;
+        /* ── LA COUPURE ELLE-MÊME, GARDÉE POUR LA FRISE ────────────────────
+           Le badge est une nouvelle : il s'éteint au bout de dix minutes. Le
+           FAIT, lui, appartient au direct entier — six heures plus tard, ce
+           direct a toujours été coupé deux fois, et c'est ce que l'aperçu
+           doit pouvoir dire. Deux durées de vie, deux registres.
+
+           ON RETIENT UN INTERVALLE, PAS UN INSTANT, et c'est la seule chose
+           honnête à retenir : on sait quand la chaîne a été vue en ligne pour
+           la dernière fois, et quand elle est revenue. Entre les deux, la
+           coupure a eu lieu à un moment qu'on ignore. Le ruban dessine donc
+           cet intervalle-là, à sa place et à sa largeur — et non un trait
+           posé sur une seconde choisie au hasard. */
+        /* ON REPREND LE COMPTE DE LA CHAÎNE, et non celui qu'on vient de
+           remettre à zéro. `coupures` et `marques` ont été initialisés pour
+           une session NEUVE quelques lignes plus haut — ce qu'est aussi une
+           reprise, du point de vue de l'identifiant. Les lire depuis la
+           mémoire ici est la même correction que pour l'origine, au même
+           endroit et pour la même raison : la deuxième coupure d'un direct
+           annonçait « 1 coupure », le compte repartant à chaque fois. */
+        coupures = (memoire.coupures || 0) + 1;
+        marques = [...(memoire.marques || []), { fin: memoire.vu, reprise: debut }];
+        if (marques.length > CFG.RECONNECT_CUTS_MAX) {
+          marques = marques.slice(-CFG.RECONNECT_CUTS_MAX);
+        }
         while (reprises.size > CFG.RECONNECT_MAX) {
           reprises.delete(reprises.keys().next().value);
         }
@@ -4078,7 +4170,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        pendant qu'elle est coupée qu'on a besoin de se souvenir de ce qu'elle
        diffusait juste avant. Le vieillissement de `vu` s'en charge tout seul,
        et GAP tranche. */
-    derniersDirects.set(login, { id: neuf.id, vu: Date.now(), origine });
+    derniersDirects.set(login, { id: neuf.id, vu: Date.now(), origine, coupures, marques });
     // Éviction par ÂGE (cf. RECONNECT_MEMORY_MAX) : la plus anciennement vue
     // sort la première, et une chaîne qui émet encore n'est jamais évincée
     // avant une chaîne qu'on n'a pas revue depuis longtemps.
@@ -4102,6 +4194,19 @@ const TSE_GATE_MAX_CLICKS = 5;
   const debutReel = (login, createdAt) => {
     const m = derniersDirects.get(login);
     return (m && m.origine) || createdAt;
+  };
+
+  /* Ce que le direct a subi depuis son origine : combien de fois il a été
+     coupé, et où. Rendu à la frise, qui est le seul endroit du produit dont
+     l'échelle de temps couvre le direct ENTIER — la carte, elle, compte la
+     session, et c'est très bien ainsi : une durée qui se remet à zéro est ce
+     que Twitch affiche, et la contredire sur la carte reviendrait à tenir deux
+     vérités à la fois pour la même chose. L'aperçu, lui, a la place de dire
+     les deux. */
+  const coupuresDe = (login) => {
+    const m = derniersDirects.get(login);
+    if (!m || !m.coupures) return null;
+    return { n: m.coupures, marques: m.marques || [] };
   };
 
   const repriseFraiche = (login) => {
@@ -4171,8 +4276,14 @@ const TSE_GATE_MAX_CLICKS = 5;
      chapitres du VOD ont eu le temps d'arriver. Leurs totaux ne coïncident
      donc pas, et c'est voulu : les additionner reviendrait à confondre l'état
      d'une donnée avec ce qu'on en a fait. */
+  /* `retenues` et `lachees` comptent la RETENUE hors ligne : combien de frises
+     ont traversé une coupure, et combien ont fini par être lâchées faute de
+     retour. Leur écart dit si la continuité sert — `retenues` sans `lachees`,
+     ce sont des reprises ; `lachees` seules, des chaînes qui se sont
+     simplement éteintes, ce qui est le cas ordinaire. */
   const bilanFrises = { survols: 0, absentes: 0, vides: 0, peuplees: 0,
-                        affichees: 0, muettes: 0, evincees: 0 };
+                        affichees: 0, muettes: 0, evincees: 0,
+                        retenues: 0, lachees: 0 };
   const noterSurvolFrise = (login) => {
     bilanFrises.survols++;
     const f = frises.get(login);
@@ -4185,13 +4296,41 @@ const TSE_GATE_MAX_CLICKS = 5;
     const flux = apres?.stream;
     const id = flux?.id || null;
     const jeu = apres?.game || null;
-    /* Hors ligne, ou catégorie inconnue : on oublie. Garder la frise d'un
-       stream fini la ferait resservir au prochain, avec des durées qui
-       n'auraient plus de sens. */
-    if (!id || !jeu) { frises.delete(login); return; }
-
     const maintenant = Date.now();
-    const debutStream = Date.parse(flux.createdAt) || null;
+    if (!id || !jeu) {
+      const tenue = frises.get(login);
+      if (!tenue) return;
+      /* UNE CATÉGORIE INCONNUE SUR UN STREAM EN LIGNE RESTE UN OUBLI : il n'y
+         a pas de coupure à traverser, et rien ne dit ce qu'on regarde. */
+      if (id) { frises.delete(login); return; }
+      /* ── HORS LIGNE : ON RETIENT, ON N'OUBLIE PAS TOUT DE SUITE ───────────
+         La frise était détruite au premier relevé hors ligne, et cela rendait
+         la continuité IMPOSSIBLE dans le cas le plus visible : une coupure de
+         trois minutes tombe sur cinq ou six relevés, et il ne restait plus
+         rien à raccorder quand la chaîne revenait. On la garde donc le temps
+         d'une reprise possible — la MÊME borne que le badge, parce que c'est
+         la même question : au-delà, ce n'est plus le même direct.
+
+         La retenue est bornée par le temps, pas par la bonne volonté : passé
+         GAP, la frise part, et le registre ne peut donc pas se remplir de
+         chaînes éteintes. */
+      if (tenue.horsLigneDepuis === undefined) {
+        tenue.horsLigneDepuis = maintenant;
+        bilanFrises.retenues++;
+      }
+      if (maintenant - tenue.horsLigneDepuis > CFG.RECONNECT_GAP_MAX) {
+        frises.delete(login);
+        bilanFrises.lachees++;
+      }
+      return;
+    }
+
+    /* LE DÉPART DU DIRECT, ET NON CELUI DE LA SESSION. Sur une chaîne qui n'a
+       pas été coupée, les deux sont le même nombre. Sur une chaîne qui a
+       repris, c'est l'origine de la CHAÎNE de tronçons — ce qui fait de la
+       frise le seul endroit du produit dont l'échelle couvre le direct entier,
+       coupures comprises. */
+    const debutStream = Date.parse(debutReel(login, flux.createdAt)) || null;
     let f = frises.get(login);
     /* ── L'ÉVICTION ÉVINÇAIT LA PLUS RICHE ──────────────────────────────────
        `Map` itère dans l'ordre de PREMIÈRE insertion, et `set` sur une clé
@@ -4213,12 +4352,29 @@ const TSE_GATE_MAX_CLICKS = 5;
 
        Coût constant, et rien d'autre n'itère ce registre. */
     frises.delete(login);
-    /* Un identifiant de stream change à chaque nouvelle session. C'est le seul
-       signal fiable qu'il faut repartir de zéro : une chaîne qui coupe et
-       reprend garde son login mais n'a plus rien à voir avec la frise d'avant. */
-    if (!f || f.streamId !== id) {
+    /* ── QUAND FAUT-IL REPARTIR DE ZÉRO ? PAS À CHAQUE SESSION ───────────────
+       L'identifiant de stream change à chaque nouvelle session, et il changeait
+       donc aussi à chaque reprise : une chaîne coupée trois minutes perdait
+       tout son passé et recommençait une frise à la troisième heure de son
+       direct. C'est le contraire de ce que la frise existe pour dire.
+
+       LE BON CRITÈRE EST L'ORIGINE, et il se lit tout seul : `debutReel` rend
+       le départ de la CHAÎNE de tronçons, qui ne bouge pas tant que les
+       reprises s'enchaînent et qui saute dès qu'un vrai nouveau direct
+       commence. Même origine, même direct — on garde tout et on adopte
+       simplement le nouvel identifiant. La comparaison exige `debutStream`
+       non nul : deux `null` sont égaux sans rien prouver, et un `createdAt`
+       illisible ferait alors passer n'importe quelle session pour la suite de
+       la précédente. */
+    const memeDirect = !!f && f.streamId !== id
+                       && !!f.debutStream && f.debutStream === debutStream;
+    if (!f || (f.streamId !== id && !memeDirect)) {
       f = { streamId: id, debutStream, vuDepuis: maintenant, segments: [], tronquee: false };
+    } else if (f.streamId !== id) {
+      f.streamId = id;
     }
+    // La chaîne émet : la retenue n'a plus lieu d'être.
+    delete f.horsLigneDepuis;
     frises.set(login, f);
     // Purge par le volume, en dernier recours : une chaîne qui s'éteint voit
     // déjà sa frise retirée plus haut.
@@ -4287,6 +4443,22 @@ const TSE_GATE_MAX_CLICKS = 5;
      départ du live, et l'a-t-on manqué de plus que notre latence de relevé. */
   const friseACombler = (login) => {
     const f = frises.get(login);
+    /* ── UN DIRECT COUPÉ N'A PAS DE PASSÉ À ALLER CHERCHER ──────────────────
+       Twitch ouvre un VOD par SESSION. Sur une chaîne qui a repris, le VOD du
+       tronçon courant ne couvre que lui — et ses chapitres, datés d'après sa
+       propre naissance, viendraient se placer APRÈS ce que nous avons observé
+       avant la coupure. Le raccord les met en tête, puis n'ajoute nos segments
+       que s'ils sont postérieurs : tout notre passé disparaîtrait au profit
+       d'un prélude qui ne parle que des dix dernières minutes.
+
+       Pire, `continu` — « le VOD couvre le live sans le moindre changement » —
+       ferait remonter la catégorie courante jusqu'à l'origine de la CHAÎNE,
+       c'est-à-dire six heures plus tôt, sur la foi d'un enregistrement qui n'en
+       couvre que dix minutes. Une invention, et de la pire espèce : plausible.
+
+       On ne demande donc rien, et on n'utilise rien (cf. preludeDe). Ce qu'on
+       a vu de nos yeux reste, ce qui est exactement ce que la frise promet. */
+    if (coupuresDe(login)) return false;
     return !!f && !!f.debutStream
            && f.vuDepuis - f.debutStream > CFG.CATEGORY_TRAIL_TOLERANCE;
   };
@@ -4475,6 +4647,18 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (s.encours) e.encours = true;
     }
 
+    const totalMs = inconnuMs + segments.reduce((n, s) => n + s.dureeMs, 0);
+    /* ── LES COUPURES, RAMENÉES DANS LE CADRE DU RUBAN ──────────────────────
+       Le ruban se termine à MAINTENANT et dure `totalMs` : son bord gauche est
+       donc `maintenant - totalMs`, exactement. On n'en garde que les coupures
+       qui y tombent — une coupure antérieure à ce que le ruban dessine se
+       poserait sur son bord et mentirait sur sa place.
+
+       Les instants restent ABSOLUS ici. Les convertir en pourcentages
+       demanderait à cette fonction de savoir comment on dessine, ce qui n'est
+       pas son métier : elle mesure, le rendu place. */
+    const coupures = coupuresDe(login);
+    const debutRuban = maintenant - totalMs;
     return {
       debutStream: f.debutStream,
       vuDepuis: f.vuDepuis,
@@ -4483,7 +4667,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       tronquee: f.tronquee,
       segments,
       categories,
-      totalMs: inconnuMs + segments.reduce((n, s) => n + s.dureeMs, 0),
+      totalMs,
+      coupures: coupures ? coupures.n : 0,
+      marques: coupures
+        ? coupures.marques.filter(m => m.reprise > debutRuban && m.fin < maintenant)
+        : [],
+      debutRuban,
     };
   };
 
@@ -8848,14 +9037,20 @@ const TSE_GATE_MAX_CLICKS = 5;
   const updateFreshness = (card) => {
     const ts = card.dataset.tseStartedAt;
     if (!ts) { card.classList.remove('tse-fresh'); return; }
-    /* UNE REPRISE N'EST PAS UN DÉBUT, et il n'y a rien à faire ici pour ça.
-       `tseStartedAt` porte le départ RÉEL du direct (cf. debutReel) : sur une
-       reprise il vaut six heures, donc l'âge calculé ci-dessous dépasse le
-       seuil et la barre ne s'allume pas. Une garde explicite a existé à cette
-       ligne, et elle a été retirée : la corriger en deux endroits, c'était
-       deux vérités à tenir d'accord. Le scénario 95 continue d'exiger qu'une
-       reprise ne soit pas « fraîche » — c'est le départ réel qui le lui
-       donne maintenant, et l'assertion tombe toujours si on le casse. */
+    /* UNE REPRISE N'EST PAS UN DÉBUT. Le compteur de la carte, lui, repart
+       bel et bien de zéro — c'est ce que Twitch sert, et la carte n'a pas la
+       place de dire deux durées à la fois ; c'est l'aperçu qui porte celle du
+       direct entier, avec le nombre de coupures à côté. Mais la barre
+       violette, elle, ne dit pas une durée : elle dit « tu n'as rien raté ».
+       L'allumer sur une reprise affirmerait le contraire de la vérité à
+       quelqu'un qui a tout manqué, et c'est le seul signal du produit qui en
+       soit capable. D'où cette garde, ici et pas ailleurs : le seuil de dix
+       minutes et celui de la reprise sont le même, et c'est une coïncidence de
+       valeur, pas de nature. */
+    if (repriseFraiche(card.dataset.tseLogin)) {
+      card.classList.remove('tse-fresh');
+      return;
+    }
     const ageMin = (Date.now() - new Date(ts).getTime()) / 60_000;
     card.classList.toggle('tse-fresh', ageMin >= 0 && ageMin < CFG.FRESH_MAX_MIN);
   };
@@ -10851,6 +11046,13 @@ const TSE_GATE_MAX_CLICKS = 5;
        de la même chaîne n'ont rien à voir, et resservir les chapitres de la
        précédente daterait le live d'hier. */
     const preludeDe = (login) => {
+      /* Un direct qui a repris n'a pas de prélude utilisable : son VOD ne
+         couvre que le tronçon courant (cf. friseACombler). La garde est ici
+         AUSSI, et non seulement à la demande, parce qu'un prélude peut avoir
+         été récupéré AVANT la coupure — pour l'ancien identifiant, certes,
+         mais rien n'interdit à Twitch de réutiliser un identifiant, et surtout
+         rien ne garantit l'ordre des deux événements. */
+      if (coupuresDe(login)) return null;
       const id = cache.get(login)?.stream?.id;
       if (!id) return null;
       const e = chapitres.get(id);
@@ -10903,6 +11105,23 @@ const TSE_GATE_MAX_CLICKS = 5;
          AUCUN LIBELLÉ N'EST NÉCESSAIRE : une durée en tête d'une frise ne
          peut désigner que l'étendue de la frise, et un mot de plus dans dix
          langues pour le redire serait un mot de trop. */
+      /* ── CE QUE LA DURÉE NE DIT PAS TOUTE SEULE ──────────────────────────
+         Le total qui suit couvre le direct ENTIER, coupures comprises : c'est
+         ce qui en fait la seule durée juste du produit, la carte comptant la
+         session. Mais « 6h12 » sur un direct qui a sauté deux fois se lit
+         comme six heures d'affilée, ce qui n'est pas ce qui s'est passé. Le
+         compte se pose donc À GAUCHE de la durée, contre elle, parce que c'est
+         d'elle qu'il parle et de rien d'autre.
+
+         LE COMPTE N'EST PAS BORNÉ, les marques du ruban le sont. Un direct
+         coupé trente fois l'annonce trente fois ; le ruban, lui, n'en dessine
+         que les dernières, faute de pixels pour les distinguer. */
+      if (f.coupures) {
+        const coup = document.createElement('span');
+        coup.className = 'tse-preview__frise-coupures';
+        coup.textContent = S.uiTrailCuts(f.coupures);
+        titre.appendChild(coup);
+      }
       const total = document.createElement('span');
       total.className = 'tse-preview__frise-total';
       total.textContent = formatDuree(f.totalMs);
@@ -11001,6 +11220,41 @@ const TSE_GATE_MAX_CLICKS = 5;
          de `.tse-preview__frise-part`. Sans lui, une frise de subathon voyait
          ses derniers segments rognés par le débordement caché du ruban. */
       barre.style.setProperty('--tse-parts', String(barre.childElementCount));
+      /* ── LES COUPURES, POSÉES PAR-DESSUS ET NON ENTRE ────────────────────
+         Une coupure n'est pas un segment : elle n'a pas de catégorie, et
+         l'insérer dans la rangée décalerait tout ce qui suit — la part de
+         chacun est calculée sur la durée, pas sur le nombre de boîtes. On la
+         pose donc en absolu, à sa place, par-dessus le ruban déjà dessiné.
+
+         SA LARGEUR EST CELLE DU TROU, avec un plancher : on connaît la
+         dernière vue en ligne et le retour, donc l'intervalle exact, et c'est
+         lui qu'on dessine. Sur six heures de ruban, trois minutes de coupure
+         font moins d'un pixel — d'où le plancher, qui rend la marque visible
+         sans prétendre qu'elle est plus large qu'elle n'est. La liste, elle,
+         donne le compte en toutes lettres.
+
+         Le compteur de parts a déjà été posé au-dessus : ces marques ne sont
+         pas des parts et ne doivent pas entrer dans son compte, sans quoi la
+         largeur plancher des vraies parts se mettrait à dépendre du nombre de
+         coupures. */
+      /* UN DEMI POUR CENT RÉSERVÉ À DROITE, et ce n'est pas une marge de
+         confort. Une coupure qui vient d'avoir lieu tombe à cent pour cent du
+         ruban : la marque commencerait au bord droit, et le débordement caché
+         la taillerait à néant — invisible précisément dans le cas où elle est
+         la plus utile. Un demi pour cent vaut à peu près les deux pixels du
+         plancher sur la largeur d'un popup ; le déplacement est donc inférieur
+         à ce que le ruban sait montrer, et il ne concerne que les coupures de
+         la dernière minute. */
+      for (const m of f.marques) {
+        const trait = document.createElement('span');
+        trait.className = 'tse-preview__frise-coupure';
+        const large  = Math.min(100, Math.max(0, m.reprise - m.fin) / f.totalMs * 100);
+        const gauche = (m.fin - f.debutRuban) / f.totalMs * 100;
+        trait.style.left = Math.max(0, Math.min(100 - Math.max(large, 0.5), gauche))
+          .toFixed(3) + '%';
+        trait.style.width = large.toFixed(3) + '%';
+        barre.appendChild(trait);
+      }
       bloc.appendChild(barre);
 
       const liste = document.createElement('ul');
@@ -11076,12 +11330,35 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (currentCard) positionPopup(currentCard);
     };
 
+    /* ── LA PUCE SÉPARATRICE DES LIGNES DE TWITCH ───────────────────────────
+       Les badges que NOUS écrivons séparent leur intitulé de leur valeur par
+       une puce — « Abonné • 9 MOIS », « Subathon • JOUR 12 ». Les lignes que
+       Twitch injecte sous une carte (une série de visionnage, par exemple)
+       arrivent avec leur texte à lui, collé : « Série de visionnage 1 ». Dans
+       une même rangée de pastilles, deux conventions de ponctuation se lisent
+       comme deux sortes d'objets.
+
+       ON NE TRADUIT PAS, ON PONCTUE. Le texte reste celui de Twitch, mot pour
+       mot et dans sa langue : réécrire sa phrase — « Série • 1 Visionnage » —
+       demanderait de la recomposer dans dix langues à partir d'une chaîne
+       qu'on ne peut pas lire d'ici, c'est-à-dire d'inventer dix traductions et
+       d'espérer. On se contente donc de détacher le NOMBRE FINAL, qui est un
+       nombre dans toutes les langues.
+
+       ET SEULEMENT SUR LES LIGNES « AUTRES ». Le hype train et la réduction
+       d'abonnement ont leur propre formulation, souvent sans nombre terminal ;
+       les toucher ne réparerait rien et pourrait couper une phrase en deux. */
+    const ponctuerLigne = (texte) => {
+      const m = /^(.*\S)[\s:]+(\d+)$/.exec(String(texte || ''));
+      return m ? `${m[1]} • ${m[2]}` : texte;
+    };
+
     const renderPopup = (login, title, extraRows, costreamInfo, costreamMates, squadInfo, sponsorInfo) => {
       const badges = (extraRows || []).map(r => {
         const cls = r.type === 'hype' ? 'tse-preview__badge--hype'
                   : r.type === 'discount' ? 'tse-preview__badge--discount'
                   : '';
-        return badgeNoeud(cls, r.text);
+        return badgeNoeud(cls, r.type === 'other' ? ponctuerLigne(r.text) : r.text);
       });
 
       /* Basculement de catégorie, EN TÊTE des badges poussés : c'est une
@@ -11864,7 +12141,11 @@ const TSE_GATE_MAX_CLICKS = 5;
          l'origine du direct au lieu de celle du tronçon.
          `liveLag.observe` reçoit le `stream` intact : lui mesure le retard de
          Twitch sur CETTE session, ce qui est bien la session et non le direct. */
-      card.dataset.tseStartedAt = debutReel(card.dataset.tseLogin, stream.createdAt);
+      /* La carte compte la SESSION, comme Twitch : une reprise y remet le
+         compteur à zéro, et c'est assumé (cf. updateFreshness). Le direct
+         entier — coupures comprises — se lit dans l'aperçu, en tête de la
+         frise, qui est le seul endroit dont l'échelle le permette. */
+      card.dataset.tseStartedAt = stream.createdAt;
       card.dataset.tseOfflineHits = '0';
       delete card.dataset.tseOfflineTs;
       // Le streamer redémarre après une période offline confirmée : on retire

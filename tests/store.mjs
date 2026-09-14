@@ -103,13 +103,13 @@ ok(`la ligne d'installation nomme ${gecko ? 'Firefox' : 'Chrome'} dans les ${fic
    permanence — c'est-à-dire un contrôle qu'on finit par ignorer. */
 const CITES = [
   ['Just switched to', 'uiBadgeCategorySwitch'],
-  ['Formerly subscribed', 'uiBadgeExSubMonths'],
+  ['Former sub •', 'uiBadgeExSubMonths'],
   ['Live with', 'uiBadgeLiveWith'],
   /* Le badge de subathon entre au contrat le jour où la fiche le promet. La
-     fiche cite « Subathon · DAY 10 » ; la clé, elle, compose le nombre, donc
+     fiche cite « Subathon • DAY 10 » ; la clé, elle, compose le nombre, donc
      on confronte la partie STABLE du libellé. C'est la leçon du badge
      d'étiquettes, qui fut promis dix versions avant d'exister. */
-  ['Subathon · DAY', 'uiBadgeSubathon'],
+  ['Subathon • DAY', 'uiBadgeSubathon'],
   ['Back after a drop', 'uiBadgeReprise'],
 ];
 const en = lu.get(REF);

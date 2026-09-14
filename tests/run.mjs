@@ -4079,13 +4079,13 @@ titre('50. Aperçu — le badge d\'abonnement');
 
   const abo = await badge('roicheese');
   ok('un abonnement en cours affiche sa durée',
-     abo?.texte === 'Abonné 4 mois', JSON.stringify(abo));
+     abo?.texte === 'Abonné • 4 MOIS', JSON.stringify(abo));
   ok('avec la teinte « abonné »',
      (abo?.classe || '').includes('--sub'), JSON.stringify(abo));
 
   const ancien = await badge('antoinedaniel');
   ok('un ancien abonnement le dit, au passé',
-     ancien?.texte === 'Anciennement abonné 29 mois', JSON.stringify(ancien));
+     ancien?.texte === 'Ancien abonné • 29 MOIS', JSON.stringify(ancien));
   ok('avec sa propre teinte, désaturée',
      (ancien?.classe || '').includes('--exsub'), JSON.stringify(ancien));
 
@@ -4093,6 +4093,46 @@ titre('50. Aperçu — le badge d\'abonnement');
   // n'apprendrait rien que le filet doré de la carte ne dise déjà.
   const rien = await badge('inconnue');
   ok('une chaîne sans historique n\'affiche aucun badge', rien === null, JSON.stringify(rien));
+
+  /* ── LA LIGNE DE TWITCH, PONCTUÉE COMME LES NÔTRES ──────────────────────
+     Twitch injecte sous certaines cartes une ligne à lui — une série de
+     visionnage, par exemple — que l'aperçu reprend en badge. Elle arrive avec
+     son nombre collé à sa phrase : « Série de visionnage 1 ». Dans une rangée
+     où tous nos badges séparent leur intitulé de leur valeur par une puce
+     (« Abonné • 4 MOIS », « Subathon • JOUR 12 »), cette seule ligne se lisait
+     comme un objet d'une autre espèce.
+
+     ON NE LA RETRADUIT PAS, ET C'EST LE SUJET DE L'ASSERTION. Recomposer la
+     phrase de Twitch en dix langues à partir d'une chaîne qu'on ne peut pas
+     lire d'ici serait inventer dix traductions ; on se contente de détacher le
+     NOMBRE FINAL, qui est un nombre partout. Les mots restent les siens. */
+  await page.evaluate(() => {
+    const carte = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.dataset.tseLogin === 'inconnue');
+    const rangee = document.createElement('div');
+    rangee.innerHTML = '<p>Série de visionnage 1</p>';
+    carte.querySelector('.mainblock').appendChild(rangee);
+    window.tse.rescan();
+  });
+  await wait(page, 600);
+  /* L'aperçu est un SINGLETON : re-survoler la carte déjà survolée ne le
+     rouvre pas. On relâche pour de bon avant de redemander. */
+  await page.evaluate(() => {
+    [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.dataset.tseLogin === 'inconnue')
+      ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+  });
+  await attendre(page,
+    () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  await hoverLogin(page, 'inconnue');
+  await attendre(page,
+    () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+  await wait(page, 300);
+  const ligne = await page.evaluate(() =>
+    [...document.querySelectorAll('.tse-preview__badge')]
+      .map(b => b.textContent.trim()).find(t => /visionnage/.test(t)) || null);
+  ok('une ligne de Twitch prend la puce des autres badges, sans être retraduite',
+     ligne === 'Série de visionnage • 1', JSON.stringify(ligne));
   await page.close();
 }
 
@@ -5522,15 +5562,21 @@ titre('64. Localisation — italien, polonais, russe, japonais, chinois');
     };
     const fabriquer = (lang) => new Function(`${regle}\nreturn ${subMonthsDe(lang)};`)();
 
+    /* LES FORMES SONT ÉCRITES EN CAPITALES, comme le badge les affiche depuis
+       que sa valeur est détachée par une puce (« Subskrypcja • 5 MIESIĘCY »).
+       Ce n'est pas la casse qu'on éprouve ici mais la RÈGLE DE PLURIEL, qui
+       ne change pas : trois formes, et le piège des 11-14. La recopier en
+       minuscules aurait fait échouer douze comparaisons sur une question de
+       typographie, ce qui aurait masqué la seule qui compte. */
     const attendus = {
-      pl: { 1: '1 miesiąc', 2: '2 miesiące', 4: '4 miesiące', 5: '5 miesięcy',
-            11: '11 miesięcy', 12: '12 miesięcy', 14: '14 miesięcy',
-            21: '21 miesiąc', 22: '22 miesiące', 25: '25 miesięcy',
-            111: '111 miesięcy', 122: '122 miesiące' },
-      ru: { 1: '1 месяц', 2: '2 месяца', 4: '4 месяца', 5: '5 месяцев',
-            11: '11 месяцев', 12: '12 месяцев', 14: '14 месяцев',
-            21: '21 месяц', 22: '22 месяца', 25: '25 месяцев',
-            111: '111 месяцев', 122: '122 месяца' },
+      pl: { 1: '1 MIESIĄC', 2: '2 MIESIĄCE', 4: '4 MIESIĄCE', 5: '5 MIESIĘCY',
+            11: '11 MIESIĘCY', 12: '12 MIESIĘCY', 14: '14 MIESIĘCY',
+            21: '21 MIESIĄC', 22: '22 MIESIĄCE', 25: '25 MIESIĘCY',
+            111: '111 MIESIĘCY', 122: '122 MIESIĄCE' },
+      ru: { 1: '1 МЕСЯЦ', 2: '2 МЕСЯЦА', 4: '4 МЕСЯЦА', 5: '5 МЕСЯЦЕВ',
+            11: '11 МЕСЯЦЕВ', 12: '12 МЕСЯЦЕВ', 14: '14 МЕСЯЦЕВ',
+            21: '21 МЕСЯЦ', 22: '22 МЕСЯЦА', 25: '25 МЕСЯЦЕВ',
+            111: '111 МЕСЯЦЕВ', 122: '122 МЕСЯЦА' },
     };
     for (const [lang, table] of Object.entries(attendus)) {
       const f = fabriquer(lang);
@@ -8257,13 +8303,26 @@ titre('78. Aperçu — la frise des catégories traversées');
      JSON.stringify(f3.lignes.map(l => l.nom)));
 
   /* ── UNE NOUVELLE SESSION REPART DE ZÉRO ─────────────────────────────────
-     L'identifiant de stream change à chaque redémarrage. Garder la frise
-     ferait porter au nouveau live les durées de l'ancien. */
+     L'identifiant de stream change à chaque redémarrage, et garder la frise
+     ferait porter au nouveau live les durées de l'ancien.
+
+     LE DÉCOR A DÛ CHANGER, ET C'EST LE PROPRE DE CE SCÉNARIO DE LE DIRE.
+     L'identifiant change AUSSI à chaque reprise après coupure, et ce n'est
+     donc plus lui qui décide : c'est l'ORIGINE du direct (cf. scénario 95).
+     La rédaction d'avant se contentait de changer l'identifiant — ce qui
+     décrit aujourd'hui une reprise, dont la frise est justement CONSERVÉE.
+     Pour éprouver une vraie nouvelle session il faut donc une vraie coupure :
+     on éteint la chaîne au-delà de la borne de reprise, puis on la rallume. */
   await relacher();
   await page.evaluate(() => {
-    window.__fx.alpha.sid = 's-neuve';
-    window.__fx.alpha.createdAt = new Date().toISOString();
-    window.__fx.alpha.game = 'Just Chatting';
+    window.__avant = { ...window.__fx.alpha };
+    window.__fx.alpha = null;
+    window.tse.rescan();
+  });
+  await wait(page, 3400);          // au-delà de RECONNECT_GAP_MAX
+  await page.evaluate(() => {
+    window.__fx.alpha = { ...window.__avant, sid: 's-neuve',
+                          createdAt: new Date().toISOString(), game: 'Just Chatting' };
     window.tse.rescan();
   });
   await attendre(page,
@@ -9906,7 +9965,7 @@ titre('88. Les bornes de mémoire — celle qui manquait, celle qui ne couvrait 
     const entier = sc ? sc[0] : '';
     const bloc = entier.slice(entier.indexOf('let f = frises.get(login);'));
     const iDel = bloc.indexOf('frises.delete(login)');
-    const iBranche = bloc.indexOf('if (!f || f.streamId !== id)');
+    const iBranche = bloc.indexOf('if (!f || (f.streamId !== id && !memeDirect))');
     ok('le registre des frises réinsère AVANT l\'aiguillage, donc dans les deux cas',
        iDel >= 0 && iBranche >= 0 && iDel < iBranche,
        `delete@${iDel} branche@${iBranche}`);
@@ -11107,11 +11166,11 @@ titre('93. Le subathon dans l\'aperçu — un badge, un arc-en-ciel, et pas un c
              : null;
   });
   ok('une chaîne en subathon porte un badge qui en donne le jour',
-     avec !== null && avec.texte === 'Subathon · JOUR 10', JSON.stringify(avec));
+     avec !== null && avec.texte === 'Subathon • JOUR 10', JSON.stringify(avec));
   await quitter('mouse');
 
   /* UN SUBATHON NOMMÉ SANS NUMÉRO garde son badge et n'invente pas de jour.
-     « Subathon · JOUR null » serait le seul défaut que ce cas puisse produire,
+     « Subathon • JOUR null » serait le seul défaut que ce cas puisse produire,
      et il se produirait sur un titre parfaitement ordinaire — « 24H SUBATHON »
      nomme l'événement sans le compter. Le libellé connaît donc son cas nul. */
   await survoler('nomme');
@@ -11536,7 +11595,7 @@ titre('94. L\'aperçu au survol — un délai d\'intention, et ce qu\'il filtre'
 
   await page.close();
 }
-titre('95. La reprise après coupure — un badge, et une barre qui cesse de mentir');
+titre('95. La reprise après coupure — un badge, une barre, et une frise qui ne recommence pas');
 {
   /* ── CE QUE CE SCÉNARIO GARDE ────────────────────────────────────────────
      `createdAt` mesure la SESSION, pas le direct. Un streamer qui perd sa
@@ -11561,14 +11620,16 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
                  game: 'Just Chatting', tags: [] },
       agee:    { id: 'c4', sid: 's-agee-1',   createdAt: debuts.vieux, viewers: 600,
                  game: 'Just Chatting', tags: [] },
+      brieve:  { id: 'c5', sid: 's-brieve-1', createdAt: debuts.vieux, viewers: 500,
+                 game: 'Just Chatting', tags: [] },
     };
     // « neuve » a une carte dès le départ mais AUCUNE entrée dans __fx : elle
     // est donc hors ligne, comme une chaîne suivie qui n'émet pas encore.
-    for (const l of ['coupe', 'neuve', 'longue', 'agee']) {
+    for (const l of ['coupe', 'neuve', 'longue', 'agee', 'brieve']) {
       window.__addCard(l, 'Discussions', '900');
     }
   }, { vieux: h(360) });
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 3);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 4);
 
   const etat = (login) => page.evaluate((l) => {
     const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
@@ -11577,6 +11638,7 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
                  duree: c.querySelector('.tse-uptime')?.textContent || '' } : null;
   }, login);
   const compteurs = () => page.evaluate(() => window.tse.panneau.rapport().compteurs);
+  const bilanFrise = () => page.evaluate(() => window.tse.panneau.rapport().frise);
 
   /* Reprend le direct d'une chaîne : nouvel identifiant de stream, nouveau
      départ. C'est exactement ce que Twitch sert après une reconnexion. */
@@ -11593,6 +11655,25 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
     return page.evaluate(() => [...document.querySelectorAll('.tse-preview__badge')]
       .map(b => ({ classe: b.className, texte: b.textContent.trim() })));
   };
+  /* Ce que la frise de l'aperçu affiche, lu après coup : l'aperçu est un
+     singleton, il faut donc l'avoir ouvert sur la bonne carte. */
+  const frise = () => page.evaluate(() => {
+    const f = document.querySelector('.tse-preview__frise');
+    if (!f) return null;
+    const t = (sel) => f.querySelector(sel)?.textContent.trim() || '';
+    return {
+      total:    t('.tse-preview__frise-total'),
+      coupures: t('.tse-preview__frise-coupures'),
+      marques:  [...f.querySelectorAll('.tse-preview__frise-coupure')]
+        .map(m => ({ gauche: parseFloat(m.style.left), large: parseFloat(m.style.width) })),
+      lignes:   [...f.querySelectorAll('.tse-preview__frise-ligne')]
+        .map(li => li.textContent.trim()),
+    };
+  });
+  const changerJeu = (login, jeu) => page.evaluate(([l, j]) => {
+    window.__fx[l].game = j;
+    window.tse.rescan();
+  }, [login, jeu]);
   const relacher = async (login) => {
     await page.evaluate((l) => {
       [...document.querySelectorAll('.side-nav-card')]
@@ -11609,6 +11690,23 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
   ok('avant la coupure, la carte n\'est évidemment pas « fraîche »',
      avant !== null && avant.frais === false, JSON.stringify(avant));
 
+  /* ── UNE FRISE À SAUVER ──────────────────────────────────────────────────
+     Un seul segment ne fait pas une frise : le bloc se tait quand il n'aurait
+     à raconter que notre propre fenêtre d'observation. On fait donc basculer
+     la chaîne une fois AVANT la coupure — c'est le cas réaliste, et c'est le
+     seul décor où « la frise n'a pas recommencé » veut dire quelque chose. */
+  await changerJeu('coupe', 'Elden Ring');
+  await wait(page, 900);
+  await survoler('coupe');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
+  const friseAvant = await frise();
+  await relacher('coupe');
+  ok('avant la coupure, la frise porte les deux catégories et aucune coupure',
+     friseAvant !== null && friseAvant.lignes.length >= 2
+     && friseAvant.lignes.some(l => /Elden Ring/.test(l))
+     && friseAvant.coupures === '' && friseAvant.marques.length === 0,
+     JSON.stringify(friseAvant));
+
   await reprendre('coupe', 0);
   await attendre(page, async () => true);
   await wait(page, 900);           // le temps d'un relevé à la cadence du banc
@@ -11621,29 +11719,20 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
      apres !== null && apres.frais === false,
      JSON.stringify(apres));
 
-  /* ── LE COMPTEUR, ET C'EST LÀ QUE ÇA SE JOUE ─────────────────────────────
-     Éteindre la barre violette ne suffisait pas : la carte affichait toujours
-     « 2m » sur un direct de six heures. Ce que le spectateur lit doit être la
-     durée du DIRECT, pas celle du tronçon — sinon l'extension corrige un
-     signal et en laisse un autre mentir juste à côté. */
-  ok('…et le compteur repart de l\'origine du direct, pas de celle du tronçon',
-     apres !== null && Date.parse(apres.debut) === Date.parse(avant.debut),
-     JSON.stringify({ avant: avant.debut, apres: apres && apres.debut }));
-  ok('…ce qui se lit sur la carte : des heures, et non deux minutes',
-     apres !== null && /^(\d+)h\d\d$/.test(apres.duree)
-     && Number(/^(\d+)h/.exec(apres.duree)[1]) >= 5,
-     JSON.stringify(apres));
+  /* ── LA CARTE COMPTE LA SESSION, ET C'EST VOULU ──────────────────────────
+     Le compteur repart de zéro parce que c'est ce que Twitch sert et que la
+     carte n'a pas la place d'afficher deux durées. Ce qui serait faux, c'est
+     de le laisser croire qu'il ne s'est rien passé : la barre reste éteinte,
+     et l'aperçu — qui a la place — donne la durée du direct entier.
 
-  /* LA CHAÎNE DE REPRISES. Un direct qui saute trois fois ne redémarre pas
-     trois fois : la troisième doit encore compter depuis la première. C'est
-     l'origine MÉMORISÉE qu'on reprend, et non le départ du tronçon d'avant —
-     sans quoi chaque coupure grignoterait le compteur d'un tronçon. */
-  await reprendre('coupe', 0, 3);
-  await wait(page, 900);
-  const troisieme = await etat('coupe');
-  ok('une deuxième coupure garde encore l\'origine de la première',
-     troisieme !== null && Date.parse(troisieme.debut) === Date.parse(avant.debut),
-     JSON.stringify({ origine: avant.debut, apres2: troisieme && troisieme.debut }));
+     L'ASSERTION DIT DONC L'INVERSE DE CE QU'ELLE DISAIT, et pas par relâchement.
+     Deux vérités pour une même chose valent moins qu'une seule bien placée :
+     la session sur la carte, le direct dans l'aperçu. */
+  ok('…tandis que le compteur de la carte repart bien de zéro : c\'est la session',
+     apres !== null && Date.parse(apres.debut) > Date.parse(avant.debut)
+     && /^\d+m$/.test(apres.duree),
+     JSON.stringify({ avant: avant.debut, apres: apres && apres.debut,
+                      duree: apres && apres.duree }));
 
   const badges = await survoler('coupe');
   const reprise = badges.find(b => b.classe.includes('tse-preview__badge--reprise'));
@@ -11660,6 +11749,64 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
 
   ok('le rapport compte la reprise', (await compteurs()).reprises === 1,
      JSON.stringify(await compteurs()));
+
+  /* ══ LA FRISE TRAVERSE LA COUPURE ══════════════════════════════════════════
+     C'est la moitié qui manquait, et c'était la plus visible : l'identifiant
+     de stream change à chaque reprise, et la frise repartait donc de zéro. Un
+     spectateur qui survolait après une coupure de trois minutes ne voyait plus
+     rien du direct — « Précédemment sur ce live » recommençait à la sixième
+     heure, ce qui est exactement le contraire de ce que ce bloc promet.
+
+     TROIS CHOSES À ÉPROUVER, et elles se cassent séparément : le passé est
+     gardé, le total couvre toujours le direct entier, et la coupure est DITE
+     — en toutes lettres dans l'en-tête, et d'un trait sur le ruban. */
+  await survoler('coupe');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
+  const friseApres = await frise();
+  await relacher('coupe');
+
+  ok('la frise n\'a pas recommencé : les catégories d\'avant la coupure y sont encore',
+     friseApres !== null
+     && friseApres.lignes.some(l => /Elden Ring/.test(l))
+     && friseApres.lignes.length >= friseAvant.lignes.length,
+     JSON.stringify({ avant: friseAvant && friseAvant.lignes, apres: friseApres && friseApres.lignes }));
+
+  /* LE TOTAL EST LA SEULE DURÉE JUSTE DU PRODUIT, et c'est ici qu'on l'exige.
+     La carte compte la session — deux minutes — et c'est assumé ; l'en-tête de
+     la frise, lui, couvre le direct entier, coupure comprise. Six heures, et
+     non deux minutes, sur la même chaîne au même instant. */
+  ok('…et son total couvre toujours le direct entier, pas le tronçon',
+     friseApres !== null && /^(\d+)h\d\d$/.test(friseApres.total)
+     && Number(/^(\d+)h/.exec(friseApres.total)[1]) >= 5,
+     JSON.stringify({ total: friseApres && friseApres.total, carte: apres && apres.duree }));
+
+  /* LE FAIT, ET NON LA NOUVELLE. Le badge s'éteint au bout de dix minutes ;
+     le compte des coupures, lui, appartient au direct et reste tant qu'il
+     dure. Une marque sur le ruban par coupure, à sa place. */
+  ok('…avec le compte des coupures en tête, et un trait sur le ruban',
+     friseApres !== null && /\b1\b/.test(friseApres.coupures)
+     && friseApres.coupures !== '' && friseApres.marques.length === 1
+     && friseApres.marques[0].gauche >= 0 && friseApres.marques[0].gauche <= 100,
+     JSON.stringify({ coupures: friseApres && friseApres.coupures,
+                      marques: friseApres && friseApres.marques }));
+
+  /* LA CHAÎNE DE REPRISES. Un direct qui saute deux fois ne redémarre pas deux
+     fois : le total doit encore couvrir depuis la première origine, et le
+     compte passer à deux. C'est l'origine MÉMORISÉE qu'on reprend, et non le
+     départ du tronçon d'avant — sans quoi chaque coupure grignoterait un
+     tronçon de direct. */
+  await reprendre('coupe', 0, 3);
+  await wait(page, 900);
+  await survoler('coupe');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
+  const frise2 = await frise();
+  await relacher('coupe');
+  ok('une deuxième coupure s\'ajoute au compte et au ruban, sans toucher au total',
+     frise2 !== null && /\b2\b/.test(frise2.coupures) && frise2.marques.length === 2
+     && /^(\d+)h\d\d$/.test(frise2.total)
+     && Number(/^(\d+)h/.exec(frise2.total)[1]) >= 5,
+     JSON.stringify({ coupures: frise2 && frise2.coupures, total: frise2 && frise2.total,
+                      marques: frise2 && frise2.marques.length }));
 
   /* ── 2. CE QUI N'EST PAS UNE REPRISE ─────────────────────────────────────
      Trois façons de sur-déclencher, trois gardes, et chacune se mute seule. */
@@ -11689,6 +11836,33 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
      JSON.stringify({ neuve, badges: badgesNeuve.map(b => b.texte) }));
   await relacher('neuve');
 
+  /* a bis) LA COUPURE QU'ON VOIT PASSER. Les cas ci-dessus changent
+        d'identifiant d'un relevé à l'autre : la chaîne n'est jamais observée
+        hors ligne, ce qui est le cas le plus fréquent à trente secondes de
+        cadence. Mais une coupure de trois minutes tombe sur cinq ou six
+        relevés, et la frise était alors détruite au premier — il ne restait
+        plus rien à raccorder au retour. C'est la RETENUE qu'on éprouve ici, et
+        elle ne se voit que sur une chaîne qu'on a vraiment vue s'éteindre. */
+  await changerJeu('brieve', 'Minecraft');
+  await wait(page, 900);
+  await page.evaluate(() => { window.__fx.brieve = null; window.tse.rescan(); });
+  await wait(page, 700);            // hors ligne, mais sous RECONNECT_GAP_MAX
+  await page.evaluate(() => {
+    window.__fx.brieve = { id: 'c5', sid: 's-brieve-2',
+                           createdAt: new Date().toISOString(), viewers: 500,
+                           game: 'Minecraft', tags: [] };
+    window.tse.rescan();
+  });
+  await wait(page, 900);
+  await survoler('brieve');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
+  const friseBrieve = await frise();
+  await relacher('brieve');
+  ok('une coupure VUE PASSER ne détruit pas la frise : elle est retenue, puis reprise',
+     friseBrieve !== null && friseBrieve.lignes.some(l => /Minecraft/.test(l))
+     && /\b1\b/.test(friseBrieve.coupures) && friseBrieve.marques.length === 1,
+     JSON.stringify(friseBrieve));
+
   /* b) La coupure LONGUE. Au-delà de RECONNECT_GAP_MAX, une chaîne qui revient
         ouvre un nouveau direct : « vient de démarrer » redevient vrai, et il
         n'y a plus rien à corriger.
@@ -11701,6 +11875,8 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
         ayant produit aucune. C'est le décor qui était faux, pas la règle : elle
         avait raison de voir une reprise. On la met donc hors ligne pour de
         bon, ce qui est la seule façon d'arrêter cette mémoire. */
+  await changerJeu('longue', 'Valorant');
+  await wait(page, 900);
   await page.evaluate(() => { window.__fx.longue = null; window.tse.rescan(); });
   await wait(page, 3400);          // hors ligne, bien au-delà de RECONNECT_GAP_MAX
   await page.evaluate(() => {
@@ -11713,6 +11889,41 @@ titre('95. La reprise après coupure — un badge, et une barre qui cesse de men
   const longue = await etat('longue');
   ok('après une coupure LONGUE, le direct est neuf et sa barre s\'allume',
      longue !== null && longue.frais === true, JSON.stringify(longue));
+
+  /* LA RETENUE EST BORNÉE, et c'est ce qui empêche le registre de se remplir
+     de chaînes éteintes. Passé GAP, la frise est lâchée : la chaîne qui revient
+     en ouvre une NEUVE, qui repart de son propre départ. Deux catégories
+     avaient pourtant été observées avant la coupure ; les revoir ici voudrait
+     dire que la retenue ne s'arrête jamais.
+
+     LE BLOC NE DISPARAÎT PAS POUR AUTANT, et c'est une distinction qui compte :
+     un direct qu'on suit depuis sa première seconde a une frise dès son unique
+     catégorie — c'est la règle posée au scénario 87, et elle n'a rien à voir
+     avec celle-ci. Ce qu'on exige, c'est qu'elle ait TOUT OUBLIÉ : pas de
+     Valorant, et un total qui se compte en minutes et non en heures. */
+  await survoler('longue');
+  await wait(page, 400);
+  const friseLongue = await frise();
+  await relacher('longue');
+  ok('…et sa frise a bien été lâchée en route : elle repart de zéro',
+     friseLongue !== null
+     && !friseLongue.lignes.some(l => /Valorant/.test(l))
+     && /^\d+m$/.test(friseLongue.total) && friseLongue.coupures === '',
+     JSON.stringify(friseLongue));
+
+  /* ── ET LE REGISTRE, LUI, S'EST VIDÉ ─────────────────────────────────────
+     L'assertion ci-dessus ne dit PAS que la frise retenue a été relâchée : la
+     comparaison d'origine suffirait à la faire repartir de zéro même si le
+     registre gardait la vieille entrée jusqu'à la fin des temps. Ce qui se
+     joue ici n'est donc pas l'affichage mais la MÉMOIRE — une retenue sans
+     borne remplirait `frises` de chaînes éteintes, et rien à l'écran ne le
+     dirait jamais. Le rapport, lui, le dit : `retenues` compte les frises
+     entrées en attente, `lachees` celles que l'attente a fini par emporter. */
+  const bf = await bilanFrise();
+  ok('…et le registre a relâché ce qu\'il retenait — la retenue est bornée',
+     bf.retenues >= 2 && bf.lachees >= 1 && bf.lachees < bf.retenues,
+     JSON.stringify({ retenues: bf.retenues, lachees: bf.lachees,
+                      resident: bf.resident }));
 
   /* c) Le direct qui revient AVEC DE L'ÂGE. Identifiant neuf, coupure courte,
         mais un départ qui ne date pas d'aujourd'hui : il n'y a pas de compteur
@@ -11852,8 +12063,13 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
     vides: [...document.querySelectorAll('#guide .guide-liste li, #guide .guide-p')]
       .filter(e => !e.textContent.trim()).length,
   }));
+  /* LE PLANCHER EST BAS EXPRÈS. Ce qu'il attrape n'est pas « trop peu de
+     puces » — leur nombre change à chaque relecture du guide, et une borne
+     serrée se contenterait de casser le banc au premier paragraphe retiré.
+     Ce qu'il attrape, c'est ZÉRO : le jour où la grammaire des corps cesse
+     d'être appliquée, il n'y a plus une seule puce dans les treize chapitres. */
   ok('les puces sont devenues des éléments de liste, marqueur retiré',
-     puces.items >= 30 && puces.paraAvecPuce === 0 && puces.itemAvecPuce === 0
+     puces.items >= 20 && puces.paraAvecPuce === 0 && puces.itemAvecPuce === 0
      && puces.vides === 0,
      JSON.stringify(puces));
 
@@ -11986,7 +12202,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   });
   ok('le mode d\'emploi se rend aussi en japonais, sans clé nue ni débordement',
      rendJa.titre === ja.navGuide.message && rendJa.chapitres === 13
-     && rendJa.items >= 30 && rendJa.puces === 0 && rendJa.largeur <= 760
+     && rendJa.items >= 20 && rendJa.puces === 0 && rendJa.largeur <= 760
      && !Object.keys(ja).some(k => rendJa.texte.includes(k)),
      JSON.stringify({ titre: rendJa.titre, chapitres: rendJa.chapitres,
                       items: rendJa.items, puces: rendJa.puces, largeur: rendJa.largeur }));

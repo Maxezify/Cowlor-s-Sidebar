@@ -25,14 +25,14 @@ Dans la fenêtre d'aperçu, des étiquettes colorées résument le contexte du s
 
 - 🤝 ★ CO-STREAM ★ Vous dit précisément si la chaîne est hôte ou invitée, et avec qui. Fini le « attendez, c'est quoi ce stream que je ne suis pas ? ».
 - 👥 ★ EN LIVE AVEC ★ Pour les squads et les multistreams, affiche le co-streamer principal et le nombre total des autres (« En live avec Untel et 3 autres »).
-- 💜 ★ ABONNÉ ★ Depuis combien de temps vous soutenez la chaîne (« Abonné 9 mois ») — ou que vous l'avez soutenue par le passé (« Anciennement abonné 22 mois »).
+- 💜 ★ ABONNÉ ★ Depuis combien de temps vous soutenez la chaîne (« Abonné • 9 MOIS ») — ou que vous l'avez soutenue par le passé (« Ancien abonné • 22 MOIS »).
 - 💰 ★ SPONSORISÉ PAR ★ Pour les streams sponsorisés, affiche la marque avec son logo en couleur. Vous saurez qui est derrière.
 - 🚂 ★ HYPE TRAIN ★ Un Hype Train est en cours sur la chaîne ? Vous êtes prévenu sans avoir à cliquer.
 - 💎 ★ ABONNEMENT EN PROMO ★ Quand Twitch propose un abonnement à prix réduit sur le stream, c'est signalé là.
 - 🆕 ★ VIENT DE PASSER SUR ★ Le streamer a changé de catégorie en cours de route ? Un badge vert le dit pendant dix minutes : « Vient de passer sur Elden Ring ». Twitch ne l'annonce nulle part — l'extension le voit parce qu'elle regarde en continu.
 - 🔁 ★ REPRISE APRÈS COUPURE ★ Le streamer a sauté puis est revenu ? Son compteur de durée repart de zéro et Twitch n'en dit rien. Le badge, lui, le dit — et la barre « vient de démarrer » ne s'allume plus sur un direct qui dure depuis six heures (« Reprise après coupure »).
 - ⚠️ ★ ÉTIQUETTES DE CONTENU ★ Les étiquettes officielles de Twitch (jeux matures, violence explicite, jeux d'argent…) forment leur propre badge, en tête de la rangée — vous savez avant de regarder, sans l'interstitielle qui bloquait la vidéo.
-- 🌈 ★ SUBATHON ★ La chaîne est en subathon ? Le badge le dit et donne le jour en cours (« Subathon · JOUR 10 »).
+- 🌈 ★ SUBATHON ★ La chaîne est en subathon ? Le badge le dit et donne le jour en cours (« Subathon • JOUR 10 »).
 
 _______________________________
 
@@ -75,7 +75,7 @@ Les chaînes que vous soutenez vraiment ne devraient pas ressembler à toutes le
 - ★ TOUTE LA CARTE S'ALLUME ★ Pseudo doré, catégorie dorée, anneau doré autour de l'avatar, et un lent chatoiement dans le fond de la carte. Discret, mais impossible à rater.
 - ★ UN TRI RIEN QUE POUR EUX ★ « Mes abonnements en tête » les remonte tous en haut de la liste, avec votre total sur une petite pastille.
 - ★ TOUS LES TYPES COMPTENT ★ Payant, offert, mobile : les trois sont reconnus, et les trois portent le même or.
-- ★ DEPUIS QUAND VOUS ÊTES LÀ ★ Survolez une chaîne et l'aperçu vous le dit : « Abonné 9 mois ». Et pour une chaîne soutenue par le passé : « Anciennement abonné 22 mois ».
+- ★ DEPUIS QUAND VOUS ÊTES LÀ ★ Survolez une chaîne et l'aperçu vous le dit : « Abonné • 9 MOIS ». Et pour une chaîne soutenue par le passé : « Ancien abonné • 22 MOIS ».
 - ★ ELLE LE DEVINE TOUTE SEULE ★ Rien à configurer, pas de connexion, pas de mot de passe, pas de jeton. Comment exactement ? C'est expliqué en toutes lettres dans la section VIE PRIVÉE plus bas.
 
 _______________________________

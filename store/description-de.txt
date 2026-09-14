@@ -25,14 +25,14 @@ Im Vorschaufenster fassen farbige Etiketten den Kontext des Streams auf einen Bl
 
 - 🤝 ★ CO-STREAM ★ Sagt dir genau, ob der Kanal Host oder Gast ist — und mit wem. Schluss mit „Moment, was ist das für ein Stream, dem ich gar nicht folge?".
 - 👥 ★ LIVE MIT ★ Bei Squads und Multistreams: der Haupt-Co-Streamer und wie viele weitere dabei sind („Live mit Soundso und 3 weiteren").
-- 💜 ★ ABONNIERT ★ Seit wann du den Kanal unterstützt („9 Monate abonniert") — oder dass du es früher getan hast („Früher 22 Monate abonniert").
+- 💜 ★ ABONNIERT ★ Seit wann du den Kanal unterstützt („Abonniert • 9 MONATE") — oder dass du es früher getan hast („Ehemals abonniert • 22 MONATE").
 - 💰 ★ GESPONSERT VON ★ Bei gesponserten Streams: die Marke mit ihrem farbigen Logo. Du weißt, wer dahintersteckt.
 - 🚂 ★ HYPE TRAIN ★ Auf dem Kanal läuft ein Hype Train? Du erfährst es, ohne klicken zu müssen.
 - 💎 ★ ABO IM ANGEBOT ★ Wenn Twitch im Stream ein vergünstigtes Abo anbietet, steht es genau dort.
 - 🆕 ★ GERADE GEWECHSELT ZU ★ Der Streamer hat mitten im Stream die Kategorie gewechselt? Ein grünes Abzeichen sagt es zehn Minuten lang: „Gerade gewechselt zu Elden Ring“. Twitch kündigt das nirgends an — die Erweiterung sieht es, weil sie durchgehend hinschaut.
 - 🔁 ★ ZURÜCK NACH ABBRUCH ★ Der Streamer ist rausgeflogen und wieder da? Seine Dauer fängt bei null an und Twitch sagt nichts dazu. Das Badge schon — und der Balken „gerade gestartet“ leuchtet nicht mehr bei einem Stream, der seit sechs Stunden läuft („Zurück nach Abbruch“).
 - ⚠️ ★ INHALTSHINWEISE ★ Die offiziellen Twitch-Labels (Spiel ab 18, explizite Gewalt, Glücksspiel…) bilden ihr eigenes Abzeichen, ganz vorn in der Reihe — du weißt es, bevor du hinschaust, ohne den Zwischenbildschirm, der das Video blockierte.
-- 🌈 ★ SUBATHON ★ Läuft auf dem Kanal ein Subathon? Das Badge sagt es und nennt den aktuellen Tag („Subathon · TAG 10“).
+- 🌈 ★ SUBATHON ★ Läuft auf dem Kanal ein Subathon? Das Badge sagt es und nennt den aktuellen Tag („Subathon • TAG 10“).
 
 _______________________________
 
@@ -75,7 +75,7 @@ Die Kanäle, die du wirklich unterstützt, sollten nicht aussehen wie alle ander
 - ★ DIE GANZE KARTE LEUCHTET ★ Goldener Name, goldene Kategorie, ein goldener Ring um den Avatar und ein langsames Schimmern im Hintergrund der Karte. Dezent, aber nicht zu übersehen.
 - ★ EINE EIGENE SORTIERUNG ★ „Meine Abos zuerst" holt sie alle nach oben, mit deiner Gesamtzahl auf einem kleinen Abzeichen.
 - ★ ALLE ARTEN ZÄHLEN ★ Bezahlt, geschenkt, mobil: alle drei werden erkannt, und alle drei tragen dasselbe Gold.
-- ★ SEIT WANN DU DABEI BIST ★ Fahre über einen Kanal, und die Vorschau sagt es dir: „9 Monate abonniert". Und bei einem früher unterstützten Kanal: „Früher 22 Monate abonniert".
+- ★ SEIT WANN DU DABEI BIST ★ Fahre über einen Kanal, und die Vorschau sagt es dir: „Abonniert • 9 MONATE". Und bei einem früher unterstützten Kanal: „Ehemals abonniert • 22 MONATE".
 - ★ SIE FINDET ES ALLEIN HERAUS ★ Nichts einzustellen, keine Anmeldung, kein Passwort, kein Token. Wie genau? Das steht im Klartext weiter unten im Abschnitt DATENSCHUTZ.
 
 _______________________________

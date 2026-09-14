@@ -25,14 +25,14 @@ Dentro il riquadro dell'anteprima, delle etichette colorate riassumono il contes
 
 - 🤝 ★ CO-STREAM ★ Ti dice con precisione se il canale è l'ospitante o l'ospite, e con chi. Basta con «un attimo, di chi è questa diretta che non seguo?».
 - 👥 ★ IN DIRETTA CON ★ Per squad e multistream, mostra il co-streamer principale e il numero totale degli altri («In diretta con Tal dei Tali e altri 3»).
-- 💜 ★ ABBONATO ★ Da quanto sostieni il canale («Abbonato da 9 mesi») — o che lo facevi in passato («Già abbonato per 22 mesi»).
+- 💜 ★ ABBONATO ★ Da quanto sostieni il canale («Abbonato • 9 MESI») — o che lo facevi in passato («Ex abbonato • 22 MESI»).
 - 💰 ★ SPONSORIZZATO DA ★ Per le dirette sponsorizzate, mostra il marchio con il suo logo a colori. Saprai chi c'è dietro.
 - 🚂 ★ HYPE TRAIN ★ C'è un Hype Train in corso sul canale? Lo sai senza dover cliccare.
 - 💎 ★ ABBONAMENTO SCONTATO ★ Quando Twitch propone un abbonamento scontato sulla diretta, te lo segnala lì.
 - 🆕 ★ È APPENA PASSATO A ★ Lo streamer ha cambiato categoria a metà diretta? Un'etichetta verde lo dice per dieci minuti: «È appena passato a Elden Ring». Twitch non lo annuncia da nessuna parte — l'estensione lo vede perché guarda di continuo.
 - 🔁 ★ RITORNO DOPO UN'INTERRUZIONE ★ Lo streamer è saltato ed è tornato? La sua durata riparte da zero e Twitch non ne dice nulla. Il badge sì — e la barra «è appena iniziata» non si accende più su una diretta che va avanti da sei ore («Ritorno dopo un'interruzione»).
 - ⚠️ ★ ETICHETTE DI CONTENUTO ★ Le etichette ufficiali di Twitch (gioco per adulti, violenza esplicita, gioco d'azzardo…) formano un badge a sé, il primo della fila — lo sai prima di guardare, senza la schermata che bloccava il video.
-- 🌈 ★ SUBATHON ★ Il canale è in subathon? Il badge lo dice e indica il giorno in corso («Subathon · GIORNO 10»).
+- 🌈 ★ SUBATHON ★ Il canale è in subathon? Il badge lo dice e indica il giorno in corso («Subathon • GIORNO 10»).
 
 _______________________________
 
@@ -75,7 +75,7 @@ I canali che sostieni davvero non dovrebbero sembrare uguali a tutti gli altri. 
 - ★ TUTTA LA SCHEDA SI ACCENDE ★ Nome dorato, categoria dorata, un anello d'oro attorno all'avatar e un lento scintillio sullo sfondo della scheda. Discreto, ma non puoi non vederlo.
 - ★ UN ORDINAMENTO TUTTO LORO ★ «I miei abbonamenti per primi» li porta tutti in cima alla lista, con il tuo totale su una piccola etichetta.
 - ★ OGNI TIPO CONTA ★ A pagamento, regalato, da mobile: tutti e tre vengono riconosciuti, e tutti e tre portano lo stesso oro.
-- ★ DA QUANTO CI SEI ★ Passa il mouse su un canale e l'anteprima te lo dice: «Abbonato da 9 mesi». E per uno che hai sostenuto in passato: «Già abbonato per 22 mesi».
+- ★ DA QUANTO CI SEI ★ Passa il mouse su un canale e l'anteprima te lo dice: «Abbonato • 9 MESI». E per uno che hai sostenuto in passato: «Ex abbonato • 22 MESI».
 - ★ CI ARRIVA DA SOLA ★ Niente da configurare, nessun login, nessuna password, nessun token. Come esattamente? È spiegato nella sezione PRIVACY più in basso, in parole semplici.
 
 _______________________________
