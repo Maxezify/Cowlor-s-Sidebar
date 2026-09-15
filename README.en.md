@@ -326,7 +326,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 879 KB | 349 KB | 3,180 → **2** |
+| `content.js` | 909 KB | 355 KB | 3,189 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 69 KB | 34 KB | 85 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 968 assertions, under Gecko
+npm run test-firefox        # the same 975 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,112 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Three reports, and what an audit found behind them (v4.5)
+
+### The notches say "outage", not "another category"
+
+Request: "can you show on the trail some way of showing that these really are
+outages?" The mark was a white bar laid on the ribbon — which is exactly what one
+more part looks like, in a colour not yet seen.
+
+What makes an outage read as one is the **interruption**: the background
+reappears where the stream stopped, two **amber** edges mark the notch, and it
+overhangs slightly top and bottom so it reads as a notch rather than a segment.
+The amber is the one used by the count in the header: the eye links "3 outages"
+to the three notches without a word.
+
+The floor goes from two to three pixels — at two, the notch was indistinguishable
+from the seam between two neighbouring parts. And each notch carries its
+**duration** as a tooltip, which the count does not give and three pixels cannot;
+the count itself carries the full list.
+
+### Beyond three outages
+
+Question asked, answer with numbers. Two mechanisms, two bounds:
+
+- outages **observed** while the tab is open accumulate up to
+  `RECONNECT_CUTS_MAX`, that is twenty-four;
+- outages **recovered** from the archives depend on how many archives are asked
+  for. Three in 4.3.1 bounded it at two, five in 4.4 bounded it at four.
+  **Eight** covers seven.
+
+Beyond that, we would pay a payload — each archive carries its chapters — for a
+case that does not occur.
+
+### The missing subathon pill
+
+Report: a channel on day fourteen, badge **present in the preview** — so the
+detection was right — and **no pill on its card**, while its neighbours had one.
+It was in "live with", the layout Twitch renders differently.
+
+This whole file targets the name via `p[data-a-target="side-nav-title"]`. There is
+now a **fallback**, and it is narrow: the first line of the metadata that is
+neither the category nor one of our own elements. Writing "D14" into the wrong
+line would be worse than writing nothing.
+
+**And a measurement, because two versions have already fixed blind here.** The
+report finally separates two things the `detectes` / `marquees` gap conflated:
+`sansPastille` counts only cards **present and decorated** whose day is known, and
+`sansAncre` says how many of those lack the name hook. Equal, and the cause is
+named.
+
+### The list that slips out from under the pointer
+
+Report: "in Top Channels you don't have time to read a card, it disappears
+because the list updates and the mouse is no longer on the card you are
+hovering."
+
+It is structural: the world ranking re-sorts at every poll, a channel gains a
+thousand viewers, and the card slides three rows under a pointer that has not
+moved. The preview then closes not because you left it, but because the card
+left.
+
+**Sorting waits, it is not cancelled.** As long as a preview is open, the
+displayed order stays the one being read, and the hovered card is not removed even
+if it drops out of the top thirty. Closing schedules a scan: the ranking
+immediately takes its place back. **Contents** keep living — counters, durations,
+badges: what was in the way was the movement, not the freshness, and a hold that
+froze the contents too would replace an annoyance with a card that lies.
+
+### What the audit found, and nobody would have reported
+
+The 4.2 rule empties the metadata of a card **with no category**: it spares the
+name's `<p>` and its **ancestors**, and hides everything else. So it also hid its
+**descendants** — yet the name on a subathon card is not bare text: it is a
+wrapper and a pill, both placed **inside** the `<p>`.
+
+**An uncategorised channel running a subathon lost its pill and its name.** The
+two conditions rarely meet; the user's report returns `cartes 0` on that block.
+Nobody would have reported it for a long time, and relating it to its cause would
+have been very hard. A third exclusion now spares the descendants, and scenario 99
+carries the case.
+
+That is the second defect in this series shipped by an earlier fix. Both times the
+cause is the same: a rule written for one case, applied to a wider population than
+was looked at.
+
+### What the audit checked and found nothing wrong with
+
+- **No dead identifier** among the eighteen added since 4.2: each is declared and
+  read.
+- **Every registry is bounded**: `passeDirect` (120 channels × 200 chapters),
+  `sondees`, `chapitres`, `declarees`, `reprises`, `derniersDirects`, `frises`,
+  `empileurs`, `ecarteesDeclaree`.
+- **No debugging left**: the `console.*` calls are the public API and two failure
+  warnings. No `TODO`, `FIXME` or `debugger`.
+- **The new report fields do reach the panel**: they live inside objects the block
+  flattens whole, which is the only wiring that does not get lost silently.
+
+### A mutant that survives, and why we say so
+
+`close()` schedules a scan so the order takes its place back **immediately**
+instead of waiting for the next poll. Removing that line brings down no
+assertion: in the bench the periodic poll is accelerated to six hundred
+milliseconds and catches up before anything is measured. In production it is
+thirty seconds, and the difference is real — but an assertion claiming to see it
+here would be an assertion of chance. We keep the line, and we write that it is
+not proven.
 
 ## As many outages as the stream actually had (v4.4)
 
@@ -5391,7 +5497,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 102 scenarios, 968 assertions |
+| `npm test` | the Playwright harness: 103 scenarios, 975 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

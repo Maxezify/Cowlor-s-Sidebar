@@ -12644,6 +12644,18 @@ titre('99. Le co-streamer sans catégorie — centrer une boîte qui n\'est pas 
       solosans: { id: 'c3', createdAt: h, viewers: 700, game: null,            tags: [] },
       figee:    { id: 'c5', createdAt: h, viewers: 650, game: null,            tags: [] },
       nohook:   { id: 'c4', createdAt: h, viewers: 600, game: null,            tags: [] },
+      /* UN SUBATHON SANS CATÉGORIE. Les deux conditions se rencontrent
+         rarement, et c'est précisément pour cela qu'un audit était nécessaire :
+         la règle qui vide la metadata d'une carte sans catégorie masquait tout
+         ce qui n'est pas le <p> du pseudo — or la pastille du jour ET
+         l'enveloppe du nom vivent DEDANS. La carte perdait son nom. */
+      subsanscat: { id: 'c6', createdAt: h, viewers: 550, game: null, tags: [],
+                    title: 'SUBATHON JOUR 3 — on continue' },
+      /* ET UN SUBATHON DONT LE PSEUDO N'A PAS SON CROCHET, comme les cartes
+         « En live avec » que Twitch rend autrement. Signalement : jour 14 dans
+         l'aperçu, aucune pastille sur la carte. */
+      subsanshook: { id: 'c7', createdAt: h, viewers: 500, game: 'Just Chatting',
+                     tags: [], title: 'MOUSEATHON DAY 14' },
     };
     // Trois cartes de CO-STREAM (mini-avatar dans la metadata), une ordinaire.
     window.__costreamHost = { duoavec: 'hote', duosans: 'hote', nohook: 'hote' };
@@ -12657,19 +12669,23 @@ titre('99. Le co-streamer sans catégorie — centrer une boîte qui n\'est pas 
     window.__addCard('solosans', '', '700');
     window.__addCard('figee',    '', '650');
     window.__addCard('nohook',   '', '600');
+    window.__addCard('subsanscat', '', '550');
+    window.__addCard('subsanshook', 'Just Chatting', '500');
     /* LE GARDE-FOU N'A DE SENS QUE SI ON PEUT LE DÉCLENCHER. La règle épargne
        ce qui porte le hook du pseudo ; si Twitch le retirait, elle n'aurait
        plus rien à épargner et effacerait la carte. On retire donc le hook sur
        UNE carte, et on vérifie qu'elle garde son texte. */
-    [...document.querySelectorAll('.side-nav-card')]
-      .find(c => c.querySelector('a[href="/nohook"]'))
-      .querySelector('p[data-a-target="side-nav-title"]')
-      .removeAttribute('data-a-target');
+    for (const l of ['nohook', 'subsanshook']) {
+      [...document.querySelectorAll('.side-nav-card')]
+        .find(c => c.querySelector(`a[href="/${l}"]`))
+        .querySelector('p[data-a-target="side-nav-title"]')
+        .removeAttribute('data-a-target');
+    }
   });
   await attendre(page,
-    () => document.querySelectorAll('[data-tse-viewers]').length === 5, 9000);
+    () => document.querySelectorAll('[data-tse-viewers]').length === 7, 9000);
   await attendre(page,
-    () => document.querySelectorAll('[data-tse-nocat="true"]').length === 4, 9000);
+    () => document.querySelectorAll('[data-tse-nocat="true"]').length === 5, 9000);
 
   const etat = await page.evaluate(() => {
     const carte = (l) => [...document.querySelectorAll('.side-nav-card')]
@@ -12731,6 +12747,43 @@ titre('99. Le co-streamer sans catégorie — centrer une boîte qui n\'est pas 
      exigé sur le conteneur, il la rend INERTE au lieu de la rendre fausse. */
   ok('sans le hook du pseudo, la règle s\'efface au lieu d\'effacer la carte',
      etat.nohook.pseudoVisible === true, JSON.stringify(etat.nohook));
+
+  /* ── CE QU'UN AUDIT A TROUVÉ, ET QUE PERSONNE N'AURAIT SIGNALÉ ───────────
+     La règle ci-dessus vide la metadata d'une carte sans catégorie. Elle
+     épargnait le <p> du pseudo et ses ANCÊTRES, et masquait tout le reste —
+     y compris ce qui vit DEDANS. Or le pseudo d'une carte de subathon n'est
+     pas un texte nu : c'est une enveloppe et une pastille, toutes deux posées
+     dans le <p>. La carte perdait donc son nom, et il aurait fallu qu'un
+     subathon sans catégorie se présente pour que ça se voie. */
+  await attendre(page,
+    () => !!document.querySelector('[data-tse-subathon-day]'), 9000);
+  const sub = await page.evaluate(() => {
+    const carte = (l) => [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector(`a[href="/${l}"]`));
+    const lire = (l) => {
+      const c = carte(l);
+      const nom = c.querySelector('.tse-subathon-nom');
+      const puce = c.querySelector('.tse-subathon-jour');
+      const vu = (x) => !!x && getComputedStyle(x).display !== 'none'
+                     && x.getBoundingClientRect().height > 0;
+      return { jour: c.dataset.tseSubathonDay || null,
+               nomVu: vu(nom), nomTexte: (nom?.textContent || '').trim(),
+               puceVue: vu(puce), puceTexte: (puce?.textContent || '').trim() };
+    };
+    return { sanscat: lire('subsanscat'), sanshook: lire('subsanshook') };
+  });
+  ok('un subathon sans catégorie garde son pseudo visible',
+     sub.sanscat.nomVu === true && sub.sanscat.nomTexte === 'subsanscat',
+     JSON.stringify(sub.sanscat));
+  ok('…et sa pastille du jour, qui vit dans le même <p>',
+     sub.sanscat.puceVue === true && sub.sanscat.puceTexte === 'J3',
+     JSON.stringify(sub.sanscat));
+  /* LE REPLI DU CROCHET. Une carte dont le pseudo n'a pas son
+     data-a-target — comme les cartes « En live avec » de Twitch — recevait sa
+     détection de subathon sans jamais recevoir sa pastille. */
+  ok('un subathon dont le pseudo n\'a pas son crochet reçoit quand même sa pastille',
+     sub.sanshook.jour === '14' && sub.sanshook.puceTexte === 'J14',
+     JSON.stringify(sub.sanshook));
 
   await page.close();
 }
@@ -13460,6 +13513,85 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
     window.tse.panneau.rapport().reseau.chapitres.reprise);
   ok('…et elle ne repart pas au survol suivant : une opération par session',
      apres.sondes === bilan.sondes, JSON.stringify(apres));
+
+  await page.close();
+}
+
+titre('103. Le tri ne déplace pas ce qu\'on est en train de lire');
+{
+  /* ── LE SIGNALEMENT ───────────────────────────────────────────────────────
+     « Quand on regarde les cartes en Top Chaînes, la liste s'update souvent et
+     parfois on n'a pas le temps de lire une carte : elle disparaît car la
+     liste s'update et la souris n'est plus sur la carte qu'on survole. »
+
+     C'est structurel : le classement mondial se retrie à chaque relevé, une
+     chaîne gagne mille spectateurs, et la carte glisse sous un pointeur qui
+     n'a pas bougé. L'aperçu se ferme alors non pas parce qu'on l'a quitté,
+     mais parce que la carte est partie.
+
+     TROIS ASSERTIONS, ET IL FAUT LES TROIS. Que l'ordre TIENNE pendant la
+     lecture ; que les CONTENUS continuent de vivre — ce qui gênait était le
+     mouvement, pas la fraîcheur ; et que l'ordre reprenne À LA FERMETURE, sans
+     quoi la correction remplacerait un défaut par un pire. */
+  const page = await fresh();
+  const h = new Date(Date.now() - 3600_000).toISOString();
+  await page.evaluate((iso) => {
+    window.__fx = {
+      un:    { id: 'o1', createdAt: iso, viewers: 300, game: 'Just Chatting', tags: [] },
+      deux:  { id: 'o2', createdAt: iso, viewers: 200, game: 'Just Chatting', tags: [] },
+      trois: { id: 'o3', createdAt: iso, viewers: 100, game: 'Just Chatting', tags: [] },
+    };
+    window.__addCard('un', 'Discussions', '300');
+    window.__addCard('deux', 'Discussions', '200');
+    window.__addCard('trois', 'Discussions', '100');
+  }, h);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 3, 9000);
+  await page.evaluate(() =>
+    document.querySelector(`[data-tse-sort-mode="viewers"]`)?.click());
+  await wait(page, 600);
+
+  const ordre = () => page.evaluate(() =>
+    [...document.querySelectorAll('.side-nav-card')].map(c => c.dataset.tseLogin));
+  ok('au départ, le tri par spectateurs range un, deux, trois',
+     JSON.stringify(await ordre()) === JSON.stringify(['un', 'deux', 'trois']),
+     JSON.stringify(await ordre()));
+
+  /* ── ON SURVOLE « trois », PUIS ON LE FAIT PASSER EN TÊTE ────────────────
+     Sans la retenue, le tri le déplacerait de deux rangs — et le pointeur,
+     lui, ne bougerait pas. */
+  await hoverLogin(page, 'trois');
+  await attendre(page,
+    () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+  await page.evaluate(() => { window.__fx.trois.viewers = 9000; window.tse.rescan(); });
+  await wait(page, 1200);
+  ok('pendant qu\'un aperçu est ouvert, l\'ordre affiché ne bouge pas',
+     JSON.stringify(await ordre()) === JSON.stringify(['un', 'deux', 'trois']),
+     JSON.stringify(await ordre()));
+  /* LA FRAÎCHEUR N'EST PAS SUSPENDUE, seulement le mouvement : le compteur de
+     la carte survolée montre bien sa nouvelle valeur. Une retenue qui gèlerait
+     aussi les contenus remplacerait une gêne par une carte qui ment. */
+  const compteur = await page.evaluate(() =>
+    [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.dataset.tseLogin === 'trois')
+      ?.querySelector('.tse-viewers')?.textContent || '');
+  ok('…mais les contenus, eux, continuent de se mettre à jour',
+     /9/.test(compteur), JSON.stringify(compteur));
+
+  /* ── ET L'ORDRE REPREND DÈS QU'ON LÂCHE ─────────────────────────────────
+     La fermeture programme un scan : sans lui, la liste resterait figée
+     jusqu'au relevé suivant, c'est-à-dire une demi-minute après. */
+  await page.evaluate(() => {
+    [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.dataset.tseLogin === 'trois')
+      ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+  });
+  await attendre(page,
+    () => [...document.querySelectorAll('.side-nav-card')][0]?.dataset.tseLogin === 'trois',
+    6000);
+  ok('…et il reprend sa place dès que l\'aperçu se ferme',
+     JSON.stringify(await ordre()) === JSON.stringify(['trois', 'un', 'deux']),
+     JSON.stringify(await ordre()));
 
   await page.close();
 }
