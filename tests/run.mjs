@@ -1093,8 +1093,21 @@ titre('22. Garde-fou — protège aussi au démarrage, cache vide');
 }
 
 // ═════════ 23. Modèle de clonage neutre ═════════
-titre('23. Clonage — jamais depuis une carte décorée');
+titre('23. Clonage — une carte décorée sert de modèle, nettoyée');
 {
+  /* ── CE SCÉNARIO DISAIT L'INVERSE, ET C'ÉTAIT UN DÉFAUT ──────────────────
+     Il exigeait qu'AUCUNE carte ne soit fabriquée tant que le seul modèle
+     disponible portait une décoration. L'intention était juste — ne pas
+     transposer un badge « +3 » sur une chaîne qui ne collabore avec personne —
+     mais la conclusion était trop stricte, et un utilisateur l'a payée : une
+     seule chaîne suivie en direct, portant une pastille de collaboration, et
+     « Top Chaînes » entièrement vide sur un classement de deux mille chaînes.
+
+     ON NE REFUSE PLUS LA CARTE, ON LA NETTOIE. Ce que le scénario protège
+     vraiment — aucune décoration héritée — n'a pas bougé d'une ligne : ce sont
+     les deux assertions qui suivent, et elles sont plus fortes qu'avant
+     puisqu'elles portent désormais sur une carte réellement fabriquée depuis
+     un modèle décoré. Seule la PREMIÈRE est retournée. */
   const page = await fresh();
   await page.evaluate(() => {
     const iso = new Date(Date.now() - 60 * 60_000).toISOString();
@@ -1116,10 +1129,18 @@ titre('23. Clonage — jamais depuis une carte décorée');
     window.__fx.dormant = { id:'9', createdAt:new Date(Date.now()-60_000).toISOString(), viewers:500, game:'G', tags:[] };
   });
   await wait(page, 2500);
-  const n1 = await page.evaluate(() => document.querySelectorAll('.side-nav-card[data-tse-synthetic="true"]').length);
-  ok('aucune carte fabriquée depuis un modèle décoré', n1 === 0, String(n1));
+  const n1 = await page.evaluate(() =>
+    [...document.querySelectorAll('.side-nav-card[data-tse-synthetic="true"]')]
+      .map(c => ({ login: c.dataset.tseLogin,
+                   collab: !!c.querySelector('.tse-collab-badge'),
+                   plus: /\+\s*3/.test(c.textContent || '') })));
+  ok('une carte décorée sert de modèle de second choix, et la fabrication a lieu',
+     n1.length === 1 && n1[0].login === 'dormant', JSON.stringify(n1));
+  ok('…et le clone n\'hérite ni du badge ni du « +3 » de son modèle',
+     n1.length === 1 && n1[0].collab === false && n1[0].plus === false,
+     JSON.stringify(n1));
 
-  // Une carte neutre apparaît : la fabrication reprend, sans décoration héritée.
+  // Une carte neutre apparaît : elle reprend la main comme modèle préféré.
   await page.evaluate(() => {
     window.__fx.neutre = { id:'2', createdAt:new Date(Date.now()-3600_000).toISOString(), viewers:900, game:'G', tags:[] };
     window.__addCard('neutre', 'G', '900');
@@ -13592,6 +13613,113 @@ titre('103. Le tri ne déplace pas ce qu\'on est en train de lire');
   ok('…et il reprend sa place dès que l\'aperçu se ferme',
      JSON.stringify(await ordre()) === JSON.stringify(['trois', 'un', 'deux']),
      JSON.stringify(await ordre()));
+
+  await page.close();
+}
+
+titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
+{
+  /* ── LE SIGNALEMENT ───────────────────────────────────────────────────────
+     « Gros problème, on ne voit que IronMouse dans Top Chaînes. Actuellement
+     elle est également la seule en live dans mes chaînes suivies. » Le rapport
+     donnait la cause en deux chiffres : pool 2 124, fabriquées 0.
+
+     LE MODE TOP CHAÎNES NE DESSINE PAS SES CARTES, IL LES CLONE. Il lui faut
+     donc un MODÈLE — une carte native en direct — et il n'acceptait qu'une
+     carte NEUTRE, pour ne pas transposer ses décorations sur une chaîne qui
+     n'a rien à voir. Une seule chaîne suivie en direct, portant une pastille
+     de collaboration : aucun modèle, et un classement mondial parfaitement
+     connu qui ne s'affichait nulle part.
+
+     ON NE REFUSE PLUS LA CARTE, ON LA NETTOIE. `scrubClone` retire désormais
+     aussi les décorations de TWITCH — mini-avatars, pastilles de rôle, « +N »
+     de collaboration — et la carte décorée devient un modèle de second choix.
+     La carte SPONSORISÉE reste écartée : sa mise en page diffère.
+
+     TROIS ASSERTIONS : que le classement s'affiche, que la carte fabriquée ne
+     porte AUCUNE des marques du modèle, et que le modèle neutre reste préféré
+     quand il en existe un. */
+  const page = await fresh();
+  const h = new Date(Date.now() - 3600_000).toISOString();
+  await page.evaluate((iso) => {
+    window.__fx = {
+      // L'UNIQUE chaîne suivie en direct, et elle est décorée : collaboration
+      // (« +2 » dans sa catégorie) et mini-avatar de co-stream.
+      seule: { id: 's1', createdAt: iso, viewers: 900, game: 'Just Chatting', tags: [] },
+    };
+    window.__costreamHost = { seule: 'hote' };
+    window.__addCard('seule', 'Discussions', '900');
+    const d = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a[href="/seule"]'));
+    /* LE « +N » DANS SON PROPRE ÉLÉMENT, et non accolé à la catégorie. La
+       différence décide du test : accolé, la pastille collab le RETIRE du
+       texte, donc le clone est propre sans qu'on ait rien fait. Dans son
+       propre élément, elle se contente de le MASQUER — et `scrubClone` efface
+       les styles, si bien qu'un « +2 » reparaîtrait sur la carte fabriquée. */
+    const sp = document.createElement('span');
+    sp.textContent = '+2';
+    d.querySelector('[data-a-target="side-nav-card-metadata"]').appendChild(sp);
+    const cats = [];
+    for (let i = 0; i < 3; i++) {
+      const streams = [];
+      for (let k = 0; k < 30; k++) {
+        streams.push({ login: `g${i}_${k}`, viewers: 5000 - k, tags: ['English'] });
+      }
+      cats.push({ name: 'c' + i, viewers: 400_000 - i, streams });
+    }
+    window.__cats = cats;
+  }, h);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 1, 9000);
+  await attendre(page,
+    () => !!document.querySelector('.tse-collab-badge'), 9000);
+
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(30).length > 0, 9000);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-synthetic="true"]').length > 0, 9000);
+  await wait(page, 900);
+
+  const etat = await page.evaluate(() => {
+    const faites = [...document.querySelectorAll('.side-nav-card[data-tse-synthetic="true"]')];
+    return {
+      fabriquees: faites.length,
+      /* AUCUNE MARQUE DU MODÈLE NE DOIT AVOIR VOYAGÉ. Le « +2 » ferait naître
+         une pastille de collaboration sur une chaîne qui ne collabore avec
+         personne, et le mini-avatar ferait annoncer un co-stream inexistant. */
+      collab: faites.filter(c => !!c.querySelector('.tse-collab-badge')).length,
+      plus:   faites.filter(c => /\+\s*\d/.test(c.textContent || '')).length,
+      mini:   faites.filter(c =>
+        !!c.querySelector('img[alt^="Co-stream d\'un stream de "]')).length,
+      icone:  faites.filter(c => !!c.querySelector('[class*="iconContainer--"]')).length,
+    };
+  });
+  ok('le classement s\'affiche même quand l\'unique carte disponible est décorée',
+     etat.fabriquees >= 10, JSON.stringify(etat));
+  ok('…et aucune des marques du modèle n\'a voyagé sur les cartes fabriquées',
+     etat.collab === 0 && etat.plus === 0 && etat.mini === 0 && etat.icone === 0,
+     JSON.stringify(etat));
+
+  /* LE MODÈLE NEUTRE RESTE PRÉFÉRÉ, ET C'EST LE RAPPORT QUI LE DIT. Une fois
+     les décorations nettoyées, les deux modèles produisent des cartes
+     identiques : la préférence ne se lit donc nulle part dans le DOM. Elle
+     n'est pas décorative pour autant — c'est l'assurance du jour où Twitch
+     inventera une décoration que le nettoyage ne connaît pas — et le rapport
+     nomme la voie employée, ce qui la rend observable ET utile sur le terrain. */
+  const voieRepli = await page.evaluate(() => window.tse.panneau.rapport().page.modele);
+  ok('…et le rapport dit que le modèle vient du repli, faute de carte neutre',
+     voieRepli === 'repli', String(voieRepli));
+  await page.evaluate((iso) => {
+    window.__fx.propre = { id: 's2', createdAt: iso, viewers: 800,
+                           game: 'Just Chatting', tags: [] };
+    window.__addCard('propre', 'Discussions', '800');
+    window.tse.rescan();
+  }, h);
+  await wait(page, 1200);
+  const voieNeutre = await page.evaluate(() => window.tse.panneau.rapport().page.modele);
+  ok('…et le modèle neutre reprend la main dès qu\'il en existe un',
+     voieNeutre === 'neutre', String(voieNeutre));
 
   await page.close();
 }

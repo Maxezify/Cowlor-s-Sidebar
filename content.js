@@ -9224,6 +9224,11 @@ const TSE_GATE_MAX_CLICKS = 5;
           fabriquees: cartes.filter(isSynthetic).length,
           decorees: cartes.filter(c => c.dataset.tseLogin).length,
           liens: nav ? nav.querySelectorAll('a[href^="/"]').length : 0,
+          /* Le mode Top Chaînes CLONE ses cartes : sans modèle, il n'affiche
+             rien, et c'est exactement le défaut qu'un utilisateur a signalé —
+             « pool 2 124, fabriquées 0 ». Cette ligne dit laquelle des trois
+             voies a servi, ou rien du tout. */
+          modele: modeleVoie,
         },
         /* COMMENT LA SECTION SUIVIE A ÉTÉ TROUVÉE, et combien de fois il a
            fallu la rattraper. C'est le pivot du module : quinze appelants la
@@ -13231,6 +13236,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   // déconnectées) → scanSidebar reprogramme un scan pour différer la
   // levée du voile de chargement.
   let offlineTransitionsThisScan = 0;
+  // D'où vient le modèle de clonage du classement mondial (cf. syncGlobalCards).
+  let modeleVoie = null;
 
   /**
    * Applique à une carte une entrée de cache TseChannels (ou la sentinelle
@@ -15609,12 +15616,36 @@ const TSE_GATE_MAX_CLICKS = 5;
     // alors même que le classement mondial, lui, est parfaitement connu.
     // Un modèle relevé une fois dans la session reste valable : c'est le
     // markup de carte de Twitch, il ne change pas d'une minute à l'autre.
+    /* ── UN SECOND CHOIX, PARCE QUE LE PREMIER PEUT NE PAS EXISTER ────────
+       Le modèle PRÉFÉRÉ reste une carte neutre : rien à nettoyer, rien à
+       oublier. Mais un utilisateur peut n'avoir qu'UNE chaîne suivie en
+       direct, et celle-là porter une décoration — une collaboration, un
+       co-stream, un « En live avec ». Il n'y avait alors aucun modèle, et
+       « Top Chaînes » restait vide sur un classement de deux mille chaînes.
+       C'est le signalement.
+
+       LE SECOND CHOIX N'ACCEPTE PAS TOUT : la carte sponsorisée garde une
+       MISE EN PAGE différente — avatar et statut sur une ligne, puis le nom,
+       puis la catégorie — qu'aucun nettoyage ne redresse. Les autres
+       décorations, elles, sont des NŒUDS, et `scrubClone` les retire. */
     let template = null;
     let container = null;
+    let repli = null;
     for (const c of section.querySelectorAll('.side-nav-card')) {
-      if (c.dataset.tseGlobal === 'true' || isSynthetic(c)) continue;
-      if (isPlainCard(c) && !isCardOffline(c)) { template = c; break; }
+      if (c.dataset.tseGlobal === 'true' || isSynthetic(c) || isCardOffline(c)) continue;
+      if (isPlainCard(c)) { template = c; break; }
+      if (!repli && !c.querySelector('[class*="promoted-followed-card__content"]')) {
+        repli = c;
+      }
     }
+    /* D'OÙ VIENT LE MODÈLE, ÉCRIT DANS LE RAPPORT. Trois provenances, et elles
+       ne disent pas la même chose : « neutre » est le cas nominal, « repli »
+       dit qu'on a nettoyé une carte décorée faute de mieux — utile à savoir le
+       jour où Twitch inventera une décoration que le nettoyage ne connaît pas
+       —, et « memoire » dit qu'aucune carte native n'est en ligne et qu'on
+       rejoue un modèle relevé plus tôt dans la session. */
+    modeleVoie = template ? 'neutre' : (repli ? 'repli' : null);
+    if (!template) template = repli;
     if (template) {
       container = template.parentElement;
       // Clone DÉTACHÉ : garder une référence au nœud vivant le laisserait
@@ -15623,6 +15654,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       globalContainer = container;
     } else if (globalTemplate) {
       template = globalTemplate;
+      modeleVoie = 'memoire';
       // Le conteneur mémorisé n'est retenu que s'il est TOUJOURS attaché :
       // React peut avoir remonté la liste entre-temps, et remplir un nœud
       // détaché reviendrait à ne rien afficher. Deux replis ensuite : le
@@ -15804,6 +15836,37 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
     strip(el);
     el.querySelectorAll('*').forEach(strip);
+    /* ── LES DÉCORATIONS DE TWITCH, ET PLUS SEULEMENT LES NÔTRES ──────────
+       Ce nettoyage ne retirait que ce que l'extension avait posé. Tout ce que
+       TWITCH pose — le mini-avatar d'un co-stream, celui d'un « En live
+       avec », le logo d'un sponsor, la pastille de rôle — restait dans le
+       clone et voyageait sur une chaîne qui n'a rien à voir. C'est pour cela
+       que `isPlainCard` refusait ces cartes comme modèles.
+
+       ON LES EFFACE PLUTÔT QUE DE REFUSER LA CARTE, et c'est ce qui répare un
+       défaut visible : un utilisateur dont la SEULE chaîne suivie en direct
+       portait une pastille de collaboration n'avait aucun modèle — donc
+       « Top Chaînes » entièrement vide, alors que le classement mondial était
+       parfaitement connu (pool de 2 124 chaînes au rapport). Le modèle reste
+       PRÉFÉRÉ neutre ; celui-ci n'est qu'un second choix, nettoyé pour de bon. */
+    el.querySelectorAll(DOM.altCostreamHostSelector + ', ' + DOM.altLogoSelector
+      + ', [class*="iconContainer--primary"], [class*="iconContainer--secondary"]'
+      + ', .primary-with-small-avatar__mini-avatar')
+      .forEach(n => n.remove());
+    /* Le « +N » d'une collaboration, sous ses DEUX formes — un élément qui ne
+       contient que lui, et une queue de texte accolée à la catégorie. Laissé
+       en place, il ferait naître une pastille « +3 » sur une chaîne qui ne
+       collabore avec personne, et `isPlainCard` s'en servirait pour écarter le
+       clone à son tour. */
+    const marcheur = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const aVider = [];
+    for (let n = marcheur.nextNode(); n; n = marcheur.nextNode()) {
+      const brut = n.nodeValue || '';
+      if (PLUS_RE_ELEMENT.test(brut.trim())) { aVider.push([n, '']); continue; }
+      const m = PLUS_RE_TRAILING.exec(brut);
+      if (m) aVider.push([n, brut.slice(0, brut.length - m[0].length)]);
+    }
+    for (const [n, v] of aVider) n.nodeValue = v;
     // L'avatar grisé n'a plus lieu d'être : on ne fabrique que du live.
     el.querySelectorAll('.side-nav-card__avatar--offline')
       .forEach(n => n.classList.remove('side-nav-card__avatar--offline'));
@@ -15895,19 +15958,30 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const covered = new Set();
     let template = null;
+    let repliModele = null;
     for (const c of all) {
       if (isSynthetic(c) || !nativeCovers(c)) continue;
       const l = c.dataset.tseLogin || getCardLogin(c);
       if (l) covered.add(l);
-      // Modèle de clonage : une carte native EN DIRECT et NEUTRE. Le clonage
-      // copie le markup tel quel — les décorations de la carte source
-      // comprises. Cloner une carte sponsorisée, en co-stream ou portant un
-      // badge de collaboration transposerait ces marques sur une chaîne qui
-      // n'a rien à voir : l'aperçu au survol annoncerait un co-stream
-      // inexistant, un badge « +3 » apparaîtrait sur l'avatar. On n'accepte
-      // donc pour modèle qu'une carte dépourvue de toute décoration.
+      /* Modèle de clonage : une carte native EN DIRECT et, de PRÉFÉRENCE,
+         neutre. Le clonage copie le markup tel quel, décorations comprises —
+         cloner une carte en co-stream ou portant un badge de collaboration
+         transposerait ces marques sur une chaîne qui n'a rien à voir.
+
+         LE SECOND CHOIX EXISTE PARCE QUE LE PREMIER PEUT MANQUER, et c'est le
+         même défaut que pour le classement mondial : un utilisateur dont
+         l'unique chaîne suivie en direct est décorée n'avait aucun modèle, et
+         donc aucune carte en avance. `scrubClone` retire désormais AUSSI les
+         décorations de Twitch, ce qui rend ce repli sûr. Seule la carte
+         sponsorisée reste écartée : sa mise en page diffère, et aucun
+         nettoyage ne la redresse. */
       if (!template && isPlainCard(c)) template = c;
+      else if (!repliModele && !isPlainCard(c)
+               && !c.querySelector('[class*="promoted-followed-card__content"]')) {
+        repliModele = c;
+      }
     }
+    if (!template) template = repliModele;
 
     // 1) Retraits — AVANT toute fabrication, pour qu'un doublon ne soit
     //    jamais visible, même le temps d'un rendu. Les rescapées sont
