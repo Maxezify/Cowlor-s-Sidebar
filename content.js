@@ -1865,7 +1865,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       
       .tse-subathon-jour,
       .tse-preview__badge--subathon {
-        animation: none !important;
+        
+        animation-duration: 8s !important;
+        animation-timing-function: linear !important;
       }
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p.tse-nom,
@@ -1885,11 +1887,15 @@ const TSE_GATE_MAX_CLICKS = 5;
           rgba(255, 196, 92, 0.9));
       }
       
+      
       .side-nav-card.tse-fresh::before {
-        animation: none;
-        opacity: 1;
+        animation: tse-fresh-calme 2s ease-in-out infinite;
         transform: scaleX(1.6);
         box-shadow: 0 0 10px ${CFG.PURPLE}, 0 0 4px ${CFG.PURPLE};
+      }
+      @keyframes tse-fresh-calme {
+        0%, 100% { opacity: 0.45; }
+        50%      { opacity: 1; }
       }
     }
 
@@ -5192,6 +5198,15 @@ const TSE_GATE_MAX_CLICKS = 5;
           liens: nav ? nav.querySelectorAll('a[href^="/"]').length : 0,
 
           mouvementReduit: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+
+          battement: (() => {
+            const fraiches = document.querySelectorAll('.side-nav-card.tse-fresh');
+            const anims = document.getAnimations().filter(
+              a => a.effect && a.effect.pseudoElement === '::before'
+                && a.effect.target && a.effect.target.classList.contains('tse-fresh'));
+            return { fraiches: fraiches.length, animations: anims.length,
+                     etat: anims.length ? anims[0].playState : null };
+          })(),
           theme: themeTwitch(),
           modele: modeleVoie,
           modeleRefus,
@@ -5388,6 +5403,57 @@ const TSE_GATE_MAX_CLICKS = 5;
   tseApi.subs.refresh = () => subsPage.refresh(true);
 
   tseApi.rescan = () => { invalidateAndRescan(); };
+
+  tseApi.battement = () => new Promise((resolve) => {
+    const carte = document.querySelector('.side-nav-card.tse-fresh');
+    const reduit = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!carte) {
+      resolve({ verdict: 'aucune chaîne en direct depuis moins de dix minutes',
+                fraiches: 0, mouvementReduit: reduit });
+      return;
+    }
+    const anim = document.getAnimations().find(
+      a => a.effect && a.effect.pseudoElement === '::before' && a.effect.target === carte);
+    const st = () => {
+      const c = getComputedStyle(carte, '::before');
+      const m = new window.DOMMatrixReadOnly(c.transform);
+      return { o: parseFloat(c.opacity), l: parseFloat(c.width) * (m.a || 1) };
+    };
+    if (!anim) {
+      const v = st();
+      resolve({ verdict: reduit
+                  ? 'immobile — mouvement réduit demandé par le système'
+                  : 'AUCUNE ANIMATION sur la barre : la règle ne s\'applique pas',
+                fraiches: document.querySelectorAll('.side-nav-card.tse-fresh').length,
+                mouvementReduit: reduit, animations: 0,
+                opacite: v.o, largeur: +v.l.toFixed(2) });
+      return;
+    }
+    const duree = anim.effect.getComputedTiming().duration || 1400;
+    const debut = performance.now();
+    let oMin = 9, oMax = -1, lMin = 9e9, lMax = -1;
+    const pas = () => {
+      const v = st();
+      oMin = Math.min(oMin, v.o); oMax = Math.max(oMax, v.o);
+      lMin = Math.min(lMin, v.l); lMax = Math.max(lMax, v.l);
+      if (performance.now() - debut < duree * 1.1) { requestAnimationFrame(pas); return; }
+      const ecart = oMax / Math.max(oMin, 0.001);
+
+      resolve({
+        verdict: anim.playState !== 'running' ? 'animation ' + anim.playState
+               : ecart < 1.5 ? 'animation en cours mais AMPLITUDE PLATE — rien à voir à l\'œil'
+               : reduit ? 'battement calme — mouvement réduit respecté'
+               : ecart >= 2.5 ? 'le battement est bien là'
+               : 'battement présent, mais faible',
+        fraiches: document.querySelectorAll('.side-nav-card.tse-fresh').length,
+        mouvementReduit: reduit, animations: 1, etat: anim.playState,
+        dureeMs: duree, opaciteMin: +oMin.toFixed(3), opaciteMax: +oMax.toFixed(3),
+        rapport: +ecart.toFixed(2),
+        largeurMin: +lMin.toFixed(2), largeurMax: +lMax.toFixed(2),
+      });
+    };
+    requestAnimationFrame(pas);
+  });
 
   try {
     Object.defineProperty(window, 'tse', {
