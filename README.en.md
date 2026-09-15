@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1005 assertions, under Gecko
+npm run test-firefox        # the same 1014 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,109 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The audit of the pseudonym's line (v4.6)
+
+Report: "the Subathon badge next to the streamer's name is stuck against it",
+then the detail that gives the cause — "in Top Channels, when there's only one
+followed channel". Plus a request to audit everything added since 4.0.
+
+The two met: **the reported defect and four others come from the same
+assumption**, and that assumption was no longer true.
+
+### The JS had learnt to do without the hook; the stylesheet had not
+
+`cardNameEl` knows how to find the pseudonym's line on a card that lacks Twitch's
+automation hook. So the badge was placed correctly. But **four CSS rules** still
+aimed at that line through `p[data-a-target="side-nav-title"]`, and on a
+decorated card — "Live with", co-stream, and on **every card built by cloning one
+of them** — they did not apply. Silently.
+
+| What stopped applying | What it looked like |
+| --- | --- |
+| `display: flex` + `gap: 4px` on the pseudonym's line | the subathon badge stuck to the name — **the report** |
+| the gold of a subscriber's card | the category gilded, the name not |
+| the centring of a category-less card | the pseudonym floating, on the EXACT layout the rule was written for |
+| Twitch's third line | (see below: that one could erase the pseudonym) |
+
+**So we name the line ourselves.** The scan puts a `tse-nom` class on what
+`cardNameEl` finds, and the four rules follow it. This is not an invention: the
+category and the avatar of a subscriber's card have been designated this way for
+a long time, and the comment beside them already said why — "a stylesheet that
+copies five locations ends up forgetting one". The name was the fifth.
+
+### The rule that could erase the pseudonym
+
+Twitch may show a third line (the stream title) in the metadata block. We hide it
+by aiming at "every sibling following the group" — a rule written when the group
+carried the pseudonym **and** the category, where anything after it was
+necessarily an intruder.
+
+Twitch has since moved the pseudonym out of the group. It places it **before**,
+and a preceding sibling is not reached by `~`: so the rule does no harm today.
+The day the order changed, it would erase the pseudonym from every card, at once
+and without a word. It now names what it spares.
+
+### The landmark no longer depends on rank either
+
+The scenario written for that rule found something else: with the pseudonym
+placed **after** the group, `cardNameEl` returned the category. The rule "the
+first line" was right for today's layout, and wrong for its mirror image.
+
+It is replaced by a rule of **structure**: a line living outside the
+name + category group is the pseudonym — whichever side it sits on. Rank now only
+applies when both lines are inside the group, that is, the historical layout and
+that of a channel with no category.
+
+### A probe for the most visible element on the card
+
+The avatar has one, the viewer count has one, the category has one. **The
+pseudonym had none** — and it is the element whose location changed twice in one
+series of versions, taking six functions with it each time. The report announced
+"all critical selectors respond" while Top Channels was empty.
+
+`cardName` is now a **critical** probe. A move of the pseudonym will show on the
+very first report, on the line meant for it.
+
+### Two diagnostics that were looking elsewhere
+
+Two blocks added to settle open questions could not settle them:
+
+- **`centrage`** skipped the cards without the hook — that is, the decorated
+  cards, the very ones whose centring was reported. Three reports in a row showed
+  "cartes 0" on a sidebar that carried some.
+- **`subathons.sansAncre`** counted hooks, whereas the anchor has been whatever
+  `cardNameEl` finds since 4.5.2. It announced "no anchor" on cards that had one.
+
+Both now go through `cardNameEl`.
+
+### A performance regression, fixed
+
+Excluding the name line in `cardCategoryEl`, written in 4.5.3, unrolled a full
+collection per branch and per card — five branches, a hundred cards, on every
+scan — where the ordinary case is settled at the first hit. It now unrolls the
+list only in the exact case it was written for.
+
+### What the audit did NOT find
+
+That deserves saying too: no dead identifier, no `CFG` constant never read, no
+`tse-` class styled without being applied, and no report key that fails to reach
+the panel. All four automatic passes came back empty.
+
+### Scenarios 111 and 112
+
+Nine assertions, eight mutants, no survivors:
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| the subathon rule goes back to the hook | the badge touches the pseudonym |
+| the `tse-nom` mark is no longer applied | the built card has no mark at all |
+| the `gap` drops to zero | the measured gap reads 0 |
+| the gold goes back to the hook | a decorated subscriber's name is no longer gilded |
+| the centring rule goes back to the hook | the hookless card sits 8 px off its axis |
+| the third line no longer spares the pseudonym | a pseudonym placed after the group disappears |
+| the line outside the group is no longer recognised | pseudonym and category swap |
+| rank takes the last line | two scenarios fall |
 
 ## Twitch moved the pseudonym out of the group (v4.5.5)
 
@@ -5450,7 +5553,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 110 scenarios, 1005 assertions |
+| `npm test` | the Playwright harness: 112 scenarios, 1014 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -5470,7 +5573,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 922 KB | 357 KB | 3,208 → **2** |
+| `content.js` | 925 KB | 358 KB | 3,213 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 69 KB | 34 KB | 86 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
