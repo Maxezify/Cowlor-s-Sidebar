@@ -188,6 +188,16 @@ _______________________________
 
 _______________________________
 
+➤ 🌗 CHIARO O SCURO, LEI TI SEGUE
+Twitch ha un tema chiaro. L'estensione se ne accorge e cambia insieme a lui — senza ricaricare, senza impostazioni, senza caselle da spuntare.
+
+- ★ SEGUE TUTTO, NON SOLO LO SFONDO ★ Schede, anteprima al passaggio del mouse, badge, menu, pannello della barra degli strumenti: ogni elemento ha la sua versione chiara, pensata per quello sfondo.
+- ★ COLORI RICALCOLATI, NON SOLO SCHIARITI ★ Ogni badge ha la sua tinta chiara, misurata sullo sfondo esatto su cui compare. Un arancione che si legge bene sul nero diventa illeggibile sul bianco: è stato rifatto, non solo sbiadito.
+- ★ NEL SECONDO IN CUI CAMBI ★ Cambia il tema di Twitch e l'estensione ti segue entro un secondo. Nessun ricaricamento della pagina.
+- ★ E SE CHIEDI MENO ANIMAZIONE ★ L'impostazione «riduci movimento» del tuo sistema viene rispettata: ciò che si muoveva si ferma, ma nulla va perso — un segnale che pulsava continua a respirare piano invece di spegnersi.
+
+_______________________________
+
 ➤ 🌍 NELLA TUA LINGUA
 
 L'estensione rileva automaticamente la lingua del tuo Twitch e adatta ogni etichetta, badge e suggerimento:

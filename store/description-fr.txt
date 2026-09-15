@@ -188,6 +188,16 @@ _______________________________
 
 _______________________________
 
+➤ 🌗 CLAIR OU SOMBRE, ELLE SUIT
+Twitch a un thème clair. L'extension le voit et bascule avec lui — sans rechargement, sans réglage, sans case à cocher.
+
+- ★ TOUT SUIT, PAS SEULEMENT LE FOND ★ Cartes, aperçu au survol, badges, menus, panneau de la barre d'outils : chaque élément a sa version claire, pensée pour ce fond-là.
+- ★ DES COULEURS RECALCULÉES, PAS ÉCLAIRCIES ★ Chaque badge a sa teinte claire à lui, mesurée sur le fond exact où il s'affiche. Un orange qui se lit bien sur du noir devient une bouillie sur du blanc : il a été refait, pas simplement pâli.
+- ★ À LA SECONDE OÙ VOUS BASCULEZ ★ Changez le thème de Twitch et l'extension suit dans la seconde. Aucun rechargement de page.
+- ★ ET SI VOUS DEMANDEZ MOINS D'ANIMATION ★ Le réglage « réduire les animations » de votre système est respecté : ce qui bougeait s'arrête, mais rien ne se perd — un signal qui battait continue de respirer doucement au lieu de s'éteindre.
+
+_______________________________
+
 ➤ 🌍 DANS VOTRE LANGUE
 
 L'extension détecte automatiquement la langue de votre Twitch et adapte chaque libellé, badge et infobulle :

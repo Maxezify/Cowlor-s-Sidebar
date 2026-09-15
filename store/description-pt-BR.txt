@@ -188,6 +188,16 @@ _______________________________
 
 _______________________________
 
+➤ 🌗 CLARO OU ESCURO, ELA ACOMPANHA
+A Twitch tem um tema claro. A extensão percebe e muda junto — sem recarregar, sem ajuste, sem caixinha para marcar.
+
+- ★ TUDO ACOMPANHA, NÃO SÓ O FUNDO ★ Cartões, prévia ao passar o mouse, selos, menus, painel da barra de ferramentas: cada elemento tem sua versão clara, pensada para aquele fundo.
+- ★ CORES RECALCULADAS, NÃO SÓ CLAREADAS ★ Cada selo ganha seu próprio tom claro, medido sobre o fundo exato em que aparece. Um laranja que se lê bem no preto vira borrão no branco: ele foi refeito, não apenas desbotado.
+- ★ NO SEGUNDO EM QUE VOCÊ TROCA ★ Mude o tema da Twitch e a extensão acompanha em um segundo. Sem recarregar a página.
+- ★ E SE VOCÊ PEDIR MENOS ANIMAÇÃO ★ A configuração «reduzir movimento» do seu sistema é respeitada: o que se mexia para de se mexer, mas nada se perde — um sinal que pulsava continua respirando suavemente em vez de apagar.
+
+_______________________________
+
 ➤ 🌍 NO SEU IDIOMA
 
 A extensão detecta automaticamente o idioma da sua Twitch e adapta cada rótulo, selo e dica:

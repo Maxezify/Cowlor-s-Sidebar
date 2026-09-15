@@ -122,6 +122,35 @@ const rompus = CITES.flatMap(([texte, cle]) => {
 ok('les libellés du contrat sont dans la fiche anglaise ET dans content.js',
    rompus.length === 0, rompus.join(' | '));
 
+/* LA FICHE PROMET AUSSI DES COMPORTEMENTS, pas seulement des libellés, et
+   ceux-là se périment de la même façon. Le thème clair est arrivé en 4.8 sans
+   qu'aucune des douze fiches n'en dise un mot pendant deux versions : rien ne
+   reliait le produit au discours dans ce sens-là non plus.
+
+   MÊME CONTRAT À DEUX SENS que ci-dessus, et la MARQUE choisie doit tomber
+   avec la fonctionnalité, pas avec son nom. « data-tse-theme » seul ne vaut
+   rien : l'attribut resterait posé même si toute la palette claire
+   disparaissait. On vise donc le sélecteur qui PORTE cette palette.
+
+   MÊME PIÈGE POUR LE MOUVEMENT RÉDUIT, et il s'est refermé au premier essai :
+   « prefers-reduced-motion » apparaît QUATRE fois dans content.js, dont une
+   dans un commentaire de prose. Supprimer la règle en aurait laissé trois, et
+   le contrôle serait resté vert sur un produit qui n'obéit plus au réglage.
+   On vise donc l'ouverture de la règle elle-même, qu'aucune phrase ne porte. */
+const PROMESSES = [
+  ['LIGHT OR DARK, IT FOLLOWS', 'data-tse-theme="light"'],
+  ['\"reduce motion\" setting is honored', '@media (prefers-reduced-motion: reduce) {'],
+];
+const tenues = PROMESSES.flatMap(([phrase, marque]) => {
+  const dansFiche = en.includes(phrase);
+  const dansCode  = content.includes(marque);
+  if (dansFiche && dansCode) return [];
+  return [`« ${phrase} » ${dansFiche ? `— « ${marque} » absent de content.js`
+                                     : 'absent de la fiche anglaise'}`];
+});
+ok('les comportements promis par la fiche sont dans content.js',
+   tenues.length === 0, tenues.join(' | '));
+
 /* ============================================================
  *  LES IMAGES DE PRÉSENTATION
  *  ------------------------------------------------------------
