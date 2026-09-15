@@ -167,6 +167,14 @@
       return;
     }
     port.onDisconnect.addListener(() => {
+      /* LIRE lastError, ET C'EST TOUT CE QU'IL Y A À EN FAIRE. Chrome journalise
+         « Unchecked runtime.lastError » dès qu'un port meurt sans que personne
+         n'ait consulté la cause — le message atterrit alors dans la liste
+         d'erreurs de l'extension, où un utilisateur le lit comme une panne. Ce
+         n'en est pas une : un port qui tombe est le cas NORMAL ici (le worker
+         s'endort, l'onglet navigue, la page entre dans le cache avant/arrière),
+         et la reprise est juste en dessous. On consulte donc, sans agir. */
+      void chrome.runtime.lastError;
       port = null;
       /* Reprise seulement si l'onglet est encore regardé : sinon on laisserait
          le worker se rendormir puis le réveillerait aussitôt, en boucle. */
@@ -216,6 +224,31 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) debrancher(); else brancher();
+  });
+
+  /* ── LE CACHE AVANT/ARRIÈRE, ET CE QU'IL FAIT AU PORT ─────────────────────
+     Quand une page entre dans le back/forward cache, Chrome FERME lui-même les
+     ports d'extension et l'écrit dans la console : « The page keeping the
+     extension port is moved into back/forward cache, so the message channel is
+     closed. » Un utilisateur nous l'a rapporté depuis la liste d'erreurs de
+     l'extension, avec le rapport de diagnostic qui allait avec : « ponts :
+     aucun », « démarrage inachevé » — alors que la barre latérale fonctionnait
+     sous ses yeux. Le pont était mort, lui seul, et le panneau n'avait plus
+     personne à qui parler.
+
+     `visibilitychange` NE SUFFIT PAS À RATTRAPER LE RETOUR. Une page restaurée
+     depuis ce cache peut revenir sans que la visibilité ait changé de valeur, et
+     le port reste alors coupé pour le reste de sa vie. `pagehide` et `pageshow`
+     sont les deux seuls événements qui nomment ce cycle-là.
+
+     `persisted` distingue les deux `pageshow` : au chargement ordinaire il vaut
+     false et `brancher()` a déjà eu lieu plus bas ; au retour du cache il vaut
+     true, et c'est le seul cas où il y a un port mort à remplacer. */
+  window.addEventListener('pagehide', debrancher);
+  window.addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    debrancher();
+    brancher();
   });
   /* Un onglet peut NAÎTRE caché — lien ouvert en arrière-plan, session
      restaurée. On ne branche donc pas d'office : on demande son état. */

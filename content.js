@@ -1743,6 +1743,27 @@ const TSE_GATE_MAX_CLICKS = 5;
        la moins récemment apprise en premier. Tenu à l'écriture (cf. `retenir`)
        plutôt qu'à la purge périodique : le plafond vaut alors à tout instant. */
     CHAPITRES_MAX:   300,
+    /* ── COMBIEN DE CHAPITRES ON GARDE POUR LE PASSÉ D'UN DIRECT ───────────
+       Un direct coupé quatre fois porte les chapitres de cinq enregistrements,
+       et rien ne borne ce que Twitch en rend : le banc modélise un subathon à
+       CENT SOIXANTE basculements, et ce n'est pas une exagération.
+
+       SOIXANTE A ÉTÉ ESSAYÉ, ET LE BANC L'A REFUSÉ : la frise du subathon
+       tombait à soixante-deux traits au lieu de cent soixante. Le chiffre ne
+       protégeait rien de réel et coupait quelque chose de réel.
+
+       CE QUI BORNE LA DÉPENSE POUR DE VRAI, c'est le nombre d'entrées, pas
+       leur taille : seules les chaînes SURVOLÉES en ont une. Cent vingt
+       couvre une session d'usage intense ; à deux cents chapitres l'unité et
+       une centaine d'octets le chapitre, le registre plafonne à quelques
+       méga-octets dans un cas qui ne se produit pas — et à quelques dizaines
+       de kilo-octets dans celui qui se produit.
+
+       Ce sont les plus RÉCENTS qu'on garde : sur un direct de plusieurs jours,
+       la tête finit par sortir. La frise regroupe de toute façon par
+       catégorie, et son aveu de troncature existe déjà. */
+    CHAPITRES_PASSE_MAX: 200,
+    CHAPITRES_PASSE_LOGINS: 120,
 
     // === CHAÎNES GLOBALES — couche de données ===
     // Taille du classement rendu. 30 n'est pas une limite technique mais un
@@ -4393,9 +4414,9 @@ const TSE_GATE_MAX_CLICKS = 5;
      ON N'ÉCRASE JAMAIS CE QU'ON A VU. Si la mémoire porte déjà une reprise
      pour cette session, elle vient d'une observation directe : elle est plus
      sûre que cette reconstitution, et elle reste. */
-  const adopterReprise = (login, flux, avant) => {
+  const adopterReprise = (login, flux, maillons) => {
     const neuf = flux?.id ? flux : null;
-    if (!neuf || !avant) return false;
+    if (!neuf || !Array.isArray(maillons) || !maillons.length) return false;
     const depart = Date.parse(neuf.createdAt);
     if (!Number.isFinite(depart)) return false;
     const memoire = derniersDirects.get(login);
@@ -4413,20 +4434,27 @@ const TSE_GATE_MAX_CLICKS = 5;
     while (reprises.size > CFG.RECONNECT_MAX) {
       reprises.delete(reprises.keys().next().value);
     }
+    /* L'ORIGINE EST CELLE DU PREMIER MAILLON, ET LES COUPURES SE COMPTENT
+       TOUTES. La première rédaction posait « coupures: 1 » en dur : elle ne
+       remontait qu'un cran, et le signalement l'a dit d'une capture — « 1
+       coupure — 41m » sur un direct qui en avait plus. Les maillons arrivent
+       ici du plus ancien au plus récent (cf. chaineDesTroncons), si bien que
+       le premier porte l'origine et que chacun porte sa propre coupure. */
+    const marques = maillons.map(m => ({ fin: m.fin, reprise: m.reprise }));
     derniersDirects.delete(login);
     derniersDirects.set(login, {
       id: neuf.id,
       vu: Date.now(),
-      origine: new Date(avant.debut).toISOString(),
-      coupures: 1,
-      marques: [{ fin: avant.fin, reprise: depart }],
+      origine: new Date(maillons[0].debut).toISOString(),
+      coupures: marques.length,
+      marques: marques.slice(-CFG.RECONNECT_CUTS_MAX),
     });
     /* LA FRISE PORTE ENCORE LE DÉPART DU TRONÇON : elle a été ouverte avant
        qu'on sache. On la recale sur l'origine — sans quoi le ruban dirait
        trois minutes là où le direct en fait six heures, et la part non
        observée que le prélude va combler n'existerait même pas. */
     const f = frises.get(login);
-    if (f && f.streamId === neuf.id) f.debutStream = avant.debut;
+    if (f && f.streamId === neuf.id) f.debutStream = maillons[0].debut;
     return true;
   };
 
@@ -10509,12 +10537,18 @@ const TSE_GATE_MAX_CLICKS = 5;
          — quand le direct vient de commencer, l'archive SUIVANTE est celle du
            tronçon d'AVANT une éventuelle coupure. C'est elle qui porte le
            passé qu'aucune observation ne peut plus rattraper.
-       Trois suffisent : au-delà, on ne raccorderait plus rien — une archive
-       encore plus ancienne s'est terminée avant celle du milieu. */
+       CINQ, ET NON TROIS. La 4.3.1 en demandait trois, ce qui suffisait à
+       remonter UN cran. Un direct coupé plusieurs fois a une archive par
+       tronçon, et la chaîne se remonte de proche en proche (cf.
+       chaineDesTroncons) : trois archives bornaient donc le produit à deux
+       coupures, et le signalement est arrivé sur la deuxième. Cinq en couvre
+       quatre, ce qui est très au-delà de ce qu'une soirée connaît ; au-delà,
+       c'est la requête qui grossirait sans rien apprendre de plus, chaque
+       archive portant ses chapitres. */
     const RECENT_QUERY =
       'query TseVodRecent($login: String!) {' +
       '  user(login: $login) {' +
-      '    videos(first: 3, sort: TIME, type: ARCHIVE) {' +
+      '    videos(first: 5, sort: TIME, type: ARCHIVE) {' +
       '      edges { node {' +
       // `lengthSeconds` est ce qui permet de savoir si l'enregistrement
       // s'étend jusqu'au départ du live, ou s'il s'est terminé avant.
@@ -10836,13 +10870,61 @@ const TSE_GATE_MAX_CLICKS = 5;
        ET ELLE RAPPORTE AUSSI LE PASSÉ, parce qu'il voyage dans la même
        réponse : les chapitres de l'archive d'avant sont ce que le direct a
        traversé avant la coupure, datés à la seconde par Twitch lui-même. */
-    const bilanSondes = { sondes: 0, servies: 0, trouvees: 0, vides: 0,
+    const bilanSondes = { sondes: 0, servies: 0, trouvees: 0, vides: 0, chaines: 0,
                           reseau: 0, adoptees: 0, chapitresAvant: 0 };
     // streamId déjà sondés : une seule opération par session, quoi qu'il
     // arrive — y compris quand la sonde ne trouve rien, qui est le cas normal.
     const sondees = new Set();
-    // streamId → segments du tronçon d'AVANT la coupure, datés en absolu.
-    const avantCoupure = new Map();
+
+    /* ══════════════════════════════════════════════════════════════════════
+       LE PASSÉ APPARTIENT AU DIRECT, PAS À UNE SESSION DE STREAM
+       ──────────────────────────────────────────────────────────────────────
+       Ce registre était rangé par identifiant de STREAM. À la coupure
+       suivante, cet identifiant change — c'est la définition même d'une
+       reprise — et tout le passé récolté disparaissait avec lui. Le
+       signalement le décrit exactement : « il a déjà eu une coupure, qui
+       s'est bien affichée ; il en a eu une deuxième, et là plus rien ».
+
+       LA CLÉ EST DONC L'ORIGINE, qui, elle, ne bouge pas tant que les reprises
+       s'enchaînent, et qui saute dès qu'un vrai nouveau direct commence —
+       c'est le même critère que celui de la frise, et ce n'est pas un hasard :
+       les deux répondent à la question « est-ce toujours le même direct ? ».
+       Une origine qui change invalide le passé d'elle-même, sans purge.
+
+       IL S'ACCUMULE, et c'est ce qui le rend juste sur un direct coupé
+       plusieurs fois : la sonde y verse les tronçons d'avant, la requête de
+       chapitres y verse le tronçon courant, et chaque nouvelle coupure ajoute
+       sans rien retirer. Deux chapitres au même instant sont le même chapitre ;
+       deux chapitres successifs de même catégorie n'en font qu'un. */
+    const passeDirect = new Map();   // login → { origine, segments }
+
+    const passeDe = (login, origine) => {
+      const vu = passeDirect.get(login);
+      return (vu && origine && vu.origine === origine) ? vu.segments : null;
+    };
+
+    const noterPasse = (login, origine, segments) => {
+      if (!login || !origine || !Array.isArray(segments) || !segments.length) return;
+      const vu = passeDirect.get(login);
+      const base = (vu && vu.origine === origine) ? vu.segments : [];
+      // Même instant, même chapitre : la Map dédoublonne sans qu'on ait à
+      // comparer des objets, et la dernière écriture gagne (la plus fraîche).
+      const parDebut = new Map();
+      for (const seg of [...base, ...segments]) {
+        if (seg && Number.isFinite(seg.debut)) parDebut.set(seg.debut, seg);
+      }
+      const propre = [];
+      for (const seg of [...parDebut.values()].sort((x, y) => x.debut - y.debut)) {
+        const dernier = propre[propre.length - 1];
+        if (dernier && dernier.jeu === seg.jeu) continue;
+        propre.push(seg);
+      }
+      passeDirect.delete(login);       // réinsertion : cf. les registres voisins
+      passeDirect.set(login, { origine, segments: propre.slice(-CFG.CHAPITRES_PASSE_MAX) });
+      while (passeDirect.size > CFG.CHAPITRES_PASSE_LOGINS) {
+        passeDirect.delete(passeDirect.keys().next().value);
+      }
+    };
 
     /* Le raccord, isolé pour être éprouvable seul. `fin` d'une archive n'est
        pas un champ : c'est son départ plus sa durée, et sans durée exploitable
@@ -10864,6 +10946,44 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (!meilleure || trou < meilleure.trou) meilleure = { debut, fin, trou, noeud: v };
       }
       return meilleure;
+    };
+
+    /* ══════════════════════════════════════════════════════════════════════
+       UN DIRECT PEUT AVOIR ÉTÉ COUPÉ PLUSIEURS FOIS
+       ──────────────────────────────────────────────────────────────────────
+       La 4.3.1 ne remontait qu'UN cran : elle cherchait l'archive qui raccorde
+       au départ du direct courant, et s'arrêtait là. Le signalement est arrivé
+       avec sa capture : « 1 coupure — 41m » sur un direct qui en avait
+       davantage. Ce qu'on affichait n'était pas faux, c'était TRONQUÉ — et
+       tronqué de la pire manière, puisque la partie perdue est la plus
+       ancienne, celle qu'aucune observation ne pourra jamais rattraper.
+
+       LA CHAÎNE SE REMONTE PAR RÉCURRENCE, et le pas est toujours le même :
+       l'archive qui raccorde à la borne devient le tronçon précédent, et SON
+       départ devient la borne suivante. On s'arrête quand plus rien ne
+       raccorde — c'est-à-dire au vrai début du direct.
+
+       CHAQUE MAILLON EST RETIRÉ DU LOT avant le pas suivant : sans cela, une
+       archive pourrait se raccorder à elle-même par une durée mal formée et
+       la boucle tournerait sur place. La borne décroît strictement de toute
+       façon, mais un registre qui ne peut pas boucler vaut mieux qu'un
+       registre qui ne devrait pas.
+
+       L'ORDRE RENDU EST CELUI DU TEMPS — du plus ancien au plus récent —
+       parce que c'est celui dont la frise a besoin, et que l'inverser à
+       l'usage est le genre de détail qu'on oublie une fois sur deux. */
+    const chaineDesTroncons = (noeuds, depart) => {
+      const maillons = [];
+      const restants = [...noeuds];
+      let borne = depart;
+      while (maillons.length < CFG.RECONNECT_CUTS_MAX) {
+        const m = archiveQuiRaccorde(restants, borne);
+        if (!m) break;
+        maillons.push({ debut: m.debut, fin: m.fin, reprise: borne, noeud: m.noeud });
+        restants.splice(restants.indexOf(m.noeud), 1);
+        borne = m.debut;
+      }
+      return maillons.reverse();
     };
 
     const sonderReprise = async (login, flux) => {
@@ -10913,25 +11033,33 @@ const TSE_GATE_MAX_CLICKS = 5;
       const aretes = res?.[0]?.data?.user?.videos?.edges;
       if (!Array.isArray(aretes)) { bilanSondes.vides++; return false; }
       bilanSondes.servies++;
-      const raccord = archiveQuiRaccorde(aretes.map(e => e?.node).filter(Boolean), depart);
-      if (!raccord) return false;
+      const maillons = chaineDesTroncons(aretes.map(e => e?.node).filter(Boolean), depart);
+      if (!maillons.length) return false;
       bilanSondes.trouvees++;
-      if (!adopterReprise(login, flux, { debut: raccord.debut, fin: raccord.fin })) {
-        return false;
-      }
+      if (maillons.length > 1) bilanSondes.chaines++;
+      /* CE QU'ON SAVAIT DÉJÀ, AVANT QUE L'ORIGINE NE CHANGE. Le passé est
+         rangé PAR ORIGINE, et l'adoption qui suit déplace justement celle-ci
+         du départ du tronçon vers celui de la chaîne. Les chapitres que la
+         requête ordinaire avait déjà versés — ceux du tronçon courant, sur une
+         chaîne observée tard — se retrouveraient sous une clé que plus
+         personne ne lit. On les reprend donc pour les reverser sous la
+         nouvelle, plutôt que de les laisser derrière. */
+      const acquis = passeDe(login, depart);
+      if (!adopterReprise(login, flux, maillons)) return false;
       bilanSondes.adoptees++;
-      /* LES CHAPITRES D'AVANT, rangés à part. Ils ne sont PAS mêlés à l'entrée
-         de `chapitres` : celle-ci est datée d'une requête et se périme, tandis
-         que le passé d'un tronçon terminé ne bouge plus. Les garder séparés
-         évite aussi qu'un rafraîchissement des chapitres du tronçon courant ne
-         les emporte avec lui. */
-      const { segments } = segmentsDuVod(raccord.noeud, raccord.debut);
-      if (segments && segments.length) {
-        avantCoupure.delete(streamId);
-        avantCoupure.set(streamId, segments);
-        while (avantCoupure.size > CFG.CHAPITRES_MAX) {
-          avantCoupure.delete(avantCoupure.keys().next().value);
-        }
+      if (acquis && acquis.length) noterPasse(login, maillons[0].debut, acquis);
+      /* LES CHAPITRES DE TOUS LES TRONÇONS D'AVANT, et non du seul dernier.
+         Chaque maillon porte son archive, donc son passé ; les concaténer dans
+         l'ordre du temps donne le direct entier tel que Twitch l'a enregistré.
+         Chacun est daté sur SON propre départ — une position dans un
+         enregistrement se compte depuis le début de cet enregistrement-là. */
+      const segments = [];
+      for (const m of maillons) {
+        const { segments: s } = segmentsDuVod(m.noeud, m.debut);
+        if (s && s.length) segments.push(...s);
+      }
+      if (segments.length) {
+        noterPasse(login, maillons[0].debut, segments);
         bilanSondes.chapitresAvant++;
       }
       return true;
@@ -11067,7 +11195,26 @@ const TSE_GATE_MAX_CLICKS = 5;
       // mesure qui décidera s'il vaut la peine d'aller chercher le précédent.
       if (!vodCouvre(vod, debutStream)) bilanChapitres.vodTardif++;
       const { segments, aretes } = segmentsDuVod(vod, debutStream);
-      if (segments) { bilanChapitres.servis++; return retenir(streamId, segments, false); }
+      if (segments) {
+        bilanChapitres.servis++;
+        /* LE TRONÇON COURANT REJOINT LE PASSÉ DU DIRECT. Sans cela, le passé
+           ne contiendrait que ce que la sonde a ramené des tronçons TERMINÉS,
+           et la coupure suivante perdrait celui-ci — c'est-à-dire exactement
+           le défaut qu'on répare, un cran plus loin. Les clips, eux, n'y
+           entrent pas : leurs bornes sont des minorants, et un minorant mêlé à
+           des heures exactes ne se distingue plus.
+
+           L'ORIGINE SE RELIT ICI, ET NON CELLE REÇUE EN ARGUMENT. Les deux
+           diffèrent dans un cas précis et fréquent : la sonde de reprise a
+           tourné pendant cette requête et a DÉPLACÉ l'origine, du départ du
+           tronçon vers celui de la chaîne. Ranger sous l'ancienne valeur
+           écraserait alors ce que la sonde vient de verser — le mutant qui
+           retire cette relecture le montre, et la frise y perd tout son passé
+           d'avant la coupure. L'argument reste le repli, pour une chaîne sans
+           mémoire. */
+        noterPasse(login, Date.parse(debutReel(login, null)) || debutStream, segments);
+        return retenir(streamId, segments, false);
+      }
 
       if (aretes) {
         /* Twitch a rendu des moments, et aucun n'était exploitable. Forme
@@ -11728,31 +11875,40 @@ const TSE_GATE_MAX_CLICKS = 5;
       return zone;
     };
 
-    /* Le prélude connu pour cette chaîne, s'il y en a un. Lu par
-       l'identifiant de STREAM et non par le login : deux sessions successives
-       de la même chaîne n'ont rien à voir, et resservir les chapitres de la
-       précédente daterait le live d'hier. */
+    /* Le prélude connu pour cette chaîne, s'il y en a un.
+
+       DEUX REGISTRES, ET ILS NE RÉPONDENT PAS À LA MÊME QUESTION. `chapitres`
+       est rangé par identifiant de STREAM, et c'est juste pour ce qu'il fait :
+       il mémorise CE QU'ON A DÉJÀ DEMANDÉ, pour ne pas le redemander. Le
+       PASSÉ D'UN DIRECT, lui, traverse les reprises — un identifiant de stream
+       change à chaque coupure, et s'y accrocher jetait tout le passé à la
+       deuxième. Il est donc rangé par ORIGINE, qui ne bouge que lorsqu'un vrai
+       nouveau direct commence.
+
+       LE PASSÉ L'EMPORTE QUAND IL EXISTE, parce qu'il contient déjà le tronçon
+       courant : `fetchChapitres` l'y verse aussi. `continu` et la provenance,
+       eux, restent ceux de la session — ce sont des propriétés de la DEMANDE,
+       pas du direct. */
     const preludeDe = (login) => {
-      const id = cache.get(login)?.stream?.id;
+      const flux = cache.get(login)?.stream;
+      const id = flux?.id;
       if (!id) return null;
       const e = chapitres.get(id);
-      /* ── CE QUE LA SONDE DE REPRISE A RAMENÉ DU TRONÇON D'AVANT ────────────
-         Deux passés de natures différentes, et il faut les deux : l'archive
-         d'AVANT la coupure, qui ne bougera plus, et les chapitres du tronçon
-         COURANT, qui se rafraîchissent. On les recolle ici, à la lecture,
-         plutôt que de les mêler dans un même registre — une entrée de
-         `chapitres` se périme, le passé d'un tronçon terminé non.
-
-         L'ORDRE EST CELUI DU TEMPS, et `friseDe` en dépend : elle lit cette
-         liste comme une suite croissante. Les segments d'avant précèdent ceux
-         d'après par construction — la coupure les sépare — mais on refuse
-         quand même tout chapitre courant antérieur au dernier d'avant, plutôt
-         que de faire confiance à cette construction-là. */
-      const avant = avantCoupure.get(id);
-      if (avant && avant.length) {
-        const dernierAvant = avant[avant.length - 1].debut;
-        const apres = (e && e.segments) || [];
-        const segments = [...avant, ...apres.filter(s => s.debut > dernierAvant)];
+      const origine = Date.parse(debutReel(login, flux.createdAt)) || null;
+      const passe = passeDe(login, origine);
+      if (passe && passe.length) {
+        /* L'UNION DES DEUX, ET NON LE SEUL PASSÉ. Le registre du passé est
+           BORNÉ : sur un direct très long, sa tête finit par sortir. Rendre le
+           passé seul ferait alors disparaître de la frise des chapitres que
+           `chapitres` porte encore en entier — le banc l'a montré sur un
+           subathon à cent soixante basculements, tombé à soixante-deux.
+           L'union par INSTANT les reprend sans doublon : deux chapitres au
+           même instant sont le même chapitre. */
+        const parDebut = new Map();
+        for (const seg of [...passe, ...((e && e.segments) || [])]) {
+          if (seg && Number.isFinite(seg.debut)) parDebut.set(seg.debut, seg);
+        }
+        const segments = [...parDebut.values()].sort((x, y) => x.debut - y.debut);
         return { ts: (e && e.ts) || Date.now(), segments,
                  continu: !!(e && e.continu), source: (e && e.source) || null };
       }
@@ -12946,7 +13102,7 @@ const TSE_GATE_MAX_CLICKS = 5;
                                   les deux derniers ne peut venir que d'un
                                   subathon ou d'une reprise déjà connue. */
                                reprise: { ...bilanSondes,
-                                          residentAvant: avantCoupure.size } })
+                                          residentPasse: passeDirect.size } })
     };
   })();
 

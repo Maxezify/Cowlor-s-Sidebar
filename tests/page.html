@@ -150,6 +150,12 @@ window.__globalFail = false;
 // structurelle est instantanée dans le harnais et la transition — donc le
 // voile qui la couvre — n'a aucune durée observable.
 window.__catDelay = 0;
+/* Retard par NOM D'OPÉRATION, en millisecondes. L'ordre dans lequel deux
+   requêtes lancées ensemble reviennent n'est pas garanti sur un vrai réseau, et
+   du code qui n'est juste que dans un seul des deux ordres est du code faux la
+   moitié du temps. Sans ce réglage, le harnais rend toujours le même ordre — et
+   le mutant qui casse l'autre survit sans qu'on sache pourquoi. */
+window.__retardOp = {};
 // Logins que les réponses `TseCategoryTop` doivent OMETTRE, pour reproduire
 // l'échantillonnage mesuré de l'API (une chaîne présente 4 appels sur 6).
 window.__hidden = [];
@@ -387,6 +393,11 @@ window.fetch = async (url, opt) => {
   if (window.__catDelay > 0 && body.some(o =>
         o.operationName === 'TseCategories' || o.operationName === 'TseCategoryTop')) {
     await new Promise(r => setTimeout(r, window.__catDelay));
+  }
+  {
+    const retards = body.map(o => (window.__retardOp || {})[o.operationName] || 0);
+    const max = Math.max(0, ...retards);
+    if (max > 0) await new Promise(r => setTimeout(r, max));
   }
   const data = body.map(o => {
     if (o.operationName === 'GuestStarBatchCollaborationQuery' || o.operationName === 'TseGuestStar') {

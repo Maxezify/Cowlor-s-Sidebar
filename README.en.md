@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 879 KB | 349 KB | 3,171 → **2** |
+| `content.js` | 879 KB | 349 KB | 3,180 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 69 KB | 34 KB | 85 → **0** |
-| `bridge.js` | 11 KB | 3 KB | 20 → **0** |
+| `bridge.js` | 13 KB | 3 KB | 22 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1079 KB** | **484 KB** | **−55 %** |
+| **all five** | **1113 KB** | **492 KB** | **−56 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 958 assertions, under Gecko
+npm run test-firefox        # the same 968 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,113 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## As many outages as the stream actually had (v4.4)
+
+A precise report: "BenZaie already had one outage, which showed correctly in the
+trail and the 'Previously' section. But he had a second one. And then nothing
+shows at all." Then, after a reinstall: "hover works for BenZaie but no longer
+takes the older outages into account", with the screenshot — **"1 outage — 41m"**
+on a stream that had had more.
+
+Two distinct defects, and they looked alike on screen.
+
+### The chain was walked back only one step
+
+The probe looked for the archive joining the current stream's start, and stopped
+there. A stream cut twice has **one archive per segment**, and the chain is
+walked back by recursion: the joining archive becomes the previous segment, and
+**its** start becomes the next boundary.
+
+```
+t-5h        ┤ first segment        (Just Chatting, then Elden Ring)
+t-1h  -1s   ┤ end        ← outage
+t-1h        ┤ middle segment       (Rocket League)
+t     -1s   ┤ end        ← outage
+now         ┤ current segment      (VALORANT)
+```
+
+What was displayed was not wrong, it was **truncated** — and truncated in the
+worst way, since the lost part is the oldest, the one no observation can ever
+recover. We therefore ask for **five** archives instead of three (one per
+segment, plus the current stream's), which covers four outages.
+
+### The past belonged to a session, not to the stream
+
+The past registry was keyed by **stream** id. At the next outage that id changes
+— that is the very definition of a resumption — and all the collected past
+disappeared with it. That is exactly the first sentence of the report: the first
+outage showed, the second erased everything.
+
+**The key is therefore the origin**, which does not move as long as resumptions
+chain up and which jumps as soon as a genuinely new stream starts. It is the same
+criterion the trail uses, and that is no coincidence: both answer "is this still
+the same stream?". An origin that changes invalidates the past by itself, with no
+purge — yesterday's stream inherits nothing.
+
+It **accumulates**: the probe pours the earlier segments in, the chapters request
+pours the current one in, and each new outage adds without removing.
+
+### A race between two answers, in both directions
+
+Both sources leave on the same hover and **do not come back in a guaranteed
+order**. Yet adopting a resumption MOVES the origin, from the segment's start to
+the chain's:
+
+- if the **chapters** arrive first, they are filed under the old origin and the
+  probe must **pick them up** when it arrives;
+- if the **probe** arrives first, the chapters must **re-read** the origin when
+  their answer comes back, instead of using the one they knew when they left.
+
+Both fixes are necessary, and each is invisible in the order the other covers.
+The harness always returned the same order: it now carries a per-operation delay
+(`__retardOp`), and the scenario plays both.
+
+### The bridge died in the back/forward cache
+
+A user reported, from the extension's error list:
+
+> Unchecked runtime.lastError: The page keeping the extension port is moved into
+> back/forward cache, so the message channel is closed.
+
+…with the matching diagnostic report: "bridges: none", "partial boot", while the
+sidebar was working in front of them. When a page enters the back/forward cache,
+Chrome closes extension ports itself. `visibilitychange` does not catch the
+return — a restored page can come back without visibility changing value, and the
+port then stays dead for the rest of its life.
+
+`pagehide` and `pageshow` are the only two events that name that cycle. The
+bridge now hooks onto them, and `persisted` separates a cache return from an
+ordinary load. The console message disappears because we **read**
+`runtime.lastError` in the disconnect handler: a port going down is the normal
+case here, and it has no business in an error list.
+
+### Scenario 102
+
+Twenty-two assertions, nine mutants, no survivors:
+
+| Mutant | Assertions that fall |
+| --- | --- |
+| the chain is walked back one step only | 4 |
+| the past stays keyed by stream session | 9 |
+| the origin is the last link's, not the first's | 3 |
+| the current segment does not join the past | 2 |
+| the past is not invalidated when the origin changes | 1 |
+| accumulation overwrites instead of merging | 1 |
+| the past is not carried over to the new origin | 1 |
+| the origin is not re-read when the answer arrives | 1 |
+| the resumption window is gone | 2 |
+
+Four of them **survived** at first, and that pass was the most valuable — it
+surfaced the race described above, which no amount of re-reading had caught.
+
+### A fixture that was wrong half the time
+
+`lengthSeconds` is an integer number of seconds: an archive's end is only known
+to within half a second. The fixture aimed at a gap of **zero**, which therefore
+went negative half the time — and a negative gap is rejected. The bench changed
+its result the day a case was added in front of it, with nothing else moving.
+Gaps are now aimed at 1.2 s, well inside the bench's 2.5 s window.
 
 ## The probe that almost never fired (v4.3.1)
 
@@ -5284,7 +5391,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 102 scenarios, 958 assertions |
+| `npm test` | the Playwright harness: 102 scenarios, 968 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
