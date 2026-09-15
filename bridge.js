@@ -70,6 +70,8 @@
       return;
     }
     port.onDisconnect.addListener(() => {
+
+      void chrome.runtime.lastError;
       port = null;
 
       if (!document.hidden && !minuteurReprise) {
@@ -104,6 +106,13 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) debrancher(); else brancher();
+  });
+
+  window.addEventListener('pagehide', debrancher);
+  window.addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    debrancher();
+    brancher();
   });
 
   brancher();
