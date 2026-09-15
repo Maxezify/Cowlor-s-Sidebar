@@ -476,5 +476,260 @@
   },
   "guideDemoEnCours": {
     "message": "en curso"
+  },
+  "grpOptions": {
+    "message": "Ajustes"
+  },
+  "navOptions": {
+    "message": "Opciones"
+  },
+  "descOptions": {
+    "message": "Lo que la extensión agrega y lo que deja intacto. Todo está activo por defecto; un punto morado marca lo que cambiaste."
+  },
+  "sumSettings": {
+    "message": "ajustes"
+  },
+  "sumChanged": {
+    "message": "modificados"
+  },
+  "optGrpApercu": {
+    "message": "La vista previa al pasar el mouse"
+  },
+  "optApercu": {
+    "message": "Mostrar la vista previa"
+  },
+  "optApercuVideo": {
+    "message": "Vídeo en directo"
+  },
+  "optDescApercuVideo": {
+    "message": "Desactivado, la vista previa conserva su miniatura, sus insignias y su línea de tiempo: simplemente deja de cargar el video."
+  },
+  "optApercuQualite": {
+    "message": "Calidad del video"
+  },
+  "optDescApercuQualite": {
+    "message": "Se aplica a la siguiente vista previa, sin recargar."
+  },
+  "optApercuTaille": {
+    "message": "Anchura de la ventana"
+  },
+  "optGrpBadges": {
+    "message": "Las insignias de la vista previa"
+  },
+  "optBadges": {
+    "message": "Insignias mostradas"
+  },
+  "optGrpCarte": {
+    "message": "La tarjeta en la barra lateral"
+  },
+  "optDuree": {
+    "message": "Duración del directo"
+  },
+  "optDureeFormat": {
+    "message": "Formato de la duración"
+  },
+  "optFresh": {
+    "message": "Barra «acaba de empezar»"
+  },
+  "optCollab": {
+    "message": "Punto de colaboración"
+  },
+  "optAbonnes": {
+    "message": "El oro de las suscripciones"
+  },
+  "optDescAbonnes": {
+    "message": "«Discreto» conserva el color y quita el brillo. «Ninguno» devuelve la tarjeta a Twitch."
+  },
+  "optSubathonJour": {
+    "message": "Punto del día de subatón"
+  },
+  "optGrpListe": {
+    "message": "La lista, sus ordenaciones y sus filtros"
+  },
+  "optTris": {
+    "message": "Botones de orden mostrados"
+  },
+  "optFiltreCategorie": {
+    "message": "Filtro por categoría"
+  },
+  "optFiltreLangue": {
+    "message": "Filtro por idioma"
+  },
+  "optTopOnglet": {
+    "message": "Pestaña Top Canales"
+  },
+  "optTopN": {
+    "message": "Canales de la clasificación"
+  },
+  "optDescTopN": {
+    "message": "Por encima de treinta, algunos idiomas pierden una optimización y la clasificación tarda más en llenarse."
+  },
+  "optGrpTwitch": {
+    "message": "Lo que muestra Twitch"
+  },
+  "optStories": {
+    "message": "Stories"
+  },
+  "optDescStories": {
+    "message": "Se muestran por defecto: es lo que hace Twitch."
+  },
+  "optDeplier": {
+    "message": "Desplegar «Mostrar más» automáticamente"
+  },
+  "optDescDeplier": {
+    "message": "Desactivado, la lista se queda tal como la genera Twitch: la extensión sigue midiendo todo lo que ve."
+  },
+  "optGrpAbos": {
+    "message": "La lectura de suscripciones"
+  },
+  "optAbosReleve": {
+    "message": "Leer mis suscripciones"
+  },
+  "optDescAbosReleve": {
+    "message": "Es la única petición autenticada de la extensión: abre tu propia página twitch.tv/subscriptions en un marco invisible. Desactivada, el oro y el orden «suscripciones primero» solo se apoyan en los canales visitados."
+  },
+  "optAbosPeriode": {
+    "message": "Como mucho una vez cada"
+  },
+  "optGrpTheme": {
+    "message": "Apariencia"
+  },
+  "optTheme": {
+    "message": "Tema dentro de Twitch"
+  },
+  "optDescTheme": {
+    "message": "«Auto» sigue el tema de Twitch. Forzarlo solo cambia cómo se dibuja la extensión por encima."
+  },
+  "optGrpDonnees": {
+    "message": "Datos"
+  },
+  "optVisites": {
+    "message": "Aprender mis visitas"
+  },
+  "optDescVisites": {
+    "message": "Desactivado, lo ya aprendido sigue siendo legible, pero no se añade nada más. El orden «popularidad personal» y la rejilla del ritmo dejan de evolucionar."
+  },
+  "optGrpPanneau": {
+    "message": "Este panel"
+  },
+  "optPanneauTheme": {
+    "message": "Tema del panel"
+  },
+  "optDescPanneauTheme": {
+    "message": "Separado del anterior: este panel debe poder dibujarse sin ninguna pestaña de Twitch abierta."
+  },
+  "optPanneauDiag": {
+    "message": "Mostrar los diagnósticos"
+  },
+  "optDescPanneauDiag": {
+    "message": "Los capítulos de medición —retraso, ciclos, vista previa, cambios— solo sirven para informar de un problema."
+  },
+  "optGrpPurge": {
+    "message": "Borrar, a elegir"
+  },
+  "optDescPurge": {
+    "message": "Cada botón borra solo su propia memoria. El botón rojo de abajo las borra todas."
+  },
+  "btnPurgeVisits": {
+    "message": "Borrar las visitas"
+  },
+  "purgeVisitsTitle": {
+    "message": "¿Borrar el historial de visitas?"
+  },
+  "purgeVisitsText": {
+    "message": "El orden «popularidad personal» y la rejilla del ritmo empezarán de cero. Las suscripciones y los canales seguidos no se tocan."
+  },
+  "btnPurgeSubs": {
+    "message": "Borrar las suscripciones"
+  },
+  "purgeSubsTitle": {
+    "message": "¿Borrar las suscripciones detectadas?"
+  },
+  "purgeSubsText": {
+    "message": "El oro desaparecerá de las tarjetas hasta la próxima lectura. Tus visitas y tus canales seguidos no se tocan."
+  },
+  "btnPurgeRoster": {
+    "message": "Borrar los canales seguidos"
+  },
+  "purgeRosterTitle": {
+    "message": "¿Borrar los canales seguidos memorizados?"
+  },
+  "purgeRosterText": {
+    "message": "La lista se reconstruirá observando la barra lateral. Tus visitas y tus suscripciones no se tocan."
+  },
+  "optPurgeFaite": {
+    "message": "Borrado."
+  },
+  "optGrpEchange": {
+    "message": "Exportar e importar"
+  },
+  "btnOptExport": {
+    "message": "Exportar"
+  },
+  "btnOptImport": {
+    "message": "Importar"
+  },
+  "optImportInvalide": {
+    "message": "Esto no es un conjunto de ajustes válido."
+  },
+  "optImportFait": {
+    "message": "$1 ajuste(s) aplicado(s), $2 ignorado(s)."
+  },
+  "btnOptReset": {
+    "message": "Restablecer todo"
+  },
+  "optResetTitle": {
+    "message": "¿Restablecer todos los ajustes?"
+  },
+  "optResetText": {
+    "message": "Los veintidós ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
+  },
+  "optValPlein": {
+    "message": "Completo"
+  },
+  "optValDiscret": {
+    "message": "Discreto"
+  },
+  "optValAucun": {
+    "message": "Ninguno"
+  },
+  "optValPetit": {
+    "message": "Pequeña"
+  },
+  "optValNormal": {
+    "message": "Normal"
+  },
+  "optValGrand": {
+    "message": "Grande"
+  },
+  "optValAuto": {
+    "message": "Auto"
+  },
+  "optValDark": {
+    "message": "Oscuro"
+  },
+  "optValLight": {
+    "message": "Claro"
+  },
+  "optHeures": {
+    "message": "$1 h"
+  },
+  "optTriViewers": {
+    "message": "Espectadores"
+  },
+  "optTriSubs": {
+    "message": "Suscripciones"
+  },
+  "optTriPopular": {
+    "message": "Popularidad personal"
+  },
+  "optTriUptime": {
+    "message": "Duración del directo"
+  },
+  "optTriAlpha": {
+    "message": "Alfabético"
+  },
+  "optTriCostream": {
+    "message": "Co-streams"
   }
 }

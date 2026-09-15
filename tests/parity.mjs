@@ -94,13 +94,33 @@ for (const [loc, m] of messages) {
    d'une majuscule. Un littéral qui a cette forme est une clé, où qu'il soit
    écrit — ternaire compris ; et une clé qui a cette forme sans exister dans
    _locales est une faute de frappe, que ce relevé attrape aussi. */
-const PREFIXES = /^(nav|desc|col|sum|btn|state|status|val|health|reset|report|grp|panel|ext|guide)[A-Z]/;
+const PREFIXES = /^(nav|desc|col|sum|btn|state|status|val|health|reset|report|grp|panel|ext|guide|opt|purge)[A-Z]/;
 const html = readFileSync(join(ICI, '..', 'panneau.html'), 'utf8');
 const js   = readFileSync(join(ICI, '..', 'panneau.js'), 'utf8');
 const MAJ  = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+/* TROIS SORTES DE LITTÉRAUX RESSEMBLENT À DES CLÉS SANS EN ÊTRE, et le relevé
+   large les ramassait toutes les trois :
+
+     — les FRAGMENTS de composition. « 'optDesc' + MAJ(id) » laisse traîner
+       « optDesc », qui suit la convention et n'est pourtant la clé de rien ;
+     — les IDENTIFIANTS D'ACTION. « resetOptions » commence par « reset » suivi
+       d'une capitale : il passe le filtre alors qu'il nomme une fonction de
+       content.js, pas un message ;
+     — les RACINES DE CONFIRMATION. « optReset » ne s'affiche jamais seul ;
+       seuls « optResetTitle » et « optResetText » existent.
+
+   ON LES EXCLUT PAR CONSTRUCTION plutôt que par une liste de noms : une liste
+   aurait vieilli au premier renommage, et vieilli en SILENCE — un faux positif
+   de moins, c'est un vrai positif de moins aussi. */
+const fragment = new Set([...js.matchAll(/'([A-Za-z0-9_]+)'\s*\+\s*MAJ\(/g)].map(m => m[1]));
+const idAction = new Set([...js.matchAll(/\{ id: '([A-Za-z0-9_]+)', cle:/g)].map(m => m[1]));
+const racineOk = new Set([...js.matchAll(/confirme: '([A-Za-z0-9_]+)'/g)].map(m => m[1]));
+const structurel = (k) => fragment.has(k) || idAction.has(k) || racineOk.has(k);
+
 const demandees = new Set([
   ...[...html.matchAll(/data-i18n="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
-  ...[...js.matchAll(/'([A-Za-z0-9_]+)'/g)].map(m => m[1]).filter(k => PREFIXES.test(k)),
+  ...[...js.matchAll(/'([A-Za-z0-9_]+)'/g)].map(m => m[1])
+      .filter(k => PREFIXES.test(k) && !structurel(k)),
 ]);
 /* Les sections dérivent leurs clés de leur identifiant — nav+Id et desc+Id.
    On reconstitue ici exactement ce que font cleNav et cleDesc, sinon ces
@@ -109,6 +129,46 @@ for (const m of js.matchAll(/\{ id: '([A-Za-z0-9_]+)',\s+groupe:/g)) {
   demandees.add('nav' + MAJ(m[1]));
   demandees.add('desc' + MAJ(m[1]));
 }
+/* ── LES RÉGLAGES : UN CONTRAT ENTRE content.js ET _locales ─────────────────
+   Les libellés des réglages ne sont pas des littéraux dans panneau.js — ils se
+   composent, « opt » + l'identifiant en capitale initiale, exactement comme
+   nav et desc se composent pour les sections. Le relevé ci-dessus ne peut donc
+   pas les voir, et les vingt-deux clés passeraient pour orphelines.
+
+   ON NE LES AJOUTE PAS À LA MAIN, ON LES DÉDUIT DE LA TABLE DE content.js.
+   C'est ce qui en fait un contrôle et non une liste : ajouter un réglage à
+   OPT_DEFS sans lui écrire de libellé fait échouer la parité, dans les douze
+   langues d'un coup. Sans ce lien, un réglage neuf se serait affiché sous son
+   identifiant brut — « optApercuVideo » — et rien ne l'aurait dit.
+
+   LES DESCRIPTIONS SONT TOLÉRÉES, PAS EXIGÉES. Toutes les lignes n'en ont pas
+   besoin, et en réclamer une pour chacune aurait produit vingt-deux phrases
+   dont la moitié n'auraient répété que le libellé. Elles échappent donc au
+   relevé des orphelines sans entrer dans celui des manquantes. */
+const contenu = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+const blocOpt = /const OPT_DEFS = Object\.freeze\(\{([\s\S]*?)\n  \}\);/.exec(contenu);
+if (!blocOpt) {
+  console.error("✗ OPT_DEFS introuvable dans content.js — le contrat des réglages ne peut pas être vérifié");
+  bad++;
+}
+const idsOpt = blocOpt
+  ? [...blocOpt[1].matchAll(/^ {4}([a-zA-Z]+):\s+\{/gm)].map(m => m[1]) : [];
+if (blocOpt && idsOpt.length < 10) {
+  console.error(`✗ relevé des réglages : ${idsOpt.length} trouvés, c'est trop peu — la lecture ne reconnaît plus OPT_DEFS`);
+  bad++;
+}
+const TOLEREES = new Set();
+for (const id of idsOpt) {
+  demandees.add('opt' + MAJ(id));
+  TOLEREES.add('optDesc' + MAJ(id));
+}
+/* Les confirmations d'action se composent elles aussi — « confirme » + Title
+   et + Text — au même titre que nav et desc. */
+for (const m of js.matchAll(/confirme: '([A-Za-z0-9_]+)'/g)) {
+  demandees.add(m[1] + 'Title');
+  demandees.add(m[1] + 'Text');
+}
+
 /* La convention doit valoir dans les deux sens : une clé de _locales qui ne
    la suivrait pas ne serait jamais relevée par le filtre ci-dessus, et
    passerait donc pour demandée sans que personne ne l'affiche. */
@@ -134,7 +194,8 @@ if (inconnues.length) {
    relit. extName et extDescription sont lues par le manifeste, pas par le
    panneau — elles n'ont donc pas à y figurer. */
 const DU_MANIFESTE = ['extName', 'extDescription'];
-const orphelines = refLoc.filter(k => !demandees.has(k) && !DU_MANIFESTE.includes(k));
+const orphelines = refLoc.filter(k => !demandees.has(k) && !DU_MANIFESTE.includes(k)
+                                     && !TOLEREES.has(k));
 if (orphelines.length) {
   console.error(`✗ clés traduites que le panneau n'affiche plus → ${orphelines.join(', ')}`);
   bad++;

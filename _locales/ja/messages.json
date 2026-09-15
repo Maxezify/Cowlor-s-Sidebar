@@ -476,5 +476,260 @@
   },
   "guideDemoEnCours": {
     "message": "進行中"
+  },
+  "grpOptions": {
+    "message": "設定"
+  },
+  "navOptions": {
+    "message": "オプション"
+  },
+  "descOptions": {
+    "message": "拡張機能が加えるもの、そのままにするもの。既定ではすべて有効です。変更した項目には紫の点が付きます。"
+  },
+  "sumSettings": {
+    "message": "設定項目"
+  },
+  "sumChanged": {
+    "message": "変更済み"
+  },
+  "optGrpApercu": {
+    "message": "ホバープレビュー"
+  },
+  "optApercu": {
+    "message": "プレビューを表示"
+  },
+  "optApercuVideo": {
+    "message": "ライブ映像"
+  },
+  "optDescApercuVideo": {
+    "message": "オフでもプレビューはサムネイル・バッジ・タイムラインを保ちます。映像の読み込みだけを止めます。"
+  },
+  "optApercuQualite": {
+    "message": "映像の画質"
+  },
+  "optDescApercuQualite": {
+    "message": "次のプレビューから適用されます。再読み込みは不要です。"
+  },
+  "optApercuTaille": {
+    "message": "ウィンドウの幅"
+  },
+  "optGrpBadges": {
+    "message": "プレビューのバッジ"
+  },
+  "optBadges": {
+    "message": "表示するバッジ"
+  },
+  "optGrpCarte": {
+    "message": "サイドバーのカード"
+  },
+  "optDuree": {
+    "message": "配信の経過時間"
+  },
+  "optDureeFormat": {
+    "message": "時間の表記"
+  },
+  "optFresh": {
+    "message": "「開始直後」のバー"
+  },
+  "optCollab": {
+    "message": "コラボの印"
+  },
+  "optAbonnes": {
+    "message": "サブスクの金色"
+  },
+  "optDescAbonnes": {
+    "message": "「控えめ」は色を残して輝きを消します。「なし」はカードを Twitch のままに戻します。"
+  },
+  "optSubathonJour": {
+    "message": "サブアソンの日数の印"
+  },
+  "optGrpListe": {
+    "message": "リスト、並べ替えと絞り込み"
+  },
+  "optTris": {
+    "message": "表示する並べ替えボタン"
+  },
+  "optFiltreCategorie": {
+    "message": "カテゴリーで絞り込み"
+  },
+  "optFiltreLangue": {
+    "message": "言語で絞り込み"
+  },
+  "optTopOnglet": {
+    "message": "「トップチャンネル」タブ"
+  },
+  "optTopN": {
+    "message": "ランキングのチャンネル数"
+  },
+  "optDescTopN": {
+    "message": "30 を超えると一部の言語で最適化が効かなくなり、ランキングが埋まるまで時間がかかります。"
+  },
+  "optGrpTwitch": {
+    "message": "Twitch が表示するもの"
+  },
+  "optStories": {
+    "message": "ストーリー"
+  },
+  "optDescStories": {
+    "message": "既定では表示されます。Twitch がそうしているからです。"
+  },
+  "optDeplier": {
+    "message": "「もっと見る」を自動で開く"
+  },
+  "optDescDeplier": {
+    "message": "オフにすると、リストは Twitch が描いたままになります。拡張機能は見えている範囲を測り続けます。"
+  },
+  "optGrpAbos": {
+    "message": "サブスクの読み取り"
+  },
+  "optAbosReleve": {
+    "message": "自分のサブスクを読み取る"
+  },
+  "optDescAbosReleve": {
+    "message": "拡張機能で唯一、認証を伴うリクエストです。あなた自身の twitch.tv/subscriptions を見えないフレームで開きます。オフにすると、金色と「サブスクを先頭に」の並べ替えは訪問したチャンネルだけを頼りにします。"
+  },
+  "optAbosPeriode": {
+    "message": "最短の間隔"
+  },
+  "optGrpTheme": {
+    "message": "外観"
+  },
+  "optTheme": {
+    "message": "Twitch 内のテーマ"
+  },
+  "optDescTheme": {
+    "message": "「自動」は Twitch のテーマに従います。固定しても変わるのは、拡張機能が上に描く色だけです。"
+  },
+  "optGrpDonnees": {
+    "message": "データ"
+  },
+  "optVisites": {
+    "message": "訪問を記録する"
+  },
+  "optDescVisites": {
+    "message": "オフにしても、すでに学習した内容は読めます。ただし新たに増えません。「個人的な人気」の並べ替えとリズムの表は更新されなくなります。"
+  },
+  "optGrpPanneau": {
+    "message": "このパネル"
+  },
+  "optPanneauTheme": {
+    "message": "パネルのテーマ"
+  },
+  "optDescPanneauTheme": {
+    "message": "上とは別です。このパネルは Twitch のタブが開いていなくても自分を描けなければなりません。"
+  },
+  "optPanneauDiag": {
+    "message": "診断を表示"
+  },
+  "optDescPanneauDiag": {
+    "message": "計測の章 — 遅延、サイクル、プレビュー、切り替え — は不具合を報告するためだけのものです。"
+  },
+  "optGrpPurge": {
+    "message": "選んで消去"
+  },
+  "optDescPurge": {
+    "message": "各ボタンは自分の記憶だけを消します。下の赤いボタンはすべてを消します。"
+  },
+  "btnPurgeVisits": {
+    "message": "訪問履歴を消去"
+  },
+  "purgeVisitsTitle": {
+    "message": "訪問履歴を消去しますか？"
+  },
+  "purgeVisitsText": {
+    "message": "「個人的な人気」の並べ替えとリズムの表はゼロから始まります。サブスクとフォロー中のチャンネルはそのままです。"
+  },
+  "btnPurgeSubs": {
+    "message": "サブスクを消去"
+  },
+  "purgeSubsTitle": {
+    "message": "検出したサブスクを消去しますか？"
+  },
+  "purgeSubsText": {
+    "message": "次の読み取りまで、カードから金色が消えます。訪問履歴とフォロー中のチャンネルはそのままです。"
+  },
+  "btnPurgeRoster": {
+    "message": "フォロー中のチャンネルを消去"
+  },
+  "purgeRosterTitle": {
+    "message": "記憶したフォロー中のチャンネルを消去しますか？"
+  },
+  "purgeRosterText": {
+    "message": "リストはサイドバーを見ながら作り直されます。訪問履歴とサブスクはそのままです。"
+  },
+  "optPurgeFaite": {
+    "message": "消去しました。"
+  },
+  "optGrpEchange": {
+    "message": "エクスポートとインポート"
+  },
+  "btnOptExport": {
+    "message": "エクスポート"
+  },
+  "btnOptImport": {
+    "message": "インポート"
+  },
+  "optImportInvalide": {
+    "message": "有効な設定のまとまりではありません。"
+  },
+  "optImportFait": {
+    "message": "$1 件を適用し、$2 件を無視しました。"
+  },
+  "btnOptReset": {
+    "message": "すべて既定に戻す"
+  },
+  "optResetTitle": {
+    "message": "すべての設定を既定に戻しますか？"
+  },
+  "optResetText": {
+    "message": "このページの 22 個の設定がすべて元の値に戻ります。データ — 訪問履歴、サブスク、フォロー中のチャンネル — はそのままです。"
+  },
+  "optValPlein": {
+    "message": "完全"
+  },
+  "optValDiscret": {
+    "message": "控えめ"
+  },
+  "optValAucun": {
+    "message": "なし"
+  },
+  "optValPetit": {
+    "message": "小"
+  },
+  "optValNormal": {
+    "message": "標準"
+  },
+  "optValGrand": {
+    "message": "大"
+  },
+  "optValAuto": {
+    "message": "自動"
+  },
+  "optValDark": {
+    "message": "ダーク"
+  },
+  "optValLight": {
+    "message": "ライト"
+  },
+  "optHeures": {
+    "message": "$1 時間"
+  },
+  "optTriViewers": {
+    "message": "視聴者数"
+  },
+  "optTriSubs": {
+    "message": "サブスク"
+  },
+  "optTriPopular": {
+    "message": "個人的な人気"
+  },
+  "optTriUptime": {
+    "message": "配信の経過時間"
+  },
+  "optTriAlpha": {
+    "message": "名前順"
+  },
+  "optTriCostream": {
+    "message": "コラボ配信"
   }
 }
