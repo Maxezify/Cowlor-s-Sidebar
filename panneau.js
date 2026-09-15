@@ -770,6 +770,8 @@ const construireRapport = (r, transport, fond) => {
   L.push(...bloc('CENTRAGE SANS CATÉGORIE / UNCATEGORISED CENTRING',
                  aplatir(r.centrage)));
 
+  L.push(...bloc('LIGNES DE CARTE / CARD LINES', aplatir(r.lignes)));
+
   L.push(...bloc('SUBATHONS', aplatir(r.subathons)));
 
   L.push(...bloc('SURVOL — DÉLAI D\'INTENTION / HOVER INTENT', aplatir(r.survol)));
