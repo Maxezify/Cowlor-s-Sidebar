@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 958 assertions, sous Gecko
+npm run test-firefox        # les mêmes 968 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,123 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Autant de coupures que le direct en a eu (v4.4)
+
+Signalement, et il est précis : « BenZaie a déjà eu une coupure, qui s'est bien
+affichée dans la frise et la partie “Précédemment”. Mais il a eu une deuxième
+coupure. Et là, plus rien ne s'affiche. » Puis, après réinstallation : « le
+survol marche pour BenZaie mais ne prend plus en compte les anciennes
+coupures », avec la capture — **« 1 coupure — 41m »** sur un direct qui en avait
+davantage.
+
+Deux défauts distincts, et ils se ressemblaient à l'écran.
+
+### La chaîne ne se remontait que d'un cran
+
+La sonde cherchait l'archive qui raccorde au départ du direct courant, et
+s'arrêtait là. Un direct coupé deux fois a pourtant **une archive par tronçon**,
+et la chaîne se remonte par récurrence : l'archive qui raccorde devient le
+tronçon précédent, et **son** départ devient la borne suivante.
+
+```
+t-5h        ┤ premier tronçon      (Just Chatting, puis Elden Ring)
+t-1h  -1s   ┤ fin        ← coupure
+t-1h        ┤ tronçon du milieu    (Rocket League)
+t     -1s   ┤ fin        ← coupure
+maintenant  ┤ tronçon courant      (VALORANT)
+```
+
+Ce qu'on affichait n'était pas faux, c'était **tronqué** — et tronqué de la
+pire manière, puisque la partie perdue est la plus ancienne, celle qu'aucune
+observation ne pourra jamais rattraper. On demande donc **cinq** archives au
+lieu de trois (une par tronçon, plus celle du direct courant), ce qui couvre
+quatre coupures.
+
+### Le passé appartenait à une session, pas au direct
+
+Le registre du passé était rangé par identifiant de **stream**. À la coupure
+suivante cet identifiant change — c'est la définition même d'une reprise — et
+tout le passé récolté disparaissait avec lui. C'est exactement la première
+phrase du signalement : la première coupure s'affichait, la seconde effaçait
+tout.
+
+**La clé est donc l'origine**, qui ne bouge pas tant que les reprises
+s'enchaînent et qui saute dès qu'un vrai nouveau direct commence. C'est le même
+critère que celui de la frise, et ce n'est pas un hasard : les deux répondent à
+la question « est-ce toujours le même direct ? ». Une origine qui change
+invalide le passé d'elle-même, sans purge — un direct de la veille ne réhérite
+de rien.
+
+Il s'**accumule** : la sonde y verse les tronçons d'avant, la requête de
+chapitres y verse le tronçon courant, et chaque nouvelle coupure ajoute sans
+rien retirer.
+
+### Une course entre deux réponses, dans les deux sens
+
+Les deux sources partent au même survol et **ne reviennent pas dans un ordre
+garanti**. Or l'adoption d'une reprise DÉPLACE l'origine, du départ du tronçon
+vers celui de la chaîne :
+
+- si les **chapitres** arrivent d'abord, ils se rangent sous l'ancienne origine
+  et la sonde doit les **reprendre** en arrivant ;
+- si la **sonde** arrive d'abord, les chapitres doivent **relire** l'origine au
+  moment où leur réponse revient, au lieu d'employer celle qu'ils connaissaient
+  au départ.
+
+Les deux corrections sont nécessaires, et chacune est invisible dans l'ordre que
+l'autre couvre. Le harnais rendait toujours le même ordre : il porte désormais
+un retard par nom d'opération (`__retardOp`), et le scénario joue les deux.
+
+### Le pont mourait dans le cache avant/arrière
+
+Un utilisateur a rapporté, depuis la liste d'erreurs de l'extension :
+
+> Unchecked runtime.lastError: The page keeping the extension port is moved into
+> back/forward cache, so the message channel is closed.
+
+…avec le rapport de diagnostic qui allait avec : « ponts : aucun », « démarrage
+inachevé », alors que la barre latérale fonctionnait sous ses yeux. Quand une
+page entre dans le back/forward cache, Chrome ferme lui-même les ports
+d'extension. `visibilitychange` ne rattrape pas le retour — une page restaurée
+peut revenir sans que la visibilité ait changé de valeur, et le port reste mort
+pour le reste de sa vie.
+
+`pagehide` et `pageshow` sont les deux seuls événements qui nomment ce cycle.
+Le pont s'y raccroche, et `persisted` distingue le retour du cache d'un
+chargement ordinaire. Le message de console, lui, disparaît parce qu'on
+**consulte** `runtime.lastError` dans le gestionnaire de déconnexion : un port
+qui tombe est le cas normal ici, et il n'a rien à faire dans une liste
+d'erreurs.
+
+### Le scénario 102
+
+Vingt-deux assertions, neuf mutants, aucun survivant :
+
+| Mutant | Assertions qui tombent |
+| --- | --- |
+| la chaîne ne remonte qu'un cran | 4 |
+| le passé reste rangé par session de stream | 9 |
+| l'origine est celle du dernier maillon | 3 |
+| le tronçon courant ne rejoint pas le passé | 2 |
+| le passé n'est pas invalidé quand l'origine change | 1 |
+| l'accumulation écrase au lieu de fusionner | 1 |
+| le passé n'est pas reporté sous la nouvelle origine | 1 |
+| l'origine n'est pas relue à l'arrivée de la réponse | 1 |
+| la fenêtre de reprise saute | 2 |
+
+Quatre d'entre eux ont d'abord **survécu**, et c'est ce passage qui a valu le
+plus cher — il a fait apparaître la course décrite plus haut, qu'aucune
+relecture n'avait vue.
+
+### Un décor qui se trompait une fois sur deux
+
+`lengthSeconds` est un entier de secondes : la fin d'une archive n'est connue
+qu'à une demi-seconde près. Le décor visait un trou de **zéro**, qui devenait
+donc négatif une fois sur deux — et un trou négatif est rejeté. Le banc a changé
+de résultat le jour où un cas s'est ajouté devant, sans que rien d'autre ne
+bouge. Les trous se visent désormais à 1,2 s, très à l'intérieur de la fenêtre
+de 2,5 s du banc.
 
 ## La sonde qui ne partait presque jamais (v4.3.1)
 
@@ -5083,7 +5200,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 102 scénarios, 958 assertions |
+| `npm test` | le harnais Playwright : 102 scénarios, 968 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -5104,12 +5221,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 878 Ko | 349 Ko | 3 171 → **2** |
+| `content.js` | 886 Ko | 352 Ko | 3 180 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 69 Ko | 34 Ko | 85 → **0** |
-| `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
+| `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1078 Ko** | **484 Ko** | **−55 %** |
+| **les cinq** | **1114 Ko** | **493 Ko** | **−56 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

@@ -10659,7 +10659,7 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
       for (const n of p.childNodes) if (n.nodeType === 3) n.__tseTemoin = true;
     }
   }, LONG);
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 6);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 9);
 
   const lire = () => page.evaluate(() => {
     const out = {};
@@ -11415,7 +11415,7 @@ titre('94. L\'aperçu au survol — un délai d\'intention, et ce qu\'il filtre'
       window.__addCard(l, 'Discussions', '500');
     }
   });
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 6);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 9);
   /* ATTENDRE QUE LE VOILE SE LÈVE, et ce n'est pas une précaution de confort :
      le voile de chargement couvre la barre, et un VRAI pointeur ne traverse
      pas un élément posé par-dessus. Tant qu'il est là, aucune carte ne reçoit
@@ -11668,7 +11668,7 @@ titre('95. La reprise après coupure — un badge, une barre, et une frise qui n
       window.__addCard(l, 'Discussions', '900');
     }
   }, { vieux: h(360) });
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 6);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 9);
 
   const etat = (login) => page.evaluate((l) => {
     const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
@@ -13009,7 +13009,7 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
   const page = await fresh();
   const ilYa = (ms) => new Date(Date.now() - ms).toISOString();
 
-  await page.evaluate(({ neuf, vieux, vieilDepart }) => {
+  await page.evaluate(({ neuf, vieux, vieilDepart, milieu, troisHeures }) => {
     // Les quatre chaînes viennent de démarrer : c'est la seule situation où la
     // sonde part, et c'est celle d'un onglet ouvert pendant la coupure.
     const mk = (id, titre) => ({ id, sid: 's-' + id, createdAt: neuf, viewers: 900,
@@ -13029,13 +13029,48 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
          rapport : la seconde ne bouge plus jamais. */
       ancien:   { id: 'r6', sid: 's-r6', createdAt: vieilDepart, viewers: 900,
                   game: 'VALORANT', tags: [] },
+      /* DEUX COUPURES. Le signalement le décrit en une phrase : « il a déjà eu
+         une coupure, qui s'est bien affichée ; il en a eu une deuxième, et là
+         plus rien ». La sonde ne remontait qu'UN cran de la chaîne. */
+      double:   mk('r7'),
+      /* LE TRONÇON COURANT A SON PROPRE PASSÉ, et il doit survivre à la
+         coupure suivante comme celui des tronçons d'avant. Trois heures de
+         direct, des chapitres de VOD, AUCUNE archive qui raccorde : rien ici
+         ne vient de la sonde, tout vient de la requête de chapitres. */
+      garde:    { id: 'r8', sid: 's-r8', createdAt: troisHeures, viewers: 900,
+                  game: 'Rust', tags: [] },
+      /* LE MÊME CAS QUE « ancien », DANS L'AUTRE ORDRE. Deux réponses lancées
+         ensemble ne reviennent pas dans un ordre garanti, et le passé doit
+         arriver entier quel que soit celui qui gagne. Celui-ci est survolé
+         SANS retard — la sonde répond la première ; « ancien » est survolé
+         avec, et les chapitres arrivent avant elle. Un seul des deux ordres
+         laisse survivre un mutant différent. */
+      croise:   { id: 'r9', sid: 's-r9', createdAt: vieilDepart, viewers: 900,
+                  game: 'VALORANT', tags: [] },
     };
     /* CINQ HEURES D'ARCHIVE, terminées juste avant le départ du direct : c'est
        le tronçon d'avant. Les chapitres qu'elle porte sont le passé que plus
        aucune observation ne peut rattraper. */
-    const archive = (finIlYaMs, chapitres) => ({
+    /* ── LE TROU SE VISE, IL NE SE SUBIT PAS ────────────────────────────────
+       `lengthSeconds` est un ENTIER de secondes : la fin d'une archive n'est
+       donc connue qu'à une demi-seconde près. Viser un trou de zéro le rendait
+       NÉGATIF une fois sur deux — et un trou négatif est rejeté, donc le
+       raccord sautait selon l'heure qu'il était. Le banc l'a montré en
+       changeant de valeur quand un cas s'est ajouté devant.
+
+       On vise donc 1,2 s : avec l'arrondi, le trou réel tient dans [0,7 ; 1,7],
+       très à l'intérieur de la fenêtre de 2,5 s du banc, et très en dehors
+       pour le cas « hors fenêtre », visé à dix secondes. */
+    const archiveAvant = (debutISO, borneISO, chapitres) => ({
+      createdAt: debutISO,
+      lengthSeconds: Math.round(
+        (Date.parse(borneISO) - 1_200 - Date.parse(debutISO)) / 1000),
+      chapitres,
+    });
+    const archive = (ecartMs, chapitres) => ({
       createdAt: vieux,
-      lengthSeconds: Math.round((Date.now() - finIlYaMs - Date.parse(vieux)) / 1000),
+      lengthSeconds: Math.round(
+        (Date.parse(neuf) - ecartMs - Date.parse(vieux)) / 1000),
       chapitres,
     });
     const passe = [{ pos: 0, jeu: 'Just Chatting' },
@@ -13045,29 +13080,63 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
       // lui, donc elle ne raccorde rien. C'est la SECONDE qu'il faut trouver —
       // une implémentation qui ne regarderait que la plus récente échoue ici.
       revenu:   [{ createdAt: neuf, lengthSeconds: 60, chapitres: [] },
-                 archive(1_000, passe)],
+                 archive(1_200, passe)],
       // Terminée dix secondes avant le départ : au-delà de la fenêtre.
       loin:     [archive(10_000, passe)],
-      marathon: [archive(1_000, passe)],
+      marathon: [archive(1_200, passe)],
       sansvod:  [],
       // Une archive qui raccorde, mais SANS le moindre chapitre : on apprend
       // l'origine et la coupure, rien du contenu.
-      muette:   [archive(1_000, [])],
+      muette:   [archive(1_200, [])],
       /* L'archive d'avant s'est terminée une seconde avant le départ de ce
          direct-là — c'est-à-dire il y a deux heures et une seconde. Le trou
          vaut toujours une seconde. */
       ancien:   [{ createdAt: vieilDepart, lengthSeconds: 7200, chapitres: [] },
-                 { createdAt: vieux,
-                   lengthSeconds: Math.round(
-                     (Date.parse(vieilDepart) - 1_000 - Date.parse(vieux)) / 1000),
-                   chapitres: passe }],
+                 archiveAvant(vieux, vieilDepart, passe)],
+      croise:   [{ createdAt: vieilDepart, lengthSeconds: 7200, chapitres: [] },
+                 archiveAvant(vieux, vieilDepart, passe)],
+      /* TROIS ARCHIVES, DONC DEUX COUPURES. La chaîne se remonte de proche en
+         proche : le direct courant raccorde au tronçon du milieu, qui raccorde
+         lui-même au premier. Le passé le plus ancien — « Just Chatting » — n'est
+         atteignable qu'au SECOND cran, et c'est lui qui prouve que la chaîne
+         est remontée en entier plutôt qu'à moitié.
+           t-5h      ┤ premier tronçon (Just Chatting, puis Elden Ring)
+           t-1h -1s  ┤ fin, coupure d'une seconde
+           t-1h      ┤ tronçon du milieu (Rocket League)
+           t-1s      ┤ fin, coupure d'une seconde
+           maintenant┤ tronçon courant */
+      garde:    [],
+      double:   [{ createdAt: neuf, lengthSeconds: 60, chapitres: [] },
+                 archiveAvant(milieu, neuf, [{ pos: 0, jeu: 'Rocket League' }]),
+                 archiveAvant(vieux, milieu, passe)],
     };
-    for (const l of ['revenu', 'loin', 'marathon', 'sansvod', 'muette', 'ancien']) {
+    /* Les chapitres du tronçon COURANT de « garde », servis par TseVodChapters
+       et non par la liste des archives. */
+    /* LA SONDE RÉPOND APRÈS LES CHAPITRES, et c'est l'ordre qu'il faut jouer :
+       l'autre vient tout seul. Le passé du tronçon courant est alors rangé sous
+       l'origine d'AVANT l'adoption, et il faut le reporter sous celle d'après —
+       sans quoi la sonde l'écrase en arrivant. Un réseau ne garantit pas
+       l'ordre de deux réponses ; du code juste dans un seul des deux ordres est
+       faux la moitié du temps. */
+    window.__retardOp = {};
+    window.__vod = {
+      garde:  { createdAt: troisHeures, chapitres: [
+        { pos: 0, jeu: 'Minecraft' }, { pos: 2 * 3600_000, jeu: 'Rust' }] },
+      /* Les chapitres du tronçon COURANT de « ancien », qui arrivent par la
+         requête ordinaire pendant que la sonde ramène ceux de la chaîne. Les
+         deux doivent se retrouver dans la même frise : c'est ce qui éprouve à
+         la fois l'accumulation et le report sous la nouvelle origine. */
+      ancien: { createdAt: vieilDepart, chapitres: [{ pos: 0, jeu: 'Fortnite' }] },
+      croise: { createdAt: vieilDepart, chapitres: [{ pos: 0, jeu: 'Apex Legends' }] },
+    };
+    for (const l of ['revenu', 'loin', 'marathon', 'sansvod', 'muette', 'ancien',
+                     'double', 'garde', 'croise']) {
       window.__addCard(l, 'VALORANT', '900');
     }
   }, { neuf: ilYa(1_000), vieux: ilYa(5 * 3600_000),
-       vieilDepart: ilYa(2 * 3600_000) });
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 6);
+       vieilDepart: ilYa(2 * 3600_000), milieu: ilYa(3600_000 + 1_000),
+       troisHeures: ilYa(3 * 3600_000) });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 9);
 
   const survoler = async (login) => {
     await hoverLogin(page, login);
@@ -13103,8 +13172,10 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
   await survoler('revenu');
   await attendre(page,
     () => !!document.querySelector('.tse-preview__badge--reprise'), 6000);
-  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
-  await wait(page, 400);
+  await attendre(page,
+    () => /coupure/.test(document.querySelector('.tse-preview__frise')?.textContent || ''),
+    6000);
+  await wait(page, 300);
   const revenu = await vue();
   await relacher('revenu');
   ok('un direct dont l\'archive d\'avant raccorde gagne son badge de reprise',
@@ -13120,6 +13191,35 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
      revenu.frise !== null && /\dh/.test(revenu.frise.total)
      && revenu.frise.lignes.some(l => /Elden Ring/.test(l)),
      JSON.stringify(revenu.frise));
+
+  /* ── 1 bis. LA COUPURE SUIVANTE NE DOIT RIEN EFFACER ─────────────────────
+     Le passé ramené par la sonde était rangé sous l'identifiant de STREAM. À
+     la coupure suivante cet identifiant change — c'est la définition même
+     d'une reprise — et tout disparaissait avec lui. Le signalement : « il a
+     déjà eu une coupure, qui s'est bien affichée ; il en a eu une deuxième, et
+     là plus rien ».
+
+     ON OBSERVE DONC LA SECONDE COUPURE, à la suite de celle qu'on a adoptée :
+     nouvel identifiant, nouveau départ. La frise doit garder le passé de la
+     première ET compter la seconde. */
+  await page.evaluate(() => {
+    window.__fx.revenu.sid = 's-r1-suite';
+    window.__fx.revenu.createdAt = new Date().toISOString();
+    window.tse.rescan();
+  });
+  await wait(page, 900);
+  await survoler('revenu');
+  await attendre(page,
+    () => /coupure/.test(document.querySelector('.tse-preview__frise')?.textContent || ''),
+    6000);
+  await wait(page, 300);
+  const suite = await vue();
+  await relacher('revenu');
+  ok('une seconde coupure n\'efface pas le passé ramené pour la première',
+     suite.frise !== null && suite.frise.lignes.some(l => /Elden Ring/.test(l)),
+     JSON.stringify(suite.frise && suite.frise.lignes));
+  ok('…et elle s\'ajoute au compte au lieu de le remplacer',
+     /2/.test(suite.frise?.coupures || ''), JSON.stringify(suite.frise));
 
   /* ── 2. LA FENÊTRE ───────────────────────────────────────────────────────
      Dix secondes de trou, quatre fois la fenêtre du banc : ce n'est pas une
@@ -13177,6 +13277,25 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
      muette.frise === null || /\dh/.test(muette.frise.total),
      JSON.stringify(muette.frise));
 
+  /* ── 5 bis. LES DEUX SOURCES, DANS L'ORDRE NATUREL ───────────────────────
+     La sonde répond la première, puis les chapitres du tronçon courant : ces
+     derniers doivent se ranger sous l'origine que l'adoption vient de poser,
+     et non sous celle qu'ils connaissaient au départ de la requête. C'est
+     l'ordre opposé à celui du cas suivant, et chacun laisse survivre un mutant
+     que l'autre tue. */
+  await survoler('croise');
+  await attendre(page,
+    () => /Apex/.test(document.querySelector('.tse-preview__frise')?.textContent || ''),
+    6000);
+  await wait(page, 300);
+  const croise = await vue();
+  await relacher('croise');
+  ok('les deux sources du passé se rejoignent quand la sonde répond la première',
+     croise.frise !== null
+     && croise.frise.lignes.some(l => /Elden Ring/.test(l))
+     && croise.frise.lignes.some(l => /Apex/.test(l)),
+     JSON.stringify(croise.frise && croise.frise.lignes));
+
   /* ── 6. LE DIRECT ANCIEN — LE CAS QUI A COÛTÉ UNE VERSION ────────────────
      Deux heures de direct après une coupure d'une seconde. La 4.3 ne le
      sondait pas : une garde confondait l'ÂGE du direct courant avec le TROU
@@ -13185,10 +13304,20 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
 
      PAS DE BADGE, ET C'EST JUSTE : « Reprise après coupure » est une nouvelle,
      elle s'éteint au bout de dix minutes. Le FAIT, lui, appartient au direct
-     entier — c'est la frise qui le porte, et c'est elle qu'on vérifie ici. */
+     entier — c'est la frise qui le porte, et c'est elle qu'on vérifie ici.
+
+     ET L'ORDRE INVERSE DU CAS PRÉCÉDENT : les chapitres arrivent AVANT la
+     sonde. Le passé du tronçon courant est alors rangé sous l'origine d'avant
+     l'adoption, et c'est la sonde qui doit le reprendre. */
+  await page.evaluate(() => { window.__retardOp = { TseVodRecent: 200 }; });
   await survoler('ancien');
   await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
-  await wait(page, 400);
+  // La sonde répond APRÈS les chapitres (cf. __retardOp) : la frise paraît une
+  // première fois sans elle, et c'est la seconde forme qu'on mesure.
+  await attendre(page,
+    () => /coupure/.test(document.querySelector('.tse-preview__frise')?.textContent || ''),
+    6000);
+  await wait(page, 300);
   const ancien = await vue();
   await relacher('ancien');
   ok('un direct de deux heures gagne sa coupure comme un direct d\'une seconde',
@@ -13196,6 +13325,14 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
   ok('…et son passé d\'avant la coupure, qui ne dépend pas de son âge',
      ancien.frise !== null && ancien.frise.lignes.some(l => /Elden Ring/.test(l)),
      JSON.stringify(ancien.frise));
+  /* DEUX SOURCES, UNE SEULE FRISE. « Elden Ring » vient de la chaîne d'archives
+     rapportée par la sonde ; « Fortnite » vient de la requête de chapitres
+     ordinaire, partie AVANT que l'adoption ne déplace l'origine. Les deux
+     doivent y être : le passé s'accumule, et il est reporté sous la nouvelle
+     origine au lieu d'être abandonné sous l'ancienne. */
+  ok('…et les deux sources du passé se retrouvent dans la même frise',
+     ancien.frise !== null && ancien.frise.lignes.some(l => /Fortnite/.test(l)),
+     JSON.stringify(ancien.frise && ancien.frise.lignes));
   /* LE BADGE NE SE RALLUME PAS POUR AUTANT : son horodatage est celui du
      tronçon, pas celui de la découverte. Sans quoi une coupure vieille de deux
      heures s'annoncerait comme une nouvelle pendant dix minutes de plus. */
@@ -13203,14 +13340,107 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
      !ancien.badges.some(c => /tse-preview__badge--reprise/.test(c)),
      JSON.stringify(ancien.badges));
 
-  /* ── 7. CE QUE LA SONDE A COÛTÉ ET RAPPORTÉ ──────────────────────────────
+  /* ── 7. DEUX COUPURES, ET LA CHAÎNE SE REMONTE EN ENTIER ─────────────────
+     C'est le signalement : la première coupure s'affichait, la seconde faisait
+     tout disparaître. La sonde ne remontait qu'un cran — elle cherchait
+     l'archive qui raccorde au départ du direct, et s'arrêtait là.
+
+     TROIS ASSERTIONS, ET ELLES SE CASSENT SÉPARÉMENT : le COMPTE des coupures,
+     le nombre de MARQUES sur le ruban, et le passé du tronçon le plus ancien —
+     « Just Chatting », qui n'est atteignable qu'au SECOND cran. Une chaîne
+     remontée à moitié donne le bon compte de rien du tout mais perd ce
+     passé-là, et c'est ce qu'un seul compteur ne dirait pas. */
+  await survoler('double');
+  await attendre(page,
+    () => /coupure/.test(document.querySelector('.tse-preview__frise')?.textContent || ''),
+    6000);
+  await wait(page, 300);
+  const deux = await vue();
+  await relacher('double');
+  ok('un direct coupé deux fois annonce DEUX coupures, pas une',
+     /2/.test(deux.frise?.coupures || ''), JSON.stringify(deux.frise));
+  ok('…et le ruban porte deux marques, une par coupure',
+     deux.frise?.marques === 2, JSON.stringify(deux.frise));
+  /* LE SECOND CRAN. « Rocket League » vient du tronçon du milieu, atteignable
+     au premier cran ; « Just Chatting » vient du plus ancien, qui n'existe que
+     si la chaîne a été remontée jusqu'au bout. */
+  ok('…et la frise porte le passé des DEUX tronçons d\'avant',
+     deux.frise !== null
+     && deux.frise.lignes.some(l => /Rocket League/.test(l))
+     && deux.frise.lignes.some(l => /Discussions|Just Chatting/.test(l)),
+     JSON.stringify(deux.frise && deux.frise.lignes));
+
+  /* ── 8. LE PASSÉ DU TRONÇON COURANT SURVIT AUSSI ─────────────────────────
+     Les deux cas précédents portent un passé venu de la SONDE. Celui-ci vient
+     de la requête de chapitres ordinaire — trois heures de direct observées
+     tard, aucune archive qui raccorde — et il doit traverser la coupure
+     suivante par le même chemin. Sans quoi le produit garderait le passé des
+     tronçons qu'il n'a pas vus et perdrait celui qu'il a demandé lui-même. */
+  await survoler('garde');
+  await attendre(page,
+    () => !!document.querySelector('.tse-preview__frise-ligne'), 6000);
+  await wait(page, 600);
+  const avantCoupureGarde = await vue();
+  await relacher('garde');
+  ok('les chapitres du tronçon courant arrivent bien dans la frise',
+     avantCoupureGarde.frise !== null
+     && avantCoupureGarde.frise.lignes.some(l => /Minecraft/.test(l)),
+     JSON.stringify(avantCoupureGarde.frise && avantCoupureGarde.frise.lignes));
+  /* L'ARCHIVE SUIT LE TRONÇON, comme sur le vrai Twitch : le nouvel
+     enregistrement ne sait rien de ce qui précède la coupure. Sans ce
+     remplacement, une seconde requête de chapitres rapporterait le passé
+     toute seule et l'assertion ne prouverait rien. */
+  await page.evaluate(() => {
+    window.__fx.garde.sid = 's-r8-suite';
+    window.__fx.garde.createdAt = new Date().toISOString();
+    window.__vod.garde = { createdAt: new Date().toISOString(),
+                           chapitres: [{ pos: 0, jeu: 'Rust' }] };
+    window.tse.rescan();
+  });
+  await wait(page, 900);
+  await survoler('garde');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
+  await wait(page, 400);
+  const apresCoupureGarde = await vue();
+  await relacher('garde');
+  ok('…et ils survivent à la coupure, comme ceux des tronçons d\'avant',
+     apresCoupureGarde.frise !== null
+     && apresCoupureGarde.frise.lignes.some(l => /Minecraft/.test(l)),
+     JSON.stringify(apresCoupureGarde.frise && apresCoupureGarde.frise.lignes));
+
+  /* UN VRAI NOUVEAU DIRECT REPART VIERGE. Le passé est rangé par ORIGINE
+     précisément pour cela : une chaîne éteinte au-delà de la fenêtre de
+     reprise, puis rallumée, commence un autre direct — lui resservir les
+     chapitres de la veille daterait le live d'hier. L'invalidation ne demande
+     aucune purge : la clé ne correspond plus, et c'est tout. */
+  await page.evaluate(() => { window.__fx.garde = null; window.tse.rescan(); });
+  await wait(page, 3400);            // au-delà de la fenêtre de reprise du banc
+  await page.evaluate(() => {
+    window.__fx.garde = { id: 'r8', sid: 's-r8-neuf',
+                          createdAt: new Date().toISOString(),
+                          viewers: 900, game: 'Rust', tags: [] };
+    window.__vod.garde = null;
+    window.tse.rescan();
+  });
+  await wait(page, 900);
+  await survoler('garde');
+  await wait(page, 900);
+  const neufDirect = await vue();
+  await relacher('garde');
+  ok('un vrai nouveau direct ne réhérite pas du passé de la veille',
+     neufDirect.frise === null
+     || !neufDirect.frise.lignes.some(l => /Minecraft/.test(l)),
+     JSON.stringify(neufDirect.frise && neufDirect.frise.lignes));
+
+  /* ── 9. CE QUE LA SONDE A COÛTÉ ET RAPPORTÉ ──────────────────────────────
      Le rapport est le seul œil qu'on ait sur ce mécanisme depuis une vraie
      page. `sondes` compte les directs jeunes interrogés — quatre, un par
      chaîne — et `adoptees` ceux qui ont gagné leur origine : un seul. */
   const bilan = await page.evaluate(() =>
     window.tse.panneau.rapport().reseau.chapitres.reprise);
   ok('le rapport dit ce que la sonde a demandé et ce qu\'elle a trouvé',
-     bilan && bilan.sondes === 6 && bilan.trouvees === 4 && bilan.adoptees === 3,
+     bilan && bilan.sondes >= 9 && bilan.trouvees === 6 && bilan.adoptees === 5
+     && bilan.chaines === 1,
      JSON.stringify(bilan));
   /* UNE SEULE FOIS PAR SESSION DE STREAM. Le survol se répète, la requête non :
      sans cette garde, chaque passage de souris relancerait la même opération
