@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 980 assertions, sous Gecko
+npm run test-firefox        # les mêmes 983 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,72 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La ligne du pseudo quand Twitch ne la marque pas (v4.5.2)
+
+Signalement, le lendemain de la 4.5.1 : « j'ai plus de cartes dans Top Chaînes
+quand je n'ai plus qu'une seule qui a *en live avec* ». Le rapport donnait la
+correction de la veille **et** son insuffisance, sur deux lignes voisines :
+
+```
+modele      repli     ← un modèle A ÉTÉ trouvé, et nettoyé
+fabriquees  0         ← et il n'en est toujours rien sorti
+```
+
+La 4.5.1 avait bien ouvert la porte : la carte décorée servait désormais de
+modèle. Le clonage renonçait **un cran plus bas**.
+
+### Twitch ne marque pas toujours le pseudo
+
+Tout ce fichier visait le pseudo par `p[data-a-target="side-nav-title"]`, et
+c'est le bon repère — sur une carte ordinaire. La disposition « En live avec »,
+celle que Twitch rend avec `primary-with-small-avatar`, **ne le porte pas**.
+Sans ce crochet, la fabrication rendait `null` et pas une carte ne naissait.
+
+C'était déjà la cause du défaut d'avant. À la 4.5, une chaîne au quatorzième
+jour de subathon n'avait pas sa pastille : même chaîne, même disposition, même
+crochet manquant. Le repli avait alors été écrit **sur place**, dans la pose de
+la pastille. Deux endroits savaient la même chose, un seul l'avait appris.
+
+### Un seul endroit le sait
+
+`cardNameEl` cherche, dans le groupe nom + catégorie — `.side-nav-card__metadata`
+quand Twitch le pose, le bloc marqué sinon —, la première ligne qui n'est ni la
+catégorie ni porteuse d'un `title`. Le repli est **étroit**, et il le doit :
+écrire un pseudo dans la mauvaise ligne serait pire que de ne rien écrire. La
+troisième ligne de Twitch, le titre du direct, vit hors de ce groupe et n'est
+donc jamais candidate.
+
+Trois appelants s'en servent : la pastille de subathon, la fabrication des
+cartes du classement, et **le nom lu dans l'aperçu**. Ce troisième-là n'a jamais
+été signalé et écrivait pourtant déjà faux : le badge d'un co-stream annonçait
+« Co-stream de **Ironmouse** » — la capitalisation du login, son dernier recours
+— pendant que la carte de l'hôte, deux lignes plus haut, affichait « IronMouse ».
+
+### Ce que le rapport dit maintenant
+
+`page.modeleRefus` vaut `liens`, `pseudo`, ou rien : ce qui a manqué au clone
+quand il n'a pas abouti. Un « modele: repli » accompagné de « fabriquees 0 » ne
+disait pas lequel des deux — et c'est l'écart qu'un même utilisateur a rapporté
+deux fois de suite.
+
+### Le scénario 104, augmenté
+
+Il passe de quatre assertions à sept, et son décor prive désormais la carte de
+son crochet — ce que fait Twitch, et que le décor ne faisait pas.
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| la fabrication renonce sans repli | rien n'est fabriqué, et le rapport dit « pseudo » |
+| le repli vise la ligne porteuse d'un `title` | le pseudo est écrit dans la catégorie |
+| l'aperçu revient au sélecteur brut | le badge nomme « Seule » là où la carte dit « seule » |
+
+La deuxième ligne mérite un mot. La première rédaction n'assertait **que** le
+nombre de cartes fabriquées — or un repli qui se trompe de ligne les fabrique
+quand même : les compteurs restaient verts et les cartes affichaient n'importe
+quoi. Lire OÙ le nom et la catégorie ont été écrits est ce qui fait tomber le
+mutant. Les scénarios 17 et 23 clonent la même carte décorée ; leur décor a
+suivi.
 
 ## Top Chaînes vide, et ce que le rapport disait en deux chiffres (v4.5.1)
 
@@ -5387,7 +5453,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 104 scénarios, 980 assertions |
+| `npm test` | le harnais Playwright : 104 scénarios, 983 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -5408,7 +5474,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 914 Ko | 356 Ko | 3 189 → **2** |
+| `content.js` | 916 Ko | 356 Ko | 3 194 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 69 Ko | 34 Ko | 85 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
@@ -5425,7 +5491,7 @@ qu'il vient de peser, à 3 % près : assez large pour la croissance ordinaire
 d'une version, trop étroit pour une phrase qui décrit le produit d'avant.
 
 **Le retrait ne concerne QUE le paquet.** Il porte sur la copie assemblée dans
-`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde ses 3 024
+`dist/paquet/`, jamais sur les fichiers du dépôt : `content.js` garde TOUS ses
 commentaires sur les branches de développement, et `npm run addon` relit les
 sources après l'assemblage pour le constater — une ligne d'écriture qui
 viserait la racine au lieu du paquet ferait échouer le contrôle. Les branches

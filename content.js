@@ -9229,6 +9229,7 @@ const TSE_GATE_MAX_CLICKS = 5;
              « pool 2 124, fabriquées 0 ». Cette ligne dit laquelle des trois
              voies a servi, ou rien du tout. */
           modele: modeleVoie,
+          modeleRefus,
         },
         /* COMMENT LA SECTION SUIVIE A ÉTÉ TROUVÉE, et combien de fois il a
            fallu la rattraper. C'est le pivot du module : quinze appelants la
@@ -9593,6 +9594,37 @@ const TSE_GATE_MAX_CLICKS = 5;
     card.querySelector('[class*="promoted-followed-card__content"] p[title]') ||
     card.querySelector('[class*="promoted-followed-card__content"] p') ||
     card.querySelector('.side-nav-card__metadata p');
+
+  /* ── OÙ VIT LE PSEUDO, ET CE QUI ARRIVE QUAND IL N'EST PAS LÀ ─────────────
+     Tout ce fichier visait le pseudo par `p[data-a-target="side-nav-title"]`,
+     et c'est le bon repère sur une carte ordinaire. Deux signalements ont
+     montré la même limite par deux chemins différents, sur la même chaîne :
+       — un subathon au quatorzième jour dont la carte n'avait pas de pastille,
+         alors que l'aperçu affichait le badge ;
+       — « Top Chaînes » entièrement vide, parce que le clonage rendait null.
+     Dans les deux cas, la carte était en « En live avec » — la disposition que
+     Twitch rend avec `primary-with-small-avatar` — et le crochet manquait.
+
+     LE REPLI EST ÉTROIT, et il le doit : écrire un pseudo ou une pastille dans
+     la mauvaise ligne serait pire que de ne rien écrire. On cherche donc dans
+     le GROUPE nom+catégorie — `.side-nav-card__metadata` quand Twitch le pose,
+     le bloc marqué sinon — la première ligne qui n'est ni la catégorie ni
+     porteuse d'un `title`. La troisième ligne de Twitch (le titre du direct)
+     vit hors de ce groupe et n'est donc jamais candidate.
+
+     UN SEUL ENDROIT LE SAIT, et c'est ce qui compte : trois appelants s'en
+     servent — la pastille de subathon, la fabrication de cartes et le nom
+     affiché dans l'aperçu — et ils divergeaient déjà. */
+  const cardNameEl = (card) => {
+    const hook = card.querySelector('p[data-a-target="side-nav-title"]');
+    if (hook) return hook;
+    const groupe = card.querySelector('.side-nav-card__metadata')
+                || card.querySelector('[data-a-target="side-nav-card-metadata"]');
+    if (!groupe) return null;
+    const cat = cardCategoryEl(card);
+    return [...groupe.querySelectorAll('p')]
+      .find(x => x !== cat && !x.hasAttribute('title')) || null;
+  };
 
   const getCardCategory = (card) => {
     const el = cardCategoryEl(card);
@@ -10031,14 +10063,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        LE RAPPORT DIRA SI CE REPLI SERT, et c'est pour cela qu'il compte à
        part (cf. `subathons.sansAncre`) : deux versions ont corrigé à l'aveugle
        dans ce dépôt, il n'y en aura pas de troisième. */
-    const ancre = card.querySelector('p[data-a-target="side-nav-title"]')
-      || (() => {
-        const meta = card.querySelector('[data-a-target="side-nav-card-metadata"]');
-        if (!meta) return null;
-        const cat = cardCategoryEl(card);
-        return [...meta.querySelectorAll('p')]
-          .find(x => x !== cat && !x.hasAttribute('title')) || null;
-      })();
+    const ancre = cardNameEl(card);
     const titre = () => ancre;
     const nom   = () => ancre?.querySelector(':scope > .tse-subathon-nom') || null;
     const puce  = () => ancre?.querySelector(':scope > .tse-subathon-jour') || null;
@@ -11575,7 +11600,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     const displayNameFor = (login, fallback) => {
       const card = document.querySelector(`.side-nav-card[data-tse-login="${login}"]`);
       if (card) {
-        const p = card.querySelector('p[data-a-target="side-nav-title"]');
+        // Même repère que partout ailleurs, repli compris. Sans lui, une carte
+        // « En live avec » retombait sur le point 3 — la capitalisation du
+        // login — et l'aperçu écrivait « Ironmouse » là où la carte, juste à
+        // côté, affichait « IronMouse ».
+        const p = cardNameEl(card);
         /* LE NOM SE LIT DANS SON ENVELOPPE QUAND IL Y EN A UNE. Sur une carte
            de subathon le <p> porte aussi la pastille du jour, et son
            `textContent` vaut alors « SardocheJ9 » — un pseudo qui n'existe
@@ -13238,6 +13267,11 @@ const TSE_GATE_MAX_CLICKS = 5;
   let offlineTransitionsThisScan = 0;
   // D'où vient le modèle de clonage du classement mondial (cf. syncGlobalCards).
   let modeleVoie = null;
+  /* Et ce qui a MANQUÉ au clone quand il n'a pas abouti : « liens » ou
+     « pseudo ». Un rapport où `modele` est renseigné et `fabriquees` vaut zéro
+     ne disait pas lequel des deux — c'est exactement l'écart qu'un utilisateur
+     a rapporté deux fois de suite. */
+  let modeleRefus = null;
 
   /**
    * Applique à une carte une entrée de cache TseChannels (ou la sentinelle
@@ -15896,14 +15930,18 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     // Liens : tous les <a> de la carte doivent pointer vers la bonne chaîne.
     const links = card.querySelectorAll('a[href]');
-    if (!links.length) return null;
+    if (!links.length) { modeleRefus = 'liens'; return null; }
     links.forEach(a => a.setAttribute('href', `/${login}`));
 
-    // Pseudo — hook d'automatisation Twitch, distinct du <p title> qui porte
-    // la catégorie (cf. displayNameFor du module d'aperçu).
+    /* Pseudo — distinct du <p title> qui porte la catégorie. Passe par
+       `cardNameEl`, qui sait retrouver la ligne du nom sur une carte dont
+       Twitch n'a pas posé le crochet : sans ce repli, une seule chaîne suivie
+       en direct en « En live avec » rendait « Top Chaînes » entièrement vide.
+       `modeleRefus` dit au rapport ce qui a manqué, le cas échéant. */
     const name = data.name || (login.charAt(0).toUpperCase() + login.slice(1));
-    const nameEl = card.querySelector('p[data-a-target="side-nav-title"]');
-    if (!nameEl) return null;
+    const nameEl = cardNameEl(card);
+    if (!nameEl) { modeleRefus = 'pseudo'; return null; }
+    modeleRefus = null;
     setText(nameEl, name);
     if (nameEl.hasAttribute('title')) nameEl.setAttribute('title', name);
 

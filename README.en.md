@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 980 assertions, under Gecko
+npm run test-firefox        # the same 983 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,73 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The pseudonym's line, when Twitch does not mark it (v4.5.2)
+
+Report, the day after 4.5.1: "I've got no cards in Top Channels any more when
+only one of them is *live with*". The report gave the previous day's fix **and**
+its shortfall, on two adjacent lines:
+
+```
+modele      repli     ← a template WAS found, and cleaned
+fabriquees  0         ← and still nothing came out of it
+```
+
+4.5.1 had indeed opened the door: the decorated card now served as a template.
+The cloning gave up **one step further down**.
+
+### Twitch does not always mark the pseudonym
+
+This whole file aimed at the pseudonym through
+`p[data-a-target="side-nav-title"]`, and that is the right landmark — on an
+ordinary card. The "Live with" layout, the one Twitch renders with
+`primary-with-small-avatar`, **does not carry it**. Without that hook, card
+building returned `null` and not one card was born.
+
+That was already the cause of the previous defect. In 4.5, a channel on the
+fourteenth day of a subathon had no badge on its card: same channel, same
+layout, same missing hook. The fallback had then been written **on the spot**,
+inside the badge placement. Two places knew the same thing, and only one of them
+had learnt it.
+
+### A single place knows it
+
+`cardNameEl` looks, inside the name + category group — `.side-nav-card__metadata`
+when Twitch lays it down, the marked block otherwise — for the first line that
+is neither the category nor carries a `title`. The fallback is **narrow**, and
+it has to be: writing a pseudonym on the wrong line would be worse than writing
+nothing at all. Twitch's third line, the stream title, lives outside that group
+and is therefore never a candidate.
+
+Three callers use it: the subathon badge, the ranking's card building, and **the
+name read for the preview**. That third one was never reported and was already
+writing something wrong: a co-stream badge announced "Co-stream of
+**Ironmouse**" — the capitalised login, its last resort — while the host's own
+card, two lines above, displayed "IronMouse".
+
+### What the report says now
+
+`page.modeleRefus` reads `liens`, `pseudo`, or nothing: what the clone was
+missing when it did not go through. A "modele: repli" alongside "fabriquees 0"
+did not say which of the two — and that is the gap one and the same user
+reported twice in a row.
+
+### Scenario 104, extended
+
+It goes from four assertions to seven, and its fixture now strips the card of
+its hook — which is what Twitch does, and what the fixture did not.
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| card building gives up without the fallback | nothing is built, and the report says "pseudo" |
+| the fallback aims at the line carrying a `title` | the pseudonym is written into the category |
+| the preview goes back to the raw selector | the badge names "Seule" where the card says "seule" |
+
+The second line deserves a word. The first draft asserted **only** the number of
+cards built — but a fallback that picks the wrong line builds them all the same:
+the counters stayed green and the cards displayed nonsense. Reading WHERE the
+name and the category were written is what kills the mutant. Scenarios 17 and 23
+clone the same decorated card; their fixtures followed.
 
 ## Top Channels empty, and what the report said in two numbers (v4.5.1)
 
@@ -5138,7 +5205,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 104 scenarios, 980 assertions |
+| `npm test` | the Playwright harness: 104 scenarios, 983 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -5158,7 +5225,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 914 KB | 356 KB | 3,189 → **2** |
+| `content.js` | 916 KB | 356 KB | 3,194 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 69 KB | 34 KB | 85 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
@@ -5175,7 +5242,7 @@ within 3 %: wide enough for a version's ordinary growth, too narrow for a
 sentence describing the previous product.
 
 **The stripping affects the package ONLY.** It applies to the copy assembled in
-`dist/paquet/`, never to the repository's files: `content.js` keeps its 3,024
+`dist/paquet/`, never to the repository's files: `content.js` keeps ALL its
 comments on the development branches, and `npm run addon` re-reads the sources
 after assembly to confirm it — a write aimed at the root instead of the package
 would fail the check. The `claude/firefox-prod` and `claude/chrome-prod`
