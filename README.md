@@ -338,7 +338,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 911 Ko | 355 Ko | 3 194 → **2** |
+| `content.js` | 912 Ko | 355 Ko | 3 197 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 69 Ko | 34 Ko | 85 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 983 assertions, sous Gecko
+npm run test-firefox        # les mêmes 991 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2613,6 +2613,84 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Les deux gardes qui s'annulaient (v4.5.3)
+
+La 4.5.2 a corrigé un chemin et en a laissé un autre ouvert. Le rapport du
+lendemain le disait en trois lignes :
+
+```
+modele        repli     ← un modèle a été trouvé, et nettoyé
+modeleRefus   pseudo    ← et son clone n'avait pas de ligne de pseudo
+fabriquees    0
+```
+
+`subathons.sansAncre 0` au même instant : le repli de la 4.5.2 **fonctionnait**
+sur la carte de subathon. Il échouait sur le clone. La différence entre les deux
+tient à un mot : **la catégorie**.
+
+### Le repli se mordait la queue
+
+`cardNameEl` cherchait la ligne qui n'est « ni la catégorie ni porteuse d'un
+`title` », et demandait la catégorie à `cardCategoryEl`. Or le DERNIER repli de
+`cardCategoryEl` est « le premier `<p>` de la metadata » — c'est-à-dire **le
+pseudo lui-même**, dès que la chaîne n'annonce aucune catégorie.
+
+Sur une carte sans crochet **et** sans catégorie, une garde écartait le nom,
+l'autre écartait la catégorie, et il ne restait rien à écrire. Les deux gardes,
+décrites comme complémentaires, étaient en fait **mutuellement destructrices** —
+sur exactement la carte pour laquelle elles avaient été écrites.
+
+Le défaut se reproduit en huit lignes de décor, et il rend les trois valeurs du
+rapport à l'identique : `{"fab":0,"modele":"repli","refus":"pseudo"}`.
+
+### Et il en cachait un second, que personne n'aurait vu venir
+
+La même confusion faisait lire le **pseudo comme catégorie**. La fabrication
+écrivait donc le nom dans ce `<p>`, puis la catégorie **par-dessus**, dans le
+même. Corriger le premier défaut sans voir celui-là aurait remplacé un « Top
+Chaînes » vide par un « Top Chaînes » **plein et faux** : trente cartes nommées
+d'après leur catégorie. C'est l'assertion qui lit le contenu de la carte
+fabriquée qui l'a montré, pas celle qui les compte.
+
+La correction est dans `cardCategoryEl` : son dernier repli ne rend jamais la
+ligne du pseudo. **Une carte sans catégorie n'a pas de catégorie** ; c'est `null`
+qu'il faut rendre. `data-tse-category` ne vaut donc plus le login, et les filtres
+ne s'appliquent plus à une catégorie qui n'existe pas.
+
+### Un modèle se vérifie avant d'être adopté
+
+Reste la forme générale du défaut, qui aurait survécu à la correction du cas
+particulier. Le second choix de modèle ajouté en 4.5.1 passe **avant** le modèle
+mémorisé ; s'il se révèle inexploitable, la fabrication rend `null` et le clonage
+abandonne pour de bon.
+
+On exige donc du candidat ce que la fabrication exigera de son clone : un lien,
+et une ligne de pseudo. Un candidat qui échoue n'est ni adopté **ni mémorisé** —
+il laisse la place au suivant, et à défaut au modèle relevé plus tôt dans la
+session. La carte qui n'est pas une carte de chaîne — une promotion de Twitch,
+une invite à ouvrir les stories — s'écarte ici toute seule, sans qu'on ait à la
+nommer. Les deux boucles de modèle sont concernées : le classement mondial et
+les cartes en avance sur Twitch.
+
+### Les scénarios 105 et 106
+
+Huit assertions, quatre mutants, aucun survivant :
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| `cardCategoryEl` retrouve son repli naïf | la carte fabriquée porte « c0 » au lieu de son pseudo |
+| | …et la chaîne sans catégorie s'en voit inventer une à son nom |
+| le garde saute dans le classement mondial | le modèle mémorisé ne reprend jamais la main |
+| le garde saute dans les cartes en avance | plus une seule carte n'est posée en avance |
+| le garde ne vérifie plus que le lien | les deux à la fois |
+
+**Le décor a dû être corrigé une fois**, et l'erreur mérite d'être écrite : il
+faisait passer la carte illisible en premier *dans le DOM*. Or c'est le **tri de
+l'extension** qui décide de l'ordre, et il range par spectateurs — la carte
+propre repassait donc devant, le garde n'avait plus rien à écarter, et le mutant
+qui le retire survivait en silence. La carte illisible est désormais la plus
+regardée des deux.
 
 ## La ligne du pseudo quand Twitch ne la marque pas (v4.5.2)
 
@@ -5899,7 +5977,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 104 scénarios, 983 assertions |
+| `npm test` | le harnais Playwright : 106 scénarios, 991 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
