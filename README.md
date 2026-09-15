@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 968 assertions, sous Gecko
+npm run test-firefox        # les mêmes 975 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,117 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Trois retours, et ce qu'un audit a trouvé derrière (v4.5)
+
+### Les entailles disent « coupure », et non « autre catégorie »
+
+Demande : « peux-tu montrer sur la frise une façon de montrer que ce sont bien
+des coupures ? » La marque était un trait blanc posé sur le ruban — c'est-à-dire
+exactement ce à quoi ressemble une part de plus, d'une couleur qu'on n'a pas
+encore vue.
+
+Ce qui fait lire une coupure, c'est l'**interruption** : le fond reparaît là où
+le direct s'est arrêté, deux arêtes **ambre** marquent l'entaille, et elle
+dépasse légèrement en haut et en bas pour qu'on la voie comme une entaille et non
+comme un segment. L'ambre est celui du compte écrit dans l'en-tête : l'œil relie
+« 3 coupures » aux trois entailles sans qu'un mot le dise.
+
+Le plancher passe de deux à trois pixels — à deux, l'entaille se confondait avec
+la jointure de deux parts voisines. Et chaque entaille porte sa **durée** en
+infobulle, que le compte ne dit pas et que trois pixels ne peuvent pas dire ; le
+compte lui-même porte la liste complète.
+
+### Au-delà de trois coupures
+
+Question posée, réponse chiffrée. Deux mécanismes, deux bornes :
+
+- les coupures **observées** pendant que l'onglet est ouvert s'accumulent
+  jusqu'à `RECONNECT_CUTS_MAX`, soit vingt-quatre ;
+- les coupures **retrouvées** dans les archives dépendent du nombre d'archives
+  demandées. Trois en 4.3.1 bornaient à deux, cinq en 4.4 bornaient à quatre.
+  **Huit** en couvrent sept.
+
+Au-delà, on paierait une charge utile — chaque archive porte ses chapitres —
+pour un cas qui ne se produit pas.
+
+### La pastille de subathon qui manquait
+
+Signalement : une chaîne au quatorzième jour, badge **présent dans l'aperçu** —
+donc détection juste — et **aucune pastille sur sa carte**, quand ses voisines en
+avaient une. Elle était en « En live avec », la disposition que Twitch rend
+autrement.
+
+Tout ce fichier vise le pseudo par `p[data-a-target="side-nav-title"]`. Il y a
+désormais un **repli**, et il est étroit : la première ligne de la metadata qui
+n'est ni la catégorie ni un élément à nous. Écrire « J14 » dans la mauvaise ligne
+serait pire que de ne rien écrire.
+
+**Et une mesure, parce que deux versions ont déjà corrigé à l'aveugle ici.** Le
+rapport sépare enfin deux choses que l'écart `detectes` / `marquees` confondait :
+`sansPastille` ne compte que des cartes **présentes et décorées** dont le jour est
+connu, et `sansAncre` dit combien d'entre elles n'ont pas le crochet du pseudo. Si
+les deux sont égaux, la cause est nommée.
+
+### La liste qui se dérobe sous le pointeur
+
+Signalement : « en Top Chaînes, on n'a pas le temps de lire une carte, elle
+disparaît car la liste s'update et la souris n'est plus sur la carte qu'on
+survole. »
+
+C'est structurel : le classement mondial se retrie à chaque relevé, une chaîne
+gagne mille spectateurs, et la carte glisse de trois rangs sous un pointeur qui
+n'a pas bougé. L'aperçu se ferme alors non parce qu'on l'a quitté, mais parce que
+la carte est partie.
+
+**Le tri attend, il ne s'annule pas.** Tant qu'un aperçu est ouvert, l'ordre
+affiché reste celui qu'on lisait, et la carte survolée n'est pas retirée même si
+elle sort du top trente. La fermeture programme un scan : le classement reprend
+aussitôt sa place. Les **contenus**, eux, continuent de vivre — compteurs,
+durées, badges : ce qui gênait était le mouvement, pas la fraîcheur, et une
+retenue qui gèlerait aussi les contenus remplacerait une gêne par une carte qui
+ment.
+
+### Ce que l'audit a trouvé, et que personne n'aurait signalé
+
+La règle de la 4.2 vide la metadata d'une carte **sans catégorie** : elle épargne
+le `<p>` du pseudo et ses **ancêtres**, et masque tout le reste. Elle masquait
+donc aussi ses **descendants** — or le pseudo d'une carte de subathon n'est pas
+un texte nu : c'est une enveloppe et une pastille, toutes deux posées **dans** le
+`<p>`.
+
+**Une chaîne sans catégorie en subathon perdait sa pastille et son nom.** Les
+deux conditions se rencontrent rarement ; le rapport de l'utilisateur rend
+d'ailleurs `cartes 0` sur ce bloc. Personne ne l'aurait signalé avant longtemps,
+et il aurait été très difficile de le relier à sa cause. Une troisième exclusion
+épargne désormais la descendance, et le scénario 99 porte le cas.
+
+C'est le second défaut de cette série livré par une correction précédente. Les
+deux fois, la cause est la même : une règle écrite pour un cas, appliquée à une
+population plus large qu'on ne l'avait regardée.
+
+### Ce que l'audit a vérifié sans rien trouver
+
+- **Aucun identifiant mort** parmi les dix-huit ajoutés depuis la 4.2 : chacun
+  est déclaré et lu.
+- **Tous les registres sont bornés** : `passeDirect` (120 chaînes × 200
+  chapitres), `sondees`, `chapitres`, `declarees`, `reprises`, `derniersDirects`,
+  `frises`, `empileurs`, `ecarteesDeclaree`.
+- **Aucune trace de débogage** : les `console.*` sont l'API publique et deux
+  avertissements de panne. Aucun `TODO`, `FIXME` ni `debugger`.
+- **Les champs neufs du rapport arrivent bien au panneau** : ils vivent dans des
+  objets que le bloc aplatit en entier, ce qui est le seul montage qui ne se
+  perde pas en silence.
+
+### Un mutant qui survit, et pourquoi on le dit
+
+`close()` programme un scan pour que l'ordre reprenne sa place **tout de suite**
+au lieu d'attendre le relevé suivant. Retirer cette ligne ne fait tomber aucune
+assertion : dans le banc, le relevé périodique est accéléré à six cents
+millisecondes et rattrape le retard avant qu'on mesure. En production il vaut
+trente secondes, et la différence est bien réelle — mais une assertion qui
+prétendrait la voir ici serait une assertion de hasard. On garde la ligne, et on
+écrit qu'elle n'est pas prouvée.
 
 ## Autant de coupures que le direct en a eu (v4.4)
 
@@ -5200,7 +5311,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 102 scénarios, 968 assertions |
+| `npm test` | le harnais Playwright : 103 scénarios, 975 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -5221,7 +5332,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 886 Ko | 352 Ko | 3 180 → **2** |
+| `content.js` | 886 Ko | 352 Ko | 3 189 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 69 Ko | 34 Ko | 85 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |

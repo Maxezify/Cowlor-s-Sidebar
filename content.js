@@ -2614,9 +2614,31 @@ const TSE_GATE_MAX_CLICKS = 5;
        conteneur, il la rend INERTE dans ce cas au lieu de la rendre fausse. */
     .side-nav-card[data-tse-nocat="true"]
       [data-a-target="side-nav-card-metadata"]:has(p[data-a-target="side-nav-title"])
-      *:not(p[data-a-target="side-nav-title"]):not(:has(p[data-a-target="side-nav-title"])) {
+      *:not(p[data-a-target="side-nav-title"]):not(:has(p[data-a-target="side-nav-title"])):not(p[data-a-target="side-nav-title"] *) {
       display: none !important;
     }
+
+    /* ── TROIS EXCLUSIONS, ET LA DERNIÈRE EST ARRIVÉE PAR UN AUDIT ────────
+       Les deux premières épargnent le pseudo lui-même et ses ANCÊTRES. La
+       troisième épargne ses DESCENDANTS, et son absence était un défaut réel
+       livré en 4.2 : le pseudo d'une carte de subathon n'est pas un texte nu,
+       c'est une enveloppe « .tse-subathon-nom » et une pastille
+       « .tse-subathon-jour », toutes deux posées DANS le <p>. Ni l'une ni
+       l'autre ne contient le <p> — la règle les masquait donc, c'est-à-dire
+       qu'une chaîne sans catégorie en subathon perdait sa pastille ET SON
+       NOM.
+
+       LA TROISIÈME EXCLUSION TIENT SUR LA MÊME LIGNE, et c'est structurel :
+       une espace avant un « :not » en fait un COMBINATEUR DESCENDANT, donc une
+       règle qui vise les descendants du « * » au lieu de le filtrer. Le banc
+       l'a pris au premier passage — le mini-avatar de co-stream reparaissait.
+       La ligne est longue ; la couper la casserait.
+
+       Le cas ne s'était pas présenté chez l'utilisateur — le rapport rend
+       « cartes 0 » — et il ne se serait vu que le jour où les deux conditions
+       se rencontrent. C'est exactement le genre de défaut qu'un audit existe
+       pour trouver : personne ne l'aurait signalé avant longtemps, et il
+       aurait été très difficile à relier à sa cause. */
 
     .side-nav-card[data-tse-offline="true"] { display: none !important; }
     .side-nav-section.tse-section-hidden { display: none !important; }
@@ -3860,14 +3882,37 @@ const TSE_GATE_MAX_CLICKS = 5;
        objet posé dessus. Elle va d'un bord à l'autre de sa hauteur, et sa
        largeur est celle du trou — plancher de deux pixels, sans quoi trois
        minutes sur six heures ne feraient rien du tout. */
+    /* ── LA MARQUE DIT « COUPURE », ET NON « AUTRE CATÉGORIE » ────────────
+       Un trait blanc posé sur le ruban se lit comme une part de plus : une
+       bande d'une couleur qu'on n'a pas encore vue. Un utilisateur l'a
+       demandé en ces termes — « montrer que ce sont bien des coupures ».
+
+       CE QUI FAIT LIRE UNE COUPURE, c'est l'INTERRUPTION : le fond du ruban
+       reparaît là où le direct s'est arrêté, deux arêtes ambre marquent
+       l'entaille, et elle dépasse légèrement en haut et en bas pour qu'on la
+       voie comme une entaille et non comme un segment. L'ambre est celui du
+       compte écrit dans l'en-tête, et c'est délibéré : l'œil relie « 3
+       coupures » aux trois entailles sans qu'un mot le dise.
+
+       LE PLANCHER PASSE À TROIS PIXELS. Une coupure d'une minute sur huit
+       heures ne fait pas un pixel ; à deux, l'entaille se confondait avec la
+       jointure de deux parts voisines. Trois la rend distincte, et la
+       proportion reste juste à l'échelle du ruban. */
     .tse-preview__frise-coupure {
       position: absolute;
-      top: 0;
-      bottom: 0;
-      min-width: 2px;
-      background: rgba(255, 255, 255, 0.92);
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
-      pointer-events: none;
+      top: -2px;
+      bottom: -2px;
+      min-width: 3px;
+      border-radius: 1px;
+      background: var(--color-background-base, #0e0e10);
+      box-shadow: inset 1px 0 0 rgba(255, 196, 92, 0.95),
+                  inset -1px 0 0 rgba(255, 196, 92, 0.95),
+                  0 0 0 1px rgba(0, 0, 0, 0.55);
+      /* L'infobulle porte la DURÉE de la coupure, que le ruban ne peut pas
+         dire : trois pixels ne sont pas une échelle. Il faut donc que la
+         marque reçoive le pointeur. */
+      pointer-events: auto;
+      cursor: default;
     }
     /* Une largeur plancher : un segment de deux minutes sur six heures ferait
        moins d'un pixel et disparaîtrait du ruban alors qu'il figure dans la
@@ -9314,8 +9359,29 @@ const TSE_GATE_MAX_CLICKS = 5;
             if (e.subathon.jour === null) sansJour++;
             if (e.subathon.voie in v) v[e.subathon.voie]++;
           });
+          /* ── CE QUI SE PERD ENTRE LA DÉTECTION ET LA CARTE ──────────────
+             `detectes` vient du CACHE, `marquees` du DOM, et leur écart avait
+             deux explications qu'aucun chiffre ne séparait : une chaîne
+             détectée dont la carte n'est pas à l'écran — le cas ordinaire —
+             et une carte présente qui n'a pas pu recevoir sa pastille, qui est
+             un défaut. Un signalement a montré la seconde : jour 14 dans
+             l'aperçu, rien sur la carte.
+
+             `sansPastille` ne compte QUE des cartes présentes et décorées dont
+             le jour est connu. `sansAncre` dit combien d'entre elles n'ont pas
+             le crochet du pseudo — si les deux sont égaux, la cause est
+             nommée, et le repli posé dans `appliquerSubathon` est le bon. */
+          const manquantes = cartes.filter((c) => {
+            const l = c.dataset.tseLogin;
+            if (!l || c.dataset.tseSubathonDay) return false;
+            const sb = cache.get(l)?.subathon;
+            return !!sb && Number.isInteger(sb.jour);
+          });
           return { detectes, sansJour, voies: v,
-                   marquees: cartes.filter(c => c.dataset.tseSubathon).length };
+                   marquees: cartes.filter(c => c.dataset.tseSubathon).length,
+                   sansPastille: manquantes.length,
+                   sansAncre: manquantes.filter(
+                     c => !c.querySelector('p[data-a-target="side-nav-title"]')).length };
         })(),
         relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
         /* L'ÉTAT DU RÉSEAU, qui n'y figurait pas. Une pause GraphQL en cours
@@ -9943,11 +10009,34 @@ const TSE_GATE_MAX_CLICKS = 5;
        la réponse tranchera. `null`, lui, défait bien la marque : c'est ainsi
        qu'un streamer qui retire « subathon » de son titre la perd. */
     if (sub === undefined) return;
-    const titre = () => card.querySelector('p[data-a-target="side-nav-title"]');
-    const nom   = () => card.querySelector(
-      'p[data-a-target="side-nav-title"] > .tse-subathon-nom');
-    const puce  = () => card.querySelector(
-      'p[data-a-target="side-nav-title"] > .tse-subathon-jour');
+    /* ── LE PSEUDO N'A PAS TOUJOURS SON CROCHET ───────────────────────────
+       Tout ce fichier vise le pseudo par `p[data-a-target="side-nav-title"]`,
+       et c'est le bon repère sur une carte ordinaire. Un signalement a montré
+       la limite : une chaîne au quatorzième jour de son subathon, badge
+       présent dans l'aperçu — donc détection juste — et AUCUNE pastille sur sa
+       carte, quand ses voisines en avaient une. Elle était en « En live avec »,
+       la disposition que Twitch rend avec `primary-with-small-avatar`.
+
+       ON SE DONNE DONC UN REPLI, et il est étroit : la première ligne de la
+       metadata qui n'est ni la catégorie ni un élément à nous. Deux gardes,
+       parce qu'écrire « J14 » dans la mauvaise ligne serait pire que de ne
+       rien écrire — la catégorie est explicitement écartée, et le repli ne
+       sert que si le crochet a réellement manqué.
+
+       LE RAPPORT DIRA SI CE REPLI SERT, et c'est pour cela qu'il compte à
+       part (cf. `subathons.sansAncre`) : deux versions ont corrigé à l'aveugle
+       dans ce dépôt, il n'y en aura pas de troisième. */
+    const ancre = card.querySelector('p[data-a-target="side-nav-title"]')
+      || (() => {
+        const meta = card.querySelector('[data-a-target="side-nav-card-metadata"]');
+        if (!meta) return null;
+        const cat = cardCategoryEl(card);
+        return [...meta.querySelectorAll('p')]
+          .find(x => x !== cat && !x.hasAttribute('title')) || null;
+      })();
+    const titre = () => ancre;
+    const nom   = () => ancre?.querySelector(':scope > .tse-subathon-nom') || null;
+    const puce  = () => ancre?.querySelector(':scope > .tse-subathon-jour') || null;
     /* DÉFAIRE REND LE <p> À L'ÉTAT OÙ TWITCH L'AVAIT LAISSÉ : la pastille
        part, et l'enveloppe rend ses enfants à leur place AVANT de se retirer.
        Les rendre plutôt que les jeter, là encore, pour que le nœud de texte
@@ -10537,18 +10626,25 @@ const TSE_GATE_MAX_CLICKS = 5;
          — quand le direct vient de commencer, l'archive SUIVANTE est celle du
            tronçon d'AVANT une éventuelle coupure. C'est elle qui porte le
            passé qu'aucune observation ne peut plus rattraper.
-       CINQ, ET NON TROIS. La 4.3.1 en demandait trois, ce qui suffisait à
+       HUIT, ET NON TROIS. La 4.3.1 en demandait trois, ce qui suffisait à
        remonter UN cran. Un direct coupé plusieurs fois a une archive par
        tronçon, et la chaîne se remonte de proche en proche (cf.
-       chaineDesTroncons) : trois archives bornaient donc le produit à deux
-       coupures, et le signalement est arrivé sur la deuxième. Cinq en couvre
-       quatre, ce qui est très au-delà de ce qu'une soirée connaît ; au-delà,
-       c'est la requête qui grossirait sans rien apprendre de plus, chaque
-       archive portant ses chapitres. */
+       chaineDesTroncons) : trois archives bornaient le produit à deux
+       coupures, et le signalement est arrivé sur la deuxième. Cinq ont suivi,
+       puis la question est revenue — « ça va bien au-delà de trois
+       coupures ? » — sur une capture qui en montrait trois. Huit en couvre
+       SEPT, ce qui dépasse ce qu'une soirée de mauvaise connexion produit.
+
+       CE QUE ÇA COÛTE, ET POURQUOI ON S'ARRÊTE LÀ : chaque archive porte ses
+       chapitres, donc la réponse grossit avec le nombre demandé. La requête
+       ne part qu'une fois par session de stream et seulement au survol — mais
+       au-delà de huit on paierait une charge utile pour un cas qui ne se
+       produit pas. Les coupures OBSERVÉES, elles, ne dépendent pas de cette
+       borne : elles s'accumulent jusqu'à RECONNECT_CUTS_MAX. */
     const RECENT_QUERY =
       'query TseVodRecent($login: String!) {' +
       '  user(login: $login) {' +
-      '    videos(first: 5, sort: TIME, type: ARCHIVE) {' +
+      '    videos(first: 8, sort: TIME, type: ARCHIVE) {' +
       '      edges { node {' +
       // `lengthSeconds` est ce qui permet de savoir si l'enregistrement
       // s'étend jusqu'au départ du live, ou s'il s'est terminé avant.
@@ -11976,6 +12072,15 @@ const TSE_GATE_MAX_CLICKS = 5;
         const coup = document.createElement('span');
         coup.className = 'tse-preview__frise-coupures';
         coup.textContent = S.uiTrailCuts(f.coupures);
+        /* LA DURÉE DE CHAQUE COUPURE, en infobulle. Le ruban dit OÙ, le compte
+           dit COMBIEN, et ni l'un ni l'autre ne dit COMBIEN DE TEMPS — trois
+           pixels ne sont pas une échelle. On n'invente aucun libellé pour
+           autant : des durées séparées par des points, à côté d'un compte qui
+           dit déjà de quoi il s'agit, se lisent dans toutes les langues. */
+        const durees = f.marques
+          .map(m => formatDuree(Math.max(0, m.reprise - m.fin)))
+          .filter(Boolean);
+        if (durees.length) coup.title = durees.join(' · ');
         titre.appendChild(coup);
       }
       const total = document.createElement('span');
@@ -12122,6 +12227,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         trait.style.left = Math.max(0, Math.min(100 - Math.max(large, 0.5), gauche))
           .toFixed(3) + '%';
         trait.style.width = large.toFixed(3) + '%';
+        trait.title = formatDuree(Math.max(0, m.reprise - m.fin));
         barre.appendChild(trait);
       }
       bloc.appendChild(barre);
@@ -12696,8 +12802,14 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const close = () => {
       removeIframe();
+      const etait = currentLogin;
       currentLogin = null;
       currentCard = null;
+      /* ── LA LISTE REPREND SA VIE QUAND ON LA LÂCHE ────────────────────────
+         Le tri est SUSPENDU tant qu'un aperçu est ouvert (cf. applySorting) :
+         sans ce réveil, la liste resterait figée jusqu'au prochain relevé,
+         c'est-à-dire jusqu'à une demi-minute après qu'on l'a relâchée. */
+      if (etait) scheduleScan();
       if (el) {
         el.dataset.tseVisible = 'false';
         // Garder le DOM en place (singleton), juste invisible.
@@ -13070,6 +13182,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       // Journal du dernier aperçu (cf. tse.apercu). Copie : personne d'autre
       // n'écrit dedans, et le rendre tel quel inviterait à le faire.
       journal: () => journalApercu.slice(),
+      /* Un aperçu est-il ouvert ? Lu par le tri, qui se suspend pendant ce
+         temps-là : une carte qui se déplace sous le pointeur emporte l'aperçu
+         avec elle. */
+      ouvert: () => !!currentLogin,
+      // La carte que l'aperçu montre, pour que la synchronisation du
+      // classement mondial sache laquelle ne pas retirer.
+      carte: () => currentCard,
       // Ce qu'a fait le délai d'intention. Copie, même raison.
       bilanSurvol: () => ({ ...bilanSurvol }),
       /* Ce que Twitch a répondu aux demandes de chapitres. Au rapport et non
@@ -15119,6 +15238,26 @@ const TSE_GATE_MAX_CLICKS = 5;
     const section = followedSection();
     if (!section) return;
 
+    /* ── ON NE DÉPLACE PAS CE QU'ON EST EN TRAIN DE LIRE ──────────────────
+       Signalement : « en Top Chaînes, on n'a pas le temps de lire une carte,
+       elle disparaît car la liste s'update et la souris n'est plus sur la
+       carte qu'on survole ». C'est exact, et c'est structurel : le classement
+       mondial se retrie à chaque relevé, une chaîne gagne mille spectateurs,
+       et la carte glisse de trois rangs sous un pointeur qui n'a pas bougé.
+       L'aperçu se ferme alors non pas parce qu'on l'a quitté, mais parce que
+       la carte est partie.
+
+       LE TRI ATTEND, IL NE S'ANNULE PAS. Tant qu'un aperçu est ouvert, l'ordre
+       affiché reste celui qu'on lisait ; la fermeture programme un scan (cf.
+       `close`), et le classement reprend aussitôt sa place. Les CONTENUS, eux,
+       continuent de se mettre à jour — compteurs, durées, badges : ce qui
+       gênait était le mouvement, pas la fraîcheur.
+
+       POURQUOI ICI ET PAS AILLEURS : c'est le seul endroit qui déplace des
+       cartes. Les filtres masquent, la synchronisation ajoute en fin de liste,
+       et ni l'un ni l'autre ne fait bouger ce qui est au-dessus du pointeur. */
+    if (preview.ouvert()) return;
+
     const cards = [...section.querySelectorAll('.side-nav-card')];
     if (cards.length < 2) return;
     const container = cards[0].parentElement;
@@ -15548,7 +15687,16 @@ const TSE_GATE_MAX_CLICKS = 5;
       // que la marche structurelle.
       renderViewers(card, rec.viewers);
     }
-    for (const [login, card] of existing) if (!keep.has(login)) releaseGlobalCard(card);
+    /* ── ON NE RETIRE PAS NON PLUS LA CARTE QU'ON SURVOLE ─────────────────
+       Même signalement que pour le tri, autre chemin : une chaîne qui SORT du
+       top trente pendant qu'on lit sa carte la voyait disparaître sous le
+       pointeur. Elle reste tant que l'aperçu est ouvert, et le scan programmé
+       à la fermeture la retire alors sans que personne ne la regarde. */
+    for (const [login, card] of existing) {
+      if (keep.has(login)) continue;
+      if (preview.ouvert() && card === preview.carte()) continue;
+      releaseGlobalCard(card);
+    }
   }
 
   /* ============================================================
