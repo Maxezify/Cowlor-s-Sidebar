@@ -14707,6 +14707,156 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await page.close();
 }
 
+/* ═════════ LES DEUX THÈMES DE TWITCH ═══════════════════════════════════
+   « Il existe un thème clair sur Twitch. J'aimerais que tu adaptes
+   automatiquement entièrement l'extension. » Cette feuille n'en connaissait
+   qu'un : ses surfaces étaient écrites en dur pour le sombre, si bien qu'en
+   clair l'extension posait des panneaux noirs au milieu d'une page blanche.
+
+   CE QUI SE MESURE ICI N'EST PAS L'ASPECT, C'EST LA LISIBILITÉ. Une capture
+   ne prouve rien — elle montre ce qu'on veut y voir — et « adapté » n'est pas
+   une opinion : c'est un rapport de contraste. On relève donc, sur chaque
+   texte que l'extension dessine, le contraste contre son fond RÉELLEMENT
+   composé — les badges sont translucides, leur fond n'est pas la surface du
+   panneau mais le mélange des deux — et l'on exige le seuil AA dans les deux
+   thèmes.
+
+   LE HARNAIS POSE LES VARIABLES DE TWITCH, sans quoi ces nombres ne voudraient
+   rien dire : la première rédaction relevait du texte clair « sur du gris 153 »
+   — le fond du harnais — et déclarait tout bon. C'est en donnant à la page
+   les deux palettes de Twitch que trois défauts sont apparus, dont un qui
+   datait du thème SOMBRE. */
+{
+  titre('115. Le thème clair — chaque texte tient le seuil, dans les deux thèmes');
+  const page = await fresh();
+  await page.evaluate(() => {
+    window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 3600e3).toISOString(),
+                             viewers: 900, game: 'Just Chatting', tags: [] } };
+    window.__addCard('alpha', 'Discussions', '900');
+  });
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 1, 9000);
+  await hoverLogin(page, 'alpha');
+  await attendre(page,
+    () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 8000);
+  /* UN BADGE DE CHAQUE ESPÈCE, POSÉ À LA MAIN. Les réunir tous dans un même
+     aperçu ne se produit pas dans la vie ; c'est pourtant la seule façon de
+     les mesurer d'un coup, et chacun est mesuré contre SON propre fond. */
+  await page.evaluate(() => {
+    const z = document.querySelector('.tse-preview__badges')
+           || document.querySelector('.tse-preview__body');
+    for (const m of ['hype', 'discount', 'costream', 'squad', 'sponsor', 'sub',
+                     'exsub', 'ccl', 'switch', 'subathon', '']) {
+      const b = document.createElement('span');
+      b.className = 'tse-preview__badge' + (m ? ' tse-preview__badge--' + m : '');
+      b.textContent = 'Aa'; z.appendChild(b);
+    }
+  });
+  await wait(page, 200);
+
+  const mesurer = () => page.evaluate(() => {
+    const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+    const L = (r) => 0.2126 * lin(r[0]) + 0.7152 * lin(r[1]) + 0.0722 * lin(r[2]);
+    const rgb = (s) => { const m = /(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)(?:[,\s/]+([\d.]+))?/.exec(s || '');
+      return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null; };
+    const over = (f, b) => f[3] >= 1 ? f : [0, 1, 2].map(i => f[i] * f[3] + b[i] * (1 - f[3]));
+    const ratio = (a, b) => { const la = L(a), lb = L(b);
+      return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05); };
+    /* LE FOND EFFECTIF SE REMONTE : un badge translucide sur un panneau opaque
+       ne se juge pas contre sa propre déclaration de fond. */
+    const fondDe = (el) => {
+      let e = el; const pile = [];
+      while (e) { const c = rgb(getComputedStyle(e).backgroundColor);
+        if (c && c[3] > 0) pile.push(c);
+        if (c && c[3] >= 1) break; e = e.parentElement; }
+      let f = [255, 255, 255];
+      for (let i = pile.length - 1; i >= 0; i--) f = over(pile[i], f);
+      return f;
+    };
+    const lire = (sel) => { const e = document.querySelector(sel); if (!e) return null;
+      const fond = fondDe(e);
+      return { sel, c: +ratio(over(rgb(getComputedStyle(e).color), fond), fond).toFixed(2) }; };
+    const badges = [...document.querySelectorAll('.tse-preview__badge')]
+      .map(b => '.' + [...b.classList].filter(c => c.startsWith('tse-preview__badge')).join('.'));
+    /* L'ENCRE : UNE MESURE DE SENS, PAS DE VALEUR. Une trentaine de surfaces
+       de cette feuille sont posées « à l'encre » — un lavis dont seules les
+       composantes basculent. Vérifier la variable, c'est vérifier une
+       déclaration ; ce qui compte est que le lavis ÉCLAIRCISSE en sombre et
+       ASSOMBRISSE en clair. Le badge neutre est exactement cela : un fond
+       d'encre à 8 % sur le panneau, et rien d'autre. */
+    const neutre = [...document.querySelectorAll('.tse-preview__badge')]
+      .find(b => ![...b.classList].some(c => c.startsWith('tse-preview__badge--')));
+    const panneau = rgb(getComputedStyle(
+      (neutre || document.body).closest('.tse-preview') || document.body).backgroundColor)
+      || [255, 255, 255];
+    const lavis = neutre ? over(rgb(getComputedStyle(neutre).backgroundColor), panneau) : null;
+    return {
+      theme: document.documentElement.getAttribute('data-tse-theme'),
+      rapport: window.tse.panneau.rapport().page.theme,
+      encreEclaircit: lavis ? L(lavis) > L(panneau) : null,
+      cibles: ['.tse-dd-btn', '.tse-sort-toggle', '.tse-mode-tab[aria-pressed="false"]',
+               '.tse-viewers', '.tse-uptime', '.tse-preview__title',
+               ...new Set(badges)].map(lire).filter(Boolean),
+    };
+  });
+
+  const sombre = await mesurer();
+  ok('le thème sombre est reconnu, posé sur la racine, et dit par le rapport',
+     sombre.theme === 'dark' && sombre.rapport === 'dark', JSON.stringify(sombre.theme));
+  ok('…et chacun des textes de l\'extension y tient le seuil AA',
+     sombre.cibles.length >= 15 && sombre.cibles.every(c => c.c >= 4.5),
+     JSON.stringify(sombre.cibles.filter(c => c.c < 4.5)));
+
+  /* LE BASCULEMENT SE FAIT SANS RECHARGEMENT — c'est un interrupteur du menu
+     de Twitch, et la page ne bouge pas autour. Un thème qui n'arriverait qu'au
+     prochain survol laisserait l'aperçu noir sur une page devenue blanche. */
+  await page.evaluate(() => document.documentElement.setAttribute('data-a-theme', 'light'));
+  await wait(page, 300);
+  const clair = await mesurer();
+  ok('le passage en clair est vu sans rechargement',
+     clair.theme === 'light' && clair.rapport === 'light', JSON.stringify(clair.theme));
+  ok('…et chacun des textes y tient le seuil AA lui aussi',
+     clair.cibles.length >= 15 && clair.cibles.every(c => c.c >= 4.5),
+     JSON.stringify(clair.cibles.filter(c => c.c < 4.5)));
+  /* ET L'ENCRE A CHANGÉ DE SENS. Sans cette assertion, une encre restée
+     blanche passait tout le reste du scénario : les textes tiennent leur
+     seuil, et trente lavis deviennent invisibles sans qu'un seul contraste
+     bouge. Le mutant qui la fige a survécu à la première rédaction. */
+  ok('…et l\'encre a changé de sens : elle éclaircit en sombre, elle assombrit en clair',
+     sombre.encreEclaircit === true && clair.encreEclaircit === false,
+     JSON.stringify({ sombre: sombre.encreEclaircit, clair: clair.encreEclaircit }));
+
+  /* L'ARC-EN-CIEL SE MESURE SUR TOUT SON TOUR. Sa couleur de repos ne dit rien
+     des sept autres : la première rédaction n'avait vérifié qu'elle, et la
+     sonde a saisi le badge en plein cycle à 4,45:1 — sous le seuil, un
+     huitième du temps. On échantillonne donc le tour entier. */
+  const pire = await page.evaluate(async () => {
+    const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+    const L = (r) => 0.2126 * lin(r[0]) + 0.7152 * lin(r[1]) + 0.0722 * lin(r[2]);
+    const rgb = (s) => { const m = /(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)(?:[,\s/]+([\d.]+))?/.exec(s || '');
+      return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null; };
+    const over = (f, b) => f[3] >= 1 ? f : [0, 1, 2].map(i => f[i] * f[3] + b[i] * (1 - f[3]));
+    const ratio = (a, b) => { const la = L(a), lb = L(b);
+      return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05); };
+    const e = document.querySelector('.tse-preview__badge--subathon');
+    const panneau = rgb(getComputedStyle(e.closest('.tse-preview')).backgroundColor) || [255, 255, 255];
+    const anim = document.getAnimations().find(a => a.effect?.target === e);
+    const duree = anim ? anim.effect.getComputedTiming().duration : 1500;
+    let pire = 99;
+    const fin = performance.now() + duree * 1.1;
+    while (performance.now() < fin) {
+      const st = getComputedStyle(e);
+      const fond = over(rgb(st.backgroundColor), panneau);
+      pire = Math.min(pire, ratio(over(rgb(st.color), fond), fond));
+      await new Promise(requestAnimationFrame);
+    }
+    return +pire.toFixed(2);
+  });
+  ok('…et l\'arc-en-ciel du subathon tient le seuil sur TOUT son tour, pas seulement au repos',
+     pire >= 4.5, `pire image : ${pire}:1`);
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

@@ -42,6 +42,32 @@ const API = (typeof browser !== 'undefined' && browser.runtime) ? browser : chro
 
 const T = (cle, sub) => API.i18n.getMessage(cle, sub) || cle;
 
+/* ── LE PANNEAU SUIT LE THÈME DE TWITCH, MAIS IL NE LE VOIT PAS ──────────────
+   Cette page est une page d'EXTENSION : elle n'a ni le <html> de Twitch ni sa
+   feuille, et ne peut donc pas lire « data-a-theme » comme le fait la barre
+   latérale. Elle l'apprend par le rapport, qui le porte depuis la 4.8, et le
+   RETIENT d'une ouverture à l'autre — sans quoi chaque ouverture repartirait
+   en sombre le temps d'un aller-retour, ce qui se verrait.
+
+   TANT QU'ELLE NE SAIT PAS, elle ne pose rien : la feuille retombe alors sur
+   « prefers-color-scheme », le meilleur pari disponible. C'est un pari, et il
+   est borné — dès qu'un rapport arrive, l'attribut tranche et la préférence du
+   système ne décide plus rien.
+
+   localStorage PEUT ÊTRE REFUSÉ (fenêtre privée, stockage bloqué) : la lecture
+   comme l'écriture sont donc gardées. Un thème qu'on ne peut pas retenir vaut
+   mieux qu'un panneau qui ne s'ouvre pas. */
+const THEME_CLE = 'tse:theme';
+const appliquerThemePanneau = (t) => {
+  if (t !== 'light' && t !== 'dark') return;
+  document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem(THEME_CLE, t); } catch { /* stockage refusé */ }
+};
+try {
+  const su = localStorage.getItem(THEME_CLE);
+  if (su === 'light' || su === 'dark') document.documentElement.setAttribute('data-theme', su);
+} catch { /* stockage refusé : on s'en remet à prefers-color-scheme */ }
+
 /* Locale d'affichage pour les nombres et les dates. On suit celle de
    l'INTERFACE de l'extension, pas celle du système : si le panneau parle
    allemand, ses milliers doivent se grouper comme en allemand. */
@@ -1067,6 +1093,8 @@ const blocErreurs = (liste, origine, bilan) => bloc(
   ]);
 
 const construireRapport = (r, transport, fond) => {
+  // Le rapport est le seul endroit d'où cette page apprend le thème de Twitch.
+  if (r?.page?.theme) appliquerThemePanneau(r.page.theme);
   const m = API.runtime.getManifest();
   const d = new Date();
   const L = [
