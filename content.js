@@ -1182,6 +1182,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     GLOBAL_LANG_SPAM_MAX:  200,
 
+    GLOBAL_DECLARED_BATCH:   30,
+
+    GLOBAL_DECLARED_MAX:   1000,
+
     GLOBAL_BATCH_OPS:        20,
 
     GLOBAL_STRUCT_TICK:      30_000,
@@ -1475,6 +1479,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       display: flex;
       flex-direction: column;
       justify-content: center;
+    }
+
+    
+    .side-nav-card[data-tse-nocat="true"]
+      [data-a-target="side-nav-card-metadata"]:has(p[data-a-target="side-nav-title"])
+      *:not(p[data-a-target="side-nav-title"]):not(:has(p[data-a-target="side-nav-title"])) {
+      display: none !important;
     }
 
     .side-nav-card[data-tse-offline="true"] { display: none !important; }
@@ -2938,6 +2949,93 @@ const TSE_GATE_MAX_CLICKS = 5;
       return { out, transport };
     };
 
+    const LANG_CHECK_QUERY =
+      'query TseLangCheck($logins: [String!]) {' +
+      '  users(logins: $logins) {' +
+      '    login' +
+      '    broadcastSettings { language }' +
+      '  }' +
+      '}';
+
+    const bilanDeclarees = { demandes: 0, servis: 0, vides: 0, refus: 0,
+                             reseau: 0, inconnues: 0 };
+
+    let declareeRefusee = false;
+
+    const declarees  = new Map();
+    const aDemander  = new Set();
+    let   volEnCours = false;
+
+    let parCodeISO = null;
+    const tagDeLaLangue = (code) => {
+      if (!parCodeISO) {
+        parCodeISO = new Map();
+        for (const [nom, c] of Object.entries(LANG_API)) parCodeISO.set(c, nom);
+      }
+      return parCodeISO.get(String(code || '').toUpperCase()) || null;
+    };
+
+    const flushDeclarees = async () => {
+      if (volEnCours || declareeRefusee || !aDemander.size) return;
+      const lot = [...aDemander].slice(0, CFG.GLOBAL_DECLARED_BATCH);
+      volEnCours = true;
+      bilanDeclarees.demandes++;
+      const { out, transport } = await send([{
+        operationName: 'TseLangCheck',
+        variables: { logins: lot },
+        query: LANG_CHECK_QUERY
+      }]).catch(() => ({ out: [null], transport: true }));
+
+      volEnCours = false;
+      const users = out?.[0]?.users;
+      if (!Array.isArray(users)) {
+        if (transport) bilanDeclarees.reseau++;
+
+        else { bilanDeclarees.refus++; declareeRefusee = true; }
+
+        return;
+      }
+      bilanDeclarees.servis++;
+
+      const dits = new Map();
+      for (const u of users) {
+        const l = u?.login;
+        if (l) dits.set(String(l).toLowerCase(), u?.broadcastSettings?.language || '');
+      }
+      for (const l of lot) {
+        const code = dits.has(l) ? dits.get(l) : '';
+        if (!code) bilanDeclarees.inconnues++;
+        declarees.delete(l);
+        declarees.set(l, code);
+        aDemander.delete(l);
+        while (declarees.size > CFG.GLOBAL_DECLARED_MAX) {
+          declarees.delete(declarees.keys().next().value);
+        }
+      }
+      if (!dits.size) bilanDeclarees.vides++;
+
+      if (aDemander.size) void flushDeclarees();
+    };
+
+    const verdictLangue = (login, langues) => {
+
+      const cle = String(login).toLowerCase();
+      const code = declarees.get(cle);
+      if (code === undefined) {
+        if (!declareeRefusee && aDemander.size < CFG.GLOBAL_DECLARED_MAX) {
+          aDemander.add(cle);
+          void flushDeclarees();
+        }
+        return 'inconnu';
+      }
+      if (!code) return 'inconnu';
+      const nom = tagDeLaLangue(code);
+      if (!nom) return 'inconnu';
+      return langues.includes(nom) ? 'ok' : 'hors';
+    };
+
+    const ecarteesDeclaree = new Set();
+
     const readStream = (node, now) => {
       const login   = node?.broadcaster?.login;
       const viewers = node?.viewersCount;
@@ -2951,6 +3049,16 @@ const TSE_GATE_MAX_CLICKS = 5;
         empileurs.add(login);
         while (empileurs.size > CFG.GLOBAL_LANG_SPAM_MAX) {
           empileurs.delete(empileurs.values().next().value);
+        }
+        return null;
+      }
+
+      if (langues.size === CFG.GLOBAL_LANG_TAGS_MAX
+          && verdictLangue(login, [...langues]) === 'hors') {
+        ecarteesDeclaree.delete(login);
+        ecarteesDeclaree.add(login);
+        while (ecarteesDeclaree.size > CFG.GLOBAL_LANG_SPAM_MAX) {
+          ecarteesDeclaree.delete(ecarteesDeclaree.values().next().value);
         }
         return null;
       }
@@ -3632,6 +3740,12 @@ const TSE_GATE_MAX_CLICKS = 5;
           categoriesAge: categoriesTs ? Date.now() - categoriesTs : null,
 
           tagsEmpiles: empileurs.size,
+
+          langueDeclaree: { ...bilanDeclarees,
+                            refuse:   declareeRefusee,
+                            connues:  declarees.size,
+                            attente:  aDemander.size,
+                            ecartees: ecarteesDeclaree.size },
           ...stats
         };
       }
