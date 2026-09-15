@@ -364,7 +364,7 @@
     "message": "Les badges de l'aperçu"
   },
   "guideBadgesTexte": {
-    "message": "Dans l'aperçu, des pastilles colorées disent le contexte d'un coup d'œil. Chaque couleur appartient à un seul type, et deux badges ne se ressemblent jamais.\n• Les deux verts sont des NOUVELLES, pas des états : ils s'effacent au bout de dix minutes.\n• Le rouge reprend les étiquettes officielles de Twitch (jeux matures, violence explicite, jeux d'argent…) : vous savez avant de regarder.\n• L'or dit depuis combien de temps vous soutenez la chaîne, et se désature quand l'abonnement est révolu."
+    "message": "Dans l'aperçu, des pastilles colorées disent le contexte d'un coup d'œil. Les voici TOUTES : chaque couleur appartient à un seul type, et deux badges ne se ressemblent jamais.\n• Les deux verts sont des NOUVELLES, pas des états : ils s'effacent au bout de dix minutes.\n• Le rouge reprend les étiquettes officielles de Twitch (jeux matures, violence explicite, jeux d'argent…) : vous savez avant de regarder.\n• L'or dit depuis combien de temps vous soutenez la chaîne ; sa version pâle dit un abonnement révolu.\n• Le bleu dit « Co-stream de … » côté invité et « Stream Hôte » côté organisateur ; le violet dit « En live avec … ».\n• La pastille sans couleur reprend telle quelle une mention ajoutée par Twitch, que l'extension ne traduit pas.\n• Le subathon n'a pas de couleur : il les traverse toutes."
   },
   "guideFriseTitre": {
     "message": "Précédemment sur ce live"
@@ -444,6 +444,9 @@
   "guideBadgeSub": {
     "message": "Abonné • 9 MOIS"
   },
+  "guideBadgeExsub": {
+    "message": "Ancien abonné • 4 MOIS"
+  },
   "guideBadgeSponsor": {
     "message": "Sponsorisé par Norvex"
   },
@@ -452,6 +455,9 @@
   },
   "guideBadgeDiscount": {
     "message": "Abonnement à prix réduit"
+  },
+  "guideBadgeAutre": {
+    "message": "Autre mention de Twitch"
   },
   "guideBadgeSubathon": {
     "message": "Subathon • JOUR 10"

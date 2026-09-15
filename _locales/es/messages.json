@@ -364,7 +364,7 @@
     "message": "Las insignias de la vista previa"
   },
   "guideBadgesTexte": {
-    "message": "En la vista previa, unas etiquetas de color dan el contexto de un vistazo. Cada color pertenece a un único tipo, y no hay dos insignias que se parezcan.\n• Las dos verdes son NOVEDADES, no estados: se borran a los diez minutos.\n• La roja recoge las etiquetas oficiales de Twitch (juego para adultos, violencia explícita, juegos de azar…): lo sabes antes de mirar.\n• La dorada dice desde cuándo apoyas el canal, y se apaga cuando la suscripción ya pasó."
+    "message": "En la vista previa, unas etiquetas de color indican el contexto de un vistazo. Aquí están TODAS: cada color pertenece a un solo tipo y dos insignias nunca se parecen.\n• Los dos verdes son NOTICIAS, no estados: desaparecen a los diez minutos.\n• El rojo recoge las etiquetas oficiales de Twitch (juegos para adultos, violencia explícita, apuestas…): lo sabes antes de mirar.\n• El dorado dice desde cuándo apoyas al canal; su versión pálida indica una suscripción terminada.\n• El azul dice «Co-stream de …» del lado del invitado y «Canal anfitrión» del lado del organizador; el morado dice «En directo con …».\n• La etiqueta sin color recoge tal cual una mención añadida por Twitch, que la extensión no traduce.\n• El subatón no tiene color propio: los recorre todos."
   },
   "guideFriseTitre": {
     "message": "Antes en este directo"
@@ -444,6 +444,9 @@
   "guideBadgeSub": {
     "message": "Suscrito • 9 MESES"
   },
+  "guideBadgeExsub": {
+    "message": "Exsuscriptor • 4 MESES"
+  },
   "guideBadgeSponsor": {
     "message": "Patrocinado por Norvex"
   },
@@ -452,6 +455,9 @@
   },
   "guideBadgeDiscount": {
     "message": "Suscripción con descuento"
+  },
+  "guideBadgeAutre": {
+    "message": "Otra mención de Twitch"
   },
   "guideBadgeSubathon": {
     "message": "Subatón • DÍA 10"

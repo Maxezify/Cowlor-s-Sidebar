@@ -364,7 +364,7 @@
     "message": "Die Abzeichen der Vorschau"
   },
   "guideBadgesTexte": {
-    "message": "In der Vorschau fassen farbige Plaketten den Kontext auf einen Blick zusammen. Jede Farbe gehört einem einzigen Typ, und keine zwei Abzeichen sehen gleich aus.\n• Die beiden grünen sind NEUIGKEITEN, keine Zustände: Sie verschwinden nach zehn Minuten.\n• Das rote trägt Twitchs eigene Inhaltskennzeichnungen (Spiel ab 18, explizite Gewalt, Glücksspiel …): Du weißt es, bevor du hinsiehst.\n• Das goldene sagt, wie lange du den Kanal schon unterstützt, und verblasst, wenn das Abo vorbei ist."
+    "message": "In der Vorschau nennen farbige Plaketten den Kontext auf einen Blick. Hier sind sie ALLE: jede Farbe gehört zu genau einem Typ, und keine zwei Badges sehen gleich aus.\n• Die beiden Grüntöne sind NEUIGKEITEN, keine Zustände: sie verschwinden nach zehn Minuten.\n• Das Rot übernimmt Twitchs eigene Inhaltskennzeichnungen (Spiele ab 18, explizite Gewalt, Glücksspiel…): Sie wissen es, bevor Sie zusehen.\n• Das Gold sagt, wie lange Sie den Kanal schon unterstützen; seine blasse Variante steht für ein beendetes Abo.\n• Das Blau sagt „Co-stream von …“ auf Gastseite und „Host-Stream“ auf Veranstalterseite; das Violett sagt „Live mit …“.\n• Die farblose Plakette übernimmt wörtlich einen Hinweis, den Twitch hinzufügt und den die Erweiterung nicht übersetzt.\n• Der Subathon hat keine eigene Farbe: er durchläuft alle."
   },
   "guideFriseTitre": {
     "message": "Vorher in diesem Stream"
@@ -444,6 +444,9 @@
   "guideBadgeSub": {
     "message": "Abonniert • 9 MONATE"
   },
+  "guideBadgeExsub": {
+    "message": "Ehemals abonniert • 4 MONATE"
+  },
   "guideBadgeSponsor": {
     "message": "Gesponsert von Norvex"
   },
@@ -452,6 +455,9 @@
   },
   "guideBadgeDiscount": {
     "message": "Rabattiertes Abo"
+  },
+  "guideBadgeAutre": {
+    "message": "Weiterer Hinweis von Twitch"
   },
   "guideBadgeSubathon": {
     "message": "Subathon • TAG 10"
