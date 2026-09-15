@@ -2282,7 +2282,262 @@ const TSE_GATE_MAX_CLICKS = 5;
     // jamais bloqué indéfiniment.
     LOADING_TIMEOUT_MS:     15_000,
     // Durée du fondu de sortie (CSS transition opacity).
-    LOADING_FADE_MS:        1_000
+    LOADING_FADE_MS:        1_000,
+
+    /* === Réglages de l'utilisateur ===
+       UNE SEULE CLÉ, sur l'origine twitch.tv, et c'est une contrainte du
+       produit avant d'être un choix : le manifeste ne demande AUCUNE
+       permission — « npm run addon » l'exige — donc « chrome.storage » n'est
+       pas disponible. Les réglages vivent là où vivent déjà les visites, les
+       abonnements et le roster, c'est-à-dire dans le localStorage de la page.
+
+       CE QUE ÇA COÛTE, ET IL FAUT LE DIRE : pas de synchronisation entre
+       machines, et « effacer les données du site twitch.tv » efface aussi les
+       réglages. C'est exactement ce que promet déjà la fiche du Store à propos
+       de l'historique ; l'export JSON du panneau est le seul contournement, et
+       il est volontairement manuel. */
+    OPTIONS_KEY:            'tse:options'
+  });
+
+  /* ============================================================
+   *  LES RÉGLAGES
+   *  ------------------------------------------------------------
+   *  Vingt-et-un réglages, une table, et trois règles qui tiennent
+   *  l'ensemble.
+   *
+   *  1. ON N'ÉCRIT QUE LES ÉCARTS. Le stockage ne contient que ce
+   *     qui DIFFÈRE du défaut. Un réglage laissé tel quel n'occupe
+   *     pas un octet, et surtout : le jour où un défaut change, il
+   *     change pour tout le monde sauf pour ceux qui l'avaient
+   *     explicitement touché. Sérialiser l'état complet aurait figé
+   *     les défauts d'aujourd'hui dans le navigateur de chacun.
+   *
+   *  2. ON NE LIT JAMAIS LE STOCKAGE DANS UNE BOUCLE. `valeurs` est
+   *     un instantané en mémoire, relu seulement quand quelque
+   *     chose change. La leçon vient de la 4.5.3, où un
+   *     querySelectorAll par carte et par branche avait suffi à
+   *     faire sentir le scan.
+   *
+   *  3. CE QUI EST CSS RESTE CSS. La majorité de ces réglages ne
+   *     font que MASQUER quelque chose. Les faire passer par du
+   *     JavaScript aurait voulu dire retoucher chaque carte à
+   *     chaque scan ; un attribut sur <html> et des sélecteurs
+   *     d'attribut font le même travail sans qu'on parcoure quoi
+   *     que ce soit. C'est le mécanisme du thème, réemployé.
+   * ============================================================ */
+  const OPT_DEFS = Object.freeze({
+    /* — L'aperçu au survol — */
+    apercu:          { defaut: true,      type: 'bool' },
+    apercuVideo:     { defaut: true,      type: 'bool' },
+    apercuQualite:   { defaut: CFG.PREVIEW_IFRAME_QUALITY, type: 'choix',
+                       valeurs: ['160p30', '360p30', '480p30', '720p60'] },
+    apercuTaille:    { defaut: 'normal',  type: 'choix',
+                       valeurs: ['petit', 'normal', 'grand'], css: true },
+
+    /* — Les badges de l'aperçu — */
+    badges:          { defaut: [],        type: 'jeu', css: true,
+                       valeurs: ['ccl', 'costream', 'squad', 'sub', 'exsub',
+                                 'sponsor', 'hype', 'discount', 'switch',
+                                 'reprise', 'subathon'] },
+
+    /* — La carte dans la barre — */
+    duree:           { defaut: true,      type: 'bool', css: true },
+    dureeFormat:     { defaut: 'hm',      type: 'choix', valeurs: ['hm', 'colon', 'min'] },
+    fresh:           { defaut: true,      type: 'bool', css: true },
+    collab:          { defaut: true,      type: 'bool', css: true },
+    abonnes:         { defaut: 'plein',   type: 'choix',
+                       valeurs: ['plein', 'discret', 'aucun'], css: true },
+    subathonJour:    { defaut: true,      type: 'bool', css: true },
+
+    /* — Ce que l'extension retire à Twitch — */
+    stories:         { defaut: true,      type: 'bool', css: true },
+    deplier:         { defaut: true,      type: 'bool' },
+
+    /* — Le relevé des abonnements — */
+    abosReleve:      { defaut: true,      type: 'bool' },
+    abosPeriode:     { defaut: CFG.SUBS_PAGE_TTL / 3_600_000, type: 'choix',
+                       valeurs: [3, 6, 12, 24] },
+
+    /* — Top Chaînes — */
+    topN:            { defaut: CFG.GLOBAL_TOP_N, type: 'choix', valeurs: [10, 30, 50] },
+    topOnglet:       { defaut: true,      type: 'bool', css: true },
+
+    /* — Tri et filtres — */
+    tris:            { defaut: [],        type: 'jeu', css: true,
+                       valeurs: ['viewers', 'subs', 'popular', 'uptime',
+                                 'alpha', 'costream'] },
+    filtreCategorie: { defaut: true,      type: 'bool', css: true },
+    filtreLangue:    { defaut: true,      type: 'bool', css: true },
+
+    /* — Apparence — */
+    theme:           { defaut: 'auto',    type: 'choix', valeurs: ['auto', 'dark', 'light'] },
+
+    /* — Données — */
+    visites:         { defaut: true,      type: 'bool' }
+  });
+
+  /* LES JEUX STOCKENT CE QU'ON RETIRE, pas ce qu'on garde, et ce n'est pas un
+     détail d'implémentation : le jour où un douzième badge arrive, il doit
+     être ACTIF chez tout le monde sans que personne n'ait à rouvrir le
+     panneau. Une liste de gardés l'aurait masqué à tous ceux qui avaient déjà
+     touché au réglage. Le défaut d'un jeu est donc la liste vide. */
+  const options = (() => {
+    const valeurs = Object.create(null);
+    for (const [id, d] of Object.entries(OPT_DEFS)) {
+      valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
+    }
+
+    /* VALIDER CE QUI VIENT DU STOCKAGE, toujours. C'est du JSON écrit par une
+       version antérieure, ou par une main humaine dans la console : un
+       « topN » à 5000 ou un « theme » à « rose » ne doivent pas traverser. Une
+       valeur qu'on ne reconnaît pas n'est pas corrigée, elle est IGNORÉE — le
+       défaut reprend, ce qui est le seul comportement dont on soit sûr. */
+    const propre = (id, v) => {
+      const d = OPT_DEFS[id];
+      if (!d) return undefined;
+      if (d.type === 'bool')  return typeof v === 'boolean' ? v : undefined;
+      if (d.type === 'choix') return d.valeurs.includes(v) ? v : undefined;
+      if (d.type === 'jeu') {
+        if (!Array.isArray(v)) return undefined;
+        const gardes = v.filter((x) => d.valeurs.includes(x));
+        return [...new Set(gardes)];
+      }
+      return undefined;
+    };
+
+    const charger = () => {
+      let brut = null;
+      try { brut = JSON.parse(localStorage.getItem(CFG.OPTIONS_KEY) || 'null'); }
+      catch { brut = null; }
+      if (!brut || typeof brut !== 'object') return;
+      for (const [id, v] of Object.entries(brut)) {
+        const ok = propre(id, v);
+        if (ok !== undefined) valeurs[id] = ok;
+      }
+    };
+
+    const ecrire = () => {
+      /* On ne garde que les écarts (règle 1). Un objet vide veut dire « tout
+         par défaut », et on retire alors la clé plutôt que d'écrire « {} » :
+         le stockage doit pouvoir revenir EXACTEMENT à son état d'avant. */
+      const ecarts = {};
+      for (const [id, d] of Object.entries(OPT_DEFS)) {
+        const v = valeurs[id];
+        const meme = Array.isArray(d.defaut)
+          ? v.length === d.defaut.length && v.every((x) => d.defaut.includes(x))
+          : v === d.defaut;
+        if (!meme) ecarts[id] = v;
+      }
+      try {
+        if (Object.keys(ecarts).length) {
+          localStorage.setItem(CFG.OPTIONS_KEY, JSON.stringify(ecarts));
+        } else {
+          localStorage.removeItem(CFG.OPTIONS_KEY);
+        }
+      } catch { /* quota, mode privé : le réglage vaut pour la session */ }
+    };
+
+    const abonnes = new Set();
+    const prevenir = () => { for (const f of abonnes) { try { f(); } catch { /* un abonné qui jette n'empêche pas les autres */ } } };
+
+    charger();
+
+    return {
+      get: (id) => valeurs[id],
+      /* Un jeu répond à la question qu'on lui pose vraiment : « celui-ci
+         est-il actif ? ». Le stockage dit l'inverse, la lecture le retourne
+         une fois pour toutes, ici. */
+      actif: (id, membre) => !valeurs[id].includes(membre),
+      tout: () => {
+        const copie = {};
+        for (const id of Object.keys(OPT_DEFS)) {
+          copie[id] = Array.isArray(valeurs[id]) ? valeurs[id].slice() : valeurs[id];
+        }
+        return copie;
+      },
+      defauts: () => {
+        const copie = {};
+        for (const [id, d] of Object.entries(OPT_DEFS)) {
+          copie[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
+        }
+        return copie;
+      },
+      definitions: () => OPT_DEFS,
+      poser: (id, v) => {
+        const ok = propre(id, v);
+        if (ok === undefined) return false;
+        const meme = Array.isArray(ok)
+          ? ok.length === valeurs[id].length && ok.every((x) => valeurs[id].includes(x))
+          : ok === valeurs[id];
+        if (meme) return true;
+        valeurs[id] = ok;
+        ecrire(); prevenir();
+        return true;
+      },
+      remettre: () => {
+        for (const [id, d] of Object.entries(OPT_DEFS)) {
+          valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
+        }
+        ecrire(); prevenir();
+      },
+      /* RELIRE SANS ÉCRIRE, pour l'événement « storage » : c'est un AUTRE
+         onglet qui vient de changer quelque chose, et le réécrire d'ici ne
+         ferait que renvoyer l'événement à l'expéditeur. */
+      relire: () => { charger(); prevenir(); },
+      surChangement: (f) => { abonnes.add(f); }
+    };
+  })();
+
+  /* CE QUE LA FEUILLE DOIT SAVOIR, ET RIEN DE PLUS. Trois attributs sur
+     <html>, posés ici et lus par des sélecteurs d'attribut :
+
+       — « data-tse-off » porte les jetons de ce qui est ÉTEINT. Un seul
+         attribut plutôt qu'un par réglage, parce que « ~= » sait chercher un
+         mot dans une liste : « html[data-tse-off~="duree"] » se lit aussi
+         bien qu'un attribut dédié et n'en coûte qu'un ;
+       — « data-tse-or » et « data-tse-apercu » portent un CHOIX, pas un
+         interrupteur : ils ne peuvent pas entrer dans la liste des éteints
+         sans qu'on ait à inventer des jetons du genre « or-discret ».
+
+     LES DEUX DERNIERS SONT RETIRÉS quand ils valent leur défaut, pour que le
+     DOM d'une installation neuve soit exactement celui d'avant les réglages —
+     c'est ce qui rend l'invariant « tout par défaut = comportement d'avant »
+     vérifiable À L'ŒIL et pas seulement en théorie. */
+  const appliquerOptions = () => {
+    const html = document.documentElement;
+    const eteints = [];
+    for (const [id, d] of Object.entries(OPT_DEFS)) {
+      if (!d.css) continue;
+      if (d.type === 'bool') { if (!options.get(id)) eteints.push(id); continue; }
+      if (d.type === 'jeu') {
+        const prefixe = id === 'badges' ? 'badge-' : 'tri-';
+        for (const m of options.get(id)) eteints.push(prefixe + m);
+      }
+    }
+    const jetons = eteints.join(' ');
+    if ((html.getAttribute('data-tse-off') || '') !== jetons) {
+      if (jetons) html.setAttribute('data-tse-off', jetons);
+      else html.removeAttribute('data-tse-off');
+    }
+    const pose = (attr, v, parDefaut) => {
+      const veut = v === parDefaut ? null : String(v);
+      if ((html.getAttribute(attr) || null) === veut) return;
+      if (veut === null) html.removeAttribute(attr);
+      else html.setAttribute(attr, veut);
+    };
+    pose('data-tse-or',     options.get('abonnes'),      'plein');
+    pose('data-tse-apercu', options.get('apercuTaille'), 'normal');
+  };
+  options.surChangement(appliquerOptions);
+  appliquerOptions();
+
+  /* UN AUTRE ONGLET PEUT AVOIR CHANGÉ UN RÉGLAGE, et laisser les deux
+     diverger jusqu'au prochain rechargement serait un bogue qu'on ne pourrait
+     pas expliquer à celui qui le voit. L'événement « storage » ne part QUE
+     vers les autres onglets de la même origine — celui qui écrit ne le reçoit
+     pas — donc il n'y a pas d'aller-retour à craindre. */
+  window.addEventListener('storage', (e) => {
+    if (e.key === CFG.OPTIONS_KEY) options.relire();
   });
 
   /* ============================================================
@@ -4466,6 +4721,112 @@ const TSE_GATE_MAX_CLICKS = 5;
       color: rgba(var(--tse-encre), 0.40);
       font-style: italic;
     }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       CE QUE LES RÉGLAGES RETIRENT
+       ──────────────────────────────────────────────────────────────────────
+       Tout ce bloc est inerte par défaut : sans attribut sur « html », aucun
+       de ces sélecteurs ne s'apparie. C'est la forme la plus forte de
+       l'invariant « tout par défaut = comportement d'avant » — il ne repose
+       pas sur une valeur bien choisie, mais sur un attribut ABSENT.
+
+       POURQUOI « display: none » ET PAS UN RETRAIT EN JAVASCRIPT. Retirer la
+       durée d'une carte voudrait dire la retirer à chaque scan, sur chaque
+       carte, et se souvenir de la remettre quand le réglage change. La feuille
+       le fait une fois pour toutes, sans qu'on parcoure quoi que ce soit — et
+       le réglage rendu redevient instantanément ce qu'il était. C'est le
+       mécanisme du thème, réemployé pour vingt règles.
+
+       « !important » N'EST PAS DÉCORATIF ICI : ces sélecteurs annulent des
+       règles du produit qui portent souvent elles-mêmes un !important (les
+       masquages de Twitch), et une règle de réglage qui perd contre une règle
+       par défaut serait un interrupteur qui ne fait rien. */
+
+    /* — La carte dans la barre — */
+    html[data-tse-off~="duree"] .tse-uptime { display: none !important; }
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh::before { display: none !important; }
+    html[data-tse-off~="collab"] .tse-collab-badge { display: none !important; }
+    html[data-tse-off~="subathonJour"] .tse-subathon-jour { display: none !important; }
+
+    /* — Les onglets, les filtres, les tris — */
+    html[data-tse-off~="topOnglet"] .tse-mode-row { display: none !important; }
+    html[data-tse-off~="filtreCategorie"] .tse-filter-field--cat { display: none !important; }
+    html[data-tse-off~="filtreLangue"] .tse-filter-field--lang { display: none !important; }
+    html[data-tse-off~="tri-viewers"]  .tse-sort-toggle[data-tse-sort-mode="viewers"],
+    html[data-tse-off~="tri-subs"]     .tse-sort-toggle[data-tse-sort-mode="subs"],
+    html[data-tse-off~="tri-popular"]  .tse-sort-toggle[data-tse-sort-mode="popular"],
+    html[data-tse-off~="tri-uptime"]   .tse-sort-toggle[data-tse-sort-mode="uptime"],
+    html[data-tse-off~="tri-alpha"]    .tse-sort-toggle[data-tse-sort-mode="alpha"],
+    html[data-tse-off~="tri-costream"] .tse-sort-toggle[data-tse-sort-mode="costream"] {
+      display: none !important;
+    }
+
+    /* — Les Stories de Twitch. Le produit ne les masquait qu'en mode global,
+         où la place manque ; ce réglage permet de les retirer tout le temps.
+         Le défaut reste « affichées », c'est-à-dire ce que Twitch fait. — */
+    html[data-tse-off~="stories"] [data-tse-stories="row"] { display: none !important; }
+
+    /* — Les badges de l'aperçu, un par un — */
+    html[data-tse-off~="badge-ccl"]      .tse-preview__badge--ccl,
+    html[data-tse-off~="badge-costream"] .tse-preview__badge--costream,
+    html[data-tse-off~="badge-squad"]    .tse-preview__badge--squad,
+    html[data-tse-off~="badge-sub"]      .tse-preview__badge--sub,
+    html[data-tse-off~="badge-exsub"]    .tse-preview__badge--exsub,
+    html[data-tse-off~="badge-sponsor"]  .tse-preview__badge--sponsor,
+    html[data-tse-off~="badge-hype"]     .tse-preview__badge--hype,
+    html[data-tse-off~="badge-discount"] .tse-preview__badge--discount,
+    html[data-tse-off~="badge-switch"]   .tse-preview__badge--switch,
+    html[data-tse-off~="badge-reprise"]  .tse-preview__badge--reprise,
+    html[data-tse-off~="badge-subathon"] .tse-preview__badge--subathon {
+      display: none !important;
+    }
+
+    /* ── L'OR DE L'ABONNEMENT, EN TROIS CRANS ────────────────────────────
+       « discret » retire le MOUVEMENT et la lueur de fond, et garde la
+       couleur : le pseudo reste doré, il cesse de chatoyer. C'est le cran
+       qu'on veut quand l'or plaît mais que la carte en fait trop.
+
+       « aucun » rend la carte à Twitch. Il ne suffit pas de masquer la lueur :
+       le pseudo est peint par un dégradé découpé au texte, avec un
+       remplissage TRANSPARENT. Le laisser en place en retirant seulement son
+       fond donnerait un pseudo invisible — d'où le rétablissement explicite
+       de « -webkit-text-fill-color ». C'est le genre de détail qu'un
+       interrupteur mal écrit transforme en carte illisible. */
+    html[data-tse-or="discret"] .side-nav-card.tse-sub::after,
+    html[data-tse-or="aucun"]   .side-nav-card.tse-sub::after {
+      display: none !important;
+    }
+    html[data-tse-or="discret"] .side-nav-card.tse-sub p.tse-nom,
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-cat,
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-avatar,
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-avatar::after {
+      animation: none !important;
+    }
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub p.tse-nom,
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-cat {
+      background: none !important;
+      -webkit-text-fill-color: currentColor !important;
+      color: var(--tse-texte) !important;
+      font-weight: inherit !important;
+      animation: none !important;
+      filter: none !important;
+    }
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-cat {
+      color: var(--tse-texte-doux) !important;
+    }
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-avatar {
+      animation: none !important;
+      box-shadow: none !important;
+    }
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-avatar::after {
+      display: none !important;
+    }
+
+    /* — La largeur de l'aperçu. Une largeur, pas une position : l'aperçu se
+         place lui-même pour ne pas sortir de l'écran, et lui imposer un coin
+         reviendrait à défaire ce calcul. — */
+    html[data-tse-apercu="petit"] .tse-preview { width: 360px; }
+    html[data-tse-apercu="grand"] .tse-preview { width: 620px; }
   `;
 
   const injectCSS = () => {
@@ -6469,7 +6830,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
       rankingTs    = Date.now();
-      threshold    = nthViewers(pool, CFG.GLOBAL_TOP_N);
+      threshold    = nthViewers(pool, options.get('topN'));
     };
 
     // Pool de départ d'une passe : le classement courant, tel quel. Il n'est
@@ -6621,7 +6982,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (!langues.length) return;
         const ops = langues.map(l => categorie
           ? { operationName: 'TseCatLangCount',
-              variables: { name: categorie, n: CFG.GLOBAL_TOP_N },
+              variables: { name: categorie, n: options.get('topN') },
               query: catLangCountQuery(LANG_API[l]) }
           : { operationName: 'TseTagCount',
               variables: { tag: l, n: CFG.GLOBAL_TAG_MAX },
@@ -6687,7 +7048,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const noms = categories.slice(0, CFG.GLOBAL_CATEGORIES_MAX).map(c => c.name);
         const ops = noms.map(name => ({
           operationName: 'TseCatLangCount',
-          variables: { name, n: CFG.GLOBAL_TOP_N },
+          variables: { name, n: options.get('topN') },
           query: catLangCountQuery(code)
         }));
         bilanMesures.passes += 1;
@@ -6746,7 +7107,7 @@ const TSE_GATE_MAX_CLICKS = 5;
          que d'écrire cette dépendance en commentaire et d'espérer qu'on la
          lise, on la fait tenir : au-delà du plafond, la descente reprend la
          main, silencieusement, comme dans tous les autres cas d'échec. */
-      if (wl?.lang && !tagRefuse && CFG.GLOBAL_TOP_N <= CFG.GLOBAL_TAG_MAX) {
+      if (wl?.lang && !tagRefuse && options.get('topN') <= CFG.GLOBAL_TAG_MAX) {
         const parTag = await tagTop(wl.lang);
         if (gen !== walkGen) return { ok: true, complete: false };
         if (parTag) {
@@ -6791,7 +7152,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       // peut que MONTER à mesure que le pool grossit ; conserver la valeur
       // basse rend la condition d'arrêt plus prudente — on visite plus de
       // catégories que strictement nécessaire, jamais moins.
-      const t = nthViewers(pool, CFG.GLOBAL_TOP_N);
+      const t = nthViewers(pool, options.get('topN'));
 
       const rest = cats.slice(seed.length);
       const todo = [];
@@ -7190,7 +7551,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       // chaînes les plus regardées de cette langue parmi tout ce qu'on a vu.
       // Et cela ne coûte AUCUNE requête : les tags de langue voyagent déjà
       // dans chaque réponse de la marche.
-      top(n = CFG.GLOBAL_TOP_N) {
+      top(n = options.get('topN')) {
         const lang = state.globalMode ? state.languageFilter : null;
         const liste = this.base();
         // Déjà restreint PAR L'API — portée catégorie filtrée, ou descente
@@ -7426,25 +7787,41 @@ const TSE_GATE_MAX_CLICKS = 5;
    * ============================================================ */
   const RESERVED =/^(directory|videos|search|p|drops|wallet|prime|subscriptions|settings|jobs|turbo|moderator|payments|inventory|messages|friends)$/i;
 
+  /* ── UNE SEULE CONVENTION DE DURÉE, ET UN RÉGLAGE POUR LA CHOISIR ────────
+     Les deux fonctions ci-dessous partageaient déjà leur forme, et le
+     commentaire d'origine disait pourquoi : elles se lisent côte à côte dans
+     l'aperçu, et deux conventions dans un même popup se comparent mal. Ce
+     réglage ne casse pas cette règle, il la RESPECTE — le format choisi
+     s'applique aux deux, sans quoi l'utilisateur qui demande « 259 min »
+     obtiendrait des minutes sur la carte et des heures dans la frise juste
+     en dessous.
+
+     TROIS FORMES, ET AUCUNE N'EST TRADUITE. « h », « m » et « min » sont des
+     symboles d'unité, pas des mots : les traduire par locale ferait varier la
+     largeur de la colonne d'une langue à l'autre, sur un élément qui doit
+     tenir dans la carte de Twitch. La forme « 4:19 » n'a même pas cette
+     question — c'est celle que choisira qui veut le moins de bruit. */
+  const enForme = (totalMin) => {
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    switch (options.get('dureeFormat')) {
+      case 'colon': return `${h}:${String(m).padStart(2, '0')}`;
+      case 'min':   return `${totalMin} min`;
+      default:      return h === 0 ? `${m}m` : `${h}h${String(m).padStart(2, '0')}`;
+    }
+  };
+
   const formatUptime = (createdAt) => {
     const start = new Date(createdAt).getTime();
     if (!Number.isFinite(start)) return '';
-    const totalMin = Math.max(0, Math.floor((Date.now() - start) / 60_000));
-    const h = Math.floor(totalMin / 60);
-    const m = totalMin % 60;
-    return h === 0 ? `${m}m` : `${h}h${String(m).padStart(2, '0')}`;
+    return enForme(Math.max(0, Math.floor((Date.now() - start) / 60_000)));
   };
 
-  /* La MÊME forme que l'uptime des cartes — « 24m », « 1h47 » — parce que les
-     deux se lisent côte à côte dans l'aperçu, et que deux conventions de durée
-     dans un même popup se comparent mal. Ici on formate un INTERVALLE, là-bas
-     un écart à maintenant : c'est la seule différence. */
-  const formatDuree = (ms) => {
-    const totalMin = Math.max(0, Math.round(ms / 60_000));
-    const h = Math.floor(totalMin / 60);
-    const m = totalMin % 60;
-    return h === 0 ? `${m}m` : `${h}h${String(m).padStart(2, '0')}`;
-  };
+  /* Ici on formate un INTERVALLE, là-haut un écart à maintenant : c'est la
+     seule différence, et c'est pour ça que l'arrondi n'est pas le même — une
+     durée écoulée se tronque (on n'a pas encore atteint la minute suivante),
+     un intervalle mesuré s'arrondit. */
+  const formatDuree = (ms) => enForme(Math.max(0, Math.round(ms / 60_000)));
 
   const loginFromHref = (href) => {
     if (!href) return null;
@@ -7968,6 +8345,12 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     // Enregistre une visite si la fenêtre VISIT_SESSION_MS est dépassée.
     record(login) {
+      /* L'APPRENTISSAGE SE COUPE ICI, À L'ÉCRITURE, et pas à la lecture : ce
+         qui a déjà été appris reste lisible — le tri « popularité perso » et
+         la grille du rythme continuent de montrer le passé — mais plus rien
+         ne s'ajoute. Couper aussi la lecture aurait effacé des données sans
+         le dire, alors que le panneau offre un bouton pour ça, séparément. */
+      if (!options.get('visites')) return;
       if (!login) return;
       const now = Date.now();
       const list = this.map.get(login) || [];
@@ -8554,8 +8937,15 @@ const TSE_GATE_MAX_CLICKS = 5;
      * d'abonnement, que les onglets courants écriront ensuite.
      */
     const refresh = async (force = false) => {
-      if (!CFG.SUBS_PAGE_ENABLED || running) return null;
-      if (!force && Date.now() - horodatage() < CFG.SUBS_PAGE_TTL) return null;
+      /* DEUX VERROUS, ET ILS NE DISENT PAS LA MÊME CHOSE. La constante est
+         celle du DÉVELOPPEUR — elle neutralise la fonction dans une build ;
+         le réglage est celui de l'UTILISATEUR, et il porte sur la seule
+         requête authentifiée du produit. On les garde tous les deux : celui
+         qui coupe le relevé depuis le panneau attend que rien ne parte, même
+         s'il clique ensuite sur « rafraîchir les abonnements ». D'où le
+         « force » qui ne force pas celui-là. */
+      if (!CFG.SUBS_PAGE_ENABLED || !options.get('abosReleve') || running) return null;
+      if (!force && Date.now() - horodatage() < options.get('abosPeriode') * 3_600_000) return null;
       if (!document.body) return null;
       running = true;
       const trouves = [];
@@ -8714,7 +9104,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const init = () => {
-      if (!CFG.SUBS_PAGE_ENABLED) return;
+      if (!CFG.SUBS_PAGE_ENABLED || !options.get('abosReleve')) return;
       arme = true;
     };
 
@@ -9261,7 +9651,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         globalChannels.reset();
         return globalChannels.report();
       },
-      top(limit = CFG.GLOBAL_TOP_N) {
+      top(limit = options.get('topN')) {
         const rows = globalChannels.top(limit).map((r, i) => ({
           rank: i + 1, login: r.login, viewers: r.viewers, game: r.game
         }));
@@ -9450,7 +9840,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       },
       global() {
         const rapport = globalChannels.report();
-        const lignes = globalChannels.top(CFG.GLOBAL_TOP_N)
+        const lignes = globalChannels.top(options.get('topN'))
           .map((r, i) => ({ rang: i + 1, login: r.login, viewers: r.viewers, game: r.game }));
         return { colonnes: ['rang', 'login', 'viewers', 'game'], lignes,
                  resume: { actif: !!state.globalMode, ...rapport } };
@@ -9574,6 +9964,26 @@ const TSE_GATE_MAX_CLICKS = 5;
                      etat: anims.length ? anims[0].playState : null };
           })(),
           theme: themeTwitch(),
+          /* CE QUI EST RÉGLÉ DOIT ÊTRE DANS LE RAPPORT, et seulement ce qui
+             S'ÉCARTE du défaut. Quatre versions de suite ont été dépensées à
+             deviner ce que voyait quelqu'un dont je ne connaissais pas l'état ;
+             un onglet de réglages multiplie ces états par vingt-et-un. Une
+             ligne « apercuVideo=false » dans un rapport répond d'avance à la
+             question « pourquoi la vidéo ne part pas ».
+
+             LA LISTE EST VIDE CHEZ QUI N'A RIEN TOUCHÉ, ce qui est exactement
+             l'information utile dans l'autre sens : le rapport dit alors que
+             le comportement observé est celui d'une installation neuve. */
+          reglages: (() => {
+            const v = options.tout(), d = options.defauts(), out = {};
+            for (const id of Object.keys(d)) {
+              const meme = Array.isArray(d[id])
+                ? v[id].length === d[id].length && v[id].every((x) => d[id].includes(x))
+                : v[id] === d[id];
+              if (!meme) out[id] = v[id];
+            }
+            return out;
+          })(),
           modele: modeleVoie,
           modeleRefus,
           /* ET À QUEL MOMENT LA PASSE A RENONCÉ. « modele: repli » avec
@@ -9843,6 +10253,33 @@ const TSE_GATE_MAX_CLICKS = 5;
       };
     },
 
+    /* LES RÉGLAGES, TELS QUE LE PANNEAU DOIT LES VOIR. On rend les trois
+       ensembles — ce qui est réglable, ce qui est réglé, ce qui serait par
+       défaut — et pas seulement les valeurs. La raison est que le panneau ne
+       doit RIEN savoir de la liste des réglages : s'il portait sa propre copie
+       des types et des valeurs permises, les deux divergeraient au premier
+       réglage ajouté, et c'est le panneau qui aurait tort en silence. Ici, la
+       page fait autorité sur sa propre table.
+
+       LES DÉFAUTS VOYAGENT AUSSI, parce que « remettre par défaut » n'est pas
+       la seule chose qu'on en fait : le panneau marque d'un point les réglages
+       qui s'écartent du défaut, et il ne peut pas le calculer sans eux. */
+    options() {
+      const valeurs = options.tout();
+      const defauts = options.defauts();
+      const ecart = (id) => (Array.isArray(defauts[id])
+        ? valeurs[id].length !== defauts[id].length
+          || !valeurs[id].every((x) => defauts[id].includes(x))
+        : valeurs[id] !== defauts[id]);
+      const modifies = Object.keys(defauts).filter(ecart);
+      return {
+        resume: { reglages: Object.keys(defauts).length,
+                  modifies: modifies.length },
+        defs: options.definitions(),
+        valeurs, defauts, modifies,
+      };
+    },
+
     /* ACTIONS : celles qui changent quelque chose. Séparées des sections pour
        que le panneau puisse les traiter autrement — confirmation, état occupé,
        rafraîchissement de la vue après coup — et pour qu'une faute de frappe
@@ -9850,6 +10287,55 @@ const TSE_GATE_MAX_CLICKS = 5;
     actions: {
       reset()   { tseApi.reset(); return { fait: true }; },
       rescan()  { tseApi.rescan(); return { fait: true }; },
+
+      /* POSER UN RÉGLAGE REND CE QUI A ÉTÉ RETENU, pas ce qui a été demandé.
+         Le panneau redessine à partir de la réponse, si bien qu'une valeur
+         refusée — hors liste, mauvais type — se voit immédiatement dans
+         l'interface au lieu d'y rester affichée comme si elle avait pris.
+         C'est la même règle que partout ailleurs ici : on ne montre que ce
+         qu'on a vérifié. */
+      setOption(arg) {
+        const id = arg && arg.id;
+        const ok = !!id && options.poser(id, arg.valeur);
+        return { ok, ...panneau.sections.options() };
+      },
+      resetOptions() {
+        options.remettre();
+        return { ok: true, ...panneau.sections.options() };
+      },
+      /* L'IMPORT PASSE PAR LA MÊME PORTE QUE LA MAIN HUMAINE, réglage par
+         réglage : un fichier JSON est du texte venu du dehors, et le verser
+         d'un bloc dans le stockage aurait contourné la validation. Ce qui
+         n'est pas reconnu est ignoré, et le compte des refus revient au
+         panneau — un import silencieusement partiel serait pire qu'un import
+         refusé. */
+      importOptions(arg) {
+        const entrees = (arg && arg.valeurs && typeof arg.valeurs === 'object')
+          ? Object.entries(arg.valeurs) : [];
+        let pris = 0, refuses = 0;
+        options.remettre();
+        for (const [id, v] of entrees) {
+          if (options.definitions()[id] && options.poser(id, v)) pris++;
+          else refuses++;
+        }
+        return { ok: true, pris, refuses, ...panneau.sections.options() };
+      },
+
+      /* LA PURGE SÉLECTIVE. « tse.reset() » efface les quatre mémoires d'un
+         coup, ce qui est le bon geste quand on veut tout reprendre à zéro et
+         le mauvais quand on ne veut se défaire que d'une seule. Les trois
+         branches existaient déjà séparément dans le code — elles n'avaient
+         simplement jamais eu de porte. */
+      purge(arg) {
+        switch (arg && arg.quoi) {
+          case 'visites':
+            visits.map.clear(); oublier(CFG.VISIT_STORAGE_KEY, 'visites');
+            return { fait: true, quoi: 'visites' };
+          case 'subs':   subs.clear();   return { fait: true, quoi: 'subs' };
+          case 'roster': roster.clear(); return { fait: true, quoi: 'roster' };
+          default:       return { fait: false, quoi: null };
+        }
+      },
       async refreshSubs() {
         const r = await subsPage.refresh(true);
         return { fait: r !== null, chaines: Array.isArray(r) ? r.length : 0 };
@@ -9949,6 +10435,16 @@ const TSE_GATE_MAX_CLICKS = 5;
    * cette différence-là qui rendait une mesure de découpage intermittente.
    */
   tseApi.rescan = () => { invalidateAndRescan(); };
+
+  /* LES RÉGLAGES, À LA MAIN. Le panneau n'est qu'un client de plus — la règle
+     vaut ici comme pour le reste : « tse.options() » rend l'état, et
+     « tse.options.poser(id, valeur) » en change un, avec la MÊME validation.
+     Quelqu'un qui débogue n'a pas à ouvrir un panneau pour voir ce qui est
+     réglé, et quelqu'un qui n'a pas de souris peut tout de même régler. */
+  tseApi.options = () => options.tout();
+  tseApi.options.poser = (id, v) => options.poser(id, v);
+  tseApi.options.defauts = () => options.defauts();
+  tseApi.options.remettre = () => options.remettre();
 
   /**
    * Mesure le battement de la barre « stream frais », sur un cycle entier.
@@ -10081,7 +10577,13 @@ const TSE_GATE_MAX_CLICKS = 5;
   /* Posé sur la racine, et seulement quand il CHANGE : écrire un attribut
      identique à chaque scan ferait travailler le moteur de style pour rien. */
   const appliquerTheme = () => {
-    const t = themeTwitch();
+    /* LE RÉGLAGE PASSE AVANT LA DÉTECTION, et il ne la remplace pas : forcer
+       « clair » ne touche pas à Twitch, ça ne change que la façon dont
+       l'extension se peint PAR-DESSUS. Quelqu'un qui garde Twitch en sombre
+       mais veut les ajouts en clair est un cas rare et parfaitement
+       légitime ; c'est pour lui que ce réglage a trois valeurs et non deux. */
+    const choisi = options.get('theme');
+    const t = choisi === 'auto' ? themeTwitch() : choisi;
     const html = document.documentElement;
     if (html.getAttribute('data-tse-theme') !== t) {
       html.setAttribute('data-tse-theme', t);
@@ -10097,6 +10599,12 @@ const TSE_GATE_MAX_CLICKS = 5;
      l'aperçu et les menus rester dans l'ancien thème jusqu'à son prochain
      survol. L'observateur ne regarde QUE les attributs de <html>, ce qui est
      le plus petit périmètre possible. */
+  /* LE RÉGLAGE DE THÈME EST UNE SECONDE SOURCE pour cette même fonction : la
+     détection réagit à Twitch, l'abonnement réagit au panneau. Les deux
+     appellent la même chose, ce qui est la seule façon de garantir qu'elles
+     ne peuvent pas aboutir à deux résultats différents. */
+  options.surChangement(() => appliquerTheme());
+
   const veilleTheme = new MutationObserver(() => appliquerTheme());
   veilleTheme.observe(document.documentElement,
                       { attributes: true, attributeFilter: ['data-a-theme', 'class'] });
@@ -12031,7 +12539,13 @@ const TSE_GATE_MAX_CLICKS = 5;
         channel: login,
         parent: 'twitch.tv',
         player: 'popout',
-        quality: CFG.PREVIEW_IFRAME_QUALITY,
+        /* LA QUALITÉ SE LIT À CHAQUE OUVERTURE, pas une fois au démarrage :
+           l'URL est reconstruite pour chaque survol, donc changer ce réglage
+           s'applique dès l'aperçu SUIVANT. C'est la raison pour laquelle le
+           panneau n'a pas à demander un rechargement ici, alors qu'il le
+           demande pour l'antipub — qui, lui, s'installe au chargement de
+           l'iframe et ne peut pas se reprendre à chaud. */
+        quality: options.get('apercuQualite'),
         muted: 'true',
         controls: 'false',
         autoplay: 'true'
@@ -13604,6 +14118,14 @@ const TSE_GATE_MAX_CLICKS = 5;
         updateCostreamBadge(login, costreamInfo, meta.id || getChannelId(login), meta.costreamOrganizer);
       });
 
+      /* « MINIATURE SEULE » S'ARRÊTE ICI, et c'est le bon endroit : tout ce
+         qui précède — la miniature, les métadonnées, les badges, la frise —
+         a déjà été fait et reste. Ce réglage ne retire QUE le flux vidéo,
+         c'est-à-dire la seule partie qui coûte de la bande passante. Celui
+         qui le coupe garde un aperçu complet ; il garde une image au lieu
+         d'une vidéo. */
+      if (!options.get('apercuVideo')) return;
+
       // Bascule vers l'iframe player après un court délai. Si l'utilisateur
       // quitte avant, close() annule le timer. Si la réponse GQL arrive
       // avant et indique un CCL, le timer est aussi annulé (cf. ci-dessus).
@@ -13665,6 +14187,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       }, { passive: true, capture: true });
 
       document.addEventListener('mouseenter', (e) => {
+        /* L'INTERRUPTEUR DE L'APERÇU EST ICI, et il est volontairement placé
+           AVANT tout le reste : rien ne s'arme, rien ne se précharge, aucune
+           requête de métadonnées ne part. Un aperçu « désactivé » qui aurait
+           continué de préparer son contenu en coulisses aurait été un réglage
+           menteur — et le seul qui l'aurait su est celui qui regarde son
+           trafic réseau. Le survol redevient exactement ce que Twitch fait. */
+        if (!options.get('apercu')) return;
         const t = e.target;
         if (!t || typeof t.closest !== 'function') return;
         const card = resolveCard(t);
@@ -14123,6 +14652,12 @@ const TSE_GATE_MAX_CLICKS = 5;
   }
 
   function autoExpandFollowed() {
+    /* LE DÉPLIAGE EST UN CLIC QU'ON DONNE À LA PLACE DE L'UTILISATEUR, et
+       c'est justement ce que certains ne veulent pas : une liste dépliée de
+       deux cents chaînes est plus longue à parcourir qu'un « Voir plus » qu'on
+       ne clique jamais. Coupé, l'extension laisse la liste telle que Twitch la
+       rend — et continue de tout mesurer sur ce qu'elle voit. */
+    if (!options.get('deplier')) return;
     const section = followedSection();
     if (!section) return;
 
@@ -16357,7 +16892,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (l && !isSynthetic(c) && !c.dataset.tseGlobal && !natives.has(l)) natives.set(l, c);
     }
 
-    const top = globalChannels.top(CFG.GLOBAL_TOP_N);
+    const top = globalChannels.top(options.get('topN'));
     const keep = new Set();
     ready(top.length);
     globalSeed.clear();
@@ -16853,6 +17388,24 @@ const TSE_GATE_MAX_CLICKS = 5;
       scanSidebar();
     }, CFG.SCAN_DEBOUNCE);
   };
+
+  /* CHANGER UN RÉGLAGE DOIT SE VOIR TOUT DE SUITE, et un scan ordinaire suffit
+     — pas « invalidateAndRescan », qui purge les caches et baisse le voile.
+     Refaire tomber le voile parce que quelqu'un a choisi « 4:19 » plutôt que
+     « 4h19 » serait une réponse hors de proportion avec la question posée.
+
+     LA PLUPART DES RÉGLAGES N'EN ONT MÊME PAS BESOIN : ceux qui passent par la
+     feuille s'appliquent au moment où l'attribut change, et ceux de l'aperçu
+     au survol suivant. Ce scan est là pour les deux qui se rendent en
+     JavaScript — le format de durée, écrit dans chaque carte, et le nombre de
+     chaînes du classement.
+
+     L'ABONNEMENT EST POSÉ APRÈS LA DÉCLARATION, volontairement. Placé avant,
+     il aurait fonctionné dans tous les cas sauf un : un événement « storage »
+     arrivant pendant le démarrage aurait appelé une constante encore dans sa
+     zone morte, et « prevenir » avale ce que ses abonnés jettent. Ça n'aurait
+     rien cassé — ça aurait juste raté un balayage, sans un mot. */
+  options.surChangement(() => scheduleScan());
 
   /* Le balayage qu'on doit à l'absence, et rien de plus. Rend true s'il a eu
      lieu — le retour d'onglet s'en sert pour ne pas balayer deux fois quand il
