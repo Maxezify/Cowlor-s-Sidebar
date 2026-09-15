@@ -591,5 +591,260 @@
   "guideDemoEnCours": {
     "message": "ongoing",
     "description": "Maquette : segment de frise en cours"
+  },
+  "grpOptions": {
+    "message": "Settings"
+  },
+  "navOptions": {
+    "message": "Options"
+  },
+  "descOptions": {
+    "message": "What the extension adds, and what it leaves alone. Everything is on by default; a purple dot marks what you changed."
+  },
+  "sumSettings": {
+    "message": "settings"
+  },
+  "sumChanged": {
+    "message": "changed"
+  },
+  "optGrpApercu": {
+    "message": "Hover preview"
+  },
+  "optApercu": {
+    "message": "Show the preview"
+  },
+  "optApercuVideo": {
+    "message": "Live video stream"
+  },
+  "optDescApercuVideo": {
+    "message": "Off, the preview keeps its thumbnail, badges and timeline — it simply stops loading the video."
+  },
+  "optApercuQualite": {
+    "message": "Stream quality"
+  },
+  "optDescApercuQualite": {
+    "message": "Applies to the next preview, no reload needed."
+  },
+  "optApercuTaille": {
+    "message": "Window width"
+  },
+  "optGrpBadges": {
+    "message": "Preview badges"
+  },
+  "optBadges": {
+    "message": "Badges shown"
+  },
+  "optGrpCarte": {
+    "message": "The card in the sidebar"
+  },
+  "optDuree": {
+    "message": "Stream uptime"
+  },
+  "optDureeFormat": {
+    "message": "Uptime format"
+  },
+  "optFresh": {
+    "message": "\"Just went live\" bar"
+  },
+  "optCollab": {
+    "message": "Collaboration pill"
+  },
+  "optAbonnes": {
+    "message": "Subscription gold"
+  },
+  "optDescAbonnes": {
+    "message": "\"Subtle\" keeps the colour and drops the shimmer. \"None\" gives the card back to Twitch."
+  },
+  "optSubathonJour": {
+    "message": "Subathon day pill"
+  },
+  "optGrpListe": {
+    "message": "The list, its sorts and filters"
+  },
+  "optTris": {
+    "message": "Sort buttons shown"
+  },
+  "optFiltreCategorie": {
+    "message": "Category filter"
+  },
+  "optFiltreLangue": {
+    "message": "Language filter"
+  },
+  "optTopOnglet": {
+    "message": "Top Channels tab"
+  },
+  "optTopN": {
+    "message": "Channels in the ranking"
+  },
+  "optDescTopN": {
+    "message": "Above thirty, some languages lose an optimisation and the ranking takes longer to fill."
+  },
+  "optGrpTwitch": {
+    "message": "What Twitch shows"
+  },
+  "optStories": {
+    "message": "Stories"
+  },
+  "optDescStories": {
+    "message": "Shown by default: that is what Twitch does."
+  },
+  "optDeplier": {
+    "message": "Expand \"Show more\" automatically"
+  },
+  "optDescDeplier": {
+    "message": "Off, the list stays as Twitch renders it — the extension keeps measuring everything it can see."
+  },
+  "optGrpAbos": {
+    "message": "Subscription sweep"
+  },
+  "optAbosReleve": {
+    "message": "Read my subscriptions"
+  },
+  "optDescAbosReleve": {
+    "message": "This is the extension's only authenticated request: it opens your own twitch.tv/subscriptions page in an invisible frame. Off, the gold and the \"subscriptions first\" sort rely only on channels you visit."
+  },
+  "optAbosPeriode": {
+    "message": "At most once every"
+  },
+  "optGrpTheme": {
+    "message": "Appearance"
+  },
+  "optTheme": {
+    "message": "Theme inside Twitch"
+  },
+  "optDescTheme": {
+    "message": "\"Auto\" follows Twitch's theme. Forcing one only changes how the extension paints on top."
+  },
+  "optGrpDonnees": {
+    "message": "Data"
+  },
+  "optVisites": {
+    "message": "Learn my visits"
+  },
+  "optDescVisites": {
+    "message": "Off, what was already learned stays readable, but nothing more is added. The \"personal popularity\" sort and the rhythm grid stop evolving."
+  },
+  "optGrpPanneau": {
+    "message": "This panel"
+  },
+  "optPanneauTheme": {
+    "message": "Panel theme"
+  },
+  "optDescPanneauTheme": {
+    "message": "Separate from the one above: this panel has to paint itself with no Twitch tab open."
+  },
+  "optPanneauDiag": {
+    "message": "Show diagnostics"
+  },
+  "optDescPanneauDiag": {
+    "message": "The measurement chapters — lag, cycles, preview, switches — are only there to report a problem."
+  },
+  "optGrpPurge": {
+    "message": "Erase, selectively"
+  },
+  "optDescPurge": {
+    "message": "Each button erases only its own memory. The red button at the bottom erases all of them."
+  },
+  "btnPurgeVisits": {
+    "message": "Erase visits"
+  },
+  "purgeVisitsTitle": {
+    "message": "Erase visit history?"
+  },
+  "purgeVisitsText": {
+    "message": "The \"personal popularity\" sort and the rhythm grid will start from zero. Subscriptions and followed channels are untouched."
+  },
+  "btnPurgeSubs": {
+    "message": "Erase subscriptions"
+  },
+  "purgeSubsTitle": {
+    "message": "Erase the subscriptions found?"
+  },
+  "purgeSubsText": {
+    "message": "The gold will leave the cards until the next sweep. Your visits and followed channels are untouched."
+  },
+  "btnPurgeRoster": {
+    "message": "Erase followed channels"
+  },
+  "purgeRosterTitle": {
+    "message": "Erase the remembered followed channels?"
+  },
+  "purgeRosterText": {
+    "message": "The list will rebuild itself by watching the sidebar. Your visits and subscriptions are untouched."
+  },
+  "optPurgeFaite": {
+    "message": "Erased."
+  },
+  "optGrpEchange": {
+    "message": "Export and import"
+  },
+  "btnOptExport": {
+    "message": "Export"
+  },
+  "btnOptImport": {
+    "message": "Import"
+  },
+  "optImportInvalide": {
+    "message": "That is not a valid set of settings."
+  },
+  "optImportFait": {
+    "message": "$1 setting(s) applied, $2 ignored."
+  },
+  "btnOptReset": {
+    "message": "Reset everything"
+  },
+  "optResetTitle": {
+    "message": "Reset every setting to its default?"
+  },
+  "optResetText": {
+    "message": "All twenty-two settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+  },
+  "optValPlein": {
+    "message": "Full"
+  },
+  "optValDiscret": {
+    "message": "Subtle"
+  },
+  "optValAucun": {
+    "message": "None"
+  },
+  "optValPetit": {
+    "message": "Small"
+  },
+  "optValNormal": {
+    "message": "Normal"
+  },
+  "optValGrand": {
+    "message": "Large"
+  },
+  "optValAuto": {
+    "message": "Auto"
+  },
+  "optValDark": {
+    "message": "Dark"
+  },
+  "optValLight": {
+    "message": "Light"
+  },
+  "optHeures": {
+    "message": "$1 h"
+  },
+  "optTriViewers": {
+    "message": "Viewers"
+  },
+  "optTriSubs": {
+    "message": "Subscriptions"
+  },
+  "optTriPopular": {
+    "message": "Personal popularity"
+  },
+  "optTriUptime": {
+    "message": "Stream uptime"
+  },
+  "optTriAlpha": {
+    "message": "Alphabetical"
+  },
+  "optTriCostream": {
+    "message": "Co-streams"
   }
 }

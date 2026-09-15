@@ -476,5 +476,260 @@
   },
   "guideDemoEnCours": {
     "message": "en cours"
+  },
+  "grpOptions": {
+    "message": "Réglages"
+  },
+  "navOptions": {
+    "message": "Options"
+  },
+  "descOptions": {
+    "message": "Ce que l'extension ajoute, et ce qu'elle laisse. Tout est actif par défaut ; un point violet marque ce que vous avez changé."
+  },
+  "sumSettings": {
+    "message": "réglages"
+  },
+  "sumChanged": {
+    "message": "modifiés"
+  },
+  "optGrpApercu": {
+    "message": "L'aperçu au survol"
+  },
+  "optApercu": {
+    "message": "Afficher l'aperçu"
+  },
+  "optApercuVideo": {
+    "message": "Flux vidéo en direct"
+  },
+  "optDescApercuVideo": {
+    "message": "Coupé, l'aperçu garde sa miniature, ses badges et sa frise — il ne charge simplement plus la vidéo."
+  },
+  "optApercuQualite": {
+    "message": "Qualité du flux"
+  },
+  "optDescApercuQualite": {
+    "message": "S'applique à l'aperçu suivant, sans rechargement."
+  },
+  "optApercuTaille": {
+    "message": "Largeur de la fenêtre"
+  },
+  "optGrpBadges": {
+    "message": "Les badges de l'aperçu"
+  },
+  "optBadges": {
+    "message": "Badges affichés"
+  },
+  "optGrpCarte": {
+    "message": "La carte dans la barre"
+  },
+  "optDuree": {
+    "message": "Durée du direct"
+  },
+  "optDureeFormat": {
+    "message": "Format de la durée"
+  },
+  "optFresh": {
+    "message": "Barre « vient de démarrer »"
+  },
+  "optCollab": {
+    "message": "Pastille de collaboration"
+  },
+  "optAbonnes": {
+    "message": "L'or des abonnements"
+  },
+  "optDescAbonnes": {
+    "message": "« Discret » garde la couleur et retire le chatoiement. « Aucun » rend la carte à Twitch."
+  },
+  "optSubathonJour": {
+    "message": "Pastille du jour de subathon"
+  },
+  "optGrpListe": {
+    "message": "La liste, ses tris et ses filtres"
+  },
+  "optTris": {
+    "message": "Boutons de tri affichés"
+  },
+  "optFiltreCategorie": {
+    "message": "Filtre par catégorie"
+  },
+  "optFiltreLangue": {
+    "message": "Filtre par langue"
+  },
+  "optTopOnglet": {
+    "message": "Onglet Top Chaînes"
+  },
+  "optTopN": {
+    "message": "Chaînes du classement"
+  },
+  "optDescTopN": {
+    "message": "Au-delà de trente, certaines langues perdent une optimisation et le classement met plus longtemps à se remplir."
+  },
+  "optGrpTwitch": {
+    "message": "Ce que Twitch affiche"
+  },
+  "optStories": {
+    "message": "Stories"
+  },
+  "optDescStories": {
+    "message": "Elles restent affichées par défaut : c'est ce que Twitch fait."
+  },
+  "optDeplier": {
+    "message": "Déplier « Voir plus » automatiquement"
+  },
+  "optDescDeplier": {
+    "message": "Coupé, la liste reste telle que Twitch la rend — l'extension continue de tout mesurer sur ce qu'elle voit."
+  },
+  "optGrpAbos": {
+    "message": "Le relevé des abonnements"
+  },
+  "optAbosReleve": {
+    "message": "Relever mes abonnements"
+  },
+  "optDescAbosReleve": {
+    "message": "C'est la seule requête authentifiée de l'extension : elle ouvre votre page twitch.tv/subscriptions dans un cadre invisible. Coupée, l'or et le tri « abonnements en tête » ne s'appuient plus que sur les chaînes visitées."
+  },
+  "optAbosPeriode": {
+    "message": "Au plus une fois toutes les"
+  },
+  "optGrpTheme": {
+    "message": "Apparence"
+  },
+  "optTheme": {
+    "message": "Thème dans Twitch"
+  },
+  "optDescTheme": {
+    "message": "« Auto » suit le thème de Twitch. Forcer ne change que la façon dont l'extension se peint par-dessus."
+  },
+  "optGrpDonnees": {
+    "message": "Données"
+  },
+  "optVisites": {
+    "message": "Apprendre mes visites"
+  },
+  "optDescVisites": {
+    "message": "Coupé, ce qui a déjà été appris reste lisible, mais plus rien ne s'y ajoute. Le tri « popularité perso » et la grille du rythme cessent d'évoluer."
+  },
+  "optGrpPanneau": {
+    "message": "Ce panneau"
+  },
+  "optPanneauTheme": {
+    "message": "Thème du panneau"
+  },
+  "optDescPanneauTheme": {
+    "message": "Séparé du précédent : ce panneau doit pouvoir se peindre sans onglet Twitch ouvert."
+  },
+  "optPanneauDiag": {
+    "message": "Afficher les diagnostics"
+  },
+  "optDescPanneauDiag": {
+    "message": "Les chapitres de mesure — retard, cycles, aperçu, bascules — ne servent qu'à signaler un problème."
+  },
+  "optGrpPurge": {
+    "message": "Effacer, au choix"
+  },
+  "optDescPurge": {
+    "message": "Chaque bouton n'efface que sa mémoire. Le bouton rouge du bas, lui, les efface toutes."
+  },
+  "btnPurgeVisits": {
+    "message": "Effacer les visites"
+  },
+  "purgeVisitsTitle": {
+    "message": "Effacer l'historique de visites ?"
+  },
+  "purgeVisitsText": {
+    "message": "Le tri « popularité perso » et la grille du rythme repartiront de zéro. Les abonnements et les chaînes suivies ne sont pas touchés."
+  },
+  "btnPurgeSubs": {
+    "message": "Effacer les abonnements"
+  },
+  "purgeSubsTitle": {
+    "message": "Effacer les abonnements repérés ?"
+  },
+  "purgeSubsText": {
+    "message": "L'or disparaîtra des cartes jusqu'au prochain relevé. Vos visites et vos chaînes suivies ne sont pas touchées."
+  },
+  "btnPurgeRoster": {
+    "message": "Effacer les chaînes suivies"
+  },
+  "purgeRosterTitle": {
+    "message": "Effacer les chaînes suivies mémorisées ?"
+  },
+  "purgeRosterText": {
+    "message": "La liste se reconstruira en observant la barre latérale. Vos visites et vos abonnements ne sont pas touchés."
+  },
+  "optPurgeFaite": {
+    "message": "Effacé."
+  },
+  "optGrpEchange": {
+    "message": "Exporter et importer"
+  },
+  "btnOptExport": {
+    "message": "Exporter"
+  },
+  "btnOptImport": {
+    "message": "Importer"
+  },
+  "optImportInvalide": {
+    "message": "Ce n'est pas un jeu de réglages valide."
+  },
+  "optImportFait": {
+    "message": "$1 réglage(s) appliqué(s), $2 ignoré(s)."
+  },
+  "btnOptReset": {
+    "message": "Tout remettre par défaut"
+  },
+  "optResetTitle": {
+    "message": "Remettre tous les réglages par défaut ?"
+  },
+  "optResetText": {
+    "message": "Les vingt-deux réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+  },
+  "optValPlein": {
+    "message": "Complet"
+  },
+  "optValDiscret": {
+    "message": "Discret"
+  },
+  "optValAucun": {
+    "message": "Aucun"
+  },
+  "optValPetit": {
+    "message": "Petite"
+  },
+  "optValNormal": {
+    "message": "Normale"
+  },
+  "optValGrand": {
+    "message": "Grande"
+  },
+  "optValAuto": {
+    "message": "Auto"
+  },
+  "optValDark": {
+    "message": "Sombre"
+  },
+  "optValLight": {
+    "message": "Clair"
+  },
+  "optHeures": {
+    "message": "$1 h"
+  },
+  "optTriViewers": {
+    "message": "Spectateurs"
+  },
+  "optTriSubs": {
+    "message": "Abonnements"
+  },
+  "optTriPopular": {
+    "message": "Popularité perso"
+  },
+  "optTriUptime": {
+    "message": "Durée de stream"
+  },
+  "optTriAlpha": {
+    "message": "Alphabétique"
+  },
+  "optTriCostream": {
+    "message": "Co-streams"
   }
 }
