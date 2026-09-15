@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1000 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1005 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,80 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Twitch a sorti le pseudo du groupe (v4.5.5)
+
+Signalement : « ça a l'air de marcher, sauf que le nom du streamer et sa
+catégorie sur Top Chaînes sont inversés ». Trente cartes fabriquées, toutes
+fausses — un défaut qu'aucun compteur n'aurait montré, puisque tout était
+compté juste.
+
+Et pour la première fois en cinq versions, **le rapport portait la réponse**. Le
+recensement ajouté la veille disait :
+
+```
+crochet   9        ← neuf cartes sur dix portent le crochet d'automatisation
+p1       10        ← mais leur groupe nom+catégorie n'a qu'UNE ligne
+```
+
+Ce groupe en a toujours porté **deux**. Twitch en a sorti le pseudo : il vit
+désormais à côté, dans le bloc marqué `side-nav-card-metadata`, et
+`.side-nav-card__metadata` ne garde que la catégorie.
+
+### Une seule carte s'en ressentait, et c'était la mauvaise
+
+Les neuf cartes qui gardent le crochet ne changent rien : il les désigne sans
+ambiguïté. La dixième — une carte décorée, sans crochet — cherchait son pseudo
+**dans le groupe**, et n'y trouvait que la catégorie. Or c'est elle, et elle
+seule, qui sert de modèle au clonage.
+
+Le repli cherchait donc dans le mauvais conteneur. Le corriger tient en un mot :
+la **boîte marquée** d'abord, le groupe ensuite. Elle contient les deux lignes,
+quelle que soit la disposition.
+
+### Aucun attribut ne désigne le pseudo
+
+Trois rédactions ont cherché un **attribut** qui le désigne, et le terrain les a
+démenties l'une après l'autre :
+
+- le crochet d'automatisation — absent des cartes décorées ;
+- « la ligne sans `title` » — elle écarte les **deux** lignes quand Twitch titre
+  aussi le pseudo, ce qu'il fait dès qu'il le tronque ;
+- la même, quand seule la catégorie n'est pas titrée — elle désigne alors
+  carrément la **mauvaise**, avec aplomb.
+
+C'est **l'ordre** qui le désigne, et lui seul : le pseudo est la première ligne,
+dans toutes les dispositions observées — celle où les deux lignes vivent dans le
+groupe, celle où Twitch en a sorti le pseudo, celle d'une chaîne sans catégorie
+qui n'a qu'une ligne. Le titre du direct, troisième ligne, vient après les deux
+autres et n'est donc jamais premier.
+
+### Le recensement nomme désormais le déplacement
+
+`p0…p3` comptait les lignes du seul groupe. Son « une seule ligne » était la
+bonne nouvelle, mais il ne disait pas **où était passée l'autre**. Le bloc porte
+maintenant `b0…b3` pour la boîte marquée, et surtout `nomHorsGroupe` : le nombre
+de cartes dont le pseudo a quitté le groupe. Un seul nombre, et il nomme le
+changement.
+
+### Les scénarios 109 et 110
+
+Cinq assertions, cinq mutants, aucun survivant :
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| le groupe repasse devant la boîte marquée | le pseudo et la catégorie s'inversent |
+| le repère prend la dernière ligne | les deux scénarios tombent |
+| le repère redevient « la ligne sans `title` » | le scénario 110, et lui seul |
+| le recensement ne compte plus la boîte marquée | `b2` reste à zéro |
+| `nomHorsGroupe` ne compte jamais | il reste à zéro là où il doit valoir 1 |
+
+**Le scénario 110 existe parce que le 109 ne suffisait pas.** Le 109 reproduit
+le balisage du terrain, où les deux lignes portent un `title` — et l'ancienne
+heuristique y rend le bon résultat **par accident** : elle ne trouve rien et
+retombe sur la première ligne. Elle survivait donc au banc. Le 110 la départage
+avec une carte où seul le pseudo est titré, et c'est le seul endroit où elle
+meurt.
 
 ## Ce qu'un rapport ne pouvait pas dire (v4.5.4)
 
@@ -5629,7 +5703,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 108 scénarios, 1000 assertions |
+| `npm test` | le harnais Playwright : 110 scénarios, 1005 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -5650,7 +5724,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 920 Ko | 357 Ko | 3 206 → **2** |
+| `content.js` | 922 Ko | 357 Ko | 3 208 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 69 Ko | 34 Ko | 86 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |

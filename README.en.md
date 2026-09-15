@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1000 assertions, under Gecko
+npm run test-firefox        # the same 1005 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,76 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Twitch moved the pseudonym out of the group (v4.5.5)
+
+Report: "it looks like it works, except the streamer's name and their category
+are swapped in Top Channels". Thirty built cards, all of them wrong — a defect no
+counter would have shown, since everything was counted correctly.
+
+And for the first time in five versions, **the report carried the answer**. The
+census added the day before said:
+
+```
+crochet   9        ← nine cards out of ten carry the automation hook
+p1       10        ← but their name+category group holds only ONE line
+```
+
+That group has always held **two**. Twitch moved the pseudonym out of it: it now
+lives alongside, inside the block marked `side-nav-card-metadata`, and
+`.side-nav-card__metadata` keeps only the category.
+
+### Only one card was affected, and it was the wrong one
+
+The nine cards that keep the hook change nothing: it names them unambiguously.
+The tenth — a decorated card, without the hook — looked for its pseudonym
+**inside the group**, and found only the category there. And that card, alone,
+is the one used as the cloning template.
+
+So the fallback was searching the wrong container. Fixing it takes one word: the
+**marked box** first, the group second. It holds both lines, whatever the layout.
+
+### No attribute names the pseudonym
+
+Three drafts looked for an **attribute** that names it, and the field
+contradicted each in turn:
+
+- the automation hook — missing from decorated cards;
+- "the line without a `title`" — it rules out **both** lines when Twitch titles
+  the pseudonym too, which it does as soon as it truncates;
+- the same rule, when only the category is untitled — it then names the **wrong**
+  line outright, with confidence.
+
+It is **order** that names it, and nothing else: the pseudonym is the first line,
+in every layout observed — the one where both lines live in the group, the one
+where Twitch moved the pseudonym out, the one of a category-less channel with a
+single line. The stream title, the third line, comes after the other two and is
+therefore never first.
+
+### The census now names the move
+
+`p0…p3` counted the lines of the group alone. Its "only one line" was the good
+news, but it did not say **where the other one had gone**. The block now carries
+`b0…b3` for the marked box, and above all `nomHorsGroupe`: the number of cards
+whose pseudonym has left the group. One number, and it names the change.
+
+### Scenarios 109 and 110
+
+Five assertions, five mutants, no survivors:
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| the group goes back ahead of the marked box | pseudonym and category swap |
+| the landmark takes the last line | both scenarios fall |
+| the landmark goes back to "the line without a `title`" | scenario 110, and only it |
+| the census stops counting the marked box | `b2` stays at zero |
+| `nomHorsGroupe` never counts | it stays at zero where it should read 1 |
+
+**Scenario 110 exists because 109 was not enough.** 109 reproduces the field's
+markup, where both lines carry a `title` — and the old heuristic returns the
+right answer there **by accident**: it finds nothing and falls back on the first
+line. It therefore survived the bench. 110 separates them with a card where only
+the pseudonym is titled, and that is the only place where it dies.
 
 ## What a report could not say (v4.5.4)
 
@@ -5380,7 +5450,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 108 scenarios, 1000 assertions |
+| `npm test` | the Playwright harness: 110 scenarios, 1005 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -5400,7 +5470,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 920 KB | 357 KB | 3,206 → **2** |
+| `content.js` | 922 KB | 357 KB | 3,208 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 69 KB | 34 KB | 86 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |

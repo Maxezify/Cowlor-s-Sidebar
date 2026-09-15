@@ -9258,20 +9258,31 @@ const TSE_GATE_MAX_CLICKS = 5;
            une question que trois versions ont dû poser. */
         lignes: (() => {
           const vues = cartes.filter(c => !isSynthetic(c) && !isCardOffline(c));
-          const r = { cartes: vues.length, crochet: 0, groupe: 0,
+          const r = { cartes: vues.length, crochet: 0, groupe: 0, boite: 0,
                       p0: 0, p1: 0, p2: 0, p3: 0,
-                      toutesTitrees: 0, nomTitre: 0, sansNom: 0 };
+                      b0: 0, b1: 0, b2: 0, b3: 0,
+                      nomHorsGroupe: 0, toutesTitrees: 0, nomTitre: 0, sansNom: 0 };
           for (const c of vues) {
             if (c.querySelector('p[data-a-target="side-nav-title"]')) r.crochet++;
-            const g = c.querySelector('.side-nav-card__metadata')
-                   || c.querySelector('[data-a-target="side-nav-card-metadata"]');
+            /* LES DEUX BOÎTES, ET NON PLUS UNE SEULE. La première rédaction ne
+               comptait que le groupe `.side-nav-card__metadata`, et son « une
+               seule ligne » était la bonne nouvelle — mais elle ne disait pas
+               OÙ était passée l'autre. `nomHorsGroupe` la nomme. */
+            const g = c.querySelector('.side-nav-card__metadata');
+            const b = c.querySelector('[data-a-target="side-nav-card-metadata"]');
             if (g) r.groupe++;
+            if (b) r.boite++;
             const ps = g ? [...g.querySelectorAll('p')] : [];
+            const bs = b ? [...b.querySelectorAll('p')] : [];
             r['p' + Math.min(ps.length, 3)]++;
+            r['b' + Math.min(bs.length, 3)]++;
             if (ps.length && ps.every(x => x.hasAttribute('title'))) r.toutesTitrees++;
             const nom = cardNameEl(c);
             if (!nom) r.sansNom++;
-            else if (nom.hasAttribute('title')) r.nomTitre++;
+            else {
+              if (nom.hasAttribute('title')) r.nomTitre++;
+              if (g && !g.contains(nom)) r.nomHorsGroupe++;
+            }
           }
           return r;
         })(),
@@ -9678,28 +9689,32 @@ const TSE_GATE_MAX_CLICKS = 5;
   const cardNameEl = (card) => {
     const hook = card.querySelector('p[data-a-target="side-nav-title"]');
     if (hook) return hook;
-    const groupe = card.querySelector('.side-nav-card__metadata')
-                || card.querySelector('[data-a-target="side-nav-card-metadata"]');
+    /* LA BOÎTE MARQUÉE D'ABORD, ET NON LE GROUPE. L'ordre était l'inverse, et
+       c'est ce qui a inversé le pseudo et la catégorie sur les cartes
+       fabriquées : Twitch a SORTI le pseudo de `.side-nav-card__metadata`, qui
+       ne porte plus que la catégorie. Chercher dans le groupe, c'était donc
+       ne trouver que la catégorie et l'appeler pseudo. Le recensement du
+       rapport l'a dit en un nombre — `p1` valait le nombre de cartes, là où ce
+       groupe en a toujours porté deux. */
+    const groupe = card.querySelector('[data-a-target="side-nav-card-metadata"]')
+                || card.querySelector('.side-nav-card__metadata');
     if (!groupe) return null;
-    /* ON NE DEMANDE PAS LA CATÉGORIE À `cardCategoryEl`, et on ne peut plus :
-       son DERNIER repli était « le premier <p> de la metadata » — c'est-à-dire
-       LE PSEUDO dès que la chaîne n'annonce aucune catégorie. Les deux gardes
-       s'annulaient alors : l'une écartait le nom, l'autre la catégorie, et il
-       ne restait rien (le « modeleRefus: pseudo » de la 4.5.2, sur une carte
-       qui portait pourtant son nom). Depuis, c'est `cardCategoryEl` qui
-       s'appuie sur nous, et le croisement rendrait les deux récursives.
+    /* L'ORDRE, ET RIEN QUE L'ORDRE. Trois rédactions ont cherché un ATTRIBUT
+       qui désigne le pseudo, et le terrain les a démenties l'une après
+       l'autre : le crochet d'automatisation manque sur les cartes décorées ;
+       « la ligne sans title » écarte les deux lignes quand Twitch titre aussi
+       le pseudo, ce qu'il fait en le tronquant ; et elle désigne carrément la
+       MAUVAISE quand seule la catégorie n'est pas titrée.
 
-       DEUX REPÈRES, ET LE SECOND EST UN FILET. La catégorie porte un `title` ;
-       la ligne qui n'en porte pas est donc le pseudo. Mais Twitch pose aussi
-       un `title` sur le pseudo quand il le tronque — et le repère unique
-       n'écartait alors plus deux lignes : il les écartait TOUTES. Rendre null
-       là, c'est refuser la carte entière ; on prend donc la PREMIÈRE ligne du
-       groupe, le pseudo étant au-dessus de la catégorie dans toutes les
-       dispositions connues de Twitch. Se tromper de ligne serait grave ; il
-       n'y a ici qu'une ligne à se tromper, et c'est la bonne. */
-    const lignes = [...groupe.querySelectorAll('p')];
-    if (!lignes.length) return null;
-    return lignes.find(x => !x.hasAttribute('title')) || lignes[0];
+       LE PSEUDO EST LA PREMIÈRE LIGNE, et il l'est dans toutes les
+       dispositions observées : celle où les deux lignes vivent dans le groupe,
+       celle où Twitch en a sorti le pseudo, celle d'une chaîne sans catégorie
+       qui n'a qu'une ligne. Le titre du direct — la troisième ligne — vient
+       après les deux autres et n'est donc jamais premier.
+
+       ON NE DEMANDE RIEN À `cardCategoryEl`, et on ne peut plus : c'est lui
+       qui s'appuie sur nous, et le croisement rendrait les deux récursives. */
+    return groupe.querySelector('p');
   };
 
   const getCardCategory = (card) => {
