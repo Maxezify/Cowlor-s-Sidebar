@@ -1855,6 +1855,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     // deux langues : la borne n'est là que pour qu'aucun registre ne croisse
     // sans fin, et la plus anciennement apprise sort en premier.
     GLOBAL_DECLARED_MAX:   1000,
+    /* Plafond de sondes de reprise pour la durée d'une page. La dépense réelle
+       est déjà bornée par le registre des sessions déjà sondées — une
+       opération par stream, au survol — et ce nombre n'est qu'un filet : une
+       barre latérale de cent chaînes survolée entièrement en coûte cent, et
+       trois cents est très au-delà de ce qu'une session atteint. Sa saturation
+       serait elle-même un renseignement, et elle se lit dans le rapport. */
+    RECONNECT_PROBE_MAX:    300,
     // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
     // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
     // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
@@ -9204,10 +9211,27 @@ const TSE_GATE_MAX_CLICKS = 5;
                             à lui seul pourquoi aucun alignement ne prend. */
         centrage: (() => {
           const sansCat = cartes.filter(c => c.dataset.tseNocat === 'true');
-          const bilan = { cartes: sansCat.length, decalees: 0, ecartPx: null,
+          /* DEUX POPULATIONS, ET LES CONFONDRE REND LE BLOC MUET. Un premier
+             rapport a rendu « cartes 0 », ce qui ne distingue pas « aucune
+             chaîne n'est sans catégorie en ce moment » de « le marqueur ne se
+             pose pas ». `sansLigne` compte donc ce que le DOM montre — une
+             metadata qui ne porte AUCUN élément de catégorie — sans rien
+             supposer de notre marqueur. Les deux nombres ensemble tranchent :
+             égaux, le marqueur suit le DOM ; `sansLigne` seul non nul, c'est
+             le marqueur qu'il faut aller voir. */
+          const ligneCat = (c) => c.querySelector(
+            '.side-nav-card__metadata p[title], [data-a-target="side-nav-card-metadata"] p[title]');
+          const bilan = { cartes: sansCat.length,
+                          sansLigne: cartes.filter(c => !ligneCat(c)).length,
+                          decalees: 0, ecartPx: null,
                           boiteH: null, rangeeH: null, alignSelf: null,
                           display: null, parentDisplay: null };
-          for (const c of sansCat) {
+          /* ON MESURE L'UNION DES DEUX POPULATIONS. Se limiter aux cartes
+             marquées rendait le bloc muet dans le cas même où il servirait le
+             plus : un marqueur qui ne se pose pas laisse une carte visiblement
+             de travers et un rapport qui n'a rien à en dire. */
+          for (const c of cartes) {
+            if (c.dataset.tseNocat !== 'true' && ligneCat(c)) continue;
             const meta = c.querySelector('[data-a-target="side-nav-card-metadata"]');
             const p = c.querySelector('p[data-a-target="side-nav-title"]');
             const statut = liveStatusOf(c);
@@ -10847,12 +10871,34 @@ const TSE_GATE_MAX_CLICKS = 5;
       const depart = Date.parse(flux?.createdAt);
       if (!streamId || !Number.isFinite(depart)) return false;
       if (sondees.has(streamId)) return false;
-      // Un direct qui dure depuis plus longtemps que la fenêtre de reprise ne
-      // peut plus être le tronçon d'après quoi que ce soit : le raccord serait
-      // hors fenêtre de toute façon.
-      if (Date.now() - depart > CFG.FRESH_MAX_MIN * 60_000) return false;
       // Déjà chaîné — on l'a vu de nos yeux, ou une sonde précédente l'a fait.
       if (coupuresDe(login)) return false;
+      /* ── CE QUE LA 4.3 AVAIT MIS ICI, ET POURQUOI C'ÉTAIT FAUX ────────────
+         Une garde exigeait que le direct courant ait moins de dix minutes, au
+         motif qu'« un direct plus vieux que la fenêtre de reprise ne peut plus
+         être le tronçon d'après quoi que ce soit ». Elle confondait DEUX
+         durées qui n'ont rien à voir :
+           — l'ÂGE du direct courant, qui grandit sans cesse ;
+           — le TROU entre la fin de l'archive d'avant et le départ de ce
+             direct, deux instants FIXES dans le passé, dont l'écart ne bouge
+             plus jamais.
+         Un direct qui tourne depuis une heure et demie après une coupure de
+         trois minutes a toujours un trou de trois minutes. La garde le rendait
+         insondable, et le rapport de l'utilisateur l'a dit en un chiffre :
+         « sondes 1 » sur deux cent vingt-neuf survols.
+
+         LE BADGE ET LE FAIT N'ONT PAS LA MÊME DURÉE DE VIE, et c'est déjà écrit
+         ailleurs dans ce fichier : « Reprise après coupure » est une nouvelle,
+         elle s'éteint au bout de dix minutes ; le direct, lui, a toujours été
+         coupé, et la frise doit pouvoir le dire six heures plus tard. Adopter
+         une reprise vieille d'une heure ne rallume donc aucun badge — son
+         horodatage est celui du tronçon, pas de la découverte — mais rend son
+         origine, son compte de coupures et son passé.
+
+         CE QUI BORNE VRAIMENT LA DÉPENSE : une opération par SESSION de stream
+         (le registre ci-dessous), au survol seulement, et jamais sur une chaîne
+         déjà chaînée. Plus un plafond par page, filet contre un état imprévu. */
+      if (bilanSondes.sondes >= CFG.RECONNECT_PROBE_MAX) return false;
       sondees.add(streamId);
       while (sondees.size > CFG.CHAPITRES_MAX) {
         sondees.delete(sondees.values().next().value);
