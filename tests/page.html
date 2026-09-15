@@ -20,6 +20,16 @@ html { font-size: 62.5%; }
 .metacell > [data-a-target="side-nav-card-metadata"] { flex: 1; }
 .metacell p, .metacell span { display: block; line-height: 16px; margin: 0; }
 .side-nav-card__live-status { min-height: 32px; }
+/* __rangeeFigee : Twitch ÉPINGLE la colonne des métadonnées en haut de sa
+   rangée, avec une règle qui gagne. C'est l'hypothèse que deux versions ont
+   manquée : une correction qui se contente de demander l'étirement perd contre
+   elle, et le pseudo reste en haut — vert au banc, sans effet sur la vraie
+   page. Le harnais la pose donc pour de bon, et la règle de l'extension doit
+   passer devant. Elle est écrite AVANT la feuille de l'extension, exactement
+   comme celle de Twitch : à spécificité égale, c'est l'ordre qui tranche. */
+.side-nav-card[data-figee] [data-a-target="side-nav-card-metadata"] {
+  align-self: flex-start !important;
+}
 </style>
 </head>
 <body>
@@ -87,6 +97,10 @@ window.__gqlErrors = false;// 200 porteur d'erreurs GraphQL, une fois
 // comptent : la pastille iconContainer--primary sur l'avatar, que l'extension
 // masque, et un mini-avatar DANS le bloc metadata, qui, lui, occupe une ligne.
 window.__costreamHost = {};
+// Logins dont la rangée ÉPINGLE la colonne des métadonnées en haut (cf. la
+// feuille ci-dessus). Modélise une règle de Twitch qui gagne contre une simple
+// demande d'étirement.
+window.__rangeeFigee = [];
 
 // ── Traduction des catégories ───────────────────────────────────────
 // Twitch sert DEUX noms par catégorie : `name`, canonique et anglais, celui
@@ -167,6 +181,7 @@ window.__addReco = (login, cat, viewersText) => {
 window.__addCard = (login, cat, viewersText, live = true) => {
   const d = document.createElement('div');
   d.className = 'side-nav-card';
+  if ((window.__rangeeFigee || []).includes(login)) d.setAttribute('data-figee', '');
   d.innerHTML =
     '<a class="side-nav-card__link" data-a-target="side-nav-card" ' +
         'id="nav-' + login + '" aria-label="' + login + ', ' + cat + '" ' +
@@ -509,16 +524,21 @@ window.fetch = async (url, opt) => {
       const v = window.__vodRecent && window.__vodRecent[o.variables?.login];
       if (v === 'erreur') return { errors: [{ message: 'Cannot query field videos' }] };
       if (!v) return { data: { user: { videos: { edges: [] } } } };
-      return { data: { user: { videos: { edges: [{ node: {
-        id: 'v2',
-        createdAt: v.createdAt,
+      /* UNE ARCHIVE OU PLUSIEURS. La requête en demande trois depuis la 4.3 :
+         la première peut être celle du direct en cours, et c'est la SUIVANTE
+         qui porte le tronçon d'avant une coupure. Un objet seul reste accepté
+         — c'est la forme des scénarios écrits avant — et vaut une liste d'un. */
+      const liste = Array.isArray(v) ? v : [v];
+      return { data: { user: { videos: { edges: liste.map((a, i) => ({ node: {
+        id: 'v' + (i + 2),
+        createdAt: a.createdAt,
         // La durée de l'enregistrement : c'est elle qui dit s'il s'étend
         // jusqu'au départ du live ou s'il s'est terminé avant.
-        lengthSeconds: v.lengthSeconds,
-        moments: { edges: (v.chapitres || []).map(c => ({ node: {
+        lengthSeconds: a.lengthSeconds,
+        moments: { edges: (a.chapitres || []).map(c => ({ node: {
           positionMilliseconds: c.pos,
           details: { game: { name: c.jeu, displayName: traduire(c.jeu) } } } })) }
-      } }] } } } };
+      } })) } } } };
     }
     if (window.__globalFail &&
         (o.operationName === 'TseCategories' || o.operationName === 'TseCategoryTop')) {

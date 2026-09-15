@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 940 assertions, sous Gecko
+npm run test-firefox        # les mêmes 955 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,167 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La reprise qui ne marchait pas (v4.3)
+
+Deux signalements, une capture d'écran, et un rapport de diagnostic. Trois
+défauts, dont un que deux versions avaient manqué.
+
+### La ligne qui détruisait la frise
+
+`suivreCategorie` jetait le registre entier dès qu'un relevé rendait un direct
+**en ligne sans catégorie** :
+
+```js
+if (id) { frises.delete(login); return; }   // « rien ne dit ce qu'on regarde »
+```
+
+Le raisonnement tenait sur l'instant et manquait le cas qui compte : **un direct
+qui reprend n'a pas encore de catégorie pendant les premières secondes.** Le
+badge de reprise se posait — il ne dépend pas de la catégorie — puis la ligne
+suivante jetait le passé que la reprise venait précisément de préserver. C'est
+le signalement, mot pour mot : « il avait une frise avant, et il n'en a plus du
+tout quand il a repris. »
+
+Le même défaut expliquait un second symptôme qu'on n'avait pas relié : **une
+chaîne qui n'annonce jamais de catégorie n'avait jamais de frise non plus**, sa
+frise étant détruite à chaque relevé.
+
+Ce qu'on fait à la place : rien. La tenue de session — l'origine, l'identifiant,
+la fin de la retenue hors ligne — ne dépend pas de la catégorie et a déjà eu
+lieu. Il reste seulement à **ne pas ouvrir de segment** sur une catégorie qu'on
+ne connaît pas. Le dernier segment s'étend jusqu'à maintenant : on ne sait pas
+que ça a changé, et se taire n'est pas inventer.
+
+### La coupure qu'on n'a pas vue passer
+
+Tout le dispositif de reprise reposait sur une **observation** : pour savoir
+qu'un direct a repris, il fallait l'avoir vu en ligne avant la coupure, dans
+cette page-ci. Un onglet ouvert pendant la coupure, un rechargement, une chaîne
+qu'on ne suit pas — et le direct repart de zéro.
+
+Le signalement venait avec sa preuve. Le rapport disait `page ouverte depuis
+344 s` ; la capture de la page « Vidéos » de la chaîne montrait les deux
+enregistrements côte à côte :
+
+| Archive | Durée | Âge |
+| --- | --- | --- |
+| celle d'après | 5:46 | il y a 6 minutes |
+| celle d'avant | 9:51:19 | il y a 10 heures |
+
+**Ce que nous n'avons pas vu, Twitch l'a archivé.**
+
+#### Ce que la 4.0 avait conclu, et pourquoi c'était la moitié du problème
+
+La 4.0 avait établi qu'un enregistrement peut **traverser** une reconnexion —
+mesuré, un recouvrement de 39 minutes — et en avait tiré qu'il suffisait de
+dater la requête de chapitres sur l'origine. C'est vrai **quand Twitch garde le
+même enregistrement**. La capture montre le cas inverse, tout aussi réel : un
+enregistrement **neuf**, et le passé dans le précédent. Les deux existent ; ne
+traiter que le premier laissait le second sans rien.
+
+#### Le critère est un raccord, et il ne se devine pas
+
+`videos(first: 3)` au lieu de 1, et l'on cherche une archive qui **se termine**
+dans la fenêtre de reprise avant le départ du direct courant.
+
+- L'archive du direct **courant** commence avec lui : elle ne raccorde rien,
+  elle *est* le tronçon d'après. Écartée d'elle-même.
+- Une archive terminée il y a six heures ne raccorde rien non plus.
+- Une archive terminée trois minutes avant le départ **est** le tronçon d'avant.
+
+Trouvée, elle donne d'un coup le badge, l'origine, le compte de coupures, la
+marque sur le ruban — **et ses chapitres**, c'est-à-dire tout ce que le direct a
+traversé avant la coupure, daté à la seconde par Twitch.
+
+#### Ce que ça coûte
+
+Une opération, au survol, **une seule fois par session de stream**, et
+uniquement sur un direct **jeune** dont on ne sait rien. Une chaîne suivie
+depuis le début de son live n'en déclenche aucune : il n'y aurait rien à
+apprendre. Les compteurs sont dans le rapport
+(`reseau.chapitres.reprise.{sondes, trouvees, adoptees}`).
+
+L'exception du subathon vaut pour la sonde comme pour l'observation directe —
+sans quoi la sonde l'aurait contournée par la porte de derrière.
+
+### Le centrage : deux corrections à l'aveugle, et pourquoi
+
+C'est le défaut le plus embarrassant de cette série, parce qu'il a été
+« corrigé » deux fois sans effet.
+
+La 3.98 posait `align-self: stretch`, c'est-à-dire **un pari** : que la rangée
+étire sa colonne à sa hauteur, de sorte qu'il y ait quelque chose à centrer
+dedans. La 4.2 a retiré les intrus de la boîte — vrai problème, vraie
+correction — **sans toucher à ce pari-là**. Si Twitch épingle la colonne en
+haut, les deux restent inertes.
+
+Et le banc restait vert, parce qu'il **modélise** une rangée qui étire. Une
+modélisation qui ne porte qu'un seul des cas possibles ne peut pas départager
+une correction qui marche d'une correction qui ne marche pas.
+
+**On ne parie plus, on couvre les deux cas.** Trois déclarations, chacune inerte
+là où l'autre agit : `align-self: center` centre la boîte quand elle tient dans
+la rangée ; `margin-block: auto` fait de même sur une grille et prend le pas sur
+un `align-items` imposé ; la colonne centrée reste pour le cas où la boîte est
+étirée malgré tout. En `!important`, parce qu'une règle de Twitch sur la même
+propriété gagnait sinon par ordre de cascade et qu'on ne peut pas viser sa
+classe — elle est hachée à chaque build.
+
+Le harnais **épingle** désormais la colonne d'une carte, pour de bon, avec une
+règle qui gagne. C'est la seule assertion du scénario 99 qui distingue cette
+correction de celle de la 3.98.
+
+#### Et une mesure, pour ne pas recommencer une troisième fois
+
+La feuille de style de Twitch n'est pas lisible depuis ce dépôt, et le banc n'en
+porte qu'un modèle. Le rapport de diagnostic porte donc un bloc **CENTRAGE** qui
+mesure, sur la page réelle : combien de cartes sont marquées sans catégorie,
+combien ont leur pseudo à plus de 2 px du centre de leur rangée, l'écart signé
+de la première, les deux hauteurs, et ce que le navigateur a retenu de nos
+déclarations (`display`, `align-self`, `parentDisplay`). Un `parentDisplay:
+block` dirait à lui seul pourquoi aucun alignement ne prend.
+
+### Les scénarios 101 et 102
+
+Quinze assertions, neuf mutants, aucun survivant — **après correction de deux
+assertions qui ne prouvaient rien** :
+
+| Mutant | Assertions qui tombent |
+| --- | --- |
+| la ligne qui détruisait la frise est rétablie | 4 |
+| un relevé muet ouvre quand même un segment | 4 |
+| la sonde ne part plus | 4 |
+| le raccord ne regarde que la première archive | 4 |
+| la fenêtre de reprise saute | 2 |
+| l'exception du subathon saute | 1 |
+| les chapitres d'avant ne sont pas rapportés | 2 |
+| la frise n'est pas recalée sur l'origine | 1 |
+| la sonde repart à chaque survol | 1 |
+
+Les deux derniers ont d'abord **survécu**, et c'est le passage qui valait le plus
+cher :
+
+- *le recalage de l'origine* n'avait aucun effet observable tant que l'archive
+  d'avant portait des chapitres — ils datent la frise à eux seuls. Il a fallu
+  un décor où l'archive raccorde **sans porter un seul chapitre** : sans le
+  recalage, la frise annonce « 0m » à côté de « 1 coupure » sur un direct de
+  cinq heures. Elle ne se tait pas, elle se trompe ;
+- *le registre des sondes* était couvert par une autre garde — « cette chaîne
+  est déjà chaînée » — sur la seule chaîne que le test re-survolait. On
+  re-survole désormais une chaîne qui **n'a rien donné**, où cette autre garde
+  ne s'applique pas.
+
+Une assertion qui passe sur un mutant ne prouve rien, et le seul moyen de le
+savoir est de fabriquer le mutant.
+
+### Attention à l'échelle, dans le banc
+
+`RECONNECT_GAP_MAX` vaut dix minutes en production et **2,5 secondes** dans le
+banc (`tests/build.mjs`). Les trous du scénario 102 sont donc exprimés en
+secondes : un trou d'une seconde est une reprise, un trou de dix n'en est pas
+une. Les écrire en minutes aurait mis les deux hors fenêtre — et les deux
+assertions seraient passées sans rien prouver.
 
 ## Le co-streamer sans catégorie (v4.2)
 
@@ -4850,7 +5011,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 100 scénarios, 940 assertions |
+| `npm test` | le harnais Playwright : 102 scénarios, 955 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -4871,9 +5032,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 867 Ko | 345 Ko | 3 140 → **2** |
+| `content.js` | 875 Ko | 348 Ko | 3 170 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 68 Ko | 34 Ko | 84 → **0** |
+| `panneau.js` | 69 Ko | 34 Ko | 85 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1078 Ko** | **484 Ko** | **−55 %** |

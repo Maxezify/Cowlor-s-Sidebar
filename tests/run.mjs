@@ -8338,16 +8338,31 @@ titre('78. Aperçu — la frise des catégories traversées');
      f4.parts.length === 1 && f4.parts[0].inconnu === false,
      JSON.stringify(f4.parts));
 
-  /* ── LE SEUL VRAI SILENCE ────────────────────────────────────────────────
-     Une catégorie inconnue — Twitch en sert parfois sans — n'est pas un
-     segment : on ne saurait ni le nommer ni le comparer au suivant. La frise
-     est alors oubliée plutôt que remplie de trous. */
+  /* ── CE QUE LA 4.3 A RETOURNÉ, ET POURQUOI ───────────────────────────────
+     Cette assertion disait l'inverse : une catégorie inconnue EFFAÇAIT la
+     frise, « oubliée plutôt que remplie de trous ». Le raisonnement tenait sur
+     l'instant et manquait le cas qui compte — un direct qui REPREND n'a pas
+     encore de catégorie pendant les premières secondes, et le passé qu'on
+     venait de préserver partait avec. Deux signalements l'ont montré : « il
+     avait une frise avant, et il n'en a plus du tout quand il a repris », et
+     une chaîne qui n'annonce jamais de catégorie n'avait jamais de frise.
+
+     LE SILENCE NE DÉTRUIT PLUS, IL S'ABSTIENT : on n'ouvre pas de segment sur
+     une catégorie qu'on ne connaît pas — se taire n'est pas inventer — mais ce
+     qui est déjà observé reste. Le décor pose deux catégories AVANT le trou,
+     sans quoi la frise se tairait pour une autre raison (un segment unique ne
+     fait pas une frise) et l'assertion ne prouverait rien. */
   await relacher();
+  await page.evaluate(() => { window.__fx.alpha.game = 'VALORANT'; window.tse.rescan(); });
+  await wait(page, 600);
   await page.evaluate(() => { window.__fx.alpha.game = null; window.tse.rescan(); });
   await wait(page, 600);
   await survoler();
-  ok('une catégorie inconnue efface la frise plutôt que d\'y laisser un trou',
-     (await frise()) === null, JSON.stringify(await frise()));
+  const f5 = await frise();
+  ok('une catégorie inconnue laisse la frise en place au lieu de la détruire',
+     f5 !== null && f5.lignes.length === 2
+     && f5.lignes.some(l => /VALORANT/.test(l.nom)),
+     JSON.stringify(f5 && f5.lignes.map(l => l.nom)));
 
   await page.close();
 }
@@ -9355,6 +9370,12 @@ titre('85. La carte sans catégorie — le pseudo se recentre');
         ecart: Math.round((p.top + p.height / 2) - (r.top + r.height / 2)),
         hauteurRangee: Math.round(r.height),
         hauteurMeta: Math.round(m.height),
+        // Les deux marges de la boîte dans sa rangée. Égales, la boîte est
+        // centrée — que sa hauteur soit celle de la rangée ou celle de son
+        // contenu. C'est la propriété qu'on veut, et elle ne dit rien du
+        // MOYEN employé pour l'obtenir.
+        margeHaut: Math.round(m.top - r.top),
+        margeBas: Math.round(r.bottom - m.bottom),
       };
     };
     return { avec: lire('avecjeu'), sans: lire('sansjeu') };
@@ -9368,8 +9389,21 @@ titre('85. La carte sans catégorie — le pseudo se recentre');
          .find(x => x.dataset.tseLogin === 'sansjeu');
        return c.querySelectorAll('[data-a-target="side-nav-card-metadata"] p').length;
      }) === 1, 'la carte porte un second <p>, le décor ne modélise pas le bon cas');
-  ok('la metadata sans catégorie occupe toute la hauteur de sa rangée',
-     etat.sans.hauteurMeta === etat.sans.hauteurRangee && etat.sans.hauteurRangee > 0,
+  /* ── CE QUE CETTE ASSERTION DISAIT, ET POURQUOI ELLE A CHANGÉ ────────────
+     Elle exigeait que la boîte soit ÉTIRÉE à la hauteur de sa rangée — le
+     moyen qu'employait la 3.98, et non le résultat attendu. La 4.3 centre la
+     BOÎTE au lieu de l'étirer, parce qu'une rangée qui épingle sa colonne
+     rendait l'étirement inopérant sur la vraie page (le pari, et son prix :
+     deux versions vertes au banc et sans effet chez l'utilisateur).
+
+     ON VÉRIFIE DONC LA PROPRIÉTÉ, PAS LE MOYEN : la boîte est à égale distance
+     du haut et du bas de sa rangée. C'est vrai des deux mises en page — étirée,
+     les deux marges valent zéro ; centrée, elles valent la même chose. Une
+     assertion qui nomme le moyen interdit d'en changer sans la réécrire, et
+     c'est exactement ce qui vient d'arriver. */
+  ok('la metadata sans catégorie est à égale distance du haut et du bas de sa rangée',
+     etat.sans.hauteurRangee > 0
+     && Math.abs(etat.sans.margeHaut - etat.sans.margeBas) <= 1,
      JSON.stringify(etat.sans));
   ok('…et le pseudo y est CENTRÉ, à un pixel près',
      Math.abs(etat.sans.ecart) <= 1, JSON.stringify(etat.sans));
@@ -12608,13 +12642,20 @@ titre('99. Le co-streamer sans catégorie — centrer une boîte qui n\'est pas 
       duoavec:  { id: 'c1', createdAt: h, viewers: 900, game: 'Just Chatting', tags: [] },
       duosans:  { id: 'c2', createdAt: h, viewers: 800, game: null,            tags: [] },
       solosans: { id: 'c3', createdAt: h, viewers: 700, game: null,            tags: [] },
+      figee:    { id: 'c5', createdAt: h, viewers: 650, game: null,            tags: [] },
       nohook:   { id: 'c4', createdAt: h, viewers: 600, game: null,            tags: [] },
     };
     // Trois cartes de CO-STREAM (mini-avatar dans la metadata), une ordinaire.
     window.__costreamHost = { duoavec: 'hote', duosans: 'hote', nohook: 'hote' };
+    /* LA RANGÉE ÉPINGLÉE, et c'est le cas qui a coûté deux versions. Une
+       correction qui se contente de DEMANDER l'étirement de la colonne perd
+       contre une règle de Twitch qui l'épingle en haut : verte au banc,
+       sans effet sur la vraie page. Le harnais épingle donc pour de bon. */
+    window.__rangeeFigee = ['figee'];
     window.__addCard('duoavec',  'Just Chatting', '900');
     window.__addCard('duosans',  '', '800');
     window.__addCard('solosans', '', '700');
+    window.__addCard('figee',    '', '650');
     window.__addCard('nohook',   '', '600');
     /* LE GARDE-FOU N'A DE SENS QUE SI ON PEUT LE DÉCLENCHER. La règle épargne
        ce qui porte le hook du pseudo ; si Twitch le retirait, elle n'aurait
@@ -12626,9 +12667,9 @@ titre('99. Le co-streamer sans catégorie — centrer une boîte qui n\'est pas 
       .removeAttribute('data-a-target');
   });
   await attendre(page,
-    () => document.querySelectorAll('[data-tse-viewers]').length === 4, 9000);
+    () => document.querySelectorAll('[data-tse-viewers]').length === 5, 9000);
   await attendre(page,
-    () => document.querySelectorAll('[data-tse-nocat="true"]').length === 3, 9000);
+    () => document.querySelectorAll('[data-tse-nocat="true"]').length === 4, 9000);
 
   const etat = await page.evaluate(() => {
     const carte = (l) => [...document.querySelectorAll('.side-nav-card')]
@@ -12656,7 +12697,8 @@ titre('99. Le co-streamer sans catégorie — centrer une boîte qui n\'est pas 
       };
     };
     return { duoavec: lire('duoavec'), duosans: lire('duosans'),
-             solosans: lire('solosans'), nohook: lire('nohook') };
+             solosans: lire('solosans'), figee: lire('figee'),
+             nohook: lire('nohook') };
   });
 
   /* LE CAS SIGNALÉ. Une carte de co-stream sans catégorie : le mini-avatar
@@ -12679,6 +12721,12 @@ titre('99. Le co-streamer sans catégorie — centrer une boîte qui n\'est pas 
   ok('la carte de co-stream AVEC catégorie n\'est pas touchée',
      etat.duoavec.catAffichee === 'Discussions' && etat.duoavec.miniAffiche === true,
      JSON.stringify(etat.duoavec));
+  /* LA RANGÉE QUI ÉPINGLE SA COLONNE. C'est le cas que deux versions ont
+     manqué : demander l'étirement ne suffit pas, il faut centrer la BOÎTE et
+     passer devant la règle de Twitch. Cette assertion-ci est la seule du
+     scénario qui distingue la correction de la 4.3 de celle de la 3.98. */
+  ok('…et il l\'est aussi quand la rangée épingle sa colonne en haut',
+     Math.abs(etat.figee.ecart) <= 1, JSON.stringify(etat.figee));
   /* LE GARDE-FOU. Sans le hook du pseudo, la règle n'a plus rien à épargner :
      exigé sur le conteneur, il la rend INERTE au lieu de la rendre fausse. */
   ok('sans le hook du pseudo, la règle s\'efface au lieu d\'effacer la carte',
@@ -12805,6 +12853,341 @@ titre('100. La langue déclarée — le second témoin de celles qui en posent d
      JSON.stringify(apresRefus.bilan));
 
   await p2.close();
+  await page.close();
+}
+
+titre('101. Une catégorie absente ne détruit pas la frise');
+{
+  /* ── LA LIGNE QUI EFFAÇAIT TOUT ──────────────────────────────────────────
+     `suivreCategorie` jetait le registre entier dès qu'un relevé rendait un
+     direct EN LIGNE sans catégorie : « rien ne dit ce qu'on regarde ». Le
+     raisonnement tenait sur l'instant et manquait le cas qui compte — un
+     direct qui REPREND n'a pas encore de catégorie pendant les premières
+     secondes. Le badge de reprise se posait, puis la ligne suivante jetait le
+     passé que la reprise venait de préserver.
+
+     SIGNALEMENT : « il avait une frise avant, et il n'en a plus du tout quand
+     il a repris. » Deux symptômes, une seule ligne : la chaîne qui n'annonce
+     JAMAIS de catégorie n'avait jamais de frise non plus.
+
+     TROIS CAS, ET ILS SE CASSENT SÉPARÉMENT : la traversée d'un trou de
+     catégorie, la reprise dont le premier relevé est muet, et le fait que le
+     trou n'ouvre PAS de segment — se taire n'est pas inventer. */
+  const page = await fresh();
+  const h = (min) => new Date(Date.now() - min * 60_000).toISOString();
+  await page.evaluate((vieux) => {
+    window.__fx = {
+      trou:    { id: 't1', sid: 's-trou-1',   createdAt: vieux, viewers: 900,
+                 game: 'Just Chatting', tags: [] },
+      revient: { id: 't2', sid: 's-revient-1', createdAt: vieux, viewers: 800,
+                 game: 'Just Chatting', tags: [] },
+    };
+    window.__addCard('trou',    'Discussions', '900');
+    window.__addCard('revient', 'Discussions', '800');
+  }, h(180));
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 2);
+
+  const changerJeu = (login, jeu) => page.evaluate(([l, j]) => {
+    window.__fx[l].game = j;
+    window.tse.rescan();
+  }, [login, jeu]);
+  const survoler = async (login) => {
+    await hoverLogin(page, login);
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+  };
+  const relacher = async (login) => {
+    await page.evaluate((l) => {
+      [...document.querySelectorAll('.side-nav-card')]
+        .find(c => c.dataset.tseLogin === l)
+        ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+    }, login);
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  };
+  const frise = () => page.evaluate(() => {
+    const f = document.querySelector('.tse-preview__frise');
+    if (!f) return null;
+    return {
+      total:  f.querySelector('.tse-preview__frise-total')?.textContent.trim() || '',
+      lignes: [...f.querySelectorAll('.tse-preview__frise-ligne')]
+        .map(li => li.textContent.trim()),
+    };
+  });
+
+  /* ── 1. LE TROU DE CATÉGORIE ─────────────────────────────────────────────
+     Deux catégories observées, puis un relevé muet, puis la catégorie revient.
+     Sans la correction, le relevé muet efface les deux. */
+  await changerJeu('trou', 'Elden Ring');
+  await wait(page, 900);
+  await changerJeu('trou', null);
+  await wait(page, 900);
+  await survoler('trou');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
+  const pendant = await frise();
+  await relacher('trou');
+  ok('un relevé sans catégorie ne détruit pas la frise accumulée',
+     pendant !== null && pendant.lignes.length >= 2
+     && pendant.lignes.some(l => /Elden Ring/.test(l)),
+     JSON.stringify(pendant));
+
+  /* ET IL N'OUVRE PAS DE SEGMENT. Se taire n'est pas inventer : on ne sait pas
+     que la catégorie a changé, donc la dernière s'étend. Une frise qui
+     gagnerait une ligne à chaque trou dirait un basculement qui n'a pas eu
+     lieu. */
+  await changerJeu('trou', 'Elden Ring');
+  await wait(page, 900);
+  await survoler('trou');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
+  const apresTrou = await frise();
+  await relacher('trou');
+  ok('…et il n\'ouvre aucun segment : la catégorie qui revient est la même',
+     apresTrou !== null
+     && apresTrou.lignes.filter(l => /Elden Ring/.test(l)).length === 1,
+     JSON.stringify(apresTrou));
+
+  /* ── 2. LA REPRISE DONT LE PREMIER RELEVÉ EST MUET ───────────────────────
+     C'est le cas signalé, et il tient en trois temps : on observe, la chaîne
+     coupe, elle revient SANS catégorie. La frise doit traverser les trois. */
+  await changerJeu('revient', 'VALORANT');
+  await wait(page, 900);
+  await page.evaluate(() => { window.__fx.revient = null; window.tse.rescan(); });
+  await wait(page, 600);
+  await page.evaluate((iso) => {
+    window.__fx.revient = { id: 't2', sid: 's-revient-2', createdAt: iso,
+                            viewers: 800, game: null, tags: [] };
+    window.tse.rescan();
+  }, new Date().toISOString());
+  await wait(page, 900);
+  await survoler('revient');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
+  const apresReprise = await frise();
+  const badges = await page.evaluate(() =>
+    [...document.querySelectorAll('.tse-preview__badge')].map(b => b.className));
+  await relacher('revient');
+  ok('une reprise dont le premier relevé n\'a pas de catégorie garde sa frise',
+     apresReprise !== null && apresReprise.lignes.length >= 2
+     && apresReprise.lignes.some(l => /VALORANT/.test(l)),
+     JSON.stringify(apresReprise));
+  /* LE BADGE ET LA FRISE VONT ENSEMBLE, et c'est ce que le défaut séparait :
+     le badge se posait — il ne dépend pas de la catégorie — et la frise
+     disparaissait dans la même microtâche. */
+  ok('…et son badge de reprise, qui n\'a jamais cessé de s\'afficher',
+     badges.some(c => /tse-preview__badge--reprise/.test(c)), JSON.stringify(badges));
+  /* L'ORIGINE A SURVÉCU : le total couvre les trois heures du direct, et non
+     les quelques secondes du tronçon. C'est ce que la frise existe pour dire. */
+  ok('…et le total couvre le direct entier, pas le tronçon d\'après la coupure',
+     apresReprise !== null && /\dh/.test(apresReprise.total),
+     JSON.stringify(apresReprise));
+
+  await page.close();
+}
+
+titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
+{
+  /* ── CE QUE LA MÉMOIRE NE PEUT PAS SAVOIR ────────────────────────────────
+     Tout le dispositif de reprise repose sur une OBSERVATION : pour savoir
+     qu'un direct a repris, il fallait l'avoir vu en ligne avant la coupure,
+     dans cette page-ci. Un onglet ouvert pendant la coupure, un rechargement,
+     une chaîne qu'on ne suit pas — et le direct repart de zéro.
+
+     LE SIGNALEMENT VENAIT AVEC SA PREUVE : une chaîne coupée trois minutes,
+     reprise, et rien. Or la page « Vidéos » de cette chaîne portait les deux
+     enregistrements côte à côte — celui d'avant, terminé, et celui d'après, en
+     cours. Ce que nous n'avons pas vu, Twitch l'a archivé.
+
+     LE CRITÈRE EST UN RACCORD : l'archive précédente doit se TERMINER dans la
+     fenêtre de reprise avant le départ du direct courant. Trois cas le
+     cassent séparément — le raccord lui-même, la fenêtre, et l'exception du
+     subathon — et un quatrième vérifie qu'on ramène AUSSI le passé.
+
+     ATTENTION À L'ÉCHELLE. `RECONNECT_GAP_MAX` vaut dix minutes en production
+     et 2,5 SECONDES dans ce banc (cf. tests/build.mjs). Les trous ci-dessous
+     sont donc exprimés en secondes : un trou de 1 s est une reprise, un trou
+     de 10 s n'en est pas une. Les écrire en minutes rendrait les deux hors
+     fenêtre, et les deux assertions passeraient sans rien prouver. */
+  const page = await fresh();
+  const ilYa = (ms) => new Date(Date.now() - ms).toISOString();
+
+  await page.evaluate(({ neuf, vieux }) => {
+    // Les quatre chaînes viennent de démarrer : c'est la seule situation où la
+    // sonde part, et c'est celle d'un onglet ouvert pendant la coupure.
+    const mk = (id, titre) => ({ id, sid: 's-' + id, createdAt: neuf, viewers: 900,
+                                 game: 'VALORANT', tags: [],
+                                 ...(titre ? { title: titre } : {}) });
+    window.__fx = {
+      revenu:   mk('r1'),
+      loin:     mk('r2'),
+      marathon: mk('r3', 'SUBATHON JOUR 12 — on continue'),
+      sansvod:  mk('r4'),
+      muette:   mk('r5'),
+    };
+    /* CINQ HEURES D'ARCHIVE, terminées juste avant le départ du direct : c'est
+       le tronçon d'avant. Les chapitres qu'elle porte sont le passé que plus
+       aucune observation ne peut rattraper. */
+    const archive = (finIlYaMs, chapitres) => ({
+      createdAt: vieux,
+      lengthSeconds: Math.round((Date.now() - finIlYaMs - Date.parse(vieux)) / 1000),
+      chapitres,
+    });
+    const passe = [{ pos: 0, jeu: 'Just Chatting' },
+                   { pos: 2 * 3600_000, jeu: 'Elden Ring' }];
+    window.__vodRecent = {
+      // La PREMIÈRE archive est celle du direct en cours : elle commence avec
+      // lui, donc elle ne raccorde rien. C'est la SECONDE qu'il faut trouver —
+      // une implémentation qui ne regarderait que la plus récente échoue ici.
+      revenu:   [{ createdAt: neuf, lengthSeconds: 60, chapitres: [] },
+                 archive(1_000, passe)],
+      // Terminée dix secondes avant le départ : au-delà de la fenêtre.
+      loin:     [archive(10_000, passe)],
+      marathon: [archive(1_000, passe)],
+      sansvod:  [],
+      // Une archive qui raccorde, mais SANS le moindre chapitre : on apprend
+      // l'origine et la coupure, rien du contenu.
+      muette:   [archive(1_000, [])],
+    };
+    for (const l of ['revenu', 'loin', 'marathon', 'sansvod', 'muette']) {
+      window.__addCard(l, 'VALORANT', '900');
+    }
+  }, { neuf: ilYa(1_000), vieux: ilYa(5 * 3600_000) });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
+
+  const survoler = async (login) => {
+    await hoverLogin(page, login);
+    await attendre(page,
+      () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+  };
+  const relacher = async (login) => {
+    await page.evaluate((l) => {
+      [...document.querySelectorAll('.side-nav-card')]
+        .find(c => c.dataset.tseLogin === l)
+        ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+    }, login);
+    await attendre(page,
+      () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  };
+  const vue = () => page.evaluate(() => {
+    const f = document.querySelector('.tse-preview__frise');
+    return {
+      badges: [...document.querySelectorAll('.tse-preview__badge')].map(b => b.className),
+      frise: f ? {
+        total:    f.querySelector('.tse-preview__frise-total')?.textContent.trim() || '',
+        coupures: f.querySelector('.tse-preview__frise-coupures')?.textContent.trim() || '',
+        marques:  f.querySelectorAll('.tse-preview__frise-coupure').length,
+        lignes:   [...f.querySelectorAll('.tse-preview__frise-ligne')]
+          .map(li => li.textContent.trim()),
+      } : null,
+    };
+  });
+
+  /* ── 1. LE RACCORD ───────────────────────────────────────────────────────
+     L'archive d'avant s'est terminée une seconde avant le départ du direct.
+     C'est une reprise, et nous ne l'avons jamais vue. */
+  await survoler('revenu');
+  await attendre(page,
+    () => !!document.querySelector('.tse-preview__badge--reprise'), 6000);
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
+  await wait(page, 400);
+  const revenu = await vue();
+  await relacher('revenu');
+  ok('un direct dont l\'archive d\'avant raccorde gagne son badge de reprise',
+     revenu.badges.some(c => /tse-preview__badge--reprise/.test(c)),
+     JSON.stringify(revenu.badges));
+  ok('…et son compte de coupures, sur une coupure que personne n\'a observée',
+     /1/.test(revenu.frise?.coupures || '') && revenu.frise?.marques >= 1,
+     JSON.stringify(revenu.frise));
+  /* LE PASSÉ VIENT AVEC. Les chapitres de l'archive d'avant sont ce que le
+     direct a traversé, datés par Twitch. Sans eux le badge dirait « il a été
+     coupé » sur une frise qui ne montre que la dernière seconde. */
+  ok('…et la frise porte le passé d\'avant la coupure, pas le seul tronçon d\'après',
+     revenu.frise !== null && /\dh/.test(revenu.frise.total)
+     && revenu.frise.lignes.some(l => /Elden Ring/.test(l)),
+     JSON.stringify(revenu.frise));
+
+  /* ── 2. LA FENÊTRE ───────────────────────────────────────────────────────
+     Dix secondes de trou, quatre fois la fenêtre du banc : ce n'est pas une
+     reprise, c'est un autre direct. Un raccord sans borne ferait passer pour
+     une reprise l'archive d'avant-hier. */
+  await survoler('loin');
+  await wait(page, 900);
+  const loin = await vue();
+  await relacher('loin');
+  ok('une archive terminée hors de la fenêtre ne fait pas une reprise',
+     !loin.badges.some(c => /tse-preview__badge--reprise/.test(c)),
+     JSON.stringify(loin.badges));
+
+  /* ── 3. L'EXCEPTION DU SUBATHON ──────────────────────────────────────────
+     Twitch force un redémarrage toutes les 48 h : ce n'est pas une coupure.
+     L'exception vaut pour la sonde comme pour l'observation directe, sans quoi
+     la sonde la contournerait par la porte de derrière. */
+  await survoler('marathon');
+  await wait(page, 900);
+  const marathon = await vue();
+  await relacher('marathon');
+  ok('un subathon qui redémarre n\'est pas une reprise, même par la sonde',
+     !marathon.badges.some(c => /tse-preview__badge--reprise/.test(c)),
+     JSON.stringify(marathon.badges));
+
+  /* ── 4. AUCUNE ARCHIVE DU TOUT ───────────────────────────────────────────
+     Une chaîne qui n'archive pas ses diffusions rend une liste vide. Ce n'est
+     ni une panne ni un refus : la sonde part, elle est servie, et elle ne
+     trouve rien. Le cas est ordinaire et ne doit rien casser. */
+  await survoler('sansvod');
+  await wait(page, 900);
+  const sansvod = await vue();
+  await relacher('sansvod');
+  ok('une chaîne sans la moindre archive ne fait ni reprise ni dégât',
+     !sansvod.badges.some(c => /tse-preview__badge--reprise/.test(c)),
+     JSON.stringify(sansvod.badges));
+
+  /* ── 5. L'ORIGINE RECALÉE, ET CE QU'ELLE EMPÊCHE ─────────────────────────
+     Une archive qui raccorde mais ne porte AUCUN chapitre : on apprend
+     l'origine et la coupure, rien du contenu. C'est le seul décor où le
+     recalage de la frise sur l'origine se voie — ailleurs, les chapitres
+     d'avant la portent déjà.
+
+     SANS LUI, la frise garde le départ du TRONÇON et annonce « 0m » sur un
+     direct de cinq heures : elle ne se tait pas, elle se trompe. Avec lui,
+     elle constate qu'elle n'a rien observé de ces cinq heures et se tait —
+     ce que ce module fait partout ailleurs plutôt que de combler par
+     hypothèse. L'assertion accepte donc les deux issues honnêtes et refuse la
+     seule qui mente. */
+  await survoler('muette');
+  await wait(page, 900);
+  const muette = await vue();
+  await relacher('muette');
+  ok('une archive sans chapitre ne fait pas dire « 0m » à un direct de cinq heures',
+     muette.frise === null || /\dh/.test(muette.frise.total),
+     JSON.stringify(muette.frise));
+
+  /* ── 6. CE QUE LA SONDE A COÛTÉ ET RAPPORTÉ ──────────────────────────────
+     Le rapport est le seul œil qu'on ait sur ce mécanisme depuis une vraie
+     page. `sondes` compte les directs jeunes interrogés — quatre, un par
+     chaîne — et `adoptees` ceux qui ont gagné leur origine : un seul. */
+  const bilan = await page.evaluate(() =>
+    window.tse.panneau.rapport().reseau.chapitres.reprise);
+  ok('le rapport dit ce que la sonde a demandé et ce qu\'elle a trouvé',
+     bilan && bilan.sondes === 5 && bilan.trouvees === 3 && bilan.adoptees === 2,
+     JSON.stringify(bilan));
+  /* UNE SEULE FOIS PAR SESSION DE STREAM. Le survol se répète, la requête non :
+     sans cette garde, chaque passage de souris relancerait la même opération
+     pour la même réponse.
+
+     ON RE-SURVOLE UNE CHAÎNE QUI N'A RIEN DONNÉ, et c'est tout l'intérêt : sur
+     une chaîne adoptée, la garde « déjà chaînée » suffirait à elle seule et
+     l'assertion passerait même sans registre des sondes. La première rédaction
+     re-survolait l'adoptée ; le mutant qui retirait le registre survivait. */
+  await survoler('loin');
+  await wait(page, 600);
+  await relacher('loin');
+  await survoler('sansvod');
+  await wait(page, 600);
+  await relacher('sansvod');
+  const apres = await page.evaluate(() =>
+    window.tse.panneau.rapport().reseau.chapitres.reprise);
+  ok('…et elle ne repart pas au survol suivant : une opération par session',
+     apres.sondes === bilan.sondes, JSON.stringify(apres));
+
   await page.close();
 }
 
