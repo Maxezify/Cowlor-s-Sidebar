@@ -3205,8 +3205,13 @@ const TSE_GATE_MAX_CLICKS = 5;
        champ de dix degrés, soit environ 21 800 px² ; le badge en occupe 2 478
        (11 %) et la pastille 392 (1,8 %). La marge tient donc à la TAILLE de ces
        deux éléments, et à elle seule : les agrandir franchement demanderait de
-       ralentir le cycle d'autant. Et « prefers-reduced-motion » l'arrête
-       complètement, ce qui reste la seule sortie qui vaille. */
+       ralentir le cycle d'autant.
+
+       « prefers-reduced-motion » LE RALENTIT, il ne l'arrête plus — huit
+       secondes le tour, une teinte par seconde, le tiers du seuil. La 4.6
+       l'arrêtait net ; la 4.9 a corrigé cette lecture trop large, parce qu'une
+       teinte qui dérive n'est pas un déplacement. Le bloc de mouvement réduit,
+       plus bas, dit l'arbitrage en entier. */
     @keyframes tse-subathon-teinte {
       0% { color: #ff8f8f; }
       12.5% { color: #ffe38f; }
@@ -3366,15 +3371,43 @@ const TSE_GATE_MAX_CLICKS = 5;
              trois classes contre une : la spécificité l'emportait ;
            — le badge est déclaré PLUS BAS dans la feuille, à spécificité
              égale : l'ordre l'emportait.
-         L'arc-en-ciel continuait donc de tourner chez qui demande
-         explicitement l'immobilité — alors même que le commentaire de ces deux
-         animations invoque ce réglage comme la sortie qui met leur fréquence
-         hors de cause vis-à-vis de la WCAG 2.3.1. Une garantie écrite qui ne
-         tenait pas. Sur une règle d'accessibilité, « doit gagner » est
-         exactement ce que « !important » veut dire. */
+         L'arc-en-ciel ne répondait donc PAS DU TOUT à ce réglage — alors même
+         que le commentaire de ces deux animations le présentait, à l'époque,
+         comme la sortie qui mettait leur fréquence hors de cause vis-à-vis de
+         la WCAG 2.3.1. Une garantie écrite qui ne tenait pas. Sur une règle
+         d'accessibilité, « doit gagner » est exactement ce que « !important »
+         veut dire — ce que cette règle FAIT gagner a changé depuis, voir
+         juste en dessous. */
       .tse-subathon-jour,
       .tse-preview__badge--subathon {
-        animation: none !important;
+        /* ── ON NE L'ARRÊTE PLUS, ON LE RALENTIT ────────────────────────
+           La 4.6 arrêtait cet arc-en-ciel net, et un utilisateur l'a
+           signalé : « ce n'est pas normal qu'il soit arrêté alors que sur
+           Firefox oui ». Il a raison, et pour la même raison que la barre
+           du stream frais — mon arrêt était une lecture grossière du
+           réglage. Une TEINTE qui dérive n'est pas un déplacement : la
+           WCAG exclut explicitement les changements de couleur de sa
+           définition de l'animation de mouvement.
+
+           MAIS LA COULEUR A SA PROPRE LIMITE, et elle n'est pas la même :
+           le critère 2.3.1 vise le CLIGNOTEMENT, et cet arc-en-ciel change
+           de teinte huit fois par seconde et demie, soit 5,3 fois par
+           seconde — au-delà des trois par seconde du critère. Ce qui l'en
+           met hors de cause aujourd'hui est l'AIRE, pas la vitesse (cf. le
+           commentaire des deux animations).
+
+           LE COMPROMIS PORTE DONC SUR LA CADENCE, seule grandeur que les
+           deux critères partagent : le tour passe de 1,5 s à 8 s, soit UNE
+           teinte par seconde — le tiers du seuil de clignotement, et une
+           dérive qu'on ne peut plus lire comme un scintillement. Le signal
+           reste vivant, il cesse d'être agité.
+
+           LA CADENCE RESTE COMMUNE AUX DEUX, comme en mouvement libre : la
+           pastille et le badge sont visibles ensemble dès qu'on survole une
+           carte de subathon, et deux cycles de durées différentes se
+           décaleraient en quelques secondes. */
+        animation-duration: 8s !important;
+        animation-timing-function: linear !important;
       }
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p.tse-nom,
@@ -3400,13 +3433,37 @@ const TSE_GATE_MAX_CLICKS = 5;
          demande explicitement l'immobilité.
 
          ELLE NE DISPARAÎT PAS POUR AUTANT — ce serait perdre l'information au
-         lieu de perdre le mouvement. Elle s'arrête à son point HAUT, large et
-         lumineuse : le signal reste aussi lisible, et il ne bouge plus. */
+         lieu de perdre le mouvement. Elle reste à son point HAUT, large et
+         lumineuse : le signal garde sa lisibilité, quoi qu'il advienne de son
+         animation. Ce qu'il advient de cette animation, la 4.9 l'a repris de
+         plus près — le bloc suivant dit pourquoi. */
+      /* ── L'OPACITÉ N'EST PAS DU MOUVEMENT, ET LA NORME LE DIT ──────────
+         La 4.7 arrêtait ce battement NET sous « mouvement réduit ». C'était
+         trop large, et un utilisateur l'a signalé trois fois avant que la
+         mesure ne tranche : sa commande a rendu « mouvementReduit: true »,
+         « animations: 0 », barre présente et immobile. Il voyait la marque ;
+         il ne la voyait pas vivre.
+
+         CE QUE LE RÉGLAGE DEMANDE EST PRÉCIS. La WCAG définit l'« animation
+         de mouvement » comme celle qui crée l'ILLUSION D'UN DÉPLACEMENT, et
+         exclut explicitement de cette définition les changements de couleur,
+         de flou et d'OPACITÉ. Le « scaleX » de la barre est du mouvement — il
+         change une taille — et il doit partir. Son opacité, non.
+
+         ON GARDE DONC LE BATTEMENT, EN VERSION CALME : la barre reste à sa
+         largeur haute et son halo ne bouge plus, seule l'opacité respire, et
+         plus lentement — deux secondes au lieu de 1,4 — avec un plancher plus
+         haut, 0,45 au lieu de 0,3. Quelqu'un qui demande moins de mouvement
+         n'a pas demandé moins d'information ; il a droit au même signal, dit
+         plus doucement. */
       .side-nav-card.tse-fresh::before {
-        animation: none;
-        opacity: 1;
+        animation: tse-fresh-calme 2s ease-in-out infinite;
         transform: scaleX(1.6);
         box-shadow: 0 0 10px ${CFG.PURPLE}, 0 0 4px ${CFG.PURPLE};
+      }
+      @keyframes tse-fresh-calme {
+        0%, 100% { opacity: 0.45; }
+        50%      { opacity: 1; }
       }
     }
 
@@ -9940,10 +9997,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       lMin = Math.min(lMin, v.l); lMax = Math.max(lMax, v.l);
       if (performance.now() - debut < duree * 1.1) { requestAnimationFrame(pas); return; }
       const ecart = oMax / Math.max(oMin, 0.001);
+      /* QUATRE VERDICTS, ET ILS NE SE CONFONDENT PAS. Depuis la 4.9 le
+         battement ne s'arrête plus sous « mouvement réduit » : il s'y fait
+         CALME — l'opacité seule, plus lente, plancher plus haut. Le dire est
+         nécessaire, sans quoi une amplitude de 2,2 se lirait comme un défaut
+         alors qu'elle est le comportement voulu. */
       resolve({
         verdict: anim.playState !== 'running' ? 'animation ' + anim.playState
+               : ecart < 1.5 ? 'animation en cours mais AMPLITUDE PLATE — rien à voir à l\'œil'
+               : reduit ? 'battement calme — mouvement réduit respecté'
                : ecart >= 2.5 ? 'le battement est bien là'
-               : 'animation en cours mais AMPLITUDE PLATE — rien à voir à l\'œil',
+               : 'battement présent, mais faible',
         fraiches: document.querySelectorAll('.side-nav-card.tse-fresh').length,
         mouvementReduit: reduit, animations: 1, etat: anim.playState,
         dureeMs: duree, opaciteMin: +oMin.toFixed(3), opaciteMax: +oMax.toFixed(3),

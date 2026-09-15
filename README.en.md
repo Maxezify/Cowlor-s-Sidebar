@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 953 KB | 364 KB | 3,220 → **2** |
+| `content.js` | 957 KB | 368 KB | 3,221 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 71 KB | 35 KB | 90 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1171 KB** | **505 KB** | **−57 %** |
+| **all five** | **1174 KB** | **508 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2479,6 +2479,96 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Reduced motion, read closely (v4.9)
+
+The measurement settled it. The command added the day before returned this, on
+the user's Chrome:
+
+```
+verdict          "immobile — mouvement réduit demandé par le système"
+fraiches          1        ← the card is there
+animations        0        ← and nothing animates it
+mouvementReduit   true     ← because the system asked for it
+opacite           1
+largeur           4.8
+```
+
+Three reports, two fixes that were right but beside the point, and the answer in
+one line: **Chrome reported `prefers-reduced-motion: reduce`, Firefox did not.**
+Same machine, same Windows setting, two readings. The bar was present and
+perfectly still — the user could see the mark, but not see it live.
+
+### My 4.7 rule was too broad, and the standard says so
+
+I had stopped that pulse **dead**. That was a coarse reading of the preference.
+
+WCAG defines "motion animation" as animation that creates the **illusion of
+movement**, and explicitly excludes changes of colour, blurring and **opacity**
+from that definition. The bar's `scaleX` is motion — it changes a size — and it
+must go. Its opacity does not.
+
+Under reduced motion the pulse therefore **remains, in a calm version**:
+
+| | free motion | reduced motion |
+| --- | --- | --- |
+| width | 3 → 6 px, animated | **4.8 px, fixed** |
+| halo | 4 → 18 px, animated | **10 px, fixed** |
+| opacity | 0.3 → 1 | **0.45 → 1** |
+| cycle | 1.4 s | **2 s** |
+
+Someone who asks for less motion has not asked for less information. They are
+entitled to the same signal, spoken more softly.
+
+### Two assertions turned, and a field measurement demanded it
+
+Scenario 113 **recorded** the dead stop ("motion refused: the pulse stops"), and
+116 recorded `animations: 0`. Both encoded a policy the standard never asked for.
+They now require both halves at once: that the width does not vary by **a
+hundredth of a pixel**, and that the opacity still breathes.
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| the pulse stops dead again | the opacity no longer breathes |
+| the calm regime keeps the `scaleX` | the width varies by three pixels |
+
+The verdict of `tse.battement()` now names that regime — "battement calme —
+mouvement réduit respecté" — without which an amplitude of 2.2 would read as a
+defect when it is the intended behaviour.
+
+### And the subathon rainbows, for the same reason
+
+In 4.7 I wrote that stopping them stayed justified because their limit was not
+motion but **frequency**. The user answered: "it isn't right that it
+is stopped when on Firefox it is not." He is right, and my argument was
+incomplete.
+
+A **drifting hue** is not a displacement: the same WCAG definition that excludes
+opacity excludes colour. What remains true is that criterion 2.3.1 targets
+**flashing**, and that this cycle changes hue 5.3 times per second — beyond the
+criterion's three per second, which only the area argument puts beyond reproach.
+
+**The compromise therefore bears on cadence**, the one quantity both criteria
+share: the turn goes from 1.5 s to **8 s**, that is one hue per second — a third
+of the flashing threshold. The colour still lives; it stops being agitated. The
+cadence stays common to pill and badge, as in free motion: both are visible
+together, and two different durations would drift apart within seconds.
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| the rainbow stops dead again | both animations are absent |
+| it barely slows (2 s instead of 8) | the cadence stays above the threshold |
+| only the pill slows | the two cadences diverge — 8 s against 1.5 |
+
+### A bench that leaned on the product to hold its measurement
+
+The badge-palette reading, in the manual, opened its view under reduced motion
+**so that the rainbow would stop** — without which comparing ten hues while an
+eleventh changes depends on the instant. This slowdown removed its crutch.
+
+It now freezes the animations itself, then resumes them. A bench that leans on a
+product behaviour to hold its measurement changes subject the day that behaviour
+changes — and it does not say so.
+
 ## Making the page say what cannot be seen from here (v4.8.1)
 
 "Still no blink on Chrome." Third time. I answered twice with a hypothesis —
@@ -2711,9 +2801,9 @@ two subathon rainbows did not stop either**, and for two different reasons.
 - The **badge** is declared lower in the stylesheet, at equal specificity:
   **order** won.
 
-This is not a styling detail. The comment on those two animations invokes this
-setting as the escape that puts their frequency — eight hues per second and a
-half — beyond reproach under WCAG 2.3.1. **The guarantee was written down, and it
+This is not a styling detail. The comment on those two animations invoked this
+setting, at the time, as the escape that put their frequency — eight hues per
+second and a half — beyond reproach under WCAG 2.3.1. **The guarantee was written down, and it
 did not hold.** On an accessibility rule, "must win" is exactly what `!important`
 means.
 

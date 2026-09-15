@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 953 Ko | 364 Ko | 3 220 → **2** |
+| `content.js` | 957 Ko | 368 Ko | 3 221 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 71 Ko | 35 Ko | 90 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1171 Ko** | **505 Ko** | **−57 %** |
+| **les cinq** | **1174 Ko** | **508 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2614,6 +2614,101 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le mouvement réduit, relu de près (v4.9)
+
+La mesure a tranché. La commande ajoutée la veille a rendu ceci, sur le Chrome
+de l'utilisateur :
+
+```
+verdict          "immobile — mouvement réduit demandé par le système"
+fraiches          1        ← la carte est bien là
+animations        0        ← et rien ne l'anime
+mouvementReduit   true     ← parce que le système l'a demandé
+opacite           1
+largeur           4.8
+```
+
+Trois signalements, deux corrections justes mais hors sujet, et la réponse en une
+ligne : **Chrome rapportait `prefers-reduced-motion: reduce`, Firefox non.** Même
+machine, même réglage Windows, deux lectures. La barre était présente et
+parfaitement immobile — l'utilisateur voyait la marque, il ne la voyait pas
+vivre.
+
+### Ma règle de la 4.7 était trop large, et la norme le dit
+
+J'avais arrêté ce battement **net**. C'était une lecture grossière du réglage.
+
+La WCAG définit l'« animation de mouvement » comme celle qui crée l'**illusion
+d'un déplacement**, et exclut explicitement de cette définition les changements
+de couleur, de flou et d'**opacité**. Le `scaleX` de la barre est du mouvement —
+il change une taille — et il doit partir. Son opacité, non.
+
+Sous « mouvement réduit », le battement **demeure donc, en version calme** :
+
+| | mouvement libre | mouvement réduit |
+| --- | --- | --- |
+| largeur | 3 → 6 px, animée | **4,8 px, fixe** |
+| halo | 4 → 18 px, animé | **10 px, fixe** |
+| opacité | 0,3 → 1 | **0,45 → 1** |
+| cycle | 1,4 s | **2 s** |
+
+Quelqu'un qui demande moins de mouvement n'a pas demandé moins d'information. Il
+a droit au même signal, dit plus doucement.
+
+### Deux assertions tournées, et c'est une mesure de terrain qui l'a exigé
+
+Le scénario 113 **constatait** l'arrêt net (« mouvement refusé : le battement
+s'arrête »), et le 116 constatait `animations: 0`. Les deux encodaient une
+politique que la norme ne demandait pas. Ils exigent maintenant les deux moitiés
+à la fois : que la largeur ne varie **pas d'un centième de pixel**, et que
+l'opacité respire encore.
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| le battement s'arrête de nouveau | l'opacité ne respire plus |
+| le régime calme garde le `scaleX` | la largeur varie de trois pixels |
+
+Le verdict de `tse.battement()` nomme désormais ce régime — « battement calme —
+mouvement réduit respecté » — sans quoi une amplitude de 2,2 se lirait comme un
+défaut alors qu'elle est le comportement voulu.
+
+### Et les arcs-en-ciel du subathon, pour la même raison
+
+J'avais écrit, en 4.7, que leur arrêt restait justifié parce que leur limite
+n'était pas le mouvement mais la **fréquence**. L'utilisateur a
+répondu : « ce n'est pas normal qu'il soit arrêté alors que sur Firefox oui. » Il
+a raison, et mon argument était incomplet.
+
+Une **teinte qui dérive** n'est pas un déplacement : la même définition WCAG qui
+exclut l'opacité exclut la couleur. Ce qui reste vrai, c'est que le critère
+2.3.1 vise le **clignotement**, et que ce cycle change de teinte 5,3 fois par
+seconde — au-delà des trois par seconde du critère, dont seul l'argument d'aire
+le met hors de cause.
+
+**Le compromis porte donc sur la cadence**, seule grandeur que les deux critères
+partagent : le tour passe de 1,5 s à **8 s**, soit une teinte par seconde — le
+tiers du seuil de clignotement. La couleur vit encore, elle cesse d'être agitée.
+La cadence reste commune à la pastille et au badge, comme en mouvement libre :
+les deux sont visibles ensemble, et deux durées différentes se décaleraient en
+quelques secondes.
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| l'arc-en-ciel s'arrête de nouveau | les deux animations sont absentes |
+| il ralentit à peine (2 s au lieu de 8) | la cadence reste au-dessus du seuil |
+| seule la pastille ralentit | les deux cadences divergent — 8 s contre 1,5 |
+
+### Un banc qui s'appuyait sur le produit pour tenir sa mesure
+
+Le relevé de la palette des badges, dans le mode d'emploi, ouvrait sa vue sous
+« mouvement réduit » **pour que l'arc-en-ciel s'arrête** — sans quoi comparer
+dix teintes pendant qu'une onzième change dépend de l'instant. Ce ralentissement
+lui retirait sa béquille.
+
+Il fige désormais les animations lui-même, puis les relance. Un banc qui s'appuie
+sur un comportement du produit pour tenir sa mesure change de sujet le jour où ce
+comportement change — et il ne le dit pas.
+
 ## Faire dire à la page ce qu'on ne peut pas y voir (v4.8.1)
 
 « Toujours pas de clignotement côté Chrome. » Troisième fois. J'y ai répondu
@@ -2854,9 +2949,9 @@ pour deux raisons différentes.
 - Le **badge** est déclaré plus bas dans la feuille, à spécificité égale :
   l'**ordre** l'emportait.
 
-Ce n'est pas un détail de style. Le commentaire de ces deux animations invoque ce
-réglage comme la sortie qui met leur fréquence — huit teintes par seconde et
-demie — hors de cause vis-à-vis de la WCAG 2.3.1. **La garantie était écrite, et
+Ce n'est pas un détail de style. Le commentaire de ces deux animations invoquait
+alors ce réglage comme la sortie qui mettait leur fréquence — huit teintes par
+seconde et demie — hors de cause vis-à-vis de la WCAG 2.3.1. **La garantie était écrite, et
 elle ne tenait pas.** Sur une règle d'accessibilité, « doit gagner » est
 exactement ce que `!important` veut dire.
 

@@ -444,12 +444,15 @@ html, body {
   50%      { opacity: 1;   transform: scaleX(2);
              box-shadow: 0 0 18px var(--violet), 0 0 8px var(--violet); }
 }
-/* L'arrêt de l'animation vient de la règle universelle en bas de feuille ;
-   ce bloc-ci ne dit que l'APPARENCE au repos — arrêtée à son point haut, pour
-   que le signal reste aussi lisible qu'en mouvement. */
+/* Le sort de l'animation se règle en bas de feuille ; ce bloc-ci ne dit que
+   la GÉOMÉTRIE sous « mouvement réduit » — figée à son point haut, pour que le
+   signal reste aussi lisible que lorsqu'il s'étire. */
 @media (prefers-reduced-motion: reduce) {
+  /* La barre garde sa largeur haute et son halo fixes — c'est le MOUVEMENT
+     qu'on retire — et son opacité continue de respirer, plus lentement (cf.
+     la règle en bas de feuille, qui porte l'animation calme). */
   .d-carte--frais::before {
-    opacity: 1; transform: scaleX(1.6);
+    transform: scaleX(1.6);
     box-shadow: 0 0 10px var(--violet), 0 0 4px var(--violet);
   }
 }
@@ -758,4 +761,18 @@ html[data-theme="light"] .d-jour {
    battre dans le produit. Un audit a trouvé les deux le même jour. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
+  /* DEUX EXCEPTIONS, ET CE SONT CELLES DU PRODUIT. La maquette explique des
+     comportements : si le produit garde un battement calme et un arc-en-ciel
+     ralenti sous ce réglage, une maquette figée expliquerait autre chose que
+     ce qu'elle montre. Les valeurs sont celles de content.js, à l'identique. */
+  .d-badge--subathon, .d-jour {
+    animation: d-arcenciel 8s linear infinite !important;
+  }
+  .d-carte--frais::before {
+    animation: d-respire-calme 2s ease-in-out infinite !important;
+  }
+}
+@keyframes d-respire-calme {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 1; }
 }
