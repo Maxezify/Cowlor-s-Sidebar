@@ -2554,8 +2554,19 @@ const TSE_GATE_MAX_CLICKS = 5;
        [REBROADCAST] …"). C'est un <div> frère de .side-nav-card__metadata, à
        l'intérieur du bloc [data-a-target="side-nav-card-metadata"]. On masque
        tout frère de la metadata, ce qui couvre la 3e ligne sans dépendre
-       d'une classe hashée Twitch. */
-    .side-nav-card [data-a-target="side-nav-card-metadata"] > .side-nav-card__metadata ~ * {
+       d'une classe hashée Twitch.
+
+       SAUF LA LIGNE DU PSEUDO, ET CE N'EST PAS UNE PRÉCAUTION DE PRINCIPE.
+       Cette règle a été écrite quand le groupe portait le pseudo ET la
+       catégorie ; tout ce qui le suivait était forcément un intrus. Twitch a
+       depuis SORTI le pseudo du groupe — le recensement du rapport l'a montré
+       en un nombre. Il se trouve qu'il le pose AVANT, et un frère précédent
+       n'est pas atteint par « ~ » : la règle ne fait donc rien de mal
+       aujourd'hui. Le jour où l'ordre changerait, elle effacerait le pseudo de
+       toutes les cartes, d'un coup et sans un mot. On nomme donc ce qu'on
+       épargne, comme partout ailleurs dans cette feuille. */
+    .side-nav-card [data-a-target="side-nav-card-metadata"]
+      > .side-nav-card__metadata ~ *:not(p.tse-nom) {
       display: none !important;
     }
 
@@ -2613,13 +2624,24 @@ const TSE_GATE_MAX_CLICKS = 5;
        annoncé dans l'aperçu au survol. Le CSS ne change rien à ce que lisent
        querySelector et textContent.
 
-       LE :has() SUR LE CONTENEUR EST UN GARDE-FOU, pas une élégance. Si Twitch
-       retirait le hook data-a-target="side-nav-title", la règle ne trouverait
-       plus rien à épargner et effacerait le texte de la carte. Exigé sur le
-       conteneur, il la rend INERTE dans ce cas au lieu de la rendre fausse. */
+       LE :has() SUR LE CONTENEUR EST UN GARDE-FOU, pas une élégance. Si la
+       ligne du pseudo n'était pas trouvée, la règle n'aurait plus rien à
+       épargner et effacerait le texte de la carte. Exigé sur le conteneur, il
+       la rend INERTE dans ce cas au lieu de la rendre fausse.
+
+       LA MARQUE EST LA NÔTRE, ET CE N'EST PLUS LE CROCHET DE TWITCH. La règle
+       visait « p[data-a-target=side-nav-title] », absent des cartes décorées :
+       elle était donc inerte — donc muette — sur une carte de co-stream sans
+       catégorie, c'est-à-dire sur le décor EXACT du signalement qui l'a fait
+       écrire. « .tse-nom » est posée par le scan, sur la ligne que
+       « cardNameEl » retrouve, et la spécificité est inchangée : p.tse-nom
+       pèse autant que p[attr].
+
+       (Les accents graves sont proscrits dans ce bloc : il vit à l'intérieur
+       d'un littéral gabarit, et l'un d'eux le referme. Trois fois.) */
     .side-nav-card[data-tse-nocat="true"]
-      [data-a-target="side-nav-card-metadata"]:has(p[data-a-target="side-nav-title"])
-      *:not(p[data-a-target="side-nav-title"]):not(:has(p[data-a-target="side-nav-title"])):not(p[data-a-target="side-nav-title"] *) {
+      [data-a-target="side-nav-card-metadata"]:has(p.tse-nom)
+      *:not(p.tse-nom):not(:has(p.tse-nom)):not(p.tse-nom *) {
       display: none !important;
     }
 
@@ -2911,7 +2933,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        Les deux reflets ne défilent pas non plus en cadence : périodes
        différentes ET décalages différents, sinon l'œil y verrait un seul bloc
        qui glisse. */
-    .side-nav-card.tse-sub p[data-a-target="side-nav-title"] {
+    .side-nav-card.tse-sub p.tse-nom {
       color: #ffd68a;
       font-weight: 700;
     }
@@ -2924,7 +2946,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       color: #e6c68d;
     }
     @supports (-webkit-background-clip: text) or (background-clip: text) {
-      .side-nav-card.tse-sub p[data-a-target="side-nav-title"] {
+      .side-nav-card.tse-sub p.tse-nom {
         background: linear-gradient(100deg,
           #ffc86e   0%,
           #fff6dc  32%,
@@ -3112,7 +3134,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        À DROITE DU PSEUDO, PAS DANS LE COMPTEUR. Le numéro de jour dit QUEL
        ÉVÉNEMENT diffuse cette chaîne — c'est une propriété de la chaîne, pas
        une nuance de sa durée. Sa place est donc contre son nom. */
-    .side-nav-card[data-tse-subathon-day] p[data-a-target="side-nav-title"] {
+    .side-nav-card[data-tse-subathon-day] p.tse-nom {
       display: flex;
       align-items: center;
       gap: 4px;
@@ -3223,7 +3245,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         animation: none;
       }
       .side-nav-card.tse-sub::after,
-      .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
+      .side-nav-card.tse-sub p.tse-nom,
       .side-nav-card.tse-sub .tse-sub-cat,
       .side-nav-card.tse-sub .tse-sub-avatar,
       .side-nav-card.tse-sub .tse-sub-avatar::after {
@@ -9367,7 +9389,12 @@ const TSE_GATE_MAX_CLICKS = 5;
           for (const c of cartes) {
             if (c.dataset.tseNocat !== 'true' && ligneCat(c)) continue;
             const meta = c.querySelector('[data-a-target="side-nav-card-metadata"]');
-            const p = c.querySelector('p[data-a-target="side-nav-title"]');
+            /* PAR `cardNameEl`, ET NON PAR LE CROCHET. Écrit avec le crochet,
+               ce bloc sautait les cartes qui ne l'ont pas — c'est-à-dire les
+               cartes DÉCORÉES, celles-là mêmes dont le centrage était signalé.
+               Trois rapports de suite ont donc affiché « cartes 0 » sur une
+               sidebar qui en portait, et la question est restée ouverte. */
+            const p = cardNameEl(c);
             const statut = liveStatusOf(c);
             // La RANGÉE est la plus petite boîte qui contienne à la fois le
             // pseudo et le compteur : c'est sur sa hauteur que le centrage se
@@ -9441,8 +9468,12 @@ const TSE_GATE_MAX_CLICKS = 5;
           return { detectes, sansJour, voies: v,
                    marquees: cartes.filter(c => c.dataset.tseSubathon).length,
                    sansPastille: manquantes.length,
-                   sansAncre: manquantes.filter(
-                     c => !c.querySelector('p[data-a-target="side-nav-title"]')).length };
+                   /* L'ANCRE EST CE QUE `cardNameEl` TROUVE, et non le crochet
+                      de Twitch : depuis la 4.5.2 la pastille se pose sur la
+                      ligne que le repli retrouve. Compter les crochets ici
+                      annonçait « pas d'ancre » sur des cartes qui en avaient
+                      une — le contraire du service que ce compteur rend. */
+                   sansAncre: manquantes.filter(c => !cardNameEl(c)).length };
         })(),
         relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
         /* L'ÉTAT DU RÉSEAU, qui n'y figurait pas. Une pause GraphQL en cours
@@ -9653,8 +9684,18 @@ const TSE_GATE_MAX_CLICKS = 5;
      rendre, et non la seule ligne qui reste. */
   const cardCategoryEl = (card) => {
     const nom = cardNameEl(card);
-    const horsNom = (sel) =>
-      [...card.querySelectorAll(sel)].find(p => p !== nom) || null;
+    /* ON NE DÉROULE LA LISTE QUE SI LE PREMIER EST LE PSEUDO. Écrite d'emblée
+       en `querySelectorAll` + `find`, cette exclusion coûtait une collection
+       complète par branche et par carte — cinq branches, une centaine de
+       cartes, à chaque scan — là où le cas ordinaire se tranche du premier
+       coup : la catégorie n'est pas le pseudo, et `querySelector` s'arrête
+       dessus. La liste ne sert que dans le cas exact pour lequel l'exclusion
+       a été écrite, celui où la première ligne EST le pseudo. */
+    const horsNom = (sel) => {
+      const premier = card.querySelector(sel);
+      if (!premier || premier !== nom) return premier;
+      return [...card.querySelectorAll(sel)].find(p => p !== nom) || null;
+    };
     return horsNom('.side-nav-card__metadata p[title]')
         || horsNom('[data-a-target="side-nav-card-metadata"] p[title]')
         // Cartes sponsorisées "promoted-followed" : la catégorie est dans
@@ -9689,32 +9730,37 @@ const TSE_GATE_MAX_CLICKS = 5;
   const cardNameEl = (card) => {
     const hook = card.querySelector('p[data-a-target="side-nav-title"]');
     if (hook) return hook;
-    /* LA BOÎTE MARQUÉE D'ABORD, ET NON LE GROUPE. L'ordre était l'inverse, et
-       c'est ce qui a inversé le pseudo et la catégorie sur les cartes
-       fabriquées : Twitch a SORTI le pseudo de `.side-nav-card__metadata`, qui
-       ne porte plus que la catégorie. Chercher dans le groupe, c'était donc
-       ne trouver que la catégorie et l'appeler pseudo. Le recensement du
-       rapport l'a dit en un nombre — `p1` valait le nombre de cartes, là où ce
-       groupe en a toujours porté deux. */
-    const groupe = card.querySelector('[data-a-target="side-nav-card-metadata"]')
-                || card.querySelector('.side-nav-card__metadata');
-    if (!groupe) return null;
-    /* L'ORDRE, ET RIEN QUE L'ORDRE. Trois rédactions ont cherché un ATTRIBUT
-       qui désigne le pseudo, et le terrain les a démenties l'une après
-       l'autre : le crochet d'automatisation manque sur les cartes décorées ;
-       « la ligne sans title » écarte les deux lignes quand Twitch titre aussi
-       le pseudo, ce qu'il fait en le tronquant ; et elle désigne carrément la
-       MAUVAISE quand seule la catégorie n'est pas titrée.
+    /* DEUX DISPOSITIONS, ET ON LES DÉPARTAGE PAR LA STRUCTURE. Twitch a SORTI
+       le pseudo de `.side-nav-card__metadata`, qui ne porte plus que la
+       catégorie — le recensement du rapport l'a dit en un nombre, `p1` valant
+       le nombre de cartes là où ce groupe en a toujours porté deux.
 
-       LE PSEUDO EST LA PREMIÈRE LIGNE, et il l'est dans toutes les
-       dispositions observées : celle où les deux lignes vivent dans le groupe,
-       celle où Twitch en a sorti le pseudo, celle d'une chaîne sans catégorie
-       qui n'a qu'une ligne. Le titre du direct — la troisième ligne — vient
-       après les deux autres et n'est donc jamais premier.
+       QUAND UNE LIGNE VIT HORS DU GROUPE, C'EST LE PSEUDO. C'est vrai quel que
+       soit son côté, et cela vaut mieux qu'un rang : un audit a montré que la
+       règle « la première ligne de la boîte » rendait la CATÉGORIE si Twitch
+       posait le pseudo APRÈS le groupe au lieu d'avant. Il le pose avant
+       aujourd'hui ; ce n'est pas une raison pour en dépendre.
+
+       QUAND TOUTES LES LIGNES SONT DANS LE GROUPE — la disposition historique,
+       et celle d'une chaîne sans catégorie qui n'en a qu'une — c'est alors le
+       RANG qui décide : le pseudo est au-dessus de la catégorie. */
+    const boite  = card.querySelector('[data-a-target="side-nav-card-metadata"]');
+    const groupe = card.querySelector('.side-nav-card__metadata');
+    if (!boite && !groupe) return null;
+    if (boite && groupe) {
+      const dehors = [...boite.querySelectorAll('p')].find(x => !groupe.contains(x));
+      if (dehors) return dehors;
+    }
+    /* AUCUN ATTRIBUT NE DÉSIGNE LE PSEUDO. Trois rédactions en ont cherché un,
+       et le terrain les a démenties l'une après l'autre : le crochet
+       d'automatisation manque sur les cartes décorées ; « la ligne sans
+       title » écarte les DEUX lignes quand Twitch titre aussi le pseudo, ce
+       qu'il fait en le tronquant ; et elle désigne carrément la MAUVAISE
+       quand seule la catégorie n'est pas titrée.
 
        ON NE DEMANDE RIEN À `cardCategoryEl`, et on ne peut plus : c'est lui
        qui s'appuie sur nous, et le croisement rendrait les deux récursives. */
-    return groupe.querySelector('p');
+    return (groupe || boite).querySelector('p');
   };
 
   const getCardCategory = (card) => {
@@ -13450,6 +13496,29 @@ const TSE_GATE_MAX_CLICKS = 5;
          tant que la catégorie n'est pas arrivée, puis remontée. */
       if (data.game) delete card.dataset.tseNocat;
       else card.dataset.tseNocat = 'true';
+      /* ── LE CSS NE S'ACCROCHE PLUS AU CROCHET DE TWITCH ───────────────────
+         Quatre règles visaient la ligne du pseudo par
+         `p[data-a-target="side-nav-title"]`. Le JS, lui, a appris à s'en
+         passer (cf. `cardNameEl`) — mais pas la feuille de style, et les
+         cartes qui n'ont pas ce crochet perdaient donc, en silence, l'espace
+         entre le pseudo et la pastille de subathon, l'or du nom sur une carte
+         d'abonné, et le centrage d'une carte sans catégorie. C'est le
+         signalement : « le symbole Subathon est collé au nom », sur les cartes
+         FABRIQUÉES de Top Chaînes — clonées d'une carte décorée, donc sans
+         crochet.
+
+         ON NOMME DONC LA LIGNE NOUS-MÊMES, comme on le fait déjà pour la
+         catégorie et l'avatar d'une carte d'abonné (cf. `markSubPart`, et le
+         commentaire qui l'accompagne : « une feuille de style qui recopie
+         cinq emplacements finit par en oublier un »). Une seule interrogation
+         par carte et par scan dans le cas ordinaire ; la marque ne survit pas
+         à un remplacement par React, ce qui la fait reposer au passage
+         suivant, et `scrubClone` l'efface des clones — qui la reçoivent donc
+         à leur tour, pour eux-mêmes. */
+      if (!card.querySelector('.tse-nom')) {
+        const ligneNom = cardNameEl(card);
+        if (ligneNom) ligneNom.classList.add('tse-nom');
+      }
       /* APRÈS l'ancienneté, et l'ordre compte : la pastille du jour se pose
          DANS le compteur, qui doit donc exister. `renderUptime` l'a créé
          quelques lignes plus haut. */
@@ -16556,6 +16625,22 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     add('category', 'getCardCategory() — métadonnées', false,
         collapsed ? 'na' : (!exp ? 'na' : (getCardCategory(exp) ? 'ok' : 'broken')),
+        collapsed ? 'sidebar réduite' : (exp ? '' : 'aucune carte live à sonder'));
+
+    /* CRITIQUE, ET C'EST UN AUDIT QUI L'A AJOUTÉE. La ligne du pseudo est
+       l'élément dont l'emplacement a bougé DEUX FOIS en une série de versions
+       — le crochet d'automatisation disparaît des cartes décorées, puis Twitch
+       sort la ligne elle-même du groupe nom+catégorie. Chaque fois, six
+       fonctions ont cessé de la trouver : la pastille de subathon, l'or d'une
+       carte d'abonné, le centrage sans catégorie, le nom lu par l'aperçu, la
+       fabrication des cartes du classement et celle des cartes en avance.
+
+       ET AUCUNE SONDE NE LA REGARDAIT. L'avatar en a une, le compteur en a
+       une, la catégorie en a une ; le pseudo, non — l'élément le plus visible
+       de la carte était le seul angle mort du diagnostic. Le rapport disait
+       « toutes les sondes répondent » pendant que Top Chaînes était vide. */
+    add('cardName', 'cardNameEl() — ligne du pseudo', true,
+        collapsed ? 'na' : (!exp ? 'na' : (cardNameEl(exp) ? 'ok' : 'broken')),
         collapsed ? 'sidebar réduite' : (exp ? '' : 'aucune carte live à sonder'));
 
     return probes;

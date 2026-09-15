@@ -4178,9 +4178,21 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
     window.__fx = {
       omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] },
       inconnue:   { id: '2', createdAt: h, viewers: 900, game: 'G', tags: [] },
+      etoiles:    { id: '3', createdAt: h, viewers: 700, game: 'G', tags: [] },
     };
     window.__addCard('omofficial', 'G', '500');
     window.__addCard('inconnue', 'G', '900');
+    /* UNE TROISIÈME CARTE, ABONNÉE ET SANS LE CROCHET DE TWITCH. L'or du nom
+       était écrit pour p[data-a-target=side-nav-title] : sur une carte décorée
+       — « En live avec », co-stream, et sur TOUTE carte fabriquée par clonage
+       d'une telle carte — il ne s'appliquait pas, en silence. Personne ne l'a
+       signalé ; c'est un audit qui l'a trouvé, en recensant ce qui dépendait
+       encore de ce crochet. */
+    window.__addCard('etoiles', 'G', '700');
+    [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a[href="/etoiles"]'))
+      .querySelector('p[data-a-target="side-nav-title"]')
+      .removeAttribute('data-a-target');
   });
   await attendre(page, () => !!localStorage.getItem('tse:substs'));
   await wait(page, 400);   // le scan qui applique la décoration suit le relevé
@@ -4191,7 +4203,12 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
     const apres = getComputedStyle(c, '::after');
     const av = c.querySelector('.side-nav-card__avatar figure, .side-nav-card__avatar .tw-avatar');
     const avApres = av ? getComputedStyle(av, '::after') : null;
-    const nom = c.querySelector('p[data-a-target="side-nav-title"]');
+    /* LE NOM EST DÉSIGNÉ PAR UNE CLASSE, comme la catégorie et pour la même
+       raison : le crochet d'automatisation de Twitch manque sur les cartes
+       décorées, et une feuille de style qui s'y accroche cesse de s'appliquer
+       sans rien dire. Lire ici par la MARQUE, c'est aussi vérifier qu'elle est
+       posée — sans elle, nomStyle serait null et tout ce bloc tomberait. */
+    const nom = c.querySelector('p.tse-nom');
     const nomStyle = nom ? getComputedStyle(nom) : null;
     // La catégorie est désormais DÉSIGNÉE par une classe, posée en JS d'après
     // cardCategoryEl() : plus de cascade à recopier ici non plus.
@@ -4221,6 +4238,7 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
 
   const abo = await marque('omofficial');
   const non = await marque('inconnue');
+  const sansCrochet = await marque('etoiles');
   ok('la chaîne abonnée porte la marque', abo && abo.classe === true, JSON.stringify(abo));
   ok('la chaîne non abonnée ne la porte pas', non && non.classe === false, JSON.stringify(non));
   // La décoration EXISTE vraiment côté rendu : deux animations nommées sur le
@@ -4236,6 +4254,12 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
   ok('en découpe dans le texte',
      (abo?.nomFill || '').includes('rgba(0, 0, 0, 0)'), String(abo && abo.nomFill));
   ok('et il est mis en gras', abo?.nomPoids === '700', String(abo && abo.nomPoids));
+  /* ET LA MÊME CHOSE SANS LE CROCHET DE TWITCH. C'est l'assertion qui manquait :
+     l'or tenait à un attribut que Twitch ne pose pas sur les cartes décorées,
+     ni sur aucune carte fabriquée par clonage de l'une d'elles. */
+  ok('une carte abonnée SANS le crochet de Twitch reçoit le même or',
+     (sansCrochet?.nomAnim || '').includes('tse-sub-titre')
+     && sansCrochet?.nomPoids === '700', JSON.stringify(sansCrochet));
   // La catégorie reçoit le même traitement, en plus sourd et plus lent : les
   // deux rangs doivent rester distincts, sans quoi la hiérarchie que Twitch
   // installe par la taille et la couleur s'aplatit.
@@ -7156,6 +7180,40 @@ titre('71. Diagnostic — il doit crier au bon moment, et se taire au bon moment
   const sain = await sonde('followedSection');
   ok('sur un décor sain, la sonde de section répond « ok »',
      sain.status === 'ok', JSON.stringify(sain));
+
+  /* ── LA SONDE DU PSEUDO, AJOUTÉE PAR UN AUDIT ──────────────────────────
+     La ligne du pseudo a changé d'emplacement DEUX FOIS en une série de
+     versions, et six fonctions ont cessé de la trouver à chaque fois. Aucune
+     sonde ne la regardait : le rapport annonçait « tous les sélecteurs
+     critiques répondent » pendant que Top Chaînes était vide. */
+  const nomSain = await sonde('cardName');
+  ok('la sonde de la ligne du pseudo répond « ok », et elle est critique',
+     nomSain.status === 'ok' && nomSain.critical === true, JSON.stringify(nomSain));
+  /* ON LA CASSE POUR DE VRAI : ni crochet, ni <p> à trouver. C'est le seul
+     moyen de distinguer une sonde qui regarde de une sonde qui acquiesce. */
+  await page.evaluate(() => {
+    for (const c of document.querySelectorAll('.side-nav-card')) {
+      for (const q of c.querySelectorAll('[data-a-target="side-nav-card-metadata"] p')) {
+        const sp = document.createElement('span');
+        sp.textContent = q.textContent;
+        q.replaceWith(sp);
+      }
+    }
+  });
+  const nomCasse = await sonde('cardName');
+  ok('…et « broken » dès que la ligne n\'est plus trouvable',
+     nomCasse.status === 'broken', JSON.stringify(nomCasse));
+  // On remet le décor d'aplomb : la suite du scénario mesure autre chose.
+  await page.evaluate(() => {
+    for (const c of document.querySelectorAll('.side-nav-card')) {
+      for (const sp of c.querySelectorAll('[data-a-target="side-nav-card-metadata"] span')) {
+        if (sp.classList.length) continue;
+        const q = document.createElement('p');
+        q.textContent = sp.textContent;
+        sp.replaceWith(q);
+      }
+    }
+  });
 
   /* ── LE SENS POSITIF : casser pour de vrai, et voir la sonde le dire ────
      On retire les DEUX prises de la section — l'aria-label et la classe du
@@ -12776,10 +12834,21 @@ titre('99. Le co-streamer sans catégorie — centrer une boîte qui n\'est pas 
      scénario qui distingue la correction de la 4.3 de celle de la 3.98. */
   ok('…et il l\'est aussi quand la rangée épingle sa colonne en haut',
      Math.abs(etat.figee.ecart) <= 1, JSON.stringify(etat.figee));
-  /* LE GARDE-FOU. Sans le hook du pseudo, la règle n'a plus rien à épargner :
-     exigé sur le conteneur, il la rend INERTE au lieu de la rendre fausse. */
-  ok('sans le hook du pseudo, la règle s\'efface au lieu d\'effacer la carte',
-     etat.nohook.pseudoVisible === true, JSON.stringify(etat.nohook));
+  /* ── L'ASSERTION EST TOURNÉE, ET C'EST UN AUDIT QUI L'A EXIGÉ ──────────
+     Elle disait : « sans le hook du pseudo, la règle s'efface au lieu
+     d'effacer la carte ». C'était vrai, et c'était un aveu — la règle était
+     INERTE sur les cartes décorées, c'est-à-dire sur le décor EXACT du
+     signalement qui l'a fait écrire. Trois versions ont cru corriger un
+     centrage qui ne s'appliquait pas là où il était demandé.
+
+     LA RÈGLE SUIT DÉSORMAIS NOTRE PROPRE MARQUE, posée par le scan sur la
+     ligne que `cardNameEl` retrouve. Le garde-fou demeure — si la ligne
+     n'était pas trouvée, la règle resterait inerte — mais il ne se déclenche
+     plus sur une carte que Twitch a simplement décorée. On exige donc les
+     DEUX : le texte est là, ET la carte est centrée comme ses voisines. */
+  ok('une carte sans le hook garde son texte ET se centre comme les autres',
+     etat.nohook.pseudoVisible === true && Math.abs(etat.nohook.ecart) <= 1,
+     JSON.stringify(etat.nohook));
 
   /* ── CE QU'UN AUDIT A TROUVÉ, ET QUE PERSONNE N'AURAIT SIGNALÉ ───────────
      La règle ci-dessus vide la metadata d'une carte sans catégorie. Elle
@@ -14292,6 +14361,142 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('…et c\'est bien le pseudo qui est écrit sur la première ligne',
      JSON.stringify(etat.lignes[0] || []) === JSON.stringify(['g0', 'c0']),
      JSON.stringify(etat.lignes));
+  await page.close();
+}
+
+/* ═════════ LE CSS S'ACCROCHAIT AU CROCHET DE TWITCH ════════════════════
+   Signalement : « le symbole Subathon à côté du nom du streamer est collé à
+   lui », et la précision qui donne la cause — « côté Top Chaînes, quand il n'y
+   a qu'une chaîne suivie ».
+
+   LE JS AVAIT APPRIS À SE PASSER DU CROCHET, PAS LA FEUILLE DE STYLE. Quatre
+   règles visaient la ligne du pseudo par p[data-a-target=side-nav-title].
+   La pastille se posait donc bien — `cardNameEl` retrouve la ligne — mais la
+   règle qui met cette ligne en « display: flex » avec un « gap: 4px » ne
+   s'appliquait pas. Sans gap, la pastille touche le nom.
+
+   ET LE DÉFAUT VOYAGE AVEC LE CLONE. Une chaîne suivie unique et décorée sert
+   de modèle à Top Chaînes ; ses trente cartes fabriquées n'ont donc pas le
+   crochet non plus. C'est là que l'utilisateur l'a vu, et nulle part ailleurs.
+
+   ON MESURE L'ÉCART, PAS LA FEUILLE DE STYLE. Lire « gap » sur l'élément dirait
+   que la déclaration est là ; seule la géométrie dit que les deux boîtes ne se
+   touchent pas. */
+{
+  titre('111. La pastille de subathon n\'est plus collée au pseudo');
+  const page = await fresh();
+  await page.evaluate(() => {
+    window.__cats = [{ name: 'cSub', viewers: 9000,
+                       streams: [{ login: 'mouseglobal', viewers: 8400 }] }];
+    window.__fx = {
+      mouseglobal: { id: 'g1',
+        createdAt: new Date(Date.now() - 2277 * 60_000).toISOString(),
+        viewers: 8400, game: 'Just Chatting', tags: [],
+        title: '!MOUSEATHON DAY 10 AHHHH' },
+      seule: { id: 'm',
+        createdAt: new Date(Date.now() - 60 * 60_000).toISOString(),
+        viewers: 1000, game: 'Just Chatting', tags: [], title: 'rien' },
+    };
+    window.__addCard('seule', 'Discussions', '1 k');
+    /* L'UNIQUE CHAÎNE SUIVIE EST DÉCORÉE, donc sans crochet — c'est le décor
+       du signalement, et c'est ce qui fait voyager le défaut sur les trente
+       cartes fabriquées, qui sont ses clones. */
+    const d = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a[href="/seule"]'));
+    d.querySelector('p[data-a-target="side-nav-title"]').removeAttribute('data-a-target');
+  });
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 1, 9000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => !!document.querySelector(
+    '.side-nav-card[data-tse-synthetic="true"] .tse-subathon-jour'), 12000);
+  await wait(page, 600);
+
+  const etat = await page.evaluate(() => {
+    const c = document.querySelector('.side-nav-card[data-tse-synthetic="true"][data-tse-subathon-day]');
+    const puce = c && c.querySelector('.tse-subathon-jour');
+    const nom  = c && c.querySelector('.tse-subathon-nom');
+    if (!puce || !nom) return { manque: true };
+    const rn = nom.getBoundingClientRect(), rp = puce.getBoundingClientRect();
+    return {
+      // L'écart VISUEL : du bord droit du nom au bord gauche de la pastille.
+      ecart: Math.round(rp.left - rn.right),
+      // Elles doivent rester sur la MÊME ligne : un espace obtenu en poussant
+      // la pastille à l'étage du dessous ne serait pas une correction.
+      memeLigne: Math.abs(Math.round(rp.top - rn.top)) <= 4,
+      marquee: !!c.querySelector('p.tse-nom'),
+    };
+  });
+  ok('la carte fabriquée porte la marque que le CSS suit, faute de crochet',
+     etat.marquee === true, JSON.stringify(etat));
+  ok('…et la pastille de subathon ne touche plus le pseudo',
+     etat.ecart >= 3 && etat.ecart <= 12, JSON.stringify(etat));
+  ok('…sans avoir été renvoyée à la ligne pour autant',
+     etat.memeLigne === true, JSON.stringify(etat));
+  await page.close();
+}
+
+/* ═════════ LA RÈGLE QUI POUVAIT EFFACER LE PSEUDO ══════════════════════
+   Trouvée par l'audit, pas par un signalement — et c'est ce qui la rend digne
+   d'un scénario. Twitch peut afficher une 3e ligne (le titre du direct) dans le
+   bloc metadata ; on la masque en visant « tout frère suivant du groupe ».
+
+   CETTE RÈGLE A ÉTÉ ÉCRITE QUAND LE GROUPE PORTAIT LES DEUX LIGNES. Tout ce
+   qui le suivait était alors forcément un intrus. Depuis, Twitch a SORTI le
+   pseudo du groupe — le recensement du rapport l'a montré en un nombre — et il
+   se trouve qu'il le pose AVANT. Un frère précédent n'est pas atteint par « ~ » :
+   la règle ne fait donc rien de mal aujourd'hui.
+
+   LE JOUR OÙ L'ORDRE CHANGERAIT, elle effacerait le pseudo de TOUTES les
+   cartes, d'un coup et sans un mot — le genre de panne qu'aucun compteur ne
+   voit. Ce scénario joue ce jour-là. */
+{
+  titre('112. Le pseudo posé après le groupe n\'est pas effacé par la 3e ligne');
+  const page = await fresh();
+  const h = new Date(Date.now() - 3600_000).toISOString();
+  await page.evaluate((iso) => {
+    window.__fx = { apres: { id: 's1', createdAt: iso, viewers: 900,
+                             game: 'Just Chatting', tags: [] } };
+    window.__addCard('apres', 'Discussions', '900');
+    const d = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a[href="/apres"]'));
+    const boite = d.querySelector('[data-a-target="side-nav-card-metadata"]');
+    const groupe = d.querySelector('.side-nav-card__metadata');
+    const nom = d.querySelector('p[data-a-target="side-nav-title"]');
+    nom.removeAttribute('data-a-target');
+    // Le pseudo SORT du groupe, et se pose APRÈS lui — l'ordre inverse de
+    // celui qu'on observe aujourd'hui.
+    boite.appendChild(nom);
+    /* ET LA 3e LIGNE DE TWITCH EST LÀ AUSSI, sans quoi le scénario ne
+       vérifierait que la moitié : la règle doit continuer de la masquer. */
+    const titreDirect = document.createElement('div');
+    titreDirect.textContent = '[DROPS] rediffusion';
+    boite.insertBefore(titreDirect, nom);
+  }, h);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 1, 9000);
+  await wait(page, 600);
+
+  const etat = await page.evaluate(() => {
+    const c = [...document.querySelectorAll('.side-nav-card')]
+      .find(x => x.dataset.tseLogin === 'apres');
+    const nom = c && c.querySelector('p.tse-nom');
+    const troisieme = c && [...c.querySelectorAll(
+      '[data-a-target="side-nav-card-metadata"] > div')]
+      .find(e => /rediffusion/.test(e.textContent || ''));
+    const vu = (e) => !!e && getComputedStyle(e).display !== 'none'
+                   && !!e.getBoundingClientRect().height;
+    return { nomTrouve: !!nom, nomVisible: vu(nom),
+             nomTexte: nom ? (nom.textContent || '').trim() : null,
+             troisiemeVisible: vu(troisieme), troisiemeTrouvee: !!troisieme };
+  });
+  ok('le pseudo posé après le groupe garde sa marque',
+     etat.nomTrouve === true && etat.nomTexte === 'apres', JSON.stringify(etat));
+  ok('…et il reste visible, là où la règle l\'effaçait',
+     etat.nomVisible === true, JSON.stringify(etat));
+  ok('…tandis que la 3e ligne de Twitch, elle, est toujours masquée',
+     etat.troisiemeTrouvee === true && etat.troisiemeVisible === false,
+     JSON.stringify(etat));
   await page.close();
 }
 

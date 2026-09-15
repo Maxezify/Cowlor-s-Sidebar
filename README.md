@@ -338,7 +338,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 917 Ko | 356 Ko | 3 208 → **2** |
+| `content.js` | 920 Ko | 357 Ko | 3 213 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 69 Ko | 34 Ko | 86 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1005 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1014 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2613,6 +2613,116 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## L'audit de la ligne du pseudo (v4.6)
+
+Signalement : « le symbole Subathon à côté du nom du streamer est collé à lui »,
+puis la précision qui donne la cause — « côté Top Chaînes, quand il n'y a qu'une
+chaîne suivie ». Et une demande d'audit de tout ce qui a été ajouté depuis la
+4.0.
+
+Les deux se sont rejoints : **le défaut signalé et quatre autres viennent de la
+même supposition**, et cette supposition n'était plus vraie.
+
+### Le JS avait appris à se passer du crochet, pas la feuille de style
+
+`cardNameEl` sait retrouver la ligne du pseudo sur une carte qui n'a pas le
+crochet d'automatisation de Twitch. La pastille se posait donc bien. Mais
+**quatre règles CSS** visaient encore cette ligne par
+`p[data-a-target="side-nav-title"]`, et sur une carte décorée — « En live avec »,
+co-stream, et sur **toute carte fabriquée par clonage de l'une d'elles** — elles
+ne s'appliquaient pas. En silence.
+
+| Ce qui cessait de s'appliquer | Ce que ça donnait |
+| --- | --- |
+| `display: flex` + `gap: 4px` sur la ligne du pseudo | la pastille de subathon collée au nom — **le signalement** |
+| l'or d'une carte d'abonné | la catégorie dorée, le nom non |
+| le centrage d'une carte sans catégorie | le pseudo en l'air, sur le décor EXACT qui avait fait écrire la règle |
+| la 3e ligne de Twitch | (voir plus bas : celle-là pouvait effacer le pseudo) |
+
+**On nomme donc la ligne nous-mêmes.** Le scan pose une classe `tse-nom` sur ce
+que `cardNameEl` retrouve, et les quatre règles la suivent. Ce n'est pas une
+invention : la catégorie et l'avatar d'une carte d'abonné sont désignés de cette
+façon depuis longtemps, et le commentaire qui les accompagne disait déjà
+pourquoi — « une feuille de style qui recopie cinq emplacements finit par en
+oublier un ». Le nom était le cinquième.
+
+### La règle qui pouvait effacer le pseudo
+
+Twitch peut afficher une 3e ligne (le titre du direct) dans le bloc metadata. On
+la masque en visant « tout frère suivant du groupe » — une règle écrite quand le
+groupe portait le pseudo **et** la catégorie, où tout ce qui le suivait était
+forcément un intrus.
+
+Twitch a depuis sorti le pseudo du groupe. Il le pose **avant**, et un frère
+précédent n'est pas atteint par `~` : la règle ne fait donc rien de mal
+aujourd'hui. Le jour où l'ordre changerait, elle effacerait le pseudo de toutes
+les cartes, d'un coup et sans un mot. Elle nomme désormais ce qu'elle épargne.
+
+### Le repérage ne dépend plus d'un rang non plus
+
+Le scénario écrit pour cette règle a trouvé autre chose : avec le pseudo posé
+**après** le groupe, `cardNameEl` rendait la catégorie. La règle « la première
+ligne » était juste pour la disposition d'aujourd'hui, et fausse pour sa
+symétrique.
+
+Elle est donc remplacée par une règle de **structure** : une ligne qui vit hors
+du groupe nom + catégorie est le pseudo — quel que soit son côté. Le rang ne sert
+plus que lorsque les deux lignes sont dans le groupe, c'est-à-dire la disposition
+historique et celle d'une chaîne sans catégorie.
+
+### Une sonde pour l'élément le plus visible de la carte
+
+L'avatar a la sienne, le compteur a la sienne, la catégorie a la sienne. **Le
+pseudo n'en avait aucune** — et c'est l'élément dont l'emplacement a changé deux
+fois en une série de versions, en emportant six fonctions à chaque fois. Le
+rapport annonçait « tous les sélecteurs critiques répondent » pendant que Top
+Chaînes était vide.
+
+`cardName` est désormais une sonde **critique**. Un déplacement du pseudo se
+verra au premier rapport, à la ligne prévue pour ça.
+
+### Deux diagnostics qui regardaient à côté
+
+Deux blocs ajoutés pour trancher des questions ouvertes ne pouvaient pas les
+trancher :
+
+- **`centrage`** sautait les cartes sans le crochet — c'est-à-dire les cartes
+  décorées, celles-là mêmes dont le centrage était signalé. Trois rapports de
+  suite ont affiché « cartes 0 » sur une sidebar qui en portait.
+- **`subathons.sansAncre`** comptait les crochets, alors que l'ancre est ce que
+  `cardNameEl` trouve depuis la 4.5.2. Il annonçait « pas d'ancre » sur des
+  cartes qui en avaient une.
+
+Les deux passent par `cardNameEl`.
+
+### Une régression de performance, corrigée
+
+L'exclusion de la ligne du nom dans `cardCategoryEl`, écrite en 4.5.3, déroulait
+une collection complète par branche et par carte — cinq branches, une centaine de
+cartes, à chaque scan — là où le cas ordinaire se tranche du premier coup. Elle
+ne déroule plus la liste que dans le cas exact pour lequel elle a été écrite.
+
+### Ce que l'audit n'a PAS trouvé
+
+Il faut le dire aussi : aucun identifiant mort, aucune constante `CFG` jamais
+lue, aucune classe `tse-` stylée sans être posée, et aucune clé du rapport qui
+n'arrive pas au panneau. Les quatre passes automatiques sont revenues vides.
+
+### Les scénarios 111 et 112
+
+Neuf assertions, huit mutants, aucun survivant :
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| la règle du subathon revient au crochet | la pastille touche le pseudo |
+| la marque `tse-nom` n'est plus posée | la carte fabriquée n'a plus de marque du tout |
+| le `gap` tombe à zéro | l'écart mesuré vaut 0 |
+| l'or revient au crochet | le nom d'une carte d'abonné décorée n'est plus doré |
+| la règle de centrage revient au crochet | la carte sans crochet est à 8 px de son axe |
+| la 3e ligne n'épargne plus le pseudo | le pseudo posé après le groupe disparaît |
+| la ligne hors du groupe n'est plus reconnue | le pseudo et la catégorie s'inversent |
+| le rang prend la dernière ligne | deux scénarios tombent |
 
 ## Twitch a sorti le pseudo du groupe (v4.5.5)
 
@@ -6149,7 +6259,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 110 scénarios, 1005 assertions |
+| `npm test` | le harnais Playwright : 112 scénarios, 1014 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
