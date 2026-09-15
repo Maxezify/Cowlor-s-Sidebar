@@ -36,6 +36,56 @@
   --r-grand:     6px;
 }
 
+/* ── LE THÈME CLAIR DU PANNEAU ───────────────────────────────────────────────
+   Le panneau est une PAGE D'EXTENSION : il ne voit pas le <html> de Twitch, et
+   ne peut donc pas lire son thème comme le fait la feuille de la barre
+   latérale. Il l'apprend autrement — le rapport de la page le porte depuis la
+   4.8, et panneau.js le retient d'une ouverture à l'autre.
+
+   AVANT DE L'AVOIR APPRIS, il suit la préférence du système. C'est le meilleur
+   pari disponible, et il est explicitement borné : dès qu'un rapport arrive,
+   « data-theme » tranche et la préférence du système ne décide plus rien. Les
+   deux mécanismes sont écrits séparément pour cette raison — « html:not([data-theme]) »
+   ne s'applique QUE tant qu'on ne sait pas.
+
+   LES ACCENTS NE S'INVERSENT PAS, ILS S'ASSOMBRISSENT : le violet, l'or, le
+   rouge et le vert gardent leur teinte — c'est elle qui porte le sens d'une
+   surface à l'autre — à la clarté qu'il faut pour se lire sur du blanc. */
+html[data-theme="light"] {
+  --fond:        #f7f7f8;
+  --fond-2:      #ffffff;
+  --fond-creux:  rgba(0, 0, 0, 0.06);
+  --filet:       rgba(0, 0, 0, 0.10);
+  --filet-fort:  rgba(0, 0, 0, 0.20);
+  --texte:       #0e0e10;
+  --texte-doux:  #53535f;
+  --texte-faible:#6e6e7a;
+  --violet-doux: rgba(145, 71, 255, 0.35);
+  --or:          #8a5900;
+  --or-clair:    #5c3b00;
+  --rouge:       #b3202b;
+  --vert:        #1b6b6b;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-theme="dark"]):not([data-theme="light"]) {
+    --fond:        #f7f7f8;
+    --fond-2:      #ffffff;
+    --fond-creux:  rgba(0, 0, 0, 0.06);
+    --filet:       rgba(0, 0, 0, 0.10);
+    --filet-fort:  rgba(0, 0, 0, 0.20);
+    --texte:       #0e0e10;
+    --texte-doux:  #53535f;
+    --texte-faible:#6e6e7a;
+    --violet-doux: rgba(145, 71, 255, 0.35);
+    --or:          #8a5900;
+    --or-clair:    #5c3b00;
+    --rouge:       #b3202b;
+    --vert:        #1b6b6b;
+    color-scheme: light;
+  }
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -474,6 +524,38 @@ html, body {
    dont les deux membres partagent une teinte, ce qui est justement ce qu'on
    veut dire. */
 .d-badge--exsub    { background: rgba(255, 201, 102, 0.10); color: #c9b48c; }
+/* LES MÊMES VALEURS MESURÉES QUE LE PRODUIT, et pour la même raison qu'en
+   sombre : cette maquette explique des couleurs, elle ne peut pas en montrer
+   d'autres. Contrastes relevés sur le fond composé de chaque badge, surface
+   claire de Twitch : hype 5,00 · discount 5,08 · costream 5,06 · squad 5,08 ·
+   sponsor 5,04 · sub 5,16 · exsub 4,66 · ccl 5,07 · switch 5,04, et les huit
+   images de l'arc-en-ciel entre 5,08 et 5,35. */
+html[data-theme="light"] .d-badge--hype     { color: #993d00; }
+html[data-theme="light"] .d-badge--discount { color: #a8008a; }
+html[data-theme="light"] .d-badge--costream { color: #0045d1; }
+html[data-theme="light"] .d-badge--squad    { color: #6000f0; }
+html[data-theme="light"] .d-badge--sponsor  { color: #006b34; }
+html[data-theme="light"] .d-badge--sub      { color: #8a5900; }
+html[data-theme="light"] .d-badge--exsub    { color: #7c6b4b; }
+html[data-theme="light"] .d-badge--ccl      { color: #9a1320; }
+html[data-theme="light"] .d-badge--switch,
+html[data-theme="light"] .d-badge--reprise  { color: #386e17; }
+html[data-theme="light"] .d-badge--subathon,
+html[data-theme="light"] .d-jour {
+  color: #00686b;
+  animation-name: d-arcenciel-clair;
+}
+@keyframes d-arcenciel-clair {
+  0%     { color: #ad0000; background-color: rgba(214, 0, 0, 0.18); }
+  12.5%  { color: #7a5e00; background-color: rgba(255, 196, 0, 0.18); }
+  25%    { color: #496b00; background-color: rgba(150, 220, 0, 0.18); }
+  37.5%  { color: #006b3b; background-color: rgba(0, 200, 110, 0.18); }
+  50%    { color: #00686b; background-color: rgba(0, 200, 205, 0.18); }
+  62.5%  { color: #2047cb; background-color: rgba(31, 69, 196, 0.18); }
+  75%    { color: #7320cb; background-color: rgba(111, 31, 196, 0.18); }
+  87.5%  { color: #a3007a; background-color: rgba(236, 0, 177, 0.18); }
+  100%   { color: #ad0000; background-color: rgba(214, 0, 0, 0.18); }
+}
 .d-badge--ccl      { background: rgba(200, 25, 42, 0.26);   color: #ff868c; }
 .d-badge--switch,
 .d-badge--reprise  { background: rgba(120, 215, 60, 0.24);  color: #a8e86b; }

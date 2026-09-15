@@ -6,6 +6,17 @@ const API = (typeof browser !== 'undefined' && browser.runtime) ? browser : chro
 
 const T = (cle, sub) => API.i18n.getMessage(cle, sub) || cle;
 
+const THEME_CLE = 'tse:theme';
+const appliquerThemePanneau = (t) => {
+  if (t !== 'light' && t !== 'dark') return;
+  document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem(THEME_CLE, t); } catch {   }
+};
+try {
+  const su = localStorage.getItem(THEME_CLE);
+  if (su === 'light' || su === 'dark') document.documentElement.setAttribute('data-theme', su);
+} catch {   }
+
 const LOCALE = (API.i18n.getUILanguage && API.i18n.getUILanguage()) || 'en';
 const NOMBRE = new Intl.NumberFormat(LOCALE);
 
@@ -687,6 +698,8 @@ const blocErreurs = (liste, origine, bilan) => bloc(
   ]);
 
 const construireRapport = (r, transport, fond) => {
+
+  if (r?.page?.theme) appliquerThemePanneau(r.page.theme);
   const m = API.runtime.getManifest();
   const d = new Date();
   const L = [
