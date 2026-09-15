@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 991 assertions, under Gecko
+npm run test-firefox        # the same 1000 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,104 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## What a report could not say (v4.5.4)
+
+Four versions fixed the way the pseudonym is located, and each following report
+contradicted the one before. The last one no longer said `modele: repli` but
+**nothing at all** — no candidate passed any more, while `subathons.sansAncre 0`
+at that same moment proved the locating worked on another card in the same
+sidebar.
+
+That is the fourth time, and it is the sign that the problem is not in the fix:
+**it is in what can be observed.** The markup was being inferred from a counter
+at zero, which amounts to guessing.
+
+### The markup census
+
+The report now carries a "CARD LINES" block, taken from the live cards of the
+followed section. It judges nothing, it counts:
+
+```
+cartes          7     ← live cards examined
+crochet         1     ← those carrying p[data-a-target="side-nav-title"]
+groupe          7     ← those exposing the name + category group
+p0 p1 p2 p3     0 1 6 0
+toutesTitrees   6     ← groups where EVERY line carries a `title`
+nomTitre        6
+sansNom         0     ← cards where locating fails all the same
+```
+
+Seven numbers, and they settle a question four versions had to ask. No test
+bench can produce them: they describe today's Twitch, the one no machine here
+can reach.
+
+### And where the pass stops
+
+`page.sortie` says at which point the ranking gave up: `hors-mode`,
+`pas-de-section`, `pas-de-modele`, `pas-de-conteneur`, `clone-nul`, or `ok`. A
+"modele: repli" alongside "fabriquees 0" could be read **two ways** — the
+template was refused, or its clone was — and that ambiguity cost a version each
+time.
+
+`page.modeleEssais` completes it: how many templates came apart **at cloning**
+before one held. Zero is the nominal case. A pass that needs three attempts read
+exactly like a pass that succeeds first time, and that is not the same health.
+
+`page.modele`, finally, no longer names the **chosen** candidate but the one
+that actually **built** a card. A pass where every card already exists tests
+none of them: it announced a template all the same, without it having done
+anything.
+
+### Two landmarks beat one
+
+4.5.3 had reduced the locating to a single criterion — "the line that carries no
+`title`", the category always carrying its own. It is correct, and it is
+**fragile**: Twitch also puts a `title` on the pseudonym when it truncates it.
+Both lines carry one then, the criterion no longer separates them — it rules out
+**both** — and the whole card is refused.
+
+Failing a line without a `title`, the **first** line of the group is taken: the
+pseudonym sits above the category in every known Twitch layout. Picking the
+wrong line would be serious; there is only one line here to get wrong, and it is
+the right one.
+
+The same `title` fooled `cardCategoryEl`, which took "the first `p[title]`" —
+that is, the pseudonym. Excluding the name line, introduced in 4.5.3 for the last
+fallback only, now applies to **all** of its branches.
+
+### A failed clone no longer condemns the pass
+
+A candidate can pass every guard and only turn out unusable once **cloned**:
+`scrubClone` removes Twitch's decorations, and if one of them wraps the
+name + category group, the clone loses its lines.
+
+The pass then abandoned everything, and the next one picked the same bad template
+again, indefinitely. The ranking now keeps a **list of candidates** — up to three
+neutral cards, the decorated card, then the memorised template — and gives up
+only once they are exhausted.
+
+Two fixes that hold together: a template is memorised only **after** it has
+produced a card. Either one without the other would be useless — the replayed
+memory would be the bad template, the one that had just installed itself there.
+
+### Scenarios 107 and 108
+
+Nine assertions, four mutants, no survivors:
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| `cardNameEl` loses its safety net | nothing is built when both lines carry a title |
+| `cardCategoryEl` excludes the name from the last fallback only | the built card carries "c0" as its pseudonym |
+| a failed clone condemns the pass again | the ranking stays empty, `sortie: clone-nul` |
+| the template is memorised as soon as it is chosen | the memory replays the template that builds nothing |
+
+**Two fixtures had to be corrected**, and both mistakes are alike: they tested
+less than they claimed. The first expected the translated category where the DOM
+carries the raw game name. The second wrapped the pseudonym's line alone — but
+the safety net then takes the category's line, and the clone "succeeded". It now
+wraps the whole group, the only fixture that truly strips the clone of both
+lines.
 
 ## The two guards that cancelled each other (v4.5.3)
 
@@ -5282,7 +5380,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 106 scenarios, 991 assertions |
+| `npm test` | the Playwright harness: 108 scenarios, 1000 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -5302,9 +5400,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 917 KB | 356 KB | 3,197 → **2** |
+| `content.js` | 920 KB | 357 KB | 3,206 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 69 KB | 34 KB | 85 → **0** |
+| `panneau.js` | 69 KB | 34 KB | 86 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1114 KB** | **493 KB** | **−56 %** |

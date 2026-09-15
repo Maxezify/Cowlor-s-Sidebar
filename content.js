@@ -1870,6 +1870,11 @@ const TSE_GATE_MAX_CLICKS = 5;
        sur une panne réseau ferait un classement dépendant de la qualité du
        wifi. Une seule langue en tag n'est pas concernée du tout : une langue
        déclarée une fois n'est pas un empilement. */
+    /* Combien de cartes neutres on garde comme modèles de rechange. Une
+       suffit dans la vie ordinaire ; au-delà de trois, ce n'est plus la carte
+       qui est en cause mais le markup de Twitch, et un quatrième essai ne
+       ferait que retarder le constat. */
+    GLOBAL_TEMPLATE_TRIES:   3,
     GLOBAL_DECLARED_BATCH:   30,
     // Combien de langues déclarées on garde en mémoire pour la session. Le
     // pool mondial tourne autour de 1 700 chaînes, dont une fraction déclare
@@ -9230,7 +9235,46 @@ const TSE_GATE_MAX_CLICKS = 5;
              voies a servi, ou rien du tout. */
           modele: modeleVoie,
           modeleRefus,
+          /* ET À QUEL MOMENT LA PASSE A RENONCÉ. « modele: repli » avec
+             « fabriquees 0 » se lit de deux façons — le modèle a été refusé,
+             ou son clone l'a été — et deux rapports de suite ont coûté une
+             version chacun à cette ambiguïté. */
+          sortie: sortieGlobale,
+          modeleEssais,
         },
+        /* ── OÙ TWITCH ÉCRIT LE PSEUDO, RECENSÉ PLUTÔT QUE SUPPOSÉ ─────────
+           Trois versions ont corrigé le repérage du pseudo, et chacune a été
+           démentie par le rapport suivant : le crochet manque ici, la
+           catégorie manque là, et un `title` apparaît où on ne l'attendait
+           pas. Aucun de ces faits n'était OBSERVABLE — on les déduisait d'un
+           compteur à zéro, ce qui revient à deviner.
+
+           CE BLOC LES MESURE, sur les cartes en direct de la section suivie.
+           Il ne juge rien : il dit combien de cartes portent le crochet
+           d'automatisation de Twitch, combien exposent le groupe nom +
+           catégorie, combien de lignes ce groupe contient, combien de ces
+           lignes portent un `title` — et pour combien de cartes le repérage
+           échoue malgré tout. Un rapport qui porte ces sept nombres tranche
+           une question que trois versions ont dû poser. */
+        lignes: (() => {
+          const vues = cartes.filter(c => !isSynthetic(c) && !isCardOffline(c));
+          const r = { cartes: vues.length, crochet: 0, groupe: 0,
+                      p0: 0, p1: 0, p2: 0, p3: 0,
+                      toutesTitrees: 0, nomTitre: 0, sansNom: 0 };
+          for (const c of vues) {
+            if (c.querySelector('p[data-a-target="side-nav-title"]')) r.crochet++;
+            const g = c.querySelector('.side-nav-card__metadata')
+                   || c.querySelector('[data-a-target="side-nav-card-metadata"]');
+            if (g) r.groupe++;
+            const ps = g ? [...g.querySelectorAll('p')] : [];
+            r['p' + Math.min(ps.length, 3)]++;
+            if (ps.length && ps.every(x => x.hasAttribute('title'))) r.toutesTitrees++;
+            const nom = cardNameEl(c);
+            if (!nom) r.sansNom++;
+            else if (nom.hasAttribute('title')) r.nomTitre++;
+          }
+          return r;
+        })(),
         /* COMMENT LA SECTION SUIVIE A ÉTÉ TROUVÉE, et combien de fois il a
            fallu la rattraper. C'est le pivot du module : quinze appelants la
            suivent, et quand elle se trompe ils se taisent TOUS, sans une
@@ -9584,27 +9628,31 @@ const TSE_GATE_MAX_CLICKS = 5;
     card.querySelector('.tw-avatar') ||
     card.querySelector('img.tw-image-avatar')?.closest('figure, .tw-avatar, div');
 
+  /* LA LIGNE DU PSEUDO N'EST JAMAIS LA CATÉGORIE, ET C'EST VRAI DE TOUTES LES
+     BRANCHES. La première rédaction ne l'excluait que du dernier repli, si
+     bien que « le premier p[title] » désignait encore le pseudo sur une carte
+     où Twitch pose un `title` sur les DEUX lignes (il le fait dès qu'il
+     tronque un pseudo). La conséquence ne se voyait pas comme une erreur de
+     catégorie : `data-tse-category` valait le login, les filtres s'y
+     appliquaient, et la carte fabriquée par clonage se voyait écrire
+     « Discussions » à la place de son pseudo — trente cartes nommées d'après
+     leur catégorie.
+
+     UNE CARTE SANS CATÉGORIE N'A PAS DE CATÉGORIE ; c'est null qu'il faut
+     rendre, et non la seule ligne qui reste. */
   const cardCategoryEl = (card) => {
-    const marquee =
-      card.querySelector('.side-nav-card__metadata p[title]') ||
-      card.querySelector('[data-a-target="side-nav-card-metadata"] p[title]') ||
-      // Cartes sponsorisées "promoted-followed" : la catégorie est dans
-      // .side-nav-promoted-followed-card__content (classe STABLE), hors de
-      // la metadata normale. Sans ce repli, le stream sponsorisé n'a pas de
-      // data-tse-category et échappe aux filtres catégorie/langue.
-      card.querySelector('[class*="promoted-followed-card__content"] p[title]') ||
-      card.querySelector('[class*="promoted-followed-card__content"] p');
-    if (marquee) return marquee;
-    /* DERNIER REPLI : le premier <p> de la metadata — mais JAMAIS celui du
-       pseudo. Sans cette exclusion, une chaîne qui n'annonce AUCUNE catégorie
-       voyait son propre nom lu comme catégorie : `data-tse-category` valait le
-       login, les filtres s'y appliquaient, et la carte fabriquée par clonage
-       se voyait écrire « Discussions » à la place de son pseudo — trente
-       cartes nommées d'après leur catégorie. Une carte sans catégorie n'a pas
-       de catégorie ; c'est null qu'il faut rendre. */
     const nom = cardNameEl(card);
-    return [...card.querySelectorAll('.side-nav-card__metadata p')]
-      .find(p => p !== nom) || null;
+    const horsNom = (sel) =>
+      [...card.querySelectorAll(sel)].find(p => p !== nom) || null;
+    return horsNom('.side-nav-card__metadata p[title]')
+        || horsNom('[data-a-target="side-nav-card-metadata"] p[title]')
+        // Cartes sponsorisées "promoted-followed" : la catégorie est dans
+        // .side-nav-promoted-followed-card__content (classe STABLE), hors de
+        // la metadata normale. Sans ce repli, le stream sponsorisé n'a pas de
+        // data-tse-category et échappe aux filtres catégorie/langue.
+        || horsNom('[class*="promoted-followed-card__content"] p[title]')
+        || horsNom('[class*="promoted-followed-card__content"] p')
+        || horsNom('.side-nav-card__metadata p');
   };
 
   /* ── OÙ VIT LE PSEUDO, ET CE QUI ARRIVE QUAND IL N'EST PAS LÀ ─────────────
@@ -9633,16 +9681,25 @@ const TSE_GATE_MAX_CLICKS = 5;
     const groupe = card.querySelector('.side-nav-card__metadata')
                 || card.querySelector('[data-a-target="side-nav-card-metadata"]');
     if (!groupe) return null;
-    /* LA CATÉGORIE PORTE UN `title`, ET C'EST LE SEUL REPÈRE SÛR ICI. La
-       première rédaction la demandait à `cardCategoryEl` et croisait les deux
-       gardes. Or le DERNIER repli de `cardCategoryEl` est « le premier <p> de
-       la metadata » — c'est-à-dire LE PSEUDO, dès que la chaîne n'annonce
-       aucune catégorie. Sur une carte sans crochet ET sans catégorie, les
-       deux gardes s'annulaient : l'une écartait le nom, l'autre la catégorie,
-       et il ne restait rien. C'est le « modeleRefus: pseudo » rapporté sur la
-       4.5.2, sur une carte qui portait pourtant son nom. */
-    return [...groupe.querySelectorAll('p')]
-      .find(x => !x.hasAttribute('title')) || null;
+    /* ON NE DEMANDE PAS LA CATÉGORIE À `cardCategoryEl`, et on ne peut plus :
+       son DERNIER repli était « le premier <p> de la metadata » — c'est-à-dire
+       LE PSEUDO dès que la chaîne n'annonce aucune catégorie. Les deux gardes
+       s'annulaient alors : l'une écartait le nom, l'autre la catégorie, et il
+       ne restait rien (le « modeleRefus: pseudo » de la 4.5.2, sur une carte
+       qui portait pourtant son nom). Depuis, c'est `cardCategoryEl` qui
+       s'appuie sur nous, et le croisement rendrait les deux récursives.
+
+       DEUX REPÈRES, ET LE SECOND EST UN FILET. La catégorie porte un `title` ;
+       la ligne qui n'en porte pas est donc le pseudo. Mais Twitch pose aussi
+       un `title` sur le pseudo quand il le tronque — et le repère unique
+       n'écartait alors plus deux lignes : il les écartait TOUTES. Rendre null
+       là, c'est refuser la carte entière ; on prend donc la PREMIÈRE ligne du
+       groupe, le pseudo étant au-dessus de la catégorie dans toutes les
+       dispositions connues de Twitch. Se tromper de ligne serait grave ; il
+       n'y a ici qu'une ligne à se tromper, et c'est la bonne. */
+    const lignes = [...groupe.querySelectorAll('p')];
+    if (!lignes.length) return null;
+    return lignes.find(x => !x.hasAttribute('title')) || lignes[0];
   };
 
   const getCardCategory = (card) => {
@@ -13291,6 +13348,14 @@ const TSE_GATE_MAX_CLICKS = 5;
      ne disait pas lequel des deux — c'est exactement l'écart qu'un utilisateur
      a rapporté deux fois de suite. */
   let modeleRefus = null;
+  /* OÙ LA DERNIÈRE PASSE DU CLASSEMENT S'EST ARRÊTÉE. `modele` disait d'où
+     venait le modèle, et `modeleRefus` ce qui manquait au clone — mais aucun
+     des deux ne disait à quel MOMENT la passe avait renoncé, et deux rapports
+     de suite se sont lus de deux façons pour cette seule raison. Six valeurs,
+     et elles couvrent toutes les sorties de `syncGlobalCards`. */
+  let sortieGlobale = null;
+  // Combien de modèles se sont défaits au clonage avant qu'un tienne.
+  let modeleEssais = 0;
 
   /**
    * Applique à une carte une entrée de cache TseChannels (ou la sentinelle
@@ -15638,7 +15703,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   function syncGlobalCards() {
     const section = followedSection();
-    if (!section) return;
+    if (!section) { sortieGlobale = 'pas-de-section'; return; }
 
     const existing = new Map();
     for (const c of section.querySelectorAll('.side-nav-card[data-tse-global="true"]')) {
@@ -15656,6 +15721,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       existing.forEach(releaseGlobalCard);
       globalSeed.clear();
       ready(0);
+      sortieGlobale = 'hors-mode';
       return;
     }
 
@@ -15681,13 +15747,27 @@ const TSE_GATE_MAX_CLICKS = 5;
        MISE EN PAGE différente — avatar et statut sur une ligne, puis le nom,
        puis la catégorie — qu'aucun nettoyage ne redresse. Les autres
        décorations, elles, sont des NŒUDS, et `scrubClone` les retire. */
-    let template = null;
-    let container = null;
+    /* ── UNE LISTE DE CANDIDATS, ET NON UN SEUL MODÈLE ────────────────────
+       Un candidat peut passer toutes les gardes et ne se révéler inexploitable
+       qu'une fois CLONÉ : `scrubClone` retire les décorations de Twitch, et si
+       l'une d'elles enveloppe le groupe nom + catégorie, le clone perd ses
+       lignes. La passe abandonnait alors tout — « fabriquees 0 » sur un
+       classement de deux mille chaînes parfaitement connu — et la suivante
+       reprenait le même mauvais modèle, indéfiniment.
+
+       ON LES ESSAIE DONC DANS L'ORDRE, et la passe ne renonce qu'après les
+       avoir épuisés : les cartes neutres d'abord (trois au plus — au-delà,
+       c'est le markup de Twitch qui a changé, pas la carte), la carte décorée
+       ensuite, le modèle relevé plus tôt dans la session en dernier. */
+    const neutres = [];
     let repli = null;
     for (const c of section.querySelectorAll('.side-nav-card')) {
       if (c.dataset.tseGlobal === 'true' || isSynthetic(c) || isCardOffline(c)) continue;
       if (!modeleUtilisable(c)) continue;
-      if (isPlainCard(c)) { template = c; break; }
+      if (isPlainCard(c)) {
+        if (neutres.length < CFG.GLOBAL_TEMPLATE_TRIES) neutres.push(c);
+        continue;
+      }
       if (!repli && !c.querySelector('[class*="promoted-followed-card__content"]')) {
         repli = c;
       }
@@ -15698,27 +15778,29 @@ const TSE_GATE_MAX_CLICKS = 5;
        jour où Twitch inventera une décoration que le nettoyage ne connaît pas
        —, et « memoire » dit qu'aucune carte native n'est en ligne et qu'on
        rejoue un modèle relevé plus tôt dans la session. */
-    modeleVoie = template ? 'neutre' : (repli ? 'repli' : null);
-    if (!template) template = repli;
-    if (template) {
-      container = template.parentElement;
-      // Clone DÉTACHÉ : garder une référence au nœud vivant le laisserait
-      // dériver avec les décorations que le scan lui applique ensuite.
-      globalTemplate = template.cloneNode(true);
-      globalContainer = container;
-    } else if (globalTemplate) {
-      template = globalTemplate;
-      modeleVoie = 'memoire';
-      // Le conteneur mémorisé n'est retenu que s'il est TOUJOURS attaché :
-      // React peut avoir remonté la liste entre-temps, et remplir un nœud
-      // détaché reviendrait à ne rien afficher. Deux replis ensuite : le
-      // parent d'une carte encore présente, puis la section elle-même —
-      // moins fidèle à la structure de Twitch, mais visible.
-      container = (globalContainer?.isConnected ? globalContainer : null)
+    const candidats = neutres.map(c => [c, 'neutre']);
+    if (repli) candidats.push([repli, 'repli']);
+    if (globalTemplate) candidats.push([globalTemplate, 'memoire']);
+    if (!candidats.length) { sortieGlobale = 'pas-de-modele'; return; }
+    // Le conteneur mémorisé n'est retenu que s'il est TOUJOURS attaché : React
+    // peut avoir remonté la liste entre-temps, et remplir un nœud détaché
+    // reviendrait à ne rien afficher. Deux replis ensuite : le parent d'une
+    // carte encore présente, puis la section elle-même — moins fidèle à la
+    // structure de Twitch, mais visible.
+    const conteneurPour = (noeud, voie) => (voie === 'memoire'
+      ? (globalContainer?.isConnected ? globalContainer : null)
         || section.querySelector('.side-nav-card')?.parentElement
-        || section;
-    }
-    if (!template || !container) return;
+        || section
+      : noeud.parentElement);
+    /* `modeleVoie` NE S'ÉCRIT PAS ICI, et c'est délibéré. Il disait le candidat
+       CHOISI ; une passe où toutes les cartes existent déjà n'en éprouve aucun,
+       et le rapport annonçait alors un modèle qui n'avait rien fabriqué. Il ne
+       s'écrit donc qu'au moment où un modèle produit une carte, et il garde
+       cette valeur tant qu'aucune autre n'en produit. */
+    let essai = 0;
+    let template = candidats[0][0];
+    let container = conteneurPour(template, candidats[0][1]);
+    if (!container) { sortieGlobale = 'pas-de-conteneur'; return; }
 
     // Sans amorce, une carte fraîchement clonée afficherait le compteur, la
     // catégorie et l'ancienneté de la chaîne qui a servi de MODÈLE jusqu'à la
@@ -15759,10 +15841,35 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (card) {
         card.dataset.tseGlobal = 'true';
       } else {
-        card = buildAheadCard(template, rec.login, rec);
-        if (!card) return;   // clone inexploitable : inutile d'insister
+        /* UN CLONE RATÉ NE CONDAMNE PLUS LA PASSE : on passe au candidat
+           suivant. `essai` ne revient jamais en arrière — dès qu'un modèle a
+           produit une carte, c'est lui qui sert pour tout le reste de la
+           passe, et les suivants ne sont plus jamais essayés. */
+        let voie = null;
+        while (!card && essai < candidats.length) {
+          [template, voie] = candidats[essai];
+          container = conteneurPour(template, voie);
+          card = container ? buildAheadCard(template, rec.login, rec) : null;
+          if (!card) essai++;
+        }
+        if (!card) { sortieGlobale = 'clone-nul'; return; }
+        modeleVoie = voie;
+        // Combien de candidats ont été écartés AU CLONAGE avant celui-ci. Zéro
+        // est le cas nominal ; le reste dit qu'un modèle passe les gardes et
+        // se défait quand même, ce qu'aucun autre compteur ne révèle.
+        modeleEssais = essai;
         card.dataset.tseGlobal = 'true';
         container.appendChild(card);
+        /* LE MODÈLE NE SE MÉMORISE QU'UNE FOIS QU'IL A FAIT SES PREUVES. Il
+           l'était dès qu'il était CHOISI : une carte que le clonage ne sait
+           pas exploiter s'installait dans la mémoire de la session et y
+           remplaçait un modèle qui, lui, marchait. Clone DÉTACHÉ, parce que
+           garder le nœud vivant le laisserait dériver avec les décorations que
+           le scan lui applique ensuite. */
+        if (voie !== 'memoire') {
+          globalTemplate = template.cloneNode(true);
+          globalContainer = container;
+        }
       }
       // Le compteur est écrit ICI, sans attendre le cache. Le clone hérite
       // sinon du nombre de spectateurs de la chaîne qui a servi de MODÈLE —
@@ -15783,6 +15890,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (preview.ouvert() && card === preview.carte()) continue;
       releaseGlobalCard(card);
     }
+    sortieGlobale = 'ok';
   }
 
   /* ============================================================
