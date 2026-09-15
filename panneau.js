@@ -523,10 +523,12 @@ const elt = (nom, classe, texte) => {
 /* LA PALETTE DES BADGES EST RECOPIÉE DANS LA FEUILLE DU PANNEAU, et c'est la
    même frontière que pour les libellés : cette page n'a pas le CSS de
    content.js, qui vit dans la barre latérale de Twitch. On recopie donc les
-   dix modificateurs, et le scénario 96 vérifie qu'ils ne se sont pas mis à
-   rendre tous la même couleur — une maquette de badges monochrome
-   n'expliquerait plus rien. */
-const badgeDemo = (mod, cle) => elt('span', 'd-badge d-badge--' + mod, T(cle));
+   modificateurs, et le scénario 96 vérifie qu'ils ne se sont pas mis à rendre
+   tous la même couleur — une maquette de badges monochrome n'expliquerait
+   plus rien. Un badge SANS modificateur est légitime : c'est le badge neutre,
+   celui qui reprend une mention de Twitch telle quelle. */
+const badgeDemo = (mod, cle) =>
+  elt('span', 'd-badge' + (mod ? ' d-badge--' + mod : ''), T(cle));
 
 /* LA CARTE DE LA BARRE LATÉRALE, EN PETIT. Six chapitres en montrent une, et
    chacun n'en change qu'un détail : la durée, la pastille de jour, le compteur
@@ -570,10 +572,18 @@ const demoApercu = () => {
   return hote;
 };
 
-/* Les dix badges, dans l'ordre où l'aperçu les pose : l'étiquette de
-   classification d'abord — elle se lit avant de regarder — puis les deux
-   nouvelles qui s'effacent d'elles-mêmes, puis le contexte, et le subathon en
-   dernier parce qu'il traverse toutes les couleurs. */
+/* TOUS les badges que l'aperçu sait poser, dans l'ordre où on les explique :
+   l'étiquette de classification d'abord — elle se lit avant de regarder —
+   puis les deux nouvelles qui s'effacent d'elles-mêmes, puis le contexte, et
+   le subathon en dernier parce qu'il traverse toutes les couleurs.
+
+   IL EN MANQUAIT DEUX, et c'est un signalement qui l'a dit : « indique tous
+   les badges possibles ». L'ANCIEN ABONNÉ a sa propre teinte — le même or,
+   désaturé — et n'était pas montré ; le badge NEUTRE non plus, alors que
+   c'est celui qu'on voit le plus souvent après les autres, puisqu'il reprend
+   telle quelle n'importe quelle mention que Twitch ajoute et que l'extension
+   ne traduit pas. Le neutre n'a pas de modificateur : c'est l'absence de
+   couleur qui LE définit, et lui en donner une serait le trahir. */
 const BADGES_DEMO = [
   ['ccl',      'guideBadgeCcl'],
   ['reprise',  'guideBadgeReprise'],
@@ -581,9 +591,11 @@ const BADGES_DEMO = [
   ['costream', 'guideBadgeCostream'],
   ['squad',    'guideBadgeSquad'],
   ['sub',      'guideBadgeSub'],
+  ['exsub',    'guideBadgeExsub'],
   ['sponsor',  'guideBadgeSponsor'],
   ['hype',     'guideBadgeHype'],
   ['discount', 'guideBadgeDiscount'],
+  ['',         'guideBadgeAutre'],
   ['subathon', 'guideBadgeSubathon'],
 ];
 

@@ -379,15 +379,29 @@ html, body {
   background: linear-gradient(90deg,
     rgba(145, 71, 255, 0.18) 0%, rgba(145, 71, 255, 0.06) 40%, transparent 100%);
 }
+/* Recopiée de content.js, amplitude comprise : le battement y a été renforcé
+   parce qu'on le voyait à peine, et une maquette restée à l'ancienne amplitude
+   expliquerait un produit qui n'existe plus. */
 .d-carte--frais::before {
   content: '';
   position: absolute; left: 0; top: 3px; bottom: 3px;
   width: 3px; border-radius: 0 3px 3px 0; background: var(--violet);
-  animation: d-respire 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transform-origin: left center;
+  animation: d-respire 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 @keyframes d-respire {
-  0%, 100% { opacity: 0.7; box-shadow: 0 0 6px var(--violet), 0 0 2px var(--violet); }
-  50%      { opacity: 1;   box-shadow: 0 0 14px var(--violet), 0 0 6px var(--violet); }
+  0%, 100% { opacity: 0.3; transform: scaleX(1); box-shadow: 0 0 4px var(--violet); }
+  50%      { opacity: 1;   transform: scaleX(2);
+             box-shadow: 0 0 18px var(--violet), 0 0 8px var(--violet); }
+}
+/* L'arrêt de l'animation vient de la règle universelle en bas de feuille ;
+   ce bloc-ci ne dit que l'APPARENCE au repos — arrêtée à son point haut, pour
+   que le signal reste aussi lisible qu'en mouvement. */
+@media (prefers-reduced-motion: reduce) {
+  .d-carte--frais::before {
+    opacity: 1; transform: scaleX(1.6);
+    box-shadow: 0 0 10px var(--violet), 0 0 4px var(--violet);
+  }
 }
 
 /* L'abonnement : or sur le pseudo, or sur la catégorie, anneau d'or autour de
@@ -455,6 +469,11 @@ html, body {
 .d-badge--squad    { background: rgba(145, 71, 255, 0.25);  color: #d1b3ff; }
 .d-badge--sponsor  { background: rgba(0, 184, 90, 0.22);    color: #6bdb9d; }
 .d-badge--sub      { background: rgba(255, 201, 102, 0.22); color: #ffd591; }
+/* Ancien abonné : le MÊME or, désaturé. Un fait révolu ne doit pas briller
+   autant qu'un abonnement en cours — et c'est la seule paire de la palette
+   dont les deux membres partagent une teinte, ce qui est justement ce qu'on
+   veut dire. */
+.d-badge--exsub    { background: rgba(255, 201, 102, 0.10); color: #c9b48c; }
 .d-badge--ccl      { background: rgba(200, 25, 42, 0.26);   color: #ff868c; }
 .d-badge--switch,
 .d-badge--reprise  { background: rgba(120, 215, 60, 0.24);  color: #a8e86b; }
@@ -648,7 +667,13 @@ html, body {
 
 /* ── Mouvement ───────────────────────────────────────────────────────────── */
 /* Le respect de prefers-reduced-motion n'est pas une politesse : une popup
-   qui s'anime à chaque clic devient pénible pour qui y est sensible. */
+   qui s'anime à chaque clic devient pénible pour qui y est sensible.
+
+   « * » NE COUVRE PAS LES PSEUDO-ÉLÉMENTS, et cette règle avait l'air
+   exhaustive. Le sélecteur universel désigne des ÉLÉMENTS ; « ::before » et
+   « ::after » n'en sont pas. La barre violette de la maquette du stream frais
+   — un ::before — continuait donc de battre ici, comme elle continuait de
+   battre dans le produit. Un audit a trouvé les deux le même jour. */
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
 }

@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 920 Ko | 357 Ko | 3 213 → **2** |
+| `content.js` | 933 Ko | 359 Ko | 3 213 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 69 Ko | 34 Ko | 86 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1113 Ko** | **492 Ko** | **−56 %** |
+| **les cinq** | **1149 Ko** | **499 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1014 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1027 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2353,7 +2353,7 @@ pris qui tient depuis la première version. Ce qui lui manquait n'était donc pa
 un écran de préférences — c'était **la liste de ce qui existe**.
 
 Une bonne moitié de ce que le produit ajoute ne se découvre qu'en posant le
-pointeur au bon endroit : les dix badges de l'aperçu, la frise des catégories,
+pointeur au bon endroit : les douze badges de l'aperçu, la frise des catégories,
 la pastille de jour d'un subathon, le tri qui regroupe les co-streams. Rien,
 nulle part, ne disait de le faire. La fiche du magasin le dit — mais on la lit
 une fois, avant d'installer, et jamais après.
@@ -2406,7 +2406,7 @@ Deux règles de décor, et aucune n'est décorative :
   oubli de traduction. Les noms de jeux, eux, sont les mêmes dans les douze
   langues.
 
-La palette des dix badges est **recopiée** dans la feuille du panneau, teinte
+La palette des badges est **recopiée** dans la feuille du panneau, teinte
 pour teinte. C'est la même frontière que pour les libellés : cette page n'a pas
 le CSS de `content.js`, qui vit dans la barre latérale de Twitch. Les rapprocher
 les rendrait indistincts justement là où on les explique.
@@ -2420,7 +2420,7 @@ douze fichiers — et surtout aurait figé le NOMBRE de puces, alors qu'une lang
 a parfois besoin de deux phrases là où le français en met une.
 
 Quarante-cinq clés nouvelles, douze fiches : cinq cent quarante messages. Quinze
-d'entre elles sont des libellés que le produit affiche déjà — les dix badges, le
+d'entre elles sont des libellés que le produit affiche déjà — les douze badges, le
 compteur « Terminé », la pastille de jour, le nom de l'onglet — et elles ont été
 **recopiées de `STRINGS`**, mot pour mot, langue par langue. Le panneau ne peut
 pas lire `STRINGS` (deux surfaces, deux tables, aucun libellé qui transite),
@@ -2613,6 +2613,118 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Tous les badges, un battement qu'on voit, et deux arcs-en-ciel qui ne s'arrêtaient pas (v4.7)
+
+Trois demandes : montrer **tous** les badges dans le mode d'emploi, rendre le
+clignotement violet des nouveaux streams **visible**, et auditer le reste.
+L'audit a répondu à la deuxième question mieux que prévu.
+
+### Le mode d'emploi en montrait dix ; l'aperçu en pose douze
+
+Il manquait deux pastilles, et pas les moins fréquentes :
+
+- **Ancien abonné** — le même or que l'abonnement en cours, désaturé. Une teinte
+  à part entière, qui n'était montrée nulle part.
+- **Le badge neutre** — celui qui reprend **telle quelle** une mention ajoutée
+  par Twitch et que l'extension ne traduit pas. C'est le seul badge qui n'a pas
+  de couleur, et c'est l'absence de couleur qui le définit : lui en donner une
+  le trahirait.
+
+Le chapitre dit désormais les variantes qui partagent une teinte plutôt que de
+les taire : le bleu du co-stream se lit « Co-stream de … » côté invité et
+« Stream Hôte » côté organisateur ; le violet dit « En live avec … ».
+
+L'assertion du banc suit : onze modificateurs, dix couleurs, et deux contrôles
+de plus — le douzième badge porte exactement la couleur par défaut, et l'or de
+l'ancien abonné est plus pâle que celui de l'abonné sans être le même.
+
+### « On le remarque à peine »
+
+Le battement du stream frais allait de **0,7 à 1** d'opacité. Trente pour cent
+d'écart sur une barre de trois pixels, dans une colonne qui en compte quinze :
+le signalement est juste, et il était même généreux.
+
+On ne rend pas un signal visible en le rendant bruyant, on lui donne de
+l'**amplitude**. Trois leviers, aucun coûteux :
+
+| | avant | après |
+| --- | --- | --- |
+| opacité | 0,7 → 1 (rapport 1,4) | **0,3 → 1** (rapport 3,3) |
+| largeur | 3 px, fixe | **3 → 6 px**, par `scaleX` |
+| halo | 6 px | **18 px** |
+| cycle | 1,8 s | **1,4 s** |
+
+La barre **respire** : un `transform` ne provoque aucune mise en page, le
+compositeur s'en charge seul. Et le banc mesure l'amplitude parcourue, pas la
+déclaration — la durée du cycle est lue sur l'animation elle-même, jamais
+recopiée.
+
+### Et ce que l'audit a trouvé en tirant ce fil
+
+**Le battement du stream frais était la seule animation du produit à ignorer
+`prefers-reduced-motion`.** Le subathon, l'or de l'abonnement, l'anneau de
+l'avatar s'y arrêtent depuis longtemps ; la barre violette, non. Elle s'arrête
+désormais — **à son point haut**, large et lumineuse : on perd le mouvement, pas
+l'information.
+
+Puis, en croisant *chaque* `@keyframes` avec ce bloc, une trouvaille plus
+sérieuse : **les deux arcs-en-ciel du subathon ne s'arrêtaient pas non plus**, et
+pour deux raisons différentes.
+
+- La **pastille** est déclarée sur `.side-nav-card[data-tse-subathon-day]
+  .tse-subathon-jour` — trois classes contre une : la **spécificité** l'emportait.
+- Le **badge** est déclaré plus bas dans la feuille, à spécificité égale :
+  l'**ordre** l'emportait.
+
+Ce n'est pas un détail de style. Le commentaire de ces deux animations invoque ce
+réglage comme la sortie qui met leur fréquence — huit teintes par seconde et
+demie — hors de cause vis-à-vis de la WCAG 2.3.1. **La garantie était écrite, et
+elle ne tenait pas.** Sur une règle d'accessibilité, « doit gagner » est
+exactement ce que `!important` veut dire.
+
+### `*` ne couvre pas les pseudo-éléments
+
+La feuille du panneau s'annonçait exhaustive :
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+```
+
+Le sélecteur universel désigne des **éléments** ; `::before` et `::after` n'en
+sont pas. La barre violette de la maquette — un `::before` — continuait donc de
+battre là aussi. La règle nomme désormais les trois.
+
+### Le tourniquet de chargement, laissé tel quel
+
+Il reste une animation hors de ce bloc : la roue du voile de chargement. Le choix
+est délibéré et mérite d'être écrit plutôt que passé sous silence — une roue
+arrêtée ne se lit pas comme « immobile », elle se lit comme **bloquée**, et elle
+ne clignote pas. C'est la seule motion du produit dont le retrait coûterait plus
+qu'il ne rapporte.
+
+### Les scénarios 113 et 114
+
+Treize assertions, six mutants, aucun survivant :
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| l'ancienne amplitude revient (0,7 → 1) | le rapport d'opacité, et l'écart lui-même |
+| la barre ne respire plus en largeur | la largeur rendue ne varie plus |
+| le mouvement réduit n'arrête plus le battement | l'animation tourne encore |
+| le mouvement réduit l'arrête à son point bas | la barre reste, mais pâle et fine |
+| `!important` retiré du bloc | les deux arcs-en-ciel tournent, couleurs à l'appui |
+| le bloc n'annule plus que la pastille | le badge de l'aperçu tourne encore |
+
+### Ce que l'audit n'a PAS trouvé
+
+Comme la fois précédente : aucun identifiant mort, aucune constante `CFG` jamais
+lue, aucune classe `tse-` stylée sans être posée, aucune clé du rapport qui
+n'arrive pas au panneau. Les quatre passes automatiques sont revenues vides — et
+c'est la cinquième, celle qui croise les animations avec le mouvement réduit, qui
+a tout donné.
 
 ## L'audit de la ligne du pseudo (v4.6)
 
@@ -6259,7 +6371,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 112 scénarios, 1014 assertions |
+| `npm test` | le harnais Playwright : 114 scénarios, 1027 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 920 KB | 357 KB | 3,213 → **2** |
+| `content.js` | 933 KB | 359 KB | 3,213 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 69 KB | 34 KB | 86 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1113 KB** | **492 KB** | **−56 %** |
+| **all five** | **1149 KB** | **499 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1014 assertions, under Gecko
+npm run test-firefox        # the same 1027 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2224,7 +2224,7 @@ from the first Twitch reload, and that has held since version one. What it was
 missing, then, was not a preferences screen — it was **the list of what exists**.
 
 A good half of what the product adds is only discovered by putting the pointer
-in the right place: the ten preview badges, the category trail, the day pill on
+in the right place: the twelve preview badges, the category trail, the day pill on
 a subathon, the sort that groups co-streams. Nothing, anywhere, said to do it.
 The store listing says it — but you read that once, before installing, and never
 again.
@@ -2276,7 +2276,7 @@ Two staging rules, and neither is decorative:
   in the middle of French prose would read as a missed translation. Game names,
   on the other hand, are the same in all twelve languages.
 
-The palette of the ten badges is **copied** into the panel's stylesheet, hue for
+The palette of the badges is **copied** into the panel's stylesheet, hue for
 hue. Same boundary as for labels: this page does not have `content.js`'s CSS,
 which lives in Twitch's sidebar. Bringing them closer together would make them
 indistinct precisely where they are being explained.
@@ -2290,7 +2290,7 @@ would have frozen the NUMBER of bullets, when a language sometimes needs two
 sentences where French uses one.
 
 Forty-five new keys, twelve listings: five hundred and forty messages. Fifteen
-of them are labels the product already displays — the ten badges, the "Ended"
+of them are labels the product already displays — the twelve badges, the "Ended"
 counter, the day pill, the tab name — and they were **copied from `STRINGS`**,
 word for word, language by language. The panel cannot read `STRINGS` (two
 surfaces, two tables, no label in transit), but nothing required reinventing the
@@ -2478,6 +2478,114 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Every badge, a pulse you can see, and two rainbows that would not stop (v4.7)
+
+Three requests: show **all** the badges in the manual, make the purple blink on
+new streams **visible**, and audit the rest. The audit answered the second
+question better than expected.
+
+### The manual showed ten; the preview lays down twelve
+
+Two pills were missing, and not the rarest ones:
+
+- **Former sub** — the same gold as a live subscription, desaturated. A hue in
+  its own right, shown nowhere.
+- **The neutral badge** — the one that carries, **verbatim**, a note Twitch adds
+  and the extension does not translate. It is the only badge with no colour, and
+  the absence of colour is what defines it: giving it one would betray it.
+
+The chapter now states the variants that share a hue rather than leaving them
+out: the co-stream blue reads "Co-stream of …" on the guest side and "Host
+Stream" on the organiser's; the purple reads "Live with …".
+
+The bench assertion follows: eleven modifiers, ten colours, and two more checks —
+the twelfth badge carries exactly the default colour, and the former-sub gold is
+paler than the subscriber's without being the same.
+
+### "You barely notice it"
+
+The fresh-stream pulse ran from **0.7 to 1** in opacity. A thirty per cent swing
+on a three-pixel bar, in a column that holds fifteen: the report was right, and
+generous at that.
+
+A signal is not made visible by making it loud; it is given **amplitude**. Three
+levers, none expensive:
+
+| | before | after |
+| --- | --- | --- |
+| opacity | 0.7 → 1 (ratio 1.4) | **0.3 → 1** (ratio 3.3) |
+| width | 3 px, fixed | **3 → 6 px**, via `scaleX` |
+| halo | 6 px | **18 px** |
+| cycle | 1.8 s | **1.4 s** |
+
+The bar **breathes**: a `transform` triggers no layout, the compositor handles it
+alone. And the bench measures the amplitude actually travelled, not the
+declaration — the cycle's duration is read off the animation itself, never
+copied.
+
+### And what the audit found by pulling that thread
+
+**The fresh-stream pulse was the only animation in the product that ignored
+`prefers-reduced-motion`.** The subathon, the subscription gold, the avatar ring
+have all stopped there for a long time; the purple bar had not. It now stops — at
+its **high point**, wide and bright: motion is lost, information is not.
+
+Then, crossing *every* `@keyframes` against that block, a more serious find: **the
+two subathon rainbows did not stop either**, and for two different reasons.
+
+- The **pill** is declared on `.side-nav-card[data-tse-subathon-day]
+  .tse-subathon-jour` — three classes against one: **specificity** won.
+- The **badge** is declared lower in the stylesheet, at equal specificity:
+  **order** won.
+
+This is not a styling detail. The comment on those two animations invokes this
+setting as the escape that puts their frequency — eight hues per second and a
+half — beyond reproach under WCAG 2.3.1. **The guarantee was written down, and it
+did not hold.** On an accessibility rule, "must win" is exactly what `!important`
+means.
+
+### `*` does not cover pseudo-elements
+
+The panel's stylesheet looked exhaustive:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+```
+
+The universal selector designates **elements**; `::before` and `::after` are not
+elements. The purple bar in the mock-up — a `::before` — therefore kept pulsing
+there too. The rule now names all three.
+
+### The loading spinner, left alone
+
+One animation remains outside that block: the loading veil's spinner. The choice
+is deliberate and deserves writing down rather than passing over — a stopped
+spinner does not read as "still", it reads as **stuck**, and it does not flash.
+It is the one piece of motion in the product whose removal would cost more than
+it returns.
+
+### Scenarios 113 and 114
+
+Thirteen assertions, six mutants, no survivors:
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| the old amplitude returns (0.7 → 1) | the opacity ratio, and the swing itself |
+| the bar no longer breathes in width | the rendered width stops varying |
+| reduced motion no longer stops the pulse | the animation is still running |
+| reduced motion stops it at its low point | the bar remains, but pale and thin |
+| `!important` removed from the block | both rainbows turn, colours to prove it |
+| the block only cancels the pill | the preview badge still turns |
+
+### What the audit did NOT find
+
+As last time: no dead identifier, no `CFG` constant never read, no `tse-` class
+styled without being applied, no report key that fails to reach the panel. All
+four automatic passes came back empty — and it was the fifth, the one crossing
+animations against reduced motion, that gave everything.
 
 ## The audit of the pseudonym's line (v4.6)
 
@@ -5984,7 +6092,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 112 scenarios, 1014 assertions |
+| `npm test` | the Playwright harness: 114 scenarios, 1027 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

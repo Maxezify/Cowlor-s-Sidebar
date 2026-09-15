@@ -2754,8 +2754,23 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     /* === Stream frais (< 10 min) ===
-       Effet renforcé : fond violet subtil + barre 3px lumineuse +
-       halo qui pulse. Reste léger pour ne pas saturer la sidebar. */
+       Fond violet subtil + barre lumineuse + halo qui pulse.
+
+       LE BATTEMENT SE VOYAIT À PEINE, et c'est un signalement qui l'a dit. Il
+       allait de 0,7 à 1 d'opacité — trente pour cent d'écart sur une barre de
+       trois pixels, dans une colonne qui en compte quinze. On ne peut pas
+       « rendre visible » un signal en le rendant plus bruyant : il fallait lui
+       donner de l'AMPLITUDE. Trois leviers, aucun coûteux :
+         — l'opacité descend à 0,3 au lieu de 0,7, soit un rapport de trois
+           contre un et demi ;
+         — la barre RESPIRE, par un scaleX qui la porte de 3 à 6 pixels. Une
+           transformation ne provoque pas de mise en page, contrairement à une
+           largeur animée : le compositeur s'en charge seul ;
+         — le halo double, et le cycle passe de 1,8 s à 1,4 s.
+
+       Le tutoriel recopie la même animation (cf. panneau.css, « d-respire ») :
+       une maquette qui montrerait l'ancien battement expliquerait un produit
+       qui n'existe plus. */
     .side-nav-card.tse-fresh {
       position: relative;
       isolation: isolate;
@@ -2774,18 +2789,23 @@ const TSE_GATE_MAX_CLICKS = 5;
       width: 3px;
       background: ${CFG.PURPLE};
       border-radius: 0 3px 3px 0;
-      animation: tse-fresh-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      /* La barre s'élargit vers la DROITE, sur le dégradé de la carte, et non
+         vers l'extérieur où elle mordrait sur la colonne voisine. */
+      transform-origin: left center;
+      animation: tse-fresh-pulse 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
       pointer-events: none;
       z-index: 1;
     }
     @keyframes tse-fresh-pulse {
       0%, 100% {
-        opacity: 0.7;
-        box-shadow: 0 0 6px ${CFG.PURPLE}, 0 0 2px ${CFG.PURPLE};
+        opacity: 0.3;
+        transform: scaleX(1);
+        box-shadow: 0 0 4px ${CFG.PURPLE};
       }
       50% {
         opacity: 1;
-        box-shadow: 0 0 14px ${CFG.PURPLE}, 0 0 6px ${CFG.PURPLE};
+        transform: scaleX(2);
+        box-shadow: 0 0 18px ${CFG.PURPLE}, 0 0 8px ${CFG.PURPLE};
       }
     }
 
@@ -3239,10 +3259,26 @@ const TSE_GATE_MAX_CLICKS = 5;
          s'arrête, et ce qui reste n'est pas une couleur au hasard : c'est le
          cyan que le calcul des badges désignait, écrit en dur dans les deux
          règles. La pastille et le badge restent donc lisibles, distincts de
-         tous leurs voisins, et parfaitement immobiles. */
+         tous leurs voisins, et parfaitement immobiles.
+
+         « !important » N'EST PAS UNE FACILITÉ ICI, C'EST UNE CORRECTION. Sans
+         lui, cette règle ne s'appliquait à NI L'UN NI L'AUTRE, et pour deux
+         raisons différentes — c'est un audit qui l'a trouvé, en croisant
+         chaque animation avec ce bloc :
+           — la pastille est déclarée sur
+             « .side-nav-card[data-tse-subathon-day] .tse-subathon-jour »,
+             trois classes contre une : la spécificité l'emportait ;
+           — le badge est déclaré PLUS BAS dans la feuille, à spécificité
+             égale : l'ordre l'emportait.
+         L'arc-en-ciel continuait donc de tourner chez qui demande
+         explicitement l'immobilité — alors même que le commentaire de ces deux
+         animations invoque ce réglage comme la sortie qui met leur fréquence
+         hors de cause vis-à-vis de la WCAG 2.3.1. Une garantie écrite qui ne
+         tenait pas. Sur une règle d'accessibilité, « doit gagner » est
+         exactement ce que « !important » veut dire. */
       .tse-subathon-jour,
       .tse-preview__badge--subathon {
-        animation: none;
+        animation: none !important;
       }
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p.tse-nom,
@@ -3260,6 +3296,21 @@ const TSE_GATE_MAX_CLICKS = 5;
           rgba(255, 246, 214, 0.95) 35%,
           rgba(255, 158, 205, 0.8) 65%,
           rgba(255, 196, 92, 0.9));
+      }
+      /* LE BATTEMENT DU STREAM FRAIS ÉTAIT LA SEULE ANIMATION DU PRODUIT À
+         IGNORER CE RÉGLAGE, et c'est un audit qui l'a vu : le subathon, l'or
+         de l'abonnement et l'anneau de l'avatar s'arrêtent tous ici depuis
+         longtemps ; la barre violette, elle, continuait de battre chez qui
+         demande explicitement l'immobilité.
+
+         ELLE NE DISPARAÎT PAS POUR AUTANT — ce serait perdre l'information au
+         lieu de perdre le mouvement. Elle s'arrête à son point HAUT, large et
+         lumineuse : le signal reste aussi lisible, et il ne bouge plus. */
+      .side-nav-card.tse-fresh::before {
+        animation: none;
+        opacity: 1;
+        transform: scaleX(1.6);
+        box-shadow: 0 0 10px ${CFG.PURPLE}, 0 0 4px ${CFG.PURPLE};
       }
     }
 

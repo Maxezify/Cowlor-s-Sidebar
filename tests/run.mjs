@@ -12237,7 +12237,8 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      JSON.stringify(puces));
 
   /* ── 6. LA PALETTE DES BADGES ─────────────────────────────────────────────
-     Dix badges, NEUF couleurs, et l'exception est le sujet de l'assertion.
+     Douze badges, ONZE modificateurs, DIX couleurs, et les deux exceptions
+     sont le sujet de l'assertion.
      Chaque type de badge a sa teinte, choisie par un calcul qui cherche le
      créneau libre le plus large — les recopier ici sans les distinguer
      donnerait une maquette monochrome qui n'explique plus rien. Mais
@@ -12266,11 +12267,53 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   delete teintes.__nu;
   const mods = Object.keys(teintes);
   const distinctes = new Set(Object.values(teintes));
-  ok('dix badges, neuf couleurs, aucune par défaut — et « reprise » porte celle du basculement',
-     mods.length === 10 && distinctes.size === 9
+  ok('onze modificateurs, dix couleurs, aucune par défaut — et « reprise » porte celle du basculement',
+     mods.length === 11 && distinctes.size === 10
      && teintes['d-badge--reprise'] === teintes['d-badge--switch']
      && !Object.values(teintes).includes(nu),
      JSON.stringify({ mods: mods.length, distinctes: distinctes.size, nu, teintes }));
+  /* ── LE DOUZIÈME BADGE EST CELUI QUI N'A PAS DE COULEUR ──────────────────
+     Le mode d'emploi n'en montrait que dix, et un utilisateur a demandé « tous
+     les badges possibles ». Il en manquait deux : l'ancien abonné — même or,
+     désaturé — et le NEUTRE, celui qui reprend telle quelle une mention
+     ajoutée par Twitch. Le neutre se définit par l'ABSENCE de modificateur ;
+     lui en donner un le trahirait, et c'est pourquoi il faut l'asserter
+     autrement : il doit porter exactement la couleur par défaut, celle-là même
+     qu'aucun des onze autres n'a le droit d'avoir. */
+  const neutre = await page.evaluate(() => {
+    const b = [...document.querySelectorAll('#guide .d-badge')]
+      .find(x => ![...x.classList].some(c => c.startsWith('d-badge--')));
+    return b ? { texte: (b.textContent || '').trim(), couleur: getComputedStyle(b).color }
+             : null;
+  });
+  ok('…et le douzième, le badge neutre, porte la couleur par défaut et aucun modificateur',
+     !!neutre && neutre.couleur === nu && neutre.texte.length > 0,
+     JSON.stringify({ neutre, nu }));
+  /* L'ANCIEN ABONNÉ PARTAGE LA TEINTE DE L'ABONNÉ SANS LA COPIER : c'est la
+     seule paire de la palette qui se ressemble volontairement, et le dire ici
+     empêche qu'une réécriture les confonde tout à fait — ou les sépare. */
+  ok('…et « ancien abonné » est un or plus pâle que celui de l\'abonné, non le même',
+     teintes['d-badge--exsub'] !== teintes['d-badge--sub']
+     && !!teintes['d-badge--exsub'],
+     JSON.stringify({ sub: teintes['d-badge--sub'], exsub: teintes['d-badge--exsub'] }));
+
+  /* ── « * » NE COUVRE PAS LES PSEUDO-ÉLÉMENTS ────────────────────────────
+     Cette vue est relevée sous « mouvement réduit », et la feuille du panneau
+     s'annonçait exhaustive : « * { animation: none !important } ». Le
+     sélecteur universel désigne des ÉLÉMENTS ; ::before et ::after n'en sont
+     pas. La barre violette de la maquette du stream frais continuait donc de
+     battre sous les yeux de qui demande l'immobilité — comme elle continuait
+     de battre dans le produit. Un audit a trouvé les deux le même jour. */
+  const barre = await page.evaluate(() => {
+    const e = document.querySelector('#guide .d-carte--frais');
+    if (!e) return null;
+    const st = getComputedStyle(e, '::before');
+    return { anim: st.animationName, opacite: parseFloat(st.opacity),
+             anims: document.getAnimations().length };
+  });
+  ok('mouvement réduit : la barre du stream frais de la maquette est immobile',
+     !!barre && barre.anim === 'none' && barre.opacite === 1,
+     JSON.stringify(barre));
 
   /* ── 7. L'ARC-EN-CIEL COURT VRAIMENT ──────────────────────────────────────
      Le badge de subathon est le seul qui n'ait pas de couleur : il les
@@ -14497,6 +14540,170 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('…tandis que la 3e ligne de Twitch, elle, est toujours masquée',
      etat.troisiemeTrouvee === true && etat.troisiemeVisible === false,
      JSON.stringify(etat));
+  await page.close();
+}
+
+/* ═════════ LE BATTEMENT DU STREAM FRAIS ═══════════════════════════════
+   Signalement : « peux-tu faire un clignotement plus visible pour les nouveaux
+   streams qui sont violet ? On le remarque à peine. » Il allait de 0,7 à 1
+   d'opacité — trente pour cent d'écart sur une barre de trois pixels, dans une
+   colonne qui en compte quinze.
+
+   ON MESURE L'AMPLITUDE, PAS LA DÉCLARATION. Lire « animation-name » sur
+   l'élément dirait que le battement existe ; seul l'échantillonnage dit qu'on
+   le VOIT. On parcourt donc un cycle entier — dont la durée est lue sur
+   l'animation elle-même, jamais recopiée — et l'on regarde ce que l'opacité et
+   la largeur rendue ont parcouru.
+
+   ET L'AUDIT A TROUVÉ AUTRE CHOSE : cette barre était la SEULE animation du
+   produit à ignorer « prefers-reduced-motion ». Le subathon, l'or de
+   l'abonnement et l'anneau de l'avatar s'y arrêtent depuis longtemps ; elle,
+   non. Elle s'arrête désormais — à son point haut, pour que le signal reste. */
+{
+  titre('113. Le battement du stream frais — visible, et immobile sur demande');
+  const page = await fresh();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.evaluate(() => {
+    window.__fx = { neuf: { id: 's1', createdAt: new Date().toISOString(),
+                            viewers: 900, game: 'Just Chatting', tags: [] } };
+    window.__addCard('neuf', 'Discussions', '900');
+  });
+  await attendre(page,
+    () => !!document.querySelector('.side-nav-card.tse-fresh'), 9000);
+
+  const mesure = await page.evaluate(async () => {
+    const c = document.querySelector('.side-nav-card.tse-fresh');
+    /* LA DURÉE SE LIT SUR L'ANIMATION, ELLE NE SE RECOPIE PAS. Écrite en dur,
+       elle mentirait dès que le cycle changerait de vitesse — et c'est
+       précisément ce qui vient d'arriver. */
+    const anim = document.getAnimations()
+      .find(a => a.effect?.target === c && a.effect?.pseudoElement === '::before');
+    if (!anim) return { sansAnimation: true };
+    const duree = anim.effect.getComputedTiming().duration;
+    const ops = [], largeurs = [];
+    const debut = performance.now();
+    while (performance.now() - debut < duree * 1.1) {
+      const st = getComputedStyle(c, '::before');
+      ops.push(parseFloat(st.opacity));
+      // La largeur RENDUE : le scaleX ne change pas « width », il change ce
+      // qu'on voit. Lire la matrice de transformation est la seule mesure qui
+      // dise la même chose que l'œil.
+      const m = new DOMMatrixReadOnly(st.transform);
+      largeurs.push(parseFloat(st.width) * m.a);
+      await new Promise(requestAnimationFrame);
+    }
+    return { duree, opMin: Math.min(...ops), opMax: Math.max(...ops),
+             lMin: Math.min(...largeurs), lMax: Math.max(...largeurs) };
+  });
+  ok('la barre du stream frais bat vraiment, et l\'opacité parcourt un large écart',
+     !mesure.sansAnimation && mesure.opMin <= 0.4 && mesure.opMax >= 0.95,
+     JSON.stringify(mesure));
+  /* L'ÉCART EST CE QUI REND LE SIGNAL VISIBLE, et l'ancien n'en avait pas
+     assez : 0,7 → 1 est un rapport de 1,4 ; on en exige plus du double. */
+  ok('…d\'un rapport d\'au moins deux et demi, là où l\'ancien battement valait 1,4',
+     !mesure.sansAnimation && (mesure.opMax / mesure.opMin) >= 2.5,
+     JSON.stringify(mesure));
+  /* ET ELLE RESPIRE EN LARGEUR. Une barre de trois pixels qui ne fait que
+     changer d'opacité reste une barre de trois pixels ; celle-ci en fait six
+     à son sommet, sans provoquer la moindre mise en page. */
+  ok('…et la barre s\'élargit visiblement au passage, sans changer sa « width »',
+     !mesure.sansAnimation && (mesure.lMax - mesure.lMin) >= 2,
+     JSON.stringify(mesure));
+
+  /* ── MOUVEMENT REFUSÉ : ELLE S'ARRÊTE, ELLE NE DISPARAÎT PAS ───────────── */
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await wait(page, 300);
+  const calme = await page.evaluate(() => {
+    const c = document.querySelector('.side-nav-card.tse-fresh');
+    const st = getComputedStyle(c, '::before');
+    const m = new DOMMatrixReadOnly(st.transform);
+    return {
+      anims: document.getAnimations()
+        .filter(a => a.effect?.target === c && a.effect?.pseudoElement === '::before').length,
+      opacite: parseFloat(st.opacity),
+      largeur: parseFloat(st.width) * m.a,
+      ombre: st.boxShadow,
+    };
+  });
+  ok('mouvement refusé : le battement s\'arrête',
+     calme.anims === 0, JSON.stringify(calme));
+  ok('…mais la barre reste, à son point haut et non à son point bas',
+     calme.opacite === 1 && calme.largeur >= 4 && calme.ombre !== 'none',
+     JSON.stringify(calme));
+  await page.close();
+}
+
+/* ═════════ UNE GARANTIE ÉCRITE QUI NE TENAIT PAS ═══════════════════════
+   Trouvée par l'audit, en croisant chaque @keyframes du produit avec le bloc
+   « prefers-reduced-motion ». Les deux arcs-en-ciel du subathon — la pastille
+   sur la carte, le badge dans l'aperçu — continuaient de tourner chez qui
+   demande explicitement l'immobilité, pour deux raisons différentes :
+
+     — la PASTILLE est déclarée sur trois classes, l'annulation sur une seule :
+       la spécificité l'emportait ;
+     — le BADGE est déclaré plus bas dans la feuille, à spécificité égale :
+       l'ordre l'emportait.
+
+   CE N'EST PAS UN DÉTAIL DE STYLE. Le commentaire de ces deux animations
+   invoque ce réglage comme la sortie qui met leur fréquence hors de cause
+   vis-à-vis de la WCAG 2.3.1 — huit changements de teinte par seconde et demie.
+   La garantie était écrite, et elle ne tenait pas.
+
+   ON MESURE L'ARRÊT, PAS LA DÉCLARATION : la couleur calculée ne doit plus
+   bouger d'un échantillon à l'autre, et la marque doit rester. */
+{
+  titre('114. Mouvement réduit — les arcs-en-ciel du subathon s\'arrêtent vraiment');
+  const page = await fresh();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.evaluate(() => {
+    window.__fx = { thon: { id: 's1',
+      createdAt: new Date(Date.now() - 2277 * 60_000).toISOString(),
+      viewers: 900, game: 'Just Chatting', tags: [],
+      title: '!SUBATHON DAY 10 ahhh' } };
+    window.__addCard('thon', 'Discussions', '900');
+  });
+  await attendre(page, () => !!document.querySelector('.tse-subathon-jour'), 12000);
+  await hoverLogin(page, 'thon');
+  await attendre(page,
+    () => !!document.querySelector('.tse-preview__badge--subathon'), 8000);
+
+  const lire = () => page.evaluate(() => {
+    const p = document.querySelector('.tse-subathon-jour');
+    const b = document.querySelector('.tse-preview__badge--subathon');
+    const st = (e) => e ? getComputedStyle(e) : null;
+    return { puceAnim: st(p)?.animationName, badgeAnim: st(b)?.animationName,
+             puceCoul: st(p)?.color, badgeCoul: st(b)?.color,
+             puceTexte: (p?.textContent || '').trim(),
+             anims: document.getAnimations().length };
+  });
+  const a = await lire();
+  await wait(page, 700);            // presque un cycle entier (1,5 s)
+  const b = await lire();
+
+  ok('mouvement réduit : la pastille de subathon n\'anime plus',
+     a.puceAnim === 'none', JSON.stringify(a));
+  ok('…ni le badge de l\'aperçu',
+     a.badgeAnim === 'none', JSON.stringify(a));
+  /* LA MESURE QUI COMPTE. « animation-name: none » pourrait être vrai sur un
+     élément que le moteur anime encore par une autre règle ; c'est la COULEUR
+     qui dit si l'œil voit quelque chose bouger. */
+  ok('…et leur couleur ne bouge plus d\'un échantillon à l\'autre',
+     a.puceCoul === b.puceCoul && a.badgeCoul === b.badgeCoul,
+     JSON.stringify({ a, b }));
+  /* ON PERD LE MOUVEMENT, PAS L'INFORMATION : la pastille garde son jour. */
+  ok('…mais la pastille garde sa marque, jour compris',
+     /\d/.test(a.puceTexte), JSON.stringify(a.puceTexte));
+
+  /* ── ET LE MOUVEMENT REVIENT QUAND IL EST AUTORISÉ ────────────────────── */
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await wait(page, 200);
+  const c1 = await lire();
+  await wait(page, 500);
+  const c2 = await lire();
+  ok('mouvement autorisé : les deux arcs-en-ciel repartent',
+     c1.puceAnim !== 'none' && c1.badgeAnim !== 'none'
+     && (c1.puceCoul !== c2.puceCoul || c1.badgeCoul !== c2.badgeCoul),
+     JSON.stringify({ c1, c2 }));
   await page.close();
 }
 
