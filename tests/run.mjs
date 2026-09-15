@@ -12245,6 +12245,17 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      « reprise » n'a jamais eu de couleur à lui : c'est la même espèce de
      nouvelle que le basculement, et il porte sa classe. Cette parenté doit
      survivre à la recopie, sinon la maquette contredirait le produit. */
+  /* ── LE RELEVÉ FIGE CE QU'IL MESURE, IL NE COMPTE PLUS SUR LE PRODUIT ───
+     Cette vue est ouverte sous « mouvement réduit », et jusqu'ici c'était la
+     feuille qui arrêtait l'arc-en-ciel, ce qui rendait les dix teintes
+     comparables. Depuis la 4.9 le produit le RALENTIT au lieu de l'arrêter —
+     un utilisateur a eu raison de le demander — et le relevé redeviendrait
+     dépendant de l'instant. Un banc qui s'appuie sur un comportement du
+     produit pour tenir sa mesure change de sujet dès que ce comportement
+     change ; il doit maîtriser son décor lui-même. */
+  await page.evaluate(() => {
+    for (const a of document.getAnimations()) a.pause();
+  });
   const teintes = await page.evaluate(() => {
     const out = {};
     for (const b of document.querySelectorAll('#guide .d-badge')) {
@@ -12263,6 +12274,11 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
     temoin.remove();
     return out;
   });
+  /* ON RELANCE CE QU'ON A FIGÉ. Le chapitre suivant mesure justement que
+     l'arc-en-ciel COURT : laisser les animations en pause ferait échouer une
+     assertion qui n'a rien à voir avec celle-ci — le genre d'effet de bord
+     qu'un décor mal rendu produit deux scénarios plus loin. */
+  await page.evaluate(() => { for (const a of document.getAnimations()) a.play(); });
   const nu = teintes.__nu;
   delete teintes.__nu;
   const mods = Object.keys(teintes);
@@ -12308,11 +12324,17 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
     const e = document.querySelector('#guide .d-carte--frais');
     if (!e) return null;
     const st = getComputedStyle(e, '::before');
-    return { anim: st.animationName, opacite: parseFloat(st.opacity),
+    const m = new DOMMatrixReadOnly(st.transform);
+    return { anim: st.animationName, duree: st.animationDuration,
+             largeur: +(parseFloat(st.width) * (m.a || 1)).toFixed(2),
              anims: document.getAnimations().length };
   });
-  ok('mouvement réduit : la barre du stream frais de la maquette est immobile',
-     !!barre && barre.anim === 'none' && barre.opacite === 1,
+  /* ASSERTION TOURNÉE, comme celle du produit : la maquette ne montre plus une
+     barre figée mais une barre SANS MOUVEMENT — largeur haute et fixe, opacité
+     qui respire. Une maquette immobile expliquerait autre chose que ce que le
+     produit fait, et c'est précisément ce qu'elle est là pour empêcher. */
+  ok('mouvement réduit : la barre de la maquette garde sa largeur haute, sans l\'animer',
+     !!barre && barre.anim === 'd-respire-calme' && barre.largeur >= 4,
      JSON.stringify(barre));
 
   /* ── 7. L'ARC-EN-CIEL COURT VRAIMENT ──────────────────────────────────────
@@ -14610,26 +14632,44 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      !mesure.sansAnimation && (mesure.lMax - mesure.lMin) >= 2,
      JSON.stringify(mesure));
 
-  /* ── MOUVEMENT REFUSÉ : ELLE S'ARRÊTE, ELLE NE DISPARAÎT PAS ───────────── */
+  /* ── MOUVEMENT REFUSÉ : LE MOUVEMENT CESSE, PAS LE BATTEMENT ─────────────
+     ASSERTION TOURNÉE, et c'est une mesure de terrain qui l'a exigé. La 4.7
+     arrêtait ce battement NET, et ces deux lignes le constataient. Un
+     utilisateur l'a signalé trois fois ; sa commande a fini par rendre
+     « mouvementReduit: true, animations: 0 » — barre présente, immobile.
+
+     LA NORME EST PLUS FINE QUE MA RÈGLE L'ÉTAIT. La WCAG définit l'animation
+     de MOUVEMENT comme celle qui crée l'illusion d'un déplacement, et exclut
+     explicitement les changements d'opacité. Le « scaleX » est du mouvement ;
+     l'opacité n'en est pas. On exige donc les DEUX : que la largeur ne varie
+     plus du tout, et que l'opacité respire encore. */
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await wait(page, 300);
-  const calme = await page.evaluate(() => {
+  const calme = await page.evaluate(async () => {
     const c = document.querySelector('.side-nav-card.tse-fresh');
-    const st = getComputedStyle(c, '::before');
-    const m = new DOMMatrixReadOnly(st.transform);
-    return {
-      anims: document.getAnimations()
-        .filter(a => a.effect?.target === c && a.effect?.pseudoElement === '::before').length,
-      opacite: parseFloat(st.opacity),
-      largeur: parseFloat(st.width) * m.a,
-      ombre: st.boxShadow,
-    };
+    const lire = () => { const st = getComputedStyle(c, '::before');
+      const m = new DOMMatrixReadOnly(st.transform);
+      return { o: parseFloat(st.opacity), l: parseFloat(st.width) * (m.a || 1),
+               ombre: st.boxShadow }; };
+    const anim = document.getAnimations()
+      .find(a => a.effect?.target === c && a.effect?.pseudoElement === '::before');
+    const duree = anim ? anim.effect.getComputedTiming().duration : 2000;
+    let oMin = 9, oMax = -1, lMin = 9e9, lMax = -1, ombre = '';
+    const fin = performance.now() + duree * 1.1;
+    while (performance.now() < fin) {
+      const v = lire();
+      oMin = Math.min(oMin, v.o); oMax = Math.max(oMax, v.o);
+      lMin = Math.min(lMin, v.l); lMax = Math.max(lMax, v.l); ombre = v.ombre;
+      await new Promise(requestAnimationFrame);
+    }
+    return { anims: anim ? 1 : 0, duree, oMin, oMax,
+             lMin: +lMin.toFixed(2), lMax: +lMax.toFixed(2), ombre };
   });
-  ok('mouvement refusé : le battement s\'arrête',
-     calme.anims === 0, JSON.stringify(calme));
-  ok('…mais la barre reste, à son point haut et non à son point bas',
-     calme.opacite === 1 && calme.largeur >= 4 && calme.ombre !== 'none',
-     JSON.stringify(calme));
+  ok('mouvement refusé : la barre ne bouge plus — sa largeur ne varie pas d\'un pixel',
+     calme.lMax - calme.lMin < 0.01 && calme.lMax >= 4, JSON.stringify(calme));
+  ok('…mais le battement demeure, en OPACITÉ seule, et plus doux qu\'en mouvement libre',
+     calme.anims === 1 && calme.oMin <= 0.5 && calme.oMax >= 0.95
+     && calme.duree > 1400 && calme.ombre !== 'none', JSON.stringify(calme));
   await page.close();
 }
 
@@ -14644,15 +14684,17 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      — le BADGE est déclaré plus bas dans la feuille, à spécificité égale :
        l'ordre l'emportait.
 
-   CE N'EST PAS UN DÉTAIL DE STYLE. Le commentaire de ces deux animations
-   invoque ce réglage comme la sortie qui met leur fréquence hors de cause
-   vis-à-vis de la WCAG 2.3.1 — huit changements de teinte par seconde et demie.
-   La garantie était écrite, et elle ne tenait pas.
+   CE N'EST PAS UN DÉTAIL DE STYLE. Ces deux animations changent de teinte huit
+   fois par seconde et demie, soit 5,3 fois par seconde, et le seul réglage par
+   lequel un utilisateur peut demander qu'elles se calment ne les atteignait
+   pas. La garantie était écrite, et elle ne tenait pas.
 
-   ON MESURE L'ARRÊT, PAS LA DÉCLARATION : la couleur calculée ne doit plus
-   bouger d'un échantillon à l'autre, et la marque doit rester. */
+   CE QUE LE RÉGLAGE VAUT AUJOURD'HUI A CHANGÉ, et c'est la 4.9 qui l'a changé :
+   il ne les ARRÊTE plus, il les RALENTIT à huit secondes le tour. On mesure
+   donc la cadence et la dérive, pas le silence — et jamais la déclaration : la
+   durée se lit sur le style calculé, la couleur sur deux échantillons. */
 {
-  titre('114. Mouvement réduit — les arcs-en-ciel du subathon s\'arrêtent vraiment');
+  titre('114. Mouvement réduit — les arcs-en-ciel ralentissent, ils ne s\'arrêtent pas');
   const page = await fresh();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.evaluate(() => {
@@ -14671,27 +14713,48 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     const p = document.querySelector('.tse-subathon-jour');
     const b = document.querySelector('.tse-preview__badge--subathon');
     const st = (e) => e ? getComputedStyle(e) : null;
+    /* LA DURÉE SE LIT SUR LE STYLE CALCULÉ, jamais recopiée : c'est le seul
+       nombre qui distingue « ralenti » de « à pleine vitesse », et le
+       recopier ferait mesurer au banc sa propre copie. */
+    const sec = (e) => { const d = st(e)?.animationDuration || '0s';
+      return d.endsWith('ms') ? parseFloat(d) / 1000 : parseFloat(d); };
     return { puceAnim: st(p)?.animationName, badgeAnim: st(b)?.animationName,
+             puceDuree: sec(p), badgeDuree: sec(b),
              puceCoul: st(p)?.color, badgeCoul: st(b)?.color,
              puceTexte: (p?.textContent || '').trim(),
              anims: document.getAnimations().length };
   });
   const a = await lire();
-  await wait(page, 700);            // presque un cycle entier (1,5 s)
+  await wait(page, 1500);           // assez pour déplacer la teinte, même à 8 s
   const b = await lire();
 
-  ok('mouvement réduit : la pastille de subathon n\'anime plus',
-     a.puceAnim === 'none', JSON.stringify(a));
-  ok('…ni le badge de l\'aperçu',
-     a.badgeAnim === 'none', JSON.stringify(a));
-  /* LA MESURE QUI COMPTE. « animation-name: none » pourrait être vrai sur un
-     élément que le moteur anime encore par une autre règle ; c'est la COULEUR
-     qui dit si l'œil voit quelque chose bouger. */
-  ok('…et leur couleur ne bouge plus d\'un échantillon à l\'autre',
-     a.puceCoul === b.puceCoul && a.badgeCoul === b.badgeCoul,
-     JSON.stringify({ a, b }));
-  /* ON PERD LE MOUVEMENT, PAS L'INFORMATION : la pastille garde son jour. */
-  ok('…mais la pastille garde sa marque, jour compris',
+  /* ── ASSERTIONS TOURNÉES : L'ARRÊT NET ÉTAIT UNE LECTURE GROSSIÈRE ──────
+     Elles constataient que les deux arcs-en-ciel s'arrêtaient. Un utilisateur
+     l'a signalé — « ce n'est pas normal qu'il soit arrêté alors que sur
+     Firefox oui » — et il a raison : une TEINTE qui dérive n'est pas un
+     déplacement, et la WCAG exclut explicitement les changements de couleur
+     de sa définition de l'animation de mouvement.
+
+     LA COULEUR A POURTANT SA PROPRE LIMITE, et elle n'est pas la même : le
+     critère 2.3.1 vise le CLIGNOTEMENT, et ce cycle change de teinte 5,3 fois
+     par seconde. Le compromis porte donc sur la CADENCE, seule grandeur que
+     les deux critères partagent. On exige les trois moitiés : que l'animation
+     soit toujours là, qu'elle soit RALENTIE à au moins six secondes — une
+     teinte par seconde, le tiers du seuil de clignotement — et que la couleur
+     bouge encore pour de bon. */
+  ok('mouvement réduit : les deux arcs-en-ciel tournent encore',
+     a.puceAnim !== 'none' && a.badgeAnim !== 'none', JSON.stringify(a));
+  ok('…mais RALENTIS, et à la même cadence tous les deux',
+     a.puceDuree >= 6 && a.badgeDuree >= 6 && a.puceDuree === a.badgeDuree,
+     JSON.stringify({ puce: a.puceDuree, badge: a.badgeDuree }));
+  /* LA MESURE QUI COMPTE. Une durée lue ne dit pas qu'on voie quelque chose :
+     c'est la COULEUR qui le dit. Sur huit secondes, une seconde et demie
+     d'écart suffit largement à déplacer la teinte. */
+  ok('…et leur couleur dérive toujours, seulement plus doucement',
+     a.puceCoul !== b.puceCoul && a.badgeCoul !== b.badgeCoul,
+     JSON.stringify({ a: [a.puceCoul, a.badgeCoul], b: [b.puceCoul, b.badgeCoul] }));
+  /* ON RALENTIT LE MOUVEMENT, ON NE PERD PAS L'INFORMATION. */
+  ok('…et la pastille garde sa marque, jour compris',
      /\d/.test(a.puceTexte), JSON.stringify(a.puceTexte));
 
   /* ── ET LE MOUVEMENT REVIENT QUAND IL EST AUTORISÉ ────────────────────── */
@@ -14700,10 +14763,12 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   const c1 = await lire();
   await wait(page, 500);
   const c2 = await lire();
-  ok('mouvement autorisé : les deux arcs-en-ciel repartent',
+  ok('mouvement autorisé : les deux arcs-en-ciel reprennent leur pleine cadence',
      c1.puceAnim !== 'none' && c1.badgeAnim !== 'none'
+     && c1.puceDuree <= 2 && c1.badgeDuree <= 2
      && (c1.puceCoul !== c2.puceCoul || c1.badgeCoul !== c2.badgeCoul),
-     JSON.stringify({ c1, c2 }));
+     JSON.stringify({ durees: [c1.puceDuree, c1.badgeDuree],
+                      couleurs: [c1.puceCoul, c2.puceCoul] }));
   await page.close();
 }
 
@@ -14964,12 +15029,15 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     rapport: window.tse.panneau.rapport().page,
     mesure: await window.tse.battement(),
   }));
-  ok('mouvement réduit : le rapport le dit, et la barre n\'a plus d\'animation',
-     calme.rapport.mouvementReduit === true && calme.rapport.battement.animations === 0,
+  ok('mouvement réduit : le rapport le dit, et la barre garde son battement',
+     calme.rapport.mouvementReduit === true && calme.rapport.battement.animations === 1,
      JSON.stringify(calme.rapport.battement));
-  ok('…et la commande distingue « immobile par demande » de « règle absente »',
-     /mouvement réduit demandé/.test(calme.mesure.verdict)
-     && calme.mesure.opacite === 1, JSON.stringify(calme.mesure));
+  /* LE VERDICT DOIT NOMMER CE RÉGIME, sans quoi une amplitude de 2,2 se lirait
+     comme un défaut alors qu'elle est le comportement voulu. */
+  ok('…et le verdict nomme le régime calme plutôt que d\'annoncer une faiblesse',
+     /mouvement réduit respecté/.test(calme.mesure.verdict)
+     && calme.mesure.rapport >= 1.8 && calme.mesure.largeurMax - calme.mesure.largeurMin < 0.01,
+     JSON.stringify(calme.mesure));
   await page.close();
 }
 
