@@ -464,7 +464,7 @@
     "message": "The preview badges"
   },
   "guideBadgesTexte": {
-    "message": "Inside the preview, coloured pills give you the context at a glance. Each colour belongs to one type, and no two badges look alike.\n• The two greens are NEWS, not states: they fade after ten minutes.\n• The red one carries Twitch's own content labels (mature-rated game, graphic violence, gambling…): you know before you look.\n• The gold one says how long you have been supporting the channel, and goes dull once the subscription is over."
+    "message": "In the preview, coloured pills state the context at a glance. Here they ALL are: each colour belongs to a single type, and no two badges ever look alike.\n• The two greens are NEWS, not states: they fade after ten minutes.\n• The red carries Twitch's own content labels (mature games, graphic violence, gambling…): you know before you watch.\n• The gold says how long you have supported the channel; its pale version says the subscription is over.\n• The blue reads \"Co-stream of …\" on the guest side and \"Host Stream\" on the organiser's; the purple reads \"Live with …\".\n• The colourless pill carries, verbatim, a note Twitch adds and the extension does not translate.\n• The subathon has no colour of its own: it runs through them all."
   },
   "guideFriseTitre": {
     "message": "Earlier on this stream"
@@ -550,6 +550,9 @@
     "message": "Subscribed • 9 MONTHS",
     "description": "Maquette : badge d'abonnement"
   },
+  "guideBadgeExsub": {
+    "message": "Former sub • 4 MONTHS"
+  },
   "guideBadgeSponsor": {
     "message": "Sponsored by Norvex",
     "description": "Maquette : badge de stream sponsorisé"
@@ -561,6 +564,9 @@
   "guideBadgeDiscount": {
     "message": "Discounted sub",
     "description": "Maquette : badge de réduction d'abonnement"
+  },
+  "guideBadgeAutre": {
+    "message": "Another Twitch note"
   },
   "guideBadgeSubathon": {
     "message": "Subathon • DAY 10",

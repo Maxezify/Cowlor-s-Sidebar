@@ -364,7 +364,7 @@
     "message": "I badge dell'anteprima"
   },
   "guideBadgesTexte": {
-    "message": "Nell'anteprima, delle pastiglie colorate danno il contesto a colpo d'occhio. Ogni colore appartiene a un solo tipo, e non ci sono due badge che si somiglino.\n• I due verdi sono NOVITÀ, non stati: si cancellano dopo dieci minuti.\n• Il rosso riporta le etichette ufficiali di Twitch (gioco per adulti, violenza esplicita, gioco d'azzardo…): lo sai prima di guardare.\n• L'oro dice da quanto tempo sostieni il canale, e si spegne quando l'abbonamento è finito."
+    "message": "Nell'anteprima, delle pastiglie colorate dicono il contesto in un colpo d'occhio. Eccole TUTTE: ogni colore appartiene a un solo tipo, e due badge non si somigliano mai.\n• I due verdi sono NOTIZIE, non stati: svaniscono dopo dieci minuti.\n• Il rosso riprende le etichette ufficiali di Twitch (giochi per adulti, violenza esplicita, gioco d'azzardo…): lo sai prima di guardare.\n• L'oro dice da quanto sostieni il canale; la sua versione pallida indica un abbonamento concluso.\n• Il blu dice «Co-stream di …» dal lato ospite e «Stream host» dal lato organizzatore; il viola dice «In diretta con …».\n• La pastiglia senza colore riprende tale e quale una menzione aggiunta da Twitch, che l'estensione non traduce.\n• Il subathon non ha un colore proprio: li attraversa tutti."
   },
   "guideFriseTitre": {
     "message": "Prima in questa diretta"
@@ -444,6 +444,9 @@
   "guideBadgeSub": {
     "message": "Abbonato • 9 MESI"
   },
+  "guideBadgeExsub": {
+    "message": "Ex abbonato • 4 MESI"
+  },
   "guideBadgeSponsor": {
     "message": "Sponsorizzato da Norvex"
   },
@@ -452,6 +455,9 @@
   },
   "guideBadgeDiscount": {
     "message": "Abbonamento scontato"
+  },
+  "guideBadgeAutre": {
+    "message": "Altra menzione di Twitch"
   },
   "guideBadgeSubathon": {
     "message": "Subathon • GIORNO 10"

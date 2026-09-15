@@ -304,7 +304,8 @@ const elt = (nom, classe, texte) => {
   return e;
 };
 
-const badgeDemo = (mod, cle) => elt('span', 'd-badge d-badge--' + mod, T(cle));
+const badgeDemo = (mod, cle) =>
+  elt('span', 'd-badge' + (mod ? ' d-badge--' + mod : ''), T(cle));
 
 const demoCarte = (o) => {
   const carte = div('d-carte' + (o.frais ? ' d-carte--frais' : '')
@@ -349,9 +350,11 @@ const BADGES_DEMO = [
   ['costream', 'guideBadgeCostream'],
   ['squad',    'guideBadgeSquad'],
   ['sub',      'guideBadgeSub'],
+  ['exsub',    'guideBadgeExsub'],
   ['sponsor',  'guideBadgeSponsor'],
   ['hype',     'guideBadgeHype'],
   ['discount', 'guideBadgeDiscount'],
+  ['',         'guideBadgeAutre'],
   ['subathon', 'guideBadgeSubathon'],
 ];
 
