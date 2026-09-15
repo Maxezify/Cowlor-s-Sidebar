@@ -1564,18 +1564,22 @@ const TSE_GATE_MAX_CLICKS = 5;
       width: 3px;
       background: ${CFG.PURPLE};
       border-radius: 0 3px 3px 0;
-      animation: tse-fresh-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      
+      transform-origin: left center;
+      animation: tse-fresh-pulse 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
       pointer-events: none;
       z-index: 1;
     }
     @keyframes tse-fresh-pulse {
       0%, 100% {
-        opacity: 0.7;
-        box-shadow: 0 0 6px ${CFG.PURPLE}, 0 0 2px ${CFG.PURPLE};
+        opacity: 0.3;
+        transform: scaleX(1);
+        box-shadow: 0 0 4px ${CFG.PURPLE};
       }
       50% {
         opacity: 1;
-        box-shadow: 0 0 14px ${CFG.PURPLE}, 0 0 6px ${CFG.PURPLE};
+        transform: scaleX(2);
+        box-shadow: 0 0 18px ${CFG.PURPLE}, 0 0 8px ${CFG.PURPLE};
       }
     }
 
@@ -1819,7 +1823,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       
       .tse-subathon-jour,
       .tse-preview__badge--subathon {
-        animation: none;
+        animation: none !important;
       }
       .side-nav-card.tse-sub::after,
       .side-nav-card.tse-sub p.tse-nom,
@@ -1837,6 +1841,13 @@ const TSE_GATE_MAX_CLICKS = 5;
           rgba(255, 246, 214, 0.95) 35%,
           rgba(255, 158, 205, 0.8) 65%,
           rgba(255, 196, 92, 0.9));
+      }
+      
+      .side-nav-card.tse-fresh::before {
+        animation: none;
+        opacity: 1;
+        transform: scaleX(1.6);
+        box-shadow: 0 0 10px ${CFG.PURPLE}, 0 0 4px ${CFG.PURPLE};
       }
     }
 

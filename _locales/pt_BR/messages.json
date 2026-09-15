@@ -364,7 +364,7 @@
     "message": "Os emblemas da prévia"
   },
   "guideBadgesTexte": {
-    "message": "Na prévia, etiquetas coloridas dão o contexto num relance. Cada cor pertence a um único tipo, e não há dois emblemas parecidos.\n• Os dois verdes são NOVIDADES, não estados: somem depois de dez minutos.\n• O vermelho traz as etiquetas oficiais da Twitch (jogo adulto, violência explícita, jogos de azar…): você sabe antes de olhar.\n• O dourado diz há quanto tempo você apoia o canal, e perde o brilho quando a inscrição já terminou."
+    "message": "Na pré-visualização, etiquetas coloridas dizem o contexto num relance. Aqui estão TODAS: cada cor pertence a um único tipo, e dois selos nunca se parecem.\n• Os dois verdes são NOVIDADES, não estados: somem depois de dez minutos.\n• O vermelho retoma as etiquetas oficiais da Twitch (jogos adultos, violência explícita, apostas…): você sabe antes de assistir.\n• O dourado diz há quanto tempo você apoia o canal; sua versão pálida indica uma inscrição encerrada.\n• O azul diz «Co-stream de …» do lado do convidado e «Canal anfitrião» do lado do organizador; o roxo diz «Ao vivo com …».\n• A etiqueta sem cor retoma tal e qual uma menção adicionada pela Twitch, que a extensão não traduz.\n• O subathon não tem cor própria: percorre todas."
   },
   "guideFriseTitre": {
     "message": "Antes nesta live"
@@ -444,6 +444,9 @@
   "guideBadgeSub": {
     "message": "Inscrito • 9 MESES"
   },
+  "guideBadgeExsub": {
+    "message": "Ex-inscrito • 4 MESES"
+  },
   "guideBadgeSponsor": {
     "message": "Patrocinado por Norvex"
   },
@@ -452,6 +455,9 @@
   },
   "guideBadgeDiscount": {
     "message": "Inscrição com desconto"
+  },
+  "guideBadgeAutre": {
+    "message": "Outra menção da Twitch"
   },
   "guideBadgeSubathon": {
     "message": "Subathon • DIA 10"
