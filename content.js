@@ -1822,6 +1822,39 @@ const TSE_GATE_MAX_CLICKS = 5;
     // n'est là que pour qu'aucun registre de ce fichier ne puisse croître sans
     // fin, et sa saturation serait elle-même un renseignement.
     GLOBAL_LANG_SPAM_MAX:  200,
+    /* ── LE SECOND TÉMOIN, POUR CELLES QUI EN DÉCLARENT DEUX ───────────────
+       Deux tags de langue passent, et c'est voulu : un stream bilingue existe.
+       Mais deux tags sont aussi tout ce qu'il faut à qui veut figurer dans
+       deux classements sans parler ni l'une ni l'autre — la borne à deux ne
+       distingue pas les deux cas, elle les laisse passer ensemble.
+
+       TWITCH A UN SECOND TÉMOIN, et c'est celui d'à côté : la langue DÉCLARÉE
+       dans les réglages de la chaîne, celle que `broadcasterLanguages` filtre
+       ailleurs dans ce fichier. Elle ne bouge pas d'un stream à l'autre — le
+       tag, lui, suit la soirée — et c'est précisément ce qui en fait un
+       témoin : on ne l'ajuste pas au classement qu'on vise.
+
+       LA RÈGLE TIENT EN UNE PHRASE : une chaîne qui déclare DEUX langues en
+       tag reste au classement si sa langue de réglage est l'une des deux.
+       Trois cas, et un seul écarte :
+         — un francophone qui fait sa soirée en anglais : réglage FR, tags
+           « Français » + « English » → il reste ;
+         — un événement doublé, réglage EN, tags « English » + « Español » →
+           il reste ;
+         — une chaîne réglée en EN qui pose « Français » + « Português » →
+           aucun des deux tags n'est ce qu'elle dit parler : elle sort.
+
+       LE SILENCE N'ÉCARTE JAMAIS. Réponse absente, champ inconnu du schéma,
+       langue hors de notre table : la chaîne reste. Une règle qui écarterait
+       sur une panne réseau ferait un classement dépendant de la qualité du
+       wifi. Une seule langue en tag n'est pas concernée du tout : une langue
+       déclarée une fois n'est pas un empilement. */
+    GLOBAL_DECLARED_BATCH:   30,
+    // Combien de langues déclarées on garde en mémoire pour la session. Le
+    // pool mondial tourne autour de 1 700 chaînes, dont une fraction déclare
+    // deux langues : la borne n'est là que pour qu'aucun registre ne croisse
+    // sans fin, et la plus anciennement apprise sort en premier.
+    GLOBAL_DECLARED_MAX:   1000,
     // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
     // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
     // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
@@ -2507,6 +2540,36 @@ const TSE_GATE_MAX_CLICKS = 5;
       display: flex;
       flex-direction: column;
       justify-content: center;
+    }
+
+    /* ── CENTRER NE SUFFIT PAS SI LA BOÎTE N'EST PAS VIDE ─────────────────
+       La règle ci-dessus centre le CONTENU de la metadata. Elle ne recentre
+       donc le pseudo que si le pseudo est seul à l'occuper — ce qui est vrai
+       d'une carte ordinaire sans catégorie, et faux d'une carte EN CO-STREAM.
+       Twitch y pose un mini-avatar DANS le bloc metadata, celui dont l'alt dit
+       « Co-stream d'un stream de <login> » et dont getCostreamInfo tire l'hôte.
+       La boîte fait alors deux lignes même sans catégorie : la centrer ne
+       déplace rien, et le pseudo reste sur la ligne du haut. C'est le défaut
+       signalé, et la règle de la 3.98 ne pouvait pas l'atteindre.
+
+       ON NE NOMME DONC PAS LES INTRUS, on nomme ce qui reste : sans catégorie,
+       seul le pseudo occupe de la place. Tout le reste — mini-avatar de
+       co-stream, « +N » de collaboration, ligne annexe — cesse d'en prendre,
+       sans qu'il faille en tenir la liste ni s'accrocher à une classe hachée.
+
+       CE QU'ON MASQUE N'EST JAMAIS PERDU : le « +N » est relevé sur le TEXTE
+       de la carte puis reporté en pastille sur l'avatar, et le co-stream est
+       annoncé dans l'aperçu au survol. Le CSS ne change rien à ce que lisent
+       querySelector et textContent.
+
+       LE :has() SUR LE CONTENEUR EST UN GARDE-FOU, pas une élégance. Si Twitch
+       retirait le hook data-a-target="side-nav-title", la règle ne trouverait
+       plus rien à épargner et effacerait le texte de la carte. Exigé sur le
+       conteneur, il la rend INERTE dans ce cas au lieu de la rendre fausse. */
+    .side-nav-card[data-tse-nocat="true"]
+      [data-a-target="side-nav-card-metadata"]:has(p[data-a-target="side-nav-title"])
+      *:not(p[data-a-target="side-nav-title"]):not(:has(p[data-a-target="side-nav-title"])) {
+      display: none !important;
     }
 
     .side-nav-card[data-tse-offline="true"] { display: none !important; }
@@ -5416,6 +5479,157 @@ const TSE_GATE_MAX_CLICKS = 5;
       return { out, transport };
     };
 
+    /* ══════════════════════════════════════════════════════════════════════
+       LA LANGUE DÉCLARÉE — LE SECOND TÉMOIN
+       ----------------------------------------------------------------------
+       CE QUE LA BORNE À DEUX NE SAIT PAS FAIRE. Elle écarte qui pose dix
+       langues ; elle laisse passer qui en pose deux, et c'est voulu — un
+       stream bilingue existe. Mais deux tags suffisent aussi à entrer dans
+       deux classements sans parler ni l'une ni l'autre, et rien dans les tags
+       eux-mêmes ne sépare les deux cas : ils se ressemblent exactement.
+
+       IL FAUT DONC UN TÉMOIN QUI NE VIENNE PAS DES TAGS, et Twitch en a un :
+       la langue déclarée dans les réglages de la chaîne, celle sur laquelle
+       `broadcasterLanguages` filtre ailleurs dans ce fichier. Le tag suit la
+       soirée, la déclaration suit le compte — et c'est ce qui en fait un
+       témoin : on ne la retouche pas pour le classement du jour. Une chaîne
+       qui déclare deux langues en tag reste si l'une des deux est celle
+       qu'elle dit parler.
+
+       ÉCRITE SANS POUVOIR L'EXÉCUTER, comme la voie du tag et les chapitres
+       de VOD avant elle. `users(logins:)` est éprouvé — c'est la forme de
+       TseChannels — mais `broadcastSettings { language }` est une
+       reconstitution. D'où le même dispositif, qui a déjà tranché deux fois :
+       requête ISOLÉE (un champ inconnu ne peut donc pas emporter la marche),
+       échec SILENCIEUX qui laisse la chaîne au classement, compteurs par
+       issue dans le rapport, et refus du schéma mémorisé pour la session —
+       on n'insiste pas cinquante fois sur une requête que le serveur refuse.
+
+       CE QUE ÇA COÛTE : une opération par tranche de chaînes nouvellement
+       vues avec deux tags, et rien ensuite — une langue de réglage ne change
+       pas dans la session. Zéro pour l'immense majorité des chaînes, qui n'en
+       déclarent qu'une ou aucune.
+       ══════════════════════════════════════════════════════════════════════ */
+    const LANG_CHECK_QUERY =
+      'query TseLangCheck($logins: [String!]) {' +
+      '  users(logins: $logins) {' +
+      '    login' +
+      '    broadcastSettings { language }' +
+      '  }' +
+      '}';
+
+    const bilanDeclarees = { demandes: 0, servis: 0, vides: 0, refus: 0,
+                             reseau: 0, inconnues: 0 };
+    // Refus du SCHÉMA : définitif pour la session, comme pour la voie du tag.
+    // Une coupure réseau, elle, n'apprend rien et on retentera.
+    let declareeRefusee = false;
+    /* login (minuscules) → le code de langue TEL QUE TWITCH LE REND, ou ''
+       quand il a répondu sans rien dire. La chaîne vide est une RÉPONSE — « on
+       a demandé, il n'y a pas de langue » — et non une absence : sans elle on
+       redemanderait indéfiniment. La casse du code est normalisée au moment de
+       le traduire en nom de tag, pas ici : on garde ce que le serveur a dit. */
+    const declarees  = new Map();
+    const aDemander  = new Set();
+    let   volEnCours = false;
+
+    /* Code ISO → nom canonique de tag. LANG_API est la seule table qui relie
+       les deux, et elle est définie bien plus bas dans le fichier : l'index
+       inverse se construit donc à la première demande, pas au chargement. */
+    let parCodeISO = null;
+    const tagDeLaLangue = (code) => {
+      if (!parCodeISO) {
+        parCodeISO = new Map();
+        for (const [nom, c] of Object.entries(LANG_API)) parCodeISO.set(c, nom);
+      }
+      return parCodeISO.get(String(code || '').toUpperCase()) || null;
+    };
+
+    const flushDeclarees = async () => {
+      if (volEnCours || declareeRefusee || !aDemander.size) return;
+      const lot = [...aDemander].slice(0, CFG.GLOBAL_DECLARED_BATCH);
+      volEnCours = true;
+      bilanDeclarees.demandes++;
+      const { out, transport } = await send([{
+        operationName: 'TseLangCheck',
+        variables: { logins: lot },
+        query: LANG_CHECK_QUERY
+      }]).catch(() => ({ out: [null], transport: true }));
+      /* require-atomic-updates signale ici une course que la garde d'entrée
+         interdit déjà, et qu'il ne peut pas voir : rien ne s'exécute entre le
+         test de `volEnCours` et sa mise à vrai — il n'y a pas d'await entre
+         les deux — si bien qu'une seconde demande ne peut pas s'y glisser. La
+         règle se contente de constater une lecture et une écriture séparées
+         par un await. Même remarque pour `declareeRefusee`, quatre lignes
+         plus bas. */
+      // eslint-disable-next-line require-atomic-updates
+      volEnCours = false;
+      const users = out?.[0]?.users;
+      if (!Array.isArray(users)) {
+        if (transport) bilanDeclarees.reseau++;
+        // eslint-disable-next-line require-atomic-updates
+        else { bilanDeclarees.refus++; declareeRefusee = true; }
+        /* Le lot RESTE en attente : c'est la seule façon de distinguer « on
+           n'a pas pu demander » de « on a demandé ». On ne se relance PAS
+           d'ici — une panne persistante tournerait en boucle chaude — mais la
+           prochaine chaîne à deux tags découverte relancera la demande, et il
+           en passe à chaque marche. Sur un refus du schéma, la garde d'entrée
+           suffit à ce que plus rien ne reparte. */
+        return;
+      }
+      bilanDeclarees.servis++;
+      // Ce que la réponse porte, puis ce qu'elle NE porte pas : un login absent
+      // de la réponse a tout de même été demandé, et le laisser en attente
+      // ferait repartir la même requête sans fin.
+      const dits = new Map();
+      for (const u of users) {
+        const l = u?.login;
+        if (l) dits.set(String(l).toLowerCase(), u?.broadcastSettings?.language || '');
+      }
+      for (const l of lot) {
+        const code = dits.has(l) ? dits.get(l) : '';
+        if (!code) bilanDeclarees.inconnues++;
+        declarees.delete(l);            // réinsertion : cf. le registre des reprises
+        declarees.set(l, code);
+        aDemander.delete(l);
+        while (declarees.size > CFG.GLOBAL_DECLARED_MAX) {
+          declarees.delete(declarees.keys().next().value);
+        }
+      }
+      if (!dits.size) bilanDeclarees.vides++;
+      // Le reste de la file, s'il y en a. Rien d'autre ne relancera la
+      // demande : `readStream` n'appelle que lorsqu'il découvre une chaîne.
+      if (aDemander.size) void flushDeclarees();
+    };
+
+    /* Le verdict, et il n'a que trois valeurs. « inconnu » n'est pas un demi
+       « hors » : c'est ce qui garde la chaîne au classement tant qu'on n'a
+       rien appris. C'est aussi ici que part la demande, une seule fois par
+       login — la lecture d'un nœud étant le seul endroit qui sache qu'une
+       chaîne déclare deux langues. */
+    const verdictLangue = (login, langues) => {
+      // Une seule forme de clé, ici comme dans la réponse : les deux registres
+      // se croisent, et un login capitalisé d'un côté relancerait la demande à
+      // chaque lecture sans jamais trouver ce qu'on a déjà appris.
+      const cle = String(login).toLowerCase();
+      const code = declarees.get(cle);
+      if (code === undefined) {
+        if (!declareeRefusee && aDemander.size < CFG.GLOBAL_DECLARED_MAX) {
+          aDemander.add(cle);
+          void flushDeclarees();
+        }
+        return 'inconnu';
+      }
+      if (!code) return 'inconnu';                  // demandé, mais rien à dire
+      const nom = tagDeLaLangue(code);
+      if (!nom) return 'inconnu';                   // langue hors de notre table
+      return langues.includes(nom) ? 'ok' : 'hors';
+    };
+
+    /* Les chaînes écartées par ce témoin-là. Le RAPPORT en rend le cardinal,
+       comme pour les empileurs et pour la même raison : un compteur
+       d'occurrences ne se lirait qu'en connaissant la cadence des marches. */
+    const ecarteesDeclaree = new Set();
+
     // ── Lecture ─────────────────────────────────────────────────────────
     // Nœud de stream → enregistrement plat, ou null si inutilisable.
     const readStream = (node, now) => {
@@ -5441,6 +5655,26 @@ const TSE_GATE_MAX_CLICKS = 5;
         empileurs.add(login);
         while (empileurs.size > CFG.GLOBAL_LANG_SPAM_MAX) {
           empileurs.delete(empileurs.values().next().value);
+        }
+        return null;
+      }
+      /* ── ET LE SECOND TÉMOIN, POUR CELLES QUI EN DÉCLARENT DEUX ────────────
+         Deux tags passent la borne ci-dessus, et c'est voulu. Reste à savoir
+         si l'une des deux langues est celle que la chaîne dit parler dans ses
+         réglages : si aucune ne l'est, les deux tags ne décrivent pas un
+         stream bilingue, ils décrivent deux classements visés.
+
+         AU MÊME ENDROIT QUE LA BORNE, et pour la même raison : les deux voies
+         d'entrée du classement lisent leurs nœuds ici. Le verdict est
+         SYNCHRONE — il lit ce qu'on a déjà appris — et c'est lui qui lance la
+         demande quand on ne sait pas encore. Tant qu'on ne sait pas, la chaîne
+         reste : le silence n'écarte jamais. */
+      if (langues.size === CFG.GLOBAL_LANG_TAGS_MAX
+          && verdictLangue(login, [...langues]) === 'hors') {
+        ecarteesDeclaree.delete(login);     // réinsertion : cf. les empileurs
+        ecarteesDeclaree.add(login);
+        while (ecarteesDeclaree.size > CFG.GLOBAL_LANG_SPAM_MAX) {
+          ecarteesDeclaree.delete(ecarteesDeclaree.values().next().value);
         }
         return null;
       }
@@ -6665,6 +6899,17 @@ const TSE_GATE_MAX_CLICKS = 5;
           /* Le CARDINAL, pas le nombre de rejets : deux chaînes écartées se
              lisent « 2 », quelle que soit la cadence des marches. */
           tagsEmpiles: empileurs.size,
+          /* LE SECOND TÉMOIN, ET SON SEUL ŒIL SUR LE VRAI TWITCH. Mêmes
+             compteurs que la voie du tag, pour la même raison : la requête
+             n'a pas pu être jouée ici. `refuse` à true dirait que
+             `broadcastSettings { language }` n'est pas le bon chemin — et
+             que la règle, faute de témoin, n'a écarté personne. `ecartees`
+             est un CARDINAL de chaînes, comme `tagsEmpiles`. */
+          langueDeclaree: { ...bilanDeclarees,
+                            refuse:   declareeRefusee,
+                            connues:  declarees.size,
+                            attente:  aDemander.size,
+                            ecartees: ecarteesDeclaree.size },
           ...stats
         };
       }

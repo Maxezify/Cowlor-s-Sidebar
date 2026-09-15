@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 928 assertions, sous Gecko
+npm run test-firefox        # les mêmes 940 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,148 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Le co-streamer sans catégorie (v4.2)
+
+**Signalement d'un utilisateur :** « dans un co-stream, si l'un des streamers n'a
+pas mis de catégorie, il n'est pas centré verticalement ». La règle qui recentre
+ce pseudo existe pourtant depuis la 3.98, et le banc la tient.
+
+### Ce qu'elle supposait sans le dire
+
+La règle **étire** la boîte des métadonnées sur la hauteur de la rangée, puis en
+**centre le contenu**. Cela ne recentre le pseudo que si le pseudo est seul à
+occuper la boîte. C'est vrai d'une carte ordinaire. Ça ne l'est pas d'une carte
+de co-stream : Twitch pose un **mini-avatar dans le bloc metadata** — celui dont
+l'`alt` dit « Co-stream d'un stream de … », et dont l'extension tire déjà le
+login de l'hôte pour l'aperçu. La boîte fait alors deux lignes même sans
+catégorie ; la centrer ne déplace rien, et le pseudo reste en haut.
+
+### On ne nomme pas les intrus, on nomme ce qui reste
+
+Le correctif ne liste pas ce qu'il faut masquer — mini-avatar, « +N » de
+collaboration, ligne annexe : la liste changerait au premier remaniement de
+Twitch. Il dit l'inverse : **sans catégorie, seul le pseudo occupe de la place**,
+tout le reste de la metadata cesse d'en prendre.
+
+**Masquer n'est pas perdre.** Le CSS ne change rien à ce que lisent
+`querySelector` et `textContent` : le « +N » est toujours relevé sur le texte de
+la carte puis reporté en pastille sur l'avatar, et l'hôte du co-stream est
+toujours extractible — l'aperçu au survol continue de dire « Co-stream de … ».
+
+### Le garde-fou, et pourquoi il est sur le conteneur
+
+La règle épargne le pseudo en s'ancrant sur `data-a-target="side-nav-title"`, un
+hook d'automatisation de Twitch. Si Twitch le retirait, une règle naïve n'aurait
+plus rien à épargner et **effacerait le texte de la carte**. L'exiger sur le
+conteneur (`:has()`) la rend **inerte** dans ce cas au lieu de la rendre fausse.
+
+### Le harnais a dû grandir d'un cran
+
+Le vrai Twitch enveloppe le pseudo et la catégorie dans un
+`.side-nav-card__metadata`, à l'intérieur du bloc marqué `data-a-target` — une
+autre règle de la feuille s'appuie sur ce couple depuis longtemps. Le harnais,
+lui, aplatissait les deux en un seul niveau.
+
+Sans ce niveau intermédiaire, la clause qui épargne les **ancêtres** du pseudo
+n'était pas testable : la retirer laissait le banc vert alors qu'elle viderait
+les cartes en production. Le harnais modélise donc les deux niveaux, et le
+mutant qui supprime cette clause tombe désormais avec une carte sans texte.
+
+### Le scénario 99
+
+Cinq assertions, quatre mutants, aucun survivant :
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| la règle saute | le pseudo n'est plus centré |
+| la clause qui épargne les ancêtres du pseudo saute | la carte perd son texte |
+| le garde-fou `:has()` saute | la carte sans hook est effacée |
+| la règle ne se limite plus aux cartes sans catégorie | la carte voisine perd sa catégorie |
+
+## La langue déclarée, second témoin (v4.2)
+
+La 4.1 écarte du classement les chaînes qui posent **plus de deux** tags de
+langue. Elle laisse passer celles qui en posent deux, et c'est voulu : un stream
+bilingue existe. Mais deux tags suffisent aussi à entrer dans deux classements
+sans parler ni l'une ni l'autre, et **rien dans les tags ne sépare les deux
+cas** : ils se ressemblent exactement.
+
+### Le témoin ne peut pas venir des tags
+
+Twitch en a un autre, et l'extension s'en sert déjà ailleurs : la **langue
+déclarée dans les réglages de la chaîne**, celle sur laquelle
+`broadcasterLanguages` filtre. Les deux ne mesurent pas la même chose — le tag
+suit la soirée, la déclaration suit le compte — et c'est précisément ce qui en
+fait un témoin : **on ne la retouche pas pour le classement du jour**.
+
+La règle tient en une phrase : *une chaîne qui déclare deux langues en tag reste
+au classement si sa langue de réglage est l'une des deux.*
+
+| Cas | Réglage | Tags | Verdict |
+| --- | --- | --- | --- |
+| un francophone qui fait sa soirée en anglais | FR | Français + English | reste |
+| un événement doublé | EN | English + Español | reste |
+| deux classements visés | EN | Français + Português | **sort** |
+
+### Le silence n'écarte jamais
+
+Réponse absente, champ inconnu du schéma, coupure réseau, langue hors de notre
+table : la chaîne **reste**. Une règle qui écarterait sur une panne ferait un
+classement dépendant de la qualité du wifi.
+
+Et **un seul tag n'est pas concerné du tout**. Une langue déclarée une fois n'est
+pas un empilement : ce qu'on traque est l'empilement, pas le désaccord entre un
+réglage et un tag.
+
+### Écrite sans pouvoir l'exécuter
+
+`users(logins:)` est éprouvé — c'est la forme de `TseChannels`, celle qui sert
+toute la barre latérale. `broadcastSettings { language }` est une
+**reconstitution** : cette machine n'a pas accès à twitch.tv. D'où le dispositif
+déjà employé pour les chapitres de VOD et pour la voie du tag, qui a tranché deux
+fois :
+
+- **requête isolée** — un champ inconnu ne peut donc pas emporter la marche ;
+- **échec silencieux** — la chaîne reste au classement ;
+- **compteurs par issue** dans le rapport (`global.langueDeclaree`) ;
+- **refus du schéma mémorisé** pour la session : on n'insiste pas cinquante fois
+  sur une requête que le serveur refuse.
+
+Le coût : une opération par tranche de chaînes nouvellement vues avec deux tags,
+et rien ensuite — une langue de réglage ne change pas dans la session. Zéro pour
+l'immense majorité des chaînes, qui n'en déclarent qu'une ou aucune.
+
+### L'exclusion est différée, et c'est le cœur du dispositif
+
+Au premier passage la langue déclarée n'est pas connue : la chaîne **entre**. La
+demande part, la réponse arrive, et c'est la lecture **suivante** qui l'écarte.
+Le scénario attend donc la disparition — ce qui prouve du même coup que la
+requête a réellement eu lieu et changé le résultat.
+
+Le filtre est posé sur `readStream`, au même endroit que la borne à deux et pour
+la même raison : c'est le **seul passage obligé** des deux voies d'entrée du
+classement.
+
+### Le scénario 100
+
+Sept assertions, sept mutants, aucun survivant :
+
+| Mutant | Assertions qui tombent |
+| --- | --- |
+| la règle saute | 3 |
+| la règle s'applique quel que soit le nombre de tags | 1 |
+| le silence écarte | 1 |
+| une langue hors table est jugée quand même | 1 |
+| le refus du schéma n'est pas retenu | 1 |
+| le code ISO est comparé sans passer par la table des langues | 2 |
+| le compteur d'écartées ne compte plus | 1 |
+
+Le sixième mérite un mot : Twitch rend un code (`fr`), l'extension range ses tags
+par nom canonique (`Français`), et onze des trente et une langues ont un code de
+drapeau différent de leur code de langue. Comparer les deux directement écarte
+**toutes** les chaînes bilingues au lieu d'aucune — un défaut qui se voit, mais
+seulement si le banc porte un cas qui devait rester.
 
 ## Ce qu'un audit a trouvé (v4.1.1)
 
@@ -4708,7 +4850,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 98 scénarios, 928 assertions |
+| `npm test` | le harnais Playwright : 100 scénarios, 940 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -4729,12 +4871,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 840 Ko | 339 Ko | 3 110 → **2** |
+| `content.js` | 867 Ko | 345 Ko | 3 140 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 68 Ko | 34 Ko | 84 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1034 Ko** | **473 Ko** | **−54 %** |
+| **les cinq** | **1078 Ko** | **484 Ko** | **−55 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
