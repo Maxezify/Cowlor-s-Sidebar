@@ -188,6 +188,16 @@ _______________________________
 
 _______________________________
 
+➤ 🌗 HELL ODER DUNKEL, SIE ZIEHT MIT
+Twitch hat ein helles Design. Die Erweiterung merkt es und wechselt mit — ohne Neuladen, ohne Einstellung, ohne Häkchen.
+
+- ★ ALLES ZIEHT MIT, NICHT NUR DER HINTERGRUND ★ Karten, Hover-Vorschau, Abzeichen, Menüs, Symbolleisten-Panel: Jedes Element hat seine helle Fassung, für genau diesen Hintergrund gemacht.
+- ★ FARBEN NEU BERECHNET, NICHT NUR AUFGEHELLT ★ Jedes Abzeichen bekommt seinen eigenen hellen Farbton, gemessen auf genau dem Hintergrund, auf dem es sitzt. Ein Orange, das auf Schwarz gut lesbar ist, verschwimmt auf Weiß: also wurde es neu gemacht und nicht bloß blasser.
+- ★ IN DER SEKUNDE, IN DER DU UMSCHALTEST ★ Stell Twitchs Design um, und die Erweiterung folgt binnen einer Sekunde. Kein Neuladen nötig.
+- ★ UND WENN DU WENIGER BEWEGUNG WILLST ★ Die Systemeinstellung „Bewegung reduzieren“ wird respektiert: Was sich bewegte, hört auf — verloren geht nichts, ein Signal, das pulsierte, atmet weiter sanft, statt zu erlöschen.
+
+_______________________________
+
 ➤ 🌍 IN DEINER SPRACHE
 
 Die Erweiterung erkennt automatisch die Sprache deines Twitch und passt jede Beschriftung, jedes Abzeichen und jeden Tooltip an:

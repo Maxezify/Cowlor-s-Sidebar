@@ -52,15 +52,18 @@ se saisit pas ici : elle vient du manifeste, clé `extDescription` de
 
 ## Ce qui doit rester vrai
 
-Les douze fiches se tiennent par leur structure : **23 sections `➤`**, **24
-séparateurs**, **85 puces** et **112 étoiles**. C'est le profil de la fiche
+Les douze fiches se tiennent par leur structure : **24 sections `➤`**, **25
+séparateurs**, **90 puces** et **122 étoiles**. C'est le profil de la fiche
 anglaise, et `npm run store` le compare à celui des onze autres : une section
 oubliée en traduisant se voit à ce compte-là, immédiatement. Ces nombres ne se
 recopient pas : le script les DÉDUIT de la fiche anglaise, si bien qu'ajouter
 une section aux douze les met à jour toute seule — ils sont ici pour être lus,
-pas pour être tenus à jour à la main.
+pas pour être tenus à jour à la main. Et ils se périment en silence quand on
+les recopie quand même : ces quatre nombres annonçaient 85 puces et 112 étoiles
+alors que les fiches en portaient 86 et 114, parce que rien ne relie la phrase
+au compteur. Le script, lui, ne s'est jamais trompé — il mesure.
 
-Neuf affirmations sont **vérifiables dans le code**, et doivent changer le jour
+Dix affirmations sont **vérifiables dans le code**, et doivent changer le jour
 où le code change :
 
 1. **« Six façons de trier »** — `getSortButtons()` en rend six. C'était cinq
@@ -116,6 +119,21 @@ où le code change :
    s'en était aperçu parce qu'aucun contrôle ne relie une promesse de fiche à
    une ligne de code. Cette liste-ci est ce contrôle ; elle n'existe que pour
    ça.
+10. **« Clair ou sombre, elle suit »** — `themeTwitch()` lit le thème de la page
+   (`data-a-theme`, puis les classes `tw-root--theme-*`, puis la luminance du
+   fond en dernier recours), `appliquerTheme()` pose `data-tse-theme` sur
+   `<html>`, et un `MutationObserver` sur cet attribut fait la bascule SANS
+   rechargement — c'est ce qui autorise la fiche à promettre « à la seconde où
+   vous basculez ». La promesse des couleurs recalculées tient au bloc
+   `html[data-tse-theme="light"]` du CSS, où chaque badge a sa teinte propre :
+   la fiche dit « mesurée sur le fond exact où il s'affiche », et c'est le
+   scénario 115 du banc qui le vérifie — il bascule la page en clair sans la
+   recharger, puis mesure chaque texte de l'extension contre le seuil AA, dans
+   les deux thèmes. La dernière puce — moins d'animation — répond à
+   `prefers-reduced-motion`, et depuis la 4.9 elle dit bien ce que le produit
+   fait : le mouvement cesse, le signal continue (scénarios 113, 114 et 116).
+   Le contrôle `PROMESSES` de `tests/store.mjs` relie ces deux phrases-là au
+   code, comme `CITES` le fait pour les libellés.
 
 ## Images
 

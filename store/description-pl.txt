@@ -188,6 +188,16 @@ _______________________________
 
 _______________________________
 
+➤ 🌗 JASNY CZY CIEMNY, ONA NADĄŻA
+Twitch ma jasny motyw. Rozszerzenie to zauważa i przełącza się razem z nim — bez przeładowania, bez ustawień, bez pól do zaznaczenia.
+
+- ★ NADĄŻA WSZYSTKO, NIE TYLKO TŁO ★ Karty, podgląd po najechaniu, odznaki, menu, panel na pasku narzędzi: każdy element ma swoją jasną wersję, zaprojektowaną pod to tło.
+- ★ KOLORY PRZELICZONE, A NIE TYLKO ROZJAŚNIONE ★ Każda odznaka ma własny jasny odcień, zmierzony na dokładnie tym tle, na którym się pojawia. Pomarańcz, który dobrze czyta się na czerni, rozmywa się na bieli: został zrobiony od nowa, a nie tylko wyblakły.
+- ★ W SEKUNDZIE, W KTÓREJ PRZEŁĄCZASZ ★ Zmień motyw Twitcha, a rozszerzenie nadąży w ciągu sekundy. Bez przeładowania strony.
+- ★ A JEŚLI POPROSISZ O MNIEJ RUCHU ★ Ustawienie systemowe „ogranicz ruch” jest respektowane: to, co się ruszało, zatrzymuje się, ale nic nie ginie — sygnał, który pulsował, dalej oddycha łagodnie, zamiast zgasnąć.
+
+_______________________________
+
 ➤ 🌍 W TWOIM JĘZYKU
 
 Rozszerzenie automatycznie wykrywa język Twojego Twitcha i dostosowuje każdą etykietę, plakietkę i podpowiedź:
