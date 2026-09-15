@@ -2323,6 +2323,89 @@ const TSE_GATE_MAX_CLICKS = 5;
    *  STYLES
    * ============================================================ */
   const CSS = `
+    /* ══════════════════════════════════════════════════════════════════════
+       LA PALETTE, ET POURQUOI ELLE EST NOMMÉE
+       ──────────────────────────────────────────────────────────────────────
+       Twitch a DEUX thèmes, et cette feuille n'en connaissait qu'un. Toutes
+       ses surfaces étaient écrites en dur pour le sombre — texte clair sur
+       fond noir, bordures blanches translucides, champs noirs — si bien qu'en
+       clair l'extension posait des panneaux noirs au milieu d'une page
+       blanche, et des textes pâles sur du blanc. C'est le signalement.
+
+       DEUX FAMILLES, ET ELLES NE SE TRAITENT PAS PAREIL.
+
+       Les NEUTRES — fonds, textes, bordures — se déduisent des variables de
+       Twitch, qui basculent toutes seules. On garde nos valeurs sombres en
+       REPLI : si Twitch renomme une variable, on retombe exactement sur le
+       rendu d'avant plutôt que sur du texte invisible. C'est la même
+       prudence que partout ailleurs ici.
+
+       Les ACCENTS — violet du direct frais, or de l'abonnement, teintes des
+       badges — ne peuvent pas se déduire : un texte pâle sur un fond
+       translucide clair est illisible, quelle que soit la variable. Ils sont
+       donc écrits deux fois, et les contrastes du thème clair ont été
+       MESURÉS, pas supposés (cf. le commentaire des badges).
+
+       LE REPÈRE EST LE NÔTRE : « data-tse-theme », posé sur <html> par
+       appliquerTheme() d'après trois indices successifs. La feuille ne
+       s'accroche pas au « data-a-theme » de Twitch — quatre versions ont
+       appris ce que coûte une règle suspendue à un attribut de l'hôte. */
+    :root {
+      /* ── L'ENCRE, ET CE QU'ELLE ÉVITE ─────────────────────────────────
+         Une trentaine de couleurs de cette feuille sont du BLANC à une
+         opacité donnée : un texte à 0,42, un filet à 0,17, une hachure à
+         0,34. Les recopier une à une en noir pour le thème clair, c'était
+         soixante valeurs à tenir en parallèle et une occasion d'en oublier
+         une — le défaut que ce dépôt a déjà payé deux fois sur des palettes
+         recopiées. On ne bascule donc que les COMPOSANTES ; les opacités,
+         elles, ne changent pas, parce que ce sont elles qui portent la
+         hiérarchie, et une hiérarchie n'a pas de thème. */
+      --tse-encre:        255, 255, 255;
+      /* Surfaces : nos panneaux (aperçu, menus déroulants, infobulles).
+         « background-alt » et non « background-base » : en sombre, la base
+         de Twitch vaut #0e0e10 — le fond de la PAGE — quand nos panneaux
+         se posent à #18181b, d'un ton au-dessus. Prendre la base aurait
+         changé le thème sombre en croyant n'ajouter que le clair. */
+      --tse-surface:      var(--color-background-alt, #18181b);
+      --tse-surface-2:    var(--color-background-alt-2, #1f1f23);
+      --tse-voile-fond:   #26262c;
+      --tse-anneau:       #464656;
+      --tse-champ:        rgba(0, 0, 0, 0.4);
+      /* Textes. */
+      --tse-texte:        var(--color-text-base, #efeff1);
+      --tse-texte-doux:   var(--color-text-alt, #adadb8);
+      --tse-texte-faible: var(--color-text-alt-2, #6e6e7a);
+      /* Ombres : elles restent NOIRES dans les deux thèmes — une ombre
+         claire n'est pas une ombre — mais elles s'allègent en clair, où le
+         contraste disponible est bien moindre. */
+      --tse-ombre:        rgba(0, 0, 0, 0.55);
+      --tse-ombre-portee: rgba(0, 0, 0, 0.45);
+      --tse-ombre-menu:   rgba(0, 0, 0, 0.5);
+      --tse-ombre-large:  rgba(0, 0, 0, 0.6);
+      /* La DÉCOUPE : la couleur du fond sur lequel une pastille se pose,
+         pour qu'elle paraisse détourée plutôt que collée. C'est la carte de
+         Twitch, pas notre panneau. */
+      --tse-decoupe:      #1f1f23;
+    }
+    html[data-tse-theme="light"] {
+      --tse-encre:        0, 0, 0;
+      --tse-surface:      var(--color-background-alt, #ffffff);
+      --tse-surface-2:    var(--color-background-alt-2, #f7f7f8);
+      --tse-voile-fond:   #f2f2f5;
+      --tse-anneau:       #d3d3d8;
+      /* En clair, un champ ne se creuse pas par du noir : il se pose par un
+         gris à peine plus sombre que sa surface, comme le fait Twitch. */
+      --tse-champ:        rgba(0, 0, 0, 0.06);
+      --tse-texte:        var(--color-text-base, #0e0e10);
+      --tse-texte-doux:   var(--color-text-alt, #53535f);
+      --tse-texte-faible: var(--color-text-alt-2, #6e6e7a);
+      --tse-ombre:        rgba(0, 0, 0, 0.22);
+      --tse-ombre-portee: rgba(0, 0, 0, 0.16);
+      --tse-ombre-menu:   rgba(0, 0, 0, 0.20);
+      --tse-ombre-large:  rgba(0, 0, 0, 0.24);
+      --tse-decoupe:      #ffffff;
+    }
+
     /* === Voile de chargement initial ===
        Masque toute la sidebar pendant l'init pour cacher le flash de
        cartes Déconnecté(e), cartes non triées, hype trains non encore
@@ -2359,7 +2442,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     #side-nav { transition: opacity ${CFG.LOADING_FADE_MS}ms ease; }
     .tse-loading-overlay {
       position: fixed;
-      background: #26262c;
+      background: var(--tse-voile-fond);
       z-index: 100;
       opacity: 1;
       transition: opacity ${CFG.LOADING_FADE_MS}ms ease;
@@ -2375,7 +2458,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       transform: translate(-50%, -50%);
       width: 44px; height: 44px;
       border-radius: 50%;
-      border: 5px solid #464656;
+      border: 5px solid var(--tse-anneau);
       border-top-color: #9147ff;
       animation: tse-spin 0.9s linear infinite;
       z-index: 101;
@@ -2409,12 +2492,20 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-uptime {
       display: block; width: 100%; margin-top: 1px;
       font-size: 1.2rem; line-height: 1.4; text-align: right;
-      color: var(--color-text-alt-2, #adadb8);
+      /* LA VARIABLE ET SON REPLI SE CONTREDISAIENT, et personne ne pouvait
+         le voir : #adadb8 EST la valeur de « --color-text-alt », pas celle de
+         « --color-text-alt-2 » (#6e6e7a). Le repli disait donc une intention —
+         le gris clair — que la variable défaisait dès qu'elle existait,
+         c'est-à-dire sur le vrai Twitch et nulle part ailleurs. Mesuré :
+         3,83:1 au lieu de 7:1, sous le seuil AA. Le harnais ne posait pas ces
+         variables ; c'est en les lui donnant, pour le thème clair, que
+         l'écart est apparu. */
+      color: var(--color-text-alt, #adadb8);
       font-variant-numeric: tabular-nums;
       pointer-events: none;
     }
     .tse-uptime[data-tse-ended="true"] {
-      color: var(--color-text-alt, #6e6e7a);
+      color: var(--color-text-alt-2, #6e6e7a);
       font-style: italic;
       font-variant-numeric: normal;
     }
@@ -2796,11 +2887,16 @@ const TSE_GATE_MAX_CLICKS = 5;
       pointer-events: none;
       z-index: 1;
     }
+    /* LES DEUX ARRÊTS PORTENT LE MÊME NOMBRE DE COUCHES, et ce n'est pas une
+       symétrie d'esthète : une liste d'ombres ne s'interpole que couche à
+       couche. Un arrêt à une couche contre un arrêt à deux fait compléter la
+       plus courte par du transparent — le halo saute alors au lieu de croître,
+       et c'est la moitié du battement qui se perd. */
     @keyframes tse-fresh-pulse {
       0%, 100% {
         opacity: 0.3;
         transform: scaleX(1);
-        box-shadow: 0 0 4px ${CFG.PURPLE};
+        box-shadow: 0 0 4px ${CFG.PURPLE}, 0 0 1px ${CFG.PURPLE};
       }
       50% {
         opacity: 1;
@@ -2819,8 +2915,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       isolation: isolate;
       background: linear-gradient(
         90deg,
-        var(--tse-costream-bg, rgba(255,255,255,0.10)) 0%,
-        var(--tse-costream-bg-fade, rgba(255,255,255,0.04)) 40%,
+        var(--tse-costream-bg, rgba(var(--tse-encre), 0.10)) 0%,
+        var(--tse-costream-bg-fade, rgba(var(--tse-encre), 0.04)) 40%,
         transparent 100%
       );
       border-radius: 4px;
@@ -2916,10 +3012,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       pointer-events: none;
       background:
         linear-gradient(102deg,
-          rgba(255, 255, 255, 0)     40%,
+          rgba(var(--tse-encre), 0)     40%,
           rgba(255, 248, 224, 0.13)  48%,
           rgba(255, 220, 170, 0.07)  53%,
-          rgba(255, 255, 255, 0)     61%),
+          rgba(var(--tse-encre), 0)     61%),
         radial-gradient(68% 190% at 14% 45%, rgba(255, 200, 104, 0.115), transparent 68%),
         radial-gradient(58% 170% at 58% 72%, rgba(255, 146, 200, 0.095), transparent 70%),
         radial-gradient(78% 210% at 88% 22%, rgba(190, 148, 255, 0.085), transparent 72%);
@@ -3336,8 +3432,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-dd-btn {
       display: flex; align-items: center; gap: 4px;
       width: 100%; height: 28px; padding: 0 8px;
-      background-color: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 4px;
+      background-color: var(--tse-champ);
+      border: 1px solid rgba(var(--tse-encre), 0.08); border-radius: 4px;
       color: var(--color-text-base, #efeff1);
       font-size: 1.15rem;                /* agrandi pour la lisibilité */
       cursor: pointer; outline: none; box-sizing: border-box;
@@ -3350,25 +3446,25 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-dd-caret {
       flex: 0 0 auto; width: 0; height: 0;
       border-left: 4px solid transparent; border-right: 4px solid transparent;
-      border-top: 5px solid #adadb8;
+      border-top: 5px solid var(--tse-texte-doux);
     }
     /* Menu déroulant : popup sous le bouton, scrollable. */
     .tse-dd-menu {
       display: none;
       position: absolute; top: calc(100% + 4px); z-index: 9999;
       min-width: 100%; max-height: 260px; overflow-y: auto; padding: 4px;
-      background: #18181b; border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 6px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      background: var(--tse-surface); border: 1px solid rgba(var(--tse-encre), 0.12);
+      border-radius: 6px; box-shadow: 0 4px 16px var(--tse-ombre-menu);
     }
     .tse-dd.tse-open .tse-dd-menu { display: block; }
     .tse-dd-opt {
       display: flex; align-items: center; gap: 6px;
       padding: 6px 8px; border-radius: 4px; cursor: pointer;
-      font-size: 1.15rem; color: #efeff1; white-space: nowrap;
+      font-size: 1.15rem; color: var(--tse-texte); white-space: nowrap;
     }
     .tse-dd-opt:hover { background: rgba(145, 71, 255, 0.25); }
     .tse-dd-opt[aria-selected="true"] { background: rgba(145, 71, 255, 0.4); }
-    .tse-dd-n { flex: 0 0 auto; color: #adadb8; font-variant-numeric: tabular-nums; }
+    .tse-dd-n { flex: 0 0 auto; color: var(--tse-texte-doux); font-variant-numeric: tabular-nums; }
 
     /* Catégorie : prend la place, bouton tronqué « … », menu aligné à gauche
        et élargi au contenu (noms lisibles), plafonné à la largeur sidebar. */
@@ -3400,10 +3496,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       width: auto; height: 28px;
       display: inline-flex; align-items: center; justify-content: center;
       padding: 0;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--tse-champ);
+      border: 1px solid rgba(var(--tse-encre), 0.08);
       border-radius: 4px;
-      color: var(--color-text-alt-2, #adadb8);
+      color: var(--color-text-alt, #adadb8);
       cursor: pointer;
       transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
     }
@@ -3441,7 +3537,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       display: inline-flex; align-items: center; justify-content: center;
       box-sizing: border-box; border-radius: 999px;
       background: ${CFG.PURPLE}; color: #fff;
-      border: 2px solid #1f1f23;
+      border: 2px solid var(--tse-decoupe);
       font-size: 9px; font-weight: 800; line-height: 1;
       font-variant-numeric: tabular-nums;
       pointer-events: none;
@@ -3462,8 +3558,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-sort-toggle:disabled {
       cursor: not-allowed;
       pointer-events: none;
-      background: rgba(0, 0, 0, 0.25);
-      border-color: rgba(255, 255, 255, 0.04);
+      background: var(--tse-champ);
+      border-color: rgba(var(--tse-encre), 0.04);
     }
     .tse-sort-toggle:disabled svg { opacity: 0.35; }
 
@@ -3512,8 +3608,8 @@ const TSE_GATE_MAX_CLICKS = 5;
          Un cran d'espace marque cette différence de niveau sans trait de
          séparation. */
       margin-bottom: 2px;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--tse-champ);
+      border: 1px solid rgba(var(--tse-encre), 0.08);
       border-radius: 6px;
     }
     /* Rangée des stories : masquée UNIQUEMENT en mode Top Chaînes. Elle
@@ -3534,7 +3630,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       display: inline-flex; align-items: center; justify-content: center;
       min-height: 22px; padding: 0 8px;
       border: 0; border-radius: 4px;
-      background: transparent; color: var(--color-text-alt-2, #adadb8);
+      background: transparent; color: var(--color-text-alt, #adadb8);
       /* Même échelle typographique que .tse-dd-btn et .tse-dd-opt : le bloc
          filtre ne doit pas mélanger deux tailles de texte. */
       font: inherit; font-size: 1.15rem; font-weight: 600; line-height: 1.2;
@@ -3546,7 +3642,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        rôle. À 8 % il se perdait sur la piste déjà sombre (rendu et regardé) ;
        12 % se lit sans crier. */
     .tse-mode-tab:hover {
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(var(--tse-encre), 0.12);
       color: var(--color-text-base, #efeff1);
     }
     /* Anneau de focus clavier, comme sur le bouton de tri — il manquait ici. */
@@ -3560,7 +3656,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-mode-tab[aria-pressed="true"] {
       background: linear-gradient(180deg, ${CFG.PURPLE_HOVER} 0%, ${CFG.PURPLE} 100%);
       color: #fff;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 1px 2px var(--tse-ombre-portee);
     }
     .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE_HOVER}; }
 
@@ -3575,7 +3671,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        n'est pas PROUVÉ complet (cf. windowFloor dans le module de données). */
     .tse-global-partial {
       margin-top: 4px; padding: 4px 6px;
-      font-size: 11px; line-height: 1.3; color: #dedee3;
+      font-size: 11px; line-height: 1.3; color: var(--tse-texte);
       background: rgba(255, 122, 138, 0.14);
       border-left: 2px solid #ff7a8a; border-radius: 2px;
     }
@@ -3586,8 +3682,8 @@ const TSE_GATE_MAX_CLICKS = 5;
        le bandeau au-dessus est un avertissement. */
     .tse-global-empty {
       margin-top: 4px; padding: 6px;
-      font-size: 11px; line-height: 1.3; color: #adadb8; text-align: center;
-      background: rgba(255, 255, 255, 0.05); border-radius: 2px;
+      font-size: 11px; line-height: 1.3; color: var(--tse-texte-doux); text-align: center;
+      background: rgba(var(--tse-encre), 0.05); border-radius: 2px;
     }
 
     /* === Sidebar rétrécie (collapsed) : masque les contrôles custom ===
@@ -3616,13 +3712,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       position: fixed;
       z-index: 9999;
       width: ${CFG.PREVIEW_THUMB_WIDTH}px;
-      background: #18181b;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--tse-surface);
+      border: 1px solid rgba(var(--tse-encre), 0.1);
       border-radius: 6px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 8px 24px var(--tse-ombre-large);
       overflow: hidden;
       font-family: var(--font-base, "Inter", sans-serif);
-      color: #efeff1;
+      color: var(--tse-texte);
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.15s ease;
@@ -3635,7 +3731,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       /* Fond de la même teinte que le popup, et non noir : c'est ce qu'on voit
          tant que la vignette n'est pas arrivée. Un rectangle noir se lit comme
          une panne ; la couleur du panneau se lit comme un chargement. */
-      background: #18181b;
+      background: var(--tse-surface);
     }
     /* La vignette apparaît elle aussi en fondu. Elle est servie par le réseau :
        même mise en cache, un premier affichage a un délai, et la voir surgir
@@ -3675,7 +3771,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__thumb-placeholder {
       position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
-      color: rgba(255, 255, 255, 0.4);
+      color: rgba(var(--tse-encre), 0.4);
       font-size: 1.2rem;
     }
     .tse-preview__body {
@@ -3708,8 +3804,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       font-size: 1.1rem;
       font-weight: 600;
       line-height: 1.5;
-      background: rgba(255, 255, 255, 0.08);
-      color: #efeff1;
+      background: rgba(var(--tse-encre), 0.08);
+      color: var(--tse-texte);
     }
     /* Palette des badges, par type de contenu :
          hype     → orange  (Hype Train standard)
@@ -3719,17 +3815,46 @@ const TSE_GATE_MAX_CLICKS = 5;
          sponsor  → vert    (Stream sponsorisé)
        Toutes les couleurs sont distinctes pour qu'elles soient facilement
        différenciables en un coup d'œil dans le popup. */
+    /* ── LE THÈME CLAIR N'INVERSE PAS UNE PALETTE, IL LA REFAIT ───────────
+       Ces dix teintes de texte ont été choisies pour un fond SOMBRE : pâles,
+       saturées, elles s'y détachent. Posées telles quelles sur un panneau
+       clair, elles deviennent illisibles — un rose pâle sur un rose très
+       pâle. On ne peut donc pas « basculer une variable » : il faut la
+       MÊME teinte à une clarté opposée.
+
+       LES CONTRASTES SONT MESURÉS, PAS SUPPOSÉS. Chaque texte clair est le
+       plus clair qui atteigne 5:1 sur son propre fond composé — le badge
+       étant translucide, ce fond n'est pas la surface du panneau mais le
+       mélange des deux. Relevés, badge par badge, sur la surface claire de
+       Twitch (#f7f7f8) :
+
+         hype 5,00  ·  discount 5,08  ·  costream 5,06  ·  squad 5,08
+         sponsor 5,04  ·  sub 5,16  ·  exsub 4,66  ·  ccl 5,07
+         switch 5,04  ·  subathon 5,15
+
+       Le seuil AA d'un texte ordinaire est 4,5:1 ; celui-ci est semi-gras à
+       onze pixels. « exsub » est le seul en dessous de cinq, et c'est
+       délibéré : il doit rester plus FAIBLE que « sub », comme il l'est en
+       sombre. On le désature au lieu de l'éclaircir — un abonnement révolu
+       se dit par l'atténuation, dans les deux thèmes. */
     .tse-preview__badge--hype     { background: rgba(255, 105, 5, 0.25); color: #ffb380; }
     .tse-preview__badge--discount { background: rgba(255, 56, 219, 0.20); color: #ffa3ee; }
     .tse-preview__badge--costream { background: rgba(31, 105, 255, 0.25); color: #7fb3ff; }
     .tse-preview__badge--squad    { background: rgba(145, 71, 255, 0.25); color: #d1b3ff; }
     .tse-preview__badge--sponsor  { background: rgba(0, 184, 90, 0.22);  color: #6bdb9d; }
+    html[data-tse-theme="light"] .tse-preview__badge--hype     { color: #993d00; }
+    html[data-tse-theme="light"] .tse-preview__badge--discount { color: #a8008a; }
+    html[data-tse-theme="light"] .tse-preview__badge--costream { color: #0045d1; }
+    html[data-tse-theme="light"] .tse-preview__badge--squad    { color: #6000f0; }
+    html[data-tse-theme="light"] .tse-preview__badge--sponsor  { color: #006b34; }
     /* Abonnement : le même or que le filet des cartes abonnées, pour qu'on
        reconnaisse le signal d'une surface à l'autre. La variante « ancien
        abonné » le désature — c'est un fait révolu, il ne doit pas briller
        autant qu'un abonnement en cours. */
     .tse-preview__badge--sub      { background: rgba(255, 201, 102, 0.22); color: #ffd591; }
     .tse-preview__badge--exsub    { background: rgba(255, 201, 102, 0.10); color: #c9b48c; }
+    html[data-tse-theme="light"] .tse-preview__badge--sub      { color: #8a5900; }
+    html[data-tse-theme="light"] .tse-preview__badge--exsub    { color: #7c6b4b; }
     /* Étiquettes de classification : ROUGE, et il a fallu le mesurer pour le
        voir. La 3.55 avait choisi l'ambre, en raisonnant juste sur le principe
        — une teinte d'avertissement, distincte de l'or des abonnements — et
@@ -3755,6 +3880,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        sinon un badge plus large que l'aperçu, que le popup couperait net. */
     .tse-preview__badge--ccl      { background: rgba(200, 25, 42, 0.26); color: #ff868c;
                                     max-width: 100%; }
+    html[data-tse-theme="light"] .tse-preview__badge--ccl { color: #9a1320; }
     /* Basculement de catégorie. Citron vert, et le choix est arithmétique
        plutôt qu'esthétique : les huit teintes déjà prises laissaient un seul
        créneau large — l'optimum est à 93°, à 54° du voisin le plus proche,
@@ -3764,6 +3890,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        (6,38 à 7,67). Le vert dit « nouveau », ce qui tombe bien : le badge
        annonce une nouvelle, et il s'efface au bout de dix minutes. */
     .tse-preview__badge--switch   { background: rgba(120, 215, 60, 0.24); color: #a8e86b; }
+    html[data-tse-theme="light"] .tse-preview__badge--switch { color: #386e17; }
     /* Subathon. CYAN, et le choix se calcule comme les précédents. Les neuf
        teintes déjà prises laissent un seul trou large : entre le vert du
        sponsor (147°) et le bleu du co-stream (216°), soit 69° — l'optimum y
@@ -3792,6 +3919,59 @@ const TSE_GATE_MAX_CLICKS = 5;
       background: rgba(10, 250, 255, 0.26);
       color: #83f9fb;
       animation: tse-subathon-badge 1.5s linear infinite;
+    }
+    /* L'ARC-EN-CIEL A DEUX JEUX DE TEINTES, et il le faut : les huit couleurs
+       du cycle sombre sont PÂLES — elles sont faites pour briller sur du noir
+       — et s'évanouissent sur un panneau clair. Le cycle clair parcourt les
+       mêmes huit teintes, à clarté opposée. La couleur de REPOS suit : c'est
+       elle que voient ceux qui refusent le mouvement, et elle ne peut pas
+       rester le cyan pâle du thème sombre. */
+    html[data-tse-theme="light"] .side-nav-card[data-tse-subathon-day] .tse-subathon-jour {
+      color: #00686b;
+      animation-name: tse-subathon-clair;
+    }
+    /* LE BADGE CYCLE AUSSI SON FOND, la pastille non — celle-ci est CREUSE,
+       son contour se peint en currentColor. Deux animations, donc, et non une
+       seule recopiée : donner au badge le cycle de la pastille lui ferait
+       perdre son fond en route, et personne ne l'aurait vu venir. */
+    html[data-tse-theme="light"] .tse-preview__badge--subathon {
+      color: #00686b;
+      background: rgba(0, 200, 205, 0.18);
+      animation-name: tse-subathon-badge-clair;
+    }
+    /* CHAQUE IMAGE DU CYCLE A ÉTÉ MESURÉE, pas seulement sa couleur de repos.
+       La première rédaction n'avait vérifié que celle-ci, et la sonde a saisi
+       le badge EN PLEIN CYCLE : 4,45:1 sur une image jaune-vert, sous le seuil.
+       Un arc-en-ciel est illisible pendant un huitième de son tour ou ne l'est
+       jamais. Les huit images tiennent maintenant entre 5,08 et 5,35:1, sur
+       leur propre fond composé — l'alpha est commune à toutes pour que le
+       fond ne saute pas d'une image à l'autre. */
+    @keyframes tse-subathon-badge-clair {
+      0%   { color: #ad0000; background-color: rgba(214, 0, 0, 0.18); }
+      12.5%{ color: #7a5e00; background-color: rgba(255, 196, 0, 0.18); }
+      25%  { color: #496b00; background-color: rgba(150, 220, 0, 0.18); }
+      37.5%{ color: #006b3b; background-color: rgba(0, 200, 110, 0.18); }
+      50%  { color: #00686b; background-color: rgba(0, 200, 205, 0.18); }
+      62.5%{ color: #2047cb; background-color: rgba(31, 69, 196, 0.18); }
+      75%  { color: #7320cb; background-color: rgba(111, 31, 196, 0.18); }
+      87.5%{ color: #a3007a; background-color: rgba(236, 0, 177, 0.18); }
+      100% { color: #ad0000; background-color: rgba(214, 0, 0, 0.18); }
+    }
+    /* LA PASTILLE PARCOURT LES MÊMES HUIT TEINTES, mais sur le fond de la
+       CARTE — elle est creuse — et non sur un fond teinté. Les contrastes y
+       sont donc meilleurs qu'au badge ; on garde néanmoins les mêmes valeurs,
+       parce que deux surfaces qui montrent la même chose de deux couleurs à la
+       fois se lisent comme deux choses. */
+    @keyframes tse-subathon-clair {
+      0%   { color: #ad0000; }
+      12.5%{ color: #7a5e00; }
+      25%  { color: #496b00; }
+      37.5%{ color: #006b3b; }
+      50%  { color: #00686b; }
+      62.5%{ color: #2047cb; }
+      75%  { color: #7320cb; }
+      87.5%{ color: #a3007a; }
+      100% { color: #ad0000; }
     }
     /* Les pictogrammes d'avertissement. line-height: 1 les empêche de
        rehausser le badge : un emoji dépasse sa boîte em, et sans cela la
@@ -3858,7 +4038,7 @@ const TSE_GATE_MAX_CLICKS = 5;
          Le rembourrage sous le filet vaut le même : le trait est ainsi centré
          dans sa respiration. */
       padding-top: 10px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(var(--tse-encre), 0.08);
     }
     /* L'en-tête est une LIGNE, et non plus un libellé auquel on accroche des
        choses : le libellé à gauche, la provenance juste après quand il y en a
@@ -3872,7 +4052,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       font-size: 10px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.42);
+      color: rgba(var(--tse-encre), 0.42);
     }
     /* Le libellé ne cède JAMAIS de place : c'est le nom du bloc. Sans cette
        ligne il se serait rétréci comme n'importe quel élément flex, et une
@@ -3890,7 +4070,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       text-transform: none;
       letter-spacing: 0;
       font-style: italic;
-      color: rgba(255, 255, 255, 0.32);
+      color: rgba(var(--tse-encre), 0.32);
     }
     /* L'ÉCHELLE DU RUBAN, en tête et à droite. Sans elle une proportion ne se
        rapporte à rien : « deux tiers » de vingt minutes et « deux tiers » de
@@ -3927,7 +4107,7 @@ const TSE_GATE_MAX_CLICKS = 5;
          moins lisible qu'elle ne la mettait en valeur. Vu sur capture. */
       text-transform: none;
       font-variant-numeric: tabular-nums;
-      color: rgba(255, 255, 255, 0.34);
+      color: rgba(var(--tse-encre), 0.34);
     }
     /* ── LE RUBAN ───────────────────────────────────────────────────────────
        Creusé plutôt que clair : le fond visible entre deux parts appartient au
@@ -3947,8 +4127,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       height: 10px;
       border-radius: 999px;
       overflow: hidden;
-      background: rgba(0, 0, 0, 0.32);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+      background: var(--tse-champ);
+      box-shadow: inset 0 0 0 1px rgba(var(--tse-encre), 0.07);
     }
     /* ── LA MARQUE D'UNE COUPURE ────────────────────────────────────────────
        Un trait clair bordé de noir, et les deux sont nécessaires : le ruban
@@ -3985,7 +4165,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       background: var(--color-background-base, #0e0e10);
       box-shadow: inset 1px 0 0 rgba(255, 196, 92, 0.95),
                   inset -1px 0 0 rgba(255, 196, 92, 0.95),
-                  0 0 0 1px rgba(0, 0, 0, 0.55);
+                  0 0 0 1px var(--tse-ombre);
       /* L'infobulle porte la DURÉE de la coupure, que le ruban ne peut pas
          dire : trois pixels ne sont pas une échelle. Il faut donc que la
          marque reçoive le pointeur. */
@@ -4026,7 +4206,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        sépare les parts sans rien retirer à leur largeur. Elle ne s'applique
        pas à la première : un ruban n'a pas de couture à son bord. */
     .tse-preview__frise-part + .tse-preview__frise-part {
-      box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.45);
+      box-shadow: inset 1px 0 0 var(--tse-ombre-portee);
     }
     /* SAUF APRÈS UNE BORNE DOUTEUSE, ET LA CAPTURE L'A EXIGÉ. Le fondu disait
        « le basculement est quelque part là-dedans » ; la couture, tracée juste
@@ -4183,7 +4363,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      color: #dedee3;
+      color: var(--tse-texte);
     }
     /* Le nombre de retours, COLLÉ AU NOM qu'il qualifie : « Discussions ×7 »
        se lit d'un bloc. Discret par construction — il qualifie, il ne
@@ -4194,7 +4374,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       flex: 0 0 auto;
       margin-left: -3px;
       font-size: 10.5px;
-      color: rgba(255, 255, 255, 0.34);
+      color: rgba(var(--tse-encre), 0.34);
       font-variant-numeric: tabular-nums;
     }
     /* LA DURÉE SE POUSSE ELLE-MÊME À DROITE. C'est elle, et non le nom, qui
@@ -4203,7 +4383,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__frise-duree {
       flex: 0 0 auto;
       margin-left: auto;
-      color: rgba(255, 255, 255, 0.52);
+      color: rgba(var(--tse-encre), 0.52);
       font-variant-numeric: tabular-nums;
     }
     /* La ligne de repli — « + 4 autres catégories ». Sourde comme la ligne non
@@ -4212,21 +4392,21 @@ const TSE_GATE_MAX_CLICKS = 5;
        tirété : deux façons de n'être pas une catégorie, deux dessins, et l'on
        ne les confond pas. */
     .tse-preview__frise-ligne--autres .tse-preview__frise-nom {
-      color: rgba(255, 255, 255, 0.44);
+      color: rgba(var(--tse-encre), 0.44);
     }
     .tse-preview__frise-ligne--autres .tse-preview__frise-puce {
       background-image: repeating-linear-gradient(180deg,
         rgba(255, 255, 255, 0.30) 0 1.5px, rgba(255, 255, 255, 0) 1.5px 3px);
     }
-    .tse-preview__frise-ligne--encours .tse-preview__frise-nom { color: #fff; font-weight: 600; }
-    .tse-preview__frise-ligne--encours .tse-preview__frise-duree { color: rgba(255, 255, 255, 0.75); }
+    .tse-preview__frise-ligne--encours .tse-preview__frise-nom { color: var(--tse-texte); font-weight: 600; }
+    .tse-preview__frise-ligne--encours .tse-preview__frise-duree { color: rgba(var(--tse-encre), 0.75); }
     /* AUCUNE MARQUE DE PLUS sur le trait de la ligne en cours. Un halo d'un
        pixel avait été essayé : sur quatre pixels de large il ne se lit pas
        comme une mise en valeur mais comme un flou. La ligne se distingue déjà
        par son nom en blanc et en gras, et par le mot « maintenant » à côté de
        sa durée — deux signaux qui se lisent, contre un troisième qui salit. */
     .tse-preview__frise-ligne--inconnu .tse-preview__frise-nom {
-      color: rgba(255, 255, 255, 0.40);
+      color: rgba(var(--tse-encre), 0.40);
       font-style: italic;
     }
   `;
@@ -9306,6 +9486,16 @@ const TSE_GATE_MAX_CLICKS = 5;
              rien, et c'est exactement le défaut qu'un utilisateur a signalé —
              « pool 2 124, fabriquées 0 ». Cette ligne dit laquelle des trois
              voies a servi, ou rien du tout. */
+          /* CE QUE LE NAVIGATEUR DIT DE L'UTILISATEUR, et qui décide de deux
+             choses visibles. « mouvementReduit » commande l'arrêt de toutes
+             les animations depuis la 4.7 — un utilisateur a signalé « plus de
+             clignotement sur Chrome, bon côté Firefox », et les deux
+             navigateurs ne rapportent pas ce réglage de la même façon sous
+             Windows. Sans cette ligne, la question se pose une deuxième fois.
+             « theme » dit si Twitch est en clair ou en sombre : toute la
+             feuille en dépend. */
+          mouvementReduit: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+          theme: themeTwitch(),
           modele: modeleVoie,
           modeleRefus,
           /* ET À QUEL MOMENT LA PASSE A RENONCÉ. « modele: repli » avec
@@ -9710,6 +9900,62 @@ const TSE_GATE_MAX_CLICKS = 5;
   /* ============================================================
    *  CARD HELPERS
    * ============================================================ */
+  /* ── LE THÈME DE TWITCH, ET COMMENT ON LE SAIT ───────────────────────────
+     Twitch pose « data-a-theme » sur <html> : c'est le repère officiel, celui
+     que sa propre feuille suit. DEUX REPLIS derrière, et la raison tient en
+     une phrase — un seul repère est ce qui a coûté quatre versions sur la
+     ligne du pseudo :
+       — la classe « tw-root--theme-light », posée sur la même racine ;
+       — à défaut, la LUMINANCE du fond que le navigateur calcule vraiment.
+         Celle-là ne peut pas se périmer : c'est ce que l'œil voit, et elle
+         répond même si Twitch renommait ses deux premiers repères le même
+         jour.
+
+     ON NE LAISSE PAS LA FEUILLE S'ACCROCHER AU REPÈRE DE TWITCH. Elle suit
+     « data-tse-theme », que nous posons nous-mêmes d'après ce qui précède :
+     la détection vit à un seul endroit, avec ses replis, et le jour où elle
+     doit changer, une seule ligne bouge. */
+  const themeTwitch = () => {
+    const html = document.documentElement;
+    const dit = html.getAttribute('data-a-theme');
+    if (dit === 'light' || dit === 'dark') return dit;
+    if (html.classList.contains('tw-root--theme-light')) return 'light';
+    if (html.classList.contains('tw-root--theme-dark')) return 'dark';
+    const fond = getComputedStyle(document.body || html).backgroundColor;
+    const m = /(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(fond || '');
+    if (!m) return 'dark';
+    const [r, v, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    /* Luminance perçue (Rec. 709). Le seuil est à mi-chemin : un fond de
+       Twitch vaut 14 en sombre et 247 en clair, on ne joue pas serré. */
+    return (0.2126 * r + 0.7152 * v + 0.0722 * b) > 128 ? 'light' : 'dark';
+  };
+
+  const bilanTheme = { courant: null, bascules: 0 };
+
+  /* Posé sur la racine, et seulement quand il CHANGE : écrire un attribut
+     identique à chaque scan ferait travailler le moteur de style pour rien. */
+  const appliquerTheme = () => {
+    const t = themeTwitch();
+    const html = document.documentElement;
+    if (html.getAttribute('data-tse-theme') !== t) {
+      html.setAttribute('data-tse-theme', t);
+      bilanTheme.bascules++;
+      bilanTheme.courant = t;
+    }
+    return t;
+  };
+
+  /* LE THÈME CHANGE SANS RECHARGEMENT — c'est un interrupteur dans le menu de
+     Twitch, et la page ne bouge pas autour. On observe donc la racine plutôt
+     que d'attendre le prochain scan : l'utilisateur qui bascule verrait sinon
+     l'aperçu et les menus rester dans l'ancien thème jusqu'à son prochain
+     survol. L'observateur ne regarde QUE les attributs de <html>, ce qui est
+     le plus petit périmètre possible. */
+  const veilleTheme = new MutationObserver(() => appliquerTheme());
+  veilleTheme.observe(document.documentElement,
+                      { attributes: true, attributeFilter: ['data-a-theme', 'class'] });
+  appliquerTheme();
+
   const liveStatusOf = (card) =>
     card.querySelector('.side-nav-card__live-status') ||
     card.querySelector('[data-a-target="side-nav-live-status"]')?.closest('div');

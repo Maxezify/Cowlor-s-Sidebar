@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><title>Faux Twitch</title>
+<html lang="fr" data-a-theme="dark"><head><meta charset="utf-8"><title>Faux Twitch</title>
 <!-- Twitch pose une racine à 62,5 %, soit 10 px : c'est l'échelle contre
      laquelle TOUT le CSS de l'extension est écrit (1,15rem pour un bouton de
      filtre, 1,4rem pour un titre d'aperçu, 1,1rem pour un badge). Sans cette
@@ -7,6 +7,36 @@
      lieu de 11,5 — et toute mesure de largeur ou de hauteur y était fausse. -->
 <style>
 html { font-size: 62.5%; }
+/* ── LES DEUX THÈMES DE TWITCH, MODÉLISÉS PAR SES VARIABLES ──────────────
+   Twitch expose sa palette en variables CSS et bascule « data-a-theme » sur
+   <html> ; toute sa feuille en découle, et depuis la 4.8 la nôtre aussi. Un
+   harnais qui ne les pose pas mesure des contrastes contre un fond qui
+   n'existe nulle part — c'est ce qui est arrivé à la première rédaction de
+   la sonde de thème, laquelle relevait du texte clair « sur du gris 153 ».
+   Les valeurs sont celles de Twitch, relevées sur ses deux thèmes. */
+html, html[data-a-theme="dark"] {
+  --color-background-base:  #0e0e10;
+  --color-background-alt:   #18181b;
+  --color-background-alt-2: #1f1f23;
+  --color-text-base:        #efeff1;
+  --color-text-alt:         #adadb8;
+  --color-text-alt-2:       #6e6e7a;
+}
+html[data-a-theme="light"] {
+  --color-background-base:  #ffffff;
+  --color-background-alt:   #f7f7f8;
+  --color-background-alt-2: #efeff1;
+  --color-text-base:        #0e0e10;
+  --color-text-alt:         #53535f;
+  --color-text-alt-2:       #6e6e7a;
+}
+body { background: var(--color-background-base); color: var(--color-text-base); }
+/* La carte de Twitch se pose sur le fond de la page, sans fond à elle. */
+.side-nav-card { background: transparent; }
+/* Twitch colore le texte de ses cartes par le lien qui les enveloppe ; sans
+   cette règle, notre compteur de spectateurs — qui hérite sa couleur — se
+   mesurait en BLEU DE LIEN, et aucun contraste relevé sur lui n'avait de sens. */
+.side-nav-card a { color: var(--color-text-base); text-decoration: none; }
 /* ── LA RANGÉE D'UNE CARTE, MODÉLISÉE ────────────────────────────────────
    Ce harnais n'a pas la feuille de style de Twitch. Sans mise en page, une
    question de CENTRAGE VERTICAL n'a pas de sens : tout mesure zéro.

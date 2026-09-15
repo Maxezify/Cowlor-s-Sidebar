@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1027 assertions, under Gecko
+npm run test-firefox        # the same 1033 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,111 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The two Twitch themes (v4.8)
+
+Two requests: "there is no blink on Chrome any more, Firefox is fine", and "adapt
+the whole extension when Twitch is in light mode".
+
+### The blink that vanished on one browser and not the other
+
+4.7 made that pulse honour `prefers-reduced-motion` — it was the only animation
+in the product that ignored it. But **Chrome and Firefox do not report that
+setting the same way on Windows**: Chrome derives it from "Show animations",
+Firefox long followed its own preference. Same machine, same setting, two
+answers — hence a pulse on one side and not the other.
+
+The report now says it: `page.mouvementReduit`. The question will not be asked a
+second time.
+
+A real weakness was fixed along the way: the two stops of the pulse did not carry
+the **same number of shadow layers**. A shadow list only interpolates layer by
+layer; the shorter stop was padded with transparent, so the halo **jumped**
+instead of growing. Half the pulse was lost there.
+
+### "Adapt the whole extension"
+
+This 1,900-line stylesheet knew only one theme. Its surfaces were hard-written
+for dark — light text, translucent white borders, black fields — so in light mode
+the extension laid **black panels in the middle of a white page**.
+
+**Two families, and they are not handled alike.**
+
+The **neutrals** derive from Twitch's own variables, which flip by themselves.
+Our dark values stay as fallbacks: if Twitch renames a variable, we land on the
+previous rendering rather than on invisible text.
+
+The **accents** cannot be derived. Pale text on a light translucent background is
+unreadable, whatever the variable. The twelve badges therefore have a second
+palette, and its contrasts were **measured**: between 4.66 and 5.16:1 on each
+badge's actually composited background — a translucent badge is not judged
+against the panel's surface but against the blend of the two.
+
+### The ink
+
+Some thirty colours in this stylesheet are white at a given opacity: text at
+0.42, a hairline at 0.17, hatching at 0.34. Copying them one by one in black
+meant sixty values to keep in step and one chance to forget one. So only the
+**components** flip:
+
+```css
+--tse-encre: 255, 255, 255;   /* dark  */
+--tse-encre: 0, 0, 0;         /* light */
+```
+
+The opacities do not change, because they are what carries the hierarchy, and a
+hierarchy has no theme. What stays white in both themes is named: the
+**highlights**. A specular glint on a gold border is not ink, and the ribbon's
+gloss sits on coloured surfaces, never on a panel's ground.
+
+### The landmark is ours
+
+The stylesheet does not hang on Twitch's `data-a-theme`: it follows
+`data-tse-theme`, which we set from three successive clues — Twitch's attribute,
+its root class, then the **luminance of the background actually computed**, which
+cannot go stale. Four versions taught us what a rule suspended from a host
+attribute costs.
+
+An observer watches the root: the theme is a switch in the menu, the page does
+not move around it, and a preview left black on a page turned white would show.
+
+### What the measurements found in the DARK theme
+
+The harness did not provide Twitch's variables. Giving them to it — without which
+no measured contrast means anything — **three defects appeared, one of which has
+nothing to do with the light theme**:
+
+`--color-text-alt-2, #adadb8` and `--color-text-alt, #6e6e7a`: **the variable and
+its fallback contradicted each other**. #adadb8 *is* the value of
+`--color-text-alt`, not of `--color-text-alt-2`. The fallback stated an intention
+that the variable undid as soon as it existed — that is, on the real Twitch and
+nowhere else. Measured on a stream's uptime: **3.83:1 instead of 8.67**, below AA,
+from the start. Three rules were affected.
+
+### The toolbar panel
+
+It is an extension page: it sees neither Twitch's `<html>` nor its stylesheet. It
+learns the theme from the report and **remembers** it from one opening to the
+next. Until it knows, it follows `prefers-color-scheme` — a bet, and a bounded
+one: as soon as a report arrives, the attribute decides.
+
+### Scenario 115
+
+Six assertions, four mutants, no survivors. What is measured there is not
+appearance but **legibility**: "adapted" is not an opinion, it is a contrast
+ratio.
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| the ink no longer flips | the wash lightens in both themes |
+| the badges lose their light variant | ten contrasts drop to 1.26:1 |
+| the root no longer receives the landmark | the theme is neither set nor reported |
+| the light rainbow returns to the dark hues | the worst frame drops to 1.12:1 |
+
+**The rainbow is measured over its whole turn**, not only at rest: the first draft
+checked its resting colour alone, and the probe caught it mid-cycle at
+**4.45:1** — below the threshold, one eighth of the time. The eight frames now
+hold between 5.08 and 5.35:1.
 
 ## Every badge, a pulse you can see, and two rainbows that would not stop (v4.7)
 
@@ -5661,7 +5766,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 114 scenarios, 1027 assertions |
+| `npm test` | the Playwright harness: 115 scenarios, 1033 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -5681,12 +5786,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 933 KB | 359 KB | 3,213 → **2** |
+| `content.js` | 948 KB | 362 KB | 3,218 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 69 KB | 34 KB | 86 → **0** |
+| `panneau.js` | 71 KB | 35 KB | 90 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1149 KB** | **499 KB** | **−57 %** |
+| **all five** | **1166 KB** | **503 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

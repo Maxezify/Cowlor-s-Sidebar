@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1027 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1033 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,115 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Les deux thèmes de Twitch (v4.8)
+
+Deux demandes : « il n'y a plus de clignotement sur Chrome, c'est bon côté
+Firefox », et « adapte entièrement l'extension quand Twitch est en clair ».
+
+### Le clignotement disparu d'un navigateur et pas de l'autre
+
+La 4.7 a rendu ce battement sensible à `prefers-reduced-motion` — il était la
+seule animation du produit à l'ignorer. Or **Chrome et Firefox ne rapportent pas
+ce réglage de la même façon sous Windows** : Chrome le déduit de « Afficher les
+animations », Firefox suit longtemps sa propre préférence. Même machine, même
+réglage, deux réponses — et donc un battement d'un côté, pas de l'autre.
+
+Le rapport le dit désormais : `page.mouvementReduit`. La question ne se posera
+pas une deuxième fois.
+
+Une vraie faiblesse a été corrigée au passage : les deux arrêts du battement ne
+portaient pas le **même nombre de couches d'ombre**. Une liste d'ombres ne
+s'interpole que couche à couche ; l'arrêt le plus court était complété par du
+transparent, si bien que le halo **sautait** au lieu de croître. La moitié du
+battement se perdait là.
+
+### « Adapte entièrement l'extension »
+
+Cette feuille de 1 900 lignes ne connaissait qu'un thème. Ses surfaces étaient
+écrites en dur pour le sombre — texte clair, bordures blanches translucides,
+champs noirs — si bien qu'en clair l'extension posait des panneaux **noirs au
+milieu d'une page blanche**.
+
+**Deux familles, et elles ne se traitent pas pareil.**
+
+Les **neutres** se déduisent des variables de Twitch, qui basculent toutes
+seules. Nos valeurs sombres restent en repli : si Twitch renomme une variable,
+on retombe sur le rendu d'avant plutôt que sur du texte invisible.
+
+Les **accents** ne se déduisent pas. Un texte pâle sur un fond translucide clair
+est illisible, quelle que soit la variable. Les douze badges ont donc une
+seconde palette, et ses contrastes ont été **mesurés** : entre 4,66 et 5,16:1
+sur le fond réellement composé de chaque badge — car un badge translucide ne se
+juge pas contre la surface du panneau mais contre le mélange des deux.
+
+### L'encre
+
+Une trentaine de couleurs de cette feuille sont du blanc à une opacité donnée :
+un texte à 0,42, un filet à 0,17, une hachure à 0,34. Les recopier une à une en
+noir, c'était soixante valeurs à tenir en parallèle et une occasion d'en oublier
+une. On ne bascule donc que les **composantes** :
+
+```css
+--tse-encre: 255, 255, 255;   /* sombre */
+--tse-encre: 0, 0, 0;         /* clair  */
+```
+
+Les opacités ne changent pas, parce que ce sont elles qui portent la hiérarchie,
+et une hiérarchie n'a pas de thème. Ce qui reste blanc dans les deux thèmes est
+nommé : les **reflets**. Un éclat spéculaire sur une bordure dorée n'est pas de
+l'encre, et le lustré du ruban se pose sur des surfaces colorées, jamais sur le
+fond d'un panneau.
+
+### Le repère est le nôtre
+
+La feuille ne s'accroche pas au `data-a-theme` de Twitch : elle suit
+`data-tse-theme`, que nous posons d'après trois indices successifs — l'attribut
+de Twitch, sa classe de racine, puis la **luminance du fond réellement calculé**,
+qui ne peut pas se périmer. Quatre versions ont appris ce que coûte une règle
+suspendue à un attribut de l'hôte.
+
+Un observateur surveille la racine : le thème est un interrupteur du menu, la
+page ne bouge pas autour, et un aperçu resté noir sur une page devenue blanche
+se verrait.
+
+### Ce que les mesures ont trouvé dans le thème SOMBRE
+
+Le harnais ne posait pas les variables de Twitch. En les lui donnant — sans quoi
+aucun contraste relevé n'aurait de sens — **trois défauts sont apparus, dont un
+qui n'a rien à voir avec le thème clair** :
+
+`--color-text-alt-2, #adadb8` et `--color-text-alt, #6e6e7a` : **la variable et
+son repli se contredisaient**. #adadb8 *est* la valeur de `--color-text-alt`, pas
+celle de `--color-text-alt-2`. Le repli disait donc une intention que la variable
+défaisait dès qu'elle existait — c'est-à-dire sur le vrai Twitch et nulle part
+ailleurs. Mesuré sur la durée d'un direct : **3,83:1 au lieu de 8,67**, sous le
+seuil AA, depuis toujours. Trois règles étaient touchées.
+
+### Le panneau de la barre d'outils
+
+C'est une page d'extension : elle ne voit ni le `<html>` de Twitch ni sa feuille.
+Elle apprend le thème par le rapport et le **retient** d'une ouverture à l'autre.
+Tant qu'elle ne sait pas, elle suit `prefers-color-scheme` — un pari, et il est
+borné : dès qu'un rapport arrive, l'attribut tranche.
+
+### Le scénario 115
+
+Six assertions, quatre mutants, aucun survivant. Ce qui s'y mesure n'est pas
+l'aspect mais la **lisibilité** : « adapté » n'est pas une opinion, c'est un
+rapport de contraste.
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| l'encre ne bascule plus | le lavis éclaircit dans les deux thèmes |
+| les badges perdent leur variante claire | dix contrastes tombent à 1,26:1 |
+| la racine ne reçoit plus le repère | le thème n'est ni posé ni rapporté |
+| l'arc-en-ciel clair revient aux teintes sombres | la pire image tombe à 1,12:1 |
+
+**L'arc-en-ciel se mesure sur tout son tour**, et pas seulement au repos : la
+première rédaction n'avait vérifié que sa couleur d'arrêt, et la sonde l'a saisi
+en plein cycle à **4,45:1** — sous le seuil, un huitième du temps. Les huit
+images tiennent maintenant entre 5,08 et 5,35:1.
 
 ## Tous les badges, un battement qu'on voit, et deux arcs-en-ciel qui ne s'arrêtaient pas (v4.7)
 
@@ -5925,7 +6034,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 114 scénarios, 1027 assertions |
+| `npm test` | le harnais Playwright : 115 scénarios, 1033 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -5946,12 +6055,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 933 Ko | 359 Ko | 3 213 → **2** |
+| `content.js` | 948 Ko | 362 Ko | 3 218 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 69 Ko | 34 Ko | 86 → **0** |
+| `panneau.js` | 71 Ko | 35 Ko | 90 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1149 Ko** | **499 Ko** | **−57 %** |
+| **les cinq** | **1166 Ko** | **503 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
