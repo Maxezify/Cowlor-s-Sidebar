@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 840 KB | 339 KB | 3,110 → **2** |
+| `content.js` | 868 KB | 345 KB | 3,140 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 68 KB | 34 KB | 84 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1034 KB** | **473 KB** | **−54 %** |
+| **all five** | **1079 KB** | **484 KB** | **−55 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 928 assertions, under Gecko
+npm run test-firefox        # the same 940 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,148 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The co-streamer with no category (v4.2)
+
+**A user report:** "in a co-stream, if one of the streamers has not set a
+category, they are not vertically centred". The rule that re-centres that name
+has existed since 3.98, and the bench holds it.
+
+### What it assumed without saying so
+
+The rule **stretches** the metadata box to the row's height, then **centres its
+content**. That only re-centres the name if the name is alone in the box. True of
+an ordinary card. Not true of a co-stream card: Twitch puts a **mini-avatar
+inside the metadata block** — the one whose `alt` reads "Co-stream from a stream
+by …", and from which the extension already takes the host's login for the
+preview. The box is then two lines tall even with no category; centring it moves
+nothing, and the name stays on top.
+
+### We do not name the intruders, we name what stays
+
+The fix does not list what to hide — mini-avatar, collaboration "+N", extra row:
+that list would change at Twitch's next reshuffle. It says the opposite: **with
+no category, only the name takes up space**, everything else in the metadata
+stops taking any.
+
+**Hiding is not losing.** CSS changes nothing about what `querySelector` and
+`textContent` read: the "+N" is still picked up from the card's text and moved to
+a pill on the avatar, and the co-stream host is still extractable — the hover
+preview still says "Co-stream of …".
+
+### The guard, and why it sits on the container
+
+The rule spares the name by anchoring on `data-a-target="side-nav-title"`, a
+Twitch automation hook. Were Twitch to drop it, a naive rule would have nothing
+left to spare and would **erase the card's text**. Requiring it on the container
+(`:has()`) makes the rule **inert** in that case instead of making it wrong.
+
+### The harness had to grow one level
+
+Real Twitch wraps the name and the category in a `.side-nav-card__metadata`
+inside the block marked `data-a-target` — another rule in the stylesheet has
+relied on that pair for a long time. The harness flattened the two into one
+level.
+
+Without that intermediate level, the clause that spares the name's **ancestors**
+was untestable: removing it left the bench green while it would empty the cards
+in production. The harness now models both levels, and the mutant that removes
+that clause falls with a card that has no text.
+
+### Scenario 99
+
+Five assertions, four mutants, no survivors:
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| the rule is gone | the name is no longer centred |
+| the clause sparing the name's ancestors is gone | the card loses its text |
+| the `:has()` guard is gone | the hookless card is erased |
+| the rule is no longer limited to cards with no category | the neighbouring card loses its category |
+
+## The declared language, a second witness (v4.2)
+
+4.1 rules out of the ranking any channel carrying **more than two** language
+tags. It lets through those carrying two, and that is deliberate: a bilingual
+stream exists. But two tags are also all it takes to enter two rankings while
+speaking neither, and **nothing in the tags separates the two cases**: they look
+exactly alike.
+
+### The witness cannot come from the tags
+
+Twitch has another one, and the extension already uses it elsewhere: the
+**language declared in the channel's settings**, the one `broadcasterLanguages`
+filters on. The two do not measure the same thing — the tag follows the evening,
+the declaration follows the account — and that is precisely what makes it a
+witness: **you do not touch it up for today's ranking**.
+
+The rule fits in one sentence: *a channel declaring two language tags stays in
+the ranking if its settings language is one of the two.*
+
+| Case | Settings | Tags | Verdict |
+| --- | --- | --- | --- |
+| a French speaker doing their evening in English | FR | Français + English | stays |
+| a dubbed event | EN | English + Español | stays |
+| two rankings aimed at | EN | Français + Português | **leaves** |
+
+### Silence never rules out
+
+Missing answer, field unknown to the schema, network outage, language outside our
+table: the channel **stays**. A rule that ruled out on a failure would make a
+ranking that depends on wifi quality.
+
+And **a single tag is not concerned at all**. A language declared once is not
+stacking: what is being targeted is the stacking, not a disagreement between a
+setting and a tag.
+
+### Written without being able to run it
+
+`users(logins:)` is proven — it is the shape of `TseChannels`, the one that
+serves the whole sidebar. `broadcastSettings { language }` is a
+**reconstruction**: this machine has no access to twitch.tv. Hence the same
+apparatus already used for VOD chapters and for the tag path, which has settled
+the question twice:
+
+- **isolated request** — an unknown field therefore cannot take the walk down;
+- **silent failure** — the channel stays in the ranking;
+- **per-outcome counters** in the report (`global.langueDeclaree`);
+- **schema refusal remembered** for the session: we do not insist fifty times on
+  a request the server refuses.
+
+The cost: one operation per batch of newly seen channels carrying two tags, and
+nothing afterwards — a settings language does not change within a session. Zero
+for the vast majority of channels, which declare one or none.
+
+### The exclusion is deferred, and that is the heart of it
+
+On the first pass the declared language is not known: the channel **enters**. The
+request goes out, the answer comes back, and it is the **next** read that rules
+it out. The scenario therefore waits for the disappearance — which also proves
+the request really happened and changed the outcome.
+
+The filter sits on `readStream`, in the same place as the bound at two and for
+the same reason: it is the **only mandatory passage** of both entry paths into
+the ranking.
+
+### Scenario 100
+
+Seven assertions, seven mutants, no survivors:
+
+| Mutant | Assertions that fall |
+| --- | --- |
+| the rule is gone | 3 |
+| the rule applies whatever the tag count | 1 |
+| silence rules out | 1 |
+| a language outside the table is judged anyway | 1 |
+| the schema refusal is not remembered | 1 |
+| the ISO code is compared without going through the language table | 2 |
+| the exclusion counter stops counting | 1 |
+
+The sixth one deserves a word: Twitch returns a code (`fr`), the extension files
+its tags by canonical name (`Français`), and eleven of the thirty-one languages
+have a flag code different from their language code. Comparing the two directly
+rules out **every** bilingual channel instead of none — a defect that shows, but
+only if the bench carries a case that was meant to stay.
 
 ## What an audit found (v4.1.1)
 
@@ -4916,7 +5058,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 98 scenarios, 928 assertions |
+| `npm test` | the Playwright harness: 100 scenarios, 940 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

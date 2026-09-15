@@ -76,11 +76,17 @@ window.__vod = {};         // chapitres de VOD par login (cf. TseVodChapters)
 window.__vodRecent = {};   // archive récente par login (cf. TseVodRecent, le repli)
 window.__clips = {};       // clips par login (cf. TseClips, la troisième porte)
 window.__tagTop = {};      // classement par tag de langue (cf. TseTagTop)
+window.__declarees = {};   // login -> code ISO de la langue déclarée (cf. TseLangCheck)
 window.__failNext = 0;     // nb de POST à faire échouer
 window.__httpStatus = 0;   // statut HTTP à rendre une fois (429, 503, …)
 window.__abort = false;    // abandon au délai (AbortError), une fois
 window.__badJson = false;  // corps illisible, une fois
 window.__gqlErrors = false;// 200 porteur d'erreurs GraphQL, une fois
+// login -> login de l'hôte : la carte est rendue comme celle d'un CO-STREAMER
+// participant (cf. __addCard). Twitch y ajoute deux marques, et les DEUX
+// comptent : la pastille iconContainer--primary sur l'avatar, que l'extension
+// masque, et un mini-avatar DANS le bloc metadata, qui, lui, occupe une ligne.
+window.__costreamHost = {};
 
 // ── Traduction des catégories ───────────────────────────────────────
 // Twitch sert DEUX noms par catégorie : `name`, canonique et anglais, celui
@@ -185,14 +191,36 @@ window.__addCard = (login, cat, viewersText, live = true) => {
             ((window.__avatarNu || []).includes(login)
               ? '<div class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/' + login + '.png"></div>'
               : '<figure class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/' + login + '.png"></figure>') +
+            ((window.__costreamHost || {})[login]
+              ? '<div class="iconContainer--primary"></div>' : '') +
           '</div>') +
       '<div class="mainblock"><div class="metacell">' +
+        // DEUX NIVEAUX, ET ILS NE SONT PAS INTERCHANGEABLES. Le bloc marqué
+        // data-a-target est le conteneur ; .side-nav-card__metadata est le
+        // groupe qu'il enveloppe, et c'est LUI qui porte le pseudo et la
+        // catégorie. Le CSS de l'extension s'appuie sur les deux (une règle
+        // masque « tout frère de .side-nav-card__metadata », la 3e ligne de
+        // titre de Twitch) : un harnais qui aplatit les deux en un ne peut
+        // pas départager une règle qui épargne le groupe d'une règle qui
+        // l'efface — et celle qui l'efface viderait la carte en production.
         '<div data-a-target="side-nav-card-metadata">' +
-          '<p data-a-target="side-nav-title">' + login + '</p>' +
-          // UNE CATÉGORIE ABSENTE EST UN <p> ABSENT, pas un <p> vide : c'est
-          // ce que Twitch rend pour une chaîne qui n'en déclare pas, et c'est
-          // ce qui laisse le pseudo seul sur une rangée haute de deux lignes.
-          (cat ? '<p title="' + cat + '">' + cat + '</p>' : '') +
+          '<div class="side-nav-card__metadata">' +
+            '<p data-a-target="side-nav-title">' + login + '</p>' +
+            // UNE CATÉGORIE ABSENTE EST UN <p> ABSENT, pas un <p> vide : c'est
+            // ce que Twitch rend pour une chaîne qui n'en déclare pas, et c'est
+            // ce qui laisse le pseudo seul sur une rangée haute de deux lignes.
+            (cat ? '<p title="' + cat + '">' + cat + '</p>' : '') +
+            // __costreamHost : la carte est celle d'un CO-STREAMER participant.
+            // Twitch pose alors un mini-avatar DANS le bloc metadata, dont l'alt
+            // nomme l'hôte — c'est de lui que getCostreamInfo tire le login de
+            // l'hôte. Il occupe une ligne, et c'est ce qui distingue une carte
+            // de co-stream d'une carte ordinaire pour toute question de hauteur.
+            ((window.__costreamHost || {})[login]
+              ? '<span class="tse-mini"><img alt="Co-stream d\'un stream de '
+                  + window.__costreamHost[login] + '" src="https://cdn/'
+                  + window.__costreamHost[login] + '.png"></span>'
+              : '') +
+          '</div>' +
         '</div>' +
         '<div class="side-nav-card__live-status"><div><div>' +
           (live ? '<span class="tw-channel-status-indicator"></span>' : '') +
@@ -452,6 +480,30 @@ window.fetch = async (url, opt) => {
                 displayName: traduire(x.game || 'Just Chatting') },
         freeformTags: (x.tags || []).map(n => ({ name: n }))
       } })) } } };
+    }
+    /* TseLangCheck : la LANGUE DÉCLARÉE d'une chaîne, le second témoin des
+       chaînes qui posent deux tags de langue. `__declarees` vaut :
+         — 'erreur' → 200 porteur d'erreurs GraphQL, c'est-à-dire ce que
+           rendrait un schéma qui ne connaît pas `broadcastSettings`. C'est le
+           cas qu'il faut pouvoir jouer : la requête n'a jamais pu être
+           exécutée contre le vrai Twitch ;
+         — un objet { login: 'fr' } → les codes connus. Un login ABSENT de
+           l'objet reçoit `broadcastSettings: null`, c'est-à-dire « Twitch a
+           répondu et n'a rien à dire » — qui doit laisser la chaîne au
+           classement, et non l'en sortir.
+       Le défaut est l'objet VIDE et non le refus : tout scénario qui ne s'en
+       occupe pas doit voir une règle qui n'écarte personne, pas une voie
+       coupée qui masquerait un défaut de la règle elle-même. */
+    if (o.operationName === 'TseLangCheck') {
+      const d = window.__declarees;
+      if (d === 'erreur') {
+        return { errors: [{ message: 'Cannot query field "broadcastSettings"' }] };
+      }
+      const logins = o.variables?.logins || [];
+      return { data: { users: logins.map(l => ({
+        login: l,
+        broadcastSettings: (d && d[l]) ? { language: d[l] } : null
+      })) } };
     }
     if (o.operationName === 'TseVodRecent') {
       const v = window.__vodRecent && window.__vodRecent[o.variables?.login];

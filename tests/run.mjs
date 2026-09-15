@@ -12582,6 +12582,232 @@ titre('98. Les tags de langue empilés — dix langues n\'en font parler aucune'
   await page.close();
 }
 
+titre('99. Le co-streamer sans catégorie — centrer une boîte qui n\'est pas vide');
+{
+  /* ── LE SIGNALEMENT ───────────────────────────────────────────────────────
+     « Dans un co-stream, si l'un des streamers n'a pas mis de catégorie, il
+     n'est pas centré verticalement. » La règle de la 3.98 existe pourtant, et
+     le scénario 85 la tient : elle étire la boîte des métadonnées sur la
+     hauteur de la rangée, puis centre son contenu.
+
+     CE QU'ELLE SUPPOSAIT SANS LE DIRE : que le pseudo soit SEUL dans la boîte.
+     C'est vrai d'une carte ordinaire. Ça ne l'est pas d'une carte de
+     co-stream : Twitch y pose un mini-avatar DANS le bloc metadata — celui
+     dont l'alt nomme l'hôte, et dont getCostreamInfo tire ce login. La boîte
+     fait alors deux lignes même sans catégorie ; la centrer ne déplace rien.
+
+     CE QUE CE SCÉNARIO TIENT, et pourquoi il en faut cinq assertions : la
+     géométrie du cas signalé ; le fait que la règle ne DÉBORDE pas sur la
+     carte de co-stream qui a une catégorie ; le fait qu'un masquage n'est pas
+     une perte — l'hôte reste lisible dans le DOM, donc l'aperçu le dira ; et
+     le garde-fou, qui est la seule assertion à parler d'un Twitch futur. */
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {
+      duoavec:  { id: 'c1', createdAt: h, viewers: 900, game: 'Just Chatting', tags: [] },
+      duosans:  { id: 'c2', createdAt: h, viewers: 800, game: null,            tags: [] },
+      solosans: { id: 'c3', createdAt: h, viewers: 700, game: null,            tags: [] },
+      nohook:   { id: 'c4', createdAt: h, viewers: 600, game: null,            tags: [] },
+    };
+    // Trois cartes de CO-STREAM (mini-avatar dans la metadata), une ordinaire.
+    window.__costreamHost = { duoavec: 'hote', duosans: 'hote', nohook: 'hote' };
+    window.__addCard('duoavec',  'Just Chatting', '900');
+    window.__addCard('duosans',  '', '800');
+    window.__addCard('solosans', '', '700');
+    window.__addCard('nohook',   '', '600');
+    /* LE GARDE-FOU N'A DE SENS QUE SI ON PEUT LE DÉCLENCHER. La règle épargne
+       ce qui porte le hook du pseudo ; si Twitch le retirait, elle n'aurait
+       plus rien à épargner et effacerait la carte. On retire donc le hook sur
+       UNE carte, et on vérifie qu'elle garde son texte. */
+    [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a[href="/nohook"]'))
+      .querySelector('p[data-a-target="side-nav-title"]')
+      .removeAttribute('data-a-target');
+  });
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 4, 9000);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-nocat="true"]').length === 3, 9000);
+
+  const etat = await page.evaluate(() => {
+    const carte = (l) => [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector(`a[href="/${l}"]`));
+    const lire = (l) => {
+      const c = carte(l);
+      const rangee = c.querySelector('.metacell');
+      // Le pseudo : par le hook quand il existe, par le premier <p> sinon —
+      // c'est justement la carte dont on a retiré le hook qu'il faut mesurer.
+      const p = c.querySelector('p[data-a-target="side-nav-title"]')
+             || c.querySelector('[data-a-target="side-nav-card-metadata"] p');
+      const r = rangee.getBoundingClientRect(), pr = p.getBoundingClientRect();
+      const mini = c.querySelector('[data-a-target="side-nav-card-metadata"] .tse-mini');
+      const cat  = c.querySelector('[data-a-target="side-nav-card-metadata"] p[title]');
+      return {
+        // Écart entre le centre du PSEUDO et le centre de la rangée.
+        ecart: Math.round((pr.top + pr.height / 2) - (r.top + r.height / 2)),
+        pseudoVisible: pr.height > 0 && (p.textContent || '').trim() === l,
+        miniAffiche: !!mini && getComputedStyle(mini).display !== 'none',
+        // L'hôte se lit-il encore dans le DOM, masqué ou non ?
+        hote: !!c.querySelector('img[alt^="Co-stream d\'un stream de "]'),
+        catAffichee: !!cat && getComputedStyle(cat).display !== 'none'
+                     && (cat.textContent || '').trim(),
+        hauteurRangee: Math.round(r.height),
+      };
+    };
+    return { duoavec: lire('duoavec'), duosans: lire('duosans'),
+             solosans: lire('solosans'), nohook: lire('nohook') };
+  });
+
+  /* LE CAS SIGNALÉ. Une carte de co-stream sans catégorie : le mini-avatar
+     cesse d'occuper une ligne, et le pseudo se retrouve au milieu. */
+  ok('le pseudo d\'un co-streamer sans catégorie est centré, à un pixel près',
+     Math.abs(etat.duosans.ecart) <= 1 && etat.duosans.hauteurRangee > 0,
+     JSON.stringify(etat.duosans));
+  ok('…parce que le mini-avatar du co-stream n\'occupe plus de ligne',
+     etat.duosans.miniAffiche === false && etat.solosans.miniAffiche === false,
+     JSON.stringify({ duo: etat.duosans.miniAffiche, solo: etat.solosans.miniAffiche }));
+  /* MASQUER N'EST PAS PERDRE. Le CSS ne change rien à ce que lisent
+     querySelector et textContent : l'hôte reste extractible, donc l'aperçu
+     au survol continue de dire « Co-stream de … ». */
+  ok('…et l\'hôte reste lisible dans le DOM, donc l\'aperçu le dira encore',
+     etat.duosans.hote === true, JSON.stringify(etat.duosans));
+  /* LA RÈGLE NE DÉBORDE PAS. Elle ne vise que les cartes marquées sans
+     catégorie ; celle qui en a une garde la sienne, mini-avatar compris.
+     « Discussions » et non « Just Chatting » : la catégorie affichée est le
+     libellé TRADUIT, celui que l'extension écrit depuis la réponse. */
+  ok('la carte de co-stream AVEC catégorie n\'est pas touchée',
+     etat.duoavec.catAffichee === 'Discussions' && etat.duoavec.miniAffiche === true,
+     JSON.stringify(etat.duoavec));
+  /* LE GARDE-FOU. Sans le hook du pseudo, la règle n'a plus rien à épargner :
+     exigé sur le conteneur, il la rend INERTE au lieu de la rendre fausse. */
+  ok('sans le hook du pseudo, la règle s\'efface au lieu d\'effacer la carte',
+     etat.nohook.pseudoVisible === true, JSON.stringify(etat.nohook));
+
+  await page.close();
+}
+
+titre('100. La langue déclarée — le second témoin de celles qui en posent deux');
+{
+  /* ── CE QUE LA BORNE À DEUX NE SAIT PAS FAIRE ─────────────────────────────
+     Elle écarte qui pose dix langues. Elle laisse passer qui en pose deux, et
+     c'est voulu — un stream bilingue existe. Mais deux tags suffisent aussi à
+     entrer dans deux classements sans parler ni l'une ni l'autre, et rien
+     dans les tags ne sépare les deux cas.
+
+     LE TÉMOIN NE VIENT DONC PAS DES TAGS : c'est la langue DÉCLARÉE dans les
+     réglages de la chaîne. Le tag suit la soirée, la déclaration suit le
+     compte — on ne la retouche pas pour le classement du jour.
+
+     CE QUE CE SCÉNARIO TIENT, et pourquoi chaque cas est là :
+       — la règle écarte, et elle écarte le bon (faux) ;
+       — elle regarde les DEUX tags, pas seulement le premier (second) ;
+       — le SILENCE n'écarte pas — ni une chaîne dont Twitch ne dit rien
+         (muet), ni une langue hors de notre table (exotique) ;
+       — UN tag n'est pas un empilement : la règle ne s'y applique pas du tout
+         (mono, dont la déclaration ne correspond pourtant à rien) ;
+       — et un refus du schéma n'écarte personne, ni ne se redemande sans fin.
+     Les deux derniers sont ceux qu'on perd le plus facilement. */
+  const monter = (page, declarees) => page.evaluate((decl) => {
+    window.__declarees = decl;
+    const h = new Date(Date.now() - 30 * 60_000).toISOString();
+    window.__fx = { suivi1: { id: 'id-suivi1', createdAt: h, viewers: 400,
+                              game: 'Just Chatting', tags: [] } };
+    window.__addCard('suivi1', 'Just Chatting', '400');
+    const cats = [];
+    // Du remplissage, pour que la descente ait un pool crédible à parcourir.
+    for (let i = 0; i < 3; i++) {
+      const streams = [];
+      for (let k = 0; k < 30; k++) {
+        streams.push({ login: `en${i}_${k}`, viewers: 500 - k, tags: ['English'] });
+      }
+      cats.push({ name: 'c' + i, viewers: 400_000 - i, streams });
+    }
+    /* Les six cas, tous assez gros pour être en tête : s'ils n'y sont pas,
+       c'est la règle qui les a écartés et rien d'autre. */
+    cats.push({ name: 'vitrine', viewers: 399_000, streams: [
+      // Déclaration = le PREMIER de ses deux tags.
+      { login: 'temoin',   viewers: 9000, tags: ['Français', 'English'] },
+      // Déclaration = le SECOND. Une règle qui ne lirait que le premier tag
+      // l'écarterait — c'est la seule chose qui distingue ce cas du précédent.
+      { login: 'second',   viewers: 8500, tags: ['Français', 'English'] },
+      // Déclaration = NI L'UN NI L'AUTRE. Le seul qui doit sortir.
+      { login: 'faux',     viewers: 8000, tags: ['Français', 'Português'] },
+      // Twitch répond, mais ne déclare rien : le silence n'écarte pas.
+      { login: 'muet',     viewers: 7500, tags: ['Français', 'English'] },
+      // Déclaration hors de notre table : on ne sait pas traduire, donc on ne
+      // juge pas. Même conclusion, par une autre voie.
+      { login: 'exotique', viewers: 7000, tags: ['Français', 'English'] },
+      // UN SEUL TAG, et une déclaration qui ne correspond pas. La règle ne le
+      // concerne pas : une langue déclarée une fois n'est pas un empilement.
+      { login: 'mono',     viewers: 6500, tags: ['Français'] },
+    ] });
+    window.__cats = cats;
+  }, declarees);
+
+  const DECLAREES = { temoin: 'fr', second: 'en', faux: 'en',
+                      exotique: 'xx', mono: 'de' };
+
+  const page = await fresh();
+  await monter(page, DECLAREES);
+  await wait(page, 1500);
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(30).length > 0, 9000);
+  /* L'EXCLUSION EST DIFFÉRÉE, ET C'EST LE CŒUR DU DISPOSITIF. Au premier
+     passage la langue déclarée n'est pas connue : la chaîne ENTRE. La demande
+     part, la réponse arrive, et c'est la lecture SUIVANTE qui l'écarte. On
+     attend donc la disparition — ce qui prouve du même coup que la requête a
+     réellement eu lieu et changé le résultat. */
+  await attendre(page,
+    () => !window.tse.global.top(30).some(r => r.login === 'faux'), 9000);
+  await wait(page, 600);
+
+  const top = await page.evaluate(() => window.tse.global.top(30).map(r => r.login));
+  ok('une chaîne dont la déclaration est l\'un de ses deux tags reste',
+     top.includes('temoin') && top.includes('second'), JSON.stringify(top.slice(0, 8)));
+  ok('…celle dont la déclaration n\'est ni l\'un ni l\'autre sort',
+     !top.includes('faux'), JSON.stringify(top.slice(0, 8)));
+  ok('…le silence n\'écarte pas : ni sans déclaration, ni hors de notre table',
+     top.includes('muet') && top.includes('exotique'), JSON.stringify(top.slice(0, 8)));
+  /* UN SEUL TAG N'EST PAS UN EMPILEMENT. « mono » déclare l'allemand et pose
+     « Français » : la règle ne le regarde pas, et c'est délibéré — ce qu'on
+     traque est l'empilement, pas le désaccord entre un réglage et un tag. */
+  ok('…et un tag unique n\'est pas concerné, même en désaccord avec le réglage',
+     top.includes('mono'), JSON.stringify(top.slice(0, 8)));
+
+  const bilan = await page.evaluate(() => window.tse.global.report().langueDeclaree);
+  ok('le rapport dit ce que le second témoin a fait',
+     bilan && bilan.refuse === false && bilan.servis >= 1 && bilan.ecartees >= 1,
+     JSON.stringify(bilan));
+
+  /* ── LE REFUS DU SCHÉMA ──────────────────────────────────────────────────
+     `broadcastSettings { language }` est une RECONSTITUTION : cette machine
+     n'a pas accès à twitch.tv. Si le schéma ne le connaît pas, la règle doit
+     n'écarter personne — et ne pas redemander cinquante fois. */
+  const p2 = await fresh();
+  await monter(p2, 'erreur');
+  await wait(p2, 1500);
+  await p2.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(p2, () => window.tse.global.top(30).length > 0, 9000);
+  // Plusieurs marches, pour que l'insistance se verrait si elle avait lieu.
+  await wait(p2, 4000);
+  const apresRefus = await p2.evaluate(() => ({
+    top: window.tse.global.top(30).map(r => r.login),
+    bilan: window.tse.global.report().langueDeclaree,
+  }));
+  ok('un schéma qui refuse la requête n\'écarte personne',
+     apresRefus.top.includes('faux') && apresRefus.bilan.ecartees === 0,
+     JSON.stringify(apresRefus.bilan));
+  ok('…et le refus est retenu : on ne redemande pas à chaque marche',
+     apresRefus.bilan.refuse === true && apresRefus.bilan.demandes === 1,
+     JSON.stringify(apresRefus.bilan));
+
+  await p2.close();
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
