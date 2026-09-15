@@ -1475,7 +1475,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     
-    .side-nav-card [data-a-target="side-nav-card-metadata"] > .side-nav-card__metadata ~ * {
+    .side-nav-card [data-a-target="side-nav-card-metadata"]
+      > .side-nav-card__metadata ~ *:not(p.tse-nom) {
       display: none !important;
     }
 
@@ -1490,8 +1491,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     
     .side-nav-card[data-tse-nocat="true"]
-      [data-a-target="side-nav-card-metadata"]:has(p[data-a-target="side-nav-title"])
-      *:not(p[data-a-target="side-nav-title"]):not(:has(p[data-a-target="side-nav-title"])):not(p[data-a-target="side-nav-title"] *) {
+      [data-a-target="side-nav-card-metadata"]:has(p.tse-nom)
+      *:not(p.tse-nom):not(:has(p.tse-nom)):not(p.tse-nom *) {
       display: none !important;
     }
 
@@ -1662,7 +1663,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     
-    .side-nav-card.tse-sub p[data-a-target="side-nav-title"] {
+    .side-nav-card.tse-sub p.tse-nom {
       color: #ffd68a;
       font-weight: 700;
     }
@@ -1671,7 +1672,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       color: #e6c68d;
     }
     @supports (-webkit-background-clip: text) or (background-clip: text) {
-      .side-nav-card.tse-sub p[data-a-target="side-nav-title"] {
+      .side-nav-card.tse-sub p.tse-nom {
         background: linear-gradient(100deg,
           #ffc86e   0%,
           #fff6dc  32%,
@@ -1781,7 +1782,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     
-    .side-nav-card[data-tse-subathon-day] p[data-a-target="side-nav-title"] {
+    .side-nav-card[data-tse-subathon-day] p.tse-nom {
       display: flex;
       align-items: center;
       gap: 4px;
@@ -1821,7 +1822,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         animation: none;
       }
       .side-nav-card.tse-sub::after,
-      .side-nav-card.tse-sub p[data-a-target="side-nav-title"],
+      .side-nav-card.tse-sub p.tse-nom,
       .side-nav-card.tse-sub .tse-sub-cat,
       .side-nav-card.tse-sub .tse-sub-avatar,
       .side-nav-card.tse-sub .tse-sub-avatar::after {
@@ -5159,7 +5160,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           for (const c of cartes) {
             if (c.dataset.tseNocat !== 'true' && ligneCat(c)) continue;
             const meta = c.querySelector('[data-a-target="side-nav-card-metadata"]');
-            const p = c.querySelector('p[data-a-target="side-nav-title"]');
+
+            const p = cardNameEl(c);
             const statut = liveStatusOf(c);
 
             let rangee = meta;
@@ -5204,8 +5206,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           return { detectes, sansJour, voies: v,
                    marquees: cartes.filter(c => c.dataset.tseSubathon).length,
                    sansPastille: manquantes.length,
-                   sansAncre: manquantes.filter(
-                     c => !c.querySelector('p[data-a-target="side-nav-title"]')).length };
+
+                   sansAncre: manquantes.filter(c => !cardNameEl(c)).length };
         })(),
         relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
 
@@ -5312,8 +5314,12 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const cardCategoryEl = (card) => {
     const nom = cardNameEl(card);
-    const horsNom = (sel) =>
-      [...card.querySelectorAll(sel)].find(p => p !== nom) || null;
+
+    const horsNom = (sel) => {
+      const premier = card.querySelector(sel);
+      if (!premier || premier !== nom) return premier;
+      return [...card.querySelectorAll(sel)].find(p => p !== nom) || null;
+    };
     return horsNom('.side-nav-card__metadata p[title]')
         || horsNom('[data-a-target="side-nav-card-metadata"] p[title]')
 
@@ -5326,11 +5332,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     const hook = card.querySelector('p[data-a-target="side-nav-title"]');
     if (hook) return hook;
 
-    const groupe = card.querySelector('[data-a-target="side-nav-card-metadata"]')
-                || card.querySelector('.side-nav-card__metadata');
-    if (!groupe) return null;
+    const boite  = card.querySelector('[data-a-target="side-nav-card-metadata"]');
+    const groupe = card.querySelector('.side-nav-card__metadata');
+    if (!boite && !groupe) return null;
+    if (boite && groupe) {
+      const dehors = [...boite.querySelectorAll('p')].find(x => !groupe.contains(x));
+      if (dehors) return dehors;
+    }
 
-    return groupe.querySelector('p');
+    return (groupe || boite).querySelector('p');
   };
 
   const getCardCategory = (card) => {
@@ -7320,6 +7330,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (data.game) delete card.dataset.tseNocat;
       else card.dataset.tseNocat = 'true';
 
+      if (!card.querySelector('.tse-nom')) {
+        const ligneNom = cardNameEl(card);
+        if (ligneNom) ligneNom.classList.add('tse-nom');
+      }
+
       appliquerSubathon(card, data.subathon);
     } else {
 
@@ -9113,6 +9128,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     add('category', 'getCardCategory() — métadonnées', false,
         collapsed ? 'na' : (!exp ? 'na' : (getCardCategory(exp) ? 'ok' : 'broken')),
+        collapsed ? 'sidebar réduite' : (exp ? '' : 'aucune carte live à sonder'));
+
+    add('cardName', 'cardNameEl() — ligne du pseudo', true,
+        collapsed ? 'na' : (!exp ? 'na' : (cardNameEl(exp) ? 'ok' : 'broken')),
         collapsed ? 'sidebar réduite' : (exp ? '' : 'aucune carte live à sonder'));
 
     return probes;
