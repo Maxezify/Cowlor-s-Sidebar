@@ -9495,6 +9495,27 @@ const TSE_GATE_MAX_CLICKS = 5;
              « theme » dit si Twitch est en clair ou en sombre : toute la
              feuille en dépend. */
           mouvementReduit: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+          /* ── LE BATTEMENT DU STREAM FRAIS, CONSTATÉ ET NON SUPPOSÉ ──────
+             « Toujours pas de clignotement côté Chrome » est arrivé deux fois,
+             et j'ai répondu deux fois par une hypothèse. Ces quatre nombres
+             répondent à la place :
+               — « fraiches » à zéro dit qu'aucune chaîne n'est en direct
+                 depuis moins de dix minutes, et la question s'arrête là ;
+               — « animations » à zéro dit que la règle ne s'applique pas —
+                 sélecteur, cascade, ou feuille absente ;
+               — « etat » dit « running », « paused » ou « finished » : un
+                 navigateur qui gèle les animations se voit ici ;
+               — « mouvementReduit » juste au-dessus dit si c'est l'utilisateur
+                 qui a demandé l'immobilité.
+             Aucune de ces quatre réponses n'a besoin d'être devinée. */
+          battement: (() => {
+            const fraiches = document.querySelectorAll('.side-nav-card.tse-fresh');
+            const anims = document.getAnimations().filter(
+              a => a.effect && a.effect.pseudoElement === '::before'
+                && a.effect.target && a.effect.target.classList.contains('tse-fresh'));
+            return { fraiches: fraiches.length, animations: anims.length,
+                     etat: anims.length ? anims[0].playState : null };
+          })(),
           theme: themeTwitch(),
           modele: modeleVoie,
           modeleRefus,
@@ -9871,6 +9892,67 @@ const TSE_GATE_MAX_CLICKS = 5;
    * cette différence-là qui rendait une mesure de découpage intermittente.
    */
   tseApi.rescan = () => { invalidateAndRescan(); };
+
+  /**
+   * Mesure le battement de la barre « stream frais », sur un cycle entier.
+   *
+   * POURQUOI UNE COMMANDE ET PAS SEULEMENT UNE LIGNE DE RAPPORT. Le rapport
+   * est un instantané : il dit qu'une animation existe et qu'elle tourne, ce
+   * qui ne prouve pas qu'on la VOIE. Une amplitude, si. On échantillonne donc
+   * le rendu image par image, sur la durée que l'animation déclare elle-même
+   * — jamais recopiée — et l'on rend ce que l'œil aurait vu : l'opacité la
+   * plus basse, la plus haute, et la largeur rendue aux deux bouts.
+   *
+   * Rendue en une promesse pour pouvoir être lue d'un « await tse.battement() »
+   * dans la console, sur la vraie page, par quelqu'un qui n'a pas ce dépôt.
+   */
+  tseApi.battement = () => new Promise((resolve) => {
+    const carte = document.querySelector('.side-nav-card.tse-fresh');
+    const reduit = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!carte) {
+      resolve({ verdict: 'aucune chaîne en direct depuis moins de dix minutes',
+                fraiches: 0, mouvementReduit: reduit });
+      return;
+    }
+    const anim = document.getAnimations().find(
+      a => a.effect && a.effect.pseudoElement === '::before' && a.effect.target === carte);
+    const st = () => {
+      const c = getComputedStyle(carte, '::before');
+      const m = new window.DOMMatrixReadOnly(c.transform);
+      return { o: parseFloat(c.opacity), l: parseFloat(c.width) * (m.a || 1) };
+    };
+    if (!anim) {
+      const v = st();
+      resolve({ verdict: reduit
+                  ? 'immobile — mouvement réduit demandé par le système'
+                  : 'AUCUNE ANIMATION sur la barre : la règle ne s\'applique pas',
+                fraiches: document.querySelectorAll('.side-nav-card.tse-fresh').length,
+                mouvementReduit: reduit, animations: 0,
+                opacite: v.o, largeur: +v.l.toFixed(2) });
+      return;
+    }
+    const duree = anim.effect.getComputedTiming().duration || 1400;
+    const debut = performance.now();
+    let oMin = 9, oMax = -1, lMin = 9e9, lMax = -1;
+    const pas = () => {
+      const v = st();
+      oMin = Math.min(oMin, v.o); oMax = Math.max(oMax, v.o);
+      lMin = Math.min(lMin, v.l); lMax = Math.max(lMax, v.l);
+      if (performance.now() - debut < duree * 1.1) { requestAnimationFrame(pas); return; }
+      const ecart = oMax / Math.max(oMin, 0.001);
+      resolve({
+        verdict: anim.playState !== 'running' ? 'animation ' + anim.playState
+               : ecart >= 2.5 ? 'le battement est bien là'
+               : 'animation en cours mais AMPLITUDE PLATE — rien à voir à l\'œil',
+        fraiches: document.querySelectorAll('.side-nav-card.tse-fresh').length,
+        mouvementReduit: reduit, animations: 1, etat: anim.playState,
+        dureeMs: duree, opaciteMin: +oMin.toFixed(3), opaciteMax: +oMax.toFixed(3),
+        rapport: +ecart.toFixed(2),
+        largeurMin: +lMin.toFixed(2), largeurMax: +lMax.toFixed(2),
+      });
+    };
+    requestAnimationFrame(pas);
+  });
 
   // Expose en lecture seule pour éviter qu'un autre script ne l'écrase.
   //

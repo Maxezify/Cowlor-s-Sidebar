@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 948 Ko | 362 Ko | 3 218 → **2** |
+| `content.js` | 953 Ko | 364 Ko | 3 220 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 71 Ko | 35 Ko | 90 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1166 Ko** | **503 Ko** | **−57 %** |
+| **les cinq** | **1171 Ko** | **505 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1033 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1040 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2613,6 +2613,74 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Faire dire à la page ce qu'on ne peut pas y voir (v4.8.1)
+
+« Toujours pas de clignotement côté Chrome. » Troisième fois. J'y ai répondu
+deux fois par une hypothèse — d'abord le halo qui sautait faute de couches
+appariées, puis `prefers-reduced-motion`, que Chrome et Firefox ne rapportent pas
+pareil sous Windows. Les deux corrections étaient justes ; aucune n'a réglé le
+problème, et aucune n'était **vérifiable d'ici**.
+
+Cette machine ne joint pas Twitch. Un battement ne se prouve pas par un
+raisonnement, et j'ai déjà écrit dans ce README ce que coûte une correction
+fondée sur une supposition — quatre versions, sur la ligne du pseudo. Cette
+fois, la page répond elle-même.
+
+### Quatre nombres à la place de deux hypothèses
+
+Le rapport porte désormais un bloc `battement`, et chacune de ses lignes ferme
+une branche entière de l'enquête :
+
+```
+battement.fraiches     0     ← aucune chaîne en direct depuis moins de dix minutes
+battement.animations   0     ← la règle ne s'applique pas : sélecteur, cascade, feuille
+battement.etat     running   ← « paused » dirait un navigateur qui gèle ses animations
+mouvementReduit     true     ← l'utilisateur a demandé l'immobilité
+```
+
+Aucune de ces quatre réponses n'a besoin d'être devinée. Et la première n'aurait
+jamais été produite par une hypothèse : il n'y a peut-être rien à voir **parce
+qu'il n'y a rien à montrer**.
+
+### Et une commande pour l'amplitude
+
+Un instantané dit qu'une animation existe et qu'elle tourne. Il ne dit pas qu'on
+la **voie** : une animation peut être présente, à la bonne durée, en cours — et
+parfaitement invisible si son amplitude est plate. C'est exactement ce que
+décrit « ça ne clignote pas » sans que rien ne paraisse cassé.
+
+```js
+await tse.battement()
+// { verdict: "le battement est bien là", fraiches: 1, animations: 1,
+//   etat: "running", dureeMs: 1400, opaciteMin: 0.3, opaciteMax: 1,
+//   rapport: 3.33, largeurMin: 3, largeurMax: 6 }
+```
+
+Le relevé se fait image par image sur un cycle entier, dont la durée est **lue
+sur l'animation** et jamais recopiée. Quatre verdicts possibles, et ils ne se
+confondent pas : pas de chaîne fraîche · aucune animation · immobile par demande
+du système · amplitude plate.
+
+### Le scénario 116 éprouve le diagnostic, pas le battement
+
+Sept assertions, trois mutants, aucun survivant. Ce dépôt a déjà livré **deux
+diagnostics qui regardaient à côté** — le bloc de centrage sautait justement les
+cartes dont le centrage était signalé, et `sansAncre` comptait des crochets là où
+l'ancre était devenue autre chose. Un diagnostic qu'on ne mesure pas ment aussi
+bien qu'un autre.
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| le compte d'animations ne filtre plus sur la barre | il annonce deux animations là où il n'y en a aucune |
+| le verdict ne distingue plus l'immobilité demandée | « règle absente » là où l'utilisateur a demandé le calme |
+| l'amplitude ne décide plus du verdict | « le battement est bien là » sur une animation plate |
+
+**Le troisième mutant a survécu à la première rédaction**, et c'est lui qui a
+fait écrire la quatrième situation du scénario : dans un décor sain, mesurer
+l'amplitude ou se contenter de trouver l'animation donne le même verdict. Il
+fallait le décor où elles divergent — des arrêts aplatis, animation intacte — et
+c'est justement la branche pour laquelle cette commande existe.
 
 ## Les deux thèmes de Twitch (v4.8)
 
@@ -6480,7 +6548,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 115 scénarios, 1033 assertions |
+| `npm test` | le harnais Playwright : 116 scénarios, 1040 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

@@ -14857,6 +14857,122 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await page.close();
 }
 
+/* ═════════ FAIRE DIRE À LA PAGE CE QU'ON NE PEUT PAS Y VOIR ════════════
+   « Toujours pas de clignotement côté Chrome » est arrivé deux fois, et j'y ai
+   répondu deux fois par une hypothèse — la seconde étant que le navigateur
+   rapportait « mouvement réduit ». Aucune des deux n'était vérifiable d'ici :
+   cette machine ne joint pas Twitch, et un battement ne se prouve pas par un
+   raisonnement.
+
+   QUATRE NOMBRES REMPLACENT LES DEUX HYPOTHÈSES. Le rapport dit désormais
+   combien de cartes sont fraîches, combien d'animations portent la barre, dans
+   quel état elles sont, et si l'utilisateur a demandé l'immobilité. Chacune de
+   ces quatre réponses ferme une branche entière de l'enquête, et aucune ne
+   demande à être devinée.
+
+   ET UNE COMMANDE POUR L'AMPLITUDE, parce qu'un instantané ne suffit pas : une
+   animation peut tourner et ne rien montrer. « await tse.battement() » relève
+   le rendu image par image sur un cycle entier — durée lue sur l'animation,
+   jamais recopiée — et rend l'écart d'opacité réellement parcouru.
+
+   CE SCÉNARIO ÉPROUVE LE DIAGNOSTIC LUI-MÊME, dans ses trois situations. Un
+   diagnostic qu'on ne mesure pas ment aussi bien qu'un autre — ce dépôt en a
+   livré deux qui regardaient à côté, et c'est un audit qui les a trouvés. */
+{
+  titre('116. Le battement se constate — le rapport et la commande le disent');
+  const page = await fresh();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+
+  /* ── SITUATION 1 : AUCUNE CHAÎNE FRAÎCHE ────────────────────────────────
+     C'est la réponse la plus banale, et celle qu'aucune hypothèse n'aurait
+     produite : il n'y a rien à voir parce qu'il n'y a rien à montrer. */
+  await page.evaluate(() => {
+    window.__fx = { vieux: { id: 'v', createdAt: new Date(Date.now() - 6 * 3600e3).toISOString(),
+                             viewers: 900, game: 'Just Chatting', tags: [] } };
+    window.__addCard('vieux', 'Discussions', '900');
+  });
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 1, 9000);
+  const rien = await page.evaluate(async () => ({
+    rapport: window.tse.panneau.rapport().page.battement,
+    mesure: await window.tse.battement(),
+  }));
+  ok('sans chaîne fraîche, le rapport le dit et la commande le nomme',
+     rien.rapport.fraiches === 0 && rien.rapport.animations === 0
+     && /aucune chaîne/.test(rien.mesure.verdict),
+     JSON.stringify(rien));
+
+  /* ── SITUATION 2 : LE BATTEMENT TOURNE ──────────────────────────────────
+     Le cas nominal. On exige que la commande mesure une AMPLITUDE, pas
+     seulement qu'elle trouve une animation. */
+  await page.evaluate(() => {
+    window.__fx.neuf = { id: 'n', createdAt: new Date().toISOString(),
+                         viewers: 800, game: 'Just Chatting', tags: [] };
+    window.__addCard('neuf', 'Discussions', '800');
+  });
+  await attendre(page,
+    () => !!document.querySelector('.side-nav-card.tse-fresh'), 9000);
+  const vivant = await page.evaluate(async () => ({
+    rapport: window.tse.panneau.rapport().page.battement,
+    mesure: await window.tse.battement(),
+  }));
+  ok('quand une chaîne est fraîche, le rapport compte la carte et l\'animation',
+     vivant.rapport.fraiches >= 1 && vivant.rapport.animations >= 1
+     && vivant.rapport.etat === 'running', JSON.stringify(vivant.rapport));
+  ok('…et la commande mesure l\'amplitude réellement parcourue',
+     vivant.mesure.rapport >= 2.5 && vivant.mesure.opaciteMin <= 0.4
+     && vivant.mesure.largeurMax - vivant.mesure.largeurMin >= 2,
+     JSON.stringify(vivant.mesure));
+  ok('…et son verdict le dit en toutes lettres',
+     /le battement est bien là/.test(vivant.mesure.verdict), vivant.mesure.verdict);
+
+  /* ── SITUATION 3 : ELLE TOURNE, ET ON NE VOIT RIEN ──────────────────────
+     La branche pour laquelle cette commande existe. Une animation peut être
+     présente, en cours, à la bonne durée — et parfaitement invisible, parce
+     que son amplitude est plate. C'est exactement ce qu'un rapport
+     d'instantané ne peut PAS dire, et c'est le défaut que l'utilisateur
+     décrit : « ça ne clignote pas », sans que rien ne paraisse cassé.
+
+     ON APLATIT LES ARRÊTS SANS TOUCHER À L'ANIMATION : même nom, même durée,
+     même état « running ». Seule l'amplitude disparaît. */
+  await page.evaluate(() => {
+    const st = document.createElement('style');
+    st.id = 'aplatir';
+    st.textContent = '@keyframes tse-fresh-pulse {'
+      + '0%, 100% { opacity: 1; transform: scaleX(1); }'
+      + '50% { opacity: 1; transform: scaleX(1); } }';
+    document.head.appendChild(st);
+  });
+  await wait(page, 200);
+  const plat = await page.evaluate(async () => ({
+    rapport: window.tse.panneau.rapport().page.battement,
+    mesure: await window.tse.battement(),
+  }));
+  ok('une animation qui tourne mais ne montre rien est NOMMÉE comme telle',
+     plat.rapport.etat === 'running' && /AMPLITUDE PLATE/.test(plat.mesure.verdict),
+     JSON.stringify({ etat: plat.rapport.etat, verdict: plat.mesure.verdict,
+                      rapport: plat.mesure.rapport }));
+  await page.evaluate(() => document.getElementById('aplatir').remove());
+  await wait(page, 200);
+
+  /* ── SITUATION 4 : L'IMMOBILITÉ DEMANDÉE ────────────────────────────────
+     La branche qui a coûté deux versions. Elle doit se lire d'un coup d'œil,
+     et surtout ne pas se confondre avec « la règle ne s'applique pas ». */
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await wait(page, 300);
+  const calme = await page.evaluate(async () => ({
+    rapport: window.tse.panneau.rapport().page,
+    mesure: await window.tse.battement(),
+  }));
+  ok('mouvement réduit : le rapport le dit, et la barre n\'a plus d\'animation',
+     calme.rapport.mouvementReduit === true && calme.rapport.battement.animations === 0,
+     JSON.stringify(calme.rapport.battement));
+  ok('…et la commande distingue « immobile par demande » de « règle absente »',
+     /mouvement réduit demandé/.test(calme.mesure.verdict)
+     && calme.mesure.opacite === 1, JSON.stringify(calme.mesure));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
