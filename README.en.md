@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1033 assertions, under Gecko
+npm run test-firefox        # the same 1040 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,73 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Making the page say what cannot be seen from here (v4.8.1)
+
+"Still no blink on Chrome." Third time. I answered twice with a hypothesis —
+first the halo that jumped for want of matched shadow layers, then
+`prefers-reduced-motion`, which Chrome and Firefox do not report alike on
+Windows. Both fixes were right; neither settled the problem, and neither was
+**verifiable from here**.
+
+This machine cannot reach Twitch. A pulse is not proved by reasoning, and this
+README already records what a fix built on a supposition costs — four versions,
+on the pseudonym's line. This time the page answers for itself.
+
+### Four numbers instead of two hypotheses
+
+The report now carries a `battement` block, and each of its lines closes an
+entire branch of the enquiry:
+
+```
+battement.fraiches     0     ← no channel live for under ten minutes
+battement.animations   0     ← the rule does not apply: selector, cascade, stylesheet
+battement.etat     running   ← "paused" would mean a browser freezing its animations
+mouvementReduit     true     ← the user asked for stillness
+```
+
+None of those four answers needs guessing. And the first would never have come
+from a hypothesis: perhaps there is nothing to see **because there is nothing to
+show**.
+
+### And a command for the amplitude
+
+A snapshot says an animation exists and is running. It does not say it can be
+**seen**: an animation can be present, at the right duration, in progress — and
+perfectly invisible if its amplitude is flat. That is exactly what "it doesn't
+blink" describes while nothing looks broken.
+
+```js
+await tse.battement()
+// { verdict: "le battement est bien là", fraiches: 1, animations: 1,
+//   etat: "running", dureeMs: 1400, opaciteMin: 0.3, opaciteMax: 1,
+//   rapport: 3.33, largeurMin: 3, largeurMax: 6 }
+```
+
+The reading is taken frame by frame over one full cycle, whose duration is
+**read off the animation** and never copied. Four possible verdicts, and they do
+not blur into each other: no fresh channel · no animation · still by system
+request · flat amplitude.
+
+### Scenario 116 tests the diagnostic, not the pulse
+
+Seven assertions, three mutants, no survivors. This repository has already
+shipped **two diagnostics that looked elsewhere** — the centring block skipped
+precisely the cards whose centring was reported, and `sansAncre` counted hooks
+where the anchor had become something else. A diagnostic you do not measure lies
+as readily as anything else.
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| the animation count no longer filters on the bar | it reports two animations where there are none |
+| the verdict no longer distinguishes requested stillness | "rule absent" where the user asked for calm |
+| amplitude no longer decides the verdict | "the pulse is there" on a flat animation |
+
+**The third mutant survived the first draft**, and it is what prompted the
+scenario's fourth situation: in a healthy fixture, measuring the amplitude or
+merely finding the animation yields the same verdict. The fixture where they
+diverge was needed — flattened keyframes, animation intact — and that is exactly
+the branch this command exists for.
 
 ## The two Twitch themes (v4.8)
 
@@ -5766,7 +5833,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 115 scenarios, 1033 assertions |
+| `npm test` | the Playwright harness: 116 scenarios, 1040 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -5786,12 +5853,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 948 KB | 362 KB | 3,218 → **2** |
+| `content.js` | 953 KB | 364 KB | 3,220 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 71 KB | 35 KB | 90 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1166 KB** | **503 KB** | **−57 %** |
+| **all five** | **1171 KB** | **505 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
