@@ -900,6 +900,12 @@ titre('17. Badge collab — le pré-filtre ne change rien au comportement');
     const sp = document.createElement('span');
     sp.textContent = '+3';
     d.querySelector('[data-a-target="side-nav-card-metadata"]').appendChild(sp);
+    /* ET SON PSEUDO N'A PAS LE CROCHET DE TWITCH. C'est le second signalement,
+       sur la même chaîne : la disposition « En live avec » ne porte pas
+       data-a-target="side-nav-title". Le repli de modèle ne servait alors à
+       rien — le clonage renonçait juste après, et « Top Chaînes » restait vide
+       avec « modele: repli » écrit dans le rapport. */
+    d.querySelector('p[data-a-target="side-nav-title"]').removeAttribute('data-a-target');
     // Forme « texte en fin de nœud » : « Cat +2 » dans un même nœud texte.
     const t = window.__addCard('trio', 'G', '3 k');
     t.querySelector('p[title]').textContent = 'Cat +2';
@@ -1120,6 +1126,12 @@ titre('23. Clonage — une carte décorée sert de modèle, nettoyée');
     const sp = document.createElement('span');
     sp.textContent = '+3';
     d.querySelector('[data-a-target="side-nav-card-metadata"]').appendChild(sp);
+    /* ET SON PSEUDO N'A PAS LE CROCHET DE TWITCH. C'est le second signalement,
+       sur la même chaîne : la disposition « En live avec » ne porte pas
+       data-a-target="side-nav-title". Le repli de modèle ne servait alors à
+       rien — le clonage renonçait juste après, et « Top Chaînes » restait vide
+       avec « modele: repli » écrit dans le rapport. */
+    d.querySelector('p[data-a-target="side-nav-title"]').removeAttribute('data-a-target');
     window.__addCard('dormant', 'G', 'Déconnecté', false);
   });
   await wait(page, 1500);
@@ -13659,6 +13671,12 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     const sp = document.createElement('span');
     sp.textContent = '+2';
     d.querySelector('[data-a-target="side-nav-card-metadata"]').appendChild(sp);
+    /* ET SON PSEUDO N'A PAS LE CROCHET DE TWITCH. C'est le second signalement,
+       sur la même chaîne : la disposition « En live avec » ne porte pas
+       data-a-target="side-nav-title". Le repli de modèle ne servait alors à
+       rien — le clonage renonçait juste après, et « Top Chaînes » restait vide
+       avec « modele: repli » écrit dans le rapport. */
+    d.querySelector('p[data-a-target="side-nav-title"]').removeAttribute('data-a-target');
     const cats = [];
     for (let i = 0; i < 3; i++) {
       const streams = [];
@@ -13693,10 +13711,26 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
       mini:   faites.filter(c =>
         !!c.querySelector('img[alt^="Co-stream d\'un stream de "]')).length,
       icone:  faites.filter(c => !!c.querySelector('[class*="iconContainer--"]')).length,
+      /* OÙ LE NOM ET LA CATÉGORIE ONT ÉTÉ ÉCRITS. Le repli choisit la ligne du
+         pseudo sans le crochet de Twitch : s'il se trompait de ligne, le nom
+         irait dans la catégorie — la carte resterait « fabriquée », les
+         compteurs seraient verts, et elle afficherait n'importe quoi. */
+      lignes: faites.slice(0, 1).map(c => [...c.querySelectorAll(
+        '[data-a-target="side-nav-card-metadata"] p')].map(x => x.textContent.trim())),
     };
   });
   ok('le classement s\'affiche même quand l\'unique carte disponible est décorée',
      etat.fabriquees >= 10, JSON.stringify(etat));
+  /* LE RAPPORT NE DOIT PLUS AVOIR DE RAISON DE RENONCER. Un « modele: repli »
+     accompagné de « fabriquees 0 » ne disait pas ce qui avait manqué ; c'est
+     l'écart qu'un utilisateur a rapporté deux fois de suite. */
+  const refus = await page.evaluate(() =>
+    window.tse.panneau.rapport().page.modeleRefus);
+  ok('…et le rapport ne signale aucun renoncement du clonage',
+     refus === null, String(refus));
+  ok('…le nom et la catégorie sont écrits chacun sur sa ligne',
+     JSON.stringify(etat.lignes[0] || []) === JSON.stringify(['g0_0', 'c0']),
+     JSON.stringify(etat.lignes));
   ok('…et aucune des marques du modèle n\'a voyagé sur les cartes fabriquées',
      etat.collab === 0 && etat.plus === 0 && etat.mini === 0 && etat.icone === 0,
      JSON.stringify(etat));
@@ -13720,6 +13754,33 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   const voieNeutre = await page.evaluate(() => window.tse.panneau.rapport().page.modele);
   ok('…et le modèle neutre reprend la main dès qu\'il en existe un',
      voieNeutre === 'neutre', String(voieNeutre));
+
+  /* ── LE TROISIÈME APPELANT DU REPÈRE, ET IL ÉCRIVAIT DÉJÀ FAUX ───────────
+     `cardNameEl` sert aussi à l'aperçu, qui lit le pseudo SUR LA CARTE pour
+     nommer un hôte de co-stream. Privé du crochet, il retombait sur la
+     capitalisation du login : le badge annonçait « Co-stream de Seule » quand
+     la carte de l'hôte, deux lignes plus haut, affichait « seule ». Personne
+     ne l'a signalé — c'est précisément pourquoi il fallait l'attraper ici.
+
+     ON AJOUTE DONC UNE TROISIÈME CARTE, co-streameuse de `seule`, et on la
+     survole : le nom de l'hôte vient de la carte sans crochet. Elle arrive
+     APRÈS les assertions de modèle, qu'elle fausserait en s'y mêlant. */
+  await page.evaluate((iso) => {
+    window.__costreamHost.duo = 'seule';
+    window.__fx.duo = { id: 's3', createdAt: iso, viewers: 700,
+                        game: 'Just Chatting', tags: [] };
+    window.__addCard('duo', 'Discussions', '700');
+    window.tse.rescan();
+  }, h);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 3, 9000);
+  await hoverLogin(page, 'duo');
+  await attendre(page,
+    () => !!document.querySelector('.tse-preview__badge--costream strong'), 8000);
+  const hote = await page.evaluate(() =>
+    document.querySelector('.tse-preview__badge--costream strong')?.textContent ?? null);
+  ok('…et l\'aperçu nomme l\'hôte avec le pseudo de SA carte, non la capitalisation du login',
+     hote === 'seule', String(hote));
 
   await page.close();
 }
