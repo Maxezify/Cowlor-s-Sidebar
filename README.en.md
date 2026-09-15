@@ -326,7 +326,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 876 KB | 348 KB | 3,170 → **2** |
+| `content.js` | 879 KB | 349 KB | 3,171 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 69 KB | 34 KB | 85 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 955 assertions, under Gecko
+npm run test-firefox        # the same 958 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,78 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The probe that almost never fired (v4.3.1)
+
+4.3 added a probe that asks Twitch for a channel's archives in order to find an
+outage we did not witness. The report from the user who tried it fits in one
+number:
+
+```
+chapitres.reprise.sondes 1        ← out of 229 hovers
+chapitres.reprise.trouvees 0
+```
+
+### Two durations with nothing in common
+
+A guard required the current stream to be **less than ten minutes old**, on the
+grounds that "a stream older than the resumption window can no longer be the
+segment after anything". It conflated:
+
+- **the age of the current stream**, which keeps growing;
+- **the gap** between the end of the previous archive and this stream's start —
+  two instants **fixed in the past**, whose distance never changes again.
+
+A stream that has been running for an hour and a half after a three-minute
+outage still has a three-minute gap. The reported channel was at **1h37** when
+tested: unprobeable, for a reason that did not exist.
+
+### The badge and the fact do not have the same lifetime
+
+This was already written elsewhere in the file, and the guard contradicted it:
+"Resumed after outage" is **news**, it goes out after ten minutes. The **fact**
+belongs to the whole stream — six hours later, that stream has still been cut,
+and that is what the trail must be able to say.
+
+Adopting an hour-old resumption therefore lights **no** badge: its timestamp is
+the segment's, not the discovery's. It yields the origin, the outage count, the
+mark on the ribbon, and the past from before the cut.
+
+### What actually bounds the cost
+
+Not the stream's age, but three things that are true:
+
+- **one operation per stream session** — the registry of already-probed
+  sessions;
+- **on hover only**, never on a scan;
+- **never on an already-chained channel**, whether by observation or by an
+  earlier probe.
+
+Plus a per-page ceiling (`RECONNECT_PROBE_MAX`), a net against an unforeseen
+state, whose saturation would show in the report.
+
+### The CENTRING block was silent, and did not say why
+
+The first report returned `cartes 0` — which does not separate "no channel is
+uncategorised right now" from "the marker is not being set". The block therefore
+carries a second number, `sansLigne`, counted on what the **DOM** shows rather
+than on our marker, and the geometry is measured on the **union** of both
+populations. Equal, the marker follows the DOM; `sansLigne` alone non-zero, and
+it is the marker to go and look at.
+
+### Scenario 102 now carries the case that was missing
+
+A **two-hour** stream after a one-second outage — the reported channel,
+transposed to the bench's scale. Three assertions, and the mutant restoring
+4.3's guard brings down three:
+
+| Mutant | Assertions that fall |
+| --- | --- |
+| the "stream under ten minutes" guard is restored | 3 |
+| the per-page ceiling is set to zero | 4 |
+
+The first is exactly the defect shipped in 4.3. The bench could not see it: all
+its streams were young.
 
 ## The resumption that did not work (v4.3)
 
@@ -5212,7 +5284,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 102 scenarios, 955 assertions |
+| `npm test` | the Playwright harness: 102 scenarios, 958 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

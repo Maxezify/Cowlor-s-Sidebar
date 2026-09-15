@@ -10659,7 +10659,7 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
       for (const n of p.childNodes) if (n.nodeType === 3) n.__tseTemoin = true;
     }
   }, LONG);
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 6);
 
   const lire = () => page.evaluate(() => {
     const out = {};
@@ -11415,7 +11415,7 @@ titre('94. L\'aperçu au survol — un délai d\'intention, et ce qu\'il filtre'
       window.__addCard(l, 'Discussions', '500');
     }
   });
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 6);
   /* ATTENDRE QUE LE VOILE SE LÈVE, et ce n'est pas une précaution de confort :
      le voile de chargement couvre la barre, et un VRAI pointeur ne traverse
      pas un élément posé par-dessus. Tant qu'il est là, aucune carte ne reçoit
@@ -11668,7 +11668,7 @@ titre('95. La reprise après coupure — un badge, une barre, et une frise qui n
       window.__addCard(l, 'Discussions', '900');
     }
   }, { vieux: h(360) });
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 6);
 
   const etat = (login) => page.evaluate((l) => {
     const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
@@ -13009,7 +13009,7 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
   const page = await fresh();
   const ilYa = (ms) => new Date(Date.now() - ms).toISOString();
 
-  await page.evaluate(({ neuf, vieux }) => {
+  await page.evaluate(({ neuf, vieux, vieilDepart }) => {
     // Les quatre chaînes viennent de démarrer : c'est la seule situation où la
     // sonde part, et c'est celle d'un onglet ouvert pendant la coupure.
     const mk = (id, titre) => ({ id, sid: 's-' + id, createdAt: neuf, viewers: 900,
@@ -13021,6 +13021,14 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
       marathon: mk('r3', 'SUBATHON JOUR 12 — on continue'),
       sansvod:  mk('r4'),
       muette:   mk('r5'),
+      /* LE CAS PAYO. Le direct tourne depuis DEUX HEURES après une coupure de
+         rien du tout. La 4.3 ne le sondait pas — une garde exigeait un direct
+         de moins de dix minutes — et le rapport de l'utilisateur l'a dit en un
+         chiffre : « sondes 1 » sur deux cent vingt-neuf survols. L'âge du
+         direct et le trou entre les deux tronçons sont deux durées sans
+         rapport : la seconde ne bouge plus jamais. */
+      ancien:   { id: 'r6', sid: 's-r6', createdAt: vieilDepart, viewers: 900,
+                  game: 'VALORANT', tags: [] },
     };
     /* CINQ HEURES D'ARCHIVE, terminées juste avant le départ du direct : c'est
        le tronçon d'avant. Les chapitres qu'elle porte sont le passé que plus
@@ -13045,12 +13053,21 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
       // Une archive qui raccorde, mais SANS le moindre chapitre : on apprend
       // l'origine et la coupure, rien du contenu.
       muette:   [archive(1_000, [])],
+      /* L'archive d'avant s'est terminée une seconde avant le départ de ce
+         direct-là — c'est-à-dire il y a deux heures et une seconde. Le trou
+         vaut toujours une seconde. */
+      ancien:   [{ createdAt: vieilDepart, lengthSeconds: 7200, chapitres: [] },
+                 { createdAt: vieux,
+                   lengthSeconds: Math.round(
+                     (Date.parse(vieilDepart) - 1_000 - Date.parse(vieux)) / 1000),
+                   chapitres: passe }],
     };
-    for (const l of ['revenu', 'loin', 'marathon', 'sansvod', 'muette']) {
+    for (const l of ['revenu', 'loin', 'marathon', 'sansvod', 'muette', 'ancien']) {
       window.__addCard(l, 'VALORANT', '900');
     }
-  }, { neuf: ilYa(1_000), vieux: ilYa(5 * 3600_000) });
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
+  }, { neuf: ilYa(1_000), vieux: ilYa(5 * 3600_000),
+       vieilDepart: ilYa(2 * 3600_000) });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 6);
 
   const survoler = async (login) => {
     await hoverLogin(page, login);
@@ -13160,14 +13177,40 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
      muette.frise === null || /\dh/.test(muette.frise.total),
      JSON.stringify(muette.frise));
 
-  /* ── 6. CE QUE LA SONDE A COÛTÉ ET RAPPORTÉ ──────────────────────────────
+  /* ── 6. LE DIRECT ANCIEN — LE CAS QUI A COÛTÉ UNE VERSION ────────────────
+     Deux heures de direct après une coupure d'une seconde. La 4.3 ne le
+     sondait pas : une garde confondait l'ÂGE du direct courant avec le TROU
+     entre les deux tronçons. Le premier grandit sans cesse, le second est
+     figé dans le passé.
+
+     PAS DE BADGE, ET C'EST JUSTE : « Reprise après coupure » est une nouvelle,
+     elle s'éteint au bout de dix minutes. Le FAIT, lui, appartient au direct
+     entier — c'est la frise qui le porte, et c'est elle qu'on vérifie ici. */
+  await survoler('ancien');
+  await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 6000);
+  await wait(page, 400);
+  const ancien = await vue();
+  await relacher('ancien');
+  ok('un direct de deux heures gagne sa coupure comme un direct d\'une seconde',
+     /1/.test(ancien.frise?.coupures || ''), JSON.stringify(ancien.frise));
+  ok('…et son passé d\'avant la coupure, qui ne dépend pas de son âge',
+     ancien.frise !== null && ancien.frise.lignes.some(l => /Elden Ring/.test(l)),
+     JSON.stringify(ancien.frise));
+  /* LE BADGE NE SE RALLUME PAS POUR AUTANT : son horodatage est celui du
+     tronçon, pas celui de la découverte. Sans quoi une coupure vieille de deux
+     heures s'annoncerait comme une nouvelle pendant dix minutes de plus. */
+  ok('…sans rallumer un badge que la nouvelle a cessé d\'être',
+     !ancien.badges.some(c => /tse-preview__badge--reprise/.test(c)),
+     JSON.stringify(ancien.badges));
+
+  /* ── 7. CE QUE LA SONDE A COÛTÉ ET RAPPORTÉ ──────────────────────────────
      Le rapport est le seul œil qu'on ait sur ce mécanisme depuis une vraie
      page. `sondes` compte les directs jeunes interrogés — quatre, un par
      chaîne — et `adoptees` ceux qui ont gagné leur origine : un seul. */
   const bilan = await page.evaluate(() =>
     window.tse.panneau.rapport().reseau.chapitres.reprise);
   ok('le rapport dit ce que la sonde a demandé et ce qu\'elle a trouvé',
-     bilan && bilan.sondes === 5 && bilan.trouvees === 3 && bilan.adoptees === 2,
+     bilan && bilan.sondes === 6 && bilan.trouvees === 4 && bilan.adoptees === 3,
      JSON.stringify(bilan));
   /* UNE SEULE FOIS PAR SESSION DE STREAM. Le survol se répète, la requête non :
      sans cette garde, chaque passage de souris relancerait la même opération

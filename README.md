@@ -338,7 +338,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 876 Ko | 348 Ko | 3 170 → **2** |
+| `content.js` | 879 Ko | 349 Ko | 3 171 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 69 Ko | 34 Ko | 85 → **0** |
 | `bridge.js` | 11 Ko | 3 Ko | 20 → **0** |
@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 955 assertions, sous Gecko
+npm run test-firefox        # les mêmes 958 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2613,6 +2613,78 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La sonde qui ne partait presque jamais (v4.3.1)
+
+La 4.3 a ajouté une sonde qui demande à Twitch les archives d'une chaîne pour y
+retrouver une coupure qu'on n'a pas vue passer. Le rapport de l'utilisateur qui
+l'a essayée tient en un chiffre :
+
+```
+chapitres.reprise.sondes 1        ← sur 229 survols
+chapitres.reprise.trouvees 0
+```
+
+### Deux durées qui n'ont rien à voir
+
+Une garde exigeait que le direct courant ait **moins de dix minutes**, au motif
+qu'« un direct plus vieux que la fenêtre de reprise ne peut plus être le tronçon
+d'après quoi que ce soit ». Elle confondait :
+
+- **l'âge du direct courant**, qui grandit sans cesse ;
+- **le trou** entre la fin de l'archive d'avant et le départ de ce direct — deux
+  instants **fixes dans le passé**, dont l'écart ne bouge plus jamais.
+
+Un direct qui tourne depuis une heure et demie après une coupure de trois
+minutes a toujours un trou de trois minutes. La chaîne signalée était à **1h37**
+au moment du test : insondable, et pour une raison qui n'existait pas.
+
+### Le badge et le fait n'ont pas la même durée de vie
+
+C'était déjà écrit ailleurs dans le fichier, et la garde le contredisait :
+« Reprise après coupure » est une **nouvelle**, elle s'éteint au bout de dix
+minutes. Le **fait**, lui, appartient au direct entier — six heures plus tard,
+ce direct a toujours été coupé, et c'est ce que la frise doit pouvoir dire.
+
+Adopter une reprise vieille d'une heure ne rallume donc **aucun** badge : son
+horodatage est celui du tronçon, pas celui de la découverte. Elle rend l'origine,
+le compte de coupures, la marque sur le ruban et le passé d'avant la coupure.
+
+### Ce qui borne vraiment la dépense
+
+Pas l'âge du direct, mais trois choses qui, elles, sont vraies :
+
+- **une opération par session de stream** — le registre des sessions déjà
+  sondées ;
+- **au survol seulement**, jamais au scan ;
+- **jamais sur une chaîne déjà chaînée**, par observation ou par une sonde
+  précédente.
+
+Plus un plafond par page (`RECONNECT_PROBE_MAX`), filet contre un état imprévu,
+dont la saturation se lirait dans le rapport.
+
+### Le bloc CENTRAGE était muet, et il ne disait pas pourquoi
+
+Le premier rapport a rendu `cartes 0` — ce qui ne distingue pas « aucune chaîne
+n'est sans catégorie en ce moment » de « le marqueur ne se pose pas ». Le bloc
+porte donc un second nombre, `sansLigne`, compté sur ce que le **DOM** montre
+plutôt que sur notre marqueur, et la géométrie est mesurée sur l'**union** des
+deux populations. Égaux, le marqueur suit le DOM ; `sansLigne` seul non nul,
+c'est le marqueur qu'il faut aller voir.
+
+### Le scénario 102 porte désormais le cas qui manquait
+
+Un direct de **deux heures** après une coupure d'une seconde — la chaîne
+signalée, transposée à l'échelle du banc. Trois assertions, et le mutant qui
+rétablit la garde de la 4.3 en fait tomber trois :
+
+| Mutant | Assertions qui tombent |
+| --- | --- |
+| la garde « direct de moins de dix minutes » est rétablie | 3 |
+| le plafond par page est posé à zéro | 4 |
+
+Le premier est exactement le défaut livré en 4.3. Le banc ne pouvait pas le
+voir : tous ses directs étaient jeunes.
 
 ## La reprise qui ne marchait pas (v4.3)
 
@@ -5457,7 +5529,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 102 scénarios, 955 assertions |
+| `npm test` | le harnais Playwright : 102 scénarios, 958 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
