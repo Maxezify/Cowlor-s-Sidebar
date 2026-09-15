@@ -14164,6 +14164,137 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await page.close();
 }
 
+/* ═════════ TWITCH SORT LE PSEUDO DU GROUPE ═════════════════════════════
+   Signalement : « le nom de streamer et sa catégorie sur Top Chaînes sont
+   inversés ». Et pour la première fois, le rapport portait de quoi répondre
+   sans deviner — le recensement ajouté la veille disait :
+
+     crochet  9 / 10     ← le crochet d'automatisation est bien là
+     p1       10         ← mais le groupe nom+catégorie n'a qu'UNE ligne
+
+   Ce groupe en a toujours porté DEUX. Twitch en a sorti le pseudo : il vit
+   désormais à côté, dans le bloc marqué, et `.side-nav-card__metadata` ne
+   porte plus que la catégorie. Les neuf cartes qui gardent le crochet ne s'en
+   ressentent pas ; la dixième — une carte décorée, celle qui sert justement de
+   modèle — cherchait son pseudo DANS le groupe, et n'y trouvait que la
+   catégorie. La carte fabriquée portait donc sa catégorie en guise de pseudo,
+   et son pseudo en guise de catégorie.
+
+   TROIS RÉDACTIONS ONT CHERCHÉ UN ATTRIBUT, et le terrain les a démenties
+   l'une après l'autre. C'est L'ORDRE qui désigne le pseudo, et lui seul : il
+   est la première ligne, dans toutes les dispositions observées. */
+{
+  titre('109. Twitch sort le pseudo du groupe, et les deux lignes s\'inversent');
+  const page = await fresh();
+  const h = new Date(Date.now() - 3600_000).toISOString();
+  await page.evaluate((iso) => {
+    window.__fx = { yugi: { id: 's1', createdAt: iso, viewers: 4700,
+                            game: 'Rocket League', tags: [] } };
+    window.__addCard('yugi', 'Rocket League', '4,7 k');
+    const d = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a[href="/yugi"]'));
+    /* LE BALISAGE RELEVÉ SUR LE TERRAIN, et il tient en une ligne : le pseudo
+       SORT de `.side-nav-card__metadata`, qui ne garde que la catégorie. */
+    const boite = d.querySelector('[data-a-target="side-nav-card-metadata"]');
+    const groupe = d.querySelector('.side-nav-card__metadata');
+    const nom = d.querySelector('p[data-a-target="side-nav-title"]');
+    // Carte DÉCORÉE : pas de crochet — c'est elle qui sert de modèle, et c'est
+    // la seule des dix pour qui le repérage comptait.
+    nom.removeAttribute('data-a-target');
+    nom.setAttribute('title', 'Yugi');
+    boite.insertBefore(nom, groupe);
+    window.__cats = [{ name: 'WARDOGS', viewers: 400_000, streams:
+      Array.from({ length: 30 }, (_, k) => ({ login: 'w' + k, viewers: 31_000 - k,
+                                              tags: ['English'] })) }];
+  }, h);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 1, 9000);
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(30).length > 0, 9000);
+  await wait(page, 1500);
+
+  const etat = await page.evaluate(() => {
+    const r = window.tse.panneau.rapport();
+    const faites = [...document.querySelectorAll(
+      '.side-nav-card[data-tse-synthetic="true"]')];
+    return {
+      fabriquees: faites.length, sortie: r.page.sortie,
+      lignes: faites.slice(0, 1).map(c => [...c.querySelectorAll(
+        '[data-a-target="side-nav-card-metadata"] p')].map(x => x.textContent.trim())),
+      recense: r.lignes,
+    };
+  });
+  ok('le classement s\'affiche quand Twitch a sorti le pseudo du groupe',
+     etat.fabriquees >= 10 && etat.sortie === 'ok', JSON.stringify(etat));
+  /* LE DÉFAUT SIGNALÉ, ET IL NE SE VOIT QUE LÀ. Compter les cartes ne dit rien :
+     elles étaient toutes fabriquées, et toutes fausses. */
+  ok('…et le pseudo est sur la PREMIÈRE ligne, la catégorie sur la seconde',
+     JSON.stringify(etat.lignes[0] || []) === JSON.stringify(['w0', 'WARDOGS']),
+     JSON.stringify(etat.lignes));
+  /* ET LE RECENSEMENT NOMME LE DÉPLACEMENT. C'est lui qui a permis de répondre
+     du premier coup ; il doit donc dire ce décor, sans quoi il ne servira pas
+     la prochaine fois que Twitch déplacera quelque chose. */
+  ok('…et le recensement dit que le pseudo a quitté le groupe',
+     etat.recense.p1 === 1 && etat.recense.b2 === 1
+     && etat.recense.nomHorsGroupe === 1 && etat.recense.sansNom === 0,
+     JSON.stringify(etat.recense));
+  await page.close();
+}
+
+/* ═════════ AUCUN ATTRIBUT NE DÉSIGNE LE PSEUDO ═════════════════════════
+   Le scénario précédent reproduit le balisage du terrain, où les DEUX lignes
+   portent un `title`. L'ancienne heuristique — « le pseudo est la ligne sans
+   title » — y rend le même résultat que la règle d'ordre, par accident : elle
+   ne trouve rien et retombe sur la première ligne. Elle survivait donc au banc.
+
+   CELUI-CI LA DÉPARTAGE. Une carte où seul le PSEUDO porte un `title` — Twitch
+   le pose dès qu'il tronque, et une catégorie courte n'en a pas besoin — et
+   l'heuristique désigne alors la CATÉGORIE, avec aplomb. C'est la troisième
+   fois qu'un attribut prétend désigner le pseudo et se trompe ; cette
+   assertion existe pour qu'il n'y en ait pas de quatrième. */
+{
+  titre('110. Aucun attribut ne désigne le pseudo — seul l\'ordre le fait');
+  const page = await fresh();
+  const h = new Date(Date.now() - 3600_000).toISOString();
+  await page.evaluate((iso) => {
+    window.__fx = { zora: { id: 's1', createdAt: iso, viewers: 900,
+                            game: 'Just Chatting', tags: [] } };
+    window.__addCard('zora', 'Discussions', '900');
+    const d = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a[href="/zora"]'));
+    const nom = d.querySelector('p[data-a-target="side-nav-title"]');
+    nom.removeAttribute('data-a-target');   // carte décorée : pas de crochet
+    nom.setAttribute('title', 'zora');      // le pseudo est titré…
+    d.querySelector('p[title="Discussions"]').removeAttribute('title'); // …la catégorie non
+    window.__cats = [{ name: 'c0', viewers: 400_000, streams:
+      Array.from({ length: 30 }, (_, k) => ({ login: 'g' + k, viewers: 5000 - k,
+                                              tags: ['English'] })) }];
+  }, h);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 1, 9000);
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(30).length > 0, 9000);
+  await wait(page, 1500);
+
+  const etat = await page.evaluate(() => {
+    const faites = [...document.querySelectorAll(
+      '.side-nav-card[data-tse-synthetic="true"]')];
+    return {
+      fabriquees: faites.length,
+      lignes: faites.slice(0, 1).map(c => [...c.querySelectorAll(
+        '[data-a-target="side-nav-card-metadata"] p')].map(x => x.textContent.trim())),
+    };
+  });
+  ok('le classement s\'affiche quand seul le pseudo porte un title',
+     etat.fabriquees >= 10, JSON.stringify(etat));
+  ok('…et c\'est bien le pseudo qui est écrit sur la première ligne',
+     JSON.stringify(etat.lignes[0] || []) === JSON.stringify(['g0', 'c0']),
+     JSON.stringify(etat.lignes));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
