@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 983 assertions, under Gecko
+npm run test-firefox        # the same 991 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,83 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The two guards that cancelled each other (v4.5.3)
+
+4.5.2 fixed one path and left another one open. The next day's report said it in
+three lines:
+
+```
+modele        repli     ← a template was found, and cleaned
+modeleRefus   pseudo    ← and its clone had no pseudonym line
+fabriquees    0
+```
+
+`subathons.sansAncre 0` at the same moment: 4.5.2's fallback **worked** on the
+subathon card. It failed on the clone. What separates the two is one word: **the
+category**.
+
+### The fallback was biting its own tail
+
+`cardNameEl` looked for the line that is "neither the category nor carrying a
+`title`", and asked `cardCategoryEl` for the category. But `cardCategoryEl`'s
+LAST fallback is "the first `<p>` in the metadata" — that is, **the pseudonym
+itself**, as soon as the channel announces no category.
+
+On a card without the hook **and** without a category, one guard ruled out the
+name, the other ruled out the category, and nothing was left to write. The two
+guards, described as complementary, were in fact **mutually destructive** — on
+exactly the card they had been written for.
+
+The defect reproduces in eight lines of fixture, and it returns the report's
+three values verbatim: `{"fab":0,"modele":"repli","refus":"pseudo"}`.
+
+### And it hid a second one, which nobody would have seen coming
+
+The same confusion made the **pseudonym read as the category**. Card building
+therefore wrote the name into that `<p>`, then the category **on top of it**, in
+the same one. Fixing the first defect without seeing this one would have replaced
+an empty "Top Channels" with a **full and wrong** one: thirty cards named after
+their category. The assertion that reads what the built card carries is what
+showed it — not the one that counts them.
+
+The fix is in `cardCategoryEl`: its last fallback never returns the pseudonym's
+line. **A card with no category has no category**; `null` is the right answer.
+`data-tse-category` is therefore no longer the login, and the filters no longer
+apply to a category that does not exist.
+
+### A template is verified before being adopted
+
+That leaves the general shape of the defect, which would have survived the fix to
+the particular case. The second-choice template added in 4.5.1 comes **before**
+the memorised template; if it turns out to be unusable, card building returns
+`null` and the cloning gives up for good.
+
+So the candidate is now asked for what card building will ask of its clone: a
+link, and a pseudonym line. A candidate that fails is neither adopted **nor
+memorised** — it makes way for the next one, and failing that for the template
+picked up earlier in the session. A card that is not a channel card at all — a
+Twitch promotion, an invitation to open the stories — rules itself out here,
+without anyone having to name it. Both template loops are concerned: the world
+ranking and the cards that run ahead of Twitch.
+
+### Scenarios 105 and 106
+
+Eight assertions, four mutants, no survivors:
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| `cardCategoryEl` gets its naive fallback back | the built card carries "c0" instead of its pseudonym |
+| | …and the category-less channel gets one invented in its name |
+| the guard goes from the world ranking | the memorised template never takes over |
+| the guard goes from the ahead cards | not one card is laid down ahead any more |
+| the guard only checks the link | both at once |
+
+**The fixture had to be corrected once**, and the mistake is worth writing down:
+it put the unreadable card first *in the DOM*. But the order is decided by **the
+extension's own sorting**, which ranks by viewers — the clean card came back to
+the front, the guard had nothing left to rule out, and the mutant that removes it
+survived in silence. The unreadable card is now the more watched of the two.
 
 ## The pseudonym's line, when Twitch does not mark it (v4.5.2)
 
@@ -5205,7 +5282,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 104 scenarios, 983 assertions |
+| `npm test` | the Playwright harness: 106 scenarios, 991 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -5225,7 +5302,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 916 KB | 356 KB | 3,194 → **2** |
+| `content.js` | 917 KB | 356 KB | 3,197 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 69 KB | 34 KB | 85 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |

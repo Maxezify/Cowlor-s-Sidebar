@@ -9584,16 +9584,28 @@ const TSE_GATE_MAX_CLICKS = 5;
     card.querySelector('.tw-avatar') ||
     card.querySelector('img.tw-image-avatar')?.closest('figure, .tw-avatar, div');
 
-  const cardCategoryEl = (card) =>
-    card.querySelector('.side-nav-card__metadata p[title]') ||
-    card.querySelector('[data-a-target="side-nav-card-metadata"] p[title]') ||
-    // Cartes sponsorisées "promoted-followed" : la catégorie est dans
-    // .side-nav-promoted-followed-card__content (classe STABLE), hors de
-    // la metadata normale. Sans ce repli, le stream sponsorisé n'a pas de
-    // data-tse-category et échappe aux filtres catégorie/langue.
-    card.querySelector('[class*="promoted-followed-card__content"] p[title]') ||
-    card.querySelector('[class*="promoted-followed-card__content"] p') ||
-    card.querySelector('.side-nav-card__metadata p');
+  const cardCategoryEl = (card) => {
+    const marquee =
+      card.querySelector('.side-nav-card__metadata p[title]') ||
+      card.querySelector('[data-a-target="side-nav-card-metadata"] p[title]') ||
+      // Cartes sponsorisées "promoted-followed" : la catégorie est dans
+      // .side-nav-promoted-followed-card__content (classe STABLE), hors de
+      // la metadata normale. Sans ce repli, le stream sponsorisé n'a pas de
+      // data-tse-category et échappe aux filtres catégorie/langue.
+      card.querySelector('[class*="promoted-followed-card__content"] p[title]') ||
+      card.querySelector('[class*="promoted-followed-card__content"] p');
+    if (marquee) return marquee;
+    /* DERNIER REPLI : le premier <p> de la metadata — mais JAMAIS celui du
+       pseudo. Sans cette exclusion, une chaîne qui n'annonce AUCUNE catégorie
+       voyait son propre nom lu comme catégorie : `data-tse-category` valait le
+       login, les filtres s'y appliquaient, et la carte fabriquée par clonage
+       se voyait écrire « Discussions » à la place de son pseudo — trente
+       cartes nommées d'après leur catégorie. Une carte sans catégorie n'a pas
+       de catégorie ; c'est null qu'il faut rendre. */
+    const nom = cardNameEl(card);
+    return [...card.querySelectorAll('.side-nav-card__metadata p')]
+      .find(p => p !== nom) || null;
+  };
 
   /* ── OÙ VIT LE PSEUDO, ET CE QUI ARRIVE QUAND IL N'EST PAS LÀ ─────────────
      Tout ce fichier visait le pseudo par `p[data-a-target="side-nav-title"]`,
@@ -9621,9 +9633,16 @@ const TSE_GATE_MAX_CLICKS = 5;
     const groupe = card.querySelector('.side-nav-card__metadata')
                 || card.querySelector('[data-a-target="side-nav-card-metadata"]');
     if (!groupe) return null;
-    const cat = cardCategoryEl(card);
+    /* LA CATÉGORIE PORTE UN `title`, ET C'EST LE SEUL REPÈRE SÛR ICI. La
+       première rédaction la demandait à `cardCategoryEl` et croisait les deux
+       gardes. Or le DERNIER repli de `cardCategoryEl` est « le premier <p> de
+       la metadata » — c'est-à-dire LE PSEUDO, dès que la chaîne n'annonce
+       aucune catégorie. Sur une carte sans crochet ET sans catégorie, les
+       deux gardes s'annulaient : l'une écartait le nom, l'autre la catégorie,
+       et il ne restait rien. C'est le « modeleRefus: pseudo » rapporté sur la
+       4.5.2, sur une carte qui portait pourtant son nom. */
     return [...groupe.querySelectorAll('p')]
-      .find(x => x !== cat && !x.hasAttribute('title')) || null;
+      .find(x => !x.hasAttribute('title')) || null;
   };
 
   const getCardCategory = (card) => {
@@ -15667,6 +15686,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     let repli = null;
     for (const c of section.querySelectorAll('.side-nav-card')) {
       if (c.dataset.tseGlobal === 'true' || isSynthetic(c) || isCardOffline(c)) continue;
+      if (!modeleUtilisable(c)) continue;
       if (isPlainCard(c)) { template = c; break; }
       if (!repli && !c.querySelector('[class*="promoted-followed-card__content"]')) {
         repli = c;
@@ -15814,6 +15834,21 @@ const TSE_GATE_MAX_CLICKS = 5;
    * On réutilise exactement les détecteurs du reste du module — si l'un d'eux
    * évolue, cette garde suit sans intervention.
    */
+  /* ── UN MODÈLE SE VÉRIFIE AVANT D'ÊTRE ADOPTÉ ────────────────────────────
+     Le second choix ajouté en 4.5.1 prend la main sur le modèle MÉMORISÉ. S'il
+     se révèle inexploitable, la fabrication rend null et le clonage abandonne
+     pour de bon : « modele: repli, fabriquees 0 » — le rapport disait qu'un
+     modèle avait été trouvé, et rien n'en sortait. Deux versions de suite.
+
+     ON EXIGE DONC DU CANDIDAT CE QUE LA FABRICATION EXIGERA DE SON CLONE : un
+     lien, et une ligne de pseudo. Un candidat qui échoue n'est ni adopté ni
+     MÉMORISÉ — il laisse la place au suivant, et à défaut au modèle relevé
+     plus tôt dans la session. La carte qui n'est pas une carte de chaîne (une
+     promotion de Twitch, une invite à ouvrir les stories) s'écarte ici toute
+     seule, sans qu'on ait à la nommer. */
+  const modeleUtilisable = (card) =>
+    !!card.querySelector('a[href]') && !!cardNameEl(card);
+
   const isPlainCard = (card) => {
     if (card.querySelector('[class*="promoted-followed-card__content"]')) return false; // sponsorisée
     if (card.querySelector(DOM.altCostreamHostSelector)) return false;                  // co-stream
@@ -16013,6 +16048,7 @@ const TSE_GATE_MAX_CLICKS = 5;
          décorations de Twitch, ce qui rend ce repli sûr. Seule la carte
          sponsorisée reste écartée : sa mise en page diffère, et aucun
          nettoyage ne la redresse. */
+      if (!modeleUtilisable(c)) continue;
       if (!template && isPlainCard(c)) template = c;
       else if (!repliModele && !isPlainCard(c)
                && !c.querySelector('[class*="promoted-followed-card__content"]')) {

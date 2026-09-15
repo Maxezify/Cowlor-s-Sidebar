@@ -13785,6 +13785,199 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await page.close();
 }
 
+/* ═════════ LA CHAÎNE QUI N'ANNONCE AUCUNE CATÉGORIE ═════════════════════
+   Signalement sur la 4.5.2 : « j'ai plus de cartes dans Top Chaînes quand je
+   n'ai plus qu'une seule qui a *en live avec* ». Le rapport disait, mot pour
+   mot, ce que ce scénario reproduit : « modele: repli », « modeleRefus:
+   pseudo », « fabriquees 0 ».
+
+   LE REPLI DE LA 4.5.2 SE MORDAIT LA QUEUE. Il écartait « la catégorie » en
+   la demandant à `cardCategoryEl` — dont le DERNIER repli est « le premier
+   <p> de la metadata », c'est-à-dire LE PSEUDO dès que la chaîne n'annonce
+   aucune catégorie. Sur une carte sans crochet ET sans catégorie, une garde
+   écartait le nom, l'autre la catégorie, et il ne restait rien à écrire.
+
+   ET LE DÉFAUT EN CACHAIT UN SECOND, qui ne se serait vu qu'après. La même
+   confusion faisait lire le pseudo comme catégorie : la fabrication écrivait
+   donc le NOM, puis la CATÉGORIE par-dessus, dans le même <p>. Trente cartes
+   nommées d'après leur catégorie — un « Top Chaînes » plein, et faux. */
+{
+  titre('105. Une chaîne sans catégorie, et sans le crochet du pseudo');
+  const page = await fresh();
+  const h = new Date(Date.now() - 3600_000).toISOString();
+  await page.evaluate((iso) => {
+    /* L'UNIQUE CHAÎNE SUIVIE EN DIRECT, dans le décor exact du signalement :
+       une carte « En live avec » — donc sans data-a-target="side-nav-title" —
+       qui n'annonce AUCUNE catégorie. Twitch ne rend alors pas un <p> vide :
+       il ne rend pas de <p> du tout, et la metadata n'a plus qu'une ligne. */
+    window.__fx = { seule: { id: 's1', createdAt: iso, viewers: 900,
+                             game: null, tags: [] } };
+    window.__costreamHost = { seule: 'hote' };
+    window.__addCard('seule', null, '900');
+    const d = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a[href="/seule"]'));
+    d.querySelector('p[data-a-target="side-nav-title"]').removeAttribute('data-a-target');
+    const cats = [];
+    for (let i = 0; i < 3; i++) {
+      const streams = [];
+      for (let k = 0; k < 30; k++) {
+        streams.push({ login: `g${i}_${k}`, viewers: 5000 - k, tags: ['English'] });
+      }
+      cats.push({ name: 'c' + i, viewers: 400_000 - i, streams });
+    }
+    window.__cats = cats;
+  }, h);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 1, 9000);
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(30).length > 0, 9000);
+  await wait(page, 1500);
+
+  const etat = await page.evaluate(() => {
+    const p = window.tse.panneau.rapport().page;
+    const faites = [...document.querySelectorAll(
+      '.side-nav-card[data-tse-synthetic="true"]')];
+    return {
+      fabriquees: faites.length, modele: p.modele, refus: p.modeleRefus,
+      /* CE QUE LA CARTE FABRIQUÉE PORTE VRAIMENT. Le compte de cartes ne suffit
+         pas : une fabrication qui écrit la catégorie par-dessus le nom les
+         fabrique toutes, et les compteurs restent verts. */
+      lignes: faites.slice(0, 1).map(c => [...c.querySelectorAll(
+        '[data-a-target="side-nav-card-metadata"] p')].map(x => x.textContent.trim())),
+      // La carte NATIVE, elle, ne doit pas s'être vu inventer une catégorie.
+      categorieNative: [...document.querySelectorAll('.side-nav-card')]
+        .find(c => c.dataset.tseLogin === 'seule')?.dataset.tseCategory ?? null,
+    };
+  });
+  ok('le classement s\'affiche même quand la seule carte n\'a pas de catégorie',
+     etat.fabriquees >= 10, JSON.stringify(etat));
+  ok('…et le rapport nomme le modèle au lieu de n\'en trouver aucun',
+     etat.modele === 'repli' && etat.refus === null, JSON.stringify(etat));
+  ok('…et la carte fabriquée porte le PSEUDO, que rien n\'est venu écraser',
+     JSON.stringify(etat.lignes[0] || []) === JSON.stringify(['g0_0']),
+     JSON.stringify(etat.lignes));
+  /* UNE CARTE SANS CATÉGORIE N'A PAS DE CATÉGORIE. Le repli lisait le pseudo :
+     `data-tse-category` valait « seule », et les filtres s'y appliquaient. */
+  ok('…et la chaîne sans catégorie n\'en a pas vu naître une à son nom',
+     etat.categorieNative !== 'seule', String(etat.categorieNative));
+  await page.close();
+}
+
+/* ═════════ LE MODÈLE MÉMORISÉ, ET CE QUI LUI VOLAIT LA PLACE ═══════════
+   Le second choix de modèle, ajouté en 4.5.1, passe AVANT le modèle mémorisé.
+   S'il se révèle inexploitable, la fabrication rend null et le clonage
+   abandonne pour de bon : le rapport dit qu'un modèle a été trouvé, et rien
+   n'en sort. C'est la forme générale du défaut rapporté deux fois de suite,
+   et elle survivrait à la correction du cas particulier.
+
+   ON EXIGE DONC DU CANDIDAT ce que la fabrication exigera de son clone. La
+   carte que Twitch rend dans une disposition qu'on ne sait pas lire — ici, le
+   pseudo dans un <span> — n'est ni adoptée ni MÉMORISÉE : elle laisse la place
+   au modèle relevé plus tôt dans la session. */
+{
+  titre('106. Le modèle mémorisé reprend la main sur un candidat illisible');
+  const page = await fresh();
+  const h = new Date(Date.now() - 3600_000).toISOString();
+  const lot = (pref) => {
+    const cats = [];
+    for (let i = 0; i < 3; i++) {
+      const streams = [];
+      for (let k = 0; k < 30; k++) {
+        streams.push({ login: `${pref}${i}_${k}`, viewers: 5000 - k, tags: ['English'] });
+      }
+      cats.push({ name: 'c' + i, viewers: 400_000 - i, streams });
+    }
+    return cats;
+  };
+  await page.evaluate(({ iso, cats }) => {
+    window.__fx = {
+      propre:  { id: 's1', createdAt: iso, viewers: 800, game: 'Just Chatting', tags: [] },
+      bizarre: { id: 's2', createdAt: iso, viewers: 900, game: 'Just Chatting', tags: [] },
+    };
+    /* C'EST LE TRI QUI DÉCIDE DE L'ORDRE, ET DONC DU TEST. Les deux boucles de
+       modèle prennent le PREMIER candidat neutre, et l'extension range les
+       cartes par spectateurs : la carte illisible doit donc être la PLUS
+       REGARDÉE, sans quoi la carte propre passe devant et le garde n'a plus
+       rien à écarter. Rédigé d'abord sur l'ordre d'insertion, ce décor laissait
+       survivre le mutant qui retire le garde. */
+    window.__addCard('bizarre', 'Discussions', '900');
+    window.__addCard('propre', 'Discussions', '800');
+    // Une chaîne suivie encore hors ligne : elle servira à éprouver l'AUTRE
+    // boucle de modèle, celle des cartes en avance sur Twitch.
+    window.__addCard('dormant', 'Discussions', 'Déconnecté', false);
+    /* LA CARTE QUE LE CLONAGE NE SAIT PAS LIRE. Elle est bien native, bien en
+       direct et parfaitement NEUTRE — elle serait donc élue modèle du premier
+       coup — mais son pseudo vit dans un <span>. Aucune ligne à réécrire, donc
+       aucun clone exploitable, et rien ne se fabriquait plus nulle part. */
+    const b = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a[href="/bizarre"]'));
+    b.querySelectorAll('[data-a-target="side-nav-card-metadata"] p').forEach((p) => {
+      const s = document.createElement('span');
+      s.textContent = p.textContent;
+      for (const a of [...p.attributes]) s.setAttribute(a.name, a.value);
+      p.replaceWith(s);
+    });
+    window.__cats = cats;
+  }, { iso: h, cats: lot('g') });
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 2, 9000);
+
+  /* ── L'AUTRE BOUCLE DE MODÈLE : LES CARTES EN AVANCE SUR TWITCH ────────
+     Même sélection, même défaut, et aucune mémoire pour la rattraper. Si la
+     carte illisible est élue, plus une seule chaîne n'est posée en avance —
+     et le rapport n'en dit rien, puisqu'il n'y a pas de carte à compter. */
+  await page.evaluate(() => {
+    window.__fx.dormant = { id: 's3', createdAt: new Date().toISOString(),
+                            viewers: 500, game: 'Just Chatting', tags: [] };
+  });
+  await attendre(page,
+    () => !!document.querySelector('.side-nav-card[data-tse-synthetic="true"]'), 6000);
+  const avance = await page.evaluate(() =>
+    !!document.querySelector('.side-nav-card[data-tse-synthetic="true"]'));
+  ok('la carte en avance est posée, la carte illisible n\'ayant pas pris le modèle',
+     avance === true, String(avance));
+
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(30).length > 0, 9000);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-synthetic="true"]').length > 0, 9000);
+  await wait(page, 900);
+  const un = await page.evaluate(() => ({
+    modele: window.tse.panneau.rapport().page.modele,
+    fabriquees: document.querySelectorAll('[data-tse-synthetic="true"]').length,
+  }));
+  ok('la carte neutre LISIBLE sert de modèle, et non la première venue',
+     un.modele === 'neutre' && un.fabriquees >= 10, JSON.stringify(un));
+
+  /* ELLE DISPARAÎT, et il ne reste que celle qu'on ne sait pas lire. Le
+     palmarès change au même instant : sans modèle exploitable, les nouvelles
+     chaînes ne seraient jamais posées — et le classement mentirait en silence
+     au lieu de rester vide, ce qui est pire. */
+  await page.evaluate((cats) => {
+    delete window.__fx.propre;
+    [...document.querySelectorAll('.side-nav-card')]
+      .filter(c => c.querySelector('a[href="/propre"]')).forEach(c => c.remove());
+    window.__cats = cats;
+    window.tse.rescan();
+  }, lot('h'));
+  await attendre(page,
+    () => window.tse.global.top(30).some(r => r.login.startsWith('h')), 9000);
+  await wait(page, 1500);
+  const deux = await page.evaluate(() => {
+    const p = window.tse.panneau.rapport().page;
+    const faites = [...document.querySelectorAll('[data-tse-synthetic="true"]')];
+    return { modele: p.modele, refus: p.modeleRefus, fabriquees: faites.length,
+             neufs: faites.filter(c => (c.dataset.tseLogin || '').startsWith('h')).length };
+  });
+  ok('…et quand il ne reste qu\'une carte illisible, le modèle mémorisé reprend la main',
+     deux.modele === 'memoire', JSON.stringify(deux));
+  ok('…si bien que le classement continue de suivre le palmarès',
+     deux.neufs >= 10 && deux.refus === null, JSON.stringify(deux));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
