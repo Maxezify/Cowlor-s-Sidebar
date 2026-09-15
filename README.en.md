@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 975 assertions, under Gecko
+npm run test-firefox        # the same 980 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,78 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Top Channels empty, and what the report said in two numbers (v4.5.1)
+
+Report: "big problem, we only see IronMouse in Top Channels. She is also
+currently the only one live in my followed channels." The diagnostic gave the
+cause unambiguously:
+
+```
+pool        2124      ← the world ranking is perfectly known
+fabriquees  0         ← and not a single card was placed
+```
+
+### Top Channels does not draw its cards, it clones them
+
+That is what makes them indistinguishable from Twitch's own: every class comes
+with the clone. It therefore needs a **template** — a native live card — and it
+only accepted a **neutral** one, so as not to transpose its decorations onto a
+channel that has nothing to do with them: a "+3" badge on the avatar of a channel
+collaborating with nobody, a non-existent co-stream announced in the preview.
+
+The reasoning was right, its conclusion too strict. **One single followed channel
+live, and it carried a collaboration pill.** No template, so nothing to display —
+on a ranking of two thousand channels.
+
+### We no longer refuse the card, we scrub it
+
+`scrubClone` only removed what the extension had placed. It now also removes what
+**Twitch** places: co-stream mini-avatar, "live with" mini-avatar, sponsor logo,
+role pill — and a collaboration's "+N", in both its forms.
+
+That last one deserves a word, because it decides everything. When the "+N" is
+**appended** to the category, the collab pill REMOVES it from the text: the clone
+is clean without our doing anything. When it is in its **own element**, the pill
+merely HIDES it — and `scrubClone` strips styles. The "+2" therefore reappeared on
+**all thirty fabricated cards**, which is what the mutant shows.
+
+The neutral template stays **preferred**; the decorated card is only a second
+choice. The **sponsored** card stays excluded: its layout differs — avatar and
+status on one line, then the name, then the category — and no scrubbing
+straightens it.
+
+The cards placed ahead of Twitch followed the same rule and had the same defect;
+they get the same fallback.
+
+### Where the template came from, written in the report
+
+`page.modele` is `neutre`, `repli`, `memoire` or nothing. Three origins that do
+not say the same thing: the first is the nominal case, the second says a decorated
+card was scrubbed for want of better — useful the day Twitch invents a decoration
+the scrubbing does not know — and the third that no native card is live and an
+earlier template is being replayed.
+
+It is also what makes the **preference** observable. Once the decorations are
+scrubbed, both templates produce identical cards: the preference is readable
+nowhere in the DOM, and the assertion claiming to check it proved nothing — the
+mutant removing it survived. The report names it, so the bench can hold it.
+
+### Scenario 104
+
+Four assertions, four mutants, no survivors:
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| the second-choice template is gone | nothing is fabricated (the reported defect) |
+| Twitch's decorations are no longer scrubbed | thirty cards carry a co-stream mini-avatar |
+| the "+N" is no longer neutralised | thirty cards carry a "+2" pill |
+| the neutral template is no longer preferred | the report says "repli" where it must say "neutre" |
+
+Two of them survived at first. The fixture appended the "+N" to the category — the
+form the collab pill removes on its own — and the preference was checked against a
+DOM that does not carry it. Both fixture corrections are written above their
+assertions.
 
 ## Three reports, and what an audit found behind them (v4.5)
 
@@ -5497,7 +5569,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 103 scenarios, 975 assertions |
+| `npm test` | the Playwright harness: 104 scenarios, 980 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

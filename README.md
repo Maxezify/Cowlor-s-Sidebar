@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 975 assertions, sous Gecko
+npm run test-firefox        # les mêmes 980 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2613,6 +2613,82 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Top Chaînes vide, et ce que le rapport disait en deux chiffres (v4.5.1)
+
+Signalement : « gros problème, on ne voit que IronMouse dans Top Chaînes.
+Actuellement elle est également la seule en live dans mes chaînes suivies. » Le
+rapport donnait la cause sans ambiguïté :
+
+```
+pool        2124      ← le classement mondial est parfaitement connu
+fabriquees  0         ← et pas une seule carte n'a été posée
+```
+
+### Le mode Top Chaînes ne dessine pas ses cartes, il les clone
+
+C'est ce qui les rend indiscernables de celles de Twitch : toutes les classes
+viennent avec le clone. Il lui faut donc un **modèle** — une carte native en
+direct — et il n'en acceptait qu'une **neutre**, pour ne pas transposer ses
+décorations sur une chaîne qui n'a rien à voir : un badge « +3 » sur l'avatar
+d'une chaîne qui ne collabore avec personne, un co-stream inexistant annoncé
+dans l'aperçu.
+
+Le raisonnement était juste, sa conclusion trop stricte. **Une seule chaîne
+suivie en direct, et elle portait une pastille de collaboration.** Aucun modèle,
+donc rien à afficher — sur un classement de deux mille chaînes.
+
+### On ne refuse plus la carte, on la nettoie
+
+`scrubClone` ne retirait que ce que l'extension avait posé. Il retire désormais
+aussi ce que **Twitch** pose : mini-avatar de co-stream, mini-avatar d'un « En
+live avec », logo de sponsor, pastille de rôle — et le « +N » d'une
+collaboration, sous ses deux formes.
+
+Cette dernière mérite un mot, parce qu'elle décide de tout. Quand le « +N » est
+**accolé** à la catégorie, la pastille collab le RETIRE du texte : le clone est
+propre sans qu'on ait rien fait. Quand il est dans son **propre élément**, elle
+se contente de le MASQUER — et `scrubClone` efface les styles. Le « +2 »
+reparaissait donc sur **les trente cartes fabriquées**, c'est ce que le mutant
+montre.
+
+Le modèle neutre reste **préféré** ; la carte décorée n'est qu'un second choix.
+La carte **sponsorisée** reste écartée : sa mise en page diffère — avatar et
+statut sur une ligne, puis le nom, puis la catégorie — et aucun nettoyage ne la
+redresse.
+
+Les cartes en avance sur Twitch suivaient la même règle et avaient le même
+défaut ; elles ont le même repli.
+
+### D'où vient le modèle, écrit dans le rapport
+
+`page.modele` vaut `neutre`, `repli`, `memoire` ou rien. Trois provenances qui ne
+disent pas la même chose : la première est le cas nominal, la deuxième dit qu'on
+a nettoyé une carte décorée faute de mieux — utile le jour où Twitch inventera
+une décoration que le nettoyage ne connaît pas —, la troisième qu'aucune carte
+native n'est en ligne et qu'on rejoue un modèle relevé plus tôt.
+
+C'est aussi ce qui rend la **préférence** observable. Une fois les décorations
+nettoyées, les deux modèles produisent des cartes identiques : la préférence ne
+se lit nulle part dans le DOM, et l'assertion qui prétendait la vérifier ne
+prouvait rien — le mutant qui la supprimait survivait. Le rapport la nomme, donc
+le banc peut la tenir.
+
+### Le scénario 104
+
+Quatre assertions, quatre mutants, aucun survivant :
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| le second choix de modèle saute | rien n'est fabriqué (le défaut signalé) |
+| les décorations de Twitch ne sont plus nettoyées | trente cartes portent un mini-avatar de co-stream |
+| le « +N » n'est plus neutralisé | trente cartes portent une pastille « +2 » |
+| le modèle neutre n'est plus préféré | le rapport dit « repli » là où il doit dire « neutre » |
+
+Deux d'entre eux ont d'abord survécu. Le décor accolait le « +N » à la catégorie
+— forme que la pastille collab retire toute seule — et la préférence était
+vérifiée sur un DOM qui ne la porte pas. Les deux corrections du décor sont
+écrites au-dessus de leurs assertions.
 
 ## Trois retours, et ce qu'un audit a trouvé derrière (v4.5)
 
@@ -5757,7 +5833,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 103 scénarios, 975 assertions |
+| `npm test` | le harnais Playwright : 104 scénarios, 980 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
