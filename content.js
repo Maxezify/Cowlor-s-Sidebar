@@ -1164,6 +1164,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     CHAPITRES_MAX:   300,
 
+    CHAPITRES_PASSE_MAX: 200,
+    CHAPITRES_PASSE_LOGINS: 120,
+
     GLOBAL_TOP_N:            30,
 
     GLOBAL_CATEGORIES_MAX:   100,
@@ -1185,6 +1188,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     GLOBAL_DECLARED_BATCH:   30,
 
     GLOBAL_DECLARED_MAX:   1000,
+
+    RECONNECT_PROBE_MAX:    300,
 
     GLOBAL_BATCH_OPS:        20,
 
@@ -1475,10 +1480,11 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     
     .side-nav-card[data-tse-nocat="true"] [data-a-target="side-nav-card-metadata"] {
-      align-self: stretch;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      align-self: center !important;
+      margin-block: auto !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
     }
 
     
@@ -2417,6 +2423,37 @@ const TSE_GATE_MAX_CLICKS = 5;
     return r;
   };
 
+  const adopterReprise = (login, flux, maillons) => {
+    const neuf = flux?.id ? flux : null;
+    if (!neuf || !Array.isArray(maillons) || !maillons.length) return false;
+    const depart = Date.parse(neuf.createdAt);
+    if (!Number.isFinite(depart)) return false;
+    const memoire = derniersDirects.get(login);
+
+    if (memoire && memoire.id === neuf.id && memoire.coupures) return false;
+    if (subathonDe(login)) return false;
+    reprises.delete(login);
+
+    reprises.set(login, { ts: depart });
+    while (reprises.size > CFG.RECONNECT_MAX) {
+      reprises.delete(reprises.keys().next().value);
+    }
+
+    const marques = maillons.map(m => ({ fin: m.fin, reprise: m.reprise }));
+    derniersDirects.delete(login);
+    derniersDirects.set(login, {
+      id: neuf.id,
+      vu: Date.now(),
+      origine: new Date(maillons[0].debut).toISOString(),
+      coupures: marques.length,
+      marques: marques.slice(-CFG.RECONNECT_CUTS_MAX),
+    });
+
+    const f = frises.get(login);
+    if (f && f.streamId === neuf.id) f.debutStream = maillons[0].debut;
+    return true;
+  };
+
   const frises = new Map();
 
   const bilanFrises = { survols: 0, absentes: 0, vides: 0, peuplees: 0,
@@ -2435,11 +2472,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     const id = flux?.id || null;
     const jeu = apres?.game || null;
     const maintenant = Date.now();
-    if (!id || !jeu) {
+    if (!id) {
       const tenue = frises.get(login);
       if (!tenue) return;
-
-      if (id) { frises.delete(login); return; }
 
       if (tenue.horsLigneDepuis === undefined) {
         tenue.horsLigneDepuis = maintenant;
@@ -2472,6 +2507,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       frises.delete(frises.keys().next().value);
       bilanFrises.evincees++;
     }
+
+    if (!jeu) return;
 
     const dernier = f.segments[f.segments.length - 1];
     if (dernier && dernier.jeu === jeu) {
@@ -5065,6 +5102,44 @@ const TSE_GATE_MAX_CLICKS = 5;
 
         frise: { resident: frises.size, max: CFG.CATEGORY_TRAIL_MAX, ...bilanFrises },
 
+        centrage: (() => {
+          const sansCat = cartes.filter(c => c.dataset.tseNocat === 'true');
+
+          const ligneCat = (c) => c.querySelector(
+            '.side-nav-card__metadata p[title], [data-a-target="side-nav-card-metadata"] p[title]');
+          const bilan = { cartes: sansCat.length,
+                          sansLigne: cartes.filter(c => !ligneCat(c)).length,
+                          decalees: 0, ecartPx: null,
+                          boiteH: null, rangeeH: null, alignSelf: null,
+                          display: null, parentDisplay: null };
+
+          for (const c of cartes) {
+            if (c.dataset.tseNocat !== 'true' && ligneCat(c)) continue;
+            const meta = c.querySelector('[data-a-target="side-nav-card-metadata"]');
+            const p = c.querySelector('p[data-a-target="side-nav-title"]');
+            const statut = liveStatusOf(c);
+
+            let rangee = meta;
+            while (rangee && statut && !rangee.contains(statut)) rangee = rangee.parentElement;
+            if (!meta || !p || !rangee) continue;
+            const rp = p.getBoundingClientRect(), rr = rangee.getBoundingClientRect();
+            if (!rr.height) continue;
+            const ecart = Math.round((rp.top + rp.height / 2) - (rr.top + rr.height / 2));
+            if (Math.abs(ecart) > 2) bilan.decalees++;
+            if (bilan.ecartPx === null) {
+              const st = getComputedStyle(meta);
+              bilan.ecartPx = ecart;
+              bilan.boiteH = Math.round(meta.getBoundingClientRect().height);
+              bilan.rangeeH = Math.round(rr.height);
+              bilan.alignSelf = st.alignSelf;
+              bilan.display = st.display;
+              bilan.parentDisplay = meta.parentElement
+                ? getComputedStyle(meta.parentElement).display : null;
+            }
+          }
+          return bilan;
+        })(),
+
         survol: { delaiMs: CFG.PREVIEW_HOVER_DELAY, ...preview.bilanSurvol() },
 
         subathons: (() => {
@@ -5719,7 +5794,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const RECENT_QUERY =
       'query TseVodRecent($login: String!) {' +
       '  user(login: $login) {' +
-      '    videos(first: 1, sort: TIME, type: ARCHIVE) {' +
+      '    videos(first: 5, sort: TIME, type: ARCHIVE) {' +
       '      edges { node {' +
 
       '        id createdAt lengthSeconds' +
@@ -5844,6 +5919,116 @@ const TSE_GATE_MAX_CLICKS = 5;
       return (segments || continu) ? chapitres.get(streamId) : null;
     };
 
+    const bilanSondes = { sondes: 0, servies: 0, trouvees: 0, vides: 0, chaines: 0,
+                          reseau: 0, adoptees: 0, chapitresAvant: 0 };
+
+    const sondees = new Set();
+
+    const passeDirect = new Map();
+
+    const passeDe = (login, origine) => {
+      const vu = passeDirect.get(login);
+      return (vu && origine && vu.origine === origine) ? vu.segments : null;
+    };
+
+    const noterPasse = (login, origine, segments) => {
+      if (!login || !origine || !Array.isArray(segments) || !segments.length) return;
+      const vu = passeDirect.get(login);
+      const base = (vu && vu.origine === origine) ? vu.segments : [];
+
+      const parDebut = new Map();
+      for (const seg of [...base, ...segments]) {
+        if (seg && Number.isFinite(seg.debut)) parDebut.set(seg.debut, seg);
+      }
+      const propre = [];
+      for (const seg of [...parDebut.values()].sort((x, y) => x.debut - y.debut)) {
+        const dernier = propre[propre.length - 1];
+        if (dernier && dernier.jeu === seg.jeu) continue;
+        propre.push(seg);
+      }
+      passeDirect.delete(login);
+      passeDirect.set(login, { origine, segments: propre.slice(-CFG.CHAPITRES_PASSE_MAX) });
+      while (passeDirect.size > CFG.CHAPITRES_PASSE_LOGINS) {
+        passeDirect.delete(passeDirect.keys().next().value);
+      }
+    };
+
+    const archiveQuiRaccorde = (noeuds, depart) => {
+      let meilleure = null;
+      for (const v of noeuds) {
+        const debut = Date.parse(v?.createdAt);
+        const duree = Number(v?.lengthSeconds);
+        if (!Number.isFinite(debut) || !Number.isFinite(duree) || duree <= 0) continue;
+
+        if (debut >= depart - CFG.CATEGORY_TRAIL_VOD_ECART) continue;
+        const fin = debut + duree * 1000;
+        const trou = depart - fin;
+        if (trou < 0 || trou > CFG.RECONNECT_GAP_MAX) continue;
+
+        if (!meilleure || trou < meilleure.trou) meilleure = { debut, fin, trou, noeud: v };
+      }
+      return meilleure;
+    };
+
+    const chaineDesTroncons = (noeuds, depart) => {
+      const maillons = [];
+      const restants = [...noeuds];
+      let borne = depart;
+      while (maillons.length < CFG.RECONNECT_CUTS_MAX) {
+        const m = archiveQuiRaccorde(restants, borne);
+        if (!m) break;
+        maillons.push({ debut: m.debut, fin: m.fin, reprise: borne, noeud: m.noeud });
+        restants.splice(restants.indexOf(m.noeud), 1);
+        borne = m.debut;
+      }
+      return maillons.reverse();
+    };
+
+    const sonderReprise = async (login, flux) => {
+      const streamId = flux?.id;
+      const depart = Date.parse(flux?.createdAt);
+      if (!streamId || !Number.isFinite(depart)) return false;
+      if (sondees.has(streamId)) return false;
+
+      if (coupuresDe(login)) return false;
+
+      if (bilanSondes.sondes >= CFG.RECONNECT_PROBE_MAX) return false;
+      sondees.add(streamId);
+      while (sondees.size > CFG.CHAPITRES_MAX) {
+        sondees.delete(sondees.values().next().value);
+      }
+      bilanSondes.sondes++;
+      const res = await post([{
+        operationName: 'TseVodRecent',
+        variables: { login },
+        query: RECENT_QUERY
+      }]);
+      if (isResultsUnusable(res)) { bilanSondes.reseau++; return false; }
+      const aretes = res?.[0]?.data?.user?.videos?.edges;
+      if (!Array.isArray(aretes)) { bilanSondes.vides++; return false; }
+      bilanSondes.servies++;
+      const maillons = chaineDesTroncons(aretes.map(e => e?.node).filter(Boolean), depart);
+      if (!maillons.length) return false;
+      bilanSondes.trouvees++;
+      if (maillons.length > 1) bilanSondes.chaines++;
+
+      const acquis = passeDe(login, depart);
+      if (!adopterReprise(login, flux, maillons)) return false;
+      bilanSondes.adoptees++;
+      if (acquis && acquis.length) noterPasse(login, maillons[0].debut, acquis);
+
+      const segments = [];
+      for (const m of maillons) {
+        const { segments: s } = segmentsDuVod(m.noeud, m.debut);
+        if (s && s.length) segments.push(...s);
+      }
+      if (segments.length) {
+        noterPasse(login, maillons[0].debut, segments);
+        bilanSondes.chapitresAvant++;
+      }
+      return true;
+    };
+
     const fetchChapitres = async (login, streamId, debutStream) => {
       const vu = chapitres.get(streamId);
       if (vu && Date.now() - vu.ts < CHAPITRES_TTL) {
@@ -5942,7 +6127,12 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       if (!vodCouvre(vod, debutStream)) bilanChapitres.vodTardif++;
       const { segments, aretes } = segmentsDuVod(vod, debutStream);
-      if (segments) { bilanChapitres.servis++; return retenir(streamId, segments, false); }
+      if (segments) {
+        bilanChapitres.servis++;
+
+        noterPasse(login, Date.parse(debutReel(login, null)) || debutStream, segments);
+        return retenir(streamId, segments, false);
+      }
 
       if (aretes) {
 
@@ -6339,9 +6529,22 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const preludeDe = (login) => {
-      const id = cache.get(login)?.stream?.id;
+      const flux = cache.get(login)?.stream;
+      const id = flux?.id;
       if (!id) return null;
       const e = chapitres.get(id);
+      const origine = Date.parse(debutReel(login, flux.createdAt)) || null;
+      const passe = passeDe(login, origine);
+      if (passe && passe.length) {
+
+        const parDebut = new Map();
+        for (const seg of [...passe, ...((e && e.segments) || [])]) {
+          if (seg && Number.isFinite(seg.debut)) parDebut.set(seg.debut, seg);
+        }
+        const segments = [...parDebut.values()].sort((x, y) => x.debut - y.debut);
+        return { ts: (e && e.ts) || Date.now(), segments,
+                 continu: !!(e && e.continu), source: (e && e.source) || null };
+      }
 
       if (!e || (!e.segments && !e.continu)) return null;
       return e;
@@ -6503,6 +6706,22 @@ const TSE_GATE_MAX_CLICKS = 5;
         || b.classList.contains('tse-preview__badge--reprise')).pop();
       if (devant) devant.insertAdjacentElement('afterend', neuf);
       else zone.prepend(neuf);
+    };
+
+    const majReprise = (login) => {
+      if (!el || currentLogin !== login) return;
+      const corps = el.querySelector('.tse-preview__body');
+      if (!corps) return;
+      if (corps.querySelector('.tse-preview__badge--reprise')) return;
+      if (!repriseFraiche(login)) return;
+      const zone = zoneBadges(corps);
+      const badge = badgeNoeud('tse-preview__badge--switch tse-preview__badge--reprise',
+                               S.uiBadgeReprise);
+
+      const ccl = [...zone.children]
+        .filter(b => b.classList.contains('tse-preview__badge--ccl')).pop();
+      if (ccl) ccl.insertAdjacentElement('afterend', badge);
+      else zone.prepend(badge);
     };
 
     const majFrise = (login) => {
@@ -6825,6 +7044,16 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       const flux = cache.get(login)?.stream;
       noterSurvolFrise(login);
+
+      if (flux?.id) {
+        sonderReprise(login, flux)
+          .then((trouve) => {
+            if (!trouve) return;
+            majReprise(login);
+            majFrise(login);
+          })
+          .catch((e) => erreurs.noter('reprise', (e && e.message) || e));
+      }
       if (flux?.id && !preludeDe(login) && friseACombler(login)) {
 
         fetchChapitres(login, flux.id,
@@ -6958,7 +7187,10 @@ const TSE_GATE_MAX_CLICKS = 5;
                                clipsForme: CLIPS_FORMES[clipsForme] || null,
 
                                resident: chapitres.size,
-                               max: CFG.CHAPITRES_MAX })
+                               max: CFG.CHAPITRES_MAX,
+
+                               reprise: { ...bilanSondes,
+                                          residentPasse: passeDirect.size } })
     };
   })();
 

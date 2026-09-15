@@ -767,6 +767,9 @@ const construireRapport = (r, transport, fond) => {
   L.push(...bloc('COMPTEURS / COUNTS', aplatir(r.compteurs)));
   L.push(...bloc('FRISE DES CATÉGORIES / CATEGORY TRAIL', aplatir(r.frise)));
 
+  L.push(...bloc('CENTRAGE SANS CATÉGORIE / UNCATEGORISED CENTRING',
+                 aplatir(r.centrage)));
+
   L.push(...bloc('SUBATHONS', aplatir(r.subathons)));
 
   L.push(...bloc('SURVOL — DÉLAI D\'INTENTION / HOVER INTENT', aplatir(r.survol)));
