@@ -1185,6 +1185,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     GLOBAL_LANG_SPAM_MAX:  200,
 
+    GLOBAL_TEMPLATE_TRIES:   3,
     GLOBAL_DECLARED_BATCH:   30,
 
     GLOBAL_DECLARED_MAX:   1000,
@@ -1490,9 +1491,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     
     .side-nav-card[data-tse-nocat="true"]
       [data-a-target="side-nav-card-metadata"]:has(p[data-a-target="side-nav-title"])
-      *:not(p[data-a-target="side-nav-title"]):not(:has(p[data-a-target="side-nav-title"])) {
+      *:not(p[data-a-target="side-nav-title"]):not(:has(p[data-a-target="side-nav-title"])):not(p[data-a-target="side-nav-title"] *) {
       display: none !important;
     }
+
+    
 
     .side-nav-card[data-tse-offline="true"] { display: none !important; }
     .side-nav-section.tse-section-hidden { display: none !important; }
@@ -2219,14 +2222,20 @@ const TSE_GATE_MAX_CLICKS = 5;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
     }
     
+    
     .tse-preview__frise-coupure {
       position: absolute;
-      top: 0;
-      bottom: 0;
-      min-width: 2px;
-      background: rgba(255, 255, 255, 0.92);
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
-      pointer-events: none;
+      top: -2px;
+      bottom: -2px;
+      min-width: 3px;
+      border-radius: 1px;
+      background: var(--color-background-base, #0e0e10);
+      box-shadow: inset 1px 0 0 rgba(255, 196, 92, 0.95),
+                  inset -1px 0 0 rgba(255, 196, 92, 0.95),
+                  0 0 0 1px rgba(0, 0, 0, 0.55);
+      
+      pointer-events: auto;
+      cursor: default;
     }
     
     .tse-preview__frise-part {
@@ -5082,7 +5091,41 @@ const TSE_GATE_MAX_CLICKS = 5;
           fabriquees: cartes.filter(isSynthetic).length,
           decorees: cartes.filter(c => c.dataset.tseLogin).length,
           liens: nav ? nav.querySelectorAll('a[href^="/"]').length : 0,
+
+          modele: modeleVoie,
+          modeleRefus,
+
+          sortie: sortieGlobale,
+          modeleEssais,
         },
+
+        lignes: (() => {
+          const vues = cartes.filter(c => !isSynthetic(c) && !isCardOffline(c));
+          const r = { cartes: vues.length, crochet: 0, groupe: 0, boite: 0,
+                      p0: 0, p1: 0, p2: 0, p3: 0,
+                      b0: 0, b1: 0, b2: 0, b3: 0,
+                      nomHorsGroupe: 0, toutesTitrees: 0, nomTitre: 0, sansNom: 0 };
+          for (const c of vues) {
+            if (c.querySelector('p[data-a-target="side-nav-title"]')) r.crochet++;
+
+            const g = c.querySelector('.side-nav-card__metadata');
+            const b = c.querySelector('[data-a-target="side-nav-card-metadata"]');
+            if (g) r.groupe++;
+            if (b) r.boite++;
+            const ps = g ? [...g.querySelectorAll('p')] : [];
+            const bs = b ? [...b.querySelectorAll('p')] : [];
+            r['p' + Math.min(ps.length, 3)]++;
+            r['b' + Math.min(bs.length, 3)]++;
+            if (ps.length && ps.every(x => x.hasAttribute('title'))) r.toutesTitrees++;
+            const nom = cardNameEl(c);
+            if (!nom) r.sansNom++;
+            else {
+              if (nom.hasAttribute('title')) r.nomTitre++;
+              if (g && !g.contains(nom)) r.nomHorsGroupe++;
+            }
+          }
+          return r;
+        })(),
 
         sectionSuivie: { ...bilanSection },
         langue: { interface: S.locale, page: LANG },
@@ -5151,8 +5194,18 @@ const TSE_GATE_MAX_CLICKS = 5;
             if (e.subathon.jour === null) sansJour++;
             if (e.subathon.voie in v) v[e.subathon.voie]++;
           });
+
+          const manquantes = cartes.filter((c) => {
+            const l = c.dataset.tseLogin;
+            if (!l || c.dataset.tseSubathonDay) return false;
+            const sb = cache.get(l)?.subathon;
+            return !!sb && Number.isInteger(sb.jour);
+          });
           return { detectes, sansJour, voies: v,
-                   marquees: cartes.filter(c => c.dataset.tseSubathon).length };
+                   marquees: cartes.filter(c => c.dataset.tseSubathon).length,
+                   sansPastille: manquantes.length,
+                   sansAncre: manquantes.filter(
+                     c => !c.querySelector('p[data-a-target="side-nav-title"]')).length };
         })(),
         relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
 
@@ -5257,13 +5310,28 @@ const TSE_GATE_MAX_CLICKS = 5;
     card.querySelector('.tw-avatar') ||
     card.querySelector('img.tw-image-avatar')?.closest('figure, .tw-avatar, div');
 
-  const cardCategoryEl = (card) =>
-    card.querySelector('.side-nav-card__metadata p[title]') ||
-    card.querySelector('[data-a-target="side-nav-card-metadata"] p[title]') ||
+  const cardCategoryEl = (card) => {
+    const nom = cardNameEl(card);
+    const horsNom = (sel) =>
+      [...card.querySelectorAll(sel)].find(p => p !== nom) || null;
+    return horsNom('.side-nav-card__metadata p[title]')
+        || horsNom('[data-a-target="side-nav-card-metadata"] p[title]')
 
-    card.querySelector('[class*="promoted-followed-card__content"] p[title]') ||
-    card.querySelector('[class*="promoted-followed-card__content"] p') ||
-    card.querySelector('.side-nav-card__metadata p');
+        || horsNom('[class*="promoted-followed-card__content"] p[title]')
+        || horsNom('[class*="promoted-followed-card__content"] p')
+        || horsNom('.side-nav-card__metadata p');
+  };
+
+  const cardNameEl = (card) => {
+    const hook = card.querySelector('p[data-a-target="side-nav-title"]');
+    if (hook) return hook;
+
+    const groupe = card.querySelector('[data-a-target="side-nav-card-metadata"]')
+                || card.querySelector('.side-nav-card__metadata');
+    if (!groupe) return null;
+
+    return groupe.querySelector('p');
+  };
 
   const getCardCategory = (card) => {
     const el = cardCategoryEl(card);
@@ -5503,11 +5571,11 @@ const TSE_GATE_MAX_CLICKS = 5;
   const appliquerSubathon = (card, sub) => {
 
     if (sub === undefined) return;
-    const titre = () => card.querySelector('p[data-a-target="side-nav-title"]');
-    const nom   = () => card.querySelector(
-      'p[data-a-target="side-nav-title"] > .tse-subathon-nom');
-    const puce  = () => card.querySelector(
-      'p[data-a-target="side-nav-title"] > .tse-subathon-jour');
+
+    const ancre = cardNameEl(card);
+    const titre = () => ancre;
+    const nom   = () => ancre?.querySelector(':scope > .tse-subathon-nom') || null;
+    const puce  = () => ancre?.querySelector(':scope > .tse-subathon-jour') || null;
 
     const defaire = () => {
       puce()?.remove();
@@ -5794,7 +5862,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const RECENT_QUERY =
       'query TseVodRecent($login: String!) {' +
       '  user(login: $login) {' +
-      '    videos(first: 5, sort: TIME, type: ARCHIVE) {' +
+      '    videos(first: 8, sort: TIME, type: ARCHIVE) {' +
       '      edges { node {' +
 
       '        id createdAt lengthSeconds' +
@@ -6285,7 +6353,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     const displayNameFor = (login, fallback) => {
       const card = document.querySelector(`.side-nav-card[data-tse-login="${login}"]`);
       if (card) {
-        const p = card.querySelector('p[data-a-target="side-nav-title"]');
+
+        const p = cardNameEl(card);
 
         const enveloppe = p?.querySelector(':scope > .tse-subathon-nom');
         const name = (p?.getAttribute('title')
@@ -6576,6 +6645,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         const coup = document.createElement('span');
         coup.className = 'tse-preview__frise-coupures';
         coup.textContent = S.uiTrailCuts(f.coupures);
+
+        const durees = f.marques
+          .map(m => formatDuree(Math.max(0, m.reprise - m.fin)))
+          .filter(Boolean);
+        if (durees.length) coup.title = durees.join(' · ');
         titre.appendChild(coup);
       }
       const total = document.createElement('span');
@@ -6634,6 +6708,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         trait.style.left = Math.max(0, Math.min(100 - Math.max(large, 0.5), gauche))
           .toFixed(3) + '%';
         trait.style.width = large.toFixed(3) + '%';
+        trait.title = formatDuree(Math.max(0, m.reprise - m.fin));
         barre.appendChild(trait);
       }
       bloc.appendChild(barre);
@@ -6990,8 +7065,11 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const close = () => {
       removeIframe();
+      const etait = currentLogin;
       currentLogin = null;
       currentCard = null;
+
+      if (etait) scheduleScan();
       if (el) {
         el.dataset.tseVisible = 'false';
 
@@ -7180,6 +7258,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       journal: () => journalApercu.slice(),
 
+      ouvert: () => !!currentLogin,
+
+      carte: () => currentCard,
+
       bilanSurvol: () => ({ ...bilanSurvol }),
 
       bilanChapitres: () => ({ ...bilanChapitres,
@@ -7195,6 +7277,14 @@ const TSE_GATE_MAX_CLICKS = 5;
   })();
 
   let offlineTransitionsThisScan = 0;
+
+  let modeleVoie = null;
+
+  let modeleRefus = null;
+
+  let sortieGlobale = null;
+
+  let modeleEssais = 0;
 
   const applyChannelData = (card, data) => {
     if (data === UPTIME_UNKNOWN) {
@@ -8358,6 +8448,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     const section = followedSection();
     if (!section) return;
 
+    if (preview.ouvert()) return;
+
     const cards = [...section.querySelectorAll('.side-nav-card')];
     if (cards.length < 2) return;
     const container = cards[0].parentElement;
@@ -8549,7 +8641,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   function syncGlobalCards() {
     const section = followedSection();
-    if (!section) return;
+    if (!section) { sortieGlobale = 'pas-de-section'; return; }
 
     const existing = new Map();
     for (const c of section.querySelectorAll('.side-nav-card[data-tse-global="true"]')) {
@@ -8562,28 +8654,39 @@ const TSE_GATE_MAX_CLICKS = 5;
       existing.forEach(releaseGlobalCard);
       globalSeed.clear();
       ready(0);
+      sortieGlobale = 'hors-mode';
       return;
     }
 
-    let template = null;
-    let container = null;
+    const neutres = [];
+    let repli = null;
     for (const c of section.querySelectorAll('.side-nav-card')) {
-      if (c.dataset.tseGlobal === 'true' || isSynthetic(c)) continue;
-      if (isPlainCard(c) && !isCardOffline(c)) { template = c; break; }
+      if (c.dataset.tseGlobal === 'true' || isSynthetic(c) || isCardOffline(c)) continue;
+      if (!modeleUtilisable(c)) continue;
+      if (isPlainCard(c)) {
+        if (neutres.length < CFG.GLOBAL_TEMPLATE_TRIES) neutres.push(c);
+        continue;
+      }
+      if (!repli && !c.querySelector('[class*="promoted-followed-card__content"]')) {
+        repli = c;
+      }
     }
-    if (template) {
-      container = template.parentElement;
 
-      globalTemplate = template.cloneNode(true);
-      globalContainer = container;
-    } else if (globalTemplate) {
-      template = globalTemplate;
+    const candidats = neutres.map(c => [c, 'neutre']);
+    if (repli) candidats.push([repli, 'repli']);
+    if (globalTemplate) candidats.push([globalTemplate, 'memoire']);
+    if (!candidats.length) { sortieGlobale = 'pas-de-modele'; return; }
 
-      container = (globalContainer?.isConnected ? globalContainer : null)
+    const conteneurPour = (noeud, voie) => (voie === 'memoire'
+      ? (globalContainer?.isConnected ? globalContainer : null)
         || section.querySelector('.side-nav-card')?.parentElement
-        || section;
-    }
-    if (!template || !container) return;
+        || section
+      : noeud.parentElement);
+
+    let essai = 0;
+    let template = candidats[0][0];
+    let container = conteneurPour(template, candidats[0][1]);
+    if (!container) { sortieGlobale = 'pas-de-conteneur'; return; }
 
     const seed = (rec) => globalSeed.set(rec.login, {
       id: rec.id, tags: rec.tags, game: rec.game, gameLabel: rec.gameLabel,
@@ -8614,18 +8717,42 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (card) {
         card.dataset.tseGlobal = 'true';
       } else {
-        card = buildAheadCard(template, rec.login, rec);
-        if (!card) return;
+
+        let voie = null;
+        while (!card && essai < candidats.length) {
+          [template, voie] = candidats[essai];
+          container = conteneurPour(template, voie);
+          card = container ? buildAheadCard(template, rec.login, rec) : null;
+          if (!card) essai++;
+        }
+        if (!card) { sortieGlobale = 'clone-nul'; return; }
+        modeleVoie = voie;
+
+        modeleEssais = essai;
         card.dataset.tseGlobal = 'true';
         container.appendChild(card);
+
+        if (voie !== 'memoire') {
+          globalTemplate = template.cloneNode(true);
+          globalContainer = container;
+        }
       }
 
       renderViewers(card, rec.viewers);
     }
-    for (const [login, card] of existing) if (!keep.has(login)) releaseGlobalCard(card);
+
+    for (const [login, card] of existing) {
+      if (keep.has(login)) continue;
+      if (preview.ouvert() && card === preview.carte()) continue;
+      releaseGlobalCard(card);
+    }
+    sortieGlobale = 'ok';
   }
 
   const isSynthetic = (card) => card.dataset.tseSynthetic === 'true';
+
+  const modeleUtilisable = (card) =>
+    !!card.querySelector('a[href]') && !!cardNameEl(card);
 
   const isPlainCard = (card) => {
     if (card.querySelector('[class*="promoted-followed-card__content"]')) return false;
@@ -8670,6 +8797,21 @@ const TSE_GATE_MAX_CLICKS = 5;
     strip(el);
     el.querySelectorAll('*').forEach(strip);
 
+    el.querySelectorAll(DOM.altCostreamHostSelector + ', ' + DOM.altLogoSelector
+      + ', [class*="iconContainer--primary"], [class*="iconContainer--secondary"]'
+      + ', .primary-with-small-avatar__mini-avatar')
+      .forEach(n => n.remove());
+
+    const marcheur = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const aVider = [];
+    for (let n = marcheur.nextNode(); n; n = marcheur.nextNode()) {
+      const brut = n.nodeValue || '';
+      if (PLUS_RE_ELEMENT.test(brut.trim())) { aVider.push([n, '']); continue; }
+      const m = PLUS_RE_TRAILING.exec(brut);
+      if (m) aVider.push([n, brut.slice(0, brut.length - m[0].length)]);
+    }
+    for (const [n, v] of aVider) n.nodeValue = v;
+
     el.querySelectorAll('.side-nav-card__avatar--offline')
       .forEach(n => n.classList.remove('side-nav-card__avatar--offline'));
 
@@ -8688,12 +8830,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     scrubClone(card);
 
     const links = card.querySelectorAll('a[href]');
-    if (!links.length) return null;
+    if (!links.length) { modeleRefus = 'liens'; return null; }
     links.forEach(a => a.setAttribute('href', `/${login}`));
 
     const name = data.name || (login.charAt(0).toUpperCase() + login.slice(1));
-    const nameEl = card.querySelector('p[data-a-target="side-nav-title"]');
-    if (!nameEl) return null;
+    const nameEl = cardNameEl(card);
+    if (!nameEl) { modeleRefus = 'pseudo'; return null; }
+    modeleRefus = null;
     setText(nameEl, name);
     if (nameEl.hasAttribute('title')) nameEl.setAttribute('title', name);
 
@@ -8731,13 +8874,20 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const covered = new Set();
     let template = null;
+    let repliModele = null;
     for (const c of all) {
       if (isSynthetic(c) || !nativeCovers(c)) continue;
       const l = c.dataset.tseLogin || getCardLogin(c);
       if (l) covered.add(l);
 
+      if (!modeleUtilisable(c)) continue;
       if (!template && isPlainCard(c)) template = c;
+      else if (!repliModele && !isPlainCard(c)
+               && !c.querySelector('[class*="promoted-followed-card__content"]')) {
+        repliModele = c;
+      }
     }
+    if (!template) template = repliModele;
 
     const standing = new Set();
     for (const c of all) {
