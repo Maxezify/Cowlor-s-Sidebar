@@ -1170,6 +1170,16 @@ const construireRapport = (r, transport, fond) => {
      et elle écarte la moitié des causes qu'on chercherait sinon. */
   L.push(...bloc('CENTRAGE SANS CATÉGORIE / UNCATEGORISED CENTRING',
                  aplatir(r.centrage)));
+  /* OÙ TWITCH ÉCRIT LE PSEUDO. Trois versions ont corrigé ce repérage et
+     chacune a été démentie par le rapport suivant, faute de pouvoir OBSERVER
+     le balisage : on le déduisait d'un compteur à zéro. Ces sept lignes le
+     recensent sur les cartes en direct — crochet d'automatisation, groupe
+     nom + catégorie, nombre de lignes, lignes porteuses d'un `title` — et
+     `sansNom` dit pour combien de cartes le repérage échoue malgré tout.
+
+     ÉCRIT MÊME À ZÉRO CARTE, comme le bloc ci-dessus : « aucune carte en
+     direct » est une réponse, et elle écarte la moitié des causes. */
+  L.push(...bloc('LIGNES DE CARTE / CARD LINES', aplatir(r.lignes)));
   /* LE SUBATHON A SON PROPRE BLOC, et il en a besoin. La règle qui le
      reconnaît ne lit que le titre du direct : elle n'a jamais pu être
      exécutée contre le vrai Twitch, et ces six lignes sont la seule mesure

@@ -13978,6 +13978,192 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await page.close();
 }
 
+/* ═════════ QUAND TWITCH TITRE AUSSI LA LIGNE DU PSEUDO ═════════════════
+   Le repérage du pseudo a été corrigé trois fois, et chaque rapport suivant
+   l'a démenti. La 4.5.3 ramenait le repère à un seul critère — « la ligne qui
+   ne porte pas de `title` », la catégorie portant toujours le sien. Il est
+   juste, et il est FRAGILE : Twitch pose aussi un `title` sur le pseudo quand
+   il le tronque. Les deux lignes en portent alors un, le critère unique ne les
+   départage plus — il les écarte TOUTES — et la carte entière est refusée.
+
+   DEUX REPÈRES VALENT MIEUX QU'UN, et le second est un filet : à défaut de
+   ligne sans `title`, la PREMIÈRE du groupe. Le pseudo est au-dessus de la
+   catégorie dans toutes les dispositions connues de Twitch, et il n'y a ici
+   qu'une ligne à se tromper.
+
+   LE MÊME `title` TROMPAIT `cardCategoryEl`, qui prenait « le premier p[title] »
+   — donc le pseudo. La chaîne se voyait ranger sous une catégorie à son propre
+   nom, et la carte fabriquée portait sa catégorie à la place de son pseudo. */
+{
+  titre('107. Twitch titre les deux lignes, et le repère unique ne suffit plus');
+  const page = await fresh();
+  const h = new Date(Date.now() - 3600_000).toISOString();
+  await page.evaluate((iso) => {
+    window.__fx = { seule: { id: 's1', createdAt: iso, viewers: 900,
+                             game: 'Just Chatting', tags: [] } };
+    window.__costreamHost = { seule: 'hote' };
+    window.__addCard('seule', 'Discussions', '900');
+    const d = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a[href="/seule"]'));
+    /* LE DÉCOR EXACT : pas de crochet d'automatisation — la disposition « En
+       live avec » —, et un `title` sur le pseudo comme sur la catégorie. */
+    const nom = d.querySelector('p[data-a-target="side-nav-title"]');
+    nom.removeAttribute('data-a-target');
+    nom.setAttribute('title', 'seule');
+    const cats = [];
+    for (let i = 0; i < 3; i++) {
+      const streams = [];
+      for (let k = 0; k < 30; k++) {
+        streams.push({ login: `g${i}_${k}`, viewers: 5000 - k, tags: ['English'] });
+      }
+      cats.push({ name: 'c' + i, viewers: 400_000 - i, streams });
+    }
+    window.__cats = cats;
+  }, h);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 1, 9000);
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(30).length > 0, 9000);
+  await wait(page, 1500);
+
+  const etat = await page.evaluate(() => {
+    const p = window.tse.panneau.rapport().page;
+    const faites = [...document.querySelectorAll(
+      '.side-nav-card[data-tse-synthetic="true"]')];
+    return {
+      fabriquees: faites.length, modele: p.modele, refus: p.modeleRefus,
+      sortie: p.sortie,
+      lignes: faites.slice(0, 1).map(c => [...c.querySelectorAll(
+        '[data-a-target="side-nav-card-metadata"] p')].map(x => x.textContent.trim())),
+      categorieNative: [...document.querySelectorAll('.side-nav-card')]
+        .find(c => c.dataset.tseLogin === 'seule')?.dataset.tseCategory ?? null,
+      // Le recensement doit VOIR ce décor : c'est lui qui devra trancher la
+      // prochaine fois, et une mesure qu'on n'éprouve pas ne mesure rien.
+      recense: window.tse.panneau.rapport().lignes,
+    };
+  });
+  ok('le classement s\'affiche quand les DEUX lignes portent un title',
+     etat.fabriquees >= 10, JSON.stringify(etat));
+  ok('…et la carte fabriquée porte le pseudo, non la catégorie',
+     JSON.stringify(etat.lignes[0] || []) === JSON.stringify(['g0_0', 'c0']),
+     JSON.stringify(etat.lignes));
+  /* LA CHAÎNE NE SE RANGE PAS SOUS SON PROPRE NOM. C'est l'autre moitié du
+     même défaut, et elle ne se voyait nulle part : les filtres s'appliquaient
+     à une catégorie qui n'existe pas. */
+  ok('…et la chaîne garde SA catégorie, et non son pseudo pour catégorie',
+     etat.categorieNative === 'Just Chatting', String(etat.categorieNative));
+  ok('…et le rapport dit que la passe est allée jusqu\'au bout',
+     etat.sortie === 'ok' && etat.refus === null, JSON.stringify(etat));
+  /* LE RECENSEMENT DOIT DIRE CE DÉCOR, sans quoi il ne servira pas le jour où
+     il faudra trancher : une carte, aucun crochet, deux lignes toutes deux
+     titrées, et un pseudo retrouvé quand même. */
+  ok('…et le recensement du balisage décrit ce décor sans se tromper',
+     etat.recense.crochet === 0 && etat.recense.p2 === 1
+     && etat.recense.toutesTitrees === 1 && etat.recense.sansNom === 0
+     && etat.recense.nomTitre === 1,
+     JSON.stringify(etat.recense));
+  await page.close();
+}
+
+/* ═════════ LE MODÈLE QUI NE SE DÉCOUVRE MAUVAIS QU'AU CLONAGE ═══════════
+   Un candidat peut passer toutes les gardes et ne se révéler inexploitable
+   qu'une fois CLONÉ : `scrubClone` retire les décorations de Twitch, et si
+   l'une d'elles enveloppe le pseudo, le clone perd sa ligne de nom. La passe
+   abandonnait alors tout — « fabriquees 0 » sur un classement parfaitement
+   connu — et le mauvais modèle s'était DÉJÀ installé dans la mémoire de la
+   session, où il remplaçait celui qui marchait.
+
+   DEUX CORRECTIONS, ET ELLES SE TIENNENT : le modèle ne se mémorise qu'après
+   avoir produit une carte, et un clone raté rejoue la mémoire au lieu de
+   condamner la passe. L'une sans l'autre ne sert à rien — la mémoire rejouée
+   serait le mauvais modèle. */
+{
+  titre('108. Un clone raté ne condamne plus la passe');
+  const page = await fresh();
+  const h = new Date(Date.now() - 3600_000).toISOString();
+  const lot = (pref) => {
+    const cats = [];
+    for (let i = 0; i < 3; i++) {
+      const streams = [];
+      for (let k = 0; k < 30; k++) {
+        streams.push({ login: `${pref}${i}_${k}`, viewers: 5000 - k, tags: ['English'] });
+      }
+      cats.push({ name: 'c' + i, viewers: 400_000 - i, streams });
+    }
+    return cats;
+  };
+  await page.evaluate(({ iso, cats }) => {
+    window.__fx = {
+      propre: { id: 's1', createdAt: iso, viewers: 800, game: 'Just Chatting', tags: [] },
+      piege:  { id: 's2', createdAt: iso, viewers: 900, game: 'Just Chatting', tags: [] },
+    };
+    /* LE PIÈGE EST LA PLUS REGARDÉE : c'est le tri qui décide de l'ordre des
+       candidats, et il range par spectateurs. Sans cela, la carte propre
+       passerait devant et le piège ne serait jamais choisi. */
+    window.__addCard('piege', 'Discussions', '900');
+    window.__addCard('propre', 'Discussions', '800');
+    /* SON GROUPE NOM + CATÉGORIE VIT DANS UNE DÉCORATION QUE LE NETTOYAGE
+       RETIRE. La carte VIVANTE, elle, a bien son pseudo : elle passe donc
+       toutes les gardes, et ne se révèle mauvaise qu'une fois clonée — le
+       nettoyage emporte l'étui, et avec lui les deux lignes. C'est le seul
+       décor qui éprouve vraiment le rattrapage : envelopper la seule ligne du
+       pseudo ne suffit pas, le repli prendrait celle de la catégorie. */
+    const p = [...document.querySelectorAll('.side-nav-card')]
+      .find(c => c.querySelector('a[href="/piege"]'));
+    const groupe = p.querySelector('.side-nav-card__metadata');
+    const etui = document.createElement('div');
+    etui.className = 'iconContainer--secondary';
+    groupe.replaceWith(etui);
+    etui.appendChild(groupe);
+    window.__cats = cats;
+  }, { iso: h, cats: lot('g') });
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-viewers]').length === 2, 9000);
+  await page.evaluate(() =>
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(page, () => window.tse.global.top(30).length > 0, 9000);
+  await attendre(page,
+    () => document.querySelectorAll('[data-tse-synthetic="true"]').length > 0, 9000);
+  await wait(page, 900);
+  const un = await page.evaluate(() => {
+    const p = window.tse.panneau.rapport().page;
+    return { modele: p.modele, sortie: p.sortie, essais: p.modeleEssais,
+             fabriquees: document.querySelectorAll('[data-tse-synthetic="true"]').length };
+  });
+  ok('le classement s\'affiche malgré le modèle qui se défait au clonage',
+     un.fabriquees >= 10 && un.sortie === 'ok', JSON.stringify(un));
+  /* ET LE RAPPORT DIT QU'IL A FALLU S'Y REPRENDRE. Sans ce compteur, une passe
+     qui essaie trois modèles avant d'en trouver un bon se lit exactement comme
+     une passe qui réussit du premier coup — or ce n'est pas la même santé. */
+  ok('…et le rapport dit qu\'un modèle s\'est défait avant celui qui a servi',
+     un.essais === 1 && un.modele === 'neutre', JSON.stringify(un));
+
+  /* LA CARTE PROPRE DISPARAÎT. Il ne reste que le piège — et la mémoire, qui
+     ne doit PAS l'avoir enregistré. */
+  await page.evaluate((cats) => {
+    delete window.__fx.propre;
+    [...document.querySelectorAll('.side-nav-card')]
+      .filter(c => c.querySelector('a[href="/propre"]')).forEach(c => c.remove());
+    window.__cats = cats;
+    window.tse.rescan();
+  }, lot('h'));
+  await attendre(page,
+    () => window.tse.global.top(30).some(r => r.login.startsWith('h')), 9000);
+  await wait(page, 1500);
+  const deux = await page.evaluate(() => {
+    const p = window.tse.panneau.rapport().page;
+    const faites = [...document.querySelectorAll('[data-tse-synthetic="true"]')];
+    return { modele: p.modele, sortie: p.sortie, refus: p.modeleRefus,
+             neufs: faites.filter(c => (c.dataset.tseLogin || '').startsWith('h')).length };
+  });
+  ok('…et la mémoire n\'a pas enregistré le modèle qui ne produit rien',
+     deux.modele === 'memoire' && deux.sortie === 'ok', JSON.stringify(deux));
+  ok('…si bien que le classement continue de suivre le palmarès',
+     deux.neufs >= 10, JSON.stringify(deux));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

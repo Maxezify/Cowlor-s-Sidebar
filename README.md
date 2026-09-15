@@ -338,9 +338,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 912 Ko | 355 Ko | 3 197 → **2** |
+| `content.js` | 915 Ko | 356 Ko | 3 206 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 69 Ko | 34 Ko | 85 → **0** |
+| `panneau.js` | 69 Ko | 34 Ko | 86 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1113 Ko** | **492 Ko** | **−56 %** |
@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 991 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1000 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2613,6 +2613,104 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Ce qu'un rapport ne pouvait pas dire (v4.5.4)
+
+Quatre versions ont corrigé le repérage du pseudo, et chaque rapport suivant a
+démenti la précédente. Le dernier ne disait plus `modele: repli` mais **rien du
+tout** — plus aucun candidat ne passait, alors que `subathons.sansAncre 0` au
+même instant prouvait que le repérage fonctionnait sur une autre carte de la
+même sidebar.
+
+C'est la quatrième fois, et c'est le signe que le problème n'est pas dans la
+correction : **il est dans ce qu'on peut observer.** On déduisait le balisage
+d'un compteur à zéro, ce qui revient à deviner.
+
+### Le recensement du balisage
+
+Le rapport porte désormais un bloc « LIGNES DE CARTE », relevé sur les cartes en
+direct de la section suivie. Il ne juge rien, il compte :
+
+```
+cartes          7     ← cartes en direct examinées
+crochet         1     ← celles qui portent p[data-a-target="side-nav-title"]
+groupe          7     ← celles qui exposent le groupe nom + catégorie
+p0 p1 p2 p3     0 1 6 0
+toutesTitrees   6     ← groupes dont TOUTES les lignes portent un `title`
+nomTitre        6
+sansNom         0     ← cartes pour lesquelles le repérage échoue quand même
+```
+
+Sept nombres, et ils tranchent une question que quatre versions ont dû poser.
+Un banc ne peut pas les produire : ils décrivent le Twitch d'aujourd'hui, celui
+qu'aucune machine d'ici ne peut joindre.
+
+### Et où la passe s'arrête
+
+`page.sortie` dit à quel moment le classement a renoncé : `hors-mode`,
+`pas-de-section`, `pas-de-modele`, `pas-de-conteneur`, `clone-nul`, ou `ok`.
+Un « modele: repli » accompagné de « fabriquees 0 » se lisait de **deux
+façons** — le modèle a été refusé, ou son clone l'a été — et cette ambiguïté a
+coûté une version à chaque fois.
+
+`page.modeleEssais` complète : combien de modèles se sont défaits **au clonage**
+avant qu'un tienne. Zéro est le cas nominal. Une passe qui s'y reprend à trois
+fois se lisait jusqu'ici exactement comme une passe qui réussit du premier coup,
+et ce n'est pas la même santé.
+
+`page.modele`, enfin, ne dit plus le candidat **choisi** mais celui qui a
+réellement **fabriqué** une carte. Une passe où toutes les cartes existent déjà
+n'en éprouve aucun : elle annonçait pourtant un modèle, sans qu'il ait rien fait.
+
+### Deux repères valent mieux qu'un
+
+La 4.5.3 avait ramené le repérage du pseudo à un seul critère — « la ligne qui
+ne porte pas de `title` », la catégorie portant toujours le sien. Il est juste,
+et il est **fragile** : Twitch pose aussi un `title` sur le pseudo quand il le
+tronque. Les deux lignes en portent alors un, le critère ne les départage plus —
+il les écarte **toutes** — et la carte entière est refusée.
+
+À défaut de ligne sans `title`, on prend donc la **première** du groupe : le
+pseudo est au-dessus de la catégorie dans toutes les dispositions connues de
+Twitch. Se tromper de ligne serait grave ; il n'y a ici qu'une ligne à se
+tromper, et c'est la bonne.
+
+Le même `title` trompait `cardCategoryEl`, qui prenait « le premier `p[title]` »
+— donc le pseudo. L'exclusion de la ligne du nom, introduite en 4.5.3 pour le
+seul dernier repli, vaut maintenant pour **toutes** ses branches.
+
+### Un clone raté ne condamne plus la passe
+
+Un candidat peut passer toutes les gardes et ne se révéler inexploitable qu'une
+fois **cloné** : `scrubClone` retire les décorations de Twitch, et si l'une
+d'elles enveloppe le groupe nom + catégorie, le clone perd ses lignes.
+
+La passe abandonnait alors tout, et la suivante reprenait le même mauvais
+modèle, indéfiniment. Le classement garde désormais une **liste de candidats** —
+jusqu'à trois cartes neutres, la carte décorée, puis le modèle mémorisé — et ne
+renonce qu'après les avoir épuisés.
+
+Deux corrections qui se tiennent : le modèle ne se mémorise qu'**après** avoir
+produit une carte. L'une sans l'autre ne servirait à rien — la mémoire rejouée
+serait le mauvais modèle, celui qui venait justement de s'y installer.
+
+### Les scénarios 107 et 108
+
+Neuf assertions, quatre mutants, aucun survivant :
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| le filet de `cardNameEl` saute | plus rien n'est fabriqué quand les deux lignes sont titrées |
+| `cardCategoryEl` n'exclut le nom que du dernier repli | la carte fabriquée porte « c0 » pour pseudo |
+| un clone raté condamne à nouveau la passe | le classement reste vide, `sortie: clone-nul` |
+| le modèle se mémorise dès qu'il est choisi | la mémoire rejoue le modèle qui ne produit rien |
+
+**Deux décors ont dû être corrigés**, et les deux erreurs se ressemblent : ils
+éprouvaient moins que ce qu'ils annonçaient. Le premier attendait la catégorie
+traduite là où le DOM porte le nom brut du jeu. Le second enveloppait la seule
+ligne du pseudo — or le filet prend alors celle de la catégorie, et le clone
+« réussissait ». Il enveloppe désormais le groupe entier, seul décor qui prive
+vraiment le clone de ses deux lignes.
 
 ## Les deux gardes qui s'annulaient (v4.5.3)
 
@@ -5977,7 +6075,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 106 scénarios, 991 assertions |
+| `npm test` | le harnais Playwright : 108 scénarios, 1000 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
