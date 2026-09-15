@@ -326,9 +326,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 868 KB | 345 KB | 3,140 → **2** |
+| `content.js` | 876 KB | 348 KB | 3,170 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 68 KB | 34 KB | 84 → **0** |
+| `panneau.js` | 69 KB | 34 KB | 85 → **0** |
 | `bridge.js` | 11 KB | 3 KB | 20 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1079 KB** | **484 KB** | **−55 %** |
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 940 assertions, under Gecko
+npm run test-firefox        # the same 955 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,160 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The resumption that did not work (v4.3)
+
+Two user reports, a screenshot, and a diagnostic report. Three defects, one of
+which two versions had missed.
+
+### The line that destroyed the trail
+
+`suivreCategorie` threw away the whole registry as soon as a poll returned a
+stream that was **live with no category**:
+
+```js
+if (id) { frises.delete(login); return; }   // "nothing says what we are watching"
+```
+
+The reasoning held for the instant and missed the case that matters: **a stream
+that resumes has no category yet for the first few seconds.** The resumption
+badge was set — it does not depend on the category — and then the next line threw
+away the very past the resumption had just preserved. That is the report, word
+for word: "it had a trail before, and it has none at all when it came back."
+
+The same defect explained a second symptom nobody had connected to it: **a
+channel that never announces a category never had a trail either**, its trail
+being destroyed at every poll.
+
+What happens instead: nothing. The session bookkeeping — the origin, the id, the
+end of the offline hold — does not depend on the category and has already
+happened. All that is left is to **not open a segment** on a category we do not
+know. The last segment therefore runs up to now: we do not know that it changed,
+and staying silent is not inventing.
+
+### The outage we did not witness
+
+The whole resumption apparatus rested on an **observation**: to know a stream had
+resumed, we had to have seen it live before the cut, in this page. A tab opened
+during the outage, a reload, a channel you do not follow — and the stream starts
+from zero.
+
+The report came with its own proof. The diagnostic said `page open for 344 s`;
+the screenshot of the channel's "Videos" page showed both recordings side by
+side:
+
+| Archive | Length | Age |
+| --- | --- | --- |
+| the one after | 5:46 | 6 minutes ago |
+| the one before | 9:51:19 | 10 hours ago |
+
+**What we did not see, Twitch archived.**
+
+#### What 4.0 concluded, and why it was half the problem
+
+4.0 established that a recording can **span** a reconnection — measured, a
+39-minute overlap — and concluded that dating the chapters request on the origin
+was enough. That is true **when Twitch keeps the same recording**. The screenshot
+shows the opposite case, just as real: a **new** recording, with the past in the
+previous one. Both exist; handling only the first left the second with nothing.
+
+#### The criterion is a join, and it cannot be guessed
+
+`videos(first: 3)` instead of 1, and we look for an archive that **ends** within
+the resumption window before the current stream started.
+
+- The **current** stream's archive begins with it: it joins nothing, it *is* the
+  segment after. Ruled out by itself.
+- An archive that ended six hours ago joins nothing either.
+- An archive that ended three minutes before the start **is** the segment before.
+
+Found, it yields the badge, the origin, the outage count, the mark on the ribbon
+— **and its chapters**, that is, everything the stream went through before the
+cut, timed to the second by Twitch itself.
+
+#### What it costs
+
+One operation, on hover, **once per stream session**, and only on a **young**
+stream we know nothing about. A channel followed since the start of its live
+triggers none: there would be nothing to learn. The counters are in the report
+(`reseau.chapitres.reprise.{sondes, trouvees, adoptees}`).
+
+The subathon exception applies to the probe as it does to direct observation —
+otherwise the probe would have walked around it through the back door.
+
+### The centring: two blind fixes, and why
+
+This is the most embarrassing defect of the series, because it was "fixed" twice
+with no effect.
+
+3.98 set `align-self: stretch`, which is **a bet**: that the row stretches its
+column to its height, so that there is something to centre inside. 4.2 removed
+the intruders from the box — a real problem, a real fix — **without touching that
+bet**. If Twitch pins the column to the top, both stay inert.
+
+And the bench stayed green, because it **models** a row that stretches. A model
+carrying only one of the possible cases cannot separate a fix that works from one
+that does not.
+
+**No more betting: both cases are covered.** Three declarations, each inert where
+the other acts: `align-self: center` centres the box when it fits in the row;
+`margin-block: auto` does the same on a grid and takes precedence over an
+imposed `align-items`; the centred column stays for the case where the box is
+stretched anyway. In `!important`, because a Twitch rule on the same property
+otherwise won by cascade order and its class cannot be targeted — it is hashed at
+every build.
+
+The harness now **pins** one card's column, for real, with a rule that wins. That
+is the only assertion in scenario 99 that separates this fix from 3.98's.
+
+#### And a measurement, so as not to do it a third time
+
+Twitch's stylesheet is not readable from this repository, and the bench only
+carries a model of it. The diagnostic report therefore carries a **CENTRING**
+block measuring, on the real page: how many cards are marked as having no
+category, how many have their name more than 2 px off their row's centre, the
+signed offset of the first one, both heights, and what the browser retained of
+our declarations (`display`, `align-self`, `parentDisplay`). A `parentDisplay:
+block` would say on its own why no alignment takes.
+
+### Scenarios 101 and 102
+
+Fifteen assertions, nine mutants, no survivors — **after fixing two assertions
+that proved nothing**:
+
+| Mutant | Assertions that fall |
+| --- | --- |
+| the line that destroyed the trail is restored | 4 |
+| a silent poll opens a segment anyway | 4 |
+| the probe no longer fires | 4 |
+| the join looks only at the first archive | 4 |
+| the resumption window is gone | 2 |
+| the subathon exception is gone | 1 |
+| the pre-cut chapters are not brought back | 2 |
+| the trail is not realigned on the origin | 1 |
+| the probe fires again on every hover | 1 |
+
+The last two **survived** at first, and that pass was the most valuable one:
+
+- *realigning the origin* had no observable effect as long as the previous
+  archive carried chapters — they date the trail on their own. It took a fixture
+  where the archive joins **without carrying a single chapter**: without the
+  realignment, the trail announces "0m" next to "1 outage" on a five-hour
+  stream. It does not stay silent, it gets it wrong;
+- *the probe registry* was covered by another guard — "this channel is already
+  chained" — on the only channel the test re-hovered. We now re-hover a channel
+  that **yielded nothing**, where that other guard does not apply.
+
+An assertion that passes on a mutant proves nothing, and the only way to know is
+to build the mutant.
+
+### Mind the scale, in the bench
+
+`RECONNECT_GAP_MAX` is ten minutes in production and **2.5 seconds** in the bench
+(`tests/build.mjs`). Scenario 102's gaps are therefore expressed in seconds: a
+one-second gap is a resumption, a ten-second one is not. Writing them in minutes
+would have put both outside the window — and both assertions would have passed
+without proving anything.
 
 ## The co-streamer with no category (v4.2)
 
@@ -5058,7 +5212,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 100 scenarios, 940 assertions |
+| `npm test` | the Playwright harness: 102 scenarios, 955 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

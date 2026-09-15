@@ -2526,20 +2526,38 @@ const TSE_GATE_MAX_CLICKS = 5;
       display: none !important;
     }
 
-    /* Le pseudo d'une carte SANS catégorie, recentré sur la hauteur de la
-       rangée. Deux déclarations, et il faut les deux :
-         — align-self: stretch fait occuper à la metadata toute la hauteur
-           que lui offre sa rangée, même si Twitch alignait ses colonnes en
-           haut. Sans elle, il n'y aurait rien à centrer : la boîte ferait la
-           hauteur de sa seule ligne ;
-         — la colonne flex centrée place cette ligne au milieu.
-       Aucune ne dépend d'une classe hashée de Twitch, et si la rangée cessait
-       d'être une flexbox les deux deviendraient inertes plutôt que fausses. */
+    /* ── DEUX MISES EN PAGE POSSIBLES, ET IL FAUT LES DEUX ────────────────
+       La 3.98 posait « align-self: stretch », c'est-à-dire un PARI : que la
+       rangée étire sa colonne à sa hauteur, de sorte qu'il y ait quelque
+       chose à centrer dedans. Le pari est perdu dès que Twitch laisse la
+       boîte à la hauteur de son contenu — elle fait alors une ligne, elle
+       est déjà « pleine », et centrer son contenu ne déplace rien. La 4.2 a
+       retiré les intrus de la boîte sans toucher à ce pari-là : le pseudo
+       restait en haut, et le signalement est revenu inchangé.
+
+       ON NE PARIE PLUS, ON COUVRE LES DEUX CAS, et les trois déclarations
+       ci-dessous ne se contredisent pas — chacune est inerte là où l'autre
+       agit :
+         — « align-self: center » centre la BOÎTE quand elle tient dans la
+           rangée. C'est le cas que le pari manquait ;
+         — « margin-block: auto » fait la même chose sur une grille, et prend
+           le pas sur un « align-items » que Twitch imposerait à la rangée ;
+         — la colonne centrée reste pour le cas où la boîte est étirée malgré
+           tout : elle centre alors son contenu.
+       « !important » parce qu'une règle de Twitch sur la même propriété gagne
+       sinon par ordre de cascade, et qu'on ne peut pas viser sa classe : elle
+       est hachée à chaque build.
+
+       Si la rangée n'est ni flex ni grille, les trois restent inertes plutôt
+       que fausses — et le rapport de diagnostic mesure désormais l'écart
+       réellement obtenu (bloc « centrage » du rapport), de sorte qu'un cas non
+       couvert se lise au lieu de se deviner. */
     .side-nav-card[data-tse-nocat="true"] [data-a-target="side-nav-card-metadata"] {
-      align-self: stretch;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      align-self: center !important;
+      margin-block: auto !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
     }
 
     /* ── CENTRER NE SUFFIT PAS SI LA BOÎTE N'EST PAS VIDE ─────────────────
@@ -4332,6 +4350,79 @@ const TSE_GATE_MAX_CLICKS = 5;
     return r;
   };
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     LA COUPURE QU'ON N'A PAS VUE PASSER
+     ──────────────────────────────────────────────────────────────────────────
+     TOUT CE QUI PRÉCÈDE REPOSE SUR UNE OBSERVATION : pour savoir qu'un direct
+     a repris, il fallait l'avoir vu EN LIGNE avant la coupure, dans cette
+     page-ci. Un onglet ouvert pendant la coupure, un rechargement, une
+     chaîne qu'on ne suit pas et qui n'était donc pas interrogée — et le
+     direct repart de zéro : pas de badge, pas de frise, pas de compte.
+
+     LE SIGNALEMENT QUI L'A MONTRÉ, et il était accompagné de sa preuve. Une
+     chaîne coupée trois minutes, reprise, et l'onglet ouvert entre les deux :
+     rien. Or la page « Vidéos » de cette chaîne, dans la même capture, portait
+     les deux enregistrements côte à côte — celui d'avant (9 h 51, terminé) et
+     celui d'après (5 min, en cours). Ce que nous n'avons pas vu, TWITCH l'a
+     archivé.
+
+     CE QUE LA 4.0 AVAIT CONCLU, ET POURQUOI C'ÉTAIT INCOMPLET. Elle avait
+     établi qu'un enregistrement peut TRAVERSER une reconnexion — mesuré, un
+     recouvrement de 39 minutes — et en avait tiré qu'il suffisait de dater la
+     requête sur l'origine. C'est vrai QUAND Twitch garde le même
+     enregistrement. La capture montre le cas inverse, tout aussi réel : un
+     enregistrement NEUF, et le passé dans le précédent. Les deux existent ; ne
+     traiter que le premier laissait le second sans rien.
+
+     LE CRITÈRE EST UN RACCORD, et il ne se devine pas : l'archive précédente
+     doit se TERMINER dans la fenêtre de reprise avant le départ du direct
+     courant. Une archive qui s'est terminée il y a six heures ne raccorde
+     rien ; une archive terminée il y a trois minutes est le tronçon d'avant.
+     C'est la même question que pour le badge, posée à Twitch au lieu de notre
+     mémoire — et elle a la même réponse, en plus complète : l'archive porte
+     aussi ses CHAPITRES, c'est-à-dire tout ce que le direct a traversé avant
+     la coupure.
+
+     ON N'ÉCRASE JAMAIS CE QU'ON A VU. Si la mémoire porte déjà une reprise
+     pour cette session, elle vient d'une observation directe : elle est plus
+     sûre que cette reconstitution, et elle reste. */
+  const adopterReprise = (login, flux, avant) => {
+    const neuf = flux?.id ? flux : null;
+    if (!neuf || !avant) return false;
+    const depart = Date.parse(neuf.createdAt);
+    if (!Number.isFinite(depart)) return false;
+    const memoire = derniersDirects.get(login);
+    // Déjà chaînée sur cette session — par observation ou par une adoption
+    // précédente : on ne refait pas le travail, et surtout on ne recompte pas.
+    if (memoire && memoire.id === neuf.id && memoire.coupures) return false;
+    if (subathonDe(login)) return false;          // même exception qu'ailleurs
+    reprises.delete(login);
+    /* L'HORODATAGE DU BADGE EST CELUI DE LA REPRISE, PAS DE LA DÉCOUVERTE.
+       Poser `Date.now()` ferait durer « Reprise après coupure » dix minutes à
+       compter du survol — donc bien après que la nouvelle a cessé d'en être
+       une. Le badge s'éteint dix minutes après le départ du tronçon, qu'on
+       l'ait appris tout de suite ou une heure plus tard. */
+    reprises.set(login, { ts: depart });
+    while (reprises.size > CFG.RECONNECT_MAX) {
+      reprises.delete(reprises.keys().next().value);
+    }
+    derniersDirects.delete(login);
+    derniersDirects.set(login, {
+      id: neuf.id,
+      vu: Date.now(),
+      origine: new Date(avant.debut).toISOString(),
+      coupures: 1,
+      marques: [{ fin: avant.fin, reprise: depart }],
+    });
+    /* LA FRISE PORTE ENCORE LE DÉPART DU TRONÇON : elle a été ouverte avant
+       qu'on sache. On la recale sur l'origine — sans quoi le ruban dirait
+       trois minutes là où le direct en fait six heures, et la part non
+       observée que le prélude va combler n'existerait même pas. */
+    const f = frises.get(login);
+    if (f && f.streamId === neuf.id) f.debutStream = avant.debut;
+    return true;
+  };
+
   /* ============================================================
    *  FRISE DES CATÉGORIES — ce qu'un live a traversé
    *  ------------------------------------------------------------
@@ -4413,12 +4504,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     const id = flux?.id || null;
     const jeu = apres?.game || null;
     const maintenant = Date.now();
-    if (!id || !jeu) {
+    if (!id) {
       const tenue = frises.get(login);
       if (!tenue) return;
-      /* UNE CATÉGORIE INCONNUE SUR UN STREAM EN LIGNE RESTE UN OUBLI : il n'y
-         a pas de coupure à traverser, et rien ne dit ce qu'on regarde. */
-      if (id) { frises.delete(login); return; }
       /* ── HORS LIGNE : ON RETIENT, ON N'OUBLIE PAS TOUT DE SUITE ───────────
          La frise était détruite au premier relevé hors ligne, et cela rendait
          la continuité IMPOSSIBLE dans le cas le plus visible : une coupure de
@@ -4498,6 +4586,28 @@ const TSE_GATE_MAX_CLICKS = 5;
       frises.delete(frises.keys().next().value);
       bilanFrises.evincees++;
     }
+
+    /* ── UNE CATÉGORIE ABSENTE N'EST PAS UNE FRISE À DÉTRUIRE ────────────────
+       Cette fonction effaçait le registre entier dès qu'un relevé rendait un
+       direct EN LIGNE sans catégorie — « rien ne dit ce qu'on regarde », disait
+       le commentaire. Le raisonnement tenait sur l'instant et manquait le cas
+       qui compte : un direct qui REPREND n'a pas encore de catégorie pendant
+       les premières secondes. Le badge de reprise se posait — il ne dépend pas
+       de la catégorie — puis la ligne suivante jetait tout le passé que la
+       reprise venait justement de préserver. C'est le défaut signalé : « il
+       avait une frise avant, et il n'en a plus du tout quand il a repris. »
+
+       ET LE CAS ORDINAIRE EST DU MÊME BOIS : une chaîne qui n'annonce aucune
+       catégorie voyait sa frise détruite à chaque relevé, donc n'en avait
+       jamais. Deux symptômes, une seule ligne.
+
+       CE QU'ON FAIT À LA PLACE : rien. La tenue de session ci-dessus a déjà
+       eu lieu — l'origine, l'identifiant, la fin de la retenue hors ligne —
+       parce qu'elle ne dépend pas de la catégorie. Il ne reste qu'à ne pas
+       OUVRIR de segment sur une catégorie qu'on ne connaît pas. Le dernier
+       segment s'étend donc jusqu'à maintenant, ce qui est la seule chose
+       qu'on puisse dire sans inventer : on ne sait pas que ça a changé. */
+    if (!jeu) return;
 
     const dernier = f.segments[f.segments.length - 1];
     if (dernier && dernier.jeu === jeu) {
@@ -9074,6 +9184,56 @@ const TSE_GATE_MAX_CLICKS = 5;
            dit d'un coup d'œil si le registre couvre la population qu'il suit :
            c'est le rapport qui manquait pour voir 210 en cache et 40 places. */
         frise: { resident: frises.size, max: CFG.CATEGORY_TRAIL_MAX, ...bilanFrises },
+        /* ── LE CENTRAGE, MESURÉ AU LIEU D'ÊTRE SUPPOSÉ ────────────────────
+           Deux versions ont corrigé « le pseudo d'une carte sans catégorie
+           n'est pas centré » à l'aveugle : la feuille de style de Twitch n'est
+           pas lisible d'ici, et le banc n'en porte qu'une MODÉLISATION. Deux
+           fois la correction a été juste dans le modèle et sans effet sur la
+           vraie page. Ce bloc met fin aux suppositions : il mesure, sur la
+           page réelle, ce que la règle obtient.
+             `cartes`     — combien de cartes sont marquées sans catégorie ;
+             `decalees`   — combien ont leur pseudo à plus de 2 px du centre
+                            de leur rangée. Zéro veut dire que ça marche ;
+             `ecartPx`    — l'écart de la première d'entre elles, signé
+                            (négatif = trop haut) ;
+             `boiteH`/`rangeeH` — les deux hauteurs. Égales, la boîte est
+                            étirée ; différentes, elle tient dans la rangée ;
+             `alignSelf`/`display`/`parentDisplay` — ce que le navigateur a
+                            RETENU de nos déclarations, et ce qu'est vraiment
+                            la boîte au-dessus. Un `parentDisplay: block` dit
+                            à lui seul pourquoi aucun alignement ne prend. */
+        centrage: (() => {
+          const sansCat = cartes.filter(c => c.dataset.tseNocat === 'true');
+          const bilan = { cartes: sansCat.length, decalees: 0, ecartPx: null,
+                          boiteH: null, rangeeH: null, alignSelf: null,
+                          display: null, parentDisplay: null };
+          for (const c of sansCat) {
+            const meta = c.querySelector('[data-a-target="side-nav-card-metadata"]');
+            const p = c.querySelector('p[data-a-target="side-nav-title"]');
+            const statut = liveStatusOf(c);
+            // La RANGÉE est la plus petite boîte qui contienne à la fois le
+            // pseudo et le compteur : c'est sur sa hauteur que le centrage se
+            // juge, et elle se trouve sans nommer une classe hachée.
+            let rangee = meta;
+            while (rangee && statut && !rangee.contains(statut)) rangee = rangee.parentElement;
+            if (!meta || !p || !rangee) continue;
+            const rp = p.getBoundingClientRect(), rr = rangee.getBoundingClientRect();
+            if (!rr.height) continue;
+            const ecart = Math.round((rp.top + rp.height / 2) - (rr.top + rr.height / 2));
+            if (Math.abs(ecart) > 2) bilan.decalees++;
+            if (bilan.ecartPx === null) {
+              const st = getComputedStyle(meta);
+              bilan.ecartPx = ecart;
+              bilan.boiteH = Math.round(meta.getBoundingClientRect().height);
+              bilan.rangeeH = Math.round(rr.height);
+              bilan.alignSelf = st.alignSelf;
+              bilan.display = st.display;
+              bilan.parentDisplay = meta.parentElement
+                ? getComputedStyle(meta.parentElement).display : null;
+            }
+          }
+          return bilan;
+        })(),
         /* LE DÉLAI D'INTENTION, ET CE QU'IL COÛTE. `armes` compte les entrées
            du pointeur sur une carte, `ouverts` celles qui ont tenu les 200 ms.
            L'écart entre les deux est le nombre d'aperçus — et de requêtes
@@ -10318,11 +10478,19 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     /* La seconde porte vers l'enregistrement en cours : la liste des archives
        de la chaîne, la plus récente d'abord — c'est ce que la page « Vidéos »
-       de Twitch demande. Employée UNIQUEMENT quand `archiveVideo` rend null. */
+       de Twitch demande. Deux emplois, et c'est pourquoi elle en rend
+       PLUSIEURS depuis la 4.3 :
+         — quand `archiveVideo` rend null, la première archive est peut-être
+           celle du direct en cours (c'était le seul emploi jusqu'ici) ;
+         — quand le direct vient de commencer, l'archive SUIVANTE est celle du
+           tronçon d'AVANT une éventuelle coupure. C'est elle qui porte le
+           passé qu'aucune observation ne peut plus rattraper.
+       Trois suffisent : au-delà, on ne raccorderait plus rien — une archive
+       encore plus ancienne s'est terminée avant celle du milieu. */
     const RECENT_QUERY =
       'query TseVodRecent($login: String!) {' +
       '  user(login: $login) {' +
-      '    videos(first: 1, sort: TIME, type: ARCHIVE) {' +
+      '    videos(first: 3, sort: TIME, type: ARCHIVE) {' +
       '      edges { node {' +
       // `lengthSeconds` est ce qui permet de savoir si l'enregistrement
       // s'étend jusqu'au départ du live, ou s'il s'est terminé avant.
@@ -10625,6 +10793,102 @@ const TSE_GATE_MAX_CLICKS = 5;
         chapitres.delete(chapitres.keys().next().value);
       }
       return (segments || continu) ? chapitres.get(streamId) : null;
+    };
+
+    /* ══════════════════════════════════════════════════════════════════════
+       LA SONDE DE REPRISE — DEMANDER À TWITCH CE QU'ON N'A PAS VU
+       ──────────────────────────────────────────────────────────────────────
+       Elle ne part que sur un direct JEUNE et dont on ne sait rien : une
+       chaîne suivie depuis deux heures n'a rien à apprendre ici, et une
+       chaîne dont on a vu la coupure de nos yeux non plus. Une opération, une
+       seule fois par session de stream, et seulement au survol.
+
+       CE QU'ELLE CHERCHE : une archive qui se TERMINE dans la fenêtre de
+       reprise avant le départ du direct courant. Pas la plus récente — celle
+       du direct courant, quand elle existe, s'en trouve écartée d'elle-même
+       puisqu'elle commence APRÈS lui. Pas non plus n'importe quelle archive
+       ancienne : six heures plus tôt, elle ne raccorde rien.
+
+       ET ELLE RAPPORTE AUSSI LE PASSÉ, parce qu'il voyage dans la même
+       réponse : les chapitres de l'archive d'avant sont ce que le direct a
+       traversé avant la coupure, datés à la seconde par Twitch lui-même. */
+    const bilanSondes = { sondes: 0, servies: 0, trouvees: 0, vides: 0,
+                          reseau: 0, adoptees: 0, chapitresAvant: 0 };
+    // streamId déjà sondés : une seule opération par session, quoi qu'il
+    // arrive — y compris quand la sonde ne trouve rien, qui est le cas normal.
+    const sondees = new Set();
+    // streamId → segments du tronçon d'AVANT la coupure, datés en absolu.
+    const avantCoupure = new Map();
+
+    /* Le raccord, isolé pour être éprouvable seul. `fin` d'une archive n'est
+       pas un champ : c'est son départ plus sa durée, et sans durée exploitable
+       on refuse — un raccord supposé vaudrait moins que pas de raccord. */
+    const archiveQuiRaccorde = (noeuds, depart) => {
+      let meilleure = null;
+      for (const v of noeuds) {
+        const debut = Date.parse(v?.createdAt);
+        const duree = Number(v?.lengthSeconds);
+        if (!Number.isFinite(debut) || !Number.isFinite(duree) || duree <= 0) continue;
+        // L'archive du direct COURANT commence avec lui : elle ne raccorde
+        // rien, elle EST le tronçon d'après.
+        if (debut >= depart - CFG.CATEGORY_TRAIL_VOD_ECART) continue;
+        const fin = debut + duree * 1000;
+        const trou = depart - fin;
+        if (trou < 0 || trou > CFG.RECONNECT_GAP_MAX) continue;
+        // La plus proche du départ : c'est elle le tronçon immédiatement
+        // précédent, si Twitch en rend plusieurs qui raccordent.
+        if (!meilleure || trou < meilleure.trou) meilleure = { debut, fin, trou, noeud: v };
+      }
+      return meilleure;
+    };
+
+    const sonderReprise = async (login, flux) => {
+      const streamId = flux?.id;
+      const depart = Date.parse(flux?.createdAt);
+      if (!streamId || !Number.isFinite(depart)) return false;
+      if (sondees.has(streamId)) return false;
+      // Un direct qui dure depuis plus longtemps que la fenêtre de reprise ne
+      // peut plus être le tronçon d'après quoi que ce soit : le raccord serait
+      // hors fenêtre de toute façon.
+      if (Date.now() - depart > CFG.FRESH_MAX_MIN * 60_000) return false;
+      // Déjà chaîné — on l'a vu de nos yeux, ou une sonde précédente l'a fait.
+      if (coupuresDe(login)) return false;
+      sondees.add(streamId);
+      while (sondees.size > CFG.CHAPITRES_MAX) {
+        sondees.delete(sondees.values().next().value);
+      }
+      bilanSondes.sondes++;
+      const res = await post([{
+        operationName: 'TseVodRecent',
+        variables: { login },
+        query: RECENT_QUERY
+      }]);
+      if (isResultsUnusable(res)) { bilanSondes.reseau++; return false; }
+      const aretes = res?.[0]?.data?.user?.videos?.edges;
+      if (!Array.isArray(aretes)) { bilanSondes.vides++; return false; }
+      bilanSondes.servies++;
+      const raccord = archiveQuiRaccorde(aretes.map(e => e?.node).filter(Boolean), depart);
+      if (!raccord) return false;
+      bilanSondes.trouvees++;
+      if (!adopterReprise(login, flux, { debut: raccord.debut, fin: raccord.fin })) {
+        return false;
+      }
+      bilanSondes.adoptees++;
+      /* LES CHAPITRES D'AVANT, rangés à part. Ils ne sont PAS mêlés à l'entrée
+         de `chapitres` : celle-ci est datée d'une requête et se périme, tandis
+         que le passé d'un tronçon terminé ne bouge plus. Les garder séparés
+         évite aussi qu'un rafraîchissement des chapitres du tronçon courant ne
+         les emporte avec lui. */
+      const { segments } = segmentsDuVod(raccord.noeud, raccord.debut);
+      if (segments && segments.length) {
+        avantCoupure.delete(streamId);
+        avantCoupure.set(streamId, segments);
+        while (avantCoupure.size > CFG.CHAPITRES_MAX) {
+          avantCoupure.delete(avantCoupure.keys().next().value);
+        }
+        bilanSondes.chapitresAvant++;
+      }
+      return true;
     };
 
     const fetchChapitres = async (login, streamId, debutStream) => {
@@ -11426,6 +11690,26 @@ const TSE_GATE_MAX_CLICKS = 5;
       const id = cache.get(login)?.stream?.id;
       if (!id) return null;
       const e = chapitres.get(id);
+      /* ── CE QUE LA SONDE DE REPRISE A RAMENÉ DU TRONÇON D'AVANT ────────────
+         Deux passés de natures différentes, et il faut les deux : l'archive
+         d'AVANT la coupure, qui ne bougera plus, et les chapitres du tronçon
+         COURANT, qui se rafraîchissent. On les recolle ici, à la lecture,
+         plutôt que de les mêler dans un même registre — une entrée de
+         `chapitres` se périme, le passé d'un tronçon terminé non.
+
+         L'ORDRE EST CELUI DU TEMPS, et `friseDe` en dépend : elle lit cette
+         liste comme une suite croissante. Les segments d'avant précèdent ceux
+         d'après par construction — la coupure les sépare — mais on refuse
+         quand même tout chapitre courant antérieur au dernier d'avant, plutôt
+         que de faire confiance à cette construction-là. */
+      const avant = avantCoupure.get(id);
+      if (avant && avant.length) {
+        const dernierAvant = avant[avant.length - 1].debut;
+        const apres = (e && e.segments) || [];
+        const segments = [...avant, ...apres.filter(s => s.debut > dernierAvant)];
+        return { ts: (e && e.ts) || Date.now(), segments,
+                 continu: !!(e && e.continu), source: (e && e.source) || null };
+      }
       // Une entrée qui ne porte NI segments NI continuité n'apprend rien :
       // la rendre ferait croire au reste du code qu'on sait quelque chose.
       if (!e || (!e.segments && !e.continu)) return null;
@@ -11752,6 +12036,27 @@ const TSE_GATE_MAX_CLICKS = 5;
         || b.classList.contains('tse-preview__badge--reprise')).pop();
       if (devant) devant.insertAdjacentElement('afterend', neuf);
       else zone.prepend(neuf);
+    };
+
+    /* Le badge de reprise, posé APRÈS coup. `renderPopup` le pose quand on
+       sait déjà ; la sonde, elle, apprend après l'ouverture de l'aperçu — et
+       une nouvelle qui n'arrive que la fois suivante n'est plus une nouvelle.
+       Idempotent : il ne se pose que s'il n'est pas déjà là. */
+    const majReprise = (login) => {
+      if (!el || currentLogin !== login) return;
+      const corps = el.querySelector('.tse-preview__body');
+      if (!corps) return;
+      if (corps.querySelector('.tse-preview__badge--reprise')) return;
+      if (!repriseFraiche(login)) return;
+      const zone = zoneBadges(corps);
+      const badge = badgeNoeud('tse-preview__badge--switch tse-preview__badge--reprise',
+                               S.uiBadgeReprise);
+      // Même rang qu'au premier rendu : derrière la classification, devant
+      // tout le reste.
+      const ccl = [...zone.children]
+        .filter(b => b.classList.contains('tse-preview__badge--ccl')).pop();
+      if (ccl) ccl.insertAdjacentElement('afterend', badge);
+      else zone.prepend(badge);
     };
 
     /* Le bloc est reconstruit EN PLACE quand les chapitres arrivent : ils
@@ -12269,6 +12574,22 @@ const TSE_GATE_MAX_CLICKS = 5;
          (cf. l'en-tête de CHAPITRES_QUERY). */
       const flux = cache.get(login)?.stream;
       noterSurvolFrise(login);
+      /* ── LA COUPURE QU'ON N'A PAS VUE PASSER ──────────────────────────────
+         Avant même de se demander s'il y a un passé à combler : ce direct
+         est-il le tronçon d'après une coupure ? Notre mémoire ne le sait que
+         si nous étions là ; Twitch, lui, l'a archivé. La sonde ne part que
+         sur un direct jeune et inconnu (cf. sonderReprise), donc au plus une
+         opération par session de stream, et zéro sur une chaîne suivie depuis
+         le début de son live. */
+      if (flux?.id) {
+        sonderReprise(login, flux)
+          .then((trouve) => {
+            if (!trouve) return;
+            majReprise(login);
+            majFrise(login);
+          })
+          .catch((e) => erreurs.noter('reprise', (e && e.message) || e));
+      }
       if (flux?.id && !preludeDe(login) && friseACombler(login)) {
         /* L'ORIGINE, ET NON LE DÉPART DU TRONÇON. Tout ce module compare des
            instants à ce nombre : quels moments du VOD regardent ce live, si
@@ -12567,7 +12888,19 @@ const TSE_GATE_MAX_CLICKS = 5;
                                   borne qu'on ne peut pas observer ne se
                                   vérifie pas. */
                                resident: chapitres.size,
-                               max: CFG.CHAPITRES_MAX })
+                               max: CFG.CHAPITRES_MAX,
+                               /* LA SONDE DE REPRISE, comptée à part. Elle
+                                  demande à Twitch ce qu'aucune observation ne
+                                  peut plus rattraper, et c'est le seul œil
+                                  qu'on ait dessus : `sondes` dit combien de
+                                  directs jeunes ont été interrogés, `trouvees`
+                                  combien portaient une archive qui raccorde,
+                                  `adoptees` combien ont effectivement gagné
+                                  leur badge et leur origine. Un écart entre
+                                  les deux derniers ne peut venir que d'un
+                                  subathon ou d'une reprise déjà connue. */
+                               reprise: { ...bilanSondes,
+                                          residentAvant: avantCoupure.size } })
     };
   })();
 

@@ -1159,6 +1159,17 @@ const construireRapport = (r, transport, fond) => {
   L.push(...bloc('MODE', aplatir(r.mode)));
   L.push(...bloc('COMPTEURS / COUNTS', aplatir(r.compteurs)));
   L.push(...bloc('FRISE DES CATÉGORIES / CATEGORY TRAIL', aplatir(r.frise)));
+  /* LE CENTRAGE DES CARTES SANS CATÉGORIE, MESURÉ SUR LA VRAIE PAGE. Deux
+     versions ont corrigé ce défaut à l'aveugle — juste dans la modélisation du
+     banc, sans effet sur Twitch, parce que la feuille de style de Twitch n'est
+     pas lisible depuis le dépôt. Ces sept lignes sont la seule mesure qu'on en
+     aura : `decalees` à zéro dit que la règle tient, et les trois dernières
+     disent POURQUOI quand elle ne tient pas.
+
+     ÉCRIT MÊME À ZÉRO CARTE : « aucune carte sans catégorie » est une réponse,
+     et elle écarte la moitié des causes qu'on chercherait sinon. */
+  L.push(...bloc('CENTRAGE SANS CATÉGORIE / UNCATEGORISED CENTRING',
+                 aplatir(r.centrage)));
   /* LE SUBATHON A SON PROPRE BLOC, et il en a besoin. La règle qui le
      reconnaît ne lit que le titre du direct : elle n'a jamais pu être
      exécutée contre le vrai Twitch, et ces six lignes sont la seule mesure
