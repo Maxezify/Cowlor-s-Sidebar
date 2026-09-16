@@ -121,6 +121,17 @@ const TSE_GATE_MAX_CLICKS = 5;
   let journalErreurs = null;
   let servirPanneau = null;
 
+  const pasEncorePret = () => ({
+    ok: false,
+    erreur: 'demarrage',
+    detail: `étape ${demarrage.etape}`,
+    partiel: {
+      etape: demarrage.etape,
+      depuisMs: Date.now() - demarrage.t,
+      erreurs: journalErreurs ? journalErreurs() : [],
+    },
+  });
+
   const jalon = (nom) => {
     demarrage.etape = nom;
 
@@ -139,19 +150,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const repondre = (charge) =>
       window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
 
-    if (!servirPanneau) {
-      repondre({
-        ok: false,
-        erreur: 'demarrage',
-        detail: `étape ${demarrage.etape}`,
-        partiel: {
-          etape: demarrage.etape,
-          depuisMs: Date.now() - demarrage.t,
-          erreurs: journalErreurs ? journalErreurs() : [],
-        },
-      });
-      return;
-    }
+    if (!servirPanneau) { repondre(pasEncorePret()); return; }
     servirPanneau(d, repondre);
   });
 
@@ -215,7 +214,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filtrer les chaînes suivies par langue',
       uiFilterAllLanguages:      'Toutes les langues',
       uiRoueTitre:               'Réglages, données et mode d\'emploi de Cowlor\'s Sidebar',
-      uiBulleTexte:              'Merci d\'avoir installé Cowlor\'s Sidebar ! Apprenez à utiliser l\'extension, personnalisez et regardez toutes vos données stockées ici.',
+      uiBulleTitre:              'Merci d\'avoir installé Cowlor\'s Sidebar !',
+      uiBulleTexte:              'Apprenez à utiliser l\'extension, personnalisez et regardez toutes vos données stockées ici.',
       uiFermer:                  'Fermer',
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
@@ -299,7 +299,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filter followed channels by language',
       uiFilterAllLanguages:      'All languages',
       uiRoueTitre:               'Cowlor\'s Sidebar settings, data and manual',
-      uiBulleTexte:              'Thanks for installing Cowlor\'s Sidebar! Learn how to use the extension, customise it and see all the data it stores, right here.',
+      uiBulleTitre:              'Thanks for installing Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Learn how to use the extension, customise it and see all the data it stores, right here.',
       uiFermer:                  'Close',
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
@@ -382,7 +383,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Gefolgte Kanäle nach Sprache filtern',
       uiFilterAllLanguages:      'Alle Sprachen',
       uiRoueTitre:               'Einstellungen, Daten und Anleitung von Cowlor\'s Sidebar',
-      uiBulleTexte:              'Danke, dass du Cowlor\'s Sidebar installiert hast! Lerne die Erweiterung kennen, passe sie an und sieh dir hier alle gespeicherten Daten an.',
+      uiBulleTitre:              'Danke, dass du Cowlor\'s Sidebar installiert hast!',
+      uiBulleTexte:              'Lerne die Erweiterung kennen, passe sie an und sieh dir hier alle gespeicherten Daten an.',
       uiFermer:                  'Schließen',
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
@@ -465,7 +467,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filtrar los canales que sigues por idioma',
       uiFilterAllLanguages:      'Todos los idiomas',
       uiRoueTitre:               'Ajustes, datos y manual de Cowlor\'s Sidebar',
-      uiBulleTexte:              '¡Gracias por instalar Cowlor\'s Sidebar! Aprende a usar la extensión, personalízala y consulta aquí todos tus datos guardados.',
+      uiBulleTitre:              '¡Gracias por instalar Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Aprende a usar la extensión, personalízala y consulta aquí todos tus datos guardados.',
       uiFermer:                  'Cerrar',
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
@@ -548,7 +551,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filtrar os canais seguidos por idioma',
       uiFilterAllLanguages:      'Todos os idiomas',
       uiRoueTitre:               'Definições, dados e manual da Cowlor\'s Sidebar',
-      uiBulleTexte:              'Obrigado por instalares a Cowlor\'s Sidebar! Aprende a usar a extensão, personaliza-a e vê aqui todos os teus dados guardados.',
+      uiBulleTitre:              'Obrigado por instalares a Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Aprende a usar a extensão, personaliza-a e vê aqui todos os teus dados guardados.',
       uiFermer:                  'Fechar',
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
@@ -631,7 +635,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filtra i canali seguiti per lingua',
       uiFilterAllLanguages:      'Tutte le lingue',
       uiRoueTitre:               'Impostazioni, dati e guida di Cowlor\'s Sidebar',
-      uiBulleTexte:              'Grazie per aver installato Cowlor\'s Sidebar! Impara a usare l\'estensione, personalizzala e guarda qui tutti i tuoi dati memorizzati.',
+      uiBulleTitre:              'Grazie per aver installato Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Impara a usare l\'estensione, personalizzala e guarda qui tutti i tuoi dati memorizzati.',
       uiFermer:                  'Chiudi',
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
@@ -714,7 +719,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filtruj obserwowane kanały według języka',
       uiFilterAllLanguages:      'Wszystkie języki',
       uiRoueTitre:               'Ustawienia, dane i instrukcja Cowlor\'s Sidebar',
-      uiBulleTexte:              'Dzięki za zainstalowanie Cowlor\'s Sidebar! Naucz się korzystać z rozszerzenia, dostosuj je i zobacz tutaj wszystkie swoje zapisane dane.',
+      uiBulleTitre:              'Dzięki za zainstalowanie Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Naucz się korzystać z rozszerzenia, dostosuj je i zobacz tutaj wszystkie swoje zapisane dane.',
       uiFermer:                  'Zamknij',
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
@@ -797,7 +803,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Фильтровать отслеживаемые каналы по языку',
       uiFilterAllLanguages:      'Все языки',
       uiRoueTitre:               'Настройки, данные и руководство Cowlor\'s Sidebar',
-      uiBulleTexte:              'Спасибо за установку Cowlor\'s Sidebar! Узнайте, как пользоваться расширением, настройте его и посмотрите здесь все сохранённые данные.',
+      uiBulleTitre:              'Спасибо за установку Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Узнайте, как пользоваться расширением, настройте его и посмотрите здесь все сохранённые данные.',
       uiFermer:                  'Закрыть',
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
@@ -880,7 +887,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'フォロー中のチャンネルを言語で絞り込む',
       uiFilterAllLanguages:      'すべての言語',
       uiRoueTitre:               'Cowlor\'s Sidebar の設定・データ・使い方',
-      uiBulleTexte:              'Cowlor\'s Sidebar をインストールしていただき、ありがとうございます！ 使い方を学び、カスタマイズし、保存されているデータをここですべて確認できます。',
+      uiBulleTitre:              'Cowlor\'s Sidebar のインストール、ありがとうございます！',
+      uiBulleTexte:              '使い方を学び、カスタマイズし、保存されているデータをここですべて確認できます。',
       uiFermer:                  '閉じる',
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
@@ -963,7 +971,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     '按语言筛选关注的频道',
       uiFilterAllLanguages:      '全部语言',
       uiRoueTitre:               'Cowlor\'s Sidebar 的设置、数据与使用说明',
-      uiBulleTexte:              '感谢你安装 Cowlor\'s Sidebar！在这里了解如何使用本扩展、进行个性化设置，并查看所有已保存的数据。',
+      uiBulleTitre:              '感谢你安装 Cowlor\'s Sidebar！',
+      uiBulleTexte:              '在这里了解如何使用本扩展、进行个性化设置，并查看所有已保存的数据。',
       uiFermer:                  '关闭',
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
@@ -1346,10 +1355,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     OPTIONS_KEY:            'tse:options',
 
-    ACCUEIL_KEY:            'tse:accueil',
+    ROUE_KEY:               'tse:roue',
 
-    INCRUSTE_W:             760,
-    INCRUSTE_H:             580
+    INCRUSTE_W:             1100,
+    INCRUSTE_H:             760
   });
 
   const OPT_DEFS = Object.freeze({
@@ -1488,22 +1497,17 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const accueil = (() => {
     const lire = () => {
-      try { return localStorage.getItem(CFG.ACCUEIL_KEY); } catch { return 'vu'; }
+      try { return localStorage.getItem(CFG.ROUE_KEY); } catch { return 'vu'; }
     };
     const ecrire = (v) => {
-      try { localStorage.setItem(CFG.ACCUEIL_KEY, v); } catch {   }
-    };
-
-    const dejaLa = () => {
-      try {
-        return !!(localStorage.getItem(CFG.VISIT_STORAGE_KEY)
-               || localStorage.getItem(CFG.ROSTER_STORAGE_KEY));
-      } catch { return true; }
+      try { localStorage.setItem(CFG.ROUE_KEY, v); } catch {   }
     };
     let etat = lire();
     if (etat !== 'montre' && etat !== 'vu') {
-      etat = dejaLa() ? 'vu' : 'montre';
+      etat = 'montre';
       ecrire(etat);
+
+      try { localStorage.removeItem('tse:accueil'); } catch {   }
     }
     return {
       aMontrer: () => etat === 'montre',
@@ -2224,6 +2228,12 @@ const TSE_GATE_MAX_CLICKS = 5;
         transform: none !important;
         box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.55) !important;
       }
+      
+      .tse-roue:hover .tse-roue-dent,
+      .tse-roue:focus-visible .tse-roue-dent {
+        animation-duration: 6s !important;
+        animation-timing-function: linear !important;
+      }
     }
 
     
@@ -2413,19 +2423,30 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     
     ${DOM.sidebarRoot} .side-nav__title[data-tse-roue] > h3 {
-      flex: 1 1 auto; min-width: 0;
+      flex: 0 1 auto; min-width: 0;
     }
     .tse-roue {
       flex: 0 0 auto;
       position: relative;
-      width: 26px; height: 26px; padding: 0; margin-left: auto;
+      
+      width: 26px; height: 26px; padding: 0;
       display: inline-flex; align-items: center; justify-content: center;
       border: 0; border-radius: 4px;
       background: transparent; color: var(--tse-texte-faible);
       cursor: pointer;
       transition: background-color 0.15s, color 0.15s;
     }
-    .tse-roue svg { width: 18px; height: 18px; display: block; }
+    
+    .tse-roue-dent {
+      display: block;
+      font-size: 15px; line-height: 1;
+    }
+    
+    @keyframes tse-roue-tourne { to { transform: rotate(360deg); } }
+    .tse-roue:hover .tse-roue-dent,
+    .tse-roue:focus-visible .tse-roue-dent {
+      animation: tse-roue-tourne 1.8s linear infinite;
+    }
     .tse-roue:hover {
       background: rgba(var(--tse-encre), 0.12);
       color: var(--tse-texte);
@@ -2447,44 +2468,77 @@ const TSE_GATE_MAX_CLICKS = 5;
       50%      { transform: scale(1.18); box-shadow: 0 0 0 7px rgba(145, 71, 255, 0); }
     }
     
-    ${DOM.sidebarRoot} { position: relative; }
     .tse-bulle {
-      position: absolute; z-index: 9;
-      top: 38px; right: 4px; left: 8px;
-      display: flex; align-items: flex-start; gap: 6px;
-      padding: 9px 8px 9px 10px;
-      border-radius: 6px;
-      background: ${CFG.PURPLE};
-      color: #fff;
-      box-shadow: 0 6px 18px var(--tse-ombre-portee);
-      font-size: 1.1rem; line-height: 1.35;
+      position: fixed;
+      
+      z-index: 9000;
+      
+      box-sizing: border-box;
+      width: 330px; max-width: calc(100vw - 24px);
+      padding: 14px 14px 15px;
+      border-radius: 10px;
+      border: 1px solid var(--tse-anneau);
+      
+      border-top: 3px solid ${CFG.PURPLE};
+      
+      background: var(--tse-surface-2);
+      color: var(--tse-texte);
+      box-shadow: 0 12px 34px var(--tse-ombre-large);
+      font-size: 1.2rem; line-height: 1.45;
     }
     
-    
-    .tse-bulle-fleche {
-      position: absolute; top: -5px; left: 12px;
-      width: 12px; height: 12px;
-      background: ${CFG.PURPLE};
-      transform: rotate(45deg);
-      border-radius: 2px 0 0 0;
+    .tse-bulle-tete {
+      display: flex; align-items: center; gap: 9px;
+      margin-bottom: 7px;
     }
-    .tse-bulle-texte { flex: 1 1 auto; min-width: 0; margin: 0; }
+    
+    .tse-bulle-pastille {
+      flex: 0 0 auto;
+      width: 26px; height: 26px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      background: ${CFG.PURPLE};
+      font-size: 14px; line-height: 1;
+    }
+    .tse-bulle-titre {
+      flex: 1 1 auto; min-width: 0;
+      margin: 0;
+      font-size: 1.3rem; font-weight: 700; line-height: 1.3;
+      color: var(--tse-texte);
+    }
+    .tse-bulle-texte {
+      margin: 0;
+      color: var(--tse-texte-doux);
+    }
     .tse-bulle-croix {
       flex: 0 0 auto;
-      width: 18px; height: 18px; padding: 0;
+      width: 22px; height: 22px; padding: 0;
       display: inline-flex; align-items: center; justify-content: center;
-      border: 0; border-radius: 4px;
-      background: transparent; color: rgba(255, 255, 255, 0.75);
-      font: inherit; font-size: 1.3rem; line-height: 1; cursor: pointer;
+      border: 0; border-radius: 5px;
+      background: transparent; color: var(--tse-texte-faible);
+      font: inherit; font-size: 1.5rem; line-height: 1; cursor: pointer;
       transition: background-color 0.15s, color 0.15s;
     }
-    .tse-bulle-croix:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+    .tse-bulle-croix:hover {
+      background: rgba(var(--tse-encre), 0.14);
+      color: var(--tse-texte);
+    }
     .tse-bulle-croix:focus-visible {
-      outline: none; box-shadow: 0 0 0 2px #fff; color: #fff;
+      outline: none; box-shadow: 0 0 0 2px ${CFG.PURPLE};
+      color: var(--tse-texte);
     }
     
-    [data-a-target="side-nav-bar-collapsed"] #tse-bulle,
-    .side-nav--collapsed #tse-bulle { display: none !important; }
+    .tse-bulle-fleche {
+      position: absolute; top: -7px;
+      box-sizing: border-box;
+      width: 13px; height: 13px;
+      
+      background: var(--tse-surface-2);
+      border-left: 3px solid ${CFG.PURPLE};
+      border-top: 3px solid ${CFG.PURPLE};
+      transform: rotate(45deg);
+      border-radius: 3px 0 0 0;
+    }
 
     
     .tse-incruste {
@@ -2500,29 +2554,34 @@ const TSE_GATE_MAX_CLICKS = 5;
       border-radius: 8px;
       box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
       
-      overflow: hidden;
     }
     .tse-incruste-frame {
       display: block; width: 100%; height: 100%;
-      border: 0; background: var(--tse-fond, #18181b);
+      border: 0; border-radius: 8px;
+      
+      background: var(--tse-surface);
     }
     
     
     .tse-incruste-croix {
-      position: absolute; top: -34px; right: -2px;
-      width: 28px; height: 28px; padding: 0;
+      position: absolute; top: -14px; right: -14px;
+      
+      box-sizing: border-box;
+      width: 32px; height: 32px; padding: 0;
       display: inline-flex; align-items: center; justify-content: center;
-      border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 4px;
-      background: rgba(255, 255, 255, 0.16); color: #fff;
-      font: inherit; font-size: 1.6rem; line-height: 1; cursor: pointer;
-      transition: background-color 0.15s, border-color 0.15s;
+      border: 2px solid rgba(255, 255, 255, 0.92); border-radius: 50%;
+      background: #18181b; color: #fff;
+      font: inherit; font-size: 1.7rem; line-height: 1; cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+      transition: background-color 0.15s, transform 0.15s;
     }
     .tse-incruste-croix:hover {
-      background: rgba(255, 255, 255, 0.3);
-      border-color: rgba(255, 255, 255, 0.8);
+      background: ${CFG.PURPLE};
+      transform: scale(1.08);
     }
     .tse-incruste-croix:focus-visible {
-      outline: none; box-shadow: 0 0 0 2px #fff;
+      outline: none;
+      box-shadow: 0 0 0 3px ${CFG.PURPLE}, 0 2px 10px rgba(0, 0, 0, 0.6);
     }
 
     
@@ -3624,7 +3683,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     let complete      = false;
     let windowFloor   = 0;
     const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
-                    misses: 0, evicted: 0, lastMs: 0 };
+
+                    misses: 0, sousPlancher: 0, evicted: 0, lastMs: 0 };
 
     const empileurs = new Set();
 
@@ -3809,7 +3869,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const harvest = async (cats, pool, code = null) => {
       const queried = new Set(), seen = new Set();
-      if (!cats.length) return { queried, seen, done: 0, transport: false };
+
+      const planchers = new Map();
+      if (!cats.length) return { queried, seen, planchers, done: 0, transport: false };
       const query = code ? catTopQuery(code) : CATEGORY_TOP_QUERY;
       const ops = cats.map(c => ({
         operationName: 'TseCategoryTop',
@@ -3826,25 +3888,31 @@ const TSE_GATE_MAX_CLICKS = 5;
         queried.add(cats[i].name);
 
         if (Number.isFinite(d.game?.viewersCount)) cats[i].viewers = d.game.viewersCount;
+        const lus = [];
         for (const e of edges) {
           const rec = readStream(e?.node, now);
           if (!rec) continue;
+          lus.push(rec);
           seen.add(rec.login);
           const prev = pool.get(rec.login);
 
           if (!prev || rec.ts >= prev.ts) pool.set(rec.login, rec);
         }
+
+        planchers.set(cats[i].name, plancherReponse(lus, edges.length));
       });
-      return { queried, seen, done, transport };
+      return { queried, seen, planchers, done, transport };
     };
 
-    const reconcile = (pool, queried, seen, now) => {
+    const reconcile = (pool, queried, seen, now, plancherDe = () => 0) => {
       const cutoff = now - CFG.GLOBAL_PRUNE_AGE;
       for (const [login, rec] of pool) {
         if (seen.has(login)) { rec.misses = 0; continue; }
 
         if (rec.ts < cutoff) { pool.delete(login); stats.evicted += 1; continue; }
         if (!queried.has(rec.game)) continue;
+
+        if (rec.viewers < plancherDe(rec)) { stats.sousPlancher += 1; continue; }
         rec.misses = (rec.misses || 0) + 1;
         stats.misses += 1;
         if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM) {
@@ -3852,6 +3920,11 @@ const TSE_GATE_MAX_CLICKS = 5;
           stats.evicted += 1;
         }
       }
+    };
+
+    const plancherReponse = (recs, demande) => {
+      const v = [...recs].map((r) => r.viewers).filter(Number.isFinite);
+      return v.length >= demande ? Math.min(...v) : 0;
     };
 
     const TAG_TOP_QUERY =
@@ -4056,7 +4129,9 @@ const TSE_GATE_MAX_CLICKS = 5;
           const poolTag = (wl.lang === langAvant) ? carryOver() : new Map();
           const vus = new Set();
           for (const rec of parTag.values()) { vus.add(rec.login); poolTag.set(rec.login, rec); }
-          reconcile(poolTag, TOUT_REGARDE, vus, Date.now());
+
+          const plancherTag = plancherReponse(parTag.values(), CFG.GLOBAL_TAG_MAX);
+          reconcile(poolTag, TOUT_REGARDE, vus, Date.now(), () => plancherTag);
           publish(poolTag);
 
           complete = true;
@@ -4103,10 +4178,12 @@ const TSE_GATE_MAX_CLICKS = 5;
           if (!rec.tags.includes(wl.lang)) rec.tags = [...rec.tags, wl.lang];
         }
       }
+      const planchers = new Map([...a.planchers, ...b.planchers]);
       reconcile(pool,
                 new Set([...a.queried, ...b.queried]),
                 new Set([...a.seen,    ...b.seen]),
-                started);
+                started,
+                (rec) => planchers.get(rec.game) || 0);
       publish(pool);
 
       windowFloor = cats[cats.length - 1].viewers;
@@ -4160,7 +4237,10 @@ const TSE_GATE_MAX_CLICKS = 5;
           if (!rec.tags.includes(langAvant)) rec.tags = [...rec.tags, langAvant];
         }
       }
-      reconcile(pool, h.queried, h.seen, started);
+
+      const planchers = h.planchers;
+      reconcile(pool, h.queried, h.seen, started,
+                (rec) => planchers.get(rec.game) || 0);
       publish(pool);
       if (!langAvant) allLangPool = ranking;
       stats.light += 1;
@@ -4224,7 +4304,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       const pool = scope === want.key ? new Map(scopeRanking.map(r => [r.login, r])) : new Map();
       for (const [login, rec] of frais) pool.set(login, rec);
-      reconcile(pool, h.queried, h.seen, started);
+
+      const planchers = h.planchers;
+      reconcile(pool, h.queried, h.seen, started,
+                (rec) => planchers.get(rec.game) || 0);
       scope        = want.key;
       scopeLangApplied = applique;
       scopeRanking = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
@@ -8425,6 +8508,9 @@ const TSE_GATE_MAX_CLICKS = 5;
   const INCRUSTE_ID   = 'tse-incruste';
   const TSE_URL_REQ   = 'tse-url-req';
   const TSE_URL_RES   = 'tse-url-res';
+
+  const TSE_INCRUSTE_REQ = 'tse-incruste-req';
+  const TSE_INCRUSTE_RES = 'tse-incruste-res';
   let urlPanneau = null;
   window.addEventListener('message', (e) => {
     if (e.source !== window) return;
@@ -8480,7 +8566,19 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const surMessage = (ev) => {
       if (ev.source !== frame.contentWindow) return;
-      if (ev.data && ev.data.tse === 'tse-panneau-fermer') fermerIncruste?.();
+      const d = ev.data;
+      if (!d) return;
+      if (d.tse === 'tse-panneau-fermer') { fermerIncruste?.(); return; }
+
+      if (d.tse !== TSE_INCRUSTE_REQ || typeof d.id !== 'number') return;
+      const repondre = (charge) => {
+        try {
+          frame.contentWindow?.postMessage(
+            { tse: TSE_INCRUSTE_RES, id: d.id, ...charge }, '*');
+        } catch {   }
+      };
+      if (!servirPanneau) { repondre(pasEncorePret()); return; }
+      servirPanneau(d, repondre);
     };
 
     fermerIncruste = () => {
@@ -8502,11 +8600,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   }
 
   const ROUE_ID = 'tse-roue';
-  const ROUE_MARKUP =
-      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
-    + '<path fill="currentColor" d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 5.6a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2z"/>'
-    + '<path fill="currentColor" d="M20.3 13.2a8.6 8.6 0 0 0 0-2.4l1.8-1.4-1.8-3.1-2.2.8a8.4 8.4 0 0 0-2-1.2l-.3-2.3h-3.6l-.3 2.3a8.4 8.4 0 0 0-2 1.2l-2.2-.8L5.9 9.4l1.8 1.4a8.6 8.6 0 0 0 0 2.4l-1.8 1.4 1.8 3.1 2.2-.8a8.4 8.4 0 0 0 2 1.2l.3 2.3h3.6l.3-2.3a8.4 8.4 0 0 0 2-1.2l2.2.8 1.8-3.1-1.8-1.4zm-8.3 4.1a5.3 5.3 0 1 1 0-10.6 5.3 5.3 0 0 1 0 10.6z"/>'
-    + '</svg>';
+
+  const ROUE_MARKUP = '<span class="tse-roue-dent" aria-hidden="true">\u2699\uFE0F</span>';
 
   function ensureRoue() {
 
@@ -8531,7 +8626,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     });
 
     titre.setAttribute('data-tse-roue', 'true');
-    titre.appendChild(roue);
+
+    const h3 = titre.querySelector('h3');
+    if (h3) h3.insertAdjacentElement('afterend', roue);
+    else titre.appendChild(roue);
     majBulle();
   }
 
@@ -8553,21 +8651,35 @@ const TSE_GATE_MAX_CLICKS = 5;
       return;
     }
     roue.setAttribute('data-tse-neuf', 'true');
-    const hote = document.querySelector(DOM.sidebarRoot);
+
+    if (document.body.classList.contains('tse-loading')) {
+      document.getElementById(BULLE_ID)?.remove();
+      return;
+    }
     const deja = document.getElementById(BULLE_ID);
 
-    if (deja && hote && hote.contains(deja)) { placerFleche(); return; }
-    if (deja) deja.remove();
-    if (!hote) return;
+    if (deja) { placerBulle(); return; }
 
     const bulle = document.createElement('div');
     bulle.id = BULLE_ID;
     bulle.className = 'tse-bulle';
 
     bulle.setAttribute('role', 'status');
-    const texte = document.createElement('p');
-    texte.className = 'tse-bulle-texte';
-    setText(texte, S.uiBulleTexte);
+
+    const fleche = document.createElement('span');
+    fleche.className = 'tse-bulle-fleche';
+    fleche.setAttribute('aria-hidden', 'true');
+
+    const tete = document.createElement('div');
+    tete.className = 'tse-bulle-tete';
+
+    const pastille = document.createElement('span');
+    pastille.className = 'tse-bulle-pastille';
+    pastille.setAttribute('aria-hidden', 'true');
+    pastille.textContent = '⚙️';
+    const titre = document.createElement('p');
+    titre.className = 'tse-bulle-titre';
+    setText(titre, S.uiBulleTitre);
     const croix = document.createElement('button');
     croix.type = 'button';
     croix.className = 'tse-bulle-croix';
@@ -8578,30 +8690,48 @@ const TSE_GATE_MAX_CLICKS = 5;
     barre.textContent = '×';
     croix.appendChild(barre);
     croix.addEventListener('click', renvoyerBulle);
+    tete.append(pastille, titre, croix);
 
-    const fleche = document.createElement('span');
-    fleche.className = 'tse-bulle-fleche';
-    fleche.setAttribute('aria-hidden', 'true');
-    bulle.append(fleche, texte, croix);
-    hote.appendChild(bulle);
-    placerFleche();
+    const texte = document.createElement('p');
+    texte.className = 'tse-bulle-texte';
+    setText(texte, S.uiBulleTexte);
+
+    bulle.append(fleche, tete, texte);
+
+    document.body.appendChild(bulle);
+    placerBulle();
   }
 
-  function placerFleche() {
+  function placerBulle() {
     const bulle = document.getElementById(BULLE_ID);
     const roue = document.getElementById(ROUE_ID);
     const fleche = bulle?.querySelector('.tse-bulle-fleche');
     if (!bulle || !roue || !fleche) return;
-    const rb = bulle.getBoundingClientRect();
     const rr = roue.getBoundingClientRect();
-    if (!rb.width || !rr.width) return;
+
+    if (!rr.width || !rr.height) { bulle.remove(); return; }
+
+    const barre = document.querySelector(DOM.sidebarRoot);
+    const rbar = barre ? barre.getBoundingClientRect() : rr;
+    const MARGE = 8;
+    const largeur = bulle.offsetWidth || 330;
+
+    let gauche = rbar.left;
+    gauche = Math.min(gauche, window.innerWidth - largeur - MARGE);
+    gauche = Math.max(MARGE, gauche);
+    const haut = rr.bottom + 10;
+
+    const poserStyle = (prop, valeur) => {
+      if (bulle.style[prop] !== valeur) bulle.style[prop] = valeur;
+    };
+    poserStyle('left', `${Math.round(gauche)}px`);
+    poserStyle('top', `${Math.round(haut)}px`);
 
     const TAILLE = 12;
-
-    const MARGE = 6;
-    const centre = rr.left + rr.width / 2 - rb.left - TAILLE / 2;
-    const gauche = Math.max(MARGE, Math.min(rb.width - TAILLE - MARGE, centre));
-    const pose = `${Math.round(gauche)}px`;
+    const COIN = 14;
+    const centre = rr.left + rr.width / 2 - gauche - TAILLE / 2;
+    const x = Math.max(COIN, Math.min(largeur - TAILLE - COIN, centre));
+    const pose = `${Math.round(x)}px`;
     if (fleche.style.left !== pose) fleche.style.left = pose;
   }
 
@@ -10248,14 +10378,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     }, CFG.MAINTENANCE_TICK);
 
     let hiddenSince = 0;
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { hiddenSince = Date.now(); return; }
 
-      const awayMs = hiddenSince ? Date.now() - hiddenSince : 0;
+    const retourDAbsence = (awayMs, motif) => {
       hiddenSince = 0;
       if (awayMs >= CFG.REVISIT_RELOAD_MS) {
         scanEnRetard = false;
-        loadingOverlay.startCycle('retour d\'onglet');
+        loadingOverlay.startCycle(motif);
         invalidateAndRescan();
         return;
       }
@@ -10263,6 +10391,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       rattraperScan();
 
       rafraichirAffichage();
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { hiddenSince = Date.now(); return; }
+
+      retourDAbsence(hiddenSince ? Date.now() - hiddenSince : 0, 'retour d\'onglet');
+    });
+
+    window.addEventListener('pageshow', (e) => {
+      if (!e.persisted) return;
+      retourDAbsence(Infinity, 'retour du cache avant/arrière');
     });
 
     setTimeout(runSelectorHealthCheck, CFG.HEALTH_INITIAL_DELAY);
