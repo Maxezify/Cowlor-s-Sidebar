@@ -573,20 +573,8 @@
   "optDescStories": {
     "message": "默认显示：Twitch 就是这么做的。"
   },
-  "optDeplier": {
-    "message": "自动展开「显示更多」"
-  },
-  "optDescDeplier": {
-    "message": "关闭后，列表保持 Twitch 渲染的样子——扩展仍会测量它看得到的一切。"
-  },
   "optGrpAbos": {
     "message": "读取订阅"
-  },
-  "optAbosReleve": {
-    "message": "读取我的订阅"
-  },
-  "optDescAbosReleve": {
-    "message": "这是扩展唯一一次带身份验证的请求：它在一个不可见的框架里打开你自己的 twitch.tv/subscriptions 页面。关闭后，金色和「订阅优先」排序只能依靠你访问过的频道。"
   },
   "optAbosPeriode": {
     "message": "最多每隔"
@@ -599,15 +587,6 @@
   },
   "optDescTheme": {
     "message": "「自动」跟随 Twitch 的主题。强制指定只会改变扩展在其上绘制的方式。"
-  },
-  "optGrpDonnees": {
-    "message": "数据"
-  },
-  "optVisites": {
-    "message": "记录我的访问"
-  },
-  "optDescVisites": {
-    "message": "关闭后，已学到的内容仍可查看，但不再新增。「个人热度」排序和作息网格将停止变化。"
   },
   "optGrpPanneau": {
     "message": "本面板"
@@ -682,7 +661,7 @@
     "message": "将所有设置恢复为默认？"
   },
   "optResetText": {
-    "message": "本页的二十二项设置都将回到初始值。你的数据——访问记录、订阅、已关注频道——不受影响。"
+    "message": "本页的十九项设置都将回到初始值。你的数据——访问记录、订阅、已关注频道——不受影响。"
   },
   "optValPlein": {
     "message": "完整"

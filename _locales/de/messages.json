@@ -573,20 +573,8 @@
   "optDescStories": {
     "message": "Standardmäßig sichtbar: so macht es Twitch."
   },
-  "optDeplier": {
-    "message": "„Mehr anzeigen“ automatisch aufklappen"
-  },
-  "optDescDeplier": {
-    "message": "Aus bleibt die Liste so, wie Twitch sie ausgibt — die Erweiterung misst weiterhin alles, was sie sieht."
-  },
   "optGrpAbos": {
     "message": "Abonnements auslesen"
-  },
-  "optAbosReleve": {
-    "message": "Meine Abonnements auslesen"
-  },
-  "optDescAbosReleve": {
-    "message": "Das ist die einzige authentifizierte Anfrage der Erweiterung: Sie öffnet deine eigene Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen. Aus stützen sich das Gold und die Sortierung „Abonnements zuerst“ nur noch auf besuchte Kanäle."
   },
   "optAbosPeriode": {
     "message": "Höchstens einmal alle"
@@ -599,15 +587,6 @@
   },
   "optDescTheme": {
     "message": "„Auto“ folgt dem Design von Twitch. Ein erzwungenes Design ändert nur, wie die Erweiterung darüber zeichnet."
-  },
-  "optGrpDonnees": {
-    "message": "Daten"
-  },
-  "optVisites": {
-    "message": "Meine Besuche lernen"
-  },
-  "optDescVisites": {
-    "message": "Aus bleibt Gelerntes lesbar, es kommt aber nichts mehr hinzu. Die Sortierung „persönliche Beliebtheit“ und das Rhythmusraster entwickeln sich nicht weiter."
   },
   "optGrpPanneau": {
     "message": "Dieses Panel"
@@ -682,7 +661,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle zweiundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle neunzehn Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"
