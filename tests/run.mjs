@@ -15951,9 +15951,17 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
       nom: r && r.getAttribute('aria-label'),
       infobulle: r && r.getAttribute('title'),
       type: r && r.getAttribute('type'),
-      /* Le dessin est décoratif : le nom est sur le bouton, et laisser le SVG
-         lisible ferait annoncer deux fois la même chose. */
-      svgMuet: !!(r && r.querySelector('svg[aria-hidden="true"]')),
+      /* L'emoji est décoratif : le nom est sur le bouton, et le laisser lisible
+         ferait annoncer « rouage » par-dessus. */
+      dent: r && r.querySelector('.tse-roue-dent[aria-hidden="true"]')
+              ? r.querySelector('.tse-roue-dent').textContent : null,
+      /* LA DENT EST DANS UN <span>, ET C'EST STRUCTUREL. Le bouton porte le
+         battement du premier lancement, qui anime « transform: scale » ; la
+         rotation au survol anime « transform » elle aussi. Sur le même
+         élément, la seconde écraserait la première et la roue cesserait de
+         battre dès qu'on l'approche. */
+      rotation: r && r.querySelector('.tse-roue-dent')
+        ? getComputedStyle(r.querySelector('.tse-roue-dent')).transitionProperty : null,
     };
   });
   ok('la roue est posée dans le titre de la barre latérale',
@@ -15970,9 +15978,11 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      JSON.stringify(vue.ordre) + ' écart ' + vue.ecart);
   ok('…le titre porte notre marqueur et passe en rangée',
      vue.marque === 'true' && vue.flex === 'flex', JSON.stringify(vue));
-  ok('…elle a un nom accessible, une infobulle, et un dessin muet',
+  ok('…elle a un nom accessible, une infobulle, et une dent muette',
      typeof vue.nom === 'string' && vue.nom.length > 5 && vue.infobulle === vue.nom
-     && vue.type === 'button' && vue.svgMuet === true, JSON.stringify(vue));
+     && vue.type === 'button' && vue.dent === '\u2699\uFE0F', JSON.stringify(vue));
+  ok('…et sa dent a sa propre transformation, pour ne pas écraser le battement',
+     vue.rotation === 'transform', JSON.stringify(vue.rotation));
 
   /* ── CE QUE REACT EMPORTE, LA PASSE SUIVANTE LE REPOSE ─────────────────
      C'est le mode de panne le plus probable de tout ce scénario : Twitch est
@@ -16085,6 +16095,41 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('…et sans bac à sable, qui lui retirerait son origine d\'extension',
      ouvert.bacASable === false, JSON.stringify(ouvert));
 
+  /* ── LA CROIX SE VOIT, ET C'EST MESURÉ ─────────────────────────────────
+     DEUX RÉDACTIONS L'ONT RATÉE AVANT CELLE-CI : posée au-dessus du cadre, en
+     gris translucide sur un voile noir, elle était invisible — et un bouton de
+     fermeture invisible sur une fenêtre modale ne laisse que la touche Échap à
+     qui ne sait pas qu'elle existe. Signalé depuis le terrain.
+
+     ON MESURE SA POSITION, PAS SA RÈGLE : elle doit CHEVAUCHER le coin
+     haut-droit du cadre — c'est ce chevauchement qui la rattache visiblement
+     à la fenêtre qu'elle ferme.
+
+     « À CHEVAL » SE DIT EXACTEMENT : elle TRAVERSE les deux bords. Une
+     première rédaction demandait que son CENTRE soit dehors ; c'était une
+     façon arbitraire de dire la même chose, et elle échouait sur un bouton
+     parfaitement posé — plus dedans que dehors, ce qui est le cas de tous les
+     boutons de fermeture de coin. On dit donc ce qu'on veut : elle coupe le
+     bord droit, elle coupe le bord haut. */
+  const croixPlace = await page.evaluate(() => {
+    const cadre = document.querySelector('.tse-incruste-cadre');
+    const x = document.querySelector('.tse-incruste-croix');
+    const rc = cadre.getBoundingClientRect();
+    const rx = x.getBoundingClientRect();
+    return {
+      coupeDroite: rx.left < rc.right && rx.right > rc.right,
+      coupeHaut: rx.top < rc.top && rx.bottom > rc.top,
+      taille: Math.round(rx.width),
+      /* Et elle reste dans la fenêtre : une croix hors champ ne vaut pas mieux
+         qu'une croix invisible. */
+      visible: rx.right <= window.innerWidth && rx.top >= 0,
+    };
+  });
+  ok('…et sa croix est à cheval sur le coin haut-droit, assez grande pour être visée',
+     croixPlace.coupeDroite === true && croixPlace.coupeHaut === true
+     && croixPlace.taille >= 28 && croixPlace.visible === true,
+     JSON.stringify(croixPlace));
+
   /* ── QUATRE SORTIES, ET ELLES ÉCHOUENT SÉPARÉMENT ────────────────────── */
   const sortir = async (geste) => page.evaluate(async (g) => {
     if (!document.getElementById('tse-incruste')) {
@@ -16183,7 +16228,12 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { neuf: r && r.getAttribute('data-tse-neuf'),
              anime: r ? getComputedStyle(r).animationName : null,
              bulle: !!b,
+             titre: b ? b.querySelector('.tse-bulle-titre').textContent : null,
              texte: b ? b.querySelector('.tse-bulle-texte').textContent : null,
+             /* SUR LE CORPS, PAS DANS LA BARRE : c'est ce qui lui permet de
+                déborder sur le site plutôt que d'hériter des 240 px de la
+                barre et de tout ce qui la rogne. */
+             surLeCorps: b ? b.parentElement === document.body : null,
              croix: b ? !!b.querySelector('.tse-bulle-croix[aria-label]') : null,
              fleche: b ? !!b.querySelector('.tse-bulle-fleche[aria-hidden="true"]') : null,
              cle: localStorage.getItem('tse:roue'),
@@ -16235,9 +16285,13 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   /* LE LIBELLÉ VIENT DE LA TABLE DE LANGUE. Une phrase écrite dans la fonction
      ne serait traduite nulle part, et cette bulle s'adresse d'abord à quelqu'un
      qui ne sait pas encore ce qu'il vient d'installer. */
-  ok('…son texte vient de la table de langue, pas d\'un identifiant',
-     typeof neuf.texte === 'string' && neuf.texte.length > 40
-     && !/^ui[A-Z]/.test(neuf.texte), JSON.stringify(neuf.texte));
+  ok('…son titre et son texte viennent de la table de langue, pas d\'identifiants',
+     typeof neuf.titre === 'string' && neuf.titre.length > 10
+     && typeof neuf.texte === 'string' && neuf.texte.length > 40
+     && !/^ui[A-Z]/.test(neuf.titre) && !/^ui[A-Z]/.test(neuf.texte),
+     JSON.stringify([neuf.titre, neuf.texte]));
+  ok('…et elle est posée sur le corps du document, pas dans la barre',
+     neuf.surLeCorps === true, JSON.stringify(neuf.surLeCorps));
 
   /* ── LA FLÈCHE DÉSIGNE LA ROUE, ET C'EST MESURÉ ──────────────────────── */
   /* UN DÉCALAGE ÉCRIT EN DUR NE POUVAIT PAS MARCHER, et il a fallu une mesure
@@ -16250,7 +16304,18 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     const roue = document.getElementById('tse-roue');
     const fleche = document.querySelector('.tse-bulle-fleche');
     const bulle = document.getElementById('tse-bulle');
+    const rb = bulle.getBoundingClientRect();
+    const rbar = document.querySelector('#side-nav').getBoundingClientRect();
     return { ecart: Math.abs(c(roue) - c(fleche)),
+             /* ELLE DOIT DÉBORDER SUR LE SITE, et c'est une demande explicite :
+                enfermée dans les 240 px de la barre, la phrase s'empilait sur
+                quatre lignes de même poids. On mesure donc les deux bords —
+                celui qui s'appuie sur la barre, et celui qui la dépasse. */
+             largeur: Math.round(rb.width),
+             depasse: Math.round(rb.right - rbar.right),
+             alignee: Math.round(rb.left - rbar.left),
+             /* Elle ne doit pas sortir de la fenêtre pour autant. */
+             dansLaFenetre: rb.right <= window.innerWidth && rb.left >= 0,
              /* Au-dessus de la bulle, sinon elle ne désigne rien : une flèche
                 posée à l'intérieur d'un bloc de la même couleur est invisible. */
              auDessus: fleche.getBoundingClientRect().top < bulle.getBoundingClientRect().top,
@@ -16261,6 +16326,38 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   });
   ok('la flèche vise le centre de la roue, à quelques pixels près',
      vise.ecart <= 6, JSON.stringify(vise));
+  ok('la bulle s\'appuie sur le bord gauche de la barre, sans sortir de la fenêtre',
+     vise.alignee === 0 && vise.largeur === 330
+     && vise.dansLaFenetre === true, JSON.stringify(vise));
+
+  /* ── LE DÉBORDEMENT, MESURÉ À LA VRAIE LARGEUR DE LA BARRE ─────────────
+     ASSERTION REFAITE, ET L'ERREUR EST INSTRUCTIVE. La première exigeait que
+     la bulle dépasse le bord droit de « #side-nav » — et ce décor-ci n'a pas
+     la feuille de Twitch : sa barre prend TOUTE la page, donc une carte de
+     330 px ne dépassait rien du tout. Relevé : « depasse: -934 ». L'assertion
+     ne mesurait pas le produit, elle mesurait le décor.
+
+     ON POSE DONC LA LARGEUR RÉELLE — deux cent quarante pixels, celle de la
+     barre de Twitch — le temps de la mesure. C'est le seul endroit du banc qui
+     en a besoin, et le dire ici vaut mieux que de la poser partout : les
+     autres scénarios mesurent des cartes, pas des débordements. */
+  const deborde = await page.evaluate(async () => {
+    const barre = document.querySelector('#side-nav');
+    const avant = barre.style.width;
+    barre.style.width = '240px';
+    /* On attend la passe suivante : c'est elle qui replace la bulle. */
+    await new Promise((r) => setTimeout(r, 1600));
+    const rb = document.getElementById('tse-bulle').getBoundingClientRect();
+    const rbar = barre.getBoundingClientRect();
+    const mesure = { largeurBarre: Math.round(rbar.width),
+                     depasse: Math.round(rb.right - rbar.right),
+                     dansLaFenetre: rb.right <= window.innerWidth };
+    barre.style.width = avant;
+    return mesure;
+  });
+  ok('…et à la largeur réelle de la barre, elle déborde franchement sur le site',
+     deborde.largeurBarre === 240 && deborde.depasse > 40
+     && deborde.dansLaFenetre === true, JSON.stringify(deborde));
   ok('…elle dépasse au-dessus de la bulle, et la bulle est sous la roue',
      vise.auDessus === true && vise.sousLaRoue === true, JSON.stringify(vise));
 
@@ -16299,6 +16396,26 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   const jamais = await etat();
   ok('…et rien ne revient au rechargement suivant',
      jamais.bulle === false && jamais.neuf === null, JSON.stringify(jamais));
+
+  /* ── UNE ROUE SANS SURFACE EMPORTE LA BULLE ──────────────────────────
+     COLONNE RÉDUITE, ET C'EST LE CAS QUE LA POSITION FIXE A CRÉÉ. Tant que la
+     bulle vivait DANS la barre, deux règles de feuille la masquaient avec
+     elle. Posée sur le corps du document, elle n'a plus de parent pour la
+     cacher à notre place : une barre repliée laisserait une carte flottant au
+     milieu de l'écran, pointant vers un bouton qui n'existe plus. */
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await poser();
+  await wait(page, 1500);
+  const repliee = await page.evaluate(async () => {
+    const avant = !!document.getElementById('tse-bulle');
+    /* On retire sa surface à la roue, comme le fait le repli de la barre. */
+    document.querySelector('#side-nav .side-nav__title').style.display = 'none';
+    await new Promise((r) => setTimeout(r, 1600));
+    return { avant, apres: !!document.getElementById('tse-bulle') };
+  });
+  ok('une roue sans surface — barre repliée — emporte la bulle avec elle',
+     repliee.avant === true && repliee.apres === false, JSON.stringify(repliee));
 
   /* ── LE CLIC SUR LA ROUE VAUT LECTURE ────────────────────────────────── */
   /* Quelqu'un qui ouvre le panneau a trouvé la roue. Continuer à la faire
@@ -16345,6 +16462,10 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     const st = getComputedStyle(r);
     return { neuf: r.getAttribute('data-tse-neuf'), anime: st.animationName,
              transforme: st.transform,
+             /* LA ROTATION AU SURVOL EST DU MOUVEMENT ELLE AUSSI. Elle n'est
+                pas un signal — elle accuse réception du pointeur — donc elle
+                part entièrement, sans rien à conserver. */
+             rotation: getComputedStyle(r.querySelector('.tse-roue-dent')).transitionDuration,
              /* Ce qui reste DIT encore. Une roue qui perdrait son halo en même
                 temps que son mouvement ne signalerait plus rien du tout. */
              halo: st.boxShadow,
@@ -16353,6 +16474,8 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('mouvement réduit : le battement s\'arrête entièrement',
      calme.anime === 'none' && (calme.transforme === 'none' || calme.transforme === 'matrix(1, 0, 0, 1, 0, 0)'),
      JSON.stringify(calme));
+  ok('…et la rotation au survol part avec lui',
+     calme.rotation === '0s', JSON.stringify(calme.rotation));
   ok('…mais le signal reste : la roue est marquée, son halo est posé, la bulle est là',
      calme.neuf === 'true' && /rgba?\(/.test(calme.halo) && calme.bulle === true,
      JSON.stringify(calme));

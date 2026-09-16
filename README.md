@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1133 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1140 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,131 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Trois finitions demandées, et deux mesures qui les ont corrigées (v4.12.2)
+
+Trois retours, tous sur la même chose : ce que la roue et sa bulle **ont l'air
+d'être**. Rien ici ne change ce qu'elles font.
+
+### 1. La roue est un ⚙️, et elle tourne quand on l'approche
+
+Un SVG dessiné à la main donnait une roue grise de plus dans une barre qui en
+compte déjà six. L'emoji porte sa propre couleur : il se reconnaît **avant
+d'être lu**, ce qui est exactement ce qu'on demande à ce bouton.
+
+Au survol, elle fait un **demi-tour**. Pas un tour complet : une roue qui revient
+exactement à sa position de départ ne dit pas qu'elle a tourné, elle scintille.
+La courbe démarre vite et finit lentement, comme un cran qu'on pousse. **Le
+clavier y a droit aussi** — une réaction réservée au pointeur est une réaction
+que la moitié des gens ne verra jamais.
+
+> **L'EMOJI VIT DANS UN `<span>`, ET CE N'EST PAS DÉCORATIF.** Le bouton porte le
+> battement du premier lancement, qui anime `transform: scale`. La rotation anime
+> `transform` elle aussi : sur le même élément, la seconde écraserait la première
+> et **la roue cesserait de battre dès qu'on l'approche**. Deux éléments, deux
+> transformations, aucune collision — et une assertion qui le dit, parce que rien
+> d'autre ne le dirait.
+
+La rotation est du mouvement, et elle part sous `prefers-reduced-motion`. Sans
+rien à conserver, contrairement au battement : elle n'est pas un signal, elle
+accuse réception du pointeur, et le fond au survol le dit déjà.
+
+### 2. Une croix qu'on trouve sans la chercher
+
+**Deux rédactions ont échoué avant celle-ci, et pour la même raison.** La croix
+était posée *au-dessus* du cadre, sur le voile, en gris translucide. Sur une page
+sombre voilée de noir, un carré à 12 % de blanc ne se voit pas — et un bouton de
+fermeture invisible sur une fenêtre modale est le pire des défauts, puisqu'il ne
+reste que la touche Échap à quelqu'un qui ne sait pas qu'elle existe.
+
+Elle **chevauche maintenant le coin**. À cheval sur l'angle, elle appartient
+visiblement au cadre : c'est la forme conventionnelle d'une fermeture de modale,
+et la seule qui se trouve sans la chercher. Ronde, opaque, cerclée de blanc pour
+se détacher du panneau comme du voile.
+
+> Le cadre a perdu son `overflow: hidden` au passage — il aurait rogné la croix
+> de moitié. C'est l'iframe qui porte désormais le rayon, puisque c'est elle
+> qu'il fallait couper.
+
+**L'assertion a dû être réécrite, et l'erreur mérite d'être dite.** Elle exigeait
+d'abord que le *centre* du bouton soit dehors. C'était une façon arbitraire de
+dire « à cheval », et elle échouait sur un bouton parfaitement posé — plus dedans
+que dehors, ce qui est le cas de toutes les fermetures de coin. Elle dit
+maintenant ce qu'on veut vraiment : **elle coupe le bord droit, elle coupe le
+bord haut.**
+
+### 3. La bulle, refaite
+
+« Un peu brouillon », et c'était juste. Enfermée dans la barre latérale, elle en
+héritait la largeur — deux cent quarante pixels — et la phrase s'y empilait sur
+**quatre lignes de même poids**, sans hiérarchie, sur un aplat violet saturé.
+
+Quatre changements, et chacun répond à un défaut précis :
+
+| ce qui change | pourquoi |
+| --- | --- |
+| **position fixe**, sur le corps du document | elle déborde sur le site au lieu d'hériter des 240 px de la barre et de tout ce qui la rogne |
+| **330 px**, appuyée sur le bord gauche de la barre | elle se lit comme une couche posée par-dessus, ce qu'elle est |
+| **carte sombre**, le violet réduit au filet, à la pastille et à la pointe | un aplat saturé sur quatre lignes ne hiérarchise rien ; ici le violet fait ce qu'il fait partout dans ce produit — il désigne |
+| le texte **coupé en titre et corps** | ce sont les deux phrases écrites par l'auteur ; la bulle les rendait d'un bloc |
+
+La pastille porte **la même roue que le bouton**, et c'est ce qui relie la phrase
+à l'objet qu'elle désigne : la flèche dit **où**, la pastille dit **quoi**.
+
+> **La pointe était un losange plein**, posé en travers du filet violet : sa
+> moitié basse restait visible sur la carte, et l'ensemble se lisait comme une
+> pastille égarée plutôt que comme une pointe. Son corps prend maintenant la
+> couleur de la carte et ses deux bords hauts celle du filet — seule la partie
+> qui dépasse se voit.
+
+#### La position fixe a créé un cas, et il fallait le rattraper
+
+Tant que la bulle vivait **dans** la barre, deux règles de feuille la masquaient
+avec elle en colonne réduite. Posée sur le corps du document, elle n'a plus de
+parent pour la cacher à notre place : une barre repliée aurait laissé une carte
+flottant au milieu de l'écran, **pointant vers un bouton qui n'existe plus**.
+
+C'est désormais la mesure qui tranche — une roue sans surface emporte la bulle —
+et le scénario 123 le joue en retirant sa surface au titre.
+
+### Deux nombres qui ne valaient pas ce qu'ils disaient
+
+Mesurés, pas relus :
+
+- la bulle déclarait `width: 330px` et en faisait **360** à l'écran, le
+  rembourrage et les filets s'ajoutant par-dessus ;
+- la croix déclarait `32px` et en faisait **36**, pour la même raison.
+
+Les deux sont en `border-box`. Un nombre qui ne vaut pas ce qu'il dit finit
+toujours par tromper le calcul d'à côté — et ici le calcul d'à côté est celui qui
+place la pointe.
+
+### Et une variable qui n'existait pas
+
+La carte posait `background: var(--tse-fond-carte, #1f1f23)`. **`--tse-fond-carte`
+n'existe nulle part** : le repli s'appliquait donc toujours, et la bulle serait
+restée sombre en thème clair sans que rien ne le signale — sur un thème clair qui
+a son propre scénario de banc depuis la 4.8. Les jetons réels sont
+`--tse-surface-2`, `--tse-anneau` et `--tse-ombre-large`. Le cadre du panneau
+avait la même faute, avec `--tse-fond`.
+
+### Ce que le banc ajoute
+
+Sept assertions neuves, quatre mutants, aucun survivant :
+
+| mutant | l'assertion qui tombe |
+| --- | --- |
+| la bulle remise dans la barre latérale | « à la largeur réelle de la barre, elle déborde franchement sur le site » |
+| une roue sans surface ne retire plus la bulle | « une roue sans surface emporte la bulle avec elle » |
+| la rotation non coupée en mouvement réduit | « la rotation au survol part avec lui » |
+| la croix rentrée dans le cadre | « sa croix est à cheval sur le coin haut-droit » |
+
+> **UNE DE CES ASSERTIONS A DÛ ÊTRE REFAITE, et l'erreur est instructive.** La
+> première exigeait que la bulle dépasse le bord droit de `#side-nav` — or le
+> décor de test n'a pas la feuille de Twitch : sa barre prend TOUTE la page,
+> donc une carte de 330 px ne dépassait rien. Relevé : `depasse: -934`. Elle ne
+> mesurait pas le produit, elle mesurait le décor. Le scénario pose désormais
+> la largeur réelle — deux cent quarante pixels — le temps de la mesure.
 
 ## Deux retours de terrain sur la roue, et ce que le décor de test taisait (v4.12.1)
 
@@ -6941,7 +7066,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 123 scénarios, 1133 assertions |
+| `npm test` | le harnais Playwright : 123 scénarios, 1140 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -6962,7 +7087,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1035 Ko | 400 Ko | 3 289 → **2** |
+| `content.js` | 1041 Ko | 401 Ko | 3 292 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 92 Ko | 46 Ko | 121 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
