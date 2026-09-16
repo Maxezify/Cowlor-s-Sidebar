@@ -326,7 +326,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1035 KB | 400 KB | 3,289 → **2** |
+| `content.js` | 1041 KB | 401 KB | 3,292 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 92 KB | 46 KB | 121 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1133 assertions, under Gecko
+npm run test-firefox        # the same 1140 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,122 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Three finishing touches asked for, and two measurements that corrected them (v4.12.2)
+
+Three reports, all about the same thing: what the gear and its bubble **look
+like**. Nothing here changes what they do.
+
+### 1. The gear is a ⚙️, and it turns when you approach it
+
+A hand-drawn SVG gave one more grey wheel in a bar that already has six. The
+emoji carries its own colour: it is recognised **before it is read**, which is
+exactly what this button is for.
+
+On hover it makes a **half turn**. Not a full one: a wheel that returns exactly
+to where it started does not say it turned, it flickers. The curve starts fast
+and ends slow, like a notch being pushed. **The keyboard gets it too** — a
+reaction reserved for the pointer is a reaction half the people will never see.
+
+> **THE EMOJI LIVES IN A `<span>`, AND THAT IS NOT DECORATIVE.** The button
+> carries the first-run beat, which animates `transform: scale`. The rotation
+> animates `transform` as well: on the same element, the second would overwrite
+> the first and **the gear would stop beating the moment you approach it**. Two
+> elements, two transforms, no collision — and an assertion that says so,
+> because nothing else would.
+
+The rotation is motion, and it goes under `prefers-reduced-motion`. With nothing
+to preserve, unlike the beat: it is not a signal, it acknowledges the pointer,
+and the hover background already says that.
+
+### 2. A close button you find without looking
+
+**Two drafts failed before this one, for the same reason.** The close button sat
+*above* the frame, on the backdrop, in translucent grey. On a dark page veiled in
+black, a square at 12% white is invisible — and an invisible close button on a
+modal is the worst kind of defect, since all that's left is the Escape key for
+someone who doesn't know it exists.
+
+It now **straddles the corner**. Astride the angle it visibly belongs to the
+frame: it is the conventional shape of a modal close, and the only one found
+without looking. Round, opaque, ringed in white so it stands out from panel and
+backdrop alike.
+
+> The frame lost its `overflow: hidden` along the way — it would have cropped the
+> button in half. The iframe now carries the radius, since it was the iframe that
+> needed clipping.
+
+**The assertion had to be rewritten, and the mistake is worth stating.** It first
+required the button's *centre* to be outside. That was an arbitrary way of saying
+"astride", and it failed on a perfectly placed button — more inside than outside,
+which is true of every corner close. It now says what we actually want: **it
+crosses the right edge, it crosses the top edge.**
+
+### 3. The bubble, rebuilt
+
+"A bit messy", and that was right. Locked inside the sidebar, it inherited its
+width — two hundred and forty pixels — and the sentence stacked into **four lines
+of equal weight**, with no hierarchy, on a saturated purple fill.
+
+Four changes, each answering a specific defect:
+
+| what changes | why |
+| --- | --- |
+| **fixed position**, on the document body | it spills onto the site instead of inheriting the sidebar's 240 px and everything that crops it |
+| **330 px**, resting on the sidebar's left edge | it reads as a layer placed on top, which is what it is |
+| **dark card**, purple reduced to the rule, the chip and the point | a saturated fill over four lines hierarchises nothing; here purple does what it does everywhere in this product — it points |
+| the text **split into title and body** | these are the two sentences the author wrote; the bubble rendered them as one block |
+
+The chip carries **the same gear as the button**, and that is what ties the
+sentence to the object it designates: the arrow says **where**, the chip says
+**what**.
+
+> **The point was a solid diamond**, sitting across the purple rule: its lower
+> half stayed visible on the card, and the whole read as a stray dot rather than
+> a pointer. Its body now takes the card's colour and its two upper edges the
+> rule's — only the part that sticks out is seen.
+
+#### Fixed positioning created a case, and it had to be caught
+
+As long as the bubble lived **inside** the sidebar, two stylesheet rules hid it
+along with the bar in collapsed mode. Placed on the document body, it no longer
+has a parent to hide it for us: a collapsed bar would have left a card floating
+in the middle of the screen, **pointing at a button that no longer exists**.
+
+Measurement now decides — a gear with no surface takes the bubble with it — and
+scenario 123 plays it by removing the title's surface.
+
+### Two numbers that were not worth what they said
+
+Measured, not re-read:
+
+- the bubble declared `width: 330px` and was **360** on screen, padding and
+  borders adding on top;
+- the close button declared `32px` and was **36**, for the same reason.
+
+Both are `border-box` now. A number that isn't worth what it says always ends up
+fooling the calculation next to it — and here the calculation next to it is the
+one that places the point.
+
+### And a variable that did not exist
+
+The card set `background: var(--tse-fond-carte, #1f1f23)`. **`--tse-fond-carte`
+exists nowhere**: the fallback therefore always applied, and the bubble would
+have stayed dark in the light theme with nothing to flag it — on a light theme
+that has had its own bench scenario since 4.8. The real tokens are
+`--tse-surface-2`, `--tse-anneau` and `--tse-ombre-large`. The panel frame had
+the same fault, with `--tse-fond`.
+
+### What the bench adds
+
+Seven new assertions, four mutants, no survivors:
+
+| mutant | the assertion that drops |
+| --- | --- |
+| the bubble put back inside the sidebar | "at the bar's real width, it spills well onto the site" |
+| a gear with no surface no longer removes the bubble | "a gear with no surface takes the bubble with it" |
+| the rotation not cut under reduced motion | "the hover rotation goes with it" |
+| the close button moved inside the frame | "its close button straddles the top-right corner" |
 
 ## Two field reports on the gear, and what the test fixture was hiding (v4.12.1)
 
@@ -7079,7 +7195,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 123 scenarios, 1133 assertions |
+| `npm test` | the Playwright harness: 123 scenarios, 1140 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

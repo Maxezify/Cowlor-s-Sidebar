@@ -613,7 +613,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filtrer les chaînes suivies par langue',
       uiFilterAllLanguages:      'Toutes les langues',
       uiRoueTitre:               'Réglages, données et mode d\'emploi de Cowlor\'s Sidebar',
-      uiBulleTexte:              'Merci d\'avoir installé Cowlor\'s Sidebar ! Apprenez à utiliser l\'extension, personnalisez et regardez toutes vos données stockées ici.',
+      uiBulleTitre:              'Merci d\'avoir installé Cowlor\'s Sidebar !',
+      uiBulleTexte:              'Apprenez à utiliser l\'extension, personnalisez et regardez toutes vos données stockées ici.',
       uiFermer:                  'Fermer',
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
@@ -701,7 +702,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filter followed channels by language',
       uiFilterAllLanguages:      'All languages',
       uiRoueTitre:               'Cowlor\'s Sidebar settings, data and manual',
-      uiBulleTexte:              'Thanks for installing Cowlor\'s Sidebar! Learn how to use the extension, customise it and see all the data it stores, right here.',
+      uiBulleTitre:              'Thanks for installing Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Learn how to use the extension, customise it and see all the data it stores, right here.',
       uiFermer:                  'Close',
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
@@ -784,7 +786,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Gefolgte Kanäle nach Sprache filtern',
       uiFilterAllLanguages:      'Alle Sprachen',
       uiRoueTitre:               'Einstellungen, Daten und Anleitung von Cowlor\'s Sidebar',
-      uiBulleTexte:              'Danke, dass du Cowlor\'s Sidebar installiert hast! Lerne die Erweiterung kennen, passe sie an und sieh dir hier alle gespeicherten Daten an.',
+      uiBulleTitre:              'Danke, dass du Cowlor\'s Sidebar installiert hast!',
+      uiBulleTexte:              'Lerne die Erweiterung kennen, passe sie an und sieh dir hier alle gespeicherten Daten an.',
       uiFermer:                  'Schließen',
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
@@ -867,7 +870,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filtrar los canales que sigues por idioma',
       uiFilterAllLanguages:      'Todos los idiomas',
       uiRoueTitre:               'Ajustes, datos y manual de Cowlor\'s Sidebar',
-      uiBulleTexte:              '¡Gracias por instalar Cowlor\'s Sidebar! Aprende a usar la extensión, personalízala y consulta aquí todos tus datos guardados.',
+      uiBulleTitre:              '¡Gracias por instalar Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Aprende a usar la extensión, personalízala y consulta aquí todos tus datos guardados.',
       uiFermer:                  'Cerrar',
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
@@ -950,7 +954,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filtrar os canais seguidos por idioma',
       uiFilterAllLanguages:      'Todos os idiomas',
       uiRoueTitre:               'Definições, dados e manual da Cowlor\'s Sidebar',
-      uiBulleTexte:              'Obrigado por instalares a Cowlor\'s Sidebar! Aprende a usar a extensão, personaliza-a e vê aqui todos os teus dados guardados.',
+      uiBulleTitre:              'Obrigado por instalares a Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Aprende a usar a extensão, personaliza-a e vê aqui todos os teus dados guardados.',
       uiFermer:                  'Fechar',
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
@@ -1033,7 +1038,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filtra i canali seguiti per lingua',
       uiFilterAllLanguages:      'Tutte le lingue',
       uiRoueTitre:               'Impostazioni, dati e guida di Cowlor\'s Sidebar',
-      uiBulleTexte:              'Grazie per aver installato Cowlor\'s Sidebar! Impara a usare l\'estensione, personalizzala e guarda qui tutti i tuoi dati memorizzati.',
+      uiBulleTitre:              'Grazie per aver installato Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Impara a usare l\'estensione, personalizzala e guarda qui tutti i tuoi dati memorizzati.',
       uiFermer:                  'Chiudi',
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
@@ -1116,7 +1122,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Filtruj obserwowane kanały według języka',
       uiFilterAllLanguages:      'Wszystkie języki',
       uiRoueTitre:               'Ustawienia, dane i instrukcja Cowlor\'s Sidebar',
-      uiBulleTexte:              'Dzięki za zainstalowanie Cowlor\'s Sidebar! Naucz się korzystać z rozszerzenia, dostosuj je i zobacz tutaj wszystkie swoje zapisane dane.',
+      uiBulleTitre:              'Dzięki za zainstalowanie Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Naucz się korzystać z rozszerzenia, dostosuj je i zobacz tutaj wszystkie swoje zapisane dane.',
       uiFermer:                  'Zamknij',
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
@@ -1199,7 +1206,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'Фильтровать отслеживаемые каналы по языку',
       uiFilterAllLanguages:      'Все языки',
       uiRoueTitre:               'Настройки, данные и руководство Cowlor\'s Sidebar',
-      uiBulleTexte:              'Спасибо за установку Cowlor\'s Sidebar! Узнайте, как пользоваться расширением, настройте его и посмотрите здесь все сохранённые данные.',
+      uiBulleTitre:              'Спасибо за установку Cowlor\'s Sidebar!',
+      uiBulleTexte:              'Узнайте, как пользоваться расширением, настройте его и посмотрите здесь все сохранённые данные.',
       uiFermer:                  'Закрыть',
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
@@ -1282,7 +1290,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     'フォロー中のチャンネルを言語で絞り込む',
       uiFilterAllLanguages:      'すべての言語',
       uiRoueTitre:               'Cowlor\'s Sidebar の設定・データ・使い方',
-      uiBulleTexte:              'Cowlor\'s Sidebar をインストールしていただき、ありがとうございます！ 使い方を学び、カスタマイズし、保存されているデータをここですべて確認できます。',
+      uiBulleTitre:              'Cowlor\'s Sidebar のインストール、ありがとうございます！',
+      uiBulleTexte:              '使い方を学び、カスタマイズし、保存されているデータをここですべて確認できます。',
       uiFermer:                  '閉じる',
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
@@ -1365,7 +1374,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterLangAriaLabel:     '按语言筛选关注的频道',
       uiFilterAllLanguages:      '全部语言',
       uiRoueTitre:               'Cowlor\'s Sidebar 的设置、数据与使用说明',
-      uiBulleTexte:              '感谢你安装 Cowlor\'s Sidebar！在这里了解如何使用本扩展、进行个性化设置，并查看所有已保存的数据。',
+      uiBulleTitre:              '感谢你安装 Cowlor\'s Sidebar！',
+      uiBulleTexte:              '在这里了解如何使用本扩展、进行个性化设置，并查看所有已保存的数据。',
       uiFermer:                  '关闭',
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
@@ -4013,6 +4023,13 @@ const TSE_GATE_MAX_CLICKS = 5;
         transform: none !important;
         box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.55) !important;
       }
+      /* LA ROTATION AU SURVOL EST DU MOUVEMENT ELLE AUSSI, et elle n'est pas
+         un signal : elle ne fait qu'accuser réception du pointeur. Elle part
+         donc entièrement, sans rien à conserver — le fond au survol dit déjà
+         que le bouton répond. */
+      .tse-roue-dent { transition: none !important; }
+      .tse-roue:hover .tse-roue-dent,
+      .tse-roue:focus-visible .tse-roue-dent { transform: none !important; }
     }
 
     /* === Masquage du bouton "Afficher moins" (inutile après auto-expansion) === */
@@ -4300,7 +4317,20 @@ const TSE_GATE_MAX_CLICKS = 5;
       cursor: pointer;
       transition: background-color 0.15s, color 0.15s;
     }
-    .tse-roue svg { width: 18px; height: 18px; display: block; }
+    /* ── LA DENT QUI TOURNE AU SURVOL ──────────────────────────────────
+       Un demi-tour, pas un tour complet : une roue qui revient exactement à
+       sa position de départ ne dit pas qu'elle a tourné, elle scintille. La
+       courbe démarre vite et finit lentement, comme un cran qu'on pousse.
+
+       LE CLAVIER Y A DROIT AUSSI. Une réaction réservée au pointeur est une
+       réaction que la moitié des gens ne verra jamais. */
+    .tse-roue-dent {
+      display: block;
+      font-size: 15px; line-height: 1;
+      transition: transform 0.45s cubic-bezier(0.34, 0.9, 0.3, 1);
+    }
+    .tse-roue:hover .tse-roue-dent,
+    .tse-roue:focus-visible .tse-roue-dent { transform: rotate(180deg); }
     .tse-roue:hover {
       background: rgba(var(--tse-encre), 0.12);
       color: var(--tse-texte);
@@ -4331,61 +4361,114 @@ const TSE_GATE_MAX_CLICKS = 5;
       50%      { transform: scale(1.18); box-shadow: 0 0 0 7px rgba(145, 71, 255, 0); }
     }
     /* ── LA BULLE ──────────────────────────────────────────────────────────
-       Posée dans la barre latérale et non dans le flux de la liste : elle doit
-       DÉSIGNER la roue, ce qu'un bloc poussé par le contenu ne peut pas faire.
-       D'où le positionnement absolu, et le « position: relative » que la barre
-       reçoit juste au-dessus pour lui servir de repère. */
-    ${DOM.sidebarRoot} { position: relative; }
+       ELLE EST EN POSITION FIXE, SUR LE CORPS DU DOCUMENT, et c'est ce qui
+       change tout. Posée dans la barre latérale, elle en héritait la largeur —
+       deux cent quarante pixels — et la phrase s'y empilait sur quatre lignes
+       de même poids : « un peu brouillon », signalé depuis le terrain. Elle
+       héritait aussi de tout ce qui rogne cette barre.
+
+       ICI, ELLE DÉBORDE : la carte fait 330 px, s'appuie sur la barre et
+       empiète sur le site. C'est l'aveu de ce qu'elle est — une couche posée
+       par-dessus, qui s'en va au premier clic — plutôt qu'un bloc qui aurait
+       poussé la liste.
+
+       SA POSITION EST MESURÉE, pas écrite (cf. placerBulle) : elle se cale
+       sous la roue, quelle que soit la largeur de la barre.
+
+       LA CARTE EST SOMBRE, PAS VIOLETTE. Un aplat saturé sur quatre lignes de
+       texte blanc fatigue et ne hiérarchise rien ; le violet sert ici ce qu'il
+       sert partout ailleurs dans ce produit — à DÉSIGNER. Il est donc dans la
+       pastille, dans le filet du haut et dans la flèche, et nulle part
+       ailleurs. */
     .tse-bulle {
-      position: absolute;
-      /* HAUT, ET C'EST MESURÉ CONTRE CE QUI EXISTE : la barre latérale de
-         Twitch empile ses propres couches, et une bulle à 9 passait dessous.
-         Elle reste à l'intérieur de la barre — inutile d'aller chercher les
-         valeurs extrêmes du voile du panneau, qui, lui, couvre la page. */
-      z-index: 5000;
-      top: 38px; right: 4px; left: 8px;
-      display: flex; align-items: flex-start; gap: 6px;
-      padding: 9px 8px 9px 10px;
-      border-radius: 6px;
-      background: ${CFG.PURPLE};
-      color: #fff;
-      box-shadow: 0 6px 18px var(--tse-ombre-portee);
-      font-size: 1.1rem; line-height: 1.35;
+      position: fixed;
+      /* Au-dessus de la barre latérale et du contenu du site, sous le voile du
+         panneau — qui, lui, doit couvrir la bulle s'ils se croisaient. */
+      z-index: 9000;
+      /* « border-box », sinon les 330 déclarés en font 360 à l'écran — le
+         rembourrage et les filets s'ajoutant par-dessus. Mesuré. Un nombre qui
+         ne vaut pas ce qu'il dit finit toujours par tromper le calcul d'à
+         côté. */
+      box-sizing: border-box;
+      width: 330px; max-width: calc(100vw - 24px);
+      padding: 14px 14px 15px;
+      border-radius: 10px;
+      border: 1px solid var(--tse-anneau);
+      /* Le filet violet en tête rappelle la roue sans repeindre la carte. */
+      border-top: 3px solid ${CFG.PURPLE};
+      /* LES JETONS DU THÈME, PAS DES LITTÉRAUX. Une première rédaction posait
+         « var(--tse-fond-carte, #1f1f23) » — une variable qui n'existe nulle
+         part : le repli s'appliquait donc toujours, et la carte serait restée
+         sombre en thème clair sans que rien ne le signale. */
+      background: var(--tse-surface-2);
+      color: var(--tse-texte);
+      box-shadow: 0 12px 34px var(--tse-ombre-large);
+      font-size: 1.2rem; line-height: 1.45;
     }
-    /* La flèche est un carré tourné : un triangle en « border » aurait dû être
-       recoloré à trois endroits le jour où le fond change. */
-    /* « left » EST POSÉ EN LIGNE, PAR MESURE : la position de la roue dépend
-       du rembourrage que Twitch donne à son titre, et aucune valeur écrite ici
-       ne pouvait la deviner (cf. « placerFleche »). Ce qui reste dans la
-       feuille est ce qui ne dépend de personne : la forme, la taille, la
-       teinte. */
-    .tse-bulle-fleche {
-      position: absolute; top: -5px; left: 12px;
-      width: 12px; height: 12px;
-      background: ${CFG.PURPLE};
-      transform: rotate(45deg);
-      border-radius: 2px 0 0 0;
+    /* La rangée du haut : la pastille, le titre, la croix. Les trois sur la
+       même ligne de base, pour que la croix ne flotte pas au-dessus du texte. */
+    .tse-bulle-tete {
+      display: flex; align-items: center; gap: 9px;
+      margin-bottom: 7px;
     }
-    .tse-bulle-texte { flex: 1 1 auto; min-width: 0; margin: 0; }
+    /* LA PASTILLE PORTE LA MÊME ROUE QUE LE BOUTON. C'est ce qui relie la
+       phrase à l'objet qu'elle désigne : la flèche dit OÙ, la pastille dit
+       QUOI. Sans elle, il faut suivre la flèche pour comprendre de quoi on
+       parle. */
+    .tse-bulle-pastille {
+      flex: 0 0 auto;
+      width: 26px; height: 26px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      background: ${CFG.PURPLE};
+      font-size: 14px; line-height: 1;
+    }
+    .tse-bulle-titre {
+      flex: 1 1 auto; min-width: 0;
+      margin: 0;
+      font-size: 1.3rem; font-weight: 700; line-height: 1.3;
+      color: var(--tse-texte);
+    }
+    .tse-bulle-texte {
+      margin: 0;
+      color: var(--tse-texte-doux);
+    }
     .tse-bulle-croix {
       flex: 0 0 auto;
-      width: 18px; height: 18px; padding: 0;
+      width: 22px; height: 22px; padding: 0;
       display: inline-flex; align-items: center; justify-content: center;
-      border: 0; border-radius: 4px;
-      background: transparent; color: rgba(255, 255, 255, 0.75);
-      font: inherit; font-size: 1.3rem; line-height: 1; cursor: pointer;
+      border: 0; border-radius: 5px;
+      background: transparent; color: var(--tse-texte-faible);
+      font: inherit; font-size: 1.5rem; line-height: 1; cursor: pointer;
       transition: background-color 0.15s, color 0.15s;
     }
-    .tse-bulle-croix:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
-    .tse-bulle-croix:focus-visible {
-      outline: none; box-shadow: 0 0 0 2px #fff; color: #fff;
+    .tse-bulle-croix:hover {
+      background: rgba(var(--tse-encre), 0.14);
+      color: var(--tse-texte);
     }
-    /* En colonne réduite la barre n'a plus la largeur d'une phrase. Les deux
-       sélecteurs sont ceux qui masquent déjà la barre de filtre, recopiés à
-       l'identique — un troisième marqueur inventé pour l'occasion a déjà failli
-       partir dans une version, et il ne correspondait à rien. */
-    [data-a-target="side-nav-bar-collapsed"] #tse-bulle,
-    .side-nav--collapsed #tse-bulle { display: none !important; }
+    .tse-bulle-croix:focus-visible {
+      outline: none; box-shadow: 0 0 0 2px ${CFG.PURPLE};
+      color: var(--tse-texte);
+    }
+    /* LA FLÈCHE EST UN CARRÉ TOURNÉ, et elle porte DEUX bords : ceux qui
+       regardent en haut à gauche, c'est-à-dire ceux qu'on voit dépasser. Un
+       triangle en « border » aurait demandé trois recolorations le jour où le
+       fond change ; un carré n'en demande qu'une. */
+    .tse-bulle-fleche {
+      position: absolute; top: -7px;
+      box-sizing: border-box;
+      width: 13px; height: 13px;
+      /* LE CORPS PREND LA COULEUR DE LA CARTE, les deux bords qui regardent en
+         haut celle du filet. Un losange PLEIN — la première rédaction — se
+         posait en travers du filet violet et se lisait comme une pastille
+         égarée plutôt que comme une pointe : sa moitié basse restait visible
+         sur la carte. Ici, seule la partie qui dépasse se voit. */
+      background: var(--tse-surface-2);
+      border-left: 3px solid ${CFG.PURPLE};
+      border-top: 3px solid ${CFG.PURPLE};
+      transform: rotate(45deg);
+      border-radius: 3px 0 0 0;
+    }
 
     /* ── LE PANNEAU PAR-DESSUS LA PAGE ─────────────────────────────────────
        Le voile couvre TOUT, et c'est ce qui en fait une fenêtre modale plutôt
@@ -4408,37 +4491,53 @@ const TSE_GATE_MAX_CLICKS = 5;
       max-width: calc(100vw - 24px); max-height: calc(100vh - 24px);
       border-radius: 8px;
       box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
-      /* Le cadre coupe les coins du panneau, qui n'a pas de rayon à lui. */
-      overflow: hidden;
+      /* PAS D'« overflow: hidden » ICI, et c'est ce qui permet à la croix de
+         chevaucher le coin : il la rognerait de moitié. C'est l'iframe qui
+         porte donc le rayon, puisque c'est elle qu'il fallait couper. */
     }
     .tse-incruste-frame {
       display: block; width: 100%; height: 100%;
-      border: 0; background: var(--tse-fond, #18181b);
+      border: 0; border-radius: 8px;
+      /* Le temps que la page du panneau se charge, ce fond est tout ce qu'on
+         voit du cadre : il doit être celui du thème, pas un noir en dur. */
+      background: var(--tse-surface);
     }
     /* LA CROIX EST HORS DU CADRE, en négatif sur le voile. Posée dedans, elle
        aurait recouvert le coin du panneau — c'est-à-dire l'état de connexion,
        qui vit précisément là. */
-    /* ELLE DOIT SE VOIR SUR UN VOILE NOIR POSÉ SUR UNE PAGE NOIRE. Rendue et
-       regardée : à 12 % de blanc sans filet, elle disparaissait purement et
-       simplement — un bouton de fermeture invisible sur une fenêtre modale est
-       le pire des défauts, puisqu'il ne reste que la touche Échap à quelqu'un
-       qui ne sait pas qu'elle existe. Le filet est ce qui la dessine ; le fond
-       ne fait que la remplir. */
+    /* ── LA CROIX, AU COIN HAUT-DROIT ET IMPOSSIBLE À MANQUER ───────────
+       DEUX RÉDACTIONS ONT ÉCHOUÉ AVANT CELLE-CI, et pour la même raison :
+       elle était posée AU-DESSUS du cadre, sur le voile, en gris translucide.
+       Sur une page sombre voilée de noir, un carré à 12 % de blanc ne se voit
+       pas — et un bouton de fermeture invisible sur une fenêtre modale est le
+       pire des défauts, puisqu'il ne reste que la touche Échap à quelqu'un qui
+       ne sait pas qu'elle existe. Signalé depuis le terrain : « peux-tu
+       ajouter un X en haut à droite ».
+
+       ELLE CHEVAUCHE DONC LE COIN. À cheval sur l'angle, elle appartient
+       visiblement au cadre — c'est la forme conventionnelle d'une fermeture de
+       modale, et la seule qui se trouve sans la chercher. Ronde, opaque, avec
+       un filet clair qui la détache du panneau comme du voile. */
     .tse-incruste-croix {
-      position: absolute; top: -34px; right: -2px;
-      width: 28px; height: 28px; padding: 0;
+      position: absolute; top: -14px; right: -14px;
+      /* « border-box » : sans lui, les deux pixels de filet s'ajoutent de
+         chaque côté et le bouton déclaré à 32 en fait 36. */
+      box-sizing: border-box;
+      width: 32px; height: 32px; padding: 0;
       display: inline-flex; align-items: center; justify-content: center;
-      border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 4px;
-      background: rgba(255, 255, 255, 0.16); color: #fff;
-      font: inherit; font-size: 1.6rem; line-height: 1; cursor: pointer;
-      transition: background-color 0.15s, border-color 0.15s;
+      border: 2px solid rgba(255, 255, 255, 0.92); border-radius: 50%;
+      background: #18181b; color: #fff;
+      font: inherit; font-size: 1.7rem; line-height: 1; cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+      transition: background-color 0.15s, transform 0.15s;
     }
     .tse-incruste-croix:hover {
-      background: rgba(255, 255, 255, 0.3);
-      border-color: rgba(255, 255, 255, 0.8);
+      background: ${CFG.PURPLE};
+      transform: scale(1.08);
     }
     .tse-incruste-croix:focus-visible {
-      outline: none; box-shadow: 0 0 0 2px #fff;
+      outline: none;
+      box-shadow: 0 0 0 3px ${CFG.PURPLE}, 0 2px 10px rgba(0, 0, 0, 0.6);
     }
 
     /* En mode « Top Chaînes », les cartes de Twitch s'effacent au profit des
@@ -15544,11 +15643,17 @@ const TSE_GATE_MAX_CLICKS = 5;
      ce qui fait la différence entre « déjà là » et « là dans un titre que
      Twitch a jeté ». */
   const ROUE_ID = 'tse-roue';
-  const ROUE_MARKUP =
-      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
-    + '<path fill="currentColor" d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 5.6a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2z"/>'
-    + '<path fill="currentColor" d="M20.3 13.2a8.6 8.6 0 0 0 0-2.4l1.8-1.4-1.8-3.1-2.2.8a8.4 8.4 0 0 0-2-1.2l-.3-2.3h-3.6l-.3 2.3a8.4 8.4 0 0 0-2 1.2l-2.2-.8L5.9 9.4l1.8 1.4a8.6 8.6 0 0 0 0 2.4l-1.8 1.4 1.8 3.1 2.2-.8a8.4 8.4 0 0 0 2 1.2l.3 2.3h3.6l.3-2.3a8.4 8.4 0 0 0 2-1.2l2.2.8 1.8-3.1-1.8-1.4zm-8.3 4.1a5.3 5.3 0 1 1 0-10.6 5.3 5.3 0 0 1 0 10.6z"/>'
-    + '</svg>';
+  /* ── L'EMOJI PLUTÔT QU'UN TRACÉ ───────────────────────────────────────
+     Un SVG dessiné à la main donnait une roue grise de plus dans une barre
+     qui en compte déjà six. L'emoji porte sa propre couleur : il se reconnaît
+     avant d'être lu, ce qui est exactement ce qu'on demande à ce bouton.
+
+     IL VIT DANS UN <span>, ET CE N'EST PAS DÉCORATIF. Le bouton porte le
+     battement du premier lancement, qui anime « transform: scale ». La
+     rotation au survol anime « transform » elle aussi : sur le même élément,
+     la seconde écraserait la première et la roue cesserait de battre dès
+     qu'on l'approche. Deux éléments, deux transformations, aucune collision. */
+  const ROUE_MARKUP = '<span class="tse-roue-dent" aria-hidden="true">\u2699\uFE0F</span>';
 
   function ensureRoue() {
     /* L'adresse est demandée à chaque passe tant qu'elle manque, et plus jamais
@@ -15622,24 +15727,39 @@ const TSE_GATE_MAX_CLICKS = 5;
       return;
     }
     roue.setAttribute('data-tse-neuf', 'true');
-    const hote = document.querySelector(DOM.sidebarRoot);
     const deja = document.getElementById(BULLE_ID);
-    /* LA FLÈCHE SE REPOSE À CHAQUE PASSE tant que la bulle est là. La barre
-       latérale change de largeur — le titre se replie, Twitch remonte ses
-       nœuds — et une flèche posée une seule fois désignerait alors le vide. */
-    if (deja && hote && hote.contains(deja)) { placerFleche(); return; }
-    if (deja) deja.remove();
-    if (!hote) return;
+    /* LA BULLE SE REPLACE À CHAQUE PASSE tant qu'elle est là. Elle est en
+       position FIXE : rien dans le flux ne la déplacera si la barre change de
+       largeur, si le titre se replie ou si Twitch remonte ses nœuds. Ce qui
+       la suit est la mesure, et elle coûte deux rectangles une fois par passe,
+       une seule fois dans la vie d'une installation. */
+    if (deja) { placerBulle(); return; }
 
     const bulle = document.createElement('div');
     bulle.id = BULLE_ID;
     bulle.className = 'tse-bulle';
-    /* `status` et non `alert` : on ne veut pas couper la parole à un lecteur
-       d'écran pour une information de bienvenue. */
+    /* `status` et non `alert` : on ne coupe pas la parole à un lecteur d'écran
+       pour une information de bienvenue. */
     bulle.setAttribute('role', 'status');
-    const texte = document.createElement('p');
-    texte.className = 'tse-bulle-texte';
-    setText(texte, S.uiBulleTexte);
+
+    /* La flèche est un pur décor — ce qu'elle désigne est dit par le texte, et
+       la faire lire ajouterait « flèche » à une phrase qui n'en a pas besoin. */
+    const fleche = document.createElement('span');
+    fleche.className = 'tse-bulle-fleche';
+    fleche.setAttribute('aria-hidden', 'true');
+
+    const tete = document.createElement('div');
+    tete.className = 'tse-bulle-tete';
+    /* LA MÊME ROUE QUE LE BOUTON, et c'est le lien entre la phrase et l'objet
+       qu'elle désigne : la flèche dit OÙ, la pastille dit QUOI. Décorative,
+       parce que le titre juste à côté la nomme. */
+    const pastille = document.createElement('span');
+    pastille.className = 'tse-bulle-pastille';
+    pastille.setAttribute('aria-hidden', 'true');
+    pastille.textContent = '⚙️';
+    const titre = document.createElement('p');
+    titre.className = 'tse-bulle-titre';
+    setText(titre, S.uiBulleTitre);
     const croix = document.createElement('button');
     croix.type = 'button';
     croix.className = 'tse-bulle-croix';
@@ -15650,50 +15770,75 @@ const TSE_GATE_MAX_CLICKS = 5;
     barre.textContent = '×';
     croix.appendChild(barre);
     croix.addEventListener('click', renvoyerBulle);
-    /* La flèche est un pur décor — ce qu'elle désigne est dit par le texte, et
-       la faire lire ajouterait « flèche » à une phrase qui n'en a pas besoin. */
-    const fleche = document.createElement('span');
-    fleche.className = 'tse-bulle-fleche';
-    fleche.setAttribute('aria-hidden', 'true');
-    bulle.append(fleche, texte, croix);
-    hote.appendChild(bulle);
-    placerFleche();
+    tete.append(pastille, titre, croix);
+
+    const texte = document.createElement('p');
+    texte.className = 'tse-bulle-texte';
+    setText(texte, S.uiBulleTexte);
+
+    bulle.append(fleche, tete, texte);
+    /* SUR LE CORPS DU DOCUMENT, PAS DANS LA BARRE. C'est ce qui lui permet de
+       déborder sur le site : dans la barre, elle en héritait la largeur et
+       tout ce qui la rogne. */
+    document.body.appendChild(bulle);
+    placerBulle();
   }
 
-  /* ── OÙ POINTE LA FLÈCHE, ET POURQUOI C'EST MESURÉ ────────────────────────
-     Un décalage écrit en dur ne pouvait pas marcher, et il a fallu une mesure
-     pour s'en apercevoir. La bulle se positionne par rapport à la BARRE, la
-     roue est placée par le rembourrage que TWITCH donne à son titre — une
-     valeur que ce fichier ne connaît pas, qui n'est pas la même en colonne
-     réduite, et qui peut changer sans nous prévenir. Relevé sur la page de
-     test : flèche à 223 px, centre de la roue à 234,5 — elle désignait le bord
-     du bouton, pas le bouton.
+  /* ── OÙ SE POSE LA BULLE, ET POURQUOI TOUT EST MESURÉ ─────────────────────
+     RIEN ICI NE PEUT ÊTRE ÉCRIT À L'AVANCE. La roue est placée par le
+     rembourrage que TWITCH donne à son titre — une valeur que ce fichier ne
+     connaît pas, qui change en colonne réduite, et qui peut bouger sans nous
+     prévenir. Une première rédaction posait la flèche à un décalage fixe :
+     relevé à 223 px pour un centre de roue à 234,5, elle désignait le bord du
+     bouton et non le bouton.
 
-     ON DEMANDE DONC LEUR POSITION AUX DEUX, et on pose la flèche entre les
-     deux. C'est la seule écriture de ce genre dans le fichier, et elle est
-     bornée : elle n'a lieu que tant que la bulle existe, c'est-à-dire une fois
-     dans la vie d'une installation. */
-  function placerFleche() {
+     ON DEMANDE DONC SA POSITION À LA ROUE, et on en déduit les deux seules
+     choses qui comptent : où commence la carte, et où pointe la flèche.
+
+     LA CARTE DÉBORDE SUR LE SITE, C'EST VOULU. Elle s'aligne sur le bord
+     GAUCHE de la barre — là où le regard revient — et sa largeur l'emmène
+     au-delà : elle se lit comme une couche posée par-dessus, ce qu'elle est.
+     Le seul garde-fou est le bord droit de la fenêtre.
+
+     BORNÉ DANS LE TEMPS : cette mesure n'a lieu que tant que la bulle existe,
+     c'est-à-dire une fois dans la vie d'une installation. */
+  function placerBulle() {
     const bulle = document.getElementById(BULLE_ID);
     const roue = document.getElementById(ROUE_ID);
     const fleche = bulle?.querySelector('.tse-bulle-fleche');
     if (!bulle || !roue || !fleche) return;
-    const rb = bulle.getBoundingClientRect();
     const rr = roue.getBoundingClientRect();
-    if (!rb.width || !rr.width) return;   // rien de peint : rien à mesurer
-    /* Le centre de la roue, ramené dans le repère de la bulle, puis borné à
-       l'intérieur de celle-ci : une flèche qui sortirait du coin arrondi se
-       lirait comme un défaut d'affichage plutôt que comme une désignation. */
+    /* UNE ROUE SANS SURFACE N'EST PAS UNE ROUE : colonne réduite, onglet en
+       arrière-plan, barre repliée. On retire la bulle plutôt que de la poser
+       dans le vide — en position fixe, elle n'a plus de parent pour la cacher
+       à notre place. */
+    if (!rr.width || !rr.height) { bulle.remove(); return; }
+
+    const barre = document.querySelector(DOM.sidebarRoot);
+    const rbar = barre ? barre.getBoundingClientRect() : rr;
+    const MARGE = 8;
+    const largeur = bulle.offsetWidth || 330;
+    /* Alignée sur la barre, puis ramenée dans la fenêtre si elle en sortait. */
+    let gauche = rbar.left;
+    gauche = Math.min(gauche, window.innerWidth - largeur - MARGE);
+    gauche = Math.max(MARGE, gauche);
+    const haut = rr.bottom + 10;
+
+    const poserStyle = (prop, valeur) => {
+      if (bulle.style[prop] !== valeur) bulle.style[prop] = valeur;
+    };
+    poserStyle('left', `${Math.round(gauche)}px`);
+    poserStyle('top', `${Math.round(haut)}px`);
+
+    /* La flèche vise le centre de la roue, ramené dans le repère de la carte.
+       La marge la garde à l'écart des coins arrondis : une pointe posée DANS
+       la courbe se lit comme un défaut d'affichage plutôt que comme une
+       désignation. */
     const TAILLE = 12;
-    /* La marge garde la flèche à l'écart des coins arrondis : une pointe posée
-       DANS la courbe se lit comme un défaut d'affichage. Six pixels pour un
-       rayon de six — juste ce qu'il faut, pas davantage, parce que chaque
-       pixel de marge est un pixel de décalage quand la roue est collée au
-       bord. */
-    const MARGE = 6;
-    const centre = rr.left + rr.width / 2 - rb.left - TAILLE / 2;
-    const gauche = Math.max(MARGE, Math.min(rb.width - TAILLE - MARGE, centre));
-    const pose = `${Math.round(gauche)}px`;
+    const COIN = 14;
+    const centre = rr.left + rr.width / 2 - gauche - TAILLE / 2;
+    const x = Math.max(COIN, Math.min(largeur - TAILLE - COIN, centre));
+    const pose = `${Math.round(x)}px`;
     if (fleche.style.left !== pose) fleche.style.left = pose;
   }
 
