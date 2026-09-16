@@ -2328,12 +2328,12 @@ const TSE_GATE_MAX_CLICKS = 5;
        il est volontairement manuel. */
     OPTIONS_KEY:            'tse:options',
 
-    /* === Le premier lancement ===
-       Trois valeurs, et une seule s'écrit d'elle-même : « montre » quand on a
-       décidé de signaler la roue, « vu » quand le signal a été renvoyé — ou
-       quand on a constaté qu'on n'avait pas affaire à une installation neuve.
-       Absent signifie « la question ne s'est pas encore posée ». */
-    ACCUEIL_KEY:            'tse:accueil',
+    /* === Le signal de la roue ===
+       Deux valeurs : « montre » tant que le signal n'a pas été renvoyé, « vu »
+       ensuite. Absent signifie « jamais montré », et c'est ce qui le déclenche.
+       LA CLÉ PORTE LE NOM DU SIGNAL, pas celui d'un état de l'utilisateur —
+       voir le module plus bas pour ce que cette nuance a coûté. */
+    ROUE_KEY:               'tse:roue',
 
     /* === Le panneau incrusté ===
        LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
@@ -2543,55 +2543,51 @@ const TSE_GATE_MAX_CLICKS = 5;
   })();
 
   /* ============================================================
-   *  LE BANDEAU D'ACCUEIL
+   *  LE SIGNAL DE LA ROUE — UNE FOIS, ET POUR TOUT LE MONDE
    *  ------------------------------------------------------------
-   *  UN UTILISATEUR NE TROUVE PAS UNE ICÔNE QU'IL NE VOIT PAS.
-   *  Depuis Chrome 89 une extension fraîchement installée n'est
-   *  pas dans la barre d'outils : elle est rangée derrière le
-   *  bouton « pièce de puzzle ». Tout ce que ce produit sait faire
-   *  — ses données, ses dix-neuf réglages, son mode d'emploi —
-   *  vit derrière un clic que personne ne sait qu'il peut donner.
+   *  LA ROUE EST NEUVE, ET PERSONNE NE SAIT QU'ELLE EST LÀ. Le
+   *  panneau — les données, les réglages, le mode d'emploi —
+   *  vivait derrière l'icône de la barre d'outils, que Chrome
+   *  range derrière une pièce de puzzle. La roue est le chemin
+   *  qu'on ne peut pas manquer, encore faut-il la remarquer une
+   *  première fois : elle bat, et une bulle la désigne.
    *
-   *  CE BANDEAU EST LE SEUL QUI PARLE LÀ OÙ L'UTILISATEUR REGARDE.
-   *  L'onglet ouvert à l'installation atteint tout le monde, mais
-   *  il s'ouvre AILLEURS, et se ferme parfois sans être lu. Ici,
-   *  la barre latérale vient de changer sous ses yeux : la question
-   *  « qui a fait ça ? » est déjà posée, et on y répond.
+   *  CE SIGNAL A SA PROPRE CLÉ, ET C'EST UNE CORRECTION.
+   *  La première rédaction reconnaissait une « installation
+   *  neuve » à une mémoire vide — pas de visites, pas de roster.
+   *  Un retour de terrain a montré ce que ça coûtait : réinstaller
+   *  l'extension N'EFFACE PAS le localStorage de twitch.tv. Un
+   *  utilisateur de longue date était donc classé « ancien » à
+   *  jamais, et ne voyait jamais la bulle — quel que soit le
+   *  nombre de réinstallations. C'est-à-dire exactement la
+   *  personne à qui il fallait annoncer une roue qui n'existait
+   *  pas la veille.
    *
-   *  IL NE S'ADRESSE QU'AUX NOUVEAUX, et c'est la partie délicate.
-   *  content.js ne peut pas savoir qu'une installation vient
-   *  d'avoir lieu — « onInstalled » vit dans le service worker,
-   *  dont il est séparé par deux mondes. Mais il peut constater
-   *  l'inverse : quelqu'un qui a DÉJÀ des visites ou un roster en
-   *  mémoire se sert de l'extension depuis un moment, et n'a rien
-   *  à apprendre ici. On ne devine pas une installation, on
-   *  reconnaît une ancienneté.
+   *  ON NE DEVINE DONC PLUS L'ÂGE DE L'UTILISATEUR, ON RETIENT CE
+   *  QU'IL A VU. La clé porte le nom du signal : absente, le
+   *  signal n'a jamais été montré, et il se montre. Le coût est
+   *  connu et borné : une bulle, une fois, renvoyée d'un clic —
+   *  sur la roue ou sur sa croix.
    *
-   *  LA DÉCISION SE PREND UNE FOIS ET S'ÉCRIT. Sans ça, le bandeau
-   *  disparaîtrait au second chargement — le roster se remplit en
-   *  quelques secondes — et n'aurait donc été montré qu'à ceux qui
-   *  regardaient l'écran à la bonne seconde.
+   *  LA DÉCISION SE PREND UNE FOIS ET S'ÉCRIT. Sans ça, elle se
+   *  reprendrait à chaque chargement, et n'importe quelle lecture
+   *  ultérieure de l'état la ferait basculer sans prévenir.
    * ============================================================ */
   const accueil = (() => {
     const lire = () => {
-      try { return localStorage.getItem(CFG.ACCUEIL_KEY); } catch { return 'vu'; }
+      try { return localStorage.getItem(CFG.ROUE_KEY); } catch { return 'vu'; }
     };
     const ecrire = (v) => {
-      try { localStorage.setItem(CFG.ACCUEIL_KEY, v); } catch { /* stockage refusé */ }
-    };
-    /* Les deux mémoires qui prouvent l'ancienneté. On les lit BRUTES plutôt que
-       par leurs modules : ceux-ci se construisent plus bas dans le fichier, et
-       cette décision doit être prise avant le premier rendu. */
-    const dejaLa = () => {
-      try {
-        return !!(localStorage.getItem(CFG.VISIT_STORAGE_KEY)
-               || localStorage.getItem(CFG.ROSTER_STORAGE_KEY));
-      } catch { return true; }   // stockage illisible : on ne dérange personne
+      try { localStorage.setItem(CFG.ROUE_KEY, v); } catch { /* stockage refusé */ }
     };
     let etat = lire();
     if (etat !== 'montre' && etat !== 'vu') {
-      etat = dejaLa() ? 'vu' : 'montre';
+      etat = 'montre';
       ecrire(etat);
+      /* La clé du bandeau de la 4.11 ne sert plus à rien et resterait dans le
+         stockage de tout le monde. On la retire au passage : ce produit compte
+         ses clés dans son propre panneau, et une clé morte y serait comptée. */
+      try { localStorage.removeItem('tse:accueil'); } catch { /* rien à faire */ }
     }
     return {
       aMontrer: () => etat === 'montre',
@@ -4282,16 +4278,22 @@ const TSE_GATE_MAX_CLICKS = 5;
     ${DOM.sidebarRoot} .side-nav__title[data-tse-roue] {
       display: flex; align-items: center; gap: 6px;
     }
-    /* Le titre garde toute la place, la roue prend la sienne au bout. Sans
-       « min-width: 0 », un titre long pousse la roue hors du cadre au lieu de
-       se tronquer — et c'est la roue qu'on perdrait, pas une lettre du titre. */
+    /* LE TITRE NE PREND QUE SA PLACE, et c'est ce qui colle la roue à lui.
+       « flex: 1 1 auto » l'étirait sur toute la largeur et repoussait la roue
+       à l'autre bout de la barre — signalé depuis le terrain. « min-width: 0 »
+       reste : un titre trop long doit se tronquer plutôt que pousser la roue
+       hors du cadre, parce que c'est la roue qu'on perdrait, pas une lettre du
+       titre. */
     ${DOM.sidebarRoot} .side-nav__title[data-tse-roue] > h3 {
-      flex: 1 1 auto; min-width: 0;
+      flex: 0 1 auto; min-width: 0;
     }
     .tse-roue {
       flex: 0 0 auto;
       position: relative;
-      width: 26px; height: 26px; padding: 0; margin-left: auto;
+      /* PAS DE « margin-left: auto » : il collait la roue au bord droit de la
+         barre, c'est-à-dire au bouton de repli de Twitch, au lieu de la coller
+         au titre. Ce qui la place est l'ordre des nœuds, pas une marge. */
+      width: 26px; height: 26px; padding: 0;
       display: inline-flex; align-items: center; justify-content: center;
       border: 0; border-radius: 4px;
       background: transparent; color: var(--tse-texte-faible);
@@ -4335,7 +4337,12 @@ const TSE_GATE_MAX_CLICKS = 5;
        reçoit juste au-dessus pour lui servir de repère. */
     ${DOM.sidebarRoot} { position: relative; }
     .tse-bulle {
-      position: absolute; z-index: 9;
+      position: absolute;
+      /* HAUT, ET C'EST MESURÉ CONTRE CE QUI EXISTE : la barre latérale de
+         Twitch empile ses propres couches, et une bulle à 9 passait dessous.
+         Elle reste à l'intérieur de la barre — inutile d'aller chercher les
+         valeurs extrêmes du voile du panneau, qui, lui, couvre la page. */
+      z-index: 5000;
       top: 38px; right: 4px; left: 8px;
       display: flex; align-items: flex-start; gap: 6px;
       padding: 9px 8px 9px 10px;
@@ -15572,7 +15579,18 @@ const TSE_GATE_MAX_CLICKS = 5;
        règle qui viserait `.side-nav__title` en général toucherait un nœud de
        Twitch sur des pages où nous n'avons rien posé. */
     titre.setAttribute('data-tse-roue', 'true');
-    titre.appendChild(roue);
+    /* ── JUSTE APRÈS LE TITRE, ET SURTOUT PAS EN FIN DE BLOC ───────────────
+       CORRECTION D'UN RETOUR DE TERRAIN. La première rédaction faisait
+       `appendChild` : sur le vrai Twitch, ce bloc contient AUSSI le bouton de
+       repli de la barre, et la roue se posait donc après lui, à l'extrême
+       droite — collée au chevron de Twitch plutôt qu'au titre.
+
+       On vise donc le <h3> et on se pose immédiatement après. C'est la seule
+       écriture qui donne « collé à droite du titre » quoi que Twitch range
+       d'autre dans ce bloc, aujourd'hui ou demain. */
+    const h3 = titre.querySelector('h3');
+    if (h3) h3.insertAdjacentElement('afterend', roue);
+    else titre.appendChild(roue);
     majBulle();
   }
 

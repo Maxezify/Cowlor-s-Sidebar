@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1131 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1133 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,94 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Deux retours de terrain sur la roue, et ce que le décor de test taisait (v4.12.1)
+
+### 1. La roue n'était pas collée au titre
+
+Signalé par capture : la roue se posait à l'**extrême droite** de la barre
+latérale, contre le chevron de repli de Twitch, au lieu d'être collée au titre.
+
+**Deux causes, et elles s'additionnaient.** `appendChild` posait la roue en
+**fin de bloc** — et sur le vrai Twitch ce bloc contient aussi le bouton de
+repli, donc la roue passait après lui. Par-dessus, `margin-left: auto` la
+poussait explicitement au bord droit, et `flex: 1 1 auto` sur le `<h3>` étirait
+le titre sur toute la largeur.
+
+La correction vise le `<h3>` et se pose **immédiatement après lui** :
+
+```js
+const h3 = titre.querySelector('h3');
+if (h3) h3.insertAdjacentElement('afterend', roue);
+else titre.appendChild(roue);
+```
+
+C'est la seule écriture qui donne « collée à droite du titre » **quoi que Twitch
+range d'autre dans ce bloc**, aujourd'hui ou demain. Ce qui place la roue est
+désormais l'ordre des nœuds, pas une marge.
+
+> **LE DÉCOR DE TEST MENTAIT PAR OMISSION, et c'est la vraie leçon.** Sa
+> `.side-nav__title` ne contenait qu'un `<h3>`. Avec un `<h3>` seul,
+> `appendChild` et « juste après le titre » donnent **exactement le même
+> résultat** — l'assertion `apresH3` passait donc sur un produit défaillant.
+> Le décor porte maintenant le bouton de repli, comme le vrai.
+
+L'assertion neuve mesure **deux choses qui tombent ensemble**, parce que
+chacune seule se laisse tromper :
+
+| ce qui est mesuré | ce qu'il rattrape seul | ce qu'il laisserait passer |
+| --- | --- | --- |
+| l'ordre des nœuds (`H3`, roue, repli) | la roue posée en fin de bloc | une marge qui la repousse à l'autre bout |
+| l'écart en pixels entre la fin du titre et la roue (≤ 12 px) | la marge automatique | un titre qui se trouve court ce jour-là |
+
+Deux mutants, deux morts : rétablir `appendChild` la fait tomber, rétablir
+`margin-left: auto` aussi.
+
+### 2. La bulle ne s'affichait jamais, et c'était par construction
+
+Signalé aussi : « je ne vois pas la bulle après installation de l'extension ».
+Ce n'était ni un problème d'affichage, ni un problème de calendrier.
+
+La 4.12.0 reconnaissait une « installation neuve » à une **mémoire vide** — pas
+de visites, pas de roster — parce que `content.js` ne peut pas savoir qu'une
+installation vient d'avoir lieu : `onInstalled` vit dans le service worker, dont
+deux mondes le séparent. C'était juste pour le bandeau de la 4.11, qui annonçait
+une icône vieille de plusieurs versions.
+
+**C'est faux pour la roue, qui n'existait pas la veille — et le raisonnement
+avait un trou qu'une seule phrase referme :**
+
+> **Réinstaller l'extension n'efface pas le `localStorage` de twitch.tv.**
+
+Un utilisateur de longue date était donc classé « ancien » **à jamais**, et ne
+voyait jamais la bulle, quel que soit le nombre de réinstallations. C'est-à-dire
+exactement la personne à qui il fallait annoncer une roue qu'elle n'avait jamais
+vue.
+
+**On ne devine plus l'âge de l'utilisateur, on retient ce qu'il a vu.** La clé
+porte le nom du **signal** — `tse:roue` — et non celui d'un état de
+l'utilisateur : absente, le signal n'a jamais été montré, donc il se montre.
+
+> **Le coût est connu, et il faut le dire.** Tout utilisateur existant verra la
+> bulle une fois. C'est le prix d'un signal qui atteint effectivement les
+> personnes concernées — et il est borné : une bulle, une fois, renvoyée d'un
+> clic sur la roue ou sur sa croix.
+
+La clé morte du bandeau de la 4.11, `tse:accueil`, est **retirée du stockage** au
+passage. Ce produit compte ses propres clés dans son panneau, et une clé morte y
+serait comptée.
+
+L'assertion correspondante est **tournée**, pas retirée : elle exigeait l'inverse
+(« une mémoire déjà remplie vaut ancienneté »), et elle exige maintenant qu'un
+roster rempli **et** l'ancien bandeau déjà renvoyé n'empêchent plus le signal —
+plus une seconde qui vérifie que la clé morte a bien disparu.
+
+### 3. La bulle passait sous les couches de Twitch
+
+Troisième correction, trouvée en relisant la première : la bulle était à
+`z-index: 9`. La barre latérale de Twitch empile ses propres couches, et neuf ne
+suffit à rien. Elle est à **5000** — dans la barre, pas au-dessus de la page :
+les valeurs extrêmes sont réservées au voile du panneau, qui, lui, couvre tout.
 
 ## La roue crantée, ou le chemin qu'on ne peut pas manquer (v4.12)
 
@@ -6853,7 +6941,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 123 scénarios, 1131 assertions |
+| `npm test` | le harnais Playwright : 123 scénarios, 1133 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -6874,7 +6962,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1033 Ko | 400 Ko | 3 288 → **2** |
+| `content.js` | 1035 Ko | 400 Ko | 3 289 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 92 Ko | 46 Ko | 121 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

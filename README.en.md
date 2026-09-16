@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1131 assertions, under Gecko
+npm run test-firefox        # the same 1133 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,92 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Two field reports on the gear, and what the test fixture was hiding (v4.12.1)
+
+### 1. The gear was not stuck to the title
+
+Reported with a screenshot: the gear sat at the **far right** of the sidebar,
+against Twitch's collapse chevron, instead of hugging the title.
+
+**Two causes, and they compounded.** `appendChild` put the gear at the **end of
+the block** — and on real Twitch that block also holds the collapse button, so
+the gear landed after it. On top of that, `margin-left: auto` explicitly pushed
+it to the right edge, and `flex: 1 1 auto` on the `<h3>` stretched the title
+across the full width.
+
+The fix targets the `<h3>` and inserts **immediately after it**:
+
+```js
+const h3 = titre.querySelector('h3');
+if (h3) h3.insertAdjacentElement('afterend', roue);
+else titre.appendChild(roue);
+```
+
+It is the only spelling that yields "stuck to the right of the title" **whatever
+else Twitch files in that block**, today or tomorrow. What places the gear is now
+node order, not a margin.
+
+> **THE TEST FIXTURE LIED BY OMISSION, and that is the real lesson.** Its
+> `.side-nav__title` contained only an `<h3>`. With a lone `<h3>`, `appendChild`
+> and "right after the title" give **exactly the same result** — so the
+> `apresH3` assertion passed on a broken product. The fixture now carries the
+> collapse button, like the real thing.
+
+The new assertion measures **two things that fall together**, because each alone
+can be fooled:
+
+| what is measured | what it catches alone | what it would let through |
+| --- | --- | --- |
+| node order (`H3`, gear, collapse) | the gear placed at the end of the block | a margin pushing it to the far end |
+| the pixel gap between title end and gear (≤ 12 px) | the automatic margin | a title that happens to be short that day |
+
+Two mutants, two kills: restoring `appendChild` drops it, restoring
+`margin-left: auto` drops it too.
+
+### 2. The bubble never appeared, and that was by construction
+
+Also reported: "I don't see the bubble after installing the extension." It was
+neither a rendering problem nor a timing problem.
+
+4.12.0 recognised a "fresh install" by an **empty memory** — no visits, no roster
+— because `content.js` cannot know an install just happened: `onInstalled` lives
+in the service worker, two worlds away. That was right for 4.11's banner, which
+announced an icon several versions old.
+
+**It is wrong for the gear, which did not exist yesterday — and the reasoning had
+a hole that one sentence closes:**
+
+> **Reinstalling the extension does not clear twitch.tv's `localStorage`.**
+
+A long-time user was therefore classified "old" **forever**, and never saw the
+bubble, however many times they reinstalled. Which is precisely the person who
+needed to be told about a gear they had never seen.
+
+**We no longer guess the user's age, we remember what they have seen.** The key
+is named after the **signal** — `tse:roue` — not after a state of the user:
+absent means the signal has never been shown, so it shows.
+
+> **The cost is known, and it should be stated.** Every existing user will see
+> the bubble once. That is the price of a signal that actually reaches the people
+> it concerns — and it is bounded: one bubble, once, dismissed by a click on the
+> gear or on its close button.
+
+4.11's dead banner key, `tse:accueil`, is **removed from storage** along the way.
+This product counts its own keys in its own panel, and a dead key would be
+counted there.
+
+The matching assertion is **turned**, not removed: it required the opposite ("a
+filled memory means seniority"), and it now requires that a filled roster **and**
+an already-dismissed old banner no longer block the signal — plus a second one
+checking the dead key is really gone.
+
+### 3. The bubble slipped under Twitch's layers
+
+A third fix, found while re-reading the first: the bubble was at `z-index: 9`.
+Twitch's sidebar stacks its own layers, and nine is worth nothing. It is now
+**5000** — inside the sidebar, not above the page: the extreme values are
+reserved for the panel's backdrop, which does cover everything.
 
 ## The gear, or the path that can't be missed (v4.12)
 
@@ -6562,7 +6648,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 123 scenarios, 1131 assertions |
+| `npm test` | the Playwright harness: 123 scenarios, 1133 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -6582,7 +6668,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1033 KB | 400 KB | 3,288 → **2** |
+| `content.js` | 1035 KB | 400 KB | 3,289 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 92 KB | 46 KB | 121 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
