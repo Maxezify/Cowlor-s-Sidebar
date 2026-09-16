@@ -1475,8 +1475,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
     pose('data-tse-or',     options.get('abonnes'),      'plein');
     pose('data-tse-apercu', options.get('apercuTaille'), 'normal');
-
-    html.toggleAttribute('data-tse-force', options.get('theme') !== 'auto');
   };
   options.surChangement(appliquerOptions);
   appliquerOptions();
@@ -1563,6 +1561,22 @@ const TSE_GATE_MAX_CLICKS = 5;
       background-color: #f7f7f8;
       
       color: #0e0e10;
+    }
+    
+    html[data-tse-force] ${DOM.sidebarRoot} > div,
+    html[data-tse-force] ${DOM.sidebarRoot} [class*="side-nav__"],
+    html[data-tse-force] ${DOM.sidebarRoot} [class*="side-nav-section"] {
+      background-color: transparent !important;
+    }
+    html[data-tse-force][data-tse-theme="light"] ${DOM.sidebarRoot} .side-nav-card:hover,
+    html[data-tse-force][data-tse-theme="light"] ${DOM.sidebarRoot} .side-nav-card a:hover,
+    html[data-tse-force][data-tse-theme="light"] ${DOM.sidebarRoot} .side-nav-card a:focus {
+      background-color: rgba(0, 0, 0, 0.06) !important;
+    }
+    html[data-tse-force][data-tse-theme="dark"] ${DOM.sidebarRoot} .side-nav-card:hover,
+    html[data-tse-force][data-tse-theme="dark"] ${DOM.sidebarRoot} .side-nav-card a:hover,
+    html[data-tse-force][data-tse-theme="dark"] ${DOM.sidebarRoot} .side-nav-card a:focus {
+      background-color: rgba(255, 255, 255, 0.08) !important;
     }
     html[data-tse-force][data-tse-theme="dark"] ${DOM.sidebarRoot} {
       --color-background-base:  #0e0e10;
@@ -2662,10 +2676,24 @@ const TSE_GATE_MAX_CLICKS = 5;
     html[data-tse-off~="filtreCategorie"] .tse-filter-field--cat { display: none !important; }
     html[data-tse-off~="filtreLangue"] .tse-filter-field--lang { display: none !important; }
     
-    html[data-tse-off~="filtreCategorie"] .tse-filter-row,
-    html[data-tse-off~="filtreLangue"] .tse-filter-row { justify-content: center; }
-    html[data-tse-off~="filtreCategorie"] .tse-filter-field--lang { margin-left: 0; }
-    html[data-tse-off~="filtreLangue"] .tse-filter-field--cat { flex: 0 1 auto; }
+    html[data-tse-off~="filtreCategorie"] .tse-filter-field--lang {
+      flex: 1 1 auto; margin-left: 0; min-width: 0;
+    }
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang { width: auto; flex: 1 1 auto; }
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-current { justify-content: flex-start; }
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-menu {
+      left: 0; right: 0; min-width: 0;
+    }
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-opt { justify-content: flex-start; }
+    html[data-tse-off~="filtreLangue"] .tse-filter-field--cat { flex: 1 1 auto; }
+
+    
+    .tse-dd-lang { display: inline-flex; align-items: center; min-width: 0; }
+    .tse-dd-nom { display: none; }
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-nom {
+      display: inline; margin-left: 6px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     
     html[data-tse-off~="filtreCategorie"][data-tse-off~="filtreLangue"] .tse-filter-row {
       display: none !important;
@@ -5858,8 +5886,11 @@ const TSE_GATE_MAX_CLICKS = 5;
   const appliquerTheme = () => {
 
     const choisi = options.get('theme');
-    const t = choisi === 'auto' ? themeTwitch() : choisi;
+    const reel = themeTwitch();
+    const t = choisi === 'auto' ? reel : choisi;
     const html = document.documentElement;
+
+    html.toggleAttribute('data-tse-force', t !== reel);
     if (html.getAttribute('data-tse-theme') !== t) {
       html.setAttribute('data-tse-theme', t);
       bilanTheme.bascules++;
@@ -8422,15 +8453,26 @@ const TSE_GATE_MAX_CLICKS = 5;
     const cur  = dd.querySelector('.tse-dd-current');
     const menu = dd.querySelector('.tse-dd-menu');
 
+    const avecNom = (noeud, texte) => {
+      if (kind !== 'lang') return noeud;
+      const hote = document.createElement('span');
+      hote.className = 'tse-dd-lang';
+      const nom = document.createElement('span');
+      nom.className = 'tse-dd-nom';
+      nom.textContent = texte;
+      hote.append(noeud, nom);
+      return hote;
+    };
     const itemLabel = (v) => {
-      if (kind === 'lang') return langIcon(v);
+      if (kind === 'lang') return avecNom(langIcon(v), v);
       const sp = document.createElement('span');
       sp.className = 'tse-dd-name';
       sp.textContent = libelle(v);
       return sp;
     };
+
     const allLabel = () => kind === 'lang'
-      ? noeudStatique(GLOBE_MARKUP)
+      ? avecNom(noeudStatique(GLOBE_MARKUP), S.uiFilterAllLanguages)
       : document.createTextNode(getAllLabel());
     const allTitle  = kind === 'lang' ? S.uiFilterAllLanguages : S.uiFilterAllCategories;
 
