@@ -328,6 +328,13 @@ const nommes = [
   // plus bas), mais c'est ici qu'on vérifie qu'il est bien dans le paquet.
   ...(man.background?.service_worker ? [man.background.service_worker] : []),
   ...(man.background?.scripts ?? []),
+  /* LES RESSOURCES ACCESSIBLES AU WEB. La roue de la barre latérale ouvre
+     `panneau.html` dans un cadre posé sur Twitch, et c'est cette clé qui l'y
+     autorise. Une entrée qui nommerait un fichier absent du paquet donnerait
+     un cadre VIDE — sans erreur, sans message, sans rien à déboguer : le
+     navigateur refuse la navigation en silence. C'est exactement le défaut que
+     ce contrôle existe pour attraper, et le linter ne le voit pas. */
+  ...(man.web_accessible_resources ?? []).flatMap(r => r.resources ?? []),
 ];
 const manquants = nommes.filter(f => !dedans.includes(f));
 ok('tout ce que le manifeste nomme est dans le paquet',

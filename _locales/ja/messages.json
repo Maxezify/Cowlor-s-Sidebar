@@ -713,17 +713,5 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — あなたのデータと設定"
-  },
-  "panelWelcomeThanks": {
-    "message": "Cowlor's Sidebar をインストールしていただき、ありがとうございます！"
-  },
-  "panelWelcomeWhere": {
-    "message": "設定とすべてのデータは、ブラウザー右上の拡張機能アイコンの中にあります。"
-  },
-  "panelWelcomePin": {
-    "message": "見当たりませんか？ パズルのピースのボタンの中に収まっています。それをクリックして、Cowlor's Sidebar をピン留めすると、いつでもすぐ開けます。"
-  },
-  "panelWelcomeImage": {
-    "message": "ブラウザーのツールバー。アドレスバーの右側に Cowlor's Sidebar のアイコンが強調表示されています。"
   }
 }

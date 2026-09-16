@@ -2344,9 +2344,24 @@ titre('35. Top Chaînes — basculer, afficher, revenir');
     ok('l\'en-tête natif de Twitch est masqué',
        await page.evaluate(() => document.querySelector('.followed-side-nav-header')
          ?.getAttribute('data-tse-native-header') === 'hidden'));
-    ok('rien n\'a été ajouté dans le titre racine',
-       await page.evaluate(() =>
-         !document.querySelector('#side-nav .side-nav__title button')));
+    /* ── ASSERTION TOURNÉE PAR LA 4.12 ────────────────────────────────────
+       Elle exigeait que le titre racine ne porte AUCUN bouton, et elle avait
+       raison de le faire : la version qui y avait ancré la bascule de mode
+       passait son temps à lutter contre React, qui remonte ce titre à chaque
+       navigation — d'où la rangée d'onglets, dans un bloc que l'extension
+       possède.
+
+       LA 4.12 Y POSE UN BOUTON, ET UN SEUL : la roue qui ouvre le panneau.
+       Ce qui était protégé n'était pas « zéro bouton » mais « pas de bascule
+       de mode ici », et cette leçon-là tient toujours. L'assertion le dit
+       maintenant en toutes lettres, au lieu de compter à zéro. */
+    ok('le titre racine ne porte qu\'un bouton, la roue, et aucune bascule de mode',
+       await page.evaluate(() => {
+         const boutons = [...document.querySelectorAll('#side-nav .side-nav__title button')];
+         return boutons.length === 1
+             && boutons[0].id === 'tse-roue'
+             && !boutons[0].hasAttribute('data-tse-mode');
+       }));
     // On ne touche plus au bouton de Twitch : ni instrumentation, ni clic.
     ok('le bouton de tri natif n\'est plus instrumenté',
        await page.evaluate(() => !document.querySelector('[data-tse-mode-trigger]')));
@@ -7584,24 +7599,22 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
     };
 
     /* LE FAUX « chrome » DOIT PORTER CE QUE LE VRAI PORTE, sans quoi il ne
-       simule plus rien : la 4.11 a ajouté un écouteur « onInstalled » à
-       background.js, et ce contexte-ci a levé « Cannot read properties of
-       undefined » au chargement du fichier. Le décor était incomplet, pas le
-       code — et la tentation de garder l'appel derrière un « ?. » aurait
-       silencieusement avalé un navigateur qui ne porterait pas cette API.
+       simule plus rien. La leçon a été apprise à la 4.11 : un écouteur
+       « onInstalled » ajouté à background.js a fait lever « Cannot read
+       properties of undefined » AU CHARGEMENT DU FICHIER, parce que ce décor-ci
+       ne portait pas l'API. Le décor était incomplet, pas le code — et la
+       tentation de garder l'appel derrière un « ?. » aurait silencieusement
+       avalé un navigateur qui ne porterait pas cette API.
 
-       CE CONTEXTE-CI NE S'EN SERT PAS : il éprouve le transport, pas
-       l'installation. Le scénario 122 a son propre décor, minimal, pour la
-       même raison qu'on ne fait pas d'un banc de transport un banc à tout
-       faire. On absorbe donc l'écouteur sans le retenir. */
+       CET ÉCOUTEUR A DISPARU À LA 4.12 avec l'onglet d'installation ; ce qui
+       reste est la règle, et elle vaut pour la prochaine API que le fond
+       touchera. */
     const chromeFond = {
       runtime: {
         onConnect: { addListener: (l) => { onConnect = l; } },
         onMessage: { addListener: (l) => { onMessageFond = l; } },
-        onInstalled: { addListener: () => {} },
         getURL: (c) => 'chrome-extension://tse/' + c,
       },
-      tabs: { create: () => {} },
     };
     const ctxFond = createContext({
       chrome: chromeFond,
@@ -15840,67 +15853,340 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await page.close();
 }
 
-/* ═════════ SE FAIRE TROUVER ═══════════════════════════════════════════════
+/* ═════════ SE FAIRE TROUVER, DEPUIS LA BARRE LATÉRALE ════════════════════
    Depuis Chrome 89, une extension fraîchement installée n'est PAS dans la barre
-   d'outils : elle est rangée derrière le bouton « pièce de puzzle ». Tout ce
-   que ce produit sait faire vit donc derrière un clic que personne ne sait
-   qu'il peut donner. Trois choses y répondent, et elles se vérifient
-   séparément parce qu'elles échouent séparément.
+   d'outils : elle est rangée derrière le bouton « pièce de puzzle ». Tout ce que
+   ce produit sait faire vivait donc derrière un clic que personne ne savait
+   pouvoir donner.
 
-   LE BANDEAU EST LE SEUL QUI SOIT DÉLICAT, et sa difficulté n'est pas de
-   s'afficher : c'est de ne s'afficher QU'AUX NOUVEAUX, et de ne pas
-   disparaître au second chargement. content.js ne peut pas savoir qu'une
-   installation vient d'avoir lieu — « onInstalled » vit dans le service
-   worker. Il reconnaît l'inverse : une mémoire déjà remplie prouve une
-   ancienneté. Or cette mémoire se remplit en quelques secondes, d'où la règle
-   qui fait tout tenir — la décision se prend UNE FOIS et s'écrit. */
+   LA RÉPONSE EST UN SECOND CHEMIN, POSÉ LÀ OÙ L'UTILISATEUR REGARDE DÉJÀ :
+   une roue crantée dans le titre de la barre latérale. Trois choses peuvent mal
+   tourner, et aucune ne se verrait sans contrôle :
+
+     — la roue n'est PAS REPOSÉE quand React remonte le titre, et disparaît à
+       la première navigation interne ;
+     — elle est posée DANS le <h3>, que « renameRootTitle » réécrit à chaque
+       passe : elle s'efface une fois par seconde ;
+     — le titre n'est pas mis en « flex », et la roue tombe sous le titre au
+       lieu de se poser à sa droite. */
 {
-  titre('121. Se faire trouver — le bandeau d\'accueil, une fois et pour les nouveaux');
+  titre('121. La roue crantée — dans le titre, et elle y reste');
 
-  /* ── UN UTILISATEUR DE LONGUE DATE N'EST PAS DÉRANGÉ ─────────────────── */
+  const page = await fresh();
+  const poser = () => page.evaluate(() => {
+    window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 3600e3).toISOString(),
+                             viewers: 900, game: 'G', tags: [] } };
+    window.__addCard('alpha', 'G', '900');
+  });
+  await poser();
+  await wait(page, 1500);
+
+  const vue = await page.evaluate(() => {
+    const r = document.getElementById('tse-roue');
+    const t = document.querySelector('#side-nav .side-nav__title');
+    const st = t && getComputedStyle(t);
+    return {
+      presente: !!r,
+      /* À CÔTÉ DU <h3>, PAS DEDANS. « renameRootTitle » écrit `textContent` sur
+         le <h3> à chaque passe : une roue posée dedans serait effacée une fois
+         par seconde, et le seul symptôme serait un bouton qui clignote. */
+      apresH3: !!(r && r.previousElementSibling
+                    && r.previousElementSibling.tagName === 'H3'),
+      dansTitre: !!(t && r && t.contains(r)),
+      marque: t && t.getAttribute('data-tse-roue'),
+      flex: st && st.display,
+      /* Un bouton sans nom accessible n'est pas trouvable au lecteur d'écran,
+         et celui-ci s'adresse d'abord à qui ne sait pas où chercher. */
+      nom: r && r.getAttribute('aria-label'),
+      infobulle: r && r.getAttribute('title'),
+      type: r && r.getAttribute('type'),
+      /* Le dessin est décoratif : le nom est sur le bouton, et laisser le SVG
+         lisible ferait annoncer deux fois la même chose. */
+      svgMuet: !!(r && r.querySelector('svg[aria-hidden="true"]')),
+    };
+  });
+  ok('la roue est posée dans le titre de la barre latérale',
+     vue.presente === true && vue.dansTitre === true, JSON.stringify(vue));
+  ok('…à CÔTÉ du <h3>, que le renommage réécrit à chaque passe',
+     vue.apresH3 === true, JSON.stringify(vue));
+  ok('…le titre porte notre marqueur et passe en rangée',
+     vue.marque === 'true' && vue.flex === 'flex', JSON.stringify(vue));
+  ok('…elle a un nom accessible, une infobulle, et un dessin muet',
+     typeof vue.nom === 'string' && vue.nom.length > 5 && vue.infobulle === vue.nom
+     && vue.type === 'button' && vue.svgMuet === true, JSON.stringify(vue));
+
+  /* ── CE QUE REACT EMPORTE, LA PASSE SUIVANTE LE REPOSE ─────────────────
+     C'est le mode de panne le plus probable de tout ce scénario : Twitch est
+     une application à page unique, et son titre est remonté à chaque
+     navigation interne. Une roue posée une seule fois disparaîtrait au premier
+     clic sur une chaîne, sans erreur, sans trace. */
+  const repose = await page.evaluate(async () => {
+    const t = document.querySelector('#side-nav .side-nav__title');
+    /* On rejoue exactement ce que fait React : le titre est REMPLACÉ par un
+       nœud neuf, pas vidé. Vider aurait laissé le même élément en place et
+       n'aurait donc pas éprouvé la garde « contains ». */
+    const neuf = document.createElement('div');
+    neuf.className = t.className;
+    neuf.appendChild(document.createElement('h3'));
+    t.replaceWith(neuf);
+    const apresPerte = !document.getElementById('tse-roue');
+    await new Promise((r) => setTimeout(r, 1600));
+    const r2 = document.getElementById('tse-roue');
+    return { apresPerte, revenue: !!r2,
+             dansLeNeuf: !!(r2 && neuf.contains(r2)),
+             /* Une seule : reposer sans retirer l'ancienne donnerait deux
+                boutons, dont un orphelin dans un nœud détaché. */
+             combien: document.querySelectorAll('#tse-roue, .tse-roue').length };
+  });
+  ok('un titre remplacé par React emporte la roue…',
+     repose.apresPerte === true, JSON.stringify(repose));
+  ok('…et la passe suivante la repose, une seule fois, dans le titre neuf',
+     repose.revenue === true && repose.dansLeNeuf === true && repose.combien === 1,
+     JSON.stringify(repose));
+  await page.close();
+}
+
+/* ═════════ LE PANNEAU PAR-DESSUS LA PAGE ═════════════════════════════════
+   La roue ouvre le panneau dans un CADRE posé sur Twitch. Ce qui se vérifie ici
+   n'est pas le panneau — les scénarios 69 à 120 s'en chargent — mais le cadre :
+   son adresse, sa taille, et les quatre façons d'en sortir.
+
+   L'ADRESSE EST LE POINT SENSIBLE. content.js tourne en monde MAIN : il n'a pas
+   « chrome.runtime », donc pas « getURL ». Elle lui arrive par un message, et un
+   message est quelque chose que N'IMPORTE QUEL script de la page peut émettre.
+   Sans filtre, une page hostile ferait charger SON adresse dans un cadre qui a
+   l'air du nôtre — c'est-à-dire un hameçonnage avec notre décor autour. */
+{
+  titre('122. Le panneau incrusté — son adresse, sa taille, et comment on en sort');
+
   const page = await fresh();
   await page.evaluate(() => {
-    localStorage.clear();
-    localStorage.setItem('tse:roster', JSON.stringify({ v: 1, m: { alpha: Date.now() } }));
+    window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 3600e3).toISOString(),
+                             viewers: 900, game: 'G', tags: [] } };
+    window.__addCard('alpha', 'G', '900');
   });
-  await page.reload();
+  await wait(page, 1500);
+
+  /* ── AVANT L'ADRESSE, RIEN NE S'OUVRE ────────────────────────────────── */
+  const sansUrl = await page.evaluate(async () => {
+    document.getElementById('tse-roue').click();
+    await new Promise((r) => setTimeout(r, 60));
+    return !!document.getElementById('tse-incruste');
+  });
+  ok('sans adresse, le clic n\'ouvre pas un cadre vide',
+     sansUrl === false, String(sansUrl));
+
+  /* ── UNE ADRESSE QUI N'EST PAS CELLE D'UNE EXTENSION EST REFUSÉE ─────── */
+  const hostile = await page.evaluate(async () => {
+    for (const url of ['https://exemple.invalid/panneau.html',
+                       'javascript:alert(1)',
+                       '//exemple.invalid/x']) {
+      window.postMessage({ tse: 'tse-url-res', url }, '*');
+    }
+    await new Promise((r) => setTimeout(r, 80));
+    document.getElementById('tse-roue').click();
+    await new Promise((r) => setTimeout(r, 60));
+    return !!document.getElementById('tse-incruste');
+  });
+  ok('…et une adresse qui n\'est pas celle d\'une extension est refusée',
+     hostile === false, String(hostile));
+
+  /* ── L'ADRESSE DU PONT OUVRE LE CADRE ────────────────────────────────── */
+  const ouvert = await page.evaluate(async () => {
+    window.postMessage({ tse: 'tse-url-res', url: 'chrome-extension://tse/panneau.html' }, '*');
+    await new Promise((r) => setTimeout(r, 60));
+    document.getElementById('tse-roue').click();
+    await new Promise((r) => setTimeout(r, 60));
+    const v = document.getElementById('tse-incruste');
+    const cadre = v && v.querySelector('.tse-incruste-cadre');
+    const f = v && v.querySelector('iframe');
+    const st = cadre && getComputedStyle(cadre);
+    return { ouvert: !!v, src: f && f.getAttribute('src'),
+             largeur: st && st.width, hauteur: st && st.height,
+             role: v && v.getAttribute('role'),
+             modal: v && v.getAttribute('aria-modal'),
+             nomme: !!(v && v.getAttribute('aria-label')),
+             croix: !!(v && v.querySelector('.tse-incruste-croix[aria-label]')),
+             /* Le bac à sable retirerait au cadre son origine d'extension,
+                donc « chrome.runtime » — c'est-à-dire tout ce que le panneau
+                sait faire. Il ne doit pas y en avoir. */
+             bacASable: f && f.hasAttribute('sandbox') };
+  });
+  ok('l\'adresse du pont ouvre le cadre, sur le panneau',
+     ouvert.ouvert === true && ouvert.src === 'chrome-extension://tse/panneau.html',
+     JSON.stringify(ouvert));
+  /* LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS. Les deux chemins
+     mènent au même panneau ; ils doivent y mener à la même taille, sans quoi
+     une capture d'écran de rapport ne se compare plus à l'autre. */
+  ok('…aux dimensions exactes de la popup : 760 × 580',
+     ouvert.largeur === '760px' && ouvert.hauteur === '580px', JSON.stringify(ouvert));
+  ok('…annoncé comme fenêtre modale, nommé, avec une croix nommée',
+     ouvert.role === 'dialog' && ouvert.modal === 'true'
+     && ouvert.nomme === true && ouvert.croix === true, JSON.stringify(ouvert));
+  ok('…et sans bac à sable, qui lui retirerait son origine d\'extension',
+     ouvert.bacASable === false, JSON.stringify(ouvert));
+
+  /* ── QUATRE SORTIES, ET ELLES ÉCHOUENT SÉPARÉMENT ────────────────────── */
+  const sortir = async (geste) => page.evaluate(async (g) => {
+    if (!document.getElementById('tse-incruste')) {
+      document.getElementById('tse-roue').click();
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    const v = document.getElementById('tse-incruste');
+    const f = v.querySelector('iframe');
+    if (g === 'echap') {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    } else if (g === 'voile') {
+      v.click();
+    } else if (g === 'croix') {
+      v.querySelector('.tse-incruste-croix').click();
+    } else if (g === 'cadre') {
+      /* LE CLIC DANS LE CADRE NE DOIT PAS FERMER. C'est l'assertion qui manque
+         le plus souvent : un « fermer au clic sur le voile » écrit sans garde
+         ferme aussi quand on clique le panneau lui-même. */
+      f.click();
+    } else if (g === 'message') {
+      /* LE CHEMIN DU PANNEAU. Échap frappée DANS le cadre ne remonte pas
+         jusqu'ici — deux origines — donc panneau.js le poste au parent. On
+         rejoue ce message en nommant sa vraie source. */
+      window.dispatchEvent(new MessageEvent('message',
+        { data: { tse: 'tse-panneau-fermer' }, source: f.contentWindow }));
+    } else if (g === 'imposteur') {
+      /* LA MÊME DEMANDE, VENUE D'AILLEURS. Un script de la page qui poste ce
+         message ne doit pas pouvoir fermer une fenêtre qu'il n'a pas ouverte. */
+      window.dispatchEvent(new MessageEvent('message',
+        { data: { tse: 'tse-panneau-fermer' }, source: window }));
+    }
+    await new Promise((r) => setTimeout(r, 80));
+    return !document.getElementById('tse-incruste');
+  }, geste);
+
+  ok('le clic DANS le cadre ne ferme pas', (await sortir('cadre')) === false);
+  ok('un message de fermeture venu de la page est ignoré',
+     (await sortir('imposteur')) === false);
+  ok('la croix ferme', (await sortir('croix')) === true);
+  ok('la touche Échap ferme', (await sortir('echap')) === true);
+  ok('le clic sur le voile ferme', (await sortir('voile')) === true);
+  ok('…et le panneau lui-même peut demander sa fermeture',
+     (await sortir('message')) === true);
+
+  /* ── CE QUI EST POSÉ EST RETIRÉ ──────────────────────────────────────── */
+  /* Un écouteur de touche posé sur le document et jamais retiré s'accumule à
+     chaque ouverture. Le symptôme n'apparaît qu'après plusieurs allers-retours,
+     et il est alors attribué à tout autre chose. */
+  const propre = await page.evaluate(async () => {
+    for (let i = 0; i < 4; i++) {
+      document.getElementById('tse-roue').click();
+      await new Promise((r) => setTimeout(r, 40));
+      document.querySelector('.tse-incruste-croix').click();
+      await new Promise((r) => setTimeout(r, 40));
+    }
+    return { voiles: document.querySelectorAll('.tse-incruste').length,
+             cadres: document.querySelectorAll('.tse-incruste-cadre').length };
+  });
+  ok('quatre allers-retours ne laissent aucun voile derrière eux',
+     propre.voiles === 0 && propre.cadres === 0, JSON.stringify(propre));
+
+  /* ── ET DEUX CLICS NE FONT PAS DEUX CADRES ───────────────────────────── */
+  const double = await page.evaluate(async () => {
+    document.getElementById('tse-roue').click();
+    document.getElementById('tse-roue').click();
+    await new Promise((r) => setTimeout(r, 80));
+    return document.querySelectorAll('.tse-incruste').length;
+  });
+  ok('…et deux clics de suite n\'ouvrent qu\'un seul cadre',
+     double === 1, String(double));
+  await page.close();
+}
+
+/* ═════════ LE PREMIER LANCEMENT ══════════════════════════════════════════
+   La roue est là pour tout le monde ; le BATTEMENT et la BULLE ne sont là que
+   pour une installation neuve. Sa difficulté n'est pas de s'afficher, c'est de
+   ne s'afficher qu'aux nouveaux et de ne pas disparaître au second chargement.
+
+   content.js ne peut pas savoir qu'une installation vient d'avoir lieu — le
+   service worker, seul à le savoir, en est séparé par deux mondes. Il reconnaît
+   l'inverse : une mémoire déjà remplie prouve une ANCIENNETÉ. Or cette mémoire
+   se remplit en quelques secondes, d'où la règle qui fait tout tenir — la
+   décision se prend UNE FOIS et s'écrit. */
+{
+  titre('123. Le premier lancement — la roue bat, la bulle désigne, une seule fois');
+
+  const page = await fresh();
   const poser = () => page.evaluate(() => {
     window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 3600e3).toISOString(),
                              viewers: 900, game: 'G', tags: [] } };
     window.__addCard('alpha', 'G', '900');
   });
   const etat = () => page.evaluate(() => {
-    const e = document.getElementById('tse-accueil');
-    return { present: !!e, cle: localStorage.getItem('tse:accueil'),
-             texte: e ? e.querySelector('.tse-accueil-texte').textContent : null,
-             croix: e ? !!e.querySelector('.tse-accueil-croix[aria-label]') : null,
-             /* Il doit être AU-DESSUS de la barre de filtre, c'est-à-dire tout
-                en haut de ce que l'extension ajoute. */
-             suivant: e ? (e.nextElementSibling && e.nextElementSibling.id) : null,
+    const r = document.getElementById('tse-roue');
+    const b = document.getElementById('tse-bulle');
+    return { neuf: r && r.getAttribute('data-tse-neuf'),
+             anime: r ? getComputedStyle(r).animationName : null,
+             bulle: !!b,
+             texte: b ? b.querySelector('.tse-bulle-texte').textContent : null,
+             croix: b ? !!b.querySelector('.tse-bulle-croix[aria-label]') : null,
+             fleche: b ? !!b.querySelector('.tse-bulle-fleche[aria-hidden="true"]') : null,
+             cle: localStorage.getItem('tse:accueil'),
              roster: !!localStorage.getItem('tse:roster') };
   });
+
+  /* ── UN UTILISATEUR DE LONGUE DATE N'EST PAS DÉRANGÉ ─────────────────── */
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('tse:roster', JSON.stringify({ v: 1, m: { alpha: Date.now() } }));
+  });
+  await page.reload();
   await poser();
   await wait(page, 1500);
   const ancien = await etat();
-  ok('une mémoire déjà remplie vaut ancienneté : le bandeau ne s\'affiche pas',
-     ancien.present === false && ancien.cle === 'vu', JSON.stringify(ancien));
+  ok('une mémoire déjà remplie vaut ancienneté : ni bulle ni battement',
+     ancien.bulle === false && ancien.neuf === null && ancien.cle === 'vu',
+     JSON.stringify(ancien));
 
-  /* ── UNE INSTALLATION NEUVE LE VOIT ──────────────────────────────────── */
+  /* ── UNE INSTALLATION NEUVE LES VOIT ─────────────────────────────────── */
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await poser();
   await wait(page, 1500);
   const neuf = await etat();
-  ok('rien en mémoire vaut installation neuve : le bandeau s\'affiche',
-     neuf.present === true && neuf.cle === 'montre', JSON.stringify(neuf));
-  ok('…il se pose au-dessus de la barre de filtre, et porte une croix nommée',
-     neuf.suivant === 'tse-filter' && neuf.croix === true, JSON.stringify(neuf));
-  /* LE LIBELLÉ VIENT DE LA TABLE DE LANGUE, pas d'une chaîne écrite dans la
-     fonction : une phrase en dur ne serait traduite nulle part, et ce bandeau
-     s'adresse d'abord à quelqu'un qui ne sait pas où chercher. */
-  ok('…et son texte est celui de la table de langue, pas un identifiant',
-     typeof neuf.texte === 'string' && neuf.texte.length > 20
+  ok('rien en mémoire vaut installation neuve : la roue bat',
+     neuf.neuf === 'true' && neuf.anime === 'tse-roue-bat' && neuf.cle === 'montre',
+     JSON.stringify(neuf));
+  ok('…et la bulle est là, avec sa flèche muette et une croix nommée',
+     neuf.bulle === true && neuf.fleche === true && neuf.croix === true,
+     JSON.stringify(neuf));
+  /* LE LIBELLÉ VIENT DE LA TABLE DE LANGUE. Une phrase écrite dans la fonction
+     ne serait traduite nulle part, et cette bulle s'adresse d'abord à quelqu'un
+     qui ne sait pas encore ce qu'il vient d'installer. */
+  ok('…son texte vient de la table de langue, pas d\'un identifiant',
+     typeof neuf.texte === 'string' && neuf.texte.length > 40
      && !/^ui[A-Z]/.test(neuf.texte), JSON.stringify(neuf.texte));
+
+  /* ── LA FLÈCHE DÉSIGNE LA ROUE, ET C'EST MESURÉ ──────────────────────── */
+  /* UN DÉCALAGE ÉCRIT EN DUR NE POUVAIT PAS MARCHER, et il a fallu une mesure
+     pour le voir : la bulle se place par rapport à la BARRE, la roue par
+     rapport au rembourrage que TWITCH donne à son titre. Relevé avant
+     correction : flèche à 223 px, centre de la roue à 234,5 — elle désignait le
+     bord du bouton. */
+  const vise = await page.evaluate(() => {
+    const c = (e) => { const r = e.getBoundingClientRect(); return r.left + r.width / 2; };
+    const roue = document.getElementById('tse-roue');
+    const fleche = document.querySelector('.tse-bulle-fleche');
+    const bulle = document.getElementById('tse-bulle');
+    return { ecart: Math.abs(c(roue) - c(fleche)),
+             /* Au-dessus de la bulle, sinon elle ne désigne rien : une flèche
+                posée à l'intérieur d'un bloc de la même couleur est invisible. */
+             auDessus: fleche.getBoundingClientRect().top < bulle.getBoundingClientRect().top,
+             /* Et sous la roue : la bulle est ce qui explique le bouton, elle
+                ne peut pas le recouvrir. */
+             sousLaRoue: bulle.getBoundingClientRect().top
+                       >= roue.getBoundingClientRect().bottom - 1 };
+  });
+  ok('la flèche vise le centre de la roue, à quelques pixels près',
+     vise.ecart <= 6, JSON.stringify(vise));
+  ok('…elle dépasse au-dessus de la bulle, et la bulle est sous la roue',
+     vise.auDessus === true && vise.sousLaRoue === true, JSON.stringify(vise));
 
   /* ── LA DÉCISION SURVIT AU REMPLISSAGE DE LA MÉMOIRE ─────────────────── */
   await page.reload();
@@ -15908,230 +16194,94 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await wait(page, 1500);
   const second = await etat();
   /* C'EST L'ASSERTION QUI TIENT TOUT LE MÉCANISME. Sans la décision écrite, le
-     roster se remplit en quelques secondes, « dejaLa() » devient vrai au
-     chargement suivant, et le bandeau n'aurait été montré qu'à ceux qui
+     roster se remplit en quelques secondes, l'ancienneté devient vraie au
+     chargement suivant, et la bulle n'aurait été montrée qu'à ceux qui
      regardaient l'écran à la bonne seconde. */
-  ok('le roster s\'est rempli entre-temps, et le bandeau reste : la décision est écrite',
-     second.roster === true && second.present === true && second.cle === 'montre',
+  ok('le roster s\'est rempli entre-temps, et la bulle reste : la décision est écrite',
+     second.roster === true && second.bulle === true && second.cle === 'montre',
      JSON.stringify(second));
 
-  /* ── LA CROIX LE RENVOIE POUR DE BON ─────────────────────────────────── */
-  const apres = await page.evaluate(() => {
-    document.querySelector('.tse-accueil-croix').click();
-    return { present: !!document.getElementById('tse-accueil'),
+  /* ── LA CROIX LA RENVOIE, ET LE BATTEMENT S'ARRÊTE AVEC ELLE ─────────── */
+  const apres = await page.evaluate(async () => {
+    document.querySelector('.tse-bulle-croix').click();
+    await new Promise((r) => setTimeout(r, 60));
+    const r = document.getElementById('tse-roue');
+    return { bulle: !!document.getElementById('tse-bulle'),
+             neuf: r.getAttribute('data-tse-neuf'),
+             anime: getComputedStyle(r).animationName,
+             /* La roue RESTE : ce qu'on renvoie est le signal, pas le chemin. */
+             roue: !!r,
              cle: localStorage.getItem('tse:accueil') };
   });
+  ok('la croix retire la bulle, arrête le battement, et garde la roue',
+     apres.bulle === false && apres.neuf === null && apres.anime === 'none'
+     && apres.roue === true && apres.cle === 'vu', JSON.stringify(apres));
+
   await page.reload();
   await poser();
   await wait(page, 1500);
   const jamais = await etat();
-  ok('la croix le retire et l\'écrit',
-     apres.present === false && apres.cle === 'vu', JSON.stringify(apres));
-  ok('…et il ne revient pas au rechargement suivant',
-     jamais.present === false, JSON.stringify(jamais));
-  await page.close();
-}
+  ok('…et rien ne revient au rechargement suivant',
+     jamais.bulle === false && jamais.neuf === null, JSON.stringify(jamais));
 
-/* ═════════ L'ONGLET D'ACCUEIL — UNE FOIS DANS UNE VIE ════════════════════
-   Le service worker ouvre le panneau dans un onglet à l'installation. Deux
-   choses peuvent mal tourner, et aucune ne se verrait sans contrôle :
-
-     — l'onglet ne s'ouvre PAS, et le produit reste introuvable pour qui n'a
-       pas épinglé son icône ;
-     — l'onglet s'ouvre À CHAQUE MISE À JOUR, et l'extension se fait
-       désinstaller. « reason » est tout ce qui sépare les deux cas.
-
-   ON JOUE LE VRAI FICHIER, dans le contexte du scénario 73 : c'est le même
-   background.js que le navigateur charge, avec un « chrome » factice qui porte
-   ce que le vrai porte. */
-{
-  titre('122. L\'onglet d\'accueil — à l\'installation, et pas aux mises à jour');
-
-  /* UN DÉCOR MINIMAL, ET C'EST VOULU. Le contexte du scénario 73 monte deux
-     ports, un pont et une fenêtre pour éprouver le TRANSPORT ; rien de tout
-     cela n'a de rapport avec l'ouverture d'un onglet. On charge le vrai
-     background.js autour de ce qu'il touche ici, et de rien d'autre. */
-  let onInstalled = null;
-  const onglets = [];
-  const ctx = createContext({
-    chrome: {
-      runtime: {
-        onConnect:   { addListener: () => {} },
-        onMessage:   { addListener: () => {} },
-        onInstalled: { addListener: (l) => { onInstalled = l; } },
-        getURL: (c) => 'chrome-extension://tse/' + c,
-      },
-      tabs: { create: (o) => { onglets.push(o.url); } },
-    },
-    setTimeout, clearTimeout, Date, console,
+  /* ── LE CLIC SUR LA ROUE VAUT LECTURE ────────────────────────────────── */
+  /* Quelqu'un qui ouvre le panneau a trouvé la roue. Continuer à la faire
+     battre serait insister après coup. */
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await poser();
+  await wait(page, 1500);
+  const parLaRoue = await page.evaluate(async () => {
+    const avant = !!document.getElementById('tse-bulle');
+    document.getElementById('tse-roue').click();
+    await new Promise((r) => setTimeout(r, 60));
+    return { avant, bulle: !!document.getElementById('tse-bulle'),
+             neuf: document.getElementById('tse-roue').getAttribute('data-tse-neuf'),
+             cle: localStorage.getItem('tse:accueil') };
   });
-  runInContext(readFileSync(join(ICI, '..', 'background.js'), 'utf8'), ctx);
-  const installer = (reason) => { onInstalled({ reason }); return onglets; };
+  ok('ouvrir le panneau par la roue renvoie le signal aussi',
+     parLaRoue.avant === true && parLaRoue.bulle === false
+     && parLaRoue.neuf === null && parLaRoue.cle === 'vu', JSON.stringify(parLaRoue));
 
-  ok('le fichier pose bien un écouteur d\'installation',
-     typeof onInstalled === 'function', String(typeof onInstalled));
-  ok('rien ne s\'ouvre tant qu\'il ne se passe rien',
-     onglets.length === 0, JSON.stringify(onglets));
+  /* ── MOUVEMENT RÉDUIT : LE SIGNAL RESTE, LE MOUVEMENT PART ───────────── */
+  /* CELLE-CI EST DU MOUVEMENT AU SENS STRICT — un changement de TAILLE, ce que
+     la WCAG appelle l'illusion d'un déplacement. Pas de version calme à
+     négocier comme pour l'opacité de la barre du stream frais.
 
-  installer('update');
-  ok('une mise à jour n\'ouvre aucun onglet',
-     onglets.length === 0, JSON.stringify(onglets));
-
-  const apres = installer('install');
-  ok('une installation en ouvre un, et un seul',
-     apres.length === 1, JSON.stringify(apres));
-  /* LE PARAMÈTRE N'EST PAS DÉCORATIF : c'est lui que panneau.js lit pour
-     cesser de se contraindre à 760 × 580. Sans lui, la page d'accueil
-     s'afficherait en petit dans le coin d'un onglet plein écran. */
-  ok('…vers le panneau, et en mode ONGLET',
-     /panneau\.html\?vue=onglet$/.test(apres[0] || ''), String(apres[0]));
-
-  installer('chrome_update');
-  ok('une mise à jour du navigateur n\'en ouvre pas davantage',
-     onglets.length === 1, JSON.stringify(onglets));
-}
-
-/* ═════════ LA PAGE D'ACCUEIL — CE QU'ON VOIT À LA SECONDE 0 ═══════════════
-   L'onglet s'ouvre : c'est le scénario 122. Reste ce qu'il MONTRE, et c'est un
-   sujet distinct, parce qu'il échoue autrement. La page n'a qu'un travail —
-   dire où est l'icône — et trois manières de le rater :
-
-     — elle montre le rail, le pied et les boutons d'une console de
-       diagnostic à quelqu'un qui vient d'installer, et noie la seule phrase
-       qui compte ;
-     — elle montre le bloc d'accueil DANS LA POPUP, c'est-à-dire explique où
-       est l'icône à quelqu'un qui vient de cliquer dessus ;
-     — elle se remet à grandir avec le mode d'emploi, et le rail redescend
-       avec elle.
-
-   UN SEUL ATTRIBUT sépare les deux vues, et c'est exactement pourquoi il faut
-   les mesurer toutes les deux : une règle qui vise « html » sans le qualifier
-   abîme la popup sans qu'on la regarde jamais. */
-{
-  titre('123. La page d\'accueil — la même page, deux vues, un seul attribut');
-
-  const messages = JSON.parse(readFileSync(join(ICI, '..', '_locales', 'fr', 'messages.json'), 'utf8'));
-  /* AUCUNE DONNÉE N'EST SERVIE, et c'est fidèle : le guide est la seule vue du
-     panneau qui ne demande rien à la page. Un faux plus riche ne prouverait
-     rien de plus et masquerait une dépendance si elle apparaissait. */
-  const decor = (msg) => {
-    window.chrome = {
-      i18n: { getMessage: (k) => (msg[k] ? msg[k].message : k), getUILanguage: () => 'fr' },
-      tabs: { query: () => Promise.resolve([{ id: 1 }]) },
-      runtime: { getManifest: () => ({ version: '9.9.9' }),
-                 sendMessage: () => Promise.resolve({ ok: false, erreur: 'page-absente' }) },
-    };
-  };
-
-  const relever = async (requete, largeur = 1100) => {
-    const page = await browser.newPage({ viewport: { width: largeur, height: 760 } });
-    page.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
-    await page.addInitScript(decor, messages);
-    await page.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href + requete);
-    await attendre(page, () => !document.getElementById('guide').hidden, 6000);
-    const vu = await page.evaluate(() => {
-      const visible = (sel) => { const e = document.querySelector(sel);
-        return !!e && getComputedStyle(e).display !== 'none'; };
-      const bienvenue = document.querySelector('.bienvenue');
-      const guide = document.getElementById('guide');
-      const img = document.querySelector('.bienvenue-dessin image');
-      const fleche = document.querySelector('.bienvenue-fleche');
-      return {
-        vue: document.documentElement.getAttribute('data-vue'),
-        bienvenue: !!bienvenue,
-        /* PREMIER, pas « présent quelque part » : une phrase d'accueil au bas
-           de treize chapitres n'est plus une phrase d'accueil. */
-        premier: guide.firstElementChild === bienvenue,
-        textes: bienvenue
-          ? ['.bienvenue-merci', '.bienvenue-ou', '.bienvenue-epingler']
-              .map((s) => (bienvenue.querySelector(s) || {}).textContent || '')
-          : [],
-        icone: img ? (img.getAttribute('href') || img.getAttribute('xlink:href')) : null,
-        fleche: !!fleche,
-        flecheMuette: fleche ? fleche.querySelector('svg').getAttribute('aria-hidden') : null,
-        rail: visible('.rail'), pied: visible('.pied'), tete: visible('.vue-tete'),
-        chapitres: guide.querySelectorAll('.guide-chapitre').length,
-        hauteur: document.documentElement.scrollHeight,
-        fenetre: window.innerHeight,
-        /* CE QUE LA FLÈCHE RECOUVRE, mesuré et non déduit. Elle est posée en
-           absolu par-dessus le bloc : rien dans le flux ne sait qu'elle est
-           là, et la réserve du titre est une valeur écrite à la main. */
-        recouverts: fleche ? ['.bienvenue-merci', '.bienvenue-ou',
-                              '.bienvenue-dessin', '.bienvenue-epingler']
-          .filter((s) => {
-            const e = bienvenue.querySelector(s);
-            if (!e) return false;
-            const a = fleche.getBoundingClientRect(), b = e.getBoundingClientRect();
-            return a.left < b.right && b.left < a.right
-                && a.top < b.bottom && b.top < a.bottom;
-          }) : [],
-      };
-    });
-    await page.close();
-    return vu;
-  };
-
-  const popup = await relever('');
-  const onglet = await relever('?vue=onglet');
-  /* LA LARGEUR OÙ ÇA CASSE, et elle ne se devinait pas. À 780 px le merci
-     passe sur deux lignes, la phrase qui suit descend d'autant et entre dans
-     la colonne de la flèche — alors qu'à 1100 px tout tient. Une réserve
-     écrite à la main ne se vérifie qu'à la largeur qui la met en défaut. */
-  const etroit = await relever('?vue=onglet', 780);
-
-  /* ── LA POPUP N'A PAS CHANGÉ ─────────────────────────────────────────── */
-  /* Quelqu'un qui clique l'icône l'a manifestement trouvée. Lui expliquer où
-     elle est serait insultant, et c'est la moitié du contrat de l'attribut. */
-  ok('la popup ne porte pas le bloc d\'accueil, et garde son rail et son pied',
-     popup.vue === null && popup.bienvenue === false
-     && popup.rail === true && popup.pied === true && popup.tete === true,
-     JSON.stringify(popup));
-
-  /* ── L'ONGLET D'INSTALLATION ─────────────────────────────────────────── */
-  ok('l\'onglet ouvre sur le bloc d\'accueil, en tête du mode d\'emploi',
-     onglet.vue === 'onglet' && onglet.bienvenue === true && onglet.premier === true,
-     JSON.stringify(onglet));
-  /* Trois phrases, trois clés : un « panelWelcomeThanks » rendu tel quel est
-     la signature d'une locale incomplète, et c'est la première chose que voit
-     quelqu'un qui installe. Une chaîne vide est le même défaut en plus
-     discret — d'où le plancher. */
-  ok('…ses trois phrases viennent de la table de langue, aucune clé brute',
-     onglet.textes.length === 3
-     && onglet.textes.every((t) => t.length > 12 && !/^panel[A-Z]/.test(t)),
-     JSON.stringify(onglet.textes));
-  /* LA MAQUETTE PORTE LA VRAIE ICÔNE, pas un dessin qui lui ressemble : ce
-     qu'on demande à l'utilisateur est de reconnaître une image dans sa barre
-     d'outils. Un fac-similé approximatif lui ferait chercher autre chose. */
-  ok('…la maquette de barre d\'outils montre l\'icône du produit elle-même',
-     onglet.icone === 'icons/icon48.png', String(onglet.icone));
-  /* La flèche désigne un coin de NAVIGATEUR, hors du document. Elle n'a donc
-     rien à dire à quelqu'un qui écoute la page, et tout à cacher. */
-  ok('…la grande flèche est là, et muette pour les lecteurs d\'écran',
-     onglet.fleche === true && onglet.flecheMuette === 'true', JSON.stringify(onglet));
-  /* DEUX LARGEURS, parce qu'une seule ne prouve rien : c'est l'étroite qui
-     attrape le défaut, et la large qui garde 62ch quand la place existe. */
-  ok('…et elle ne recouvre aucun texte, au large comme à l\'étroit',
-     onglet.recouverts.length === 0 && etroit.recouverts.length === 0,
-     JSON.stringify([onglet.recouverts, etroit.recouverts]));
-  /* ── LES DEUX RETRAITS DEMANDÉS ──────────────────────────────────────── */
-  /* Le rail ne mène qu'à des sections qui exigent un onglet Twitch au premier
-     plan ; le pied propose d'effacer un historique qui n'existe pas encore. */
-  ok('…le rail, le pied et l\'en-tête de vue ont disparu : il ne reste que le guide',
-     onglet.rail === false && onglet.pied === false && onglet.tete === false,
-     JSON.stringify(onglet));
-  /* ── CE N'EST PAS UNE SECONDE PAGE ───────────────────────────────────── */
-  /* Une page d'accueil séparée aurait divergé du panneau à la première section
-     ajoutée. On le prouve par le mode d'emploi : le même, chapitre pour
-     chapitre, dans les deux vues. */
-  ok('…et le mode d\'emploi est le même, chapitre pour chapitre',
-     onglet.chapitres === popup.chapitres && onglet.chapitres > 5,
-     JSON.stringify([popup.chapitres, onglet.chapitres]));
-  /* LA RÉGRESSION QUI A DÛ ÊTRE RATTRAPÉE. Posée à « height: auto », la page
-     grandissait avec le mode d'emploi — 2933 px mesurés — et le rail s'étirait
-     d'autant, à défiler avec elle : deux colonnes qui défilent chacune de son
-     côté devenaient une longue page. */
-  ok('…la page reste haute comme la fenêtre, c\'est le guide qui défile',
-     onglet.hauteur <= onglet.fenetre, JSON.stringify([onglet.hauteur, onglet.fenetre]));
+     L'ASSERTION EST NÉCESSAIRE PARCE QUE LA RÈGLE POUVAIT PERDRE : celle qui
+     déclare le battement vit PLUS BAS dans la feuille, à spécificité égale.
+     C'est exactement le piège qui a fait passer l'arc-en-ciel du subathon à
+     travers ce réglage pendant deux versions. */
+  const reduit = await browser.newPage();
+  reduit.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await reduit.emulateMedia({ reducedMotion: 'reduce' });
+  await reduit.goto(URL_PAGE);
+  await reduit.evaluate(() => localStorage.clear());
+  await reduit.reload();
+  await reduit.evaluate(() => {
+    window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 3600e3).toISOString(),
+                             viewers: 900, game: 'G', tags: [] } };
+    window.__addCard('alpha', 'G', '900');
+  });
+  await wait(reduit, 1500);
+  const calme = await reduit.evaluate(() => {
+    const r = document.getElementById('tse-roue');
+    const st = getComputedStyle(r);
+    return { neuf: r.getAttribute('data-tse-neuf'), anime: st.animationName,
+             transforme: st.transform,
+             /* Ce qui reste DIT encore. Une roue qui perdrait son halo en même
+                temps que son mouvement ne signalerait plus rien du tout. */
+             halo: st.boxShadow,
+             bulle: !!document.getElementById('tse-bulle') };
+  });
+  ok('mouvement réduit : le battement s\'arrête entièrement',
+     calme.anime === 'none' && (calme.transforme === 'none' || calme.transforme === 'matrix(1, 0, 0, 1, 0, 0)'),
+     JSON.stringify(calme));
+  ok('…mais le signal reste : la roue est marquée, son halo est posé, la bulle est là',
+     calme.neuf === 'true' && /rgba?\(/.test(calme.halo) && calme.bulle === true,
+     JSON.stringify(calme));
+  await reduit.close();
+  await page.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

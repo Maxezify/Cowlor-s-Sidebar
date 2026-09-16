@@ -160,9 +160,10 @@ Puoi consultare la tua classifica nella console degli strumenti per sviluppatori
 
 _______________________________
 
-➤ 🎛️ UN PANNELLO NELLA BARRA DEGLI STRUMENTI
-Un clic sull'icona dell'estensione e tutto ciò che ha imparato si apre in un pannello — senza passare dalla console.
+➤ 🎛️ UN PANNELLO, ACCANTO AI TUOI CANALI
+Un ingranaggio a destra del titolo della barra laterale, un clic, e tutto quello che l'estensione ha imparato si apre sopra Twitch. L'icona dell'estensione, in alto a destra nel browser, apre esattamente lo stesso pannello.
 
+- ★ DUE STRADE, UN SOLO PANNELLO ★ L'ingranaggio nella barra laterale o l'icona nella barra degli strumenti: la stessa pagina, della stessa dimensione, in entrambi i casi.
 - ★ UNA GUIDA, SUBITO ★ Il pannello si apre su una guida di tredici capitoli che mostra tutto ciò che l'estensione aggiunge, con esempi disegnati — e si vede anche senza nessuna scheda Twitch aperta.
 - ★ LE TUE ABITUDINI, DISEGNATE ★ Le ore in cui guardi davvero, tracciate in una griglia di sette giorni per ventiquattro ore.
 - ★ I TUOI NUMERI ★ Top streamer, abbonamenti rilevati, canali seguiti in memoria: tutto lì, leggibile.

@@ -152,6 +152,18 @@ const PROMESSES = [
      elles entrent au contrat pour que la prochaine suppression les emporte. */
   ['can be spaced out to once a day', 'valeurs: [3, 6, 12, 24]'],
   ['each memory is erased on its own', 'purge(arg) {'],
+  /* LES DEUX CHEMINS VERS LE PANNEAU, ENTRÉS AVEC EUX À LA 4.12. La fiche
+     promet une roue dans la barre latérale ET l'icône de la barre d'outils, au
+     même endroit et à la même taille. Deux marques, parce que ce sont deux
+     choses qui peuvent disparaître séparément :
+
+       — la roue est une fonction de content.js ;
+       — la taille commune est une paire de nombres, et c'est elle qui rend la
+         phrase « à la même taille » vraie ou fausse. Viser le nom de la
+         fonction seul aurait laissé la promesse survivre à un cadre qu'on
+         aurait redimensionné sans y penser. */
+  ['A gear to the right of the sidebar title', 'function ensureRoue() {'],
+  ['at the same size, either way', 'INCRUSTE_W:             760'],
 ];
 const tenues = PROMESSES.flatMap(([phrase, marque]) => {
   const dansFiche = en.includes(phrase);

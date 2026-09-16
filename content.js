@@ -612,8 +612,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Toutes les catégories',
       uiFilterLangAriaLabel:     'Filtrer les chaînes suivies par langue',
       uiFilterAllLanguages:      'Toutes les langues',
-      uiAccueilTexte:            'Vos données et vos réglages sont dans l\'icône Cowlor\'s Sidebar de la barre d\'outils',
-      uiAccueilFermer:           'Fermer',
+      uiRoueTitre:               'Réglages, données et mode d\'emploi de Cowlor\'s Sidebar',
+      uiBulleTexte:              'Merci d\'avoir installé Cowlor\'s Sidebar ! Apprenez à utiliser l\'extension, personnalisez et regardez toutes vos données stockées ici.',
+      uiFermer:                  'Fermer',
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
@@ -699,8 +700,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'All categories',
       uiFilterLangAriaLabel:     'Filter followed channels by language',
       uiFilterAllLanguages:      'All languages',
-      uiAccueilTexte:            'Your data and your settings are in the Cowlor\'s Sidebar toolbar icon',
-      uiAccueilFermer:           'Dismiss',
+      uiRoueTitre:               'Cowlor\'s Sidebar settings, data and manual',
+      uiBulleTexte:              'Thanks for installing Cowlor\'s Sidebar! Learn how to use the extension, customise it and see all the data it stores, right here.',
+      uiFermer:                  'Close',
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
@@ -781,8 +783,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Alle Kategorien',
       uiFilterLangAriaLabel:     'Gefolgte Kanäle nach Sprache filtern',
       uiFilterAllLanguages:      'Alle Sprachen',
-      uiAccueilTexte:            'Deine Daten und Einstellungen findest du im Cowlor\'s-Sidebar-Symbol der Symbolleiste',
-      uiAccueilFermer:           'Schließen',
+      uiRoueTitre:               'Einstellungen, Daten und Anleitung von Cowlor\'s Sidebar',
+      uiBulleTexte:              'Danke, dass du Cowlor\'s Sidebar installiert hast! Lerne die Erweiterung kennen, passe sie an und sieh dir hier alle gespeicherten Daten an.',
+      uiFermer:                  'Schließen',
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
@@ -863,8 +866,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas las categorías',
       uiFilterLangAriaLabel:     'Filtrar los canales que sigues por idioma',
       uiFilterAllLanguages:      'Todos los idiomas',
-      uiAccueilTexte:            'Tus datos y tus ajustes están en el icono de Cowlor\'s Sidebar de la barra de herramientas',
-      uiAccueilFermer:           'Cerrar',
+      uiRoueTitre:               'Ajustes, datos y manual de Cowlor\'s Sidebar',
+      uiBulleTexte:              '¡Gracias por instalar Cowlor\'s Sidebar! Aprende a usar la extensión, personalízala y consulta aquí todos tus datos guardados.',
+      uiFermer:                  'Cerrar',
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
@@ -945,8 +949,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas as categorias',
       uiFilterLangAriaLabel:     'Filtrar os canais seguidos por idioma',
       uiFilterAllLanguages:      'Todos os idiomas',
-      uiAccueilTexte:            'Os teus dados e as tuas definições estão no ícone Cowlor\'s Sidebar da barra de ferramentas',
-      uiAccueilFermer:           'Fechar',
+      uiRoueTitre:               'Definições, dados e manual da Cowlor\'s Sidebar',
+      uiBulleTexte:              'Obrigado por instalares a Cowlor\'s Sidebar! Aprende a usar a extensão, personaliza-a e vê aqui todos os teus dados guardados.',
+      uiFermer:                  'Fechar',
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
@@ -1027,8 +1032,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Tutte le categorie',
       uiFilterLangAriaLabel:     'Filtra i canali seguiti per lingua',
       uiFilterAllLanguages:      'Tutte le lingue',
-      uiAccueilTexte:            'I tuoi dati e le tue impostazioni sono nell\'icona Cowlor\'s Sidebar della barra degli strumenti',
-      uiAccueilFermer:           'Chiudi',
+      uiRoueTitre:               'Impostazioni, dati e guida di Cowlor\'s Sidebar',
+      uiBulleTexte:              'Grazie per aver installato Cowlor\'s Sidebar! Impara a usare l\'estensione, personalizzala e guarda qui tutti i tuoi dati memorizzati.',
+      uiFermer:                  'Chiudi',
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
@@ -1109,8 +1115,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Wszystkie kategorie',
       uiFilterLangAriaLabel:     'Filtruj obserwowane kanały według języka',
       uiFilterAllLanguages:      'Wszystkie języki',
-      uiAccueilTexte:            'Twoje dane i ustawienia znajdziesz w ikonie Cowlor\'s Sidebar na pasku narzędzi',
-      uiAccueilFermer:           'Zamknij',
+      uiRoueTitre:               'Ustawienia, dane i instrukcja Cowlor\'s Sidebar',
+      uiBulleTexte:              'Dzięki za zainstalowanie Cowlor\'s Sidebar! Naucz się korzystać z rozszerzenia, dostosuj je i zobacz tutaj wszystkie swoje zapisane dane.',
+      uiFermer:                  'Zamknij',
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
@@ -1191,8 +1198,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Все категории',
       uiFilterLangAriaLabel:     'Фильтровать отслеживаемые каналы по языку',
       uiFilterAllLanguages:      'Все языки',
-      uiAccueilTexte:            'Ваши данные и настройки — в значке Cowlor\'s Sidebar на панели инструментов',
-      uiAccueilFermer:           'Закрыть',
+      uiRoueTitre:               'Настройки, данные и руководство Cowlor\'s Sidebar',
+      uiBulleTexte:              'Спасибо за установку Cowlor\'s Sidebar! Узнайте, как пользоваться расширением, настройте его и посмотрите здесь все сохранённые данные.',
+      uiFermer:                  'Закрыть',
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
@@ -1273,8 +1281,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'すべてのカテゴリー',
       uiFilterLangAriaLabel:     'フォロー中のチャンネルを言語で絞り込む',
       uiFilterAllLanguages:      'すべての言語',
-      uiAccueilTexte:            'あなたのデータと設定は、ツールバーの Cowlor\'s Sidebar アイコンの中にあります',
-      uiAccueilFermer:           '閉じる',
+      uiRoueTitre:               'Cowlor\'s Sidebar の設定・データ・使い方',
+      uiBulleTexte:              'Cowlor\'s Sidebar をインストールしていただき、ありがとうございます！ 使い方を学び、カスタマイズし、保存されているデータをここですべて確認できます。',
+      uiFermer:                  '閉じる',
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
@@ -1355,8 +1364,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     '全部分类',
       uiFilterLangAriaLabel:     '按语言筛选关注的频道',
       uiFilterAllLanguages:      '全部语言',
-      uiAccueilTexte:            '你的数据与设置就在工具栏的 Cowlor\'s Sidebar 图标里',
-      uiAccueilFermer:           '关闭',
+      uiRoueTitre:               'Cowlor\'s Sidebar 的设置、数据与使用说明',
+      uiBulleTexte:              '感谢你安装 Cowlor\'s Sidebar！在这里了解如何使用本扩展、进行个性化设置，并查看所有已保存的数据。',
+      uiFermer:                  '关闭',
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
@@ -2318,12 +2328,21 @@ const TSE_GATE_MAX_CLICKS = 5;
        il est volontairement manuel. */
     OPTIONS_KEY:            'tse:options',
 
-    /* === Le bandeau d'accueil ===
+    /* === Le premier lancement ===
        Trois valeurs, et une seule s'écrit d'elle-même : « montre » quand on a
-       décidé de l'afficher, « vu » quand il a été renvoyé — ou quand on a
-       constaté qu'on n'avait pas affaire à une installation neuve. Absent
-       signifie « la question ne s'est pas encore posée ». */
-    ACCUEIL_KEY:            'tse:accueil'
+       décidé de signaler la roue, « vu » quand le signal a été renvoyé — ou
+       quand on a constaté qu'on n'avait pas affaire à une installation neuve.
+       Absent signifie « la question ne s'est pas encore posée ». */
+    ACCUEIL_KEY:            'tse:accueil',
+
+    /* === Le panneau incrusté ===
+       LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
+       760 × 580 de panneau.css). Les deux chemins mènent au même panneau ; ils
+       doivent y mener à la même taille. Ils vivent ICI et non près du code qui
+       les emploie, parce que la feuille de style les lit — et la feuille est
+       construite bien avant. */
+    INCRUSTE_W:             760,
+    INCRUSTE_H:             580
   });
 
   /* ============================================================
@@ -3976,6 +3995,28 @@ const TSE_GATE_MAX_CLICKS = 5;
         0%, 100% { opacity: 0.45; }
         50%      { opacity: 1; }
       }
+      /* ── LA ROUE DU PREMIER LANCEMENT ─────────────────────────────────
+         CELLE-CI EST DU MOUVEMENT AU SENS STRICT : elle change de TAILLE,
+         c'est-à-dire exactement ce que la WCAG appelle l'illusion d'un
+         déplacement. Pas de version calme à négocier comme pour l'opacité de
+         la barre du stream frais — le battement s'arrête, entièrement.
+
+         CE QU'ELLE DIT NE DISPARAÎT PAS POUR AUTANT. Le fond violet et
+         l'anneau restent, figés à leur point haut : la roue se distingue
+         toujours de toutes les autres commandes de la barre latérale, et la
+         bulle à côté d'elle dit le reste. Quelqu'un qui demande moins de
+         mouvement n'a pas demandé moins d'information.
+
+         « !important » EST ICI UNE CORRECTION, PAS UNE FACILITÉ, et c'est la
+         leçon du subathon appliquée avant d'être payée : la règle qui déclare
+         le battement vit PLUS BAS dans cette feuille, à spécificité égale.
+         Sans ce mot, l'ordre l'emporterait et ce bloc ne s'appliquerait pas —
+         silencieusement, chez les seuls utilisateurs qui l'ont demandé. */
+      .tse-roue[data-tse-neuf] {
+        animation: none !important;
+        transform: none !important;
+        box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.55) !important;
+      }
     }
 
     /* === Masquage du bouton "Afficher moins" (inutile après auto-expansion) === */
@@ -4232,6 +4273,166 @@ const TSE_GATE_MAX_CLICKS = 5;
       box-shadow: 0 1px 2px var(--tse-ombre-portee);
     }
     .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE_HOVER}; }
+
+    /* ── LA ROUE CRANTÉE, DANS LE TITRE DE TWITCH ──────────────────────────
+       LE TITRE N'EST PASSÉ EN « flex » QUE LÀ OÙ NOUS AVONS POSÉ QUELQUE
+       CHOSE. Le marqueur est ce qui sépare « le titre de la barre latérale »
+       de « un titre que Twitch dessine ailleurs » : sans lui, la règle
+       redisposerait des nœuds sur lesquels nous n'avons rien à dire. */
+    ${DOM.sidebarRoot} .side-nav__title[data-tse-roue] {
+      display: flex; align-items: center; gap: 6px;
+    }
+    /* Le titre garde toute la place, la roue prend la sienne au bout. Sans
+       « min-width: 0 », un titre long pousse la roue hors du cadre au lieu de
+       se tronquer — et c'est la roue qu'on perdrait, pas une lettre du titre. */
+    ${DOM.sidebarRoot} .side-nav__title[data-tse-roue] > h3 {
+      flex: 1 1 auto; min-width: 0;
+    }
+    .tse-roue {
+      flex: 0 0 auto;
+      position: relative;
+      width: 26px; height: 26px; padding: 0; margin-left: auto;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 0; border-radius: 4px;
+      background: transparent; color: var(--tse-texte-faible);
+      cursor: pointer;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .tse-roue svg { width: 18px; height: 18px; display: block; }
+    .tse-roue:hover {
+      background: rgba(var(--tse-encre), 0.12);
+      color: var(--tse-texte);
+    }
+    .tse-roue:focus-visible {
+      outline: none; box-shadow: 0 0 0 2px ${CFG.PURPLE};
+      color: var(--tse-texte);
+    }
+    /* En colonne réduite le titre n'est plus là, et la roue part avec lui —
+       rien à masquer. C'est dit ici pour qu'on cesse de chercher la règle. */
+
+    /* ── LE PREMIER LANCEMENT : LA ROUE SE FAIT VOIR ───────────────────────
+       ELLE GROSSIT ET ELLE BAT. Une pastille ne se voit pas sur un bouton de
+       vingt-six pixels au milieu d'une interface chargée ; un changement de
+       TAILLE, lui, se voit du coin de l'œil — c'est la seule chose qui bouge
+       dans une barre latérale par ailleurs immobile.
+
+       LE HALO EST UNE OMBRE, PAS UNE BORDURE : une bordure qui grossit décale
+       ce qu'il y a autour à chaque battement, et le titre se mettrait à
+       tressauter à côté. */
+    .tse-roue[data-tse-neuf] {
+      color: #fff;
+      background: ${CFG.PURPLE};
+      animation: tse-roue-bat 1.6s ease-in-out infinite;
+    }
+    @keyframes tse-roue-bat {
+      0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(145, 71, 255, 0.55); }
+      50%      { transform: scale(1.18); box-shadow: 0 0 0 7px rgba(145, 71, 255, 0); }
+    }
+    /* ── LA BULLE ──────────────────────────────────────────────────────────
+       Posée dans la barre latérale et non dans le flux de la liste : elle doit
+       DÉSIGNER la roue, ce qu'un bloc poussé par le contenu ne peut pas faire.
+       D'où le positionnement absolu, et le « position: relative » que la barre
+       reçoit juste au-dessus pour lui servir de repère. */
+    ${DOM.sidebarRoot} { position: relative; }
+    .tse-bulle {
+      position: absolute; z-index: 9;
+      top: 38px; right: 4px; left: 8px;
+      display: flex; align-items: flex-start; gap: 6px;
+      padding: 9px 8px 9px 10px;
+      border-radius: 6px;
+      background: ${CFG.PURPLE};
+      color: #fff;
+      box-shadow: 0 6px 18px var(--tse-ombre-portee);
+      font-size: 1.1rem; line-height: 1.35;
+    }
+    /* La flèche est un carré tourné : un triangle en « border » aurait dû être
+       recoloré à trois endroits le jour où le fond change. */
+    /* « left » EST POSÉ EN LIGNE, PAR MESURE : la position de la roue dépend
+       du rembourrage que Twitch donne à son titre, et aucune valeur écrite ici
+       ne pouvait la deviner (cf. « placerFleche »). Ce qui reste dans la
+       feuille est ce qui ne dépend de personne : la forme, la taille, la
+       teinte. */
+    .tse-bulle-fleche {
+      position: absolute; top: -5px; left: 12px;
+      width: 12px; height: 12px;
+      background: ${CFG.PURPLE};
+      transform: rotate(45deg);
+      border-radius: 2px 0 0 0;
+    }
+    .tse-bulle-texte { flex: 1 1 auto; min-width: 0; margin: 0; }
+    .tse-bulle-croix {
+      flex: 0 0 auto;
+      width: 18px; height: 18px; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 0; border-radius: 4px;
+      background: transparent; color: rgba(255, 255, 255, 0.75);
+      font: inherit; font-size: 1.3rem; line-height: 1; cursor: pointer;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .tse-bulle-croix:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+    .tse-bulle-croix:focus-visible {
+      outline: none; box-shadow: 0 0 0 2px #fff; color: #fff;
+    }
+    /* En colonne réduite la barre n'a plus la largeur d'une phrase. Les deux
+       sélecteurs sont ceux qui masquent déjà la barre de filtre, recopiés à
+       l'identique — un troisième marqueur inventé pour l'occasion a déjà failli
+       partir dans une version, et il ne correspondait à rien. */
+    [data-a-target="side-nav-bar-collapsed"] #tse-bulle,
+    .side-nav--collapsed #tse-bulle { display: none !important; }
+
+    /* ── LE PANNEAU PAR-DESSUS LA PAGE ─────────────────────────────────────
+       Le voile couvre TOUT, et c'est ce qui en fait une fenêtre modale plutôt
+       qu'un panneau flottant : il n'y a rien à cliquer derrière, donc rien à
+       cliquer par erreur. Le z-index est au-dessus de celui des modales de
+       Twitch, sans quoi leur propre couche passerait devant la nôtre. */
+    .tse-incruste {
+      position: fixed; inset: 0; z-index: 2147483000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.55);
+    }
+    /* LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS. Les deux
+       chemins mènent au même panneau ; ils doivent y mener à la même taille,
+       sans quoi les captures d'écran d'un rapport ne se comparent plus.
+       Bornés à la fenêtre : sur un petit écran, une boîte de 580 px de haut
+       déborderait et sa croix sortirait du champ. */
+    .tse-incruste-cadre {
+      position: relative;
+      width: ${CFG.INCRUSTE_W}px; height: ${CFG.INCRUSTE_H}px;
+      max-width: calc(100vw - 24px); max-height: calc(100vh - 24px);
+      border-radius: 8px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+      /* Le cadre coupe les coins du panneau, qui n'a pas de rayon à lui. */
+      overflow: hidden;
+    }
+    .tse-incruste-frame {
+      display: block; width: 100%; height: 100%;
+      border: 0; background: var(--tse-fond, #18181b);
+    }
+    /* LA CROIX EST HORS DU CADRE, en négatif sur le voile. Posée dedans, elle
+       aurait recouvert le coin du panneau — c'est-à-dire l'état de connexion,
+       qui vit précisément là. */
+    /* ELLE DOIT SE VOIR SUR UN VOILE NOIR POSÉ SUR UNE PAGE NOIRE. Rendue et
+       regardée : à 12 % de blanc sans filet, elle disparaissait purement et
+       simplement — un bouton de fermeture invisible sur une fenêtre modale est
+       le pire des défauts, puisqu'il ne reste que la touche Échap à quelqu'un
+       qui ne sait pas qu'elle existe. Le filet est ce qui la dessine ; le fond
+       ne fait que la remplir. */
+    .tse-incruste-croix {
+      position: absolute; top: -34px; right: -2px;
+      width: 28px; height: 28px; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 4px;
+      background: rgba(255, 255, 255, 0.16); color: #fff;
+      font: inherit; font-size: 1.6rem; line-height: 1; cursor: pointer;
+      transition: background-color 0.15s, border-color 0.15s;
+    }
+    .tse-incruste-croix:hover {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.8);
+    }
+    .tse-incruste-croix:focus-visible {
+      outline: none; box-shadow: 0 0 0 2px #fff;
+    }
 
     /* En mode « Top Chaînes », les cartes de Twitch s'effacent au profit des
        nôtres. Le bouton « Afficher plus » de la liste suivie n'a plus d'objet,
@@ -5002,58 +5203,6 @@ const TSE_GATE_MAX_CLICKS = 5;
        règles du produit qui portent souvent elles-mêmes un !important (les
        masquages de Twitch), et une règle de réglage qui perd contre une règle
        par défaut serait un interrupteur qui ne fait rien. */
-
-    /* ── LE BANDEAU D'ACCUEIL ─────────────────────────────────────────────
-       DISCRET, MAIS PAS INVISIBLE. Il s'adresse à quelqu'un qui vient
-       d'installer et ne sait pas encore que l'extension a un panneau : le
-       faire trop sage, c'est le faire manquer. Un filet violet à gauche — la
-       même teinte que tout ce que ce produit signale — et un fond à peine
-       levé suffisent, sans crier.
-
-       IL NE SE VOIT QU'UNE FOIS DANS UNE VIE : sa règle CSS ne peut donc pas
-       être éprouvée par un utilisateur ordinaire, et c'est le banc qui la
-       tient. */
-    .tse-accueil {
-      display: flex; align-items: flex-start; gap: 8px;
-      margin: 0 10px 8px;
-      padding: 8px 8px 8px 10px;
-      border-left: 3px solid ${CFG.PURPLE};
-      border-radius: 0 4px 4px 0;
-      background: rgba(var(--tse-encre), 0.06);
-      color: var(--tse-texte-doux);
-      font-size: 1.1rem; line-height: 1.35;
-    }
-    .tse-accueil-texte { flex: 1 1 auto; min-width: 0; }
-    .tse-accueil-croix {
-      flex: 0 0 auto;
-      width: 20px; height: 20px; padding: 0;
-      display: inline-flex; align-items: center; justify-content: center;
-      border: 0; border-radius: 4px;
-      background: transparent; color: var(--tse-texte-faible);
-      font: inherit; font-size: 1.3rem; line-height: 1; cursor: pointer;
-      transition: background-color 0.15s, color 0.15s;
-    }
-    .tse-accueil-croix:hover {
-      background: rgba(var(--tse-encre), 0.12);
-      color: var(--tse-texte);
-    }
-    .tse-accueil-croix:focus-visible {
-      outline: none; box-shadow: 0 0 0 1px ${CFG.PURPLE};
-      color: var(--tse-texte);
-    }
-    /* En mode réduit la barre latérale n'a plus la largeur d'une phrase, et en
-       « Top Chaînes » le bandeau parlerait par-dessus un classement qui n'a
-       rien à voir avec lui.
-
-       LES DEUX SÉLECTEURS DU MODE RÉDUIT SONT CEUX QUI MASQUENT DÉJÀ LA BARRE
-       DE FILTRE, recopiés à l'identique. Un troisième marqueur inventé pour
-       l'occasion — « body.tse-collapsed » — a failli partir dans cette
-       version : il ne correspondait à rien, et le bandeau serait resté
-       affiché en colonne réduite sans que personne ne s'en aperçoive avant
-       une capture d'écran. Ce qui existe déjà et qui marche se recopie. */
-    [data-a-target="side-nav-bar-collapsed"] #tse-accueil,
-    .side-nav--collapsed #tse-accueil,
-    body.tse-global-mode .tse-accueil { display: none !important; }
 
     /* — La carte dans la barre — */
     html[data-tse-off~="duree"] .tse-uptime { display: none !important; }
@@ -15239,55 +15388,295 @@ const TSE_GATE_MAX_CLICKS = 5;
       ddSquelette(LANG_DD_ID, 'language', 'tse-dd--lang', S.uiFilterLangAriaLabel,
                   () => noeudStatique(GLOBE_MARKUP)));
     section.parentElement.insertBefore(wrap, section);
-    /* LE BANDEAU SE POSE AU-DESSUS DE LA BARRE DE FILTRE, donc tout en haut de
-       ce que l'extension ajoute. Il est monté ICI et pas ailleurs pour une
-       raison simple : c'est la seule fonction du fichier qui sache où commence
-       notre territoire dans la barre latérale, et la dupliquer aurait fait
-       deux endroits à corriger le jour où Twitch déplace sa section. */
-    poserAccueil(wrap);
 
     wireDropdown(wrap.querySelector(`#${CAT_DD_ID}`));
     wireDropdown(wrap.querySelector(`#${LANG_DD_ID}`));
     bindDropdownsGlobal();
   }
 
-  /* LE BANDEAU, EN TROIS ÉLÉMENTS ET AUCUNE SURPRISE. Un texte, une croix, et
-     rien d'autre : pas de lien — nous ne pouvons pas ouvrir le panneau à la
-     place de l'utilisateur, « chrome.action.openPopup » exige un geste sur
-     l'icône elle-même et n'existe pas partout — donc on ne promet pas un clic
-     qui ne se produirait pas. On indique, on n'agit pas.
+  /* ============================================================
+   *  LE PANNEAU, PAR-DESSUS LA PAGE
+   *  ------------------------------------------------------------
+   *  L'ICÔNE DE LA BARRE D'OUTILS N'EST PAS UN CHEMIN FIABLE.
+   *  Depuis Chrome 89 une extension fraîchement installée est
+   *  rangée derrière le bouton « pièce de puzzle » : le panneau —
+   *  les données, les réglages, le mode d'emploi — vit derrière un
+   *  clic que personne ne sait qu'il peut donner. La roue crantée
+   *  est le second chemin, et il est posé LÀ OÙ L'UTILISATEUR
+   *  REGARDE DÉJÀ : dans la barre latérale qui vient de changer
+   *  sous ses yeux.
+   *
+   *  C'EST LA MÊME PAGE, DANS UN CADRE. `panneau.html` est chargée
+   *  telle quelle dans une iframe — pas réécrite en DOM de page.
+   *  Une seconde implémentation aurait divergé de la première à la
+   *  première section ajoutée, et c'est exactement le panneau
+   *  qu'on veut faire connaître, pas une variante de lui. Le cadre
+   *  fait 760 × 580, la taille de la popup : les deux chemins
+   *  mènent au même endroit, à la même taille.
+   *
+   *  AUCUNE PERMISSION N'EST AJOUTÉE. `web_accessible_resources`
+   *  n'est pas une permission — ce n'est ni `permissions`, ni
+   *  `host_permissions`, ni `optional_permissions`, et
+   *  `npm run addon` vérifie toujours qu'aucune des trois
+   *  n'existe. Elle déclare qu'une page de l'extension peut être
+   *  chargée par twitch.tv, et rien d'autre.
+   *
+   *  L'ADRESSE VIENT DU PONT. Ce fichier tourne en monde MAIN : il
+   *  n'a pas `chrome.runtime`, donc pas `getURL`. bridge.js, qui
+   *  partage ce DOM depuis le monde ISOLATED, répond à la demande.
+   * ============================================================ */
+  const INCRUSTE_ID   = 'tse-incruste';
+  const TSE_URL_REQ   = 'tse-url-req';
+  const TSE_URL_RES   = 'tse-url-res';
+  let urlPanneau = null;
+  window.addEventListener('message', (e) => {
+    if (e.source !== window) return;
+    const d = e.data;
+    if (!d || d.tse !== TSE_URL_RES || typeof d.url !== 'string') return;
+    /* ON N'ACCEPTE QU'UNE ADRESSE D'EXTENSION. Le pont est le seul à pouvoir
+       la fabriquer, mais ce message voyage par `window.postMessage`, que
+       n'importe quel script de la page peut émettre. Sans ce filtre, une page
+       hostile ferait ouvrir SON adresse dans un cadre qui a l'air du nôtre —
+       c'est-à-dire un hameçonnage avec notre cadre autour. */
+    if (!/^(chrome-extension|moz-extension|extension|safari-web-extension):\/\//.test(d.url)) return;
+    urlPanneau = d.url;
+  });
+  const demanderUrl = () => {
+    if (urlPanneau) return;
+    try { window.postMessage({ tse: TSE_URL_REQ }, '*'); } catch { /* rien à faire */ }
+  };
 
-     LA CROIX EST UN VRAI BOUTON, avec un libellé accessible : une croix qui
-     n'est qu'un caractère décoratif ne se trouve ni au clavier ni au lecteur
-     d'écran, et ce bandeau s'adresse d'abord à qui ne sait pas où chercher. */
-  const ACCUEIL_ID = 'tse-accueil';
-  function poserAccueil(hote) {
-    if (!accueil.aMontrer()) return;
-    if (document.getElementById(ACCUEIL_ID)) return;
-    const boite = document.createElement('div');
-    boite.id = ACCUEIL_ID;
-    boite.className = 'tse-accueil';
-    const texte = document.createElement('span');
-    texte.className = 'tse-accueil-texte';
-    setText(texte, S.uiAccueilTexte);
+  /* La fermeture doit pouvoir être appelée depuis trois endroits — la croix,
+     la touche Échap, le clic hors du cadre — et depuis le panneau lui-même,
+     qui n'a que `postMessage` pour se faire entendre. Une seule fonction, et
+     tout ce qu'elle a posé se retire avec elle. */
+  let fermerIncruste = null;
+
+  function ouvrirIncruste() {
+    if (document.getElementById(INCRUSTE_ID)) return;
+    if (!urlPanneau) { demanderUrl(); return; }
+
+    const voile = document.createElement('div');
+    voile.id = INCRUSTE_ID;
+    voile.className = 'tse-incruste';
+    /* `dialog` + `aria-modal` : ce qui est derrière n'est plus atteignable, et
+       il faut le DIRE — un lecteur d'écran continuerait sinon d'annoncer la
+       barre latérale par-dessus laquelle le cadre est posé. */
+    voile.setAttribute('role', 'dialog');
+    voile.setAttribute('aria-modal', 'true');
+    voile.setAttribute('aria-label', S.uiRoueTitre);
+
+    const cadre = document.createElement('div');
+    cadre.className = 'tse-incruste-cadre';
+
+    const frame = document.createElement('iframe');
+    frame.className = 'tse-incruste-frame';
+    frame.src = urlPanneau;
+    frame.title = S.uiRoueTitre;
+    /* PAS DE `sandbox`, et c'est délibéré : le bac à sable retirerait à la page
+       son origine d'extension, donc `chrome.runtime` — c'est-à-dire tout ce
+       qu'elle sait faire. Le cadre charge une page à NOUS, pas un tiers. */
+    frame.setAttribute('allow', '');
+
     const croix = document.createElement('button');
     croix.type = 'button';
-    croix.className = 'tse-accueil-croix';
-    croix.setAttribute('aria-label', S.uiAccueilFermer);
-    croix.setAttribute('title', S.uiAccueilFermer);
-    /* Le glyphe est décoratif : le nom du bouton est dans son aria-label, et
-       le laisser lisible ferait lire « multiplication » par-dessus. */
-    croix.setAttribute('aria-hidden', 'false');
+    croix.className = 'tse-incruste-croix';
+    croix.setAttribute('aria-label', S.uiFermer);
+    croix.setAttribute('title', S.uiFermer);
     const barre = document.createElement('span');
     barre.setAttribute('aria-hidden', 'true');
-    barre.textContent = '\u00D7';
+    barre.textContent = '×';
     croix.appendChild(barre);
-    croix.addEventListener('click', () => {
-      accueil.renvoyer();
-      boite.remove();
+
+    cadre.append(frame, croix);
+    voile.appendChild(cadre);
+
+    const surTouche = (ev) => { if (ev.key === 'Escape') fermerIncruste?.(); };
+    /* LE PANNEAU EST DANS UNE AUTRE ORIGINE : la touche Échap frappée à
+       l'intérieur du cadre ne remonte pas jusqu'ici. C'est panneau.js qui
+       l'écoute et nous le poste — d'où ce second chemin, qui n'est pas un
+       doublon du premier mais son symétrique. */
+    const surMessage = (ev) => {
+      if (ev.source !== frame.contentWindow) return;
+      if (ev.data && ev.data.tse === 'tse-panneau-fermer') fermerIncruste?.();
+    };
+
+    fermerIncruste = () => {
+      document.removeEventListener('keydown', surTouche, true);
+      window.removeEventListener('message', surMessage);
+      voile.remove();
+      fermerIncruste = null;
+      /* Le focus retourne d'où il vient. Sans ça, fermer au clavier laisse le
+         focus sur le corps du document, et la tabulation suivante repart du
+         haut de Twitch — l'utilisateur perd sa place pour avoir fermé une
+         fenêtre. */
+      document.getElementById(ROUE_ID)?.focus?.();
+    };
+
+    croix.addEventListener('click', fermerIncruste);
+    /* Le clic SUR LE VOILE ferme ; le clic dans le cadre ne doit pas. On
+       compare la cible au voile lui-même plutôt que d'arrêter la propagation
+       depuis le cadre : un `stopPropagation` posé sur le cadre aurait aussi
+       mangé les clics que Twitch écoute au-dessus. */
+    voile.addEventListener('click', (ev) => { if (ev.target === voile) fermerIncruste(); });
+    document.addEventListener('keydown', surTouche, true);
+    window.addEventListener('message', surMessage);
+
+    document.body.appendChild(voile);
+  }
+
+  /* ── LA ROUE CRANTÉE ──────────────────────────────────────────────────────
+     ELLE SE POSE DANS LE TITRE DE TWITCH, pas dans notre barre de filtre, et
+     c'est le seul endroit qui marche : le titre est VISIBLE DANS LES DEUX
+     MODES — « Chaînes suivies » comme « Top Chaînes » — et il reste en place
+     quand la barre de filtre, elle, se replie ou disparaît selon le mode.
+
+     ELLE EST REPOSÉE À CHAQUE PASSE. React remonte ce titre à chaque
+     navigation interne, et un bouton posé une fois disparaîtrait au premier
+     changement de page sans que rien ne le signale. La garde `contains` est
+     ce qui fait la différence entre « déjà là » et « là dans un titre que
+     Twitch a jeté ». */
+  const ROUE_ID = 'tse-roue';
+  const ROUE_MARKUP =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+    + '<path fill="currentColor" d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 5.6a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2z"/>'
+    + '<path fill="currentColor" d="M20.3 13.2a8.6 8.6 0 0 0 0-2.4l1.8-1.4-1.8-3.1-2.2.8a8.4 8.4 0 0 0-2-1.2l-.3-2.3h-3.6l-.3 2.3a8.4 8.4 0 0 0-2 1.2l-2.2-.8L5.9 9.4l1.8 1.4a8.6 8.6 0 0 0 0 2.4l-1.8 1.4 1.8 3.1 2.2-.8a8.4 8.4 0 0 0 2 1.2l.3 2.3h3.6l.3-2.3a8.4 8.4 0 0 0 2-1.2l2.2.8 1.8-3.1-1.8-1.4zm-8.3 4.1a5.3 5.3 0 1 1 0-10.6 5.3 5.3 0 0 1 0 10.6z"/>'
+    + '</svg>';
+
+  function ensureRoue() {
+    /* L'adresse est demandée à chaque passe tant qu'elle manque, et plus jamais
+       ensuite. Le pont et ce fichier démarrent tous deux à `document_start` :
+       une seule demande, postée avant que le pont n'écoute, serait tombée dans
+       le vide et la roue n'aurait jamais rien ouvert. */
+    demanderUrl();
+    const titre = document.querySelector(`${DOM.sidebarRoot} .side-nav__title`);
+    if (!titre) return;
+    const deja = document.getElementById(ROUE_ID);
+    if (deja && titre.contains(deja)) { majBulle(); return; }
+    if (deja) deja.remove();          // titre remonté par React : on repart
+
+    const roue = document.createElement('button');
+    roue.type = 'button';
+    roue.id = ROUE_ID;
+    roue.className = 'tse-roue';
+    roue.setAttribute('aria-label', S.uiRoueTitre);
+    roue.setAttribute('title', S.uiRoueTitre);
+    roue.appendChild(noeudStatique(ROUE_MARKUP));
+    roue.addEventListener('click', () => {
+      /* LE CLIC VAUT LECTURE. Quelqu'un qui ouvre le panneau a trouvé la roue :
+         continuer à la faire clignoter serait insister après coup. */
+      renvoyerBulle();
+      ouvrirIncruste();
     });
-    boite.append(texte, croix);
-    hote.parentElement.insertBefore(boite, hote);
+    /* Le titre porte NOTRE marqueur, et la feuille n'aligne que celui-là : une
+       règle qui viserait `.side-nav__title` en général toucherait un nœud de
+       Twitch sur des pages où nous n'avons rien posé. */
+    titre.setAttribute('data-tse-roue', 'true');
+    titre.appendChild(roue);
+    majBulle();
+  }
+
+  /* ── LA BULLE DU PREMIER LANCEMENT ────────────────────────────────────────
+     UNE ROUE QUI CLIGNOTE NE DIT PAS CE QU'IL Y A DERRIÈRE. L'animation
+     attire l'œil ; la bulle dit pourquoi. Les deux ensemble, une seule fois
+     dans la vie d'une installation.
+
+     LA DÉCISION VIENT DU MODULE `accueil`, et elle est PRISE UNE FOIS PUIS
+     ÉCRITE. Sans ça, le roster se remplit en quelques secondes, la
+     reconnaissance d'ancienneté devient vraie au chargement suivant, et la
+     bulle n'aurait été montrée qu'à ceux qui regardaient l'écran à la bonne
+     seconde. */
+  const BULLE_ID = 'tse-bulle';
+
+  function renvoyerBulle() {
+    if (!accueil.aMontrer()) return;
+    accueil.renvoyer();
+    document.getElementById(BULLE_ID)?.remove();
+    document.getElementById(ROUE_ID)?.removeAttribute('data-tse-neuf');
+  }
+
+  function majBulle() {
+    const roue = document.getElementById(ROUE_ID);
+    if (!roue) return;
+    if (!accueil.aMontrer()) {
+      roue.removeAttribute('data-tse-neuf');
+      document.getElementById(BULLE_ID)?.remove();
+      return;
+    }
+    roue.setAttribute('data-tse-neuf', 'true');
+    const hote = document.querySelector(DOM.sidebarRoot);
+    const deja = document.getElementById(BULLE_ID);
+    /* LA FLÈCHE SE REPOSE À CHAQUE PASSE tant que la bulle est là. La barre
+       latérale change de largeur — le titre se replie, Twitch remonte ses
+       nœuds — et une flèche posée une seule fois désignerait alors le vide. */
+    if (deja && hote && hote.contains(deja)) { placerFleche(); return; }
+    if (deja) deja.remove();
+    if (!hote) return;
+
+    const bulle = document.createElement('div');
+    bulle.id = BULLE_ID;
+    bulle.className = 'tse-bulle';
+    /* `status` et non `alert` : on ne veut pas couper la parole à un lecteur
+       d'écran pour une information de bienvenue. */
+    bulle.setAttribute('role', 'status');
+    const texte = document.createElement('p');
+    texte.className = 'tse-bulle-texte';
+    setText(texte, S.uiBulleTexte);
+    const croix = document.createElement('button');
+    croix.type = 'button';
+    croix.className = 'tse-bulle-croix';
+    croix.setAttribute('aria-label', S.uiFermer);
+    croix.setAttribute('title', S.uiFermer);
+    const barre = document.createElement('span');
+    barre.setAttribute('aria-hidden', 'true');
+    barre.textContent = '×';
+    croix.appendChild(barre);
+    croix.addEventListener('click', renvoyerBulle);
+    /* La flèche est un pur décor — ce qu'elle désigne est dit par le texte, et
+       la faire lire ajouterait « flèche » à une phrase qui n'en a pas besoin. */
+    const fleche = document.createElement('span');
+    fleche.className = 'tse-bulle-fleche';
+    fleche.setAttribute('aria-hidden', 'true');
+    bulle.append(fleche, texte, croix);
+    hote.appendChild(bulle);
+    placerFleche();
+  }
+
+  /* ── OÙ POINTE LA FLÈCHE, ET POURQUOI C'EST MESURÉ ────────────────────────
+     Un décalage écrit en dur ne pouvait pas marcher, et il a fallu une mesure
+     pour s'en apercevoir. La bulle se positionne par rapport à la BARRE, la
+     roue est placée par le rembourrage que TWITCH donne à son titre — une
+     valeur que ce fichier ne connaît pas, qui n'est pas la même en colonne
+     réduite, et qui peut changer sans nous prévenir. Relevé sur la page de
+     test : flèche à 223 px, centre de la roue à 234,5 — elle désignait le bord
+     du bouton, pas le bouton.
+
+     ON DEMANDE DONC LEUR POSITION AUX DEUX, et on pose la flèche entre les
+     deux. C'est la seule écriture de ce genre dans le fichier, et elle est
+     bornée : elle n'a lieu que tant que la bulle existe, c'est-à-dire une fois
+     dans la vie d'une installation. */
+  function placerFleche() {
+    const bulle = document.getElementById(BULLE_ID);
+    const roue = document.getElementById(ROUE_ID);
+    const fleche = bulle?.querySelector('.tse-bulle-fleche');
+    if (!bulle || !roue || !fleche) return;
+    const rb = bulle.getBoundingClientRect();
+    const rr = roue.getBoundingClientRect();
+    if (!rb.width || !rr.width) return;   // rien de peint : rien à mesurer
+    /* Le centre de la roue, ramené dans le repère de la bulle, puis borné à
+       l'intérieur de celle-ci : une flèche qui sortirait du coin arrondi se
+       lirait comme un défaut d'affichage plutôt que comme une désignation. */
+    const TAILLE = 12;
+    /* La marge garde la flèche à l'écart des coins arrondis : une pointe posée
+       DANS la courbe se lit comme un défaut d'affichage. Six pixels pour un
+       rayon de six — juste ce qu'il faut, pas davantage, parce que chaque
+       pixel de marge est un pixel de décalage quand la roue est collée au
+       bord. */
+    const MARGE = 6;
+    const centre = rr.left + rr.width / 2 - rb.left - TAILLE / 2;
+    const gauche = Math.max(MARGE, Math.min(rb.width - TAILLE - MARGE, centre));
+    const pose = `${Math.round(gauche)}px`;
+    if (fleche.style.left !== pose) fleche.style.left = pose;
   }
 
   // Changement utilisateur d'un filtre : enregistre la sélection et désigne la
@@ -17782,6 +18171,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     ensureGlobalEmpty();
     hideNativeFollowedHeader();
     renameRootTitle();
+    /* APRÈS le renommage, et ce n'est pas un détail d'ordre : `renameRootTitle`
+       écrit `textContent` sur le <h3>. La roue est posée à CÔTÉ du <h3>, dans
+       le <div> qui l'entoure — posée dedans, chaque passe l'effacerait. */
+    ensureRoue();
     recomputeFilters();
     const costreamGroups = detectCoStreams();
     updateSortButtonsState({ costreamGroups });

@@ -713,17 +713,5 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — 你的数据与设置"
-  },
-  "panelWelcomeThanks": {
-    "message": "感谢你安装 Cowlor's Sidebar！"
-  },
-  "panelWelcomeWhere": {
-    "message": "你的设置和全部数据，都在浏览器右上角的扩展图标里。"
-  },
-  "panelWelcomePin": {
-    "message": "没看到？它被收在拼图形状的按钮里。点开它，再把 Cowlor's Sidebar 固定住，以后随手就能打开。"
-  },
-  "panelWelcomeImage": {
-    "message": "浏览器的工具栏，地址栏右侧高亮显示着 Cowlor's Sidebar 的图标。"
   }
 }
