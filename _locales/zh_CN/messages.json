@@ -12,7 +12,7 @@
     "description": "扩展的简短描述（Chrome 应用商店最多 132 个字符）"
   },
   "panelSubtitle": {
-    "message": "数据与诊断"
+    "message": "你的数据、你的设置，以及反馈问题的方式"
   },
   "grpGuide": {
     "message": "从这里开始"
@@ -710,5 +710,8 @@
   },
   "optTriCostream": {
     "message": "联动直播"
+  },
+  "extActionTitle": {
+    "message": "Cowlor's Sidebar — 你的数据与设置"
   }
 }

@@ -7583,11 +7583,25 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
       return [faire(f, b, undefined), faire(b, f, { tab: { id: tabId } })];
     };
 
+    /* LE FAUX « chrome » DOIT PORTER CE QUE LE VRAI PORTE, sans quoi il ne
+       simule plus rien : la 4.11 a ajouté un écouteur « onInstalled » à
+       background.js, et ce contexte-ci a levé « Cannot read properties of
+       undefined » au chargement du fichier. Le décor était incomplet, pas le
+       code — et la tentation de garder l'appel derrière un « ?. » aurait
+       silencieusement avalé un navigateur qui ne porterait pas cette API.
+
+       CE CONTEXTE-CI NE S'EN SERT PAS : il éprouve le transport, pas
+       l'installation. Le scénario 122 a son propre décor, minimal, pour la
+       même raison qu'on ne fait pas d'un banc de transport un banc à tout
+       faire. On absorbe donc l'écouteur sans le retenir. */
     const chromeFond = {
       runtime: {
         onConnect: { addListener: (l) => { onConnect = l; } },
         onMessage: { addListener: (l) => { onMessageFond = l; } },
+        onInstalled: { addListener: () => {} },
+        getURL: (c) => 'chrome-extension://tse/' + c,
       },
+      tabs: { create: () => {} },
     };
     const ctxFond = createContext({
       chrome: chromeFond,
@@ -14934,6 +14948,78 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   });
   ok('…et l\'arc-en-ciel du subathon tient le seuil sur TOUT son tour, pas seulement au repos',
      pire >= 4.5, `pire image : ${pire}:1`);
+
+  /* ── UN TEXTE PEINT PAR UN DÉGRADÉ ÉCHAPPE À TOUTE LECTURE DE COULEUR ────
+     C'EST LE TROU QUI A LAISSÉ PASSER LE RECTANGLE BLANC. Tout ce scénario
+     mesure « color ». Le pseudo d'une chaîne abonnée n'en a pas : il est
+     rempli par un dégradé découpé au texte, et son « -webkit-text-fill-color »
+     vaut « transparent ». Le relevé le lisait donc comme un texte invisible et
+     l'écartait, dans les deux thèmes — y compris en sombre, où il est parfait.
+     Le contrôle passait en ne regardant rien.
+
+     LA MÉTHODE EXISTAIT DÉJÀ, quatre lignes plus haut : l'arc-en-ciel du
+     subathon se vérifie sur TOUS ses arrêts, parce qu'aucun instantané ne
+     suffit. On l'applique ici. Les arrêts se lisent sur le style CALCULÉ —
+     jamais recopiés de la feuille — et chacun doit tenir le seuil sur le fond
+     réellement composé sous lui.
+
+     ON ÉPROUVE LES DEUX CHEMINS DU CLAIR : celui que Twitch donne, et celui
+     que le réglage force. La 4.8 avait repeint toute la feuille et laissé l'or
+     derrière ; le forcé a simplement rendu le défaut visible plus tôt. */
+  const orAbonne = async () => page.evaluate(() => {
+    const c = document.querySelector('.side-nav-card');
+    if (!c) return null;
+    c.classList.add('tse-sub');
+    c.querySelector('p[title]')?.classList.add('tse-sub-cat');
+    const lum = (v) => { const t = v.map((x) => { const y = x / 255;
+      return y <= 0.03928 ? y / 12.92 : Math.pow((y + 0.055) / 1.055, 2.4); });
+      return 0.2126 * t[0] + 0.7152 * t[1] + 0.0722 * t[2]; };
+    const rap = (a, d) => { const x = lum(a), y = lum(d);
+      return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    const fondOpaque = (e) => { let n = e;
+      while (n) { const m = /rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)/
+          .exec(getComputedStyle(n).backgroundColor);
+        if (m && (m[4] === undefined || +m[4] > 0.5)) return [+m[1], +m[2], +m[3]];
+        n = n.parentElement; }
+      return [255, 255, 255]; };
+    const mesure = (sel) => { const e = document.querySelector(sel); if (!e) return null;
+      const st = getComputedStyle(e);
+      const arrets = [...(st.backgroundImage || '').matchAll(/rgba?\((\d+), (\d+), (\d+)/g)]
+        .map((m) => [+m[1], +m[2], +m[3]]);
+      if (!arrets.length) return null;
+      const d = fondOpaque(e);
+      return { n: arrets.length,
+               pire: +Math.min(...arrets.map((a) => rap(a, d))).toFixed(2) }; };
+    return { nom: mesure('.side-nav-card.tse-sub p.tse-nom'),
+             cat: mesure('.side-nav-card.tse-sub .tse-sub-cat') };
+  });
+
+  await page.evaluate(() => { document.documentElement.setAttribute('data-a-theme', 'light');
+                              window.tse.options.remettre(); });
+  await wait(page, 300);
+  const orClair = await orAbonne();
+  await page.evaluate(() => { document.documentElement.setAttribute('data-a-theme', 'dark');
+                              window.tse.options.poser('theme', 'light'); });
+  await wait(page, 300);
+  const orForce = await orAbonne();
+  await page.evaluate(() => { window.tse.options.remettre(); });
+  await wait(page, 300);
+  const orSombre = await orAbonne();
+
+  /* Le nombre d'arrêts entre au contrat : un dégradé réduit à une seule
+     couleur tiendrait n'importe quel seuil sans plus rien vouloir dire. */
+  ok('le pseudo d\'une chaîne abonnée est bien peint par un dégradé à plusieurs arrêts',
+     !!orSombre && !!orSombre.nom && orSombre.nom.n >= 4
+     && !!orSombre.cat && orSombre.cat.n >= 4, JSON.stringify(orSombre));
+  ok('…et chacun de ses arrêts tient le seuil AA en thème sombre',
+     !!orSombre && orSombre.nom.pire >= 4.5 && orSombre.cat.pire >= 4.5,
+     JSON.stringify(orSombre));
+  ok('…comme en clair donné par Twitch, où il valait 1,08:1',
+     !!orClair && !!orClair.nom && orClair.nom.pire >= 4.5
+     && !!orClair.cat && orClair.cat.pire >= 4.5, JSON.stringify(orClair));
+  ok('…et en clair FORCÉ, sur le fond que le réglage impose',
+     !!orForce && !!orForce.nom && orForce.nom.pire >= 4.5
+     && !!orForce.cat && orForce.cat.pire >= 4.5, JSON.stringify(orForce));
   await page.close();
 }
 
@@ -15752,6 +15838,157 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('…et aucun élément posé en absolu ne se rapporte au document lui-même',
      debord.orphelins.length === 0, JSON.stringify(debord.orphelins.slice(0, 4)));
   await page.close();
+}
+
+/* ═════════ SE FAIRE TROUVER ═══════════════════════════════════════════════
+   Depuis Chrome 89, une extension fraîchement installée n'est PAS dans la barre
+   d'outils : elle est rangée derrière le bouton « pièce de puzzle ». Tout ce
+   que ce produit sait faire vit donc derrière un clic que personne ne sait
+   qu'il peut donner. Trois choses y répondent, et elles se vérifient
+   séparément parce qu'elles échouent séparément.
+
+   LE BANDEAU EST LE SEUL QUI SOIT DÉLICAT, et sa difficulté n'est pas de
+   s'afficher : c'est de ne s'afficher QU'AUX NOUVEAUX, et de ne pas
+   disparaître au second chargement. content.js ne peut pas savoir qu'une
+   installation vient d'avoir lieu — « onInstalled » vit dans le service
+   worker. Il reconnaît l'inverse : une mémoire déjà remplie prouve une
+   ancienneté. Or cette mémoire se remplit en quelques secondes, d'où la règle
+   qui fait tout tenir — la décision se prend UNE FOIS et s'écrit. */
+{
+  titre('121. Se faire trouver — le bandeau d\'accueil, une fois et pour les nouveaux');
+
+  /* ── UN UTILISATEUR DE LONGUE DATE N'EST PAS DÉRANGÉ ─────────────────── */
+  const page = await fresh();
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('tse:roster', JSON.stringify({ v: 1, m: { alpha: Date.now() } }));
+  });
+  await page.reload();
+  const poser = () => page.evaluate(() => {
+    window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 3600e3).toISOString(),
+                             viewers: 900, game: 'G', tags: [] } };
+    window.__addCard('alpha', 'G', '900');
+  });
+  const etat = () => page.evaluate(() => {
+    const e = document.getElementById('tse-accueil');
+    return { present: !!e, cle: localStorage.getItem('tse:accueil'),
+             texte: e ? e.querySelector('.tse-accueil-texte').textContent : null,
+             croix: e ? !!e.querySelector('.tse-accueil-croix[aria-label]') : null,
+             /* Il doit être AU-DESSUS de la barre de filtre, c'est-à-dire tout
+                en haut de ce que l'extension ajoute. */
+             suivant: e ? (e.nextElementSibling && e.nextElementSibling.id) : null,
+             roster: !!localStorage.getItem('tse:roster') };
+  });
+  await poser();
+  await wait(page, 1500);
+  const ancien = await etat();
+  ok('une mémoire déjà remplie vaut ancienneté : le bandeau ne s\'affiche pas',
+     ancien.present === false && ancien.cle === 'vu', JSON.stringify(ancien));
+
+  /* ── UNE INSTALLATION NEUVE LE VOIT ──────────────────────────────────── */
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await poser();
+  await wait(page, 1500);
+  const neuf = await etat();
+  ok('rien en mémoire vaut installation neuve : le bandeau s\'affiche',
+     neuf.present === true && neuf.cle === 'montre', JSON.stringify(neuf));
+  ok('…il se pose au-dessus de la barre de filtre, et porte une croix nommée',
+     neuf.suivant === 'tse-filter' && neuf.croix === true, JSON.stringify(neuf));
+  /* LE LIBELLÉ VIENT DE LA TABLE DE LANGUE, pas d'une chaîne écrite dans la
+     fonction : une phrase en dur ne serait traduite nulle part, et ce bandeau
+     s'adresse d'abord à quelqu'un qui ne sait pas où chercher. */
+  ok('…et son texte est celui de la table de langue, pas un identifiant',
+     typeof neuf.texte === 'string' && neuf.texte.length > 20
+     && !/^ui[A-Z]/.test(neuf.texte), JSON.stringify(neuf.texte));
+
+  /* ── LA DÉCISION SURVIT AU REMPLISSAGE DE LA MÉMOIRE ─────────────────── */
+  await page.reload();
+  await poser();
+  await wait(page, 1500);
+  const second = await etat();
+  /* C'EST L'ASSERTION QUI TIENT TOUT LE MÉCANISME. Sans la décision écrite, le
+     roster se remplit en quelques secondes, « dejaLa() » devient vrai au
+     chargement suivant, et le bandeau n'aurait été montré qu'à ceux qui
+     regardaient l'écran à la bonne seconde. */
+  ok('le roster s\'est rempli entre-temps, et le bandeau reste : la décision est écrite',
+     second.roster === true && second.present === true && second.cle === 'montre',
+     JSON.stringify(second));
+
+  /* ── LA CROIX LE RENVOIE POUR DE BON ─────────────────────────────────── */
+  const apres = await page.evaluate(() => {
+    document.querySelector('.tse-accueil-croix').click();
+    return { present: !!document.getElementById('tse-accueil'),
+             cle: localStorage.getItem('tse:accueil') };
+  });
+  await page.reload();
+  await poser();
+  await wait(page, 1500);
+  const jamais = await etat();
+  ok('la croix le retire et l\'écrit',
+     apres.present === false && apres.cle === 'vu', JSON.stringify(apres));
+  ok('…et il ne revient pas au rechargement suivant',
+     jamais.present === false, JSON.stringify(jamais));
+  await page.close();
+}
+
+/* ═════════ L'ONGLET D'ACCUEIL — UNE FOIS DANS UNE VIE ════════════════════
+   Le service worker ouvre le panneau dans un onglet à l'installation. Deux
+   choses peuvent mal tourner, et aucune ne se verrait sans contrôle :
+
+     — l'onglet ne s'ouvre PAS, et le produit reste introuvable pour qui n'a
+       pas épinglé son icône ;
+     — l'onglet s'ouvre À CHAQUE MISE À JOUR, et l'extension se fait
+       désinstaller. « reason » est tout ce qui sépare les deux cas.
+
+   ON JOUE LE VRAI FICHIER, dans le contexte du scénario 73 : c'est le même
+   background.js que le navigateur charge, avec un « chrome » factice qui porte
+   ce que le vrai porte. */
+{
+  titre('122. L\'onglet d\'accueil — à l\'installation, et pas aux mises à jour');
+
+  /* UN DÉCOR MINIMAL, ET C'EST VOULU. Le contexte du scénario 73 monte deux
+     ports, un pont et une fenêtre pour éprouver le TRANSPORT ; rien de tout
+     cela n'a de rapport avec l'ouverture d'un onglet. On charge le vrai
+     background.js autour de ce qu'il touche ici, et de rien d'autre. */
+  let onInstalled = null;
+  const onglets = [];
+  const ctx = createContext({
+    chrome: {
+      runtime: {
+        onConnect:   { addListener: () => {} },
+        onMessage:   { addListener: () => {} },
+        onInstalled: { addListener: (l) => { onInstalled = l; } },
+        getURL: (c) => 'chrome-extension://tse/' + c,
+      },
+      tabs: { create: (o) => { onglets.push(o.url); } },
+    },
+    setTimeout, clearTimeout, Date, console,
+  });
+  runInContext(readFileSync(join(ICI, '..', 'background.js'), 'utf8'), ctx);
+  const installer = (reason) => { onInstalled({ reason }); return onglets; };
+
+  ok('le fichier pose bien un écouteur d\'installation',
+     typeof onInstalled === 'function', String(typeof onInstalled));
+  ok('rien ne s\'ouvre tant qu\'il ne se passe rien',
+     onglets.length === 0, JSON.stringify(onglets));
+
+  installer('update');
+  ok('une mise à jour n\'ouvre aucun onglet',
+     onglets.length === 0, JSON.stringify(onglets));
+
+  const apres = installer('install');
+  ok('une installation en ouvre un, et un seul',
+     apres.length === 1, JSON.stringify(apres));
+  /* LE PARAMÈTRE N'EST PAS DÉCORATIF : c'est lui que panneau.js lit pour
+     cesser de se contraindre à 760 × 580. Sans lui, la page d'accueil
+     s'afficherait en petit dans le coin d'un onglet plein écran. */
+  ok('…vers le panneau, et en mode ONGLET',
+     /panneau\.html\?vue=onglet$/.test(apres[0] || ''), String(apres[0]));
+
+  installer('chrome_update');
+  ok('une mise à jour du navigateur n\'en ouvre pas davantage',
+     onglets.length === 1, JSON.stringify(onglets));
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

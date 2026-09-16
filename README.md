@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1095 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1112 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,125 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Se faire trouver, et l'or qui n'avait pas de version claire (v4.11)
+
+### Le problème, dit en une phrase
+
+**Un utilisateur ne trouve pas une icône qu'il ne voit pas.** Depuis Chrome 89,
+une extension fraîchement installée n'est pas dans la barre d'outils : elle est
+rangée derrière le bouton « pièce de puzzle », et n'en sort que si on l'épingle.
+Les données, les dix-neuf réglages et le mode d'emploi de treize chapitres
+vivaient donc derrière un clic que personne ne savait pouvoir donner.
+
+Trois réponses, qui échouent séparément et se vérifient séparément.
+
+### 1. Un onglet, à l'installation et une seule fois
+
+`onInstalled` ouvre `panneau.html`. C'est le **seul moyen qui atteigne tout le
+monde**, épinglé ou non : une pastille sur l'icône ne se voit pas quand l'icône
+est cachée, et une infobulle demande qu'on survole ce qu'on n'a pas trouvé.
+
+À l'installation, **pas aux mises à jour** — `reason` distingue les deux, et une
+extension qui ouvre un onglet à chaque version se fait désinstaller.
+
+**Aucune permission n'est demandée pour ça.** `chrome.tabs.create` vers une page
+de l'extension n'en exige aucune ; seule la *lecture* des propriétés d'un onglet
+réclamerait `tabs`, et on ne lit rien.
+
+**C'est la même page, pas une seconde.** Une page d'accueil séparée aurait
+divergé du panneau à la première section ajoutée — et c'est précisément le
+panneau qu'on veut faire connaître. Elle se reconnaît à `?vue=onglet` et relâche
+les deux nombres qui la contraignaient à une popup.
+
+> Posée à `height: auto`, la page grandissait avec le mode d'emploi — **2933 px
+> mesurés** — et le rail s'étirait d'autant, à défiler avec elle. Le panneau
+> cessait d'être deux colonnes qui défilent chacune de son côté pour devenir une
+> longue page. La hauteur reste donc celle de la fenêtre.
+
+### 2. Un bandeau, là où l'utilisateur regarde déjà
+
+L'onglet s'ouvre **ailleurs**, et se ferme parfois sans être lu. Le bandeau, lui,
+parle dans la barre latérale — au moment précis où elle vient de changer sous les
+yeux de son propriétaire, et où la question « qui a fait ça ? » est déjà posée.
+
+**Sa difficulté n'est pas de s'afficher, c'est de ne s'afficher qu'aux
+nouveaux.** `content.js` ne peut pas savoir qu'une installation vient d'avoir
+lieu : `onInstalled` vit dans le service worker, dont deux mondes le séparent. Il
+reconnaît l'inverse — une mémoire déjà remplie prouve une **ancienneté**.
+
+Et c'est là qu'est le piège, parce que cette mémoire se remplit en quelques
+secondes :
+
+> **La décision se prend une fois et s'écrit.** Sans ça, le roster se remplit, la
+> reconnaissance d'ancienneté devient vraie au chargement suivant, et le bandeau
+> n'aurait été montré qu'à ceux qui regardaient l'écran à la bonne seconde.
+
+Le scénario 121 éprouve exactement ce point : il recharge la page **après** que
+le roster s'est rempli, et exige que le bandeau soit toujours là.
+
+Il ne porte **aucun lien**. Nous ne pouvons pas ouvrir le panneau à la place de
+l'utilisateur — `chrome.action.openPopup` exige un geste sur l'icône elle-même et
+n'existe pas partout — donc on ne promet pas un clic qui ne se produirait pas. On
+indique, on n'agit pas.
+
+> **Un marqueur inventé a failli partir dans cette version.** La règle qui masque
+> le bandeau en colonne réduite visait `body.tse-collapsed`, qui ne correspond à
+> rien : le bandeau serait resté affiché dans une barre de cinquante pixels sans
+> que personne ne s'en aperçoive avant une capture d'écran. Les deux sélecteurs
+> qui masquent déjà la barre de filtre ont été recopiés à l'identique.
+
+### 3. Une infobulle qui nomme ce qu'on trouve derrière
+
+`default_title` disait le nom du produit, que celui qui survole connaît déjà. Il
+dit maintenant ce qu'il y a derrière. Coût nul, portée faible — mais celui qui
+trouve enfin l'icône mérite mieux qu'une redite.
+
+Un `__MSG_…__` qui ne correspond à aucun message donne une infobulle **vide**,
+silencieusement : `npm run addon` vérifie donc que la clé existe dans **les
+douze** locales, pas seulement la locale par défaut. Une infobulle traduite dans
+onze langues sur douze est exactement le genre de trou qu'on ne voit jamais
+depuis sa propre machine.
+
+---
+
+## L'or n'avait pas de version claire, et aucune mesure ne pouvait l'attraper
+
+Signalé par une capture : en clair, le pseudo d'une chaîne abonnée devenait un
+**rectangle blanc**. Il n'était pas effacé — il était peint.
+
+Le pseudo est rempli par un **dégradé découpé au texte**, avec un remplissage
+transparent. Ses arrêts vont de `#ffc86e` à `#fff6dc` : **1,53:1 et 1,08:1 sur du
+blanc**. Superbes sur du noir, invisibles sur du blanc.
+
+**Et le scénario 115 passait.** Il relève le contraste de chaque texte dans les
+deux thèmes — en lisant `color`, qui vaut ici `transparent`. Un texte peint par
+un dégradé échappe à toute lecture de couleur : il faut mesurer ses **arrêts**.
+Le contrôle passait en ne regardant rien.
+
+La méthode existait déjà, quatre lignes plus haut : l'arc-en-ciel du subathon se
+vérifie sur tout son tour, parce qu'aucun instantané ne suffit. Elle n'avait
+simplement jamais été appliquée ici.
+
+**Le défaut est dans les deux modes clairs**, pas seulement le forcé : la 4.8 a
+repeint toute la feuille et a laissé l'or derrière, parce que l'or ne se déclare
+pas comme une couleur. Le thème forcé n'a fait que le rendre visible plus tôt.
+
+Les teintes claires sont **mesurées**, sur les deux fonds de carte du clair :
+
+| arrêt | rôle | sur `#ffffff` | sur `#f7f7f8` |
+| --- | --- | --- | --- |
+| `#8a5900` | l'or — déjà celui du badge « abonné » | 5,98:1 | 5,59:1 |
+| `#7a4e00` | l'éclat : en clair il **fonce**, il n'éclaire pas | 7,20:1 | 6,72:1 |
+| `#9c4f6b` | le reflet rose, version lisible | 5,61:1 | 5,24:1 |
+| `#7c5a1e` | la catégorie | 6,29:1 | 5,88:1 |
+
+Le plancher d'un petit texte est à 4,5:1 ; le pire de ces arrêts est à 5,24. Le
+halo part en clair — c'est un filtre de lueur pensé pour détacher des lettres
+claires d'un fond noir, et sur du blanc il ne détache rien.
+
+Quatre assertions neuves mesurent désormais **chaque arrêt** du dégradé, dans les
+trois situations : sombre, clair donné par Twitch, clair forcé.
 
 ## Forcer ce que Twitch fait déjà, et deux fiches qui mentaient (v4.10.2)
 
@@ -6484,7 +6603,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 120 scénarios, 1095 assertions |
+| `npm test` | le harnais Playwright : 122 scénarios, 1112 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -6505,12 +6624,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 988 Ko | 380 Ko | 3 259 → **2** |
+| `content.js` | 1012 Ko | 390 Ko | 3 267 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 89 Ko | 45 Ko | 116 → **0** |
+| `panneau.js` | 91 Ko | 45 Ko | 118 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
-| `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1222 Ko** | **531 Ko** | **−57 %** |
+| `background.js` | 11 Ko | 2 Ko | 25 → **0** |
+| **les cinq** | **1251 Ko** | **541 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
