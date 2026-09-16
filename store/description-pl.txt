@@ -198,6 +198,16 @@ Twitch ma jasny motyw. Rozszerzenie to zauważa i przełącza się razem z nim �
 
 _______________________________
 
+➤ ⚙️ A JEŚLI CHCESZ WYBIERAĆ
+Wszystko działa od razu i nie trzeba niczego ustawiać. Ale zakładka „Opcje” w panelu oddaje Ci dwadzieścia dwa ustawienia.
+
+- ★ TO, CO WIDZISZ ★ Każda odznaka, czas trwania transmisji i jego format, pasek „właśnie ruszyła”, złoto subskrypcji, filtry, przyciski sortowania: wszystko włącza się i wyłącza jednym polem.
+- ★ TO, CO SIĘ WCZYTUJE ★ Podgląd może zrezygnować z wideo i zachować odznaki, oś czasu i miniaturę — albo po prostu zejść z jakością. Tyle, by go odciążyć, nie tracąc go.
+- ★ TO, CO DOTYCZY CIEBIE ★ Odczyt subskrypcji — jedyne uwierzytelnione żądanie rozszerzenia — wyłącza się jednym kliknięciem. Uczenie się wizyt również. A każda pamięć czyści się osobno, nie ruszając pozostałych.
+- ★ NIC NIE JEST PUŁAPKĄ ★ Kropka oznacza to, co zmieniłeś, jeden przycisk przywraca wszystkie wartości domyślne, a Twoje ustawienia eksportują się jako tekst, by przenieść je na inny komputer.
+
+_______________________________
+
 ➤ 🌍 W TWOIM JĘZYKU
 
 Rozszerzenie automatycznie wykrywa język Twojego Twitcha i dostosowuje każdą etykietę, plakietkę i podpowiedź:

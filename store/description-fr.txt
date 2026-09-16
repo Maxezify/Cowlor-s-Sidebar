@@ -104,7 +104,7 @@ On a supprimé tout ce qui transforme la barre latérale en capharnaüm :
 - Les indicateurs visuels redondants (ces petits ronds colorés ambigus, les lignes « DROPS REBROADCAST » inutiles…)
 - Les bandeaux de sponsoring qui défigurent les entrées de streamers : on nettoie tout, et l'info « sponsorisé par X » est restituée dans l'aperçu, bien plus proprement.
 
-Résultat : votre barre latérale n'affiche que ce qui compte. Sans rien à configurer.
+Résultat : votre barre latérale n'affiche que ce qui compte. Sans rien à configurer — et tout reste réglable si vous y tenez, voir plus bas.
 
 _______________________________
 
@@ -195,6 +195,16 @@ Twitch a un thème clair. L'extension le voit et bascule avec lui — sans recha
 - ★ DES COULEURS RECALCULÉES, PAS ÉCLAIRCIES ★ Chaque badge a sa teinte claire à lui, mesurée sur le fond exact où il s'affiche. Un orange qui se lit bien sur du noir devient une bouillie sur du blanc : il a été refait, pas simplement pâli.
 - ★ À LA SECONDE OÙ VOUS BASCULEZ ★ Changez le thème de Twitch et l'extension suit dans la seconde. Aucun rechargement de page.
 - ★ ET SI VOUS DEMANDEZ MOINS D'ANIMATION ★ Le réglage « réduire les animations » de votre système est respecté : ce qui bougeait s'arrête, mais rien ne se perd — un signal qui battait continue de respirer doucement au lieu de s'éteindre.
+
+_______________________________
+
+➤ ⚙️ ET SI VOUS VOULEZ CHOISIR
+Tout est actif d'emblée et il n'y a rien à régler. Mais un onglet « Options » dans le panneau vous rend la main sur vingt-deux réglages.
+
+- ★ CE QUE VOUS VOYEZ ★ Chaque badge, la durée du direct et son format, la barre « vient de démarrer », l'or des abonnements, les filtres, les boutons de tri : tout s'allume et s'éteint à la case.
+- ★ CE QUI SE CHARGE ★ L'aperçu peut se passer de la vidéo et garder ses badges, sa frise et sa miniature — ou simplement descendre en qualité. De quoi l'alléger sans le perdre.
+- ★ CE QUI VOUS REGARDE ★ Le relevé des abonnements — la seule requête authentifiée de l'extension — se coupe d'un clic. L'apprentissage des visites aussi. Et chaque mémoire s'efface séparément, sans toucher aux autres.
+- ★ RIEN N'EST PIÉGÉ ★ Un point marque ce que vous avez changé, un bouton remet tout par défaut, et vos réglages s'exportent en texte pour les reposer sur une autre machine.
 
 _______________________________
 

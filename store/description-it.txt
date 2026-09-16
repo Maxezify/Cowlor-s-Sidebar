@@ -198,6 +198,16 @@ Twitch ha un tema chiaro. L'estensione se ne accorge e cambia insieme a lui — 
 
 _______________________________
 
+➤ ⚙️ E SE VUOI SCEGLIERE
+Tutto è attivo fin da subito e non c'è nulla da impostare. Ma una scheda «Opzioni» nel pannello ti restituisce il comando su ventidue impostazioni.
+
+- ★ CIÒ CHE VEDI ★ Ogni badge, la durata della diretta e il suo formato, la barra «appena iniziata», l'oro degli abbonamenti, i filtri, i pulsanti di ordinamento: tutto si accende e si spegne con una casella.
+- ★ CIÒ CHE VIENE CARICATO ★ L'anteprima può fare a meno del video e conservare badge, linea del tempo e miniatura — oppure semplicemente scendere di qualità. Quanto basta per alleggerirla senza perderla.
+- ★ CIÒ CHE TI RIGUARDA ★ La lettura degli abbonamenti — l'unica richiesta autenticata dell'estensione — si spegne con un clic. Anche l'apprendimento delle visite. E ogni memoria si cancella da sola, senza toccare le altre.
+- ★ NULLA È UNA TRAPPOLA ★ Un punto segnala ciò che hai cambiato, un pulsante ripristina tutto, e le tue impostazioni si esportano come testo per rimetterle su un'altra macchina.
+
+_______________________________
+
 ➤ 🌍 NELLA TUA LINGUA
 
 L'estensione rileva automaticamente la lingua del tuo Twitch e adatta ogni etichetta, badge e suggerimento:
