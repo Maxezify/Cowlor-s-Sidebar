@@ -74,7 +74,18 @@ body { background: var(--color-background-base); color: var(--color-text-base); 
     </div><div aria-label="Ouvrir les stories"><p title="Ouvrir les stories">Ouvrir les stories</p></div></button>
   </div>
   <nav id="side-nav">
-    <div class="side-nav__title"><h3>Chaînes suivies</h3></div>
+    <!-- LE TITRE RACINE PORTE DEUX CHOSES, PAS UNE, et ce décor-ci n'en avait
+         qu'une. Le bouton de repli de Twitch vit dans le même bloc que le
+         <h3>, à sa droite — c'est exactement ce que le décor taisait, et un
+         retour de terrain l'a payé : la roue, ajoutée en fin de bloc, se
+         posait APRÈS ce bouton, à l'extrême droite de la barre, au lieu d'être
+         collée au titre. Le banc ne pouvait pas le voir : `appendChild` et
+         « juste après le <h3> » donnent le même résultat quand le <h3> est
+         seul. Un décor trop simple est un décor qui ment. -->
+    <div class="side-nav__title">
+      <h3>Chaînes suivies</h3>
+      <button id="native-collapse" aria-label="Réduire la barre latérale">&#8592;|</button>
+    </div>
 
     <div class="side-nav-section" aria-label="Chaînes suivies">
       <!-- Copie FIDÈLE du DOM réel de Twitch (relevé le 20/08/2026).

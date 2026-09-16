@@ -2354,13 +2354,24 @@ titre('35. Top Chaînes — basculer, afficher, revenir');
        LA 4.12 Y POSE UN BOUTON, ET UN SEUL : la roue qui ouvre le panneau.
        Ce qui était protégé n'était pas « zéro bouton » mais « pas de bascule
        de mode ici », et cette leçon-là tient toujours. L'assertion le dit
-       maintenant en toutes lettres, au lieu de compter à zéro. */
-    ok('le titre racine ne porte qu\'un bouton, la roue, et aucune bascule de mode',
+       maintenant en toutes lettres, au lieu de compter à zéro.
+
+       ON NE COMPTE QUE LES NÔTRES. La 4.12.1 a donné à ce décor le bouton de
+       repli que Twitch y range vraiment — c'est ce qui manquait pour voir que
+       la roue se posait après lui. Compter TOUS les boutons du bloc
+       reviendrait donc à compter ceux de Twitch, et à échouer le jour où ils
+       en ajoutent un troisième qui ne nous regarde pas. */
+    ok('le titre racine ne porte qu\'un bouton à nous, la roue, et aucune bascule de mode',
        await page.evaluate(() => {
-         const boutons = [...document.querySelectorAll('#side-nav .side-nav__title button')];
-         return boutons.length === 1
-             && boutons[0].id === 'tse-roue'
-             && !boutons[0].hasAttribute('data-tse-mode');
+         const bloc = document.querySelector('#side-nav .side-nav__title');
+         const notres = [...bloc.querySelectorAll('button')]
+           .filter((b) => b.id.startsWith('tse-') || b.className.includes('tse-'));
+         return notres.length === 1
+             && notres[0].id === 'tse-roue'
+             && !notres[0].hasAttribute('data-tse-mode')
+             /* Et le bouton de Twitch est TOUJOURS LÀ : on s'ajoute à son
+                bloc, on ne le remplace pas. */
+             && !!bloc.querySelector('#native-collapse');
        }));
     // On ne touche plus au bouton de Twitch : ni instrumentation, ni clic.
     ok('le bouton de tri natif n\'est plus instrumenté',
@@ -15893,6 +15904,25 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
       apresH3: !!(r && r.previousElementSibling
                     && r.previousElementSibling.tagName === 'H3'),
       dansTitre: !!(t && r && t.contains(r)),
+      /* ── CE QUE LE DÉCOR TAISAIT, ET QUE LE TERRAIN A PAYÉ ─────────────
+         La première rédaction faisait `appendChild`. Avec un <h3> SEUL dans
+         le bloc, c'est indiscernable de « juste après le titre » — et le
+         décor n'avait qu'un <h3>. Sur le vrai Twitch, ce bloc porte aussi le
+         bouton de repli de la barre : la roue se posait donc après lui, à
+         l'extrême droite, collée au chevron plutôt qu'au titre.
+
+         ON MESURE DEUX CHOSES QUI TOMBENT ENSEMBLE : l'ordre des nœuds, et
+         l'ÉCART en pixels entre la fin du titre et le début de la roue. Le
+         premier seul se satisferait d'une marge automatique qui repousse la
+         roue à l'autre bout ; le second seul se satisferait d'un titre qui
+         se trouve court ce jour-là. */
+      ordre: t ? [...t.children].map((e) => e.id || e.tagName) : null,
+      ecart: (() => {
+        const h3 = t && t.querySelector('h3');
+        if (!h3 || !r) return null;
+        return Math.round(r.getBoundingClientRect().left
+                        - h3.getBoundingClientRect().right);
+      })(),
       marque: t && t.getAttribute('data-tse-roue'),
       flex: st && st.display,
       /* Un bouton sans nom accessible n'est pas trouvable au lecteur d'écran,
@@ -15909,6 +15939,14 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      vue.presente === true && vue.dansTitre === true, JSON.stringify(vue));
   ok('…à CÔTÉ du <h3>, que le renommage réécrit à chaque passe',
      vue.apresH3 === true, JSON.stringify(vue));
+  /* COLLÉE AU TITRE, ET LE BOUTON DE REPLI DE TWITCH RESTE À SA DROITE.
+     Douze pixels : le vide qu'une gouttière de rangée laisse, pas celui que
+     laisse une barre latérale entière. */
+  ok('…collée à droite du titre, devant le bouton de repli de Twitch',
+     vue.ordre && vue.ordre[0] === 'H3' && vue.ordre[1] === 'tse-roue'
+     && vue.ordre[2] === 'native-collapse'
+     && vue.ecart !== null && vue.ecart >= 0 && vue.ecart <= 12,
+     JSON.stringify(vue.ordre) + ' écart ' + vue.ecart);
   ok('…le titre porte notre marqueur et passe en rangée',
      vue.marque === 'true' && vue.flex === 'flex', JSON.stringify(vue));
   ok('…elle a un nom accessible, une infobulle, et un dessin muet',
@@ -16127,30 +16165,47 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              texte: b ? b.querySelector('.tse-bulle-texte').textContent : null,
              croix: b ? !!b.querySelector('.tse-bulle-croix[aria-label]') : null,
              fleche: b ? !!b.querySelector('.tse-bulle-fleche[aria-hidden="true"]') : null,
-             cle: localStorage.getItem('tse:accueil'),
+             cle: localStorage.getItem('tse:roue'),
+             vieilleCle: localStorage.getItem('tse:accueil'),
              roster: !!localStorage.getItem('tse:roster') };
   });
 
-  /* ── UN UTILISATEUR DE LONGUE DATE N'EST PAS DÉRANGÉ ─────────────────── */
+  /* ── ASSERTION TOURNÉE PAR UN RETOUR DE TERRAIN ───────────────────────
+     Elle exigeait l'inverse : « une mémoire déjà remplie vaut ancienneté,
+     donc ni bulle ni battement ». C'était juste pour le bandeau de la 4.11,
+     qui annonçait une icône vieille de plusieurs versions ; c'est FAUX pour la
+     roue, qui n'existait pas la veille.
+
+     CE QUE LA MESURE A MONTRÉ : réinstaller l'extension n'efface pas le
+     localStorage de twitch.tv. Un utilisateur de longue date restait donc
+     classé « ancien » à jamais et ne voyait jamais la bulle, quel que soit le
+     nombre de réinstallations — c'est-à-dire exactement la personne à qui il
+     fallait annoncer la roue. Le signal porte désormais sa propre clé : ce
+     qu'on retient n'est plus l'âge de l'utilisateur, c'est ce qu'il a vu. */
   await page.evaluate(() => {
     localStorage.clear();
     localStorage.setItem('tse:roster', JSON.stringify({ v: 1, m: { alpha: Date.now() } }));
+    /* La clé du bandeau de la 4.11, laissée par une version précédente. Elle
+       ne doit plus rien décider — et elle doit disparaître au passage. */
+    localStorage.setItem('tse:accueil', 'vu');
   });
   await page.reload();
   await poser();
   await wait(page, 1500);
   const ancien = await etat();
-  ok('une mémoire déjà remplie vaut ancienneté : ni bulle ni battement',
-     ancien.bulle === false && ancien.neuf === null && ancien.cle === 'vu',
+  ok('un roster rempli et l\'ancien bandeau renvoyé n\'empêchent plus le signal',
+     ancien.bulle === true && ancien.neuf === 'true' && ancien.cle === 'montre',
      JSON.stringify(ancien));
+  ok('…et la clé morte du bandeau de la 4.11 est retirée du stockage',
+     ancien.vieilleCle === null, JSON.stringify(ancien.vieilleCle));
 
-  /* ── UNE INSTALLATION NEUVE LES VOIT ─────────────────────────────────── */
+  /* ── UNE MÉMOIRE VIDE LE VOIT AUSSI, ÉVIDEMMENT ──────────────────────── */
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await poser();
   await wait(page, 1500);
   const neuf = await etat();
-  ok('rien en mémoire vaut installation neuve : la roue bat',
+  ok('clé absente vaut signal jamais montré : la roue bat',
      neuf.neuf === 'true' && neuf.anime === 'tse-roue-bat' && neuf.cle === 'montre',
      JSON.stringify(neuf));
   ok('…et la bulle est là, avec sa flèche muette et une croix nommée',
@@ -16211,7 +16266,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              anime: getComputedStyle(r).animationName,
              /* La roue RESTE : ce qu'on renvoie est le signal, pas le chemin. */
              roue: !!r,
-             cle: localStorage.getItem('tse:accueil') };
+             cle: localStorage.getItem('tse:roue') };
   });
   ok('la croix retire la bulle, arrête le battement, et garde la roue',
      apres.bulle === false && apres.neuf === null && apres.anime === 'none'
@@ -16237,7 +16292,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     await new Promise((r) => setTimeout(r, 60));
     return { avant, bulle: !!document.getElementById('tse-bulle'),
              neuf: document.getElementById('tse-roue').getAttribute('data-tse-neuf'),
-             cle: localStorage.getItem('tse:accueil') };
+             cle: localStorage.getItem('tse:roue') };
   });
   ok('ouvrir le panneau par la roue renvoie le signal aussi',
      parLaRoue.avant === true && parLaRoue.bulle === false
