@@ -573,20 +573,8 @@
   "optDescStories": {
     "message": "Ficam visíveis por padrão: é o que a Twitch faz."
   },
-  "optDeplier": {
-    "message": "Expandir «Mostrar mais» automaticamente"
-  },
-  "optDescDeplier": {
-    "message": "Desligado, a lista fica como a Twitch a apresenta — a extensão continua medindo tudo o que vê."
-  },
   "optGrpAbos": {
     "message": "A leitura das assinaturas"
-  },
-  "optAbosReleve": {
-    "message": "Ler as minhas assinaturas"
-  },
-  "optDescAbosReleve": {
-    "message": "É a única requisição autenticada da extensão: abre a sua página twitch.tv/subscriptions num quadro invisível. Desligada, o ouro e a ordenação «assinaturas primeiro» se apoiam apenas nos canais visitados."
   },
   "optAbosPeriode": {
     "message": "No máximo uma vez a cada"
@@ -599,15 +587,6 @@
   },
   "optDescTheme": {
     "message": "«Auto» segue o tema da Twitch. Forçar só muda a forma como a extensão se desenha por cima."
-  },
-  "optGrpDonnees": {
-    "message": "Dados"
-  },
-  "optVisites": {
-    "message": "Aprender as minhas visitas"
-  },
-  "optDescVisites": {
-    "message": "Desligado, o que já foi aprendido continua legível, mas nada mais é acrescentado. A ordenação «popularidade pessoal» e a grade do ritmo deixam de evoluir."
   },
   "optGrpPanneau": {
     "message": "Este painel"
@@ -682,7 +661,7 @@
     "message": "Redefinir todas as configurações?"
   },
   "optResetText": {
-    "message": "As vinte e duas configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
+    "message": "As dezenove configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"

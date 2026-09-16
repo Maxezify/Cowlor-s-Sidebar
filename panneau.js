@@ -549,10 +549,9 @@ const GROUPES_OPT = [
   ['optGrpBadges',  ['badges']],
   ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
-  ['optGrpTwitch',  ['stories', 'deplier']],
-  ['optGrpAbos',    ['abosReleve', 'abosPeriode']],
+  ['optGrpTwitch',  ['stories']],
+  ['optGrpAbos',    ['abosPeriode']],
   ['optGrpTheme',   ['theme']],
-  ['optGrpDonnees', ['visites']],
 ];
 
 const LIBELLE_MEMBRE = {
@@ -592,7 +591,8 @@ const lireLocal = (cle, defaut) => {
 const ecrireLocal = (cle, v) => {
   try { localStorage.setItem(cle, v); } catch {   }
 };
-const diagVisible = () => lireLocal(DIAG_CLE, 'oui') !== 'non';
+
+const diagVisible = () => lireLocal(DIAG_CLE, 'non') === 'oui';
 const themePanneau = () => lireLocal(THEME_CLE, 'auto');
 
 const interrupteur = (coche, surChangement) => {
@@ -820,6 +820,10 @@ const peindreReglages = () => {
   hote.replaceChildren(...blocs);
   hote.hidden = false;
 
+  const section = SECTIONS.find((x) => x.id === 'options');
+  $('resume').replaceChildren(
+    ...(section && section.tuiles ? section.tuiles(etatOpt.resume) : []).map((t) => tuile(t)));
+
   if (repere) {
     const cible = hote.querySelector(`[data-reg="${CSS.escape(repere)}"] input, `
                                    + `[data-reg="${CSS.escape(repere)}"] select`);
@@ -957,8 +961,7 @@ const charger = async (id) => {
   if (courante !== id) return;
   if (!r.ok) { montrerEchec(r); return; }
 
-  if (section.reglages) { montrerReglages(r.data); $('resume').replaceChildren(
-    ...(section.tuiles ? section.tuiles(r.data.resume) : []).map((t) => tuile(t))); return; }
+  if (section.reglages) { montrerReglages(r.data); return; }
   peindre(section, r.data);
   if (id === 'diagnose') marquerEtat(r.data && r.data.resume);
 };

@@ -1340,9 +1340,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     subathonJour:    { defaut: true,      type: 'bool', css: true },
 
     stories:         { defaut: true,      type: 'bool', css: true },
-    deplier:         { defaut: true,      type: 'bool' },
-
-    abosReleve:      { defaut: true,      type: 'bool' },
 
     abosPeriode:     { defaut: 6,         type: 'choix', valeurs: [3, 6, 12, 24] },
 
@@ -1355,9 +1352,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     filtreCategorie: { defaut: true,      type: 'bool', css: true },
     filtreLangue:    { defaut: true,      type: 'bool', css: true },
 
-    theme:           { defaut: 'auto',    type: 'choix', valeurs: ['auto', 'dark', 'light'] },
-
-    visites:         { defaut: true,      type: 'bool' }
+    theme:           { defaut: 'auto',    type: 'choix', valeurs: ['auto', 'dark', 'light'] }
   });
 
   const options = (() => {
@@ -1480,6 +1475,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
     pose('data-tse-or',     options.get('abonnes'),      'plein');
     pose('data-tse-apercu', options.get('apercuTaille'), 'normal');
+
+    html.toggleAttribute('data-tse-force', options.get('theme') !== 'auto');
   };
   options.surChangement(appliquerOptions);
   appliquerOptions();
@@ -1539,6 +1536,43 @@ const TSE_GATE_MAX_CLICKS = 5;
       --tse-ombre-menu:   rgba(0, 0, 0, 0.20);
       --tse-ombre-large:  rgba(0, 0, 0, 0.24);
       --tse-decoupe:      #ffffff;
+    }
+
+    
+    html[data-tse-force][data-tse-theme="light"] {
+      --tse-surface:      #ffffff;
+      --tse-surface-2:    #f7f7f8;
+      --tse-texte:        #0e0e10;
+      --tse-texte-doux:   #53535f;
+      --tse-texte-faible: #6e6e7a;
+    }
+    html[data-tse-force][data-tse-theme="dark"] {
+      --tse-surface:      #18181b;
+      --tse-surface-2:    #1f1f23;
+      --tse-texte:        #efeff1;
+      --tse-texte-doux:   #adadb8;
+      --tse-texte-faible: #6e6e7a;
+    }
+    html[data-tse-force][data-tse-theme="light"] ${DOM.sidebarRoot} {
+      --color-background-base:  #f7f7f8;
+      --color-background-alt:   #ffffff;
+      --color-background-alt-2: #efeff1;
+      --color-text-base:        #0e0e10;
+      --color-text-alt:         #53535f;
+      --color-text-alt-2:       #6e6e7a;
+      background-color: #f7f7f8;
+      
+      color: #0e0e10;
+    }
+    html[data-tse-force][data-tse-theme="dark"] ${DOM.sidebarRoot} {
+      --color-background-base:  #0e0e10;
+      --color-background-alt:   #18181b;
+      --color-background-alt-2: #1f1f23;
+      --color-text-base:        #efeff1;
+      --color-text-alt:         #adadb8;
+      --color-text-alt-2:       #6e6e7a;
+      background-color: #0e0e10;
+      color: #efeff1;
     }
 
     
@@ -2203,8 +2237,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-sort-toggle:disabled svg { opacity: 0.35; }
 
     
+    
     .tse-sort-row {
-      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
       margin-top: 4px;
     }
 
@@ -2612,7 +2647,13 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     
     html[data-tse-off~="duree"] .tse-uptime { display: none !important; }
+    
     html[data-tse-off~="fresh"] .side-nav-card.tse-fresh::before { display: none !important; }
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh,
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream {
+      background: none !important;
+      background-image: none !important;
+    }
     html[data-tse-off~="collab"] .tse-collab-badge { display: none !important; }
     html[data-tse-off~="subathonJour"] .tse-subathon-jour { display: none !important; }
 
@@ -2620,6 +2661,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     html[data-tse-off~="topOnglet"] .tse-mode-row { display: none !important; }
     html[data-tse-off~="filtreCategorie"] .tse-filter-field--cat { display: none !important; }
     html[data-tse-off~="filtreLangue"] .tse-filter-field--lang { display: none !important; }
+    
+    html[data-tse-off~="filtreCategorie"] .tse-filter-row,
+    html[data-tse-off~="filtreLangue"] .tse-filter-row { justify-content: center; }
+    html[data-tse-off~="filtreCategorie"] .tse-filter-field--lang { margin-left: 0; }
+    html[data-tse-off~="filtreLangue"] .tse-filter-field--cat { flex: 0 1 auto; }
+    
+    html[data-tse-off~="filtreCategorie"][data-tse-off~="filtreLangue"] .tse-filter-row {
+      display: none !important;
+    }
     html[data-tse-off~="tri-viewers"]  .tse-sort-toggle[data-tse-sort-mode="viewers"],
     html[data-tse-off~="tri-subs"]     .tse-sort-toggle[data-tse-sort-mode="subs"],
     html[data-tse-off~="tri-popular"]  .tse-sort-toggle[data-tse-sort-mode="popular"],
@@ -4463,8 +4513,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     },
 
     record(login) {
-
-      if (!options.get('visites')) return;
       if (!login) return;
       const now = Date.now();
       const list = this.map.get(login) || [];
@@ -4790,8 +4838,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     });
 
     const refresh = async (force = false) => {
-
-      if (!CFG.SUBS_PAGE_ENABLED || !options.get('abosReleve') || running) return null;
+      if (!CFG.SUBS_PAGE_ENABLED || running) return null;
 
       const periode = options.get('abosPeriode') === OPT_DEFS.abosPeriode.defaut
         ? CFG.SUBS_PAGE_TTL
@@ -4896,7 +4943,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const init = () => {
-      if (!CFG.SUBS_PAGE_ENABLED || !options.get('abosReleve')) return;
+      if (!CFG.SUBS_PAGE_ENABLED) return;
       arme = true;
     };
 
@@ -5503,9 +5550,13 @@ const TSE_GATE_MAX_CLICKS = 5;
           const r = { cartes: vues.length, crochet: 0, groupe: 0, boite: 0,
                       p0: 0, p1: 0, p2: 0, p3: 0,
                       b0: 0, b1: 0, b2: 0, b3: 0,
-                      nomHorsGroupe: 0, toutesTitrees: 0, nomTitre: 0, sansNom: 0 };
+                      nomHorsGroupe: 0, toutesTitrees: 0, nomTitre: 0, sansNom: 0,
+
+                      plus: 0, pastilles: 0 };
           for (const c of vues) {
             if (c.querySelector('p[data-a-target="side-nav-title"]')) r.crochet++;
+            if (c.querySelector('.tse-collab-badge')) r.pastilles++;
+            if (/\+\d+/.test(c.textContent || '')) r.plus++;
 
             const g = c.querySelector('.side-nav-card__metadata');
             const b = c.querySelector('[data-a-target="side-nav-card-metadata"]');
@@ -7586,6 +7637,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       bilanSurvol.armes++;
 
       voiler();
+
+      if (!options.get('apercu')) return;
       pendingCard = card;
       pendingTimer = setTimeout(() => {
         pendingTimer = null;
@@ -7731,8 +7784,6 @@ const TSE_GATE_MAX_CLICKS = 5;
       }, { passive: true, capture: true });
 
       document.addEventListener('mouseenter', (e) => {
-
-        if (!options.get('apercu')) return;
         const t = e.target;
         if (!t || typeof t.closest !== 'function') return;
         const card = resolveCard(t);
@@ -7967,8 +8018,6 @@ const TSE_GATE_MAX_CLICKS = 5;
   }
 
   function autoExpandFollowed() {
-
-    if (!options.get('deplier')) return;
     const section = followedSection();
     if (!section) return;
 

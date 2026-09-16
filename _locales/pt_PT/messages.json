@@ -573,20 +573,8 @@
   "optDescStories": {
     "message": "Ficam visíveis por omissão: é o que a Twitch faz."
   },
-  "optDeplier": {
-    "message": "Expandir «Mostrar mais» automaticamente"
-  },
-  "optDescDeplier": {
-    "message": "Desligado, a lista fica como a Twitch a apresenta — a extensão continua a medir tudo o que vê."
-  },
   "optGrpAbos": {
     "message": "A leitura das subscrições"
-  },
-  "optAbosReleve": {
-    "message": "Ler as minhas subscrições"
-  },
-  "optDescAbosReleve": {
-    "message": "É o único pedido autenticado da extensão: abre a tua página twitch.tv/subscriptions num quadro invisível. Desligada, o ouro e a ordenação «subscrições primeiro» apoiam-se apenas nos canais visitados."
   },
   "optAbosPeriode": {
     "message": "No máximo uma vez a cada"
@@ -599,15 +587,6 @@
   },
   "optDescTheme": {
     "message": "«Auto» segue o tema da Twitch. Forçar só muda a forma como a extensão se desenha por cima."
-  },
-  "optGrpDonnees": {
-    "message": "Dados"
-  },
-  "optVisites": {
-    "message": "Aprender as minhas visitas"
-  },
-  "optDescVisites": {
-    "message": "Desligado, o que já foi aprendido continua legível, mas nada mais é acrescentado. A ordenação «popularidade pessoal» e a grelha do ritmo deixam de evoluir."
   },
   "optGrpPanneau": {
     "message": "Este painel"
@@ -682,7 +661,7 @@
     "message": "Repor todas as definições?"
   },
   "optResetText": {
-    "message": "As vinte e duas definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
+    "message": "As dezanove definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"
