@@ -160,9 +160,10 @@ You can check your top in the DevTools console (F12):
 
 _______________________________
 
-➤ 🎛️ A PANEL IN YOUR TOOLBAR
-One click on the extension's icon and everything it has learned opens in a panel — no console needed.
+➤ 🎛️ A PANEL, RIGHT NEXT TO YOUR CHANNELS
+A gear to the right of the sidebar title, one click, and everything the extension has learned opens on top of Twitch. The extension's icon, top right of your browser, opens exactly the same panel.
 
+- ★ TWO WAYS IN, ONE PANEL ★ The gear in the sidebar or the icon in the toolbar: the same page, at the same size, either way.
 - ★ A GUIDE, FIRST THING ★ The panel opens on a thirteen-chapter walkthrough of everything the extension adds, with drawn examples — and it shows even with no Twitch tab open.
 - ★ YOUR HABITS, DRAWN ★ The hours you actually watch, laid out as a seven-day by twenty-four-hour grid.
 - ★ YOUR NUMBERS ★ Top streamers, subscriptions spotted, followed channels in memory: all there, readable.

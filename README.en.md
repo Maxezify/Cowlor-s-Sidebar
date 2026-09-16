@@ -326,11 +326,11 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1012 KB | 390 KB | 3,267 → **2** |
+| `content.js` | 1033 KB | 400 KB | 3,288 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 97 KB | 47 KB | 127 → **0** |
-| `bridge.js` | 13 KB | 3 KB | 22 → **0** |
-| `background.js` | 11 KB | 2 KB | 25 → **0** |
+| `panneau.js` | 92 KB | 46 KB | 121 → **0** |
+| `bridge.js` | 15 KB | 3 KB | 25 → **0** |
+| `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1251 KB** | **541 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1121 assertions, under Gecko
+npm run test-firefox        # the same 1131 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,164 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The gear, or the path that can't be missed (v4.12)
+
+### Two versions spent explaining where the icon is, and the observation that cancels them
+
+4.11 opened a tab on install. 4.11.1 turned that tab into a real welcome page: a
+thank-you, a toolbar mock-up, a big arrow toward the top-right corner. Both said
+**where to look**.
+
+**An extension that has to explain where it is has already lost.** The tab opens
+elsewhere and gets closed; the banner speaks once and fades; and in both cases
+what we ask the user to do is go hunting for a button in a bar that isn't ours,
+behind a puzzle piece that isn't ours either.
+
+This version removes both and puts the panel **two centimetres from where the
+user is already looking**: a gear to the right of the sidebar title, always
+visible, in both modes.
+
+| what goes | what arrives |
+| --- | --- |
+| the tab opened on install (`onInstalled`) | a gear in the sidebar title |
+| the welcome banner in the followed list | a bubble that **points at that gear**, once |
+| the welcome page and its `?vue=onglet` mode | the panel **on top of Twitch**, at popup size |
+
+The toolbar icon still opens the same panel: we did not replace a path, we added
+one nobody can miss.
+
+### It is the same page, in a frame
+
+`panneau.html` is loaded **as-is** in an iframe. Not rewritten as page DOM: a
+second implementation would have diverged from the first at the first section
+added, and it is precisely that panel we want people to find, not a variant of it.
+
+The frame is **760 × 580**, exactly the popup. Both paths lead to the same place
+at the same size — and both numbers live in `CFG`, read by the stylesheet rather
+than copied next to it.
+
+> **No permission is added.** `web_accessible_resources` is not `permissions`,
+> not `host_permissions`, not `optional_permissions` — and `npm run addon` still
+> checks that none of the three exists. It declares that an extension page may be
+> loaded by twitch.tv, and nothing else.
+
+**The address comes from the bridge, and that's a constraint, not a detour.**
+`content.js` runs in the `MAIN` world: no `chrome.runtime`, therefore no
+`getURL`. Only `bridge.js` — `ISOLATED` world, same DOM — can say it. It answers
+**every** request rather than announcing once at startup: both files start at
+`document_start`, and whichever speaks first speaks to nobody.
+
+> **A message is something any script on the page can emit.** Without a filter, a
+> hostile page would load ITS address into a frame that looks like ours — phishing
+> with our chrome around it. So only an extension scheme is accepted, and the
+> bench tries the three forms you think of first: `https://`, `javascript:`, `//`.
+
+### Four ways out, and they fail separately
+
+The close button, the Escape key, a click on the backdrop, and the panel itself.
+The last is not a duplicate of the second: **Escape pressed inside the frame does
+not reach the page** — two origins — so `panneau.js` listens for it and posts the
+close to its parent. Each has its assertion, plus the two that matter just as
+much:
+
+- **a click INSIDE the frame does not close** — a "close on backdrop click"
+  written without a guard also closes when you click the panel;
+- **a close message coming from the page is ignored** — we compare
+  `event.source` to `frame.contentWindow`, not to an origin we don't know.
+
+And a seventh, which only shows up later: **four round trips leave no backdrop
+behind.** A keydown listener put on the document and never removed accumulates on
+every open, and the symptom then gets blamed on something else entirely.
+
+### First run: the gear pulses, the bubble explains
+
+On a fresh install only, the gear **grows and beats**, and a bubble points at it
+with an arrow:
+
+> Thanks for installing Cowlor's Sidebar! Learn how to use the extension,
+> customise it and see all the data it stores, right here.
+
+A dot doesn't show on a twenty-six-pixel button in the middle of a busy
+interface; a change of **size** catches the corner of the eye — it is the only
+thing moving in an otherwise still sidebar. The halo is a **shadow**, not a
+border: a border that grows would shift the title next to it on every beat.
+
+The "fresh install" decision comes from the same mechanism as the banner it
+replaces, and for the same reason: **it is taken once and written down.** Without
+that, the roster fills within seconds, seniority becomes true on the next load,
+and the bubble would only have been shown to whoever was looking at the screen on
+the right second. Scenario 123 reloads the page **after** the roster has filled
+and requires the bubble to still be there.
+
+It is dismissed two ways — the close button, or clicking the gear. The second
+matters more: **someone who opens the panel has found the gear**, and continuing
+to make it beat would be insisting after the fact.
+
+#### Reduced motion, and the trap that has already sprung once
+
+This beat is motion in the strict sense — it changes a **size**, which is exactly
+what the WCAG calls the illusion of movement. No calm version to negotiate as
+with the fresh-stream bar's opacity: it stops entirely. The purple fill and the
+ring stay, frozen at their high point, and the bubble beside it says the rest.
+
+> **`!important` is a correction here, not a convenience.** The rule that
+> declares the beat lives LOWER in the sheet, at equal specificity: without that
+> word, order wins and the block does not apply — silently, for the only users
+> who asked for it. This is **exactly** the trap that let the subathon rainbow
+> through this setting for two versions. The mutant was played: removing the
+> three `!important`s drops the assertion.
+
+### The arrow is placed by measurement, and a hard-coded offset could not work
+
+The bubble is positioned relative to the **sidebar**; the gear is placed by the
+padding **Twitch** gives its title — a value this file does not know, which is
+not the same in collapsed mode, and which can change without warning.
+
+Measured before the fix: **arrow at 223 px, gear centre at 234.5**. It pointed at
+the edge of the button, not the button. So we ask both for their position and put
+the arrow between them:
+
+| situation | measured gap |
+| --- | --- |
+| with Twitch's title padding (approximated at 10 px) | **0.0 px** |
+| gear flush to the edge, no padding (test page) | **3.0 px**, the anti-corner margin's bound |
+
+It is the only inline style write in the file, and it is bounded: it happens only
+while the bubble exists, that is, once in the life of an install.
+
+### What the bench adds
+
+Thirty-two assertions, six mutants, no survivors:
+
+| mutant | the assertion that drops |
+| --- | --- |
+| `ensureRoue()` removed from the pass | "the next pass puts it back, once, in the new title" |
+| the address scheme filter removed | "an address that is not an extension's is refused" |
+| the backdrop's target guard removed | "a click INSIDE the frame does not close" |
+| the message's source guard removed | "a close message coming from the page is ignored" |
+| reduced motion's `!important`s removed | "the beat stops entirely" |
+| `placerFleche` neutralised | "the arrow aims at the centre of the gear" |
+
+Scenario 121 deserves a further word. Twitch is a single-page application, and
+its title is **remounted on every internal navigation**: a gear placed once would
+disappear on the first click on a channel, with no error and no trace. The bench
+replays exactly what React does — the title is **replaced** by a fresh node, not
+emptied, which is the only way to exercise the `contains` guard — then requires
+the gear to come back, **exactly one**, in the new title.
+
+The gear also sits **next to** the `<h3>` rather than inside it, because
+`renameRootTitle()` writes `textContent` on that `<h3>` on every pass: placed
+inside, it would be erased once a second, and the only symptom would be a
+flickering button.
+
+### What `npm run addon` learns along the way
+
+A `web_accessible_resources` entry naming a file absent from the package would
+give an **empty** frame — no error, no message, nothing to debug: the browser
+refuses the navigation silently. Those entries therefore join the list of what
+the manifest names and the package must contain. Mutant played: renaming the
+resource to `panneau-absent.html` drops the check.
 
 ## The install page had everything except the thing it had to say (v4.11.1)
 
@@ -6835,7 +6993,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 123 scenarios, 1121 assertions |
+| `npm test` | the Playwright harness: 123 scenarios, 1131 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

@@ -45,6 +45,21 @@
 
   const REQ = 'tse-panneau-req';
   const RES = 'tse-panneau-res';
+  /* ── L'ADRESSE DU PANNEAU, ET POURQUOI ELLE PASSE PAR ICI ─────────────────
+     content.js pose une roue crantée dans la barre latérale ; le clic doit
+     ouvrir le panneau PAR-DESSUS la page, dans un cadre. Un cadre a besoin
+     d'une adresse, et cette adresse contient l'identifiant de l'extension —
+     que le monde MAIN ne peut pas connaître : `chrome.runtime` n'y existe pas.
+
+     CE FICHIER EST LE SEUL À POUVOIR LA DIRE. C'est déjà la raison de son
+     existence (cf. l'en-tête) ; on lui ajoute une phrase, pas un rôle.
+
+     ELLE N'EST PAS SECRÈTE. Le manifeste déclare `panneau.html` en ressource
+     accessible au web pour twitch.tv : n'importe quel script de la page peut
+     déjà la deviner. On ne garde donc pas un secret, on évite un aller-retour
+     inutile par le service worker. */
+  const URL_REQ = 'tse-url-req';
+  const URL_RES = 'tse-url-res';
   /* Au-delà, on rend la main. La page peut ne jamais répondre — content.js
      pas encore démarré, ou remplacé par une navigation — et un panneau qui
      tourne indéfiniment ne dit rien à personne. Large exprès : un relevé
@@ -92,6 +107,18 @@
   window.addEventListener('message', (e) => {
     if (e.source !== window) return;
     const d = e.data;
+    /* LA DEMANDE D'ADRESSE SE RÉPOND SANS RIEN CONSULTER, et se répond à
+       CHAQUE demande plutôt qu'une fois au démarrage. L'annonce unique aurait
+       créé une course : ce fichier et content.js démarrent tous deux à
+       `document_start`, et celui qui parle en premier parle à personne. Une
+       question posée trouve toujours son répondant, quel que soit l'ordre. */
+    if (d && d.tse === URL_REQ) {
+      let url = '';
+      try { url = chrome.runtime.getURL('panneau.html'); }
+      catch { /* extension rechargée : pas d'adresse, donc pas de roue */ }
+      if (url) window.postMessage({ tse: URL_RES, url }, '*');
+      return;
+    }
     if (!d || d.tse !== RES || typeof d.id !== 'number') return;
     const attente = attentes.get(d.id);
     if (!attente) return;

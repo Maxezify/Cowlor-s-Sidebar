@@ -713,17 +713,5 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — Twoje dane i ustawienia"
-  },
-  "panelWelcomeThanks": {
-    "message": "Dziękujemy za zainstalowanie Cowlor's Sidebar!"
-  },
-  "panelWelcomeWhere": {
-    "message": "Twoje ustawienia i wszystkie dane kryją się pod ikoną rozszerzenia, w prawym górnym rogu przeglądarki."
-  },
-  "panelWelcomePin": {
-    "message": "Nie widzisz jej? Jest schowana pod przyciskiem w kształcie puzzla. Kliknij go, a potem przypnij Cowlor's Sidebar, by mieć ją zawsze pod ręką."
-  },
-  "panelWelcomeImage": {
-    "message": "Pasek narzędzi przeglądarki z wyróżnioną ikoną Cowlor's Sidebar po prawej stronie paska adresu."
   }
 }

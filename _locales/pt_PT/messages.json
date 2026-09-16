@@ -713,17 +713,5 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — os teus dados e as tuas definições"
-  },
-  "panelWelcomeThanks": {
-    "message": "Obrigado por instalares a Cowlor's Sidebar!"
-  },
-  "panelWelcomeWhere": {
-    "message": "As tuas definições e todos os teus dados estão por trás do ícone da extensão, no canto superior direito do navegador."
-  },
-  "panelWelcomePin": {
-    "message": "Não o vês? Está guardado atrás do botão em forma de peça de puzzle. Clica aí e afixa a Cowlor's Sidebar para a teres sempre à mão."
-  },
-  "panelWelcomeImage": {
-    "message": "A barra de ferramentas do navegador, com o ícone da Cowlor's Sidebar destacado à direita da barra de endereço."
   }
 }

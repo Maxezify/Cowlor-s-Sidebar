@@ -57,25 +57,27 @@ const T = (cle, sub) => API.i18n.getMessage(cle, sub) || cle;
    localStorage PEUT ÊTRE REFUSÉ (fenêtre privée, stockage bloqué) : la lecture
    comme l'écriture sont donc gardées. Un thème qu'on ne peut pas retenir vaut
    mieux qu'un panneau qui ne s'ouvre pas. */
-/* ── LE PANNEAU SAIT S'IL EST DANS UNE POPUP OU DANS UN ONGLET ──────────────
-   La feuille se contraint à 760 × 580 parce qu'une popup de barre d'outils est
-   bornée à 800 × 600 par le navigateur : le contenu doit défiler à l'intérieur,
-   jamais la fenêtre. Dans un onglet plein écran, ces deux nombres deviennent
-   une boîte de 760 × 580 collée dans un coin — ce qui a l'air d'un défaut
-   plutôt que d'une page d'accueil.
+/* ── LE PANNEAU SAIT S'IL EST INCRUSTÉ DANS LA PAGE ─────────────────────────
+   Deux chemins mènent ici, et ils servent la MÊME page aux MÊMES dimensions :
+   l'icône de la barre d'outils, qui en fait une popup de 760 × 580 ; et la roue
+   crantée de la barre latérale, qui la pose en cadre de 760 × 580 par-dessus
+   Twitch. Rien à redimensionner, donc — la seule différence tient en une
+   chose : dans un cadre, il faut pouvoir SORTIR.
 
-   LE MARQUEUR EST POSÉ AVANT LE PREMIER RENDU, et c'est tout ce qui compte :
-   posé plus tard, la page s'afficherait d'abord en petit puis sauterait. On le
-   pose donc ici, au chargement du script, pas dans DOMContentLoaded.
+   ON LE RECONNAÎT À LA PHYSIQUE, pas à un paramètre d'URL. « window.top !==
+   window » est vrai exactement quand il existe un parent à qui demander la
+   fermeture, et c'est précisément la condition qui décide. Un paramètre aurait
+   pu être oublié par l'appelant ; celui-ci ne peut pas mentir.
 
-   C'EST LA MÊME PAGE, PAS UNE SECONDE. Une page d'accueil séparée aurait
-   divergé du panneau à la première section ajoutée — et c'est précisément le
-   panneau qu'on veut faire connaître. */
+   LE MARQUEUR EST POSÉ AVANT LE PREMIER RENDU : posé plus tard, la croix
+   apparaîtrait après coup, dans une page déjà lue. */
 try {
-  if (new URLSearchParams(location.search).get('vue') === 'onglet') {
-    document.documentElement.setAttribute('data-vue', 'onglet');
-  }
-} catch { /* URL illisible : on reste en popup, ce qui est le cas courant */ }
+  if (window.top !== window) document.documentElement.setAttribute('data-vue', 'incruste');
+} catch {
+  /* Un accès à `window.top` inter-origine peut lever : si on ne peut pas le
+     lire, c'est qu'il y a bien un parent d'une autre origine — donc un cadre. */
+  document.documentElement.setAttribute('data-vue', 'incruste');
+}
 
 const THEME_CLE = 'tse:theme';
 const appliquerThemePanneau = (t) => {
@@ -1274,98 +1276,6 @@ const appliquerDiag = () => {
   document.documentElement.toggleAttribute('data-sans-diag', !diagVisible());
 };
 
-/* ════════════════════════════════════════════════════════════════════════════
-   LA PAGE D'ACCUEIL, OUVERTE À L'INSTALLATION
-   ────────────────────────────────────────────────────────────────────────────
-   ELLE N'A QU'UN SEUL TRAVAIL : dire où est l'icône. Tout le reste du panneau
-   — les données, les réglages, les diagnostics — demande un onglet Twitch au
-   premier plan, que personne n'a forcément à cet instant, et répondrait donc
-   « ouvrez un onglet twitch.tv » en guise de bienvenue. On ne garde que le
-   mode d'emploi, qui ne demande rien à personne.
-
-   LE DESSIN PLUTÔT QUE LA PHRASE. « En haut à droite de votre navigateur » est
-   une phrase que tout le monde lit et que personne ne suit : la barre d'outils
-   n'est pas au même endroit d'un navigateur à l'autre, et l'icône y est
-   souvent rangée derrière une pièce de puzzle. Une maquette de cette barre,
-   avec NOTRE icône dedans et en évidence, se reconnaît d'un coup d'œil.
-
-   L'ICÔNE DU DESSIN EST LA VRAIE, pas un carré violet : c'est exactement ce
-   qu'il faut chercher, et le paquet la porte déjà (`icons/icon48.png`). Un
-   dessin approximatif aurait demandé au lecteur de faire la traduction
-   lui-même — ce qui est précisément l'effort qu'on essaie de lui épargner. */
-const NS = 'http://www.w3.org/2000/svg';
-const svgN = (nom, attrs) => {
-  const e = document.createElementNS(NS, nom);
-  for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, String(v));
-  return e;
-};
-
-/* LA MAQUETTE DE LA BARRE D'OUTILS. Quatre formes et une image : le cadre de
-   la fenêtre, la barre d'adresse, la pièce de puzzle, l'icône mise en
-   évidence. Rien de plus — une maquette qui dessinerait onglets, favoris et
-   boutons de navigation demanderait de CHERCHER l'icône dedans, ce qui est
-   l'inverse du service rendu. */
-const dessinBarre = () => {
-  const svg = svgN('svg', { class: 'bienvenue-dessin', viewBox: '0 0 420 96',
-                            role: 'img', 'aria-label': T('panelWelcomeImage') });
-  svg.appendChild(svgN('rect', { x: 1, y: 1, width: 418, height: 94, rx: 8,
-                                 class: 'bv-cadre' }));
-  /* La barre d'adresse : une forme allongée, sans texte — un faux texte se
-     lirait comme une adresse à déchiffrer. */
-  svg.appendChild(svgN('rect', { x: 18, y: 34, width: 268, height: 28, rx: 14,
-                                 class: 'bv-adresse' }));
-  // La pièce de puzzle, là où les navigateurs rangent les extensions.
-  const puzzle = svgN('path', { class: 'bv-puzzle', d:
-    'M304 38h9a5 5 0 0 1 5-5 5 5 0 0 1 5 5h9v9a5 5 0 0 1 5 5 5 5 0 0 1-5 5v9h-9'
-    + 'a5 5 0 0 0-5-5 5 5 0 0 0-5 5h-9V38z' });
-  svg.appendChild(puzzle);
-  /* L'ANNEAU AVANT L'ICÔNE, pour qu'il passe DESSOUS : posé après, il
-     recouvrirait ce qu'il désigne. */
-  svg.appendChild(svgN('rect', { x: 348, y: 32, width: 32, height: 32, rx: 8,
-                                 class: 'bv-halo' }));
-  const img = svgN('image', { x: 352, y: 36, width: 24, height: 24,
-                              href: 'icons/icon48.png' });
-  /* `href` seul suffit aux navigateurs d'aujourd'hui ; l'attribut historique
-     est posé aussi, parce qu'il ne coûte rien et qu'une image qui ne s'affiche
-     pas retirerait tout son sens au dessin. */
-  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', 'icons/icon48.png');
-  svg.appendChild(img);
-  return svg;
-};
-
-/* LA GRANDE FLÈCHE. Elle ne pointe pas vers un élément de la page — elle
-   pointe HORS de la page, vers la barre d'outils du navigateur, qui est
-   au-dessus. C'est pour ça qu'elle est ancrée en haut à droite et qu'elle
-   monte : sa cible n'est pas dans le document.
-
-   ELLE EST DÉCORATIVE, ET ELLE NE PORTE AUCUN TEXTE. Ce qu'elle dit est déjà
-   écrit en 17 px juste à côté ; la faire lire ajouterait « flèche » à une
-   phrase qui n'en a pas besoin. Une infobulle a été essayée ici et retirée :
-   `pointer-events: none` la rendait inatteignable, donc elle promettait un
-   libellé que personne ne pouvait afficher. */
-const dessinFleche = () => {
-  const hote = div('bienvenue-fleche');
-  const svg = svgN('svg', { viewBox: '0 0 168 184', 'aria-hidden': 'true' });
-  svg.appendChild(svgN('path', { class: 'bv-fleche-trait', d:
-    'M24 176 C 24 118, 44 54, 150 22' }));
-  /* La pointe suit la tangente du trait — (106,-32) à l'arrivée. Une pointe
-     posée à l'équerre sur une courbe se voit tout de suite. */
-  svg.appendChild(svgN('path', { class: 'bv-fleche-pointe', d:
-    'M150 22 l-24 -2 l6 17 z' }));
-  hote.appendChild(svg);
-  return hote;
-};
-
-const construireBienvenue = () => {
-  const hote = div('bienvenue');
-  hote.appendChild(dessinFleche());
-  hote.appendChild(elt('h2', 'bienvenue-merci', T('panelWelcomeThanks')));
-  hote.appendChild(elt('p', 'bienvenue-ou', T('panelWelcomeWhere')));
-  hote.appendChild(dessinBarre());
-  hote.appendChild(elt('p', 'bienvenue-epingler', T('panelWelcomePin')));
-  return hote;
-};
-
 const montrerGuide = () => {
   $('message').hidden = true;
   $('resume').replaceChildren();
@@ -1373,12 +1283,7 @@ const montrerGuide = () => {
   $('visuel').replaceChildren();
   $('tableau-cadre').hidden = true;
   const g = $('guide');
-  /* LE BLOC D'ACCUEIL PASSE DEVANT LE MODE D'EMPLOI, et seulement dans
-     l'onglet ouvert à l'installation : dans la popup, quelqu'un qui clique
-     l'icône l'a manifestement trouvée, et lui expliquer où elle est serait
-     insultant. La même vue, deux contextes, un seul test. */
-  const enOnglet = document.documentElement.getAttribute('data-vue') === 'onglet';
-  g.replaceChildren(...(enOnglet ? [construireBienvenue()] : []), ...construireGuide());
+  g.replaceChildren(...construireGuide());
   g.hidden = false;
   g.scrollTop = 0;
 };
@@ -1944,7 +1849,24 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!$('voile').hidden) { $('voile').hidden = true; aConfirmer = null; return; }
-    if (!$('rapport').hidden) fermerRapport();
+    if (!$('rapport').hidden) { fermerRapport(); return; }
+    /* ── ÉCHAP DANS UN CADRE FERME LE CADRE ────────────────────────────────
+       Rien de plus haut n'est ouvert ici, et il reste pourtant une couche
+       au-dessus : le cadre lui-même, posé par la barre latérale. Une touche
+       frappée DANS une iframe ne remonte pas au document parent — les deux
+       sont d'origines différentes — donc c'est à nous de le dire. La croix du
+       cadre vit côté page ; ceci en est le chemin clavier, pas un doublon.
+
+       On ne poste QUE si l'on est effectivement encadré : dans la popup de
+       barre d'outils, `window.parent` est `window`, et le message reviendrait
+       s'adresser à nous-mêmes. */
+    if (document.documentElement.getAttribute('data-vue') !== 'incruste') return;
+    /* targetOrigin '*' : la destination est une page twitch.tv, dont on ne
+       veut pas coder l'origine en dur — il y en a deux (avec et sans « www »),
+       et une origine qui ne correspond pas fait jeter le message en silence.
+       Ce qui voyage est un ordre de fermeture, sans donnée. */
+    try { window.parent.postMessage({ tse: 'tse-panneau-fermer' }, '*'); }
+    catch { /* parent inatteignable : le cadre se fermera à la croix */ }
   });
 
   charger(courante);

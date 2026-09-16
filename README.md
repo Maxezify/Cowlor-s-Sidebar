@@ -338,11 +338,11 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1012 Ko | 390 Ko | 3 267 → **2** |
+| `content.js` | 1033 Ko | 400 Ko | 3 288 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 97 Ko | 47 Ko | 127 → **0** |
-| `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
-| `background.js` | 11 Ko | 2 Ko | 25 → **0** |
+| `panneau.js` | 92 Ko | 46 Ko | 121 → **0** |
+| `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
+| `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1251 Ko** | **541 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1121 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1131 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2613,6 +2613,172 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La roue crantée, ou le chemin qu'on ne peut pas manquer (v4.12)
+
+### Deux versions à trouver l'icône, et le constat qui les annule
+
+La 4.11 ouvrait un onglet à l'installation. La 4.11.1 a fait de cet onglet une
+vraie page d'accueil : un merci, une maquette de barre d'outils, une grande
+flèche vers le coin haut-droit. Les deux disaient **où chercher**.
+
+**Une extension qui doit expliquer où elle se trouve a déjà perdu.** L'onglet
+s'ouvre ailleurs et se referme ; le bandeau parle une fois puis s'efface ; et
+dans les deux cas, ce qu'on demande à l'utilisateur est d'aller chercher un
+bouton dans une barre qui n'est pas la nôtre, derrière une pièce de puzzle qui
+n'est pas la nôtre non plus.
+
+Cette version retire les deux et pose le panneau **à deux centimètres de là où
+l'utilisateur regarde déjà** : une roue crantée à droite du titre de la barre
+latérale, toujours visible, dans les deux modes.
+
+| ce qui part | ce qui arrive |
+| --- | --- |
+| l'onglet ouvert à l'installation (`onInstalled`) | une roue dans le titre de la barre latérale |
+| le bandeau d'accueil dans la liste suivie | une bulle qui **désigne cette roue**, une seule fois |
+| la page d'accueil et son mode `?vue=onglet` | le panneau **par-dessus Twitch**, à la taille de la popup |
+
+L'icône de la barre d'outils continue d'ouvrir le même panneau : on n'a pas
+remplacé un chemin, on en a ajouté un que personne ne peut manquer.
+
+### C'est la même page, dans un cadre
+
+`panneau.html` est chargée **telle quelle** dans une iframe. Pas réécrite en DOM
+de page : une seconde implémentation aurait divergé de la première à la première
+section ajoutée, et c'est précisément ce panneau-là qu'on veut faire connaître,
+pas une variante de lui.
+
+Le cadre fait **760 × 580**, exactement la popup. Les deux chemins mènent au
+même endroit, à la même taille — et les deux nombres vivent dans `CFG`, lus par
+la feuille de style, pas recopiés à côté d'elle.
+
+> **Aucune permission n'est ajoutée.** `web_accessible_resources` n'est ni
+> `permissions`, ni `host_permissions`, ni `optional_permissions` — et
+> `npm run addon` vérifie toujours qu'aucune des trois n'existe. Elle déclare
+> qu'une page de l'extension peut être chargée par twitch.tv, et rien d'autre.
+
+**L'adresse vient du pont, et c'est une contrainte, pas un détour.** `content.js`
+tourne en monde `MAIN` : il n'a pas `chrome.runtime`, donc pas `getURL`. Seul
+`bridge.js` — monde `ISOLATED`, même DOM — peut la dire. Il répond à **chaque**
+demande plutôt qu'annoncer une fois au démarrage : les deux fichiers démarrent à
+`document_start`, et celui qui parle en premier parle à personne.
+
+> **Un message est quelque chose que n'importe quel script de la page peut
+> émettre.** Sans filtre, une page hostile ferait charger SON adresse dans un
+> cadre qui a l'air du nôtre — un hameçonnage avec notre décor autour. On
+> n'accepte donc qu'un schéma d'extension, et le banc essaie les trois formes
+> auxquelles on pense en premier : `https://`, `javascript:`, `//`.
+
+### Quatre sorties, et elles échouent séparément
+
+La croix, la touche Échap, le clic sur le voile, et le panneau lui-même. Ce
+dernier n'est pas un doublon du deuxième : **Échap frappée dans le cadre ne
+remonte pas jusqu'à la page** — deux origines — donc `panneau.js` l'écoute et
+poste la fermeture au parent. Chacune a son assertion, plus les deux qui
+comptent autant :
+
+- **le clic DANS le cadre ne ferme pas** — un « fermer au clic sur le voile »
+  écrit sans garde ferme aussi quand on clique le panneau ;
+- **un message de fermeture venu de la page est ignoré** — on compare
+  `event.source` à `frame.contentWindow`, pas à une origine qu'on ne connaît pas.
+
+Et une septième, qui ne se voit qu'après coup : **quatre allers-retours ne
+laissent aucun voile derrière eux.** Un écouteur de touche posé sur le document
+et jamais retiré s'accumule à chaque ouverture, et le symptôme est alors attribué
+à tout autre chose.
+
+### Le premier lancement : la roue bat, la bulle explique
+
+À la première installation seulement, la roue **grossit et bat**, et une bulle la
+désigne d'une flèche :
+
+> Merci d'avoir installé Cowlor's Sidebar ! Apprenez à utiliser l'extension,
+> personnalisez et regardez toutes vos données stockées ici.
+
+Une pastille ne se voit pas sur un bouton de vingt-six pixels au milieu d'une
+interface chargée ; un changement de **taille**, lui, se voit du coin de l'œil —
+c'est la seule chose qui bouge dans une barre latérale par ailleurs immobile. Le
+halo est une **ombre** et non une bordure : une bordure qui grossit décalerait le
+titre à côté à chaque battement.
+
+La décision « installation neuve » vient du même mécanisme que le bandeau qu'elle
+remplace, et pour la même raison : **elle se prend une fois et s'écrit.** Sans
+ça, le roster se remplit en quelques secondes, l'ancienneté devient vraie au
+chargement suivant, et la bulle n'aurait été montrée qu'à ceux qui regardaient
+l'écran à la bonne seconde. Le scénario 123 recharge la page **après** que le
+roster s'est rempli et exige que la bulle soit toujours là.
+
+Elle se renvoie de deux façons — la croix, ou le clic sur la roue. Le second est
+le plus important : **quelqu'un qui ouvre le panneau a trouvé la roue**, et
+continuer à la faire battre serait insister après coup.
+
+#### Le mouvement réduit, et le piège qui s'est déjà refermé une fois
+
+Ce battement-là est du mouvement au sens strict — il change une **taille**,
+c'est-à-dire exactement ce que la WCAG appelle l'illusion d'un déplacement. Pas
+de version calme à négocier comme pour l'opacité de la barre du stream frais : il
+s'arrête entièrement. Le fond violet et l'anneau restent, figés à leur point
+haut, et la bulle à côté dit le reste.
+
+> **`!important` est ici une correction, pas une facilité.** La règle qui déclare
+> le battement vit PLUS BAS dans la feuille, à spécificité égale : sans ce mot,
+> l'ordre l'emporte et le bloc ne s'applique pas — silencieusement, chez les
+> seuls utilisateurs qui l'ont demandé. C'est **exactement** le piège qui a fait
+> passer l'arc-en-ciel du subathon à travers ce réglage pendant deux versions.
+> Le mutant a été joué : retirer les trois `!important` fait tomber l'assertion.
+
+### La flèche est posée par mesure, et un décalage écrit en dur ne pouvait pas marcher
+
+La bulle se positionne par rapport à la **barre latérale** ; la roue est placée
+par le rembourrage que **Twitch** donne à son titre — une valeur que ce fichier ne
+connaît pas, qui n'est pas la même en colonne réduite, et qui peut changer sans
+prévenir.
+
+Relevé avant correction : **flèche à 223 px, centre de la roue à 234,5**. Elle
+désignait le bord du bouton, pas le bouton. On demande donc leur position aux
+deux, et on pose la flèche entre les deux :
+
+| situation | écart mesuré |
+| --- | --- |
+| avec le rembourrage de Twitch (approximé à 10 px) | **0,0 px** |
+| roue collée au bord, sans rembourrage (page de test) | **3,0 px**, borne de la marge anti-coin |
+
+C'est la seule écriture de style en ligne du fichier, et elle est bornée : elle
+n'a lieu que tant que la bulle existe, c'est-à-dire une fois dans la vie d'une
+installation.
+
+### Ce que le banc ajoute
+
+Trente-deux assertions, six mutants, aucun survivant :
+
+| mutant | l'assertion qui tombe |
+| --- | --- |
+| `ensureRoue()` retiré de la passe | « la passe suivante la repose, une seule fois, dans le titre neuf » |
+| le filtre de schéma d'adresse retiré | « une adresse qui n'est pas celle d'une extension est refusée » |
+| la garde de cible du voile retirée | « le clic DANS le cadre ne ferme pas » |
+| la garde de source du message retirée | « un message de fermeture venu de la page est ignoré » |
+| les `!important` du mouvement réduit retirés | « le battement s'arrête entièrement » |
+| `placerFleche` neutralisé | « la flèche vise le centre de la roue » |
+
+Le scénario 121 mérite un mot de plus. Twitch est une application à page unique,
+et son titre est **remonté à chaque navigation interne** : une roue posée une
+seule fois disparaîtrait au premier clic sur une chaîne, sans erreur et sans
+trace. Le banc rejoue exactement ce que fait React — le titre est **remplacé**
+par un nœud neuf, pas vidé, ce qui est la seule façon d'éprouver la garde
+`contains` — puis exige que la roue revienne, **une seule**, dans le titre neuf.
+
+La roue est aussi posée **à côté** du `<h3>` et non dedans, parce que
+`renameRootTitle()` écrit `textContent` sur ce `<h3>` à chaque passe : posée
+dedans, elle serait effacée une fois par seconde, et le seul symptôme serait un
+bouton qui clignote.
+
+### Ce que `npm run addon` apprend au passage
+
+Une entrée de `web_accessible_resources` qui nommerait un fichier absent du
+paquet donnerait un cadre **vide** — sans erreur, sans message, sans rien à
+déboguer : le navigateur refuse la navigation en silence. Ces entrées rejoignent
+donc la liste de ce que le manifeste nomme et que le paquet doit contenir. Mutant
+joué : renommer la ressource en `panneau-absent.html` fait tomber le contrôle.
 
 ## La page d'installation avait tout, sauf ce qu'elle devait dire (v4.11.1)
 
@@ -7133,7 +7299,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 123 scénarios, 1121 assertions |
+| `npm test` | le harnais Playwright : 123 scénarios, 1131 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
