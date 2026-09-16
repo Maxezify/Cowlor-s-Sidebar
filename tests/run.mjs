@@ -16800,6 +16800,117 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ UN SÉLECTEUR MORT NE DOIT PAS RENDRE « ZÉRO » EN SILENCE ══════
+   LE RAPPORT : « le système de récupération des abonnements ne fonctionne
+   plus, je fais le bouton et rien ne se passe. » Le relevé tournait pourtant —
+   horodatage à jour, « en attente : false » — et rendait ZÉRO sur un compte
+   qui portait douze abonnements une heure plus tôt.
+
+   LE GARDE-FOU EXISTAIT, ET IL ÉTAIT AVEUGLE. Il jugeait sur la MÉMOIRE :
+
+       if (!trouves.length) { const connus = …; if (connus) erreurs.noter(…) }
+
+   « zéro trouvé, zéro connu » étant le compte de quelqu'un sans abonnement, il
+   se taisait — et la mémoire venait justement d'être effacée. Deux pannes
+   rendaient le même chiffre, et une seule était dite.
+
+   LA PAGE SAIT MIEUX QUE NOUS, ET C'EST LE SEUL TÉMOIN QUI TIENNE. Un onglet
+   qui s'est AFFICHÉ — sa barre latérale est là, donc l'application de Twitch
+   est debout — et où le sélecteur n'accroche RIEN ne décrit pas un compte
+   vide. Ce verdict ne dépend d'aucune mémoire, donc aucun effacement ne peut
+   l'aveugler.
+
+   PUIS UN SECOND RAPPORT A MONTRÉ QU'IL Y AVAIT DEUX CAUSES, PAS UNE. La page
+   affichait, en toutes lettres, « Impossible d'afficher vos abonnements pour
+   le moment » : sa PROPRE requête avait échoué. Zéro carte, page parfaitement
+   rendue, et notre sélecteur parfaitement valide. Accuser le sélecteur là
+   aurait envoyé la recherche exactement du mauvais côté.
+
+   D'OÙ LE TÉMOIN SUPPLÉMENTAIRE : ce que Twitch a ÉCRIT à la place des
+   cartes. Quand il écrit quelque chose, on le recopie et on s'arrête là —
+   aucune déduction de notre part ne vaut la phrase de la page. Les deux décors
+   ci-dessous ne diffèrent QUE par cela, et le relevé doit les séparer. */
+{
+  titre('127. Abonnements — zéro carte, deux causes, et le relevé les sépare');
+
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const amorcer = () => {
+    /* MÉMOIRE VIDE, comme après un « Effacer l'historique » — la condition
+       exacte dans laquelle l'ancien garde-fou se taisait. */
+    localStorage.clear();
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+    window.__addCard('omofficial', 'G', '500');
+  };
+  const relever = async (p) => {
+    await p.evaluate(amorcer);
+    await attendre(p, () => !!localStorage.getItem('tse:substs'), 25_000);
+    return p.evaluate(() => {
+      const r = window.tse.panneau.rapport();
+      return { onglets: r.relevesAbonnements.onglets || [],
+               connus: window.tse.panneau('subs').lignes.length,
+               erreurs: r.erreurs.map((e) => `${e.message || ''} ${e.detail || ''}`) };
+    });
+  };
+
+  /* ── 1. LE SÉLECTEUR MORT ────────────────────────────────────────────────
+     Twitch renomme son attribut : la page rend EXACTEMENT les mêmes cartes,
+     sous un autre nom, et n'écrit aucun message. */
+  const RENOMME = () => { window.__subCardAttr = 'subscription-card-v2'; };
+  const pageMorte = await freshTwitch(PLAYER, [], '/', RENOMME);
+  const vu = await relever(pageMorte);
+
+  /* CE QUE LE BILAN DOIT PORTER, et c'est lui qui rend les pannes
+     distinguables : une page qui n'a jamais chargé n'a pas montré sa barre ;
+     une page affichée, barre présente, zéro carte, est autre chose. */
+  const affiches = vu.onglets.filter((o) => o.charge && o.barre && o.noeuds > 0);
+  ok('le bilan dit, onglet par onglet, ce que la page a montré',
+     vu.onglets.length >= 3 && affiches.length >= 1,
+     JSON.stringify(vu.onglets));
+  ok('…les onglets se sont bien affichés, et n\'ont rendu aucune carte',
+     affiches.length >= 1 && affiches.every((o) => o.cartes === 0),
+     JSON.stringify(affiches));
+  /* L'ASSERTION QUI TIENT TOUT : la mémoire est vide, donc l'ancien verdict se
+     taisait. Le nouveau parle quand même, parce qu'il regarde la page. */
+  ok('…et le relevé le DIT, alors même que la mémoire était vide',
+     vu.connus === 0
+     && vu.erreurs.some((e) => /aucun ne rend/.test(e) && /subscription-card/.test(e)),
+     JSON.stringify(vu.erreurs));
+  await pageMorte.close();
+
+  /* ── 2. LA PAGE QUE TWITCH REFUSE DE SERVIR ──────────────────────────────
+     Le sélecteur est INTACT. La page s'affiche, et met un message là où les
+     cartes auraient dû être. Le relevé rend zéro — correctement — et doit
+     recopier la phrase plutôt que d'inventer un coupable. */
+  const PHRASE = 'Impossible d\'afficher vos abonnements pour le moment.';
+  const REFUS = () => {
+    window.__subsMessage = 'Impossible d\'afficher vos abonnements pour le moment.';
+  };
+  const pageRefus = await freshTwitch(PLAYER, [], '/', REFUS);
+  const vu2 = await relever(pageRefus);
+  const muets = vu2.onglets.filter((o) => o.charge && o.barre);
+
+  ok('la phrase de Twitch est relevée, onglet par onglet',
+     muets.length >= 1 && muets.every((o) => o.cartes === 0 && o.texte.includes(PHRASE)),
+     JSON.stringify(vu2.onglets));
+  /* ET ELLE PREND LE PAS SUR NOTRE DÉDUCTION. Sans cette assertion, le relevé
+     accuserait son propre sélecteur d'une panne qui ne le concerne pas — et
+     c'est précisément la fausse piste que le rapport de terrain a créée. */
+  ok('…et le verdict la recopie au lieu d\'accuser notre sélecteur',
+     vu2.erreurs.some((e) => e.includes(PHRASE))
+     && !vu2.erreurs.some((e) => /ne correspond plus|à revérifier/.test(e)),
+     JSON.stringify(vu2.erreurs));
+  /* LA BARRE LATÉRALE NE DOIT PAS PARTIR AVEC. La phrase vient de `main` seul :
+     un repli sur le document entier verserait la barre — ses en-têtes, et donc
+     ses pseudonymes — dans un journal que l'utilisateur nous enverra ensuite.
+     « Chaînes suivies » est le premier texte du document : un repli sur `body`
+     le ferait apparaître en tête de chaque phrase relevée. */
+  ok('…sans emporter avec elle le contenu de la barre latérale',
+     muets.every((o) => !/Chaînes suivies|Afficher plus/.test(o.texte)),
+     JSON.stringify(muets.map((o) => o.texte)));
+  await pageRefus.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

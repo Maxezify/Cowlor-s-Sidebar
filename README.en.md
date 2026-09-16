@@ -2479,6 +2479,146 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## A sweep was returning "zero" in silence, and there were two causes (v4.13.3)
+
+### The report
+
+> "The subscriptions retrieval no longer works. I press the 'Sweep now' button
+> and nothing happens."
+
+The diagnostic report, meanwhile, said **everything was fine**:
+
+```
+timestamp     2026-09-16T14:48:15.008Z   ← sweep launched two minutes earlier
+subscriptions 0
+pending       false                      ← finished, not stuck
+ERRORS (0)
+```
+
+The button worked. The sweep ran to completion. It brought back nothing — on an
+account that carried **87 channels and 12 subscriptions** an hour earlier.
+
+### A whole feature resting on a single selector
+
+The entire sweep rests on `[data-a-target="subscription-card"]`. If it no longer
+matches, every tab is declared empty — and **an empty tab is deliberately not an
+error**: the "mobile" tab is empty for almost everyone, and an earlier version
+wrote a red line on every sweep for nothing.
+
+### The guard existed, and it was blind
+
+```js
+if (!trouves.length) {
+  const connus = subs.entries().filter(e => e.sub).length;
+  if (connus) erreurs.noter('abonnements', `relevé complet sans résultat, …`);
+}
+```
+
+It judged on **memory**. "Zero found, zero known" being the account of someone
+with no subscriptions, it stayed quiet — and memory had just been cleared. **Two
+failures produced the same number, and only one was reported.**
+
+### The page knows better than we do, and the witness was already there
+
+A tab that **rendered** and where the selector matches **nothing** does not
+describe an empty account. What remains is to say what "rendered" means — and the
+answer did not have to be invented: the polling loop already refuses to call a
+tab empty until `#side-nav` is present, **because its presence says Twitch's
+application is up**. The verdict judges on that same witness.
+
+> **A first draft added a second witness: "the document exceeds 400 nodes".**
+> That number came from no measurement — `twitch.tv` is not reachable from the
+> machine writing this code — and it only held because it had been calibrated
+> against the fixture. A threshold no measurement supports is a threshold that
+> will mislead the day the page changes size. It is gone.
+
+### Then a second report showed there were TWO causes
+
+The subscriptions page, opened by hand, was showing this:
+
+> "We can't display your subscriptions right now. Please try again later."
+
+And Twitch's own console, underneath:
+
+```
+SubscriptionsManagement_ExpiredSubscriptions: failed integrity check
+SubscriptionsManagement_SubscriptionBenefits: failed integrity check
+```
+
+**Twitch's own request had failed.** Zero cards, page perfectly rendered,
+selector perfectly valid. A verdict drawn from our side alone would have accused
+our selector of a failure that was not its own — and sent the search in exactly
+the wrong direction.
+
+### Hence the missing witness: what Twitch WRITES in place of the cards
+
+When the page writes something where the cards should have been, we **copy its
+sentence** and the statement stops there. No deduction of ours is worth the
+page's own words.
+
+Four statements, and none claims more than what is known:
+
+| what was seen | what the sweep says |
+| --- | --- |
+| no tab rendered | nothing further — each tab has already named its own cause |
+| rendered, silent, **and the page writes** | its sentence, copied, full stop |
+| rendered, silent, nothing written, subscribers in memory | the selector no longer matches |
+| rendered, silent, memory empty | account with no subscription **or** dead selector — it cannot be decided, and it says so |
+
+**Silence is forbidden as soon as a tab has rendered** — and that is exactly
+where it reigned.
+
+> **An intermediate draft also spoke when NO tab rendered, and the bench refused
+> it.** Every exit that precedes rendering already records its own cause:
+> redirect to `/login`, unreadable origin, inaccessible document, timeout. One
+> more line repeating "no tab rendered Twitch" teaches nothing — and scenario 75
+> has held the opposite for a long time: a log people learn to ignore is worth
+> nothing. There, only memory still adds something, when it contradicts the
+> result.
+
+### The sentence comes from `main`, with no fallback to `body`
+
+The sidebar is full of usernames. A fallback to the whole document would pour
+them all into an error log the user will then send us. No sentence is better than
+a sentence they would not have wanted to send — the tab line's numbers stay
+either way. Length is capped at **200 characters**: we want a sentence, not a
+page.
+
+### What the sweep now records
+
+Per tab, taken at the **highest reached** during polling — a snapshot taken too
+early would call a page empty when it was merely slow:
+
+| | what it distinguishes |
+| --- | --- |
+| `charge` | did the frame yield a document? |
+| `noeuds` | the size reached, for reading — no verdict depends on it any more |
+| `barre` | is Twitch's application up? |
+| `cartes` | does the selector match anything? |
+| `texte` | what Twitch wrote instead, when there is no card at all |
+
+The report prints them, one line per tab. **"rendered · sidebar yes · 0 cards ·
+the page says: 'We can't display your subscriptions…'"** is confusable neither
+with **"never loaded"** nor with a dead selector.
+
+### What this version does not fix
+
+**The cause of the integrity failure.** It lies with Twitch or with an extension
+intercepting `fetch` — the reported console shows several at work on the same
+page. Neither hypothesis can be settled from here: `gql.twitch.tv` is not
+reachable from the machine writing this code. What this version guarantees is
+that the failure **will say so, on the right side**.
+
+### What the bench adds
+
+The fixture could play neither case: its subscriptions page hard-coded the
+attribute, and had no `<main>`. It now carries both flags, and the two fixtures
+differ by **that alone**.
+
+Scenario 127 replays both — six assertions, including the two that carry it all:
+*"the sweep SAYS so, even with memory empty"*, and *"the verdict copies the
+sentence instead of accusing our selector"*.
+
 ## The back/forward cache, and what the audit found (v4.13.2)
 
 Audit requested: *"check that when the sidebar is not visible it reloads

@@ -1759,6 +1759,19 @@ const construireRapport = (r, transport, fond) => {
     paire('horodatage', r.relevesAbonnements?.horodatage
       ? new Date(r.relevesAbonnements.horodatage).toISOString() : 'jamais / never'),
     paire('en attente / pending', r.relevesAbonnements?.enAttente),
+    /* CE QUE CHAQUE ONGLET A VU. Un relevé qui rend zéro ne dit rien tout
+       seul : « affiché, barre là, 3 200 nœuds, 0 carte » désigne un sélecteur
+       mort, « jamais chargé » désigne autre chose. Une ligne par onglet, dans
+       l'ordre où ils ont été visités — et, quand l'onglet n'a rendu aucune
+       carte, LA PHRASE QUE TWITCH A MISE À LEUR PLACE. C'est elle qui sépare
+       « notre sélecteur ne correspond plus » de « Twitch refuse de servir
+       cette page », deux causes opposées sous un même zéro. */
+    ...((r.relevesAbonnements?.onglets || []).map((o) => paire(
+      `onglet ${o.onglet}`,
+      `${o.charge ? 'affiché' : 'jamais chargé'} · ${o.noeuds} nœuds`
+      + ` · barre ${o.barre ? 'oui' : 'non'} · ${o.cartes} carte(s)`
+      + ` · ${o.logins} chaîne(s)`
+      + (o.texte ? ` · la page dit : « ${o.texte} »` : '')))),
   ]));
   L.push(...bloc('RÉSEAU / NETWORK', [
     ...aplatir(r.reseau),

@@ -757,7 +757,11 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
     for (const login of (ONGLETS[tab] || [])) {
       const carte = document.createElement('div');
       carte.className = 'subscription-card';
-      carte.setAttribute('data-a-target', 'subscription-card');
+      /* __subCardAttr : le jour où Twitch renomme cet attribut, la page rend
+         EXACTEMENT les mêmes cartes sous un autre nom — et le relevé rend
+         zéro sans rien dire. C'est le cas que le décor ne savait pas jouer, et
+         qu'un rapport de terrain a exigé. */
+      carte.setAttribute('data-a-target', window.__subCardAttr || 'subscription-card');
       const passe = EXPIRES.includes(login) && tab === 'expired';
       const m = MOIS[login] || 0;
       // Copie FIDÈLE de la structure relevée le 31/08/2026. Ce qui compte :
@@ -797,7 +801,26 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
       else carte.insertAdjacentHTML('beforeend', corps);
       zone.appendChild(carte);
     }
-    document.getElementById('root').appendChild(zone);
+    /* LE CORPS PRINCIPAL, ET IL N'ÉTAIT PAS LÀ. La vraie page range ses
+       cartes dans un <main> ; ce décor les posait à même #root, ce qui rendait
+       le relevé incapable de distinguer la zone des abonnements de la barre
+       latérale. Un rapport de terrain l'a exigé : Twitch écrit parfois un
+       message À LA PLACE des cartes, et c'est ce message qu'il faut pouvoir
+       lire — sans emporter les pseudonymes de la barre avec lui. */
+    const principal = document.createElement('main');
+    /* __subsMessage : ce que Twitch affiche quand SA PROPRE requête échoue
+       (« Impossible d'afficher vos abonnements pour le moment »). La page est
+       parfaitement rendue, la barre est là, et il n'y a AUCUNE carte — un zéro
+       qui ne dit rien sur notre sélecteur. C'est le cas que le décor ne savait
+       pas jouer, et il se confondait avec le sélecteur mort. */
+    if (window.__subsMessage) {
+      const m = document.createElement('p');
+      m.textContent = window.__subsMessage;
+      principal.appendChild(m);
+    } else {
+      principal.appendChild(zone);
+    }
+    document.getElementById('root').appendChild(principal);
   }, window.__subsDelay || 600);
 }
 
