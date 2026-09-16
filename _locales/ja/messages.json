@@ -573,20 +573,8 @@
   "optDescStories": {
     "message": "既定では表示されます。Twitch がそうしているからです。"
   },
-  "optDeplier": {
-    "message": "「もっと見る」を自動で開く"
-  },
-  "optDescDeplier": {
-    "message": "オフにすると、リストは Twitch が描いたままになります。拡張機能は見えている範囲を測り続けます。"
-  },
   "optGrpAbos": {
     "message": "サブスクの読み取り"
-  },
-  "optAbosReleve": {
-    "message": "自分のサブスクを読み取る"
-  },
-  "optDescAbosReleve": {
-    "message": "拡張機能で唯一、認証を伴うリクエストです。あなた自身の twitch.tv/subscriptions を見えないフレームで開きます。オフにすると、金色と「サブスクを先頭に」の並べ替えは訪問したチャンネルだけを頼りにします。"
   },
   "optAbosPeriode": {
     "message": "最短の間隔"
@@ -599,15 +587,6 @@
   },
   "optDescTheme": {
     "message": "「自動」は Twitch のテーマに従います。固定しても変わるのは、拡張機能が上に描く色だけです。"
-  },
-  "optGrpDonnees": {
-    "message": "データ"
-  },
-  "optVisites": {
-    "message": "訪問を記録する"
-  },
-  "optDescVisites": {
-    "message": "オフにしても、すでに学習した内容は読めます。ただし新たに増えません。「個人的な人気」の並べ替えとリズムの表は更新されなくなります。"
   },
   "optGrpPanneau": {
     "message": "このパネル"
@@ -682,7 +661,7 @@
     "message": "すべての設定を既定に戻しますか？"
   },
   "optResetText": {
-    "message": "このページの 22 個の設定がすべて元の値に戻ります。データ — 訪問履歴、サブスク、フォロー中のチャンネル — はそのままです。"
+    "message": "このページの 19 個の設定がすべて元の値に戻ります。データ — 訪問履歴、サブスク、フォロー中のチャンネル — はそのままです。"
   },
   "optValPlein": {
     "message": "完全"

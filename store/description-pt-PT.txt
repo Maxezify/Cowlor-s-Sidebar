@@ -199,7 +199,7 @@ A Twitch tem um tema claro. A extensão dá por isso e muda com ele — sem reca
 _______________________________
 
 ➤ ⚙️ E SE QUISERES ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas um separador «Opções» no painel devolve-te o comando sobre vinte e duas definições.
+Tudo já vem ativo e não há nada para configurar. Mas um separador «Opções» no painel devolve-te o comando sobre dezanove definições.
 
 - ★ O QUE VÊS ★ Cada distintivo, a duração da emissão e o seu formato, a barra «acabou de começar», o ouro das subscrições, os filtros, os botões de ordenação: tudo liga e desliga numa caixa.
 - ★ O QUE É CARREGADO ★ A pré-visualização pode dispensar o vídeo e manter os distintivos, a linha temporal e a miniatura — ou simplesmente baixar a qualidade. O suficiente para a aliviar sem a perder.

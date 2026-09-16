@@ -199,7 +199,7 @@ Twitch hat ein helles Design. Die Erweiterung merkt es und wechselt mit — ohne
 _______________________________
 
 ➤ ⚙️ UND WENN DU WÄHLEN WILLST
-Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber ein Tab „Optionen“ im Panel gibt dir zweiundzwanzig Einstellungen in die Hand.
+Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber ein Tab „Optionen“ im Panel gibt dir neunzehn Einstellungen in die Hand.
 
 - ★ WAS DU SIEHST ★ Jedes Abzeichen, die Streamdauer und ihr Format, der Balken „gerade gestartet“, das Gold der Abonnements, die Filter, die Sortierschaltflächen: alles lässt sich per Häkchen ein- und ausschalten.
 - ★ WAS GELADEN WIRD ★ Die Vorschau kann auf das Video verzichten und Abzeichen, Zeitleiste und Miniaturbild behalten — oder einfach in der Qualität heruntergehen. Genug, um sie leicht zu machen, ohne sie zu verlieren.

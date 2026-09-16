@@ -4597,14 +4597,27 @@ titre('56. Filtres — la rangée de tri est alignée sur celle des filtres');
     return { gauche: +(p.left - f.left).toFixed(2), droite: +(f.right - d.right).toFixed(2),
              largeur: +p.width.toFixed(2), n: boutons.length };
   });
-  // Les deux rangées vivent dans le même conteneur : leurs bords doivent
-  // coïncider. Un pixel de tolérance pour l'arrondi de rendu.
-  ok('le premier bouton touche le bord gauche des filtres',
-     bords !== null && Math.abs(bords.gauche) <= 1, JSON.stringify(bords));
-  ok('le dernier touche le bord droit',
-     bords !== null && Math.abs(bords.droite) <= 1, JSON.stringify(bords));
-  ok('et les marges gauche et droite sont égales',
+  /* ── DEUX ASSERTIONS TOURNÉES : ÉTALÉ N'EST PAS CENTRÉ ──────────────────
+     Elles exigeaient que le premier bouton TOUCHE le bord gauche des filtres
+     et le dernier le bord droit — c'est-à-dire « justify-content:
+     space-between ». C'était juste tant que les six boutons étaient toujours
+     là : ils remplissaient la rangée, et l'étalement se confondait avec un
+     alignement.
+
+     LES RÉGLAGES ONT RENDU LEUR NOMBRE VARIABLE, et l'étalement est devenu
+     absurde — à deux boutons, un dans chaque coin. Un utilisateur l'a
+     demandé : « il faut toujours centrer horizontalement, qu'il y en ait une,
+     deux, trois, quatre, cinq ou six ». La rangée se centre donc, et ce qu'on
+     exige n'est plus le contact avec les bords mais leur SYMÉTRIE — la seule
+     propriété qui reste vraie dans les six cas.
+
+     LA TROISIÈME ASSERTION NE BOUGE PAS, et c'est elle qui portait déjà le
+     sens : marges égales. Elle était vraie sous « space-between » parce que
+     les deux valaient zéro ; elle l'est encore, autrement. */
+  ok('la rangée de tri est centrée dans celle des filtres',
      bords !== null && Math.abs(bords.gauche - bords.droite) <= 1, JSON.stringify(bords));
+  ok('…et elle y tient, sans déborder d\'un côté ni de l\'autre',
+     bords !== null && bords.gauche >= -1 && bords.droite >= -1, JSON.stringify(bords));
   // La contrepartie assumée : des boutons un peu plus larges que les 28 px
   // d'origine, sans devenir des pavés.
   ok('les boutons se sont élargis en conséquence',
@@ -15077,7 +15090,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses vingt-deux réglages', table.n === 22, String(table.n));
+  ok('la table porte ses dix-neuf réglages', table.n === 19, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -15213,6 +15226,47 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      qui retire la règle CSS laisse le jeton intact et tombe ici. */
   ok('…et la durée disparaît vraiment', coupe.display === 'none', coupe.display);
 
+  /* ── « VIENT DE DÉMARRER » EST DEUX CHOSES ──────────────────────────────
+     Le réglage ne retirait que la barre, et un utilisateur a demandé que tous
+     les éléments partent. Le lavis violet du fond de carte se voit autant que
+     la barre — c'est même lui qui la fait remarquer. On exige donc les deux,
+     et sur le style calculé : le mutant qui ne neutralise qu'une des deux
+     déclarations de fond tombe ici. */
+  const frais = await page.evaluate(() => {
+    window.tse.options.remettre();
+    const c = document.querySelector('.side-nav-card');
+    c.classList.add('tse-fresh');
+    const avant = { barre: getComputedStyle(c, '::before').display,
+                    lavis: getComputedStyle(c).backgroundImage };
+    window.tse.options.poser('fresh', false);
+    return { avant, apres: { barre: getComputedStyle(c, '::before').display,
+                             lavis: getComputedStyle(c).backgroundImage } };
+  });
+  ok('une carte fraîche porte sa barre ET son lavis',
+     frais.avant.barre !== 'none' && frais.avant.lavis !== 'none', JSON.stringify(frais.avant));
+  ok('…et les couper retire les deux, pas seulement la barre',
+     frais.apres.barre === 'none' && frais.apres.lavis === 'none', JSON.stringify(frais.apres));
+
+  /* ── CE QUI RESTE SE CENTRE ─────────────────────────────────────────────
+     Les deux champs de filtre se partagent la rangée par des règles
+     asymétriques ; en retirer un laissait l'autre collé à son bord. */
+  const centrage = await page.evaluate(() => {
+    window.tse.options.remettre();
+    const lire = () => ({
+      tri: getComputedStyle(document.querySelector('.tse-sort-row')).justifyContent,
+      filtre: getComputedStyle(document.querySelector('.tse-filter-row')).justifyContent,
+      langMarge: getComputedStyle(document.querySelector('.tse-filter-field--lang')).marginLeft,
+    });
+    const plein = lire();
+    window.tse.options.poser('filtreCategorie', false);
+    return { plein, ampute: lire() };
+  });
+  ok('les boutons de tri sont centrés, quel que soit leur nombre',
+     centrage.plein.tri === 'center', centrage.plein.tri);
+  ok('…et le filtre restant se recentre au lieu de rester collé au bord',
+     centrage.ampute.filtre === 'center' && centrage.ampute.langMarge === '0px',
+     JSON.stringify(centrage.ampute));
+
   /* ── UN JEU : UN MEMBRE, UN JETON PRÉFIXÉ ───────────────────────────── */
   const jeu = await page.evaluate(() => {
     window.tse.options.remettre();
@@ -15289,6 +15343,32 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { suivi, force, apresSecousse: document.documentElement.getAttribute('data-tse-theme') };
   });
   ok('« auto » suit le thème de Twitch', theme.suivi === 'dark', JSON.stringify(theme));
+  /* ── FORCER N'EST PAS SUIVRE, ET LA FEUILLE DOIT CESSER D'EMPRUNTER ─────
+     En « auto », nos surfaces se servent chez Twitch — « var(--color-…) » —
+     et c'est le bon comportement. Forcé, cette délégation se retourne : un
+     utilisateur a demandé le clair pendant que Twitch restait sombre, et nos
+     textes sont passés au noir sur des fonds restés noirs. On mesure donc le
+     FOND et la COULEUR rendus de la barre, pas la déclaration : la seconde
+     moitié du défaut — une variable qui ne rattrape pas un « color » déjà
+     hérité — ne se voit que là. */
+  const forces = await page.evaluate(() => {
+    const nav = document.querySelector('#side-nav');
+    const lire = () => ({ fond: getComputedStyle(nav).backgroundColor,
+                          texte: getComputedStyle(nav).color,
+                          force: document.documentElement.hasAttribute('data-tse-force') });
+    window.tse.options.remettre();
+    document.documentElement.setAttribute('data-a-theme', 'dark');
+    const auto = lire();
+    window.tse.options.poser('theme', 'light');
+    return { auto, force: lire() };
+  });
+  const clair = (c) => { const m = /(\d+), (\d+), (\d+)/.exec(c || ''); return m
+    ? (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) > 128 : null; };
+  ok('en « auto », le drapeau de forçage n\'est pas posé',
+     forces.auto.force === false, JSON.stringify(forces.auto));
+  ok('…forcé en clair, la barre reçoit un fond CLAIR et une encre SOMBRE',
+     forces.force.force === true && clair(forces.force.fond) === true
+     && clair(forces.force.texte) === false, JSON.stringify(forces.force));
   ok('…et le forcer le remplace, même quand Twitch se rappelle à nous',
      theme.force === 'light' && theme.apresSecousse === 'light', JSON.stringify(theme));
 
@@ -15304,10 +15384,19 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     window.tse.options.poser('apercu', false);
     survoler();
     await new Promise(r => setTimeout(r, 600));
-    return { ouvert, coupe: !!document.querySelector('.tse-preview') };
+    return { ouvert, coupe: !!document.querySelector('.tse-preview'),
+             voileCoupe: document.body.classList.contains('tse-preview-active') };
   });
   ok('l\'aperçu s\'ouvre au survol quand il est actif', apercu.ouvert === true,
      JSON.stringify(apercu));
+  /* LE VOILE RESTE POSÉ. « .tw-dialog-layer » est le conteneur modal que
+     Twitch pose sous son propre tooltip de carte ; l'extension le masque
+     pendant le survol via ce drapeau. L'interrupteur, d'abord placé avant
+     lui, RENDAIT donc à Twitch un tooltip masqué depuis toujours : « quand
+     on décoche l'aperçu on a quand même une petite fenêtre horizontale ».
+     Un interrupteur qui ramène quelque chose n'est pas un interrupteur. */
+  ok('…et le coupant, le voile qui masque le tooltip de Twitch reste posé',
+     apercu.voileCoupe === true, JSON.stringify(apercu));
   /* CELUI-CI EST LE VRAI : coupé, RIEN ne doit s'armer — ni minuteur, ni
      préchargement, ni requête de métadonnées. Un aperçu qui préparerait son
      contenu en coulisses serait un réglage menteur, et le seul à pouvoir s'en
@@ -15358,8 +15447,6 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
       abonnes: { defaut: 'plein', type: 'choix', valeurs: ['plein', 'discret', 'aucun'] },
       subathonJour: { defaut: true, type: 'bool' },
       stories: { defaut: true, type: 'bool' },
-      deplier: { defaut: true, type: 'bool' },
-      abosReleve: { defaut: true, type: 'bool' },
       abosPeriode: { defaut: 6, type: 'choix', valeurs: [3, 6, 12, 24] },
       topN: { defaut: 30, type: 'choix', valeurs: [10, 30, 50] },
       topOnglet: { defaut: true, type: 'bool' },
@@ -15368,7 +15455,6 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
       filtreCategorie: { defaut: true, type: 'bool' },
       filtreLangue: { defaut: true, type: 'bool' },
       theme: { defaut: 'auto', type: 'choix', valeurs: ['auto', 'dark', 'light'] },
-      visites: { defaut: true, type: 'bool' },
     };
     const valeurs = {};
     for (const [id, d] of Object.entries(DEFS)) {
@@ -15448,7 +15534,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              fantomes: peints.filter((id) => !table.includes(id)) };
   }, vue.peints);
 
-  ok('les vingt-deux réglages de la page ont chacun leur ligne',
+  ok('les dix-neuf réglages de la page ont chacun leur ligne',
      contrat.oublies.length === 0, contrat.oublies.join(', '));
   ok('…et aucune ligne fantôme : l\'ordre du panneau couvre exactement la table',
      contrat.fantomes.length === 0, contrat.fantomes.join(', '));
@@ -15459,7 +15545,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('les onze badges et les six tris ont leurs cases',
      vue.cases === 11 && vue.tris === 6, JSON.stringify([vue.cases, vue.tris]));
   ok('les cartouches disent le compte, et zéro modifié au départ',
-     vue.tuiles[0] === '22' && vue.tuiles[1] === '0', JSON.stringify(vue.tuiles));
+     vue.tuiles[0] === '19' && vue.tuiles[1] === '0', JSON.stringify(vue.tuiles));
 
   /* ── CE QUI PART VERS LA PAGE ───────────────────────────────────────── */
   await page.evaluate(() => document.querySelector(
@@ -15512,24 +15598,64 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('…et le focus reste sur le réglage qu\'on vient de toucher',
      apres.focus === 'topN', String(apres.focus));
 
-  /* ── LE MASQUAGE DES DIAGNOSTICS ────────────────────────────────────── */
+  /* ── LE MASQUAGE DES DIAGNOSTICS ──────────────────────────────────────
+     ASSERTION TOURNÉE : ces cinq chapitres ne servent qu'à signaler un
+     problème, et les montrer à tout le monde donnait au panneau l'air d'un
+     outil de débogage. Ils partent donc MASQUÉS, et c'est l'interrupteur qui
+     les rallume. On éprouve le chemin dans ce sens-là. */
   const diag = await page.evaluate(() => {
     const visible = () => [...document.querySelectorAll('.rail-item')]
       .filter((b) => b.dataset.groupe === 'grpDiag')
       .filter((b) => getComputedStyle(b).display !== 'none').length;
-    const avant = visible();
-    /* On vise le groupe par son marqueur, pas par son rang : un neuvième
-       groupe inséré plus haut aurait fait cliquer sur autre chose, et
-       l'assertion aurait échoué en accusant le mauvais coupable. */
+    const titres = () => [...document.querySelectorAll('.rail-groupe')]
+      .filter((h) => h.dataset.groupe === 'grpDiag')
+      .filter((h) => getComputedStyle(h).display !== 'none').length;
+    const avant = { items: visible(), titre: titres() };
+    /* On vise le groupe par son marqueur, pas par son rang : un groupe inséré
+       plus haut aurait fait cliquer sur autre chose, et l'assertion aurait
+       échoué en accusant le mauvais coupable. */
     document.querySelector('#reglages [data-grp="panneau"]')
       .querySelectorAll('.reg-bascule input')[0].click();
-    return { avant, apres: visible(),
-             titre: [...document.querySelectorAll('.rail-groupe')]
-               .filter((h) => h.dataset.groupe === 'grpDiag')
-               .filter((h) => getComputedStyle(h).display !== 'none').length };
+    return { avant, apres: { items: visible(), titre: titres() } };
   });
-  ok('les cinq chapitres de diagnostic se masquent, titre de groupe compris',
-     diag.avant === 5 && diag.apres === 0 && diag.titre === 0, JSON.stringify(diag));
+  ok('les cinq chapitres de diagnostic sont masqués d\'emblée, titre compris',
+     diag.avant.items === 0 && diag.avant.titre === 0, JSON.stringify(diag.avant));
+  ok('…et l\'interrupteur les rallume tous les cinq',
+     diag.apres.items === 5 && diag.apres.titre === 1, JSON.stringify(diag.apres));
+
+  /* ── CE QUI NE DOIT PLUS DÉBORDER ──────────────────────────────────────
+     LE DÉFAUT DE LA 4.10.0, ET IL SE MESURE EN UN NOMBRE. Les cases sont
+     posées en absolu par-dessus leur piste ; sans ancêtre positionné,
+     « absolu » se rapporte au document. Les dix-neuf cases se retrouvaient à
+     des centaines de pixels du haut, « documentElement.scrollHeight » passait
+     de 580 à 2033, et une popup de barre d'outils se dimensionne là-dessus :
+     une fenêtre de sept cents pixels, cartouches et pied hors champ.
+
+     ON MESURE LE DOCUMENT, PAS LA RÈGLE. « position: relative » sur le
+     libellé se vérifierait en lisant le style ; ce qui compte est qu'aucun
+     élément ne sorte de la fenêtre, quelle qu'en soit la cause. */
+  const debord = await page.evaluate(() => ({
+    hauteur: document.documentElement.scrollHeight,
+    /* LA SECONDE ASSERTION A DÛ ÊTRE REFAITE, et l'erreur mérite d'être dite :
+       elle comptait d'abord les éléments dont le bas dépassait 620 px dans la
+       FENÊTRE. Or « #reglages » défile : tout ce qui est sous la ligne de
+       flottaison dépasse légitimement, et le relevé en trouvait quarante-
+       trois sur un produit sain. Une assertion qui échoue sur du code juste
+       est pire qu'une assertion absente — on apprend à l'ignorer.
+
+       CE QU'ON VEUT NOMMER EST PRÉCIS : un élément posé en absolu SANS
+       ancêtre positionné se rapporte au bloc conteneur initial, c'est-à-dire
+       au document. « offsetParent » le dit sans détour, et rien d'autre ne
+       peut le satisfaire par accident. */
+    orphelins: [...document.querySelectorAll('#reglages *')]
+      .filter((e) => getComputedStyle(e).position === 'absolute')
+      .filter((e) => !e.offsetParent || e.offsetParent === document.body)
+      .map((e) => e.tagName + '.' + (e.parentElement?.className || '?')),
+  }));
+  ok('le document ne dépasse pas la fenêtre de la popup',
+     debord.hauteur <= 580, JSON.stringify(debord.hauteur));
+  ok('…et aucun élément posé en absolu ne se rapporte au document lui-même',
+     debord.orphelins.length === 0, JSON.stringify(debord.orphelins.slice(0, 4)));
   await page.close();
 }
 
