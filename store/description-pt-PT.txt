@@ -163,7 +163,7 @@ _______________________________
 ➤ 🎛️ UM PAINEL, AO LADO DOS TEUS CANAIS
 Uma roda dentada à direita do título da barra lateral, um clique, e tudo o que a extensão aprendeu abre por cima do Twitch. O ícone da extensão, no canto superior direito do navegador, abre exatamente o mesmo painel.
 
-- ★ DOIS CAMINHOS, UM SÓ PAINEL ★ A roda na barra lateral ou o ícone na barra de ferramentas: a mesma página, do mesmo tamanho, em ambos os casos.
+- ★ DOIS CAMINHOS, UM SÓ PAINEL ★ A roda na barra lateral ou o ícone na barra de ferramentas: a mesma página, em ambos os casos. Aberta pela roda é maior — uma janela da barra de ferramentas é limitada pelo navegador, não por nós.
 - ★ UM GUIA, LOGO À ENTRADA ★ O painel abre num guia de treze capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhum separador do Twitch aberto.
 - ★ OS SEUS HÁBITOS, DESENHADOS ★ As horas a que vê mesmo, traçadas numa grelha de sete dias por vinte e quatro horas.
 - ★ OS SEUS NÚMEROS ★ Top de streamers, subscrições detetadas, canais seguidos em memória: está tudo lá, legível.

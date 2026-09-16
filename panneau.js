@@ -815,6 +815,79 @@ const idOnglet = () => (ongletP ??= API.tabs
   .then(([t]) => (t ? t.id : undefined))
   .catch(() => undefined));
 
+/* ── LE CHEMIN COURT, QUAND LE PANNEAU EST DANS LA PAGE ────────────────────
+   LE DÉTOUR N'AVAIT DE SENS QUE POUR LA POPUP. Depuis la barre d'outils, le
+   panneau n'a aucun accès à l'onglet : il demande au service worker, qui
+   demande au pont, qui demande à la page. Trois sauts, et chacun peut manquer.
+
+   INCRUSTÉ, LE PANNEAU EST DANS LA PAGE. Faire redescendre la question par le
+   worker pour revenir dans le document qui nous contient est non seulement
+   inutile, c'est FRAGILE — et un retour de terrain l'a montré : « Ouvrez un
+   onglet twitch.tv et mettez-le au premier plan », affiché par-dessus la page
+   Twitch qu'il décrivait, avec la barre latérale décorée sous les yeux de son
+   propriétaire.
+
+   TROIS FAÇONS DONT CE DÉTOUR CASSE, et le chemin court n'en connaît aucune :
+
+     — l'extension est rechargée pendant que la page vit. Les content scripts
+       déjà injectés deviennent orphelins : content.js continue (il n'appelle
+       aucune API d'extension) mais le pont ne peut PLUS se rebrancher, son
+       contexte n'existe plus. Le worker n'a alors aucun port pour cet onglet,
+       définitivement, jusqu'au rechargement de la page ;
+     — le worker s'endort et la reprise du pont laisse une fenêtre aveugle ;
+     — `tabs.query` désigne un onglet, et ce n'est pas forcément celui qui nous
+       contient.
+
+   LE CHEMIN COURT NE TRAVERSE QUE `postMessage`, entre deux documents de la
+   même fenêtre. Il n'y a ni worker, ni port, ni identifiant d'onglet à
+   deviner : la page qui répond est CELLE QUI NOUS AFFICHE, par construction. */
+const EN_CADRE = document.documentElement.getAttribute('data-vue') === 'incruste';
+const INCRUSTE_REQ = 'tse-incruste-req';
+const INCRUSTE_RES = 'tse-incruste-res';
+/* Même borne que le pont : une page peut ne jamais répondre, et un panneau qui
+   tourne indéfiniment ne dit rien à personne. */
+const EXPIRATION_CADRE = 30_000;
+let suivantCadre = 0;
+const attentesCadre = new Map();
+
+window.addEventListener('message', (e) => {
+  /* ON NE RÉPOND QU'À NOTRE PARENT, et sur un identifiant qu'on a soi-même
+     émis. Un script de la page peut poster ce qu'il veut ; il ne peut pas
+     deviner un compteur qu'il ne voit pas passer. */
+  if (e.source !== window.parent) return;
+  const d = e.data;
+  if (!d || d.tse !== INCRUSTE_RES || typeof d.id !== 'number') return;
+  const attente = attentesCadre.get(d.id);
+  if (!attente) return;
+  attentesCadre.delete(d.id);
+  clearTimeout(attente.minuteur);
+  /* La réponse ENTIÈRE, moins ce qui n'appartient qu'à ce saut — même règle
+     qu'au pont, et pour la même raison : recopier les champs un par un finit
+     par en perdre un. */
+  const { tse: _t, id: _i, ...reponse } = d;
+  attente.resoudre(reponse);
+});
+
+const demanderCadre = (charge) => new Promise((resoudre) => {
+  const id = ++suivantCadre;
+  const minuteur = setTimeout(() => {
+    attentesCadre.delete(id);
+    resoudre({ ok: false, erreur: 'expiration-page',
+               detail: 'la page n\'a pas répondu' });
+  }, EXPIRATION_CADRE);
+  attentesCadre.set(id, { resoudre, minuteur });
+  /* targetOrigin '*' : la destination est twitch.tv, dont il existe deux
+     origines (avec et sans « www »), et un targetOrigin qui ne correspond pas
+     fait jeter le message en silence. Ce qui voyage est une demande de lecture
+     de la page, que `window.tse` rend déjà à qui la lui demande. */
+  try { window.parent.postMessage({ tse: INCRUSTE_REQ, id, ...charge }, '*'); }
+  catch {
+    clearTimeout(minuteur);
+    attentesCadre.delete(id);
+    resoudre({ ok: false, erreur: 'absent', detail: 'parent inatteignable' });
+  }
+});
+
 /* L'ÉCHELLE DE RÉESSAIS, ET POURQUOI ELLE NE PEUT PAS ÊTRE UN SEUL DÉLAI.
 
    Chrome termine le service worker après une trentaine de secondes
@@ -845,6 +918,23 @@ const etatFond = () => API.runtime.sendMessage({ type: 'tse-panneau-etat' })
    montrait la dernière erreur comme s'il n'y en avait eu qu'une. */
 const demander = async (charge, essai = 0, trace = []) => {
   const t0 = Date.now();
+  /* LE CHEMIN COURT PASSE DEVANT, et il ne se rabat PAS sur le long : si la
+     page qui nous affiche ne répond pas, passer par le worker pour lui
+     redemander la même chose ne peut rien donner de plus. Un repli qui ne
+     répare rien ne fait que retarder le message qui dit ce qui ne va pas. */
+  if (EN_CADRE) {
+    const r = await demanderCadre(charge);
+    trace.push({ essai, ms: Date.now() - t0, voie: 'cadre',
+                 erreur: r && r.ok ? 'ok' : ((r && r.erreur) || 'vide'),
+                 detail: r && r.detail });
+    /* Un démarrage inachevé se réessaie : content.js peut n'avoir pas fini sa
+       première passe à la seconde où l'on ouvre le panneau. */
+    if (r && r.erreur === 'demarrage' && essai < ATTENTES.length) {
+      await new Promise((res) => setTimeout(res, ATTENTES[essai]));
+      return demander(charge, essai + 1, trace);
+    }
+    return { ...(r || { ok: false, erreur: 'absent' }), trace };
+  }
   const onglet = await idOnglet();
   if (typeof onglet !== 'number') {
     trace.push({ essai, ms: Date.now() - t0, erreur: 'onglet' });

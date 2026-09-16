@@ -2479,6 +2479,96 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The panel was inside the page and asking for directions (v4.13)
+
+### The report, and what it said exactly
+
+> "Open a twitch.tv tab and bring it to the front, then try again.
+> (tab 283882417 — known bridges: none)"
+
+Displayed **on top of the Twitch page it was describing**, with the sidebar
+decorated by the extension right beside it.
+
+### Three hops, and any of them can fail
+
+The detour only ever made sense for the popup. From the toolbar, the panel has
+**no access** to the tab: it asks the service worker, which asks the bridge
+(`bridge.js`), which asks the page.
+
+Embedded, the panel **is** the page. Sending the question down through the
+worker to come back into the document that contains us is not just pointless —
+it is fragile, in three ways:
+
+| what breaks | what it gives |
+| --- | --- |
+| the extension is reloaded while the page lives | `content.js` survives (it calls no extension API), but `bridge.js` is **orphaned**: its context is gone, it can never reconnect. The worker then has **no port at all** for that tab, until the page is reloaded |
+| the worker goes to sleep | the bridge's recovery leaves a blind window, and a click lands in it |
+| `tabs.query` names a tab | not necessarily the one containing us |
+
+The first is the one in the report, and the only one that does not heal by
+itself: it lasts until the user reloads Twitch — which nothing tells them to do.
+
+### The short path
+
+Embedded, the panel talks to its parent. Nothing else:
+
+```
+panel (iframe)  ──postMessage──▶  content.js  ──postMessage──▶  panel
+```
+
+No worker, no port, no tab id to guess: **the page that answers is the one
+displaying us**, by construction. The same `servirPanneau` serves both routes —
+there are not two implementations to drift apart, only two transports.
+
+> **It does NOT fall back to the long path.** If the page displaying us does not
+> answer, going through the worker to ask it the same thing again cannot produce
+> anything more. A fallback that repairs nothing only delays the message that
+> says what is wrong.
+
+Two guards, one on each side, and the bench exercises both:
+
+- **page side**, we serve only the frame we placed — `event.source` is compared
+  to `frame.contentWindow`, not to an origin we do not know;
+- **panel side**, we listen only to `window.parent`, and resolve only on an id
+  we issued ourselves.
+
+Scenario 124 replays the failure **exactly**: `tabs.query` returns no tab,
+`runtime.sendMessage` rejects. Before this version that fixture produced "open a
+twitch.tv tab". It now returns data.
+
+## The gear was turning, and nobody could see it (v4.13)
+
+A half turn on hover — and **a gear is rotationally symmetric**. Eight teeth:
+identical to itself every forty-five degrees. A half turn brings it back exactly
+onto itself.
+
+The transform did happen. Measured: `matrix(-1, 0, 0, -1, 0, 0)`. It was simply
+invisible, and the reasoning that chose it — "a full turn returns to its start
+and therefore says nothing" — applied just as well to the half turn, on that
+glyph.
+
+A **continuous rotation** does not have this problem: what is seen is no longer
+an end position but the movement itself, which symmetry does not erase. It turns
+while the pointer is there, like a cog being driven — and stops entirely under
+`prefers-reduced-motion`, where it has nothing to preserve.
+
+## Two numbers that were no longer the right ones (v4.13)
+
+**The frame goes to 1100 × 760.** 4.12 gave it 760 × 580 in the name of "the
+same size by both routes". The contract was right; its consequence was not:
+those two numbers are a toolbar popup's, **capped by the browser** at 800 × 600
+— not by us. Imposing that cap on the frame meant showing three table rows on a
+screen that offered twenty.
+
+So the panel's stylesheet releases its two numbers when it knows it is embedded:
+`width: 100%; height: 100%`. We release, we do not rebuild — the rail, the
+views, the settings and the manual keep applying as they are.
+
+**The bubble waits for the veil to lift.** Placed underneath, it showed beside an
+empty bar, pointing at a gear not yet visible: the first thing a new user saw was
+an explanation without its subject. `body.tse-loading` is the single source of
+truth for the veil; we read it, we do not invent a second one.
+
 ## Three finishing touches asked for, and two measurements that corrected them (v4.12.2)
 
 Three reports, all about the same thing: what the gear and its bubble **look

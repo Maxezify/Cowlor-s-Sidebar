@@ -1,6 +1,6 @@
 import { chromium, firefox } from 'playwright';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
 import { dirname, join } from 'node:path';
 import { degraisser, degraisserJs, memeCode, compterCommentaires,
@@ -15955,13 +15955,6 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
          ferait annoncer « rouage » par-dessus. */
       dent: r && r.querySelector('.tse-roue-dent[aria-hidden="true"]')
               ? r.querySelector('.tse-roue-dent').textContent : null,
-      /* LA DENT EST DANS UN <span>, ET C'EST STRUCTUREL. Le bouton porte le
-         battement du premier lancement, qui anime « transform: scale » ; la
-         rotation au survol anime « transform » elle aussi. Sur le même
-         élément, la seconde écraserait la première et la roue cesserait de
-         battre dès qu'on l'approche. */
-      rotation: r && r.querySelector('.tse-roue-dent')
-        ? getComputedStyle(r.querySelector('.tse-roue-dent')).transitionProperty : null,
     };
   });
   ok('la roue est posée dans le titre de la barre latérale',
@@ -15981,8 +15974,28 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('…elle a un nom accessible, une infobulle, et une dent muette',
      typeof vue.nom === 'string' && vue.nom.length > 5 && vue.infobulle === vue.nom
      && vue.type === 'button' && vue.dent === '\u2699\uFE0F', JSON.stringify(vue));
-  ok('…et sa dent a sa propre transformation, pour ne pas écraser le battement',
-     vue.rotation === 'transform', JSON.stringify(vue.rotation));
+  /* ── LA DENT EST DANS UN <span>, ET C'EST STRUCTUREL ───────────────────
+     Le bouton porte le battement du premier lancement, qui anime
+     « transform: scale ». La rotation au survol anime « transform » elle
+     aussi : posée sur le MÊME élément, elle écraserait le battement et la roue
+     cesserait de battre dès qu'on l'approche.
+
+     ON ÉPROUVE LA RÈGLE, PAS SON EFFET, et c'est délibéré : le survol ne se
+     simule pas au clavier ni au message — « :hover » ne répond qu'à un vrai
+     pointeur, que ce banc ne déplace pas. Ce qui peut casser est l'endroit où
+     la règle est POSÉE, et c'est cela qu'on lit.
+
+     ASSERTION REFAITE : elle lisait « transitionProperty », et la 4.13 est
+     passée d'une transition à une animation continue — une roue crantée est
+     symétrique, un demi-tour la ramenait sur elle-même sans que rien ne se
+     voie. L'ancienne lecture rendait « all » sur un produit sain. */
+  ok('…et la rotation est déclarée sur la dent, pas sur le bouton qui bat',
+     !!vue.dent
+     && /\.tse-roue:hover \.tse-roue-dent[\s\S]{0,120}animation: tse-roue-tourne/
+          .test(fileText('../content.js'))
+     && !/\.tse-roue:hover \{[\s\S]{0,120}animation: tse-roue-tourne/
+          .test(fileText('../content.js')),
+     JSON.stringify(vue.dent));
 
   /* ── CE QUE REACT EMPORTE, LA PASSE SUIVANTE LE REPOSE ─────────────────
      C'est le mode de panne le plus probable de tout ce scénario : Twitch est
@@ -16029,6 +16042,10 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   titre('122. Le panneau incrusté — son adresse, sa taille, et comment on en sort');
 
   const page = await fresh();
+  /* UNE FENÊTRE ASSEZ GRANDE POUR LE CADRE. Il fait 1100 × 760 et se borne à
+     la fenêtre : mesuré dans une fenêtre par défaut, il rendait 696 px de haut
+     et l'assertion aurait décrit le décor plutôt que le produit. */
+  await page.setViewportSize({ width: 1400, height: 900 });
   await page.evaluate(() => {
     window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 3600e3).toISOString(),
                              viewers: 900, game: 'G', tags: [] } };
@@ -16084,11 +16101,20 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('l\'adresse du pont ouvre le cadre, sur le panneau',
      ouvert.ouvert === true && ouvert.src === 'chrome-extension://tse/panneau.html',
      JSON.stringify(ouvert));
-  /* LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS. Les deux chemins
-     mènent au même panneau ; ils doivent y mener à la même taille, sans quoi
-     une capture d'écran de rapport ne se compare plus à l'autre. */
-  ok('…aux dimensions exactes de la popup : 760 × 580',
-     ouvert.largeur === '760px' && ouvert.hauteur === '580px', JSON.stringify(ouvert));
+  /* ── LA TAILLE, ET POURQUOI ELLE N'EST PLUS CELLE DE LA POPUP ──────────
+     LES DEUX CHEMINS MENAIENT AU MÊME PANNEAU À LA MÊME TAILLE, et c'était le
+     contrat de la 4.12. Il a été révisé depuis, sur retour de terrain : la
+     popup est bornée à 800 × 600 par le NAVIGATEUR, pas par nous, et imposer
+     cette borne au cadre revenait à montrer trois lignes de tableau sur un
+     écran qui en offrait vingt. Le cadre prend donc 1100 × 760, et la feuille
+     du panneau relâche ses deux nombres quand elle se sait incrustée. */
+  ok('…aux dimensions du cadre : 1100 × 760',
+     ouvert.largeur === '1100px' && ouvert.hauteur === '760px', JSON.stringify(ouvert));
+  /* ET LE PANNEAU REMPLIT CE QU'ON LUI DONNE : sans la règle qui relâche ses
+     deux nombres, il resterait une boîte de 760 × 580 dans un coin du cadre. */
+  ok('…et la feuille du panneau relâche ses deux nombres en incrustation',
+     /html\[data-vue="incruste"\][\s\S]{0,120}width: 100%; height: 100%/
+       .test(readFileSync(join(ICI, '..', 'panneau.css'), 'utf8')));
   ok('…annoncé comme fenêtre modale, nommé, avec une croix nommée',
      ouvert.role === 'dialog' && ouvert.modal === 'true'
      && ouvert.nomme === true && ouvert.croix === true, JSON.stringify(ouvert));
@@ -16190,6 +16216,50 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   });
   ok('quatre allers-retours ne laissent aucun voile derrière eux',
      propre.voiles === 0 && propre.cadres === 0, JSON.stringify(propre));
+
+  /* ── LE CHEMIN COURT ──────────────────────────────────────────────────
+     LE DÉTOUR N'AVAIT DE SENS QUE POUR LA POPUP. Depuis la barre d'outils, le
+     panneau demande au service worker, qui demande au pont, qui demande à la
+     page : trois sauts, et chacun peut manquer. Incrusté, le panneau EST dans
+     la page — et un retour de terrain a montré ce que le détour coûtait :
+     « Ouvrez un onglet twitch.tv et mettez-le au premier plan », affiché
+     par-dessus la page Twitch qu'il décrivait.
+
+     LE CAS QUI NE SE RÉPARE PAS AUTREMENT : l'extension rechargée pendant que
+     la page vit. content.js survit — il n'appelle aucune API d'extension —
+     mais bridge.js devient orphelin et ne peut PLUS se rebrancher. Le worker
+     n'a alors aucun port pour cet onglet, définitivement.
+
+     ON ÉPROUVE LA MOITIÉ QUI VIT ICI : la page répond à SON cadre, et à lui
+     seul. L'autre moitié — le panneau qui pose la question — est éprouvée
+     dans son propre scénario, avec un vrai panneau dans un vrai cadre. */
+  const court = await page.evaluate(async () => {
+    if (!document.getElementById('tse-incruste')) {
+      document.getElementById('tse-roue').click();
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    const f = document.querySelector('.tse-incruste-frame');
+    /* Le cadre n'a pas pu charger l'adresse d'extension de ce décor : il porte
+       donc encore son « about:blank », de même origine, où l'on peut écouter. */
+    const w = f.contentWindow;
+    const recues = [];
+    w.addEventListener('message', (e) => { if (e.data && e.data.tse === 'tse-incruste-res') recues.push(e.data); });
+    window.dispatchEvent(new MessageEvent('message', {
+      data: { tse: 'tse-incruste-req', id: 7, section: 'roster' }, source: w }));
+    await new Promise((r) => setTimeout(r, 250));
+    /* LA MÊME DEMANDE, VENUE D'AILLEURS. Un script de la page ne doit pas
+       pouvoir se faire servir par un cadre qu'il n'a pas ouvert. */
+    window.dispatchEvent(new MessageEvent('message', {
+      data: { tse: 'tse-incruste-req', id: 8, section: 'roster' }, source: window }));
+    await new Promise((r) => setTimeout(r, 250));
+    return { combien: recues.length, premiere: recues[0] || null };
+  });
+  ok('la page sert son cadre directement, sans worker ni pont',
+     court.combien === 1 && !!court.premiere && court.premiere.id === 7
+     && court.premiere.ok === true && !!court.premiere.data,
+     JSON.stringify(court).slice(0, 220));
+  ok('…et une demande venue de la page elle-même n\'est pas servie',
+     court.combien === 1, String(court.combien));
 
   /* ── ET DEUX CLICS NE FONT PAS DEUX CADRES ───────────────────────────── */
   const double = await page.evaluate(async () => {
@@ -16481,6 +16551,92 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      JSON.stringify(calme));
   await reduit.close();
   await page.close();
+}
+
+/* ═════════ LE PANNEAU DANS UN CADRE, SANS ONGLET NI WORKER ═══════════════
+   L'AUTRE MOITIÉ DU CHEMIN COURT. Le scénario 122 éprouve la page qui répond ;
+   celui-ci éprouve le panneau qui demande — et il le fait dans les conditions
+   EXACTES de la panne signalée : `tabs.query` ne rend AUCUN onglet, et
+   `runtime.sendMessage` échoue. C'est ce que voit un panneau dont l'extension
+   a été rechargée pendant que la page vivait.
+
+   AVANT LA 4.13, CE DÉCOR DONNAIT « ouvrez un onglet twitch.tv ». Le panneau
+   ne doit plus jamais le dire quand il est DANS la page qu'il décrit. */
+{
+  titre('124. Le panneau incrusté — il parle à la page, pas au worker');
+
+  const messages = JSON.parse(readFileSync(join(ICI, '..', '_locales', 'fr', 'messages.json'), 'utf8'));
+  const hote = join(ICI, 'cadre-tmp.html');
+  /* Un hôte minimal : un cadre, et un répondant. Il tient le rôle que content.js
+     tient sur une vraie page, et rien de plus — ce qu'on éprouve ici est le
+     panneau, pas la page. */
+  writeFileSync(hote, `<!DOCTYPE html><meta charset="utf-8"><body>
+<iframe id="f" src="../panneau.html" style="width:1100px;height:760px;border:0"></iframe>
+<script>
+window.__vues = [];
+addEventListener('message', (e) => {
+  const d = e.data;
+  if (!d || d.tse !== 'tse-incruste-req') return;
+  window.__vues.push(d);
+  e.source.postMessage({ tse: 'tse-incruste-res', id: d.id, ok: true,
+                         data: { colonnes: ['login'], lignes: [], resume: {} } }, '*');
+});
+</script></body>`);
+
+  const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  page.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await page.addInitScript((msg) => {
+    window.chrome = {
+      i18n: { getMessage: (k) => (msg[k] ? msg[k].message : k), getUILanguage: () => 'fr' },
+      /* AUCUN onglet, AUCUN worker : la panne du terrain, reproduite. */
+      tabs: { query: () => Promise.resolve([]) },
+      runtime: { getManifest: () => ({ version: '9.9.9' }),
+                 sendMessage: () => Promise.reject(new Error('worker absent')) },
+    };
+  }, messages);
+  await page.goto(pathToFileURL(hote).href);
+  await attendre(page, () => !!document.getElementById('f'), 6000);
+  await wait(page, 1200);
+
+  const cadre = () => page.frames().find((f) => f.url().includes('panneau.html'));
+  const dedans = await cadre().evaluate(() => ({
+    vue: document.documentElement.getAttribute('data-vue'),
+    rail: document.querySelectorAll('.rail-item').length,
+  }));
+  ok('le panneau encadré se reconnaît incrusté, et se peint',
+     dedans.vue === 'incruste' && dedans.rail > 0, JSON.stringify(dedans));
+  /* IL REMPLIT LE CADRE. Sans la règle qui relâche ses deux nombres, il
+     resterait une boîte de 760 × 580 dans un coin de 1100 × 760. */
+  const taille = await cadre().evaluate(() => [document.body.clientWidth,
+                                               document.body.clientHeight]);
+  ok('…et il remplit le cadre au lieu de rester à la taille d\'une popup',
+     taille[0] === 1100 && taille[1] === 760, JSON.stringify(taille));
+
+  /* Le mode d'emploi ne demande RIEN à personne : c'est une section de données
+     qu'il faut ouvrir pour voir passer une demande. */
+  await cadre().evaluate(() => {
+    const b = [...document.querySelectorAll('.rail-item')].find((x) => x.dataset.id === 'roster');
+    if (b) b.click();
+  });
+  await wait(page, 800);
+  const vu = await page.evaluate(() => window.__vues.length);
+  ok('…il demande à la PAGE, sans onglet actif ni service worker',
+     vu >= 1, String(vu));
+
+  const message = await cadre().evaluate(() => {
+    const m = document.getElementById('message');
+    return m.hidden ? null : document.getElementById('message-texte').textContent;
+  });
+  /* CE QU'IL NE DOIT PLUS DIRE. Le message affiché — s'il y en a un — est celui
+     d'un jeu de données vide, pas celui d'un onglet introuvable : toute la
+     différence entre « la page a répondu, elle n'a rien » et « je n'ai trouvé
+     personne à qui parler ». */
+  ok('…et n\'annonce plus « ouvrez un onglet twitch.tv » par-dessus Twitch',
+     typeof message === 'string' && !/twitch\.tv/i.test(message)
+     && !/onglet|tab\b/i.test(message), JSON.stringify(message));
+
+  await page.close();
+  rmSync(hote, { force: true });
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

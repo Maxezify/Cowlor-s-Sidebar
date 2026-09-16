@@ -2614,6 +2614,99 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le panneau était dans la page et demandait son chemin (v4.13)
+
+### Le rapport, et ce qu'il disait exactement
+
+> « Ouvrez un onglet twitch.tv et mettez-le au premier plan, puis réessayez.
+> (onglet 283882417 — ponts connus : aucun) »
+
+Affiché **par-dessus la page Twitch qu'il décrivait**, avec la barre latérale
+décorée par l'extension juste à côté.
+
+### Trois sauts, et chacun peut manquer
+
+Le détour n'avait de sens que pour la popup. Depuis la barre d'outils, le
+panneau n'a **aucun accès** à l'onglet : il demande au service worker, qui
+demande au pont (`bridge.js`), qui demande à la page.
+
+Incrusté, le panneau **est** dans la page. Faire redescendre la question par le
+worker pour revenir dans le document qui nous contient est non seulement
+inutile — c'est fragile, de trois façons :
+
+| ce qui casse | ce que ça donne |
+| --- | --- |
+| l'extension est rechargée pendant que la page vit | `content.js` survit (il n'appelle aucune API d'extension), mais `bridge.js` devient **orphelin** : son contexte n'existe plus, il ne peut plus se rebrancher. Le worker n'a **plus jamais** de port pour cet onglet, jusqu'au rechargement de la page |
+| le worker s'endort | la reprise du pont laisse une fenêtre aveugle, et un clic tombe dedans |
+| `tabs.query` désigne un onglet | pas forcément celui qui nous contient |
+
+Le premier est celui du rapport, et c'est le seul qui ne se répare pas tout
+seul : il dure jusqu'à ce que l'utilisateur recharge Twitch — ce que rien ne lui
+dit de faire.
+
+### Le chemin court
+
+Incrusté, le panneau parle à son parent. Rien d'autre :
+
+```
+panneau (iframe)  ──postMessage──▶  content.js  ──postMessage──▶  panneau
+```
+
+Ni worker, ni port, ni identifiant d'onglet à deviner : **la page qui répond est
+celle qui nous affiche**, par construction. Le même `servirPanneau` sert les deux
+voies — il n'y a pas deux implémentations à faire diverger, seulement deux
+transports.
+
+> **Il ne se rabat PAS sur le chemin long.** Si la page qui nous affiche ne
+> répond pas, repasser par le worker pour lui redemander la même chose ne peut
+> rien donner de plus. Un repli qui ne répare rien ne fait que retarder le
+> message qui dit ce qui ne va pas.
+
+Deux gardes, des deux côtés, et le banc les éprouve toutes les deux :
+
+- **côté page**, on ne sert que le cadre qu'on a posé — `event.source` est
+  comparé à `frame.contentWindow`, pas à une origine qu'on ne connaît pas ;
+- **côté panneau**, on n'écoute que `window.parent`, et on ne résout que sur un
+  identifiant qu'on a soi-même émis.
+
+Le scénario 124 rejoue la panne **exactement** : `tabs.query` ne rend aucun
+onglet, `runtime.sendMessage` échoue. Avant cette version, ce décor donnait
+« ouvrez un onglet twitch.tv ». Il rend maintenant des données.
+
+## La roue tournait, et personne ne pouvait le voir (v4.13)
+
+Un demi-tour au survol — et **une roue crantée est symétrique par rotation**.
+Huit dents : identique à elle-même tous les quarante-cinq degrés. Un demi-tour
+la ramène exactement sur elle-même.
+
+La transformation avait bien lieu. Mesurée : `matrix(-1, 0, 0, -1, 0, 0)`. Elle
+était simplement invisible, et le raisonnement qui l'avait choisie — « un tour
+complet revient à sa position de départ et ne dit donc rien » — valait tout
+autant pour le demi-tour, sur ce glyphe-là.
+
+Une **rotation continue** n'a pas ce problème : ce qui se voit n'est plus une
+position d'arrivée mais le mouvement lui-même, que la symétrie n'efface pas.
+Elle tourne tant que le pointeur est là, comme un rouage qu'on entraîne — et
+s'arrête entièrement sous `prefers-reduced-motion`, où elle n'a rien à conserver.
+
+## Deux nombres qui n'étaient plus les bons (v4.13)
+
+**Le cadre passe à 1100 × 760.** La 4.12 lui donnait 760 × 580 au nom de
+« la même taille par les deux chemins ». Le contrat était bon ; sa conséquence
+ne l'était pas : ces deux nombres sont ceux d'une popup de barre d'outils,
+**bornée par le navigateur** à 800 × 600 — pas par nous. Les imposer au cadre
+revenait à montrer trois lignes de tableau sur un écran qui en offrait vingt.
+
+La feuille du panneau relâche donc ses deux nombres quand elle se sait
+incrustée : `width: 100%; height: 100%`. On relâche, on ne refait pas — le rail,
+les vues, les réglages et le mode d'emploi continuent de s'appliquer tels quels.
+
+**La bulle attend la levée du voile.** Posée dessous, elle se montrait à côté
+d'une barre vide, désignant une roue qu'on ne voyait pas encore : la première
+chose que voyait un nouvel utilisateur était une explication sans son objet.
+`body.tse-loading` est l'unique source de vérité du voile ; on la lit, on n'en
+invente pas une seconde.
+
 ## Trois finitions demandées, et deux mesures qui les ont corrigées (v4.12.2)
 
 Trois retours, tous sur la même chose : ce que la roue et sa bulle **ont l'air

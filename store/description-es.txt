@@ -163,7 +163,7 @@ _______________________________
 ➤ 🎛️ UN PANEL, JUNTO A TUS CANALES
 Un engranaje a la derecha del título de la barra lateral, un clic, y todo lo que la extensión ha aprendido se abre encima de Twitch. El icono de la extensión, arriba a la derecha del navegador, abre exactamente el mismo panel.
 
-- ★ DOS CAMINOS, UN SOLO PANEL ★ El engranaje de la barra lateral o el icono de la barra de herramientas: la misma página, al mismo tamaño, en ambos casos.
+- ★ DOS CAMINOS, UN SOLO PANEL ★ El engranaje de la barra lateral o el icono de la barra de herramientas: la misma página, en ambos casos. Abierta desde el engranaje es más grande: una ventana emergente de la barra de herramientas la limita el navegador, no nosotros.
 - ★ UN MODO DE EMPLEO, DE ENTRADA ★ El panel se abre con una guía de trece capítulos que enseña todo lo que la extensión añade, con ejemplos dibujados, y se muestra incluso sin ninguna pestaña de Twitch abierta.
 - ★ VUESTROS HÁBITOS, DIBUJADOS ★ Las horas en que veis de verdad, trazadas en una cuadrícula de siete días por veinticuatro horas.
 - ★ VUESTRAS CIFRAS ★ Top de streamers, suscripciones detectadas, canales seguidos en memoria: todo ahí, legible.
