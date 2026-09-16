@@ -8,6 +8,9 @@
   const REQ = 'tse-panneau-req';
   const RES = 'tse-panneau-res';
 
+  const URL_REQ = 'tse-url-req';
+  const URL_RES = 'tse-url-res';
+
   const EXPIRATION = 30_000;
 
   let port = null;
@@ -34,6 +37,14 @@
   window.addEventListener('message', (e) => {
     if (e.source !== window) return;
     const d = e.data;
+
+    if (d && d.tse === URL_REQ) {
+      let url = '';
+      try { url = chrome.runtime.getURL('panneau.html'); }
+      catch {   }
+      if (url) window.postMessage({ tse: URL_RES, url }, '*');
+      return;
+    }
     if (!d || d.tse !== RES || typeof d.id !== 'number') return;
     const attente = attentes.get(d.id);
     if (!attente) return;

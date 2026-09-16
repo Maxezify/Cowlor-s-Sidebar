@@ -214,8 +214,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Toutes les catégories',
       uiFilterLangAriaLabel:     'Filtrer les chaînes suivies par langue',
       uiFilterAllLanguages:      'Toutes les langues',
-      uiAccueilTexte:            'Vos données et vos réglages sont dans l\'icône de la barre d\'outils',
-      uiAccueilFermer:           'Fermer',
+      uiRoueTitre:               'Réglages, données et mode d\'emploi de Cowlor\'s Sidebar',
+      uiBulleTexte:              'Merci d\'avoir installé Cowlor\'s Sidebar ! Apprenez à utiliser l\'extension, personnalisez et regardez toutes vos données stockées ici.',
+      uiFermer:                  'Fermer',
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
@@ -297,8 +298,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'All categories',
       uiFilterLangAriaLabel:     'Filter followed channels by language',
       uiFilterAllLanguages:      'All languages',
-      uiAccueilTexte:            'Your data and your settings are in the toolbar icon',
-      uiAccueilFermer:           'Dismiss',
+      uiRoueTitre:               'Cowlor\'s Sidebar settings, data and manual',
+      uiBulleTexte:              'Thanks for installing Cowlor\'s Sidebar! Learn how to use the extension, customise it and see all the data it stores, right here.',
+      uiFermer:                  'Close',
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
@@ -379,8 +381,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Alle Kategorien',
       uiFilterLangAriaLabel:     'Gefolgte Kanäle nach Sprache filtern',
       uiFilterAllLanguages:      'Alle Sprachen',
-      uiAccueilTexte:            'Deine Daten und Einstellungen findest du im Symbol der Symbolleiste',
-      uiAccueilFermer:           'Schließen',
+      uiRoueTitre:               'Einstellungen, Daten und Anleitung von Cowlor\'s Sidebar',
+      uiBulleTexte:              'Danke, dass du Cowlor\'s Sidebar installiert hast! Lerne die Erweiterung kennen, passe sie an und sieh dir hier alle gespeicherten Daten an.',
+      uiFermer:                  'Schließen',
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
@@ -461,8 +464,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas las categorías',
       uiFilterLangAriaLabel:     'Filtrar los canales que sigues por idioma',
       uiFilterAllLanguages:      'Todos los idiomas',
-      uiAccueilTexte:            'Tus datos y tus ajustes están en el icono de la barra de herramientas',
-      uiAccueilFermer:           'Cerrar',
+      uiRoueTitre:               'Ajustes, datos y manual de Cowlor\'s Sidebar',
+      uiBulleTexte:              '¡Gracias por instalar Cowlor\'s Sidebar! Aprende a usar la extensión, personalízala y consulta aquí todos tus datos guardados.',
+      uiFermer:                  'Cerrar',
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
@@ -543,8 +547,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas as categorias',
       uiFilterLangAriaLabel:     'Filtrar os canais seguidos por idioma',
       uiFilterAllLanguages:      'Todos os idiomas',
-      uiAccueilTexte:            'Os teus dados e as tuas definições estão no ícone da barra de ferramentas',
-      uiAccueilFermer:           'Fechar',
+      uiRoueTitre:               'Definições, dados e manual da Cowlor\'s Sidebar',
+      uiBulleTexte:              'Obrigado por instalares a Cowlor\'s Sidebar! Aprende a usar a extensão, personaliza-a e vê aqui todos os teus dados guardados.',
+      uiFermer:                  'Fechar',
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
@@ -625,8 +630,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Tutte le categorie',
       uiFilterLangAriaLabel:     'Filtra i canali seguiti per lingua',
       uiFilterAllLanguages:      'Tutte le lingue',
-      uiAccueilTexte:            'I tuoi dati e le tue impostazioni sono nell\'icona della barra degli strumenti',
-      uiAccueilFermer:           'Chiudi',
+      uiRoueTitre:               'Impostazioni, dati e guida di Cowlor\'s Sidebar',
+      uiBulleTexte:              'Grazie per aver installato Cowlor\'s Sidebar! Impara a usare l\'estensione, personalizzala e guarda qui tutti i tuoi dati memorizzati.',
+      uiFermer:                  'Chiudi',
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
@@ -707,8 +713,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Wszystkie kategorie',
       uiFilterLangAriaLabel:     'Filtruj obserwowane kanały według języka',
       uiFilterAllLanguages:      'Wszystkie języki',
-      uiAccueilTexte:            'Twoje dane i ustawienia znajdziesz w ikonie na pasku narzędzi',
-      uiAccueilFermer:           'Zamknij',
+      uiRoueTitre:               'Ustawienia, dane i instrukcja Cowlor\'s Sidebar',
+      uiBulleTexte:              'Dzięki za zainstalowanie Cowlor\'s Sidebar! Naucz się korzystać z rozszerzenia, dostosuj je i zobacz tutaj wszystkie swoje zapisane dane.',
+      uiFermer:                  'Zamknij',
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
@@ -789,8 +796,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Все категории',
       uiFilterLangAriaLabel:     'Фильтровать отслеживаемые каналы по языку',
       uiFilterAllLanguages:      'Все языки',
-      uiAccueilTexte:            'Ваши данные и настройки — в значке на панели инструментов',
-      uiAccueilFermer:           'Закрыть',
+      uiRoueTitre:               'Настройки, данные и руководство Cowlor\'s Sidebar',
+      uiBulleTexte:              'Спасибо за установку Cowlor\'s Sidebar! Узнайте, как пользоваться расширением, настройте его и посмотрите здесь все сохранённые данные.',
+      uiFermer:                  'Закрыть',
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
@@ -871,8 +879,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'すべてのカテゴリー',
       uiFilterLangAriaLabel:     'フォロー中のチャンネルを言語で絞り込む',
       uiFilterAllLanguages:      'すべての言語',
-      uiAccueilTexte:            'あなたのデータと設定は、ツールバーのアイコンの中にあります',
-      uiAccueilFermer:           '閉じる',
+      uiRoueTitre:               'Cowlor\'s Sidebar の設定・データ・使い方',
+      uiBulleTexte:              'Cowlor\'s Sidebar をインストールしていただき、ありがとうございます！ 使い方を学び、カスタマイズし、保存されているデータをここですべて確認できます。',
+      uiFermer:                  '閉じる',
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
@@ -953,8 +962,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     '全部分类',
       uiFilterLangAriaLabel:     '按语言筛选关注的频道',
       uiFilterAllLanguages:      '全部语言',
-      uiAccueilTexte:            '你的数据与设置就在工具栏图标里',
-      uiAccueilFermer:           '关闭',
+      uiRoueTitre:               'Cowlor\'s Sidebar 的设置、数据与使用说明',
+      uiBulleTexte:              '感谢你安装 Cowlor\'s Sidebar！在这里了解如何使用本扩展、进行个性化设置，并查看所有已保存的数据。',
+      uiFermer:                  '关闭',
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
@@ -1336,7 +1346,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     OPTIONS_KEY:            'tse:options',
 
-    ACCUEIL_KEY:            'tse:accueil'
+    ACCUEIL_KEY:            'tse:accueil',
+
+    INCRUSTE_W:             760,
+    INCRUSTE_H:             580
   });
 
   const OPT_DEFS = Object.freeze({
@@ -2205,6 +2218,12 @@ const TSE_GATE_MAX_CLICKS = 5;
         0%, 100% { opacity: 0.45; }
         50%      { opacity: 1; }
       }
+      
+      .tse-roue[data-tse-neuf] {
+        animation: none !important;
+        transform: none !important;
+        box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.55) !important;
+      }
     }
 
     
@@ -2387,6 +2406,124 @@ const TSE_GATE_MAX_CLICKS = 5;
       box-shadow: 0 1px 2px var(--tse-ombre-portee);
     }
     .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE_HOVER}; }
+
+    
+    ${DOM.sidebarRoot} .side-nav__title[data-tse-roue] {
+      display: flex; align-items: center; gap: 6px;
+    }
+    
+    ${DOM.sidebarRoot} .side-nav__title[data-tse-roue] > h3 {
+      flex: 1 1 auto; min-width: 0;
+    }
+    .tse-roue {
+      flex: 0 0 auto;
+      position: relative;
+      width: 26px; height: 26px; padding: 0; margin-left: auto;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 0; border-radius: 4px;
+      background: transparent; color: var(--tse-texte-faible);
+      cursor: pointer;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .tse-roue svg { width: 18px; height: 18px; display: block; }
+    .tse-roue:hover {
+      background: rgba(var(--tse-encre), 0.12);
+      color: var(--tse-texte);
+    }
+    .tse-roue:focus-visible {
+      outline: none; box-shadow: 0 0 0 2px ${CFG.PURPLE};
+      color: var(--tse-texte);
+    }
+    
+
+    
+    .tse-roue[data-tse-neuf] {
+      color: #fff;
+      background: ${CFG.PURPLE};
+      animation: tse-roue-bat 1.6s ease-in-out infinite;
+    }
+    @keyframes tse-roue-bat {
+      0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(145, 71, 255, 0.55); }
+      50%      { transform: scale(1.18); box-shadow: 0 0 0 7px rgba(145, 71, 255, 0); }
+    }
+    
+    ${DOM.sidebarRoot} { position: relative; }
+    .tse-bulle {
+      position: absolute; z-index: 9;
+      top: 38px; right: 4px; left: 8px;
+      display: flex; align-items: flex-start; gap: 6px;
+      padding: 9px 8px 9px 10px;
+      border-radius: 6px;
+      background: ${CFG.PURPLE};
+      color: #fff;
+      box-shadow: 0 6px 18px var(--tse-ombre-portee);
+      font-size: 1.1rem; line-height: 1.35;
+    }
+    
+    
+    .tse-bulle-fleche {
+      position: absolute; top: -5px; left: 12px;
+      width: 12px; height: 12px;
+      background: ${CFG.PURPLE};
+      transform: rotate(45deg);
+      border-radius: 2px 0 0 0;
+    }
+    .tse-bulle-texte { flex: 1 1 auto; min-width: 0; margin: 0; }
+    .tse-bulle-croix {
+      flex: 0 0 auto;
+      width: 18px; height: 18px; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 0; border-radius: 4px;
+      background: transparent; color: rgba(255, 255, 255, 0.75);
+      font: inherit; font-size: 1.3rem; line-height: 1; cursor: pointer;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .tse-bulle-croix:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+    .tse-bulle-croix:focus-visible {
+      outline: none; box-shadow: 0 0 0 2px #fff; color: #fff;
+    }
+    
+    [data-a-target="side-nav-bar-collapsed"] #tse-bulle,
+    .side-nav--collapsed #tse-bulle { display: none !important; }
+
+    
+    .tse-incruste {
+      position: fixed; inset: 0; z-index: 2147483000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.55);
+    }
+    
+    .tse-incruste-cadre {
+      position: relative;
+      width: ${CFG.INCRUSTE_W}px; height: ${CFG.INCRUSTE_H}px;
+      max-width: calc(100vw - 24px); max-height: calc(100vh - 24px);
+      border-radius: 8px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+      
+      overflow: hidden;
+    }
+    .tse-incruste-frame {
+      display: block; width: 100%; height: 100%;
+      border: 0; background: var(--tse-fond, #18181b);
+    }
+    
+    
+    .tse-incruste-croix {
+      position: absolute; top: -34px; right: -2px;
+      width: 28px; height: 28px; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 4px;
+      background: rgba(255, 255, 255, 0.16); color: #fff;
+      font: inherit; font-size: 1.6rem; line-height: 1; cursor: pointer;
+      transition: background-color 0.15s, border-color 0.15s;
+    }
+    .tse-incruste-croix:hover {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.8);
+    }
+    .tse-incruste-croix:focus-visible {
+      outline: none; box-shadow: 0 0 0 2px #fff;
+    }
 
     
     body.tse-global-ready .side-nav-card:not([data-tse-global="true"]) { display: none !important; }
@@ -2745,40 +2882,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     
-
-    
-    .tse-accueil {
-      display: flex; align-items: flex-start; gap: 8px;
-      margin: 0 10px 8px;
-      padding: 8px 8px 8px 10px;
-      border-left: 3px solid ${CFG.PURPLE};
-      border-radius: 0 4px 4px 0;
-      background: rgba(var(--tse-encre), 0.06);
-      color: var(--tse-texte-doux);
-      font-size: 1.1rem; line-height: 1.35;
-    }
-    .tse-accueil-texte { flex: 1 1 auto; min-width: 0; }
-    .tse-accueil-croix {
-      flex: 0 0 auto;
-      width: 20px; height: 20px; padding: 0;
-      display: inline-flex; align-items: center; justify-content: center;
-      border: 0; border-radius: 4px;
-      background: transparent; color: var(--tse-texte-faible);
-      font: inherit; font-size: 1.3rem; line-height: 1; cursor: pointer;
-      transition: background-color 0.15s, color 0.15s;
-    }
-    .tse-accueil-croix:hover {
-      background: rgba(var(--tse-encre), 0.12);
-      color: var(--tse-texte);
-    }
-    .tse-accueil-croix:focus-visible {
-      outline: none; box-shadow: 0 0 0 1px ${CFG.PURPLE};
-      color: var(--tse-texte);
-    }
-    
-    [data-a-target="side-nav-bar-collapsed"] #tse-accueil,
-    .side-nav--collapsed #tse-accueil,
-    body.tse-global-mode .tse-accueil { display: none !important; }
 
     
     html[data-tse-off~="duree"] .tse-uptime { display: none !important; }
@@ -8314,40 +8417,192 @@ const TSE_GATE_MAX_CLICKS = 5;
                   () => noeudStatique(GLOBE_MARKUP)));
     section.parentElement.insertBefore(wrap, section);
 
-    poserAccueil(wrap);
-
     wireDropdown(wrap.querySelector(`#${CAT_DD_ID}`));
     wireDropdown(wrap.querySelector(`#${LANG_DD_ID}`));
     bindDropdownsGlobal();
   }
 
-  const ACCUEIL_ID = 'tse-accueil';
-  function poserAccueil(hote) {
-    if (!accueil.aMontrer()) return;
-    if (document.getElementById(ACCUEIL_ID)) return;
-    const boite = document.createElement('div');
-    boite.id = ACCUEIL_ID;
-    boite.className = 'tse-accueil';
-    const texte = document.createElement('span');
-    texte.className = 'tse-accueil-texte';
-    setText(texte, S.uiAccueilTexte);
+  const INCRUSTE_ID   = 'tse-incruste';
+  const TSE_URL_REQ   = 'tse-url-req';
+  const TSE_URL_RES   = 'tse-url-res';
+  let urlPanneau = null;
+  window.addEventListener('message', (e) => {
+    if (e.source !== window) return;
+    const d = e.data;
+    if (!d || d.tse !== TSE_URL_RES || typeof d.url !== 'string') return;
+
+    if (!/^(chrome-extension|moz-extension|extension|safari-web-extension):\/\//.test(d.url)) return;
+    urlPanneau = d.url;
+  });
+  const demanderUrl = () => {
+    if (urlPanneau) return;
+    try { window.postMessage({ tse: TSE_URL_REQ }, '*'); } catch {   }
+  };
+
+  let fermerIncruste = null;
+
+  function ouvrirIncruste() {
+    if (document.getElementById(INCRUSTE_ID)) return;
+    if (!urlPanneau) { demanderUrl(); return; }
+
+    const voile = document.createElement('div');
+    voile.id = INCRUSTE_ID;
+    voile.className = 'tse-incruste';
+
+    voile.setAttribute('role', 'dialog');
+    voile.setAttribute('aria-modal', 'true');
+    voile.setAttribute('aria-label', S.uiRoueTitre);
+
+    const cadre = document.createElement('div');
+    cadre.className = 'tse-incruste-cadre';
+
+    const frame = document.createElement('iframe');
+    frame.className = 'tse-incruste-frame';
+    frame.src = urlPanneau;
+    frame.title = S.uiRoueTitre;
+
+    frame.setAttribute('allow', '');
+
     const croix = document.createElement('button');
     croix.type = 'button';
-    croix.className = 'tse-accueil-croix';
-    croix.setAttribute('aria-label', S.uiAccueilFermer);
-    croix.setAttribute('title', S.uiAccueilFermer);
-
-    croix.setAttribute('aria-hidden', 'false');
+    croix.className = 'tse-incruste-croix';
+    croix.setAttribute('aria-label', S.uiFermer);
+    croix.setAttribute('title', S.uiFermer);
     const barre = document.createElement('span');
     barre.setAttribute('aria-hidden', 'true');
-    barre.textContent = '\u00D7';
+    barre.textContent = '×';
     croix.appendChild(barre);
-    croix.addEventListener('click', () => {
-      accueil.renvoyer();
-      boite.remove();
+
+    cadre.append(frame, croix);
+    voile.appendChild(cadre);
+
+    const surTouche = (ev) => { if (ev.key === 'Escape') fermerIncruste?.(); };
+
+    const surMessage = (ev) => {
+      if (ev.source !== frame.contentWindow) return;
+      if (ev.data && ev.data.tse === 'tse-panneau-fermer') fermerIncruste?.();
+    };
+
+    fermerIncruste = () => {
+      document.removeEventListener('keydown', surTouche, true);
+      window.removeEventListener('message', surMessage);
+      voile.remove();
+      fermerIncruste = null;
+
+      document.getElementById(ROUE_ID)?.focus?.();
+    };
+
+    croix.addEventListener('click', fermerIncruste);
+
+    voile.addEventListener('click', (ev) => { if (ev.target === voile) fermerIncruste(); });
+    document.addEventListener('keydown', surTouche, true);
+    window.addEventListener('message', surMessage);
+
+    document.body.appendChild(voile);
+  }
+
+  const ROUE_ID = 'tse-roue';
+  const ROUE_MARKUP =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+    + '<path fill="currentColor" d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 5.6a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2z"/>'
+    + '<path fill="currentColor" d="M20.3 13.2a8.6 8.6 0 0 0 0-2.4l1.8-1.4-1.8-3.1-2.2.8a8.4 8.4 0 0 0-2-1.2l-.3-2.3h-3.6l-.3 2.3a8.4 8.4 0 0 0-2 1.2l-2.2-.8L5.9 9.4l1.8 1.4a8.6 8.6 0 0 0 0 2.4l-1.8 1.4 1.8 3.1 2.2-.8a8.4 8.4 0 0 0 2 1.2l.3 2.3h3.6l.3-2.3a8.4 8.4 0 0 0 2-1.2l2.2.8 1.8-3.1-1.8-1.4zm-8.3 4.1a5.3 5.3 0 1 1 0-10.6 5.3 5.3 0 0 1 0 10.6z"/>'
+    + '</svg>';
+
+  function ensureRoue() {
+
+    demanderUrl();
+    const titre = document.querySelector(`${DOM.sidebarRoot} .side-nav__title`);
+    if (!titre) return;
+    const deja = document.getElementById(ROUE_ID);
+    if (deja && titre.contains(deja)) { majBulle(); return; }
+    if (deja) deja.remove();
+
+    const roue = document.createElement('button');
+    roue.type = 'button';
+    roue.id = ROUE_ID;
+    roue.className = 'tse-roue';
+    roue.setAttribute('aria-label', S.uiRoueTitre);
+    roue.setAttribute('title', S.uiRoueTitre);
+    roue.appendChild(noeudStatique(ROUE_MARKUP));
+    roue.addEventListener('click', () => {
+
+      renvoyerBulle();
+      ouvrirIncruste();
     });
-    boite.append(texte, croix);
-    hote.parentElement.insertBefore(boite, hote);
+
+    titre.setAttribute('data-tse-roue', 'true');
+    titre.appendChild(roue);
+    majBulle();
+  }
+
+  const BULLE_ID = 'tse-bulle';
+
+  function renvoyerBulle() {
+    if (!accueil.aMontrer()) return;
+    accueil.renvoyer();
+    document.getElementById(BULLE_ID)?.remove();
+    document.getElementById(ROUE_ID)?.removeAttribute('data-tse-neuf');
+  }
+
+  function majBulle() {
+    const roue = document.getElementById(ROUE_ID);
+    if (!roue) return;
+    if (!accueil.aMontrer()) {
+      roue.removeAttribute('data-tse-neuf');
+      document.getElementById(BULLE_ID)?.remove();
+      return;
+    }
+    roue.setAttribute('data-tse-neuf', 'true');
+    const hote = document.querySelector(DOM.sidebarRoot);
+    const deja = document.getElementById(BULLE_ID);
+
+    if (deja && hote && hote.contains(deja)) { placerFleche(); return; }
+    if (deja) deja.remove();
+    if (!hote) return;
+
+    const bulle = document.createElement('div');
+    bulle.id = BULLE_ID;
+    bulle.className = 'tse-bulle';
+
+    bulle.setAttribute('role', 'status');
+    const texte = document.createElement('p');
+    texte.className = 'tse-bulle-texte';
+    setText(texte, S.uiBulleTexte);
+    const croix = document.createElement('button');
+    croix.type = 'button';
+    croix.className = 'tse-bulle-croix';
+    croix.setAttribute('aria-label', S.uiFermer);
+    croix.setAttribute('title', S.uiFermer);
+    const barre = document.createElement('span');
+    barre.setAttribute('aria-hidden', 'true');
+    barre.textContent = '×';
+    croix.appendChild(barre);
+    croix.addEventListener('click', renvoyerBulle);
+
+    const fleche = document.createElement('span');
+    fleche.className = 'tse-bulle-fleche';
+    fleche.setAttribute('aria-hidden', 'true');
+    bulle.append(fleche, texte, croix);
+    hote.appendChild(bulle);
+    placerFleche();
+  }
+
+  function placerFleche() {
+    const bulle = document.getElementById(BULLE_ID);
+    const roue = document.getElementById(ROUE_ID);
+    const fleche = bulle?.querySelector('.tse-bulle-fleche');
+    if (!bulle || !roue || !fleche) return;
+    const rb = bulle.getBoundingClientRect();
+    const rr = roue.getBoundingClientRect();
+    if (!rb.width || !rr.width) return;
+
+    const TAILLE = 12;
+
+    const MARGE = 6;
+    const centre = rr.left + rr.width / 2 - rb.left - TAILLE / 2;
+    const gauche = Math.max(MARGE, Math.min(rb.width - TAILLE - MARGE, centre));
+    const pose = `${Math.round(gauche)}px`;
+    if (fleche.style.left !== pose) fleche.style.left = pose;
   }
 
   function onFilterChange(facet, value) {
@@ -9741,6 +9996,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     ensureGlobalEmpty();
     hideNativeFollowedHeader();
     renameRootTitle();
+
+    ensureRoue();
     recomputeFilters();
     const costreamGroups = detectCoStreams();
     updateSortButtonsState({ costreamGroups });
