@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 988 KB | 380 KB | 3,259 → **2** |
+| `content.js` | 1012 KB | 390 KB | 3,267 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 89 KB | 45 KB | 116 → **0** |
+| `panneau.js` | 91 KB | 45 KB | 118 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
-| `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1222 KB** | **531 KB** | **−57 %** |
+| `background.js` | 11 KB | 2 KB | 25 → **0** |
+| **all five** | **1251 KB** | **541 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1095 assertions, under Gecko
+npm run test-firefox        # the same 1112 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,123 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Getting found, and the gold that had no light version (v4.11)
+
+### The problem, in one sentence
+
+**A user cannot find an icon they cannot see.** Since Chrome 89 a freshly
+installed extension is not in the toolbar: it is filed behind the puzzle-piece
+button, and only comes out if you pin it. The data, the nineteen settings and
+the thirteen-chapter tutorial all lived behind a click nobody knew they could
+make.
+
+Three answers, which fail separately and are verified separately.
+
+### 1. A tab, on install and once only
+
+`onInstalled` opens `panneau.html`. It is the **only route that reaches
+everyone**, pinned or not: a badge on the icon is invisible when the icon is
+hidden, and a tooltip asks you to hover over what you have not found.
+
+On install, **not on updates** — `reason` separates the two, and an extension
+that opens a tab on every version gets uninstalled.
+
+**No permission is asked for this.** `chrome.tabs.create` towards an extension
+page requires none; only *reading* a tab's properties would need `tabs`, and we
+read nothing.
+
+**It is the same page, not a second one.** A separate welcome page would have
+drifted from the panel at the first section added — and the panel is precisely
+what we want to make known. It recognises itself by `?vue=onglet` and relaxes the
+two numbers that constrained it to a popup.
+
+> Left at `height: auto`, the page grew with the tutorial — **2933 px measured** —
+> and the rail stretched along with it, scrolling as one. The panel stopped being
+> two independently scrolling columns and became one long page. The height
+> therefore stays that of the window.
+
+### 2. A strip, where the user is already looking
+
+The tab opens **elsewhere**, and sometimes closes unread. The strip speaks inside
+the sidebar — at the exact moment it has just changed under its owner's eyes, and
+the question "who did that?" has already been asked.
+
+**Its difficulty is not showing up, it is showing up only to new users.**
+`content.js` cannot know an install just happened: `onInstalled` lives in the
+service worker, two worlds away. It recognises the opposite — an already-filled
+memory proves **seniority**.
+
+And that is where the trap is, because that memory fills within seconds:
+
+> **The decision is taken once and written down.** Without that, the roster
+> fills, the seniority test turns true on the next load, and the strip would only
+> ever have been shown to whoever was looking at the screen on the right second.
+
+Scenario 121 exercises exactly that point: it reloads the page **after** the
+roster has filled, and requires the strip to still be there.
+
+It carries **no link**. We cannot open the panel on the user's behalf —
+`chrome.action.openPopup` requires a gesture on the icon itself and does not
+exist everywhere — so we do not promise a click that would not happen. We point;
+we do not act.
+
+> **An invented marker nearly shipped in this version.** The rule hiding the
+> strip in the collapsed column targeted `body.tse-collapsed`, which matches
+> nothing: the strip would have stayed visible in a fifty-pixel bar with nobody
+> noticing before a screenshot. The two selectors that already hide the filter
+> bar were copied verbatim.
+
+### 3. A tooltip that names what is behind
+
+`default_title` said the product's name, which whoever hovers already knows. It
+now says what is behind it. Zero cost, small reach — but whoever finally finds the
+icon deserves better than a repeat.
+
+A `__MSG_…__` matching no message yields an **empty** tooltip, silently:
+`npm run addon` therefore checks the key exists in **all twelve** locales, not
+just the default one. A tooltip translated in eleven languages out of twelve is
+exactly the kind of hole you never see from your own machine.
+
+---
+
+## The gold had no light version, and no measurement could catch it
+
+Reported by a screenshot: in light mode, a subscribed channel's name became a
+**white rectangle**. It was not erased — it was painted.
+
+The name is filled by a **gradient clipped to the text**, with a transparent
+fill. Its stops run from `#ffc86e` to `#fff6dc`: **1.53:1 and 1.08:1 on white**.
+Gorgeous on black, invisible on white.
+
+**And scenario 115 passed.** It measures every text's contrast in both themes —
+by reading `color`, which here is `transparent`. Text painted by a gradient
+escapes any colour reading: its **stops** have to be measured. The check passed
+by looking at nothing.
+
+The method already existed four lines above: the subathon rainbow is verified
+across its whole cycle, because no snapshot is enough. It had simply never been
+applied here.
+
+**The defect is in both light modes**, not only the forced one: 4.8 repainted the
+whole stylesheet and left the gold behind, because gold does not declare itself
+as a colour. The forced theme merely made it visible sooner.
+
+The light hues are **measured**, against the two light card backgrounds:
+
+| stop | role | on `#ffffff` | on `#f7f7f8` |
+| --- | --- | --- | --- |
+| `#8a5900` | the gold — already the "subscriber" badge's | 5.98:1 | 5.59:1 |
+| `#7a4e00` | the highlight: in light it **darkens**, it does not lighten | 7.20:1 | 6.72:1 |
+| `#9c4f6b` | the pink reflection, readable version | 5.61:1 | 5.24:1 |
+| `#7c5a1e` | the category | 6.29:1 | 5.88:1 |
+
+The floor for small text is 4.5:1; the worst of these stops is 5.24. The halo
+goes in light — it is a glow filter meant to lift pale letters off a black
+background, and on white it lifts nothing.
+
+Four new assertions now measure **every stop** of the gradient, in all three
+situations: dark, light given by Twitch, forced light.
 
 ## Forcing what Twitch already does, and two store pages that lied (v4.10.2)
 
@@ -6634,7 +6751,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 120 scenarios, 1095 assertions |
+| `npm test` | the Playwright harness: 122 scenarios, 1112 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

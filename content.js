@@ -612,6 +612,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Toutes les catégories',
       uiFilterLangAriaLabel:     'Filtrer les chaînes suivies par langue',
       uiFilterAllLanguages:      'Toutes les langues',
+      uiAccueilTexte:            'Vos données et vos réglages sont dans l\'icône de la barre d\'outils',
+      uiAccueilFermer:           'Fermer',
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
@@ -697,6 +699,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'All categories',
       uiFilterLangAriaLabel:     'Filter followed channels by language',
       uiFilterAllLanguages:      'All languages',
+      uiAccueilTexte:            'Your data and your settings are in the toolbar icon',
+      uiAccueilFermer:           'Dismiss',
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
@@ -777,6 +781,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Alle Kategorien',
       uiFilterLangAriaLabel:     'Gefolgte Kanäle nach Sprache filtern',
       uiFilterAllLanguages:      'Alle Sprachen',
+      uiAccueilTexte:            'Deine Daten und Einstellungen findest du im Symbol der Symbolleiste',
+      uiAccueilFermer:           'Schließen',
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
@@ -857,6 +863,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas las categorías',
       uiFilterLangAriaLabel:     'Filtrar los canales que sigues por idioma',
       uiFilterAllLanguages:      'Todos los idiomas',
+      uiAccueilTexte:            'Tus datos y tus ajustes están en el icono de la barra de herramientas',
+      uiAccueilFermer:           'Cerrar',
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
@@ -937,6 +945,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas as categorias',
       uiFilterLangAriaLabel:     'Filtrar os canais seguidos por idioma',
       uiFilterAllLanguages:      'Todos os idiomas',
+      uiAccueilTexte:            'Os teus dados e as tuas definições estão no ícone da barra de ferramentas',
+      uiAccueilFermer:           'Fechar',
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
@@ -1017,6 +1027,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Tutte le categorie',
       uiFilterLangAriaLabel:     'Filtra i canali seguiti per lingua',
       uiFilterAllLanguages:      'Tutte le lingue',
+      uiAccueilTexte:            'I tuoi dati e le tue impostazioni sono nell\'icona della barra degli strumenti',
+      uiAccueilFermer:           'Chiudi',
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
@@ -1097,6 +1109,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Wszystkie kategorie',
       uiFilterLangAriaLabel:     'Filtruj obserwowane kanały według języka',
       uiFilterAllLanguages:      'Wszystkie języki',
+      uiAccueilTexte:            'Twoje dane i ustawienia znajdziesz w ikonie na pasku narzędzi',
+      uiAccueilFermer:           'Zamknij',
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
@@ -1177,6 +1191,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Все категории',
       uiFilterLangAriaLabel:     'Фильтровать отслеживаемые каналы по языку',
       uiFilterAllLanguages:      'Все языки',
+      uiAccueilTexte:            'Ваши данные и настройки — в значке на панели инструментов',
+      uiAccueilFermer:           'Закрыть',
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
@@ -1257,6 +1273,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'すべてのカテゴリー',
       uiFilterLangAriaLabel:     'フォロー中のチャンネルを言語で絞り込む',
       uiFilterAllLanguages:      'すべての言語',
+      uiAccueilTexte:            'あなたのデータと設定は、ツールバーのアイコンの中にあります',
+      uiAccueilFermer:           '閉じる',
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
@@ -1337,6 +1355,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     '全部分类',
       uiFilterLangAriaLabel:     '按语言筛选关注的频道',
       uiFilterAllLanguages:      '全部语言',
+      uiAccueilTexte:            '你的数据与设置就在工具栏图标里',
+      uiAccueilFermer:           '关闭',
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
@@ -2296,7 +2316,14 @@ const TSE_GATE_MAX_CLICKS = 5;
        réglages. C'est exactement ce que promet déjà la fiche du Store à propos
        de l'historique ; l'export JSON du panneau est le seul contournement, et
        il est volontairement manuel. */
-    OPTIONS_KEY:            'tse:options'
+    OPTIONS_KEY:            'tse:options',
+
+    /* === Le bandeau d'accueil ===
+       Trois valeurs, et une seule s'écrit d'elle-même : « montre » quand on a
+       décidé de l'afficher, « vu » quand il a été renvoyé — ou quand on a
+       constaté qu'on n'avait pas affaire à une installation neuve. Absent
+       signifie « la question ne s'est pas encore posée ». */
+    ACCUEIL_KEY:            'tse:accueil'
   });
 
   /* ============================================================
@@ -2493,6 +2520,63 @@ const TSE_GATE_MAX_CLICKS = 5;
          ferait que renvoyer l'événement à l'expéditeur. */
       relire: () => { charger(); prevenir(); },
       surChangement: (f) => { abonnes.add(f); }
+    };
+  })();
+
+  /* ============================================================
+   *  LE BANDEAU D'ACCUEIL
+   *  ------------------------------------------------------------
+   *  UN UTILISATEUR NE TROUVE PAS UNE ICÔNE QU'IL NE VOIT PAS.
+   *  Depuis Chrome 89 une extension fraîchement installée n'est
+   *  pas dans la barre d'outils : elle est rangée derrière le
+   *  bouton « pièce de puzzle ». Tout ce que ce produit sait faire
+   *  — ses données, ses dix-neuf réglages, son mode d'emploi —
+   *  vit derrière un clic que personne ne sait qu'il peut donner.
+   *
+   *  CE BANDEAU EST LE SEUL QUI PARLE LÀ OÙ L'UTILISATEUR REGARDE.
+   *  L'onglet ouvert à l'installation atteint tout le monde, mais
+   *  il s'ouvre AILLEURS, et se ferme parfois sans être lu. Ici,
+   *  la barre latérale vient de changer sous ses yeux : la question
+   *  « qui a fait ça ? » est déjà posée, et on y répond.
+   *
+   *  IL NE S'ADRESSE QU'AUX NOUVEAUX, et c'est la partie délicate.
+   *  content.js ne peut pas savoir qu'une installation vient
+   *  d'avoir lieu — « onInstalled » vit dans le service worker,
+   *  dont il est séparé par deux mondes. Mais il peut constater
+   *  l'inverse : quelqu'un qui a DÉJÀ des visites ou un roster en
+   *  mémoire se sert de l'extension depuis un moment, et n'a rien
+   *  à apprendre ici. On ne devine pas une installation, on
+   *  reconnaît une ancienneté.
+   *
+   *  LA DÉCISION SE PREND UNE FOIS ET S'ÉCRIT. Sans ça, le bandeau
+   *  disparaîtrait au second chargement — le roster se remplit en
+   *  quelques secondes — et n'aurait donc été montré qu'à ceux qui
+   *  regardaient l'écran à la bonne seconde.
+   * ============================================================ */
+  const accueil = (() => {
+    const lire = () => {
+      try { return localStorage.getItem(CFG.ACCUEIL_KEY); } catch { return 'vu'; }
+    };
+    const ecrire = (v) => {
+      try { localStorage.setItem(CFG.ACCUEIL_KEY, v); } catch { /* stockage refusé */ }
+    };
+    /* Les deux mémoires qui prouvent l'ancienneté. On les lit BRUTES plutôt que
+       par leurs modules : ceux-ci se construisent plus bas dans le fichier, et
+       cette décision doit être prise avant le premier rendu. */
+    const dejaLa = () => {
+      try {
+        return !!(localStorage.getItem(CFG.VISIT_STORAGE_KEY)
+               || localStorage.getItem(CFG.ROSTER_STORAGE_KEY));
+      } catch { return true; }   // stockage illisible : on ne dérange personne
+    };
+    let etat = lire();
+    if (etat !== 'montre' && etat !== 'vu') {
+      etat = dejaLa() ? 'vu' : 'montre';
+      ecrire(etat);
+    }
+    return {
+      aMontrer: () => etat === 'montre',
+      renvoyer: () => { etat = 'vu'; ecrire('vu'); },
     };
   })();
 
@@ -3473,6 +3557,80 @@ const TSE_GATE_MAX_CLICKS = 5;
     .side-nav-card.tse-sub {
       --tse-sub-or:    rgba(255, 196,  92, 1);
       --tse-sub-clair: rgba(255, 246, 214, 1);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       L'OR N'AVAIT PAS DE VERSION CLAIRE, ET PERSONNE NE L'AVAIT VU
+       ──────────────────────────────────────────────────────────────────────
+       Signalé par une capture : en clair, le pseudo d'une chaîne abonnée
+       devenait un RECTANGLE BLANC. Il n'était pas effacé — il était peint.
+       Le pseudo est rempli par un DÉGRADÉ DÉCOUPÉ AU TEXTE, avec un
+       remplissage transparent ; ses arrêts vont de #ffc86e à #fff6dc, soit
+       1,53:1 et 1,08:1 SUR DU BLANC. Superbes sur du noir, invisibles sur du
+       blanc.
+
+       ET AUCUNE MESURE NE POUVAIT L'ATTRAPER. Le scénario 115 relève le
+       contraste de chaque texte dans les deux thèmes, et il passait : il lit
+       « color », qui vaut ici « transparent ». Un texte peint par un dégradé
+       échappe à toute lecture de couleur — il faut mesurer ses ARRÊTS. C'est
+       la technique déjà employée pour l'arc-en-ciel du subathon, qui se
+       vérifie sur tout son tour ; elle n'avait simplement jamais été
+       appliquée ici.
+
+       LE DÉFAUT EST DANS LES DEUX MODES CLAIRS, pas seulement le forcé : la
+       4.8 a repeint toute la feuille et a laissé l'or derrière, parce que
+       l'or ne se déclare pas comme une couleur.
+
+       LES TEINTES CI-DESSOUS SONT MESURÉES, pas choisies à l'œil — sur les
+       deux fonds de carte du clair, #ffffff et #f7f7f8 :
+         #8a5900 → 5,98 et 5,59:1   (l'or, et c'est déjà celui du badge sub)
+         #7a4e00 → 7,20 et 6,72:1   (l'éclat : en clair il FONCE, il n'éclaire pas)
+         #9c4f6b → 5,61 et 5,24:1   (le reflet rose, version lisible)
+         #7c5a1e → 6,29 et 5,88:1   (la catégorie)
+       Le plancher d'un petit texte est à 4,5:1 ; le pire de ces arrêts est à
+       5,24. */
+    html[data-tse-theme="light"] .side-nav-card.tse-sub {
+      --tse-sub-or:    rgba(170, 110,   0, 1);
+      --tse-sub-clair: rgba(214, 160,  60, 1);
+    }
+    html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom { color: #8a5900; }
+    html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat { color: #7c5a1e; }
+    @supports (-webkit-background-clip: text) or (background-clip: text) {
+      html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom {
+        background: linear-gradient(100deg,
+          #8a5900   0%,
+          #7a4e00  32%,
+          #9c4f6b  46%,
+          #8a5900  64%,
+          #8a5900 100%) 0 0 / 300% 100%;
+        /* LE HALO PART EN CLAIR. C'est un filtre de lueur, pensé pour détacher
+           des lettres claires d'un fond noir ; sur du blanc il ne détache
+           rien et salit les contours. */
+        filter: none;
+      }
+      html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat {
+        background: linear-gradient(100deg,
+          #7c5a1e   0%,
+          #6b4700  34%,
+          #8f3f63  47%,
+          #7c5a1e  64%,
+          #7c5a1e 100%) 0 0 / 300% 100%;
+        filter: none;
+      }
+    }
+    /* LA LUEUR DE FOND S'INVERSE AUSSI. Quatre nappes de blanc crème à 13 %
+       sur du noir font une carte qui respire ; les mêmes sur du blanc ne font
+       rien du tout, et la carte abonnée cesse de se distinguer. On repasse
+       donc sur des nappes SOMBRES et chaudes, à la même transparence. */
+    html[data-tse-theme="light"] .side-nav-card.tse-sub::after {
+      background:
+        linear-gradient(102deg,
+          rgba(138, 89, 0, 0)     40%,
+          rgba(138, 89, 0, 0.10)  48%,
+          rgba(138, 89, 0, 0)     56%) 0 0 / 300% 100%,
+        radial-gradient(60% 120% at 12% 50%, rgba(138, 89, 0, 0.10), transparent 70%),
+        radial-gradient(50% 100% at 52% 40%, rgba(156, 79, 107, 0.08), transparent 70%),
+        radial-gradient(70% 130% at 88% 60%, rgba(138, 89, 0, 0.09), transparent 70%);
     }
     .side-nav-card.tse-sub .tse-sub-avatar {
       position: relative;
@@ -4844,6 +5002,58 @@ const TSE_GATE_MAX_CLICKS = 5;
        règles du produit qui portent souvent elles-mêmes un !important (les
        masquages de Twitch), et une règle de réglage qui perd contre une règle
        par défaut serait un interrupteur qui ne fait rien. */
+
+    /* ── LE BANDEAU D'ACCUEIL ─────────────────────────────────────────────
+       DISCRET, MAIS PAS INVISIBLE. Il s'adresse à quelqu'un qui vient
+       d'installer et ne sait pas encore que l'extension a un panneau : le
+       faire trop sage, c'est le faire manquer. Un filet violet à gauche — la
+       même teinte que tout ce que ce produit signale — et un fond à peine
+       levé suffisent, sans crier.
+
+       IL NE SE VOIT QU'UNE FOIS DANS UNE VIE : sa règle CSS ne peut donc pas
+       être éprouvée par un utilisateur ordinaire, et c'est le banc qui la
+       tient. */
+    .tse-accueil {
+      display: flex; align-items: flex-start; gap: 8px;
+      margin: 0 10px 8px;
+      padding: 8px 8px 8px 10px;
+      border-left: 3px solid ${CFG.PURPLE};
+      border-radius: 0 4px 4px 0;
+      background: rgba(var(--tse-encre), 0.06);
+      color: var(--tse-texte-doux);
+      font-size: 1.1rem; line-height: 1.35;
+    }
+    .tse-accueil-texte { flex: 1 1 auto; min-width: 0; }
+    .tse-accueil-croix {
+      flex: 0 0 auto;
+      width: 20px; height: 20px; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 0; border-radius: 4px;
+      background: transparent; color: var(--tse-texte-faible);
+      font: inherit; font-size: 1.3rem; line-height: 1; cursor: pointer;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .tse-accueil-croix:hover {
+      background: rgba(var(--tse-encre), 0.12);
+      color: var(--tse-texte);
+    }
+    .tse-accueil-croix:focus-visible {
+      outline: none; box-shadow: 0 0 0 1px ${CFG.PURPLE};
+      color: var(--tse-texte);
+    }
+    /* En mode réduit la barre latérale n'a plus la largeur d'une phrase, et en
+       « Top Chaînes » le bandeau parlerait par-dessus un classement qui n'a
+       rien à voir avec lui.
+
+       LES DEUX SÉLECTEURS DU MODE RÉDUIT SONT CEUX QUI MASQUENT DÉJÀ LA BARRE
+       DE FILTRE, recopiés à l'identique. Un troisième marqueur inventé pour
+       l'occasion — « body.tse-collapsed » — a failli partir dans cette
+       version : il ne correspondait à rien, et le bandeau serait resté
+       affiché en colonne réduite sans que personne ne s'en aperçoive avant
+       une capture d'écran. Ce qui existe déjà et qui marche se recopie. */
+    [data-a-target="side-nav-bar-collapsed"] #tse-accueil,
+    .side-nav--collapsed #tse-accueil,
+    body.tse-global-mode .tse-accueil { display: none !important; }
 
     /* — La carte dans la barre — */
     html[data-tse-off~="duree"] .tse-uptime { display: none !important; }
@@ -15029,10 +15239,55 @@ const TSE_GATE_MAX_CLICKS = 5;
       ddSquelette(LANG_DD_ID, 'language', 'tse-dd--lang', S.uiFilterLangAriaLabel,
                   () => noeudStatique(GLOBE_MARKUP)));
     section.parentElement.insertBefore(wrap, section);
+    /* LE BANDEAU SE POSE AU-DESSUS DE LA BARRE DE FILTRE, donc tout en haut de
+       ce que l'extension ajoute. Il est monté ICI et pas ailleurs pour une
+       raison simple : c'est la seule fonction du fichier qui sache où commence
+       notre territoire dans la barre latérale, et la dupliquer aurait fait
+       deux endroits à corriger le jour où Twitch déplace sa section. */
+    poserAccueil(wrap);
 
     wireDropdown(wrap.querySelector(`#${CAT_DD_ID}`));
     wireDropdown(wrap.querySelector(`#${LANG_DD_ID}`));
     bindDropdownsGlobal();
+  }
+
+  /* LE BANDEAU, EN TROIS ÉLÉMENTS ET AUCUNE SURPRISE. Un texte, une croix, et
+     rien d'autre : pas de lien — nous ne pouvons pas ouvrir le panneau à la
+     place de l'utilisateur, « chrome.action.openPopup » exige un geste sur
+     l'icône elle-même et n'existe pas partout — donc on ne promet pas un clic
+     qui ne se produirait pas. On indique, on n'agit pas.
+
+     LA CROIX EST UN VRAI BOUTON, avec un libellé accessible : une croix qui
+     n'est qu'un caractère décoratif ne se trouve ni au clavier ni au lecteur
+     d'écran, et ce bandeau s'adresse d'abord à qui ne sait pas où chercher. */
+  const ACCUEIL_ID = 'tse-accueil';
+  function poserAccueil(hote) {
+    if (!accueil.aMontrer()) return;
+    if (document.getElementById(ACCUEIL_ID)) return;
+    const boite = document.createElement('div');
+    boite.id = ACCUEIL_ID;
+    boite.className = 'tse-accueil';
+    const texte = document.createElement('span');
+    texte.className = 'tse-accueil-texte';
+    setText(texte, S.uiAccueilTexte);
+    const croix = document.createElement('button');
+    croix.type = 'button';
+    croix.className = 'tse-accueil-croix';
+    croix.setAttribute('aria-label', S.uiAccueilFermer);
+    croix.setAttribute('title', S.uiAccueilFermer);
+    /* Le glyphe est décoratif : le nom du bouton est dans son aria-label, et
+       le laisser lisible ferait lire « multiplication » par-dessus. */
+    croix.setAttribute('aria-hidden', 'false');
+    const barre = document.createElement('span');
+    barre.setAttribute('aria-hidden', 'true');
+    barre.textContent = '\u00D7';
+    croix.appendChild(barre);
+    croix.addEventListener('click', () => {
+      accueil.renvoyer();
+      boite.remove();
+    });
+    boite.append(texte, croix);
+    hote.parentElement.insertBefore(boite, hote);
   }
 
   // Changement utilisateur d'un filtre : enregistre la sélection et désigne la

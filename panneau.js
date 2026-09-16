@@ -57,6 +57,26 @@ const T = (cle, sub) => API.i18n.getMessage(cle, sub) || cle;
    localStorage PEUT ÊTRE REFUSÉ (fenêtre privée, stockage bloqué) : la lecture
    comme l'écriture sont donc gardées. Un thème qu'on ne peut pas retenir vaut
    mieux qu'un panneau qui ne s'ouvre pas. */
+/* ── LE PANNEAU SAIT S'IL EST DANS UNE POPUP OU DANS UN ONGLET ──────────────
+   La feuille se contraint à 760 × 580 parce qu'une popup de barre d'outils est
+   bornée à 800 × 600 par le navigateur : le contenu doit défiler à l'intérieur,
+   jamais la fenêtre. Dans un onglet plein écran, ces deux nombres deviennent
+   une boîte de 760 × 580 collée dans un coin — ce qui a l'air d'un défaut
+   plutôt que d'une page d'accueil.
+
+   LE MARQUEUR EST POSÉ AVANT LE PREMIER RENDU, et c'est tout ce qui compte :
+   posé plus tard, la page s'afficherait d'abord en petit puis sauterait. On le
+   pose donc ici, au chargement du script, pas dans DOMContentLoaded.
+
+   C'EST LA MÊME PAGE, PAS UNE SECONDE. Une page d'accueil séparée aurait
+   divergé du panneau à la première section ajoutée — et c'est précisément le
+   panneau qu'on veut faire connaître. */
+try {
+  if (new URLSearchParams(location.search).get('vue') === 'onglet') {
+    document.documentElement.setAttribute('data-vue', 'onglet');
+  }
+} catch { /* URL illisible : on reste en popup, ce qui est le cas courant */ }
+
 const THEME_CLE = 'tse:theme';
 const appliquerThemePanneau = (t) => {
   if (t !== 'light' && t !== 'dark') return;

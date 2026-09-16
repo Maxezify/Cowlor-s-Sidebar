@@ -432,6 +432,35 @@ ok('…et pas dans celle de l\'autre, que ce navigateur ignorerait',
 ok('l\'icône de la barre d\'outils ouvre bien le panneau',
    man.action?.default_popup === 'panneau.html', JSON.stringify(man.action));
 
+/* ── ET SON INFOBULLE DIT CE QU'ON TROUVE DERRIÈRE ─────────────────────────
+   L'icône est cachée derrière la pièce de puzzle chez la plupart des gens ;
+   celui qui la survole enfin mérite autre chose que le nom du produit, qu'il
+   connaît déjà. La clé est lue par le MANIFESTE, pas par le panneau — c'est
+   pourquoi la parité la range avec `extName` et `extDescription` — et rien
+   d'autre ne vérifierait qu'elle existe : un « __MSG_… » qui ne correspond à
+   aucun message donne une infobulle VIDE, silencieusement.
+
+   ON VÉRIFIE LES DOUZE, pas seulement la locale par défaut : une infobulle
+   traduite dans onze langues sur douze est exactement le genre de trou qu'on
+   ne voit jamais depuis sa propre machine. */
+{
+  const titre = man.action?.default_title || '';
+  const m = /^__MSG_([A-Za-z0-9_]+)__$/.exec(titre);
+  ok('…et son infobulle passe par une clé de message, pas par du texte en dur',
+     !!m, titre);
+  if (m) {
+    const sans = locales.filter((l) => {
+      try {
+        const t = JSON.parse(readFileSync(
+          join(RACINE, '_locales', l, 'messages.json'), 'utf8'));
+        return !t[m[1]] || !String(t[m[1]].message || '').trim();
+      } catch { return true; }
+    });
+    ok(`…et les ${locales.length} locales portent toutes « ${m[1]} »`,
+       sans.length === 0, sans.join(', '));
+  }
+}
+
 // ── 3b. Le juge extérieur ────────────────────────────────────────────────
 if (!gecko) {
   /* L'addons-linter est l'outil d'AMO. Le lancer sur un manifeste Chrome

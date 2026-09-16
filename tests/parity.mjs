@@ -193,7 +193,12 @@ if (inconnues.length) {
    est du poids mort dans chaque installation, et une piste fausse pour qui
    relit. extName et extDescription sont lues par le manifeste, pas par le
    panneau — elles n'ont donc pas à y figurer. */
-const DU_MANIFESTE = ['extName', 'extDescription'];
+/* `extActionTitle` rejoint les deux autres : elle est lue par la clé
+   `action.default_title` du manifeste, et par personne d'autre. Sans elle ici,
+   le relevé des orphelines la dénoncerait à chaque passage — une clé traduite
+   douze fois que le panneau n'affiche jamais, pour la bonne raison qu'elle
+   s'affiche AILLEURS : dans l'infobulle de l'icône. */
+const DU_MANIFESTE = ['extName', 'extDescription', 'extActionTitle'];
 const orphelines = refLoc.filter(k => !demandees.has(k) && !DU_MANIFESTE.includes(k)
                                      && !TOLEREES.has(k));
 if (orphelines.length) {

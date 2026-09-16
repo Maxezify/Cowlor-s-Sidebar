@@ -175,3 +175,44 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
   promesse.then(repondre);                 // Chrome
   return true;                             // réponse asynchrone
 });
+
+/* ============================================================
+ *  LA PREMIÈRE FOIS, ET LA PREMIÈRE FOIS SEULEMENT
+ *  ------------------------------------------------------------
+ *  UN UTILISATEUR NE TROUVE PAS UNE ICÔNE QU'IL NE VOIT PAS.
+ *  Depuis Chrome 89, une extension fraîchement installée n'est
+ *  PAS dans la barre d'outils : elle est rangée derrière le
+ *  bouton « pièce de puzzle », et n'en sort que si on l'épingle.
+ *  Tout ce que le produit sait faire — ses données, ses dix-neuf
+ *  réglages, son mode d'emploi de treize chapitres — vit derrière
+ *  un clic que personne ne sait qu'il peut donner.
+ *
+ *  OUVRIR UN ONGLET EST LE SEUL MOYEN QUI ATTEIGNE TOUT LE MONDE,
+ *  épinglé ou non. Une pastille sur l'icône ne se voit pas quand
+ *  l'icône est cachée ; une infobulle demande qu'on survole ce
+ *  qu'on n'a pas trouvé. L'onglet, lui, s'ouvre.
+ *
+ *  À L'INSTALLATION, ET PAS AUX MISES À JOUR. « reason » distingue
+ *  les deux, et la nuance décide de tout : une extension qui
+ *  ouvre un onglet à chaque version se fait désinstaller. Celle-ci
+ *  le fait une fois dans sa vie.
+ *
+ *  AUCUNE PERMISSION N'EST DEMANDÉE POUR ÇA. `chrome.tabs.create`
+ *  vers une page de l'extension n'en exige aucune — seule la
+ *  LECTURE des propriétés d'un onglet (`url`, `title`) réclamerait
+ *  « tabs », et on ne lit rien. L'invariant tient : `npm run addon`
+ *  vérifie toujours qu'aucune clé `permissions` n'existe.
+ * ============================================================ */
+chrome.runtime.onInstalled.addListener((details) => {
+  if (!details || details.reason !== 'install') return;
+  /* LE PARAMÈTRE EST LU PAR LE PANNEAU, qui s'y reconnaît et cesse de se
+     contraindre à la taille d'une popup. Sans lui, la page s'afficherait en
+     760 × 580 dans le coin d'un onglet plein écran — ce qui a l'air d'un
+     défaut plutôt que d'une page d'accueil. */
+  const url = chrome.runtime.getURL('panneau.html?vue=onglet');
+  /* On ne suit pas ce que l'onglet devient, et on n'a aucune raison de le
+     faire : l'échec possible ici est qu'un navigateur refuse l'ouverture, et
+     la réponse à cet échec est de ne rien faire. Une extension qui insiste au
+     premier démarrage est une extension qu'on retire. */
+  try { chrome.tabs.create({ url }); } catch { /* refusé : tant pis */ }
+});

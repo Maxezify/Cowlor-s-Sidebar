@@ -12,7 +12,7 @@
     "description": "Descripción corta de la extensión (máx. 132 caracteres en Chrome Web Store)"
   },
   "panelSubtitle": {
-    "message": "Datos y diagnóstico"
+    "message": "Tus datos, tus ajustes y con qué informar de un problema"
   },
   "grpGuide": {
     "message": "Primeros pasos"
@@ -710,5 +710,8 @@
   },
   "optTriCostream": {
     "message": "Co-streams"
+  },
+  "extActionTitle": {
+    "message": "Cowlor's Sidebar — tus datos y tus ajustes"
   }
 }

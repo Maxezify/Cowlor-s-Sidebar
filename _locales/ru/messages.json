@@ -12,7 +12,7 @@
     "description": "Краткое описание расширения (максимум 132 символа в Chrome Web Store)"
   },
   "panelSubtitle": {
-    "message": "Данные и диагностика"
+    "message": "Ваши данные, ваши настройки и чем сообщить о проблеме"
   },
   "grpGuide": {
     "message": "С чего начать"
@@ -710,5 +710,8 @@
   },
   "optTriCostream": {
     "message": "Совместные эфиры"
+  },
+  "extActionTitle": {
+    "message": "Cowlor's Sidebar — ваши данные и настройки"
   }
 }
