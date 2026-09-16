@@ -1346,7 +1346,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     OPTIONS_KEY:            'tse:options',
 
-    ACCUEIL_KEY:            'tse:accueil',
+    ROUE_KEY:               'tse:roue',
 
     INCRUSTE_W:             760,
     INCRUSTE_H:             580
@@ -1488,22 +1488,17 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const accueil = (() => {
     const lire = () => {
-      try { return localStorage.getItem(CFG.ACCUEIL_KEY); } catch { return 'vu'; }
+      try { return localStorage.getItem(CFG.ROUE_KEY); } catch { return 'vu'; }
     };
     const ecrire = (v) => {
-      try { localStorage.setItem(CFG.ACCUEIL_KEY, v); } catch {   }
-    };
-
-    const dejaLa = () => {
-      try {
-        return !!(localStorage.getItem(CFG.VISIT_STORAGE_KEY)
-               || localStorage.getItem(CFG.ROSTER_STORAGE_KEY));
-      } catch { return true; }
+      try { localStorage.setItem(CFG.ROUE_KEY, v); } catch {   }
     };
     let etat = lire();
     if (etat !== 'montre' && etat !== 'vu') {
-      etat = dejaLa() ? 'vu' : 'montre';
+      etat = 'montre';
       ecrire(etat);
+
+      try { localStorage.removeItem('tse:accueil'); } catch {   }
     }
     return {
       aMontrer: () => etat === 'montre',
@@ -2413,12 +2408,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     
     ${DOM.sidebarRoot} .side-nav__title[data-tse-roue] > h3 {
-      flex: 1 1 auto; min-width: 0;
+      flex: 0 1 auto; min-width: 0;
     }
     .tse-roue {
       flex: 0 0 auto;
       position: relative;
-      width: 26px; height: 26px; padding: 0; margin-left: auto;
+      
+      width: 26px; height: 26px; padding: 0;
       display: inline-flex; align-items: center; justify-content: center;
       border: 0; border-radius: 4px;
       background: transparent; color: var(--tse-texte-faible);
@@ -2449,7 +2445,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     
     ${DOM.sidebarRoot} { position: relative; }
     .tse-bulle {
-      position: absolute; z-index: 9;
+      position: absolute;
+      
+      z-index: 5000;
       top: 38px; right: 4px; left: 8px;
       display: flex; align-items: flex-start; gap: 6px;
       padding: 9px 8px 9px 10px;
@@ -8531,7 +8529,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     });
 
     titre.setAttribute('data-tse-roue', 'true');
-    titre.appendChild(roue);
+
+    const h3 = titre.querySelector('h3');
+    if (h3) h3.insertAdjacentElement('afterend', roue);
+    else titre.appendChild(roue);
     majBulle();
   }
 
