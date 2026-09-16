@@ -199,7 +199,7 @@ Twitch a un thème clair. L'extension le voit et bascule avec lui — sans recha
 _______________________________
 
 ➤ ⚙️ ET SI VOUS VOULEZ CHOISIR
-Tout est actif d'emblée et il n'y a rien à régler. Mais un onglet « Options » dans le panneau vous rend la main sur vingt-deux réglages.
+Tout est actif d'emblée et il n'y a rien à régler. Mais un onglet « Options » dans le panneau vous rend la main sur dix-neuf réglages.
 
 - ★ CE QUE VOUS VOYEZ ★ Chaque badge, la durée du direct et son format, la barre « vient de démarrer », l'or des abonnements, les filtres, les boutons de tri : tout s'allume et s'éteint à la case.
 - ★ CE QUI SE CHARGE ★ L'aperçu peut se passer de la vidéo et garder ses badges, sa frise et sa miniature — ou simplement descendre en qualité. De quoi l'alléger sans le perdre.

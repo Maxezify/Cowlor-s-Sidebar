@@ -338,9 +338,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 988 Ko | 380 Ko | 3 259 → **2** |
+| `content.js` | 988 Ko | 380 Ko | 3 257 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 89 Ko | 45 Ko | 114 → **0** |
+| `panneau.js` | 89 Ko | 45 Ko | 116 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1222 Ko** | **531 Ko** | **−57 %** |
@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1079 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1088 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2614,9 +2614,98 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Ce que la mesure a dit, et ce que le raisonnement disait (v4.10.1)
+
+Un retour de terrain, une liste de quinze points, et un symptôme qui revenait
+sur presque tous les interrupteurs : **« le panneau bugue complètement »**.
+
+### Le défaut était une case à cocher invisible
+
+Mon premier diagnostic était le bon piège, mais pas le bon défaut. Le conteneur
+des réglages n'avait pas de `min-height: 0` — l'erreur que le bloc du mode
+d'emploi documente en toutes lettres deux versions plus tôt, et dans laquelle je
+suis retombé. Je l'ai corrigée. **Le document mesurait toujours 2033 pixels.**
+
+C'est la mesure qui a nommé le coupable :
+
+```
+DÉBORDENT : [ { quoi: "INPUT", h: 20, bas: 811,  pos: "absolute" },
+              { quoi: "INPUT", h: 20, bas: 903,  pos: "absolute" },
+              { quoi: "INPUT", h: 20, bas: 948,  pos: "absolute" }, … ]
+```
+
+Les cases sont posées **en absolu** par-dessus leur piste, pour rester dans
+l'ordre de tabulation au lieu d'être retirées par un `display: none`. Leur
+libellé ne portait pas `position: relative` : « absolu » se rapportait donc au
+**bloc conteneur initial**, c'est-à-dire au document. Les dix-neuf cases
+s'empilaient à des centaines de pixels du haut de la page, et une popup de barre
+d'outils se dimensionne sur `documentElement.scrollHeight`. D'où une fenêtre de
+sept cents pixels dont les cartouches et le pied partaient hors champ, à chaque
+repeinture.
+
+**Une case invisible qui déborde ne se voit pas ; elle se mesure.** Le scénario
+120 mesure désormais le document, pas la règle : ce qui compte n'est pas qu'un
+`position: relative` soit déclaré, c'est qu'aucun contrôle ne sorte de son
+conteneur, quelle qu'en soit la cause.
+
+### L'interrupteur de l'aperçu ramenait quelque chose
+
+« Quand on décoche l'aperçu on a quand même une petite fenêtre horizontale au
+survol. » Cette fenêtre n'était pas la nôtre : c'est `.tw-dialog-layer`, le
+conteneur modal que **Twitch** pose sous son propre tooltip de carte, et que
+l'extension masque pendant le survol via un drapeau posé sur `<body>`.
+
+J'avais placé l'interrupteur avant ce drapeau. Le couper rendait donc à Twitch
+un tooltip masqué depuis toujours : **un interrupteur qui ramène quelque chose
+n'est pas un interrupteur.** Il descend d'un cran — le voile reste posé, et rien
+ne s'arme pour autant : ni minuteur, ni préchargement, ni requête.
+
+### « Vient de démarrer » était deux choses
+
+Le réglage ne retirait que la barre violette. C'est le **lavis** sur le fond de
+la carte qui la fait remarquer, et il restait. Le dégradé du co-stream frais est
+d'ailleurs écrit séparément — `background-image` contre `background` — si bien
+que neutraliser l'un laissait l'autre.
+
+### Forcer n'est pas suivre
+
+En « auto », nos surfaces se servent chez Twitch : `var(--color-background-alt,
+…)`, dont la valeur de repli ne sert que si Twitch n'a pas défini la variable.
+C'est le bon comportement — nos ajouts se peignent avec les couleurs de la page
+qui les porte.
+
+Forcé, cette délégation se retourne. Le clair demandé pendant que Twitch reste
+sombre donnait des **textes noirs sur des fonds restés noirs** : ils lisaient nos
+jetons, les fonds lisaient ceux de Twitch. La feuille cesse donc d'emprunter dès
+que le thème est forcé, et reprend les variables de Twitch **sur la barre
+latérale seulement** — les redéfinir sur la racine aurait repeint le site entier,
+ce que personne n'a demandé : le réglage s'appelle « thème DANS Twitch ».
+
+Et la seconde moitié du défaut, qui ne se voit qu'à la mesure : **une variable ne
+rattrape pas une propriété déjà héritée.** Redéfinir `--color-text-base` sur la
+barre ne change rien à un `color` calculé sur un ancêtre. Il faut le reposer.
+
+### Trois réglages retirés
+
+`Déplier « Voir plus »`, `Relever mes abonnements` et `Apprendre mes visites`
+sont partis — jugés inutiles à l'usage. La périodicité du relevé reste, elle.
+
+Le contrat de parité a fait exactement son travail : il a dénoncé les **sept
+clés devenues orphelines** dans les douze langues, sans qu'on ait à les chercher.
+
+### Ce qui reste à vérifier sur le terrain
+
+**La pastille de collaboration** a été signalée comme disparue. Le scénario 17 la
+couvre et passe, donc le chemin de code tient ; ce qui manque est la mesure sur
+le vrai Twitch, que rien ici ne peut atteindre. Le rapport compte désormais deux
+nombres qui répondront en une ligne : combien de cartes portent le « +N » de
+Twitch, et combien portent notre pastille. Zéro et zéro veut dire qu'aucune
+collaboration n'est à l'antenne ; du « +N » sans pastille veut dire que c'est
+nous.
+
 ## Un onglet Options, et les trois règles qui le tiennent (v4.10)
 
-Vingt-deux réglages, choisis dans un catalogue d'une soixantaine. Le code des
+Dix-neuf réglages, choisis dans un catalogue d'une soixantaine. Le code des
 cases à cocher est la partie facile ; ce qui décide, c'est l'architecture.
 
 ### Où vivent les réglages, et pourquoi c'est imposé
@@ -2649,7 +2738,7 @@ branche avait suffi à faire sentir le scan.
 
 ### 3. Ce qui est CSS reste CSS
 
-Quinze de ces réglages ne font que **masquer** quelque chose. Les faire passer
+Onze de ces réglages ne font que **masquer** quelque chose. Les faire passer
 par du JavaScript aurait voulu dire retoucher chaque carte à chaque scan, et se
 souvenir de la remettre quand le réglage change. Trois attributs sur `<html>` et
 des sélecteurs d'attribut font le même travail sans qu'on parcoure quoi que ce
@@ -6768,7 +6857,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 120 scénarios, 1079 assertions |
+| `npm test` | le harnais Playwright : 120 scénarios, 1088 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

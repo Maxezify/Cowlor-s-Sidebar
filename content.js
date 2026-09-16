@@ -2351,10 +2351,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     /* — Ce que l'extension retire à Twitch — */
     stories:         { defaut: true,      type: 'bool', css: true },
-    deplier:         { defaut: true,      type: 'bool' },
 
     /* — Le relevé des abonnements — */
-    abosReleve:      { defaut: true,      type: 'bool' },
     /* SIX, ÉCRIT EN TOUTES LETTRES, et c'est un revirement qu'il faut dire.
        Ce défaut lisait d'abord CFG.SUBS_PAGE_TTL, pour ne pas répéter le
        nombre. C'était faux, et le banc l'a montré du premier coup : cette
@@ -2383,10 +2381,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     filtreLangue:    { defaut: true,      type: 'bool', css: true },
 
     /* — Apparence — */
-    theme:           { defaut: 'auto',    type: 'choix', valeurs: ['auto', 'dark', 'light'] },
-
-    /* — Données — */
-    visites:         { defaut: true,      type: 'bool' }
+    theme:           { defaut: 'auto',    type: 'choix', valeurs: ['auto', 'dark', 'light'] }
   });
 
   /* LES JEUX STOCKENT CE QU'ON RETIRE, pas ce qu'on garde, et ce n'est pas un
@@ -2540,6 +2535,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
     pose('data-tse-or',     options.get('abonnes'),      'plein');
     pose('data-tse-apercu', options.get('apercuTaille'), 'normal');
+    /* FORCER N'EST PAS SUIVRE, et la feuille doit pouvoir faire la différence.
+       En « auto », nos surfaces se servent chez Twitch — « var(--color-…) » —
+       et c'est exactement ce qu'on veut : nos ajouts se peignent avec les
+       couleurs de la page qui les porte. Forcé, cette délégation se retourne
+       contre nous : un utilisateur a demandé le clair pendant que Twitch
+       restait sombre, et nos textes sont devenus sombres sur un fond resté
+       noir. Ce drapeau permet à la feuille de cesser d'emprunter. */
+    html.toggleAttribute('data-tse-force', options.get('theme') !== 'auto');
   };
   options.surChangement(appliquerOptions);
   appliquerOptions();
@@ -2672,6 +2675,68 @@ const TSE_GATE_MAX_CLICKS = 5;
       --tse-ombre-menu:   rgba(0, 0, 0, 0.20);
       --tse-ombre-large:  rgba(0, 0, 0, 0.24);
       --tse-decoupe:      #ffffff;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       QUAND LE THÈME EST FORCÉ, LA FEUILLE CESSE D'EMPRUNTER
+       ──────────────────────────────────────────────────────────────────────
+       Toutes les surfaces et tous les textes ci-dessus se servent chez Twitch
+       — « var(--color-background-alt, …) » — et la valeur de repli ne sert
+       QUE si Twitch n'a pas défini la variable. C'est le bon comportement en
+       « auto » : nos ajouts se peignent avec les couleurs de la page qui les
+       porte, et suivent ses éventuels ajustements.
+
+       FORCÉ, CETTE DÉLÉGATION SE RETOURNE. Un utilisateur a demandé le clair
+       pendant que Twitch restait sombre : nos textes sont passés au noir —
+       ils lisaient nos jetons — mais les fonds sont restés noirs, parce
+       qu'ils lisaient ceux de Twitch. Texte noir sur fond noir. « La sidebar
+       reste foncée, seuls les textes s'adaptent. »
+
+       ON REPREND DONC LES VARIABLES DE TWITCH, mais SUR LA BARRE LATÉRALE
+       SEULEMENT. Les redéfinir sur la racine aurait repeint le site entier,
+       ce que personne n'a demandé — le réglage s'appelle « thème DANS
+       Twitch », pas « thème DE Twitch ». Posées sur « #side-nav », elles
+       descendent par héritage à tout ce que Twitch y peint, et s'arrêtent à
+       sa frontière. */
+    html[data-tse-force][data-tse-theme="light"] {
+      --tse-surface:      #ffffff;
+      --tse-surface-2:    #f7f7f8;
+      --tse-texte:        #0e0e10;
+      --tse-texte-doux:   #53535f;
+      --tse-texte-faible: #6e6e7a;
+    }
+    html[data-tse-force][data-tse-theme="dark"] {
+      --tse-surface:      #18181b;
+      --tse-surface-2:    #1f1f23;
+      --tse-texte:        #efeff1;
+      --tse-texte-doux:   #adadb8;
+      --tse-texte-faible: #6e6e7a;
+    }
+    html[data-tse-force][data-tse-theme="light"] ${DOM.sidebarRoot} {
+      --color-background-base:  #f7f7f8;
+      --color-background-alt:   #ffffff;
+      --color-background-alt-2: #efeff1;
+      --color-text-base:        #0e0e10;
+      --color-text-alt:         #53535f;
+      --color-text-alt-2:       #6e6e7a;
+      background-color: #f7f7f8;
+      /* LA COULEUR DU TEXTE SE REPOSE, elle ne se déduit pas. Redéfinir
+         « --color-text-base » ici ne change rien à un « color » déjà calculé
+         sur un ANCÊTRE : la barre hérite la couleur du corps, où la variable
+         valait encore celle de Twitch. Le fond passait donc au clair et le
+         texte restait clair dessus — le même défaut que celui qu'on corrige,
+         retourné. Une variable ne rattrape pas une propriété déjà héritée. */
+      color: #0e0e10;
+    }
+    html[data-tse-force][data-tse-theme="dark"] ${DOM.sidebarRoot} {
+      --color-background-base:  #0e0e10;
+      --color-background-alt:   #18181b;
+      --color-background-alt-2: #1f1f23;
+      --color-text-base:        #efeff1;
+      --color-text-alt:         #adadb8;
+      --color-text-alt-2:       #6e6e7a;
+      background-color: #0e0e10;
+      color: #efeff1;
     }
 
     /* === Voile de chargement initial ===
@@ -3896,8 +3961,13 @@ const TSE_GATE_MAX_CLICKS = 5;
        d'autre une marge qui ne correspondait à rien.
        Le space-between n'intervient que si les boutons plafonnent (sidebar
        large) : les bords, eux, restent flush dans tous les cas. */
+    /* CENTRÉS, ET PAS ÉTALÉS. « space-between » collait le premier bouton au
+       bord gauche et le dernier au bord droit : juste tant qu'ils sont six,
+       bancal dès qu'on en retire un, et franchement absurde à deux — un
+       bouton dans chaque coin. Les réglages ayant rendu leur nombre variable,
+       la rangée se centre, et les six cas se ressemblent. */
     .tse-sort-row {
-      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
       margin-top: 4px;
     }
 
@@ -4757,7 +4827,18 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     /* — La carte dans la barre — */
     html[data-tse-off~="duree"] .tse-uptime { display: none !important; }
+    /* « VIENT DE DÉMARRER » EST DEUX CHOSES, et le réglage n'en retirait
+       qu'une. La barre violette se voit, mais c'est le LAVIS sur le fond de
+       la carte qui la fait remarquer — un utilisateur a demandé que tous les
+       éléments partent, pas seulement la barre. Le dégradé du co-stream frais
+       est écrit séparément (background-image contre background), d'où les
+       deux déclarations : neutraliser l'une laissait l'autre en place. */
     html[data-tse-off~="fresh"] .side-nav-card.tse-fresh::before { display: none !important; }
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh,
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream {
+      background: none !important;
+      background-image: none !important;
+    }
     html[data-tse-off~="collab"] .tse-collab-badge { display: none !important; }
     html[data-tse-off~="subathonJour"] .tse-subathon-jour { display: none !important; }
 
@@ -4765,6 +4846,22 @@ const TSE_GATE_MAX_CLICKS = 5;
     html[data-tse-off~="topOnglet"] .tse-mode-row { display: none !important; }
     html[data-tse-off~="filtreCategorie"] .tse-filter-field--cat { display: none !important; }
     html[data-tse-off~="filtreLangue"] .tse-filter-field--lang { display: none !important; }
+    /* CE QUI RESTE SE CENTRE. Les deux champs se partagent la rangée par des
+       règles asymétriques — la catégorie prend la place restante, la langue
+       est poussée à droite par « margin-left: auto ». Retirer l'un laissait
+       donc l'autre collé à son bord, ce qui se lit comme un défaut
+       d'alignement plutôt que comme un choix. On défait les deux poussées et
+       on centre. */
+    html[data-tse-off~="filtreCategorie"] .tse-filter-row,
+    html[data-tse-off~="filtreLangue"] .tse-filter-row { justify-content: center; }
+    html[data-tse-off~="filtreCategorie"] .tse-filter-field--lang { margin-left: 0; }
+    html[data-tse-off~="filtreLangue"] .tse-filter-field--cat { flex: 0 1 auto; }
+    /* Les deux coupés : la rangée n'a plus rien à porter, et une barre vide
+       laisserait un creux qu'on prendrait pour un chargement qui n'arrive
+       pas. */
+    html[data-tse-off~="filtreCategorie"][data-tse-off~="filtreLangue"] .tse-filter-row {
+      display: none !important;
+    }
     html[data-tse-off~="tri-viewers"]  .tse-sort-toggle[data-tse-sort-mode="viewers"],
     html[data-tse-off~="tri-subs"]     .tse-sort-toggle[data-tse-sort-mode="subs"],
     html[data-tse-off~="tri-popular"]  .tse-sort-toggle[data-tse-sort-mode="popular"],
@@ -8358,12 +8455,6 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     // Enregistre une visite si la fenêtre VISIT_SESSION_MS est dépassée.
     record(login) {
-      /* L'APPRENTISSAGE SE COUPE ICI, À L'ÉCRITURE, et pas à la lecture : ce
-         qui a déjà été appris reste lisible — le tri « popularité perso » et
-         la grille du rythme continuent de montrer le passé — mais plus rien
-         ne s'ajoute. Couper aussi la lecture aurait effacé des données sans
-         le dire, alors que le panneau offre un bouton pour ça, séparément. */
-      if (!options.get('visites')) return;
       if (!login) return;
       const now = Date.now();
       const list = this.map.get(login) || [];
@@ -8950,14 +9041,7 @@ const TSE_GATE_MAX_CLICKS = 5;
      * d'abonnement, que les onglets courants écriront ensuite.
      */
     const refresh = async (force = false) => {
-      /* DEUX VERROUS, ET ILS NE DISENT PAS LA MÊME CHOSE. La constante est
-         celle du DÉVELOPPEUR — elle neutralise la fonction dans une build ;
-         le réglage est celui de l'UTILISATEUR, et il porte sur la seule
-         requête authentifiée du produit. On les garde tous les deux : celui
-         qui coupe le relevé depuis le panneau attend que rien ne parte, même
-         s'il clique ensuite sur « rafraîchir les abonnements ». D'où le
-         « force » qui ne force pas celui-là. */
-      if (!CFG.SUBS_PAGE_ENABLED || !options.get('abosReleve') || running) return null;
+      if (!CFG.SUBS_PAGE_ENABLED || running) return null;
       /* AU DÉFAUT, C'EST LA CONSTANTE QUI GOUVERNE ; dès qu'on choisit, c'est
          le choix. Sans cette bascule, le banc n'aurait plus aucun moyen
          d'accélérer ce relevé : multiplier six heures par rien reste six
@@ -9127,7 +9211,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const init = () => {
-      if (!CFG.SUBS_PAGE_ENABLED || !options.get('abosReleve')) return;
+      if (!CFG.SUBS_PAGE_ENABLED) return;
       arme = true;
     };
 
@@ -10063,9 +10147,22 @@ const TSE_GATE_MAX_CLICKS = 5;
           const r = { cartes: vues.length, crochet: 0, groupe: 0, boite: 0,
                       p0: 0, p1: 0, p2: 0, p3: 0,
                       b0: 0, b1: 0, b2: 0, b3: 0,
-                      nomHorsGroupe: 0, toutesTitrees: 0, nomTitre: 0, sansNom: 0 };
+                      nomHorsGroupe: 0, toutesTitrees: 0, nomTitre: 0, sansNom: 0,
+                      /* LA PASTILLE DE COLLABORATION SE COMPTE ICI, et c'est un
+                         signalement qui l'a demandée : « j'ai l'impression que la
+                         pastille a disparu ». Le banc la couvre et passe, donc le
+                         chemin de code tient ; ce qui manque est la MESURE sur le
+                         vrai Twitch. Trois nombres y répondent en une ligne :
+                         combien de cartes portent le « +N » de Twitch (« plus »),
+                         combien portent notre pastille (« pastilles »), et si le
+                         réglage l'éteint (le jeton « collab » est déjà au rapport).
+                         Zéro et zéro veut dire qu'aucune collab n'est à l'antenne ;
+                         du « plus » sans pastille veut dire que c'est nous. */
+                      plus: 0, pastilles: 0 };
           for (const c of vues) {
             if (c.querySelector('p[data-a-target="side-nav-title"]')) r.crochet++;
+            if (c.querySelector('.tse-collab-badge')) r.pastilles++;
+            if (/\+\d+/.test(c.textContent || '')) r.plus++;
             /* LES DEUX BOÎTES, ET NON PLUS UNE SEULE. La première rédaction ne
                comptait que le groupe `.side-nav-card__metadata`, et son « une
                seule ligne » était la bonne nouvelle — mais elle ne disait pas
@@ -13941,6 +14038,22 @@ const TSE_GATE_MAX_CLICKS = 5;
       // correction. `annulerAttente` ci-dessus vient d'en programmer la levée ;
       // `voiler` l'annule et le repose. L'ordre compte.
       voiler();
+      /* ── L'INTERRUPTEUR DE L'APERÇU EST ICI, ET PAS UN CRAN PLUS HAUT ─────
+         Il était d'abord posé à l'entrée du gestionnaire de survol, avant
+         TOUT — y compris avant ce voile. Un utilisateur l'a signalé :
+         « quand on décoche l'aperçu on a quand même une petite fenêtre
+         horizontale au survol ». Cette fenêtre n'était pas la nôtre, c'était
+         celle de TWITCH : « .tw-dialog-layer », le conteneur modal que Twitch
+         pose sous son propre tooltip de carte, et que « voiler » masque
+         précisément pendant qu'on survole. Couper trop tôt rendait à Twitch
+         un tooltip que l'extension masque depuis toujours — l'interrupteur
+         ramenait donc quelque chose au lieu de ne rien faire.
+
+         CE QUI SUIT NE PART TOUJOURS PAS : aucun minuteur n'est armé, aucune
+         miniature n'est préchargée, aucune requête de métadonnées n'est
+         émise. Le réglage coupe l'aperçu ; il ne réveille pas ce que
+         l'extension enlève par ailleurs. */
+      if (!options.get('apercu')) return;
       pendingCard = card;
       pendingTimer = setTimeout(() => {
         pendingTimer = null;
@@ -14211,13 +14324,6 @@ const TSE_GATE_MAX_CLICKS = 5;
       }, { passive: true, capture: true });
 
       document.addEventListener('mouseenter', (e) => {
-        /* L'INTERRUPTEUR DE L'APERÇU EST ICI, et il est volontairement placé
-           AVANT tout le reste : rien ne s'arme, rien ne se précharge, aucune
-           requête de métadonnées ne part. Un aperçu « désactivé » qui aurait
-           continué de préparer son contenu en coulisses aurait été un réglage
-           menteur — et le seul qui l'aurait su est celui qui regarde son
-           trafic réseau. Le survol redevient exactement ce que Twitch fait. */
-        if (!options.get('apercu')) return;
         const t = e.target;
         if (!t || typeof t.closest !== 'function') return;
         const card = resolveCard(t);
@@ -14676,12 +14782,6 @@ const TSE_GATE_MAX_CLICKS = 5;
   }
 
   function autoExpandFollowed() {
-    /* LE DÉPLIAGE EST UN CLIC QU'ON DONNE À LA PLACE DE L'UTILISATEUR, et
-       c'est justement ce que certains ne veulent pas : une liste dépliée de
-       deux cents chaînes est plus longue à parcourir qu'un « Voir plus » qu'on
-       ne clique jamais. Coupé, l'extension laisse la liste telle que Twitch la
-       rend — et continue de tout mesurer sur ce qu'elle voit. */
-    if (!options.get('deplier')) return;
     const section = followedSection();
     if (!section) return;
 

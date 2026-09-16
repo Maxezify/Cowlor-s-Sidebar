@@ -134,8 +134,8 @@ où le code change :
    fait : le mouvement cesse, le signal continue (scénarios 113, 114 et 116).
    Le contrôle `PROMESSES` de `tests/store.mjs` relie ces deux phrases-là au
    code, comme `CITES` le fait pour les libellés.
-11. **« Un onglet Options … vingt-deux réglages »** — la table `OPT_DEFS` de
-   `content.js` en porte vingt-deux, et c'est ELLE que le contrôle compte, pas
+11. **« Un onglet Options … dix-neuf réglages »** — la table `OPT_DEFS` de
+   `content.js` en porte dix-neuf, et c'est ELLE que le contrôle compte, pas
    la phrase. Le scénario 117 vérifie le nombre, le 120 que chacun a sa ligne
    dans le panneau, et `npm run parity` qu'aucun n'est affiché sous son
    identifiant brut. La fiche promet aussi trois choses précises, toutes

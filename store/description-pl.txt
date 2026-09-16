@@ -199,7 +199,7 @@ Twitch ma jasny motyw. Rozszerzenie to zauważa i przełącza się razem z nim �
 _______________________________
 
 ➤ ⚙️ A JEŚLI CHCESZ WYBIERAĆ
-Wszystko działa od razu i nie trzeba niczego ustawiać. Ale zakładka „Opcje” w panelu oddaje Ci dwadzieścia dwa ustawienia.
+Wszystko działa od razu i nie trzeba niczego ustawiać. Ale zakładka „Opcje” w panelu oddaje Ci dziewiętnaście ustawień.
 
 - ★ TO, CO WIDZISZ ★ Każda odznaka, czas trwania transmisji i jego format, pasek „właśnie ruszyła”, złoto subskrypcji, filtry, przyciski sortowania: wszystko włącza się i wyłącza jednym polem.
 - ★ TO, CO SIĘ WCZYTUJE ★ Podgląd może zrezygnować z wideo i zachować odznaki, oś czasu i miniaturę — albo po prostu zejść z jakością. Tyle, by go odciążyć, nie tracąc go.

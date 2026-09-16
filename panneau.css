@@ -790,10 +790,20 @@ html[data-theme="light"] .d-jour {
    illisible dans l'autre. C'est exactement l'erreur que la 4.8 a passé une
    version à corriger ailleurs. */
 .reglages {
+  /* « min-height: 0 », ET C'EST TOUT LE DÉFAUT. Sans lui, un enfant flex
+     refuse de descendre sous la taille de son contenu : la liste des réglages
+     mesurait 2281 px, la vue grandissait d'autant, et une popup de barre
+     d'outils se dimensionne sur le document. Résultat : une fenêtre de sept
+     cents pixels dont le pied et les cartouches partaient hors champ, à chaque
+     repeinture. Le bloc du mode d'emploi porte le même correctif, avec le même
+     commentaire, écrit deux versions plus tôt — et je suis quand même retombé
+     dedans. Il est ici pour que le prochain n'y retombe pas. */
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
-  overflow: auto;
+  overflow-y: auto;
   padding-right: 4px;
 }
 .reglages[hidden] { display: none; }
@@ -847,7 +857,20 @@ html[data-theme="light"] .d-jour {
 .reg-ctrl  { flex: none; }
 
 /* ── L'interrupteur ──────────────────────────────────────────────────────── */
-.reg-bascule { display: inline-flex; cursor: pointer; }
+/* « position: relative », ET C'EST LE VRAI DÉFAUT DE LA 4.10.0. La case est
+   posée en absolu par-dessus la piste ; sans ancêtre positionné, « absolu »
+   se rapporte au BLOC CONTENEUR INITIAL, c'est-à-dire au document. Les dix-
+   neuf cases se retrouvaient donc empilées à des centaines de pixels du
+   haut de la page : « documentElement.scrollHeight » passait de 580 à 2033,
+   et une popup de barre d'outils se dimensionne là-dessus. D'où une fenêtre
+   de sept cents pixels, ses cartouches et son pied hors champ, à chaque
+   repeinture — « le panneau est complètement bugué ».
+
+   LA MESURE L'A DIT, PAS LE RAISONNEMENT : j'avais d'abord corrigé le
+   « min-height: 0 » du conteneur, ce qui était nécessaire mais ne changeait
+   rien à ce chiffre-là. Une case invisible qui déborde ne se voit pas ; elle
+   se mesure. */
+.reg-bascule { display: inline-flex; cursor: pointer; position: relative; }
 /* La case reste dans le document et garde le focus clavier : la masquer avec
    « display: none » l'aurait sortie de l'ordre de tabulation, c'est-à-dire
    rendu l'onglet inutilisable sans souris. */

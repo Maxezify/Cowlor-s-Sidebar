@@ -573,20 +573,8 @@
   "optDescStories": {
     "message": "Restano visibili per impostazione predefinita: è ciò che fa Twitch."
   },
-  "optDeplier": {
-    "message": "Espandere «Mostra altro» automaticamente"
-  },
-  "optDescDeplier": {
-    "message": "Disattivato, la lista resta come la rende Twitch: l'estensione continua a misurare tutto ciò che vede."
-  },
   "optGrpAbos": {
     "message": "La lettura degli abbonamenti"
-  },
-  "optAbosReleve": {
-    "message": "Leggere i miei abbonamenti"
-  },
-  "optDescAbosReleve": {
-    "message": "È l'unica richiesta autenticata dell'estensione: apre la tua pagina twitch.tv/subscriptions in un riquadro invisibile. Disattivata, l'oro e l'ordinamento «abbonamenti in cima» si basano solo sui canali visitati."
   },
   "optAbosPeriode": {
     "message": "Al massimo una volta ogni"
@@ -599,15 +587,6 @@
   },
   "optDescTheme": {
     "message": "«Auto» segue il tema di Twitch. Forzarlo cambia solo il modo in cui l'estensione si disegna sopra."
-  },
-  "optGrpDonnees": {
-    "message": "Dati"
-  },
-  "optVisites": {
-    "message": "Imparare le mie visite"
-  },
-  "optDescVisites": {
-    "message": "Disattivato, ciò che è già stato imparato resta leggibile, ma non si aggiunge più nulla. L'ordinamento «popolarità personale» e la griglia del ritmo smettono di evolversi."
   },
   "optGrpPanneau": {
     "message": "Questo pannello"
@@ -682,7 +661,7 @@
     "message": "Ripristinare tutte le impostazioni?"
   },
   "optResetText": {
-    "message": "Le ventidue impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
+    "message": "Le diciannove impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
   },
   "optValPlein": {
     "message": "Completo"

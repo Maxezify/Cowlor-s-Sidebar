@@ -326,9 +326,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 988 KB | 380 KB | 3,259 → **2** |
+| `content.js` | 988 KB | 380 KB | 3,257 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 89 KB | 45 KB | 114 → **0** |
+| `panneau.js` | 89 KB | 45 KB | 116 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1222 KB** | **531 KB** | **−57 %** |
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1079 assertions, under Gecko
+npm run test-firefox        # the same 1088 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2479,9 +2479,96 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## What measurement said, and what reasoning said (v4.10.1)
+
+One field report, a list of fifteen points, and one symptom that came back on
+nearly every switch: **"the panel is completely broken."**
+
+### The defect was an invisible checkbox
+
+My first diagnosis found the right trap, but not the right defect. The settings
+container had no `min-height: 0` — the very mistake the tutorial block documents
+in plain words two versions earlier, and the one I walked straight back into. I
+fixed it. **The document still measured 2033 pixels.**
+
+Measurement named the culprit:
+
+```
+OVERFLOWING: [ { what: "INPUT", h: 20, bottom: 811,  pos: "absolute" },
+               { what: "INPUT", h: 20, bottom: 903,  pos: "absolute" },
+               { what: "INPUT", h: 20, bottom: 948,  pos: "absolute" }, … ]
+```
+
+The checkboxes sit **absolutely positioned** over their track, so they stay in
+the tab order instead of being removed by `display: none`. Their label carried no
+`position: relative`, so "absolute" resolved against the **initial containing
+block** — the document. Nineteen checkboxes piled up hundreds of pixels down the
+page, and a toolbar popup sizes itself from `documentElement.scrollHeight`. Hence
+a seven-hundred-pixel window with its stat tiles and footer off-screen, on every
+repaint.
+
+**An invisible checkbox that overflows cannot be seen; it has to be measured.**
+Scenario 120 now measures the document, not the rule: what matters is not that a
+`position: relative` is declared, but that no control escapes its container,
+whatever the cause.
+
+### The preview switch brought something back
+
+"When you uncheck the preview you still get a small horizontal window on hover."
+That window was not ours: it is `.tw-dialog-layer`, the modal container **Twitch**
+places under its own card tooltip, which the extension hides during hover via a
+flag on `<body>`.
+
+I had put the switch before that flag. Turning it off therefore handed Twitch
+back a tooltip the extension has always hidden: **a switch that brings something
+back is not a switch.** It moves one notch down — the veil stays, and nothing is
+armed for it: no timer, no prefetch, no request.
+
+### "Just went live" was two things
+
+The setting removed only the purple bar. It is the **wash** on the card
+background that makes it noticeable, and it stayed. The fresh co-stream gradient
+is written separately — `background-image` against `background` — so neutralising
+one left the other.
+
+### Forcing is not following
+
+On "auto", our surfaces borrow from Twitch: `var(--color-background-alt, …)`,
+whose fallback only applies if Twitch has not defined the variable. That is the
+right behaviour — our additions paint with the colours of the page carrying them.
+
+Forced, that delegation turns against us. Light requested while Twitch stays dark
+gave **black text on backgrounds that stayed black**: the text read our tokens,
+the backgrounds read Twitch's. The stylesheet therefore stops borrowing as soon
+as the theme is forced, and takes over Twitch's variables **on the sidebar only** —
+redefining them on the root would have repainted the whole site, which nobody
+asked for: the setting is called "theme *inside* Twitch".
+
+And the other half of the defect, visible only under measurement: **a variable
+does not catch up with an already-inherited property.** Redefining
+`--color-text-base` on the sidebar changes nothing about a `color` computed on an
+ancestor. It has to be set again.
+
+### Three settings removed
+
+`Expand "Show more"`, `Read my subscriptions` and `Learn my visits` are gone —
+judged useless in practice. The sweep interval stays.
+
+The parity contract did exactly its job: it named the **seven now-orphaned keys**
+across twelve languages, without anyone having to look for them.
+
+### What still needs a field check
+
+**The collaboration pill** was reported as missing. Scenario 17 covers it and
+passes, so the code path holds; what is missing is measurement against real
+Twitch, which nothing here can reach. The report now carries two numbers that
+will answer in one line: how many cards carry Twitch's own "+N", and how many
+carry our pill. Zero and zero means no collaboration is live; "+N" without a pill
+means it is on us.
+
 ## An Options tab, and the three rules holding it up (v4.10)
 
-Twenty-two settings, picked from a catalogue of about sixty. The checkbox code is
+Nineteen settings, picked from a catalogue of about sixty. The checkbox code is
 the easy part; what decides everything is the architecture.
 
 ### Where the settings live, and why that is imposed
@@ -2514,7 +2601,7 @@ to make the scan noticeable.
 
 ### 3. What is CSS stays CSS
 
-Fifteen of these settings only **hide** something. Routing them through
+Eleven of these settings only **hide** something. Routing them through
 JavaScript would have meant touching every card on every scan, and remembering to
 put it back when the setting changes. Three attributes on `<html>` and attribute
 selectors do the same work without walking anything — the 4.8 theme mechanism,
@@ -6476,7 +6563,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 120 scenarios, 1079 assertions |
+| `npm test` | the Playwright harness: 120 scenarios, 1088 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

@@ -573,20 +573,8 @@
   "optDescStories": {
     "message": "Elles restent affichées par défaut : c'est ce que Twitch fait."
   },
-  "optDeplier": {
-    "message": "Déplier « Voir plus » automatiquement"
-  },
-  "optDescDeplier": {
-    "message": "Coupé, la liste reste telle que Twitch la rend — l'extension continue de tout mesurer sur ce qu'elle voit."
-  },
   "optGrpAbos": {
     "message": "Le relevé des abonnements"
-  },
-  "optAbosReleve": {
-    "message": "Relever mes abonnements"
-  },
-  "optDescAbosReleve": {
-    "message": "C'est la seule requête authentifiée de l'extension : elle ouvre votre page twitch.tv/subscriptions dans un cadre invisible. Coupée, l'or et le tri « abonnements en tête » ne s'appuient plus que sur les chaînes visitées."
   },
   "optAbosPeriode": {
     "message": "Au plus une fois toutes les"
@@ -599,15 +587,6 @@
   },
   "optDescTheme": {
     "message": "« Auto » suit le thème de Twitch. Forcer ne change que la façon dont l'extension se peint par-dessus."
-  },
-  "optGrpDonnees": {
-    "message": "Données"
-  },
-  "optVisites": {
-    "message": "Apprendre mes visites"
-  },
-  "optDescVisites": {
-    "message": "Coupé, ce qui a déjà été appris reste lisible, mais plus rien ne s'y ajoute. Le tri « popularité perso » et la grille du rythme cessent d'évoluer."
   },
   "optGrpPanneau": {
     "message": "Ce panneau"
@@ -682,7 +661,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les vingt-deux réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les dix-neuf réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"

@@ -688,20 +688,8 @@
   "optDescStories": {
     "message": "Shown by default: that is what Twitch does."
   },
-  "optDeplier": {
-    "message": "Expand \"Show more\" automatically"
-  },
-  "optDescDeplier": {
-    "message": "Off, the list stays as Twitch renders it — the extension keeps measuring everything it can see."
-  },
   "optGrpAbos": {
     "message": "Subscription sweep"
-  },
-  "optAbosReleve": {
-    "message": "Read my subscriptions"
-  },
-  "optDescAbosReleve": {
-    "message": "This is the extension's only authenticated request: it opens your own twitch.tv/subscriptions page in an invisible frame. Off, the gold and the \"subscriptions first\" sort rely only on channels you visit."
   },
   "optAbosPeriode": {
     "message": "At most once every"
@@ -714,15 +702,6 @@
   },
   "optDescTheme": {
     "message": "\"Auto\" follows Twitch's theme. Forcing one only changes how the extension paints on top."
-  },
-  "optGrpDonnees": {
-    "message": "Data"
-  },
-  "optVisites": {
-    "message": "Learn my visits"
-  },
-  "optDescVisites": {
-    "message": "Off, what was already learned stays readable, but nothing more is added. The \"personal popularity\" sort and the rhythm grid stop evolving."
   },
   "optGrpPanneau": {
     "message": "This panel"
@@ -797,7 +776,7 @@
     "message": "Reset every setting to its default?"
   },
   "optResetText": {
-    "message": "All twenty-two settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+    "message": "All nineteen settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
   },
   "optValPlein": {
     "message": "Full"

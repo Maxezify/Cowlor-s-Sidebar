@@ -199,7 +199,7 @@ Twitch has a light theme. The extension notices and switches with it — no relo
 _______________________________
 
 ➤ ⚙️ AND IF YOU WANT TO CHOOSE
-Everything is on from the start and there is nothing to set up. But an "Options" tab in the panel hands you twenty-two settings.
+Everything is on from the start and there is nothing to set up. But an "Options" tab in the panel hands you nineteen settings.
 
 - ★ WHAT YOU SEE ★ Every badge, the stream uptime and its format, the "just went live" bar, the subscription gold, the filters, the sort buttons: all of it switches on and off with a checkbox.
 - ★ WHAT GETS LOADED ★ The preview can drop the video and keep its badges, its timeline and its thumbnail — or simply step down in quality. Enough to make it light without losing it.

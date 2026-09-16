@@ -573,20 +573,8 @@
   "optDescStories": {
     "message": "Domyślnie widoczne: tak robi Twitch."
   },
-  "optDeplier": {
-    "message": "Automatycznie rozwijaj „Pokaż więcej”"
-  },
-  "optDescDeplier": {
-    "message": "Wyłączone — lista zostaje taka, jaką renderuje Twitch; rozszerzenie nadal mierzy wszystko, co widzi."
-  },
   "optGrpAbos": {
     "message": "Odczyt subskrypcji"
-  },
-  "optAbosReleve": {
-    "message": "Odczytuj moje subskrypcje"
-  },
-  "optDescAbosReleve": {
-    "message": "To jedyne uwierzytelnione żądanie rozszerzenia: otwiera Twoją stronę twitch.tv/subscriptions w niewidocznej ramce. Wyłączone — złoto i sortowanie „subskrypcje na górze” opierają się wyłącznie na odwiedzonych kanałach."
   },
   "optAbosPeriode": {
     "message": "Najwyżej raz na"
@@ -599,15 +587,6 @@
   },
   "optDescTheme": {
     "message": "„Auto” podąża za motywem Twitcha. Wymuszenie zmienia tylko to, jak rozszerzenie rysuje na wierzchu."
-  },
-  "optGrpDonnees": {
-    "message": "Dane"
-  },
-  "optVisites": {
-    "message": "Ucz się moich wizyt"
-  },
-  "optDescVisites": {
-    "message": "Wyłączone — to, czego już się nauczyło, pozostaje czytelne, ale nic więcej nie dochodzi. Sortowanie „osobista popularność” i siatka rytmu przestają się zmieniać."
   },
   "optGrpPanneau": {
     "message": "Ten panel"
@@ -682,7 +661,7 @@
     "message": "Przywrócić wszystkie ustawienia domyślne?"
   },
   "optResetText": {
-    "message": "Wszystkie dwadzieścia dwa ustawienia na tej stronie wrócą do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
+    "message": "Wszystkie dziewiętnaście ustawień na tej stronie wrócą do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
   },
   "optValPlein": {
     "message": "Pełne"
