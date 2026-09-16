@@ -71,6 +71,13 @@ const SECTIONS = [
 
   { id: 'guide',   groupe: 'grpGuide', statique: true },
 
+  { id: 'options', groupe: 'grpOptions', reglages: true,
+    actions: [{ id: 'resetOptions', cle: 'btnOptReset', confirme: 'optReset' }],
+    tuiles: (r) => [
+      ['sumSettings', fmt.nombre(r.reglages)],
+      ['sumChanged',  fmt.nombre(r.modifies), r.modifies ? 'or' : ''],
+    ] },
+
   { id: 'scores',  groupe: 'grpData',
     tuiles: (r) => [['sumChannels', fmt.nombre(r.chaines)]] },
 
@@ -537,6 +544,303 @@ const montrerMessage = (cle, bouton, detail) => {
   if (bouton) b.textContent = T('btnRetry');
 };
 
+const GROUPES_OPT = [
+  ['optGrpApercu',  ['apercu', 'apercuVideo', 'apercuQualite', 'apercuTaille']],
+  ['optGrpBadges',  ['badges']],
+  ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'abonnes', 'subathonJour']],
+  ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
+  ['optGrpTwitch',  ['stories', 'deplier']],
+  ['optGrpAbos',    ['abosReleve', 'abosPeriode']],
+  ['optGrpTheme',   ['theme']],
+  ['optGrpDonnees', ['visites']],
+];
+
+const LIBELLE_MEMBRE = {
+  ccl: 'guideBadgeCcl',         costream: 'guideBadgeCostream',
+  squad: 'guideBadgeSquad',     sub: 'guideBadgeSub',
+  exsub: 'guideBadgeExsub',     sponsor: 'guideBadgeSponsor',
+  hype: 'guideBadgeHype',       discount: 'guideBadgeDiscount',
+  switch: 'guideBadgeSwitch',   reprise: 'guideBadgeReprise',
+  subathon: 'guideBadgeSubathon',
+  viewers: 'optTriViewers',     subs: 'optTriSubs',
+  popular: 'optTriPopular',     uptime: 'optTriUptime',
+  alpha: 'optTriAlpha',         costream_tri: 'optTriCostream',
+};
+
+const libelleMembre = (jeu, m) =>
+  T(LIBELLE_MEMBRE[jeu === 'tris' && m === 'costream' ? 'costream_tri' : m] || m);
+
+const MOTS_VALEUR = {
+  plein: 'optValPlein',   discret: 'optValDiscret', aucun: 'optValAucun',
+  petit: 'optValPetit',   normal: 'optValNormal',   grand: 'optValGrand',
+  auto: 'optValAuto',     dark: 'optValDark',       light: 'optValLight',
+};
+const EXEMPLES_DUREE = { hm: '4h19', colon: '4:19', min: '259 min' };
+
+const libelleValeur = (id, v) => {
+  if (id === 'dureeFormat') return EXEMPLES_DUREE[v] || String(v);
+  if (id === 'abosPeriode') return T('optHeures', String(v));
+  if (MOTS_VALEUR[v]) return T(MOTS_VALEUR[v]);
+  return String(v);
+};
+
+const DIAG_CLE = 'tse:diag';
+const lireLocal = (cle, defaut) => {
+  try { const v = localStorage.getItem(cle); return v === null ? defaut : v; }
+  catch { return defaut; }
+};
+const ecrireLocal = (cle, v) => {
+  try { localStorage.setItem(cle, v); } catch {   }
+};
+const diagVisible = () => lireLocal(DIAG_CLE, 'oui') !== 'non';
+const themePanneau = () => lireLocal(THEME_CLE, 'auto');
+
+const interrupteur = (coche, surChangement) => {
+  const l = elt('label', 'reg-bascule');
+  const i = document.createElement('input');
+  i.type = 'checkbox';
+  i.checked = coche;
+  i.addEventListener('change', () => surChangement(i.checked));
+  const piste = elt('span', 'reg-piste');
+  l.append(i, piste);
+  return l;
+};
+
+const menu = (valeurs, courante, libelle, surChangement) => {
+  const sel = document.createElement('select');
+  sel.className = 'reg-menu';
+  for (const v of valeurs) {
+    const o = document.createElement('option');
+
+    o.value = String(v);
+    o.textContent = libelle(v);
+    o.selected = String(courante) === String(v);
+    sel.appendChild(o);
+  }
+  sel.addEventListener('change', () => {
+    surChangement(valeurs.find((v) => String(v) === sel.value));
+  });
+  return sel;
+};
+
+const cases = (jeu, membres, actifs, surChangement) => {
+  const hote = div('reg-cases');
+  for (const m of membres) {
+    const l = elt('label', 'reg-case');
+    const i = document.createElement('input');
+    i.type = 'checkbox';
+    i.checked = actifs.includes(m);
+    i.addEventListener('change', () => {
+      const suivant = membres.filter((x) => (x === m ? i.checked : actifs.includes(x)));
+      surChangement(suivant);
+    });
+    l.append(i, elt('span', 'reg-case-nom', libelleMembre(jeu, m)));
+    hote.appendChild(l);
+  }
+  return hote;
+};
+
+let etatOpt = null;
+
+const poserOption = async (id, valeur) => {
+  const r = await demander({ action: 'setOption', arg: { id, valeur } });
+  if (!r.ok) { montrerEchec(r); return; }
+  etatOpt = r.data;
+  peindreReglages();
+};
+
+const ligneReglage = (id) => {
+  const d = etatOpt.defs[id];
+  if (!d) return null;
+  const v = etatOpt.valeurs[id];
+  const ligne = div('reg-ligne' + (etatOpt.modifies.includes(id) ? ' reg-ligne--modifie' : ''));
+  const texte = div('reg-texte');
+  texte.appendChild(elt('span', 'reg-nom', T('opt' + MAJ(id))));
+  const desc = T('optDesc' + MAJ(id));
+
+  if (desc !== 'optDesc' + MAJ(id)) texte.appendChild(elt('span', 'reg-desc', desc));
+  ligne.appendChild(texte);
+
+  const ctrl = div('reg-ctrl');
+  if (d.type === 'bool') {
+    ctrl.appendChild(interrupteur(v, (b) => poserOption(id, b)));
+  } else if (d.type === 'choix') {
+    ctrl.appendChild(menu(d.valeurs, v, (x) => libelleValeur(id, x), (x) => poserOption(id, x)));
+  } else if (d.type === 'jeu') {
+
+    const actifs = d.valeurs.filter((m) => !v.includes(m));
+    ligne.classList.add('reg-ligne--large');
+    ctrl.appendChild(cases(id, d.valeurs, actifs,
+      (gardes) => poserOption(id, d.valeurs.filter((m) => !gardes.includes(m)))));
+  }
+  ligne.appendChild(ctrl);
+  return ligne;
+};
+
+const groupeLocal = () => {
+  const sec = elt('section', 'reg-groupe');
+  sec.dataset.grp = 'panneau';
+  sec.appendChild(elt('h3', 'reg-titre', T('optGrpPanneau')));
+
+  const ligneTheme = div('reg-ligne');
+  const tt = div('reg-texte');
+  tt.appendChild(elt('span', 'reg-nom', T('optPanneauTheme')));
+  tt.appendChild(elt('span', 'reg-desc', T('optDescPanneauTheme')));
+  ligneTheme.appendChild(tt);
+  const ct = div('reg-ctrl');
+  ct.appendChild(menu(['auto', 'dark', 'light'], themePanneau(),
+    (v) => libelleValeur('theme', v),
+    (v) => {
+      if (v === 'auto') {
+        document.documentElement.removeAttribute('data-theme');
+        try { localStorage.removeItem(THEME_CLE); } catch {   }
+      } else { appliquerThemePanneau(v); }
+    }));
+  ligneTheme.appendChild(ct);
+  sec.appendChild(ligneTheme);
+
+  const ligneDiag = div('reg-ligne');
+  const td = div('reg-texte');
+  td.appendChild(elt('span', 'reg-nom', T('optPanneauDiag')));
+  td.appendChild(elt('span', 'reg-desc', T('optDescPanneauDiag')));
+  ligneDiag.appendChild(td);
+  const cd = div('reg-ctrl');
+  cd.appendChild(interrupteur(diagVisible(), (b) => {
+    ecrireLocal(DIAG_CLE, b ? 'oui' : 'non');
+    appliquerDiag();
+  }));
+  ligneDiag.appendChild(cd);
+  sec.appendChild(ligneDiag);
+  return sec;
+};
+
+const groupeEchange = () => {
+  const sec = elt('section', 'reg-groupe');
+  sec.dataset.grp = 'echange';
+  sec.appendChild(elt('h3', 'reg-titre', T('optGrpEchange')));
+  const zone = document.createElement('textarea');
+  zone.className = 'reg-zone';
+  zone.spellcheck = false;
+  zone.setAttribute('aria-label', T('optGrpEchange'));
+  const pied = div('reg-boutons');
+
+  const bExp = elt('button', 'bouton bouton--fantome', T('btnOptExport'));
+  bExp.type = 'button';
+  bExp.addEventListener('click', () => {
+
+    const ecarts = {};
+    for (const id of etatOpt.modifies) ecarts[id] = etatOpt.valeurs[id];
+    zone.value = JSON.stringify(ecarts, null, 2);
+    zone.focus(); zone.select();
+  });
+
+  const bImp = elt('button', 'bouton', T('btnOptImport'));
+  bImp.type = 'button';
+  bImp.addEventListener('click', async () => {
+    let objet = null;
+    try { objet = JSON.parse(zone.value || 'null'); }
+    catch { noterReglage(T('optImportInvalide'), true); return; }
+    if (!objet || typeof objet !== 'object' || Array.isArray(objet)) {
+      noterReglage(T('optImportInvalide'), true); return;
+    }
+    const r = await demander({ action: 'importOptions', arg: { valeurs: objet } });
+    if (!r.ok) { montrerEchec(r); return; }
+    etatOpt = r.data;
+    peindreReglages();
+    noterReglage(T('optImportFait', [String(r.data.pris), String(r.data.refuses)]),
+                 r.data.refuses > 0);
+  });
+
+  pied.append(bExp, bImp);
+  const note = elt('p', 'reg-note', '');
+  note.hidden = true;
+  sec.append(zone, pied, note);
+  return sec;
+};
+
+let noteMinuteur = null;
+const noterReglage = (texte, erreur) => {
+  const n = document.querySelector('#reglages .reg-note');
+  if (!n) return;
+  n.textContent = texte;
+  n.className = 'reg-note' + (erreur ? ' reg-note--erreur' : '');
+  n.hidden = false;
+  clearTimeout(noteMinuteur);
+  noteMinuteur = setTimeout(() => { n.hidden = true; }, 6000);
+};
+
+const PURGES = [
+  ['visites', 'btnPurgeVisits',  'purgeVisitsTitle', 'purgeVisitsText'],
+  ['subs',    'btnPurgeSubs',    'purgeSubsTitle',   'purgeSubsText'],
+  ['roster',  'btnPurgeRoster',  'purgeRosterTitle', 'purgeRosterText'],
+];
+const groupePurges = () => {
+  const sec = elt('section', 'reg-groupe');
+  sec.dataset.grp = 'purges';
+  sec.appendChild(elt('h3', 'reg-titre', T('optGrpPurge')));
+  sec.appendChild(elt('p', 'reg-desc', T('optDescPurge')));
+  const rangee = div('reg-boutons');
+  for (const [quoi, cle, titre, texte] of PURGES) {
+    const b = elt('button', 'bouton bouton--danger', T(cle));
+    b.type = 'button';
+    b.addEventListener('click', () => confirmer(titre, texte, async () => {
+      b.disabled = true;
+      const r = await demander({ action: 'purge', arg: { quoi } });
+      b.disabled = false;
+      if (!r.ok) { montrerEchec(r); return; }
+      noterReglage(T('optPurgeFaite'), false);
+    }));
+    rangee.appendChild(b);
+  }
+  sec.appendChild(rangee);
+  return sec;
+};
+
+const peindreReglages = () => {
+  const hote = $('reglages');
+
+  const avant = document.activeElement;
+  const repere = avant && avant.closest && avant.closest('[data-reg]')
+    ? avant.closest('[data-reg]').dataset.reg : null;
+
+  const blocs = [];
+  for (const [titre, ids] of GROUPES_OPT) {
+    const sec = elt('section', 'reg-groupe');
+    sec.appendChild(elt('h3', 'reg-titre', T(titre)));
+    let posees = 0;
+    for (const id of ids) {
+      const l = ligneReglage(id);
+      if (!l) continue;
+      l.dataset.reg = id;
+      sec.appendChild(l); posees++;
+    }
+    if (posees) blocs.push(sec);
+  }
+  blocs.push(groupeLocal(), groupePurges(), groupeEchange());
+  hote.replaceChildren(...blocs);
+  hote.hidden = false;
+
+  if (repere) {
+    const cible = hote.querySelector(`[data-reg="${CSS.escape(repere)}"] input, `
+                                   + `[data-reg="${CSS.escape(repere)}"] select`);
+    if (cible) cible.focus();
+  }
+};
+
+const montrerReglages = (paquet) => {
+  $('message').hidden = true;
+  $('visuel').hidden = true;
+  $('visuel').replaceChildren();
+  $('tableau-cadre').hidden = true;
+  etatOpt = paquet;
+  peindreReglages();
+  $('reglages').scrollTop = 0;
+};
+
+const appliquerDiag = () => {
+  document.documentElement.toggleAttribute('data-sans-diag', !diagVisible());
+};
+
 const montrerGuide = () => {
   $('message').hidden = true;
   $('resume').replaceChildren();
@@ -580,18 +884,20 @@ const cellule = (nom, valeur) => {
   return td;
 };
 
+const tuile = ([cle, val, ton]) => {
+  const d = document.createElement('div');
+  d.className = 'tuile' + (ton ? ' tuile--' + ton : '');
+  const v = document.createElement('div'); v.className = 'tuile-val'; v.textContent = val;
+  const k = document.createElement('div'); k.className = 'tuile-cle'; k.textContent = T(cle);
+  d.append(v, k);
+  return d;
+};
+
 const peindre = (section, paquet) => {
   const { colonnes = [], lignes = [], resume = {} } = paquet || {};
 
   const tuiles = section.tuiles ? section.tuiles(resume) : [];
-  $('resume').replaceChildren(...tuiles.map(([cle, val, ton]) => {
-    const d = document.createElement('div');
-    d.className = 'tuile' + (ton ? ' tuile--' + ton : '');
-    const v = document.createElement('div'); v.className = 'tuile-val'; v.textContent = val;
-    const k = document.createElement('div'); k.className = 'tuile-cle'; k.textContent = T(cle);
-    d.append(v, k);
-    return d;
-  }));
+  $('resume').replaceChildren(...tuiles.map((t) => tuile(t)));
 
   const dessin = section.visuel ? section.visuel(paquet || {}) : null;
   $('visuel').replaceChildren(...(dessin ? [dessin] : []));
@@ -626,6 +932,7 @@ const charger = async (id) => {
   const section = SECTIONS.find((s) => s.id === id);
 
   $('guide').hidden = true;
+  $('reglages').hidden = true;
   for (const b of document.querySelectorAll('.rail-item')) {
     b.setAttribute('aria-current', String(b.dataset.id === id));
   }
@@ -636,7 +943,10 @@ const charger = async (id) => {
     const b = document.createElement('button');
     b.className = 'bouton bouton--fantome';
     b.textContent = T(a.cle);
-    b.addEventListener('click', () => lancer(a.id, b));
+
+    b.addEventListener('click', () => (a.confirme
+      ? confirmer(a.confirme + 'Title', a.confirme + 'Text', () => lancer(a.id, b))
+      : lancer(a.id, b)));
     return b;
   }));
 
@@ -646,6 +956,9 @@ const charger = async (id) => {
   const r = await demander({ section: id });
   if (courante !== id) return;
   if (!r.ok) { montrerEchec(r); return; }
+
+  if (section.reglages) { montrerReglages(r.data); $('resume').replaceChildren(
+    ...(section.tuiles ? section.tuiles(r.data.resume) : []).map((t) => tuile(t))); return; }
   peindre(section, r.data);
   if (id === 'diagnose') marquerEtat(r.data && r.data.resume);
 };
@@ -894,11 +1207,14 @@ const construireRail = () => {
       const h = document.createElement('div');
       h.className = 'rail-groupe';
       h.textContent = T(groupe);
+
+      h.dataset.groupe = groupe;
       rail.appendChild(h);
     }
     const b = document.createElement('button');
     b.className = 'rail-item';
     b.dataset.id = s.id;
+    b.dataset.groupe = s.groupe;
     b.type = 'button';
     b.textContent = T(cleNav(s.id));
     b.setAttribute('aria-current', 'false');
@@ -913,6 +1229,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.textContent = T(el.dataset.i18n);
   }
   construireRail();
+  appliquerDiag();
 
   $('message-bouton').addEventListener('click', () => charger(courante));
   $('btn-rescan').addEventListener('click', () => lancer('rescan', $('btn-rescan')));

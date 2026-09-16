@@ -476,5 +476,260 @@
   },
   "guideDemoEnCours": {
     "message": "进行中"
+  },
+  "grpOptions": {
+    "message": "设置"
+  },
+  "navOptions": {
+    "message": "选项"
+  },
+  "descOptions": {
+    "message": "扩展添加了什么，又保留了什么。默认全部开启；紫色圆点标出你改过的项。"
+  },
+  "sumSettings": {
+    "message": "项设置"
+  },
+  "sumChanged": {
+    "message": "已更改"
+  },
+  "optGrpApercu": {
+    "message": "悬停预览"
+  },
+  "optApercu": {
+    "message": "显示预览"
+  },
+  "optApercuVideo": {
+    "message": "直播视频流"
+  },
+  "optDescApercuVideo": {
+    "message": "关闭后，预览仍保留缩略图、徽章和时间条，只是不再加载视频。"
+  },
+  "optApercuQualite": {
+    "message": "视频画质"
+  },
+  "optDescApercuQualite": {
+    "message": "从下一次预览起生效，无需刷新。"
+  },
+  "optApercuTaille": {
+    "message": "窗口宽度"
+  },
+  "optGrpBadges": {
+    "message": "预览的徽章"
+  },
+  "optBadges": {
+    "message": "显示的徽章"
+  },
+  "optGrpCarte": {
+    "message": "侧边栏中的卡片"
+  },
+  "optDuree": {
+    "message": "开播时长"
+  },
+  "optDureeFormat": {
+    "message": "时长格式"
+  },
+  "optFresh": {
+    "message": "「刚刚开播」竖条"
+  },
+  "optCollab": {
+    "message": "联动小圆点"
+  },
+  "optAbonnes": {
+    "message": "订阅的金色"
+  },
+  "optDescAbonnes": {
+    "message": "「低调」保留颜色、去掉流光。「无」把卡片还给 Twitch。"
+  },
+  "optSubathonJour": {
+    "message": "订阅马拉松天数圆点"
+  },
+  "optGrpListe": {
+    "message": "列表、排序与筛选"
+  },
+  "optTris": {
+    "message": "显示的排序按钮"
+  },
+  "optFiltreCategorie": {
+    "message": "按分类筛选"
+  },
+  "optFiltreLangue": {
+    "message": "按语言筛选"
+  },
+  "optTopOnglet": {
+    "message": "「热门频道」标签"
+  },
+  "optTopN": {
+    "message": "榜单频道数"
+  },
+  "optDescTopN": {
+    "message": "超过三十后，部分语言会失去一项优化，榜单填满需要更久。"
+  },
+  "optGrpTwitch": {
+    "message": "Twitch 显示的内容"
+  },
+  "optStories": {
+    "message": "动态"
+  },
+  "optDescStories": {
+    "message": "默认显示：Twitch 就是这么做的。"
+  },
+  "optDeplier": {
+    "message": "自动展开「显示更多」"
+  },
+  "optDescDeplier": {
+    "message": "关闭后，列表保持 Twitch 渲染的样子——扩展仍会测量它看得到的一切。"
+  },
+  "optGrpAbos": {
+    "message": "读取订阅"
+  },
+  "optAbosReleve": {
+    "message": "读取我的订阅"
+  },
+  "optDescAbosReleve": {
+    "message": "这是扩展唯一一次带身份验证的请求：它在一个不可见的框架里打开你自己的 twitch.tv/subscriptions 页面。关闭后，金色和「订阅优先」排序只能依靠你访问过的频道。"
+  },
+  "optAbosPeriode": {
+    "message": "最多每隔"
+  },
+  "optGrpTheme": {
+    "message": "外观"
+  },
+  "optTheme": {
+    "message": "Twitch 内的主题"
+  },
+  "optDescTheme": {
+    "message": "「自动」跟随 Twitch 的主题。强制指定只会改变扩展在其上绘制的方式。"
+  },
+  "optGrpDonnees": {
+    "message": "数据"
+  },
+  "optVisites": {
+    "message": "记录我的访问"
+  },
+  "optDescVisites": {
+    "message": "关闭后，已学到的内容仍可查看，但不再新增。「个人热度」排序和作息网格将停止变化。"
+  },
+  "optGrpPanneau": {
+    "message": "本面板"
+  },
+  "optPanneauTheme": {
+    "message": "面板主题"
+  },
+  "optDescPanneauTheme": {
+    "message": "与上一项分开：本面板必须在没有打开 Twitch 标签页时也能绘制自己。"
+  },
+  "optPanneauDiag": {
+    "message": "显示诊断"
+  },
+  "optDescPanneauDiag": {
+    "message": "测量章节——延迟、周期、预览、切换——只用于反馈问题。"
+  },
+  "optGrpPurge": {
+    "message": "按需清除"
+  },
+  "optDescPurge": {
+    "message": "每个按钮只清除自己那一份记忆。下方的红色按钮会全部清除。"
+  },
+  "btnPurgeVisits": {
+    "message": "清除访问记录"
+  },
+  "purgeVisitsTitle": {
+    "message": "清除访问历史？"
+  },
+  "purgeVisitsText": {
+    "message": "「个人热度」排序和作息网格将从零开始。订阅与已关注频道不受影响。"
+  },
+  "btnPurgeSubs": {
+    "message": "清除订阅"
+  },
+  "purgeSubsTitle": {
+    "message": "清除已识别的订阅？"
+  },
+  "purgeSubsText": {
+    "message": "在下次读取之前，卡片上的金色会消失。你的访问记录与已关注频道不受影响。"
+  },
+  "btnPurgeRoster": {
+    "message": "清除已关注频道"
+  },
+  "purgeRosterTitle": {
+    "message": "清除记住的已关注频道？"
+  },
+  "purgeRosterText": {
+    "message": "列表会通过观察侧边栏重新建立。你的访问记录与订阅不受影响。"
+  },
+  "optPurgeFaite": {
+    "message": "已清除。"
+  },
+  "optGrpEchange": {
+    "message": "导出与导入"
+  },
+  "btnOptExport": {
+    "message": "导出"
+  },
+  "btnOptImport": {
+    "message": "导入"
+  },
+  "optImportInvalide": {
+    "message": "这不是一份有效的设置。"
+  },
+  "optImportFait": {
+    "message": "已应用 $1 项，忽略 $2 项。"
+  },
+  "btnOptReset": {
+    "message": "全部恢复默认"
+  },
+  "optResetTitle": {
+    "message": "将所有设置恢复为默认？"
+  },
+  "optResetText": {
+    "message": "本页的二十二项设置都将回到初始值。你的数据——访问记录、订阅、已关注频道——不受影响。"
+  },
+  "optValPlein": {
+    "message": "完整"
+  },
+  "optValDiscret": {
+    "message": "低调"
+  },
+  "optValAucun": {
+    "message": "无"
+  },
+  "optValPetit": {
+    "message": "窄"
+  },
+  "optValNormal": {
+    "message": "标准"
+  },
+  "optValGrand": {
+    "message": "宽"
+  },
+  "optValAuto": {
+    "message": "自动"
+  },
+  "optValDark": {
+    "message": "深色"
+  },
+  "optValLight": {
+    "message": "浅色"
+  },
+  "optHeures": {
+    "message": "$1 小时"
+  },
+  "optTriViewers": {
+    "message": "观众数"
+  },
+  "optTriSubs": {
+    "message": "订阅"
+  },
+  "optTriPopular": {
+    "message": "个人热度"
+  },
+  "optTriUptime": {
+    "message": "开播时长"
+  },
+  "optTriAlpha": {
+    "message": "按字母"
+  },
+  "optTriCostream": {
+    "message": "联动直播"
   }
 }
