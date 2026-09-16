@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1153 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1159 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,148 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Un relevé rendait « zéro » en silence, et il y avait deux causes (v4.13.3)
+
+### Le rapport
+
+> « Le système de récupération des abonnements ne fonctionne plus. Je fais le
+> bouton "Relever maintenant" et rien ne se passe. »
+
+Le rapport de diagnostic, lui, disait que **tout allait bien** :
+
+```
+horodatage    2026-09-16T14:48:15.008Z   ← relevé lancé deux minutes plus tôt
+abonnements   0
+en attente    false                      ← terminé, pas bloqué
+ERREURS (0)
+```
+
+Le bouton marchait. Le relevé allait à son terme. Il ne ramenait rien — sur un
+compte qui portait **87 chaînes et 12 abonnements** une heure plus tôt.
+
+### Une fonctionnalité entière sur un seul sélecteur
+
+Tout le relevé repose sur `[data-a-target="subscription-card"]`. S'il ne
+correspond plus, chaque onglet est déclaré vide — et **un onglet vide n'est
+délibérément pas une erreur** : l'onglet « mobile » l'est chez presque tout le
+monde, et une version antérieure écrivait une ligne rouge à chaque relevé pour
+rien.
+
+### Le garde-fou existait, et il était aveugle
+
+```js
+if (!trouves.length) {
+  const connus = subs.entries().filter(e => e.sub).length;
+  if (connus) erreurs.noter('abonnements', `relevé complet sans résultat, …`);
+}
+```
+
+Il jugeait sur la **mémoire**. « Zéro trouvé, zéro connu » étant le compte de
+quelqu'un sans abonnement, il se taisait — et la mémoire venait justement d'être
+effacée. **Deux pannes rendaient le même chiffre, et une seule était dite.**
+
+### La page sait mieux que nous, et le témoin était déjà là
+
+Un onglet qui s'est **affiché** et où le sélecteur n'accroche **rien** ne décrit
+pas un compte vide. Reste à dire ce que « affiché » veut dire — et la réponse
+n'avait pas à être inventée : la scrutation n'accepte déjà de déclarer un onglet
+vide qu'une fois `#side-nav` rendu, **parce que sa présence dit que
+l'application de Twitch est debout**. Le verdict juge sur le même témoin.
+
+> **Une première rédaction ajoutait un second témoin : « le document dépasse
+> 400 nœuds ».** Ce nombre ne venait d'aucune mesure — `twitch.tv` n'est pas
+> joignable depuis la machine qui écrit ce code — et il ne tenait que parce
+> qu'il était calibré sur le décor. Un seuil qu'aucune mesure ne soutient est
+> un seuil qui trompera le jour où la page changera de taille. Il est parti.
+
+### Puis un second rapport a montré qu'il y avait DEUX causes
+
+La page des abonnements, ouverte à la main, affichait ceci :
+
+> « Impossible d'afficher vos abonnements pour le moment. Veuillez réessayer
+> ultérieurement. »
+
+Et la console de Twitch, en dessous :
+
+```
+SubscriptionsManagement_ExpiredSubscriptions : failed integrity check
+SubscriptionsManagement_SubscriptionBenefits : failed integrity check
+```
+
+**La requête de Twitch avait échoué.** Zéro carte, page parfaitement rendue,
+sélecteur parfaitement valide. Un verdict tiré de notre seul côté aurait accusé
+notre sélecteur d'une panne qui n'était pas la sienne — et envoyé la recherche
+exactement du mauvais côté.
+
+### D'où le témoin qui manquait : ce que Twitch ÉCRIT à la place des cartes
+
+Quand la page écrit quelque chose là où les cartes auraient dû être, on
+**recopie sa phrase** et l'énoncé s'arrête là. Aucune déduction de notre part ne
+vaut la phrase de la page.
+
+Quatre énoncés, et aucun ne prétend plus que ce qu'on sait :
+
+| ce qu'on a vu | ce que le relevé dit |
+| --- | --- |
+| aucun onglet affiché | rien de plus — chaque onglet a déjà nommé sa cause |
+| affichés, muets, **et la page écrit** | sa phrase, recopiée, point |
+| affichés, muets, rien d'écrit, des abonnés en mémoire | le sélecteur ne correspond plus |
+| affichés, muets, mémoire vide | compte sans abonnement **ou** sélecteur mort — on ne peut pas trancher, et on le dit |
+
+**Le silence est interdit dès qu'un onglet s'est affiché** — et c'est exactement
+là qu'il régnait.
+
+> **Une rédaction intermédiaire parlait aussi quand AUCUN onglet ne s'affichait,
+> et le banc l'a refusée.** Toutes les sorties qui précèdent l'affichage notent
+> déjà leur propre cause : renvoi vers `/login`, origine illisible, document
+> inaccessible, expiration. Une ligne de plus pour répéter « aucun n'a affiché
+> Twitch » n'apprend rien — et le scénario 75 tient le contraire depuis
+> longtemps : un journal qu'on apprend à ignorer ne sert plus à rien. Là, seule
+> la mémoire ajoute encore quelque chose, quand elle contredit le résultat.
+
+### La phrase vient de `main`, et il n'y a pas de repli sur `body`
+
+La barre latérale est pleine de pseudonymes. Un repli sur le document entier les
+verserait tous dans un journal d'erreurs que l'utilisateur nous enverra ensuite.
+Pas de phrase vaut mieux qu'une phrase qu'il n'aurait pas voulu envoyer — les
+nombres de la ligne d'onglet, eux, restent là. La longueur est bornée à **200
+caractères** : on veut une phrase, pas une page.
+
+### Ce que le relevé retient désormais
+
+Par onglet, relevé **au plus haut atteint** pendant la scrutation — un instantané
+pris trop tôt dirait une page vide là où elle était seulement lente :
+
+| | ce que ça distingue |
+| --- | --- |
+| `charge` | le cadre a-t-il rendu un document ? |
+| `noeuds` | la taille atteinte, pour lecture — plus aucun verdict n'en dépend |
+| `barre` | l'application de Twitch est-elle debout ? |
+| `cartes` | le sélecteur accroche-t-il quelque chose ? |
+| `texte` | ce que Twitch a écrit à la place, quand il n'y a aucune carte |
+
+Le rapport les rend, un onglet par ligne. **« affiché · barre oui · 0 carte · la
+page dit : "Impossible d'afficher vos abonnements…" »** ne se confond ni avec
+**« jamais chargé »**, ni avec un sélecteur mort.
+
+### Ce que cette version ne corrige pas
+
+**La cause de l'échec d'intégrité.** Elle est chez Twitch ou dans une extension
+qui intercepte `fetch` — la console du rapport en montre plusieurs à l'œuvre sur
+la même page. Aucune de ces deux hypothèses ne se tranche depuis ici :
+`gql.twitch.tv` n'est pas joignable depuis la machine qui écrit ce code. Ce que
+cette version garantit, c'est que la panne **se dira, du bon côté**.
+
+### Ce que le banc ajoute
+
+Le décor ne savait jouer ni l'un ni l'autre cas : sa page d'abonnements posait
+l'attribut en dur, et n'avait pas de `<main>`. Elle a maintenant les deux
+drapeaux, et les deux décors ne diffèrent **que** par là.
+
+Le scénario 127 les rejoue tous les deux — six assertions, dont deux qui tiennent
+tout : *« le relevé le DIT, alors même que la mémoire était vide »*, et *« le
+verdict recopie la phrase au lieu d'accuser notre sélecteur »*.
 
 ## Le cache avant/arrière, et ce que l'audit a trouvé (v4.13.2)
 
@@ -7311,7 +7453,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 126 scénarios, 1153 assertions |
+| `npm test` | le harnais Playwright : 127 scénarios, 1159 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -7332,9 +7474,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1053 Ko | 402 Ko | 3 306 → **2** |
+| `content.js` | 1057 Ko | 404 Ko | 3 323 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 97 Ko | 47 Ko | 128 → **0** |
+| `panneau.js` | 98 Ko | 47 Ko | 129 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1296 Ko** | **556 Ko** | **−57 %** |

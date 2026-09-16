@@ -2023,6 +2023,19 @@ const TSE_GATE_MAX_CLICKS = 5;
     // forte — un abonnement expiré n'est pas un abonnement, et le relevé étant
     // additif, l'y inclure marquerait « abonné » pour 120 jours quelqu'un qu'on
     // ne l'est plus.
+    /* Au-delà de ce nombre de nœuds, une page /subscriptions s'est VRAIMENT
+       affichée — ce n'est plus un squelette. Sert à distinguer « le sélecteur
+       ne correspond plus » de « la page n'a jamais chargé », deux pannes que
+       le relevé rendait à l'identique : zéro. */
+    // Longueur retenue du message que la page des abonnements affiche À LA
+    // PLACE des cartes. EXIGÉ PAR UN RAPPORT DE TERRAIN : le relevé rendait
+    // zéro, et la page de Twitch disait, en toutes lettres, « Impossible
+    // d'afficher vos abonnements pour le moment » — sa propre requête ayant
+    // échoué (« failed integrity check » en console). Sans cette phrase, le
+    // rapport ne pouvait pas distinguer un sélecteur mort d'une page que
+    // Twitch refuse lui-même de servir : deux causes opposées, une seule
+    // apparence. Bornée court — on veut une phrase, pas une page.
+    SUBS_PAGE_TEXTE_MAX:  200,
     SUBS_PAGE_TABS:       ['paid', 'gifts', 'mobile'],
     // Onglet des abonnements RÉVOLUS. Lu à part, et jamais versé dans l'état
     // d'abonnement : il ne sert qu'à l'ancienneté et au « anciennement
@@ -9397,6 +9410,10 @@ const TSE_GATE_MAX_CLICKS = 5;
    * ============================================================ */
   const subsPage = (() => {
     let running = false;
+    /* Ce que le DERNIER relevé a vu, onglet par onglet. Remis à neuf à chaque
+       relevé : un bilan qui empilerait deux passes ne décrirait plus aucune
+       des deux. */
+    let bilan = { onglets: [], fini: 0 };
 
     /* ──────────────────────────────────────────────────────────────
      *  L'ANCIENNETÉ, SANS UN MOT DE FRANÇAIS
@@ -9533,9 +9550,32 @@ const TSE_GATE_MAX_CLICKS = 5;
       let passage = '';        // signature du passage précédent (cf. la scrutation)
       let noeuds = -1;         // taille du document au passage précédent
       let stableDepuis = 0;    // instant où cette signature est apparue
+      /* ── CE QUE L'ONGLET A VU, ET NON CE QU'IL A CONCLU ───────────────────
+         TROUVÉ PAR UN RAPPORT DE TERRAIN : un relevé qui rend zéro alors que
+         le compte a des abonnements, sans une ligne au journal. Le garde-fou
+         existait, mais il s'appuyait sur la MÉMOIRE — « zéro trouvé, zéro
+         connu » est le compte de quelqu'un sans abonnement — et la mémoire
+         venait d'être effacée. Or la PAGE, elle, avait la réponse : elle
+         s'était affichée, et le sélecteur n'avait rien accroché.
+
+         ON RETIENT DONC CE QU'ON A VU, et pas seulement ce qu'on en a conclu.
+         Des nombres — la page a-t-elle chargé, grossi, montré sa barre, rendu
+         des cartes — et, quand elle n'en rend AUCUNE, la phrase qu'elle
+         affiche à leur place.
+
+         CETTE PHRASE EST LE TÉMOIN QUI MANQUAIT. Un second rapport de terrain
+         l'a montré : la page disait « Impossible d'afficher vos abonnements
+         pour le moment », sa propre requête ayant échoué côté Twitch. Le
+         relevé rendait zéro — correctement — et rien ne distinguait ce cas
+         d'un sélecteur mort. La phrase, elle, les sépare d'un coup d'œil, et
+         elle vient de Twitch, pas de nous. */
+      const vu = { onglet, charge: false, noeuds: 0, barre: false, cartes: 0,
+                   logins: 0, texte: '' };
+      bilan.onglets.push(vu);
       const finir = (logins) => {
         if (sondeur) { clearInterval(sondeur); sondeur = null; }
         if (limite) { clearTimeout(limite); limite = null; }
+        vu.logins = logins.length;
         if (cadre) { cadre.remove(); cadre = null; }
         resolve(logins);
       };
@@ -9590,6 +9630,26 @@ const TSE_GATE_MAX_CLICKS = 5;
           }
           if (!doc) return;
           const cartes = doc.querySelectorAll(DOM.subCardSelector);
+          /* Relevé à CHAQUE passage, donc au plus haut atteint : la page n'a
+             pas fini de s'écrire, et un instantané pris trop tôt dirait une
+             page vide là où elle était seulement lente. */
+          vu.charge = true;
+          vu.cartes = Math.max(vu.cartes, cartes.length);
+          vu.noeuds = Math.max(vu.noeuds, doc.querySelectorAll('*').length);
+          if (!vu.barre) vu.barre = !!doc.querySelector(DOM.sidebarRoot);
+          /* CE QUE LA PAGE DIT À LA PLACE DES CARTES, et uniquement dans ce
+             cas-là : dès qu'une carte paraît, la phrase ne sert plus à rien et
+             on l'efface — elle ne porterait plus que des noms de chaînes, que
+             le relevé rapporte déjà mieux ailleurs.
+
+             `main`, ET AUCUN REPLI SUR `body`. La barre latérale est pleine de
+             pseudonymes, et un repli sur le document entier les verserait tous
+             dans un journal d'erreurs que l'utilisateur nous enverra ensuite.
+             Pas de phrase vaut mieux qu'une phrase qu'il n'aurait pas voulu
+             envoyer : les nombres de la ligne d'onglet, eux, restent là. */
+          vu.texte = cartes.length ? ''
+            : (doc.querySelector('main')?.innerText || '')
+                .replace(/\s+/g, ' ').trim().slice(0, CFG.SUBS_PAGE_TEXTE_MAX);
           if (cartes.length) {
             const trouve = [];
             const vus = new Set();
@@ -9682,6 +9742,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!force && Date.now() - horodatage() < periode) return null;
       if (!document.body) return null;
       running = true;
+      bilan = { onglets: [], fini: 0 };
       const trouves = [];
       try {
         let touche = false;
@@ -9748,12 +9809,67 @@ const TSE_GATE_MAX_CLICKS = 5;
            ensemble parce que c'est leur RAPPORT qui informe — « 0 trouvé, 0
            connu » est le compte de quelqu'un sans abonnement, « 0 trouvé, 7
            connus » est une panne. */
+        bilan.fini = Date.now();
         if (!trouves.length) {
           const connus = subs.entries().filter(e => e.sub).length;
-          if (connus) {
+          /* ── LE SECOND TÉMOIN, ET C'EST LA PAGE ELLE-MÊME ─────────────────
+             LE PREMIER NE SUFFISAIT PAS, et un rapport de terrain l'a montré :
+             il jugeait sur la MÉMOIRE — « zéro trouvé, zéro connu » étant le
+             compte de quelqu'un sans abonnement — et la mémoire venait d'être
+             effacée. Le relevé rendait donc zéro en silence, sur un compte qui
+             en avait douze une heure plus tôt.
+
+             LA PAGE SAIT MIEUX QUE NOUS, et le témoin est celui que ce module
+             CROIT DÉJÀ : la scrutation ci-dessus n'accepte de déclarer un
+             onglet vide qu'une fois `DOM.sidebarRoot` rendu, parce que sa
+             présence dit que l'application de Twitch est debout. On juge donc
+             sur le MÊME témoin, sans en inventer un second — pas de seuil de
+             taille de document, qui serait un nombre qu'aucune mesure ne
+             soutient.
+
+             QUATRE ÉNONCÉS, ET AUCUN NE PRÉTEND PLUS QUE CE QU'ON SAIT :
+               • aucun onglet ne s'est affiché  → rien ici : chaque onglet a
+                 déjà nommé sa cause, et seule la mémoire ajoute encore
+                 quelque chose quand elle contredit le résultat ;
+               • affichés, muets, et la page ÉCRIT quelque chose à la place des
+                 cartes                         → on recopie sa phrase, point ;
+               • affichés, muets, rien d'écrit, mais la mémoire portait des
+                 abonnés                        → le sélecteur ne correspond plus ;
+               • affichés, muets, mémoire vide  → compte sans abonnement OU
+                 sélecteur mort, et on ne peut pas trancher : on le dit.
+             LE SILENCE EST INTERDIT DÈS QU'UN ONGLET S'EST AFFICHÉ, et c'est
+             exactement là qu'il régnait : « ERREURS (0) » sur un relevé qui
+             n'avait rien rendu chez quelqu'un qui avait douze abonnements. Le
+             second rapport a montré pourquoi l'ORDRE compte : la page affichait
+             « Impossible d'afficher vos abonnements pour le moment », et tout
+             verdict tiré de NOTRE côté aurait accusé notre sélecteur d'une
+             panne qui n'était pas la sienne. */
+          const affiches = bilan.onglets.filter((o) => o.charge && o.barre);
+          /* CE QUE TWITCH A ÉCRIT LÀ OÙ LES CARTES AURAIENT DÛ ÊTRE. Quand la
+             page le dit elle-même, aucune déduction de notre part ne vaut
+             cette phrase : on la RECOPIE, et l'énoncé s'arrête là. */
+          const dit = affiches.map((o) => o.texte).find(Boolean) || '';
+          if (!affiches.length) {
+            /* AUCUN ONGLET NE S'EST AFFICHÉ, ET CHACUN A DÉJÀ DIT POURQUOI.
+               Toutes les sorties de `visiter()` qui précèdent l'affichage
+               notent leur propre cause — renvoi vers /login, origine illisible,
+               document inaccessible, expiration. Une ligne de plus pour
+               répéter « aucun n'a affiché Twitch » n'ajouterait rien, et le
+               banc a une raison de tenir à ce silence : l'onglet « mobile » est
+               vide chez presque tout le monde, et un journal qu'on apprend à
+               ignorer ne sert plus. Le SEUL énoncé qui ajoute ici quelque
+               chose est celui que la mémoire permet, et lui seul. */
+            if (connus) {
+              erreurs.noter('abonnements',
+                `relevé complet sans résultat, ${connus} abonnement(s) déjà connu(s)`,
+                CFG.SUBS_PAGE_TABS.join(', '));
+            }
+          } else {
             erreurs.noter('abonnements',
-              `relevé complet sans résultat, ${connus} abonnement(s) déjà connu(s)`,
-              CFG.SUBS_PAGE_TABS.join(', '));
+              `${affiches.length} onglet(s) affiché(s), aucun ne rend « ${DOM.subCardSelector} »`,
+              dit ? `la page dit : « ${dit} »`
+                : connus ? `${connus} abonnement(s) déjà connu(s) : le sélecteur ne correspond plus`
+                  : 'compte sans abonnement, ou sélecteur à revérifier');
           }
         }
       } finally {
@@ -9842,7 +9958,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       arme = true;
     };
 
-    return { init, refresh, horodatage, notifySidebar, enAttente };
+    return { init, refresh, horodatage, notifySidebar, enAttente,
+             bilan: () => ({ ...bilan, onglets: bilan.onglets.map((o) => ({ ...o })) }) };
   })();
 
   /**
@@ -10979,7 +11096,13 @@ const TSE_GATE_MAX_CLICKS = 5;
                       une — le contraire du service que ce compteur rend. */
                    sansAncre: manquantes.filter(c => !cardNameEl(c)).length };
         })(),
-        relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
+        /* LE BILAN PAR ONGLET ENTRE AU RAPPORT, et c'est là qu'il sert : un
+           relevé qui rend zéro ne dit rien tout seul. « affiché, barre là,
+           3 200 nœuds, 0 carte » dit que le sélecteur est mort ; « jamais
+           chargé » dit autre chose. Deux pannes, un seul chiffre avant. */
+        relevesAbonnements: { horodatage: subsPage.horodatage(),
+                              enAttente: subsPage.enAttente(),
+                              ...subsPage.bilan() },
         /* L'ÉTAT DU RÉSEAU, qui n'y figurait pas. Une pause GraphQL en cours
            explique à elle seule une sidebar qui ne se met plus à jour — et
            c'était invisible : le rapport montrait un cache vide sans jamais
