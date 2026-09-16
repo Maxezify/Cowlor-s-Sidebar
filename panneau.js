@@ -508,6 +508,45 @@ const idOnglet = () => (ongletP ??= API.tabs
   .then(([t]) => (t ? t.id : undefined))
   .catch(() => undefined));
 
+const EN_CADRE = document.documentElement.getAttribute('data-vue') === 'incruste';
+const INCRUSTE_REQ = 'tse-incruste-req';
+const INCRUSTE_RES = 'tse-incruste-res';
+
+const EXPIRATION_CADRE = 30_000;
+let suivantCadre = 0;
+const attentesCadre = new Map();
+
+window.addEventListener('message', (e) => {
+
+  if (e.source !== window.parent) return;
+  const d = e.data;
+  if (!d || d.tse !== INCRUSTE_RES || typeof d.id !== 'number') return;
+  const attente = attentesCadre.get(d.id);
+  if (!attente) return;
+  attentesCadre.delete(d.id);
+  clearTimeout(attente.minuteur);
+
+  const { tse: _t, id: _i, ...reponse } = d;
+  attente.resoudre(reponse);
+});
+
+const demanderCadre = (charge) => new Promise((resoudre) => {
+  const id = ++suivantCadre;
+  const minuteur = setTimeout(() => {
+    attentesCadre.delete(id);
+    resoudre({ ok: false, erreur: 'expiration-page',
+               detail: 'la page n\'a pas répondu' });
+  }, EXPIRATION_CADRE);
+  attentesCadre.set(id, { resoudre, minuteur });
+
+  try { window.parent.postMessage({ tse: INCRUSTE_REQ, id, ...charge }, '*'); }
+  catch {
+    clearTimeout(minuteur);
+    attentesCadre.delete(id);
+    resoudre({ ok: false, erreur: 'absent', detail: 'parent inatteignable' });
+  }
+});
+
 const ATTENTES = [250, 750, 1800];
 
 const etatFond = () => API.runtime.sendMessage({ type: 'tse-panneau-etat' })
@@ -515,6 +554,19 @@ const etatFond = () => API.runtime.sendMessage({ type: 'tse-panneau-etat' })
 
 const demander = async (charge, essai = 0, trace = []) => {
   const t0 = Date.now();
+
+  if (EN_CADRE) {
+    const r = await demanderCadre(charge);
+    trace.push({ essai, ms: Date.now() - t0, voie: 'cadre',
+                 erreur: r && r.ok ? 'ok' : ((r && r.erreur) || 'vide'),
+                 detail: r && r.detail });
+
+    if (r && r.erreur === 'demarrage' && essai < ATTENTES.length) {
+      await new Promise((res) => setTimeout(res, ATTENTES[essai]));
+      return demander(charge, essai + 1, trace);
+    }
+    return { ...(r || { ok: false, erreur: 'absent' }), trace };
+  }
   const onglet = await idOnglet();
   if (typeof onglet !== 'number') {
     trace.push({ essai, ms: Date.now() - t0, erreur: 'onglet' });
