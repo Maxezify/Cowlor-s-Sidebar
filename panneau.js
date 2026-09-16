@@ -6,6 +6,12 @@ const API = (typeof browser !== 'undefined' && browser.runtime) ? browser : chro
 
 const T = (cle, sub) => API.i18n.getMessage(cle, sub) || cle;
 
+try {
+  if (new URLSearchParams(location.search).get('vue') === 'onglet') {
+    document.documentElement.setAttribute('data-vue', 'onglet');
+  }
+} catch {   }
+
 const THEME_CLE = 'tse:theme';
 const appliquerThemePanneau = (t) => {
   if (t !== 'light' && t !== 'dark') return;

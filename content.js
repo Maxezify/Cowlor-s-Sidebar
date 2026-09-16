@@ -214,6 +214,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Toutes les catégories',
       uiFilterLangAriaLabel:     'Filtrer les chaînes suivies par langue',
       uiFilterAllLanguages:      'Toutes les langues',
+      uiAccueilTexte:            'Vos données et vos réglages sont dans l\'icône de la barre d\'outils',
+      uiAccueilFermer:           'Fermer',
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
@@ -295,6 +297,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'All categories',
       uiFilterLangAriaLabel:     'Filter followed channels by language',
       uiFilterAllLanguages:      'All languages',
+      uiAccueilTexte:            'Your data and your settings are in the toolbar icon',
+      uiAccueilFermer:           'Dismiss',
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
@@ -375,6 +379,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Alle Kategorien',
       uiFilterLangAriaLabel:     'Gefolgte Kanäle nach Sprache filtern',
       uiFilterAllLanguages:      'Alle Sprachen',
+      uiAccueilTexte:            'Deine Daten und Einstellungen findest du im Symbol der Symbolleiste',
+      uiAccueilFermer:           'Schließen',
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
@@ -455,6 +461,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas las categorías',
       uiFilterLangAriaLabel:     'Filtrar los canales que sigues por idioma',
       uiFilterAllLanguages:      'Todos los idiomas',
+      uiAccueilTexte:            'Tus datos y tus ajustes están en el icono de la barra de herramientas',
+      uiAccueilFermer:           'Cerrar',
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
@@ -535,6 +543,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Todas as categorias',
       uiFilterLangAriaLabel:     'Filtrar os canais seguidos por idioma',
       uiFilterAllLanguages:      'Todos os idiomas',
+      uiAccueilTexte:            'Os teus dados e as tuas definições estão no ícone da barra de ferramentas',
+      uiAccueilFermer:           'Fechar',
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
@@ -615,6 +625,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Tutte le categorie',
       uiFilterLangAriaLabel:     'Filtra i canali seguiti per lingua',
       uiFilterAllLanguages:      'Tutte le lingue',
+      uiAccueilTexte:            'I tuoi dati e le tue impostazioni sono nell\'icona della barra degli strumenti',
+      uiAccueilFermer:           'Chiudi',
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
@@ -695,6 +707,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Wszystkie kategorie',
       uiFilterLangAriaLabel:     'Filtruj obserwowane kanały według języka',
       uiFilterAllLanguages:      'Wszystkie języki',
+      uiAccueilTexte:            'Twoje dane i ustawienia znajdziesz w ikonie na pasku narzędzi',
+      uiAccueilFermer:           'Zamknij',
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
@@ -775,6 +789,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'Все категории',
       uiFilterLangAriaLabel:     'Фильтровать отслеживаемые каналы по языку',
       uiFilterAllLanguages:      'Все языки',
+      uiAccueilTexte:            'Ваши данные и настройки — в значке на панели инструментов',
+      uiAccueilFermer:           'Закрыть',
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
@@ -855,6 +871,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     'すべてのカテゴリー',
       uiFilterLangAriaLabel:     'フォロー中のチャンネルを言語で絞り込む',
       uiFilterAllLanguages:      'すべての言語',
+      uiAccueilTexte:            'あなたのデータと設定は、ツールバーのアイコンの中にあります',
+      uiAccueilFermer:           '閉じる',
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
@@ -935,6 +953,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiFilterAllCategories:     '全部分类',
       uiFilterLangAriaLabel:     '按语言筛选关注的频道',
       uiFilterAllLanguages:      '全部语言',
+      uiAccueilTexte:            '你的数据与设置就在工具栏图标里',
+      uiAccueilFermer:           '关闭',
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
@@ -1314,7 +1334,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     LOADING_FADE_MS:        1_000,
 
-    OPTIONS_KEY:            'tse:options'
+    OPTIONS_KEY:            'tse:options',
+
+    ACCUEIL_KEY:            'tse:accueil'
   });
 
   const OPT_DEFS = Object.freeze({
@@ -1448,6 +1470,31 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       relire: () => { charger(); prevenir(); },
       surChangement: (f) => { abonnes.add(f); }
+    };
+  })();
+
+  const accueil = (() => {
+    const lire = () => {
+      try { return localStorage.getItem(CFG.ACCUEIL_KEY); } catch { return 'vu'; }
+    };
+    const ecrire = (v) => {
+      try { localStorage.setItem(CFG.ACCUEIL_KEY, v); } catch {   }
+    };
+
+    const dejaLa = () => {
+      try {
+        return !!(localStorage.getItem(CFG.VISIT_STORAGE_KEY)
+               || localStorage.getItem(CFG.ROSTER_STORAGE_KEY));
+      } catch { return true; }
+    };
+    let etat = lire();
+    if (etat !== 'montre' && etat !== 'vu') {
+      etat = dejaLa() ? 'vu' : 'montre';
+      ecrire(etat);
+    }
+    return {
+      aMontrer: () => etat === 'montre',
+      renvoyer: () => { etat = 'vu'; ecrire('vu'); },
     };
   })();
 
@@ -1979,6 +2026,46 @@ const TSE_GATE_MAX_CLICKS = 5;
     .side-nav-card.tse-sub {
       --tse-sub-or:    rgba(255, 196,  92, 1);
       --tse-sub-clair: rgba(255, 246, 214, 1);
+    }
+
+    
+    html[data-tse-theme="light"] .side-nav-card.tse-sub {
+      --tse-sub-or:    rgba(170, 110,   0, 1);
+      --tse-sub-clair: rgba(214, 160,  60, 1);
+    }
+    html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom { color: #8a5900; }
+    html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat { color: #7c5a1e; }
+    @supports (-webkit-background-clip: text) or (background-clip: text) {
+      html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom {
+        background: linear-gradient(100deg,
+          #8a5900   0%,
+          #7a4e00  32%,
+          #9c4f6b  46%,
+          #8a5900  64%,
+          #8a5900 100%) 0 0 / 300% 100%;
+        
+        filter: none;
+      }
+      html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat {
+        background: linear-gradient(100deg,
+          #7c5a1e   0%,
+          #6b4700  34%,
+          #8f3f63  47%,
+          #7c5a1e  64%,
+          #7c5a1e 100%) 0 0 / 300% 100%;
+        filter: none;
+      }
+    }
+    
+    html[data-tse-theme="light"] .side-nav-card.tse-sub::after {
+      background:
+        linear-gradient(102deg,
+          rgba(138, 89, 0, 0)     40%,
+          rgba(138, 89, 0, 0.10)  48%,
+          rgba(138, 89, 0, 0)     56%) 0 0 / 300% 100%,
+        radial-gradient(60% 120% at 12% 50%, rgba(138, 89, 0, 0.10), transparent 70%),
+        radial-gradient(50% 100% at 52% 40%, rgba(156, 79, 107, 0.08), transparent 70%),
+        radial-gradient(70% 130% at 88% 60%, rgba(138, 89, 0, 0.09), transparent 70%);
     }
     .side-nav-card.tse-sub .tse-sub-avatar {
       position: relative;
@@ -2658,6 +2745,40 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     
+
+    
+    .tse-accueil {
+      display: flex; align-items: flex-start; gap: 8px;
+      margin: 0 10px 8px;
+      padding: 8px 8px 8px 10px;
+      border-left: 3px solid ${CFG.PURPLE};
+      border-radius: 0 4px 4px 0;
+      background: rgba(var(--tse-encre), 0.06);
+      color: var(--tse-texte-doux);
+      font-size: 1.1rem; line-height: 1.35;
+    }
+    .tse-accueil-texte { flex: 1 1 auto; min-width: 0; }
+    .tse-accueil-croix {
+      flex: 0 0 auto;
+      width: 20px; height: 20px; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 0; border-radius: 4px;
+      background: transparent; color: var(--tse-texte-faible);
+      font: inherit; font-size: 1.3rem; line-height: 1; cursor: pointer;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .tse-accueil-croix:hover {
+      background: rgba(var(--tse-encre), 0.12);
+      color: var(--tse-texte);
+    }
+    .tse-accueil-croix:focus-visible {
+      outline: none; box-shadow: 0 0 0 1px ${CFG.PURPLE};
+      color: var(--tse-texte);
+    }
+    
+    [data-a-target="side-nav-bar-collapsed"] #tse-accueil,
+    .side-nav--collapsed #tse-accueil,
+    body.tse-global-mode .tse-accueil { display: none !important; }
 
     
     html[data-tse-off~="duree"] .tse-uptime { display: none !important; }
@@ -8193,9 +8314,40 @@ const TSE_GATE_MAX_CLICKS = 5;
                   () => noeudStatique(GLOBE_MARKUP)));
     section.parentElement.insertBefore(wrap, section);
 
+    poserAccueil(wrap);
+
     wireDropdown(wrap.querySelector(`#${CAT_DD_ID}`));
     wireDropdown(wrap.querySelector(`#${LANG_DD_ID}`));
     bindDropdownsGlobal();
+  }
+
+  const ACCUEIL_ID = 'tse-accueil';
+  function poserAccueil(hote) {
+    if (!accueil.aMontrer()) return;
+    if (document.getElementById(ACCUEIL_ID)) return;
+    const boite = document.createElement('div');
+    boite.id = ACCUEIL_ID;
+    boite.className = 'tse-accueil';
+    const texte = document.createElement('span');
+    texte.className = 'tse-accueil-texte';
+    setText(texte, S.uiAccueilTexte);
+    const croix = document.createElement('button');
+    croix.type = 'button';
+    croix.className = 'tse-accueil-croix';
+    croix.setAttribute('aria-label', S.uiAccueilFermer);
+    croix.setAttribute('title', S.uiAccueilFermer);
+
+    croix.setAttribute('aria-hidden', 'false');
+    const barre = document.createElement('span');
+    barre.setAttribute('aria-hidden', 'true');
+    barre.textContent = '\u00D7';
+    croix.appendChild(barre);
+    croix.addEventListener('click', () => {
+      accueil.renvoyer();
+      boite.remove();
+    });
+    boite.append(texte, croix);
+    hote.parentElement.insertBefore(boite, hote);
   }
 
   function onFilterChange(facet, value) {
