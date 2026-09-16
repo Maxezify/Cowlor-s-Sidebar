@@ -203,7 +203,7 @@ Tudo já vem ativo e não há nada para configurar. Mas uma aba «Opções» no 
 
 - ★ O QUE VOCÊ VÊ ★ Cada selo, a duração da live e o seu formato, a barra «acabou de começar», o ouro das assinaturas, os filtros, os botões de ordenação: tudo liga e desliga numa caixinha.
 - ★ O QUE É CARREGADO ★ A prévia pode dispensar o vídeo e manter os selos, a linha do tempo e a miniatura — ou simplesmente baixar a qualidade. O suficiente para deixá-la leve sem perdê-la.
-- ★ O QUE DIZ RESPEITO A VOCÊ ★ A leitura das assinaturas — a única requisição autenticada da extensão — se desliga com um clique. O aprendizado das visitas também. E cada memória é apagada separadamente, sem tocar nas outras.
+- ★ O QUE DIZ RESPEITO A VOCÊ ★ A leitura das assinaturas — a única requisição autenticada da extensão — pode ser espaçada até uma vez por dia. E cada memória é apagada separadamente: visitas, assinaturas, canais conhecidos, sem tocar nas outras.
 - ★ NADA É UMA ARMADILHA ★ Um ponto marca o que você mudou, um botão devolve tudo ao padrão, e as suas configurações são exportadas em texto para recolocá-las em outra máquina.
 
 _______________________________

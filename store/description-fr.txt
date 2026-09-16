@@ -203,7 +203,7 @@ Tout est actif d'emblée et il n'y a rien à régler. Mais un onglet « Options 
 
 - ★ CE QUE VOUS VOYEZ ★ Chaque badge, la durée du direct et son format, la barre « vient de démarrer », l'or des abonnements, les filtres, les boutons de tri : tout s'allume et s'éteint à la case.
 - ★ CE QUI SE CHARGE ★ L'aperçu peut se passer de la vidéo et garder ses badges, sa frise et sa miniature — ou simplement descendre en qualité. De quoi l'alléger sans le perdre.
-- ★ CE QUI VOUS REGARDE ★ Le relevé des abonnements — la seule requête authentifiée de l'extension — se coupe d'un clic. L'apprentissage des visites aussi. Et chaque mémoire s'efface séparément, sans toucher aux autres.
+- ★ CE QUI VOUS REGARDE ★ Le relevé de vos abonnements — la seule requête authentifiée de l'extension — s'espace jusqu'à une fois par jour. Et chaque mémoire s'efface séparément : visites, abonnements, chaînes connues, sans toucher aux autres.
 - ★ RIEN N'EST PIÉGÉ ★ Un point marque ce que vous avez changé, un bouton remet tout par défaut, et vos réglages s'exportent en texte pour les reposer sur une autre machine.
 
 _______________________________

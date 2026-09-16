@@ -203,7 +203,7 @@ Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber ein Tab �
 
 - ★ WAS DU SIEHST ★ Jedes Abzeichen, die Streamdauer und ihr Format, der Balken „gerade gestartet“, das Gold der Abonnements, die Filter, die Sortierschaltflächen: alles lässt sich per Häkchen ein- und ausschalten.
 - ★ WAS GELADEN WIRD ★ Die Vorschau kann auf das Video verzichten und Abzeichen, Zeitleiste und Miniaturbild behalten — oder einfach in der Qualität heruntergehen. Genug, um sie leicht zu machen, ohne sie zu verlieren.
-- ★ WAS DICH BETRIFFT ★ Das Auslesen der Abonnements — die einzige authentifizierte Anfrage der Erweiterung — schaltet sich mit einem Klick ab. Das Lernen der Besuche ebenso. Und jeder Speicher wird einzeln gelöscht, ohne die anderen anzurühren.
+- ★ WAS DICH BETRIFFT ★ Das Auslesen der Abonnements — die einzige authentifizierte Anfrage der Erweiterung — lässt sich bis auf einmal täglich strecken. Und jeder Speicher wird einzeln gelöscht: Besuche, Abonnements, bekannte Kanäle, ohne die anderen anzurühren.
 - ★ NICHTS IST EINE FALLE ★ Ein Punkt markiert, was du geändert hast, eine Schaltfläche setzt alles zurück, und deine Einstellungen lassen sich als Text exportieren, um sie auf einem anderen Rechner wieder einzusetzen.
 
 _______________________________

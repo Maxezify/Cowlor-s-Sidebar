@@ -338,7 +338,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 988 Ko | 380 Ko | 3 257 → **2** |
+| `content.js` | 988 Ko | 380 Ko | 3 259 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 89 Ko | 45 Ko | 116 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
@@ -2225,7 +2225,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1088 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1095 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2613,6 +2613,70 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Forcer ce que Twitch fait déjà, et deux fiches qui mentaient (v4.10.2)
+
+### « Sombre forcé devient plus foncé que l'auto »
+
+Le drapeau de forçage disait « un thème est choisi ». Il devait dire **« le thème
+choisi DIFFÈRE de celui de la page »**. Forcé en sombre sur un Twitch déjà sombre,
+nos repeintures s'ajoutaient aux siennes au lieu de les remplacer, et le fond
+passait au `base` là où Twitch posait son `alt`.
+
+Écrit ainsi, le cas **disparaît** : choisir le thème que la page porte déjà
+retire l'attribut, et tout le bloc redevient inerte. C'est la seule façon de
+garantir que « sombre forcé sur Twitch sombre » soit *identique* à « auto » —
+pas approchant : identique, puisque pas une règle ne s'applique.
+
+### Ce que Twitch peint sans passer par une variable
+
+En clair forcé, le fond de la barre passait bien au clair, mais la carte
+**survolée** restait sombre. Ces surfaces ne lisent pas `--color-background-*` :
+Twitch les écrit en dur, et une variable redéfinie n'a rien à y rattraper. On ne
+les devine pas, on les recouvre — sous thème forcé seulement, où l'attribut
+n'existe que si les deux thèmes diffèrent réellement.
+
+### Centrer était la première réponse, et elle était courte
+
+Le filtre survivant se recentrait. Il **remplit** maintenant la ligne. Le menu
+langue, qui tient d'ordinaire dans cinquante pixels parce qu'il ne montre qu'un
+drapeau, gagne alors de quoi écrire le nom de la langue à côté : l'espace ne se
+contente pas d'être occupé, il sert.
+
+Le nom est **toujours** construit ; c'est la feuille qui décide de le montrer. Le
+fabriquer conditionnellement aurait voulu dire reconstruire les deux menus à
+chaque bascule du réglage, et se souvenir de le faire — un `display` n'a rien à
+se rappeler. Le globe prend le libellé qu'il portait déjà en infobulle, plutôt
+qu'un second mot à tenir d'accord avec le premier.
+
+Le **tri**, lui, reste centré : ses six boutons ne s'étirent pas, et les étaler à
+deux mettrait un bouton dans chaque coin. Les deux rangées n'ont pas la même
+réponse parce qu'elles n'ont pas le même problème.
+
+### L'audit, et ses deux vraies prises
+
+**Les douze fiches promettaient deux réglages retirés la veille.** « Le relevé
+des abonnements se coupe d'un clic », « l'apprentissage des visites aussi » —
+faux dans les douze langues. C'est exactement la faute que le contrat `CITES`
+empêche dans l'autre sens : là, la fiche promettait ce qui n'existait pas
+*encore* ; ici, ce qui n'existait *plus*, et rien ne couvrait ce sens-là. Les
+phrases sont réécrites sur ce que le produit fait, et **entrent au contrat** pour
+que la prochaine suppression les emporte. Trois mutants, trois morts.
+
+**Les README annonçaient « les trois `console.log` » ; il y en a onze.** La ligne
+ne comptait que ceux dont le texte est écrit en clair et manquait les huit qui
+passent par la table `S.console*` — huit appels tout aussi légitimes, invisibles
+à une lecture qui cherche une chaîne. Stables depuis la 4.0.0 : c'est le chiffre
+qui s'était périmé, pas le code.
+
+### Un contrat de plus, pour un trou que l'audit a dû chercher à la main
+
+Un réglage marqué `css: true` dont aucune règle ne porte le jeton est un
+interrupteur qui ne fait **rien** : il s'affiche, il se coche, il s'écrit au
+stockage, et rien ne bouge. Aucune assertion ne l'aurait attrapé — elles
+éprouvent les réglages qu'elles nomment, pas ceux qu'on ajoutera. Le scénario 118
+croise désormais la table `OPT_DEFS` avec les sélecteurs que le navigateur a
+**réellement acceptés**, dans les deux sens.
 
 ## Ce que la mesure a dit, et ce que le raisonnement disait (v4.10.1)
 
@@ -4386,9 +4450,18 @@ maintenant.
 
 ### Ce que l'audit a vérifié sans rien trouver
 
-- **Aucune trace de débogage.** Les trois `console.log` de `content.js` sont
-  l'API publique de la console (`tse.cycles()`, `tse.apercu()`, `tse.bascules()`),
-  pas des oublis. Aucun `TODO`, `FIXME` ni `debugger`.
+- **Aucune trace de débogage.** Les **onze** `console.log` de `content.js` sont
+  l'API publique de la console — ce que rendent `tse.scores()`, `tse.subs()`,
+  `tse.roster()`, `tse.lag()`, `tse.reset()`, `tse.cycles()`, `tse.apercu()` et
+  `tse.bascules()` quand ils n'ont rien à montrer — pas des oublis. Aucun
+  `TODO`, `FIXME` ni `debugger`.
+
+  *Cette ligne annonçait **trois** pendant une dizaine de versions.* Elle ne
+  comptait que ceux dont le texte est écrit en clair (« [tse] aucun… ») et
+  manquait les huit qui passent par la table `S.console*` — huit appels tout
+  aussi légitimes, et invisibles à une lecture qui cherche une chaîne. Un
+  audit les a comptés ; c'est le genre de chiffre qui se périme sans bruit
+  parce que personne ne le recompte.
 - **Aucun identifiant mort** parmi les vingt et un ajoutés depuis la 3.98 :
   chacun est déclaré et lu.
 - **Aucune règle `.tse-*` morte** dans la feuille de la barre latérale — les
@@ -6857,7 +6930,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 120 scénarios, 1088 assertions |
+| `npm test` | le harnais Playwright : 120 scénarios, 1095 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

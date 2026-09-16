@@ -140,11 +140,20 @@ où le code change :
    dans le panneau, et `npm run parity` qu'aucun n'est affiché sous son
    identifiant brut. La fiche promet aussi trois choses précises, toutes
    éprouvées : que l'aperçu puisse garder ses badges SANS la vidéo (scénario
-   119), que le relevé des abonnements se coupe (le réglage `abosReleve` garde
-   `subsPage.refresh`), et que chaque mémoire s'efface séparément (l'action
-   `purge`, trois branches). La quatrième — l'export en texte — est du panneau
-   seul, et c'est pourquoi elle ne figure pas au contrat `PROMESSES` : il ne
-   relie la fiche qu'à `content.js`.
+   119), que le relevé des abonnements puisse s'espacer jusqu'à une fois par
+   jour (`abosPeriode`, dont la liste de valeurs porte le 24), et que chaque
+   mémoire s'efface séparément (l'action `purge`, trois branches). La
+   quatrième — l'export en texte — est du panneau seul, et c'est pourquoi elle
+   ne figure pas au contrat `PROMESSES` : il ne relie la fiche qu'à
+   `content.js`.
+
+   **Deux de ces phrases ont été fausses pendant une version.** La fiche
+   promettait que le relevé des abonnements « se coupe d'un clic » et que
+   l'apprentissage des visites en faisait autant ; les deux réglages ont été
+   retirés juste après, et les douze fiches ont continué de les promettre.
+   C'est la faute que `CITES` empêche dans l'autre sens — promettre ce qui
+   n'existe pas ENCORE — et elle n'était couverte par rien. Les deux phrases
+   réécrites sont maintenant au contrat.
 
 ## Images
 

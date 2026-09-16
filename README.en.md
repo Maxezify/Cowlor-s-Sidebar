@@ -326,7 +326,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 988 KB | 380 KB | 3,257 → **2** |
+| `content.js` | 988 KB | 380 KB | 3,259 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 89 KB | 45 KB | 116 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1088 assertions, under Gecko
+npm run test-firefox        # the same 1095 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,69 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Forcing what Twitch already does, and two store pages that lied (v4.10.2)
+
+### "Forced dark comes out darker than auto"
+
+The force flag said "a theme is chosen". It had to say **"the chosen theme
+DIFFERS from the page's"**. Forced to dark on an already-dark Twitch, our repaints
+added to Twitch's instead of replacing them, and the background dropped to `base`
+where Twitch was painting its `alt`.
+
+Written that way, the case **disappears**: choosing the theme the page already
+carries removes the attribute, and the whole block goes inert again. It is the
+only way to guarantee that "forced dark on dark Twitch" is *identical* to "auto"
+— not close: identical, since not one rule applies.
+
+### What Twitch paints without going through a variable
+
+Under forced light the sidebar background did turn light, but the **hovered** card
+stayed dark. Those surfaces do not read `--color-background-*`: Twitch writes them
+in full, and a redefined variable has nothing to catch up with there. We do not
+guess them, we cover them — under a forced theme only, where the attribute exists
+only if the two themes genuinely differ.
+
+### Centring was the first answer, and it was a short one
+
+The surviving filter re-centred. It now **fills** the row. The language menu,
+which normally fits in fifty pixels because it only shows a flag, then earns room
+to write the language name beside it: the space is not merely occupied, it is
+used.
+
+The name is **always** built; the stylesheet decides whether to show it. Building
+it conditionally would have meant rebuilding both menus on every toggle of the
+setting, and remembering to — a `display` has nothing to remember. The globe takes
+the label it already carried as a tooltip, rather than a second word to keep in
+agreement with the first.
+
+The **sort row** stays centred: its six buttons do not stretch, and spreading two
+of them would put one in each corner. The two rows get different answers because
+they do not have the same problem.
+
+### The audit, and its two real catches
+
+**All twelve store pages promised two settings removed the day before.** "The
+subscription sweep switches off in one click", "so does visit learning" — false in
+twelve languages. This is exactly the fault the `CITES` contract prevents in the
+other direction: there, the page promised what did not exist *yet*; here, what no
+longer existed, and nothing covered that direction. The sentences are rewritten
+around what the product does, and **enter the contract** so the next removal takes
+them with it. Three mutants, three killed.
+
+**The READMEs announced "the three `console.log`"; there are eleven.** The line
+counted only the ones whose text is written out in full and missed the eight going
+through the `S.console*` table — eight equally legitimate calls, invisible to a
+reading that searches for a string. Stable since 4.0.0: it was the figure that had
+gone stale, not the code.
+
+### One more contract, for a hole the audit had to find by hand
+
+A setting marked `css: true` with no rule carrying its token is a switch that does
+**nothing**: it renders, it toggles, it writes to storage, and nothing moves. No
+assertion would have caught it — they exercise the settings they name, not the
+ones we will add. Scenario 118 now crosses the `OPT_DEFS` table against the
+selectors the browser **actually accepted**, in both directions.
 
 ## What measurement said, and what reasoning said (v4.10.1)
 
@@ -4188,9 +4251,17 @@ and the comment now says so.
 
 ### What the audit checked and found nothing
 
-- **No debug traces.** The three `console.log` calls in `content.js` are the
-  public console API (`tse.cycles()`, `tse.apercu()`, `tse.bascules()`), not
-  leftovers. No `TODO`, `FIXME` or `debugger`.
+- **No debug traces.** The **eleven** `console.log` calls in `content.js` are the
+  console's public API — what `tse.scores()`, `tse.subs()`, `tse.roster()`,
+  `tse.lag()`, `tse.reset()`, `tse.cycles()`, `tse.apercu()` and `tse.bascules()`
+  print when they have nothing to show — not leftovers. No `TODO`, `FIXME` or
+  `debugger`.
+
+  *This line said **three** for about ten versions.* It counted only the ones
+  whose text is written out in full ("[tse] aucun…") and missed the eight that
+  go through the `S.console*` table — eight equally legitimate calls, invisible
+  to a reading that searches for a string. An audit counted them; that is the
+  kind of figure that goes stale quietly because nobody recounts it.
 - **No dead identifier** among the twenty-one added since 3.98: each is declared
   and read.
 - **No dead `.tse-*` rule** in the sidebar stylesheet — the three a naive read
@@ -6563,7 +6634,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 120 scenarios, 1088 assertions |
+| `npm test` | the Playwright harness: 120 scenarios, 1095 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

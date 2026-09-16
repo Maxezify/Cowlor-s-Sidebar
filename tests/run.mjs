@@ -15247,25 +15247,57 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('…et les couper retire les deux, pas seulement la barre',
      frais.apres.barre === 'none' && frais.apres.lavis === 'none', JSON.stringify(frais.apres));
 
-  /* ── CE QUI RESTE SE CENTRE ─────────────────────────────────────────────
-     Les deux champs de filtre se partagent la rangée par des règles
-     asymétriques ; en retirer un laissait l'autre collé à son bord. */
-  const centrage = await page.evaluate(() => {
+  /* ── CE QUI RESTE PREND TOUTE LA LIGNE ──────────────────────────────────
+     ASSERTION TOURNÉE, ET C'EST UN SECOND RETOUR QUI L'A EXIGÉ. Elle
+     demandait que le filtre survivant se RECENTRE — la première réponse à
+     « il reste collé au bord ». Centrer corrigeait l'alignement et laissait
+     la moitié de la barre vide ; l'utilisateur a demandé mieux, que le
+     survivant REMPLISSE la ligne. On mesure donc une largeur, pas un
+     alignement : le champ restant doit couvrir la rangée entière.
+
+     LE TRI, LUI, RESTE CENTRÉ : ses six boutons ne s'étirent pas, et les
+     étaler à deux mettrait un bouton dans chaque coin. Les deux rangées n'ont
+     pas la même réponse parce qu'elles n'ont pas le même problème. */
+  const remplissage = await page.evaluate(() => {
     window.tse.options.remettre();
-    const lire = () => ({
-      tri: getComputedStyle(document.querySelector('.tse-sort-row')).justifyContent,
-      filtre: getComputedStyle(document.querySelector('.tse-filter-row')).justifyContent,
-      langMarge: getComputedStyle(document.querySelector('.tse-filter-field--lang')).marginLeft,
-    });
+    const lire = () => {
+      const r = (s) => { const e = document.querySelector(s);
+        const b = e.getBoundingClientRect(); return Math.round(b.width); };
+      const nom = document.querySelector('.tse-dd--lang .tse-dd-current .tse-dd-nom');
+      return { tri: getComputedStyle(document.querySelector('.tse-sort-row')).justifyContent,
+               rangee: r('.tse-filter-row'), cat: r('.tse-filter-field--cat'),
+               lang: r('.tse-filter-field--lang'),
+               nom: nom ? nom.textContent : null,
+               nomVisible: nom ? getComputedStyle(nom).display !== 'none' : null };
+    };
     const plein = lire();
     window.tse.options.poser('filtreCategorie', false);
-    return { plein, ampute: lire() };
+    const sansCat = lire();
+    window.tse.options.remettre();
+    window.tse.options.poser('filtreLangue', false);
+    return { plein, sansCat, sansLang: lire() };
   });
   ok('les boutons de tri sont centrés, quel que soit leur nombre',
-     centrage.plein.tri === 'center', centrage.plein.tri);
-  ok('…et le filtre restant se recentre au lieu de rester collé au bord',
-     centrage.ampute.filtre === 'center' && centrage.ampute.langMarge === '0px',
-     JSON.stringify(centrage.ampute));
+     remplissage.plein.tri === 'center', remplissage.plein.tri);
+  ok('…le filtre langue prend toute la ligne quand la catégorie part',
+     remplissage.sansCat.cat === 0
+     && remplissage.sansCat.lang === remplissage.sansCat.rangee,
+     JSON.stringify(remplissage.sansCat));
+  ok('…et le filtre catégorie en fait autant quand la langue part',
+     remplissage.sansLang.lang === 0
+     && remplissage.sansLang.cat === remplissage.sansLang.rangee,
+     JSON.stringify(remplissage.sansLang));
+  /* LE NOM EST TOUJOURS CONSTRUIT, JAMAIS TOUJOURS MONTRÉ. C'est ce qui
+     permet à la bascule du réglage de n'exiger aucune reconstruction du
+     menu — et c'est exactement ce qu'on vérifie : présent des deux côtés,
+     visible d'un seul. */
+  ok('le nom de la langue est dans le DOM même quand il ne se voit pas',
+     remplissage.plein.nom === remplissage.sansCat.nom
+     && typeof remplissage.plein.nom === 'string' && remplissage.plein.nom.length > 0,
+     JSON.stringify([remplissage.plein.nom, remplissage.sansCat.nom]));
+  ok('…et il n\'apparaît que dans la ligne élargie',
+     remplissage.plein.nomVisible === false && remplissage.sansCat.nomVisible === true,
+     JSON.stringify([remplissage.plein.nomVisible, remplissage.sansCat.nomVisible]));
 
   /* ── UN JEU : UN MEMBRE, UN JETON PRÉFIXÉ ───────────────────────────── */
   const jeu = await page.evaluate(() => {
@@ -15289,6 +15321,51 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('un choix qui vaut son défaut n\'écrit aucun attribut',
      choix.neutre === null && choix.retire === null, JSON.stringify(choix));
   ok('…et il en écrit un dès qu\'il s\'en écarte', choix.pose === 'discret', String(choix.pose));
+
+  /* ── CHAQUE RÉGLAGE « css » EST NOMMÉ PAR UNE RÈGLE, ET RÉCIPROQUEMENT ──
+     L'AUDIT A CHERCHÉ CE TROU À LA MAIN, ce qui n'est bon qu'une fois. Un
+     réglage marqué « css: true » dont aucune règle ne porte le jeton est un
+     interrupteur qui ne fait RIEN : il s'affiche, il se coche, il s'écrit au
+     stockage, et rien ne bouge. Aucune des assertions précédentes ne
+     l'attraperait — elles éprouvent les réglages qu'elles nomment, pas ceux
+     qu'on ajoutera.
+
+     ON LIT LA FEUILLE RENDUE, PAS LA SOURCE : « document.styleSheets » dit ce
+     que le navigateur a réellement accepté, là où une lecture du fichier
+     compterait aussi les règles qu'une faute de syntaxe aurait fait tomber.
+
+     LES DEUX CHOIX SONT HORS DE CE CONTRAT et pour une raison qui se dit :
+     « abonnes » et « apercuTaille » portent une VALEUR, pas un interrupteur ;
+     ils ont leur propre attribut, et le scénario les couvre plus haut. */
+  const contratCss = await page.evaluate(() => {
+    const defs = window.tse.panneau('options').defs;
+    const jetons = new Set();
+    for (const f of document.styleSheets) {
+      let regles = [];
+      try { regles = [...f.cssRules]; } catch { continue; }
+      for (const r of regles) {
+        for (const m of (r.selectorText || '').matchAll(/data-tse-off~="([a-zA-Z-]+)"/g)) {
+          jetons.add(m[1]);
+        }
+      }
+    }
+    const attendus = [];
+    for (const [id, d] of Object.entries(defs)) {
+      if (!d.css) continue;
+      if (d.type === 'bool') attendus.push(id);
+      else if (d.type === 'jeu') {
+        const prefixe = id === 'badges' ? 'badge-' : 'tri-';
+        for (const m of d.valeurs) attendus.push(prefixe + m);
+      }
+    }
+    return { sansRegle: attendus.filter((t) => !jetons.has(t)),
+             orphelines: [...jetons].filter((t) => !attendus.includes(t)),
+             n: attendus.length };
+  });
+  ok(`chacun des ${contratCss.n} jetons de réglage est nommé par une règle de la feuille`,
+     contratCss.sansRegle.length === 0, contratCss.sansRegle.join(', '));
+  ok('…et aucune règle ne vise un jeton que plus aucun réglage ne produit',
+     contratCss.orphelines.length === 0, contratCss.orphelines.join(', '));
 
   /* ── ET LE CHEMIN DU RETOUR ─────────────────────────────────────────── */
   const retour = await page.evaluate(() => {
@@ -15366,6 +15443,24 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     ? (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) > 128 : null; };
   ok('en « auto », le drapeau de forçage n\'est pas posé',
      forces.auto.force === false, JSON.stringify(forces.auto));
+  /* FORCER CE QUE TWITCH FAIT DÉJÀ NE DOIT RIEN FAIRE, et « rien » se mesure :
+     pas d'attribut, et un fond IDENTIQUE à celui du mode auto. Un signalement
+     l'a exigé — forcé en sombre sur un Twitch déjà sombre, la barre devenait
+     plus foncée que d'habitude, nos repeintures s'ajoutant aux siennes. */
+  const memeQueAuto = await page.evaluate(() => {
+    const nav = document.querySelector('#side-nav');
+    const lire = () => ({ force: document.documentElement.hasAttribute('data-tse-force'),
+                          fond: getComputedStyle(nav).backgroundColor });
+    window.tse.options.remettre();
+    document.documentElement.setAttribute('data-a-theme', 'dark');
+    const auto = lire();
+    window.tse.options.poser('theme', 'dark');
+    return { auto, force: lire() };
+  });
+  ok('forcer le thème que Twitch porte déjà ne pose aucun attribut',
+     memeQueAuto.force.force === false, JSON.stringify(memeQueAuto.force));
+  ok('…et laisse la barre exactement comme en « auto »',
+     memeQueAuto.force.fond === memeQueAuto.auto.fond, JSON.stringify(memeQueAuto));
   ok('…forcé en clair, la barre reçoit un fond CLAIR et une encre SOMBRE',
      forces.force.force === true && clair(forces.force.fond) === true
      && clair(forces.force.texte) === false, JSON.stringify(forces.force));
