@@ -6629,6 +6629,20 @@ titre('69. Panneau — la donnée nue, et le pont qui la porte');
      défaut qui n'était pas le sien. Lire depuis le gestionnaire de la réponse
      ne laisse aucun tour de boucle s'intercaler. */
   const reset = await page.evaluate(() => new Promise((res) => {
+    /* ── ON RETIRE D'ABORD CE QUI REPEUPLE ────────────────────────────────
+       DEUXIÈME CORRECTION DE CETTE MÊME ASSERTION, et la première ne suffisait
+       pas. Lire depuis le gestionnaire de la réponse empêchait bien un tour de
+       boucle de s'intercaler APRÈS l'effacement — mais rien n'empêchait un
+       balayage de tomber entre l'effacement et la réponse. Relevé sur du code
+       sain, une fois sur plusieurs dizaines : « roster: 2 ».
+
+       CE QU'ON DEMANDAIT N'ÉTAIT PAS UN INVARIANT DU PRODUIT. Le roster
+       enregistre les cartes visibles à chaque passe : tant qu'il y a des
+       cartes, il se remplit, et c'est son travail. On retire donc les cartes
+       avant d'effacer — alors « vide » devient une propriété vraie, et non une
+       course qu'on espère gagner. Après l'effacement le roster est vide, donc
+       aucune carte en avance n'est refabriquée. */
+    document.querySelectorAll('.side-nav-card').forEach((c) => c.remove());
     const minuteur = setTimeout(() => res({ expire: true }), 3000);
     window.addEventListener('message', function ecoute(e) {
       if (e.source !== window || !e.data || e.data.tse !== 'tse-panneau-res'
@@ -16637,6 +16651,89 @@ addEventListener('message', (e) => {
 
   await page.close();
   rmSync(hote, { force: true });
+}
+
+/* ═════════ UNE RÉPONSE TRONQUÉE NE JUGE QUE CE QU'ELLE CONTENAIT ═════════
+   LE DÉFAUT QU'UN RAPPORT DE TERRAIN A RÉVÉLÉ : « KyriaTV a disparu alors
+   qu'elle était présente au tout début ». Elle n'était pas terminée — elle
+   avait été ÉVINCÉE.
+
+   TOUTES LES SOURCES DU CLASSEMENT SONT DES « TOP N ». La voie du tag demande
+   les GLOBAL_TAG_MAX premières du monde ; la descente demande les
+   GLOBAL_STREAMS_MAX premières de CHAQUE catégorie. Le pool, lui, en contient
+   des centaines — 283 relevées chez l'utilisateur contre trente rendues par le
+   tag. Sans plancher, chaque passe donnait donc une absence à deux cent
+   cinquante chaînes bien vivantes, au seul motif qu'elles vivent sous le
+   trentième rang. Trois passes, et tout ce qui est sous ce rang est évincé.
+
+   « EN LICE » N'EST PAS « REGARDÉE ». Le raisonnement d'origine tenait que la
+   requête du tag étant une, globale et ordonnée, une absence y était réelle.
+   Le trou : être en lice et PERDRE ne dit rien d'autre que « je suis sous le
+   rang trente ». */
+{
+  titre('125. Le classement — une réponse tronquée ne juge que ce qu\'elle contenait');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 30 * 60_000).toISOString();
+    window.__fx = { suivi1: { id: 'id-suivi1', createdAt: h, viewers: 400,
+                              game: 'Just Chatting', tags: [] } };
+    window.__addCard('suivi1', 'Just Chatting', '400');
+    const cats = [];
+    for (let i = 0; i < 4; i++) {
+      const streams = [];
+      for (let k = 0; k < 30; k++) {
+        streams.push({ login: `en${i}_${k}`, viewers: 9000 - i * 100 - k, tags: ['English'] });
+      }
+      cats.push({ name: 'c' + i, viewers: 500_000 - i, streams });
+    }
+    /* Deux chaînes françaises MODESTES. Elles entrent au pool par la descente
+       — leur catégorie n'a qu'elles, la réponse est donc exhaustive — et se
+       trouvent très en dessous du plancher du classement par tag. */
+    cats.push({ name: 'frcat', viewers: 499_000, streams: [
+      { login: 'petite1', viewers: 100, tags: ['Français'] },
+      { login: 'petite2', viewers: 90,  tags: ['Français'] },
+    ] });
+    window.__cats = cats;
+    /* Un classement par tag PLEIN — trente entrées, comme GLOBAL_TAG_MAX —
+       dont la plus basse est à 1 000. C'est ce qui en fait une réponse
+       TRONQUÉE : elle s'est arrêtée avant d'arriver aux petites. */
+    const top = [];
+    for (let k = 0; k < 30; k++) {
+      top.push({ login: `fr${k}`, viewers: 5000 - k * 100, tags: ['Français'] });
+    }
+    window.__tagTop = { 'Français': top };
+  });
+  await wait(page, 2500);
+  await page.evaluate(() => {
+    const b = [...document.querySelectorAll('.tse-mode-tab')].find(x => x.dataset.tseMode === 'global');
+    if (b) b.click();
+  });
+  await wait(page, 2500);
+  await page.evaluate(() => {
+    const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
+      .find(o => (o.dataset.value || '') === 'Français');
+    if (opt) opt.click();
+  });
+  await wait(page, 3500);
+
+  const g = await page.evaluate(() => {
+    const r = window.tse.global.report();
+    return { misses: r.misses, sousPlancher: r.sousPlancher, evicted: r.evicted,
+             tagsServis: r.tags.servis,
+             petites: window.tse.global.top(500)
+               .filter((x) => x.login.startsWith('petite')).map((x) => x.login) };
+  });
+  ok('la voie du tag a bien répondu — sans quoi rien de ce qui suit ne prouve rien',
+     g.tagsServis > 0, JSON.stringify(g));
+  /* LE COMPTEUR QUI AURAIT MONTRÉ LE DÉFAUT SANS ATTENDRE UN RAPPORT. Il
+     compte les absences qu'on REFUSE de compter : la réponse s'arrêtait avant
+     d'arriver jusqu'à ces chaînes. */
+  ok('les chaînes sous le plancher de la réponse ne prennent AUCUNE absence',
+     g.misses === 0 && g.sousPlancher >= 2, JSON.stringify(g));
+  ok('…elles restent donc au classement, et rien n\'est évincé',
+     g.evicted === 0 && g.petites.length === 2, JSON.stringify(g));
+  await page.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

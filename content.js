@@ -4033,14 +4033,30 @@ const TSE_GATE_MAX_CLICKS = 5;
         transform: none !important;
         box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.55) !important;
       }
-      /* LA ROTATION AU SURVOL EST DU MOUVEMENT ELLE AUSSI, et elle n'est pas
-         un signal : elle ne fait qu'accuser réception du pointeur. Elle part
-         donc entièrement, sans rien à conserver — le fond au survol dit déjà
-         que le bouton répond. */
+      /* ── LA ROTATION AU SURVOL : ON LA RALENTIT, ON NE L'ARRÊTE PLUS ───
+         PREMIÈRE RÉDACTION : arrêt net, au motif qu'une rotation est du
+         mouvement et qu'elle n'est « pas un signal ». Un utilisateur dont le
+         système demande moins de mouvement a signalé l'exact symptôme :
+         « toujours pas de spin sur Chrome ». Son rapport le confirmait —
+         « mouvementReduit true ». La roue ne tournait pas POUR LUI SEUL, et
+         rien ne le lui disait.
+
+         C'EST LA LEÇON DU SUBATHON, DÉJÀ APPRISE ICI. L'arc-en-ciel était
+         arrêté net ; un utilisateur a dit « ce n'est pas normal qu'il soit
+         arrêté », et il avait raison — l'arrêt était une lecture grossière du
+         réglage. La cadence est la seule grandeur qui se négocie.
+
+         CE QU'ON GARDE ET CE QU'ON CÈDE : un tour en six secondes au lieu
+         d'un tour huit fois plus court. Sur un glyphe de dix-huit pixels, à un
+         sixième de tour par seconde, il n'y a ni scintillement — le critère
+         2.3.1 vise le clignotement au-delà de trois par seconde — ni
+         déplacement d'un objet à travers l'écran. Le geste reste lisible, il
+         cesse d'être vif. Quelqu'un qui demande moins de mouvement n'a pas
+         demandé moins de réponse. */
       .tse-roue:hover .tse-roue-dent,
       .tse-roue:focus-visible .tse-roue-dent {
-        animation: none !important;
-        transform: none !important;
+        animation-duration: 6s !important;
+        animation-timing-function: linear !important;
       }
     }
 
@@ -6938,7 +6954,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     let complete      = false; // le dernier classement est-il PROUVÉ complet ?
     let windowFloor   = 0;     // total de la dernière catégorie de la fenêtre
     const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
-                    misses: 0, evicted: 0, lastMs: 0 };
+                    /* « sousPlancher » compte les absences qu'on REFUSE de
+                       compter : elles disent que la réponse s'arrêtait avant
+                       d'arriver jusqu'à la chaîne, pas que la chaîne est
+                       partie. C'est le nombre qui aurait montré le défaut sans
+                       attendre un rapport — 253 par passe chez l'utilisateur,
+                       pour trente chaînes rendues. */
+                    misses: 0, sousPlancher: 0, evicted: 0, lastMs: 0 };
 
     /* ── LES CHAÎNES ÉCARTÉES, ET POURQUOI ON COMPTE DES CHAÎNES ────────────
        Une exclusion qu'on ne mesure pas est une exclusion dont on ne saura
@@ -7249,7 +7271,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     // distinguer « absente » de « pas regardée ».
     const harvest = async (cats, pool, code = null) => {
       const queried = new Set(), seen = new Set();
-      if (!cats.length) return { queried, seen, done: 0, transport: false };
+      /* LE PLANCHER DE CHAQUE CATÉGORIE. La descente demande elle aussi un
+         « top N » — GLOBAL_STREAMS_MAX par catégorie — et souffrait donc du
+         même défaut que la voie du tag : une chaîne au trente-cinquième rang
+         de sa catégorie était absente de la réponse, et cette absence comptait
+         comme une disparition. On retient donc, catégorie par catégorie, le
+         plus petit compteur rendu — et seulement quand la réponse était
+         PLEINE, car une réponse plus courte que demandée est exhaustive. */
+      const planchers = new Map();
+      if (!cats.length) return { queried, seen, planchers, done: 0, transport: false };
       const query = code ? catTopQuery(code) : CATEGORY_TOP_QUERY;
       const ops = cats.map(c => ({
         operationName: 'TseCategoryTop',
@@ -7267,9 +7297,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         // Total de la catégorie tel que vu à l'instant de la réponse : plus
         // frais que celui de la liste `games`, on en profite.
         if (Number.isFinite(d.game?.viewersCount)) cats[i].viewers = d.game.viewersCount;
+        const lus = [];
         for (const e of edges) {
           const rec = readStream(e?.node, now);
           if (!rec) continue;
+          lus.push(rec);
           seen.add(rec.login);
           const prev = pool.get(rec.login);
           // Une chaîne peut remonter de deux catégories lors d'un changement
@@ -7277,8 +7309,13 @@ const TSE_GATE_MAX_CLICKS = 5;
           // Un enregistrement frais repart à zéro absence, par construction.
           if (!prev || rec.ts >= prev.ts) pool.set(rec.login, rec);
         }
+        /* ON MESURE SUR LES ARÊTES RENDUES, pas sur celles qu'on a retenues :
+           `readStream` écarte les empileurs de tags, et compter sans eux
+           ferait croire la réponse plus courte qu'elle n'était — donc
+           exhaustive alors qu'elle était pleine. */
+        planchers.set(cats[i].name, plancherReponse(lus, edges.length));
       });
-      return { queried, seen, done, transport };
+      return { queried, seen, planchers, done, transport };
     };
 
     // Réconciliation — le cœur de la tolérance à l'échantillonnage.
@@ -7296,7 +7333,31 @@ const TSE_GATE_MAX_CLICKS = 5;
     //
     // Et l'on ne compte une absence QUE si la catégorie de la chaîne a été
     // réellement interrogée : ne pas regarder n'est pas constater.
-    const reconcile = (pool, queried, seen, now) => {
+    /* ── UNE RÉPONSE TRONQUÉE NE JUGE QUE CE QU'ELLE POUVAIT CONTENIR ───────
+       LE DÉFAUT QU'UN RAPPORT DE TERRAIN A RÉVÉLÉ, et il était bien plus large
+       que le cas signalé. Une chaîne présente « au tout début » disparaissait
+       du classement sans être terminée.
+
+       TOUTES NOS SOURCES SONT DES « TOP N ». La voie du tag demande les
+       GLOBAL_TAG_MAX premières du monde ; la descente demande les
+       GLOBAL_STREAMS_MAX premières de chaque catégorie. Or le pool en contient
+       des centaines — 283 relevées chez l'utilisateur, contre trente rendues
+       par le tag. Sans plancher, CHAQUE passe donnait donc une absence à deux
+       cent cinquante chaînes bien vivantes, simplement parce qu'elles sont
+       sous le rang trente. Trois passes, et tout ce qui vit sous le trentième
+       rang est évincé. Relevé chez l'utilisateur : 308 absences, 17 évictions.
+
+       « EN LICE » N'EST PAS « REGARDÉE ». Le commentaire de la voie du tag
+       raisonnait ainsi : la requête est une, globale et ordonnée, donc tout ce
+       qui porte le tag y était en lice, donc une absence est réelle. Le
+       raisonnement a un trou : être en lice et PERDRE ne dit rien d'autre que
+       « je suis sous le rang trente ». Ce n'est pas une disparition.
+
+       ON NE JUGE DONC QUE CE QUI AURAIT DÛ Y FIGURER : une chaîne dont le
+       compteur connu atteint le plancher de la réponse. Sous ce plancher, la
+       réponse ne dit RIEN — exactement la règle que la descente applique déjà
+       aux catégories qu'elle n'a pas visitées. */
+    const reconcile = (pool, queried, seen, now, plancherDe = () => 0) => {
       const cutoff = now - CFG.GLOBAL_PRUNE_AGE;
       for (const [login, rec] of pool) {
         if (seen.has(login)) { rec.misses = 0; continue; }
@@ -7304,6 +7365,9 @@ const TSE_GATE_MAX_CLICKS = 5;
         // la descente il y a longtemps, et plus rien ne la rafraîchit.
         if (rec.ts < cutoff) { pool.delete(login); stats.evicted += 1; continue; }
         if (!queried.has(rec.game)) continue;      // pas regardée, pas jugée
+        /* SOUS LE PLANCHER DE LA RÉPONSE, l'absence n'apprend rien : la
+           réponse s'arrêtait avant d'arriver jusqu'à elle. */
+        if (rec.viewers < plancherDe(rec)) { stats.sousPlancher += 1; continue; }
         rec.misses = (rec.misses || 0) + 1;
         stats.misses += 1;
         if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM) {
@@ -7311,6 +7375,15 @@ const TSE_GATE_MAX_CLICKS = 5;
           stats.evicted += 1;
         }
       }
+    };
+
+    /* Le plancher d'une réponse « top N » : le plus petit compteur qu'elle
+       rend, et SEULEMENT si elle était pleine. Une réponse plus courte que ce
+       qu'on a demandé est exhaustive — elle a montré tout ce qu'elle avait, et
+       une absence y est alors une vraie absence. */
+    const plancherReponse = (recs, demande) => {
+      const v = [...recs].map((r) => r.viewers).filter(Number.isFinite);
+      return v.length >= demande ? Math.min(...v) : 0;
     };
 
     /* ══════════════════════════════════════════════════════════════════════
@@ -7760,7 +7833,13 @@ const TSE_GATE_MAX_CLICKS = 5;
           const poolTag = (wl.lang === langAvant) ? carryOver() : new Map();
           const vus = new Set();
           for (const rec of parTag.values()) { vus.add(rec.login); poolTag.set(rec.login, rec); }
-          reconcile(poolTag, TOUT_REGARDE, vus, Date.now());
+          /* LA RÉPONSE DU TAG EST UN « TOP GLOBAL_TAG_MAX ». Elle ne peut donc
+             juger que les chaînes qui atteignent son plancher : sous ce
+             compteur, elle s'était déjà arrêtée. Sans cette borne, chaque
+             passe donnait une absence à tout le pool sous le trentième rang —
+             et trois passes l'évinçaient en entier. */
+          const plancherTag = plancherReponse(parTag.values(), CFG.GLOBAL_TAG_MAX);
+          reconcile(poolTag, TOUT_REGARDE, vus, Date.now(), () => plancherTag);
           publish(poolTag);
           /* COMPLET, et c'est plus fort qu'avec la descente. Celle-ci prouve
              sa complétude par un plancher de fenêtre, faute de pouvoir tout
@@ -7823,10 +7902,12 @@ const TSE_GATE_MAX_CLICKS = 5;
           if (!rec.tags.includes(wl.lang)) rec.tags = [...rec.tags, wl.lang];
         }
       }
+      const planchers = new Map([...a.planchers, ...b.planchers]);
       reconcile(pool,
                 new Set([...a.queried, ...b.queried]),
                 new Set([...a.seen,    ...b.seen]),
-                started);
+                started,
+                (rec) => planchers.get(rec.game) || 0);
       publish(pool);
 
       // Complétude — et c'est ici que se joue l'honnêteté du module.
@@ -7911,7 +7992,12 @@ const TSE_GATE_MAX_CLICKS = 5;
           if (!rec.tags.includes(langAvant)) rec.tags = [...rec.tags, langAvant];
         }
       }
-      reconcile(pool, h.queried, h.seen, started);
+      /* Les planchers sont saisis AVANT la fermeture : `h` est réassignable
+         plus haut, et une fonction qui le lirait plus tard lirait la mauvaise
+         récolte. Le linter l'a dit avant qu'on l'observe. */
+      const planchers = h.planchers;
+      reconcile(pool, h.queried, h.seen, started,
+                (rec) => planchers.get(rec.game) || 0);
       publish(pool);
       if (!langAvant) allLangPool = ranking;
       stats.light += 1;
@@ -8035,7 +8121,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       // l'échantillonnage s'applique ici comme ailleurs.
       const pool = scope === want.key ? new Map(scopeRanking.map(r => [r.login, r])) : new Map();
       for (const [login, rec] of frais) pool.set(login, rec);   // le frais prime
-      reconcile(pool, h.queried, h.seen, started);
+      /* Les planchers sont saisis AVANT la fermeture : `h` est réassignable
+         plus haut, et une fonction qui le lirait plus tard lirait la mauvaise
+         récolte. Le linter l'a dit avant qu'on l'observe. */
+      const planchers = h.planchers;
+      reconcile(pool, h.queried, h.seen, started,
+                (rec) => planchers.get(rec.game) || 0);
       scope        = want.key;
       scopeLangApplied = applique;
       scopeRanking = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
