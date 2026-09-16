@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1112 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1121 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,90 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La page d'installation avait tout, sauf ce qu'elle devait dire (v4.11.1)
+
+La 4.11 ouvre un onglet à l'installation. Elle y ouvrait **le panneau complet** :
+le rail de quinze sections, l'en-tête de vue, et trois boutons de pied qui
+proposent d'exporter un rapport et d'effacer un historique — à la minute où il
+n'existe encore ni l'un ni l'autre. Le mode d'emploi était là, quelque part, et
+la seule phrase qui comptait n'y était pas.
+
+**Ce que cette page a à dire tient en deux propositions**, et le reste lui nuit :
+merci, et *voici où est l'icône*. Tout ce qui ne sert pas ces deux-là est retiré.
+
+### Ce qui part, et pourquoi chaque retrait se justifie seul
+
+| bloc | pourquoi il part |
+| --- | --- |
+| le rail | aucune de ses sections ne peut répondre : elles interrogent toutes un onglet Twitch au premier plan, et il n'y en a pas |
+| l'en-tête de vue | il titre « Mode d'emploi » au-dessus d'un mode d'emploi |
+| les trois boutons du pied | exporter un rapport vide, relancer une sonde qui n'a rien à sonder, effacer une mémoire qui n'existe pas |
+
+Trois retraits, un seul attribut : `?vue=onglet` pose `data-vue` sur `<html>`,
+et la feuille fait le reste. **Ce n'est toujours pas une seconde page** — c'est
+la même, avec deux blocs en moins et un en plus.
+
+### Ce qui arrive : un merci, une phrase, un dessin, une flèche
+
+Le **merci** est en 30 px parce que c'est la première phrase que quelqu'un lit
+de ce produit, et qu'un merci qui chuchote n'est pas un merci. La **phrase**
+dit où est l'icône, en 17 px, avant tout le reste.
+
+Le **dessin** est une maquette de barre d'outils en SVG : la barre d'adresse
+sans faux texte — un faux texte se lit comme une adresse à déchiffrer —, le
+bouton en pièce de puzzle là où les navigateurs rangent les extensions, et
+l'icône entourée d'un anneau violet.
+
+> **La maquette porte la vraie icône**, `icons/icon48.png`, pas un dessin qui
+> lui ressemble. Ce qu'on demande à l'utilisateur est de **reconnaître une
+> image** dans sa barre d'outils ; un fac-similé approximatif lui ferait
+> chercher autre chose. L'anneau est posé **avant** l'image dans le SVG, sinon
+> il recouvrirait ce qu'il désigne.
+
+La **flèche** est la seule chose de cette page qui ne pointe pas vers la page.
+Sa cible est le coin haut-droit du **navigateur**, au-dessus du document : d'où
+l'ancrage en haut à droite et le tracé qui monte vers le coin. Elle est
+`aria-hidden` — elle n'a rien à dire à quelqu'un qui écoute la page, et tout à
+cacher. Sous 720 px elle disparaît : elle n'a plus de coin à désigner sans
+recouvrir le texte, et **une flèche qui pointe à côté est pire qu'une flèche
+absente**.
+
+> **Une infobulle avait été posée sur la flèche, et elle est repartie.** Son
+> hôte porte `pointer-events: none` : le libellé existait dans les douze
+> locales, et rien ne pouvait jamais l'afficher. La clé `panelWelcomeArrow` est
+> partie avec — douze traductions d'une phrase que personne n'aurait lue.
+
+Le titre s'arrête à `calc(100% - 200px)` : sans cette réserve, un titre long
+passerait sous la flèche, et deux choses se liraient l'une sur l'autre. **La
+phrase qui suit a la même réserve, et il a fallu une mesure pour le savoir** —
+`min(62ch, calc(100% - 200px))`. À 1100 px tout tient ; à 780 le merci passe sur
+deux lignes, la phrase descend d'autant, et elle entrait dans la flèche.
+
+### Le bandeau nomme le produit
+
+Il disait « l'icône de l'extension de la barre d'outils ». Quelqu'un qui a
+quatre extensions épinglées ne sait pas de laquelle on parle. Il dit maintenant
+**« l'icône Cowlor's Sidebar »**, dans les douze locales.
+
+### Ce que le scénario 123 mesure
+
+Il relève **les deux vues**, parce qu'un seul attribut les sépare : une règle
+qui viserait `html` sans le qualifier abîmerait la popup sans que personne ne la
+regarde. Neuf assertions, prises à **deux largeurs**, et une bonne part porte
+sur ce qui **ne doit pas** changer.
+
+| ce qui est mesuré | pourquoi ça échouerait sans |
+| --- | --- |
+| la popup n'a pas le bloc d'accueil, et garde rail et pied | expliquer où est l'icône à quelqu'un qui vient de cliquer dessus |
+| le bloc est le **premier enfant** du guide | une phrase d'accueil sous treize chapitres n'est plus une phrase d'accueil |
+| ses trois phrases ne sortent pas en clé brute | `panelWelcomeThanks` affiché tel quel, en première seconde d'usage |
+| la maquette porte `icons/icon48.png` | un dessin approchant fait chercher autre chose |
+| la flèche est là et `aria-hidden="true"` | un lecteur d'écran qui annonce une flèche décorative |
+| elle ne recouvre **aucun texte**, à 780 px comme à 1100 | à 780 px le merci passe sur deux lignes, la phrase suivante descend et entre dans la colonne de la flèche — invisible à 1100 |
+| rail, pied et en-tête de vue sont absents | les trois retraits, chacun vérifié |
+| le mode d'emploi a **le même nombre de chapitres** dans les deux vues | la preuve que ce n'est pas une seconde page |
+| la page reste haute comme la fenêtre | la régression des **2933 px** de la 4.11, qui faisait défiler le rail avec le guide |
 
 ## Se faire trouver, et l'or qui n'avait pas de version claire (v4.11)
 
@@ -6603,7 +6687,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 122 scénarios, 1112 assertions |
+| `npm test` | le harnais Playwright : 123 scénarios, 1121 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -6626,7 +6710,7 @@ assemblé :
 | --- | --- | --- | --- |
 | `content.js` | 1012 Ko | 390 Ko | 3 267 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 91 Ko | 45 Ko | 118 → **0** |
+| `panneau.js` | 97 Ko | 47 Ko | 127 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
 | `background.js` | 11 Ko | 2 Ko | 25 → **0** |
 | **les cinq** | **1251 Ko** | **541 Ko** | **−57 %** |

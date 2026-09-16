@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1112 assertions, under Gecko
+npm run test-firefox        # the same 1121 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,90 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The install page had everything except the thing it had to say (v4.11.1)
+
+4.11 opens a tab on install. What it opened there was **the whole panel**: the
+fifteen-section rail, the view header, and three footer buttons offering to
+export a report and erase a history — at the one minute when neither exists yet.
+The manual was in there somewhere, and the one sentence that mattered was not.
+
+**What this page has to say fits in two propositions**, and everything else
+works against them: thank you, and *here is where the icon is*. Anything that
+doesn't serve those two is removed.
+
+### What goes, and why each removal stands on its own
+
+| block | why it goes |
+| --- | --- |
+| the rail | none of its sections can answer: they all query a foreground Twitch tab, and there isn't one |
+| the view header | it titles "Manual" above a manual |
+| the three footer buttons | export an empty report, re-run a probe with nothing to probe, erase a memory that doesn't exist |
+
+Three removals, one attribute: `?vue=onglet` sets `data-vue` on `<html>`, and
+the stylesheet does the rest. **It is still not a second page** — it is the same
+one, two blocks lighter and one block richer.
+
+### What arrives: a thank-you, a sentence, a drawing, an arrow
+
+The **thank-you** is 30 px because it is the first sentence anyone reads of this
+product, and a thank-you that whispers is not a thank-you. The **sentence** says
+where the icon is, at 17 px, before anything else.
+
+The **drawing** is an SVG mock-up of a browser toolbar: the address bar with no
+fake text — fake text reads as an address to decipher —, the puzzle-piece button
+where browsers file extensions, and the icon inside a purple ring.
+
+> **The mock-up carries the real icon**, `icons/icon48.png`, not a drawing that
+> looks like it. What we're asking the user to do is **recognise an image** in
+> their toolbar; an approximate facsimile would send them looking for something
+> else. The ring is placed **before** the image in the SVG, or it would cover
+> the very thing it points at.
+
+The **arrow** is the only thing on this page that does not point at the page.
+Its target is the top-right corner of the **browser**, above the document: hence
+the top-right anchoring and the stroke that climbs toward the corner. It is
+`aria-hidden` — it has nothing to say to someone listening to the page, and
+everything to hide. Below 720 px it disappears: it no longer has a corner to
+point at without covering the text, and **an arrow pointing at the wrong thing
+is worse than no arrow**.
+
+> **A tooltip was placed on the arrow, and it left again.** Its host carries
+> `pointer-events: none`: the label existed in all twelve locales, and nothing
+> could ever display it. The `panelWelcomeArrow` key went with it — twelve
+> translations of a sentence nobody would have read.
+
+The title stops at `calc(100% - 200px)`: without that reserve, a long title
+would run under the arrow, and two things would be read on top of each other.
+**The sentence below it needs the same reserve, and it took a measurement to
+find out** — `min(62ch, calc(100% - 200px))`. At 1100 px everything fits; at
+780 the thank-you wraps to two lines, the sentence drops with it, and it ran
+into the arrow.
+
+### The banner names the product
+
+It said "the extension's toolbar icon". Someone with four pinned extensions has
+no idea which one that is. It now says **"the Cowlor's Sidebar icon"**, in all
+twelve locales.
+
+### What scenario 123 measures
+
+It samples **both views**, because a single attribute separates them: a rule
+targeting `html` without qualifying it would break the popup with nobody looking
+at it. Nine assertions, taken at **two widths**, and a good share of them are
+about what must **not** change.
+
+| what is measured | what would fail without it |
+| --- | --- |
+| the popup has no welcome block, and keeps rail and footer | explaining where the icon is to someone who just clicked it |
+| the block is the guide's **first child** | a welcome sentence below thirteen chapters is no longer a welcome sentence |
+| its three sentences don't come out as raw keys | `panelWelcomeThanks` rendered as-is, in the first second of use |
+| the mock-up carries `icons/icon48.png` | an approximate drawing sends people looking for something else |
+| the arrow is present and `aria-hidden="true"` | a screen reader announcing a decorative arrow |
+| it covers **no text**, at 780 px as at 1100 | at 780 px the thank-you wraps to two lines, the next sentence drops into the arrow's column — invisible at 1100 |
+| rail, footer and view header are absent | the three removals, each verified |
+| the manual has **the same chapter count** in both views | the proof that this is not a second page |
+| the page stays as tall as the window | 4.11's **2933 px** regression, which scrolled the rail along with the guide |
 
 ## Getting found, and the gold that had no light version (v4.11)
 
@@ -6320,7 +6404,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 122 scenarios, 1112 assertions |
+| `npm test` | the Playwright harness: 123 scenarios, 1121 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -6342,7 +6426,7 @@ the assembled code:
 | --- | --- | --- | --- |
 | `content.js` | 1012 KB | 390 KB | 3,267 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 91 KB | 45 KB | 118 → **0** |
+| `panneau.js` | 97 KB | 47 KB | 127 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
 | `background.js` | 11 KB | 2 KB | 25 → **0** |
 | **all five** | **1251 KB** | **541 KB** | **−57 %** |

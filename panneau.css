@@ -995,3 +995,108 @@ html[data-theme="light"] .d-jour {
 /* ── Le rail sans ses diagnostics ────────────────────────────────────────── */
 html[data-sans-diag] .rail-item[data-groupe="grpDiag"],
 html[data-sans-diag] .rail-groupe[data-groupe="grpDiag"] { display: none; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LA PAGE D'ACCUEIL
+   ────────────────────────────────────────────────────────────────────────────
+   Ouverte une fois dans la vie de l'installation, elle n'a qu'un travail :
+   dire où est l'icône. Tout ce qui ne sert pas ce travail est retiré — le
+   rail, parce qu'aucune autre section ne peut répondre sans onglet Twitch au
+   premier plan ; le pied, parce qu'exporter un rapport ou effacer un
+   historique n'a aucun sens à la minute d'une installation.
+
+   CE N'EST PAS UNE SECONDE PAGE POUR AUTANT. C'est la même, avec deux blocs en
+   moins et un en plus, décidés par un seul attribut. */
+html[data-vue="onglet"] .rail,
+html[data-vue="onglet"] .pied,
+html[data-vue="onglet"] .vue-tete { display: none !important; }
+
+html[data-vue="onglet"] .vue { padding: 0; }
+html[data-vue="onglet"] .guide {
+  padding: 28px 40px 40px;
+  /* La barre de défilement reste dans la marge, comme en popup. */
+  padding-right: 32px;
+}
+
+/* ── Le bloc d'accueil ────────────────────────────────────────────────────── */
+.bienvenue {
+  position: relative;
+  margin: 0 0 32px;
+  padding: 0 0 28px;
+  border-bottom: 1px solid var(--filet);
+}
+.bienvenue-merci {
+  margin: 0 0 14px;
+  /* Gros, parce que c'est la première phrase que quelqu'un lit du produit —
+     et parce qu'un merci qui chuchote n'est pas un merci. */
+  font-size: 30px; line-height: 1.2; font-weight: 700;
+  letter-spacing: -0.2px;
+  /* On s'arrête avant la flèche : sans cette réserve, un titre long passerait
+     dessous, et deux choses se liraient l'une sur l'autre. */
+  max-width: calc(100% - 200px);
+}
+.bienvenue-ou {
+  margin: 0 0 22px;
+  /* MÊME RÉSERVE QUE LE TITRE, et elle ne se devinait pas : mesurée à 760 px,
+     le merci passe sur deux lignes, cette phrase descend d'autant et entre
+     dans la colonne de la flèche. 62ch tant que la place existe, la réserve
+     dès qu'elle manque. */
+  max-width: min(62ch, calc(100% - 200px));
+  font-size: 17px; line-height: 1.5;
+  color: var(--texte);
+}
+.bienvenue-epingler {
+  margin: 18px 0 0;
+  max-width: 62ch;
+  font-size: 13.5px; line-height: 1.55;
+  color: var(--texte-doux);
+}
+
+/* ── La maquette de la barre d'outils ─────────────────────────────────────── */
+.bienvenue-dessin {
+  display: block;
+  width: 420px; max-width: 100%; height: auto;
+}
+.bv-cadre {
+  fill: var(--fond-2);
+  stroke: var(--filet-fort); stroke-width: 1;
+}
+.bv-adresse { fill: var(--fond-creux); }
+.bv-puzzle  { fill: var(--texte-faible); }
+/* L'ANNEAU EST LE SUJET DU DESSIN. Il désigne ce qu'il faut chercher, donc il
+   porte la couleur que ce produit emploie partout pour désigner. */
+.bv-halo {
+  fill: rgba(145, 71, 255, 0.16);
+  stroke: var(--violet); stroke-width: 2;
+}
+
+/* ── La grande flèche ─────────────────────────────────────────────────────── */
+/* Elle ne pointe pas vers un élément de la page : sa cible est la barre
+   d'outils du navigateur, au-dessus du document. D'où l'ancrage en haut à
+   droite, et le tracé qui monte vers le coin. */
+.bienvenue-fleche {
+  position: absolute;
+  top: -10px; right: 0;
+  width: 168px; height: 184px;
+  pointer-events: none;
+}
+.bienvenue-fleche svg { width: 100%; height: 100%; overflow: visible; }
+.bv-fleche-trait {
+  fill: none;
+  stroke: var(--violet);
+  stroke-width: 6; stroke-linecap: round;
+  stroke-dasharray: 13 11;
+}
+.bv-fleche-pointe { fill: var(--violet); }
+
+/* Sous 720 px la flèche n'a plus de coin à désigner sans recouvrir le texte,
+   et une flèche qui pointe à côté est pire qu'une flèche absente. */
+@media (max-width: 720px) {
+  .bienvenue-fleche { display: none; }
+  .bienvenue-merci  { max-width: 100%; }
+  .bienvenue-ou     { max-width: 62ch; }
+  html[data-vue="onglet"] .guide { padding: 20px 18px 32px; }
+}
+
+/* « prefers-reduced-motion » ne concerne pas ce bloc : rien n'y bouge. C'est
+   dit ici pour qu'on cesse de se demander s'il y manque une règle. */

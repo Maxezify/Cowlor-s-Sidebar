@@ -713,5 +713,17 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — deine Daten und Einstellungen"
+  },
+  "panelWelcomeThanks": {
+    "message": "Danke, dass du Cowlor's Sidebar installiert hast!"
+  },
+  "panelWelcomeWhere": {
+    "message": "Deine Einstellungen und alle deine Daten liegen hinter dem Symbol der Erweiterung, oben rechts in deinem Browser."
+  },
+  "panelWelcomePin": {
+    "message": "Du siehst es nicht? Es steckt hinter der Schaltfläche mit dem Puzzleteil. Klick darauf und hefte Cowlor's Sidebar an, damit es immer griffbereit ist."
+  },
+  "panelWelcomeImage": {
+    "message": "Die Symbolleiste des Browsers, mit hervorgehobenem Cowlor's-Sidebar-Symbol rechts neben der Adressleiste."
   }
 }
