@@ -203,7 +203,7 @@ Tudo já vem ativo e não há nada para configurar. Mas um separador «Opções�
 
 - ★ O QUE VÊS ★ Cada distintivo, a duração da emissão e o seu formato, a barra «acabou de começar», o ouro das subscrições, os filtros, os botões de ordenação: tudo liga e desliga numa caixa.
 - ★ O QUE É CARREGADO ★ A pré-visualização pode dispensar o vídeo e manter os distintivos, a linha temporal e a miniatura — ou simplesmente baixar a qualidade. O suficiente para a aliviar sem a perder.
-- ★ O QUE TE DIZ RESPEITO ★ A leitura das subscrições — o único pedido autenticado da extensão — desliga-se com um clique. A aprendizagem das visitas também. E cada memória é apagada em separado, sem tocar nas outras.
+- ★ O QUE TE DIZ RESPEITO ★ A leitura das subscrições — o único pedido autenticado da extensão — pode ser espaçada até uma vez por dia. E cada memória é apagada em separado: visitas, subscrições, canais conhecidos, sem tocar nas outras.
 - ★ NADA É UMA ARMADILHA ★ Um ponto assinala o que alteraste, um botão repõe tudo por omissão, e as tuas definições exportam-se em texto para as voltares a pôr noutra máquina.
 
 _______________________________

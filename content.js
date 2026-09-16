@@ -2535,14 +2535,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
     pose('data-tse-or',     options.get('abonnes'),      'plein');
     pose('data-tse-apercu', options.get('apercuTaille'), 'normal');
-    /* FORCER N'EST PAS SUIVRE, et la feuille doit pouvoir faire la différence.
-       En « auto », nos surfaces se servent chez Twitch — « var(--color-…) » —
-       et c'est exactement ce qu'on veut : nos ajouts se peignent avec les
-       couleurs de la page qui les porte. Forcé, cette délégation se retourne
-       contre nous : un utilisateur a demandé le clair pendant que Twitch
-       restait sombre, et nos textes sont devenus sombres sur un fond resté
-       noir. Ce drapeau permet à la feuille de cesser d'emprunter. */
-    html.toggleAttribute('data-tse-force', options.get('theme') !== 'auto');
   };
   options.surChangement(appliquerOptions);
   appliquerOptions();
@@ -2727,6 +2719,34 @@ const TSE_GATE_MAX_CLICKS = 5;
          texte restait clair dessus — le même défaut que celui qu'on corrige,
          retourné. Une variable ne rattrape pas une propriété déjà héritée. */
       color: #0e0e10;
+    }
+    /* ── CE QUE TWITCH PEINT SANS PASSER PAR UNE VARIABLE ─────────────────
+       Le fond de la barre passe bien au clair, mais deux surfaces restaient
+       sombres, signalées à l'usage : le fond des CONTENEURS internes et
+       surtout la carte SURVOLÉE, « quand on survole une carte, le fond
+       devient foncé ». Ces deux-là ne lisent pas « --color-background-* » :
+       Twitch les écrit en dur dans sa propre feuille, et une variable
+       redéfinie n'a rien à y rattraper.
+
+       ON NE LES DEVINE PAS, ON LES RECOUVRE : sous thème forcé seulement, les
+       descendants de la barre cessent d'avoir un fond propre, et le survol
+       reçoit le nôtre. Le « !important » est nécessaire — on annule des
+       règles de Twitch, qui en portent — et il est borné au cas forcé, où
+       l'attribut n'existe que si les deux thèmes diffèrent réellement. */
+    html[data-tse-force] ${DOM.sidebarRoot} > div,
+    html[data-tse-force] ${DOM.sidebarRoot} [class*="side-nav__"],
+    html[data-tse-force] ${DOM.sidebarRoot} [class*="side-nav-section"] {
+      background-color: transparent !important;
+    }
+    html[data-tse-force][data-tse-theme="light"] ${DOM.sidebarRoot} .side-nav-card:hover,
+    html[data-tse-force][data-tse-theme="light"] ${DOM.sidebarRoot} .side-nav-card a:hover,
+    html[data-tse-force][data-tse-theme="light"] ${DOM.sidebarRoot} .side-nav-card a:focus {
+      background-color: rgba(0, 0, 0, 0.06) !important;
+    }
+    html[data-tse-force][data-tse-theme="dark"] ${DOM.sidebarRoot} .side-nav-card:hover,
+    html[data-tse-force][data-tse-theme="dark"] ${DOM.sidebarRoot} .side-nav-card a:hover,
+    html[data-tse-force][data-tse-theme="dark"] ${DOM.sidebarRoot} .side-nav-card a:focus {
+      background-color: rgba(255, 255, 255, 0.08) !important;
     }
     html[data-tse-force][data-tse-theme="dark"] ${DOM.sidebarRoot} {
       --color-background-base:  #0e0e10;
@@ -4846,16 +4866,41 @@ const TSE_GATE_MAX_CLICKS = 5;
     html[data-tse-off~="topOnglet"] .tse-mode-row { display: none !important; }
     html[data-tse-off~="filtreCategorie"] .tse-filter-field--cat { display: none !important; }
     html[data-tse-off~="filtreLangue"] .tse-filter-field--lang { display: none !important; }
-    /* CE QUI RESTE SE CENTRE. Les deux champs se partagent la rangée par des
-       règles asymétriques — la catégorie prend la place restante, la langue
-       est poussée à droite par « margin-left: auto ». Retirer l'un laissait
-       donc l'autre collé à son bord, ce qui se lit comme un défaut
-       d'alignement plutôt que comme un choix. On défait les deux poussées et
-       on centre. */
-    html[data-tse-off~="filtreCategorie"] .tse-filter-row,
-    html[data-tse-off~="filtreLangue"] .tse-filter-row { justify-content: center; }
-    html[data-tse-off~="filtreCategorie"] .tse-filter-field--lang { margin-left: 0; }
-    html[data-tse-off~="filtreLangue"] .tse-filter-field--cat { flex: 0 1 auto; }
+    /* ── CE QUI RESTE PREND TOUTE LA LIGNE ────────────────────────────────
+       CENTRER ÉTAIT LA PREMIÈRE RÉPONSE, ET ELLE ÉTAIT COURTE. Les deux
+       champs se partagent la rangée par des règles asymétriques — la
+       catégorie prend la place restante, la langue est poussée à droite par
+       « margin-left: auto » — si bien que retirer l'un laissait l'autre collé
+       à son bord. Centrer corrigeait l'alignement et laissait la moitié de la
+       barre vide.
+
+       L'UTILISATEUR A DEMANDÉ MIEUX : que le survivant REMPLISSE la ligne. Le
+       menu langue, qui tient d'ordinaire dans cinquante pixels parce qu'il ne
+       montre qu'un drapeau, gagne alors de quoi écrire le nom de la langue à
+       côté — c'est le bloc « .tse-dd-nom » plus bas. L'espace ne se contente
+       pas d'être occupé, il sert. */
+    html[data-tse-off~="filtreCategorie"] .tse-filter-field--lang {
+      flex: 1 1 auto; margin-left: 0; min-width: 0;
+    }
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang { width: auto; flex: 1 1 auto; }
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-current { justify-content: flex-start; }
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-menu {
+      left: 0; right: 0; min-width: 0;
+    }
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-opt { justify-content: flex-start; }
+    html[data-tse-off~="filtreLangue"] .tse-filter-field--cat { flex: 1 1 auto; }
+
+    /* LE NOM DE LA LANGUE N'EXISTE QUE LÀ OÙ IL Y A LA PLACE. Il est TOUJOURS
+       construit — le nœud est dans le DOM dans les deux cas — et c'est la
+       feuille qui décide de le montrer. Le fabriquer conditionnellement aurait
+       voulu dire reconstruire les deux menus à chaque bascule du réglage, et
+       se souvenir de le faire ; un « display » n'a rien à se rappeler. */
+    .tse-dd-lang { display: inline-flex; align-items: center; min-width: 0; }
+    .tse-dd-nom { display: none; }
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-nom {
+      display: inline; margin-left: 6px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     /* Les deux coupés : la rangée n'a plus rien à porter, et une barre vide
        laisserait un creux qu'on prendrait pour un chargement qui n'arrive
        pas. */
@@ -10704,8 +10749,24 @@ const TSE_GATE_MAX_CLICKS = 5;
        mais veut les ajouts en clair est un cas rare et parfaitement
        légitime ; c'est pour lui que ce réglage a trois valeurs et non deux. */
     const choisi = options.get('theme');
-    const t = choisi === 'auto' ? themeTwitch() : choisi;
+    const reel = themeTwitch();
+    const t = choisi === 'auto' ? reel : choisi;
     const html = document.documentElement;
+    /* ── FORCER CE QUE TWITCH FAIT DÉJÀ NE DOIT RIEN FAIRE ────────────────
+       Le drapeau ne dit pas « un thème est choisi », il dit « le thème choisi
+       DIFFÈRE de celui de la page ». La nuance a coûté un signalement : forcé
+       en sombre alors que Twitch l'était déjà, la barre devenait PLUS foncée
+       que d'habitude — nos repeintures s'ajoutaient à celles de Twitch au
+       lieu de les remplacer, et le fond passait au « base » là où Twitch
+       posait son « alt ».
+
+       ÉCRIT AINSI, LE CAS DISPARAÎT : choisir le thème que la page porte
+       déjà retire l'attribut, et tout ce bloc redevient inerte. « Forcé » ne
+       coûte quelque chose que lorsqu'il y a vraiment quelque chose à forcer.
+       C'est aussi la seule façon de garantir que « sombre forcé sur Twitch
+       sombre » soit identique à « auto » — non pas approchant : identique,
+       puisque pas une règle ne s'applique. */
+    html.toggleAttribute('data-tse-force', t !== reel);
     if (html.getAttribute('data-tse-theme') !== t) {
       html.setAttribute('data-tse-theme', t);
       bilanTheme.bascules++;
@@ -15434,15 +15495,40 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* Chaque libellé se fabrique en NŒUD. Côté langue c'est un drapeau ou le
        code à deux lettres ; côté catégorie, le nom que Twitch renvoie — et
        celui-là ne passe que par textContent. */
+    /* ── LE NOM À CÔTÉ DU DRAPEAU ─────────────────────────────────────────
+       Le menu langue ne montrait qu'un drapeau parce qu'il tenait dans
+       cinquante pixels. Quand le filtre catégorie est coupé, il prend toute
+       la ligne — et un drapeau seul au milieu de deux cents pixels vides se
+       lit comme un défaut. On construit donc TOUJOURS le nom ; la feuille le
+       montre là où il y a la place.
+
+       LE NOM CANONIQUE EST DÉJÀ CE QU'ON AFFICHE : « Français », « English ».
+       Rien à traduire, rien à mapper — c'est la valeur elle-même, celle qui
+       sert de clé de filtre. Une table de correspondance aurait été une
+       seconde source pour la même chaîne. */
+    const avecNom = (noeud, texte) => {
+      if (kind !== 'lang') return noeud;
+      const hote = document.createElement('span');
+      hote.className = 'tse-dd-lang';
+      const nom = document.createElement('span');
+      nom.className = 'tse-dd-nom';
+      nom.textContent = texte;
+      hote.append(noeud, nom);
+      return hote;
+    };
     const itemLabel = (v) => {
-      if (kind === 'lang') return langIcon(v);
+      if (kind === 'lang') return avecNom(langIcon(v), v);
       const sp = document.createElement('span');
       sp.className = 'tse-dd-name';
       sp.textContent = libelle(v);
       return sp;
     };
+    /* LE GLOBE PREND LE LIBELLÉ QU'IL PORTAIT DÉJÀ EN INFOBULLE. « Toutes les
+       langues » est traduit dans les dix tables depuis toujours ; inventer un
+       second mot pour la même chose — « Monde » — aurait fait deux chaînes à
+       tenir d'accord, et l'infobulle aurait fini par contredire l'étiquette. */
     const allLabel = () => kind === 'lang'
-      ? noeudStatique(GLOBE_MARKUP)
+      ? avecNom(noeudStatique(GLOBE_MARKUP), S.uiFilterAllLanguages)
       : document.createTextNode(getAllLabel());
     const allTitle  = kind === 'lang' ? S.uiFilterAllLanguages : S.uiFilterAllCategories;
 

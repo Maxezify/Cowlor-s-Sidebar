@@ -140,6 +140,18 @@ ok('les libellés du contrat sont dans la fiche anglaise ET dans content.js',
 const PROMESSES = [
   ['LIGHT OR DARK, IT FOLLOWS', 'data-tse-theme="light"'],
   ['\"reduce motion\" setting is honored', '@media (prefers-reduced-motion: reduce) {'],
+  /* CES DEUX-LÀ SONT ENTRÉES APRÈS COUP, ET C'EST UN AUDIT QUI LES A EXIGÉES.
+     La fiche promettait que le relevé des abonnements « se coupe d'un clic »
+     et que l'apprentissage des visites en faisait autant. Les deux réglages
+     ont été RETIRÉS à la version suivante — jugés inutiles — et les douze
+     fiches ont continué de les promettre. Exactement la faute que la liste
+     CITES a été écrite pour empêcher, dans l'autre sens : là, la fiche
+     promettait ce qui n'existait pas encore ; ici, ce qui n'existait plus.
+
+     LES PHRASES ONT ÉTÉ RÉÉCRITES sur ce que le produit fait VRAIMENT, et
+     elles entrent au contrat pour que la prochaine suppression les emporte. */
+  ['can be spaced out to once a day', 'valeurs: [3, 6, 12, 24]'],
+  ['each memory is erased on its own', 'purge(arg) {'],
 ];
 const tenues = PROMESSES.flatMap(([phrase, marque]) => {
   const dansFiche = en.includes(phrase);
