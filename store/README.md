@@ -52,8 +52,8 @@ se saisit pas ici : elle vient du manifeste, clé `extDescription` de
 
 ## Ce qui doit rester vrai
 
-Les douze fiches se tiennent par leur structure : **24 sections `➤`**, **25
-séparateurs**, **90 puces** et **122 étoiles**. C'est le profil de la fiche
+Les douze fiches se tiennent par leur structure : **25 sections `➤`**, **26
+séparateurs**, **94 puces** et **130 étoiles**. C'est le profil de la fiche
 anglaise, et `npm run store` le compare à celui des onze autres : une section
 oubliée en traduisant se voit à ce compte-là, immédiatement. Ces nombres ne se
 recopient pas : le script les DÉDUIT de la fiche anglaise, si bien qu'ajouter
@@ -63,7 +63,7 @@ les recopie quand même : ces quatre nombres annonçaient 85 puces et 112 étoil
 alors que les fiches en portaient 86 et 114, parce que rien ne relie la phrase
 au compteur. Le script, lui, ne s'est jamais trompé — il mesure.
 
-Dix affirmations sont **vérifiables dans le code**, et doivent changer le jour
+Onze affirmations sont **vérifiables dans le code**, et doivent changer le jour
 où le code change :
 
 1. **« Six façons de trier »** — `getSortButtons()` en rend six. C'était cinq
@@ -99,7 +99,7 @@ où le code change :
    livrés **ni minifiés ni obscurcis** : mêmes noms, mêmes lignes, même
    indentation que dans le dépôt. Depuis la 3.59 le paquet part en revanche
    **sans les commentaires** — ceux du JavaScript, et depuis la 3.60 ceux du
-   CSS aussi (1174 → 508 Ko) ; la phrase reste vraie au mot près — c'est de
+   CSS aussi (1222 → 531 Ko) ; la phrase reste vraie au mot près — c'est de
    lisibilité qu'elle parle, pas d'annotations — et les commentaires, eux,
    sont dans le dépôt public. Ce chiffre-là est confronté à la mesure par
    `npm run addon` : il a été faux, et personne ne l'a vu. Les mentions
@@ -134,6 +134,17 @@ où le code change :
    fait : le mouvement cesse, le signal continue (scénarios 113, 114 et 116).
    Le contrôle `PROMESSES` de `tests/store.mjs` relie ces deux phrases-là au
    code, comme `CITES` le fait pour les libellés.
+11. **« Un onglet Options … vingt-deux réglages »** — la table `OPT_DEFS` de
+   `content.js` en porte vingt-deux, et c'est ELLE que le contrôle compte, pas
+   la phrase. Le scénario 117 vérifie le nombre, le 120 que chacun a sa ligne
+   dans le panneau, et `npm run parity` qu'aucun n'est affiché sous son
+   identifiant brut. La fiche promet aussi trois choses précises, toutes
+   éprouvées : que l'aperçu puisse garder ses badges SANS la vidéo (scénario
+   119), que le relevé des abonnements se coupe (le réglage `abosReleve` garde
+   `subsPage.refresh`), et que chaque mémoire s'efface séparément (l'action
+   `purge`, trois branches). La quatrième — l'export en texte — est du panneau
+   seul, et c'est pourquoi elle ne figure pas au contrat `PROMESSES` : il ne
+   relie la fiche qu'à `content.js`.
 
 ## Images
 

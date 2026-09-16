@@ -6864,16 +6864,18 @@ titre('70. Panneau — la page rendue, mesurée');
      `bruts : ${JSON.stringify(brutes)} — vides : ${vides.length}`);
 
   /* ── LE RAIL EST COMPLET ───────────────────────────────────────────────
-     Douze sections, quatre groupes. Une section ajoutée à content.js sans être
+     Treize sections, cinq groupes. Une section ajoutée à content.js sans être
      ajoutée ici resterait invisible : le panneau n'affiche que ce qu'il
-     déclare. Le douzième est le mode d'emploi, qui ouvre son propre groupe en
-     tête — c'est cette place-là qui en fait la page d'accueil. */
+     déclare. Le premier est le mode d'emploi, qui ouvre son propre groupe en
+     tête — c'est cette place-là qui en fait la page d'accueil ; le second est
+     l'onglet des réglages, et il est juste derrière pour la même raison : on
+     lit ce que l'extension fait, puis on choisit ce qu'elle fera. */
   const rail = await page.evaluate(() => ({
     items: document.querySelectorAll('.rail-item').length,
     groupes: document.querySelectorAll('.rail-groupe').length,
   }));
-  ok('le rail porte les douze sections, en quatre groupes',
-     rail.items === 12 && rail.groupes === 4, JSON.stringify(rail));
+  ok('le rail porte les treize sections, en cinq groupes',
+     rail.items === 13 && rail.groupes === 5, JSON.stringify(rail));
 
   /* ── LES NOMBRES SUIVENT LA LOCALE DU PANNEAU ──────────────────────────
      376011 doit s'écrire avec un séparateur de milliers français, pas à
@@ -15038,6 +15040,496 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      /mouvement réduit respecté/.test(calme.mesure.verdict)
      && calme.mesure.rapport >= 1.8 && calme.mesure.largeurMax - calme.mesure.largeurMin < 0.01,
      JSON.stringify(calme.mesure));
+  await page.close();
+}
+
+/* ═════════ LES RÉGLAGES — LA TABLE, ET CE QU'ELLE STOCKE ═════════════════
+   Vingt-deux réglages font quelques milliards de configurations, et aucun banc
+   ne les couvre. Ce qu'on peut éprouver, et qui vaut plus qu'un échantillon de
+   combinaisons, ce sont les INVARIANTS de la mécanique :
+
+     — un défaut de « choix » qui ne serait pas dans sa propre liste rendrait le
+       réglage impossible à poser, sans que rien ne le dise ;
+     — une valeur refusée doit laisser l'ancienne en place, pas un trou ;
+     — le stockage ne doit contenir QUE des écarts, et disparaître quand il n'y
+       en a plus. C'est ce qui permet à un défaut de changer un jour sans
+       s'imposer à ceux qui l'avaient touché.
+
+   LE DERNIER EST LE PLUS IMPORTANT DES TROIS et il se vérifie sur la CLÉ, pas
+   sur le comportement : une clé absente est la preuve qu'aucun défaut n'a été
+   gravé dans le navigateur de personne. */
+{
+  titre('117. Les réglages — la table, ses défauts, et ce que le stockage retient');
+  const page = await fresh();
+  await wait(page, 300);
+
+  const table = await page.evaluate(() => {
+    const defs = window.tse.panneau('options').defs;
+    const defauts = window.tse.options.defauts();
+    const horsListe = Object.entries(defs)
+      .filter(([, d]) => d.type === 'choix')
+      .filter(([id, d]) => !d.valeurs.includes(defauts[id]))
+      .map(([id]) => id);
+    const jeuxNonVides = Object.entries(defs)
+      .filter(([, d]) => d.type === 'jeu')
+      .filter(([id]) => defauts[id].length !== 0)
+      .map(([id]) => id);
+    return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
+             cle: localStorage.getItem('tse:options') };
+  });
+  ok('la table porte ses vingt-deux réglages', table.n === 22, String(table.n));
+  /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
+     recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
+     constantes sans toucher à la liste des valeurs permises rendrait le
+     réglage impossible à poser, et l'interface l'afficherait pourtant. */
+  ok('…et chaque défaut de choix appartient à sa propre liste de valeurs',
+     table.horsListe.length === 0, table.horsListe.join(', '));
+  /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
+     constante de production vaut six heures, mais tests/build.mjs la réécrit à
+     quatre secondes pour que le relevé des abonnements soit éprouvable. La
+     page chargée par le banc ne peut donc PAS répondre à la question posée
+     ici. Le premier jet dérivait le défaut du réglage de cette constante ; le
+     banc a montré du premier coup que le défaut devenait 0,0011 — absent de sa
+     propre liste, impossible à poser, introuvable dans le menu.
+
+     LES DEUX SONT DONC SÉPARÉS, et cette assertion garde la seule chose qui
+     les relie encore : en production, ils disent la même durée. Changer la
+     constante pour huit heures sans toucher au réglage ferait diverger ce que
+     le menu affiche de ce que le produit attend. */
+  {
+    const src = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+    const ttl = /SUBS_PAGE_TTL:\s*(\d+) \* (\d+) \* ([\d_]+)/.exec(src);
+    const def = /abosPeriode:\s*\{ defaut: (\d+)/.exec(src);
+    const heures = ttl
+      ? Number(ttl[1]) * Number(ttl[2]) * Number(ttl[3].replace(/_/g, '')) / 3_600_000
+      : null;
+    ok('…et le défaut des heures dit la même durée que la constante de production',
+       heures !== null && def !== null && heures === Number(def[1]),
+       JSON.stringify({ heures, defaut: def && def[1] }));
+  }
+  ok('…les jeux partent vides, c\'est-à-dire tout actif',
+     table.jeuxNonVides.length === 0, table.jeuxNonVides.join(', '));
+  ok('…et rien n\'est écrit tant que rien n\'est touché', table.cle === null,
+     String(table.cle));
+
+  /* ── CE QUI S'ÉCRIT, ET CE QUI NE S'ÉCRIT PAS ───────────────────────── */
+  const ecrit = await page.evaluate(() => {
+    window.tse.options.poser('duree', false);
+    const apres = JSON.parse(localStorage.getItem('tse:options') || 'null');
+    window.tse.options.poser('duree', true);
+    return { apres, retour: localStorage.getItem('tse:options') };
+  });
+  ok('poser un écart n\'écrit QUE cet écart',
+     !!ecrit.apres && Object.keys(ecrit.apres).length === 1 && ecrit.apres.duree === false,
+     JSON.stringify(ecrit.apres));
+  ok('…et revenir au défaut retire la clé au lieu d\'écrire « {} »',
+     ecrit.retour === null, String(ecrit.retour));
+
+  /* ── CE QUI VIENT DU DEHORS ─────────────────────────────────────────── */
+  const refus = await page.evaluate(() => {
+    const avant = window.tse.options();
+    const r = {
+      horsListe: window.tse.options.poser('topN', 5000),
+      mauvaisType: window.tse.options.poser('duree', 'oui'),
+      inconnu: window.tse.options.poser('nexistePas', true),
+      jeuSale: window.tse.options.poser('badges', ['hype', 'inventé', 'hype']),
+    };
+    return { r, topN: window.tse.options().topN, duree: window.tse.options().duree,
+             badges: window.tse.options().badges, avantTopN: avant.topN };
+  });
+  ok('une valeur hors liste est refusée, et l\'ancienne tient',
+     refus.r.horsListe === false && refus.topN === refus.avantTopN,
+     JSON.stringify(refus));
+  ok('…un mauvais type aussi', refus.r.mauvaisType === false && refus.duree === true,
+     JSON.stringify(refus.r));
+  ok('…un identifiant inconnu aussi', refus.r.inconnu === false, String(refus.r.inconnu));
+  /* UN JEU SE NETTOIE AU LIEU D'ÊTRE REFUSÉ, et la nuance compte : un import
+     venu d'une version antérieure peut nommer un badge disparu. Le refuser en
+     bloc perdrait les dix autres ; on garde ce qu'on reconnaît. */
+  ok('…mais un jeu se nettoie : membres inconnus retirés, doublons fondus',
+     refus.badges.length === 1 && refus.badges[0] === 'hype',
+     JSON.stringify(refus.badges));
+
+  /* ── LE STOCKAGE QUI MENT ───────────────────────────────────────────── */
+  const sale = await page.evaluate(() => {
+    localStorage.setItem('tse:options', '{"topN":9999,"theme":"rose","duree":false}');
+    /* On relit comme le ferait un autre onglet : c'est le seul chemin par
+       lequel du JSON arbitraire entre en cours de vie. */
+    window.dispatchEvent(new StorageEvent('storage', { key: 'tse:options' }));
+    const v = window.tse.options();
+    return { topN: v.topN, theme: v.theme, duree: v.duree };
+  });
+  ok('un stockage corrompu ne passe pas : chaque champ est validé séparément',
+     sale.topN === 30 && sale.theme === 'auto' && sale.duree === false,
+     JSON.stringify(sale));
+  await page.evaluate(() => { localStorage.removeItem('tse:options');
+                              window.tse.options.remettre(); });
+  await page.close();
+}
+
+/* ═════════ TOUT PAR DÉFAUT = LE COMPORTEMENT D'AVANT ═════════════════════
+   C'est l'invariant qui protège les mille assertions écrites avant les
+   réglages, et il ne repose pas sur des valeurs bien choisies : il repose sur
+   des attributs ABSENTS. Tout le bloc CSS des réglages est écrit en
+   « html[data-tse-off~="…"] » ; sans attribut sur la racine, pas un de ces
+   sélecteurs ne s'apparie, et la feuille est celle d'avant au caractère près.
+
+   ON LE VÉRIFIE DANS LES DEUX SENS : l'attribut est absent au départ, et il
+   apparaît avec EXACTEMENT le jeton attendu quand on coupe quelque chose. Un
+   contrôle qui ne ferait que constater l'absence passerait sur un produit où
+   plus rien ne s'éteint. */
+{
+  titre('118. Les réglages qui passent par la feuille — absents par défaut, exacts quand ils agissent');
+  const page = await fresh();
+  await page.evaluate(() => {
+    window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 95 * 60_000).toISOString(),
+                             viewers: 900, game: 'Just Chatting', tags: [] } };
+    window.__addCard('alpha', 'Just Chatting', '900');
+  });
+  await wait(page, 1200);
+
+  const vierge = await page.evaluate(() => ({
+    off: document.documentElement.getAttribute('data-tse-off'),
+    or: document.documentElement.getAttribute('data-tse-or'),
+    apercu: document.documentElement.getAttribute('data-tse-apercu'),
+    dureeVisible: getComputedStyle(document.querySelector('.tse-uptime')).display,
+  }));
+  ok('aucun attribut de réglage sur la racine tant que rien n\'est touché',
+     vierge.off === null && vierge.or === null && vierge.apercu === null,
+     JSON.stringify(vierge));
+  ok('…et la durée s\'affiche, comme avant les réglages',
+     vierge.dureeVisible !== 'none', vierge.dureeVisible);
+
+  /* ── UN INTERRUPTEUR : LE JETON, PUIS L'EFFET ───────────────────────── */
+  const coupe = await page.evaluate(() => {
+    window.tse.options.poser('duree', false);
+    return { off: document.documentElement.getAttribute('data-tse-off'),
+             display: getComputedStyle(document.querySelector('.tse-uptime')).display };
+  });
+  ok('couper la durée pose son jeton, et lui seul',
+     coupe.off === 'duree', String(coupe.off));
+  /* LA MESURE QUI COMPTE. Un jeton posé ne prouve pas qu'une règle existe :
+     c'est le style CALCULÉ qui dit si l'œil voit encore la durée. Le mutant
+     qui retire la règle CSS laisse le jeton intact et tombe ici. */
+  ok('…et la durée disparaît vraiment', coupe.display === 'none', coupe.display);
+
+  /* ── UN JEU : UN MEMBRE, UN JETON PRÉFIXÉ ───────────────────────────── */
+  const jeu = await page.evaluate(() => {
+    window.tse.options.remettre();
+    window.tse.options.poser('badges', ['hype']);
+    window.tse.options.poser('tris', ['alpha']);
+    return document.documentElement.getAttribute('data-tse-off');
+  });
+  ok('un membre de jeu devient un jeton préfixé, pas son nom nu',
+     jeu === 'badge-hype tri-alpha', String(jeu));
+
+  /* ── UN CHOIX : SON PROPRE ATTRIBUT, ET RIEN QUAND IL VAUT SON DÉFAUT ─ */
+  const choix = await page.evaluate(() => {
+    window.tse.options.remettre();
+    const neutre = document.documentElement.getAttribute('data-tse-or');
+    window.tse.options.poser('abonnes', 'discret');
+    const pose = document.documentElement.getAttribute('data-tse-or');
+    window.tse.options.poser('abonnes', 'plein');
+    return { neutre, pose, retire: document.documentElement.getAttribute('data-tse-or') };
+  });
+  ok('un choix qui vaut son défaut n\'écrit aucun attribut',
+     choix.neutre === null && choix.retire === null, JSON.stringify(choix));
+  ok('…et il en écrit un dès qu\'il s\'en écarte', choix.pose === 'discret', String(choix.pose));
+
+  /* ── ET LE CHEMIN DU RETOUR ─────────────────────────────────────────── */
+  const retour = await page.evaluate(() => {
+    window.tse.options.poser('duree', false);
+    window.tse.options.remettre();
+    return { off: document.documentElement.getAttribute('data-tse-off'),
+             display: getComputedStyle(document.querySelector('.tse-uptime')).display };
+  });
+  ok('tout remettre par défaut rend la page à son état d\'origine',
+     retour.off === null && retour.display !== 'none', JSON.stringify(retour));
+  await page.close();
+}
+
+/* ═════════ LES RÉGLAGES QUI NE PASSENT PAS PAR LA FEUILLE ════════════════
+   Quatre d'entre eux changent du COMPORTEMENT, pas de l'apparence, et ceux-là
+   ne peuvent pas se vérifier sur un attribut. On les éprouve chacun par ce
+   qu'il produit : un texte qui change de forme, un aperçu qui ne s'ouvre pas,
+   un thème qui cesse de suivre Twitch, une requête qui ne part plus. */
+{
+  titre('119. Les réglages de comportement — mesurés sur ce qu\'ils produisent');
+  const page = await fresh();
+  await page.evaluate(() => {
+    window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 259 * 60_000).toISOString(),
+                             viewers: 900, game: 'Just Chatting', tags: [] } };
+    window.__addCard('alpha', 'Just Chatting', '900');
+  });
+  await wait(page, 1200);
+
+  const lireDuree = () => page.evaluate(() =>
+    document.querySelector('.tse-uptime')?.textContent ?? null);
+
+  ok('la durée se dit « 4h19 » par défaut', (await lireDuree()) === '4h19', await lireDuree());
+  /* LE FORMAT SE VOIT SANS RECHARGEMENT : poser le réglage programme un scan
+     ordinaire, pas une réinitialisation sous voile. */
+  await page.evaluate(() => window.tse.options.poser('dureeFormat', 'colon'));
+  await wait(page, 700);
+  ok('…« 4:19 » quand on le demande', (await lireDuree()) === '4:19', await lireDuree());
+  await page.evaluate(() => window.tse.options.poser('dureeFormat', 'min'));
+  await wait(page, 700);
+  ok('…et « 259 min » sur l\'autre', (await lireDuree()) === '259 min', await lireDuree());
+
+  /* ── LE THÈME FORCÉ CESSE DE SUIVRE TWITCH ──────────────────────────── */
+  const theme = await page.evaluate(() => {
+    window.tse.options.remettre();
+    document.documentElement.setAttribute('data-a-theme', 'dark');
+    const suivi = document.documentElement.getAttribute('data-tse-theme');
+    window.tse.options.poser('theme', 'light');
+    const force = document.documentElement.getAttribute('data-tse-theme');
+    /* ON BOUSCULE TWITCH PENDANT QUE LE RÉGLAGE TIENT : c'est tout l'objet du
+       mode forcé, et l'observateur de racine pourrait le défaire. */
+    document.documentElement.setAttribute('data-a-theme', 'dark');
+    return { suivi, force, apresSecousse: document.documentElement.getAttribute('data-tse-theme') };
+  });
+  ok('« auto » suit le thème de Twitch', theme.suivi === 'dark', JSON.stringify(theme));
+  ok('…et le forcer le remplace, même quand Twitch se rappelle à nous',
+     theme.force === 'light' && theme.apresSecousse === 'light', JSON.stringify(theme));
+
+  /* ── L'APERÇU COUPÉ NE S'ARME MÊME PAS ──────────────────────────────── */
+  const apercu = await page.evaluate(async () => {
+    window.tse.options.remettre();
+    const carte = document.querySelector('.side-nav-card');
+    const survoler = () => carte.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+    survoler();
+    await new Promise(r => setTimeout(r, 600));
+    const ouvert = !!document.querySelector('.tse-preview');
+    document.querySelector('.tse-preview')?.remove();
+    window.tse.options.poser('apercu', false);
+    survoler();
+    await new Promise(r => setTimeout(r, 600));
+    return { ouvert, coupe: !!document.querySelector('.tse-preview') };
+  });
+  ok('l\'aperçu s\'ouvre au survol quand il est actif', apercu.ouvert === true,
+     JSON.stringify(apercu));
+  /* CELUI-CI EST LE VRAI : coupé, RIEN ne doit s'armer — ni minuteur, ni
+     préchargement, ni requête de métadonnées. Un aperçu qui préparerait son
+     contenu en coulisses serait un réglage menteur, et le seul à pouvoir s'en
+     apercevoir regarderait son trafic réseau. */
+  ok('…et coupé, il ne s\'ouvre pas du tout', apercu.coupe === false,
+     JSON.stringify(apercu));
+  await page.evaluate(() => window.tse.options.remettre());
+  await page.close();
+}
+
+/* ═════════ L'ONGLET OPTIONS — LA PRÉSENTATION EST UN CONTRAT ═════════════
+   Le panneau ne porte pas la table des réglages : il la reçoit. Ce qu'il porte,
+   c'est un ORDRE — GROUPES_OPT — et cet ordre est la seule chose qui puisse se
+   désynchroniser de content.js sans que rien ne le dise. Un réglage oublié d'un
+   groupe n'apparaîtrait nulle part ; un identifiant fantôme dans un groupe
+   n'afficherait rien. Ni l'un ni l'autre ne jette d'erreur.
+
+   ON COMPARE DONC LES DEUX ENSEMBLES, dans les deux sens, et on le fait à
+   travers le DOM RÉELLEMENT PEINT plutôt qu'en relisant la table : c'est la
+   différence entre vérifier une déclaration et vérifier un résultat. */
+{
+  titre('120. L\'onglet Options — chaque réglage a sa ligne, et son contrôle');
+
+  const stub = (msg) => {
+    const T = (k, sub) => {
+      const m = msg[k] ? msg[k].message : k;
+      if (sub === undefined) return m;
+      const args = Array.isArray(sub) ? sub : [sub];
+      return m.replace(/\$(\d)/g, (_, i) => args[Number(i) - 1] ?? '');
+    };
+    /* LA TABLE DU FAUX EST CELLE DU PRODUIT, recopiée ici une seule fois :
+       c'est la seule recopie du banc, et elle est délibérée — le panneau doit
+       être éprouvé SANS content.js, puisque c'est ainsi qu'il tourne. Le
+       scénario 117 tient l'autre bout, sur la vraie table. */
+    const DEFS = {
+      apercu: { defaut: true, type: 'bool' },
+      apercuVideo: { defaut: true, type: 'bool' },
+      apercuQualite: { defaut: '360p30', type: 'choix',
+                       valeurs: ['160p30', '360p30', '480p30', '720p60'] },
+      apercuTaille: { defaut: 'normal', type: 'choix', valeurs: ['petit', 'normal', 'grand'] },
+      badges: { defaut: [], type: 'jeu',
+                valeurs: ['ccl', 'costream', 'squad', 'sub', 'exsub', 'sponsor',
+                          'hype', 'discount', 'switch', 'reprise', 'subathon'] },
+      duree: { defaut: true, type: 'bool' },
+      dureeFormat: { defaut: 'hm', type: 'choix', valeurs: ['hm', 'colon', 'min'] },
+      fresh: { defaut: true, type: 'bool' },
+      collab: { defaut: true, type: 'bool' },
+      abonnes: { defaut: 'plein', type: 'choix', valeurs: ['plein', 'discret', 'aucun'] },
+      subathonJour: { defaut: true, type: 'bool' },
+      stories: { defaut: true, type: 'bool' },
+      deplier: { defaut: true, type: 'bool' },
+      abosReleve: { defaut: true, type: 'bool' },
+      abosPeriode: { defaut: 6, type: 'choix', valeurs: [3, 6, 12, 24] },
+      topN: { defaut: 30, type: 'choix', valeurs: [10, 30, 50] },
+      topOnglet: { defaut: true, type: 'bool' },
+      tris: { defaut: [], type: 'jeu',
+              valeurs: ['viewers', 'subs', 'popular', 'uptime', 'alpha', 'costream'] },
+      filtreCategorie: { defaut: true, type: 'bool' },
+      filtreLangue: { defaut: true, type: 'bool' },
+      theme: { defaut: 'auto', type: 'choix', valeurs: ['auto', 'dark', 'light'] },
+      visites: { defaut: true, type: 'bool' },
+    };
+    const valeurs = {};
+    for (const [id, d] of Object.entries(DEFS)) {
+      valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
+    }
+    window.__defs = DEFS;
+    window.__poses = [];
+    const paquet = () => {
+      const modifies = Object.entries(DEFS).filter(([id, d]) => (Array.isArray(d.defaut)
+        ? valeurs[id].length !== 0 : valeurs[id] !== d.defaut)).map(([id]) => id);
+      return { defs: DEFS, valeurs, defauts: Object.fromEntries(
+                 Object.entries(DEFS).map(([id, d]) => [id, d.defaut])),
+               modifies, resume: { reglages: Object.keys(DEFS).length,
+                                   modifies: modifies.length } };
+    };
+    window.chrome = {
+      i18n: { getMessage: T, getUILanguage: () => 'fr' },
+      tabs: { query: () => Promise.resolve([{ id: 1 }]) },
+      runtime: {
+        getManifest: () => ({ version: '9.9.9' }),
+        sendMessage: (m) => {
+          if (m.type === 'tse-panneau-etat') return Promise.resolve({ ok: true, ponts: [1] });
+          if (m.action === 'setOption') {
+            window.__poses.push(m.arg);
+            valeurs[m.arg.id] = m.arg.valeur;
+            return Promise.resolve({ ok: true, data: { ok: true, ...paquet() } });
+          }
+          if (m.action === 'resetOptions') {
+            for (const [id, d] of Object.entries(DEFS)) {
+              valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
+            }
+            return Promise.resolve({ ok: true, data: { ok: true, ...paquet() } });
+          }
+          if (m.section === 'options') return Promise.resolve({ ok: true, data: paquet() });
+          return Promise.resolve({ ok: true, data: { colonnes: ['login'], lignes: [], resume: {} } });
+        },
+      },
+    };
+  };
+
+  const messages = JSON.parse(readFileSync(join(ICI, '..', '_locales', 'fr', 'messages.json'), 'utf8'));
+  const page = await browser.newPage({ viewport: { width: 760, height: 580 } });
+  page.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await page.addInitScript(stub, messages);
+  await page.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href);
+  await attendre(page, () => document.querySelectorAll('.rail-item').length > 0);
+  await page.evaluate(() => [...document.querySelectorAll('.rail-item')]
+    .find((b) => b.dataset.id === 'options').click());
+  await attendre(page, () => !document.getElementById('reglages').hidden, 6000);
+
+  const vue = await page.evaluate(() => {
+    const lignes = [...document.querySelectorAll('#reglages [data-reg]')];
+    return {
+      peints: lignes.map((l) => l.dataset.reg),
+      /* Le contrôle est ce qui prouve que la ligne SERT : une ligne sans
+         interrupteur ni menu ni case est un libellé, pas un réglage. */
+      sansControle: lignes.filter((l) => !l.querySelector('input, select'))
+                          .map((l) => l.dataset.reg),
+      groupes: [...document.querySelectorAll('#reglages .reg-groupe')].length,
+      cases: document.querySelectorAll('#reglages [data-reg="badges"] .reg-case').length,
+      tris: document.querySelectorAll('#reglages [data-reg="tris"] .reg-case').length,
+      menus: document.querySelectorAll('#reglages .reg-menu').length,
+      /* Une clé rendue telle quelle est la signature d'un libellé manquant :
+         « optApercuVideo » au lieu de « Flux vidéo en direct ». */
+      brutes: lignes.map((l) => l.querySelector('.reg-nom').textContent)
+                    .filter((t) => /^opt[A-Z]/.test(t)),
+      tuiles: [...document.querySelectorAll('#resume .tuile-val')].map((t) => t.textContent),
+    };
+  });
+  /* LE CONTRAT SE VÉRIFIE PAR LE CONTENU, PAS PAR LE COMPTE. Deux erreurs
+     opposées — un réglage oublié d'un groupe, un identifiant fantôme dans un
+     autre — se compensent exactement dans un total. On compare donc les deux
+     ensembles membre à membre, dans les deux sens. */
+  const contrat = await page.evaluate((peints) => {
+    const table = Object.keys(window.__defs);
+    return { oublies: table.filter((id) => !peints.includes(id)),
+             fantomes: peints.filter((id) => !table.includes(id)) };
+  }, vue.peints);
+
+  ok('les vingt-deux réglages de la page ont chacun leur ligne',
+     contrat.oublies.length === 0, contrat.oublies.join(', '));
+  ok('…et aucune ligne fantôme : l\'ordre du panneau couvre exactement la table',
+     contrat.fantomes.length === 0, contrat.fantomes.join(', '));
+  ok('…chacune porte un contrôle, pas seulement un libellé',
+     vue.sansControle.length === 0, vue.sansControle.join(', '));
+  ok('…et aucun libellé ne sort en clé brute',
+     vue.brutes.length === 0, vue.brutes.join(', '));
+  ok('les onze badges et les six tris ont leurs cases',
+     vue.cases === 11 && vue.tris === 6, JSON.stringify([vue.cases, vue.tris]));
+  ok('les cartouches disent le compte, et zéro modifié au départ',
+     vue.tuiles[0] === '22' && vue.tuiles[1] === '0', JSON.stringify(vue.tuiles));
+
+  /* ── CE QUI PART VERS LA PAGE ───────────────────────────────────────── */
+  await page.evaluate(() => document.querySelector(
+    '#reglages [data-reg="duree"] input').click());
+  await attendre(page, () => window.__poses.length > 0, 4000);
+  const pose = await page.evaluate(() => window.__poses[window.__poses.length - 1]);
+  ok('cocher un interrupteur envoie son identifiant et un booléen',
+     pose.id === 'duree' && pose.valeur === false, JSON.stringify(pose));
+
+  /* UN JEU ENVOIE CE QU'ON RETIRE, pas ce qu'on garde : le retournement se
+     fait dans le panneau, une fois, et c'est ici qu'on le constate. */
+  await page.evaluate(() => document.querySelector(
+    '#reglages [data-reg="badges"] .reg-case input').click());
+  await attendre(page, () => window.__poses.length > 1, 4000);
+  const poseJeu = await page.evaluate(() => window.__poses[window.__poses.length - 1]);
+  ok('décocher un badge envoie la liste de ce qu\'on RETIRE',
+     poseJeu.id === 'badges' && Array.isArray(poseJeu.valeur)
+     && poseJeu.valeur.length === 1 && poseJeu.valeur[0] === 'ccl',
+     JSON.stringify(poseJeu));
+
+  /* UN MENU REND SON TYPE D'ORIGINE. La valeur d'un <option> est toujours une
+     chaîne ; « 30 » n'est pas 30, et la validation de la page refuserait la
+     chaîne sans que l'interface le montre. */
+  await page.evaluate(() => {
+    const sel = document.querySelector('#reglages [data-reg="topN"] select');
+    /* ON LE FOCALISE D'ABORD, parce que c'est ce qu'un utilisateur fait : on
+       ne change pas un menu sans l'avoir atteint. Sans ce focus, l'assertion
+       du rattrapage plus bas mesurait un décor que le banc n'avait pas posé —
+       elle a échoué sur du code sain, ce qui est la pire sorte d'échec. */
+    sel.focus();
+    sel.value = '50';
+    sel.dispatchEvent(new Event('change'));
+  });
+  await attendre(page, () => window.__poses.length > 2, 4000);
+  const poseNombre = await page.evaluate(() => window.__poses[window.__poses.length - 1]);
+  ok('un menu de nombres renvoie un NOMBRE, pas la chaîne de son <option>',
+     poseNombre.id === 'topN' && poseNombre.valeur === 50
+     && typeof poseNombre.valeur === 'number', JSON.stringify(poseNombre));
+
+  /* ── LE POINT DES MODIFIÉS, ET LE FOCUS QUI SURVIT ──────────────────── */
+  const apres = await page.evaluate(() => ({
+    points: document.querySelectorAll('#reglages .reg-ligne--modifie').length,
+    tuiles: [...document.querySelectorAll('#resume .tuile-val')].map((t) => t.textContent),
+    focus: document.activeElement.closest('[data-reg]')?.dataset.reg ?? null,
+  }));
+  ok('les lignes modifiées se marquent', apres.points === 3, JSON.stringify(apres.points));
+  /* REPEINDRE DÉTRUIT L'ÉLÉMENT QU'ON VIENT D'ACTIONNER. Sans le rattrapage du
+     focus, cocher trois cases de suite au clavier devient impossible — le
+     focus retombe sur le corps du document après la première. */
+  ok('…et le focus reste sur le réglage qu\'on vient de toucher',
+     apres.focus === 'topN', String(apres.focus));
+
+  /* ── LE MASQUAGE DES DIAGNOSTICS ────────────────────────────────────── */
+  const diag = await page.evaluate(() => {
+    const visible = () => [...document.querySelectorAll('.rail-item')]
+      .filter((b) => b.dataset.groupe === 'grpDiag')
+      .filter((b) => getComputedStyle(b).display !== 'none').length;
+    const avant = visible();
+    /* On vise le groupe par son marqueur, pas par son rang : un neuvième
+       groupe inséré plus haut aurait fait cliquer sur autre chose, et
+       l'assertion aurait échoué en accusant le mauvais coupable. */
+    document.querySelector('#reglages [data-grp="panneau"]')
+      .querySelectorAll('.reg-bascule input')[0].click();
+    return { avant, apres: visible(),
+             titre: [...document.querySelectorAll('.rail-groupe')]
+               .filter((h) => h.dataset.groupe === 'grpDiag')
+               .filter((h) => getComputedStyle(h).display !== 'none').length };
+  });
+  ok('les cinq chapitres de diagnostic se masquent, titre de groupe compris',
+     diag.avant === 5 && diag.apres === 0 && diag.titre === 0, JSON.stringify(diag));
   await page.close();
 }
 

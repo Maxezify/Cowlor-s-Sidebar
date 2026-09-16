@@ -2355,8 +2355,21 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     /* — Le relevé des abonnements — */
     abosReleve:      { defaut: true,      type: 'bool' },
-    abosPeriode:     { defaut: CFG.SUBS_PAGE_TTL / 3_600_000, type: 'choix',
-                       valeurs: [3, 6, 12, 24] },
+    /* SIX, ÉCRIT EN TOUTES LETTRES, et c'est un revirement qu'il faut dire.
+       Ce défaut lisait d'abord CFG.SUBS_PAGE_TTL, pour ne pas répéter le
+       nombre. C'était faux, et le banc l'a montré du premier coup : cette
+       constante est RÉÉCRITE À 4 SECONDES par tests/build.mjs, qui accélère
+       les durées pour que le relevé des abonnements soit éprouvable. Le défaut
+       du réglage devenait 0,0011 — absent de sa propre liste de valeurs, donc
+       impossible à poser et introuvable dans le menu.
+
+       LES DEUX NOMBRES NE DISENT PAS LA MÊME CHOSE : la constante est une
+       durée qu'on accélère pour mesurer, le réglage est un choix d'utilisateur
+       en heures. Qu'ils coïncident en production est un fait, pas une
+       définition. Le scénario 117 vérifie qu'ils ne dérivent pas l'un de
+       l'autre — sur le fichier SOURCE, seul endroit où la constante a encore
+       sa valeur de production. */
+    abosPeriode:     { defaut: 6,         type: 'choix', valeurs: [3, 6, 12, 24] },
 
     /* — Top Chaînes — */
     topN:            { defaut: CFG.GLOBAL_TOP_N, type: 'choix', valeurs: [10, 30, 50] },
@@ -8945,7 +8958,17 @@ const TSE_GATE_MAX_CLICKS = 5;
          s'il clique ensuite sur « rafraîchir les abonnements ». D'où le
          « force » qui ne force pas celui-là. */
       if (!CFG.SUBS_PAGE_ENABLED || !options.get('abosReleve') || running) return null;
-      if (!force && Date.now() - horodatage() < options.get('abosPeriode') * 3_600_000) return null;
+      /* AU DÉFAUT, C'EST LA CONSTANTE QUI GOUVERNE ; dès qu'on choisit, c'est
+         le choix. Sans cette bascule, le banc n'aurait plus aucun moyen
+         d'accélérer ce relevé : multiplier six heures par rien reste six
+         heures, et les scénarios d'abonnements attendraient un quart de
+         journée. C'est la seule façon de garder les deux vrais à la fois —
+         une durée accélérable pour la mesure, un choix en heures pour
+         l'utilisateur. */
+      const periode = options.get('abosPeriode') === OPT_DEFS.abosPeriode.defaut
+        ? CFG.SUBS_PAGE_TTL
+        : options.get('abosPeriode') * 3_600_000;
+      if (!force && Date.now() - horodatage() < periode) return null;
       if (!document.body) return null;
       running = true;
       const trouves = [];
@@ -9851,6 +9874,34 @@ const TSE_GATE_MAX_CLICKS = 5;
         return { colonnes: ['rang', 'libelle', 'canonique', 'viewers'], lignes,
                  resume: { categories: lignes.length, actif: !!state.globalMode } };
       },
+
+      /* LES RÉGLAGES, TELS QUE LE PANNEAU DOIT LES VOIR. On rend les trois
+         ensembles — ce qui est réglable, ce qui est réglé, ce qui serait par
+         défaut — et pas seulement les valeurs. La raison est que le panneau ne
+         doit RIEN savoir de la liste des réglages : s'il portait sa propre
+         copie des types et des valeurs permises, les deux divergeraient au
+         premier réglage ajouté, et c'est le panneau qui aurait tort en
+         silence. Ici, la page fait autorité sur sa propre table.
+
+         LES DÉFAUTS VOYAGENT AUSSI, parce que « remettre par défaut » n'est
+         pas la seule chose qu'on en fait : le panneau marque d'un point les
+         réglages qui s'écartent du défaut, et il ne peut pas le calculer sans
+         eux. */
+      options() {
+        const valeurs = options.tout();
+        const defauts = options.defauts();
+        const ecart = (id) => (Array.isArray(defauts[id])
+          ? valeurs[id].length !== defauts[id].length
+            || !valeurs[id].every((x) => defauts[id].includes(x))
+          : valeurs[id] !== defauts[id]);
+        const modifies = Object.keys(defauts).filter(ecart);
+        return {
+          resume: { reglages: Object.keys(defauts).length,
+                    modifies: modifies.length },
+          defs: options.definitions(),
+          valeurs, defauts, modifies,
+        };
+      },
     },
     /* ============================================================
      *  LE RAPPORT DE DIAGNOSTIC
@@ -10250,33 +10301,6 @@ const TSE_GATE_MAX_CLICKS = 5;
           cycles:  loadingOverlay.journal(),
           apercu:  preview.journal(),
         },
-      };
-    },
-
-    /* LES RÉGLAGES, TELS QUE LE PANNEAU DOIT LES VOIR. On rend les trois
-       ensembles — ce qui est réglable, ce qui est réglé, ce qui serait par
-       défaut — et pas seulement les valeurs. La raison est que le panneau ne
-       doit RIEN savoir de la liste des réglages : s'il portait sa propre copie
-       des types et des valeurs permises, les deux divergeraient au premier
-       réglage ajouté, et c'est le panneau qui aurait tort en silence. Ici, la
-       page fait autorité sur sa propre table.
-
-       LES DÉFAUTS VOYAGENT AUSSI, parce que « remettre par défaut » n'est pas
-       la seule chose qu'on en fait : le panneau marque d'un point les réglages
-       qui s'écartent du défaut, et il ne peut pas le calculer sans eux. */
-    options() {
-      const valeurs = options.tout();
-      const defauts = options.defauts();
-      const ecart = (id) => (Array.isArray(defauts[id])
-        ? valeurs[id].length !== defauts[id].length
-          || !valeurs[id].every((x) => defauts[id].includes(x))
-        : valeurs[id] !== defauts[id]);
-      const modifies = Object.keys(defauts).filter(ecart);
-      return {
-        resume: { reglages: Object.keys(defauts).length,
-                  modifies: modifies.length },
-        defs: options.definitions(),
-        valeurs, defauts, modifies,
       };
     },
 

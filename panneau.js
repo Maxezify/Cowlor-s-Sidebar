@@ -1062,6 +1062,7 @@ const ligneReglage = (id) => {
 
 const groupeLocal = () => {
   const sec = elt('section', 'reg-groupe');
+  sec.dataset.grp = 'panneau';
   sec.appendChild(elt('h3', 'reg-titre', T('optGrpPanneau')));
 
   const ligneTheme = div('reg-ligne');
@@ -1103,6 +1104,7 @@ const groupeLocal = () => {
    promettre. Accessoirement, ça n'ouvre aucune question de permission. */
 const groupeEchange = () => {
   const sec = elt('section', 'reg-groupe');
+  sec.dataset.grp = 'echange';
   sec.appendChild(elt('h3', 'reg-titre', T('optGrpEchange')));
   const zone = document.createElement('textarea');
   zone.className = 'reg-zone';
@@ -1167,6 +1169,7 @@ const PURGES = [
 ];
 const groupePurges = () => {
   const sec = elt('section', 'reg-groupe');
+  sec.dataset.grp = 'purges';
   sec.appendChild(elt('h3', 'reg-titre', T('optGrpPurge')));
   sec.appendChild(elt('p', 'reg-desc', T('optDescPurge')));
   const rangee = div('reg-boutons');

@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1040 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1079 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,131 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Un onglet Options, et les trois règles qui le tiennent (v4.10)
+
+Vingt-deux réglages, choisis dans un catalogue d'une soixantaine. Le code des
+cases à cocher est la partie facile ; ce qui décide, c'est l'architecture.
+
+### Où vivent les réglages, et pourquoi c'est imposé
+
+Le manifeste ne demande **aucune permission** — `npm run addon` l'exige — donc
+`chrome.storage` n'existe pas ici. Les réglages vivent dans le `localStorage` de
+**twitch.tv**, à côté des visites, des abonnements et du roster.
+
+Ça se paie, et il faut le dire : **pas de synchronisation entre machines**, et
+« effacer les données du site twitch.tv » efface aussi les réglages. L'export en
+JSON du panneau est le seul contournement, et il est volontairement manuel.
+
+### 1. On n'écrit que les écarts
+
+Le stockage ne contient que ce qui **diffère** du défaut, et la clé disparaît
+quand tout y revient — `removeItem`, pas `{}`.
+
+Sérialiser l'état complet aurait figé les défauts du jour de l'installation dans
+le navigateur de chacun. Le jour où l'un d'eux change, il doit changer pour tout
+le monde **sauf** pour ceux qui l'avaient explicitement touché. C'est la même
+raison qui fait que les jeux — les onze badges, les six tris — stockent ce qu'on
+**retire** et non ce qu'on garde : le douzième badge qui arrivera devra être
+actif chez tout le monde sans que personne n'ait à rouvrir le panneau.
+
+### 2. On ne lit jamais le stockage dans une boucle
+
+`valeurs` est un instantané en mémoire, relu seulement quand quelque chose
+change. C'est la leçon de la 4.5.3, où un `querySelectorAll` par carte et par
+branche avait suffi à faire sentir le scan.
+
+### 3. Ce qui est CSS reste CSS
+
+Quinze de ces réglages ne font que **masquer** quelque chose. Les faire passer
+par du JavaScript aurait voulu dire retoucher chaque carte à chaque scan, et se
+souvenir de la remettre quand le réglage change. Trois attributs sur `<html>` et
+des sélecteurs d'attribut font le même travail sans qu'on parcoure quoi que ce
+soit — le mécanisme du thème de la 4.8, réemployé.
+
+```
+data-tse-off     jetons de ce qui est éteint : « duree badge-hype tri-alpha »
+data-tse-or      l'or de l'abonnement, quand il ne vaut pas « plein »
+data-tse-apercu  la largeur de l'aperçu, quand elle ne vaut pas « normal »
+```
+
+### L'invariant qui protège les mille assertions d'avant
+
+**Sans réglage touché, aucun attribut n'est écrit sur la racine.** Tout le bloc
+CSS des réglages est inerte : pas un de ses sélecteurs ne s'apparie, et la
+feuille est celle d'avant au caractère près.
+
+Ce n'est pas une valeur bien choisie, c'est un **attribut absent** — donc
+vérifiable à l'œil, et vérifié dans les deux sens par le scénario 118 : absent
+au départ, et exact dès qu'on coupe quelque chose.
+
+### Le panneau ne sait pas ce qu'est un réglage
+
+Il reçoit de la page trois ensembles — ce qui est réglable, ce qui est réglé, ce
+qui serait par défaut — et ne porte **que** la présentation : l'ordre, les
+titres, les libellés.
+
+Une seconde table des types et des valeurs permises aurait divergé de celle de
+`content.js` au premier réglage ajouté, et c'est le panneau qui aurait eu tort en
+silence : une case pour un réglage disparu, ou rien pour un réglage neuf.
+
+`npm run parity` déduit désormais les clés de libellé de la table `OPT_DEFS`.
+**Ajouter un réglage sans lui écrire de libellé fait échouer la parité dans les
+douze langues d'un coup** ; sans ce lien, il se serait affiché sous son
+identifiant brut.
+
+### Le banc a trouvé une faute dès sa première exécution
+
+J'avais dérivé le défaut de `abosPeriode` de `CFG.SUBS_PAGE_TTL`, pour ne pas
+répéter le nombre six. C'était faux, et l'assertion « chaque défaut de choix
+appartient à sa propre liste de valeurs » l'a dit du premier coup :
+
+**`tests/build.mjs` réécrit cette constante à quatre secondes** pour que le
+relevé des abonnements soit éprouvable. Le défaut du réglage devenait 0,0011 —
+absent de sa propre liste, impossible à poser, introuvable dans le menu.
+
+Les deux nombres ne disent pas la même chose : la constante est une durée qu'on
+accélère pour mesurer, le réglage est un choix d'utilisateur en heures. Qu'ils
+coïncident en production est un fait, pas une définition. Ils sont séparés, et
+une assertion lue **sur le fichier source** — seul endroit où la constante a
+encore sa valeur de production — garde ce qui les relie encore.
+
+### Onze libellés qu'on n'a pas écrits
+
+Les cases des badges empruntent leurs noms au mode d'emploi, qui les portait
+déjà. Ce n'est pas une économie de clés : c'est la garantie que la case montre
+**exactement** le badge que le chapitre 3 dessine et que la carte affiche. Onze
+clés neuves auraient pu dériver de celles-là ; celles-là ne peuvent pas dériver
+d'elles-mêmes.
+
+Et ce qui ne se traduit pas ne se traduit pas : « 360p30 », « 4:19 » et « 30 »
+sont des exemples ou des symboles, pas des mots.
+
+### Les mutants
+
+| Mutant | Assertion qui tombe |
+| --- | --- |
+| la règle CSS de la durée disparaît | la durée reste visible malgré son jeton |
+| le stockage écrit l'état complet | l'écart n'est plus seul, et la clé ne part plus |
+| la validation accepte tout | la valeur hors liste passe, l'ancienne est perdue |
+| les jeux stockent ce qu'on garde | le jeton préfixé devient son contraire |
+| le rattrapage du focus est retiré | le focus retombe sur le corps du document |
+| l'aperçu coupé s'arme quand même | il s'ouvre alors qu'on l'a éteint |
+| un identifiant disparaît de `GROUPES_OPT` | le contrat de présentation dénonce l'oubli |
+| le thème forcé est ignoré | « clair » ne tient pas quand Twitch redit « sombre » |
+
+### Ce qui n'y est pas, et pourquoi
+
+Le catalogue proposé en comptait une soixantaine. Ce qui a été écarté à dessein :
+
+- **La mémoire des choix d'interface** — tri, filtres, mode Top Chaînes. Ce sont
+  des choix de session, et les retenir est un autre débat que celui des
+  réglages.
+- **Le son de l'aperçu.** `muted` est exigé par la politique d'autoplay des
+  navigateurs, et un son qui part au survol est hostile.
+- **« Toujours animé malgré le système ».** Passer outre un réglage
+  d'accessibilité explicite n'est pas une option à offrir. Le sens inverse —
+  « toujours calme » — le serait ; il n'a simplement pas été demandé.
 
 ## Le mouvement réduit, relu de près (v4.9)
 
@@ -6197,7 +6322,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 116 scénarios, 1040 assertions |
+| `npm test` | le harnais Playwright : 120 scénarios, 1079 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -6218,12 +6343,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 957 Ko | 368 Ko | 3 221 → **2** |
+| `content.js` | 988 Ko | 380 Ko | 3 259 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 71 Ko | 35 Ko | 90 → **0** |
+| `panneau.js` | 89 Ko | 45 Ko | 114 → **0** |
 | `bridge.js` | 13 Ko | 3 Ko | 22 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1174 Ko** | **508 Ko** | **−57 %** |
+| **les cinq** | **1222 Ko** | **531 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

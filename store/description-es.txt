@@ -198,6 +198,16 @@ Twitch tiene un tema claro. La extensión lo detecta y cambia con él: sin recar
 
 _______________________________
 
+➤ ⚙️ Y SI QUIERES ELEGIR
+Todo está activo desde el principio y no hay nada que configurar. Pero una pestaña «Opciones» en el panel te devuelve el mando sobre veintidós ajustes.
+
+- ★ LO QUE VES ★ Cada insignia, la duración del directo y su formato, la barra «acaba de empezar», el oro de las suscripciones, los filtros, los botones de orden: todo se enciende y se apaga con una casilla.
+- ★ LO QUE SE CARGA ★ La vista previa puede prescindir del vídeo y conservar sus insignias, su línea de tiempo y su miniatura, o simplemente bajar de calidad. Lo justo para aligerarla sin perderla.
+- ★ LO QUE TE CONCIERNE ★ La lectura de suscripciones —la única petición autenticada de la extensión— se corta con un clic. El aprendizaje de visitas también. Y cada memoria se borra por separado, sin tocar las demás.
+- ★ NADA ES UNA TRAMPA ★ Un punto marca lo que has cambiado, un botón lo devuelve todo a su valor original, y tus ajustes se exportan en texto para volver a ponerlos en otra máquina.
+
+_______________________________
+
 ➤ 🌍 EN TU IDIOMA
 
 La extensión detecta automáticamente el idioma de tu Twitch y adapta cada etiqueta, insignia y descripción emergente:

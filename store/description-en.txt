@@ -104,7 +104,7 @@ We've cut out everything that makes the sidebar a mess:
 - Redundant visual indicators (those ambiguous little colored circles, useless "DROPS REBROADCAST" lines…)
 - Sponsorship banners that disfigure streamer entries: we clean it all up, and the "sponsored by X" info is restored inside the preview, way cleaner.
 
-Result: your sidebar only shows what matters. With nothing to configure.
+Result: your sidebar only shows what matters. With nothing to configure — and everything still adjustable if you want it, see below.
 
 _______________________________
 
@@ -195,6 +195,16 @@ Twitch has a light theme. The extension notices and switches with it — no relo
 - ★ COLORS RECOMPUTED, NOT JUST LIGHTENED ★ Each badge gets its own light hue, measured against the exact background it sits on. An orange that reads well on black turns to mush on white, so it was redone rather than merely faded.
 - ★ THE SECOND YOU SWITCH ★ Flip Twitch's theme and the extension follows within the second. No page reload needed.
 - ★ AND IF YOU ASK FOR LESS MOTION ★ Your system's "reduce motion" setting is honored: what moved stops moving, but nothing is lost — a signal that used to pulse keeps breathing gently instead of going dark.
+
+_______________________________
+
+➤ ⚙️ AND IF YOU WANT TO CHOOSE
+Everything is on from the start and there is nothing to set up. But an "Options" tab in the panel hands you twenty-two settings.
+
+- ★ WHAT YOU SEE ★ Every badge, the stream uptime and its format, the "just went live" bar, the subscription gold, the filters, the sort buttons: all of it switches on and off with a checkbox.
+- ★ WHAT GETS LOADED ★ The preview can drop the video and keep its badges, its timeline and its thumbnail — or simply step down in quality. Enough to make it light without losing it.
+- ★ WHAT CONCERNS YOU ★ The subscription sweep — the extension's only authenticated request — switches off in one click. So does visit learning. And each memory is erased on its own, without touching the others.
+- ★ NOTHING IS A TRAP ★ A dot marks what you changed, one button restores every default, and your settings export as text so you can put them back on another machine.
 
 _______________________________
 

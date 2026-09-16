@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1040 assertions, under Gecko
+npm run test-firefox        # the same 1079 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,128 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## An Options tab, and the three rules holding it up (v4.10)
+
+Twenty-two settings, picked from a catalogue of about sixty. The checkbox code is
+the easy part; what decides everything is the architecture.
+
+### Where the settings live, and why that is imposed
+
+The manifest asks for **no permission at all** — `npm run addon` enforces it — so
+`chrome.storage` does not exist here. Settings live in **twitch.tv**'s
+`localStorage`, next to visits, subscriptions and the roster.
+
+That has a price, and it has to be said: **no sync across machines**, and
+clearing twitch.tv's site data clears the settings too. The panel's JSON export
+is the only workaround, and it is deliberately manual.
+
+### 1. Only deviations are written
+
+Storage holds only what **differs** from the default, and the key disappears when
+everything returns to it — `removeItem`, not `{}`.
+
+Serialising the full state would have frozen the day-of-install defaults into
+everyone's browser. The day one of them changes, it must change for everybody
+**except** those who explicitly touched it. Same reason the sets — the eleven
+badges, the six sorts — store what you **remove** rather than what you keep: the
+twelfth badge, whenever it arrives, must be on for everyone without anyone
+reopening the panel.
+
+### 2. Storage is never read inside a loop
+
+`valeurs` is an in-memory snapshot, re-read only when something changes. That is
+the lesson of 4.5.3, where one `querySelectorAll` per card per branch was enough
+to make the scan noticeable.
+
+### 3. What is CSS stays CSS
+
+Fifteen of these settings only **hide** something. Routing them through
+JavaScript would have meant touching every card on every scan, and remembering to
+put it back when the setting changes. Three attributes on `<html>` and attribute
+selectors do the same work without walking anything — the 4.8 theme mechanism,
+reused.
+
+```
+data-tse-off     tokens for what is off: "duree badge-hype tri-alpha"
+data-tse-or      subscription gold, when it isn't "plein"
+data-tse-apercu  preview width, when it isn't "normal"
+```
+
+### The invariant that protects the thousand earlier assertions
+
+**With nothing touched, no attribute is written on the root.** The whole settings
+CSS block is inert: not one of its selectors matches, and the stylesheet is the
+one from before, character for character.
+
+That is not a well-chosen value, it is an **absent attribute** — so it can be
+checked by eye, and scenario 118 checks it both ways: absent at the start, exact
+the moment something is switched off.
+
+### The panel does not know what a setting is
+
+It receives three sets from the page — what is settable, what is set, what the
+default would be — and carries **only** presentation: order, titles, labels.
+
+A second table of types and permitted values would have diverged from
+`content.js` at the first setting added, and the panel would have been the one
+that was wrong, silently: a checkbox for a setting that no longer exists, or
+nothing for a new one.
+
+`npm run parity` now derives the label keys from the `OPT_DEFS` table. **Adding a
+setting without writing its label fails parity in all twelve languages at once**;
+without that link it would have rendered under its raw identifier.
+
+### The bench found a mistake on its very first run
+
+I had derived `abosPeriode`'s default from `CFG.SUBS_PAGE_TTL`, to avoid
+repeating the number six. That was wrong, and the assertion "every choice default
+belongs to its own list of values" said so immediately:
+
+**`tests/build.mjs` rewrites that constant to four seconds** so the subscription
+sweep can be exercised. The setting's default became 0.0011 — absent from its own
+list, impossible to set, missing from the menu.
+
+The two numbers do not say the same thing: the constant is a duration we
+accelerate in order to measure, the setting is a user's choice in hours. That
+they coincide in production is a fact, not a definition. They are separated now,
+and an assertion read **from the source file** — the only place the constant
+still has its production value — keeps what still ties them together.
+
+### Eleven labels we did not write
+
+The badge checkboxes borrow their names from the tutorial, which already carried
+them. That is not a saving in keys: it is the guarantee that the checkbox shows
+**exactly** the badge chapter 3 draws and the card displays. Eleven new keys could
+have drifted from those; those cannot drift from themselves.
+
+And what does not translate does not translate: "360p30", "4:19" and "30" are
+examples or symbols, not words.
+
+### The mutants
+
+| Mutant | Assertion that falls |
+| --- | --- |
+| the uptime CSS rule disappears | uptime stays visible despite its token |
+| storage writes the full state | the deviation is no longer alone, and the key never leaves |
+| validation accepts anything | an out-of-list value goes through, the old one is lost |
+| sets store what you keep | the prefixed token becomes its opposite |
+| focus restoration removed | focus falls back to the document body |
+| the disabled preview arms anyway | it opens although it was switched off |
+| an id vanishes from `GROUPES_OPT` | the presentation contract names the omission |
+| the forced theme is ignored | "light" does not hold when Twitch says "dark" again |
+
+### What is not there, and why
+
+The catalogue offered about sixty. Deliberately left out:
+
+- **Remembering interface choices** — sort, filters, Top Channels mode. Those are
+  session choices, and keeping them is a different argument from settings.
+- **Preview sound.** `muted` is required by browser autoplay policy, and sound
+  firing on hover is hostile.
+- **"Always animated regardless of the system".** Overriding an explicit
+  accessibility setting is not an option to offer. The reverse — "always calm" —
+  would be; it simply was not asked for.
 
 ## Reduced motion, read closely (v4.9)
 
@@ -5923,7 +6045,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 116 scenarios, 1040 assertions |
+| `npm test` | the Playwright harness: 120 scenarios, 1079 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -5943,12 +6065,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 957 KB | 368 KB | 3,221 → **2** |
+| `content.js` | 988 KB | 380 KB | 3,259 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 71 KB | 35 KB | 90 → **0** |
+| `panneau.js` | 89 KB | 45 KB | 114 → **0** |
 | `bridge.js` | 13 KB | 3 KB | 22 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1174 KB** | **508 KB** | **−57 %** |
+| **all five** | **1222 KB** | **531 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
