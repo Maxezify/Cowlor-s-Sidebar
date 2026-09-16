@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1150 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1153 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,74 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Le cache avant/arrière, et ce que l'audit a trouvé (v4.13.2)
+
+Audit demandé : *« vérifier que lorsque la sidebar n'est pas visible, elle se
+recharge bien, que le voile se met bien en place quand il faut »*.
+
+### Ce qui tenait déjà
+
+| situation | ce qui se passe |
+| --- | --- |
+| onglet en arrière-plan | rien n'est programmé — ni balayage, ni requêtes. L'observateur sort avant sa boucle, l'aperçu se ferme, le préchargement des miniatures est bloqué |
+| retour après une **courte** absence | on rejoue le balayage retenu, et on rafraîchit l'affichage local |
+| retour après **REVISIT_RELOAD_MS** | voile, purge du cache, repeuplement complet |
+| entretien pendant l'absence | il tourne quand même, et libère en plus tout le cache de streams — reconstruit au retour, sous le voile |
+
+Ces quatre chemins sont bons, et chacun porte déjà sa raison d'être en
+commentaire. L'audit n'a rien trouvé à y reprendre.
+
+### La lacune
+
+**Rien n'écoutait `pageshow`.** On quitte Twitch, on revient par le bouton
+**Précédent** : le navigateur restaure la page telle qu'elle était, DOM gelé
+compris. Nos minuteurs étaient à l'arrêt, le cycle de re-fetch en pause, et
+Twitch n'a rien pu muter puisqu'il n'y avait plus d'yeux pour l'observer. La
+barre revenait avec les compteurs d'il y a une heure, et des chaînes terminées
+présentées comme en direct.
+
+> **Et `visibilitychange` ne le rattrape pas à coup sûr :** une page restaurée
+> depuis ce cache peut revenir **sans que la visibilité ait changé de valeur**.
+
+**LE DÉPÔT AVAIT DÉJÀ PAYÉ EXACTEMENT CETTE LEÇON.** `bridge.js` écoute
+`pagehide` et `pageshow` depuis qu'un rapport d'utilisateur a montré un port mort
+pour le reste de la vie de la page — « ponts : aucun » sur une barre latérale qui
+fonctionnait sous ses yeux. La même porte manquait dans `content.js`, et
+personne n'avait fait le rapprochement.
+
+### Ce qui change
+
+Une restauration est traitée **comme une longue absence**, sans la mesurer :
+elle *est* longue par nature — le temps passé hors de la page n'est pas
+observable depuis la page.
+
+`persisted` distingue les deux `pageshow` : au chargement ordinaire il vaut
+`false` et le démarrage a déjà tout fait. Sans cette garde, le voile retomberait
+à **chaque ouverture de page**.
+
+Les deux chemins de retour — la visibilité et la restauration — partagent
+désormais une seule fonction. Deux copies auraient divergé au premier
+ajustement.
+
+### Ce que le banc ajoute
+
+Trois assertions, un mutant, aucun survivant :
+
+| | journal du voile |
+| --- | --- |
+| code sain | `démarrage` · `stabilité` · **`retour du cache avant/arrière`** · `stabilité` |
+| mutant (porte retirée) | `démarrage` · `stabilité` — **rien ne se passe** |
+
+Et deux gardes autour : un `pageshow` ordinaire ne déclenche rien, et le voile se
+**lève** de lui-même une fois la barre stable — un voile posé et jamais levé est
+pire que pas de voile.
+
+> **CE QUE CE SCÉNARIO NE PROUVE PAS, et il le dit :** Playwright ne sait pas
+> déclencher une vraie restauration depuis le cache. L'événement est rejoué à la
+> main. Ce qu'on éprouve est la RÉACTION à cet événement, pas le fait que le
+> navigateur l'émette — ce dernier point est une propriété de la plateforme, pas
+> du produit.
 
 ## Une réponse tronquée ne juge que ce qu'elle contenait (v4.13.1)
 
@@ -7243,7 +7311,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 125 scénarios, 1150 assertions |
+| `npm test` | le harnais Playwright : 126 scénarios, 1153 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -7264,7 +7332,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1051 Ko | 402 Ko | 3 306 → **2** |
+| `content.js` | 1053 Ko | 402 Ko | 3 306 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 97 Ko | 47 Ko | 128 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
