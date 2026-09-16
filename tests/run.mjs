@@ -15991,6 +15991,149 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      onglets.length === 1, JSON.stringify(onglets));
 }
 
+/* ═════════ LA PAGE D'ACCUEIL — CE QU'ON VOIT À LA SECONDE 0 ═══════════════
+   L'onglet s'ouvre : c'est le scénario 122. Reste ce qu'il MONTRE, et c'est un
+   sujet distinct, parce qu'il échoue autrement. La page n'a qu'un travail —
+   dire où est l'icône — et trois manières de le rater :
+
+     — elle montre le rail, le pied et les boutons d'une console de
+       diagnostic à quelqu'un qui vient d'installer, et noie la seule phrase
+       qui compte ;
+     — elle montre le bloc d'accueil DANS LA POPUP, c'est-à-dire explique où
+       est l'icône à quelqu'un qui vient de cliquer dessus ;
+     — elle se remet à grandir avec le mode d'emploi, et le rail redescend
+       avec elle.
+
+   UN SEUL ATTRIBUT sépare les deux vues, et c'est exactement pourquoi il faut
+   les mesurer toutes les deux : une règle qui vise « html » sans le qualifier
+   abîme la popup sans qu'on la regarde jamais. */
+{
+  titre('123. La page d\'accueil — la même page, deux vues, un seul attribut');
+
+  const messages = JSON.parse(readFileSync(join(ICI, '..', '_locales', 'fr', 'messages.json'), 'utf8'));
+  /* AUCUNE DONNÉE N'EST SERVIE, et c'est fidèle : le guide est la seule vue du
+     panneau qui ne demande rien à la page. Un faux plus riche ne prouverait
+     rien de plus et masquerait une dépendance si elle apparaissait. */
+  const decor = (msg) => {
+    window.chrome = {
+      i18n: { getMessage: (k) => (msg[k] ? msg[k].message : k), getUILanguage: () => 'fr' },
+      tabs: { query: () => Promise.resolve([{ id: 1 }]) },
+      runtime: { getManifest: () => ({ version: '9.9.9' }),
+                 sendMessage: () => Promise.resolve({ ok: false, erreur: 'page-absente' }) },
+    };
+  };
+
+  const relever = async (requete, largeur = 1100) => {
+    const page = await browser.newPage({ viewport: { width: largeur, height: 760 } });
+    page.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await page.addInitScript(decor, messages);
+    await page.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href + requete);
+    await attendre(page, () => !document.getElementById('guide').hidden, 6000);
+    const vu = await page.evaluate(() => {
+      const visible = (sel) => { const e = document.querySelector(sel);
+        return !!e && getComputedStyle(e).display !== 'none'; };
+      const bienvenue = document.querySelector('.bienvenue');
+      const guide = document.getElementById('guide');
+      const img = document.querySelector('.bienvenue-dessin image');
+      const fleche = document.querySelector('.bienvenue-fleche');
+      return {
+        vue: document.documentElement.getAttribute('data-vue'),
+        bienvenue: !!bienvenue,
+        /* PREMIER, pas « présent quelque part » : une phrase d'accueil au bas
+           de treize chapitres n'est plus une phrase d'accueil. */
+        premier: guide.firstElementChild === bienvenue,
+        textes: bienvenue
+          ? ['.bienvenue-merci', '.bienvenue-ou', '.bienvenue-epingler']
+              .map((s) => (bienvenue.querySelector(s) || {}).textContent || '')
+          : [],
+        icone: img ? (img.getAttribute('href') || img.getAttribute('xlink:href')) : null,
+        fleche: !!fleche,
+        flecheMuette: fleche ? fleche.querySelector('svg').getAttribute('aria-hidden') : null,
+        rail: visible('.rail'), pied: visible('.pied'), tete: visible('.vue-tete'),
+        chapitres: guide.querySelectorAll('.guide-chapitre').length,
+        hauteur: document.documentElement.scrollHeight,
+        fenetre: window.innerHeight,
+        /* CE QUE LA FLÈCHE RECOUVRE, mesuré et non déduit. Elle est posée en
+           absolu par-dessus le bloc : rien dans le flux ne sait qu'elle est
+           là, et la réserve du titre est une valeur écrite à la main. */
+        recouverts: fleche ? ['.bienvenue-merci', '.bienvenue-ou',
+                              '.bienvenue-dessin', '.bienvenue-epingler']
+          .filter((s) => {
+            const e = bienvenue.querySelector(s);
+            if (!e) return false;
+            const a = fleche.getBoundingClientRect(), b = e.getBoundingClientRect();
+            return a.left < b.right && b.left < a.right
+                && a.top < b.bottom && b.top < a.bottom;
+          }) : [],
+      };
+    });
+    await page.close();
+    return vu;
+  };
+
+  const popup = await relever('');
+  const onglet = await relever('?vue=onglet');
+  /* LA LARGEUR OÙ ÇA CASSE, et elle ne se devinait pas. À 780 px le merci
+     passe sur deux lignes, la phrase qui suit descend d'autant et entre dans
+     la colonne de la flèche — alors qu'à 1100 px tout tient. Une réserve
+     écrite à la main ne se vérifie qu'à la largeur qui la met en défaut. */
+  const etroit = await relever('?vue=onglet', 780);
+
+  /* ── LA POPUP N'A PAS CHANGÉ ─────────────────────────────────────────── */
+  /* Quelqu'un qui clique l'icône l'a manifestement trouvée. Lui expliquer où
+     elle est serait insultant, et c'est la moitié du contrat de l'attribut. */
+  ok('la popup ne porte pas le bloc d\'accueil, et garde son rail et son pied',
+     popup.vue === null && popup.bienvenue === false
+     && popup.rail === true && popup.pied === true && popup.tete === true,
+     JSON.stringify(popup));
+
+  /* ── L'ONGLET D'INSTALLATION ─────────────────────────────────────────── */
+  ok('l\'onglet ouvre sur le bloc d\'accueil, en tête du mode d\'emploi',
+     onglet.vue === 'onglet' && onglet.bienvenue === true && onglet.premier === true,
+     JSON.stringify(onglet));
+  /* Trois phrases, trois clés : un « panelWelcomeThanks » rendu tel quel est
+     la signature d'une locale incomplète, et c'est la première chose que voit
+     quelqu'un qui installe. Une chaîne vide est le même défaut en plus
+     discret — d'où le plancher. */
+  ok('…ses trois phrases viennent de la table de langue, aucune clé brute',
+     onglet.textes.length === 3
+     && onglet.textes.every((t) => t.length > 12 && !/^panel[A-Z]/.test(t)),
+     JSON.stringify(onglet.textes));
+  /* LA MAQUETTE PORTE LA VRAIE ICÔNE, pas un dessin qui lui ressemble : ce
+     qu'on demande à l'utilisateur est de reconnaître une image dans sa barre
+     d'outils. Un fac-similé approximatif lui ferait chercher autre chose. */
+  ok('…la maquette de barre d\'outils montre l\'icône du produit elle-même',
+     onglet.icone === 'icons/icon48.png', String(onglet.icone));
+  /* La flèche désigne un coin de NAVIGATEUR, hors du document. Elle n'a donc
+     rien à dire à quelqu'un qui écoute la page, et tout à cacher. */
+  ok('…la grande flèche est là, et muette pour les lecteurs d\'écran',
+     onglet.fleche === true && onglet.flecheMuette === 'true', JSON.stringify(onglet));
+  /* DEUX LARGEURS, parce qu'une seule ne prouve rien : c'est l'étroite qui
+     attrape le défaut, et la large qui garde 62ch quand la place existe. */
+  ok('…et elle ne recouvre aucun texte, au large comme à l\'étroit',
+     onglet.recouverts.length === 0 && etroit.recouverts.length === 0,
+     JSON.stringify([onglet.recouverts, etroit.recouverts]));
+  /* ── LES DEUX RETRAITS DEMANDÉS ──────────────────────────────────────── */
+  /* Le rail ne mène qu'à des sections qui exigent un onglet Twitch au premier
+     plan ; le pied propose d'effacer un historique qui n'existe pas encore. */
+  ok('…le rail, le pied et l\'en-tête de vue ont disparu : il ne reste que le guide',
+     onglet.rail === false && onglet.pied === false && onglet.tete === false,
+     JSON.stringify(onglet));
+  /* ── CE N'EST PAS UNE SECONDE PAGE ───────────────────────────────────── */
+  /* Une page d'accueil séparée aurait divergé du panneau à la première section
+     ajoutée. On le prouve par le mode d'emploi : le même, chapitre pour
+     chapitre, dans les deux vues. */
+  ok('…et le mode d\'emploi est le même, chapitre pour chapitre',
+     onglet.chapitres === popup.chapitres && onglet.chapitres > 5,
+     JSON.stringify([popup.chapitres, onglet.chapitres]));
+  /* LA RÉGRESSION QUI A DÛ ÊTRE RATTRAPÉE. Posée à « height: auto », la page
+     grandissait avec le mode d'emploi — 2933 px mesurés — et le rail s'étirait
+     d'autant, à défiler avec elle : deux colonnes qui défilent chacune de son
+     côté devenaient une longue page. */
+  ok('…la page reste haute comme la fenêtre, c\'est le guide qui défile',
+     onglet.hauteur <= onglet.fenetre, JSON.stringify([onglet.hauteur, onglet.fenetre]));
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

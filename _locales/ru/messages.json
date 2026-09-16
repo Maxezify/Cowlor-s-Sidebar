@@ -713,5 +713,17 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — ваши данные и настройки"
+  },
+  "panelWelcomeThanks": {
+    "message": "Спасибо, что установили Cowlor's Sidebar!"
+  },
+  "panelWelcomeWhere": {
+    "message": "Ваши настройки и все ваши данные — за значком расширения, в правом верхнем углу браузера."
+  },
+  "panelWelcomePin": {
+    "message": "Не видите его? Он убран за кнопку в виде кусочка пазла. Нажмите её и закрепите Cowlor's Sidebar, чтобы он всегда был под рукой."
+  },
+  "panelWelcomeImage": {
+    "message": "Панель инструментов браузера с выделенным значком Cowlor's Sidebar справа от адресной строки."
   }
 }

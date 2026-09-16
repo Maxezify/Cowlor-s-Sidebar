@@ -827,5 +827,17 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — your data and your settings"
+  },
+  "panelWelcomeThanks": {
+    "message": "Thank you for installing Cowlor's Sidebar!"
+  },
+  "panelWelcomeWhere": {
+    "message": "Your settings and all your data live behind the extension icon, at the top right of your browser."
+  },
+  "panelWelcomePin": {
+    "message": "Can't see it? It is filed behind the puzzle-piece button. Click that, then pin Cowlor's Sidebar to keep it within reach."
+  },
+  "panelWelcomeImage": {
+    "message": "The browser toolbar, with the Cowlor's Sidebar icon highlighted to the right of the address bar."
   }
 }
