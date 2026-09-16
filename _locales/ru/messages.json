@@ -476,5 +476,260 @@
   },
   "guideDemoEnCours": {
     "message": "идёт сейчас"
+  },
+  "grpOptions": {
+    "message": "Настройки"
+  },
+  "navOptions": {
+    "message": "Параметры"
+  },
+  "descOptions": {
+    "message": "Что расширение добавляет и чего не трогает. По умолчанию включено всё; фиолетовая точка отмечает изменённое."
+  },
+  "sumSettings": {
+    "message": "настроек"
+  },
+  "sumChanged": {
+    "message": "изменено"
+  },
+  "optGrpApercu": {
+    "message": "Предпросмотр при наведении"
+  },
+  "optApercu": {
+    "message": "Показывать предпросмотр"
+  },
+  "optApercuVideo": {
+    "message": "Видеопоток в прямом эфире"
+  },
+  "optDescApercuVideo": {
+    "message": "Выключено — предпросмотр сохраняет миниатюру, значки и шкалу, он просто перестаёт загружать видео."
+  },
+  "optApercuQualite": {
+    "message": "Качество потока"
+  },
+  "optDescApercuQualite": {
+    "message": "Применяется со следующего предпросмотра, без перезагрузки."
+  },
+  "optApercuTaille": {
+    "message": "Ширина окна"
+  },
+  "optGrpBadges": {
+    "message": "Значки предпросмотра"
+  },
+  "optBadges": {
+    "message": "Показываемые значки"
+  },
+  "optGrpCarte": {
+    "message": "Карточка на боковой панели"
+  },
+  "optDuree": {
+    "message": "Длительность эфира"
+  },
+  "optDureeFormat": {
+    "message": "Формат длительности"
+  },
+  "optFresh": {
+    "message": "Полоса «только что начал»"
+  },
+  "optCollab": {
+    "message": "Точка совместного эфира"
+  },
+  "optAbonnes": {
+    "message": "Золото подписок"
+  },
+  "optDescAbonnes": {
+    "message": "«Сдержанно» сохраняет цвет и убирает мерцание. «Нет» возвращает карточку Twitch."
+  },
+  "optSubathonJour": {
+    "message": "Точка дня сабатона"
+  },
+  "optGrpListe": {
+    "message": "Список, его сортировки и фильтры"
+  },
+  "optTris": {
+    "message": "Показываемые кнопки сортировки"
+  },
+  "optFiltreCategorie": {
+    "message": "Фильтр по категории"
+  },
+  "optFiltreLangue": {
+    "message": "Фильтр по языку"
+  },
+  "optTopOnglet": {
+    "message": "Вкладка «Топ каналов»"
+  },
+  "optTopN": {
+    "message": "Каналов в рейтинге"
+  },
+  "optDescTopN": {
+    "message": "Свыше тридцати некоторые языки теряют оптимизацию, и рейтинг заполняется дольше."
+  },
+  "optGrpTwitch": {
+    "message": "Что показывает Twitch"
+  },
+  "optStories": {
+    "message": "Истории"
+  },
+  "optDescStories": {
+    "message": "По умолчанию видны: так делает Twitch."
+  },
+  "optDeplier": {
+    "message": "Автоматически раскрывать «Показать больше»"
+  },
+  "optDescDeplier": {
+    "message": "Выключено — список остаётся таким, каким его отрисовывает Twitch; расширение по-прежнему измеряет всё, что видит."
+  },
+  "optGrpAbos": {
+    "message": "Считывание подписок"
+  },
+  "optAbosReleve": {
+    "message": "Считывать мои подписки"
+  },
+  "optDescAbosReleve": {
+    "message": "Это единственный авторизованный запрос расширения: он открывает вашу страницу twitch.tv/subscriptions в невидимом кадре. Выключено — золото и сортировка «подписки сверху» опираются только на посещённые каналы."
+  },
+  "optAbosPeriode": {
+    "message": "Не чаще одного раза в"
+  },
+  "optGrpTheme": {
+    "message": "Внешний вид"
+  },
+  "optTheme": {
+    "message": "Тема внутри Twitch"
+  },
+  "optDescTheme": {
+    "message": "«Авто» следует теме Twitch. Принудительный выбор меняет только то, как расширение рисует поверх."
+  },
+  "optGrpDonnees": {
+    "message": "Данные"
+  },
+  "optVisites": {
+    "message": "Запоминать мои посещения"
+  },
+  "optDescVisites": {
+    "message": "Выключено — уже изученное остаётся читаемым, но ничего нового не добавляется. Сортировка «личная популярность» и сетка ритма перестают меняться."
+  },
+  "optGrpPanneau": {
+    "message": "Эта панель"
+  },
+  "optPanneauTheme": {
+    "message": "Тема панели"
+  },
+  "optDescPanneauTheme": {
+    "message": "Отдельно от предыдущей: эта панель должна уметь отрисоваться без открытой вкладки Twitch."
+  },
+  "optPanneauDiag": {
+    "message": "Показывать диагностику"
+  },
+  "optDescPanneauDiag": {
+    "message": "Разделы измерений — задержка, циклы, предпросмотр, переключения — нужны только чтобы сообщить о проблеме."
+  },
+  "optGrpPurge": {
+    "message": "Выборочная очистка"
+  },
+  "optDescPurge": {
+    "message": "Каждая кнопка стирает только свою память. Красная кнопка внизу стирает их все."
+  },
+  "btnPurgeVisits": {
+    "message": "Стереть посещения"
+  },
+  "purgeVisitsTitle": {
+    "message": "Стереть историю посещений?"
+  },
+  "purgeVisitsText": {
+    "message": "Сортировка «личная популярность» и сетка ритма начнутся с нуля. Подписки и отслеживаемые каналы не затрагиваются."
+  },
+  "btnPurgeSubs": {
+    "message": "Стереть подписки"
+  },
+  "purgeSubsTitle": {
+    "message": "Стереть найденные подписки?"
+  },
+  "purgeSubsText": {
+    "message": "Золото исчезнет с карточек до следующего считывания. Ваши посещения и отслеживаемые каналы не затрагиваются."
+  },
+  "btnPurgeRoster": {
+    "message": "Стереть отслеживаемые каналы"
+  },
+  "purgeRosterTitle": {
+    "message": "Стереть запомненные отслеживаемые каналы?"
+  },
+  "purgeRosterText": {
+    "message": "Список восстановится, наблюдая за боковой панелью. Ваши посещения и подписки не затрагиваются."
+  },
+  "optPurgeFaite": {
+    "message": "Стёрто."
+  },
+  "optGrpEchange": {
+    "message": "Экспорт и импорт"
+  },
+  "btnOptExport": {
+    "message": "Экспорт"
+  },
+  "btnOptImport": {
+    "message": "Импорт"
+  },
+  "optImportInvalide": {
+    "message": "Это не является допустимым набором настроек."
+  },
+  "optImportFait": {
+    "message": "Применено настроек: $1, пропущено: $2."
+  },
+  "btnOptReset": {
+    "message": "Сбросить всё"
+  },
+  "optResetTitle": {
+    "message": "Сбросить все настройки?"
+  },
+  "optResetText": {
+    "message": "Все двадцать две настройки этой страницы вернутся к исходным значениям. Ваши данные — посещения, подписки, отслеживаемые каналы — не затрагиваются."
+  },
+  "optValPlein": {
+    "message": "Полное"
+  },
+  "optValDiscret": {
+    "message": "Сдержанно"
+  },
+  "optValAucun": {
+    "message": "Нет"
+  },
+  "optValPetit": {
+    "message": "Узкое"
+  },
+  "optValNormal": {
+    "message": "Обычное"
+  },
+  "optValGrand": {
+    "message": "Широкое"
+  },
+  "optValAuto": {
+    "message": "Авто"
+  },
+  "optValDark": {
+    "message": "Тёмная"
+  },
+  "optValLight": {
+    "message": "Светлая"
+  },
+  "optHeures": {
+    "message": "$1 ч"
+  },
+  "optTriViewers": {
+    "message": "Зрители"
+  },
+  "optTriSubs": {
+    "message": "Подписки"
+  },
+  "optTriPopular": {
+    "message": "Личная популярность"
+  },
+  "optTriUptime": {
+    "message": "Длительность эфира"
+  },
+  "optTriAlpha": {
+    "message": "По алфавиту"
+  },
+  "optTriCostream": {
+    "message": "Совместные эфиры"
   }
 }

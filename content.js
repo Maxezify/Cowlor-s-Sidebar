@@ -1312,7 +1312,180 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     LOADING_TIMEOUT_MS:     15_000,
 
-    LOADING_FADE_MS:        1_000
+    LOADING_FADE_MS:        1_000,
+
+    OPTIONS_KEY:            'tse:options'
+  });
+
+  const OPT_DEFS = Object.freeze({
+
+    apercu:          { defaut: true,      type: 'bool' },
+    apercuVideo:     { defaut: true,      type: 'bool' },
+    apercuQualite:   { defaut: CFG.PREVIEW_IFRAME_QUALITY, type: 'choix',
+                       valeurs: ['160p30', '360p30', '480p30', '720p60'] },
+    apercuTaille:    { defaut: 'normal',  type: 'choix',
+                       valeurs: ['petit', 'normal', 'grand'], css: true },
+
+    badges:          { defaut: [],        type: 'jeu', css: true,
+                       valeurs: ['ccl', 'costream', 'squad', 'sub', 'exsub',
+                                 'sponsor', 'hype', 'discount', 'switch',
+                                 'reprise', 'subathon'] },
+
+    duree:           { defaut: true,      type: 'bool', css: true },
+    dureeFormat:     { defaut: 'hm',      type: 'choix', valeurs: ['hm', 'colon', 'min'] },
+    fresh:           { defaut: true,      type: 'bool', css: true },
+    collab:          { defaut: true,      type: 'bool', css: true },
+    abonnes:         { defaut: 'plein',   type: 'choix',
+                       valeurs: ['plein', 'discret', 'aucun'], css: true },
+    subathonJour:    { defaut: true,      type: 'bool', css: true },
+
+    stories:         { defaut: true,      type: 'bool', css: true },
+    deplier:         { defaut: true,      type: 'bool' },
+
+    abosReleve:      { defaut: true,      type: 'bool' },
+
+    abosPeriode:     { defaut: 6,         type: 'choix', valeurs: [3, 6, 12, 24] },
+
+    topN:            { defaut: CFG.GLOBAL_TOP_N, type: 'choix', valeurs: [10, 30, 50] },
+    topOnglet:       { defaut: true,      type: 'bool', css: true },
+
+    tris:            { defaut: [],        type: 'jeu', css: true,
+                       valeurs: ['viewers', 'subs', 'popular', 'uptime',
+                                 'alpha', 'costream'] },
+    filtreCategorie: { defaut: true,      type: 'bool', css: true },
+    filtreLangue:    { defaut: true,      type: 'bool', css: true },
+
+    theme:           { defaut: 'auto',    type: 'choix', valeurs: ['auto', 'dark', 'light'] },
+
+    visites:         { defaut: true,      type: 'bool' }
+  });
+
+  const options = (() => {
+    const valeurs = Object.create(null);
+    for (const [id, d] of Object.entries(OPT_DEFS)) {
+      valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
+    }
+
+    const propre = (id, v) => {
+      const d = OPT_DEFS[id];
+      if (!d) return undefined;
+      if (d.type === 'bool')  return typeof v === 'boolean' ? v : undefined;
+      if (d.type === 'choix') return d.valeurs.includes(v) ? v : undefined;
+      if (d.type === 'jeu') {
+        if (!Array.isArray(v)) return undefined;
+        const gardes = v.filter((x) => d.valeurs.includes(x));
+        return [...new Set(gardes)];
+      }
+      return undefined;
+    };
+
+    const charger = () => {
+      let brut = null;
+      try { brut = JSON.parse(localStorage.getItem(CFG.OPTIONS_KEY) || 'null'); }
+      catch { brut = null; }
+      if (!brut || typeof brut !== 'object') return;
+      for (const [id, v] of Object.entries(brut)) {
+        const ok = propre(id, v);
+        if (ok !== undefined) valeurs[id] = ok;
+      }
+    };
+
+    const ecrire = () => {
+
+      const ecarts = {};
+      for (const [id, d] of Object.entries(OPT_DEFS)) {
+        const v = valeurs[id];
+        const meme = Array.isArray(d.defaut)
+          ? v.length === d.defaut.length && v.every((x) => d.defaut.includes(x))
+          : v === d.defaut;
+        if (!meme) ecarts[id] = v;
+      }
+      try {
+        if (Object.keys(ecarts).length) {
+          localStorage.setItem(CFG.OPTIONS_KEY, JSON.stringify(ecarts));
+        } else {
+          localStorage.removeItem(CFG.OPTIONS_KEY);
+        }
+      } catch {   }
+    };
+
+    const abonnes = new Set();
+    const prevenir = () => { for (const f of abonnes) { try { f(); } catch {   } } };
+
+    charger();
+
+    return {
+      get: (id) => valeurs[id],
+
+      actif: (id, membre) => !valeurs[id].includes(membre),
+      tout: () => {
+        const copie = {};
+        for (const id of Object.keys(OPT_DEFS)) {
+          copie[id] = Array.isArray(valeurs[id]) ? valeurs[id].slice() : valeurs[id];
+        }
+        return copie;
+      },
+      defauts: () => {
+        const copie = {};
+        for (const [id, d] of Object.entries(OPT_DEFS)) {
+          copie[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
+        }
+        return copie;
+      },
+      definitions: () => OPT_DEFS,
+      poser: (id, v) => {
+        const ok = propre(id, v);
+        if (ok === undefined) return false;
+        const meme = Array.isArray(ok)
+          ? ok.length === valeurs[id].length && ok.every((x) => valeurs[id].includes(x))
+          : ok === valeurs[id];
+        if (meme) return true;
+        valeurs[id] = ok;
+        ecrire(); prevenir();
+        return true;
+      },
+      remettre: () => {
+        for (const [id, d] of Object.entries(OPT_DEFS)) {
+          valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
+        }
+        ecrire(); prevenir();
+      },
+
+      relire: () => { charger(); prevenir(); },
+      surChangement: (f) => { abonnes.add(f); }
+    };
+  })();
+
+  const appliquerOptions = () => {
+    const html = document.documentElement;
+    const eteints = [];
+    for (const [id, d] of Object.entries(OPT_DEFS)) {
+      if (!d.css) continue;
+      if (d.type === 'bool') { if (!options.get(id)) eteints.push(id); continue; }
+      if (d.type === 'jeu') {
+        const prefixe = id === 'badges' ? 'badge-' : 'tri-';
+        for (const m of options.get(id)) eteints.push(prefixe + m);
+      }
+    }
+    const jetons = eteints.join(' ');
+    if ((html.getAttribute('data-tse-off') || '') !== jetons) {
+      if (jetons) html.setAttribute('data-tse-off', jetons);
+      else html.removeAttribute('data-tse-off');
+    }
+    const pose = (attr, v, parDefaut) => {
+      const veut = v === parDefaut ? null : String(v);
+      if ((html.getAttribute(attr) || null) === veut) return;
+      if (veut === null) html.removeAttribute(attr);
+      else html.setAttribute(attr, veut);
+    };
+    pose('data-tse-or',     options.get('abonnes'),      'plein');
+    pose('data-tse-apercu', options.get('apercuTaille'), 'normal');
+  };
+  options.surChangement(appliquerOptions);
+  appliquerOptions();
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === CFG.OPTIONS_KEY) options.relire();
   });
 
   const state = {
@@ -2434,6 +2607,80 @@ const TSE_GATE_MAX_CLICKS = 5;
       color: rgba(var(--tse-encre), 0.40);
       font-style: italic;
     }
+
+    
+
+    
+    html[data-tse-off~="duree"] .tse-uptime { display: none !important; }
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh::before { display: none !important; }
+    html[data-tse-off~="collab"] .tse-collab-badge { display: none !important; }
+    html[data-tse-off~="subathonJour"] .tse-subathon-jour { display: none !important; }
+
+    
+    html[data-tse-off~="topOnglet"] .tse-mode-row { display: none !important; }
+    html[data-tse-off~="filtreCategorie"] .tse-filter-field--cat { display: none !important; }
+    html[data-tse-off~="filtreLangue"] .tse-filter-field--lang { display: none !important; }
+    html[data-tse-off~="tri-viewers"]  .tse-sort-toggle[data-tse-sort-mode="viewers"],
+    html[data-tse-off~="tri-subs"]     .tse-sort-toggle[data-tse-sort-mode="subs"],
+    html[data-tse-off~="tri-popular"]  .tse-sort-toggle[data-tse-sort-mode="popular"],
+    html[data-tse-off~="tri-uptime"]   .tse-sort-toggle[data-tse-sort-mode="uptime"],
+    html[data-tse-off~="tri-alpha"]    .tse-sort-toggle[data-tse-sort-mode="alpha"],
+    html[data-tse-off~="tri-costream"] .tse-sort-toggle[data-tse-sort-mode="costream"] {
+      display: none !important;
+    }
+
+    
+    html[data-tse-off~="stories"] [data-tse-stories="row"] { display: none !important; }
+
+    
+    html[data-tse-off~="badge-ccl"]      .tse-preview__badge--ccl,
+    html[data-tse-off~="badge-costream"] .tse-preview__badge--costream,
+    html[data-tse-off~="badge-squad"]    .tse-preview__badge--squad,
+    html[data-tse-off~="badge-sub"]      .tse-preview__badge--sub,
+    html[data-tse-off~="badge-exsub"]    .tse-preview__badge--exsub,
+    html[data-tse-off~="badge-sponsor"]  .tse-preview__badge--sponsor,
+    html[data-tse-off~="badge-hype"]     .tse-preview__badge--hype,
+    html[data-tse-off~="badge-discount"] .tse-preview__badge--discount,
+    html[data-tse-off~="badge-switch"]   .tse-preview__badge--switch,
+    html[data-tse-off~="badge-reprise"]  .tse-preview__badge--reprise,
+    html[data-tse-off~="badge-subathon"] .tse-preview__badge--subathon {
+      display: none !important;
+    }
+
+    
+    html[data-tse-or="discret"] .side-nav-card.tse-sub::after,
+    html[data-tse-or="aucun"]   .side-nav-card.tse-sub::after {
+      display: none !important;
+    }
+    html[data-tse-or="discret"] .side-nav-card.tse-sub p.tse-nom,
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-cat,
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-avatar,
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-avatar::after {
+      animation: none !important;
+    }
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub p.tse-nom,
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-cat {
+      background: none !important;
+      -webkit-text-fill-color: currentColor !important;
+      color: var(--tse-texte) !important;
+      font-weight: inherit !important;
+      animation: none !important;
+      filter: none !important;
+    }
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-cat {
+      color: var(--tse-texte-doux) !important;
+    }
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-avatar {
+      animation: none !important;
+      box-shadow: none !important;
+    }
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-avatar::after {
+      display: none !important;
+    }
+
+    
+    html[data-tse-apercu="petit"] .tse-preview { width: 360px; }
+    html[data-tse-apercu="grand"] .tse-preview { width: 620px; }
   `;
 
   const injectCSS = () => {
@@ -3357,7 +3604,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
       rankingTs    = Date.now();
-      threshold    = nthViewers(pool, CFG.GLOBAL_TOP_N);
+      threshold    = nthViewers(pool, options.get('topN'));
     };
 
     const mesuresCatLangue = new Map();
@@ -3422,7 +3669,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (!langues.length) return;
         const ops = langues.map(l => categorie
           ? { operationName: 'TseCatLangCount',
-              variables: { name: categorie, n: CFG.GLOBAL_TOP_N },
+              variables: { name: categorie, n: options.get('topN') },
               query: catLangCountQuery(LANG_API[l]) }
           : { operationName: 'TseTagCount',
               variables: { tag: l, n: CFG.GLOBAL_TAG_MAX },
@@ -3467,7 +3714,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const noms = categories.slice(0, CFG.GLOBAL_CATEGORIES_MAX).map(c => c.name);
         const ops = noms.map(name => ({
           operationName: 'TseCatLangCount',
-          variables: { name, n: CFG.GLOBAL_TOP_N },
+          variables: { name, n: options.get('topN') },
           query: catLangCountQuery(code)
         }));
         bilanMesures.passes += 1;
@@ -3500,7 +3747,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       categories   = cats;
       categoriesTs = started;
 
-      if (wl?.lang && !tagRefuse && CFG.GLOBAL_TOP_N <= CFG.GLOBAL_TAG_MAX) {
+      if (wl?.lang && !tagRefuse && options.get('topN') <= CFG.GLOBAL_TAG_MAX) {
         const parTag = await tagTop(wl.lang);
         if (gen !== walkGen) return { ok: true, complete: false };
         if (parTag) {
@@ -3534,7 +3781,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
       if (!a.done) return { ok: false, complete: false };
 
-      const t = nthViewers(pool, CFG.GLOBAL_TOP_N);
+      const t = nthViewers(pool, options.get('topN'));
 
       const rest = cats.slice(seed.length);
       const todo = [];
@@ -3801,7 +4048,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         return ranking;
       },
 
-      top(n = CFG.GLOBAL_TOP_N) {
+      top(n = options.get('topN')) {
         const lang = state.globalMode ? state.languageFilter : null;
         const liste = this.base();
 
@@ -3905,21 +4152,23 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const RESERVED =/^(directory|videos|search|p|drops|wallet|prime|subscriptions|settings|jobs|turbo|moderator|payments|inventory|messages|friends)$/i;
 
+  const enForme = (totalMin) => {
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    switch (options.get('dureeFormat')) {
+      case 'colon': return `${h}:${String(m).padStart(2, '0')}`;
+      case 'min':   return `${totalMin} min`;
+      default:      return h === 0 ? `${m}m` : `${h}h${String(m).padStart(2, '0')}`;
+    }
+  };
+
   const formatUptime = (createdAt) => {
     const start = new Date(createdAt).getTime();
     if (!Number.isFinite(start)) return '';
-    const totalMin = Math.max(0, Math.floor((Date.now() - start) / 60_000));
-    const h = Math.floor(totalMin / 60);
-    const m = totalMin % 60;
-    return h === 0 ? `${m}m` : `${h}h${String(m).padStart(2, '0')}`;
+    return enForme(Math.max(0, Math.floor((Date.now() - start) / 60_000)));
   };
 
-  const formatDuree = (ms) => {
-    const totalMin = Math.max(0, Math.round(ms / 60_000));
-    const h = Math.floor(totalMin / 60);
-    const m = totalMin % 60;
-    return h === 0 ? `${m}m` : `${h}h${String(m).padStart(2, '0')}`;
-  };
+  const formatDuree = (ms) => enForme(Math.max(0, Math.round(ms / 60_000)));
 
   const loginFromHref = (href) => {
     if (!href) return null;
@@ -4214,6 +4463,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     },
 
     record(login) {
+
+      if (!options.get('visites')) return;
       if (!login) return;
       const now = Date.now();
       const list = this.map.get(login) || [];
@@ -4539,8 +4790,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     });
 
     const refresh = async (force = false) => {
-      if (!CFG.SUBS_PAGE_ENABLED || running) return null;
-      if (!force && Date.now() - horodatage() < CFG.SUBS_PAGE_TTL) return null;
+
+      if (!CFG.SUBS_PAGE_ENABLED || !options.get('abosReleve') || running) return null;
+
+      const periode = options.get('abosPeriode') === OPT_DEFS.abosPeriode.defaut
+        ? CFG.SUBS_PAGE_TTL
+        : options.get('abosPeriode') * 3_600_000;
+      if (!force && Date.now() - horodatage() < periode) return null;
       if (!document.body) return null;
       running = true;
       const trouves = [];
@@ -4640,7 +4896,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     const init = () => {
-      if (!CFG.SUBS_PAGE_ENABLED) return;
+      if (!CFG.SUBS_PAGE_ENABLED || !options.get('abosReleve')) return;
       arme = true;
     };
 
@@ -5020,7 +5276,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         globalChannels.reset();
         return globalChannels.report();
       },
-      top(limit = CFG.GLOBAL_TOP_N) {
+      top(limit = options.get('topN')) {
         const rows = globalChannels.top(limit).map((r, i) => ({
           rank: i + 1, login: r.login, viewers: r.viewers, game: r.game
         }));
@@ -5147,7 +5403,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       },
       global() {
         const rapport = globalChannels.report();
-        const lignes = globalChannels.top(CFG.GLOBAL_TOP_N)
+        const lignes = globalChannels.top(options.get('topN'))
           .map((r, i) => ({ rang: i + 1, login: r.login, viewers: r.viewers, game: r.game }));
         return { colonnes: ['rang', 'login', 'viewers', 'game'], lignes,
                  resume: { actif: !!state.globalMode, ...rapport } };
@@ -5157,6 +5413,22 @@ const TSE_GATE_MAX_CLICKS = 5;
           .map((c, i) => ({ rang: i + 1, libelle: c.display, canonique: c.name, viewers: c.viewers }));
         return { colonnes: ['rang', 'libelle', 'canonique', 'viewers'], lignes,
                  resume: { categories: lignes.length, actif: !!state.globalMode } };
+      },
+
+      options() {
+        const valeurs = options.tout();
+        const defauts = options.defauts();
+        const ecart = (id) => (Array.isArray(defauts[id])
+          ? valeurs[id].length !== defauts[id].length
+            || !valeurs[id].every((x) => defauts[id].includes(x))
+          : valeurs[id] !== defauts[id]);
+        const modifies = Object.keys(defauts).filter(ecart);
+        return {
+          resume: { reglages: Object.keys(defauts).length,
+                    modifies: modifies.length },
+          defs: options.definitions(),
+          valeurs, defauts, modifies,
+        };
       },
     },
 
@@ -5208,6 +5480,17 @@ const TSE_GATE_MAX_CLICKS = 5;
                      etat: anims.length ? anims[0].playState : null };
           })(),
           theme: themeTwitch(),
+
+          reglages: (() => {
+            const v = options.tout(), d = options.defauts(), out = {};
+            for (const id of Object.keys(d)) {
+              const meme = Array.isArray(d[id])
+                ? v[id].length === d[id].length && v[id].every((x) => d[id].includes(x))
+                : v[id] === d[id];
+              if (!meme) out[id] = v[id];
+            }
+            return out;
+          })(),
           modele: modeleVoie,
           modeleRefus,
 
@@ -5356,6 +5639,39 @@ const TSE_GATE_MAX_CLICKS = 5;
     actions: {
       reset()   { tseApi.reset(); return { fait: true }; },
       rescan()  { tseApi.rescan(); return { fait: true }; },
+
+      setOption(arg) {
+        const id = arg && arg.id;
+        const ok = !!id && options.poser(id, arg.valeur);
+        return { ok, ...panneau.sections.options() };
+      },
+      resetOptions() {
+        options.remettre();
+        return { ok: true, ...panneau.sections.options() };
+      },
+
+      importOptions(arg) {
+        const entrees = (arg && arg.valeurs && typeof arg.valeurs === 'object')
+          ? Object.entries(arg.valeurs) : [];
+        let pris = 0, refuses = 0;
+        options.remettre();
+        for (const [id, v] of entrees) {
+          if (options.definitions()[id] && options.poser(id, v)) pris++;
+          else refuses++;
+        }
+        return { ok: true, pris, refuses, ...panneau.sections.options() };
+      },
+
+      purge(arg) {
+        switch (arg && arg.quoi) {
+          case 'visites':
+            visits.map.clear(); oublier(CFG.VISIT_STORAGE_KEY, 'visites');
+            return { fait: true, quoi: 'visites' };
+          case 'subs':   subs.clear();   return { fait: true, quoi: 'subs' };
+          case 'roster': roster.clear(); return { fait: true, quoi: 'roster' };
+          default:       return { fait: false, quoi: null };
+        }
+      },
       async refreshSubs() {
         const r = await subsPage.refresh(true);
         return { fait: r !== null, chaines: Array.isArray(r) ? r.length : 0 };
@@ -5403,6 +5719,11 @@ const TSE_GATE_MAX_CLICKS = 5;
   tseApi.subs.refresh = () => subsPage.refresh(true);
 
   tseApi.rescan = () => { invalidateAndRescan(); };
+
+  tseApi.options = () => options.tout();
+  tseApi.options.poser = (id, v) => options.poser(id, v);
+  tseApi.options.defauts = () => options.defauts();
+  tseApi.options.remettre = () => options.remettre();
 
   tseApi.battement = () => new Promise((resolve) => {
     const carte = document.querySelector('.side-nav-card.tse-fresh');
@@ -5484,7 +5805,9 @@ const TSE_GATE_MAX_CLICKS = 5;
   const bilanTheme = { courant: null, bascules: 0 };
 
   const appliquerTheme = () => {
-    const t = themeTwitch();
+
+    const choisi = options.get('theme');
+    const t = choisi === 'auto' ? themeTwitch() : choisi;
     const html = document.documentElement;
     if (html.getAttribute('data-tse-theme') !== t) {
       html.setAttribute('data-tse-theme', t);
@@ -5493,6 +5816,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     return t;
   };
+
+  options.surChangement(() => appliquerTheme());
 
   const veilleTheme = new MutationObserver(() => appliquerTheme());
   veilleTheme.observe(document.documentElement,
@@ -6478,7 +6803,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         channel: login,
         parent: 'twitch.tv',
         player: 'popout',
-        quality: CFG.PREVIEW_IFRAME_QUALITY,
+
+        quality: options.get('apercuQualite'),
         muted: 'true',
         controls: 'false',
         autoplay: 'true'
@@ -7377,6 +7703,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         updateCostreamBadge(login, costreamInfo, meta.id || getChannelId(login), meta.costreamOrganizer);
       });
 
+      if (!options.get('apercuVideo')) return;
+
       iframeTimer = setTimeout(() => {
         iframeTimer = null;
         injectIframe(login);
@@ -7403,6 +7731,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       }, { passive: true, capture: true });
 
       document.addEventListener('mouseenter', (e) => {
+
+        if (!options.get('apercu')) return;
         const t = e.target;
         if (!t || typeof t.closest !== 'function') return;
         const card = resolveCard(t);
@@ -7637,6 +7967,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   }
 
   function autoExpandFollowed() {
+
+    if (!options.get('deplier')) return;
     const section = followedSection();
     if (!section) return;
 
@@ -8919,7 +9251,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (l && !isSynthetic(c) && !c.dataset.tseGlobal && !natives.has(l)) natives.set(l, c);
     }
 
-    const top = globalChannels.top(CFG.GLOBAL_TOP_N);
+    const top = globalChannels.top(options.get('topN'));
     const keep = new Set();
     ready(top.length);
     globalSeed.clear();
@@ -9202,6 +9534,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       scanSidebar();
     }, CFG.SCAN_DEBOUNCE);
   };
+
+  options.surChangement(() => scheduleScan());
 
   const rattraperScan = () => {
     if (!scanEnRetard) return false;

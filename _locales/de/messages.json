@@ -476,5 +476,260 @@
   },
   "guideDemoEnCours": {
     "message": "läuft"
+  },
+  "grpOptions": {
+    "message": "Einstellungen"
+  },
+  "navOptions": {
+    "message": "Optionen"
+  },
+  "descOptions": {
+    "message": "Was die Erweiterung hinzufügt und was sie unangetastet lässt. Alles ist standardmäßig aktiv; ein violetter Punkt markiert Geändertes."
+  },
+  "sumSettings": {
+    "message": "Einstellungen"
+  },
+  "sumChanged": {
+    "message": "geändert"
+  },
+  "optGrpApercu": {
+    "message": "Hover-Vorschau"
+  },
+  "optApercu": {
+    "message": "Vorschau anzeigen"
+  },
+  "optApercuVideo": {
+    "message": "Live-Videostream"
+  },
+  "optDescApercuVideo": {
+    "message": "Aus behält die Vorschau Miniaturbild, Abzeichen und Zeitleiste — nur das Video wird nicht mehr geladen."
+  },
+  "optApercuQualite": {
+    "message": "Streamqualität"
+  },
+  "optDescApercuQualite": {
+    "message": "Gilt ab der nächsten Vorschau, ohne Neuladen."
+  },
+  "optApercuTaille": {
+    "message": "Fensterbreite"
+  },
+  "optGrpBadges": {
+    "message": "Abzeichen der Vorschau"
+  },
+  "optBadges": {
+    "message": "Angezeigte Abzeichen"
+  },
+  "optGrpCarte": {
+    "message": "Die Karte in der Seitenleiste"
+  },
+  "optDuree": {
+    "message": "Streamdauer"
+  },
+  "optDureeFormat": {
+    "message": "Format der Dauer"
+  },
+  "optFresh": {
+    "message": "Balken „gerade gestartet“"
+  },
+  "optCollab": {
+    "message": "Kollaborations-Punkt"
+  },
+  "optAbonnes": {
+    "message": "Gold der Abonnements"
+  },
+  "optDescAbonnes": {
+    "message": "„Dezent“ behält die Farbe und entfernt das Schimmern. „Keines“ gibt die Karte an Twitch zurück."
+  },
+  "optSubathonJour": {
+    "message": "Tages-Punkt des Subathons"
+  },
+  "optGrpListe": {
+    "message": "Die Liste, ihre Sortierungen und Filter"
+  },
+  "optTris": {
+    "message": "Angezeigte Sortierschaltflächen"
+  },
+  "optFiltreCategorie": {
+    "message": "Filter nach Kategorie"
+  },
+  "optFiltreLangue": {
+    "message": "Filter nach Sprache"
+  },
+  "optTopOnglet": {
+    "message": "Tab „Top-Kanäle“"
+  },
+  "optTopN": {
+    "message": "Kanäle in der Rangliste"
+  },
+  "optDescTopN": {
+    "message": "Über dreißig verlieren manche Sprachen eine Optimierung, und die Rangliste füllt sich langsamer."
+  },
+  "optGrpTwitch": {
+    "message": "Was Twitch anzeigt"
+  },
+  "optStories": {
+    "message": "Stories"
+  },
+  "optDescStories": {
+    "message": "Standardmäßig sichtbar: so macht es Twitch."
+  },
+  "optDeplier": {
+    "message": "„Mehr anzeigen“ automatisch aufklappen"
+  },
+  "optDescDeplier": {
+    "message": "Aus bleibt die Liste so, wie Twitch sie ausgibt — die Erweiterung misst weiterhin alles, was sie sieht."
+  },
+  "optGrpAbos": {
+    "message": "Abonnements auslesen"
+  },
+  "optAbosReleve": {
+    "message": "Meine Abonnements auslesen"
+  },
+  "optDescAbosReleve": {
+    "message": "Das ist die einzige authentifizierte Anfrage der Erweiterung: Sie öffnet deine eigene Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen. Aus stützen sich das Gold und die Sortierung „Abonnements zuerst“ nur noch auf besuchte Kanäle."
+  },
+  "optAbosPeriode": {
+    "message": "Höchstens einmal alle"
+  },
+  "optGrpTheme": {
+    "message": "Erscheinungsbild"
+  },
+  "optTheme": {
+    "message": "Design in Twitch"
+  },
+  "optDescTheme": {
+    "message": "„Auto“ folgt dem Design von Twitch. Ein erzwungenes Design ändert nur, wie die Erweiterung darüber zeichnet."
+  },
+  "optGrpDonnees": {
+    "message": "Daten"
+  },
+  "optVisites": {
+    "message": "Meine Besuche lernen"
+  },
+  "optDescVisites": {
+    "message": "Aus bleibt Gelerntes lesbar, es kommt aber nichts mehr hinzu. Die Sortierung „persönliche Beliebtheit“ und das Rhythmusraster entwickeln sich nicht weiter."
+  },
+  "optGrpPanneau": {
+    "message": "Dieses Panel"
+  },
+  "optPanneauTheme": {
+    "message": "Design des Panels"
+  },
+  "optDescPanneauTheme": {
+    "message": "Getrennt vom vorherigen: Dieses Panel muss sich auch ohne offenen Twitch-Tab zeichnen können."
+  },
+  "optPanneauDiag": {
+    "message": "Diagnosen anzeigen"
+  },
+  "optDescPanneauDiag": {
+    "message": "Die Messkapitel — Verzögerung, Zyklen, Vorschau, Wechsel — dienen nur dazu, ein Problem zu melden."
+  },
+  "optGrpPurge": {
+    "message": "Gezielt löschen"
+  },
+  "optDescPurge": {
+    "message": "Jede Schaltfläche löscht nur ihren eigenen Speicher. Die rote Schaltfläche unten löscht alle."
+  },
+  "btnPurgeVisits": {
+    "message": "Besuche löschen"
+  },
+  "purgeVisitsTitle": {
+    "message": "Besuchsverlauf löschen?"
+  },
+  "purgeVisitsText": {
+    "message": "Die Sortierung „persönliche Beliebtheit“ und das Rhythmusraster beginnen bei null. Abonnements und gefolgte Kanäle bleiben unberührt."
+  },
+  "btnPurgeSubs": {
+    "message": "Abonnements löschen"
+  },
+  "purgeSubsTitle": {
+    "message": "Erkannte Abonnements löschen?"
+  },
+  "purgeSubsText": {
+    "message": "Das Gold verschwindet bis zum nächsten Auslesen von den Karten. Besuche und gefolgte Kanäle bleiben unberührt."
+  },
+  "btnPurgeRoster": {
+    "message": "Gefolgte Kanäle löschen"
+  },
+  "purgeRosterTitle": {
+    "message": "Gemerkte gefolgte Kanäle löschen?"
+  },
+  "purgeRosterText": {
+    "message": "Die Liste baut sich beim Beobachten der Seitenleiste neu auf. Besuche und Abonnements bleiben unberührt."
+  },
+  "optPurgeFaite": {
+    "message": "Gelöscht."
+  },
+  "optGrpEchange": {
+    "message": "Exportieren und importieren"
+  },
+  "btnOptExport": {
+    "message": "Exportieren"
+  },
+  "btnOptImport": {
+    "message": "Importieren"
+  },
+  "optImportInvalide": {
+    "message": "Das ist kein gültiger Satz von Einstellungen."
+  },
+  "optImportFait": {
+    "message": "$1 Einstellung(en) übernommen, $2 ignoriert."
+  },
+  "btnOptReset": {
+    "message": "Alles zurücksetzen"
+  },
+  "optResetTitle": {
+    "message": "Alle Einstellungen zurücksetzen?"
+  },
+  "optResetText": {
+    "message": "Alle zweiundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+  },
+  "optValPlein": {
+    "message": "Voll"
+  },
+  "optValDiscret": {
+    "message": "Dezent"
+  },
+  "optValAucun": {
+    "message": "Keines"
+  },
+  "optValPetit": {
+    "message": "Klein"
+  },
+  "optValNormal": {
+    "message": "Normal"
+  },
+  "optValGrand": {
+    "message": "Groß"
+  },
+  "optValAuto": {
+    "message": "Auto"
+  },
+  "optValDark": {
+    "message": "Dunkel"
+  },
+  "optValLight": {
+    "message": "Hell"
+  },
+  "optHeures": {
+    "message": "$1 Std."
+  },
+  "optTriViewers": {
+    "message": "Zuschauer"
+  },
+  "optTriSubs": {
+    "message": "Abonnements"
+  },
+  "optTriPopular": {
+    "message": "Persönliche Beliebtheit"
+  },
+  "optTriUptime": {
+    "message": "Streamdauer"
+  },
+  "optTriAlpha": {
+    "message": "Alphabetisch"
+  },
+  "optTriCostream": {
+    "message": "Co-Streams"
   }
 }

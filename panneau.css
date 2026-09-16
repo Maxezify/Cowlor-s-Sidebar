@@ -776,3 +776,170 @@ html[data-theme="light"] .d-jour {
   0%, 100% { opacity: 0.45; }
   50%      { opacity: 1; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   L'ONGLET DES RÉGLAGES
+   ────────────────────────────────────────────────────────────────────────────
+   Une liste de lignes, pas un tableau : chaque ligne porte à gauche ce qu'on
+   règle et à droite de quoi le régler. Le tableau avait été essayé — il
+   demandait des colonnes qui ne voulaient rien dire (« valeur » d'une case à
+   cocher ?) et des en-têtes que personne ne lit deux fois.
+
+   TOUT EST EN JETONS. Pas une couleur en dur dans ce bloc : le panneau a deux
+   thèmes depuis la 4.8, et une valeur écrite ici serait juste dans l'un et
+   illisible dans l'autre. C'est exactement l'erreur que la 4.8 a passé une
+   version à corriger ailleurs. */
+.reglages {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow: auto;
+  padding-right: 4px;
+}
+.reglages[hidden] { display: none; }
+
+.reg-groupe {
+  border: 1px solid var(--filet);
+  border-radius: var(--r-grand);
+  background: var(--fond-2);
+  padding: 12px 14px;
+}
+.reg-titre {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texte-faible);
+}
+
+.reg-ligne {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-top: 1px solid var(--filet);
+}
+.reg-ligne:first-of-type { border-top: 0; }
+/* Un jeu de cases ne tient pas sur une ligne : il passe dessous, à gauche. */
+.reg-ligne--large { display: block; }
+.reg-ligne--large .reg-ctrl { margin-top: 8px; }
+
+/* LE POINT DES RÉGLAGES MODIFIÉS. Sans lui, retrouver ce qu'on a touché dans
+   vingt-et-une lignes demande de se souvenir des défauts — c'est-à-dire de
+   savoir ce que le panneau sait déjà. Une pastille, pas une couleur de fond :
+   le fond aurait crié sur huit lignes à la fois. */
+.reg-ligne--modifie .reg-nom { position: relative; }
+.reg-ligne--modifie .reg-nom::before {
+  content: '';
+  position: absolute;
+  left: -10px; top: 50%;
+  width: 5px; height: 5px;
+  margin-top: -2.5px;
+  border-radius: 50%;
+  background: var(--violet);
+}
+
+.reg-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.reg-nom   { color: var(--texte); font-size: 13px; }
+.reg-desc  { color: var(--texte-doux); font-size: 11.5px; line-height: 1.45; }
+.reg-ctrl  { flex: none; }
+
+/* ── L'interrupteur ──────────────────────────────────────────────────────── */
+.reg-bascule { display: inline-flex; cursor: pointer; }
+/* La case reste dans le document et garde le focus clavier : la masquer avec
+   « display: none » l'aurait sortie de l'ordre de tabulation, c'est-à-dire
+   rendu l'onglet inutilisable sans souris. */
+.reg-bascule input {
+  position: absolute;
+  opacity: 0;
+  width: 34px; height: 20px;
+  margin: 0;
+  cursor: pointer;
+}
+.reg-piste {
+  width: 34px; height: 20px;
+  border-radius: 10px;
+  background: var(--fond-creux);
+  border: 1px solid var(--filet-fort);
+  position: relative;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.reg-piste::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--texte-doux);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.reg-bascule input:checked + .reg-piste {
+  background: var(--violet);
+  border-color: var(--violet);
+}
+.reg-bascule input:checked + .reg-piste::after {
+  transform: translateX(14px);
+  background: #ffffff;
+}
+.reg-bascule input:focus-visible + .reg-piste {
+  outline: 2px solid var(--violet);
+  outline-offset: 2px;
+}
+
+/* ── Le menu ─────────────────────────────────────────────────────────────── */
+.reg-menu {
+  background: var(--fond-creux);
+  color: var(--texte);
+  border: 1px solid var(--filet-fort);
+  border-radius: var(--r-petit);
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 12.5px;
+  min-width: 108px;
+}
+.reg-menu:focus-visible { outline: 2px solid var(--violet); outline-offset: 1px; }
+
+/* ── Les jeux de cases ───────────────────────────────────────────────────── */
+.reg-cases { display: flex; flex-wrap: wrap; gap: 6px 10px; }
+.reg-case {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px 4px 7px;
+  border: 1px solid var(--filet);
+  border-radius: 999px;
+  background: var(--fond-creux);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--texte-doux);
+}
+.reg-case input { accent-color: var(--violet); margin: 0; cursor: pointer; }
+.reg-case:has(input:checked) { color: var(--texte); border-color: var(--filet-fort); }
+.reg-case:has(input:focus-visible) { outline: 2px solid var(--violet); outline-offset: 1px; }
+
+/* ── L'échange par texte, et les purges ──────────────────────────────────── */
+.reg-zone {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  box-sizing: border-box;
+  background: var(--fond-creux);
+  color: var(--texte);
+  border: 1px solid var(--filet);
+  border-radius: var(--r-petit);
+  padding: 8px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.reg-zone:focus-visible { outline: 2px solid var(--violet); outline-offset: 1px; }
+.reg-boutons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.reg-note { margin: 10px 0 0; font-size: 11.5px; color: var(--texte-doux); }
+.reg-note--erreur { color: var(--rouge); }
+.reg-note[hidden] { display: none; }
+
+/* ── Le rail sans ses diagnostics ────────────────────────────────────────── */
+html[data-sans-diag] .rail-item[data-groupe="grpDiag"],
+html[data-sans-diag] .rail-groupe[data-groupe="grpDiag"] { display: none; }

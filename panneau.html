@@ -47,6 +47,15 @@
            dans la feuille puisqu'on lui déclare un display. -->
       <div class="guide" id="guide" hidden></div>
 
+      <!-- LES RÉGLAGES ONT LEUR PROPRE CONTENEUR, pour la même raison que le
+           guide : ce n'est ni un tableau, ni un dessin, ni un message. Les y
+           faire entrer aurait voulu dire fabriquer des lignes de tableau qui
+           contiennent des cases à cocher — c'est-à-dire un tableau qui n'en
+           est plus un, avec des colonnes qui ne veulent rien dire. Vide, il ne
+           coûte rien : `hidden` le retire, et la règle est redite dans la
+           feuille puisqu'on lui déclare un display. -->
+      <div class="reglages" id="reglages" hidden></div>
+
       <div class="resume" id="resume"></div>
 
       <!-- LA PLACE DU DESSIN, entre les cartouches et le tableau. Toutes les
