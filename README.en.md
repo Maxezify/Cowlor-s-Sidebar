@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1147 assertions, under Gecko
+npm run test-firefox        # the same 1150 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,89 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## A truncated response only judges what it contained (v4.13.1)
+
+### The report
+
+> "KyriaTV disappeared even though she was there at the very beginning."
+
+She had not ended: her count read **895** in the followed bar, above the
+ranking's threshold (**571** at the time of the report). She had been **evicted**.
+
+### All our sources are "top N", and we used them as complete lists
+
+| source | what it asks for | what the pool holds |
+| --- | --- | --- |
+| the tag route | the world's top **30** for that language | **283** channels |
+| the descent | the top **30** of each category | same |
+
+Reconciliation counted a miss against **every** pooled channel absent from the
+response. For the tag route, with its "everything looked at" flag, that meant
+**two hundred and fifty misses per pass**, handed to perfectly live channels for
+the sole reason that they live below rank thirty.
+
+Three passes — `GLOBAL_MISS_CONFIRM` — and everything below that rank is evicted.
+Measured on the user's machine: **308 misses, 17 evictions**.
+
+> **"IN THE RUNNING" IS NOT "LOOKED AT".** The original reasoning was written
+> down: "the query is ONE, global and ordered: everything carrying the tag was in
+> the running, so an absence is real". That is the hole — being in the running
+> and **losing** says nothing more than "I am below rank thirty". It is not a
+> disappearance.
+
+### The floor
+
+A truncated response can only judge the channels **that should have been in it**:
+those whose known count reaches the lowest count it returns. Below that floor the
+response says **nothing** — exactly the rule the descent already applied to
+categories it had not visited: *not looked at, not judged.*
+
+```js
+if (rec.viewers < plancherDe(rec)) { stats.sousPlancher += 1; continue; }
+```
+
+**A response shorter than the request is exhaustive**, and there an absence is
+real: the floor therefore applies only to **full** responses. That is what
+`plancherReponse(recs, demande)` decides, and it is why the scenario's two small
+channels — alone in their category — stay judgeable by the descent while being
+protected from the tag ranking.
+
+The descent's floor is **per category**, and measured on the edges **returned**
+rather than those retained: `readStream` drops tag stackers, and counting without
+them would make the response look shorter than it was — hence exhaustive when it
+was full.
+
+### The counter that would have shown all this without waiting for a report
+
+`sousPlancher` counts the misses we **refuse** to count. It joins the diagnostic
+report next to `misses` and `evicted`: two hundred and fifty per pass against
+thirty channels returned, and the defect reads at a glance.
+
+### What the bench adds
+
+Three assertions, one mutant, no survivors. The fixture sets a **full** tag
+ranking — thirty entries, the lowest at 1,000 — and two French channels at 100
+and 90 brought into the pool by the descent.
+
+| | `misses` | `sousPlancher` | the two small ones |
+| --- | --- | --- | --- |
+| healthy | **0** | **2** | in the ranking |
+| mutant (floor removed) | **2** | 0 | judged, evicted after three passes |
+
+### What this does not prove
+
+**The reported case is not closed by this measurement alone.** The defect evicted
+everything living below rank thirty, and KyriaTV at 895 was near that rank — but
+I could not query the real Twitch to establish that she was in it:
+`gql.twitch.tv` is blocked from this machine. A second lead remains, which the
+screenshots suggest: in **Guest Star**, the guest has no directory entry of its
+own — the session files under the host, which would explain why GoBGG appears and
+she does not, and why she was there **at the very beginning**, before joining the
+session.
+
+If the case recurs on this version, `sousPlancher` in the report will say which
+of the two mechanisms is responsible.
 
 ## The panel was inside the page and asking for directions (v4.13)
 
@@ -6861,7 +6944,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 124 scenarios, 1147 assertions |
+| `npm test` | the Playwright harness: 125 scenarios, 1150 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -6881,12 +6964,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1045 KB | 402 KB | 3,297 → **2** |
+| `content.js` | 1051 KB | 402 KB | 3,306 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 97 KB | 47 KB | 128 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1251 KB** | **541 KB** | **−57 %** |
+| **all five** | **1296 KB** | **556 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

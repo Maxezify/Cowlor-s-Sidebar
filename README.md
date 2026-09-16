@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1147 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1150 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,90 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Une réponse tronquée ne juge que ce qu'elle contenait (v4.13.1)
+
+### Le rapport
+
+> « KyriaTV a disparu alors qu'elle était présente au tout début. »
+
+Elle n'était pas terminée : son compteur affichait **895** dans la barre suivie,
+au-dessus du seuil du classement (**571** au relevé). Elle avait été **évincée**.
+
+### Toutes nos sources sont des « top N », et on s'en servait comme de listes complètes
+
+| source | ce qu'elle demande | ce que le pool contient |
+| --- | --- | --- |
+| la voie du tag | les **30** premières du monde pour cette langue | **283** chaînes |
+| la descente | les **30** premières de chaque catégorie | idem |
+
+La réconciliation comptait une absence à **toute** chaîne du pool ne figurant
+pas dans la réponse. Pour la voie du tag, avec le drapeau « tout regardé », cela
+voulait dire : **deux cent cinquante absences par passe**, données à des chaînes
+parfaitement vivantes, au seul motif qu'elles vivent sous le trentième rang.
+
+Trois passes — `GLOBAL_MISS_CONFIRM` — et tout ce qui vit sous ce rang est
+évincé. Relevé chez l'utilisateur : **308 absences, 17 évictions**.
+
+> **« EN LICE » N'EST PAS « REGARDÉE ».** Le raisonnement d'origine était écrit
+> noir sur blanc : « la requête est UNE, globale et ordonnée : tout ce qui porte
+> le tag y était en lice, donc une absence est réelle ». Le trou est là — être en
+> lice et **perdre** ne dit rien d'autre que « je suis sous le rang trente ». Ce
+> n'est pas une disparition.
+
+### Le plancher
+
+Une réponse tronquée ne peut juger que les chaînes **qui auraient dû y figurer** :
+celles dont le compteur connu atteint le plus petit compteur qu'elle rend. Sous
+ce plancher, la réponse ne dit **rien** — exactement la règle que la descente
+appliquait déjà aux catégories qu'elle n'avait pas visitées : *pas regardée, pas
+jugée.*
+
+```js
+if (rec.viewers < plancherDe(rec)) { stats.sousPlancher += 1; continue; }
+```
+
+**Une réponse plus courte que la demande est exhaustive**, et là une absence est
+réelle : le plancher ne s'applique donc qu'aux réponses **pleines**. C'est ce que
+`plancherReponse(recs, demande)` tranche, et c'est pourquoi les deux petites
+chaînes du scénario — seules dans leur catégorie — restent jugeables par la
+descente tout en étant protégées du classement par tag.
+
+Le plancher de la descente est **par catégorie**, et mesuré sur les arêtes
+**rendues** et non sur celles qu'on retient : `readStream` écarte les empileurs
+de tags, et compter sans eux ferait croire la réponse plus courte qu'elle
+n'était — donc exhaustive alors qu'elle était pleine.
+
+### Le compteur qui aurait montré tout ça sans attendre un rapport
+
+`sousPlancher` compte les absences qu'on **refuse** de compter. Il entre au
+rapport de diagnostic à côté de `misses` et `evicted` : deux cent cinquante par
+passe contre trente chaînes rendues, et le défaut se lisait d'un coup d'œil.
+
+### Ce que le banc ajoute
+
+Trois assertions, un mutant, aucun survivant. Le décor pose un classement par tag
+**plein** — trente entrées dont la plus basse à 1 000 — et deux chaînes
+françaises à 100 et 90 entrées au pool par la descente.
+
+| | `misses` | `sousPlancher` | les deux petites |
+| --- | --- | --- | --- |
+| code sain | **0** | **2** | au classement |
+| mutant (plancher retiré) | **2** | 0 | jugées, évincées au bout de trois passes |
+
+### Ce que cela ne prouve pas
+
+**Le cas signalé n'est pas refermé par cette mesure seule.** Ce défaut évinçait
+tout ce qui vit sous le trentième rang, et KyriaTV à 895 était près de ce rang —
+mais je n'ai pas pu interroger le vrai Twitch pour établir qu'elle y figurait :
+`gql.twitch.tv` est bloqué depuis cette machine. Reste une seconde piste, que
+les captures suggèrent : en **Guest Star**, l'invité n'a pas d'entrée propre dans
+l'annuaire — la session se range sous l'hôte, ce qui expliquerait que GoBGG
+apparaisse et pas elle, et qu'elle ait été présente **au tout début**, avant de
+rejoindre la session.
+
+Si le cas se reproduit sur cette version, `sousPlancher` dans le rapport dira
+lequel des deux mécanismes est en cause.
 
 ## Le panneau était dans la page et demandait son chemin (v4.13)
 
@@ -7159,7 +7243,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 124 scénarios, 1147 assertions |
+| `npm test` | le harnais Playwright : 125 scénarios, 1150 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -7180,12 +7264,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1045 Ko | 402 Ko | 3 297 → **2** |
+| `content.js` | 1051 Ko | 402 Ko | 3 306 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 97 Ko | 47 Ko | 128 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1251 Ko** | **541 Ko** | **−57 %** |
+| **les cinq** | **1296 Ko** | **556 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
