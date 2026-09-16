@@ -12,8 +12,7 @@
     "description": "Short description of the extension (max 132 chars on Chrome Web Store)"
   },
   "panelSubtitle": {
-    "message": "Data and diagnostics",
-    "description": "Sous-titre de l'en-tête du panneau"
+    "message": "Your data, your settings, and a way to report a problem"
   },
   "grpGuide": {
     "message": "Get started",
@@ -825,5 +824,8 @@
   },
   "optTriCostream": {
     "message": "Co-streams"
+  },
+  "extActionTitle": {
+    "message": "Cowlor's Sidebar — your data and your settings"
   }
 }

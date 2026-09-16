@@ -85,3 +85,11 @@ chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
   promesse.then(repondre);
   return true;
 });
+
+chrome.runtime.onInstalled.addListener((details) => {
+  if (!details || details.reason !== 'install') return;
+
+  const url = chrome.runtime.getURL('panneau.html?vue=onglet');
+
+  try { chrome.tabs.create({ url }); } catch {   }
+});
