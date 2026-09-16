@@ -163,7 +163,7 @@ _______________________________
 ➤ 🎛️ UN PANNEAU, À DEUX PAS DE VOS CHAÎNES
 Une roue crantée à droite du titre de la barre latérale, un clic, et tout ce que l'extension a appris s'ouvre par-dessus Twitch. L'icône de l'extension, en haut à droite du navigateur, ouvre exactement le même panneau.
 
-- ★ DEUX CHEMINS, UN SEUL PANNEAU ★ La roue dans la barre latérale ou l'icône dans la barre d'outils : la même page, à la même taille, dans les deux cas.
+- ★ DEUX CHEMINS, UN SEUL PANNEAU ★ La roue dans la barre latérale ou l'icône dans la barre d'outils : la même page, dans les deux cas. Ouverte depuis la roue, elle est plus grande — une popup de barre d'outils est bornée par le navigateur, pas par nous.
 - ★ UN MODE D'EMPLOI, D'EMBLÉE ★ Le panneau s'ouvre sur un guide de treize chapitres qui montre tout ce que l'extension ajoute, exemples dessinés à l'appui — et il s'affiche même sans onglet Twitch ouvert.
 - ★ VOS HABITUDES, EN IMAGE ★ Les heures où vous regardez vraiment, dessinées en une grille de sept jours sur vingt-quatre heures.
 - ★ VOS CHIFFRES ★ Top streamers, abonnements repérés, chaînes suivies en mémoire : tout est là, lisible.

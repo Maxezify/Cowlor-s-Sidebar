@@ -163,7 +163,19 @@ const PROMESSES = [
          fonction seul aurait laissé la promesse survivre à un cadre qu'on
          aurait redimensionné sans y penser. */
   ['A gear to the right of the sidebar title', 'function ensureRoue() {'],
-  ['at the same size, either way', 'INCRUSTE_W:             760'],
+  /* ── UNE PROMESSE QUI EST TOMBÉE, ET C'EST LE CONTRAT QUI L'A DIT ────────
+     La 4.12 promettait « à la même taille, dans les deux cas », et visait le
+     nombre qui la rendait vraie. La 4.13 a agrandi le cadre — une popup de
+     barre d'outils est bornée par le NAVIGATEUR à 800 × 600, et imposer cette
+     borne au cadre montrait trois lignes de tableau sur un écran qui en
+     offrait vingt. La promesse est devenue fausse le jour même, et ce contrôle
+     l'a fait tomber avant la publication.
+
+     LA NOUVELLE PHRASE DIT LA RAISON, pas seulement le fait : « ouverte depuis
+     la roue, elle est plus grande — une popup de barre d'outils est bornée par
+     le navigateur, pas par nous. » Et elle vise le nombre du CADRE, celui qui
+     la rend vraie aujourd'hui. */
+  ['a toolbar popup is capped by the browser', 'INCRUSTE_W:             1100'],
 ];
 const tenues = PROMESSES.flatMap(([phrase, marque]) => {
   const dansFiche = en.includes(phrase);

@@ -420,6 +420,26 @@ const TSE_GATE_MAX_CLICKS = 5;
   let journalErreurs = null;
   let servirPanneau = null;
 
+  /* PAS ENCORE PRÊT — et on le dit, au lieu de laisser expirer. Le champ
+     `partiel` est tout ce qu'on a : l'étape atteinte, depuis combien de temps,
+     et les erreurs déjà consignées. C'est peu ; c'est infiniment plus qu'une
+     expiration de trente secondes.
+
+     EXTRAIT EN FONCTION PARCE QU'IL Y A DEUX APPELANTS DEPUIS LA 4.13 : la
+     demande qui vient du pont, et celle qui vient du panneau incrusté. Deux
+     copies auraient divergé au premier champ ajouté — et ce champ-là est
+     précisément ce qu'on lit quand rien ne va. */
+  const pasEncorePret = () => ({
+    ok: false,
+    erreur: 'demarrage',
+    detail: `étape ${demarrage.etape}`,
+    partiel: {
+      etape: demarrage.etape,
+      depuisMs: Date.now() - demarrage.t,
+      erreurs: journalErreurs ? journalErreurs() : [],
+    },
+  });
+
   const jalon = (nom) => {
     demarrage.etape = nom;
     /* L'INSTANT DE CHAQUE ÉTAPE, ET NON LA DURÉE LUE À L'ARRIVÉE. La
@@ -454,23 +474,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     const repondre = (charge) =>
       window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
 
-    /* PAS ENCORE PRÊT — et on le dit, au lieu de laisser expirer. Le champ
-       `partiel` est tout ce qu'on a : l'étape atteinte, depuis combien de
-       temps, et les erreurs déjà consignées. C'est peu ; c'est infiniment
-       plus qu'une expiration de trente secondes. */
-    if (!servirPanneau) {
-      repondre({
-        ok: false,
-        erreur: 'demarrage',
-        detail: `étape ${demarrage.etape}`,
-        partiel: {
-          etape: demarrage.etape,
-          depuisMs: Date.now() - demarrage.t,
-          erreurs: journalErreurs ? journalErreurs() : [],
-        },
-      });
-      return;
-    }
+    if (!servirPanneau) { repondre(pasEncorePret()); return; }
     servirPanneau(d, repondre);
   });
 
@@ -2351,8 +2355,14 @@ const TSE_GATE_MAX_CLICKS = 5;
        doivent y mener à la même taille. Ils vivent ICI et non près du code qui
        les emploie, parce que la feuille de style les lit — et la feuille est
        construite bien avant. */
-    INCRUSTE_W:             760,
-    INCRUSTE_H:             580
+    /* AGRANDI À LA 4.13 : 760 × 580 était la taille de la popup de barre
+       d'outils, bornée par le navigateur à 800 × 600. Le cadre, lui, n'a pas
+       cette contrainte — et six cents pixels de haut pour un tableau de
+       roster, c'est trois lignes visibles. La feuille du panneau relâche ses
+       deux nombres quand elle se sait incrustée : elle prend ce qu'on lui
+       donne. Bornes dans la fenêtre : cf. « max-width/height » du cadre. */
+    INCRUSTE_W:             1100,
+    INCRUSTE_H:             760
   });
 
   /* ============================================================
@@ -4027,9 +4037,11 @@ const TSE_GATE_MAX_CLICKS = 5;
          un signal : elle ne fait qu'accuser réception du pointeur. Elle part
          donc entièrement, sans rien à conserver — le fond au survol dit déjà
          que le bouton répond. */
-      .tse-roue-dent { transition: none !important; }
       .tse-roue:hover .tse-roue-dent,
-      .tse-roue:focus-visible .tse-roue-dent { transform: none !important; }
+      .tse-roue:focus-visible .tse-roue-dent {
+        animation: none !important;
+        transform: none !important;
+      }
     }
 
     /* === Masquage du bouton "Afficher moins" (inutile après auto-expansion) === */
@@ -4327,10 +4339,24 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-roue-dent {
       display: block;
       font-size: 15px; line-height: 1;
-      transition: transform 0.45s cubic-bezier(0.34, 0.9, 0.3, 1);
     }
+    /* ── ELLE TOURNE TANT QU'ON LA SURVOLE ──────────────────────────────
+       UN DEMI-TOUR NE SE VOYAIT PAS, et c'est une erreur de raisonnement
+       qu'il faut nommer : une roue crantée est SYMÉTRIQUE PAR ROTATION —
+       huit dents, donc identique à elle-même tous les quarante-cinq degrés.
+       Un demi-tour la ramène exactement sur elle-même. La transformation
+       avait bien lieu — mesurée à « matrix(-1, 0, 0, -1, 0, 0) » — et
+       personne ne pouvait la voir. Signalé depuis le terrain.
+
+       UNE ROTATION CONTINUE N'A PAS CE PROBLÈME : ce qui se voit n'est plus
+       une position d'arrivée mais le MOUVEMENT lui-même, que la symétrie
+       n'efface pas. Elle tourne tant que le pointeur est là, et s'arrête
+       quand il part — comme un vrai rouage qu'on entraîne. */
+    @keyframes tse-roue-tourne { to { transform: rotate(360deg); } }
     .tse-roue:hover .tse-roue-dent,
-    .tse-roue:focus-visible .tse-roue-dent { transform: rotate(180deg); }
+    .tse-roue:focus-visible .tse-roue-dent {
+      animation: tse-roue-tourne 1.8s linear infinite;
+    }
     .tse-roue:hover {
       background: rgba(var(--tse-encre), 0.12);
       color: var(--tse-texte);
@@ -15534,6 +15560,11 @@ const TSE_GATE_MAX_CLICKS = 5;
   const INCRUSTE_ID   = 'tse-incruste';
   const TSE_URL_REQ   = 'tse-url-req';
   const TSE_URL_RES   = 'tse-url-res';
+  /* Les deux mots du chemin court. Ils ne peuvent pas être ceux du pont :
+     celui-ci écoute la MÊME fenêtre, et un panneau incrusté qui emploierait
+     son vocabulaire verrait ses demandes traitées deux fois. */
+  const TSE_INCRUSTE_REQ = 'tse-incruste-req';
+  const TSE_INCRUSTE_RES = 'tse-incruste-res';
   let urlPanneau = null;
   window.addEventListener('message', (e) => {
     if (e.source !== window) return;
@@ -15604,7 +15635,33 @@ const TSE_GATE_MAX_CLICKS = 5;
        doublon du premier mais son symétrique. */
     const surMessage = (ev) => {
       if (ev.source !== frame.contentWindow) return;
-      if (ev.data && ev.data.tse === 'tse-panneau-fermer') fermerIncruste?.();
+      const d = ev.data;
+      if (!d) return;
+      if (d.tse === 'tse-panneau-fermer') { fermerIncruste?.(); return; }
+      /* ── LE CHEMIN COURT ────────────────────────────────────────────────
+         LE PANNEAU EST DANS CETTE PAGE : lui faire redescendre sa question par
+         le service worker pour revenir ici est inutile, et FRAGILE. Un retour
+         de terrain l'a montré — « Ouvrez un onglet twitch.tv et mettez-le au
+         premier plan », affiché par-dessus la page Twitch qu'il décrivait.
+
+         LE CAS QUI NE SE RÉPARE PAS AUTREMENT : l'extension rechargée pendant
+         que la page vit. content.js survit — il n'appelle aucune API
+         d'extension — mais bridge.js devient orphelin et ne peut PLUS se
+         rebrancher : son contexte n'existe plus. Le worker n'a alors aucun
+         port pour cet onglet, définitivement, jusqu'au rechargement de la
+         page. Ici, il n'y a ni worker ni port : deux documents, un message.
+
+         ON NE SERT QUE NOTRE PROPRE CADRE. La source est comparée à la fenêtre
+         de l'iframe qu'on a posée — pas à une origine qu'on ne connaît pas. */
+      if (d.tse !== TSE_INCRUSTE_REQ || typeof d.id !== 'number') return;
+      const repondre = (charge) => {
+        try {
+          frame.contentWindow?.postMessage(
+            { tse: TSE_INCRUSTE_RES, id: d.id, ...charge }, '*');
+        } catch { /* cadre refermé entre-temps */ }
+      };
+      if (!servirPanneau) { repondre(pasEncorePret()); return; }
+      servirPanneau(d, repondre);
     };
 
     fermerIncruste = () => {
@@ -15727,6 +15784,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       return;
     }
     roue.setAttribute('data-tse-neuf', 'true');
+    /* ── ELLE ATTEND QUE LE VOILE SE LÈVE ──────────────────────────────────
+       Le voile masque la barre pendant que l'extension la recompose. Une bulle
+       posée dessous se montrait à côté d'une barre vide, désignant une roue
+       qu'on ne voyait pas encore — et la première chose que voyait un nouvel
+       utilisateur était une explication sans son objet. Signalé depuis le
+       terrain. « body.tse-loading » est l'unique source de vérité du voile ;
+       on la lit, on n'en invente pas une seconde. */
+    if (document.body.classList.contains('tse-loading')) {
+      document.getElementById(BULLE_ID)?.remove();
+      return;
+    }
     const deja = document.getElementById(BULLE_ID);
     /* LA BULLE SE REPLACE À CHAQUE PASSE tant qu'elle est là. Elle est en
        position FIXE : rien dans le flux ne la déplacera si la barre change de
