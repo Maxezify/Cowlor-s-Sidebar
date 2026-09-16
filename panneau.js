@@ -7,10 +7,11 @@ const API = (typeof browser !== 'undefined' && browser.runtime) ? browser : chro
 const T = (cle, sub) => API.i18n.getMessage(cle, sub) || cle;
 
 try {
-  if (new URLSearchParams(location.search).get('vue') === 'onglet') {
-    document.documentElement.setAttribute('data-vue', 'onglet');
-  }
-} catch {   }
+  if (window.top !== window) document.documentElement.setAttribute('data-vue', 'incruste');
+} catch {
+
+  document.documentElement.setAttribute('data-vue', 'incruste');
+}
 
 const THEME_CLE = 'tse:theme';
 const appliquerThemePanneau = (t) => {
@@ -1259,7 +1260,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!$('voile').hidden) { $('voile').hidden = true; aConfirmer = null; return; }
-    if (!$('rapport').hidden) fermerRapport();
+    if (!$('rapport').hidden) { fermerRapport(); return; }
+
+    if (document.documentElement.getAttribute('data-vue') !== 'incruste') return;
+
+    try { window.parent.postMessage({ tse: 'tse-panneau-fermer' }, '*'); }
+    catch {   }
   });
 
   charger(courante);
