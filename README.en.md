@@ -326,7 +326,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1051 KB | 402 KB | 3,306 → **2** |
+| `content.js` | 1053 KB | 402 KB | 3,306 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 97 KB | 47 KB | 128 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
@@ -2100,7 +2100,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1150 assertions, under Gecko
+npm run test-firefox        # the same 1153 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2478,6 +2478,70 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The back/forward cache, and what the audit found (v4.13.2)
+
+Audit requested: *"check that when the sidebar is not visible it reloads
+properly, and that the veil goes up when it should"*.
+
+### What was already sound
+
+| situation | what happens |
+| --- | --- |
+| tab in the background | nothing is scheduled — no scan, no requests. The observer exits before its loop, the preview closes, thumbnail preloading is blocked |
+| return after a **short** absence | the held scan is replayed, and the local display refreshed |
+| return after **REVISIT_RELOAD_MS** | veil, cache purge, full repopulation |
+| maintenance during the absence | it still runs, and additionally frees the whole stream cache — rebuilt on return, under the veil |
+
+Those four paths are correct, and each already carries its rationale in a
+comment. The audit found nothing to change there.
+
+### The gap
+
+**Nothing listened to `pageshow`.** You leave Twitch and come back with the
+**Back** button: the browser restores the page exactly as it was, frozen DOM
+included. Our timers were stopped, the re-fetch cycle paused, and Twitch could
+mutate nothing because there were no eyes on it. The bar came back with
+hour-old counts, and ended channels presented as live.
+
+> **And `visibilitychange` does not reliably catch it:** a page restored from
+> that cache can come back **without the visibility having changed value**.
+
+**THE REPOSITORY HAD ALREADY PAID EXACTLY THIS LESSON.** `bridge.js` has
+listened to `pagehide` and `pageshow` ever since a user report showed a port
+dead for the rest of the page's life — "bridges: none" on a sidebar working
+before their eyes. The same gate was missing in `content.js`, and nobody had
+made the connection.
+
+### What changes
+
+A restore is treated **as a long absence**, without measuring it: it *is* long
+by nature — time spent off the page is not observable from the page.
+
+`persisted` distinguishes the two `pageshow` events: on an ordinary load it is
+`false` and boot has already done everything. Without that guard the veil would
+drop on **every page open**.
+
+Both return paths — visibility and restore — now share a single function. Two
+copies would have drifted apart at the first adjustment.
+
+### What the bench adds
+
+Three assertions, one mutant, no survivors:
+
+| | veil journal |
+| --- | --- |
+| healthy | `démarrage` · `stabilité` · **`retour du cache avant/arrière`** · `stabilité` |
+| mutant (gate removed) | `démarrage` · `stabilité` — **nothing happens** |
+
+And two guards around it: an ordinary `pageshow` triggers nothing, and the veil
+**lifts** by itself once the bar is stable — a veil raised and never lowered is
+worse than no veil.
+
+> **WHAT THIS SCENARIO DOES NOT PROVE, and it says so:** Playwright cannot
+> trigger a real restore from the cache. The event is replayed by hand. What is
+> exercised is the REACTION to that event, not the fact that the browser emits
+> it — that last point is a property of the platform, not of the product.
 
 ## A truncated response only judges what it contained (v4.13.1)
 
@@ -7368,7 +7432,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 125 scenarios, 1150 assertions |
+| `npm test` | the Playwright harness: 126 scenarios, 1153 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

@@ -18960,17 +18960,16 @@ const TSE_GATE_MAX_CLICKS = 5;
     // durée RÉELLE d'absence (instant de masquage → instant de retour), et non
     // le temps écoulé depuis le dernier refresh.
     let hiddenSince = 0;
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { hiddenSince = Date.now(); return; }
-      // Absence assez longue pour que l'état soit devenu incertain : voile,
-      // purge, tout est repeuplé. `hiddenSince` vaut 0 si l'onglet a démarré
-      // en arrière-plan — on n'a alors rien vu se périmer, et le rattrapage
-      // ci-dessous suffit.
-      const awayMs = hiddenSince ? Date.now() - hiddenSince : 0;
+
+    /* LE RETOUR, EN UN SEUL ENDROIT. Deux événements y mènent — la visibilité
+       qui revient, et la page restaurée depuis le cache avant/arrière — et
+       ils demandent exactement le même travail. Deux copies auraient divergé
+       au premier ajustement. */
+    const retourDAbsence = (awayMs, motif) => {
       hiddenSince = 0;
       if (awayMs >= CFG.REVISIT_RELOAD_MS) {
         scanEnRetard = false;   // la remise à zéro couvre tout ce qui a bougé
-        loadingOverlay.startCycle('retour d\'onglet');
+        loadingOverlay.startCycle(motif);
         invalidateAndRescan();
         return;
       }
@@ -18982,6 +18981,39 @@ const TSE_GATE_MAX_CLICKS = 5;
       // L'affichage local a pu vieillir d'une minute pendant l'absence : le
       // réveil qui le tient s'arrête lui aussi en arrière-plan.
       rafraichirAffichage();
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { hiddenSince = Date.now(); return; }
+      // `hiddenSince` vaut 0 si l'onglet a démarré en arrière-plan — on n'a
+      // alors rien vu se périmer, et le rattrapage suffit.
+      retourDAbsence(hiddenSince ? Date.now() - hiddenSince : 0, 'retour d\'onglet');
+    });
+
+    /* ── LE CACHE AVANT/ARRIÈRE, ET POURQUOI IL LUI FAUT SA PROPRE PORTE ────
+       LACUNE TROUVÉE PAR AUDIT, et le dépôt avait déjà payé la même ailleurs :
+       bridge.js porte ces deux événements depuis qu'un rapport d'utilisateur a
+       montré un port mort pour le reste de la vie de la page. Ici, rien ne les
+       écoutait.
+
+       CE QUE ÇA DONNAIT. On quitte Twitch, on revient par le bouton Précédent :
+       le navigateur restaure la page telle qu'elle était, DOM gelé compris. Nos
+       minuteurs étaient à l'arrêt, le cycle de re-fetch en pause, et Twitch n'a
+       rien pu muter sous nos yeux puisqu'il n'y avait plus d'yeux. La barre
+       revient donc avec les compteurs d'il y a une heure, et des chaînes
+       terminées présentées comme en direct.
+
+       ET `visibilitychange` NE LE RATTRAPE PAS À COUP SÛR : une page restaurée
+       depuis ce cache peut revenir sans que la visibilité ait changé de valeur.
+       C'est le mot pour mot de bridge.js, écrit d'après un cas réel.
+
+       ON TRAITE DONC LA RESTAURATION COMME UNE LONGUE ABSENCE, sans la mesurer :
+       elle EST longue par nature — le temps passé hors de la page n'est pas
+       observable depuis la page. `persisted` distingue les deux `pageshow` :
+       au chargement ordinaire il vaut false et le boot a déjà tout fait. */
+    window.addEventListener('pageshow', (e) => {
+      if (!e.persisted) return;
+      retourDAbsence(Infinity, 'retour du cache avant/arrière');
     });
 
     // 1er auto-diagnostic des sélecteurs, après que Twitch ait monté la sidebar.

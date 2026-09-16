@@ -16736,6 +16736,70 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ LE CACHE AVANT/ARRIÈRE ════════════════════════════════════════
+   LACUNE TROUVÉE PAR AUDIT, et le dépôt avait déjà payé la même ailleurs :
+   bridge.js écoute « pagehide » et « pageshow » depuis qu'un rapport
+   d'utilisateur a montré un port mort pour le reste de la vie de la page. Dans
+   content.js, rien ne les écoutait.
+
+   CE QUE ÇA DONNAIT : on quitte Twitch, on revient par le bouton Précédent. Le
+   navigateur restaure la page telle qu'elle était, DOM gelé compris. Nos
+   minuteurs étaient à l'arrêt, le cycle de re-fetch en pause, et Twitch n'a
+   rien pu muter puisqu'il n'y avait plus d'yeux. La barre revenait avec les
+   compteurs d'il y a une heure et des chaînes terminées présentées en direct.
+
+   ET « visibilitychange » NE LE RATTRAPE PAS À COUP SÛR : une page restaurée
+   depuis ce cache peut revenir sans que la visibilité ait changé de valeur.
+
+   PLAYWRIGHT NE SAIT PAS DÉCLENCHER UNE VRAIE RESTAURATION, et c'est dit :
+   l'événement est rejoué à la main. Ce qu'on éprouve est donc la RÉACTION à
+   cet événement, pas le fait que le navigateur l'émette — ce dernier point est
+   une propriété de la plateforme, pas du produit. */
+{
+  titre('126. Le cache avant/arrière — une page restaurée est une page périmée');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 3600e3).toISOString(),
+                             viewers: 900, game: 'G', tags: [] } };
+    window.__addCard('alpha', 'G', '900');
+  });
+  await wait(page, 2500);
+
+  const motifs = () => page.evaluate(() =>
+    window.tse.panneau.rapport().journaux.cycles.map((x) => x.detail || x.evt));
+
+  const avant = await motifs();
+  const restaure = await page.evaluate(async () => {
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+    await new Promise((r) => setTimeout(r, 400));
+    return window.tse.panneau.rapport().journaux.cycles.map((x) => x.detail || x.evt);
+  });
+  ok('une page restaurée depuis le cache pose le voile et repeuple',
+     restaure.length > avant.length
+     && restaure.some((m) => /cache avant/.test(m || '')),
+     JSON.stringify(restaure));
+
+  /* `persisted` DISTINGUE LES DEUX « pageshow ». Au chargement ordinaire il
+     vaut false, et le démarrage a déjà tout fait : refaire tomber le voile
+     là-dessus serait un clignotement à chaque ouverture de page. */
+  const ordinaire = await page.evaluate(async () => {
+    const n = window.tse.panneau.rapport().journaux.cycles.length;
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }));
+    await new Promise((r) => setTimeout(r, 400));
+    return { n, apres: window.tse.panneau.rapport().journaux.cycles.length };
+  });
+  ok('…et un « pageshow » ordinaire ne déclenche rien',
+     ordinaire.n === ordinaire.apres, JSON.stringify(ordinaire));
+
+  /* LE VOILE SE LÈVE. Un voile posé et jamais levé est pire que pas de voile :
+     la barre reste masquée sur une page que l'utilisateur regarde. */
+  await attendre(page, () => !document.body.classList.contains('tse-loading'), 8000);
+  ok('…et le voile se lève de lui-même une fois la barre stable',
+     await page.evaluate(() => !document.body.classList.contains('tse-loading')));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
