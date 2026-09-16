@@ -7448,9 +7448,30 @@ titre('72. Erreurs — ce que le rapport ne pouvait pas dire');
      l'air d'une mesure sans en être une est pire qu'un champ absent : on
      le lit, et on en conclut quelque chose de faux. Elle est maintenant
      figée au jalon franchi, ce qui se vérifie de deux façons. */
+  /* ── ASSERTION REFAITE : ON ÉPROUVE LA PROPRIÉTÉ, PAS UNE MARGE ────────
+     La rédaction d'avant comparait la durée à l'ÂGE de la page, moins deux
+     cents millisecondes : `dureeMs < age - 200`. C'est une marge, pas une
+     preuve, et elle dépend de la vitesse à laquelle le banc atteint sa
+     lecture. Elle a fini par échouer sur du code sain — relevé
+     « dureeMs 45, age 208 » sur une machine chargée, où 45 < 8 est faux.
+     Une assertion qui tombe sur un produit juste est pire qu'une assertion
+     absente : on apprend à l'ignorer.
+
+     CE QU'ON VEUT DIRE EST EXACT ET NE DÉPEND D'AUCUNE HORLOGE : la durée
+     est FIGÉE. On la lit deux fois, séparées par une attente, et on exige
+     qu'elle n'ait pas bougé — pendant que l'âge de la page, lui, a
+     augmenté. Une durée recalculée à la lecture ne peut pas satisfaire les
+     deux à la fois. */
+  await wait(page, 300);
+  const relu = await page.evaluate(() => {
+    const r = window.tse.panneau.rapport();
+    return { dureeMs: r.demarrage.dureeMs, age: r.ancienneteMs };
+  });
   ok('…et la durée de démarrage est FIGÉE au jalon, pas relue à l\'arrivée',
-     boot.dureeMs === boot.dernierJalon && boot.dureeMs < boot.age - 200,
-     JSON.stringify(boot));
+     boot.dureeMs === boot.dernierJalon
+     && relu.dureeMs === boot.dureeMs
+     && relu.age > boot.age,
+     JSON.stringify({ boot, relu }));
 
   const journal = () => page.evaluate(() => window.tse.panneau.rapport().erreurs);
 
