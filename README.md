@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1174 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1178 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,82 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Un retour d'onglet détruisait les cartes qu'on avait posées (v4.13.7)
+
+### Le rapport
+
+> « Je vois des cartes apparaître et disparaître dans les co-streams, notamment
+> quand je change de fenêtre quelques secondes puis j'y reviens. »
+
+Et le rapport de diagnostic, une fois de plus :
+
+```
+creux         0
+evicted       0        ← rien n'a quitté le classement
+```
+
+**Ce n'était donc pas un retrait de plus.** Les cartes n'étaient pas retirées du
+classement : elles étaient **détruites du DOM**, puis refabriquées.
+
+### Le chemin du retour d'onglet
+
+Après une absence dépassant `REVISIT_RELOAD_MS`, le retour invalide le cache de
+chaînes et force une relecture complète :
+
+```js
+cache.clear();
+document.querySelectorAll('.side-nav-card[data-tse-login]').forEach(card => {
+  delete card.dataset.tseLogin;      // TOUTES les cartes
+});
+```
+
+Or `syncGlobalCards` identifie ses cartes par ce pseudo, et retire celles qui
+n'en ont plus :
+
+```js
+if (l) existing.set(l, c); else releaseGlobalCard(c);
+```
+
+— et pour une carte fabriquée, « retirer » veut dire `remove()`. **Un simple
+retour d'onglet détruisait les trente cartes du classement.**
+
+### Le pseudo n'est pas la même chose sur les deux
+
+| sur une carte de… | ce que le pseudo est | ce que l'effacer fait |
+| --- | --- | --- |
+| **Twitch** | une **lecture** du DOM | force `processCard` à tout relire — c'est le but |
+| **nous** | notre **seule** identité, Twitch n'en sait rien | ne relit rien : perd la carte |
+
+La boucle traitait les deux de la même façon. Elle n'en traite plus qu'une.
+
+### Ce que la mesure a montré
+
+Au banc, avant le correctif, une carte native empruntée par le classement
+ressortait **en double** — elle-même, plus le clone refabriqué à côté :
+
+```
+avant  : milieu/fab, modele/nat, shlorox/fab, tinkerleo/fab
+retour : shlorox, tinkerleo, milieu, modele, modele      ← doublon
+```
+
+Après :
+
+```
+retour : milieu, modele, shlorox, tinkerleo
+```
+
+### Ce que le banc ajoute
+
+Le scénario 131 joue l'absence puis le retour, au-delà du seuil. Il **marque les
+cartes avant** de cacher l'onglet, et c'est ce qui distingue « conservée » de
+« refabriquée à l'identique » : un simple relevé de pseudos ne le dirait pas,
+puisque la reconstruction rend les mêmes noms sur d'autres nœuds.
+
+| mutant | l'assertion qui tombe |
+| --- | --- |
+| l'effacement rendu inconditionnel | « aucune carte n'est dupliquée par le retour d'onglet » |
+| les cartes refabriquées au lieu d'être gardées | « ce sont les mêmes nœuds, pas des cartes refaites à l'identique » |
 
 ## Le classement triait sur un nombre qu'il n'affichait pas (v4.13.6)
 
@@ -7712,7 +7788,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 130 scénarios, 1174 assertions |
+| `npm test` | le harnais Playwright : 131 scénarios, 1178 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -7733,7 +7809,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1057 Ko | 404 Ko | 3 335 → **2** |
+| `content.js` | 1057 Ko | 404 Ko | 3 336 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 129 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
