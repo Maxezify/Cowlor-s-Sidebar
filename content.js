@@ -6805,7 +6805,30 @@ const TSE_GATE_MAX_CLICKS = 5;
         // rend la cadence de 30 s réelle plutôt que théorique — la marche
         // structurelle, elle, ne sert qu'à faire ENTRER et SORTIR des
         // chaînes du classement, qui portent toutes une carte.
-        globalChannels.setViewers(login, entry.viewers);
+        /* ── LE CLASSEMENT REÇOIT LE NOMBRE QUI EST AFFICHÉ, ET PAS UN AUTRE
+           RAPPORT DE TERRAIN, TROISIÈME REPRISE : six co-streamers « Aniimo »
+           affichés à 2,9 k, et trois d'entre eux quittent leur place pendant
+           qu'on les survole. Ni « creux », ni « sousPlancher », ni presque
+           aucun « evicted » au rapport — parce qu'aucun retrait n'avait lieu.
+
+           LA CARTE ET LE CLASSEMENT NE PARLAIENT PAS DU MÊME NOMBRE. En
+           co-stream, Twitch affiche à chaque participant le compteur COMBINÉ
+           de la session, et c'est ce que la marche récolte au répertoire —
+           2,9 k pour les six. Puis la réponse de chaîne arrive avec son
+           compteur PROPRE, quelques centaines, et c'est lui qui entrait au
+           classement. `renderViewers`, lui, continuait d'afficher le combiné.
+
+           Une ligne montrait donc 2,9 k en étant triée sur 400 : elle
+           dégringolait sous des lignes à 300, ou sortait du top trente. Le
+           classement se contredisait à l'écran, et rien ne pouvait le dire
+           puisque rien n'avait été supprimé.
+
+           Le banc tenait déjà cette règle pour les cartes suivies — « le
+           nombre trié est CELUI QUI EST AFFICHÉ : sans ça, la liste paraît
+           cassée ». Elle vaut ici mot pour mot. */
+        const combine = getCollabViewers(id);
+        globalChannels.setViewers(login,
+          Number.isFinite(combine) ? combine : entry.viewers);
         fresh++;
         (pending.get(login) || []).forEach(fn => fn(entry));
       });
@@ -17258,6 +17281,27 @@ const TSE_GATE_MAX_CLICKS = 5;
         combined: info ? info.combined : null,
         ts: now
       });
+    }
+    /* ── ET SI LA SESSION ARRIVE APRÈS LE LOT DE CHAÎNES ──────────────────
+       Les deux réponses n'ont aucune raison d'arriver dans l'ordre : la file
+       des chaînes et celle de Guest Star ont leurs propres cadences. Quand la
+       seconde est en retard, le classement a déjà reçu le compteur PROPRE, et
+       rien ne le reprendrait avant l'expiration du cache de chaîne — une
+       demi-minute pendant laquelle la liste se contredit à l'écran. On corrige
+       donc dès qu'on apprend le combiné, et pas au prochain tour.
+
+       La table inverse n'est bâtie QUE si au moins une session en porte un :
+       sur le cas courant — aucun co-stream — cette boucle ne coûte rien. */
+    const aCombiner = ids.some(id => Number.isFinite(gsCache.get(id)?.combined));
+    if (aCombiner) {
+      const parId = new Map();
+      for (const [login, entry] of cache) if (entry?.id) parId.set(entry.id, login);
+      for (const id of ids) {
+        const v = gsCache.get(id)?.combined;
+        if (!Number.isFinite(v)) continue;
+        const login = parId.get(id);
+        if (login) globalChannels.setViewers(login, v);
+      }
     }
     resolveGuestStarWaiters(ids); // tient les promesses en attente
     scheduleScan(); // données fraîches → re-colorier au prochain scan

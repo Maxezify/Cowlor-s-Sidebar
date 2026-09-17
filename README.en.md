@@ -2479,6 +2479,87 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The ranking sorted on a number it did not display (v4.13.6)
+
+### The report, third round — and this time nothing was being removed
+
+Six "Aniimo" co-streamers, all displayed at **2.9k**. Seconds later, three of
+them had left their place. And the report:
+
+```
+creux         0
+sousPlancher  0
+evicted       2        ← for three rows gone
+```
+
+**All three counters were telling the truth.** The two previous fixes (4.13.4,
+4.13.1) targeted *removals*; this one removes nothing at all. What was seen was
+not a disappearance but a **fall** — and from the other side of the screen the
+two look identical.
+
+### The card and the ranking were not talking about the same number
+
+In a co-stream, Twitch shows each participant the session's **combined** count —
+which is exactly why all six displayed the same 2.9k. The walk collects it as-is
+from the directory, and that is what put them at the top.
+
+Then the channel response arrived, carrying the **own** count — a few hundred —
+and that is what entered the ranking:
+
+```js
+globalChannels.setViewers(login, entry.viewers);   // the OWN count
+```
+
+while the card kept displaying the combined one:
+
+```js
+renderViewers(card, data.viewers, getCollabViewers(data.id));   // the COMBINED
+```
+
+**A row showed 2.9k while being sorted on 400.** It slid below rows showing
+three hundred, or dropped out of the top thirty.
+
+### The rule already existed, elsewhere
+
+The bench has held it for followed cards for a long time:
+
+> "The sorted number is THE ONE DISPLAYED: without that, the list looks broken."
+
+It applies here word for word. The ranking now receives the number the card
+shows, and the own count remains the truth for any channel outside a session.
+
+### The two responses do not arrive in order
+
+The channel queue and the Guest Star queue have their own cadences. When the
+second is late, the ranking has already received the own count — and nothing
+would revisit it before the channel cache expires, half a minute during which
+the list contradicts itself on screen.
+
+The correction therefore fires **as soon as the combined count is learned**,
+without waiting for the next round. The reverse table (id → login) is built only
+if at least one session carries one: in the common case — no co-stream — that
+loop costs nothing.
+
+### What the bench adds
+
+Scenario 130 sets up the field's exact gap: the directory returns 2,900, the
+channel response returns 400, and a channel outside any session returns 800. The
+mutant — putting `entry.viewers` back — produces this, measured:
+
+```
+ranking:   milieu:800, modele:700, tinkerleo:400, shlorox:400
+displayed: tinkerleo=2900, shlorox=2900, milieu=800, modele=700
+```
+
+Two cards displaying 2,900, sorted below cards showing 800 and 700. That is the
+reported screen, reproduced.
+
+| mutant | the assertion that drops |
+| --- | --- |
+| `entry.viewers` put back into the ranking | "the ranking carries THE SAME number, not the own count" |
+| the post-Guest-Star catch-up removed | the same one, when the session arrives second |
+| the combined forced outside a session | "a channel outside a session keeps its own count" |
+
 ## The pastille had only one source, and it was often missing (v4.13.5)
 
 ### The report
