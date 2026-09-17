@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1178 assertions, under Gecko
+npm run test-firefox        # the same 1183 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,75 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## In a session, the own count is never the right one (v4.13.8)
+
+### The report, fourth round
+
+Six "Aniimo" co-streamers displayed at **4k**, of which **three** leave the
+list. And the report:
+
+```
+misses        0
+sousPlancher  0
+creux         0
+evicted       0        ← literally nothing left the pool
+```
+
+### The hole left open by 4.13.6
+
+That version preferred the session's **combined** count when it knew it; failing
+that it fell back to the **own** count.
+
+But on a six-participant session, Twitch carries
+`collaborationViewersCount` for only **some** of them. The others therefore fell
+back to a few hundred and dropped out of the top thirty. Measured on the bench,
+with a fixture where only one participant of two has its combined:
+
+```
+naguura:4000, milieu:900, modele:800, tinkerleo:300
+```
+
+`naguura` keeps 4,000, `tinkerleo` falls to 300 — **and nothing distinguishes
+them but that missing field.**
+
+### The rule, completed
+
+**In a session, the own count is never the right number.** It is not what Twitch
+displays, therefore not what the card shows, therefore not what should sort.
+
+| what is known | what enters the ranking |
+| --- | --- |
+| in session, combined known | the **combined** |
+| in session, combined unknown | **nothing** — the directory value stays in place |
+| outside a session | the **own** count, as before |
+| session still unknown | the **own** count — otherwise everything would freeze at startup |
+
+**Writing nothing is the right write here.**
+
+> That last line is not a detail. `getHostId` returns `undefined` until Guest
+> Star has answered, and refusing to write in that case would freeze the count
+> of **every** ordinary channel until the first response. Hence
+> `typeof hote === 'string'`, not "not null".
+
+### The card follows the same rule
+
+These two places describe the same number, and letting them diverge is exactly
+the defect 4.13.6 fixed in the other direction. In a session with no known
+combined, the card **keeps what it displays** — the directory number — instead
+of falling back to a count Twitch shows nowhere.
+
+### What the bench adds
+
+Scenario 132 sets up two rigorously identical co-streamers, **bar one field**:
+one has its combined, the other does not. Five assertions, including the one
+that carries it all — without it, the second falls back to 300.
+
+| mutant | the assertion that drops |
+| --- | --- |
+| the fallback to `entry.viewers` restored in session | "the one it does not give keeps the directory number" |
+| the display left on the own count | "its card shows it too, instead of its own count" |
+| the rule extended outside sessions | "a channel outside a session keeps its own" |
 
 ## A tab return destroyed the cards we had placed (v4.13.7)
 
@@ -7475,7 +7544,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 131 scenarios, 1178 assertions |
+| `npm test` | the Playwright harness: 132 scenarios, 1183 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -7495,7 +7564,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1057 KB | 404 KB | 3,336 → **2** |
+| `content.js` | 1057 KB | 404 KB | 3,338 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 129 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

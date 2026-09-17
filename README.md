@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1178 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1183 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,76 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## En session, le compteur propre n'est jamais le bon (v4.13.8)
+
+### Le rapport, quatrième reprise
+
+Six co-streamers « Aniimo » affichés à **4 k**, dont **trois** quittent la
+liste. Et le rapport :
+
+```
+misses        0
+sousPlancher  0
+creux         0
+evicted       0        ← littéralement rien n'a quitté le pool
+```
+
+### Le trou laissé ouvert par la 4.13.6
+
+Celle-ci préférait le compteur **combiné** de la session quand elle le
+connaissait ; sinon elle retombait sur le compteur **propre**.
+
+Or sur une session à six participants, Twitch ne porte le
+`collaborationViewersCount` que pour **certains** d'entre eux. Les autres
+retombaient donc à quelques centaines et sortaient du top trente. Mesuré au
+banc, avec un décor où un seul participant sur deux a son combiné :
+
+```
+naguura:4000, milieu:900, modele:800, tinkerleo:300
+```
+
+`naguura` garde 4 000, `tinkerleo` tombe à 300 — **et rien ne les distingue
+sinon ce champ manquant.**
+
+### La règle, complétée
+
+**En session, le compteur propre n'est jamais le bon nombre.** Ce n'est pas
+celui que Twitch affiche, donc pas celui que la carte montre, donc pas celui qui
+doit trier.
+
+| ce qu'on sait | ce qui entre au classement |
+| --- | --- |
+| en session, combiné connu | le **combiné** |
+| en session, combiné inconnu | **rien** — la valeur du répertoire reste en place |
+| hors session | le compteur **propre**, comme avant |
+| session encore inconnue | le compteur **propre** — sinon tout gèlerait au démarrage |
+
+**Ne rien écrire est ici la bonne écriture.**
+
+> La dernière ligne n'est pas un détail. `getHostId` rend `undefined` tant que
+> Guest Star n'a pas répondu, et refuser d'écrire dans ce cas gèlerait le
+> compteur de **toutes** les chaînes ordinaires le temps de la première réponse.
+> D'où `typeof hote === 'string'`, et non « pas null ».
+
+### La carte suit la même règle
+
+Ces deux endroits décrivent le même nombre, et les laisser diverger est
+exactement le défaut que la 4.13.6 a corrigé dans l'autre sens. En session sans
+combiné connu, la carte **garde ce qu'elle affiche** — le nombre du répertoire —
+au lieu de retomber sur un compteur que Twitch ne montre nulle part.
+
+### Ce que le banc ajoute
+
+Le scénario 132 pose deux co-streamers rigoureusement identiques, **à un champ
+près** : l'un a son combiné, l'autre non. Cinq assertions, dont celle qui tient
+tout — sans elle, le second retombe à 300.
+
+| mutant | l'assertion qui tombe |
+| --- | --- |
+| le repli sur `entry.viewers` rétabli en session | « celui dont elle n'en donne pas garde le nombre du répertoire » |
+| l'affichage laissé au compteur propre | « sa carte l'affiche aussi, au lieu de son compteur propre » |
+| la règle étendue hors session | « une chaîne hors session garde bien le sien » |
 
 ## Un retour d'onglet détruisait les cartes qu'on avait posées (v4.13.7)
 
@@ -7788,7 +7858,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 131 scénarios, 1178 assertions |
+| `npm test` | le harnais Playwright : 132 scénarios, 1183 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -7809,7 +7879,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1057 Ko | 404 Ko | 3 336 → **2** |
+| `content.js` | 1057 Ko | 404 Ko | 3 338 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 129 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
