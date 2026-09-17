@@ -17381,6 +17381,87 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ LA SIGNATURE DE CO-STREAM EST DANS LE RÉPERTOIRE ══════════════
+   LE RAPPORT, CINQUIÈME REPRISE, ET SA PRÉCISION DÉCISIVE : « ils ont été 5,
+   puis pendant une demi-seconde ils sont passés à 3, puis revenus à 5. Puis là
+   ils ne sont plus que 3. Je n'ai pas quitté la fenêtre. »
+
+   UNE OSCILLATION, ET C'EST CE MOT QUI A TOUT DONNÉ. `LIVE_TTL` et
+   `GLOBAL_STRUCT_TICK` valent TOUS DEUX 30 s : la marche remonte les
+   co-streamers au compteur du répertoire, le lot de chaînes les fait retomber
+   à leur compteur propre, la marche suivante les remonte. Deux sources qui
+   gagnent à tour de rôle, et le classement qui bat avec elles. Mesuré :
+
+       classement : lyritvjamie:4900   ← restauré par la marche
+       carte      : lyritvjamie=300    ← dégradé par le lot de chaînes
+
+   ET AUCUN GARDE-FOU GUEST STAR NE POUVAIT L'ATTRAPER. Pour ces
+   participants-là, Twitch répond `session: null` alors que son PROPRE
+   répertoire les affiche tous au même compteur. Quatre correctifs ont cherché
+   le signal chez Guest Star ; il n'y est pas.
+
+   LE RÉPERTOIRE, LUI, LE DIT. Plusieurs chaînes d'une même catégorie portant
+   EXACTEMENT le même compteur, c'est la signature d'un combiné — celle-là même
+   que ce produit utilise déjà pour regrouper les cartes. */
+{
+  titre('133. Co-stream — la signature du répertoire tient quand Guest Star se tait');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Aniimo', tags: [] });
+    /* DEUX CHAÎNES AU MÊME COMPTEUR dans la même catégorie : la signature. */
+    window.__cats = [{ name: 'Aniimo', viewers: 9000, streams: [
+      { login: 'naguura', viewers: 4900 }, { login: 'lyritvjamie', viewers: 4900 },
+      { login: 'milieu', viewers: 900 }, { login: 'modele', viewers: 800 }] }];
+    /* Leurs compteurs PROPRES sont dérisoires. « milieu », lui, n'a pas de
+       jumeau : son compteur frais (950) doit continuer de s'appliquer — c'est
+       la fraîcheur que le scénario 34 garantit, et qu'on ne sacrifie pas. */
+    window.__fx = { naguura: c('9301', 300), lyritvjamie: c('9302', 300),
+                    milieu: c('9303', 950), modele: c('9304', 800) };
+    /* GUEST STAR NE CONNAÎT QUE NAGUURA. Pour lyritvjamie, `session: null` —
+       et c'est exactement ce que le terrain a montré. */
+    window.__gs = { '9301': { hostId: '9300', hostLogin: 'aniimo',
+      guests: [{ id: '9301', login: 'naguura', viewers: 300, combined: 4900 }] } };
+    window.__addCard('modele', 'Aniimo', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => [...document.querySelectorAll('.side-nav-card')]
+    .some((c) => c.dataset.tseLogin === 'milieu' && c.dataset.tseViewers === '950'), 15_000);
+
+  const lire = () => page.evaluate(() => {
+    const aff = (l) => [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === l)?.dataset.tseViewers ?? null;
+    return { rang: window.tse.global.top(50).map((r) => `${r.login}:${r.viewers}`),
+             naguura: aff('naguura'), lyri: aff('lyritvjamie'), milieu: aff('milieu') };
+  });
+  const un = await lire();
+
+  ok('la chaîne que Guest Star connaît garde son combiné',
+     un.rang.includes('naguura:4900') && un.naguura === '4900', JSON.stringify(un));
+  /* L'ASSERTION QUI TIENT TOUT : Guest Star se tait sur elle, et c'est la
+     signature du répertoire — deux chaînes au même compteur — qui la sauve. */
+  ok('…et celle sur laquelle il se tait garde le nombre du répertoire',
+     un.rang.includes('lyritvjamie:4900'), un.rang.join(' '));
+  ok('…sa carte aussi, au lieu de son compteur propre',
+     un.lyri === '4900', String(un.lyri));
+  /* LA FRAÎCHEUR ORDINAIRE N'EST PAS SACRIFIÉE : sans jumeau, le compteur
+     frais du lot continue de reclasser, ce que le scénario 34 exige. */
+  ok('…tandis qu\'une chaîne sans jumeau reçoit bien son compteur frais',
+     un.rang.includes('milieu:950') && un.milieu === '950', JSON.stringify(un));
+
+  /* ET ÇA NE BAT PAS. C'est l'oscillation elle-même qu'on éprouve ici : deux
+     relevés séparés par plus d'un cycle complet des deux sources. */
+  await wait(page, 4000);
+  const deux = await lire();
+  ok('…et rien de tout cela ne bat d\'un cycle à l\'autre',
+     deux.rang.includes('lyritvjamie:4900') && deux.lyri === '4900'
+     && deux.rang.includes('naguura:4900') && deux.milieu === '950',
+     JSON.stringify(deux));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

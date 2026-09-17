@@ -2614,6 +2614,81 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La signature de co-stream est dans le répertoire (v4.13.9)
+
+### Le rapport, cinquième reprise — et le mot qui a tout donné
+
+> « Ils ont été 5, puis pendant une demi-seconde ils sont passés à 3, puis
+> revenus à 5. Puis là ils ne sont plus que 3. **Je n'ai pas quitté la
+> fenêtre.** »
+
+**Une oscillation.** Pas une disparition, pas une chute : un battement.
+
+`LIVE_TTL` et `GLOBAL_STRUCT_TICK` valent **tous deux 30 s**. La marche remonte
+les co-streamers au compteur du répertoire ; le lot de chaînes les fait retomber
+à leur compteur propre ; la marche suivante les remonte. Deux sources qui
+gagnent à tour de rôle, et le classement qui bat avec elles. Mesuré au banc :
+
+```
+classement : lyritvjamie:4900     ← restauré par la marche
+carte      : lyritvjamie=300      ← dégradé par le lot de chaînes
+```
+
+### Aucun garde-fou Guest Star ne pouvait l'attraper
+
+Pour ces participants-là, **Twitch répond `session: null`** alors que son propre
+répertoire les affiche tous au même compteur.
+
+Quatre correctifs — 4.13.1, 4.13.4, 4.13.6, 4.13.8 — ont cherché le signal chez
+Guest Star. Il n'y est pas toujours. C'est la leçon de cette version, et elle
+valait cinq tours : **une source qui peut se taire ne peut pas être le seul
+discriminant.**
+
+### Le répertoire, lui, le dit
+
+Plusieurs chaînes d'une même catégorie portant **exactement** le même compteur,
+c'est la signature d'un compteur combiné. Ce produit s'en sert déjà pour
+regrouper les cartes — c'est la clé `vh:` de `detectCoStreams`, et ses conditions
+cumulatives sont éprouvées depuis longtemps.
+
+On la calcule donc une fois par publication, sur des données déjà en mémoire, et
+elle sert à une seule chose : **empêcher qu'un compteur propre vienne écraser un
+compteur combiné que la marche vient de récolter.**
+
+| ce que porte l'entrée | ce que le lot de chaînes peut en faire |
+| --- | --- |
+| la signature d'un combiné | **rien** — sauf si le nombre vient de Guest Star, qui décrit la même chose |
+| pas de jumeau | le compteur frais s'applique, comme avant |
+
+> **Deux membres au moins**, comme pour le regroupement : un compteur unique
+> n'est la signature de rien.
+
+### La carte suit, au même endroit
+
+Les deux signaux — « Guest Star dit en session » et « le répertoire porte la
+signature » — sont lus côte à côte, et la carte applique la même règle que le
+tri. Les laisser diverger est le défaut que la 4.13.6 a corrigé dans un sens et
+la 4.13.8 dans l'autre ; ils sont désormais calculés ensemble.
+
+### La fraîcheur ordinaire n'est pas sacrifiée
+
+Une chaîne sans jumeau reçoit toujours son compteur frais entre deux marches —
+c'est le contrat du scénario 34, et le scénario 133 le vérifie explicitement
+plutôt que de le supposer.
+
+### Ce que le banc ajoute
+
+Le scénario 133 pose deux co-streamers au même compteur, dont **un seul** est
+connu de Guest Star, et une chaîne ordinaire dont le compteur frais diffère du
+répertoire. Cinq assertions, dont une qui relit tout après un cycle complet des
+deux sources : **c'est l'oscillation elle-même qui est éprouvée.**
+
+| mutant | l'assertion qui tombe |
+| --- | --- |
+| la signature ignorée par `setViewers` | « celle sur laquelle il se tait garde le nombre du répertoire » |
+| la signature ignorée à l'affichage | « sa carte aussi, au lieu de son compteur propre » |
+| la garde étendue aux chaînes sans jumeau | « une chaîne sans jumeau reçoit bien son compteur frais » |
+
 ## En session, le compteur propre n'est jamais le bon (v4.13.8)
 
 ### Le rapport, quatrième reprise

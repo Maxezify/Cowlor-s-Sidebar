@@ -2479,6 +2479,79 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The co-stream signature is in the directory (v4.13.9)
+
+### The report, fifth round — and the word that gave it away
+
+> "There were 5, then for half a second they went down to 3, then back to 5.
+> And now they are only 3 again. **I did not leave the window.**"
+
+**An oscillation.** Not a disappearance, not a fall: a beat.
+
+`LIVE_TTL` and `GLOBAL_STRUCT_TICK` are **both 30s**. The walk raises the
+co-streamers to the directory count; the channel batch drops them back to their
+own count; the next walk raises them again. Two sources winning in turn, and the
+ranking beating with them. Measured on the bench:
+
+```
+ranking: lyritvjamie:4900     ← restored by the walk
+card:    lyritvjamie=300      ← degraded by the channel batch
+```
+
+### No Guest Star guard could have caught it
+
+For those participants, **Twitch answers `session: null`** while its own
+directory shows them all at the same count.
+
+Four fixes — 4.13.1, 4.13.4, 4.13.6, 4.13.8 — looked for the signal in Guest
+Star. It is not always there. That is this version's lesson, and it took five
+rounds: **a source that can fall silent cannot be the only discriminator.**
+
+### The directory does say it
+
+Several channels in the same category carrying **exactly** the same count is the
+signature of a combined count. This product already uses it to group cards — the
+`vh:` key of `detectCoStreams`, whose cumulative conditions have been proven for
+a long time.
+
+It is therefore computed once per publication, from data already in memory, and
+serves one purpose only: **preventing an own count from overwriting a combined
+count the walk has just collected.**
+
+| what the entry carries | what the channel batch may do with it |
+| --- | --- |
+| the signature of a combined count | **nothing** — unless the number comes from Guest Star, which describes the same thing |
+| no twin | the fresh count applies, as before |
+
+> **At least two members**, as for grouping: a unique count is the signature of
+> nothing.
+
+### The card follows, in the same place
+
+The two signals — "Guest Star says in session" and "the directory carries the
+signature" — are read side by side, and the card applies the same rule as the
+sort. Letting them diverge is the defect 4.13.6 fixed in one direction and
+4.13.8 in the other; they are now computed together.
+
+### Ordinary freshness is not sacrificed
+
+A channel with no twin still receives its fresh count between walks — that is
+scenario 34's contract, and scenario 133 checks it explicitly rather than
+assuming it.
+
+### What the bench adds
+
+Scenario 133 sets up two co-streamers at the same count, only **one** of which
+Guest Star knows, plus an ordinary channel whose fresh count differs from the
+directory's. Five assertions, one of which re-reads everything after a full
+cycle of both sources: **the oscillation itself is what is tested.**
+
+| mutant | the assertion that drops |
+| --- | --- |
+| the signature ignored by `setViewers` | "the one it stays silent about keeps the directory number" |
+| the signature ignored on display | "its card too, instead of its own count" |
+| the guard extended to channels with no twin | "a channel with no twin does receive its fresh count" |
+
 ## In a session, the own count is never the right one (v4.13.8)
 
 ### The report, fourth round
