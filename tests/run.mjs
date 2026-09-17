@@ -17112,6 +17112,97 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ LE CLASSEMENT DOIT TRIER SUR LE NOMBRE QU'IL AFFICHE ══════════
+   LE RAPPORT, TROISIÈME REPRISE : six co-streamers « Aniimo » affichés à
+   2,9 k, et trois d'entre eux quittent leur place pendant qu'on les survole.
+   Ni « creux », ni « sousPlancher », ni presque aucun « evicted » au rapport —
+   parce qu'AUCUN RETRAIT N'AVAIT LIEU. Les deux correctifs précédents
+   visaient des suppressions ; celui-ci ne supprime rien du tout.
+
+   LA CARTE ET LE CLASSEMENT NE PARLAIENT PAS DU MÊME NOMBRE. En co-stream,
+   Twitch montre à chaque participant le compteur COMBINÉ de la session, et
+   c'est ce que la marche récolte au répertoire. Puis la réponse de chaîne
+   arrive avec le compteur PROPRE — quelques centaines — et c'est lui qui
+   entrait au classement, tandis que la carte continuait d'afficher le
+   combiné. Une ligne montrait 2,9 k en étant triée sur 400.
+
+   CE QUI SE VOIT ALORS N'EST PAS UNE DISPARITION MAIS UNE CHUTE : la ligne
+   dégringole sous des lignes à trois cents, ou sort du top trente. De l'autre
+   côté de l'écran, ça ne se distingue pas — et c'est pourquoi deux enquêtes
+   ont cherché un retrait qui n'existait pas. */
+{
+  titre('130. Top Chaînes — le classement trie sur le nombre qu\'il affiche');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Aniimo', tags: [] });
+    /* LE RÉPERTOIRE REND LE COMBINÉ — 2 900 pour chacun des deux invités,
+       exactement comme Twitch le fait. C'est ce nombre qui les place en tête. */
+    window.__cats = [
+      { name: 'Aniimo', viewers: 9000,
+        streams: [{ login: 'shlorox', viewers: 2900 }, { login: 'tinkerleo', viewers: 2900 }] },
+      { name: 'Autre', viewers: 4000,
+        streams: [{ login: 'milieu', viewers: 800 }, { login: 'modele', viewers: 700 }] },
+    ];
+    /* ET LA RÉPONSE DE CHAÎNE REND LE COMPTEUR PROPRE : 400 chacun. C'est
+       l'écart qui fait tout ce scénario — trié sur 400, tinkerleo passerait
+       sous « milieu » (800) tout en affichant 2,9 k. */
+    window.__fx = {
+      shlorox:   c('9101', 400),
+      tinkerleo: c('9102', 400),
+      milieu:    c('9103', 800),
+      modele:    c('9104', 700),
+    };
+    window.__gs = {
+      '9101': { hostId: '9100', hostLogin: 'aniimo',
+                guests: [{ id: '9101', login: 'shlorox',   viewers: 400, combined: 2900 },
+                         { id: '9102', login: 'tinkerleo', viewers: 400, combined: 2900 }] },
+      '9102': { hostId: '9100', hostLogin: 'aniimo',
+                guests: [{ id: '9101', login: 'shlorox',   viewers: 400, combined: 2900 },
+                         { id: '9102', login: 'tinkerleo', viewers: 400, combined: 2900 }] },
+    };
+    window.__addCard('modele', 'Autre', '700');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  /* ON ATTEND QUE LA RÉPONSE DE CHAÎNE SOIT PASSÉE, sans quoi on mesurerait
+     l'amorce de la marche — c'est-à-dire l'état AVANT le défaut. « milieu »
+     n'est en co-stream d'aucune sorte : son compteur propre EST son compteur
+     affiché, et le voir posé prouve que le lot est arrivé. */
+  await attendre(page, () => [...document.querySelectorAll('.side-nav-card')]
+    .some((c) => c.dataset.tseLogin === 'milieu' && c.dataset.tseViewers === '800'), 15_000);
+  await wait(page, 1200);
+
+  const vu = await page.evaluate(() => {
+    const rang = window.tse.global.top(50).map((r) => `${r.login}:${r.viewers}`);
+    const carte = (l) => [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === l);
+    return { rang,
+             affiche: { shlorox: carte('shlorox')?.dataset.tseViewers ?? null,
+                        tinkerleo: carte('tinkerleo')?.dataset.tseViewers ?? null } };
+  });
+
+  ok('la carte d\'un co-streamer affiche bien le compteur combiné',
+     vu.affiche.shlorox === '2900' && vu.affiche.tinkerleo === '2900',
+     JSON.stringify(vu.affiche));
+  /* L'ASSERTION QUI TIENT TOUT : remettre `entry.viewers` fait passer les deux
+     à 400, et elle tombe. */
+  ok('…et le classement porte LE MÊME nombre, pas le compteur propre',
+     vu.rang.includes('shlorox:2900') && vu.rang.includes('tinkerleo:2900'),
+     vu.rang.join(' '));
+  /* LA CONSÉQUENCE VISIBLE, et c'est elle que l'utilisateur décrivait : triés
+     sur 400, les deux passaient SOUS une chaîne qui en affiche 800. */
+  ok('…si bien qu\'ils restent au-dessus d\'une chaîne qui en affiche moins',
+     vu.rang.indexOf('shlorox:2900') < vu.rang.indexOf('milieu:800')
+     && vu.rang.indexOf('tinkerleo:2900') < vu.rang.indexOf('milieu:800'),
+     vu.rang.join(' '));
+  /* ET HORS CO-STREAM, RIEN NE CHANGE : le compteur propre reste la vérité. */
+  ok('…tandis qu\'une chaîne hors session garde son propre compteur',
+     vu.rang.includes('milieu:800'), vu.rang.join(' '));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1170 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1174 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,88 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Le classement triait sur un nombre qu'il n'affichait pas (v4.13.6)
+
+### Le rapport, troisième reprise — et cette fois rien n'était supprimé
+
+Six co-streamers « Aniimo », tous affichés à **2,9 k**. Quelques secondes plus
+tard, trois d'entre eux ont quitté leur place. Et le rapport :
+
+```
+creux         0
+sousPlancher  0
+evicted       2        ← pour trois lignes parties
+```
+
+**Les trois compteurs disaient vrai.** Les deux correctifs précédents (4.13.4,
+4.13.1) visaient des *suppressions* ; celui-ci ne supprime rien du tout. Ce
+qu'on voyait n'était pas une disparition mais une **chute** — et de l'autre côté
+de l'écran, les deux ne se distinguent pas.
+
+### La carte et le classement ne parlaient pas du même nombre
+
+En co-stream, Twitch montre à chaque participant le compteur **combiné** de la
+session — c'est exactement pourquoi les six affichaient le même 2,9 k. La marche
+le récolte tel quel au répertoire, et c'est lui qui les plaçait en tête.
+
+Puis la réponse de chaîne arrivait, avec le compteur **propre** — quelques
+centaines — et c'est celui-là qui entrait au classement :
+
+```js
+globalChannels.setViewers(login, entry.viewers);   // le compteur PROPRE
+```
+
+tandis que la carte, elle, continuait d'afficher le combiné :
+
+```js
+renderViewers(card, data.viewers, getCollabViewers(data.id));   // le COMBINÉ
+```
+
+**Une ligne montrait 2,9 k en étant triée sur 400.** Elle passait sous des
+lignes à trois cents, ou sortait du top trente.
+
+### La règle existait déjà, ailleurs
+
+Le banc la tenait pour les cartes suivies depuis longtemps :
+
+> « Le nombre trié est CELUI QUI EST AFFICHÉ : sans ça, la liste paraît cassée. »
+
+Elle vaut ici mot pour mot. Le classement reçoit désormais le nombre que la
+carte montre, et le compteur propre reste la vérité pour toute chaîne hors
+session.
+
+### Les deux réponses n'arrivent pas dans l'ordre
+
+La file des chaînes et celle de Guest Star ont leurs propres cadences. Quand la
+seconde est en retard, le classement a déjà reçu le compteur propre — et rien ne
+le reprendrait avant l'expiration du cache de chaîne, une demi-minute pendant
+laquelle la liste se contredit à l'écran.
+
+La correction part donc **dès qu'on apprend le combiné**, sans attendre le tour
+suivant. La table inverse (identifiant → pseudo) n'est bâtie que si au moins une
+session en porte un : sur le cas courant — aucun co-stream — cette boucle ne
+coûte rien.
+
+### Ce que le banc ajoute
+
+Le scénario 130 pose l'écart exact du terrain : le répertoire rend 2 900, la
+réponse de chaîne rend 400, et une chaîne hors session en rend 800. Le mutant —
+remettre `entry.viewers` — rend ceci, mesuré :
+
+```
+classement : milieu:800, modele:700, tinkerleo:400, shlorox:400
+affiché    : tinkerleo=2900, shlorox=2900, milieu=800, modele=700
+```
+
+Deux cartes qui affichent 2 900, triées sous des cartes à 800 et 700. C'est
+l'écran du rapport, reproduit.
+
+| mutant | l'assertion qui tombe |
+| --- | --- |
+| `entry.viewers` remis au classement | « le classement porte LE MÊME nombre, pas le compteur propre » |
+| la reprise après Guest Star coupée | la même, quand la session arrive en second |
+| le combiné imposé hors session | « une chaîne hors session garde son propre compteur » |
 
 ## La pastille n'avait qu'une source, et elle manquait souvent (v4.13.5)
 
@@ -7630,7 +7712,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 129 scénarios, 1170 assertions |
+| `npm test` | le harnais Playwright : 130 scénarios, 1174 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -7651,7 +7733,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1057 Ko | 404 Ko | 3 333 → **2** |
+| `content.js` | 1057 Ko | 404 Ko | 3 335 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 129 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
