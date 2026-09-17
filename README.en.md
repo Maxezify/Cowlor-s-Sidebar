@@ -2479,6 +2479,77 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The pastille had only one source, and it was often missing (v4.13.5)
+
+### The report
+
+> "For this streamer FrostyQc, he has the 'Live with…' badge and no pastille on
+> his avatar — is that normal? We're on Top Channels, FR language."
+
+Two markings, two mechanisms, and only one was at fault.
+
+### What was normal: the grouping bar
+
+A Guest Star group only activates from **two visible cards** of the same stream:
+
+```js
+for (const [, members] of groups) {
+  if (members.length >= 2) members.forEach(c => gsHandled.add(c));
+}
+```
+
+It is a bar that **groups**: with a single row it has nothing to join. FrostyQc's
+co-streamer is not in the ranking, so he stands alone there. Intended, and
+unchanged.
+
+### What was not: the pastille
+
+It was read only from the **"+N" Twitch writes on its own card**:
+
+```js
+if (!PLUS_RE_PRESENT.test(card.textContent || '')) { clearCollabBadge(card); return; }
+```
+
+Yet in Top Channels the cards are **fabricated clones**, scrubbed by
+`scrubClone`, and Twitch never writes a "+N" for a channel you do not follow.
+**The pastille was structurally impossible there** — not rare, not intermittent:
+impossible.
+
+### And yet the extension knew
+
+The preview of that same card shows "Live with DarthArcusal". It reads it from
+`getGuestStarMates`, whose cache is filled **by the scan, for every visible
+card** — not only on hover. The information was in memory at the moment the card
+was drawn, and the card made no use of it.
+
+Two surfaces of the same extension, the same second, the same channel: one said
+co-stream, the other did not.
+
+### The second source, and it costs nothing
+
+| what the card carries | what decides |
+| --- | --- |
+| a "+N" from Twitch | **its** number, on **its** card — priority, unchanged |
+| no "+N", a Guest Star session | the number of co-streamers, from the cache already filled |
+| no "+N", no session | nothing, as before |
+
+No extra request: `gsCache` is already there. The fallback also catches a case
+nobody had reported — a **followed** channel whose "+N" Twitch is slow to write.
+
+> The setting that turns the pastille off (`collab`) still turns it off: the
+> second source feeds the same badge, it does not create a second one.
+
+### What the bench adds
+
+Scenario 129 replays the report word for word — Top Channels, fabricated card,
+no "+N" possible — and first checks that this is indeed the fixture it measures.
+
+| mutant | the assertion that drops |
+| --- | --- |
+| the Guest Star fallback removed | "and it carries the pastille anyway, counted from Guest Star" |
+| the priority inverted | "Twitch's '+N' keeps the upper hand on a card that carries one" |
+| the pastille placed without a session | "a channel outside a session still receives none" |
+
 ## A removal that was counted nowhere (v4.13.4)
 
 ### The report, and the number that named the culprit

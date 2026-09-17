@@ -11928,6 +11928,52 @@ const TSE_GATE_MAX_CLICKS = 5;
     avatar.classList.remove('tse-collab-host');
   };
 
+  // Pose la pastille sur l'avatar, ou la retire faute de place. Extraite pour
+  // servir les DEUX sources : le « +N » de Twitch et Guest Star.
+  const poserPastille = (card, count) => {
+    const avatar = avatarOf(card);
+    if (!avatar) return false;
+    avatar.classList.add('tse-collab-host');
+    let badge = avatar.querySelector(':scope > .tse-collab-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'tse-collab-badge';
+      avatar.appendChild(badge);
+    }
+    setText(badge, count);
+    return true;
+  };
+
+  /* ── LA SECONDE SOURCE DE LA PASTILLE, ET ELLE NE COÛTE RIEN ─────────────
+     RAPPORT DE TERRAIN : « FrostyQc a le badge "En live avec…" et n'a pas la
+     pastille sur son avatar, c'est normal ? » — en Top Chaînes.
+
+     CE N'ÉTAIT PAS NORMAL, et le défaut tenait à une source unique. La
+     pastille ne se lisait que dans le « +N » que Twitch écrit sur SA carte.
+     Or en Top Chaînes les cartes sont des clones fabriqués, nettoyés par
+     `scrubClone`, et Twitch n'écrit jamais de « +N » pour une chaîne qu'on ne
+     suit pas : la pastille y était STRUCTURELLEMENT impossible.
+
+     ET POURTANT L'EXTENSION SAVAIT. L'aperçu affiche « En live avec X » en
+     lisant `getGuestStarMates`, dont le cache est rempli par le scan pour
+     toutes les cartes visibles — pas seulement au survol. L'information était
+     en mémoire au moment où la carte était dessinée, et la carte ne s'en
+     servait pas.
+
+     LE « +N » DE TWITCH RESTE PRIORITAIRE : c'est son nombre sur sa carte,
+     et ce repli n'est qu'un ajout. Il rattrape au passage un cas que personne
+     n'avait signalé — une chaîne SUIVIE dont Twitch tarde à écrire le sien.
+
+     Rien à voir avec la barre de groupe, qui exige deux cartes visibles du
+     même direct : une barre qui REGROUPE n'a rien à relier sur une ligne
+     seule. La pastille, elle, parle d'une chaîne, pas d'un ensemble. */
+  const pastilleDepuisGuestStar = (card) => {
+    const login = card.dataset.tseLogin;
+    const mates = login ? getGuestStarMates(login) : [];
+    if (!mates.length) { clearCollabBadge(card); return; }
+    poserPastille(card, String(mates.length));
+  };
+
   const applyCollabBadge = (card) => {
     // Pré-filtre. Sans lui, chaque carte de la sidebar était parcourue par un
     // TreeWalker qui rappelle du JS sur CHAQUE nœud, à chaque scan — de loin
@@ -11937,8 +11983,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     //
     // L'équivalence est stricte : quand ce test échoue, aucune des deux
     // recherches ne pouvait aboutir, donc l'ancien code atteignait la même
-    // branche de nettoyage.
-    if (!PLUS_RE_PRESENT.test(card.textContent || '')) { clearCollabBadge(card); return; }
+    // branche de nettoyage — devenue le repli Guest Star, qui nettoie lui
+    // aussi quand il n'a rien à dire.
+    if (!PLUS_RE_PRESENT.test(card.textContent || '')) { pastilleDepuisGuestStar(card); return; }
 
     let count = null;
     let plusEl = null;
@@ -11967,25 +12014,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     if (count === null) {
-      // Plus de collab détecté : nettoyer un éventuel badge laissé par un
-      // scan précédent (cas où Twitch met à jour la carte pour retirer le
-      // "+N" sans détruire la carte). Sinon le badge resterait collé avec
-      // sa valeur obsolète.
-      clearCollabBadge(card);
+      // Le texte portait bien un « +N », mais aucune des deux recherches n'a
+      // su l'isoler. On passe la main à Guest Star, qui nettoie de lui-même
+      // s'il n'a rien non plus — sans quoi un badge d'un scan précédent
+      // resterait collé avec sa valeur obsolète.
+      pastilleDepuisGuestStar(card);
       return;
     }
 
-    const avatar = avatarOf(card);
-    if (!avatar) return;
-
-    avatar.classList.add('tse-collab-host');
-    let badge = avatar.querySelector(':scope > .tse-collab-badge');
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'tse-collab-badge';
-      avatar.appendChild(badge);
-    }
-    setText(badge, count);
+    if (!poserPastille(card, count)) return;
 
     if (plusEl) {
       plusEl.style.display = 'none';
