@@ -17007,6 +17007,111 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ LA PASTILLE N'AVAIT QU'UNE SOURCE, ET ELLE MANQUAIT SOUVENT ═══
+   LE RAPPORT : « FrostyQc a le badge "En live avec…" et n'a pas la pastille
+   sur son avatar, c'est normal ? » — en Top Chaînes, langue FR.
+
+   NON. La pastille ne se lisait que dans le « +N » que Twitch écrit sur SA
+   carte. Or en Top Chaînes les cartes sont des clones fabriqués, nettoyés par
+   `scrubClone`, et Twitch n'écrit jamais de « +N » pour une chaîne qu'on ne
+   suit pas : la pastille y était STRUCTURELLEMENT impossible.
+
+   ET POURTANT L'EXTENSION SAVAIT. L'aperçu de la même carte affichait « En
+   live avec DarthArcusal », lu dans le cache Guest Star — que le scan remplit
+   pour toutes les cartes visibles, pas seulement au survol. L'information
+   était en mémoire au moment où la carte était dessinée.
+
+   RIEN À VOIR AVEC LA BARRE DE GROUPE, qui exige deux cartes visibles du même
+   direct et reste donc absente ici : une barre qui REGROUPE n'a rien à relier
+   sur une ligne seule. La pastille parle d'une chaîne, pas d'un ensemble. */
+{
+  titre('129. Pastille de co-stream — Guest Star, quand Twitch n\'écrit pas son « +N »');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const chaine = (id, jeu, v) => ({ id, createdAt: h, viewers: v, game: jeu, tags: [] });
+    window.__cats = [{ name: 'Super Mario 64', viewers: 9000,
+                       streams: [{ login: 'frosty', viewers: 8400 }] }];
+    /* IDENTIFIANTS NUMÉRIQUES, ET CE N'EST PAS COSMÉTIQUE. `buildGuestStarOp`
+       écarte tout identifiant non numérique (`/^[0-9]+$/`) et ne demande alors
+       RIEN. Un décor à identifiants inventés produit donc zéro requête Guest
+       Star, silencieusement — et l'assertion tombe en accusant le produit. */
+    window.__fx = {
+      frosty: chaine('8801', 'Super Mario 64', 8400),
+      darth:  chaine('8802', 'Super Mario 64', 500),
+      /* UNE CARTE DE TWITCH DOIT ÊTRE LÀ : Top Chaînes CLONE une carte native
+         pour fabriquer les siennes, et sans modèle il n'en fabrique aucune. */
+      modele: chaine('7001', 'Discussions', 1000),
+      seule:  chaine('7002', 'Discussions', 900),
+      /* Minuscules : `loginFromHref` abaisse la casse avant d'écrire
+         `dataset.tseLogin`, et une clé capitalisée ne se retrouve plus. */
+      avecn:  chaine('7003', 'Discussions', 800),
+    };
+    /* La session : darth héberge, frosty est invité. `mates` vaut donc
+       exactement un pour frosty — l'hôte, lui-même exclu. */
+    window.__gs = {
+      '8801': { hostId: '8802', hostLogin: 'darth',
+                guests: [{ id: '8801', login: 'frosty', viewers: 8400, combined: 8900 }] },
+      /* avecn est DANS une session lui aussi, et Twitch écrit quand même son
+         « +N ». Les deux sources se contredisent : c'est le cas qui fixe la
+         priorité, et sans lui le repli pourrait la prendre sans qu'on le voie. */
+      '7003': { hostId: '8802', hostLogin: 'darth',
+                guests: [{ id: '7003', login: 'avecn', viewers: 800, combined: 900 }] },
+    };
+    window.__addCard('modele', 'Discussions', '1 k');
+    window.__addCard('seule',  'Discussions', '900');
+    const a = window.__addCard('avecn', 'Discussions', '800');
+    const sp = document.createElement('span');
+    sp.textContent = '+3';
+    a.querySelector('[data-a-target="side-nav-card-metadata"]').appendChild(sp);
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 3, 12_000);
+  await attendre(page, () => !!document.querySelector('.tse-collab-badge'), 12_000);
+
+  const suivies = await page.evaluate(() => {
+    const get = (l) => [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === l);
+    const badge = (l) => get(l)?.querySelector('.tse-collab-badge')?.textContent ?? null;
+    return { seule: badge('seule'), avecN: badge('avecn') };
+  });
+  /* LE « +N » DE TWITCH RESTE PRIORITAIRE : c'est son nombre sur sa carte, et
+     le repli n'est qu'un ajout. Inverser la priorité fait tomber celle-ci. */
+  ok('le « +N » de Twitch garde la main sur une carte qui en porte un',
+     suivies.avecN === '3', JSON.stringify(suivies));
+  /* ET LA PASTILLE NE S'INVENTE PAS : hors session et sans « +N », rien. */
+  ok('…et une chaîne hors session n\'en reçoit toujours aucune',
+     suivies.seule === null, JSON.stringify(suivies));
+
+  /* ── LE CAS DU RAPPORT : TOP CHAÎNES, CARTE FABRIQUÉE ───────────────────
+     Aucun « +N » ne peut s'y trouver. Sans le repli Guest Star, la pastille y
+     est impossible — c'est l'assertion qui tient tout ce scénario. */
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page,
+    () => [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')]
+      .some((c) => c.dataset.tseLogin === 'frosty'), 12_000);
+  await attendre(page,
+    () => !![...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === 'frosty')
+      ?.querySelector('.tse-collab-badge'), 12_000);
+
+  const top = await page.evaluate(() => {
+    const c = [...document.querySelectorAll('.side-nav-card')]
+      .find((x) => x.dataset.tseLogin === 'frosty');
+    return { fabriquee: c?.dataset.tseSynthetic === 'true',
+             plus: /\+\s*\d/.test(c?.textContent || ''),
+             badge: c?.querySelector('.tse-collab-badge')?.textContent ?? null,
+             hote: !!c?.querySelector('.tse-collab-host') };
+  });
+  ok('la carte du classement est bien fabriquée, et ne porte aucun « +N »',
+     top.fabriquee === true && top.plus === false, JSON.stringify(top));
+  ok('…et elle porte pourtant la pastille, comptée sur Guest Star',
+     top.badge === '1', JSON.stringify(top));
+  ok('…posée sur l\'avatar, comme celle que Twitch fournit',
+     top.hote === true, JSON.stringify(top));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

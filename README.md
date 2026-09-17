@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1165 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1170 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,80 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La pastille n'avait qu'une source, et elle manquait souvent (v4.13.5)
+
+### Le rapport
+
+> « Pour ce streamer FrostyQc, il a le badge "En live avec…" et n'a pas la
+> pastille sur son avatar, c'est normal ? On est sur le Top Chaînes langue FR. »
+
+Deux marques, deux mécanismes, et un seul était fautif.
+
+### Ce qui était normal : la barre de groupe
+
+Un groupe Guest Star ne s'active qu'à partir de **deux cartes visibles** du même
+direct :
+
+```js
+for (const [, members] of groups) {
+  if (members.length >= 2) members.forEach(c => gsHandled.add(c));
+}
+```
+
+C'est une barre qui **regroupe** : avec une seule ligne, elle n'a rien à relier.
+Le co-streamer de FrostyQc n'étant pas au classement, il y est seul. Voulu, et
+inchangé.
+
+### Ce qui ne l'était pas : la pastille
+
+Elle ne se lisait que dans le **« +N » que Twitch écrit sur sa propre carte** :
+
+```js
+if (!PLUS_RE_PRESENT.test(card.textContent || '')) { clearCollabBadge(card); return; }
+```
+
+Or en Top Chaînes les cartes sont des **clones fabriqués**, nettoyés par
+`scrubClone`, et Twitch n'écrit jamais de « +N » pour une chaîne qu'on ne suit
+pas. **La pastille y était structurellement impossible** — pas rare, pas
+intermittente : impossible.
+
+### Et pourtant l'extension savait
+
+L'aperçu de la même carte affiche « En live avec DarthArcusal ». Il le lit dans
+`getGuestStarMates`, dont le cache est rempli **par le scan, pour toutes les
+cartes visibles** — pas seulement au survol. L'information était en mémoire au
+moment où la carte était dessinée, et la carte ne s'en servait pas.
+
+Deux surfaces de la même extension, la même seconde, la même chaîne : l'une
+disait le co-stream, l'autre non.
+
+### La seconde source, et elle ne coûte rien
+
+| ce que la carte porte | ce qui décide |
+| --- | --- |
+| un « +N » de Twitch | **son** nombre, sur **sa** carte — prioritaire, inchangé |
+| pas de « +N », une session Guest Star | le nombre de co-streamers, lu dans le cache déjà rempli |
+| pas de « +N », pas de session | rien, comme avant |
+
+Aucune requête de plus : `gsCache` est déjà là. Le repli rattrape au passage un
+cas que personne n'avait signalé — une chaîne **suivie** dont Twitch tarde à
+écrire son « +N ».
+
+> Le réglage qui éteint la pastille (`collab`) continue de l'éteindre : la
+> seconde source alimente le même badge, elle n'en crée pas un second.
+
+### Ce que le banc ajoute
+
+Le scénario 129 rejoue le rapport au mot près — Top Chaînes, carte fabriquée,
+aucun « +N » possible — et vérifie d'abord que c'est bien ce décor-là qu'il
+mesure.
+
+| mutant | l'assertion qui tombe |
+| --- | --- |
+| le repli Guest Star retiré | « elle porte pourtant la pastille, comptée sur Guest Star » |
+| la priorité inversée | « le "+N" de Twitch garde la main sur une carte qui en porte un » |
+| la pastille posée sans session | « une chaîne hors session n'en reçoit toujours aucune » |
 
 ## Un retrait qui ne se comptait nulle part (v4.13.4)
 
@@ -7556,7 +7630,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 128 scénarios, 1165 assertions |
+| `npm test` | le harnais Playwright : 129 scénarios, 1170 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -7577,7 +7651,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1057 Ko | 404 Ko | 3 329 → **2** |
+| `content.js` | 1057 Ko | 404 Ko | 3 333 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 129 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
