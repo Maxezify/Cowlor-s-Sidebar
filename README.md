@@ -2614,6 +2614,109 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Un retrait qui ne se comptait nulle part (v4.13.4)
+
+### Le rapport, et le chiffre qui a tout désigné
+
+> « KyriaTV a disparu de Top Chaînes alors qu'elle a 1 k abonnés. »
+> Puis, deux versions plus tard : **« ça se produit quand je survole à la suite
+> les cartes des streamers en co-stream. »**
+
+Deux captures à quelques secondes d'écart. Avant : quatre chaînes
+« Discussions » à **3,6 k et 41 m — chiffres strictement identiques**. C'est la
+signature d'un seul stream affiché quatre fois : un co-stream. Après : le groupe
+entier a disparu, deux des quatre VALORANT avec lui.
+
+Et le rapport, lui, disait :
+
+```
+evicted     0        ← rien n'a été évincé
+misses     14
+pool      299
+threshold 941        ← les disparues étaient à 3 000, très au-dessus
+```
+
+**`evicted 0` pendant que des chaînes disparaissent de l'écran.** C'est ce
+chiffre qui a désigné le coupable : la voie d'éviction documentée — trois
+confirmations, un compteur, et un plancher de réponse depuis la 4.13.1 —
+n'était pas celle qui les retirait.
+
+### La seconde voie
+
+`setViewers`, cent lignes plus loin :
+
+```js
+const i = liste.findIndex(r => r.login === login);
+if (i < 0) return false;
+if (viewers === null) { liste.splice(i, 1); return true; }   // ← ici
+```
+
+Une seule réponse, suppression immédiate. **Pas de confirmation, pas de
+compteur, pas une ligne de commentaire** — dans un fichier où chaque décision en
+porte un paragraphe. Un retrait qui ne s'inscrit nulle part est un retrait
+qu'aucun rapport ne peut désigner : c'est ce qui l'a rendu introuvable pendant
+deux enquêtes.
+
+### Pourquoi le co-stream, précisément
+
+`viewers` vaut `null` quand `user(login).stream` est nul. Or ce module distingue
+déjà, quelques centaines de lignes plus haut, deux choses très différentes :
+
+> « Login absent de la réponse : on ne sait pas. **Surtout PAS "hors ligne"** —
+> ce serait masquer une carte sur une absence de preuve. »
+
+La suppression ne se déclenchait donc que sur une affirmation positive de
+Twitch : *« ce login ne diffuse pas de stream à lui »*. Et c'est **exactement**
+la réponse pour un invité en co-stream — le répertoire le liste, notre propre
+marche l'y a vu avec les chiffres de l'hôte, et il n'a pourtant pas de stream
+propre. Deux points de terminaison de Twitch se contredisent, et nous donnions
+raison au second contre le premier.
+
+### Et la suppression était redondante
+
+Une chaîne réellement hors ligne voit **déjà** sa carte masquée par la voie des
+cartes, qui exige `OFFLINE_CONFIRM` réponses consécutives :
+
+> « Confirmation : il faut OFFLINE_CONFIRM réponses "stream=null" consécutives
+> pour basculer en "Terminé". Évite les faux positifs ponctuels. »
+
+Deux disciplines pour le même fait, à deux seuils différents — et **la plus
+laxiste l'emportait**, puisqu'elle supprimait l'enregistrement au lieu de
+masquer la carte.
+
+### La règle, en une phrase
+
+**L'appartenance au classement revient à la marche.** `setViewers` corrige le
+nombre ; il ne retire plus personne.
+
+| ce qui arrive | ce qui se passe maintenant |
+| --- | --- |
+| réponse sans stream, la marche voit toujours la chaîne | on retient un **creux** sur l'entrée, on le compte, on ne retire rien |
+| la marche la revoit | le creux est effacé — c'est le répertoire qui a raison |
+| la marche cesse de la voir, creux posé | les deux sources s'accordent : retrait **dès la première absence**, compté dans `evicted` |
+| la marche cesse de la voir, sans creux | la règle d'avant : trois confirmations |
+
+Plus prudent d'un côté, **plus prompt de l'autre** : une chaîne dont les deux
+sources disent qu'elle est partie n'attend plus trois absences.
+
+### Pourquoi le survol
+
+Il ne causait pas le retrait, il l'**avançait**. Chaque aperçu fermé programme un
+scan ; chaque scan redemande les entrées périmées. Survoler d'affilée les cartes
+d'un groupe de co-stream, c'est déclencher les requêtes sur exactement ces
+logins-là — d'où une corrélation très fiable, et pourtant indirecte.
+
+### Ce que le banc ajoute
+
+Le scénario 128 rejoue la disparition, puis son contraire. Six assertions, dont
+celle qui suffit à elle seule : remettre le `splice` la fait tomber.
+
+| mutant | l'assertion qui tombe |
+| --- | --- |
+| le `splice` restauré | « une réponse sans stream ne retire pas la chaîne du classement » |
+| le creux non compté | « le désaccord est COMPTÉ, ce qu'aucun chiffre ne disait » |
+| le creux ignoré par `reconcile` | « la marche cesse de la voir à son tour, et le creux tranche aussitôt » |
+
 ## Un relevé rendait « zéro » en silence, et il y avait deux causes (v4.13.3)
 
 ### Le rapport

@@ -2479,6 +2479,105 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## A removal that was counted nowhere (v4.13.4)
+
+### The report, and the number that named the culprit
+
+> "KyriaTV has disappeared from Top Channels, and she has 1k subscribers."
+> Then, two versions later: **"it happens when I hover over the co-streaming
+> streamers' cards one after another."**
+
+Two screenshots seconds apart. Before: four "Discussions" channels at **3.6k and
+41m — strictly identical figures**. That is the signature of one stream shown
+four times: a co-stream. After: the whole group gone, two of the four VALORANT
+ones with it.
+
+And the report said:
+
+```
+evicted     0        ← nothing was evicted
+misses     14
+pool      299
+threshold 941        ← the vanished ones were at 3,000, far above
+```
+
+**`evicted 0` while channels vanish from the screen.** That number is what named
+the culprit: the documented eviction path — three confirmations, a counter, and
+a response floor since 4.13.1 — was not the one removing them.
+
+### The second path
+
+`setViewers`, a hundred lines further down:
+
+```js
+const i = liste.findIndex(r => r.login === login);
+if (i < 0) return false;
+if (viewers === null) { liste.splice(i, 1); return true; }   // ← here
+```
+
+One single answer, immediate removal. **No confirmation, no counter, not one
+line of comment** — in a file where every decision carries a paragraph. A
+removal recorded nowhere is a removal no report can point at: that is what kept
+it hidden through two investigations.
+
+### Why co-streams, precisely
+
+`viewers` is `null` when `user(login).stream` is null. Yet this module already
+distinguishes, a few hundred lines earlier, two very different things:
+
+> "Login absent from the response: we do not know. **Certainly NOT 'offline'** —
+> that would hide a card on an absence of proof."
+
+So the removal only fired on a positive statement from Twitch: *"this login is
+not broadcasting a stream of its own."* And that is **exactly** the answer for a
+co-stream guest — the directory lists them, our own walk saw them there with the
+host's figures, and yet they have no stream of their own. Two Twitch endpoints
+contradict each other, and we were siding with the second against the first.
+
+### And the removal was redundant
+
+A genuinely offline channel **already** has its card hidden by the card path,
+which requires `OFFLINE_CONFIRM` consecutive answers:
+
+> "Confirmation: it takes OFFLINE_CONFIRM consecutive 'stream=null' answers to
+> switch to 'Ended'. Avoids one-off false positives."
+
+Two disciplines for the same fact, at two different thresholds — and **the laxer
+one won**, since it deleted the record instead of hiding the card.
+
+### The rule, in one sentence
+
+**Membership of the ranking belongs to the walk.** `setViewers` corrects the
+number; it no longer removes anyone.
+
+| what happens | what happens now |
+| --- | --- |
+| streamless answer, the walk still sees the channel | a **hollow** is recorded on the entry, counted, and nothing is removed |
+| the walk sees it again | the hollow is cleared — the directory is right |
+| the walk stops seeing it, hollow set | both sources agree: removed on the **first** absence, counted in `evicted` |
+| the walk stops seeing it, no hollow | the previous rule: three confirmations |
+
+More cautious on one side, **faster on the other**: a channel both sources call
+gone no longer waits three absences.
+
+### Why hovering
+
+It did not cause the removal, it **brought it forward**. Every closed preview
+schedules a scan; every scan re-requests stale entries. Hovering a run of
+co-stream cards fires the requests for exactly those logins — hence a very
+reliable correlation that is nonetheless indirect.
+
+### What the bench adds
+
+Scenario 128 replays the disappearance, then its opposite. Six assertions,
+including the one that suffices on its own: put the `splice` back and it falls.
+
+| mutant | the assertion that drops |
+| --- | --- |
+| the `splice` restored | "a streamless answer does not remove the channel from the ranking" |
+| the hollow not counted | "the disagreement is COUNTED, which no figure was saying" |
+| the hollow ignored by `reconcile` | "the walk stops seeing it in turn, and the hollow decides at once" |
+
 ## A sweep was returning "zero" in silence, and there were two causes (v4.13.3)
 
 ### The report
