@@ -1257,6 +1257,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     SUBS_PAGE_ENABLED:    true,
 
+    SUBS_PAGE_TEXTE_MAX:  200,
     SUBS_PAGE_TABS:       ['paid', 'gifts', 'mobile'],
 
     SUBS_PAGE_TABS_PAST:  ['expired'],
@@ -3684,7 +3685,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     let windowFloor   = 0;
     const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
 
-                    misses: 0, sousPlancher: 0, evicted: 0, lastMs: 0 };
+                    misses: 0, sousPlancher: 0, creux: 0, evicted: 0, lastMs: 0 };
 
     const empileurs = new Set();
 
@@ -3907,7 +3908,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     const reconcile = (pool, queried, seen, now, plancherDe = () => 0) => {
       const cutoff = now - CFG.GLOBAL_PRUNE_AGE;
       for (const [login, rec] of pool) {
-        if (seen.has(login)) { rec.misses = 0; continue; }
+
+        if (seen.has(login)) { rec.misses = 0; rec.creux = 0; continue; }
 
         if (rec.ts < cutoff) { pool.delete(login); stats.evicted += 1; continue; }
         if (!queried.has(rec.game)) continue;
@@ -3915,7 +3917,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (rec.viewers < plancherDe(rec)) { stats.sousPlancher += 1; continue; }
         rec.misses = (rec.misses || 0) + 1;
         stats.misses += 1;
-        if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM) {
+
+        if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM || rec.creux) {
           pool.delete(login);
           stats.evicted += 1;
         }
@@ -4481,16 +4484,25 @@ const TSE_GATE_MAX_CLICKS = 5;
       setViewers(login, viewers) {
 
         let touche = false;
+        let creuse = false;
         const appliquer = (liste) => {
           const i = liste.findIndex(r => r.login === login);
           if (i < 0) return false;
-          if (viewers === null) { liste.splice(i, 1); return true; }
-          if (!Number.isFinite(viewers) || liste[i].viewers === viewers) return false;
-          liste[i] = { ...liste[i], viewers, ts: Date.now() };
+
+          if (viewers === null) {
+            liste[i] = { ...liste[i], creux: (liste[i].creux || 0) + 1 };
+            creuse = true;
+            return false;
+          }
+          if (!Number.isFinite(viewers)
+              || (liste[i].viewers === viewers && !liste[i].creux)) return false;
+          liste[i] = { ...liste[i], viewers, creux: 0, ts: Date.now() };
           return true;
         };
         if (appliquer(ranking))      { rankingDirty = true; touche = true; }
         if (appliquer(scopeRanking)) { scopeDirty   = true; touche = true; }
+
+        if (creuse) stats.creux += 1;
         return touche;
       },
       report() {
@@ -5016,6 +5028,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   const subsPage = (() => {
     let running = false;
 
+    let bilan = { onglets: [], fini: 0 };
+
     let etiquette = (() => {
       try { return localStorage.getItem(CFG.SUBS_LABEL_KEY) || ''; }
       catch { return ''; }
@@ -5092,9 +5106,14 @@ const TSE_GATE_MAX_CLICKS = 5;
       let passage = '';
       let noeuds = -1;
       let stableDepuis = 0;
+
+      const vu = { onglet, charge: false, noeuds: 0, barre: false, cartes: 0,
+                   logins: 0, texte: '' };
+      bilan.onglets.push(vu);
       const finir = (logins) => {
         if (sondeur) { clearInterval(sondeur); sondeur = null; }
         if (limite) { clearTimeout(limite); limite = null; }
+        vu.logins = logins.length;
         if (cadre) { cadre.remove(); cadre = null; }
         resolve(logins);
       };
@@ -5136,6 +5155,15 @@ const TSE_GATE_MAX_CLICKS = 5;
           }
           if (!doc) return;
           const cartes = doc.querySelectorAll(DOM.subCardSelector);
+
+          vu.charge = true;
+          vu.cartes = Math.max(vu.cartes, cartes.length);
+          vu.noeuds = Math.max(vu.noeuds, doc.querySelectorAll('*').length);
+          if (!vu.barre) vu.barre = !!doc.querySelector(DOM.sidebarRoot);
+
+          vu.texte = cartes.length ? ''
+            : (doc.querySelector('main')?.innerText || '')
+                .replace(/\s+/g, ' ').trim().slice(0, CFG.SUBS_PAGE_TEXTE_MAX);
           if (cartes.length) {
             const trouve = [];
             const vus = new Set();
@@ -5181,6 +5209,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!force && Date.now() - horodatage() < periode) return null;
       if (!document.body) return null;
       running = true;
+      bilan = { onglets: [], fini: 0 };
       const trouves = [];
       try {
         let touche = false;
@@ -5219,12 +5248,26 @@ const TSE_GATE_MAX_CLICKS = 5;
 
         marquer();
 
+        bilan.fini = Date.now();
         if (!trouves.length) {
           const connus = subs.entries().filter(e => e.sub).length;
-          if (connus) {
+
+          const affiches = bilan.onglets.filter((o) => o.charge && o.barre);
+
+          const dit = affiches.map((o) => o.texte).find(Boolean) || '';
+          if (!affiches.length) {
+
+            if (connus) {
+              erreurs.noter('abonnements',
+                `relevé complet sans résultat, ${connus} abonnement(s) déjà connu(s)`,
+                CFG.SUBS_PAGE_TABS.join(', '));
+            }
+          } else {
             erreurs.noter('abonnements',
-              `relevé complet sans résultat, ${connus} abonnement(s) déjà connu(s)`,
-              CFG.SUBS_PAGE_TABS.join(', '));
+              `${affiches.length} onglet(s) affiché(s), aucun ne rend « ${DOM.subCardSelector} »`,
+              dit ? `la page dit : « ${dit} »`
+                : connus ? `${connus} abonnement(s) déjà connu(s) : le sélecteur ne correspond plus`
+                  : 'compte sans abonnement, ou sélecteur à revérifier');
           }
         }
       } finally {
@@ -5282,7 +5325,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       arme = true;
     };
 
-    return { init, refresh, horodatage, notifySidebar, enAttente };
+    return { init, refresh, horodatage, notifySidebar, enAttente,
+             bilan: () => ({ ...bilan, onglets: bilan.onglets.map((o) => ({ ...o })) }) };
   })();
 
   function detectSubscription() {
@@ -5993,7 +6037,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
                    sansAncre: manquantes.filter(c => !cardNameEl(c)).length };
         })(),
-        relevesAbonnements: { horodatage: subsPage.horodatage(), enAttente: subsPage.enAttente() },
+
+        relevesAbonnements: { horodatage: subsPage.horodatage(),
+                              enAttente: subsPage.enAttente(),
+                              ...subsPage.bilan() },
 
         reseau: {
           pauseGqlMs: Math.max(0, gqlCooldownUntil - maintenant),

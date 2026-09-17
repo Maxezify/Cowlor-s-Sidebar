@@ -1170,6 +1170,13 @@ const construireRapport = (r, transport, fond) => {
     paire('horodatage', r.relevesAbonnements?.horodatage
       ? new Date(r.relevesAbonnements.horodatage).toISOString() : 'jamais / never'),
     paire('en attente / pending', r.relevesAbonnements?.enAttente),
+
+    ...((r.relevesAbonnements?.onglets || []).map((o) => paire(
+      `onglet ${o.onglet}`,
+      `${o.charge ? 'affiché' : 'jamais chargé'} · ${o.noeuds} nœuds`
+      + ` · barre ${o.barre ? 'oui' : 'non'} · ${o.cartes} carte(s)`
+      + ` · ${o.logins} chaîne(s)`
+      + (o.texte ? ` · la page dit : « ${o.texte} »` : '')))),
   ]));
   L.push(...bloc('RÉSEAU / NETWORK', [
     ...aplatir(r.reseau),
