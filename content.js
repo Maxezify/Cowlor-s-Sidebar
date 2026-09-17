@@ -6826,9 +6826,29 @@ const TSE_GATE_MAX_CLICKS = 5;
            Le banc tenait déjà cette règle pour les cartes suivies — « le
            nombre trié est CELUI QUI EST AFFICHÉ : sans ça, la liste paraît
            cassée ». Elle vaut ici mot pour mot. */
+        /* ── ET QUAND LA SESSION NE DONNE PAS SON COMBINÉ ──────────────────
+           LE TROU LAISSÉ OUVERT PAR LA 4.13.6, et un rapport l'a trouvé : sur
+           une session à six participants, Twitch ne porte le
+           `collaborationViewersCount` que pour CERTAINS d'entre eux. Pour les
+           autres, le combiné est inconnu — et on retombait sur le compteur
+           propre, quelques centaines, qui les faisait tomber hors du top
+           trente. Mesuré au banc : trois des six gardaient 4 000, les trois
+           autres descendaient à 300.
+
+           EN SESSION, LE COMPTEUR PROPRE N'EST JAMAIS LE BON NOMBRE. Ce n'est
+           pas celui que Twitch affiche, donc pas celui que la carte montre,
+           donc pas celui qui doit trier. À défaut de combiné, on garde ce que
+           le RÉPERTOIRE a dit — la valeur déjà au classement, celle-là même
+           qu'on voit à l'écran. Ne rien écrire est ici la bonne écriture.
+
+           `typeof hote === 'string'` et non « pas null » : `undefined` veut
+           dire qu'on ne sait pas encore, et refuser d'écrire dans ce cas
+           gèlerait le compteur de toutes les chaînes ordinaires au démarrage,
+           le temps que Guest Star réponde. */
         const combine = getCollabViewers(id);
-        globalChannels.setViewers(login,
-          Number.isFinite(combine) ? combine : entry.viewers);
+        const hote = getHostId(id);
+        if (Number.isFinite(combine)) globalChannels.setViewers(login, combine);
+        else if (typeof hote !== 'string') globalChannels.setViewers(login, entry.viewers);
         fresh++;
         (pending.get(login) || []).forEach(fn => fn(entry));
       });
@@ -15456,7 +15476,18 @@ const TSE_GATE_MAX_CLICKS = 5;
       // Données fraîches issues de la même réponse. Le compteur affiché est
       // celui du co-stream quand il y en a un (lecture pure du cache Guest
       // Star, déjà alimenté par la détection de co-stream du même scan).
-      renderViewers(card, data.viewers, getCollabViewers(data.id));
+      /* LA CARTE SUIT LA MÊME RÈGLE QUE LE CLASSEMENT, et il le faut : ces
+         deux lignes-ci et celles de `setViewers` décrivent le même nombre, et
+         les laisser diverger est précisément le défaut que la 4.13.6 a corrigé
+         dans l'autre sens. En session sans combiné connu, on GARDE ce qui est
+         déjà affiché — le nombre du répertoire — plutôt que de retomber sur le
+         compteur propre, que Twitch ne montre nulle part. */
+      let montre = getCollabViewers(data.id);
+      if (!Number.isFinite(montre) && typeof getHostId(data.id) === 'string') {
+        const deja = Number(card.dataset.tseViewers);
+        if (Number.isFinite(deja)) montre = deja;
+      }
+      renderViewers(card, data.viewers, montre);
       if (data.game) {
         // L'identité va dans tseCategory (filtres, regroupement co-stream), le
         // libellé traduit dans tseCategoryLabel (menu déroulant). Le second

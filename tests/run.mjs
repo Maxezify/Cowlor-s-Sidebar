@@ -17306,6 +17306,81 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ EN SESSION, LE COMPTEUR PROPRE N'EST JAMAIS LE BON ════════════
+   LE RAPPORT, QUATRIÈME REPRISE : six co-streamers « Aniimo » affichés à 4 k,
+   dont TROIS quittent la liste. Et au rapport : misses 0, sousPlancher 0,
+   creux 0, evicted 0 — littéralement rien n'avait quitté le pool.
+
+   C'EST LE TROU LAISSÉ OUVERT PAR LA 4.13.6. Celle-ci préférait le compteur
+   COMBINÉ de la session quand elle le connaissait ; sinon elle retombait sur
+   le compteur PROPRE. Or sur une session à six, Twitch ne porte le
+   `collaborationViewersCount` que pour CERTAINS participants. Les autres
+   retombaient donc à quelques centaines et sortaient du top trente — trois
+   gardaient 4 000, trois descendaient à 300.
+
+   EN SESSION, LE COMPTEUR PROPRE N'EST JAMAIS LE BON NOMBRE : ce n'est pas
+   celui que Twitch affiche, donc pas celui que la carte montre, donc pas celui
+   qui doit trier. À défaut de combiné, on garde ce que le RÉPERTOIRE a dit.
+   NE RIEN ÉCRIRE EST ICI LA BONNE ÉCRITURE. */
+{
+  titre('132. Co-stream — sans combiné, le classement garde le nombre du répertoire');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Aniimo', tags: [] });
+    /* LE RÉPERTOIRE REND LE COMBINÉ — 4 000 pour les deux co-streamers. */
+    window.__cats = [{ name: 'Aniimo', viewers: 9000, streams: [
+      { login: 'naguura', viewers: 4000 }, { login: 'tinkerleo', viewers: 4000 },
+      { login: 'milieu', viewers: 900 }, { login: 'modele', viewers: 800 }] }];
+    /* ET LA RÉPONSE DE CHAÎNE REND LE COMPTEUR PROPRE : 300 chacun. C'est
+       l'écart qui fait tout — trié sur 300, un co-streamer passe sous une
+       chaîne qui en affiche 900 tout en montrant 4 k. */
+    window.__fx = { naguura: c('9201', 300), tinkerleo: c('9202', 300),
+                    milieu: c('9203', 900), modele: c('9204', 800) };
+    /* LA SESSION NE PORTE DE COMBINÉ QUE POUR NAGUURA. Pour tinkerleo, Twitch
+       n'en donne pas — c'est le cas observé sur une session à six, et c'est le
+       seul point qui les distingue dans ce décor. */
+    const guests = [{ id: '9201', login: 'naguura', viewers: 300, combined: 4000 },
+                    { id: '9202', login: 'tinkerleo', viewers: 300 }];
+    window.__gs = { '9201': { hostId: '9200', hostLogin: 'aniimo', guests },
+                    '9202': { hostId: '9200', hostLogin: 'aniimo', guests } };
+    window.__addCard('modele', 'Aniimo', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  /* ON ATTEND QUE LA RÉPONSE DE CHAÎNE SOIT PASSÉE : « milieu » n'est en
+     session d'aucune sorte, son compteur propre EST son compteur affiché, et
+     le voir posé prouve que le lot est arrivé. */
+  await attendre(page, () => [...document.querySelectorAll('.side-nav-card')]
+    .some((c) => c.dataset.tseLogin === 'milieu' && c.dataset.tseViewers === '900'), 15_000);
+  await wait(page, 1500);
+
+  const vu = await page.evaluate(() => {
+    const rang = window.tse.global.top(50).map((r) => `${r.login}:${r.viewers}`);
+    const aff = (l) => [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === l)?.dataset.tseViewers ?? null;
+    return { rang, naguura: aff('naguura'), tinkerleo: aff('tinkerleo'), milieu: aff('milieu') };
+  });
+
+  ok('le co-streamer dont la session donne son combiné le garde',
+     vu.rang.includes('naguura:4000') && vu.naguura === '4000', JSON.stringify(vu));
+  /* L'ASSERTION QUI TIENT TOUT : sans elle, tinkerleo retombe à 300 — mesuré. */
+  ok('…et celui dont elle n\'en donne pas garde le nombre du répertoire',
+     vu.rang.includes('tinkerleo:4000'), vu.rang.join(' '));
+  ok('…sa carte l\'affiche aussi, au lieu de son compteur propre',
+     vu.tinkerleo === '4000', String(vu.tinkerleo));
+  /* LA CONSÉQUENCE VISIBLE, et c'est elle que l'utilisateur décrivait. */
+  ok('…si bien qu\'aucun des deux ne passe sous une chaîne qui en affiche moins',
+     vu.rang.indexOf('naguura:4000') < vu.rang.indexOf('milieu:900')
+     && vu.rang.indexOf('tinkerleo:4000') < vu.rang.indexOf('milieu:900'),
+     vu.rang.join(' '));
+  /* ET LA RÈGLE NE DÉBORDE PAS : hors session, le compteur propre fait foi. */
+  ok('…tandis qu\'une chaîne hors session garde bien le sien',
+     vu.rang.includes('milieu:900') && vu.milieu === '900', JSON.stringify(vu));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
