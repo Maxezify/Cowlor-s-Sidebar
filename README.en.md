@@ -2479,6 +2479,82 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## A tab return destroyed the cards we had placed (v4.13.7)
+
+### The report
+
+> "I see cards appearing and disappearing in the co-streams, especially when I
+> switch windows for a few seconds and come back."
+
+And the diagnostic report, once again:
+
+```
+creux         0
+evicted       0        ← nothing left the ranking
+```
+
+**So it was not another removal.** The cards were not being removed from the
+ranking: they were being **destroyed from the DOM**, then rebuilt.
+
+### The tab-return path
+
+After an absence longer than `REVISIT_RELOAD_MS`, the return invalidates the
+channel cache and forces a full re-read:
+
+```js
+cache.clear();
+document.querySelectorAll('.side-nav-card[data-tse-login]').forEach(card => {
+  delete card.dataset.tseLogin;      // EVERY card
+});
+```
+
+Yet `syncGlobalCards` identifies its cards by that login, and drops the ones that
+no longer have it:
+
+```js
+if (l) existing.set(l, c); else releaseGlobalCard(c);
+```
+
+— and for a fabricated card, "drop" means `remove()`. **A simple tab return
+destroyed all thirty ranking cards.**
+
+### The login is not the same thing on the two
+
+| on a card from… | what the login is | what erasing it does |
+| --- | --- | --- |
+| **Twitch** | a **reading** of the DOM | forces `processCard` to re-read everything — the point |
+| **us** | our **only** identity; Twitch knows nothing of it | re-reads nothing: loses the card |
+
+The loop treated both the same way. Now it treats only one.
+
+### What the measurement showed
+
+On the bench, before the fix, a native card borrowed by the ranking came back
+**duplicated** — itself, plus the clone rebuilt beside it:
+
+```
+before: milieu/fab, modele/nat, shlorox/fab, tinkerleo/fab
+return: shlorox, tinkerleo, milieu, modele, modele      ← duplicate
+```
+
+After:
+
+```
+return: milieu, modele, shlorox, tinkerleo
+```
+
+### What the bench adds
+
+Scenario 131 plays the absence and the return, past the threshold. It **marks
+the cards before** hiding the tab, and that is what separates "kept" from "rebuilt
+identically": a plain roll-call of logins would not say it, since the rebuild
+returns the same names on different nodes.
+
+| mutant | the assertion that drops |
+| --- | --- |
+| the erasure made unconditional | "no card is duplicated by the tab return" |
+| the cards rebuilt instead of kept | "these are the same nodes, not cards remade identically" |
+
 ## The ranking sorted on a number it did not display (v4.13.6)
 
 ### The report, third round — and this time nothing was being removed

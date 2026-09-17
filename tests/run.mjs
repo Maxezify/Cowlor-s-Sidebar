@@ -13973,8 +13973,24 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     window.tse.rescan();
   }, h);
   await wait(page, 1200);
+  /* ON PROVOQUE UN CLONAGE, ET CE N'EST PAS UN ARTIFICE. `modeleVoie` n'est
+     écrit que quand une carte est RÉELLEMENT fabriquée : sans clone à faire,
+     le rapport garde la dernière voie employée, ce qui est exact — il dit
+     d'où vient le modèle en service, pas celui qu'on choisirait.
+
+     Cette assertion mesurait donc la préférence PAR RICOCHET : jusqu'en
+     4.13.6, un retour d'onglet détruisait toutes les cartes fabriquées, si
+     bien qu'une reconstruction suivait chaque `rescan()` et recalculait la
+     voie. Ce démontage était le défaut corrigé en 4.13.7 — et l'assertion en
+     dépendait sans le dire. On retire donc une carte pour que la passe
+     suivante ait quelque chose à cloner : c'est le moment, et le seul, où la
+     préférence a un sens. */
+  await page.evaluate(() => {
+    document.querySelector('.side-nav-card[data-tse-synthetic="true"]')?.remove();
+  });
+  await wait(page, 1500);
   const voieNeutre = await page.evaluate(() => window.tse.panneau.rapport().page.modele);
-  ok('…et le modèle neutre reprend la main dès qu\'il en existe un',
+  ok('…et le modèle neutre reprend la main au prochain clonage',
      voieNeutre === 'neutre', String(voieNeutre));
 
   /* ── LE TROISIÈME APPELANT DU REPÈRE, ET IL ÉCRIVAIT DÉJÀ FAUX ───────────
@@ -17200,6 +17216,93 @@ addEventListener('message', (e) => {
   /* ET HORS CO-STREAM, RIEN NE CHANGE : le compteur propre reste la vérité. */
   ok('…tandis qu\'une chaîne hors session garde son propre compteur',
      vu.rang.includes('milieu:800'), vu.rang.join(' '));
+  await page.close();
+}
+
+/* ═════════ UN RETOUR D'ONGLET NE DÉTRUIT PAS CE QU'ON A POSÉ ═════════════
+   LE RAPPORT : « je vois des cartes apparaître et disparaître dans les
+   co-streams, notamment quand je change de fenêtre quelques secondes puis j'y
+   reviens. » Et, au rapport de diagnostic, « evicted 0 » et « creux 0 » : rien
+   n'était retiré du classement. Ce n'était donc pas un retrait de plus.
+
+   `invalidateAndRescan` — le chemin du retour d'onglet — effaçait le pseudo de
+   TOUTES les cartes, y compris celles que NOUS avons fabriquées. Or
+   `syncGlobalCards` identifie les siennes par ce pseudo et retire celles qui
+   n'en ont plus ; pour une carte fabriquée, « retirer » veut dire `remove()`.
+   Un simple retour d'onglet détruisait donc les trente cartes du classement
+   avant de les refabriquer.
+
+   LE PSEUDO N'EST PAS LA MÊME CHOSE SUR LES DEUX. Sur une carte de Twitch il
+   est une LECTURE, et l'effacer force à tout relire — c'est le but. Sur une
+   carte que nous avons posée il est notre SEULE identité, et l'effacer ne
+   relit rien : il perd la carte. */
+{
+  titre('131. Top Chaînes — un retour d\'onglet ne détruit pas les cartes qu\'on a posées');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Aniimo', tags: [] });
+    window.__cats = [{ name: 'Aniimo', viewers: 9000, streams: [
+      { login: 'shlorox', viewers: 2900 }, { login: 'tinkerleo', viewers: 2800 },
+      { login: 'milieu', viewers: 700 }, { login: 'modele', viewers: 600 }] }];
+    window.__fx = { shlorox: c('9101', 400), tinkerleo: c('9102', 400),
+                    milieu: c('9103', 700), modele: c('9104', 600) };
+    /* La carte native sert de MODÈLE au clonage, et le classement l'emprunte
+       aussi pour elle-même : c'est elle qui ressortait EN DOUBLE. */
+    window.__addCard('modele', 'Aniimo', '600');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => document.querySelectorAll('.side-nav-card').length >= 4, 12_000);
+  await wait(page, 1500);
+
+  /* ON MARQUE LES CARTES AVANT, et c'est ce qui distingue « conservée » de
+     « refabriquée à l'identique ». Un simple relevé de pseudos ne le dirait
+     pas : la reconstruction rend les mêmes noms, sur d'autres nœuds. */
+  const avant = await page.evaluate(() => {
+    const cartes = [...document.querySelectorAll('.side-nav-card')];
+    cartes.forEach((c, i) => { c.dataset.tseTemoin = 't' + i; });
+    return cartes.map((c) => `${c.dataset.tseLogin}/${c.dataset.tseSynthetic === 'true' ? 'fab' : 'nat'}`);
+  });
+  ok('le décor porte bien des cartes fabriquées ET une carte native',
+     avant.filter((x) => x.endsWith('/fab')).length >= 2
+     && avant.some((x) => x.endsWith('/nat')), JSON.stringify(avant));
+
+  /* L'ABSENCE, plus longue que REVISIT_RELOAD_MS (1 500 ms sous les durées du
+     banc) : c'est le seuil au-delà duquel le retour invalide et reconstruit. */
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await wait(page, 2200);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await wait(page, 3000);
+
+  const apres = await page.evaluate(() => {
+    const cartes = [...document.querySelectorAll('.side-nav-card')];
+    const logins = cartes.map((c) => c.dataset.tseLogin ?? null);
+    return { logins,
+             temoins: cartes.filter((c) => c.dataset.tseTemoin).length,
+             sansLogin: logins.filter((l) => !l).length,
+             doublons: logins.length - new Set(logins).size };
+  });
+
+  /* L'ASSERTION QUI TIENT TOUT : mesurée avant le correctif, la carte native
+     empruntée ressortait accompagnée de son clone refabriqué. */
+  ok('aucune carte n\'est dupliquée par le retour d\'onglet',
+     apres.doublons === 0, JSON.stringify(apres));
+  ok('…aucune ne perd son pseudo au passage',
+     apres.sansLogin === 0, JSON.stringify(apres));
+  /* ET ELLES N'ONT PAS ÉTÉ REFABRIQUÉES : ce sont les MÊMES nœuds, ceux qu'on
+     a marqués. Sans ce témoin, un démontage-remontage passerait pour un
+     non-événement. */
+  ok('…et ce sont les mêmes nœuds, pas des cartes refaites à l\'identique',
+     apres.temoins === apres.logins.length && apres.temoins >= 4,
+     JSON.stringify(apres));
   await page.close();
 }
 

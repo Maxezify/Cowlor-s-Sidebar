@@ -19141,6 +19141,29 @@ const TSE_GATE_MAX_CLICKS = 5;
   const invalidateAndRescan = () => {
     cache.clear();
     document.querySelectorAll('.side-nav-card[data-tse-login]').forEach(card => {
+      /* ── NOS CARTES GARDENT LEUR IDENTITÉ ────────────────────────────────
+         RAPPORT DE TERRAIN : « je vois des cartes apparaître et disparaître
+         dans les co-streams, notamment quand je change de fenêtre quelques
+         secondes puis j'y reviens. »
+
+         CETTE BOUCLE EFFAÇAIT LE PSEUDO DE TOUTES LES CARTES, y compris celles
+         que NOUS avons fabriquées. Or `syncGlobalCards` identifie ses cartes
+         par ce pseudo, et retire celles qui n'en ont plus :
+
+             if (l) existing.set(l, c); else releaseGlobalCard(c);
+
+         — et pour une carte fabriquée, « retirer » veut dire `remove()`. Un
+         simple retour d'onglet DÉTRUISAIT donc les trente cartes du classement
+         avant de les refabriquer. Mesuré au banc : une carte native empruntée
+         par le classement en ressortait EN DOUBLE, son clone ayant été
+         refabriqué à côté d'elle.
+
+         LE PSEUDO N'EST PAS LA MÊME CHOSE SUR LES DEUX. Sur une carte de
+         Twitch, il est une LECTURE : l'effacer force `processCard` à tout
+         relire, ce qui est bien le but de cette invalidation. Sur une carte
+         que nous avons posée, il est notre SEULE identité — Twitch n'en sait
+         rien — et l'effacer ne relit rien : il perd la carte. */
+      if (isSynthetic(card) || card.dataset.tseGlobal === 'true') return;
       delete card.dataset.tseLogin;
     });
     scanSidebar();
