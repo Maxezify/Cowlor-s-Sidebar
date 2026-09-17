@@ -16911,6 +16911,102 @@ addEventListener('message', (e) => {
   await pageRefus.close();
 }
 
+/* ═════════ UNE RÉPONSE SANS STREAM NE RETIRE PLUS PERSONNE ═══════════════
+   LE RAPPORT, ET SA PRÉCISION DÉCISIVE : « KyriaTV a disparu de Top Chaînes »,
+   puis « ça se produit quand je survole à la suite les cartes des streamers en
+   co-stream ». Deux captures à quelques secondes d'écart : quatre chaînes
+   « Discussions » à 3,6 k et 41 m — chiffres STRICTEMENT identiques, la
+   signature d'un seul stream affiché quatre fois — présentes, puis disparues.
+
+   ET LE RAPPORT DISAIT « evicted 0 ». C'est ce chiffre qui a désigné le
+   coupable : la voie d'éviction documentée — trois confirmations, un compteur,
+   un plancher de réponse depuis la 4.13.1 — n'était pas celle qui les
+   retirait. Il en existait une seconde :
+
+       if (viewers === null) { liste.splice(i, 1); return true; }
+
+   Une seule réponse, aucune confirmation, AUCUN COMPTEUR. Un retrait qui ne
+   s'inscrit nulle part est un retrait qu'aucun rapport ne peut désigner, et
+   c'est ce qui l'a rendu introuvable pendant deux enquêtes.
+
+   `viewers` vaut null quand `user(login).stream` est nul — c'est EXACTEMENT la
+   réponse pour un invité en co-stream : le répertoire le liste, notre propre
+   marche l'y a vu avec les chiffres de l'hôte, et il n'a pourtant pas de
+   stream à lui. On donnait raison à la seconde source contre la première.
+
+   Le survol ne causait pas le retrait : il l'AVANÇAIT. Chaque aperçu fermé
+   programme un scan, chaque scan redemande les entrées périmées — survoler
+   d'affilée un groupe de co-stream, c'est déclencher les requêtes sur
+   exactement ces logins-là. */
+{
+  titre('128. Top Chaînes — une réponse sans stream ne retire plus personne');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const cats = [];
+    for (let i = 0; i < 10; i++) cats.push({ name: 'c' + i, viewers: 50_000 - i, streams: [] });
+    for (let k = 0; k < 40; k++) {
+      cats[k % 10].streams.push({ login: 's' + String(k).padStart(2, '0'),
+                                  viewers: 4000 - k * 100 });
+    }
+    window.__cats = cats;
+  });
+  await page.evaluate(() => window.tse.global.on());
+  ok('s00 est en tête du classement au départ',
+     await page.evaluate(() => window.tse.global.top(1)[0]?.login) === 's00');
+
+  /* LA COUCHE STRUCTURELLE EST GELÉE : seule la file TseChannels peut encore
+     agir. Sans ce gel, la marche suivante réinstallerait s00 et le scénario
+     mesurerait le hasard plutôt que la règle. */
+  await page.evaluate(() => {
+    window.__globalFail = true;
+    /* s00 DEVIENT UN INVITÉ : le répertoire le liste toujours — la marche
+       gelée garde son entrée — mais sa réponse de chaîne est sans stream. */
+    window.__fx = { s00: null };
+    window.__addCard('s00', 'Just Chatting', '4 k');
+  });
+  await wait(page, 1200);
+
+  const apres = await page.evaluate(() => {
+    const t = window.tse.global.top(50);
+    const r = window.tse.global.report();
+    return { rang: t.findIndex((x) => x.login === 's00'),
+             viewers: t.find((x) => x.login === 's00')?.viewers ?? null,
+             creux: r.creux, evicted: r.evicted };
+  });
+
+  /* L'ASSERTION QUI TIENT TOUT. Remettre le `splice` fait tomber celle-ci, et
+     elle seule suffit : c'est la disparition du rapport, rejouée. */
+  ok('une réponse sans stream ne retire pas la chaîne du classement',
+     apres.rang >= 0, JSON.stringify(apres));
+  ok('…et elle ne lui invente pas non plus un compteur',
+     apres.viewers === 4000, JSON.stringify(apres));
+  /* CE QUI MANQUAIT AU RAPPORT. « evicted 0 » pendant que des chaînes
+     disparaissaient : le désaccord n'était compté nulle part. */
+  ok('…mais le désaccord est COMPTÉ, ce qu\'aucun chiffre ne disait',
+     apres.creux > 0 && apres.evicted === 0, JSON.stringify(apres));
+
+  /* ── ET QUAND LES DEUX SOURCES S'ACCORDENT, ON RETIRE ─────────────────────
+     La marche cesse elle aussi de voir s00. Attendre deux absences de plus
+     n'apprendrait rien : le creux tranche dès la première, et le retrait se
+     compte comme tous les autres. */
+  await page.evaluate(() => {
+    window.__globalFail = false;
+    for (const c of window.__cats) c.streams = c.streams.filter((s) => s.login !== 's00');
+  });
+  await attendre(page, () => !window.tse.global.top(50).some((r) => r.login === 's00'), 12_000);
+  const fin = await page.evaluate(() => {
+    const r = window.tse.global.report();
+    return { present: window.tse.global.top(50).some((x) => x.login === 's00'),
+             evicted: r.evicted };
+  });
+  ok('la marche cesse de la voir à son tour, et le creux tranche aussitôt',
+     !fin.present, JSON.stringify(fin));
+  ok('…et ce retrait-là se compte, contrairement à celui qu\'on a retiré',
+     fin.evicted > 0, JSON.stringify(fin));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

@@ -6973,7 +6973,14 @@ const TSE_GATE_MAX_CLICKS = 5;
                        partie. C'est le nombre qui aurait montré le défaut sans
                        attendre un rapport — 253 par passe chez l'utilisateur,
                        pour trente chaînes rendues. */
-                    misses: 0, sousPlancher: 0, evicted: 0, lastMs: 0 };
+                    /* « creux » compte les réponses de chaîne SANS STREAM
+                       reçues pour une entrée du classement. Elles retiraient
+                       l'entrée sur-le-champ, sans confirmation et sans se
+                       compter : un rapport montrait « evicted 0 » pendant que
+                       des chaînes disparaissaient de l'écran. Un retrait qui
+                       ne se compte nulle part est un retrait qu'aucun rapport
+                       ne peut désigner — c'est le nombre qui manquait. */
+                    misses: 0, sousPlancher: 0, creux: 0, evicted: 0, lastMs: 0 };
 
     /* ── LES CHAÎNES ÉCARTÉES, ET POURQUOI ON COMPTE DES CHAÎNES ────────────
        Une exclusion qu'on ne mesure pas est une exclusion dont on ne saura
@@ -7373,7 +7380,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     const reconcile = (pool, queried, seen, now, plancherDe = () => 0) => {
       const cutoff = now - CFG.GLOBAL_PRUNE_AGE;
       for (const [login, rec] of pool) {
-        if (seen.has(login)) { rec.misses = 0; continue; }
+        /* LA MARCHE LA VOIT : elle tranche, et elle efface le creux. C'est le
+           cas de l'invité en co-stream — le répertoire le liste, sa réponse
+           `user(login).stream` est nulle, et c'est le répertoire qui a
+           raison. */
+        if (seen.has(login)) { rec.misses = 0; rec.creux = 0; continue; }
         // Trop vieille pour être encore crédible : sa catégorie est sortie de
         // la descente il y a longtemps, et plus rien ne la rafraîchit.
         if (rec.ts < cutoff) { pool.delete(login); stats.evicted += 1; continue; }
@@ -7383,7 +7394,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (rec.viewers < plancherDe(rec)) { stats.sousPlancher += 1; continue; }
         rec.misses = (rec.misses || 0) + 1;
         stats.misses += 1;
-        if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM) {
+        /* LES DEUX SOURCES S'ACCORDENT : la marche ne la voit plus, et sa
+           dernière réponse de chaîne était sans stream. Attendre deux absences
+           de plus ne peut rien apprendre — on retire, et ça se compte ici
+           comme tout le reste. */
+        if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM || rec.creux) {
           pool.delete(login);
           stats.evicted += 1;
         }
@@ -8448,16 +8463,56 @@ const TSE_GATE_MAX_CLICKS = 5;
         // catégorie courante. Une chaîne peut figurer dans les deux, et le
         // compteur frais vaut pour l'un comme pour l'autre.
         let touche = false;
+        let creuse = false;
         const appliquer = (liste) => {
           const i = liste.findIndex(r => r.login === login);
           if (i < 0) return false;
-          if (viewers === null) { liste.splice(i, 1); return true; }
-          if (!Number.isFinite(viewers) || liste[i].viewers === viewers) return false;
-          liste[i] = { ...liste[i], viewers, ts: Date.now() };
+          /* ── UNE RÉPONSE SANS STREAM NE RETIRE PLUS PERSONNE ─────────────
+             CETTE LIGNE RETIRAIT L'ENTRÉE SUR-LE-CHAMP :
+
+                 if (viewers === null) { liste.splice(i, 1); return true; }
+
+             Une seule réponse, aucune confirmation, et — c'est ce qui l'a
+             rendue introuvable pendant deux enquêtes — aucun compteur. Le
+             rapport de terrain montrait « evicted 0 » pendant que des chaînes
+             disparaissaient sous le pointeur : la voie documentée n'était pas
+             celle qui les retirait.
+
+             `viewers` vaut null quand `user(login).stream` est nul. Or ce
+             module distingue déjà, quelques centaines de lignes plus haut,
+             « absent de la réponse » — on ne sait pas — de « présent, sans
+             stream ». LE SECOND CAS EST EXACTEMENT CELUI D'UN INVITÉ EN
+             CO-STREAM : le répertoire le liste, notre propre marche l'y a vu
+             avec les chiffres de l'hôte, et il n'a pourtant pas de stream à
+             lui. Deux points de terminaison de Twitch se contredisent, et on
+             donnait raison au second contre le premier.
+
+             ET LA SUPPRESSION ÉTAIT REDONDANTE. Une chaîne réellement hors
+             ligne voit déjà sa carte masquée par la voie des cartes, qui
+             exige OFFLINE_CONFIRM réponses consécutives — deux disciplines
+             pour le même fait, et la plus laxiste l'emportait en supprimant.
+
+             L'APPARTENANCE REVIENT DONC À LA MARCHE, qui a ses trois
+             confirmations et son compteur. Le creux est retenu sur
+             l'enregistrement : il ne retire rien seul, mais quand la marche
+             cesse elle aussi de voir la chaîne, les deux sources s'accordent
+             et `reconcile` tranche dès la première absence. Plus prudent d'un
+             côté, plus prompt de l'autre. */
+          if (viewers === null) {
+            liste[i] = { ...liste[i], creux: (liste[i].creux || 0) + 1 };
+            creuse = true;
+            return false;
+          }
+          if (!Number.isFinite(viewers)
+              || (liste[i].viewers === viewers && !liste[i].creux)) return false;
+          liste[i] = { ...liste[i], viewers, creux: 0, ts: Date.now() };
           return true;
         };
         if (appliquer(ranking))      { rankingDirty = true; touche = true; }
         if (appliquer(scopeRanking)) { scopeDirty   = true; touche = true; }
+        // Compté UNE fois par réponse, et non une fois par classement servi :
+        // c'est un fait sur la chaîne, pas sur les listes où elle figure.
+        if (creuse) stats.creux += 1;
         return touche;
       },
       report() {
