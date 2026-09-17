@@ -6847,7 +6847,7 @@ const TSE_GATE_MAX_CLICKS = 5;
            le temps que Guest Star réponde. */
         const combine = getCollabViewers(id);
         const hote = getHostId(id);
-        if (Number.isFinite(combine)) globalChannels.setViewers(login, combine);
+        if (Number.isFinite(combine)) globalChannels.setViewers(login, combine, true);
         else if (typeof hote !== 'string') globalChannels.setViewers(login, entry.viewers);
         fresh++;
         (pending.get(login) || []).forEach(fn => fn(entry));
@@ -7615,12 +7615,42 @@ const TSE_GATE_MAX_CLICKS = 5;
        chaîne » quand la vérité est « on n'a rien pu charger ». */
     let publieUneFois = false;
 
+    /* ── LA SIGNATURE DE CO-STREAM, LUE DANS LE RÉPERTOIRE LUI-MÊME ────────
+       QUATRE CORRECTIFS ONT CHERCHÉ CE SIGNAL CHEZ GUEST STAR, et un rapport a
+       montré qu'il n'y est pas toujours : pour trois participants d'un même
+       direct, Twitch répond `session: null` alors que son PROPRE répertoire
+       les affiche tous au même compteur. Aucune règle fondée sur Guest Star ne
+       peut donc les rattraper.
+
+       LE RÉPERTOIRE, LUI, LE DIT. Plusieurs chaînes d'une même catégorie
+       portant EXACTEMENT le même compteur, c'est la signature d'un compteur
+       combiné — et ce produit s'en sert déjà pour regrouper les cartes
+       (cf. la clé `vh:` de detectCoStreams). On la calcule ici une fois par
+       publication, sur des données qu'on a déjà, et elle sert à une seule
+       chose : empêcher qu'un compteur PROPRE vienne écraser un compteur
+       COMBINÉ que la marche vient de récolter.
+
+       DEUX MEMBRES AU MOINS, comme pour le regroupement : un compteur unique
+       n'est la signature de rien. */
+    let combines = new Set();
+    const signature = (rec) => `${rec.game} ${rec.viewers}`;
+    const recalculerCombines = (liste) => {
+      const vus = new Map();
+      for (const rec of liste) {
+        if (!rec.game || !Number.isFinite(rec.viewers)) continue;
+        const cle = signature(rec);
+        vus.set(cle, (vus.get(cle) || 0) + 1);
+      }
+      combines = new Set([...vus].filter(([, n]) => n >= 2).map(([cle]) => cle));
+    };
+
     const publish = (pool) => {
       publieUneFois = true;
       ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
       rankingTs    = Date.now();
       threshold    = nthViewers(pool, options.get('topN'));
+      recalculerCombines(ranking);
     };
 
     // Pool de départ d'une passe : le classement courant, tel quel. Il n'est
@@ -8501,7 +8531,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       // Compteur frais venu de TseChannels. viewers === null → la chaîne
       // n'est plus en direct : on la retire du classement plutôt que de la
       // laisser figée sur sa dernière valeur connue.
-      setViewers(login, viewers) {
+      /* `autorite` dit que le nombre décrit LA MÊME CHOSE que celui du
+         répertoire — c'est le cas du compteur combiné de Guest Star, et de lui
+         seul. Sans cette marque, un compteur PROPRE ne peut pas écraser une
+         entrée qui porte la signature d'un combiné. */
+      setViewers(login, viewers, autorite = false) {
         // Les DEUX classements sont servis : celui du monde et celui de la
         // catégorie courante. Une chaîne peut figurer dans les deux, et le
         // compteur frais vaut pour l'un comme pour l'autre.
@@ -8548,6 +8582,11 @@ const TSE_GATE_MAX_CLICKS = 5;
           }
           if (!Number.isFinite(viewers)
               || (liste[i].viewers === viewers && !liste[i].creux)) return false;
+          /* LE COMPTEUR DU RÉPERTOIRE PORTE LA SIGNATURE D'UN COMBINÉ : on ne
+             l'écrase pas avec un compteur propre, qui décrit autre chose. La
+             marche le rafraîchira ; en attendant, la carte et le classement
+             montrent ce que Twitch montre. */
+          if (!autorite && combines.has(signature(liste[i]))) return false;
           liste[i] = { ...liste[i], viewers, creux: 0, ts: Date.now() };
           return true;
         };
@@ -8557,6 +8596,15 @@ const TSE_GATE_MAX_CLICKS = 5;
         // c'est un fait sur la chaîne, pas sur les listes où elle figure.
         if (creuse) stats.creux += 1;
         return touche;
+      },
+      /* Le compteur que le classement porte pour cette chaîne a-t-il la
+         signature d'un combiné (cf. publish) ? Lecture pure, pour que la CARTE
+         suive la même règle que le tri — les laisser diverger est le défaut que
+         la 4.13.6 a corrigé dans un sens et la 4.13.8 dans l'autre. */
+      estCombine(login) {
+        const rec = ranking.find((r) => r.login === login)
+                 || scopeRanking.find((r) => r.login === login);
+        return !!rec && combines.has(signature(rec));
       },
       report() {
         return {
@@ -15483,9 +15531,20 @@ const TSE_GATE_MAX_CLICKS = 5;
          déjà affiché — le nombre du répertoire — plutôt que de retomber sur le
          compteur propre, que Twitch ne montre nulle part. */
       let montre = getCollabViewers(data.id);
-      if (!Number.isFinite(montre) && typeof getHostId(data.id) === 'string') {
-        const deja = Number(card.dataset.tseViewers);
-        if (Number.isFinite(deja)) montre = deja;
+      if (!Number.isFinite(montre)) {
+        const login = card.dataset.tseLogin;
+        /* DEUX SIGNAUX, ET LE SECOND EXISTE PARCE QUE LE PREMIER MANQUE PARFOIS.
+           Guest Star dit « en session » — mais un rapport a montré qu'il répond
+           `session: null` pour des participants que le répertoire affiche
+           pourtant au compteur commun. La signature du répertoire, elle, les
+           voit : c'est la même règle que pour le tri, et elle est lue au même
+           endroit. */
+        const enCombine = (typeof getHostId(data.id) === 'string')
+          || (state.globalMode && !!login && globalChannels.estCombine(login));
+        if (enCombine) {
+          const deja = Number(card.dataset.tseViewers);
+          if (Number.isFinite(deja)) montre = deja;
+        }
       }
       renderViewers(card, data.viewers, montre);
       if (data.game) {
