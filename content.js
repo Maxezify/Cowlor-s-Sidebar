@@ -2127,6 +2127,39 @@ const TSE_GATE_MAX_CLICKS = 5;
     // à peu près autant : ce répit suffit à les laisser rentrer ensemble.
     SUBS_PAGE_HOLD_GRACE: 1_500,
     SUBS_PAGE_STAMP_KEY:  'tse:substs',
+    /* ── DEUX ONGLETS TWITCH NE DOIVENT PAS RELEVER DEUX FOIS ──────────────
+       L'HORODATAGE EST ÉCRIT À LA FIN DU RELEVÉ, ET C'EST VOULU : il veut
+       dire « un relevé est allé à son terme », et quiconque le lit doit
+       trouver le résultat déjà en mémoire. Mais entre le début et la fin, il
+       vaut encore l'ancienne date — et une seconde page Twitch qui démarre
+       pendant ce temps le lit, le croit périmé, et part à son tour.
+
+       MESURÉ : deux onglets ouverts ensemble sur un profil neuf chargent HUIT
+       pages de Twitch en cachette au lieu de quatre. Une session restaurée
+       avec cinq onglets en chargerait vingt. Rien ne le signalait — ni le
+       rapport, ni le banc, qui n'éprouvaient qu'une page à la fois.
+
+       ON POSE DONC UN BAIL, et non un second horodatage : une page qui
+       commence écrit l'instant de son départ ; les autres s'abstiennent tant
+       qu'il est frais. Le bail EXPIRE seul, ce qui est toute la différence —
+       un onglet fermé au milieu de son relevé ne condamne pas le prochain à
+       attendre six heures, seulement la durée de ce bail.
+
+       SA DURÉE SE DÉDUIT DU PIRE CAS : un onglet abandonne au bout de
+       SUBS_PAGE_TIMEOUT, et l'apaisement du contenu peut ajouter
+       SUBS_PAGE_SETTLE. On prend large, sans jamais approcher la période du
+       relevé lui-même. */
+    SUBS_PAGE_RUN_KEY:    'tse:subsrun',
+    SUBS_PAGE_LEASE:      60_000,
+    /* LE BAIL SE POSE, PUIS SE RELIT — et cette attente-là est la seule chose
+       qui ferme la course. Deux pages qui démarrent dans la même poignée de
+       millisecondes lisent toutes deux un bail libre avant que l'une ait
+       écrit le sien : mesuré, deux onglets ouverts ensemble chargeaient huit
+       pages malgré le bail. `localStorage` n'offre pas d'écriture
+       conditionnelle ; le dernier qui écrit gagne, et il suffit donc de
+       RELIRE après un délai qui couvre l'écart d'écriture pour que
+       exactement une page se reconnaisse. */
+    SUBS_PAGE_CLAIM:      400,
     // L'étiquette du nombre de mois, apprise sur l'onglet des expirés puis
     // MÉMORISÉE. Tant qu'on ne la connaît pas, cet onglet doit être lu en
     // premier — les autres ne sauraient pas quoi chercher. Une fois connue,
@@ -9668,6 +9701,12 @@ const TSE_GATE_MAX_CLICKS = 5;
        relevé : un bilan qui empilerait deux passes ne décrirait plus aucune
        des deux. */
     let bilan = { onglets: [], fini: 0 };
+    /* LES REPORTS SE COMPTENT À PART DU BILAN, et ce n'est pas un détail de
+       rangement : un report veut dire qu'AUCUN relevé n'a eu lieu, alors que
+       le bilan décrit un relevé qui a eu lieu. Les loger ensemble obligeait à
+       recopier le compteur d'un bilan à l'autre — ce qui a réveillé
+       `require-atomic-updates`, à raison. */
+    let differes = 0;
 
     /* ──────────────────────────────────────────────────────────────
      *  L'ANCIENNETÉ, SANS UN MOT DE FRANÇAIS
@@ -9774,6 +9813,39 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (Number(v) !== LECTEUR) return 0;   // relevé d'un lecteur périmé
         return Number(t) || 0;
       } catch { return 0; }
+    };
+    /* LE BAIL : l'instant où une page a COMMENCÉ un relevé. Lu par les autres
+       pages, effacé par celle qui finit, et périmé tout seul si personne ne
+       l'efface. Il ne remplace pas l'horodatage — il couvre l'intervalle que
+       l'horodatage, écrit à la fin, laisse forcément ouvert. */
+    /* Le jeton de CETTE page, pour la durée de sa vie. Il n'a aucune vertu
+       cryptographique à avoir : il doit seulement être différent de celui de
+       la page d'à côté. */
+    const JETON = Math.random().toString(36).slice(2, 10);
+    const bailFrais = () => {
+      try {
+        const brut = String(localStorage.getItem(CFG.SUBS_PAGE_RUN_KEY) || '');
+        const t = Number(brut.split(':')[1] || 0);
+        return t > 0 && Date.now() - t < CFG.SUBS_PAGE_LEASE;
+      } catch { return false; }
+    };
+    const prendreBail = () => {
+      try { localStorage.setItem(CFG.SUBS_PAGE_RUN_KEY, JETON + ':' + Date.now()); }
+      catch { /* sans bail on relève quand même : le doublon coûte, l'absence de relevé coûte plus */ }
+    };
+    // Le bail est-il TOUJOURS le nôtre ? C'est la relecture qui départage.
+    const bailTenu = () => {
+      try {
+        return String(localStorage.getItem(CFG.SUBS_PAGE_RUN_KEY) || '')
+          .split(':')[0] === JETON;
+      } catch { return true; }   // illisible : on ne s'empêche pas de relever
+    };
+    /* ON NE REND QUE LE SIEN. Effacer sans regarder retirerait le bail de la
+       page qui, elle, est en train de relever — et rouvrirait exactement la
+       porte qu'on vient de fermer. */
+    const rendreBail = () => {
+      try { if (bailTenu()) localStorage.removeItem(CFG.SUBS_PAGE_RUN_KEY); }
+      catch { /* idem */ }
     };
     const marquer = () => {
       try {
@@ -9994,11 +10066,35 @@ const TSE_GATE_MAX_CLICKS = 5;
         ? CFG.SUBS_PAGE_TTL
         : options.get('abosPeriode') * 3_600_000;
       if (!force && Date.now() - horodatage() < periode) return null;
+      /* UNE AUTRE PAGE S'EN CHARGE DÉJÀ. On s'abstient, et on le COMPTE — un
+         relevé qui ne part pas doit pouvoir se distinguer d'un relevé qui
+         part et ne trouve rien, sans quoi le rapport aurait deux silences
+         identiques pour deux causes opposées. */
+      if (!force && bailFrais()) { differes += 1; return null; }
       if (!document.body) return null;
+      /* `running` EST POSÉ AVANT LE PREMIER AWAIT, ET IL LE RESTE. La prise
+         de bail ci-dessous en contient un — la première écriture de ce
+         correctif l'avait placée AVANT cette ligne, et le linter a eu raison
+         de le dire : deux appels de la même page pouvaient alors passer
+         ensemble la garde d'entrée. La garde entre PAGES ne doit pas coûter
+         la garde à l'intérieur d'une page. */
       running = true;
       bilan = { onglets: [], fini: 0 };
       const trouves = [];
       try {
+        /* LA PRISE DE BAIL EN TROIS TEMPS : on regarde, on écrit, on relit.
+           Le troisième est celui qui compte — `localStorage` n'offre pas
+           d'écriture conditionnelle, et deux pages parties dans la même
+           poignée de millisecondes lisent toutes deux un bail libre avant
+           que l'une ait écrit le sien. Le dernier qui écrit gagne ; il suffit
+           donc de relire après un délai qui couvre l'écart d'écriture.
+           « Relevé maintenant » prend le bail sans le disputer : c'est une
+           demande explicite, et elle ne doit jamais se voir refuser. */
+        prendreBail();
+        if (!force) {
+          await new Promise((r) => setTimeout(r, CFG.SUBS_PAGE_CLAIM));
+          if (!bailTenu()) { differes += 1; return null; }
+        }
         let touche = false;
         const verserPasse = (liste) => {
           for (const { login, mois: m } of liste) {
@@ -10133,6 +10229,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         // ne voit que « écrit après un await », ne peut pas le savoir.
         // eslint-disable-next-line require-atomic-updates
         running = false;
+        rendreBail();
       }
       return trouves;
     };
@@ -10213,7 +10310,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     return { init, refresh, horodatage, notifySidebar, enAttente,
-             bilan: () => ({ ...bilan, onglets: bilan.onglets.map((o) => ({ ...o })) }) };
+             bilan: () => ({ ...bilan, differes,
+                             onglets: bilan.onglets.map((o) => ({ ...o })) }) };
   })();
 
   /**

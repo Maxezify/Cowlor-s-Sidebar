@@ -2057,6 +2057,103 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Two Twitch tabs do not sweep twice (v4.14.4)
+
+### The question, and its measured answer
+
+> "On Firefox (or maybe on Chrome too), does the subscriptions sweep happen
+> right at initialisation?"
+
+**No in the common case, yes in two cases that deserve it.** The trigger is
+indeed armed at initialisation — on the first scan that sees followed channels,
+which means both "the sidebar has loaded" and "the session is signed in" — but
+`refresh()` returns without loading anything while the period has not elapsed.
+
+Measured, by counting the iframes actually attached to the page:
+
+| situation | Twitch pages loaded |
+| --- | --- |
+| fresh profile, no sweep in memory | **4** — under the veil, bounded by `SUBS_PAGE_HOLD_MAX` |
+| sweep more recent than the period | **0** |
+| sweep older than the period | **4** |
+| timestamp from a stale reader | **4** — by design: a sweep fix must reach everyone |
+
+**And it is identical on both builds.** The manifests differ only in the
+`browser_specific_settings` block and the background declaration; nothing that
+governs the sweep is Firefox-specific.
+
+### But the question opened another one
+
+The timestamp is written **at the end** of the sweep, and that is deliberate: it
+means "a sweep ran to completion", and whoever reads it must find the result
+already in memory. Between start and end it therefore still holds the old date —
+and a **second Twitch page** starting during that window reads it, believes it
+stale, and sets off too.
+
+Measured on a shared origin: two tabs opened together on a fresh profile loaded
+**eight** hidden Twitch pages instead of four. A restored session with five tabs
+would have loaded twenty.
+
+The code already suspected it, without covering it:
+
+> "Without this timestamp, the full sweep restarts on EVERY page load: three
+> iframe pages, every time."
+
+### A lease, not a second timestamp
+
+A page that starts writes the instant of its departure; the others abstain while
+it is fresh. The lease **expires on its own**, which is the whole difference: a
+tab closed mid-sweep does not condemn the next one to wait six hours, only the
+lease's duration. Its length is deduced from the worst case —
+`SUBS_PAGE_TIMEOUT` plus `SUBS_PAGE_SETTLE`.
+
+**The claim happens in three steps: look, write, read back.** The third is the
+one that counts. `localStorage` offers no conditional write, and two pages
+starting within the same handful of milliseconds both read a free lease before
+either has written its own. The last writer wins; it is enough to read back
+after a delay covering the write skew for exactly one page to recognise itself.
+
+"Sweep now" takes the lease without contesting it: it is an explicit request,
+and it must never be refused. Verified: it overrides both a held lease **and** a
+fresh period.
+
+### Two mistakes of mine, caught by the linter and by the fixture
+
+**1. I moved an `await` in front of a guard.** The first draft placed the lease
+claim **before** `running = true`. The original comment said, in so many words,
+that `running` is set before the first `await` — and `require-atomic-updates`
+flagged it. A guard between **pages** must not cost the guard inside a page. The
+claim moved back down into the `try`, after `running` is set.
+
+**2. My fixture measured nothing, and I almost concluded the opposite.** This
+whole bench works over `file://`, where **each page has its own `localStorage`**:
+two pages there are two worlds. My first measurement showed "eight iframes" with
+the fix in place, and I believed the fix inert — when the fixture could measure
+nothing at all. It needs a shared **origin**, hence a server, and two pages from
+the **same context**: `browser.newPage()` opens one context per page, which
+re-partitions storage and reproduces the very same trap.
+
+**3. And a mute instrument.** My first reading used `rapport().abonnements`,
+which does not exist — the field is called `relevesAbonnements`. It returned
+"zero tabs" everywhere, including where four pages had just loaded, and
+**confirmed what I was hoping for**. Iframes are now counted at the source, via
+`frameattached`.
+
+### What the bench measures
+
+Scenario 141 serves its own page from a local server, opens two pages in the
+same context, and **first verifies that they share storage** — without which the
+whole scenario would pass green on an inert fixture.
+
+| mutant | result |
+| --- | --- |
+| the lease removed | both tabs sweep, **8 pages loaded** |
+| the fix in place | one sweeps, the other stands down (`differes 1`), **4 pages** |
+
+And one more counter in the report: `differes` says a sweep **did not start
+because another tab was handling it** — without which the report would have two
+identical silences for two opposite causes.
+
 ## The directory against the combined, and the trap with no way back (v4.14.3)
 
 ### The equipped report named the culprit by elimination
@@ -8392,7 +8489,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 140 scenarios, 1233 assertions |
+| `npm test` | the Playwright harness: 141 scenarios, 1238 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -8412,7 +8509,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1093 KB | 409 KB | 3,374 → **2** |
+| `content.js` | 1093 KB | 409 KB | 3,387 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 133 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
