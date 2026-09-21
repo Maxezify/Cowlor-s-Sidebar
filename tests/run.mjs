@@ -17877,13 +17877,24 @@ addEventListener('message', (e) => {
   const b = vu.bilan;
   ok('le bilan compte la session entière, et chaque membre dans une seule case',
      b.groupes === 1 && b.membres === 4
-     && b.affiches + b.horsClassement + b.classesNonAffichees === b.membres,
+     && b.affiches + b.horsClassement + b.sousLaCoupe
+        + b.classesNonAffichees === b.membres,
      JSON.stringify(b));
-  /* L'ASSERTION QUI PORTE LE SENS : les absents sont rangés du côté de TWITCH,
-     et pas du nôtre. Confondre les deux, c'est reprendre cinq versions
-     d'enquête sur une fuite qui n'existe pas. */
-  ok('…les membres que Twitch n\'a pas classés comptent comme tels',
-     b.affiches === 2 && b.horsClassement === 2, JSON.stringify(b));
+  /* ── QUATRE CASES, ET LA QUATRIÈME EST CELLE QUI MANQUAIT ────────────────
+     L'ASSERTION PORTAIT L'ANCIENNE CONFUSION, et c'est elle qui m'a égaré sur
+     un rapport de terrain. « horsClassement » rangeait ensemble deux choses
+     que tout sépare : une chaîne que la MARCHE ne connaît pas, et une chaîne
+     parfaitement connue, retombée sous le trentième rang parce qu'elle a
+     perdu son compteur combiné. J'ai lu « horsClassement 9 » comme « neuf
+     inconnues » alors que c'était le second cas — celui qui désignait le
+     défaut de la 4.14.2.
+
+     ICI LE DÉCOR PORTE LES DEUX : un membre que le répertoire ignore, et un
+     membre connu mais sous la coupe. Les compter à part est ce qui rend le
+     bilan lisible ; les confondre, c'est ce qui a coûté deux versions. */
+  ok('…et il sépare « inconnu de la marche » de « connu mais sous la coupe »',
+     b.affiches === 2 && b.horsClassement === 1 && b.sousLaCoupe === 1,
+     JSON.stringify(b));
   /* ET SUR UNE LISTE SAINE, AUCUNE FUITE : toute chaîne au classement a sa
      carte. C'est ce zéro que le terrain devra confirmer — ou démentir. */
   ok('…et aucun membre classé ne reste sans carte',
@@ -17999,8 +18010,12 @@ addEventListener('message', (e) => {
   ok('une session réduite à un seul membre visible est vue quand même',
      vu.bilan.sessions === 1 && vu.bilan.groupes === 0 && vu.dessines === 0,
      JSON.stringify(vu));
-  ok('…et ses membres absents sont rangés du côté de Twitch',
-     vu.bilan.affiches === 1 && vu.bilan.horsClassement === 3
+  /* MÊME AFFINAGE QU'AU SCÉNARIO 135 : les trois absents ne sont pas de la
+     même espèce. Un seul est inconnu de la marche ; les deux autres sont dans
+     le pool, sous la coupe. */
+  ok('…et ses membres absents sont rangés chacun dans sa case',
+     vu.bilan.affiches === 1 && vu.bilan.horsClassement === 1
+     && vu.bilan.sousLaCoupe === 2
      && vu.bilan.classesNonAffichees === 0, JSON.stringify(vu.bilan));
   await p2.close();
 }
@@ -18362,6 +18377,121 @@ addEventListener('message', (e) => {
      la garde ci-dessus se contenterait de FIGER un pool à plat. */
   ok('…et le pool se recreuse au lieu de rester à la profondeur de l\'affichage',
      apres.pool > aPlat.pool, JSON.stringify({ avant: aPlat.pool, apres: apres.pool }));
+  await page.close();
+}
+
+/* ═════════ UNE SESSION QUI MAIGRIT N'EST PAS UNE SESSION QUI FINIT ═══════
+   LE DÉFAUT QUE DEUX CAPTURES ONT NOMMÉ, ET QUE TROIS RAPPORTS N'ONT PAS SU
+   DIRE. Le rapport de terrain était complet et il disait vrai : « pool 707,
+   evicted 0, creux 0, sansReserve 0 ». Aucun des chemins de retrait n'avait
+   servi. Et pourtant, d'une capture à l'autre à une minute d'intervalle, un
+   groupe de cinq co-streamers « Valheim, 4 k » tombait à deux, et un groupe
+   de quatre « WARDOGS, 1,9 k » tombait à un.
+
+   CE SONT LES CAPTURES QUI PORTENT LA PREUVE : la pastille d'un survivant
+   passe de « 4 » à « 2 », et son compteur de 1,9 k à 1,7 k. La session n'avait
+   pas disparu — elle avait MAIGRI, dans le cache.
+
+   LE CHEMIN, DANS L'ORDRE :
+
+     1. le lot Guest Star rend une liste d'invités plus courte ;
+     2. `flushGuestStar` écrivait cette liste telle quelle, et pour les chaînes
+        dont la réponse ne portait plus rien, il écrivait « pas de session » —
+        mates vidés, combiné à null, hôte à null ;
+     3. le lot de chaînes suivant lit alors `getCollabViewers` à null et
+        `getHostId` à null, et écrit le compteur PROPRE au classement : trois
+        cents spectateurs là où le combiné en affichait quatre mille ;
+     4. la carte sort du top 30. Rien n'a été évincé, rien n'a été creusé :
+        elle est simplement tombée.
+
+   ET LA GARDE DE SIGNATURE NE POUVAIT PAS L'ARRÊTER. Elle protège les
+   compteurs PARTAGÉS par au moins deux entrées. Or le combiné rétréci est
+   écrit AVEC AUTORITÉ — c'est le combiné, il fait foi — donc il baisse le
+   compteur d'un membre ; les autres cessent alors de partager sa valeur, et
+   la garde se relâche au moment précis où elle servirait. C'est une cascade,
+   et elle s'arrête d'elle-même quand il ne reste qu'un ou deux membres : ce
+   que les deux captures montrent, exactement.
+
+   CE SCÉNARIO PREND LA FIN DE LA CASCADE, qui est la partie mesurable : un
+   duo, dont l'un reçoit un combiné rétréci et l'autre plus de session du
+   tout. Mutant — la garde retirée — les deux pastilles disparaissent ; avec,
+   elles tiennent, et le classement garde le nombre du répertoire. */
+{
+  titre('139. Co-stream — une session qui maigrit ne se perd pas d\'un coup');
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Valheim', tags: [] });
+    /* DEUX CO-STREAMERS AU MÊME COMBINÉ, et leurs audiences propres sont
+       dérisoires : c'est tout l'écart que le défaut exploite. « milieu » sert
+       de témoin de fraîcheur ordinaire, comme au scénario 133. */
+    window.__cats = [{ name: 'Valheim', viewers: 9000, streams: [
+      { login: 'unaa', viewers: 4000 }, { login: 'unbb', viewers: 4000 },
+      { login: 'milieu', viewers: 900 }, { login: 'modele', viewers: 800 }] }];
+    window.__fx = { unaa: c('9401', 300), unbb: c('9402', 300),
+                    milieu: c('9404', 950), modele: c('9405', 800) };
+    const guests = [
+      { id: '9401', login: 'unaa', viewers: 300, combined: 4000 },
+      { id: '9402', login: 'unbb', viewers: 300, combined: 4000 }];
+    window.__gs = {
+      '9401': { hostId: '9400', hostLogin: 'unaa', guests },
+      '9402': { hostId: '9400', hostLogin: 'unaa', guests } };
+    window.__addCard('modele', 'Valheim', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => [...document.querySelectorAll('.side-nav-card')]
+    .some((c) => c.dataset.tseLogin === 'milieu' && c.dataset.tseViewers === '950'), 15_000);
+  await wait(page, 1500);
+
+  const lire = () => page.evaluate(() => {
+    const aff = (l) => [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === l)?.dataset.tseViewers ?? null;
+    const r = window.tse.panneau.rapport().coStream;
+    return { rang: window.tse.global.top(50)
+               .filter((x) => x.login.startsWith('un')).map((x) => `${x.login}:${x.viewers}`),
+             cartes: ['unaa', 'unbb'].map(aff),
+             pastilles: [...document.querySelectorAll('.side-nav-card.tse-costream')]
+               .map((c) => c.querySelector('.tse-collab-badge')?.textContent ?? null),
+             gardees: r.gardees, chutes: r.chutes };
+  });
+  const plein = await lire();
+  /* LA PRÉMISSE : sans elle, tout ce qui suit mesurerait un décor sans
+     co-stream, et serait vert pour rien. */
+  ok('les deux co-streamers portent le combiné, et leur pastille',
+     plein.rang.length === 2 && plein.rang.every((x) => x.endsWith(':4000'))
+     && plein.pastilles.length === 2, JSON.stringify(plein));
+
+  /* ── LA SESSION MAIGRIT ─────────────────────────────────────────────────
+     Twitch ne rend plus que l'hôte dans la liste d'invités, avec un combiné
+     plus petit ; pour l'autre membre, la réponse ne porte plus de session.
+     C'est mot pour mot ce que les captures montrent. On attend PLUS que
+     GUEST_STAR_TTL, sans quoi aucun lot ne repart et le décor ne joue rien —
+     ce qui a rendu le premier jet de ce scénario vert pour rien. */
+  await page.evaluate(() => {
+    window.__gs = { '9401': { hostId: '9400', hostLogin: 'unaa',
+      guests: [{ id: '9401', login: 'unaa', viewers: 300, combined: 1700 }] } };
+  });
+  await attendre(page, () => (window.tse.panneau.rapport().coStream?.gardees || 0) > 0, 40_000);
+  await wait(page, 1500);
+  const maigre = await lire();
+
+  /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant : « pastilles: [] ». */
+  ok('la session rétrécie ne détruit pas les sessions connues',
+     maigre.pastilles.length === 2, JSON.stringify(maigre));
+  ok('…et le membre sur lequel Guest Star se tait garde le nombre du répertoire',
+     maigre.rang.includes('unbb:4000') && maigre.cartes[1] === '4000',
+     JSON.stringify(maigre));
+  /* LE COMBINÉ FRAIS DE LA CHAÎNE INTERROGÉE, LUI, EST CRU : c'est la seule
+     chose de cette réponse qui porte sur ELLE, et la refuser figerait le
+     compteur d'une session qui rétrécit pour de bon. */
+  ok('…tandis que le combiné frais de la chaîne interrogée est bien pris',
+     maigre.cartes[0] === '1700', JSON.stringify(maigre.cartes));
+  /* ET LE REFUS SE COMPTE, comme sousPlancher, creux et sansReserve avant lui.
+     C'est le quatrième chemin de retrait, et le premier qui se voyait sur une
+     capture d'écran sans se voir dans aucun rapport. */
+  ok('…et la garde se compte au rapport, ce qu\'aucun chiffre ne disait',
+     maigre.gardees > 0 && maigre.chutes > 0, JSON.stringify(maigre));
   await page.close();
 }
 
