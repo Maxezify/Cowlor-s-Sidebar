@@ -18490,8 +18490,14 @@ addEventListener('message', (e) => {
   /* ET LE REFUS SE COMPTE, comme sousPlancher, creux et sansReserve avant lui.
      C'est le quatrième chemin de retrait, et le premier qui se voyait sur une
      capture d'écran sans se voir dans aucun rapport. */
+  /* SEUL « gardees » PORTE LE CONTRAT ICI. La première écriture exigeait aussi
+     « chutes > 0 », et c'était une erreur d'assertion : qu'un compteur révisé à
+     la baisse passe par setViewers pendant CE scénario dépend de l'ordre des
+     deux files, pas de la garde qu'on éprouve. Vu vert sur une branche et
+     rouge sur l'autre, à décor identique — une assertion qui dépend du hasard
+     ne mesure rien, et affaiblit celle d'à côté en la rendant suspecte. */
   ok('…et la garde se compte au rapport, ce qu\'aucun chiffre ne disait',
-     maigre.gardees > 0 && maigre.chutes > 0, JSON.stringify(maigre));
+     maigre.gardees > 0, JSON.stringify(maigre));
   await page.close();
 }
 
