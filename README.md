@@ -2178,6 +2178,97 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Une session qui maigrit n'est pas une session qui finit (v4.14.2)
+
+### Le rapport disait vrai, et il ne pouvait pas désigner le coupable
+
+```
+pool 707 · threshold 978 · evicted 0 · creux 0 · sansReserve 0 · misses 6
+```
+
+Aucun chemin de retrait n'avait servi. Et pourtant, d'une capture à l'autre à
+une minute d'intervalle : un groupe de **cinq** co-streamers « Valheim, 4 k »
+tombé à **deux**, un groupe de **quatre** « WARDOGS, 1,9 k » tombé à **un**.
+
+**Ce sont les captures qui portent la preuve, pas le rapport.** La pastille d'un
+survivant passe de « 4 » à « 2 ». Son compteur passe de 1,9 k à 1,7 k. La
+session n'avait pas disparu — elle avait **maigri**, dans le cache.
+
+### Le chemin, dans l'ordre
+
+| | ce qui se passe |
+| --- | --- |
+| 1 | le lot Guest Star rend une **liste d'invités plus courte** |
+| 2 | `flushGuestStar` l'écrivait telle quelle — et pour les chaînes dont la réponse ne portait plus rien, il écrivait « pas de session » : mates vidés, combiné à `null`, hôte à `null` |
+| 3 | le lot de chaînes suivant lit `getCollabViewers` à `null` et `getHostId` à `null`, et écrit donc le compteur **propre** : trois cents spectateurs là où le combiné en affichait quatre mille |
+| 4 | la carte sort du top 30 — **sans être évincée, sans creux, sans rien** |
+
+L'intention d'origine était juste : écrire toutes les chaînes demandées « pour
+ne pas les redemander en boucle pendant la durée du TTL ». L'effet de bord ne
+l'était pas.
+
+### Pourquoi la garde de signature ne pouvait pas l'arrêter
+
+Elle protège les compteurs **partagés** par au moins deux entrées. Or le
+combiné rétréci est écrit **avec autorité** — c'est le combiné, il fait foi —
+donc il baisse le compteur d'un membre. Les autres cessent alors de partager sa
+valeur, `combines` ne les reconnaît plus, et **la garde se relâche au moment
+précis où elle servirait**.
+
+C'est une cascade, et elle s'arrête d'elle-même quand il ne reste qu'un ou deux
+membres à partager la valeur. C'est exactement ce que les deux captures
+montrent : cinq → deux, quatre → un.
+
+### Le correctif
+
+**Même discipline que `OFFLINE_CONFIRM` et `GLOBAL_MISS_CONFIRM`**, pour la
+troisième fois : une réponse qui ne porte pas la session ne prouve pas que la
+session est finie. La liste d'invités ne **diminue** qu'après
+`GUEST_STAR_DROP_CONFIRM` réponses concordantes. Elle **grandit** sans délai —
+une arrivée est toujours crue sur parole, et ne peut rien faire disparaître.
+
+Le `ts` est rafraîchi : l'entrée reste servie par le *stale-while-revalidate* de
+`getHostId`, qui était jusqu'ici **défait par son propre écrivain**.
+
+Et le combiné frais de la chaîne **interrogée** est pris quand même : c'est la
+seule chose de cette réponse qui porte sur elle, et la refuser figerait le
+compteur d'une session qui rétrécit pour de bon.
+
+### Quatre compteurs de plus, parce qu'aucun ne pouvait montrer ce chemin
+
+Un rapport complet ne désignait rien. C'est le défaut du rapport autant que du
+code, et il est corrigé aussi :
+
+| compteur | ce qu'il dit |
+| --- | --- |
+| `gardees` / `lachees` | une session a été **gardée** malgré une réponse vide ou plus courte / relâchée après trois réponses concordantes |
+| `chutes` / `chuteMax` | le classement a reçu, pour une chaîne, un compteur **plus petit** que celui qu'elle portait — et de combien |
+| `chutesHorsEcran` | la chute a fait passer la chaîne **de l'écran au néant** : c'est la seule qui se voie |
+| `sousLaCoupe` | un membre de session est **dans le pool** mais sous le trentième rang |
+
+Ce dernier corrige **mon propre instrument** : le bilan rangeait sous
+`horsClassement` tout membre absent du top 30, ce qui confond une chaîne que la
+marche ne connaît pas et une chaîne parfaitement connue, retombée au rang
+cinquante parce qu'elle a perdu son combiné. Un rapport disait
+« horsClassement 9 » et j'ai lu « neuf inconnues », alors que c'était le second
+cas — **celui qui désignait le défaut**.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la garde retirée | `pastilles: []` — **les deux sessions détruites**, `gardees 0` |
+| le correctif en place | `pastilles: ["1","1"]`, `unbb:4000` tenu, `gardees 2` |
+
+**Deux pièges du décor**, tous deux rencontrés :
+
+- **les logins sont minusculés** par `loginFromHref` : un décor écrit `duoA`
+  produit une carte `duoa`, et `getGuestStarMates` ne trouve plus la session.
+  Le même piège avait déjà coûté trois assertions au scénario 129 ;
+- **il faut attendre plus que `GUEST_STAR_TTL`**, sinon aucun lot ne repart et
+  le décor ne joue rien. Le premier jet attendait six secondes et était vert
+  pour rien.
+
 ## Un pool sans réserve évince ce que rien ne remplace (v4.14.1)
 
 ### Deux rapports à quatre-vingt-cinq secondes d'intervalle
@@ -8552,7 +8643,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 138 scénarios, 1225 assertions |
+| `npm test` | le harnais Playwright : 139 scénarios, 1230 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -8573,12 +8664,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1057 Ko | 404 Ko | 3 358 → **2** |
+| `content.js` | 1093 Ko | 409 Ko | 3 371 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 133 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1296 Ko** | **556 Ko** | **−57 %** |
+| **les cinq** | **1340 Ko** | **562 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

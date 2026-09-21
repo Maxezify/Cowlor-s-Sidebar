@@ -2057,6 +2057,94 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## A session that thins out is not a session that has ended (v4.14.2)
+
+### The report was telling the truth, and it could not name the culprit
+
+```
+pool 707 · threshold 978 · evicted 0 · creux 0 · sansReserve 0 · misses 6
+```
+
+Not one removal path had been used. And yet, from one capture to the next a
+minute apart: a group of **five** co-streamers at "Valheim, 4 k" down to **two**,
+a group of **four** at "WARDOGS, 1.9 k" down to **one**.
+
+**It is the captures that carry the proof, not the report.** A survivor's badge
+goes from "4" to "2". Its count goes from 1.9 k to 1.7 k. The session had not
+disappeared — it had **thinned out**, in the cache.
+
+### The path, in order
+
+| | what happens |
+| --- | --- |
+| 1 | the Guest Star batch returns a **shorter guest list** |
+| 2 | `flushGuestStar` wrote it as-is — and for channels whose answer no longer carried anything, it wrote "no session": mates emptied, combined `null`, host `null` |
+| 3 | the next channel batch reads `getCollabViewers` as `null` and `getHostId` as `null`, and therefore writes the channel's **own** count: three hundred viewers where the combined showed four thousand |
+| 4 | the card drops out of the top 30 — **without being evicted, without a creux, without anything** |
+
+The original intent was sound: write every requested channel "so as not to ask
+for them again in a loop for the duration of the TTL". The side effect was not.
+
+### Why the signature guard could not stop it
+
+It protects counts **shared** by at least two entries. But the shrunken combined
+is written **with authority** — it is the combined, it is definitive — so it
+lowers one member's count. The others then stop sharing its value, `combines` no
+longer recognises them, and **the guard releases at exactly the moment it would
+help**.
+
+It is a cascade, and it stops by itself when only one or two members still share
+the value. Which is exactly what the two captures show: five → two, four → one.
+
+### The fix
+
+**Same discipline as `OFFLINE_CONFIRM` and `GLOBAL_MISS_CONFIRM`**, for the
+third time: an answer that does not carry the session does not prove the session
+has ended. The guest list only **shrinks** after `GUEST_STAR_DROP_CONFIRM`
+concurring answers. It **grows** with no delay — an arrival is always taken at
+its word, and can never make anything disappear.
+
+`ts` is refreshed: the entry stays served by `getHostId`'s
+stale-while-revalidate, which until now was **defeated by its own writer**.
+
+And the fresh combined for the **queried** channel is taken anyway: it is the
+one thing in that answer that is about it, and refusing it would freeze the
+count of a session that really is shrinking.
+
+### Four more counters, because none could show this path
+
+A complete report named nothing. That is the report's defect as much as the
+code's, and it is fixed too:
+
+| counter | what it says |
+| --- | --- |
+| `gardees` / `lachees` | a session was **kept** despite an empty or shorter answer / released after three concurring answers |
+| `chutes` / `chuteMax` | the ranking received, for a channel, a count **smaller** than the one it held — and by how much |
+| `chutesHorsEcran` | the drop took the channel **from the screen to nothing**: the only one that is visible |
+| `sousLaCoupe` | a session member is **in the pool** but below the thirtieth rank |
+
+That last one fixes **my own instrument**: the tally filed under
+`horsClassement` every member absent from the top 30, which conflates a channel
+the walk does not know with a channel it knows perfectly well, fallen to rank
+fifty because it lost its combined. A report said "horsClassement 9" and I read
+"nine unknowns", when it was the second case — **the one that named the defect**.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the guard removed | `pastilles: []` — **both sessions destroyed**, `gardees 0` |
+| the fix in place | `pastilles: ["1","1"]`, `unbb:4000` held, `gardees 2` |
+
+**Two traps in the fixture**, both hit:
+
+- **logins are lowercased** by `loginFromHref`: a fixture written `duoA`
+  produces a `duoa` card, and `getGuestStarMates` no longer finds the session.
+  The same trap had already cost scenario 129 three assertions;
+- **you have to wait longer than `GUEST_STAR_TTL`**, otherwise no batch goes out
+  and the fixture plays nothing. The first draft waited six seconds and was
+  green for nothing.
+
 ## A pool with no reserve evicts what nothing replaces (v4.14.1)
 
 ### Two reports eighty-five seconds apart
@@ -8222,7 +8310,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 138 scenarios, 1225 assertions |
+| `npm test` | the Playwright harness: 139 scenarios, 1230 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -8242,12 +8330,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1057 KB | 404 KB | 3,358 → **2** |
+| `content.js` | 1093 KB | 409 KB | 3,371 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 133 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1296 KB** | **556 KB** | **−57 %** |
+| **all five** | **1340 KB** | **562 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

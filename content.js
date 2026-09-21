@@ -1679,6 +1679,26 @@ const TSE_GATE_MAX_CLICKS = 5;
     GUEST_STAR_TTL:            30_000,   // ms — fraîcheur d'une session co-stream en cache
     GUEST_STAR_DEBOUNCE:       300,      // ms — fenêtre de regroupement des IDs avant fetch
     GUEST_STAR_ERROR_COOLDOWN: 30_000,   // ms — pause après échec réseau / rejet
+    /* ── COMBIEN DE RÉPONSES VIDES POUR CROIRE QU'UNE SESSION EST FINIE ────
+       MÊME RAISONNEMENT QUE OFFLINE_CONFIRM ET GLOBAL_MISS_CONFIRM, et le
+       même défaut réglé pour la troisième fois : une réponse qui ne porte pas
+       la session ne prouve pas que la session est finie.
+
+       CE QUE ÇA DONNAIT. Un lot Guest Star écrivait « pas de session » pour
+       toute chaîne dont la réponse ne portait rien — mates vidés, combiné à
+       null. La carte retombait alors sur son compteur PROPRE, trois cents
+       spectateurs au lieu des quatre mille du combiné, et sortait du top 30 :
+       elle disparaissait de l'écran. Relevé sur deux captures à une minute
+       d'intervalle : un groupe de cinq co-streamers « Valheim, 4 k » réduit à
+       deux, un groupe de quatre « WARDOGS, 1,9 k » réduit à un, et la
+       pastille du survivant passée de 4 à 2 — la session elle-même rétrécie
+       dans le cache.
+
+       ET LA GARDE DE SIGNATURE NE POUVAIT PAS L'ARRÊTER : elle protège les
+       compteurs PARTAGÉS par au moins deux cartes. À mesure que le groupe
+       tombe un par un, ils cessent d'être deux à partager la valeur, et la
+       garde se relâche au pire moment. C'est une cascade, pas un incident. */
+    GUEST_STAR_DROP_CONFIRM:   3,
     // Délai de grâce avant de LIBÉRER la couleur d'un co-stream devenu inactif.
     // Absorbe les disparitions transitoires (rebuild DOM de Twitch, fenêtre de
     // refetch) : tant qu'une collaboration réapparaît dans ce délai, elle
@@ -6902,7 +6922,11 @@ const TSE_GATE_MAX_CLICKS = 5;
                        qui monte ici pendant que « evicted » reste à zéro est
                        le signe que la garde travaille — et c'est exactement
                        ce qui manquait au rapport qui a révélé le défaut. */
-                    sansReserve: 0, lastMs: 0 };
+                    sansReserve: 0,
+                    /* Chutes de compteur : voir setViewers. « chutesHorsEcran »
+                       est la seule qui se VOIE — celle qui fait passer une
+                       carte de l'écran au néant. */
+                    chutes: 0, chuteMax: 0, chutesHorsEcran: 0, lastMs: 0 };
 
     /* ── LES CHAÎNES ÉCARTÉES, ET POURQUOI ON COMPTE DES CHAÎNES ────────────
        Une exclusion qu'on ne mesure pas est une exclusion dont on ne saura
@@ -8571,6 +8595,30 @@ const TSE_GATE_MAX_CLICKS = 5;
              marche le rafraîchira ; en attendant, la carte et le classement
              montrent ce que Twitch montre. */
           if (!autorite && combines.has(signature(liste[i]))) return false;
+          /* ── TOUTE CHUTE DE COMPTEUR SE MESURE, QUELLE QU'EN SOIT LA VOIE ──
+             LE CHIFFRE QUI MANQUAIT À TROIS RAPPORTS DE SUITE. Une carte peut
+             quitter l'écran de trois façons : évincée du pool (« evicted »),
+             retirée par une réponse sans stream (« creux »), ou simplement
+             retombée sous le trentième rang parce que son compteur a CHUTÉ.
+             Les deux premières se comptaient ; la troisième, non — et c'est
+             elle qui faisait disparaître les co-streams, un combiné de quatre
+             mille redevenant une audience propre de quelques centaines.
+
+             Un rapport complet disait « evicted 0, creux 0, sansReserve 0,
+             pool 707 » pendant que des cartes s'en allaient. Il disait vrai :
+             aucun de ces trois chemins n'était emprunté. Le quatrième n'avait
+             pas de nom. Il en a un. */
+          const avant = liste[i].viewers;
+          if (Number.isFinite(avant) && viewers < avant) {
+            stats.chutes += 1;
+            const perte = avant - viewers;
+            if (perte > stats.chuteMax) stats.chuteMax = perte;
+            // Une chute SOUS le seuil d'affichage fait sortir la carte de
+            // l'écran : c'est celle-là que l'utilisateur voit.
+            if (threshold > 0 && avant >= threshold && viewers < threshold) {
+              stats.chutesHorsEcran += 1;
+            }
+          }
           liste[i] = { ...liste[i], viewers, creux: 0, ts: Date.now() };
           return true;
         };
@@ -8590,6 +8638,22 @@ const TSE_GATE_MAX_CLICKS = 5;
       // « classé mais sans carte ».
       estAuClassement(login) {
         return this.top(options.get('topN')).some((r) => r.login === login);
+      },
+      /* ── « PAS AU TOP 30 » N'EST PAS « PAS DANS LE POOL » ─────────────────
+         MON PROPRE INSTRUMENT M'A ÉGARÉ. Le bilan rangeait sous
+         « horsClassement » tout membre absent du TOP 30, ce qui confond deux
+         situations que tout sépare : une chaîne que la marche ne connaît pas,
+         et une chaîne parfaitement connue mais retombée au rang cinquante
+         parce qu'elle a perdu son compteur combiné. Un rapport de terrain
+         disait « horsClassement 9 » et j'ai lu « neuf inconnues », alors que
+         c'était le second cas — celui qui désigne le défaut. */
+      estDansLeBase(login) {
+        return this.base().some((r) => r.login === login);
+      },
+      // Les chutes de compteur, pour le rapport. Lecture pure.
+      chutes() {
+        return { chutes: stats.chutes, chuteMax: stats.chuteMax,
+                 chutesHorsEcran: stats.chutesHorsEcran };
       },
       estCombine(login) {
         const rec = ranking.find((r) => r.login === login)
@@ -8825,7 +8889,7 @@ const TSE_GATE_MAX_CLICKS = 5;
      Remis à zéro à chaque passe : c'est un instantané, pas un cumul — la
      question qu'il tranche porte sur l'état courant de la liste. */
   let bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
-                        horsClassement: 0, classesNonAffichees: 0 };
+                        horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0 };
 
   /* ── LA SECTION « CHAÎNES SUIVIES » ───────────────────────────────────────
      UNE SECTION VIDE EST PIRE QUE PAS DE SECTION, et c'est le défaut qu'un
@@ -11089,7 +11153,16 @@ const TSE_GATE_MAX_CLICKS = 5;
              • `parCartes` compte les rattrapages, `vides` les fois où il n'y
                en avait pas à faire. */
         sectionSuivie: { ...bilanSection },
-        coStream: { ...bilanCostream },
+        coStream: { ...bilanCostream, ...gsStats,
+                    /* LA MESURE QUI AURAIT DÉSIGNÉ LE CHEMIN DU PREMIER COUP.
+                       « chutes » compte les fois où le classement a reçu, pour
+                       une chaîne, un compteur PLUS PETIT que celui qu'elle
+                       portait — et « chuteMax » dit de combien. C'est la
+                       signature d'un combiné perdu : quatre mille qui
+                       redeviennent trois cents. Aucun compteur existant ne
+                       pouvait la montrer, et c'est pour ça qu'il a fallu deux
+                       versions et deux captures d'écran pour la trouver. */
+                    ...globalChannels.chutes() },
         langue: { interface: S.locale, page: LANG },
         mode: { global: !!state.globalMode },
         sondes: runDiagnostics(),
@@ -17263,6 +17336,19 @@ const TSE_GATE_MAX_CLICKS = 5;
    * ============================================================ */
   const gsCache = new Map();   // channelId -> { hostId: string|null, mates: {login,name}[], ts }
   const gsQueue = new Set();   // IDs en attente de résolution
+  /* ── CE QUE LE CACHE REFUSE DE CROIRE, ET CE QU'IL FINIT PAR CROIRE ──────
+     Deux compteurs, et ils existent parce qu'un rapport de terrain complet —
+     « pool 707, evicted 0, creux 0, sansReserve 0 » — ne pouvait désigner
+     AUCUN des chemins par lesquels des cartes disparaissaient. Tout ce que
+     l'extension retire se compte désormais quelque part ; ce chemin-ci était
+     le dernier qui ne se comptait nulle part.
+
+       — « gardees » : une réponse vide est arrivée sur une session connue, et
+         on a gardé la session. Un nombre qui monte ici pendant que des cartes
+         tiennent, c'est la garde qui travaille ;
+       — « lachees » : trois réponses vides d'affilée, la session est
+         réellement finie et on l'a relâchée. */
+  const gsStats = { gardees: 0, lachees: 0 };
   const gsWaiters = new Map(); // channelId -> [resolve…] : promesses en attente d'un flush
   let gsTimer = null;
   let gsCooldownUntil = 0;     // anti-martèlement après un échec global
@@ -17395,10 +17481,84 @@ const TSE_GATE_MAX_CLICKS = 5;
     const now = Date.now();
     for (const id of ids) {
       const info = infoById.get(id);
+      /* ── UNE RÉPONSE VIDE N'EFFACE PAS UNE SESSION CONNUE ────────────────
+         LE DÉFAUT SIGNALÉ, ET C'EST LE TROISIÈME DE CETTE FAMILLE. Cette
+         boucle écrivait « pas de session » pour toute chaîne dont la réponse
+         ne portait rien — par conception, « pour ne pas les redemander en
+         boucle pendant la durée du TTL ». L'intention était juste ; l'effet
+         de bord ne l'était pas.
+
+         CE QUI SE PASSAIT ENSUITE, dans l'ordre. Le combiné passe à null et
+         l'hôte aussi ; le lot de chaînes suivant lit `getCollabViewers` à
+         null et `getHostId` à null, et écrit donc le compteur PROPRE de la
+         chaîne au classement ; ce compteur est très inférieur au combiné —
+         quelques centaines contre quatre mille — et la carte sort du top 30.
+         Elle disparaît de l'écran sans que rien ne soit évincé : le rapport
+         disait « evicted 0, creux 0, sansReserve 0, pool 707 », et il disait
+         vrai. Aucun compteur ne pouvait désigner ce chemin-là.
+
+         MESURÉ SUR DEUX CAPTURES À UNE MINUTE : cinq co-streamers « Valheim,
+         4 k » réduits à deux, quatre « WARDOGS, 1,9 k » réduits à un — et la
+         pastille du survivant passée de 4 à 2, c'est-à-dire la session
+         elle-même rétrécie dans le cache. Ce n'est pas l'affichage qui
+         perdait les cartes, c'est le cache qui perdait la session.
+
+         ON GARDE DONC LA DERNIÈRE SESSION CONNUE tant que GUEST_STAR_DROP_CONFIRM
+         réponses vides d'affilée ne l'ont pas confirmée. `ts` est rafraîchi :
+         l'entrée reste servie par le stale-while-revalidate de getHostId, qui
+         était jusqu'ici défait par son propre écrivain. Une session qui finit
+         vraiment part après trois réponses concordantes, comme une chaîne
+         éteinte part après OFFLINE_CONFIRM. */
+      const avant = gsCache.get(id);
+      const vide = !info || (!info.hostId && !info.mates.length
+                             && !Number.isFinite(info.combined));
+      const avaitSession = !!avant
+        && (!!avant.hostId || (avant.mates || []).length
+            || Number.isFinite(avant.combined));
+      /* ── ET UNE SESSION QUI RÉTRÉCIT N'EST PAS UNE SESSION QUI FINIT ──────
+         CORRECTION DE MON PROPRE DIAGNOSTIC, et ce sont les captures qui l'ont
+         faite, pas le rapport. Je n'avais gardé que le cas de la réponse VIDE.
+         Or deux captures à une minute montrent autre chose : la pastille d'un
+         survivant passe de « 4 » à « 2 », et son compteur de 1,9 k à 1,7 k. La
+         session n'avait pas disparu — elle avait MAIGRI, et c'est pire, parce
+         que ce chemin-là traverse la garde de signature.
+
+         POURQUOI IL LA TRAVERSE. Une liste d'invités plus courte donne un
+         `collaborationViewersCount` plus petit, écrit AVEC AUTORITÉ — c'est le
+         combiné, il fait foi. Le classement baisse donc pour ce membre. Dès
+         lors les membres restants ne partagent plus la même valeur affichée,
+         `combines` ne les reconnaît plus, et la garde de signature se relâche
+         au moment précis où elle servirait. Ceux qui sont sortis de la liste
+         d'invités, eux, n'ont plus de combiné du tout et retombent sur leur
+         audience propre. Le groupe s'effondre en cascade, un par un — ce que
+         les deux captures montrent exactement.
+
+         MÊME DISCIPLINE, DONC, POUR LE RÉTRÉCISSEMENT : la liste d'invités ne
+         diminue qu'après GUEST_STAR_DROP_CONFIRM réponses concordantes. Elle
+         GRANDIT sans délai — une arrivée est toujours crue sur parole, et ne
+         peut rien faire disparaître. */
+      const retrecit = !vide && avaitSession
+        && info.mates.length < (avant.mates || []).length;
+      if ((vide || retrecit) && avaitSession) {
+        const vides = (avant.vides || 0) + 1;
+        if (vides < CFG.GUEST_STAR_DROP_CONFIRM) {
+          /* On garde la SESSION, et on prend quand même le combiné frais
+             quand il en arrive un : c'est la seule chose de cette réponse
+             qu'on ait de bonne raison de croire — elle porte sur la chaîne
+             demandée, pas sur la composition du groupe. */
+          const combine = info && Number.isFinite(info.combined)
+            ? info.combined : avant.combined;
+          gsCache.set(id, { ...avant, combined: combine, vides, ts: now });
+          gsStats.gardees += 1;
+          continue;
+        }
+        gsStats.lachees += 1;
+      }
       gsCache.set(id, {
         hostId:   info ? info.hostId : null,
         mates:    info ? info.mates : [],
         combined: info ? info.combined : null,
+        vides:    0,
         ts: now
       });
     }
@@ -17844,7 +18004,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        « sessions vues » et « groupes dessinés » EST le nombre de sessions
        réduites à un seul membre visible. */
     bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
-                      horsClassement: 0, classesNonAffichees: 0 };
+                      horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0 };
     const parLogin = new Map();
     for (const card of cards) {
       const l = card.dataset.tseLogin;
@@ -17874,6 +18034,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       for (const l of membres) {
         if (parLogin.has(l)) { bilanCostream.affiches += 1; continue; }
         if (globalChannels.estAuClassement(l)) bilanCostream.classesNonAffichees += 1;
+        /* DANS LE POOL MAIS SOUS LA COUPE : c'est la signature du défaut du
+           combiné perdu. La marche la connaît, elle est simplement retombée à
+           son audience propre. Aucun autre chemin ne produit ce cas-là. */
+        else if (globalChannels.estDansLeBase(l)) bilanCostream.sousLaCoupe += 1;
         else bilanCostream.horsClassement += 1;
       }
     }
