@@ -1180,6 +1180,9 @@ const construireRapport = (r, transport, fond) => {
       ? new Date(r.relevesAbonnements.horodatage).toISOString() : 'jamais / never'),
     paire('en attente / pending', r.relevesAbonnements?.enAttente),
 
+    paire('rangé derrière un autre onglet / stood down',
+          r.relevesAbonnements?.differes ?? 0),
+
     ...((r.relevesAbonnements?.onglets || []).map((o) => paire(
       `onglet ${o.onglet}`,
       `${o.charge ? 'affiché' : 'jamais chargé'} · ${o.noeuds} nœuds`

@@ -1281,6 +1281,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     SUBS_PAGE_HOLD_GRACE: 1_500,
     SUBS_PAGE_STAMP_KEY:  'tse:substs',
 
+    SUBS_PAGE_RUN_KEY:    'tse:subsrun',
+    SUBS_PAGE_LEASE:      60_000,
+
+    SUBS_PAGE_CLAIM:      400,
+
+    SUBS_PAGE_RETRY:      20_000,
+    SUBS_PAGE_RETRIES:    5,
+
     SUBS_LABEL_KEY:       'tse:submois',
 
     SUBS_STORAGE_KEY:     'tse:subs',
@@ -5047,6 +5055,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     let bilan = { onglets: [], fini: 0 };
 
+    let differes = 0;
+
     let etiquette = (() => {
       try { return localStorage.getItem(CFG.SUBS_LABEL_KEY) || ''; }
       catch { return ''; }
@@ -5103,6 +5113,33 @@ const TSE_GATE_MAX_CLICKS = 5;
         return Number(t) || 0;
       } catch { return 0; }
     };
+
+    const JETON = Math.random().toString(36).slice(2, 10);
+    const bailFrais = () => {
+      try {
+        const brut = String(localStorage.getItem(CFG.SUBS_PAGE_RUN_KEY) || '');
+        const t = Number(brut.split(':')[1] || 0);
+        return t > 0 && Date.now() - t < CFG.SUBS_PAGE_LEASE;
+      } catch { return false; }
+    };
+    const prendreBail = () => {
+      try { localStorage.setItem(CFG.SUBS_PAGE_RUN_KEY, JETON + ':' + Date.now()); }
+      catch {   }
+    };
+
+    const bailTenu = () => {
+      try {
+        return String(localStorage.getItem(CFG.SUBS_PAGE_RUN_KEY) || '')
+          .split(':')[0] === JETON;
+      } catch { return true; }
+    };
+
+    const rendreBail = () => {
+      try { if (bailTenu()) localStorage.removeItem(CFG.SUBS_PAGE_RUN_KEY); }
+      catch {   }
+    };
+
+    window.addEventListener('pagehide', rendreBail);
     const marquer = () => {
       try {
         localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY, LECTEUR + ':' + Date.now());
@@ -5224,11 +5261,22 @@ const TSE_GATE_MAX_CLICKS = 5;
         ? CFG.SUBS_PAGE_TTL
         : options.get('abosPeriode') * 3_600_000;
       if (!force && Date.now() - horodatage() < periode) return null;
+
+      if (!force && horodatage() && bailFrais()) { differes += 1; return null; }
       if (!document.body) return null;
+
       running = true;
+
+      const premier = !!horodatage();
       bilan = { onglets: [], fini: 0 };
       const trouves = [];
       try {
+
+        prendreBail();
+        if (!force && premier) {
+          await new Promise((r) => setTimeout(r, CFG.SUBS_PAGE_CLAIM));
+          if (!bailTenu()) { differes += 1; return null; }
+        }
         let touche = false;
         const verserPasse = (liste) => {
           for (const { login, mois: m } of liste) {
@@ -5290,16 +5338,23 @@ const TSE_GATE_MAX_CLICKS = 5;
       } finally {
 
         running = false;
+        rendreBail();
       }
       return trouves;
     };
+
+    const relancer = (reste) => refresh().then((r) => {
+      if (r || horodatage() || reste <= 0) return r;
+      return new Promise((ok) => setTimeout(ok, CFG.SUBS_PAGE_RETRY))
+        .then(() => relancer(reste - 1));
+    });
 
     const demarrer = () => {
 
       const aveugle = !horodatage();
       if (!aveugle) {
         premierResultat = () => {};
-        refresh().catch((e) => erreurs.noter('abonnements',
+        relancer(CFG.SUBS_PAGE_RETRIES).catch((e) => erreurs.noter('abonnements',
           'relevé de routine : ' + ((e && e.message) || e)));
         return;
       }
@@ -5320,10 +5375,16 @@ const TSE_GATE_MAX_CLICKS = 5;
         repit = setTimeout(lever, CFG.SUBS_PAGE_HOLD_GRACE);
       };
 
-      refresh()
+      const premier = refresh();
+      premier
         .catch((e) => erreurs.noter('abonnements',
           'relevé sous voile : ' + ((e && e.message) || e)))
         .then(lever, lever);
+      premier
+        .then((r) => (r || horodatage() ? null : relancer(CFG.SUBS_PAGE_RETRIES)),
+              () => (horodatage() ? null : relancer(CFG.SUBS_PAGE_RETRIES)))
+        .catch((e) => erreurs.noter('abonnements',
+          'reprise du relevé : ' + ((e && e.message) || e)));
     };
 
     let premierResultat = () => {};
@@ -5343,7 +5404,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     return { init, refresh, horodatage, notifySidebar, enAttente,
-             bilan: () => ({ ...bilan, onglets: bilan.onglets.map((o) => ({ ...o })) }) };
+             bilan: () => ({ ...bilan, differes,
+                             onglets: bilan.onglets.map((o) => ({ ...o })) }) };
   })();
 
   function detectSubscription() {
