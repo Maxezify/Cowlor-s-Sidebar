@@ -1166,6 +1166,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     GUEST_STAR_DEBOUNCE:       300,
     GUEST_STAR_ERROR_COOLDOWN: 30_000,
 
+    GUEST_STAR_DROP_CONFIRM:   3,
+
     COSTREAM_COLOR_GRACE:      60_000,
     BATCH_DELAY:    250,
     UI_TICK:        60_000,
@@ -1236,6 +1238,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     GLOBAL_STRUCT_TICK:      30_000,
 
     GLOBAL_MISS_CONFIRM:     3,
+
+    GLOBAL_WIDEN_CATEGORIES: 20,
+
+    GLOBAL_RESERVE_RATIO:    2,
 
     GLOBAL_PRUNE_AGE:        10 * 60_000,
 
@@ -1989,9 +1995,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     
     @keyframes tse-sub-lueur {
       0%   { background-position: -110% 0,   0% 50%, 100% 50%,  40% 50%; }
-      25%  { background-position:  210% 0,  35% 50%,  62% 50%,  78% 50%; }
-      60%  { background-position:  210% 0,  78% 50%,  18% 50%,   8% 50%; }
-      100% { background-position:  210% 0, 100% 50%,   0% 50%,  40% 50%; }
+      25%  { background-position:  210% 0,  46% 50%,  62% 50%,  78% 50%; }
+      50%  { background-position:  210% 0,  84% 50%,  22% 50%,   8% 50%; }
+      75%  { background-position:  210% 0,  38% 50%,  74% 50%,  62% 50%; }
+      100% { background-position:  210% 0,   0% 50%, 100% 50%,  40% 50%; }
     }
 
     
@@ -2187,55 +2194,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     
-    @media (prefers-reduced-motion: reduce) {
-      
-      .tse-subathon-jour,
-      .tse-preview__badge--subathon {
-        
-        animation-duration: 8s !important;
-        animation-timing-function: linear !important;
-      }
-      .side-nav-card.tse-sub::after,
-      .side-nav-card.tse-sub p.tse-nom,
-      .side-nav-card.tse-sub .tse-sub-cat,
-      .side-nav-card.tse-sub .tse-sub-avatar,
-      .side-nav-card.tse-sub .tse-sub-avatar::after {
-        animation: none;
-      }
-      .side-nav-card.tse-sub .tse-sub-avatar {
-        box-shadow: 0 0 8px color-mix(in srgb, var(--tse-sub-or) 45%, transparent);
-      }
-      .side-nav-card.tse-sub .tse-sub-avatar::after {
-        background: linear-gradient(135deg,
-          rgba(255, 196, 92, 0.9),
-          rgba(255, 246, 214, 0.95) 35%,
-          rgba(255, 158, 205, 0.8) 65%,
-          rgba(255, 196, 92, 0.9));
-      }
-      
-      
-      .side-nav-card.tse-fresh::before {
-        animation: tse-fresh-calme 2s ease-in-out infinite;
-        transform: scaleX(1.6);
-        box-shadow: 0 0 10px ${CFG.PURPLE}, 0 0 4px ${CFG.PURPLE};
-      }
-      @keyframes tse-fresh-calme {
-        0%, 100% { opacity: 0.45; }
-        50%      { opacity: 1; }
-      }
-      
-      .tse-roue[data-tse-neuf] {
-        animation: none !important;
-        transform: none !important;
-        box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.55) !important;
-      }
-      
-      .tse-roue:hover .tse-roue-dent,
-      .tse-roue:focus-visible .tse-roue-dent {
-        animation-duration: 6s !important;
-        animation-timing-function: linear !important;
-      }
-    }
 
     
     .tse-show-less-hidden { display: none !important; }
@@ -2562,29 +2520,6 @@ const TSE_GATE_MAX_CLICKS = 5;
       
       background: var(--tse-surface);
     }
-    
-    
-    .tse-incruste-croix {
-      position: absolute; top: -14px; right: -14px;
-      
-      box-sizing: border-box;
-      width: 32px; height: 32px; padding: 0;
-      display: inline-flex; align-items: center; justify-content: center;
-      border: 2px solid rgba(255, 255, 255, 0.92); border-radius: 50%;
-      background: #18181b; color: #fff;
-      font: inherit; font-size: 1.7rem; line-height: 1; cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
-      transition: background-color 0.15s, transform 0.15s;
-    }
-    .tse-incruste-croix:hover {
-      background: ${CFG.PURPLE};
-      transform: scale(1.08);
-    }
-    .tse-incruste-croix:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 3px ${CFG.PURPLE}, 0 2px 10px rgba(0, 0, 0, 0.6);
-    }
-
     
     body.tse-global-ready .side-nav-card:not([data-tse-global="true"]) { display: none !important; }
     body.tse-global-ready ${DOM.showMoreStableSelector} { display: none !important; }
@@ -3688,7 +3623,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     let windowFloor   = 0;
     const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
 
-                    misses: 0, sousPlancher: 0, creux: 0, evicted: 0, lastMs: 0 };
+                    misses: 0, sousPlancher: 0, creux: 0, evicted: 0,
+
+                    sansReserve: 0,
+
+                    chutes: 0, chuteMax: 0, chutesHorsEcran: 0,
+
+                    repertoireBas: 0, repertoireHaut: 0, lastMs: 0 };
 
     const empileurs = new Set();
 
@@ -3826,12 +3767,20 @@ const TSE_GATE_MAX_CLICKS = 5;
         }
         return null;
       }
+
+      let vus = viewers;
+      const combine = getCollabViewers(node.broadcaster?.id);
+      if (Number.isFinite(combine) && combine !== viewers) {
+        if (combine > viewers) stats.repertoireBas += 1;
+        else stats.repertoireHaut += 1;
+        vus = combine;
+      }
       return {
         login,
         id:        node.broadcaster.id ?? null,
         name:      node.broadcaster.displayName?.trim() || login,
         avatar:    node.broadcaster.profileImageURL || null,
-        viewers,
+        viewers:   vus,
         game:      node.game?.name || null,
         gameLabel: node.game?.displayName?.trim() || node.game?.name || null,
         createdAt: node.createdAt || null,
@@ -3910,6 +3859,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const reconcile = (pool, queried, seen, now, plancherDe = () => 0) => {
       const cutoff = now - CFG.GLOBAL_PRUNE_AGE;
+
       for (const [login, rec] of pool) {
 
         if (seen.has(login)) { rec.misses = 0; rec.creux = 0; continue; }
@@ -3918,10 +3868,16 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (!queried.has(rec.game)) continue;
 
         if (rec.viewers < plancherDe(rec)) { stats.sousPlancher += 1; continue; }
+
         rec.misses = (rec.misses || 0) + 1;
         stats.misses += 1;
 
         if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM || rec.creux) {
+
+          if (pool.size <= options.get('topN') + CFG.GLOBAL_MISS_CONFIRM) {
+            stats.sansReserve += 1;
+            continue;
+          }
           pool.delete(login);
           stats.evicted += 1;
         }
@@ -4244,6 +4200,15 @@ const TSE_GATE_MAX_CLICKS = 5;
             seen.add(c.name);
           }
         }
+      } else if (ranking.length
+                 <= options.get('topN') * CFG.GLOBAL_RESERVE_RATIO) {
+
+        for (const c of cats.slice(seed.length,
+                                   seed.length + CFG.GLOBAL_WIDEN_CATEGORIES)) {
+          if (seen.has(c.name)) continue;
+          crossed.push(c);
+          seen.add(c.name);
+        }
       }
 
       const pool = carryOver();
@@ -4515,6 +4480,17 @@ const TSE_GATE_MAX_CLICKS = 5;
               || (liste[i].viewers === viewers && !liste[i].creux)) return false;
 
           if (!autorite && combines.has(signature(liste[i]))) return false;
+
+          const avant = liste[i].viewers;
+          if (Number.isFinite(avant) && viewers < avant) {
+            stats.chutes += 1;
+            const perte = avant - viewers;
+            if (perte > stats.chuteMax) stats.chuteMax = perte;
+
+            if (threshold > 0 && avant >= threshold && viewers < threshold) {
+              stats.chutesHorsEcran += 1;
+            }
+          }
           liste[i] = { ...liste[i], viewers, creux: 0, ts: Date.now() };
           return true;
         };
@@ -4527,6 +4503,15 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       estAuClassement(login) {
         return this.top(options.get('topN')).some((r) => r.login === login);
+      },
+
+      estDansLeBase(login) {
+        return this.base().some((r) => r.login === login);
+      },
+
+      chutes() {
+        return { chutes: stats.chutes, chuteMax: stats.chuteMax,
+                 chutesHorsEcran: stats.chutesHorsEcran };
       },
       estCombine(login) {
         const rec = ranking.find((r) => r.login === login)
@@ -4645,7 +4630,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   const bilanSection = { voie: null, vides: 0, parCartes: 0, aucune: 0 };
 
   let bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
-                        horsClassement: 0, classesNonAffichees: 0 };
+                        horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0,
+                        sousLaCoupeAvecCombine: 0 };
 
   const followedSection = () => {
     const candidats = [];
@@ -5988,7 +5974,9 @@ const TSE_GATE_MAX_CLICKS = 5;
         })(),
 
         sectionSuivie: { ...bilanSection },
-        coStream: { ...bilanCostream },
+        coStream: { ...bilanCostream, ...gsStats,
+
+                    ...globalChannels.chutes() },
         langue: { interface: S.locale, page: LANG },
         mode: { global: !!state.globalMode },
         sondes: runDiagnostics(),
@@ -6207,9 +6195,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
     if (!anim) {
       const v = st();
-      resolve({ verdict: reduit
-                  ? 'immobile — mouvement réduit demandé par le système'
-                  : 'AUCUNE ANIMATION sur la barre : la règle ne s\'applique pas',
+      resolve({ verdict: 'AUCUNE ANIMATION sur la barre : la règle ne s\'applique pas',
                 fraiches: document.querySelectorAll('.side-nav-card.tse-fresh').length,
                 mouvementReduit: reduit, animations: 0,
                 opacite: v.o, largeur: +v.l.toFixed(2) });
@@ -6228,7 +6214,6 @@ const TSE_GATE_MAX_CLICKS = 5;
       resolve({
         verdict: anim.playState !== 'running' ? 'animation ' + anim.playState
                : ecart < 1.5 ? 'animation en cours mais AMPLITUDE PLATE — rien à voir à l\'œil'
-               : reduit ? 'battement calme — mouvement réduit respecté'
                : ecart >= 2.5 ? 'le battement est bien là'
                : 'battement présent, mais faible',
         fraiches: document.querySelectorAll('.side-nav-card.tse-fresh').length,
@@ -8666,17 +8651,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     frame.setAttribute('allow', '');
 
-    const croix = document.createElement('button');
-    croix.type = 'button';
-    croix.className = 'tse-incruste-croix';
-    croix.setAttribute('aria-label', S.uiFermer);
-    croix.setAttribute('title', S.uiFermer);
-    const barre = document.createElement('span');
-    barre.setAttribute('aria-hidden', 'true');
-    barre.textContent = '×';
-    croix.appendChild(barre);
-
-    cadre.append(frame, croix);
+    cadre.appendChild(frame);
     voile.appendChild(cadre);
 
     const surTouche = (ev) => { if (ev.key === 'Escape') fermerIncruste?.(); };
@@ -8706,8 +8681,6 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       document.getElementById(ROUE_ID)?.focus?.();
     };
-
-    croix.addEventListener('click', fermerIncruste);
 
     voile.addEventListener('click', (ev) => { if (ev.target === voile) fermerIncruste(); });
     document.addEventListener('keydown', surTouche, true);
@@ -9321,6 +9294,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const gsCache = new Map();
   const gsQueue = new Set();
+
+  const gsStats = { gardees: 0, lachees: 0 };
   const gsWaiters = new Map();
   let gsTimer = null;
   let gsCooldownUntil = 0;
@@ -9403,10 +9378,33 @@ const TSE_GATE_MAX_CLICKS = 5;
     const now = Date.now();
     for (const id of ids) {
       const info = infoById.get(id);
+
+      const avant = gsCache.get(id);
+      const vide = !info || (!info.hostId && !info.mates.length
+                             && !Number.isFinite(info.combined));
+      const avaitSession = !!avant
+        && (!!avant.hostId || (avant.mates || []).length
+            || Number.isFinite(avant.combined));
+
+      const retrecit = !vide && avaitSession
+        && info.mates.length < (avant.mates || []).length;
+      if ((vide || retrecit) && avaitSession) {
+        const vides = (avant.vides || 0) + 1;
+        if (vides < CFG.GUEST_STAR_DROP_CONFIRM) {
+
+          const combine = info && Number.isFinite(info.combined)
+            ? info.combined : avant.combined;
+          gsCache.set(id, { ...avant, combined: combine, vides, ts: now });
+          gsStats.gardees += 1;
+          continue;
+        }
+        gsStats.lachees += 1;
+      }
       gsCache.set(id, {
         hostId:   info ? info.hostId : null,
         mates:    info ? info.mates : [],
         combined: info ? info.combined : null,
+        vides:    0,
         ts: now
       });
     }
@@ -9667,7 +9665,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
-                      horsClassement: 0, classesNonAffichees: 0 };
+                      horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0,
+                        sousLaCoupeAvecCombine: 0 };
     const parLogin = new Map();
     for (const card of cards) {
       const l = card.dataset.tseLogin;
@@ -9694,6 +9693,15 @@ const TSE_GATE_MAX_CLICKS = 5;
       for (const l of membres) {
         if (parLogin.has(l)) { bilanCostream.affiches += 1; continue; }
         if (globalChannels.estAuClassement(l)) bilanCostream.classesNonAffichees += 1;
+
+        else if (globalChannels.estDansLeBase(l)) {
+          bilanCostream.sousLaCoupe += 1;
+
+          const idm = getChannelId(l);
+          if (idm && Number.isFinite(getCollabViewers(idm))) {
+            bilanCostream.sousLaCoupeAvecCombine += 1;
+          }
+        }
         else bilanCostream.horsClassement += 1;
       }
     }

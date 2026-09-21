@@ -346,7 +346,7 @@
     "message": "Cerrar"
   },
   "guideIntro": {
-    "message": "La extensión no tiene ajustes: funciona en cuanto recargas una página de Twitch. Lo que sigue es la lista de lo que añade, en el orden en que te la vas a encontrar."
+    "message": "Este capítulo describe lo que la extensión añade a Twitch, en el orden en que vas a encontrarlo. Todo funciona en cuanto recargas una página de Twitch, sin configurar nada — y todo se ajusta, o se apaga, desde «Ajustes», justo debajo."
   },
   "guideHoverTitre": {
     "message": "La vista previa al pasar el ratón"
@@ -382,7 +382,7 @@
     "message": "Los co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Un punto morado en la esquina del avatar, con el número de participantes: ese canal emite acompañado. Visible en la lista, sin pasar el ratón por nada.\n• Una insignia morada dice entonces quién recibe y quién es invitado, y con quién.\n• Un orden propio los agrupa arriba de la lista (capítulo 9)."
+    "message": "Un punto morado en la esquina del avatar, con el número de participantes: ese canal emite acompañado. Visible en la lista, sin pasar el ratón por nada.\n• Una insignia morada dice entonces quién recibe y quién es invitado, y con quién.\n• Un orden propio los agrupa arriba de la lista (capítulo $1)."
   },
   "guideDebutTitre": {
     "message": "Los comienzos y las vueltas"
@@ -418,7 +418,7 @@
     "message": "Este panel"
   },
   "guidePanneauTexte": {
-    "message": "A la izquierda, las secciones. «Tus datos» enseña lo que la extensión ha guardado: tus canales más visitados, tus horas de visionado dibujadas en semana, las suscripciones detectadas. «Diagnóstico» solo sirve el día en que algo falla.\n• Esas secciones leen la pestaña de Twitch que tengas delante: si no hay ninguna, lo dicen. Este capítulo, en cambio, se muestra siempre.\n• «Exportar un informe» escribe un texto que puedes releer antes de enviarlo. No contiene ninguna lista personal —ni tus canales ni tus suscripciones—, solo sus recuentos.\n• «Borrar el historial» lo deja todo a cero, definitivamente."
+    "message": "Cinco grupos, a la izquierda.\n• «Primeros pasos» — este capítulo. Siempre se muestra, incluso sin pestaña de Twitch abierta.\n• «Ajustes» — todo lo que la extensión deja elegir.\n• «Tus datos» — lo que ha retenido: tus canales más visitados, tus horas de visionado dibujadas por semana, las suscripciones detectadas.\n• «Diagnóstico» — solo sirve el día que algo falla, y se oculta desde los ajustes.\n• «Top Canales» — el estado de la clasificación mundial y de sus categorías.\nTodas estas secciones, salvo esta, leen la pestaña de Twitch en primer plano: si no hay ninguna, lo dicen.\n• «Exportar un informe» escribe un texto que puedes releer antes de enviarlo. No contiene ninguna lista personal — ni tus canales, ni tus suscripciones — solo recuentos.\n• «Borrar el historial» lo pone todo a cero, definitivamente."
   },
   "guideVieTitre": {
     "message": "Privacidad, en claro"
@@ -713,5 +713,17 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — tus datos y tus ajustes"
+  },
+  "guideRoueTitre": {
+    "message": "La rueda y este panel"
+  },
+  "guideRoueTexte": {
+    "message": "Una rueda ⚙️ está justo a la derecha del título de la barra lateral. Un clic abre este panel sobre Twitch, sin salir de la página.\n• El icono de la extensión, arriba a la derecha del navegador, abre exactamente el mismo panel.\n• Para cerrarlo: la tecla Esc, o un clic fuera del marco.\n• En el primer arranque la rueda late unos segundos y una burbuja la señala. Después no vuelve."
+  },
+  "guideReglagesTitre": {
+    "message": "Todo se ajusta, todo se apaga"
+  },
+  "guideReglagesTexte": {
+    "message": "«Ajustes» gobierna cada decoración descrita aquí. Nada se impone: lo que te moleste se apaga.\n• La vista previa al pasar el ratón: su anchura, la calidad del flujo, o solo el vídeo — apagado, conserva su miniatura, sus insignias y su franja.\n• Las insignias se muestran o no, una a una.\n• El oro de las suscripciones tiene un modo discreto: mantiene el color y quita el brillo.\n• El sondeo de suscripciones se hace como mucho una vez cada 3, 6, 12 o 24 horas, a tu elección.\n• Tus ajustes se exportan y se vuelven a importar; un botón los restaura todos."
   }
 }

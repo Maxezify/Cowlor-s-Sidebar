@@ -346,7 +346,7 @@
     "message": "Zamknij"
   },
   "guideIntro": {
-    "message": "Rozszerzenie nie ma ustawień: działa, gdy tylko przeładujesz stronę Twitcha. Poniżej lista tego, co dodaje, w kolejności, w jakiej to napotkasz."
+    "message": "Ten rozdział opisuje, co rozszerzenie dodaje do Twitcha, w kolejności, w jakiej to napotkasz. Wszystko działa, gdy tylko odświeżysz stronę Twitcha, bez żadnej konfiguracji — i wszystko da się ustawić lub wyłączyć w „Ustawieniach” tuż poniżej."
   },
   "guideHoverTitre": {
     "message": "Podgląd po najechaniu"
@@ -382,7 +382,7 @@
     "message": "Co-streamy"
   },
   "guideCostreamTexte": {
-    "message": "Fioletowa kropka w rogu awatara, z liczbą uczestników: ten kanał nadaje w kilka osób. Widać to na liście, bez najeżdżania na cokolwiek.\n• Fioletowa odznaka mówi wtedy, kto gości, a kto jest gościem — i z kim.\n• Osobne sortowanie grupuje je na górze listy (rozdział 9)."
+    "message": "Fioletowa kropka w rogu awatara, z liczbą uczestników: ten kanał nadaje w kilka osób. Widać to na liście, bez najeżdżania na cokolwiek.\n• Fioletowa odznaka mówi wtedy, kto gości, a kto jest gościem — i z kim.\n• Osobne sortowanie grupuje je na górze listy (rozdział $1)."
   },
   "guideDebutTitre": {
     "message": "Początki i powroty"
@@ -418,7 +418,7 @@
     "message": "Ten panel"
   },
   "guidePanneauTexte": {
-    "message": "Po lewej sekcje. „Twoje dane” pokazuje, co rozszerzenie zapamiętało: najczęściej odwiedzane kanały, twoje godziny oglądania narysowane jako tydzień, wykryte subskrypcje. „Diagnostyka” przydaje się tylko w dniu, w którym coś nie gra.\n• Te sekcje czytają kartę Twitcha na pierwszym planie: jeśli jej nie ma, mówią to. Ten rozdział natomiast pokazuje się zawsze.\n• „Wyeksportuj raport” zapisuje tekst, który możesz przeczytać przed wysłaniem. Nie zawiera żadnej osobistej listy — ani twoich kanałów, ani subskrypcji — tylko ich liczby.\n• „Wymaż historię” zeruje wszystko, nieodwracalnie."
+    "message": "Pięć grup, po lewej.\n• „Na początek” — ten rozdział. Pokazuje się zawsze, nawet bez otwartej karty Twitcha.\n• „Ustawienia” — wszystko, co rozszerzenie pozwala wybrać.\n• „Twoje dane” — co zapamiętało: najczęściej odwiedzane kanały, godziny oglądania rozrysowane na tydzień, wykryte subskrypcje.\n• „Diagnostyka” — przydaje się tylko wtedy, gdy coś nie gra, i można ją ukryć w ustawieniach.\n• „Najpopularniejsze kanały” — stan światowego rankingu i jego kategorii.\nWszystkie te sekcje poza tą czytają pierwszoplanową kartę Twitcha: jeśli jej nie ma, mówią o tym.\n• „Eksportuj raport” zapisuje tekst, który możesz przeczytać przed wysłaniem. Nie zawiera żadnej osobistej listy — ani kanałów, ani subskrypcji — tylko liczby.\n• „Wyczyść historię” zeruje wszystko, nieodwracalnie."
   },
   "guideVieTitre": {
     "message": "Prywatność, wprost"
@@ -713,5 +713,17 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — Twoje dane i ustawienia"
+  },
+  "guideRoueTitre": {
+    "message": "Kółko zębate i ten panel"
+  },
+  "guideRoueTexte": {
+    "message": "Kółko ⚙️ stoi tuż po prawej stronie tytułu paska bocznego. Kliknięcie otwiera ten panel na Twitchu, bez opuszczania strony.\n• Ikona rozszerzenia, w prawym górnym rogu przeglądarki, otwiera dokładnie ten sam panel.\n• Aby zamknąć: klawisz Esc albo kliknięcie poza ramką.\n• Przy pierwszym uruchomieniu kółko pulsuje przez kilka sekund, a dymek je wskazuje. Potem już nie wraca."
+  },
+  "guideReglagesTitre": {
+    "message": "Wszystko da się ustawić, wszystko wyłączyć"
+  },
+  "guideReglagesTexte": {
+    "message": "„Ustawienia” rządzą każdą ozdobą opisaną tutaj. Nic nie jest narzucone: co przeszkadza, da się wyłączyć.\n• Podgląd po najechaniu: jego szerokość, jakość strumienia albo sam obraz — wyłączony, zachowuje miniaturę, plakietki i pasmo.\n• Plakietki pokazują się lub nie, pojedynczo.\n• Złoto subskrypcji ma tryb dyskretny: zostawia kolor, zabiera połysk.\n• Zbieranie subskrypcji odbywa się najwyżej raz na 3, 6, 12 lub 24 godziny — do wyboru.\n• Twoje ustawienia można wyeksportować i wczytać z powrotem; jeden przycisk przywraca wszystkie."
   }
 }

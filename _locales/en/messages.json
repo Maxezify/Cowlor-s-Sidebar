@@ -444,8 +444,7 @@
     "description": "Bouton : referme la vue du rapport"
   },
   "guideIntro": {
-    "message": "The extension has no settings: it works the moment you reload a Twitch page. What follows is the list of what it adds, in the order you will run into it.",
-    "description": "Chapeau du mode d'emploi"
+    "message": "This chapter describes what the extension adds to Twitch, in the order you will meet it. Everything works as soon as you reload a Twitch page, with nothing to configure — and everything can be adjusted, or switched off, from “Settings” just below."
   },
   "guideHoverTitre": {
     "message": "The hover preview"
@@ -481,7 +480,7 @@
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "A purple dot in the corner of the avatar, with the number of participants: this channel is streaming with others. Visible in the list, with nothing to hover.\n• A purple badge then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter 9)."
+    "message": "A purple dot in the corner of the avatar, with the number of participants: this channel is streaming with others. Visible in the list, with nothing to hover.\n• A purple badge then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter $1)."
   },
   "guideDebutTitre": {
     "message": "Starts, and comebacks"
@@ -517,7 +516,7 @@
     "message": "This panel"
   },
   "guidePanneauTexte": {
-    "message": "On the left, the sections. \"Your data\" shows what the extension has kept: your most visited channels, your watching hours drawn as a week, the subscriptions it spotted. \"Diagnostics\" only matters the day something goes wrong.\n• Those sections read the Twitch tab in front: if there is none, they say so. This chapter, on the other hand, always shows.\n• \"Export a report\" writes a text you can read before sending it. It holds no personal list — not your channels, not your subscriptions — only their counts.\n• \"Erase history\" wipes everything, for good."
+    "message": "Five groups, on the left.\n• “Get started” — this chapter. It always shows, even with no Twitch tab open.\n• “Settings” — everything the extension lets you choose.\n• “Your data” — what it has remembered: your most visited channels, your listening hours drawn across the week, the subscriptions it spotted.\n• “Diagnostics” — only useful the day something goes wrong, and it can be hidden from the settings.\n• “Top Channels” — the state of the world ranking and its categories.\nEvery section but this one reads the frontmost Twitch tab: if there is none, they say so.\n• “Export a report” writes a text you can read before sending. It holds no personal list — not your channels, not your subscriptions — only counts.\n• “Clear history” resets everything, for good."
   },
   "guideVieTitre": {
     "message": "Privacy, in plain words"
@@ -827,5 +826,17 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — your data and your settings"
+  },
+  "guideRoueTitre": {
+    "message": "The gear, and this panel"
+  },
+  "guideRoueTexte": {
+    "message": "A ⚙️ gear sits just to the right of the sidebar title. Clicking it opens this panel on top of Twitch, without leaving the page.\n• The extension icon, top right of your browser, opens exactly the same panel.\n• To close it: the Escape key, or a click outside the frame.\n• On the very first run the gear beats for a few seconds and a bubble points at it. It does not come back afterwards."
+  },
+  "guideReglagesTitre": {
+    "message": "Everything adjusts, everything switches off"
+  },
+  "guideReglagesTexte": {
+    "message": "“Settings” controls every decoration described here. Nothing is imposed: whatever bothers you can be turned off.\n• The hover preview: its width, the stream quality, or the video alone — switched off, it keeps its thumbnail, its badges and its trail.\n• Badges show or not, one by one.\n• The gold of subscriptions has a discreet mode: it keeps the colour and drops the shimmer.\n• The subscriptions sweep runs at most once every 3, 6, 12 or 24 hours, your choice.\n• Your settings export and import back; one button restores them all."
   }
 }
