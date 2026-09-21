@@ -2479,6 +2479,88 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Co-stream in Top Channels: what the session counts, what the list shows (v4.13.11)
+
+### The question asked
+
+> "Is the co-stream system properly implemented on the Top Channels side,
+> notably during card list updates?"
+
+### What the audit verified, and what holds
+
+**The pass order is right.** `syncGlobalCards` runs *before* `detectCoStreams`
+in the same scan: a card created in a pass is grouped in that same pass, with no
+frame of delay.
+
+```
+syncGlobalCards → recomputeFilters → detectCoStreams → applySorting → applyCostreamJoins
+```
+
+**And it does not flicker.** Three co-streamers with different uptimes, sampled
+at every screen refresh for six seconds, with a ranking update injected halfway:
+
+```
+361 frames out of 361  →  grouped / grouped / grouped, same gs: key
+```
+
+### What the audit found
+
+**Two numbers describe the same session, and nothing reconciles them.**
+
+The pastille comes from the **session** (Guest Star knows every participant). The
+coloured group comes from the **cards present** in the list. When a member is not
+ranked, the pastille announces three participants above two rows — exactly what a
+field screenshot showed.
+
+And that contradiction hid the question **five versions** could not settle:
+
+| what may have happened | who is at fault | what it is worth |
+| --- | --- | --- |
+| it was **ranked then lost** | **us** | a leak, and it can be fixed |
+| it was **never ranked** | Twitch's directory, which does not list it in the requested language | nothing to fix |
+
+The two look alike on screen. They are not repaired the same way at all.
+
+### The number that was missing
+
+`classesNonAffichees` counts session members **that are in the ranking and yet
+have no card**. That is the leak, and only that. `horsClassement` is a fact about
+Twitch — not about us.
+
+Measured on a fixture where a forty-viewer participant cannot enter a top 30:
+
+```
+groups 1 · members 4 · shown 2 · horsClassement 2 · classesNonAffichees 0
+```
+
+Four members, two on screen, **two that Twitch did not rank, no leak on our
+side**. The next field report will say which of the two numbers moves — and it is
+the first time the question can get an answer rather than a hypothesis.
+
+> **This change alters nothing on screen.** It measures. After five versions
+> spent fixing causes that were real but successive, laying down the counter that
+> arbitrates beats a sixth hypothesis.
+
+### What this audit could not measure
+
+**The unfindable followed section.** Every field report counts between 26 and 35
+passes where `followedSection()` returns nothing — and those passes skip both the
+ranking render and the co-stream detection. The bench fixture could not reproduce
+that state: with both anchors removed, it still found the section. No conclusion
+is drawn from it here.
+
+### What the bench adds
+
+Scenario 135 sets up a session of four of which only two can be ranked, and first
+checks that its fixture really plays the contradiction — a "3" pastille above two
+rows — before reading the tally.
+
+| mutant | the assertion that drops |
+| --- | --- |
+| absentees counted as a leak | "members Twitch did not rank count as such" |
+| a member missed by the tally | "each member in exactly one bucket" |
+| a ranked card left uncounted | "no ranked member is left without a card" |
+
 ## Is a fabricated card a card like any other? (v4.13.10)
 
 ### The audit that was asked for
