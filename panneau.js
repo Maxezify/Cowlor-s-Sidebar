@@ -432,7 +432,8 @@ const carteEtBadge = (carte, mod, cle) => {
 };
 
 const GUIDE = [
-  { titre: 'guideHoverTitre',    texte: 'guideHoverTexte',    demo: () => demoApercu() },
+  { titre: 'guideRoueTitre',     texte: 'guideRoueTexte' },
+  { titre: 'guideViteTitre',     texte: 'guideViteTexte' },
   { titre: 'guideDureeTitre',    texte: 'guideDureeTexte',
     demo: () => {
       const hote = div('d-pile');
@@ -440,16 +441,6 @@ const GUIDE = [
                   demoCarte({ nom: 'Korbek', cat: 'Minecraft', vues: 318, fini: true }));
       return hote;
     } },
-  { titre: 'guideBadgesTitre',   texte: 'guideBadgesTexte',   demo: () => demoBadges() },
-  { titre: 'guideFriseTitre',    texte: 'guideFriseTexte',    demo: () => demoFrise() },
-  { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
-    demo: () => carteEtBadge(
-      demoCarte({ nom: 'Velmoria', cat: 'Minecraft', vues: 4820, duree: '61h04', jour: true }),
-      'subathon', 'guideBadgeSubathon') },
-  { titre: 'guideCostreamTitre', texte: 'guideCostreamTexte',
-    demo: () => carteEtBadge(
-      demoCarte({ nom: 'Korbek', cat: 'Valorant', vues: 962, duree: '1h47', collab: '3' }),
-      'squad', 'guideBadgeSquad') },
   { titre: 'guideDebutTitre',    texte: 'guideDebutTexte',
     demo: () => carteEtBadge(
       demoCarte({ nom: 'Aeltris', cat: 'Elden Ring', vues: 87, duree: '4m', frais: true }),
@@ -458,9 +449,21 @@ const GUIDE = [
     demo: () => carteEtBadge(
       demoCarte({ nom: 'Nyxaria', cat: 'Elden Ring', vues: 1243, duree: '4h19', or: true }),
       'sub', 'guideBadgeSub') },
+
+  { titre: 'guideCostreamTitre', texte: 'guideCostreamTexte', renvoi: 'guideTriTitre',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Korbek', cat: 'Valorant', vues: 962, duree: '1h47', collab: '3' }),
+      'squad', 'guideBadgeSquad') },
+  { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Velmoria', cat: 'Minecraft', vues: 4820, duree: '61h04', jour: true }),
+      'subathon', 'guideBadgeSubathon') },
+  { titre: 'guideHoverTitre',    texte: 'guideHoverTexte',    demo: () => demoApercu() },
+  { titre: 'guideBadgesTitre',   texte: 'guideBadgesTexte',   demo: () => demoBadges() },
+  { titre: 'guideFriseTitre',    texte: 'guideFriseTexte',    demo: () => demoFrise() },
   { titre: 'guideTriTitre',      texte: 'guideTriTexte' },
   { titre: 'guideTopTitre',      texte: 'guideTopTexte',      demo: () => demoOnglets() },
-  { titre: 'guideViteTitre',     texte: 'guideViteTexte' },
+  { titre: 'guideReglagesTitre', texte: 'guideReglagesTexte' },
   { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte' },
   { titre: 'guideVieTitre',      texte: 'guideVieTexte' },
 ];
@@ -496,7 +499,10 @@ const construireGuide = () => {
       cadre.appendChild(chapitre.demo());
       section.appendChild(cadre);
     }
-    section.append(...corpsGuide(T(chapitre.texte)));
+
+    const vise = chapitre.renvoi
+      ? String(GUIDE.findIndex((c) => c.titre === chapitre.renvoi) + 1) : undefined;
+    section.append(...corpsGuide(T(chapitre.texte, vise)));
     blocs.push(section);
   });
   return blocs;

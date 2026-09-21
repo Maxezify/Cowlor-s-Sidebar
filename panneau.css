@@ -460,19 +460,6 @@ html, body {
   50%      { opacity: 1;   transform: scaleX(2);
              box-shadow: 0 0 18px var(--violet), 0 0 8px var(--violet); }
 }
-/* Le sort de l'animation se règle en bas de feuille ; ce bloc-ci ne dit que
-   la GÉOMÉTRIE sous « mouvement réduit » — figée à son point haut, pour que le
-   signal reste aussi lisible que lorsqu'il s'étire. */
-@media (prefers-reduced-motion: reduce) {
-  /* La barre garde sa largeur haute et son halo fixes — c'est le MOUVEMENT
-     qu'on retire — et son opacité continue de respirer, plus lentement (cf.
-     la règle en bas de feuille, qui porte l'animation calme). */
-  .d-carte--frais::before {
-    transform: scaleX(1.6);
-    box-shadow: 0 0 10px var(--violet), 0 0 4px var(--violet);
-  }
-}
-
 /* L'abonnement : or sur le pseudo, or sur la catégorie, anneau d'or autour de
    l'avatar. Le reflet lent de la vraie carte n'est pas repris — il court sur
    quinze secondes, personne ne le verrait passer dans une maquette. */
@@ -767,31 +754,17 @@ html[data-theme="light"] .d-jour {
 .boite-pied  { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* ── Mouvement ───────────────────────────────────────────────────────────── */
-/* Le respect de prefers-reduced-motion n'est pas une politesse : une popup
-   qui s'anime à chaque clic devient pénible pour qui y est sensible.
+/* PAS DE BLOC « prefers-reduced-motion » ICI NON PLUS, et c'est la même demande
+   que dans content.js : les deux moutures ne rendaient pas la même chose parce
+   qu'une seule portait ces règles, et c'est celle qui n'en avait pas qui a été
+   retenue.
 
-   « * » NE COUVRE PAS LES PSEUDO-ÉLÉMENTS, et cette règle avait l'air
-   exhaustive. Le sélecteur universel désigne des ÉLÉMENTS ; « ::before » et
-   « ::after » n'en sont pas. La barre violette de la maquette du stream frais
-   — un ::before — continuait donc de battre ici, comme elle continuait de
-   battre dans le produit. Un audit a trouvé les deux le même jour. */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition: none !important; animation: none !important; }
-  /* DEUX EXCEPTIONS, ET CE SONT CELLES DU PRODUIT. La maquette explique des
-     comportements : si le produit garde un battement calme et un arc-en-ciel
-     ralenti sous ce réglage, une maquette figée expliquerait autre chose que
-     ce qu'elle montre. Les valeurs sont celles de content.js, à l'identique. */
-  .d-badge--subathon, .d-jour {
-    animation: d-arcenciel 8s linear infinite !important;
-  }
-  .d-carte--frais::before {
-    animation: d-respire-calme 2s ease-in-out infinite !important;
-  }
-}
-@keyframes d-respire-calme {
-  0%, 100% { opacity: 0.45; }
-  50%      { opacity: 1; }
-}
+   ICI, LA RAISON EST PLUS FORTE QU'AILLEURS. Cette feuille peint des MAQUETTES,
+   dont le seul métier est de montrer ce que le produit fait. Le bloc qu'on
+   retire portait deux exceptions — un battement calme, un arc-en-ciel ralenti —
+   annoncées « à l'identique de content.js ». Elles ne le sont plus : ce bloc
+   n'existe plus là-bas. Une maquette qui garde un régime que le produit a perdu
+   n'explique plus rien, elle contredit. */
 
 /* ════════════════════════════════════════════════════════════════════════════
    L'ONGLET DES RÉGLAGES
