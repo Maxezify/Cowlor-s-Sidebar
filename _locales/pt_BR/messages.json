@@ -388,7 +388,7 @@
     "message": "Os começos e os regressos"
   },
   "guideDebutTexte": {
-    "message": "Uma barra roxa aparece na borda esquerda de um cartão: essa live começou há menos de dez minutos. Ela se apaga sozinha no décimo minuto.\n• Se o streamer cair e voltar em menos de dez minutos, a barra roxa não acende de novo, mas o contador dele recomeça do zero.\n• Na prévia, a duração mostrada continua sendo a da live inteira, queda incluída, e um emblema avisa o que aconteceu."
+    "message": "Uma barra roxa aparece na borda esquerda de um cartão: essa live começou há menos de dez minutos. Ela se apaga sozinha no décimo minuto.\n• Se o streamer cair e voltar em menos de dez minutos, a barra roxa não acende de novo — e o contador dele não recomeça do zero: continua contando a live inteira, queda incluída.\n• A prévia diz ainda quantas vezes caiu e desenha as quedas na faixa — e um emblema avisa o que aconteceu."
   },
   "guideAboTitre": {
     "message": "Suas inscrições, em ouro"

@@ -388,7 +388,7 @@
     "message": "Les débuts, et les reprises"
   },
   "guideDebutTexte": {
-    "message": "Une barre violette apparaît sur le bord gauche d'une carte : ce live a commencé il y a moins de dix minutes. Elle s'éteint d'elle-même au bout de la dixième minute.\n• Si le streamer perd sa connexion et revient dans les dix minutes, la barre violette ne se rallume pas, mais son compteur, lui, repart de zéro.\n• Dans l'aperçu, la durée affichée reste celle du direct entier, coupure comprise, et un badge prévient ce qui s'est passé."
+    "message": "Une barre violette apparaît sur le bord gauche d'une carte : ce live a commencé il y a moins de dix minutes. Elle s'éteint d'elle-même au bout de la dixième minute.\n• Si le streamer perd sa connexion et revient dans les dix minutes, la barre violette ne se rallume pas — et son compteur ne repart pas de zéro : il continue de compter le direct entier, coupure comprise.\n• L'aperçu dit en plus combien de fois ça a coupé, et dessine les interruptions sur la frise — et un badge prévient ce qui s'est passé."
   },
   "guideAboTitre": {
     "message": "Vos abonnements, en or"
