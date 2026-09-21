@@ -2057,6 +2057,110 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## A pool with no reserve evicts what nothing replaces (v4.14.1)
+
+### Two reports eighty-five seconds apart
+
+The first, with the whole list in place:
+
+```
+pool 223 · threshold 959 · evicted 0
+```
+
+The second, taken right after a language change, with a three-channel co-stream
+group gone from the display:
+
+```
+pool 29 · threshold 0 · evicted 7 · walks 6 · light 6
+```
+
+**The pool went from 223 to 29**, and it is that gap that names the defect.
+
+### The chain of causes, and it is entirely mechanical
+
+| | what happens |
+| --- | --- |
+| 1 | a language change takes **the tag path**, which restarts from an **empty** pool — the channels it held are not the new language's |
+| 2 | that path fills it with the tag response, **capped by the API at `GLOBAL_TAG_MAX` = 30**. The pool is therefore exactly as deep as what it displays |
+| 3 | `nthViewers` returns **zero** when the pool is shorter than the top: there is no thirtieth rank. `threshold` is 0 |
+| 4 | the light pass only widens `if (threshold > 0)` — so it **never** widens, and visits only its ten seed categories |
+| 5 | in that pool, **the response floor protects nobody**: it says "below this count the response had already stopped", and there is nobody below |
+
+Twitch's sampling — measured and documented in this file long ago, "rubius
+present four times out of six" — then counts as a real absence. **Three passes,
+and the channel is evicted, with nothing behind it to take its place.**
+
+The pool stayed flat for **a hundred and fifty seconds**, until the next full
+walk.
+
+### Why it is the co-streams that go, and go as a group
+
+Two structural properties combine:
+
+- their members all carry the **combined** count — a high number, therefore
+  **always above the floor**;
+- the directory readily files the session **under a single participant**.
+
+The others are absent while looking as though they should have been there. All
+three take their absences together, and disappear together. Which is exactly
+what the field report described: "co-streams still disappearing when the list
+updates".
+
+### The fix, in two halves that are measured separately
+
+**1. The structural layer no longer shrinks the display.** Same reasoning as the
+floor, one notch higher: the floor assumes a pool **deeper** than the response,
+without which it protects nobody. Removal is therefore refused while the pool
+does not exceed `topN + GLOBAL_MISS_CONFIRM`.
+
+**The margin is deduced, not chosen.** A pass can evict as many entries as have
+just reached their third absence — measured: **five at once on a pool of
+thirty-one**, the display dropping to twenty-six. Requiring the pool to exceed
+the display by at least what confirmation can remove in one go means refusing to
+decide when the depth is within the sampling noise.
+
+**The guard is on REMOVAL, not on the observation**: absences keep being
+counted, and become decisive again as soon as the pool has dug back down. And
+nothing is lost meanwhile — what is displayed carries a card, which the
+`TseChannels` queue refreshes every thirty seconds: a channel that has genuinely
+ended disappears that way, immediately. `GLOBAL_PRUNE_AGE` remains the second
+valve.
+
+**2. The light pass digs back down.** A zero threshold was treated as the
+neutral case; it is the **dangerous** one. With no reserve, the pass visits
+`GLOBAL_WIDEN_CATEGORIES` more categories — bounded on both sides, so a light
+pass stays a light pass.
+
+Without the second, the first would merely **freeze** a flattened pool.
+
+### And the refusal is counted
+
+`sansReserve` joins `sousPlancher` and `creux` in the report. It is the third
+counter of the same family, and the same lesson for the third time: the first
+report said "evicted 0" while channels were disappearing, because **the number
+that would have said everything did not exist**.
+
+### What the bench measures
+
+Scenario 138 replays the exact sequence: deep descent, language change, then
+passes where the trio is absent from the directory.
+
+| mutant | what is measured |
+| --- | --- |
+| eviction without reserve put back | `pool 29 → 26`, **`evicted 3`, `misses 9`** — the whole group disappears |
+| the fix in place | `pool 29 → 31`, `evicted 0`, `sansReserve 40`, **all three hold** |
+
+**Two traps in the fixture, and both nearly made the scenario green for
+nothing:**
+
+- **twenty-nine, not thirty.** At exactly thirty, `nthViewers` returns 2,100 and
+  the guard never fires. The field had 29 — one entry dropped by `readStream`, a
+  tag-stuffer — and it is that 29 that puts the threshold at zero. The first
+  draft used thirty and reproduced nothing.
+- **the language menu only offers what the pool contains.** Without two French
+  channels in the descent, the option does not exist and the click lands on
+  nothing. The scenario now **verifies** that the click landed.
+
 ## Fewer rules, a loop that closes, a guide rebuilt (v4.14.0)
 
 Four requests, arriving together. They don't look alike, but three of them have
@@ -8118,7 +8222,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 137 scenarios, 1218 assertions |
+| `npm test` | the Playwright harness: 138 scenarios, 1225 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -8138,7 +8242,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1057 KB | 404 KB | 3,351 → **2** |
+| `content.js` | 1057 KB | 404 KB | 3,358 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 133 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

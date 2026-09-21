@@ -18187,6 +18187,184 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ UN POOL SANS RÉSERVE ÉVINCE CE QUE RIEN NE REMPLACE ═══════════
+   DEUX RAPPORTS DE TERRAIN À QUATRE-VINGT-CINQ SECONDES D'INTERVALLE, et c'est
+   leur ÉCART qui nomme le défaut. Le premier, la liste entière en place :
+
+     pool 223 · threshold 959 · evicted 0
+
+   Le second, pris juste après un changement de langue, avec un groupe de
+   co-stream de trois chaînes disparu de l'affichage :
+
+     pool 29 · threshold 0 · evicted 7 · walks 6 · light 6
+
+   LE POOL EST PASSÉ DE 223 À 29, et la chaîne de causes est mécanique :
+
+     1. un changement de langue emprunte LA VOIE DU TAG, qui repart d'un pool
+        VIDE — les chaînes portées ne sont pas celles de la nouvelle langue ;
+     2. cette voie le remplit avec la réponse du tag, plafonnée par l'API à
+        GLOBAL_TAG_MAX = 30. Le pool a donc EXACTEMENT la profondeur de ce
+        qu'il affiche, et pas une chaîne de plus ;
+     3. `nthViewers` rend zéro quand le pool est plus court que le top : il n'y
+        a pas de trentième rang. `threshold` vaut donc 0 ;
+     4. la passe légère ne s'élargit que `if (threshold > 0)` — elle ne
+        s'élargit donc JAMAIS, et ne visite plus que ses dix catégories
+        d'amorce. Le pool reste à plat jusqu'à la marche complète suivante,
+        cent cinquante secondes plus tard ;
+     5. dans ce pool, le plancher de réponse ne protège plus PERSONNE : il dit
+        « sous ce compteur, la réponse s'était arrêtée », et il n'y a personne
+        en dessous. Chaque échantillonnage de Twitch — mesuré, documenté dix
+        mille lignes plus haut : « rubius présent quatre fois sur six » — compte
+        alors comme une vraie absence. Trois passes, et la chaîne est évincée,
+        sans rien derrière pour la remplacer.
+
+   LES CO-STREAMS PARTENT EN GROUPE, ET C'EST STRUCTUREL. Leurs membres
+   portent tous le compteur COMBINÉ — un nombre haut, donc toujours au-dessus
+   du plancher — et le répertoire range volontiers la session sous un seul
+   participant. Les autres sont absents tout en ayant l'air d'avoir dû y être.
+   Le groupe entier disparaît d'un coup, ce que le terrain décrit mot pour mot :
+   « y'a encore des co-streams qui disparaissent quand y'a une update ».
+
+   CE SCÉNARIO REJOUE LA SÉQUENCE EXACTE : pool profond, changement de langue,
+   puis des passes où le trio est absent du répertoire. */
+{
+  titre('138. Top Chaînes — un pool sans réserve n\'évince plus ce que rien ne remplace');
+  const page = await fresh();
+  await page.evaluate(() => {
+    /* UNE DESCENTE PROFONDE D'ABORD : quinze catégories bien remplies, de quoi
+       donner au pool la réserve qu'il avait dans le premier rapport. */
+    const cats = [];
+    for (let i = 0; i < 15; i++) {
+      const streams = [];
+      for (let k = 0; k < 30; k++) {
+        streams.push({ login: `en${i}_${k}`, viewers: 9000 - i * 100 - k,
+                       tags: ['English'] });
+      }
+      cats.push({ name: 'c' + i, viewers: 500_000 - i, streams });
+    }
+    /* DEUX FRANÇAISES MODESTES, et elles ne sont pas décoratives : le menu de
+       langue n'offre que ce que le pool contient. Sans elles, l'option
+       « Français » n'existe pas et le scénario mesurerait un clic dans le
+       vide — ce qu'il a fait au premier essai. */
+    cats.push({ name: 'frcat', viewers: 499_000, streams: [
+      { login: 'petite1', viewers: 100, tags: ['Français'] },
+      { login: 'petite2', viewers: 90,  tags: ['Français'] },
+    ] });
+    window.__cats = cats;
+    window.__tagTop = {};
+  });
+  await wait(page, 2500);
+  await page.evaluate(() => {
+    const b = [...document.querySelectorAll('.tse-mode-tab')]
+      .find((x) => x.dataset.tseMode === 'global');
+    if (b) b.click();
+  });
+  await attendre(page, () => window.tse.global.report().pool > 100, 15_000);
+  const profond = await page.evaluate(() => {
+    const r = window.tse.global.report();
+    return { pool: r.pool, threshold: r.threshold };
+  });
+  ok('au départ le pool a de la réserve, et un seuil',
+     profond.pool > 100 && profond.threshold > 0, JSON.stringify(profond));
+
+  /* ── LE CHANGEMENT DE LANGUE, ET LA VOIE DU TAG QUI APLATIT ──────────────
+     Trente entrées, comme l'API les plafonne, dont LE TRIO DE CO-STREAM : même
+     catégorie, même compteur combiné, comme Twitch les rend. */
+  await page.evaluate(() => {
+    /* VINGT-NEUF, PAS TRENTE, et c'est tout le scénario. `nthViewers` rend
+       zéro quand le pool est PLUS COURT que le top : à trente pile, le seuil
+       vaut 2 100 et la garde ne se déclenche pas. Le terrain a rendu 29 — une
+       entrée écartée par `readStream`, un empileur de tags — et c'est ce 29
+       qui met le seuil à zéro. Le premier jet de ce scénario en posait trente
+       et ne reproduisait rien. */
+    const top = [];
+    for (let k = 0; k < 26; k++) {
+      top.push({ login: `fr${k}`, viewers: 5000 - k * 100, game: 'c0',
+                 tags: ['Français'] });
+    }
+    for (const l of ['duoA', 'duoB', 'duoC']) {
+      top.push({ login: l, viewers: 2100, game: 'c0', tags: ['Français'] });
+    }
+    window.__tagTop = { 'Français': top };
+  });
+  /* L'OPTION EST ATTENDUE, PUIS SON CLIC EST CONSTATÉ. Cliquer sans vérifier
+     a donné, au premier essai, trois assertions vertes sur un décor qui
+     n'avait pas changé de langue du tout. */
+  await attendre(page, () => !![...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
+    .find((o) => (o.dataset.value || '') === 'Français'), 15_000);
+  const clique = await page.evaluate(() => {
+    const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
+      .find((o) => (o.dataset.value || '') === 'Français');
+    if (!opt) return false;
+    opt.click();
+    return true;
+  });
+  ok('le menu offre bien la langue, et le clic porte',
+     clique === true, String(clique));
+  await attendre(page, () => window.tse.global.report().tags.servis > 0, 15_000);
+  await wait(page, 500);
+  const aPlat = await page.evaluate(() => {
+    const r = window.tse.global.report();
+    return { pool: r.pool, threshold: r.threshold, servis: r.tags.servis,
+             trio: window.tse.global.top(500)
+               .filter((x) => x.login.startsWith('duo')).length };
+  });
+  /* LA PRÉMISSE DU SCÉNARIO. Sans elle, tout ce qui suit mesurerait autre
+     chose : c'est bien un pool de la profondeur de l'affichage, sans seuil. */
+  ok('la voie du tag laisse un pool sans réserve, et sans seuil',
+     aPlat.servis > 0 && aPlat.pool <= 30 && aPlat.threshold === 0
+     && aPlat.trio === 3, JSON.stringify(aPlat));
+
+  /* ── ET MAINTENANT TWITCH ÉCHANTILLONNE ─────────────────────────────────
+     Le trio sort du répertoire ET du classement par tag, comme le fait une
+     session que Twitch range sous son seul hôte. On laisse passer LARGEMENT
+     plus que GLOBAL_MISS_CONFIRM passes. */
+  await page.evaluate(() => {
+    window.__tagTop['Français'] = window.__tagTop['Français']
+      .filter((x) => !x.login.startsWith('duo'));
+    for (const c of window.__cats) {
+      c.streams = (c.streams || []).filter((x) => !x.login.startsWith('duo'));
+    }
+  });
+  /* ON LAISSE PASSER LE TEMPS QU'IL FAUT POUR ÉVINCER, PAS UN DÉLAI ROND.
+     Mesuré sur le mutant : trois passes légères suffisent — « misses 9,
+     evicted 3 », les trois d'un coup. On attend donc la disparition, et c'est
+     de NE PAS l'obtenir que l'assertion tire sa force. */
+  await attendre(page,
+    () => window.tse.global.top(500)
+            .filter((x) => x.login.startsWith('duo')).length < 3, 25_000);
+
+  const apres = await page.evaluate(() => {
+    const r = window.tse.global.report();
+    return { pool: r.pool, evicted: r.evicted, sansReserve: r.sansReserve,
+             misses: r.misses,
+             trio: window.tse.global.top(500)
+               .filter((x) => x.login.startsWith('duo')).map((x) => x.login) };
+  });
+  /* L'ASSERTION QUI PORTE LE RAPPORT. Remettre l'éviction sans réserve la fait
+     tomber, et elle seule suffit : c'est le groupe disparu, rejoué. */
+  ok('le groupe de co-stream survit à l\'échantillonnage dans un pool sans réserve',
+     apres.trio.length === 3, JSON.stringify(apres));
+  ok('…rien n\'est évincé tant que le pool n\'a pas de réserve',
+     apres.evicted === 0, JSON.stringify(apres));
+  /* ET LE REFUS SE COMPTE. « evicted 0 » pendant que des chaînes
+     disparaissaient, c'est ce qui avait rendu le premier rapport muet : le
+     nombre qui aurait tout dit n'existait pas. */
+  /* LES ABSENCES SONT BIEN COMPTÉES — ce n'est pas elles qu'on refuse. La
+     garde est au RETRAIT, pas au constat : une chaîne peut accumuler ses
+     absences sans qu'on la retire d'un pool qui n'a pas de quoi la remplacer.
+     Le jour où le pool se recreuse, elles redeviennent décisives. */
+  ok('…et le refus de retirer est LUI-MÊME compté, ce qu\'aucun chiffre ne disait',
+     apres.sansReserve > 0 && apres.misses > 0, JSON.stringify(apres));
+
+  /* ── LA PASSE LÉGÈRE RECREUSE, AU LIEU D'ATTENDRE LA MARCHE COMPLÈTE ─────
+     C'est l'autre moitié du correctif, et elle se mesure à part : sans elle,
+     la garde ci-dessus se contenterait de FIGER un pool à plat. */
+  ok('…et le pool se recreuse au lieu de rester à la profondeur de l\'affichage',
+     apres.pool > aPlat.pool, JSON.stringify({ avant: aPlat.pool, apres: apres.pool }));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

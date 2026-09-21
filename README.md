@@ -2178,6 +2178,112 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Un pool sans réserve évince ce que rien ne remplace (v4.14.1)
+
+### Deux rapports à quatre-vingt-cinq secondes d'intervalle
+
+Le premier, la liste entière en place :
+
+```
+pool 223 · threshold 959 · evicted 0
+```
+
+Le second, pris juste après un changement de langue, un groupe de co-stream de
+trois chaînes disparu de l'affichage :
+
+```
+pool 29 · threshold 0 · evicted 7 · walks 6 · light 6
+```
+
+**Le pool est passé de 223 à 29**, et c'est cet écart-là qui nomme le défaut.
+
+### La chaîne de causes, et elle est entièrement mécanique
+
+| | ce qui se passe |
+| --- | --- |
+| 1 | un changement de langue emprunte **la voie du tag**, qui repart d'un pool **vide** — les chaînes portées ne sont pas celles de la nouvelle langue |
+| 2 | cette voie le remplit avec la réponse du tag, **plafonnée par l'API à `GLOBAL_TAG_MAX` = 30**. Le pool a donc exactement la profondeur de ce qu'il affiche |
+| 3 | `nthViewers` rend **zéro** quand le pool est plus court que le top : il n'y a pas de trentième rang. `threshold` vaut 0 |
+| 4 | la passe légère ne s'élargit que `if (threshold > 0)` — elle ne s'élargit donc **jamais**, et ne visite plus que ses dix catégories d'amorce |
+| 5 | dans ce pool, **le plancher de réponse ne protège plus personne** : il dit « sous ce compteur, la réponse s'était arrêtée », et il n'y a personne en dessous |
+
+L'échantillonnage de Twitch — mesuré et documenté dans ce fichier depuis
+longtemps, « rubius présent quatre fois sur six » — compte alors comme une
+vraie absence. **Trois passes, et la chaîne est évincée, sans rien derrière
+pour la remplacer.**
+
+Le pool restait à plat **cent cinquante secondes**, jusqu'à la marche complète
+suivante.
+
+### Pourquoi ce sont les co-streams qui partent, et en groupe
+
+Deux propriétés structurelles se combinent :
+
+- leurs membres portent tous le compteur **combiné** — un nombre haut, donc
+  **toujours au-dessus du plancher** ;
+- le répertoire range volontiers la session **sous un seul participant**.
+
+Les autres sont donc absents tout en ayant l'air d'avoir dû y être. Les trois
+prennent leurs absences ensemble, et disparaissent ensemble. C'est exactement
+ce que le terrain décrivait : « y'a encore des co-streams qui disparaissent
+quand y'a une update de la liste ».
+
+### Le correctif, en deux moitiés qui se mesurent séparément
+
+**1. La couche structurelle ne rétrécit plus l'affichage.** Même raisonnement
+que le plancher, un cran plus haut : le plancher suppose un pool **plus
+profond** que la réponse, sans quoi il ne protège personne. Le retrait est donc
+refusé tant que le pool ne dépasse pas `topN + GLOBAL_MISS_CONFIRM`.
+
+**La marge se déduit, elle n'est pas choisie.** Une passe peut évincer autant
+d'entrées qu'il y en a qui viennent d'atteindre leur troisième absence —
+mesuré : **cinq d'un coup sur un pool de trente et un**, l'écran tombé à
+vingt-six. Exiger que le pool dépasse l'affichage d'au moins ce que la
+confirmation peut retirer en une fois, c'est refuser de décider quand la
+profondeur est dans le bruit de l'échantillonnage.
+
+**La garde est au RETRAIT, pas au constat** : les absences continuent d'être
+comptées, et redeviennent décisives dès que le pool s'est recreusé. Et rien
+n'est perdu pour autant — ce qui est affiché porte une carte, que la file
+`TseChannels` rafraîchit toutes les trente secondes : une chaîne réellement
+terminée disparaît par là, tout de suite. `GLOBAL_PRUNE_AGE` reste la seconde
+soupape.
+
+**2. La passe légère recreuse.** Le seuil à zéro était traité comme le cas
+neutre ; c'est le cas **dangereux**. Sans réserve, la passe visite
+`GLOBAL_WIDEN_CATEGORIES` catégories de plus — borné des deux côtés, pour
+qu'une passe légère reste une passe légère.
+
+Sans la seconde, la première se contenterait de **figer** un pool à plat.
+
+### Et le refus se compte
+
+`sansReserve` rejoint `sousPlancher` et `creux` au rapport. C'est le troisième
+compteur de la même famille, et la même leçon pour la troisième fois : le
+premier rapport disait « evicted 0 » pendant que des chaînes disparaissaient,
+parce que **le nombre qui aurait tout dit n'existait pas**.
+
+### Ce que le banc mesure
+
+Le scénario 138 rejoue la séquence exacte : descente profonde, changement de
+langue, puis des passes où le trio est absent du répertoire.
+
+| mutant | ce qu'on mesure |
+| --- | --- |
+| l'éviction sans réserve remise | `pool 29 → 26`, **`evicted 3`, `misses 9`** — le groupe entier disparaît |
+| le correctif en place | `pool 29 → 31`, `evicted 0`, `sansReserve 40`, **les trois tiennent** |
+
+**Deux pièges du décor, et ils ont tous deux failli rendre le scénario vert
+pour rien :**
+
+- **vingt-neuf, pas trente.** À trente pile, `nthViewers` rend 2 100 et la garde
+  ne se déclenche jamais. Le terrain avait 29 — une entrée écartée par
+  `readStream`, un empileur de tags — et c'est ce 29 qui met le seuil à zéro.
+  Le premier jet posait trente et ne reproduisait rien.
+- **le menu de langue n'offre que ce que le pool contient.** Sans deux chaînes
+  françaises dans la descente, l'option n'existe pas et le clic tombe dans le
+  vide. Le scénario **constate** désormais que le clic a porté.
+
 ## Moins de règles, une boucle qui se referme, un mode d'emploi refait (v4.14.0)
 
 Quatre demandes, arrivées ensemble. Elles ne se ressemblent pas, mais trois
@@ -8446,7 +8552,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 137 scénarios, 1218 assertions |
+| `npm test` | le harnais Playwright : 138 scénarios, 1225 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -8467,7 +8573,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1057 Ko | 404 Ko | 3 351 → **2** |
+| `content.js` | 1057 Ko | 404 Ko | 3 358 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 133 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
