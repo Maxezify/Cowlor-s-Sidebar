@@ -18606,6 +18606,141 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ DEUX ONGLETS TWITCH NE RELÈVENT PAS DEUX FOIS ═════════════════
+   QUESTION VENUE DU TERRAIN : « le relevé d'abonnement se fait dès
+   l'initialisation ? » La réponse mesurée est NON dans le cas courant — le
+   garde de période rend la main sans rien charger — et OUI dans deux cas qui
+   le méritent : une extension fraîchement installée, et un relevé plus vieux
+   que la période choisie.
+
+   MAIS LA QUESTION EN A OUVERT UNE AUTRE, et celle-là cachait un défaut.
+   L'horodatage est écrit à la FIN du relevé, et c'est voulu : il veut dire
+   « un relevé est allé à son terme », et quiconque le lit doit trouver le
+   résultat déjà en mémoire. Entre le début et la fin, il vaut donc encore
+   l'ancienne date — et une seconde page Twitch qui démarre pendant ce temps
+   la lit, la croit périmée, et part à son tour.
+
+   MESURÉ : deux onglets ouverts ensemble sur un profil neuf chargeaient HUIT
+   pages de Twitch en cachette au lieu de quatre. Une session restaurée à cinq
+   onglets en aurait chargé vingt.
+
+   POURQUOI CE SCÉNARIO SERT SA PROPRE PAGE, et c'est le point qui a failli
+   me faire conclure l'inverse. Tout ce banc travaille en `file://`, où CHAQUE
+   PAGE A SON PROPRE `localStorage` : deux pages y sont deux mondes, aucune ne
+   voit l'horodatage de l'autre, et le défaut y est donc à la fois invisible
+   et impossible à corriger. Ma première mesure a montré « huit iframes » avec
+   le correctif en place, et j'ai cru le correctif inopérant — alors que le
+   décor ne pouvait rien mesurer du tout.
+
+   Il faut donc une ORIGINE, et une seule pour les deux pages : un serveur
+   local, et deux onglets du MÊME contexte — `browser.newPage()` en ouvre un
+   par page, ce qui recloisonne le stockage et reproduit le même piège. */
+{
+  titre('141. Abonnements — deux onglets ouverts ensemble ne relèvent qu\'une fois');
+  const { createServer } = await import('node:http');
+  const { extname } = await import('node:path');
+  const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+                  '.json': 'application/json', '.css': 'text/css' };
+  const serveur = createServer((req, res) => {
+    const rel = decodeURIComponent((req.url || '/').split('?')[0]).replace(/^\/+/, '');
+    try {
+      const corps = readFileSync(join(ICI, rel));
+      res.writeHead(200, { 'Content-Type': TYPES[extname(rel)] || 'application/octet-stream' });
+      res.end(corps);
+    } catch { res.writeHead(404); res.end('non'); }
+  });
+  await new Promise((r) => serveur.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${serveur.address().port}/page.html`;
+
+  /* LE NOMBRE D'ONGLETS DU RELEVÉ SE LIT SUR LE PRODUIT, il ne se recopie
+     pas : le jour où un onglet s'ajoute ou disparaît, cette borne suit toute
+     seule au lieu de faire tomber le scénario pour une raison étrangère. */
+  const srcAbos = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+  const compteOnglets = (cle) =>
+    (new RegExp(cle + ":\\s*\\[([^\\]]*)\\]").exec(srcAbos)?.[1] || '')
+      .split(',').filter((x) => x.trim()).length;
+  const CFG_TABS_ATTENDUS = compteOnglets('SUBS_PAGE_TABS')
+                          + compteOnglets('SUBS_PAGE_TABS_PAST');
+  ok('le décor connaît le nombre d\'onglets que le relevé visite',
+     CFG_TABS_ATTENDUS >= 2, String(CFG_TABS_ATTENDUS));
+
+  const ctx = await browser.newContext();
+  const poser = (p) => p.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
+    window.__addCard('roicheese', 'G', '400');
+  });
+  try {
+    const a = await ctx.newPage();
+    const b2 = await ctx.newPage();
+    let na = 0, nb = 0;
+    /* ON COMPTE LES IFRAMES À LA SOURCE, pas dans le rapport. Le premier jet
+       lisait `rapport().abonnements`, qui n'existe pas — le champ s'appelle
+       `relevesAbonnements` — et rendait donc « zéro onglet » partout, y
+       compris là où quatre pages venaient de se charger. Un instrument muet
+       est pire qu'aucun : il confirme ce qu'on espère. */
+    a.on('frameattached', () => { na += 1; });
+    b2.on('frameattached', () => { nb += 1; });
+    a.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    b2.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+
+    await a.goto(base);
+    /* LES DEUX PARTAGENT BIEN UNE ORIGINE. Sans cette vérification, le
+       scénario entier peut passer au vert sur un décor qui ne mesure rien. */
+    await a.evaluate(() => localStorage.setItem('tse:temoin', 'A'));
+    await b2.goto(base);
+    const partage = await b2.evaluate(() => localStorage.getItem('tse:temoin'));
+    ok('les deux onglets partagent bien un stockage — sans quoi rien n\'est mesuré',
+       partage === 'A', String(partage));
+
+    await a.evaluate(() => localStorage.clear());
+    na = 0; nb = 0;
+    // Profil vierge, départ simultané : une session restaurée.
+    await Promise.all([a.reload(), b2.reload()]);
+    await Promise.all([poser(a), poser(b2)]);
+    /* ON ATTEND LA CONDITION, PAS UN DÉLAI ROND. La première écriture posait
+       neuf secondes, soit à peu près le pire cas d'un relevé au banc — abandon
+       à six secondes, apaisement à 2,6 — et l'assertion de l'horodatage est
+       tombée sur un relevé qui n'avait pas fini. Un délai qui frôle la durée
+       qu'il attend ne mesure pas cette durée, il la tire au sort. */
+    await attendre(a, () => {
+      const r = window.tse.panneau.rapport().relevesAbonnements || {};
+      return (r.horodatage || 0) > 0;
+    }, 20_000);
+    await wait(a, 800);   // laisse l'onglet rangé lire l'horodatage partagé
+
+    const lire = (p) => p.evaluate(() => {
+      const r = window.tse.panneau.rapport().relevesAbonnements || {};
+      return { onglets: (r.onglets || []).length, differes: r.differes || 0,
+               horodatage: r.horodatage || 0 };
+    });
+    const ra = await lire(a);
+    const rb = await lire(b2);
+    const totalIframes = na + nb;
+    const releveurs = [ra, rb].filter((x) => x.onglets > 0).length;
+    const rangés = [ra, rb].filter((x) => x.differes > 0).length;
+
+    /* L'ASSERTION QUI PORTE LA MESURE. Mutant — le bail retiré — les deux
+       relèvent, et le total passe à huit. */
+    ok('un seul des deux onglets relève, l\'autre se range',
+       releveurs === 1 && rangés === 1,
+       JSON.stringify({ a: ra, b: rb, iframes: [na, nb] }));
+    /* ET ON COMPTE LES PAGES RÉELLEMENT CHARGÉES : l'assertion ci-dessus
+       serait vraie aussi le jour où plus personne ne relèverait du tout. */
+    ok('…et le nombre de pages Twitch chargées en cachette ne double pas',
+       totalIframes > 0 && totalIframes <= CFG_TABS_ATTENDUS,
+       `${totalIframes} iframe(s) pour ${CFG_TABS_ATTENDUS} onglet(s) de relevé`);
+    /* LE RELEVÉ A BIEN ABOUTI, et les deux pages le savent : l'horodatage est
+       partagé, donc celle qui s'est rangée n'en refera pas un dans la foulée. */
+    ok('…et l\'horodatage du relevé est visible des DEUX onglets',
+       ra.horodatage > 0 && rb.horodatage === ra.horodatage,
+       JSON.stringify({ a: ra.horodatage, b: rb.horodatage }));
+  } finally {
+    await ctx.close();
+    await new Promise((r) => serveur.close(r));
+  }
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

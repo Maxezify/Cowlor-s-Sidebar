@@ -70,6 +70,12 @@ const subs = [
   [/SUBS_PAGE_STABLE:\s*[\d_]+/,  'SUBS_PAGE_STABLE:     900'],
   [/SUBS_PAGE_STAGGER:\s*[\d_]+/, 'SUBS_PAGE_STAGGER:    200'],
   [/SUBS_PAGE_HOLD_GRACE:\s*[\d_]+/, 'SUBS_PAGE_HOLD_GRACE: 400'],
+  /* Le BAIL entre onglets : accéléré comme le reste, sinon un scénario qui
+     éprouve deux pages devrait attendre une minute. Il reste bien plus long
+     que le pire cas d'un relevé au banc — six secondes d'abandon — ce qui est
+     exactement le rapport qu'il a en production. */
+  [/SUBS_PAGE_LEASE:\s*[\d_]+/, 'SUBS_PAGE_LEASE:      12_000'],
+  [/SUBS_PAGE_CLAIM:\s*[\d_]+/, 'SUBS_PAGE_CLAIM:      150'],
   // Durée de vie du badge « Vient de passer sur … » : dix minutes en
   // production. Réduite ici pour qu'un test puisse observer sa PÉREMPTION,
   // qui est la moitié de son comportement — un badge qui ne s'efface pas
