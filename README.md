@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1053 Ko | 402 Ko | 3 350 → **2** |
+| `content.js` | 1098 Ko | 410 Ko | 3 374 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 97 Ko | 47 Ko | 130 → **0** |
+| `panneau.js` | 97 Ko | 47 Ko | 133 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1296 Ko** | **556 Ko** | **−57 %** |
+| **les cinq** | **1344 Ko** | **563 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -1158,6 +1158,9 @@ fait donc pas le tour de toutes les cartes au même instant — elle les parcour
 en cascade — et elle ne repart pas de zéro quand un changement de tri
 réordonne la liste. `prefers-reduced-motion` arrête la comète et garde le
 filet : le mouvement disparaît, l'information reste.
+
+> **Retiré en 4.14.0.** Le bloc « mouvement réduit » n'existe plus : voir
+> *Moins de règles, une boucle qui se referme, un mode d'emploi refait*.
 
 Trois onglets sont lus (v3.46) : `?tab=paid`, `?tab=gifts` et `?tab=mobile`.
 Ce sont les trois qui listent des abonnements **à des chaînes**. Turbo et
@@ -2614,6 +2617,535 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le répertoire contre le combiné, et le piège sans retour (v4.14.3)
+
+### Le rapport équipé a désigné le coupable par élimination
+
+Les compteurs ajoutés en 4.14.2 ont fait leur travail dès le rapport suivant :
+
+```
+sousLaCoupe 8 · horsClassement 0 · chutes 2 · chuteMax 24
+chutesHorsEcran 0 · evicted 0 · gardees 0 · pool 753
+```
+
+Douze membres de session, quatre affichés, **huit dans le pool sous le
+trentième rang**. Rien d'évincé, aucune session perdue, et aucune chute de
+compteur digne de ce nom — vingt-quatre spectateurs au maximum.
+
+Les huit avaient donc perdu leur combiné **sans passer par `setViewers`**, qui
+est le seul endroit où vivent les trois gardes et les trois compteurs. Il ne
+restait qu'un chemin.
+
+### Le dernier écrivain, ni gardé ni compté
+
+`harvest` écrit le répertoire dans le pool par `pool.set(login, rec)`, en
+**remplaçant l'enregistrement entier**. Ni la garde de signature, ni celle de
+la réserve, ni le compteur de chutes ne voient passer cette écriture.
+
+Or le répertoire range couramment une session **sous son seul hôte** : les
+autres participants y figurent avec leur audience **propre** — trois cents au
+lieu de quatre mille — et retombent sous la coupe.
+
+### Et c'est un piège, pas un scintillement
+
+Le combiné n'arrive que par la voie des **cartes**. Une chaîne sous le trentième
+rang **n'a pas de carte**. Rien ne peut donc la relever : elle reste en bas
+jusqu'à ce que le répertoire change d'avis.
+
+C'est ce que les captures montrent : cinq co-streamers « Valheim, 4,1 k », puis
+un seul — et les quatre autres jamais revenus.
+
+### Le correctif
+
+`readStream` est le **seul passage obligé** des deux voies d'entrée du
+classement — la descente par catégories et le classement par tag. C'est donc le
+seul endroit où poser la règle une fois pour toutes : **quand un combiné est
+connu pour cette chaîne, c'est lui qui entre au pool**, pas ce que le répertoire
+raconte.
+
+C'est exactement ce que la 4.13.6 a établi ailleurs : *le classement trie sur le
+nombre qu'il affiche*, et ce nombre est le combiné.
+
+### Deux variables de plus, dont une qui tranche toute seule
+
+| compteur | ce qu'il dit |
+| --- | --- |
+| `repertoireBas` / `repertoireHaut` | le répertoire donnait **moins** que le combiné connu — le défaut — ou **plus**, ce qui signalerait un combiné périmé |
+| `sousLaCoupeAvecCombine` | un membre est sous la coupe **alors qu'on connaît son combiné** |
+
+Le second est celui qui m'a manqué un tour entier. `sousLaCoupe` seul ne dit pas
+si la situation est **normale** : un invité modeste chez un gros hôte est sous le
+trentième rang pour une raison parfaitement saine. Ce qui ne l'est pas, c'est
+qu'un membre **dont on connaît le combiné** y reste — le combiné est le nombre
+que Twitch affiche sur sa carte, donc celui qui doit trier.
+
+Un rapport disait « sousLaCoupe 8 » et il a fallu croiser deux captures d'écran
+pour savoir lesquels des huit étaient anormaux. Ce compteur répond seul.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la règle retirée | `top: ["unaa:4000"]`, et dans le pool **`uncc:300`, `unbb:300`** — sous la coupe, sans retour |
+| le correctif en place | les trois à `4000` au top 30, `repertoireBas 14` |
+
+**Deux réglages du décor ont été nécessaires**, et chacun a d'abord donné un
+scénario vert pour rien :
+
+- **la réponse par catégorie est plafonnée à trente.** Dans une seule catégorie
+  chargée de bruit, les membres à trois cents n'y figurent même pas : le décor
+  jouait leur **absence** du pool, et non leur chute sous la coupe. Le bruit vit
+  donc dans sa propre catégorie ;
+- **il faut une amorce par carte suivie.** Guest Star n'est résolu que pour les
+  chaînes qui ont une carte ; sans amorce, la session n'est jamais connue et le
+  décor joue son absence au lieu du blocage.
+
+## Une session qui maigrit n'est pas une session qui finit (v4.14.2)
+
+### Le rapport disait vrai, et il ne pouvait pas désigner le coupable
+
+```
+pool 707 · threshold 978 · evicted 0 · creux 0 · sansReserve 0 · misses 6
+```
+
+Aucun chemin de retrait n'avait servi. Et pourtant, d'une capture à l'autre à
+une minute d'intervalle : un groupe de **cinq** co-streamers « Valheim, 4 k »
+tombé à **deux**, un groupe de **quatre** « WARDOGS, 1,9 k » tombé à **un**.
+
+**Ce sont les captures qui portent la preuve, pas le rapport.** La pastille d'un
+survivant passe de « 4 » à « 2 ». Son compteur passe de 1,9 k à 1,7 k. La
+session n'avait pas disparu — elle avait **maigri**, dans le cache.
+
+### Le chemin, dans l'ordre
+
+| | ce qui se passe |
+| --- | --- |
+| 1 | le lot Guest Star rend une **liste d'invités plus courte** |
+| 2 | `flushGuestStar` l'écrivait telle quelle — et pour les chaînes dont la réponse ne portait plus rien, il écrivait « pas de session » : mates vidés, combiné à `null`, hôte à `null` |
+| 3 | le lot de chaînes suivant lit `getCollabViewers` à `null` et `getHostId` à `null`, et écrit donc le compteur **propre** : trois cents spectateurs là où le combiné en affichait quatre mille |
+| 4 | la carte sort du top 30 — **sans être évincée, sans creux, sans rien** |
+
+L'intention d'origine était juste : écrire toutes les chaînes demandées « pour
+ne pas les redemander en boucle pendant la durée du TTL ». L'effet de bord ne
+l'était pas.
+
+### Pourquoi la garde de signature ne pouvait pas l'arrêter
+
+Elle protège les compteurs **partagés** par au moins deux entrées. Or le
+combiné rétréci est écrit **avec autorité** — c'est le combiné, il fait foi —
+donc il baisse le compteur d'un membre. Les autres cessent alors de partager sa
+valeur, `combines` ne les reconnaît plus, et **la garde se relâche au moment
+précis où elle servirait**.
+
+C'est une cascade, et elle s'arrête d'elle-même quand il ne reste qu'un ou deux
+membres à partager la valeur. C'est exactement ce que les deux captures
+montrent : cinq → deux, quatre → un.
+
+### Le correctif
+
+**Même discipline que `OFFLINE_CONFIRM` et `GLOBAL_MISS_CONFIRM`**, pour la
+troisième fois : une réponse qui ne porte pas la session ne prouve pas que la
+session est finie. La liste d'invités ne **diminue** qu'après
+`GUEST_STAR_DROP_CONFIRM` réponses concordantes. Elle **grandit** sans délai —
+une arrivée est toujours crue sur parole, et ne peut rien faire disparaître.
+
+Le `ts` est rafraîchi : l'entrée reste servie par le *stale-while-revalidate* de
+`getHostId`, qui était jusqu'ici **défait par son propre écrivain**.
+
+Et le combiné frais de la chaîne **interrogée** est pris quand même : c'est la
+seule chose de cette réponse qui porte sur elle, et la refuser figerait le
+compteur d'une session qui rétrécit pour de bon.
+
+### Quatre compteurs de plus, parce qu'aucun ne pouvait montrer ce chemin
+
+Un rapport complet ne désignait rien. C'est le défaut du rapport autant que du
+code, et il est corrigé aussi :
+
+| compteur | ce qu'il dit |
+| --- | --- |
+| `gardees` / `lachees` | une session a été **gardée** malgré une réponse vide ou plus courte / relâchée après trois réponses concordantes |
+| `chutes` / `chuteMax` | le classement a reçu, pour une chaîne, un compteur **plus petit** que celui qu'elle portait — et de combien |
+| `chutesHorsEcran` | la chute a fait passer la chaîne **de l'écran au néant** : c'est la seule qui se voie |
+| `sousLaCoupe` | un membre de session est **dans le pool** mais sous le trentième rang |
+
+Ce dernier corrige **mon propre instrument** : le bilan rangeait sous
+`horsClassement` tout membre absent du top 30, ce qui confond une chaîne que la
+marche ne connaît pas et une chaîne parfaitement connue, retombée au rang
+cinquante parce qu'elle a perdu son combiné. Un rapport disait
+« horsClassement 9 » et j'ai lu « neuf inconnues », alors que c'était le second
+cas — **celui qui désignait le défaut**.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la garde retirée | `pastilles: []` — **les deux sessions détruites**, `gardees 0` |
+| le correctif en place | `pastilles: ["1","1"]`, `unbb:4000` tenu, `gardees 2` |
+
+**Deux pièges du décor**, tous deux rencontrés :
+
+- **les logins sont minusculés** par `loginFromHref` : un décor écrit `duoA`
+  produit une carte `duoa`, et `getGuestStarMates` ne trouve plus la session.
+  Le même piège avait déjà coûté trois assertions au scénario 129 ;
+- **il faut attendre plus que `GUEST_STAR_TTL`**, sinon aucun lot ne repart et
+  le décor ne joue rien. Le premier jet attendait six secondes et était vert
+  pour rien.
+
+## Un pool sans réserve évince ce que rien ne remplace (v4.14.1)
+
+### Deux rapports à quatre-vingt-cinq secondes d'intervalle
+
+Le premier, la liste entière en place :
+
+```
+pool 223 · threshold 959 · evicted 0
+```
+
+Le second, pris juste après un changement de langue, un groupe de co-stream de
+trois chaînes disparu de l'affichage :
+
+```
+pool 29 · threshold 0 · evicted 7 · walks 6 · light 6
+```
+
+**Le pool est passé de 223 à 29**, et c'est cet écart-là qui nomme le défaut.
+
+### La chaîne de causes, et elle est entièrement mécanique
+
+| | ce qui se passe |
+| --- | --- |
+| 1 | un changement de langue emprunte **la voie du tag**, qui repart d'un pool **vide** — les chaînes portées ne sont pas celles de la nouvelle langue |
+| 2 | cette voie le remplit avec la réponse du tag, **plafonnée par l'API à `GLOBAL_TAG_MAX` = 30**. Le pool a donc exactement la profondeur de ce qu'il affiche |
+| 3 | `nthViewers` rend **zéro** quand le pool est plus court que le top : il n'y a pas de trentième rang. `threshold` vaut 0 |
+| 4 | la passe légère ne s'élargit que `if (threshold > 0)` — elle ne s'élargit donc **jamais**, et ne visite plus que ses dix catégories d'amorce |
+| 5 | dans ce pool, **le plancher de réponse ne protège plus personne** : il dit « sous ce compteur, la réponse s'était arrêtée », et il n'y a personne en dessous |
+
+L'échantillonnage de Twitch — mesuré et documenté dans ce fichier depuis
+longtemps, « rubius présent quatre fois sur six » — compte alors comme une
+vraie absence. **Trois passes, et la chaîne est évincée, sans rien derrière
+pour la remplacer.**
+
+Le pool restait à plat **cent cinquante secondes**, jusqu'à la marche complète
+suivante.
+
+### Pourquoi ce sont les co-streams qui partent, et en groupe
+
+Deux propriétés structurelles se combinent :
+
+- leurs membres portent tous le compteur **combiné** — un nombre haut, donc
+  **toujours au-dessus du plancher** ;
+- le répertoire range volontiers la session **sous un seul participant**.
+
+Les autres sont donc absents tout en ayant l'air d'avoir dû y être. Les trois
+prennent leurs absences ensemble, et disparaissent ensemble. C'est exactement
+ce que le terrain décrivait : « y'a encore des co-streams qui disparaissent
+quand y'a une update de la liste ».
+
+### Le correctif, en deux moitiés qui se mesurent séparément
+
+**1. La couche structurelle ne rétrécit plus l'affichage.** Même raisonnement
+que le plancher, un cran plus haut : le plancher suppose un pool **plus
+profond** que la réponse, sans quoi il ne protège personne. Le retrait est donc
+refusé tant que le pool ne dépasse pas `topN + GLOBAL_MISS_CONFIRM`.
+
+**La marge se déduit, elle n'est pas choisie.** Une passe peut évincer autant
+d'entrées qu'il y en a qui viennent d'atteindre leur troisième absence —
+mesuré : **cinq d'un coup sur un pool de trente et un**, l'écran tombé à
+vingt-six. Exiger que le pool dépasse l'affichage d'au moins ce que la
+confirmation peut retirer en une fois, c'est refuser de décider quand la
+profondeur est dans le bruit de l'échantillonnage.
+
+**La garde est au RETRAIT, pas au constat** : les absences continuent d'être
+comptées, et redeviennent décisives dès que le pool s'est recreusé. Et rien
+n'est perdu pour autant — ce qui est affiché porte une carte, que la file
+`TseChannels` rafraîchit toutes les trente secondes : une chaîne réellement
+terminée disparaît par là, tout de suite. `GLOBAL_PRUNE_AGE` reste la seconde
+soupape.
+
+**2. La passe légère recreuse.** Le seuil à zéro était traité comme le cas
+neutre ; c'est le cas **dangereux**. Sans réserve, la passe visite
+`GLOBAL_WIDEN_CATEGORIES` catégories de plus — borné des deux côtés, pour
+qu'une passe légère reste une passe légère.
+
+Sans la seconde, la première se contenterait de **figer** un pool à plat.
+
+### Et le refus se compte
+
+`sansReserve` rejoint `sousPlancher` et `creux` au rapport. C'est le troisième
+compteur de la même famille, et la même leçon pour la troisième fois : le
+premier rapport disait « evicted 0 » pendant que des chaînes disparaissaient,
+parce que **le nombre qui aurait tout dit n'existait pas**.
+
+### Ce que le banc mesure
+
+Le scénario 138 rejoue la séquence exacte : descente profonde, changement de
+langue, puis des passes où le trio est absent du répertoire.
+
+| mutant | ce qu'on mesure |
+| --- | --- |
+| l'éviction sans réserve remise | `pool 29 → 26`, **`evicted 3`, `misses 9`** — le groupe entier disparaît |
+| le correctif en place | `pool 29 → 31`, `evicted 0`, `sansReserve 40`, **les trois tiennent** |
+
+**Deux pièges du décor, et ils ont tous deux failli rendre le scénario vert
+pour rien :**
+
+- **vingt-neuf, pas trente.** À trente pile, `nthViewers` rend 2 100 et la garde
+  ne se déclenche jamais. Le terrain avait 29 — une entrée écartée par
+  `readStream`, un empileur de tags — et c'est ce 29 qui met le seuil à zéro.
+  Le premier jet posait trente et ne reproduisait rien.
+- **le menu de langue n'offre que ce que le pool contient.** Sans deux chaînes
+  françaises dans la descente, l'option n'existe pas et le clic tombe dans le
+  vide. Le scénario **constate** désormais que le clic a porté.
+
+## Moins de règles, une boucle qui se referme, un mode d'emploi refait (v4.14.0)
+
+Quatre demandes, arrivées ensemble. Elles ne se ressemblent pas, mais trois
+d'entre elles ont la même forme : **du code en moins**, et une assertion qui
+devait changer de sens plutôt que disparaître.
+
+### 1. Le bloc « mouvement réduit » est retiré
+
+**158 lignes, 12 règles, 73 sélecteurs, un seul bloc `@media
+(prefers-reduced-motion: reduce)`.** Il arrêtait ou ralentissait chaque animation de l'extension quand le
+système déclarait vouloir moins de mouvement.
+
+Demandé ainsi, capture à l'appui :
+
+> « J'aimerais que tu enlèves le CSS qui réduit les animations sur Chrome. Car
+> sur Firefox, il n'y est pas et c'est parfait selon moi. »
+
+Les deux moutures ne rendaient pas la même chose parce qu'**une seule portait ce
+bloc**. Mises côte à côte, c'est celle qui n'en avait pas qui a été retenue.
+
+**Ce que ça coûte, et il faut le dire :** qui demande moins de mouvement à son
+système ne l'obtient plus ici. Le filet existe ailleurs, et il est plus précis —
+les **dix-neuf réglages** du panneau éteignent chaque décoration une par une,
+sans dépendre d'un réglage système que tous les navigateurs ne relaient pas.
+
+Trois conséquences ont été attrapées par des contrats déjà en place :
+
+| ce qui a bougé | pourquoi |
+| --- | --- |
+| les douze fiches perdent leur puce « le réglage “réduire les animations” est respecté » | `tests/store.mjs` lie chaque promesse de fiche à une ancre dans le code ; l'ancre part, la promesse part |
+| le verdict du battement perd sa quatrième branche | elle nommait un régime qui n'existe plus |
+| `mouvementReduit` reste au rapport | c'est une **lecture** de l'environnement, pas une promesse |
+
+#### Les assertions ne sont pas effacées, elles sont retournées
+
+Onze assertions du banc mesuraient l'arrêt ou le ralentissement. Les supprimer
+aurait laissé le trou ouvert — et ce trou a déjà servi : en v4.9, deux
+arcs-en-ciel passaient **à travers** ce réglage, l'un par spécificité, l'autre
+par ordre de feuille, sans que rien ne le dise.
+
+Elles mesurent donc maintenant l'**invariance** : deux relevés, l'un sous
+`reduce`, l'autre sous `no-preference`, et l'exigence qu'ils soient identiques.
+C'est strictement plus fort que l'ancienne forme, parce que l'égalité tombe dans
+les **deux** sens.
+
+| scénario | ce qui est comparé |
+| --- | --- |
+| 51 — carte abonnée | les neuf mesures du décor, fond, nom, catégorie, avatar et halo compris |
+| 113 — battement du stream frais | la cadence à la milliseconde, l'amplitude en opacité **et en largeur** |
+| 114 — arcs-en-ciel du subathon | les deux durées à l'identique, et la teinte qui dérive des deux côtés |
+| 123 — battement de la roue | le nom, la durée, la transition au survol, et l'amplitude balayée sur un cycle |
+
+Chacune se double d'une assertion de vivacité : l'égalité seule serait vraie
+aussi si tout était éteint des deux côtés.
+
+#### Le panneau en avait un deuxième, et il mentait
+
+`content.js` n'était pas le seul porteur. `panneau.css` avait **deux** blocs
+`prefers-reduced-motion`, et le second gardait deux exceptions annoncées en
+toutes lettres :
+
+> « DEUX EXCEPTIONS, ET CE SONT CELLES DU PRODUIT. […] Les valeurs sont celles
+> de `content.js`, à l'identique. »
+
+Elles ne l'étaient plus : le bloc de `content.js` venait de partir. Un battement
+calme et un arc-en-ciel ralenti dans les **maquettes**, un battement plein et un
+arc-en-ciel vif dans le **produit** qu'elles sont censées montrer.
+
+C'est plus grave ici qu'ailleurs. Une maquette n'a qu'un métier : montrer ce que
+le produit fait. Elle ne peut pas garder un régime que le produit a perdu — elle
+n'explique plus, elle contredit. Les deux blocs sont donc partis aussi, et
+l'assertion de la maquette est devenue une invariance comme les autres.
+
+**Ce bloc avait déjà été pris en défaut une fois**, et pour une raison qui vaut
+d'être retenue : il s'annonçait exhaustif avec `* { animation: none !important }`,
+alors que le sélecteur universel désigne des **éléments** — `::before` et
+`::after` n'en sont pas. La barre violette de la maquette, un `::before`,
+continuait de battre. Le même audit avait trouvé le même trou dans le produit le
+même jour.
+
+**Un défaut de banc trouvé au passage.** Le scénario 114 attendait **1 500 ms**
+entre ses deux échantillons de couleur — une valeur choisie du temps où le cycle
+réduit durait huit secondes. À pleine cadence, le cycle dure **exactement
+1,5 s** : les deux échantillons retombaient sur la même teinte, et l'assertion
+tombait pour une raison qui n'avait rien à voir avec ce qu'elle mesure. Une
+attente commensurable au cycle qu'elle mesure ne mesure rien. Ramenée à 500 ms,
+un tiers de tour.
+
+### 2. La lueur de fond boucle enfin
+
+Signalé dans la même demande :
+
+> « Sur Firefox, j'aimerais que les effets CSS soient parfaitement bouclés, ce
+> qui n'est pas le cas sur le fond de ce type de carte. »
+
+Le fond de la carte abonnée porte **quatre nappes** et tourne en quinze
+secondes. Trois d'entre elles n'arrivaient pas là où elles partaient :
+
+```
+0%   → 0% 50%, 100% 50%, 40% 50%
+100% → 100% 50%,  0% 50%, 62% 50%
+```
+
+Avec un fond qui ne se répète pas, `0 %` et `100 %` sont **deux points
+différents de la carte**. Quinze secondes de dérive lente, puis un saut sec.
+
+La quatrième nappe, elle, bouclait déjà — le remède était posé juste à côté du
+défaut. Chaque nappe fait désormais un **aller-retour** : elle s'éloigne, puis
+revient à son point de départ avant la fin du cycle.
+
+Mesuré, entre la dernière image et la première : **0,0101 %** d'écart, contre
+100 % avant. Ce résidu est de la virgule flottante, pas une couture.
+
+#### Ce qui ne bouclait pas n'était tenu par rien
+
+Le banc mesurait la couleur de ce décor, sa vitesse, son plan d'empilement — et
+jamais sa **couture**, qui n'existe qu'à une image du cycle et qu'aucune capture
+ne montre. Le scénario 137 la mesure, et il ne tient **aucune liste** : il
+demande à chaque animation quelles propriétés elle touche, par `getKeyframes()`,
+et compare le rendu à la première et à la dernière image. Une animation ajoutée
+demain est couverte sans qu'on y pense.
+
+Deux valeurs diffèrent pourtant aux deux bouts, et ce ne sont pas des coutures.
+Elles ne sont pas inscrites sur une liste d'exemptions — elles sont **calculées**,
+en pixels rendus :
+
+| ce qui diffère | ce que le banc calcule pour l'admettre |
+| --- | --- |
+| le balayage, de 210 % à −110 % | à sa propre taille de fond et à la largeur de la boîte : l'image occupe `[2780, 6572]` px puis `[−5308, −1516]` px, et la boîte fait `[0, 1264]` — le retour se fait entièrement hors cadre |
+| l'or du nom, de 0 % à 300 % | la tuile fait 300 %, le fond se répète, et les deux bords de la tuile portent la même couleur (`rgb(255, 200, 110)`) — le pas vaut exactement une tuile |
+
+Le jour où l'un des deux cesse d'être vrai, il tombe du côté des coutures.
+
+### 3. La croix des panneaux est retirée
+
+> « J'aimerais que tu retires le X des panneaux. »
+
+Restent les deux sorties d'une modale ordinaire, qui étaient déjà là : **Échap**,
+et le **clic hors du cadre**. Le chapitre 1 du mode d'emploi les nomme
+maintenant, ce qui n'était pas nécessaire tant que la croix était visible.
+
+Les quatre assertions qui mesuraient la croix ne sont pas effacées : **l'absence
+de croix est le contrat**, et le cadre ne doit porter que son iframe.
+
+### 4. Le mode d'emploi, refait
+
+> « Je veux le meilleur mode d'emploi possible. […] Apporte seulement les infos
+> dont l'utilisateur sera confronté sur l'extension. »
+
+**Il se contredisait.** Il affirmait « l'extension n'a aucun réglage », démenti
+par la section **Réglages** du même panneau, deux boutons plus bas.
+
+**L'ordre était celui d'un développeur, pas d'un utilisateur.** Il commençait par
+l'aperçu au survol — c'est-à-dire par un **geste** — alors qu'on voit d'abord la
+barre latérale sans rien faire.
+
+Quinze chapitres, remis dans l'ordre de la rencontre : ce qui s'impose à l'œil,
+puis ce qu'on déclenche, puis ce qu'on règle.
+
+| | chapitre | |
+| --- | --- | --- |
+| 1 | La roue, et ce panneau | **nouveau** — par où l'on entre, et comment on referme |
+| 2 | Plus rapide que Twitch, et plus propre | |
+| 3 | Depuis combien de temps il diffuse | |
+| 4 | Les débuts, et les reprises | |
+| 5 | Vos abonnements, en or | |
+| 6 | Les co-streams | |
+| 7 | Les subathons | |
+| 8 | L'aperçu au survol | ce qui ouvrait le guide |
+| 9 | Les badges de l'aperçu | |
+| 10 | Précédemment sur ce live | |
+| 11 | Trier et filtrer | |
+| 12 | Top Chaînes | |
+| 13 | Tout se règle, et tout se coupe | **nouveau** — ce qui manquait, et qui commande le reste |
+| 14 | Ce panneau | |
+| 15 | Vie privée, en clair | |
+
+Les deux chapitres neufs valent **quatre clés** de plus par langue, et deux clés
+réécrites — l'introduction, et le chapitre du panneau. **Douze langues**, soit
+240 clés par fiche.
+
+#### Trois erreurs trouvées en relisant le guide, pas le code
+
+Le remaniement de l'ordre en a produit deux, et la troisième dormait depuis
+plus longtemps. Aucune n'était visible en relisant une traduction : il faut
+avoir le texte et le produit sous les yeux **en même temps**.
+
+**1. Un renvoi qui pointait deux chapitres trop haut.** Le chapitre des
+co-streams renvoie aux tris par son numéro. Ce numéro était recopié en toutes
+lettres dans les douze fiches — « chapitre 9 » — et l'ordre remanié l'a laissé
+désigner « Les badges de l'aperçu », **dans les douze langues à la fois**. Une
+traduction parfaitement juste peut porter un renvoi faux.
+
+Il ne se recopie plus : c'est une substitution `$1`, et `construireGuide`
+cherche le rang du chapitre visé dans la table au moment du rendu. Le prochain
+remaniement le corrigera tout seul.
+
+**2. Le chapitre du panneau énumérait les sections dans un ordre que le rail
+n'a jamais eu** — « Top Chaînes » avant « Diagnostic », alors que le rail les
+affiche dans l'autre sens. Et dans **sept fiches sur douze**, au moins un des
+cinq groupes était nommé autrement que le bouton à cliquer :
+
+| fiche | le guide disait | le rail affiche |
+| --- | --- | --- |
+| en | “Getting started” | “Get started” |
+| it | «Top Canali» | «Canali di punta» |
+| pl | „Na start”, „Top kanały” | „Na początek”, „Najpopularniejsze kanały” |
+| pt-PT | «Configurações», «Seus dados» | «Definições», «Os teus dados» |
+| ru | «Начало работы» | «С чего начать» |
+| zh-CN | 「快速上手」 | 「从这里开始」 |
+| pt-BR | «Seus dados» | «Os teus dados** ← l'intitulé était en portugais d'Europe |
+
+Les six premières sont corrigées dans le guide ; la dernière l'est dans
+**l'intitulé**, parce que c'est lui qui était fautif — treize autres chaînes du
+même fichier disent « seus/sua ».
+
+**3. Un réglage annoncé qui n'existe pas.** Le chapitre des réglages promettait
+que le relevé des abonnements « peut être arrêté ». Il ne le peut pas :
+`abosPeriode` vaut **3, 6, 12 ou 24 heures**, et rien d'autre. C'est la même
+espèce d'erreur que le « l'extension n'a aucun réglage » qu'on venait de
+retirer — une phrase que personne ne recoupe avec l'interface. Le chapitre donne
+maintenant les quatre valeurs.
+
+#### Et les trois sont désormais tenues par le banc
+
+| ce qui est mesuré | ce qui tomberait sans |
+| --- | --- |
+| le chapitre du panneau nomme les cinq intitulés du rail, **dans l'ordre du rail** | une liste qui n'est plus celle qu'on a sous les yeux vaut moins que pas de liste |
+| chaque renvoi désigne un chapitre qui existe, et pas lui-même | le renvoi de demain, cassé par le remaniement d'après-demain |
+| le renvoi des co-streams tombe sur le chapitre des tris | un renvoi dans les bornes, mais vers le mauvais chapitre |
+
+Le chapitre visé est trouvé **par son titre rendu**, pas par son rang : le
+scénario n'a donc aucun numéro à tenir à jour, ce qui est exactement la dette
+qu'il existe pour éviter.
+
+#### Et le banc ne savait pas substituer
+
+L'assertion du renvoi a d'abord été verte pour une mauvaise raison, puis rouge
+pour une bonne : elle lisait **`(chapter $1)`**, littéralement.
+
+Les bouchons `chrome.i18n` du harnais étaient écrits `(k) => table[k].message` —
+ils rendaient le message **brut**. `chrome.i18n.getMessage(clé, sub)` remplace
+`$1` … `$9` par ses arguments, et aucun des cinq bouchons ne le faisait. Le banc
+n'avait donc **jamais** vu un message substitué : ni ce renvoi, ni le `$1 h` qui
+affiche la période du relevé dans les réglages, depuis qu'il existe.
+
+Un bouchon plus simple que la chose qu'il remplace rend vertes des assertions
+que le produit ferait tomber. Les cinq substituent maintenant comme Chrome.
+
 ## La signature se lisait autrement que l'œil (v4.13.12)
 
 ### Deux défauts, et les deux sont les miens
@@ -3712,6 +4244,9 @@ position d'arrivée mais le mouvement lui-même, que la symétrie n'efface pas.
 Elle tourne tant que le pointeur est là, comme un rouage qu'on entraîne — et
 s'arrête entièrement sous `prefers-reduced-motion`, où elle n'a rien à conserver.
 
+> **Retiré en 4.14.0.** Le bloc « mouvement réduit » n'existe plus : voir
+> *Moins de règles, une boucle qui se referme, un mode d'emploi refait*.
+
 ## Deux nombres qui n'étaient plus les bons (v4.13)
 
 **Le cadre passe à 1100 × 760.** La 4.12 lui donnait 760 × 580 au nom de
@@ -3757,6 +4292,9 @@ que la moitié des gens ne verra jamais.
 La rotation est du mouvement, et elle part sous `prefers-reduced-motion`. Sans
 rien à conserver, contrairement au battement : elle n'est pas un signal, elle
 accuse réception du pointeur, et le fond au survol le dit déjà.
+
+> **Retiré en 4.14.0.** Le bloc « mouvement réduit » n'existe plus : voir
+> *Moins de règles, une boucle qui se referme, un mode d'emploi refait*.
 
 ### 2. Une croix qu'on trouve sans la chercher
 
@@ -6917,6 +7455,9 @@ La marge tient donc à la **taille** de ces deux éléments, et à elle seule : 
 agrandir franchement demanderait de ralentir le cycle d'autant. `prefers-reduced-motion`
 l'arrête complètement, ce qui reste la seule sortie qui vaille.
 
+> **Retiré en 4.14.0.** Le bloc « mouvement réduit » n'existe plus : voir
+> *Moins de règles, une boucle qui se referme, un mode d'emploi refait*.
+
 ### Ce que la mutation a corrigé dans le banc
 
 L'échantillonneur de l'arc-en-ciel **recopiait** la durée du cycle : douze
@@ -7508,6 +8049,9 @@ reconnexion, ni dans les tags, qui ne comptent rien.
 `prefers-reduced-motion` fige la marque sans la retirer : la chaleur du
 compteur se pose sur une teinte pleine. La pastille du jour, elle, n'a jamais
 bougé — elle n'a rien à perdre, et c'est elle qui porte le sens.
+
+> **Retiré en 4.14.0.** Le bloc « mouvement réduit » n'existe plus : voir
+> *Moins de règles, une boucle qui se referme, un mode d'emploi refait*.
 
 ## La frise d'un subathon (v3.89)
 
@@ -8621,7 +9165,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 136 scénarios, 1207 assertions |
+| `npm test` | le harnais Playwright : 140 scénarios, 1233 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
