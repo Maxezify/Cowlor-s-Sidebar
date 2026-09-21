@@ -8601,6 +8601,12 @@ const TSE_GATE_MAX_CLICKS = 5;
          signature d'un combiné (cf. publish) ? Lecture pure, pour que la CARTE
          suive la même règle que le tri — les laisser diverger est le défaut que
          la 4.13.6 a corrigé dans un sens et la 4.13.8 dans l'autre. */
+      // Cette chaîne figure-t-elle au classement servi ? Lecture pure, pour
+      // que le bilan de co-stream sache distinguer « jamais classé » de
+      // « classé mais sans carte ».
+      estAuClassement(login) {
+        return this.top(options.get('topN')).some((r) => r.login === login);
+      },
       estCombine(login) {
         const rec = ranking.find((r) => r.login === login)
                  || scopeRanking.find((r) => r.login === login);
@@ -8830,6 +8836,12 @@ const TSE_GATE_MAX_CLICKS = 5;
      une erreur, sans un compteur, sans rien qui dise pourquoi. La voie prise
      est donc consignée, et c'est le rapport qui la rendra. */
   const bilanSection = { voie: null, vides: 0, parCartes: 0, aucune: 0 };
+
+  /* Ce que la dernière détection de co-stream a vu (cf. detectCoStreams).
+     Remis à zéro à chaque passe : c'est un instantané, pas un cumul — la
+     question qu'il tranche porte sur l'état courant de la liste. */
+  let bilanCostream = { groupes: 0, membres: 0, affiches: 0,
+                        horsClassement: 0, classesNonAffichees: 0 };
 
   /* ── LA SECTION « CHAÎNES SUIVIES » ───────────────────────────────────────
      UNE SECTION VIDE EST PIRE QUE PAS DE SECTION, et c'est le défaut qu'un
@@ -11091,6 +11103,7 @@ const TSE_GATE_MAX_CLICKS = 5;
              • `parCartes` compte les rattrapages, `vides` les fois où il n'y
                en avait pas à faire. */
         sectionSuivie: { ...bilanSection },
+        coStream: { ...bilanCostream },
         langue: { interface: S.locale, page: LANG },
         mode: { global: !!state.globalMode },
         sondes: runDiagnostics(),
@@ -17818,6 +17831,47 @@ const TSE_GATE_MAX_CLICKS = 5;
         // La clé est exposée pour permettre au tri "co-stream" de
         // regrouper physiquement les membres d'un même groupe.
         card.dataset.tseCostreamKey = key;
+      }
+    }
+
+    /* ── CE QUE LA SESSION COMPTE, ET CE QUE LA LISTE MONTRE ────────────────
+       CINQ VERSIONS ONT CHERCHÉ POURQUOI UN CO-STREAMER « DISPARAÎT », et la
+       question n'a jamais pu être tranchée faute du seul chiffre qui la
+       départage : ce membre a-t-il ÉTÉ CLASSÉ PUIS PERDU, ou n'a-t-il JAMAIS
+       ÉTÉ CLASSÉ ?
+
+       Les deux se ressemblent à l'écran — deux cartes groupées portant chacune
+       une pastille « 2 », donc une session de trois — et ne se réparent pas du
+       tout pareil. La première est notre défaut ; la seconde est le répertoire
+       de Twitch qui ne range pas ce participant dans la langue demandée, et il
+       n'y a alors rien à réparer.
+
+       `classesNonAffichees` est ce chiffre. Il compte les membres d'une
+       session QUI SONT AU CLASSEMENT et n'ont pourtant pas de carte : c'est
+       exactement la fuite, et elle seule. `horsClassement`, lui, dit que
+       Twitch ne les a pas rangés là — un fait sur Twitch, pas sur nous. */
+    bilanCostream = { groupes: 0, membres: 0, affiches: 0,
+                      horsClassement: 0, classesNonAffichees: 0 };
+    const parLogin = new Map();
+    for (const card of cards) {
+      const l = card.dataset.tseLogin;
+      if (l && !parLogin.has(l)) parLogin.set(l, card);
+    }
+    for (const key of activeKeys) {
+      if (!key.startsWith('gs:')) continue;   // l'heuristique ne connaît aucune liste
+      bilanCostream.groupes += 1;
+      const membres = new Set();
+      for (const card of groups.get(key)) {
+        const l = card.dataset.tseLogin;
+        if (!l) continue;
+        membres.add(l);
+        for (const m of getGuestStarMates(l)) membres.add(m.login);
+      }
+      bilanCostream.membres += membres.size;
+      for (const l of membres) {
+        if (parLogin.has(l)) { bilanCostream.affiches += 1; continue; }
+        if (globalChannels.estAuClassement(l)) bilanCostream.classesNonAffichees += 1;
+        else bilanCostream.horsClassement += 1;
       }
     }
 

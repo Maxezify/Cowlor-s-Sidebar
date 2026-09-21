@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1197 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1202 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,92 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Le co-stream en Top Chaînes : ce que la session compte, ce que la liste montre (v4.13.11)
+
+### La question posée
+
+> « Le système de co-stream est-il bien implémenté sur la partie Top Chaînes,
+> notamment lors d'update de la liste de carte ? »
+
+### Ce que l'audit a vérifié, et qui tient
+
+**L'ordre des passes est bon.** `syncGlobalCards` s'exécute *avant*
+`detectCoStreams` dans le même scan : une carte créée dans une passe est groupée
+dans cette passe, sans image de retard.
+
+```
+syncGlobalCards → recomputeFilters → detectCoStreams → applySorting → applyCostreamJoins
+```
+
+**Et ça ne clignote pas.** Trois co-streamers d'anciennetés différentes, échantillonnés
+à chaque rafraîchissement d'écran pendant six secondes, avec une mise à jour du
+classement injectée à mi-parcours :
+
+```
+361 images sur 361  →  groupée / groupée / groupée, même clé gs:
+```
+
+### Ce que l'audit a trouvé
+
+**Deux nombres décrivent la même session, et rien ne les réconcilie.**
+
+La pastille vient de la **session** (Guest Star connaît tous les participants).
+Le groupe coloré vient des **cartes présentes** dans la liste. Quand un membre
+n'est pas classé, la pastille annonce trois participants au-dessus de deux
+lignes — c'est exactement ce qu'une capture de terrain montrait.
+
+Et cette contradiction cachait la question que **cinq versions** n'ont pas pu
+trancher :
+
+| ce qui a pu se passer | qui est en cause | ce que ça vaut |
+| --- | --- | --- |
+| il a été **classé puis perdu** | **nous** | une fuite, et ça se répare |
+| il n'a **jamais été classé** | le répertoire de Twitch, qui ne le range pas dans la langue demandée | rien à réparer |
+
+Les deux se ressemblent à l'écran. Elles ne se réparent pas du tout pareil.
+
+### Le chiffre qui manquait
+
+`classesNonAffichees` compte les membres d'une session **qui sont au classement
+et n'ont pourtant pas de carte**. C'est la fuite, et elle seule.
+`horsClassement`, lui, est un fait sur Twitch — pas sur nous.
+
+Mesuré sur un décor où un participant à quarante spectateurs ne peut pas entrer
+dans un top 30 :
+
+```
+groupes 1 · membres 4 · affichés 2 · horsClassement 2 · classesNonAffichees 0
+```
+
+Quatre membres, deux à l'écran, **deux que Twitch n'a pas classés, aucune fuite
+de notre côté**. Le prochain rapport de terrain dira lequel des deux nombres
+bouge — et c'est la première fois que la question peut recevoir une réponse
+plutôt qu'une hypothèse.
+
+> **Ce correctif ne change rien à l'affichage.** Il mesure. Après cinq versions
+> passées à corriger des causes réelles mais successives, poser le compteur qui
+> arbitre vaut mieux qu'une sixième hypothèse.
+
+### Ce que cet audit n'a pas pu mesurer
+
+**La section suivie introuvable.** Tous les rapports de terrain comptent entre
+26 et 35 passages où `followedSection()` ne rend rien — et ces passages sautent
+à la fois le rendu du classement et la détection de co-stream. Le décor du banc
+n'a pas su reproduire cet état : les deux ancres retirées, il retrouvait quand
+même la section. Aucune conclusion n'en est tirée ici.
+
+### Ce que le banc ajoute
+
+Le scénario 135 pose une session de quatre dont deux seulement sont classables,
+et vérifie d'abord que son décor joue bien la contradiction — pastille « 3 » sur
+deux lignes — avant de lire le bilan.
+
+| mutant | l'assertion qui tombe |
+| --- | --- |
+| les absents comptés comme fuite | « les membres que Twitch n'a pas classés comptent comme tels » |
+| un membre oublié par le bilan | « chaque membre dans une seule case » |
+| une carte classée non comptée | « aucun membre classé ne reste sans carte » |
 
 ## Une carte fabriquée est-elle une carte comme les autres ? (v4.13.10)
 
@@ -8019,7 +8105,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 134 scénarios, 1197 assertions |
+| `npm test` | le harnais Playwright : 135 scénarios, 1202 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -8040,9 +8126,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1057 Ko | 404 Ko | 3 343 → **2** |
+| `content.js` | 1057 Ko | 404 Ko | 3 349 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 98 Ko | 47 Ko | 129 → **0** |
+| `panneau.js` | 98 Ko | 47 Ko | 130 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1296 Ko** | **556 Ko** | **−57 %** |

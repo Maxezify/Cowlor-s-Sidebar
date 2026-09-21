@@ -17595,6 +17595,93 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ CE QUE LA SESSION COMPTE, ET CE QUE LA LISTE MONTRE ═══════════
+   CINQ VERSIONS ONT CHERCHÉ POURQUOI UN CO-STREAMER « DISPARAÎT » de Top
+   Chaînes sans pouvoir trancher, faute du seul chiffre qui départage les deux
+   causes possibles :
+
+     • il A ÉTÉ CLASSÉ PUIS PERDU — c'est notre fuite, et ça se répare ;
+     • il N'A JAMAIS ÉTÉ CLASSÉ — le répertoire de Twitch ne le range pas dans
+       la langue demandée, et il n'y a rien à réparer chez nous.
+
+   LES DEUX SE RESSEMBLENT À L'ÉCRAN : deux cartes groupées portant chacune une
+   pastille qui annonce plus de participants qu'il n'y a de lignes. La pastille
+   vient de la session (Guest Star), le groupe vient des cartes présentes, et
+   rien ne réconciliait les deux.
+
+   `classesNonAffichees` est ce chiffre, et lui seul nous accuse. */
+{
+  titre('135. Co-stream — la session et la liste se comptent séparément');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = (min) => new Date(Date.now() - min * 60_000).toISOString();
+    const trio = ['aa', 'bb', 'absent'];
+    const guests = trio.map((l, i) => ({ id: '80' + i, login: l, viewers: 300, combined: 1300 }));
+    /* CINQUANTE CHAÎNES au-dessus du seuil : « absent », à quarante
+       spectateurs dans une autre catégorie, ne peut pas entrer au top 30. Sans
+       ce bruit, le décor classerait tout et ne jouerait plus le cas. */
+    const bruit = [...Array(50)].map((_, i) => ({ login: 'n' + i, viewers: 900 - i }));
+    window.__cats = [
+      { name: 'VALORANT', viewers: 90_000, streams: [
+        { login: 'aa', viewers: 1300 }, { login: 'bb', viewers: 1300 },
+        { login: 'modele', viewers: 1200 }, ...bruit] },
+      { name: 'Discussions', viewers: 40, streams: [{ login: 'absent', viewers: 40 }] },
+    ];
+    window.__fx = Object.fromEntries([
+      ['aa', { id: '800', createdAt: h(60), viewers: 300, game: 'VALORANT', tags: [] }],
+      ['bb', { id: '801', createdAt: h(490), viewers: 300, game: 'VALORANT', tags: [] }],
+      ['absent', { id: '802', createdAt: h(120), viewers: 40, game: 'Discussions', tags: [] }],
+      ['modele', { id: '812', createdAt: h(30), viewers: 1200, game: 'VALORANT', tags: [] }],
+      ...bruit.map((x) => [x.login, { id: 'b' + x.login, createdAt: h(30),
+                                      viewers: x.viewers, game: 'VALORANT', tags: [] }]),
+    ]);
+    /* La session compte QUATRE membres : l'hôte et les trois invités. */
+    window.__gs = Object.fromEntries(trio.map((l, i) =>
+      ['80' + i, { hostId: '8000', hostLogin: 'hote', guests }]));
+    window.__addCard('modele', 'VALORANT', '1,2 k');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => (window.tse.panneau.rapport().coStream?.groupes || 0) > 0, 15_000);
+  await wait(page, 1500);
+
+  const vu = await page.evaluate(() => ({
+    bilan: window.tse.panneau.rapport().coStream,
+    absentClasse: window.tse.global.top(30).some((r) => r.login === 'absent'),
+    absentAffiche: !![...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === 'absent'),
+    pastilles: [...document.querySelectorAll('.side-nav-card.tse-costream')]
+      .map((c) => c.querySelector('.tse-collab-badge')?.textContent ?? null),
+  }));
+
+  /* LE DÉCOR JOUE BIEN LE CAS : la pastille annonce plus de participants qu'il
+     n'y a de lignes groupées — la contradiction même du rapport de terrain. */
+  ok('la pastille annonce plus de participants que la liste n\'en montre',
+     vu.pastilles.length === 2 && vu.pastilles.every((x) => x === '3'),
+     JSON.stringify(vu.pastilles));
+  ok('…et le membre non classé n\'est ni au classement ni à l\'écran',
+     vu.absentClasse === false && vu.absentAffiche === false, JSON.stringify(vu));
+
+  /* LE BILAN REND COMPTE DE TOUS LES MEMBRES, SANS EN PERDRE : c'est ce qui
+     rend ses trois nombres lisibles ensemble plutôt qu'un à un. */
+  const b = vu.bilan;
+  ok('le bilan compte la session entière, et chaque membre dans une seule case',
+     b.groupes === 1 && b.membres === 4
+     && b.affiches + b.horsClassement + b.classesNonAffichees === b.membres,
+     JSON.stringify(b));
+  /* L'ASSERTION QUI PORTE LE SENS : les absents sont rangés du côté de TWITCH,
+     et pas du nôtre. Confondre les deux, c'est reprendre cinq versions
+     d'enquête sur une fuite qui n'existe pas. */
+  ok('…les membres que Twitch n\'a pas classés comptent comme tels',
+     b.affiches === 2 && b.horsClassement === 2, JSON.stringify(b));
+  /* ET SUR UNE LISTE SAINE, AUCUNE FUITE : toute chaîne au classement a sa
+     carte. C'est ce zéro que le terrain devra confirmer — ou démentir. */
+  ok('…et aucun membre classé ne reste sans carte',
+     b.classesNonAffichees === 0, JSON.stringify(b));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

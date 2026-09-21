@@ -1712,6 +1712,15 @@ const construireRapport = (r, transport, fond) => {
      rapport ne portait rien qui le dise. Quatre lignes, juste après PAGE
      parce que c'est du même ordre : l'état du DOM sous nos pieds. */
   L.push(...bloc('SECTION SUIVIE / FOLLOWED SECTION', aplatir(r.sectionSuivie)));
+  /* CE QUE LA SESSION COMPTE, ET CE QUE LA LISTE MONTRE. Cinq versions ont
+     cherché pourquoi un co-streamer « disparaît » sans pouvoir trancher entre
+     deux causes qui se ressemblent à l'écran et ne se réparent pas pareil :
+     un membre CLASSÉ mais sans carte est notre fuite ; un membre HORS
+     classement est le répertoire de Twitch qui ne le range pas dans la langue
+     demandée, et il n'y a alors rien à réparer. `classesNonAffichees` est le
+     seul des deux qui nous accuse. */
+  L.push(...bloc('CO-STREAM — SESSION CONTRE LISTE / SESSION VS LIST',
+                 aplatir(r.coStream)));
   L.push(...bloc('LANGUE / LANGUAGE', aplatir(r.langue)));
   L.push(...bloc('MODE', aplatir(r.mode)));
   L.push(...bloc('COMPTEURS / COUNTS', aplatir(r.compteurs)));
