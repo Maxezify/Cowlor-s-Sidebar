@@ -3611,7 +3611,10 @@ const TSE_GATE_MAX_CLICKS = 5;
         suivreCategorie(login, entry);
         cache.set(login, entry);
 
-        globalChannels.setViewers(login, entry.viewers);
+        const combine = getCollabViewers(id);
+        const hote = getHostId(id);
+        if (Number.isFinite(combine)) globalChannels.setViewers(login, combine, true);
+        else if (typeof hote !== 'string') globalChannels.setViewers(login, entry.viewers);
         fresh++;
         (pending.get(login) || []).forEach(fn => fn(entry));
       });
@@ -3977,12 +3980,26 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     let publieUneFois = false;
 
+    let combines = new Set();
+
+    const signature = (rec) => `${rec.game} ${formatViewers(rec.viewers)}`;
+    const recalculerCombines = (liste) => {
+      const vus = new Map();
+      for (const rec of liste) {
+        if (!rec.game || !Number.isFinite(rec.viewers)) continue;
+        const cle = signature(rec);
+        vus.set(cle, (vus.get(cle) || 0) + 1);
+      }
+      combines = new Set([...vus].filter(([, n]) => n >= 2).map(([cle]) => cle));
+    };
+
     const publish = (pool) => {
       publieUneFois = true;
       ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
       rankingTs    = Date.now();
       threshold    = nthViewers(pool, options.get('topN'));
+      recalculerCombines(ranking);
     };
 
     const mesuresCatLangue = new Map();
@@ -4481,7 +4498,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         return publieUneFois && (wantedLang()?.lang || null) === worldLang;
       },
 
-      setViewers(login, viewers) {
+      setViewers(login, viewers, autorite = false) {
 
         let touche = false;
         let creuse = false;
@@ -4496,6 +4513,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           }
           if (!Number.isFinite(viewers)
               || (liste[i].viewers === viewers && !liste[i].creux)) return false;
+
+          if (!autorite && combines.has(signature(liste[i]))) return false;
           liste[i] = { ...liste[i], viewers, creux: 0, ts: Date.now() };
           return true;
         };
@@ -4504,6 +4523,15 @@ const TSE_GATE_MAX_CLICKS = 5;
 
         if (creuse) stats.creux += 1;
         return touche;
+      },
+
+      estAuClassement(login) {
+        return this.top(options.get('topN')).some((r) => r.login === login);
+      },
+      estCombine(login) {
+        const rec = ranking.find((r) => r.login === login)
+                 || scopeRanking.find((r) => r.login === login);
+        return !!rec && combines.has(signature(rec));
       },
       report() {
         return {
@@ -4615,6 +4643,9 @@ const TSE_GATE_MAX_CLICKS = 5;
   };
 
   const bilanSection = { voie: null, vides: 0, parCartes: 0, aucune: 0 };
+
+  let bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
+                        horsClassement: 0, classesNonAffichees: 0 };
 
   const followedSection = () => {
     const candidats = [];
@@ -5957,6 +5988,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         })(),
 
         sectionSuivie: { ...bilanSection },
+        coStream: { ...bilanCostream },
         langue: { interface: S.locale, page: LANG },
         mode: { global: !!state.globalMode },
         sondes: runDiagnostics(),
@@ -6445,9 +6477,30 @@ const TSE_GATE_MAX_CLICKS = 5;
     avatar.classList.remove('tse-collab-host');
   };
 
+  const poserPastille = (card, count) => {
+    const avatar = avatarOf(card);
+    if (!avatar) return false;
+    avatar.classList.add('tse-collab-host');
+    let badge = avatar.querySelector(':scope > .tse-collab-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'tse-collab-badge';
+      avatar.appendChild(badge);
+    }
+    setText(badge, count);
+    return true;
+  };
+
+  const pastilleDepuisGuestStar = (card) => {
+    const login = card.dataset.tseLogin;
+    const mates = login ? getGuestStarMates(login) : [];
+    if (!mates.length) { clearCollabBadge(card); return; }
+    poserPastille(card, String(mates.length));
+  };
+
   const applyCollabBadge = (card) => {
 
-    if (!PLUS_RE_PRESENT.test(card.textContent || '')) { clearCollabBadge(card); return; }
+    if (!PLUS_RE_PRESENT.test(card.textContent || '')) { pastilleDepuisGuestStar(card); return; }
 
     let count = null;
     let plusEl = null;
@@ -6477,21 +6530,11 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     if (count === null) {
 
-      clearCollabBadge(card);
+      pastilleDepuisGuestStar(card);
       return;
     }
 
-    const avatar = avatarOf(card);
-    if (!avatar) return;
-
-    avatar.classList.add('tse-collab-host');
-    let badge = avatar.querySelector(':scope > .tse-collab-badge');
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'tse-collab-badge';
-      avatar.appendChild(badge);
-    }
-    setText(badge, count);
+    if (!poserPastille(card, count)) return;
 
     if (plusEl) {
       plusEl.style.display = 'none';
@@ -6611,6 +6654,21 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const formatViewers = (n) => viewerFormatter().format(n);
 
+  const NOMBRE_RE = /\d[\d\s.,  ]*\s*[kKmM]?/;
+  const recalerTexteAccessible = (card, shown) => {
+    const host = liveStatusOf(card);
+    if (!host) return;
+    for (const n of host.querySelectorAll('*')) {
+      if (n.children.length) continue;
+      if (n.getAttribute('aria-hidden') === 'true') continue;
+      if (n.className && String(n.className).includes('tse-')) continue;
+      const texte = n.textContent || '';
+      if (!NOMBRE_RE.test(texte)) continue;
+      const neuf = texte.replace(NOMBRE_RE, formatViewers(shown));
+      if (neuf !== texte) setText(n, neuf);
+    }
+  };
+
   const renderViewers = (card, count, display) => {
     if (!Number.isFinite(count)) return;
     const native = nativeViewersEl(card);
@@ -6625,6 +6683,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     const shown = Number.isFinite(display) ? display : count;
     setText(span, formatViewers(shown));
+    recalerTexteAccessible(card, shown);
 
     if (card.dataset.tseViewers !== String(shown)) {
       card.dataset.tseViewers = String(shown);
@@ -8283,7 +8342,18 @@ const TSE_GATE_MAX_CLICKS = 5;
       renderUptime(card, card.dataset.tseStartedAt);
       updateFreshness(card);
 
-      renderViewers(card, data.viewers, getCollabViewers(data.id));
+      let montre = getCollabViewers(data.id);
+      if (!Number.isFinite(montre)) {
+        const login = card.dataset.tseLogin;
+
+        const enCombine = (typeof getHostId(data.id) === 'string')
+          || (state.globalMode && !!login && globalChannels.estCombine(login));
+        if (enCombine) {
+          const deja = Number(card.dataset.tseViewers);
+          if (Number.isFinite(deja)) montre = deja;
+        }
+      }
+      renderViewers(card, data.viewers, montre);
       if (data.game) {
 
         card.dataset.tseCategory = data.game;
@@ -9340,6 +9410,18 @@ const TSE_GATE_MAX_CLICKS = 5;
         ts: now
       });
     }
+
+    const aCombiner = ids.some(id => Number.isFinite(gsCache.get(id)?.combined));
+    if (aCombiner) {
+      const parId = new Map();
+      for (const [login, entry] of cache) if (entry?.id) parId.set(entry.id, login);
+      for (const id of ids) {
+        const v = gsCache.get(id)?.combined;
+        if (!Number.isFinite(v)) continue;
+        const login = parId.get(id);
+        if (login) globalChannels.setViewers(login, v);
+      }
+    }
     resolveGuestStarWaiters(ids);
     scheduleScan();
   };
@@ -9581,6 +9663,38 @@ const TSE_GATE_MAX_CLICKS = 5;
         card.style.setProperty('--tse-costream-bg-fade', palette.fade);
 
         card.dataset.tseCostreamKey = key;
+      }
+    }
+
+    bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
+                      horsClassement: 0, classesNonAffichees: 0 };
+    const parLogin = new Map();
+    for (const card of cards) {
+      const l = card.dataset.tseLogin;
+      if (l && !parLogin.has(l)) parLogin.set(l, card);
+    }
+    for (const key of activeKeys) if (key.startsWith('gs:')) bilanCostream.groupes += 1;
+
+    const sessions = new Map();
+    for (const card of cards) {
+      if (!cardShown(card)) continue;
+      const login = card.dataset.tseLogin;
+      if (!login) continue;
+      const mates = getGuestStarMates(login);
+      if (!mates.length) continue;
+      const membres = [login, ...mates.map((m) => m.login)].sort();
+      const hote = hostByCard.get(card);
+      const cle = typeof hote === 'string' ? 'gs:' + hote : 'm:' + membres.join(',');
+      if (!sessions.has(cle)) sessions.set(cle, new Set(membres));
+      else for (const l of membres) sessions.get(cle).add(l);
+    }
+    bilanCostream.sessions = sessions.size;
+    for (const membres of sessions.values()) {
+      bilanCostream.membres += membres.size;
+      for (const l of membres) {
+        if (parLogin.has(l)) { bilanCostream.affiches += 1; continue; }
+        if (globalChannels.estAuClassement(l)) bilanCostream.classesNonAffichees += 1;
+        else bilanCostream.horsClassement += 1;
       }
     }
 
@@ -10040,7 +10154,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       status.querySelectorAll('*').forEach(n => {
         if (n.children.length) return;
         if (n.getAttribute('aria-hidden') === 'true') return;
-        if ((n.textContent || '').trim()) n.remove();
+        const texte = (n.textContent || '').trim();
+        if (texte && !NOMBRE_RE.test(texte)) n.remove();
       });
     }
   };
@@ -10385,6 +10500,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   const invalidateAndRescan = () => {
     cache.clear();
     document.querySelectorAll('.side-nav-card[data-tse-login]').forEach(card => {
+
+      if (isSynthetic(card) || card.dataset.tseGlobal === 'true') return;
       delete card.dataset.tseLogin;
     });
     scanSidebar();
