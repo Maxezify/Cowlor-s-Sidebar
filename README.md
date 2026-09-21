@@ -338,7 +338,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1098 Ko | 410 Ko | 3 374 → **2** |
+| `content.js` | 1098 Ko | 410 Ko | 3 387 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 97 Ko | 47 Ko | 133 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
@@ -2616,6 +2616,106 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Deux onglets Twitch ne relèvent pas deux fois (v4.14.4)
+
+### La question, et sa réponse mesurée
+
+> « Sur Firefox (ou peut-être sur Chrome aussi), le relevé d'abonnement se fait
+> dès l'initialisation ? »
+
+**Non dans le cas courant, oui dans deux cas qui le méritent.** Le déclencheur
+est bien posé à l'initialisation — au premier scan qui voit des chaînes suivies,
+ce qui vaut à la fois « la sidebar est chargée » et « la session est connectée »
+— mais `refresh()` rend la main sans rien charger tant que la période n'est pas
+écoulée.
+
+Mesuré, en comptant les iframes réellement attachées à la page :
+
+| situation | pages Twitch chargées |
+| --- | --- |
+| profil neuf, aucun relevé en mémoire | **4** — sous le voile, borné à `SUBS_PAGE_HOLD_MAX` |
+| relevé plus récent que la période | **0** |
+| relevé plus vieux que la période | **4** |
+| horodatage d'un lecteur périmé | **4** — par conception : un correctif de relevé doit atteindre tout le monde |
+
+**Et c'est identique sur les deux moutures.** Les manifestes ne diffèrent que
+par le bloc `browser_specific_settings` et la déclaration du fond de tâche ;
+rien de ce qui gouverne le relevé n'est propre à Firefox.
+
+### Mais la question en a ouvert une autre
+
+L'horodatage est écrit **à la fin** du relevé, et c'est voulu : il veut dire
+« un relevé est allé à son terme », et quiconque le lit doit trouver le résultat
+déjà en mémoire. Entre le début et la fin, il vaut donc encore l'ancienne date
+— et une **seconde page Twitch** qui démarre pendant ce temps la lit, la croit
+périmée, et part à son tour.
+
+Mesuré sur une origine partagée : deux onglets ouverts ensemble sur un profil
+neuf chargeaient **huit** pages de Twitch en cachette au lieu de quatre. Une
+session restaurée à cinq onglets en aurait chargé vingt.
+
+Le code s'en méfiait déjà, sans le couvrir :
+
+> « Sans cet horodatage, le relevé complet repart à CHAQUE chargement de page :
+> trois pages en iframe, à chaque fois. »
+
+### Un bail, et non un second horodatage
+
+Une page qui commence écrit l'instant de son départ ; les autres s'abstiennent
+tant qu'il est frais. Le bail **expire seul**, ce qui est toute la différence :
+un onglet fermé au milieu de son relevé ne condamne pas le suivant à attendre
+six heures, seulement la durée du bail. Sa durée se déduit du pire cas —
+`SUBS_PAGE_TIMEOUT` plus `SUBS_PAGE_SETTLE`.
+
+**La prise se fait en trois temps : on regarde, on écrit, on relit.** Le
+troisième est celui qui compte. `localStorage` n'offre pas d'écriture
+conditionnelle, et deux pages parties dans la même poignée de millisecondes
+lisent toutes deux un bail libre avant que l'une ait écrit le sien. Le dernier
+qui écrit gagne ; il suffit de relire après un délai qui couvre l'écart
+d'écriture pour qu'exactement une page se reconnaisse.
+
+« Relevé maintenant » prend le bail sans le disputer : c'est une demande
+explicite, et elle ne doit jamais se voir refuser. Vérifié : elle passe outre un
+bail tenu **et** une période fraîche.
+
+### Deux fautes de ma part, que le linter et le décor ont attrapées
+
+**1. J'ai déplacé un `await` devant une garde.** La première écriture plaçait la
+prise de bail **avant** `running = true`. Le commentaire d'origine disait
+pourtant, en toutes lettres, que `running` est posé avant le premier `await` —
+et `require-atomic-updates` l'a signalé. La garde entre **pages** ne doit pas
+coûter la garde à l'intérieur d'une page. La prise est redescendue dans le
+`try`, après la pose de `running`.
+
+**2. Mon décor ne mesurait rien, et j'ai failli en conclure l'inverse.** Tout ce
+banc travaille en `file://`, où **chaque page a son propre `localStorage`** :
+deux pages y sont deux mondes. Ma première mesure a montré « huit iframes » avec
+le correctif en place, et j'ai cru le correctif inopérant — alors que le décor
+ne pouvait rien mesurer du tout. Il faut une **origine** partagée, donc un
+serveur, et deux onglets du **même contexte** : `browser.newPage()` en ouvre un
+par page, ce qui recloisonne le stockage et reproduit exactement le même piège.
+
+**3. Et un instrument muet.** Mon premier relevé lisait
+`rapport().abonnements`, qui n'existe pas — le champ s'appelle
+`relevesAbonnements`. Il rendait donc « zéro onglet » partout, y compris là où
+quatre pages venaient de se charger, et **confirmait ce que j'espérais**. Les
+iframes se comptent désormais à la source, par `frameattached`.
+
+### Ce que le banc mesure
+
+Le scénario 141 sert sa propre page depuis un serveur local, ouvre deux onglets
+du même contexte, et **vérifie d'abord qu'ils partagent bien un stockage** —
+sans quoi le scénario entier passerait au vert sur un décor inerte.
+
+| mutant | résultat |
+| --- | --- |
+| le bail retiré | les deux onglets relèvent, **8 pages chargées** |
+| le correctif en place | un relève, l'autre se range (`differes 1`), **4 pages** |
+
+Et un compteur de plus au rapport : `differes` dit qu'un relevé **ne s'est pas
+lancé parce qu'un autre onglet s'en chargeait** — sans quoi le rapport aurait
+deux silences identiques pour deux causes opposées.
 
 ## Le répertoire contre le combiné, et le piège sans retour (v4.14.3)
 
@@ -9165,7 +9265,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 140 scénarios, 1233 assertions |
+| `npm test` | le harnais Playwright : 141 scénarios, 1238 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
