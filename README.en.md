@@ -2479,6 +2479,91 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Is a fabricated card a card like any other? (v4.13.10)
+
+### The audit that was asked for
+
+> "Make the cloned cards in Top Channels identical to a normal card."
+
+The method: **two channels with rigorously identical data** — same count, same
+uptime, same category, same language, same subscription. One has a Twitch card,
+which the ranking borrows; the other has none, so its card is cloned. They are
+compared at the same instant, in the same mode.
+
+### What the code reserves the right to treat differently
+
+Seven places exclude fabricated cards. **All seven are MEASUREMENT paths, none is
+a behaviour path:**
+
+| what excludes them | why |
+| --- | --- |
+| Twitch's lag (`liveLag`) | we do not measure ourselves |
+| the selector self-diagnostic | a clone would answer "ok" and mask a real breakage |
+| the "Show more" button | counting ours would simulate growth |
+| the native order (`tseTwitchOrder`) | they are not part of Twitch's order |
+| the mass-offline guard | what **Twitch** displays is the reference |
+| the overlay's stability check | same |
+
+Nothing touching display, hover, sorting or filters.
+
+### What the measurement confirmed
+
+| what was compared | result |
+| --- | --- |
+| full dataset | identical |
+| classes, `tse-*` injections and their texts | identical |
+| structure queried by the rest of the code | identical |
+| the card's link | identical |
+| hover preview: title, badges, trail, total, iframe | **identical, field by field** |
+| co-stream grouping: class, key, colour, pastille | identical |
+
+### What the measurement found
+
+**The fabricated card announced nothing to screen readers.**
+
+Twitch pairs its visual count with a `<p class="sr-only">` that spells it out.
+`scrubClone` removed it — and its reason was sound: cloned as-is, it would have
+announced the **source** channel's viewer count.
+
+But its conclusion no longer was:
+
+> "We cannot rewrite it — its exact wording varies by locale."
+
+That assumed the sentence had to be **manufactured**. It does not: the sentence
+is already there, in the user's language, written by Twitch. **Only the number is
+wrong.** We replace it and keep everything else.
+
+### And the symmetric defect, on the native card
+
+It had never been reported, and the audit surfaced it in passing: on a Twitch
+card, **the eye read our count while the screen reader announced Twitch's**. Two
+different numbers for the same row whenever the two diverge — which is precisely
+the co-stream case.
+
+`renderViewers` now realigns the sentence on every write, on both kinds of card.
+With no recognisable number inside, it leaves it alone: an intact sentence beats
+a mangled one.
+
+### What this audit does not cover
+
+**The collapsed sidebar.** Twitch renders only the avatar there, and the bench
+fixture does not reproduce that markup: the comparison would measure the same
+thing twice. Reasoning says the clone inherits its template's mode — it is cloned
+in the current mode — but that is reasoning, not measurement, and it is stated as
+such.
+
+### What the bench adds
+
+Scenario 134 **is** that audit, frozen. It first checks its own fixture — without
+which it would be comparing two clones — then diffs five families of properties
+and the two announced sentences.
+
+| mutant | the assertion that drops |
+| --- | --- |
+| the sentence removed from the clone | "the fabricated card announces its count to screen readers" |
+| the realignment removed | "the native one announces the number it DISPLAYS" |
+| an injection missed by the cloning | "their 'injections' is identical" |
+
 ## The co-stream signature is in the directory (v4.13.9)
 
 ### The report, fifth round — and the word that gave it away

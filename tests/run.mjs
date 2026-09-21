@@ -775,7 +775,23 @@ titre('14. Palier 3 — une chaîne apparaît avant que Twitch la pose');
   });
   ok('aucun id dupliqué dans le document', hygiene.dupIds.length === 0, JSON.stringify(hygiene.dupIds));
   ok('aucun libellé ARIA de la chaîne source', hygiene.labels.length === 0, JSON.stringify(hygiene.labels));
-  ok('aucun texte lecteur d\'écran périmé', hygiene.srTexts.length === 0, JSON.stringify(hygiene.srTexts));
+  /* CETTE ASSERTION EXIGEAIT L'ABSENCE DE TOUT TEXTE, et c'était la mauvaise
+     formulation d'une bonne idée. Le danger n'est pas qu'une carte fabriquée
+     parle aux lecteurs d'écran — c'est qu'elle leur dise le compteur de la
+     chaîne SOURCE. Le supprimer écartait le danger en supprimant aussi
+     l'information : un audit différentiel a montré qu'une carte du classement
+     n'annonçait alors RIEN, là où une carte native annonce son compteur.
+
+     La phrase de Twitch est déjà dans la bonne langue ; seul le nombre était
+     faux. On l'exige donc JUSTE, ce qui est plus fort que de l'exiger absent :
+     « 4,2 k » est le compteur de tardif, « 1 k » celui d'alpha, la source. */
+  ok('le texte lecteur d\'écran porte le compteur de CETTE carte',
+     hygiene.srTexts.length > 0
+     && hygiene.srTexts.every(t => nz(t).includes(nz(made.viewers))),
+     JSON.stringify(hygiene.srTexts));
+  ok('…et jamais celui de la chaîne source',
+     hygiene.srTexts.every(t => !/\b1\s*k\b/i.test(nz(t))),
+     JSON.stringify(hygiene.srTexts));
   ok('le pseudo de la source n\'apparaît nulle part', !/alpha/i.test(hygiene.text), hygiene.text);
   ok('la carte source est intacte', await page.evaluate(() => {
     const a = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === 'alpha');
@@ -17459,6 +17475,123 @@ addEventListener('message', (e) => {
      deux.rang.includes('lyritvjamie:4900') && deux.lyri === '4900'
      && deux.rang.includes('naguura:4900') && deux.milieu === '950',
      JSON.stringify(deux));
+  await page.close();
+}
+
+/* ═════════ UNE CARTE FABRIQUÉE EST UNE CARTE COMME LES AUTRES ════════════
+   AUDIT DEMANDÉ : « que les cartes clonées sur Top Chaînes soient identiques à
+   une carte normale ». Ce scénario EST l'audit, figé.
+
+   LA MÉTHODE : deux chaînes aux données RIGOUREUSEMENT identiques — même
+   compteur, même ancienneté, même catégorie, même langue. L'une a une carte de
+   Twitch, que le classement emprunte ; l'autre n'en a pas, et sa carte est
+   donc CLONÉE. On compare les deux au même instant, dans le même mode.
+
+   CE QUI A LE DROIT DE DIFFÉRER, et rien d'autre :
+     • `tseSynthetic`   — le marqueur lui-même ;
+     • `tseTwitchOrder` — l'ordre de Twitch, dont une carte fabriquée ne fait
+       délibérément pas partie (elle décalerait l'indice des suivantes) ;
+     • `tseLangs`       — le filtre de langue des cartes, dont TOUTE carte du
+       classement est exemptée (cf. applyCardFilter) ; l'absence est donc sans
+       effet, et la présence sur la native est un reliquat du mode suivi.
+
+   CE QUE CET AUDIT A TROUVÉ : la carte fabriquée n'annonçait RIEN aux lecteurs
+   d'écran. `scrubClone` retirait la phrase de Twitch — à raison, elle portait
+   le compteur de la chaîne source — mais concluait qu'on ne saurait pas la
+   réécrire. La phrase est pourtant déjà dans la bonne langue : seul le nombre
+   était faux. */
+{
+  titre('134. Top Chaînes — une carte fabriquée est indiscernable d\'une carte native');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 125 * 60_000).toISOString();
+    const c = (id) => ({ id, createdAt: h, viewers: 2000, game: 'Art',
+                         tags: ['Français'], title: 'Jour 12 du subathon !' });
+    window.__cats = [{ name: 'Art', viewers: 90_000, streams: [
+      { login: 'jumeaunat', viewers: 2000 }, { login: 'jumeaufab', viewers: 2000 }] }];
+    window.__fx = { jumeaunat: c('7401'), jumeaufab: c('7402'),
+                    /* Le modèle à cloner : sans carte native, rien n'est fabriqué. */
+                    modele: { id: '7404', createdAt: h, viewers: 400,
+                              game: 'Discussions', tags: [] } };
+    /* ABONNÉ AUX DEUX : la décoration « abonné » doit voyager aussi. */
+    try {
+      localStorage.setItem('tse:subs', JSON.stringify({
+        jumeaunat: [1, Date.now()], jumeaufab: [1, Date.now()] }));
+    } catch { /* stockage refusé : les assertions le diront */ }
+    window.__addCard('modele', 'Discussions', '400');
+    window.__addCard('jumeaunat', 'Art', '2 k');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 2, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => [...document.querySelectorAll('.side-nav-card')]
+    .some((c) => c.dataset.tseLogin === 'jumeaufab' && c.dataset.tseViewers), 15_000);
+  await wait(page, 1500);
+
+  const vu = await page.evaluate(() => {
+    const trouve = (l) => [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === l);
+    const TOLERE = new Set(['tseSynthetic', 'tseTwitchOrder', 'tseLangs']);
+    const empreinte = (card, login) => {
+      if (!card) return null;
+      const norm = (s) => (s ?? '').replace(new RegExp(login, 'gi'), '<login>');
+      const statut = card.querySelector('.side-nav-card__live-status');
+      return {
+        data: Object.fromEntries(Object.entries({ ...card.dataset })
+          .filter(([k]) => !TOLERE.has(k)).map(([k, v]) => [k, norm(v)]).sort()),
+        classes: [...card.classList].sort().join(' '),
+        injections: [...card.querySelectorAll('[class^="tse-"], [class*=" tse-"]')]
+          .map((n) => `${n.className}:${norm(n.textContent).trim()}`).sort(),
+        href: norm(card.querySelector('a[href^="/"]')?.getAttribute('href')),
+        structure: [
+          !!card.querySelector('a[data-a-target="side-nav-card"]'),
+          !!card.querySelector('a[data-test-selector="followed-channel"]'),
+          !!card.querySelector('.tw-image-avatar'),
+          !!card.querySelector('[data-a-target="side-nav-card-metadata"]'),
+          !!card.querySelector('.side-nav-card__metadata'),
+          !!card.querySelector('p[data-a-target="side-nav-title"]'),
+          !!card.querySelector('.side-nav-card__live-status'),
+          !!card.querySelector('.tw-channel-status-indicator'),
+        ].join(','),
+        /* CE QUE LE LECTEUR D'ÉCRAN ENTEND, en regard de ce que l'œil lit. */
+        annonce: [...(statut?.querySelectorAll('*') || [])]
+          .filter((n) => !n.children.length && n.getAttribute('aria-hidden') !== 'true'
+                      && !String(n.className).includes('tse-'))
+          .map((n) => n.textContent.trim()).filter(Boolean),
+        oeil: card.querySelector('.tse-viewers')?.textContent ?? null,
+      };
+    };
+    const nat = trouve('jumeaunat'), fab = trouve('jumeaufab');
+    return {
+      decor: { natSynth: nat?.dataset.tseSynthetic === 'true',
+               natEmpruntee: nat?.dataset.tseGlobal === 'true',
+               fabSynth: fab?.dataset.tseSynthetic === 'true' },
+      nat: empreinte(nat, 'jumeaunat'), fab: empreinte(fab, 'jumeaufab'),
+    };
+  });
+
+  /* LE DÉCOR D'ABORD : sans lui, tout le reste comparerait deux clones. */
+  ok('le décor oppose bien une carte native empruntée à une carte fabriquée',
+     vu.decor.natEmpruntee === true && vu.decor.natSynth === false
+     && vu.decor.fabSynth === true, JSON.stringify(vu.decor));
+
+  const champs = ['data', 'classes', 'injections', 'href', 'structure'];
+  for (const champ of champs) {
+    ok(`…et leur « ${champ} » est identique`,
+       JSON.stringify(vu.nat?.[champ]) === JSON.stringify(vu.fab?.[champ]),
+       `native: ${JSON.stringify(vu.nat?.[champ])}\n            fabriquée: ${JSON.stringify(vu.fab?.[champ])}`);
+  }
+
+  /* L'ÉCART QUE CET AUDIT A TROUVÉ, et qu'aucune des lignes ci-dessus ne
+     couvrait avant lui : la carte fabriquée n'annonçait rien du tout. */
+  ok('…la carte fabriquée annonce son compteur aux lecteurs d\'écran',
+     vu.fab?.annonce.length > 0 && vu.fab.annonce.some((t) => t.includes(vu.fab.oeil)),
+     JSON.stringify({ annonce: vu.fab?.annonce, oeil: vu.fab?.oeil }));
+  /* ET LE DÉFAUT SYMÉTRIQUE, sur la carte native : l'œil lisait notre
+     compteur, le lecteur d'écran annonçait celui de Twitch. */
+  ok('…et la native annonce le nombre qu\'elle AFFICHE, pas celui de Twitch',
+     vu.nat?.annonce.some((t) => t.includes(vu.nat.oeil)),
+     JSON.stringify({ annonce: vu.nat?.annonce, oeil: vu.nat?.oeil }));
   await page.close();
 }
 
