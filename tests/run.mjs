@@ -17682,6 +17682,120 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ LA SIGNATURE SE LIT COMME L'ŒIL LA LIT ═══════════════════════
+   LA 4.13.9 COMPARAIT LES VALEURS EXACTES, et un rapport de terrain l'a mise
+   en défaut : trois co-streamers affichés « 1,1 k » n'ont PAS le même nombre
+   exact. Twitch échantillonne le compteur combiné une fois par participant, et
+   les relevés diffèrent de quelques unités.
+
+   LA LEÇON ÉTAIT DÉJÀ DANS LE PRODUIT, dix mille lignes plus bas, au-dessus de
+   l'heuristique qui regroupe les cartes : « deux valeurs exactes voisines
+   (1 663 / 1 661) ne doivent pas faire échouer un regroupement que Twitch
+   affiche comme identique. » La signature du classement l'ignorait — elle ne
+   protégeait donc que les sessions qui n'en avaient pas besoin.
+
+   MESURÉ AVANT CORRECTIF, sur le décor ci-dessous :
+       relevé 1 : milieu:900, modele:800, bb:300, aa:300, cc:300
+       relevé 2 : bb:1148, aa:1101, cc:1093, milieu:900, modele:800
+   Les trois tombent à leur compteur propre, la marche les remonte, et ainsi de
+   suite — l'oscillation, exactement. */
+{
+  titre('136. Co-stream — la signature du classement se lit comme l\'œil la lit');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = (min) => new Date(Date.now() - min * 60_000).toISOString();
+    /* TROIS COMBINÉS VOISINS MAIS DISTINCTS — 1101, 1148, 1093 — qui
+       s'affichent TOUS « 1,1 k ». C'est le relevé de Twitch, et c'est le seul
+       point qui distingue ce décor de celui du scénario 133. */
+    window.__cats = [{ name: 'VALORANT', viewers: 90_000, streams: [
+      { login: 'aa', viewers: 1101 }, { login: 'bb', viewers: 1148 },
+      { login: 'cc', viewers: 1093 },
+      { login: 'milieu', viewers: 900 }, { login: 'modele', viewers: 800 }] }];
+    const c = (id, min) => ({ id, createdAt: h(min), viewers: 300,
+                              game: 'VALORANT', tags: [] });
+    window.__fx = {
+      aa: c('950', 60), bb: c('951', 490), cc: c('952', 120),
+      milieu: { id: '953', createdAt: h(30), viewers: 900, game: 'VALORANT', tags: [] },
+      modele: { id: '954', createdAt: h(30), viewers: 800, game: 'VALORANT', tags: [] },
+    };
+    /* GUEST STAR NE DIT RIEN D'EUX : c'est la signature du répertoire, et elle
+       seule, qui doit les tenir. */
+    window.__addCard('modele', 'VALORANT', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => [...document.querySelectorAll('.side-nav-card')]
+    .some((c) => c.dataset.tseLogin === 'milieu' && c.dataset.tseViewers === '900'), 15_000);
+
+  const rang = () => page.evaluate(() =>
+    window.tse.global.top(10).map((r) => `${r.login}:${r.viewers}`));
+  const un = await rang();
+  ok('les trois co-streamers gardent le nombre du répertoire',
+     ['aa:1101', 'bb:1148', 'cc:1093'].every((x) => un.includes(x)), un.join(' '));
+  /* LA CONSÉQUENCE VISIBLE : sans le correctif, les trois passent SOUS une
+     chaîne qui en affiche 900 — mesuré. */
+  ok('…et aucun ne passe sous une chaîne qui en affiche moins',
+     ['aa:1101', 'bb:1148', 'cc:1093']
+       .every((x) => un.indexOf(x) < un.indexOf('milieu:900')), un.join(' '));
+  await wait(page, 4000);
+  const deux = await rang();
+  ok('…et rien ne bat d\'un cycle à l\'autre',
+     ['aa:1101', 'bb:1148', 'cc:1093'].every((x) => deux.includes(x))
+     && deux.includes('milieu:900'), deux.join(' '));
+  await page.close();
+
+  /* ── ET LE COMPTEUR QUI ÉTAIT AVEUGLE LÀ OÙ LE BUG VIT ───────────────────
+     Le bilan de la 4.13.11 ne parcourait que les GROUPES ACTIFS, or un groupe
+     n'est actif qu'à partir de DEUX cartes visibles. Une session réduite à un
+     seul membre à l'écran — le cas même qu'on cherche — n'était comptée nulle
+     part : le premier rapport de terrain a rendu « pastilles 3 » sur les
+     cartes et un bilan rigoureusement à zéro. */
+  const p2 = await fresh();
+  await p2.evaluate(() => {
+    const h = (min) => new Date(Date.now() - min * 60_000).toISOString();
+    const trio = ['seulvu', 'part1', 'part2'];
+    const guests = trio.map((l, i) => ({ id: '90' + i, login: l,
+                                         viewers: 300, combined: 1300 }));
+    const bruit = [...Array(50)].map((_, i) => ({ login: 'n' + i, viewers: 900 - i }));
+    window.__cats = [
+      { name: 'VALORANT', viewers: 90_000, streams: [
+        { login: 'seulvu', viewers: 1300 }, { login: 'modele', viewers: 1200 }, ...bruit] },
+      { name: 'Discussions', viewers: 80, streams: [
+        { login: 'part1', viewers: 40 }, { login: 'part2', viewers: 40 }] },
+    ];
+    window.__fx = Object.fromEntries([
+      ['seulvu', { id: '900', createdAt: h(60), viewers: 300, game: 'VALORANT', tags: [] }],
+      ['part1', { id: '901', createdAt: h(490), viewers: 40, game: 'Discussions', tags: [] }],
+      ['part2', { id: '902', createdAt: h(120), viewers: 40, game: 'Discussions', tags: [] }],
+      ['modele', { id: '912', createdAt: h(30), viewers: 1200, game: 'VALORANT', tags: [] }],
+      ...bruit.map((x) => [x.login, { id: 'b' + x.login, createdAt: h(30),
+                                      viewers: x.viewers, game: 'VALORANT', tags: [] }]),
+    ]);
+    window.__gs = Object.fromEntries(trio.map((l, i) =>
+      ['90' + i, { hostId: '9000', hostLogin: 'hote', guests }]));
+    window.__addCard('modele', 'VALORANT', '1,2 k');
+  });
+  await attendre(p2, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await p2.evaluate(() => window.tse.global.on());
+  await attendre(p2, () => (window.tse.panneau.rapport().coStream?.sessions || 0) > 0, 15_000);
+  await wait(p2, 1200);
+
+  const vu = await p2.evaluate(() => ({
+    bilan: window.tse.panneau.rapport().coStream,
+    dessines: document.querySelectorAll('.side-nav-card.tse-costream').length,
+  }));
+  /* L'ASSERTION QUI PORTE LE SENS : aucun groupe dessiné, et pourtant la
+     session est vue et comptée. C'est ce zéro-là qui manquait au rapport. */
+  ok('une session réduite à un seul membre visible est vue quand même',
+     vu.bilan.sessions === 1 && vu.bilan.groupes === 0 && vu.dessines === 0,
+     JSON.stringify(vu));
+  ok('…et ses membres absents sont rangés du côté de Twitch',
+     vu.bilan.affiches === 1 && vu.bilan.horsClassement === 3
+     && vu.bilan.classesNonAffichees === 0, JSON.stringify(vu.bilan));
+  await p2.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
