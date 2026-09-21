@@ -338,9 +338,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1098 Ko | 410 Ko | 3 387 → **2** |
+| `content.js` | 1098 Ko | 410 Ko | 3 391 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 97 Ko | 47 Ko | 133 → **0** |
+| `panneau.js` | 100 Ko | 48 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1344 Ko** | **563 Ko** | **−57 %** |
@@ -2616,6 +2616,76 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Le premier relevé ne se fait disputer par personne (v4.14.5)
+
+### Une régression que j'ai introduite la veille, et un rapport qui l'a dite en une ligne
+
+> « Voilà plusieurs minutes que j'ai installé l'extension, et rien ne se met en
+> place côté abonnement. »
+
+Le rapport, sur une installation neuve :
+
+```
+horodatage             jamais / never
+en attente / pending   false
+ERREURS (0)
+```
+
+**Aucune ligne d'onglet, aucune erreur.** `enAttente` vaut `arme && !parti` :
+à false, avec `init()` appelé sans condition au démarrage, il ne reste qu'une
+lecture possible — le relevé **est parti, et n'a rien fait**. Or avant la
+4.14.4, il n'existait aucun retour anticipé entre la garde de période et la
+visite des onglets. C'était donc le bail que je venais d'ajouter.
+
+**Reproduit au chiffre près** : un bail laissé par une page morte — un
+rechargement, une navigation, un onglet fermé au mauvais instant — et le relevé
+d'une installation neuve rend exactement ce rapport.
+
+### Trois correctifs, et un seul suffisait à rendre l'attente inutile
+
+**1. Le tout premier relevé ignore le bail.** C'est la règle demandée, et c'est
+la bonne : ce que le bail protège n'existe pas encore à cet instant. Il empêche
+deux onglets de charger huit pages au lieu de quatre — un coût qui **se répète**
+toutes les six heures, et qui mérite une garde. Le premier relevé n'a lieu
+qu'une fois dans la vie d'une installation, et il n'a rien à l'écran à
+préserver : il n'y a justement rien à l'écran, c'est tout le problème. On paie
+donc au plus une fois, à l'installation, le doublon qu'on refuse partout
+ailleurs.
+
+**2. Le bail se rend au départ de la page.** `pagehide` couvre le rechargement,
+la navigation et la fermeture. Il ne couvre pas un plantage — d'où le troisième.
+
+**3. Un relevé qui se range revient.** Le départ était à **un coup par
+chargement de page** : une page qui se rangeait ne réessayait jamais, et
+l'utilisateur restait sans relevé pour toute la vie de l'onglet. La condition
+d'arrêt est désormais un **horodatage écrit**, pas un compteur épuisé : on
+s'arrête dès qu'un relevé a abouti, le nôtre ou celui de la page qui tenait le
+bail, puisque l'horodatage est partagé.
+
+Le voile, lui, suit le **premier essai** et non la reprise : attacher la levée à
+la reprise entière ferait patienter la sidebar des dizaines de secondes, ce que
+ce bloc existe précisément pour refuser.
+
+### Et la variable qui aurait répondu tout de suite
+
+`differes` existait déjà dans les données du rapport depuis la veille — **il
+n'était simplement pas imprimé**. Trois causes donnaient le même silence : pas
+armé, parti pour rien, ou rangé derrière une autre page. Il a fallu reproduire
+l'état à la main pour trancher, alors que le chiffre était collecté.
+
+Une variable qu'on collecte sans l'afficher ne sert à personne. Elle s'affiche.
+
+### Ce que le banc mesure
+
+Le scénario 141 change de décor : il éprouvait un **profil vierge**, alors que
+c'est le relevé **de routine** que le bail garde. Il porte maintenant les deux
+situations, et la seconde est le rapport de terrain rejoué.
+
+| situation | attendu |
+| --- | --- |
+| routine, deux onglets simultanés | un relève, l'autre se range — **4 pages**, pas 8 |
+| installation neuve + bail d'une page morte | le relevé part, **sans se ranger une seule fois** |
 
 ## Deux onglets Twitch ne relèvent pas deux fois (v4.14.4)
 
@@ -9265,7 +9335,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 141 scénarios, 1238 assertions |
+| `npm test` | le harnais Playwright : 141 scénarios, 1240 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
