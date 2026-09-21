@@ -721,6 +721,9 @@ across them — and it does not restart from zero when a change of sort reorders
 the list. `prefers-reduced-motion` stops the comet and keeps the thread: the
 movement goes, the information stays.
 
+> **Removed in 4.14.0.** The "reduced motion" block is gone: see
+> *Fewer rules, a loop that closes, a guide rebuilt*.
+
 Three tabs are read (v3.46): `?tab=paid`, `?tab=gifts` and `?tab=mobile` —
 the three that list subscriptions **to channels**. Turbo and "other
 subscriptions" are not about channels. **Expired** subscriptions are left out
@@ -2054,6 +2057,251 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Fewer rules, a loop that closes, a guide rebuilt (v4.14.0)
+
+Four requests, arriving together. They don't look alike, but three of them have
+the same shape: **less code**, and an assertion that had to change meaning
+rather than disappear.
+
+### 1. The "reduced motion" block is gone
+
+**158 lines, 12 rules, 73 selectors, a single `@media (prefers-reduced-motion:
+reduce)` block.** It stopped or slowed every animation the extension draws whenever the
+system declared a preference for less motion.
+
+Asked for like this, with a capture attached:
+
+> "I'd like you to remove the CSS that reduces animations on Chrome. Because on
+> Firefox it isn't there, and that's perfect as far as I'm concerned."
+
+The two builds rendered differently because **only one carried that block**. Put
+side by side, the one without it is the one that was kept.
+
+**What it costs, and it has to be said:** someone who asks their system for less
+motion no longer gets it here. The safety net exists elsewhere, and it is more
+precise — the panel's **nineteen settings** turn off each decoration one by one,
+without depending on a system preference that not every browser relays.
+
+Three consequences were caught by contracts already in place:
+
+| what moved | why |
+| --- | --- |
+| the twelve store listings lose their "the *reduce motion* setting is honored" bullet | `tests/store.mjs` binds each listing promise to an anchor in the code; the anchor goes, the promise goes |
+| the pulse verdict loses its fourth branch | it named a regime that no longer exists |
+| `mouvementReduit` stays in the report | it is a **reading** of the environment, not a promise |
+
+#### The assertions aren't deleted, they're turned around
+
+Eleven bench assertions measured the stopping or the slowing. Deleting them
+would have left the hole open — and that hole has been used before: in v4.9, two
+rainbows went straight **through** this setting, one by specificity, the other by
+sheet order, with nothing to say so.
+
+So they now measure **invariance**: two readings, one under `reduce`, one under
+`no-preference`, and the requirement that they be identical. That is strictly
+stronger than the old form, because the equality falls in **both** directions.
+
+| scenario | what is compared |
+| --- | --- |
+| 51 — subscribed card | all nine decoration measurements: background, name, category, avatar and halo |
+| 113 — fresh-stream pulse | the cadence to the millisecond, the amplitude in opacity **and in width** |
+| 114 — subathon rainbows | the two durations identical, and the hue drifting on both sides |
+| 123 — gear pulse | the name, the duration, the hover transition, and the amplitude swept over one cycle |
+
+Each is paired with a liveliness assertion: equality alone would also hold if
+everything were switched off on both sides.
+
+#### The panel had a second one, and it was lying
+
+`content.js` was not the only carrier. `panneau.css` had **two**
+`prefers-reduced-motion` blocks, and the second kept two exceptions announced in
+so many words:
+
+> "TWO EXCEPTIONS, AND THEY ARE THE PRODUCT'S. […] The values are the ones from
+> `content.js`, identical."
+
+They no longer were: the `content.js` block had just gone. A calm pulse and a
+slowed rainbow in the **mock-ups**, a full pulse and a lively rainbow in the
+**product** they are meant to show.
+
+It matters more here than anywhere else. A mock-up has exactly one job: to show
+what the product does. It cannot keep a regime the product has lost — it stops
+explaining and starts contradicting. So both blocks went too, and the mock-up's
+assertion became an invariance like the others.
+
+**That block had already been caught out once**, for a reason worth keeping: it
+announced itself as exhaustive with `* { animation: none !important }`, while the
+universal selector matches **elements** — `::before` and `::after` are not
+elements. The mock-up's violet bar, a `::before`, kept pulsing. The same audit
+found the same hole in the product on the same day.
+
+**A bench defect found on the way.** Scenario 114 waited **1,500 ms** between its
+two colour samples — a figure chosen back when the reduced cycle ran for eight
+seconds. At full cadence the cycle runs for **exactly 1.5 s**: both samples
+landed on the same hue, and the assertion failed for a reason that had nothing
+to do with what it measures. A wait commensurate with the cycle it measures
+measures nothing. Brought down to 500 ms, a third of a turn.
+
+### 2. The background glow finally closes
+
+Reported in the same message:
+
+> "On Firefox, I'd like the CSS effects to loop perfectly, which isn't the case
+> on the background of this kind of card."
+
+The subscribed card's background carries **four layers** and turns in fifteen
+seconds. Three of them did not arrive where they started:
+
+```
+0%   → 0% 50%, 100% 50%, 40% 50%
+100% → 100% 50%,  0% 50%, 62% 50%
+```
+
+On a background that does not repeat, `0%` and `100%` are **two different points
+of the card**. Fifteen seconds of slow drift, then a hard jump.
+
+The fourth layer already closed — the remedy was sitting right beside the
+defect. Each layer now makes a **round trip**: it travels out, then returns to
+its starting point before the cycle ends.
+
+Measured, between the last frame and the first: **0.0101%** of drift, against
+100% before. That residue is floating point, not a seam.
+
+#### What didn't loop was held by nothing
+
+The bench measured this decoration's colour, its speed, its stacking plane — and
+never its **seam**, which exists for one frame of the cycle and which no capture
+shows. Scenario 137 measures it, and it keeps **no list**: it asks each animation
+which properties it touches, through `getKeyframes()`, and compares the render at
+the first and the last frame. An animation added tomorrow is covered without
+anyone thinking about it.
+
+Two values do differ at the two ends, and they are not seams. They are not
+written on an exemption list — they are **computed**, in rendered pixels:
+
+| what differs | what the bench computes to allow it |
+| --- | --- |
+| the sweep, from 210% to −110% | from its own background-size and the box width: the image occupies `[2780, 6572]` px then `[−5308, −1516]` px, and the box is `[0, 1264]` — the return happens entirely off-frame |
+| the name's gold, from 0% to 300% | the tile is 300%, the background repeats, and both tile edges carry the same colour (`rgb(255, 200, 110)`) — the step is exactly one tile |
+
+The day either one stops being true, it falls back among the seams.
+
+### 3. The panels' close cross is gone
+
+> "I'd like you to remove the X from the panels."
+
+What remains are the two exits of an ordinary modal, which were already there:
+**Esc**, and a **click outside the frame**. Chapter 1 of the guide now names
+them, which wasn't necessary while the cross was visible.
+
+The four assertions that measured the cross are not deleted: **the absence of a
+cross is the contract**, and the frame must carry nothing but its iframe.
+
+### 4. The guide, rebuilt
+
+> "I want the best possible guide. […] Bring only the information the user will
+> actually meet in the extension."
+
+**It contradicted itself.** It claimed "the extension has no settings",
+contradicted by the **Settings** section of the same panel, two buttons below.
+
+**Its order was a developer's, not a user's.** It opened on the hover preview —
+that is, on a **gesture** — when what you see first is the sidebar, without doing
+anything at all.
+
+Fifteen chapters, put back in the order you meet them: what imposes itself on the
+eye, then what you trigger, then what you tune.
+
+| | chapter | |
+| --- | --- | --- |
+| 1 | The gear, and this panel | **new** — how you get in, and how you close |
+| 2 | Faster than Twitch, and cleaner | |
+| 3 | How long they've been live | |
+| 4 | Starts, and restarts | |
+| 5 | Your subscriptions, in gold | |
+| 6 | Co-streams | |
+| 7 | Subathons | |
+| 8 | The hover preview | what used to open the guide |
+| 9 | The preview's badges | |
+| 10 | Previously on this stream | |
+| 11 | Sorting and filtering | |
+| 12 | Top Channels | |
+| 13 | Everything tunes, everything switches off | **new** — what was missing, and what governs the rest |
+| 14 | This panel | |
+| 15 | Privacy, plainly | |
+
+The two new chapters are worth **four more keys** per language, plus two
+rewritten ones — the introduction, and the panel chapter. **Twelve languages**,
+which makes 240 keys per file.
+
+#### Three errors found by reading the guide, not the code
+
+The reordering produced two of them; the third had been asleep for longer. None
+was visible while proofreading a translation: you have to have the text and the
+product in front of you **at the same time**.
+
+**1. A cross-reference pointing two chapters too high.** The co-stream chapter
+refers to sorting by its number. That number was copied out in full in all
+twelve locale files — "chapter 9" — and the new order left it pointing at "The
+preview's badges", **in twelve languages at once**. A perfectly correct
+translation can carry an incorrect cross-reference.
+
+It is no longer copied: it is a `$1` substitution, and `construireGuide` looks
+up the target chapter's rank in the table at render time. The next reordering
+will fix it by itself.
+
+**2. The panel chapter listed the sections in an order the rail never had** —
+"Top Channels" before "Diagnostics", while the rail shows them the other way
+round. And in **seven locale files out of twelve**, at least one of the five
+groups was named differently from the button you actually click:
+
+| file | the guide said | the rail shows |
+| --- | --- | --- |
+| en | "Getting started" | "Get started" |
+| it | «Top Canali» | «Canali di punta» |
+| pl | „Na start", „Top kanały" | „Na początek", „Najpopularniejsze kanały" |
+| pt-PT | «Configurações», «Seus dados» | «Definições», «Os teus dados» |
+| ru | «Начало работы» | «С чего начать» |
+| zh-CN | 「快速上手」 | 「从这里开始」 |
+| pt-BR | «Seus dados» | «Os teus dados» ← the label was in European Portuguese |
+
+The first six are fixed in the guide; the last one is fixed in the **label**,
+because the label was the thing at fault — thirteen other strings in that same
+file say "seus/sua".
+
+**3. A setting announced that does not exist.** The settings chapter promised
+that the subscriptions sweep "can be stopped". It cannot: `abosPeriode` is
+**3, 6, 12 or 24 hours**, and nothing else. That is the same species of error as
+the "the extension has no settings" line we had just removed — a sentence nobody
+cross-checks against the interface. The chapter now gives the four values.
+
+#### And all three are now held by the bench
+
+| what is measured | what would fail without it |
+| --- | --- |
+| the panel chapter names the rail's five labels, **in the rail's order** | a list that no longer matches what's in front of you is worth less than no list |
+| every cross-reference points at a chapter that exists, and not at itself | tomorrow's cross-reference, broken by the day after's reordering |
+| the co-stream cross-reference lands on the sorting chapter | a reference within bounds, but aimed at the wrong chapter |
+
+The target chapter is found **by its rendered title**, not by its rank: the
+scenario therefore has no number to keep up to date, which is exactly the debt
+it exists to avoid.
+
+#### And the bench did not know how to substitute
+
+The cross-reference assertion was first green for a bad reason, then red for a
+good one: it was reading **`(chapter $1)`**, literally.
+
+The harness's `chrome.i18n` stubs were written `(k) => table[k].message` — they
+returned the **raw** message. `chrome.i18n.getMessage(key, sub)` replaces
+`$1` … `$9` with its arguments, and not one of the five stubs did. So the bench
+had **never** seen a substituted message: not this cross-reference, and not the
+`$1 h` that shows the sweep period in the settings, for as long as it has
+existed.
+
+A stub simpler than the thing it replaces turns green assertions the product
+would fail. All five now substitute the way Chrome does.
+
 ## The signature read differently from the eye (v4.13.12)
 
 ### Two defects, and both are mine
@@ -3124,6 +3372,9 @@ an end position but the movement itself, which symmetry does not erase. It turns
 while the pointer is there, like a cog being driven — and stops entirely under
 `prefers-reduced-motion`, where it has nothing to preserve.
 
+> **Removed in 4.14.0.** The "reduced motion" block is gone: see
+> *Fewer rules, a loop that closes, a guide rebuilt*.
+
 ## Two numbers that were no longer the right ones (v4.13)
 
 **The frame goes to 1100 × 760.** 4.12 gave it 760 × 580 in the name of "the
@@ -3167,6 +3418,9 @@ reaction reserved for the pointer is a reaction half the people will never see.
 The rotation is motion, and it goes under `prefers-reduced-motion`. With nothing
 to preserve, unlike the beat: it is not a signal, it acknowledges the pointer,
 and the hover background already says that.
+
+> **Removed in 4.14.0.** The "reduced motion" block is gone: see
+> *Fewer rules, a loop that closes, a guide rebuilt*.
 
 ### 2. A close button you find without looking
 
@@ -6227,6 +6481,9 @@ alone: enlarging them substantially would require slowing the cycle by as much.
 `prefers-reduced-motion` stops it entirely, which remains the only exit that
 counts.
 
+> **Removed in 4.14.0.** The "reduced motion" block is gone: see
+> *Fewer rules, a loop that closes, a guide rebuilt*.
+
 ### What the mutation corrected in the harness
 
 The rainbow sampler **copied** the cycle's duration: twelve seconds, written by
@@ -6791,6 +7048,9 @@ the tags, which count nothing.
 `prefers-reduced-motion` freezes the mark without removing it: the counter's
 heat settles on a solid colour. The day pill never moved — it has nothing to
 lose, and it is what carries the meaning.
+
+> **Removed in 4.14.0.** The "reduced motion" block is gone: see
+> *Fewer rules, a loop that closes, a guide rebuilt*.
 
 ## A subathon's trail (v3.89)
 
@@ -7858,7 +8118,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 136 scenarios, 1207 assertions |
+| `npm test` | the Playwright harness: 137 scenarios, 1218 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -7878,9 +8138,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1057 KB | 404 KB | 3,350 → **2** |
+| `content.js` | 1057 KB | 404 KB | 3,351 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 98 KB | 47 KB | 130 → **0** |
+| `panneau.js` | 98 KB | 47 KB | 133 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1296 KB** | **556 KB** | **−57 %** |

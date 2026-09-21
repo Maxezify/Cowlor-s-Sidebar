@@ -164,7 +164,7 @@ _______________________________
 Ein Zahnrad rechts neben dem Titel der Seitenleiste, ein Klick, und alles, was die Erweiterung gelernt hat, öffnet sich über Twitch. Das Symbol der Erweiterung, oben rechts im Browser, öffnet genau dasselbe Panel.
 
 - ★ ZWEI WEGE, EIN PANEL ★ Das Zahnrad in der Seitenleiste oder das Symbol in der Symbolleiste: dieselbe Seite, in beiden Fällen. Über das Zahnrad geöffnet ist sie größer — ein Symbolleisten-Popup wird vom Browser begrenzt, nicht von uns.
-- ★ EINE ANLEITUNG, GLEICH ZU BEGINN ★ Das Panel öffnet sich mit einer Anleitung in dreizehn Kapiteln über alles, was die Erweiterung hinzufügt, mit gezeichneten Beispielen — und sie erscheint auch ohne offenen Twitch-Tab.
+- ★ EINE ANLEITUNG, GLEICH ZU BEGINN ★ Das Panel öffnet sich mit einer Anleitung in fünfzehn Kapiteln über alles, was die Erweiterung hinzufügt, mit gezeichneten Beispielen — und sie erscheint auch ohne offenen Twitch-Tab.
 - ★ IHRE GEWOHNHEITEN, GEZEICHNET ★ Die Stunden, in denen Sie wirklich zusehen, als Raster aus sieben Tagen mal vierundzwanzig Stunden.
 - ★ IHRE ZAHLEN ★ Top-Streamer, erkannte Abos, gemerkte gefolgte Kanäle: alles da, alles lesbar.
 - ★ EIN BERICHT ZUM EINFÜGEN ★ Ein Knopf baut einen vollständigen Diagnosebericht, ohne jede persönliche Liste darin — genug, um ein Problem zu melden, ohne etwas preiszugeben.
@@ -195,7 +195,6 @@ Twitch hat ein helles Design. Die Erweiterung merkt es und wechselt mit — ohne
 - ★ ALLES ZIEHT MIT, NICHT NUR DER HINTERGRUND ★ Karten, Hover-Vorschau, Abzeichen, Menüs, Symbolleisten-Panel: Jedes Element hat seine helle Fassung, für genau diesen Hintergrund gemacht.
 - ★ FARBEN NEU BERECHNET, NICHT NUR AUFGEHELLT ★ Jedes Abzeichen bekommt seinen eigenen hellen Farbton, gemessen auf genau dem Hintergrund, auf dem es sitzt. Ein Orange, das auf Schwarz gut lesbar ist, verschwimmt auf Weiß: also wurde es neu gemacht und nicht bloß blasser.
 - ★ IN DER SEKUNDE, IN DER DU UMSCHALTEST ★ Stell Twitchs Design um, und die Erweiterung folgt binnen einer Sekunde. Kein Neuladen nötig.
-- ★ UND WENN DU WENIGER BEWEGUNG WILLST ★ Die Systemeinstellung „Bewegung reduzieren“ wird respektiert: Was sich bewegte, hört auf — verloren geht nichts, ein Signal, das pulsierte, atmet weiter sanft, statt zu erlöschen.
 
 _______________________________
 

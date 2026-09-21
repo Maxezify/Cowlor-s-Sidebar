@@ -3512,12 +3512,37 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* Le balayage traverse dans le premier quart du cycle puis reste hors
        cadre : il passe, il ne clignote pas. Les nappes, elles, dérivent sans
        interruption — et pas au même rythme, sans quoi elles se déplaceraient
-       en bloc et l'œil y verrait une seule image qui glisse. */
+       en bloc et l'œil y verrait une seule image qui glisse.
+
+       ── ET LA BOUCLE SE REFERME, CE QUI N'ÉTAIT PAS LE CAS ────────────────
+       SIGNALÉ SUR FIREFOX : « le fond de ce type de carte ne boucle pas ».
+       C'était exact, et mesurable dans le code même — sur les quatre couches,
+       trois arrivaient à 100 % ailleurs qu'à leur départ :
+
+           couche 2 :   0 %  →  100 %       couche 3 : 100 %  →  0 %
+
+       Avec « background-repeat: no-repeat », ces deux positions sont deux
+       points DIFFÉRENTS de la carte : à la fin du cycle, les deux nappes
+       revenaient d'un coup à leur point de départ. Quinze secondes de dérive,
+       puis un saut.
+
+       LA QUATRIÈME COUCHE, ELLE, BOUCLAIT DÉJÀ — 40 % au départ comme à
+       l'arrivée. Elle montrait le remède à côté du défaut.
+
+       Chaque nappe fait donc désormais un ALLER-RETOUR : elle part, dérive, et
+       revient exactement d'où elle vient. Les trois n'y mettent pas les mêmes
+       étapes, ce qui garde ce que l'animation cherchait — des rythmes qui ne
+       coïncident pas — sans le saut qui la terminait.
+
+       LE BALAYAGE, LUI, GARDE SON RETOUR SEC, et c'est voulu : à -110 % comme
+       à 210 %, avec une image large de trois fois la carte, il est ENTIÈREMENT
+       hors cadre. Il ne se voit ni partir ni revenir. */
     @keyframes tse-sub-lueur {
       0%   { background-position: -110% 0,   0% 50%, 100% 50%,  40% 50%; }
-      25%  { background-position:  210% 0,  35% 50%,  62% 50%,  78% 50%; }
-      60%  { background-position:  210% 0,  78% 50%,  18% 50%,   8% 50%; }
-      100% { background-position:  210% 0, 100% 50%,   0% 50%,  40% 50%; }
+      25%  { background-position:  210% 0,  46% 50%,  62% 50%,  78% 50%; }
+      50%  { background-position:  210% 0,  84% 50%,  22% 50%,   8% 50%; }
+      75%  { background-position:  210% 0,  38% 50%,  74% 50%,  62% 50%; }
+      100% { background-position:  210% 0,   0% 50%, 100% 50%,  40% 50%; }
     }
 
     /* LE TEXTE, EN OR. Un dégradé qui traverse les lettres elles-mêmes : la
@@ -3766,11 +3791,11 @@ const TSE_GATE_MAX_CLICKS = 5;
        deux éléments, et à elle seule : les agrandir franchement demanderait de
        ralentir le cycle d'autant.
 
-       « prefers-reduced-motion » LE RALENTIT, il ne l'arrête plus — huit
-       secondes le tour, une teinte par seconde, le tiers du seuil. La 4.6
-       l'arrêtait net ; la 4.9 a corrigé cette lecture trop large, parce qu'une
-       teinte qui dérive n'est pas un déplacement. Le bloc de mouvement réduit,
-       plus bas, dit l'arbitrage en entier. */
+       « prefers-reduced-motion » NE LE TOUCHE PLUS DU TOUT. La 4.6 l'arrêtait
+       net, la 4.9 l'a ralenti faute de mieux, et la 4.14 a retiré le bloc
+       entier sur demande : la sortie est désormais dans les réglages du
+       panneau, qui éteignent chaque décoration une par une. La marge de ce
+       critère-ci ne dépend donc plus que de l'AIRE, ci-dessus. */
     @keyframes tse-subathon-teinte {
       0% { color: #ff8f8f; }
       12.5% { color: #ffe38f; }
@@ -3912,166 +3937,26 @@ const TSE_GATE_MAX_CLICKS = 5;
          à côté ferait croire qu'elle travaille. */
     }
 
-    /* Mouvement réduit : la demande est explicite, on la respecte. L'or reste
-       — c'est lui qui porte l'information — mais plus rien ne bouge. */
-    @media (prefers-reduced-motion: reduce) {
-      /* LE SUBATHON GARDE SA MARQUE ET PERD SON MOUVEMENT. L'arc-en-ciel
-         s'arrête, et ce qui reste n'est pas une couleur au hasard : c'est le
-         cyan que le calcul des badges désignait, écrit en dur dans les deux
-         règles. La pastille et le badge restent donc lisibles, distincts de
-         tous leurs voisins, et parfaitement immobiles.
+    /* ── PAS DE BLOC « prefers-reduced-motion » : C'EST UNE DEMANDE, ET ELLE
+       EST MOTIVÉE. Cent cinquante lignes vivaient ici, qui arrêtaient ou
+       ralentissaient les animations quand le système déclarait vouloir moins
+       de mouvement. Elles sont parties sur signalement : « retire le CSS qui
+       réduit les animations sur Chrome ; sur Firefox il n'y est pas et c'est
+       parfait ». Les deux navigateurs ne rendaient pas la même chose parce
+       qu'un seul relayait le réglage du système — l'extension, elle, faisait
+       exactement ce qu'on lui avait écrit.
 
-         « !important » N'EST PAS UNE FACILITÉ ICI, C'EST UNE CORRECTION. Sans
-         lui, cette règle ne s'appliquait à NI L'UN NI L'AUTRE, et pour deux
-         raisons différentes — c'est un audit qui l'a trouvé, en croisant
-         chaque animation avec ce bloc :
-           — la pastille est déclarée sur
-             « .side-nav-card[data-tse-subathon-day] .tse-subathon-jour »,
-             trois classes contre une : la spécificité l'emportait ;
-           — le badge est déclaré PLUS BAS dans la feuille, à spécificité
-             égale : l'ordre l'emportait.
-         L'arc-en-ciel ne répondait donc PAS DU TOUT à ce réglage — alors même
-         que le commentaire de ces deux animations le présentait, à l'époque,
-         comme la sortie qui mettait leur fréquence hors de cause vis-à-vis de
-         la WCAG 2.3.1. Une garantie écrite qui ne tenait pas. Sur une règle
-         d'accessibilité, « doit gagner » est exactement ce que « !important »
-         veut dire — ce que cette règle FAIT gagner a changé depuis, voir
-         juste en dessous. */
-      .tse-subathon-jour,
-      .tse-preview__badge--subathon {
-        /* ── ON NE L'ARRÊTE PLUS, ON LE RALENTIT ────────────────────────
-           La 4.6 arrêtait cet arc-en-ciel net, et un utilisateur l'a
-           signalé : « ce n'est pas normal qu'il soit arrêté alors que sur
-           Firefox oui ». Il a raison, et pour la même raison que la barre
-           du stream frais — mon arrêt était une lecture grossière du
-           réglage. Une TEINTE qui dérive n'est pas un déplacement : la
-           WCAG exclut explicitement les changements de couleur de sa
-           définition de l'animation de mouvement.
+       CE QUE ÇA COÛTE, ET IL FAUT LE DIRE : quelqu'un qui demande moins de
+       mouvement à son système ne l'obtient plus ici. Ce n'est pas un oubli,
+       c'est un arbitrage, et il n'est pas sans filet — les réglages du
+       panneau éteignent chacune de ces décorations une par une (jeton
+       « data-tse-off »), sans dépendre d'un réglage système que seuls certains
+       navigateurs relaient. La sortie existe toujours ; elle est simplement
+       dans le produit plutôt que dans l'OS.
 
-           MAIS LA COULEUR A SA PROPRE LIMITE, et elle n'est pas la même :
-           le critère 2.3.1 vise le CLIGNOTEMENT, et cet arc-en-ciel change
-           de teinte huit fois par seconde et demie, soit 5,3 fois par
-           seconde — au-delà des trois par seconde du critère. Ce qui l'en
-           met hors de cause aujourd'hui est l'AIRE, pas la vitesse (cf. le
-           commentaire des deux animations).
-
-           LE COMPROMIS PORTE DONC SUR LA CADENCE, seule grandeur que les
-           deux critères partagent : le tour passe de 1,5 s à 8 s, soit UNE
-           teinte par seconde — le tiers du seuil de clignotement, et une
-           dérive qu'on ne peut plus lire comme un scintillement. Le signal
-           reste vivant, il cesse d'être agité.
-
-           LA CADENCE RESTE COMMUNE AUX DEUX, comme en mouvement libre : la
-           pastille et le badge sont visibles ensemble dès qu'on survole une
-           carte de subathon, et deux cycles de durées différentes se
-           décaleraient en quelques secondes. */
-        animation-duration: 8s !important;
-        animation-timing-function: linear !important;
-      }
-      .side-nav-card.tse-sub::after,
-      .side-nav-card.tse-sub p.tse-nom,
-      .side-nav-card.tse-sub .tse-sub-cat,
-      .side-nav-card.tse-sub .tse-sub-avatar,
-      .side-nav-card.tse-sub .tse-sub-avatar::after {
-        animation: none;
-      }
-      .side-nav-card.tse-sub .tse-sub-avatar {
-        box-shadow: 0 0 8px color-mix(in srgb, var(--tse-sub-or) 45%, transparent);
-      }
-      .side-nav-card.tse-sub .tse-sub-avatar::after {
-        background: linear-gradient(135deg,
-          rgba(255, 196, 92, 0.9),
-          rgba(255, 246, 214, 0.95) 35%,
-          rgba(255, 158, 205, 0.8) 65%,
-          rgba(255, 196, 92, 0.9));
-      }
-      /* LE BATTEMENT DU STREAM FRAIS ÉTAIT LA SEULE ANIMATION DU PRODUIT À
-         IGNORER CE RÉGLAGE, et c'est un audit qui l'a vu : le subathon, l'or
-         de l'abonnement et l'anneau de l'avatar s'arrêtent tous ici depuis
-         longtemps ; la barre violette, elle, continuait de battre chez qui
-         demande explicitement l'immobilité.
-
-         ELLE NE DISPARAÎT PAS POUR AUTANT — ce serait perdre l'information au
-         lieu de perdre le mouvement. Elle reste à son point HAUT, large et
-         lumineuse : le signal garde sa lisibilité, quoi qu'il advienne de son
-         animation. Ce qu'il advient de cette animation, la 4.9 l'a repris de
-         plus près — le bloc suivant dit pourquoi. */
-      /* ── L'OPACITÉ N'EST PAS DU MOUVEMENT, ET LA NORME LE DIT ──────────
-         La 4.7 arrêtait ce battement NET sous « mouvement réduit ». C'était
-         trop large, et un utilisateur l'a signalé trois fois avant que la
-         mesure ne tranche : sa commande a rendu « mouvementReduit: true »,
-         « animations: 0 », barre présente et immobile. Il voyait la marque ;
-         il ne la voyait pas vivre.
-
-         CE QUE LE RÉGLAGE DEMANDE EST PRÉCIS. La WCAG définit l'« animation
-         de mouvement » comme celle qui crée l'ILLUSION D'UN DÉPLACEMENT, et
-         exclut explicitement de cette définition les changements de couleur,
-         de flou et d'OPACITÉ. Le « scaleX » de la barre est du mouvement — il
-         change une taille — et il doit partir. Son opacité, non.
-
-         ON GARDE DONC LE BATTEMENT, EN VERSION CALME : la barre reste à sa
-         largeur haute et son halo ne bouge plus, seule l'opacité respire, et
-         plus lentement — deux secondes au lieu de 1,4 — avec un plancher plus
-         haut, 0,45 au lieu de 0,3. Quelqu'un qui demande moins de mouvement
-         n'a pas demandé moins d'information ; il a droit au même signal, dit
-         plus doucement. */
-      .side-nav-card.tse-fresh::before {
-        animation: tse-fresh-calme 2s ease-in-out infinite;
-        transform: scaleX(1.6);
-        box-shadow: 0 0 10px ${CFG.PURPLE}, 0 0 4px ${CFG.PURPLE};
-      }
-      @keyframes tse-fresh-calme {
-        0%, 100% { opacity: 0.45; }
-        50%      { opacity: 1; }
-      }
-      /* ── LA ROUE DU PREMIER LANCEMENT ─────────────────────────────────
-         CELLE-CI EST DU MOUVEMENT AU SENS STRICT : elle change de TAILLE,
-         c'est-à-dire exactement ce que la WCAG appelle l'illusion d'un
-         déplacement. Pas de version calme à négocier comme pour l'opacité de
-         la barre du stream frais — le battement s'arrête, entièrement.
-
-         CE QU'ELLE DIT NE DISPARAÎT PAS POUR AUTANT. Le fond violet et
-         l'anneau restent, figés à leur point haut : la roue se distingue
-         toujours de toutes les autres commandes de la barre latérale, et la
-         bulle à côté d'elle dit le reste. Quelqu'un qui demande moins de
-         mouvement n'a pas demandé moins d'information.
-
-         « !important » EST ICI UNE CORRECTION, PAS UNE FACILITÉ, et c'est la
-         leçon du subathon appliquée avant d'être payée : la règle qui déclare
-         le battement vit PLUS BAS dans cette feuille, à spécificité égale.
-         Sans ce mot, l'ordre l'emporterait et ce bloc ne s'appliquerait pas —
-         silencieusement, chez les seuls utilisateurs qui l'ont demandé. */
-      .tse-roue[data-tse-neuf] {
-        animation: none !important;
-        transform: none !important;
-        box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.55) !important;
-      }
-      /* ── LA ROTATION AU SURVOL : ON LA RALENTIT, ON NE L'ARRÊTE PLUS ───
-         PREMIÈRE RÉDACTION : arrêt net, au motif qu'une rotation est du
-         mouvement et qu'elle n'est « pas un signal ». Un utilisateur dont le
-         système demande moins de mouvement a signalé l'exact symptôme :
-         « toujours pas de spin sur Chrome ». Son rapport le confirmait —
-         « mouvementReduit true ». La roue ne tournait pas POUR LUI SEUL, et
-         rien ne le lui disait.
-
-         C'EST LA LEÇON DU SUBATHON, DÉJÀ APPRISE ICI. L'arc-en-ciel était
-         arrêté net ; un utilisateur a dit « ce n'est pas normal qu'il soit
-         arrêté », et il avait raison — l'arrêt était une lecture grossière du
-         réglage. La cadence est la seule grandeur qui se négocie.
-
-         CE QU'ON GARDE ET CE QU'ON CÈDE : un tour en six secondes au lieu
-         d'un tour huit fois plus court. Sur un glyphe de dix-huit pixels, à un
-         sixième de tour par seconde, il n'y a ni scintillement — le critère
-         2.3.1 vise le clignotement au-delà de trois par seconde — ni
-         déplacement d'un objet à travers l'écran. Le geste reste lisible, il
-         cesse d'être vif. Quelqu'un qui demande moins de mouvement n'a pas
-         demandé moins de réponse. */
-      .tse-roue:hover .tse-roue-dent,
-      .tse-roue:focus-visible .tse-roue-dent {
-        animation-duration: 6s !important;
-        animation-timing-function: linear !important;
-      }
-    }
+       « mouvementReduit » reste au rapport. Il ne COMMANDE plus rien — c'est
+       une lecture du navigateur, et elle garde sa valeur de diagnostic le
+       jour où quelqu'un décrira un rendu qu'on ne reproduit pas. */
 
     /* === Masquage du bouton "Afficher moins" (inutile après auto-expansion) === */
     .tse-show-less-hidden { display: none !important; }
@@ -4557,44 +4442,6 @@ const TSE_GATE_MAX_CLICKS = 5;
          voit du cadre : il doit être celui du thème, pas un noir en dur. */
       background: var(--tse-surface);
     }
-    /* LA CROIX EST HORS DU CADRE, en négatif sur le voile. Posée dedans, elle
-       aurait recouvert le coin du panneau — c'est-à-dire l'état de connexion,
-       qui vit précisément là. */
-    /* ── LA CROIX, AU COIN HAUT-DROIT ET IMPOSSIBLE À MANQUER ───────────
-       DEUX RÉDACTIONS ONT ÉCHOUÉ AVANT CELLE-CI, et pour la même raison :
-       elle était posée AU-DESSUS du cadre, sur le voile, en gris translucide.
-       Sur une page sombre voilée de noir, un carré à 12 % de blanc ne se voit
-       pas — et un bouton de fermeture invisible sur une fenêtre modale est le
-       pire des défauts, puisqu'il ne reste que la touche Échap à quelqu'un qui
-       ne sait pas qu'elle existe. Signalé depuis le terrain : « peux-tu
-       ajouter un X en haut à droite ».
-
-       ELLE CHEVAUCHE DONC LE COIN. À cheval sur l'angle, elle appartient
-       visiblement au cadre — c'est la forme conventionnelle d'une fermeture de
-       modale, et la seule qui se trouve sans la chercher. Ronde, opaque, avec
-       un filet clair qui la détache du panneau comme du voile. */
-    .tse-incruste-croix {
-      position: absolute; top: -14px; right: -14px;
-      /* « border-box » : sans lui, les deux pixels de filet s'ajoutent de
-         chaque côté et le bouton déclaré à 32 en fait 36. */
-      box-sizing: border-box;
-      width: 32px; height: 32px; padding: 0;
-      display: inline-flex; align-items: center; justify-content: center;
-      border: 2px solid rgba(255, 255, 255, 0.92); border-radius: 50%;
-      background: #18181b; color: #fff;
-      font: inherit; font-size: 1.7rem; line-height: 1; cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
-      transition: background-color 0.15s, transform 0.15s;
-    }
-    .tse-incruste-croix:hover {
-      background: ${CFG.PURPLE};
-      transform: scale(1.08);
-    }
-    .tse-incruste-croix:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 3px ${CFG.PURPLE}, 0 2px 10px rgba(0, 0, 0, 0.6);
-    }
-
     /* En mode « Top Chaînes », les cartes de Twitch s'effacent au profit des
        nôtres. Le bouton « Afficher plus » de la liste suivie n'a plus d'objet,
        et les modes de tri non plus : le classement EST le tri. */
@@ -10983,13 +10830,15 @@ const TSE_GATE_MAX_CLICKS = 5;
              rien, et c'est exactement le défaut qu'un utilisateur a signalé —
              « pool 2 124, fabriquées 0 ». Cette ligne dit laquelle des trois
              voies a servi, ou rien du tout. */
-          /* CE QUE LE NAVIGATEUR DIT DE L'UTILISATEUR, et qui décide de deux
-             choses visibles. « mouvementReduit » commande l'arrêt de toutes
-             les animations depuis la 4.7 — un utilisateur a signalé « plus de
-             clignotement sur Chrome, bon côté Firefox », et les deux
-             navigateurs ne rapportent pas ce réglage de la même façon sous
-             Windows. Sans cette ligne, la question se pose une deuxième fois.
-             « theme » dit si Twitch est en clair ou en sombre : toute la
+          /* CE QUE LE NAVIGATEUR DIT DE L'UTILISATEUR. « mouvementReduit » ne
+             COMMANDE plus rien depuis la 4.14 : le bloc de mouvement réduit a
+             été retiré sur demande, les deux navigateurs rendant désormais la
+             même chose. On garde la LECTURE, et pour une raison précise — ce
+             réglage a expliqué deux signalements (« plus de clignotement sur
+             Chrome, bon côté Firefox »), parce que Chrome et Firefox ne le
+             rapportent pas pareil sous Windows. Le jour où quelqu'un décrit un
+             rendu qu'on ne reproduit pas, cette ligne reste la première à
+             lire. « theme » dit si Twitch est en clair ou en sombre : toute la
              feuille en dépend. */
           mouvementReduit: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
           /* ── LE BATTEMENT DU STREAM FRAIS, CONSTATÉ ET NON SUPPOSÉ ──────
@@ -11519,9 +11368,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
     if (!anim) {
       const v = st();
-      resolve({ verdict: reduit
-                  ? 'immobile — mouvement réduit demandé par le système'
-                  : 'AUCUNE ANIMATION sur la barre : la règle ne s\'applique pas',
+      resolve({ verdict: 'AUCUNE ANIMATION sur la barre : la règle ne s\'applique pas',
                 fraiches: document.querySelectorAll('.side-nav-card.tse-fresh').length,
                 mouvementReduit: reduit, animations: 0,
                 opacite: v.o, largeur: +v.l.toFixed(2) });
@@ -11536,15 +11383,16 @@ const TSE_GATE_MAX_CLICKS = 5;
       lMin = Math.min(lMin, v.l); lMax = Math.max(lMax, v.l);
       if (performance.now() - debut < duree * 1.1) { requestAnimationFrame(pas); return; }
       const ecart = oMax / Math.max(oMin, 0.001);
-      /* QUATRE VERDICTS, ET ILS NE SE CONFONDENT PAS. Depuis la 4.9 le
-         battement ne s'arrête plus sous « mouvement réduit » : il s'y fait
-         CALME — l'opacité seule, plus lente, plancher plus haut. Le dire est
-         nécessaire, sans quoi une amplitude de 2,2 se lirait comme un défaut
-         alors qu'elle est le comportement voulu. */
+      /* TROIS VERDICTS DEPUIS LA 4.14, et il y en avait quatre. Le quatrième
+         nommait le « régime calme » que le bloc de mouvement réduit imposait ;
+         ce bloc a été retiré sur demande, et le battement est désormais le
+         même pour tout le monde. Garder ce verdict aurait fait dire au
+         diagnostic qu'un régime existe, alors qu'il n'existe plus.
+         « mouvementReduit » reste dans la réponse : c'est une lecture du
+         navigateur, utile le jour où l'on compare deux machines. */
       resolve({
         verdict: anim.playState !== 'running' ? 'animation ' + anim.playState
                : ecart < 1.5 ? 'animation en cours mais AMPLITUDE PLATE — rien à voir à l\'œil'
-               : reduit ? 'battement calme — mouvement réduit respecté'
                : ecart >= 2.5 ? 'le battement est bien là'
                : 'battement présent, mais faible',
         fraiches: document.querySelectorAll('.side-nav-card.tse-fresh').length,
@@ -16097,17 +15945,13 @@ const TSE_GATE_MAX_CLICKS = 5;
        qu'elle sait faire. Le cadre charge une page à NOUS, pas un tiers. */
     frame.setAttribute('allow', '');
 
-    const croix = document.createElement('button');
-    croix.type = 'button';
-    croix.className = 'tse-incruste-croix';
-    croix.setAttribute('aria-label', S.uiFermer);
-    croix.setAttribute('title', S.uiFermer);
-    const barre = document.createElement('span');
-    barre.setAttribute('aria-hidden', 'true');
-    barre.textContent = '×';
-    croix.appendChild(barre);
-
-    cadre.append(frame, croix);
+    /* PAS DE CROIX, ET C'EST UNE DEMANDE. La 4.12.2 en avait posé une, à
+       cheval sur le coin ; elle est retirée en 4.14 à la demande de l'auteur.
+       Les DEUX sorties qui restent sont celles d'une modale ordinaire — la
+       touche Échap, et le clic hors du cadre — et elles étaient déjà là : la
+       croix les doublait, elle ne les portait pas. Le mode d'emploi les nomme,
+       puisque plus rien à l'écran ne les annonce. */
+    cadre.appendChild(frame);
     voile.appendChild(cadre);
 
     const surTouche = (ev) => { if (ev.key === 'Escape') fermerIncruste?.(); };
@@ -16158,7 +16002,6 @@ const TSE_GATE_MAX_CLICKS = 5;
       document.getElementById(ROUE_ID)?.focus?.();
     };
 
-    croix.addEventListener('click', fermerIncruste);
     /* Le clic SUR LE VOILE ferme ; le clic dans le cadre ne doit pas. On
        compare la cible au voile lui-même plutôt que d'arrêter la propagation
        depuis le cadre : un `stopPropagation` posé sur le cadre aurait aussi

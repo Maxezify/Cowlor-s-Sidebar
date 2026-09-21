@@ -346,7 +346,7 @@
     "message": "Schließen"
   },
   "guideIntro": {
-    "message": "Die Erweiterung hat keine Einstellungen: Sie arbeitet, sobald du eine Twitch-Seite neu lädst. Was folgt, ist die Liste dessen, was sie hinzufügt — in der Reihenfolge, in der es dir begegnet."
+    "message": "Dieses Kapitel beschreibt, was die Erweiterung zu Twitch hinzufügt – in der Reihenfolge, in der du es antreffen wirst. Alles läuft, sobald du eine Twitch-Seite neu lädst, ohne Einrichtung – und alles lässt sich unter „Einstellungen“ direkt darunter anpassen oder abschalten."
   },
   "guideHoverTitre": {
     "message": "Die Vorschau beim Überfahren"
@@ -382,7 +382,7 @@
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Ein violetter Punkt an der Ecke des Avatars, mit der Zahl der Beteiligten: Dieser Kanal sendet zu mehreren. In der Liste sichtbar, ohne etwas zu überfahren.\n• Ein violettes Abzeichen sagt dann, wer Gastgeber und wer Gast ist — und mit wem.\n• Eine eigene Sortierung gruppiert sie oben in der Liste (Kapitel 9)."
+    "message": "Ein violetter Punkt an der Ecke des Avatars, mit der Zahl der Beteiligten: Dieser Kanal sendet zu mehreren. In der Liste sichtbar, ohne etwas zu überfahren.\n• Ein violettes Abzeichen sagt dann, wer Gastgeber und wer Gast ist — und mit wem.\n• Eine eigene Sortierung gruppiert sie oben in der Liste (Kapitel $1)."
   },
   "guideDebutTitre": {
     "message": "Starts und Rückkehr"
@@ -418,7 +418,7 @@
     "message": "Dieses Fenster"
   },
   "guidePanneauTexte": {
-    "message": "Links die Abschnitte. „Deine Daten“ zeigt, was die Erweiterung behalten hat: deine meistbesuchten Kanäle, deine Sehzeiten als Woche gezeichnet, die erkannten Abos. „Diagnose“ zählt nur an dem Tag, an dem etwas klemmt.\n• Diese Abschnitte lesen den Twitch-Tab im Vordergrund: Gibt es keinen, sagen sie es. Dieses Kapitel dagegen zeigt sich immer.\n• „Bericht exportieren“ schreibt einen Text, den du vor dem Senden lesen kannst. Er enthält keine persönliche Liste — weder deine Kanäle noch deine Abos — nur deren Anzahl.\n• „Verlauf löschen“ setzt alles zurück, endgültig."
+    "message": "Fünf Gruppen, links.\n• „Erste Schritte“ – dieses Kapitel. Es zeigt sich immer, auch ohne offenen Twitch-Tab.\n• „Einstellungen“ – alles, was die Erweiterung zur Wahl stellt.\n• „Deine Daten“ – was sie behalten hat: deine meistbesuchten Kanäle, deine Sehzeiten über die Woche gezeichnet, die erkannten Abos.\n• „Diagnose“ – nur nützlich, wenn etwas klemmt, und über die Einstellungen ausblendbar.\n• „Top-Kanäle“ – der Stand der weltweiten Rangliste und ihrer Kategorien.\nAlle Abschnitte außer diesem lesen den vordersten Twitch-Tab: Gibt es keinen, sagen sie es.\n• „Bericht exportieren“ schreibt einen Text, den du vor dem Senden lesen kannst. Er enthält keine persönliche Liste – weder deine Kanäle noch deine Abos – nur Zahlen.\n• „Verlauf löschen“ setzt alles zurück, endgültig."
   },
   "guideVieTitre": {
     "message": "Datenschutz, im Klartext"
@@ -713,5 +713,17 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — deine Daten und Einstellungen"
+  },
+  "guideRoueTitre": {
+    "message": "Das Zahnrad und dieses Panel"
+  },
+  "guideRoueTexte": {
+    "message": "Ein ⚙️ sitzt direkt rechts neben dem Titel der Seitenleiste. Ein Klick öffnet dieses Panel über Twitch, ohne die Seite zu verlassen.\n• Das Symbol der Erweiterung oben rechts im Browser öffnet genau dasselbe Panel.\n• Zum Schließen: die Esc-Taste oder ein Klick außerhalb des Rahmens.\n• Beim allerersten Start pulsiert das Zahnrad einige Sekunden und eine Sprechblase zeigt darauf. Danach kommt sie nicht wieder."
+  },
+  "guideReglagesTitre": {
+    "message": "Alles einstellbar, alles abschaltbar"
+  },
+  "guideReglagesTexte": {
+    "message": "„Einstellungen“ steuert jede hier beschriebene Verzierung. Nichts ist aufgezwungen: Was stört, wird abgeschaltet.\n• Die Vorschau beim Überfahren: ihre Breite, die Streamqualität oder nur das Video – abgeschaltet behält sie Vorschaubild, Badges und Verlauf.\n• Badges erscheinen oder nicht, einzeln.\n• Das Gold der Abos hat einen dezenten Modus: Farbe bleibt, das Schimmern geht.\n• Die Abo-Erhebung läuft höchstens alle 3, 6, 12 oder 24 Stunden — Sie wählen.\n• Deine Einstellungen lassen sich exportieren und wieder einlesen; ein Knopf setzt alle zurück."
   }
 }

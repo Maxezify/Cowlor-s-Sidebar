@@ -164,7 +164,7 @@ _______________________________
 Un engranaje a la derecha del título de la barra lateral, un clic, y todo lo que la extensión ha aprendido se abre encima de Twitch. El icono de la extensión, arriba a la derecha del navegador, abre exactamente el mismo panel.
 
 - ★ DOS CAMINOS, UN SOLO PANEL ★ El engranaje de la barra lateral o el icono de la barra de herramientas: la misma página, en ambos casos. Abierta desde el engranaje es más grande: una ventana emergente de la barra de herramientas la limita el navegador, no nosotros.
-- ★ UN MODO DE EMPLEO, DE ENTRADA ★ El panel se abre con una guía de trece capítulos que enseña todo lo que la extensión añade, con ejemplos dibujados, y se muestra incluso sin ninguna pestaña de Twitch abierta.
+- ★ UN MODO DE EMPLEO, DE ENTRADA ★ El panel se abre con una guía de quince capítulos que enseña todo lo que la extensión añade, con ejemplos dibujados, y se muestra incluso sin ninguna pestaña de Twitch abierta.
 - ★ VUESTROS HÁBITOS, DIBUJADOS ★ Las horas en que veis de verdad, trazadas en una cuadrícula de siete días por veinticuatro horas.
 - ★ VUESTRAS CIFRAS ★ Top de streamers, suscripciones detectadas, canales seguidos en memoria: todo ahí, legible.
 - ★ UN INFORME PARA PEGAR ★ Un botón crea un informe de diagnóstico completo, sin ninguna lista personal dentro: lo justo para avisar de un problema sin revelar nada.
@@ -195,7 +195,6 @@ Twitch tiene un tema claro. La extensión lo detecta y cambia con él: sin recar
 - ★ TODO SIGUE, NO SOLO EL FONDO ★ Tarjetas, vista previa al pasar el ratón, insignias, menús, panel de la barra de herramientas: cada elemento tiene su versión clara, pensada para ese fondo.
 - ★ COLORES RECALCULADOS, NO SOLO ACLARADOS ★ Cada insignia tiene su propio tono claro, medido sobre el fondo exacto en el que aparece. Un naranja que se lee bien sobre negro se deshace sobre blanco: se rehízo, no se limitó a palidecer.
 - ★ EN EL SEGUNDO EN QUE CAMBIAS ★ Cambia el tema de Twitch y la extensión te sigue en un segundo. Sin recargar la página.
-- ★ Y SI PIDES MENOS ANIMACIÓN ★ Se respeta el ajuste «reducir movimiento» de tu sistema: lo que se movía se detiene, pero nada se pierde — una señal que latía sigue respirando suavemente en lugar de apagarse.
 
 _______________________________
 

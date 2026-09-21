@@ -346,7 +346,7 @@
     "message": "Chiudi"
   },
   "guideIntro": {
-    "message": "L'estensione non ha impostazioni: funziona appena ricarichi una pagina Twitch. Quello che segue è l'elenco di ciò che aggiunge, nell'ordine in cui lo incontrerai."
+    "message": "Questo capitolo descrive ciò che l'estensione aggiunge a Twitch, nell'ordine in cui lo incontrerai. Tutto funziona appena ricarichi una pagina Twitch, senza configurare nulla — e tutto si regola, o si spegne, da «Impostazioni», qui sotto."
   },
   "guideHoverTitre": {
     "message": "L'anteprima al passaggio del mouse"
@@ -382,7 +382,7 @@
     "message": "I co-stream"
   },
   "guideCostreamTexte": {
-    "message": "Un pallino viola all'angolo dell'avatar, con il numero di partecipanti: questo canale trasmette in compagnia. Visibile nell'elenco, senza passare sopra niente.\n• Un badge viola dice allora chi ospita e chi è invitato, e con chi.\n• Un ordinamento apposito li raggruppa in cima all'elenco (capitolo 9)."
+    "message": "Un pallino viola all'angolo dell'avatar, con il numero di partecipanti: questo canale trasmette in compagnia. Visibile nell'elenco, senza passare sopra niente.\n• Un badge viola dice allora chi ospita e chi è invitato, e con chi.\n• Un ordinamento apposito li raggruppa in cima all'elenco (capitolo $1)."
   },
   "guideDebutTitre": {
     "message": "Gli inizi, e i ritorni"
@@ -418,7 +418,7 @@
     "message": "Questo pannello"
   },
   "guidePanneauTexte": {
-    "message": "A sinistra, le sezioni. «I tuoi dati» mostra ciò che l'estensione ha tenuto: i tuoi canali più visitati, le tue ore d'ascolto disegnate su una settimana, gli abbonamenti individuati. «Diagnostica» serve solo il giorno in cui qualcosa non va.\n• Quelle sezioni leggono la scheda Twitch in primo piano: se non ce n'è, lo dicono. Questo capitolo, invece, si mostra sempre.\n• «Esporta un rapporto» scrive un testo che puoi rileggere prima di inviarlo. Non contiene nessun elenco personale — né i tuoi canali, né i tuoi abbonamenti — solo i loro conteggi.\n• «Cancella la cronologia» azzera tutto, definitivamente."
+    "message": "Cinque gruppi, a sinistra.\n• «Per iniziare» — questo capitolo. Si mostra sempre, anche senza una scheda Twitch aperta.\n• «Impostazioni» — tutto ciò che l'estensione lascia scegliere.\n• «I tuoi dati» — ciò che ha memorizzato: i tuoi canali più visitati, le tue ore di ascolto disegnate sulla settimana, gli abbonamenti individuati.\n• «Diagnostica» — serve solo il giorno in cui qualcosa non va, e si nasconde dalle impostazioni.\n• «Canali di punta» — lo stato della classifica mondiale e delle sue categorie.\nTutte queste sezioni, tranne questa, leggono la scheda Twitch in primo piano: se non ce n'è, lo dicono.\n• «Esporta un rapporto» scrive un testo che puoi rileggere prima di inviarlo. Non contiene alcun elenco personale — né i tuoi canali, né i tuoi abbonamenti — solo conteggi.\n• «Cancella la cronologia» azzera tutto, definitivamente."
   },
   "guideVieTitre": {
     "message": "Privacy, in chiaro"
@@ -713,5 +713,17 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — i tuoi dati e le tue impostazioni"
+  },
+  "guideRoueTitre": {
+    "message": "La rotella e questo pannello"
+  },
+  "guideRoueTexte": {
+    "message": "Una rotella ⚙️ sta subito a destra del titolo della barra laterale. Un clic apre questo pannello sopra Twitch, senza lasciare la pagina.\n• L'icona dell'estensione, in alto a destra nel browser, apre esattamente lo stesso pannello.\n• Per chiuderlo: il tasto Esc, o un clic fuori dalla cornice.\n• Al primissimo avvio la rotella pulsa qualche secondo e un fumetto la indica. Poi non torna più."
+  },
+  "guideReglagesTitre": {
+    "message": "Tutto si regola, tutto si spegne"
+  },
+  "guideReglagesTexte": {
+    "message": "«Impostazioni» comanda ogni decorazione descritta qui. Nulla è imposto: ciò che dà fastidio si spegne.\n• L'anteprima al passaggio: la sua larghezza, la qualità del flusso, o il solo video — spento, conserva la miniatura, i badge e la striscia.\n• I badge si mostrano o no, uno per uno.\n• L'oro degli abbonamenti ha una modalità discreta: tiene il colore e toglie il luccichio.\n• La rilevazione degli abbonamenti avviene al massimo una volta ogni 3, 6, 12 o 24 ore, a tua scelta.\n• Le tue impostazioni si esportano e si reimportano; un pulsante le riporta tutte all'origine."
   }
 }
