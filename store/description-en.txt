@@ -164,7 +164,7 @@ _______________________________
 A gear to the right of the sidebar title, one click, and everything the extension has learned opens on top of Twitch. The extension's icon, top right of your browser, opens exactly the same panel.
 
 - ★ TWO WAYS IN, ONE PANEL ★ The gear in the sidebar or the icon in the toolbar: the same page, either way. Opened from the gear it is larger — a toolbar popup is capped by the browser, not by us.
-- ★ A GUIDE, FIRST THING ★ The panel opens on a thirteen-chapter walkthrough of everything the extension adds, with drawn examples — and it shows even with no Twitch tab open.
+- ★ A GUIDE, FIRST THING ★ The panel opens on a fifteen-chapter walkthrough of everything the extension adds, with drawn examples — and it shows even with no Twitch tab open.
 - ★ YOUR HABITS, DRAWN ★ The hours you actually watch, laid out as a seven-day by twenty-four-hour grid.
 - ★ YOUR NUMBERS ★ Top streamers, subscriptions spotted, followed channels in memory: all there, readable.
 - ★ A REPORT TO PASTE ★ One button builds a full diagnostic report, with no personal list inside it — enough to report a problem without revealing a thing.
@@ -195,7 +195,6 @@ Twitch has a light theme. The extension notices and switches with it — no relo
 - ★ EVERYTHING FOLLOWS, NOT JUST THE BACKGROUND ★ Cards, hover preview, badges, menus, toolbar panel: every element has its light version, designed for that background.
 - ★ COLORS RECOMPUTED, NOT JUST LIGHTENED ★ Each badge gets its own light hue, measured against the exact background it sits on. An orange that reads well on black turns to mush on white, so it was redone rather than merely faded.
 - ★ THE SECOND YOU SWITCH ★ Flip Twitch's theme and the extension follows within the second. No page reload needed.
-- ★ AND IF YOU ASK FOR LESS MOTION ★ Your system's "reduce motion" setting is honored: what moved stops moving, but nothing is lost — a signal that used to pulse keeps breathing gently instead of going dark.
 
 _______________________________
 

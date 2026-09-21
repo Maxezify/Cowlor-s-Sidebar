@@ -164,7 +164,7 @@ _______________________________
 Uma roda dentada à direita do título da barra lateral, um clique, e tudo o que a extensão aprendeu abre por cima do Twitch. O ícone da extensão, no canto superior direito do navegador, abre exatamente o mesmo painel.
 
 - ★ DOIS CAMINHOS, UM SÓ PAINEL ★ A roda na barra lateral ou o ícone na barra de ferramentas: a mesma página, em ambos os casos. Aberta pela roda é maior — uma janela da barra de ferramentas é limitada pelo navegador, não por nós.
-- ★ UM GUIA, LOGO À ENTRADA ★ O painel abre num guia de treze capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhum separador do Twitch aberto.
+- ★ UM GUIA, LOGO À ENTRADA ★ O painel abre num guia de quinze capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhum separador do Twitch aberto.
 - ★ OS SEUS HÁBITOS, DESENHADOS ★ As horas a que vê mesmo, traçadas numa grelha de sete dias por vinte e quatro horas.
 - ★ OS SEUS NÚMEROS ★ Top de streamers, subscrições detetadas, canais seguidos em memória: está tudo lá, legível.
 - ★ UM RELATÓRIO PARA COLAR ★ Um botão constrói um relatório de diagnóstico completo, sem qualquer lista pessoal lá dentro — o suficiente para comunicar um problema sem revelar nada.
@@ -195,7 +195,6 @@ A Twitch tem um tema claro. A extensão dá por isso e muda com ele — sem reca
 - ★ ACOMPANHA TUDO, NÃO SÓ O FUNDO ★ Cartões, pré-visualização ao passar o rato, distintivos, menus, painel da barra de ferramentas: cada elemento tem a sua versão clara, pensada para aquele fundo.
 - ★ CORES RECALCULADAS, NÃO SÓ CLAREADAS ★ Cada distintivo tem o seu próprio tom claro, medido sobre o fundo exacto em que aparece. Um laranja que se lê bem no preto torna-se ilegível no branco: foi refeito, não apenas desbotado.
 - ★ NO SEGUNDO EM QUE MUDAS ★ Muda o tema da Twitch e a extensão acompanha nesse mesmo segundo. Sem recarregar a página.
-- ★ E SE PEDIRES MENOS ANIMAÇÃO ★ A definição «reduzir movimento» do teu sistema é respeitada: o que se mexia pára, mas nada se perde — um sinal que pulsava continua a respirar suavemente em vez de se apagar.
 
 _______________________________
 

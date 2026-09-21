@@ -164,7 +164,7 @@ _______________________________
 Un ingranaggio a destra del titolo della barra laterale, un clic, e tutto quello che l'estensione ha imparato si apre sopra Twitch. L'icona dell'estensione, in alto a destra nel browser, apre esattamente lo stesso pannello.
 
 - ★ DUE STRADE, UN SOLO PANNELLO ★ L'ingranaggio nella barra laterale o l'icona nella barra degli strumenti: la stessa pagina, in entrambi i casi. Aperta dall'ingranaggio è più grande: un popup della barra degli strumenti è limitato dal browser, non da noi.
-- ★ UNA GUIDA, SUBITO ★ Il pannello si apre su una guida di tredici capitoli che mostra tutto ciò che l'estensione aggiunge, con esempi disegnati — e si vede anche senza nessuna scheda Twitch aperta.
+- ★ UNA GUIDA, SUBITO ★ Il pannello si apre su una guida di quindici capitoli che mostra tutto ciò che l'estensione aggiunge, con esempi disegnati — e si vede anche senza nessuna scheda Twitch aperta.
 - ★ LE TUE ABITUDINI, DISEGNATE ★ Le ore in cui guardi davvero, tracciate in una griglia di sette giorni per ventiquattro ore.
 - ★ I TUOI NUMERI ★ Top streamer, abbonamenti rilevati, canali seguiti in memoria: tutto lì, leggibile.
 - ★ UN RAPPORTO DA INCOLLARE ★ Un pulsante crea un rapporto diagnostico completo, senza alcun elenco personale dentro — quanto basta per segnalare un problema senza rivelare nulla.
@@ -195,7 +195,6 @@ Twitch ha un tema chiaro. L'estensione se ne accorge e cambia insieme a lui — 
 - ★ SEGUE TUTTO, NON SOLO LO SFONDO ★ Schede, anteprima al passaggio del mouse, badge, menu, pannello della barra degli strumenti: ogni elemento ha la sua versione chiara, pensata per quello sfondo.
 - ★ COLORI RICALCOLATI, NON SOLO SCHIARITI ★ Ogni badge ha la sua tinta chiara, misurata sullo sfondo esatto su cui compare. Un arancione che si legge bene sul nero diventa illeggibile sul bianco: è stato rifatto, non solo sbiadito.
 - ★ NEL SECONDO IN CUI CAMBI ★ Cambia il tema di Twitch e l'estensione ti segue entro un secondo. Nessun ricaricamento della pagina.
-- ★ E SE CHIEDI MENO ANIMAZIONE ★ L'impostazione «riduci movimento» del tuo sistema viene rispettata: ciò che si muoveva si ferma, ma nulla va perso — un segnale che pulsava continua a respirare piano invece di spegnersi.
 
 _______________________________
 

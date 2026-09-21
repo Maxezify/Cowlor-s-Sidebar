@@ -164,7 +164,7 @@ _______________________________
 Kółko zębate po prawej stronie tytułu paska bocznego, jedno kliknięcie i wszystko, czego nauczyło się rozszerzenie, otwiera się na Twitchu. Ikona rozszerzenia, w prawym górnym rogu przeglądarki, otwiera dokładnie ten sam panel.
 
 - ★ DWIE DROGI, JEDEN PANEL ★ Kółko na pasku bocznym albo ikona na pasku narzędzi: ta sama strona, w obu przypadkach. Otwarta kółkiem jest większa — wyskakujące okienko paska narzędzi ogranicza przeglądarka, nie my.
-- ★ INSTRUKCJA, OD RAZU ★ Panel otwiera się na przewodniku w trzynastu rozdziałach, pokazującym wszystko, co rozszerzenie dodaje, z rysowanymi przykładami — i wyświetla się nawet bez otwartej karty Twitcha.
+- ★ INSTRUKCJA, OD RAZU ★ Panel otwiera się na przewodniku w piętnastu rozdziałach, pokazującym wszystko, co rozszerzenie dodaje, z rysowanymi przykładami — i wyświetla się nawet bez otwartej karty Twitcha.
 - ★ TWOJE NAWYKI, NARYSOWANE ★ Godziny, w których naprawdę oglądasz, ułożone w siatkę siedmiu dni na dwadzieścia cztery godziny.
 - ★ TWOJE LICZBY ★ Top streamerów, wykryte subskrypcje, zapamiętane obserwowane kanały: wszystko tam, czytelnie.
 - ★ RAPORT DO WKLEJENIA ★ Jeden przycisk tworzy pełny raport diagnostyczny, bez żadnej osobistej listy w środku — tyle, by zgłosić problem, nic nie ujawniając.
@@ -195,7 +195,6 @@ Twitch ma jasny motyw. Rozszerzenie to zauważa i przełącza się razem z nim �
 - ★ NADĄŻA WSZYSTKO, NIE TYLKO TŁO ★ Karty, podgląd po najechaniu, odznaki, menu, panel na pasku narzędzi: każdy element ma swoją jasną wersję, zaprojektowaną pod to tło.
 - ★ KOLORY PRZELICZONE, A NIE TYLKO ROZJAŚNIONE ★ Każda odznaka ma własny jasny odcień, zmierzony na dokładnie tym tle, na którym się pojawia. Pomarańcz, który dobrze czyta się na czerni, rozmywa się na bieli: został zrobiony od nowa, a nie tylko wyblakły.
 - ★ W SEKUNDZIE, W KTÓREJ PRZEŁĄCZASZ ★ Zmień motyw Twitcha, a rozszerzenie nadąży w ciągu sekundy. Bez przeładowania strony.
-- ★ A JEŚLI POPROSISZ O MNIEJ RUCHU ★ Ustawienie systemowe „ogranicz ruch” jest respektowane: to, co się ruszało, zatrzymuje się, ale nic nie ginie — sygnał, który pulsował, dalej oddycha łagodnie, zamiast zgasnąć.
 
 _______________________________
 

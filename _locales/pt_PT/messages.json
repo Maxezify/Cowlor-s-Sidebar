@@ -346,7 +346,7 @@
     "message": "Fechar"
   },
   "guideIntro": {
-    "message": "A extensão não tem definições: funciona assim que recarregar uma página do Twitch. O que se segue é a lista do que ela acrescenta, pela ordem em que a vai encontrar."
+    "message": "Este capítulo descreve o que a extensão acrescenta ao Twitch, na ordem em que você vai encontrá-lo. Tudo funciona assim que você recarrega uma página do Twitch, sem configurar nada — e tudo se ajusta, ou se desliga, em «Configurações», logo abaixo."
   },
   "guideHoverTitre": {
     "message": "A pré-visualização ao passar o rato"
@@ -382,7 +382,7 @@
     "message": "Os co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Um ponto roxo ao canto do avatar, com o número de participantes: este canal transmite acompanhado. Visível na lista, sem passar o rato por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa-os no topo da lista (capítulo 9)."
+    "message": "Um ponto roxo ao canto do avatar, com o número de participantes: este canal transmite acompanhado. Visível na lista, sem passar o rato por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa-os no topo da lista (capítulo $1)."
   },
   "guideDebutTitre": {
     "message": "Os começos e os regressos"
@@ -418,7 +418,7 @@
     "message": "Este painel"
   },
   "guidePanneauTexte": {
-    "message": "À esquerda, as secções. «Os seus dados» mostra o que a extensão guardou: os seus canais mais visitados, as suas horas de visionamento desenhadas em semana, as inscrições detetadas. «Diagnóstico» só serve no dia em que alguma coisa falha.\n• Essas secções leem o separador do Twitch que estiver à frente: se não houver nenhum, dizem-no. Este capítulo, esse, aparece sempre.\n• «Exportar um relatório» escreve um texto que pode reler antes de enviar. Não contém nenhuma lista pessoal — nem os seus canais, nem as suas inscrições — apenas as contagens.\n• «Apagar o histórico» põe tudo a zero, definitivamente."
+    "message": "Cinco grupos, à esquerda.\n• «Primeiros passos» — este capítulo. Aparece sempre, mesmo sem aba do Twitch aberta.\n• «Definições» — tudo o que a extensão deixa escolher.\n• «Os teus dados» — o que ela guardou: seus canais mais visitados, suas horas de exibição desenhadas pela semana, as inscrições detectadas.\n• «Diagnóstico» — só serve no dia em que algo falha, e se oculta pelas configurações.\n• «Top Canais» — o estado da classificação mundial e de suas categorias.\nTodas estas seções, menos esta, leem a aba do Twitch em primeiro plano: se não houver, elas dizem.\n• «Exportar um relatório» escreve um texto que você pode reler antes de enviar. Não contém nenhuma lista pessoal — nem seus canais, nem suas inscrições — apenas contagens.\n• «Limpar o histórico» zera tudo, definitivamente."
   },
   "guideVieTitre": {
     "message": "Privacidade, em claro"
@@ -713,5 +713,17 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — os teus dados e as tuas definições"
+  },
+  "guideRoueTitre": {
+    "message": "A engrenagem e este painel"
+  },
+  "guideRoueTexte": {
+    "message": "Uma engrenagem ⚙️ fica logo à direita do título da barra lateral. Um clique abre este painel sobre o Twitch, sem sair da página.\n• O ícone da extensão, no canto superior direito do navegador, abre exatamente o mesmo painel.\n• Para fechar: a tecla Esc, ou um clique fora do quadro.\n• No primeiro início a engrenagem pulsa alguns segundos e um balão a aponta. Depois não volta."
+  },
+  "guideReglagesTitre": {
+    "message": "Tudo se ajusta, tudo se desliga"
+  },
+  "guideReglagesTexte": {
+    "message": "«Configurações» comanda cada decoração descrita aqui. Nada é imposto: o que incomodar se desliga.\n• A prévia ao passar o rato: sua largura, a qualidade do fluxo, ou só o vídeo — desligado, ela mantém a miniatura, os selos e a faixa.\n• Os selos aparecem ou não, um a um.\n• O ouro das inscrições tem um modo discreto: mantém a cor e tira o brilho.\n• A recolha de subscrições acontece no máximo uma vez a cada 3, 6, 12 ou 24 horas, à sua escolha.\n• Suas configurações se exportam e se reimportam; um botão devolve todas ao original."
   }
 }

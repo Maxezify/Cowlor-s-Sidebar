@@ -346,7 +346,7 @@
     "message": "Fermer"
   },
   "guideIntro": {
-    "message": "L'extension n'a aucun réglage : elle fonctionne dès que vous rechargez une page Twitch. Ce qui suit est la liste de ce qu'elle ajoute, dans l'ordre où vous allez la rencontrer."
+    "message": "Ce chapitre décrit ce que l'extension ajoute à Twitch, dans l'ordre où vous allez le rencontrer. Tout fonctionne dès le rechargement d'une page Twitch, sans rien configurer — et tout se règle, ou s'éteint, depuis « Réglages », juste en dessous."
   },
   "guideHoverTitre": {
     "message": "L'aperçu au survol"
@@ -382,7 +382,7 @@
     "message": "Les co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Une pastille violette au coin de l'avatar, avec le nombre de participants : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre 9)."
+    "message": "Une pastille violette au coin de l'avatar, avec le nombre de participants : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1)."
   },
   "guideDebutTitre": {
     "message": "Les débuts, et les reprises"
@@ -418,7 +418,7 @@
     "message": "Ce panneau"
   },
   "guidePanneauTexte": {
-    "message": "À gauche, les sections. « Vos données » montre ce que l'extension a retenu : vos chaînes les plus visitées, vos heures d'écoute dessinées en semaine, les abonnements repérés. « Diagnostic » ne sert que le jour où quelque chose cloche.\n• Ces sections lisent l'onglet Twitch au premier plan : s'il n'y en a pas, elles le disent. Ce chapitre-ci, lui, s'affiche toujours.\n• « Exporter un rapport » écrit un texte que vous pouvez relire avant de l'envoyer. Il ne contient aucune liste personnelle — ni vos chaînes, ni vos abonnements — seulement des comptes.\n• « Effacer l'historique » remet tout à zéro, définitivement."
+    "message": "Cinq groupes, à gauche.\n• « Bien démarrer » — ce chapitre. Il s'affiche toujours, même sans onglet Twitch ouvert.\n• « Réglages » — tout ce que l'extension laisse choisir.\n• « Vos données » — ce qu'elle a retenu : vos chaînes les plus visitées, vos heures d'écoute dessinées en semaine, les abonnements repérés.\n• « Diagnostic » — ne sert que le jour où quelque chose cloche, et se masque depuis les réglages.\n• « Top Chaînes » — l'état du classement mondial et de ses catégories.\nToutes ces sections, sauf celle-ci, lisent l'onglet Twitch au premier plan : s'il n'y en a pas, elles le disent.\n• « Exporter un rapport » écrit un texte que vous pouvez relire avant de l'envoyer. Il ne contient aucune liste personnelle — ni vos chaînes, ni vos abonnements — seulement des comptes.\n• « Effacer l'historique » remet tout à zéro, définitivement."
   },
   "guideVieTitre": {
     "message": "Vie privée, en clair"
@@ -713,5 +713,17 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — vos données et vos réglages"
+  },
+  "guideRoueTitre": {
+    "message": "La roue, et ce panneau"
+  },
+  "guideRoueTexte": {
+    "message": "Une roue ⚙️ est posée juste à droite du titre de la barre latérale. Un clic dessus ouvre ce panneau par-dessus Twitch, sans quitter la page.\n• L'icône de l'extension, en haut à droite du navigateur, ouvre exactement le même panneau.\n• Pour le refermer : la touche Échap, ou un clic en dehors du cadre.\n• Au tout premier lancement, la roue bat quelques secondes et une bulle la désigne. Elle ne revient plus ensuite."
+  },
+  "guideReglagesTitre": {
+    "message": "Tout se règle, et tout se coupe"
+  },
+  "guideReglagesTexte": {
+    "message": "« Réglages » commande chacune des décorations décrites ici. Rien n'est imposé : ce qui vous gêne s'éteint.\n• L'aperçu au survol : sa largeur, la qualité du flux, ou la vidéo seule — coupée, il garde sa miniature, ses badges et sa frise.\n• Les badges s'affichent ou non, un par un.\n• L'or des abonnements a un mode discret : il garde la couleur et retire le chatoiement.\n• Le relevé des abonnements se fait au plus une fois toutes les 3, 6, 12 ou 24 heures, à votre choix.\n• Vos réglages s'exportent et se réimportent ; un bouton les remet tous d'origine."
   }
 }

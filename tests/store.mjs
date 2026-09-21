@@ -139,7 +139,6 @@ ok('les libellés du contrat sont dans la fiche anglaise ET dans content.js',
    On vise donc l'ouverture de la règle elle-même, qu'aucune phrase ne porte. */
 const PROMESSES = [
   ['LIGHT OR DARK, IT FOLLOWS', 'data-tse-theme="light"'],
-  ['\"reduce motion\" setting is honored', '@media (prefers-reduced-motion: reduce) {'],
   /* CES DEUX-LÀ SONT ENTRÉES APRÈS COUP, ET C'EST UN AUDIT QUI LES A EXIGÉES.
      La fiche promettait que le relevé des abonnements « se coupe d'un clic »
      et que l'apprentissage des visites en faisait autant. Les deux réglages

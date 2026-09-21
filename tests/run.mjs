@@ -4363,15 +4363,33 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
      avant + ' -> ' + apresTri.phase);
   ok('la marque non plus', apresTri.classe === true, JSON.stringify(apresTri));
 
-  // Mouvement réduit : le filet reste (c'est l'information), il ne tourne plus.
+  /* MOUVEMENT RÉDUIT : L'EXTENSION N'EN PARLE PLUS. Jusqu'à la 4.14.0 une
+     feuille entière éteignait le décor sous « prefers-reduced-motion ». Elle
+     n'existe plus : c'est une demande, après comparaison des deux moutures
+     côte à côte. Le contrat change donc de forme, et il en sort RENFORCÉ.
+     « Ça s'arrête » se vérifiait sur un état ; « rien ne change » se vérifie
+     sur la différence entre deux relevés, et retombe dès qu'une seule règle
+     réduite reparaît — y compris une règle qu'on n'aurait pas pensé à
+     interroger ici. Supprimer les assertions aurait laissé le trou ouvert. */
+  const libre = await marque('omofficial');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const calme = await marque('omofficial');
-  ok('mouvement réduit : plus d\'animation', calme.anim === 'none', String(calme.anim));
-  ok('ni sur le nom', calme.nomAnim === 'none', String(calme.nomAnim));
-  ok('ni sur la catégorie', calme.catAnim === 'none', String(calme.catAnim));
+  const bouge = ['anim', 'nomAnim', 'catAnim', 'avatar', 'avSouffle',
+                 'nomDuree', 'catDuree', 'pointeur', 'plan'];
+  const ecarts = bouge.filter((k) => calme[k] !== libre[k]);
+  ok('mouvement réduit : le décor est rigoureusement le même qu\'en mouvement libre',
+     ecarts.length === 0,
+     JSON.stringify(Object.fromEntries(ecarts.map((k) => [k, [libre[k], calme[k]]]))));
+  // Et ce « même » est bien un décor vivant, pas deux fois rien : l'invariance
+  // ci-dessus serait vraie aussi si tout était éteint des deux côtés.
+  ok('le fond anime toujours', calme.anim === 'tse-sub-lueur', String(calme.anim));
+  ok('le nom aussi', (calme.nomAnim || '').includes('tse-sub-titre'), String(calme.nomAnim));
+  ok('la catégorie aussi', calme.catAnim === 'tse-sub-titre', String(calme.catAnim));
   ok('et la catégorie reste marquée', calme.catTexte === 'G', String(calme.catTexte));
-  ok('ni sur l\'avatar', calme.avatar === 'none', String(calme.avatar));
-  ok('ni sur son halo', calme.avSouffle === 'none', String(calme.avSouffle));
+  ok('l\'avatar garde son anneau', (calme.avatar || '').includes('tse-sub-turn'),
+     String(calme.avatar));
+  ok('et son halo respire encore', calme.avSouffle === 'tse-sub-souffle',
+     String(calme.avSouffle));
   ok('mais la marque demeure', calme.classe === true, JSON.stringify(calme));
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
@@ -6713,7 +6731,13 @@ titre('70. Panneau — la page rendue, mesurée');
      éprouvé au scénario 69, côté page — mais l'API que le panneau appelle :
      i18n, l'onglet actif, et l'aller-retour de messages. */
   const stub = (msgs) => {
-    const T = (k) => (msgs[k] ? msgs[k].message : '');
+    const T = (k, sub) => {
+          const m = msgs[k] ? msgs[k].message : '';
+          if (sub === undefined || sub === null) return m;
+          const args = Array.isArray(sub) ? sub : [sub];
+          return String(m).replace(/\$(\d)/g,
+            (t, i) => (args[i - 1] === undefined ? t : String(args[i - 1])));
+        };
     /* `extra` porte ce qui n'est ni colonne, ni ligne, ni résumé — la grille
        du rythme, aujourd'hui. Le panneau passe le paquet ENTIER au dessin. */
     const paquet = (colonnes, lignes, resume, extra) =>
@@ -8235,7 +8259,13 @@ titre('77. Firefox — le panneau sous un `chrome.*` qui ne rend pas de promesse
     readFileSync(join(ICI, '..', '_locales', 'fr', 'messages.json'), 'utf8'));
 
   const stubFirefox = (msgs) => {
-    const T = (k) => (msgs[k] ? msgs[k].message : '');
+    const T = (k, sub) => {
+          const m = msgs[k] ? msgs[k].message : '';
+          if (sub === undefined || sub === null) return m;
+          const args = Array.isArray(sub) ? sub : [sub];
+          return String(m).replace(/\$(\d)/g,
+            (t, i) => (args[i - 1] === undefined ? t : String(args[i - 1])));
+        };
     const paquet = { ok: true, data: {
       colonnes: ['login', 'score', 'visits', 'last'],
       lignes: [{ login: 'alpha', score: 3.5, visits: 12, last: Date.now() }],
@@ -10236,7 +10266,13 @@ titre('89. Le panneau dessine — la semaine des visites, la courbe des retards'
   retards.push(1_800_000, 2_100_000);
 
   const stub = ([msg, grille, retards]) => {
-    const T = (k) => (msg[k] ? msg[k].message : k);
+    const T = (k, sub) => {
+          const m = msg[k] ? msg[k].message : k;
+          if (sub === undefined || sub === null) return m;
+          const args = Array.isArray(sub) ? sub : [sub];
+          return String(m).replace(/\$(\d)/g,
+            (t, i) => (args[i - 1] === undefined ? t : String(args[i - 1])));
+        };
     const paquet = (colonnes, lignes, resume, extra) =>
       ({ ok: true, data: { colonnes, lignes, resume, ...(extra || {}) } });
     const trie = retards.slice().sort((a, b) => a - b);
@@ -12243,7 +12279,21 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
       window.__queries = 0;
       const table = d.table;
       window.chrome = {
-        i18n: { getMessage: (k) => (table[k] ? table[k].message : ''),
+        /* LA SUBSTITUTION EST CELLE DE CHROME, et ce bouchon ne la faisait pas.
+           `chrome.i18n.getMessage(cle, sub)` remplace « $1 » … « $9 » par les
+           arguments ; le bouchon rendait le message brut. Le banc n'avait donc
+           JAMAIS vu un message substitué — ni le renvoi de chapitre, ni le
+           « $1 h » des réglages — et l'assertion du renvoi, écrite d'abord
+           contre ce bouchon, lisait « (chapter $1) » sans rien dire de plus.
+           Un bouchon plus simple que la chose qu'il remplace rend vertes des
+           assertions que le produit ferait tomber. */
+        i18n: { getMessage: (k, sub) => {
+          const m = table[k] ? table[k].message : '';
+          if (sub === undefined || sub === null) return m;
+          const args = Array.isArray(sub) ? sub : [sub];
+          return String(m).replace(/\$(\d)/g,
+            (t, i) => (args[i - 1] === undefined ? t : String(args[i - 1])));
+        },
                 getUILanguage: () => d.loc.replace('_', '-') },
         tabs: { query: async () => { window.__queries++; return []; } },
         runtime: { sendMessage: async () => ({ ok: false, erreur: 'absent' }),
@@ -12284,7 +12334,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   ok('…sans interroger le navigateur, et sans réclamer d\'onglet Twitch',
      q.n === 0 && q.message === false, JSON.stringify(q));
 
-  /* ── 3. LES TREIZE CHAPITRES ─────────────────────────────────────────────── */
+  /* ── 3. LES QUINZE CHAPITRES ─────────────────────────────────────────────── */
   const plan = await page.evaluate(() => {
     const chaps = [...document.querySelectorAll('#guide .guide-chapitre')];
     return {
@@ -12296,9 +12346,9 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
       intro: (document.querySelector('#guide .guide-intro') || {}).textContent || '',
     };
   });
-  ok('treize chapitres, numérotés de 1 à 13, chacun avec un titre et du texte',
-     plan.n === 13
-     && plan.nums.join(',') === Array.from({ length: 13 }, (_, i) => i + 1).join(',')
+  ok('quinze chapitres, numérotés de 1 à 15, chacun avec un titre et du texte',
+     plan.n === 15
+     && plan.nums.join(',') === Array.from({ length: 15 }, (_, i) => i + 1).join(',')
      && plan.titres.every(t => t.length > 2)
      && plan.sansCorps === 0
      && plan.intro.length > 40,
@@ -12334,11 +12384,80 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      puces » — leur nombre change à chaque relecture du guide, et une borne
      serrée se contenterait de casser le banc au premier paragraphe retiré.
      Ce qu'il attrape, c'est ZÉRO : le jour où la grammaire des corps cesse
-     d'être appliquée, il n'y a plus une seule puce dans les treize chapitres. */
+     d'être appliquée, il n'y a plus une seule puce dans les quinze chapitres. */
   ok('les puces sont devenues des éléments de liste, marqueur retiré',
      puces.items >= 20 && puces.paraAvecPuce === 0 && puces.itemAvecPuce === 0
      && puces.vides === 0,
      JSON.stringify(puces));
+
+  /* ── 5 bis. LE CHAPITRE DU PANNEAU DÉCRIT LE RAIL QUI EST À CÔTÉ ─────────
+     TROUVÉ EN RELISANT LE GUIDE, PAS EN LISANT LE CODE : le chapitre annonce
+     « cinq groupes, à gauche » et les énumère — et il en donnait deux dans un
+     ordre que le rail n'a jamais eu. Personne ne l'aurait vu en relisant la
+     traduction : il faut avoir les deux sous les yeux.
+
+     LA PROSE SE LIE DONC AU PRODUIT. Les intitulés de groupe du rail sont lus
+     dans leur ordre d'affichage, et on exige qu'ils apparaissent dans CET
+     ordre dans le chapitre. Déplacer une section sans toucher au texte fait
+     tomber cette ligne, et c'est exactement ce qu'on veut : une liste qui ne
+     correspond plus à ce qu'on a sous les yeux vaut moins que pas de liste. */
+  const railEtTexte = await page.evaluate(() => {
+    const groupes = [...document.querySelectorAll('#rail .rail-groupe')]
+      .map((h) => h.textContent.trim()).filter(Boolean);
+    /* LE CHAPITRE SE DÉSIGNE PAR SON CONTENU, pas par son rang : il est le
+       seul à nommer les CINQ intitulés. Le numéroter ici obligerait à revenir
+       dans ce fichier au prochain remaniement de l'ordre des chapitres, ce
+       qui est exactement la dette que ce scénario existe pour éviter. */
+    const chap = [...document.querySelectorAll('#guide .guide-chapitre')]
+      .find((c) => groupes.length && groupes.every((g) => c.textContent.includes(g)));
+    return { groupes, texte: chap ? chap.textContent : '' };
+  });
+  const places = railEtTexte.groupes.map((g) => railEtTexte.texte.indexOf(g));
+  ok('le chapitre du panneau nomme les cinq groupes du rail, et dans l\'ordre du rail',
+     railEtTexte.groupes.length === 5 && places.every((i) => i >= 0)
+     && places.every((v, i) => i === 0 || v > places[i - 1]),
+     JSON.stringify({ groupes: railEtTexte.groupes, places }));
+
+  /* ── 5 ter. LE RENVOI D'UN CHAPITRE À L'AUTRE DÉSIGNE LE BON ────────────
+     MÊME ESPÈCE DE DÉFAUT QUE CI-DESSUS, ET TROUVÉ DE LA MÊME FAÇON : le
+     chapitre des co-streams renvoie aux tris par son NUMÉRO. Le numéro était
+     recopié dans les douze fiches, et le remaniement de l'ordre l'a laissé
+     pointer deux chapitres trop haut — dans les douze langues à la fois.
+
+     UNE TRADUCTION JUSTE PEUT PORTER UN RENVOI FAUX : c'est ce qui rend ce
+     défaut invisible à la relecture. On lit donc le numéro tel qu'il est
+     RENDU, et on va voir ce qu'il y a à ce rang. */
+  const renvois = await page.evaluate(() => {
+    const chaps = [...document.querySelectorAll('#guide .guide-chapitre')];
+    const titres = chaps.map((c) => c.querySelector('.guide-titre').textContent
+                                     .replace(/^\d+/, '').trim());
+    const vus = [];
+    chaps.forEach((c, i) => {
+      const corps = [...c.querySelectorAll('.guide-p, .guide-liste li')]
+        .map((e) => e.textContent).join(' ');
+      for (const m of corps.matchAll(/[(（][^)）]*?(\d+)[^)）]*?[)）]/g))
+        vus.push({ depuis: i + 1, vers: Number(m[1]), texte: m[0] });
+    });
+    return { n: chaps.length, titres, vus };
+  });
+  /* IL Y EN A AU MOINS UN : sans cette moitié, l'assertion serait verte le
+     jour où le renvoi disparaîtrait par accident. */
+  const horsBornes = renvois.vus.filter((r) => !(r.vers >= 1 && r.vers <= renvois.n));
+  const versSoi = renvois.vus.filter((r) => r.vers === r.depuis);
+  ok('chaque renvoi du mode d\'emploi désigne un chapitre qui existe, et pas lui-même',
+     renvois.vus.length >= 1 && horsBornes.length === 0 && versSoi.length === 0,
+     JSON.stringify(renvois.vus));
+  /* ET IL DÉSIGNE LE BON. Le renvoi des co-streams vise les tris : on vérifie
+     que le chapitre pointé est bien celui qui parle de trier, par son titre
+     tel que la langue de la vue le rend. */
+  const tri = await page.evaluate(() => {
+    const t = [...document.querySelectorAll('#guide .guide-chapitre .guide-titre')]
+      .map((h) => h.textContent.replace(/^\d+/, '').trim());
+    return t.findIndex((x) => /sort|filter/i.test(x)) + 1;
+  });
+  ok('…et le renvoi des co-streams tombe sur le chapitre des tris',
+     tri >= 1 && renvois.vus.some((r) => r.vers === tri),
+     JSON.stringify({ triEstAuRang: tri, renvois: renvois.vus }));
 
   /* ── 6. LA PALETTE DES BADGES ─────────────────────────────────────────────
      Douze badges, ONZE modificateurs, DIX couleurs, et les deux exceptions
@@ -12417,29 +12536,58 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      && !!teintes['d-badge--exsub'],
      JSON.stringify({ sub: teintes['d-badge--sub'], exsub: teintes['d-badge--exsub'] }));
 
-  /* ── « * » NE COUVRE PAS LES PSEUDO-ÉLÉMENTS ────────────────────────────
-     Cette vue est relevée sous « mouvement réduit », et la feuille du panneau
-     s'annonçait exhaustive : « * { animation: none !important } ». Le
-     sélecteur universel désigne des ÉLÉMENTS ; ::before et ::after n'en sont
-     pas. La barre violette de la maquette du stream frais continuait donc de
-     battre sous les yeux de qui demande l'immobilité — comme elle continuait
-     de battre dans le produit. Un audit a trouvé les deux le même jour. */
-  const barre = await page.evaluate(() => {
-    const e = document.querySelector('#guide .d-carte--frais');
-    if (!e) return null;
-    const st = getComputedStyle(e, '::before');
-    const m = new DOMMatrixReadOnly(st.transform);
-    return { anim: st.animationName, duree: st.animationDuration,
-             largeur: +(parseFloat(st.width) * (m.a || 1)).toFixed(2),
-             anims: document.getAnimations().length };
-  });
-  /* ASSERTION TOURNÉE, comme celle du produit : la maquette ne montre plus une
-     barre figée mais une barre SANS MOUVEMENT — largeur haute et fixe, opacité
-     qui respire. Une maquette immobile expliquerait autre chose que ce que le
-     produit fait, et c'est précisément ce qu'elle est là pour empêcher. */
-  ok('mouvement réduit : la barre de la maquette garde sa largeur haute, sans l\'animer',
-     !!barre && barre.anim === 'd-respire-calme' && barre.largeur >= 4,
-     JSON.stringify(barre));
+  /* ── LA MAQUETTE MONTRE CE QUE LE PRODUIT FAIT, Y COMPRIS ICI ───────────
+     DEUX TOURS POUR CETTE ASSERTION, ET LA MÊME LEÇON À CHAQUE FOIS. Au
+     premier, la feuille du panneau s'annonçait exhaustive — « * { animation:
+     none !important } » — alors que le sélecteur universel désigne des
+     ÉLÉMENTS : ::before et ::after n'en sont pas, et la barre violette de
+     cette maquette continuait de battre sous les yeux de qui demande
+     l'immobilité. Au second, la feuille gardait DEUX exceptions annoncées
+     « à l'identique de content.js » — un battement calme, un arc-en-ciel
+     ralenti — qui ne l'étaient plus, le bloc du produit ayant été retiré.
+
+     LE PANNEAU N'A DONC PLUS DE BLOC NON PLUS, et ce n'est pas seulement pour
+     s'aligner : une maquette dont le seul métier est de montrer ce que le
+     produit fait ne peut pas garder un régime que le produit a perdu. On
+     mesure l'INVARIANCE, comme sur le produit — les deux relevés doivent être
+     rigoureusement le même. */
+  const barreSous = async (mouvement) => {
+    await page.emulateMedia({ reducedMotion: mouvement });
+    await wait(page, 200);
+    return page.evaluate(async () => {
+      const e = document.querySelector('#guide .d-carte--frais');
+      if (!e) return null;
+      const st = getComputedStyle(e, '::before');
+      /* L'amplitude se balaie sur un cycle : lue d'un coup, elle ne dirait que
+         la phase où on est tombé, et les deux relevés ne sont jamais en
+         phase. */
+      const ech = [];
+      const duree = parseFloat(st.animationDuration) * 1000 || 1400;
+      const fin = performance.now() + duree * 1.1;
+      while (performance.now() < fin) {
+        const c = getComputedStyle(e, '::before');
+        ech.push(parseFloat(c.width) * (new DOMMatrixReadOnly(c.transform).a || 1));
+        await new Promise(requestAnimationFrame);
+      }
+      return { anim: st.animationName, duree: st.animationDuration,
+               lMin: +Math.min(...ech).toFixed(2), lMax: +Math.max(...ech).toFixed(2) };
+    });
+  };
+  const barreCalme = await barreSous('reduce');
+  const barreVive = await barreSous('no-preference');
+  ok('mouvement réduit : la barre de la maquette bat exactement comme sans ce réglage',
+     !!barreCalme && !!barreVive
+     && barreCalme.anim === barreVive.anim && barreCalme.duree === barreVive.duree
+     && Math.abs((barreCalme.lMax - barreCalme.lMin)
+                 - (barreVive.lMax - barreVive.lMin)) < 0.15,
+     JSON.stringify({ calme: barreCalme, vive: barreVive }));
+  /* ET C'EST UN VRAI BATTEMENT DES DEUX CÔTÉS : l'égalité seule serait vraie
+     aussi si la maquette était figée en haut comme en bas. */
+  ok('…et c\'est bien un battement, celui de la maquette du stream frais',
+     barreCalme.anim === 'd-respire'
+     && barreCalme.lMax - barreCalme.lMin >= 2,
+     JSON.stringify(barreCalme));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
 
   /* ── 7. L'ARC-EN-CIEL COURT VRAIMENT ──────────────────────────────────────
      Le badge de subathon est le seul qui n'ait pas de couleur : il les
@@ -12509,7 +12657,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   }));
   ok('une autre section le range et demande la page ; y revenir le repose intact',
      parti.guide === true && parti.message === true && parti.queries > 0
-     && revenu.guide === true && revenu.chapitres === 13 && revenu.message === false,
+     && revenu.guide === true && revenu.chapitres === 15 && revenu.message === false,
      JSON.stringify({ parti, revenu }));
   await page.close();
 
@@ -12533,7 +12681,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
              largeur: document.documentElement.scrollWidth };
   });
   ok('le mode d\'emploi se rend aussi en japonais, sans clé nue ni débordement',
-     rendJa.titre === ja.navGuide.message && rendJa.chapitres === 13
+     rendJa.titre === ja.navGuide.message && rendJa.chapitres === 15
      && rendJa.items >= 20 && rendJa.puces === 0 && rendJa.largeur <= 760
      && !Object.keys(ja).some(k => rendJa.texte.includes(k)),
      JSON.stringify({ titre: rendJa.titre, chapitres: rendJa.chapitres,
@@ -14697,12 +14845,16 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
    l'animation elle-même, jamais recopiée — et l'on regarde ce que l'opacité et
    la largeur rendue ont parcouru.
 
-   ET L'AUDIT A TROUVÉ AUTRE CHOSE : cette barre était la SEULE animation du
-   produit à ignorer « prefers-reduced-motion ». Le subathon, l'or de
-   l'abonnement et l'anneau de l'avatar s'y arrêtent depuis longtemps ; elle,
-   non. Elle s'arrête désormais — à son point haut, pour que le signal reste. */
+   CE SCÉNARIO A CHANGÉ DE PROMESSE EN 4.14. Il s'appelait « visible, et
+   immobile sur demande » : un audit avait trouvé que cette barre était la
+   seule animation à ignorer « prefers-reduced-motion », et on l'y avait
+   arrêtée. Le bloc entier a depuis été retiré sur demande — les deux
+   navigateurs ne rendaient pas la même chose, un seul relayant le réglage du
+   système. Ce qui est éprouvé ici est donc le battement lui-même ; son
+   INVARIANCE face à ce réglage est éprouvée plus bas, par le scénario qui
+   mesure les deux régimes et exige qu'ils soient identiques. */
 {
-  titre('113. Le battement du stream frais — visible, et immobile sur demande');
+  titre('113. Le battement du stream frais — visible, et le même pour tous');
   const page = await fresh();
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.evaluate(() => {
@@ -14752,17 +14904,24 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      !mesure.sansAnimation && (mesure.lMax - mesure.lMin) >= 2,
      JSON.stringify(mesure));
 
-  /* ── MOUVEMENT REFUSÉ : LE MOUVEMENT CESSE, PAS LE BATTEMENT ─────────────
-     ASSERTION TOURNÉE, et c'est une mesure de terrain qui l'a exigé. La 4.7
-     arrêtait ce battement NET, et ces deux lignes le constataient. Un
-     utilisateur l'a signalé trois fois ; sa commande a fini par rendre
-     « mouvementReduit: true, animations: 0 » — barre présente, immobile.
+  /* ── MOUVEMENT RÉDUIT : L'EXTENSION NE S'EN MÊLE PLUS ───────────────────
+     TROISIÈME TOUR DE CES DEUX ASSERTIONS, et le dernier. La 4.7 arrêtait ce
+     battement net ; un utilisateur l'a signalé trois fois, et sa commande a
+     fini par rendre « mouvementReduit: true, animations: 0 » — barre présente,
+     immobile. La 4.9 a donc coupé le MOUVEMENT (scaleX) en gardant l'OPACITÉ,
+     en s'appuyant sur la WCAG, qui définit l'animation de mouvement comme
+     celle qui crée l'illusion d'un déplacement et exclut explicitement les
+     changements d'opacité. Ces deux lignes mesuraient ce compromis.
 
-     LA NORME EST PLUS FINE QUE MA RÈGLE L'ÉTAIT. La WCAG définit l'animation
-     de MOUVEMENT comme celle qui crée l'illusion d'un déplacement, et exclut
-     explicitement les changements d'opacité. Le « scaleX » est du mouvement ;
-     l'opacité n'en est pas. On exige donc les DEUX : que la largeur ne varie
-     plus du tout, et que l'opacité respire encore. */
+     LE COMPROMIS LUI-MÊME EST TOMBÉ EN 4.14.0, et par la même voie : la
+     mouture Firefox n'avait jamais reçu ce bloc, les deux ont été comparées
+     côte à côte, et c'est celle SANS bloc qui a été retenue. Plus une seule
+     règle sous « prefers-reduced-motion » dans tout le produit.
+
+     ON NE SUPPRIME PAS POUR AUTANT : on retourne la mesure. Comparer le relevé
+     réduit au relevé libre est plus exigeant que constater un arrêt, car
+     l'égalité tombe dans les DEUX sens — si une règle réduite reparaissait,
+     ou si le battement libre changeait sans que celui-ci suive. */
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await wait(page, 300);
   const calme = await page.evaluate(async () => {
@@ -14785,11 +14944,22 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { anims: anim ? 1 : 0, duree, oMin, oMax,
              lMin: +lMin.toFixed(2), lMax: +lMax.toFixed(2), ombre };
   });
-  ok('mouvement refusé : la barre ne bouge plus — sa largeur ne varie pas d\'un pixel',
-     calme.lMax - calme.lMin < 0.01 && calme.lMax >= 4, JSON.stringify(calme));
-  ok('…mais le battement demeure, en OPACITÉ seule, et plus doux qu\'en mouvement libre',
-     calme.anims === 1 && calme.oMin <= 0.5 && calme.oMax >= 0.95
-     && calme.duree > 1400 && calme.ombre !== 'none', JSON.stringify(calme));
+  const memeCadence = calme.anims === 1 && calme.duree === mesure.duree;
+  ok('mouvement réduit : le battement bat à la MÊME cadence qu\'en mouvement libre',
+     memeCadence, JSON.stringify({ libre: mesure.duree, calme: calme.duree,
+                                   anims: calme.anims }));
+  /* Et de la même amplitude, en opacité COMME EN LARGEUR : c'est la largeur
+     qui portait tout l'écart entre les deux moutures, puisque c'est elle que
+     le bloc supprimé figeait. Un dixième de pixel de tolérance, pour le seul
+     échantillonnage par rAF. */
+  ok('…et de la même amplitude, l\'élargissement de la barre y compris',
+     Math.abs((calme.lMax - calme.lMin) - (mesure.lMax - mesure.lMin)) < 0.15
+     && calme.lMax - calme.lMin >= 2
+     && Math.abs(calme.oMin - mesure.opMin) < 0.06
+     && Math.abs(calme.oMax - mesure.opMax) < 0.06
+     && calme.ombre !== 'none',
+     JSON.stringify({ largeurs: [[mesure.lMin, mesure.lMax], [calme.lMin, calme.lMax]],
+                      opacites: [[mesure.opMin, mesure.opMax], [calme.oMin, calme.oMax]] }));
   await page.close();
 }
 
@@ -14809,12 +14979,19 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
    lequel un utilisateur peut demander qu'elles se calment ne les atteignait
    pas. La garantie était écrite, et elle ne tenait pas.
 
-   CE QUE LE RÉGLAGE VAUT AUJOURD'HUI A CHANGÉ, et c'est la 4.9 qui l'a changé :
-   il ne les ARRÊTE plus, il les RALENTIT à huit secondes le tour. On mesure
-   donc la cadence et la dérive, pas le silence — et jamais la déclaration : la
-   durée se lit sur le style calculé, la couleur sur deux échantillons. */
+   CE QUE LE RÉGLAGE VAUT A CHANGÉ DEUX FOIS. La 4.9 a remplacé l'arrêt par un
+   RALENTISSEMENT à huit secondes le tour ; la 4.14.0 a retiré le bloc entier,
+   après comparaison des moutures Chrome et Firefox — cette dernière ne l'avait
+   jamais reçu, et c'est elle qui a été jugée juste. Il n'existe plus une seule
+   règle « prefers-reduced-motion » dans le produit.
+
+   LE DÉFAUT D'ORIGINE RESTE POURTANT COUVERT, et mieux qu'avant. On ne mesure
+   plus « ralenti », on mesure l'ÉGALITÉ entre les deux relevés : si une règle
+   réduite revenait — par spécificité, par ordre de feuille, ou écrite exprès —
+   les deux cadences divergeraient et ces lignes tomberaient. C'est exactement
+   la bascule que l'audit d'alors cherchait, prise par l'autre bout. */
 {
-  titre('114. Mouvement réduit — les arcs-en-ciel ralentissent, ils ne s\'arrêtent pas');
+  titre('114. Mouvement réduit — les arcs-en-ciel tournent comme partout ailleurs');
   const page = await fresh();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.evaluate(() => {
@@ -14845,47 +15022,40 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              anims: document.getAnimations().length };
   });
   const a = await lire();
-  await wait(page, 1500);           // assez pour déplacer la teinte, même à 8 s
+  /* UNE DEMI-PÉRIODE, PAS UNE PÉRIODE ENTIÈRE. L'attente valait 1 500 ms du
+     temps où le cycle réduit durait huit secondes ; à pleine cadence, c'est
+     EXACTEMENT sa période, et les deux échantillons retombent sur la même
+     teinte. Une attente commensurable au cycle qu'elle mesure ne mesure rien. */
+  await wait(page, 500);
   const b = await lire();
 
-  /* ── ASSERTIONS TOURNÉES : L'ARRÊT NET ÉTAIT UNE LECTURE GROSSIÈRE ──────
-     Elles constataient que les deux arcs-en-ciel s'arrêtaient. Un utilisateur
-     l'a signalé — « ce n'est pas normal qu'il soit arrêté alors que sur
-     Firefox oui » — et il a raison : une TEINTE qui dérive n'est pas un
-     déplacement, et la WCAG exclut explicitement les changements de couleur
-     de sa définition de l'animation de mouvement.
-
-     LA COULEUR A POURTANT SA PROPRE LIMITE, et elle n'est pas la même : le
-     critère 2.3.1 vise le CLIGNOTEMENT, et ce cycle change de teinte 5,3 fois
-     par seconde. Le compromis porte donc sur la CADENCE, seule grandeur que
-     les deux critères partagent. On exige les trois moitiés : que l'animation
-     soit toujours là, qu'elle soit RALENTIE à au moins six secondes — une
-     teinte par seconde, le tiers du seuil de clignotement — et que la couleur
-     bouge encore pour de bon. */
   ok('mouvement réduit : les deux arcs-en-ciel tournent encore',
      a.puceAnim !== 'none' && a.badgeAnim !== 'none', JSON.stringify(a));
-  ok('…mais RALENTIS, et à la même cadence tous les deux',
-     a.puceDuree >= 6 && a.badgeDuree >= 6 && a.puceDuree === a.badgeDuree,
-     JSON.stringify({ puce: a.puceDuree, badge: a.badgeDuree }));
   /* LA MESURE QUI COMPTE. Une durée lue ne dit pas qu'on voie quelque chose :
-     c'est la COULEUR qui le dit. Sur huit secondes, une seconde et demie
-     d'écart suffit largement à déplacer la teinte. */
-  ok('…et leur couleur dérive toujours, seulement plus doucement',
+     c'est la COULEUR qui le dit. Un tiers de tour suffit largement. */
+  ok('…et leur couleur dérive pour de bon',
      a.puceCoul !== b.puceCoul && a.badgeCoul !== b.badgeCoul,
      JSON.stringify({ a: [a.puceCoul, a.badgeCoul], b: [b.puceCoul, b.badgeCoul] }));
-  /* ON RALENTIT LE MOUVEMENT, ON NE PERD PAS L'INFORMATION. */
+  /* ON NE TOUCHE PAS AU MOUVEMENT, ON NE PERD PAS L'INFORMATION NON PLUS. */
   ok('…et la pastille garde sa marque, jour compris',
      /\d/.test(a.puceTexte), JSON.stringify(a.puceTexte));
 
-  /* ── ET LE MOUVEMENT REVIENT QUAND IL EST AUTORISÉ ────────────────────── */
+  /* ── ET LA MÊME CHOSE, AU CENTIÈME PRÈS, QUAND LE MOUVEMENT EST AUTORISÉ ─
+     C'est ici que le défaut d'origine serait repris : une règle réduite qui
+     reparaîtrait, par spécificité ou par ordre de feuille, ferait diverger ces
+     deux durées. L'égalité stricte est le contrat. */
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await wait(page, 200);
   const c1 = await lire();
   await wait(page, 500);
   const c2 = await lire();
-  ok('mouvement autorisé : les deux arcs-en-ciel reprennent leur pleine cadence',
+  ok('mouvement autorisé : exactement la même cadence, à la milliseconde',
+     c1.puceDuree === a.puceDuree && c1.badgeDuree === a.badgeDuree,
+     JSON.stringify({ reduit: [a.puceDuree, a.badgeDuree],
+                      libre: [c1.puceDuree, c1.badgeDuree] }));
+  ok('…et c\'est bien une cadence vive des deux côtés, pas deux fois l\'immobilité',
      c1.puceAnim !== 'none' && c1.badgeAnim !== 'none'
-     && c1.puceDuree <= 2 && c1.badgeDuree <= 2
+     && c1.puceDuree > 0 && c1.puceDuree <= 2 && c1.badgeDuree <= 2
      && (c1.puceCoul !== c2.puceCoul || c1.badgeCoul !== c2.badgeCoul),
      JSON.stringify({ durees: [c1.puceDuree, c1.badgeDuree],
                       couleurs: [c1.puceCoul, c2.puceCoul] }));
@@ -15212,24 +15382,34 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await page.evaluate(() => document.getElementById('aplatir').remove());
   await wait(page, 200);
 
-  /* ── SITUATION 4 : L'IMMOBILITÉ DEMANDÉE ────────────────────────────────
-     La branche qui a coûté deux versions. Elle doit se lire d'un coup d'œil,
-     et surtout ne pas se confondre avec « la règle ne s'applique pas ». */
+  /* ── SITUATION 4 : LE RÉGLAGE SYSTÈME NE CHANGE PLUS RIEN ────────────────
+     CETTE SITUATION A CHANGÉ DE SENS EN 4.14, et l'assertion avec elle. Le
+     bloc « prefers-reduced-motion » a été retiré sur demande : « retire le CSS
+     qui réduit les animations sur Chrome ; sur Firefox il n'y est pas et c'est
+     parfait ». Les deux navigateurs ne rendaient pas la même chose parce qu'un
+     seul relayait le réglage du système.
+
+     ON NE SE CONTENTE PAS DE RETIRER L'ANCIENNE ASSERTION : on exige
+     l'INVARIANCE, qui est plus forte. La barre doit battre EXACTEMENT pareil
+     que le système demande moins de mouvement ou non — sans quoi il resterait
+     quelque part une règle qu'on croirait partie. */
+  const avant = await page.evaluate(async () => await window.tse.battement());
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await wait(page, 300);
   const calme = await page.evaluate(async () => ({
     rapport: window.tse.panneau.rapport().page,
     mesure: await window.tse.battement(),
   }));
-  ok('mouvement réduit : le rapport le dit, et la barre garde son battement',
+  ok('le navigateur dit bien que le mouvement réduit est demandé',
      calme.rapport.mouvementReduit === true && calme.rapport.battement.animations === 1,
      JSON.stringify(calme.rapport.battement));
-  /* LE VERDICT DOIT NOMMER CE RÉGIME, sans quoi une amplitude de 2,2 se lirait
-     comme un défaut alors qu'elle est le comportement voulu. */
-  ok('…et le verdict nomme le régime calme plutôt que d\'annoncer une faiblesse',
-     /mouvement réduit respecté/.test(calme.mesure.verdict)
-     && calme.mesure.rapport >= 1.8 && calme.mesure.largeurMax - calme.mesure.largeurMin < 0.01,
-     JSON.stringify(calme.mesure));
+  /* L'ASSERTION QUI TIENT LE RETRAIT : même verdict, même amplitude. Remettre
+     le bloc de mouvement réduit fait diverger les deux et la fait tomber. */
+  ok('…et la barre bat exactement comme sans ce réglage',
+     calme.mesure.verdict === avant.verdict
+     && Math.abs(calme.mesure.rapport - avant.rapport) < 0.25,
+     JSON.stringify({ avant: avant.verdict, avantRapport: avant.rapport,
+                      apres: calme.mesure.verdict, apresRapport: calme.mesure.rapport }));
   await page.close();
 }
 
@@ -16138,7 +16318,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              role: v && v.getAttribute('role'),
              modal: v && v.getAttribute('aria-modal'),
              nomme: !!(v && v.getAttribute('aria-label')),
-             croix: !!(v && v.querySelector('.tse-incruste-croix[aria-label]')),
+             croix: !!(v && v.querySelector('.tse-incruste-croix')),
              /* Le bac à sable retirerait au cadre son origine d'extension,
                 donc « chrome.runtime » — c'est-à-dire tout ce que le panneau
                 sait faire. Il ne doit pas y en avoir. */
@@ -16161,46 +16341,28 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('…et la feuille du panneau relâche ses deux nombres en incrustation',
      /html\[data-vue="incruste"\][\s\S]{0,120}width: 100%; height: 100%/
        .test(readFileSync(join(ICI, '..', 'panneau.css'), 'utf8')));
-  ok('…annoncé comme fenêtre modale, nommé, avec une croix nommée',
+  ok('…annoncé comme fenêtre modale et nommé, et sans croix',
      ouvert.role === 'dialog' && ouvert.modal === 'true'
-     && ouvert.nomme === true && ouvert.croix === true, JSON.stringify(ouvert));
+     && ouvert.nomme === true && ouvert.croix === false, JSON.stringify(ouvert));
   ok('…et sans bac à sable, qui lui retirerait son origine d\'extension',
      ouvert.bacASable === false, JSON.stringify(ouvert));
 
-  /* ── LA CROIX SE VOIT, ET C'EST MESURÉ ─────────────────────────────────
-     DEUX RÉDACTIONS L'ONT RATÉE AVANT CELLE-CI : posée au-dessus du cadre, en
-     gris translucide sur un voile noir, elle était invisible — et un bouton de
-     fermeture invisible sur une fenêtre modale ne laisse que la touche Échap à
-     qui ne sait pas qu'elle existe. Signalé depuis le terrain.
-
-     ON MESURE SA POSITION, PAS SA RÈGLE : elle doit CHEVAUCHER le coin
-     haut-droit du cadre — c'est ce chevauchement qui la rattache visiblement
-     à la fenêtre qu'elle ferme.
-
-     « À CHEVAL » SE DIT EXACTEMENT : elle TRAVERSE les deux bords. Une
-     première rédaction demandait que son CENTRE soit dehors ; c'était une
-     façon arbitraire de dire la même chose, et elle échouait sur un bouton
-     parfaitement posé — plus dedans que dehors, ce qui est le cas de tous les
-     boutons de fermeture de coin. On dit donc ce qu'on veut : elle coupe le
-     bord droit, elle coupe le bord haut. */
-  const croixPlace = await page.evaluate(() => {
+  /* ── LE CADRE N'A PLUS DE CROIX, ET C'EST MESURÉ ─────────────────────
+     UNE MESURE DE POSITION VIVAIT ICI : la croix devait chevaucher le coin
+     haut-droit du cadre, traverser ses deux bords, rester dans la fenêtre.
+     Elle a été retirée en 4.14 à la demande de l'auteur, et le contrat se
+     retourne : ce qu'on exige maintenant, c'est qu'AUCUN bouton ne soit posé
+     sur cette fenêtre. Les deux sorties qui restent — Échap et le clic hors
+     du cadre — sont éprouvées juste en dessous, séparément. */
+  const sansCroix = await page.evaluate(() => {
     const cadre = document.querySelector('.tse-incruste-cadre');
-    const x = document.querySelector('.tse-incruste-croix');
-    const rc = cadre.getBoundingClientRect();
-    const rx = x.getBoundingClientRect();
-    return {
-      coupeDroite: rx.left < rc.right && rx.right > rc.right,
-      coupeHaut: rx.top < rc.top && rx.bottom > rc.top,
-      taille: Math.round(rx.width),
-      /* Et elle reste dans la fenêtre : une croix hors champ ne vaut pas mieux
-         qu'une croix invisible. */
-      visible: rx.right <= window.innerWidth && rx.top >= 0,
-    };
+    return { boutons: cadre.querySelectorAll('button').length,
+             enfants: [...cadre.children].map((n) => n.tagName.toLowerCase()) };
   });
-  ok('…et sa croix est à cheval sur le coin haut-droit, assez grande pour être visée',
-     croixPlace.coupeDroite === true && croixPlace.coupeHaut === true
-     && croixPlace.taille >= 28 && croixPlace.visible === true,
-     JSON.stringify(croixPlace));
+  ok('le cadre ne porte qu\'un contenu : son panneau, et rien d\'autre',
+     sansCroix.boutons === 0
+     && JSON.stringify(sansCroix.enfants) === JSON.stringify(['iframe']),
+     JSON.stringify(sansCroix));
 
   /* ── QUATRE SORTIES, ET ELLES ÉCHOUENT SÉPARÉMENT ────────────────────── */
   const sortir = async (geste) => page.evaluate(async (g) => {
@@ -16214,8 +16376,6 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     } else if (g === 'voile') {
       v.click();
-    } else if (g === 'croix') {
-      v.querySelector('.tse-incruste-croix').click();
     } else if (g === 'cadre') {
       /* LE CLIC DANS LE CADRE NE DOIT PAS FERMER. C'est l'assertion qui manque
          le plus souvent : un « fermer au clic sur le voile » écrit sans garde
@@ -16240,7 +16400,14 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('le clic DANS le cadre ne ferme pas', (await sortir('cadre')) === false);
   ok('un message de fermeture venu de la page est ignoré',
      (await sortir('imposteur')) === false);
-  ok('la croix ferme', (await sortir('croix')) === true);
+  /* PAS DE CROIX, ET C'EST UNE DEMANDE. La 4.12.2 en avait posé une ; la 4.14
+     la retire. On n'efface pas l'assertion pour autant — on la retourne : son
+     ABSENCE est désormais le contrat, et les deux sorties qui restent portent
+     donc seules la fermeture. Une croix qui reviendrait par inadvertance fait
+     tomber celle-ci. */
+  ok('aucune croix n\'est posée sur le cadre',
+     (await page.evaluate(() => !document.querySelector('.tse-incruste-croix')
+        && !document.querySelector('#tse-incruste button'))) === true);
   ok('la touche Échap ferme', (await sortir('echap')) === true);
   ok('le clic sur le voile ferme', (await sortir('voile')) === true);
   ok('…et le panneau lui-même peut demander sa fermeture',
@@ -16254,7 +16421,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     for (let i = 0; i < 4; i++) {
       document.getElementById('tse-roue').click();
       await new Promise((r) => setTimeout(r, 40));
-      document.querySelector('.tse-incruste-croix').click();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       await new Promise((r) => setTimeout(r, 40));
     }
     return { voiles: document.querySelectorAll('.tse-incruste').length,
@@ -16552,50 +16719,86 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      parLaRoue.avant === true && parLaRoue.bulle === false
      && parLaRoue.neuf === null && parLaRoue.cle === 'vu', JSON.stringify(parLaRoue));
 
-  /* ── MOUVEMENT RÉDUIT : LE SIGNAL RESTE, LE MOUVEMENT PART ───────────── */
-  /* CELLE-CI EST DU MOUVEMENT AU SENS STRICT — un changement de TAILLE, ce que
-     la WCAG appelle l'illusion d'un déplacement. Pas de version calme à
-     négocier comme pour l'opacité de la barre du stream frais.
+  /* ── MOUVEMENT RÉDUIT : DEUX PAGES CÔTE À CÔTE, RIEN NE DOIT LES SÉPARER ─
+     CETTE ANIMATION EST DU MOUVEMENT AU SENS STRICT — un changement de TAILLE,
+     ce que la WCAG appelle l'illusion d'un déplacement — et jusqu'à la 4.14.0
+     une règle l'éteignait ici. Le produit n'en pose plus une seule : la
+     mouture Firefox ne l'avait jamais reçue, les deux ont été comparées, et
+     c'est celle sans règle qui a été retenue.
 
-     L'ASSERTION EST NÉCESSAIRE PARCE QUE LA RÈGLE POUVAIT PERDRE : celle qui
-     déclare le battement vit PLUS BAS dans la feuille, à spécificité égale.
-     C'est exactement le piège qui a fait passer l'arc-en-ciel du subathon à
-     travers ce réglage pendant deux versions. */
-  const reduit = await browser.newPage();
-  reduit.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
-  await reduit.emulateMedia({ reducedMotion: 'reduce' });
-  await reduit.goto(URL_PAGE);
-  await reduit.evaluate(() => localStorage.clear());
-  await reduit.reload();
-  await reduit.evaluate(() => {
-    window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 3600e3).toISOString(),
-                             viewers: 900, game: 'G', tags: [] } };
-    window.__addCard('alpha', 'G', '900');
-  });
-  await wait(reduit, 1500);
-  const calme = await reduit.evaluate(() => {
-    const r = document.getElementById('tse-roue');
-    const st = getComputedStyle(r);
-    return { neuf: r.getAttribute('data-tse-neuf'), anime: st.animationName,
-             transforme: st.transform,
-             /* LA ROTATION AU SURVOL EST DU MOUVEMENT ELLE AUSSI. Elle n'est
-                pas un signal — elle accuse réception du pointeur — donc elle
-                part entièrement, sans rien à conserver. */
-             rotation: getComputedStyle(r.querySelector('.tse-roue-dent')).transitionDuration,
-             /* Ce qui reste DIT encore. Une roue qui perdrait son halo en même
-                temps que son mouvement ne signalerait plus rien du tout. */
-             halo: st.boxShadow,
-             bulle: !!document.getElementById('tse-bulle') };
-  });
-  ok('mouvement réduit : le battement s\'arrête entièrement',
-     calme.anime === 'none' && (calme.transforme === 'none' || calme.transforme === 'matrix(1, 0, 0, 1, 0, 0)'),
-     JSON.stringify(calme));
-  ok('…et la rotation au survol part avec lui',
-     calme.rotation === '0s', JSON.stringify(calme.rotation));
-  ok('…mais le signal reste : la roue est marquée, son halo est posé, la bulle est là',
+     ON GARDE POURTANT LE PIÈGE QUI JUSTIFIAIT CE BLOC. La règle du battement
+     vit PLUS BAS dans la feuille, à spécificité égale : c'est exactement la
+     configuration qui a fait passer l'arc-en-ciel du subathon à travers ce
+     réglage pendant deux versions, dans un sens comme dans l'autre. Deux pages
+     identiques à la préférence près, et l'exigence que leur battement porte le
+     même nom et la même durée, prennent ce piège quel que soit le sens.
+
+     L'AMPLITUDE BALAYÉE, PAS LA MATRICE INSTANTANÉE : deux pages n'en sont
+     jamais à la même phase du cycle, et comparer deux transformations lues
+     d'un coup ne mesurerait que l'instant où on les a lues. */
+  const roueSous = async (mouvement) => {
+    const p = await browser.newPage();
+    p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await p.emulateMedia({ reducedMotion: mouvement });
+    await p.goto(URL_PAGE);
+    await p.evaluate(() => localStorage.clear());
+    await p.reload();
+    await p.evaluate(() => {
+      window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 3600e3).toISOString(),
+                               viewers: 900, game: 'G', tags: [] } };
+      window.__addCard('alpha', 'G', '900');
+    });
+    await wait(p, 1500);
+    const vu = await p.evaluate(async () => {
+      const r = document.getElementById('tse-roue');
+      const st = getComputedStyle(r);
+      /* L'AMPLITUDE SE BALAIE, ELLE NE SE LIT PAS D'UN COUP. Une seule lecture
+         de la matrice ne dit que la phase où on est tombé, et le cycle repasse
+         par l'identité deux fois par tour : l'assertion tiendrait ou tomberait
+         au hasard de la milliseconde. On balaie un cycle entier et on garde
+         les deux extrêmes. */
+      const ech = [];
+      const duree = parseFloat(st.animationDuration) * 1000 || 1600;
+      const fin = performance.now() + duree * 1.1;
+      while (performance.now() < fin) {
+        ech.push(new DOMMatrixReadOnly(getComputedStyle(r).transform).a);
+        await new Promise(requestAnimationFrame);
+      }
+      return { neuf: r.getAttribute('data-tse-neuf'), anime: st.animationName,
+               duree: st.animationDuration, tours: st.animationIterationCount,
+               eMin: +Math.min(...ech).toFixed(4), eMax: +Math.max(...ech).toFixed(4),
+               /* LA ROTATION AU SURVOL EST DU MOUVEMENT ELLE AUSSI ; elle n'est
+                  pas un signal, elle accuse réception du pointeur. */
+               rotation: getComputedStyle(r.querySelector('.tse-roue-dent')).transitionDuration,
+               /* Ce qui DIT, par opposition à ce qui bouge. Une roue qui
+                  perdrait son halo ne signalerait plus rien du tout. */
+               halo: st.boxShadow,
+               bulle: !!document.getElementById('tse-bulle') };
+    });
+    await p.close();
+    return vu;
+  };
+  const calme = await roueSous('reduce');
+  const vif = await roueSous('no-preference');
+  ok('mouvement réduit : le battement de la roue est le même qu\'en mouvement libre',
+     calme.anime === vif.anime && calme.duree === vif.duree
+     && calme.tours === vif.tours && calme.rotation === vif.rotation,
+     JSON.stringify({ calme, vif }));
+  // Et c'est bien un battement, pas deux fois rien : l'égalité seule serait
+  // vraie aussi si les deux pages étaient également immobiles.
+  ok('…et c\'est un vrai battement, nommé et d\'amplitude mesurable',
+     calme.anime === 'tse-roue-bat' && parseFloat(calme.duree) > 0
+     && calme.eMax - calme.eMin >= 0.02,
+     JSON.stringify({ anime: calme.anime, duree: calme.duree,
+                      amplitude: +(calme.eMax - calme.eMin).toFixed(4) }));
+  // La MÊME amplitude des deux côtés, pas seulement la même déclaration :
+  // c'est ce que l'œil voit, et c'est là que la règle supprimée agissait.
+  ok('…et la même amplitude en mouvement réduit qu\'en mouvement libre',
+     Math.abs((calme.eMax - calme.eMin) - (vif.eMax - vif.eMin)) < 0.01,
+     JSON.stringify({ calme: [calme.eMin, calme.eMax], vif: [vif.eMin, vif.eMax] }));
+  ok('…et le signal reste : la roue est marquée, son halo est posé, la bulle est là',
      calme.neuf === 'true' && /rgba?\(/.test(calme.halo) && calme.bulle === true,
      JSON.stringify(calme));
-  await reduit.close();
   await page.close();
 }
 
@@ -16633,7 +16836,13 @@ addEventListener('message', (e) => {
   page.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
   await page.addInitScript((msg) => {
     window.chrome = {
-      i18n: { getMessage: (k) => (msg[k] ? msg[k].message : k), getUILanguage: () => 'fr' },
+      i18n: { getMessage: (k, sub) => {
+          const m = msg[k] ? msg[k].message : k;
+          if (sub === undefined || sub === null) return m;
+          const args = Array.isArray(sub) ? sub : [sub];
+          return String(m).replace(/\$(\d)/g,
+            (t, i) => (args[i - 1] === undefined ? t : String(args[i - 1])));
+        }, getUILanguage: () => 'fr' },
       /* AUCUN onglet, AUCUN worker : la panne du terrain, reproduite. */
       tabs: { query: () => Promise.resolve([]) },
       runtime: { getManifest: () => ({ version: '9.9.9' }),
@@ -17794,6 +18003,188 @@ addEventListener('message', (e) => {
      vu.bilan.affiches === 1 && vu.bilan.horsClassement === 3
      && vu.bilan.classesNonAffichees === 0, JSON.stringify(vu.bilan));
   await p2.close();
+}
+
+/* ═════════ UN DÉCOR QUI BOUCLE, OU QUI SAUTE ═════════════════════════════
+   SIGNALÉ DEPUIS LE TERRAIN, CAPTURE À L'APPUI : « j'aimerais que les effets
+   CSS soient parfaitement bouclés, ce qui n'est pas le cas sur le fond de ce
+   type de carte ». Le fond de la carte abonnée, quinze secondes le tour.
+
+   TROIS DE SES QUATRE NAPPES N'ARRIVAIENT PAS OÙ ELLES PARTAIENT — 0 % d'un
+   côté, 100 % de l'autre — et avec un fond qui ne se répète pas, ce sont deux
+   points différents de la carte. Quinze secondes de dérive lente, puis un saut
+   sec. La quatrième bouclait déjà : le remède était posé à côté du défaut.
+
+   RIEN NE TENAIT CE CONTRAT. Le banc mesurait la couleur, la vitesse, le plan
+   d'empilement de ce décor — jamais sa COUTURE, qui n'existe qu'à une image du
+   cycle et qu'aucune capture ne montre. Ce scénario la mesure, et il ne tient
+   aucune liste : il demande à chaque animation quelles propriétés elle touche,
+   par `getKeyframes()`, et compare le rendu à la première et à la dernière
+   image. Une animation ajoutée demain est donc couverte sans qu'on y pense.
+
+   DEUX EXCEPTIONS, ET ELLES SE PROUVENT AU LIEU DE S'EXCUSER. Une valeur qui
+   diffère aux deux bouts n'est pas forcément une couture : elle peut être hors
+   cadre, ou décalée d'exactement une tuile. Ces deux cas-là ne sont pas
+   inscrits sur une liste d'exemptions — ils sont CALCULÉS, en pixels rendus,
+   par les deux assertions qui suivent. Le jour où l'un cesse d'être vrai, il
+   tombe du côté des coutures. */
+{
+  titre('137. Le décor de la carte abonnée — chaque cycle revient où il est parti');
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { abo: { id: '1', createdAt: h, viewers: 900, game: 'G', tags: [] } };
+    window.__addCard('abo', 'G', '900');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+
+  const releve = await page.evaluate(() => {
+    const carte = [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === 'abo');
+    if (!carte) return { erreur: 'carte absente' };
+    /* LA MARQUE EST POSÉE ICI, DANS LA MÊME ÉVALUATION QUE LA MESURE. Le scan
+       suivant la retirerait — applySubStyle nettoie ce qui ne lui revient pas —
+       et ce qu'on éprouve n'est pas le relevé des abonnements, c'est la feuille
+       de style seule : les images-clés, telles que le moteur les interpole. */
+    carte.classList.add('tse-sub');
+    void carte.offsetHeight;
+    const IGNORE = new Set(['offset', 'computedOffset', 'easing', 'composite']);
+    const vues = [];
+    for (const a of carte.getAnimations({ subtree: true })) {
+      const cible = a.effect.target;
+      const pseudo = a.effect.pseudoElement || null;
+      const duree = a.effect.getComputedTiming().duration;
+      if (!Number.isFinite(duree) || duree <= 0) continue;
+      const props = new Set();
+      for (const k of a.effect.getKeyframes())
+        for (const nom of Object.keys(k)) if (!IGNORE.has(nom)) props.add(nom);
+      const lire = (t) => {
+        a.currentTime = t;
+        const st = getComputedStyle(cible, pseudo);
+        return [...props].map((n) => n.startsWith('--')
+          ? st.getPropertyValue(n).trim() : String(st[n]));
+      };
+      /* LA DERNIÈRE IMAGE, PAS LE REBOUCLAGE : à `duree` exacte le moteur a
+         déjà repassé à zéro, et tout paraîtrait boucler. Une milliseconde
+         avant, on lit ce que l'œil voit juste avant le saut. */
+      const debut = lire(0);
+      const fin = lire(duree - 1);
+      /* UNE VALEUR SE COMPARE COUCHE PAR COUCHE, et d'abord comme du texte.
+         « background-position » en porte quatre, séparées par des virgules :
+         les fondre en une seule chaîne dirait « ça diffère » sans dire OÙ, et
+         c'est justement le OÙ qui sépare la couture de l'exception.
+
+         PUIS COMME DES NOMBRES : quinze secondes d'interpolation laissent un
+         résidu de virgule flottante — « 0,0101333 % » là où on a écrit
+         « 0 % » — qui n'est pas une couture. Le centième de pour-cent est
+         large pour ce résidu, et mille fois trop serré pour une nappe qui ne
+         reviendrait pas où elle est partie. */
+      const couches = (x, y) => {
+        if (x === y) return [];
+        const a2 = x.split(','), b2 = y.split(',');
+        if (a2.length !== b2.length) return [-1];
+        const dur = [];
+        for (let i = 0; i < a2.length; i++) {
+          if (a2[i].trim() === b2[i].trim()) continue;
+          const u = parseFloat(a2[i]), v = parseFloat(b2[i]);
+          if (Number.isFinite(u) && Number.isFinite(v) && Math.abs(u - v) < 0.02) continue;
+          dur.push(i);
+        }
+        return dur;
+      };
+      vues.push({ nom: a.animationName, duree, props: [...props],
+        coutures: [...props].map((n, i) => {
+          const dur = couches(debut[i], fin[i]);
+          return dur.length ? { prop: n, couches: dur, debut: debut[i], fin: fin[i] } : null;
+        }).filter(Boolean) });
+    }
+    return { vues };
+  });
+
+  // Le décor doit EXISTER, sans quoi « aucune couture » serait vrai pour rien.
+  const noms = (releve.vues || []).map((v) => v.nom);
+  ok('la carte abonnée porte bien ses animations de décor',
+     noms.includes('tse-sub-lueur') && noms.includes('tse-sub-titre')
+     && noms.includes('tse-sub-halo'), JSON.stringify(noms));
+
+  /* LA COUTURE DU FOND — celle qui a été signalée. Les quatre nappes sont
+     jugées ensemble, et une seule d'entre elles a le droit de différer : le
+     balayage, dont la deuxième assertion prouve qu'il est hors cadre. */
+  const lueur = (releve.vues || []).find((v) => v.nom === 'tse-sub-lueur');
+  /* LA NAPPE 0 EST LE BALAYAGE — la seule qui ait le droit de différer, et
+     l'assertion suivante prouve pourquoi. Les trois autres sont celles qui
+     sautaient : c'est ici, et nulle part ailleurs, que le défaut signalé
+     reviendrait se déclarer. */
+  const sautent = lueur
+    ? lueur.coutures.flatMap((c) => c.couches.filter((i) => i !== 0).map((i) => [c.prop, i]))
+    : [['aucune animation', -1]];
+  ok('la lueur de fond revient exactement où elle est partie, nappe par nappe',
+     sautent.length === 0, JSON.stringify({ sautent, releve: lueur }));
+
+  /* ET TOUT LE RESTE DU DÉCOR, sans liste à tenir : ce qui reste après les
+     deux exceptions calculées plus bas doit être vide. */
+  const autres = (releve.vues || [])
+    .filter((v) => v.nom !== 'tse-sub-lueur' && v.nom !== 'tse-sub-titre')
+    .filter((v) => v.coutures.length);
+  ok('…et aucune autre animation du décor ne saute en fin de cycle',
+     autres.length === 0, JSON.stringify(autres));
+
+  /* ── EXCEPTION 1 : LE BALAYAGE EST HORS CADRE AUX DEUX BOUTS ────────────
+     Il ne boucle pas, il n'a pas à boucler : il traverse la carte une fois par
+     cycle et attend le suivant en coulisse. « En coulisse » n'est pas une
+     opinion — on convertit sa position en pixels rendus, à partir de sa propre
+     taille de fond et de la largeur de la boîte, et on exige que l'image ne
+     touche pas l'intervalle peint. Le retour de 210 % à −110 % est sec, et il
+     ne se voit pas parce qu'il se fait entièrement en dehors. */
+  const balayage = await page.evaluate(() => {
+    const carte = [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === 'abo');
+    carte.classList.add('tse-sub');
+    void carte.offsetHeight;
+    const a = carte.getAnimations({ subtree: true })
+      .find((x) => x.animationName === 'tse-sub-lueur');
+    if (!a) return { erreur: 'lueur absente' };
+    const ou = (t) => {
+      a.currentTime = t;
+      const st = getComputedStyle(carte, '::after');
+      const W = parseFloat(st.width);
+      const large = parseFloat(st.backgroundSize.split(',')[0]) / 100 * W;
+      const pos = parseFloat(st.backgroundPositionX.split(',')[0]);
+      const gauche = pos / 100 * (W - large);
+      return { W: +W.toFixed(1), gauche: +gauche.toFixed(1),
+               droite: +(gauche + large).toFixed(1) };
+    };
+    const d = a.effect.getComputedTiming().duration;
+    return { debut: ou(0), fin: ou(d - 1) };
+  });
+  const dehors = (x) => x && (x.droite <= 0 || x.gauche >= x.W);
+  ok('le balayage est entièrement hors de la carte à la première image comme à la dernière',
+     dehors(balayage.debut) && dehors(balayage.fin),
+     JSON.stringify(balayage));
+
+  /* ── EXCEPTION 2 : L'OR DU NOM SE DÉCALE D'UNE TUILE ENTIÈRE ────────────
+     Il va de 0 % à 300 %, et sa tuile fait 300 % : un pas d'exactement une
+     tuile, sur un fond qui se répète. Ce pas n'est invisible qu'à une
+     condition — que les deux bords de la tuile portent la même couleur — et
+     c'est la condition qu'on vérifie, sur le dégradé tel qu'il est calculé. */
+  const or = await page.evaluate(() => {
+    const nom = [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === 'abo')?.querySelector('p.tse-nom');
+    if (!nom) return { erreur: 'nom absent' };
+    const st = getComputedStyle(nom);
+    const couleurs = [...st.backgroundImage.matchAll(/rgba?\([^)]*\)/g)].map((m) => m[0]);
+    return { taille: parseFloat(st.backgroundSize), repete: st.backgroundRepeat,
+             premiere: couleurs[0], derniere: couleurs[couleurs.length - 1],
+             stops: couleurs.length };
+  });
+  const pasOr = (releve.vues || []).find((v) => v.nom === 'tse-sub-titre');
+  const bordOr = pasOr && pasOr.coutures.find((c) => c.prop === 'backgroundPositionX');
+  ok('le dégradé du nom avance d\'exactement une tuile, et la tuile se raccorde à elle-même',
+     !!bordOr && Math.abs(parseFloat(bordOr.fin) - or.taille) < 0.1
+     && or.repete === 'repeat' && or.stops >= 2
+     && or.premiere === or.derniere,
+     JSON.stringify({ pas: bordOr && bordOr.fin, ...or }));
+  await page.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
