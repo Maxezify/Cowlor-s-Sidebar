@@ -1675,7 +1675,7 @@ verdict therefore belongs to the first machine that has the binary:
 
 ```
 npx playwright install firefox
-npm run test-firefox        # the same 1202 assertions, under Gecko
+npm run test-firefox        # the same 1207 assertions, under Gecko
 ```
 
 The harness picks its engine from `TSE_MOTEUR` (`chromium` by default),
@@ -2053,6 +2053,80 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The signature read differently from the eye (v4.13.12)
+
+### Two defects, and both are mine
+
+The field report defeated **the previous day's fix** and **the instrument laid
+down that same day**. Both are stated here, in that order.
+
+### 1. The signature compared what the eye does not
+
+4.13.9 protected a ranking entry when several channels in the same category
+carried **exactly** the same count — the signature of a combined count.
+
+But three co-streamers displayed at "1.1k" **do not have the same exact number**:
+Twitch samples the combined count once per participant, and the readings differ
+by a few units.
+
+**The lesson was already in this file**, ten thousand lines below, above the
+heuristic that groups cards:
+
+> "Compared on the DISPLAYED text (so rounded, '3.9k') and not on the exact
+> number […]. Two neighbouring exact values (1,663 / 1,661) must not break a
+> grouping that Twitch displays as identical."
+
+The ranking's signature ignored it. It therefore protected **only the sessions
+that did not need it**.
+
+Measured before the fix, on three neighbouring combined counts (1101, 1148, 1093):
+
+```
+sample 1: milieu:900, modele:800, bb:300, aa:300, cc:300
+sample 2: bb:1148, aa:1101, cc:1093, milieu:900, modele:800
+```
+
+The three fall to their own counts, the walk raises them again, and so on. The
+oscillation, exactly — on the very fixture 4.13.9 was meant to cure.
+
+After: all three hold their rank across two full cycles.
+
+### 2. The counter was blind where the bug lives
+
+4.13.11's tally only walked the **active groups**. But a group is only active
+from **two** visible cards on: a session reduced to a single member on screen —
+**the very case being hunted** — was counted nowhere.
+
+The first report showed it immediately:
+
+```
+CO-STREAM  groups 0 · members 0 · shown 0 · horsClassement 0 · classesNonAffichees 0
+CARD LINES pastilles 3        plus 0
+```
+
+Three cards carrying a pastille — so three sessions known to Guest Star, `plus 0`
+ruling out a Twitch "+N" — and a tally at exactly zero.
+
+**So it starts from the cards, not from the groups.** Every displayed card whose
+session Guest Star knows is counted, alone or accompanied. `groupes` stays
+alongside: the gap between `sessions` and `groupes` **is** the number of sessions
+down to a single visible member.
+
+```
+sessions 1 · groups 0 · members 4 · shown 1 · horsClassement 3 · classesNonAffichees 0
+```
+
+### What the bench adds
+
+Scenario 136 plays both: three neighbouring combined counts that must hold their
+rank across two cycles, then a session with only one rankable member.
+
+| mutant | the assertion that drops |
+| --- | --- |
+| the signature put back on the exact number | "the three co-streamers keep the directory number" |
+| the tally put back on active groups | "a session down to one visible member is seen anyway" |
+| absentees counted as a leak | "its absent members are filed on Twitch's side" |
 
 ## Co-stream in Top Channels: what the session counts, what the list shows (v4.13.11)
 
@@ -7784,7 +7858,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 135 scenarios, 1202 assertions |
+| `npm test` | the Playwright harness: 136 scenarios, 1207 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -7804,7 +7878,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1057 KB | 404 KB | 3,349 → **2** |
+| `content.js` | 1057 KB | 404 KB | 3,350 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 130 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

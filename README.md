@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1202 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1207 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,83 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La signature se lisait autrement que l'œil (v4.13.12)
+
+### Deux défauts, et les deux sont les miens
+
+Le rapport de terrain a mis en défaut **le correctif de la veille** et
+**l'instrument posé le jour même**. Les deux sont dits ici, dans cet ordre.
+
+### 1. La signature comparait ce que l'œil ne compare pas
+
+La 4.13.9 protégeait une entrée du classement quand plusieurs chaînes d'une même
+catégorie portaient **exactement** le même compteur — la signature d'un compteur
+combiné.
+
+Or trois co-streamers affichés « 1,1 k » **n'ont pas le même nombre exact** :
+Twitch échantillonne le combiné une fois par participant, et les relevés
+diffèrent de quelques unités.
+
+**La leçon était déjà dans ce fichier**, dix mille lignes plus bas, au-dessus de
+l'heuristique qui regroupe les cartes :
+
+> « Comparaison sur le texte AFFICHÉ (donc arrondi, « 3,9 k ») et non sur le
+> nombre exact […]. Deux valeurs exactes voisines (1 663 / 1 661) ne doivent pas
+> faire échouer un regroupement que Twitch affiche comme identique. »
+
+La signature du classement l'ignorait. Elle ne protégeait donc **que les sessions
+qui n'en avaient pas besoin**.
+
+Mesuré avant correctif, sur trois combinés voisins (1101, 1148, 1093) :
+
+```
+relevé 1 : milieu:900, modele:800, bb:300, aa:300, cc:300
+relevé 2 : bb:1148, aa:1101, cc:1093, milieu:900, modele:800
+```
+
+Les trois tombent à leur compteur propre, la marche les remonte, et ainsi de
+suite. L'oscillation, exactement — sur le décor où la 4.13.9 était censée la
+supprimer.
+
+Après : les trois tiennent leur rang sur deux cycles complets.
+
+### 2. Le compteur était aveugle là où le bug vit
+
+Le bilan de la 4.13.11 ne parcourait que les **groupes actifs**. Or un groupe
+n'est actif qu'à partir de **deux** cartes visibles : une session réduite à un
+seul membre à l'écran — **le cas même qu'on cherche** — n'était comptée nulle
+part.
+
+Le premier rapport l'a montré du premier coup :
+
+```
+CO-STREAM  groupes 0 · membres 0 · affichés 0 · horsClassement 0 · classesNonAffichees 0
+LIGNES     pastilles 3        plus 0
+```
+
+Trois cartes portant une pastille — donc trois sessions connues de Guest Star,
+`plus 0` excluant un « +N » de Twitch — et un bilan rigoureusement à zéro.
+
+**On part donc des cartes, et non des groupes.** Toute carte affichée dont Guest
+Star connaît la session compte, seule ou accompagnée. `groupes` reste à côté :
+l'écart entre `sessions` et `groupes` **est** le nombre de sessions réduites à un
+seul membre visible.
+
+```
+sessions 1 · groupes 0 · membres 4 · affichés 1 · horsClassement 3 · classesNonAffichees 0
+```
+
+### Ce que le banc ajoute
+
+Le scénario 136 joue les deux : trois combinés voisins qui doivent tenir leur
+rang sur deux cycles, puis une session dont un seul membre est classable.
+
+| mutant | l'assertion qui tombe |
+| --- | --- |
+| la signature remise sur le nombre exact | « les trois co-streamers gardent le nombre du répertoire » |
+| le bilan remis sur les groupes actifs | « une session réduite à un seul membre visible est vue quand même » |
+| les absents comptés comme fuite | « ses membres absents sont rangés du côté de Twitch » |
 
 ## Le co-stream en Top Chaînes : ce que la session compte, ce que la liste montre (v4.13.11)
 
@@ -8105,7 +8182,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 135 scénarios, 1202 assertions |
+| `npm test` | le harnais Playwright : 136 scénarios, 1207 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -8126,7 +8203,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1057 Ko | 404 Ko | 3 349 → **2** |
+| `content.js` | 1057 Ko | 404 Ko | 3 350 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 130 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

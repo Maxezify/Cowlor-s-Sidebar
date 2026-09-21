@@ -7633,7 +7633,20 @@ const TSE_GATE_MAX_CLICKS = 5;
        DEUX MEMBRES AU MOINS, comme pour le regroupement : un compteur unique
        n'est la signature de rien. */
     let combines = new Set();
-    const signature = (rec) => `${rec.game} ${rec.viewers}`;
+    /* SUR LE NOMBRE AFFICHÉ, ET NON SUR LE NOMBRE EXACT. La 4.13.9 comparait
+       les valeurs exactes, et un rapport de terrain l'a mise en défaut : trois
+       co-streamers affichés « 1,1 k » n'ont pas le même nombre exact. Twitch
+       échantillonne le compteur combiné une fois par participant, et les
+       relevés diffèrent de quelques unités — 11 736 chez l'un, 11 821 chez
+       l'autre pour une même session.
+
+       LA LEÇON ÉTAIT DÉJÀ DANS CE FICHIER, dix mille lignes plus bas, au-dessus
+       de l'heuristique qui regroupe les cartes : « deux valeurs exactes
+       voisines (1 663 / 1 661) ne doivent pas faire échouer un regroupement que
+       Twitch affiche comme identique. » La signature du classement l'ignorait,
+       et elle protégeait donc exactement les sessions qui n'en avaient pas
+       besoin. Elle compare désormais ce que l'œil compare. */
+    const signature = (rec) => `${rec.game} ${formatViewers(rec.viewers)}`;
     const recalculerCombines = (liste) => {
       const vus = new Map();
       for (const rec of liste) {
@@ -8840,7 +8853,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   /* Ce que la dernière détection de co-stream a vu (cf. detectCoStreams).
      Remis à zéro à chaque passe : c'est un instantané, pas un cumul — la
      question qu'il tranche porte sur l'état courant de la liste. */
-  let bilanCostream = { groupes: 0, membres: 0, affiches: 0,
+  let bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
                         horsClassement: 0, classesNonAffichees: 0 };
 
   /* ── LA SECTION « CHAÎNES SUIVIES » ───────────────────────────────────────
@@ -17849,24 +17862,47 @@ const TSE_GATE_MAX_CLICKS = 5;
        `classesNonAffichees` est ce chiffre. Il compte les membres d'une
        session QUI SONT AU CLASSEMENT et n'ont pourtant pas de carte : c'est
        exactement la fuite, et elle seule. `horsClassement`, lui, dit que
-       Twitch ne les a pas rangés là — un fait sur Twitch, pas sur nous. */
-    bilanCostream = { groupes: 0, membres: 0, affiches: 0,
+       Twitch ne les a pas rangés là — un fait sur Twitch, pas sur nous.
+
+       ── ET LA PREMIÈRE RÉDACTION ÉTAIT AVEUGLE LÀ OÙ LE BUG VIT ───────────
+       Elle ne parcourait que les GROUPES ACTIFS. Or un groupe n'est actif qu'à
+       partir de DEUX cartes visibles : une session dont il ne reste qu'un
+       membre à l'écran — c'est-à-dire le cas même qu'on cherche — n'était
+       comptée nulle part. Le premier rapport de terrain l'a montré du premier
+       coup : « pastilles 3 » sur les cartes, et un bilan rigoureusement à zéro.
+
+       ON PART DONC DES CARTES, ET NON DES GROUPES. Toute carte affichée dont
+       Guest Star connaît la session compte, qu'elle soit seule ou accompagnée.
+       `groupes` reste à côté, pour ce qu'il dit de son côté : l'écart entre
+       « sessions vues » et « groupes dessinés » EST le nombre de sessions
+       réduites à un seul membre visible. */
+    bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
                       horsClassement: 0, classesNonAffichees: 0 };
     const parLogin = new Map();
     for (const card of cards) {
       const l = card.dataset.tseLogin;
       if (l && !parLogin.has(l)) parLogin.set(l, card);
     }
-    for (const key of activeKeys) {
-      if (!key.startsWith('gs:')) continue;   // l'heuristique ne connaît aucune liste
-      bilanCostream.groupes += 1;
-      const membres = new Set();
-      for (const card of groups.get(key)) {
-        const l = card.dataset.tseLogin;
-        if (!l) continue;
-        membres.add(l);
-        for (const m of getGuestStarMates(l)) membres.add(m.login);
-      }
+    for (const key of activeKeys) if (key.startsWith('gs:')) bilanCostream.groupes += 1;
+
+    /* Une session se reconnaît à son hôte quand Twitch le nomme, et sinon à sa
+       LISTE DE MEMBRES — deux cartes de la même session en rendent la même, et
+       se rangent donc ensemble sans qu'on ait besoin d'un identifiant. */
+    const sessions = new Map();
+    for (const card of cards) {
+      if (!cardShown(card)) continue;
+      const login = card.dataset.tseLogin;
+      if (!login) continue;
+      const mates = getGuestStarMates(login);
+      if (!mates.length) continue;
+      const membres = [login, ...mates.map((m) => m.login)].sort();
+      const hote = hostByCard.get(card);
+      const cle = typeof hote === 'string' ? 'gs:' + hote : 'm:' + membres.join(',');
+      if (!sessions.has(cle)) sessions.set(cle, new Set(membres));
+      else for (const l of membres) sessions.get(cle).add(l);
+    }
+    bilanCostream.sessions = sessions.size;
+    for (const membres of sessions.values()) {
       bilanCostream.membres += membres.size;
       for (const l of membres) {
         if (parLogin.has(l)) { bilanCostream.affiches += 1; continue; }
