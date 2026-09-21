@@ -1786,7 +1786,7 @@ binaire :
 
 ```
 npx playwright install firefox
-npm run test-firefox        # les mêmes 1188 assertions, sous Gecko
+npm run test-firefox        # les mêmes 1197 assertions, sous Gecko
 ```
 
 Le banc choisit son moteur par `TSE_MOTEUR` (`chromium` par défaut), annonce
@@ -2174,6 +2174,92 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Une carte fabriquée est-elle une carte comme les autres ? (v4.13.10)
+
+### L'audit demandé
+
+> « Que les cartes clonées sur Top Chaînes soient identiques à une carte
+> normale. »
+
+La méthode : **deux chaînes aux données rigoureusement identiques** — même
+compteur, même ancienneté, même catégorie, même langue, même abonnement. L'une a
+une carte de Twitch, que le classement emprunte ; l'autre n'en a pas, et sa carte
+est donc clonée. On les compare au même instant, dans le même mode.
+
+### Ce que le code se réserve le droit de traiter à part
+
+Sept endroits écartent les cartes fabriquées. **Tous les sept sont des chemins de
+MESURE, aucun n'est un chemin de comportement :**
+
+| ce qui les écarte | pourquoi |
+| --- | --- |
+| le retard de Twitch (`liveLag`) | on ne se mesure pas soi-même |
+| l'auto-diagnostic des sélecteurs | un clone répondrait « ok » et masquerait une rupture réelle |
+| le bouton « Afficher plus » | compter les nôtres simulerait une croissance |
+| l'ordre natif (`tseTwitchOrder`) | elles ne font pas partie de l'ordre de Twitch |
+| le garde-fou d'extinction de masse | ce que **Twitch** affiche fait référence |
+| la stabilité du voile | idem |
+
+Rien de ce qui touche à l'affichage, au survol, au tri ou aux filtres.
+
+### Ce que la mesure a confirmé
+
+| ce qui a été comparé | résultat |
+| --- | --- |
+| jeu de données complet | identique |
+| classes, injections (`tse-*`) et leurs textes | identique |
+| structure interrogée par le reste du code | identique |
+| lien de la carte | identique |
+| aperçu au survol : titre, badges, frise, total, iframe | **identique, champ par champ** |
+| regroupement co-stream : classe, clé, couleur, pastille | identique |
+
+### Ce que la mesure a trouvé
+
+**La carte fabriquée n'annonçait rien aux lecteurs d'écran.**
+
+Twitch double son compteur visuel d'un `<p class="sr-only">` qui le redit en
+toutes lettres. `scrubClone` le retirait — et sa raison était bonne : cloné tel
+quel, il aurait annoncé le nombre de spectateurs de la chaîne **source**.
+
+Mais sa conclusion ne l'était plus :
+
+> « On ne peut pas le réécrire — sa formulation exacte varie selon la locale. »
+
+Cela supposait qu'il faille **fabriquer** la phrase. Il n'en est rien : la phrase
+est déjà là, dans la langue de l'utilisateur, écrite par Twitch. **Seul le nombre
+est faux.** On le remplace, et on garde tout le reste.
+
+### Et le défaut symétrique, sur la carte native
+
+Il n'avait jamais été signalé, et l'audit l'a mis au jour en passant : sur une
+carte de Twitch, **l'œil lisait notre compteur et le lecteur d'écran annonçait
+celui de Twitch**. Deux nombres différents pour la même ligne dès que les deux
+divergent — c'est-à-dire précisément le cas d'un co-stream.
+
+`renderViewers` recale désormais la phrase à chaque écriture, sur les deux sortes
+de cartes. Sans nombre reconnaissable dedans, on n'y touche pas : une phrase
+intacte vaut mieux qu'une phrase abîmée.
+
+### Ce que cet audit ne couvre pas
+
+**La barre latérale réduite.** Twitch n'y rend que l'avatar, et le décor du banc
+ne reproduit pas ce balisage : la comparaison y mesurerait deux fois la même
+chose. Le raisonnement dit que le clone hérite du mode de son modèle — il est
+cloné dans le mode courant — mais c'est un raisonnement, pas une mesure, et il
+est dit comme tel.
+
+### Ce que le banc ajoute
+
+Le scénario 134 **est** cet audit, figé. Il vérifie d'abord son propre décor —
+sans quoi il comparerait deux clones — puis diffe cinq familles de propriétés et
+les deux phrases annoncées.
+
+| mutant | l'assertion qui tombe |
+| --- | --- |
+| la phrase retirée du clone | « la carte fabriquée annonce son compteur aux lecteurs d'écran » |
+| le recalage supprimé | « la native annonce le nombre qu'elle AFFICHE » |
+| une injection oubliée par le clonage | « leur "injections" est identique » |
 
 ## La signature de co-stream est dans le répertoire (v4.13.9)
 
@@ -7933,7 +8019,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 133 scénarios, 1188 assertions |
+| `npm test` | le harnais Playwright : 134 scénarios, 1197 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

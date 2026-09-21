@@ -12344,6 +12344,42 @@ const TSE_GATE_MAX_CLICKS = 5;
   // « 11,5 k » se retrouvaient l'un en haut du classement et l'autre au milieu
   // des « 1,7 k », chacun rangé selon son audience propre. Le tri suit donc ce
   // que l'utilisateur lit — comme le fait Twitch lui-même.
+  /* ── CE QUE LE LECTEUR D'ÉCRAN ANNONCE ──────────────────────────────────
+     TROUVÉ PAR UN AUDIT DIFFÉRENTIEL, en comparant une carte fabriquée à une
+     carte native dont toutes les données étaient identiques : la native porte
+     un `<p class="sr-only">` — le compteur redit en toutes lettres pour les
+     lecteurs d'écran — et la fabriquée n'en avait aucun. `scrubClone` le
+     retirait, et sa raison était bonne : cloné tel quel, il aurait annoncé le
+     nombre de spectateurs de la chaîne SOURCE.
+
+     MAIS LA CONCLUSION NE L'ÉTAIT PLUS. « On ne peut pas le réécrire, sa
+     formulation varie selon la locale » supposait qu'il faille fabriquer la
+     phrase. Il n'en est rien : la phrase est DÉJÀ LÀ, dans la langue de
+     l'utilisateur, écrite par Twitch. Seul le NOMBRE est faux. On le remplace,
+     et on garde tout le reste.
+
+     ET ÇA RÉPARE AUSSI LA CARTE NATIVE, qui souffrait du défaut symétrique :
+     l'œil lisait notre compteur, le lecteur d'écran annonçait celui de Twitch
+     — deux nombres différents pour la même ligne dès que les deux divergent,
+     ce qui est précisément le cas d'un co-stream.
+
+     Sans nombre reconnaissable dans la phrase, on ne touche à rien : une
+     phrase intacte vaut mieux qu'une phrase abîmée. */
+  const NOMBRE_RE = /\d[\d\s.,  ]*\s*[kKmM]?/;
+  const recalerTexteAccessible = (card, shown) => {
+    const host = liveStatusOf(card);
+    if (!host) return;
+    for (const n of host.querySelectorAll('*')) {
+      if (n.children.length) continue;                       // seulement les feuilles
+      if (n.getAttribute('aria-hidden') === 'true') continue; // le visuel, pas l'annoncé
+      if (n.className && String(n.className).includes('tse-')) continue; // les nôtres
+      const texte = n.textContent || '';
+      if (!NOMBRE_RE.test(texte)) continue;
+      const neuf = texte.replace(NOMBRE_RE, formatViewers(shown));
+      if (neuf !== texte) setText(n, neuf);
+    }
+  };
+
   const renderViewers = (card, count, display) => {
     if (!Number.isFinite(count)) return;
     const native = nativeViewersEl(card);
@@ -12358,6 +12394,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     const shown = Number.isFinite(display) ? display : count;
     setText(span, formatViewers(shown));
+    recalerTexteAccessible(card, shown);
     // Pose le marqueur qui masque le compteur natif (cf. CSS). Fait seulement
     // maintenant : tant qu'on n'a pas de valeur, celui de Twitch reste visible.
     if (card.dataset.tseViewers !== String(shown)) {
@@ -18634,17 +18671,26 @@ const TSE_GATE_MAX_CLICKS = 5;
     // L'avatar grisé n'a plus lieu d'être : on ne fabrique que du live.
     el.querySelectorAll('.side-nav-card__avatar--offline')
       .forEach(n => n.classList.remove('side-nav-card__avatar--offline'));
-    // Twitch double son compteur visuel (aria-hidden) d'un texte réservé aux
-    // lecteurs d'écran. Cloné tel quel, il annoncerait le nombre de viewers de
-    // la chaîne SOURCE. On ne peut pas le réécrire — sa formulation exacte
-    // varie selon la locale — donc on le retire : ne rien annoncer vaut mieux
-    // qu'annoncer un chiffre faux. Le nom et la catégorie, eux, restent lus.
+    /* Twitch double son compteur visuel (aria-hidden) d'un texte réservé aux
+       lecteurs d'écran. Cloné tel quel, il annoncerait le nombre de viewers de
+       la chaîne SOURCE.
+
+       CETTE PHRASE ÉTAIT RETIRÉE, au motif qu'on ne saurait pas la réécrire :
+       sa formulation varie selon la locale. La conclusion était fausse, et un
+       audit différentiel l'a montré — la phrase est DÉJÀ dans la bonne langue,
+       écrite par Twitch ; seul le nombre est faux. `renderViewers` le remplace
+       (cf. recalerTexteAccessible), et il passe juste après la fabrication.
+
+       On ne retire donc plus que ce qu'on ne sait pas corriger : un texte sans
+       le moindre nombre ne décrit pas le compteur, il décrit la chaîne source,
+       et personne ne le réécrira. */
     const status = liveStatusOf(el);
     if (status) {
       status.querySelectorAll('*').forEach(n => {
         if (n.children.length) return;
         if (n.getAttribute('aria-hidden') === 'true') return;
-        if ((n.textContent || '').trim()) n.remove();
+        const texte = (n.textContent || '').trim();
+        if (texte && !NOMBRE_RE.test(texte)) n.remove();
       });
     }
   };
