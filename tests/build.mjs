@@ -76,6 +76,11 @@ const subs = [
      exactement le rapport qu'il a en production. */
   [/SUBS_PAGE_LEASE:\s*[\d_]+/, 'SUBS_PAGE_LEASE:      12_000'],
   [/SUBS_PAGE_CLAIM:\s*[\d_]+/, 'SUBS_PAGE_CLAIM:      150'],
+  /* La REPRISE, accélérée comme le reste : elle doit pouvoir se jouer deux ou
+     trois fois dans un scénario, là où elle s'étale sur une minute et demie en
+     production. Le nombre d'essais, lui, ne change pas — c'est une borne, pas
+     une durée. */
+  [/SUBS_PAGE_RETRY:\s*[\d_]+/, 'SUBS_PAGE_RETRY:      2_500'],
   // Durée de vie du badge « Vient de passer sur … » : dix minutes en
   // production. Réduite ici pour qu'un test puisse observer sa PÉREMPTION,
   // qui est la moitié de son comportement — un badge qui ne s'efface pas

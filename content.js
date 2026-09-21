@@ -2160,6 +2160,24 @@ const TSE_GATE_MAX_CLICKS = 5;
        RELIRE après un délai qui couvre l'écart d'écriture pour que
        exactement une page se reconnaisse. */
     SUBS_PAGE_CLAIM:      400,
+    /* ── UNE PAGE QUI SE RANGE DOIT REVENIR ────────────────────────────────
+       LE BAIL DE LA 4.14.4 A COÛTÉ CE QU'IL PROTÉGEAIT, et un rapport de
+       terrain l'a montré en une ligne : « horodatage : jamais » sur une
+       installation neuve, aucun onglet visité, aucune erreur. Un bail laissé
+       par une page morte — un rechargement, une navigation, un onglet fermé
+       au mauvais instant — bloquait la page suivante, qui ne réessayait
+       JAMAIS : le départ est à un coup par chargement de page.
+
+       LE BAIL EXPIRE POURTANT SEUL. Ce n'est donc pas lui qu'il fallait
+       raccourcir, c'est l'abandon qu'il fallait supprimer : une page qui se
+       range revient quand le bail a expiré, et s'arrête dès qu'un relevé —
+       le sien ou celui d'un autre — a laissé son horodatage.
+
+       CINQ TENTATIVES ESPACÉES D'UN TIERS DE BAIL couvrent largement une
+       expiration, sans jamais devenir une boucle : la condition d'arrêt est
+       un horodatage écrit, pas un compteur épuisé. */
+    SUBS_PAGE_RETRY:      20_000,
+    SUBS_PAGE_RETRIES:    5,
     // L'étiquette du nombre de mois, apprise sur l'onglet des expirés puis
     // MÉMORISÉE. Tant qu'on ne la connaît pas, cet onglet doit être lu en
     // premier — les autres ne sauraient pas quoi chercher. Une fois connue,
@@ -9847,6 +9865,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       try { if (bailTenu()) localStorage.removeItem(CFG.SUBS_PAGE_RUN_KEY); }
       catch { /* idem */ }
     };
+    /* ET ON LE REND AUSSI EN PARTANT. Une page qu'on recharge au milieu de son
+       relevé laissait le sien derrière elle, et la page suivante s'y heurtait
+       — c'est exactement ce qu'un rapport de terrain a montré. `pagehide`
+       couvre le rechargement, la navigation et la fermeture ; il ne couvre
+       pas un plantage, et c'est pour cela que la reprise ci-dessous existe
+       quand même. */
+    window.addEventListener('pagehide', rendreBail);
     const marquer = () => {
       try {
         localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY, LECTEUR + ':' + Date.now());
@@ -10070,7 +10095,23 @@ const TSE_GATE_MAX_CLICKS = 5;
          relevé qui ne part pas doit pouvoir se distinguer d'un relevé qui
          part et ne trouve rien, sans quoi le rapport aurait deux silences
          identiques pour deux causes opposées. */
-      if (!force && bailFrais()) { differes += 1; return null; }
+      /* ── LE TOUT PREMIER RELEVÉ NE SE FAIT DISPUTER PAR PERSONNE ────────
+         DEMANDÉ AINSI, ET C'EST LA BONNE RÈGLE : « il faut que le relevé se
+         fasse juste après l'installation, les premières secondes où la sidebar
+         est visible après le voile ». Un bail tenu — ou pire, laissé par une
+         page morte — retardait ce premier relevé d'une minute entière, sur
+         l'écran même où l'utilisateur attend de voir quelque chose arriver.
+
+         CE QUE LE BAIL PROTÈGE N'EXISTE PAS ENCORE À CET INSTANT. Il empêche
+         deux onglets de charger huit pages au lieu de quatre ; c'est un coût
+         qui SE RÉPÈTE toutes les six heures, et qui mérite une garde. Le
+         premier relevé, lui, n'a lieu qu'une fois dans la vie d'une
+         installation, et il n'a rien à l'écran à préserver — il n'y a
+         justement rien à l'écran, c'est tout le problème.
+
+         On paie donc au plus une fois, à l'installation, le doublon qu'on
+         refuse partout ailleurs. */
+      if (!force && horodatage() && bailFrais()) { differes += 1; return null; }
       if (!document.body) return null;
       /* `running` EST POSÉ AVANT LE PREMIER AWAIT, ET IL LE RESTE. La prise
          de bail ci-dessous en contient un — la première écriture de ce
@@ -10079,6 +10120,10 @@ const TSE_GATE_MAX_CLICKS = 5;
          ensemble la garde d'entrée. La garde entre PAGES ne doit pas coûter
          la garde à l'intérieur d'une page. */
       running = true;
+      /* Lu AVANT le premier await : l'horodatage peut apparaître pendant la
+         prise de bail, écrit par la page d'à côté, et « est-ce le tout premier
+         relevé ? » doit se répondre à l'entrée, pas au milieu. */
+      const premier = !!horodatage();
       bilan = { onglets: [], fini: 0 };
       const trouves = [];
       try {
@@ -10091,7 +10136,7 @@ const TSE_GATE_MAX_CLICKS = 5;
            « Relevé maintenant » prend le bail sans le disputer : c'est une
            demande explicite, et elle ne doit jamais se voir refuser. */
         prendreBail();
-        if (!force) {
+        if (!force && premier) {
           await new Promise((r) => setTimeout(r, CFG.SUBS_PAGE_CLAIM));
           if (!bailTenu()) { differes += 1; return null; }
         }
@@ -10244,6 +10289,24 @@ const TSE_GATE_MAX_CLICKS = 5;
      * La retenue est bornée deux fois : par SUBS_PAGE_HOLD_MAX ici, et par le
      * délai maximal du voile lui-même, qui reste souverain.
      */
+    /* ── UN RELEVÉ QUI SE RANGE REVIENT ─────────────────────────────────
+       LE DÉPART EST À UN COUP PAR CHARGEMENT DE PAGE, et c'est ce qui a rendu
+       le bail de la 4.14.4 dangereux : quand une page se rangeait — bail tenu
+       par une autre, ou laissé par une page morte — elle ne réessayait jamais,
+       et l'utilisateur restait sans relevé pour toute la vie de l'onglet.
+       Relevé sur le terrain, installation neuve : « horodatage jamais », aucun
+       onglet, aucune erreur. Le bail expire pourtant seul.
+
+       LA CONDITION D'ARRÊT EST UN HORODATAGE, PAS UN COMPTEUR. On s'arrête dès
+       qu'un relevé a abouti — le nôtre, ou celui de la page qui tenait le bail,
+       puisque l'horodatage est partagé. Le compteur n'est là que pour borner :
+       il ne doit jamais devenir la raison de continuer. */
+    const relancer = (reste) => refresh().then((r) => {
+      if (r || horodatage() || reste <= 0) return r;
+      return new Promise((ok) => setTimeout(ok, CFG.SUBS_PAGE_RETRY))
+        .then(() => relancer(reste - 1));
+    });
+
     const demarrer = () => {
       // La retenue tient à l'absence de RELEVÉ, pas à l'absence d'abonnements.
       // horodatage() rend 0 aussi quand le relevé mémorisé vient d'un lecteur
@@ -10253,7 +10316,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       const aveugle = !horodatage();
       if (!aveugle) {
         premierResultat = () => {};
-        refresh().catch((e) => erreurs.noter('abonnements',
+        relancer(CFG.SUBS_PAGE_RETRIES).catch((e) => erreurs.noter('abonnements',
           'relevé de routine : ' + ((e && e.message) || e)));
         return;
       }
@@ -10277,12 +10340,24 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (repit) return;
         repit = setTimeout(lever, CFG.SUBS_PAGE_HOLD_GRACE);
       };
-      // Filet : un relevé qui n'aurait RIEN rendu doit quand même rendre la
-      // main, sans attendre le délai maximal.
-      refresh()
+      /* LE VOILE SUIT LE PREMIER ESSAI, PAS LA REPRISE. Attacher la levée à la
+         reprise entière ferait patienter la sidebar pendant des dizaines de
+         secondes quand une autre page tient le bail — exactement la rançon que
+         ce bloc existe pour refuser. La reprise, elle, continue derrière, à
+         découvert : quand elle aboutit, la décoration se pose au fil de l'eau
+         comme n'importe quel relevé de routine.
+         Filet : un relevé qui n'aurait RIEN rendu doit quand même rendre la
+         main, sans attendre le délai maximal. */
+      const premier = refresh();
+      premier
         .catch((e) => erreurs.noter('abonnements',
           'relevé sous voile : ' + ((e && e.message) || e)))
         .then(lever, lever);
+      premier
+        .then((r) => (r || horodatage() ? null : relancer(CFG.SUBS_PAGE_RETRIES)),
+              () => (horodatage() ? null : relancer(CFG.SUBS_PAGE_RETRIES)))
+        .catch((e) => erreurs.noter('abonnements',
+          'reprise du relevé : ' + ((e && e.message) || e)));
     };
 
     // Déclencheur : le premier scan qui voit une carte suivie. Cf. l'en-tête —

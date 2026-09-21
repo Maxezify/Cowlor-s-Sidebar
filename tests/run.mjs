@@ -18693,9 +18693,19 @@ addEventListener('message', (e) => {
     ok('les deux onglets partagent bien un stockage — sans quoi rien n\'est mesuré',
        partage === 'A', String(partage));
 
-    await a.evaluate(() => localStorage.clear());
+    /* UN RELEVÉ DE ROUTINE, ET NON UNE INSTALLATION NEUVE. La première
+       écriture de ce scénario partait d'un profil vierge — et c'était le
+       mauvais décor, découvert par un rapport de terrain : le TOUT PREMIER
+       relevé ne se fait plus disputer par personne, parce qu'il n'a lieu
+       qu'une fois et que l'utilisateur attend devant un écran vide. Le bail
+       garde ce qu'il a toujours eu à garder : le relevé qui REVIENT toutes
+       les six heures, et dont le doublon se répète. */
+    await a.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('tse:substs', '2:' + (Date.now() - 30_000));
+    });
     na = 0; nb = 0;
-    // Profil vierge, départ simultané : une session restaurée.
+    // Deux onglets, départ simultané : une session restaurée.
     await Promise.all([a.reload(), b2.reload()]);
     await Promise.all([poser(a), poser(b2)]);
     /* ON ATTEND LA CONDITION, PAS UN DÉLAI ROND. La première écriture posait
@@ -18735,6 +18745,43 @@ addEventListener('message', (e) => {
     ok('…et l\'horodatage du relevé est visible des DEUX onglets',
        ra.horodatage > 0 && rb.horodatage === ra.horodatage,
        JSON.stringify({ a: ra.horodatage, b: rb.horodatage }));
+
+    /* ── ET LE TOUT PREMIER RELEVÉ NE SE FAIT BLOQUER PAR RIEN ────────────
+       LE RAPPORT DE TERRAIN, REJOUÉ AU CHIFFRE PRÈS. Un bail laissé par une
+       page morte — rechargement, navigation, onglet fermé au mauvais instant
+       — bloquait le premier relevé d'une installation neuve, et rien ne
+       réessayait : « horodatage : jamais », aucun onglet, aucune erreur, et
+       un utilisateur qui attend plusieurs minutes devant un panneau vide.
+
+       DEUX CORRECTIFS SE MESURENT ICI D'UN COUP : le premier relevé ignore le
+       bail, et le bail se rend au départ de la page. Le second ne suffisait
+       pas — il ne peut rien pour un bail déjà laissé par une page d'AVANT. */
+    const neuf = await ctx.newPage();
+    let nn = 0;
+    neuf.on('frameattached', () => { nn += 1; });
+    neuf.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await neuf.goto(base);
+    await neuf.evaluate(() => {
+      localStorage.clear();                       // installation neuve
+      localStorage.setItem('tse:subsrun', 'pagemorte:' + Date.now());
+    });
+    await neuf.reload();
+    nn = 0;
+    await poser(neuf);
+    await attendre(neuf, () => {
+      const r = window.tse.panneau.rapport().relevesAbonnements || {};
+      return (r.horodatage || 0) > 0;
+    }, 20_000);
+    const vuNeuf = await neuf.evaluate(() => {
+      const r = window.tse.panneau.rapport().relevesAbonnements || {};
+      return { horodatage: r.horodatage || 0, differes: r.differes || 0,
+               onglets: (r.onglets || []).length };
+    });
+    ok('un bail laissé par une page morte ne bloque pas le PREMIER relevé',
+       vuNeuf.horodatage > 0 && vuNeuf.onglets >= 2 && nn >= 2,
+       JSON.stringify({ ...vuNeuf, iframes: nn }));
+    ok('…et il part sans même se ranger une fois',
+       vuNeuf.differes === 0, JSON.stringify(vuNeuf));
   } finally {
     await ctx.close();
     await new Promise((r) => serveur.close(r));
