@@ -2057,6 +2057,74 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The first sweep is contested by nobody (v4.14.5)
+
+### A regression I introduced the day before, and a report that said it in one line
+
+> "I installed the extension several minutes ago, and nothing is happening on
+> the subscriptions side."
+
+The report, on a fresh install:
+
+```
+horodatage             jamais / never
+en attente / pending   false
+ERREURS (0)
+```
+
+**No tab lines, no errors.** `enAttente` is `arme && !parti`: false, with
+`init()` called unconditionally at boot, leaves only one reading — the sweep
+**departed and did nothing**. And before 4.14.4 there was no early return
+between the period gate and the tab visits. So it was the lease I had just
+added.
+
+**Reproduced exactly**: a lease left behind by a dead page — a reload, a
+navigation, a tab closed at the wrong instant — and a fresh install's sweep
+produces precisely that report.
+
+### Three fixes, and one alone made the wait pointless
+
+**1. The very first sweep ignores the lease.** That is the rule that was asked
+for, and it is the right one: what the lease protects does not exist yet at that
+moment. It stops two tabs from loading eight pages instead of four — a cost that
+**repeats** every six hours and deserves a guard. The first sweep happens once
+in an installation's life, and has nothing on screen to preserve: there is
+precisely nothing on screen, which is the whole problem. So we pay the duplicate
+we refuse everywhere else at most once, at install time.
+
+**2. The lease is released when the page leaves.** `pagehide` covers reload,
+navigation and close. It does not cover a crash — hence the third.
+
+**3. A sweep that stands down comes back.** Departure was **one shot per page
+load**: a page that stood down never tried again, and the user stayed without a
+sweep for the tab's whole life. The stopping condition is now a **written
+timestamp**, not an exhausted counter: we stop as soon as a sweep has completed,
+ours or that of the page holding the lease, since the timestamp is shared.
+
+The veil follows the **first attempt**, not the retry: attaching the lift to the
+whole retry loop would make the sidebar wait tens of seconds, which is exactly
+what that block exists to refuse.
+
+### And the variable that would have answered straight away
+
+`differes` had been in the report's data since the day before — it simply
+**was not printed**. Three causes produced the same silence: not armed, departed
+for nothing, or stood down behind another page. I had to reproduce the state by
+hand to tell them apart, while the number was being collected all along.
+
+A variable you collect without displaying serves nobody. It is displayed now.
+
+### What the bench measures
+
+Scenario 141 changes fixture: it was testing a **blank profile**, when it is the
+**routine** sweep that the lease guards. It now carries both situations, and the
+second is the field report replayed.
+
+| situation | expected |
+| --- | --- |
+| routine, two simultaneous tabs | one sweeps, the other stands down — **4 pages**, not 8 |
+| fresh install + a dead page's lease | the sweep departs, **without standing down once** |
+
 ## Two Twitch tabs do not sweep twice (v4.14.4)
 
 ### The question, and its measured answer
@@ -8489,7 +8557,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 141 scenarios, 1238 assertions |
+| `npm test` | the Playwright harness: 141 scenarios, 1240 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -8509,9 +8577,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1093 KB | 409 KB | 3,387 → **2** |
+| `content.js` | 1093 KB | 409 KB | 3,391 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 98 KB | 47 KB | 133 → **0** |
+| `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1340 KB** | **562 KB** | **−57 %** |

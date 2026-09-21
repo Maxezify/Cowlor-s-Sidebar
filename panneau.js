@@ -1785,6 +1785,17 @@ const construireRapport = (r, transport, fond) => {
     paire('horodatage', r.relevesAbonnements?.horodatage
       ? new Date(r.relevesAbonnements.horodatage).toISOString() : 'jamais / never'),
     paire('en attente / pending', r.relevesAbonnements?.enAttente),
+    /* ── LE CHIFFRE QUI MANQUAIT, ET QUI M'A COÛTÉ UNE VERSION ─────────────
+       Un rapport de terrain montrait « horodatage : jamais », aucune ligne
+       d'onglet et aucune erreur, sur une installation neuve. Trois causes
+       donnaient ce même silence : le relevé n'était pas armé, il était parti
+       sans rien faire, ou il s'était RANGÉ derrière une autre page. Le
+       compteur existait déjà dans les données du rapport — il n'était
+       simplement pas imprimé, et j'ai dû reproduire l'état à la main pour
+       trancher. Une variable qu'on collecte sans l'afficher ne sert à
+       personne. */
+    paire('rangé derrière un autre onglet / stood down',
+          r.relevesAbonnements?.differes ?? 0),
     /* CE QUE CHAQUE ONGLET A VU. Un relevé qui rend zéro ne dit rien tout
        seul : « affiché, barre là, 3 200 nœuds, 0 carte » désigne un sélecteur
        mort, « jamais chargé » désigne autre chose. Une ligne par onglet, dans
