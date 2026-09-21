@@ -11989,20 +11989,31 @@ titre('95. La reprise après coupure — un badge, une barre, et une frise qui n
      apres !== null && apres.frais === false,
      JSON.stringify(apres));
 
-  /* ── LA CARTE COMPTE LA SESSION, ET C'EST VOULU ──────────────────────────
-     Le compteur repart de zéro parce que c'est ce que Twitch sert et que la
-     carte n'a pas la place d'afficher deux durées. Ce qui serait faux, c'est
-     de le laisser croire qu'il ne s'est rien passé : la barre reste éteinte,
-     et l'aperçu — qui a la place — donne la durée du direct entier.
+  /* ── LA CARTE COMPTE LE DIRECT, ET C'EST LE TROISIÈME TOUR DE CETTE LIGNE ─
+     ELLE A DIT LES DEUX CHOSES TOUR À TOUR, et il faut dire pourquoi elle
+     s'arrête ici. Premier tour : le compteur devait repartir de l'origine.
+     Deuxième tour : non, la carte compte la SESSION comme Twitch, et l'aperçu
+     porte le direct entier — « deux vérités pour une même chose valent moins
+     qu'une seule bien placée ».
 
-     L'ASSERTION DIT DONC L'INVERSE DE CE QU'ELLE DISAIT, et pas par relâchement.
-     Deux vérités pour une même chose valent moins qu'une seule bien placée :
-     la session sur la carte, le direct dans l'aperçu. */
-  ok('…tandis que le compteur de la carte repart bien de zéro : c\'est la session',
-     apres !== null && Date.parse(apres.debut) > Date.parse(avant.debut)
-     && /^\d+m$/.test(apres.duree),
+     LE TERRAIN A TRANCHÉ, CAPTURE À L'APPUI : une carte annonçait « 3h41 »
+     pendant que l'aperçu, juste en dessous, annonçait « 10h11 · 1 coupure »
+     pour le même direct. Les deux vérités étaient donc tenues QUAND MÊME —
+     simplement, c'est l'utilisateur qui devait les réconcilier. Le raisonnement
+     du deuxième tour était juste et sa conclusion fausse : il supposait qu'on
+     pouvait n'en montrer qu'une.
+
+     ENTRE SUIVRE TWITCH ET RÉPONDRE À LA QUESTION QU'ON SE POSE — « depuis
+     combien de temps il diffuse » — c'est la seconde qui gagne. */
+  ok('…et le compteur de la carte garde le départ du DIRECT, non celui du tronçon',
+     apres !== null && apres.debut === avant.debut,
      JSON.stringify({ avant: avant.debut, apres: apres && apres.debut,
                       duree: apres && apres.duree }));
+  /* ET ÇA SE VOIT À L'ÉCRAN, pas seulement dans le dataset : une durée en
+     minutes seules serait le compteur du tronçon, qui vient de repartir. */
+  ok('…ce qui se lit sur la carte en heures, et non en minutes de tronçon',
+     apres !== null && /h/.test(apres.duree),
+     JSON.stringify({ duree: apres && apres.duree }));
 
   const badges = await survoler('coupe');
   const reprise = badges.find(b => b.classe.includes('tse-preview__badge--reprise'));

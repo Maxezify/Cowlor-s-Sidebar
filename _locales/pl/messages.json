@@ -388,7 +388,7 @@
     "message": "Początki i powroty"
   },
   "guideDebutTexte": {
-    "message": "Fioletowy pasek pojawia się przy lewej krawędzi karty: ta transmisja zaczęła się mniej niż dziesięć minut temu. Gaśnie sam z upływem dziesiątej minuty.\n• Jeśli streamer straci połączenie i wróci w ciągu dziesięciu minut, fioletowy pasek nie zapala się ponownie, ale jego licznik rusza od zera.\n• W podglądzie pokazany czas pozostaje czasem całej transmisji, razem z przerwą, a odznaka uprzedza, co się stało."
+    "message": "Fioletowy pasek pojawia się przy lewej krawędzi karty: ta transmisja zaczęła się mniej niż dziesięć minut temu. Gaśnie sam z upływem dziesiątej minuty.\n• Jeśli streamer straci połączenie i wróci w ciągu dziesięciu minut, fioletowy pasek nie zapala się ponownie — i licznik nie rusza od zera: liczy dalej całą transmisję, razem z przerwą.\n• Podgląd mówi dodatkowo, ile razy nastąpiła przerwa, i rysuje przerwy na pasku — a odznaka uprzedza, co się stało."
   },
   "guideAboTitre": {
     "message": "Twoje subskrypcje, na złoto"

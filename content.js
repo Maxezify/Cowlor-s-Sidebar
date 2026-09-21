@@ -12125,16 +12125,22 @@ const TSE_GATE_MAX_CLICKS = 5;
   const updateFreshness = (card) => {
     const ts = card.dataset.tseStartedAt;
     if (!ts) { card.classList.remove('tse-fresh'); return; }
-    /* UNE REPRISE N'EST PAS UN DÉBUT. Le compteur de la carte, lui, repart
-       bel et bien de zéro — c'est ce que Twitch sert, et la carte n'a pas la
-       place de dire deux durées à la fois ; c'est l'aperçu qui porte celle du
-       direct entier, avec le nombre de coupures à côté. Mais la barre
-       violette, elle, ne dit pas une durée : elle dit « tu n'as rien raté ».
+    /* UNE REPRISE N'EST PAS UN DÉBUT, et cette garde a changé de statut sans
+       changer de texte utile. Le compteur de la carte repartait de zéro sur
+       une reprise, et l'âge lu ici valait donc « deux minutes » : sans cette
+       ligne, la barre violette se rallumait sur un direct de six heures.
+
+       DEPUIS QUE LA CARTE COMPTE LE DIRECT ENTIER, l'âge vaut six heures et le
+       seuil de dix minutes suffirait à lui seul. On garde pourtant la garde,
+       et ce n'est pas de la superstition : elle est le seul endroit qui dise
+       POURQUOI une reprise n'allume rien, et elle couvre encore le cas où les
+       deux seuils cesseraient d'être égaux. Le jour où `FRESH_MAX_MIN` et
+       `RECONNECT_GAP_MAX` divergeront — ils sont égaux par coïncidence de
+       valeur, pas de nature — elle redeviendra la seule protection.
+
+       CE QUE LA BARRE DIT N'EST PAS UNE DURÉE : elle dit « tu n'as rien raté ».
        L'allumer sur une reprise affirmerait le contraire de la vérité à
-       quelqu'un qui a tout manqué, et c'est le seul signal du produit qui en
-       soit capable. D'où cette garde, ici et pas ailleurs : le seuil de dix
-       minutes et celui de la reprise sont le même, et c'est une coïncidence de
-       valeur, pas de nature. */
+       quelqu'un qui a justement tout manqué. */
     if (repriseFraiche(card.dataset.tseLogin)) {
       card.classList.remove('tse-fresh');
       return;
@@ -15826,17 +15832,36 @@ const TSE_GATE_MAX_CLICKS = 5;
       // jusqu'ici que pour les cartes non hors-ligne) ; observe() écarte de
       // lui-même les cartes que l'extension a fabriquées.
       liveLag.observe(card, stream);
-      /* LE DÉPART RÉEL, ET NON CELUI DE LA SESSION. Sur une chaîne qui n'a pas
-         coupé, les deux sont le même horodatage et rien ne change. Sur une
-         reprise, c'est ici que le compteur cesse de mentir : il repart de
-         l'origine du direct au lieu de celle du tronçon.
-         `liveLag.observe` reçoit le `stream` intact : lui mesure le retard de
-         Twitch sur CETTE session, ce qui est bien la session et non le direct. */
-      /* La carte compte la SESSION, comme Twitch : une reprise y remet le
-         compteur à zéro, et c'est assumé (cf. updateFreshness). Le direct
-         entier — coupures comprises — se lit dans l'aperçu, en tête de la
-         frise, qui est le seul endroit dont l'échelle le permette. */
-      card.dataset.tseStartedAt = stream.createdAt;
+      /* ── LE DÉPART RÉEL, ET NON CELUI DE LA SESSION ─────────────────────
+         DEUX COMMENTAIRES SE CONTREDISAIENT ICI, et l'un des deux décrivait un
+         comportement que le code n'avait plus. C'est réglé, et dans le sens
+         demandé depuis le terrain, capture à l'appui : une carte annonçait
+         « 3h41 » pendant que l'aperçu, deux centimètres plus bas, annonçait
+         « 10h11 · 1 coupure » pour le même direct.
+
+         L'ANCIEN CHOIX SE DÉFENDAIT, et il faut dire pourquoi il tombe. Il
+         disait : la carte compte la SESSION, comme Twitch, et la contredire
+         reviendrait à tenir deux vérités à la fois. Sauf que les deux vérités
+         étaient tenues QUAND MÊME — l'une sur la carte, l'autre dans l'aperçu
+         — et que c'est l'utilisateur qui devait les réconcilier. Entre suivre
+         Twitch et dire depuis combien de temps la chaîne diffuse, c'est la
+         seconde qui est la question qu'on se pose en lisant une sidebar.
+
+         SUR UNE CHAÎNE QUI N'A PAS COUPÉ, LES DEUX SONT LE MÊME HORODATAGE et
+         rien ne change — ce qui est le cas de l'immense majorité des cartes.
+         La différence n'apparaît qu'après une coupure reconnue : moins de dix
+         minutes d'interruption, et un tronçon neuf de moins de dix minutes.
+         Un subathon, lui, ne chaîne pas ses redémarrages, et sa carte continue
+         donc de compter la session — c'est la pastille du jour qui y porte la
+         durée longue.
+
+         `liveLag.observe` reçoit le `stream` INTACT : lui mesure le retard de
+         Twitch sur CETTE session, ce qui est bien la session et non le direct.
+         Le confondre fausserait une mesure de fraîcheur réseau avec une durée
+         de diffusion. */
+      const loginCarte = card.dataset.tseLogin;
+      card.dataset.tseStartedAt =
+        (loginCarte && debutReel(loginCarte, stream.createdAt)) || stream.createdAt;
       card.dataset.tseOfflineHits = '0';
       delete card.dataset.tseOfflineTs;
       // Le streamer redémarre après une période offline confirmée : on retire

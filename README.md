@@ -2178,6 +2178,105 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La carte compte le direct, pas le tronçon (v4.15.0)
+
+### Ce que la capture montrait
+
+Une carte annonçait **3h41**. Deux centimètres plus bas, dans l'aperçu de la
+même chaîne : **« PRÉCÉDEMMENT SUR CE LIVE · 1 coupure · 10h11 »**, et une frise
+qui totalisait bien dix heures.
+
+Le produit tenait donc **deux vérités à la fois pour la même chose**, et c'est
+l'utilisateur qui devait les réconcilier.
+
+### D'abord : le système de coupure fonctionne-t-il ?
+
+Oui, et il est plus strict que « moins de dix minutes » — il exige **deux**
+bornes, toutes deux à dix minutes, et il faut les deux :
+
+| borne | ce qu'elle exige |
+| --- | --- |
+| `RECONNECT_GAP_MAX` = 10 min | la chaîne a été **vue en ligne** il y a moins de dix minutes |
+| `FRESH_MAX_MIN` = 10 min | le nouveau tronçon a **commencé** il y a moins de dix minutes |
+
+La première borne est en pratique plus serrée qu'elle n'en a l'air : « vu en
+ligne » vient du relevé, qui tourne toutes les trente secondes. L'écart mesuré
+est donc l'interruption réelle, à une demi-minute près.
+
+Deux exclusions encore : un **subathon** ne chaîne jamais ses redémarrages —
+Twitch impose de relancer toutes les quarante-huit heures, et chaîner
+produirait « 14 coupures » là où il ne s'est rien passé — et un identifiant de
+stream **inchangé** n'est pas une reprise mais la même session.
+
+Sur la capture, tout concorde : une coupure comptée, un total de 10h11, et un
+tronçon courant de 3h41.
+
+### Le renversement, et c'est le troisième tour
+
+Il faut le dire, parce que cette décision a déjà changé deux fois :
+
+- la **3.98** avait mis la durée du direct entier sur la carte ;
+- une version suivante l'a **annulé** sur retour d'usage, avec un argument qui
+  se défendait : *« deux vérités pour une même chose valent moins qu'une seule
+  bien placée »* — la session sur la carte, le direct dans l'aperçu.
+
+**Le raisonnement était juste et sa conclusion fausse.** Il supposait qu'on
+pouvait n'en montrer qu'une. La capture prouve le contraire : les deux étaient
+montrées quand même, à deux centimètres l'une de l'autre.
+
+Entre suivre Twitch et répondre à la question qu'on se pose en lisant une
+sidebar — *depuis combien de temps il diffuse* — c'est la seconde qui gagne.
+
+### Ce qui change, et ce qui ne change pas
+
+`debutReel()` existait déjà : il porte l'origine du direct à travers les
+coupures, et la frise s'en sert depuis longtemps. La carte lit maintenant la
+même source.
+
+**Sur une chaîne qui n'a pas coupé, les deux horodatages sont identiques** et
+rien ne bouge — c'est le cas de l'immense majorité des cartes. La différence
+n'apparaît qu'après une coupure reconnue.
+
+**La barre violette reste éteinte sur une reprise**, comme avant. Sa garde
+devient toutefois une ceinture en plus des bretelles : l'âge de la carte vaut
+maintenant six heures et le seuil de dix minutes suffirait seul. Elle est
+gardée parce qu'elle est le seul endroit qui dise **pourquoi**, et parce que les
+deux seuils sont égaux par coïncidence de valeur, pas de nature.
+
+### Deux commentaires qui se contredisaient
+
+Au point exact de l'assignation, deux blocs voisins disaient l'inverse l'un de
+l'autre : l'un décrivait la lecture de l'origine, l'autre expliquait qu'on
+compte la session. Le premier était un vestige du tour précédent, laissé en
+place par le revert. Ils sont fondus en un seul, qui dit ce que le code fait et
+pourquoi le choix inverse est tombé.
+
+### Ce que le banc mesure
+
+L'assertion du scénario 95 en est à son **troisième tour**, et elle le dit dans
+son commentaire. Elle est **retournée**, pas supprimée :
+
+| | assertion |
+| --- | --- |
+| avant | « le compteur de la carte repart bien de zéro : c'est la session » |
+| après | « le compteur garde le départ du DIRECT, non celui du tronçon » |
+
+Et une assertion de plus, parce que le dataset ne suffit pas : **la durée rendue
+à l'écran doit porter des heures**, pas des minutes de tronçon. Sans elle, un
+`tseStartedAt` correct et un affichage cassé passeraient tous deux au vert.
+
+### Le mode d'emploi et les fiches suivent
+
+Le chapitre 4 annonçait l'ancienne règle dans les **douze langues** : « la barre
+violette ne se rallume pas, **mais son compteur, lui, repart de zéro** ». Il dit
+maintenant l'inverse, et sa seconde puce cesse de présenter la durée entière
+comme une exception de l'aperçu — c'est la règle partout, l'aperçu ajoutant le
+**nombre** de coupures et leur dessin sur la frise.
+
+Les **douze fiches de boutique** promettaient la même chose. Elles distinguent
+désormais ce que fait Twitch — remettre le compteur à zéro — de ce que fait
+l'extension : continuer d'afficher le direct entier.
+
 ## Le premier relevé ne se fait disputer par personne (v4.14.5)
 
 ### Une régression que j'ai introduite la veille, et un rapport qui l'a dite en une ligne
@@ -6693,6 +6792,10 @@ garde est revenue dans `updateFreshness`, à l'endroit exact où elle avait ét�
 retirée), le compteur repart de zéro comme chez Twitch, et le direct entier se
 lit dans l'aperçu — qui, lui, a la place de dire les deux.
 
+> **Renversé en 4.15.0.** La carte porte désormais la durée du direct entier :
+> voir *La carte compte le direct, pas le tronçon*.
+
+
 **Mais la frise, elle, recommençait**, et c'était le vrai dégât. Il ne se voyait
 pas depuis le code : `suivreCategorie` repart de zéro dès que l'identifiant de
 stream change, et il change à chaque reprise. Un spectateur qui survolait après
@@ -8896,7 +8999,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 141 scénarios, 1240 assertions |
+| `npm test` | le harnais Playwright : 141 scénarios, 1241 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -8917,7 +9020,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1093 Ko | 409 Ko | 3 391 → **2** |
+| `content.js` | 1093 Ko | 409 Ko | 3 390 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

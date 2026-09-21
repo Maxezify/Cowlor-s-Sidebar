@@ -486,7 +486,7 @@
     "message": "Starts, and comebacks"
   },
   "guideDebutTexte": {
-    "message": "A purple bar appears on the left edge of a card: that stream started less than ten minutes ago. It goes out on its own at the tenth minute.\n• If the streamer loses their connection and comes back within ten minutes, the purple bar does not light up again, but their counter does restart from zero.\n• In the preview, the duration shown stays that of the whole stream, outage included, and a badge tells you what happened."
+    "message": "A purple bar appears on the left edge of a card: that stream started less than ten minutes ago. It goes out on its own at the tenth minute.\n• If the streamer loses their connection and comes back within ten minutes, the purple bar does not light up again — and their counter does not restart from zero: it keeps counting the whole stream, outage included.\n• The preview also says how many times it cut out, and draws the outages on the timeline — and a badge tells you what happened."
   },
   "guideAboTitre": {
     "message": "Your subscriptions, in gold"

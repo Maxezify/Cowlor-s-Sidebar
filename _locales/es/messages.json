@@ -388,7 +388,7 @@
     "message": "Los comienzos y las vueltas"
   },
   "guideDebutTexte": {
-    "message": "Una barra morada aparece en el borde izquierdo de una tarjeta: ese directo empezó hace menos de diez minutos. Se apaga sola al cumplirse el décimo minuto.\n• Si el streamer pierde la conexión y vuelve antes de diez minutos, la barra morada no se enciende otra vez, pero su contador sí vuelve a cero.\n• En la vista previa, la duración mostrada sigue siendo la del directo entero, corte incluido, y una insignia avisa de lo que pasó."
+    "message": "Una barra morada aparece en el borde izquierdo de una tarjeta: ese directo empezó hace menos de diez minutos. Se apaga sola al cumplirse el décimo minuto.\n• Si el streamer pierde la conexión y vuelve antes de diez minutos, la barra morada no se enciende otra vez — y su contador tampoco vuelve a cero: sigue contando el directo entero, corte incluido.\n• La vista previa dice además cuántas veces se cortó y dibuja las interrupciones en la franja — y una insignia avisa de lo que pasó."
   },
   "guideAboTitre": {
     "message": "Tus suscripciones, en oro"

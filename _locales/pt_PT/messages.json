@@ -388,7 +388,7 @@
     "message": "Os começos e os regressos"
   },
   "guideDebutTexte": {
-    "message": "Uma barra roxa aparece na margem esquerda de um cartão: essa transmissão começou há menos de dez minutos. Apaga-se sozinha ao fim do décimo minuto.\n• Se o streamer perder a ligação e voltar em menos de dez minutos, a barra roxa não se acende outra vez, mas o contador dele recomeça do zero.\n• Na pré-visualização, a duração mostrada continua a ser a da transmissão inteira, queda incluída, e um emblema avisa o que aconteceu."
+    "message": "Uma barra roxa aparece na margem esquerda de um cartão: essa transmissão começou há menos de dez minutos. Apaga-se sozinha ao fim do décimo minuto.\n• Se o streamer perder a ligação e voltar em menos de dez minutos, a barra roxa não se acende outra vez — e o contador dele não recomeça do zero: continua a contar a transmissão inteira, queda incluída.\n• A pré-visualização diz ainda quantas vezes caiu e desenha as quedas na faixa — e um emblema avisa o que aconteceu."
   },
   "guideAboTitre": {
     "message": "As suas inscrições, a ouro"

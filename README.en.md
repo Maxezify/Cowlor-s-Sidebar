@@ -2057,6 +2057,105 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The card counts the stream, not the segment (v4.15.0)
+
+### What the screenshot showed
+
+A card announced **3h41**. An inch below, in the same channel's preview:
+**"PREVIOUSLY ON THIS STREAM · 1 outage · 10h11"**, with a timeline totalling a
+full ten hours.
+
+So the product held **two truths at once about the same thing**, and it was the
+user who had to reconcile them.
+
+### First: does the outage system work?
+
+Yes, and it is stricter than "under ten minutes" — it requires **two** bounds,
+both at ten minutes, and it needs both:
+
+| bound | what it requires |
+| --- | --- |
+| `RECONNECT_GAP_MAX` = 10 min | the channel was **seen online** less than ten minutes ago |
+| `FRESH_MAX_MIN` = 10 min | the new segment **started** less than ten minutes ago |
+
+The first bound is tighter in practice than it looks: "seen online" comes from
+the sweep, which runs every thirty seconds. The measured gap is therefore the
+real interruption, to within half a minute.
+
+Two more exclusions: a **subathon** never chains its restarts — Twitch requires
+a relaunch every forty-eight hours, and chaining would report "14 outages" where
+nothing unusual happened — and an **unchanged** stream id is not a resumption
+but the same session.
+
+On the screenshot everything agrees: one outage counted, a 10h11 total, and a
+current segment of 3h41.
+
+### The reversal, and it is the third round
+
+It has to be said, because this decision has already changed twice:
+
+- **3.98** put the whole stream's duration on the card;
+- a later version **undid it** on user feedback, with an argument that stood up:
+  *"two truths about one thing are worth less than one well placed"* — the
+  session on the card, the stream in the preview.
+
+**The reasoning was right and its conclusion wrong.** It assumed only one could
+be shown. The screenshot proves otherwise: both were shown anyway, an inch
+apart.
+
+Between following Twitch and answering the question you actually ask when
+reading a sidebar — *how long have they been live* — the second one wins.
+
+### What changes, and what does not
+
+`debutReel()` already existed: it carries the stream's origin across outages,
+and the timeline has used it for a long time. The card now reads the same
+source.
+
+**On a channel that has not cut, the two timestamps are identical** and nothing
+moves — which is the vast majority of cards. The difference only appears after a
+recognised outage.
+
+**The purple bar stays off on a resumption**, as before. Its guard becomes a
+belt on top of braces, though: the card's age is now six hours and the
+ten-minute threshold would suffice on its own. It is kept because it is the only
+place that says **why**, and because the two thresholds are equal by coincidence
+of value, not of nature.
+
+### Two comments that contradicted each other
+
+At the exact point of assignment, two neighbouring blocks said opposite things:
+one described reading the origin, the other explained that the session is what
+counts. The first was a leftover from the previous round, left in place by the
+revert. They are merged into one, which says what the code does and why the
+opposite choice fell.
+
+### What the bench measures
+
+Scenario 95's assertion is on its **third round**, and says so in its comment. It
+is **turned around**, not deleted:
+
+| | assertion |
+| --- | --- |
+| before | "the card's counter does restart from zero: it is the session" |
+| after | "the counter keeps the STREAM's start, not the segment's" |
+
+And one assertion more, because the dataset is not enough: **the duration
+rendered on screen must carry hours**, not segment minutes. Without it, a
+correct `tseStartedAt` and a broken display would both pass green.
+
+### The guide and the listings follow
+
+Chapter 4 announced the old rule in **twelve languages**: "the purple bar does
+not light up again, **but their counter does restart from zero**". It now says
+the opposite, and its second bullet stops presenting the whole duration as a
+preview-only exception — it is the rule everywhere, the preview adding the
+**number** of outages and their drawing on the timeline.
+
+The **twelve store listings** promised the same thing. They now distinguish what
+Twitch does — reset the counter — from what the extension does: keep showing the
+whole stream.
+
 ## The first sweep is contested by nobody (v4.14.5)
 
 ### A regression I introduced the day before, and a report that said it in one line
@@ -6438,6 +6537,10 @@ it is what the purple bar says. So the bar stays off (the guard is back in
 restarts from zero as Twitch serves it, and the whole stream is read in the
 preview — which does have room for both.
 
+> **Reversed in 4.15.0.** The card now carries the whole stream's duration:
+> see *The card counts the stream, not the segment*.
+
+
 **The trail, though, was starting over**, and that was the real damage. It was
 invisible from the code: `suivreCategorie` resets as soon as the stream id
 changes, and it changes on every resumption. Anyone hovering after a three-minute
@@ -8557,7 +8660,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 141 scenarios, 1240 assertions |
+| `npm test` | the Playwright harness: 141 scenarios, 1241 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -8577,7 +8680,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1093 KB | 409 KB | 3,391 → **2** |
+| `content.js` | 1093 KB | 409 KB | 3,390 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

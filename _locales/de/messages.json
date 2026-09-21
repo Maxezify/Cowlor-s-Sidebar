@@ -388,7 +388,7 @@
     "message": "Starts und Rückkehr"
   },
   "guideDebutTexte": {
-    "message": "Ein violetter Balken erscheint am linken Rand einer Karte: Dieser Stream hat vor weniger als zehn Minuten begonnen. Er erlischt von selbst mit der zehnten Minute.\n• Verliert der Streamer seine Verbindung und kommt binnen zehn Minuten zurück, leuchtet der violette Balken nicht erneut — sein Zähler aber startet wieder bei null.\n• In der Vorschau bleibt die angezeigte Dauer die des ganzen Streams, Abbruch eingeschlossen, und ein Abzeichen sagt, was passiert ist."
+    "message": "Ein violetter Balken erscheint am linken Rand einer Karte: Dieser Stream hat vor weniger als zehn Minuten begonnen. Er erlischt von selbst mit der zehnten Minute.\n• Verliert der Streamer seine Verbindung und kommt binnen zehn Minuten zurück, leuchtet der violette Balken nicht erneut — und sein Zähler startet auch nicht wieder bei null: er zählt den ganzen Stream weiter, Abbruch eingeschlossen.\n• Die Vorschau sagt zusätzlich, wie oft es abgebrochen ist, und zeichnet die Unterbrechungen in den Verlauf — und ein Abzeichen sagt, was passiert ist."
   },
   "guideAboTitre": {
     "message": "Deine Abos, in Gold"
