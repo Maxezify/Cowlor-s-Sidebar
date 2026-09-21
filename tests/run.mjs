@@ -18495,6 +18495,111 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ LE RÉPERTOIRE CONTRE LE COMBINÉ, ET LE PIÈGE SANS RETOUR ══════
+   LE DERNIER ÉCRIVAIN QUI N'ÉTAIT NI GARDÉ NI COMPTÉ. Trois versions ont
+   cherché ce défaut ; c'est un rapport ÉQUIPÉ DES COMPTEURS DE LA 4.14.2 qui
+   l'a désigné, par pure élimination :
+
+     sousLaCoupe 8 · horsClassement 0 · chutes 2 · chuteMax 24
+     chutesHorsEcran 0 · evicted 0 · gardees 0 · pool 753
+
+   Douze membres de session, quatre affichés, HUIT dans le pool sous le
+   trentième rang. Rien d'évincé, aucune session perdue, et aucune chute de
+   compteur digne de ce nom — vingt-quatre spectateurs au maximum. Les huit
+   avaient donc perdu leur combiné SANS passer par `setViewers`, qui est le
+   seul endroit où vivent les trois gardes et les trois compteurs.
+
+   IL NE RESTAIT QU'UN CHEMIN. `harvest` écrit le répertoire dans le pool par
+   `pool.set(login, rec)`, en REMPLAÇANT l'enregistrement entier. Ni la garde
+   de signature, ni celle de la réserve, ni le compteur de chutes ne voient
+   passer cette écriture. Or le répertoire range couramment une session sous
+   son seul hôte : les autres participants y figurent avec leur audience
+   PROPRE — trois cents au lieu de quatre mille — et retombent sous la coupe.
+
+   ET C'EST UN PIÈGE, PAS UN SCINTILLEMENT. Le combiné n'arrive que par la voie
+   des CARTES, et une chaîne sous le trentième rang n'a pas de carte. Rien ne
+   peut donc la relever : elle reste en bas jusqu'à ce que le répertoire change
+   d'avis. Les captures le montrent — cinq co-streamers « Valheim, 4,1 k »,
+   puis un seul, et les quatre autres jamais revenus.
+
+   DEUX RÉGLAGES DU DÉCOR ONT ÉTÉ NÉCESSAIRES, et chacun a d'abord donné un
+   scénario vert pour rien :
+
+     — LA RÉPONSE PAR CATÉGORIE EST PLAFONNÉE À TRENTE. Dans une seule
+       catégorie chargée de bruit, les membres à trois cents n'y figurent même
+       pas : le décor jouait leur ABSENCE du pool, pas leur chute sous la
+       coupe. Le bruit vit donc dans sa propre catégorie ;
+     — IL FAUT UNE AMORCE PAR CARTE SUIVIE. Guest Star n'est résolu que pour
+       les chaînes qui ont une carte ; sans cette amorce, la session n'est
+       jamais connue et le décor joue son absence au lieu du blocage. */
+{
+  titre('140. Co-stream — le combiné connu prime sur ce que le répertoire raconte');
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Valheim', tags: [] });
+    const bruit = [];
+    for (let k = 0; k < 35; k++) bruit.push({ login: 'n' + k, viewers: 2000 - k * 20 });
+    /* LE RÉPERTOIRE RANGE LA SESSION SOUS SON HÔTE : unaa y figure avec le
+       combiné, unbb et uncc avec leur audience propre. C'est le seul point du
+       décor qui compte, et c'est ce que le terrain montre. */
+    window.__cats = [
+      { name: 'Autre', viewers: 200_000, streams: bruit },
+      { name: 'Valheim', viewers: 90_000, streams: [
+        { login: 'unaa', viewers: 4000 },
+        { login: 'unbb', viewers: 300 }, { login: 'uncc', viewers: 300 },
+        { login: 'modele', viewers: 800 }] }];
+    window.__fx = Object.fromEntries([
+      ['unaa', c('9401', 300)], ['unbb', c('9402', 300)], ['uncc', c('9403', 300)],
+      ['modele', c('9405', 800)],
+      ...bruit.map((x) => [x.login, { id: 'b' + x.login, createdAt: h,
+                                      viewers: x.viewers, game: 'Autre', tags: [] }]),
+    ]);
+    const guests = [
+      { id: '9401', login: 'unaa', viewers: 300, combined: 4000 },
+      { id: '9402', login: 'unbb', viewers: 300, combined: 4000 },
+      { id: '9403', login: 'uncc', viewers: 300, combined: 4000 }];
+    window.__gs = {
+      '9401': { hostId: '9400', hostLogin: 'unaa', guests },
+      '9402': { hostId: '9400', hostLogin: 'unaa', guests },
+      '9403': { hostId: '9400', hostLogin: 'unaa', guests } };
+    window.__addCard('unaa', 'Valheim', '4 k');
+    window.__addCard('unbb', 'Valheim', '300');
+    window.__addCard('uncc', 'Valheim', '300');
+    window.__addCard('modele', 'Valheim', '800');
+  });
+  /* L'AMORCE : on attend que Guest Star soit RÉSOLU, pas qu'un délai passe. */
+  await attendre(page,
+    () => document.querySelectorAll('.side-nav-card.tse-costream').length >= 2, 15_000);
+  await page.evaluate(() => window.tse.global.on());
+  await wait(page, 4000);
+
+  const vu = await page.evaluate(() => {
+    const g = window.tse.global.report();
+    const co = window.tse.panneau.rapport().coStream;
+    return { top: window.tse.global.top(30)
+               .filter((x) => x.login.startsWith('un')).map((x) => `${x.login}:${x.viewers}`),
+             tous: window.tse.global.top(999)
+               .filter((x) => x.login.startsWith('un')).map((x) => `${x.login}:${x.viewers}`),
+             bas: g.repertoireBas, haut: g.repertoireHaut,
+             sousLaCoupe: co.sousLaCoupe, piegees: co.sousLaCoupeAvecCombine };
+  });
+
+  /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant : « unaa:4000 » seul au top, et
+     « uncc:300, unbb:300 » dans le pool — sous la coupe, sans retour. */
+  ok('les membres que le répertoire range bas gardent le combiné de leur session',
+     vu.top.length === 3 && vu.top.every((x) => x.endsWith(':4000')),
+     JSON.stringify(vu));
+  ok('…aucun ne reste piégé sous la coupe avec un combiné connu',
+     vu.piegees === 0, JSON.stringify(vu));
+  /* ET L'ÉCART SE COMPTE : sans ce nombre, l'assertion ci-dessus serait vraie
+     aussi le jour où le répertoire se mettrait à rendre le combiné tout seul,
+     et le banc ne mesurerait plus rien. */
+  ok('…et le désaccord entre le répertoire et le combiné est COMPTÉ',
+     vu.bas > 0 && vu.haut === 0, JSON.stringify(vu));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

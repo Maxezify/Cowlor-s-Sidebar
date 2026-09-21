@@ -6926,7 +6926,14 @@ const TSE_GATE_MAX_CLICKS = 5;
                     /* Chutes de compteur : voir setViewers. « chutesHorsEcran »
                        est la seule qui se VOIE — celle qui fait passer une
                        carte de l'écran au néant. */
-                    chutes: 0, chuteMax: 0, chutesHorsEcran: 0, lastMs: 0 };
+                    chutes: 0, chuteMax: 0, chutesHorsEcran: 0,
+                    /* Le répertoire contre le combiné connu : « bas » compte
+                       les fois où il donnait MOINS que ce que la carte
+                       affiche — le défaut — et « haut » les fois où il
+                       donnait plus, ce qui signalerait un combiné périmé.
+                       Les deux, parce qu'un compteur qui ne mesure qu'un sens
+                       ne dit pas si le remède est pire que le mal. */
+                    repertoireBas: 0, repertoireHaut: 0, lastMs: 0 };
 
     /* ── LES CHAÎNES ÉCARTÉES, ET POURQUOI ON COMPTE DES CHAÎNES ────────────
        Une exclusion qu'on ne mesure pas est une exclusion dont on ne saura
@@ -7178,12 +7185,52 @@ const TSE_GATE_MAX_CLICKS = 5;
         }
         return null;
       }
+      /* ── LE COMBINÉ CONNU PRIME SUR CE QUE LE RÉPERTOIRE RACONTE ─────────
+         LE DERNIER ÉCRIVAIN QUI N'ÉTAIT NI GARDÉ NI COMPTÉ, et c'est un
+         rapport de terrain équipé des compteurs de la 4.14.2 qui l'a désigné,
+         par élimination :
+
+           sousLaCoupe 8 · horsClassement 0 · chutes 2 · chuteMax 24
+           chutesHorsEcran 0 · evicted 0 · gardees 0 · pool 753
+
+         Douze membres de session, quatre affichés, HUIT dans le pool sous le
+         trentième rang. Aucun évincé, aucune session perdue, et aucune chute
+         de compteur digne de ce nom — vingt-quatre spectateurs au maximum.
+         Les huit avaient donc perdu leur combiné SANS passer par setViewers,
+         qui est le seul endroit où les trois gardes et les trois compteurs
+         vivent. Il ne restait qu'un chemin : celui-ci.
+
+         `harvest` écrit le répertoire dans le pool par `pool.set(login, rec)`,
+         en REMPLAÇANT l'enregistrement entier. Ni la garde de signature, ni
+         celle de la réserve, ni le compteur de chutes ne voient passer cette
+         écriture. Quand le répertoire range une session sous un seul de ses
+         participants — ce qu'il fait couramment — les autres y figurent avec
+         leur audience PROPRE, quelques centaines, et retombent sous la coupe.
+
+         ET ILS N'EN REMONTENT PLUS, ce qui fait de ce défaut un piège et non
+         un scintillement : le combiné n'arrive que par la voie des CARTES, et
+         une chaîne sous le trentième rang n'a pas de carte. Rien ne peut donc
+         la relever. Les captures le montrent — cinq co-streamers « Valheim,
+         4,1 k », puis un seul, et les quatre autres jamais revenus.
+
+         ON APPLIQUE DONC ICI CE QUE LA 4.13.6 A ÉTABLI AILLEURS : le
+         classement trie sur le nombre qu'il AFFICHE, et ce nombre est le
+         combiné. `readStream` est le seul passage obligé des deux voies — la
+         descente par catégories et le classement par tag — donc le seul
+         endroit où le poser une fois pour toutes. */
+      let vus = viewers;
+      const combine = getCollabViewers(node.broadcaster?.id);
+      if (Number.isFinite(combine) && combine !== viewers) {
+        if (combine > viewers) stats.repertoireBas += 1;
+        else stats.repertoireHaut += 1;
+        vus = combine;
+      }
       return {
         login,
         id:        node.broadcaster.id ?? null,
         name:      node.broadcaster.displayName?.trim() || login,
         avatar:    node.broadcaster.profileImageURL || null,
-        viewers,
+        viewers:   vus,
         game:      node.game?.name || null,
         gameLabel: node.game?.displayName?.trim() || node.game?.name || null,
         createdAt: node.createdAt || null,
@@ -8889,7 +8936,8 @@ const TSE_GATE_MAX_CLICKS = 5;
      Remis à zéro à chaque passe : c'est un instantané, pas un cumul — la
      question qu'il tranche porte sur l'état courant de la liste. */
   let bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
-                        horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0 };
+                        horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0,
+                        sousLaCoupeAvecCombine: 0 };
 
   /* ── LA SECTION « CHAÎNES SUIVIES » ───────────────────────────────────────
      UNE SECTION VIDE EST PIRE QUE PAS DE SECTION, et c'est le défaut qu'un
@@ -18004,7 +18052,8 @@ const TSE_GATE_MAX_CLICKS = 5;
        « sessions vues » et « groupes dessinés » EST le nombre de sessions
        réduites à un seul membre visible. */
     bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
-                      horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0 };
+                      horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0,
+                        sousLaCoupeAvecCombine: 0 };
     const parLogin = new Map();
     for (const card of cards) {
       const l = card.dataset.tseLogin;
@@ -18037,7 +18086,28 @@ const TSE_GATE_MAX_CLICKS = 5;
         /* DANS LE POOL MAIS SOUS LA COUPE : c'est la signature du défaut du
            combiné perdu. La marche la connaît, elle est simplement retombée à
            son audience propre. Aucun autre chemin ne produit ce cas-là. */
-        else if (globalChannels.estDansLeBase(l)) bilanCostream.sousLaCoupe += 1;
+        else if (globalChannels.estDansLeBase(l)) {
+          bilanCostream.sousLaCoupe += 1;
+          /* ── LA VARIABLE QUI TRANCHE, ET QUI M'A MANQUÉ UN TOUR ───────────
+             « sousLaCoupe » seul ne dit pas si c'est NORMAL. Un membre de
+             session peut être sous le trentième rang pour une raison
+             parfaitement saine : il est petit, et il n'a jamais eu sa place
+             dans un top 30. C'est le cas courant des invités d'un gros hôte.
+
+             CE QUI N'EST PAS NORMAL, c'est qu'un membre dont on CONNAÎT le
+             combiné soit sous la coupe : le combiné est le nombre que Twitch
+             affiche sur sa carte, donc celui qui doit trier. S'il est connu et
+             que la chaîne est quand même en bas, c'est que le classement trie
+             sur autre chose — et c'est le défaut, en un seul nombre.
+
+             Un rapport disait « sousLaCoupe 8 » et j'ai dû croiser deux
+             captures d'écran pour savoir lesquels des huit étaient anormaux.
+             Ce compteur-là répond tout seul. */
+          const idm = getChannelId(l);
+          if (idm && Number.isFinite(getCollabViewers(idm))) {
+            bilanCostream.sousLaCoupeAvecCombine += 1;
+          }
+        }
         else bilanCostream.horsClassement += 1;
       }
     }

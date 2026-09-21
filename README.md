@@ -2178,6 +2178,89 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le répertoire contre le combiné, et le piège sans retour (v4.14.3)
+
+### Le rapport équipé a désigné le coupable par élimination
+
+Les compteurs ajoutés en 4.14.2 ont fait leur travail dès le rapport suivant :
+
+```
+sousLaCoupe 8 · horsClassement 0 · chutes 2 · chuteMax 24
+chutesHorsEcran 0 · evicted 0 · gardees 0 · pool 753
+```
+
+Douze membres de session, quatre affichés, **huit dans le pool sous le
+trentième rang**. Rien d'évincé, aucune session perdue, et aucune chute de
+compteur digne de ce nom — vingt-quatre spectateurs au maximum.
+
+Les huit avaient donc perdu leur combiné **sans passer par `setViewers`**, qui
+est le seul endroit où vivent les trois gardes et les trois compteurs. Il ne
+restait qu'un chemin.
+
+### Le dernier écrivain, ni gardé ni compté
+
+`harvest` écrit le répertoire dans le pool par `pool.set(login, rec)`, en
+**remplaçant l'enregistrement entier**. Ni la garde de signature, ni celle de
+la réserve, ni le compteur de chutes ne voient passer cette écriture.
+
+Or le répertoire range couramment une session **sous son seul hôte** : les
+autres participants y figurent avec leur audience **propre** — trois cents au
+lieu de quatre mille — et retombent sous la coupe.
+
+### Et c'est un piège, pas un scintillement
+
+Le combiné n'arrive que par la voie des **cartes**. Une chaîne sous le trentième
+rang **n'a pas de carte**. Rien ne peut donc la relever : elle reste en bas
+jusqu'à ce que le répertoire change d'avis.
+
+C'est ce que les captures montrent : cinq co-streamers « Valheim, 4,1 k », puis
+un seul — et les quatre autres jamais revenus.
+
+### Le correctif
+
+`readStream` est le **seul passage obligé** des deux voies d'entrée du
+classement — la descente par catégories et le classement par tag. C'est donc le
+seul endroit où poser la règle une fois pour toutes : **quand un combiné est
+connu pour cette chaîne, c'est lui qui entre au pool**, pas ce que le répertoire
+raconte.
+
+C'est exactement ce que la 4.13.6 a établi ailleurs : *le classement trie sur le
+nombre qu'il affiche*, et ce nombre est le combiné.
+
+### Deux variables de plus, dont une qui tranche toute seule
+
+| compteur | ce qu'il dit |
+| --- | --- |
+| `repertoireBas` / `repertoireHaut` | le répertoire donnait **moins** que le combiné connu — le défaut — ou **plus**, ce qui signalerait un combiné périmé |
+| `sousLaCoupeAvecCombine` | un membre est sous la coupe **alors qu'on connaît son combiné** |
+
+Le second est celui qui m'a manqué un tour entier. `sousLaCoupe` seul ne dit pas
+si la situation est **normale** : un invité modeste chez un gros hôte est sous le
+trentième rang pour une raison parfaitement saine. Ce qui ne l'est pas, c'est
+qu'un membre **dont on connaît le combiné** y reste — le combiné est le nombre
+que Twitch affiche sur sa carte, donc celui qui doit trier.
+
+Un rapport disait « sousLaCoupe 8 » et il a fallu croiser deux captures d'écran
+pour savoir lesquels des huit étaient anormaux. Ce compteur répond seul.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la règle retirée | `top: ["unaa:4000"]`, et dans le pool **`uncc:300`, `unbb:300`** — sous la coupe, sans retour |
+| le correctif en place | les trois à `4000` au top 30, `repertoireBas 14` |
+
+**Deux réglages du décor ont été nécessaires**, et chacun a d'abord donné un
+scénario vert pour rien :
+
+- **la réponse par catégorie est plafonnée à trente.** Dans une seule catégorie
+  chargée de bruit, les membres à trois cents n'y figurent même pas : le décor
+  jouait leur **absence** du pool, et non leur chute sous la coupe. Le bruit vit
+  donc dans sa propre catégorie ;
+- **il faut une amorce par carte suivie.** Guest Star n'est résolu que pour les
+  chaînes qui ont une carte ; sans amorce, la session n'est jamais connue et le
+  décor joue son absence au lieu du blocage.
+
 ## Une session qui maigrit n'est pas une session qui finit (v4.14.2)
 
 ### Le rapport disait vrai, et il ne pouvait pas désigner le coupable
@@ -8643,7 +8726,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 139 scénarios, 1230 assertions |
+| `npm test` | le harnais Playwright : 140 scénarios, 1233 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -8664,7 +8747,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1093 Ko | 409 Ko | 3 371 → **2** |
+| `content.js` | 1093 Ko | 409 Ko | 3 374 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 133 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

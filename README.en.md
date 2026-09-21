@@ -2057,6 +2057,88 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The directory against the combined, and the trap with no way back (v4.14.3)
+
+### The equipped report named the culprit by elimination
+
+The counters added in 4.14.2 did their job on the very next report:
+
+```
+sousLaCoupe 8 · horsClassement 0 · chutes 2 · chuteMax 24
+chutesHorsEcran 0 · evicted 0 · gardees 0 · pool 753
+```
+
+Twelve session members, four displayed, **eight in the pool below the thirtieth
+rank**. Nothing evicted, no session lost, and no counter drop worth the name —
+twenty-four viewers at most.
+
+So the eight had lost their combined **without going through `setViewers`**,
+which is the only place the three guards and the three counters live. Only one
+path was left.
+
+### The last writer, neither guarded nor counted
+
+`harvest` writes the directory into the pool with `pool.set(login, rec)`,
+**replacing the whole record**. Neither the signature guard, nor the reserve
+guard, nor the drop counter sees that write go past.
+
+And the directory routinely files a session **under its host alone**: the other
+participants appear there with their **own** audience — three hundred instead of
+four thousand — and fall below the cut.
+
+### And it is a trap, not a flicker
+
+The combined only arrives through the **card** path. A channel below the
+thirtieth rank **has no card**. Nothing can lift it back: it stays down until
+the directory changes its mind.
+
+That is what the captures show: five co-streamers at "Valheim, 4.1 k", then one
+— and the other four never came back.
+
+### The fix
+
+`readStream` is the **single mandatory passage** for both entry paths into the
+ranking — the category descent and the tag ranking. So it is the one place to
+state the rule once and for all: **when a combined is known for that channel, it
+is the combined that enters the pool**, not what the directory says.
+
+That is exactly what 4.13.6 established elsewhere: *the ranking sorts on the
+number it displays*, and that number is the combined.
+
+### Two more variables, one of which settles it on its own
+
+| counter | what it says |
+| --- | --- |
+| `repertoireBas` / `repertoireHaut` | the directory gave **less** than the known combined — the defect — or **more**, which would signal a stale combined |
+| `sousLaCoupeAvecCombine` | a member is below the cut **while its combined is known** |
+
+The second is the one I lacked for a whole round. `sousLaCoupe` alone does not
+say whether the situation is **normal**: a modest guest of a large host is below
+the thirtieth rank for a perfectly healthy reason. What is not healthy is a
+member **whose combined we know** staying there — the combined is the number
+Twitch shows on its card, so it is the number that must sort.
+
+A report said "sousLaCoupe 8" and it took cross-referencing two screenshots to
+know which of the eight were abnormal. This counter answers on its own.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the rule removed | `top: ["unaa:4000"]`, and in the pool **`uncc:300`, `unbb:300`** — below the cut, with no way back |
+| the fix in place | all three at `4000` in the top 30, `repertoireBas 14` |
+
+**Two fixture adjustments were needed**, and each first produced a scenario that
+was green for nothing:
+
+- **the per-category response is capped at thirty.** In a single category loaded
+  with noise, members at three hundred do not even appear in it: the fixture was
+  playing their **absence** from the pool, not their fall below the cut. So the
+  noise lives in its own category;
+- **a followed-card priming is required.** Guest Star is only resolved for
+  channels that have a card; without priming, the session is never known and the
+  fixture plays its absence instead of the deadlock.
+
 ## A session that thins out is not a session that has ended (v4.14.2)
 
 ### The report was telling the truth, and it could not name the culprit
@@ -8310,7 +8392,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 139 scenarios, 1230 assertions |
+| `npm test` | the Playwright harness: 140 scenarios, 1233 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -8330,7 +8412,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1093 KB | 409 KB | 3,371 → **2** |
+| `content.js` | 1093 KB | 409 KB | 3,374 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 133 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
