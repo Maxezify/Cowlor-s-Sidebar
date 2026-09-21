@@ -1153,6 +1153,9 @@ const construireRapport = (r, transport, fond) => {
   L.push(...bloc('PAGE', aplatir(r.page)));
 
   L.push(...bloc('SECTION SUIVIE / FOLLOWED SECTION', aplatir(r.sectionSuivie)));
+
+  L.push(...bloc('CO-STREAM — SESSION CONTRE LISTE / SESSION VS LIST',
+                 aplatir(r.coStream)));
   L.push(...bloc('LANGUE / LANGUAGE', aplatir(r.langue)));
   L.push(...bloc('MODE', aplatir(r.mode)));
   L.push(...bloc('COMPTEURS / COUNTS', aplatir(r.compteurs)));
@@ -1170,6 +1173,13 @@ const construireRapport = (r, transport, fond) => {
     paire('horodatage', r.relevesAbonnements?.horodatage
       ? new Date(r.relevesAbonnements.horodatage).toISOString() : 'jamais / never'),
     paire('en attente / pending', r.relevesAbonnements?.enAttente),
+
+    ...((r.relevesAbonnements?.onglets || []).map((o) => paire(
+      `onglet ${o.onglet}`,
+      `${o.charge ? 'affiché' : 'jamais chargé'} · ${o.noeuds} nœuds`
+      + ` · barre ${o.barre ? 'oui' : 'non'} · ${o.cartes} carte(s)`
+      + ` · ${o.logins} chaîne(s)`
+      + (o.texte ? ` · la page dit : « ${o.texte} »` : '')))),
   ]));
   L.push(...bloc('RÉSEAU / NETWORK', [
     ...aplatir(r.reseau),
