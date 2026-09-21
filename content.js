@@ -1956,6 +1956,31 @@ const TSE_GATE_MAX_CLICKS = 5;
     // une seule requête de plus. Doubler les appels ferait pire (1 sur 9)
     // pour deux fois le prix.
     GLOBAL_MISS_CONFIRM:     3,
+    /* ── COMBIEN DE CATÉGORIES ON VISITE POUR RECREUSER UN POOL À PLAT ─────
+       LA VOIE DU TAG REND UN POOL DE LA PROFONDEUR EXACTE DE L'AFFICHAGE :
+       trente demandées, trente rendues, et pas une de plus. Un tel pool n'a
+       AUCUNE réserve — chaque chaîne qu'il contient est, par construction, au
+       dessus du plancher de la réponse qui l'a produit. La passe légère, elle,
+       ne s'élargit que « tant que la catégorie pèse plus que le seuil », et le
+       seuil d'un pool plus court que le top vaut zéro : elle ne s'élargit donc
+       jamais, et le pool reste à plat jusqu'à la marche complète suivante —
+       deux minutes et demie plus tard.
+
+       MESURÉ SUR LE TERRAIN, deux rapports à la minute près : « pool 223,
+       threshold 959 » avant un changement de langue, « pool 29, threshold 0,
+       evicted 7 » après. Sept chaînes retirées d'un pool qui n'avait plus rien
+       derrière pour les remplacer — dont un groupe de co-stream entier.
+
+       On visite donc ce nombre de catégories SUPPLÉMENTAIRES tant que le pool
+       n'a pas retrouvé de réserve. Vingt : de quoi recreuser en deux ou trois
+       passes légères sans transformer la passe légère en marche complète. */
+    GLOBAL_WIDEN_CATEGORIES: 20,
+    /* Profondeur, en multiples du top affiché, en deçà de laquelle la passe
+       légère continue de CREUSER. Distincte du seuil qui protège de
+       l'éviction, et volontairement plus large : on cesse de protéger dès
+       qu'il existe une chaîne sous la coupe, mais on continue de creuser
+       jusqu'à avoir une vraie marge. */
+    GLOBAL_RESERVE_RATIO:    2,
     // Âge au-delà duquel un enregistrement du pool est évincé sans plus de
     // procès : sa catégorie est sortie de la descente et rien ne le rafraîchit
     // plus. Assez large pour ne jamais concurrencer le compteur d'absences
@@ -6870,7 +6895,14 @@ const TSE_GATE_MAX_CLICKS = 5;
                        des chaînes disparaissaient de l'écran. Un retrait qui
                        ne se compte nulle part est un retrait qu'aucun rapport
                        ne peut désigner — c'est le nombre qui manquait. */
-                    misses: 0, sousPlancher: 0, creux: 0, evicted: 0, lastMs: 0 };
+                    misses: 0, sousPlancher: 0, creux: 0, evicted: 0,
+                    /* « sansReserve » compte l'autre refus de compter : le
+                       pool n'était pas plus profond que ce qu'il affiche,
+                       donc aucune absence n'y était démontrable. Un nombre
+                       qui monte ici pendant que « evicted » reste à zéro est
+                       le signe que la garde travaille — et c'est exactement
+                       ce qui manquait au rapport qui a révélé le défaut. */
+                    sansReserve: 0, lastMs: 0 };
 
     /* ── LES CHAÎNES ÉCARTÉES, ET POURQUOI ON COMPTE DES CHAÎNES ────────────
        Une exclusion qu'on ne mesure pas est une exclusion dont on ne saura
@@ -7269,6 +7301,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        aux catégories qu'elle n'a pas visitées. */
     const reconcile = (pool, queried, seen, now, plancherDe = () => 0) => {
       const cutoff = now - CFG.GLOBAL_PRUNE_AGE;
+
       for (const [login, rec] of pool) {
         /* LA MARCHE LA VOIT : elle tranche, et elle efface le creux. C'est le
            cas de l'invité en co-stream — le répertoire le liste, sa réponse
@@ -7282,6 +7315,30 @@ const TSE_GATE_MAX_CLICKS = 5;
         /* SOUS LE PLANCHER DE LA RÉPONSE, l'absence n'apprend rien : la
            réponse s'arrêtait avant d'arriver jusqu'à elle. */
         if (rec.viewers < plancherDe(rec)) { stats.sousPlancher += 1; continue; }
+        /* ── UN POOL SANS RÉSERVE NE PEUT RIEN CONSTATER ────────────────────
+           MÊME RAISONNEMENT QUE LE PLANCHER, UN CRAN PLUS HAUT. Le plancher
+           dit : « sous ce compteur, la réponse s'était déjà arrêtée, son
+           silence n'apprend rien ». Il suppose un pool PLUS PROFOND que la
+           réponse — sans quoi il ne protège personne, puisque tout le monde
+           est au-dessus du plancher.
+
+           C'EST EXACTEMENT CE QUE PRODUIT LA VOIE DU TAG À UN CHANGEMENT DE
+           LANGUE : le pool repart à vide et reçoit les trente du tag, ni plus
+           ni moins. Chacune est au-dessus du plancher, chaque échantillonnage
+           de Twitch compte alors comme une vraie absence, et trois passes
+           suffisent à retirer ce que rien ne remplace. Relevé chez un
+           utilisateur : « pool 29, threshold 0, evicted 7 ».
+
+           LES CO-STREAMS PARTENT EN GROUPE, ET CE N'EST PAS UN HASARD : leurs
+           membres portent tous le compteur COMBINÉ, donc un nombre haut, donc
+           toujours au-dessus du plancher ; et le répertoire range volontiers
+           la session sous un seul participant. Les autres sont absents tout en
+           ayant l'air d'avoir dû y être. Trois passes, et le groupe entier
+           disparaît d'un coup — ce que le terrain décrit mot pour mot.
+
+           Tant que le pool n'a pas de réserve, on ne compte donc RIEN. La
+           soupape reste GLOBAL_PRUNE_AGE, qui retire ce que plus personne ne
+           rafraîchit, réserve ou pas. */
         rec.misses = (rec.misses || 0) + 1;
         stats.misses += 1;
         /* LES DEUX SOURCES S'ACCORDENT : la marche ne la voit plus, et sa
@@ -7289,6 +7346,50 @@ const TSE_GATE_MAX_CLICKS = 5;
            de plus ne peut rien apprendre — on retire, et ça se compte ici
            comme tout le reste. */
         if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM || rec.creux) {
+          /* ── LA COUCHE STRUCTURELLE NE RÉTRÉCIT JAMAIS L'AFFICHAGE ───────
+             LA GARDE SE LIT À CHAQUE RETRAIT, pas une fois par passe, et les
+             deux ne disent pas la même chose : au bord, une passe autorisée
+             sur un pool de trente et un en a évincé CINQ d'affilée — ceux qui
+             avaient accumulé leurs trois absences en même temps — et l'écran
+             est tombé à vingt-six. Mesuré, en rejouant le rapport.
+
+             CE QU'ON REFUSE EST DONC PRÉCIS : descendre le pool au niveau de
+             ce que l'affichage demande. Au-dessus, l'éviction est le
+             mécanisme NORMAL et rien ne change — un pool de quarante et un
+             pour un top de trente a onze chaînes sous la coupe, et le banc
+             vérifie depuis longtemps qu'on les évince.
+
+             POURQUOI C'EST SÛR de ne pas retirer. Ce qui est AFFICHÉ porte une
+             carte, et la file TseChannels la rafraîchit toutes les trente
+             secondes : une chaîne réellement terminée disparaît par là, tout
+             de suite, sans passer par ici. GLOBAL_PRUNE_AGE reste la seconde
+             soupape, pour ce que plus rien ne rafraîchit. Cette couche-ci ne
+             sert qu'au CLASSEMENT, et un classement qui se vide de lui-même
+             ne classe plus rien.
+
+             LE DÉFAUT QU'ELLE FERME : un changement de langue laisse un pool
+             de la profondeur exacte de l'affichage — trente rendues par l'API,
+             pas une de plus. Chaque échantillonnage de Twitch comptait alors
+             comme une vraie absence, et trois passes suffisaient à retirer ce
+             que rien ne remplaçait. Relevé : « pool 29, threshold 0,
+             evicted 7 », un groupe de co-stream entier parti d'un coup. */
+          /* LA MARGE VAUT GLOBAL_MISS_CONFIRM, ET ELLE SE DÉDUIT. Une passe
+             peut évincer autant d'entrées qu'il y en a qui viennent
+             d'atteindre leur troisième absence — mesuré : cinq d'un coup sur
+             un pool de trente et un, l'écran tombé à vingt-six. Exiger que le
+             pool dépasse l'affichage d'AU MOINS ce que le mécanisme de
+             confirmation peut retirer en une fois, c'est refuser de décider
+             quand la profondeur est dans le bruit de l'échantillonnage.
+
+             ET C'EST AUSSI LA CONDITION DU PLANCHER. Pour qu'une absence soit
+             une preuve, il faut des entrées SOUS le plancher de la réponse —
+             celles dont la réponse ne dit rien. Un pool qui dépasse à peine
+             l'affichage n'en a pas : tout le monde y est au-dessus, et chaque
+             échantillonnage devient une condamnation. */
+          if (pool.size <= options.get('topN') + CFG.GLOBAL_MISS_CONFIRM) {
+            stats.sansReserve += 1;
+            continue;
+          }
           pool.delete(login);
           stats.evicted += 1;
         }
@@ -7937,6 +8038,29 @@ const TSE_GATE_MAX_CLICKS = 5;
             crossed.push(c);
             seen.add(c.name);
           }
+        }
+      } else if (ranking.length
+                 <= options.get('topN') * CFG.GLOBAL_RESERVE_RATIO) {
+        /* ── LE SEUIL À ZÉRO EST LE CAS DANGEREUX, PAS LE CAS NEUTRE ────────
+           `nthViewers` rend zéro quand le pool est PLUS COURT que le top : il
+           n'y a pas de trentième rang, donc pas de seuil. Le balayage
+           ci-dessus se lit alors « tant que la catégorie pèse plus que zéro »,
+           c'est-à-dire toujours — et c'est précisément pourquoi il était gardé
+           par `threshold > 0`, qui l'éteint complètement.
+
+           RÉSULTAT : LA SEULE FAÇON DE RECREUSER UN POOL À PLAT ÉTAIT LA
+           MARCHE COMPLÈTE, deux minutes et demie plus tard. Entre les deux,
+           chaque passe légère ne visitait que les dix catégories d'amorce et
+           laissait le pool à sa profondeur d'affichage.
+
+           On visite donc un nombre BORNÉ de catégories de plus — bornes des
+           deux côtés : on ne s'élargit que sans réserve, et jamais au-delà de
+           GLOBAL_WIDEN_CATEGORIES. Une passe légère reste une passe légère. */
+        for (const c of cats.slice(seed.length,
+                                   seed.length + CFG.GLOBAL_WIDEN_CATEGORIES)) {
+          if (seen.has(c.name)) continue;
+          crossed.push(c);
+          seen.add(c.name);
         }
       }
 
