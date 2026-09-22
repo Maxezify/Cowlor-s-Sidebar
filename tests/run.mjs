@@ -19111,6 +19111,72 @@ addEventListener('message', (e) => {
   }
 }
 
+/* ═════════ LE COMBINÉ D'UN MEMBRE QU'ON N'INTERROGERA JAMAIS ══════════════
+   RAPPORT DE TERRAIN : « des co-streams non visibles sur Top Chaînes », avec
+   « sousLaCoupe 14 » — quatorze membres de session connus du classement mais
+   retombés sous la coupe, donc triés sur leur audience PROPRE au lieu du
+   combiné que Twitch affiche.
+
+   CE QUI REND CE CAS PARTICULIER : on n'interroge Guest Star que sur des
+   identifiants connus, et on ne connaît que ceux des chaînes ayant une carte.
+   Un membre sous la coupe n'a pas de carte ; AUCUNE requête ne partira jamais
+   pour lui. Sa seule source possible est la réponse obtenue pour un autre
+   membre — qui porte bien son identifiant et son combiné, et dont on ne
+   gardait que le login et le nom.
+
+   LE DÉCOR REPREND CELUI DU SCÉNARIO 139, qui fait provablement partir la
+   requête, et lui ajoute un troisième membre SANS entrée de chaîne et sans
+   carte. Le répertoire ne lui donne que cent vingt spectateurs. */
+{
+  titre('143. Co-stream — le combiné d\'un membre qu\'on n\'interrogera jamais');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Valheim', tags: [] });
+    window.__cats = [{ name: 'Valheim', viewers: 9000, streams: [
+      { login: 'unaa', viewers: 4000 }, { login: 'unbb', viewers: 4000 },
+      { login: 'sanscarte', viewers: 120 },
+      { login: 'milieu', viewers: 900 }, { login: 'modele', viewers: 800 }] }];
+    /* « sanscarte » n'a PAS d'entrée ici, et c'est tout le scénario. */
+    window.__fx = { unaa: c('9401', 300), unbb: c('9402', 300),
+                    milieu: c('9404', 950), modele: c('9405', 800) };
+    const guests = [
+      { id: '9401', login: 'unaa', viewers: 300, combined: 4000 },
+      { id: '9402', login: 'unbb', viewers: 300, combined: 4000 },
+      { id: '9403', login: 'sanscarte', viewers: 120, combined: 4000 }];
+    window.__gs = {
+      '9401': { hostId: '9400', hostLogin: 'unaa', guests },
+      '9402': { hostId: '9400', hostLogin: 'unaa', guests } };
+    window.__addCard('modele', 'Valheim', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => [...document.querySelectorAll('.side-nav-card')]
+    .some((c) => c.dataset.tseLogin === 'milieu' && c.dataset.tseViewers === '950'), 15_000);
+  await attendre(page, () => window.tse.global.top(50)
+    .some((r) => r.login === 'sanscarte' && r.viewers === 4000), 12_000);
+
+  const vu = await page.evaluate(() => {
+    const appels = (window.__calls || []).flatMap((a) => a.names || []);
+    return { gs: appels.filter((n) => /GuestStar/.test(n)).length,
+             membres: window.tse.global.top(50)
+               .filter((x) => ['unaa', 'unbb', 'sanscarte'].includes(x.login))
+               .map((x) => `${x.login}:${x.viewers}`) };
+  });
+  /* LA PRÉMISSE : sans requête Guest Star, tout le reste mesurerait un décor
+     sans session et serait vert pour rien. */
+  ok('la session a bien été résolue pour les membres qui ont une carte',
+     vu.gs >= 1 && vu.membres.includes('unaa:4000') && vu.membres.includes('unbb:4000'),
+     JSON.stringify(vu));
+  /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — les combinés des autres membres
+     jetés, comme avant — « sanscarte:120 » : l'audience propre, donc la sortie
+     du classement, donc la carte qui n'apparaît jamais. */
+  ok('…et le membre sans carte est classé sur le combiné, pas sur son audience propre',
+     vu.membres.includes('sanscarte:4000'), JSON.stringify(vu));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier
