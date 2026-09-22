@@ -18930,6 +18930,123 @@ addEventListener('message', (e) => {
        serre.carte === serre.frise && /^3h01/.test(serre.carte), JSON.stringify(serre));
     await page.close();
   }
+
+  /* ── 3. TOUTES LES CARTES, ET PAS SEULEMENT LES PREMIÈRES ─────────────────
+     LE DÉFAUT QUE CE BLOC TIENT. Le lot choisissait ses sondes AVANT les
+     gardes de la sonde, sur le seul critère « cette chaîne a un direct ».
+     L'ordre du lot étant celui de la liste, donc stable, le budget retombait
+     à chaque cycle sur LES MÊMES chaînes — déjà sondées, refusées en une
+     ligne — et plus aucune origine n'était apprise après le premier relevé.
+
+     IL FAUT PLUS DE CARTES QUE LE BUDGET D'UN LOT, sans quoi le défaut
+     n'existe pas : c'est pourquoi le bloc 1, avec sa chaîne unique, passait
+     déjà. Quatorze pour un budget de douze — le rapport de terrain en portait
+     vingt-quatre, et c'est le même dépassement. Le décompte du budget se lit
+     donc ici : ce bloc tombe si RECONNECT_PROBE_PER_BATCH atteint quatorze
+     sans que la sélection soit corrigée, ce qui est exactement ce qu'on veut
+     qu'il dise — la couverture ne doit pas dépendre du budget d'un lot. */
+  {
+    const page = await fresh();
+    const N = 14;
+    await page.evaluate((n) => {
+      const neuf  = new Date(Date.now() - 60_000).toISOString();          // tronçon : 1 min
+      const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();    // archive : 5 h
+      window.__fx = {};
+      window.__vodRecent = {};
+      for (let i = 0; i < n; i++) {
+        const l = 'revenu' + i;
+        window.__fx[l] = { id: 'r' + i, sid: 's-r' + i, createdAt: neuf,
+                           viewers: 900 - i, game: 'VALORANT', tags: [] };
+        // Même raccord que le bloc 1 : trou de 1,2 s entre l'archive d'avant
+        // et le départ du tronçon courant (cf. scénario 102).
+        window.__vodRecent[l] = [
+          { createdAt: neuf, lengthSeconds: 60, chapitres: [] },
+          { createdAt: vieux,
+            lengthSeconds: Math.round((Date.parse(neuf) - 1_200 - Date.parse(vieux)) / 1000),
+            chapitres: [{ pos: 0, jeu: 'Just Chatting' }] },
+        ];
+        window.__addCard(l, 'VALORANT', String(900 - i));
+      }
+    }, N);
+    /* AUCUN SURVOL ICI NON PLUS, et plusieurs cycles de relevé pour laisser
+       au défaut toutes ses chances : s'il suffisait d'attendre, il n'y aurait
+       rien à corriger. */
+    await attendre(page, () => {
+      const cs = [...document.querySelectorAll('.side-nav-card')]
+        .filter((x) => /^revenu\d+$/.test(x.dataset.tseLogin || ''));
+      return cs.length >= 14
+        && cs.every((c) => /^5h/.test(c.querySelector('.tse-uptime')?.textContent || ''));
+    }, 15_000);
+    const vu = await page.evaluate(() => {
+      const cs = [...document.querySelectorAll('.side-nav-card')]
+        .filter((x) => /^revenu\d+$/.test(x.dataset.tseLogin || ''));
+      const r = window.tse.panneau.rapport().reseau.chapitres.reprise;
+      return { durees: cs.map((c) => c.querySelector('.tse-uptime')?.textContent || ''),
+               survols: window.tse.panneau.rapport().frise.survols,
+               sondes: r.sondes, adoptees: r.adoptees };
+    });
+    /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — le budget pris avant les
+       gardes — douze cartes sur quatorze affichent « 5h00 », les deux autres
+       restent à « 1m », indéfiniment. */
+    ok('les quatorze cartes portent la durée du direct entier, pas seulement les premières',
+       vu.durees.length === 14 && vu.durees.every((d) => /^5h/.test(d)), JSON.stringify(vu));
+    /* ET LE COMPTE LE DIT AUSSI : quatorze sondes parties, quatorze origines
+       adoptées, zéro survol. Sans ce témoin, l'assertion ci-dessus passerait
+       le jour où les durées viendraient d'ailleurs. */
+    ok('…apprises par le lot, sans un seul survol',
+       vu.survols === 0 && vu.sondes >= 14 && vu.adoptees >= 14, JSON.stringify(vu));
+    await page.close();
+  }
+
+  /* ── 4. UNE MINUTE D'ÉCART ENTRE DEUX NOMBRES QUI SONT LE MÊME ────────────
+     SIGNALÉ AINSI : « beaucoup de cartes ont environ une minute de décalage
+     avec la partie Précédemment ». LA CAUSE TIENT EN UN VERBE : le total de
+     la frise s'ARRONDISSAIT là où la carte TRONQUE, alors que les deux
+     mesurent le même écart à maintenant. Un direct portait donc deux durées,
+     à deux centimètres l'une de l'autre.
+
+     LE RETARD D'AFFICHAGE, LUI, A ÉTÉ ÉCARTÉ PAR LA MESURE. Le compteur ne
+     bat qu'à la minute, ce qui semblait un second coupable — mais chaque
+     balayage réécrit la durée depuis le dataset (cf. applyChannelData), et
+     REFRESH_TICK en programme un toutes les cinq secondes. La carte n'est
+     donc jamais en retard de plus de cinq secondes sur elle-même, et on n'a
+     rien changé de ce côté-là.
+
+     LA PHASE EST CHOISIE, ET NON SUBIE. L'écart n'existe qu'au-delà de la
+     demi-minute — en deçà, arrondi et troncature tombent sur le même nombre
+     et le défaut se cache. Le décor pose donc le départ quarante secondes
+     après une minute pleine : la mesure a lieu une ou deux secondes plus
+     tard, et il reste dix-huit secondes de marge avant que la phase ne
+     change de camp. */
+  {
+    const page = await fresh();
+    await page.evaluate(() => {
+      window.__fx = { phase: { id: 'p1', sid: 's-p1', viewers: 900, game: 'Rust', tags: [],
+                               createdAt: new Date(Date.now() - 3 * 3600_000 - 40_000).toISOString() } };
+      window.__vod = { phase: { chapitres: [{ pos: 0, jeu: 'Rust' }] } };
+      window.__addCard('phase', 'Rust', '900');
+    });
+    await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+    await attendre(page, () => {
+      const c = [...document.querySelectorAll('.side-nav-card')]
+        .find((x) => x.dataset.tseLogin === 'phase');
+      return /^3h00/.test(c?.querySelector('.tse-uptime')?.textContent || '');
+    }, 9000);
+    await hoverLogin(page, 'phase');
+    await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 9000);
+    await wait(page, 300);
+    const vu = await page.evaluate(() => {
+      const c = [...document.querySelectorAll('.side-nav-card')]
+        .find((x) => x.dataset.tseLogin === 'phase');
+      return { carte: c?.querySelector('.tse-uptime')?.textContent || '',
+               frise: document.querySelector('.tse-preview__frise-total')?.textContent || '' };
+    });
+    /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — le total rendu par
+       `formatDuree` — « carte 3h00 » contre « frise 3h01 ». */
+    ok('passé la demi-minute, la frise ne prend pas une minute d\'avance sur la carte',
+       vu.carte === vu.frise && /^3h00/.test(vu.carte), JSON.stringify(vu));
+    await page.close();
+  }
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

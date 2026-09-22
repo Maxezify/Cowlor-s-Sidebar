@@ -1957,17 +1957,20 @@ const TSE_GATE_MAX_CLICKS = 5;
        durée du direct ENTIER sans qu'on ait à la survoler, et l'archive est le
        seul endroit qui connaisse les coupures d'avant notre arrivée.
 
-       DEUX PAR LOT, ET PAS TRENTE. Le plafond n'est pas une précaution de
-       style : trente cartes affichées, c'est trente opérations d'un coup au
-       premier relevé, sur une file qui en porte déjà autant. À deux par lot,
-       une sidebar entière est couverte en une poignée de cycles — soit bien
-       avant qu'un utilisateur ait fini de la parcourir — et la dépense se
-       fond dans la cadence au lieu de faire une pointe.
+       DOUZE PAR LOT, ET UNE SEULE REQUÊTE POUR LES DOUZE. Le chiffre était à
+       deux, quand chaque sonde partait dans son propre aller-retour : douze
+       cartes auraient fait douze requêtes sur une file qui en porte déjà
+       autant. Les sondes du lot voyagent désormais ENSEMBLE, dans un tableau
+       d'opérations — exactement comme le mode global interroge ses vingt
+       catégories (cf. GLOBAL_BATCH_OPS) — et le coût réseau d'un lot ne dépend
+       plus de ce chiffre. Ce qu'il fixe est donc la seule chose qui compte
+       encore : la VITESSE de couverture. Vingt-quatre cartes ont leur origine
+       en deux cycles, contre douze auparavant.
 
        CE QUI BORNE LE TOTAL RESTE AILLEURS, inchangé : une opération par
        SESSION de stream, jamais deux fois la même, jamais sur une chaîne déjà
        chaînée ni sur un subathon, et RECONNECT_PROBE_MAX par page. */
-    RECONNECT_PROBE_PER_BATCH: 2,
+    RECONNECT_PROBE_PER_BATCH: 12,
     // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
     // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
     // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
@@ -6642,9 +6645,11 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const now = Date.now();
     let fresh = 0;
-    /* Les logins dont on demandera l'origine à l'archive, bornés par lot.
-       Collectés dans la boucle, lancés après elle : partir pendant la boucle
-       mêlerait des réponses réseau à l'application des données. */
+    /* Les logins dont on demandera l'origine à l'archive. TOUS ceux qui
+       portent un direct : le tri et le budget appartiennent à la sonde, qui
+       seule connaît ses gardes (cf. `gardesSonde`). Collectés dans la boucle,
+       lancés après elle : partir pendant la boucle mêlerait des réponses
+       réseau à l'application des données. */
     const aSonder = [];
 
     // ── 1) Dépouillement des tranches exploitables ──────────────────────
@@ -6841,17 +6846,19 @@ const TSE_GATE_MAX_CLICKS = 5;
            C'est le seul endroit qui voie passer TOUTES les chaînes qui ont une
            carte, avec leur `stream` frais à la main — donc le seul où la sonde
            puisse partir sans qu'on ait à parcourir le DOM pour la déclencher.
-           Elle ne part que si l'entrée porte un direct, et la sonde elle-même
-           refuse tout le reste : session déjà sondée, chaîne déjà chaînée,
-           subathon, plafond de page. Deux par lot suffisent à couvrir une
-           sidebar en quelques cycles. */
-        if (entry?.stream?.id && aSonder.length < CFG.RECONNECT_PROBE_PER_BATCH) {
-          aSonder.push(login);
-        }
+
+           ON NE PLAFONNE PAS ICI, ET C'EST LA CORRECTION DE LA 4.15.2. Cette
+           ligne portait « aSonder.length < RECONNECT_PROBE_PER_BATCH » : elle
+           retenait les deux PREMIÈRES chaînes du lot, que la sonde refusait
+           ensuite pour les avoir déjà vues. L'ordre du lot étant stable, le
+           budget retombait indéfiniment sur les deux mêmes et plus aucune
+           origine n'était apprise. La sonde reçoit maintenant la liste
+           entière et prend ses douze premières RECEVABLES. */
+        if (entry?.stream?.id) aSonder.push(login);
         (pending.get(login) || []).forEach(fn => fn(entry));
       });
     });
-    for (const l of aSonder) preview.sonderOrigine(l);
+    preview.sonderOrigines(aSonder);
 
     // Données fraîches → re-scan pour répercuter viewers, catégories, langues
     // (options des filtres) et l'ordre de tri sur l'ensemble de la sidebar.
@@ -8926,6 +8933,20 @@ const TSE_GATE_MAX_CLICKS = 5;
      durée écoulée se tronque (on n'a pas encore atteint la minute suivante),
      un intervalle mesuré s'arrondit. */
   const formatDuree = (ms) => enForme(Math.max(0, Math.round(ms / 60_000)));
+
+  /* ── ET LA MÊME RÈGLE POUR UNE DURÉE QUI COURT ENCORE ────────────────────
+     LE TOTAL DE LA FRISE N'EST PAS UN INTERVALLE MESURÉ : son bord droit est
+     MAINTENANT. C'est donc un écart à maintenant, exactement comme le compteur
+     de la carte, et il doit se tronquer comme lui. Rendu par `formatDuree`, il
+     s'arrondissait — d'où une minute d'écart entre deux nombres qui décrivent
+     la même chose, sur la carte et deux centimètres plus bas dans l'aperçu.
+
+     LE SIGNALEMENT EST EXPLICITE : « beaucoup de cartes ont environ une minute
+     de décalage avec la partie Précédemment ». Une minute sur six heures n'est
+     pas une imprécision d'affichage, c'est une contradiction : un même direct
+     y portait deux durées. La convention de la maison — une durée écoulée se
+     tronque — ne souffre pas d'exception parce qu'on l'affiche ailleurs. */
+  const formatEcoule = (ms) => enForme(Math.max(0, Math.floor(ms / 60_000)));
 
   const loginFromHref = (href) => {
     if (!href) return null;
@@ -13661,10 +13682,26 @@ const TSE_GATE_MAX_CLICKS = 5;
       return maillons.reverse();
     };
 
-    const sonderReprise = async (login, flux) => {
+    /* ── LES GARDES DE LA SONDE, LISIBLES SANS LA LANCER ───────────────────
+       ELLES ÉTAIENT ENFERMÉES DANS LA SONDE, ET LE LOT N'EN SAVAIT RIEN. La
+       4.15.1 a fait partir la sonde depuis le lot de chaînes, pour que la
+       carte apprenne son origine sans qu'on la survole. Le lot choisissait ses
+       deux candidates AVANT ce filtre, sur le seul critère « elle a un
+       direct » — puis la sonde les refusait ici en une ligne, « déjà sondée »,
+       sans rien dépenser d'autre que le budget du lot.
+
+       L'ORDRE DU LOT EST CELUI DE LA LISTE, donc stable d'un cycle à l'autre :
+       le budget retombait chaque fois sur LES DEUX MÊMES chaînes. Deux
+       origines apprises au premier cycle, et plus rien jamais. Le rapport de
+       terrain le disait en un chiffre — « sondes 8 » dont six venaient de
+       survols, sur vingt-quatre cartes et deux minutes de page.
+
+       LE BUDGET SE DÉPENSE DONC APRÈS LE FILTRE, sur des chaînes que la sonde
+       acceptera. C'est la même correction que partout ailleurs dans ce
+       fichier : ce qui décide et ce qui compte doivent être au même endroit. */
+    const gardesSonde = (login, flux) => {
       const streamId = flux?.id;
-      const depart = Date.parse(flux?.createdAt);
-      if (!streamId || !Number.isFinite(depart)) return false;
+      if (!streamId || !Number.isFinite(Date.parse(flux?.createdAt))) return false;
       if (sondees.has(streamId)) return false;
       // Déjà chaîné — on l'a vu de nos yeux, ou une sonde précédente l'a fait.
       if (coupuresDe(login)) return false;
@@ -13691,21 +13728,34 @@ const TSE_GATE_MAX_CLICKS = 5;
          origine, son compte de coupures et son passé.
 
          CE QUI BORNE VRAIMENT LA DÉPENSE : une opération par SESSION de stream
-         (le registre ci-dessous), au survol seulement, et jamais sur une chaîne
-         déjà chaînée. Plus un plafond par page, filet contre un état imprévu. */
-      if (bilanSondes.sondes >= CFG.RECONNECT_PROBE_MAX) return false;
+         (le registre ci-dessous), et jamais sur une chaîne déjà chaînée. Plus
+         un plafond par page, filet contre un état imprévu. */
+      return bilanSondes.sondes < CFG.RECONNECT_PROBE_MAX;
+    };
+
+    /* La session est retenue AVANT la réponse, et c'est voulu : une sonde qui
+       ne trouve rien — le cas normal — ne doit pas être refaite au cycle
+       suivant. Le compteur s'incrémente au même endroit, pour que le plafond
+       de page voie ce qui est parti et non ce qui est revenu. */
+    const retenirSonde = (streamId) => {
       sondees.add(streamId);
       while (sondees.size > CFG.CHAPITRES_MAX) {
         sondees.delete(sondees.values().next().value);
       }
       bilanSondes.sondes++;
-      const res = await post([{
-        operationName: 'TseVodRecent',
-        variables: { login },
-        query: RECENT_QUERY
-      }]);
-      if (isResultsUnusable(res)) { bilanSondes.reseau++; return false; }
-      const aretes = res?.[0]?.data?.user?.videos?.edges;
+    };
+
+    const opSonde = (login) => ({
+      operationName: 'TseVodRecent',
+      variables: { login },
+      query: RECENT_QUERY
+    });
+
+    /* Ce qu'on fait d'une réponse de sonde, quelle que soit la requête qui l'a
+       portée — une seule chaîne au survol, douze dans le lot. */
+    const digererSonde = (login, flux, aretes) => {
+      const depart = Date.parse(flux?.createdAt);
+      if (!Number.isFinite(depart)) return false;
       if (!Array.isArray(aretes)) { bilanSondes.vides++; return false; }
       bilanSondes.servies++;
       const maillons = chaineDesTroncons(aretes.map(e => e?.node).filter(Boolean), depart);
@@ -13738,6 +13788,51 @@ const TSE_GATE_MAX_CLICKS = 5;
         bilanSondes.chapitresAvant++;
       }
       return true;
+    };
+
+    /* Le chemin du SURVOL : une chaîne, une requête, tout de suite. */
+    const sonderReprise = async (login, flux) => {
+      if (!gardesSonde(login, flux)) return false;
+      retenirSonde(flux.id);
+      const res = await post([opSonde(login)]);
+      if (isResultsUnusable(res)) { bilanSondes.reseau++; return false; }
+      return digererSonde(login, flux, res?.[0]?.data?.user?.videos?.edges);
+    };
+
+    /* ── LE CHEMIN DU LOT : DOUZE CHAÎNES, UNE SEULE REQUÊTE ───────────────
+       GraphQL accepte un TABLEAU d'opérations et répond dans le même ordre —
+       c'est déjà comme cela que le mode global interroge vingt catégories
+       (cf. GLOBAL_BATCH_OPS). Sonder douze chaînes ne coûte donc pas douze
+       allers-retours mais un seul, ce qui est ce qui rend la cadence tenable :
+       une sidebar de vingt-quatre cartes a son origine complète en deux
+       cycles, au lieu de douze à deux par lot.
+
+       LE BUDGET EST PRIS ICI, après les gardes, chaîne par chaîne. L'appelant
+       lui passe TOUT ce que le lot portait de directs et ne compte rien
+       lui-même : il n'a pas de quoi le faire, et c'est justement l'erreur que
+       cette réécriture corrige. */
+    const sonderLot = async (logins) => {
+      const retenues = [];
+      for (const login of logins) {
+        if (retenues.length >= CFG.RECONNECT_PROBE_PER_BATCH) break;
+        const flux = cache.get(login)?.stream;
+        if (!gardesSonde(login, flux)) continue;
+        retenirSonde(flux.id);
+        retenues.push({ login, flux });
+      }
+      if (!retenues.length) return [];
+      const res = await post(retenues.map(e => opSonde(e.login)));
+      if (isResultsUnusable(res)) {
+        bilanSondes.reseau += retenues.length;
+        return [];
+      }
+      const adoptes = [];
+      retenues.forEach((e, i) => {
+        if (digererSonde(e.login, e.flux, res?.[i]?.data?.user?.videos?.edges)) {
+          adoptes.push(e.login);
+        }
+      });
+      return adoptes;
     };
 
     const fetchChapitres = async (login, streamId, debutStream) => {
@@ -14674,7 +14769,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
       const total = document.createElement('span');
       total.className = 'tse-preview__frise-total';
-      total.textContent = formatDuree(f.totalMs);
+      /* `formatEcoule` et non `formatDuree` : ce total se termine à maintenant
+         (cf. `debutRuban`), c'est donc un écart à maintenant et il se tronque
+         comme le compteur de la carte, qu'on lit juste au-dessus. */
+      total.textContent = formatEcoule(f.totalMs);
       titre.appendChild(total);
       bloc.appendChild(titre);
 
@@ -15801,16 +15899,20 @@ const TSE_GATE_MAX_CLICKS = 5;
          LE RENDU SUIT, et il faut le dire ici : adopter une origine sans
          redessiner laisserait la carte sur son ancien nombre jusqu'au prochain
          relevé. On redemande donc un scan, qui réécrit la durée depuis le
-         dataset qu'on vient de corriger. */
-      sonderOrigine: (login) => {
-        const flux = cache.get(login)?.stream;
-        if (!flux?.id) return;
-        sonderReprise(login, flux)
-          .then((trouve) => {
-            if (!trouve) return;
-            majReprise(login);
-            majFrise(login);
-            scheduleScan();   // la carte relit son départ et réécrit sa durée
+         dataset qu'on vient de corriger.
+
+         ON REÇOIT TOUTE LA LISTE DU LOT, et non deux chaînes choisies par
+         l'appelant : lui ne sait pas lesquelles la sonde acceptera, et c'est
+         précisément en choisissant à sa place qu'il brûlait son budget sur les
+         deux mêmes (cf. `gardesSonde`). Le tri se fait ici, où les gardes
+         vivent, et la requête part en un seul aller-retour. */
+      sonderOrigines: (logins) => {
+        if (!logins || !logins.length) return;
+        sonderLot(logins)
+          .then((adoptes) => {
+            if (!adoptes.length) return;
+            for (const l of adoptes) { majReprise(l); majFrise(l); }
+            scheduleScan();   // les cartes relisent leur départ et réécrivent leur durée
           })
           .catch((e) => erreurs.noter('reprise', (e && e.message) || e));
       },
