@@ -1966,16 +1966,31 @@ const TSE_GATE_MAX_CLICKS = 5;
        est la seule chose dont la cadence dépende vraiment (cf.
        `placeDansLaFenetre`).
 
-       LES DEUX MESURES QUI L'ONT DIT, prises sur deux rapports de terrain :
-           0,25 sonde/s → 23 % de « service error »
+       LES MESURES QUI L'ONT DIT, prises sur trois rapports de terrain :
+           0,18 sonde/s → 21 % de « service error »
+           0,25 sonde/s → 23 %
            0,48 sonde/s → 33 %
        Le refus n'était pas gratuit non plus : resondé au cycle suivant, il
        remontait la cadence, qui refaisait refuser.
 
+       DOUZE ET NON SIX, ET IL FAUT DIRE POURQUOI J'AI CORRIGÉ DEUX FOIS. La
+       première rédaction posait six, en pensant retrouver les 21 % du bas du
+       tableau. Le rapport suivant a montré les deux moitiés de la vérité :
+       le taux de refus est bien descendu — 21 % — mais « differees 514 »,
+       c'est-à-dire que la fenêtre refusait sa place cinq cents fois pendant
+       qu'elle laissait passer quarante-huit sondes. Une sidebar de cent
+       trente cartes y aurait mis onze minutes à connaître ses origines.
+
+       LA PENTE EST FAIBLE, ET C'EST LE RENSEIGNEMENT : entre 0,18 et 0,25
+       sonde par seconde, le refus ne bouge que de deux points. Payer une
+       couverture deux fois plus lente pour deux points est un mauvais marché.
+       Douze par fenêtre tient la RÈGLE — un budget compté en temps, pas en
+       lots, ce qui reste la correction de fond — sans payer ce prix-là.
+
        CE QUI BORNE LE TOTAL RESTE AILLEURS, inchangé : une opération par
        SESSION de stream, jamais sur une chaîne déjà chaînée ni sur un
        subathon, et RECONNECT_PROBE_MAX par page. */
-    RECONNECT_PROBE_PER_WINDOW: 6,
+    RECONNECT_PROBE_PER_WINDOW: 12,
     RECONNECT_PROBE_WINDOW:     30_000,
     /* ── ET CE QU'ON FAIT D'UN REFUS ───────────────────────────────────────
        Assez long pour ne pas rejouer la requête dans la même bouffée que
@@ -18042,16 +18057,55 @@ const TSE_GATE_MAX_CLICKS = 5;
         const raw = session
           ? [session.host, ...(session.guests || []).map(g => g?.user)]
           : [];
-        const seen = new Set();
+        /* ── CHAQUE MEMBRE PORTE SON COMBINÉ, ET ON LE JETAIT ────────────
+           RAPPORT DE TERRAIN : « des co-streams non visibles sur Top
+           Chaînes », avec « sousLaCoupe 14 » — quatorze membres de session
+           connus du classement mais retombés sous la coupe, donc triés sur
+           leur audience PROPRE de quelques centaines au lieu du combiné que
+           Twitch affiche.
+
+           OR LA RÉPONSE LE DISAIT DÉJÀ. La requête demande, pour chaque
+           invité, « user { id login displayName stream {
+           collaborationViewersCount } } » : l'identifiant ET le combiné de
+           TOUS les membres voyagent dans la même réponse. On n'en gardait que
+           le login et le nom, et on n'extrayait le combiné que pour la chaîne
+           INTERROGÉE — c'est-à-dire pour celle qui a une carte, la seule qui
+           n'en avait pas besoin.
+
+           POURQUOI LES AUTRES N'EN AURAIENT JAMAIS EU AUTREMENT : on
+           n'interroge Guest Star que sur des identifiants qu'on connaît, et on
+           ne connaît que ceux des chaînes ayant une carte. Un membre sous la
+           coupe n'a pas de carte ; aucune requête ne partira jamais pour lui.
+           Sa seule chance d'être compté au bon nombre est cette réponse-ci.
+
+           L'HÔTE FIGURE DEUX FOIS — une fois en tête de `raw` sans `stream`,
+           une fois parmi les invités avec. La déduplication garde la première
+           occurrence, donc celle qui n'a pas le combiné : on complète l'entrée
+           déjà posée plutôt que de la laisser incomplète. */
+        const seen = new Map();
         const mates = [];
+        const combineDe = (u) => {
+          const v = u?.stream?.collaborationViewersCount;
+          return Number.isFinite(v) ? v : null;
+        };
         for (const u of raw) {
           const login = u?.login?.toLowerCase();
-          if (!login || seen.has(login)) continue;
-          seen.add(login);
+          if (!login) continue;
+          const deja = seen.get(login);
+          if (deja) {
+            // Deuxième passage du même membre : il porte peut-être ce qui
+            // manquait au premier. On ne retire jamais, on complète.
+            if (deja.combined === null) deja.combined = combineDe(u);
+            if (!deja.id && u.id) deja.id = u.id;
+            continue;
+          }
           // displayName nettoyé (Twitch le renvoie parfois avec une espace de
           // fin, qui produirait "Scok , Farore"). null si absent → displayNameFor
           // capitalisera alors le login.
-          mates.push({ login, name: (u.displayName || '').trim() || null });
+          const m = { login, name: (u.displayName || '').trim() || null,
+                      id: u.id || null, combined: combineDe(u) };
+          seen.set(login, m);
+          mates.push(m);
         }
         // Compteur COMBINÉ de la session — celui que Twitch affiche sur la carte
         // d'un co-streamer, à la place de son audience propre. Chaque
@@ -18184,6 +18238,29 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (!Number.isFinite(v)) continue;
         const login = parId.get(id);
         if (login) globalChannels.setViewers(login, v);
+      }
+    }
+    /* ── ET LE COMBINÉ DES AUTRES MEMBRES, QUI EST DANS LA MÊME RÉPONSE ────
+       LA BOUCLE CI-DESSUS NE SERT QUE LES CHAÎNES INTERROGÉES, c'est-à-dire
+       celles qui ont une carte — et elle passe par le cache des cartes pour
+       retrouver leur login, ce qui la limite deux fois à la même population.
+       Les membres SANS carte, eux, n'ont aucune autre source : on n'interroge
+       jamais Guest Star sur eux faute de connaître leur identifiant, et ils
+       restent donc triés sur leur audience propre, sous la coupe, invisibles.
+       C'est le « sousLaCoupe 14 » du rapport.
+
+       ON LEUR DONNE DONC CE QUE LA RÉPONSE PORTE DÉJÀ. Leur login est connu —
+       il vient de la liste des membres — et `setViewers` travaille sur le
+       login. Rien de neuf n'est demandé à Twitch : on cesse simplement de
+       jeter la moitié de ce qu'il a répondu.
+
+       `autorite` est VRAI, comme pour la chaîne interrogée : ce nombre est le
+       combiné, il décrit la même chose que celui du répertoire, et il a le
+       droit d'écraser une signature de combiné. Un membre absent du
+       classement n'est pas touché — `setViewers` ne crée jamais d'entrée. */
+    for (const id of ids) {
+      for (const m of (gsCache.get(id)?.mates || [])) {
+        if (Number.isFinite(m.combined)) globalChannels.setViewers(m.login, m.combined, true);
       }
     }
     resolveGuestStarWaiters(ids); // tient les promesses en attente
@@ -18633,6 +18710,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       else for (const l of membres) sessions.get(cle).add(l);
     }
     bilanCostream.sessions = sessions.size;
+    /* Le combiné de chaque membre, tel que la réponse Guest Star l'a rendu —
+       y compris pour ceux qui n'ont pas de carte, qui sont justement ceux que
+       le bilan ci-dessous doit pouvoir juger. */
+    const membreCombine = new Map();
+    for (const card of cards) {
+      const l = card.dataset.tseLogin;
+      if (!l) continue;
+      for (const m of getGuestStarMates(l)) {
+        if (Number.isFinite(m.combined)) membreCombine.set(m.login, m.combined);
+      }
+    }
     for (const membres of sessions.values()) {
       bilanCostream.membres += membres.size;
       for (const l of membres) {
@@ -18658,10 +18746,18 @@ const TSE_GATE_MAX_CLICKS = 5;
              Un rapport disait « sousLaCoupe 8 » et j'ai dû croiser deux
              captures d'écran pour savoir lesquels des huit étaient anormaux.
              Ce compteur-là répond tout seul. */
-          const idm = getChannelId(l);
-          if (idm && Number.isFinite(getCollabViewers(idm))) {
-            bilanCostream.sousLaCoupeAvecCombine += 1;
-          }
+          /* ── ET CE COMPTEUR-LÀ NE POUVAIT PAS SE DÉCLENCHER ──────────────
+             IL LISAIT `getChannelId`, QUI LIT LE CACHE DES CARTES. Or cette
+             branche compte précisément les membres SANS carte : l'identifiant
+             était donc toujours nul, le compteur toujours zéro, et un rapport
+             portant « sousLaCoupe 14 · sousLaCoupeAvecCombine 0 » se lisait
+             « rien d'anormal » alors que les quatorze l'étaient.
+
+             LE MEMBRE PORTE SON PROPRE COMBINÉ depuis que la réponse Guest
+             Star cesse d'être à moitié jetée (cf. `mates`). On le lit là où il
+             est, et le compteur redevient capable de dire non. */
+          const combineM = membreCombine.get(l);
+          if (Number.isFinite(combineM)) bilanCostream.sousLaCoupeAvecCombine += 1;
         }
         else bilanCostream.horsClassement += 1;
       }

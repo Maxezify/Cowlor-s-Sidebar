@@ -2057,6 +2057,78 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The combined count of a member we will never query (v4.15.7)
+
+> "Several problems, co-streams not visible in Top Channels."
+
+The report carried **`sousLaCoupe 14`**: fourteen session members known to the
+ranking but fallen below the cut — therefore sorted on their **own** audience,
+a few hundred, instead of the combined count Twitch displays.
+
+### First: my instrument said "nothing abnormal", and it was lying
+
+The same report carried `sousLaCoupeAvecCombine 0`, and that counter exists
+precisely to separate the healthy case from the defect. It read:
+
+```js
+const idm = getChannelId(l);        // ← the CARD cache
+if (idm && Number.isFinite(getCollabViewers(idm))) …
+```
+
+But this branch counts exactly the members **without a card**. The id was
+therefore always null, the counter always zero, and "14 · 0" read as "fourteen
+impossible anomalies". **A counter that cannot fire is worse than no counter**:
+it produces a conclusion. It now reads the combined count where it actually is.
+
+### The answer already carried what was missing
+
+We only query Guest Star on ids we know, and we only know the ids of channels
+**that have a card**. A member below the cut has none: no request will ever go
+out for it.
+
+But the query asks, for each guest:
+
+```graphql
+guests { user { id login displayName stream { collaborationViewersCount } } }
+```
+
+**Every member's id and combined count travel in the same answer.** We kept
+only the login and the name, and extracted the combined count only for the
+*queried* channel — that is, for the one with a card, the only one that did not
+need it. Half of every answer went in the bin.
+
+Nothing new is asked of Twitch: we simply stop throwing it away.
+
+### And the probe window, one notch too tight
+
+4.15.6 capped origin probes at six per thirty seconds. The report gives both
+halves of the result: the refusal rate did come down — 21 % — but
+**`differees 514`**, meaning the window denied a slot five hundred times while
+letting forty-eight probes through. A 130-card sidebar would have taken eleven
+minutes.
+
+| rate | refusals |
+| --- | --- |
+| 0.18 /s | 21 % |
+| 0.25 /s | 23 % |
+| 0.48 /s | 33 % |
+
+**The slope is shallow, and that is the finding.** Paying twice the coverage
+time for two points of refusal is a bad trade. Twelve per window keeps the
+rule — a budget counted in time, not in batches, which remains the underlying
+fix — without paying that price.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the other members' combined counts thrown away | **`sanscarte:120`** instead of `sanscarte:4000` |
+
+The fixture reuses scenario 139's, **which provably makes the request go
+out**, and adds a third member with no channel entry and no card. The first
+assertion checks the session was actually resolved: without it, the second
+would measure a fixture with no co-stream and be green for nothing.
+
 ## The probe rate was counted in batches, not in time (v4.15.6)
 
 No visible defect here: one report, read next to the previous one. The
@@ -9009,12 +9081,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1131 KB | 415 KB | 3,412 → **2** |
+| `content.js` | 1138 KB | 417 KB | 3,418 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1377 KB** | **567 KB** | **−59 %** |
+| **all five** | **1384 KB** | **569 KB** | **−59 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

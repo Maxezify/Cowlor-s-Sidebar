@@ -2178,6 +2178,80 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le combiné d'un membre qu'on n'interrogera jamais (v4.15.7)
+
+> « Plusieurs problèmes, des co-streams non visibles sur Top Chaînes. »
+
+Le rapport portait **`sousLaCoupe 14`** : quatorze membres de session connus du
+classement, mais retombés sous la coupe — donc triés sur leur audience
+**propre**, quelques centaines, au lieu du combiné que Twitch affiche.
+
+### D'abord : mon instrument disait « rien d'anormal », et il mentait
+
+Le même rapport portait `sousLaCoupeAvecCombine 0`, et ce compteur existe
+justement pour distinguer le cas sain du défaut. Il lisait :
+
+```js
+const idm = getChannelId(l);        // ← le cache des CARTES
+if (idm && Number.isFinite(getCollabViewers(idm))) …
+```
+
+Or cette branche compte précisément les membres **sans carte**. L'identifiant
+était donc toujours nul, le compteur toujours zéro, et « 14 · 0 » se lisait
+« quatorze anomalies impossibles ». **Un compteur qui ne peut pas se
+déclencher est pire que pas de compteur** : il produit une conclusion. Il lit
+maintenant le combiné là où il est réellement.
+
+### La réponse portait déjà ce qui manquait
+
+On n'interroge Guest Star que sur des identifiants connus, et on ne connaît que
+ceux des chaînes **ayant une carte**. Un membre sous la coupe n'en a pas :
+aucune requête ne partira jamais pour lui.
+
+Mais la requête demande, pour chaque invité :
+
+```graphql
+guests { user { id login displayName stream { collaborationViewersCount } } }
+```
+
+**L'identifiant et le combiné de tous les membres voyagent dans la même
+réponse.** On n'en gardait que le login et le nom, et on n'extrayait le combiné
+que pour la chaîne *interrogée* — c'est-à-dire pour celle qui a une carte, la
+seule qui n'en avait pas besoin. La moitié de chaque réponse partait à la
+poubelle.
+
+Rien de neuf n'est demandé à Twitch : on cesse de jeter.
+
+### Et la fenêtre des sondes, trop serrée d'un cran
+
+La 4.15.6 bornait les sondes d'origine à six par trente secondes. Le rapport
+donne les deux moitiés du résultat : le taux de refus est bien descendu — 21 %
+— mais **`differees 514`**, c'est-à-dire que la fenêtre a refusé sa place cinq
+cents fois pendant qu'elle laissait passer quarante-huit sondes. Une sidebar de
+cent trente cartes y aurait mis onze minutes.
+
+| cadence | refus |
+| --- | --- |
+| 0,18 /s | 21 % |
+| 0,25 /s | 23 % |
+| 0,48 /s | 33 % |
+
+**La pente est faible, et c'est le renseignement.** Payer une couverture deux
+fois plus lente pour deux points de refus est un mauvais marché. Douze par
+fenêtre tient la règle — un budget compté en temps, pas en lots, ce qui reste
+la correction de fond — sans payer ce prix-là.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| les combinés des autres membres jetés | **`sanscarte:120`** au lieu de `sanscarte:4000` |
+
+Le décor reprend celui du scénario 139, **qui fait provablement partir la
+requête**, et lui ajoute un troisième membre sans entrée de chaîne et sans
+carte. La première assertion vérifie que la session a bien été résolue : sans
+elle, la seconde mesurerait un décor sans co-stream et serait verte pour rien.
+
 ## La cadence des sondes se comptait en lots, pas en temps (v4.15.6)
 
 Aucun défaut visible ici : un rapport, lu à côté du précédent. C'est la
@@ -9362,12 +9436,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1131 Ko | 415 Ko | 3 412 → **2** |
+| `content.js` | 1138 Ko | 417 Ko | 3 418 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1377 Ko** | **567 Ko** | **−59 %** |
+| **les cinq** | **1384 Ko** | **569 Ko** | **−59 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
