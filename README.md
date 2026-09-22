@@ -2178,6 +2178,72 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La carte et la frise disent le même nombre (v4.15.1)
+
+Deux défauts signalés ensemble, tous deux nés de la 4.15.0 — et c'est la même
+durée qui est en cause.
+
+### 1. « Le temps ne se met à jour qu'au survol »
+
+> Capture à l'appui : une chaîne à **10h15** sur la carte, puis **57h32** dès
+> l'aperçu ouvert.
+
+**Ce n'était pas un défaut de rafraîchissement**, et c'est pour cela que le
+minuteur de la carte n'y pouvait rien : il faisait battre la bonne mécanique sur
+la **mauvaise origine**.
+
+Une coupure survenue **avant** l'ouverture de la page n'est dans aucune
+mémoire — ni la nôtre, qui n'existait pas, ni celle de Twitch, qui ne sert que
+le tronçon courant. Seule l'archive le dit, et la sonde qui la lit ne partait
+**qu'au survol**.
+
+Elle part désormais aussi pour les cartes affichées, **sans rien changer à ce
+qu'elle coûte** : les mêmes gardes exactement — une opération par *session* de
+stream, jamais sur une chaîne déjà chaînée, jamais sur un subathon, plafond par
+page. Ce qui change est *quand* on la pose, pas combien de fois. Deux sondes par
+lot suffisent à couvrir une sidebar en quelques cycles, sans faire de pointe.
+
+### 2. « Environ une minute de décalage avec Précédemment »
+
+La cause tient en un nombre : **`CATEGORY_TRAIL_TOLERANCE` vaut quatre-vingt-dix
+secondes**, ce qui est exactement l'ordre de grandeur relevé.
+
+`inconnuMs` mesure la part non observée du direct — du départ à notre première
+vue. Sous la tolérance, on la met à zéro, et à juste titre : une seconde de
+hachuré pour notre propre latence de relevé ne dit rien à personne. Mais **on la
+mettait à zéro sans la rendre à personne**. Le total de la frise vaut
+`inconnuMs + Σ segments` : cette part disparaissait donc du total, tandis que la
+carte, qui compte depuis l'origine, ne perdait rien.
+
+Elle est maintenant **absorbée par le premier segment**, ce qui est la seule
+chose honnête à en faire : un écart plus court que notre propre cadence de
+relevé n'est pas de l'ignorance, c'est du bruit de mesure, et il appartient à la
+catégorie qui l'encadre. Le total redevient `maintenant − origine` **par
+construction** — le même nombre que la carte, et non un nombre qui lui
+ressemble.
+
+### Laquelle des deux était juste ?
+
+**La carte.** Elle comptait depuis l'origine et ne perdait rien ; c'est la frise
+qui oubliait jusqu'à quatre-vingt-dix secondes. Les deux se rejoignent
+désormais sur la valeur de la carte.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la sonde rendue au seul survol | la carte affiche **« 1m »** au lieu de « 5h00 » |
+| le filet non rendu au premier segment | **carte 3h01, frise 3h00** |
+
+Le premier cas **n'ouvre jamais l'aperçu** — c'est tout son objet — et le
+vérifie : `survols 0`, `sondes ≥ 1`. Sans ce témoin, l'assertion passerait aussi
+le jour où un survol se glisserait dans le décor.
+
+Le second en exige **deux** : un écart franc au-dessus de la tolérance, qui
+passait déjà et doit continuer, et un écart en dessous, qui est le cas signalé.
+Sans le premier, on ne saurait pas si le correctif a cassé la part non observée
+légitime.
+
 ## La carte compte le direct, pas le tronçon (v4.15.0)
 
 ### Ce que la capture montrait
@@ -8999,7 +9065,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 141 scénarios, 1241 assertions |
+| `npm test` | le harnais Playwright : 142 scénarios, 1245 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -9020,7 +9086,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1093 Ko | 409 Ko | 3 390 → **2** |
+| `content.js` | 1093 Ko | 409 Ko | 3 396 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

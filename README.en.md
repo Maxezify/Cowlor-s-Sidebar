@@ -2057,6 +2057,68 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The card and the trail say the same number (v4.15.1)
+
+Two defects reported together, both born of 4.15.0 — and it is the same duration
+at fault.
+
+### 1. "The time only updates on hover"
+
+> With a screenshot: a channel at **10h15** on the card, then **57h32** as soon
+> as the preview opened.
+
+**This was not a refresh defect**, and that is why the card's timer could do
+nothing about it: it was beating the right mechanism on the **wrong origin**.
+
+An outage that happened **before** the page was opened is in no memory — not
+ours, which did not exist, and not Twitch's, which only serves the current
+segment. Only the archive says so, and the probe that reads it went out **on
+hover only**.
+
+It now also goes out for displayed cards, **without changing what it costs**:
+exactly the same guards — one operation per stream *session*, never on an
+already-chained channel, never on a subathon, per-page cap. What changes is
+*when* it is issued, not how often. Two probes per batch cover a sidebar in a
+few cycles, without a spike.
+
+### 2. "About a minute off from Previously"
+
+The cause fits in one number: **`CATEGORY_TRAIL_TOLERANCE` is ninety seconds**,
+which is exactly the order of magnitude reported.
+
+`inconnuMs` measures the unobserved part of the stream — from its start to our
+first sighting. Below the tolerance we zero it, and rightly so: a second of
+hatching for our own sampling latency tells nobody anything. But **we zeroed it
+without giving it back to anyone**. The trail's total is
+`inconnuMs + Σ segments`: that part therefore vanished from the total, while the
+card, counting from the origin, lost nothing.
+
+It is now **absorbed by the first segment**, which is the only honest thing to
+do with it: a gap shorter than our own sampling cadence is not ignorance, it is
+measurement noise, and it belongs to the category around it. The total becomes
+`now − origin` **by construction** — the same number as the card, not a number
+that resembles it.
+
+### Which of the two was right?
+
+**The card.** It counted from the origin and lost nothing; it was the trail that
+forgot up to ninety seconds. Both now meet on the card's value.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the probe returned to hover only | the card shows **"1m"** instead of "5h00" |
+| the sliver not given back to the first segment | **card 3h01, trail 3h00** |
+
+The first case **never opens the preview** — that is its whole point — and
+verifies it: `survols 0`, `sondes ≥ 1`. Without that witness, the assertion would
+also pass the day a hover slipped into the fixture.
+
+The second needs **two**: a clear gap above the tolerance, which already passed
+and must keep passing, and one below, which is the reported case. Without the
+first, we would not know whether the fix broke the legitimate unobserved part.
+
 ## The card counts the stream, not the segment (v4.15.0)
 
 ### What the screenshot showed
@@ -8660,7 +8722,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 141 scenarios, 1241 assertions |
+| `npm test` | the Playwright harness: 142 scenarios, 1245 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -8680,7 +8742,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1093 KB | 409 KB | 3,390 → **2** |
+| `content.js` | 1093 KB | 409 KB | 3,396 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

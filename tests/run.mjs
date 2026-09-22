@@ -18799,6 +18799,139 @@ addEventListener('message', (e) => {
   }
 }
 
+/* ═════════ LA CARTE ET LA FRISE DISENT LE MÊME NOMBRE ════════════════════
+   DEUX DÉFAUTS SIGNALÉS ENSEMBLE, ET C'EST LA MÊME DURÉE QUI EST EN CAUSE.
+
+   1) « LE TEMPS SUR LA CARTE NE SE MET PAS AUTOMATIQUEMENT À JOUR — IL SE MET
+   QUAND ON PASSE LA SOURIS. » Capture à l'appui : une chaîne à « 10h15 », puis
+   « 57h32 » dès l'aperçu ouvert. Ce n'était PAS un défaut de rafraîchissement,
+   et c'est pour cela que le minuteur de la carte n'y pouvait rien : il faisait
+   battre la bonne mécanique sur la mauvaise origine. Une coupure survenue
+   AVANT l'ouverture de la page n'est dans aucune mémoire — ni la nôtre, qui
+   n'existait pas, ni celle de Twitch, qui ne sert que le tronçon courant.
+   Seule l'archive le dit, et la sonde qui la lit ne partait qu'au survol.
+
+   2) « BEAUCOUP DE CARTES ONT ENVIRON UNE MINUTE DE DÉCALAGE AVEC
+   PRÉCÉDEMMENT. » La cause tient en un nombre : CATEGORY_TRAIL_TOLERANCE vaut
+   QUATRE-VINGT-DIX SECONDES. `inconnuMs` mesure la part non observée du
+   direct ; sous la tolérance on la met à zéro — à juste titre, une seconde de
+   hachuré ne dit rien — mais on la mettait à zéro SANS LA RENDRE À PERSONNE.
+   Le total de la frise vaut `inconnuMs + Σ segments` : cette part disparaissait
+   donc du total, tandis que la carte, qui compte depuis l'origine, ne perdait
+   rien. Deux durées pour un même direct, l'écart valant l'oubli.
+
+   CE SCÉNARIO MESURE LES DEUX, ET LE SECOND EXIGE DEUX DÉCORS : un écart
+   au-dessus de la tolérance, qui passait déjà, et un écart en dessous, qui est
+   le cas signalé. Sans le premier, on ne saurait pas si le correctif a cassé
+   la part non observée légitime. */
+{
+  titre('142. La durée d\'un direct — la carte et la frise disent le même nombre');
+
+  /* ── 1. L'ORIGINE SANS SURVOL ────────────────────────────────────────── */
+  {
+    const page = await fresh();
+    await page.evaluate(() => {
+      const neuf  = new Date(Date.now() - 60_000).toISOString();          // tronçon : 1 min
+      const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();    // archive : 5 h
+      window.__fx = { revenu: { id: 'r1', sid: 's-r1', createdAt: neuf,
+                                viewers: 900, game: 'VALORANT', tags: [] } };
+      /* La PREMIÈRE archive est celle du direct en cours ; c'est la SECONDE
+         qui raccorde. Le trou visé est de 1,2 s — cf. le scénario 102 pour la
+         raison de ce chiffre : `lengthSeconds` est un entier de secondes. */
+      window.__vodRecent = {
+        revenu: [
+          { createdAt: neuf, lengthSeconds: 60, chapitres: [] },
+          { createdAt: vieux,
+            lengthSeconds: Math.round((Date.parse(neuf) - 1_200 - Date.parse(vieux)) / 1000),
+            chapitres: [{ pos: 0, jeu: 'Just Chatting' }] },
+        ],
+      };
+      window.__addCard('revenu', 'VALORANT', '900');
+    });
+    /* ON N'OUVRE JAMAIS L'APERÇU DE CETTE CARTE, et c'est tout le scénario :
+       la durée doit être juste sans que personne ne la survole. */
+    await attendre(page, () => {
+      const c = [...document.querySelectorAll('.side-nav-card')]
+        .find((x) => x.dataset.tseLogin === 'revenu');
+      return /h/.test(c?.querySelector('.tse-uptime')?.textContent || '');
+    }, 12_000);
+    const vu = await page.evaluate(() => {
+      const c = [...document.querySelectorAll('.side-nav-card')]
+        .find((x) => x.dataset.tseLogin === 'revenu');
+      const r = window.tse.panneau.rapport().reseau.chapitres.reprise;
+      return { duree: c?.querySelector('.tse-uptime')?.textContent || '',
+               survols: window.tse.panneau.rapport().frise.survols,
+               sondes: r.sondes, adoptees: r.adoptees };
+    });
+    /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — la sonde rendue au seul
+       survol — la carte affiche « 1m » au lieu de « 5h00 ». */
+    ok('la carte porte la durée du direct entier sans qu\'on l\'ait survolée',
+       /^5h/.test(vu.duree), JSON.stringify(vu));
+    /* ET C'EST BIEN SANS SURVOL : sans ce témoin, l'assertion ci-dessus
+       passerait aussi le jour où un survol se glisserait dans le décor. */
+    ok('…et aucun survol n\'a eu lieu — c\'est la sonde du lot qui a servi',
+       vu.survols === 0 && vu.sondes >= 1 && vu.adoptees >= 1, JSON.stringify(vu));
+    await page.close();
+  }
+
+  /* ── 2. LA CARTE ET LA FRISE, AU MÊME NOMBRE ─────────────────────────── */
+  {
+    const page = await fresh();
+    await page.evaluate(() => {
+      const h3    = new Date(Date.now() - 3 * 3600_000).toISOString();
+      const court = new Date(Date.now() - 3 * 3600_000 - 60_000).toISOString();
+      window.__fx = {
+        /* ÉCART LARGE : le premier chapitre tombe une heure après le départ,
+           bien au-dessus de la tolérance. La part non observée est réelle, et
+           elle doit le rester — c'est le témoin de non-régression. */
+        large: { id: 'a1', sid: 's-a1', createdAt: h3, viewers: 900, game: 'Rust', tags: [] },
+        /* ÉCART SERRÉ : une minute, SOUS les quatre-vingt-dix secondes de
+           tolérance. C'est le cas signalé, et lui seul. */
+        serre: { id: 'a2', sid: 's-a2', createdAt: court, viewers: 800, game: 'Rust', tags: [] },
+      };
+      window.__vod = {
+        large: { chapitres: [{ pos: 0, jeu: 'Just Chatting' }, { pos: 3600_000, jeu: 'Rust' }] },
+        serre: { chapitres: [{ pos: 60_000, jeu: 'Rust' }] },
+      };
+      window.__addCard('large', 'Rust', '900');
+      window.__addCard('serre', 'Rust', '800');
+    });
+    await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 2, 12_000);
+    await wait(page, 1500);
+
+    const mesurer = async (login) => {
+      await hoverLogin(page, login);
+      await attendre(page, () => !!document.querySelector('.tse-preview__frise'), 9000);
+      await wait(page, 300);
+      const r = await page.evaluate((l) => {
+        const c = [...document.querySelectorAll('.side-nav-card')]
+          .find((x) => x.dataset.tseLogin === l);
+        return { carte: c?.querySelector('.tse-uptime')?.textContent || '',
+                 frise: document.querySelector('.tse-preview__frise-total')?.textContent || '' };
+      }, login);
+      await page.evaluate((l) => {
+        [...document.querySelectorAll('.side-nav-card')]
+          .find((x) => x.dataset.tseLogin === l)
+          ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+      }, login);
+      await attendre(page,
+        () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 4000);
+      return r;
+    };
+
+    const large = await mesurer('large');
+    const serre = await mesurer('serre');
+    /* LE TÉMOIN D'ABORD : un écart franc passait déjà, et doit continuer. */
+    ok('au-dessus de la tolérance, la carte et la frise s\'accordaient déjà',
+       large.carte === large.frise && /^3h/.test(large.carte), JSON.stringify(large));
+    /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — le filet non rendu au premier
+       segment — « carte 3h01 » contre « frise 3h00 ». */
+    ok('…et sous la tolérance elles s\'accordent aussi, ce qui n\'était pas le cas',
+       serre.carte === serre.frise && /^3h01/.test(serre.carte), JSON.stringify(serre));
+    await page.close();
+  }
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

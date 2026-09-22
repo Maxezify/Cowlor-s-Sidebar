@@ -1952,6 +1952,22 @@ const TSE_GATE_MAX_CLICKS = 5;
        trois cents est très au-delà de ce qu'une session atteint. Sa saturation
        serait elle-même un renseignement, et elle se lit dans le rapport. */
     RECONNECT_PROBE_MAX:    300,
+    /* ── COMBIEN DE SONDES D'ORIGINE PAR RELEVÉ DE CARTES ──────────────────
+       La sonde ne part plus seulement au survol : une carte doit annoncer la
+       durée du direct ENTIER sans qu'on ait à la survoler, et l'archive est le
+       seul endroit qui connaisse les coupures d'avant notre arrivée.
+
+       DEUX PAR LOT, ET PAS TRENTE. Le plafond n'est pas une précaution de
+       style : trente cartes affichées, c'est trente opérations d'un coup au
+       premier relevé, sur une file qui en porte déjà autant. À deux par lot,
+       une sidebar entière est couverte en une poignée de cycles — soit bien
+       avant qu'un utilisateur ait fini de la parcourir — et la dépense se
+       fond dans la cadence au lieu de faire une pointe.
+
+       CE QUI BORNE LE TOTAL RESTE AILLEURS, inchangé : une opération par
+       SESSION de stream, jamais deux fois la même, jamais sur une chaîne déjà
+       chaînée ni sur un subathon, et RECONNECT_PROBE_MAX par page. */
+    RECONNECT_PROBE_PER_BATCH: 2,
     // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
     // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
     // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
@@ -6153,8 +6169,32 @@ const TSE_GATE_MAX_CLICKS = 5;
        bien qu'un recalage postérieur ne changeait rien à l'affichage. Écrit
        dans le mauvais ordre du premier coup, et pris par le banc — la frise
        montrait « 0m » là où elle devait montrer trois heures. */
-    if (continu && bruts.length && f.debutStream) {
-      bruts[0] = { ...bruts[0], debut: f.debutStream };
+    /* ── ET LE FILET SOUS LA TOLÉRANCE EST RENDU AU PREMIER SEGMENT ────────
+         DÉFAUT SIGNALÉ, ET SA CAUSE TIENT EN UN NOMBRE : « beaucoup de cartes
+         ont environ une minute de décalage avec Précédemment ». La tolérance
+         vaut QUATRE-VINGT-DIX SECONDES, et c'est exactement l'ordre de
+         grandeur relevé.
+
+         CE QUI SE PASSAIT. `inconnuMs` mesure la part non observée — du départ
+         du direct à notre première vue. Sous la tolérance, on la met à zéro,
+         et à juste titre : une seconde de hachuré pour notre propre latence de
+         relevé ne dit rien à personne. Mais on la mettait à zéro SANS la
+         rendre à personne : le total de la frise vaut `inconnuMs + Σ segments`,
+         et cette part-là disparaissait donc du total. La carte, elle, compte
+         depuis l'origine et ne perdait rien. D'où deux durées pour un même
+         direct, l'écart valant l'oubli.
+
+         ON L'ABSORBE DONC DANS LE PREMIER SEGMENT, ce qui est la seule chose
+         honnête à en faire : un écart plus court que notre propre cadence de
+         relevé n'est pas de l'ignorance, c'est du bruit de mesure, et il
+         appartient à la catégorie qui l'encadre. Le total redevient alors
+         `maintenant − origine` par construction — le même nombre que la carte,
+         et non un nombre qui lui ressemble. */
+    if (bruts.length && f.debutStream) {
+      const ecart = bruts[0].debut - f.debutStream;
+      if (continu || (ecart > 0 && ecart <= CFG.CATEGORY_TRAIL_TOLERANCE)) {
+        bruts[0] = { ...bruts[0], debut: f.debutStream };
+      }
     }
 
     /* LE FLOU SE PORTE SUR LE SEGMENT QUI PRÉCÈDE LA BORNE, et non sur celui
@@ -6602,6 +6642,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const now = Date.now();
     let fresh = 0;
+    /* Les logins dont on demandera l'origine à l'archive, bornés par lot.
+       Collectés dans la boucle, lancés après elle : partir pendant la boucle
+       mêlerait des réponses réseau à l'application des données. */
+    const aSonder = [];
 
     // ── 1) Dépouillement des tranches exploitables ──────────────────────
     // INDEXATION PAR LOGIN, jamais par position. Contrairement à une
@@ -6793,9 +6837,21 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (Number.isFinite(combine)) globalChannels.setViewers(login, combine, true);
         else if (typeof hote !== 'string') globalChannels.setViewers(login, entry.viewers);
         fresh++;
+        /* ── L'ORIGINE, DEMANDÉE ICI ET NON AU SURVOL ──────────────────────
+           C'est le seul endroit qui voie passer TOUTES les chaînes qui ont une
+           carte, avec leur `stream` frais à la main — donc le seul où la sonde
+           puisse partir sans qu'on ait à parcourir le DOM pour la déclencher.
+           Elle ne part que si l'entrée porte un direct, et la sonde elle-même
+           refuse tout le reste : session déjà sondée, chaîne déjà chaînée,
+           subathon, plafond de page. Deux par lot suffisent à couvrir une
+           sidebar en quelques cycles. */
+        if (entry?.stream?.id && aSonder.length < CFG.RECONNECT_PROBE_PER_BATCH) {
+          aSonder.push(login);
+        }
         (pending.get(login) || []).forEach(fn => fn(entry));
       });
     });
+    for (const l of aSonder) preview.sonderOrigine(l);
 
     // Données fraîches → re-scan pour répercuter viewers, catégories, langues
     // (options des filtres) et l'ordre de tri sur l'ensemble de la sidebar.
@@ -15723,6 +15779,41 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     return {
       init,
+      /* ── L'ORIGINE SANS ATTENDRE LE SURVOL ────────────────────────────────
+         SIGNALÉ AINSI : « le temps sur la carte ne se met pas automatiquement
+         à jour, il se met quand on passe la souris ». Capture à l'appui :
+         REVENANT à « 10h15 », puis « 57h32 » dès l'aperçu ouvert.
+
+         CE N'ÉTAIT PAS UN DÉFAUT DE RAFRAÎCHISSEMENT, et c'est pour ça que le
+         minuteur de la carte ne pouvait rien y faire : il faisait battre la
+         bonne mécanique sur la mauvaise origine. Une coupure survenue AVANT
+         l'ouverture de la page n'est dans aucune mémoire — ni la nôtre, qui
+         n'existait pas, ni celle de Twitch, qui ne sert que le tronçon
+         courant. Seule l'archive le dit, et la sonde qui la lit ne partait
+         qu'au survol.
+
+         ELLE PART DONC AUSSI POUR LES CARTES AFFICHÉES, et sans rien changer
+         à ce qu'elle coûte : les mêmes gardes exactement — une opération par
+         SESSION de stream, jamais sur une chaîne déjà chaînée, jamais sur un
+         subathon, et le plafond par page. Ce qui change est QUAND on la pose,
+         pas combien de fois.
+
+         LE RENDU SUIT, et il faut le dire ici : adopter une origine sans
+         redessiner laisserait la carte sur son ancien nombre jusqu'au prochain
+         relevé. On redemande donc un scan, qui réécrit la durée depuis le
+         dataset qu'on vient de corriger. */
+      sonderOrigine: (login) => {
+        const flux = cache.get(login)?.stream;
+        if (!flux?.id) return;
+        sonderReprise(login, flux)
+          .then((trouve) => {
+            if (!trouve) return;
+            majReprise(login);
+            majFrise(login);
+            scheduleScan();   // la carte relit son départ et réécrit sa durée
+          })
+          .catch((e) => erreurs.noter('reprise', (e && e.message) || e));
+      },
       // Ferme l'aperçu si sa carte d'ancrage a quitté le DOM (stream terminé
       // pendant le survol). Appelée depuis scanSidebar : le retrait d'une carte
       // est une mutation de #side-nav → déclenche un scan → fermeture proactive,
