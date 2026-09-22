@@ -8871,7 +8871,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1093 KB | 409 KB | 3,407 → **2** |
+| `content.js` | 1093 KB | 409 KB | 3,408 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

@@ -15651,7 +15651,31 @@ const TSE_GATE_MAX_CLICKS = 5;
           })
           .catch((e) => erreurs.noter('reprise', (e && e.message) || e));
       }
-      if (flux?.id && !preludeDe(login) && friseACombler(login)) {
+      /* ── LA GARDE QUI AVAIT CHANGÉ DE SENS SANS CHANGER DE TEXTE ─────────
+         ELLE DISAIT « !preludeDe(login) », et la 3.72 l'avait écrit en
+         connaissance de cause : à l'époque, `fetchChapitres` était le SEUL à
+         verser au passé d'un direct, si bien que « ce direct a un passé »
+         voulait dire « on a déjà demandé ses chapitres ». La phrase était
+         juste, et elle bornait la dépense à une requête par session.
+
+         LA SONDE D'ORIGINE EST DEVENUE UN SECOND CONTRIBUTEUR, et elle y verse
+         les tronçons d'AVANT la coupure. Sa seule présence suffisait alors à
+         empêcher qu'on demande le tronçon COURANT — deux informations
+         différentes que la garde confondait depuis. Le défaut dormait tant que
+         la sonde ne partait qu'au survol, où elle courait à côté de cette ligne
+         sans l'avoir encore devancée ; il est devenu constant quand le lot
+         s'est mis à sonder toutes les cartes. Le scénario 102 le dit en trois
+         lignes, sur le cas « croise » : « Elden Ring » d'avant la coupure était
+         bien là, mais plus « Apex » d'après. La frise portait le passé et
+         taisait le présent.
+
+         ON REPOSE DONC LA QUESTION DE 3.72, TELLE QU'ELLE. « A-t-on déjà
+         demandé les chapitres de CE tronçon ? » se lit dans le registre de
+         `fetchChapitres`, et nulle part ailleurs. La borne d'origine est ainsi
+         rendue intacte — une requête par session de stream, pas une de plus,
+         exactement le même volume qu'avant — et la confusion avec le passé de
+         la sonde disparaît. */
+      if (flux?.id && !chapitres.get(flux.id) && friseACombler(login)) {
         /* L'ORIGINE, ET NON LE DÉPART DU TRONÇON. Tout ce module compare des
            instants à ce nombre : quels moments du VOD regardent ce live, si
            l'enregistrement en couvre le début, si la liste des archives a

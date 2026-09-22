@@ -9219,7 +9219,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1093 Ko | 409 Ko | 3 407 → **2** |
+| `content.js` | 1093 Ko | 409 Ko | 3 408 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
