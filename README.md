@@ -2178,39 +2178,11 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
-## Deux origines par page, et pas une de plus (v4.15.2)
+## Ce que le terrain a refusé, et ce que la 4.15.2 avait confondu (v4.15.3)
 
-> « Rien n'est corrigé. »
+> « ca73cca fonctionnait, mais là non. »
 
-Le rapport joint à ce message disait pourtant que la mécanique de la 4.15.1
-**fonctionnait** : `sondes 8 · servies 8 · trouvees 2 · adoptees 2`, sur une
-page de soixante-dix-huit secondes portant vingt-quatre lignes de carte. Huit
-sondes parties, dont **six venaient de survols**. Le lot, lui, n'en avait donc
-lancé que deux — et jamais plus, quel que soit le temps qu'on lui laissait.
-
-### Le budget était dépensé avant le filtre
-
-La sonde d'origine a ses gardes : session déjà sondée, chaîne déjà chaînée,
-subathon, plafond de page. Elles vivaient **à l'intérieur** de la sonde, et le
-lot qui l'appelait n'en savait rien. Il choisissait donc ses deux candidates sur
-le seul critère qu'il connaissait — « cette chaîne a un direct » — et la sonde
-les refusait ensuite en une ligne :
-
-```js
-// avant : le lot plafonne AVANT de savoir si la sonde acceptera
-if (entry?.stream?.id && aSonder.length < CFG.RECONNECT_PROBE_PER_BATCH) {
-  aSonder.push(login);
-}
-```
-
-**L'ordre du lot est celui de la liste**, donc stable d'un cycle à l'autre. Le
-budget retombait chaque fois sur *les deux mêmes chaînes*, déjà sondées au
-premier relevé. Deux origines apprises par page, puis plus rien — pendant que le
-compteur `sondes`, lui, restait bas et paraissait sage.
-
-La correction tient en un déplacement : le lot passe **toute** sa liste, et la
-sonde prend les premières qu'elle accepte, budget compris. Ce qui décide et ce
-qui compte sont désormais au même endroit.
+Trois corrections, toutes nées du rapport joint à cette phrase.
 
 ### Le groupement a été essayé, et le terrain l'a refusé
 
@@ -2257,6 +2229,81 @@ sondes tombées au réseau, dix-huit cartes condamnées à compter leur tronçon
 jusqu'au rechargement**. La session est désormais rendue au registre, et le
 cycle suivant réessaie.
 
+### La garde des chapitres avait changé de sens sans changer de texte
+
+Au survol, une ligne décidait s'il fallait demander les chapitres du tronçon
+courant : `!preludeDe(login) && friseACombler(login)`. La **3.72** l'avait
+écrite en connaissance de cause — à l'époque, `fetchChapitres` était le *seul*
+à verser au passé d'un direct, si bien que « ce direct a un passé » voulait
+dire « on a déjà demandé ses chapitres ». La phrase était juste, et elle
+bornait la dépense à une requête par session.
+
+**La sonde d'origine est devenue un second contributeur**, et elle y verse les
+tronçons d'*avant* la coupure. Sa seule présence suffisait alors à empêcher
+qu'on demande le tronçon *courant* — deux informations différentes que la garde
+confondait depuis. Le défaut dormait tant que la sonde ne partait qu'au survol,
+où elle courait à côté de cette ligne sans l'avoir encore devancée ; il est
+devenu constant quand le lot s'est mis à sonder toutes les cartes.
+
+Une première tentative avait **retiré** la garde, ce qui rouvrait une requête
+toutes les dix minutes par chaîne survolée. On repose plutôt la question de la
+3.72 telle qu'elle : *a-t-on déjà demandé les chapitres de ce tronçon ?*, et
+elle se lit dans le registre de `fetchChapitres`, nulle part ailleurs. La borne
+d'origine est rendue intacte — **une requête par session de stream, pas une de
+plus, exactement le même volume qu'avant**.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| les sondes d'un lot regroupées en une requête | 3 requêtes de 6 opérations au lieu de 14 d'une seule |
+| l'ancienne garde des chapitres remise | scénario 102 : **20 assertions sur 22** |
+
+Le premier ne mesure pas un comportement, **il tient une forme**. Le harnais
+répond à tout, groupé ou non : les deux passent au vert chez lui, et c'est
+précisément pourquoi le refus est arrivé chez l'utilisateur et non au banc.
+L'assertion existe pour qu'on ne regroupe pas une seconde fois, le jour où
+l'idée paraîtra de nouveau économique.
+
+Le second était déjà écrit, et depuis longtemps : le scénario 102 exigeait des
+deux sources du passé qu'elles **se rejoignent**, et d'une session qu'elle ne
+soit sondée **qu'une fois**. Les deux exigences tiennent ensemble, et c'est ce
+qui distingue cette correction de celle qui l'a précédée.
+
+## Deux origines par page, et pas une de plus (v4.15.2)
+
+> « Rien n'est corrigé. »
+
+Le rapport joint à ce message disait pourtant que la mécanique de la 4.15.1
+**fonctionnait** : `sondes 8 · servies 8 · trouvees 2 · adoptees 2`, sur une
+page de soixante-dix-huit secondes portant vingt-quatre lignes de carte. Huit
+sondes parties, dont **six venaient de survols**. Le lot, lui, n'en avait donc
+lancé que deux — et jamais plus, quel que soit le temps qu'on lui laissait.
+
+### Le budget était dépensé avant le filtre
+
+La sonde d'origine a ses gardes : session déjà sondée, chaîne déjà chaînée,
+subathon, plafond de page. Elles vivaient **à l'intérieur** de la sonde, et le
+lot qui l'appelait n'en savait rien. Il choisissait donc ses deux candidates sur
+le seul critère qu'il connaissait — « cette chaîne a un direct » — et la sonde
+les refusait ensuite en une ligne :
+
+```js
+// avant : le lot plafonne AVANT de savoir si la sonde acceptera
+if (entry?.stream?.id && aSonder.length < CFG.RECONNECT_PROBE_PER_BATCH) {
+  aSonder.push(login);
+}
+```
+
+**L'ordre du lot est celui de la liste**, donc stable d'un cycle à l'autre. Le
+budget retombait chaque fois sur *les deux mêmes chaînes*, déjà sondées au
+premier relevé. Deux origines apprises par page, puis plus rien — pendant que le
+compteur `sondes`, lui, restait bas et paraissait sage.
+
+La correction tient en un déplacement : le lot passe **toute** sa liste, et la
+sonde prend les premières qu'elle accepte, budget compris. Ce qui décide et ce
+qui compte sont désormais au même endroit.
+
 ### Et la minute d'écart avec « Précédemment… »
 
 > « Beaucoup de cartes ont environ une minute de décalage. »
@@ -2291,7 +2338,6 @@ défaut démontré est une constante qu'on abaissera encore.
 | mutant | résultat |
 | --- | --- |
 | le budget du lot pris avant les gardes | **6 cartes sur 14** à « 5h00 », les huit autres figées à « 1m » |
-| les sondes d'un lot regroupées en une requête | 3 requêtes de 6 opérations au lieu de 14 d'une seule |
 | le total de la frise rendu par `formatDuree` | **carte 3h00, frise 3h01** |
 
 Le premier exige **plus de cartes que le budget d'un lot** — quatorze pour
@@ -2299,12 +2345,6 @@ six — sans quoi le défaut n'existe pas : c'est pourquoi le sous-test de la
 4.15.1, avec sa chaîne unique, passait déjà. Il n'ouvre aucun aperçu et le
 vérifie (`survols 0`), et il lit le rapport pour exiger quatorze sondes et
 quatorze adoptions.
-
-Le deuxième ne mesure pas un comportement, **il tient une forme**. Le harnais
-répond à tout, groupé ou non : les deux passent au vert chez lui, et c'est
-précisément pourquoi le refus est arrivé chez l'utilisateur et non au banc.
-L'assertion existe pour qu'on ne regroupe pas une seconde fois, le jour où
-l'idée paraîtra de nouveau économique.
 
 Le second **choisit sa phase** : l'écart n'existe qu'au-delà de la demi-minute,
 et un décor qui laisse la phase au hasard ne détecte qu'une fois sur deux. Le

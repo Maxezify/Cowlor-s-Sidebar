@@ -2057,39 +2057,11 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
-## Two origins per page, and not one more (v4.15.2)
+## What the field refused, and what 4.15.2 had conflated (v4.15.3)
 
-> "Nothing is fixed."
+> "ca73cca worked, but this one doesn't."
 
-The report attached to that message showed that 4.15.1's machinery **worked**:
-`sondes 8 · servies 8 · trouvees 2 · adoptees 2`, on a seventy-eight-second-old
-page carrying twenty-four card rows. Eight probes went out, **six of them from
-hovers**. The batch had therefore launched only two — and would never launch
-more, however long it was given.
-
-### The budget was spent before the filter
-
-The origin probe has its guards: session already probed, channel already
-chained, subathon, per-page ceiling. They lived **inside** the probe, and the
-batch calling it knew nothing about them. So the batch picked its two candidates
-on the only criterion it had — "this channel has a stream" — and the probe then
-refused them in one line:
-
-```js
-// before: the batch caps BEFORE knowing whether the probe will accept
-if (entry?.stream?.id && aSonder.length < CFG.RECONNECT_PROBE_PER_BATCH) {
-  aSonder.push(login);
-}
-```
-
-**The batch's order is the list's order**, hence stable from cycle to cycle. The
-budget landed every time on *the same two channels*, already probed on the first
-pass. Two origins learned per page, then nothing — while the `sondes` counter
-stayed low and looked sensible.
-
-The fix is one displacement: the batch hands over its **whole** list, and the
-probe takes the first ones it accepts, budget included. What decides and what
-counts now live in the same place.
+Three corrections, all born of the report attached to that sentence.
 
 ### Batching was tried, and the field refused it
 
@@ -2134,6 +2106,79 @@ lost to the network, eighteen cards condemned to count their segment until a
 reload**. The session is now handed back to the register, and the next pass
 retries.
 
+### The chapters guard had changed meaning without changing text
+
+On hover, one line decided whether to ask for the current segment's chapters:
+`!preludeDe(login) && friseACombler(login)`. **3.72** wrote it knowingly — back
+then `fetchChapitres` was the *only* writer of a stream's past, so "this stream
+has a past" meant "we already asked for its chapters". The sentence was true,
+and it bounded the spend to one request per session.
+
+**The origin probe became a second contributor**, and it writes the segments
+from *before* the cut. Its mere presence was then enough to stop us asking for
+the *current* one — two different pieces of information the guard had been
+conflating ever since. The defect slept while the probe only went out on hover,
+where it ran alongside this line without having got ahead of it; it became
+constant once the batch started probing every card.
+
+A first attempt **removed** the guard, which reopened one request every ten
+minutes per hovered channel. Instead we ask 3.72's question as it stood: *have
+we already asked for this segment's chapters?*, and that is read in
+`fetchChapitres`'s own register, nowhere else. The original bound is handed
+back intact — **one request per stream session, not one more, exactly the same
+volume as before**.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| a pass's probes grouped into one request | 3 requests of 6 operations instead of 14 of one |
+| the old chapters guard put back | scenario 102: **20 assertions out of 22** |
+
+The first does not measure a behaviour, **it holds a shape**. The harness
+answers anything, grouped or not: both pass green there, which is precisely why
+the refusal reached the user and not the bench. The assertion exists so nobody
+groups them a second time, the day the idea looks economical again.
+
+The second was already written, and long ago: scenario 102 required the two
+sources of the past to **meet**, and a session to be probed **only once**. Both
+requirements hold together, and that is what sets this correction apart from
+the one before it.
+
+## Two origins per page, and not one more (v4.15.2)
+
+> "Nothing is fixed."
+
+The report attached to that message showed that 4.15.1's machinery **worked**:
+`sondes 8 · servies 8 · trouvees 2 · adoptees 2`, on a seventy-eight-second-old
+page carrying twenty-four card rows. Eight probes went out, **six of them from
+hovers**. The batch had therefore launched only two — and would never launch
+more, however long it was given.
+
+### The budget was spent before the filter
+
+The origin probe has its guards: session already probed, channel already
+chained, subathon, per-page ceiling. They lived **inside** the probe, and the
+batch calling it knew nothing about them. So the batch picked its two candidates
+on the only criterion it had — "this channel has a stream" — and the probe then
+refused them in one line:
+
+```js
+// before: the batch caps BEFORE knowing whether the probe will accept
+if (entry?.stream?.id && aSonder.length < CFG.RECONNECT_PROBE_PER_BATCH) {
+  aSonder.push(login);
+}
+```
+
+**The batch's order is the list's order**, hence stable from cycle to cycle. The
+budget landed every time on *the same two channels*, already probed on the first
+pass. Two origins learned per page, then nothing — while the `sondes` counter
+stayed low and looked sensible.
+
+The fix is one displacement: the batch hands over its **whole** list, and the
+probe takes the first ones it accepts, budget included. What decides and what
+counts now live in the same place.
+
 ### And the minute of drift against "Previously…"
 
 > "Many cards are about a minute off."
@@ -2167,7 +2212,6 @@ constant that will be lowered again.
 | mutant | result |
 | --- | --- |
 | the batch budget taken before the guards | **6 cards out of 14** at "5h00", the other eight frozen at "1m" |
-| a pass's probes grouped into one request | 3 requests of 6 operations instead of 14 of one |
 | the trail total rendered by `formatDuree` | **card 3h00, trail 3h01** |
 
 The first needs **more cards than one batch's budget** — fourteen against
@@ -2175,11 +2219,6 @@ six — otherwise the defect does not exist: which is why 4.15.1's sub-test,
 with its single channel, already passed. It opens no preview and checks that
 (`survols 0`), and it reads the report to require fourteen probes and fourteen
 adoptions.
-
-The second does not measure a behaviour, **it holds a shape**. The harness
-answers anything, grouped or not: both pass green there, which is precisely why
-the refusal reached the user and not the bench. The assertion exists so nobody
-groups them a second time, the day the idea looks economical again.
 
 The second **picks its phase**: the gap only exists past the half-minute, and a
 fixture that leaves the phase to chance detects it only half the time. The start
