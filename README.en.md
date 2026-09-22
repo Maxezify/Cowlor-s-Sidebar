@@ -2057,6 +2057,100 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Two origins per page, and not one more (v4.15.2)
+
+> "Nothing is fixed."
+
+The report attached to that message showed that 4.15.1's machinery **worked**:
+`sondes 8 · servies 8 · trouvees 2 · adoptees 2`, on a seventy-eight-second-old
+page carrying twenty-four card rows. Eight probes went out, **six of them from
+hovers**. The batch had therefore launched only two — and would never launch
+more, however long it was given.
+
+### The budget was spent before the filter
+
+The origin probe has its guards: session already probed, channel already
+chained, subathon, per-page ceiling. They lived **inside** the probe, and the
+batch calling it knew nothing about them. So the batch picked its two candidates
+on the only criterion it had — "this channel has a stream" — and the probe then
+refused them in one line:
+
+```js
+// before: the batch caps BEFORE knowing whether the probe will accept
+if (entry?.stream?.id && aSonder.length < CFG.RECONNECT_PROBE_PER_BATCH) {
+  aSonder.push(login);
+}
+```
+
+**The batch's order is the list's order**, hence stable from cycle to cycle. The
+budget landed every time on *the same two channels*, already probed on the first
+pass. Two origins learned per page, then nothing — while the `sondes` counter
+stayed low and looked sensible.
+
+The fix is one displacement: the batch hands over its **whole** list, and the
+probe takes the first ones it accepts, budget included. What decides and what
+counts now live in the same place.
+
+### Twelve per batch, and a single request for the twelve
+
+The number was two because each probe went out in its own round trip. GraphQL
+accepts an **array of operations** and answers in the same order — that is
+already how global mode queries its twenty categories. A batch's probes
+therefore travel together: a pass's network cost no longer depends on that
+number, which now sets only the **coverage speed**.
+
+| | before | after |
+| --- | --- | --- |
+| channels probed per pass | 2, always the same | 12, all different |
+| requests to probe them | 2 | **1** |
+| a 24-card sidebar | never covered | covered in 2 passes |
+
+### And the minute of drift against "Previously…"
+
+> "Many cards are about a minute off."
+
+4.15.1 addressed a real cause — the unobserved share below the tolerance, which
+vanished from the total. A second one remained, and it comes down to one verb.
+The trail's total ends at *now*, so it is a gap to now, exactly like the card's
+counter. Yet it was rendered by `formatDuree`, which **rounds**, where the card
+**truncates**:
+
+```js
+const formatDuree  = (ms) => enForme(Math.max(0, Math.round(ms / 60_000)));
+const formatEcoule = (ms) => enForme(Math.max(0, Math.floor(ms / 60_000)));
+```
+
+Past the half-minute, the two numbers diverged by a full minute. The house
+convention — *an elapsed duration truncates, a measured interval rounds* — was
+written right above; what was missing was applying it to the total.
+
+### What measurement ruled out
+
+The card's counter only beats once a minute, which made a presentable second
+suspect. It is innocent: **every scan rewrites the duration** from the dataset
+(`applyChannelData`), and `REFRESH_TICK` schedules one every five seconds. The
+card is therefore never more than five seconds behind itself, and nothing was
+changed on that side — a constant lowered without a demonstrated defect is a
+constant that will be lowered again.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the batch budget taken before the guards | **12 cards out of 14** at "5h00", the other two frozen at "1m" |
+| the trail total rendered by `formatDuree` | **card 3h00, trail 3h01** |
+
+The first needs **more cards than one batch's budget** — fourteen against
+twelve — otherwise the defect does not exist: which is why 4.15.1's sub-test,
+with its single channel, already passed. It opens no preview and checks that
+(`survols 0`), and it reads the report to require fourteen probes and fourteen
+adoptions.
+
+The second **picks its phase**: the gap only exists past the half-minute, and a
+fixture that leaves the phase to chance detects it only half the time. The start
+is set forty seconds past a full minute, which leaves eighteen seconds of margin
+before the mutant goes invisible again.
+
 ## The card and the trail say the same number (v4.15.1)
 
 Two defects reported together, both born of 4.15.0 — and it is the same duration
@@ -8742,7 +8836,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1093 KB | 409 KB | 3,396 → **2** |
+| `content.js` | 1093 KB | 409 KB | 3,403 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

@@ -2178,6 +2178,101 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Deux origines par page, et pas une de plus (v4.15.2)
+
+> « Rien n'est corrigé. »
+
+Le rapport joint à ce message disait pourtant que la mécanique de la 4.15.1
+**fonctionnait** : `sondes 8 · servies 8 · trouvees 2 · adoptees 2`, sur une
+page de soixante-dix-huit secondes portant vingt-quatre lignes de carte. Huit
+sondes parties, dont **six venaient de survols**. Le lot, lui, n'en avait donc
+lancé que deux — et jamais plus, quel que soit le temps qu'on lui laissait.
+
+### Le budget était dépensé avant le filtre
+
+La sonde d'origine a ses gardes : session déjà sondée, chaîne déjà chaînée,
+subathon, plafond de page. Elles vivaient **à l'intérieur** de la sonde, et le
+lot qui l'appelait n'en savait rien. Il choisissait donc ses deux candidates sur
+le seul critère qu'il connaissait — « cette chaîne a un direct » — et la sonde
+les refusait ensuite en une ligne :
+
+```js
+// avant : le lot plafonne AVANT de savoir si la sonde acceptera
+if (entry?.stream?.id && aSonder.length < CFG.RECONNECT_PROBE_PER_BATCH) {
+  aSonder.push(login);
+}
+```
+
+**L'ordre du lot est celui de la liste**, donc stable d'un cycle à l'autre. Le
+budget retombait chaque fois sur *les deux mêmes chaînes*, déjà sondées au
+premier relevé. Deux origines apprises par page, puis plus rien — pendant que le
+compteur `sondes`, lui, restait bas et paraissait sage.
+
+La correction tient en un déplacement : le lot passe **toute** sa liste, et la
+sonde prend les premières qu'elle accepte, budget compris. Ce qui décide et ce
+qui compte sont désormais au même endroit.
+
+### Douze par lot, et une seule requête pour les douze
+
+Le chiffre était à deux parce que chaque sonde partait dans son propre
+aller-retour. GraphQL accepte un **tableau d'opérations** et répond dans le même
+ordre — c'est déjà ainsi que le mode global interroge ses vingt catégories. Les
+sondes d'un lot voyagent donc ensemble : le coût réseau d'un relevé ne dépend
+plus de ce chiffre, qui ne fixe plus que la **vitesse de couverture**.
+
+| | avant | après |
+| --- | --- | --- |
+| chaînes sondées par relevé | 2, toujours les mêmes | 12, toutes différentes |
+| requêtes pour les sonder | 2 | **1** |
+| sidebar de 24 cartes | jamais couverte | couverte en 2 relevés |
+
+### Et la minute d'écart avec « Précédemment… »
+
+> « Beaucoup de cartes ont environ une minute de décalage. »
+
+La 4.15.1 avait traité une cause réelle — la part non observée sous la
+tolérance, qui disparaissait du total. Il en restait une seconde, et elle tient
+en un verbe. Le total de la frise se terminant à *maintenant*, c'est un écart à
+maintenant, exactement comme le compteur de la carte. Or il était rendu par
+`formatDuree`, qui **arrondit**, quand la carte **tronque** :
+
+```js
+const formatDuree  = (ms) => enForme(Math.max(0, Math.round(ms / 60_000)));
+const formatEcoule = (ms) => enForme(Math.max(0, Math.floor(ms / 60_000)));
+```
+
+Passé la demi-minute, les deux nombres divergeaient d'une minute pleine. La
+convention de la maison — *une durée écoulée se tronque, un intervalle mesuré
+s'arrondit* — était écrite juste au-dessus ; c'est son application au total qui
+manquait.
+
+### Ce qui a été écarté par la mesure
+
+Le compteur de la carte ne bat qu'à la minute, ce qui faisait un second suspect
+présentable. Il est innocent : **chaque balayage réécrit la durée** depuis le
+dataset (`applyChannelData`), et `REFRESH_TICK` en programme un toutes les cinq
+secondes. La carte n'est donc jamais en retard de plus de cinq secondes sur
+elle-même, et rien n'a été changé de ce côté — une constante qu'on abaisse sans
+défaut démontré est une constante qu'on abaissera encore.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| le budget du lot pris avant les gardes | **12 cartes sur 14** à « 5h00 », les deux autres figées à « 1m » |
+| le total de la frise rendu par `formatDuree` | **carte 3h00, frise 3h01** |
+
+Le premier exige **plus de cartes que le budget d'un lot** — quatorze pour
+douze — sans quoi le défaut n'existe pas : c'est pourquoi le sous-test de la
+4.15.1, avec sa chaîne unique, passait déjà. Il n'ouvre aucun aperçu et le
+vérifie (`survols 0`), et il lit le rapport pour exiger quatorze sondes et
+quatorze adoptions.
+
+Le second **choisit sa phase** : l'écart n'existe qu'au-delà de la demi-minute,
+et un décor qui laisse la phase au hasard ne détecte qu'une fois sur deux. Le
+départ est posé quarante secondes après une minute pleine, ce qui laisse
+dix-huit secondes de marge avant que le mutant ne redevienne invisible.
+
 ## La carte et la frise disent le même nombre (v4.15.1)
 
 Deux défauts signalés ensemble, tous deux nés de la 4.15.0 — et c'est la même
@@ -9086,7 +9181,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1093 Ko | 409 Ko | 3 396 → **2** |
+| `content.js` | 1093 Ko | 409 Ko | 3 403 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
