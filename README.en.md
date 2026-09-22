@@ -2091,19 +2091,48 @@ The fix is one displacement: the batch hands over its **whole** list, and the
 probe takes the first ones it accepts, budget included. What decides and what
 counts now live in the same place.
 
-### Twelve per batch, and a single request for the twelve
+### Batching was tried, and the field refused it
 
-The number was two because each probe went out in its own round trip. GraphQL
-accepts an **array of operations** and answers in the same order — that is
-already how global mode queries its twenty categories. A batch's probes
-therefore travel together: a pass's network cost no longer depends on that
-number, which now sets only the **coverage speed**.
+The first draft went further: since GraphQL accepts an **array of operations**
+and answers in the same order — that is already how global mode queries its
+twenty categories — twelve probes could fit into a single round trip. The
+reasoning held. **It was wrong**, and it survived exactly one version.
 
-| | before | after |
+Two reports side by side say so without ambiguity:
+
+| | one operation per request | twelve operations per request |
 | --- | --- | --- |
-| channels probed per pass | 2, always the same | 12, all different |
-| requests to probe them | 2 | **1** |
-| a 24-card sidebar | never covered | covered in 2 passes |
+| `sondes` | 8 | 48 |
+| `servies` | **8** | **5** |
+| `vides` | 0 | 25 |
+| `reseau` | 0 | 18 |
+| `adoptees` | 2 | **0** |
+
+Forty-three probes out of forty-eight refused, and the log names the refusal:
+*"200 answer carrying GraphQL errors — service error"*. No origin learned, so
+the card counted the segment again and the trail had no past — **the two
+defects this version exists to fix, back through the side door**.
+
+**What sets this batch apart from global mode's**, and what should have been
+seen first: `TseCategoryTop` returns a list of channels, `TseVodRecent` returns
+*archives with their chapters*, for each channel. Twelve of those in one
+request is not twelve times more rows, it is twelve times a job Twitch charges
+to its service. That it refuses makes sense; assuming it accepted **without
+measuring** was the mistake.
+
+So we return to the measured shape — one operation per request — and the
+per-pass budget stops at **six**: three times 4.15.1's, and six round trips
+every thirty seconds at worst.
+
+### A refusal is not an answer
+
+The register of already-probed sessions exists so a channel is not probed
+twice. That is right when Twitch has **answered**, including to say "nothing".
+A refusal teaches nothing: keeping it in memory lost that channel's origin for
+the whole life of the page. The report put a number on it — **eighteen probes
+lost to the network, eighteen cards condemned to count their segment until a
+reload**. The session is now handed back to the register, and the next pass
+retries.
 
 ### And the minute of drift against "Previously…"
 
@@ -2137,14 +2166,20 @@ constant that will be lowered again.
 
 | mutant | result |
 | --- | --- |
-| the batch budget taken before the guards | **12 cards out of 14** at "5h00", the other two frozen at "1m" |
+| the batch budget taken before the guards | **6 cards out of 14** at "5h00", the other eight frozen at "1m" |
+| a pass's probes grouped into one request | 3 requests of 6 operations instead of 14 of one |
 | the trail total rendered by `formatDuree` | **card 3h00, trail 3h01** |
 
 The first needs **more cards than one batch's budget** — fourteen against
-twelve — otherwise the defect does not exist: which is why 4.15.1's sub-test,
+six — otherwise the defect does not exist: which is why 4.15.1's sub-test,
 with its single channel, already passed. It opens no preview and checks that
 (`survols 0`), and it reads the report to require fourteen probes and fourteen
 adoptions.
+
+The second does not measure a behaviour, **it holds a shape**. The harness
+answers anything, grouped or not: both pass green there, which is precisely why
+the refusal reached the user and not the bench. The assertion exists so nobody
+groups them a second time, the day the idea looks economical again.
 
 The second **picks its phase**: the gap only exists past the half-minute, and a
 fixture that leaves the phase to chance detects it only half the time. The start
@@ -8816,7 +8851,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 142 scenarios, 1248 assertions |
+| `npm test` | the Playwright harness: 142 scenarios, 1249 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -8836,7 +8871,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1093 KB | 409 KB | 3,403 → **2** |
+| `content.js` | 1093 KB | 409 KB | 3,407 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

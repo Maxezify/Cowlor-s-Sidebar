@@ -2212,19 +2212,50 @@ La correction tient en un déplacement : le lot passe **toute** sa liste, et la
 sonde prend les premières qu'elle accepte, budget compris. Ce qui décide et ce
 qui compte sont désormais au même endroit.
 
-### Douze par lot, et une seule requête pour les douze
+### Le groupement a été essayé, et le terrain l'a refusé
 
-Le chiffre était à deux parce que chaque sonde partait dans son propre
-aller-retour. GraphQL accepte un **tableau d'opérations** et répond dans le même
-ordre — c'est déjà ainsi que le mode global interroge ses vingt catégories. Les
-sondes d'un lot voyagent donc ensemble : le coût réseau d'un relevé ne dépend
-plus de ce chiffre, qui ne fixe plus que la **vitesse de couverture**.
+La première rédaction allait plus loin : puisque GraphQL accepte un **tableau
+d'opérations** et répond dans le même ordre — c'est déjà ainsi que le mode
+global interroge ses vingt catégories — douze sondes pouvaient tenir dans un
+seul aller-retour. Le raisonnement se tenait. **Il était faux**, et il n'a
+tenu qu'une version.
 
-| | avant | après |
+Deux rapports mis côte à côte le disent sans ambiguïté :
+
+| | une opération par requête | douze opérations par requête |
 | --- | --- | --- |
-| chaînes sondées par relevé | 2, toujours les mêmes | 12, toutes différentes |
-| requêtes pour les sonder | 2 | **1** |
-| sidebar de 24 cartes | jamais couverte | couverte en 2 relevés |
+| `sondes` | 8 | 48 |
+| `servies` | **8** | **5** |
+| `vides` | 0 | 25 |
+| `reseau` | 0 | 18 |
+| `adoptees` | 2 | **0** |
+
+Quarante-trois sondes sur quarante-huit refusées, et le journal nomme le
+refus : *« réponse 200 avec erreurs GraphQL — service error »*. Aucune origine
+apprise, donc la carte comptait de nouveau le tronçon et la frise n'avait plus
+de passé — **les deux défauts que cette version existe pour corriger, revenus
+par la porte de derrière**.
+
+**Ce qui distingue ce lot-ci de celui du mode global**, et qu'il fallait voir
+avant : `TseCategoryTop` rend une liste de chaînes, `TseVodRecent` rend des
+*archives avec leurs chapitres*, pour chaque chaîne. Douze de celles-là dans
+une requête, ce n'est pas douze fois plus de lignes, c'est douze fois un
+travail que Twitch facture à son service. Qu'il refuse se comprend ; l'avoir
+supposé accepté **sans le mesurer** était l'erreur.
+
+On revient donc à la forme mesurée — une opération par requête — et le budget
+par lot s'arrête à **six** : trois fois celui de la 4.15.1, et six
+allers-retours toutes les trente secondes au pire.
+
+### Un refus n'est pas une réponse
+
+Le registre des sessions déjà sondées existe pour qu'une chaîne ne le soit pas
+deux fois. C'est juste quand Twitch a **répondu**, y compris pour dire « rien ».
+Un refus, lui, n'apprend pas : le garder en mémoire perdait l'origine de cette
+chaîne pour toute la durée de la page. Le rapport le chiffrait — **dix-huit
+sondes tombées au réseau, dix-huit cartes condamnées à compter leur tronçon
+jusqu'au rechargement**. La session est désormais rendue au registre, et le
+cycle suivant réessaie.
 
 ### Et la minute d'écart avec « Précédemment… »
 
@@ -2259,14 +2290,21 @@ défaut démontré est une constante qu'on abaissera encore.
 
 | mutant | résultat |
 | --- | --- |
-| le budget du lot pris avant les gardes | **12 cartes sur 14** à « 5h00 », les deux autres figées à « 1m » |
+| le budget du lot pris avant les gardes | **6 cartes sur 14** à « 5h00 », les huit autres figées à « 1m » |
+| les sondes d'un lot regroupées en une requête | 3 requêtes de 6 opérations au lieu de 14 d'une seule |
 | le total de la frise rendu par `formatDuree` | **carte 3h00, frise 3h01** |
 
 Le premier exige **plus de cartes que le budget d'un lot** — quatorze pour
-douze — sans quoi le défaut n'existe pas : c'est pourquoi le sous-test de la
+six — sans quoi le défaut n'existe pas : c'est pourquoi le sous-test de la
 4.15.1, avec sa chaîne unique, passait déjà. Il n'ouvre aucun aperçu et le
 vérifie (`survols 0`), et il lit le rapport pour exiger quatorze sondes et
 quatorze adoptions.
+
+Le deuxième ne mesure pas un comportement, **il tient une forme**. Le harnais
+répond à tout, groupé ou non : les deux passent au vert chez lui, et c'est
+précisément pourquoi le refus est arrivé chez l'utilisateur et non au banc.
+L'assertion existe pour qu'on ne regroupe pas une seconde fois, le jour où
+l'idée paraîtra de nouveau économique.
 
 Le second **choisit sa phase** : l'écart n'existe qu'au-delà de la demi-minute,
 et un décor qui laisse la phase au hasard ne détecte qu'une fois sur deux. Le
@@ -9160,7 +9198,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 142 scénarios, 1248 assertions |
+| `npm test` | le harnais Playwright : 142 scénarios, 1249 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -9181,7 +9219,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1093 Ko | 409 Ko | 3 403 → **2** |
+| `content.js` | 1093 Ko | 409 Ko | 3 407 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

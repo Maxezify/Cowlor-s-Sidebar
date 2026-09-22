@@ -18981,9 +18981,15 @@ addEventListener('message', (e) => {
       const cs = [...document.querySelectorAll('.side-nav-card')]
         .filter((x) => /^revenu\d+$/.test(x.dataset.tseLogin || ''));
       const r = window.tse.panneau.rapport().reseau.chapitres.reprise;
+      /* LA FORME DE LA REQUÊTE, ET PAS SEULEMENT SON RÉSULTAT. Voir plus bas
+         pourquoi elle est tenue ici. */
+      const lots = (window.__calls || [])
+        .map((a) => (a.names || []).filter((n) => n === 'TseVodRecent').length)
+        .filter((n) => n > 0);
       return { durees: cs.map((c) => c.querySelector('.tse-uptime')?.textContent || ''),
                survols: window.tse.panneau.rapport().frise.survols,
-               sondes: r.sondes, adoptees: r.adoptees };
+               sondes: r.sondes, adoptees: r.adoptees,
+               plusGrosLot: lots.length ? Math.max(...lots) : 0, lots: lots.length };
     });
     /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — le budget pris avant les
        gardes — douze cartes sur quatorze affichent « 5h00 », les deux autres
@@ -18994,7 +19000,22 @@ addEventListener('message', (e) => {
        adoptées, zéro survol. Sans ce témoin, l'assertion ci-dessus passerait
        le jour où les durées viendraient d'ailleurs. */
     ok('…apprises par le lot, sans un seul survol',
-       vu.survols === 0 && vu.sondes >= 14 && vu.adoptees >= 14, JSON.stringify(vu));
+       vu.survols === 0 && vu.sondes >= 14 && vu.adoptees >= 14,
+       JSON.stringify({ ...vu, durees: undefined }));
+    /* ── ET CHACUNE DANS SA PROPRE REQUÊTE ────────────────────────────────
+       CE QUE LE DÉCOR NE PEUT PAS MONTRER, ET QU'IL FAUT DONC ÉCRIRE. Le
+       harnais répond à tout, groupé ou non : les deux formes y passent au
+       vert. Le terrain, lui, en refuse une, et deux rapports l'ont chiffré —
+       une opération par requête, 8 sondes servies sur 8 ; douze par requête,
+       5 sur 48, le reste en « service error ». Aucune origine apprise.
+
+       CETTE ASSERTION NE MESURE DONC PAS UN COMPORTEMENT, ELLE TIENT UNE
+       FORME. Elle existe pour qu'on ne regroupe pas une seconde fois, un jour
+       où l'idée paraîtra de nouveau économique — et elle dira alors, au banc
+       et non chez l'utilisateur, que la forme a changé. */
+    ok('…et chaque sonde part dans sa propre requête, comme le terrain l\'exige',
+       vu.lots >= 14 && vu.plusGrosLot === 1,
+       JSON.stringify({ lots: vu.lots, plusGrosLot: vu.plusGrosLot }));
     await page.close();
   }
 
