@@ -1952,24 +1952,39 @@ const TSE_GATE_MAX_CLICKS = 5;
        trois cents est très au-delà de ce qu'une session atteint. Sa saturation
        serait elle-même un renseignement, et elle se lit dans le rapport. */
     RECONNECT_PROBE_MAX:    300,
-    /* ── COMBIEN DE SONDES D'ORIGINE PAR RELEVÉ DE CARTES ──────────────────
+    /* ── COMBIEN DE SONDES D'ORIGINE, ET SUR QUELLE DURÉE ──────────────────
        La sonde ne part plus seulement au survol : une carte doit annoncer la
        durée du direct ENTIER sans qu'on ait à la survoler, et l'archive est le
        seul endroit qui connaisse les coupures d'avant notre arrivée.
 
-       SIX PAR LOT, ET SIX REQUÊTES — le groupement a été essayé et mesuré
-       refusé (cf. `sonderUne`). Le chiffre valait deux tant que le budget se
-       dépensait AVANT les gardes de la sonde : il retombait alors sur les deux
-       mêmes chaînes et ne couvrait rien. Dépensé après, deux par lot couvre
-       enfin, mais lentement — une sidebar de cinquante cartes y mettrait un
-       quart d'heure. Six est le compromis que le terrain permet : trois fois
-       plus vite, et six allers-retours toutes les trente secondes au pire,
-       sur une file qui en porte déjà autant.
+       SIX, ET SIX REQUÊTES — le groupement a été essayé et mesuré refusé
+       (cf. `sonderUne`). Mais SIX PAR QUOI : c'est là qu'était la faute. Le
+       chiffre a d'abord été écrit « par lot », en croyant qu'un lot valait un
+       cycle de trente secondes. Un lot part en réalité dès qu'une carte
+       réclame une chaîne inconnue du cache, donc bien plus souvent — et sans
+       répit en Top Chaînes. Le compte se fait donc par FENÊTRE DE TEMPS, qui
+       est la seule chose dont la cadence dépende vraiment (cf.
+       `placeDansLaFenetre`).
+
+       LES DEUX MESURES QUI L'ONT DIT, prises sur deux rapports de terrain :
+           0,25 sonde/s → 23 % de « service error »
+           0,48 sonde/s → 33 %
+       Le refus n'était pas gratuit non plus : resondé au cycle suivant, il
+       remontait la cadence, qui refaisait refuser.
 
        CE QUI BORNE LE TOTAL RESTE AILLEURS, inchangé : une opération par
-       SESSION de stream, jamais deux fois la même, jamais sur une chaîne déjà
-       chaînée ni sur un subathon, et RECONNECT_PROBE_MAX par page. */
-    RECONNECT_PROBE_PER_BATCH: 6,
+       SESSION de stream, jamais sur une chaîne déjà chaînée ni sur un
+       subathon, et RECONNECT_PROBE_MAX par page. */
+    RECONNECT_PROBE_PER_WINDOW: 6,
+    RECONNECT_PROBE_WINDOW:     30_000,
+    /* ── ET CE QU'ON FAIT D'UN REFUS ───────────────────────────────────────
+       Assez long pour ne pas rejouer la requête dans la même bouffée que
+       celles qui viennent d'être refusées, assez court pour que la carte
+       apprenne son origine pendant la séance. Trois essais, puis on laisse :
+       au-delà, ce n'est plus une contrariété de réseau, c'est un refus, et
+       s'obstiner ne ferait que le nourrir. */
+    RECONNECT_PROBE_RETRY:      60_000,
+    RECONNECT_PROBE_TRIES:      3,
     // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
     // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
     // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
@@ -6847,12 +6862,13 @@ const TSE_GATE_MAX_CLICKS = 5;
            puisse partir sans qu'on ait à parcourir le DOM pour la déclencher.
 
            ON NE PLAFONNE PAS ICI, ET C'EST LA CORRECTION DE LA 4.15.2. Cette
-           ligne portait « aSonder.length < RECONNECT_PROBE_PER_BATCH » : elle
-           retenait les deux PREMIÈRES chaînes du lot, que la sonde refusait
-           ensuite pour les avoir déjà vues. L'ordre du lot étant stable, le
-           budget retombait indéfiniment sur les deux mêmes et plus aucune
-           origine n'était apprise. La sonde reçoit maintenant la liste
-           entière et prend ses douze premières RECEVABLES. */
+           ligne portait un plafond de son cru : elle retenait les PREMIÈRES
+           chaînes du lot, que la sonde refusait ensuite pour les avoir déjà
+           vues. L'ordre du lot étant stable, le budget retombait indéfiniment
+           sur les mêmes et plus aucune origine n'était apprise. La sonde
+           reçoit maintenant la liste entière et prend ce que sa fenêtre de
+           temps lui laisse (cf. `placeDansLaFenetre`) — et ce lot-ci n'est
+           qu'une occasion de plus de la dépenser, jamais une autorisation. */
         if (entry?.stream?.id) aSonder.push(login);
         (pending.get(login) || []).forEach(fn => fn(entry));
       });
@@ -13566,10 +13582,43 @@ const TSE_GATE_MAX_CLICKS = 5;
        réponse : les chapitres de l'archive d'avant sont ce que le direct a
        traversé avant la coupure, datés à la seconde par Twitch lui-même. */
     const bilanSondes = { sondes: 0, servies: 0, trouvees: 0, vides: 0, chaines: 0,
-                          reseau: 0, adoptees: 0, chapitresAvant: 0 };
-    // streamId déjà sondés : une seule opération par session, quoi qu'il
-    // arrive — y compris quand la sonde ne trouve rien, qui est le cas normal.
-    const sondees = new Set();
+                          reseau: 0, adoptees: 0, chapitresAvant: 0,
+                          differees: 0, abandonnees: 0 };
+    /* streamId → état de la sonde pour CETTE session de stream :
+         absent               — jamais sondée ;
+         { essais, pasAvant } — sondée ; `pasAvant` à 0 veut dire que Twitch a
+                                répondu (ou que la requête est en vol) et qu'on
+                                ne redemande plus. Un refus y pose l'instant à
+                                partir duquel on a le droit de réessayer. */
+    const sondees = new Map();
+
+    /* ── LE BUDGET DES SONDES SE COMPTE EN TEMPS, PAS EN LOTS ───────────────
+       « SIX PAR LOT » VOULAIT DIRE « SIX PAR CYCLE », ET CE N'EST PAS CE QUE
+       ÇA DIT. Un lot part dès qu'une carte réclame une chaîne que le cache ne
+       connaît pas — au démarrage, à chaque carte qui entre, et sans répit en
+       Top Chaînes, où la liste se renouvelle. Le rapport de terrain l'a
+       chiffré : cent dix-neuf sondes en deux cent cinquante secondes, soit une
+       toutes les deux secondes, là où ce commentaire en promettait six toutes
+       les trente.
+
+       ET TWITCH LE FAIT SAVOIR. Deux rapports, deux cadences, le même refus :
+           0,25 sonde/s → 23 % de « service error »
+           0,48 sonde/s → 33 %
+       Le refus n'est pas gratuit non plus : il était resondé au cycle suivant,
+       ce qui remontait la cadence, ce qui refaisait refuser. Une boucle qui
+       s'entretient, et deux points qui montent ensemble.
+
+       ON BORNE DONC CE QUI DOIT L'ÊTRE : le nombre de sondes par FENÊTRE DE
+       TEMPS. Le lot n'est plus qu'une OCCASION d'en lancer, plus une
+       autorisation d'en lancer six. Ce qui est refusé, faute de place, est
+       compté — le prochain rapport dira si la fenêtre est trop étroite au lieu
+       de le laisser deviner. */
+    let fenetreSondes = [];
+    const placeDansLaFenetre = () => {
+      const seuil = Date.now() - CFG.RECONNECT_PROBE_WINDOW;
+      fenetreSondes = fenetreSondes.filter(t => t > seuil);
+      return CFG.RECONNECT_PROBE_PER_WINDOW - fenetreSondes.length;
+    };
 
     /* ══════════════════════════════════════════════════════════════════════
        LE PASSÉ APPARTIENT AU DIRECT, PAS À UNE SESSION DE STREAM
@@ -13701,7 +13750,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     const gardesSonde = (login, flux) => {
       const streamId = flux?.id;
       if (!streamId || !Number.isFinite(Date.parse(flux?.createdAt))) return false;
-      if (sondees.has(streamId)) return false;
+      /* `pasAvant` à 0 : Twitch a répondu, ou la requête est en vol — dans les
+         deux cas on ne redemande pas. Sinon, c'est un refus reporté : on
+         attend son échéance, et on s'arrête après trois essais. */
+      const etat = sondees.get(streamId);
+      if (etat && (!etat.pasAvant
+                   || etat.essais >= CFG.RECONNECT_PROBE_TRIES
+                   || Date.now() < etat.pasAvant)) return false;
       // Déjà chaîné — on l'a vu de nos yeux, ou une sonde précédente l'a fait.
       if (coupuresDe(login)) return false;
       /* ── CE QUE LA 4.3 AVAIT MIS ICI, ET POURQUOI C'ÉTAIT FAUX ────────────
@@ -13737,18 +13792,31 @@ const TSE_GATE_MAX_CLICKS = 5;
        suivant. Le compteur s'incrémente au même endroit, pour que le plafond
        de page voie ce qui est parti et non ce qui est revenu. */
     const retenirSonde = (streamId) => {
-      sondees.add(streamId);
+      const etat = sondees.get(streamId);
+      sondees.set(streamId, { essais: ((etat && etat.essais) || 0) + 1, pasAvant: 0 });
       while (sondees.size > CFG.CHAPITRES_MAX) {
-        sondees.delete(sondees.values().next().value);
+        sondees.delete(sondees.keys().next().value);
       }
+      fenetreSondes.push(Date.now());
       bilanSondes.sondes++;
     };
 
-    /* Le contraire du précédent, et il n'a qu'un emploi : rendre la session au
-       registre quand la requête n'a pas ABOUTI. Le compteur `sondes`, lui, ne
-       recule pas — il dit ce qui est parti, et une sonde partie a coûté son
-       aller-retour même sans rien rendre. */
-    const oublierSonde = (streamId) => { sondees.delete(streamId); };
+    /* ── UN REFUS SE REPORTE, IL NE SE REJOUE PAS TOUT DE SUITE ────────────
+       La 4.15.4 rendait la session au registre sans délai, et c'était déjà
+       mieux que de la perdre : dix-huit cartes condamnées à compter leur
+       tronçon jusqu'au rechargement. Mais réessayer au cycle SUIVANT ajoute sa
+       requête à celles qui viennent d'être refusées, et nourrit la cause. On
+       repousse donc d'un délai franc, et on abandonne au bout de trois essais
+       — au-delà, ce n'est plus une contrariété de réseau, c'est un refus.
+
+       LE COMPTEUR `sondes` NE RECULE PAS : il dit ce qui est parti, et une
+       sonde partie a coûté son aller-retour même sans rien rendre. */
+    const reporterSonde = (streamId) => {
+      const etat = sondees.get(streamId);
+      if (!etat) return;
+      if (etat.essais >= CFG.RECONNECT_PROBE_TRIES) { bilanSondes.abandonnees += 1; return; }
+      etat.pasAvant = Date.now() + CFG.RECONNECT_PROBE_RETRY;
+    };
 
     const opSonde = (login) => ({
       operationName: 'TseVodRecent',
@@ -13767,7 +13835,7 @@ const TSE_GATE_MAX_CLICKS = 5;
          donc un refus de plus, et il se rend au registre comme les autres. */
       if (!Array.isArray(aretes)) {
         bilanSondes.vides++;
-        oublierSonde(flux?.id);
+        reporterSonde(flux?.id);
         return false;
       }
       bilanSondes.servies++;
@@ -13845,7 +13913,7 @@ const TSE_GATE_MAX_CLICKS = 5;
            Le rapport le chiffrait : dix-huit sondes tombées au réseau, dix-huit
            cartes condamnées à compter leur tronçon jusqu'au rechargement.
            On rend donc la session au registre, et le cycle suivant réessaie. */
-        oublierSonde(flux.id);
+        reporterSonde(flux.id);
         return false;
       }
       return digererSonde(login, flux, res?.[0]?.data?.user?.videos?.edges);
@@ -13865,10 +13933,15 @@ const TSE_GATE_MAX_CLICKS = 5;
        cette réécriture corrige. */
     const sonderLot = async (logins) => {
       const retenues = [];
+      let place = placeDansLaFenetre();
       for (const login of logins) {
-        if (retenues.length >= CFG.RECONNECT_PROBE_PER_BATCH) break;
         const flux = cache.get(login)?.stream;
         if (!gardesSonde(login, flux)) continue;
+        /* LA FENÊTRE EST PLEINE : la chaîne est recevable, on ne la marque
+           surtout pas — elle repassera au prochain lot. Ce qu'on compte ici
+           est le report, pas le refus. */
+        if (place <= 0) { bilanSondes.differees += 1; continue; }
+        place -= 1;
         retenirSonde(flux.id);
         retenues.push({ login, flux });
       }

@@ -94,6 +94,18 @@ const subs = [
      ne l'éprouverait pas. */
   [/RECONNECT_GAP_MAX:\s*10 \* 60_000/, 'RECONNECT_GAP_MAX:   2_500'],
   [/RECONNECT_TTL:\s*10 \* 60_000/,     'RECONNECT_TTL:       2_500'],
+  /* ── LA FENÊTRE DES SONDES D'ORIGINE, ET LE REPORT D'UN REFUS ───────────
+     Six sondes par trente secondes en production : une sidebar de quatorze
+     cartes y mettrait plus d'une minute, et le scénario qui exige les quatorze
+     origines attendrait pour rien. La fenêtre est donc ramenée à une durée du
+     même ordre que le reste du banc, ce qui garde la RÈGLE — un budget compté
+     en temps, pas en lots — tout en la rendant observable.
+
+     Le report d'un refus suit : sans accélération, aucun test ne pourrait voir
+     une sonde refusée repartir, et la garde des trois essais ne serait tenue
+     par rien. */
+  [/RECONNECT_PROBE_WINDOW:\s*30_000/, 'RECONNECT_PROBE_WINDOW:     2_000'],
+  [/RECONNECT_PROBE_RETRY:\s*60_000/,  'RECONNECT_PROBE_RETRY:      1_200'],
   // Absence au-delà de laquelle le retour sur l'onglet vaut un redémarrage :
   // une minute en production. Réduite ici pour qu'un test puisse observer LES
   // DEUX branches — la courte absence, qui rattrape en silence, et la longue,
