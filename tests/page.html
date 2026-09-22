@@ -317,7 +317,10 @@ window.fetch = async (url, opt) => {
   window.__lastAcceptLanguage = enTetes['Accept-Language'] || null;
   // Une opération porte désormais une LISTE de logins (users(logins:)).
   const ops = body.flatMap(o => o.variables?.logins || []);
-  window.__calls.push({ n: ops.length, ops, op: body[0]?.operationName,
+  // L'INSTANT DE L'APPEL, et non seulement son contenu. Une cadence ne se
+  // lit pas dans une liste : sans horodatage, un banc ne peut pas dire si
+  // six requêtes sont parties en six secondes ou toutes ensemble.
+  window.__calls.push({ t: Date.now(), n: ops.length, ops, op: body[0]?.operationName,
                         // Noms de TOUTES les opérations du lot : c'est ce qui
                         // permet de compter le coût réel d'une passe globale.
                         names: body.map(o => o.operationName),

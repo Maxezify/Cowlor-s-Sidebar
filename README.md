@@ -2178,6 +2178,59 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La cadence des sondes se comptait en lots, pas en temps (v4.15.6)
+
+Aucun défaut visible ici : un rapport, lu à côté du précédent. C'est la
+comparaison qui parle.
+
+| | 4.15.4 | 4.15.5 |
+| --- | --- | --- |
+| durée de page | 473 s | 250 s |
+| sondes | 119 | 119 |
+| **cadence** | 0,25 /s | **0,48 /s** |
+| **refus (« service error »)** | 23 % | **33 %** |
+
+La cadence a doublé, le taux de refus a suivi. Deux points seulement, mais ils
+montent ensemble — et la cause était écrite dans le commentaire du code.
+
+### « Six par lot » voulait dire « six par cycle »
+
+Et ce n'est pas ce que ça disait. Un lot ne part pas toutes les trente
+secondes : **il part dès qu'une carte réclame une chaîne que le cache ne
+connaît pas** — au démarrage, à chaque carte qui entre, et sans répit en Top
+Chaînes, où la liste se renouvelle. Mesuré au rapport : cent dix-neuf sondes en
+deux cent cinquante secondes, soit une toutes les deux secondes, là où le
+commentaire en promettait six toutes les trente.
+
+Le budget se compte donc désormais par **fenêtre de temps**, qui est la seule
+chose dont la cadence dépende vraiment. Le lot n'est plus qu'une *occasion* de
+dépenser ce budget, plus une autorisation d'en dépenser six.
+
+### Et le refus nourrissait sa propre cause
+
+La 4.15.4 rendait la session au registre sans délai — déjà mieux que de la
+perdre, qui coûtait dix-huit cartes par page. Mais réessayer au cycle
+**suivant** ajoute sa requête à celles qui viennent d'être refusées, ce qui
+remonte la cadence, ce qui refait refuser. Une boucle qui s'entretient.
+
+Un refus se reporte maintenant d'un délai franc, et on abandonne après trois
+essais : au-delà, ce n'est plus une contrariété de réseau, c'est un refus, et
+s'obstiner ne ferait que le nourrir. Les deux issues sont comptées — `differees`
+et `abandonnees` — pour que le prochain rapport dise si la fenêtre est trop
+étroite au lieu de le laisser deviner.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| le budget repris par lot au lieu du temps | **pointe 14** sondes dans une fenêtre qui en permet 6 |
+
+Cette assertion ne mesure ni un affichage ni un compteur : **elle mesure une
+cadence**, la fenêtre la plus chargée de tout le scénario. Elle a demandé un
+horodatage au harnais, parce qu'une cadence ne se lit pas dans une liste
+d'appels — et c'est précisément pour cela que le banc ne voyait rien pendant
+que le terrain, lui, comptait les refus.
+
 ## La ligne du dessous comptait autrement que les deux du dessus (v4.15.5)
 
 > « Le uptime sur la carte est pareil que celui à côté de "Précédemment…",
@@ -9288,7 +9341,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 142 scénarios, 1250 assertions |
+| `npm test` | le harnais Playwright : 142 scénarios, 1251 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -9309,12 +9362,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1093 Ko | 409 Ko | 3 409 → **2** |
+| `content.js` | 1131 Ko | 415 Ko | 3 412 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1340 Ko** | **562 Ko** | **−57 %** |
+| **les cinq** | **1377 Ko** | **567 Ko** | **−59 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

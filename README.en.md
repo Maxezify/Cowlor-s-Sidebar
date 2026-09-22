@@ -2057,6 +2057,58 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The probe rate was counted in batches, not in time (v4.15.6)
+
+No visible defect here: one report, read next to the previous one. The
+comparison is what speaks.
+
+| | 4.15.4 | 4.15.5 |
+| --- | --- | --- |
+| page lifetime | 473 s | 250 s |
+| probes | 119 | 119 |
+| **rate** | 0.25 /s | **0.48 /s** |
+| **refusals ("service error")** | 23 % | **33 %** |
+
+The rate doubled, the refusal rate followed. Only two points, but they rise
+together — and the cause was written in the code's own comment.
+
+### "Six per batch" meant "six per cycle"
+
+And that is not what it said. A batch does not go out every thirty seconds:
+**it goes out as soon as a card asks for a channel the cache does not know** —
+at startup, on every card that enters, and relentlessly in Top Channels, where
+the list keeps renewing. Measured in the report: one hundred and nineteen
+probes in two hundred and fifty seconds, one every two seconds, where the
+comment promised six every thirty.
+
+The budget is therefore now counted per **time window**, which is the only
+thing the rate actually depends on. A batch is merely an *opportunity* to spend
+that budget, no longer a licence to spend six.
+
+### And the refusal was feeding its own cause
+
+4.15.4 handed the session back to the register with no delay — already better
+than losing it, which cost eighteen cards per page. But retrying on the
+**next** cycle adds its request to the ones just refused, which raises the
+rate, which causes more refusals. A loop that sustains itself.
+
+A refusal is now deferred by a clear delay, and given up after three attempts:
+beyond that it is no longer a network hiccup, it is a refusal, and persisting
+would only feed it. Both outcomes are counted — `differees` and `abandonnees` —
+so the next report says whether the window is too narrow instead of leaving it
+to be guessed.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the budget taken per batch instead of per time | **peak of 14** probes in a window that allows 6 |
+
+This assertion measures neither a display nor a counter: **it measures a
+rate**, the busiest window of the whole scenario. It required a timestamp from
+the harness, because a rate cannot be read from a list of calls — and that is
+exactly why the bench saw nothing while the field was counting refusals.
+
 ## The line below counted differently from the two above (v4.15.5)
 
 > "The uptime on the card is the same as the one next to 'Previously…',
@@ -8937,7 +8989,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 142 scenarios, 1250 assertions |
+| `npm test` | the Playwright harness: 142 scenarios, 1251 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -8957,12 +9009,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1093 KB | 409 KB | 3,409 → **2** |
+| `content.js` | 1131 KB | 415 KB | 3,412 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1340 KB** | **562 KB** | **−57 %** |
+| **all five** | **1377 KB** | **567 KB** | **−59 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

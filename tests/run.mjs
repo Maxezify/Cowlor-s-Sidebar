@@ -18981,15 +18981,25 @@ addEventListener('message', (e) => {
       const cs = [...document.querySelectorAll('.side-nav-card')]
         .filter((x) => /^revenu\d+$/.test(x.dataset.tseLogin || ''));
       const r = window.tse.panneau.rapport().reseau.chapitres.reprise;
-      /* LA FORME DE LA REQUÊTE, ET PAS SEULEMENT SON RÉSULTAT. Voir plus bas
-         pourquoi elle est tenue ici. */
-      const lots = (window.__calls || [])
-        .map((a) => (a.names || []).filter((n) => n === 'TseVodRecent').length)
-        .filter((n) => n > 0);
+      /* LA FORME ET LA CADENCE DES REQUÊTES, et pas seulement leur résultat.
+         Voir plus bas pourquoi l'une et l'autre sont tenues ici. */
+      const envois = (window.__calls || [])
+        .filter((a) => (a.names || []).includes('TseVodRecent'));
+      const lots = envois.map((a) => a.names.filter((n) => n === 'TseVodRecent').length);
+      /* LA POINTE : combien de sondes ont tenu dans la fenêtre la plus
+         chargée. C'est exactement la grandeur que la règle borne, et elle ne
+         se lit pas dans une liste — d'où l'horodatage posé par le harnais. */
+      const ts = envois.map((a) => a.t).sort((x, y) => x - y);
+      let pointe = 0;
+      for (let i = 0; i < ts.length; i++) {
+        const dans = ts.filter((t) => t >= ts[i] && t < ts[i] + 2000).length;
+        if (dans > pointe) pointe = dans;
+      }
       return { durees: cs.map((c) => c.querySelector('.tse-uptime')?.textContent || ''),
                survols: window.tse.panneau.rapport().frise.survols,
-               sondes: r.sondes, adoptees: r.adoptees,
-               plusGrosLot: lots.length ? Math.max(...lots) : 0, lots: lots.length };
+               sondes: r.sondes, adoptees: r.adoptees, differees: r.differees,
+               plusGrosLot: lots.length ? Math.max(...lots) : 0, lots: lots.length,
+               pointe };
     });
     /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — le budget pris avant les
        gardes — douze cartes sur quatorze affichent « 5h00 », les deux autres
@@ -19016,6 +19026,21 @@ addEventListener('message', (e) => {
     ok('…et chaque sonde part dans sa propre requête, comme le terrain l\'exige',
        vu.lots >= 14 && vu.plusGrosLot === 1,
        JSON.stringify({ lots: vu.lots, plusGrosLot: vu.plusGrosLot }));
+    /* ── ET SIX PAR FENÊTRE DE TEMPS, NON PAR LOT ─────────────────────────
+       « SIX PAR LOT » VOULAIT DIRE « SIX PAR CYCLE », et ce n'est pas ce que
+       ça disait. Un lot part dès qu'une carte réclame une chaîne inconnue du
+       cache — donc bien plus souvent qu'un cycle, et sans répit en Top
+       Chaînes. Le rapport de terrain l'a chiffré : une sonde toutes les deux
+       secondes, et Twitch qui en refusait un tiers.
+
+       CE QUE CETTE ASSERTION MESURE EST LA CADENCE, et rien d'autre : la
+       fenêtre la plus chargée de tout le scénario. Elle a demandé un
+       horodatage au harnais, parce qu'une cadence ne se lit pas dans une
+       liste d'appels. Mutant — le budget repris par lot — « pointe 14 » là où
+       la règle en permet six. */
+    ok('…et la fenêtre de temps borne la cadence, que le lot soit gros ou non',
+       vu.pointe <= 6 && vu.differees > 0,
+       JSON.stringify({ pointe: vu.pointe, differees: vu.differees }));
     await page.close();
   }
 
