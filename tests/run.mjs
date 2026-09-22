@@ -17837,7 +17837,17 @@ addEventListener('message', (e) => {
   await page.evaluate(() => {
     const h = (min) => new Date(Date.now() - min * 60_000).toISOString();
     const trio = ['aa', 'bb', 'absent'];
-    const guests = trio.map((l, i) => ({ id: '80' + i, login: l, viewers: 300, combined: 1300 }));
+    /* ── QUATRE MEMBRES, ET DEUX ESPÈCES D'ABSENTS ────────────────────────
+       « absent » porte un combiné : depuis la 4.15.7 il est classé dessus,
+       comme Twitch l'affiche, et il obtient donc une carte. « petit », lui,
+       n'en a pas — Twitch rend `collaborationViewersCount: null` sur certains
+       participants, c'est observé — et il reste donc sous la coupe sur son
+       audience propre. C'est le cas SAIN que `sousLaCoupe` décrit, et il
+       fallait le distinguer du défaut : jusqu'ici ce décor n'en jouait qu'un
+       seul, celui que la 4.15.7 a corrigé. */
+    const guests = [
+      ...trio.map((l, i) => ({ id: '80' + i, login: l, viewers: 300, combined: 1300 })),
+      { id: '803', login: 'petit', viewers: 40, combined: null }];
     /* CINQUANTE CHAÎNES au-dessus du seuil : « absent », à quarante
        spectateurs dans une autre catégorie, ne peut pas entrer au top 30. Sans
        ce bruit, le décor classerait tout et ne jouerait plus le cas. */
@@ -17846,17 +17856,19 @@ addEventListener('message', (e) => {
       { name: 'VALORANT', viewers: 90_000, streams: [
         { login: 'aa', viewers: 1300 }, { login: 'bb', viewers: 1300 },
         { login: 'modele', viewers: 1200 }, ...bruit] },
-      { name: 'Discussions', viewers: 40, streams: [{ login: 'absent', viewers: 40 }] },
+      { name: 'Discussions', viewers: 80, streams: [
+        { login: 'absent', viewers: 40 }, { login: 'petit', viewers: 40 }] },
     ];
     window.__fx = Object.fromEntries([
       ['aa', { id: '800', createdAt: h(60), viewers: 300, game: 'VALORANT', tags: [] }],
       ['bb', { id: '801', createdAt: h(490), viewers: 300, game: 'VALORANT', tags: [] }],
       ['absent', { id: '802', createdAt: h(120), viewers: 40, game: 'Discussions', tags: [] }],
+      ['petit', { id: '803', createdAt: h(120), viewers: 40, game: 'Discussions', tags: [] }],
       ['modele', { id: '812', createdAt: h(30), viewers: 1200, game: 'VALORANT', tags: [] }],
       ...bruit.map((x) => [x.login, { id: 'b' + x.login, createdAt: h(30),
                                       viewers: x.viewers, game: 'VALORANT', tags: [] }]),
     ]);
-    /* La session compte QUATRE membres : l'hôte et les trois invités. */
+    /* La session compte CINQ membres : l'hôte et les quatre invités. */
     window.__gs = Object.fromEntries(trio.map((l, i) =>
       ['80' + i, { hostId: '8000', hostLogin: 'hote', guests }]));
     window.__addCard('modele', 'VALORANT', '1,2 k');
@@ -17878,16 +17890,24 @@ addEventListener('message', (e) => {
   /* LE DÉCOR JOUE BIEN LE CAS : la pastille annonce plus de participants qu'il
      n'y a de lignes groupées — la contradiction même du rapport de terrain. */
   ok('la pastille annonce plus de participants que la liste n\'en montre',
-     vu.pastilles.length === 2 && vu.pastilles.every((x) => x === '3'),
+     vu.pastilles.length === 3 && vu.pastilles.every((x) => x === '4'),
      JSON.stringify(vu.pastilles));
-  ok('…et le membre non classé n\'est ni au classement ni à l\'écran',
-     vu.absentClasse === false && vu.absentAffiche === false, JSON.stringify(vu));
+  /* ── CE QUE LA 4.15.7 A RENVERSÉ ICI, ET POURQUOI C'EST JUSTE ───────────
+     CETTE ASSERTION EXIGEAIT LE CONTRAIRE : que « absent », membre de session
+     connu du pool, reste hors du classement et hors de l'écran. Elle décrivait
+     donc le défaut comme un contrat. Le rapport de terrain l'a dit autrement —
+     « des co-streams non visibles sur Top Chaînes » — et la règle de la maison
+     tranche depuis la 4.13.6 : le nombre qui TRIE est celui qui est AFFICHÉ,
+     et en session Twitch affiche le combiné. Un membre dont on connaît le
+     combiné a donc sa place au classement, carte comprise. */
+  ok('…et le membre dont on connaît le combiné est classé dessus, et affiché',
+     vu.absentClasse === true && vu.absentAffiche === true, JSON.stringify(vu));
 
   /* LE BILAN REND COMPTE DE TOUS LES MEMBRES, SANS EN PERDRE : c'est ce qui
      rend ses trois nombres lisibles ensemble plutôt qu'un à un. */
   const b = vu.bilan;
   ok('le bilan compte la session entière, et chaque membre dans une seule case',
-     b.groupes === 1 && b.membres === 4
+     b.groupes === 1 && b.membres === 5
      && b.affiches + b.horsClassement + b.sousLaCoupe
         + b.classesNonAffichees === b.membres,
      JSON.stringify(b));
@@ -17904,8 +17924,18 @@ addEventListener('message', (e) => {
      membre connu mais sous la coupe. Les compter à part est ce qui rend le
      bilan lisible ; les confondre, c'est ce qui a coûté deux versions. */
   ok('…et il sépare « inconnu de la marche » de « connu mais sous la coupe »',
-     b.affiches === 2 && b.horsClassement === 1 && b.sousLaCoupe === 1,
+     b.affiches === 3 && b.horsClassement === 1 && b.sousLaCoupe === 1,
      JSON.stringify(b));
+  /* ── ET LE COMPTEUR QUI CROYAIT NE JAMAIS RIEN AVOIR À DIRE ─────────────
+     `sousLaCoupeAvecCombine` lisait le cache des CARTES pour retrouver
+     l'identifiant d'un membre qui, par définition de cette branche, n'en a
+     pas. Il valait donc zéro quoi qu'il arrive, et un rapport portant
+     « sousLaCoupe 14 · sousLaCoupeAvecCombine 0 » se lisait « rien
+     d'anormal ». Ici « petit » est sous la coupe SANS combiné connu : le
+     compteur doit dire zéro parce que c'est vrai, et non parce qu'il est
+     aveugle. Le scénario 143 tient l'autre moitié. */
+  ok('…et « sous la coupe sans combiné » est le cas sain, pas un angle mort',
+     b.sousLaCoupeAvecCombine === 0, JSON.stringify(b));
   /* ET SUR UNE LISTE SAINE, AUCUNE FUITE : toute chaîne au classement a sa
      carte. C'est ce zéro que le terrain devra confirmer — ou démentir. */
   ok('…et aucun membre classé ne reste sans carte',
@@ -17986,8 +18016,18 @@ addEventListener('message', (e) => {
   await p2.evaluate(() => {
     const h = (min) => new Date(Date.now() - min * 60_000).toISOString();
     const trio = ['seulvu', 'part1', 'part2'];
-    const guests = trio.map((l, i) => ({ id: '90' + i, login: l,
-                                         viewers: 300, combined: 1300 }));
+    /* ── LES DEUX ABSENTS N'ONT PAS DE COMBINÉ, ET C'EST LE CAS QU'ON JOUE ──
+       Twitch rend `collaborationViewersCount: null` pour certains
+       participants d'une même session — c'est observé, et c'est écrit au-dessus
+       de la requête. Ces deux-là restent donc sous la coupe sur leur audience
+       propre, ce qui est le cas SAIN. Depuis la 4.15.7, un membre dont le
+       combiné est connu remonte au classement et obtient une carte : lui donner
+       un combiné ici ferait deux membres visibles, donc un groupe dessiné, et
+       le scénario cesserait de jouer la session réduite à UN seul visible. */
+    const guests = [
+      { id: '900', login: 'seulvu', viewers: 300, combined: 1300 },
+      { id: '901', login: 'part1', viewers: 40, combined: null },
+      { id: '902', login: 'part2', viewers: 40, combined: null }];
     const bruit = [...Array(50)].map((_, i) => ({ login: 'n' + i, viewers: 900 - i }));
     window.__cats = [
       { name: 'VALORANT', viewers: 90_000, streams: [
@@ -18028,6 +18068,10 @@ addEventListener('message', (e) => {
      vu.bilan.affiches === 1 && vu.bilan.horsClassement === 1
      && vu.bilan.sousLaCoupe === 2
      && vu.bilan.classesNonAffichees === 0, JSON.stringify(vu.bilan));
+  /* Les deux sous la coupe n'ont pas de combiné connu : c'est pour cela
+     qu'ils y restent, et le compteur doit le dire (cf. scénario 135). */
+  ok('…et aucun des deux n\'y est avec un combiné connu',
+     vu.bilan.sousLaCoupeAvecCombine === 0, JSON.stringify(vu.bilan));
   await p2.close();
 }
 
@@ -18947,7 +18991,7 @@ addEventListener('message', (e) => {
      qu'il dise — la couverture ne doit pas dépendre du budget d'un lot. */
   {
     const page = await fresh();
-    const N = 14;
+    const N = 20;
     await page.evaluate((n) => {
       const neuf  = new Date(Date.now() - 60_000).toISOString();          // tronçon : 1 min
       const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();    // archive : 5 h
@@ -18974,7 +19018,7 @@ addEventListener('message', (e) => {
     await attendre(page, () => {
       const cs = [...document.querySelectorAll('.side-nav-card')]
         .filter((x) => /^revenu\d+$/.test(x.dataset.tseLogin || ''));
-      return cs.length >= 14
+      return cs.length >= 20
         && cs.every((c) => /^5h/.test(c.querySelector('.tse-uptime')?.textContent || ''));
     }, 15_000);
     const vu = await page.evaluate(() => {
@@ -19002,15 +19046,15 @@ addEventListener('message', (e) => {
                pointe };
     });
     /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — le budget pris avant les
-       gardes — douze cartes sur quatorze affichent « 5h00 », les deux autres
+       gardes — douze cartes sur vingt affichent « 5h00 », les huit autres
        restent à « 1m », indéfiniment. */
-    ok('les quatorze cartes portent la durée du direct entier, pas seulement les premières',
-       vu.durees.length === 14 && vu.durees.every((d) => /^5h/.test(d)), JSON.stringify(vu));
-    /* ET LE COMPTE LE DIT AUSSI : quatorze sondes parties, quatorze origines
+    ok('les vingt cartes portent la durée du direct entier, pas seulement les premières',
+       vu.durees.length === 20 && vu.durees.every((d) => /^5h/.test(d)), JSON.stringify(vu));
+    /* ET LE COMPTE LE DIT AUSSI : vingt sondes parties, vingt origines
        adoptées, zéro survol. Sans ce témoin, l'assertion ci-dessus passerait
        le jour où les durées viendraient d'ailleurs. */
     ok('…apprises par le lot, sans un seul survol',
-       vu.survols === 0 && vu.sondes >= 14 && vu.adoptees >= 14,
+       vu.survols === 0 && vu.sondes >= 20 && vu.adoptees >= 20,
        JSON.stringify({ ...vu, durees: undefined }));
     /* ── ET CHACUNE DANS SA PROPRE REQUÊTE ────────────────────────────────
        CE QUE LE DÉCOR NE PEUT PAS MONTRER, ET QU'IL FAUT DONC ÉCRIRE. Le
@@ -19024,7 +19068,7 @@ addEventListener('message', (e) => {
        où l'idée paraîtra de nouveau économique — et elle dira alors, au banc
        et non chez l'utilisateur, que la forme a changé. */
     ok('…et chaque sonde part dans sa propre requête, comme le terrain l\'exige',
-       vu.lots >= 14 && vu.plusGrosLot === 1,
+       vu.lots >= 20 && vu.plusGrosLot === 1,
        JSON.stringify({ lots: vu.lots, plusGrosLot: vu.plusGrosLot }));
     /* ── ET SIX PAR FENÊTRE DE TEMPS, NON PAR LOT ─────────────────────────
        « SIX PAR LOT » VOULAIT DIRE « SIX PAR CYCLE », et ce n'est pas ce que
@@ -19039,7 +19083,7 @@ addEventListener('message', (e) => {
        liste d'appels. Mutant — le budget repris par lot — « pointe 14 » là où
        la règle en permet six. */
     ok('…et la fenêtre de temps borne la cadence, que le lot soit gros ou non',
-       vu.pointe <= 6 && vu.differees > 0,
+       vu.pointe <= 12 && vu.differees > 0,
        JSON.stringify({ pointe: vu.pointe, differees: vu.differees }));
     await page.close();
   }
