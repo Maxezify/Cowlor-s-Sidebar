@@ -14992,10 +14992,33 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (f.tronquee) {
         liste.appendChild(friseLigne(S.uiTrailTruncated, '', null, 'inconnu'));
       }
+      /* ── LA CATÉGORIE EN COURS SE TRONQUE, LES AUTRES S'ARRONDISSENT ──────
+         SIGNALÉ AINSI, capture à l'appui : la carte et le total de la frise
+         disaient tous deux « 3h02 », et la ligne juste en dessous — « Grand
+         Theft Auto V · en cours » — annonçait « 3h03 ». Sur une frise à une
+         seule catégorie, cette ligne EST le total : deux nombres pour la même
+         chose, à un centimètre d'écart.
+
+         LA RÈGLE DE LA MAISON TRANCHE, ET ELLE ÉTAIT DÉJÀ ÉCRITE au-dessus de
+         `formatDuree` : une durée écoulée se tronque, un intervalle mesuré
+         s'arrondit. Une catégorie TERMINÉE est un intervalle — deux instants
+         connus — et garde son arrondi. La catégorie EN COURS, elle, se termine
+         à MAINTENANT : c'est un écart à maintenant, exactement comme le total
+         au-dessus et comme le compteur de la carte. Elle se tronque avec eux.
+
+         LA 4.15.2 N'AVAIT CORRIGÉ QUE LE TOTAL, et c'est la même faute une
+         ligne plus bas. Ce qui se lit côte à côte doit se compter pareil : la
+         question n'est pas « où l'affiche-t-on » mais « est-ce que ça court
+         encore ».
+
+         LES REPLIÉES N'ONT PAS LA QUESTION : la catégorie en cours n'est
+         jamais repliée (cf. le choix des lignes gardées), et ce qui reste est
+         fait d'intervalles clos. */
       for (const c of montrees) {
         liste.appendChild(friseLigne(
           c.libelle,
-          approche(formatDuree(c.dureeMs)) + (c.encours ? ` · ${S.uiTrailNow}` : ''),
+          approche((c.encours ? formatEcoule : formatDuree)(c.dureeMs))
+            + (c.encours ? ` · ${S.uiTrailNow}` : ''),
           couleurs.get(c.jeu),
           c.encours ? 'encours' : '',
           c.fois));

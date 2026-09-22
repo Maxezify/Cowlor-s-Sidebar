@@ -2057,6 +2057,47 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The line below counted differently from the two above (v4.15.5)
+
+> "The uptime on the card is the same as the one next to 'Previously…',
+> however there is a one-minute difference on the time below the trail."
+
+Screenshot attached: the card and the trail total both said **3h02**, and the
+line just below — *"Grand Theft Auto V · live"* — said **3h03**.
+
+### Why this is 4.15.2's mistake, one line further down
+
+4.15.2 gave the trail's **total** the card's convention: an elapsed duration
+truncates. It stopped there. But the legend just below carries each category's
+duration, and the **current** category's also ends at *now* — it is a gap to
+now, not a measured interval. Rendered by `formatDuree`, it rounded.
+
+**On a single-category trail, that line IS the total.** The product was
+therefore showing two numbers for the same thing, a centimetre apart.
+
+```js
+approche((c.encours ? formatEcoule : formatDuree)(c.dureeMs))
+```
+
+A **finished** category keeps its rounding, and rightly so: it is bounded by
+two known instants, it is an interval. The question is not *where it is shown*
+but *is it still running*.
+
+**Folded** lines do not have the question: the current category is never
+folded, and what remains is made of closed intervals.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the current line rendered by `formatDuree` | **trail 3h00, line 3h01** |
+
+The assertion joins the sub-test that **picks its phase** — the gap only exists
+past the half-minute, and a fixture that leaves it to chance detects it only
+half the time. The fixture has a single category precisely so its line and the
+total are the same number: making them diverge is then a contradiction, not a
+rounding nuance.
+
 ## What the field refused, and what 4.15.2 had conflated (v4.15.4)
 
 > "ca73cca worked, but this one doesn't."
@@ -8896,7 +8937,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 142 scenarios, 1249 assertions |
+| `npm test` | the Playwright harness: 142 scenarios, 1250 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -8916,7 +8957,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1093 KB | 409 KB | 3,408 → **2** |
+| `content.js` | 1093 KB | 409 KB | 3,409 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

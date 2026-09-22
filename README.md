@@ -2178,6 +2178,50 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La ligne du dessous comptait autrement que les deux du dessus (v4.15.5)
+
+> « Le uptime sur la carte est pareil que celui à côté de "Précédemment…",
+> cependant on peut voir une différence d'une minute sur le temps en dessous
+> de la frise. »
+
+Capture à l'appui : la carte et le total de la frise disaient tous deux
+**3h02**, et la ligne juste en dessous — *« Grand Theft Auto V · en cours »* —
+annonçait **3h03**.
+
+### Pourquoi c'est la même faute que la 4.15.2, une ligne plus bas
+
+La 4.15.2 avait donné au **total** de la frise la convention de la carte : une
+durée écoulée se tronque. Elle s'était arrêtée là. Or la légende juste en
+dessous porte la durée de chaque catégorie, et celle de la catégorie **en
+cours** se termine elle aussi à *maintenant* — c'est un écart à maintenant,
+pas un intervalle mesuré. Rendue par `formatDuree`, elle s'arrondissait.
+
+**Sur une frise à une seule catégorie, cette ligne EST le total.** Le produit
+affichait donc deux nombres pour la même chose, à un centimètre d'écart.
+
+```js
+approche((c.encours ? formatEcoule : formatDuree)(c.dureeMs))
+```
+
+Une catégorie **terminée** garde son arrondi, et c'est juste : elle est bornée
+par deux instants connus, c'est un intervalle. La question n'est pas *où on
+l'affiche* mais *est-ce que ça court encore*.
+
+Les lignes **repliées** n'ont pas la question : la catégorie en cours n'est
+jamais repliée, et ce qui reste est fait d'intervalles clos.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la ligne en cours rendue par `formatDuree` | **frise 3h00, ligne 3h01** |
+
+L'assertion s'ajoute au sous-test qui **choisit sa phase** — l'écart n'existe
+qu'au-delà de la demi-minute, et un décor qui la laisse au hasard ne détecte
+qu'une fois sur deux. Le décor n'a qu'une catégorie, exactement pour que sa
+ligne et le total soient le même nombre : les faire diverger devient alors une
+contradiction, et non une nuance d'arrondi.
+
 ## Ce que le terrain a refusé, et ce que la 4.15.2 avait confondu (v4.15.4)
 
 > « ca73cca fonctionnait, mais là non. »
@@ -9244,7 +9288,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 142 scénarios, 1249 assertions |
+| `npm test` | le harnais Playwright : 142 scénarios, 1250 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -9265,7 +9309,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1093 Ko | 409 Ko | 3 408 → **2** |
+| `content.js` | 1093 Ko | 409 Ko | 3 409 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
