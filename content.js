@@ -1957,20 +1957,19 @@ const TSE_GATE_MAX_CLICKS = 5;
        durée du direct ENTIER sans qu'on ait à la survoler, et l'archive est le
        seul endroit qui connaisse les coupures d'avant notre arrivée.
 
-       DOUZE PAR LOT, ET UNE SEULE REQUÊTE POUR LES DOUZE. Le chiffre était à
-       deux, quand chaque sonde partait dans son propre aller-retour : douze
-       cartes auraient fait douze requêtes sur une file qui en porte déjà
-       autant. Les sondes du lot voyagent désormais ENSEMBLE, dans un tableau
-       d'opérations — exactement comme le mode global interroge ses vingt
-       catégories (cf. GLOBAL_BATCH_OPS) — et le coût réseau d'un lot ne dépend
-       plus de ce chiffre. Ce qu'il fixe est donc la seule chose qui compte
-       encore : la VITESSE de couverture. Vingt-quatre cartes ont leur origine
-       en deux cycles, contre douze auparavant.
+       SIX PAR LOT, ET SIX REQUÊTES — le groupement a été essayé et mesuré
+       refusé (cf. `sonderUne`). Le chiffre valait deux tant que le budget se
+       dépensait AVANT les gardes de la sonde : il retombait alors sur les deux
+       mêmes chaînes et ne couvrait rien. Dépensé après, deux par lot couvre
+       enfin, mais lentement — une sidebar de cinquante cartes y mettrait un
+       quart d'heure. Six est le compromis que le terrain permet : trois fois
+       plus vite, et six allers-retours toutes les trente secondes au pire,
+       sur une file qui en porte déjà autant.
 
        CE QUI BORNE LE TOTAL RESTE AILLEURS, inchangé : une opération par
        SESSION de stream, jamais deux fois la même, jamais sur une chaîne déjà
        chaînée ni sur un subathon, et RECONNECT_PROBE_MAX par page. */
-    RECONNECT_PROBE_PER_BATCH: 12,
+    RECONNECT_PROBE_PER_BATCH: 6,
     // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
     // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
     // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
@@ -13745,6 +13744,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       bilanSondes.sondes++;
     };
 
+    /* Le contraire du précédent, et il n'a qu'un emploi : rendre la session au
+       registre quand la requête n'a pas ABOUTI. Le compteur `sondes`, lui, ne
+       recule pas — il dit ce qui est parti, et une sonde partie a coûté son
+       aller-retour même sans rien rendre. */
+    const oublierSonde = (streamId) => { sondees.delete(streamId); };
+
     const opSonde = (login) => ({
       operationName: 'TseVodRecent',
       variables: { login },
@@ -13756,7 +13761,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     const digererSonde = (login, flux, aretes) => {
       const depart = Date.parse(flux?.createdAt);
       if (!Number.isFinite(depart)) return false;
-      if (!Array.isArray(aretes)) { bilanSondes.vides++; return false; }
+      /* Réponse comprise, sans erreur de transport, mais sans le champ
+         attendu : ce n'est pas « cette chaîne n'a pas d'archive » — une chaîne
+         sans archive rend un tableau VIDE, qui passe ici sans encombre. C'est
+         donc un refus de plus, et il se rend au registre comme les autres. */
+      if (!Array.isArray(aretes)) {
+        bilanSondes.vides++;
+        oublierSonde(flux?.id);
+        return false;
+      }
       bilanSondes.servies++;
       const maillons = chaineDesTroncons(aretes.map(e => e?.node).filter(Boolean), depart);
       if (!maillons.length) return false;
@@ -13790,23 +13803,62 @@ const TSE_GATE_MAX_CLICKS = 5;
       return true;
     };
 
-    /* Le chemin du SURVOL : une chaîne, une requête, tout de suite. */
-    const sonderReprise = async (login, flux) => {
-      if (!gardesSonde(login, flux)) return false;
-      retenirSonde(flux.id);
+    /* ── UNE SONDE, UNE REQUÊTE — ET C'EST UNE MESURE, PAS UN GOÛT ─────────
+       LE GROUPEMENT A ÉTÉ ESSAYÉ, ET LE TERRAIN L'A REFUSÉ. GraphQL accepte
+       un TABLEAU d'opérations, et le mode global interroge bien vingt
+       catégories d'un coup (cf. GLOBAL_BATCH_OPS) : la 4.15.2 en a conclu
+       qu'on pouvait sonder douze chaînes en un aller-retour. Deux rapports
+       mis côte à côte disent le contraire, et sans ambiguïté :
+
+           une opération par requête    sondes  8 · servies  8 · reseau  0
+           douze opérations par requête sondes 48 · servies  5 · reseau 18
+                                                    vides   25 · adoptees 0
+
+       Quarante-trois sondes sur quarante-huit refusées, et le journal nomme le
+       refus : « réponse 200 avec erreurs GraphQL — service error ». Aucune
+       origine apprise, donc la carte comptait le tronçon et la frise n'avait
+       plus de passé — les deux défauts que cette version existe pour corriger,
+       revenus par la porte de derrière.
+
+       CE QUI DISTINGUE CE LOT-CI DE CELUI DU MODE GLOBAL : `TseCategoryTop`
+       rend une liste de chaînes, `TseVodRecent` rend des ARCHIVES avec leurs
+       chapitres, pour chaque chaîne. Douze de celles-là dans une requête, ce
+       n'est pas douze fois plus de lignes, c'est douze fois un travail que
+       Twitch facture à son service. Qu'il refuse se comprend ; qu'on l'ait
+       supposé accepté sans le mesurer était l'erreur.
+
+       ON REVIENT DONC À LA FORME MESURÉE — une opération par requête — et le
+       budget par lot redescend à six : trois fois celui de la 4.15.1, qui ne
+       couvrait rien faute d'être dépensé au bon endroit, et six requêtes
+       toutes les trente secondes au pire. La dépense reste bornée par ce qui
+       la bornait déjà : une sonde par SESSION de stream, jamais deux fois la
+       même, et RECONNECT_PROBE_MAX par page. */
+    const sonderUne = async (login, flux) => {
       const res = await post([opSonde(login)]);
-      if (isResultsUnusable(res)) { bilanSondes.reseau++; return false; }
+      if (isResultsUnusable(res)) {
+        bilanSondes.reseau++;
+        /* ── UN REFUS N'EST PAS UNE RÉPONSE ─────────────────────────────────
+           Le registre `sondees` existe pour qu'une chaîne ne soit pas sondée
+           deux fois : c'est juste quand Twitch a RÉPONDU, y compris pour dire
+           « rien ». Un refus, lui, n'apprend rien — et le garder en mémoire
+           perdait l'origine de cette chaîne pour toute la durée de la page.
+           Le rapport le chiffrait : dix-huit sondes tombées au réseau, dix-huit
+           cartes condamnées à compter leur tronçon jusqu'au rechargement.
+           On rend donc la session au registre, et le cycle suivant réessaie. */
+        oublierSonde(flux.id);
+        return false;
+      }
       return digererSonde(login, flux, res?.[0]?.data?.user?.videos?.edges);
     };
 
-    /* ── LE CHEMIN DU LOT : DOUZE CHAÎNES, UNE SEULE REQUÊTE ───────────────
-       GraphQL accepte un TABLEAU d'opérations et répond dans le même ordre —
-       c'est déjà comme cela que le mode global interroge vingt catégories
-       (cf. GLOBAL_BATCH_OPS). Sonder douze chaînes ne coûte donc pas douze
-       allers-retours mais un seul, ce qui est ce qui rend la cadence tenable :
-       une sidebar de vingt-quatre cartes a son origine complète en deux
-       cycles, au lieu de douze à deux par lot.
+    /* Le chemin du SURVOL : une chaîne, tout de suite. */
+    const sonderReprise = async (login, flux) => {
+      if (!gardesSonde(login, flux)) return false;
+      retenirSonde(flux.id);
+      return sonderUne(login, flux);
+    };
 
+    /* ── LE CHEMIN DU LOT ──────────────────────────────────────────────────
        LE BUDGET EST PRIS ICI, après les gardes, chaîne par chaîne. L'appelant
        lui passe TOUT ce que le lot portait de directs et ne compte rien
        lui-même : il n'a pas de quoi le faire, et c'est justement l'erreur que
@@ -13821,18 +13873,10 @@ const TSE_GATE_MAX_CLICKS = 5;
         retenues.push({ login, flux });
       }
       if (!retenues.length) return [];
-      const res = await post(retenues.map(e => opSonde(e.login)));
-      if (isResultsUnusable(res)) {
-        bilanSondes.reseau += retenues.length;
-        return [];
-      }
-      const adoptes = [];
-      retenues.forEach((e, i) => {
-        if (digererSonde(e.login, e.flux, res?.[i]?.data?.user?.videos?.edges)) {
-          adoptes.push(e.login);
-        }
-      });
-      return adoptes;
+      const issues = await Promise.all(
+        retenues.map(e => sonderUne(e.login, e.flux)
+          .catch((err) => { erreurs.noter('reprise', (err && err.message) || err); return false; })));
+      return retenues.filter((e, i) => issues[i]).map(e => e.login);
     };
 
     const fetchChapitres = async (login, streamId, debutStream) => {
