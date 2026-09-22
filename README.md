@@ -2178,11 +2178,17 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
-## Ce que le terrain a refusé, et ce que la 4.15.2 avait confondu (v4.15.3)
+## Ce que le terrain a refusé, et ce que la 4.15.2 avait confondu (v4.15.4)
 
 > « ca73cca fonctionnait, mais là non. »
 
 Trois corrections, toutes nées du rapport joint à cette phrase.
+
+> **Sur le numéro.** Ces trois corrections ont d'abord été publiées sous
+> **4.15.3**, poussée avant la fin de son banc. Le dépôt ne publie pas ce
+> qu'il n'a pas éprouvé : 4.15.4 porte exactement le même code, cette fois
+> passé au banc complet avant d'être poussé. 4.15.3 ne doit pas être
+> installée.
 
 ### Le groupement a été essayé, et le terrain l'a refusé
 

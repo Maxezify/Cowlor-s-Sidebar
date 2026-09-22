@@ -2057,11 +2057,17 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
-## What the field refused, and what 4.15.2 had conflated (v4.15.3)
+## What the field refused, and what 4.15.2 had conflated (v4.15.4)
 
 > "ca73cca worked, but this one doesn't."
 
 Three corrections, all born of the report attached to that sentence.
+
+> **On the number.** These three corrections were first published as
+> **4.15.3**, pushed before its bench had finished. This repository does not
+> publish what it has not tested: 4.15.4 carries exactly the same code, this
+> time run through the full bench before being pushed. 4.15.3 should not be
+> installed.
 
 ### Batching was tried, and the field refused it
 
