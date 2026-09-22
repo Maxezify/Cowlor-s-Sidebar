@@ -19059,13 +19059,29 @@ addEventListener('message', (e) => {
     const vu = await page.evaluate(() => {
       const c = [...document.querySelectorAll('.side-nav-card')]
         .find((x) => x.dataset.tseLogin === 'phase');
+      /* LA LIGNE DE LÉGENDE DE LA CATÉGORIE EN COURS. Le décor n'en a qu'une,
+         et elle couvre donc tout le direct : ce qu'elle annonce EST le total,
+         et les deux se lisent l'un sous l'autre. */
+      const encours = document.querySelector(
+        '.tse-preview__frise-ligne--encours .tse-preview__frise-duree');
       return { carte: c?.querySelector('.tse-uptime')?.textContent || '',
-               frise: document.querySelector('.tse-preview__frise-total')?.textContent || '' };
+               frise: document.querySelector('.tse-preview__frise-total')?.textContent || '',
+               ligne: (encours?.textContent || '').split('·')[0].trim() };
     });
     /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — le total rendu par
        `formatDuree` — « carte 3h00 » contre « frise 3h01 ». */
     ok('passé la demi-minute, la frise ne prend pas une minute d\'avance sur la carte',
        vu.carte === vu.frise && /^3h00/.test(vu.carte), JSON.stringify(vu));
+    /* ── ET LA LIGNE DU DESSOUS COMPTE COMME LES DEUX AUTRES ───────────────
+       SECOND RAPPORT, sur la même capture : « le uptime sur la carte est
+       pareil que celui à côté de Précédemment, cependant on peut voir une
+       différence d'une minute sur le temps en dessous de la frise ». La 4.15.2
+       n'avait corrigé que le TOTAL ; la ligne de la catégorie en cours, elle,
+       arrondissait encore — et sur une frise à une seule catégorie, cette
+       ligne est le total. Mutant — la ligne rendue par `formatDuree` —
+       « frise 3h00 » contre « ligne 3h01 ». */
+    ok('…et la ligne de la catégorie en cours non plus, elle qui EST ce total',
+       vu.ligne === vu.frise && /^3h00/.test(vu.ligne), JSON.stringify(vu));
     await page.close();
   }
 }
