@@ -15607,29 +15607,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           })
           .catch((e) => erreurs.noter('reprise', (e && e.message) || e));
       }
-      /* ── LA GARDE QUI AVAIT CHANGÉ DE SENS SANS CHANGER DE TEXTE ─────────
-         Cette ligne portait « !preludeDe(login) », et la 3.72 l'avait écrit en
-         connaissance de cause : à l'époque, `fetchChapitres` était le SEUL à
-         verser au passé, si bien que « ce direct a un passé » voulait dire
-         « on a déjà demandé ses chapitres ». La phrase était juste.
-
-         LA SONDE D'ORIGINE EST DEVENUE UN SECOND CONTRIBUTEUR, et elle y verse
-         les tronçons d'AVANT la coupure. Sa seule présence suffisait alors à
-         empêcher qu'on demande le tronçon COURANT — deux informations
-         différentes que la garde confondait. Le défaut dormait tant que la
-         sonde ne partait qu'au survol, où elle courait à côté de cette ligne
-         sans l'avoir encore devancée ; il est devenu constant quand le lot
-         s'est mis à sonder toutes les cartes. Le banc l'a pris sur le cas
-         « croise » : « Elden Ring » d'avant la coupure était bien là, mais
-         plus « Apex » d'après.
-
-         IL N'Y A RIEN À REMETTRE À LA PLACE. `fetchChapitres` porte déjà sa
-         propre mémoire par session de stream (cf. CHAPITRES_TTL) : redemander
-         n'émet rien tant qu'elle est fraîche, et la rafraîchir au bout de dix
-         minutes est précisément ce que ce module veut faire d'un tronçon qui
-         s'allonge. `friseACombler` reste la vraie porte : on ne demande que
-         s'il y a une part non observée à combler. */
-      if (flux?.id && friseACombler(login)) {
+      if (flux?.id && !preludeDe(login) && friseACombler(login)) {
         /* L'ORIGINE, ET NON LE DÉPART DU TRONÇON. Tout ce module compare des
            instants à ce nombre : quels moments du VOD regardent ce live, si
            l'enregistrement en couvre le début, si la liste des archives a
