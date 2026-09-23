@@ -2033,6 +2033,35 @@ const TSE_GATE_MAX_CLICKS = 5;
        bornée par ce qui la bornait déjà : une sonde par session de stream, et
        le voile lui-même, qui ne peut pas dépasser LOADING_TIMEOUT_MS. */
     RECONNECT_PROBE_VEIL_BURST:  40,
+    /* ── LA BOURSE EST BONNE, LA POINTE NE L'ÉTAIT PAS ─────────────────────
+       CE QUE LE RAPPORT SUIVANT A MESURÉ, et c'est le quatrième point d'une
+       courbe qui ne laisse plus de doute :
+           0,18–0,25 sonde/s → 21–23 % de refus
+           0,45–0,48 sonde/s → 33 %
+           la bouffée        → 40,7 % (44 refus sur 108 sondes)
+       Le commentaire au-dessus annonçait qu'une bouffée de quarante sortait
+       de la plage mesurée et que le chiffre BAISSERAIT si le marché était
+       mauvais. Il l'est. Mais ce n'est pas la BOURSE qui était mauvaise —
+       c'est la POINTE : mesurée au banc, les quarante sondes partaient en UNE
+       MILLISECONDE. Quarante requêtes simultanées sur un point d'entrée
+       anonyme, c'est précisément la forme qu'un limiteur de débit punit.
+
+       ON ÉTALE DONC, SANS RIEN RETIRER. La même mécanique qu'en croisière —
+       un budget compté en temps — avec sa propre cadence. LA BOURSE ENTIÈRE
+       DOIT TENIR DANS LE VERROU, et c'est ce rapport qui fixe le chiffre :
+       quarante sondes à huit par fenêtre font CINQ fenêtres, pour un verrou
+       qui en dure six. Une fenêtre de marge, et non zéro — sans quoi la
+       dernière sonde partirait à l'instant même de la levée. La couverture ne
+       bouge donc pas d'une carte, et la pointe tombe de quarante par
+       milliseconde à huit par seconde. C'est une amélioration sans
+       contrepartie, ce qui est la seule raison de la faire sans second
+       rapport de terrain.
+
+       ET SI LE REFUS NE DESCEND PAS, C'EST LA BOURSE QUI BAISSERA, cette
+       fois avec deux mesures derrière elle. Le chiffre qui tranche est
+       `reseau` rapporté à `sondes`, que le rapport porte déjà. */
+    RECONNECT_PROBE_VEIL_WINDOW:     1_000,
+    RECONNECT_PROBE_VEIL_PER_WINDOW: 8,
     /* Ce que les origines ont le droit de retenir le voile, et pas une
        seconde de plus. Un refus de Twitch se rattrape à la minute suivante
        (cf. RECONNECT_PROBE_RETRY) : attendre ce rattrapage sous le voile le
@@ -6490,7 +6519,22 @@ const TSE_GATE_MAX_CLICKS = 5;
      Le comportement, lui, ne change pas d'un iota : la sentinelle reste la
      même, les appelants ne voient aucune différence. On nomme, on compte, on
      rend exactement ce qu'on rendait. */
-  const reseau = { appels: 0, echecs: 0, dernierEchec: 0, dernierSucces: 0 };
+  /* ── UN REFUS N'EST PAS UN SUCCÈS, ET LE RAPPORT LE DISAIT POURTANT ───────
+     LE DERNIER RAPPORT DE TERRAIN PORTAIT « echecs 0 » ET « dernierEchec — »
+     au-dessus d'une section d'erreurs annonçant QUARANTE-QUATRE « réponse 200
+     avec erreurs GraphQL ». Dix pour cent des appels refusés, et la section
+     réseau affichait une santé parfaite. Qui lit ce rapport en conclut que le
+     transport va bien et cherche ailleurs — c'est exactement le genre
+     d'instrument aveugle qui a déjà coûté trois diagnostics faux ici.
+
+     LE FLUX NE CHANGE TOUJOURS PAS : un 200 porteur d'erreurs reste une
+     réponse rendue telle quelle aux appelants, qui savent ignorer une tranche
+     incomplète. Mais il se COMPTE, à part des échecs de transport, parce que
+     ce n'est pas la même panne et que les deux n'appellent pas la même
+     conclusion : un échec de transport dit que la requête n'est pas passée,
+     un refus dit que Twitch ne veut pas répondre à celle-là, maintenant. */
+  const reseau = { appels: 0, echecs: 0, refus: 0,
+                   dernierEchec: 0, dernierSucces: 0 };
   const echecReseau = (quoi, detail) => {
     reseau.echecs++;
     reseau.dernierEchec = Date.now();
@@ -6536,6 +6580,7 @@ const TSE_GATE_MAX_CLICKS = 5;
               const lots = Array.isArray(j) ? j : [j];
               const fautifs = lots.filter(o => o && Array.isArray(o.errors) && o.errors.length);
               if (fautifs.length) {
+                reseau.refus++;
                 erreurs.noter('gql', 'réponse 200 avec erreurs GraphQL',
                   String(fautifs[0].errors[0]?.message || '').slice(0, 120));
               }
@@ -9293,6 +9338,12 @@ const TSE_GATE_MAX_CLICKS = 5;
     let globalObserver = null;  // observer permanent (DOM-wide)
     let wasPresent = false;     // #side-nav existait au dernier check
     let cycleActive = false;    // un cycle de voile est en cours
+    /* Le NUMÉRO du cycle, et non le seul « y en a-t-il un ». Un verrou qui
+       s'accorde une borne de temps doit pouvoir dire si cette borne a déjà
+       été consommée DANS CE CYCLE-CI ; sans numéro, il n'a que « le voile est
+       levé » — qui ne distingue pas deux cycles successifs — et il se repose
+       indéfiniment. C'est exactement ce qui est arrivé (cf. `majVerrouVoile`). */
+    let numCycle = 0;
 
     // === État par cycle (réinitialisé à chaque startCycle) ===
     let overlay = null;
@@ -9455,6 +9506,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (cycleActive) { noter('cycle ignoré', raison); return; }
       noter('cycle', raison);
       cycleActive = true;
+      numCycle += 1;
       lastCardCount = 0; // croissance mesurée à partir de zéro pour ce cycle
       verrous.clear();   // un nouveau cycle repart sans verrou hérité
       held = false;
@@ -9522,6 +9574,10 @@ const TSE_GATE_MAX_CLICKS = 5;
          cadence ordinaire n'a plus le même sens, puisque personne ne regarde
          encore et que tout doit être prêt à la levée. */
       enCycle: () => cycleActive,
+      /* Le rang du cycle courant. Il ne sert qu'à une chose, et elle est
+         essentielle : distinguer « ce cycle-ci » de « le cycle d'avant » pour
+         qui s'accorde une borne de temps une fois par cycle. */
+      numCycle: () => numCycle,
       journal: () => journal.slice(),
       // Les verrous POSÉS, et non leur effet chronométré. Un verrou se
       // constate ; le déduire de l'instant où le voile se lève revient à
@@ -10371,8 +10427,23 @@ const TSE_GATE_MAX_CLICKS = 5;
         // seul — les autres ne sauraient pas quoi chercher. C'est le cas de la
         // toute première installation, et d'elle seule : l'étiquette est
         // ensuite mémorisée.
+        /* ── ET IL NE SE RELIT PAS DERRIÈRE LUI-MÊME ──────────────────────
+           LE RAPPORT DE TERRAIN LE MONTRAIT EN DEUX LIGNES JUMELLES :
+               onglet expired  affiché · 5331 nœuds · 74 carte(s)
+               onglet expired  affiché · 5309 nœuds · 74 carte(s)
+           La ligne suivante testait `etiquette` — que la passe ci-dessus
+           vient justement d'APPRENDRE. Vraie dans les deux cas, donc, et
+           l'onglet le plus lourd du relevé était rechargé une seconde fois
+           pour en retirer exactement les mêmes soixante-quatorze chaînes.
+
+           `mois(carte, true)` apprend l'étiquette ET rend l'ancienneté dans
+           le même passage : la première lecture est COMPLÈTE, il n'y a rien
+           à aller rechercher. On retient donc ce qui a été lu, au lieu de
+           relire un état qui a changé entre-temps. */
+        let passeLu = false;
         if (!etiquette) {
           for (const onglet of CFG.SUBS_PAGE_TABS_PAST) verserPasse(await visiter(onglet, true));
+          passeLu = true;
         }
 
         // Une fois l'ordre affranchi, tous les onglets partent ENSEMBLE. La
@@ -10381,7 +10452,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         // d'apparaître après coup. Le prix est un pic — trois ou quatre pages
         // de Twitch qui démarrent en même temps, une fois toutes les six
         // heures, dans des iframes cachées.
-        const encore = etiquette ? CFG.SUBS_PAGE_TABS_PAST : [];
+        const encore = passeLu ? [] : CFG.SUBS_PAGE_TABS_PAST;
         let rang = 0;
         await Promise.all([
           ...encore.map(o => visiterApres(o, true, rang++).then(verserPasse)),
@@ -11753,6 +11824,13 @@ const TSE_GATE_MAX_CLICKS = 5;
              sur trois échoués et zéro appel passé se ressemblaient. */
           appels: reseau.appels,
           echecs: reseau.echecs,
+          /* LES REFUS, À CÔTÉ DES ÉCHECS ET PAS CONFONDUS AVEC EUX. Un
+             rapport de terrain a porté « echecs 0 » au-dessus de
+             quarante-quatre refus consignés deux sections plus bas. Ce
+             chiffre-ci est celui qui dit si Twitch répond de mauvaise grâce,
+             et c'est lui qu'il faut rapporter aux `appels` pour juger la
+             cadence des sondes. */
+          refus: reseau.refus,
           /* LES CHAPITRES DE VOD, comptés par issue. Le premier rapport reçu
              après leur mise en service ne disait ni s'ils avaient été demandés
              ni ce qui était revenu — et c'est précisément ce qu'il fallait
@@ -13744,13 +13822,38 @@ const TSE_GATE_MAX_CLICKS = 5;
        quarante sort de cette plage. Les compteurs `sousVoile`, `reseau` et
        `enFile` du rapport diront si le marché est bon ; s'il ne l'est pas,
        c'est ce chiffre-ci qui baissera, et on le saura par la mesure. */
-    let voileBourse = 0;
-    let voilePrecedent = false;
+    /* ── ET ELLE SE DÉPENSE À UNE CADENCE, PAS D'UN SEUL COUP ──────────────
+       LA PREMIÈRE RÉDACTION RENDAIT LA BOURSE ENTIÈRE à chaque appel : le
+       vidage y lisait « quarante places » et partait avec quarante requêtes
+       dans la même microtâche. Mesuré au banc : `etendueMs: 1` — les quarante
+       sondes tenaient dans une milliseconde. Le compteur de refus du terrain
+       a suivi la même pente que la cadence, jusqu'à 40,7 %.
+
+       LA BOURSE RESTE LA MÊME ; c'est le DÉBIT qui est borné, par la mécanique
+       exacte de la croisière : une liste d'horodatages, une fenêtre glissante.
+       Deux fenêtres cohabitent donc, et c'est voulu — elles ne mesurent pas la
+       même chose. Une sonde partie sous le voile est comptée dans LES DEUX :
+       la croisière doit savoir ce qui vient d'être dépensé, sans quoi la levée
+       du voile serait suivie d'une seconde bouffée. */
+    let fenetreVoile = [];
+    let voileCycleVu = 0;
+    let voileReste   = 0;
+    const bourseDuVoile = () => {
+      const cycle = loadingOverlay.numCycle();
+      if (cycle !== voileCycleVu) {
+        voileCycleVu = cycle;
+        voileReste   = CFG.RECONNECT_PROBE_VEIL_BURST;
+        fenetreVoile = [];
+      }
+      return voileReste;
+    };
     const placeDansLaFenetre = () => {
-      const sousVoile = loadingOverlay.enCycle();
-      if (sousVoile && !voilePrecedent) voileBourse = CFG.RECONNECT_PROBE_VEIL_BURST;
-      voilePrecedent = sousVoile;
-      if (sousVoile) return voileBourse;
+      if (loadingOverlay.enCycle() && bourseDuVoile() > 0) {
+        const seuil = Date.now() - CFG.RECONNECT_PROBE_VEIL_WINDOW;
+        fenetreVoile = fenetreVoile.filter(t => t > seuil);
+        return Math.min(voileReste,
+                        CFG.RECONNECT_PROBE_VEIL_PER_WINDOW - fenetreVoile.length);
+      }
       const seuil = Date.now() - CFG.RECONNECT_PROBE_WINDOW;
       fenetreSondes = fenetreSondes.filter(t => t > seuil);
       return CFG.RECONNECT_PROBE_PER_WINDOW - fenetreSondes.length;
@@ -13790,6 +13893,16 @@ const TSE_GATE_MAX_CLICKS = 5;
        date la prochaine place. Zéro quand il en reste déjà. */
     const attenteAvantPlace = () => {
       if (placeDansLaFenetre() > 0) return 20;
+      /* Sous le voile, c'est la fenêtre DU VOILE qui date la prochaine place —
+         sauf quand la bourse est vide : elle ne se remplit qu'au cycle
+         suivant, donc plus rien à attendre d'elle, et c'est la croisière qui
+         reprend la main. Sans cette seconde moitié, le vidage se réveillerait
+         une fois par seconde jusqu'à la levée pour s'entendre redire non. */
+      if (loadingOverlay.enCycle() && voileReste > 0) {
+        if (!fenetreVoile.length) return CFG.RECONNECT_PROBE_VEIL_WINDOW;
+        return Math.max(0, fenetreVoile[0] + CFG.RECONNECT_PROBE_VEIL_WINDOW
+                           - Date.now()) + 20;
+      }
       if (!fenetreSondes.length) return CFG.RECONNECT_PROBE_WINDOW;
       return Math.max(0, fenetreSondes[0] + CFG.RECONNECT_PROBE_WINDOW - Date.now()) + 20;
     };
@@ -13987,7 +14100,10 @@ const TSE_GATE_MAX_CLICKS = 5;
         sondees.delete(sondees.keys().next().value);
       }
       fenetreSondes.push(Date.now());
-      if (voilePrecedent && voileBourse > 0) voileBourse -= 1;
+      if (loadingOverlay.enCycle() && voileReste > 0) {
+        fenetreVoile.push(Date.now());
+        voileReste -= 1;
+      }
       bilanSondes.sondes++;
     };
 
@@ -14168,8 +14284,37 @@ const TSE_GATE_MAX_CLICKS = 5;
        SEUL LE BALAYAGE LÈVE, parce qu'il est le seul à voir le résultat : une
        carte vivante sans durée n'est pas prête, et il le lit dans le DOM. Les
        autres appelants ne peuvent que retenir. */
+    /* ── LA BORNE SE CONSOMME UNE FOIS PAR CYCLE, ELLE NE SE REPOSE PAS ────
+       CE QUI ÉTAIT ÉCRIT AU-DESSUS DE LA CONSTANTE — « et pas une seconde de
+       plus » — N'ÉTAIT PAS CE QUE LE CODE FAISAIT. L'échéance passée, on
+       rendait la main ET on remettait `voileVerrouJusqua` à zéro ; l'appel
+       suivant, voyant du travail encore en cours, s'en accordait une NEUVE.
+       Une borne de six secondes devenait une fenêtre glissante de six
+       secondes, reconduite tant qu'il restait une sonde à faire — c'est-à-dire
+       jusqu'au plafond dur du voile.
+
+       LE JOURNAL DE L'UTILISATEUR LE DIT EN TROIS LIGNES : trois cycles de
+       voile, deux levés « délai maximal », quinze secondes chacun. Et ces
+       quinze secondes coûtent deux fois, parce que TOUT CE QUI SE RÈGLE SUR
+       `enCycle()` reste en régime de voile pendant ce temps : la bourse, et
+       surtout le report d'un refus à 400 ms. Les quarante-quatre refus du
+       rapport tombent exactement dans ces deux fenêtres.
+
+       LE BANC NE POUVAIT PAS LE VOIR : sa borne valait cinq secondes pour un
+       voile qui meurt à 1,2 s, donc le délai dur tombait toujours en premier.
+       C'est corrigé dans `build.mjs`, et le scénario 146 mesure désormais la
+       DURÉE du verrou dans un cycle — mesurée à 1029 ms avant correction pour
+       une borne annoncée de 300. */
+    let voileCycle = 0;
+    let voileEpuise = false;
     const majVerrouVoile = (enPlus = false, peutLever = false) => {
-      const actif = loadingOverlay.enCycle() && (enPlus || originesEnAttente());
+      const cycle = loadingOverlay.numCycle();
+      if (cycle !== voileCycle) {
+        voileCycle = cycle; voileEpuise = false; voileVerrouJusqua = 0;
+        if (voileSecours) { clearTimeout(voileSecours); voileSecours = null; }
+      }
+      const actif = loadingOverlay.enCycle() && !voileEpuise
+                    && (enPlus || originesEnAttente());
       if (actif && voileVerrouJusqua === 0) {
         voileVerrouJusqua = Date.now() + CFG.RECONNECT_PROBE_HOLD_MAX;
         /* Le filet : si plus aucune sonde ne revient, rien ne rappellerait
@@ -14180,6 +14325,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
       const tenir = actif && Date.now() < voileVerrouJusqua;
       if (tenir) { loadingOverlay.setHold(true, 'origines'); return; }
+      /* L'ÉCHÉANCE EST TOMBÉE ALORS QU'IL RESTAIT DU TRAVAIL : c'est le cas
+         qui se reconduisait. On marque la borne consommée pour ce cycle — ce
+         qui suit lèvera, et plus rien ne la reposera avant le cycle suivant.
+         Quand `actif` est faux, en revanche, le travail s'est simplement
+         terminé à temps : rien n'est consommé, et du travail qui réapparaît
+         plus tard dans le même cycle aura de nouveau droit à sa borne. */
+      if (actif && voileVerrouJusqua !== 0) voileEpuise = true;
       // Échéance dépassée : on rend la main quel que soit l'appelant, sans
       // quoi une sidebar qui n'aboutit pas resterait voilée jusqu'au plafond
       // dur. Sinon, seul le balayage a le droit de lever.
