@@ -17687,15 +17687,32 @@ addEventListener('message', (e) => {
   ok('…tandis qu\'une chaîne sans jumeau reçoit bien son compteur frais',
      un.rang.includes('milieu:950') && un.milieu === '950', JSON.stringify(un));
 
-  /* ET ÇA NE BAT PAS. C'est l'oscillation elle-même qu'on éprouve ici : deux
-     relevés séparés par plus d'un cycle complet des deux sources. */
+  /* ── ET ÇA NE BAT PAS — MAIS CE RELEVÉ UNIQUE NE LE PROUVE PAS ─────────
+     CE QU'UNE MESURE A MONTRÉ, ET QUI N'EST PAS CORRIGÉ ICI. Ce relevé
+     unique, quatre secondes plus tard, éprouve « la valeur à cet instant » et
+     non « la valeur ne bat pas ». Remplacé le temps d'une mesure par vingt
+     relevés espacés de deux cents millisecondes, il a montré un battement
+     RÉEL et reproductible : un à deux relevés sur vingt portent « milieu:900 »
+     — la valeur du répertoire — au lieu de « 950 », le compteur frais. Cinq
+     passes sur cinq.
+
+     LA CAUSE EST CONNUE : la marche reconstruit le classement depuis son pool,
+     et sa lecture de répertoire, plus RÉCENTE en date de lecture, écrase le
+     compteur venu de TseChannels, plus juste en contenu. Le témoin remonte au
+     relevé suivant, d'où l'alternance.
+
+     POURQUOI L'ASSERTION RESTE EN L'ÉTAT. Le défaut est ANTÉRIEUR à tout ce
+     que cette version touche, et il vit dans le module qui a déjà coûté
+     plusieurs versions — la corriger au passage, sans l'instruire, est
+     exactement la façon dont on livre une régression. Elle est donc laissée
+     telle quelle, et le battement est écrit ici pour qu'il ne se reperde pas :
+     c'est un sujet à lui seul, avec sa version. */
   await wait(page, 4000);
   const deux = await lire();
   ok('…et rien de tout cela ne bat d\'un cycle à l\'autre',
      deux.rang.includes('lyritvjamie:4900') && deux.lyri === '4900'
      && deux.rang.includes('naguura:4900') && deux.milieu === '950',
-     JSON.stringify(deux));
-  await page.close();
+     JSON.stringify(deux));  await page.close();
 }
 
 /* ═════════ UNE CARTE FABRIQUÉE EST UNE CARTE COMME LES AUTRES ════════════
