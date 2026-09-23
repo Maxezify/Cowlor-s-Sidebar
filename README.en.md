@@ -2057,6 +2057,109 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Saying why they are here, and who is not (v4.19.0)
+
+Two requests, born of the same limit left open by 4.18.1.
+
+### The flag of THEIR language
+
+Under a language filter, a co-stream member not carrying the chosen language was
+**hidden**, for lack of anything to say about them. A co-stream truncated by the
+filter is a **false** co-stream: the right answer was not to hide them, but to
+say **why** they are there.
+
+Their flag says it without a word, **to the right of the handle** — and
+**between the handle and the badge** when the channel is running a subathon, as
+requested:
+
+```
+tse-subathon-nom · tse-lang-mark · tse-subathon-jour
+```
+
+Three conditions, all required: an active filter, a channel Guest Star gives as
+a **session member** (a fact, not a resemblance of counts — which is what keeps
+ordinary cards unflagged), and a **known** language that is not the filter's.
+While we do not know, we invent nothing: the flag appears when the channel
+answer arrives.
+
+It also **comes off** — the filter changes, the session ends, the channel starts
+carrying the requested language. That is the half people forget.
+
+It follows the existing **collab** setting rather than asking for one of its
+own: another setting would cost twelve locale files and a panel line for a
+distinction nobody asked for.
+
+### Who is in the session without streaming
+
+The Guest Star answer said it **already**: it asks for `stream` per **guest**,
+and it is `null` for someone taking part without streaming — the most common
+case of a Guest Star guest. We were discarding it. **No new request.**
+
+### The silence of a field we never asked for
+
+The first draft read "no `stream`" as "not live", for everyone. The bench
+refused it on three assertions, and the cause fit in one line of **our own
+query**:
+
+```graphql
+host   { id login displayName }                      ← no stream
+guests { user { id login displayName stream { … } } } ← stream requested
+```
+
+We never asked for `stream` on the host. Its silence therefore says nothing
+about them — and a host not also listed among their own guests was **struck off
+their own session**: five members, four shown.
+
+`enLigne` now has **three states**, and the third is the one that was missing:
+
+| value | what we know |
+| --- | --- |
+| `true` | `stream` received — they are streaming |
+| `false` | `stream` requested, returned `null` — they are not streaming |
+| `null` | never requested (the "host" occurrence) — **we do not know** |
+
+Everything that drops a member drops only on `false`. `null` goes through, and
+the ordinary path settles it within a second: if the host is not live, their
+channel answer says so and their card hides itself. Ignorance is temporary; an
+accusation drawn from a silence is not.
+
+The lesson is not new in this repository, and this is the fourth time: **a
+comment asserted a property the code did not have** — "the host appears twice"
+was a field observation promoted to a guarantee.
+
+Three consequences:
+
+| | what happens |
+| --- | --- |
+| the **list** | no card for someone not streaming — "Top Channels" ranks **live** channels, and giving them one would lend them the group's count |
+| the **badge** | it still counts the **session**, so it announces more people than the list shows |
+| the **preview** | it bridges the two numbers by naming the absentees, in a grey badge — "present, but off" |
+
+Along the way, a badge that was lying without anyone noticing: **"Live with"
+named every participant**, including those not streaming. "Live with X" for an X
+who is not live is a contradiction of the two words that matter. The distinction
+is now free.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| completion abstained under a filter (4.18.1) | `ru` disappears, the co-stream shows truncated — and, in scenario 40, no group left on screen at all |
+| the flag appended at the end of the `<p>` | the order becomes name · day · flag |
+| `enLigne` ignored | `muet` gets a card carrying the group's count, on a channel that is off |
+| `enLigne` false on the host's silence | the host leaves its own session: `members 5 · shown 4 · offRanking 1` |
+
+Two assertions were **written and then removed** before reaching the bench:
+"no coloured card is alone in its group" and "every card carrying the key
+carries the colour". Checked against the code, neither can fall — a group is
+only ever made of shown cards, it is only kept from two members up, and the
+class and the key are set on the same card in the same loop. Two assertions
+green by construction are worth less than nothing: they make you believe
+something is being watched.
+
+The harness learned to play a participant **without a `stream`**: it gave one to
+everybody, so no scenario could see the difference.
+
 ## A slot is complete, or it is not a slot (v4.18.1)
 
 > "Where is Lukawaaa? The co-stream should be made of three streamers, here
@@ -9828,7 +9931,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 153 scenarios, 1275 assertions |
+| `npm test` | the Playwright harness: 154 scenarios, 1281 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -9848,7 +9951,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1183 KB | 423 KB | 3,492 → **2** |
+| `content.js` | 1183 KB | 423 KB | 3,504 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

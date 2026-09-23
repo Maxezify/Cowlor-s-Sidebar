@@ -2178,6 +2178,108 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Dire pourquoi il est là, et qui n'y est pas (v4.19.0)
+
+Deux demandes, nées de la même limite laissée ouverte par la 4.18.1.
+
+### Le drapeau de SA langue
+
+Sous filtre de langue, un membre de co-stream qui ne porte pas la langue
+choisie était **caché**, faute de savoir quoi dire de lui. Un co-stream amputé
+par le filtre est un co-stream **faux** : la bonne réponse n'était pas de le
+cacher, mais de dire **pourquoi** il est là.
+
+Son drapeau le dit sans un mot, **à droite du pseudo** — et **entre le pseudo
+et la pastille** quand la chaîne est en subathon, comme demandé :
+
+```
+tse-subathon-nom · tse-lang-mark · tse-subathon-jour
+```
+
+Trois conditions, et il les faut toutes : un filtre actif, une chaîne que Guest
+Star donne pour **membre d'une session** (un fait, pas la ressemblance des
+compteurs — c'est ce qui évite de pavoiser une carte ordinaire), et une langue
+**connue** qui n'est pas celle du filtre. Tant qu'on ne sait pas, on n'invente
+rien : le drapeau apparaît quand la réponse de chaîne arrive.
+
+Il se **défait** aussi — le filtre change, la session se termine, la chaîne se
+met à porter la langue demandée. C'est la moitié qu'on oublie.
+
+Il suit le réglage **collab** existant plutôt que d'en demander un à lui : un
+réglage de plus coûterait douze fichiers de locale et une ligne de panneau pour
+une distinction que personne n'a demandée.
+
+### Qui est dans la session sans diffuser
+
+La réponse Guest Star le disait **déjà** : elle demande `stream` par **invité**,
+et il vaut `null` pour qui participe sans diffuser — le cas le plus courant d'un
+invité Guest Star. On le jetait. **Aucune requête nouvelle.**
+
+### Le silence d'un champ qu'on n'a pas demandé
+
+La première rédaction lisait « pas de `stream` » comme « n'est pas en direct »,
+pour tout le monde. Le banc l'a refusée sur trois assertions, et la cause tenait
+en une ligne de **notre propre requête** :
+
+```graphql
+host   { id login displayName }                      ← pas de stream
+guests { user { id login displayName stream { … } } } ← stream demandé
+```
+
+On n'a jamais demandé `stream` sur l'hôte. Son silence ne dit donc rien de lui —
+et un hôte qui ne reparaît pas aussi parmi ses invités se voyait **rayé de sa
+propre session** : cinq membres, quatre affichés.
+
+`enLigne` a désormais **trois états**, et le troisième est celui qui manquait :
+
+| valeur | ce qu'on sait |
+| --- | --- |
+| `true` | `stream` reçu — il diffuse |
+| `false` | `stream` demandé, rendu `null` — il ne diffuse pas |
+| `null` | jamais demandé (l'occurrence « hôte ») — **on ne sait pas** |
+
+Tout ce qui écarte un membre n'écarte que sur `false`. `null` passe, et la voie
+ordinaire tranche d'elle-même en une seconde : si l'hôte n'est pas en direct, sa
+réponse de chaîne le dit et sa carte se masque. L'ignorance est temporaire ;
+l'accusation tirée d'un silence, non.
+
+La leçon n'est pas neuve dans ce dépôt, et c'est la quatrième fois : **un
+commentaire affirmait une propriété que le code n'avait pas** — « l'hôte figure
+deux fois » était une observation de terrain promue en garantie.
+
+Trois conséquences :
+
+| | ce qui se passe |
+| --- | --- |
+| la **liste** | aucune carte pour qui ne diffuse pas — « Top Chaînes » classe des chaînes **en direct**, et lui en donner une lui prêterait le compteur du groupe |
+| la **pastille** | elle continue de compter la **session**, donc elle annonce plus de monde que la liste n'en montre |
+| l'**aperçu** | il raccorde les deux nombres en nommant les absents, dans un badge gris — « présent, mais éteint » |
+
+Au passage, un badge qui disait faux sans que personne l'ait vu : **« En live
+avec » nommait tous les participants**, y compris ceux qui ne diffusent pas.
+« En live avec X » pour un X qui n'est pas en live est un contresens sur les
+deux mots qui comptent. La distinction est désormais gratuite.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la complétion abstenue sous filtre (4.18.1) | `ru` disparaît, le co-stream se montre amputé — et, au scénario 40, plus aucun groupe à l'écran |
+| le drapeau ajouté en fin de `<p>` | l'ordre devient nom · jour · drapeau |
+| `enLigne` ignoré | `muet` reçoit une carte portant le compteur du groupe, sur une chaîne éteinte |
+| `enLigne` faux sur le silence de l'hôte | l'hôte quitte sa propre session : `membres 5 · affichés 4 · horsClassement 1` |
+
+Deux assertions ont été **écrites puis retirées** avant d'atteindre le banc :
+« aucune carte colorée n'est seule dans son groupe » et « toute carte portant la
+clé porte la couleur ». Vérification faite dans le code, ni l'une ni l'autre ne
+peut tomber — un groupe ne se constitue que de cartes affichées, il n'est retenu
+qu'à partir de deux membres, et la classe et la clé sont posées sur la même
+carte dans la même boucle. Deux assertions vertes par construction valent moins
+que rien : elles font croire qu'on surveille.
+
+Le harnais a appris à jouer un participant **sans `stream`** : il en donnait un
+à tout le monde, si bien qu'aucun scénario ne pouvait voir la différence.
+
 ## Une place est complète, ou elle n'est pas une place (v4.18.1)
 
 > « Où est Lukawaaa ? Le co-stream devrait être composé de trois streamers, là
@@ -10209,7 +10311,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 153 scénarios, 1275 assertions |
+| `npm test` | le harnais Playwright : 154 scénarios, 1281 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -10230,7 +10332,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1183 Ko | 423 Ko | 3 492 → **2** |
+| `content.js` | 1183 Ko | 423 Ko | 3 504 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

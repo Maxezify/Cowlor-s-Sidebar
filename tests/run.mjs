@@ -3189,11 +3189,44 @@ titre('40. Top Chaînes — ce qui est demandé s\'affiche, et rien ne déborde'
   ok('et toute carte colorée est bien à l\'écran',
      g0.filter(c => c.cle).every(c => c.affiche),
      JSON.stringify(g0.filter(c => c.cle)));
-  // Un seul membre visible ⇒ aucun groupe : colorer une carte isolée
-  // annoncerait un co-stream dont on ne montre pas l'autre moitié.
-  ok('la carte globale du co-streamer n\'est pas colorée toute seule',
-     g0.filter(c => c.login === 'mastu' && c.affiche).every(c => !c.barre),
-     JSON.stringify(g0.filter(c => c.login === 'mastu')));
+  /* ── CE QUE LA 4.19 A RENVERSÉ ICI, ET POURQUOI C'EST PLUS FORT ─────────
+     CETTE ASSERTION TENAIT « la carte de mastu n'est pas colorée toute
+     seule » : hctuan ne diffuse pas en français, le filtre l'écartait du
+     classement, et colorer mastu seul aurait annoncé un co-stream dont on ne
+     montre pas l'autre moitié. L'utilisateur a tranché autrement — un
+     co-stream amputé par le filtre est un co-stream faux — et depuis la 4.19
+     la place se complète SOUS filtre de langue, chaque membre hors langue
+     portant le drapeau de la sienne. Hctuan revient donc, mastu n'est plus
+     seul, et exiger le contraire serait désormais exiger le défaut.
+
+     ELLE EXIGE DÉSORMAIS L'INVERSE, ET C'EST MESURÉ. Hctuan ne figure NULLE
+     PART dans `__cats` : sous filtre « Français » il ne peut arriver à
+     l'écran que par la complétion de la place. Mutant posé et mesuré — un
+     `if (state.languageFilter) return presents;` en tête de `completer`,
+     c'est-à-dire le retour exact à la 4.18.1 — et la ligne tombe : plus
+     aucun groupe à l'écran, hctuan disparu, mastu seul. C'est mot pour mot la
+     capture « le co-stream devrait être composé de trois streamers, là il n'y
+     en a que deux ».
+
+     CE QUE JE N'AI PAS ÉCRIT ICI, ET POURQUOI. J'avais d'abord ajouté deux
+     clauses générales — « aucune carte colorée n'est seule dans son groupe »
+     et « toute carte portant la clé porte la couleur ». Vérification faite
+     dans le code, ni l'une ni l'autre ne peut tomber : un groupe ne se
+     constitue que de cartes `cardShown`, il n'est retenu qu'à partir de deux
+     membres, et la classe et la clé sont posées sur la même carte dans la
+     même boucle. Deux assertions vertes par construction valent moins que
+     rien — elles font croire qu'on surveille. */
+  const visibles = g0.filter(c => c.affiche);
+  const tailleGroupe = new Map();
+  for (const c of visibles) {
+    if (!c.cle) continue;
+    tailleGroupe.set(c.cle, (tailleGroupe.get(c.cle) || 0) + 1);
+  }
+  ok('sous filtre de langue, la place se complète et le groupe se dessine à deux',
+     tailleGroupe.get('gs:63936838') === 2
+     && visibles.some(c => c.login === 'hctuan' && c.barre),
+     JSON.stringify({ groupes: [...tailleGroupe],
+                      vus: visibles.map(c => [c.login, c.cle, c.barre]) }));
 
   // ── b) aucune barre ne déborde de sa carte ─────────────────────────────
   // L'extension d'une barre vaut la moitié de l'interstice entre deux cartes
@@ -20269,6 +20302,141 @@ addEventListener('message', (e) => {
      && Math.max(...['shachlos', 'gpk', 'luka'].map((l) => vu.cartes.indexOf(l)))
         - Math.min(...['shachlos', 'gpk', 'luka'].map((l) => vu.cartes.indexOf(l))) === 2,
      JSON.stringify({ groupees: vu.groupees, cartes: vu.cartes.slice(0, 6) }));
+  await page.close();
+}
+
+/* ═════════ DIRE POURQUOI IL EST LÀ, ET QUI N'Y EST PAS ══════════════════
+   DEUX DEMANDES, NÉES DE LA MÊME LIMITE DE LA 4.18.1.
+
+   LA PREMIÈRE : sous filtre de langue, un membre de co-stream qui ne porte pas
+   la langue choisie était CACHÉ, faute de savoir quoi dire de lui. Un co-stream
+   amputé par le filtre est un co-stream faux ; la bonne réponse n'était pas de
+   le cacher mais de dire POURQUOI il est là. « Le drapeau de SA langue sur la
+   carte, à droite du pseudo. Si subathon, entre le pseudo et le logo. »
+
+   LA SECONDE : « si un streamer fait partie d'un co-stream mais n'est pas en
+   live, il faudrait avertir l'utilisateur. » La réponse Guest Star le disait
+   DÉJÀ — elle demande `stream` par participant, et il vaut null pour qui
+   participe sans diffuser — et on le jetait. Aucune requête nouvelle.
+
+   TROIS CONSÉQUENCES, ET LE SCÉNARIO LES TIENT TOUTES :
+     — pas de carte pour qui ne diffuse pas (« Top Chaînes » classe des chaînes
+       EN DIRECT ; lui en donner une lui prêterait le compteur du groupe) ;
+     — la pastille de l'avatar continue de compter la SESSION, donc elle
+       annonce plus de monde que la liste n'en montre ;
+     — l'aperçu raccorde les deux nombres en nommant les absents, et « En live
+       avec » cesse de nommer des gens qui ne sont pas en live. */
+{
+  titre('154. Co-stream — le drapeau de l\'autre langue, et qui ne diffuse pas');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    const streams = [
+      { login: 'gros1', viewers: 13_400, tags: ['Français'] },
+      { login: 'hote', viewers: 10_600, tags: ['Français'] },
+      /* LE MEMBRE D'UNE AUTRE LANGUE. Il n'a pas le tag demandé : sans la
+         place, le filtre l'écarterait — et le co-stream serait amputé. */
+      { login: 'ru', viewers: 10_600, tags: ['Русский'] },
+      ...Array.from({ length: 6 }, (_, i) => ({ login: 'b' + i, viewers: 9000 - i * 100,
+                                                tags: ['Français'] })),
+      { login: 'modele', viewers: 800, tags: ['Français'] },
+    ];
+    window.__cats = [{ name: 'Dota 2', viewers: 200_000, streams }];
+    window.__fx = {}; window.__gs = {};
+    for (const st of streams) {
+      window.__fx[st.login] = { id: String(800_000 + st.viewers), createdAt: h,
+                                viewers: st.viewers, game: 'Dota 2', tags: st.tags,
+                                // « ru » est AUSSI en subathon : le drapeau doit se
+                                // glisser ENTRE le pseudo et la pastille du jour.
+                                title: st.login === 'ru' ? 'SUBATHON DAY 12 | !socials'
+                                                         : 'Stream' };
+    }
+    const idDe = (l) => window.__fx[l].id;
+    const guests = [
+      { id: idDe('hote'), login: 'hote', viewers: 10_600, combined: 10_600 },
+      { id: idDe('ru'), login: 'ru', viewers: 10_600, combined: 10_600 },
+      /* `sansStream` : DANS la session, sans diffuser. C'est ce que Twitch rend
+         pour l'invité d'un Guest Star qui n'a pas de chaîne en direct. */
+      { id: '777222', login: 'muet', viewers: null, combined: null, sansStream: true },
+    ];
+    for (const l of ['hote', 'ru']) {
+      window.__gs[idDe(l)] = { hostId: idDe('hote'), hostLogin: 'hote', guests };
+    }
+    window.__addCard('modele', 'Dota 2', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await wait(page, 2500);
+  await page.evaluate(() => {
+    const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
+      .find((o) => (o.dataset.value || '') === 'Français');
+    if (!opt) throw new Error('« Français » absent de la liste des langues');
+    opt.click();
+  });
+  await attendre(page, () => !!document.querySelector('.tse-lang-mark'), 10_000);
+  await wait(page, 800);
+  const vu = await page.evaluate(() => ({
+    visibles: [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')]
+      .filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.dataset.tseLogin),
+    muetAffiche: !![...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === 'muet'),
+    drapeaux: [...document.querySelectorAll('.tse-lang-mark')]
+      .map((m) => m.closest('.side-nav-card')?.dataset.tseLogin + ':' + m.dataset.langue),
+    ordre: (() => {
+      const c = [...document.querySelectorAll('.side-nav-card')]
+        .find((x) => x.dataset.tseLogin === 'ru');
+      const p = c?.querySelector('p[data-a-target="side-nav-title"]');
+      return p ? [...p.children].map((e) => e.className) : null;
+    })(),
+    pastille: [...document.querySelectorAll('.side-nav-card')]
+      .filter((c) => c.dataset.tseLogin === 'hote')
+      .map((c) => c.querySelector('.tse-collab-badge')?.textContent ?? null),
+  }));
+  /* LA PRÉMISSE : le filtre est bien actif et il a bien trié. Sans elle, « ru
+     est visible » serait vrai d'une liste que rien n'a filtrée. */
+  ok('le filtre « Français » est actif et la liste lui obéit',
+     vu.visibles.includes('hote') && vu.visibles.includes('b0')
+     && !vu.visibles.includes('muet'), JSON.stringify(vu.visibles));
+  /* L'ASSERTION QUI PORTE LA PREMIÈRE DEMANDE. Mutant — la complétion
+     abstenue sous filtre, comme en 4.18.1 — « ru » disparaît et le co-stream
+     se montre amputé. */
+  ok('…mais le membre d\'une autre langue reste là, avec le drapeau de la sienne',
+     vu.visibles.includes('ru') && vu.drapeaux.length === 1
+     && vu.drapeaux[0] === 'ru:Русский', JSON.stringify(vu.drapeaux));
+  /* LA POSITION DEMANDÉE, AU MOT PRÈS : « à droite du pseudo ; si subathon,
+     entre le pseudo et le logo subathon ». Mutant — le drapeau ajouté en fin
+     de <p> sans égard pour la pastille — l'ordre devient nom · jour · drapeau. */
+  ok('…posé entre le pseudo et la pastille de subathon',
+     JSON.stringify(vu.ordre)
+       === JSON.stringify(['tse-subathon-nom', 'tse-lang-mark', 'tse-subathon-jour']),
+     JSON.stringify(vu.ordre));
+  /* L'ASSERTION QUI PORTE LA SECONDE DEMANDE. Mutant — `enLigne` ignoré —
+     « muet » reçoit une carte portant le compteur du groupe, sur une chaîne
+     qui ne diffuse pas. */
+  ok('…et celui qui ne diffuse pas n\'a aucune carte, la pastille comptant la session',
+     vu.muetAffiche === false && vu.pastille.length === 1 && vu.pastille[0] === '2',
+     JSON.stringify({ muet: vu.muetAffiche, pastille: vu.pastille }));
+
+  // ── ET L'APERÇU RACCORDE LES DEUX NOMBRES ────────────────────────────
+  await page.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
+    .find((c) => c.dataset.tseLogin === 'hote')
+    ?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false })));
+  await attendre(page, () => !!document.querySelector('.tse-preview__badge--muet'), 8000);
+  const badges = await page.evaluate(() => {
+    const t = (sel) => document.querySelector(sel)?.textContent?.trim() || null;
+    return { bleu: t('.tse-preview__badge--costream'),
+             violet: t('.tse-preview__badge--squad'),
+             muet: t('.tse-preview__badge--muet') };
+  });
+  ok('l\'aperçu nomme celui qui est dans la session sans diffuser',
+     /muet/.test(badges.muet || ''), JSON.stringify(badges));
+  /* ET « EN LIVE AVEC » CESSE DE MENTIR : il nommait tous les participants,
+     y compris ceux qui ne diffusent pas. Ici il n'a personne à nommer — le
+     seul autre membre visible est déjà au badge bleu — et il se tait. */
+  ok('…et « En live avec » ne nomme plus personne qui ne soit en live',
+     badges.violet === null && /ru/.test(badges.bleu || ''),
+     JSON.stringify(badges));
   await page.close();
 }
 

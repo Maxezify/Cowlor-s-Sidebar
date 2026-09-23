@@ -658,6 +658,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` et ${others} autre${others > 1 ? 's' : ''}` : '';
         return `En live avec ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `Dans la session, sans diffuser : ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Sponsorisé par ${nom}`,
       uiSortNoCoStreams:         'Aucun co-stream détecté actuellement',
       uiSortLabelSubs:           'Mes abonnements en tête',
@@ -742,6 +743,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` and ${others} other${others > 1 ? 's' : ''}` : '';
         return `Live with ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `In the session, not streaming: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Sponsored by ${nom}`,
       uiSortNoCoStreams:         'No co-streams currently detected',
       uiSortLabelSubs:           'My subscriptions first',
@@ -826,6 +828,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` und ${others} ${others > 1 ? 'weiteren' : 'weiterem'}` : '';
         return `Live mit ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `In der Session, ohne zu streamen: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Gesponsert von ${nom}`,
       uiSortNoCoStreams:         'Derzeit keine Co-streams erkannt',
       uiSortLabelSubs:           'Meine Abos zuerst',
@@ -910,6 +913,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` y ${others} más` : '';
         return `En vivo con ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `En la sesión, sin emitir: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Patrocinado por ${nom}`,
       uiSortNoCoStreams:         'No se detectaron co-streams por el momento',
       uiSortLabelSubs:           'Mis suscripciones primero',
@@ -994,6 +998,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` e mais ${others}` : '';
         return `Ao vivo com ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `Na sessão, sem transmitir: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Patrocinado por ${nom}`,
       uiSortNoCoStreams:         'Nenhum co-stream detectado no momento',
       uiSortLabelSubs:           'Minhas inscrições primeiro',
@@ -1078,6 +1083,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` e altri ${others}` : '';
         return `In diretta con ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `Nella sessione, senza trasmettere: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Sponsorizzato da ${nom}`,
       uiSortNoCoStreams:         'Nessun co-stream rilevato al momento',
       uiSortLabelSubs:           'I miei abbonamenti per primi',
@@ -1162,6 +1168,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` i jeszcze ${others}` : '';
         return `Na żywo z ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `W sesji, bez transmisji: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Sponsorowane przez ${nom}`,
       uiSortNoCoStreams:         'Nie wykryto obecnie żadnego co-streamu',
       uiSortLabelSubs:           'Moje subskrypcje na górze',
@@ -1246,6 +1253,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` и ещё ${others}` : '';
         return `В эфире с ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `В сессии, без трансляции: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Спонсор: ${nom}`,
       uiSortNoCoStreams:         'Ко-стримы сейчас не обнаружены',
       uiSortLabelSubs:           'Мои подписки сверху',
@@ -1330,6 +1338,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? `ほか${others}人` : '';
         return `${invite}${suffix} と配信中`;
       },
+      uiBadgeSessionOffline:     (noms) => `セッション参加中・配信なし：${noms}`,
       uiBadgeSponsoredBy:        (nom) => `${nom} のスポンサー配信`,
       uiSortNoCoStreams:         '現在コラボ配信は検出されていません',
       uiSortLabelSubs:           'サブスク中のチャンネルを上に',
@@ -1414,6 +1423,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? `等 ${others} 人` : '';
         return `正在与 ${invite}${suffix} 直播`;
       },
+      uiBadgeSessionOffline:     (noms) => `参与联动但未开播：${noms}`,
       uiBadgeSponsoredBy:        (nom) => `由 ${nom} 赞助`,
       uiSortNoCoStreams:         '当前未检测到联合直播',
       uiSortLabelSubs:           '我订阅的频道优先',
@@ -4255,6 +4265,31 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-dd--lang .tse-dd-menu { right: 0; left: auto; min-width: 64px; }
     .tse-dd--lang .tse-dd-opt { justify-content: center; }
     .tse-lang-code  { font-weight: 600; }
+    /* ── LE DRAPEAU D'UN CO-STREAMER D'UNE AUTRE LANGUE ────────────────────
+       DEMANDÉ APRÈS LE FILTRE DE LANGUE : un membre de session qui ne porte
+       pas la langue choisie est quand même affiché — il appartient à une place
+       retenue — et le drapeau dit POURQUOI il est là, sans qu'un mot soit
+       nécessaire. À DROITE DU PSEUDO, et entre le pseudo et la pastille de
+       subathon quand elle existe : c'est l'ordre demandé.
+
+       PLUS PETIT QUE DANS LE MENU. Les drapeaux du menu de langues font 20 px
+       parce qu'ils s'y lisent seuls ; posé dans une ligne de pseudo, un
+       drapeau de cette taille pousserait le nom et casserait l'ellipse. Douze
+       pixels tiennent dans la hauteur de la ligne sans la changer.
+
+       « flex: 0 0 auto » : sans lui, le drapeau se laisse écraser par l'ellipse
+       du pseudo dans une sidebar étroite — il devient une barre de deux pixels
+       qui ne dit plus rien. */
+    .tse-lang-mark { display: inline-flex; flex: 0 0 auto; margin-right: 2px;
+                     vertical-align: middle; }
+    .tse-lang-mark svg { display: block; width: 12px; height: 12px;
+                         border-radius: 2px; }
+    /* IL SUIT LE JETON « collab », et n'en demande pas un à lui. C'est une
+       décoration de CO-STREAM : qui éteint les marques de co-stream éteint
+       celle-ci avec. Un réglage de plus coûterait douze fichiers de locale et
+       une ligne de panneau pour une distinction que personne n'a demandée. */
+    html[data-tse-off~="collab"] .tse-lang-mark { display: none !important; }
+
     .tse-flag { display: inline-flex; }
     .tse-flag svg { display: block; width: 20px; height: 20px; }
     .tse-dd--lang .tse-dd-opt .tse-flag svg { width: 22px; height: 22px; }
@@ -4849,11 +4884,17 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__badge--discount { background: rgba(255, 56, 219, 0.20); color: #ffa3ee; }
     .tse-preview__badge--costream { background: rgba(31, 105, 255, 0.25); color: #7fb3ff; }
     .tse-preview__badge--squad    { background: rgba(145, 71, 255, 0.25); color: #d1b3ff; }
+    /* GRIS, ET C'EST LE PROPOS : ce badge parle de qui NE DIFFUSE PAS. Lui
+       donner une couleur vive le mettrait au même rang que les deux autres,
+       qui annoncent du direct. Le gris dit « présent, mais éteint » sans
+       qu'aucun mot ne soit nécessaire. */
+    .tse-preview__badge--muet     { background: rgba(255, 255, 255, 0.10); color: #adadb8; }
     .tse-preview__badge--sponsor  { background: rgba(0, 184, 90, 0.22);  color: #6bdb9d; }
     html[data-tse-theme="light"] .tse-preview__badge--hype     { color: #993d00; }
     html[data-tse-theme="light"] .tse-preview__badge--discount { color: #a8008a; }
     html[data-tse-theme="light"] .tse-preview__badge--costream { color: #0045d1; }
     html[data-tse-theme="light"] .tse-preview__badge--squad    { color: #6000f0; }
+    html[data-tse-theme="light"] .tse-preview__badge--muet     { color: #53535f; }
     html[data-tse-theme="light"] .tse-preview__badge--sponsor  { color: #006b34; }
     /* Abonnement : le même or que le filet des cartes abonnées, pour qu'on
        reconnaisse le signal d'une surface à l'autre. La variante « ancien
@@ -5518,6 +5559,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     html[data-tse-off~="badge-ccl"]      .tse-preview__badge--ccl,
     html[data-tse-off~="badge-costream"] .tse-preview__badge--costream,
     html[data-tse-off~="badge-squad"]    .tse-preview__badge--squad,
+    html[data-tse-off~="badge-squad"]    .tse-preview__badge--muet,
     html[data-tse-off~="badge-sub"]      .tse-preview__badge--sub,
     html[data-tse-off~="badge-exsub"]    .tse-preview__badge--exsub,
     html[data-tse-off~="badge-sponsor"]  .tse-preview__badge--sponsor,
@@ -7608,20 +7650,16 @@ const TSE_GATE_MAX_CLICKS = 5;
          classé pour lui-même. Répondre oui ferait mentir `estAuClassement` et
          le bilan de co-stream, qui comptent ce que la marche connaît. */
       if (!state.globalMode) return presents;
-      /* ── ET PAS SOUS UN FILTRE DE LANGUE, PARCE QU'ON NE SAIT PAS ───────
-         D'un membre que le répertoire n'a jamais rendu, on connaît le nom et
-         le combiné — Guest Star les donne — et RIEN D'AUTRE. Pas ses tags,
-         donc pas sa langue. Le faire entrer dans une liste filtrée
-         reviendrait à affirmer qu'il parle celle qu'on a demandée, ce qu'on
-         ignore. Le banc l'a montré sur un décor existant : sous filtre
-         « Français », la complétion faisait apparaître le membre écarté et
-         coloriait un groupe que ce filtre avait justement disjoint.
+      /* ── ET SOUS FILTRE DE LANGUE, ON COMPLÈTE QUAND MÊME ──────────────
+         LA 4.18.1 S'EN ABSTENAIT, faute de connaître la langue d'un membre que
+         le répertoire ne rend pas. L'utilisateur a tranché autrement, et c'est
+         mieux : un co-stream amputé par le filtre est un co-stream faux, et la
+         bonne réponse n'est pas de cacher le membre mais de DIRE pourquoi il
+         est là — son drapeau, à droite du pseudo (cf. `poserDrapeauLangue`).
 
-         ON S'ABSTIENT DONC, et c'est une limite assumée : sous filtre, une
-         place peut rester incomplète. Elle se lèvera le jour où le membre
-         complété portera ses propres tags — ce qui demande une requête que
-         personne n'a encore jugée nécessaire. */
-      if (state.languageFilter) return presents;
+         L'IGNORANCE EST D'AILLEURS TEMPORAIRE : dès qu'un membre complété a
+         une carte, la voie ordinaire l'interroge et ses tags arrivent. Le
+         drapeau apparaît alors ; tant qu'on ne sait pas, on n'invente rien. */
       if (!cle || cle.slice(0, 3) !== 'gs:') return presents;
       const membres = membresDeLaSession(cle);
       if (membres.length <= presents.length) return presents;
@@ -7630,6 +7668,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       for (const m of membres) {
         const l = m?.login && String(m.login).toLowerCase();
         if (!l || vus.has(l)) continue;
+        /* ── QUI NE DIFFUSE PAS N'A PAS DE CARTE ICI ────────────────────
+           « Top Chaînes » classe des chaînes EN DIRECT. Un participant qui
+           n'a pas de `stream` à lui — le cas courant d'un invité Guest Star —
+           n'en est pas une : lui fabriquer une carte lui prêterait le
+           compteur du groupe et une catégorie qu'il ne diffuse pas. On le
+           compte et on le NOMME ailleurs (pastille et aperçu), là où
+           l'information a un sens sans mentir sur ce qu'elle décrit.
+
+           SUR `=== false`, ET PAS SUR « FAUSSEUR » : `enLigne` vaut `null`
+           quand le champ n'a pas été demandé — l'occurrence « hôte » de la
+           réponse. Un écart sur la fausseté rayait alors l'hôte de sa propre
+           session dès qu'il ne reparaissait pas parmi ses invités. */
+        if (m.enLigne === false) continue;
         vus.add(l);
         out.push({
           login: l,
@@ -12899,6 +12950,50 @@ const TSE_GATE_MAX_CLICKS = 5;
     poserPastille(card, String(mates.length));
   };
 
+  /* ── LE DRAPEAU DE SA LANGUE, POUR QUI N'A PAS CELLE QU'ON A CHOISIE ────
+     DEMANDÉ APRÈS LA 4.18.1 : sous filtre de langue, un membre de co-stream
+     qui ne porte pas la langue choisie est affiché quand même — il appartient
+     à une place retenue, et l'amputer rendrait un co-stream faux. Restait à
+     dire POURQUOI il est là. Son drapeau le dit sans un mot.
+
+     TROIS CONDITIONS, ET IL LES FAUT TOUTES. Un filtre actif — sans lui la
+     question ne se pose pas. Une chaîne que Guest Star donne pour membre
+     d'une session — c'est un FAIT, pas la ressemblance des compteurs, et
+     c'est ce qui évite de pavoiser une carte ordinaire. Et une langue CONNUE
+     qui n'est pas celle du filtre : tant qu'on ne sait pas, on n'invente
+     rien, et le drapeau apparaîtra quand la réponse de chaîne arrivera.
+
+     IL SE DÉFAIT AUSSI, et c'est la moitié qu'on oublie : le filtre change,
+     la session se termine, la chaîne se met à porter la langue demandée — le
+     drapeau doit partir. D'où le retrait en tête plutôt qu'une pose
+     conditionnelle. */
+  const appliquerDrapeauLangue = (card) => {
+    const p = cardNameEl(card);
+    const ancien = p ? p.querySelector(':scope > .tse-lang-mark') : null;
+    const login  = card.dataset.tseLogin;
+    const filtre = state.globalMode ? state.languageFilter : null;
+    let langue = null;
+    if (p && filtre && login && sessionDuMembre(login)) {
+      const langs = langStore.getLangs(login) || [];
+      if (langs.length && !langs.includes(filtre)) langue = langs[0];
+    }
+    if (!langue) { ancien?.remove(); return; }
+    if (ancien && ancien.dataset.langue === langue) return;   // déjà le bon
+    ancien?.remove();
+    const svg = flagMarkup(langue);
+    if (!svg) return;                       // langue sans drapeau : on se tait
+    const marque = document.createElement('span');
+    marque.className = 'tse-lang-mark';
+    marque.dataset.langue = langue;
+    marque.title = langue;
+    marque.appendChild(noeudStatique(svg));
+    /* ENTRE LE PSEUDO ET LA PASTILLE DE SUBATHON quand elle est là, à la fin
+       du <p> sinon. C'est l'ordre demandé, et il se lit de gauche à droite :
+       qui, dans quelle langue, depuis combien de jours. */
+    const puce = p.querySelector(':scope > .tse-subathon-jour');
+    if (puce) p.insertBefore(marque, puce); else p.appendChild(marque);
+  };
+
   const applyCollabBadge = (card) => {
     // Pré-filtre. Sans lui, chaque carte de la sidebar était parcourue par un
     // TreeWalker qui rappelle du JS sur CHAQUE nœud, à chaque scan — de loin
@@ -13104,7 +13199,15 @@ const TSE_GATE_MAX_CLICKS = 5;
       /* Tout ce que Twitch a mis là passe dans l'enveloppe — tout SAUF notre
          propre pastille, qui pourrait déjà s'y trouver si React a reconstruit
          le nom seul. Les nœuds sont déplacés un à un, dans l'ordre. */
-      for (const noeud of [...p.childNodes]) if (noeud !== b) n.appendChild(noeud);
+      /* NI LA PASTILLE, NI LE DRAPEAU : les deux vivent À CÔTÉ du pseudo, pas
+         dedans. Les envelopper les ferait disparaître avec lui le jour où
+         React reconstruit le nom, et le drapeau se retrouverait à gauche de
+         la pastille au lieu d'être entre les deux. */
+      for (const noeud of [...p.childNodes]) {
+        if (noeud === b) continue;
+        if (noeud.nodeType === 1 && noeud.classList.contains('tse-lang-mark')) continue;
+        n.appendChild(noeud);
+      }
       p.insertBefore(n, p.firstChild);
     }
     // La pastille se pose APRÈS le nom, toujours : « à droite du pseudo ».
@@ -15221,7 +15324,17 @@ const TSE_GATE_MAX_CLICKS = 5;
            pour dire qu'il n'y a RIEN à ajouter. On ne retombe donc pas sur la
            détection squad du DOM quand la liste se vide — ce serait
            réintroduire le doublon par l'autre porte. */
-        const absents = mates.filter(m => !estDansLaBarre(m.login));
+        /* ── ET « EN LIVE AVEC » NE NOMME QUE CEUX QUI SONT EN LIVE ──────
+           CE BADGE DISAIT DÉJÀ FAUX, et personne ne l'avait vu : il nommait
+           tous les participants de la session, y compris ceux qui n'ont pas
+           de `stream` à eux — le cas courant d'un invité Guest Star. « En live
+           avec X » pour un X qui ne diffuse pas est un contresens sur les deux
+           mots qui comptent.
+
+           Depuis que la réponse est lue en entier (cf. `enLigne`), la
+           distinction est gratuite : ceux qui diffusent vont ici, les autres
+           au badge suivant, qui dit exactement ce qu'ils sont. */
+        const absents = mates.filter(m => !estDansLaBarre(m.login) && m.enLigne !== false);
         if (!absents.length) return null;
         // Nettoyage infaillible au point de rendu : on trimme CHAQUE nom résolu
         // (le displayName Twitch arrive parfois avec une espace de fin, qui
@@ -15240,6 +15353,36 @@ const TSE_GATE_MAX_CLICKS = 5;
                           () => nomsEnGras([squadInfo.guest])));
       }
       return null;
+    };
+
+    /* ── ET CEUX QUI SONT DE LA SESSION SANS DIFFUSER ──────────────────────
+       DEMANDÉ APRÈS LA MÊME CAPTURE QUE LE RESTE : « si un streamer fait
+       partie d'un co-stream mais n'est pas en live, il faudrait trouver un
+       moyen d'avertir l'utilisateur ».
+
+       ILS N'ONT PAS DE CARTE, ET C'EST VOULU — « Top Chaînes » classe des
+       chaînes en direct (cf. `completer`). Mais la pastille de l'avatar, elle,
+       compte la session ENTIÈRE : l'utilisateur lit « 4 » et n'en voit que
+       trois. Ce badge-ci est ce qui raccorde les deux nombres, en nommant
+       ceux qui manquent et en disant POURQUOI ils manquent.
+
+       AUCUNE REQUÊTE NOUVELLE : la réponse Guest Star porte `stream` par
+       INVITÉ depuis toujours, on cessait simplement de le lire. L'hôte, lui,
+       n'est pas sondé — la requête ne demande pas `stream` sur `host` — donc
+       son `enLigne` vaut `null` et ce badge ne le nomme jamais, sauf s'il
+       reparaît parmi les invités et que Twitch le dit muet là. Nommer
+       quelqu'un sur un champ qu'on n'a pas demandé serait une accusation
+       tirée d'un silence. */
+    const sessionOfflineBadgeNoeud = (login, channelId) => {
+      const muets = getGuestStarMates(login, channelId)
+        .filter(m => m.enLigne === false);
+      if (!muets.length) return null;
+      const noms = muets
+        .map(m => displayNameFor(m.login, m.name).trim())
+        .filter(Boolean);
+      if (!noms.length) return null;
+      return badgeNoeud('tse-preview__badge--muet',
+        phraseAvecFente(S.uiBadgeSessionOffline(FENTE), () => nomsEnGras(noms)));
     };
 
     // Insère/rafraîchit le badge "En live avec" dans la popup OUVERTE, sans
@@ -16116,6 +16259,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       // INDÉPENDANT du badge "Co-stream de X" (événement) : les deux coexistent.
       const liveWithBadge = liveWithBadgeNoeud(login, squadInfo);
       if (liveWithBadge) badges.push(liveWithBadge);
+      /* APRÈS les deux autres, et c'est l'ordre du sens : avec qui de cette
+         liste, puis qui d'autre diffuse, puis qui est là sans diffuser. */
+      const muetsBadge = sessionOfflineBadgeNoeud(login);
+      if (muetsBadge) badges.push(muetsBadge);
 
       if (sponsorInfo) {
         // Logo dans un mini cadre coloré (reproduit le rendu Twitch).
@@ -17162,6 +17309,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     applyCollabBadge(card);
+    appliquerDrapeauLangue(card);
     markExtraRows(card);
 
     const link = card.querySelector(DOM.cardLinkSelector);
@@ -18835,8 +18983,14 @@ const TSE_GATE_MAX_CLICKS = 5;
         // login (minuscule). On conserve aussi le displayName (casse correcte,
         // ex. "CommanderX") avec repli sur le login. Sert à enrichir la popup
         // ("En live avec …"). Identique pour tous les membres d'une session.
+        /* `sonde` dit si l'occurrence VENAIT D'UN ENDROIT OÙ L'ON A DEMANDÉ
+           `stream`. La requête l'exige sur `guests { user { … stream } }` et
+           PAS sur `host { id login displayName }` : le silence de l'hôte ne
+           dit donc rien de lui. Sans cette distinction, un hôte qui ne figure
+           pas aussi parmi ses invités était déclaré « ne diffuse pas ». */
         const raw = session
-          ? [session.host, ...(session.guests || []).map(g => g?.user)]
+          ? [{ u: session.host, sonde: false },
+             ...(session.guests || []).map(g => ({ u: g?.user, sonde: true }))]
           : [];
         /* ── CHAQUE MEMBRE PORTE SON COMBINÉ, ET ON LE JETAIT ────────────
            RAPPORT DE TERRAIN : « des co-streams non visibles sur Top
@@ -18859,17 +19013,19 @@ const TSE_GATE_MAX_CLICKS = 5;
            coupe n'a pas de carte ; aucune requête ne partira jamais pour lui.
            Sa seule chance d'être compté au bon nombre est cette réponse-ci.
 
-           L'HÔTE FIGURE DEUX FOIS — une fois en tête de `raw` sans `stream`,
-           une fois parmi les invités avec. La déduplication garde la première
-           occurrence, donc celle qui n'a pas le combiné : on complète l'entrée
-           déjà posée plutôt que de la laisser incomplète. */
+           L'HÔTE FIGURE SOUVENT DEUX FOIS — une fois en tête de `raw` sans
+           `stream`, une fois parmi les invités avec. La déduplication garde la
+           première occurrence, donc celle qui n'a pas le combiné : on complète
+           l'entrée déjà posée plutôt que de la laisser incomplète. « Souvent »
+           et non « toujours » : on l'a observé ainsi, on n'en fait pas une
+           garantie, et rien ici ne s'écroule s'il ne figure qu'une fois. */
         const seen = new Map();
         const mates = [];
         const combineDe = (u) => {
           const v = u?.stream?.collaborationViewersCount;
           return Number.isFinite(v) ? v : null;
         };
-        for (const u of raw) {
+        for (const { u, sonde } of raw) {
           const login = u?.login?.toLowerCase();
           if (!login) continue;
           const deja = seen.get(login);
@@ -18878,13 +19034,38 @@ const TSE_GATE_MAX_CLICKS = 5;
             // manquait au premier. On ne retire jamais, on complète.
             if (deja.combined === null) deja.combined = combineDe(u);
             if (!deja.id && u.id) deja.id = u.id;
+            /* ── ET « IL DIFFUSE » SE COMPLÈTE COMME LE RESTE ──────────────
+               L'HÔTE FIGURE SOUVENT DEUX FOIS, et la première occurrence n'a
+               PAS de `stream` — on ne l'a pas demandé là. L'affirmation
+               l'emporte toujours ; le silence ne tranche que là où le champ a
+               été demandé, et laisse « on ne sait pas » partout ailleurs. */
+            if (u?.stream) deja.enLigne = true;
+            else if (sonde && deja.enLigne === null) deja.enLigne = false;
             continue;
           }
           // displayName nettoyé (Twitch le renvoie parfois avec une espace de
           // fin, qui produirait "Scok , Farore"). null si absent → displayNameFor
           // capitalisera alors le login.
+          /* ── ET S'IL DIFFUSE, LUI, SUR SA PROPRE CHAÎNE ───────────────
+             LA RÉPONSE LE DIT DÉJÀ, et on le jetait : `stream` est demandé par
+             participant, et il vaut null pour qui participe à la session SANS
+             diffuser de son côté — le cas le plus courant d'un invité Guest
+             Star. Signalé ainsi : « si un streamer fait partie d'un co-stream
+             mais n'est pas en live, il faudrait avertir l'utilisateur ».
+
+             CE QUE ÇA ÉVITE : lui fabriquer une carte dans « Top Chaînes »,
+             qui classe des chaînes EN DIRECT. Une carte portant le compteur
+             emprunté au groupe pour quelqu'un qui ne diffuse pas serait un
+             nombre faux sur une chaîne éteinte.
+
+             TROIS ÉTATS, ET LE TROISIÈME EST CELUI QUI MANQUAIT : `true`
+             (`stream` reçu), `false` (`stream` demandé, rendu null), `null`
+             (jamais demandé — l'occurrence « hôte »). Tout ce qui écarte un
+             membre n'écarte que sur `=== false` ; `null` le laisse passer,
+             parce qu'on ne sait pas. */
           const m = { login, name: (u.displayName || '').trim() || null,
-                      id: u.id || null, combined: combineDe(u) };
+                      id: u.id || null, combined: combineDe(u),
+                      enLigne: sonde ? !!u?.stream : null };
           seen.set(login, m);
           mates.push(m);
         }
