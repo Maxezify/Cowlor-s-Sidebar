@@ -2057,6 +2057,32 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## "In the bar" means "in the list" (v4.16.1)
+
+> "I can see LittleBigWhale is co-streaming with JulietteArz, but I don't follow
+> JulietteArz — maybe because she appears further down under 'Live channels'?"
+
+The guess was right. The badge split introduced in 4.16.0 asks "does this channel
+have a card on screen?", and the question was being put to the **whole
+document**. But Twitch's sidebar holds more than the followed list: it also
+carries "Live channels" and "Recommended categories", whose cards have exactly
+the same class.
+
+A co-streamer appearing in one of those sections therefore counted as visible
+*in the list*, and their name went to the **blue** badge — the one that says
+"from this list". That is a misstatement of what the badge claims.
+
+The question is now put to **the section**, and only to it. It holds for both
+modes: ranking cards are built inside that same section, and the global mode's
+display rule adds that a followed card left in the DOM behind "Top Channels" is
+not shown, so it does not count.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the query put to the whole document | "Co-stream with juliettearz" in blue, nothing in purple |
+
 ## The combined-count signature had a boundary (v4.16.0)
 
 ### The report, on its third visit
@@ -9473,7 +9499,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 150 scenarios, 1274 assertions |
+| `npm test` | the Playwright harness: 150 scenarios, 1276 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -9493,7 +9519,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1146 KB | 419 KB | 3,472 → **2** |
+| `content.js` | 1146 KB | 419 KB | 3,473 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

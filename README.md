@@ -2178,6 +2178,34 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## « Dans la barre » veut dire « dans la liste » (v4.16.1)
+
+> « Je vois que LittleBigWhale est en co-stream avec JulietteArz, mais je ne
+> suis pas JulietteArz — peut-être parce qu'elle est présente plus bas dans
+> "Chaînes live" ? »
+
+L'hypothèse était la bonne. Le partage des deux badges posé par la 4.16.0
+demande « cette chaîne a-t-elle une carte à l'écran ? », et la question était
+posée au **document entier**. Or la barre latérale de Twitch ne contient pas que
+la liste suivie : elle porte aussi « Chaînes live » et « Catégories
+recommandées », dont les cartes ont exactement la même classe.
+
+Un co-streamer figurant dans l'une de ces sections passait donc pour visible
+*dans la liste*, et son nom partait au badge **bleu** — celui qui dit « de cette
+liste ». C'est un contresens sur ce que le badge affirme.
+
+La question est désormais posée à **la section**, et à elle seule. Elle vaut
+pour les deux modes : les cartes du classement sont fabriquées dans cette
+section-là, et la règle d'affichage du mode global y ajoute qu'une carte suivie
+restée dans le DOM derrière « Top Chaînes » n'est pas affichée, donc ne compte
+pas.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la recherche portée sur le document entier | « Co-stream avec juliettearz » au bleu, rien au violet |
+
 ## La signature du combiné avait une frontière (v4.16.0)
 
 ### Le signalement, à sa troisième visite
@@ -9844,7 +9872,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 150 scénarios, 1274 assertions |
+| `npm test` | le harnais Playwright : 150 scénarios, 1276 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -9865,7 +9893,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1146 Ko | 419 Ko | 3 472 → **2** |
+| `content.js` | 1146 Ko | 419 Ko | 3 473 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
