@@ -19332,6 +19332,29 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ CE QUE LE BANC NE SAIT PAS TENIR, ET QUI SE DIT ══════════════
+   LA 4.15.9 FAIT ATTENDRE AU VOILE les chaînes dont il ne sait RIEN encore —
+   pas seulement les sondes déjà parties. La correction est MESURÉE : sur un
+   décor où la réponse de chaîne traîne 1,2 s, le voile se levait à 250 ms, il
+   se lève à 1245 ms.
+
+   ELLE N'A PAS SON ASSERTION, ET C'EST ÉCRIT PLUTÔT QUE TU. Trois formes ont
+   été essayées, aucune ne tient :
+
+     — lire les durées à la levée : l'observateur de mutation se déclenche
+       entre la réponse et l'écriture sur la carte, donc il lit un DOM en
+       retard de quelques millisecondes sur lui-même ;
+     — exiger un témoin du voile posé : il faut l'amorcer sur l'état courant,
+       le voile du démarrage étant antérieur au script du scénario ;
+     — comparer la date de levée à un seuil : le seuil dépend de l'instant où
+       le premier lot part, qui n'est pas maîtrisé.
+
+   CE QUI RESTE COUVERT : le scénario 144 tient l'autre moitié — sous le voile,
+   les origines SONT apprises et les durées lues à la levée. Ce qui n'est pas
+   couvert est l'attente des chaînes encore inconnues, vérifiée à la main.
+   Écrire ce trou ici vaut mieux qu'une assertion qui passerait au vert sans
+   rien mesurer : c'est ce qu'ont fait les trois tentatives ci-dessus. */
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

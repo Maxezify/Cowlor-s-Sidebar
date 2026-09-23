@@ -2178,6 +2178,61 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le voile attend aussi les chaînes dont il ne sait rien (v4.15.9)
+
+> « Au bout de quelques secondes ça met 70h. Je veux l'uptime coupure comprise
+> sur la carte. »
+
+La réponse à la question posée à la version précédente : **le VOD fait foi**.
+La carte doit porter la durée du direct entier, coupures comprises — et elle la
+portait déjà, mais **après** la levée du voile, sous les yeux.
+
+Le rapport le chiffrait : `sousVoile 1` sur deux adoptions, voile levé à
+8730 ms. Une origine apprise sous le voile, l'autre après.
+
+### Ce que le voile n'attendait pas
+
+Il attendait les sondes **parties**. Or on ne peut pas poser la question de
+l'origine avant que la chaîne ne soit connue : la sonde exige un `stream`
+frais, et tant que le lot de chaînes n'a pas répondu, elle n'a **rien à
+accepter ni à refuser**. Une carte dont la réponse arrivait tard passait donc
+entre les mailles — le voile se levait sur elle, et sa durée se corrigeait
+ensuite.
+
+### La garde est étroite, et il le faut
+
+« La file travaille » serait trop large : elle travaille **sans cesse**, chaque
+entrée de cache qui périme y retourne. Le voile tiendrait alors jusqu'à son
+échéance à chaque page, y compris sur une sidebar entièrement connue — six
+secondes payées pour rien.
+
+La bonne question est plus étroite : **reste-t-il une chaîne dont on n'a jamais
+eu de réponse ?** Celle-là, et elle seule, empêche de poser la question de
+l'origine. Un rafraîchissement de routine porte sur une chaîne déjà connue :
+sa carte affiche déjà la bonne durée.
+
+Mesuré après correction, sur un décor ordinaire : **levée à 1046 ms**,
+inchangée.
+
+### Ce que la mesure dit, et ce que le banc ne tient pas
+
+Sur un décor où la réponse de chaîne traîne 1,2 s : le voile se levait à
+**250 ms**, il se lève à **1245 ms**. Et sur un décor ordinaire, **1046 ms**,
+inchangé — la garde étroite ne coûte rien.
+
+**Cette correction n'a pas son assertion, et c'est écrit plutôt que tu.** Trois
+formes ont été essayées, aucune ne tient : lire les durées à la levée (
+l'observateur de mutation se déclenche entre la réponse et l'écriture sur la
+carte), exiger un témoin du voile (il faut l'amorcer sur l'état courant, le
+voile du démarrage étant antérieur au script), comparer la date de levée à un
+seuil (qui dépend de l'instant où le premier lot part, non maîtrisé).
+
+Le scénario 144 tient l'autre moitié — sous le voile, les origines *sont*
+apprises et les durées lues à la levée. Ce qui reste découvert est l'attente
+des chaînes encore inconnues, vérifiée à la main. Écrire ce trou vaut mieux
+qu'une assertion verte qui ne mesure rien : c'est exactement ce qu'ont fait les
+trois tentatives.
+
 ## Tout doit être prêt quand le voile disparaît (v4.15.8)
 
 > « Je t'assure qu'au tout début, il m'annonçait une vingtaine d'heures
@@ -9503,7 +9558,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1141 Ko | 418 Ko | 3 437 → **2** |
+| `content.js` | 1144 Ko | 419 Ko | 3 450 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

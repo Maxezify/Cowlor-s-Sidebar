@@ -6399,6 +6399,38 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   let queue = new Map();
   let queueTimer = null;
+  /* ── LA FILE DES CHAÎNES EST-ELLE ENCORE AU TRAVAIL ? ────────────────────
+       ON NE PEUT PAS POSER LA QUESTION DE L'ORIGINE avant que la chaîne ne
+       soit connue : la sonde exige un `stream` frais, et tant que le lot n'a
+       pas répondu, elle n'a rien à refuser NI à accepter. Le voile, lui,
+       n'attendait que les sondes PARTIES — il se levait donc sur des cartes
+       dont la question n'avait pas encore été posée.
+
+       LE RAPPORT LE CHIFFRE : « sousVoile 1 » sur deux adoptions, voile levé à
+       8730 ms. Une origine apprise sous le voile, l'autre quelques secondes
+       après — vue par l'utilisateur, qui la signale depuis trois versions.
+
+       CETTE LECTURE EST PURE et ne coûte rien : un lot en attente, un minuteur
+       armé, ou un aller-retour en vol. Les trois disent la même chose — il
+       reste des chaînes dont on ne sait rien. */
+  let enVolLogins = new Set();
+  const chainesEnCours = () => {
+    /* ── ET SEULEMENT CELLES DONT ON NE SAIT RIEN ENCORE ──────────────────
+       « La file travaille » serait trop large : elle travaille SANS CESSE —
+       chaque entrée de cache qui périme y retourne — et le voile tiendrait
+       alors jusqu'à son échéance à chaque page, y compris sur une sidebar
+       déjà entièrement connue. Ce serait payer six secondes de voile pour
+       rien.
+
+       LA BONNE QUESTION EST PLUS ÉTROITE : reste-t-il une chaîne dont on n'a
+       JAMAIS eu de réponse ? Celle-là, et elle seule, empêche de poser la
+       question de l'origine. Un rafraîchissement de routine, lui, porte sur
+       une chaîne déjà connue : sa carte affiche déjà la bonne durée, et rien
+       ne justifie de retenir le voile pour elle. */
+    for (const l of queue.keys()) if (!cache.has(l)) return true;
+    for (const l of enVolLogins) if (!cache.has(l)) return true;
+    return false;
+  };
   let gqlCooldownUntil = 0;   // anti-martèlement après l'échec d'un lot
   let massOfflineStreak = 0;  // cycles consécutifs d'extinction de masse suspecte
 
@@ -6697,7 +6729,20 @@ const TSE_GATE_MAX_CLICKS = 5;
     // basculer en UPTIME_UNKNOWN que les logins qu'il portait, au lieu
     // d'aveugler toute la sidebar d'un coup.
     const slices = chunk(logins, CFG.GQL_MAX_LOGINS);
-    const responses = await Promise.all(slices.map(s => post([buildChannelsOp(s)])));
+    for (const l of logins) enVolLogins.add(l);
+    /* LE VOILE APPREND ICI QU'IL A QUELQUE CHOSE À ATTENDRE. Sans cet appel,
+       le verrou n'était posé que depuis le module de la sonde — qui ne tourne
+       qu'une fois CETTE réponse arrivée. Le banc l'a pris : durées vides à la
+       levée, c'est-à-dire des cartes dont la chaîne n'avait pas encore parlé. */
+    preview.majVerrouVoile();
+    let responses;
+    try {
+      responses = await Promise.all(slices.map(s => post([buildChannelsOp(s)])));
+    } finally {
+      // `finally` : une exception ne doit pas laisser le voile attendre un lot
+      // qui ne reviendra jamais.
+      for (const l of logins) enVolLogins.delete(l);
+    }
 
     const now = Date.now();
     let fresh = 0;
@@ -13703,6 +13748,14 @@ const TSE_GATE_MAX_CLICKS = 5;
        en route — et des chaînes RECEVABLES qu'un lot a dû différer faute de
        place. Tant que l'un des deux tient, une carte affichée à la levée
        porterait une durée qu'on sait susceptible de changer. */
+    /* ── CE QUE LE VOILE DOIT ATTENDRE, ET QUI N'EST PAS QUE LES SONDES ────
+       Trois faits, et il faut les trois. Des sondes EN VOL — leur réponse est
+       en route. Des chaînes RECEVABLES qu'un lot a dû différer faute de place.
+       Et, depuis le rapport qui montrait « sousVoile 1 » sur deux adoptions,
+       des chaînes dont on ne SAIT RIEN ENCORE : tant que la file des chaînes
+       travaille, la question de l'origine n'a même pas pu être posée pour
+       elles, et lever le voile revient à promettre une durée qu'on va corriger
+       sous les yeux de l'utilisateur. */
     let sondesEnVol = 0;
     /* ── CE QUI ATTEND UNE PLACE SE RETIENT PAR NOM, PAS PAR OUI-OU-NON ─────
        LA PREMIÈRE RÉDACTION POSAIT UN BOOLÉEN, réécrit à chaque lot. Un lot
@@ -13716,7 +13769,8 @@ const TSE_GATE_MAX_CLICKS = 5;
        et quand elle cesse d'être recevable — sondée ailleurs, chaînée, ou
        abandonnée. Il ne peut donc pas retenir le voile sur un nom périmé. */
     const differeesEnAttente = new Set();
-    const originesEnAttente = () => sondesEnVol > 0 || differeesEnAttente.size > 0;
+    const originesEnAttente = () =>
+      sondesEnVol > 0 || differeesEnAttente.size > 0 || chainesEnCours();
 
     /* ── COMBIEN DE TEMPS AVANT QU'UNE PLACE NE SE LIBÈRE ───────────────────
        La plus ancienne sonde de la fenêtre sort la première : c'est elle qui
@@ -14060,8 +14114,21 @@ const TSE_GATE_MAX_CLICKS = 5;
        la main par un scan explicite. Une seule autorité, et elle est ici. */
     let voileVerrouJusqua = 0;
     let voileSecours = null;
-    const majVerrouVoile = () => {
-      const actif = loadingOverlay.enCycle() && originesEnAttente();
+    /* ── QUI PEUT POSER LE VERROU, ET QUI PEUT LE LEVER ────────────────────
+       CE N'EST PAS LA MÊME CHOSE, et les confondre a coûté une mesure. Poser
+       le verrou demande de savoir qu'il reste du travail : la file des
+       chaînes le sait, les sondes le savent, chacun de son côté. LEVER
+       demande de savoir qu'il n'en reste PLUS — et aucun de ces deux-là ne
+       peut le dire, parce qu'entre « la réponse de chaîne est arrivée » et
+       « la sonde est partie » il existe un instant où les deux se croient au
+       repos. Le banc l'a daté : voile levé à 1252 ms, exactement quand les
+       réponses arrivaient, et toutes les durées encore vides.
+
+       SEUL LE BALAYAGE LÈVE, parce qu'il est le seul à voir le résultat : une
+       carte vivante sans durée n'est pas prête, et il le lit dans le DOM. Les
+       autres appelants ne peuvent que retenir. */
+    const majVerrouVoile = (enPlus = false, peutLever = false) => {
+      const actif = loadingOverlay.enCycle() && (enPlus || originesEnAttente());
       if (actif && voileVerrouJusqua === 0) {
         voileVerrouJusqua = Date.now() + CFG.RECONNECT_PROBE_HOLD_MAX;
         /* Le filet : si plus aucune sonde ne revient, rien ne rappellerait
@@ -14071,8 +14138,12 @@ const TSE_GATE_MAX_CLICKS = 5;
                                   CFG.RECONNECT_PROBE_HOLD_MAX + 50);
       }
       const tenir = actif && Date.now() < voileVerrouJusqua;
-      loadingOverlay.setHold(tenir, 'origines');
-      if (tenir) return;
+      if (tenir) { loadingOverlay.setHold(true, 'origines'); return; }
+      // Échéance dépassée : on rend la main quel que soit l'appelant, sans
+      // quoi une sidebar qui n'aboutit pas resterait voilée jusqu'au plafond
+      // dur. Sinon, seul le balayage a le droit de lever.
+      if (!peutLever && Date.now() < voileVerrouJusqua) return;
+      loadingOverlay.setHold(false, 'origines');
       voileVerrouJusqua = 0;
       if (voileSecours) { clearTimeout(voileSecours); voileSecours = null; }
       scheduleScan();   // le voile ne se lève que sur un scan : en voici un
@@ -16288,9 +16359,13 @@ const TSE_GATE_MAX_CLICKS = 5;
          précisément en choisissant à sa place qu'il brûlait son budget sur les
          deux mêmes (cf. `gardesSonde`). Le tri se fait ici, où les gardes
          vivent, et la requête part en un seul aller-retour. */
-      /* Reste-t-il des origines à apprendre ? Lu par le scan, qui en fait un
-         verrou de voile (cf. `scanSidebar`). */
+      /* Reste-t-il des origines à apprendre ? Et la fonction qui en tire le
+         verrou de voile. La FILE DES CHAÎNES l'appelle aussi, au moment où
+         elle part : c'est là que « des chaînes dont on ne sait rien » devient
+         vrai, et le module de la sonde, lui, ne tournera qu'APRÈS leur
+         réponse — trop tard pour retenir quoi que ce soit. */
       originesEnAttente,
+      majVerrouVoile: (enPlus, peutLever) => majVerrouVoile(enPlus, peutLever),
       sonderOrigines: (logins) => vider(logins),
       // Ferme l'aperçu si sa carte d'ancrage a quitté le DOM (stream terminé
       // pendant le survol). Appelée depuis scanSidebar : le retrait d'une carte
@@ -20069,6 +20144,32 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (subsPage.enAttente()) {
       subsPage.notifySidebar(!!document.querySelector(DOM.followedCardSelector));
     }
+    /* ── ET LE VERROU DES ORIGINES, POSÉ AVANT QU'ON NE JUGE LA STABILITÉ ──
+       LE MODULE DE LA SONDE LE POSE DÉJÀ, mais au plus tôt quand le premier
+       lot de chaînes PART — soit BATCH_DELAY après la première carte. Sur une
+       sidebar qui se stabilise plus vite que ça, le voile se levait dans cet
+       intervalle : mesuré au banc, levée à ~250 ms contre un premier verrou à
+       262 ms. Douze millisecondes, et toutes les durées étaient vides.
+
+       LE BALAYAGE, LUI, VOIT LES CARTES TOUT DE SUITE. Il n'est pas une
+       seconde autorité — il appelle la même fonction, qui décide seule — mais
+       il est le premier à pouvoir la faire parler. Et il la rappelle à chaque
+       passage, ce qui rattrape le cas inverse : un verrou qui devrait tomber
+       alors que plus aucune sonde ne revient. */
+    /* UNE CARTE VIVANTE SANS DURÉE N'EST PAS PRÊTE, et c'est la formulation
+       la plus directe de ce que l'utilisateur voit. Les chemins internes — la
+       file des chaînes, les sondes en vol, celles qui attendent une place —
+       disent la même chose chacun à sa façon, mais ils se posent trop tard
+       quand la sidebar se stabilise vite : mesuré au banc, levée à 250 ms
+       contre un premier verrou à 262 ms, et toutes les durées vides. Le DOM,
+       lui, est lisible dès le premier balayage.
+
+       LES CARTES HORS LIGNE SONT EXCLUES : elles n'auront jamais de durée, et
+       les attendre retiendrait le voile jusqu'à son échéance pour rien. */
+    const cartesSansDepart = [...cards].some(c =>
+      !isSynthetic(c) && c.dataset.tseLogin && !c.dataset.tseStartedAt
+      && c.dataset.tseOffline !== 'true');
+    preview.majVerrouVoile(cartesSansDepart, true);
     const nativeCount = [...cards].filter(c => !isSynthetic(c)).length;
     const stillGrowing = loadingOverlay.notifyScan(hadOfflineActivity, nativeCount);
 

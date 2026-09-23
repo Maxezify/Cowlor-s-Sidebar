@@ -2057,6 +2057,60 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The veil also waits for channels it knows nothing about (v4.15.9)
+
+> "After a few seconds it shows 70h. I want the uptime with cuts included on
+> the card."
+
+The answer to the question raised in the previous version: **the VOD is the
+truth**. The card must carry the whole stream's duration, cuts included — and
+it already did, but **after** the veil lifted, before the user's eyes.
+
+The report put a number on it: `sousVoile 1` out of two adoptions, veil lifted
+at 8730 ms. One origin learned under the veil, the other after.
+
+### What the veil was not waiting for
+
+It waited for probes that had **gone out**. But the origin question cannot be
+asked before the channel is known: the probe needs a fresh `stream`, and until
+the channel batch has answered it has **nothing to accept or refuse**. A card
+whose answer arrived late therefore slipped through — the veil lifted on it,
+and its duration corrected itself afterwards.
+
+### The guard is narrow, and it must be
+
+"The queue is working" would be too broad: it works **constantly**, every cache
+entry that expires goes back into it. The veil would then hold until its
+deadline on every page, including on a fully known sidebar — six seconds paid
+for nothing.
+
+The right question is narrower: **is there still a channel we have never had an
+answer for?** That one, and only that one, prevents the origin question from
+being asked. A routine refresh concerns an already known channel: its card
+already shows the right duration.
+
+Measured after the fix, on an ordinary fixture: **lift at 1046 ms**,
+unchanged.
+
+### What measurement says, and what the bench does not hold
+
+On a fixture where the channel answer takes 1.2 s: the veil used to lift at
+**250 ms**, it now lifts at **1245 ms**. And on an ordinary fixture,
+**1046 ms**, unchanged — the narrow guard costs nothing.
+
+**This fix has no assertion, and that is written down rather than glossed
+over.** Three forms were tried, none holds: reading the durations at the lift
+(the mutation observer fires between the answer and the write to the card),
+requiring a veil witness (it must be seeded from the current state, the startup
+veil predating the scenario's script), comparing the lift date to a threshold
+(which depends on when the first batch goes out, not controlled).
+
+Scenario 144 holds the other half — under the veil, origins *are* learned and
+durations read at the lift. What remains uncovered is the wait for still
+unknown channels, verified by hand. Writing that gap down is worth more than a
+green assertion that measures nothing: that is exactly what the three attempts
+did.
+
 ## Everything must be ready when the veil lifts (v4.15.8)
 
 > "I assure you that at the very start it announced about twenty hours of
@@ -9146,7 +9200,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1141 KB | 418 KB | 3,437 → **2** |
+| `content.js` | 1144 KB | 419 KB | 3,450 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
