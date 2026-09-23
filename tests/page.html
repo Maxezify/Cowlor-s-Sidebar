@@ -320,7 +320,15 @@ window.fetch = async (url, opt) => {
   // L'INSTANT DE L'APPEL, et non seulement son contenu. Une cadence ne se
   // lit pas dans une liste : sans horodatage, un banc ne peut pas dire si
   // six requêtes sont parties en six secondes ou toutes ensemble.
+  // ET L'ÉTAT DU VOILE À CET INSTANT. La cadence des sondes n'a pas la même
+  // règle sous le voile qu'en croisière — bourse à part d'un côté, fenêtre
+  // de temps de l'autre. Un banc qui mesure « la croisière » sans pouvoir
+  // écarter les sondes du voile mesure un mélange, et tombe le jour où un
+  // second cycle s'intercale. C'est arrivé : « pointe 16 » là où la règle en
+  // permet douze, sur un banc chargé.
   window.__calls.push({ t: Date.now(), n: ops.length, ops, op: body[0]?.operationName,
+                        voile: !!(document.body
+                                  && document.body.classList.contains('tse-loading')),
                         // Noms de TOUTES les opérations du lot : c'est ce qui
                         // permet de compter le coût réel d'une passe globale.
                         names: body.map(o => o.operationName),

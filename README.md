@@ -2178,6 +2178,92 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le combiné d'un membre qu'on n'interrogera jamais (v4.17.0)
+
+### La question, et le cercle qu'elle désignait
+
+> « Il y a un co-stream de trois et on n'en voit que deux en carte. Pourquoi
+> PestilenceRIOT n'est pas visible ? »
+
+Le rapport le chiffrait avec le compteur écrit pour ça : **`sousLaCoupe 6 ·
+sousLaCoupeAvecCombine 6`** — six membres dont on **connaît** le combiné, et qui
+restent sous la coupe.
+
+`readStream` sait pourtant depuis la 4.14.3 qu'un combiné connu prime sur ce que
+le répertoire raconte. Mais il le cherchait **à la clé de la chaîne elle-même**,
+dans le cache Guest Star. Or on n'interroge Guest Star que sur les chaînes qui
+ont une **carte**. D'où un cercle qui se refermait sur lui-même :
+
+```
+pas de carte → jamais interrogé → pas d'entrée Guest Star
+             → le répertoire impose l'audience propre (quelques centaines)
+             → sous le trentième rang → pas de carte
+```
+
+Rien ne pouvait le rouvrir.
+
+### On le connaissait déjà
+
+La réponse Guest Star d'un membre **qui a une carte** porte la liste de **tous**
+ses camarades, chacun avec son combiné. Rien de neuf n'est demandé à Twitch : on
+cesse simplement de ranger cette moitié-là sous une clé que personne
+n'interroge. Un registre par **login** — ce que `readStream` a en main quand il
+lit le répertoire — borné comme tout registre de ce fichier, et daté sur la
+session qui l'a rendu : un combiné périmé ne vaut pas mieux qu'une audience
+propre.
+
+| | classement | `repertoireBas` |
+| --- | --- | --- |
+| avant | `hote:11736 · g1:9000 · g2:8000 · g3:7000 · modele:800 · **absent:300**` | 0 |
+| après | `hote:11736 · **absent:11736** · g1:9000 · g2:8000 · g3:7000 · modele:800` | 11 |
+
+### Les deux badges, vus de l'autre côté
+
+> « Sur la partie "Chaînes live", JulietteArz a le badge bleu ; on a bien dit
+> que les deux parties ne sont pas liées. »
+
+La 4.16.1 visait la liste **suivie** en dur. Elle corrigeait le cas où le
+**membre** était ailleurs, et laissait entier celui où c'est la carte
+**survolée** qui l'est : depuis une carte de « Chaînes live », un co-streamer de
+la liste suivie repassait au bleu.
+
+« De cette liste » n'a de sens que par rapport à la carte qu'on regarde. On part
+donc de **sa** section à elle, quelle qu'elle soit, et deux cartes de sections
+différentes ne se nomment jamais entre elles.
+
+### Et la seconde voie d'éviction se compte à part
+
+Un rapport rendait l'arithmétique impossible : **`evicted 1138` pour `misses
+834`**, alors qu'il faut **trois** absences pour évincer — la voie documentée ne
+pouvait en expliquer que 278 au plus. Les trois quarts venaient de la
+**péremption par l'âge**, dont le commentaire affirme qu'elle est « assez large
+pour ne jamais concurrencer » le mécanisme normal. Elle le domine.
+
+Deux mécanismes sous un seul nombre, c'est exactement ce qui a rendu le défaut
+« KyriaTV » introuvable pendant deux enquêtes. Ils sont séparés — `perimees`
+contre `evicted` — **avant** de décider quoi que ce soit : le prochain rapport
+dira l'ampleur réelle, et c'est lui qui tranchera s'il faut donner à la
+péremption le garde-fou de réserve que l'autre voie a déjà.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| le combiné cherché par le seul identifiant | `absent:300`, bon dernier, `repertoireBas 0` |
+| la section suivie visée en dur | « Co-stream avec lbw » au bleu, depuis « Chaînes live » |
+
+### Et une assertion qui épousait une hypothèse
+
+Le banc mesure la cadence de **croisière** des sondes, et son décor attendait la
+chute du voile avant de poser ses cartes — ce qui suffisait, jusqu'au jour où un
+second cycle s'est intercalé sur une machine chargée : **`pointe 16`** là où la
+croisière en permet douze, **sans qu'aucune règle n'ait été enfreinte**, puisque
+la bourse du voile a la sienne.
+
+L'assertion supposait donc l'absence d'un second cycle au lieu de la constater.
+Le harnais date désormais chaque appel de l'état du voile, et la mesure ne garde
+que la croisière — ce qu'elle prétend mesurer.
+
 ## « Dans la barre » veut dire « dans la liste » (v4.16.1)
 
 > « Je vois que LittleBigWhale est en co-stream avec JulietteArz, mais je ne
@@ -9872,7 +9958,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 150 scénarios, 1276 assertions |
+| `npm test` | le harnais Playwright : 151 scénarios, 1279 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -9893,12 +9979,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1146 Ko | 419 Ko | 3 473 → **2** |
+| `content.js` | 1183 Ko | 423 Ko | 3 479 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1384 Ko** | **569 Ko** | **−59 %** |
+| **les cinq** | **1431 Ko** | **577 Ko** | **−59 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

@@ -1677,6 +1677,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     // hash — l'extension ne dépend donc d'AUCUNE persisted query (cf. module
     // Guest Star / detectCoStreams).
     GUEST_STAR_TTL:            30_000,   // ms — fraîcheur d'une session co-stream en cache
+    /* Combien de MEMBRES de session on retient par login (cf.
+       `combineDesMembres`). Une session compte une poignée de participants et
+       le cache des sessions en tient déjà plusieurs dizaines ; ce registre-ci
+       est le même ordre de grandeur, multiplié par la taille d'un groupe. */
+    GUEST_STAR_MEMBERS_MAX:    400,
     GUEST_STAR_DEBOUNCE:       300,      // ms — fenêtre de regroupement des IDs avant fetch
     GUEST_STAR_ERROR_COOLDOWN: 30_000,   // ms — pause après échec réseau / rejet
     /* ── COMBIEN DE RÉPONSES VIDES POUR CROIRE QU'UNE SESSION EST FINIE ────
@@ -7190,6 +7195,23 @@ const TSE_GATE_MAX_CLICKS = 5;
                        ne se compte nulle part est un retrait qu'aucun rapport
                        ne peut désigner — c'est le nombre qui manquait. */
                     misses: 0, sousPlancher: 0, creux: 0, evicted: 0,
+                    /* ── ET LA SECONDE VOIE D'ÉVICTION SE COMPTE À PART ─────
+                       UN RAPPORT DE TERRAIN A RENDU L'ARITHMÉTIQUE IMPOSSIBLE :
+                       « evicted 1138 » pour « misses 834 ». Or il faut TROIS
+                       absences pour évincer, donc la voie ci-dessus ne peut en
+                       expliquer que deux cent soixante-dix-huit au plus. Les
+                       trois quarts venaient d'ailleurs — de la péremption par
+                       l'âge, dont le commentaire affirme qu'elle est « assez
+                       large pour ne jamais concurrencer » le mécanisme normal.
+                       Elle le domine.
+
+                       DEUX MÉCANISMES SOUS UN SEUL NOMBRE, c'est exactement ce
+                       qui a rendu le défaut « KyriaTV » introuvable pendant
+                       deux enquêtes. On les sépare donc AVANT de décider quoi
+                       que ce soit de la péremption : le prochain rapport dira
+                       son ampleur réelle, et c'est lui qui tranchera s'il faut
+                       lui donner le garde-fou de réserve que l'autre voie a. */
+                    perimees: 0,
                     /* « sansReserve » compte l'autre refus de compter : le
                        pool n'était pas plus profond que ce qu'il affiche,
                        donc aucune absence n'y était démontrable. Un nombre
@@ -7493,7 +7515,10 @@ const TSE_GATE_MAX_CLICKS = 5;
          descente par catégories et le classement par tag — donc le seul
          endroit où le poser une fois pour toutes. */
       let vus = viewers;
-      const combine = getCollabViewers(node.broadcaster?.id);
+      /* Par IDENTIFIANT d'abord — c'est la chaîne interrogée elle-même, donc
+         la source la plus directe — puis par LOGIN, ce qui rattrape les
+         membres qu'on n'interrogera jamais (cf. `combineDuMembre`). */
+      const combine = getCollabViewers(node.broadcaster?.id) ?? combineDuMembre(login);
       if (Number.isFinite(combine) && combine !== viewers) {
         if (combine > viewers) stats.repertoireBas += 1;
         else stats.repertoireHaut += 1;
@@ -7655,7 +7680,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (seen.has(login)) { rec.misses = 0; rec.creux = 0; continue; }
         // Trop vieille pour être encore crédible : sa catégorie est sortie de
         // la descente il y a longtemps, et plus rien ne la rafraîchit.
-        if (rec.ts < cutoff) { pool.delete(login); stats.evicted += 1; continue; }
+        /* PÉREMPTION PAR L'ÂGE : comptée à part de l'éviction par absence
+           (cf. `perimees`). Elle n'a ni le plancher ni la réserve — c'est une
+           soupape, pas un jugement — et tant que les deux partageaient un
+           compteur, personne ne pouvait voir laquelle agissait. */
+        if (rec.ts < cutoff) { pool.delete(login); stats.perimees += 1; continue; }
         if (!queried.has(rec.game)) continue;      // pas regardée, pas jugée
         /* SOUS LE PLANCHER DE LA RÉPONSE, l'absence n'apprend rien : la
            réponse s'arrêtait avant d'arriver jusqu'à elle. */
@@ -15061,9 +15090,25 @@ const TSE_GATE_MAX_CLICKS = 5;
        modes : les cartes du classement sont fabriquées DANS cette section-là
        (cf. `syncGlobalCards`), et `cardShown` y ajoute la règle du mode global
        — une carte suivie qui reste dans le DOM derrière « Top Chaînes » n'est
-       pas affichée, donc ne compte pas. */
+       pas affichée, donc ne compte pas.
+
+       ── ET LA SECTION EST CELLE DE LA CARTE SURVOLÉE, PAS UNE EN PARTICULIER
+       LE MÊME SIGNALEMENT, VU DE L'AUTRE CÔTÉ : « sur la partie "Chaînes
+       live", JulietteArz a le badge bleu ; on a bien dit que les deux parties
+       ne sont pas liées entre les chaînes suivies et "Chaînes live" ».
+
+       La première rédaction visait la liste SUIVIE en dur. Elle corrigeait le
+       cas où le MEMBRE était ailleurs, et laissait entier celui où c'est la
+       carte SURVOLÉE qui l'est : depuis une carte de « Chaînes live », un
+       co-streamer de la liste suivie repassait au bleu.
+
+       « DE CETTE LISTE » N'A DE SENS QUE PAR RAPPORT À LA CARTE QU'ON REGARDE.
+       On part donc de sa section à elle, quelle qu'elle soit, et deux cartes
+       de sections différentes ne se nomment jamais entre elles. Sans carte
+       ancre — un aperçu ouvert autrement — on retombe sur la liste suivie, qui
+       est le cas de loin le plus courant. */
     const estDansLaBarre = (login) => {
-      const section = followedSection();
+      const section = currentCard?.closest('.side-nav-section') || followedSection();
       const c = section?.querySelector(`.side-nav-card[data-tse-login="${login}"]`);
       return !!c && cardShown(c);
     };
@@ -18840,6 +18885,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           const combine = info && Number.isFinite(info.combined)
             ? info.combined : avant.combined;
           gsCache.set(id, { ...avant, combined: combine, vides, ts: now });
+          noterCombinesDeSession(gsCache.get(id));
           gsStats.gardees += 1;
           continue;
         }
@@ -18852,6 +18898,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         vides:    0,
         ts: now
       });
+      noterCombinesDeSession(gsCache.get(id));
     }
     /* ── ET SI LA SESSION ARRIVE APRÈS LE LOT DE CHAÎNES ──────────────────
        Les deux réponses n'ont aucune raison d'arriver dans l'ordre : la file
@@ -18949,6 +18996,49 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!channelId) return null;
     const v = gsCache.get(channelId)?.combined;
     return Number.isFinite(v) ? v : null;
+  };
+
+  /* ── LE COMBINÉ D'UN MEMBRE QU'ON N'INTERROGERA JAMAIS ──────────────────
+     `getCollabViewers` cherche dans le cache Guest Star À LA CLÉ DE LA CHAÎNE
+     ELLE-MÊME. Or on n'interroge Guest Star que sur les chaînes qui ont une
+     CARTE : un membre de session qui n'en a pas n'a donc aucune entrée, et le
+     répertoire le range à son audience PROPRE — quelques centaines — ce qui le
+     laisse sous le trentième rang, donc sans carte, donc jamais interrogé.
+     La boucle se referme sur elle-même et rien ne peut la rouvrir.
+
+     LE SIGNALEMENT EST EXACTEMENT CELUI-LÀ : « il y a un co-stream de trois et
+     on n'en voit que deux en carte — pourquoi PestilenceRIOT n'est pas
+     visible ? » Et le rapport le chiffrait avec le compteur écrit pour ça :
+     « sousLaCoupe 6 · sousLaCoupeAvecCombine 6 » — six membres dont on CONNAÎT
+     le combiné, et qui restent sous la coupe.
+
+     OR ON LE CONNAÎT DÉJÀ. La réponse Guest Star d'un membre qui a une carte
+     porte la liste de TOUS ses camarades, chacun avec son combiné (cf.
+     `mates`). Rien de neuf n'est demandé à Twitch : on cesse simplement de
+     ranger cette moitié-là sous une clé que personne n'interroge.
+
+     RANGÉ PAR LOGIN, parce que c'est ce que `readStream` a en main quand il
+     lit le répertoire, et borné comme tout registre de ce fichier. La
+     fraîcheur est celle de la session qui l'a rendu : un combiné périmé ne
+     vaut pas mieux qu'une audience propre. */
+  const combineDesMembres = new Map();
+  const noterCombinesDeSession = (entry) => {
+    if (!entry || !Array.isArray(entry.mates)) return;
+    for (const m of entry.mates) {
+      const l = m?.login && String(m.login).toLowerCase();
+      if (!l || !Number.isFinite(m.combined)) continue;
+      combineDesMembres.delete(l);            // réinsertion : le plus récent en queue
+      combineDesMembres.set(l, { v: m.combined, ts: entry.ts });
+      while (combineDesMembres.size > CFG.GUEST_STAR_MEMBERS_MAX) {
+        combineDesMembres.delete(combineDesMembres.keys().next().value);
+      }
+    }
+  };
+  const combineDuMembre = (login) => {
+    if (!login) return null;
+    const hit = combineDesMembres.get(String(login).toLowerCase());
+    if (!hit || Date.now() - hit.ts >= CFG.GUEST_STAR_TTL) return null;
+    return hit.v;
   };
 
   // Co-streamers Guest Star de `login` (hôte + invités, soi exclu), chacun

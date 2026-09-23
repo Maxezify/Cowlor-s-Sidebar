@@ -2057,6 +2057,90 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The combined count of a member we will never query (v4.17.0)
+
+### The question, and the loop it pointed at
+
+> "There's a co-stream of three and we only see two as cards. Why isn't
+> PestilenceRIOT visible?"
+
+The report put a number on it with the counter written for exactly this:
+**`sousLaCoupe 6 · sousLaCoupeAvecCombine 6`** — six members whose combined
+count we **know**, and who stay below the cut.
+
+`readStream` has known since 4.14.3 that a known combined count outranks
+whatever the directory says. But it looked it up **under the channel's own
+key**, in the Guest Star cache. And we only query Guest Star for channels that
+have a **card**. Hence a loop closing on itself:
+
+```
+no card → never queried → no Guest Star entry
+        → the directory imposes the own audience (a few hundred)
+        → below the thirtieth rank → no card
+```
+
+Nothing could reopen it.
+
+### We already knew it
+
+The Guest Star answer for a member **that does have a card** carries the list of
+**all** their mates, each with their combined count. Nothing new is asked of
+Twitch: we simply stop filing that half under a key nobody queries. A registry
+keyed by **login** — what `readStream` holds when reading the directory —
+bounded like every registry in this file, and dated on the session that returned
+it: a stale combined count is worth no more than an own audience.
+
+| | ranking | `repertoireBas` |
+| --- | --- | --- |
+| before | `hote:11736 · g1:9000 · g2:8000 · g3:7000 · modele:800 · **absent:300**` | 0 |
+| after | `hote:11736 · **absent:11736** · g1:9000 · g2:8000 · g3:7000 · modele:800` | 11 |
+
+### The two badges, seen from the other side
+
+> "Under 'Live channels', JulietteArz has the blue badge; we agreed the two
+> parts are not linked."
+
+4.16.1 targeted the **followed** list explicitly. It fixed the case where the
+**member** was elsewhere and left untouched the one where the **hovered** card
+is: from a "Live channels" card, a co-streamer from the followed list went back
+to blue.
+
+"From this list" only means something relative to the card you are looking at.
+So we start from **its own** section, whichever it is, and two cards in
+different sections never name each other.
+
+### And the second eviction route is counted separately
+
+One report made the arithmetic impossible: **`evicted 1138` against `misses
+834`**, when it takes **three** absences to evict — the documented route could
+account for at most 278. Three quarters came from **age expiry**, whose comment
+claims it is "wide enough never to compete" with the normal mechanism. It
+dominates it.
+
+Two mechanisms under one number is exactly what made the "KyriaTV" defect
+untraceable across two investigations. They are separated — `perimees` against
+`evicted` — **before** deciding anything: the next report will give the real
+magnitude, and that is what will settle whether age expiry needs the reserve
+guard the other route already has.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| combined count looked up by id only | `absent:300`, dead last, `repertoireBas 0` |
+| the followed section targeted explicitly | "Co-stream with lbw" in blue, from "Live channels" |
+
+### And an assertion that assumed instead of measuring
+
+The bench measures the probes' **cruising** cadence, and its fixture waited for
+the veil to drop before laying out its cards — which was enough, until a second
+cycle slipped in on a loaded machine: **`pointe 16`** where cruising allows
+twelve, **without any rule being broken**, since the veil purse has its own.
+
+The assertion was assuming the absence of a second cycle rather than observing
+it. The harness now stamps every call with the veil's state, and the measurement
+keeps only cruising probes — what it claims to measure.
+
 ## "In the bar" means "in the list" (v4.16.1)
 
 > "I can see LittleBigWhale is co-streaming with JulietteArz, but I don't follow
@@ -9499,7 +9583,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 150 scenarios, 1276 assertions |
+| `npm test` | the Playwright harness: 151 scenarios, 1279 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -9519,12 +9603,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1146 KB | 419 KB | 3,473 → **2** |
+| `content.js` | 1183 KB | 423 KB | 3,479 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1384 KB** | **569 KB** | **−59 %** |
+| **all five** | **1431 KB** | **577 KB** | **−59 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
