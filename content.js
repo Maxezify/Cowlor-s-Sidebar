@@ -14061,6 +14061,25 @@ const TSE_GATE_MAX_CLICKS = 5;
                    || Date.now() < etat.pasAvant)) return false;
       // Déjà chaîné — on l'a vu de nos yeux, ou une sonde précédente l'a fait.
       if (coupuresDe(login)) return false;
+      /* ── ET LE SUBATHON, QUE LE COMMENTAIRE DU LOT ANNONÇAIT DÉJÀ ─────────
+         « une chaîne dont il n'y a rien à apprendre — déjà sondée, déjà
+         chaînée, SUBATHON » : c'est écrit dans `sonderLot`, et ça ne l'était
+         nulle part dans le code. `adopterReprise` refuse les subathons — un
+         direct qui ne s'arrête pas n'a pas de « reprise après coupure », ses
+         interruptions ne veulent pas dire la même chose — mais il les refuse
+         APRÈS la requête, quand elle est déjà partie et déjà payée.
+
+         LE RAPPORT DE TERRAIN LE PORTAIT DEUX FOIS, dans le même écart d'une
+         unité : « trouvees 5 · adoptees 4 » puis « trouvees 4 · adoptees 3 »,
+         avec « subathons.detectes 1 » les deux fois. Reproduit au banc sur
+         quatre chaînes dont une en subathon : quatre sondes, quatre chaînes
+         trouvées, trois adoptées.
+
+         CE QUE ÇA COÛTAIT : une requête sur le point d'entrée qu'on rationne,
+         une place de la bourse du voile, et le voile retenu pour une réponse
+         qu'on allait jeter. Ce qui décide et ce qui dépense doivent être au
+         même endroit — c'est la même correction que partout ailleurs ici. */
+      if (subathonDe(login)) return false;
       /* ── CE QUE LA 4.3 AVAIT MIS ICI, ET POURQUOI C'ÉTAIT FAUX ────────────
          Une garde exigeait que le direct courant ait moins de dix minutes, au
          motif qu'« un direct plus vieux que la fenêtre de reprise ne peut plus

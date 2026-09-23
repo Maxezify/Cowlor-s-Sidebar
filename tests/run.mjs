@@ -13719,7 +13719,19 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
   /* ── 3. L'EXCEPTION DU SUBATHON ──────────────────────────────────────────
      Twitch force un redémarrage toutes les 48 h : ce n'est pas une coupure.
      L'exception vaut pour la sonde comme pour l'observation directe, sans quoi
-     la sonde la contournerait par la porte de derrière. */
+     la sonde la contournerait par la porte de derrière.
+
+     CE QUE CETTE ASSERTION PROUVE DEPUIS LA 4.15.12, ET CE QU'ELLE NE PROUVE
+     PLUS. La garde s'est déplacée EN AMONT : la sonde ne part plus du tout sur
+     un subathon (scénario 148), si bien que « pas de badge » s'obtient ici
+     sans que `adopterReprise` ait eu à refuser quoi que ce soit. L'assertion
+     tiendrait donc même si SA garde à lui disparaissait.
+
+     ON LA GARDE QUAND MÊME, et on écrit pourquoi : c'est la défense de
+     dernier rang. Une chaîne peut devenir un subathon APRÈS avoir été sondée
+     — le titre change en cours de direct — et c'est alors ce refus-là, et lui
+     seul, qui empêche le badge. Le scénario 148 tient l'autre moitié : que la
+     requête ne parte pas. Les deux ensemble disent « ni dépensé, ni adopté ». */
   await survoler('marathon');
   await wait(page, 900);
   const marathon = await vue();
@@ -13918,12 +13930,30 @@ titre('102. La coupure qu\'on n\'a pas vue passer — la demander à Twitch');
   /* ── 9. CE QUE LA SONDE A COÛTÉ ET RAPPORTÉ ──────────────────────────────
      Le rapport est le seul œil qu'on ait sur ce mécanisme depuis une vraie
      page. `sondes` compte les directs jeunes interrogés — quatre, un par
-     chaîne — et `adoptees` ceux qui ont gagné leur origine : un seul. */
+     chaîne — et `adoptees` ceux qui ont gagné leur origine : un seul.
+
+     ── CE CHIFFRE A CHANGÉ EN 4.15.12, ET PAS POUR ARRANGER LE BANC ────────
+     Il disait « trouvees 6 · adoptees 5 », et cet écart d'une unité était LE
+     SUBATHON : sondé, son chaînage trouvé, puis jeté par l'adoption. Le banc
+     tenait donc en place une requête gâchée — c'est la troisième fois qu'une
+     assertion de ce fichier se révèle être le contrat du défaut plutôt que
+     celui du produit, et ça se reconnaît à ceci qu'elle épouse un nombre sans
+     dire d'où il vient.
+
+     LES DEUX RAPPORTS DE TERRAIN PORTAIENT LE MÊME ÉCART — « trouvees 5 ·
+     adoptees 4 » puis « trouvees 4 · adoptees 3 », avec « subathons.detectes
+     1 » les deux fois. La garde est maintenant en amont (scénario 148), donc
+     le subathon n'est plus sondé du tout.
+
+     ET ON EXIGE DÉSORMAIS L'ÉGALITÉ, ce qui vaut mieux qu'un nombre : tant
+     que tout ce qui est trouvé est adopté, aucune sonde n'a été dépensée pour
+     une réponse qu'on jette. Un écart qui reviendrait ici voudrait dire
+     quelque chose, au lieu d'être le bruit de fond qu'il était. */
   const bilan = await page.evaluate(() =>
     window.tse.panneau.rapport().reseau.chapitres.reprise);
   ok('le rapport dit ce que la sonde a demandé et ce qu\'elle a trouvé',
-     bilan && bilan.sondes >= 9 && bilan.trouvees === 6 && bilan.adoptees === 5
-     && bilan.chaines === 1,
+     bilan && bilan.sondes >= 9 && bilan.trouvees === 5
+     && bilan.trouvees === bilan.adoptees && bilan.chaines === 1,
      JSON.stringify(bilan));
   /* UNE SEULE FOIS PAR SESSION DE STREAM. Le survol se répète, la requête non :
      sans cette garde, chaque passage de souris relancerait la même opération
@@ -19643,6 +19673,88 @@ addEventListener('message', (e) => {
      soit un chargement de page complet pour rien, sous le voile. */
   ok('…et il n\'a chargé l\'onglet le plus lourd qu\'une seule fois',
      vu.expired === 1, JSON.stringify(vu));
+  await page.close();
+}
+
+/* ═════════ LA SONDE NE SE DÉPENSE PAS SUR UN SUBATHON ════════════════════
+   DEUX RAPPORTS DE TERRAIN DE SUITE, LE MÊME ÉCART D'UNE UNITÉ :
+       trouvees 5 · adoptees 4 · subathons.detectes 1
+       trouvees 4 · adoptees 3 · subathons.detectes 1
+   Une chaîne dont la sonde trouvait bien son chaînage, et dont l'adoption le
+   jetait ensuite.
+
+   `adopterReprise` REFUSE LES SUBATHONS, et il a raison : un direct qui ne
+   s'arrête pas n'a pas de « reprise après coupure », ses interruptions ne
+   veulent pas dire la même chose. Mais il refusait APRÈS la requête, quand
+   elle était déjà partie et déjà payée.
+
+   ET LE COMMENTAIRE DU LOT ANNONÇAIT LA GARDE : « une chaîne dont il n'y a
+   rien à apprendre — déjà sondée, déjà chaînée, SUBATHON ». Elle n'était
+   écrite nulle part dans le code. Même classe de défaut que la borne du
+   verrou du scénario 146 : une phrase qui décrit un comportement que le
+   programme n'a pas.
+
+   CE QUE ÇA COÛTAIT : une requête sur le point d'entrée qu'on rationne — le
+   même dont on vient de ramener le refus de 40,7 % à 21 % — une place de la
+   bourse du voile, et le voile retenu pour une réponse qu'on allait jeter.
+
+   ET LE RAPPORT Y GAGNE UN TÉMOIN : `trouvees` et `adoptees` s'accordent
+   désormais, si bien qu'un écart entre eux veut enfin dire quelque chose. */
+{
+  titre('148. La sonde d\'origine — rien à apprendre d\'un subathon');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const neuf  = new Date(Date.now() - 60_000).toISOString();
+    const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();
+    window.__fx = {}; window.__vodRecent = {};
+    /* TROIS CHAÎNES ORDINAIRES ET UNE EN SUBATHON, toutes avec le MÊME
+       chaînage : c'est ce qui rend la mesure concluante — la seule chose qui
+       distingue la quatrième est son titre. */
+    for (const l of ['rev0', 'rev1', 'rev2', 'thonneur']) {
+      window.__fx[l] = { id: 'i-' + l, sid: 's-' + l, createdAt: neuf,
+                         viewers: 900, game: 'Rust', tags: [],
+                         title: l === 'thonneur' ? 'SUBATHON DAY 12 | !socials' : 'Stream' };
+      window.__vodRecent[l] = [
+        { createdAt: neuf, lengthSeconds: 60, chapitres: [] },
+        { createdAt: vieux,
+          lengthSeconds: Math.round((Date.parse(neuf) - 1_200 - Date.parse(vieux)) / 1000),
+          chapitres: [{ pos: 0, jeu: 'Just Chatting' }] }];
+      window.__addCard(l, 'Rust', '900');
+    }
+    window.__sondes = [];
+    const vrai = window.fetch;
+    window.fetch = async (url, opt) => {
+      for (const o of JSON.parse(opt.body)) {
+        if (o.operationName === 'TseVodRecent') window.__sondes.push(o.variables.login);
+      }
+      return vrai(url, opt);
+    };
+  });
+  await attendre(page, () =>
+    window.tse.panneau.rapport().reseau.chapitres.reprise.adoptees >= 3, 10_000);
+  await wait(page, 400);      // laisse une sonde de trop le temps de partir
+  const vu = await page.evaluate(() => {
+    const r = window.tse.panneau.rapport();
+    return { sondes: window.__sondes,
+             surLeThon: window.__sondes.filter(l => l === 'thonneur').length,
+             subathons: r.subathons?.detectes,
+             trouvees: r.reseau.chapitres.reprise.trouvees,
+             adoptees: r.reseau.chapitres.reprise.adoptees };
+  });
+  /* LA PRÉMISSE, EN DEUX MOITIÉS. Le subathon doit être RECONNU — sans quoi
+     on mesurerait une chaîne ordinaire — et les trois autres doivent être
+     sondées, sans quoi « zéro sonde sur le thon » serait vrai pour la
+     mauvaise raison. */
+  ok('le subathon est reconnu, et les chaînes ordinaires sont bien sondées',
+     vu.subathons === 1 && vu.sondes.length >= 3
+     && ['rev0', 'rev1', 'rev2'].every(l => vu.sondes.includes(l)),
+     JSON.stringify(vu));
+  /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — la garde retirée —
+     « surLeThon 1 », et « trouvees 4 · adoptees 3 » : l'écart d'une unité des
+     deux rapports de terrain, reproduit à l'identique. */
+  ok('…mais pas une seule sonde n\'est partie sur le subathon',
+     vu.surLeThon === 0 && vu.trouvees === vu.adoptees, JSON.stringify(vu));
   await page.close();
 }
 
