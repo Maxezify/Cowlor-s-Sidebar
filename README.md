@@ -2178,6 +2178,95 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Un co-stream occupe une place, pas cinq (v4.18.0)
+
+> « Affiche l'ensemble des streamers d'un co-stream, **mais considère
+> l'ensemble d'un co-stream comme une place**. S'il y a du coup 38 cartes, ce
+> n'est pas grave — l'important est d'avoir les 30 meilleures places. »
+
+### Ce que la capture montrait
+
+Un groupe de cinq **coupé en deux** par une chaîne étrangère. Les membres d'une
+session portent chacun leur **propre échantillon** du compteur combiné —
+4 795, 4 788, 4 782 — et un solo à 4 785 vient se glisser au milieu. Trié chaîne
+par chaîne, le groupe se disloque à l'écran, barre de liaison comprise.
+
+### Deux couches, et il fallait les deux
+
+| couche | ce qui change |
+| --- | --- |
+| le **classement** | une place = une chaîne **ou** une session entière ; les cinq membres sortent ensemble et ne consomment qu'un rang |
+| l'**ordre des cartes** | un groupe se range à la position de son **meilleur** membre, et ses membres se suivent |
+
+Corriger l'une sans l'autre laissait le défaut visible.
+
+L'ordre des places est celui de leur meilleur membre — ce qui découle de la
+liste déjà triée : la première fois qu'on rencontre une place, c'est par sa
+chaîne la plus regardée. Aucun tri de plus, donc aucune occasion de diverger.
+
+### Une place vient d'un fait, pas d'une ressemblance
+
+La première rédaction acceptait aussi la **proximité** des compteurs — celle qui
+protège déjà le combiné. Mesuré au banc : elle rangeait `p1:3000`, `p2:2900` et
+`p3:2800` dans **une seule place**. Trois chaînes sans le moindre rapport
+fondues en un groupe, et deux vraies places de moins à l'écran.
+
+Les deux questions ne se ressemblent que de loin :
+
+| la question | sa nature | ce que coûte un faux positif |
+| --- | --- | --- |
+| « ce compteur est-il un combiné ? » | **protection** | un rafraîchissement retardé, que la marche suivante corrige |
+| « ces chaînes sont-elles le même direct ? » | **structure** | de vraies chaînes cachées derrière un groupe qui n'existe pas |
+
+Le même indice ne peut pas servir aux deux. Une place vient donc de **Guest
+Star**, et de lui seul : il nomme les participants. Quand il se tait, chaque
+chaîne garde sa place — on perd le regroupement, on n'invente pas de groupe.
+
+### Ce que le banc mesure
+
+Cinq places demandées rendent **neuf** chaînes : deux solos, les cinq du groupe,
+puis le suivant.
+
+| mutant | résultat |
+| --- | --- |
+| le classement compté chaîne par chaîne | `top(5)` s'arrête à `intrus`, trois membres restent dehors |
+| la proximité admise comme place | `p1`, `p2`, `p3` fondus en un groupe qui n'existe pas |
+
+Et un troisième témoin tient le revers : les **solos gardent leur rang au
+compteur**. Sans lui, un tri qui mettrait tous les groupes en tête passerait
+aussi — ce n'est pas ce qui a été demandé.
+
+### Ce que la règle change aux compteurs, et qui se dit
+
+Trois assertions du banc décrivaient l'**ancien** comportement : des membres de
+session restaient sous la coupe, invisibles. La règle les fait remonter — c'est
+la demande même — et les contrats ont donc bougé :
+
+| compteur | avant | après |
+| --- | --- | --- |
+| `affiches` | 3 | **4** |
+| `sousLaCoupe` | 1 | **0** |
+| groupes dessinés | 0 | **1** |
+
+`sousLaCoupe` n'est pas mort pour autant : il s'est rétréci à ce que
+l'heuristique seule ne peut pas rattraper — un membre sous la coupe dont Guest
+Star ignore la session. Et `horsClassement` garde tout son sens : aucune place
+ne peut faire apparaître ce dont la marche ignore l'existence.
+
+Deux autres assertions sont parties, parce qu'elles ne pouvaient **plus
+échouer** : elles vérifiaient que `sousLaCoupeAvecCombine` valait zéro *parce
+que c'était vrai*, sur un décor où `sousLaCoupe` vaut désormais zéro
+mécaniquement. Une assertion qui ne peut plus être fausse n'en est plus une. Ce
+qu'elles protégeaient — l'angle mort du compteur — reste tenu par le scénario
+143, qui porte le seul cas où il se verrait revenir.
+
+### Une découverte de décor, notée au passage
+
+La résolution Guest Star ne part pas sur un identifiant de chaîne d'une forme
+inattendue : le banc rendait « aucune requête Guest Star », donc aucune session,
+donc aucune place. Trouvé en cherchant pourquoi le décor restait muet, et écrit
+dans le scénario pour que la prochaine personne ne le recherche pas.
+
 ## Le repli retiré, et une alerte qui criait trop vite (v4.17.1)
 
 ### Le repli VOD, mesuré vingt et une fois
@@ -10054,7 +10143,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 151 scénarios, 1271 assertions |
+| `npm test` | le harnais Playwright : 152 scénarios, 1272 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -10075,7 +10164,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1183 Ko | 423 Ko | 3 479 → **2** |
+| `content.js` | 1183 Ko | 423 Ko | 3 486 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

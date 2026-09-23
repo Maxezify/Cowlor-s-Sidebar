@@ -17968,20 +17968,42 @@ addEventListener('message', (e) => {
 
      ICI LE DÉCOR PORTE LES DEUX : un membre que le répertoire ignore, et un
      membre connu mais sous la coupe. Les compter à part est ce qui rend le
-     bilan lisible ; les confondre, c'est ce qui a coûté deux versions. */
-  ok('…et il sépare « inconnu de la marche » de « connu mais sous la coupe »',
-     b.affiches === 3 && b.horsClassement === 1 && b.sousLaCoupe === 1,
+     bilan lisible ; les confondre, c'est ce qui a coûté deux versions.
+
+     ── ET LA 4.18 A VIDÉ LA TROISIÈME CASE, PAR CONSTRUCTION ──────────────
+     Cette assertion exigeait « sousLaCoupe 1 ». Elle ne le peut plus, et ce
+     n'est pas une régression : depuis qu'un co-stream occupe UNE place,
+     l'ensemble de ses membres sort avec elle. « petit » était sous la coupe
+     parce qu'on le triait sur son audience PROPRE ; il est désormais affiché
+     parce qu'il appartient à la place — c'est mot pour mot la demande de
+     l'utilisateur, « affiche l'ensemble des streamers d'un co-stream ».
+
+     CE QUE LA CASE VEUT DIRE MAINTENANT : un membre sous la coupe dont Guest
+     Star ignore la session. Elle n'est donc pas morte, elle s'est rétrécie à
+     ce que l'heuristique seule ne peut pas rattraper — et c'est exactement le
+     cas qu'un rapport de terrain devra encore désigner. La QUATRIÈME case,
+     elle, garde tout son sens : « horsClassement » reste ce que la marche
+     n'a jamais vu, et aucune place ne peut le faire apparaître. */
+  ok('…et il sépare « inconnu de la marche » de ce que la place fait remonter',
+     b.affiches === 4 && b.horsClassement === 1 && b.sousLaCoupe === 0,
      JSON.stringify(b));
-  /* ── ET LE COMPTEUR QUI CROYAIT NE JAMAIS RIEN AVOIR À DIRE ─────────────
-     `sousLaCoupeAvecCombine` lisait le cache des CARTES pour retrouver
-     l'identifiant d'un membre qui, par définition de cette branche, n'en a
-     pas. Il valait donc zéro quoi qu'il arrive, et un rapport portant
-     « sousLaCoupe 14 · sousLaCoupeAvecCombine 0 » se lisait « rien
-     d'anormal ». Ici « petit » est sous la coupe SANS combiné connu : le
-     compteur doit dire zéro parce que c'est vrai, et non parce qu'il est
-     aveugle. Le scénario 143 tient l'autre moitié. */
-  ok('…et « sous la coupe sans combiné » est le cas sain, pas un angle mort',
-     b.sousLaCoupeAvecCombine === 0, JSON.stringify(b));
+  /* ── L'ASSERTION DU COMPTEUR AVEUGLE EST PARTIE AVEC SA CONDITION ──────
+     `sousLaCoupeAvecCombine` a été écrit contre un angle mort : il lisait le
+     cache des CARTES pour retrouver l'identifiant d'un membre qui, par
+     définition de cette branche, n'en a pas. Il valait donc zéro quoi qu'il
+     arrive, et un rapport portant « sousLaCoupe 14 · sousLaCoupeAvecCombine 0 »
+     se lisait « rien d'anormal ». Une assertion vivait ici pour dire qu'il
+     valait zéro PARCE QUE C'ÉTAIT VRAI.
+
+     ELLE NE PEUT PLUS ÉCHOUER. Depuis que le co-stream occupe une place,
+     « petit » n'est plus sous la coupe : `sousLaCoupe` vaut zéro, donc
+     `sousLaCoupeAvecCombine` aussi, mécaniquement. Une assertion qui ne peut
+     plus être fausse n'est plus une assertion — la garder apprendrait à lui
+     faire confiance à tort, ce que ce fichier a déjà payé trois fois.
+
+     CE QUI LA REMPLACE EXISTE DÉJÀ : le scénario 143 tient la moitié qui
+     compte — un membre SANS carte dont le combiné est connu — et c'est là que
+     l'angle mort se verrait revenir. */
   /* ET SUR UNE LISTE SAINE, AUCUNE FUITE : toute chaîne au classement a sa
      carte. C'est ce zéro que le terrain devra confirmer — ou démentir. */
   ok('…et aucun membre classé ne reste sans carte',
@@ -18102,22 +18124,31 @@ addEventListener('message', (e) => {
     bilan: window.tse.panneau.rapport().coStream,
     dessines: document.querySelectorAll('.side-nav-card.tse-costream').length,
   }));
-  /* L'ASSERTION QUI PORTE LE SENS : aucun groupe dessiné, et pourtant la
-     session est vue et comptée. C'est ce zéro-là qui manquait au rapport. */
-  ok('une session réduite à un seul membre visible est vue quand même',
-     vu.bilan.sessions === 1 && vu.bilan.groupes === 0 && vu.dessines === 0,
+  /* ── CE QUE LA 4.18 A CHANGÉ ICI, ET POURQUOI C'EST LA DEMANDE ─────────
+     CETTE ASSERTION EXIGEAIT « groupes 0 · dessines 0 » : une session dont un
+     seul membre était visible ne dessinait rien, et le scénario existait pour
+     qu'elle soit COMPTÉE malgré tout. Depuis qu'un co-stream occupe UNE place,
+     ses deux membres sous la coupe sortent avec elle — le groupe se dessine,
+     et il ne reste absent que celui dont la marche ignore jusqu'à l'existence.
+
+     LE SUJET DU SCÉNARIO SURVIT ENTIER : une session est vue et comptée même
+     quand tous ses membres ne sont pas là. Ce qui change est le NOMBRE de
+     membres que la liste peut montrer, et c'est précisément la correction
+     demandée — « affiche l'ensemble des streamers d'un co-stream ». */
+  ok('la session est vue, et la place fait remonter ses membres sous la coupe',
+     vu.bilan.sessions === 1 && vu.bilan.groupes === 1 && vu.dessines === 3,
      JSON.stringify(vu));
-  /* MÊME AFFINAGE QU'AU SCÉNARIO 135 : les trois absents ne sont pas de la
-     même espèce. Un seul est inconnu de la marche ; les deux autres sont dans
-     le pool, sous la coupe. */
-  ok('…et ses membres absents sont rangés chacun dans sa case',
-     vu.bilan.affiches === 1 && vu.bilan.horsClassement === 1
-     && vu.bilan.sousLaCoupe === 2
+  /* MÊME AFFINAGE QU'AU SCÉNARIO 135 : les absents ne sont pas de la même
+     espèce. Reste le seul que la marche n'a jamais vu — et aucune place ne
+     peut faire apparaître ce dont on ignore l'existence. */
+  ok('…et le seul absent est celui que la marche ignore',
+     vu.bilan.affiches === 3 && vu.bilan.horsClassement === 1
+     && vu.bilan.sousLaCoupe === 0
      && vu.bilan.classesNonAffichees === 0, JSON.stringify(vu.bilan));
-  /* Les deux sous la coupe n'ont pas de combiné connu : c'est pour cela
-     qu'ils y restent, et le compteur doit le dire (cf. scénario 135). */
-  ok('…et aucun des deux n\'y est avec un combiné connu',
-     vu.bilan.sousLaCoupeAvecCombine === 0, JSON.stringify(vu.bilan));
+  /* MÊME RAISON QU'AU SCÉNARIO 135 : l'assertion qui vivait ici tenait
+     « aucun des deux n'y est avec un combiné connu ». Les deux ne sont plus
+     sous la coupe — la place les en a sortis — et le compteur vaut donc zéro
+     mécaniquement. Retirée plutôt que laissée verdir sur du vide. */
   await p2.close();
 }
 
@@ -20044,6 +20075,101 @@ addEventListener('message', (e) => {
      && vu.rang.indexOf('absent:11736') < vu.rang.indexOf('g1:9000')
      && vu.repertoireBas > 0,
      JSON.stringify(vu));
+  await page.close();
+}
+
+/* ═════════ UN CO-STREAM OCCUPE UNE PLACE, PAS CINQ ══════════════════════
+   DEMANDÉ APRÈS UNE CAPTURE QUI NE LAISSAIT AUCUN DOUTE : « affiche l'ensemble
+   des streamers d'un co-stream, MAIS considère l'ensemble d'un co-stream comme
+   UNE place. S'il y a du coup 38 cartes, ce n'est pas grave — l'important est
+   d'avoir les 30 meilleures PLACES. »
+
+   CE QUE LA CAPTURE MONTRAIT, et qui est le vrai défaut : un groupe de cinq
+   COUPÉ EN DEUX par une chaîne étrangère. Les membres d'une session portent
+   chacun leur propre échantillon du compteur combiné — 4 795, 4 788, 4 782 —
+   et un solo à 4 785 vient se glisser au milieu. Trié chaîne par chaîne, le
+   groupe se disloque à l'écran, barre de liaison comprise.
+
+   DEUX COUCHES À TENIR, ET LE SCÉNARIO LES TIENT TOUTES LES DEUX : le
+   CLASSEMENT compte des places (les cinq membres sortent ensemble, et ne
+   consomment qu'un rang), et l'ORDRE DES CARTES dit la même chose (le groupe
+   se range à la position de son meilleur membre). Corriger l'une sans l'autre
+   laisserait le défaut visible.
+
+   UNE PLACE VIENT DE GUEST STAR, ET DE LUI SEUL. La première rédaction
+   acceptait aussi la proximité des compteurs — celle qui protège déjà le
+   combiné. Mesuré au banc sur ce décor : elle rangeait « p1:3000 », « p2:2900 »
+   et « p3:2800 » dans une seule place. Trois chaînes sans rapport fondues en un
+   groupe, et deux vraies places de moins à l'écran. Les deux questions ne se
+   ressemblent que de loin : « ce compteur est-il un combiné ? » est une
+   PROTECTION, dont le faux positif coûte un rafraîchissement retardé ; « ces
+   chaînes sont-elles le même direct ? » est une STRUCTURE, dont le faux
+   positif cache de vraies chaînes. */
+{
+  titre('152. Top Chaînes — un co-stream occupe une place, pas cinq');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    /* LES CINQ ÉCHANTILLONS DU TERRAIN, et le solo qui se glisse au milieu :
+       4 785 tombe entre 4 788 et 4 782. C'est le seul point du décor qui
+       compte, et sans lui le scénario serait vert sans rien mesurer. */
+    const grp = [['m1', 4795], ['m2', 4788], ['m3', 4782], ['m4', 4776], ['m5', 4771]];
+    const streams = [
+      { login: 'gros1', viewers: 9000 }, { login: 'gros2', viewers: 8000 },
+      ...grp.map(([l, v]) => ({ login: l, viewers: v })),
+      { login: 'intrus', viewers: 4785 },
+      { login: 'p1', viewers: 3000 }, { login: 'p2', viewers: 2900 },
+      { login: 'p3', viewers: 2800 }, { login: 'modele', viewers: 800 },
+    ];
+    window.__cats = [{ name: 'MLBB', viewers: 90_000, streams }];
+    window.__fx = {}; window.__gs = {};
+    /* IDENTIFIANTS NUMÉRIQUES, et ce n'est pas un détail de décor : la
+       résolution Guest Star ne part pas sur un identifiant d'une autre forme,
+       et le banc rendait alors « aucune requête Guest Star » — donc aucune
+       session, donc aucune place. Mesuré en cherchant pourquoi. */
+    for (const st of streams) {
+      window.__fx[st.login] = { id: String(700_000 + st.viewers), createdAt: h,
+                                viewers: st.viewers, game: 'MLBB', tags: [] };
+    }
+    const idDe = (l) => window.__fx[l].id;
+    const guests = grp.map(([l, v]) => ({ id: idDe(l), login: l, viewers: v, combined: v }));
+    for (const [l] of grp) {
+      window.__gs[idDe(l)] = { hostId: idDe('m1'), hostLogin: 'm1', guests };
+    }
+    window.__addCard('modele', 'MLBB', '800');
+    for (const [l, v] of grp) window.__addCard(l, 'MLBB', String(v));
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => window.tse.global.top(5)
+    .filter((r) => /^m\d$/.test(r.login)).length >= 5, 15_000);
+  await wait(page, 1500);
+  const vu = await page.evaluate(() => ({
+    top5: window.tse.global.top(5).map((r) => r.login),
+    cartes: [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')]
+      .map((c) => c.dataset.tseLogin),
+  }));
+  const rang = (l) => vu.cartes.indexOf(l);
+  /* LA PRÉMISSE : cinq places demandées rendent NEUF chaînes — deux solos, les
+     cinq du groupe, puis le suivant. Sans elle, « le groupe est contigu »
+     serait vrai d'une liste qui n'en contiendrait qu'un membre. */
+  ok('cinq places rendent neuf chaînes : le groupe compte pour une',
+     vu.top5.length === 9 && ['m1', 'm2', 'm3', 'm4', 'm5'].every((l) => vu.top5.includes(l)),
+     JSON.stringify(vu.top5));
+  /* L'ASSERTION QUI PORTE LA DEMANDE. Mutant — le classement compté chaîne par
+     chaîne — « top5 » rend cinq chaînes et s'arrête à « intrus », les trois
+     derniers membres du groupe restant dehors. */
+  ok('…et l\'intrus ne coupe plus le groupe en deux',
+     rang('m5') < rang('intrus') && rang('m1') < rang('m2')
+     && rang('m2') < rang('m3') && rang('m3') < rang('m4') && rang('m4') < rang('m5'),
+     JSON.stringify(vu.cartes));
+  /* ET LES SOLOS NE BOUGENT PAS. Sans ce témoin, un tri qui mettrait tous les
+     groupes en tête passerait aussi — ce n'est pas ce qui a été demandé. */
+  ok('…tandis que les solos gardent leur rang au compteur',
+     rang('gros1') < rang('gros2') && rang('gros2') < rang('m1')
+     && rang('intrus') < rang('p1') && rang('p1') < rang('p2'),
+     JSON.stringify(vu.cartes));
   await page.close();
 }
 

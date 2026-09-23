@@ -2057,6 +2057,93 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## A co-stream takes one slot, not five (v4.18.0)
+
+> "Show all the streamers of a co-stream, **but treat a whole co-stream as one
+> slot**. If that means 38 cards, fine — what matters is having the 30 best
+> slots."
+
+### What the screenshot showed
+
+A group of five **cut in two** by an unrelated channel. Members of a session
+each carry their **own sample** of the combined count — 4,795, 4,788, 4,782 —
+and a solo at 4,785 slips in between. Sorted channel by channel, the group falls
+apart on screen, joining bar included.
+
+### Two layers, and both were needed
+
+| layer | what changes |
+| --- | --- |
+| the **ranking** | a slot is one channel **or** a whole session; the five members come out together and consume a single rank |
+| the **card order** | a group sits at its **best** member's position, and its members follow one another |
+
+Fixing one without the other left the defect visible.
+
+Slot order follows each slot's best member — which falls out of the already
+sorted list: the first time a slot is met, it is through its most-watched
+channel. No extra sort, so no opportunity to diverge.
+
+### A slot comes from a fact, not a resemblance
+
+The first draft also accepted **proximity** of counts — the same signal that
+already protects the combined count. Measured on the bench: it filed `p1:3000`,
+`p2:2900` and `p3:2800` into **a single slot**. Three unrelated channels melted
+into one group, and two real slots lost from the screen.
+
+| the question | its nature | cost of a false positive |
+| --- | --- | --- |
+| "is this count a combined one?" | **protection** | a delayed refresh, which the next walk corrects |
+| "are these channels the same stream?" | **structure** | real channels hidden behind a group that does not exist |
+
+One signal cannot serve both. A slot therefore comes from **Guest Star**, and
+from it alone: it names the participants. When it stays silent, every channel
+keeps its own slot — we lose the grouping, we do not invent one.
+
+### What the bench measures
+
+Five slots requested return **nine** channels: two solos, the group's five, then
+the next one.
+
+| mutant | result |
+| --- | --- |
+| ranking counted channel by channel | `top(5)` stops at `intrus`, three members stay out |
+| proximity accepted as a slot | `p1`, `p2`, `p3` melted into a group that does not exist |
+
+And a third witness holds the reverse: **solos keep their rank by count**.
+Without it, a sort putting every group first would pass too — which is not what
+was asked.
+
+### What the rule changes in the counters, and is written down
+
+Three bench assertions described the **old** behaviour: session members stayed
+below the cut, invisible. The rule brings them up — that is the request itself —
+so the contracts moved:
+
+| counter | before | after |
+| --- | --- | --- |
+| `affiches` | 3 | **4** |
+| `sousLaCoupe` | 1 | **0** |
+| groups drawn | 0 | **1** |
+
+`sousLaCoupe` is not dead for all that: it has shrunk to what the heuristic
+alone cannot recover — a member below the cut whose session Guest Star does not
+know. And `horsClassement` keeps its full meaning: no slot can bring up what the
+walk has never seen.
+
+Two more assertions are gone, because they could **no longer fail**: they
+checked that `sousLaCoupeAvecCombine` was zero *because it was true*, on a
+fixture where `sousLaCoupe` is now zero mechanically. An assertion that can no
+longer be false is not one. What they protected — the counter's blind spot —
+stays held by scenario 143, which carries the only case where it would show up
+again.
+
+### A fixture finding, noted in passing
+
+Guest Star resolution does not fire on a channel id of an unexpected shape: the
+bench reported "no Guest Star request", hence no session, hence no slot. Found
+while investigating why the fixture stayed silent, and written into the scenario
+so the next person does not look for it again.
+
 ## The fallback removed, and an alert that cried too soon (v4.17.1)
 
 ### The VOD fallback, measured twenty-one times
@@ -9678,7 +9765,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 151 scenarios, 1271 assertions |
+| `npm test` | the Playwright harness: 152 scenarios, 1272 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -9698,7 +9785,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1183 KB | 423 KB | 3,479 → **2** |
+| `content.js` | 1183 KB | 423 KB | 3,486 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
