@@ -2057,6 +2057,44 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Nothing to learn from a subathon (v4.15.12)
+
+The report that followed 4.15.11 confirmed all four fixes. It also carried, for
+the **second time running**, the same one-unit gap:
+
+```
+trouvees 5 · adoptees 4 · subathons.detectes 1
+trouvees 4 · adoptees 3 · subathons.detectes 1
+```
+
+A channel whose probe did find its chain, and whose adoption then threw it away.
+
+`adopterReprise` refuses subathons, and rightly so: a stream that never stops
+has no "reconnection after a cut", its interruptions do not mean the same
+thing. But it refused **after** the request, once it had gone out and been paid
+for.
+
+And the batch's comment advertised the guard — "a channel with nothing to learn:
+already probed, already chained, **subathon**". It was written nowhere in the
+code. Same class of defect as the previous version's hold bound: a sentence
+describing behaviour the program does not have.
+
+What it cost: one request against the endpoint we ration — the same one whose
+refusal rate 4.15.11 just brought from 40.7 % down to 21 % — one slot of the
+veil purse, and the veil held for an answer we were going to discard.
+
+The report gains a witness from it: `trouvees` and `adoptees` now agree, so a
+gap between them finally means something.
+
+### What the bench measures
+
+Four channels carrying the **same** chain, one of them a subathon — the only
+thing that sets it apart is its title.
+
+| mutant | result |
+| --- | --- |
+| the guard removed | a probe goes out on the subathon, `trouvees 4 · adoptees 3` |
+
 ## The veil's hold had a bound, and it bounded nothing (v4.15.11)
 
 Nothing in this field report complained. It was the **veil journal** that spoke:
@@ -9324,7 +9362,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 147 scenarios, 1267 assertions |
+| `npm test` | the Playwright harness: 148 scenarios, 1269 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -9344,7 +9382,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1146 KB | 419 KB | 3,465 → **2** |
+| `content.js` | 1146 KB | 419 KB | 3,466 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

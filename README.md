@@ -2178,6 +2178,45 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Rien à apprendre d'un subathon (v4.15.12)
+
+Le rapport qui a suivi la 4.15.11 confirmait les quatre corrections. Il portait
+aussi, pour la **deuxième fois de suite**, le même écart d'une unité :
+
+```
+trouvees 5 · adoptees 4 · subathons.detectes 1
+trouvees 4 · adoptees 3 · subathons.detectes 1
+```
+
+Une chaîne dont la sonde trouvait bien son chaînage, et dont l'adoption le
+jetait ensuite.
+
+`adopterReprise` refuse les subathons, et il a raison : un direct qui ne
+s'arrête pas n'a pas de « reprise après coupure », ses interruptions ne veulent
+pas dire la même chose. Mais il refusait **après** la requête, quand elle était
+déjà partie et déjà payée.
+
+Et le commentaire du lot annonçait la garde — « une chaîne dont il n'y a rien à
+apprendre : déjà sondée, déjà chaînée, **subathon** ». Elle n'était écrite nulle
+part dans le code. Même classe de défaut que la borne du verrou de la version
+précédente : une phrase qui décrit un comportement que le programme n'a pas.
+
+Ce que ça coûtait : une requête sur le point d'entrée qu'on rationne — le même
+dont la 4.15.11 vient de ramener le refus de 40,7 % à 21 % — une place de la
+bourse du voile, et le voile retenu pour une réponse qu'on allait jeter.
+
+Le rapport y gagne un témoin : `trouvees` et `adoptees` s'accordent désormais,
+si bien qu'un écart entre eux veut enfin dire quelque chose.
+
+### Ce que le banc mesure
+
+Quatre chaînes portant le **même** chaînage, dont une en subathon — la seule
+chose qui l'en distingue est son titre.
+
+| mutant | résultat |
+| --- | --- |
+| la garde retirée | une sonde part sur le subathon, `trouvees 4 · adoptees 3` |
+
 ## Le verrou du voile avait une borne, et elle ne bornait rien (v4.15.11)
 
 Rien dans ce rapport de terrain ne se plaignait. C'est le **journal du voile**
@@ -9685,7 +9724,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 147 scénarios, 1267 assertions |
+| `npm test` | le harnais Playwright : 148 scénarios, 1269 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -9706,7 +9745,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1146 Ko | 419 Ko | 3 465 → **2** |
+| `content.js` | 1146 Ko | 419 Ko | 3 466 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
