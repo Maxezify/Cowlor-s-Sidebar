@@ -2000,6 +2000,33 @@ const TSE_GATE_MAX_CLICKS = 5;
        s'obstiner ne ferait que le nourrir. */
     RECONNECT_PROBE_RETRY:      60_000,
     RECONNECT_PROBE_TRIES:      3,
+    /* ── ET SOUS LE VOILE, LA MÊME BOURSE SUR UNE FENÊTRE PLUS COURTE ──────
+       SIGNALÉ AINSI : « je t'assure qu'au tout début il m'annonçait une
+       vingtaine d'heures sur ce compte ; maintenant il met bien les coupures.
+       Je veux que cette data soit prise en compte DURANT le voile, tout doit
+       être prêt lorsque le voile disparaît. »
+
+       CE QUI SE PASSAIT, ET LE JOURNAL LE DATE : le voile a duré dix secondes
+       (« cycle 484 ms · levée 10720 ms »), pendant lesquelles douze sondes par
+       trente secondes en laissaient partir quatre. Les vingt-deux autres
+       cartes apprenaient leur origine APRÈS la levée — d'où un compteur qui
+       passe de vingt heures à soixante-huit sous les yeux de l'utilisateur.
+
+       LA CADENCE ORDINAIRE N'A PAS LE MÊME SENS SOUS LE VOILE. Elle existe
+       pour ne pas marteler Twitch pendant qu'on navigue ; sous le voile,
+       personne ne navigue, et ce qui n'est pas prêt à la levée sera vu se
+       corriger. On garde donc la MÊME bourse — douze — sur une fenêtre dix
+       fois plus courte, et seulement tant que le cycle dure. La dépense reste
+       bornée par ce qui la bornait déjà : une sonde par session de stream, et
+       le voile lui-même, qui ne peut pas dépasser LOADING_TIMEOUT_MS. */
+    RECONNECT_PROBE_VEIL_BURST:  40,
+    /* Ce que les origines ont le droit de retenir le voile, et pas une
+       seconde de plus. Un refus de Twitch se rattrape à la minute suivante
+       (cf. RECONNECT_PROBE_RETRY) : attendre ce rattrapage sous le voile le
+       ferait durer une minute. Passé ce délai, on lève avec ce qu'on a — et
+       le rapport dit combien d'origines manquaient à la levée, pour que le
+       chiffre se constate au lieu de se supposer. */
+    RECONNECT_PROBE_HOLD_MAX:    6_000,
     // Il n'y a PAS de `first` adaptatif, et ce n'est pas faute d'avoir essayé.
     // Une catégorie à C spectateurs ne pouvant contenir que C/T streams
     // au-dessus de T, demander 3 au lieu de 30 aux petites catégories aurait
@@ -9432,6 +9459,11 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     return { init, notifyScan,
       setHold, bumpActivity, startCycle,
+      /* Un cycle de voile est-il en cours ? Lecture pure. La sonde d'origine
+         s'en sert pour savoir qu'elle travaille SOUS le voile — moment où sa
+         cadence ordinaire n'a plus le même sens, puisque personne ne regarde
+         encore et que tout doit être prêt à la levée. */
+      enCycle: () => cycleActive,
       journal: () => journal.slice(),
       // Les verrous POSÉS, et non leur effet chronométré. Un verrou se
       // constate ; le déduire de l'instant où le voile se lève revient à
@@ -13598,7 +13630,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        traversé avant la coupure, datés à la seconde par Twitch lui-même. */
     const bilanSondes = { sondes: 0, servies: 0, trouvees: 0, vides: 0, chaines: 0,
                           reseau: 0, adoptees: 0, chapitresAvant: 0,
-                          differees: 0, abandonnees: 0 };
+                          differees: 0, abandonnees: 0, sousVoile: 0 };
     /* streamId → état de la sonde pour CETTE session de stream :
          absent               — jamais sondée ;
          { essais, pasAvant } — sondée ; `pasAvant` à 0 veut dire que Twitch a
@@ -13629,10 +13661,70 @@ const TSE_GATE_MAX_CLICKS = 5;
        compté — le prochain rapport dira si la fenêtre est trop étroite au lieu
        de le laisser deviner. */
     let fenetreSondes = [];
+    /* ── SOUS LE VOILE, UNE BOURSE À PART, DÉPENSÉE D'UN COUP ───────────────
+       LA CADENCE EST FAITE POUR LA NAVIGATION, PAS POUR L'ATTENTE. Elle
+       existe pour ne pas marteler Twitch pendant qu'on regarde la liste ;
+       sous le voile, personne ne regarde, et ce qui n'est pas appris à la
+       levée sera vu se corriger — c'est précisément le défaut signalé.
+
+       LE GOUTTE-À-GOUTTE A ÉTÉ ESSAYÉ, ET MESURÉ INSUFFISANT. Une fenêtre
+       raccourcie, puis une file qui se vide d'elle-même : vingt-quatre sondes
+       sur trente cartes en cinq secondes, « enFile 7 » à la levée. Le verrou
+       tenait, c'est sa borne qui expirait — donc sept cartes portaient encore
+       la durée de leur tronçon au moment où l'utilisateur les découvre.
+
+       ON DONNE DONC AU VOILE SA PROPRE BOURSE, remise à neuf à chaque cycle
+       et dépensée sans étalement. Ce que ça coûte est BORNÉ ET RARE : au plus
+       RECONNECT_PROBE_VEIL_BURST requêtes, une fois par cycle de voile — au
+       démarrage, à l'entrée dans Top Chaînes, à un changement de langue — et
+       jamais pendant qu'on navigue. Le plafond de page (RECONNECT_PROBE_MAX)
+       et l'unicité par session de stream continuent de borner le total.
+
+       CE QU'ON NE SAIT PAS ENCORE, ET QUI SE MESURERA : Twitch refuse environ
+       une sonde sur cinq, et la pente de ce refus avec la cadence n'a été
+       relevée qu'entre 0,18 et 0,48 sonde par seconde. Une bouffée de
+       quarante sort de cette plage. Les compteurs `sousVoile`, `reseau` et
+       `enFile` du rapport diront si le marché est bon ; s'il ne l'est pas,
+       c'est ce chiffre-ci qui baissera, et on le saura par la mesure. */
+    let voileBourse = 0;
+    let voilePrecedent = false;
     const placeDansLaFenetre = () => {
+      const sousVoile = loadingOverlay.enCycle();
+      if (sousVoile && !voilePrecedent) voileBourse = CFG.RECONNECT_PROBE_VEIL_BURST;
+      voilePrecedent = sousVoile;
+      if (sousVoile) return voileBourse;
       const seuil = Date.now() - CFG.RECONNECT_PROBE_WINDOW;
       fenetreSondes = fenetreSondes.filter(t => t > seuil);
       return CFG.RECONNECT_PROBE_PER_WINDOW - fenetreSondes.length;
+    };
+
+    /* ── CE QUI RESTE À APPRENDRE, POUR QUE LE VOILE PUISSE L'ATTENDRE ──────
+       Deux faits, et il faut les deux : des sondes EN VOL — leur réponse est
+       en route — et des chaînes RECEVABLES qu'un lot a dû différer faute de
+       place. Tant que l'un des deux tient, une carte affichée à la levée
+       porterait une durée qu'on sait susceptible de changer. */
+    let sondesEnVol = 0;
+    /* ── CE QUI ATTEND UNE PLACE SE RETIENT PAR NOM, PAS PAR OUI-OU-NON ─────
+       LA PREMIÈRE RÉDACTION POSAIT UN BOOLÉEN, réécrit à chaque lot. Un lot
+       qui ne portait aucune chaîne recevable — il y en a sans cesse, la file
+       se remplit au gré des cartes — le remettait donc à faux, et le voile se
+       levait sur des chaînes qui attendaient encore leur tour. Mesuré au banc
+       avant correction : vingt-trois cartes à « 5h00 » et sept à « 1m » à la
+       levée, sur trente.
+
+       LE REGISTRE SE NETTOIE TOUT SEUL : une chaîne en sort quand elle part,
+       et quand elle cesse d'être recevable — sondée ailleurs, chaînée, ou
+       abandonnée. Il ne peut donc pas retenir le voile sur un nom périmé. */
+    const differeesEnAttente = new Set();
+    const originesEnAttente = () => sondesEnVol > 0 || differeesEnAttente.size > 0;
+
+    /* ── COMBIEN DE TEMPS AVANT QU'UNE PLACE NE SE LIBÈRE ───────────────────
+       La plus ancienne sonde de la fenêtre sort la première : c'est elle qui
+       date la prochaine place. Zéro quand il en reste déjà. */
+    const attenteAvantPlace = () => {
+      if (placeDansLaFenetre() > 0) return 20;
+      if (!fenetreSondes.length) return CFG.RECONNECT_PROBE_WINDOW;
+      return Math.max(0, fenetreSondes[0] + CFG.RECONNECT_PROBE_WINDOW - Date.now()) + 20;
     };
 
     /* ══════════════════════════════════════════════════════════════════════
@@ -13813,6 +13905,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         sondees.delete(sondees.keys().next().value);
       }
       fenetreSondes.push(Date.now());
+      if (voilePrecedent && voileBourse > 0) voileBourse -= 1;
       bilanSondes.sondes++;
     };
 
@@ -13868,6 +13961,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       const acquis = passeDe(login, depart);
       if (!adopterReprise(login, flux, maillons)) return false;
       bilanSondes.adoptees++;
+      /* ── ADOPTÉE SOUS LE VOILE, OU SOUS LES YEUX DE L'UTILISATEUR ─────────
+         La différence entre ces deux nombres EST le défaut signalé : une
+         origine apprise après la levée se voit, puisqu'un compteur passe de
+         vingt heures à soixante-huit. Les compter à part est ce qui permettra
+         de dire si le verrou de voile suffit, au lieu de le supposer. */
+      if (loadingOverlay.enCycle()) bilanSondes.sousVoile++;
       if (acquis && acquis.length) noterPasse(login, maillons[0].debut, acquis);
       /* LES CHAPITRES DE TOUS LES TRONÇONS D'AVANT, et non du seul dernier.
          Chaque maillon porte son archive, donc son passé ; les concaténer dans
@@ -13934,6 +14033,74 @@ const TSE_GATE_MAX_CLICKS = 5;
       return digererSonde(login, flux, res?.[0]?.data?.user?.videos?.edges);
     };
 
+    /* ── LA FILE SE VIDE TOUTE SEULE, SANS ATTENDRE UN LOT DE CHAÎNES ──────
+       CE QUI MANQUAIT, ET LE BANC L'A MONTRÉ EN UN CHIFFRE : une chaîne
+       différée faute de place attendait le PROCHAIN lot de chaînes pour
+       retenter sa chance. Or un lot ne part que si une carte réclame une
+       chaîne que le cache ne connaît pas — au démarrage il y en a beaucoup,
+       puis plus rien pendant des secondes. Mesuré : vingt-quatre sondes
+       parties, vingt-six reports, et le compte s'arrêtait là. Sept cartes sur
+       trente portaient encore la durée de leur tronçon à la levée du voile.
+
+       LE MODULE VIDE DONC SA PROPRE FILE : dès qu'une place se libère dans la
+       fenêtre, il reprend les noms qu'il avait dû remettre à plus tard. Le
+       minuteur ne s'arme que s'il reste quelque chose à faire, et il n'y en a
+       qu'un — une chaîne différée deux fois ne programme pas deux réveils. */
+    /* ── LE VERROU SE POSE QUAND LES SONDES PARTENT, PAS AU SCAN SUIVANT ───
+       IL A D'ABORD ÉTÉ ASSERTÉ DANS LE BALAYAGE, comme celui du mode global,
+       et c'est ce qui le rendait inopérant : les sondes partent d'une réponse
+       réseau, or un scan ne se déclenche que sur une mutation du DOM. Les
+       cartes posées, plus rien ne bouge — donc plus aucun scan — et le
+       minuteur de stabilité armé au scan précédent levait le voile pendant que
+       trente et une sondes étaient en vol. Mesuré : trente cartes à « 1m » à
+       la levée, « servies 0 » au même instant.
+
+       C'EST LE MOTIF DU RELEVÉ D'ABONNEMENTS, et pour la même raison : qui
+       retient le voile doit le retenir depuis l'endroit où il SAIT, et rendre
+       la main par un scan explicite. Une seule autorité, et elle est ici. */
+    let voileVerrouJusqua = 0;
+    let voileSecours = null;
+    const majVerrouVoile = () => {
+      const actif = loadingOverlay.enCycle() && originesEnAttente();
+      if (actif && voileVerrouJusqua === 0) {
+        voileVerrouJusqua = Date.now() + CFG.RECONNECT_PROBE_HOLD_MAX;
+        /* Le filet : si plus aucune sonde ne revient, rien ne rappellerait
+           cette fonction et le voile attendrait son plafond dur. On se
+           réveille donc à l'échéance pour rendre la main nous-mêmes. */
+        voileSecours = setTimeout(() => { voileSecours = null; majVerrouVoile(); },
+                                  CFG.RECONNECT_PROBE_HOLD_MAX + 50);
+      }
+      const tenir = actif && Date.now() < voileVerrouJusqua;
+      loadingOverlay.setHold(tenir, 'origines');
+      if (tenir) return;
+      voileVerrouJusqua = 0;
+      if (voileSecours) { clearTimeout(voileSecours); voileSecours = null; }
+      scheduleScan();   // le voile ne se lève que sur un scan : en voici un
+    };
+
+    let videurTimer = null;
+    const vider = (logins) => {
+      if (logins && logins.length) for (const l of logins) differeesEnAttente.add(l);
+      if (!differeesEnAttente.size) return;
+      const lot = [...differeesEnAttente];
+      const promesse = sonderLot(lot);
+      majVerrouVoile();   // les sondes sont parties : le voile doit les attendre
+      promesse
+        .then((adoptes) => {
+          if (adoptes.length) {
+            for (const l of adoptes) { majReprise(l); majFrise(l); }
+            scheduleScan();  // les cartes relisent leur départ et réécrivent leur durée
+          }
+        })
+        .catch((e) => erreurs.noter('reprise', (e && e.message) || e))
+        .finally(() => {
+          majVerrouVoile();   // plus rien en vol : le voile peut se lever
+          if (!differeesEnAttente.size || videurTimer) return;
+          videurTimer = setTimeout(() => { videurTimer = null; vider(null); },
+                                   attenteAvantPlace());
+        });
+    };
+
     /* Le chemin du SURVOL : une chaîne, tout de suite. */
     const sonderReprise = async (login, flux) => {
       if (!gardesSonde(login, flux)) return false;
@@ -13951,20 +14118,40 @@ const TSE_GATE_MAX_CLICKS = 5;
       let place = placeDansLaFenetre();
       for (const login of logins) {
         const flux = cache.get(login)?.stream;
-        if (!gardesSonde(login, flux)) continue;
+        /* ── « PAS ENCORE CONNUE » N'EST PAS « PAS CONCERNÉE » ──────────────
+           `gardesSonde` range sous un seul « non » deux situations que tout
+           sépare : une chaîne dont il n'y a rien à apprendre — déjà sondée,
+           déjà chaînée, subathon — et une chaîne dont la réponse de chaîne
+           n'est simplement PAS ENCORE ARRIVÉE. La première sort de la file ;
+           la seconde y reste, sans quoi on l'oublie au premier passage et
+           plus rien ne la ramène avant un prochain lot.
+
+           MESURÉ AU BANC : vingt-quatre sondes sur trente cartes, et six
+           cartes qui gardaient la durée de leur tronçon à la levée du voile —
+           précisément celles dont la réponse de chaîne était en route. */
+        if (!flux?.id) continue;
+        if (!gardesSonde(login, flux)) { differeesEnAttente.delete(login); continue; }
         /* LA FENÊTRE EST PLEINE : la chaîne est recevable, on ne la marque
            surtout pas — elle repassera au prochain lot. Ce qu'on compte ici
            est le report, pas le refus. */
-        if (place <= 0) { bilanSondes.differees += 1; continue; }
+        if (place <= 0) { bilanSondes.differees += 1; differeesEnAttente.add(login); continue; }
         place -= 1;
+        differeesEnAttente.delete(login);
         retenirSonde(flux.id);
         retenues.push({ login, flux });
       }
       if (!retenues.length) return [];
-      const issues = await Promise.all(
-        retenues.map(e => sonderUne(e.login, e.flux)
-          .catch((err) => { erreurs.noter('reprise', (err && err.message) || err); return false; })));
-      return retenues.filter((e, i) => issues[i]).map(e => e.login);
+      sondesEnVol += retenues.length;
+      try {
+        const issues = await Promise.all(
+          retenues.map(e => sonderUne(e.login, e.flux)
+            .catch((err) => { erreurs.noter('reprise', (err && err.message) || err); return false; })));
+        return retenues.filter((e, i) => issues[i]).map(e => e.login);
+      } finally {
+        // `finally` et non la suite du `then` : une exception inattendue ne
+        // doit pas laisser le voile attendre des sondes qui ne reviendront pas.
+        sondesEnVol -= retenues.length;
+      }
     };
 
     const fetchChapitres = async (login, streamId, debutStream) => {
@@ -16085,16 +16272,10 @@ const TSE_GATE_MAX_CLICKS = 5;
          précisément en choisissant à sa place qu'il brûlait son budget sur les
          deux mêmes (cf. `gardesSonde`). Le tri se fait ici, où les gardes
          vivent, et la requête part en un seul aller-retour. */
-      sonderOrigines: (logins) => {
-        if (!logins || !logins.length) return;
-        sonderLot(logins)
-          .then((adoptes) => {
-            if (!adoptes.length) return;
-            for (const l of adoptes) { majReprise(l); majFrise(l); }
-            scheduleScan();   // les cartes relisent leur départ et réécrivent leur durée
-          })
-          .catch((e) => erreurs.noter('reprise', (e && e.message) || e));
-      },
+      /* Reste-t-il des origines à apprendre ? Lu par le scan, qui en fait un
+         verrou de voile (cf. `scanSidebar`). */
+      originesEnAttente,
+      sonderOrigines: (logins) => vider(logins),
       // Ferme l'aperçu si sa carte d'ancrage a quitté le DOM (stream terminé
       // pendant le survol). Appelée depuis scanSidebar : le retrait d'une carte
       // est une mutation de #side-nav → déclenche un scan → fermeture proactive,
@@ -16150,6 +16331,11 @@ const TSE_GATE_MAX_CLICKS = 5;
                                   les deux derniers ne peut venir que d'un
                                   subathon ou d'une reprise déjà connue. */
                                reprise: { ...bilanSondes,
+                                          /* Ce qui attend encore une place au
+                                             moment du rapport : le seul de ces
+                                             nombres qui décrive un ÉTAT et non
+                                             un cumul. */
+                                          enFile: differeesEnAttente.size,
                                           residentPasse: passeDirect.size } })
     };
   })();

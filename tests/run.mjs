@@ -18992,6 +18992,13 @@ addEventListener('message', (e) => {
   {
     const page = await fresh();
     const N = 20;
+    /* ── ON ATTEND QUE LE VOILE SOIT TOMBÉ, ET C'EST LE SUJET ─────────────
+       Ce bloc mesure la cadence de CROISIÈRE. Sous le voile, la sonde dispose
+       d'une bourse à part, dépensée d'un coup (cf. scénario 144) : y mesurer
+       la croisière reviendrait à reprocher à la règle de ne pas s'appliquer là
+       où elle ne s'applique pas. Le banc l'a pris tout seul — « pointe 20 »
+       alors que la croisière en permet douze. */
+    await attendre(page, () => !document.body.classList.contains('tse-loading'), 12_000);
     await page.evaluate((n) => {
       const neuf  = new Date(Date.now() - 60_000).toISOString();          // tronçon : 1 min
       const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();    // archive : 5 h
@@ -19218,6 +19225,93 @@ addEventListener('message', (e) => {
      du classement, donc la carte qui n'apparaît jamais. */
   ok('…et le membre sans carte est classé sur le combiné, pas sur son audience propre',
      vu.membres.includes('sanscarte:4000'), JSON.stringify(vu));
+  await page.close();
+}
+
+/* ═════════ TOUT DOIT ÊTRE PRÊT QUAND LE VOILE DISPARAÎT ══════════════════
+   RAPPORT DE TERRAIN : « je t'assure qu'au tout début il m'annonçait une
+   vingtaine d'heures sur ce compte ; maintenant il met bien les coupures. Je
+   veux que cette data concernant les coupures soit prise en compte DURANT le
+   voile, tout doit être prêt lorsque le voile disparaît. »
+
+   CE QUE LE JOURNAL DATAIT : « cycle 484 ms · levée 10720 ms ». Dix secondes
+   de voile, pendant lesquelles douze sondes par trente secondes en laissaient
+   partir quatre. Les autres cartes apprenaient leur origine APRÈS la levée,
+   d'où un compteur qui passe de vingt heures à soixante-huit sous les yeux.
+
+   CE QUE CE SCÉNARIO MESURE, ET RIEN D'AUTRE : ce que les cartes affichaient
+   À L'INSTANT où le voile est tombé. Pas avant, pas après. L'observateur vit
+   dans la page et ne se déclenche qu'après avoir VU le voile posé — sans cette
+   condition il capturerait la première mutation venue, voile absent, et serait
+   vert pour rien. */
+{
+  titre('144. Le voile — les origines sont apprises avant qu\'il ne tombe');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const neuf  = new Date(Date.now() - 60_000).toISOString();
+    const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();
+    /* Le même raccord qu'au scénario 102 : un trou de 1,2 s entre l'archive
+       d'avant et le départ du tronçon courant. */
+    const arch = () => [
+      { createdAt: neuf, lengthSeconds: 60, chapitres: [] },
+      { createdAt: vieux,
+        lengthSeconds: Math.round((Date.parse(neuf) - 1_200 - Date.parse(vieux)) / 1000),
+        chapitres: [{ pos: 0, jeu: 'Just Chatting' }] }];
+    window.__fx = {}; window.__vodRecent = {};
+    window.__cats = [{ name: 'Rust', viewers: 90_000, streams: [] }];
+    /* QUARANTE CHAÎNES POUR TRENTE PLACES : il en faut plus que le budget
+       ordinaire d'une fenêtre, sans quoi la cadence de croisière suffirait et
+       le décor ne jouerait pas le cas. */
+    for (let i = 0; i < 40; i++) {
+      const l = 'rev' + i;
+      window.__fx[l] = { id: 'i-' + l, sid: 's-' + l, createdAt: neuf,
+                         viewers: 900 - i, game: 'Rust', tags: [] };
+      window.__vodRecent[l] = arch();
+      window.__cats[0].streams.push({ login: l, viewers: 900 - i });
+    }
+    window.__fx.modele = { id: 'i-modele', sid: 's-modele', createdAt: neuf,
+                           viewers: 500, game: 'Rust', tags: [] };
+    window.__addCard('modele', 'Rust', '500');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => {
+    window.__aLaLevee = null;
+    window.__voileVu = false;
+    const mo = new MutationObserver(() => {
+      if (document.body.classList.contains('tse-loading')) { window.__voileVu = true; return; }
+      if (window.__voileVu && window.__aLaLevee === null) {
+        window.__leveeInfo = window.tse.panneau.rapport().reseau.chapitres.reprise;
+        window.__aLaLevee = [...document.querySelectorAll('.side-nav-card')]
+          .filter((c) => /^rev\d+$/.test(c.dataset.tseLogin || ''))
+          .map((c) => c.querySelector('.tse-uptime')?.textContent || '');
+      }
+    });
+    mo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    document.querySelector('#tse-mode-row [data-tse-mode="global"]')?.click();
+  });
+  await attendre(page, () => window.__voileVu === true, 8000);
+  await attendre(page, () => window.__aLaLevee !== null, 15_000);
+  const vu = await page.evaluate(() => ({
+    aLaLevee: window.__aLaLevee, voileVu: window.__voileVu,
+    levee: window.__leveeInfo }));
+  /* LA PRÉMISSE : sans voile observé, tout ce qui suit mesurerait une page
+     ordinaire et serait vert sans rien dire. */
+  ok('le voile a bien été posé, puis levé',
+     vu.voileVu === true && Array.isArray(vu.aLaLevee) && vu.aLaLevee.length >= 20,
+     JSON.stringify({ voileVu: vu.voileVu, n: (vu.aLaLevee || []).length }));
+  /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — la bourse du voile ramenée à
+     celle de la croisière — onze cartes sur trente portent « 5h00 » et
+     dix-neuf « 1m », avec « enFile 19 » au moment même de la levée. */
+  ok('…et aucune carte ne porte encore la durée de son tronçon à cet instant',
+     (vu.aLaLevee || []).every((d) => /^5h/.test(d)),
+     JSON.stringify({ levee: vu.levee, vues: (vu.aLaLevee || []).slice(0, 8) }));
+  /* ET LE COMPTE LE DIT AUSSI : les origines ont été adoptées SOUS le voile,
+     ce qui est la seule chose qui distingue « prêt à la levée » de « corrigé
+     juste après ». Sans ce témoin, une levée tardive suffirait à passer. */
+  ok('…parce qu\'elles ont été apprises sous le voile, et non corrigées après',
+     vu.levee && vu.levee.sousVoile >= 20 && vu.levee.enFile === 0,
+     JSON.stringify(vu.levee));
   await page.close();
 }
 

@@ -106,6 +106,14 @@ const subs = [
      par rien. */
   [/RECONNECT_PROBE_WINDOW:\s*30_000/, 'RECONNECT_PROBE_WINDOW:     2_000'],
   [/RECONNECT_PROBE_RETRY:\s*60_000/,  'RECONNECT_PROBE_RETRY:      1_200'],
+  /* ── LE VOILE, ET CE QUE LES ORIGINES ONT LE DROIT DE LUI FAIRE ATTENDRE ─
+     Trois secondes de fenêtre et six d'attente en production ; ici l'une et
+     l'autre sont ramenées à l'échelle du banc, pour qu'un scénario puisse
+     observer la LEVÉE plutôt que de la subir. L'attente reste plus longue que
+     le délai des réponses simulées, sans quoi le verrou lèverait sur son
+     échéance et le scénario ne mesurerait plus rien. */
+
+  [/RECONNECT_PROBE_HOLD_MAX:\s*6_000/,    'RECONNECT_PROBE_HOLD_MAX:    5_000'],
   // Absence au-delà de laquelle le retour sur l'onglet vaut un redémarrage :
   // une minute en production. Réduite ici pour qu'un test puisse observer LES
   // DEUX branches — la courte absence, qui rattrape en silence, et la longue,
