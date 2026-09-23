@@ -7939,15 +7939,90 @@ const TSE_GATE_MAX_CLICKS = 5;
        Twitch affiche comme identique. » La signature du classement l'ignorait,
        et elle protégeait donc exactement les sessions qui n'en avaient pas
        besoin. Elle compare désormais ce que l'œil compare. */
-    const signature = (rec) => `${rec.game} ${formatViewers(rec.viewers)}`;
+    /* ── ET LE NOMBRE AFFICHÉ A DES FRONTIÈRES, CE QUI RUINAIT LA GARDE ─────
+       LA COMPARAISON EXACTE A ÉTÉ REMPLACÉE PAR LE NOMBRE AFFICHÉ, au motif
+       qu'il absorbe l'échantillonnage de Twitch. Il l'absorbe la plupart du
+       temps — et pas du tout sur une frontière d'arrondi. Les deux nombres que
+       le commentaire ci-dessus cite en exemple le montrent eux-mêmes :
+
+           11 736 → « 11,7 k »        11 821 → « 11,8 k »
+
+       Deux membres d'UNE MÊME session, deux signatures différentes, aucun
+       jumeau : la garde ne protégeait plus ni l'un ni l'autre. Le compteur
+       PROPRE écrasait alors le combiné, la chaîne tombait hors du top, et la
+       marche suivante la restaurait — « disparue, revenue à la normale
+       quelques secondes après », mot pour mot le signalement.
+
+       MESURÉ AU BANC sur ces deux nombres exactement : les deux membres
+       tombent de 11 800 à 300, « chuteMax 11521 ». Le banc ne pouvait pas le
+       voir — son décor posait des compteurs STRICTEMENT identiques
+       (4900/4900), c'est-à-dire le seul cas que la garde savait traiter. La
+       capture du terrain, elle, montre le vrai visage de la chose : quatre
+       membres d'un groupe affichés « 17 k · 17 k · 16,9 k · 16,9 k ».
+
+       ON GROUPE DONC PAR PROXIMITÉ, ET NON PAR ÉGALITÉ D'UNE CHAÎNE DE
+       CARACTÈRES. Deux entrées d'une même catégorie dont les compteurs tiennent
+       dans une graduation du nombre affiché (cf. `pasAffiche`) décrivent le
+       même nombre vu deux fois. Le tri rend la chose transitive : un groupe de
+       quatre dont les échantillons s'échelonnent se tient par ses voisins, de
+       proche en proche.
+
+       ET LA GARDE SE RETIENT PAR LOGIN, plus par valeur courante. Elle lisait
+       `signature(liste[i])`, donc l'état de l'entrée à l'instant du test : le
+       premier écrasement qui passait emportait la protection avec lui, pour de
+       bon jusqu'à la publication suivante. L'appartenance à un co-stream est
+       une propriété de la CHAÎNE pendant la session, pas de son compteur à un
+       instant donné. */
+    /* ── ET LA BONNE MESURE DE L'ÉCART EST UNE GRADUATION, PAS UN POURCENTAGE
+       LE BANC A TRANCHÉ ENTRE LES DEUX, et c'est lui qui avait les données.
+       Une tolérance RELATIVE de deux pour cent couvrait le cas de ce rapport
+       — 11 736 contre 11 821, 0,7 % — et cassait un relevé de terrain que le
+       scénario 136 tenait depuis longtemps : 1 093 · 1 101 · 1 148, trois
+       membres d'une même session affichés « 1,1 k », dont le plus grand écart
+       vaut QUATRE pour cent. Un seul pourcentage ne peut pas couvrir les deux
+       sans devenir si large qu'il regrouperait n'importe quoi.
+
+       LES DEUX ÉCARTS SONT POURTANT LE MÊME EN VALEUR ABSOLUE : 47 et 85,
+       tous deux sous CENT — c'est-à-dire sous une graduation du nombre
+       affiché. « 1,1 k » avance de cent en cent, « 11,7 k » aussi ; ce n'est
+       qu'en proportion qu'ils diffèrent. L'échantillonnage de Twitch tient
+       donc dans un cran de ce que l'œil lit, à toutes les échelles.
+
+       CE QUI FAIT DE CETTE RÈGLE L'ANCIENNE, MOINS SON DÉFAUT. Comparer les
+       nombres affichés revenait déjà à les ranger par crans de cent ; ce qui
+       manquait était de reconnaître deux crans VOISINS. On garde la largeur,
+       on retire la frontière — il n'y a donc aucun réglage à deviner, et
+       c'est la raison de n'avoir laissé ici aucune constante à tourner.
+
+       SOUS LE MILLIER, Twitch écrit le nombre nu : un cran vaut l'unité, et
+       seule l'égalité stricte regroupe. C'est ce qui garde « milieu » à 900 et
+       « modele » à 800 étrangers l'un à l'autre. */
+    const pasAffiche = (n) => {
+      const v = Math.abs(n);
+      if (!(v >= 1000)) return 1;
+      return Math.pow(10, Math.floor(Math.log10(v) / 3) * 3) / 10;
+    };
     const recalculerCombines = (liste) => {
-      const vus = new Map();
+      const parJeu = new Map();
       for (const rec of liste) {
-        if (!rec.game || !Number.isFinite(rec.viewers)) continue;
-        const cle = signature(rec);
-        vus.set(cle, (vus.get(cle) || 0) + 1);
+        if (!rec.game || !rec.login || !Number.isFinite(rec.viewers)) continue;
+        let a = parJeu.get(rec.game);
+        if (!a) parJeu.set(rec.game, a = []);
+        a.push(rec);
       }
-      combines = new Set([...vus].filter(([, n]) => n >= 2).map(([cle]) => cle));
+      const vus = new Set();
+      for (const a of parJeu.values()) {
+        if (a.length < 2) continue;
+        a.sort((x, y) => x.viewers - y.viewers);
+        for (let i = 1; i < a.length; i++) {
+          const haut = a[i].viewers;
+          if (haut - a[i - 1].viewers <= pasAffiche(haut)) {
+            vus.add(a[i - 1].login);
+            vus.add(a[i].login);
+          }
+        }
+      }
+      combines = vus;
     };
 
     const publish = (pool) => {
@@ -8915,7 +8990,7 @@ const TSE_GATE_MAX_CLICKS = 5;
              l'écrase pas avec un compteur propre, qui décrit autre chose. La
              marche le rafraîchira ; en attendant, la carte et le classement
              montrent ce que Twitch montre. */
-          if (!autorite && combines.has(signature(liste[i]))) return false;
+          if (!autorite && combines.has(login)) return false;
           /* ── TOUTE CHUTE DE COMPTEUR SE MESURE, QUELLE QU'EN SOIT LA VOIE ──
              LE CHIFFRE QUI MANQUAIT À TROIS RAPPORTS DE SUITE. Une carte peut
              quitter l'écran de trois façons : évincée du pool (« evicted »),
@@ -8979,7 +9054,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       estCombine(login) {
         const rec = ranking.find((r) => r.login === login)
                  || scopeRanking.find((r) => r.login === login);
-        return !!rec && combines.has(signature(rec));
+        return !!rec && combines.has(login);
       },
       report() {
         return {
@@ -14953,14 +15028,40 @@ const TSE_GATE_MAX_CLICKS = 5;
     // correcte via displayName) ; repli sur la détection squad DOM native.
     // `channelId` optionnel : fourni par la popup pour les sections hors
     // "suivis" où getChannelId peut ne pas suffire. '' si aucun badge.
+    /* ── CE QUE LA BARRE MONTRE DÉJÀ N'A PAS BESOIN D'ÊTRE REDIT ───────────
+       SIGNALÉ COMME UN DOUBLON, ET C'EN EST UN : sur une capture, le bleu
+       disait « Co-stream avec LittleBigWhale » et le violet « En live avec
+       LittleBigWhale », l'un sous l'autre, pour la même personne.
+
+       LES DEUX BADGES NE RÉPONDENT PAS À LA MÊME QUESTION, et c'est ce qui
+       les départage. Le bleu dit AVEC QUI DE CETTE LISTE la chaîne diffuse —
+       il parle de ce que l'utilisateur a sous les yeux. Le violet dit qui
+       d'AUTRE est dans la session sans y figurer — il parle de ce que la
+       liste ne peut pas montrer. Quand tous les membres sont à l'écran, ce
+       que le second a à dire est vide, et il disparaît : c'est le cas de
+       « Top Chaînes », où le groupe est affiché au complet.
+
+       LE PARTAGE SE FAIT SUR LA MÊME SOURCE — les membres que Guest Star
+       rend — pour que les deux listes soient exactement complémentaires et
+       qu'aucun nom ne tombe entre les deux. */
+    const estDansLaBarre = (login) => {
+      const c = document.querySelector(`.side-nav-card[data-tse-login="${login}"]`);
+      return !!c && cardShown(c);
+    };
     const liveWithBadgeNoeud = (login, squadInfo, channelId) => {
       const mates = getGuestStarMates(login, channelId);
       if (mates.length) {
+        /* Guest Star connaît la session : c'est lui qui fait foi, y compris
+           pour dire qu'il n'y a RIEN à ajouter. On ne retombe donc pas sur la
+           détection squad du DOM quand la liste se vide — ce serait
+           réintroduire le doublon par l'autre porte. */
+        const absents = mates.filter(m => !estDansLaBarre(m.login));
+        if (!absents.length) return null;
         // Nettoyage infaillible au point de rendu : on trimme CHAQUE nom résolu
         // (le displayName Twitch arrive parfois avec une espace de fin, qui
         // produirait "Scok , Farore"), on écarte les vides, puis on joint par
         // ", " → "Scok, Farore, Hiuuugs".
-        const noms = mates
+        const noms = absents
           .map(m => displayNameFor(m.login, m.name).trim())
           .filter(Boolean);
         if (!noms.length) return null;
@@ -15823,8 +15924,22 @@ const TSE_GATE_MAX_CLICKS = 5;
       // Badge co-stream d'événement : rôle DOM (participant+hôte / hôte) via
       // costreamBadgeNoeud ; à défaut, repli heuristique (section suivie).
       let costreamBadge = costreamBadgeNoeud(costreamInfo);
-      if (!costreamBadge && costreamMates && costreamMates.length) {
-        const noms = costreamMates.map(l => displayNameFor(l));
+      /* ── ET L'AUTRE MOITIÉ DU PARTAGE : LES MEMBRES QUE LA BARRE MONTRE ───
+         Le repli heuristique ne connaît que « Chaînes suivies » ; en Top
+         Chaînes il ne rend rien, alors que c'est précisément là que le groupe
+         est affiché AU COMPLET et que le badge violet vient de se taire (cf.
+         `liveWithBadgeNoeud`). Sans cette seconde source, l'aperçu perdrait
+         les deux badges au lieu d'en garder un.
+
+         On prend donc, à défaut d'heuristique, les membres Guest Star QUI ONT
+         UNE CARTE — l'exact complément de ce que le violet retient. */
+      let visibles = costreamMates && costreamMates.length ? [...costreamMates] : null;
+      if (!costreamBadge && !visibles) {
+        const dedans = getGuestStarMates(login).filter(m => estDansLaBarre(m.login));
+        if (dedans.length) visibles = dedans.map(m => m.login);
+      }
+      if (!costreamBadge && visibles && visibles.length) {
+        const noms = visibles.map(l => displayNameFor(l));
         costreamBadge = badgeNoeud('tse-preview__badge--costream',
           phraseAvecFente(S.uiBadgeCostreamWithNames(FENTE), () => nomsEnGras(noms)));
       }
@@ -18737,7 +18852,14 @@ const TSE_GATE_MAX_CLICKS = 5;
         const v = gsCache.get(id)?.combined;
         if (!Number.isFinite(v)) continue;
         const login = parId.get(id);
-        if (login) globalChannels.setViewers(login, v);
+        /* `autorite` EST VRAI ICI AUSSI, et son absence était une omission :
+           `v` est le COMBINÉ, exactement comme pour les membres traités plus
+           bas — dont le commentaire dit « comme pour la chaîne interrogée »,
+           en décrivant une symétrie que le code n'avait pas. Sans la marque,
+           cette correction-ci se faisait refuser par la garde de combiné
+           précisément quand l'entrée en portait un, c'est-à-dire dans le seul
+           cas pour lequel elle a été écrite. */
+        if (login) globalChannels.setViewers(login, v, true);
       }
     }
     /* ── ET LE COMBINÉ DES AUTRES MEMBRES, QUI EST DANS LA MÊME RÉPONSE ────
