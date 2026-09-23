@@ -7565,9 +7565,88 @@ const TSE_GATE_MAX_CLICKS = 5;
         const p = placeDeRec(r);
         if (prises.has(p)) continue;
         prises.add(p);
-        out.push(...membres.get(p));
+        out.push(...completer(p, membres.get(p)));
         if (prises.size >= n) break;
       }
+      return out;
+    };
+
+    /* ── UNE PLACE EST COMPLÈTE, OU ELLE N'EST PAS UNE PLACE ──────────────
+       SIGNALÉ AINSI : « où est Lukawaaa ? le co-stream devrait être composé
+       de trois streamers, là il n'y en a que deux ». Les deux autres étaient
+       bien là, groupés, à leur rang — la place marchait. Le troisième était
+       introuvable parce qu'il n'est dans AUCUN classement : le répertoire de
+       Twitch ne l'a jamais rendu, ni en tête de sa catégorie ni ailleurs, et
+       `setViewers` ne CRÉE jamais d'entrée. Une règle de tri ne peut pas faire
+       apparaître ce qui n'existe nulle part.
+
+       ON COMPLÈTE DONC LA PLACE AVEC CE QUE GUEST STAR A DÉJÀ DIT : il nomme
+       les participants et donne leur combiné. Rien de neuf n'est demandé à
+       Twitch. Le reste — catégorie, ancienneté, avatar — arrive par la voie
+       ordinaire dès que la carte existe : `TseChannels` reste la voix la plus
+       autorisée sur une chaîne, et l'amorce ne sert qu'à tenir l'intervalle
+       (cf. `seed`).
+
+       ET CELA NE TOUCHE PAS LE POOL, délibérément. Un enregistrement que le
+       répertoire ne rend jamais accumulerait ses absences et se ferait évincer
+       en trois passes ; il faudrait alors l'exempter, donc distinguer deux
+       espèces d'entrées dans une machinerie qui n'en connaît qu'une. La
+       complétion vit à l'AFFICHAGE, là où la question se pose, et disparaît
+       d'elle-même quand la session expire.
+
+       LE FILTRE DE LANGUE NE S'APPLIQUE PAS À CES MEMBRES-LÀ, et c'est
+       voulu : ils ne sont pas choisis pour eux-mêmes mais pour la place à
+       laquelle ils appartiennent. Écarter un participant d'une session déjà
+       retenue rendrait un co-stream amputé, ce qui est exactement le
+       signalement. */
+    const completer = (cle, presents) => {
+      /* ── ET SEULEMENT EN « TOP CHAÎNES », COMME DEMANDÉ ─────────────────
+         C'est là que la question se pose : une liste de places, dont
+         l'utilisateur attend qu'elles soient entières. Ailleurs, `top()` sert
+         à répondre « cette chaîne est-elle au classement ? » — et un membre
+         COMPLÉTÉ n'y est justement pas : il est montré avec sa place, pas
+         classé pour lui-même. Répondre oui ferait mentir `estAuClassement` et
+         le bilan de co-stream, qui comptent ce que la marche connaît. */
+      if (!state.globalMode) return presents;
+      /* ── ET PAS SOUS UN FILTRE DE LANGUE, PARCE QU'ON NE SAIT PAS ───────
+         D'un membre que le répertoire n'a jamais rendu, on connaît le nom et
+         le combiné — Guest Star les donne — et RIEN D'AUTRE. Pas ses tags,
+         donc pas sa langue. Le faire entrer dans une liste filtrée
+         reviendrait à affirmer qu'il parle celle qu'on a demandée, ce qu'on
+         ignore. Le banc l'a montré sur un décor existant : sous filtre
+         « Français », la complétion faisait apparaître le membre écarté et
+         coloriait un groupe que ce filtre avait justement disjoint.
+
+         ON S'ABSTIENT DONC, et c'est une limite assumée : sous filtre, une
+         place peut rester incomplète. Elle se lèvera le jour où le membre
+         complété portera ses propres tags — ce qui demande une requête que
+         personne n'a encore jugée nécessaire. */
+      if (state.languageFilter) return presents;
+      if (!cle || cle.slice(0, 3) !== 'gs:') return presents;
+      const membres = membresDeLaSession(cle);
+      if (membres.length <= presents.length) return presents;
+      const vus = new Set(presents.map(r => r.login));
+      const out = [...presents];
+      for (const m of membres) {
+        const l = m?.login && String(m.login).toLowerCase();
+        if (!l || vus.has(l)) continue;
+        vus.add(l);
+        out.push({
+          login: l,
+          id:      m.id || null,
+          name:    (m.name || '').trim() || l,
+          avatar:  null,
+          viewers: Number.isFinite(m.combined) ? m.combined : 0,
+          game:    null,
+          gameLabel: null,
+          createdAt: null,
+          tags:    [],
+          ts:      Date.now(),
+        });
+      }
+      /* Par compteur décroissant, comme partout : les membres d'une place se
+         rangent entre eux comme les places se rangent entre elles. */
+      out.sort((a, b) => b.viewers - a.viewers);
       return out;
     };
     /* ── ET UNE PLACE SE FONDE SUR UN FAIT, PAS SUR UNE RESSEMBLANCE ─────
@@ -19055,6 +19134,11 @@ const TSE_GATE_MAX_CLICKS = 5;
      triée des membres : deux réponses d'une même session rendent alors la
      même clé, quelle que soit celle des chaînes qu'on a interrogée. */
   const sessionDesMembres = new Map();
+  /* clé de session → ses membres, tels que Guest Star les a nommés. C'est ce
+     qui permet à une place d'être COMPLÈTE : un participant que le répertoire
+     n'a jamais rendu n'est dans aucun classement, et aucune règle de tri ne
+     peut faire apparaître ce qui n'existe nulle part (cf. `parPlaces`). */
+  const membresDeSession = new Map();
   const noterCombinesDeSession = (entry) => {
     if (!entry || !Array.isArray(entry.mates)) return;
     const logins = entry.mates
@@ -19067,6 +19151,13 @@ const TSE_GATE_MAX_CLICKS = 5;
           ? 'gs:' + entry.hostId
           : 'gs:' + [...logins].sort().join(','))
       : null;
+    if (cle) {
+      membresDeSession.delete(cle);
+      membresDeSession.set(cle, { membres: entry.mates.slice(), ts: entry.ts });
+      while (membresDeSession.size > CFG.GUEST_STAR_MEMBERS_MAX) {
+        membresDeSession.delete(membresDeSession.keys().next().value);
+      }
+    }
     for (const m of entry.mates) {
       const l = m?.login && String(m.login).toLowerCase();
       if (!l) continue;
@@ -19099,6 +19190,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     const hit = sessionDesMembres.get(String(login).toLowerCase());
     if (!hit || Date.now() - hit.ts >= CFG.GUEST_STAR_TTL) return null;
     return hit.cle;
+  };
+  /* Les membres d'une session, ou []. Même fraîcheur que le reste : une
+     composition périmée ne doit plus rien faire apparaître. */
+  const membresDeLaSession = (cle) => {
+    if (!cle) return [];
+    const hit = membresDeSession.get(cle);
+    if (!hit || Date.now() - hit.ts >= CFG.GUEST_STAR_TTL) return [];
+    return hit.membres;
   };
 
   // Co-streamers Guest Star de `login` (hôte + invités, soi exclu), chacun

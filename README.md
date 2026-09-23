@@ -2178,6 +2178,72 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Une place est complète, ou elle n'est pas une place (v4.18.1)
+
+> « Où est Lukawaaa ? Le co-stream devrait être composé de trois streamers, là
+> il n'y en a que deux. »
+
+Les deux autres étaient bien là, **groupés, à leur rang** : la place de la
+4.18.0 faisait son travail. Le troisième était introuvable pour une raison
+simple — il n'est dans **aucun classement**. Le répertoire de Twitch ne l'a
+jamais rendu, ni en tête de sa catégorie ni ailleurs, et `setViewers` ne
+**crée** jamais d'entrée. Une règle de tri ne peut pas faire apparaître ce qui
+n'existe nulle part.
+
+### On complète la place avec ce qu'on savait déjà
+
+Guest Star **nomme** les participants et donne leur combiné. Rien de neuf n'est
+demandé à Twitch. Le reste — catégorie, ancienneté, avatar — arrive par la voie
+ordinaire dès que la carte existe : `TseChannels` reste la voix la plus
+autorisée sur une chaîne, et l'amorce ne sert qu'à tenir l'intervalle.
+
+**Et cela ne touche pas le pool**, délibérément. Un enregistrement que le
+répertoire ne rend jamais accumulerait ses absences et se ferait évincer en
+trois passes ; il faudrait alors l'exempter, donc distinguer deux espèces
+d'entrées dans une machinerie qui n'en connaît qu'une. La complétion vit à
+l'**affichage**, là où la question se pose, et disparaît d'elle-même quand la
+session expire.
+
+**Et seulement en « Top Chaînes »**, comme demandé. Ailleurs, `top()` sert à
+répondre « cette chaîne est-elle au classement ? » — et un membre complété n'y
+est justement pas : il est montré **avec sa place**, pas classé pour lui-même.
+Répondre oui ferait mentir `estAuClassement` et le bilan de co-stream, qui
+comptent ce que la marche connaît.
+
+Le filtre de langue ne s'applique pas non plus à ces membres : ils ne sont pas
+choisis pour eux-mêmes mais pour la place à laquelle ils appartiennent. Écarter
+un participant d'une session déjà retenue rendrait un co-stream amputé — c'est
+exactement le signalement.
+
+### Une limite assumée : pas sous filtre de langue
+
+D'un membre que le répertoire n'a jamais rendu, on connaît le **nom** et le
+**combiné** — Guest Star les donne — et rien d'autre. Pas ses tags, donc pas sa
+langue. Le faire entrer dans une liste filtrée reviendrait à affirmer qu'il
+parle celle qu'on a demandée, ce qu'on ignore.
+
+Le banc l'a montré sur un décor existant : sous filtre « Français », la
+complétion faisait apparaître le membre que ce filtre avait justement écarté, et
+coloriait un groupe qu'il avait disjoint. On s'abstient donc — sous filtre, une
+place peut rester incomplète. La limite se lèvera le jour où un membre complété
+portera ses propres tags, ce qui demande une requête que personne n'a encore
+jugée nécessaire.
+
+### Ce que le banc mesure
+
+Le décor est celui du terrain, et c'est tout son intérêt : « luka » **existe**
+— il a un stream, une catégorie, Twitch répond pour lui — mais aucun sommet de
+catégorie ne le rend.
+
+| mutant | résultat |
+| --- | --- |
+| la place laissée incomplète | `luka` n'apparaît ni au classement ni à l'écran, et le groupe se dessine à deux |
+
+Trois témoins : les deux membres que le répertoire rend sont à leur rang (la
+prémisse), le troisième est complété, et le groupe se **dessine à trois,
+contigus** — un membre complété mais laissé hors du groupe afficherait un
+co-stream qu'on ne reconnaît pas comme tel.
+
 ## Un co-stream occupe une place, pas cinq (v4.18.0)
 
 > « Affiche l'ensemble des streamers d'un co-stream, **mais considère
@@ -10143,7 +10209,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 152 scénarios, 1272 assertions |
+| `npm test` | le harnais Playwright : 153 scénarios, 1275 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -10164,7 +10230,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1183 Ko | 423 Ko | 3 486 → **2** |
+| `content.js` | 1183 Ko | 423 Ko | 3 492 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

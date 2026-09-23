@@ -2057,6 +2057,69 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## A slot is complete, or it is not a slot (v4.18.1)
+
+> "Where is Lukawaaa? The co-stream should be made of three streamers, here
+> there are only two."
+
+The other two were there, **grouped, at their rank**: 4.18.0's slot was doing
+its job. The third was nowhere for a simple reason — it is in **no ranking at
+all**. Twitch's directory never returned it, neither at the top of its category
+nor anywhere else, and `setViewers` never **creates** an entry. A sorting rule
+cannot bring up what exists nowhere.
+
+### We complete the slot with what we already knew
+
+Guest Star **names** the participants and gives their combined count. Nothing
+new is asked of Twitch. The rest — category, uptime, avatar — arrives through
+the ordinary path as soon as the card exists: `TseChannels` remains the most
+authoritative voice on a channel, and the seed only bridges the gap.
+
+**And this does not touch the pool**, deliberately. An entry the directory never
+returns would accumulate absences and be evicted in three passes; it would then
+need an exemption, hence two species of entry in machinery that knows only one.
+Completion lives at **display** time, where the question arises, and disappears
+by itself when the session expires.
+
+**And only in "Top Channels"**, as requested. Elsewhere `top()` answers "is this
+channel in the ranking?" — and a completed member is precisely not: it is shown
+**with its slot**, not ranked for itself. Answering yes would make
+`estAuClassement` and the co-stream report lie, since they count what the walk
+knows.
+
+The language filter does not apply to those members either: they are not chosen
+for themselves but for the slot they belong to. Dropping a participant from an
+already-selected session would render a truncated co-stream — which is exactly
+the report.
+
+### An accepted limit: not under a language filter
+
+Of a member the directory never returned we know the **name** and the
+**combined count** — Guest Star gives them — and nothing else. Not their tags,
+so not their language. Letting them into a filtered list would amount to
+claiming they speak the one that was asked for, which we do not know.
+
+The bench showed it on an existing fixture: under a "Français" filter,
+completion brought back the very member that filter had excluded, and coloured a
+group it had split apart. So we abstain — under a filter, a slot may stay
+incomplete. The limit lifts the day a completed member carries its own tags,
+which takes a request nobody has yet judged necessary.
+
+### What the bench measures
+
+The fixture is the field's, and that is the whole point: "luka" **exists** — it
+has a stream, a category, Twitch answers for it — but no category top returns
+it.
+
+| mutant | result |
+| --- | --- |
+| the slot left incomplete | `luka` appears neither in the ranking nor on screen, and the group is drawn with two |
+
+Three witnesses: the two members the directory returns are at their rank (the
+premise), the third is completed, and the group is **drawn with three,
+contiguous** — a completed member left out of the group would show a co-stream
+nobody recognises as one.
+
 ## A co-stream takes one slot, not five (v4.18.0)
 
 > "Show all the streamers of a co-stream, **but treat a whole co-stream as one
@@ -9765,7 +9828,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 152 scenarios, 1272 assertions |
+| `npm test` | the Playwright harness: 153 scenarios, 1275 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -9785,7 +9848,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1183 KB | 423 KB | 3,486 → **2** |
+| `content.js` | 1183 KB | 423 KB | 3,492 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

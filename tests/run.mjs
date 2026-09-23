@@ -17978,14 +17978,14 @@ addEventListener('message', (e) => {
      parce qu'il appartient à la place — c'est mot pour mot la demande de
      l'utilisateur, « affiche l'ensemble des streamers d'un co-stream ».
 
-     CE QUE LA CASE VEUT DIRE MAINTENANT : un membre sous la coupe dont Guest
-     Star ignore la session. Elle n'est donc pas morte, elle s'est rétrécie à
-     ce que l'heuristique seule ne peut pas rattraper — et c'est exactement le
-     cas qu'un rapport de terrain devra encore désigner. La QUATRIÈME case,
-     elle, garde tout son sens : « horsClassement » reste ce que la marche
-     n'a jamais vu, et aucune place ne peut le faire apparaître. */
+     CE QUE LES CASES VEULENT DIRE MAINTENANT, en mode « Top Chaînes » : rien,
+     ou presque, pour une session que Guest Star connaît — la 4.18.1 complète
+     les places avec les membres que le répertoire ne rend PAS, donc même
+     « horsClassement » se vide. Les quatre cases gardent tout leur sens en
+     mode SUIVI, où aucune complétion n'a lieu, et sous filtre de langue, où
+     l'on s'abstient de compléter faute de connaître la langue d'un membre. */
   ok('…et il sépare « inconnu de la marche » de ce que la place fait remonter',
-     b.affiches === 4 && b.horsClassement === 1 && b.sousLaCoupe === 0,
+     b.affiches === 5 && b.horsClassement === 0 && b.sousLaCoupe === 0,
      JSON.stringify(b));
   /* ── L'ASSERTION DU COMPTEUR AVEUGLE EST PARTIE AVEC SA CONDITION ──────
      `sousLaCoupeAvecCombine` a été écrit contre un angle mort : il lisait le
@@ -18138,11 +18138,15 @@ addEventListener('message', (e) => {
   ok('la session est vue, et la place fait remonter ses membres sous la coupe',
      vu.bilan.sessions === 1 && vu.bilan.groupes === 1 && vu.dessines === 3,
      JSON.stringify(vu));
-  /* MÊME AFFINAGE QU'AU SCÉNARIO 135 : les absents ne sont pas de la même
-     espèce. Reste le seul que la marche n'a jamais vu — et aucune place ne
-     peut faire apparaître ce dont on ignore l'existence. */
-  ok('…et le seul absent est celui que la marche ignore',
-     vu.bilan.affiches === 3 && vu.bilan.horsClassement === 1
+  /* ── ET LA 4.18.1 A VIDÉ LA DERNIÈRE CASE ─────────────────────────────
+     Cette assertion tenait « il reste le seul que la marche ignore ». Elle ne
+     le peut plus : la place se complète désormais avec les membres que le
+     répertoire ne rend pas, et c'est précisément la demande — « le co-stream
+     devrait être composé de trois streamers, là il n'y en a que deux ». En
+     mode « Top Chaînes » et hors filtre de langue, une session connue de
+     Guest Star est donc affichée ENTIÈRE. */
+  ok('…et il ne reste plus personne dehors',
+     vu.bilan.affiches === 4 && vu.bilan.horsClassement === 0
      && vu.bilan.sousLaCoupe === 0
      && vu.bilan.classesNonAffichees === 0, JSON.stringify(vu.bilan));
   /* MÊME RAISON QU'AU SCÉNARIO 135 : l'assertion qui vivait ici tenait
@@ -20170,6 +20174,101 @@ addEventListener('message', (e) => {
      rang('gros1') < rang('gros2') && rang('gros2') < rang('m1')
      && rang('intrus') < rang('p1') && rang('p1') < rang('p2'),
      JSON.stringify(vu.cartes));
+  await page.close();
+}
+
+/* ═════════ UNE PLACE EST COMPLÈTE, OU ELLE N'EST PAS UNE PLACE ══════════
+   SIGNALÉ AINSI : « où est Lukawaaa ? le co-stream devrait être composé de
+   trois streamers, là il n'y en a que deux. »
+
+   LES DEUX AUTRES ÉTAIENT BIEN LÀ, groupés, à leur rang : la place de la 4.18
+   faisait son travail. Le troisième était introuvable parce qu'il n'est dans
+   AUCUN classement — le répertoire de Twitch ne l'a jamais rendu, ni en tête
+   de sa catégorie ni ailleurs, et `setViewers` ne CRÉE jamais d'entrée. Une
+   règle de tri ne peut pas faire apparaître ce qui n'existe nulle part.
+
+   ON COMPLÈTE DONC LA PLACE avec ce que Guest Star a déjà dit : il nomme les
+   participants et donne leur combiné. Rien de neuf n'est demandé à Twitch. Le
+   reste — catégorie, ancienneté, avatar — arrive par la voie ordinaire dès que
+   la carte existe.
+
+   ET CELA NE TOUCHE PAS LE POOL, délibérément : un enregistrement que le
+   répertoire ne rend jamais accumulerait ses absences et se ferait évincer en
+   trois passes. La complétion vit à l'AFFICHAGE, là où la question se pose.
+
+   LE DÉCOR EST CELUI DU TERRAIN, ET C'EST TOUT SON INTÉRÊT : « luka » EXISTE
+   — il a un stream, une catégorie, Twitch répond pour lui — mais aucun sommet
+   de catégorie ne le rend. Sans cette nuance le scénario mesurerait une chaîne
+   inexistante, ce qui n'est pas le cas signalé. */
+{
+  titre('153. Top Chaînes — le membre que le répertoire ne rend jamais');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    const streams = [
+      { login: 'gros1', viewers: 13_400 }, { login: 'gros2', viewers: 12_300 },
+      { login: 'gpk', viewers: 10_600 }, { login: 'shachlos', viewers: 10_600 },
+      ...Array.from({ length: 8 }, (_, i) => ({ login: 'b' + i, viewers: 9000 - i * 100 })),
+      { login: 'modele', viewers: 800 },
+    ];
+    window.__cats = [{ name: 'Dota 2', viewers: 200_000, streams }];
+    window.__fx = {}; window.__gs = {};
+    for (const st of streams) {
+      window.__fx[st.login] = { id: String(800_000 + st.viewers), createdAt: h,
+                                viewers: st.viewers, game: 'Dota 2', tags: [] };
+    }
+    /* « luka » existe sur Twitch — stream, catégorie, réponse — mais l'annuaire
+       ne le rend dans AUCUN sommet de catégorie : le répertoire range la
+       session sous l'hôte. C'est le cas du terrain, et le seul point du décor
+       qui compte. */
+    window.__fx.luka = { id: '999111', createdAt: h, viewers: 250,
+                         game: 'Dota 2', tags: [] };
+    const idDe = (l) => window.__fx[l].id;
+    const guests = [
+      { id: idDe('gpk'), login: 'gpk', viewers: 10_600, combined: 10_600 },
+      { id: idDe('shachlos'), login: 'shachlos', viewers: 10_600, combined: 10_600 },
+      { id: '999111', login: 'luka', viewers: 250, combined: 10_600 },
+    ];
+    for (const l of ['gpk', 'shachlos']) {
+      window.__gs[idDe(l)] = { hostId: idDe('gpk'), hostLogin: 'gpk', guests };
+    }
+    // Twitch répond aussi pour le troisième dès qu'on l'interroge : c'est ce
+    // qui permet au groupe de se DESSINER, et non seulement d'exister.
+    window.__gs['999111'] = { hostId: idDe('gpk'), hostLogin: 'gpk', guests };
+    window.__addCard('modele', 'Dota 2', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => window.tse.global.top(4)
+    .some((r) => r.login === 'luka'), 15_000);
+  await wait(page, 1500);
+  const vu = await page.evaluate(() => ({
+    top4: window.tse.global.top(4).map((r) => `${r.login}:${r.viewers}`),
+    cartes: [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')]
+      .map((c) => c.dataset.tseLogin),
+    groupees: [...document.querySelectorAll('.side-nav-card.tse-costream')]
+      .map((c) => c.dataset.tseLogin),
+  }));
+  /* LA PRÉMISSE : les deux membres que le répertoire rend sont bien là, à leur
+     rang. Sans elle, « les trois y sont » serait vrai d'une liste vide. */
+  ok('les deux membres que le répertoire rend sont au classement',
+     vu.top4.includes('shachlos:10600') && vu.top4.includes('gpk:10600'),
+     JSON.stringify(vu.top4));
+  /* L'ASSERTION QUI PORTE LE SIGNALEMENT. Mutant — la place laissée
+     incomplète — « luka » n'apparaît ni au classement ni à l'écran, et le
+     groupe se dessine à deux : la capture de l'utilisateur, à l'identique. */
+  ok('…et le troisième, que le répertoire ignore, est complété par la session',
+     vu.top4.includes('luka:10600') && vu.cartes.includes('luka'),
+     JSON.stringify({ top4: vu.top4, cartes: vu.cartes.slice(0, 6) }));
+  /* ET IL EST DESSINÉ AVEC LES AUTRES, pas seulement présent. Un membre
+     complété mais laissé hors du groupe afficherait un co-stream qu'on ne
+     reconnaît pas comme tel. */
+  ok('…et le groupe se dessine à trois, contigus',
+     ['shachlos', 'gpk', 'luka'].every((l) => vu.groupees.includes(l))
+     && Math.max(...['shachlos', 'gpk', 'luka'].map((l) => vu.cartes.indexOf(l)))
+        - Math.min(...['shachlos', 'gpk', 'luka'].map((l) => vu.cartes.indexOf(l))) === 2,
+     JSON.stringify({ groupees: vu.groupees, cartes: vu.cartes.slice(0, 6) }));
   await page.close();
 }
 
