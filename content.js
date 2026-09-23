@@ -7548,6 +7548,47 @@ const TSE_GATE_MAX_CLICKS = 5;
       };
     };
 
+    /* Les n premières PLACES d'une liste déjà triée, membres compris. Une
+       place se reconnaît à sa clé (cf. `placeDe`) ; ses membres sortent
+       groupés, à la position de son meilleur d'entre eux. */
+    const parPlaces = (liste, n) => {
+      const membres = new Map();
+      for (const r of liste) {
+        const p = placeDeRec(r);
+        let a = membres.get(p);
+        if (!a) membres.set(p, a = []);
+        a.push(r);
+      }
+      const out = [];
+      const prises = new Set();
+      for (const r of liste) {
+        const p = placeDeRec(r);
+        if (prises.has(p)) continue;
+        prises.add(p);
+        out.push(...membres.get(p));
+        if (prises.size >= n) break;
+      }
+      return out;
+    };
+    /* ── ET UNE PLACE SE FONDE SUR UN FAIT, PAS SUR UNE RESSEMBLANCE ─────
+         LA PREMIÈRE RÉDACTION ACCEPTAIT AUSSI LA PROXIMITÉ, celle qui protège
+         déjà le combiné. Mesuré au banc, sur un décor de douze chaînes d'une
+         même catégorie : elle a rangé `p1:3000`, `p2:2900` et `p3:2800` dans
+         une seule place. Trois chaînes sans le moindre rapport, fondues en un
+         groupe — et deux vraies places de moins à l'écran.
+
+         LES DEUX QUESTIONS NE SE RESSEMBLENT QUE DE LOIN. « Ce compteur est-il
+         un combiné ? » est une question de PROTECTION : le faux positif y
+         coûte un rafraîchissement retardé, que la marche suivante corrige.
+         « Ces chaînes sont-elles le même direct ? » est une question de
+         STRUCTURE : le faux positif y cache de vraies chaînes derrière un
+         groupe qui n'existe pas. Le même indice ne peut pas servir aux deux.
+
+         UNE PLACE VIENT DONC DE GUEST STAR, et de lui seul — il nomme les
+         participants, c'est un fait. Quand il se tait, chaque chaîne garde sa
+         place : on perd le regroupement, on n'invente pas de groupe. */
+    const placeDeRec = (rec) => sessionDuMembre(rec.login) || ('s:' + rec.login);
+
     // N-ième meilleur score du pool, ou 0 si le pool n'atteint pas N.
     // Rendre 0 est VOLONTAIRE : tant qu'on n'a pas N candidats, aucune
     // catégorie ne peut être écartée et la descente doit continuer.
@@ -8821,6 +8862,33 @@ const TSE_GATE_MAX_CLICKS = 5;
         return ranking;
       },
 
+      /* ── UN CO-STREAM OCCUPE UNE PLACE, PAS CINQ ───────────────────────
+         DEMANDÉ APRÈS UNE CAPTURE QUI NE LAISSAIT AUCUN DOUTE : « affiche
+         l'ensemble des streamers d'un co-stream, MAIS considère l'ensemble
+         d'un co-stream comme UNE place. S'il y a du coup 38 cartes, ce n'est
+         pas grave — l'important est d'avoir les 30 meilleures PLACES. »
+
+         CE QUE LA CAPTURE MONTRAIT, et qui est le vrai défaut : un groupe de
+         cinq COUPÉ EN DEUX par une chaîne étrangère. Les membres d'une
+         session portent chacun leur propre échantillon du compteur combiné —
+         4 795, 4 782, 4 771 — et un solo à 4 788 vient se glisser au milieu.
+         Trié chaîne par chaîne, le groupe se disloque à l'écran.
+
+         DEUX CORRECTIONS EN UNE, et c'est ce qui rend la règle juste :
+           — les membres d'une place sortent ENSEMBLE, donc contigus ;
+           — la place ne consomme qu'UN rang, donc un co-stream de cinq ne
+             mange plus cinq des trente.
+
+         L'ORDRE DES PLACES EST CELUI DE LEUR MEILLEUR MEMBRE, ce qui découle
+         de la liste déjà triée : la première fois qu'on rencontre une place,
+         c'est par sa chaîne la plus regardée. Aucun tri de plus, donc aucune
+         occasion de diverger de `base()`.
+
+         QUI FAIT UNE PLACE : Guest Star quand il répond — c'est un fait, pas
+         une ressemblance — et à défaut la proximité des compteurs dans une
+         même catégorie, la même heuristique qui protège déjà le combiné. */
+      placeDe(rec) { return placeDeRec(rec); },
+
       // Classement servi à l'interface : la base, filtrée par la langue
       // choisie, puis tronquée.
       //
@@ -8837,10 +8905,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         // mondiale menée en langue : il n'y a plus rien à filtrer, et le
         // refaire retirerait les chaînes que Twitch déclare dans cette langue
         // sans qu'elles portent le tag.
-        if (!lang
+        const filtree = (!lang
             || (wantedScope() && scopeLangApplied)
-            || (!wantedScope() && worldLang === lang)) return liste.slice(0, n);
-        return liste.filter(r => r.tags.includes(lang)).slice(0, n);
+            || (!wantedScope() && worldLang === lang))
+          ? liste : liste.filter(r => r.tags.includes(lang));
+        return parPlaces(filtree, n);
       },
 
       // Langues proposables. Calculées sur le pool MONDIAL, jamais sur la
@@ -18976,11 +19045,39 @@ const TSE_GATE_MAX_CLICKS = 5;
      fraîcheur est celle de la session qui l'a rendu : un combiné périmé ne
      vaut pas mieux qu'une audience propre. */
   const combineDesMembres = new Map();
+  /* ── ET L'IDENTITÉ DE LA SESSION, RANGÉE DE LA MÊME FAÇON ───────────────
+     Le combiné dit COMBIEN ; il ne dit pas AVEC QUI. Or le classement en a
+     besoin : depuis la 4.18, un co-stream entier occupe UNE place, et pour
+     regrouper des chaînes il faut savoir qu'elles appartiennent au même
+     direct — pas seulement qu'elles affichent le même nombre.
+
+     LA CLÉ EST CELLE DE L'HÔTE quand Twitch le nomme, et sinon la liste
+     triée des membres : deux réponses d'une même session rendent alors la
+     même clé, quelle que soit celle des chaînes qu'on a interrogée. */
+  const sessionDesMembres = new Map();
   const noterCombinesDeSession = (entry) => {
     if (!entry || !Array.isArray(entry.mates)) return;
+    const logins = entry.mates
+      .map(m => m?.login && String(m.login).toLowerCase())
+      .filter(Boolean);
+    /* Un seul participant n'est pas une session : Twitch rend parfois une
+       liste d'un, et en faire un groupe créerait une place pour rien. */
+    const cle = logins.length >= 2
+      ? (typeof entry.hostId === 'string' && entry.hostId
+          ? 'gs:' + entry.hostId
+          : 'gs:' + [...logins].sort().join(','))
+      : null;
     for (const m of entry.mates) {
       const l = m?.login && String(m.login).toLowerCase();
-      if (!l || !Number.isFinite(m.combined)) continue;
+      if (!l) continue;
+      if (cle) {
+        sessionDesMembres.delete(l);
+        sessionDesMembres.set(l, { cle, ts: entry.ts });
+        while (sessionDesMembres.size > CFG.GUEST_STAR_MEMBERS_MAX) {
+          sessionDesMembres.delete(sessionDesMembres.keys().next().value);
+        }
+      }
+      if (!Number.isFinite(m.combined)) continue;
       combineDesMembres.delete(l);            // réinsertion : le plus récent en queue
       combineDesMembres.set(l, { v: m.combined, ts: entry.ts });
       while (combineDesMembres.size > CFG.GUEST_STAR_MEMBERS_MAX) {
@@ -18993,6 +19090,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     const hit = combineDesMembres.get(String(login).toLowerCase());
     if (!hit || Date.now() - hit.ts >= CFG.GUEST_STAR_TTL) return null;
     return hit.v;
+  };
+  /* La session d'un membre, ou null. Même fraîcheur que le combiné : une
+     session périmée ne doit plus regrouper, sans quoi deux chaînes resteraient
+     collées longtemps après s'être séparées. */
+  const sessionDuMembre = (login) => {
+    if (!login) return null;
+    const hit = sessionDesMembres.get(String(login).toLowerCase());
+    if (!hit || Date.now() - hit.ts >= CFG.GUEST_STAR_TTL) return null;
+    return hit.cle;
   };
 
   // Co-streamers Guest Star de `login` (hôte + invités, soi exclu), chacun
@@ -19677,8 +19783,47 @@ const TSE_GATE_MAX_CLICKS = 5;
         return tb - ta;
       });
     } else if (sortMode === 'viewers') {
-      // Viewers DESC → le plus regardé en premier
-      sorted = [...cards].sort((a, b) => getCardViewers(b) - getCardViewers(a));
+      /* ── VIEWERS DESC, MAIS UN CO-STREAM RESTE D'UN SEUL TENANT ────────
+         CE QUE LA CAPTURE MONTRAIT : un groupe de cinq COUPÉ EN DEUX par une
+         chaîne étrangère. Les membres d'une session portent chacun leur
+         propre échantillon du compteur combiné — 4 795, 4 788, 4 782 — et un
+         solo à 4 785 venait se glisser au milieu. Trié carte par carte, le
+         groupe se disloquait à l'écran, barre de liaison comprise.
+
+         LE CLASSEMENT COMPTE DÉSORMAIS DES PLACES (cf. `top`), et l'ordre des
+         CARTES doit dire la même chose : un groupe se range à la position de
+         son MEILLEUR membre, et ses membres se suivent. On réutilise la clé
+         que `detectCoStreams` pose déjà sur les cartes — aucune notion neuve,
+         et le même fait pour les deux couches.
+
+         LE PLUS GRAND COMPTEUR, ET NON LA SOMME : chaque membre affiche déjà
+         l'audience combinée de la session. Les additionner compterait N fois
+         le même public et propulserait les groupes nombreux. C'est le même
+         raisonnement qu'au tri « costream » ci-dessous, et il n'a pas de
+         raison de changer selon le tri. */
+      const audienceDuGroupe = new Map();
+      cards.forEach(card => {
+        const cle = card.dataset.tseCostreamKey;
+        if (!cle) return;
+        audienceDuGroupe.set(cle,
+          Math.max(audienceDuGroupe.get(cle) || 0, getCardViewers(card)));
+      });
+      const rangDe = (card) => {
+        const cle = card.dataset.tseCostreamKey;
+        return cle ? (audienceDuGroupe.get(cle) || 0) : getCardViewers(card);
+      };
+      sorted = [...cards].sort((a, b) => {
+        const d = rangDe(b) - rangDe(a);
+        if (d) return d;
+        /* À rang de groupe ÉGAL, deux cas : les membres d'un même groupe — on
+           les range par compteur, comme le reste — et deux groupes distincts
+           qui tombent sur le même nombre, que la clé départage pour qu'ils ne
+           s'entrelacent pas. */
+        const ka = a.dataset.tseCostreamKey || '';
+        const kb = b.dataset.tseCostreamKey || '';
+        if (ka !== kb) return ka < kb ? -1 : 1;
+        return getCardViewers(b) - getCardViewers(a);
+      });
     } else if (sortMode === 'costream') {
       // Groupes de co-stream regroupés en tête, ordonnés par audience du
       // groupe décroissante. Les solos sont relégués après, dans leur ordre
