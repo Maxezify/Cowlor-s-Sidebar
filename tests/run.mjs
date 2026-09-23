@@ -19904,6 +19904,47 @@ addEventListener('message', (e) => {
   const tous  = await jouer(['alpha', 'beta', 'gamma']);
   const deux  = await jouer(['alpha', 'beta']);
 
+  /* ── ET « DANS LA BARRE » N'EST PAS « QUELQUE PART DANS LA BARRE » ──────
+     SIGNALÉ, AVEC L'HYPOTHÈSE JUSTE : « je vois que LittleBigWhale est en
+     co-stream avec JulietteArz, mais je ne suis pas JulietteArz — peut-être
+     parce qu'elle est présente plus bas dans "Chaînes live" ? »
+
+     C'était exactement ça. La barre latérale de Twitch ne contient pas que la
+     liste suivie : elle porte aussi « Chaînes live » et « Catégories
+     recommandées », dont les cartes ont la MÊME classe. Un co-streamer qui y
+     figurait passait pour visible dans la liste, et son nom partait au badge
+     bleu — celui qui dit « de cette liste ». */
+  const ailleurs = await (async () => {
+    const page = await fresh();
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Rust', tags: [] });
+      const guests = [
+        { id: '1', login: 'lbw', viewers: 2100, combined: 2100 },
+        { id: '2', login: 'juliettearz', viewers: 2000, combined: 2100 }];
+      window.__gs = { 1: { hostId: '1', hostLogin: 'lbw', guests },
+                      2: { hostId: '1', hostLogin: 'lbw', guests } };
+      window.__fx = { lbw: c('1', 2100), juliettearz: c('2', 2100) };
+      window.__addCard('lbw', 'Rust', '2,1 k');          // dans la liste suivie
+      window.__addReco('juliettearz', 'Rust', '2 k');    // dans « Chaînes live »
+    });
+    await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 10_000);
+    await wait(page, 1200);
+    await page.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === 'lbw')
+      ?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false })));
+    await attendre(page, () => !!document.querySelector('.tse-preview__badge--costream, .tse-preview__badge--squad'), 6000);
+    await wait(page, 400);
+    const vu = await page.evaluate(() => {
+      const t = (s) => document.querySelector(s)?.textContent?.trim() || null;
+      return { bleu: t('.tse-preview__badge--costream'),
+               violet: t('.tse-preview__badge--squad'),
+               recoVue: !!document.querySelector('#reco .side-nav-card') };
+    });
+    await page.close();
+    return vu;
+  })();
+
   /* LA PRÉMISSE : le bleu nomme bien ce qui est à l'écran. Sans elle,
      « le violet a disparu » serait vrai d'un aperçu vide. */
   ok('le bleu nomme les membres que la barre affiche',
@@ -19921,6 +19962,17 @@ addEventListener('message', (e) => {
      /beta/.test(deux.bleu || '') && !/gamma/.test(deux.bleu || '')
      && /gamma/.test(deux.violet || '') && !/beta/.test(deux.violet || ''),
      JSON.stringify(deux));
+  /* LA PRÉMISSE DU TROISIÈME CAS : le décor a bien posé une carte HORS de la
+     liste suivie. Sans elle, « le bleu ne la nomme pas » serait vrai d'une
+     carte qui n'existe nulle part. */
+  ok('le décor pose bien une carte hors de la liste, dans « Chaînes live »',
+     ailleurs.recoVue === true, JSON.stringify(ailleurs));
+  /* L'ASSERTION QUI PORTE LE SIGNALEMENT. Mutant — la recherche portée sur le
+     document entier — « Co-stream avec juliettearz » au bleu et rien au
+     violet : la capture de l'utilisateur, à l'identique. */
+  ok('…et une chaîne qui n\'est QUE là n\'est pas « de cette liste »',
+     ailleurs.bleu === null && /juliettearz/i.test(ailleurs.violet || ''),
+     JSON.stringify(ailleurs));
 }
 
 /* ═════════ CE QUE LE BANC NE SAIT PAS TENIR, ET QUI SE DIT ══════════════

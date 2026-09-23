@@ -15044,8 +15044,27 @@ const TSE_GATE_MAX_CLICKS = 5;
        LE PARTAGE SE FAIT SUR LA MÊME SOURCE — les membres que Guest Star
        rend — pour que les deux listes soient exactement complémentaires et
        qu'aucun nom ne tombe entre les deux. */
+    /* ── « DANS LA BARRE » VEUT DIRE « DANS LA LISTE », PAS « QUELQUE PART »
+       SIGNALÉ, ET L'HYPOTHÈSE DE L'UTILISATEUR ÉTAIT LA BONNE : « je vois que
+       LittleBigWhale est en co-stream avec JulietteArz, mais je ne suis pas
+       JulietteArz — peut-être parce qu'elle est présente plus bas dans
+       "Chaînes live" ? »
+
+       C'était exactement ça. La recherche portait sur le DOCUMENT entier, et
+       la barre latérale de Twitch ne contient pas que la liste suivie : elle
+       porte aussi « Chaînes live » et « Catégories recommandées », dont les
+       cartes ont la même classe. Un co-streamer qui figurait dans l'une de ces
+       sections passait donc pour visible dans la liste, et son nom partait au
+       badge bleu — celui qui dit « de cette liste ».
+
+       ON DEMANDE DONC À LA SECTION, et à elle seule. Elle vaut pour les deux
+       modes : les cartes du classement sont fabriquées DANS cette section-là
+       (cf. `syncGlobalCards`), et `cardShown` y ajoute la règle du mode global
+       — une carte suivie qui reste dans le DOM derrière « Top Chaînes » n'est
+       pas affichée, donc ne compte pas. */
     const estDansLaBarre = (login) => {
-      const c = document.querySelector(`.side-nav-card[data-tse-login="${login}"]`);
+      const section = followedSection();
+      const c = section?.querySelector(`.side-nav-card[data-tse-login="${login}"]`);
       return !!c && cardShown(c);
     };
     const liveWithBadgeNoeud = (login, squadInfo, channelId) => {
