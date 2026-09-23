@@ -2178,6 +2178,102 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le repli retiré, et une alerte qui criait trop vite (v4.17.1)
+
+### Le repli VOD, mesuré vingt et une fois
+
+Quand `archiveVideo` rend `null`, une seconde porte était tentée : la liste des
+archives de la chaîne, au cas où l'enregistrement en cours n'y serait exposé que
+là. Son commentaire s'était engagé à la juger — *« le prochain rapport dira si
+elle sert à quelque chose »*. Quatre rapports ont répondu :
+
+| rapport | tentatives | servies | écart de l'archive trouvée |
+| --- | --- | --- | --- |
+| 4.15.10 | 6 | **0** | −1 j à −17 j |
+| 4.15.11 | 3 | **0** | −1 j à −8 j |
+| 4.16.0 | 3 | **0** | −3,8 j |
+| 4.17.0 | 9 | **0** | −1 j à −8 j |
+
+**Vingt et une tentatives, zéro résultat**, et jamais de justesse : l'archive la
+plus récente est toujours celle d'un **autre jour**. Quand `archiveVideo` rend
+null, la chaîne n'enregistre pas ce direct — le champ disait vrai.
+
+Son retrait rend une requête par chaîne concernée, sur le point d'entrée
+précisément qu'on rationne. Et il **ne touche pas** la détection des coupures :
+elle passe par la sonde d'origine, qui pose une question *différente* à la même
+requête — « une archive se termine-t-elle **juste avant** ce direct ? » au lieu
+de « une archive commence-t-elle **en même temps** ? ».
+
+### Une alerte qui criait sur un seul échantillon
+
+> « [tse] Des sélecteurs critiques ne correspondent plus au DOM de Twitch —
+> l'extension est peut-être partiellement cassée. `followedSection` : section
+> "Chaînes suivies" introuvable (10 liens de chaîne) »
+
+**Rien n'était cassé** : le rapport pris juste après donnait la même sonde
+« ok ». L'alerte avait attrapé la sidebar **en train d'être rebâtie** — l'URL du
+contexte le dit, `/?lang=fr`, un rechargement après changement de langue,
+pendant lequel Twitch remonte ses liens avant l'en-tête de section.
+
+La sonde se défendait déjà d'un cas voisin — elle exige plus de trois liens
+avant d'oser dire « cassé » — et son propre commentaire énonçait la règle qui
+manquait : *« une alerte critique fausse coûte plus cher qu'une alerte tardive :
+elle apprend à ignorer les suivantes. »*
+
+On confirme donc, comme partout ailleurs : une carte éteinte demande
+`OFFLINE_CONFIRM` réponses, une absence du pool `GLOBAL_MISS_CONFIRM`, le voile
+attend `LOADING_STABILITY`. Le contrôle de santé était le dernier endroit qui
+criait sur un échantillon. La seconde lecture est **programmée** et non
+attendue : sans elle, une vraie rupture patienterait jusqu'à la maintenance
+suivante.
+
+### Et le compteur qui manquait pour répondre à « pourquoi pas les cinq autres ? »
+
+> « Pourquoi oostrix, on n'a pas les cinq autres co-streams ? »
+> `membres 6 · affiches 2 · horsClassement 4`
+
+`horsClassement` dit que le classement n'a **aucune** entrée pour ce membre. Il
+ne dit pas **pourquoi**, et les deux causes n'appellent pas le même remède : ou
+bien on ne sait rien de lui, ou bien on sait son nom **et** son nombre — par la
+session d'un membre qui a une carte — et le classement ne l'a quand même pas.
+Dans ce second cas le seul obstacle est que `setViewers` ne **crée** jamais
+d'entrée : le répertoire ne l'a jamais offert, parce qu'il range la session sous
+l'hôte, ou parce que l'audience **propre** du membre le laisse hors du sommet de
+sa catégorie.
+
+`horsClassementConnus` sépare les deux. Le correctif dépend de la réponse, et il
+touche la machinerie d'éviction — une entrée que le répertoire ne rend jamais
+accumule ses absences et se fait évincer en trois passes. Il aura sa version, et
+sa mesure.
+
+### Ce que le banc mesure
+
+Le scénario qui tenait déjà les trois autres propriétés de cette alerte — elle
+**nomme** la sonde fautive, elle ne crie qu'**une fois** par incident, elle se
+**réarme** après résolution — porte le décor exact du signalement : section sans
+étiquette, marqueurs retournés, sept liens en place. La quatrième propriété s'y
+ajoute plutôt que de vivre à côté.
+
+| mutant | résultat |
+| --- | --- |
+| l'alerte sur la première lecture | une sidebar qui se rebâtit est annoncée « cassée » |
+
+Et les autres moitiés tiennent le revers : une rupture qui **dure** est toujours
+annoncée, et **datée au journal** — sans quoi le correctif se réduirait à « ne
+jamais alerter ».
+
+### Ce qui n'est plus couvert, et qui se dit
+
+Le retrait du repli emporte six assertions et quatre sous-tests, et il faut le
+dire plutôt que de laisser le banc verdir sur du vide. Deux des sous-tests
+passaient encore après le retrait — ceux qui vérifient qu'on n'affiche **rien** —
+mais pour la mauvaise raison : ils ne pouvaient plus échouer. Une assertion qui
+ne peut plus échouer apprend à lui faire confiance à tort.
+
+Ce qui n'est donc plus éprouvé : le cas d'un stream ayant **reconnecté** dont
+l'enregistrement, commencé avant le live, le recouvre. Les décors sont restés
+dans le harnais, pour le jour où le besoin reviendrait.
+
 ## Le combiné d'un membre qu'on n'interrogera jamais (v4.17.0)
 
 ### La question, et le cercle qu'elle désignait
@@ -9958,7 +10054,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 151 scénarios, 1279 assertions |
+| `npm test` | le harnais Playwright : 151 scénarios, 1271 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

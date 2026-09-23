@@ -2057,6 +2057,101 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The fallback removed, and an alert that cried too soon (v4.17.1)
+
+### The VOD fallback, measured twenty-one times
+
+When `archiveVideo` returns `null`, a second door was tried: the channel's
+archive list, in case the running recording were only exposed there. Its comment
+had committed to judging it — *"the next report will say whether it is good for
+anything"*. Four reports answered:
+
+| report | attempts | served | gap of the archive found |
+| --- | --- | --- | --- |
+| 4.15.10 | 6 | **0** | −1 d to −17 d |
+| 4.15.11 | 3 | **0** | −1 d to −8 d |
+| 4.16.0 | 3 | **0** | −3.8 d |
+| 4.17.0 | 9 | **0** | −1 d to −8 d |
+
+**Twenty-one attempts, zero results**, and never a near miss: the most recent
+archive is always from **another day**. When `archiveVideo` returns null, the
+channel is not recording this stream — the field was telling the truth.
+
+Removing it gives back one request per affected channel, against the very
+endpoint we ration. And it does **not** touch cut detection: that goes through
+the origin probe, which asks a *different* question of the same request — "does
+an archive end **just before** this stream?" instead of "does an archive start
+**at the same time**?".
+
+### An alert that cried on a single sample
+
+> "[tse] Critical selectors no longer match Twitch's DOM — the extension may be
+> partly broken. `followedSection`: section "Followed Channels" not found (10
+> channel links)"
+
+**Nothing was broken**: the diagnostic taken right after reported the same probe
+as "ok". The alert had caught the sidebar **mid-rebuild** — the context URL says
+so, `/?lang=fr`, a reload after a language change, during which Twitch mounts
+its links before the section header.
+
+The probe already defended against a neighbouring case — it requires more than
+three links before daring to say "broken" — and its own comment stated the rule
+that was missing: *"a false critical alert costs more than a late one: it
+teaches people to ignore the next ones."*
+
+So we confirm, as everywhere else: an offline card requires `OFFLINE_CONFIRM`
+answers, a pool absence `GLOBAL_MISS_CONFIRM`, the veil waits
+`LOADING_STABILITY`. The health check was the last place shouting on one sample.
+The second reading is **scheduled**, not awaited: without it a real breakage
+would wait for the next maintenance tick.
+
+### And the counter that was missing to answer "why not the other five?"
+
+> "Why oostrix, and not the other five co-streams?"
+> `membres 6 · affiches 2 · horsClassement 4`
+
+`horsClassement` says the ranking has **no** entry for that member. It does not
+say **why**, and the two causes call for different remedies: either we know
+nothing about them, or we know their name **and** their number — through the
+session of a member that does have a card — and the ranking still doesn't have
+them. In that second case the only obstacle is that `setViewers` never
+**creates** an entry: the directory never offered them, because it files the
+session under the host, or because the member's **own** audience leaves them out
+of the top of their category.
+
+`horsClassementConnus` separates the two. The fix depends on the answer, and it
+touches the eviction machinery — an entry the directory never returns
+accumulates absences and is evicted in three passes. It will get its own version,
+and its own measurement.
+
+### What the bench measures
+
+The scenario already holding this alert's three other properties — it **names**
+the failing probe, it cries only **once** per incident, it **re-arms** after
+resolution — carries the report's exact fixture: section without its label,
+markers flipped, seven links in place. The fourth property joins it there rather
+than living beside it.
+
+| mutant | result |
+| --- | --- |
+| alerting on the first reading | a sidebar mid-rebuild is announced as "broken" |
+
+And the other halves hold the reverse: a breakage that **lasts** is still
+announced, and **stamped in the journal** — otherwise the fix would reduce to
+"never alert".
+
+### What is no longer covered, and is written down
+
+Removing the fallback takes six assertions and four sub-tests with it, and that
+has to be said rather than letting the bench go green over nothing. Two of the
+sub-tests still passed after the removal — the ones checking that **nothing** is
+displayed — but for the wrong reason: they could no longer fail. An assertion
+that can no longer fail teaches misplaced trust.
+
+So what is no longer exercised: the case of a stream that **reconnected**, whose
+recording started before the stream and covers it. The fixtures stayed in the
+harness, for the day the need comes back.
+
 ## The combined count of a member we will never query (v4.17.0)
 
 ### The question, and the loop it pointed at
@@ -9583,7 +9678,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 151 scenarios, 1279 assertions |
+| `npm test` | the Playwright harness: 151 scenarios, 1271 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
