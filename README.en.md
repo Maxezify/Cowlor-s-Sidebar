@@ -2057,6 +2057,46 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## A refusal from Twitch must not cost a minute (v4.15.10)
+
+> "The change arrives after a minute or two."
+
+The report attached to that sentence carries **`reseau 11`** out of thirty-seven
+probes — nearly a third refused by Twitch — with **`sousVoile 1`** out of two
+adoptions.
+
+### The minute was in a constant
+
+`RECONNECT_PROBE_RETRY` is sixty seconds, and it has its reason **while
+browsing**: retrying at once adds its request to the ones just refused, and
+feeds the cause. Under the veil that reasoning falls — nobody is browsing, the
+spend is bounded by the veil itself, and an origin learned a minute later is
+exactly what the user sees correcting itself.
+
+### And a refusal was nowhere
+
+That is the costlier half. A refused probe was **no longer in flight**, and its
+channel was **not in the queue**: the veil hold therefore did not count it, and
+the veil lifted on a card whose origin was still to be learned. Putting the
+channel back in the queue repairs both at once — the drain picks it up, and the
+veil knows it is waiting for it.
+
+Two consequences had to be handled for this to hold: a pending retry must not
+evict the channel from the queue (otherwise it is forgotten right before it
+could be picked up), and the drain's wake-up must wait for the retry deadline
+(otherwise it spins every twenty milliseconds).
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the minute-long retry applied under the veil too | **`sousVoile 5`** out of eight adoptions — the three refused ones learn after the lift |
+
+The fixture refuses the first three probes with a **200 answer carrying GraphQL
+errors**, which is the exact shape Twitch returns. Without refusals the
+scenario would measure a nominal path and be green for nothing — hence the
+first assertion, which checks the fixture played what it claims.
+
 ## The veil also waits for channels it knows nothing about (v4.15.9)
 
 > "After a few seconds it shows 70h. I want the uptime with cuts included on
@@ -9180,7 +9220,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 144 scenarios, 1258 assertions |
+| `npm test` | the Playwright harness: 145 scenarios, 1260 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -9200,7 +9240,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1144 KB | 419 KB | 3,450 → **2** |
+| `content.js` | 1146 KB | 419 KB | 3,455 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

@@ -1999,6 +1999,19 @@ const TSE_GATE_MAX_CLICKS = 5;
        au-delà, ce n'est plus une contrariété de réseau, c'est un refus, et
        s'obstiner ne ferait que le nourrir. */
     RECONNECT_PROBE_RETRY:      60_000,
+    /* ── ET SOUS LE VOILE, UN REPORT QUI SE COMPTE EN DIXIÈMES DE SECONDE ──
+       SIGNALÉ AINSI : « le changement arrive au bout d'une minute ou 2 ». Le
+       rapport donnait le chiffre manquant — « reseau 11 » sur trente-sept
+       sondes, soit près d'un tiers refusé par Twitch — et la minute est là,
+       en toutes lettres, dans la constante au-dessus.
+
+       LA MINUTE A SA RAISON D'ÊTRE EN CROISIÈRE : réessayer tout de suite
+       ajouterait sa requête à celles qui viennent d'être refusées et
+       nourrirait la cause. Sous le voile, ce raisonnement tombe — personne ne
+       navigue, la dépense est bornée par le voile lui-même, et une origine
+       apprise une minute plus tard est justement ce que l'utilisateur voit se
+       corriger sous ses yeux. Trois essais rapprochés, puis on laisse. */
+    RECONNECT_PROBE_VEIL_RETRY: 400,
     RECONNECT_PROBE_TRIES:      3,
     /* ── ET SOUS LE VOILE, LA MÊME BOURSE SUR UNE FENÊTRE PLUS COURTE ──────
        SIGNALÉ AINSI : « je t'assure qu'au tout début il m'annonçait une
@@ -13781,6 +13794,21 @@ const TSE_GATE_MAX_CLICKS = 5;
       return Math.max(0, fenetreSondes[0] + CFG.RECONNECT_PROBE_WINDOW - Date.now()) + 20;
     };
 
+    /* Dans combien de temps la prochaine chaîne en report redevient-elle
+       sondable ? Sans cette lecture, le vidage se réveillerait toutes les
+       vingt millisecondes pour se voir refuser les mêmes, jusqu'à l'échéance. */
+    const prochainReessai = () => {
+      let min = Infinity;
+      for (const l of differeesEnAttente) {
+        const id = cache.get(l)?.stream?.id;
+        const etat = id && sondees.get(id);
+        if (etat && etat.pasAvant && etat.essais < CFG.RECONNECT_PROBE_TRIES) {
+          min = Math.min(min, etat.pasAvant - Date.now());
+        }
+      }
+      return min === Infinity ? 0 : Math.max(0, min) + 20;
+    };
+
     /* ══════════════════════════════════════════════════════════════════════
        LE PASSÉ APPARTIENT AU DIRECT, PAS À UNE SESSION DE STREAM
        ──────────────────────────────────────────────────────────────────────
@@ -13973,11 +14001,24 @@ const TSE_GATE_MAX_CLICKS = 5;
 
        LE COMPTEUR `sondes` NE RECULE PAS : il dit ce qui est parti, et une
        sonde partie a coûté son aller-retour même sans rien rendre. */
-    const reporterSonde = (streamId) => {
+    const reporterSonde = (streamId, login) => {
       const etat = sondees.get(streamId);
       if (!etat) return;
-      if (etat.essais >= CFG.RECONNECT_PROBE_TRIES) { bilanSondes.abandonnees += 1; return; }
-      etat.pasAvant = Date.now() + CFG.RECONNECT_PROBE_RETRY;
+      if (etat.essais >= CFG.RECONNECT_PROBE_TRIES) {
+        bilanSondes.abandonnees += 1;
+        if (login) differeesEnAttente.delete(login);
+        return;
+      }
+      etat.pasAvant = Date.now() + (loadingOverlay.enCycle()
+        ? CFG.RECONNECT_PROBE_VEIL_RETRY : CFG.RECONNECT_PROBE_RETRY);
+      /* ── ET LA CHAÎNE RETOURNE DANS LA FILE, CE QUI LA REND VISIBLE ───────
+         UN REFUS N'ÉTAIT NULLE PART. La sonde n'était plus en vol, et la
+         chaîne n'était pas en file : le verrou de voile ne la comptait donc
+         pas, et le voile se levait sur une carte dont l'origine était encore
+         à apprendre. « sousVoile 1 » sur deux adoptions, deux rapports de
+         suite. En la remettant en file on répare les deux choses d'un coup :
+         le vidage la reprendra, et le voile saura qu'il l'attend. */
+      if (login) differeesEnAttente.add(login);
     };
 
     const opSonde = (login) => ({
@@ -13997,7 +14038,7 @@ const TSE_GATE_MAX_CLICKS = 5;
          donc un refus de plus, et il se rend au registre comme les autres. */
       if (!Array.isArray(aretes)) {
         bilanSondes.vides++;
-        reporterSonde(flux?.id);
+        reporterSonde(flux?.id, login);
         return false;
       }
       bilanSondes.servies++;
@@ -14081,7 +14122,7 @@ const TSE_GATE_MAX_CLICKS = 5;
            Le rapport le chiffrait : dix-huit sondes tombées au réseau, dix-huit
            cartes condamnées à compter leur tronçon jusqu'au rechargement.
            On rend donc la session au registre, et le cycle suivant réessaie. */
-        reporterSonde(flux.id);
+        reporterSonde(flux.id, login);
         return false;
       }
       return digererSonde(login, flux, res?.[0]?.data?.user?.videos?.edges);
@@ -14167,8 +14208,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         .finally(() => {
           majVerrouVoile();   // plus rien en vol : le voile peut se lever
           if (!differeesEnAttente.size || videurTimer) return;
+          /* Le plus tardif des deux, sans quoi on se réveille pour rien : une
+             place libre ne sert à personne si toutes les chaînes en file
+             attendent encore leur échéance de report. */
           videurTimer = setTimeout(() => { videurTimer = null; vider(null); },
-                                   attenteAvantPlace());
+                                   Math.max(attenteAvantPlace(), prochainReessai()));
         });
     };
 
@@ -14201,6 +14245,14 @@ const TSE_GATE_MAX_CLICKS = 5;
            cartes qui gardaient la durée de leur tronçon à la levée du voile —
            précisément celles dont la réponse de chaîne était en route. */
         if (!flux?.id) continue;
+        /* ── UN REPORT EN COURS N'EST PAS UN REFUS DÉFINITIF ────────────────
+           `gardesSonde` dira non tant que l'échéance n'est pas passée, et la
+           ligne suivante retirerait alors la chaîne de la file — c'est-à-dire
+           qu'on l'oublierait juste avant de pouvoir la reprendre, et que le
+           voile cesserait de l'attendre. On la laisse donc en place. */
+        const repris = sondees.get(flux.id);
+        if (repris && repris.pasAvant && Date.now() < repris.pasAvant
+            && repris.essais < CFG.RECONNECT_PROBE_TRIES) continue;
         if (!gardesSonde(login, flux)) { differeesEnAttente.delete(login); continue; }
         /* LA FENÊTRE EST PLEINE : la chaîne est recevable, on ne la marque
            surtout pas — elle repassera au prochain lot. Ce qu'on compte ici

@@ -19332,6 +19332,80 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ UN REFUS DE TWITCH NE DOIT PAS COÛTER UNE MINUTE ══════════════
+   RAPPORT DE TERRAIN, EN DEUX PHRASES : « le changement arrive au bout d'une
+   minute ou 2 », et le rapport qui l'accompagne porte « reseau 11 » sur
+   trente-sept sondes — près d'un tiers refusé par Twitch — avec « sousVoile 1 »
+   sur deux adoptions.
+
+   LA MINUTE EST DANS UNE CONSTANTE : RECONNECT_PROBE_RETRY. Elle a sa raison
+   d'être en croisière — réessayer tout de suite ajoute sa requête à celles qui
+   viennent d'être refusées, et nourrit la cause. Sous le voile, ce
+   raisonnement tombe : personne ne navigue, la dépense est bornée par le voile
+   lui-même, et une origine apprise une minute plus tard est exactement ce que
+   l'utilisateur voit se corriger sous ses yeux.
+
+   ET UN REFUS N'ÉTAIT NULLE PART. La sonde n'était plus en vol, et la chaîne
+   n'était pas en file : le verrou de voile ne la comptait donc pas. En la
+   remettant en file, on répare les deux choses d'un coup — le vidage la
+   reprend, et le voile sait qu'il l'attend.
+
+   LE DÉCOR REFUSE LES TROIS PREMIÈRES SONDES, ce qui est le « reseau 11 » du
+   terrain en miniature : une réponse 200 porteuse d'erreurs GraphQL, la forme
+   exacte que Twitch rend. */
+{
+  titre('145. Un refus de Twitch ne coûte pas une minute sous le voile');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const neuf  = new Date(Date.now() - 60_000).toISOString();
+    const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();
+    window.__fx = {}; window.__vodRecent = {};
+    for (let i = 0; i < 8; i++) {
+      const l = 'rev' + i;
+      window.__fx[l] = { id: 'i-' + l, sid: 's-' + l, createdAt: neuf,
+                         viewers: 900 - i, game: 'Rust', tags: [] };
+      window.__vodRecent[l] = [
+        { createdAt: neuf, lengthSeconds: 60, chapitres: [] },
+        { createdAt: vieux,
+          lengthSeconds: Math.round((Date.parse(neuf) - 1_200 - Date.parse(vieux)) / 1000),
+          chapitres: [{ pos: 0, jeu: 'Just Chatting' }] }];
+      window.__addCard(l, 'Rust', String(900 - i));
+    }
+    window.__refusSondes = 3;
+    const vrai = window.fetch;
+    window.fetch = async (url, opt) => {
+      const body = JSON.parse(opt.body);
+      if (body.some((o) => o.operationName === 'TseVodRecent') && window.__refusSondes > 0) {
+        window.__refusSondes--;
+        return { ok: true, json: async () => [{ errors: [{ message: 'service error' }] }] };
+      }
+      return vrai(url, opt);
+    };
+  });
+  await attendre(page, () => {
+    const cs = [...document.querySelectorAll('.side-nav-card')]
+      .filter((c) => /^rev\d+$/.test(c.dataset.tseLogin || ''));
+    return cs.length >= 8
+      && cs.every((c) => /^5h/.test(c.querySelector('.tse-uptime')?.textContent || ''));
+  }, 20_000);
+  const vu = await page.evaluate(() => {
+    const b = window.tse.panneau.rapport().reseau.chapitres.reprise;
+    return { reseau: b.reseau, adoptees: b.adoptees, sousVoile: b.sousVoile };
+  });
+  /* LA PRÉMISSE : le décor a bien joué des refus. Sans eux, tout ce qui suit
+     mesurerait un chemin nominal et serait vert pour rien. */
+  ok('le décor a bien essuyé des refus de Twitch',
+     vu.reseau >= 3 && vu.adoptees >= 8, JSON.stringify(vu));
+  /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — la minute de report appliquée
+     aussi sous le voile — « sousVoile 5 » sur huit adoptions : les trois
+     chaînes refusées apprennent leur origine APRÈS la levée, ce qui est
+     exactement « le changement arrive au bout d'une minute ou 2 ». */
+  ok('…et toutes les origines sont apprises sous le voile malgré eux',
+     vu.sousVoile === vu.adoptees, JSON.stringify(vu));
+  await page.close();
+}
+
 /* ═════════ CE QUE LE BANC NE SAIT PAS TENIR, ET QUI SE DIT ══════════════
    LA 4.15.9 FAIT ATTENDRE AU VOILE les chaînes dont il ne sait RIEN encore —
    pas seulement les sondes déjà parties. La correction est MESURÉE : sur un

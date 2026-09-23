@@ -2178,6 +2178,47 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Un refus de Twitch ne doit pas coûter une minute (v4.15.10)
+
+> « Le changement arrive au bout d'une minute ou 2. »
+
+Le rapport qui accompagne cette phrase porte **`reseau 11`** sur trente-sept
+sondes — près d'un tiers refusé par Twitch — avec **`sousVoile 1`** sur deux
+adoptions.
+
+### La minute était dans une constante
+
+`RECONNECT_PROBE_RETRY` vaut soixante secondes, et elle a sa raison d'être **en
+croisière** : réessayer tout de suite ajoute sa requête à celles qui viennent
+d'être refusées, et nourrit la cause. Sous le voile, ce raisonnement tombe —
+personne ne navigue, la dépense est bornée par le voile lui-même, et une
+origine apprise une minute plus tard est exactement ce que l'utilisateur voit
+se corriger sous ses yeux.
+
+### Et un refus n'était nulle part
+
+C'est la moitié la plus coûteuse. Une sonde refusée n'était **plus en vol**, et
+sa chaîne n'était **pas en file** : le verrou de voile ne la comptait donc pas,
+et le voile se levait sur une carte dont l'origine restait à apprendre. En
+remettant la chaîne en file, les deux choses se réparent d'un coup — le vidage
+la reprend, et le voile sait qu'il l'attend.
+
+Deux conséquences qu'il a fallu traiter pour que ça tienne : un report en cours
+ne doit pas faire éjecter la chaîne de la file (sinon on l'oublie juste avant
+de pouvoir la reprendre), et le réveil du vidage doit attendre l'échéance du
+report (sinon il tourne à vide toutes les vingt millisecondes).
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la minute de report appliquée aussi sous le voile | **`sousVoile 5`** sur huit adoptions — les trois refusées apprennent après la levée |
+
+Le décor refuse les trois premières sondes par une réponse **200 porteuse
+d'erreurs GraphQL**, qui est la forme exacte que Twitch rend. Sans refus, le
+scénario mesurerait un chemin nominal et serait vert pour rien — d'où la
+première assertion, qui vérifie que le décor a bien joué ce qu'il prétend.
+
 ## Le voile attend aussi les chaînes dont il ne sait rien (v4.15.9)
 
 > « Au bout de quelques secondes ça met 70h. Je veux l'uptime coupure comprise
@@ -9537,7 +9578,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 144 scénarios, 1258 assertions |
+| `npm test` | le harnais Playwright : 145 scénarios, 1260 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -9558,7 +9599,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1144 Ko | 419 Ko | 3 450 → **2** |
+| `content.js` | 1146 Ko | 419 Ko | 3 455 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
