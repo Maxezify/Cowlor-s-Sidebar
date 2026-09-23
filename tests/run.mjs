@@ -11123,17 +11123,31 @@ titre('91. Le subathon — le reconnaître au titre, le dire sur la carte');
      était redevenu un simple « mouse », et le mutant passait encore. Une
      assertion posée au mauvais moment du scénario ne prouve rien de plus
      qu'une assertion absente. */
+  /* ── LEQUEL DES DEUX BADGES, ET POURQUOI ÇA NE CHANGE RIEN ICI ─────────
+     CE CONTRÔLE LISAIT LE BADGE VIOLET, et la 4.16.0 l'a fait changer de
+     place : le violet ne nomme plus que les membres ABSENTS de la barre, et
+     « mouse » y a une carte — son nom part donc désormais dans le bleu. Le
+     banc l'a dit en une ligne : « Co-stream avec mouse », le bon pseudo dans
+     l'autre badge.
+
+     LE SUJET DE CETTE ASSERTION N'EST NI L'UN NI L'AUTRE : c'est que
+     `displayNameFor` lise le pseudo dans SON ENVELOPPE et non le <p> entier,
+     qui rendrait « mouseJ9 ». On interroge donc le badge qui NOMME, quel
+     qu'il soit — la règle de partage des deux badges a son propre scénario
+     (150), et la mêler à celui-ci reviendrait à éprouver deux choses avec une
+     assertion qui n'en dirait plus clairement aucune. */
+  const BADGES_NOMMANTS = '.tse-preview__badge--squad, .tse-preview__badge--costream';
   await hoverLogin(page, 'ordi');
-  await attendre(page, () => !!document.querySelector('.tse-preview__badge--squad'), 6000);
-  const nomBadge = await page.evaluate(() => {
-    const b = document.querySelector('.tse-preview__badge--squad');
+  await attendre(page, (sel) => !!document.querySelector(sel), 6000, BADGES_NOMMANTS);
+  const nomBadge = await page.evaluate((sel) => {
+    const b = document.querySelector(sel);
     return b ? { gras: b.querySelector('strong')?.textContent ?? null,
                  texte: b.textContent.trim() }
              : { gras: null, texte: null,
                  badgesVus: [...document.querySelectorAll('.tse-preview__badge')]
                    .map(x => x.className + ' :: ' + x.textContent.trim()).join(' | '),
                  apercu: !!document.querySelector('.tse-preview[data-tse-visible="true"]') };
-  });
+  }, BADGES_NOMMANTS);
   ok('le pseudo d\'une chaîne en subathon reste « mouse » partout ailleurs',
      nomBadge.gras === 'mouse' && !nomBadge.texte.includes('J9'),
      JSON.stringify(nomBadge));
@@ -19756,6 +19770,157 @@ addEventListener('message', (e) => {
   ok('…mais pas une seule sonde n\'est partie sur le subathon',
      vu.surLeThon === 0 && vu.trouvees === vu.adoptees, JSON.stringify(vu));
   await page.close();
+}
+
+/* ═════════ LA SIGNATURE DU COMBINÉ N'A PAS DE FRONTIÈRE ══════════════════
+   LE SIGNALEMENT REVIENT POUR LA TROISIÈME FOIS, et cette fois avec le détail
+   qui manquait : « il est réapparu et revenu à la normale quelques secondes
+   après ». Disparue puis revenue — donc pas évincée, pas éteinte : RÉTROGRADÉE,
+   le temps qu'une marche la restaure.
+
+   LE RAPPORT LE DÉSIGNAIT AVEC LE COMPTEUR ÉCRIT POUR ÇA :
+       sousLaCoupe 3 · sousLaCoupeAvecCombine 3
+       chutes 131 · chuteMax 14326 · chutesHorsEcran 16
+   Trois membres dont on CONNAÎT le combiné, et qui sont quand même sous la
+   coupe — « c'est le défaut, en un seul nombre », dit le commentaire qui l'a
+   posé. Et seize cartes sorties de l'écran par une chute de compteur.
+
+   LA GARDE EXISTE POURTANT : un compteur PROPRE n'a pas le droit d'écraser une
+   entrée qui porte la signature d'un combiné. Elle reconnaissait cette
+   signature à l'ÉGALITÉ DU NOMBRE AFFICHÉ — et c'est là qu'elle cède, parce
+   qu'un nombre affiché a des frontières. Les deux valeurs que le code cite
+   lui-même en exemple le montrent :
+
+       11 736 → « 11,7 k »        11 821 → « 11,8 k »
+
+   Deux membres d'une même session, deux signatures, aucun jumeau, aucune
+   protection. La capture du terrain montre le même groupe coupé en deux :
+   « 17 k · 17 k · 16,9 k · 16,9 k ».
+
+   LE BANC NE POUVAIT PAS LE VOIR : le scénario 133 pose 4900 et 4900, des
+   compteurs STRICTEMENT identiques, c'est-à-dire le seul cas que la garde
+   savait traiter. Celui-ci joue les nombres du terrain. */
+{
+  titre('149. Co-stream — la signature tient malgré l\'échantillonnage de Twitch');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Aniimo', tags: [] });
+    /* LES DEUX NOMBRES DU TERRAIN, ET PAS DEUX NOMBRES ÉGAUX. Twitch
+       échantillonne le combiné une fois par participant ; l'écart est de 0,7 %
+       et il suffit à les mettre de part et d'autre d'un arrondi. */
+    window.__cats = [{ name: 'Aniimo', viewers: 30_000, streams: [
+      { login: 'naguura', viewers: 11_736 }, { login: 'lyritvjamie', viewers: 11_821 },
+      { login: 'milieu', viewers: 900 }, { login: 'modele', viewers: 800 }] }];
+    window.__fx = { naguura: c('9301', 300), lyritvjamie: c('9302', 300),
+                    milieu: c('9303', 950), modele: c('9304', 800) };
+    window.__gs = {};   // Guest Star se tait : `session: null`, comme le terrain
+    window.__addCard('modele', 'Aniimo', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  /* On attend la FRAÎCHEUR de « milieu » : elle prouve que le lot de chaînes
+     est passé, donc que les compteurs propres ont bien été proposés au
+     classement. Sans elle, on mesurerait un classement que rien n'a attaqué. */
+  await attendre(page, () => [...document.querySelectorAll('.side-nav-card')]
+    .some((c) => c.dataset.tseLogin === 'milieu' && c.dataset.tseViewers === '950'), 15_000);
+  const vu = await page.evaluate(() => {
+    const aff = (l) => [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === l)?.dataset.tseViewers ?? 'ABSENTE';
+    const g = window.tse.panneau.rapport().global;
+    return { naguura: aff('naguura'), lyritvjamie: aff('lyritvjamie'),
+             milieu: aff('milieu'), chutes: g.chutes, chuteMax: g.chuteMax };
+  });
+  /* LA PRÉMISSE, ET ELLE EST LA MOITIÉ DU SCÉNARIO : la fraîcheur ordinaire
+     ne doit PAS être sacrifiée à la garde. « milieu » n'a pas de jumeau, son
+     compteur frais doit s'appliquer — c'est ce que le scénario 34 garantit et
+     qu'une tolérance trop large casserait en silence. */
+  ok('une chaîne sans jumeau garde son compteur frais',
+     vu.milieu === '950', JSON.stringify(vu));
+  /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — la signature comparée sur le
+     nombre affiché — les deux tombent à « 300 », leur audience propre, avec
+     « chuteMax 11521 ». C'est la disparition que l'utilisateur voit, et la
+     marche suivante les restaure : « revenu à la normale quelques secondes
+     après ». */
+  ok('…et les deux membres d\'une même session gardent leur combiné',
+     vu.naguura === '11736' && vu.lyritvjamie === '11821' && vu.chutes === 0,
+     JSON.stringify(vu));
+  await page.close();
+}
+
+/* ═════════ LES DEUX BADGES NE DISENT PAS LA MÊME CHOSE ═══════════════════
+   SIGNALÉ COMME UN DOUBLON, CAPTURE À L'APPUI : le badge bleu disait
+   « Co-stream avec LittleBigWhale » et le violet « En live avec
+   LittleBigWhale », l'un sous l'autre, pour la même personne.
+
+   ILS RÉPONDENT POURTANT À DEUX QUESTIONS DIFFÉRENTES, et c'est ce qui les
+   départage. Le bleu dit AVEC QUI DE CETTE LISTE la chaîne diffuse — il parle
+   de ce que l'utilisateur a sous les yeux. Le violet dit qui d'AUTRE est dans
+   la session sans y figurer — il parle de ce que la liste ne peut pas montrer.
+
+   D'OÙ LA RÈGLE, telle que l'utilisateur l'a posée : en « Top Chaînes », où le
+   groupe est affiché au complet, le violet n'a plus rien à dire et disparaît ;
+   en « Chaînes suivies », les membres suivis vont au bleu et les autres au
+   violet. Les deux listes se partagent la MÊME source — les membres que Guest
+   Star rend — pour qu'aucun nom ne tombe entre les deux. */
+{
+  titre('150. Aperçu — le bleu nomme ce qu\'on voit, le violet ce qu\'on ne voit pas');
+
+  /* Trois membres d'une même session ; seul le nombre de CARTES change d'un
+     cas à l'autre. C'est ce qui rend la mesure concluante : rien d'autre ne
+     bouge. */
+  const jouer = async (cartes) => {
+    const page = await fresh();
+    await page.evaluate((cartes) => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Rust', tags: [] });
+      const guests = [
+        { id: '1', login: 'alpha', viewers: 300, combined: 9000 },
+        { id: '2', login: 'beta',  viewers: 300, combined: 9000 },
+        { id: '3', login: 'gamma', viewers: 300, combined: 9000 }];
+      window.__gs = { 1: { hostId: '1', hostLogin: 'alpha', guests },
+                      2: { hostId: '1', hostLogin: 'alpha', guests },
+                      3: { hostId: '1', hostLogin: 'alpha', guests } };
+      window.__fx = { alpha: c('1', 9000), beta: c('2', 9000), gamma: c('3', 9000) };
+      for (const l of cartes) window.__addCard(l, 'Rust', '9 k');
+    }, cartes);
+    await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 10_000);
+    await wait(page, 1200);
+    await page.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === 'alpha')
+      ?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false })));
+    await attendre(page, () => !!document.querySelector('.tse-preview__badge--costream, .tse-preview__badge--squad'), 6000);
+    await wait(page, 400);
+    const vu = await page.evaluate(() => {
+      const t = (s) => document.querySelector(s)?.textContent?.trim() || null;
+      return { bleu: t('.tse-preview__badge--costream'),
+               violet: t('.tse-preview__badge--squad') };
+    });
+    await page.close();
+    return vu;
+  };
+
+  const tous  = await jouer(['alpha', 'beta', 'gamma']);
+  const deux  = await jouer(['alpha', 'beta']);
+
+  /* LA PRÉMISSE : le bleu nomme bien ce qui est à l'écran. Sans elle,
+     « le violet a disparu » serait vrai d'un aperçu vide. */
+  ok('le bleu nomme les membres que la barre affiche',
+     /beta/.test(tous.bleu || '') && /gamma/.test(tous.bleu || ''),
+     JSON.stringify(tous));
+  /* L'ASSERTION QUI PORTE LA DEMANDE. Mutant — le violet listant tous les
+     membres, comme avant — « Co-stream avec beta, gamma » ET « En live avec
+     beta, gamma » : les deux mêmes noms, l'un sous l'autre, exactement la
+     capture de l'utilisateur. */
+  ok('…et quand ils y sont TOUS, le violet n\'a plus rien à dire',
+     tous.violet === null, JSON.stringify(tous));
+  /* L'AUTRE MOITIÉ DE LA RÈGLE, et elle est indispensable : sans elle, un
+     violet supprimé purement et simplement passerait aussi. */
+  ok('…mais le membre absent de la barre, lui, est nommé par le violet seul',
+     /beta/.test(deux.bleu || '') && !/gamma/.test(deux.bleu || '')
+     && /gamma/.test(deux.violet || '') && !/beta/.test(deux.violet || ''),
+     JSON.stringify(deux));
 }
 
 /* ═════════ CE QUE LE BANC NE SAIT PAS TENIR, ET QUI SE DIT ══════════════

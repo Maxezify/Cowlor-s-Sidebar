@@ -2057,6 +2057,117 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The combined-count signature had a boundary (v4.16.0)
+
+### The report, on its third visit
+
+> "The KyriaTV bug came back, and **returned to normal a few seconds later**."
+
+Gone **then back**: so neither evicted nor ended. **Demoted**, until a walk
+restored it. Two versions had already closed two routes (4.13.1 the floor for
+truncated answers, 4.13.4 the silent removal in `setViewers`), and 4.13.1 stated
+plainly that the case was not closed. It is now, and this is a third route.
+
+### The report named it with the counter written for exactly this
+
+```
+sousLaCoupe 3 · sousLaCoupeAvecCombine 3
+chutes 131 · chuteMax 14326 · chutesHorsEcran 16
+```
+
+Three members whose combined count is **known**, and who are below the cut all
+the same. The comment that added this counter said: *"if it is known and the
+channel is still down there, then the ranking is sorting on something else — and
+that is the defect, in a single number."* Plus sixteen cards pushed off screen by
+a count drop.
+
+### A guard that gave way on a rounding edge
+
+An **own** count may not overwrite an entry carrying the signature of a
+**combined** one. The guard recognised that signature by equality of the
+**displayed** number — and a displayed number has boundaries. The two values the
+code itself cites as an example show it:
+
+```
+11,736 → "11.7K"        11,821 → "11.8K"
+```
+
+Two members of one session, two signatures, **no twin, no protection**. The
+field screenshot shows the same group split in two: "17K · 17K · 16.9K · 16.9K".
+
+Twitch samples the combined count **once per participant**: members of one
+session never return the same exact value. Comparing displayed numbers was
+adopted to absorb that spread; it absorbs it everywhere except on a boundary —
+that is, precisely where it matters.
+
+**So we group by proximity** — and the right measure of that proximity is one
+**graduation of the displayed number**, not a percentage. The bench settled it,
+and the bench had the data: a relative tolerance of 2 % covered this report's
+case (0.7 %) and broke a field reading scenario 136 had held for a long time —
+**1,093 · 1,101 · 1,148**, three members displayed "1.1K", whose largest spread
+is **4.1 %**.
+
+| session | largest spread | as % | absolute |
+| --- | --- | --- | --- |
+| 1,093 · 1,101 · 1,148 | 47 | 4.1 % | **< 100** |
+| 11,736 · 11,821 | 85 | 0.7 % | **< 100** |
+
+Both spreads are the same in absolute terms, and one hundred is exactly the step
+of the displayed number: "1.1K" moves by hundreds, so does "11.7K". Twitch's
+sampling therefore fits within **one notch of what the eye reads**, at every
+scale.
+
+Which makes this rule the old one minus its defect: comparing displayed numbers
+already amounted to bucketing by hundreds, it only failed to recognise two
+**adjacent** notches. We keep the width and drop the boundary — so there is no
+setting to guess, and no constant to turn. Below a thousand, where Twitch writes
+the plain number, a notch is one unit and only strict equality groups.
+
+Sorting makes it transitive: a group of four whose samples spread out holds
+together through its neighbours.
+
+**And the guard is keyed by login**, no longer by current value: it read the
+entry's signature *at the moment of the test*, so the first overwrite that got
+through took the protection with it. Belonging to a co-stream is a property of
+the channel during the session, not of its count at one instant.
+
+### Why the bench had not seen it
+
+Scenario 133 uses **4900 and 4900** — strictly identical counts, that is, the
+only case the guard knew how to handle. Scenario 149 plays the field's numbers.
+
+### The two badges do not say the same thing
+
+> "We see the blue co-stream badge and the purple 'Live with…' badge. I find it
+> duplicates."
+
+It did: on the screenshot, the blue said "Co-stream with LittleBigWhale" and the
+purple "Live with LittleBigWhale", one under the other, for the same person.
+
+Yet they answer two different questions, and that is what separates them:
+
+| badge | what it says |
+| --- | --- |
+| **blue** | who **from this list** the channel is streaming with — what you have in front of you |
+| **purple** | who **else** is in the session without appearing here — what the list cannot show |
+
+In "Top Channels", where the group is shown in full, the purple has nothing left
+to say and **disappears**. In "Followed channels", followed members go to the
+blue one and the rest to the purple. Both lists share the **same** source — the
+members Guest Star returns — so no name falls between the two.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| signature compared on the displayed number | both members drop to **300**, `chuteMax 11521` |
+| proximity measured as a percentage (2 %) | `bb:1148` falls back to **300** — scenario 136's reading |
+| the purple listing every member | "Co-stream with beta, gamma" **and** "Live with beta, gamma" |
+
+And scenario 149's premise holds the other half: a channel **without a twin**
+keeps its fresh count. Too wide a tolerance would freeze it, and the bench would
+say so.
+
 ## Nothing to learn from a subathon (v4.15.12)
 
 The report that followed 4.15.11 confirmed all four fixes. It also carried, for
@@ -9362,7 +9473,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 148 scenarios, 1269 assertions |
+| `npm test` | the Playwright harness: 150 scenarios, 1274 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -9382,7 +9493,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1146 KB | 419 KB | 3,466 → **2** |
+| `content.js` | 1146 KB | 419 KB | 3,472 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

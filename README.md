@@ -2178,6 +2178,126 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La signature du combiné avait une frontière (v4.16.0)
+
+### Le signalement, à sa troisième visite
+
+> « Le bug KyriaTV est réapparu, et **revenu à la normale quelques secondes
+> après**. »
+
+Disparue **puis revenue** : donc ni évincée, ni éteinte. **Rétrogradée**, le
+temps qu'une marche la restaure. Deux versions avaient déjà fermé deux voies
+(la 4.13.1 le plancher des réponses tronquées, la 4.13.4 le retrait muet de
+`setViewers`) et la 4.13.1 écrivait noir sur blanc que le cas n'était pas
+refermé. Il l'est maintenant, et c'est une troisième voie.
+
+### Le rapport le désignait avec le compteur écrit pour ça
+
+```
+sousLaCoupe 3 · sousLaCoupeAvecCombine 3
+chutes 131 · chuteMax 14326 · chutesHorsEcran 16
+```
+
+Trois membres dont le combiné est **connu**, et qui sont quand même sous la
+coupe. Le commentaire qui a posé ce compteur disait : *« s'il est connu et que
+la chaîne est quand même en bas, c'est que le classement trie sur autre chose —
+et c'est le défaut, en un seul nombre. »* Et seize cartes sorties de l'écran par
+une chute de compteur.
+
+### Une garde qui cédait sur un arrondi
+
+Un compteur **propre** n'a pas le droit d'écraser une entrée qui porte la
+signature d'un **combiné**. La garde reconnaissait cette signature à l'égalité
+du **nombre affiché** — et un nombre affiché a des frontières. Les deux valeurs
+que le code cite lui-même en exemple le montrent :
+
+```
+11 736 → « 11,7 k »        11 821 → « 11,8 k »
+```
+
+Deux membres d'une même session, deux signatures, **aucun jumeau, aucune
+protection**. La capture du terrain montre le même groupe coupé en deux :
+« 17 k · 17 k · 16,9 k · 16,9 k ».
+
+Twitch échantillonne le compteur combiné **une fois par participant** : les
+membres d'une même session n'en rendent jamais la même valeur exacte. La
+comparaison sur le nombre affiché avait été adoptée pour absorber cet écart ;
+elle l'absorbe partout sauf sur une frontière, c'est-à-dire précisément là où
+ça compte.
+
+**On groupe donc par proximité** — et la bonne mesure de cette proximité est une
+**graduation du nombre affiché**, pas un pourcentage. Le banc a tranché entre
+les deux, et c'est lui qui avait les données : une tolérance relative de 2 %
+couvrait le cas de ce rapport (0,7 %) et cassait un relevé de terrain que le
+scénario 136 tenait depuis longtemps — **1 093 · 1 101 · 1 148**, trois membres
+affichés « 1,1 k », dont le plus grand écart vaut **4,1 %**.
+
+| session | écart max | en % | en valeur |
+| --- | --- | --- | --- |
+| 1 093 · 1 101 · 1 148 | 47 | 4,1 % | **< 100** |
+| 11 736 · 11 821 | 85 | 0,7 % | **< 100** |
+
+Les deux écarts sont le même en valeur absolue, et cent est précisément ce dont
+avance le nombre affiché : « 1,1 k » va de cent en cent, « 11,7 k » aussi.
+L'échantillonnage de Twitch tient donc dans **un cran de ce que l'œil lit**, à
+toutes les échelles.
+
+Ce qui fait de cette règle l'ancienne, moins son défaut : comparer les nombres
+affichés revenait déjà à les ranger par crans de cent, il manquait seulement de
+reconnaître deux crans **voisins**. On garde la largeur, on retire la frontière
+— il n'y a donc aucun réglage à deviner, et aucune constante à tourner. Sous le
+millier, où Twitch écrit le nombre nu, un cran vaut l'unité et seule l'égalité
+stricte regroupe.
+
+Le tri rend la chose transitive : un groupe de quatre dont les échantillons
+s'échelonnent se tient par ses voisins.
+
+**Et la garde se retient par login**, plus par valeur courante : elle lisait la
+signature de l'entrée *à l'instant du test*, si bien que le premier écrasement
+qui passait emportait la protection avec lui. L'appartenance à un co-stream est
+une propriété de la chaîne pendant la session, pas de son compteur à un instant
+donné.
+
+### Pourquoi le banc ne l'avait pas vu
+
+Le scénario 133 pose **4900 et 4900** — des compteurs strictement identiques,
+c'est-à-dire le seul cas que la garde savait traiter. Le scénario 149 joue les
+nombres du terrain.
+
+### Les deux badges ne disent pas la même chose
+
+> « On voit le badge bleu co-stream et le badge violet "En live avec…". Je
+> trouve qu'il fait doublon. »
+
+Il en faisait un : sur la capture, le bleu disait « Co-stream avec
+LittleBigWhale » et le violet « En live avec LittleBigWhale », l'un sous
+l'autre, pour la même personne.
+
+Ils répondent pourtant à deux questions différentes, et c'est ce qui les
+départage :
+
+| badge | ce qu'il dit |
+| --- | --- |
+| **bleu** | avec qui **de cette liste** la chaîne diffuse — ce que vous avez sous les yeux |
+| **violet** | qui d'**autre** est dans la session sans y figurer — ce que la liste ne peut pas montrer |
+
+En « Top Chaînes », où le groupe est affiché au complet, le violet n'a plus rien
+à dire et **disparaît**. En « Chaînes suivies », les membres suivis vont au
+bleu, les autres au violet. Les deux listes se partagent la **même** source —
+les membres que Guest Star rend — pour qu'aucun nom ne tombe entre les deux.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la signature comparée sur le nombre affiché | les deux membres tombent à **300**, `chuteMax 11521` |
+| la proximité mesurée en pourcentage (2 %) | `bb:1148` retombe à **300** — le relevé du scénario 136 |
+| le violet listant tous les membres | « Co-stream avec beta, gamma » **et** « En live avec beta, gamma » |
+
+Et la prémisse du scénario 149 tient l'autre moitié : une chaîne **sans jumeau**
+garde son compteur frais. Une tolérance trop large la figerait, et le banc le
+dirait.
+
 ## Rien à apprendre d'un subathon (v4.15.12)
 
 Le rapport qui a suivi la 4.15.11 confirmait les quatre corrections. Il portait
@@ -9724,7 +9844,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 148 scénarios, 1269 assertions |
+| `npm test` | le harnais Playwright : 150 scénarios, 1274 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -9745,7 +9865,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1146 Ko | 419 Ko | 3 466 → **2** |
+| `content.js` | 1146 Ko | 419 Ko | 3 472 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
