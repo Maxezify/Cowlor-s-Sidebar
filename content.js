@@ -15946,6 +15946,22 @@ const TSE_GATE_MAX_CLICKS = 5;
             if (!trouve) return;
             majReprise(login);
             majFrise(login);
+            /* ── ET LA CARTE, QU'ON OUBLIAIT ICI ────────────────────────────
+               CAPTURE À L'APPUI : carte « 21h47 », et dans l'aperçu ouvert
+               juste à côté « 2 coupures · 70h09 », dont le détail s'additionne
+               tout seul — 15m de Discussions plus 69h54 d'IRL. La frise savait,
+               la carte non.
+
+               UNE ASYMÉTRIE PURE, ET RIEN D'AUTRE. Le chemin du LOT termine
+               son adoption par un scan, sans quoi la carte garderait son
+               ancien départ jusqu'au prochain relevé ; c'est écrit au-dessus
+               de `vider`. Le chemin du SURVOL adoptait la même origine, posait
+               le badge, redessinait la frise — et s'arrêtait là. Le dataset de
+               la carte n'était donc jamais réécrit, et le compteur restait sur
+               la durée du tronçon jusqu'à ce qu'un relevé de chaîne passe par
+               hasard. Les deux chemins font la même chose : ils doivent la
+               finir de la même façon. */
+            scheduleScan();
           })
           .catch((e) => erreurs.noter('reprise', (e && e.message) || e));
       }
