@@ -7412,21 +7412,47 @@ titre('71. Diagnostic — il doit crier au bon moment, et se taire au bon moment
       // État de départ connu : réparé, et la mémoire remise à zéro.
       reparer(); window.tse.diagnose.auto();
       const avant = dits.length;
-      casser();  window.tse.diagnose.auto();       // ← doit crier
-      const premier = dits.length - avant;
+      /* ── UNE SEULE LECTURE NE DIT RIEN, ET C'EST LE QUATRIÈME POINT ──────
+         RAPPORT DE TERRAIN : l'alerte a été criée sur une sidebar EN TRAIN
+         d'être rebâtie — « /?lang=fr », un rechargement après changement de
+         langue, pendant lequel Twitch remonte ses liens avant l'en-tête de
+         section. Le rapport pris juste après donnait la sonde « ok ».
+
+         C'est exactement ce décor-ci : section sans étiquette, marqueurs
+         retournés, sept liens en place. La seule chose qui manquait au
+         produit était de CONFIRMER avant de conclure — ce que fait le reste
+         du fichier partout ailleurs. */
+      casser();  window.tse.diagnose.auto();       // ← une lecture : rien
+      const uneSeule = dits.length - avant;
+      reparer(); window.tse.diagnose.auto();       // ← réparée entre-temps
+      const bref = dits.length - avant;
+
+      casser();
+      window.tse.diagnose.auto();
+      window.tse.diagnose.auto();                  // ← confirmée : doit crier
+      const premier = dits.length - avant - bref;
       window.tse.diagnose.auto();
       window.tse.diagnose.auto();                  // ← ne doit plus rien dire
-      const repetitions = dits.length - avant - premier;
+      const repetitions = dits.length - avant - bref - premier;
       reparer(); window.tse.diagnose.auto();       // ← résolution : réarmement
-      casser();  window.tse.diagnose.auto();       // ← doit crier de nouveau
-      const rearme = dits.length - avant - premier - repetitions;
-      return { premier, repetitions, rearme, texte: dits[avant] || '' };
+      casser();
+      window.tse.diagnose.auto();
+      window.tse.diagnose.auto();                  // ← doit crier de nouveau
+      const rearme = dits.length - avant - bref - premier - repetitions;
+      return { uneSeule, bref, premier, repetitions, rearme,
+               texte: dits[avant + bref] || '' };
     } finally { console.warn = vrai; reparer(); }
   });
   ok('l\'avertissement nomme la sonde fautive, pas seulement « des sélecteurs »',
      /followedSection/.test(memoire.texte) && /followedSelector/.test(memoire.texte),
      JSON.stringify(memoire.texte).slice(0, 200));
-  ok('il est émis une fois à l\'incident, puis se tait',
+  /* ── ET LE QUATRIÈME POINT, VENU DU TERRAIN ───────────────────────────
+     Mutant — l'alerte sur la première lecture, comme avant — « uneSeule 1 » :
+     une sidebar qui se rebâtit est annoncée « peut-être partiellement
+     cassée », et l'utilisateur apprend à ignorer l'alerte suivante. */
+  ok('une rupture BRÈVE ne dit rien : une seule lecture n\'est pas un verdict',
+     memoire.uneSeule === 0 && memoire.bref === 0, JSON.stringify(memoire));
+  ok('il est émis une fois à l\'incident CONFIRMÉ, puis se tait',
      memoire.premier === 1 && memoire.repetitions === 0, JSON.stringify(memoire));
   ok('…et se réarme une fois l\'incident résolu, pour la panne suivante',
      memoire.rearme === 1, JSON.stringify(memoire));
@@ -7984,6 +8010,11 @@ titre('74. Erreurs — la taxonomie, et ce qu\'elle rend visible');
       document.querySelectorAll('a[data-test-selector="followed-channel"]')
         .forEach(a => a.setAttribute('data-test-selector', 'recommended-channel'));
       document.body.classList.remove('tse-loading');
+      /* DEUX LECTURES, parce qu'une seule n'est plus un verdict : une rupture
+         se confirme avant de s'annoncer (cf. scénario 71). Le journal ne doit
+         donc porter la trace QUE d'un incident confirmé — c'est la même
+         exigence, vue depuis l'autre bout. */
+      window.tse.diagnose.auto();
       window.tse.diagnose.auto();
       return window.tse.panneau.rapport().erreurs.filter(e => e.source === 'sondes');
     } finally { console.warn = vrai; }
@@ -8811,66 +8842,35 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
   ok('un VOD démarré APRÈS le live n\'atteste rien, et la frise se tait',
      (await lignes()).length === 0, JSON.stringify(await lignes()));
 
-  /* ── LA SECONDE PORTE VERS L'ENREGISTREMENT ──────────────────────────────
-     Un rapport montrait quatre chaînes muettes en `sansVod`. « archiveVideo
-     rend null » ne veut pas forcément dire « cette chaîne n'archive pas » : il
-     se peut que l'enregistrement en cours ne soit pas exposé par CE champ.
-     Twitch a une seconde porte — la liste des archives, la plus récente
-     d'abord — et c'est celle que sa propre page « Vidéos » emprunte. */
-  await relacher('eta');
-  await survoler('theta');
-  await attendre(page,
-    () => document.querySelectorAll('.tse-preview__frise-ligne').length >= 2, 8000);
-  const t = await lignes();
-  ok('quand archiveVideo est vide, la liste des archives prend le relais',
-     t.length === 3 && !t.some(l => l.inconnu)
-     && t[t.length - 1].nom === 'Overwatch', JSON.stringify(t.map(l => l.nom)));
+  /* ── LA SECONDE PORTE A ÉTÉ RETIRÉE, ET CE QUI LA COUVRAIT AVEC ────────
+     QUATRE SOUS-TESTS VIVAIENT ICI — « theta » (le repli prend le relais),
+     « iota » (l'archive d'hier n'est pas prise pour celle du live), « kappa »
+     (aucune archive du tout) et « lambda » (un enregistrement antérieur qui
+     RECOUVRE le live est retenu). Ils éprouvaient le repli par la liste des
+     archives, que la 4.17.1 a retiré : quatre rapports de terrain, vingt et
+     une tentatives, ZÉRO résultat, et jamais de justesse — l'archive trouvée
+     était toujours celle d'un autre jour.
 
-  /* ── ET CE QU'ELLE NE DOIT PAS FAIRE ─────────────────────────────────────
-     La plus récente archive d'une chaîne peut être celle d'HIER. La prendre
-     pour l'enregistrement du live en cours daterait la frise de trente heures
-     en arrière. La même garde que pour la continuité s'applique : le départ de
-     l'archive doit tomber sur celui du stream. */
-  await relacher('theta');
-  await survoler('iota');
-  await wait(page, 900);
-  ok('une archive d\'hier n\'est pas prise pour l\'enregistrement du live',
-     (await lignes()).length === 0, JSON.stringify(await lignes()));
+     ON LES RETIRE PLUTÔT QUE DE LES LAISSER VERDIR POUR RIEN. Deux d'entre
+     eux — « iota » et « kappa » — passaient encore après le retrait, mais
+     pour la mauvaise raison : ils assertent qu'on n'affiche RIEN, ce qui est
+     désormais vrai sans qu'aucune garde n'ait à jouer. Une assertion qui ne
+     peut plus échouer ne dit plus rien, et en garder deux de cette sorte
+     apprendrait à leur faire confiance à tort.
 
-  /* Une chaîne qui n'archive vraiment pas : le repli ne trouve aucune vidéo.
-     Ce cas doit se distinguer des deux autres, sans quoi « le repli n'a jamais
-     servi » resterait indéchiffrable. */
-  await relacher('iota');
-  await survoler('kappa');
-  await wait(page, 900);
-  ok('une chaîne sans la moindre archive ne produit rien non plus',
-     (await lignes()).length === 0, JSON.stringify(await lignes()));
-
-  /* ── LE STREAM QUI A RECONNECTÉ ──────────────────────────────────────────
-     L'enregistrement a commencé quarante minutes avant ce live et tourne
-     toujours. Une garde par valeur absolue le rejetait — un rapport en a
-     montré dix de ce type, dont un à moins trente-neuf minutes. Le critère
-     juste n'est pas un seuil mais un RECOUVREMENT : l'archive doit s'étendre
-     jusqu'au départ du live. Et ce qui la précède se replie sur ce départ :
-     le dernier moment antérieur est la catégorie sur laquelle le live a
-     commencé, les autres ne le regardent pas. */
-  await relacher('kappa');
-  await survoler('lambda');
-  await attendre(page,
-    () => document.querySelectorAll('.tse-preview__frise-ligne').length >= 2, 8000);
-  const lam = await lignes();
-  ok('un enregistrement ANTÉRIEUR au live, mais qui le recouvre, est retenu',
-     lam.length >= 2 && !lam.some(l => l.inconnu), JSON.stringify(lam.map(l => l.nom)));
-  ok('…et ce qui précède le live se replie en UN segment, pas en une pile de zéros',
-     lam[0].nom === 'Hades II' && lam[0].duree === '1h30',
-     JSON.stringify(lam.map(l => [l.nom, l.duree])));
+     CE QUI N'EST DONC PLUS COUVERT, ET QUI SE DIT : le cas d'un stream ayant
+     RECONNECTÉ dont l'enregistrement, commencé avant le live, le recouvre.
+     Sans le repli, la frise s'en tient à `archiveVideo` — le chemin que les
+     sous-tests « alpha » à « eta » ci-dessus éprouvent au complet. Si le
+     besoin revenait, c'est ce paragraphe qu'il faudrait défaire, et les
+     décors sont restés dans le harnais pour ça. */
 
   /* ── UNE FRISE NE REMONTE PAS LE TEMPS ──────────────────────────────────
      Le dernier chapitre est postérieur à notre propre observation. Notre
      segment ne doit PAS s'ajouter derrière lui : il commencerait avant ce qui
      le précède, et la durée du chapitre serait négative. La frise doit donc
      s'en tenir aux chapitres. */
-  await relacher('delta');
+  await relacher('eta');
   await survoler('epsilon');
   await attendre(page,
     () => document.querySelectorAll('.tse-preview__frise-ligne').length >= 2, 8000);
@@ -8890,9 +8890,9 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
      « demandes 16 » et des issues qui totalisaient 23, parce que `sansMoment`
      était incrémenté PUIS `continus` sur le même appel. Un lecteur qui
      additionne des compteurs et tombe à côté cesse, à juste titre, de leur
-     faire confiance. Les replis, eux, comptent des requêtes SUPPLÉMENTAIRES
-     et non des issues : ils restent à part, et c'est pour cela qu'ils ne sont
-     pas dans la somme. */
+     faire confiance. (Elle valait « demandes moins les replis » tant que le
+     repli existait ; il a été retiré, mesuré inutile sur vingt et une
+     tentatives.) */
   const b1 = await bilan();
   ok('le rapport dit combien de fois les chapitres ont été DEMANDÉS',
      b1.demandes >= 6, JSON.stringify(b1));
@@ -8903,33 +8903,18 @@ titre('79. Aperçu — le passé du live, comblé par les chapitres du VOD');
   ok('…les sept issues sont exclusives, et leur somme vaut le nombre de demandes',
      b1.servis + b1.continus + b1.sansMoment + b1.inexploitables
      + b1.sansVod + b1.sansStream + b1.reseau === b1.demandes, JSON.stringify(b1));
-  ok('…et le repli est compté à part : tenté quatre fois, servi deux',
-     b1.replis >= 4 && b1.replisServis >= 2 && b1.replisServis < b1.replis,
-     JSON.stringify(b1));
-  /* ── POURQUOI LE REPLI N'A PAS SERVI ─────────────────────────────────────
-     Un rapport a rendu « replis 12, replisServis 0 ». Impossible d'en tirer
-     quoi que ce soit : requête refusée, chaîne sans archive, ou archive d'un
-     autre jour ? Trois causes, trois suites différentes — dont une seule
-     justifierait de continuer à dépenser une requête. Le compteur les sépare
-     désormais, et sa somme vaut le nombre de tentatives. */
-  ok('…et ses causes sont séparées : sans archive, hors sujet, refusé',
-     b1.replisVides >= 1 && b1.replisHorsSujet >= 1
-     && Object.prototype.hasOwnProperty.call(b1, 'replisErreur'),
-     JSON.stringify(b1));
-  /* ── DE QUEL CÔTÉ, ET DE COMBIEN ─────────────────────────────────────────
-     « Hors sujet » couvre deux verdicts opposés. Trop TÔT de trente heures,
-     c'est le VOD d'hier : la chaîne n'archive pas ce live-ci, il n'y a rien à
-     récupérer. Trop tôt de vingt MINUTES, ce serait le VOD de ce live sur un
-     stream qui a reconnecté — et celui-là mériterait d'être pris. Sans le
-     signe et l'amplitude, les deux se ressemblent et la question reste
-     ouverte indéfiniment. Ici, iota est à moins trente heures. */
-  ok('…et le rejet dit de quel CÔTÉ, avec son amplitude',
-     b1.replisTropTot >= 1 && b1.repliEcartMinMin < -60,
-     JSON.stringify({ tot: b1.replisTropTot, tard: b1.replisTropTard,
-                      min: b1.repliEcartMinMin, max: b1.repliEcartMaxMin }));
-  ok('…leur somme valant exactement le nombre de tentatives',
-     b1.replisServis + b1.replisErreur + b1.replisVides + b1.replisHorsSujet
-     === b1.replis, JSON.stringify(b1));
+  /* ── LES QUATRE ASSERTIONS DU REPLI SONT PARTIES AVEC LUI ─────────────
+     Elles tenaient ses compteurs : tenté/servi, ses trois causes de rejet, le
+     CÔTÉ du rejet avec son amplitude, et la somme. Chacune était bonne, et
+     c'est même par elles qu'on a su que le repli ne servait à rien — « replis
+     12, replisServis 0 » puis, rapport après rapport, vingt et une tentatives
+     pour zéro résultat. Elles ont fait leur travail jusqu'au bout : elles ont
+     condamné ce qu'elles mesuraient.
+
+     LA SOMME DES SEPT ISSUES, juste au-dessus, s'en trouve simplifiée : elle
+     valait « demandes moins les replis », qui comptaient des requêtes
+     SUPPLÉMENTAIRES et non des issues. Elle vaut maintenant `demandes` tout
+     court, et c'est une phrase de moins à tenir. */
 
   /* ── ET UNE SEULE PAR STREAM ─────────────────────────────────────────── */
   await relacher('delta');

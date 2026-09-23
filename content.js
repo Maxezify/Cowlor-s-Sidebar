@@ -1761,6 +1761,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     // à Twitch le temps de monter la sidebar). Ensuite réévalué à chaque
     // MAINTENANCE_TICK.
     HEALTH_INITIAL_DELAY: 8_000,
+    /* Lectures « cassé » consécutives avant d'alerter, et délai entre les
+       deux. Même discipline que partout ailleurs (cf. OFFLINE_CONFIRM,
+       GLOBAL_MISS_CONFIRM) : une alerte critique fausse apprend à ignorer les
+       suivantes. Le délai est assez long pour que Twitch ait fini de remonter
+       sa sidebar après un rechargement, assez court pour qu'une VRAIE rupture
+       soit dite dans la foulée plutôt qu'à la maintenance suivante. */
+    HEALTH_CONFIRM:       2,
+    HEALTH_RECHECK:       5_000,
     SCAN_DEBOUNCE:  250,
     /* Cadence maximale du relevé « sidebar réduite ? » hors mutation de la
        barre. La détection coûte 130 µs (sélecteur de classe sans
@@ -9328,7 +9336,8 @@ const TSE_GATE_MAX_CLICKS = 5;
      Remis à zéro à chaque passe : c'est un instantané, pas un cumul — la
      question qu'il tranche porte sur l'état courant de la liste. */
   let bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
-                        horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0,
+                        horsClassement: 0, horsClassementConnus: 0,
+                        classesNonAffichees: 0, sousLaCoupe: 0,
                         sousLaCoupeAvecCombine: 0 };
 
   /* ── LA SECTION « CHAÎNES SUIVIES » ───────────────────────────────────────
@@ -13601,8 +13610,9 @@ const TSE_GATE_MAX_CLICKS = 5;
        affichait « demandes 16 » et des issues qui totalisaient 23. Un lecteur
        qui additionne des compteurs et tombe à côté cesse, à juste titre, de
        leur faire confiance. Les six issues sont désormais exclusives, et leur
-       somme vaut `demandes` — moins les replis, qui comptent des requêtes
-       SUPPLÉMENTAIRES et non des issues. */
+       somme vaut `demandes`. (Elle valait « demandes moins les replis » tant
+       que le repli existait ; il a été retiré, mesuré inutile sur vingt et une
+       tentatives — cf. `fetchChapitres`.) */
     /* `vodTardif` MESURE UNE QUESTION QU'ON NE PEUT PAS TRANCHER D'ICI. Sur une
        chaîne qui a repris, deux mondes sont possibles : ou bien
        l'enregistrement a continué pendant la coupure — c'est ce qu'un rapport
@@ -13626,39 +13636,12 @@ const TSE_GATE_MAX_CLICKS = 5;
                                 schéma qui refuse, incident. Leur somme vaut
                                 `clips`. */
                              clips: 0, clipsServis: 0, clipsHorsSujet: 0,
-                             clipsRefus: 0, clipsErreur: 0, clipsForme: null,
-                             /* LE REPLI, DÉTAILLÉ PAR CAUSE. La première version
-                                ne comptait que « tenté » et « servi », et un
-                                rapport a rendu 12 / 0 : impossible de savoir si
-                                la requête était refusée, si la chaîne n'avait
-                                aucune archive, ou si l'archive trouvée était
-                                celle d'hier. Trois causes, trois suites
-                                différentes — dont une seule justifierait de
-                                continuer à dépenser une requête. Même angle
-                                mort que la fois d'avant, même remède. */
-                             replis: 0, replisServis: 0, replisErreur: 0,
-                             replisVides: 0, replisHorsSujet: 0,
-                             /* ── DE QUEL CÔTÉ LE CANDIDAT EST-IL REJETÉ ? ──
-                                Un rapport a rendu « replisHorsSujet 4 » :
-                                quatre archives trouvées, quatre écartées. Mais
-                                « trop tôt » et « trop tard » sont deux verdicts
-                                opposés. Trop tard de dix minutes, c'est un
-                                enregistrement qui a démarré en retard et ne
-                                peut rien dire du début. Trop tôt de trente
-                                HEURES, c'est le VOD d'hier — et la chaîne
-                                n'archive donc pas ce live-ci : il n'y a rien à
-                                récupérer, jamais. Trop tôt de vingt MINUTES,
-                                en revanche, c'est le VOD de ce live sur un
-                                stream qui a reconnecté, et celui-là, il faut
-                                le prendre. Les écarts extrêmes tranchent entre
-                                ces trois lectures sans qu'on ait à deviner. */
-                             replisTropTot: 0, replisTropTard: 0,
-                             repliEcartMinMin: null, repliEcartMaxMin: null };
+                             clipsRefus: 0, clipsErreur: 0, clipsForme: null };
 
-    /* Un nœud de VOD → des segments datés. Écrit une fois : les deux voies
-       d'accès à l'enregistrement (archiveVideo, puis le repli par `videos`)
-       le lisent de la même façon, et deux lectures d'une même forme finiraient
-       par diverger sur le premier champ ajouté. */
+    /* Un nœud de VOD → des segments datés. Une seule voie d'accès à
+       l'enregistrement depuis le retrait du repli — `archiveVideo` — mais la
+       fonction reste à part : c'est elle qui date les segments, et la mêler à
+       son appelant mélangerait « trouver le VOD » et « le lire ». */
     const segmentsDuVod = (vod, debutStream) => {
       const aretes = vod?.moments?.edges;
       if (!Array.isArray(aretes)) return { segments: null, aretes: 0 };
@@ -13727,14 +13710,6 @@ const TSE_GATE_MAX_CLICKS = 5;
 
        Sans durée exploitable, on refuse : c'est le comportement d'aujourd'hui,
        donc rien ne se dégrade si le champ venait à manquer. */
-    const vodDuLive = (vod, debutStream) => {
-      const depart = Date.parse(vod?.createdAt);
-      if (!Number.isFinite(depart) || !debutStream) return false;
-      if (depart - debutStream > CFG.CATEGORY_TRAIL_VOD_ECART) return false;
-      const duree = Number(vod.lengthSeconds);
-      if (!Number.isFinite(duree) || duree <= 0) return false;
-      return depart + duree * 1000 >= debutStream;
-    };
 
     /* ══════════════════════════════════════════════════════════════════════
        LA TROISIÈME PORTE : LES CLIPS
@@ -14572,62 +14547,41 @@ const TSE_GATE_MAX_CLICKS = 5;
       const flux = res?.[0]?.data?.user?.stream;
       if (!flux) { bilanChapitres.sansStream++; return retenir(streamId, null, false); }
 
-      let vod = flux.archiveVideo;
+      const vod = flux.archiveVideo;
 
-      /* ── LE REPLI, POUR LES QUATRE QUI RESTAIENT MUETTES ─────────────────────
-         Le rapport d'un utilisateur montrait quatre chaînes en `sansVod` : le
-         champ `archiveVideo` rendait null. Cela peut vouloir dire « cette
-         chaîne n'archive pas » — et c'est alors définitif — mais aussi que
-         l'enregistrement en cours n'est pas exposé par CE champ-là. Twitch a
-         une seconde porte, celle que sa propre page « Vidéos » emprunte :
-         la liste des archives, la plus récente d'abord.
+      /* ── LE REPLI A ÉTÉ ESSAYÉ, MESURÉ, ET RETIRÉ ───────────────────────
+         CE QU'IL FAISAIT : quand `archiveVideo` rend null, redemander la liste
+         des archives de la chaîne — la seconde porte, celle que la page
+         « Vidéos » de Twitch emprunte — au cas où l'enregistrement en cours
+         n'y serait exposé que là.
 
-         SÉPARÉE, ET SEULEMENT SUR CE CHEMIN. La greffer sur la requête
-         principale ferait tomber les douze cas qui marchent si l'un de ses
-         arguments est faux. Elle ne part donc que là où l'autre a échoué, une
-         fois par stream, et elle est comptée à part : le prochain rapport dira
-         si elle sert à quelque chose. Même méthode que pour la première
-         requête, qui s'est révélée juste par ce moyen exactement. */
-      if (!vod) {
-        bilanChapitres.replis++;
-        const res2 = await post([{
-          operationName: 'TseVodRecent',
-          variables: { login },
-          query: RECENT_QUERY
-        }]);
-        if (isResultsUnusable(res2)) {
-          bilanChapitres.replisErreur++;
-        } else {
-          const candidat = res2?.[0]?.data?.user?.videos?.edges?.[0]?.node;
-          /* Il faut que ce soit LE VOD DE CE LIVE, et non celui d'hier. Le
-             départ de l'enregistrement doit tomber sur celui du stream. */
-          if (!candidat) bilanChapitres.replisVides++;
-          else if (!vodDuLive(candidat, debutStream)) {
-            bilanChapitres.replisHorsSujet++;
-            /* L'écart signé, en minutes, et ses deux extrêmes. Deux entiers
-               qui disent ce qu'aucun compteur d'échecs ne dira : de combien on
-               est passé à côté, et donc s'il s'agit d'un autre jour ou d'une
-               reconnexion. */
-            const ecart = Math.round((Date.parse(candidat.createdAt) - debutStream) / 60_000);
-            if (Number.isFinite(ecart)) {
-              if (ecart < 0) bilanChapitres.replisTropTot++;
-              else bilanChapitres.replisTropTard++;
-              const b = bilanChapitres;
-              b.repliEcartMinMin = b.repliEcartMinMin === null
-                ? ecart : Math.min(b.repliEcartMinMin, ecart);
-              b.repliEcartMaxMin = b.repliEcartMaxMin === null
-                ? ecart : Math.max(b.repliEcartMaxMin, ecart);
-            }
-          } else {
-            vod = candidat;
-            bilanChapitres.replisServis++;
-          }
-        }
-      }
+         SON COMMENTAIRE S'ÉTAIT ENGAGÉ À LE JUGER : « elle est comptée à part,
+         le prochain rapport dira si elle sert à quelque chose ». Quatre
+         rapports ont répondu, et toujours la même chose :
 
-      /* ── PAS D'ENREGISTREMENT : LA TROISIÈME PORTE ──────────────────────
-         Ni `archiveVideo` ni la liste des archives n'ont rendu le VOD de ce
-         live. La chaîne ne permet pas le replay, ou pas ce jour-là. Les clips
+             replis 6 · servis 0     écarts de −1 j à −17 j
+             replis 3 · servis 0     écarts de −1 j à −8 j
+             replis 3 · servis 0     écart  de −3,8 j
+             replis 9 · servis 0     écarts de −1 j à −8 j
+
+         VINGT ET UNE TENTATIVES, ZÉRO RÉSULTAT, et jamais de justesse :
+         l'archive la plus récente est toujours celle d'un AUTRE JOUR. La
+         conclusion se lit d'elle-même — quand `archiveVideo` rend null, la
+         chaîne n'enregistre pas ce direct, et le champ disait vrai. La
+         seconde porte ne mène nulle part.
+
+         CE QUE SON RETRAIT REND : une requête de moins par chaîne concernée,
+         sur le point d'entrée précisément qu'on rationne — celui dont Twitch
+         refuse déjà un tiers des sondes d'origine. Et ce retrait ne touche PAS
+         la détection des coupures : elle passe par `opSonde`, qui pose une
+         question différente à la même requête — « une archive se termine-t-elle
+         JUSTE AVANT ce direct ? » au lieu de « une archive commence-t-elle EN
+         MÊME TEMPS ? ». Les deux chemins sont comptés à part au rapport, et
+         seul celui-ci disparaît. */
+
+      /* ── PAS D'ENREGISTREMENT : LA SECONDE PORTE ────────────────────────
+         `archiveVideo` n'a pas rendu le VOD de ce live. La chaîne ne permet
+         pas le replay, ou pas ce jour-là. Les clips
          sont alors la seule trace publique de ce qu'elle diffusait, et ils ne
          coûtent qu'une opération, une fois par stream, sur les chaînes qui
          n'ont rien donné par ailleurs. */
@@ -19415,7 +19369,8 @@ const TSE_GATE_MAX_CLICKS = 5;
        « sessions vues » et « groupes dessinés » EST le nombre de sessions
        réduites à un seul membre visible. */
     bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
-                      horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0,
+                      horsClassement: 0, horsClassementConnus: 0,
+                        classesNonAffichees: 0, sousLaCoupe: 0,
                         sousLaCoupeAvecCombine: 0 };
     const parLogin = new Map();
     for (const card of cards) {
@@ -19490,7 +19445,29 @@ const TSE_GATE_MAX_CLICKS = 5;
           const combineM = membreCombine.get(l);
           if (Number.isFinite(combineM)) bilanCostream.sousLaCoupeAvecCombine += 1;
         }
-        else bilanCostream.horsClassement += 1;
+        else {
+          bilanCostream.horsClassement += 1;
+          /* ── ET COMBIEN D'ENTRE EUX SONT DES INCONNUS POUR DE BON ────────
+             « horsClassement » dit que le classement n'a AUCUNE entrée pour
+             ce membre — ni au-dessus de la coupe, ni en dessous. Il ne dit pas
+             POURQUOI, et les deux causes n'appellent pas le même remède :
+
+               — on ne sait rien de lui : son combiné ne nous est jamais
+                 parvenu, il n'y a rien à faire d'ici ;
+               — on sait son nom ET son nombre, par la session d'un membre qui
+                 a une carte, et le classement ne l'a quand même pas. Là, le
+                 seul obstacle est que `setViewers` ne CRÉE jamais d'entrée :
+                 le répertoire ne l'a jamais offert, parce qu'il range la
+                 session sous l'hôte ou parce que l'audience PROPRE du membre
+                 le laisse hors du sommet de sa catégorie.
+
+             SIGNALÉ AINSI : « pourquoi oostrix, on n'a pas les cinq autres
+             co-streams ? » avec « membres 6 · affiches 2 · horsClassement 4 ».
+             Ce compteur-ci est ce qui manquait pour répondre sans deviner. */
+          if (Number.isFinite(membreCombine.get(l))) {
+            bilanCostream.horsClassementConnus += 1;
+          }
+        }
       }
     }
 
@@ -20937,11 +20914,50 @@ const TSE_GATE_MAX_CLICKS = 5;
   // et se ré-arme quand tout est revenu vert. Appelé peu après le boot puis
   // tous les DATA_TTL (cf. startTimers).
   let healthWarned = false;
+  let healthSuite = 0;        // lectures « cassé » consécutives
+  let healthRecontrole = null;
   function runSelectorHealthCheck() {
     if (!document.querySelector(DOM.sidebarRoot)) return;          // sidebar pas encore montée
     if (document.body.classList.contains('tse-loading')) return; // chargement en cours : cartes pas encore rendues
     const report = runDiagnostics();
     const broken = hasCriticalBreakage(report);
+    /* ── UNE SEULE LECTURE N'EST PAS UN VERDICT ────────────────────────────
+       RAPPORT DE TERRAIN : « des sélecteurs critiques ne correspondent plus —
+       l'extension est peut-être partiellement cassée », sur
+       `followedSection : section « Chaînes suivies » introuvable (10 liens de
+       chaîne) ». Le rapport pris juste après disait pourtant la sonde « ok » :
+       rien n'était cassé. L'alerte avait attrapé la sidebar EN TRAIN d'être
+       rebâtie — l'URL du contexte le dit, « /?lang=fr », c'est-à-dire un
+       rechargement après changement de langue, pendant lequel Twitch remonte
+       ses liens avant l'en-tête de section.
+
+       LA SONDE SE DÉFENDAIT DÉJÀ d'un cas voisin : elle exige plus de trois
+       liens avant d'oser dire « cassé », pour ne pas confondre une rupture
+       avec une session déconnectée. Le commentaire qui l'accompagne énonce
+       exactement la règle qui manquait ici : « une alerte critique fausse
+       coûte plus cher qu'une alerte tardive : elle apprend à ignorer les
+       suivantes. »
+
+       ON CONFIRME DONC, comme partout ailleurs dans ce fichier : une carte
+       éteinte demande OFFLINE_CONFIRM réponses, une absence du pool en demande
+       GLOBAL_MISS_CONFIRM, le voile attend LOADING_STABILITY. Le contrôle de
+       santé était le dernier endroit qui criait sur un échantillon. La
+       seconde lecture est PROGRAMMÉE plutôt qu'attendue : sans elle, une vraie
+       rupture attendrait la maintenance suivante pour être dite. */
+    if (!broken) {
+      healthSuite = 0;
+      if (healthRecontrole) { clearTimeout(healthRecontrole); healthRecontrole = null; }
+    } else {
+      healthSuite += 1;
+      if (healthSuite < CFG.HEALTH_CONFIRM) {
+        if (!healthRecontrole) {
+          healthRecontrole = setTimeout(() => {
+            healthRecontrole = null; runSelectorHealthCheck();
+          }, CFG.HEALTH_RECHECK);
+        }
+        return;
+      }
+    }
     if (broken && !healthWarned) {
       healthWarned = true;
       /* LES SONDES FAUTIVES SONT NOMMÉES DANS L'AVERTISSEMENT LUI-MÊME, et pas
