@@ -19098,10 +19098,19 @@ addEventListener('message', (e) => {
       const envois = (window.__calls || [])
         .filter((a) => (a.names || []).includes('TseVodRecent'));
       const lots = envois.map((a) => a.names.filter((n) => n === 'TseVodRecent').length);
+      /* ── ET ON ÉCARTE CE QUI EST PARTI SOUS LE VOILE ───────────────────
+         Ce bloc attend la chute du voile avant de poser ses cartes, et cela
+         suffisait… jusqu'au jour où un second cycle s'est intercalé sur un
+         banc chargé : « pointe 16 » là où la croisière en permet douze, sans
+         qu'aucune règle n'ait été enfreinte — la bourse du voile a la sienne.
+         L'assertion épousait donc une hypothèse au lieu de mesurer un fait.
+         Le harnais date désormais chaque appel de l'état du voile, et on ne
+         garde que la croisière : ce qu'on prétend mesurer. */
+      const croisiere = envois.filter((a) => !a.voile);
       /* LA POINTE : combien de sondes ont tenu dans la fenêtre la plus
          chargée. C'est exactement la grandeur que la règle borne, et elle ne
          se lit pas dans une liste — d'où l'horodatage posé par le harnais. */
-      const ts = envois.map((a) => a.t).sort((x, y) => x - y);
+      const ts = croisiere.map((a) => a.t).sort((x, y) => x - y);
       let pointe = 0;
       for (let i = 0; i < ts.length; i++) {
         const dans = ts.filter((t) => t >= ts[i] && t < ts[i] + 2000).length;
@@ -19111,7 +19120,7 @@ addEventListener('message', (e) => {
                survols: window.tse.panneau.rapport().frise.survols,
                sondes: r.sondes, adoptees: r.adoptees, differees: r.differees,
                plusGrosLot: lots.length ? Math.max(...lots) : 0, lots: lots.length,
-               pointe };
+               enCroisiere: croisiere.length, pointe };
     });
     /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — le budget pris avant les
        gardes — douze cartes sur vingt affichent « 5h00 », les huit autres
@@ -19151,8 +19160,9 @@ addEventListener('message', (e) => {
        liste d'appels. Mutant — le budget repris par lot — « pointe 14 » là où
        la règle en permet six. */
     ok('…et la fenêtre de temps borne la cadence, que le lot soit gros ou non',
-       vu.pointe <= 12 && vu.differees > 0,
-       JSON.stringify({ pointe: vu.pointe, differees: vu.differees }));
+       vu.pointe <= 12 && vu.differees > 0 && vu.enCroisiere >= 12,
+       JSON.stringify({ pointe: vu.pointe, differees: vu.differees,
+                        enCroisiere: vu.enCroisiere }));
     await page.close();
   }
 
@@ -19914,7 +19924,7 @@ addEventListener('message', (e) => {
      recommandées », dont les cartes ont la MÊME classe. Un co-streamer qui y
      figurait passait pour visible dans la liste, et son nom partait au badge
      bleu — celui qui dit « de cette liste ». */
-  const ailleurs = await (async () => {
+  const ailleurs = await (async (survole) => {
     const page = await fresh();
     await page.evaluate(() => {
       const h = new Date(Date.now() - 60 * 60_000).toISOString();
@@ -19930,9 +19940,9 @@ addEventListener('message', (e) => {
     });
     await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 10_000);
     await wait(page, 1200);
-    await page.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
-      .find((c) => c.dataset.tseLogin === 'lbw')
-      ?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false })));
+    await page.evaluate((l) => [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === l)
+      ?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false })), survole);
     await attendre(page, () => !!document.querySelector('.tse-preview__badge--costream, .tse-preview__badge--squad'), 6000);
     await wait(page, 400);
     const vu = await page.evaluate(() => {
@@ -19943,7 +19953,9 @@ addEventListener('message', (e) => {
     });
     await page.close();
     return vu;
-  })();
+  });
+  const depuisSuivies = await ailleurs('lbw');
+  const depuisLive    = await ailleurs('juliettearz');
 
   /* LA PRÉMISSE : le bleu nomme bien ce qui est à l'écran. Sans elle,
      « le violet a disparu » serait vrai d'un aperçu vide. */
@@ -19966,13 +19978,88 @@ addEventListener('message', (e) => {
      liste suivie. Sans elle, « le bleu ne la nomme pas » serait vrai d'une
      carte qui n'existe nulle part. */
   ok('le décor pose bien une carte hors de la liste, dans « Chaînes live »',
-     ailleurs.recoVue === true, JSON.stringify(ailleurs));
-  /* L'ASSERTION QUI PORTE LE SIGNALEMENT. Mutant — la recherche portée sur le
-     document entier — « Co-stream avec juliettearz » au bleu et rien au
+     depuisSuivies.recoVue === true, JSON.stringify(depuisSuivies));
+  /* L'ASSERTION QUI PORTE LE PREMIER SIGNALEMENT. Mutant — la recherche portée
+     sur le document entier — « Co-stream avec juliettearz » au bleu et rien au
      violet : la capture de l'utilisateur, à l'identique. */
   ok('…et une chaîne qui n\'est QUE là n\'est pas « de cette liste »',
-     ailleurs.bleu === null && /juliettearz/i.test(ailleurs.violet || ''),
-     JSON.stringify(ailleurs));
+     depuisSuivies.bleu === null && /juliettearz/i.test(depuisSuivies.violet || ''),
+     JSON.stringify(depuisSuivies));
+  /* ET LE MÊME SIGNALEMENT VU DE L'AUTRE CÔTÉ : « sur la partie "Chaînes
+     live", JulietteArz a le badge bleu ». Viser la liste suivie en dur
+     corrigeait le cas où le MEMBRE était ailleurs et laissait entier celui où
+     c'est la carte SURVOLÉE qui l'est. Mutant — la section suivie en dur —
+     « Co-stream avec lbw » au bleu depuis une carte de « Chaînes live ». */
+  ok('…et depuis « Chaînes live », c\'est la liste suivie qui devient l\'ailleurs',
+     depuisLive.bleu === null && /lbw/i.test(depuisLive.violet || ''),
+     JSON.stringify(depuisLive));
+}
+
+/* ═════════ LE COMBINÉ D'UN MEMBRE QU'ON N'INTERROGERA JAMAIS ═════════════
+   LE SIGNALEMENT, EN UNE QUESTION : « il y a un co-stream de trois et on n'en
+   voit que deux en carte — pourquoi PestilenceRIOT n'est pas visible ? »
+
+   ET LE RAPPORT LE CHIFFRAIT avec le compteur écrit pour ça :
+       sousLaCoupe 6 · sousLaCoupeAvecCombine 6
+   Six membres dont on CONNAÎT le combiné, et qui restent sous la coupe.
+
+   LA BOUCLE SE REFERMAIT SUR ELLE-MÊME. `readStream` sait déjà qu'un combiné
+   connu prime sur ce que le répertoire raconte — c'est la 4.14.3 — mais il le
+   cherche À LA CLÉ DE LA CHAÎNE ELLE-MÊME, dans le cache Guest Star. Or on
+   n'interroge Guest Star que sur les chaînes qui ont une CARTE. Un membre sans
+   carte n'a donc pas d'entrée ; le répertoire le range à son audience propre,
+   quelques centaines ; il reste sous le trentième rang ; donc il n'a pas de
+   carte ; donc on ne l'interroge pas. Rien ne pouvait rouvrir ce cercle.
+
+   OR ON LE CONNAÎT DÉJÀ : la réponse Guest Star d'un membre qui a une carte
+   porte la liste de TOUS ses camarades, chacun avec son combiné. Rien de neuf
+   n'est demandé à Twitch — on cesse de ranger cette moitié-là sous une clé que
+   personne n'interroge. */
+{
+  titre('151. Co-stream — le combiné fait entrer au classement un membre sans carte');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Aniimo', tags: [] });
+    /* « hote » a une carte, donc Guest Star sera interrogé SUR LUI. « absent »
+       est son camarade : aucune carte, donc jamais interrogé, et le répertoire
+       le range à son audience propre. Trois chaînes ordinaires s'intercalent
+       entre les deux nombres, pour que la place au classement se voie. */
+    window.__cats = [{ name: 'Aniimo', viewers: 90_000, streams: [
+      { login: 'hote', viewers: 11_736 }, { login: 'absent', viewers: 300 },
+      { login: 'g1', viewers: 9_000 }, { login: 'g2', viewers: 8_000 },
+      { login: 'g3', viewers: 7_000 }, { login: 'modele', viewers: 800 }] }];
+    window.__fx = { hote: c('1', 11_736), absent: c('2', 300), g1: c('3', 9_000),
+                    g2: c('4', 8_000), g3: c('5', 7_000), modele: c('6', 800) };
+    window.__gs = { 1: { hostId: '1', hostLogin: 'hote', guests: [
+      { id: '1', login: 'hote', viewers: 11_736, combined: 11_736 },
+      { id: '2', login: 'absent', viewers: 300, combined: 11_736 }] } };
+    window.__addCard('hote', 'Aniimo', '11,7 k');
+    window.__addCard('modele', 'Aniimo', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => window.tse.global.top(10)
+    .some((r) => r.login === 'g1' && r.viewers === 9000), 15_000);
+  await wait(page, 2500);     // laisse Guest Star répondre et la marche publier
+  const vu = await page.evaluate(() => ({
+    rang: window.tse.global.top(10).map((r) => `${r.login}:${r.viewers}`),
+    repertoireBas: window.tse.panneau.rapport().global.repertoireBas }));
+  /* LA PRÉMISSE : le décor tient bien un classement peuplé, sans quoi « absent
+     est en tête » serait vrai d'une liste de deux. */
+  ok('le classement est peuplé et les chaînes ordinaires y sont à leur place',
+     ['g1:9000', 'g2:8000', 'g3:7000'].every((x) => vu.rang.includes(x)),
+     JSON.stringify(vu));
+  /* L'ASSERTION QUI PORTE LE SIGNALEMENT. Mutant — le combiné cherché par le
+     seul identifiant — « absent:300 », bon dernier derrière « modele:800 »,
+     et « repertoireBas 0 » : le répertoire n'a jamais été corrigé. */
+  ok('…et le membre sans carte porte son combiné, donc sa place',
+     vu.rang.includes('absent:11736')
+     && vu.rang.indexOf('absent:11736') < vu.rang.indexOf('g1:9000')
+     && vu.repertoireBas > 0,
+     JSON.stringify(vu));
+  await page.close();
 }
 
 /* ═════════ CE QUE LE BANC NE SAIT PAS TENIR, ET QUI SE DIT ══════════════
