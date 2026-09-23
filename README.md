@@ -2178,6 +2178,73 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Tout doit être prêt quand le voile disparaît (v4.15.8)
+
+> « Je t'assure qu'au tout début, il m'annonçait une vingtaine d'heures
+> d'uptime sur ce compte. Maintenant il met bien les coupures. Je veux que
+> cette data concernant les coupures soit prise en compte **durant le voile**,
+> tout doit être prêt lorsque le voile disparaît. »
+
+Le journal datait le défaut : `cycle 484 ms · levée 10720 ms`. Dix secondes de
+voile, pendant lesquelles douze sondes par trente secondes en laissaient partir
+quatre. Les autres cartes apprenaient leur origine **après** la levée — d'où un
+compteur qui passe de vingt heures à soixante-huit sous les yeux.
+
+### La cadence est faite pour la navigation, pas pour l'attente
+
+Elle existe pour ne pas marteler Twitch pendant qu'on regarde la liste. Sous le
+voile, **personne ne regarde** — et ce qui n'est pas appris à la levée sera vu
+se corriger. Le voile a donc désormais sa propre bourse, remise à neuf à chaque
+cycle et dépensée sans étalement.
+
+Ce que ça coûte est **borné et rare** : au plus `RECONNECT_PROBE_VEIL_BURST`
+requêtes, une fois par cycle de voile — au démarrage, à l'entrée dans Top
+Chaînes, à un changement de langue — et jamais pendant qu'on navigue.
+
+**Ce qu'on ne sait pas encore, et qui se mesurera.** Twitch refuse environ une
+sonde sur cinq, et la pente de ce refus avec la cadence n'a été relevée
+qu'entre 0,18 et 0,48 sonde par seconde. Une bouffée de quarante sort de cette
+plage. Les compteurs `sousVoile`, `reseau` et `enFile` du rapport diront si le
+marché est bon ; s'il ne l'est pas, c'est ce chiffre-là qui baissera.
+
+### Trois choses qu'il a fallu corriger pour y arriver
+
+**1. Une chaîne différée attendait un prochain lot.** Un lot ne part que si une
+carte réclame une chaîne inconnue du cache : beaucoup au démarrage, puis plus
+rien. Le module vide maintenant sa propre file.
+
+**2. « Pas encore connue » n'est pas « pas concernée ».** Les gardes rangeaient
+sous un seul *non* deux situations que tout sépare : une chaîne dont il n'y a
+rien à apprendre, et une chaîne dont la réponse est simplement en route. La
+seconde restait perdue. Mesuré : six cartes gardaient leur tronçon à la levée.
+
+**3. Le verrou de voile était asserté au mauvais endroit.** Posé dans le
+balayage, comme celui du mode global — or les sondes partent d'une réponse
+réseau, et un scan ne se déclenche que sur une mutation du DOM. Les cartes
+posées, plus rien ne bouge, donc plus aucun scan, et le minuteur de stabilité
+levait le voile pendant que trente et une sondes étaient en vol. Le verrou est
+désormais posé **depuis le module qui sait**, comme le fait le relevé
+d'abonnements, et son échéance court depuis qu'il y a quelque chose à attendre
+— non depuis l'ouverture du cycle, qui était déjà largement entamée.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la bourse du voile ramenée à celle de la croisière | **11 cartes sur 30** à « 5h00 », `enFile 19` à la levée |
+
+Le scénario mesure ce que les cartes affichaient **à l'instant** où le voile est
+tombé — ni avant, ni après. Son observateur vit dans la page et ne se déclenche
+qu'après avoir *vu* le voile posé : sans cette condition il capturerait la
+première mutation venue, voile absent, et serait vert pour rien. C'est un piège
+dans lequel la première rédaction est tombée.
+
+**Ce qui n'est pas couvert par un mutant, et il faut le dire :** le verrou
+lui-même. Avec la bourse, les sondes reviennent avant que le voile n'ait la
+moindre raison d'attendre — le mutant « voile sans verrou » passe donc au vert.
+Le verrou reste le filet des réseaux lents ; il est vérifié actif par la
+mesure, pas par une assertion.
+
 ## Le combiné d'un membre qu'on n'interrogera jamais (v4.15.7)
 
 > « Plusieurs problèmes, des co-streams non visibles sur Top Chaînes. »
@@ -9415,7 +9482,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 143 scénarios, 1255 assertions |
+| `npm test` | le harnais Playwright : 144 scénarios, 1258 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -9436,7 +9503,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1138 Ko | 417 Ko | 3 418 → **2** |
+| `content.js` | 1141 Ko | 418 Ko | 3 437 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

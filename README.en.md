@@ -2057,6 +2057,71 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Everything must be ready when the veil lifts (v4.15.8)
+
+> "I assure you that at the very start it announced about twenty hours of
+> uptime on this account. Now it shows the cuts properly. I want that cut data
+> taken into account **during the veil** — everything must be ready when the
+> veil disappears."
+
+The log dated the defect: `cycle 484 ms · lift 10720 ms`. Ten seconds of veil,
+during which twelve probes per thirty seconds let four go out. The other cards
+learned their origin **after** the lift — hence a counter jumping from twenty
+hours to sixty-eight before the user's eyes.
+
+### The rate is made for browsing, not for waiting
+
+It exists so as not to hammer Twitch while someone is looking at the list.
+Under the veil **nobody is looking** — and whatever is not learned by the lift
+will be seen correcting itself. The veil therefore now has its own budget, made
+new at each cycle and spent without spreading.
+
+The cost is **bounded and rare**: at most `RECONNECT_PROBE_VEIL_BURST`
+requests, once per veil cycle — at startup, on entering Top Channels, on a
+language change — and never while browsing.
+
+**What is not yet known, and will be measured.** Twitch refuses about one probe
+in five, and the slope of that refusal against rate was only measured between
+0.18 and 0.48 probes per second. A burst of forty is outside that range. The
+report's `sousVoile`, `reseau` and `enFile` counters will say whether the trade
+is good; if it is not, that number is what comes down.
+
+### Three things that had to be fixed to get there
+
+**1. A deferred channel waited for a future batch.** A batch only goes out when
+a card asks for a channel the cache does not know: many at startup, then
+nothing. The module now drains its own queue.
+
+**2. "Not known yet" is not "not concerned".** The guards filed under a single
+*no* two situations that nothing connects: a channel with nothing to learn, and
+a channel whose answer is simply in flight. The second stayed lost. Measured:
+six cards kept their segment's duration at the lift.
+
+**3. The veil hold was asserted in the wrong place.** Set inside the scan, like
+global mode's — but probes start from a network answer, and a scan only fires
+on a DOM mutation. Once the cards are posted nothing moves, so no scan, and the
+stability timer lifted the veil while thirty-one probes were in flight. The
+hold is now set **from the module that knows**, as the subscriptions sweep
+does, and its deadline runs from the moment there is something to wait for —
+not from the cycle opening, which was already well spent.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the veil budget reduced to the cruising one | **11 cards out of 30** at "5h00", `enFile 19` at the lift |
+
+The scenario measures what the cards showed **at the instant** the veil fell —
+not before, not after. Its observer lives in the page and only fires after
+having *seen* the veil up: without that condition it would capture the first
+mutation that came along, veil absent, and be green for nothing. The first
+draft fell into exactly that trap.
+
+**What no mutant covers, and it must be said:** the hold itself. With the
+burst, probes return before the veil has any reason to wait — so the "veil with
+no hold" mutant passes green. The hold remains the safety net for slow
+networks; it is verified active by measurement, not by an assertion.
+
 ## The combined count of a member we will never query (v4.15.7)
 
 > "Several problems, co-streams not visible in Top Channels."
@@ -9061,7 +9126,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 143 scenarios, 1255 assertions |
+| `npm test` | the Playwright harness: 144 scenarios, 1258 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -9081,7 +9146,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1138 KB | 417 KB | 3,418 → **2** |
+| `content.js` | 1141 KB | 418 KB | 3,437 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
