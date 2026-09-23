@@ -19406,6 +19406,246 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ LE VOILE, SA BORNE ET SA CADENCE ══════════════════════════════
+   RAPPORT DE TERRAIN, TROIS LIGNES DU JOURNAL DU VOILE :
+       64876 ms  cycle  entrée dans Top Chaînes
+       79904 ms  levée  DÉLAI MAXIMAL          ← quinze secondes tout rond
+      121567 ms  cycle  changement de langue
+      136593 ms  levée  DÉLAI MAXIMAL          ← quinze secondes tout rond
+   Deux cycles sur trois levés par le plafond dur, et les quarante-quatre
+   refus de Twitch du même rapport tombent exactement dans ces deux fenêtres.
+
+   UNE SEULE CAUSE POUR LES DEUX. `majVerrouVoile` rendait la main à
+   l'échéance ET remettait son échéance à zéro ; l'appel suivant, voyant du
+   travail encore en cours, s'en accordait une NEUVE. La borne annoncée « et
+   pas une seconde de plus » était une fenêtre glissante, reconduite tant
+   qu'une sonde restait à faire. Et ces quinze secondes coûtent DEUX FOIS,
+   parce que tout ce qui se règle sur `enCycle()` reste en régime de voile
+   pendant ce temps — dont le report d'un refus, à 400 ms.
+
+   POURQUOI LE BANC NE L'A PAS VU : sa borne valait cinq secondes pour un
+   voile qui meurt à 1,2 s. Le plafond dur tombait toujours le premier, donc
+   la borne n'était la contrainte de RIEN et ne pouvait pas manquer. Elle vaut
+   maintenant 300 ms ici — un quart du plafond — et c'est ce rapport-là qui
+   rend l'écart lisible.
+
+   ON MESURE LA DURÉE DU VERROU, et non le motif de la levée : le motif
+   dépend du plafond dur, donc d'une seconde constante, là que la durée se
+   compare directement au nombre que le code annonce. Mutant — la borne
+   reposée — verrou tenu 1029 ms pour 300 annoncées. */
+{
+  titre('146. Le voile — la borne du verrou, et la cadence des sondes');
+
+  /* ── a) LA BORNE SE CONSOMME UNE FOIS, MÊME SI LE TRAVAIL NE FINIT PAS ──
+     Twitch refuse TOUT : il reste donc en permanence des chaînes à sonder, ce
+     qui est exactement la condition qui reconduisait la borne. */
+  {
+    const page = await fresh();
+    await page.evaluate(() => {
+      const neuf  = new Date(Date.now() - 60_000).toISOString();
+      const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();
+      window.__fx = {}; window.__vodRecent = {};
+      for (let i = 0; i < 30; i++) {
+        const l = 'rev' + i;
+        window.__fx[l] = { id: 'i-' + l, sid: 's-' + l, createdAt: neuf,
+                           viewers: 900 - i, game: 'Rust', tags: [] };
+        window.__vodRecent[l] = [
+          { createdAt: neuf, lengthSeconds: 60, chapitres: [] },
+          { createdAt: vieux,
+            lengthSeconds: Math.round((Date.parse(neuf) - 1_200 - Date.parse(vieux)) / 1000),
+            chapitres: [{ pos: 0, jeu: 'Just Chatting' }] }];
+        window.__addCard(l, 'Rust', String(900 - i));
+      }
+      window.__refus = 0;
+      const vrai = window.fetch;
+      window.fetch = async (url, opt) => {
+        const body = JSON.parse(opt.body);
+        if (body.some((o) => o.operationName === 'TseVodRecent')) {
+          window.__refus++;
+          return { ok: true, json: async () => [{ errors: [{ message: 'service error' }] }] };
+        }
+        return vrai(url, opt);
+      };
+      /* LE VERROU SE CONSTATE, IL NE SE DÉDUIT PAS de l'instant où le voile se
+         lève : celui-ci dépend aussi de la stabilité de la sidebar et du
+         plafond dur, donc mesurerait trois choses à la fois. On échantillonne
+         `verrous()`, qui dit ce qui est POSÉ, et on garde l'étendue du verrou
+         « origines » à l'intérieur d'un cycle. */
+      window.__spans = [];
+      let debut = null, dernier = null, enCycle = false;
+      setInterval(() => {
+        const voile = document.body.classList.contains('tse-loading');
+        if (voile) enCycle = true;
+        if ((window.tse?.verrous?.() || []).includes('origines')) {
+          if (debut === null) debut = performance.now();
+          dernier = performance.now();
+        }
+        if (!voile && enCycle) {
+          if (debut !== null) window.__spans.push(Math.round(dernier - debut));
+          debut = null; dernier = null; enCycle = false;
+        }
+      }, 10);
+    });
+    await attendre(page, () => (window.__spans || []).length >= 1, 8000);
+    const vu = await page.evaluate(() => {
+      const r = window.tse.panneau.rapport().reseau;
+      return { spans: window.__spans, refus: window.__refus,
+               rapporte: r.refus, echecs: r.echecs,
+               enFile: r.chapitres.reprise.enFile };
+    });
+    /* LA PRÉMISSE, EN DEUX MOITIÉS. Sans refus, le travail finirait et la
+       borne n'aurait rien à borner ; sans verrou posé, l'étendue mesurée
+       serait zéro et l'assertion qui suit passerait sans rien voir. */
+    ok('le décor tient le travail ouvert, et le verrou a bien été posé',
+       vu.refus >= 3 && (vu.spans || []).length >= 1 && vu.spans[0] > 0,
+       JSON.stringify(vu));
+    /* L'ASSERTION QUI PORTE LE RAPPORT. La borne vaut 300 ms au banc ; on
+       laisse le double, ce qui couvre le réveil de secours (+50 ms) et le pas
+       d'échantillonnage sans jamais approcher les 1029 ms du mutant. */
+    ok('…et il n\'a pas tenu plus que la borne qu\'il s\'annonce',
+       vu.spans[0] <= 600, JSON.stringify(vu));
+    /* ET LE RAPPORT LE DIT. Le dernier rapport de terrain portait « echecs 0 »
+       au-dessus de quarante-quatre refus consignés deux sections plus bas :
+       qui le lisait concluait que le transport allait bien. Un refus se compte
+       désormais, à part de l'échec de transport — les deux n'appellent pas la
+       même conclusion, et c'est pour ça qu'ils font deux nombres. */
+    ok('…et le rapport nomme ces refus au lieu d\'annoncer un réseau parfait',
+       vu.rapporte >= 3 && vu.echecs === 0, JSON.stringify(vu));
+    await page.close();
+  }
+
+  /* ── b) LA BOURSE SE DÉPENSE À UNE CADENCE, PAS EN UNE MILLISECONDE ─────
+     Quarante chaînes pour une bourse de quarante : la couverture attendue est
+     TOTALE, et c'est ce qui rend l'assertion de cadence honnête — elle ne
+     peut pas être obtenue en sondant moins. */
+  {
+    const page = await fresh();
+    await page.evaluate(() => {
+      const neuf  = new Date(Date.now() - 60_000).toISOString();
+      const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();
+      window.__fx = {}; window.__vodRecent = {};
+      for (let i = 0; i < 40; i++) {
+        const l = 'rev' + i;
+        window.__fx[l] = { id: 'i-' + l, sid: 's-' + l, createdAt: neuf,
+                           viewers: 900 - i, game: 'Rust', tags: [] };
+        window.__vodRecent[l] = [
+          { createdAt: neuf, lengthSeconds: 60, chapitres: [] },
+          { createdAt: vieux,
+            lengthSeconds: Math.round((Date.parse(neuf) - 1_200 - Date.parse(vieux)) / 1000),
+            chapitres: [{ pos: 0, jeu: 'Just Chatting' }] }];
+        window.__addCard(l, 'Rust', String(900 - i));
+      }
+      window.__sondes = [];
+      const vrai = window.fetch;
+      window.fetch = async (url, opt) => {
+        if (JSON.parse(opt.body).some((o) => o.operationName === 'TseVodRecent')) {
+          window.__sondes.push(performance.now());
+        }
+        return vrai(url, opt);
+      };
+    });
+    await attendre(page, () =>
+      window.tse.panneau.rapport().reseau.chapitres.reprise.adoptees >= 40, 8000);
+    const vu = await page.evaluate(() => {
+      const s = window.__sondes;
+      /* LA POINTE SE MESURE SUR LA FENÊTRE QUE LA CADENCE BORNE — 50 ms ici —
+         et pas sur une seconde ronde : une fenêtre choisie au hasard ne
+         dirait rien du nombre que le code tient. */
+      let pointe = 0;
+      for (let i = 0; i < s.length; i++) {
+        let n = 0;
+        for (let j = i; j < s.length && s[j] - s[i] < 50; j++) n++;
+        if (n > pointe) pointe = n;
+      }
+      const b = window.tse.panneau.rapport().reseau.chapitres.reprise;
+      return { n: s.length, pointe,
+               etendueMs: s.length ? Math.round(s[s.length - 1] - s[0]) : 0,
+               sousVoile: b.sousVoile, adoptees: b.adoptees };
+    });
+    /* LA PRÉMISSE : la couverture est entière et sous le voile. Une cadence
+       basse obtenue en sondant moins ne vaudrait rien. */
+    ok('les quarante origines sont apprises, et sous le voile',
+       vu.adoptees >= 40 && vu.sousVoile >= 40, JSON.stringify(vu));
+    /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — la bourse rendue d'un bloc,
+       comme avant — « pointe 40, etendueMs 1 » : quarante requêtes simultanées
+       sur un point d'entrée anonyme, la forme même qu'un limiteur punit, et
+       les 40,7 % de refus que le terrain a mesurés. */
+    ok('…sans que plus de huit sondes ne partent dans la même fenêtre',
+       vu.pointe <= 8 && vu.etendueMs >= 150, JSON.stringify(vu));
+    await page.close();
+  }
+}
+
+/* ═════════ L'ONGLET LE PLUS LOURD NE SE LIT PAS DEUX FOIS ════════════════
+   RAPPORT DE TERRAIN, DEUX LIGNES JUMELLES dans le relevé des abonnements :
+       onglet expired  affiché · 5331 nœuds · barre oui · 74 carte(s)
+       onglet expired  affiché · 5309 nœuds · barre oui · 74 carte(s)
+   Le même onglet, la même moisson, deux chargements de page complets.
+
+   LA CAUSE TIENT DANS L'ORDRE DE DEUX LIGNES. Le relevé lit les expirés SEULS
+   et EN PREMIER quand il ne connaît pas encore l'étiquette de l'ancienneté —
+   c'est sur leurs cartes, les plus simples, qu'elle s'apprend. Puis la ligne
+   suivante décidait de relire les expirés « si l'étiquette est connue »… ce
+   que la passe précédente venait justement de rendre vrai. Toujours vraie,
+   donc, et l'onglet le plus lourd du relevé repartait pour un tour.
+
+   IL N'Y AVAIT RIEN À ALLER RECHERCHER : `mois(carte, true)` apprend
+   l'étiquette ET rend l'ancienneté dans le même passage, donc la première
+   lecture est complète — les deux lignes du rapport rendent bien les mêmes
+   soixante-quatorze chaînes. Ce qui manquait, c'est qu'on RETIENNE ce qui a
+   été lu, au lieu de relire un état qui a changé entre-temps.
+
+   LE COÛT N'EST PAS THÉORIQUE : ce relevé tient le voile (verrou « subs »),
+   et cet onglet-là est le plus gros de tous. */
+{
+  titre('147. Le relevé — l\'onglet des expirés ne se lit qu\'une fois');
+
+  const page = await freshTwitch('<!doctype html><html><body>x</body></html>', [], '/', () => {
+    /* LES CADRES SE COMPTENT À LA SOURCE. Ils sont posés dans le document
+       parent, et leur `src` porte l'onglet : un observateur les voit tous,
+       y compris ceux qui sont retirés aussitôt après. */
+    if (window.top !== window) return;   // le relevé pose ses cadres au sommet
+    window.__cadres = [];
+    const mo = new MutationObserver((muts) => {
+      for (const m of muts) for (const n of m.addedNodes) {
+        if (n.tagName === 'IFRAME' && /\/subscriptions\?/.test(n.src || '')) {
+          window.__cadres.push(decodeURIComponent(n.src.split('tab=')[1] || ''));
+        }
+      }
+    });
+    // documentElement n'existe pas encore à document_start : on réessaie,
+    // plutôt que de jeter et de faire échouer la page entière.
+    const armer = () => {
+      if (!document.documentElement) { setTimeout(armer, 0); return; }
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+    };
+    armer();
+  });
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+    window.__addCard('omofficial', 'G', '500');
+  });
+  /* On attend le relevé À SON TERME — son horodatage — et non une durée : les
+     quatre onglets sont quatre pages, et leur durée dépend de la machine. */
+  await attendre(page, () => !!localStorage.getItem('tse:substs'), 15_000);
+  await wait(page, 500);     // laisse un éventuel cadre de trop se poser
+  const vu = await page.evaluate(() => ({
+    cadres: window.__cadres,
+    expired: window.__cadres.filter(t => t === 'expired').length,
+    subs: (window.tse.subs() || []).length }));
+  /* LA PRÉMISSE : le relevé est bien allé chercher ses onglets, expirés
+     compris. Sans cela, « zéro expired » passerait pour une réussite. */
+  ok('le relevé a bien visité ses onglets, expirés compris',
+     vu.expired >= 1 && vu.cadres.length >= 4, JSON.stringify(vu));
+  /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — la relecture conditionnée à
+     l'étiquette, que la passe d'avant vient d'apprendre — deux « expired »,
+     soit un chargement de page complet pour rien, sous le voile. */
+  ok('…et il n\'a chargé l\'onglet le plus lourd qu\'une seule fois',
+     vu.expired === 1, JSON.stringify(vu));
+  await page.close();
+}
+
 /* ═════════ CE QUE LE BANC NE SAIT PAS TENIR, ET QUI SE DIT ══════════════
    LA 4.15.9 FAIT ATTENDRE AU VOILE les chaînes dont il ne sait RIEN encore —
    pas seulement les sondes déjà parties. La correction est MESURÉE : sur un

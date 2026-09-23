@@ -2178,6 +2178,113 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le verrou du voile avait une borne, et elle ne bornait rien (v4.15.11)
+
+Rien dans ce rapport de terrain ne se plaignait. C'est le **journal du voile**
+qui parlait :
+
+```
+    496 ms  cycle  démarrage
+  10102 ms  levée  stabilité
+  64876 ms  cycle  entrée dans Top Chaînes
+  79904 ms  levée  DÉLAI MAXIMAL          ← quinze secondes tout rond
+ 121567 ms  cycle  changement de langue
+ 136593 ms  levée  DÉLAI MAXIMAL          ← quinze secondes tout rond
+```
+
+Deux cycles sur trois levés par le **plafond dur** de quinze secondes, et les
+**quarante-quatre refus** de Twitch du même rapport tombent exactement dans ces
+deux fenêtres.
+
+### Une seule cause pour les deux
+
+`majVerrouVoile` rendait la main à l'échéance **et remettait son échéance à
+zéro**. L'appel suivant, voyant du travail encore en cours, s'en accordait une
+neuve. La borne annoncée « et pas une seconde de plus » était en réalité une
+**fenêtre glissante**, reconduite tant qu'une sonde restait à faire — c'est-à-dire
+jusqu'au plafond dur.
+
+Et ces quinze secondes coûtent **deux fois**, parce que tout ce qui se règle sur
+« sommes-nous sous le voile » reste en régime de voile pendant ce temps : la
+bourse des sondes, et surtout le report d'un refus, ramené à 400 ms par la
+version précédente. Le refus nourrissait le refus.
+
+La borne se **consomme** désormais une fois par cycle de voile. Quand elle tombe
+alors qu'il reste du travail, elle est marquée dépensée et rien ne la repose
+avant le cycle suivant.
+
+### Pourquoi le banc ne l'avait pas vu
+
+Sa borne valait **cinq secondes** pour un voile qui meurt à **1,2 s** : le
+plafond dur tombait toujours le premier, donc la borne n'était la contrainte de
+rien, et ne pouvait pas manquer. Elle vaut maintenant 300 ms ici — un quart du
+plafond — et c'est ce rapport-là qui rend l'écart lisible.
+
+### La bourse était bonne, la pointe ne l'était pas
+
+Le refus de Twitch suit la cadence, et ce rapport en donne le quatrième point :
+
+| cadence | refus |
+| --- | --- |
+| 0,18–0,25 sonde/s | 21–23 % |
+| 0,45–0,48 sonde/s | 33 % |
+| la bouffée du voile | **40,7 %** (44 refus sur 108 sondes) |
+
+Mesuré au banc, les quarante sondes de la bouffée partaient en **une
+milliseconde**. Quarante requêtes simultanées sur un point d'entrée anonyme,
+c'est la forme même qu'un limiteur de débit punit.
+
+La bourse n'a donc pas baissé — c'est le **débit** qui est borné, par la
+mécanique exacte de la croisière : une fenêtre glissante, huit sondes par
+seconde. Quarante sondes font cinq fenêtres pour un verrou qui en dure six : la
+couverture ne bouge **pas d'une carte**, et la pointe tombe de quarante par
+milliseconde à huit par seconde.
+
+Si le refus ne descend pas, c'est la bourse qui baissera — cette fois avec deux
+mesures derrière elle. Le chiffre qui tranche est `reseau` rapporté à `sondes`.
+
+### Et le rapport annonçait un réseau parfait
+
+Ce même rapport portait **`echecs 0`** et `dernierEchec —` au-dessus d'une
+section d'erreurs annonçant quarante-quatre « réponse 200 avec erreurs
+GraphQL ». Dix pour cent des appels refusés, et la section réseau affichait une
+santé sans tache : qui la lit cherche ailleurs.
+
+Un refus se compte désormais à part, sous `refus`. Le flux ne change pas — un
+200 porteur d'erreurs reste rendu tel quel aux appelants — mais les deux pannes
+font deux nombres, parce qu'elles n'appellent pas la même conclusion : un échec
+de transport dit que la requête n'est pas passée, un refus dit que Twitch ne
+veut pas répondre à celle-là, maintenant.
+
+### Et l'onglet le plus lourd était lu deux fois
+
+Le même rapport portait deux lignes jumelles dans le relevé des abonnements :
+
+```
+onglet expired  affiché · 5331 nœuds · barre oui · 74 carte(s) · 74 chaîne(s)
+onglet expired  affiché · 5309 nœuds · barre oui · 74 carte(s) · 74 chaîne(s)
+```
+
+Le relevé lit les expirés **seuls et en premier** quand il ne connaît pas encore
+l'étiquette de l'ancienneté — c'est sur leurs cartes, les plus simples, qu'elle
+s'apprend. Puis la ligne suivante décidait de les relire « si l'étiquette est
+connue »… ce que la passe précédente venait justement de rendre vrai. Toujours
+vraie, donc, et l'onglet le plus lourd repartait pour un tour.
+
+Il n'y avait rien à aller rechercher : la lecture apprend l'étiquette **et**
+rend l'ancienneté dans le même passage — les deux lignes du rapport rendent
+bien les mêmes soixante-quatorze chaînes. Le relevé retient maintenant ce qu'il
+a lu, au lieu de relire un état qu'il vient lui-même de changer. Le coût n'était
+pas théorique : ce relevé tient le voile.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la borne reposée à chaque appel | verrou tenu **1029 ms** pour 300 annoncées |
+| la bourse rendue d'un bloc | **pointe 40**, étendue **1 ms** |
+| la relecture conditionnée à l'étiquette | **deux** chargements de l'onglet `expired` |
+
 ## Un refus de Twitch ne doit pas coûter une minute (v4.15.10)
 
 > « Le changement arrive au bout d'une minute ou 2. »
@@ -9578,7 +9685,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 145 scénarios, 1260 assertions |
+| `npm test` | le harnais Playwright : 147 scénarios, 1267 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -9599,7 +9706,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1146 Ko | 419 Ko | 3 455 → **2** |
+| `content.js` | 1146 Ko | 419 Ko | 3 465 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

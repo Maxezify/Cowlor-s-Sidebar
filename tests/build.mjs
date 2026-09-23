@@ -106,6 +106,14 @@ const subs = [
      par rien. */
   [/RECONNECT_PROBE_WINDOW:\s*30_000/, 'RECONNECT_PROBE_WINDOW:     2_000'],
   [/RECONNECT_PROBE_RETRY:\s*60_000/,  'RECONNECT_PROBE_RETRY:      1_200'],
+  /* ── LA FENÊTRE DU VOILE SUIT LA BORNE DU VERROU, ET C'EST LE RAPPORT DES
+        DEUX QUI COMPTE ───────────────────────────────────────────────────
+     En production le verrou dure 6 s et la fenêtre 1 s : la bourse entière —
+     quarante sondes à sept par fenêtre — tient dans le verrou, tout juste.
+     C'est ce RAPPORT de six qu'il faut garder ici, sans quoi le banc
+     éprouverait une couverture que la production n'a pas, ou l'inverse : la
+     borne du verrou valant 300 ms au banc, la fenêtre vaut 50. */
+  [/RECONNECT_PROBE_VEIL_WINDOW:\s*1_000/, 'RECONNECT_PROBE_VEIL_WINDOW:     50'],
   /* ── LE VOILE, ET CE QUE LES ORIGINES ONT LE DROIT DE LUI FAIRE ATTENDRE ─
      Trois secondes de fenêtre et six d'attente en production ; ici l'une et
      l'autre sont ramenées à l'échelle du banc, pour qu'un scénario puisse
@@ -113,7 +121,20 @@ const subs = [
      le délai des réponses simulées, sans quoi le verrou lèverait sur son
      échéance et le scénario ne mesurerait plus rien. */
 
-  [/RECONNECT_PROBE_HOLD_MAX:\s*6_000/,    'RECONNECT_PROBE_HOLD_MAX:    5_000'],
+  /* ── LA BORNE DU VERROU DOIT ÊTRE PLUS COURTE QUE LE VOILE, SINON ELLE NE
+        SE MESURE PAS ─────────────────────────────────────────────────────
+     ELLE VALAIT CINQ SECONDES ICI, pour un voile qui ne peut pas dépasser
+     1,2 s : le délai dur tombait toujours le premier, donc AUCUN scénario ne
+     pouvait voir cette borne à l'œuvre — ni la voir manquer. C'est exactement
+     par ce trou qu'un verrou qui se REPOSAIT indéfiniment est parti en
+     production, où le journal de l'utilisateur l'a chiffré : deux cycles de
+     voile sur trois levés « délai maximal », quinze secondes chacun.
+
+     Ramenée sous le quart du délai dur, elle redevient la contrainte qui
+     mord : le scénario 146 mesure la DURÉE du verrou dans un cycle, et le
+     rapport des deux nombres — 300 contre 1 200 — est ce qui rend l'écart
+     lisible entre un verrou borné et un verrou qui se renouvelle. */
+  [/RECONNECT_PROBE_HOLD_MAX:\s*6_000/,    'RECONNECT_PROBE_HOLD_MAX:    300'],
   // Absence au-delà de laquelle le retour sur l'onglet vaut un redémarrage :
   // une minute en production. Réduite ici pour qu'un test puisse observer LES
   // DEUX branches — la courte absence, qui rattrape en silence, et la longue,

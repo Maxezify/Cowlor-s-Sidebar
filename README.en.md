@@ -2057,6 +2057,110 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The veil's hold had a bound, and it bounded nothing (v4.15.11)
+
+Nothing in this field report complained. It was the **veil journal** that spoke:
+
+```
+    496 ms  cycle  startup
+  10102 ms  lift   stability
+  64876 ms  cycle  entering Top Channels
+  79904 ms  lift   HARD TIMEOUT           ← fifteen seconds exactly
+ 121567 ms  cycle  language change
+ 136593 ms  lift   HARD TIMEOUT           ← fifteen seconds exactly
+```
+
+Two cycles out of three lifted by the **hard fifteen-second cap**, and the
+**forty-four refusals** from Twitch in the same report fall exactly inside
+those two windows.
+
+### One cause for both
+
+`majVerrouVoile` released at the deadline **and reset its deadline to zero**.
+The next call, seeing work still in progress, granted itself a fresh one. The
+bound advertised as "and not a second longer" was in fact a **sliding window**,
+renewed for as long as one probe remained — that is, until the hard cap.
+
+And those fifteen seconds cost **twice**, because everything keyed on "are we
+under the veil" stays in veil regime throughout: the probe purse, and above all
+the retry after a refusal, brought down to 400 ms by the previous version. The
+refusal was feeding the refusal.
+
+The bound is now **spent** once per veil cycle. When it falls while work
+remains, it is marked spent and nothing re-arms it before the next cycle.
+
+### Why the bench had not seen it
+
+Its bound was **five seconds** for a veil that dies at **1.2 s**: the hard cap
+always fell first, so the bound constrained nothing and could not fail. It is
+now 300 ms here — a quarter of the cap — and it is that ratio which makes the
+gap legible.
+
+### The purse was right, the spike was not
+
+Twitch's refusal tracks the cadence, and this report gives the fourth data
+point:
+
+| cadence | refusals |
+| --- | --- |
+| 0.18–0.25 probe/s | 21–23 % |
+| 0.45–0.48 probe/s | 33 % |
+| the veil burst | **40.7 %** (44 refusals out of 108 probes) |
+
+Measured on the bench, the burst's forty probes went out in **one
+millisecond**. Forty simultaneous requests against an anonymous endpoint is the
+exact shape a rate limiter punishes.
+
+So the purse did not shrink — the **rate** is bounded, by the cruising
+mechanism exactly: a sliding window, eight probes per second. Forty probes make
+five windows for a hold that lasts six: coverage does **not move by a single
+card**, and the spike drops from forty per millisecond to eight per second.
+
+If refusals do not come down, the purse is what shrinks next — that time with
+two measurements behind it. The deciding figure is `reseau` against `sondes`.
+
+### And the report announced a perfect network
+
+That same report carried **`echecs 0`** and `dernierEchec —` above an error
+section announcing forty-four "200 answer with GraphQL errors". Ten percent of
+calls refused, and the network section showed spotless health: whoever reads it
+looks elsewhere.
+
+A refusal is now counted separately, under `refus`. The flow does not change —
+a 200 carrying errors is still returned as-is to callers — but the two failures
+make two numbers, because they do not warrant the same conclusion: a transport
+failure says the request did not get through, a refusal says Twitch will not
+answer that one, now.
+
+### And the heaviest tab was read twice
+
+The same report carried two twin lines in the subscriptions sweep:
+
+```
+tab expired  shown · 5331 nodes · bar yes · 74 card(s) · 74 channel(s)
+tab expired  shown · 5309 nodes · bar yes · 74 card(s) · 74 channel(s)
+```
+
+The sweep reads the expired tab **alone and first** when it does not yet know
+the seniority label — it is on those cards, the simplest ones, that the label is
+learned. Then the next line decided to re-read them "if the label is known"…
+which the previous pass had just made true. Always true, then, and the heaviest
+tab went round again.
+
+There was nothing to go back for: the read learns the label **and** returns the
+seniority in the same pass — the report's two lines do return the same
+seventy-four channels. The sweep now remembers what it read, instead of
+re-reading a state it just changed itself. The cost was not theoretical: this
+sweep holds the veil.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the bound re-armed on every call | hold kept **1029 ms** for an advertised 300 |
+| the purse handed over in one block | **spike 40**, spread **1 ms** |
+| the re-read conditioned on the label | **two** loads of the `expired` tab |
+
 ## A refusal from Twitch must not cost a minute (v4.15.10)
 
 > "The change arrives after a minute or two."
@@ -9220,7 +9324,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 145 scenarios, 1260 assertions |
+| `npm test` | the Playwright harness: 147 scenarios, 1267 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -9240,7 +9344,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1146 KB | 419 KB | 3,455 → **2** |
+| `content.js` | 1146 KB | 419 KB | 3,465 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 98 KB | 47 KB | 134 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
