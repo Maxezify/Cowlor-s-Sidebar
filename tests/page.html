@@ -435,7 +435,13 @@ window.fetch = async (url, opt) => {
           id: 'slot-' + g.id,
           user: {
             id: g.id, login: g.login, displayName: g.login,
-            stream: { id: 's-' + g.login, viewersCount: g.viewers, collaborationViewersCount: g.combined }
+            /* `sansStream` : le participant est DANS la session mais ne
+               diffuse pas sur sa propre chaîne — Twitch rend alors `stream:
+               null`. C'est le cas le plus courant d'un invité Guest Star, et
+               le décor ne savait pas le jouer : il donnait un stream à tout le
+               monde, si bien qu'aucun scénario ne pouvait voir la différence. */
+            stream: g.sansStream ? null
+              : { id: 's-' + g.login, viewersCount: g.viewers, collaborationViewersCount: g.combined }
           }
         }))
       } : null
