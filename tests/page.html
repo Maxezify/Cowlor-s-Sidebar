@@ -731,17 +731,26 @@ for (const type of ['pointerdown', 'click']) {
 }
 
 // ── Page /subscriptions ─────────────────────────────────────────────
-// Reproduite d'après le relevé du 21/08/2026 : chaque abonnement est un
-// [data-a-target="subscription-card"] contenant le lien de la chaîne.
-// Rendue APRÈS un délai, comme la vraie : c'est une SPA, et le `load` de
-// l'iframe précède l'apparition des cartes. Un harnais qui les poserait
-// tout de suite ne testerait pas l'attente.
+// Reproduite d'après les relevés du 21/08 et du 31/08/2026, et la capture du
+// 24/09/2026 : un titre, SIX onglets en liens (« Vos abonnements », « offerts »,
+// « mobiles », « Turbo », « autres », « expirés »), et SOUS eux le panneau de
+// l'onglet choisi. Chaque abonnement y est un [data-a-target="subscription-card"]
+// contenant le lien de la chaîne. Rendue APRÈS un délai, comme la vraie : c'est
+// une SPA, et le `load` de l'iframe précède l'apparition des cartes.
+//
+// CHANGER D'ONGLET NE RECHARGE PAS LA PAGE. La vraie rapatrie les cinq listes
+// d'un coup en se chargeant (vu dans la console : un lot, cinq opérations) ;
+// un clic sur un onglet change l'adresse et redessine le panneau. Le décor
+// fait pareil, et compte ses chargements dans `window.top.__subsChargements`.
+//
 // __noSubsPage coupe cette page : certains scénarios éprouvent la lecture
 // PAR VISITE seule, et le relevé complet y ajouterait ses propres chaînes.
 if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
-  // Les trois onglets relevés. « turbo » et « expired » sont ici EXPRÈS, avec
-  // des chaînes qui n'apparaissent nulle part ailleurs : si le module venait à
-  // les lire, le relevé le dirait tout de suite.
+  try { window.top.__subsChargements = (window.top.__subsChargements || 0) + 1; }
+  catch { /* sommet d'une autre origine : rien à compter */ }
+  // « turbo » et « expired » sont ici EXPRÈS, avec des chaînes qui
+  // n'apparaissent nulle part ailleurs : si le module venait à lire Turbo, ou à
+  // verser des expirés parmi les abonnements en cours, le relevé le dirait.
   const ONGLETS = {
     paid:    ['omofficial', 'roicheese', 'etoiles'],
     gifts:   ['clem_mlrt'],
@@ -760,84 +769,148 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
   // délibéré — il reproduit un réabonnement après interruption, et vérifie
   // que la lecture des expirés ne dégrade pas un abonnement en cours.
   const EXPIRES = ['jenfirer', 'antoinedaniel', 'etoiles'];
-  const tab = new URLSearchParams(location.search).get('tab') || 'paid';
-  // __subsVides : onglets qui ne rendront AUCUNE carte, comme un compte sans
-  // abonnement offert. La barre latérale, elle, est là — c'est justement ce
-  // qui permet de distinguer « vide » de « lent ».
-  if ((window.__subsVides || []).includes(tab)) ONGLETS[tab] = [];
+  // La barre, dans l'ordre et avec les mots de la vraie page.
+  const BARRE = [['paid', 'Vos abonnements'], ['gifts', 'Abonnements offerts'],
+                 ['mobile', 'Abonnements mobiles'], ['turbo', 'Abonnement Turbo'],
+                 ['other', 'Autres abonnements'], ['expired', 'Abonnements expirés']];
+  // Twitch écrit TOUJOURS quelque chose à la place d'une liste vide.
+  const VIDE = 'Aucun abonnement de ce type pour le moment.';
+  const ongletCourant = () => new URLSearchParams(location.search).get('tab') || 'paid';
+
+  const carteDe = (login, tab) => {
+    const carte = document.createElement('div');
+    carte.className = 'subscription-card';
+    /* __subCardAttr : le jour où Twitch renomme cet attribut, la page rend
+       EXACTEMENT les mêmes cartes sous un autre nom — et le relevé rend
+       zéro sans rien dire. C'est le cas que le décor ne savait pas jouer, et
+       qu'un rapport de terrain a exigé. */
+    carte.setAttribute('data-a-target', window.__subCardAttr || 'subscription-card');
+    const passe = EXPIRES.includes(login) && tab === 'expired';
+    const m = MOIS[login] || 0;
+    // Copie FIDÈLE de la structure relevée le 31/08/2026. Ce qui compte :
+    //  • l'ancienneté est une paire <p> étiquette + <span> valeur, SANS
+    //    aucun data-* pour la désigner ;
+    //  • une carte PAYANTE en porte trois autres qui lui ressemblent —
+    //    l'anniversaire (en JOURS, et placé AVANT), la série en cours, et
+    //    la date d'expiration. Un harnais qui n'en poserait qu'une laisserait
+    //    passer un relevé qui prend le premier nombre venu ;
+    //  • une carte EXPIRÉE n'en porte qu'une, et c'est ce qui permet
+    //    d'apprendre l'étiquette sans lire le français.
+    const etiquette = 'Nombre total de mois abonné :';
+    const bruit = passe
+      ? '<p class="expired-sub-message">Réabonnez-vous pour débloquer ' +
+        '<span class="expired-sub-message">instantanément</span></p>'
+      : '<p>Prochain anniversaire d\'abonnement dans : <span>9 jours</span></p>';
+    const suite = passe ? '' :
+      '<p>Nombre de mois à la suite :</p><span>' + Math.max(1, m - 1) + ' mois</span>' +
+      '<p>Vos avantages arrivent à expiration le <span>9 sept. 2026</span></p>';
+    // Le SQUELETTE : lien et nom, ce qui suffit à reconnaître la chaîne.
+    carte.innerHTML = '<div class="subscription-card-banner">' +
+      '<a class="tw-link" href="/' + login + '"></a></div>' +
+      '<p data-a-target="subscription-card__channel-name">' + login + '</p>';
+    // Le CORPS — dont l'ancienneté — arrive après, comme dans une liste
+    // React qui s'écrit par morceaux. __subsProgressif règle ce décalage.
+    const corps = bruit +
+      (m ? '<p>' + etiquette + '</p><span>' + m + ' mois</span>' : '') +
+      suite +
+      '<div class="subscription-card__sub-progress"><div class="sub-badge-progress">' +
+      '<p class="sub-badge-progress__current-badge--text">Badge de 3 mois</p>' +
+      '<p class="sub-badge-progress__next-badge--text">Badge de 6 mois</p>' +
+      '</div></div>';
+    const retard = window.__subsProgressif || 0;
+    if (retard) setTimeout(() => { carte.insertAdjacentHTML('beforeend', corps); }, retard);
+    else carte.insertAdjacentHTML('beforeend', corps);
+    return carte;
+  };
+
+  // Ce que la page met SOUS ses onglets, pour l'onglet `tab`. Le retard du
+  // message ne vaut qu'au PREMIER affichage : les données arrivent une fois,
+  // tard, et un changement d'onglet réutilise ce qui est déjà là.
+  let premierAffichage = true;
+  let messageEnAttente = null;
+  const peindre = (panneau, tab) => {
+    const retard = premierAffichage ? (window.__subsMessageRetard || 0) : 0;
+    premierAffichage = false;
+    // Un nouvel affichage remplace l'ancien, y compris ce qu'il allait écrire.
+    if (messageEnAttente) { clearTimeout(messageEnAttente); messageEnAttente = null; }
+    panneau.replaceChildren();
+    /* __subsBlanc : la page se montre, barre et onglets compris, et ne rend
+       JAMAIS rien dessous. C'est ce que le relevé a vu le 24/09/2026. */
+    if (window.__subsBlanc) return;
+    /* __subsMessage : ce que Twitch affiche quand SA PROPRE requête échoue
+       (« Impossible d'afficher vos abonnements pour le moment » — « failed
+       integrity check » en console). __subsMessageRetard le fait arriver
+       TARD, panneau blanc jusque-là : la capture de l'utilisateur le montrait
+       à l'écran, le relevé ne l'avait pas vu. */
+    if (window.__subsMessage) {
+      const ecrire = () => {
+        const m = document.createElement('p');
+        m.textContent = window.__subsMessage;
+        panneau.appendChild(m);
+      };
+      if (retard) messageEnAttente = setTimeout(ecrire, retard);
+      else ecrire();
+      return;
+    }
+    // __subsVides : onglets qui ne rendront AUCUNE carte — mais leur message.
+    const logins = (window.__subsVides || []).includes(tab) ? [] : (ONGLETS[tab] || []);
+    if (!logins.length) {
+      /* __subsVideMuet : un onglet vide dessiné SANS UN MOT — une image seule.
+         Rien ne dit que Twitch le fasse ; le relevé ne doit pas en dépendre. */
+      if (window.__subsVideMuet) {
+        const img = document.createElement('div');
+        img.className = 'illustration-vide';
+        panneau.appendChild(img);
+        return;
+      }
+      const p = document.createElement('p');
+      p.textContent = VIDE;
+      panneau.appendChild(p);
+      return;
+    }
+    const zone = document.createElement('div');
+    zone.id = 'subs-content';
+    for (const login of logins) zone.appendChild(carteDe(login, tab));
+    panneau.appendChild(zone);
+  };
+
   // __subsDelay règle la lenteur de cette page. Elle sert à éprouver la
   // RETENUE du voile : avec une page lente, le voile doit rester tant que le
   // relevé n'est pas rentré ; sans retenue, il se lèverait bien avant.
   setTimeout(() => {
-    const zone = document.createElement('div');
-    zone.id = 'subs-content';
-    for (const login of (ONGLETS[tab] || [])) {
-      const carte = document.createElement('div');
-      carte.className = 'subscription-card';
-      /* __subCardAttr : le jour où Twitch renomme cet attribut, la page rend
-         EXACTEMENT les mêmes cartes sous un autre nom — et le relevé rend
-         zéro sans rien dire. C'est le cas que le décor ne savait pas jouer, et
-         qu'un rapport de terrain a exigé. */
-      carte.setAttribute('data-a-target', window.__subCardAttr || 'subscription-card');
-      const passe = EXPIRES.includes(login) && tab === 'expired';
-      const m = MOIS[login] || 0;
-      // Copie FIDÈLE de la structure relevée le 31/08/2026. Ce qui compte :
-      //  • l'ancienneté est une paire <p> étiquette + <span> valeur, SANS
-      //    aucun data-* pour la désigner ;
-      //  • une carte PAYANTE en porte trois autres qui lui ressemblent —
-      //    l'anniversaire (en JOURS, et placé AVANT), la série en cours, et
-      //    la date d'expiration. Un harnais qui n'en poserait qu'une laisserait
-      //    passer un relevé qui prend le premier nombre venu ;
-      //  • une carte EXPIRÉE n'en porte qu'une, et c'est ce qui permet
-      //    d'apprendre l'étiquette sans lire le français.
-      const etiquette = 'Nombre total de mois abonné :';
-      const bruit = passe
-        ? '<p class="expired-sub-message">Réabonnez-vous pour débloquer ' +
-          '<span class="expired-sub-message">instantanément</span></p>'
-        : '<p>Prochain anniversaire d\'abonnement dans : <span>9 jours</span></p>';
-      const suite = passe ? '' :
-        '<p>Nombre de mois à la suite :</p><span>' + Math.max(1, m - 1) + ' mois</span>' +
-        '<p>Vos avantages arrivent à expiration le <span>9 sept. 2026</span></p>';
-      // Le SQUELETTE : lien et nom, ce qui suffit à reconnaître la chaîne.
-      carte.innerHTML = '<div class="subscription-card-banner">' +
-        '<a class="tw-link" href="/' + login + '"></a></div>' +
-        '<p data-a-target="subscription-card__channel-name">' + login + '</p>';
-      // Le CORPS — dont l'ancienneté — arrive après, comme dans une liste
-      // React qui s'écrit par morceaux. __subsProgressif règle ce décalage.
-      // Un harnais qui poserait la carte entière d'un bloc laisserait passer
-      // un relevé qui conclut au premier passage venu.
-      const corps = bruit +
-        (m ? '<p>' + etiquette + '</p><span>' + m + ' mois</span>' : '') +
-        suite +
-        '<div class="subscription-card__sub-progress"><div class="sub-badge-progress">' +
-        '<p class="sub-badge-progress__current-badge--text">Badge de 3 mois</p>' +
-        '<p class="sub-badge-progress__next-badge--text">Badge de 6 mois</p>' +
-        '</div></div>';
-      const retard = window.__subsProgressif || 0;
-      if (retard) setTimeout(() => { carte.insertAdjacentHTML('beforeend', corps); }, retard);
-      else carte.insertAdjacentHTML('beforeend', corps);
-      zone.appendChild(carte);
-    }
-    /* LE CORPS PRINCIPAL, ET IL N'ÉTAIT PAS LÀ. La vraie page range ses
-       cartes dans un <main> ; ce décor les posait à même #root, ce qui rendait
-       le relevé incapable de distinguer la zone des abonnements de la barre
-       latérale. Un rapport de terrain l'a exigé : Twitch écrit parfois un
-       message À LA PLACE des cartes, et c'est ce message qu'il faut pouvoir
-       lire — sans emporter les pseudonymes de la barre avec lui. */
+    /* LE CORPS PRINCIPAL. La vraie page range tout dans un <main> ; le décor
+       aussi, sans quoi le relevé ne pourrait pas distinguer la zone des
+       abonnements de la barre latérale — ni, désormais, le panneau de sa
+       barre d'onglets. */
     const principal = document.createElement('main');
-    /* __subsMessage : ce que Twitch affiche quand SA PROPRE requête échoue
-       (« Impossible d'afficher vos abonnements pour le moment »). La page est
-       parfaitement rendue, la barre est là, et il n'y a AUCUNE carte — un zéro
-       qui ne dit rien sur notre sélecteur. C'est le cas que le décor ne savait
-       pas jouer, et il se confondait avec le sélecteur mort. */
-    if (window.__subsMessage) {
-      const m = document.createElement('p');
-      m.textContent = window.__subsMessage;
-      principal.appendChild(m);
-    } else {
-      principal.appendChild(zone);
+    const titre = document.createElement('h1');
+    titre.textContent = 'Abonnements';
+    principal.appendChild(titre);
+    const barre = document.createElement('div');
+    for (const [cle, libelle] of BARRE) {
+      /* __subsSansBascule : des onglets qui ne sont pas des liens. Le relevé
+         ne peut plus changer d'onglet dans la page, et doit recharger. */
+      const el = document.createElement(window.__subsSansBascule ? 'span' : 'a');
+      if (!window.__subsSansBascule) el.setAttribute('href', '/subscriptions?tab=' + cle);
+      el.textContent = libelle;
+      barre.appendChild(el);
     }
+    principal.appendChild(barre);
+    const panneau = document.createElement('div');
+    principal.appendChild(panneau);
+    barre.addEventListener('click', (e) => {
+      const lien = e.target.closest('a[href]');
+      if (!lien) return;
+      e.preventDefault();
+      /* __subsClicMuet : des liens qui ne mènent nulle part — la page ne
+         change pas d'onglet. Le relevé doit s'en apercevoir et recharger. */
+      if (window.__subsClicMuet) return;
+      history.pushState(null, '', lien.getAttribute('href'));
+      // React redessine un peu après que l'adresse a changé.
+      setTimeout(() => peindre(panneau, ongletCourant()), window.__subsRedessin ?? 80);
+    });
     document.getElementById('root').appendChild(principal);
+    peindre(panneau, ongletCourant());
   }, window.__subsDelay || 600);
 }
 

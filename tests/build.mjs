@@ -68,13 +68,17 @@ const subs = [
   // 700 ms entre squelette et corps que le harnais simule : c'est ce rapport,
   // et lui seul, qui décide si le relevé attend le corps ou conclut sans lui.
   [/SUBS_PAGE_STABLE:\s*[\d_]+/,  'SUBS_PAGE_STABLE:     900'],
-  [/SUBS_PAGE_STAGGER:\s*[\d_]+/, 'SUBS_PAGE_STAGGER:    200'],
+  /* La bascule d'onglet dans la page, et le relevé revenu plus tôt après un
+     relevé vide. Accélérés pour tenir dans un scénario ; le second reste
+     sous la période du banc (4 s), sans quoi on ne verrait jamais le doublement. */
+  [/SUBS_PAGE_SWITCH:\s*[\d_]+/, 'SUBS_PAGE_SWITCH:     1_000'],
+  [/SUBS_PAGE_EMPTY_RETRY:\s*15 \* 60_000/, 'SUBS_PAGE_EMPTY_RETRY: 1_000'],
   [/SUBS_PAGE_HOLD_GRACE:\s*[\d_]+/, 'SUBS_PAGE_HOLD_GRACE: 400'],
   /* Le BAIL entre onglets : accéléré comme le reste, sinon un scénario qui
-     éprouve deux pages devrait attendre une minute. Il reste bien plus long
-     que le pire cas d'un relevé au banc — six secondes d'abandon — ce qui est
-     exactement le rapport qu'il a en production. */
-  [/SUBS_PAGE_LEASE:\s*[\d_]+/, 'SUBS_PAGE_LEASE:      12_000'],
+     éprouve deux pages devrait attendre deux minutes. Il reste plus long que
+     le pire cas d'un relevé au banc — quatre onglets de six secondes d'abandon,
+     lus l'un après l'autre — ce qui est le rapport qu'il a en production. */
+  [/SUBS_PAGE_LEASE:\s*[\d_]+/, 'SUBS_PAGE_LEASE:      30_000'],
   [/SUBS_PAGE_CLAIM:\s*[\d_]+/, 'SUBS_PAGE_CLAIM:      150'],
   /* La REPRISE, accélérée comme le reste : elle doit pouvoir se jouer deux ou
      trois fois dans un scénario, là où elle s'étale sur une minute et demie en
