@@ -1807,6 +1807,15 @@ const construireRapport = (r, transport, fond) => {
        personne. */
     paire('rangé derrière un autre onglet / stood down',
           r.relevesAbonnements?.differes ?? 0),
+    /* POURQUOI LE PROCHAIN RELEVÉ VIENDRA PLUS TÔT — ou pas. Un relevé qui
+       n'a vu aucune carte se retente au bout de quinze minutes, puis du
+       double : une panne passagère de Twitch se répare seule, et ces deux
+       lignes disent où on en est. */
+    paire('relevés vides d\'affilée / empty sweeps in a row',
+          r.relevesAbonnements?.videsDeSuite ?? 0),
+    paire('prochain relevé dans / next sweep in',
+          Number.isFinite(r.relevesAbonnements?.prochainDansMs)
+            ? `${Math.round(r.relevesAbonnements.prochainDansMs / 60_000)} min` : '—'),
     /* CE QUE CHAQUE ONGLET A VU. Un relevé qui rend zéro ne dit rien tout
        seul : « affiché, barre là, 3 200 nœuds, 0 carte » désigne un sélecteur
        mort, « jamais chargé » désigne autre chose. Une ligne par onglet, dans
@@ -1816,9 +1825,11 @@ const construireRapport = (r, transport, fond) => {
        cette page », deux causes opposées sous un même zéro. */
     ...((r.relevesAbonnements?.onglets || []).map((o) => paire(
       `onglet ${o.onglet}`,
-      `${o.charge ? 'affiché' : 'jamais chargé'} · ${o.noeuds} nœuds`
+      `${o.voie || 'page'} · ${o.charge ? 'affiché' : 'jamais chargé'} · ${o.noeuds} nœuds`
       + ` · barre ${o.barre ? 'oui' : 'non'} · ${o.cartes} carte(s)`
       + ` · ${o.logins} chaîne(s)`
+      + (o.liens ? ` · ${o.liens} lien(s) de chaîne hors carte` : '')
+      + (o.blanc ? ' · rien sous les onglets' : '')
       + (o.texte ? ` · la page dit : « ${o.texte} »` : '')))),
   ]));
   L.push(...bloc('RÉSEAU / NETWORK', [

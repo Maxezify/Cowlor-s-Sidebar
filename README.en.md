@@ -2057,6 +2057,120 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Twitch refuses its subscriptions page, and the sweep learns to say so (v4.19.2)
+
+> "Subscription recognition does not work, ironmouse is not gold."
+
+### What was happening
+
+The report carried four twin lines:
+
+```
+onglet expired  affiché · 1098 nœuds · barre oui · 0 carte(s) · 0 chaîne(s)
+                · la page dit : « Abonnements Vos abonnements Abonnements offerts … »
+```
+
+The day before, the same tab rendered **5,331 nodes and 74 cards**, with the
+same code: the sweep module had not moved since 4.15.10, nor had `adblock.js`
+or the bridge. A screenshot settled it: opened by hand, Twitch's page itself
+displayed "**Impossible d'afficher vos abonnements pour le moment**" (unable to
+display your subscriptions right now), and the console showed `failed integrity
+check` on the page's five requests — `subscriptionBenefits: null`. **Twitch was
+refusing to serve the list, to its own page.** No extension can read what Twitch
+does not display, and this one touches neither the token nor the integrity check.
+
+The already-known subscriptions had vanished for another reason, stated by the
+user: they always start from a fresh install. The sweep is additive and never
+erases anything; it simply had nothing to take back.
+
+### What was ours
+
+**1. Four Twitch pages for a single piece of data.** The sweep loaded one page
+per tab, four at a time. The console showed what each one requests while
+loading: **one batch, five operations** — paid, gifts, mobile, all, expired. We
+now load **one** page and switch tabs by clicking the links it displays, like a
+user. If the page offers none, or the click does not change the address, we
+reload — one page per tab, one after the other. Four boots of the Twitch app
+become one, and so do four passes through the integrity check.
+
+The danger of a switch is reading the PREVIOUS tab: on a fresh profile that is
+the expired one, and reading it as current subscriptions would **gild** it. The
+address must have changed, and cards identical to the previous tab's must hold
+much longer before being believed.
+
+**2. A tab bar with nothing under it is not an empty tab.** The sweep concluded
+"empty" after seven seconds of a still page — before Twitch wrote its sentence.
+It now waits for the **panel** to answer, cards or message. Once one tab has
+rendered something, the others come from the same batch: an empty panel there
+is an empty tab, even drawn without a word.
+
+**3. "The page says" copied the title and the tabs.** Only the text **under**
+the tab bar is kept now, the bar being excluded by its nature (headings, tab
+links) and not by its language. The report would have carried Twitch's sentence.
+
+**4. A privacy defect, found along the way.** When Twitch renames its cards, the
+panel **is** the list — and its "sentence" poured the names of subscribed
+channels into a report that promises to carry none. Channel links are counted
+instead, and that number is enough for the verdict: "N channel link(s) in the
+page, none in a card: the selector no longer matches".
+
+**5. An empty sweep locked six hours.** Twitch back ten minutes later, nothing
+came back before the evening. After a sweep that saw **no card anywhere**, the
+next one returns after fifteen minutes, then twice that on each new failure, up
+to the ordinary period. The report says where things stand:
+
+| line | what it says |
+| --- | --- |
+| `relevés vides d'affilée` | the number of failures that shortened the wait |
+| `prochain relevé dans` | the remaining wait, in minutes |
+| `onglet … page / bascule / bascule refusée` | how each tab was read |
+
+**When to stop.** A page that never came will not come better on the next load:
+immediate stop. A panel blank for the whole guard is usually Twitch not serving
+the list — we stop at the second in a row, rather than chaining four guards for
+the same result.
+
+### What it costs
+
+Read one after the other, empty tabs each pay their settling delay: a sweep goes
+from about ten seconds to about twenty when two tabs are empty — in the
+background, every six hours. On a fresh install, the veil still lifts at the
+first result. An account truly without subscriptions pays five extra sweeps,
+once.
+
+`SUBS_PAGE_STAGGER` goes with the staggered starts, and a comment describing a
+constant removed long ago ("beyond this number of nodes…") goes with it.
+
+### What I could not verify
+
+`www.twitch.tv` is refused by this machine's proxy: the tab bar of `?tab=` links
+and the empty-tab message are **modelled** from the screenshot. The two
+fallbacks cover the gap — reload if the switch fails, conclude without text once
+the data has arrived. And nothing says whether the extension contributes to
+Twitch's integrity refusal: the deciding test happens on the user's side,
+extension disabled, on `/subscriptions`.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| "the page says" read on the whole `main` (4.19.1) | "Abonnements Vos abonnements…" — the field report, word for word |
+| settling that runs on a blank panel | Twitch's sentence missed, empty text |
+| no earlier retry | "2:<date>", nothing before the ordinary period |
+| one page per tab (no switching) | four loads instead of one |
+| the previous tab's cards accepted | two **expired** subscriptions gilded |
+| channel links not counted | "jenfirer Réabonnez-vous…" in the report |
+| cards counted "at the highest" after a switch | "gifts · 3 card(s) · 1 channel(s)" — the previous tab, counted for the next |
+| the panel proof required from every tab | textless empty tabs sent to the guard |
+| stop at the first blank panel | the sweep stops one tab too early |
+| no stop at all | four guards in a row |
+
+Four scenarios described the old architecture and were rewritten to state the
+new one: 53 asserted "the tabs start together", 141 bounded pages by the number
+of tabs (two duplicate sweeps would no longer have exceeded the bound), 147
+counted iframes rather than reads, and 46 bounded a duration that no longer told
+its mutant apart. 157 is new.
+
 ## The audit: a loop, a gap, a false line, and five dead members (v4.19.1)
 
 > "A complete audit of the extension, check every piece of code to remove the
@@ -10053,7 +10167,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 156 scenarios, 1290 assertions |
+| `npm test` | the Playwright harness: 157 scenarios, 1309 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -10073,9 +10187,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1183 KB | 423 KB | 3,504 → **2** |
+| `content.js` | 1220 KB | 435 KB | 3,489 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 101 KB | 48 KB | 135 → **0** |
+| `panneau.js` | 101 KB | 48 KB | 136 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1431 KB** | **577 KB** | **−59 %** |

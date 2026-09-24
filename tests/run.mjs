@@ -3937,21 +3937,49 @@ titre('46. Abonnements — un onglet vide ne coûte pas le garde-fou');
     JSON.parse(localStorage.getItem('tse:subs') || '{}')).sort().join(','));
   ok('l\'onglet peuplé est relevé quand même',
      trouves === 'antoinedaniel,etoiles,jenfirer,omofficial,roicheese', trouves);
-  // Budget du relevé complet dans le harnais : deux onglets PEUPLÉS (rendu à
-  // 600 ms + 900 ms de stabilité chacun) et deux onglets VIDES. Ces derniers
-  // coûtent 1,2 s d'apaisement pièce, soit ~2,4 s — contre 12 s si chacun
-  // attendait le garde-fou de 6 s. La borne est posée entre les deux totaux,
-  // assez large pour ne pas dépendre de la charge de la machine, assez serrée
-  // pour tomber si l'apaisement disparaît (vérifié par mutation).
-  // Mesuré : 5,2 s avec les onglets lancés ensemble, 8,3 s en les enchaînant,
-  // 15,0 s sans l'apaisement des onglets vides. La borne est posée entre les
-  // deux dernières valeurs : elle tombe si l'apaisement disparaît, et laisse
-  // assez de marge pour ne pas dépendre de la charge de la machine.
-  ok('et les deux onglets vides n\'ont pas attendu le garde-fou',
-     duree < 11_000, `relevé complet en ${duree} ms`);
+  /* ── CE QUI SE MESURAIT EN DURÉE SE MESURE EN FAITS ─────────────────────
+     Cette assertion bornait le relevé à 11 s, et la borne était juste tant que
+     les onglets partaient ENSEMBLE — 5,2 s mesurées, 15 s sans l'apaisement.
+     Depuis la 4.19.2 ils se lisent l'un après l'autre dans UNE page, et chaque
+     onglet vide paie son apaisement : 11,1 s mesurées, sans défaut.
+
+     SURTOUT, LA DURÉE NE DISTINGUE PLUS LE MUTANT. Un onglet vide qui
+     attendrait le garde-fou ARRÊTERAIT désormais le relevé (cf. refresh), qui
+     finirait donc plus tôt, pas plus tard. Ce qui distingue les deux, c'est
+     ce que le bilan porte : quatre onglets lus, aucun n'est allé au garde-fou.
+     La borne de durée reste, élargie, pour attraper une attente de trop. */
+  const bilan46 = await page.evaluate(() =>
+    (window.tse.panneau.rapport().relevesAbonnements.onglets || [])
+      .map((o) => ({ onglet: o.onglet, expire: o.expire, texte: o.texte })));
+  ok('et les deux onglets vides se sont conclus sans attendre le garde-fou',
+     bilan46.length === 4 && bilan46.every((o) => !o.expire)
+     && bilan46.filter((o) => o.texte).length === 2 && duree < 20_000,
+     JSON.stringify({ duree, bilan46 }));
   ok('aucune iframe ne reste accrochée',
      await page.evaluate(() => document.querySelectorAll('iframe').length) === 0);
   await page.close();
+
+  /* ── ET SI TWITCH DESSINAIT UN ONGLET VIDE SANS UN MOT ──────────────────
+     Le relevé attend désormais que le panneau réponde avant de conclure. Si
+     un onglet vide n'était qu'une image, il attendrait le garde-fou à chaque
+     relevé. Rien ne dit que Twitch le fasse ; le relevé ne doit pas en
+     dépendre. Une fois qu'un onglet a rendu quelque chose, les autres viennent
+     du même lot : un panneau vide y est un onglet vide. Mutant — la preuve
+     exigée de chaque onglet — : les deux onglets vides vont au garde-fou. */
+  const MUETS = () => { window.__subsVides = ['gifts', 'mobile']; window.__subsVideMuet = true; };
+  const pm = await freshTwitch(PLAYER, [], '/', MUETS);
+  await pm.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+    window.__addCard('omofficial', 'G', '500');
+  });
+  await attendre(pm, () => !!localStorage.getItem('tse:substs'), 30_000);
+  const muets = await pm.evaluate(() =>
+    (window.tse.panneau.rapport().relevesAbonnements.onglets || [])
+      .map((o) => ({ onglet: o.onglet, expire: o.expire, cartes: o.cartes })));
+  ok('un onglet vide dessiné sans un mot ne coûte pas non plus le garde-fou',
+     muets.length === 4 && muets.every((o) => !o.expire), JSON.stringify(muets));
+  await pm.close();
 }
 
 titre('47. Tri — le mode choisi revient quand il redevient possible');
@@ -4440,7 +4468,20 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
   await page.close();
 }
 
-titre('53. Abonnements — les onglets partent ensemble, l\'étiquette est retenue');
+/* ═════════ UNE PAGE PAR RELEVÉ, ET LES ONGLETS SE CHANGENT DEDANS ═══════════
+   CE SCÉNARIO AFFIRMAIT LE CONTRAIRE — « les onglets partent ensemble » — et
+   c'était alors la règle : une page Twitch par onglet, quatre à la fois, pour
+   tenir sous la retenue du voile. La console d'un utilisateur a montré ce que
+   chacune de ces pages demandait en se chargeant : UN lot, cinq opérations —
+   payés, offerts, mobiles, tous, expirés. Chaque page rapatriait les cinq
+   listes pour n'en afficher qu'une, et chacune passait le contrôle d'intégrité
+   de Twitch — celui qui, ce jour-là, refusait tout.
+
+   ON CHARGE DONC UNE FOIS, ET ON CLIQUE. Ce qui se mesure ici : une seule page
+   chargée, jamais deux iframes à la fois, les onglets suivants lus « par
+   bascule », et le repli — une page par onglet, l'un après l'autre — quand la
+   page n'offre pas de lien à cliquer. */
+titre('53. Abonnements — une seule page par relevé, l\'étiquette est retenue');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const poser = (page) => page.evaluate(() => {
@@ -4448,46 +4489,47 @@ titre('53. Abonnements — les onglets partent ensemble, l\'étiquette est reten
     window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
     window.__addCard('roicheese', 'G', '400');
   });
-  // Nombre maximal d'iframes /subscriptions coexistant pendant le relevé.
-  // C'est la mesure directe du parallélisme : à une par instant, le relevé
-  // durait la SOMME des onglets et ne pouvait pas tenir sous le voile.
-  const compter = (page) => page.evaluate(() => [...document.querySelectorAll('iframe')]
-    .filter(f => (f.src || '').includes('/subscriptions')).length);
-  const pic = async (page, ms) => {
-    let max = 0;
-    const fin = Date.now() + ms;
-    while (Date.now() < fin) {
-      max = Math.max(max, await compter(page));
-      await wait(page, 100);
+  /* Nombre maximal d'iframes /subscriptions coexistant pendant tout le relevé,
+     relevé jusqu'à l'horodatage. */
+  const suivre = (page) => page.evaluate(async () => {
+    let pic = 0;
+    const t0 = Date.now();
+    while (!localStorage.getItem('tse:substs') && Date.now() - t0 < 20_000) {
+      pic = Math.max(pic, [...document.querySelectorAll('iframe')]
+        .filter((f) => (f.src || '').includes('/subscriptions')).length);
+      await new Promise((r) => setTimeout(r, 50));
     }
-    return max;
-  };
-  // Pic mesuré à partir de la PREMIÈRE iframe, sur une fenêtre courte. C'est
-  // ce qui distingue les deux cas : sans étiquette connue, l'onglet des
-  // expirés tourne SEUL pendant ce temps-là ; avec, toute la volée est déjà
-  // partie. Les départs étant décalés (SUBS_PAGE_STAGGER), on ne regarde pas
-  // le tout premier instant mais une fenêtre qui les couvre.
-  const picInitial = async (page, ms) => {
-    await attendre(page, () => [...document.querySelectorAll('iframe')]
-      .some(f => (f.src || '').includes('/subscriptions')), 8000);
-    return pic(page, ms);
-  };
+    const r = window.tse.panneau.rapport().relevesAbonnements;
+    return { pic, chargements: window.__subsChargements || 0,
+             lus: (r.onglets || []).map((o) => `${o.onglet}:${o.voie}`),
+             mem: JSON.parse(localStorage.getItem('tse:subs') || '{}') };
+  });
+  const COURANTS = 'clem_mlrt,etoiles,omofficial,roicheese,zerator';
+  const abonnes = (mem) => Object.entries(mem).filter(([, v]) => v[0] === 1)
+    .map(([k]) => k).sort().join(',');
 
-  // ── a) profil neuf : l'étiquette est apprise, puis mémorisée ───────────
+  // ── a) profil neuf : les expirés d'abord, dans LA page ; puis un clic chacun
   {
     const page = await freshTwitch(PLAYER, [], '/');
     await poser(page);
-    const debut = await picInitial(page, 900);
-    const max = await pic(page, 5000);
-    await attendre(page, () => !!localStorage.getItem('tse:substs'));
-    ok('plusieurs onglets sont lus en même temps', max >= 2, `pic de ${max} iframe(s)`);
-    // Étiquette inconnue : l'onglet des expirés doit passer SEUL d'abord.
-    ok('mais l\'étiquette inconnue impose une passe préalable, seule',
-       debut === 1, `pic initial de ${debut} iframe(s)`);
+    const vu = await suivre(page);
+    /* L'ASSERTION QUI PORTE LE CHANGEMENT. Mutant — l'ancienne volée — : pic
+       de trois ou quatre, et autant de chargements. */
+    ok('une seule page Twitch est chargée pour tout le relevé',
+       vu.chargements === 1 && vu.pic === 1, JSON.stringify(vu));
+    // Étiquette inconnue : l'onglet des expirés passe d'abord, et c'est lui
+    // qu'on charge ; les trois autres s'ouvrent d'un clic.
+    ok('…les expirés d\'abord, puis chaque onglet d\'un clic dans la même page',
+       vu.lus.join(' ') === 'expired:page paid:bascule gifts:bascule mobile:bascule',
+       JSON.stringify(vu.lus));
+    /* ET RIEN N'EST PERDU EN ROUTE : les cinq abonnements en cours des trois
+       onglets, et pas un expiré de plus — c'est la bascule qu'on éprouve ici,
+       celle qui lirait l'onglet d'avant si elle se pressait. */
+    ok('…et le relevé est complet, sans un expiré parmi les abonnés',
+       abonnes(vu.mem) === COURANTS, abonnes(vu.mem));
     const etiq = await page.evaluate(() => localStorage.getItem('tse:submois'));
     ok('l\'étiquette apprise est mémorisée',
        etiq === 'Nombre total de mois abonné :', String(etiq));
-    // tse.reset() doit l'emporter : elle vient de la même lecture.
     await page.evaluate(() => window.tse.reset());
     ok('et tse.reset() l\'emporte',
        (await page.evaluate(() => localStorage.getItem('tse:submois'))) === null,
@@ -4495,25 +4537,80 @@ titre('53. Abonnements — les onglets partent ensemble, l\'étiquette est reten
     await page.close();
   }
 
-  // ── b) étiquette déjà connue : plus de passe préalable ─────────────────
-  // Sans elle, l'onglet des expirés doit passer SEUL en premier — les autres
-  // ne sauraient pas quoi chercher. Avec elle, tout part d'un bloc, et c'est
-  // ce qui fait tenir le relevé sous la retenue du voile.
+  // ── b) étiquette connue : les abonnements en cours passent devant ─────────
+  // Ce sont eux que la sidebar affiche, et leur arrivée lève le voile.
   {
     const SU = () => {
       try { localStorage.setItem('tse:submois', 'Nombre total de mois abonné :'); } catch {}
     };
     const page = await freshTwitch(PLAYER, [], '/', SU);
     await poser(page);
-    // Même fenêtre, même mesure : cette fois toute la volée est déjà partie.
-    const dabord = await picInitial(page, 900);
-    ok('l\'étiquette connue supprime la passe préalable', dabord >= 3,
-       `pic initial de ${dabord} iframe(s)`);
-    await attendre(page, () => !!localStorage.getItem('tse:substs'));
+    const vu = await suivre(page);
+    ok('l\'étiquette connue : les abonnements en cours d\'abord, les expirés à la fin',
+       vu.lus.join(' ') === 'paid:page gifts:bascule mobile:bascule expired:bascule'
+       && vu.chargements === 1, JSON.stringify(vu));
     await wait(page, 400);
     const mem = await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs') || '{}'));
     ok('et l\'ancienneté est lue quand même', mem.roicheese?.[2] === 4,
        JSON.stringify(mem.roicheese));
+    await page.close();
+  }
+
+  // ── c) une page sans liens d'onglets : on recharge, un onglet à la fois ───
+  // Le filet. Si Twitch cessait de présenter ses onglets comme des liens, le
+  // relevé ne doit rien perdre — il redevient ce qu'il était, en séquence.
+  {
+    const SANS = () => { window.__subsSansBascule = true; };
+    const page = await freshTwitch(PLAYER, [], '/', SANS);
+    await poser(page);
+    const vu = await suivre(page);
+    ok('sans lien à cliquer, chaque onglet a sa page — une à la fois',
+       vu.chargements === 4 && vu.pic === 1
+       && vu.lus.every((x) => x.endsWith(':page')), JSON.stringify(vu));
+    ok('…et le relevé reste complet', abonnes(vu.mem) === COURANTS, abonnes(vu.mem));
+    await page.close();
+  }
+
+  // ── d) une page qui redessine LENTEMENT après le clic ────────────────────
+  /* Deux secondes entre le changement d'adresse et le nouveau panneau — plus
+     que la stabilité exigée d'une liste (900 ms au banc). Pendant ce temps,
+     ce sont les cartes de l'onglet D'AVANT qui sont à l'écran : les expirés,
+     sur un profil neuf. Mutant — le refus des cartes identiques à l'onglet
+     précédent retiré — : les trois expirés sont lus comme « Vos abonnements »,
+     et dorés. */
+  {
+    const LENT = () => { window.__subsRedessin = 2_000; };
+    const page = await freshTwitch(PLAYER, [], '/', LENT);
+    await poser(page);
+    const vu = await suivre(page);
+    ok('une page lente à redessiner ne fait pas lire l\'onglet d\'avant',
+       abonnes(vu.mem) === COURANTS && vu.chargements === 1,
+       JSON.stringify({ abonnes: abonnes(vu.mem), lus: vu.lus }));
+    /* ET LE RAPPORT NE LES COMPTE PAS NON PLUS. Pendant ces deux secondes, les
+       cartes de l'onglet d'avant sont à l'écran ; les compter au « plus haut
+       atteint » ferait écrire « 3 carte(s) · 1 chaîne(s) » pour les offerts. */
+    const lignes = await page.evaluate(() =>
+      (window.tse.panneau.rapport().relevesAbonnements.onglets || [])
+        .map((o) => ({ onglet: o.onglet, cartes: o.cartes, logins: o.logins })));
+    ok('…et chaque onglet annonce exactement les cartes qu\'il a lues',
+       lignes.length === 4 && lignes.every((o) => o.cartes === o.logins),
+       JSON.stringify(lignes));
+    await page.close();
+  }
+
+  // ── e) des liens qui ne changent pas d'onglet ────────────────────────────
+  /* Le clic part, l'adresse ne bouge pas. Le relevé l'apprend en
+     SUBS_PAGE_SWITCH, note la bascule refusée, et recharge — pour cet
+     onglet et tous les suivants, sans réessayer. */
+  {
+    const MUET = () => { window.__subsClicMuet = true; };
+    const page = await freshTwitch(PLAYER, [], '/', MUET);
+    await poser(page);
+    const vu = await suivre(page);
+    ok('un clic qui ne change rien fait recharger, sans rien perdre',
+       abonnes(vu.mem) === COURANTS
+       && vu.lus.join(' ') === 'expired:page paid:bascule refusée paid:page gifts:page mobile:page',
+       JSON.stringify({ abonnes: abonnes(vu.mem), lus: vu.lus }));
     await page.close();
   }
 }
@@ -17211,6 +17308,19 @@ addEventListener('message', (e) => {
      vu.connus === 0
      && vu.erreurs.some((e) => /aucun ne rend/.test(e) && /subscription-card/.test(e)),
      JSON.stringify(vu.erreurs));
+  /* ── ET IL LE DIT SANS RECOPIER LA LISTE ────────────────────────────────
+     Les cartes sont là, sous un autre nom : le panneau EST la liste des
+     abonnements. Sa « phrase » verserait les noms des chaînes suivies dans un
+     rapport qui promet de n'en porter aucune — c'est ce que faisait la lecture
+     de `main` jusqu'à la 4.19.1. On compte les liens de chaînes à la place, et
+     ce nombre suffit à désigner le sélecteur. */
+  const NOMS = /omofficial|roicheese|etoiles|jenfirer|antoinedaniel|clem_mlrt|zerator/;
+  ok('…en désignant le sélecteur par les liens qu\'il n\'accroche pas',
+     vu.erreurs.some((e) => /lien\(s\) de chaîne dans la page, aucun dans une carte/.test(e)),
+     JSON.stringify(vu.erreurs));
+  ok('…et sans qu\'un seul nom de chaîne ne passe dans le rapport',
+     !NOMS.test(JSON.stringify(vu.onglets)) && !NOMS.test(JSON.stringify(vu.erreurs)),
+     JSON.stringify({ textes: vu.onglets.map((o) => o.texte), erreurs: vu.erreurs }));
   await pageMorte.close();
 
   /* ── 2. LA PAGE QUE TWITCH REFUSE DE SERVIR ──────────────────────────────
@@ -17225,8 +17335,10 @@ addEventListener('message', (e) => {
   const vu2 = await relever(pageRefus);
   const muets = vu2.onglets.filter((o) => o.charge && o.barre);
 
+  /* LA PHRASE, ET ELLE SEULE : ni le titre ni les libellés des onglets, que
+     la page affiche au-dessus et que la 4.19.1 recopiait en tête. */
   ok('la phrase de Twitch est relevée, onglet par onglet',
-     muets.length >= 1 && muets.every((o) => o.cartes === 0 && o.texte.includes(PHRASE)),
+     muets.length >= 1 && muets.every((o) => o.cartes === 0 && o.texte === PHRASE),
      JSON.stringify(vu2.onglets));
   /* ET ELLE PREND LE PAS SUR NOTRE DÉDUCTION. Sans cette assertion, le relevé
      accuserait son propre sélecteur d'une panne qui ne le concerne pas — et
@@ -18842,17 +18954,13 @@ addEventListener('message', (e) => {
   await new Promise((r) => serveur.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${serveur.address().port}/page.html`;
 
-  /* LE NOMBRE D'ONGLETS DU RELEVÉ SE LIT SUR LE PRODUIT, il ne se recopie
-     pas : le jour où un onglet s'ajoute ou disparaît, cette borne suit toute
-     seule au lieu de faire tomber le scénario pour une raison étrangère. */
-  const srcAbos = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
-  const compteOnglets = (cle) =>
-    (new RegExp(cle + ":\\s*\\[([^\\]]*)\\]").exec(srcAbos)?.[1] || '')
-      .split(',').filter((x) => x.trim()).length;
-  const CFG_TABS_ATTENDUS = compteOnglets('SUBS_PAGE_TABS')
-                          + compteOnglets('SUBS_PAGE_TABS_PAST');
-  ok('le décor connaît le nombre d\'onglets que le relevé visite',
-     CFG_TABS_ATTENDUS >= 2, String(CFG_TABS_ATTENDUS));
+  /* UNE PAGE PAR RELEVÉ, depuis la 4.19.2 : les onglets se lisent dans la
+     même, d'un clic — et les pages de ce serveur ne rendant rien, le relevé
+     s'arrête d'ailleurs au premier garde-fou. La borne n'est donc plus le
+     nombre d'onglets, mais UN. Deux relevés en doublon en chargeraient deux :
+     c'est ce que la borne doit voir, et le nombre d'onglets l'aurait laissé
+     passer. */
+  const PAGES_PAR_RELEVE = 1;
 
   const ctx = await browser.newContext();
   const poser = (p) => p.evaluate(() => {
@@ -18928,8 +19036,8 @@ addEventListener('message', (e) => {
     /* ET ON COMPTE LES PAGES RÉELLEMENT CHARGÉES : l'assertion ci-dessus
        serait vraie aussi le jour où plus personne ne relèverait du tout. */
     ok('…et le nombre de pages Twitch chargées en cachette ne double pas',
-       totalIframes > 0 && totalIframes <= CFG_TABS_ATTENDUS,
-       `${totalIframes} iframe(s) pour ${CFG_TABS_ATTENDUS} onglet(s) de relevé`);
+       totalIframes > 0 && totalIframes <= PAGES_PAR_RELEVE,
+       `${totalIframes} iframe(s) pour ${PAGES_PAR_RELEVE} page par relevé`);
     /* LE RELEVÉ A BIEN ABOUTI, et les deux pages le savent : l'horodatage est
        partagé, donc celle qui s'est rangée n'en refera pas un dans la foulée. */
     ok('…et l\'horodatage du relevé est visible des DEUX onglets',
@@ -18967,8 +19075,13 @@ addEventListener('message', (e) => {
       return { horodatage: r.horodatage || 0, differes: r.differes || 0,
                onglets: (r.onglets || []).length };
     });
+    /* AU MOINS UN ONGLET VISITÉ, et non plus deux. Les pages de ce serveur ne
+       rendent rien — un 404 — et depuis la 4.19.2 un onglet qui va au bout de
+       son garde-fou arrête le relevé : les suivants seraient la même page. La
+       preuve reste entière — le mutant du bail bloquant ne visite rien, et
+       n'horodate rien. */
     ok('un bail laissé par une page morte ne bloque pas le PREMIER relevé',
-       vuNeuf.horodatage > 0 && vuNeuf.onglets >= 2 && nn >= 2,
+       vuNeuf.horodatage > 0 && vuNeuf.onglets >= 1 && nn >= 1,
        JSON.stringify({ ...vuNeuf, iframes: nn }));
     ok('…et il part sans même se ranger une fois',
        vuNeuf.differes === 0, JSON.stringify(vuNeuf));
@@ -19727,53 +19840,36 @@ addEventListener('message', (e) => {
    et cet onglet-là est le plus gros de tous. */
 {
   titre('147. Le relevé — l\'onglet des expirés ne se lit qu\'une fois');
-
-  const page = await freshTwitch('<!doctype html><html><body>x</body></html>', [], '/', () => {
-    /* LES CADRES SE COMPTENT À LA SOURCE. Ils sont posés dans le document
-       parent, et leur `src` porte l'onglet : un observateur les voit tous,
-       y compris ceux qui sont retirés aussitôt après. */
-    if (window.top !== window) return;   // le relevé pose ses cadres au sommet
-    window.__cadres = [];
-    const mo = new MutationObserver((muts) => {
-      for (const m of muts) for (const n of m.addedNodes) {
-        if (n.tagName === 'IFRAME' && /\/subscriptions\?/.test(n.src || '')) {
-          window.__cadres.push(decodeURIComponent(n.src.split('tab=')[1] || ''));
-        }
-      }
-    });
-    // documentElement n'existe pas encore à document_start : on réessaie,
-    // plutôt que de jeter et de faire échouer la page entière.
-    const armer = () => {
-      if (!document.documentElement) { setTimeout(armer, 0); return; }
-      mo.observe(document.documentElement, { childList: true, subtree: true });
-    };
-    armer();
-  });
+  /* LES LECTURES SE COMPTENT AU RAPPORT, plus aux iframes. Depuis la 4.19.2
+     les onglets se lisent dans UNE page, d'un clic : compter les cadres par
+     leur `src` ne verrait plus que le premier. Le bilan du relevé porte, lui,
+     une ligne par onglet LU — c'est exactement ce que ce scénario compte. */
+  const page = await freshTwitch('<!doctype html><html><body>x</body></html>', [], '/');
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
     window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
     window.__addCard('omofficial', 'G', '500');
   });
-  /* On attend le relevé À SON TERME — son horodatage — et non une durée : les
-     quatre onglets sont quatre pages, et leur durée dépend de la machine. */
+  /* On attend le relevé À SON TERME — son horodatage — et non une durée. */
   await attendre(page, () => !!localStorage.getItem('tse:substs'), 15_000);
-  await wait(page, 500);     // laisse un éventuel cadre de trop se poser
-  const vu = await page.evaluate(() => ({
-    cadres: window.__cadres,
-    expired: window.__cadres.filter(t => t === 'expired').length,
-    subs: (window.tse.subs() || []).length }));
+  await wait(page, 500);     // laisse une éventuelle lecture de trop se poser
+  const vu = await page.evaluate(() => {
+    const lus = (window.tse.panneau.rapport().relevesAbonnements.onglets || [])
+      .map((o) => o.onglet);
+    return { lus, expired: lus.filter((t) => t === 'expired').length,
+             subs: (window.tse.subs() || []).length };
+  });
   /* LA PRÉMISSE : le relevé est bien allé chercher ses onglets, expirés
-     compris. Sans cela, « zéro expired » passerait pour une réussite. */
+     compris. Sans cela, « un seul expired » passerait pour une réussite. */
   ok('le relevé a bien visité ses onglets, expirés compris',
-     vu.expired >= 1 && vu.cadres.length >= 4, JSON.stringify(vu));
+     vu.expired >= 1 && vu.lus.length >= 4, JSON.stringify(vu));
   /* L'ASSERTION QUI PORTE LE RAPPORT. Mutant — la relecture conditionnée à
      l'étiquette, que la passe d'avant vient d'apprendre — deux « expired »,
-     soit un chargement de page complet pour rien, sous le voile. */
-  ok('…et il n\'a chargé l\'onglet le plus lourd qu\'une seule fois',
+     soit l'onglet le plus lourd relu pour rien, sous le voile. */
+  ok('…et il n\'a lu l\'onglet le plus lourd qu\'une seule fois',
      vu.expired === 1, JSON.stringify(vu));
   await page.close();
 }
-
 /* ═════════ LA SONDE NE SE DÉPENSE PAS SUR UN SUBATHON ════════════════════
    DEUX RAPPORTS DE TERRAIN DE SUITE, LE MÊME ÉCART D'UNE UNITÉ :
        trouvees 5 · adoptees 4 · subathons.detectes 1
@@ -20493,7 +20589,7 @@ addEventListener('message', (e) => {
    build.mjs. Chaque substitution est VÉRIFIÉE : une expression qui ne
    trouverait plus sa constante ferait tourner le scénario sur le script
    ordinaire, et il passerait sans rien mesurer. */
-const pageVariante = async (substitutions) => {
+const pageVariante = async (substitutions, init = null) => {
   let src = fileText('content.test.js');
   const ratees = [];
   for (const [rx, par] of substitutions) {
@@ -20514,6 +20610,8 @@ const pageVariante = async (substitutions) => {
   });
   await page.route('https://static-cdn.jtvnw.net/**', (route) =>
     route.fulfill({ contentType: 'image/png', body: PIXEL }));
+  // Comme freshTwitch : un script d'amorce, posé dans TOUTES les frames.
+  if (init) await page.addInitScript(init);
   await page.goto('https://www.twitch.tv/');
   return { page, ratees };
 };
@@ -20700,6 +20798,127 @@ const pageVariante = async (substitutions) => {
   ok('…et au repos, il n\'en passe pas plus que le réveil n\'en commande',
      n <= 2, `${n} balayage(s) en 4 s`);
   await page.close();
+}
+
+/* ═════════ TWITCH REFUSE SA PROPRE PAGE, ET LE RELEVÉ LE DIT ═════════════
+   SIGNALÉ AINSI : « ironmouse n'est pas en doré », rapport à l'appui — quatre
+   onglets « affichés · 1098 nœuds · 0 carte », et pour toute explication « la
+   page dit : Abonnements Vos abonnements Abonnements offerts… ». Puis une
+   capture : sur la vraie page, Twitch écrivait « Impossible d'afficher vos
+   abonnements pour le moment », et la console portait « failed integrity
+   check » sur ses cinq requêtes.
+
+   TROIS DÉFAUTS DE NOTRE CÔTÉ, et ce scénario les tient tous :
+     — le relevé concluait « vide » sur une barre d'onglets SANS PANNEAU,
+       avant que Twitch n'écrive sa phrase ;
+     — il recopiait le titre et les onglets comme « ce que la page dit » ;
+     — un relevé vide interdisait le suivant pour six heures.
+   Le premier décor fait arriver la phrase APRÈS le délai d'apaisement — la
+   variante porte un garde-fou de 12 s pour qu'elle arrive avant lui. */
+{
+  titre('157. Abonnements — Twitch refuse sa page : le relevé le dit, et revient plus tôt');
+  const PHRASE = 'Impossible d\'afficher vos abonnements pour le moment.';
+  const poser = (page) => page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+    window.__addCard('omofficial', 'G', '500');
+  });
+  const lire = (page) => page.evaluate(() => {
+    const r = window.tse.panneau.rapport();
+    return { onglets: r.relevesAbonnements.onglets || [],
+             vides: r.relevesAbonnements.videsDeSuite,
+             prochain: r.relevesAbonnements.prochainDansMs,
+             stamp: localStorage.getItem('tse:substs'),
+             erreurs: r.erreurs.filter((e) => e.source === 'abonnements')
+               .map((e) => `${e.message || ''} ${e.detail || ''}`) };
+  });
+
+  // ── a) la phrase arrive tard : on l'attend, et on ne recopie qu'elle ─────
+  // L'amorce est un TEXTE : elle s'exécute dans chaque frame, avant tout
+  // script de la page — l'iframe des abonnements comprise.
+  const { page: pa, ratees } = await pageVariante(
+    [[/SUBS_PAGE_TIMEOUT:\s*6_000\b/, 'SUBS_PAGE_TIMEOUT:    12_000']],
+    `window.__subsMessage = ${JSON.stringify(PHRASE)}; window.__subsMessageRetard = 4500;`);
+  ok('la variante porte son garde-fou allongé', ratees.length === 0, JSON.stringify(ratees));
+  await poser(pa);
+  await attendre(pa, () => !!localStorage.getItem('tse:substs'), 40_000);
+  const va = await lire(pa);
+  const premier = va.onglets[0] || {};
+  /* LA PRÉMISSE : la page s'est affichée, barre et onglets compris, et n'a
+     rendu aucune carte — le rapport de terrain, à l'identique. */
+  ok('la page s\'affiche avec ses onglets et ne rend aucune carte',
+     premier.charge && premier.barre && premier.cartes === 0, JSON.stringify(premier));
+  /* L'ASSERTION DU PREMIER DÉFAUT. Mutant — l'apaisement qui court sur un
+     panneau blanc — : le relevé conclut avant la phrase, et `texte` est vide. */
+  ok('…le relevé attend que le panneau réponde, et relève la phrase de Twitch',
+     premier.texte === PHRASE, JSON.stringify(premier.texte));
+  /* L'ASSERTION DU SECOND. Mutant — `main.innerText` — : « Abonnements Vos
+     abonnements Abonnements offerts… » en tête de la phrase. */
+  ok('…sans le titre ni les libellés des onglets',
+     va.onglets.every((o) => !/Vos abonnements|Abonnements offerts/.test(o.texte || '')),
+     JSON.stringify(va.onglets.map((o) => o.texte)));
+  ok('…et le verdict la recopie telle quelle',
+     va.erreurs.some((e) => e.includes(`la page dit : « ${PHRASE} »`)), JSON.stringify(va.erreurs));
+  /* L'ASSERTION DU TROISIÈME. Mutant — l'horodatage d'avant, sans compteur — :
+     « 2:<date> », et le prochain relevé dans quatre secondes (six heures en
+     production) au lieu d'une (quinze minutes). */
+  ok('…et ce relevé vide est compté : le prochain viendra plus tôt',
+     /^2:\d+:1$/.test(va.stamp || '') && va.vides === 1 && va.prochain <= 1_000,
+     JSON.stringify({ stamp: va.stamp, vides: va.vides, prochain: va.prochain }));
+  await pa.close();
+
+  // ── b) la page ne rend jamais rien sous ses onglets : on s'arrête là ─────
+  // Et c'est ce qui borne le coût d'une panne : les autres onglets sont la
+  // même page, ils échoueraient pareil, un garde-fou chacun.
+  const BLANC = () => {
+    try { window.__subsBlanc = localStorage.getItem('test:blanc') !== '0'; }
+    catch { window.__subsBlanc = true; }
+  };
+  const pb = await freshTwitch('<!doctype html><html><body>x</body></html>', [], '/', BLANC);
+  await poser(pb);
+  await attendre(pb, () => !!localStorage.getItem('tse:substs'), 20_000);
+  const vb = await lire(pb);
+  /* AU SECOND PANNEAU BLANC D'AFFILÉE, et pas au premier : un onglet vide que
+     Twitch dessinerait sans un mot ressemblerait au premier. Mutant — aucun
+     arrêt — : quatre onglets de six secondes chacun. */
+  ok('une page blanche sous ses onglets arrête le relevé au second',
+     vb.onglets.length === 2 && vb.onglets.every((o) => o.blanc === true),
+     JSON.stringify(vb.onglets));
+  ok('…et le dit, sans accuser notre sélecteur',
+     vb.erreurs.some((e) => /rien sous ses onglets/.test(e))
+     && vb.erreurs.some((e) => /n'a rien rendu sous ses onglets/.test(e))
+     && !vb.erreurs.some((e) => /ne correspond plus|à revérifier/.test(e)),
+     JSON.stringify(vb.erreurs));
+
+  // ── c) le relevé revient plus tôt, double son attente, puis se remet à zéro
+  /* Rechargée après UNE seconde — l'attente d'un premier relevé vide au banc —
+     la page relève à nouveau. Mutant — la période ordinaire — : rien avant
+     quatre secondes. */
+  await wait(pb, 1_300);
+  await pb.reload();
+  await poser(pb);
+  const repart = await pb.waitForFunction(() => [...document.querySelectorAll('iframe')]
+    .some((f) => (f.src || '').includes('/subscriptions')), null, { timeout: 2_500 })
+    .then(() => true, () => false);
+  ok('un relevé vide revient avant la période ordinaire', repart === true, String(repart));
+  await attendre(pb, () => /:2$/.test(localStorage.getItem('tse:substs') || ''), 20_000);
+  const vc = await lire(pb);
+  ok('…un second échec double l\'attente', /^2:\d+:2$/.test(vc.stamp || '')
+     && vc.prochain > 1_000 && vc.prochain <= 2_000,
+     JSON.stringify({ stamp: vc.stamp, prochain: vc.prochain }));
+  // Twitch répond de nouveau : un relevé qui voit des cartes remet le compte à zéro.
+  await pb.evaluate(() => localStorage.setItem('test:blanc', '0'));
+  await wait(pb, 2_200);
+  await pb.reload();
+  await poser(pb);
+  await attendre(pb, () => /^2:\d+$/.test(localStorage.getItem('tse:substs') || ''), 20_000);
+  const vd = await lire(pb);
+  const abonnes = await pb.evaluate(() => Object.entries(JSON.parse(localStorage.getItem('tse:subs') || '{}'))
+    .filter(([, v]) => v[0] === 1).length);
+  ok('…et quand Twitch répond, le relevé reprend tout et remet le compte à zéro',
+     /^2:\d+$/.test(vd.stamp || '') && vd.vides === 0 && abonnes === 5,
+     JSON.stringify({ stamp: vd.stamp, vides: vd.vides, abonnes }));
+  await pb.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

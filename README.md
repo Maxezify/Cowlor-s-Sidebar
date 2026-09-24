@@ -2178,6 +2178,124 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Twitch refuse sa page d'abonnements, et le relevé apprend à le dire (v4.19.2)
+
+> « Le système de reconnaissance des abonnements ne fonctionne pas, ironmouse
+> n'est pas en dorée. »
+
+### Ce qui se passait
+
+Le rapport portait quatre lignes jumelles :
+
+```
+onglet expired  affiché · 1098 nœuds · barre oui · 0 carte(s) · 0 chaîne(s)
+                · la page dit : « Abonnements Vos abonnements Abonnements offerts … »
+```
+
+La veille, le même onglet rendait **5 331 nœuds et 74 cartes**, avec le même
+code : le module du relevé n'avait pas bougé depuis la 4.15.10, ni `adblock.js`,
+ni le pont. Une capture a tranché : ouverte à la main, la page de Twitch
+affichait elle-même « **Impossible d'afficher vos abonnements pour le moment** »,
+et la console portait `failed integrity check` sur les cinq requêtes de la page
+— `subscriptionBenefits: null`. **Twitch refusait de servir la liste, à sa
+propre page.** Aucune extension ne lit ce que Twitch n'affiche pas, et celle-ci
+ne touche ni au jeton ni au contrôle d'intégrité.
+
+Les abonnements déjà connus avaient disparu pour une autre raison, dite par
+l'utilisateur : il repart toujours d'une installation neuve. Le relevé est
+additif et n'efface jamais rien ; il n'avait simplement plus rien à reprendre.
+
+### Ce qui était à nous
+
+**1. Quatre pages Twitch pour une seule donnée.** Le relevé chargeait une page
+par onglet, quatre à la fois. La console a montré ce que chacune demande en se
+chargeant : **un lot, cinq opérations** — payés, offerts, mobiles, tous,
+expirés. On charge désormais **une** page, et on change d'onglet en cliquant les
+liens qu'elle affiche, comme un utilisateur. Si la page n'en offre pas, ou si le
+clic ne change pas l'adresse, on recharge — une page par onglet, l'un après
+l'autre. Quatre démarrages de l'application Twitch en deviennent un, et quatre
+passages du contrôle d'intégrité aussi.
+
+Le danger d'une bascule est de lire l'onglet d'AVANT : sur un profil neuf, ce
+sont les expirés, et les lire comme des abonnements en cours les **dorerait**.
+L'adresse doit avoir changé, et des cartes identiques à celles de l'onglet
+précédent doivent tenir bien plus longtemps avant qu'on y croie.
+
+**2. Une barre d'onglets sans rien dessous n'est pas un onglet vide.** Le relevé
+concluait « vide » après sept secondes de page immobile — avant que Twitch
+n'écrive sa phrase. Il attend maintenant que le **panneau** réponde, cartes ou
+message. Une fois qu'un onglet a rendu quelque chose, les autres viennent du
+même lot : un panneau vide y est un onglet vide, même dessiné sans un mot.
+
+**3. « La page dit » recopiait le titre et les onglets.** On ne relève plus que
+le texte **sous** la barre d'onglets, écartée par sa nature (titres, liens
+d'onglets) et non par sa langue. Le rapport aurait porté la phrase de Twitch.
+
+**4. Un défaut de confidentialité, trouvé au passage.** Quand Twitch renomme
+ses cartes, le panneau **est** la liste — et sa « phrase » versait les noms des
+chaînes auxquelles on est abonné dans un rapport qui promet de n'en porter
+aucune. On compte désormais les liens de chaînes, et ce nombre suffit au
+verdict : « N lien(s) de chaîne dans la page, aucun dans une carte : le
+sélecteur ne correspond plus ».
+
+**5. Un relevé vide verrouillait six heures.** Twitch rétabli dix minutes plus
+tard, rien ne revenait avant le soir. Après un relevé qui n'a vu **aucune carte
+nulle part**, le suivant revient au bout de quinze minutes, puis du double à
+chaque nouvel échec, jusqu'à la période ordinaire. Le rapport dit où on en est :
+
+| ligne | ce qu'elle dit |
+| --- | --- |
+| `relevés vides d'affilée` | le nombre d'échecs qui ont raccourci l'attente |
+| `prochain relevé dans` | l'attente restante, en minutes |
+| `onglet … page / bascule / bascule refusée` | comment chaque onglet a été lu |
+
+**Quand s'arrêter.** Une page jamais venue ne viendra pas mieux au chargement
+suivant : arrêt immédiat. Un panneau blanc tout le garde-fou, c'est d'ordinaire
+Twitch qui ne sert pas la liste — on s'arrête au second d'affilée, plutôt que
+d'enchaîner quatre garde-fous pour le même résultat.
+
+### Ce que ça coûte
+
+Lus l'un après l'autre, les onglets vides paient chacun leur apaisement : un
+relevé passe d'une dizaine de secondes à une vingtaine quand deux onglets sont
+vides — en arrière-plan, toutes les six heures. Sur une installation neuve, le
+voile se lève toujours au premier résultat. Un compte réellement sans abonnement
+paie cinq relevés de plus, une fois.
+
+`SUBS_PAGE_STAGGER` disparaît avec les départs décalés, et un commentaire qui
+décrivait une constante supprimée depuis longtemps (« au-delà de ce nombre de
+nœuds… ») part avec lui.
+
+### Ce que je n'ai pas pu vérifier
+
+`www.twitch.tv` est refusé par le proxy de cette machine : la barre d'onglets
+en liens `?tab=` et le message d'un onglet vide sont **modélisés** d'après la
+capture. Les deux replis couvrent l'écart — recharger si la bascule échoue,
+conclure sans texte une fois les données arrivées. Et rien ne dit si
+l'extension contribue au refus d'intégrité de Twitch : le test qui tranche se
+fait chez l'utilisateur, extension désactivée, sur `/subscriptions`.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| « la page dit » lu sur `main` entier (4.19.1) | « Abonnements Vos abonnements… » — le rapport de terrain, mot pour mot |
+| l'apaisement qui court sur un panneau blanc | la phrase de Twitch manquée, texte vide |
+| pas de nouvel essai rapproché | « 2:<date> », rien avant la période ordinaire |
+| une page par onglet (plus de bascule) | quatre chargements au lieu d'un |
+| les cartes de l'onglet d'avant acceptées | deux abonnements **expirés** dorés |
+| les liens de chaînes non comptés | « jenfirer Réabonnez-vous… » dans le rapport |
+| les cartes comptées « au plus haut » après une bascule | « gifts · 3 carte(s) · 1 chaîne(s) » — l'onglet d'avant, compté pour le suivant |
+| la preuve du panneau exigée de chaque onglet | des onglets vides sans texte au garde-fou |
+| l'arrêt au premier panneau blanc | le relevé s'arrête d'un onglet trop tôt |
+| aucun arrêt | quatre garde-fous à la file |
+
+Quatre scénarios décrivaient l'ancienne architecture et ont été réécrits pour
+dire la nouvelle : le 53 affirmait « les onglets partent ensemble », le 141
+bornait les pages par le nombre d'onglets (deux relevés en doublon n'auraient
+plus dépassé la borne), le 147 comptait les iframes plutôt que les lectures, et
+le 46 bornait une durée qui ne distinguait plus son mutant. Le 157 est neuf.
+
 ## L'audit : une boucle, un trou, une ligne fausse, et cinq morts (v4.19.1)
 
 > « Un audit complet de l'extension, vérifie chaque élément de code pour au final
@@ -10433,7 +10551,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 156 scénarios, 1290 assertions |
+| `npm test` | le harnais Playwright : 157 scénarios, 1309 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -10454,9 +10572,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1183 Ko | 423 Ko | 3 504 → **2** |
+| `content.js` | 1220 Ko | 435 Ko | 3 489 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 101 Ko | 48 Ko | 135 → **0** |
+| `panneau.js` | 101 Ko | 48 Ko | 136 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1431 Ko** | **577 Ko** | **−59 %** |

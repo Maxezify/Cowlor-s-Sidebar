@@ -2203,10 +2203,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     // forte — un abonnement expiré n'est pas un abonnement, et le relevé étant
     // additif, l'y inclure marquerait « abonné » pour 120 jours quelqu'un qu'on
     // ne l'est plus.
-    /* Au-delà de ce nombre de nœuds, une page /subscriptions s'est VRAIMENT
-       affichée — ce n'est plus un squelette. Sert à distinguer « le sélecteur
-       ne correspond plus » de « la page n'a jamais chargé », deux pannes que
-       le relevé rendait à l'identique : zéro. */
     // Longueur retenue du message que la page des abonnements affiche À LA
     // PLACE des cartes. EXIGÉ PAR UN RAPPORT DE TERRAIN : le relevé rendait
     // zéro, et la page de Twitch disait, en toutes lettres, « Impossible
@@ -2234,8 +2230,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     // délai, l'onglet est vide et non lent.
     // Relevé au banc : sous contention, un onglet peuplé a été pris pour vide
     // et une chaîne a disparu du relevé — bien pire qu'une lenteur. Le délai
-    // est donc généreux. Il ne coûte plus cher : les onglets étant lus
-    // ensemble, il est payé UNE fois et non une fois par onglet vide.
+    // est donc généreux. Il se paie par onglet vide, dans une page déjà
+    // chargée : le relevé dure plus longtemps, il ne coûte pas davantage.
+    // Et il ne court qu'une fois le PANNEAU rendu : une barre d'onglets sans
+    // rien dessous n'est pas un onglet vide (cf. `textePanneau`).
     SUBS_PAGE_SETTLE:     7_000,
     // Durée pendant laquelle le contenu relevé doit cesser de bouger avant
     // qu'on le déclare complet. Une liste React s'écrit par morceaux, et
@@ -2243,13 +2241,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     // une période de scrutation : sans cette attente, on lisait les chaînes
     // sans leur ancienneté.
     SUBS_PAGE_STABLE:     1_500,
-    // Décalage entre deux départs d'onglets. Ils sont lus ENSEMBLE, mais pas
-    // lancés à la même milliseconde : quatre applications React qui démarrent
-    // au même instant font un pic de calcul assez net pour retarder la sidebar
-    // elle-même — mesuré au banc, où le voile n'arrivait plus à se stabiliser.
-    // Chacune durant plusieurs secondes, ce décalage ne coûte presque rien sur
-    // la durée totale, et il étale la dépense.
-    SUBS_PAGE_STAGGER:      600,
+    /* ── UNE PAGE PAR RELEVÉ, ET LES ONGLETS SE CHANGENT DEDANS ─────────────
+       Les onglets se lisaient chacun dans SA page — quatre applications Twitch
+       complètes, en parallèle. La console de l'utilisateur a montré ce que la
+       page demande en se chargeant : UN lot, cinq opérations — payés, offerts,
+       mobiles, tous, expirés. On charge donc une fois, et on clique. Ce délai
+       est celui qu'on laisse à la page pour CHANGER d'onglet après le clic ;
+       au-delà, on recharge pour cet onglet-là, comme avant. */
+    SUBS_PAGE_SWITCH:     4_000,
     // Retenue MAXIMALE du voile de chargement, quand aucun relevé n'a encore
     // abouti — première installation, ou lecteur devenu périmé. Le voile se
     // lève AVANT ce délai dès que le premier onglet a rendu quelque chose (et
@@ -2257,9 +2256,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     // que la sidebar est triée, décorée et comptée. Un onglet VIDE ne retient
     // donc jamais rien — il n'apporte rien à voir.
     SUBS_PAGE_HOLD_MAX:   7_000,
-    // Répit accordé aux onglets voisins après le premier résultat, avant de
-    // lever le voile. Ils partent à SUBS_PAGE_STAGGER d'intervalle et durent
-    // à peu près autant : ce répit suffit à les laisser rentrer ensemble.
+    // Répit accordé à l'onglet suivant après le premier résultat, avant de
+    // lever le voile. Il se lit dans la même page, en un clic, sur des données
+    // déjà rapatriées : ce répit suffit à le laisser rentrer.
     SUBS_PAGE_HOLD_GRACE: 1_500,
     SUBS_PAGE_STAMP_KEY:  'tse:substs',
     /* ── DEUX ONGLETS TWITCH NE DOIVENT PAS RELEVER DEUX FOIS ──────────────
@@ -2280,12 +2279,13 @@ const TSE_GATE_MAX_CLICKS = 5;
        un onglet fermé au milieu de son relevé ne condamne pas le prochain à
        attendre six heures, seulement la durée de ce bail.
 
-       SA DURÉE SE DÉDUIT DU PIRE CAS : un onglet abandonne au bout de
-       SUBS_PAGE_TIMEOUT, et l'apaisement du contenu peut ajouter
-       SUBS_PAGE_SETTLE. On prend large, sans jamais approcher la période du
-       relevé lui-même. */
+       SA DURÉE SE DÉDUIT DU PIRE CAS. Les onglets se lisant désormais l'un
+       après l'autre dans une même page, c'est la SOMME : quatre onglets de
+       SUBS_PAGE_TIMEOUT au plus — deux panneaux blancs d'affilée arrêtent
+       d'ailleurs le relevé. On prend large, sans jamais approcher la période
+       du relevé lui-même. */
     SUBS_PAGE_RUN_KEY:    'tse:subsrun',
-    SUBS_PAGE_LEASE:      60_000,
+    SUBS_PAGE_LEASE:      120_000,
     /* LE BAIL SE POSE, PUIS SE RELIT — et cette attente-là est la seule chose
        qui ferme la course. Deux pages qui démarrent dans la même poignée de
        millisecondes lisent toutes deux un bail libre avant que l'une ait
@@ -2313,6 +2313,20 @@ const TSE_GATE_MAX_CLICKS = 5;
        un horodatage écrit, pas un compteur épuisé. */
     SUBS_PAGE_RETRY:      20_000,
     SUBS_PAGE_RETRIES:    5,
+    /* ── UN RELEVÉ QUI NE TROUVE RIEN NE VAUT PAS SIX HEURES ──────────────
+       SIGNALÉ AINSI : « ironmouse n'est pas en doré ». Twitch refusait ce
+       jour-là sa propre page (« failed integrity check », les cinq listes à
+       null), le relevé rendait zéro, et l'horodatage l'interdisait ensuite
+       pour six heures — Twitch rétabli dix minutes plus tard, l'utilisateur
+       attendait quand même jusqu'au soir.
+
+       ON NE PEUT PAS DISTINGUER, depuis la page, un refus de Twitch d'un
+       compte vraiment sans abonnement. On raccourcit donc l'attente après un
+       relevé qui n'a vu AUCUNE carte, nulle part, et on la double à chaque
+       nouvel échec : quinze minutes, trente, une heure… jusqu'à la période
+       ordinaire. Un compte sans abonnement paie cinq relevés de plus, une
+       fois ; une panne passagère se répare toute seule. */
+    SUBS_PAGE_EMPTY_RETRY: 15 * 60_000,
     // L'étiquette du nombre de mois, apprise sur l'onglet des expirés puis
     // MÉMORISÉE. Tant qu'on ne la connaît pas, cet onglet doit être lu en
     // premier — les autres ne sauraient pas quoi chercher. Une fois connue,
@@ -10377,16 +10391,37 @@ const TSE_GATE_MAX_CLICKS = 5;
        aurait réparé la donnée. Changer ce numéro périme d'office les relevés
        des lecteurs antérieurs.
          1 — jusqu'à la 3.48.0 (format nu, sans numéro)
-         2 — depuis la 3.48.1 : attente de stabilité du contenu */
+         2 — depuis la 3.48.1 : attente de stabilité du contenu
+       Un TROISIÈME champ, facultatif, compte les relevés VIDES d'affilée
+       (cf. SUBS_PAGE_EMPTY_RETRY) : « 2:<date>:3 ». Un relevé qui a vu des
+       cartes l'omet, et le format d'un relevé réussi ne change pas. */
     const LECTEUR = 2;
-    const horodatage = () => {
+    const champs = () => {
       try {
         const brut = String(localStorage.getItem(CFG.SUBS_PAGE_STAMP_KEY) || '');
-        if (!brut) return 0;
-        const [v, t] = brut.includes(':') ? brut.split(':') : ['1', brut];
-        if (Number(v) !== LECTEUR) return 0;   // relevé d'un lecteur périmé
-        return Number(t) || 0;
-      } catch { return 0; }
+        if (!brut) return null;
+        const [v, t, n] = brut.includes(':') ? brut.split(':') : ['1', brut];
+        if (Number(v) !== LECTEUR) return null;   // relevé d'un lecteur périmé
+        return { t: Number(t) || 0, vides: Number(n) || 0 };
+      } catch { return null; }
+    };
+    const horodatage = () => champs()?.t || 0;
+    const videsDeSuite = () => champs()?.vides || 0;
+    /* L'attente avant le prochain relevé de routine : la période choisie, ou
+       moins après des relevés vides — quinze minutes, puis le double à chaque
+       nouvel échec, jamais plus que la période. */
+    /* AU DÉFAUT, C'EST LA CONSTANTE QUI GOUVERNE ; dès qu'on choisit, c'est le
+       choix. Sans cette bascule, le banc n'aurait plus aucun moyen d'accélérer
+       ce relevé : multiplier six heures par rien reste six heures. C'est la
+       seule façon de garder les deux vrais à la fois — une durée accélérable
+       pour la mesure, un choix en heures pour l'utilisateur. */
+    const periodeReleve = () =>
+      options.get('abosPeriode') === OPT_DEFS.abosPeriode.defaut
+        ? CFG.SUBS_PAGE_TTL
+        : options.get('abosPeriode') * 3_600_000;
+    const attenteAvantReleve = (periode) => {
+      const n = videsDeSuite();
+      return n > 0 ? Math.min(periode, CFG.SUBS_PAGE_EMPTY_RETRY * 2 ** (n - 1)) : periode;
     };
     /* LE BAIL : l'instant où une page a COMMENCÉ un relevé. Lu par les autres
        pages, effacé par celle qui finit, et périmé tout seul si personne ne
@@ -10428,9 +10463,10 @@ const TSE_GATE_MAX_CLICKS = 5;
        pas un plantage, et c'est pour cela que la reprise ci-dessous existe
        quand même. */
     window.addEventListener('pagehide', rendreBail);
-    const marquer = () => {
+    const marquer = (vides = 0) => {
       try {
-        localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY, LECTEUR + ':' + Date.now());
+        localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY,
+          LECTEUR + ':' + Date.now() + (vides > 0 ? ':' + vides : ''));
       } catch (e) {
         /* Sans cet horodatage, le relevé complet repart à CHAQUE chargement
            de page : trois pages en iframe, à chaque fois. Un échec ici est
@@ -10439,52 +10475,196 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     };
 
-    // Charge un onglet dans une iframe cachée et rend [{ login, mois }].
-    // Résout TOUJOURS — un onglet qui ne rend rien ne doit pas bloquer les
-    // suivants ni laisser l'iframe accrochée à la page.
-    // `passe` marque l'onglet des abonnements révolus : c'est le seul sur
-    // lequel l'étiquette de l'ancienneté peut être apprise (cf. mois()).
-    // Départ décalé : voir SUBS_PAGE_STAGGER. `rang` est la place de l'onglet
-    // dans la volée.
-    const visiterApres = (onglet, passe, rang) =>
-      new Promise(r => setTimeout(r, rang * CFG.SUBS_PAGE_STAGGER))
-        .then(() => visiter(onglet, passe));
+    /* ── CE QUE LA PAGE ÉCRIT SOUS SES ONGLETS, ET RIEN D'AUTRE ────────────
+       `main` porte aussi le titre de la page et les libellés de ses onglets.
+       Les recopier faisait dire au rapport « la page dit : Abonnements, Vos
+       abonnements, Abonnements offerts… » — une phrase qui n'explique rien, et
+       qui a pris la place de la vraie : ce jour-là, Twitch écrivait « Impossible
+       d'afficher vos abonnements pour le moment » juste en dessous.
 
-    const visiter = (onglet, passe = false) => new Promise(resolve => {
-      let cadre = document.createElement('iframe');
-      let sondeur = null, limite = null;
-      let debout = 0;   // instant où l'application de l'iframe s'est montrée
-      let passage = '';        // signature du passage précédent (cf. la scrutation)
+       ET UNE BARRE D'ONGLETS SANS RIEN DESSOUS N'EST PAS UN ONGLET VIDE. Tant
+       que ce texte est vide et qu'aucune carte n'est là, la page n'a pas fini
+       de répondre : on attend, jusqu'au garde-fou. Twitch écrit TOUJOURS
+       quelque chose à la place d'une liste — un message d'onglet vide, ou
+       celui de sa propre panne. Sans titre ni onglets à exclure par leur
+       texte, aucune langue n'est lue : on les écarte par leur NATURE. */
+    const HORS_PANNEAU = 'h1, h2, h3, [role="tablist"], [role="tab"], a[href*="/subscriptions"]';
+    const textePanneau = (doc) => {
+      const main = doc.querySelector('main');
+      if (!main) return '';
+      const morceaux = [];
+      const w = doc.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+      for (let n = w.nextNode(); n; n = w.nextNode()) {
+        const parent = n.parentElement;
+        if (!parent || parent.closest(HORS_PANNEAU)
+            || parent.closest('script, style, noscript')) continue;
+        const t = n.textContent.replace(/\s+/g, ' ').trim();
+        if (t) morceaux.push(t);
+      }
+      return morceaux.join(' ');
+    };
+
+    // Clé d'onglet d'une adresse : « /subscriptions?tab=gifts » → « gifts ».
+    const ongletDe = (href) => {
+      try { return new URL(href, location.origin).searchParams.get('tab') || ''; }
+      catch { return ''; }
+    };
+
+    /* LA SCRUTATION D'UN ONGLET, commune aux deux chemins : une page qu'on
+       vient de charger, ou une page à laquelle on vient de faire changer
+       d'onglet. `pret` retient la lecture tant que la page n'est pas sur le
+       bon onglet ; `refuser` écarte un jeu de cartes suspect (cf. `basculer`).
+       `exigerPanneau` : tant que la page n'a rien rendu sous ses onglets, on
+       n'a aucune preuve que ses données sont arrivées — un panneau blanc veut
+       dire « pas encore ». Une fois qu'un onglet a rendu quelque chose, les
+       autres viennent du MÊME lot : un panneau vide y est un onglet vide.
+       `finir(null)` signale une page devenue illisible — elle ne sert plus. */
+    const scruter = (cadre, vu, passe, finir, pret = () => true, refuser = () => false,
+                     exigerPanneau = true) => {
+      let passage = '';        // signature du passage précédent
       let noeuds = -1;         // taille du document au passage précédent
       let stableDepuis = 0;    // instant où cette signature est apparue
+      let debout = 0;          // instant où l'application s'est montrée, stable
+      return setInterval(() => {
+        let doc = null;
+        try { doc = cadre?.contentDocument; }
+        catch (e) {
+          erreurs.noter('abonnements', `onglet « ${vu.onglet} » : document inaccessible`,
+                        (e && e.name) || '');
+          return finir(null);
+        }
+        if (!doc || !pret(doc)) return;
+        const cartes = doc.querySelectorAll(DOM.subCardSelector);
+        /* Relevé à CHAQUE passage, donc au plus haut atteint : la page n'a
+           pas fini de s'écrire, et un instantané pris trop tôt dirait une
+           page vide là où elle était seulement lente. */
+        vu.charge = true;
+        /* Au plus haut sur une page qu'on vient de charger ; au DERNIER passage
+           après une bascule, où les premiers passages voient encore les cartes
+           de l'onglet d'avant — les compter ferait écrire au rapport « trois
+           cartes » pour un onglet vide. */
+        vu.cartes = vu.voie === 'page' ? Math.max(vu.cartes, cartes.length) : cartes.length;
+        vu.noeuds = Math.max(vu.noeuds, doc.querySelectorAll('*').length);
+        if (!vu.barre) vu.barre = !!doc.querySelector(DOM.sidebarRoot);
+        /* LA PHRASE, uniquement quand il n'y a pas de cartes : dès qu'une
+           carte paraît, elle ne porterait plus que des noms de chaînes, que le
+           relevé rapporte déjà mieux ailleurs. `main`, et AUCUN repli sur
+           `body` : la barre latérale est pleine de pseudonymes, et un repli
+           les verserait dans un rapport que l'utilisateur nous enverra. */
+        /* ET JAMAIS UNE LISTE DE CHAÎNES. Si le panneau porte des liens de
+           chaînes que notre sélecteur n'accroche pas, c'est la liste elle-même
+           sous un autre balisage : sa « phrase » serait la liste de vos
+           abonnements, dans un rapport qui promet de n'en porter aucune. On
+           les COMPTE, et ce nombre suffit au verdict (cf. la fin de refresh). */
+        const liens = cartes.length ? 0
+          : [...(doc.querySelector('main')?.querySelectorAll('a[href^="/"]') || [])]
+              .filter(a => loginFromHref(a.getAttribute('href') || '')).length;
+        vu.liens = Math.max(vu.liens || 0, liens);
+        vu.texte = cartes.length || liens ? ''
+          : textePanneau(doc).slice(0, CFG.SUBS_PAGE_TEXTE_MAX);
+        if (cartes.length || liens || vu.texte) vu.panneau = true;
+        if (cartes.length) {
+          const trouve = [];
+          const vus = new Set();
+          for (const carte of cartes) {
+            const lien = carte.querySelector('a[href^="/"]');
+            const login = loginFromHref(lien?.getAttribute('href') || '');
+            if (!login || vus.has(login)) continue;
+            vus.add(login);
+            trouve.push({ login, mois: mois(carte, passe) });
+          }
+          if (trouve.length) {
+            // On ne conclut pas au premier passage. Une liste React ne
+            // s'écrit pas d'un bloc : le lien d'une carte est rendu avant
+            // son ancienneté. Conclure tout de suite revenait à relever les
+            // chaînes et à perdre les mois — donc à n'apprendre jamais
+            // l'étiquette sur l'onglet des expirés, donc à n'afficher aucun
+            // badge nulle part.
+            //
+            // La stabilité se mesure en DURÉE, pas en nombre de passages. La
+            // signature porte les chaînes elles-mêmes, leur ancienneté et leur
+            // somme — tant que l'une bouge, la page s'écrit encore ; et deux
+            // onglets aux cartes différentes ne peuvent pas se confondre.
+            const signature = trouve.map(x => x.login).sort().join(',') + '/' +
+              trouve.filter(x => x.mois > 0).length + '/' +
+              trouve.reduce((t, x) => t + x.mois, 0);
+            if (signature !== passage) { passage = signature; stableDepuis = Date.now(); return; }
+            if (Date.now() - stableDepuis < CFG.SUBS_PAGE_STABLE) return;
+            if (refuser(trouve, Date.now() - stableDepuis)) return;
+            return finir(trouve);
+          }
+        }
+        if (!cartes.length) {
+          // Onglet vide ou page lente ? La barre latérale d'abord : rendue par
+          // la même application, sa présence dit que celle-ci est debout. Le
+          // document ensuite : tant qu'il GROSSIT, la page s'écrit encore, et
+          // l'apaisement repart de zéro. Attrapé au banc, en faisant tourner
+          // huit suites de front pour ralentir les pages à dessein.
+          const taille = doc.querySelectorAll('*').length;
+          if (taille !== noeuds) { noeuds = taille; debout = 0; return; }
+          if (!debout && doc.querySelector(DOM.sidebarRoot)) debout = Date.now();
+          // Le panneau encore blanc : la page n'a pas répondu (cf. `textePanneau`).
+          if (exigerPanneau && !vu.panneau) return;
+          if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) {
+            /* La page s'est montrée, stabilisée, a écrit SON message, et ne
+               porte AUCUNE carte. CE N'EST PAS UNE ERREUR : l'onglet « mobile »
+               est vide pour la plupart des gens, et un journal qui le
+               répéterait à chaque rapport apprendrait à l'ignorer. Le verdict
+               se rend à la FIN du relevé, quand on sait ce que les AUTRES
+               onglets ont donné (cf. la fin de refresh()). */
+            return finir([]);
+          }
+        }
+      }, 400);
+    };
+
+    /* Un garde-fou qui expire. Il dit si la page s'est MONTRÉE sans rien
+       rendre sous ses onglets — `blanc` — ou si elle n'est jamais venue. Le
+       relevé en tire sa décision de continuer ou non (cf. refresh). */
+    const expirer = (vu) => {
+      vu.expire = true;
+      vu.blanc = vu.charge && vu.barre && !vu.panneau;
+      erreurs.noter('abonnements', vu.blanc
+        ? `onglet « ${vu.onglet} » : rien sous ses onglets en ${CFG.SUBS_PAGE_TIMEOUT} ms`
+        : `onglet « ${vu.onglet} » : rien rendu en ${CFG.SUBS_PAGE_TIMEOUT} ms`);
+    };
+
+    /**
+     * Charge un onglet dans une iframe cachée et rend { logins, cadre }.
+     * Résout TOUJOURS — un onglet qui ne rend rien ne doit pas bloquer les
+     * suivants ni laisser l'iframe accrochée à la page. Avec `garder`, une
+     * page qui a répondu est RENDUE au lieu d'être fermée : l'onglet suivant
+     * s'y ouvrira d'un clic (cf. `basculer`). Une page qui a échoué, elle,
+     * n'est jamais gardée.
+     * `passe` marque l'onglet des abonnements révolus : c'est le seul sur
+     * lequel l'étiquette de l'ancienneté peut être apprise (cf. mois()).
+     */
+    const visiter = (onglet, passe = false, garder = false) => new Promise(resolve => {
+      let cadre = document.createElement('iframe');
+      let sondeur = null, limite = null;
       /* ── CE QUE L'ONGLET A VU, ET NON CE QU'IL A CONCLU ───────────────────
          TROUVÉ PAR UN RAPPORT DE TERRAIN : un relevé qui rend zéro alors que
          le compte a des abonnements, sans une ligne au journal. Le garde-fou
          existait, mais il s'appuyait sur la MÉMOIRE — « zéro trouvé, zéro
          connu » est le compte de quelqu'un sans abonnement — et la mémoire
-         venait d'être effacée. Or la PAGE, elle, avait la réponse : elle
-         s'était affichée, et le sélecteur n'avait rien accroché.
+         venait d'être effacée. Or la PAGE, elle, avait la réponse.
 
-         ON RETIENT DONC CE QU'ON A VU, et pas seulement ce qu'on en a conclu.
-         Des nombres — la page a-t-elle chargé, grossi, montré sa barre, rendu
-         des cartes — et, quand elle n'en rend AUCUNE, la phrase qu'elle
-         affiche à leur place.
-
-         CETTE PHRASE EST LE TÉMOIN QUI MANQUAIT. Un second rapport de terrain
-         l'a montré : la page disait « Impossible d'afficher vos abonnements
-         pour le moment », sa propre requête ayant échoué côté Twitch. Le
-         relevé rendait zéro — correctement — et rien ne distinguait ce cas
-         d'un sélecteur mort. La phrase, elle, les sépare d'un coup d'œil, et
-         elle vient de Twitch, pas de nous. */
-      const vu = { onglet, charge: false, noeuds: 0, barre: false, cartes: 0,
-                   logins: 0, texte: '' };
+         ON RETIENT DONC CE QU'ON A VU : la page a-t-elle chargé, grossi,
+         montré sa barre, rendu des cartes — et, quand elle n'en rend AUCUNE,
+         la phrase qu'elle affiche à leur place. `voie` dit comment l'onglet a
+         été atteint : une page chargée pour lui, ou un clic dans la page. */
+      const vu = { onglet, voie: 'page', charge: false, noeuds: 0, barre: false, cartes: 0,
+                   logins: 0, liens: 0, texte: '', panneau: false, blanc: false, expire: false };
       bilan.onglets.push(vu);
-      const finir = (logins) => {
+      const finir = (logins, garde = garder) => {
         if (sondeur) { clearInterval(sondeur); sondeur = null; }
         if (limite) { clearTimeout(limite); limite = null; }
-        vu.logins = logins.length;
-        if (cadre) { cadre.remove(); cadre = null; }
-        resolve(logins);
+        const ok = Array.isArray(logins);
+        vu.logins = ok ? logins.length : 0;
+        const rendu = ok && garde ? cadre : null;
+        if (cadre && !rendu) cadre.remove();
+        cadre = null;
+        resolve({ logins: ok ? logins : [], cadre: rendu });
       };
       cadre.setAttribute('aria-hidden', 'true');
       cadre.setAttribute('tabindex', '-1');
@@ -10492,137 +10672,84 @@ const TSE_GATE_MAX_CLICKS = 5;
         'position:fixed;left:-10000px;top:0;width:1280px;height:900px;' +
         'opacity:0;pointer-events:none;border:0';
       cadre.src = `${location.origin}/subscriptions?tab=${encodeURIComponent(onglet)}`;
-      limite = setTimeout(() => {
-        /* VINGT-CINQ SECONDES POUR RIEN, et pas une ligne pour le dire. Le
-           relevé rendait une liste vide, indiscernable d'un onglet
-           légitimement vide — c'est-à-dire de « vous n'avez aucun
-           abonnement ». Deux verdicts opposés sous la même apparence. */
-        erreurs.noter('abonnements',
-          `onglet « ${onglet} » : rien rendu en ${CFG.SUBS_PAGE_TIMEOUT} ms`);
-        finir([]);
-      }, CFG.SUBS_PAGE_TIMEOUT);
+      limite = setTimeout(() => { expirer(vu); finir([], false); }, CFG.SUBS_PAGE_TIMEOUT);
       cadre.addEventListener('load', () => {
         // Renvoyé ailleurs (connexion expirée, redirection de Twitch) : il n'y
-        // a rien à lire et rien à attendre. On rend la main tout de suite
-        // plutôt que de scruter en vain jusqu'au délai maximal. L'accès à
-        // `location` jette si la redirection a changé d'origine — même
-        // conclusion.
+        // a rien à lire et rien à attendre. L'accès à `location` jette si la
+        // redirection a changé d'origine — même conclusion.
         try {
           const chemin = cadre?.contentWindow?.location?.pathname;
           if (chemin && chemin !== '/subscriptions') {
             /* RENVOYÉ AILLEURS. Session expirée, redirection de Twitch : la
                page des abonnements exige d'être connecté, et son échec ne se
-               voit nulle part ailleurs. C'est la première cause d'un relevé
-               vide chez quelqu'un qui a des abonnements, et l'extension n'en
-               disait rien — ni console, ni rapport. Le chemin est recopié :
-               « /login » et « / » ne veulent pas dire la même chose. */
+               voit nulle part ailleurs. Le chemin est recopié : « /login » et
+               « / » ne veulent pas dire la même chose. */
             erreurs.noter('abonnements', `onglet « ${onglet} » : renvoyé vers ${chemin}`,
                           'session expirée ou non connectée ?');
-            return finir([]);
+            return finir(null);
           }
         } catch (e) {
           erreurs.noter('abonnements', `onglet « ${onglet} » : origine illisible`,
                         (e && e.name) || '');
-          return finir([]);
+          return finir(null);
         }
         // La page est une SPA : le `load` de l'iframe précède l'apparition
         // des cartes. On scrute jusqu'à en voir, ou jusqu'au délai maximal.
-        sondeur = setInterval(() => {
-          let doc = null;
-          try { doc = cadre?.contentDocument; }
-          catch (e) {
-            erreurs.noter('abonnements', `onglet « ${onglet} » : document inaccessible`,
-                          (e && e.name) || '');
-            return finir([]);
-          }
-          if (!doc) return;
-          const cartes = doc.querySelectorAll(DOM.subCardSelector);
-          /* Relevé à CHAQUE passage, donc au plus haut atteint : la page n'a
-             pas fini de s'écrire, et un instantané pris trop tôt dirait une
-             page vide là où elle était seulement lente. */
-          vu.charge = true;
-          vu.cartes = Math.max(vu.cartes, cartes.length);
-          vu.noeuds = Math.max(vu.noeuds, doc.querySelectorAll('*').length);
-          if (!vu.barre) vu.barre = !!doc.querySelector(DOM.sidebarRoot);
-          /* CE QUE LA PAGE DIT À LA PLACE DES CARTES, et uniquement dans ce
-             cas-là : dès qu'une carte paraît, la phrase ne sert plus à rien et
-             on l'efface — elle ne porterait plus que des noms de chaînes, que
-             le relevé rapporte déjà mieux ailleurs.
-
-             `main`, ET AUCUN REPLI SUR `body`. La barre latérale est pleine de
-             pseudonymes, et un repli sur le document entier les verserait tous
-             dans un journal d'erreurs que l'utilisateur nous enverra ensuite.
-             Pas de phrase vaut mieux qu'une phrase qu'il n'aurait pas voulu
-             envoyer : les nombres de la ligne d'onglet, eux, restent là. */
-          vu.texte = cartes.length ? ''
-            : (doc.querySelector('main')?.innerText || '')
-                .replace(/\s+/g, ' ').trim().slice(0, CFG.SUBS_PAGE_TEXTE_MAX);
-          if (cartes.length) {
-            const trouve = [];
-            const vus = new Set();
-            for (const carte of cartes) {
-              const lien = carte.querySelector('a[href^="/"]');
-              const login = loginFromHref(lien?.getAttribute('href') || '');
-              if (!login || vus.has(login)) continue;
-              vus.add(login);
-              trouve.push({ login, mois: mois(carte, passe) });
-            }
-            if (trouve.length) {
-              // On ne conclut pas au premier passage. Une liste React ne
-              // s'écrit pas d'un bloc : le lien d'une carte est rendu avant
-              // son ancienneté. Conclure tout de suite revenait à relever les
-              // chaînes et à perdre les mois — donc à n'apprendre jamais
-              // l'étiquette sur l'onglet des expirés, donc à n'afficher aucun
-              // badge nulle part.
-              //
-              // La stabilité se mesure en DURÉE, pas en nombre de passages :
-              // l'écart entre le squelette et le corps peut dépasser une
-              // période de scrutation, et deux passages identiques d'affilée
-              // ne prouveraient alors rien. La signature compte les cartes,
-              // les anciennetés lues et leur somme — tant que l'une des trois
-              // bouge, la page est encore en train de s'écrire.
-              const signature = trouve.length + '/' +
-                trouve.filter(x => x.mois > 0).length + '/' +
-                trouve.reduce((s, x) => s + x.mois, 0);
-              if (signature !== passage) { passage = signature; stableDepuis = Date.now(); return; }
-              if (Date.now() - stableDepuis < CFG.SUBS_PAGE_STABLE) return;
-              return finir(trouve);
-            }
-          }
-          if (!cartes.length) {
-            // Onglet vide ou page lente ? Deux conditions, et il faut les
-            // DEUX. La barre latérale d'abord : rendue par la même
-            // application, sa présence dit que celle-ci est debout. Le
-            // document ensuite : tant qu'il GROSSIT, la page s'écrit encore,
-            // et l'apaisement repart de zéro.
-            //
-            // Sans cette seconde condition, une page seulement lente était
-            // déclarée vide — la barre latérale arrive tôt, et le compte à
-            // rebours courait pendant que le reste se construisait. Une chaîne
-            // disparaissait alors du relevé, sans rien d'observable pour
-            // l'expliquer. Attrapé au banc, en faisant tourner huit suites de
-            // front pour ralentir les pages à dessein.
-            const taille = doc.querySelectorAll('*').length;
-            if (taille !== noeuds) { noeuds = taille; debout = 0; return; }
-            if (!debout && doc.querySelector(DOM.sidebarRoot)) debout = Date.now();
-            if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) {
-              /* La page s'est montrée, s'est stabilisée, et ne porte AUCUNE
-                 carte. CE N'EST PAS UNE ERREUR, et une première rédaction en
-                 faisait une : l'onglet « mobile » est vide pour la plupart des
-                 gens — les abonnements achetés dans une application mobile sont
-                 rares — et chaque rapport portait donc une ligne rouge qui ne
-                 disait rien. Un journal d'erreurs qu'on apprend à ignorer ne
-                 sert plus à rien, et c'est le premier rapport reçu qui l'a
-                 montré. Le verdict ne peut se rendre qu'à la FIN du relevé,
-                 quand on sait ce que les AUTRES onglets ont donné (cf. la fin
-                 de refresh()). */
-              return finir([]);
-            }
-            return;
-          }
-        }, 400);
+        sondeur = scruter(cadre, vu, passe, (l) => finir(l));
       }, { once: true });
       document.body.appendChild(cadre);
+    });
+
+    /**
+     * Fait changer d'onglet une page déjà chargée, par le lien qu'elle
+     * affiche elle-même, et rend les chaînes de cet onglet — ou `null` quand
+     * la page ne s'y prête pas : pas de lien pour cet onglet, ou pas de
+     * changement d'adresse dans SUBS_PAGE_SWITCH. L'appelant recharge alors.
+     */
+    const basculer = (cadre, onglet, passe, precedents, donneesArrivees) => new Promise(resolve => {
+      let doc = null;
+      try { doc = cadre.contentDocument; } catch { /* illisible : on rechargera */ }
+      const lien = doc && [...doc.querySelectorAll('a[href*="/subscriptions"]')]
+        .find(a => ongletDe(a.getAttribute('href') || '') === onglet);
+      if (!lien) return resolve(null);
+      const vu = { onglet, voie: 'bascule', charge: false, noeuds: 0, barre: false, cartes: 0,
+                   logins: 0, liens: 0, texte: '', panneau: false, blanc: false, expire: false };
+      bilan.onglets.push(vu);
+      let sondeur = null, limite = null, delai = null;
+      const finir = (logins) => {
+        if (sondeur) { clearInterval(sondeur); sondeur = null; }
+        if (limite) { clearTimeout(limite); limite = null; }
+        if (delai) { clearTimeout(delai); delai = null; }
+        vu.logins = Array.isArray(logins) ? logins.length : 0;
+        resolve(logins);
+      };
+      /* LA PAGE A-T-ELLE CHANGÉ D'ONGLET ? Son adresse le dit. Tant qu'elle
+         ne le dit pas, les cartes à l'écran sont celles de l'onglet d'avant —
+         et lire des EXPIRÉS en croyant lire des abonnements en cours dorerait
+         des chaînes qu'on ne suit plus. */
+      const change = () => {
+        try { return ongletDe(cadre.contentWindow.location.href) === onglet; }
+        catch { return false; }
+      };
+      /* ET SI LES CARTES SONT EXACTEMENT CELLES DE L'ONGLET D'AVANT, on les
+         veut stables bien plus longtemps avant d'y croire : c'est l'image
+         d'une page qui n'a pas encore redessiné, bien plus qu'une coïncidence. */
+      const avant = [...(precedents || [])].sort().join(',');
+      const refuser = (trouve, stableMs) => !!avant
+        && trouve.map(x => x.login).sort().join(',') === avant
+        && stableMs < CFG.SUBS_PAGE_SETTLE;
+      delai = setTimeout(() => {
+        delai = null;
+        if (change()) return;
+        vu.voie = 'bascule refusée';
+        if (sondeur) { clearInterval(sondeur); sondeur = null; }
+        if (limite) { clearTimeout(limite); limite = null; }
+        resolve(null);
+      }, CFG.SUBS_PAGE_SWITCH);
+      limite = setTimeout(() => { expirer(vu); finir([]); }, CFG.SUBS_PAGE_TIMEOUT);
+      try { lien.click(); }
+      catch { vu.voie = 'bascule refusée'; finir(null); return; }
+      sondeur = scruter(cadre, vu, passe, finir, change, refuser, !donneesArrivees);
     });
 
     /**
@@ -10636,17 +10763,7 @@ const TSE_GATE_MAX_CLICKS = 5;
      */
     const refresh = async (force = false) => {
       if (!CFG.SUBS_PAGE_ENABLED || running) return null;
-      /* AU DÉFAUT, C'EST LA CONSTANTE QUI GOUVERNE ; dès qu'on choisit, c'est
-         le choix. Sans cette bascule, le banc n'aurait plus aucun moyen
-         d'accélérer ce relevé : multiplier six heures par rien reste six
-         heures, et les scénarios d'abonnements attendraient un quart de
-         journée. C'est la seule façon de garder les deux vrais à la fois —
-         une durée accélérable pour la mesure, un choix en heures pour
-         l'utilisateur. */
-      const periode = options.get('abosPeriode') === OPT_DEFS.abosPeriode.defaut
-        ? CFG.SUBS_PAGE_TTL
-        : options.get('abosPeriode') * 3_600_000;
-      if (!force && Date.now() - horodatage() < periode) return null;
+      if (!force && Date.now() - horodatage() < attenteAvantReleve(periodeReleve())) return null;
       /* UNE AUTRE PAGE S'EN CHARGE DÉJÀ. On s'abstient, et on le COMPTE — un
          relevé qui ne part pas doit pouvoir se distinguer d'un relevé qui
          part et ne trouve rien, sans quoi le rapport aurait deux silences
@@ -10725,49 +10842,78 @@ const TSE_GATE_MAX_CLICKS = 5;
           premierResultat();
         };
 
-        // L'étiquette de l'ancienneté ne s'apprend que sur l'onglet des
-        // expirés. Tant qu'on ne la connaît pas, il PASSE DONC EN PREMIER,
-        // seul — les autres ne sauraient pas quoi chercher. C'est le cas de la
-        // toute première installation, et d'elle seule : l'étiquette est
-        // ensuite mémorisée.
-        /* ── ET IL NE SE RELIT PAS DERRIÈRE LUI-MÊME ──────────────────────
-           LE RAPPORT DE TERRAIN LE MONTRAIT EN DEUX LIGNES JUMELLES :
-               onglet expired  affiché · 5331 nœuds · 74 carte(s)
-               onglet expired  affiché · 5309 nœuds · 74 carte(s)
-           La ligne suivante testait `etiquette` — que la passe ci-dessus
-           vient justement d'APPRENDRE. Vraie dans les deux cas, donc, et
-           l'onglet le plus lourd du relevé était rechargé une seconde fois
-           pour en retirer exactement les mêmes soixante-quatorze chaînes.
+        /* ── L'ORDRE DES ONGLETS, DANS UNE SEULE PAGE ─────────────────────────
+           L'étiquette de l'ancienneté ne s'apprend que sur l'onglet des
+           expirés. Tant qu'on ne la connaît pas, il PASSE DONC EN PREMIER —
+           les autres ne sauraient pas quoi chercher. Une fois connue, les
+           abonnements en cours passent devant : ce sont eux que la sidebar
+           affiche, et le premier résultat est celui qui lève le voile.
 
-           `mois(carte, true)` apprend l'étiquette ET rend l'ancienneté dans
-           le même passage : la première lecture est COMPLÈTE, il n'y a rien
-           à aller rechercher. On retient donc ce qui a été lu, au lieu de
-           relire un état qui a changé entre-temps. */
-        let passeLu = false;
-        if (!etiquette) {
-          for (const onglet of CFG.SUBS_PAGE_TABS_PAST) verserPasse(await visiter(onglet, true));
-          passeLu = true;
+           Chaque onglet n'est lu QU'UNE FOIS : `mois(carte, true)` apprend
+           l'étiquette et rend l'ancienneté dans le même passage (un rapport de
+           terrain avait montré l'onglet le plus lourd relu derrière lui-même).
+
+           Tous les onglets se lisent dans LA MÊME page (cf. SUBS_PAGE_SWITCH).
+           Si elle refuse de changer d'onglet, on recharge — une page par onglet,
+           l'un après l'autre — et on ne retente plus la bascule. */
+        const ordre = etiquette
+          ? [...CFG.SUBS_PAGE_TABS.map(o => [o, false]),
+             ...CFG.SUBS_PAGE_TABS_PAST.map(o => [o, true])]
+          : [...CFG.SUBS_PAGE_TABS_PAST.map(o => [o, true]),
+             ...CFG.SUBS_PAGE_TABS.map(o => [o, false])];
+        let cadre = null;
+        let basculeRefusee = false;
+        let precedents = [];
+        let donnees = false;       // un onglet a-t-il déjà rendu quelque chose ?
+        let blancsDeSuite = 0;
+        try {
+          for (const [onglet, passe] of ordre) {
+            let liste = null;
+            if (cadre && !basculeRefusee) {
+              liste = await basculer(cadre, onglet, passe, precedents, donnees);
+              if (liste === null) basculeRefusee = true;
+            }
+            if (liste === null) {
+              if (cadre) { cadre.remove(); cadre = null; }
+              const r = await visiter(onglet, passe, true);
+              liste = r.logins;
+              cadre = r.cadre;
+            }
+            precedents = liste.map(x => x.login);
+            if (passe) verserPasse(liste); else verserCourant(onglet)(liste);
+            /* ── QUAND S'ARRÊTER ─────────────────────────────────────────────
+               Une page JAMAIS VENUE — pas même sa barre — ne viendra pas mieux
+               au chargement suivant : on s'arrête tout de suite. Un panneau
+               resté BLANC tout le garde-fou, c'est d'ordinaire Twitch qui ne
+               sert pas la liste ; mais un onglet vide que Twitch dessinerait
+               sans un mot lui ressemblerait. On en accepte donc un, et on
+               s'arrête au second d'affilée : les onglets suivants viennent du
+               même lot, et lus l'un après l'autre ils coûteraient un garde-fou
+               chacun. Le relevé vide revient de lui-même, plus tôt
+               (SUBS_PAGE_EMPTY_RETRY). */
+            const dernier = bilan.onglets[bilan.onglets.length - 1];
+            if (dernier?.panneau) donnees = true;
+            if (dernier?.expire) {
+              if (!dernier.barre) break;
+              blancsDeSuite += 1;
+              if (blancsDeSuite >= 2) break;
+            } else {
+              blancsDeSuite = 0;
+            }
+          }
+        } finally {
+          if (cadre) cadre.remove();
         }
-
-        // Une fois l'ordre affranchi, tous les onglets partent ENSEMBLE. La
-        // durée du relevé n'est plus la somme des onglets mais celle du plus
-        // lent : c'est ce qui le fait tenir sous la retenue du voile, au lieu
-        // d'apparaître après coup. Le prix est un pic — trois ou quatre pages
-        // de Twitch qui démarrent en même temps, une fois toutes les six
-        // heures, dans des iframes cachées.
-        const encore = passeLu ? [] : CFG.SUBS_PAGE_TABS_PAST;
-        let rang = 0;
-        await Promise.all([
-          ...encore.map(o => visiterApres(o, true, rang++).then(verserPasse)),
-          ...CFG.SUBS_PAGE_TABS.map(o => visiterApres(o, false, rang++).then(verserCourant(o))),
-        ]);
         if (touche) subs.flush();   // ce que les onglets d'expirés ont apporté
         // Horodaté APRÈS l'enregistrement : l'horodatage veut dire « un relevé
         // est allé à son terme », et quiconque le lit doit trouver le résultat
         // déjà en mémoire. Marqué même à vide, en revanche — un compte sans
         // abonnement ne doit pas relancer un chargement de page toutes les
         // minutes.
-        marquer();
+        /* Aucune carte NULLE PART — expirés compris : le relevé n'a rien
+           appris, et le prochain viendra plus tôt (cf. SUBS_PAGE_EMPTY_RETRY). */
+        const rienVu = !bilan.onglets.some(o => o.cartes > 0);
+        marquer(rienVu ? videsDeSuite() + 1 : 0);
         /* UN RELEVÉ ENTIER QUI NE TROUVE RIEN, ALORS QU'ON SAVAIT DES
            ABONNEMENTS. C'est le seul énoncé qui vaille une ligne au journal :
            un onglet vide est ordinaire, trois onglets vides chez quelqu'un dont
@@ -10831,11 +10977,18 @@ const TSE_GATE_MAX_CLICKS = 5;
                 CFG.SUBS_PAGE_TABS.join(', '));
             }
           } else {
+            /* ET UNE PAGE MONTRÉE SANS RIEN DESSOUS n'accuse pas notre
+               sélecteur : elle n'a rien rendu du tout, cartes ou message. */
+            const blancs = affiches.filter((o) => !o.panneau).length;
+            const liens = Math.max(0, ...affiches.map((o) => o.liens || 0));
             erreurs.noter('abonnements',
               `${affiches.length} onglet(s) affiché(s), aucun ne rend « ${DOM.subCardSelector} »`,
               dit ? `la page dit : « ${dit} »`
-                : connus ? `${connus} abonnement(s) déjà connu(s) : le sélecteur ne correspond plus`
-                  : 'compte sans abonnement, ou sélecteur à revérifier');
+                : liens ? `${liens} lien(s) de chaîne dans la page, aucun dans une carte : le sélecteur ne correspond plus`
+                  : blancs === affiches.length
+                    ? 'la page n\'a rien rendu sous ses onglets — Twitch ne sert pas la liste'
+                    : connus ? `${connus} abonnement(s) déjà connu(s) : le sélecteur ne correspond plus`
+                      : 'compte sans abonnement, ou sélecteur à revérifier');
           }
         }
       } finally {
@@ -10956,8 +11109,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     return { init, refresh, horodatage, notifySidebar, enAttente,
-             bilan: () => ({ ...bilan, differes,
-                             onglets: bilan.onglets.map((o) => ({ ...o })) }) };
+             /* `videsDeSuite` et `prochainDansMs` disent pourquoi un relevé
+                reviendra plus tôt que la période — ou pas. */
+             bilan: () => {
+               const t = horodatage();
+               return { ...bilan, differes, videsDeSuite: videsDeSuite(),
+                        prochainDansMs: t
+                          ? Math.max(0, t + attenteAvantReleve(periodeReleve()) - Date.now()) : 0,
+                        onglets: bilan.onglets.map((o) => ({ ...o })) };
+             } };
   })();
 
   /**
