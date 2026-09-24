@@ -2178,6 +2178,128 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'audit : une boucle, un trou, une ligne fausse, et cinq morts (v4.19.1)
+
+> « Un audit complet de l'extension, vérifie chaque élément de code pour au final
+> retirer le moindre code mort. Réfléchis sérieusement à des optimisations. Ne
+> supprime pas des fonctionnalités. »
+
+### Comment on a cherché
+
+Lire vingt et un mille lignes à l'œil ne prouve rien. Trois outils, chacun pour
+ce qu'il sait voir :
+
+| outil | ce qu'il a dit |
+| --- | --- |
+| couverture V8 par blocs, fusionnée sur les 154 scénarios | 92,1 % du code de `content.js` exécuté, 88,5 % de `panneau.js` ; 265 fonctions sur 1 093 jamais appelées |
+| arbre syntaxique (espree) : chaque membre d'objet défini contre chaque lecture | cinq membres sans lecteur |
+| clés `CFG`, `STRINGS`, `_locales`, classes CSS | toutes lues ou posées |
+
+**Non exécuté ne veut pas dire mort.** Les 265 fonctions ont été triées une à
+une : API de console (`tse.rythme()`…), actions du panneau (import, purge), variantes
+du DOM de Twitch, chemins d'erreur, tri « popularité » (une visite ne compte
+qu'après cinq minutes sur une chaîne — c'est aussi pourquoi le rapport disait
+`visites 0` après 200 s). Tout cela sert ; rien de cela n'a été touché.
+
+### Une boucle de balayage, quatre fois par seconde, pour toujours
+
+Mesuré avec les constantes de **production**, sur une page immobile :
+
+| | balayages par seconde au repos |
+| --- | --- |
+| 4.19.0 | **3,9**, sans fin |
+| 4.19.1 | **0,2** — le réveil prévu, toutes les cinq secondes |
+
+La trace de la pile a nommé l'appelant du premier coup : `majVerrouVoile`. Elle
+terminait par un `scheduleScan()` **inconditionnel** — « le voile ne se lève que
+sur un scan : en voici un ». Or le balayage l'appelle à chaque passage ; hors
+cycle de voile, il n'y avait rien à lever, et chaque balayage en programmait un
+autre 250 ms plus tard. Chaque lot de chaînes et chaque sonde en ajoutaient un.
+
+Un balayage coûte ~10 ms sur une barre de 138 cartes (profil par étape : aucun
+point chaud, `processCard` en prend le tiers). La boucle tenait donc environ
+**4 % d'un cœur en permanence**, onglet visible ; il en reste environ 0,2 %.
+
+**Le correctif :** un balayage seulement si **ce module tenait le verrou**, et
+jamais quand l'appelant est le balayage lui-même, qui enchaîne sur `notifyScan`.
+
+**Et un compteur pour que cela se voie :** `page.balayages.total` et
+`page.balayages.derniereMinute` au rapport. Au repos, une douzaine par minute ;
+la boucle en aurait montré ~240.
+
+### Une place qui se dissolvait toutes les trente secondes
+
+Trouvé en lisant le code autour de `horsClassementConnus`, et **mesuré avant
+d'être cru**. L'index « tel membre appartient à telle session » expirait à
+`GUEST_STAR_TTL` pile — l'instant même où l'entrée Guest Star est jugée périmée
+et **remise en file**. Le temps que la réponse revienne, aucun membre n'avait
+plus de session : la place se dissolvait, chaque membre reprenait un rang à lui,
+les dernières places sortaient de l'écran, puis tout revenait.
+
+| sur un co-stream de trois, TTL réduit à 3 s | échantillons dissous |
+| --- | --- |
+| 4.19.0 | 50 sur 459 — ~340 ms à chaque expiration, `top(30)` à 30 au lieu de 32 |
+| 4.19.1 | **0** sur 460 |
+
+Le cache lui-même sert déjà le périmé pendant qu'il se rafraîchit, et la
+couleur a son délai de grâce pour la même fenêtre. L'index était le seul à ne
+pas en avoir : il reste désormais valable **un TTL de plus** (de quoi laisser
+arriver la réponse, et traverser une pause d'erreur). Une session réellement
+finie se lit toujours dans la réponse, confirmée en `GUEST_STAR_DROP_CONFIRM`
+réponses — le banc vérifie aussi qu'elle se défait.
+
+Le drapeau de langue et les membres complétés lisent le même index : ils
+clignotaient avec. Quant à `horsClassementConnus 1` dans le rapport reçu, ce
+trou en est **une** cause possible ; ce n'est pas démontré.
+
+### Une ligne de rapport qui accusait un pont absent
+
+Le rapport reçu portait « observations du pont : aucune — le pont lui-même n'a
+rien rendu / bridge silent », sous un essai réussi en 10 ms. Il avait été ouvert
+depuis le **panneau incrusté** (la roue crantée), qui parle à la page
+directement : le pont n'est pas sur ce chemin, son silence est la règle. La voie
+est maintenant écrite à côté de chaque essai (`#0 ok (10 ms, cadre)`), et la
+ligne dit « sans objet — panneau incrusté ».
+
+### Ce qui a été retiré
+
+| retiré | pourquoi il était mort |
+| --- | --- |
+| `DOM.nativeHeaderRe` | aucune lecture, nulle part ; l'en-tête natif se masque autrement |
+| `globalChannels.placeDe` | jamais appelée ; `parPlaces` passe par `placeDeRec` |
+| l'export `preview.originesEnAttente` | jamais lu — et son commentaire affirmait que « la file des chaînes l'appelle aussi », ce qu'aucun code ne faisait |
+| `options.actif` | aucun appelant |
+| `roster.size` | aucun appelant |
+
+Au passage, un commentaire affirmait encore que la proximité des compteurs
+faisait une place « à défaut » de Guest Star. La 4.18.0 l'avait écartée par la
+mesure ; la phrase est corrigée.
+
+### Ce qui a été vérifié et gardé
+
+`TSE_GATE_ENABLED` (interrupteur documenté plus haut), les libellés `uiCcl*` (lus
+par clé calculée), le module des visites, les fonctions du panneau jamais ouvertes
+au banc, chaque modificateur CSS (produits par composition), `background.js` et
+`bridge.js` relus en entier. Les chiffres du rapport `chutes 19 · chuteMax 577`,
+`differees 367` et `retards 54 s` sont sains : baisses ordinaires sans sortie
+d'écran, reports comptés à chaque passage avec zéro refus, et un seul échantillon.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| le `scheduleScan()` inconditionnel d'avant | 86 balayages en 4 s au repos (scénario 156) |
+| l'index expiré à `GUEST_STAR_TTL` pile | 49 classements dissous sur 269 échantillons (scénario 155) |
+| un index qui n'expire jamais | la place reste collée après la fin de la session (scénario 155) |
+| la ligne de rapport d'avant | « bridge silent » revient, la voie n'est nommée nulle part (scénario 124) |
+
+Les deux nouveaux scénarios tournent sur une **variante** du script servie sous
+l'origine de Twitch, avec les constantes qu'il leur faut — un TTL court pour voir
+plusieurs expirations, ou le réveil de production pour qu'un balayage de trop se
+remarque. Le scénario 156 a d'ailleurs échoué deux fois avant d'être juste : le
+relevé des abonnements, accéléré au banc, balaie légitimement à la fin de son
+premier passage. Tracé ligne à ligne, puis attendu.
+
 ## Dire pourquoi il est là, et qui n'y est pas (v4.19.0)
 
 Deux demandes, nées de la même limite laissée ouverte par la 4.18.1.
@@ -10311,7 +10433,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 154 scénarios, 1281 assertions |
+| `npm test` | le harnais Playwright : 156 scénarios, 1290 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -10334,7 +10456,7 @@ assemblé :
 | --- | --- | --- | --- |
 | `content.js` | 1183 Ko | 423 Ko | 3 504 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 98 Ko | 47 Ko | 134 → **0** |
+| `panneau.js` | 101 Ko | 48 Ko | 135 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1431 Ko** | **577 Ko** | **−59 %** |

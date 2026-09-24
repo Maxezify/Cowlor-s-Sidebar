@@ -2057,6 +2057,128 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The audit: a loop, a gap, a false line, and five dead members (v4.19.1)
+
+> "A complete audit of the extension, check every piece of code to remove the
+> slightest dead code. Think seriously about optimisations. Do not remove
+> existing features."
+
+### How we looked
+
+Reading twenty-one thousand lines by eye proves nothing. Three tools, each for
+what it can see:
+
+| tool | what it said |
+| --- | --- |
+| V8 block coverage, merged over the 154 scenarios | 92.1 % of `content.js` code executed, 88.5 % of `panneau.js`; 265 of 1,093 functions never called |
+| syntax tree (espree): every object member defined against every read | five members with no reader |
+| `CFG`, `STRINGS`, `_locales` keys, CSS classes | all read or set |
+
+**Not executed does not mean dead.** The 265 functions were sorted one by one:
+console API (`tse.rythme()`…), panel actions (import, purge), Twitch DOM
+variants, error paths, the "popularity" sort (a visit only counts after five
+minutes on a channel — which is also why the report said `visites 0` after
+200 s). All of it is in use; none of it was touched.
+
+### A scan loop, four times a second, forever
+
+Measured with the **production** constants, on a page at rest:
+
+| | scans per second at rest |
+| --- | --- |
+| 4.19.0 | **3.9**, endlessly |
+| 4.19.1 | **0.2** — the intended wake-up, every five seconds |
+
+The stack trace named the caller at the first try: `majVerrouVoile`. It ended
+with an **unconditional** `scheduleScan()` — "the veil only lifts on a scan: here
+is one". But the scan calls it on every pass; outside a veil cycle there was
+nothing to lift, and every scan scheduled another one 250 ms later. Every channel
+batch and every probe added one more.
+
+A scan costs ~10 ms on a 138-card sidebar (per-step profile: no hot spot,
+`processCard` takes a third). The loop therefore held roughly **4 % of a core
+permanently**, tab visible; about 0.2 % remains.
+
+**The fix:** a scan only if **this module was holding the lock**, and never when
+the caller is the scan itself, which goes on to `notifyScan`.
+
+**And a counter so it shows:** `page.balayages.total` and
+`page.balayages.derniereMinute` in the report. At rest, a dozen a minute; the
+loop would have shown ~240.
+
+### A slot that dissolved every thirty seconds
+
+Found while reading the code around `horsClassementConnus`, and **measured
+before being believed**. The index "this member belongs to that session" expired
+exactly at `GUEST_STAR_TTL` — the very instant the Guest Star entry is judged
+stale and **queued again**. Until the answer came back, no member had a session
+any more: the slot dissolved, each member took a rank of its own, the last slots
+left the screen, then everything came back.
+
+| on a co-stream of three, TTL cut to 3 s | dissolved samples |
+| --- | --- |
+| 4.19.0 | 50 of 459 — ~340 ms at each expiry, `top(30)` at 30 instead of 32 |
+| 4.19.1 | **0** of 460 |
+
+The cache itself already serves stale data while it refreshes, and the colour
+has its grace delay for the same window. The index was the only one without: it
+now stays valid **one more TTL** (enough for the answer to arrive, and to ride out
+an error pause). A session that has really ended is still read from the answer,
+confirmed over `GUEST_STAR_DROP_CONFIRM` answers — the bench also checks that it
+comes apart.
+
+The language flag and completed members read the same index: they flickered
+with it. As for `horsClassementConnus 1` in the report received, this gap is
+**one** possible cause; it is not demonstrated.
+
+### A report line that blamed an absent bridge
+
+The report received said "observations du pont: aucune — le pont lui-même n'a
+rien rendu / bridge silent", under an attempt that succeeded in 10 ms. It had been
+opened from the **embedded panel** (the gear), which talks to the page directly:
+the bridge is not on that path, its silence is the rule. The path is now written
+next to every attempt (`#0 ok (10 ms, cadre)`), and the line says "n/a —
+embedded panel".
+
+### What was removed
+
+| removed | why it was dead |
+| --- | --- |
+| `DOM.nativeHeaderRe` | no read anywhere; the native header is hidden another way |
+| `globalChannels.placeDe` | never called; `parPlaces` goes through `placeDeRec` |
+| the `preview.originesEnAttente` export | never read — and its comment claimed "the channel queue calls it too", which no code did |
+| `options.actif` | no caller |
+| `roster.size` | no caller |
+
+Along the way, a comment still claimed that counter proximity makes a slot
+"failing" Guest Star. 4.18.0 had ruled that out by measurement; the sentence is
+corrected.
+
+### What was checked and kept
+
+`TSE_GATE_ENABLED` (a switch documented above), the `uiCcl*` labels (read by
+computed key), the visits module, the panel functions never opened on the bench,
+every CSS modifier (produced by composition), `background.js` and `bridge.js`
+reread in full. The report figures `chutes 19 · chuteMax 577`, `differees 367`
+and `retards 54 s` are healthy: ordinary decreases with no screen exit, deferrals
+counted on every pass with zero refusals, and a single sample.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the former unconditional `scheduleScan()` | 86 scans in 4 s at rest (scenario 156) |
+| the index expiring exactly at `GUEST_STAR_TTL` | 49 dissolved rankings out of 269 samples (scenario 155) |
+| an index that never expires | the slot stays glued after the session ends (scenario 155) |
+| the former report line | "bridge silent" returns, the path is named nowhere (scenario 124) |
+
+The two new scenarios run on a **variant** of the script served under Twitch's
+origin, with the constants they need — a short TTL to see several expiries, or
+the production wake-up so that one scan too many shows. Scenario 156 failed twice
+before it was right: the subscriptions sweep, accelerated on the bench,
+legitimately scans at the end of its first pass. Traced line by line, then
+waited for.
+
 ## Saying why they are here, and who is not (v4.19.0)
 
 Two requests, born of the same limit left open by 4.18.1.
@@ -9931,7 +10053,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 154 scenarios, 1281 assertions |
+| `npm test` | the Playwright harness: 156 scenarios, 1290 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -9953,7 +10075,7 @@ the assembled code:
 | --- | --- | --- | --- |
 | `content.js` | 1183 KB | 423 KB | 3,504 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 98 KB | 47 KB | 134 → **0** |
+| `panneau.js` | 101 KB | 48 KB | 135 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1431 KB** | **577 KB** | **−59 %** |

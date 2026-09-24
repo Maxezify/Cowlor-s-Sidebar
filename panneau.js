@@ -1685,13 +1685,23 @@ const construireRapport = (r, transport, fond) => {
      Le rendre conditionnel à l'échec serait la même faute en plus discret :
      un champ qu'on ne voit que lorsque ça va mal ne se compare à rien. */
   const obs = transport.observations;
+  /* ── LE PANNEAU INCRUSTÉ NE PASSE PAS PAR LE PONT ─────────────────────────
+     Ouvert par la roue crantée, il parle à la page directement (cf.
+     `demanderCadre`) : ni worker, ni bridge.js sur le chemin. Le rapport disait
+     pourtant « le pont lui-même n'a rien rendu / bridge silent » — sur une
+     réponse arrivée en dix millisecondes sans que le pont ait été sollicité.
+     Un rapport de terrain l'a porté tel quel. La voie est maintenant écrite
+     à côté de chaque essai, et l'absence d'observations dite pour ce qu'elle
+     est quand elle est normale. */
+  const parCadre = (transport.trace || []).some(t => t.voie === 'cadre');
   L.push(...bloc('DIAGNOSTIC HORS PAGE / OFF-PAGE DIAGNOSTIC', [
     paire('worker — ponts', fond?.ok ? (fond.ponts.join(', ') || 'aucun / none')
                                      : `injoignable (${fond?.erreur || '—'})`),
     ...(fond?.ok ? [paire('worker — âge', `${fond.workerMs} ms`),
                     paire('worker — en vol', fond.enVol)] : []),
     paire('essais / attempts', (transport.trace || [])
-      .map(t => `#${t.essai} ${t.erreur} (${t.ms} ms)`).join('  →  ') || '—'),
+      .map(t => `#${t.essai} ${t.erreur} (${t.ms} ms${t.voie ? ', ' + t.voie : ''})`)
+      .join('  →  ') || '—'),
     /* Vu depuis le monde ISOLATED, qui partage le DOM avec content.js sans
        partager son contexte. `marque` est le jalon posé par content.js : vide,
        il n'a jamais tourné dans cet onglet. */
@@ -1702,8 +1712,9 @@ const construireRapport = (r, transport, fond) => {
       paire('page — cachée / hidden', obs.cachee),
       paire('pont / bridge', `${obs.pont}, ${obs.reprises} reprise(s)`),
       paire('page — âge / age', `${obs.pageMs} ms`),
-    ] : [paire('observations du pont',
-               'aucune — le pont lui-même n\'a rien rendu / bridge silent')]),
+    ] : [paire('observations du pont', parCadre
+      ? 'sans objet — panneau incrusté, la page répond sans le pont / n/a — embedded panel, no bridge on the path'
+      : 'aucune — le pont lui-même n\'a rien rendu / bridge silent')]),
     ...(transport.partiel ? [
       paire('page — étape / stage', transport.partiel.etape),
       paire('page — depuis / since', `${transport.partiel.depuisMs} ms`),
