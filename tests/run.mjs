@@ -16901,7 +16901,8 @@ addEventListener('message', (e) => {
   if (!d || d.tse !== 'tse-incruste-req') return;
   window.__vues.push(d);
   e.source.postMessage({ tse: 'tse-incruste-res', id: d.id, ok: true,
-                         data: { colonnes: ['login'], lignes: [], resume: {} } }, '*');
+                         data: d.rapport ? { genere: Date.now() }
+                                         : { colonnes: ['login'], lignes: [], resume: {} } }, '*');
 });
 </script></body>`);
 
@@ -16962,6 +16963,26 @@ addEventListener('message', (e) => {
   ok('…et n\'annonce plus « ouvrez un onglet twitch.tv » par-dessus Twitch',
      typeof message === 'string' && !/twitch\.tv/i.test(message)
      && !/onglet|tab\b/i.test(message), JSON.stringify(message));
+
+  /* ── ET SON RAPPORT DIT PAR OÙ IL EST PASSÉ ──────────────────────────────
+     UN RAPPORT DE TERRAIN PORTAIT « observations du pont : aucune — le pont
+     lui-même n'a rien rendu / bridge silent », au-dessus d'un essai réussi en
+     dix millisecondes. Le panneau incrusté ne passe PAS par le pont : l'absence
+     d'observations y est la règle, pas une panne, et le dire comme une panne
+     faisait douter du reste du rapport. Mutant — la ligne d'avant — : « bridge
+     silent » revient, et la voie n'est nommée nulle part. */
+  const rapport = await cadre().evaluate(async () => {
+    document.getElementById('btn-rapport').click();
+    const zone = document.getElementById('rapport-zone');
+    for (let i = 0; i < 80 && !/DIAGNOSTIC HORS PAGE/.test(zone.value); i++) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    const ligne = (k) => (zone.value.split('\n').find((l) => l.trimStart().startsWith(k)) || '').trim();
+    return { pont: ligne('observations du pont'), essais: ligne('essais / attempts') };
+  });
+  ok('…et son rapport nomme la voie du cadre au lieu d\'accuser un pont qui n\'y est pas',
+     /sans objet/.test(rapport.pont) && !/bridge silent/.test(rapport.pont)
+     && /, cadre\)/.test(rapport.essais), JSON.stringify(rapport));
 
   await page.close();
   rmSync(hote, { force: true });
@@ -20462,6 +20483,224 @@ addEventListener('message', (e) => {
    couvert est l'attente des chaînes encore inconnues, vérifiée à la main.
    Écrire ce trou ici vaut mieux qu'une assertion qui passerait au vert sans
    rien mesurer : c'est ce qu'ont fait les trois tentatives ci-dessus. */
+
+/* ═════════ UNE PAGE SUR UNE VARIANTE DU SCRIPT ════════════════════════════
+   Deux scénarios ci-dessous ont besoin d'une cadence que le reste du banc ne
+   doit pas subir : un TTL Guest Star court pour voir plusieurs expirations,
+   ou le réveil de PRODUCTION pour qu'un balayage de trop se remarque. On sert
+   donc une COPIE de content.test.js, substituée ici, sous l'origine de
+   Twitch — comme la variante Firefox du scénario 99, mais sans toucher à
+   build.mjs. Chaque substitution est VÉRIFIÉE : une expression qui ne
+   trouverait plus sa constante ferait tourner le scénario sur le script
+   ordinaire, et il passerait sans rien mesurer. */
+const pageVariante = async (substitutions) => {
+  let src = fileText('content.test.js');
+  const ratees = [];
+  for (const [rx, par] of substitutions) {
+    if (!rx.test(src)) ratees.push(String(rx));
+    src = src.replace(rx, par);
+  }
+  const page = await browser.newPage();
+  page.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await page.route('https://www.twitch.tv/**', (route) => {
+    const nom = route.request().url().split('/').pop().split('?')[0];
+    if (nom === 'content.test.js') {
+      return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: src });
+    }
+    if (nom.endsWith('.js')) {
+      return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: fileText(nom) });
+    }
+    return route.fulfill({ contentType: 'text/html; charset=utf-8', body: fileText('page.html') });
+  });
+  await page.route('https://static-cdn.jtvnw.net/**', (route) =>
+    route.fulfill({ contentType: 'image/png', body: PIXEL }));
+  await page.goto('https://www.twitch.tv/');
+  return { page, ratees };
+};
+
+/* ═════════ UNE PLACE NE SE DISSOUT PAS PENDANT QU'ON LA REDEMANDE ════════
+   TROUVÉ EN LISANT UN RAPPORT, ET MESURÉ AVANT D'ÊTRE CRU. L'index qui dit
+   « ce membre appartient à telle session » expirait à GUEST_STAR_TTL — l'instant
+   même où l'entrée Guest Star est jugée périmée et remise en file. Le temps que
+   la réponse revienne, plus aucun membre n'avait de session : la place se
+   dissolvait, chaque membre reprenait un rang à lui, et les dernières places du
+   classement étaient poussées hors de l'écran. Puis tout revenait.
+
+   MESURÉ SUR CE DÉCOR, TTL RÉDUIT À 1,5 s : à chaque expiration, `top(30)`
+   passe de 32 enregistrements à 30 pendant ~340 ms, et deux cartes quittent
+   l'écran. En production, toutes les trente secondes, pour chaque co-stream.
+
+   LE RAPPORT ENTRE LES DEUX CONSTANTES EST CELUI DE LA PRODUCTION (1:1) : la
+   marge donnée à l'index — un TTL de plus, de quoi traverser une pause
+   d'erreur — n'est pas gonflée par l'accélération. */
+{
+  titre('155. Top Chaînes — une place ne se dissout pas pendant qu\'on la redemande');
+  const { page, ratees } = await pageVariante([
+    [/GUEST_STAR_TTL:\s*30_000/, 'GUEST_STAR_TTL: 1_500'],
+    [/GUEST_STAR_ERROR_COOLDOWN:\s*30_000/, 'GUEST_STAR_ERROR_COOLDOWN: 1_500'],
+  ]);
+  ok('la variante porte bien ses deux constantes réduites', ratees.length === 0,
+     JSON.stringify(ratees));
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    const streams = [
+      { login: 'a1', viewers: 20_000 }, { login: 'a2', viewers: 19_900 },
+      { login: 'a3', viewers: 19_800 },
+      ...Array.from({ length: 40 }, (_, i) => ({ login: 'b' + i, viewers: 15_000 - i * 100 })),
+    ];
+    /* DEUX CATÉGORIES : la marche en demande trente par catégorie, et il faut
+       plus de trente chaînes au pool pour qu'une place de trois en rende
+       trente-deux. Sur une seule, le pool plafonne à trente et le scénario ne
+       mesurerait rien — c'est arrivé au premier essai. */
+    window.__cats = [
+      { name: 'Dota 2', viewers: 900_000, streams: streams.filter((x, i) => i % 2 === 0) },
+      { name: 'Chess', viewers: 800_000, streams: streams.filter((x, i) => i % 2 === 1) },
+      { name: 'Autre', viewers: 10, streams: [{ login: 'modele', viewers: 800 }] },
+    ];
+    window.__fx = {}; window.__gs = {};
+    for (const st of [...streams, { login: 'modele', viewers: 800 }]) {
+      window.__fx[st.login] = { id: String(800_000 + st.viewers), createdAt: h,
+                                viewers: st.viewers, game: 'Dota 2', tags: [] };
+    }
+    const idDe = (l) => window.__fx[l].id;
+    /* Les trois membres ont une carte d'emblée : ils partent dans le MÊME lot
+       Guest Star, donc expirent ensemble. C'est le pire cas — un membre
+       interrogé plus tard rafraîchirait l'index de toute la session à
+       contretemps, et masquerait le trou. */
+    const guests = ['a1', 'a2', 'a3'].map((l) => ({ id: idDe(l), login: l,
+      viewers: window.__fx[l].viewers, combined: 20_000 }));
+    for (const l of ['a1', 'a2', 'a3']) {
+      window.__gs[idDe(l)] = { hostId: idDe('a1'), hostLogin: 'a1', guests };
+    }
+    window.__addCard('modele', 'Dota 2', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await attendre(page, () => document.querySelectorAll('.side-nav-card.tse-costream').length === 3,
+                 15_000);
+  await wait(page, 800);
+  const premisse = await page.evaluate(() => ({
+    pool: window.tse.global.report().pool,
+    top: window.tse.global.top(30).length,
+    cles: [...document.querySelectorAll('.side-nav-card.tse-costream')]
+      .map((c) => c.dataset.tseCostreamKey),
+  }));
+  /* LA PRÉMISSE : la place existe et compte pour une — trente places, trente-
+     deux chaînes. Sans elle, « elle ne se dissout pas » serait vrai d'une place
+     qui n'a jamais existé. */
+  ok('la place de trois compte pour une : trente places, trente-deux chaînes',
+     premisse.pool > 32 && premisse.top === 32
+     && premisse.cles.length === 3 && new Set(premisse.cles).size === 1,
+     JSON.stringify(premisse));
+
+  const trace = await page.evaluate(async () => {
+    const n0 = window.__calls.filter((c) => c.op === 'TseGuestStar').length;
+    const out = [];
+    const t0 = performance.now();
+    while (performance.now() - t0 < 7_000) {
+      out.push({ top: window.tse.global.top(30).length,
+                 ecran: [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')]
+                   .filter((c) => getComputedStyle(c).display !== 'none').length });
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    return { out, requetes: window.__calls.filter((c) => c.op === 'TseGuestStar').length - n0 };
+  });
+  /* LE DÉCOR JOUE BIEN LES EXPIRATIONS : sept secondes à 1,5 s de TTL, donc au
+     moins trois redemandes. Sans elles, la stabilité ne prouverait rien. */
+  ok('…le TTL expire bel et bien pendant la mesure, et la session est redemandée',
+     trace.requetes >= 3, `${trace.requetes} requête(s) Guest Star`);
+  /* L'ASSERTION QUI PORTE LE DÉFAUT. Mutant — l'index expiré à GUEST_STAR_TTL
+     pile, c'est-à-dire la 4.19.0 — : une cinquantaine d'échantillons à 30 sur
+     280, et autant d'écrans à 30 cartes. */
+  const dissous = trace.out.filter((s) => s.top !== 32).length;
+  const ecran = trace.out.filter((s) => s.ecran !== 32).length;
+  ok('…et la place ne s\'est jamais dissoute, ni au classement ni à l\'écran',
+     dissous === 0 && ecran === 0,
+     `${dissous} classement(s) et ${ecran} écran(s) sur ${trace.out.length} échantillons`);
+
+  /* ET ELLE SE DÉFAIT QUAND LA SESSION FINIT. La marge ne doit pas devenir une
+     colle : Guest Star cesse de rendre la session, la fin est confirmée en
+     GUEST_STAR_DROP_CONFIRM réponses, plus rien ne rafraîchit l'index, et la
+     place se rend. Mutant — un index qui n'expire jamais — : trente-deux pour
+     toujours. */
+  await page.evaluate(() => { window.__gs = {}; });
+  await attendre(page, () => window.tse.global.top(30).length === 30, 15_000);
+  const apres = await page.evaluate(() => window.tse.global.top(30).length);
+  ok('…mais elle se défait quand la session finit', apres === 30, String(apres));
+  await page.close();
+}
+
+/* ═════════ AU REPOS, UN BALAYAGE N'EN RELANCE PAS UN AUTRE ═══════════════
+   TROUVÉ PAR L'AUDIT, EN MESURANT PLUTÔT QU'EN LISANT. Sur une page immobile,
+   avec les constantes de production, la barre était balayée 3,9 fois par
+   seconde — sans fin — pour un réveil prévu toutes les cinq secondes. La
+   trace de la pile a nommé l'appelant du premier coup : `majVerrouVoile`,
+   appelée par le balayage, programmait un balayage à chaque passage, qu'elle
+   ait eu un verrou à lever ou non.
+
+   LE RÉVEIL EST RAMENÉ À SA VALEUR DE PRODUCTION, et c'est tout l'intérêt : à
+   cent millisecondes, celui du banc cache la boucle sous sa propre cadence. La
+   durée de vie des réponses de chaîne aussi, sans quoi le rafraîchissement
+   légitime de chaque carte relancerait des balayages que personne ne doit
+   compter ici. */
+{
+  titre('156. Au repos, un balayage n\'en relance pas un autre');
+  /* TROIS CONSTANTES RAMENÉES À LA PRODUCTION, et la troisième a été apprise
+     en échouant : sous l'origine de Twitch, le relevé des abonnements tourne,
+     et le banc le relance toutes les quatre secondes. Ses résultats balaient
+     légitimement — sept passes en quatre secondes, tracées une à une, aucune
+     venue d'un balayage. En production, c'est une fois toutes les six heures. */
+  const { page, ratees } = await pageVariante([
+    [/REFRESH_TICK:\s*100\b/, 'REFRESH_TICK:   5_000'],
+    [/LIVE_TTL:\s*600\b/, 'LIVE_TTL:       30_000'],
+    [/SUBS_PAGE_TTL:\s*4_000\b/, 'SUBS_PAGE_TTL: 6 * 60 * 60_000'],
+  ]);
+  ok('la variante porte le réveil, la fraîcheur et le relevé de production',
+     ratees.length === 0, JSON.stringify(ratees));
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {};
+    for (let i = 0; i < 12; i++) {
+      window.__fx['r' + i] = { id: String(600_000 + i), createdAt: h,
+                               viewers: 5000 - i * 100, game: 'G', tags: [] };
+      window.__addCard('r' + i, 'G', String(5000 - i * 100));
+    }
+  });
+  /* Le voile levé, les réponses arrivées, et le PREMIER relevé des abonnements
+     terminé : ses trois onglets rendent vers quatre secondes et demie dans le
+     harnais, chacun avec son balayage, légitimement. */
+  await attendre(page, () => !document.body.classList.contains('tse-loading')
+    && document.querySelectorAll('[data-tse-started-at]').length === 12
+    && window.tse.panneau.rapport().relevesAbonnements?.horodatage > 0, 15_000);
+  /* PUIS UNE ACCALMIE : une seconde et demie sans aucun balayage, dix secondes
+     au plus pour l'obtenir. Le démarrage a droit à son activité ; une boucle,
+     elle, n'en laisse jamais — l'attente expire alors, et la mesure qui suit
+     la prend sur le fait. */
+  await page.evaluate(async () => {
+    const lire = () => window.tse.panneau.rapport().page.balayages.total;
+    const t0 = Date.now();
+    let dernier = lire(), depuis = Date.now();
+    while (Date.now() - t0 < 10_000 && Date.now() - depuis < 1_500) {
+      await new Promise((r) => setTimeout(r, 100));
+      const n = lire();
+      if (n !== dernier) { dernier = n; depuis = Date.now(); }
+    }
+  });
+  const avant = await page.evaluate(() => window.tse.panneau.rapport().page.balayages);
+  await wait(page, 4000);
+  const apres = await page.evaluate(() => window.tse.panneau.rapport().page.balayages);
+  const n = apres.total - avant.total;
+  /* LA PRÉMISSE : le compteur existe, et il a compté le démarrage. */
+  ok('le rapport compte les balayages', Number.isFinite(avant.total) && avant.total > 0
+     && Number.isFinite(apres.derniereMinute), JSON.stringify({ avant, apres }));
+  /* L'ASSERTION. Quatre secondes au repos, un réveil toutes les cinq : zéro ou
+     un balayage, et une unité de marge. Mutant — le `scheduleScan()`
+     inconditionnel d'avant — : une soixantaine, un toutes les cinquante
+     millisecondes du délai de regroupement du banc. */
+  ok('…et au repos, il n\'en passe pas plus que le réveil n\'en commande',
+     n <= 2, `${n} balayage(s) en 4 s`);
+  await page.close();
+}
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la

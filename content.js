@@ -578,11 +578,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     showLessStableSelector:  '[data-a-target="side-nav-show-less-button"], [data-test-selector="ShowLess"]',
 
     offlineRe:               /\b(?:déconnecté(?:e)?s?|offline|desconectad(?:o|a)s?)\b/i,
-    // Header natif de section : libellés de tri/sections « Spectateurs »,
-    // « Recommandées » (fr), « Viewers », « Recommended » (en), « Zuschauer »,
-    // « Empfohlen » (de), « espectadores » (es / pt-BR), « espetadores »
-    // (pt-PT, sans « c »). Sert à masquer le header natif + ses icônes de tri.
-    nativeHeaderRe:          /Spectateurs|Recommandées|Viewers|Recommended|Zuschauer|Empfohlen|espe(?:ct|t)adores/i,
     costreamHostRe:          /^(?:Co-stream d'un stream de|Co-stream from a stream by|Co-stream aus einem Stream von|Co-stream de um stream de)\s+([A-Za-z0-9_]+)$/,
     // Phrase d'accessibilité du nombre total d'invités d'un squad :
     //   fr « X et N invité(s) » · en « X and N guest(s) » · de « X und N Gast/Gäste »
@@ -2767,10 +2762,6 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     return {
       get: (id) => valeurs[id],
-      /* Un jeu répond à la question qu'on lui pose vraiment : « celui-ci
-         est-il actif ? ». Le stockage dit l'inverse, la lecture le retourne
-         une fois pour toutes, ici. */
-      actif: (id, membre) => !valeurs[id].includes(membre),
       tout: () => {
         const copie = {};
         for (const id of Object.keys(OPT_DEFS)) {
@@ -7591,7 +7582,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     /* Les n premières PLACES d'une liste déjà triée, membres compris. Une
-       place se reconnaît à sa clé (cf. `placeDe`) ; ses membres sortent
+       place se reconnaît à sa clé (cf. `placeDeRec`) ; ses membres sortent
        groupés, à la position de son meilleur d'entre eux. */
     const parPlaces = (liste, n) => {
       const membres = new Map();
@@ -9014,13 +9005,13 @@ const TSE_GATE_MAX_CLICKS = 5;
          c'est par sa chaîne la plus regardée. Aucun tri de plus, donc aucune
          occasion de diverger de `base()`.
 
-         QUI FAIT UNE PLACE : Guest Star quand il répond — c'est un fait, pas
-         une ressemblance — et à défaut la proximité des compteurs dans une
-         même catégorie, la même heuristique qui protège déjà le combiné. */
-      placeDe(rec) { return placeDeRec(rec); },
+         QUI FAIT UNE PLACE : Guest Star, et lui seul — un fait, pas une
+         ressemblance. La proximité des compteurs a été essayée et écartée
+         par la mesure (cf. `placeDeRec`) ; cette phrase la citait encore
+         comme repli, ce que le code ne fait plus depuis. */
 
       // Classement servi à l'interface : la base, filtrée par la langue
-      // choisie, puis tronquée.
+      // choisie, puis tronquée EN PLACES (cf. `parPlaces`).
       //
       // Le filtre s'applique au POOL — un millier et demi de chaînes
       // récoltées par la marche — et non aux 30 affichées. Filtrer l'affichage
@@ -11086,7 +11077,6 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     return {
       init, flush, record,
-      size:    () => map.size,
       entries: () => (ordered ??= [...map.entries()].sort((a, b) => b[1] - a[1])),
       clear:   () => {
         map.clear(); dirty = false; ordered = null;
@@ -11353,6 +11343,26 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     out.sort((a, b) => b.score - a.score);
     return out;
+  };
+
+  /* ── COMBIEN DE BALAYAGES, ET À QUEL RYTHME ─────────────────────────────
+     UNE BOUCLE DE BALAYAGE A TOURNÉ DES VERSIONS SANS QUE RIEN NE LE DISE :
+     quatre passes par seconde sur une page immobile, chacune relancée par la
+     précédente (cf. `majVerrouVoile`). Aucun rapport ne pouvait la montrer,
+     faute de ce chiffre. Au repos, le réveil en commande un toutes les
+     REFRESH_TICK — une douzaine par minute — et les mutations de Twitch le
+     reste ; bien au-delà, c'est qu'un balayage en relance un autre.
+
+     Déclaré ICI, avant l'objet qui le lit, pour qu'aucun ordre d'évaluation
+     ne puisse le trouver dans sa zone morte. */
+  const bilanBalayages = { total: 0, recents: [] };
+  const noterBalayage = () => {
+    const t = Date.now();
+    bilanBalayages.total += 1;
+    bilanBalayages.recents.push(t);
+    while (bilanBalayages.recents.length && t - bilanBalayages.recents[0] > 60_000) {
+      bilanBalayages.recents.shift();
+    }
   };
 
   const tseApi = {
@@ -11808,6 +11818,13 @@ const TSE_GATE_MAX_CLICKS = 5;
           // était sur une chaîne, ce qui compte ; le reste ne dit rien.
           chemin: location.pathname,
           cachee: document.hidden,
+          /* Depuis le démarrage, et sur la dernière minute — celui-ci est le
+             rythme : ~12 au repos (cf. `bilanBalayages`). */
+          balayages: {
+            total: bilanBalayages.total,
+            derniereMinute: bilanBalayages.recents
+              .filter(t => maintenant - t <= 60_000).length,
+          },
           sidebar: !!nav,
           repliee: nav ? detectSidebarCollapsed() : null,
           voile: document.body.classList.contains('tse-loading'),
@@ -14656,10 +14673,14 @@ const TSE_GATE_MAX_CLICKS = 5;
        une borne annoncée de 300. */
     let voileCycle = 0;
     let voileEpuise = false;
+    /* Le verrou « origines » est-il posé PAR NOUS en ce moment ? C'est ce qui
+       dit si un relâchement change quelque chose (cf. la fin de la fonction). */
+    let voileTenu = false;
     const majVerrouVoile = (enPlus = false, peutLever = false) => {
       const cycle = loadingOverlay.numCycle();
       if (cycle !== voileCycle) {
         voileCycle = cycle; voileEpuise = false; voileVerrouJusqua = 0;
+        voileTenu = false;   // un nouveau cycle repart sans verrou (cf. startCycle)
         if (voileSecours) { clearTimeout(voileSecours); voileSecours = null; }
       }
       const actif = loadingOverlay.enCycle() && !voileEpuise
@@ -14673,7 +14694,7 @@ const TSE_GATE_MAX_CLICKS = 5;
                                   CFG.RECONNECT_PROBE_HOLD_MAX + 50);
       }
       const tenir = actif && Date.now() < voileVerrouJusqua;
-      if (tenir) { loadingOverlay.setHold(true, 'origines'); return; }
+      if (tenir) { loadingOverlay.setHold(true, 'origines'); voileTenu = true; return; }
       /* L'ÉCHÉANCE EST TOMBÉE ALORS QU'IL RESTAIT DU TRAVAIL : c'est le cas
          qui se reconduisait. On marque la borne consommée pour ce cycle — ce
          qui suit lèvera, et plus rien ne la reposera avant le cycle suivant.
@@ -14685,10 +14706,24 @@ const TSE_GATE_MAX_CLICKS = 5;
       // quoi une sidebar qui n'aboutit pas resterait voilée jusqu'au plafond
       // dur. Sinon, seul le balayage a le droit de lever.
       if (!peutLever && Date.now() < voileVerrouJusqua) return;
+      const tenait = voileTenu;
+      voileTenu = false;
       loadingOverlay.setHold(false, 'origines');
       voileVerrouJusqua = 0;
       if (voileSecours) { clearTimeout(voileSecours); voileSecours = null; }
-      scheduleScan();   // le voile ne se lève que sur un scan : en voici un
+      /* ── UN BALAYAGE SEULEMENT SI UN VERROU VIENT DE TOMBER ───────────────
+         LE VOILE NE SE LÈVE QUE SUR UN SCAN, d'où cet appel. Il était
+         INCONDITIONNEL, et le balayage appelle cette fonction à chaque
+         passage : hors cycle de voile, rien n'est tenu, on tombait donc
+         ici à tous les coups — et chaque balayage en programmait un autre.
+         Mesuré avec les constantes de production, sur une page immobile :
+         3,9 balayages par seconde, sans fin, pour un réveil prévu toutes les
+         cinq secondes. Chaque lot de chaînes et chaque sonde en ajoutaient un.
+
+         Il n'en faut un que si NOUS tenions le verrou — sinon rien ne vient
+         de changer — et jamais quand l'appelant EST le balayage : il
+         enchaîne sur `notifyScan`, qui voit déjà le verrou tombé. */
+      if (tenait && !peutLever) scheduleScan();
     };
 
     let videurTimer = null;
@@ -17010,12 +17045,10 @@ const TSE_GATE_MAX_CLICKS = 5;
          précisément en choisissant à sa place qu'il brûlait son budget sur les
          deux mêmes (cf. `gardesSonde`). Le tri se fait ici, où les gardes
          vivent, et la requête part en un seul aller-retour. */
-      /* Reste-t-il des origines à apprendre ? Et la fonction qui en tire le
-         verrou de voile. La FILE DES CHAÎNES l'appelle aussi, au moment où
-         elle part : c'est là que « des chaînes dont on ne sait rien » devient
-         vrai, et le module de la sonde, lui, ne tournera qu'APRÈS leur
-         réponse — trop tard pour retenir quoi que ce soit. */
-      originesEnAttente,
+      /* Le verrou de voile des origines. La FILE DES CHAÎNES l'appelle aussi,
+         au moment où elle part : c'est là que « des chaînes dont on ne sait
+         rien » devient vrai, et le module de la sonde, lui, ne tournera
+         qu'APRÈS leur réponse — trop tard pour retenir quoi que ce soit. */
       majVerrouVoile: (enPlus, peutLever) => majVerrouVoile(enPlus, peutLever),
       sonderOrigines: (logins) => vider(logins),
       // Ferme l'aperçu si sa carte d'ancrage a quitté le DOM (stream terminé
@@ -19357,10 +19390,29 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
     }
   };
+  /* ── L'INDEX NE S'ÉTEINT PAS PENDANT QU'ON LE REDEMANDE ─────────────────
+     IL EXPIRAIT À GUEST_STAR_TTL PILE — l'instant même où `getHostId` juge
+     l'entrée périmée et la REMET en file. Entre les deux, il s'écoule le
+     délai de regroupement, l'aller-retour réseau et le balayage suivant :
+     pendant ce temps aucun membre n'avait plus de session. Mesuré au banc sur
+     un co-stream de trois dont les membres sont interrogés dans le même lot :
+     à chaque expiration, la place se dissout ~340 ms, `top(30)` passe de 32
+     enregistrements à 30 et deux cartes quittent l'écran, puis reviennent.
+     Toutes les trente secondes, pour chaque co-stream affiché — et le
+     drapeau de langue et les membres complétés clignotent avec.
+
+     LE CACHE LUI-MÊME SERT DÉJÀ LE PÉRIMÉ PENDANT QU'IL SE RAFRAÎCHIT (cf.
+     `getHostId`, « stale-while-revalidate »), et la couleur a son délai de
+     grâce pour la même fenêtre (COSTREAM_COLOR_GRACE). L'index était le seul
+     à ne pas en avoir. Il reste valable un cycle de plus : de quoi laisser
+     arriver la réponse, et même survivre à une pause d'erreur. Une session
+     réellement finie se lit, elle, dans la réponse — confirmée par
+     GUEST_STAR_DROP_CONFIRM — et plus rien ne rafraîchit alors l'index. */
+  const INDEX_SESSION_MAX = CFG.GUEST_STAR_TTL + CFG.GUEST_STAR_ERROR_COOLDOWN;
   const combineDuMembre = (login) => {
     if (!login) return null;
     const hit = combineDesMembres.get(String(login).toLowerCase());
-    if (!hit || Date.now() - hit.ts >= CFG.GUEST_STAR_TTL) return null;
+    if (!hit || Date.now() - hit.ts >= INDEX_SESSION_MAX) return null;
     return hit.v;
   };
   /* La session d'un membre, ou null. Même fraîcheur que le combiné : une
@@ -19369,7 +19421,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   const sessionDuMembre = (login) => {
     if (!login) return null;
     const hit = sessionDesMembres.get(String(login).toLowerCase());
-    if (!hit || Date.now() - hit.ts >= CFG.GUEST_STAR_TTL) return null;
+    if (!hit || Date.now() - hit.ts >= INDEX_SESSION_MAX) return null;
     return hit.cle;
   };
   /* Les membres d'une session, ou []. Même fraîcheur que le reste : une
@@ -19377,7 +19429,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   const membresDeLaSession = (cle) => {
     if (!cle) return [];
     const hit = membresDeSession.get(cle);
-    if (!hit || Date.now() - hit.ts >= CFG.GUEST_STAR_TTL) return [];
+    if (!hit || Date.now() - hit.ts >= INDEX_SESSION_MAX) return [];
     return hit.membres;
   };
 
@@ -20939,6 +20991,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   };
 
   const scanSidebar = erreurs.garde('balayage', () => {
+    noterBalayage();
     // Re-évaluer la langue en premier : auto-correction si LANG
     // initial était erroné (DOM Twitch pas encore prêt au boot).
     refreshLanguage();
