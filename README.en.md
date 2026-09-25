@@ -2057,6 +2057,102 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The sponsored card, laid out by its pieces (v4.21.2)
+
+> "There's a big bug in the sidebar. I think it's the sponsor, Nivea. The card
+> has to be perfect."
+
+A "Sponsored • <brand>" card, in a co-stream on top of that, displayed as
+**two storeys and three columns, the last one empty**: avatar and count side
+by side, the name to their right, the category alone underneath.
+
+### What the real DOM said
+
+The report counted one live card with neither of Twitch's two metadata boxes,
+and no recognised name (`groupe 38`, `boite 38`, `sansNom 1` out of 39). The
+markup read from the card, with and without the extension, gave the rest:
+
+```
+a.side-nav-card__link--promoted-followed
+  div
+    div.…__gradient
+    div                      ← grid container
+      div                    ← avatar + count
+        div                  ← avatar × brand logo
+        div.side-nav-card__live-status
+      div.…__title > p
+      div.…__content > p
+      div.…__sponsorship
+```
+
+The previous rules — written at the very first import, and never exercised:
+the bench had **no** sponsored card — went down level by level and flattened
+each wrapper with `display: contents`. They matched this DOM **level for
+level**, and lost anyway. Replayed on the bench against this exact markup,
+they produced a **correct** card: the only explanation consistent with the
+screenshot is an `!important` declaration on Twitch's side on the avatar +
+count block, which a `contents` without `!important` cannot beat, whatever its
+specificity. That block stayed a single grid item, placed in column 1.
+
+### What changes
+
+- **The name is found**: `cardNameEl` knows the sponsored card's title block.
+  A subscriber's gold, a subathon's badge and another language's flag now
+  reach it.
+- **The card is laid out by its four pieces**, found by the functions that
+  find them everywhere else (`avatarOf`, `cardNameEl`, `cardCategoryEl`,
+  `liveStatusOf`). The JS derives their common container, which becomes the
+  grid, and marks the wrappers in between; the CSS only knows these marks,
+  with `!important`. Neither the number of wrappers nor their hashed classes
+  matter any more.
+- **Without a category**, the name centres on the avatar, as on an ordinary
+  card.
+- **What is no longer a sponsored card goes back to Twitch**: collapsed
+  sidebar, missing piece, sponsorship over.
+- The advertising decoration stays hidden by the rules that name it, and the
+  preview still says "Sponsored by <brand>".
+
+### A block in the report
+
+`CARTES SPONSORISÉES / SPONSORED CARDS` says what the **real** page made of
+it, since Twitch's stylesheet is only exercised here through a model:
+`aplatis` against `plats` (does our `!important` win?),
+`categorieSousAvatar` (the screenshot's exact symptom), `ecartNomPx` and
+`ecartHauteurPx` (the card against the median ordinary card: zero means a card
+like the others), and a `squelette` — tags and stable classes of the first
+card, without a word of text or an address.
+
+### What I could not verify
+
+Twitch's stylesheet cannot be read from the repository: the `!important` is
+**inferred** — it is the only cause that makes the previous rules wrong on this
+DOM — and the bench **models** it. The next report will settle it: `aplatis`
+equal to `plats` and `categorieSousAvatar 0`. The grid itself also carries
+`!important`, as a precaution: the screenshot shows the previous grid did
+apply, and no scenario tells this choice apart.
+
+### What the bench measures
+
+| mutant | what fails |
+| --- | --- |
+| `cardNameEl` forgets the sponsored card | no name, nothing laid out — six assertions |
+| flattening without `!important` | **the screenshot**: the name pushed to 71 px by the avatar + count block; the report says `aplatis 3` of `plats 7` |
+| no wrapper flattened | the same screenshot, and the report at `plats 0` |
+| the count without a column | it leaves the right edge |
+| no single row without a category | the name stays stuck at the top of the avatar |
+| the "collapsed sidebar" guard removed | the grid unfolds what Twitch folds |
+| the grid never undone | a grid with a hole, then an ordinary card's grid |
+| the report counts every wrapper as flattened | it no longer recognises the screenshot |
+| the report never counts the symptom | same |
+| the block removed from the panel | it never reaches the text that is sent |
+| the grid without `!important` | **survives** — expected, see above |
+
+Eleven mutants, ten caught; the eleventh is the choice nothing tells apart.
+
+Scenario 166 is new, on the recorded markup (invented names); 70 renders the
+block in the report. The harness gains `__addPromotedCard` and the sponsored
+card's native layout.
+
 ## The light-theme gold, and the avatar nobody set (v4.21.1)
 
 > "On Firefox prod, the subscription CSS effect when the sidebar is light is
@@ -10571,7 +10667,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 165 scenarios, 1369 assertions |
+| `npm test` | the Playwright harness: 166 scenarios, 1380 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -10591,9 +10687,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1247 KB | 449 KB | 3,542 → **2** |
+| `content.js` | 1247 KB | 449 KB | 3,546 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 101 KB | 48 KB | 139 → **0** |
+| `panneau.js` | 101 KB | 48 KB | 140 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1497 KB** | **604 KB** | **−59 %** |

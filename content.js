@@ -3430,43 +3430,45 @@ const TSE_GATE_MAX_CLICKS = 5;
     .side-nav-card a[class*="--promoted-followed"]
       > div:not(.side-nav-card__link__tooltip-arrow) { display: contents; }
 
-    /* Niveau 2 : bloc de contenu (enfant non-gradient) → grille 3 colonnes. */
-    .side-nav-card a[class*="--promoted-followed"]
-      > div:not(.side-nav-card__link__tooltip-arrow)
-      > div:not([class*="promoted-followed-card__gradient"]) {
-      display: grid;
+    /* ── LA GRILLE SE POSE SUR DES PIÈCES, PLUS SUR DES ÉTAGES (4.21.2) ─────
+       SIGNALÉ PAR UNE CAPTURE, sur une carte sponsorisée ET en co-stream :
+       l'avatar et le compteur côte à côte, le pseudo à leur droite, la
+       catégorie seule sur une seconde ligne. La carte faisait deux étages et
+       trois colonnes dont la dernière était vide.
+
+       LES RÈGLES D'ICI DESCENDAIENT PAR NIVEAUX — « le troisième div qui ne
+       porte pas de classe promoted-followed-card__ » — et aplatissaient ce
+       qu'elles trouvaient à chaque étage d'un « display: contents ». Le DOM
+       réel, relevé depuis, leur correspondait niveau pour niveau ; elles
+       perdaient QUAND MÊME : le bloc avatar + compteur est un composant de
+       mise en page de Twitch dont le « display: flex » est « !important ».
+       Il restait donc UN élément de grille, casé en colonne 1, et le pseudo
+       et la catégorie s'empilaient en colonne 2. C'est la capture, trait pour
+       trait.
+
+       LE JS NOMME DÉSORMAIS LES QUATRE PIÈCES — avec les fonctions qui les
+       trouvent partout ailleurs (avatarOf, cardNameEl, cardCategoryEl,
+       liveStatusOf) —, en déduit leur conteneur commun, et marque le chemin
+       (cf. mettreEnFormePromue). Le CSS ne connaît que ces marques : le nombre
+       d'enrobages et leurs classes hachées n'y entrent plus. C'est le
+       principe déjà suivi pour l'or d'un abonné (cf. markSubPart). */
+    .side-nav-card .tse-promu-grille {
+      display: grid !important;
       grid-template-columns: auto minmax(0, 1fr) auto;
       grid-template-rows: auto auto;
       align-items: center;
-      column-gap: 0.8rem;
+      column-gap: 1rem;
       width: 100%;
     }
-
-    /* Niveau 3+4 : bloc avatar+statut puis wrapper d'avatar → transparents,
-       pour que avatar, statut, titre et catégorie deviennent les items de la
-       grille définie ci-dessus. */
-    .side-nav-card a[class*="--promoted-followed"]
-      > div:not(.side-nav-card__link__tooltip-arrow)
-      > div:not([class*="promoted-followed-card__gradient"])
-      > div:not([class*="promoted-followed-card__"]),
-    .side-nav-card a[class*="--promoted-followed"]
-      > div:not(.side-nav-card__link__tooltip-arrow)
-      > div:not([class*="promoted-followed-card__gradient"])
-      > div:not([class*="promoted-followed-card__"])
-      > div:not(.side-nav-card__live-status) { display: contents; }
-
-    /* Placement dans la grille (mêmes repères qu'une carte normale). */
-    .side-nav-card a[class*="--promoted-followed"] .tw-avatar {
-      grid-column: 1; grid-row: 1 / 3;
-    }
-    .side-nav-card a[class*="--promoted-followed"] [class*="promoted-followed-card__title"] {
-      grid-column: 2; grid-row: 1; min-width: 0; margin: 0;
-    }
-    .side-nav-card a[class*="--promoted-followed"] [class*="promoted-followed-card__content"] {
-      grid-column: 2; grid-row: 2; min-width: 0; margin: 0;
-    }
-    .side-nav-card a[class*="--promoted-followed"] .side-nav-card__live-status {
-      grid-column: 3; grid-row: 1 / 3;
+    .side-nav-card .tse-promu-plat { display: contents !important; }
+    .side-nav-card .tse-promu-avatar { grid-column: 1; grid-row: 1 / 3; }
+    .side-nav-card .tse-promu-nom    { grid-column: 2; grid-row: 1; min-width: 0; margin: 0; }
+    .side-nav-card .tse-promu-cat    { grid-column: 2; grid-row: 2; min-width: 0; margin: 0; }
+    .side-nav-card .tse-promu-statut { grid-column: 3; grid-row: 1 / 3; justify-self: end; }
+    /* Sans catégorie, le pseudo occupe les deux rangées : centré sur l'avatar,
+       comme sur une carte ordinaire sans catégorie. */
+    .side-nav-card .tse-promu-grille:not(:has(.tse-promu-cat)) .tse-promu-nom {
+      grid-row: 1 / 3;
     }
 
     /* Twitch peut afficher une 3e ligne pour le titre du stream (ex. "[DROPS]
@@ -12603,6 +12605,69 @@ const TSE_GATE_MAX_CLICKS = 5;
           }
           return r;
         })(),
+        /* ── LES CARTES SPONSORISÉES, MESURÉES SUR LA VRAIE PAGE (4.21.2) ─────
+           Leur mise en forme n'a été éprouvée que contre un MODÈLE de la
+           feuille de Twitch : la vraie n'est pas lisible depuis le dépôt, et
+           c'est un « !important » de sa part, invisible dans le DOM, qui avait
+           fait perdre les règles d'avant. Ce bloc dit ce que la vraie page en
+           a fait :
+             • `aplatis` contre `plats` — nos enrobages transparents le sont-ils
+               vraiment, c'est-à-dire notre « !important » gagne-t-il ;
+             • `categorieSousAvatar` — le symptôme exact de la capture ;
+             • `ecartNomPx`, `ecartHauteurPx` — la carte contre la médiane des
+               cartes ordinaires : zéro, c'est une carte comme les autres ;
+             • `squelette` — les balises et les seules classes STABLES de la
+               première carte, sans un mot de texte ni une adresse : de quoi
+               corriger au prochain changement de Twitch sans deviner. */
+        promues: (() => {
+          const estPromue = (c) => !!c.querySelector('a[class*="--promoted-followed"]');
+          const liste = cartes.filter(estPromue);
+          const r = { cartes: liste.length, formees: 0, sansAvatar: 0, sansNom: 0, sansStatut: 0,
+                      plats: 0, aplatis: 0, categorieSousAvatar: 0,
+                      ecartNomPx: null, ecartHauteurPx: null, squelette: {} };
+          const gauche = (c, e) => e.getBoundingClientRect().left - c.getBoundingClientRect().left;
+          const mediane = (v) => { const s = v.slice().sort((a, b) => a - b);
+                                   return s.length ? s[Math.floor(s.length / 2)] : null; };
+          for (const c of liste) {
+            const av = avatarOf(c), nom = cardNameEl(c), cat = cardCategoryEl(c);
+            if (!av) r.sansAvatar++;
+            if (!nom) r.sansNom++;
+            if (!liveStatusOf(c)) r.sansStatut++;
+            const g = c.querySelector('.tse-promu-grille');
+            if (g && getComputedStyle(g).display === 'grid') r.formees++;
+            for (const p of c.querySelectorAll('.tse-promu-plat')) {
+              r.plats++;
+              if (getComputedStyle(p).display === 'contents') r.aplatis++;
+            }
+            if (av && cat && cat.getBoundingClientRect().top
+                              >= av.getBoundingClientRect().bottom - 1) r.categorieSousAvatar++;
+          }
+          const premiere = liste[0];
+          if (premiere && !sidebarCollapsed) {
+            const ordinaires = cartes.filter(c => !estPromue(c) && !isSynthetic(c) && !isCardOffline(c));
+            const noms = ordinaires.map(c => [c, cardNameEl(c)]).filter(([, n]) => n);
+            const nomP = cardNameEl(premiere);
+            const refNom = mediane(noms.map(([c, n]) => gauche(c, n)));
+            const refH = mediane(ordinaires.map(c => c.getBoundingClientRect().height));
+            if (nomP && refNom !== null) r.ecartNomPx = Math.round(gauche(premiere, nomP) - refNom);
+            if (refH !== null) r.ecartHauteurPx = Math.round(premiere.getBoundingClientRect().height - refH);
+          }
+          const lien = premiere?.querySelector('a[class*="--promoted-followed"]');
+          if (lien) {
+            const stable = (k) => /^(side-nav|tw-|tse-)/.test(k) || k.includes('promoted');
+            let n = 0;
+            const decrire = (e, prof) => {
+              if (n >= 30 || prof > 7) return;
+              n++;
+              const classes = [...e.classList].filter(stable);
+              r.squelette[String(n).padStart(2, '0')] = '· '.repeat(prof)
+                + e.tagName.toLowerCase() + classes.map(k => '.' + k).join('');
+              for (const enfant of e.children) decrire(enfant, prof + 1);
+            };
+            decrire(lien, 0);
+          }
+          return r;
+        })(),
         /* COMMENT LA SECTION SUIVIE A ÉTÉ TROUVÉE, et combien de fois il a
            fallu la rattraper. C'est le pivot du module : quinze appelants la
            suivent, et quand elle se trompe ils se taisent TOUS, sans une
@@ -13276,7 +13341,15 @@ const TSE_GATE_MAX_CLICKS = 5;
        RANG qui décide : le pseudo est au-dessus de la catégorie. */
     const boite  = card.querySelector('[data-a-target="side-nav-card-metadata"]');
     const groupe = card.querySelector('.side-nav-card__metadata');
-    if (!boite && !groupe) return null;
+    /* LA CARTE SPONSORISÉE N'A NI L'UNE NI L'AUTRE BOÎTE (4.21.2). Elle porte
+       son pseudo dans un bloc à elle, marqué d'une classe stable — relevé sur
+       le DOM réel d'une carte « Sponsorisé • <marque> ». Le rapport comptait
+       cette carte dans `sansNom`, et tout ce qui s'accroche au pseudo la
+       manquait : l'or d'un abonné, la pastille d'un subathon, le drapeau d'une
+       autre langue, et la mise en forme ci-dessous. */
+    if (!boite && !groupe) {
+      return card.querySelector('[class*="promoted-followed-card__title"] p');
+    }
     if (boite && groupe) {
       const dehors = [...boite.querySelectorAll('p')].find(x => !groupe.contains(x));
       if (dehors) return dehors;
@@ -13297,6 +13370,66 @@ const TSE_GATE_MAX_CLICKS = 5;
     const el = cardCategoryEl(card);
     if (!el) return null;
     return (el.getAttribute('title') || el.textContent || '').trim() || null;
+  };
+
+  /* ── LA CARTE SPONSORISÉE, RANGÉE PAR SES QUATRE PIÈCES (4.21.2) ──────────
+     SIGNALÉ PAR UNE CAPTURE, avec le DOM réel de la carte : l'avatar et le
+     compteur côte à côte en colonne 1, le pseudo et la catégorie empilés en
+     colonne 2, la colonne 3 vide. Les règles d'avant descendaient par étages
+     et aplatissaient chaque enrobage d'un « display: contents » — elles
+     correspondaient au DOM relevé, niveau pour niveau, et PERDAIENT quand
+     même : le bloc avatar + compteur est un composant de mise en page de
+     Twitch, dont le « display: flex » est déclaré « !important ». Un
+     « contents » sans « !important » ne l'emporte pas, quelle que soit sa
+     spécificité. Ce bloc restait donc un seul élément de grille.
+
+     LES PIÈCES SONT CELLES QUE LE RESTE DU FICHIER SAIT DÉJÀ TROUVER —
+     avatarOf, cardNameEl, cardCategoryEl, liveStatusOf. On en déduit leur
+     conteneur commun, qui devient la grille, et tout enrobage entre lui et
+     elles devient transparent. Le CSS ne connaît que ces marques, en
+     « !important » : ni le nombre d'enrobages ni leurs classes hachées n'y
+     entrent plus. Le décor publicitaire — bandeau « Sponsorisé », logo de la
+     marque, croix « en collaboration avec » — reste masqué par les règles
+     qui le nomment ; l'aperçu le rend déjà en badge.
+
+     Sans avatar, sans pseudo ou sans compteur, on ne sait pas quoi ranger
+     où : la carte reste celle de Twitch plutôt qu'une grille fausse. Et rien
+     ne se pose sidebar réduite : Twitch y reconstruit ses cartes, et
+     une grille y déplierait ce qu'il replie. */
+  const PROMU_CLASSES = ['tse-promu-grille', 'tse-promu-plat',
+                         'tse-promu-avatar', 'tse-promu-nom', 'tse-promu-cat', 'tse-promu-statut'];
+  const defairePromue = (card) => {
+    for (const cl of PROMU_CLASSES) {
+      card.querySelectorAll('.' + cl).forEach((e) => e.classList.remove(cl));
+    }
+  };
+  const mettreEnFormePromue = (card) => {
+    const promue = !sidebarCollapsed && !!card.querySelector('a[class*="--promoted-followed"]');
+    const pieces = !promue ? [] :
+      [['avatar', avatarOf(card)], ['nom', cardNameEl(card)],
+       ['cat', cardCategoryEl(card)], ['statut', liveStatusOf(card)]].filter(([, e]) => e);
+    const roles = new Set(pieces.map(([r]) => r));
+    /* Carte ordinaire, sidebar réduite, pièce manquante : la carte est à
+       Twitch. Défaite seulement si elle avait été rangée — l'immense majorité
+       des cartes ne l'a jamais été, et n'a rien à parcourir. */
+    if (!roles.has('avatar') || !roles.has('nom') || !roles.has('statut')) {
+      if (card.querySelector('.tse-promu-grille')) defairePromue(card);
+      return;
+    }
+    let grille = pieces[0][1].parentElement;
+    while (!pieces.every(([, e]) => grille.contains(e))) grille = grille.parentElement;
+
+    const voulu = new Map([[grille, 'tse-promu-grille']]);
+    for (const [role, e] of pieces) {
+      voulu.set(e, 'tse-promu-' + role);
+      for (let a = e.parentElement; a && a !== grille; a = a.parentElement) {
+        voulu.set(a, 'tse-promu-plat');
+      }
+    }
+    for (const cl of PROMU_CLASSES) {
+      card.querySelectorAll('.' + cl).forEach((e) => { if (voulu.get(e) !== cl) e.classList.remove(cl); });
+    }
+    for (const [e, cl] of voulu) if (!e.classList.contains(cl)) e.classList.add(cl);
   };
 
   /**
@@ -18150,6 +18283,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     applyCollabBadge(card);
     appliquerDrapeauLangue(card);
     markExtraRows(card);
+    mettreEnFormePromue(card);
 
     const link = card.querySelector(DOM.cardLinkSelector);
     const login = loginFromHref(link?.getAttribute('href'));

@@ -60,6 +60,36 @@ body { background: var(--color-background-base); color: var(--color-text-base); 
 .side-nav-card[data-figee] [data-a-target="side-nav-card-metadata"] {
   align-self: flex-start !important;
 }
+/* ── LA CARTE SPONSORISÉE, MODÉLISÉE D'APRÈS LE TERRAIN (4.21.2) ─────────
+   Le balisage de __addPromotedCard est celui d'une vraie carte relevée sur
+   Twitch, classes hachées comprises. Ces règles-ci en modélisent la mise en
+   page native, telle que la capture sans extension la montre : avatar ×
+   logo sur une rangée avec le compteur à droite, puis le pseudo, la
+   catégorie et le bandeau « Sponsorisé ».
+
+   LE « !important » EST LE CŒUR DU MODÈLE. Les règles de l'extension
+   correspondaient à ce DOM niveau pour niveau, et perdaient quand même :
+   seule une déclaration « !important » côté Twitch explique qu'un
+   « display: contents » plus spécifique n'ait pas pris sur le bloc
+   avatar + compteur. Sans lui, ce harnais rend la carte juste avec les
+   règles d'avant — ce qu'il a fait à la première écriture — et ne voit
+   rien. Le conteneur de la grille, lui, n'en porte pas : la capture montre
+   que la grille d'avant s'appliquait bien. Sélecteurs à une classe, comme
+   ceux de Twitch. */
+.side-nav-card__link--promoted-followed { display: flex; padding: 5px 10px; }
+.jmIB { position: relative; width: 100%; }
+.nFCLd { position: absolute; inset: 0; background: linear-gradient(90deg, #a970ff55, transparent); }
+.hpEmRF { display: flex; flex-direction: column; position: relative; }
+.ljZXzA { display: flex !important; justify-content: space-between; align-items: center; }
+.geLFjm { display: flex !important; align-items: center; gap: 4px; }
+.jHuNIx, .jHuNIx img { width: 30px; height: 30px; border-radius: 50%; }
+.kCPnxe { width: 30px; height: 30px; border-radius: 50%; }
+.bPLZqY { display: flex; align-items: center; }
+.hyrBH { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.cbeJYP, .cWEeTu { margin: 0; line-height: 18px; overflow: hidden; white-space: nowrap;
+                   text-overflow: ellipsis; }
+.kHgzIE { display: flex; gap: 4px; }
+.side-nav-card__link__tooltip-arrow { display: none; }
 </style>
 </head>
 <body>
@@ -290,6 +320,62 @@ window.__addCard = (login, cat, viewersText, live = true) => {
           '<p class="sr-only">' + viewersText + ' spectateurs</p>' +
         '</div></div></div>' +
       '</div></div>' +
+    '</a>';
+  document.getElementById('cards').appendChild(d);
+  return d;
+};
+
+// Une carte SPONSORISÉE, au balisage relevé sur Twitch (classes hachées
+// comprises) : avatar, croix « en collaboration avec » et logo de la marque
+// sur une rangée avec le compteur, puis le pseudo, la catégorie et le bandeau.
+// `cat` absent : pas de bloc de catégorie. Cf. scénario 166.
+window.__addPromotedCard = (login, cat, viewersText, marque) => {
+  const d = document.createElement('div');
+  d.className = 'Layout-sc-1xcs6mc-0 glFavL side-nav-card';
+  d.innerHTML =
+    '<a aria-haspopup="dialog" class="ScCoreLink-sc-16kq0mq-0 dUHnPJ InjectLayout-sc-1i43xsx-0 hbFSpS ' +
+        'side-nav-card__link side-nav-card__link--promoted-followed tw-link" href="/' + login + '">' +
+      '<div class="Layout-sc-1xcs6mc-0 jmIB">' +
+        '<div class="Layout-sc-1xcs6mc-0 nFCLd side-nav-promoted-followed-card__gradient"></div>' +
+        '<div class="Layout-sc-1xcs6mc-0 hpEmRF">' +
+          '<div class="Layout-sc-1xcs6mc-0 ljZXzA">' +
+            '<div class="Layout-sc-1xcs6mc-0 geLFjm">' +
+              '<div class="ScAvatar-sc-144b42z-0 jHuNIx tw-avatar">' +
+                '<img class="InjectLayout-sc-1i43xsx-0 ceDQrC tw-image-avatar" src="https://cdn/' + login +
+                  '.png" alt="' + login + '"></div>' +
+              '<img alt="en collaboration avec" width="8" height="8" class="tw-image" src="https://cdn/x.svg">' +
+              '<div class="Layout-sc-1xcs6mc-0 kCPnxe" style="background-color: rgb(7, 21, 58);">' +
+                '<img alt="Logo de ' + marque + '" class="tw-image" src="https://cdn/logo.png"></div>' +
+            '</div>' +
+            '<div class="Layout-sc-1xcs6mc-0 NaOSo side-nav-card__live-status">' +
+              '<div class="Layout-sc-1xcs6mc-0 bPLZqY">' +
+                '<div class="ScChannelStatusIndicator-sc-bjn067-0 fWOmHx tw-channel-status-indicator"></div>' +
+                '<p class="CoreText-sc-1txzju1-0 fJYwSz InjectLayout-sc-1i43xsx-0 hyrBH">Live</p>' +
+                '<div class="Layout-sc-1xcs6mc-0 gdJMkN">' +
+                  '<span aria-hidden="true" class="CoreText-sc-1txzju1-0 fUSHSk">' + viewersText + '</span>' +
+                  '<p class="CoreText-sc-1txzju1-0 fJYwSz InjectLayout-sc-1i43xsx-0 hyrBH">' + viewersText +
+                    ' spectateurs</p>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="Layout-sc-1xcs6mc-0 scSXY side-nav-promoted-followed-card__title">' +
+            '<p title="' + login + '" class="CoreText-sc-1txzju1-0 cbeJYP">' + login + '</p></div>' +
+          (cat ? '<div class="Layout-sc-1xcs6mc-0 bCMrks side-nav-promoted-followed-card__content">' +
+                   '<p title="' + cat + '" class="CoreText-sc-1txzju1-0 cWEeTu">' + cat + '</p></div>' : '') +
+          '<div class="Layout-sc-1xcs6mc-0 gIWswv side-nav-promoted-followed-card__sponsorship">' +
+            '<div class="Layout-sc-1xcs6mc-0 kHgzIE side-nav-card-promoted-bottom">' +
+              '<p class="CoreText-sc-1txzju1-0 loWPjP">Sponsorisé</p>' +
+              '<p title="•" class="CoreText-sc-1txzju1-0 cWEeTu">•</p>' +
+              '<p title=" ' + marque + '" class="CoreText-sc-1txzju1-0 cWEeTu"> ' + marque + '</p>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="Layout-sc-1xcs6mc-0 side-nav-card__link__tooltip-arrow">' +
+        '<p class="CoreText-sc-1txzju1-0 fJYwSz InjectLayout-sc-1i43xsx-0 hyrBH">Utilisez la touche ' +
+          'fléchée droite pour afficher plus d’informations.</p>' +
+      '</div>' +
     '</a>';
   document.getElementById('cards').appendChild(d);
   return d;
