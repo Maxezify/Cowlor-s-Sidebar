@@ -125,6 +125,9 @@
   "colSource": {
     "message": "Origine"
   },
+  "colDue": {
+    "message": "Échéance"
+  },
   "colLag": {
     "message": "Retard"
   },
@@ -394,7 +397,7 @@
     "message": "Vos abonnements, en or"
   },
   "guideAboTexte": {
-    "message": "Les chaînes que vous soutenez ne ressemblent plus aux autres : pseudo doré, catégorie dorée, anneau d'or autour de l'avatar et un reflet lent sur la carte.\n• Un badge apparaît et dit depuis combien de temps.\n• Les trois formes d'abonnement comptent : payant, offert, mobile."
+    "message": "Les chaînes que vous soutenez ne ressemblent plus aux autres : pseudo doré, catégorie dorée, anneau d'or autour de l'avatar et un reflet lent sur la carte.\n• Un badge apparaît et dit depuis combien de temps, puis le prochain anniversaire — ou, pour un abonnement offert, le jour où il prend fin.\n• Les trois formes d'abonnement comptent : payant, offert, mobile."
   },
   "guideTriTitre": {
     "message": "Trier et filtrer"

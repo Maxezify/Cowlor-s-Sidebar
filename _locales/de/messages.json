@@ -125,6 +125,9 @@
   "colSource": {
     "message": "Quelle"
   },
+  "colDue": {
+    "message": "Fällig"
+  },
   "colLag": {
     "message": "Verzögerung"
   },
@@ -394,7 +397,7 @@
     "message": "Deine Abos, in Gold"
   },
   "guideAboTexte": {
-    "message": "Die Kanäle, die du unterstützt, sehen nicht mehr aus wie alle anderen: goldener Name, goldene Kategorie, ein goldener Ring um den Avatar und ein langsamer Schimmer über der Karte.\n• Ein Abzeichen erscheint und sagt, seit wann.\n• Alle drei Abo-Arten zählen: bezahlt, geschenkt, mobil."
+    "message": "Die Kanäle, die du unterstützt, sehen nicht mehr aus wie alle anderen: goldener Name, goldene Kategorie, ein goldener Ring um den Avatar und ein langsamer Schimmer über der Karte.\n• Ein Abzeichen erscheint und sagt, seit wann, dann das nächste Jubiläum — oder, bei einem geschenkten Abo, den Tag, an dem es endet.\n• Alle drei Abo-Arten zählen: bezahlt, geschenkt, mobil."
   },
   "guideTriTitre": {
     "message": "Sortieren und filtern"

@@ -4214,8 +4214,9 @@ titre('50. Aperçu — le badge d\'abonnement');
   };
 
   const abo = await badge('roicheese');
+  /* Et son échéance à la suite, depuis la 4.20.0 (cf. scénario 158). */
   ok('un abonnement en cours affiche sa durée',
-     abo?.texte === 'Abonné • 4 MOIS', JSON.stringify(abo));
+     abo?.texte === 'Abonné • 4 MOIS • Prochain anniversaire dans 9 jours', JSON.stringify(abo));
   ok('avec la teinte « abonné »',
      (abo?.classe || '').includes('--sub'), JSON.stringify(abo));
 
@@ -4480,7 +4481,14 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
    ON CHARGE DONC UNE FOIS, ET ON CLIQUE. Ce qui se mesure ici : une seule page
    chargée, jamais deux iframes à la fois, les onglets suivants lus « par
    bascule », et le repli — une page par onglet, l'un après l'autre — quand la
-   page n'offre pas de lien à cliquer. */
+   page n'offre pas d'onglet à cliquer.
+
+   ET ON CLIQUE CE QUE TWITCH DESSINE VRAIMENT. La 4.19.2 cherchait des liens
+   « ?tab= » d'après une capture ; la console de l'utilisateur a montré des
+   <button role="tab"> sans adresse, et son rapport, quatre onglets « page ».
+   Le décor a pris la forme réelle, et les cas f, g, h éprouvent ce qu'un
+   bouton sans adresse oblige à prouver : que le clic a pris, et que la place
+   cliquée est la bonne. */
 titre('53. Abonnements — une seule page par relevé, l\'étiquette est retenue');
 {
   const PLAYER = '<!doctype html><html><body>x</body></html>';
@@ -4502,6 +4510,8 @@ titre('53. Abonnements — une seule page par relevé, l\'étiquette est retenue
     const r = window.tse.panneau.rapport().relevesAbonnements;
     return { pic, chargements: window.__subsChargements || 0,
              lus: (r.onglets || []).map((o) => `${o.onglet}:${o.voie}`),
+             preuves: [...new Set((r.onglets || []).map((o) => o.preuve).filter(Boolean))],
+             bascule: r.bascule,
              mem: JSON.parse(localStorage.getItem('tse:subs') || '{}') };
   });
   const COURANTS = 'clem_mlrt,etoiles,omofficial,roicheese,zerator';
@@ -4519,9 +4529,14 @@ titre('53. Abonnements — une seule page par relevé, l\'étiquette est retenue
        vu.chargements === 1 && vu.pic === 1, JSON.stringify(vu));
     // Étiquette inconnue : l'onglet des expirés passe d'abord, et c'est lui
     // qu'on charge ; les trois autres s'ouvrent d'un clic.
+    /* Mutant — l'ancienne recherche de liens « ?tab= » — : aucun onglet
+       trouvé, quatre pages chargées. */
     ok('…les expirés d\'abord, puis chaque onglet d\'un clic dans la même page',
        vu.lus.join(' ') === 'expired:page paid:bascule gifts:bascule mobile:bascule',
        JSON.stringify(vu.lus));
+    ok('…chaque clic prouvé par l\'adresse, et aucune bascule abandonnée',
+       vu.preuves.join() === 'adresse' && vu.bascule === '',
+       JSON.stringify({ preuves: vu.preuves, bascule: vu.bascule }));
     /* ET RIEN N'EST PERDU EN ROUTE : les cinq abonnements en cours des trois
        onglets, et pas un expiré de plus — c'est la bascule qu'on éprouve ici,
        celle qui lirait l'onglet d'avant si elle se pressait. */
@@ -4556,17 +4571,21 @@ titre('53. Abonnements — une seule page par relevé, l\'étiquette est retenue
     await page.close();
   }
 
-  // ── c) une page sans liens d'onglets : on recharge, un onglet à la fois ───
-  // Le filet. Si Twitch cessait de présenter ses onglets comme des liens, le
+  // ── c) une page sans onglets à cliquer : on recharge, un onglet à la fois ─
+  // Le filet. Si Twitch cessait de présenter ses onglets comme des onglets, le
   // relevé ne doit rien perdre — il redevient ce qu'il était, en séquence.
   {
     const SANS = () => { window.__subsSansBascule = true; };
     const page = await freshTwitch(PLAYER, [], '/', SANS);
     await poser(page);
     const vu = await suivre(page);
-    ok('sans lien à cliquer, chaque onglet a sa page — une à la fois',
+    ok('sans onglet à cliquer, chaque onglet a sa page — une à la fois',
        vu.chargements === 4 && vu.pic === 1
        && vu.lus.every((x) => x.endsWith(':page')), JSON.stringify(vu));
+    /* LA 4.19.2 SE TAISAIT ICI. Mutant — la raison non consignée — : le
+       rapport dit quatre « page » et rien d'autre. */
+    ok('…et le rapport dit pourquoi : aucun onglet dans la page',
+       vu.bascule === 'aucun onglet dans la page', JSON.stringify(vu.bascule));
     ok('…et le relevé reste complet', abonnes(vu.mem) === COURANTS, abonnes(vu.mem));
     await page.close();
   }
@@ -4611,6 +4630,98 @@ titre('53. Abonnements — une seule page par relevé, l\'étiquette est retenue
        abonnes(vu.mem) === COURANTS
        && vu.lus.join(' ') === 'expired:page paid:bascule refusée paid:page gifts:page mobile:page',
        JSON.stringify({ abonnes: abonnes(vu.mem), lus: vu.lus }));
+    ok('…et le rapport dit que l\'onglet n\'a pas changé',
+       /^l'onglet n'a pas changé en \d+ ms$/.test(vu.bascule || ''), JSON.stringify(vu.bascule));
+    await page.close();
+  }
+
+  // ── f) l'onglet change, l'adresse NON ────────────────────────────────────
+  /* Rien ne dit encore si le vrai Twitch tient son adresse à jour quand on
+     clique un onglet. S'il ne le fait pas, le bouton cliqué devenu « choisi »
+     est le seul témoin. Mutant — ce témoin retiré — : chaque clic est refusé
+     et la page rechargée quatre fois. */
+  {
+    const FIXE = () => { window.__subsAdresseFixe = true; };
+    const page = await freshTwitch(PLAYER, [], '/', FIXE);
+    await poser(page);
+    const vu = await suivre(page);
+    ok('une adresse qui ne suit pas le clic : aria-selected suffit, une seule page',
+       vu.chargements === 1
+       && vu.lus.join(' ') === 'expired:page paid:bascule gifts:bascule mobile:bascule'
+       && vu.preuves.join() === 'aria-selected',
+       JSON.stringify({ lus: vu.lus, preuves: vu.preuves, chargements: vu.chargements }));
+    ok('…et le relevé est complet, sans un expiré parmi les abonnés',
+       abonnes(vu.mem) === COURANTS, abonnes(vu.mem));
+    await page.close();
+  }
+
+  // ── g) Twitch AJOUTE un onglet, en deuxième place ────────────────────────
+  /* Adresse muette, étiquette connue : la page s'ouvre sur « Vos abonnements »,
+     premier à sa place comme avant, et le choisi le confirme. Tout ce qui suit
+     est décalé d'un cran. Seul le compte des onglets le voit. Mutant — le
+     compte retiré — : le deuxième bouton, le nouveau, est lu comme les
+     abonnements offerts, et sa chaîne dorée. */
+  {
+    const PLUS = () => {
+      window.__subsAdresseFixe = true;
+      window.__subsOngletEnPlus = true;
+      try { localStorage.setItem('tse:submois', 'Nombre total de mois abonné :'); } catch {}
+    };
+    const page = await freshTwitch(PLAYER, [], '/', PLUS);
+    await poser(page);
+    const vu = await suivre(page);
+    ok('un septième onglet : on ne clique pas, on recharge — et on le dit',
+       vu.bascule === '7 onglet(s) dans la page, 6 attendus'
+       && vu.lus.every((x) => x.endsWith(':page')),
+       JSON.stringify({ bascule: vu.bascule, lus: vu.lus }));
+    ok('…et rien d\'étranger n\'est doré', abonnes(vu.mem) === COURANTS, abonnes(vu.mem));
+    await page.close();
+  }
+
+  // ── h) Twitch RÉORDONNE ses onglets ──────────────────────────────────────
+  /* Six onglets, mais les expirés en tête et les payés en queue. Profil neuf :
+     la page s'ouvre sur les expirés, que la page dit choisis en PREMIÈRE
+     place — là où l'ordre connu attend « Vos abonnements ». Mutant — le
+     contrôle du choisi retiré — : le premier bouton est cliqué pour « paid »,
+     c'est celui des expirés, déjà choisi, et ses cartes finissent dorées. */
+  {
+    const ORDRE = () => {
+      window.__subsAdresseFixe = true;
+      window.__subsOrdre = ['expired', 'gifts', 'mobile', 'turbo', 'other', 'paid'];
+    };
+    const page = await freshTwitch(PLAYER, [], '/', ORDRE);
+    await poser(page);
+    const vu = await suivre(page);
+    ok('des onglets réordonnés : la place ne s\'accorde pas, on recharge',
+       vu.bascule === 'la page dit choisi l\'onglet n° 1, « expired » attendu'
+       && vu.lus.every((x) => x.endsWith(':page')),
+       JSON.stringify({ bascule: vu.bascule, lus: vu.lus }));
+    ok('…et pas un expiré n\'est doré', abonnes(vu.mem) === COURANTS, abonnes(vu.mem));
+    await page.close();
+  }
+
+  // ── i) deux onglets échangés, et l'adresse le dit ────────────────────────
+  /* « offerts » et « mobiles » permutés : « Vos abonnements » reste premier,
+     le choisi est à sa place, le compte est juste — aucune preuve d'avant le
+     clic ne voit rien. Le bouton cliqué pour les offerts devient bien le
+     choisi, mais l'adresse, elle, dit « mobile ». Mutant — l'adresse partie
+     ailleurs n'est plus un démenti — : chaque chaîne prend l'origine de
+     l'autre. */
+  {
+    const ECHANGE = () => {
+      window.__subsOrdre = ['paid', 'mobile', 'gifts', 'turbo', 'other', 'expired'];
+      try { localStorage.setItem('tse:submois', 'Nombre total de mois abonné :'); } catch {}
+    };
+    const page = await freshTwitch(PLAYER, [], '/', ECHANGE);
+    await poser(page);
+    const vu = await suivre(page);
+    ok('une adresse qui nomme un autre onglet dément le clic, et le rapport la cite',
+       vu.bascule === 'l\'adresse dit « mobile », « gifts » attendu'
+       && vu.lus.join(' ') === 'paid:page gifts:bascule refusée gifts:page mobile:page expired:page',
+       JSON.stringify({ bascule: vu.bascule, lus: vu.lus }));
+    ok('…et chaque chaîne garde son origine',
+       vu.mem.zerator?.[4] === 'mobile' && vu.mem.clem_mlrt?.[4] === 'gifts',
+       JSON.stringify({ zerator: vu.mem.zerator, clem_mlrt: vu.mem.clem_mlrt }));
     await page.close();
   }
 }
@@ -6932,7 +7043,13 @@ titre('70. Panneau — la page rendue, mesurée');
          une assertion de passer sur un bloc qui n'en rendrait qu'un. */
       subathons: { detectes: 3, sansJour: 1, voies: { nom: 1, thon: 1, tag: 1 },
                    marquees: 2 },
-      relevesAbonnements: { horodatage: 0, enAttente: false },
+      /* Une bascule abandonnée ET un onglet lu par bascule : les deux lignes
+         que la 4.20.0 ajoute, et qu'aucun rapport réel n'a encore portées. */
+      relevesAbonnements: { horodatage: 0, enAttente: false,
+                            bascule: '7 onglet(s) dans la page, 6 attendus',
+                            onglets: [{ onglet: 'gifts', voie: 'bascule', preuve: 'aria-selected',
+                                        charge: true, noeuds: 900, barre: true, cartes: 2,
+                                        logins: 2 }] },
       global: { enabled: false, complete: false },
       journaux: { verrous: [], cycles: [{ t: 12, evt: 'depart', detail: 'boot' }], apercu: [] },
       reseau: { pauseGqlMs: 12000 },
@@ -7236,6 +7353,14 @@ titre('70. Panneau — la page rendue, mesurée');
      && /marquees\s+2/.test(vue.texte) && /voies\.thon\s+1/.test(vue.texte)
      && /sansJour\s+1/.test(vue.texte),
      JSON.stringify((vue.texte.match(/SUBATHONS[\s\S]{0,160}/) || [])[0]));
+  /* POURQUOI LE RELEVÉ A RECHARGÉ, ET QUEL TÉMOIN A PROUVÉ CHAQUE CLIC.
+     Mutants — l'une ou l'autre ligne retirée du rapport — : le vrai Twitch
+     ne nous dirait jamais s'il tient son adresse à jour. */
+  ok('…la bascule abandonnée et sa raison, et le témoin de chaque clic',
+     contient('bascule abandonnée / tab switch dropped')
+     && contient('7 onglet(s) dans la page, 6 attendus')
+     && contient('bascule (aria-selected) · affiché'),
+     JSON.stringify((vue.texte.match(/bascule[^\n]*/g) || [])));
   /* L'ÉTAPE DE DÉMARRAGE FIGURE AUSSI QUAND TOUT VA BIEN. Un champ qu'on ne
      voit que le jour de la panne ne se compare à rien : il faut savoir qu'il
      aurait dû être là pour remarquer qu'il manque. Ici il vaut « pret », ne
@@ -20919,6 +21044,560 @@ const pageVariante = async (substitutions, init = null) => {
      /^2:\d+$/.test(vd.stamp || '') && vd.vides === 0 && abonnes === 5,
      JSON.stringify({ stamp: vd.stamp, vides: vd.vides, abonnes }));
   await pb.close();
+}
+
+/* ═════════ L'ÉCHÉANCE AU BADGE, LUE SANS LIRE LE FRANÇAIS ══════════════════
+   DEMANDÉ AINSI : « Abonné • 51 MOIS • Prochain anniversaire dans 9 jours »
+   pour un abonnement payé, « Abonné • 1 MOIS • Expire dans 8 jours » pour un
+   offert. Les cartes du décor sont celles du vrai Twitch, relevées le
+   24/09/2026 : l'anniversaire en jours, le donateur, l'ancienneté, la série,
+   la date — et « (dans N jours) » en texte nu à côté.
+
+   CE QUI SE MESURE : la bonne ligne choisie par sa place et son unité, la
+   date d'expiration retrouvée en l'écrivant, le compte refait à l'affichage,
+   et le silence quand on ne sait pas. */
+{
+  titre('158. Abonnements — l\'échéance au badge : l\'anniversaire d\'un payé, la fin d\'un offert');
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const CHAINES = ['omofficial', 'roicheese', 'etoiles', 'clem_mlrt', 'zerator'];
+  const poser = (page) => page.evaluate((ch) => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = {};
+    ch.forEach((l, i) => {
+      window.__fx[l] = { id: String(i + 1), createdAt: h, viewers: 500 - i, game: 'G', tags: [] };
+      window.__addCard(l, 'G', String(500 - i));
+    });
+  }, CHAINES);
+  const badge = async (page, login) => {
+    await hoverLogin(page, login);
+    await wait(page, 500);
+    const t = await page.evaluate(() =>
+      document.querySelector('.tse-preview__badge--sub')?.textContent.trim() ?? null);
+    await unhoverCard(page, 0);
+    await wait(page, 200);
+    return t;
+  };
+  // Minuit local dans `j` jours, calculé dans la page : c'est son horloge qui compte.
+  const dans = (page, j) => page.evaluate((n) => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d.getTime();
+  }, j);
+  const memoire = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs') || '{}'));
+
+  // ── a) le décor tel que Twitch le sert ───────────────────────────────────
+  /* Deux écarts de plus, que Twitch peut produire : des dates qui arrivent
+     après le reste des cartes, l'une après l'autre, et un abonnement offert en
+     attente derrière un payé — roicheese, dans les deux onglets. */
+  {
+    const TARD = () => {
+      window.__subsDatesTardives = { roicheese: 850, clem_mlrt: 2_000 };
+      window.__subsOffertEnPlus = true;
+    };
+    const page = await freshTwitch(PLAYER, [], '/', TARD);
+    await poser(page);
+    await attendre(page, () => /^2:\d+$/.test(localStorage.getItem('tse:substs') || ''), 20_000);
+    await wait(page, 400);
+    const mem = await memoire(page);
+    const expiration = await page.evaluate(() => {
+      const a = new Date(); a.setHours(0, 0, 0, 0);
+      const d = new Date(a.getFullYear(), a.getMonth() + 1, 12);
+      return { ms: d.getTime(), jours: Math.round((d - a) / 86_400_000) };
+    });
+    /* LA DATE, PAS LE COMPTE : le sixième champ est un minuit local. Mutant —
+       le relevé qui prend la date du « 2 » dans « 12 » — : dix jours d'avance. */
+    ok('un abonnement offert retient SA date d\'expiration, le 12 du mois prochain',
+       mem.clem_mlrt?.[5] === expiration.ms,
+       JSON.stringify({ lu: mem.clem_mlrt, attendu: expiration.ms }));
+    /* Mutant — les dates hors de la signature de stabilité — : la liste se
+       croit finie 900 ms après ses cartes, entre deux dates, et le dernier
+       offert n'a plus d'échéance. */
+    ok('des dates qui arrivent carte par carte sont toutes attendues',
+       mem.clem_mlrt?.[5] > 0, JSON.stringify(mem.clem_mlrt));
+    /* LE PREMIER ONGLET SERT L'ORIGINE, ET L'ÉCHÉANCE AVEC ELLE. La 3.52 le
+       promettait et laissait gagner le dernier. Mutant — cette promesse
+       retirée, comme avant la 4.20.0 — : roicheese devient un offert, et
+       l'expiration du cadeau en attente remplace son anniversaire. */
+    ok('un payé doublé d\'un offert en attente garde SON anniversaire',
+       mem.roicheese?.[4] === 'paid' && mem.roicheese?.[5] === await dans(page, 9),
+       JSON.stringify(mem.roicheese));
+    ok('un abonnement mobile retient son anniversaire, comme un payé',
+       mem.zerator?.[5] === await dans(page, 3), JSON.stringify(mem.zerator));
+    ok('un expiré ne retient aucune échéance', mem.jenfirer?.[5] === undefined,
+       JSON.stringify(mem.jenfirer));
+    /* LE TEXTE DEMANDÉ, mot pour mot. Mutant — l'origine ignorée — : l'offert
+       dit « Prochain anniversaire dans 23 jours », qui est vrai et n'est pas
+       ce qu'on lui demande. */
+    ok('l\'offert : « Expire dans N jours »',
+       await badge(page, 'clem_mlrt') === `Abonné • 2 MOIS • Expire dans ${expiration.jours} jours`,
+       String(await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs')).clem_mlrt)));
+    ok('le jour même : « Anniversaire aujourd\'hui »',
+       await badge(page, 'omofficial') === 'Abonné • 1 MOIS • Anniversaire aujourd\'hui');
+    ok('et un jour, au singulier',
+       await badge(page, 'etoiles') === 'Abonné • 12 MOIS • Prochain anniversaire dans 1 jour');
+    await page.close();
+  }
+
+  // ── b) deux lignes chiffrées AVANT l'anniversaire ────────────────────────
+  /* La série, en mois, et une date d'abonnement. Mutants — l'unité non
+     comparée, puis le nombre unique non exigé — : la série (3) ou le jour de
+     la date (3 mars) passent pour l'anniversaire. */
+  {
+    const AVANT = () => { window.__subsAvantAnniv = true; };
+    const page = await freshTwitch(PLAYER, [], '/', AVANT);
+    await poser(page);
+    await attendre(page, () => /^2:\d+$/.test(localStorage.getItem('tse:substs') || ''), 20_000);
+    await wait(page, 400);
+    const mem = await memoire(page);
+    ok('ni la série ni une date ne passent pour l\'anniversaire',
+       mem.roicheese?.[5] === await dans(page, 9) && mem.roicheese?.[2] === 4,
+       JSON.stringify(mem.roicheese));
+    await page.close();
+  }
+
+  // ── c) une date, recomptée à l'affichage ; passée, elle se tait ──────────
+  /* Aucun relevé ici : la page des abonnements est coupée, la mémoire posée à
+     la main. Mutants — le sixième champ non relu ; une échéance passée
+     affichée quand même — : le badge perd son échéance, ou compte sous zéro. */
+  {
+    const POSEE = () => {
+      window.__noSubsPage = true;
+      const minuit = (j) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + j); return d.getTime(); };
+      try {
+        localStorage.setItem('tse:subs', JSON.stringify({
+          roicheese: [1, Date.now(), 4, 0, 'paid', minuit(3)],
+          etoiles:   [1, Date.now(), 12, 0, 'paid', minuit(-1)],
+          clem_mlrt: [1, Date.now(), 2, 0, 'gifts', minuit(8)],
+        }));
+        localStorage.setItem('tse:substs', '2:' + Date.now());
+      } catch { /* stockage refusé : le test échouera, et c'est correct */ }
+    };
+    const page = await freshTwitch(PLAYER, [], '/', POSEE);
+    await poser(page);
+    await wait(page, 600);
+    ok('une échéance mémorisée se recompte à l\'affichage',
+       await badge(page, 'roicheese') === 'Abonné • 4 MOIS • Prochain anniversaire dans 3 jours'
+       && await badge(page, 'clem_mlrt') === 'Abonné • 2 MOIS • Expire dans 8 jours');
+    ok('une échéance passée se tait, le reste du badge demeure',
+       await badge(page, 'etoiles') === 'Abonné • 12 MOIS');
+    await page.close();
+  }
+}
+
+/* ═════════ UN VERDICT DE TWITCH SURVIT AU RECHARGEMENT ═══════════════════
+   LE RAPPORT DE TERRAIN : 191 sondes, 7 origines trouvées, 64 refus. Les 184
+   autres n'ont rien trouvé — le cas normal d'un direct sans coupure — et
+   chacune était redemandée à chaque rechargement, sur le point d'entrée même
+   que Twitch rationne.
+
+   POUR UN IDENTIFIANT DE STREAM, LA RÉPONSE NE CHANGE JAMAIS : ce qui précède
+   un direct est fixé quand il démarre. On garde donc chaque verdict, « rien »
+   compris, quarante-huit heures. Ce qui se mesure : aucune requête pour ce qui
+   est déjà tranché, les reprises rendues sans requête, et rien de ce que la
+   mémoire ne doit pas croire — un verdict périmé, ou rangé sous une autre
+   chaîne. */
+{
+  titre('159. Sondes — un verdict de Twitch survit au rechargement');
+  /* Quatre directs coupés (rev*) et quatre sans archive (sol*). Chaque
+     requête de sonde est notée par chaîne. */
+  const poser = (page) => page.evaluate(() => {
+    const neuf  = new Date(Date.now() - 60_000).toISOString();
+    const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();
+    window.__fx = {}; window.__vodRecent = {};
+    window.__sondesParties = [];
+    const vrai = window.fetch;
+    window.fetch = async (url, opt) => {
+      for (const o of JSON.parse(opt.body)) {
+        if (o.operationName === 'TseVodRecent') window.__sondesParties.push(o.variables.login);
+      }
+      return vrai(url, opt);
+    };
+    for (let i = 0; i < 4; i++) {
+      for (const l of ['rev' + i, 'sol' + i]) {
+        window.__fx[l] = { id: 'i-' + l, sid: 's-' + l, createdAt: neuf,
+                           viewers: 900 - i, game: 'Rust', tags: [] };
+        window.__vodRecent[l] = l.startsWith('sol') ? [] : [
+          { createdAt: neuf, lengthSeconds: 60, chapitres: [] },
+          { createdAt: vieux,
+            lengthSeconds: Math.round((Date.parse(neuf) - 1_200 - Date.parse(vieux)) / 1000),
+            chapitres: [{ pos: 0, jeu: 'Just Chatting' }] }];
+        window.__addCard(l, 'Rust', String(900 - i));
+      }
+    }
+  });
+  // Les quatre directs coupés comptent-ils depuis leur origine ?
+  const origines = (page) => page.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
+    .filter((c) => /^rev\d$/.test(c.dataset.tseLogin || ''))
+    .map((c) => `${c.dataset.tseLogin}:${/^5h/.test(c.querySelector('.tse-uptime')?.textContent || '') ? 'origine' : 'tronçon'}`)
+    .sort());
+  const TOUTES = ['rev0:origine', 'rev1:origine', 'rev2:origine', 'rev3:origine'];
+
+  const page = await fresh();
+  await poser(page);
+  await attendre(page, () => (window.tse.panneau.rapport().reseau.chapitres.reprise.servies || 0) >= 8
+    && [...document.querySelectorAll('.side-nav-card')].filter((c) => /^rev\d$/.test(c.dataset.tseLogin || ''))
+      .every((c) => /^5h/.test(c.querySelector('.tse-uptime')?.textContent || '')), 15_000);
+  const disque = await page.evaluate(() => JSON.parse(localStorage.getItem('tse:sondes') || '{}'));
+  const avec = Object.values(disque).filter((v) => Array.isArray(v[2])).length;
+  const sans = Object.values(disque).filter((v) => v[2] === 0).length;
+  // LA PRÉMISSE : huit sondes servies, huit verdicts, dont quatre reprises.
+  ok('chaque verdict est gardé : quatre reprises, quatre « rien »',
+     avec === 4 && sans === 4 && JSON.stringify(await origines(page)) === JSON.stringify(TOUTES),
+     JSON.stringify({ avec, sans, origines: await origines(page) }));
+
+  /* ── DEUX VERDICTS QUE LA MÉMOIRE NE DOIT PAS CROIRE ─────────────────────
+     Celui de rev0 a quarante-neuf heures ; celui de rev1 est rangé sous une
+     autre chaîne. Tous deux disent « rien » : les croire laisserait ces deux
+     directs compter leur tronçon. */
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('tse:sondes'));
+    d['s-rev0'] = [Date.now() - 49 * 3600_000, 'rev0', 0, []];
+    d['s-rev1'] = [Date.now(), 'autre', 0, []];
+    localStorage.setItem('tse:sondes', JSON.stringify(d));
+  });
+  await page.reload();
+  await poser(page);
+  await attendre(page, () => [...document.querySelectorAll('.side-nav-card')]
+    .filter((c) => /^rev\d$/.test(c.dataset.tseLogin || ''))
+    .every((c) => /^5h/.test(c.querySelector('.tse-uptime')?.textContent || '')), 15_000);
+  await wait(page, 800);
+  const apres = await page.evaluate(() => {
+    const r = window.tse.panneau.rapport().reseau.chapitres.reprise;
+    return { parties: [...window.__sondesParties].sort(), memorisees: r.memorisees,
+             memoireAdoptees: r.memoireAdoptees, adoptees: r.adoptees };
+  });
+  /* L'ASSERTION QUI PORTE LE GAIN. Mutants — rien relu du disque ; les
+     « rien » non gardés — : huit requêtes, ou quatre de plus pour les sol*. */
+  ok('au rechargement, seules les deux sondes douteuses repartent',
+     apres.parties.join() === 'rev0,rev1' && apres.memorisees === 6,
+     JSON.stringify(apres));
+  /* Mutants — la reprise mémorisée non rejouée ; le verdict périmé ou rangé
+     sous une autre chaîne cru — : un direct coupé compte son tronçon. */
+  ok('…et chaque direct coupé compte depuis son origine, deux par la mémoire',
+     JSON.stringify(await origines(page)) === JSON.stringify(TOUTES)
+     && apres.memoireAdoptees === 2 && apres.adoptees === 2,
+     JSON.stringify({ origines: await origines(page), ...apres }));
+  /* ET tse.reset() L'EMPORTE, comme le reste de ce qui est gardé. */
+  await page.evaluate(() => window.tse.reset());
+  ok('tse.reset() efface les verdicts gardés',
+     (await page.evaluate(() => localStorage.getItem('tse:sondes'))) === null);
+  await page.close();
+}
+
+/* ═════════ LA CADENCE DES SONDES SUIT CE QUE TWITCH RÉPOND ════════════════
+   LE RAPPORT DE TERRAIN : 64 refus sur 191 sondes, à cadence pleine. La 4.15.6
+   avait déjà mesuré la pente — 23 % de refus à 0,25 sonde/s, 33 % à 0,48 — et
+   s'obstiner nourrit le refus. La cadence se règle donc sur les réponses :
+   plus d'un refus sur dix dans un échantillon de dix la divise par deux, un
+   échantillon propre la remonte de deux, jamais au-delà de douze par fenêtre.
+
+   TROIS TEMPS, ET CHACUN SON MUTANT : la cadence baisse et la croisière la
+   tient ; un NOUVEAU voile la tient aussi, à proportion ; et quand Twitch
+   répond de nouveau, elle remonte. */
+{
+  titre('160. Sondes — la cadence suit les refus de Twitch, et remonte');
+  const page = await fresh();
+  await page.evaluate(() => {
+    const neuf  = new Date(Date.now() - 60_000).toISOString();
+    const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();
+    window.__fx = {}; window.__vodRecent = {};
+    window.__refusTout = true;
+    window.__envois = [];   // { t, voile } de chaque sonde partie
+    const vrai = window.fetch;
+    window.fetch = async (url, opt) => {
+      if (JSON.parse(opt.body).some((o) => o.operationName === 'TseVodRecent')) {
+        window.__envois.push({ t: performance.now(),
+                               voile: document.body.classList.contains('tse-loading') });
+        if (window.__refusTout) {
+          return { ok: true, json: async () => [{ errors: [{ message: 'service error' }] }] };
+        }
+      }
+      return vrai(url, opt);
+    };
+    // Des directs jeunes et coupés : des sondes à faire, et de quoi les refuser.
+    window.__poserDirects = (prefixe, n, carte) => {
+      for (let i = 0; i < n; i++) {
+        const l = prefixe + i;
+        window.__fx[l] = { id: 'i-' + l, sid: 's-' + l, createdAt: neuf,
+                           viewers: 900 - i, game: 'Rust', tags: [] };
+        window.__vodRecent[l] = [
+          { createdAt: neuf, lengthSeconds: 60, chapitres: [] },
+          { createdAt: vieux,
+            lengthSeconds: Math.round((Date.parse(neuf) - 1_200 - Date.parse(vieux)) / 1000),
+            chapitres: [{ pos: 0, jeu: 'Just Chatting' }] }];
+        if (carte) window.__addCard(l, 'Rust', String(900 - i));
+      }
+    };
+    window.__poserDirects('rev', 30, true);
+  });
+  const reprise = () => page.evaluate(() => window.tse.panneau.rapport().reseau.chapitres.reprise);
+  // La plus grande rafale dans une fenêtre de `largeur` ms.
+  const pointe = (ts, largeur) => {
+    let max = 0;
+    for (let i = 0; i < ts.length; i++) {
+      let n = 0;
+      for (let j = i; j < ts.length && ts[j] - ts[i] < largeur; j++) n++;
+      max = Math.max(max, n);
+    }
+    return max;
+  };
+
+  // ── a) Twitch refuse tout : la cadence baisse, et la croisière la tient ──
+  await attendre(page, () => window.tse.panneau.rapport().reseau.chapitres.reprise.ralenties >= 2
+    && !document.body.classList.contains('tse-loading'), 15_000);
+  const t0 = await page.evaluate(() => performance.now());
+  await wait(page, 4_500);   // deux fenêtres de croisière au banc
+  const croisiere = (await page.evaluate((t) => window.__envois.filter((e) => e.t >= t && !e.voile)
+    .map((e) => e.t), t0));
+  const ra = await reprise();
+  /* LA PRÉMISSE : des sondes sont bien parties pendant la mesure — sans quoi
+     une croisière muette passerait pour une croisière lente. */
+  ok('des refus en série divisent la cadence, deux fois au moins',
+     ra.ralenties >= 2 && ra.cadence <= 3 && croisiere.length >= 2,
+     JSON.stringify({ cadence: ra.cadence, ralenties: ra.ralenties, parties: croisiere.length }));
+  /* Mutant — la croisière qui ignore la cadence — : douze par fenêtre, comme
+     avant, au plus fort des refus. */
+  ok('…et la croisière ne dépasse plus trois sondes par fenêtre',
+     pointe(croisiere, 2_000) <= 3, JSON.stringify({ pointe: pointe(croisiere, 2_000) }));
+
+  // ── b) un NOUVEAU voile garde la même retenue ────────────────────────────
+  /* Un retour d'onglet après une absence ouvre un cycle de voile, et trente
+     directs neufs attendent leur sonde. La bourse du voile se remplit, sa
+     cadence non : huit par fenêtre au plein, un ou deux à la cadence réduite.
+     Mutant — le voile qui ignore la cadence — : huit d'un coup. */
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.__poserDirects('neuf', 30, true);
+  });
+  await wait(page, 1_800);   // plus que REVISIT_RELOAD_MS au banc
+  await page.evaluate(() => {
+    window.__envois = [];
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await attendre(page, () => window.__envois.some((e) => e.voile), 8_000);
+  await attendre(page, () => !document.body.classList.contains('tse-loading'), 12_000);
+  const sousVoile = await page.evaluate(() => window.__envois.filter((e) => e.voile).map((e) => e.t));
+  ok('un nouveau voile sonde à la cadence réduite',
+     sousVoile.length >= 2 && pointe(sousVoile, 50) <= 2,
+     JSON.stringify({ parties: sousVoile.length, pointe: pointe(sousVoile, 50) }));
+
+  // ── c) Twitch répond de nouveau : la cadence remonte ─────────────────────
+  /* Mutant — la remontée retirée — : la cadence reste au plancher pour la
+     vie de la page, et un refus passager coûte des heures. */
+  const plancher = (await reprise()).cadence;
+  await page.evaluate(() => { window.__refusTout = false; });
+  await attendre(page, () => window.tse.panneau.rapport().reseau.chapitres.reprise.remontees >= 1, 25_000);
+  const rc = await reprise();
+  ok('quand Twitch répond de nouveau, la cadence remonte',
+     rc.remontees >= 1 && rc.cadence > plancher,
+     JSON.stringify({ plancher, cadence: rc.cadence, remontees: rc.remontees, servies: rc.servies }));
+  await page.close();
+}
+
+/* ═════════ UNE CHUTE DIT CE QUI EST TOMBÉ ═══════════════════════════════
+   LE RAPPORT DE TERRAIN portait « chuteMax 49 744 », et rien pour dire ce qui
+   était tombé. Deux choses se cachent sous ce seul nombre : une chaîne qui
+   PERD SON COMBINÉ de co-stream et redevient son audience propre — un
+   changement de nature du nombre — et une audience propre qui baisse. Et une
+   troisième, que Guest Star rend visible : le combiné lui-même qui baisse.
+
+   LE DÉCOR JOUE LES TROIS, dans l'ordre : « g1 » dont l'audience propre est
+   sous ce que le répertoire annonçait ; « hote » et « absent » dont le combiné
+   passe de 11 736 à 10 000 ; puis la session qui finit, et chacun retombe à
+   son audience propre. */
+{
+  titre('161. Co-stream — une chute dit sa nature, et la plus grande son contexte');
+  /* Guest Star à 1,5 s, comme au scénario 155 : une session qui finit doit se
+     voir finir pendant le scénario, pas trente secondes après. */
+  const { page, ratees } = await pageVariante([
+    [/GUEST_STAR_TTL:\s*30_000/, 'GUEST_STAR_TTL: 1_500'],
+    [/GUEST_STAR_ERROR_COOLDOWN:\s*30_000/, 'GUEST_STAR_ERROR_COOLDOWN: 1_500'],
+  ]);
+  ok('la variante porte bien ses deux constantes réduites', ratees.length === 0,
+     JSON.stringify(ratees));
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Aniimo', tags: [] });
+    window.__cats = [{ name: 'Aniimo', viewers: 90_000, streams: [
+      { login: 'hote', viewers: 11_736 }, { login: 'absent', viewers: 300 },
+      { login: 'g1', viewers: 9_000 }, { login: 'g2', viewers: 6_000 },
+      { login: 'modele', viewers: 800 }] }];
+    window.__fx = { hote: c('1', 11_736), absent: c('2', 300), g1: c('3', 7_000),
+                    g2: c('4', 6_000), modele: c('6', 800) };
+    const session = { hostId: '1', hostLogin: 'hote', guests: [
+      { id: '1', login: 'hote', viewers: 450, combined: 11_736 },
+      { id: '2', login: 'absent', viewers: 300, combined: 11_736 }] };
+    window.__gs = { 1: session, 2: session };
+    window.__addCard('hote', 'Aniimo', '11,7 k');
+    window.__addCard('modele', 'Aniimo', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  const rang = (l, v) => page.evaluate(([x, n]) => window.tse.global.top(10)
+    .some((r) => r.login === x && r.viewers === n), [l, v]);
+  const chutes = () => page.evaluate(() => {
+    const c = window.tse.panneau.rapport().coStream;
+    return { parNature: c.chutesParNature, plusGrande: c.plusGrandeChute, max: c.chuteMax };
+  });
+  // 1) l'audience propre de g1 descend sous ce que le répertoire disait ;
+  //    les deux membres portent le combiné de la session.
+  await attendre(page, () => ['g1:7000', 'hote:11736', 'absent:11736'].every((x) =>
+    window.tse.global.top(10).some((r) => `${r.login}:${r.viewers}` === x)), 15_000);
+  /* LE RÉPERTOIRE SE TAIT À PARTIR D'ICI. Le décor garde ses nombres d'avant,
+     que le vrai Twitch aurait mis à jour : le laisser republier ferait écrire
+     au classement des nombres qu'aucune chaîne ne porte plus. Seules les deux
+     voies qu'on éprouve bougent désormais — Guest Star et l'audience propre. */
+  await page.evaluate(() => { window.__catDelay = 600_000; });
+  await wait(page, 700);
+  // 2) le combiné baisse
+  await page.evaluate(() => {
+    for (const g of window.__gs[1].guests) g.combined = 10_000;
+  });
+  await attendre(page, () => ['hote:10000', 'absent:10000'].every((x) =>
+    window.tse.global.top(10).some((r) => `${r.login}:${r.viewers}` === x)), 15_000);
+  // 3) la session finit : chacun redevient son audience propre
+  await page.evaluate(() => { window.__fx.hote.viewers = 450; window.__gs = {}; });
+  await attendre(page, () => ['hote:450', 'absent:300'].every((x) =>
+    window.tse.global.top(10).some((r) => `${r.login}:${r.viewers}` === x)), 20_000);
+  const vu = await chutes();
+  /* LA PRÉMISSE : les trois temps ont eu lieu, sans quoi une nature absente
+     ne prouverait rien. */
+  ok('le décor a joué les trois chutes',
+     await rang('g1', 7000) && await rang('hote', 450) && await rang('absent', 300),
+     JSON.stringify(vu));
+  /* Mutants — la nature tirée du seul `autorite` ; le combiné du répertoire
+     non retenu comme tel — : la session finie passe pour une audience qui
+     baisse, et le rapport retombe dans l'ambiguïté qu'il existe pour lever. */
+  ok('chaque nature a son compte et son maximum',
+     vu.parNature?.propre?.n >= 1 && vu.parNature.propre.max === 2_000
+     && vu.parNature.combine?.n >= 1 && vu.parNature.combine.max === 1_736
+     && vu.parNature.perteCombine?.n >= 1 && vu.parNature.perteCombine.max === 9_700,
+     JSON.stringify(vu.parNature));
+  /* Mutant — la plus grande non retenue — : le rapport ne dit plus laquelle
+     porte « chuteMax ». */
+  ok('…et la plus grande dit ce qu\'elle était : un combiné perdu, de 10 000 à 300',
+     vu.plusGrande?.nature === 'perteCombine' && vu.plusGrande.avant === 10_000
+     && vu.plusGrande.apres === 300 && vu.plusGrande.perte === vu.max,
+     JSON.stringify(vu.plusGrande));
+  await page.close();
+
+  /* ── LA NATURE NAÎT AUSSI LÀ OÙ LE NOMBRE NAÎT ─────────────────────────
+     Deux sources que `setViewers` ne voit pas passer. La MARCHE pose le
+     combiné qu'elle connaît — ici Guest Star tombe en panne, plus aucune
+     écriture de combiné par `setViewers`, et seule la marche republie. La
+     SIGNATURE du répertoire reconnaît deux jumeaux sans aucun Guest Star.
+     Mutants — l'une ou l'autre source qui ne dit pas que son nombre est un
+     combiné — : zéro au classement, et une fin de session tombée juste après
+     une republication passerait pour une audience qui baisse. */
+  const combinesAuClassement = (p) => p.evaluate(() =>
+    window.tse.panneau.rapport().coStream.combinesAuClassement);
+  const publications = (p) => p.evaluate(() => {
+    const g = window.tse.panneau.rapport().global;
+    return (g.walks || 0) + (g.light || 0);
+  });
+  {
+    const { page: pm } = await pageVariante([
+      [/GUEST_STAR_TTL:\s*30_000/, 'GUEST_STAR_TTL: 1_500'],
+      [/GUEST_STAR_ERROR_COOLDOWN:\s*30_000/, 'GUEST_STAR_ERROR_COOLDOWN: 1_500'],
+    ]);
+    await pm.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Aniimo', tags: [] });
+      /* LES DEUX MEMBRES DANS DEUX CATÉGORIES : la signature du répertoire,
+         qui groupe par catégorie, ne peut rien reconnaître — seule la marche
+         sait que leurs nombres sont des combinés. */
+      window.__cats = [
+        { name: 'Aniimo', viewers: 90_000, streams: [
+          { login: 'hote', viewers: 11_736 }, { login: 'g1', viewers: 9_000 },
+          { login: 'modele', viewers: 800 }] },
+        { name: 'Autre', viewers: 5_000, streams: [{ login: 'absent', viewers: 300 }] }];
+      window.__fx = { hote: c('1', 11_736), absent: { ...c('2', 300), game: 'Autre' },
+                      g1: c('3', 9_000), modele: c('6', 800) };
+      const session = { hostId: '1', hostLogin: 'hote', guests: [
+        { id: '1', login: 'hote', viewers: 450, combined: 11_736 },
+        { id: '2', login: 'absent', viewers: 300, combined: 11_736 }] };
+      window.__gs = { 1: session, 2: session };
+      window.__addCard('modele', 'Aniimo', '800');
+    });
+    await attendre(pm, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+    await pm.evaluate(() => window.tse.global.on());
+    await attendre(pm, () => window.tse.global.top(10).some((r) => r.login === 'absent' && r.viewers === 11736), 15_000);
+    await pm.evaluate(() => { window.__gsMode = 'down'; });
+    const avant = await publications(pm);
+    await attendre(pm, (n) => {
+      const g = window.tse.panneau.rapport().global;
+      return (g.walks || 0) + (g.light || 0) >= n + 2;
+    }, 10_000, avant);
+    const vuM = { publications: (await publications(pm)) - avant, combines: await combinesAuClassement(pm) };
+    ok('la marche qui republie un combiné le dit combiné',
+       vuM.publications >= 2 && vuM.combines === 2, JSON.stringify(vuM));
+    await pm.close();
+  }
+  /* ── GUEST STAR QUI CONFIRME LE NOMBRE DU RÉPERTOIRE ────────────────────
+     La marche publie AVANT que la session ne soit connue : le nombre de « hote »
+     est nu. Puis la marche se tait, et Guest Star annonce un combiné ÉGAL à ce
+     nombre — rien ne bouge, sauf sa nature. Mutant — l'égalité qui rend la main
+     sans rien marquer — : un seul combiné au classement, et la fin de session
+     de « hote » passerait pour une audience qui baisse. */
+  {
+    const { page: pe } = await pageVariante([
+      [/GUEST_STAR_TTL:\s*30_000/, 'GUEST_STAR_TTL: 1_500'],
+      [/GUEST_STAR_ERROR_COOLDOWN:\s*30_000/, 'GUEST_STAR_ERROR_COOLDOWN: 1_500'],
+    ]);
+    await pe.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Aniimo', tags: [] });
+      window.__cats = [{ name: 'Aniimo', viewers: 90_000, streams: [
+        { login: 'hote', viewers: 11_736 }, { login: 'absent', viewers: 300 },
+        { login: 'g1', viewers: 9_000 }, { login: 'modele', viewers: 800 }] }];
+      window.__fx = { hote: c('1', 11_736), absent: c('2', 300), g1: c('3', 9_000),
+                      modele: c('6', 800) };
+      window.__gs = {};
+      window.__addCard('hote', 'Aniimo', '11,7 k');
+      window.__addCard('modele', 'Aniimo', '800');
+    });
+    await attendre(pe, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+    await pe.evaluate(() => window.tse.global.on());
+    await attendre(pe, () => window.tse.global.top(10).some((r) => r.login === 'hote' && r.viewers === 11736)
+      && window.tse.global.top(10).some((r) => r.login === 'absent' && r.viewers === 300), 15_000);
+    await pe.evaluate(() => { window.__catDelay = 600_000; });
+    await wait(pe, 700);
+    const avantSession = await combinesAuClassement(pe);
+    await pe.evaluate(() => {
+      const session = { hostId: '1', hostLogin: 'hote', guests: [
+        { id: '1', login: 'hote', viewers: 450, combined: 11_736 },
+        { id: '2', login: 'absent', viewers: 300, combined: 11_736 }] };
+      window.__gs = { 1: session, 2: session };
+    });
+    await attendre(pe, () => window.tse.global.top(10).some((r) => r.login === 'absent' && r.viewers === 11736), 15_000);
+    await wait(pe, 400);
+    const vuE = { avantSession, apres: await combinesAuClassement(pe) };
+    ok('…et un combiné égal au nombre du répertoire en change la nature',
+       vuE.avantSession === 0 && vuE.apres === 2, JSON.stringify(vuE));
+    await pe.close();
+  }
+  {
+    const ps = await fresh();
+    await ps.evaluate(() => {
+      const h = new Date(Date.now() - 60 * 60_000).toISOString();
+      const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Aniimo', tags: [] });
+      window.__cats = [{ name: 'Aniimo', viewers: 30_000, streams: [
+        { login: 'naguura', viewers: 11_736 }, { login: 'lyritvjamie', viewers: 11_821 },
+        { login: 'milieu', viewers: 900 }, { login: 'modele', viewers: 800 }] }];
+      window.__fx = { naguura: c('9301', 300), lyritvjamie: c('9302', 300),
+                      milieu: c('9303', 900), modele: c('9304', 800) };
+      window.__gs = {};
+      window.__addCard('modele', 'Aniimo', '800');
+    });
+    await attendre(ps, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+    await ps.evaluate(() => window.tse.global.on());
+    await attendre(ps, () => window.tse.panneau.rapport().coStream.combinesAuClassement >= 2, 10_000);
+    const vuS = await combinesAuClassement(ps);
+    ok('…et la signature du répertoire aussi, sans aucun Guest Star', vuS === 2, String(vuS));
+    await ps.close();
+  }
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

@@ -2178,6 +2178,196 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'échéance au badge, les onglets de Twitch, et des sondes qui écoutent (v4.20.0)
+
+> « Abonnement payé : Abonné • 51 MOIS • Prochain anniversaire dans 9 jours.
+> Abonnement offert : Abonné • 1 MOIS • Expire dans 8 jours. »
+
+Cinq changements, demandés ensemble après la 4.19.2 : un badge qui dit
+l'échéance, un relevé qui clique les vrais onglets de Twitch, des sondes qui
+se souviennent et qui ralentissent quand Twitch refuse, et un rapport qui dit
+ce qu'une chute a fait tomber.
+
+### 1. L'échéance, dans le badge d'abonnement
+
+Le badge de l'aperçu disait « Abonné • 51 MOIS ». Il dit maintenant la suite :
+
+| abonnement | badge |
+| --- | --- |
+| payé ou mobile | `Abonné • 51 MOIS • Prochain anniversaire dans 9 jours` |
+| offert | `Abonné • 1 MOIS • Expire dans 8 jours` |
+| le jour même | `… • Anniversaire aujourd'hui` / `… • Expire aujourd'hui` |
+| échéance passée | `Abonné • 51 MOIS` — le relevé suivant la remplacera |
+
+**Lu sans un mot de français**, comme l'ancienneté depuis la 3.48. Les cartes
+relevées le 24/09/2026 portent :
+
+```
+payée   Prochain anniversaire d'abonnement dans : 5 jours
+        Nombre total de mois abonné : 40 mois
+        Nombre de mois à la suite : 40 mois
+        Date de renouvellement de l'abonnement : 29 sept. 2026 (dans 4 jours)
+
+offerte Prochain anniversaire d'abonnement dans : 23 jours
+        Abonnement offert par : (un pseudonyme)
+        Nombre total de mois abonné : 1 mois
+        Nombre de mois à la suite : 1 mois
+        Vos avantages arrivent à expiration le 17 oct. 2026 (dans 22 jours)
+```
+
+- **L'anniversaire** est la première valeur *avant* l'étiquette de
+  l'ancienneté (déjà apprise sur les expirés) qui porte **un seul nombre**,
+  dans une **autre unité** que l'ancienneté — « jours » contre « mois »,
+  comparés sans être lus. Une date porte deux ou trois nombres, la série se
+  compte en mois : ni l'une ni l'autre ne passent pour lui.
+- **L'expiration** est une date, et une date ne se lit pas sans connaître la
+  langue. On l'**écrit** donc : les dates des 400 prochains jours, mises en
+  forme par `Intl` dans la langue de la page, et on cherche celle que la carte
+  porte — bornée par des non-chiffres, sans quoi « 2 nov. » se lirait dans
+  « 12 nov. ».
+- **On garde une date, jamais un compte de jours**, et le badge recompte à
+  l'affichage en jours de calendrier locaux — c'est ainsi que Twitch compte ses
+  « (dans 4 jours) ». Un compte relevé six heures plus tôt serait faux.
+
+Stockée comme sixième champ de `tse:subs`, et visible dans le panneau (colonne
+« Échéance », douze langues).
+
+**Un défaut trouvé en chemin.** Le relevé promettait depuis la 3.52 que « le
+premier onglet à trouver une chaîne est celui qui la sert ». `noteSource`
+réécrivait pourtant toute origine différente : le dernier onglet gagnait. Un
+abonnement payé doublé d'un cadeau en attente — la même chaîne dans deux
+onglets — se lisait « offert », avec la date de fin du cadeau pour
+anniversaire. Le premier onglet sert désormais l'origine, et l'échéance avec
+elle.
+
+### 2. Le relevé clique les vrais onglets de Twitch
+
+La 4.19.2 cherchait des liens `?tab=` d'après une capture. La console de
+l'utilisateur a montré la vérité : six `<button role="tab"
+data-a-target="tw-tab-link">`, **sans adresse**. Aucun lien trouvé, donc une
+page rechargée par onglet — sans que le rapport le dise.
+
+Les onglets sont maintenant désignés par leur **place**, dans l'ordre relevé
+(payés, offerts, mobiles, Turbo, autres, expirés) — leurs libellés sont traduits
+et portent un compte, on ne les lit pas. Une place ne se croit pas sur parole :
+
+- **avant le clic**, la barre doit compter exactement six onglets, et celui que
+  la page dit choisi (`aria-selected`) doit être, à sa place, celui qu'elle
+  affiche ;
+- **après le clic**, l'adresse doit nommer l'onglet voulu ; si elle n'a pas
+  bougé — Twitch ne la tient peut-être pas à jour — le bouton cliqué doit être
+  devenu le choisi. Une adresse partie vers un *autre* onglet dément tout.
+
+Le rapport dit désormais pourquoi il a rechargé (« bascule abandonnée : 7
+onglet(s) dans la page, 6 attendus », « l'adresse dit « mobile », « gifts »
+attendu »…) et quel témoin a prouvé chaque clic (`bascule (adresse)` ou
+`bascule (aria-selected)`). C'est ce que le prochain rapport nous apprendra
+du vrai Twitch.
+
+### 3. Les verdicts des sondes survivent au rechargement
+
+Le rapport de terrain : **191 sondes, 7 origines trouvées, 64 refus**. Les 184
+autres n'avaient rien trouvé — un direct sans coupure, le cas normal — et
+chacune était redemandée à chaque rechargement, sur le point d'entrée que
+Twitch rationne.
+
+Pour un identifiant de stream, la réponse **ne change jamais** : ce qui précède
+un direct est fixé quand il démarre, et une nouvelle coupure crée un nouvel
+identifiant. Chaque verdict est donc gardé 48 heures (la durée maximale d'un
+direct Twitch) dans `tse:sondes`, au plus 300 : « rien ne raccorde », et les
+reprises avec leurs coupures et leurs chapitres. Un rechargement ne sonde plus
+que les directs apparus depuis. Les refus ne se gardent pas : ils n'apprennent
+rien sur le direct. Un verdict périmé, illisible ou rangé sous une autre chaîne
+est ignoré — une requête ne coûte qu'une requête, une origine fausse coûte une
+carte fausse.
+
+Le rapport compte à part ce qui vient du disque (`memorisees`,
+`memoireAdoptees`, `residentVerdicts`), pour que `trouvees` contre `adoptees`
+garde son sens. `tse.reset()` les efface avec le reste.
+
+### 4. La cadence des sondes suit ce que Twitch répond
+
+La 4.15.6 avait mesuré la pente : **23 % de refus à 0,25 sonde/s, 33 % à 0,48**.
+S'obstiner nourrit le refus. Douze sondes par trente secondes n'est plus qu'un
+plafond : sur chaque échantillon de **dix réponses**, plus d'un refus sur dix
+**divise la cadence par deux** (jamais sous deux par fenêtre) ; un échantillon
+propre la **remonte de deux**. La cadence du voile suit dans la même
+proportion : c'est là que tombaient la plupart des refus.
+
+Ce que ça coûte, et c'est voulu : quand Twitch refuse beaucoup, l'origine d'un
+direct coupé arrive plus tard sur certaines cartes. Le rapport dit la cadence
+courante et combien de fois elle a baissé ou remonté (`cadence`, `ralenties`,
+`remontees`).
+
+### 5. Une chute dit ce qui est tombé
+
+« chuteMax 49 744 » ne disait pas ce qui était tombé. Trois choses se
+cachaient sous ce seul nombre :
+
+| nature | ce que c'est |
+| --- | --- |
+| `perteCombine` | la chaîne portait un **combiné** de co-stream, et redevient son audience propre — la session finit, ou sa signature se perd |
+| `combine` | le combiné **lui-même** baisse (Guest Star le dit) |
+| `propre` | une audience propre qui baisse, sur un direct toujours en cours |
+
+La nature d'un nombre se pose là où il naît, sur l'entrée du classement : la
+marche quand elle y applique un combiné connu, la publication quand la
+signature du répertoire le reconnaît, `setViewers` à chaque écriture. Le rapport
+donne, par nature, le nombre de chutes et la plus forte, puis le contexte de la
+plus grande (`nature`, `avant`, `apres`, `sortieEcran`), et combien d'entrées du
+classement portent un combiné en ce moment.
+
+Ce qui ne se voit pas, et que le rapport ne prétend pas voir : la fin d'un
+direct n'est pas une chute (elle est comptée ailleurs, `creux` et `evicted`),
+et un raid ne se distingue pas avec les données qu'on reçoit.
+
+### Ce que je n'ai pas pu vérifier
+
+`www.twitch.tv` reste refusé par le proxy de cette machine. La barre d'onglets
+est modélisée d'après la console de l'utilisateur, les cartes d'après ses
+captures. Deux inconnues demeurent, et le rapport est écrit pour y répondre :
+**l'adresse suit-elle le clic ?** (la preuve imprimée de chaque bascule) et
+**la date d'expiration est-elle un texte seul dans son élément ?** (sinon, la
+carte ne donne rien au badge, et l'échéance d'un offert manque — sans
+mentir). La mise en forme des dates est celle d'`Intl` : si Twitch écrit les
+siennes autrement dans une langue, l'expiration n'y sera pas lue.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| l'ancienne recherche de liens `?tab=` | aucun onglet trouvé, quatre pages chargées |
+| la raison de la bascule abandonnée non consignée | le rapport dit quatre « page » et rien d'autre |
+| le témoin `aria-selected` retiré | chaque clic refusé, quatre pages quand l'adresse ne suit pas |
+| le compte des onglets retiré | un septième onglet lu comme les offerts, et sa chaîne dorée |
+| le contrôle de l'onglet choisi retiré | des onglets réordonnés : les expirés dorés |
+| une adresse partie ailleurs acceptée | deux onglets échangés : chaque chaîne prend l'origine de l'autre |
+| la ligne de bascule, ou le témoin, retirés du rapport | le panneau ne les imprime plus |
+| les dates cherchées sans bornes | « 2 nov. » lu dans « 12 nov. » : dix jours d'avance |
+| l'origine ignorée à la lecture, ou à l'affichage | l'offert dit « Prochain anniversaire dans 23 jours » |
+| l'unité non comparée | la série (3 mois) passe pour l'anniversaire |
+| le nombre unique non exigé | le « 3 » de « 3 mars 2023 » passe pour l'anniversaire |
+| le sixième champ non relu | le badge perd son échéance au rechargement |
+| une échéance passée affichée | « dans -1 jour » |
+| `record()` qui perd l'échéance | aucun badge n'a d'échéance |
+| le dernier onglet qui gagne (avant la 4.20.0) | un payé doublé d'un cadeau devient « offert » |
+| les dates hors de la signature de stabilité | une liste écrite carte par carte perd la dernière date |
+| les verdicts non relus / les « rien » non gardés | huit, ou six, requêtes au rechargement au lieu de deux |
+| un verdict périmé, ou d'une autre chaîne, cru | un direct coupé compte son tronçon |
+| la reprise mémorisée non rejouée | deux directs coupés comptent leur tronçon |
+| `tse.reset()` qui oublie les verdicts | `tse:sondes` survit à la remise à zéro |
+| pas de ralentissement / pas de remontée | la cadence reste à douze, ou au plancher pour la vie de la page |
+| la croisière, ou le voile, qui ignorent la cadence | douze par fenêtre, huit d'un coup, au plus fort des refus |
+| la nature tirée du seul Guest Star | la session finie passe pour une audience qui baisse |
+| la marche, ou la signature, muettes sur la nature | zéro combiné au classement |
+| le combiné égal non marqué | un combiné au classement au lieu de deux, quand Guest Star confirme le nombre du répertoire |
+| la plus grande chute non retenue | le rapport ne dit plus ce qui porte `chuteMax` |
+
+Le 53 gagne quatre cas (f, g, h, i) et le décor de la page des abonnements
+prend la forme réelle — boutons, cartes payées et offertes. Le 50 attend
+l'échéance à la suite du badge. Le 70 lit les deux lignes neuves du rapport.
+Les 158 à 161 sont neufs.
+
 ## Twitch refuse sa page d'abonnements, et le relevé apprend à le dire (v4.19.2)
 
 > « Le système de reconnaissance des abonnements ne fonctionne pas, ironmouse
@@ -10444,15 +10634,17 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 | `tse:visits` | dates de vos visites par chaîne | tri « Mes plus visités » |
 | `tse:roster` | chaînes suivies aperçues dans la sidebar | poser une carte avant Twitch |
 | `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
-| `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois et le passé d'abonné | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
+| `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois, le passé d'abonné et leur échéance (anniversaire ou expiration) | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
 | `tse:substs` | date du dernier relevé complet, précédée du numéro du lecteur qui l'a produit | espacer les relevés de 6 h, et périmer d'office ceux d'une version antérieure |
 | `tse:submois` | libellé de l'ancienneté, appris sur la page | lire le nombre de mois sans dépendre de la langue |
+| `tse:sondes` | ce que Twitch a répondu aux sondes de reprise, par identifiant de direct, 48 h au plus | ne pas redemander au rechargement ce qui est déjà tranché |
 
 `tse.reset()` les efface toutes à tout moment ; vider les données de site de
 `twitch.tv` depuis les réglages du navigateur fait de même.
 
-Le mode **Top Chaînes** n'ajoute rien à cette liste : il ne mémorise rien, ne
-persiste pas même le mode choisi, et ses requêtes empruntent exactement le même
+Le mode **Top Chaînes** n'ajoute rien à cette liste, sinon que ses cartes ont
+leurs verdicts de sonde dans `tse:sondes` comme les autres : il ne mémorise rien
+d'autre, ne persiste pas même le mode choisi, et ses requêtes empruntent exactement le même
 chemin anonyme que le reste de l'extension — `credentials: 'omit'`, Client-ID
 public, aucun jeton de session, aucune permission supplémentaire.
 
@@ -10551,7 +10743,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 157 scénarios, 1309 assertions |
+| `npm test` | le harnais Playwright : 161 scénarios, 1347 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -10572,12 +10764,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1220 Ko | 435 Ko | 3 489 → **2** |
+| `content.js` | 1247 Ko | 449 Ko | 3 527 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 101 Ko | 48 Ko | 136 → **0** |
+| `panneau.js` | 101 Ko | 48 Ko | 138 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1431 Ko** | **577 Ko** | **−59 %** |
+| **les cinq** | **1497 Ko** | **604 Ko** | **−59 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

@@ -125,6 +125,9 @@
   "colSource": {
     "message": "Źródło"
   },
+  "colDue": {
+    "message": "Termin"
+  },
   "colLag": {
     "message": "Opóźnienie"
   },
@@ -394,7 +397,7 @@
     "message": "Twoje subskrypcje, na złoto"
   },
   "guideAboTexte": {
-    "message": "Kanały, które wspierasz, nie wyglądają już jak pozostałe: złota nazwa, złota kategoria, złoty pierścień wokół awatara i powolny refleks na karcie.\n• Pojawia się odznaka, która mówi, od jak dawna.\n• Liczą się wszystkie trzy formy subskrypcji: płatna, podarowana, mobilna."
+    "message": "Kanały, które wspierasz, nie wyglądają już jak pozostałe: złota nazwa, złota kategoria, złoty pierścień wokół awatara i powolny refleks na karcie.\n• Pojawia się odznaka, która mówi, od jak dawna, a potem kiedy następna rocznica — lub, przy subskrypcji podarowanej, kiedy się kończy.\n• Liczą się wszystkie trzy formy subskrypcji: płatna, podarowana, mobilna."
   },
   "guideTriTitre": {
     "message": "Sortowanie i filtrowanie"

@@ -2057,6 +2057,191 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The due date in the badge, Twitch's real tabs, and probes that listen (v4.20.0)
+
+> "Paid subscription: Subscribed • 51 MONTHS • Next anniversary in 9 days.
+> Gifted subscription: Subscribed • 1 MONTH • Expires in 8 days."
+
+Five changes, requested together after 4.19.2: a badge that tells the due
+date, a sweep that clicks Twitch's real tabs, probes that remember and slow
+down when Twitch refuses, and a report that says what a drop brought down.
+
+### 1. The due date, in the subscription badge
+
+The preview badge said "Subscribed • 51 MONTHS". It now says what comes next:
+
+| subscription | badge |
+| --- | --- |
+| paid or mobile | `Subscribed • 51 MONTHS • Next anniversary in 9 days` |
+| gifted | `Subscribed • 1 MONTH • Expires in 8 days` |
+| on the day | `… • Anniversary today` / `… • Expires today` |
+| date passed | `Subscribed • 51 MONTHS` — the next sweep will replace it |
+
+**Read without a word of French**, like the tenure since 3.48. The cards
+recorded on 24/09/2026 carry:
+
+```
+paid    Prochain anniversaire d'abonnement dans : 5 jours
+        Nombre total de mois abonné : 40 mois
+        Nombre de mois à la suite : 40 mois
+        Date de renouvellement de l'abonnement : 29 sept. 2026 (dans 4 jours)
+
+gifted  Prochain anniversaire d'abonnement dans : 23 jours
+        Abonnement offert par : (a username)
+        Nombre total de mois abonné : 1 mois
+        Nombre de mois à la suite : 1 mois
+        Vos avantages arrivent à expiration le 17 oct. 2026 (dans 22 jours)
+```
+
+- **The anniversary** is the first value *before* the tenure label (already
+  learned on expired cards) that holds **a single number**, in a **different
+  unit** from the tenure — "days" against "months", compared without being
+  read. A date holds two or three numbers, the streak counts in months:
+  neither passes for it.
+- **The expiry** is a date, and a date cannot be read without knowing the
+  language. So we **write** it: the dates of the next 400 days, formatted by
+  `Intl` in the page's language, and we look for the one the card carries —
+  bounded by non-digits, otherwise "2 nov." would be read inside "12 nov.".
+- **We keep a date, never a day count**, and the badge recounts at display
+  time in local calendar days — which is how Twitch counts its "(in 4 days)".
+  A count read six hours earlier would be wrong.
+
+Stored as the sixth field of `tse:subs`, and visible in the panel ("Due"
+column, twelve languages).
+
+**A defect found on the way.** Since 3.52 the sweep promised that "the first
+tab to find a channel is the one that serves it". `noteSource` nevertheless
+rewrote any different origin: the last tab won. A paid subscription with a
+queued gift — the same channel in two tabs — was read as "gifted", with the
+gift's end date as its anniversary. The first tab now serves the origin, and
+the due date with it.
+
+### 2. The sweep clicks Twitch's real tabs
+
+4.19.2 looked for `?tab=` links based on a screenshot. The user's console
+showed the truth: six `<button role="tab" data-a-target="tw-tab-link">`,
+**with no address**. No link found, so one page reloaded per tab — without the
+report saying so.
+
+Tabs are now designated by their **position**, in the recorded order (paid,
+gifted, mobile, Turbo, other, expired) — their labels are translated and carry
+a count, we do not read them. A position is not taken on trust:
+
+- **before the click**, the bar must hold exactly six tabs, and the one the
+  page says is selected (`aria-selected`) must be, at its position, the one it
+  displays;
+- **after the click**, the address must name the wanted tab; if it did not
+  move — Twitch may not keep it up to date — the clicked button must have
+  become the selected one. An address that went to *another* tab refutes
+  everything.
+
+The report now says why it reloaded ("tab switch dropped: 7 tab(s) in the
+page, 6 expected", "the address says « mobile », « gifts » expected"…) and
+which witness proved each click (`bascule (adresse)` or `bascule
+(aria-selected)`). That is what the next report will teach us about the real
+Twitch.
+
+### 3. Probe verdicts survive a reload
+
+The field report: **191 probes, 7 origins found, 64 refusals**. The other 184
+had found nothing — a stream without a cut, the normal case — and each was
+asked again at every reload, on the very endpoint Twitch rations.
+
+For a stream identifier, the answer **never changes**: what precedes a
+stream is fixed when it starts, and a new cut creates a new identifier. Each
+verdict is therefore kept 48 hours (the maximum length of a Twitch stream) in
+`tse:sondes`, at most 300: "nothing connects", and reconnections with their
+cuts and chapters. A reload only probes the streams that appeared since.
+Refusals are not kept: they teach nothing about the stream. A stale,
+unreadable verdict, or one filed under another channel, is ignored — a request
+only costs a request, a false origin costs a false card.
+
+The report counts what comes from disk separately (`memorisees`,
+`memoireAdoptees`, `residentVerdicts`), so that `trouvees` against `adoptees`
+keeps its meaning. `tse.reset()` erases them with the rest.
+
+### 4. The probe rate follows what Twitch answers
+
+4.15.6 had measured the slope: **23 % refusals at 0.25 probe/s, 33 % at
+0.48**. Insisting feeds the refusal. Twelve probes per thirty seconds is now
+only a ceiling: on each sample of **ten answers**, more than one refusal in ten
+**halves the rate** (never below two per window); a clean sample **raises it
+by two**. The veil's rate follows in the same proportion: that is where most
+refusals fell.
+
+What it costs, on purpose: when Twitch refuses a lot, a cut stream's origin
+reaches some cards later. The report gives the current rate and how many times
+it went down or up (`cadence`, `ralenties`, `remontees`).
+
+### 5. A drop says what fell
+
+"chuteMax 49,744" did not say what had fallen. Three things hid under that
+single number:
+
+| nature | what it is |
+| --- | --- |
+| `perteCombine` | the channel carried a co-stream **combined** count, and becomes its own audience again — the session ends, or its signature is lost |
+| `combine` | the combined count **itself** drops (Guest Star says so) |
+| `propre` | an own audience dropping, on a stream still running |
+
+A number's nature is set where it is born, on the ranking entry: the walk
+when it applies a known combined count, publication when the directory
+signature recognises it, `setViewers` at every write. The report gives, per
+nature, the number of drops and the largest, then the context of the largest
+one (`nature`, `avant`, `apres`, `sortieEcran`), and how many ranking entries
+carry a combined count right now.
+
+What cannot be seen, and the report does not claim to see: the end of a stream
+is not a drop (it is counted elsewhere, `creux` and `evicted`), and a raid
+cannot be told apart with the data we receive.
+
+### What I could not verify
+
+`www.twitch.tv` is still refused by this machine's proxy. The tab bar is
+modelled on the user's console, the cards on their screenshots. Two unknowns
+remain, and the report is written to answer them: **does the address follow
+the click?** (the printed witness of each switch) and **is the expiry date a
+text of its own in its element?** (otherwise the card gives the badge nothing,
+and a gift's due date is missing — without lying). Dates are formatted by
+`Intl`: if Twitch writes its own differently in some language, the expiry will
+not be read there.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the old search for `?tab=` links | no tab found, four pages loaded |
+| the dropped switch's reason not recorded | the report says four "page" and nothing else |
+| the `aria-selected` witness removed | every click refused, four pages when the address does not follow |
+| the tab count removed | a seventh tab read as gifts, and its channel gilded |
+| the selected-tab check removed | reordered tabs: the expired ones gilded |
+| an address that went elsewhere accepted | two swapped tabs: each channel takes the other's origin |
+| the switch line, or the witness, removed from the report | the panel no longer prints them |
+| dates searched without bounds | "2 nov." read inside "12 nov.": ten days early |
+| the origin ignored when reading, or when displaying | the gift says "Next anniversary in 23 days" |
+| the unit not compared | the streak (3 months) passes for the anniversary |
+| a single number not required | the "3" of "3 mars 2023" passes for the anniversary |
+| the sixth field not read back | the badge loses its due date on reload |
+| a passed due date displayed | "in -1 day" |
+| `record()` losing the due date | no badge has a due date |
+| the last tab winning (before 4.20.0) | a paid subscription with a queued gift becomes "gifted" |
+| dates left out of the stability signature | a list written card by card loses its last date |
+| verdicts not read back / "nothing" not kept | eight, or six, requests on reload instead of two |
+| a stale verdict, or another channel's, believed | a cut stream counts its segment |
+| the remembered reconnection not replayed | two cut streams count their segment |
+| `tse.reset()` forgetting the verdicts | `tse:sondes` survives the reset |
+| no slowdown / no climb back | the rate stays at twelve, or at the floor for the page's life |
+| cruise, or the veil, ignoring the rate | twelve per window, eight at once, at the height of the refusals |
+| the nature taken from Guest Star alone | the ended session passes for a dropping audience |
+| the walk, or the signature, silent on the nature | zero combined counts in the ranking |
+| the equal combined count not marked | one combined count in the ranking instead of two, when Guest Star confirms the directory's number |
+| the largest drop not kept | the report no longer says what carries `chuteMax` |
+
+Scenario 53 gains four cases (f, g, h, i) and the subscriptions page decor
+takes the real shape — buttons, paid and gifted cards. Scenario 50 expects the
+due date after the badge. Scenario 70 reads the report's two new lines.
+Scenarios 158 to 161 are new.
+
 ## Twitch refuses its subscriptions page, and the sweep learns to say so (v4.19.2)
 
 > "Subscription recognition does not work, ironmouse is not gold."
@@ -10063,15 +10248,17 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 | `tse:visits` | your visit dates per channel | "Most visited" sort |
 | `tse:roster` | followed channels seen in the sidebar | posting a card before Twitch |
 | `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
-| `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months and the former-subscriber flag | "My subscriptions first" sort, card styling, preview badge |
+| `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months, the former-subscriber flag and their due date (anniversary or expiry) | "My subscriptions first" sort, card styling, preview badge |
 | `tse:substs` | date of the last full scan, prefixed by the reader version that produced it | spacing scans 6 h apart, and expiring those of an earlier version outright |
 | `tse:submois` | the tenure label, learned from the page | reading the month count without depending on the language |
+| `tse:sondes` | what Twitch answered the reconnection probes, per stream identifier, 48 h at most | not asking again on reload what is already settled |
 
 `tse.reset()` wipes them all at any time; clearing `twitch.tv`'s site data from
 your browser settings does the same.
 
-**Top Channels** adds nothing to that list: it stores nothing, does not even
-persist the selected mode, and its requests take exactly the same anonymous path
+**Top Channels** adds nothing to that list, except that its cards get their
+probe verdicts in `tse:sondes` like any other: it stores nothing else, does not
+even persist the selected mode, and its requests take exactly the same anonymous path
 as the rest of the extension — `credentials: 'omit'`, public Client-ID, no
 session token, no extra permission.
 
@@ -10167,7 +10354,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 157 scenarios, 1309 assertions |
+| `npm test` | the Playwright harness: 161 scenarios, 1347 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -10187,12 +10374,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1220 KB | 435 KB | 3,489 → **2** |
+| `content.js` | 1247 KB | 449 KB | 3,527 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 101 KB | 48 KB | 136 → **0** |
+| `panneau.js` | 101 KB | 48 KB | 138 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1431 KB** | **577 KB** | **−59 %** |
+| **all five** | **1497 KB** | **604 KB** | **−59 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
