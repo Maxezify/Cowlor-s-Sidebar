@@ -15551,7 +15551,9 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
       if (!arrets.length) return null;
       const d = fondOpaque(e);
       return { n: arrets.length,
-               pire: +Math.min(...arrets.map((a) => rap(a, d))).toFixed(2) }; };
+               pire: +Math.min(...arrets.map((a) => rap(a, d))).toFixed(2),
+               // Voir plus bas : des arrêts justes ne disent pas OÙ ils sont peints.
+               decoupe: st.backgroundClip === 'text' || st.webkitBackgroundClip === 'text' }; };
     return { nom: mesure('.side-nav-card.tse-sub p.tse-nom'),
              cat: mesure('.side-nav-card.tse-sub .tse-sub-cat') };
   });
@@ -15582,6 +15584,22 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('…et en clair FORCÉ, sur le fond que le réglage impose',
      !!orForce && !!orForce.nom && orForce.nom.pire >= 4.5
      && !!orForce.cat && orForce.cat.pire >= 4.5, JSON.stringify(orForce));
+  /* ── DES ARRÊTS JUSTES, PEINTS AU MAUVAIS ENDROIT (4.21.1) ──────────────
+     LES TROIS ASSERTIONS DU DESSUS PASSAIENT pendant que la capture montrait
+     deux PAVÉS BRUNS à la place du pseudo et de la catégorie. Elles lisent les
+     couleurs du dégradé, et ces couleurs étaient bonnes ; ce qui ne l'était
+     pas, c'est la SURFACE où il est peint. Les règles du clair posaient le
+     raccourci « background: », qui remet la découpe à « border-box » : le
+     dégradé remplissait la boîte, les lettres restaient transparentes.
+
+     Mutant — le raccourci remis dans l'une des deux règles du clair — les
+     deux modes clairs tombent, le sombre reste vert : le défaut du terrain,
+     et seulement lui. */
+  ok('…et dans les trois modes, le dégradé est DÉCOUPÉ AUX LETTRES — sinon, c\'est un pavé',
+     [orSombre, orClair, orForce].every((m) => m?.nom?.decoupe && m?.cat?.decoupe),
+     JSON.stringify({ sombre: [orSombre?.nom?.decoupe, orSombre?.cat?.decoupe],
+                      clair: [orClair?.nom?.decoupe, orClair?.cat?.decoupe],
+                      force: [orForce?.nom?.decoupe, orForce?.cat?.decoupe] }));
   await page.close();
 }
 
@@ -22021,6 +22039,131 @@ const pageVariante = async (substitutions, init = null) => {
   ok('…et dans le classement d\'une seule catégorie aussi, sur vingt relevés',
      (await passes()) >= avantScope + 2 && dansScope.every((v) => v === 4800),
      JSON.stringify({ passes: (await passes()) - avantScope, dansScope }));
+  await page.close();
+}
+
+/* ═════════ L'AVATAR QUE PERSONNE NE POSAIT ════════════════════════════════
+   SIGNALÉ PAR UNE CAPTURE (4.21.1) : dans « Top Chaînes », deux cartes
+   montraient à la place de l'avatar le DÉBUT DE LEUR PSEUDO — « Snu »,
+   « Low4 ». Le texte de remplacement d'une image sans source.
+
+   Les deux étaient des membres de co-stream COMPLÉTÉS par la session (4.18.1,
+   scénario 153) : le répertoire ne les rend pas, leur enregistrement n'a donc
+   pas d'avatar. Le 153 le disait en toutes lettres — « le reste, catégorie,
+   ancienneté, AVATAR, arrive par la voie ordinaire » — et ne le mesurait pas.
+   La voie ordinaire l'apportait au cache ; personne ne le posait sur la carte.
+
+   LE DÉCOR EST CELUI DU 153, avec deux leviers :
+     — TseChannels COUPÉ d'abord : c'est l'instant où la carte existe sans que
+       personne ait encore dit son avatar, celui que la capture a figé ;
+     — le répertoire sert pour chaque chaîne une AUTRE adresse d'avatar que
+       TseChannels. Rien ne garantit qu'elles coïncident, et une carte qui
+       prendrait l'une puis l'autre rechargerait son image à chaque passe.
+   Et une carte de TWITCH sans source d'avatar : l'extension n'y touche pas. */
+{
+  titre('165. Top Chaînes — le membre complété reçoit son avatar, et le garde');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    const streams = [
+      { login: 'gros1', viewers: 13_400 }, { login: 'gros2', viewers: 12_300 },
+      { login: 'gpk', viewers: 10_600 }, { login: 'shachlos', viewers: 10_600 },
+      ...Array.from({ length: 8 }, (_, i) => ({ login: 'b' + i, viewers: 9000 - i * 100 })),
+      { login: 'modele', viewers: 800 },
+    ];
+    window.__cats = [{ name: 'Dota 2', viewers: 200_000, streams }];
+    window.__fx = {}; window.__gs = {};
+    for (const st of streams) {
+      window.__fx[st.login] = { id: String(800_000 + st.viewers), createdAt: h,
+                                viewers: st.viewers, game: 'Dota 2', tags: [] };
+    }
+    window.__fx.luka = { id: '999111', createdAt: h, viewers: 250,
+                         game: 'Dota 2', tags: [] };
+    const idDe = (l) => window.__fx[l].id;
+    const guests = [
+      { id: idDe('gpk'), login: 'gpk', viewers: 10_600, combined: 10_600 },
+      { id: idDe('shachlos'), login: 'shachlos', viewers: 10_600, combined: 10_600 },
+      { id: '999111', login: 'luka', viewers: 250, combined: 10_600 },
+    ];
+    for (const l of ['gpk', 'shachlos']) {
+      window.__gs[idDe(l)] = { hostId: idDe('gpk'), hostLogin: 'gpk', guests };
+    }
+    window.__gs['999111'] = { hostId: idDe('gpk'), hostLogin: 'gpk', guests };
+    window.__avatarRepertoire = 'rep-';
+    window.__addCard('modele', 'Dota 2', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  /* La carte de Twitch perd la source de son avatar, et la coupure commence :
+     à partir d'ici, rien de ce que TseChannels sait n'arrive plus. */
+  await page.evaluate(() => {
+    document.querySelector('.side-nav-card a[href="/modele"]')?.closest('.side-nav-card')
+      ?.querySelector('img')?.removeAttribute('src');
+    window.__failChannels = true;
+    window.tse.global.on();
+  });
+  await attendre(page, () => [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')]
+    .some((c) => c.dataset.tseLogin === 'luka'), 15_000);
+  await wait(page, 800);
+
+  const avatars = () => page.evaluate(() => Object.fromEntries(
+    [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].map((c) => {
+      const img = c.querySelector('img.tw-image-avatar, .side-nav-card__avatar img');
+      return [c.dataset.tseLogin, { src: img?.getAttribute('src') ?? null,
+                                    alt: img?.getAttribute('alt') ?? null,
+                                    synth: c.dataset.tseSynthetic === 'true' }];
+    })));
+  const coupe = await avatars();
+  /* Chaque changement de source est noté à partir d'ici, carte par carte :
+     « garder son image » se mesure en changements, pas en instantanés. */
+  await page.evaluate(() => {
+    window.__changementsAvatar = [];
+    new MutationObserver((ms) => { for (const m of ms) {
+      const c = m.target.closest('.side-nav-card');
+      window.__changementsAvatar.push([c?.dataset.tseLogin, m.target.getAttribute('src')]);
+    } }).observe(document.body, { attributes: true, attributeFilter: ['src'], subtree: true });
+  });
+
+  /* LA PRÉMISSE : la carte du membre complété existe, fabriquée, et le
+     répertoire a bien donné leur avatar aux autres. */
+  ok('le membre complété a sa carte, et les cartes du répertoire leur avatar',
+     coupe.luka?.synth === true && coupe.gros1?.src === 'https://cdn/rep-gros1.png',
+     JSON.stringify({ luka: coupe.luka, gros1: coupe.gros1 }));
+  /* L'INSTANT DE LA CAPTURE. Mutant — le texte de remplacement laissé au
+     pseudo — la carte montre « luka » tronqué là où l'avatar manque. */
+  ok('…sans avatar connu, la carte ne montre PAS de pseudo tronqué à sa place',
+     coupe.luka?.src === null && coupe.luka?.alt === '',
+     JSON.stringify(coupe.luka));
+
+  await page.evaluate(() => { window.__failChannels = false; });
+  await attendre(page, () => {
+    const c = [...document.querySelectorAll('.side-nav-card')].find((x) => x.dataset.tseLogin === 'luka');
+    return !!c?.querySelector('img')?.getAttribute('src');
+  }, 15_000);
+  await wait(page, 2500);   // plusieurs passes : une hésitation aurait le temps de se voir
+  const apres = await avatars();
+  const changements = await page.evaluate(() => window.__changementsAvatar);
+  const de = (l) => changements.filter(([x]) => x === l).map(([, s]) => s);
+
+  /* L'ASSERTION QUI PORTE LE SIGNALEMENT. Mutant — la réparation retirée de
+     applyChannelData — la carte garde son trou jusqu'à sa sortie du
+     classement : la capture, à l'identique. */
+  ok('…et dès que TseChannels répond, il reçoit SON avatar, et son texte revient avec',
+     apres.luka?.src === 'https://cdn/api-luka.png' && !!apres.luka?.alt,
+     JSON.stringify(apres.luka));
+  /* Mutant — la réparation posée même quand une image est déjà là — les
+     cartes du répertoire passent à l'adresse de TseChannels, puis reviennent
+     à chaque amorce : une image rechargée à chaque passe. */
+  ok('…et une carte qui a déjà son avatar le garde : aucune image ne change de source',
+     apres.gros1?.src === 'https://cdn/rep-gros1.png'
+     && ['gros1', 'gros2', 'gpk', 'shachlos'].every((l) => de(l).length === 0)
+     && de('luka').length === 1,
+     JSON.stringify({ gros1: apres.gros1?.src, changements: changements.slice(0, 8) }));
+  /* Mutant — la garde « carte fabriquée » retirée — la carte de Twitch reçoit
+     une source que Twitch ne lui a pas donnée. */
+  ok('…et la carte de Twitch, elle, n\'est jamais touchée',
+     apres.modele?.synth === false && apres.modele?.src === null,
+     JSON.stringify(apres.modele));
   await page.close();
 }
 

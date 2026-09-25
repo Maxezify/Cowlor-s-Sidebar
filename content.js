@@ -4011,26 +4011,43 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom { color: #8a5900; }
     html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat { color: #7c5a1e; }
+    /* ── L'IMAGE SEULE, JAMAIS LE RACCOURCI (4.21.1) ─────────────────────
+       SIGNALÉ PAR UNE CAPTURE, sur Firefox : en clair, le pseudo et la
+       catégorie d'une chaîne abonnée devenaient deux PAVÉS BRUNS. Chromium
+       fait exactement pareil — mesuré au banc, capture identique —, et
+       depuis la 4.11.0 qui a écrit ces deux règles.
+
+       « background: » est un RACCOURCI. Il ne pose pas que l'image : il remet
+       aussi à leur valeur initiale tout ce qu'il ne nomme pas, dont
+       background-clip, qui repasse à « border-box ». Ces règles-ci l'emportent
+       sur celles du sombre (le sélecteur html[…] pèse plus) : le découpage au
+       texte que le sombre pose était donc effacé, le dégradé remplissait toute
+       la boîte, et le remplissage du texte, lui, restait transparent. Un
+       dégradé sans lettres.
+
+       Seule l'IMAGE change entre les thèmes. On ne pose donc qu'elle ; la
+       découpe, la taille (300 %) et la position animée restent celles des
+       règles du sombre. Le scénario 115 lit désormais la découpe calculée. */
     @supports (-webkit-background-clip: text) or (background-clip: text) {
       html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom {
-        background: linear-gradient(100deg,
+        background-image: linear-gradient(100deg,
           #8a5900   0%,
           #7a4e00  32%,
           #9c4f6b  46%,
           #8a5900  64%,
-          #8a5900 100%) 0 0 / 300% 100%;
+          #8a5900 100%);
         /* LE HALO PART EN CLAIR. C'est un filtre de lueur, pensé pour détacher
            des lettres claires d'un fond noir ; sur du blanc il ne détache
            rien et salit les contours. */
         filter: none;
       }
       html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat {
-        background: linear-gradient(100deg,
+        background-image: linear-gradient(100deg,
           #7c5a1e   0%,
           #6b4700  34%,
           #8f3f63  47%,
           #7c5a1e  64%,
-          #7c5a1e 100%) 0 0 / 300% 100%;
+          #7c5a1e 100%);
         filter: none;
       }
     }
@@ -7820,6 +7837,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           login: l,
           id:      m.id || null,
           name:    (m.name || '').trim() || l,
+          /* La session ne porte pas d'avatar : la carte le reçoit à la
+             première réponse de TseChannels (cf. poserAvatar). */
           avatar:  null,
           viewers: Number.isFinite(m.combined) ? m.combined : 0,
           game:    null,
@@ -17932,6 +17951,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       return;
     }
 
+    /* L'avatar qu'une carte fabriquée n'a pas reçu à sa naissance (cf.
+       poserAvatar). Seulement quand il MANQUE : une carte qui en porte un le
+       garde, sans quoi l'amorce du classement et la réponse de TseChannels,
+       qui ne donnent pas forcément la même adresse, se le disputeraient à
+       chaque passe. Les cartes de Twitch, elles, ne sont jamais touchées. */
+    if (data.avatar && isSynthetic(card)
+        && !card.querySelector(AVATAR_IMG)?.getAttribute('src')) {
+      poserAvatar(card, data.avatar,
+        cardNameEl(card)?.textContent?.trim() || data.name || card.dataset.tseLogin);
+    }
+
     const stream = data.stream;
 
     if (stream?.createdAt) {
@@ -21598,6 +21628,40 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
   };
 
+  /* ── L'AVATAR D'UNE CARTE FABRIQUÉE (4.21.1) ─────────────────────────────
+     SIGNALÉ PAR UNE CAPTURE : dans « Top Chaînes », certaines cartes
+     montraient, à la place de l'avatar, le DÉBUT DE LEUR PSEUDO — « Snu »,
+     « Low4 ». C'est le texte de remplacement d'une image sans source.
+
+     LES DEUX CARTES ÉTAIENT DES MEMBRES DE CO-STREAM COMPLÉTÉS (4.18.1) : la
+     session les nomme, le répertoire ne les rend pas, et l'enregistrement qu'on
+     fabrique pour eux n'a donc pas d'avatar. Le commentaire de la 4.18.1
+     promettait que l'avatar « arrive par la voie ordinaire dès que la carte
+     existe ». La voie ordinaire l'apportait bien — TseChannels demande
+     `profileImageURL` pour chaque carte et le range au cache —, mais PERSONNE
+     NE LE POSAIT : une carte ne recevait son image qu'une fois, à sa
+     fabrication, et gardait ensuite ce trou jusqu'à sa sortie du classement.
+
+     D'où deux règles, tenues par la même fonction :
+       — sans avatar connu, l'image n'a PAS de texte de remplacement : un
+         disque vide le temps d'une réponse, plutôt qu'un pseudo tronqué qui
+         se lit comme une erreur ;
+       — dès que l'avatar est connu, il se pose (cf. applyChannelData), et le
+         texte de remplacement revient avec lui. */
+  const AVATAR_IMG = 'img.tw-image-avatar, .side-nav-card__avatar img';
+  const poserAvatar = (card, avatar, nom) => {
+    const img = card.querySelector(AVATAR_IMG);
+    if (!img) return;
+    img.removeAttribute('srcset');
+    if (avatar) {
+      img.setAttribute('src', avatar);
+      img.setAttribute('alt', nom);
+    } else {
+      img.removeAttribute('src');
+      img.setAttribute('alt', '');
+    }
+  };
+
   /**
    * Fabrique la carte de `login` à partir de `template` (carte native live).
    * Renvoie l'élément, ou null si le clone n'expose pas les points d'ancrage
@@ -21634,14 +21698,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (catEl.hasAttribute('title')) catEl.setAttribute('title', categorie);
     }
 
-    // Avatar.
-    const img = card.querySelector('img.tw-image-avatar, .side-nav-card__avatar img');
-    if (img) {
-      if (data.avatar) img.setAttribute('src', data.avatar);
-      else img.removeAttribute('src');
-      img.setAttribute('alt', name);
-      img.removeAttribute('srcset');
-    }
+    poserAvatar(card, data.avatar, name);
 
     card.dataset.tseSynthetic = 'true';
     card.dataset.tseLogin = login;

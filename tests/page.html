@@ -703,9 +703,14 @@ window.fetch = async (url, opt) => {
           // `user.id` désignent la même chaîne. Les faire diverger cachait un
           // défaut — la résolution Guest Star d'une carte du classement ne
           // trouvait alors jamais sa session.
+          // __avatarRepertoire : le répertoire sert une AUTRE adresse d'avatar
+          // que TseChannels pour la même chaîne. Rien ne garantit qu'elles
+          // coïncident ; c'est ce qui permet de voir une carte hésiter entre
+          // les deux. Cf. scénario 165.
           broadcaster: { id: (window.__fx[s.login] || {}).id || 'id-' + s.login,
                          login: s.login, displayName: s.login,
-                         profileImageURL: 'https://cdn/api-' + s.login + '.png' },
+                         profileImageURL: 'https://cdn/' + (window.__avatarRepertoire || 'api-')
+                           + s.login + '.png' },
           game: { id: 'gid-' + c.name, name: c.name, displayName: traduire(c.name) },
           freeformTags: (s.tags || []).map(t => ({ name: t }))
         } })) }
