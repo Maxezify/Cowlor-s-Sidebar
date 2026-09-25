@@ -20631,6 +20631,15 @@ addEventListener('message', (e) => {
       const p = c?.querySelector('p[data-a-target="side-nav-title"]');
       return p ? [...p.children].map((e) => e.className) : null;
     })(),
+    // L'écart entre le nom et le drapeau, sur cette carte EN SUBATHON (4.20.1).
+    ecart: (() => {
+      const c = [...document.querySelectorAll('.side-nav-card')]
+        .find((x) => x.dataset.tseLogin === 'ru');
+      const nom = c?.querySelector('.tse-subathon-nom');
+      const marque = c?.querySelector('.tse-lang-mark');
+      return nom && marque ? marque.getBoundingClientRect().left - nom.getBoundingClientRect().right
+        : null;
+    })(),
     pastille: [...document.querySelectorAll('.side-nav-card')]
       .filter((c) => c.dataset.tseLogin === 'hote')
       .map((c) => c.querySelector('.tse-collab-badge')?.textContent ?? null),
@@ -20653,6 +20662,11 @@ addEventListener('message', (e) => {
      JSON.stringify(vu.ordre)
        === JSON.stringify(['tse-subathon-nom', 'tse-lang-mark', 'tse-subathon-jour']),
      JSON.stringify(vu.ordre));
+  /* L'ÉCART DE LA RANGÉE, ET PAS UN DE PLUS (4.20.1). Mutant — la marge du
+     drapeau posée sur toutes les cartes — : huit pixels ici, le double de ce
+     que le pseudo laisse à la pastille. */
+  ok('…à quatre pixels du pseudo, l\'écart de la rangée, sans marge en plus',
+     vu.ecart !== null && Math.abs(vu.ecart - 4) <= 0.5, String(vu.ecart));
   /* L'ASSERTION QUI PORTE LA SECONDE DEMANDE. Mutant — `enLigne` ignoré —
      « muet » reçoit une carte portant le compteur du groupe, sur une chaîne
      qui ne diffuse pas. */
@@ -21598,6 +21612,78 @@ const pageVariante = async (substitutions, init = null) => {
     ok('…et la signature du répertoire aussi, sans aucun Guest Star', vuS === 2, String(vuS));
     await ps.close();
   }
+}
+
+/* ═════════ LE DRAPEAU NE COLLE PAS AU PSEUDO ════════════════════════════
+   SIGNALÉ CAPTURE À L'APPUI : « peux-tu mettre un tout petit espace entre le
+   pseudo et le drapeau ; je le trouve un peu collé ». La carte de la capture
+   n'est pas en subathon : son <p> n'est pas une rangée flex, et le drapeau
+   suivait le texte du pseudo sans rien entre eux. Le scénario 154 tient
+   l'autre cas — en subathon, l'écart de la rangée suffit. */
+{
+  titre('162. Co-stream — un petit espace entre le pseudo et le drapeau');
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    const streams = [
+      { login: 'hote', viewers: 10_600, tags: ['Français'] },
+      { login: 'kiyo', viewers: 10_600, tags: ['Deutsch'] },
+      ...Array.from({ length: 4 }, (_, i) => ({ login: 'b' + i, viewers: 9000 - i * 100,
+                                                tags: ['Français'] })),
+      { login: 'modele', viewers: 800, tags: ['Français'] },
+    ];
+    window.__cats = [{ name: 'Dota 2', viewers: 200_000, streams }];
+    window.__fx = {}; window.__gs = {};
+    for (const st of streams) {
+      window.__fx[st.login] = { id: String(700_000 + st.viewers), createdAt: h,
+                                viewers: st.viewers, game: 'Dota 2', tags: st.tags,
+                                title: 'Stream' };
+    }
+    const idDe = (l) => window.__fx[l].id;
+    const guests = [
+      { id: idDe('hote'), login: 'hote', viewers: 10_600, combined: 10_600 },
+      { id: idDe('kiyo'), login: 'kiyo', viewers: 10_600, combined: 10_600 },
+    ];
+    for (const l of ['hote', 'kiyo']) {
+      window.__gs[idDe(l)] = { hostId: idDe('hote'), hostLogin: 'hote', guests };
+    }
+    window.__addCard('modele', 'Dota 2', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  await wait(page, 2500);
+  await page.evaluate(() => {
+    const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
+      .find((o) => (o.dataset.value || '') === 'Français');
+    if (!opt) throw new Error('« Français » absent de la liste des langues');
+    opt.click();
+  });
+  await attendre(page, () => !!document.querySelector('.tse-lang-mark'), 10_000);
+  await wait(page, 500);
+  const vu = await page.evaluate(() => {
+    // La carte AFFICHÉE : une copie masquée mesurerait zéro partout.
+    const c = [...document.querySelectorAll('.side-nav-card')]
+      .find((x) => x.dataset.tseLogin === 'kiyo' && x.getClientRects().length > 0);
+    const p = c?.querySelector('p[data-a-target="side-nav-title"]');
+    const marque = p?.querySelector('.tse-lang-mark');
+    // Le pseudo est un texte nu : on mesure son dernier caractère visible.
+    const texte = p && [...p.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
+    if (!texte || !marque) return { subathon: c?.dataset.tseSubathonDay ?? null, ecart: null };
+    const fin = texte.textContent.replace(/\s+$/, '').length;
+    const r = document.createRange();
+    r.setStart(texte, 0); r.setEnd(texte, fin);
+    return { subathon: c.dataset.tseSubathonDay ?? null,
+             ecart: marque.getBoundingClientRect().left - r.getBoundingClientRect().right };
+  });
+  /* LA PRÉMISSE : la carte n'est PAS en subathon — c'est le cas de la
+     capture, et le seul où l'espace manquait. Mutants — la marge retirée ; le
+     sélecteur ramené à une classe — : zéro pixel, le drapeau collé au pseudo ;
+     ou le drapeau sous le pseudo, sur sa propre ligne, qu'une règle du décor
+     (« .metacell span { display: block } ») met en bloc. */
+  ok('sans subathon, le drapeau se tient à quatre pixels du pseudo',
+     vu.subathon === null && vu.ecart !== null && Math.abs(vu.ecart - 4) <= 0.5,
+     JSON.stringify(vu));
+  await page.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

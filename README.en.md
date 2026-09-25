@@ -2057,6 +2057,32 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## A small space between the name and the flag (v4.20.1)
+
+> "Can you put a tiny space between the name and the flag; I find it a bit
+> cramped."
+
+The flag of a co-streamer from another language followed the name's text with
+nothing in between. On a subathon card, the name and its marks form a flex row
+whose gap (4 px) already separates them; elsewhere, nothing. The flag therefore
+gets **the same gap, only where it is missing** — setting it everywhere would
+have doubled it on subathon cards.
+
+**A second defect, found while measuring it.** The bench decor carries a host
+rule, `.metacell span { display: block }`, which beats a single class. Outside
+a subathon, the flag went **under** the name there, on a line of its own; the
+subathon flex row hid the defect, and it was the only case scenario 154
+exercised. Its selector now carries two classes, like the day chip has for a
+long time.
+
+| mutant | result |
+| --- | --- |
+| the margin removed | 0 px, the flag stuck to the name |
+| the margin set on every card | 8 px on a subathon card |
+| the selector reduced to one class | the flag under the name, on its own line |
+
+Scenario 162 is new; 154 measures the gap on a subathon card.
+
 ## The due date in the badge, Twitch's real tabs, and probes that listen (v4.20.0)
 
 > "Paid subscription: Subscribed • 51 MONTHS • Next anniversary in 9 days.
@@ -10354,7 +10380,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 161 scenarios, 1347 assertions |
+| `npm test` | the Playwright harness: 162 scenarios, 1349 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

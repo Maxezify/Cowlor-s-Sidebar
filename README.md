@@ -2178,6 +2178,32 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Un petit espace entre le pseudo et le drapeau (v4.20.1)
+
+> « Peux-tu mettre un tout petit espace entre le pseudo et le drapeau ; je le
+> trouve un peu collé. »
+
+Le drapeau d'un co-streamer d'une autre langue suivait le texte du pseudo sans
+rien entre eux. Sur une carte en subathon, le pseudo et ses marques forment une
+rangée flex dont l'écart (4 px) les sépare déjà ; ailleurs, rien. Le drapeau
+reçoit donc **le même écart, seulement là où il manque** — le poser partout
+l'aurait doublé sur les cartes en subathon.
+
+**Un second défaut, trouvé en le mesurant.** Le décor du banc porte une règle
+de l'hôte, `.metacell span { display: block }`, qui bat une classe seule. Hors
+subathon, le drapeau y passait **sous** le pseudo, sur une ligne à lui ; la
+rangée flex du subathon masquait le défaut, et c'était le seul cas que le
+scénario 154 éprouvait. Son sélecteur porte désormais deux classes, comme la
+pastille du jour depuis longtemps.
+
+| mutant | résultat |
+| --- | --- |
+| la marge retirée | 0 px, le drapeau collé au pseudo |
+| la marge posée sur toutes les cartes | 8 px sur une carte en subathon |
+| le sélecteur ramené à une classe | le drapeau sous le pseudo, sur sa propre ligne |
+
+Le scénario 162 est neuf ; le 154 mesure l'écart sur une carte en subathon.
+
 ## L'échéance au badge, les onglets de Twitch, et des sondes qui écoutent (v4.20.0)
 
 > « Abonnement payé : Abonné • 51 MOIS • Prochain anniversaire dans 9 jours.
@@ -10743,7 +10769,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 161 scénarios, 1347 assertions |
+| `npm test` | le harnais Playwright : 162 scénarios, 1349 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
