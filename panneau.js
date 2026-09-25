@@ -1782,6 +1782,11 @@ const construireRapport = (r, transport, fond) => {
      ÉCRIT MÊME À ZÉRO CARTE, comme le bloc ci-dessus : « aucune carte en
      direct » est une réponse, et elle écarte la moitié des causes. */
   L.push(...bloc('LIGNES DE CARTE / CARD LINES', aplatir(r.lignes)));
+  /* LES CARTES SPONSORISÉES. Leur mise en forme n'a été éprouvée que contre un
+     modèle de la feuille de Twitch ; ce bloc dit ce que la vraie page en a
+     fait, et porte leur squelette — balises et classes stables, sans texte —
+     pour corriger sans deviner le jour où Twitch le changera. */
+  L.push(...bloc('CARTES SPONSORISÉES / SPONSORED CARDS', aplatir(r.promues)));
   /* LE SUBATHON A SON PROPRE BLOC, et il en a besoin. La règle qui le
      reconnaît ne lit que le titre du direct : elle n'a jamais pu être
      exécutée contre le vrai Twitch, et ces six lignes sont la seule mesure

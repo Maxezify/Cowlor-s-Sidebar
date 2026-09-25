@@ -7043,6 +7043,13 @@ titre('70. Panneau — la page rendue, mesurée');
          une assertion de passer sur un bloc qui n'en rendrait qu'un. */
       subathons: { detectes: 3, sansJour: 1, voies: { nom: 1, thon: 1, tag: 1 },
                    marquees: 2 },
+      /* Une carte sponsorisée dans l'état de la capture de la 4.21.2 : un
+         enrobage sur quatre resté « flex », la catégorie sous l'avatar. */
+      promues: { cartes: 1, formees: 1, sansAvatar: 0, sansNom: 0, sansStatut: 0,
+                 plats: 4, aplatis: 3, categorieSousAvatar: 1, ecartNomPx: 34,
+                 ecartHauteurPx: 19,
+                 squelette: { '01': 'a.side-nav-card__link.side-nav-card__link--promoted-followed',
+                              '02': '· div' } },
       /* Une bascule abandonnée ET un onglet lu par bascule : les deux lignes
          que la 4.20.0 ajoute, et qu'aucun rapport réel n'a encore portées. */
       relevesAbonnements: { horodatage: 0, enAttente: false,
@@ -7353,6 +7360,15 @@ titre('70. Panneau — la page rendue, mesurée');
      && /marquees\s+2/.test(vue.texte) && /voies\.thon\s+1/.test(vue.texte)
      && /sansJour\s+1/.test(vue.texte),
      JSON.stringify((vue.texte.match(/SUBATHONS[\s\S]{0,160}/) || [])[0]));
+  /* LE BLOC DES CARTES SPONSORISÉES (4.21.2). Leur mise en forme n'est
+     éprouvée que contre un modèle de la feuille de Twitch : ce bloc est la
+     seule mesure qu'on en aura sur la vraie page. Mutant — la ligne retirée
+     du panneau — il n'arrive jamais jusqu'au texte que l'utilisateur envoie. */
+  ok('…le bloc des cartes sponsorisées : aplatissement, symptôme, écarts, squelette',
+     contient('CARTES SPONSORISÉES / SPONSORED CARDS') && /aplatis\s+3/.test(vue.texte)
+     && /categorieSousAvatar\s+1/.test(vue.texte) && /ecartNomPx\s+34/.test(vue.texte)
+     && /squelette\.01\s+a\.side-nav-card__link\.side-nav-card__link--promoted-followed/.test(vue.texte),
+     JSON.stringify((vue.texte.match(/CARTES SPONSORIS[\s\S]{0,200}/) || [])[0]));
   /* POURQUOI LE RELEVÉ A RECHARGÉ, ET QUEL TÉMOIN A PROUVÉ CHAQUE CLIC.
      Mutants — l'une ou l'autre ligne retirée du rapport — : le vrai Twitch
      ne nous dirait jamais s'il tient son adresse à jour. */
@@ -22164,6 +22180,166 @@ const pageVariante = async (substitutions, init = null) => {
   ok('…et la carte de Twitch, elle, n\'est jamais touchée',
      apres.modele?.synth === false && apres.modele?.src === null,
      JSON.stringify(apres.modele));
+  await page.close();
+}
+
+/* ═════════ LA CARTE SPONSORISÉE, RANGÉE PAR SES PIÈCES ════════════════════
+   SIGNALÉ PAR UNE CAPTURE (4.21.2), sur une carte « Sponsorisé • <marque> » en
+   co-stream : l'avatar et le compteur côte à côte en colonne 1, le pseudo et
+   la catégorie empilés en colonne 2, la colonne 3 vide. Et un rapport qui
+   comptait cette carte dans `sansNom`.
+
+   LE DÉCOR EST LE DOM RÉEL de la carte, relevé sur Twitch par l'utilisateur,
+   noms inventés. Sa mise en page native est MODÉLISÉE dans page.html, avec le
+   « !important » qui fait perdre les règles d'avant ; sans lui, ce harnais
+   rendait juste la carte fautive, et ne voyait rien.
+
+   « Parfaite » se mesure : l'avatar à gauche, le pseudo et la catégorie l'un
+   sous l'autre À CÔTÉ de lui, le compteur au bord droit, et une carte aussi
+   haute qu'une rangée — pas trois. */
+{
+  titre('166. La carte sponsorisée — rangée comme une carte ordinaire');
+
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 58 * 60_000).toISOString();
+    window.__fx = {
+      soleil: { id: '71', createdAt: h, viewers: 3100, game: 'Just Chatting', tags: [] },
+      lune:   { id: '72', createdAt: h, viewers: 900,  game: 'Just Chatting', tags: [] },
+    };
+    window.__addPromotedCard('soleil', 'Discussions', '3,1 k', 'Savonia');
+    window.__addPromotedCard('lune', null, '900', 'Savonia');
+  });
+  await attendre(page, () => ['soleil', 'lune'].every((l) =>
+    !!document.querySelector(`.side-nav-card[data-tse-login="${l}"] .tse-uptime`)), 15_000);
+  await attendre(page, () => !document.body.classList.contains('tse-loading'), 15_000);
+  await wait(page, 500);
+
+  const mesurer = (login) => page.evaluate((l) => {
+    const c = document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+    if (!c) return null;
+    const cr = c.getBoundingClientRect();
+    const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect();
+      return { g: b.left - cr.left, d: b.right - cr.left, h: b.top - cr.top, b: b.bottom - cr.top }; };
+    const vu = (sel) => { const e = c.querySelector(sel); return !!e && e.getClientRects().length > 0; };
+    return {
+      largeur: cr.width, hauteur: cr.height,
+      avatar: r(c.querySelector('.tw-avatar')),
+      nom: r(c.querySelector('[class*="promoted-followed-card__title"] p')),
+      cat: r(c.querySelector('[class*="promoted-followed-card__content"] p')),
+      statut: r(c.querySelector('.side-nav-card__live-status')),
+      tseNom: !!c.querySelector('[class*="promoted-followed-card__title"] p.tse-nom'),
+      marques: c.querySelectorAll('[class*="tse-promu"]').length,
+      decor: vu('[class*="promoted-followed-card__sponsorship"]') || vu('img[alt^="Logo de"]')
+             || vu('img[alt="en collaboration avec"]'),
+    };
+  }, login);
+  const s = await mesurer('soleil');
+  const l = await mesurer('lune');
+
+  /* LE PSEUDO EST TROUVÉ. Mutant — la carte sponsorisée oubliée par
+     cardNameEl — le rapport retombe à `sansNom`, et rien ne se range. */
+  ok('la carte sponsorisée a une ligne de pseudo, comme les autres',
+     !!s?.tseNom && !!l?.tseNom, JSON.stringify({ soleil: s?.tseNom, lune: l?.tseNom }));
+  /* L'ASSERTION QUI PORTE LE SIGNALEMENT. Mutant — le « !important » retiré
+     de l'aplatissement — la capture, trait pour trait : le compteur collé à
+     l'avatar, la catégorie sous lui. */
+  const place = (m) => !!m?.avatar && !!m?.nom && !!m?.statut
+    && m.nom.g - m.avatar.d >= 6 && m.nom.g - m.avatar.d <= 14
+    && m.statut.g >= m.nom.d - 1 && m.statut.d >= m.largeur - 12;
+  ok('…et ses pièces se rangent en trois colonnes : avatar, pseudo et catégorie, compteur au bord',
+     place(s) && !!s.cat && Math.abs(s.cat.g - s.nom.g) <= 1
+     && s.cat.h >= s.nom.b - 1 && s.cat.h < s.avatar.b && s.hauteur <= 50,
+     JSON.stringify(s));
+  /* Mutant — la rangée unique du pseudo sans catégorie retirée — il reste
+     collé en haut de l'avatar au lieu d'être centré dessus. */
+  ok('…et sans catégorie, le pseudo se centre sur l\'avatar, comme sur une carte ordinaire',
+     place(l) && Math.abs((l.nom.h + l.nom.b) / 2 - (l.avatar.h + l.avatar.b) / 2) <= 2,
+     JSON.stringify(l));
+  ok('…et le décor publicitaire reste masqué : bandeau, logo, croix',
+     s?.decor === false && l?.decor === false, JSON.stringify({ s: s?.decor, l: l?.decor }));
+
+  /* LA MARQUE N'EST PAS PERDUE : l'aperçu la dit, et c'est pour cela qu'on
+     peut la retirer de la carte. */
+  await hoverLogin(page, 'soleil');
+  await attendre(page, () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 8000);
+  const badges = await page.evaluate(() =>
+    [...document.querySelectorAll('.tse-preview__badge')].map((b) => b.textContent.trim()));
+  ok('…et l\'aperçu dit toujours qui sponsorise',
+     badges.includes('Sponsorisé par Savonia'), JSON.stringify(badges));
+  await page.evaluate(() => document.querySelector('.side-nav-card[data-tse-login="soleil"]')
+    ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false })));
+
+  /* LE RAPPORT VOIT LA CARTE, ET VOIT LA CAPTURE. Deux relevés : la carte
+     rangée, puis la même carte où une feuille plus forte que la nôtre rend
+     leur « flex » aux deux blocs de Twitch qui le portaient — ce qui s'est
+     passé sur le terrain. Le second doit dire « aplatis < plats » et
+     « categorieSousAvatar », sans quoi ce bloc ne saurait pas reconnaître, sur
+     la vraie page, le défaut qu'il mesure. */
+  const promues = () => page.evaluate(() => window.tse.panneau.rapport().promues);
+  const bon = await promues();
+  await page.evaluate(() => {
+    const st = document.createElement('style');
+    st.id = 'force-twitch';
+    st.textContent = 'html body .side-nav-card .ljZXzA.tse-promu-plat, '
+      + 'html body .side-nav-card .geLFjm.tse-promu-plat { display: flex !important; }';
+    document.head.appendChild(st);
+  });
+  await wait(page, 100);
+  const casse = await promues();
+  await page.evaluate(() => document.getElementById('force-twitch').remove());
+  const lignes = Object.values(bon?.squelette || {});
+  ok('le rapport compte les cartes sponsorisées, rangées et aplaties',
+     bon?.cartes === 2 && bon.formees === 2 && bon.sansNom === 0 && bon.plats > 0
+     && bon.aplatis === bon.plats && bon.categorieSousAvatar === 0,
+     JSON.stringify({ ...bon, squelette: lignes.length }));
+  ok('…et il reconnaît la capture quand une feuille plus forte défait la nôtre',
+     casse?.plats === bon.plats && casse.aplatis === casse.plats - 4
+     && casse.categorieSousAvatar === 1,
+     JSON.stringify({ ...casse, squelette: undefined }));
+  /* LE SQUELETTE NE DIT RIEN DE PERSONNEL : ni le pseudo, ni la marque, ni
+     une adresse — des balises et des classes stables. */
+  ok('…et son squelette porte la structure, sans un mot de texte',
+     lignes.length >= 10 && lignes.some((x) => x.includes('side-nav-promoted-followed-card__title'))
+     && lignes.every((x) => !/soleil|Savonia|https?:/.test(x)),
+     JSON.stringify(lignes.slice(0, 6)));
+
+  /* CE QUI N'EST PLUS UNE CARTE SPONSORISÉE REDEVIENT CELLE DE TWITCH : sidebar
+     réduite, carte qui perd sa pièce, carte qui perd sa sponsorisation. */
+  const marques = (login) => page.evaluate((x) =>
+    document.querySelector(`.side-nav-card[data-tse-login="${x}"]`)
+      ?.querySelectorAll('[class*="tse-promu"]').length ?? -1, login);
+  const secouer = () => page.evaluate(() => {
+    const t = document.createElement('div');
+    document.getElementById('cards').appendChild(t);
+    t.remove();
+  });
+  await page.evaluate(() => document.body.classList.add('side-nav--collapsed'));
+  await secouer();
+  await attendre(page, () => !document.querySelector('[class*="tse-promu"]'), 8000);
+  const repliee = await marques('soleil');
+  await page.evaluate(() => document.body.classList.remove('side-nav--collapsed'));
+  await secouer();
+  await attendre(page, () => !!document.querySelector('.tse-promu-grille'), 8000);
+  await attendre(page, () => !document.body.classList.contains('tse-loading'), 15_000);
+  const depliee = await marques('soleil');
+  /* Mutant — la garde « sidebar réduite » retirée — la grille déplie ce que
+     Twitch replie. */
+  ok('sidebar réduite, la carte redevient celle de Twitch ; dépliée, elle se range à nouveau',
+     repliee === 0 && depliee > 0, JSON.stringify({ repliee, depliee }));
+
+  await page.evaluate(() => document.querySelector('.side-nav-card[data-tse-login="lune"] '
+    + '[class*="promoted-followed-card__title"]').remove());
+  await page.evaluate(() => document.querySelector('.side-nav-card[data-tse-login="soleil"] a')
+    .classList.remove('side-nav-card__link--promoted-followed'));
+  await secouer();
+  await attendre(page, () => !document.querySelector('[class*="tse-promu"]'), 8000);
+  const sansNom = await marques('lune');
+  const sansSponso = await marques('soleil');
+  /* Mutant — la carte rangée laissée telle quelle quand elle cesse de
+     l'être — une grille à trou, ou la grille d'une carte ordinaire. */
+  ok('…et une carte qui perd son pseudo ou sa sponsorisation perd la grille',
+     sansNom === 0 && sansSponso === 0, JSON.stringify({ sansNom, sansSponso }));
   await page.close();
 }
 
