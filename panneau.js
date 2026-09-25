@@ -1842,6 +1842,9 @@ const construireRapport = (r, transport, fond) => {
       + ` · ${o.charge ? 'affiché' : 'jamais chargé'} · ${o.noeuds} nœuds`
       + ` · barre ${o.barre ? 'oui' : 'non'} · ${o.cartes} carte(s)`
       + ` · ${o.logins} chaîne(s)`
+      /* Les échéances lues, rapportées aux chaînes (4.21.0) : « 12/12 » dit
+         que les dates de Twitch se lisent, « 0/12 » qu'elles ne se lisent pas. */
+      + (Number.isFinite(o.echeances) && o.logins ? ` · ${o.echeances}/${o.logins} échéance(s) lue(s)` : '')
       + (o.liens ? ` · ${o.liens} lien(s) de chaîne hors carte` : '')
       + (o.blanc ? ' · rien sous les onglets' : '')
       + (o.texte ? ` · la page dit : « ${o.texte} »` : '')))),

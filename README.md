@@ -2178,6 +2178,136 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Les deux rapports de la 4.20.0, pris au mot (v4.21.0)
+
+> « Fais toutes les propositions, soit rigoureux. »
+
+Quatre changements, tous désignés par les deux rapports de terrain de la
+4.20.0, et un cinquième que le banc a trouvé en éprouvant le deuxième.
+
+### A — Les échéances se comptent au rapport
+
+La 4.20.0 ne pouvait pas dire si les dates de Twitch se lisaient : il fallait
+survoler un badge. Chaque ligne d'onglet en cours porte désormais ses
+échéances lues, rapportées à ses chaînes, et le bloc des compteurs leur
+total :
+
+```
+onglet gifts   bascule (adresse) · … · 12 carte(s) · 12 chaîne(s) · 12/12 échéance(s) lue(s)
+compteurs.echeances   13
+```
+
+« 12/12 » dit que les dates se lisent, « 0/12 » qu'elles ne se lisent pas —
+la question que la 4.20.0 laissait ouverte se tranche au prochain rapport.
+
+### B — La signature du combiné se prouve par l'audience propre
+
+Les rapports comptaient **665 combinés au classement sur 1 677**, puis **107
+sur 196**, pour deux sessions réelles. La signature du répertoire — deux
+chaînes d'une catégorie à moins d'une graduation l'une de l'autre — prenait
+pour un co-stream toute paire de chaînes ordinaires voisines, et figeait leur
+compteur sur celui du répertoire.
+
+La proximité n'est plus qu'un **soupçon**. Il se tranche dès que l'audience
+propre de la chaîne arrive :
+
+| audience propre | verdict |
+| --- | --- |
+| moins de 90 % du nombre du répertoire | **confirmé** : c'est une part d'un combiné (300 contre 11 736 sur le terrain) — protégé, compté combiné |
+| 90 % ou plus | **démenti** : c'est son audience à elle — l'audience fraîche s'écrit |
+
+La **preuve survit** à la publication suivante, et c'est ce qui manquait
+depuis la 4.16.0 : deux échantillons du combiné qui s'écartent d'un cran
+faisaient perdre la signature, et avec elle la protection. Le rapport distingue
+désormais les trois états : `signaturesSupposees` (sans audience propre encore
+— d'ordinaire, des chaînes sans carte), `signaturesConfirmees`,
+`signaturesRefutees`. `combinesAuClassement` ne compte plus que ce que Guest
+Star a dit ou que l'audience propre a prouvé.
+
+**Et le battement que le scénario 133 décrivait sans le corriger.** Chaque
+marche reconstruisait le classement depuis le répertoire — plus récent en date
+de lecture, moins juste en contenu que l'audience que `TseChannels` venait de
+donner — et le compteur d'une carte retombait au nombre du répertoire jusqu'au
+lot de chaînes suivant : un à deux relevés sur vingt. Le démenti le rendait
+urgent : les voisines ordinaires que la signature figeait recevaient enfin leur
+audience fraîche, et la perdaient à chaque marche. La publication préfère
+désormais l'audience propre récente (moins de deux périodes de
+rafraîchissement) **tant qu'elle est proche** du répertoire — un répertoire loin
+au-dessus, c'est une chaîne qui entre en co-stream, et c'est à la signature de
+trancher.
+
+### C — Les refus par régime, et un seuil au-dessus du bruit
+
+Le voile et la croisière comptent chacun leurs sondes et leurs refus, et
+chacun règle **sa** cadence sur **ses** réponses : une bouffée de voile ne
+ralentit plus la navigation. Le rapport les donne séparément
+(`reprise.voile.*`, `reprise.croisiere.*`).
+
+Le seuil de la 4.20.0 — ralentir au-delà d'un refus sur dix — était **sous le
+bruit de fond**. Les deux rapports ont donné 17 % de refus à 0,02 sonde/s et
+20 % à 0,33 : quinze fois la cadence pour trois points de plus. Avec les deux
+mesures de la 4.15.6 (23 % à 0,25, 33 % à 0,48), ces quatre points dessinent un
+fond d'environ 15 % que la cadence ne fait pas baisser. Le second rapport
+finissait à deux sondes par fenêtre, vingt-quatre chaînes en attente.
+
+| sur dix réponses | décision |
+| --- | --- |
+| trois refus ou plus (> 25 %) | la cadence est divisée par deux |
+| deux refus | on garde |
+| un refus au plus (≤ 10 %) | la cadence remonte |
+
+Sur un fond de 15 %, trois refus ou plus arrivent une fois sur cinq, un au plus
+une fois sur deux : la cadence tend à monter. À 30 %, trois sur cinq contre
+une sur sept : elle tend à descendre.
+
+### D — Le rafraîchissement lit le combiné qu'un camarade a donné
+
+Le second rapport portait « perteCombine · 6 281 → 2 055 · sortieEcran true »,
+sans qu'aucune session n'ait été lâchée ni n'ait maigri. La marche lisait le
+combiné d'un membre dans la réponse de son **camarade** (4.17.0) ; le lot de
+chaînes, et la carte, ne lisaient que la réponse **à sa propre clé** — qui
+disait « pas de session » pour une carte qui venait d'apparaître. Ils
+écrivaient l'audience propre, la carte sortait de l'écran, et la marche
+suivante la ramenait. Les trois lisent désormais les mêmes sources.
+
+### Ce que je n'ai pas pu vérifier
+
+Les deux seuils — 90 % pour la signature, 25 % / 10 % pour la cadence —
+viennent de mesures de terrain peu nombreuses, et le raisonnement qui les porte
+est écrit à côté de leurs constantes. Le prochain rapport dira les deux régimes
+de sondes séparément et les trois états de la signature : c'est de quoi les
+revoir sur pièces. Le régime d'une sonde se lit à son **départ** ; aucun
+scénario ne distingue ce choix d'une lecture à l'arrivée, parce que les réponses
+du banc reviennent dans la milliseconde.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| le compte d'échéances par onglet non posé | « undefined/3 » sur chaque onglet |
+| le total des échéances absent | le bloc des compteurs se tait |
+| la ligne d'onglet sans ce compte | le panneau ne l'imprime plus |
+| pas de démenti — la proximité protège seule, comme avant | « voisin1 » figé à 5 000, deux voisines ordinaires comptées combinées |
+| la preuve non retenue | les deux membres d'une session tue retombent à 300 |
+| le soupçon compté comme preuve | les deux voisines muettes comptées parmi les combinés |
+| la protection sans la preuve | la signature perdue d'un cran : les membres tombent à 300 |
+| les supposées comptées sans ôter les preuves | quatre supposées au lieu de deux |
+| le démenti qui garde la nature « combiné » | vingt spectateurs de moins comptés comme un combiné perdu |
+| la publication qui reprend le répertoire | « milieu:900 » dans les vingt relevés du 133 ; « voisin1 » bat entre 4 800 et 5 000 dans le classement d'une catégorie |
+| l'audience fraîche préférée sans regarder l'écart | une chaîne qui entre en co-stream tu reste à 2 000, jamais protégée |
+| un seul régime pour les deux | le voile n'a jamais rien reçu, et sa bouffée reste à huit |
+| le voile, ou la croisière, sans sa cadence | huit d'un coup sous le voile ; douze par fenêtre en croisière |
+| le seuil de la 4.20.0 (10 %) | un refus sur cinq divise la cadence |
+| un seuil trop lâche (40 %) | un refus sur trois ne la divise pas |
+| la remontée sans marge | un refus sur cinq la fait remonter |
+| pas de remontée | la croisière reste au plancher |
+| le lot de chaînes sans l'index des membres | « 300 » au classement, huit pertes de combiné en six secondes |
+| la carte sans l'index des membres | la carte affiche « 300 » |
+
+Les scénarios 163 et 164 sont neufs ; le 160 est réécrit pour les deux
+régimes et les deux seuils ; le 133 compte vingt relevés au lieu d'un ; le 158
+et le 70 lisent les échéances au rapport.
+
 ## Un petit espace entre le pseudo et le drapeau (v4.20.1)
 
 > « Peux-tu mettre un tout petit espace entre le pseudo et le drapeau ; je le
@@ -10769,7 +10899,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 162 scénarios, 1349 assertions |
+| `npm test` | le harnais Playwright : 164 scénarios, 1363 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -10790,9 +10920,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1247 Ko | 449 Ko | 3 527 → **2** |
+| `content.js` | 1247 Ko | 449 Ko | 3 540 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 101 Ko | 48 Ko | 138 → **0** |
+| `panneau.js` | 101 Ko | 48 Ko | 139 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1497 Ko** | **604 Ko** | **−59 %** |

@@ -2057,6 +2057,129 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The two 4.20.0 reports, taken at their word (v4.21.0)
+
+> "Do all the proposals, be rigorous."
+
+Four changes, all pointed at by the two 4.20.0 field reports, and a fifth that
+the bench found while exercising the second.
+
+### A — Due dates are counted in the report
+
+4.20.0 could not tell whether Twitch's dates were being read: you had to hover
+a badge. Each current-tab line now carries its due dates read, against its
+channels, and the counts block their total:
+
+```
+onglet gifts   bascule (adresse) · … · 12 carte(s) · 12 chaîne(s) · 12/12 échéance(s) lue(s)
+compteurs.echeances   13
+```
+
+"12/12" says the dates are read, "0/12" that they are not — the question 4.20.0
+left open is settled by the next report.
+
+### B — The combined-count signature is proven by the own audience
+
+The reports counted **665 combined counts in the ranking out of 1,677**, then
+**107 out of 196**, for two real sessions. The directory signature — two
+channels of a category within one display step of each other — took any pair
+of neighbouring ordinary channels for a co-stream, and froze their count on the
+directory's.
+
+Proximity is now only a **suspicion**. It is settled as soon as the channel's
+own audience arrives:
+
+| own audience | verdict |
+| --- | --- |
+| under 90 % of the directory number | **confirmed**: it is a share of a combined count (300 against 11,736 in the field) — protected, counted as combined |
+| 90 % or more | **refuted**: it is the channel's own audience — the fresh count is written |
+
+The **proof survives** the next publication, which is what was missing since
+4.16.0: two samples of the combined count drifting one step apart lost the
+signature, and the protection with it. The report now tells the three states
+apart: `signaturesSupposees` (no own audience yet — usually channels without a
+card), `signaturesConfirmees`, `signaturesRefutees`. `combinesAuClassement`
+now only counts what Guest Star said or what the own audience proved.
+
+**And the flicker scenario 133 described without fixing.** Every walk rebuilt
+the ranking from the directory — more recent in reading time, less accurate in
+content than the audience `TseChannels` had just given — and a card's count
+fell back to the directory number until the next channel batch: one or two
+readings in twenty. Refutation made it urgent: the ordinary neighbours the
+signature used to freeze finally got their fresh audience, and lost it at every
+walk. Publication now prefers the recent own audience (less than two refresh
+periods old) **as long as it is close** to the directory — a directory far
+above it is a channel entering a co-stream, and the signature must decide.
+
+### C — Refusals per regime, and a threshold above the noise
+
+The veil and cruise each count their probes and refusals, and each sets **its**
+rate from **its** answers: a veil burst no longer slows browsing down. The
+report gives them separately (`reprise.voile.*`, `reprise.croisiere.*`).
+
+The 4.20.0 threshold — slow down beyond one refusal in ten — sat **below the
+background noise**. The two reports gave 17 % refusals at 0.02 probe/s and 20 %
+at 0.33: fifteen times the rate for three more points. With the two 4.15.6
+measurements (23 % at 0.25, 33 % at 0.48), these four points draw a background
+of about 15 % that the rate does not lower. The second report ended at two
+probes per window, twenty-four channels waiting.
+
+| out of ten answers | decision |
+| --- | --- |
+| three refusals or more (> 25 %) | the rate is halved |
+| two refusals | kept |
+| one refusal at most (≤ 10 %) | the rate climbs |
+
+On a 15 % background, three refusals or more occur one time in five, one at
+most one time in two: the rate tends to climb. At 30 %, three in five against
+one in seven: it tends to fall.
+
+### D — The refresh reads the combined count a teammate gave
+
+The second report carried "perteCombine · 6,281 → 2,055 · sortieEcran true",
+with no session dropped and none shrinking. The walk read a member's combined
+count in its **teammate's** answer (4.17.0); the channel batch, and the card,
+only read the answer **under its own key** — which said "no session" for a card
+that had just appeared. They wrote the own audience, the card left the screen,
+and the next walk brought it back. All three now read the same sources.
+
+### What I could not verify
+
+Both thresholds — 90 % for the signature, 25 % / 10 % for the rate — come from
+few field measurements, and the reasoning behind them is written next to their
+constants. The next report gives the two probe regimes separately and the three
+signature states: enough to revisit them on evidence. A probe's regime is read
+at its **departure**; no scenario tells this choice apart from reading it on
+arrival, because the bench's answers come back within a millisecond.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the per-tab due-date count not set | "undefined/3" on every tab |
+| the due-date total missing | the counts block is silent |
+| the tab line without that count | the panel no longer prints it |
+| no refutation — proximity alone protects, as before | "voisin1" frozen at 5,000, two ordinary neighbours counted as combined |
+| the proof not kept | the two members of a silent session fall back to 300 |
+| the suspicion counted as proof | the two silent neighbours counted among the combined |
+| protection without the proof | the signature lost by one step: the members fall to 300 |
+| suspected counted without removing the proven | four suspected instead of two |
+| refutation keeping the "combined" nature | twenty fewer viewers counted as a lost combined count |
+| publication taking the directory back | "milieu:900" in 133's twenty readings; "voisin1" flickers between 4,800 and 5,000 in a category ranking |
+| the fresh audience preferred without checking the gap | a channel entering a silent co-stream stays at 2,000, never protected |
+| a single regime for both | the veil never received anything, and its burst stays at eight |
+| the veil, or cruise, ignoring its rate | eight at once under the veil; twelve per window in cruise |
+| the 4.20.0 threshold (10 %) | one refusal in five halves the rate |
+| a threshold too lax (40 %) | one refusal in three does not halve it |
+| climbing without a margin | one refusal in five makes it climb |
+| no climb | cruise stays at the floor |
+| the channel batch without the member index | "300" in the ranking, eight combined-count losses in six seconds |
+| the card without the member index | the card shows "300" |
+
+Scenarios 163 and 164 are new; 160 is rewritten for the two regimes and the two
+thresholds; 133 counts twenty readings instead of one; 158 and 70 read the due
+dates in the report.
+
 ## A small space between the name and the flag (v4.20.1)
 
 > "Can you put a tiny space between the name and the flag; I find it a bit
@@ -10380,7 +10503,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 162 scenarios, 1349 assertions |
+| `npm test` | the Playwright harness: 164 scenarios, 1363 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -10400,9 +10523,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1247 KB | 449 KB | 3,527 → **2** |
+| `content.js` | 1247 KB | 449 KB | 3,540 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 101 KB | 48 KB | 138 → **0** |
+| `panneau.js` | 101 KB | 48 KB | 139 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1497 KB** | **604 KB** | **−59 %** |

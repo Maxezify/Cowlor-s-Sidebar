@@ -7049,7 +7049,7 @@ titre('70. Panneau — la page rendue, mesurée');
                             bascule: '7 onglet(s) dans la page, 6 attendus',
                             onglets: [{ onglet: 'gifts', voie: 'bascule', preuve: 'aria-selected',
                                         charge: true, noeuds: 900, barre: true, cartes: 2,
-                                        logins: 2 }] },
+                                        logins: 2, echeances: 1 }] },
       global: { enabled: false, complete: false },
       journaux: { verrous: [], cycles: [{ t: 12, evt: 'depart', detail: 'boot' }], apercu: [] },
       reseau: { pauseGqlMs: 12000 },
@@ -7361,6 +7361,12 @@ titre('70. Panneau — la page rendue, mesurée');
      && contient('7 onglet(s) dans la page, 6 attendus')
      && contient('bascule (aria-selected) · affiché'),
      JSON.stringify((vue.texte.match(/bascule[^\n]*/g) || [])));
+  /* LES ÉCHÉANCES LUES, RAPPORTÉES AUX CHAÎNES DE L'ONGLET (4.21.0). Mutant —
+     la ligne sans ce compte — : le rapport ne dit plus si les dates de Twitch
+     se lisent. */
+  ok('…et combien de ses chaînes ont donné leur échéance',
+     contient('2 chaîne(s) · 1/2 échéance(s) lue(s)'),
+     JSON.stringify((vue.texte.match(/onglet gifts[^\n]*/) || [])[0]));
   /* L'ÉTAPE DE DÉMARRAGE FIGURE AUSSI QUAND TOUT VA BIEN. Un champ qu'on ne
      voit que le jour de la panne ne se compare à rien : il faut savoir qu'il
      aurait dû être là pour remarquer qu'il manque. Ici il vaut « pret », ne
@@ -18007,32 +18013,30 @@ addEventListener('message', (e) => {
   ok('…tandis qu\'une chaîne sans jumeau reçoit bien son compteur frais',
      un.rang.includes('milieu:950') && un.milieu === '950', JSON.stringify(un));
 
-  /* ── ET ÇA NE BAT PAS — MAIS CE RELEVÉ UNIQUE NE LE PROUVE PAS ─────────
-     CE QU'UNE MESURE A MONTRÉ, ET QUI N'EST PAS CORRIGÉ ICI. Ce relevé
-     unique, quatre secondes plus tard, éprouve « la valeur à cet instant » et
-     non « la valeur ne bat pas ». Remplacé le temps d'une mesure par vingt
-     relevés espacés de deux cents millisecondes, il a montré un battement
-     RÉEL et reproductible : un à deux relevés sur vingt portent « milieu:900 »
-     — la valeur du répertoire — au lieu de « 950 », le compteur frais. Cinq
-     passes sur cinq.
-
-     LA CAUSE EST CONNUE : la marche reconstruit le classement depuis son pool,
-     et sa lecture de répertoire, plus RÉCENTE en date de lecture, écrase le
-     compteur venu de TseChannels, plus juste en contenu. Le témoin remonte au
-     relevé suivant, d'où l'alternance.
-
-     POURQUOI L'ASSERTION RESTE EN L'ÉTAT. Le défaut est ANTÉRIEUR à tout ce
-     que cette version touche, et il vit dans le module qui a déjà coûté
-     plusieurs versions — la corriger au passage, sans l'instruire, est
-     exactement la façon dont on livre une régression. Elle est donc laissée
-     telle quelle, et le battement est écrit ici pour qu'il ne se reperde pas :
-     c'est un sujet à lui seul, avec sa version. */
-  await wait(page, 4000);
-  const deux = await lire();
-  ok('…et rien de tout cela ne bat d\'un cycle à l\'autre',
-     deux.rang.includes('lyritvjamie:4900') && deux.lyri === '4900'
-     && deux.rang.includes('naguura:4900') && deux.milieu === '950',
-     JSON.stringify(deux));  await page.close();
+  /* ── ET ÇA NE BAT PAS : VINGT RELEVÉS, PLUS UN SEUL ─────────────────────
+     CE BLOC DÉCRIVAIT UN DÉFAUT SANS LE CORRIGER. Un relevé unique, quatre
+     secondes plus tard, éprouvait « la valeur à cet instant » et non « la
+     valeur ne bat pas » ; remplacé le temps d'une mesure par vingt relevés
+     espacés de deux cents millisecondes, il montrait un battement RÉEL : un à
+     deux relevés sur vingt portaient « milieu:900 » — le répertoire — au lieu
+     de « 950 », le compteur frais. La marche reconstruisait le classement
+     depuis son pool, et le répertoire, plus récent en date de lecture,
+     écrasait l'audience de TseChannels, plus juste en contenu.
+     CORRIGÉ EN 4.21.0 (cf. `propres`), et devenu urgent : la signature
+     démentie rend leur audience fraîche à des chaînes qu'elle figeait, qui
+     battaient à leur tour. Les vingt relevés sont donc l'assertion. Mutant —
+     la publication qui reprend le répertoire, comme avant — : « milieu:900 »
+     revient, un ou deux relevés sur vingt. */
+  const releves = [];
+  for (let i = 0; i < 20; i++) {
+    releves.push(await lire());
+    await wait(page, 200);
+  }
+  const battus = releves.filter((d) => !(d.rang.includes('lyritvjamie:4900') && d.lyri === '4900'
+    && d.rang.includes('naguura:4900') && d.milieu === '950' && d.rang.includes('milieu:950')));
+  ok('…et rien de tout cela ne bat d\'un cycle à l\'autre, sur vingt relevés',
+     battus.length === 0, JSON.stringify(battus.slice(0, 2)));
+  await page.close();
 }
 
 /* ═════════ UNE CARTE FABRIQUÉE EST UNE CARTE COMME LES AUTRES ════════════
@@ -21137,6 +21141,20 @@ const pageVariante = async (substitutions, init = null) => {
        mem.zerator?.[5] === await dans(page, 3), JSON.stringify(mem.zerator));
     ok('un expiré ne retient aucune échéance', mem.jenfirer?.[5] === undefined,
        JSON.stringify(mem.jenfirer));
+    /* LE RAPPORT LE DIT SANS QU'ON SURVOLE UN BADGE (4.21.0) : par onglet, les
+       échéances lues sur les chaînes lues — rien pour les expirés —, et au
+       total les abonnements dont l'échéance est connue. Mutants — le compte
+       par onglet non posé ; le total absent — : le rapport se tait sur la
+       question que la 4.20.0 n'a pas pu trancher d'ici. */
+    const lu = await page.evaluate(() => {
+      const r = window.tse.panneau.rapport();
+      return { onglets: Object.fromEntries((r.relevesAbonnements.onglets || [])
+                 .map((o) => [o.onglet, `${o.echeances}/${o.logins}`])),
+               total: r.compteurs.echeances };
+    });
+    ok('le rapport compte les échéances lues, onglet par onglet et au total',
+       lu.onglets.paid === '3/3' && lu.onglets.gifts === '2/2' && lu.onglets.mobile === '1/1'
+       && lu.onglets.expired === 'undefined/3' && lu.total === 5, JSON.stringify(lu));
     /* LE TEXTE DEMANDÉ, mot pour mot. Mutant — l'origine ignorée — : l'offert
        dit « Prochain anniversaire dans 23 jours », qui est vrai et n'est pas
        ce qu'on lui demande. */
@@ -21299,29 +21317,48 @@ const pageVariante = async (substitutions, init = null) => {
 /* ═════════ LA CADENCE DES SONDES SUIT CE QUE TWITCH RÉPOND ════════════════
    LE RAPPORT DE TERRAIN : 64 refus sur 191 sondes, à cadence pleine. La 4.15.6
    avait déjà mesuré la pente — 23 % de refus à 0,25 sonde/s, 33 % à 0,48 — et
-   s'obstiner nourrit le refus. La cadence se règle donc sur les réponses :
-   plus d'un refus sur dix dans un échantillon de dix la divise par deux, un
-   échantillon propre la remonte de deux, jamais au-delà de douze par fenêtre.
+   s'obstiner nourrit le refus. La cadence se règle donc sur les réponses, par
+   échantillon de dix : plus de 25 % de refus la divise par deux, 10 % au plus
+   la remonte, entre les deux on garde — jamais au-delà de douze par fenêtre.
 
-   TROIS TEMPS, ET CHACUN SON MUTANT : la cadence baisse et la croisière la
-   tient ; un NOUVEAU voile la tient aussi, à proportion ; et quand Twitch
-   répond de nouveau, elle remonte. */
+   DEUX RÉGIMES, DEPUIS LA 4.21.0 : le voile et la croisière comptent chacun
+   leurs sondes et leurs refus, et chacun règle SA cadence sur SES réponses.
+
+   CINQ TEMPS, ET CHACUN SON MUTANT : tout refusé, la croisière ralentit et
+   tient sa cadence ; un nouveau voile tient la sienne ; Twitch répond, la
+   croisière remonte ; un refus sur trois la ralentit ; un sur cinq — le fond
+   que les rapports ont mesuré — ne la fait ni monter ni descendre. */
 {
-  titre('160. Sondes — la cadence suit les refus de Twitch, et remonte');
+  titre('160. Sondes — la cadence suit les refus de Twitch, par régime, et remonte');
   const page = await fresh();
   await page.evaluate(() => {
     const neuf  = new Date(Date.now() - 60_000).toISOString();
     const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();
     window.__fx = {}; window.__vodRecent = {};
     window.__refusTout = true;
-    window.__envois = [];   // { t, voile } de chaque sonde partie
+    window.__motif = 0;       // 0 : pas de motif ; k : une sonde de croisière sur k refusée
+    window.__nCroisiere = 0;
+    window.__envois = [];     // { t, voile } de chaque sonde partie
     const vrai = window.fetch;
     window.fetch = async (url, opt) => {
       if (JSON.parse(opt.body).some((o) => o.operationName === 'TseVodRecent')) {
-        window.__envois.push({ t: performance.now(),
-                               voile: document.body.classList.contains('tse-loading') });
+        const voile = document.body.classList.contains('tse-loading');
+        window.__envois.push({ t: performance.now(), voile });
         if (window.__refusTout) {
           return { ok: true, json: async () => [{ errors: [{ message: 'service error' }] }] };
+        }
+        /* LE MOTIF, SANS ALÉA ET DANS L'ORDRE. Chaque réponse part après le
+           même délai, refus ou non : elles reviennent dans l'ordre où elles
+           sont parties, et dix réponses consécutives portent exactement le
+           nombre de refus que le motif dit. Une réponse servie sans archive
+           est un « rien » ordinaire. */
+        if (window.__motif && !voile) {
+          window.__nCroisiere += 1;
+          const refus = window.__nCroisiere % window.__motif === 0;
+          await new Promise((ok) => setTimeout(ok, 20));
+          return { ok: true, json: async () => (refus
+            ? [{ errors: [{ message: 'service error' }] }]
+            : [{ data: { user: { videos: { edges: [] } } } }]) };
         }
       }
       return vrai(url, opt);
@@ -21354,29 +21391,34 @@ const pageVariante = async (substitutions, init = null) => {
     return max;
   };
 
-  // ── a) Twitch refuse tout : la cadence baisse, et la croisière la tient ──
-  await attendre(page, () => window.tse.panneau.rapport().reseau.chapitres.reprise.ralenties >= 2
-    && !document.body.classList.contains('tse-loading'), 15_000);
+  // ── a) Twitch refuse tout : la croisière ralentit, et tient sa cadence ──
+  await attendre(page, () => window.tse.panneau.rapport().reseau.chapitres.reprise.croisiere.ralenties >= 1
+    && !document.body.classList.contains('tse-loading'), 20_000);
+  const ra0 = await reprise();
   const t0 = await page.evaluate(() => performance.now());
   await wait(page, 4_500);   // deux fenêtres de croisière au banc
   const croisiere = (await page.evaluate((t) => window.__envois.filter((e) => e.t >= t && !e.voile)
     .map((e) => e.t), t0));
   const ra = await reprise();
-  /* LA PRÉMISSE : des sondes sont bien parties pendant la mesure — sans quoi
-     une croisière muette passerait pour une croisière lente. */
-  ok('des refus en série divisent la cadence, deux fois au moins',
-     ra.ralenties >= 2 && ra.cadence <= 3 && croisiere.length >= 2,
-     JSON.stringify({ cadence: ra.cadence, ralenties: ra.ralenties, parties: croisiere.length }));
-  /* Mutant — la croisière qui ignore la cadence — : douze par fenêtre, comme
-     avant, au plus fort des refus. */
-  ok('…et la croisière ne dépasse plus trois sondes par fenêtre',
-     pointe(croisiere, 2_000) <= 3, JSON.stringify({ pointe: pointe(croisiere, 2_000) }));
+  /* LA PRÉMISSE, EN DEUX MOITIÉS : les deux régimes ont essuyé des refus, et
+     des sondes sont parties pendant la mesure — sans quoi une croisière muette
+     passerait pour une croisière lente. Mutant — une seule comptabilité pour
+     les deux régimes — : le voile n'a jamais rien reçu. */
+  ok('les deux régimes comptent leurs refus, et la croisière a ralenti',
+     ra.voile.refus >= 1 && ra.croisiere.refus >= 1 && ra.croisiere.ralenties >= 1
+     && ra0.croisiere.cadence < 12 && croisiere.length >= 2,
+     JSON.stringify({ voile: ra.voile, croisiere: ra.croisiere, parties: croisiere.length }));
+  /* Mutant — la croisière qui ignore sa cadence — : douze par fenêtre, comme
+     avant, au plus fort des refus. La cadence ne peut que baisser pendant la
+     mesure : celle du début borne tout ce qui suit. */
+  ok('…et la croisière ne dépasse pas sa cadence réduite',
+     pointe(croisiere, 2_000) <= ra0.croisiere.cadence,
+     JSON.stringify({ pointe: pointe(croisiere, 2_000), cadence: ra0.croisiere.cadence }));
 
-  // ── b) un NOUVEAU voile garde la même retenue ────────────────────────────
+  // ── b) un NOUVEAU voile tient SA cadence, réduite par ses propres refus ──
   /* Un retour d'onglet après une absence ouvre un cycle de voile, et trente
      directs neufs attendent leur sonde. La bourse du voile se remplit, sa
-     cadence non : huit par fenêtre au plein, un ou deux à la cadence réduite.
-     Mutant — le voile qui ignore la cadence — : huit d'un coup. */
+     cadence non. Mutant — le voile qui ignore sa cadence — : huit d'un coup. */
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
     Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
@@ -21384,6 +21426,7 @@ const pageVariante = async (substitutions, init = null) => {
     window.__poserDirects('neuf', 30, true);
   });
   await wait(page, 1_800);   // plus que REVISIT_RELOAD_MS au banc
+  const voileAvant = (await reprise()).voile.cadence;
   await page.evaluate(() => {
     window.__envois = [];
     Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
@@ -21393,20 +21436,76 @@ const pageVariante = async (substitutions, init = null) => {
   await attendre(page, () => window.__envois.some((e) => e.voile), 8_000);
   await attendre(page, () => !document.body.classList.contains('tse-loading'), 12_000);
   const sousVoile = await page.evaluate(() => window.__envois.filter((e) => e.voile).map((e) => e.t));
-  ok('un nouveau voile sonde à la cadence réduite',
-     sousVoile.length >= 2 && pointe(sousVoile, 50) <= 2,
-     JSON.stringify({ parties: sousVoile.length, pointe: pointe(sousVoile, 50) }));
+  ok('un nouveau voile sonde à la cadence que ses refus lui ont laissée',
+     voileAvant < 8 && sousVoile.length >= 2 && pointe(sousVoile, 50) <= voileAvant,
+     JSON.stringify({ cadence: voileAvant, parties: sousVoile.length, pointe: pointe(sousVoile, 50) }));
 
-  // ── c) Twitch répond de nouveau : la cadence remonte ─────────────────────
+  // ── c) Twitch répond de nouveau : la croisière remonte ───────────────────
   /* Mutant — la remontée retirée — : la cadence reste au plancher pour la
      vie de la page, et un refus passager coûte des heures. */
-  const plancher = (await reprise()).cadence;
+  const plancher = (await reprise()).croisiere.cadence;
   await page.evaluate(() => { window.__refusTout = false; });
-  await attendre(page, () => window.tse.panneau.rapport().reseau.chapitres.reprise.remontees >= 1, 25_000);
+  await attendre(page, () => window.tse.panneau.rapport().reseau.chapitres.reprise.croisiere.remontees >= 1, 25_000);
   const rc = await reprise();
-  ok('quand Twitch répond de nouveau, la cadence remonte',
-     rc.remontees >= 1 && rc.cadence > plancher,
-     JSON.stringify({ plancher, cadence: rc.cadence, remontees: rc.remontees, servies: rc.servies }));
+  ok('quand Twitch répond de nouveau, la croisière remonte',
+     rc.croisiere.remontees >= 1 && rc.croisiere.cadence > plancher,
+     JSON.stringify({ plancher, croisiere: rc.croisiere }));
+
+  /* Pour les derniers temps : quarante directs neufs à sonder en croisière,
+     et le motif de refus qu'on leur applique (0 : aucun refus). `amorce` : ne
+     prendre l'état de départ qu'après dix réponses sous le nouveau motif —
+     l'échantillon qui chevauche l'ancien est alors jugé —, puis en compter
+     vingt de plus, deux échantillons entiers. */
+  const croisiereSondes = () => page.evaluate(() =>
+    window.tse.panneau.rapport().reseau.chapitres.reprise.croisiere.sondes);
+  const motif = async (k, prefixe, amorce) => {
+    const depart = await croisiereSondes();
+    let avant = (await reprise()).croisiere;
+    await page.evaluate(([n, pre]) => {
+      window.__motif = n;
+      window.__nCroisiere = 0;
+      window.__poserDirects(pre, 40, true);
+    }, [k, prefixe]);
+    if (amorce) {
+      await attendre(page, (n) => window.tse.panneau.rapport().reseau.chapitres.reprise.croisiere.sondes >= n + 10,
+                     60_000, depart);
+      await wait(page, 100);
+      avant = (await reprise()).croisiere;
+    }
+    await attendre(page, (n) => window.tse.panneau.rapport().reseau.chapitres.reprise.croisiere.sondes >= n + 20,
+                   60_000, avant.sondes);
+    await wait(page, 300);
+    return { avant, apres: (await reprise()).croisiere };
+  };
+
+  // ── d) un refus sur trois : la croisière ralentit ────────────────────────
+  /* Trois ou quatre refus sur dix, au-dessus de 25 %. Un échantillon qui
+     chevauche le temps d'avant ne peut qu'en porter MOINS : l'état de départ
+     se prend donc tout de suite. Mutant — un seuil trop lâche, qui ne
+     ralentirait qu'au-delà de 40 % — : rien ne bouge. */
+  const tiers = await motif(3, 'tiers', false);
+  ok('un refus sur trois divise la cadence',
+     tiers.avant.cadence > 2 && tiers.apres.sondes >= tiers.avant.sondes + 20
+     && tiers.apres.ralenties > tiers.avant.ralenties,
+     JSON.stringify(tiers));
+
+  // ── e) un refus sur cinq, le fond mesuré : la croisière tient ─────────────
+  /* D'abord remonter : au plancher, une cadence qu'on diviserait ne bougerait
+     pas, et le seuil de la 4.20.0 passerait inaperçu. Twitch répond tout,
+     jusqu'à six sondes par fenêtre au moins. */
+  await page.evaluate(() => { window.__motif = 0; window.__poserDirects('clair', 40, true); });
+  await attendre(page, () => window.tse.panneau.rapport().reseau.chapitres.reprise.croisiere.cadence >= 6, 60_000);
+  /* Puis deux refus sur dix, exactement : au-dessus des 10 % de la 4.20.0,
+     sous les 25 % d'aujourd'hui. Mutants — le seuil de la 4.20.0 — : la
+     cadence est divisée pour un fond qu'elle ne peut pas faire baisser ; — la
+     remontée sans marge — : elle remonte malgré deux refus sur dix. */
+  const cinquieme = await motif(5, 'cinq', true);
+  ok('un refus sur cinq, le fond que les rapports mesurent, ne la fait ni monter ni descendre',
+     cinquieme.apres.sondes >= cinquieme.avant.sondes + 20
+     && cinquieme.avant.cadence >= 6 && cinquieme.avant.cadence < 12
+     && cinquieme.apres.ralenties === cinquieme.avant.ralenties
+     && cinquieme.apres.remontees === cinquieme.avant.remontees,
+     JSON.stringify(cinquieme));
   await page.close();
 }
 
@@ -21683,6 +21782,245 @@ const pageVariante = async (substitutions, init = null) => {
   ok('sans subathon, le drapeau se tient à quatre pixels du pseudo',
      vu.subathon === null && vu.ecart !== null && Math.abs(vu.ecart - 4) <= 0.5,
      JSON.stringify(vu));
+  await page.close();
+}
+
+/* ═════════ LE RAFRAÎCHISSEMENT LIT LE COMBINÉ QU'UN CAMARADE A DONNÉ ════════
+   UN RAPPORT DE TERRAIN, NOMMÉ PAR LA 4.20.0 : « perteCombine · 6281 → 2055 ·
+   sortieEcran true », alors que Guest Star n'avait lâché aucune session ni vu
+   aucune maigrir. La marche lisait le combiné d'un membre dans la réponse de
+   son camarade ; le lot de chaînes ne lisait que la réponse À SA PROPRE CLÉ,
+   et y trouvait « pas de session ». Il écrivait donc l'audience propre, que la
+   marche suivante corrigeait — une carte qui sort de l'écran et y revient.
+
+   LE DÉCOR : « absent » a une carte en Top Chaînes, Guest Star ne rend rien à
+   sa clé, et la réponse de « hote » le liste avec le combiné de la session.
+   « absent » diffuse dans UNE AUTRE CATÉGORIE : la signature du répertoire,
+   qui ne compare qu'à l'intérieur d'une catégorie, ne peut pas le protéger —
+   sans quoi elle masquerait le défaut, comme au premier essai de ce scénario. */
+{
+  titre('163. Co-stream — le rafraîchissement lit le combiné qu\'un camarade a donné');
+  const { page } = await pageVariante([
+    [/GUEST_STAR_TTL:\s*30_000/, 'GUEST_STAR_TTL: 1_500'],
+    [/GUEST_STAR_ERROR_COOLDOWN:\s*30_000/, 'GUEST_STAR_ERROR_COOLDOWN: 1_500'],
+  ]);
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Aniimo', tags: [] });
+    window.__cats = [
+      { name: 'Aniimo', viewers: 90_000, streams: [
+        { login: 'hote', viewers: 11_736 }, { login: 'g1', viewers: 9_000 },
+        { login: 'g2', viewers: 8_000 }, { login: 'modele', viewers: 800 }] },
+      { name: 'Autre', viewers: 5_000, streams: [{ login: 'absent', viewers: 300 }] }];
+    window.__fx = { hote: c('1', 11_736), absent: { ...c('2', 300), game: 'Autre' },
+                    g1: c('3', 9_000), g2: c('4', 8_000), modele: c('6', 800) };
+    // Une session connue à la clé de l'hôte SEULEMENT.
+    window.__gs = { 1: { hostId: '1', hostLogin: 'hote', guests: [
+      { id: '1', login: 'hote', viewers: 11_736, combined: 11_736 },
+      { id: '2', login: 'absent', viewers: 300, combined: 11_736 }] } };
+    window.__addCard('hote', 'Aniimo', '11,7 k');
+    window.__addCard('modele', 'Aniimo', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  /* LE COMBINÉ D'ABORD CONNU. Avant la première réponse de Guest Star, la
+     marche n'a que le répertoire — 300 — et c'est juste : on ne sait encore
+     rien de la session. La question est ce qui se passe APRÈS. */
+  await attendre(page, () => window.tse.global.top(10).some((r) => r.login === 'absent' && r.viewers === 11736)
+    && [...document.querySelectorAll('.side-nav-card')]
+      .some((c) => c.dataset.tseLogin === 'absent' && c.dataset.tseViewers === '11736'), 15_000);
+  /* Puis on regarde pendant six secondes, toutes les 100 ms : le classement
+     ET la carte. Un seul échantillon passerait entre deux écritures. */
+  const vu = await page.evaluate(async () => {
+    const vus = { classement: new Set(), carte: new Set() };
+    const t0 = Date.now();
+    while (Date.now() - t0 < 6_000) {
+      const r = window.tse.global.top(10).find((x) => x.login === 'absent');
+      if (r) vus.classement.add(r.viewers);
+      const c = [...document.querySelectorAll('.side-nav-card')]
+        .find((x) => x.dataset.tseLogin === 'absent' && x.getClientRects().length > 0);
+      if (c?.dataset.tseViewers) vus.carte.add(c.dataset.tseViewers);
+      await new Promise((ok) => setTimeout(ok, 100));
+    }
+    const co = window.tse.panneau.rapport().coStream;
+    return { classement: [...vus.classement], carte: [...vus.carte],
+             pertes: co.chutesParNature.perteCombine.n };
+  });
+  /* LA PRÉMISSE : « absent » a bien une carte, donc passe par le lot de
+     chaînes — sans quoi rien ne pourrait écrire son audience propre. */
+  ok('le membre a une carte, rafraîchie par le lot de chaînes',
+     vu.carte.length >= 1, JSON.stringify(vu));
+  /* Mutant — le lot qui ne lit que la clé de la chaîne, comme avant — :
+     « 300 » paraît au classement, et une perte de combiné est comptée. */
+  ok('…et le classement ne lui écrit jamais son audience propre',
+     vu.classement.length >= 1 && !vu.classement.includes(300) && vu.pertes === 0,
+     JSON.stringify(vu));
+  /* Mutant — la carte qui ne lit que la clé de la chaîne — : elle affiche
+     « 300 » pendant que le classement dit onze mille. */
+  ok('…ni la carte', !vu.carte.includes('300'), JSON.stringify(vu.carte));
+  await page.close();
+}
+
+/* ═════════ LA SIGNATURE SE PROUVE PAR L'AUDIENCE PROPRE ═════════════════
+   LE RAPPORT DE LA 4.20.0 L'A CHIFFRÉ : 665 combinés au classement sur 1 677,
+   puis 107 sur 196, pour deux sessions réelles. La signature — deux chaînes
+   voisines d'une catégorie — prenait pour un co-stream toute paire de chaînes
+   ordinaires à moins d'une graduation l'une de l'autre, et figeait leur
+   compteur sur celui du répertoire.
+
+   TROIS TEMPS, UN DÉCOR : deux voisines ordinaires (audience propre ≈ leur
+   nombre du répertoire), deux membres d'une vraie session que Guest Star
+   tait (300 contre onze mille), puis ces deux-là dont les échantillons du
+   combiné s'écartent d'un cran — la frontière qui faisait tomber les
+   co-streamers en 4.16.0. */
+{
+  titre('164. Co-stream — la signature du combiné se prouve par l\'audience propre');
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v, game) => ({ id, createdAt: h, viewers: v, game, tags: [] });
+    window.__cats = [
+      { name: 'Aniimo', viewers: 30_000, streams: [
+        { login: 'naguura', viewers: 11_736 }, { login: 'lyritvjamie', viewers: 11_821 },
+        { login: 'modele', viewers: 800 }] },
+      { name: 'Rust', viewers: 20_000, streams: [
+        { login: 'voisin1', viewers: 5_000 }, { login: 'voisin2', viewers: 5_040 },
+        /* DEUX VOISINES DONT ON N'AURA JAMAIS L'AUDIENCE PROPRE — Twitch ne
+           rend rien pour elles. Le soupçon reste un soupçon : c'est l'état
+           de la plupart des chaînes du pool, celles qui n'ont pas de carte. */
+        { login: 'muet1', viewers: 3_000 }, { login: 'muet2', viewers: 3_050 }] }];
+    window.__fx = { naguura: c('9301', 300, 'Aniimo'), lyritvjamie: c('9302', 300, 'Aniimo'),
+                    modele: c('9304', 800, 'Aniimo'),
+                    voisin1: c('9401', 4_800, 'Rust'), voisin2: c('9402', 5_040, 'Rust') };
+    window.__gs = {};   // Guest Star se tait : la signature est seule à juger
+    window.__addCard('modele', 'Aniimo', '800');
+  });
+  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await page.evaluate(() => window.tse.global.on());
+  const etat = () => page.evaluate(() => {
+    const top = Object.fromEntries(window.tse.global.top(10).map((r) => [r.login, r.viewers]));
+    const co = window.tse.panneau.rapport().coStream;
+    return { top, combines: co.combinesAuClassement, supposees: co.signaturesSupposees,
+             confirmees: co.signaturesConfirmees, refutees: co.signaturesRefutees,
+             pertes: co.chutesParNature.perteCombine.n };
+  });
+
+  // ── a) deux voisines ordinaires : le soupçon est démenti ─────────────────
+  await attendre(page, () => window.tse.global.top(10).some((r) => r.login === 'voisin1' && r.viewers === 4800)
+    && window.tse.panneau.rapport().coStream.signaturesConfirmees >= 2, 15_000);
+  const a = await etat();
+  /* Mutant — pas de démenti, la proximité protège seule comme avant — :
+     « voisin1 » reste figé à 5 000, le nombre du répertoire, et son audience
+     fraîche n'arrive jamais. */
+  ok('deux voisines ordinaires : le soupçon est démenti, leur audience fraîche s\'écrit',
+     a.top.voisin1 === 4800 && a.refutees >= 2, JSON.stringify(a));
+  /* ET ELLE TIENT : vingt relevés, pendant que la marche republie. Mutant —
+     la publication qui reprend le répertoire — : « voisin1 » bat entre 4 800
+     et 5 000, ce que la signature, en le figeant, masquait jusqu'ici. */
+  const voisin = [];
+  for (let i = 0; i < 20; i++) {
+    voisin.push(await page.evaluate(() => window.tse.global.top(10)
+      .find((r) => r.login === 'voisin1')?.viewers ?? null));
+    await wait(page, 200);
+  }
+  ok('…et elle tient d\'une marche à l\'autre, sur vingt relevés',
+     voisin.every((v) => v === 4800), JSON.stringify(voisin));
+
+  // ── b) une vraie session que Guest Star tait : le soupçon est confirmé ───
+  /* Mutants — la preuve non retenue ; le soupçon compté comme preuve ; les
+     soupçons comptés sans ôter les preuves — : les deux membres retombent à
+     300, ou le rapport compte les deux muettes parmi les combinés, ou parmi
+     les supposées les deux membres déjà prouvés. */
+  ok('deux membres d\'une session tue : confirmés, protégés, seuls comptés combinés',
+     a.top.naguura === 11736 && a.top.lyritvjamie === 11821
+     && a.confirmees === 2 && a.combines === 2 && a.supposees === 2,
+     JSON.stringify(a));
+
+  // ── c) la frontière : les deux échantillons s'écartent d'un cran ─────────
+  /* Le répertoire publie désormais 12 500 pour l'un : plus aucune proximité,
+     plus de soupçon. Mutant — la preuve qui ne survit pas à la publication —
+     : l'audience propre (300) écrase le combiné, la carte tombe. */
+  const avant = await page.evaluate(() => {
+    const g = window.tse.panneau.rapport().global;
+    return (g.walks || 0) + (g.light || 0);
+  });
+  await page.evaluate(() => { window.__cats[0].streams[1].viewers = 12_500; });
+  await attendre(page, (n) => {
+    const g = window.tse.panneau.rapport().global;
+    return (g.walks || 0) + (g.light || 0) >= n + 2
+      && window.tse.global.top(10).some((r) => r.login === 'lyritvjamie' && r.viewers === 12500);
+  }, 15_000, avant);
+  await wait(page, 1_500);
+  const c = await etat();
+  ok('…et la preuve survit à la signature perdue : aucun membre ne tombe',
+     c.top.lyritvjamie === 12500 && c.top.naguura === 11736 && c.pertes === 0
+     && c.confirmees === 2, JSON.stringify(c));
+
+  // ── d) la session finit : le répertoire retombe, l'audience le rejoint ───
+  /* « naguura » redevient une chaîne seule : le répertoire dit 400, son
+     audience 380. La preuve est démentie, et la petite chute qui suit est
+     celle d'une audience propre. Mutant — le démenti qui laisse la nature
+     « combiné » — : vingt spectateurs de moins comptés comme un combiné perdu. */
+  await page.evaluate(() => {
+    window.__cats[0].streams[0].viewers = 400;
+    window.__fx.naguura.viewers = 380;
+  });
+  await attendre(page, () => window.tse.global.top(20).some((r) => r.login === 'naguura' && r.viewers === 380), 15_000);
+  await wait(page, 800);
+  const d = await etat();
+  ok('la session finie : la preuve est démentie, la chute est propre',
+     d.top.naguura === 380 && d.pertes === 0 && d.confirmees === 1 && d.refutees >= c.refutees + 1,
+     JSON.stringify(d));
+
+  // ── e) une chaîne seule entre en co-stream, et Guest Star se tait ────────
+  /* « solo » a une carte et une audience fraîche (2 000). Puis le répertoire
+     la montre à 9 000, voisine de « jumeau » à 9 050 : un co-stream que
+     Guest Star ne dit pas. Mutant — la publication qui préfère l'audience
+     fraîche sans regarder l'écart — : « solo » reste à 2 000, la signature ne
+     voit jamais le combiné, et la carte n'est jamais protégée. */
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx.solo = { id: '9501', createdAt: h, viewers: 2_000, game: 'Rust', tags: [] };
+    window.__fx.jumeau = { id: '9502', createdAt: h, viewers: 7_000, game: 'Rust', tags: [] };
+    window.__cats[1].streams.push({ login: 'solo', viewers: 2_000 });
+  });
+  await attendre(page, () => window.tse.global.top(20).some((r) => r.login === 'solo' && r.viewers === 2000), 15_000);
+  await wait(page, 1_500);   // l'audience fraîche de « solo » est désormais connue
+  await page.evaluate(() => {
+    window.__cats[1].streams.find((x) => x.login === 'solo').viewers = 9_000;
+    window.__cats[1].streams.push({ login: 'jumeau', viewers: 9_050 });
+  });
+  await attendre(page, () => window.tse.global.top(20).some((r) => r.login === 'solo' && r.viewers === 9000)
+    && window.tse.panneau.rapport().coStream.signaturesConfirmees >= 3, 15_000);
+  await wait(page, 1_500);
+  const e = await etat();
+  ok('une chaîne seule qui entre en co-stream tu est reconnue, et protégée',
+     e.top.solo === 9000 && e.top.jumeau === 9050 && e.confirmees === 3,
+     JSON.stringify(e));
+
+  // ── f) le classement d'une seule catégorie tient de la même façon ────────
+  /* Il se publie par son propre chemin, depuis son propre pool. Mutant — ce
+     chemin-là qui reprend le répertoire — : « voisin1 » y bat entre 4 800 et
+     5 000, pendant que le classement du monde tient. */
+  const passes = () => page.evaluate(() => window.tse.panneau.rapport().global.scoped || 0);
+  const avantScope = await passes();
+  await page.evaluate(() => {
+    const opt = [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+      .find((o) => (o.dataset.value || '') === 'Rust');
+    if (!opt) throw new Error('« Rust » absent de la liste des catégories');
+    opt.click();
+  });
+  await attendre(page, (n) => (window.tse.panneau.rapport().global.scoped || 0) >= n + 2
+    && window.tse.global.top(10).some((r) => r.login === 'voisin1' && r.viewers === 4800), 15_000, avantScope);
+  const dansScope = [];
+  for (let i = 0; i < 20; i++) {
+    dansScope.push(await page.evaluate(() => window.tse.global.top(10)
+      .find((r) => r.login === 'voisin1')?.viewers ?? null));
+    await wait(page, 200);
+  }
+  ok('…et dans le classement d\'une seule catégorie aussi, sur vingt relevés',
+     (await passes()) >= avantScope + 2 && dansScope.every((v) => v === 4800),
+     JSON.stringify({ passes: (await passes()) - avantScope, dansScope }));
   await page.close();
 }
 
