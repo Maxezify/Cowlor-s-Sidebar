@@ -1721,6 +1721,19 @@ const TSE_GATE_MAX_CLICKS = 5;
     // hash — l'extension ne dépend donc d'AUCUNE persisted query (cf. module
     // Guest Star / detectCoStreams).
     GUEST_STAR_TTL:            30_000,   // ms — fraîcheur d'une session co-stream en cache
+    /* ── LA SIGNATURE DU COMBINÉ SE PROUVE PAR L'AUDIENCE PROPRE (4.21.0) ──
+       Deux chaînes voisines d'une catégorie ne sont qu'un SOUPÇON de
+       co-stream : le rapport de terrain en comptait 665 sur 1 677, 107 sur 196
+       — la moitié du classement — pour deux sessions réelles. Le soupçon se
+       tranche dès que l'audience propre de la chaîne arrive : celle d'un
+       membre de co-stream n'est qu'une PART du combiné que le répertoire
+       affiche (300 contre 11 736 sur le terrain) ; celle d'une chaîne
+       ordinaire EST ce nombre, à la fluctuation près. Sous ce rapport, le
+       soupçon est confirmé ; au-dessus, réfuté. Neuf dixièmes : un membre qui
+       porte plus de 90 % de l'audience de sa session s'écarte de son combiné
+       de moins que ce qu'un compteur ordinaire bouge entre deux relevés —
+       le traiter en chaîne ordinaire ne peut rien faire tomber de l'écran. */
+    COMBINE_OWN_RATIO:         0.9,
     /* Combien de MEMBRES de session on retient par login (cf.
        `combineDesMembres`). Une session compte une poignée de participants et
        le cache des sessions en tient déjà plusieurs dizaines ; ce registre-ci
@@ -2053,13 +2066,27 @@ const TSE_GATE_MAX_CLICKS = 5;
        Le rapport de terrain disait « 64 refus sur 191 sondes » à cadence
        pleine : un tiers. S'obstiner nourrit le refus — la 4.15.6 l'avait déjà
        mesuré, 23 % à 0,25 sonde/s contre 33 % à 0,48. La cadence se règle donc
-       sur ce que Twitch répond : sur chaque ÉCHANTILLON de dix réponses, plus
-       d'un refus sur dix la divise par deux, sans descendre sous deux par
-       fenêtre ; un échantillon propre la remonte de deux, sans jamais dépasser
-       RECONNECT_PROBE_PER_WINDOW. La bourse du voile suit dans la même
-       proportion : c'est sous le voile que tombaient la plupart des refus. */
+       sur ce que Twitch répond, par ÉCHANTILLON de dix réponses : trop de
+       refus la divise par deux, sans descendre sous deux par fenêtre ; assez
+       peu la remonte de deux, sans jamais dépasser RECONNECT_PROBE_PER_WINDOW.
+
+       LE SEUIL DE LA 4.20.0 ÉTAIT SOUS LE BRUIT DE FOND (4.21.0). Il ralentissait
+       au-delà d'un refus sur dix. Les deux rapports qui ont suivi ont donné
+       17 % de refus à 0,02 sonde/s en moyenne et 20 % à 0,33 — quinze fois la
+       cadence pour trois points de plus. Avec les deux mesures de la 4.15.6,
+       ces quatre points dessinent un FOND d'environ 15 % que la cadence ne
+       fait pas baisser, et une pente au-dessus. Un seuil de 10 % lisait ce
+       fond comme une surcharge : le second rapport finissait à deux sondes
+       par fenêtre, vingt-quatre chaînes en attente.
+       Le seuil passe donc AU-DESSUS du fond, et la décision prend une marge :
+       plus de 25 % de refus — trois sur dix au moins — divise ; 10 % au plus —
+       un sur dix — remonte ; entre les deux, on garde. Sur dix réponses, un
+       fond de 15 % donne trois refus ou plus une fois sur cinq et un au plus
+       une fois sur deux : la cadence tend à monter. À 30 %, c'est l'inverse,
+       trois sur cinq contre une sur sept : elle tend à descendre. */
     RECONNECT_PROBE_RATE_SAMPLE:     10,
-    RECONNECT_PROBE_RATE_MAX:        0.1,
+    RECONNECT_PROBE_RATE_MAX:        0.25,
+    RECONNECT_PROBE_RATE_OK:         0.1,
     RECONNECT_PROBE_RATE_STEP:       2,
     RECONNECT_PROBE_MIN_PER_WINDOW:  2,
     /* ── CE QUE TWITCH A RÉPONDU, GARDÉ D'UN CHARGEMENT À L'AUTRE (4.20.0) ──
@@ -7144,7 +7171,19 @@ const TSE_GATE_MAX_CLICKS = 5;
            dire qu'on ne sait pas encore, et refuser d'écrire dans ce cas
            gèlerait le compteur de toutes les chaînes ordinaires au démarrage,
            le temps que Guest Star réponde. */
-        const combine = getCollabViewers(id);
+        /* ── ET LE COMBINÉ QU'UN CAMARADE A DONNÉ (4.21.0) ───────────────────
+           LA MARCHE LE LISAIT, CE LOT NON. `readStream` prend le combiné de la
+           chaîne elle-même, OU celui que la réponse d'un camarade de session
+           porte pour elle (cf. `combineDuMembre`) ; ce lot-ci ne lisait que le
+           premier. Pour un membre dont Guest Star ne dit rien À SA PROPRE CLÉ
+           — carte qui vient d'apparaître, ou session rendue nulle pour lui —
+           la marche posait le combiné, ce lot le remplaçait par l'audience
+           propre, et la carte sortait de l'écran jusqu'à la marche suivante.
+           Un rapport de terrain l'a vu, nommé par la 4.20.0 : « perteCombine ·
+           6281 → 2055 · sortieEcran true », sans qu'aucune session n'ait été
+           lâchée ni n'ait maigri. Deux voies, un même nombre : elles lisent
+           désormais les mêmes sources. */
+        const combine = getCollabViewers(id) ?? combineDuMembre(login);
         const hote = getHostId(id);
         if (Number.isFinite(combine)) globalChannels.setViewers(login, combine, true);
         else if (typeof hote !== 'string') globalChannels.setViewers(login, entry.viewers);
@@ -8244,6 +8283,41 @@ const TSE_GATE_MAX_CLICKS = 5;
        compteur propre. Aucun registre à part, donc rien à purger. */
     const chutesParNature = { perteCombine: { n: 0, max: 0 }, combine: { n: 0, max: 0 },
                               propre: { n: 0, max: 0 } };
+    /* ── LE SOUPÇON, LA PREUVE, LE DÉMENTI (cf. CFG.COMBINE_OWN_RATIO) ─────
+       `combines` ne porte que le SOUPÇON — la proximité, recalculée à chaque
+       publication. `confirmes` porte la PREUVE : une audience propre bien
+       sous le nombre du répertoire. Elle SURVIT à la publication, et c'est ce
+       qui manquait : une signature qui se perd — deux échantillons du combiné
+       qui s'écartent d'un cran — ne rendait plus la chaîne à son audience
+       propre que parce que la preuve n'était gardée nulle part. Le démenti
+       retire des deux. */
+    let confirmes = new Set();
+    let refutations = 0;
+    const protege = (login) => combines.has(login) || confirmes.has(login);
+    /* ── LE COMPTEUR FRAIS D'UNE CARTE VAUT MIEUX QUE LE RÉPERTOIRE (4.21.0) ──
+       LE BATTEMENT QUE LE SCÉNARIO 133 DÉCRIVAIT SANS LE CORRIGER : chaque
+       marche reconstruit le classement depuis son pool, et le pool porte le
+       nombre du RÉPERTOIRE — plus récent en date de lecture, moins juste en
+       contenu que l'audience que `TseChannels` vient de donner pour la carte.
+       Le compteur retombait donc au nombre du répertoire à chaque publication,
+       et remontait au lot de chaînes suivant : un à deux relevés sur vingt.
+       Il est devenu URGENT avec la signature démentie : les voisines ordinaires
+       qu'elle figeait reçoivent enfin leur audience fraîche — et la perdaient
+       aussitôt à chaque marche.
+       On garde donc, par chaîne, la dernière audience PROPRE écrite, et la
+       publication la préfère tant qu'elle a moins de deux périodes de
+       rafraîchissement — ET TANT QU'ELLE EST PROCHE du nombre du répertoire,
+       au sens de CFG.COMBINE_OWN_RATIO. Un répertoire qui passe loin au-dessus
+       de l'audience propre, c'est la signature d'un combiné — une chaîne qui
+       entre en co-stream sans que Guest Star le dise — et c'est à elle de
+       trancher : lui opposer l'audience d'avant l'enfermerait dans son solo. */
+    const propres = new Map();   // login → { v, ts }
+    const plusJuste = (r) => {
+      const p = propres.get(r.login);
+      if (!p || Date.now() - p.ts >= 2 * CFG.LIVE_TTL) return r;
+      if (p.v < CFG.COMBINE_OWN_RATIO * r.viewers) return r;   // écart de combiné
+      return p.v === r.viewers ? r : { ...r, viewers: p.v };
+    };
     let plusGrandeChute = null;
     /* SUR LE NOMBRE AFFICHÉ, ET NON SUR LE NOMBRE EXACT. La 4.13.9 comparait
        les valeurs exactes, et un rapport de terrain l'a mise en défaut : trois
@@ -8346,13 +8420,18 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const publish = (pool) => {
       publieUneFois = true;
-      ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
+      for (const [l, p] of propres) if (Date.now() - p.ts >= 2 * CFG.LIVE_TTL) propres.delete(l);
+      ranking      = [...pool.values()].map(plusJuste).sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
       rankingTs    = Date.now();
       threshold    = nthViewers(pool, options.get('topN'));
       recalculerCombines(ranking);
-      // Ce que la signature reconnaît porte un combiné (cf. `chutesParNature`).
-      ranking = ranking.map((r) => (combines.has(r.login) && !r.combinee
+      /* CE QUE L'AUDIENCE PROPRE A CONFIRMÉ porte un combiné (cf.
+         `chutesParNature`) ; le simple soupçon, non. Et la preuve d'une chaîne
+         sortie des deux classements n'a plus rien à protéger. */
+      const presents = new Set([...ranking, ...scopeRanking].map((r) => r.login));
+      for (const l of confirmes) if (!presents.has(l)) confirmes.delete(l);
+      ranking = ranking.map((r) => (confirmes.has(r.login) && !r.combinee
         ? { ...r, combinee: true } : r));
     };
 
@@ -8956,7 +9035,7 @@ const TSE_GATE_MAX_CLICKS = 5;
                 (rec) => planchers.get(rec.game) || 0);
       scope        = want.key;
       scopeLangApplied = applique;
-      scopeRanking = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
+      scopeRanking = [...pool.values()].map(plusJuste).sort((a, b) => b.viewers - a.viewers);
       scopeDirty   = false;
       scopeTs      = Date.now();
       /* La passe vient de mesurer ce couple : on le garde pour le menu. Elle
@@ -9054,6 +9133,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     const reset = () => {
       categories = []; categoriesTs = 0;
       ranking = []; rankingDirty = false; rankingTs = 0;
+      confirmes = new Set();
+      propres.clear();
       threshold = 0; windowFloor = 0; lastFullWalk = 0; cooldownUntil = 0;
       scope = null; scopeRanking = []; scopeTs = 0; scopeDirty = false;
       worldLang = null; allLangPool = []; walkGen += 1;
@@ -9345,7 +9426,11 @@ const TSE_GATE_MAX_CLICKS = 5;
              l'écrase pas avec un compteur propre, qui décrit autre chose. La
              marche le rafraîchira ; en attendant, la carte et le classement
              montrent ce que Twitch montre. */
-          if (!autorite && combines.has(login)) return false;
+          if (!autorite && protege(login)) {
+            // Protégée : on n'écrit pas, mais une preuve dit ce qu'est le nombre.
+            if (confirmes.has(login) && !liste[i].combinee) liste[i] = { ...liste[i], combinee: true };
+            return false;
+          }
           /* ── TOUTE CHUTE DE COMPTEUR SE MESURE, QUELLE QU'EN SOIT LA VOIE ──
              LE CHIFFRE QUI MANQUAIT À TROIS RAPPORTS DE SUITE. Une carte peut
              quitter l'écran de trois façons : évincée du pool (« evicted »),
@@ -9384,6 +9469,35 @@ const TSE_GATE_MAX_CLICKS = 5;
           liste[i] = { ...liste[i], viewers, combinee: autorite, creux: 0, ts: Date.now() };
           return true;
         };
+        /* LE SOUPÇON SE TRANCHE ICI, à l'arrivée de l'audience propre (cf.
+           CFG.COMBINE_OWN_RATIO). Réfutée, la chaîne perd aussi la nature
+           « combiné » que la preuve lui avait donnée : le nombre qu'elle porte
+           est celui du répertoire, et il dit désormais son audience à elle. */
+        if (!autorite && Number.isFinite(viewers) && protege(login)) {
+          const rec = ranking.find((r) => r.login === login)
+                   || scopeRanking.find((r) => r.login === login);
+          if (rec && Number.isFinite(rec.viewers) && rec.viewers > 0) {
+            if (viewers >= CFG.COMBINE_OWN_RATIO * rec.viewers) {
+              combines.delete(login);
+              confirmes.delete(login);
+              refutations += 1;
+              const nu = (liste) => liste.map((r) => (r.login === login && r.combinee
+                ? { ...r, combinee: false } : r));
+              ranking = nu(ranking);
+              scopeRanking = nu(scopeRanking);
+            } else {
+              confirmes.add(login);
+            }
+          }
+        }
+        /* L'audience propre qu'on vient de croire, pour que la prochaine
+           publication ne la remplace pas par le répertoire (cf. `propres`). Un
+           combiné l'efface : la chaîne est en session, son audience propre n'est
+           plus le nombre qu'on affiche. */
+        if (Number.isFinite(viewers)) {
+          if (autorite) propres.delete(login);
+          else if (!protege(login)) propres.set(login, { v: viewers, ts: Date.now() });
+        }
         if (appliquer(ranking))      { rankingDirty = true; touche = true; }
         if (appliquer(scopeRanking)) { scopeDirty   = true; touche = true; }
         // Compté UNE fois par réponse, et non une fois par classement servi :
@@ -9422,13 +9536,20 @@ const TSE_GATE_MAX_CLICKS = 5;
                    propre:       { ...chutesParNature.propre } },
                  plusGrandeChute: plusGrandeChute ? { ...plusGrandeChute } : 'aucune',
                  /* Les chaînes du classement dont le nombre EST un combiné, en
-                    ce moment : ce qui peut tomber en « perteCombine ». */
-                 combinesAuClassement: ranking.filter((r) => r.combinee).length };
+                    ce moment — Guest Star l'a dit, ou l'audience propre l'a
+                    prouvé : ce qui peut tomber en « perteCombine ». */
+                 combinesAuClassement: ranking.filter((r) => r.combinee).length,
+                 /* Et la signature, en trois états (4.21.0) : soupçonnées sans
+                    preuve encore — d'ordinaire, des chaînes sans carte, donc
+                    sans audience propre —, confirmées, et démenties au total. */
+                 signaturesSupposees: [...combines].filter((l) => !confirmes.has(l)).length,
+                 signaturesConfirmees: confirmes.size,
+                 signaturesRefutees: refutations };
       },
       estCombine(login) {
         const rec = ranking.find((r) => r.login === login)
                  || scopeRanking.find((r) => r.login === login);
-        return !!rec && combines.has(login);
+        return !!rec && protege(login);
       },
       report() {
         return {
@@ -10869,6 +10990,12 @@ const TSE_GATE_MAX_CLICKS = 5;
             if (signature !== passage) { passage = signature; stableDepuis = Date.now(); return; }
             if (Date.now() - stableDepuis < CFG.SUBS_PAGE_STABLE) return;
             if (refuser(trouve, Date.now() - stableDepuis)) return;
+            /* COMBIEN DE CARTES ONT DONNÉ LEUR ÉCHÉANCE (4.21.0). Le rapport de
+               la 4.20.0 ne pouvait pas dire si les dates avaient été lues sur le
+               vrai Twitch : il fallait survoler un badge. Rapporté aux chaînes
+               de l'onglet, ce nombre répond seul. Rien pour les expirés, qui
+               n'en portent aucune. */
+            if (!passe) vu.echeances = trouve.filter((x) => x.ech > 0).length;
             return finir(trouve);
           }
         }
@@ -12490,6 +12617,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           visites:     visits.map.size,
           abonnements: abonnements.length,
           abonnes:     abonnements.filter(e => e.sub).length,
+          // Celles dont on connaît l'échéance — anniversaire ou fin (4.21.0).
+          echeances:   abonnements.filter(e => e.echeance > 0).length,
           roster:      roster.entries().length,
           mesures:     mesures.length,
           bascules:    [...basculements.keys()].filter(l => basculementFrais(l)).length,
@@ -14613,14 +14742,17 @@ const TSE_GATE_MAX_CLICKS = 5;
        ET ELLE RAPPORTE AUSSI LE PASSÉ, parce qu'il voyage dans la même
        réponse : les chapitres de l'archive d'avant sont ce que le direct a
        traversé avant la coupure, datés à la seconde par Twitch lui-même. */
-    /* `cadence`, `ralenties`, `remontees` : la cadence adaptative (4.20.0).
+    /* `voile` et `croisiere` : les sondes parties et refusées dans chaque
+       régime, et la cadence de chacun (4.21.0, cf. `regimes`).
        `memorisees` : les verdicts relus du stockage au lieu d'une requête, et
        `memoireAdoptees` les reprises qu'ils ont rendues — comptées à part de
        `adoptees`, qui garde son sens : ce que la sonde a trouvé ET adopté. */
+    const regimeNeuf = (cadence) => ({ sondes: 0, refus: 0, cadence, ralenties: 0, remontees: 0 });
     const bilanSondes = { sondes: 0, servies: 0, trouvees: 0, vides: 0, chaines: 0,
                           reseau: 0, adoptees: 0, chapitresAvant: 0,
                           differees: 0, abandonnees: 0, sousVoile: 0,
-                          cadence: CFG.RECONNECT_PROBE_PER_WINDOW, ralenties: 0, remontees: 0,
+                          voile: regimeNeuf(CFG.RECONNECT_PROBE_VEIL_PER_WINDOW),
+                          croisiere: regimeNeuf(CFG.RECONNECT_PROBE_PER_WINDOW),
                           memorisees: 0, memoireAdoptees: 0 };
     /* streamId → état de la sonde pour CETTE session de stream :
          absent               — jamais sondée ;
@@ -14656,28 +14788,42 @@ const TSE_GATE_MAX_CLICKS = 5;
        Un échantillon se juge ENTIER, puis repart de zéro : la décision
        suivante porte sur des réponses obtenues à la NOUVELLE cadence. Juger
        sur une fenêtre glissante ferait redescendre deux fois pour les mêmes
-       refus. */
-    let cadence = CFG.RECONNECT_PROBE_PER_WINDOW;
-    let echantillon = { n: 0, refus: 0 };
-    const noterIssue = (refus) => {
-      echantillon.n += 1;
-      if (refus) echantillon.refus += 1;
-      if (echantillon.n < CFG.RECONNECT_PROBE_RATE_SAMPLE) return;
-      const taux = echantillon.refus / echantillon.n;
-      echantillon = { n: 0, refus: 0 };
-      if (taux > CFG.RECONNECT_PROBE_RATE_MAX) {
-        const avant = cadence;
-        cadence = Math.max(CFG.RECONNECT_PROBE_MIN_PER_WINDOW, Math.floor(cadence / 2));
-        if (cadence < avant) bilanSondes.ralenties += 1;
-      } else if (cadence < CFG.RECONNECT_PROBE_PER_WINDOW) {
-        cadence = Math.min(CFG.RECONNECT_PROBE_PER_WINDOW, cadence + CFG.RECONNECT_PROBE_RATE_STEP);
-        bilanSondes.remontees += 1;
-      }
-      bilanSondes.cadence = cadence;
+       refus.
+
+       DEUX RÉGIMES, DEUX ÉCHANTILLONS, DEUX CADENCES (4.21.0). La 4.20.0 n'en
+       avait qu'une, et le voile en suivait la proportion : une bouffée de
+       voile — huit sondes par seconde — pouvait donc ralentir la navigation
+       pour des refus qu'elle n'avait pas causés, et le rapport ne pouvait pas
+       dire lequel des deux régimes les recevait. Chaque sonde garde désormais
+       le régime dans lequel elle est PARTIE, et sa réponse ne juge que lui.
+       Le voile descend jusqu'à une sonde par fenêtre et remonte d'une ; la
+       croisière, de deux en deux, jamais sous RECONNECT_PROBE_MIN_PER_WINDOW. */
+    const regimes = {
+      voile:     { n: 0, refus: 0, plancher: 1, pas: 1,
+                   plafond: CFG.RECONNECT_PROBE_VEIL_PER_WINDOW },
+      croisiere: { n: 0, refus: 0, plancher: CFG.RECONNECT_PROBE_MIN_PER_WINDOW,
+                   pas: CFG.RECONNECT_PROBE_RATE_STEP, plafond: CFG.RECONNECT_PROBE_PER_WINDOW },
     };
-    // La cadence du voile, dans la même proportion — jamais moins d'une.
-    const parFenetreVoile = () => Math.max(1, Math.round(
-      CFG.RECONNECT_PROBE_VEIL_PER_WINDOW * cadence / CFG.RECONNECT_PROBE_PER_WINDOW));
+    const regimeDe = (streamId) => (sondees.get(streamId)?.voile ? 'voile' : 'croisiere');
+    const noterIssue = (refus, streamId) => {
+      const nom = regimeDe(streamId);
+      const r = regimes[nom];
+      const b = bilanSondes[nom];
+      if (refus) b.refus += 1;
+      r.n += 1;
+      if (refus) r.refus += 1;
+      if (r.n < CFG.RECONNECT_PROBE_RATE_SAMPLE) return;
+      const taux = r.refus / r.n;
+      r.n = 0; r.refus = 0;
+      if (taux > CFG.RECONNECT_PROBE_RATE_MAX) {
+        const avant = b.cadence;
+        b.cadence = Math.max(r.plancher, Math.floor(b.cadence / 2));
+        if (b.cadence < avant) b.ralenties += 1;
+      } else if (taux <= CFG.RECONNECT_PROBE_RATE_OK && b.cadence < r.plafond) {
+        b.cadence = Math.min(r.plafond, b.cadence + r.pas);
+        b.remontees += 1;
+      }
+    };
     /* ── SOUS LE VOILE, UNE BOURSE À PART, DÉPENSÉE D'UN COUP ───────────────
        LA CADENCE EST FAITE POUR LA NAVIGATION, PAS POUR L'ATTENTE. Elle
        existe pour ne pas marteler Twitch pendant qu'on regarde la liste ;
@@ -14732,11 +14878,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (loadingOverlay.enCycle() && bourseDuVoile() > 0) {
         const seuil = Date.now() - CFG.RECONNECT_PROBE_VEIL_WINDOW;
         fenetreVoile = fenetreVoile.filter(t => t > seuil);
-        return Math.min(voileReste, parFenetreVoile() - fenetreVoile.length);
+        return Math.min(voileReste, bilanSondes.voile.cadence - fenetreVoile.length);
       }
       const seuil = Date.now() - CFG.RECONNECT_PROBE_WINDOW;
       fenetreSondes = fenetreSondes.filter(t => t > seuil);
-      return cadence - fenetreSondes.length;
+      return bilanSondes.croisiere.cadence - fenetreSondes.length;
     };
 
     /* ── CE QUI RESTE À APPRENDRE, POUR QUE LE VOILE PUISSE L'ATTENDRE ──────
@@ -15081,15 +15227,18 @@ const TSE_GATE_MAX_CLICKS = 5;
        de page voie ce qui est parti et non ce qui est revenu. */
     const retenirSonde = (streamId) => {
       const etat = sondees.get(streamId);
-      sondees.set(streamId, { essais: ((etat && etat.essais) || 0) + 1, pasAvant: 0 });
+      // Le régime de DÉPART, que la réponse jugera (cf. `regimes`).
+      const voile = loadingOverlay.enCycle() && voileReste > 0;
+      sondees.set(streamId, { essais: ((etat && etat.essais) || 0) + 1, pasAvant: 0, voile });
       while (sondees.size > CFG.CHAPITRES_MAX) {
         sondees.delete(sondees.keys().next().value);
       }
       fenetreSondes.push(Date.now());
-      if (loadingOverlay.enCycle() && voileReste > 0) {
+      if (voile) {
         fenetreVoile.push(Date.now());
         voileReste -= 1;
       }
+      bilanSondes[voile ? 'voile' : 'croisiere'].sondes += 1;
       bilanSondes.sondes++;
     };
 
@@ -15140,12 +15289,12 @@ const TSE_GATE_MAX_CLICKS = 5;
          donc un refus de plus, et il se rend au registre comme les autres. */
       if (!Array.isArray(aretes)) {
         bilanSondes.vides++;
-        noterIssue(true);
+        noterIssue(true, flux?.id);
         reporterSonde(flux?.id, login);
         return false;
       }
       bilanSondes.servies++;
-      noterIssue(false);
+      noterIssue(false, flux.id);
       const maillons = chaineDesTroncons(aretes.map(e => e?.node).filter(Boolean), depart);
       if (!maillons.length) { retenirVerdict(flux.id, login, null, null); return false; }
       bilanSondes.trouvees++;
@@ -15198,7 +15347,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       const res = await post([opSonde(login)]);
       if (isResultsUnusable(res)) {
         bilanSondes.reseau++;
-        noterIssue(true);
+        noterIssue(true, flux.id);
         /* ── UN REFUS N'EST PAS UNE RÉPONSE ─────────────────────────────────
            Le registre `sondees` existe pour qu'une chaîne ne soit pas sondée
            deux fois : c'est juste quand Twitch a RÉPONDU, y compris pour dire
@@ -17727,6 +17876,8 @@ const TSE_GATE_MAX_CLICKS = 5;
                                   les deux derniers ne peut venir que d'un
                                   subathon ou d'une reprise déjà connue. */
                                reprise: { ...bilanSondes,
+                                          voile: { ...bilanSondes.voile },
+                                          croisiere: { ...bilanSondes.croisiere },
                                           /* Ce qui attend encore une place au
                                              moment du rapport : le seul de ces
                                              nombres qui décrive un ÉTAT et non
@@ -17841,7 +17992,8 @@ const TSE_GATE_MAX_CLICKS = 5;
          dans l'autre sens. En session sans combiné connu, on GARDE ce qui est
          déjà affiché — le nombre du répertoire — plutôt que de retomber sur le
          compteur propre, que Twitch ne montre nulle part. */
-      let montre = getCollabViewers(data.id);
+      // Les mêmes sources que le classement (cf. le lot de chaînes, 4.21.0).
+      let montre = getCollabViewers(data.id) ?? combineDuMembre(card.dataset.tseLogin);
       if (!Number.isFinite(montre)) {
         const login = card.dataset.tseLogin;
         /* DEUX SIGNAUX, ET LE SECOND EXISTE PARCE QUE LE PREMIER MANQUE PARFOIS.
