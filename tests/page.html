@@ -75,19 +75,35 @@ body { background: var(--color-background-base); color: var(--color-text-base); 
    règles d'avant — ce qu'il a fait à la première écriture — et ne voit
    rien. Le conteneur de la grille, lui, n'en porte pas : la capture montre
    que la grille d'avant s'appliquait bien. Sélecteurs à une classe, comme
-   ceux de Twitch. */
-.side-nav-card__link--promoted-followed { display: flex; padding: 5px 10px; }
-.jmIB { position: relative; width: 100%; }
+   ceux de Twitch.
+
+   ET SES PROPRES MARGES, QUI NE SONT PAS CELLES D'UNE CARTE ORDINAIRE : la
+   seconde capture, grille en place, montrait la carte haute de deux rangées,
+   son pseudo 6 px plus à gauche et 24 px entre pseudo et catégorie au lieu
+   de 17. Le lien et son contenu en portent donc d'autres ici, et le texte
+   un autre interligne — de quoi voir qu'une carte les garde. */
+.side-nav-card__link--promoted-followed { display: flex; padding: 16px 4px; min-height: 70px;
+                                         border-left: 3px solid #a970ff; }
+/* L'enrobage du dessus est un composant de mise en page comme ses voisins :
+   même « !important » sur son « display ». La règle historique qui l'aplatit
+   ne l'emporte donc pas, et ses marges comptent — c'est le cas le plus dur,
+   et celui que le gabarit doit couvrir. */
+.jmIB { display: flex !important; flex-direction: column; position: relative; width: 100%;
+        padding: 3px 2px; margin: 2px 0; }
 .nFCLd { position: absolute; inset: 0; background: linear-gradient(90deg, #a970ff55, transparent); }
-.hpEmRF { display: flex; flex-direction: column; position: relative; }
+.hpEmRF { display: flex; flex-direction: column; position: relative; padding: 6px 0; margin: 2px 0; }
 .ljZXzA { display: flex !important; justify-content: space-between; align-items: center; }
 .geLFjm { display: flex !important; align-items: center; gap: 4px; }
-.jHuNIx, .jHuNIx img { width: 30px; height: 30px; border-radius: 50%; }
+.jHuNIx, .jHuNIx img { width: 32px; height: 32px; border-radius: 50%; }
 .kCPnxe { width: 30px; height: 30px; border-radius: 50%; }
 .bPLZqY { display: flex; align-items: center; }
 .hyrBH { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.cbeJYP, .cWEeTu { margin: 0; line-height: 18px; overflow: hidden; white-space: nowrap;
+.cbeJYP, .cWEeTu { margin: 0; line-height: 24px; overflow: hidden; white-space: nowrap;
                    text-overflow: ellipsis; }
+.cbeJYP { font-size: 15px; font-weight: 600; color: rgb(255, 255, 255); letter-spacing: 0.3px;
+          font-family: Georgia, serif; }
+.cWEeTu { font-size: 12px; font-weight: 500; color: rgb(239, 239, 241); letter-spacing: 0.3px;
+          font-family: Georgia, serif; }
 .kHgzIE { display: flex; gap: 4px; }
 .side-nav-card__link__tooltip-arrow { display: none; }
 </style>

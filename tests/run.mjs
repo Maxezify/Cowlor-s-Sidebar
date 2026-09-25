@@ -22184,28 +22184,57 @@ const pageVariante = async (substitutions, init = null) => {
 }
 
 /* ═════════ LA CARTE SPONSORISÉE, RANGÉE PAR SES PIÈCES ════════════════════
-   SIGNALÉ PAR UNE CAPTURE (4.21.2), sur une carte « Sponsorisé • <marque> » en
-   co-stream : l'avatar et le compteur côte à côte en colonne 1, le pseudo et
-   la catégorie empilés en colonne 2, la colonne 3 vide. Et un rapport qui
-   comptait cette carte dans `sansNom`.
+   SIGNALÉ PAR DEUX CAPTURES, sur une carte « Sponsorisé • <marque> » en
+   co-stream.
+     — 4.21.2 : l'avatar et le compteur côte à côte en colonne 1, le pseudo et
+       la catégorie empilés en colonne 2, la colonne 3 vide ; et un rapport qui
+       comptait cette carte dans `sansNom`.
+     — 4.21.3 : la grille en place, « mieux mais pas parfait » : le pseudo 6 px
+       plus à gauche que ses voisines, 24 px entre pseudo et catégorie au lieu
+       de 17, et une carte haute de près de deux rangées.
 
    LE DÉCOR EST LE DOM RÉEL de la carte, relevé sur Twitch par l'utilisateur,
-   noms inventés. Sa mise en page native est MODÉLISÉE dans page.html, avec le
-   « !important » qui fait perdre les règles d'avant ; sans lui, ce harnais
-   rendait juste la carte fautive, et ne voyait rien.
-
-   « Parfaite » se mesure : l'avatar à gauche, le pseudo et la catégorie l'un
-   sous l'autre À CÔTÉ de lui, le compteur au bord droit, et une carte aussi
-   haute qu'une rangée — pas trois. */
+   noms inventés. Sa mise en page native est MODÉLISÉE dans page.html : le
+   « !important » qui faisait perdre les règles d'avant, et les marges propres
+   à la carte sponsorisée. Une carte ORDINAIRE est modélisée ici, à la manière
+   de Twitch — rangée de 42 px, avatar de 30, texte à 10 px de lui — et c'est
+   contre elle que « parfaite » se mesure : au pixel, pièce par pièce. */
 {
-  titre('166. La carte sponsorisée — rangée comme une carte ordinaire');
+  titre('166. La carte sponsorisée — une carte ordinaire, au pixel');
 
   const page = await fresh();
+  /* Un abonnement connu d'avance, pour qu'une carte DORÉE puisse se trouver
+     devant la carte ordinaire au second temps (cf. plus bas). */
+  await page.evaluate(() => localStorage.setItem('tse:subs', JSON.stringify({ dore: [3, Date.now()] })));
+  await page.reload();
   await page.evaluate(() => {
+    const st = document.createElement('style');
+    st.textContent = `
+      #cards { width: 240px; }
+      .side-nav-card__link:not(.side-nav-card__link--promoted-followed) {
+        display: flex; align-items: center; box-sizing: border-box; height: 42px; padding: 0 10px; }
+      .side-nav-card__avatar { flex-shrink: 0; }
+      .side-nav-card__avatar .tw-avatar, .side-nav-card__avatar img { display: block; width: 30px; height: 30px; }
+      .mainblock { flex: 1; min-width: 0; padding-left: 10px; }
+      .mainblock .metacell { align-items: center; }
+      .metacell > [data-a-target="side-nav-card-metadata"] { min-width: 0; }
+      .side-nav-card__metadata p { font-family: Arial, sans-serif; }
+      .side-nav-card__metadata p[data-a-target="side-nav-title"] {
+        font-size: 14px; font-weight: 700; line-height: 17px; }
+      .side-nav-card__metadata p[title] { font-size: 13px; line-height: 17px; margin-top: 2px;
+                                           color: rgb(173, 173, 184); }
+      .metacell .side-nav-card__live-status { min-height: 0; margin-left: 6px; }`;
+    document.head.appendChild(st);
     const h = new Date(Date.now() - 58 * 60_000).toISOString();
     window.__fx = {
       soleil: { id: '71', createdAt: h, viewers: 3100, game: 'Just Chatting', tags: [] },
       lune:   { id: '72', createdAt: h, viewers: 900,  game: 'Just Chatting', tags: [] },
+      etoile: { id: '73', createdAt: h, viewers: 1200, game: 'Minecraft', tags: [] },
+      duo:    { id: '74', createdAt: h, viewers: 9000, game: 'Valorant', tags: [] },
+      vide:   { id: '75', createdAt: h, viewers: 8000, game: null, tags: [] },
+      dore:   { id: '76', createdAt: h, viewers: 7000, game: 'Minecraft', tags: [] },
+      jour:   { id: '77', createdAt: h, viewers: 6000, game: 'Minecraft', tags: [],
+                title: 'SUBATHON JOUR 3 — on continue' },
     };
     window.__addPromotedCard('soleil', 'Discussions', '3,1 k', 'Savonia');
     window.__addPromotedCard('lune', null, '900', 'Savonia');
@@ -22215,49 +22244,71 @@ const pageVariante = async (substitutions, init = null) => {
   await attendre(page, () => !document.body.classList.contains('tse-loading'), 15_000);
   await wait(page, 500);
 
-  const mesurer = (login) => page.evaluate((l) => {
+  /* Chaque pièce par rapport au LIEN de sa carte : [gauche, haut, largeur,
+     hauteur], et la typographie des deux lignes. Les mêmes lectures pour la
+     carte sponsorisée et pour l'ordinaire. */
+  const geo = (login) => page.evaluate((l) => {
     const c = document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
     if (!c) return null;
-    const cr = c.getBoundingClientRect();
+    const a = c.querySelector('a');
+    const lr = a.getBoundingClientRect();
     const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect();
-      return { g: b.left - cr.left, d: b.right - cr.left, h: b.top - cr.top, b: b.bottom - cr.top }; };
+      return [b.left - lr.left, b.top - lr.top, b.width, b.height].map((v) => Math.round(v * 10) / 10); };
+    const t = (e) => { if (!e) return null; const st = getComputedStyle(e);
+      return [st.fontSize, st.fontWeight, st.lineHeight, st.color, st.fontFamily, st.letterSpacing].join(' '); };
+    const nom = c.querySelector('p.tse-nom');
+    const cat = c.querySelector('p[title]:not(.tse-nom)');
+    const statut = c.querySelector('.side-nav-card__live-status');
+    /* L'écart entre le BLOC de texte — la boîte de métadonnées d'une carte
+       ordinaire, la cellule du pseudo d'une carte rangée — et le compteur.
+       C'est lui qui borne une ellipse ; un bord droit ne se comparerait pas,
+       les deux compteurs n'ayant pas la même largeur. */
+    const bloc = c.querySelector('[data-a-target="side-nav-card-metadata"]') || nom;
     const vu = (sel) => { const e = c.querySelector(sel); return !!e && e.getClientRects().length > 0; };
     return {
-      largeur: cr.width, hauteur: cr.height,
-      avatar: r(c.querySelector('.tw-avatar')),
-      nom: r(c.querySelector('[class*="promoted-followed-card__title"] p')),
-      cat: r(c.querySelector('[class*="promoted-followed-card__content"] p')),
-      statut: r(c.querySelector('.side-nav-card__live-status')),
+      largeur: Math.round(lr.width), hauteur: Math.round(lr.height * 10) / 10,
+      avatar: r(c.querySelector('.tw-avatar')), nom: r(nom), cat: r(cat), statut: r(statut),
+      statutDroite: statut ? Math.round((lr.right - statut.getBoundingClientRect().right) * 10) / 10 : null,
+      blocStatut: bloc && statut ? Math.round((statut.getBoundingClientRect().left
+        - bloc.getBoundingClientRect().right) * 10) / 10 : null,
+      typoNom: t(nom), typoCat: t(cat),
       tseNom: !!c.querySelector('[class*="promoted-followed-card__title"] p.tse-nom'),
-      marques: c.querySelectorAll('[class*="tse-promu"]').length,
+      gabarit: c.classList.contains('tse-promu-gabarit'),
       decor: vu('[class*="promoted-followed-card__sponsorship"]') || vu('img[alt^="Logo de"]')
              || vu('img[alt="en collaboration avec"]'),
     };
   }, login);
-  const s = await mesurer('soleil');
-  const l = await mesurer('lune');
 
-  /* LE PSEUDO EST TROUVÉ. Mutant — la carte sponsorisée oubliée par
-     cardNameEl — le rapport retombe à `sansNom`, et rien ne se range. */
+  /* ── PREMIER TEMPS : AUCUNE CARTE ORDINAIRE À MESURER ────────────────────
+     La grille de la 4.21.2 sert de repli : les pièces en trois colonnes, sur
+     les marges de Twitch. C'est aussi le décor de la première capture, et
+     c'est donc ici que le rapport doit savoir la reconnaître. */
+  const s0 = await geo('soleil');
+  const l0 = await geo('lune');
+  const x = (m, k, i) => m?.[k]?.[i];
+  const troisColonnes = (m) => !!m?.avatar && !!m?.nom && !!m?.statut
+    && x(m, 'nom', 0) - (x(m, 'avatar', 0) + x(m, 'avatar', 2)) >= 6
+    && x(m, 'nom', 0) - (x(m, 'avatar', 0) + x(m, 'avatar', 2)) <= 14
+    && x(m, 'statut', 0) >= x(m, 'nom', 0) + x(m, 'nom', 2) - 1 && m.statutDroite <= 12;
+  /* Mutant — la carte sponsorisée oubliée par cardNameEl — le rapport retombe
+     à `sansNom`, et rien ne se range. */
   ok('la carte sponsorisée a une ligne de pseudo, comme les autres',
-     !!s?.tseNom && !!l?.tseNom, JSON.stringify({ soleil: s?.tseNom, lune: l?.tseNom }));
-  /* L'ASSERTION QUI PORTE LE SIGNALEMENT. Mutant — le « !important » retiré
-     de l'aplatissement — la capture, trait pour trait : le compteur collé à
-     l'avatar, la catégorie sous lui. */
-  const place = (m) => !!m?.avatar && !!m?.nom && !!m?.statut
-    && m.nom.g - m.avatar.d >= 6 && m.nom.g - m.avatar.d <= 14
-    && m.statut.g >= m.nom.d - 1 && m.statut.d >= m.largeur - 12;
-  ok('…et ses pièces se rangent en trois colonnes : avatar, pseudo et catégorie, compteur au bord',
-     place(s) && !!s.cat && Math.abs(s.cat.g - s.nom.g) <= 1
-     && s.cat.h >= s.nom.b - 1 && s.cat.h < s.avatar.b && s.hauteur <= 50,
-     JSON.stringify(s));
+     !!s0?.tseNom && !!l0?.tseNom, JSON.stringify({ soleil: s0?.tseNom, lune: l0?.tseNom }));
+  /* Mutant — le « !important » retiré de l'aplatissement — la première
+     capture, trait pour trait : le compteur collé à l'avatar, la catégorie
+     sous lui. */
+  ok('…sans carte ordinaire à mesurer, ses pièces se rangent quand même en trois colonnes',
+     troisColonnes(s0) && !s0.gabarit && !!s0.cat && Math.abs(x(s0, 'cat', 0) - x(s0, 'nom', 0)) <= 1
+     && x(s0, 'cat', 1) < x(s0, 'avatar', 1) + x(s0, 'avatar', 3),
+     JSON.stringify(s0));
   /* Mutant — la rangée unique du pseudo sans catégorie retirée — il reste
      collé en haut de l'avatar au lieu d'être centré dessus. */
-  ok('…et sans catégorie, le pseudo se centre sur l\'avatar, comme sur une carte ordinaire',
-     place(l) && Math.abs((l.nom.h + l.nom.b) / 2 - (l.avatar.h + l.avatar.b) / 2) <= 2,
-     JSON.stringify(l));
+  ok('…et sans catégorie, le pseudo se centre sur l\'avatar',
+     troisColonnes(l0) && Math.abs((x(l0, 'nom', 1) + x(l0, 'nom', 3) / 2)
+                                   - (x(l0, 'avatar', 1) + x(l0, 'avatar', 3) / 2)) <= 2,
+     JSON.stringify(l0));
   ok('…et le décor publicitaire reste masqué : bandeau, logo, croix',
-     s?.decor === false && l?.decor === false, JSON.stringify({ s: s?.decor, l: l?.decor }));
+     s0?.decor === false && l0?.decor === false, JSON.stringify({ s: s0?.decor, l: l0?.decor }));
 
   /* LA MARQUE N'EST PAS PERDUE : l'aperçu la dit, et c'est pour cela qu'on
      peut la retirer de la carte. */
@@ -22290,7 +22341,7 @@ const pageVariante = async (substitutions, init = null) => {
   await page.evaluate(() => document.getElementById('force-twitch').remove());
   const lignes = Object.values(bon?.squelette || {});
   ok('le rapport compte les cartes sponsorisées, rangées et aplaties',
-     bon?.cartes === 2 && bon.formees === 2 && bon.sansNom === 0 && bon.plats > 0
+     bon?.cartes === 2 && bon.formees === 2 && bon.gabarits === 0 && bon.sansNom === 0 && bon.plats > 0
      && bon.aplatis === bon.plats && bon.categorieSousAvatar === 0,
      JSON.stringify({ ...bon, squelette: lignes.length }));
   ok('…et il reconnaît la capture quand une feuille plus forte défait la nôtre',
@@ -22300,15 +22351,117 @@ const pageVariante = async (substitutions, init = null) => {
   /* LE SQUELETTE NE DIT RIEN DE PERSONNEL : ni le pseudo, ni la marque, ni
      une adresse — des balises et des classes stables. */
   ok('…et son squelette porte la structure, sans un mot de texte',
-     lignes.length >= 10 && lignes.some((x) => x.includes('side-nav-promoted-followed-card__title'))
-     && lignes.every((x) => !/soleil|Savonia|https?:/.test(x)),
+     lignes.length >= 10 && lignes.some((y) => y.includes('side-nav-promoted-followed-card__title'))
+     && lignes.every((y) => !/soleil|Savonia|https?:/.test(y)),
      JSON.stringify(lignes.slice(0, 6)));
 
+  /* ── SECOND TEMPS : UNE CARTE ORDINAIRE ARRIVE ───────────────────────────
+     Elle sert de gabarit, et la carte sponsorisée doit lui être identique AU
+     PIXEL : hauteur, avatar, pseudo, catégorie, compteur, et la typographie
+     des deux lignes. C'est l'assertion qui porte la seconde capture.
+
+     ET ELLE ARRIVE DERNIÈRE, derrière trois cartes qui n'en sont pas une —
+     un co-stream (trois lignes), une chaîne sans catégorie (pseudo centré),
+     une chaîne abonnée (pseudo doré) — que le gabarit doit passer : en
+     mesurer une, c'est copier sa décoration sur la carte sponsorisée. Et
+     derrière un subathon, qui, lui, CONVIENT : sa pastille tient dans
+     l'interligne, et c'est lui qui sert de gabarit. L'égalité avec la carte
+     ordinaire le prouve au pixel. */
+  await page.evaluate(() => {
+    window.__costreamHost = { duo: 'hote' };
+    window.__addCard('duo', 'Valorant', '9 000');
+    window.__addCard('vide', null, '8 000');
+    window.__addCard('dore', 'Minecraft', '7 000');
+    window.__addCard('jour', 'Minecraft', '6 000');
+    window.__addCard('etoile', 'Minecraft', '1 200');
+  });
+  await attendre(page, () => ['duo', 'vide', 'dore', 'jour', 'etoile'].every((l) =>
+    !!document.querySelector(`.side-nav-card[data-tse-login="${l}"] .tse-uptime`))
+    && !!document.querySelector('.side-nav-card[data-tse-login="dore"].tse-sub')
+    && !!document.querySelector('.side-nav-card[data-tse-login="jour"][data-tse-subathon-day]')
+    && !!document.querySelector('.side-nav-card[data-tse-login="soleil"].tse-promu-gabarit'), 15_000);
+  await wait(page, 500);
+  /* LA PRÉMISSE : les quatre cartes de devant portent bien ce qui les écarte.
+     Sans elle, les mutants des exclusions ne mesureraient rien. */
+  const devant = await page.evaluate(() => {
+    const c = (l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+    const ordre = [...document.querySelectorAll('.side-nav-card')].map((x) => x.dataset.tseLogin);
+    return { duo: !!c('duo')?.querySelector('img[alt^="Co-stream"]'),
+             vide: !c('vide')?.querySelector('p[title]'),
+             dore: !!c('dore')?.classList.contains('tse-sub'),
+             jour: !!c('jour')?.dataset.tseSubathonDay,
+             avant: ['duo', 'vide', 'dore', 'jour'].every((l) => ordre.indexOf(l) < ordre.indexOf('etoile')) };
+  });
+  ok('…quatre cartes décorées la précèdent : co-stream, sans catégorie, abonnée, et un subathon',
+     Object.values(devant).every(Boolean), JSON.stringify(devant));
+  const e = await geo('etoile');
+  const s = await geo('soleil');
+  const l = await geo('lune');
+  const pareil = (a, b) => Array.isArray(a) && Array.isArray(b)
+    && a.every((v, i) => Math.abs(v - b[i]) <= 1);
+  const ecarts = (m) => ({
+    hauteur: [m?.hauteur, e?.hauteur], avatar: [m?.avatar, e?.avatar],
+    nom: [m?.nom, e?.nom], cat: [m?.cat, e?.cat],
+    statut: [[x(m, 'statut', 1), m?.statutDroite], [x(e, 'statut', 1), e?.statutDroite]],
+    blocStatut: [m?.blocStatut, e?.blocStatut] });
+  /* Mutants — une valeur du gabarit ignorée (la hauteur, la marge d'un
+     enrobage, l'écart de l'avatar au pseudo, l'interligne) — la seconde
+     capture, à l'une de ses mesures près. */
+  ok('avec une carte ordinaire à mesurer, la carte sponsorisée lui est identique au pixel',
+     !!s?.gabarit && Math.abs(s.hauteur - e.hauteur) <= 1 && pareil(s.avatar, e.avatar)
+     && pareil(s.nom?.slice(0, 2), e.nom?.slice(0, 2)) && Math.abs(x(s, 'nom', 3) - x(e, 'nom', 3)) <= 1
+     && pareil(s.cat?.slice(0, 2), e.cat?.slice(0, 2)) && Math.abs(x(s, 'cat', 3) - x(e, 'cat', 3)) <= 1
+     && Math.abs(x(s, 'statut', 1) - x(e, 'statut', 1)) <= 1
+     && Math.abs(s.statutDroite - e.statutDroite) <= 1
+     && Math.abs(s.blocStatut - e.blocStatut) <= 1,
+     JSON.stringify(ecarts(s)));
+  /* LE PAS DE LA RANGÉE, et pas seulement la carte. Une marge qui fuit hors
+     de la carte — marge d'enrobage fusionnée à travers un lien sans
+     rembourrage — ne déplace rien DANS la carte : elle écarte la suivante.
+     Mesuré de la carte précédente à la suivante, contre une carte ordinaire.
+     Mutant — la marge de l'enrobage laissée à Twitch — deux pixels de trop. */
+  const pas = await page.evaluate(() => {
+    /* La carte SUIVANTE À L'ÉCRAN, et non dans l'ordre d'insertion : le tri
+       par spectateurs range les cartes à sa guise. */
+    const tops = [...document.querySelectorAll('.side-nav-card')]
+      .map((c) => c.getBoundingClientRect()).filter((r) => r.height > 0).map((r) => r.top)
+      .sort((u, v) => u - v);
+    /* De la carte PRÉCÉDENTE à la SUIVANTE : une marge qui fuit par le haut
+       décale la carte elle-même, et c'est l'écart au-dessus qui grandit. */
+    const encadre = (l) => { const t = document.querySelector(`.side-nav-card[data-tse-login="${l}"]`)
+      .getBoundingClientRect().top;
+      const p = [...tops].reverse().find((u) => u < t - 0.5), n = tops.find((u) => u > t + 0.5);
+      return p === undefined || n === undefined ? null : Math.round((n - p) * 10) / 10; };
+    return { sponsorisee: encadre('soleil'), ordinaire: encadre('dore') };
+  });
+  ok('…et elle occupe une rangée, ni plus ni moins, entre ses voisines',
+     pas.sponsorisee !== null && Math.abs(pas.sponsorisee - pas.ordinaire) <= 1, JSON.stringify(pas));
+  /* Mutant — la typographie du gabarit retirée — le pseudo garde l'interligne
+     de 24 px de la carte sponsorisée. */
+  ok('…jusqu\'à la police et à l\'interligne de ses deux lignes',
+     s?.typoNom === e?.typoNom && s?.typoCat === e?.typoCat,
+     JSON.stringify({ nom: [s?.typoNom, e?.typoNom], cat: [s?.typoCat, e?.typoCat] }));
+  ok('…et sans catégorie, à la même hauteur de rangée, le pseudo centré sur l\'avatar',
+     !!l?.gabarit && Math.abs(l.hauteur - e.hauteur) <= 1
+     && Math.abs(x(l, 'nom', 0) - x(e, 'nom', 0)) <= 1
+     && Math.abs((x(l, 'nom', 1) + x(l, 'nom', 3) / 2) - (x(l, 'avatar', 1) + x(l, 'avatar', 3) / 2)) <= 1,
+     JSON.stringify({ lune: l, etoile: e?.nom }));
+  const mesure = await promues();
+  ok('…et le rapport le dit : deux gabarits, zéro pixel d\'écart au pseudo et à la hauteur',
+     mesure?.gabarits === 2 && mesure.ecartNomPx === 0 && mesure.ecartHauteurPx === 0,
+     JSON.stringify({ gabarits: mesure?.gabarits, ecartNomPx: mesure?.ecartNomPx,
+                      ecartHauteurPx: mesure?.ecartHauteurPx }));
+
   /* CE QUI N'EST PLUS UNE CARTE SPONSORISÉE REDEVIENT CELLE DE TWITCH : sidebar
-     réduite, carte qui perd sa pièce, carte qui perd sa sponsorisation. */
-  const marques = (login) => page.evaluate((x) =>
-    document.querySelector(`.side-nav-card[data-tse-login="${x}"]`)
-      ?.querySelectorAll('[class*="tse-promu"]').length ?? -1, login);
+     réduite, carte qui perd sa pièce, carte qui perd sa sponsorisation. Et le
+     gabarit s'en va avec la grille. */
+  const marques = (login) => page.evaluate((y) => {
+    const c = document.querySelector(`.side-nav-card[data-tse-login="${y}"]`);
+    if (!c) return -1;
+    return c.querySelectorAll('[class*="tse-promu"]').length
+      + (c.classList.contains('tse-promu-gabarit') ? 1 : 0)
+      + (c.style.getPropertyValue('--tse-pg-h') ? 1 : 0);
+  }, login);
   const secouer = () => page.evaluate(() => {
     const t = document.createElement('div');
     document.getElementById('cards').appendChild(t);
@@ -22338,7 +22491,7 @@ const pageVariante = async (substitutions, init = null) => {
   const sansSponso = await marques('soleil');
   /* Mutant — la carte rangée laissée telle quelle quand elle cesse de
      l'être — une grille à trou, ou la grille d'une carte ordinaire. */
-  ok('…et une carte qui perd son pseudo ou sa sponsorisation perd la grille',
+  ok('…et une carte qui perd son pseudo ou sa sponsorisation perd la grille et le gabarit',
      sansNom === 0 && sansSponso === 0, JSON.stringify({ sansNom, sansSponso }));
   await page.close();
 }
