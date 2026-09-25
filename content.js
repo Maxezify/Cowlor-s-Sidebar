@@ -3471,6 +3471,75 @@ const TSE_GATE_MAX_CLICKS = 5;
       grid-row: 1 / 3;
     }
 
+    /* ── LE GABARIT : LES MESURES D'UNE CARTE ORDINAIRE (4.21.3) ───────────
+       Les valeurs viennent d'une carte ordinaire de la même liste, mesurée
+       (cf. mesurerGabaritPromu) et posées en variables sur la carte. Le lien
+       et ses enrobages perdent les marges propres à la carte sponsorisée ; la
+       grille reprend, à l'identique, la position de chaque pièce par rapport
+       au lien, et les deux lignes de texte leur police et leur interligne.
+       Couleur et graisse restent en deçà de l'or d'un abonné, dont le
+       sélecteur est plus lourd : une chaîne abonnée et sponsorisée garde son
+       or. */
+    .side-nav-card.tse-promu-gabarit .tse-promu-lien {
+      height: var(--tse-pg-h) !important;
+      min-height: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+    }
+    .side-nav-card.tse-promu-gabarit .tse-promu-enveloppe {
+      height: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .side-nav-card.tse-promu-gabarit .tse-promu-grille {
+      box-sizing: border-box !important;
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 var(--tse-pg-pd) 0 var(--tse-pg-pg) !important;
+      /* « max-content », pas « auto » : les deux lignes de texte sont en
+         « overflow: hidden » (pour leur ellipse), ce qui ramène leur taille
+         minimale à zéro, et une grille de hauteur fixe avec une rangée
+         flexible les écrasait alors à trois pixels chacune — mesuré au banc,
+         la catégorie remontait sur le pseudo. */
+      grid-template-rows: var(--tse-pg-nt) max-content max-content 1fr;
+      column-gap: 0;
+      align-items: start;
+    }
+    .side-nav-card.tse-promu-gabarit .tse-promu-avatar {
+      grid-row: 1 / -1;
+      width: var(--tse-pg-aw) !important;
+      height: var(--tse-pg-ah) !important;
+      margin: var(--tse-pg-at) 0 0 0 !important;
+    }
+    .side-nav-card.tse-promu-gabarit .tse-promu-nom {
+      grid-row: 2;
+      margin: 0 0 0 var(--tse-pg-gap) !important;
+      font-family: var(--tse-pg-n-ff);
+      font-size: var(--tse-pg-n-fs);
+      font-weight: var(--tse-pg-n-fw);
+      line-height: var(--tse-pg-n-lh);
+      letter-spacing: var(--tse-pg-n-ls);
+      color: var(--tse-pg-n-c);
+    }
+    .side-nav-card.tse-promu-gabarit .tse-promu-cat {
+      grid-row: 3;
+      margin: var(--tse-pg-ce) 0 0 var(--tse-pg-gap) !important;
+      font-family: var(--tse-pg-c-ff);
+      font-size: var(--tse-pg-c-fs);
+      font-weight: var(--tse-pg-c-fw);
+      line-height: var(--tse-pg-c-lh);
+      letter-spacing: var(--tse-pg-c-ls);
+      color: var(--tse-pg-c-c);
+    }
+    .side-nav-card.tse-promu-gabarit .tse-promu-statut {
+      grid-row: 1 / -1;
+      margin: var(--tse-pg-st) 0 0 var(--tse-pg-sg) !important;
+    }
+    .side-nav-card.tse-promu-gabarit .tse-promu-grille:not(:has(.tse-promu-cat)) .tse-promu-nom {
+      grid-row: 1 / -1;
+      align-self: center;
+    }
+
     /* Twitch peut afficher une 3e ligne pour le titre du stream (ex. "[DROPS]
        [REBROADCAST] …"). C'est un <div> frère de .side-nav-card__metadata, à
        l'intérieur du bloc [data-a-target="side-nav-card-metadata"]. On masque
@@ -12623,7 +12692,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           const estPromue = (c) => !!c.querySelector('a[class*="--promoted-followed"]');
           const liste = cartes.filter(estPromue);
           const r = { cartes: liste.length, formees: 0, sansAvatar: 0, sansNom: 0, sansStatut: 0,
-                      plats: 0, aplatis: 0, categorieSousAvatar: 0,
+                      plats: 0, aplatis: 0, gabarits: 0, categorieSousAvatar: 0,
                       ecartNomPx: null, ecartHauteurPx: null, squelette: {} };
           const gauche = (c, e) => e.getBoundingClientRect().left - c.getBoundingClientRect().left;
           const mediane = (v) => { const s = v.slice().sort((a, b) => a - b);
@@ -12635,6 +12704,7 @@ const TSE_GATE_MAX_CLICKS = 5;
             if (!liveStatusOf(c)) r.sansStatut++;
             const g = c.querySelector('.tse-promu-grille');
             if (g && getComputedStyle(g).display === 'grid') r.formees++;
+            if (c.classList.contains('tse-promu-gabarit')) r.gabarits++;
             for (const p of c.querySelectorAll('.tse-promu-plat')) {
               r.plats++;
               if (getComputedStyle(p).display === 'contents') r.aplatis++;
@@ -13396,12 +13466,89 @@ const TSE_GATE_MAX_CLICKS = 5;
      où : la carte reste celle de Twitch plutôt qu'une grille fausse. Et rien
      ne se pose sidebar réduite : Twitch y reconstruit ses cartes, et
      une grille y déplierait ce qu'il replie. */
-  const PROMU_CLASSES = ['tse-promu-grille', 'tse-promu-plat',
+  const PROMU_CLASSES = ['tse-promu-grille', 'tse-promu-plat', 'tse-promu-lien', 'tse-promu-enveloppe',
                          'tse-promu-avatar', 'tse-promu-nom', 'tse-promu-cat', 'tse-promu-statut'];
+
+  /* ── LE GABARIT : UNE CARTE ORDINAIRE, MESURÉE (4.21.3) ───────────────────
+     SECONDE CAPTURE, avec la grille en place : « c'est mieux mais pas
+     parfait ». Mesuré au pixel sur la capture : le pseudo 6 px plus à gauche
+     que celui des voisines, l'avatar 3 px, 24 px entre pseudo et catégorie au
+     lieu de 17, et une carte haute de près de deux rangées. Twitch habille la
+     carte sponsorisée de ses propres marges — sur le lien, sur ses enrobages,
+     sur l'interligne de ses textes — et ces valeurs vivent dans sa feuille,
+     qu'on ne lit pas.
+
+     ON NE LES RECOPIE DONC PAS DE MÉMOIRE : ON LES MESURE, sur une carte
+     ordinaire de la même liste — neutre (cf. isPlainCard), en direct, visible,
+     non abonnée (sa couleur est l'or), avec une catégorie. Une carte en
+     subathon convient : sa pastille, haute de 14 px, tient dans l'interligne,
+     et le banc la prend pour gabarit sans un pixel d'écart. Hauteur du lien, position de l'avatar et
+     sa taille, du pseudo, de la catégorie et du compteur par rapport au lien,
+     police et interligne des deux lignes de texte. La carte sponsorisée reçoit
+     ces valeurs en variables, et ses enrobages perdent leurs marges : elle est
+     une carte ordinaire PAR CONSTRUCTION, quel que soit le Twitch du jour.
+
+     Une fois par balayage, et seulement s'il y a une carte sponsorisée à
+     ranger. Sans carte ordinaire à mesurer, la grille reste celle de la
+     4.21.2 : rangée, mais sur les marges de Twitch. */
+  let gabaritPromu = { scan: -1, valeurs: null };
+  const mesurerGabaritPromu = () => {
+    if (gabaritPromu.scan === bilanBalayages.total) return gabaritPromu.valeurs;
+    gabaritPromu = { scan: bilanBalayages.total, valeurs: null };
+    const section = followedSection();
+    const ref = section && [...section.querySelectorAll('.side-nav-card')].find((c) =>
+      !isSynthetic(c) && !isCardOffline(c) && isPlainCard(c) && !c.classList.contains('tse-sub')
+      && c.querySelector('a.side-nav-card__link')
+      && avatarOf(c) && cardNameEl(c) && cardCategoryEl(c) && liveStatusOf(c)
+      && c.getBoundingClientRect().height > 0);
+    if (!ref) return null;
+    const L = ref.querySelector('a.side-nav-card__link').getBoundingClientRect();
+    const A = avatarOf(ref).getBoundingClientRect();
+    const nomEl = cardNameEl(ref), catEl = cardCategoryEl(ref);
+    const N = nomEl.getBoundingClientRect(), C = catEl.getBoundingClientRect();
+    const S = liveStatusOf(ref).getBoundingClientRect();
+    /* Le bord droit du BLOC de texte, pas du texte : c'est lui qui borne le
+       pseudo, et la distance au compteur se compte depuis lui. */
+    const B = (ref.querySelector('[data-a-target="side-nav-card-metadata"]') || nomEl.parentElement)
+      .getBoundingClientRect();
+    const px = (v) => (Math.round(v * 100) / 100) + 'px';
+    const typo = (e, k) => {
+      const st = getComputedStyle(e);
+      return { [`--tse-pg-${k}-fs`]: st.fontSize, [`--tse-pg-${k}-fw`]: st.fontWeight,
+               [`--tse-pg-${k}-lh`]: st.lineHeight, [`--tse-pg-${k}-ff`]: st.fontFamily,
+               [`--tse-pg-${k}-ls`]: st.letterSpacing, [`--tse-pg-${k}-c`]: st.color };
+    };
+    gabaritPromu.valeurs = {
+      '--tse-pg-h': px(L.height),
+      '--tse-pg-pg': px(A.left - L.left),
+      '--tse-pg-pd': px(L.right - S.right),
+      '--tse-pg-aw': px(A.width), '--tse-pg-ah': px(A.height),
+      '--tse-pg-at': px(A.top - L.top),
+      '--tse-pg-gap': px(N.left - A.right),
+      '--tse-pg-nt': px(N.top - L.top),
+      '--tse-pg-ce': px(C.top - N.bottom),
+      '--tse-pg-st': px(S.top - L.top),
+      '--tse-pg-sg': px(S.left - B.right),
+      ...typo(nomEl, 'n'), ...typo(catEl, 'c'),
+    };
+    return gabaritPromu.valeurs;
+  };
+  const gabaritPose = new WeakMap();   // carte -> signature des variables posées
+  const poserGabarit = (card, valeurs) => {
+    const sig = valeurs ? JSON.stringify(valeurs) : '';
+    if (gabaritPose.get(card) === sig) return;
+    const avant = gabaritPose.get(card);
+    if (avant) for (const k of Object.keys(JSON.parse(avant))) card.style.removeProperty(k);
+    if (valeurs) for (const [k, v] of Object.entries(valeurs)) card.style.setProperty(k, v);
+    card.classList.toggle('tse-promu-gabarit', !!valeurs);
+    gabaritPose.set(card, sig);
+  };
+
   const defairePromue = (card) => {
     for (const cl of PROMU_CLASSES) {
       card.querySelectorAll('.' + cl).forEach((e) => e.classList.remove(cl));
     }
+    poserGabarit(card, null);
   };
   const mettreEnFormePromue = (card) => {
     const promue = !sidebarCollapsed && !!card.querySelector('a[class*="--promoted-followed"]');
@@ -13426,10 +13573,22 @@ const TSE_GATE_MAX_CLICKS = 5;
         voulu.set(a, 'tse-promu-plat');
       }
     }
+    /* Avec un gabarit, le LIEN et les enrobages AU-DESSUS de la grille sont
+       nommés aussi : ce sont eux qui portent les marges propres à la carte
+       sponsorisée, et le gabarit les remplace. */
+    const gabarit = mesurerGabaritPromu();
+    const lien = card.querySelector('a[class*="--promoted-followed"]');
+    if (gabarit && grille !== lien) {
+      voulu.set(lien, 'tse-promu-lien');
+      for (let a = grille.parentElement; a !== lien; a = a.parentElement) {
+        voulu.set(a, 'tse-promu-enveloppe');
+      }
+    }
     for (const cl of PROMU_CLASSES) {
       card.querySelectorAll('.' + cl).forEach((e) => { if (voulu.get(e) !== cl) e.classList.remove(cl); });
     }
     for (const [e, cl] of voulu) if (!e.classList.contains(cl)) e.classList.add(cl);
+    poserGabarit(card, voulu.has(lien) ? gabarit : null);
   };
 
   /**

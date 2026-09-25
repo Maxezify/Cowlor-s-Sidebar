@@ -2057,6 +2057,91 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The sponsored card, on an ordinary card's measurements (v4.21.3)
+
+> "It's better but not perfect. It has to be an ordinary card."
+
+4.21.2 had put the pieces in the right columns. Measured to the pixel on the
+second screenshot, three gaps remained against the neighbouring cards:
+
+| | ordinary card | sponsored card |
+| --- | --- | --- |
+| name's left edge | 50 px | 44 px |
+| avatar's left edge | 12 px | 9 px |
+| name to category | 17 px | 24 px |
+| row height | ~47 px | ~95 px |
+
+The text size was the same — twelve-pixel glyphs on both sides. Twitch dresses
+the sponsored card in **its own margins**: on the link, on its wrappers, on its
+texts' line height. Those values live in its stylesheet, which cannot be read
+from here.
+
+### Not copied from memory: measured
+
+At every sweep with a sponsored card to lay out, the extension takes an
+**ordinary card from the same list** and measures it: link height, avatar
+position and size, name, category and count positions relative to the link,
+gap between text and count, and the font, weight, line height, spacing and
+colour of both lines. These values are set as variables on the sponsored card,
+whose link and wrappers lose their margins: it becomes an ordinary card **by
+construction**, whatever Twitch's values are that day.
+
+The measured card is the first one that is **nothing but** ordinary: live,
+visible, with a category, without co-stream, badge or extra row, and not
+subscribed — its name is gold. Measuring a decorated one would copy its
+decoration. A subathon card, however, will do: its 14 px badge fits within the
+line height, and the bench uses it as the template without a pixel of
+difference. With no ordinary card on screen, the 4.21.2 grid stays.
+
+The template touches neither a subscriber's gold — its selector remains
+heavier, a subscribed and sponsored channel keeps its gold — nor the collapsed
+sidebar.
+
+### Two things the bench found
+
+**Three pixels.** Both text lines are `overflow: hidden` for their ellipsis,
+which brings their minimum size down to zero: in a fixed-height grid, a
+flexible row squeezed them to **three pixels** each, and the category rode up
+over the name. The text rows are therefore sized to their content
+(`max-content`).
+
+**A leaking margin.** A margin on a wrapper, under a link with no padding,
+moves nothing inside the card: it **collapses** through the link and pushes
+the card away from the one above. Measuring the card cannot see it; the bench
+therefore also measures the row, from the previous card to the next.
+
+### What the report now says
+
+The `CARTES SPONSORISÉES` block counts the cards under `gabarits`, and
+`ecartNomPx` / `ecartHauteurPx` must read **0** there. That is the measurement,
+on the real Twitch, of what the bench can only model.
+
+### What the bench measures
+
+| mutants | what fails |
+| --- | --- |
+| the link: its height, `min-height`, padding, border (4) | the card takes back a height or frame that is not a row's |
+| the wrappers: their height, padding, margin, or their very naming (4) | an offset inside the card — or, for the margin, the row pushed away from the one above |
+| the grid: `box-sizing`, height, margin, padding, column gap, alignment, `auto` rows (7) | a piece out of place; `auto` rows squeeze the text to 3 px |
+| the avatar: width, height, margin (3) | the avatar at Twitch's size or height |
+| the name: margin, font, size, weight, line height, spacing, colour (7) | the sponsored card's typography |
+| the category: the same (7) | same |
+| the count: its margins | the count off its line |
+| the single row without a category | the name at the top of the avatar |
+| the template never measured | the second screenshot, in full |
+| the reference accepts a co-stream, a subscribed card, a card without category (3) | three lines measured, the gold copied, and a category-less reference that interrupts the bench |
+| the variables never removed | a card no longer sponsored keeps the template |
+| the report does not count templates | `gabarits 0` where two are set |
+
+Forty mutants, forty caught.
+
+Scenario 166 is reworked in two stages: without an ordinary card (the fallback
+grid, and the report recognising the first screenshot), then with an ordinary
+card modelled after Twitch's, preceded by four decorated cards the template
+must skip. The sponsored card must match it to within a pixel. The sponsored
+card's model carries its own margins, at every level, and its own typography:
+every declaration of the template therefore has something to be caught on.
+
 ## The sponsored card, laid out by its pieces (v4.21.2)
 
 > "There's a big bug in the sidebar. I think it's the sponsor, Nivea. The card
@@ -10667,7 +10752,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 166 scenarios, 1380 assertions |
+| `npm test` | the Playwright harness: 166 scenarios, 1386 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -10687,7 +10772,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1247 KB | 449 KB | 3,546 → **2** |
+| `content.js` | 1247 KB | 449 KB | 3,550 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 101 KB | 48 KB | 140 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

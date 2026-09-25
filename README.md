@@ -2178,6 +2178,94 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La carte sponsorisée, sur les mesures d'une carte ordinaire (v4.21.3)
+
+> « C'est mieux mais pas parfait. Il faut que ça soit une carte ordinaire. »
+
+La 4.21.2 avait mis les pièces dans les bonnes colonnes. Mesuré au pixel sur
+la seconde capture, il restait trois écarts avec les cartes voisines :
+
+| | carte ordinaire | carte sponsorisée |
+| --- | --- | --- |
+| bord gauche du pseudo | 50 px | 44 px |
+| bord gauche de l'avatar | 12 px | 9 px |
+| du pseudo à la catégorie | 17 px | 24 px |
+| hauteur de la rangée | ~47 px | ~95 px |
+
+La taille du texte, elle, était la même — des glyphes de douze pixels de
+part et d'autre. Twitch habille la carte sponsorisée de ses **propres
+marges** : sur le lien, sur ses enrobages, sur l'interligne de ses textes. Ces
+valeurs vivent dans sa feuille de style, qu'on ne peut pas lire d'ici.
+
+### On ne les recopie pas de mémoire : on les mesure
+
+À chaque balayage où une carte sponsorisée est à ranger, l'extension prend
+une **carte ordinaire de la même liste** et la mesure : hauteur du lien,
+position et taille de l'avatar, position du pseudo, de la catégorie et du
+compteur par rapport au lien, écart entre le texte et le compteur, et la
+police, la graisse, l'interligne, l'espacement et la couleur des deux lignes.
+Ces valeurs sont posées en variables sur la carte sponsorisée, dont le lien et
+les enrobages perdent leurs marges : elle devient une carte ordinaire **par
+construction**, quelles que soient les valeurs de Twitch ce jour-là.
+
+La carte mesurée est la première qui ne soit **rien d'autre** qu'ordinaire :
+en direct, visible, avec une catégorie, sans co-stream ni badge ni ligne
+annexe, et non abonnée — son pseudo est en or. En mesurer une décorée
+reviendrait à copier sa décoration. Une carte en subathon, elle, convient : sa
+pastille, haute de 14 px, tient dans l'interligne, et le banc la prend pour
+gabarit sans un pixel d'écart. Sans carte ordinaire à l'écran, la grille de la
+4.21.2 reste en place.
+
+Le gabarit ne touche ni l'or d'un abonné — son sélecteur reste plus lourd, une
+chaîne abonnée et sponsorisée garde son or — ni la sidebar réduite.
+
+### Deux choses que le banc a trouvées
+
+**Trois pixels.** Les deux lignes de texte sont en `overflow: hidden` pour
+leur ellipse, ce qui ramène leur taille minimale à zéro : dans une grille de
+hauteur fixe, une rangée flexible les écrasait à **trois pixels** chacune, et
+la catégorie remontait sur le pseudo. Les rangées du texte sont donc à leur
+taille de contenu (`max-content`).
+
+**Une marge qui fuit.** Une marge posée sur un enrobage, sous un lien sans
+rembourrage, ne déplace rien dans la carte : elle **fusionne** à travers le
+lien et écarte la carte de sa voisine du dessus. Mesurer la carte ne le voit
+pas ; le banc mesure donc aussi la rangée, de la carte précédente à la
+suivante.
+
+### Ce que le rapport dit désormais
+
+Le bloc `CARTES SPONSORISÉES` compte les cartes sous `gabarits`, et
+`ecartNomPx` / `ecartHauteurPx` doivent y valoir **0**. C'est la mesure sur le
+vrai Twitch de ce que le banc ne peut que modéliser.
+
+### Ce que le banc mesure
+
+| mutants | ce qui tombe |
+| --- | --- |
+| le lien : sa hauteur, son `min-height`, son rembourrage, sa bordure (4) | la carte reprend une hauteur ou un cadre qui ne sont pas ceux d'une rangée |
+| les enrobages : leur hauteur, leur rembourrage, leur marge, ou leur nom même (4) | un décalage dans la carte — ou, pour la marge, la rangée qui s'écarte de sa voisine du dessus |
+| la grille : `box-sizing`, hauteur, marge, rembourrage, écart de colonnes, alignement, rangées `auto` (7) | une pièce hors de sa place ; les rangées `auto` écrasent le texte à 3 px |
+| l'avatar : largeur, hauteur, marge (3) | l'avatar à la taille ou à la hauteur de Twitch |
+| le pseudo : marge, police, taille, graisse, interligne, espacement, couleur (7) | la typographie de la carte sponsorisée |
+| la catégorie : les mêmes (7) | idem |
+| le compteur : ses marges | le compteur hors de sa ligne |
+| la rangée unique sans catégorie | le pseudo en haut de l'avatar |
+| le gabarit jamais mesuré | la seconde capture, entière |
+| la référence accepte un co-stream, une abonnée, une carte sans catégorie (3) | trois lignes mesurées, l'or copié, et une référence sans catégorie qui interrompt le banc |
+| les variables jamais retirées | une carte qui n'est plus sponsorisée garde le gabarit |
+| le rapport ne compte pas les gabarits | `gabarits 0` là où deux sont posés |
+
+Quarante mutants, quarante pris.
+
+Le scénario 166 est repris en deux temps : sans carte ordinaire (la grille de
+repli, et le rapport qui reconnaît la première capture), puis avec une carte
+ordinaire modélisée à la manière de Twitch, précédée de quatre cartes
+décorées que le gabarit doit passer. La carte sponsorisée doit lui être
+identique au pixel près. Le modèle de la carte sponsorisée porte ses propres
+marges, à chaque étage, et sa propre typographie : chaque déclaration du
+gabarit a donc de quoi être prise en défaut.
+
 ## La carte sponsorisée, rangée par ses pièces (v4.21.2)
 
 > « Il y a un gros bug sur la sidebar. Je pense que c'est le sponsor qui bug,
@@ -11068,7 +11156,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 166 scénarios, 1380 assertions |
+| `npm test` | le harnais Playwright : 166 scénarios, 1386 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -11089,7 +11177,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1247 Ko | 449 Ko | 3 546 → **2** |
+| `content.js` | 1247 Ko | 449 Ko | 3 550 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 101 Ko | 48 Ko | 140 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
