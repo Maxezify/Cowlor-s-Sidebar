@@ -2057,6 +2057,171 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The watch streak, tucked into the filter block (v4.22.0)
+
+> "There's a 'Protégez votre série' part at the top that sticks out a bit."
+
+Measured to the pixel on the screenshot, the row Twitch places above the list
+clashes in four ways:
+
+| | Twitch's row | the rest of the bar |
+| --- | --- | --- |
+| height taken | 89 px for a single action | 28 px controls, 6 to 8 px apart |
+| avatar | 36 px with its ring | 30 px on the cards |
+| text colour | Twitch's link purple | no other coloured text in the area |
+| left edge | 11 px | 18 px for our controls |
+
+### A chip, in the filter block
+
+The row becomes a **28 px chip** at the top of the filter block, above the
+"Followed Channels / Top Channels" tabs. It reuses the category menu's well,
+hairline, radius and text style exactly. It holds:
+- the avatar, reduced to 18 px and ringed with the flame's orange;
+- Twitch's text ("Save your streak");
+- on the right, **the streak count** and the flame.
+
+It takes 34 px instead of 89.
+
+**The action stays Twitch's.** The original row is not moved, since React
+owns it: it is hidden. A click on the chip is **forwarded** to its link, and
+Twitch navigates within the page, as before. The chip carries the same
+address: a middle click, or a click with Ctrl, Shift, Alt or Meta, is not
+forwarded, and the chip opens a new tab itself.
+
+**Twitch does not display the streak count.** It writes it in the link's
+accessible label ("…streak of 3 streams at …"). The chip keeps only a
+**standalone** number: never a digit stuck to a letter, like the 0 of a
+username ending in "…0". And only if there is exactly one: faced with two
+candidates, it cannot read the sentence and shows the flame alone. Thousands
+separated by a thin or non-breaking space read as one number. The full
+sentence stays in the tooltip.
+
+### The "Watch streak" setting
+
+It sits in the panel's Options tab, group "What Twitch shows", under
+"Stories":
+
+| setting | followed channels | collapsed sidebar | Top Channels |
+| --- | --- | --- | --- |
+| **Integrated** (default) | the chip | Twitch's row | nothing |
+| As on Twitch | Twitch's row | Twitch's row | nothing |
+| Hidden | nothing | nothing | nothing |
+
+Two special cases:
+- **Collapsed sidebar**: our block is not shown there. Twitch's row stays,
+  rather than vanishing along with it.
+- **Top Channels**: like the stories, the streak is about a followed channel,
+  and that mode shows none.
+
+### What the recorded markup taught
+
+- **The "Show more" stuck to the row goes with it.** The recorded HTML shows
+  it right after the link, and the screenshot 30 px of empty space under the
+  row. It is the streak list's toggle, with nothing to do once the row is
+  tucked away. The `+` rule targets only it: the followed section's "Show
+  more" never follows a streak row.
+- **Every row is tucked away**, not just the first. Only one has been seen,
+  but nothing says Twitch does not render one per channel at risk. The chip
+  speaks for the first.
+- **Twitch's stylesheet arrives after ours.** Its components inject their
+  style at render time. A `display` declared `!important` on the link's
+  hashed class would therefore beat, by rank alone, a hiding rule of equal
+  specificity. The hiding rule targets `a[data-tse-ligne-serie]`, which
+  weighs more.
+- **The chip is a link, and the page has its link rules.** An `a:hover`
+  weighs more than a class alone and would recolour the text on hover. The
+  colour and the underline are therefore set under the block's id.
+- **Nothing is written unless it changed.** The chip lives in the sidebar.
+  Replacing a text node there wakes the observer, hence a sweep, and restarts
+  the loop. Rewriting an image's `src`, even to the same value, reloads it.
+
+### What the report says
+
+The new `SÉRIE DE VISIONNAGE / WATCH STREAK` block gives:
+
+| field | content |
+| --- | --- |
+| `lignes`, `masquees` | the rows found, and those tucked away |
+| `puce`, `nombre` | whether the chip is set, and the count it shows |
+| `reglage` | the current setting |
+| `voisin`, `voisinMasque` | what follows the row (tag and stable classes), and whether it is hidden |
+| `espacePx` | the gap between the bar's title and the filter block |
+
+The chip has only been tested against the **row's** markup, not against its
+container's, which has not been seen. `espacePx` tells: a few pixels, it
+worked; forty or so, the container is still holding space.
+
+### What the bench measures
+
+The bench's fixture reproduces the row as recorded, hashed classes and inline
+styles included, with its "Show more" and an invented channel name. Its
+stylesheet arrives **after** the extension's, and declares the link's and the
+toggle's `display` as `!important`: the worst case.
+
+**Scenario 167** (twenty-six assertions) tests:
+- the chip's place, its style and its geometry to the pixel, measured
+  against the block's controls;
+- hover and keyboard focus;
+- its content, the count and its reading rules;
+- the six kinds of click;
+- a long label, a disappearing avatar, a row placed next to the bar, and a
+  second row;
+- the three settings, Top Channels, the collapsed sidebar and the row going
+  away;
+- the report.
+
+**Scenario 168** repeats scenario 156's measurement at the production wake-up:
+at rest, the chip triggers no sweep.
+
+| mutants | what falls |
+| --- | --- |
+| hiding without the `a`, then without the neighbour rule (2) | the row or its "Show more" stays on screen, with 30 to 54 px of empty space under the title |
+| the style: `display`, alignment, gap, height, padding, `box-sizing`, background, hairline, radius, text size and weight (12) | a pixel or a shade off against the tabs and the category menu |
+| colour and underline under the block's id (2) | the page's link rule recolours or underlines the text on hover |
+| hover, and the focus hairline, ring and outline (4) | the chip no longer responds like the other controls |
+| the avatar: `flex`, size, ring, image at 100 %, `object-fit` (5) | an avatar that shrinks under a long label, or is no longer round or ringed |
+| the text: `flex`, `overflow`, `nowrap`, ellipsis (4) | a long label pushes the count out of the chip or wraps |
+| the count and the flame: gap, colour, size, weight, tabular figures, `:empty`, flame size and colour (8) | a black flame, a blank where the count is missing, typography off |
+| the click: each of the five guards, the `preventDefault`, the forwarding (7) | a Ctrl+click navigating in the tab, or a plain click doing nothing |
+| the lookup: the selector, the bar's parent, every row (3) | no chip; a row placed next to the bar ignored; a second row on screen |
+| who decides: Top Channels, "Hidden", collapsed sidebar — for the row as for the chip — and the chip never removed (7) | each cell of the settings table, one by one |
+| the place: the head guard, `append` instead of `prepend` (2) | a sweep loop; the chip under the filters |
+| the writes: the attribute guard, removing an empty attribute, the text guard (3) | the avatar reloaded at every pass; an avatar outliving the row; a loop |
+| the content: address, label, tooltip, avatar, text, count, flame cloned once, flame (8) | the chip says something other than the row, or stacks flames |
+| reading the count: neighbour before, after, thousands, single number, digits only (5) | a wrong number rather than none |
+| the call in the sweep (1) | no chip |
+| the report: rows tucked away, neighbour hidden, gap, count (4) | a reading that cannot say no |
+| the panel: the report block, the group, the order, the three words (4) | the block is never sent; the streak without a row, before the stories, or as raw ids |
+| the count sentences: two in the panel, two in the listings (4) | "nineteen" in one language |
+
+Eighty-five mutants, eighty-five caught. Two of them — the selector and the
+call in the sweep — interrupt the bench after failing its first assertions:
+without a chip, there is nothing left to measure.
+
+**The bench was wrong three times before it was right**, and each time a
+mutant said so:
+- **The fixture's bar had no width.** A long label fit without being cut,
+  and three truncation mutants survived. It is now 240 px, Twitch's width.
+- **The second row arrived before the first.** The first kept its earlier
+  mark, and marking only the head passed. It now arrives after.
+- **Two report readings never said no.** They are now read again under the
+  "As on Twitch" setting, where the row is not tucked away.
+
+Scenarios 117 and 120 count twenty settings instead of nineteen. Scenario 120
+also checks that the streak follows the stories and that its menu names its
+three states in words. Scenario 70 checks that the panel renders the report's
+new block.
+
+**Twenty-four wrong sentences, found by searching.** The settings count is
+spelled out in two places, in twelve languages:
+- the panel, before resetting everything, announces "All nineteen settings on
+  this page";
+- the Store listing says the Options tab "hands you nineteen settings".
+
+Nothing tied those sentences to the settings table: they would have stayed
+wrong. They now say "twenty", and scenario 117 rereads the word in all
+twenty-four, against the table's count.
+
 ## The sponsored card, on an ordinary card's measurements (v4.21.3)
 
 > "It's better but not perfect. It has to be an ordinary card."
@@ -10752,7 +10917,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 166 scenarios, 1386 assertions |
+| `npm test` | the Playwright harness: 168 scenarios, 1417 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -10772,12 +10937,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1247 KB | 449 KB | 3,550 → **2** |
+| `content.js` | 1289 KB | 467 KB | 3,562 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 101 KB | 48 KB | 140 → **0** |
+| `panneau.js` | 104 KB | 49 KB | 141 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1497 KB** | **604 KB** | **−59 %** |
+| **all five** | **1540 KB** | **622 KB** | **−60 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

@@ -1045,7 +1045,7 @@ const GROUPES_OPT = [
   ['optGrpBadges',  ['badges']],
   ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
-  ['optGrpTwitch',  ['stories']],
+  ['optGrpTwitch',  ['stories', 'serie']],
   ['optGrpAbos',    ['abosPeriode']],
   ['optGrpTheme',   ['theme']],
 ];
@@ -1081,6 +1081,7 @@ const MOTS_VALEUR = {
   plein: 'optValPlein',   discret: 'optValDiscret', aucun: 'optValAucun',
   petit: 'optValPetit',   normal: 'optValNormal',   grand: 'optValGrand',
   auto: 'optValAuto',     dark: 'optValDark',       light: 'optValLight',
+  twitch: 'optValTwitch', integree: 'optValIntegree', masquee: 'optValMasquee',
 };
 const EXEMPLES_DUREE = { hm: '4h19', colon: '4:19', min: '259 min' };
 
@@ -1787,6 +1788,10 @@ const construireRapport = (r, transport, fond) => {
      fait, et porte leur squelette — balises et classes stables, sans texte —
      pour corriger sans deviner le jour où Twitch le changera. */
   L.push(...bloc('CARTES SPONSORISÉES / SPONSORED CARDS', aplatir(r.promues)));
+  /* LA SÉRIE DE VISIONNAGE. La puce n'a été éprouvée que sur le balisage de
+     la ligne, pas sur son conteneur : `espacePx` dit ce qui reste entre le
+     titre et le bloc filtre une fois la ligne rangée. */
+  L.push(...bloc('SÉRIE DE VISIONNAGE / WATCH STREAK', aplatir(r.serie)));
   /* LE SUBATHON A SON PROPRE BLOC, et il en a besoin. La règle qui le
      reconnaît ne lit que le titre du direct : elle n'a jamais pu être
      exécutée contre le vrai Twitch, et ces six lignes sont la seule mesure

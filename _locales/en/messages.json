@@ -690,6 +690,21 @@
   "optDescStories": {
     "message": "Shown by default: that is what Twitch does."
   },
+  "optSerie": {
+    "message": "Watch streak"
+  },
+  "optDescSerie": {
+    "message": "\"Integrated\" tucks Twitch's \"Save your streak\" row into the filter block, with the streak count. Always hidden in Top Channels mode."
+  },
+  "optValTwitch": {
+    "message": "As on Twitch"
+  },
+  "optValIntegree": {
+    "message": "Integrated"
+  },
+  "optValMasquee": {
+    "message": "Hidden"
+  },
   "optGrpAbos": {
     "message": "Subscription sweep"
   },
@@ -778,7 +793,7 @@
     "message": "Reset every setting to its default?"
   },
   "optResetText": {
-    "message": "All nineteen settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+    "message": "All twenty settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
   },
   "optValPlein": {
     "message": "Full"

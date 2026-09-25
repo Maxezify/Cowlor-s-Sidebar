@@ -199,7 +199,7 @@ Twitch tiene un tema claro. La extensión lo detecta y cambia con él: sin recar
 _______________________________
 
 ➤ ⚙️ Y SI QUERÉS ELEGIR
-Todo está activo desde el principio y no hay nada que configurar. Pero una pestaña «Opciones» en el panel te devuelve el mando sobre diecinueve ajustes.
+Todo está activo desde el principio y no hay nada que configurar. Pero una pestaña «Opciones» en el panel te devuelve el mando sobre veinte ajustes.
 
 - ★ LO QUE VES ★ Cada insignia, la duración del stream y su formato, la barra «acaba de empezar», el oro de las suscripciones, los filtros, los botones de orden: todo se enciende y se apaga con una casilla.
 - ★ LO QUE SE CARGA ★ La vista previa puede prescindir del video y conservar sus insignias, su línea de tiempo y su miniatura, o simplemente bajar de calidad. Lo justo para aligerarla sin perderla.

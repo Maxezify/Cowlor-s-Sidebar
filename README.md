@@ -2178,6 +2178,175 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La série de visionnage, rangée dans le bloc filtre (v4.22.0)
+
+> « Il y a une partie en haut "Protégez votre série" qui fait un peu tache. »
+
+Mesurée au pixel sur la capture, la ligne que Twitch pose au-dessus de la
+liste détonne de quatre façons :
+
+| | la ligne de Twitch | le reste de la barre |
+| --- | --- | --- |
+| hauteur prise | 89 px pour une seule action | des contrôles de 28 px, espacés de 6 à 8 px |
+| avatar | 36 px avec son anneau | 30 px sur les cartes |
+| couleur du texte | le violet des liens de Twitch | aucun autre texte coloré dans la zone |
+| bord gauche | 11 px | 18 px pour nos contrôles |
+
+### Une puce, dans le bloc filtre
+
+La ligne devient une **puce de 28 px** en tête du bloc filtre, au-dessus des
+onglets « Chaînes suivies / Top Chaînes ». Elle reprend à l'identique le puits,
+le filet, le rayon et le corps de texte du menu des catégories. Elle contient :
+- l'avatar réduit à 18 px, cerclé de l'orange de la flamme ;
+- le texte de Twitch (« Protégez votre série ») ;
+- à droite, **le nombre de la série** et la flamme.
+
+Elle prend 34 px au lieu de 89.
+
+**L'action reste celle de Twitch.** La ligne d'origine n'est pas déplacée,
+car React la possède : elle est masquée. Un clic sur la puce est **relayé** à
+son lien, et la navigation se fait par Twitch, dans la page, comme avant. La
+puce porte la même adresse : un clic du milieu, ou avec Ctrl, Maj, Alt ou
+Méta, n'est pas relayé, et la puce ouvre elle-même un nouvel onglet.
+
+**Le nombre de la série, Twitch ne l'affiche pas.** Il l'écrit dans
+l'étiquette accessible du lien (« …série de 3 streams chez … »). La puce ne
+retient qu'un nombre **seul** : jamais un chiffre collé à une lettre, comme le
+0 d'un pseudo en « …0 ». Et seulement s'il n'y en a qu'un : devant deux
+candidats, elle ne sait pas lire la phrase et se contente de la flamme. Les
+milliers, séparés par une espace fine ou insécable, se lisent en un nombre. La
+phrase entière reste en infobulle.
+
+### Le réglage « Série de visionnage »
+
+Il se trouve dans l'onglet Options du panneau, groupe « Ce que Twitch
+affiche », sous « Stories » :
+
+| réglage | chaînes suivies | sidebar réduite | Top Chaînes |
+| --- | --- | --- | --- |
+| **Intégrée** (défaut) | la puce | la ligne de Twitch | rien |
+| Comme Twitch | la ligne de Twitch | la ligne de Twitch | rien |
+| Masquée | rien | rien | rien |
+
+Deux cas particuliers :
+- **Sidebar réduite** : notre bloc n'y est pas affiché. La ligne de Twitch
+  reste donc, plutôt que de disparaître avec lui.
+- **Top Chaînes** : comme les stories, la série parle d'une chaîne suivie,
+  et ce mode n'en montre pas.
+
+### Ce que le balisage relevé a appris
+
+- **Le « Afficher plus » collé à la ligne part avec elle.** Le HTML relevé
+  le montre juste après le lien, et la capture 30 px de vide sous la ligne.
+  C'est le déroulant de la liste des séries, sans objet une fois la ligne
+  rangée. La règle `+` ne vise que lui : le « Afficher plus » de la section
+  suivie ne suit jamais une ligne de série.
+- **Toutes les lignes sont rangées**, pas seulement la première. On n'en a vu
+  qu'une, mais rien ne dit que Twitch n'en rende pas une par chaîne en danger.
+  La puce parle de la première.
+- **La feuille de Twitch arrive après la nôtre.** Ses composants injectent
+  leur style au rendu. Un `display` en `!important` sur la classe hachée du
+  lien battrait donc, par son seul rang, un masquage de même spécificité. Le
+  masquage vise `a[data-tse-ligne-serie]`, qui pèse plus lourd.
+- **La puce est un lien, et la page a ses règles de lien.** Un `a:hover`
+  pèse plus qu'une classe seule et recolorerait le texte au survol. La couleur
+  et le soulignement sont donc posés sous l'identifiant du bloc.
+- **Rien n'est écrit sans avoir changé.** La puce vit dans la barre latérale.
+  Y remplacer un nœud texte réveille l'observateur, donc un balayage, et
+  relance la boucle. Réécrire le `src` d'une image, même à l'identique, la
+  fait recharger.
+
+### Ce que le rapport dit
+
+Le nouveau bloc `SÉRIE DE VISIONNAGE / WATCH STREAK` donne :
+
+| champ | contenu |
+| --- | --- |
+| `lignes`, `masquees` | les lignes trouvées, et celles qui sont rangées |
+| `puce`, `nombre` | si la puce est posée, et le nombre qu'elle affiche |
+| `reglage` | le réglage en cours |
+| `voisin`, `voisinMasque` | ce qui suit la ligne (balise et classes stables), et si c'est masqué |
+| `espacePx` | l'écart entre le titre de la barre et le bloc filtre |
+
+La puce n'a été éprouvée que sur le balisage **de la ligne**, pas sur celui
+de son conteneur, qu'on n'a pas vu. `espacePx` le dit : quelques pixels,
+c'est gagné ; une quarantaine, c'est le conteneur qui garde de la place.
+
+### Ce que le banc mesure
+
+Le décor du banc reproduit la ligne telle qu'elle a été relevée, classes
+hachées et styles en ligne compris, avec son « Afficher plus » et un nom de
+chaîne inventé. Sa feuille de style arrive **après** celle de l'extension, et
+déclare le `display` du lien et du déroulant en `!important` : c'est le pire
+cas.
+
+Le **scénario 167** (vingt-six assertions) éprouve :
+- la place de la puce, sa trame et sa géométrie au pixel, mesurées contre les
+  contrôles du bloc ;
+- le survol et le focus clavier ;
+- son contenu, le nombre et ses règles de lecture ;
+- les six sortes de clic ;
+- un libellé long, un avatar qui disparaît, une ligne posée à côté de la
+  barre et une seconde ligne ;
+- les trois réglages, Top Chaînes, la sidebar réduite et le départ de la
+  ligne ;
+- le rapport.
+
+Le **scénario 168** reprend la mesure du 156 au réveil de production : au
+repos, la puce ne relance aucun balayage.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| le masquage sans le `a`, puis sans la règle du voisin (2) | la ligne ou son « Afficher plus » reste à l'écran, et 30 à 54 px de vide sous le titre |
+| la trame : `display`, alignement, écart, hauteur, marges intérieures, `box-sizing`, fond, filet, rayon, taille et graisse du texte (12) | un pixel ou une teinte de travers contre les onglets et le menu des catégories |
+| la couleur et le soulignement sous l'identifiant du bloc (2) | la règle de lien de la page recolore ou souligne le texte au survol |
+| le survol, et le filet, l'anneau et le contour du focus (4) | la puce ne répond plus comme les autres contrôles |
+| l'avatar : `flex`, taille, anneau, image à 100 %, `object-fit` (5) | un avatar qui rétrécit sous un libellé long, ou qui n'est plus rond ni cerclé |
+| le texte : `flex`, `overflow`, `nowrap`, ellipse (4) | un libellé long pousse le nombre hors de la puce ou passe à la ligne |
+| le nombre et la flamme : écart, couleur, taille, graisse, chiffres tabulaires, `:empty`, taille et couleur de la flamme (8) | une flamme noire, un blanc à la place du nombre absent, une typographie de travers |
+| le clic : chacune des cinq gardes, le `preventDefault`, le relais (7) | un Ctrl+clic qui navigue dans l'onglet, ou un clic nu qui ne fait rien |
+| la recherche : le sélecteur, le parent de la barre, toutes les lignes (3) | pas de puce ; une ligne posée à côté de la barre ignorée ; une seconde ligne à l'écran |
+| qui décide : Top Chaînes, « Masquée », sidebar réduite — pour la ligne comme pour la puce — et la puce jamais retirée (7) | chacune des cases du tableau des réglages, une à une |
+| la place : la garde de la tête, `append` au lieu de `prepend` (2) | une boucle de balayages ; la puce sous les filtres |
+| les écritures : la garde des attributs, le retrait d'un attribut vide, la garde du texte (3) | l'avatar rechargé à chaque passe ; un avatar qui survit à la ligne ; une boucle |
+| le contenu : adresse, étiquette, infobulle, avatar, texte, nombre, flamme clonée une fois, flamme (8) | la puce dit autre chose que la ligne, ou empile les flammes |
+| la lecture du nombre : voisinage avant, après, milliers, nombre unique, chiffres seuls (5) | un nombre faux plutôt qu'aucun |
+| l'appel dans le balayage (1) | pas de puce |
+| le rapport : lignes rangées, voisin masqué, espace, nombre (4) | une lecture qui ne sait pas dire non |
+| le panneau : le bloc du rapport, le groupe, l'ordre, les trois mots (4) | le bloc ne part pas ; la série sans ligne, avant les stories, ou en identifiants bruts |
+| les phrases du compte : deux du panneau, deux des fiches (4) | « dix-neuf » dans une langue |
+
+Quatre-vingt-cinq mutants, quatre-vingt-cinq pris. Deux d'entre eux — le
+sélecteur, et l'appel dans le balayage — interrompent le banc après avoir
+fait échouer ses premières assertions : sans puce, il n'y a plus rien à
+mesurer.
+
+**Le banc s'est trompé trois fois avant d'avoir raison**, et chaque fois
+un mutant l'a dit :
+- **La barre du décor n'avait pas de largeur.** Un libellé long y tenait
+  sans se couper, et trois mutants de la coupe survivaient. Elle est à
+  240 px, la largeur de Twitch.
+- **La seconde ligne arrivait devant la première.** La première gardait sa
+  marque d'avant, et un marquage limité à la tête passait. Elle arrive
+  désormais après.
+- **Deux lectures du rapport ne disaient jamais non.** Elles sont relues
+  sous le réglage « Comme Twitch », où la ligne n'est pas rangée.
+
+Les scénarios 117 et 120 comptent vingt réglages au lieu de dix-neuf. Le 120
+vérifie aussi que la série suit les stories et que son menu dit ses trois
+états en mots. Le 70 vérifie que le panneau rend le nouveau bloc du rapport.
+
+**Vingt-quatre phrases fausses, trouvées en cherchant.** Le compte des
+réglages est écrit en toutes lettres à deux endroits, dans douze langues :
+- le panneau, avant de tout remettre par défaut, annonce « Les dix-neuf
+  réglages de cette page » ;
+- la fiche du Store dit que l'onglet Options « vous rend la main sur
+  dix-neuf réglages ».
+
+Rien ne reliait ces phrases à la table des réglages : elles seraient restées
+fausses. Elles disent « vingt », et le scénario 117 relit désormais le mot
+dans les vingt-quatre, contre le compte de la table.
+
 ## La carte sponsorisée, sur les mesures d'une carte ordinaire (v4.21.3)
 
 > « C'est mieux mais pas parfait. Il faut que ça soit une carte ordinaire. »
@@ -11156,7 +11325,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 166 scénarios, 1386 assertions |
+| `npm test` | le harnais Playwright : 168 scénarios, 1417 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -11177,12 +11346,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1247 Ko | 449 Ko | 3 550 → **2** |
+| `content.js` | 1289 Ko | 467 Ko | 3 562 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 101 Ko | 48 Ko | 140 → **0** |
+| `panneau.js` | 104 Ko | 49 Ko | 141 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1497 Ko** | **604 Ko** | **−59 %** |
+| **les cinq** | **1540 Ko** | **622 Ko** | **−60 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

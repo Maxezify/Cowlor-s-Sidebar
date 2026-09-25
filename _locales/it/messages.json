@@ -576,6 +576,21 @@
   "optDescStories": {
     "message": "Restano visibili per impostazione predefinita: è ciò che fa Twitch."
   },
+  "optSerie": {
+    "message": "Serie di visualizzazione"
+  },
+  "optDescSerie": {
+    "message": "«Integrata» sposta la riga «Proteggi la tua serie» di Twitch nel blocco dei filtri, con la lunghezza della serie. Sempre nascosta in modalità Canali di punta."
+  },
+  "optValTwitch": {
+    "message": "Come su Twitch"
+  },
+  "optValIntegree": {
+    "message": "Integrata"
+  },
+  "optValMasquee": {
+    "message": "Nascosta"
+  },
   "optGrpAbos": {
     "message": "La lettura degli abbonamenti"
   },
@@ -664,7 +679,7 @@
     "message": "Ripristinare tutte le impostazioni?"
   },
   "optResetText": {
-    "message": "Le diciannove impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
+    "message": "Le venti impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
   },
   "optValPlein": {
     "message": "Completo"

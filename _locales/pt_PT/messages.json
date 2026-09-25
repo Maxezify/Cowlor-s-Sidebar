@@ -576,6 +576,21 @@
   "optDescStories": {
     "message": "Ficam visíveis por omissão: é o que a Twitch faz."
   },
+  "optSerie": {
+    "message": "Sequência de visualização"
+  },
+  "optDescSerie": {
+    "message": "«Integrada» coloca a linha «Proteja a sua sequência» da Twitch no bloco de filtros, com a duração da sequência. Sempre oculta no modo Top Canais."
+  },
+  "optValTwitch": {
+    "message": "Como na Twitch"
+  },
+  "optValIntegree": {
+    "message": "Integrada"
+  },
+  "optValMasquee": {
+    "message": "Oculta"
+  },
   "optGrpAbos": {
     "message": "A leitura das subscrições"
   },
@@ -664,7 +679,7 @@
     "message": "Repor todas as definições?"
   },
   "optResetText": {
-    "message": "As dezanove definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
+    "message": "As vinte definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"
