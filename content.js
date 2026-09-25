@@ -1860,40 +1860,79 @@ const TSE_GATE_MAX_CLICKS = 5;
       > div:not(.side-nav-card__link__tooltip-arrow) { display: contents; }
 
     
-    .side-nav-card a[class*="--promoted-followed"]
-      > div:not(.side-nav-card__link__tooltip-arrow)
-      > div:not([class*="promoted-followed-card__gradient"]) {
-      display: grid;
+    .side-nav-card .tse-promu-grille {
+      display: grid !important;
       grid-template-columns: auto minmax(0, 1fr) auto;
       grid-template-rows: auto auto;
       align-items: center;
-      column-gap: 0.8rem;
+      column-gap: 1rem;
       width: 100%;
     }
+    .side-nav-card .tse-promu-plat { display: contents !important; }
+    .side-nav-card .tse-promu-avatar { grid-column: 1; grid-row: 1 / 3; }
+    .side-nav-card .tse-promu-nom    { grid-column: 2; grid-row: 1; min-width: 0; margin: 0; }
+    .side-nav-card .tse-promu-cat    { grid-column: 2; grid-row: 2; min-width: 0; margin: 0; }
+    .side-nav-card .tse-promu-statut { grid-column: 3; grid-row: 1 / 3; justify-self: end; }
+    
+    .side-nav-card .tse-promu-grille:not(:has(.tse-promu-cat)) .tse-promu-nom {
+      grid-row: 1 / 3;
+    }
 
     
-    .side-nav-card a[class*="--promoted-followed"]
-      > div:not(.side-nav-card__link__tooltip-arrow)
-      > div:not([class*="promoted-followed-card__gradient"])
-      > div:not([class*="promoted-followed-card__"]),
-    .side-nav-card a[class*="--promoted-followed"]
-      > div:not(.side-nav-card__link__tooltip-arrow)
-      > div:not([class*="promoted-followed-card__gradient"])
-      > div:not([class*="promoted-followed-card__"])
-      > div:not(.side-nav-card__live-status) { display: contents; }
-
-    
-    .side-nav-card a[class*="--promoted-followed"] .tw-avatar {
-      grid-column: 1; grid-row: 1 / 3;
+    .side-nav-card.tse-promu-gabarit .tse-promu-lien {
+      height: var(--tse-pg-h) !important;
+      min-height: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
     }
-    .side-nav-card a[class*="--promoted-followed"] [class*="promoted-followed-card__title"] {
-      grid-column: 2; grid-row: 1; min-width: 0; margin: 0;
+    .side-nav-card.tse-promu-gabarit .tse-promu-enveloppe {
+      height: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
     }
-    .side-nav-card a[class*="--promoted-followed"] [class*="promoted-followed-card__content"] {
-      grid-column: 2; grid-row: 2; min-width: 0; margin: 0;
+    .side-nav-card.tse-promu-gabarit .tse-promu-grille {
+      box-sizing: border-box !important;
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 var(--tse-pg-pd) 0 var(--tse-pg-pg) !important;
+      
+      grid-template-rows: var(--tse-pg-nt) max-content max-content 1fr;
+      column-gap: 0;
+      align-items: start;
     }
-    .side-nav-card a[class*="--promoted-followed"] .side-nav-card__live-status {
-      grid-column: 3; grid-row: 1 / 3;
+    .side-nav-card.tse-promu-gabarit .tse-promu-avatar {
+      grid-row: 1 / -1;
+      width: var(--tse-pg-aw) !important;
+      height: var(--tse-pg-ah) !important;
+      margin: var(--tse-pg-at) 0 0 0 !important;
+    }
+    .side-nav-card.tse-promu-gabarit .tse-promu-nom {
+      grid-row: 2;
+      margin: 0 0 0 var(--tse-pg-gap) !important;
+      font-family: var(--tse-pg-n-ff);
+      font-size: var(--tse-pg-n-fs);
+      font-weight: var(--tse-pg-n-fw);
+      line-height: var(--tse-pg-n-lh);
+      letter-spacing: var(--tse-pg-n-ls);
+      color: var(--tse-pg-n-c);
+    }
+    .side-nav-card.tse-promu-gabarit .tse-promu-cat {
+      grid-row: 3;
+      margin: var(--tse-pg-ce) 0 0 var(--tse-pg-gap) !important;
+      font-family: var(--tse-pg-c-ff);
+      font-size: var(--tse-pg-c-fs);
+      font-weight: var(--tse-pg-c-fw);
+      line-height: var(--tse-pg-c-lh);
+      letter-spacing: var(--tse-pg-c-ls);
+      color: var(--tse-pg-c-c);
+    }
+    .side-nav-card.tse-promu-gabarit .tse-promu-statut {
+      grid-row: 1 / -1;
+      margin: var(--tse-pg-st) 0 0 var(--tse-pg-sg) !important;
+    }
+    .side-nav-card.tse-promu-gabarit .tse-promu-grille:not(:has(.tse-promu-cat)) .tse-promu-nom {
+      grid-row: 1 / -1;
+      align-self: center;
     }
 
     
@@ -6586,6 +6625,57 @@ const TSE_GATE_MAX_CLICKS = 5;
           return r;
         })(),
 
+        promues: (() => {
+          const estPromue = (c) => !!c.querySelector('a[class*="--promoted-followed"]');
+          const liste = cartes.filter(estPromue);
+          const r = { cartes: liste.length, formees: 0, sansAvatar: 0, sansNom: 0, sansStatut: 0,
+                      plats: 0, aplatis: 0, gabarits: 0, categorieSousAvatar: 0,
+                      ecartNomPx: null, ecartHauteurPx: null, squelette: {} };
+          const gauche = (c, e) => e.getBoundingClientRect().left - c.getBoundingClientRect().left;
+          const mediane = (v) => { const s = v.slice().sort((a, b) => a - b);
+                                   return s.length ? s[Math.floor(s.length / 2)] : null; };
+          for (const c of liste) {
+            const av = avatarOf(c), nom = cardNameEl(c), cat = cardCategoryEl(c);
+            if (!av) r.sansAvatar++;
+            if (!nom) r.sansNom++;
+            if (!liveStatusOf(c)) r.sansStatut++;
+            const g = c.querySelector('.tse-promu-grille');
+            if (g && getComputedStyle(g).display === 'grid') r.formees++;
+            if (c.classList.contains('tse-promu-gabarit')) r.gabarits++;
+            for (const p of c.querySelectorAll('.tse-promu-plat')) {
+              r.plats++;
+              if (getComputedStyle(p).display === 'contents') r.aplatis++;
+            }
+            if (av && cat && cat.getBoundingClientRect().top
+                              >= av.getBoundingClientRect().bottom - 1) r.categorieSousAvatar++;
+          }
+          const premiere = liste[0];
+          if (premiere && !sidebarCollapsed) {
+            const ordinaires = cartes.filter(c => !estPromue(c) && !isSynthetic(c) && !isCardOffline(c));
+            const noms = ordinaires.map(c => [c, cardNameEl(c)]).filter(([, n]) => n);
+            const nomP = cardNameEl(premiere);
+            const refNom = mediane(noms.map(([c, n]) => gauche(c, n)));
+            const refH = mediane(ordinaires.map(c => c.getBoundingClientRect().height));
+            if (nomP && refNom !== null) r.ecartNomPx = Math.round(gauche(premiere, nomP) - refNom);
+            if (refH !== null) r.ecartHauteurPx = Math.round(premiere.getBoundingClientRect().height - refH);
+          }
+          const lien = premiere?.querySelector('a[class*="--promoted-followed"]');
+          if (lien) {
+            const stable = (k) => /^(side-nav|tw-|tse-)/.test(k) || k.includes('promoted');
+            let n = 0;
+            const decrire = (e, prof) => {
+              if (n >= 30 || prof > 7) return;
+              n++;
+              const classes = [...e.classList].filter(stable);
+              r.squelette[String(n).padStart(2, '0')] = '· '.repeat(prof)
+                + e.tagName.toLowerCase() + classes.map(k => '.' + k).join('');
+              for (const enfant of e.children) decrire(enfant, prof + 1);
+            };
+            decrire(lien, 0);
+          }
+          return r;
+        })(),
+
         sectionSuivie: { ...bilanSection },
         coStream: { ...bilanCostream, ...gsStats,
 
@@ -6927,7 +7017,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const boite  = card.querySelector('[data-a-target="side-nav-card-metadata"]');
     const groupe = card.querySelector('.side-nav-card__metadata');
-    if (!boite && !groupe) return null;
+
+    if (!boite && !groupe) {
+      return card.querySelector('[class*="promoted-followed-card__title"] p');
+    }
     if (boite && groupe) {
       const dehors = [...boite.querySelectorAll('p')].find(x => !groupe.contains(x));
       if (dehors) return dehors;
@@ -6940,6 +7033,104 @@ const TSE_GATE_MAX_CLICKS = 5;
     const el = cardCategoryEl(card);
     if (!el) return null;
     return (el.getAttribute('title') || el.textContent || '').trim() || null;
+  };
+
+  const PROMU_CLASSES = ['tse-promu-grille', 'tse-promu-plat', 'tse-promu-lien', 'tse-promu-enveloppe',
+                         'tse-promu-avatar', 'tse-promu-nom', 'tse-promu-cat', 'tse-promu-statut'];
+
+  let gabaritPromu = { scan: -1, valeurs: null };
+  const mesurerGabaritPromu = () => {
+    if (gabaritPromu.scan === bilanBalayages.total) return gabaritPromu.valeurs;
+    gabaritPromu = { scan: bilanBalayages.total, valeurs: null };
+    const section = followedSection();
+    const ref = section && [...section.querySelectorAll('.side-nav-card')].find((c) =>
+      !isSynthetic(c) && !isCardOffline(c) && isPlainCard(c) && !c.classList.contains('tse-sub')
+      && c.querySelector('a.side-nav-card__link')
+      && avatarOf(c) && cardNameEl(c) && cardCategoryEl(c) && liveStatusOf(c)
+      && c.getBoundingClientRect().height > 0);
+    if (!ref) return null;
+    const L = ref.querySelector('a.side-nav-card__link').getBoundingClientRect();
+    const A = avatarOf(ref).getBoundingClientRect();
+    const nomEl = cardNameEl(ref), catEl = cardCategoryEl(ref);
+    const N = nomEl.getBoundingClientRect(), C = catEl.getBoundingClientRect();
+    const S = liveStatusOf(ref).getBoundingClientRect();
+
+    const B = (ref.querySelector('[data-a-target="side-nav-card-metadata"]') || nomEl.parentElement)
+      .getBoundingClientRect();
+    const px = (v) => (Math.round(v * 100) / 100) + 'px';
+    const typo = (e, k) => {
+      const st = getComputedStyle(e);
+      return { [`--tse-pg-${k}-fs`]: st.fontSize, [`--tse-pg-${k}-fw`]: st.fontWeight,
+               [`--tse-pg-${k}-lh`]: st.lineHeight, [`--tse-pg-${k}-ff`]: st.fontFamily,
+               [`--tse-pg-${k}-ls`]: st.letterSpacing, [`--tse-pg-${k}-c`]: st.color };
+    };
+    gabaritPromu.valeurs = {
+      '--tse-pg-h': px(L.height),
+      '--tse-pg-pg': px(A.left - L.left),
+      '--tse-pg-pd': px(L.right - S.right),
+      '--tse-pg-aw': px(A.width), '--tse-pg-ah': px(A.height),
+      '--tse-pg-at': px(A.top - L.top),
+      '--tse-pg-gap': px(N.left - A.right),
+      '--tse-pg-nt': px(N.top - L.top),
+      '--tse-pg-ce': px(C.top - N.bottom),
+      '--tse-pg-st': px(S.top - L.top),
+      '--tse-pg-sg': px(S.left - B.right),
+      ...typo(nomEl, 'n'), ...typo(catEl, 'c'),
+    };
+    return gabaritPromu.valeurs;
+  };
+  const gabaritPose = new WeakMap();
+  const poserGabarit = (card, valeurs) => {
+    const sig = valeurs ? JSON.stringify(valeurs) : '';
+    if (gabaritPose.get(card) === sig) return;
+    const avant = gabaritPose.get(card);
+    if (avant) for (const k of Object.keys(JSON.parse(avant))) card.style.removeProperty(k);
+    if (valeurs) for (const [k, v] of Object.entries(valeurs)) card.style.setProperty(k, v);
+    card.classList.toggle('tse-promu-gabarit', !!valeurs);
+    gabaritPose.set(card, sig);
+  };
+
+  const defairePromue = (card) => {
+    for (const cl of PROMU_CLASSES) {
+      card.querySelectorAll('.' + cl).forEach((e) => e.classList.remove(cl));
+    }
+    poserGabarit(card, null);
+  };
+  const mettreEnFormePromue = (card) => {
+    const promue = !sidebarCollapsed && !!card.querySelector('a[class*="--promoted-followed"]');
+    const pieces = !promue ? [] :
+      [['avatar', avatarOf(card)], ['nom', cardNameEl(card)],
+       ['cat', cardCategoryEl(card)], ['statut', liveStatusOf(card)]].filter(([, e]) => e);
+    const roles = new Set(pieces.map(([r]) => r));
+
+    if (!roles.has('avatar') || !roles.has('nom') || !roles.has('statut')) {
+      if (card.querySelector('.tse-promu-grille')) defairePromue(card);
+      return;
+    }
+    let grille = pieces[0][1].parentElement;
+    while (!pieces.every(([, e]) => grille.contains(e))) grille = grille.parentElement;
+
+    const voulu = new Map([[grille, 'tse-promu-grille']]);
+    for (const [role, e] of pieces) {
+      voulu.set(e, 'tse-promu-' + role);
+      for (let a = e.parentElement; a && a !== grille; a = a.parentElement) {
+        voulu.set(a, 'tse-promu-plat');
+      }
+    }
+
+    const gabarit = mesurerGabaritPromu();
+    const lien = card.querySelector('a[class*="--promoted-followed"]');
+    if (gabarit && grille !== lien) {
+      voulu.set(lien, 'tse-promu-lien');
+      for (let a = grille.parentElement; a !== lien; a = a.parentElement) {
+        voulu.set(a, 'tse-promu-enveloppe');
+      }
+    }
+    for (const cl of PROMU_CLASSES) {
+      card.querySelectorAll('.' + cl).forEach((e) => { if (voulu.get(e) !== cl) e.classList.remove(cl); });
+    }
+    for (const [e, cl] of voulu) if (!e.classList.contains(cl)) e.classList.add(cl);
+    poserGabarit(card, voulu.has(lien) ? gabarit : null);
   };
 
   const renderCategory = (card, name, login) => {
@@ -9356,6 +9547,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     applyCollabBadge(card);
     appliquerDrapeauLangue(card);
     markExtraRows(card);
+    mettreEnFormePromue(card);
 
     const link = card.querySelector(DOM.cardLinkSelector);
     const login = loginFromHref(link?.getAttribute('href'));
