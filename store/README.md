@@ -99,7 +99,7 @@ où le code change :
    livrés **ni minifiés ni obscurcis** : mêmes noms, mêmes lignes, même
    indentation que dans le dépôt. Depuis la 3.59 le paquet part en revanche
    **sans les commentaires** — ceux du JavaScript, et depuis la 3.60 ceux du
-   CSS aussi (1497 → 604 Ko) ; la phrase reste vraie au mot près — c'est de
+   CSS aussi (1540 → 622 Ko) ; la phrase reste vraie au mot près — c'est de
    lisibilité qu'elle parle, pas d'annotations — et les commentaires, eux,
    sont dans le dépôt public. Ce chiffre-là est confronté à la mesure par
    `npm run addon` : il a été faux, et personne ne l'a vu. Les mentions
@@ -134,9 +134,12 @@ où le code change :
    fait : le mouvement cesse, le signal continue (scénarios 113, 114 et 116).
    Le contrôle `PROMESSES` de `tests/store.mjs` relie ces deux phrases-là au
    code, comme `CITES` le fait pour les libellés.
-11. **« Un onglet Options … dix-neuf réglages »** — la table `OPT_DEFS` de
-   `content.js` en porte dix-neuf, et c'est ELLE que le contrôle compte, pas
-   la phrase. Le scénario 117 vérifie le nombre, le 120 que chacun a sa ligne
+11. **« Un onglet Options … vingt réglages »** — la table `OPT_DEFS` de
+   `content.js` en porte vingt depuis la 4.22.0. Le scénario 117 compte la
+   table ET relit le mot dans les douze fiches et dans la phrase du panneau
+   qui remet tout par défaut : la 4.22.0 a ajouté un réglage, et ces
+   vingt-quatre phrases disaient encore « dix-neuf » sans que rien ne le
+   signale. Le 120 vérifie que chaque réglage a sa ligne
    dans le panneau, et `npm run parity` qu'aucun n'est affiché sous son
    identifiant brut. La fiche promet aussi trois choses précises, toutes
    éprouvées : que l'aperçu puisse garder ses badges SANS la vidéo (scénario

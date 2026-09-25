@@ -576,6 +576,21 @@
   "optDescStories": {
     "message": "既定では表示されます。Twitch がそうしているからです。"
   },
+  "optSerie": {
+    "message": "視聴ストリーク"
+  },
+  "optDescSerie": {
+    "message": "「統合」では、Twitch の「ストリークを守る」行をフィルター欄にまとめ、ストリークの回数を表示します。「トップチャンネル」モードでは常に非表示です。"
+  },
+  "optValTwitch": {
+    "message": "Twitch と同じ"
+  },
+  "optValIntegree": {
+    "message": "統合"
+  },
+  "optValMasquee": {
+    "message": "非表示"
+  },
   "optGrpAbos": {
     "message": "サブスクの読み取り"
   },
@@ -664,7 +679,7 @@
     "message": "すべての設定を既定に戻しますか？"
   },
   "optResetText": {
-    "message": "このページの 19 個の設定がすべて元の値に戻ります。データ — 訪問履歴、サブスク、フォロー中のチャンネル — はそのままです。"
+    "message": "このページの 20 個の設定がすべて元の値に戻ります。データ — 訪問履歴、サブスク、フォロー中のチャンネル — はそのままです。"
   },
   "optValPlein": {
     "message": "完全"

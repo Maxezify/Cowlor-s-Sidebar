@@ -576,6 +576,21 @@
   "optDescStories": {
     "message": "默认显示：Twitch 就是这么做的。"
   },
+  "optSerie": {
+    "message": "观看连续记录"
+  },
+  "optDescSerie": {
+    "message": "「整合」会把 Twitch 的「保护你的连续记录」一行收进筛选区，并显示连续次数。在「热门频道」模式下始终隐藏。"
+  },
+  "optValTwitch": {
+    "message": "与 Twitch 相同"
+  },
+  "optValIntegree": {
+    "message": "整合"
+  },
+  "optValMasquee": {
+    "message": "隐藏"
+  },
   "optGrpAbos": {
     "message": "读取订阅"
   },
@@ -664,7 +679,7 @@
     "message": "将所有设置恢复为默认？"
   },
   "optResetText": {
-    "message": "本页的十九项设置都将回到初始值。你的数据——访问记录、订阅、已关注频道——不受影响。"
+    "message": "本页的二十项设置都将回到初始值。你的数据——访问记录、订阅、已关注频道——不受影响。"
   },
   "optValPlein": {
     "message": "完整"

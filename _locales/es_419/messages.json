@@ -576,6 +576,21 @@
   "optDescStories": {
     "message": "Se muestran por defecto: es lo que hace Twitch."
   },
+  "optSerie": {
+    "message": "Racha de visualización"
+  },
+  "optDescSerie": {
+    "message": "«Integrada» coloca la fila «Protege tu racha» de Twitch en el bloque de filtros, con la duración de la racha. Siempre oculta en el modo Top Canales."
+  },
+  "optValTwitch": {
+    "message": "Como en Twitch"
+  },
+  "optValIntegree": {
+    "message": "Integrada"
+  },
+  "optValMasquee": {
+    "message": "Oculta"
+  },
   "optGrpAbos": {
     "message": "La lectura de suscripciones"
   },
@@ -664,7 +679,7 @@
     "message": "¿Restablecer todos los ajustes?"
   },
   "optResetText": {
-    "message": "Los diecinueve ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
+    "message": "Los veinte ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
   },
   "optValPlein": {
     "message": "Completo"

@@ -576,6 +576,21 @@
   "optDescStories": {
     "message": "Ficam visíveis por padrão: é o que a Twitch faz."
   },
+  "optSerie": {
+    "message": "Sequência de visualização"
+  },
+  "optDescSerie": {
+    "message": "«Integrada» coloca a linha «Proteja sua sequência» da Twitch no bloco de filtros, com a duração da sequência. Sempre oculta no modo Top Canais."
+  },
+  "optValTwitch": {
+    "message": "Como na Twitch"
+  },
+  "optValIntegree": {
+    "message": "Integrada"
+  },
+  "optValMasquee": {
+    "message": "Oculta"
+  },
   "optGrpAbos": {
     "message": "A leitura das assinaturas"
   },
@@ -664,7 +679,7 @@
     "message": "Redefinir todas as configurações?"
   },
   "optResetText": {
-    "message": "As dezenove configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
+    "message": "As vinte configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"

@@ -576,6 +576,21 @@
   "optDescStories": {
     "message": "Standardmäßig sichtbar: so macht es Twitch."
   },
+  "optSerie": {
+    "message": "Zuschauerserie"
+  },
+  "optDescSerie": {
+    "message": "„Integriert“ ordnet Twitchs Zeile zum Schutz deiner Serie in den Filterblock ein, mit der Länge der Serie. Im Modus „Top-Kanäle“ immer ausgeblendet."
+  },
+  "optValTwitch": {
+    "message": "Wie bei Twitch"
+  },
+  "optValIntegree": {
+    "message": "Integriert"
+  },
+  "optValMasquee": {
+    "message": "Ausgeblendet"
+  },
   "optGrpAbos": {
     "message": "Abonnements auslesen"
   },
@@ -664,7 +679,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle neunzehn Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle zwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"

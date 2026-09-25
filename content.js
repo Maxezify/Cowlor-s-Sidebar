@@ -528,6 +528,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     // exploitable. Un match textuel serait pire : « stories » se traduit
     // (« historias » en espagnol), la classe non.
     storiesSelector:         '[data-a-target*="stories" i], [class*="stories" i]',
+    // La ligne « Protégez votre série » : un LIEN vers une rediffusion, dont la
+    // classe porte un préfixe lisible et un suffixe haché
+    // (`saveYourStreakSideNavRow--osFMS`, relevé le 25/09/2026). Même
+    // principe que les stories : le préfixe, jamais le texte, qui se traduit.
+    serieSelector:           'a[class*="saveYourStreakSideNavRow"]',
     followedCardSelector:    'a[data-test-selector="followed-channel"]',
     // Indicateur de statut live (point coloré) présent sur une carte EN LIGNE,
     // absent d'une carte hors-ligne. Sélecteur Twitch → centralisé ici (utilisé
@@ -2777,6 +2782,11 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     /* — Ce que l'extension retire à Twitch — */
     stories:         { defaut: true,      type: 'bool', css: true },
+    /* La ligne « Protégez votre série » : telle que Twitch la dessine, rangée
+       dans le bloc filtre (cf. syncSerie), ou retirée. Pas « css » : la puce
+       est un élément à nous, que le JS pose et retire. */
+    serie:           { defaut: 'integree', type: 'choix',
+                       valeurs: ['twitch', 'integree', 'masquee'] },
 
     /* — Le relevé des abonnements — */
     /* SIX, ÉCRIT EN TOUTES LETTRES, et c'est un revirement qu'il faut dire.
@@ -4647,6 +4657,52 @@ const TSE_GATE_MAX_CLICKS = 5;
        leur déclaration en ligne remettrait notre marge basse à zéro, sans
        bruit. Un mot met la règle à l'abri de ce changement-là. */
     [data-tse-stories="row"] { margin-bottom: 0.7rem !important; }
+
+    /* ── LA SÉRIE DE VISIONNAGE, EN PUCE (4.22.0, cf. syncSerie) ───────────
+       La ligne de Twitch est masquée QUAND LE JS LA MARQUE — c'est lui qui
+       sait le réglage, le mode et l'état de la sidebar. La puce reprend à
+       l'identique les surfaces du bloc filtre : puits, filet à 8 %, rayon de
+       4 px, 28 px de haut, texte semi-gras à 1,15rem. Une seule couleur de
+       plus, l'orange de la flamme, et c'est celui de Twitch (son jeton) : il
+       suit le thème de lui-même. */
+    /* LE « AFFICHER PLUS » COLLÉ À LA LIGNE PART AVEC ELLE. Le relevé du
+       25/09/2026 le montre juste après le lien, et la capture 30 px de vide
+       sous la ligne : c'est le déroulant de la liste des séries, sans objet
+       une fois la liste rangée. Le combinateur « + » ne vise que celui-là —
+       celui de la section suivie n'a jamais une ligne de série pour aînée.
+       LE « a » N'EST PAS DÉCORATIF : les feuilles de Twitch s'injectent APRÈS
+       la nôtre, et un « display » en « !important » sur la classe hachée du
+       lien l'emporterait, à spécificité égale, par son seul rang. */
+    a[data-tse-ligne-serie],
+    [data-tse-ligne-serie] + .side-nav-show-more-toggle__button { display: none !important; }
+    .tse-serie {
+      display: flex; align-items: center; gap: 8px;
+      height: 28px; padding: 0 8px 0 5px; box-sizing: border-box;
+      background: var(--tse-champ);
+      border: 1px solid rgba(var(--tse-encre), 0.08); border-radius: 4px;
+      font-size: 1.15rem; font-weight: 600;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    /* C'EST UN LIEN, et la page a ses règles de lien — « a:hover », qui
+       recolore et souligne, pèse plus qu'une classe seule. L'identifiant du
+       bloc les passe toutes, quel que soit leur rang. */
+    #tse-filter > .tse-serie { color: var(--color-text-base, #efeff1); text-decoration: none; }
+    .tse-serie:hover { border-color: rgba(145, 71, 255, 0.5); }
+    .tse-serie:focus-visible { outline: none; border-color: ${CFG.PURPLE}; box-shadow: 0 0 0 1px ${CFG.PURPLE}; }
+    .tse-serie-av {
+      flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%; overflow: hidden;
+      box-shadow: 0 0 0 1.5px var(--color-orange-12, #ffb018);
+    }
+    .tse-serie-av img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .tse-serie-texte { flex: 1 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .tse-serie-fin {
+      display: inline-flex; align-items: center; gap: 3px;
+      color: var(--color-orange-12, #ffb018); font-size: 1.1rem; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .tse-serie-nombre:empty { display: none; }
+    .tse-serie-fin svg { width: 12px; height: 12px; }
+    .tse-serie-fin svg path { fill: currentColor; }
     .tse-mode-tab {
       flex: 1 1 auto; min-width: 0;
       display: inline-flex; align-items: center; justify-content: center;
@@ -12688,6 +12744,36 @@ const TSE_GATE_MAX_CLICKS = 5;
              • `squelette` — les balises et les seules classes STABLES de la
                première carte, sans un mot de texte ni une adresse : de quoi
                corriger au prochain changement de Twitch sans deviner. */
+        /* ── LA SÉRIE DE VISIONNAGE (4.22.0) ──────────────────────────────
+           La puce n'a été éprouvée que sur le balisage relevé de la ligne, pas
+           sur son CONTENEUR, qu'on ne voit pas : c'est peut-être lui qui
+           portait une partie des 89 px. Trois lectures pour le savoir :
+             • `voisin` — ce qui suit la ligne, balise et classes stables : le
+               relevé montrait un « Afficher plus » collé à elle, que la feuille
+               retire avec elle ; `voisinMasque` dit si c'est fait ;
+             • `espacePx` — ce qui reste entre le titre et notre bloc une fois
+               la ligne rangée : quelques pixels, c'est gagné ; une
+               quarantaine, c'est le conteneur. */
+        serie: (() => {
+          const lignes = lignesSerie();
+          const voisin = lignes[0]?.nextElementSibling || null;
+          const puce = document.querySelector(`#${FILTER_ID} > .tse-serie`);
+          const titre = document.querySelector(`${DOM.sidebarRoot} .side-nav__title`);
+          const bloc = document.getElementById(FILTER_ID);
+          return {
+            lignes: lignes.length,
+            masquees: lignes.filter((l) => l.hasAttribute(SERIE_MARQUE)).length,
+            puce: !!puce,
+            nombre: puce?.querySelector('.tse-serie-nombre')?.textContent || null,
+            reglage: options.get('serie'),
+            voisin: voisin ? voisin.tagName.toLowerCase() + [...voisin.classList]
+              .filter((k) => /^(side-nav|tw-|tse-)/.test(k)).map((k) => '.' + k).join('') : null,
+            voisinMasque: voisin ? getComputedStyle(voisin).display === 'none' : null,
+            espacePx: titre && bloc
+              ? Math.round(bloc.getBoundingClientRect().top - titre.getBoundingClientRect().bottom)
+              : null,
+          };
+        })(),
         promues: (() => {
           const estPromue = (c) => !!c.querySelector('a[class*="--promoted-followed"]');
           const liste = cartes.filter(estPromue);
@@ -19498,6 +19584,123 @@ const TSE_GATE_MAX_CLICKS = 5;
     el.setAttribute('data-tse-stories', 'row');
   }
 
+  /* ── LA SÉRIE DE VISIONNAGE, RANGÉE DANS LE BLOC FILTRE (4.22.0) ─────────
+     DEMANDÉ SUR CAPTURE : « Protégez votre série fait un peu tache ». Mesuré
+     au pixel : 89 px de hauteur pour une seule action, un avatar de 36 px
+     plus grand que ceux des cartes, le violet des liens de Twitch comme seul
+     texte coloré de la zone, et un bord gauche à 11 px quand nos contrôles
+     commencent à 18. Piste retenue : LA PUCE.
+
+     UNE PUCE À NOUS, DANS NOTRE BLOC, et non la ligne de Twitch restylée sur
+     place. Restyler sur place aurait voulu dire mesurer ses conteneurs, qu'on
+     ne voit pas, et lutter contre les « !important » de ses composants de mise
+     en page — la carte sponsorisée a montré ce que ça coûte. Posée dans le
+     bloc filtre, la puce en prend la trame par construction : même puits,
+     même filet, même hauteur de 28 px, même texte.
+
+     L'ACTION RESTE CELLE DE TWITCH. La ligne d'origine n'est pas déplacée —
+     React la possède — ; elle est masquée, et un clic sur la puce est RELAYÉ
+     à son lien : la navigation se fait par Twitch, dans la page, comme
+     aujourd'hui. La puce porte la même adresse, si bien qu'un clic du milieu
+     ou avec Ctrl ouvre, lui, un nouvel onglet sans rien relayer.
+
+     CE QUE LA PUCE DIT DE PLUS : le nombre de la série. Twitch l'écrit dans
+     l'étiquette accessible (« …série de 3 streams chez Vesper0 ») et ne
+     l'affiche pas. On ne garde qu'un nombre SEUL — sans lettre ni chiffre
+     collé, pour que le 0 de « Vesper0 » ne compte pas — et seulement s'il n'y
+     en a qu'un : deux candidats, c'est une phrase qu'on ne sait pas lire, et
+     la puce se contente alors de sa flamme. La phrase entière reste en
+     infobulle.
+
+     QUI DÉCIDE DE QUOI :
+       — réglage « twitch » : rien ne change, la ligne est celle de Twitch ;
+       — réglage « masquee » : la ligne est retirée, sans puce ;
+       — réglage « integree » (défaut) : la puce remplace la ligne — sauf
+         sidebar réduite, où notre bloc n'est pas affiché : la ligne de Twitch
+         y reste, plutôt que de disparaître avec lui ;
+       — en mode Top Chaînes, ni l'une ni l'autre, comme les stories : la série
+         parle d'une chaîne suivie, et ce mode n'en montre pas.
+
+     TOUTES LES LIGNES SONT MARQUÉES, pas seulement la première : on n'en a
+     vu qu'une, mais rien ne dit que Twitch n'en rende pas une par chaîne en
+     danger. La puce, elle, parle de la première. */
+  const SERIE_MARQUE = 'data-tse-ligne-serie';
+  const nombreSerie = (etiquette) => {
+    const seuls = [...(etiquette || '').matchAll(/(?<![\p{L}\p{N}])\d+(?:[\s.,]\d{3})*(?![\p{L}\p{N}])/gu)];
+    return seuls.length === 1 ? seuls[0][0].replace(/\D/g, '') : '';
+  };
+  /* Cherchées depuis le PARENT de la barre, comme les stories, qui vivent à
+     côté d'elle et non dedans : le conteneur de la ligne ne s'est pas vu. */
+  const lignesSerie = () => {
+    const nav = document.querySelector(DOM.sidebarRoot);
+    const racine = nav?.parentElement || nav;
+    return racine ? [...racine.querySelectorAll(DOM.serieSelector)] : [];
+  };
+  const construirePuce = () => {
+    const a = document.createElement('a');
+    a.className = 'tse-serie';
+    const av = document.createElement('span');
+    av.className = 'tse-serie-av';
+    const img = document.createElement('img');
+    img.alt = '';
+    av.appendChild(img);
+    const txt = document.createElement('span');
+    txt.className = 'tse-serie-texte';
+    const fin = document.createElement('span');
+    fin.className = 'tse-serie-fin';
+    const nb = document.createElement('span');
+    nb.className = 'tse-serie-nombre';
+    fin.appendChild(nb);
+    a.append(av, txt, fin);
+    a.addEventListener('click', (e) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const l = lignesSerie()[0];
+      if (!l) return;                  // plus de ligne : l'adresse de la puce suffit
+      e.preventDefault();
+      l.click();
+    });
+    return a;
+  };
+  function syncSerie() {
+    const bloc = document.getElementById(FILTER_ID);
+    const lignes = lignesSerie();
+    const ligne = lignes[0];
+    const reglage = options.get('serie');
+    const masquer = state.globalMode || reglage === 'masquee'
+                    || (reglage === 'integree' && !sidebarCollapsed);
+    for (const l of lignes) l.toggleAttribute(SERIE_MARQUE, masquer);
+    let puce = bloc?.querySelector(':scope > .tse-serie') || null;
+    const voulue = !!ligne && !!bloc && reglage === 'integree' && !state.globalMode && !sidebarCollapsed;
+    if (!voulue) { puce?.remove(); return; }
+    if (!puce) puce = construirePuce();
+    if (bloc.firstElementChild !== puce) bloc.prepend(puce);
+
+    /* On n'écrit que ce qui a changé, pour deux raisons qui se mesurent : la
+       puce vit DANS la barre latérale, où remplacer un nœud texte réveille
+       l'observateur, donc un balayage — une boucle ; et réécrire le « src »
+       d'une image, même à l'identique, la fait recharger — un avatar
+       redemandé à chaque passe. */
+    const poser = (el, attr, v) => {
+      if (!v) { if (el.hasAttribute(attr)) el.removeAttribute(attr); }
+      else if (el.getAttribute(attr) !== v) el.setAttribute(attr, v);
+    };
+    const texte = (el, v) => { if (el.textContent !== v) el.textContent = v; };
+    const etiquette = ligne.getAttribute('aria-label') || '';
+    poser(puce, 'href', ligne.getAttribute('href'));
+    poser(puce, 'aria-label', etiquette);
+    poser(puce, 'title', etiquette);
+    poser(puce.querySelector('img'), 'src', ligne.querySelector('img.tw-image-avatar')?.getAttribute('src'));
+    texte(puce.querySelector('.tse-serie-texte'), (ligne.querySelector('p')?.textContent || '').trim());
+    texte(puce.querySelector('.tse-serie-nombre'), nombreSerie(etiquette));
+    /* La flamme est celle de Twitch, clonée une fois : c'est son dessin, et
+       notre feuille ne fait que la recolorer. */
+    const fin = puce.querySelector('.tse-serie-fin');
+    if (!fin.querySelector('svg')) {
+      const svg = ligne.querySelector('svg');
+      if (svg) fin.appendChild(svg.cloneNode(true));
+    }
+  }
+
   /**
    * Masque l'en-tête natif de la section suivie — titre ET bouton de tri.
    *
@@ -22137,6 +22340,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     ensureFilterBar();
     ensureSortRow();
     ensureModeRow();
+    syncSerie();           // APRÈS la bascule de mode : la puce se pose au-dessus d'elle
     tagStoriesRow();
     ensureGlobalBanner();
     ensureGlobalEmpty();

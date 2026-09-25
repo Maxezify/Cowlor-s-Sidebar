@@ -576,6 +576,21 @@
   "optDescStories": {
     "message": "Domyślnie widoczne: tak robi Twitch."
   },
+  "optSerie": {
+    "message": "Seria oglądania"
+  },
+  "optDescSerie": {
+    "message": "„Zintegrowana” przenosi wiersz Twitcha „Chroń swoją serię” do bloku filtrów, z długością serii. Zawsze ukryta w trybie Najpopularniejsze kanały."
+  },
+  "optValTwitch": {
+    "message": "Jak na Twitchu"
+  },
+  "optValIntegree": {
+    "message": "Zintegrowana"
+  },
+  "optValMasquee": {
+    "message": "Ukryta"
+  },
   "optGrpAbos": {
     "message": "Odczyt subskrypcji"
   },
@@ -664,7 +679,7 @@
     "message": "Przywrócić wszystkie ustawienia domyślne?"
   },
   "optResetText": {
-    "message": "Wszystkie dziewiętnaście ustawień na tej stronie wrócą do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
+    "message": "Wszystkie dwadzieścia ustawień na tej stronie wrócą do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
   },
   "optValPlein": {
     "message": "Pełne"
