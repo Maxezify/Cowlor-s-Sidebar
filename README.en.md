@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1098 KB | 410 KB | 3,391 → **2** |
+| `content.js` | 1247 KB | 449 KB | 3,540 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 100 KB | 48 KB | 134 → **0** |
+| `panneau.js` | 101 KB | 48 KB | 139 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1344 KB** | **563 KB** | **−57 %** |
+| **all five** | **1497 KB** | **604 KB** | **−59 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2481,6 +2481,1946 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The two 4.20.0 reports, taken at their word (v4.21.0)
+
+> "Do all the proposals, be rigorous."
+
+Four changes, all pointed at by the two 4.20.0 field reports, and a fifth that
+the bench found while exercising the second.
+
+### A — Due dates are counted in the report
+
+4.20.0 could not tell whether Twitch's dates were being read: you had to hover
+a badge. Each current-tab line now carries its due dates read, against its
+channels, and the counts block their total:
+
+```
+onglet gifts   bascule (adresse) · … · 12 carte(s) · 12 chaîne(s) · 12/12 échéance(s) lue(s)
+compteurs.echeances   13
+```
+
+"12/12" says the dates are read, "0/12" that they are not — the question 4.20.0
+left open is settled by the next report.
+
+### B — The combined-count signature is proven by the own audience
+
+The reports counted **665 combined counts in the ranking out of 1,677**, then
+**107 out of 196**, for two real sessions. The directory signature — two
+channels of a category within one display step of each other — took any pair
+of neighbouring ordinary channels for a co-stream, and froze their count on the
+directory's.
+
+Proximity is now only a **suspicion**. It is settled as soon as the channel's
+own audience arrives:
+
+| own audience | verdict |
+| --- | --- |
+| under 90 % of the directory number | **confirmed**: it is a share of a combined count (300 against 11,736 in the field) — protected, counted as combined |
+| 90 % or more | **refuted**: it is the channel's own audience — the fresh count is written |
+
+The **proof survives** the next publication, which is what was missing since
+4.16.0: two samples of the combined count drifting one step apart lost the
+signature, and the protection with it. The report now tells the three states
+apart: `signaturesSupposees` (no own audience yet — usually channels without a
+card), `signaturesConfirmees`, `signaturesRefutees`. `combinesAuClassement`
+now only counts what Guest Star said or what the own audience proved.
+
+**And the flicker scenario 133 described without fixing.** Every walk rebuilt
+the ranking from the directory — more recent in reading time, less accurate in
+content than the audience `TseChannels` had just given — and a card's count
+fell back to the directory number until the next channel batch: one or two
+readings in twenty. Refutation made it urgent: the ordinary neighbours the
+signature used to freeze finally got their fresh audience, and lost it at every
+walk. Publication now prefers the recent own audience (less than two refresh
+periods old) **as long as it is close** to the directory — a directory far
+above it is a channel entering a co-stream, and the signature must decide.
+
+### C — Refusals per regime, and a threshold above the noise
+
+The veil and cruise each count their probes and refusals, and each sets **its**
+rate from **its** answers: a veil burst no longer slows browsing down. The
+report gives them separately (`reprise.voile.*`, `reprise.croisiere.*`).
+
+The 4.20.0 threshold — slow down beyond one refusal in ten — sat **below the
+background noise**. The two reports gave 17 % refusals at 0.02 probe/s and 20 %
+at 0.33: fifteen times the rate for three more points. With the two 4.15.6
+measurements (23 % at 0.25, 33 % at 0.48), these four points draw a background
+of about 15 % that the rate does not lower. The second report ended at two
+probes per window, twenty-four channels waiting.
+
+| out of ten answers | decision |
+| --- | --- |
+| three refusals or more (> 25 %) | the rate is halved |
+| two refusals | kept |
+| one refusal at most (≤ 10 %) | the rate climbs |
+
+On a 15 % background, three refusals or more occur one time in five, one at
+most one time in two: the rate tends to climb. At 30 %, three in five against
+one in seven: it tends to fall.
+
+### D — The refresh reads the combined count a teammate gave
+
+The second report carried "perteCombine · 6,281 → 2,055 · sortieEcran true",
+with no session dropped and none shrinking. The walk read a member's combined
+count in its **teammate's** answer (4.17.0); the channel batch, and the card,
+only read the answer **under its own key** — which said "no session" for a card
+that had just appeared. They wrote the own audience, the card left the screen,
+and the next walk brought it back. All three now read the same sources.
+
+### What I could not verify
+
+Both thresholds — 90 % for the signature, 25 % / 10 % for the rate — come from
+few field measurements, and the reasoning behind them is written next to their
+constants. The next report gives the two probe regimes separately and the three
+signature states: enough to revisit them on evidence. A probe's regime is read
+at its **departure**; no scenario tells this choice apart from reading it on
+arrival, because the bench's answers come back within a millisecond.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the per-tab due-date count not set | "undefined/3" on every tab |
+| the due-date total missing | the counts block is silent |
+| the tab line without that count | the panel no longer prints it |
+| no refutation — proximity alone protects, as before | "voisin1" frozen at 5,000, two ordinary neighbours counted as combined |
+| the proof not kept | the two members of a silent session fall back to 300 |
+| the suspicion counted as proof | the two silent neighbours counted among the combined |
+| protection without the proof | the signature lost by one step: the members fall to 300 |
+| suspected counted without removing the proven | four suspected instead of two |
+| refutation keeping the "combined" nature | twenty fewer viewers counted as a lost combined count |
+| publication taking the directory back | "milieu:900" in 133's twenty readings; "voisin1" flickers between 4,800 and 5,000 in a category ranking |
+| the fresh audience preferred without checking the gap | a channel entering a silent co-stream stays at 2,000, never protected |
+| a single regime for both | the veil never received anything, and its burst stays at eight |
+| the veil, or cruise, ignoring its rate | eight at once under the veil; twelve per window in cruise |
+| the 4.20.0 threshold (10 %) | one refusal in five halves the rate |
+| a threshold too lax (40 %) | one refusal in three does not halve it |
+| climbing without a margin | one refusal in five makes it climb |
+| no climb | cruise stays at the floor |
+| the channel batch without the member index | "300" in the ranking, eight combined-count losses in six seconds |
+| the card without the member index | the card shows "300" |
+
+Scenarios 163 and 164 are new; 160 is rewritten for the two regimes and the two
+thresholds; 133 counts twenty readings instead of one; 158 and 70 read the due
+dates in the report.
+
+## A small space between the name and the flag (v4.20.1)
+
+> "Can you put a tiny space between the name and the flag; I find it a bit
+> cramped."
+
+The flag of a co-streamer from another language followed the name's text with
+nothing in between. On a subathon card, the name and its marks form a flex row
+whose gap (4 px) already separates them; elsewhere, nothing. The flag therefore
+gets **the same gap, only where it is missing** — setting it everywhere would
+have doubled it on subathon cards.
+
+**A second defect, found while measuring it.** The bench decor carries a host
+rule, `.metacell span { display: block }`, which beats a single class. Outside
+a subathon, the flag went **under** the name there, on a line of its own; the
+subathon flex row hid the defect, and it was the only case scenario 154
+exercised. Its selector now carries two classes, like the day chip has for a
+long time.
+
+| mutant | result |
+| --- | --- |
+| the margin removed | 0 px, the flag stuck to the name |
+| the margin set on every card | 8 px on a subathon card |
+| the selector reduced to one class | the flag under the name, on its own line |
+
+Scenario 162 is new; 154 measures the gap on a subathon card.
+
+## The due date in the badge, Twitch's real tabs, and probes that listen (v4.20.0)
+
+> "Paid subscription: Subscribed • 51 MONTHS • Next anniversary in 9 days.
+> Gifted subscription: Subscribed • 1 MONTH • Expires in 8 days."
+
+Five changes, requested together after 4.19.2: a badge that tells the due
+date, a sweep that clicks Twitch's real tabs, probes that remember and slow
+down when Twitch refuses, and a report that says what a drop brought down.
+
+### 1. The due date, in the subscription badge
+
+The preview badge said "Subscribed • 51 MONTHS". It now says what comes next:
+
+| subscription | badge |
+| --- | --- |
+| paid or mobile | `Subscribed • 51 MONTHS • Next anniversary in 9 days` |
+| gifted | `Subscribed • 1 MONTH • Expires in 8 days` |
+| on the day | `… • Anniversary today` / `… • Expires today` |
+| date passed | `Subscribed • 51 MONTHS` — the next sweep will replace it |
+
+**Read without a word of French**, like the tenure since 3.48. The cards
+recorded on 24/09/2026 carry:
+
+```
+paid    Prochain anniversaire d'abonnement dans : 5 jours
+        Nombre total de mois abonné : 40 mois
+        Nombre de mois à la suite : 40 mois
+        Date de renouvellement de l'abonnement : 29 sept. 2026 (dans 4 jours)
+
+gifted  Prochain anniversaire d'abonnement dans : 23 jours
+        Abonnement offert par : (a username)
+        Nombre total de mois abonné : 1 mois
+        Nombre de mois à la suite : 1 mois
+        Vos avantages arrivent à expiration le 17 oct. 2026 (dans 22 jours)
+```
+
+- **The anniversary** is the first value *before* the tenure label (already
+  learned on expired cards) that holds **a single number**, in a **different
+  unit** from the tenure — "days" against "months", compared without being
+  read. A date holds two or three numbers, the streak counts in months:
+  neither passes for it.
+- **The expiry** is a date, and a date cannot be read without knowing the
+  language. So we **write** it: the dates of the next 400 days, formatted by
+  `Intl` in the page's language, and we look for the one the card carries —
+  bounded by non-digits, otherwise "2 nov." would be read inside "12 nov.".
+- **We keep a date, never a day count**, and the badge recounts at display
+  time in local calendar days — which is how Twitch counts its "(in 4 days)".
+  A count read six hours earlier would be wrong.
+
+Stored as the sixth field of `tse:subs`, and visible in the panel ("Due"
+column, twelve languages).
+
+**A defect found on the way.** Since 3.52 the sweep promised that "the first
+tab to find a channel is the one that serves it". `noteSource` nevertheless
+rewrote any different origin: the last tab won. A paid subscription with a
+queued gift — the same channel in two tabs — was read as "gifted", with the
+gift's end date as its anniversary. The first tab now serves the origin, and
+the due date with it.
+
+### 2. The sweep clicks Twitch's real tabs
+
+4.19.2 looked for `?tab=` links based on a screenshot. The user's console
+showed the truth: six `<button role="tab" data-a-target="tw-tab-link">`,
+**with no address**. No link found, so one page reloaded per tab — without the
+report saying so.
+
+Tabs are now designated by their **position**, in the recorded order (paid,
+gifted, mobile, Turbo, other, expired) — their labels are translated and carry
+a count, we do not read them. A position is not taken on trust:
+
+- **before the click**, the bar must hold exactly six tabs, and the one the
+  page says is selected (`aria-selected`) must be, at its position, the one it
+  displays;
+- **after the click**, the address must name the wanted tab; if it did not
+  move — Twitch may not keep it up to date — the clicked button must have
+  become the selected one. An address that went to *another* tab refutes
+  everything.
+
+The report now says why it reloaded ("tab switch dropped: 7 tab(s) in the
+page, 6 expected", "the address says « mobile », « gifts » expected"…) and
+which witness proved each click (`bascule (adresse)` or `bascule
+(aria-selected)`). That is what the next report will teach us about the real
+Twitch.
+
+### 3. Probe verdicts survive a reload
+
+The field report: **191 probes, 7 origins found, 64 refusals**. The other 184
+had found nothing — a stream without a cut, the normal case — and each was
+asked again at every reload, on the very endpoint Twitch rations.
+
+For a stream identifier, the answer **never changes**: what precedes a
+stream is fixed when it starts, and a new cut creates a new identifier. Each
+verdict is therefore kept 48 hours (the maximum length of a Twitch stream) in
+`tse:sondes`, at most 300: "nothing connects", and reconnections with their
+cuts and chapters. A reload only probes the streams that appeared since.
+Refusals are not kept: they teach nothing about the stream. A stale,
+unreadable verdict, or one filed under another channel, is ignored — a request
+only costs a request, a false origin costs a false card.
+
+The report counts what comes from disk separately (`memorisees`,
+`memoireAdoptees`, `residentVerdicts`), so that `trouvees` against `adoptees`
+keeps its meaning. `tse.reset()` erases them with the rest.
+
+### 4. The probe rate follows what Twitch answers
+
+4.15.6 had measured the slope: **23 % refusals at 0.25 probe/s, 33 % at
+0.48**. Insisting feeds the refusal. Twelve probes per thirty seconds is now
+only a ceiling: on each sample of **ten answers**, more than one refusal in ten
+**halves the rate** (never below two per window); a clean sample **raises it
+by two**. The veil's rate follows in the same proportion: that is where most
+refusals fell.
+
+What it costs, on purpose: when Twitch refuses a lot, a cut stream's origin
+reaches some cards later. The report gives the current rate and how many times
+it went down or up (`cadence`, `ralenties`, `remontees`).
+
+### 5. A drop says what fell
+
+"chuteMax 49,744" did not say what had fallen. Three things hid under that
+single number:
+
+| nature | what it is |
+| --- | --- |
+| `perteCombine` | the channel carried a co-stream **combined** count, and becomes its own audience again — the session ends, or its signature is lost |
+| `combine` | the combined count **itself** drops (Guest Star says so) |
+| `propre` | an own audience dropping, on a stream still running |
+
+A number's nature is set where it is born, on the ranking entry: the walk
+when it applies a known combined count, publication when the directory
+signature recognises it, `setViewers` at every write. The report gives, per
+nature, the number of drops and the largest, then the context of the largest
+one (`nature`, `avant`, `apres`, `sortieEcran`), and how many ranking entries
+carry a combined count right now.
+
+What cannot be seen, and the report does not claim to see: the end of a stream
+is not a drop (it is counted elsewhere, `creux` and `evicted`), and a raid
+cannot be told apart with the data we receive.
+
+### What I could not verify
+
+`www.twitch.tv` is still refused by this machine's proxy. The tab bar is
+modelled on the user's console, the cards on their screenshots. Two unknowns
+remain, and the report is written to answer them: **does the address follow
+the click?** (the printed witness of each switch) and **is the expiry date a
+text of its own in its element?** (otherwise the card gives the badge nothing,
+and a gift's due date is missing — without lying). Dates are formatted by
+`Intl`: if Twitch writes its own differently in some language, the expiry will
+not be read there.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the old search for `?tab=` links | no tab found, four pages loaded |
+| the dropped switch's reason not recorded | the report says four "page" and nothing else |
+| the `aria-selected` witness removed | every click refused, four pages when the address does not follow |
+| the tab count removed | a seventh tab read as gifts, and its channel gilded |
+| the selected-tab check removed | reordered tabs: the expired ones gilded |
+| an address that went elsewhere accepted | two swapped tabs: each channel takes the other's origin |
+| the switch line, or the witness, removed from the report | the panel no longer prints them |
+| dates searched without bounds | "2 nov." read inside "12 nov.": ten days early |
+| the origin ignored when reading, or when displaying | the gift says "Next anniversary in 23 days" |
+| the unit not compared | the streak (3 months) passes for the anniversary |
+| a single number not required | the "3" of "3 mars 2023" passes for the anniversary |
+| the sixth field not read back | the badge loses its due date on reload |
+| a passed due date displayed | "in -1 day" |
+| `record()` losing the due date | no badge has a due date |
+| the last tab winning (before 4.20.0) | a paid subscription with a queued gift becomes "gifted" |
+| dates left out of the stability signature | a list written card by card loses its last date |
+| verdicts not read back / "nothing" not kept | eight, or six, requests on reload instead of two |
+| a stale verdict, or another channel's, believed | a cut stream counts its segment |
+| the remembered reconnection not replayed | two cut streams count their segment |
+| `tse.reset()` forgetting the verdicts | `tse:sondes` survives the reset |
+| no slowdown / no climb back | the rate stays at twelve, or at the floor for the page's life |
+| cruise, or the veil, ignoring the rate | twelve per window, eight at once, at the height of the refusals |
+| the nature taken from Guest Star alone | the ended session passes for a dropping audience |
+| the walk, or the signature, silent on the nature | zero combined counts in the ranking |
+| the equal combined count not marked | one combined count in the ranking instead of two, when Guest Star confirms the directory's number |
+| the largest drop not kept | the report no longer says what carries `chuteMax` |
+
+Scenario 53 gains four cases (f, g, h, i) and the subscriptions page decor
+takes the real shape — buttons, paid and gifted cards. Scenario 50 expects the
+due date after the badge. Scenario 70 reads the report's two new lines.
+Scenarios 158 to 161 are new.
+
+## Twitch refuses its subscriptions page, and the sweep learns to say so (v4.19.2)
+
+> "Subscription recognition does not work, ironmouse is not gold."
+
+### What was happening
+
+The report carried four twin lines:
+
+```
+onglet expired  affiché · 1098 nœuds · barre oui · 0 carte(s) · 0 chaîne(s)
+                · la page dit : « Abonnements Vos abonnements Abonnements offerts … »
+```
+
+The day before, the same tab rendered **5,331 nodes and 74 cards**, with the
+same code: the sweep module had not moved since 4.15.10, nor had `adblock.js`
+or the bridge. A screenshot settled it: opened by hand, Twitch's page itself
+displayed "**Impossible d'afficher vos abonnements pour le moment**" (unable to
+display your subscriptions right now), and the console showed `failed integrity
+check` on the page's five requests — `subscriptionBenefits: null`. **Twitch was
+refusing to serve the list, to its own page.** No extension can read what Twitch
+does not display, and this one touches neither the token nor the integrity check.
+
+The already-known subscriptions had vanished for another reason, stated by the
+user: they always start from a fresh install. The sweep is additive and never
+erases anything; it simply had nothing to take back.
+
+### What was ours
+
+**1. Four Twitch pages for a single piece of data.** The sweep loaded one page
+per tab, four at a time. The console showed what each one requests while
+loading: **one batch, five operations** — paid, gifts, mobile, all, expired. We
+now load **one** page and switch tabs by clicking the links it displays, like a
+user. If the page offers none, or the click does not change the address, we
+reload — one page per tab, one after the other. Four boots of the Twitch app
+become one, and so do four passes through the integrity check.
+
+The danger of a switch is reading the PREVIOUS tab: on a fresh profile that is
+the expired one, and reading it as current subscriptions would **gild** it. The
+address must have changed, and cards identical to the previous tab's must hold
+much longer before being believed.
+
+**2. A tab bar with nothing under it is not an empty tab.** The sweep concluded
+"empty" after seven seconds of a still page — before Twitch wrote its sentence.
+It now waits for the **panel** to answer, cards or message. Once one tab has
+rendered something, the others come from the same batch: an empty panel there
+is an empty tab, even drawn without a word.
+
+**3. "The page says" copied the title and the tabs.** Only the text **under**
+the tab bar is kept now, the bar being excluded by its nature (headings, tab
+links) and not by its language. The report would have carried Twitch's sentence.
+
+**4. A privacy defect, found along the way.** When Twitch renames its cards, the
+panel **is** the list — and its "sentence" poured the names of subscribed
+channels into a report that promises to carry none. Channel links are counted
+instead, and that number is enough for the verdict: "N channel link(s) in the
+page, none in a card: the selector no longer matches".
+
+**5. An empty sweep locked six hours.** Twitch back ten minutes later, nothing
+came back before the evening. After a sweep that saw **no card anywhere**, the
+next one returns after fifteen minutes, then twice that on each new failure, up
+to the ordinary period. The report says where things stand:
+
+| line | what it says |
+| --- | --- |
+| `relevés vides d'affilée` | the number of failures that shortened the wait |
+| `prochain relevé dans` | the remaining wait, in minutes |
+| `onglet … page / bascule / bascule refusée` | how each tab was read |
+
+**When to stop.** A page that never came will not come better on the next load:
+immediate stop. A panel blank for the whole guard is usually Twitch not serving
+the list — we stop at the second in a row, rather than chaining four guards for
+the same result.
+
+### What it costs
+
+Read one after the other, empty tabs each pay their settling delay: a sweep goes
+from about ten seconds to about twenty when two tabs are empty — in the
+background, every six hours. On a fresh install, the veil still lifts at the
+first result. An account truly without subscriptions pays five extra sweeps,
+once.
+
+`SUBS_PAGE_STAGGER` goes with the staggered starts, and a comment describing a
+constant removed long ago ("beyond this number of nodes…") goes with it.
+
+### What I could not verify
+
+`www.twitch.tv` is refused by this machine's proxy: the tab bar of `?tab=` links
+and the empty-tab message are **modelled** from the screenshot. The two
+fallbacks cover the gap — reload if the switch fails, conclude without text once
+the data has arrived. And nothing says whether the extension contributes to
+Twitch's integrity refusal: the deciding test happens on the user's side,
+extension disabled, on `/subscriptions`.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| "the page says" read on the whole `main` (4.19.1) | "Abonnements Vos abonnements…" — the field report, word for word |
+| settling that runs on a blank panel | Twitch's sentence missed, empty text |
+| no earlier retry | "2:<date>", nothing before the ordinary period |
+| one page per tab (no switching) | four loads instead of one |
+| the previous tab's cards accepted | two **expired** subscriptions gilded |
+| channel links not counted | "jenfirer Réabonnez-vous…" in the report |
+| cards counted "at the highest" after a switch | "gifts · 3 card(s) · 1 channel(s)" — the previous tab, counted for the next |
+| the panel proof required from every tab | textless empty tabs sent to the guard |
+| stop at the first blank panel | the sweep stops one tab too early |
+| no stop at all | four guards in a row |
+
+Four scenarios described the old architecture and were rewritten to state the
+new one: 53 asserted "the tabs start together", 141 bounded pages by the number
+of tabs (two duplicate sweeps would no longer have exceeded the bound), 147
+counted iframes rather than reads, and 46 bounded a duration that no longer told
+its mutant apart. 157 is new.
+
+## The audit: a loop, a gap, a false line, and five dead members (v4.19.1)
+
+> "A complete audit of the extension, check every piece of code to remove the
+> slightest dead code. Think seriously about optimisations. Do not remove
+> existing features."
+
+### How we looked
+
+Reading twenty-one thousand lines by eye proves nothing. Three tools, each for
+what it can see:
+
+| tool | what it said |
+| --- | --- |
+| V8 block coverage, merged over the 154 scenarios | 92.1 % of `content.js` code executed, 88.5 % of `panneau.js`; 265 of 1,093 functions never called |
+| syntax tree (espree): every object member defined against every read | five members with no reader |
+| `CFG`, `STRINGS`, `_locales` keys, CSS classes | all read or set |
+
+**Not executed does not mean dead.** The 265 functions were sorted one by one:
+console API (`tse.rythme()`…), panel actions (import, purge), Twitch DOM
+variants, error paths, the "popularity" sort (a visit only counts after five
+minutes on a channel — which is also why the report said `visites 0` after
+200 s). All of it is in use; none of it was touched.
+
+### A scan loop, four times a second, forever
+
+Measured with the **production** constants, on a page at rest:
+
+| | scans per second at rest |
+| --- | --- |
+| 4.19.0 | **3.9**, endlessly |
+| 4.19.1 | **0.2** — the intended wake-up, every five seconds |
+
+The stack trace named the caller at the first try: `majVerrouVoile`. It ended
+with an **unconditional** `scheduleScan()` — "the veil only lifts on a scan: here
+is one". But the scan calls it on every pass; outside a veil cycle there was
+nothing to lift, and every scan scheduled another one 250 ms later. Every channel
+batch and every probe added one more.
+
+A scan costs ~10 ms on a 138-card sidebar (per-step profile: no hot spot,
+`processCard` takes a third). The loop therefore held roughly **4 % of a core
+permanently**, tab visible; about 0.2 % remains.
+
+**The fix:** a scan only if **this module was holding the lock**, and never when
+the caller is the scan itself, which goes on to `notifyScan`.
+
+**And a counter so it shows:** `page.balayages.total` and
+`page.balayages.derniereMinute` in the report. At rest, a dozen a minute; the
+loop would have shown ~240.
+
+### A slot that dissolved every thirty seconds
+
+Found while reading the code around `horsClassementConnus`, and **measured
+before being believed**. The index "this member belongs to that session" expired
+exactly at `GUEST_STAR_TTL` — the very instant the Guest Star entry is judged
+stale and **queued again**. Until the answer came back, no member had a session
+any more: the slot dissolved, each member took a rank of its own, the last slots
+left the screen, then everything came back.
+
+| on a co-stream of three, TTL cut to 3 s | dissolved samples |
+| --- | --- |
+| 4.19.0 | 50 of 459 — ~340 ms at each expiry, `top(30)` at 30 instead of 32 |
+| 4.19.1 | **0** of 460 |
+
+The cache itself already serves stale data while it refreshes, and the colour
+has its grace delay for the same window. The index was the only one without: it
+now stays valid **one more TTL** (enough for the answer to arrive, and to ride out
+an error pause). A session that has really ended is still read from the answer,
+confirmed over `GUEST_STAR_DROP_CONFIRM` answers — the bench also checks that it
+comes apart.
+
+The language flag and completed members read the same index: they flickered
+with it. As for `horsClassementConnus 1` in the report received, this gap is
+**one** possible cause; it is not demonstrated.
+
+### A report line that blamed an absent bridge
+
+The report received said "observations du pont: aucune — le pont lui-même n'a
+rien rendu / bridge silent", under an attempt that succeeded in 10 ms. It had been
+opened from the **embedded panel** (the gear), which talks to the page directly:
+the bridge is not on that path, its silence is the rule. The path is now written
+next to every attempt (`#0 ok (10 ms, cadre)`), and the line says "n/a —
+embedded panel".
+
+### What was removed
+
+| removed | why it was dead |
+| --- | --- |
+| `DOM.nativeHeaderRe` | no read anywhere; the native header is hidden another way |
+| `globalChannels.placeDe` | never called; `parPlaces` goes through `placeDeRec` |
+| the `preview.originesEnAttente` export | never read — and its comment claimed "the channel queue calls it too", which no code did |
+| `options.actif` | no caller |
+| `roster.size` | no caller |
+
+Along the way, a comment still claimed that counter proximity makes a slot
+"failing" Guest Star. 4.18.0 had ruled that out by measurement; the sentence is
+corrected.
+
+### What was checked and kept
+
+`TSE_GATE_ENABLED` (a switch documented above), the `uiCcl*` labels (read by
+computed key), the visits module, the panel functions never opened on the bench,
+every CSS modifier (produced by composition), `background.js` and `bridge.js`
+reread in full. The report figures `chutes 19 · chuteMax 577`, `differees 367`
+and `retards 54 s` are healthy: ordinary decreases with no screen exit, deferrals
+counted on every pass with zero refusals, and a single sample.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the former unconditional `scheduleScan()` | 86 scans in 4 s at rest (scenario 156) |
+| the index expiring exactly at `GUEST_STAR_TTL` | 49 dissolved rankings out of 269 samples (scenario 155) |
+| an index that never expires | the slot stays glued after the session ends (scenario 155) |
+| the former report line | "bridge silent" returns, the path is named nowhere (scenario 124) |
+
+The two new scenarios run on a **variant** of the script served under Twitch's
+origin, with the constants they need — a short TTL to see several expiries, or
+the production wake-up so that one scan too many shows. Scenario 156 failed twice
+before it was right: the subscriptions sweep, accelerated on the bench,
+legitimately scans at the end of its first pass. Traced line by line, then
+waited for.
+
+## Saying why they are here, and who is not (v4.19.0)
+
+Two requests, born of the same limit left open by 4.18.1.
+
+### The flag of THEIR language
+
+Under a language filter, a co-stream member not carrying the chosen language was
+**hidden**, for lack of anything to say about them. A co-stream truncated by the
+filter is a **false** co-stream: the right answer was not to hide them, but to
+say **why** they are there.
+
+Their flag says it without a word, **to the right of the handle** — and
+**between the handle and the badge** when the channel is running a subathon, as
+requested:
+
+```
+tse-subathon-nom · tse-lang-mark · tse-subathon-jour
+```
+
+Three conditions, all required: an active filter, a channel Guest Star gives as
+a **session member** (a fact, not a resemblance of counts — which is what keeps
+ordinary cards unflagged), and a **known** language that is not the filter's.
+While we do not know, we invent nothing: the flag appears when the channel
+answer arrives.
+
+It also **comes off** — the filter changes, the session ends, the channel starts
+carrying the requested language. That is the half people forget.
+
+It follows the existing **collab** setting rather than asking for one of its
+own: another setting would cost twelve locale files and a panel line for a
+distinction nobody asked for.
+
+### Who is in the session without streaming
+
+The Guest Star answer said it **already**: it asks for `stream` per **guest**,
+and it is `null` for someone taking part without streaming — the most common
+case of a Guest Star guest. We were discarding it. **No new request.**
+
+### The silence of a field we never asked for
+
+The first draft read "no `stream`" as "not live", for everyone. The bench
+refused it on three assertions, and the cause fit in one line of **our own
+query**:
+
+```graphql
+host   { id login displayName }                      ← no stream
+guests { user { id login displayName stream { … } } } ← stream requested
+```
+
+We never asked for `stream` on the host. Its silence therefore says nothing
+about them — and a host not also listed among their own guests was **struck off
+their own session**: five members, four shown.
+
+`enLigne` now has **three states**, and the third is the one that was missing:
+
+| value | what we know |
+| --- | --- |
+| `true` | `stream` received — they are streaming |
+| `false` | `stream` requested, returned `null` — they are not streaming |
+| `null` | never requested (the "host" occurrence) — **we do not know** |
+
+Everything that drops a member drops only on `false`. `null` goes through, and
+the ordinary path settles it within a second: if the host is not live, their
+channel answer says so and their card hides itself. Ignorance is temporary; an
+accusation drawn from a silence is not.
+
+The lesson is not new in this repository, and this is the fourth time: **a
+comment asserted a property the code did not have** — "the host appears twice"
+was a field observation promoted to a guarantee.
+
+Three consequences:
+
+| | what happens |
+| --- | --- |
+| the **list** | no card for someone not streaming — "Top Channels" ranks **live** channels, and giving them one would lend them the group's count |
+| the **badge** | it still counts the **session**, so it announces more people than the list shows |
+| the **preview** | it bridges the two numbers by naming the absentees, in a grey badge — "present, but off" |
+
+Along the way, a badge that was lying without anyone noticing: **"Live with"
+named every participant**, including those not streaming. "Live with X" for an X
+who is not live is a contradiction of the two words that matter. The distinction
+is now free.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| completion abstained under a filter (4.18.1) | `ru` disappears, the co-stream shows truncated — and, in scenario 40, no group left on screen at all |
+| the flag appended at the end of the `<p>` | the order becomes name · day · flag |
+| `enLigne` ignored | `muet` gets a card carrying the group's count, on a channel that is off |
+| `enLigne` false on the host's silence | the host leaves its own session: `members 5 · shown 4 · offRanking 1` |
+
+Two assertions were **written and then removed** before reaching the bench:
+"no coloured card is alone in its group" and "every card carrying the key
+carries the colour". Checked against the code, neither can fall — a group is
+only ever made of shown cards, it is only kept from two members up, and the
+class and the key are set on the same card in the same loop. Two assertions
+green by construction are worth less than nothing: they make you believe
+something is being watched.
+
+The harness learned to play a participant **without a `stream`**: it gave one to
+everybody, so no scenario could see the difference.
+
+## A slot is complete, or it is not a slot (v4.18.1)
+
+> "Where is Lukawaaa? The co-stream should be made of three streamers, here
+> there are only two."
+
+The other two were there, **grouped, at their rank**: 4.18.0's slot was doing
+its job. The third was nowhere for a simple reason — it is in **no ranking at
+all**. Twitch's directory never returned it, neither at the top of its category
+nor anywhere else, and `setViewers` never **creates** an entry. A sorting rule
+cannot bring up what exists nowhere.
+
+### We complete the slot with what we already knew
+
+Guest Star **names** the participants and gives their combined count. Nothing
+new is asked of Twitch. The rest — category, uptime, avatar — arrives through
+the ordinary path as soon as the card exists: `TseChannels` remains the most
+authoritative voice on a channel, and the seed only bridges the gap.
+
+**And this does not touch the pool**, deliberately. An entry the directory never
+returns would accumulate absences and be evicted in three passes; it would then
+need an exemption, hence two species of entry in machinery that knows only one.
+Completion lives at **display** time, where the question arises, and disappears
+by itself when the session expires.
+
+**And only in "Top Channels"**, as requested. Elsewhere `top()` answers "is this
+channel in the ranking?" — and a completed member is precisely not: it is shown
+**with its slot**, not ranked for itself. Answering yes would make
+`estAuClassement` and the co-stream report lie, since they count what the walk
+knows.
+
+The language filter does not apply to those members either: they are not chosen
+for themselves but for the slot they belong to. Dropping a participant from an
+already-selected session would render a truncated co-stream — which is exactly
+the report.
+
+### An accepted limit: not under a language filter
+
+Of a member the directory never returned we know the **name** and the
+**combined count** — Guest Star gives them — and nothing else. Not their tags,
+so not their language. Letting them into a filtered list would amount to
+claiming they speak the one that was asked for, which we do not know.
+
+The bench showed it on an existing fixture: under a "Français" filter,
+completion brought back the very member that filter had excluded, and coloured a
+group it had split apart. So we abstain — under a filter, a slot may stay
+incomplete. The limit lifts the day a completed member carries its own tags,
+which takes a request nobody has yet judged necessary.
+
+### What the bench measures
+
+The fixture is the field's, and that is the whole point: "luka" **exists** — it
+has a stream, a category, Twitch answers for it — but no category top returns
+it.
+
+| mutant | result |
+| --- | --- |
+| the slot left incomplete | `luka` appears neither in the ranking nor on screen, and the group is drawn with two |
+
+Three witnesses: the two members the directory returns are at their rank (the
+premise), the third is completed, and the group is **drawn with three,
+contiguous** — a completed member left out of the group would show a co-stream
+nobody recognises as one.
+
+## A co-stream takes one slot, not five (v4.18.0)
+
+> "Show all the streamers of a co-stream, **but treat a whole co-stream as one
+> slot**. If that means 38 cards, fine — what matters is having the 30 best
+> slots."
+
+### What the screenshot showed
+
+A group of five **cut in two** by an unrelated channel. Members of a session
+each carry their **own sample** of the combined count — 4,795, 4,788, 4,782 —
+and a solo at 4,785 slips in between. Sorted channel by channel, the group falls
+apart on screen, joining bar included.
+
+### Two layers, and both were needed
+
+| layer | what changes |
+| --- | --- |
+| the **ranking** | a slot is one channel **or** a whole session; the five members come out together and consume a single rank |
+| the **card order** | a group sits at its **best** member's position, and its members follow one another |
+
+Fixing one without the other left the defect visible.
+
+Slot order follows each slot's best member — which falls out of the already
+sorted list: the first time a slot is met, it is through its most-watched
+channel. No extra sort, so no opportunity to diverge.
+
+### A slot comes from a fact, not a resemblance
+
+The first draft also accepted **proximity** of counts — the same signal that
+already protects the combined count. Measured on the bench: it filed `p1:3000`,
+`p2:2900` and `p3:2800` into **a single slot**. Three unrelated channels melted
+into one group, and two real slots lost from the screen.
+
+| the question | its nature | cost of a false positive |
+| --- | --- | --- |
+| "is this count a combined one?" | **protection** | a delayed refresh, which the next walk corrects |
+| "are these channels the same stream?" | **structure** | real channels hidden behind a group that does not exist |
+
+One signal cannot serve both. A slot therefore comes from **Guest Star**, and
+from it alone: it names the participants. When it stays silent, every channel
+keeps its own slot — we lose the grouping, we do not invent one.
+
+### What the bench measures
+
+Five slots requested return **nine** channels: two solos, the group's five, then
+the next one.
+
+| mutant | result |
+| --- | --- |
+| ranking counted channel by channel | `top(5)` stops at `intrus`, three members stay out |
+| proximity accepted as a slot | `p1`, `p2`, `p3` melted into a group that does not exist |
+
+And a third witness holds the reverse: **solos keep their rank by count**.
+Without it, a sort putting every group first would pass too — which is not what
+was asked.
+
+### What the rule changes in the counters, and is written down
+
+Three bench assertions described the **old** behaviour: session members stayed
+below the cut, invisible. The rule brings them up — that is the request itself —
+so the contracts moved:
+
+| counter | before | after |
+| --- | --- | --- |
+| `affiches` | 3 | **4** |
+| `sousLaCoupe` | 1 | **0** |
+| groups drawn | 0 | **1** |
+
+`sousLaCoupe` is not dead for all that: it has shrunk to what the heuristic
+alone cannot recover — a member below the cut whose session Guest Star does not
+know. And `horsClassement` keeps its full meaning: no slot can bring up what the
+walk has never seen.
+
+Two more assertions are gone, because they could **no longer fail**: they
+checked that `sousLaCoupeAvecCombine` was zero *because it was true*, on a
+fixture where `sousLaCoupe` is now zero mechanically. An assertion that can no
+longer be false is not one. What they protected — the counter's blind spot —
+stays held by scenario 143, which carries the only case where it would show up
+again.
+
+### A fixture finding, noted in passing
+
+Guest Star resolution does not fire on a channel id of an unexpected shape: the
+bench reported "no Guest Star request", hence no session, hence no slot. Found
+while investigating why the fixture stayed silent, and written into the scenario
+so the next person does not look for it again.
+
+## The fallback removed, and an alert that cried too soon (v4.17.1)
+
+### The VOD fallback, measured twenty-one times
+
+When `archiveVideo` returns `null`, a second door was tried: the channel's
+archive list, in case the running recording were only exposed there. Its comment
+had committed to judging it — *"the next report will say whether it is good for
+anything"*. Four reports answered:
+
+| report | attempts | served | gap of the archive found |
+| --- | --- | --- | --- |
+| 4.15.10 | 6 | **0** | −1 d to −17 d |
+| 4.15.11 | 3 | **0** | −1 d to −8 d |
+| 4.16.0 | 3 | **0** | −3.8 d |
+| 4.17.0 | 9 | **0** | −1 d to −8 d |
+
+**Twenty-one attempts, zero results**, and never a near miss: the most recent
+archive is always from **another day**. When `archiveVideo` returns null, the
+channel is not recording this stream — the field was telling the truth.
+
+Removing it gives back one request per affected channel, against the very
+endpoint we ration. And it does **not** touch cut detection: that goes through
+the origin probe, which asks a *different* question of the same request — "does
+an archive end **just before** this stream?" instead of "does an archive start
+**at the same time**?".
+
+### An alert that cried on a single sample
+
+> "[tse] Critical selectors no longer match Twitch's DOM — the extension may be
+> partly broken. `followedSection`: section "Followed Channels" not found (10
+> channel links)"
+
+**Nothing was broken**: the diagnostic taken right after reported the same probe
+as "ok". The alert had caught the sidebar **mid-rebuild** — the context URL says
+so, `/?lang=fr`, a reload after a language change, during which Twitch mounts
+its links before the section header.
+
+The probe already defended against a neighbouring case — it requires more than
+three links before daring to say "broken" — and its own comment stated the rule
+that was missing: *"a false critical alert costs more than a late one: it
+teaches people to ignore the next ones."*
+
+So we confirm, as everywhere else: an offline card requires `OFFLINE_CONFIRM`
+answers, a pool absence `GLOBAL_MISS_CONFIRM`, the veil waits
+`LOADING_STABILITY`. The health check was the last place shouting on one sample.
+The second reading is **scheduled**, not awaited: without it a real breakage
+would wait for the next maintenance tick.
+
+### And the counter that was missing to answer "why not the other five?"
+
+> "Why oostrix, and not the other five co-streams?"
+> `membres 6 · affiches 2 · horsClassement 4`
+
+`horsClassement` says the ranking has **no** entry for that member. It does not
+say **why**, and the two causes call for different remedies: either we know
+nothing about them, or we know their name **and** their number — through the
+session of a member that does have a card — and the ranking still doesn't have
+them. In that second case the only obstacle is that `setViewers` never
+**creates** an entry: the directory never offered them, because it files the
+session under the host, or because the member's **own** audience leaves them out
+of the top of their category.
+
+`horsClassementConnus` separates the two. The fix depends on the answer, and it
+touches the eviction machinery — an entry the directory never returns
+accumulates absences and is evicted in three passes. It will get its own version,
+and its own measurement.
+
+### What the bench measures
+
+The scenario already holding this alert's three other properties — it **names**
+the failing probe, it cries only **once** per incident, it **re-arms** after
+resolution — carries the report's exact fixture: section without its label,
+markers flipped, seven links in place. The fourth property joins it there rather
+than living beside it.
+
+| mutant | result |
+| --- | --- |
+| alerting on the first reading | a sidebar mid-rebuild is announced as "broken" |
+
+And the other halves hold the reverse: a breakage that **lasts** is still
+announced, and **stamped in the journal** — otherwise the fix would reduce to
+"never alert".
+
+### What is no longer covered, and is written down
+
+Removing the fallback takes six assertions and four sub-tests with it, and that
+has to be said rather than letting the bench go green over nothing. Two of the
+sub-tests still passed after the removal — the ones checking that **nothing** is
+displayed — but for the wrong reason: they could no longer fail. An assertion
+that can no longer fail teaches misplaced trust.
+
+So what is no longer exercised: the case of a stream that **reconnected**, whose
+recording started before the stream and covers it. The fixtures stayed in the
+harness, for the day the need comes back.
+
+## The combined count of a member we will never query (v4.17.0)
+
+### The question, and the loop it pointed at
+
+> "There's a co-stream of three and we only see two as cards. Why isn't
+> PestilenceRIOT visible?"
+
+The report put a number on it with the counter written for exactly this:
+**`sousLaCoupe 6 · sousLaCoupeAvecCombine 6`** — six members whose combined
+count we **know**, and who stay below the cut.
+
+`readStream` has known since 4.14.3 that a known combined count outranks
+whatever the directory says. But it looked it up **under the channel's own
+key**, in the Guest Star cache. And we only query Guest Star for channels that
+have a **card**. Hence a loop closing on itself:
+
+```
+no card → never queried → no Guest Star entry
+        → the directory imposes the own audience (a few hundred)
+        → below the thirtieth rank → no card
+```
+
+Nothing could reopen it.
+
+### We already knew it
+
+The Guest Star answer for a member **that does have a card** carries the list of
+**all** their mates, each with their combined count. Nothing new is asked of
+Twitch: we simply stop filing that half under a key nobody queries. A registry
+keyed by **login** — what `readStream` holds when reading the directory —
+bounded like every registry in this file, and dated on the session that returned
+it: a stale combined count is worth no more than an own audience.
+
+| | ranking | `repertoireBas` |
+| --- | --- | --- |
+| before | `hote:11736 · g1:9000 · g2:8000 · g3:7000 · modele:800 · **absent:300**` | 0 |
+| after | `hote:11736 · **absent:11736** · g1:9000 · g2:8000 · g3:7000 · modele:800` | 11 |
+
+### The two badges, seen from the other side
+
+> "Under 'Live channels', JulietteArz has the blue badge; we agreed the two
+> parts are not linked."
+
+4.16.1 targeted the **followed** list explicitly. It fixed the case where the
+**member** was elsewhere and left untouched the one where the **hovered** card
+is: from a "Live channels" card, a co-streamer from the followed list went back
+to blue.
+
+"From this list" only means something relative to the card you are looking at.
+So we start from **its own** section, whichever it is, and two cards in
+different sections never name each other.
+
+### And the second eviction route is counted separately
+
+One report made the arithmetic impossible: **`evicted 1138` against `misses
+834`**, when it takes **three** absences to evict — the documented route could
+account for at most 278. Three quarters came from **age expiry**, whose comment
+claims it is "wide enough never to compete" with the normal mechanism. It
+dominates it.
+
+Two mechanisms under one number is exactly what made the "KyriaTV" defect
+untraceable across two investigations. They are separated — `perimees` against
+`evicted` — **before** deciding anything: the next report will give the real
+magnitude, and that is what will settle whether age expiry needs the reserve
+guard the other route already has.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| combined count looked up by id only | `absent:300`, dead last, `repertoireBas 0` |
+| the followed section targeted explicitly | "Co-stream with lbw" in blue, from "Live channels" |
+
+### And an assertion that assumed instead of measuring
+
+The bench measures the probes' **cruising** cadence, and its fixture waited for
+the veil to drop before laying out its cards — which was enough, until a second
+cycle slipped in on a loaded machine: **`pointe 16`** where cruising allows
+twelve, **without any rule being broken**, since the veil purse has its own.
+
+The assertion was assuming the absence of a second cycle rather than observing
+it. The harness now stamps every call with the veil's state, and the measurement
+keeps only cruising probes — what it claims to measure.
+
+## "In the bar" means "in the list" (v4.16.1)
+
+> "I can see LittleBigWhale is co-streaming with JulietteArz, but I don't follow
+> JulietteArz — maybe because she appears further down under 'Live channels'?"
+
+The guess was right. The badge split introduced in 4.16.0 asks "does this channel
+have a card on screen?", and the question was being put to the **whole
+document**. But Twitch's sidebar holds more than the followed list: it also
+carries "Live channels" and "Recommended categories", whose cards have exactly
+the same class.
+
+A co-streamer appearing in one of those sections therefore counted as visible
+*in the list*, and their name went to the **blue** badge — the one that says
+"from this list". That is a misstatement of what the badge claims.
+
+The question is now put to **the section**, and only to it. It holds for both
+modes: ranking cards are built inside that same section, and the global mode's
+display rule adds that a followed card left in the DOM behind "Top Channels" is
+not shown, so it does not count.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the query put to the whole document | "Co-stream with juliettearz" in blue, nothing in purple |
+
+## The combined-count signature had a boundary (v4.16.0)
+
+### The report, on its third visit
+
+> "The KyriaTV bug came back, and **returned to normal a few seconds later**."
+
+Gone **then back**: so neither evicted nor ended. **Demoted**, until a walk
+restored it. Two versions had already closed two routes (4.13.1 the floor for
+truncated answers, 4.13.4 the silent removal in `setViewers`), and 4.13.1 stated
+plainly that the case was not closed. It is now, and this is a third route.
+
+### The report named it with the counter written for exactly this
+
+```
+sousLaCoupe 3 · sousLaCoupeAvecCombine 3
+chutes 131 · chuteMax 14326 · chutesHorsEcran 16
+```
+
+Three members whose combined count is **known**, and who are below the cut all
+the same. The comment that added this counter said: *"if it is known and the
+channel is still down there, then the ranking is sorting on something else — and
+that is the defect, in a single number."* Plus sixteen cards pushed off screen by
+a count drop.
+
+### A guard that gave way on a rounding edge
+
+An **own** count may not overwrite an entry carrying the signature of a
+**combined** one. The guard recognised that signature by equality of the
+**displayed** number — and a displayed number has boundaries. The two values the
+code itself cites as an example show it:
+
+```
+11,736 → "11.7K"        11,821 → "11.8K"
+```
+
+Two members of one session, two signatures, **no twin, no protection**. The
+field screenshot shows the same group split in two: "17K · 17K · 16.9K · 16.9K".
+
+Twitch samples the combined count **once per participant**: members of one
+session never return the same exact value. Comparing displayed numbers was
+adopted to absorb that spread; it absorbs it everywhere except on a boundary —
+that is, precisely where it matters.
+
+**So we group by proximity** — and the right measure of that proximity is one
+**graduation of the displayed number**, not a percentage. The bench settled it,
+and the bench had the data: a relative tolerance of 2 % covered this report's
+case (0.7 %) and broke a field reading scenario 136 had held for a long time —
+**1,093 · 1,101 · 1,148**, three members displayed "1.1K", whose largest spread
+is **4.1 %**.
+
+| session | largest spread | as % | absolute |
+| --- | --- | --- | --- |
+| 1,093 · 1,101 · 1,148 | 47 | 4.1 % | **< 100** |
+| 11,736 · 11,821 | 85 | 0.7 % | **< 100** |
+
+Both spreads are the same in absolute terms, and one hundred is exactly the step
+of the displayed number: "1.1K" moves by hundreds, so does "11.7K". Twitch's
+sampling therefore fits within **one notch of what the eye reads**, at every
+scale.
+
+Which makes this rule the old one minus its defect: comparing displayed numbers
+already amounted to bucketing by hundreds, it only failed to recognise two
+**adjacent** notches. We keep the width and drop the boundary — so there is no
+setting to guess, and no constant to turn. Below a thousand, where Twitch writes
+the plain number, a notch is one unit and only strict equality groups.
+
+Sorting makes it transitive: a group of four whose samples spread out holds
+together through its neighbours.
+
+**And the guard is keyed by login**, no longer by current value: it read the
+entry's signature *at the moment of the test*, so the first overwrite that got
+through took the protection with it. Belonging to a co-stream is a property of
+the channel during the session, not of its count at one instant.
+
+### Why the bench had not seen it
+
+Scenario 133 uses **4900 and 4900** — strictly identical counts, that is, the
+only case the guard knew how to handle. Scenario 149 plays the field's numbers.
+
+### The two badges do not say the same thing
+
+> "We see the blue co-stream badge and the purple 'Live with…' badge. I find it
+> duplicates."
+
+It did: on the screenshot, the blue said "Co-stream with LittleBigWhale" and the
+purple "Live with LittleBigWhale", one under the other, for the same person.
+
+Yet they answer two different questions, and that is what separates them:
+
+| badge | what it says |
+| --- | --- |
+| **blue** | who **from this list** the channel is streaming with — what you have in front of you |
+| **purple** | who **else** is in the session without appearing here — what the list cannot show |
+
+In "Top Channels", where the group is shown in full, the purple has nothing left
+to say and **disappears**. In "Followed channels", followed members go to the
+blue one and the rest to the purple. Both lists share the **same** source — the
+members Guest Star returns — so no name falls between the two.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| signature compared on the displayed number | both members drop to **300**, `chuteMax 11521` |
+| proximity measured as a percentage (2 %) | `bb:1148` falls back to **300** — scenario 136's reading |
+| the purple listing every member | "Co-stream with beta, gamma" **and** "Live with beta, gamma" |
+
+And scenario 149's premise holds the other half: a channel **without a twin**
+keeps its fresh count. Too wide a tolerance would freeze it, and the bench would
+say so.
+
+## Nothing to learn from a subathon (v4.15.12)
+
+The report that followed 4.15.11 confirmed all four fixes. It also carried, for
+the **second time running**, the same one-unit gap:
+
+```
+trouvees 5 · adoptees 4 · subathons.detectes 1
+trouvees 4 · adoptees 3 · subathons.detectes 1
+```
+
+A channel whose probe did find its chain, and whose adoption then threw it away.
+
+`adopterReprise` refuses subathons, and rightly so: a stream that never stops
+has no "reconnection after a cut", its interruptions do not mean the same
+thing. But it refused **after** the request, once it had gone out and been paid
+for.
+
+And the batch's comment advertised the guard — "a channel with nothing to learn:
+already probed, already chained, **subathon**". It was written nowhere in the
+code. Same class of defect as the previous version's hold bound: a sentence
+describing behaviour the program does not have.
+
+What it cost: one request against the endpoint we ration — the same one whose
+refusal rate 4.15.11 just brought from 40.7 % down to 21 % — one slot of the
+veil purse, and the veil held for an answer we were going to discard.
+
+The report gains a witness from it: `trouvees` and `adoptees` now agree, so a
+gap between them finally means something.
+
+### What the bench measures
+
+Four channels carrying the **same** chain, one of them a subathon — the only
+thing that sets it apart is its title.
+
+| mutant | result |
+| --- | --- |
+| the guard removed | a probe goes out on the subathon, `trouvees 4 · adoptees 3` |
+
+## The veil's hold had a bound, and it bounded nothing (v4.15.11)
+
+Nothing in this field report complained. It was the **veil journal** that spoke:
+
+```
+    496 ms  cycle  startup
+  10102 ms  lift   stability
+  64876 ms  cycle  entering Top Channels
+  79904 ms  lift   HARD TIMEOUT           ← fifteen seconds exactly
+ 121567 ms  cycle  language change
+ 136593 ms  lift   HARD TIMEOUT           ← fifteen seconds exactly
+```
+
+Two cycles out of three lifted by the **hard fifteen-second cap**, and the
+**forty-four refusals** from Twitch in the same report fall exactly inside
+those two windows.
+
+### One cause for both
+
+`majVerrouVoile` released at the deadline **and reset its deadline to zero**.
+The next call, seeing work still in progress, granted itself a fresh one. The
+bound advertised as "and not a second longer" was in fact a **sliding window**,
+renewed for as long as one probe remained — that is, until the hard cap.
+
+And those fifteen seconds cost **twice**, because everything keyed on "are we
+under the veil" stays in veil regime throughout: the probe purse, and above all
+the retry after a refusal, brought down to 400 ms by the previous version. The
+refusal was feeding the refusal.
+
+The bound is now **spent** once per veil cycle. When it falls while work
+remains, it is marked spent and nothing re-arms it before the next cycle.
+
+### Why the bench had not seen it
+
+Its bound was **five seconds** for a veil that dies at **1.2 s**: the hard cap
+always fell first, so the bound constrained nothing and could not fail. It is
+now 300 ms here — a quarter of the cap — and it is that ratio which makes the
+gap legible.
+
+### The purse was right, the spike was not
+
+Twitch's refusal tracks the cadence, and this report gives the fourth data
+point:
+
+| cadence | refusals |
+| --- | --- |
+| 0.18–0.25 probe/s | 21–23 % |
+| 0.45–0.48 probe/s | 33 % |
+| the veil burst | **40.7 %** (44 refusals out of 108 probes) |
+
+Measured on the bench, the burst's forty probes went out in **one
+millisecond**. Forty simultaneous requests against an anonymous endpoint is the
+exact shape a rate limiter punishes.
+
+So the purse did not shrink — the **rate** is bounded, by the cruising
+mechanism exactly: a sliding window, eight probes per second. Forty probes make
+five windows for a hold that lasts six: coverage does **not move by a single
+card**, and the spike drops from forty per millisecond to eight per second.
+
+If refusals do not come down, the purse is what shrinks next — that time with
+two measurements behind it. The deciding figure is `reseau` against `sondes`.
+
+### And the report announced a perfect network
+
+That same report carried **`echecs 0`** and `dernierEchec —` above an error
+section announcing forty-four "200 answer with GraphQL errors". Ten percent of
+calls refused, and the network section showed spotless health: whoever reads it
+looks elsewhere.
+
+A refusal is now counted separately, under `refus`. The flow does not change —
+a 200 carrying errors is still returned as-is to callers — but the two failures
+make two numbers, because they do not warrant the same conclusion: a transport
+failure says the request did not get through, a refusal says Twitch will not
+answer that one, now.
+
+### And the heaviest tab was read twice
+
+The same report carried two twin lines in the subscriptions sweep:
+
+```
+tab expired  shown · 5331 nodes · bar yes · 74 card(s) · 74 channel(s)
+tab expired  shown · 5309 nodes · bar yes · 74 card(s) · 74 channel(s)
+```
+
+The sweep reads the expired tab **alone and first** when it does not yet know
+the seniority label — it is on those cards, the simplest ones, that the label is
+learned. Then the next line decided to re-read them "if the label is known"…
+which the previous pass had just made true. Always true, then, and the heaviest
+tab went round again.
+
+There was nothing to go back for: the read learns the label **and** returns the
+seniority in the same pass — the report's two lines do return the same
+seventy-four channels. The sweep now remembers what it read, instead of
+re-reading a state it just changed itself. The cost was not theoretical: this
+sweep holds the veil.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the bound re-armed on every call | hold kept **1029 ms** for an advertised 300 |
+| the purse handed over in one block | **spike 40**, spread **1 ms** |
+| the re-read conditioned on the label | **two** loads of the `expired` tab |
+
+## A refusal from Twitch must not cost a minute (v4.15.10)
+
+> "The change arrives after a minute or two."
+
+The report attached to that sentence carries **`reseau 11`** out of thirty-seven
+probes — nearly a third refused by Twitch — with **`sousVoile 1`** out of two
+adoptions.
+
+### The minute was in a constant
+
+`RECONNECT_PROBE_RETRY` is sixty seconds, and it has its reason **while
+browsing**: retrying at once adds its request to the ones just refused, and
+feeds the cause. Under the veil that reasoning falls — nobody is browsing, the
+spend is bounded by the veil itself, and an origin learned a minute later is
+exactly what the user sees correcting itself.
+
+### And a refusal was nowhere
+
+That is the costlier half. A refused probe was **no longer in flight**, and its
+channel was **not in the queue**: the veil hold therefore did not count it, and
+the veil lifted on a card whose origin was still to be learned. Putting the
+channel back in the queue repairs both at once — the drain picks it up, and the
+veil knows it is waiting for it.
+
+Two consequences had to be handled for this to hold: a pending retry must not
+evict the channel from the queue (otherwise it is forgotten right before it
+could be picked up), and the drain's wake-up must wait for the retry deadline
+(otherwise it spins every twenty milliseconds).
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the minute-long retry applied under the veil too | **`sousVoile 5`** out of eight adoptions — the three refused ones learn after the lift |
+
+The fixture refuses the first three probes with a **200 answer carrying GraphQL
+errors**, which is the exact shape Twitch returns. Without refusals the
+scenario would measure a nominal path and be green for nothing — hence the
+first assertion, which checks the fixture played what it claims.
+
+## The veil also waits for channels it knows nothing about (v4.15.9)
+
+> "After a few seconds it shows 70h. I want the uptime with cuts included on
+> the card."
+
+The answer to the question raised in the previous version: **the VOD is the
+truth**. The card must carry the whole stream's duration, cuts included — and
+it already did, but **after** the veil lifted, before the user's eyes.
+
+The report put a number on it: `sousVoile 1` out of two adoptions, veil lifted
+at 8730 ms. One origin learned under the veil, the other after.
+
+### What the veil was not waiting for
+
+It waited for probes that had **gone out**. But the origin question cannot be
+asked before the channel is known: the probe needs a fresh `stream`, and until
+the channel batch has answered it has **nothing to accept or refuse**. A card
+whose answer arrived late therefore slipped through — the veil lifted on it,
+and its duration corrected itself afterwards.
+
+### The guard is narrow, and it must be
+
+"The queue is working" would be too broad: it works **constantly**, every cache
+entry that expires goes back into it. The veil would then hold until its
+deadline on every page, including on a fully known sidebar — six seconds paid
+for nothing.
+
+The right question is narrower: **is there still a channel we have never had an
+answer for?** That one, and only that one, prevents the origin question from
+being asked. A routine refresh concerns an already known channel: its card
+already shows the right duration.
+
+Measured after the fix, on an ordinary fixture: **lift at 1046 ms**,
+unchanged.
+
+### What measurement says, and what the bench does not hold
+
+On a fixture where the channel answer takes 1.2 s: the veil used to lift at
+**250 ms**, it now lifts at **1245 ms**. And on an ordinary fixture,
+**1046 ms**, unchanged — the narrow guard costs nothing.
+
+**This fix has no assertion, and that is written down rather than glossed
+over.** Three forms were tried, none holds: reading the durations at the lift
+(the mutation observer fires between the answer and the write to the card),
+requiring a veil witness (it must be seeded from the current state, the startup
+veil predating the scenario's script), comparing the lift date to a threshold
+(which depends on when the first batch goes out, not controlled).
+
+Scenario 144 holds the other half — under the veil, origins *are* learned and
+durations read at the lift. What remains uncovered is the wait for still
+unknown channels, verified by hand. Writing that gap down is worth more than a
+green assertion that measures nothing: that is exactly what the three attempts
+did.
+
+## Everything must be ready when the veil lifts (v4.15.8)
+
+> "I assure you that at the very start it announced about twenty hours of
+> uptime on this account. Now it shows the cuts properly. I want that cut data
+> taken into account **during the veil** — everything must be ready when the
+> veil disappears."
+
+The log dated the defect: `cycle 484 ms · lift 10720 ms`. Ten seconds of veil,
+during which twelve probes per thirty seconds let four go out. The other cards
+learned their origin **after** the lift — hence a counter jumping from twenty
+hours to sixty-eight before the user's eyes.
+
+### The rate is made for browsing, not for waiting
+
+It exists so as not to hammer Twitch while someone is looking at the list.
+Under the veil **nobody is looking** — and whatever is not learned by the lift
+will be seen correcting itself. The veil therefore now has its own budget, made
+new at each cycle and spent without spreading.
+
+The cost is **bounded and rare**: at most `RECONNECT_PROBE_VEIL_BURST`
+requests, once per veil cycle — at startup, on entering Top Channels, on a
+language change — and never while browsing.
+
+**What is not yet known, and will be measured.** Twitch refuses about one probe
+in five, and the slope of that refusal against rate was only measured between
+0.18 and 0.48 probes per second. A burst of forty is outside that range. The
+report's `sousVoile`, `reseau` and `enFile` counters will say whether the trade
+is good; if it is not, that number is what comes down.
+
+### Three things that had to be fixed to get there
+
+**1. A deferred channel waited for a future batch.** A batch only goes out when
+a card asks for a channel the cache does not know: many at startup, then
+nothing. The module now drains its own queue.
+
+**2. "Not known yet" is not "not concerned".** The guards filed under a single
+*no* two situations that nothing connects: a channel with nothing to learn, and
+a channel whose answer is simply in flight. The second stayed lost. Measured:
+six cards kept their segment's duration at the lift.
+
+**3. The veil hold was asserted in the wrong place.** Set inside the scan, like
+global mode's — but probes start from a network answer, and a scan only fires
+on a DOM mutation. Once the cards are posted nothing moves, so no scan, and the
+stability timer lifted the veil while thirty-one probes were in flight. The
+hold is now set **from the module that knows**, as the subscriptions sweep
+does, and its deadline runs from the moment there is something to wait for —
+not from the cycle opening, which was already well spent.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the veil budget reduced to the cruising one | **11 cards out of 30** at "5h00", `enFile 19` at the lift |
+
+The scenario measures what the cards showed **at the instant** the veil fell —
+not before, not after. Its observer lives in the page and only fires after
+having *seen* the veil up: without that condition it would capture the first
+mutation that came along, veil absent, and be green for nothing. The first
+draft fell into exactly that trap.
+
+**What no mutant covers, and it must be said:** the hold itself. With the
+burst, probes return before the veil has any reason to wait — so the "veil with
+no hold" mutant passes green. The hold remains the safety net for slow
+networks; it is verified active by measurement, not by an assertion.
+
+## The combined count of a member we will never query (v4.15.7)
+
+> "Several problems, co-streams not visible in Top Channels."
+
+The report carried **`sousLaCoupe 14`**: fourteen session members known to the
+ranking but fallen below the cut — therefore sorted on their **own** audience,
+a few hundred, instead of the combined count Twitch displays.
+
+### First: my instrument said "nothing abnormal", and it was lying
+
+The same report carried `sousLaCoupeAvecCombine 0`, and that counter exists
+precisely to separate the healthy case from the defect. It read:
+
+```js
+const idm = getChannelId(l);        // ← the CARD cache
+if (idm && Number.isFinite(getCollabViewers(idm))) …
+```
+
+But this branch counts exactly the members **without a card**. The id was
+therefore always null, the counter always zero, and "14 · 0" read as "fourteen
+impossible anomalies". **A counter that cannot fire is worse than no counter**:
+it produces a conclusion. It now reads the combined count where it actually is.
+
+### The answer already carried what was missing
+
+We only query Guest Star on ids we know, and we only know the ids of channels
+**that have a card**. A member below the cut has none: no request will ever go
+out for it.
+
+But the query asks, for each guest:
+
+```graphql
+guests { user { id login displayName stream { collaborationViewersCount } } }
+```
+
+**Every member's id and combined count travel in the same answer.** We kept
+only the login and the name, and extracted the combined count only for the
+*queried* channel — that is, for the one with a card, the only one that did not
+need it. Half of every answer went in the bin.
+
+Nothing new is asked of Twitch: we simply stop throwing it away.
+
+### And the probe window, one notch too tight
+
+4.15.6 capped origin probes at six per thirty seconds. The report gives both
+halves of the result: the refusal rate did come down — 21 % — but
+**`differees 514`**, meaning the window denied a slot five hundred times while
+letting forty-eight probes through. A 130-card sidebar would have taken eleven
+minutes.
+
+| rate | refusals |
+| --- | --- |
+| 0.18 /s | 21 % |
+| 0.25 /s | 23 % |
+| 0.48 /s | 33 % |
+
+**The slope is shallow, and that is the finding.** Paying twice the coverage
+time for two points of refusal is a bad trade. Twelve per window keeps the
+rule — a budget counted in time, not in batches, which remains the underlying
+fix — without paying that price.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the other members' combined counts thrown away | **`sanscarte:120`** instead of `sanscarte:4000` |
+
+The fixture reuses scenario 139's, **which provably makes the request go
+out**, and adds a third member with no channel entry and no card. The first
+assertion checks the session was actually resolved: without it, the second
+would measure a fixture with no co-stream and be green for nothing.
+
+## The probe rate was counted in batches, not in time (v4.15.6)
+
+No visible defect here: one report, read next to the previous one. The
+comparison is what speaks.
+
+| | 4.15.4 | 4.15.5 |
+| --- | --- | --- |
+| page lifetime | 473 s | 250 s |
+| probes | 119 | 119 |
+| **rate** | 0.25 /s | **0.48 /s** |
+| **refusals ("service error")** | 23 % | **33 %** |
+
+The rate doubled, the refusal rate followed. Only two points, but they rise
+together — and the cause was written in the code's own comment.
+
+### "Six per batch" meant "six per cycle"
+
+And that is not what it said. A batch does not go out every thirty seconds:
+**it goes out as soon as a card asks for a channel the cache does not know** —
+at startup, on every card that enters, and relentlessly in Top Channels, where
+the list keeps renewing. Measured in the report: one hundred and nineteen
+probes in two hundred and fifty seconds, one every two seconds, where the
+comment promised six every thirty.
+
+The budget is therefore now counted per **time window**, which is the only
+thing the rate actually depends on. A batch is merely an *opportunity* to spend
+that budget, no longer a licence to spend six.
+
+### And the refusal was feeding its own cause
+
+4.15.4 handed the session back to the register with no delay — already better
+than losing it, which cost eighteen cards per page. But retrying on the
+**next** cycle adds its request to the ones just refused, which raises the
+rate, which causes more refusals. A loop that sustains itself.
+
+A refusal is now deferred by a clear delay, and given up after three attempts:
+beyond that it is no longer a network hiccup, it is a refusal, and persisting
+would only feed it. Both outcomes are counted — `differees` and `abandonnees` —
+so the next report says whether the window is too narrow instead of leaving it
+to be guessed.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the budget taken per batch instead of per time | **peak of 14** probes in a window that allows 6 |
+
+This assertion measures neither a display nor a counter: **it measures a
+rate**, the busiest window of the whole scenario. It required a timestamp from
+the harness, because a rate cannot be read from a list of calls — and that is
+exactly why the bench saw nothing while the field was counting refusals.
+
+## The line below counted differently from the two above (v4.15.5)
+
+> "The uptime on the card is the same as the one next to 'Previously…',
+> however there is a one-minute difference on the time below the trail."
+
+Screenshot attached: the card and the trail total both said **3h02**, and the
+line just below — *"Grand Theft Auto V · live"* — said **3h03**.
+
+### Why this is 4.15.2's mistake, one line further down
+
+4.15.2 gave the trail's **total** the card's convention: an elapsed duration
+truncates. It stopped there. But the legend just below carries each category's
+duration, and the **current** category's also ends at *now* — it is a gap to
+now, not a measured interval. Rendered by `formatDuree`, it rounded.
+
+**On a single-category trail, that line IS the total.** The product was
+therefore showing two numbers for the same thing, a centimetre apart.
+
+```js
+approche((c.encours ? formatEcoule : formatDuree)(c.dureeMs))
+```
+
+A **finished** category keeps its rounding, and rightly so: it is bounded by
+two known instants, it is an interval. The question is not *where it is shown*
+but *is it still running*.
+
+**Folded** lines do not have the question: the current category is never
+folded, and what remains is made of closed intervals.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the current line rendered by `formatDuree` | **trail 3h00, line 3h01** |
+
+The assertion joins the sub-test that **picks its phase** — the gap only exists
+past the half-minute, and a fixture that leaves it to chance detects it only
+half the time. The fixture has a single category precisely so its line and the
+total are the same number: making them diverge is then a contradiction, not a
+rounding nuance.
+
+## What the field refused, and what 4.15.2 had conflated (v4.15.4)
+
+> "ca73cca worked, but this one doesn't."
+
+Three corrections, all born of the report attached to that sentence.
+
+> **On the number.** These three corrections were first published as
+> **4.15.3**, pushed before its bench had finished. This repository does not
+> publish what it has not tested: 4.15.4 carries exactly the same code, this
+> time run through the full bench before being pushed. 4.15.3 should not be
+> installed.
+
+### Batching was tried, and the field refused it
+
+The first draft went further: since GraphQL accepts an **array of operations**
+and answers in the same order — that is already how global mode queries its
+twenty categories — twelve probes could fit into a single round trip. The
+reasoning held. **It was wrong**, and it survived exactly one version.
+
+Two reports side by side say so without ambiguity:
+
+| | one operation per request | twelve operations per request |
+| --- | --- | --- |
+| `sondes` | 8 | 48 |
+| `servies` | **8** | **5** |
+| `vides` | 0 | 25 |
+| `reseau` | 0 | 18 |
+| `adoptees` | 2 | **0** |
+
+Forty-three probes out of forty-eight refused, and the log names the refusal:
+*"200 answer carrying GraphQL errors — service error"*. No origin learned, so
+the card counted the segment again and the trail had no past — **the two
+defects this version exists to fix, back through the side door**.
+
+**What sets this batch apart from global mode's**, and what should have been
+seen first: `TseCategoryTop` returns a list of channels, `TseVodRecent` returns
+*archives with their chapters*, for each channel. Twelve of those in one
+request is not twelve times more rows, it is twelve times a job Twitch charges
+to its service. That it refuses makes sense; assuming it accepted **without
+measuring** was the mistake.
+
+So we return to the measured shape — one operation per request — and the
+per-pass budget stops at **six**: three times 4.15.1's, and six round trips
+every thirty seconds at worst.
+
+### A refusal is not an answer
+
+The register of already-probed sessions exists so a channel is not probed
+twice. That is right when Twitch has **answered**, including to say "nothing".
+A refusal teaches nothing: keeping it in memory lost that channel's origin for
+the whole life of the page. The report put a number on it — **eighteen probes
+lost to the network, eighteen cards condemned to count their segment until a
+reload**. The session is now handed back to the register, and the next pass
+retries.
+
+### The chapters guard had changed meaning without changing text
+
+On hover, one line decided whether to ask for the current segment's chapters:
+`!preludeDe(login) && friseACombler(login)`. **3.72** wrote it knowingly — back
+then `fetchChapitres` was the *only* writer of a stream's past, so "this stream
+has a past" meant "we already asked for its chapters". The sentence was true,
+and it bounded the spend to one request per session.
+
+**The origin probe became a second contributor**, and it writes the segments
+from *before* the cut. Its mere presence was then enough to stop us asking for
+the *current* one — two different pieces of information the guard had been
+conflating ever since. The defect slept while the probe only went out on hover,
+where it ran alongside this line without having got ahead of it; it became
+constant once the batch started probing every card.
+
+A first attempt **removed** the guard, which reopened one request every ten
+minutes per hovered channel. Instead we ask 3.72's question as it stood: *have
+we already asked for this segment's chapters?*, and that is read in
+`fetchChapitres`'s own register, nowhere else. The original bound is handed
+back intact — **one request per stream session, not one more, exactly the same
+volume as before**.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| a pass's probes grouped into one request | 3 requests of 6 operations instead of 14 of one |
+| the old chapters guard put back | scenario 102: **20 assertions out of 22** |
+
+The first does not measure a behaviour, **it holds a shape**. The harness
+answers anything, grouped or not: both pass green there, which is precisely why
+the refusal reached the user and not the bench. The assertion exists so nobody
+groups them a second time, the day the idea looks economical again.
+
+The second was already written, and long ago: scenario 102 required the two
+sources of the past to **meet**, and a session to be probed **only once**. Both
+requirements hold together, and that is what sets this correction apart from
+the one before it.
+
+## Two origins per page, and not one more (v4.15.2)
+
+> "Nothing is fixed."
+
+The report attached to that message showed that 4.15.1's machinery **worked**:
+`sondes 8 · servies 8 · trouvees 2 · adoptees 2`, on a seventy-eight-second-old
+page carrying twenty-four card rows. Eight probes went out, **six of them from
+hovers**. The batch had therefore launched only two — and would never launch
+more, however long it was given.
+
+### The budget was spent before the filter
+
+The origin probe has its guards: session already probed, channel already
+chained, subathon, per-page ceiling. They lived **inside** the probe, and the
+batch calling it knew nothing about them. So the batch picked its two candidates
+on the only criterion it had — "this channel has a stream" — and the probe then
+refused them in one line:
+
+```js
+// before: the batch caps BEFORE knowing whether the probe will accept
+if (entry?.stream?.id && aSonder.length < CFG.RECONNECT_PROBE_PER_BATCH) {
+  aSonder.push(login);
+}
+```
+
+**The batch's order is the list's order**, hence stable from cycle to cycle. The
+budget landed every time on *the same two channels*, already probed on the first
+pass. Two origins learned per page, then nothing — while the `sondes` counter
+stayed low and looked sensible.
+
+The fix is one displacement: the batch hands over its **whole** list, and the
+probe takes the first ones it accepts, budget included. What decides and what
+counts now live in the same place.
+
+### And the minute of drift against "Previously…"
+
+> "Many cards are about a minute off."
+
+4.15.1 addressed a real cause — the unobserved share below the tolerance, which
+vanished from the total. A second one remained, and it comes down to one verb.
+The trail's total ends at *now*, so it is a gap to now, exactly like the card's
+counter. Yet it was rendered by `formatDuree`, which **rounds**, where the card
+**truncates**:
+
+```js
+const formatDuree  = (ms) => enForme(Math.max(0, Math.round(ms / 60_000)));
+const formatEcoule = (ms) => enForme(Math.max(0, Math.floor(ms / 60_000)));
+```
+
+Past the half-minute, the two numbers diverged by a full minute. The house
+convention — *an elapsed duration truncates, a measured interval rounds* — was
+written right above; what was missing was applying it to the total.
+
+### What measurement ruled out
+
+The card's counter only beats once a minute, which made a presentable second
+suspect. It is innocent: **every scan rewrites the duration** from the dataset
+(`applyChannelData`), and `REFRESH_TICK` schedules one every five seconds. The
+card is therefore never more than five seconds behind itself, and nothing was
+changed on that side — a constant lowered without a demonstrated defect is a
+constant that will be lowered again.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the batch budget taken before the guards | **6 cards out of 14** at "5h00", the other eight frozen at "1m" |
+| the trail total rendered by `formatDuree` | **card 3h00, trail 3h01** |
+
+The first needs **more cards than one batch's budget** — fourteen against
+six — otherwise the defect does not exist: which is why 4.15.1's sub-test,
+with its single channel, already passed. It opens no preview and checks that
+(`survols 0`), and it reads the report to require fourteen probes and fourteen
+adoptions.
+
+The second **picks its phase**: the gap only exists past the half-minute, and a
+fixture that leaves the phase to chance detects it only half the time. The start
+is set forty seconds past a full minute, which leaves eighteen seconds of margin
+before the mutant goes invisible again.
+
+## The card and the trail say the same number (v4.15.1)
+
+Two defects reported together, both born of 4.15.0 — and it is the same duration
+at fault.
+
+### 1. "The time only updates on hover"
+
+> With a screenshot: a channel at **10h15** on the card, then **57h32** as soon
+> as the preview opened.
+
+**This was not a refresh defect**, and that is why the card's timer could do
+nothing about it: it was beating the right mechanism on the **wrong origin**.
+
+An outage that happened **before** the page was opened is in no memory — not
+ours, which did not exist, and not Twitch's, which only serves the current
+segment. Only the archive says so, and the probe that reads it went out **on
+hover only**.
+
+It now also goes out for displayed cards, **without changing what it costs**:
+exactly the same guards — one operation per stream *session*, never on an
+already-chained channel, never on a subathon, per-page cap. What changes is
+*when* it is issued, not how often. Two probes per batch cover a sidebar in a
+few cycles, without a spike.
+
+### 2. "About a minute off from Previously"
+
+The cause fits in one number: **`CATEGORY_TRAIL_TOLERANCE` is ninety seconds**,
+which is exactly the order of magnitude reported.
+
+`inconnuMs` measures the unobserved part of the stream — from its start to our
+first sighting. Below the tolerance we zero it, and rightly so: a second of
+hatching for our own sampling latency tells nobody anything. But **we zeroed it
+without giving it back to anyone**. The trail's total is
+`inconnuMs + Σ segments`: that part therefore vanished from the total, while the
+card, counting from the origin, lost nothing.
+
+It is now **absorbed by the first segment**, which is the only honest thing to
+do with it: a gap shorter than our own sampling cadence is not ignorance, it is
+measurement noise, and it belongs to the category around it. The total becomes
+`now − origin` **by construction** — the same number as the card, not a number
+that resembles it.
+
+### Which of the two was right?
+
+**The card.** It counted from the origin and lost nothing; it was the trail that
+forgot up to ninety seconds. Both now meet on the card's value.
+
+### What the bench measures
+
+| mutant | result |
+| --- | --- |
+| the probe returned to hover only | the card shows **"1m"** instead of "5h00" |
+| the sliver not given back to the first segment | **card 3h01, trail 3h00** |
+
+The first case **never opens the preview** — that is its whole point — and
+verifies it: `survols 0`, `sondes ≥ 1`. Without that witness, the assertion would
+also pass the day a hover slipped into the fixture.
+
+The second needs **two**: a clear gap above the tolerance, which already passed
+and must keep passing, and one below, which is the reported case. Without the
+first, we would not know whether the fix broke the legitimate unobserved part.
+
+## The card counts the stream, not the segment (v4.15.0)
+
+### What the screenshot showed
+
+A card announced **3h41**. An inch below, in the same channel's preview:
+**"PREVIOUSLY ON THIS STREAM · 1 outage · 10h11"**, with a timeline totalling a
+full ten hours.
+
+So the product held **two truths at once about the same thing**, and it was the
+user who had to reconcile them.
+
+### First: does the outage system work?
+
+Yes, and it is stricter than "under ten minutes" — it requires **two** bounds,
+both at ten minutes, and it needs both:
+
+| bound | what it requires |
+| --- | --- |
+| `RECONNECT_GAP_MAX` = 10 min | the channel was **seen online** less than ten minutes ago |
+| `FRESH_MAX_MIN` = 10 min | the new segment **started** less than ten minutes ago |
+
+The first bound is tighter in practice than it looks: "seen online" comes from
+the sweep, which runs every thirty seconds. The measured gap is therefore the
+real interruption, to within half a minute.
+
+Two more exclusions: a **subathon** never chains its restarts — Twitch requires
+a relaunch every forty-eight hours, and chaining would report "14 outages" where
+nothing unusual happened — and an **unchanged** stream id is not a resumption
+but the same session.
+
+On the screenshot everything agrees: one outage counted, a 10h11 total, and a
+current segment of 3h41.
+
+### The reversal, and it is the third round
+
+It has to be said, because this decision has already changed twice:
+
+- **3.98** put the whole stream's duration on the card;
+- a later version **undid it** on user feedback, with an argument that stood up:
+  *"two truths about one thing are worth less than one well placed"* — the
+  session on the card, the stream in the preview.
+
+**The reasoning was right and its conclusion wrong.** It assumed only one could
+be shown. The screenshot proves otherwise: both were shown anyway, an inch
+apart.
+
+Between following Twitch and answering the question you actually ask when
+reading a sidebar — *how long have they been live* — the second one wins.
+
+### What changes, and what does not
+
+`debutReel()` already existed: it carries the stream's origin across outages,
+and the timeline has used it for a long time. The card now reads the same
+source.
+
+**On a channel that has not cut, the two timestamps are identical** and nothing
+moves — which is the vast majority of cards. The difference only appears after a
+recognised outage.
+
+**The purple bar stays off on a resumption**, as before. Its guard becomes a
+belt on top of braces, though: the card's age is now six hours and the
+ten-minute threshold would suffice on its own. It is kept because it is the only
+place that says **why**, and because the two thresholds are equal by coincidence
+of value, not of nature.
+
+### Two comments that contradicted each other
+
+At the exact point of assignment, two neighbouring blocks said opposite things:
+one described reading the origin, the other explained that the session is what
+counts. The first was a leftover from the previous round, left in place by the
+revert. They are merged into one, which says what the code does and why the
+opposite choice fell.
+
+### What the bench measures
+
+Scenario 95's assertion is on its **third round**, and says so in its comment. It
+is **turned around**, not deleted:
+
+| | assertion |
+| --- | --- |
+| before | "the card's counter does restart from zero: it is the session" |
+| after | "the counter keeps the STREAM's start, not the segment's" |
+
+And one assertion more, because the dataset is not enough: **the duration
+rendered on screen must carry hours**, not segment minutes. Without it, a
+correct `tseStartedAt` and a broken display would both pass green.
+
+### The guide and the listings follow
+
+Chapter 4 announced the old rule in **twelve languages**: "the purple bar does
+not light up again, **but their counter does restart from zero**". It now says
+the opposite, and its second bullet stops presenting the whole duration as a
+preview-only exception — it is the rule everywhere, the preview adding the
+**number** of outages and their drawing on the timeline.
+
+The **twelve store listings** promised the same thing. They now distinguish what
+Twitch does — reset the counter — from what the extension does: keep showing the
+whole stream.
 
 ## The first sweep is contested by nobody (v4.14.5)
 
@@ -6856,6 +8796,10 @@ it is what the purple bar says. So the bar stays off (the guard is back in
 restarts from zero as Twitch serves it, and the whole stream is read in the
 preview — which does have room for both.
 
+> **Reversed in 4.15.0.** The card now carries the whole stream's duration:
+> see *The card counts the stream, not the segment*.
+
+
 **The trail, though, was starting over**, and that was the real damage. It was
 invisible from the code: `suivreCategorie` resets as soon as the stream id
 changes, and it changes on every resumption. Anyone hovering after a three-minute
@@ -8878,15 +10822,17 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 | `tse:visits` | your visit dates per channel | "Most visited" sort |
 | `tse:roster` | followed channels seen in the sidebar | posting a card before Twitch |
 | `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
-| `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months and the former-subscriber flag | "My subscriptions first" sort, card styling, preview badge |
+| `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months, the former-subscriber flag and their due date (anniversary or expiry) | "My subscriptions first" sort, card styling, preview badge |
 | `tse:substs` | date of the last full scan, prefixed by the reader version that produced it | spacing scans 6 h apart, and expiring those of an earlier version outright |
 | `tse:submois` | the tenure label, learned from the page | reading the month count without depending on the language |
+| `tse:sondes` | what Twitch answered the reconnection probes, per stream identifier, 48 h at most | not asking again on reload what is already settled |
 
 `tse.reset()` wipes them all at any time; clearing `twitch.tv`'s site data from
 your browser settings does the same.
 
-**Top Channels** adds nothing to that list: it stores nothing, does not even
-persist the selected mode, and its requests take exactly the same anonymous path
+**Top Channels** adds nothing to that list, except that its cards get their
+probe verdicts in `tse:sondes` like any other: it stores nothing else, does not
+even persist the selected mode, and its requests take exactly the same anonymous path
 as the rest of the extension — `credentials: 'omit'`, public Client-ID, no
 session token, no extra permission.
 
@@ -8981,7 +10927,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 141 scenarios, 1240 assertions |
+| `npm test` | the Playwright harness: 164 scenarios, 1363 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

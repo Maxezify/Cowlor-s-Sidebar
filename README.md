@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1098 Ko | 410 Ko | 3 391 → **2** |
+| `content.js` | 1247 Ko | 449 Ko | 3 540 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 100 Ko | 48 Ko | 134 → **0** |
+| `panneau.js` | 101 Ko | 48 Ko | 139 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1344 Ko** | **563 Ko** | **−57 %** |
+| **les cinq** | **1497 Ko** | **604 Ko** | **−59 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2616,6 +2616,2003 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Les deux rapports de la 4.20.0, pris au mot (v4.21.0)
+
+> « Fais toutes les propositions, soit rigoureux. »
+
+Quatre changements, tous désignés par les deux rapports de terrain de la
+4.20.0, et un cinquième que le banc a trouvé en éprouvant le deuxième.
+
+### A — Les échéances se comptent au rapport
+
+La 4.20.0 ne pouvait pas dire si les dates de Twitch se lisaient : il fallait
+survoler un badge. Chaque ligne d'onglet en cours porte désormais ses
+échéances lues, rapportées à ses chaînes, et le bloc des compteurs leur
+total :
+
+```
+onglet gifts   bascule (adresse) · … · 12 carte(s) · 12 chaîne(s) · 12/12 échéance(s) lue(s)
+compteurs.echeances   13
+```
+
+« 12/12 » dit que les dates se lisent, « 0/12 » qu'elles ne se lisent pas —
+la question que la 4.20.0 laissait ouverte se tranche au prochain rapport.
+
+### B — La signature du combiné se prouve par l'audience propre
+
+Les rapports comptaient **665 combinés au classement sur 1 677**, puis **107
+sur 196**, pour deux sessions réelles. La signature du répertoire — deux
+chaînes d'une catégorie à moins d'une graduation l'une de l'autre — prenait
+pour un co-stream toute paire de chaînes ordinaires voisines, et figeait leur
+compteur sur celui du répertoire.
+
+La proximité n'est plus qu'un **soupçon**. Il se tranche dès que l'audience
+propre de la chaîne arrive :
+
+| audience propre | verdict |
+| --- | --- |
+| moins de 90 % du nombre du répertoire | **confirmé** : c'est une part d'un combiné (300 contre 11 736 sur le terrain) — protégé, compté combiné |
+| 90 % ou plus | **démenti** : c'est son audience à elle — l'audience fraîche s'écrit |
+
+La **preuve survit** à la publication suivante, et c'est ce qui manquait
+depuis la 4.16.0 : deux échantillons du combiné qui s'écartent d'un cran
+faisaient perdre la signature, et avec elle la protection. Le rapport distingue
+désormais les trois états : `signaturesSupposees` (sans audience propre encore
+— d'ordinaire, des chaînes sans carte), `signaturesConfirmees`,
+`signaturesRefutees`. `combinesAuClassement` ne compte plus que ce que Guest
+Star a dit ou que l'audience propre a prouvé.
+
+**Et le battement que le scénario 133 décrivait sans le corriger.** Chaque
+marche reconstruisait le classement depuis le répertoire — plus récent en date
+de lecture, moins juste en contenu que l'audience que `TseChannels` venait de
+donner — et le compteur d'une carte retombait au nombre du répertoire jusqu'au
+lot de chaînes suivant : un à deux relevés sur vingt. Le démenti le rendait
+urgent : les voisines ordinaires que la signature figeait recevaient enfin leur
+audience fraîche, et la perdaient à chaque marche. La publication préfère
+désormais l'audience propre récente (moins de deux périodes de
+rafraîchissement) **tant qu'elle est proche** du répertoire — un répertoire loin
+au-dessus, c'est une chaîne qui entre en co-stream, et c'est à la signature de
+trancher.
+
+### C — Les refus par régime, et un seuil au-dessus du bruit
+
+Le voile et la croisière comptent chacun leurs sondes et leurs refus, et
+chacun règle **sa** cadence sur **ses** réponses : une bouffée de voile ne
+ralentit plus la navigation. Le rapport les donne séparément
+(`reprise.voile.*`, `reprise.croisiere.*`).
+
+Le seuil de la 4.20.0 — ralentir au-delà d'un refus sur dix — était **sous le
+bruit de fond**. Les deux rapports ont donné 17 % de refus à 0,02 sonde/s et
+20 % à 0,33 : quinze fois la cadence pour trois points de plus. Avec les deux
+mesures de la 4.15.6 (23 % à 0,25, 33 % à 0,48), ces quatre points dessinent un
+fond d'environ 15 % que la cadence ne fait pas baisser. Le second rapport
+finissait à deux sondes par fenêtre, vingt-quatre chaînes en attente.
+
+| sur dix réponses | décision |
+| --- | --- |
+| trois refus ou plus (> 25 %) | la cadence est divisée par deux |
+| deux refus | on garde |
+| un refus au plus (≤ 10 %) | la cadence remonte |
+
+Sur un fond de 15 %, trois refus ou plus arrivent une fois sur cinq, un au plus
+une fois sur deux : la cadence tend à monter. À 30 %, trois sur cinq contre
+une sur sept : elle tend à descendre.
+
+### D — Le rafraîchissement lit le combiné qu'un camarade a donné
+
+Le second rapport portait « perteCombine · 6 281 → 2 055 · sortieEcran true »,
+sans qu'aucune session n'ait été lâchée ni n'ait maigri. La marche lisait le
+combiné d'un membre dans la réponse de son **camarade** (4.17.0) ; le lot de
+chaînes, et la carte, ne lisaient que la réponse **à sa propre clé** — qui
+disait « pas de session » pour une carte qui venait d'apparaître. Ils
+écrivaient l'audience propre, la carte sortait de l'écran, et la marche
+suivante la ramenait. Les trois lisent désormais les mêmes sources.
+
+### Ce que je n'ai pas pu vérifier
+
+Les deux seuils — 90 % pour la signature, 25 % / 10 % pour la cadence —
+viennent de mesures de terrain peu nombreuses, et le raisonnement qui les porte
+est écrit à côté de leurs constantes. Le prochain rapport dira les deux régimes
+de sondes séparément et les trois états de la signature : c'est de quoi les
+revoir sur pièces. Le régime d'une sonde se lit à son **départ** ; aucun
+scénario ne distingue ce choix d'une lecture à l'arrivée, parce que les réponses
+du banc reviennent dans la milliseconde.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| le compte d'échéances par onglet non posé | « undefined/3 » sur chaque onglet |
+| le total des échéances absent | le bloc des compteurs se tait |
+| la ligne d'onglet sans ce compte | le panneau ne l'imprime plus |
+| pas de démenti — la proximité protège seule, comme avant | « voisin1 » figé à 5 000, deux voisines ordinaires comptées combinées |
+| la preuve non retenue | les deux membres d'une session tue retombent à 300 |
+| le soupçon compté comme preuve | les deux voisines muettes comptées parmi les combinés |
+| la protection sans la preuve | la signature perdue d'un cran : les membres tombent à 300 |
+| les supposées comptées sans ôter les preuves | quatre supposées au lieu de deux |
+| le démenti qui garde la nature « combiné » | vingt spectateurs de moins comptés comme un combiné perdu |
+| la publication qui reprend le répertoire | « milieu:900 » dans les vingt relevés du 133 ; « voisin1 » bat entre 4 800 et 5 000 dans le classement d'une catégorie |
+| l'audience fraîche préférée sans regarder l'écart | une chaîne qui entre en co-stream tu reste à 2 000, jamais protégée |
+| un seul régime pour les deux | le voile n'a jamais rien reçu, et sa bouffée reste à huit |
+| le voile, ou la croisière, sans sa cadence | huit d'un coup sous le voile ; douze par fenêtre en croisière |
+| le seuil de la 4.20.0 (10 %) | un refus sur cinq divise la cadence |
+| un seuil trop lâche (40 %) | un refus sur trois ne la divise pas |
+| la remontée sans marge | un refus sur cinq la fait remonter |
+| pas de remontée | la croisière reste au plancher |
+| le lot de chaînes sans l'index des membres | « 300 » au classement, huit pertes de combiné en six secondes |
+| la carte sans l'index des membres | la carte affiche « 300 » |
+
+Les scénarios 163 et 164 sont neufs ; le 160 est réécrit pour les deux
+régimes et les deux seuils ; le 133 compte vingt relevés au lieu d'un ; le 158
+et le 70 lisent les échéances au rapport.
+
+## Un petit espace entre le pseudo et le drapeau (v4.20.1)
+
+> « Peux-tu mettre un tout petit espace entre le pseudo et le drapeau ; je le
+> trouve un peu collé. »
+
+Le drapeau d'un co-streamer d'une autre langue suivait le texte du pseudo sans
+rien entre eux. Sur une carte en subathon, le pseudo et ses marques forment une
+rangée flex dont l'écart (4 px) les sépare déjà ; ailleurs, rien. Le drapeau
+reçoit donc **le même écart, seulement là où il manque** — le poser partout
+l'aurait doublé sur les cartes en subathon.
+
+**Un second défaut, trouvé en le mesurant.** Le décor du banc porte une règle
+de l'hôte, `.metacell span { display: block }`, qui bat une classe seule. Hors
+subathon, le drapeau y passait **sous** le pseudo, sur une ligne à lui ; la
+rangée flex du subathon masquait le défaut, et c'était le seul cas que le
+scénario 154 éprouvait. Son sélecteur porte désormais deux classes, comme la
+pastille du jour depuis longtemps.
+
+| mutant | résultat |
+| --- | --- |
+| la marge retirée | 0 px, le drapeau collé au pseudo |
+| la marge posée sur toutes les cartes | 8 px sur une carte en subathon |
+| le sélecteur ramené à une classe | le drapeau sous le pseudo, sur sa propre ligne |
+
+Le scénario 162 est neuf ; le 154 mesure l'écart sur une carte en subathon.
+
+## L'échéance au badge, les onglets de Twitch, et des sondes qui écoutent (v4.20.0)
+
+> « Abonnement payé : Abonné • 51 MOIS • Prochain anniversaire dans 9 jours.
+> Abonnement offert : Abonné • 1 MOIS • Expire dans 8 jours. »
+
+Cinq changements, demandés ensemble après la 4.19.2 : un badge qui dit
+l'échéance, un relevé qui clique les vrais onglets de Twitch, des sondes qui
+se souviennent et qui ralentissent quand Twitch refuse, et un rapport qui dit
+ce qu'une chute a fait tomber.
+
+### 1. L'échéance, dans le badge d'abonnement
+
+Le badge de l'aperçu disait « Abonné • 51 MOIS ». Il dit maintenant la suite :
+
+| abonnement | badge |
+| --- | --- |
+| payé ou mobile | `Abonné • 51 MOIS • Prochain anniversaire dans 9 jours` |
+| offert | `Abonné • 1 MOIS • Expire dans 8 jours` |
+| le jour même | `… • Anniversaire aujourd'hui` / `… • Expire aujourd'hui` |
+| échéance passée | `Abonné • 51 MOIS` — le relevé suivant la remplacera |
+
+**Lu sans un mot de français**, comme l'ancienneté depuis la 3.48. Les cartes
+relevées le 24/09/2026 portent :
+
+```
+payée   Prochain anniversaire d'abonnement dans : 5 jours
+        Nombre total de mois abonné : 40 mois
+        Nombre de mois à la suite : 40 mois
+        Date de renouvellement de l'abonnement : 29 sept. 2026 (dans 4 jours)
+
+offerte Prochain anniversaire d'abonnement dans : 23 jours
+        Abonnement offert par : (un pseudonyme)
+        Nombre total de mois abonné : 1 mois
+        Nombre de mois à la suite : 1 mois
+        Vos avantages arrivent à expiration le 17 oct. 2026 (dans 22 jours)
+```
+
+- **L'anniversaire** est la première valeur *avant* l'étiquette de
+  l'ancienneté (déjà apprise sur les expirés) qui porte **un seul nombre**,
+  dans une **autre unité** que l'ancienneté — « jours » contre « mois »,
+  comparés sans être lus. Une date porte deux ou trois nombres, la série se
+  compte en mois : ni l'une ni l'autre ne passent pour lui.
+- **L'expiration** est une date, et une date ne se lit pas sans connaître la
+  langue. On l'**écrit** donc : les dates des 400 prochains jours, mises en
+  forme par `Intl` dans la langue de la page, et on cherche celle que la carte
+  porte — bornée par des non-chiffres, sans quoi « 2 nov. » se lirait dans
+  « 12 nov. ».
+- **On garde une date, jamais un compte de jours**, et le badge recompte à
+  l'affichage en jours de calendrier locaux — c'est ainsi que Twitch compte ses
+  « (dans 4 jours) ». Un compte relevé six heures plus tôt serait faux.
+
+Stockée comme sixième champ de `tse:subs`, et visible dans le panneau (colonne
+« Échéance », douze langues).
+
+**Un défaut trouvé en chemin.** Le relevé promettait depuis la 3.52 que « le
+premier onglet à trouver une chaîne est celui qui la sert ». `noteSource`
+réécrivait pourtant toute origine différente : le dernier onglet gagnait. Un
+abonnement payé doublé d'un cadeau en attente — la même chaîne dans deux
+onglets — se lisait « offert », avec la date de fin du cadeau pour
+anniversaire. Le premier onglet sert désormais l'origine, et l'échéance avec
+elle.
+
+### 2. Le relevé clique les vrais onglets de Twitch
+
+La 4.19.2 cherchait des liens `?tab=` d'après une capture. La console de
+l'utilisateur a montré la vérité : six `<button role="tab"
+data-a-target="tw-tab-link">`, **sans adresse**. Aucun lien trouvé, donc une
+page rechargée par onglet — sans que le rapport le dise.
+
+Les onglets sont maintenant désignés par leur **place**, dans l'ordre relevé
+(payés, offerts, mobiles, Turbo, autres, expirés) — leurs libellés sont traduits
+et portent un compte, on ne les lit pas. Une place ne se croit pas sur parole :
+
+- **avant le clic**, la barre doit compter exactement six onglets, et celui que
+  la page dit choisi (`aria-selected`) doit être, à sa place, celui qu'elle
+  affiche ;
+- **après le clic**, l'adresse doit nommer l'onglet voulu ; si elle n'a pas
+  bougé — Twitch ne la tient peut-être pas à jour — le bouton cliqué doit être
+  devenu le choisi. Une adresse partie vers un *autre* onglet dément tout.
+
+Le rapport dit désormais pourquoi il a rechargé (« bascule abandonnée : 7
+onglet(s) dans la page, 6 attendus », « l'adresse dit « mobile », « gifts »
+attendu »…) et quel témoin a prouvé chaque clic (`bascule (adresse)` ou
+`bascule (aria-selected)`). C'est ce que le prochain rapport nous apprendra
+du vrai Twitch.
+
+### 3. Les verdicts des sondes survivent au rechargement
+
+Le rapport de terrain : **191 sondes, 7 origines trouvées, 64 refus**. Les 184
+autres n'avaient rien trouvé — un direct sans coupure, le cas normal — et
+chacune était redemandée à chaque rechargement, sur le point d'entrée que
+Twitch rationne.
+
+Pour un identifiant de stream, la réponse **ne change jamais** : ce qui précède
+un direct est fixé quand il démarre, et une nouvelle coupure crée un nouvel
+identifiant. Chaque verdict est donc gardé 48 heures (la durée maximale d'un
+direct Twitch) dans `tse:sondes`, au plus 300 : « rien ne raccorde », et les
+reprises avec leurs coupures et leurs chapitres. Un rechargement ne sonde plus
+que les directs apparus depuis. Les refus ne se gardent pas : ils n'apprennent
+rien sur le direct. Un verdict périmé, illisible ou rangé sous une autre chaîne
+est ignoré — une requête ne coûte qu'une requête, une origine fausse coûte une
+carte fausse.
+
+Le rapport compte à part ce qui vient du disque (`memorisees`,
+`memoireAdoptees`, `residentVerdicts`), pour que `trouvees` contre `adoptees`
+garde son sens. `tse.reset()` les efface avec le reste.
+
+### 4. La cadence des sondes suit ce que Twitch répond
+
+La 4.15.6 avait mesuré la pente : **23 % de refus à 0,25 sonde/s, 33 % à 0,48**.
+S'obstiner nourrit le refus. Douze sondes par trente secondes n'est plus qu'un
+plafond : sur chaque échantillon de **dix réponses**, plus d'un refus sur dix
+**divise la cadence par deux** (jamais sous deux par fenêtre) ; un échantillon
+propre la **remonte de deux**. La cadence du voile suit dans la même
+proportion : c'est là que tombaient la plupart des refus.
+
+Ce que ça coûte, et c'est voulu : quand Twitch refuse beaucoup, l'origine d'un
+direct coupé arrive plus tard sur certaines cartes. Le rapport dit la cadence
+courante et combien de fois elle a baissé ou remonté (`cadence`, `ralenties`,
+`remontees`).
+
+### 5. Une chute dit ce qui est tombé
+
+« chuteMax 49 744 » ne disait pas ce qui était tombé. Trois choses se
+cachaient sous ce seul nombre :
+
+| nature | ce que c'est |
+| --- | --- |
+| `perteCombine` | la chaîne portait un **combiné** de co-stream, et redevient son audience propre — la session finit, ou sa signature se perd |
+| `combine` | le combiné **lui-même** baisse (Guest Star le dit) |
+| `propre` | une audience propre qui baisse, sur un direct toujours en cours |
+
+La nature d'un nombre se pose là où il naît, sur l'entrée du classement : la
+marche quand elle y applique un combiné connu, la publication quand la
+signature du répertoire le reconnaît, `setViewers` à chaque écriture. Le rapport
+donne, par nature, le nombre de chutes et la plus forte, puis le contexte de la
+plus grande (`nature`, `avant`, `apres`, `sortieEcran`), et combien d'entrées du
+classement portent un combiné en ce moment.
+
+Ce qui ne se voit pas, et que le rapport ne prétend pas voir : la fin d'un
+direct n'est pas une chute (elle est comptée ailleurs, `creux` et `evicted`),
+et un raid ne se distingue pas avec les données qu'on reçoit.
+
+### Ce que je n'ai pas pu vérifier
+
+`www.twitch.tv` reste refusé par le proxy de cette machine. La barre d'onglets
+est modélisée d'après la console de l'utilisateur, les cartes d'après ses
+captures. Deux inconnues demeurent, et le rapport est écrit pour y répondre :
+**l'adresse suit-elle le clic ?** (la preuve imprimée de chaque bascule) et
+**la date d'expiration est-elle un texte seul dans son élément ?** (sinon, la
+carte ne donne rien au badge, et l'échéance d'un offert manque — sans
+mentir). La mise en forme des dates est celle d'`Intl` : si Twitch écrit les
+siennes autrement dans une langue, l'expiration n'y sera pas lue.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| l'ancienne recherche de liens `?tab=` | aucun onglet trouvé, quatre pages chargées |
+| la raison de la bascule abandonnée non consignée | le rapport dit quatre « page » et rien d'autre |
+| le témoin `aria-selected` retiré | chaque clic refusé, quatre pages quand l'adresse ne suit pas |
+| le compte des onglets retiré | un septième onglet lu comme les offerts, et sa chaîne dorée |
+| le contrôle de l'onglet choisi retiré | des onglets réordonnés : les expirés dorés |
+| une adresse partie ailleurs acceptée | deux onglets échangés : chaque chaîne prend l'origine de l'autre |
+| la ligne de bascule, ou le témoin, retirés du rapport | le panneau ne les imprime plus |
+| les dates cherchées sans bornes | « 2 nov. » lu dans « 12 nov. » : dix jours d'avance |
+| l'origine ignorée à la lecture, ou à l'affichage | l'offert dit « Prochain anniversaire dans 23 jours » |
+| l'unité non comparée | la série (3 mois) passe pour l'anniversaire |
+| le nombre unique non exigé | le « 3 » de « 3 mars 2023 » passe pour l'anniversaire |
+| le sixième champ non relu | le badge perd son échéance au rechargement |
+| une échéance passée affichée | « dans -1 jour » |
+| `record()` qui perd l'échéance | aucun badge n'a d'échéance |
+| le dernier onglet qui gagne (avant la 4.20.0) | un payé doublé d'un cadeau devient « offert » |
+| les dates hors de la signature de stabilité | une liste écrite carte par carte perd la dernière date |
+| les verdicts non relus / les « rien » non gardés | huit, ou six, requêtes au rechargement au lieu de deux |
+| un verdict périmé, ou d'une autre chaîne, cru | un direct coupé compte son tronçon |
+| la reprise mémorisée non rejouée | deux directs coupés comptent leur tronçon |
+| `tse.reset()` qui oublie les verdicts | `tse:sondes` survit à la remise à zéro |
+| pas de ralentissement / pas de remontée | la cadence reste à douze, ou au plancher pour la vie de la page |
+| la croisière, ou le voile, qui ignorent la cadence | douze par fenêtre, huit d'un coup, au plus fort des refus |
+| la nature tirée du seul Guest Star | la session finie passe pour une audience qui baisse |
+| la marche, ou la signature, muettes sur la nature | zéro combiné au classement |
+| le combiné égal non marqué | un combiné au classement au lieu de deux, quand Guest Star confirme le nombre du répertoire |
+| la plus grande chute non retenue | le rapport ne dit plus ce qui porte `chuteMax` |
+
+Le 53 gagne quatre cas (f, g, h, i) et le décor de la page des abonnements
+prend la forme réelle — boutons, cartes payées et offertes. Le 50 attend
+l'échéance à la suite du badge. Le 70 lit les deux lignes neuves du rapport.
+Les 158 à 161 sont neufs.
+
+## Twitch refuse sa page d'abonnements, et le relevé apprend à le dire (v4.19.2)
+
+> « Le système de reconnaissance des abonnements ne fonctionne pas, ironmouse
+> n'est pas en dorée. »
+
+### Ce qui se passait
+
+Le rapport portait quatre lignes jumelles :
+
+```
+onglet expired  affiché · 1098 nœuds · barre oui · 0 carte(s) · 0 chaîne(s)
+                · la page dit : « Abonnements Vos abonnements Abonnements offerts … »
+```
+
+La veille, le même onglet rendait **5 331 nœuds et 74 cartes**, avec le même
+code : le module du relevé n'avait pas bougé depuis la 4.15.10, ni `adblock.js`,
+ni le pont. Une capture a tranché : ouverte à la main, la page de Twitch
+affichait elle-même « **Impossible d'afficher vos abonnements pour le moment** »,
+et la console portait `failed integrity check` sur les cinq requêtes de la page
+— `subscriptionBenefits: null`. **Twitch refusait de servir la liste, à sa
+propre page.** Aucune extension ne lit ce que Twitch n'affiche pas, et celle-ci
+ne touche ni au jeton ni au contrôle d'intégrité.
+
+Les abonnements déjà connus avaient disparu pour une autre raison, dite par
+l'utilisateur : il repart toujours d'une installation neuve. Le relevé est
+additif et n'efface jamais rien ; il n'avait simplement plus rien à reprendre.
+
+### Ce qui était à nous
+
+**1. Quatre pages Twitch pour une seule donnée.** Le relevé chargeait une page
+par onglet, quatre à la fois. La console a montré ce que chacune demande en se
+chargeant : **un lot, cinq opérations** — payés, offerts, mobiles, tous,
+expirés. On charge désormais **une** page, et on change d'onglet en cliquant les
+liens qu'elle affiche, comme un utilisateur. Si la page n'en offre pas, ou si le
+clic ne change pas l'adresse, on recharge — une page par onglet, l'un après
+l'autre. Quatre démarrages de l'application Twitch en deviennent un, et quatre
+passages du contrôle d'intégrité aussi.
+
+Le danger d'une bascule est de lire l'onglet d'AVANT : sur un profil neuf, ce
+sont les expirés, et les lire comme des abonnements en cours les **dorerait**.
+L'adresse doit avoir changé, et des cartes identiques à celles de l'onglet
+précédent doivent tenir bien plus longtemps avant qu'on y croie.
+
+**2. Une barre d'onglets sans rien dessous n'est pas un onglet vide.** Le relevé
+concluait « vide » après sept secondes de page immobile — avant que Twitch
+n'écrive sa phrase. Il attend maintenant que le **panneau** réponde, cartes ou
+message. Une fois qu'un onglet a rendu quelque chose, les autres viennent du
+même lot : un panneau vide y est un onglet vide, même dessiné sans un mot.
+
+**3. « La page dit » recopiait le titre et les onglets.** On ne relève plus que
+le texte **sous** la barre d'onglets, écartée par sa nature (titres, liens
+d'onglets) et non par sa langue. Le rapport aurait porté la phrase de Twitch.
+
+**4. Un défaut de confidentialité, trouvé au passage.** Quand Twitch renomme
+ses cartes, le panneau **est** la liste — et sa « phrase » versait les noms des
+chaînes auxquelles on est abonné dans un rapport qui promet de n'en porter
+aucune. On compte désormais les liens de chaînes, et ce nombre suffit au
+verdict : « N lien(s) de chaîne dans la page, aucun dans une carte : le
+sélecteur ne correspond plus ».
+
+**5. Un relevé vide verrouillait six heures.** Twitch rétabli dix minutes plus
+tard, rien ne revenait avant le soir. Après un relevé qui n'a vu **aucune carte
+nulle part**, le suivant revient au bout de quinze minutes, puis du double à
+chaque nouvel échec, jusqu'à la période ordinaire. Le rapport dit où on en est :
+
+| ligne | ce qu'elle dit |
+| --- | --- |
+| `relevés vides d'affilée` | le nombre d'échecs qui ont raccourci l'attente |
+| `prochain relevé dans` | l'attente restante, en minutes |
+| `onglet … page / bascule / bascule refusée` | comment chaque onglet a été lu |
+
+**Quand s'arrêter.** Une page jamais venue ne viendra pas mieux au chargement
+suivant : arrêt immédiat. Un panneau blanc tout le garde-fou, c'est d'ordinaire
+Twitch qui ne sert pas la liste — on s'arrête au second d'affilée, plutôt que
+d'enchaîner quatre garde-fous pour le même résultat.
+
+### Ce que ça coûte
+
+Lus l'un après l'autre, les onglets vides paient chacun leur apaisement : un
+relevé passe d'une dizaine de secondes à une vingtaine quand deux onglets sont
+vides — en arrière-plan, toutes les six heures. Sur une installation neuve, le
+voile se lève toujours au premier résultat. Un compte réellement sans abonnement
+paie cinq relevés de plus, une fois.
+
+`SUBS_PAGE_STAGGER` disparaît avec les départs décalés, et un commentaire qui
+décrivait une constante supprimée depuis longtemps (« au-delà de ce nombre de
+nœuds… ») part avec lui.
+
+### Ce que je n'ai pas pu vérifier
+
+`www.twitch.tv` est refusé par le proxy de cette machine : la barre d'onglets
+en liens `?tab=` et le message d'un onglet vide sont **modélisés** d'après la
+capture. Les deux replis couvrent l'écart — recharger si la bascule échoue,
+conclure sans texte une fois les données arrivées. Et rien ne dit si
+l'extension contribue au refus d'intégrité de Twitch : le test qui tranche se
+fait chez l'utilisateur, extension désactivée, sur `/subscriptions`.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| « la page dit » lu sur `main` entier (4.19.1) | « Abonnements Vos abonnements… » — le rapport de terrain, mot pour mot |
+| l'apaisement qui court sur un panneau blanc | la phrase de Twitch manquée, texte vide |
+| pas de nouvel essai rapproché | « 2:<date> », rien avant la période ordinaire |
+| une page par onglet (plus de bascule) | quatre chargements au lieu d'un |
+| les cartes de l'onglet d'avant acceptées | deux abonnements **expirés** dorés |
+| les liens de chaînes non comptés | « jenfirer Réabonnez-vous… » dans le rapport |
+| les cartes comptées « au plus haut » après une bascule | « gifts · 3 carte(s) · 1 chaîne(s) » — l'onglet d'avant, compté pour le suivant |
+| la preuve du panneau exigée de chaque onglet | des onglets vides sans texte au garde-fou |
+| l'arrêt au premier panneau blanc | le relevé s'arrête d'un onglet trop tôt |
+| aucun arrêt | quatre garde-fous à la file |
+
+Quatre scénarios décrivaient l'ancienne architecture et ont été réécrits pour
+dire la nouvelle : le 53 affirmait « les onglets partent ensemble », le 141
+bornait les pages par le nombre d'onglets (deux relevés en doublon n'auraient
+plus dépassé la borne), le 147 comptait les iframes plutôt que les lectures, et
+le 46 bornait une durée qui ne distinguait plus son mutant. Le 157 est neuf.
+
+## L'audit : une boucle, un trou, une ligne fausse, et cinq morts (v4.19.1)
+
+> « Un audit complet de l'extension, vérifie chaque élément de code pour au final
+> retirer le moindre code mort. Réfléchis sérieusement à des optimisations. Ne
+> supprime pas des fonctionnalités. »
+
+### Comment on a cherché
+
+Lire vingt et un mille lignes à l'œil ne prouve rien. Trois outils, chacun pour
+ce qu'il sait voir :
+
+| outil | ce qu'il a dit |
+| --- | --- |
+| couverture V8 par blocs, fusionnée sur les 154 scénarios | 92,1 % du code de `content.js` exécuté, 88,5 % de `panneau.js` ; 265 fonctions sur 1 093 jamais appelées |
+| arbre syntaxique (espree) : chaque membre d'objet défini contre chaque lecture | cinq membres sans lecteur |
+| clés `CFG`, `STRINGS`, `_locales`, classes CSS | toutes lues ou posées |
+
+**Non exécuté ne veut pas dire mort.** Les 265 fonctions ont été triées une à
+une : API de console (`tse.rythme()`…), actions du panneau (import, purge), variantes
+du DOM de Twitch, chemins d'erreur, tri « popularité » (une visite ne compte
+qu'après cinq minutes sur une chaîne — c'est aussi pourquoi le rapport disait
+`visites 0` après 200 s). Tout cela sert ; rien de cela n'a été touché.
+
+### Une boucle de balayage, quatre fois par seconde, pour toujours
+
+Mesuré avec les constantes de **production**, sur une page immobile :
+
+| | balayages par seconde au repos |
+| --- | --- |
+| 4.19.0 | **3,9**, sans fin |
+| 4.19.1 | **0,2** — le réveil prévu, toutes les cinq secondes |
+
+La trace de la pile a nommé l'appelant du premier coup : `majVerrouVoile`. Elle
+terminait par un `scheduleScan()` **inconditionnel** — « le voile ne se lève que
+sur un scan : en voici un ». Or le balayage l'appelle à chaque passage ; hors
+cycle de voile, il n'y avait rien à lever, et chaque balayage en programmait un
+autre 250 ms plus tard. Chaque lot de chaînes et chaque sonde en ajoutaient un.
+
+Un balayage coûte ~10 ms sur une barre de 138 cartes (profil par étape : aucun
+point chaud, `processCard` en prend le tiers). La boucle tenait donc environ
+**4 % d'un cœur en permanence**, onglet visible ; il en reste environ 0,2 %.
+
+**Le correctif :** un balayage seulement si **ce module tenait le verrou**, et
+jamais quand l'appelant est le balayage lui-même, qui enchaîne sur `notifyScan`.
+
+**Et un compteur pour que cela se voie :** `page.balayages.total` et
+`page.balayages.derniereMinute` au rapport. Au repos, une douzaine par minute ;
+la boucle en aurait montré ~240.
+
+### Une place qui se dissolvait toutes les trente secondes
+
+Trouvé en lisant le code autour de `horsClassementConnus`, et **mesuré avant
+d'être cru**. L'index « tel membre appartient à telle session » expirait à
+`GUEST_STAR_TTL` pile — l'instant même où l'entrée Guest Star est jugée périmée
+et **remise en file**. Le temps que la réponse revienne, aucun membre n'avait
+plus de session : la place se dissolvait, chaque membre reprenait un rang à lui,
+les dernières places sortaient de l'écran, puis tout revenait.
+
+| sur un co-stream de trois, TTL réduit à 3 s | échantillons dissous |
+| --- | --- |
+| 4.19.0 | 50 sur 459 — ~340 ms à chaque expiration, `top(30)` à 30 au lieu de 32 |
+| 4.19.1 | **0** sur 460 |
+
+Le cache lui-même sert déjà le périmé pendant qu'il se rafraîchit, et la
+couleur a son délai de grâce pour la même fenêtre. L'index était le seul à ne
+pas en avoir : il reste désormais valable **un TTL de plus** (de quoi laisser
+arriver la réponse, et traverser une pause d'erreur). Une session réellement
+finie se lit toujours dans la réponse, confirmée en `GUEST_STAR_DROP_CONFIRM`
+réponses — le banc vérifie aussi qu'elle se défait.
+
+Le drapeau de langue et les membres complétés lisent le même index : ils
+clignotaient avec. Quant à `horsClassementConnus 1` dans le rapport reçu, ce
+trou en est **une** cause possible ; ce n'est pas démontré.
+
+### Une ligne de rapport qui accusait un pont absent
+
+Le rapport reçu portait « observations du pont : aucune — le pont lui-même n'a
+rien rendu / bridge silent », sous un essai réussi en 10 ms. Il avait été ouvert
+depuis le **panneau incrusté** (la roue crantée), qui parle à la page
+directement : le pont n'est pas sur ce chemin, son silence est la règle. La voie
+est maintenant écrite à côté de chaque essai (`#0 ok (10 ms, cadre)`), et la
+ligne dit « sans objet — panneau incrusté ».
+
+### Ce qui a été retiré
+
+| retiré | pourquoi il était mort |
+| --- | --- |
+| `DOM.nativeHeaderRe` | aucune lecture, nulle part ; l'en-tête natif se masque autrement |
+| `globalChannels.placeDe` | jamais appelée ; `parPlaces` passe par `placeDeRec` |
+| l'export `preview.originesEnAttente` | jamais lu — et son commentaire affirmait que « la file des chaînes l'appelle aussi », ce qu'aucun code ne faisait |
+| `options.actif` | aucun appelant |
+| `roster.size` | aucun appelant |
+
+Au passage, un commentaire affirmait encore que la proximité des compteurs
+faisait une place « à défaut » de Guest Star. La 4.18.0 l'avait écartée par la
+mesure ; la phrase est corrigée.
+
+### Ce qui a été vérifié et gardé
+
+`TSE_GATE_ENABLED` (interrupteur documenté plus haut), les libellés `uiCcl*` (lus
+par clé calculée), le module des visites, les fonctions du panneau jamais ouvertes
+au banc, chaque modificateur CSS (produits par composition), `background.js` et
+`bridge.js` relus en entier. Les chiffres du rapport `chutes 19 · chuteMax 577`,
+`differees 367` et `retards 54 s` sont sains : baisses ordinaires sans sortie
+d'écran, reports comptés à chaque passage avec zéro refus, et un seul échantillon.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| le `scheduleScan()` inconditionnel d'avant | 86 balayages en 4 s au repos (scénario 156) |
+| l'index expiré à `GUEST_STAR_TTL` pile | 49 classements dissous sur 269 échantillons (scénario 155) |
+| un index qui n'expire jamais | la place reste collée après la fin de la session (scénario 155) |
+| la ligne de rapport d'avant | « bridge silent » revient, la voie n'est nommée nulle part (scénario 124) |
+
+Les deux nouveaux scénarios tournent sur une **variante** du script servie sous
+l'origine de Twitch, avec les constantes qu'il leur faut — un TTL court pour voir
+plusieurs expirations, ou le réveil de production pour qu'un balayage de trop se
+remarque. Le scénario 156 a d'ailleurs échoué deux fois avant d'être juste : le
+relevé des abonnements, accéléré au banc, balaie légitimement à la fin de son
+premier passage. Tracé ligne à ligne, puis attendu.
+
+## Dire pourquoi il est là, et qui n'y est pas (v4.19.0)
+
+Deux demandes, nées de la même limite laissée ouverte par la 4.18.1.
+
+### Le drapeau de SA langue
+
+Sous filtre de langue, un membre de co-stream qui ne porte pas la langue
+choisie était **caché**, faute de savoir quoi dire de lui. Un co-stream amputé
+par le filtre est un co-stream **faux** : la bonne réponse n'était pas de le
+cacher, mais de dire **pourquoi** il est là.
+
+Son drapeau le dit sans un mot, **à droite du pseudo** — et **entre le pseudo
+et la pastille** quand la chaîne est en subathon, comme demandé :
+
+```
+tse-subathon-nom · tse-lang-mark · tse-subathon-jour
+```
+
+Trois conditions, et il les faut toutes : un filtre actif, une chaîne que Guest
+Star donne pour **membre d'une session** (un fait, pas la ressemblance des
+compteurs — c'est ce qui évite de pavoiser une carte ordinaire), et une langue
+**connue** qui n'est pas celle du filtre. Tant qu'on ne sait pas, on n'invente
+rien : le drapeau apparaît quand la réponse de chaîne arrive.
+
+Il se **défait** aussi — le filtre change, la session se termine, la chaîne se
+met à porter la langue demandée. C'est la moitié qu'on oublie.
+
+Il suit le réglage **collab** existant plutôt que d'en demander un à lui : un
+réglage de plus coûterait douze fichiers de locale et une ligne de panneau pour
+une distinction que personne n'a demandée.
+
+### Qui est dans la session sans diffuser
+
+La réponse Guest Star le disait **déjà** : elle demande `stream` par **invité**,
+et il vaut `null` pour qui participe sans diffuser — le cas le plus courant d'un
+invité Guest Star. On le jetait. **Aucune requête nouvelle.**
+
+### Le silence d'un champ qu'on n'a pas demandé
+
+La première rédaction lisait « pas de `stream` » comme « n'est pas en direct »,
+pour tout le monde. Le banc l'a refusée sur trois assertions, et la cause tenait
+en une ligne de **notre propre requête** :
+
+```graphql
+host   { id login displayName }                      ← pas de stream
+guests { user { id login displayName stream { … } } } ← stream demandé
+```
+
+On n'a jamais demandé `stream` sur l'hôte. Son silence ne dit donc rien de lui —
+et un hôte qui ne reparaît pas aussi parmi ses invités se voyait **rayé de sa
+propre session** : cinq membres, quatre affichés.
+
+`enLigne` a désormais **trois états**, et le troisième est celui qui manquait :
+
+| valeur | ce qu'on sait |
+| --- | --- |
+| `true` | `stream` reçu — il diffuse |
+| `false` | `stream` demandé, rendu `null` — il ne diffuse pas |
+| `null` | jamais demandé (l'occurrence « hôte ») — **on ne sait pas** |
+
+Tout ce qui écarte un membre n'écarte que sur `false`. `null` passe, et la voie
+ordinaire tranche d'elle-même en une seconde : si l'hôte n'est pas en direct, sa
+réponse de chaîne le dit et sa carte se masque. L'ignorance est temporaire ;
+l'accusation tirée d'un silence, non.
+
+La leçon n'est pas neuve dans ce dépôt, et c'est la quatrième fois : **un
+commentaire affirmait une propriété que le code n'avait pas** — « l'hôte figure
+deux fois » était une observation de terrain promue en garantie.
+
+Trois conséquences :
+
+| | ce qui se passe |
+| --- | --- |
+| la **liste** | aucune carte pour qui ne diffuse pas — « Top Chaînes » classe des chaînes **en direct**, et lui en donner une lui prêterait le compteur du groupe |
+| la **pastille** | elle continue de compter la **session**, donc elle annonce plus de monde que la liste n'en montre |
+| l'**aperçu** | il raccorde les deux nombres en nommant les absents, dans un badge gris — « présent, mais éteint » |
+
+Au passage, un badge qui disait faux sans que personne l'ait vu : **« En live
+avec » nommait tous les participants**, y compris ceux qui ne diffusent pas.
+« En live avec X » pour un X qui n'est pas en live est un contresens sur les
+deux mots qui comptent. La distinction est désormais gratuite.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la complétion abstenue sous filtre (4.18.1) | `ru` disparaît, le co-stream se montre amputé — et, au scénario 40, plus aucun groupe à l'écran |
+| le drapeau ajouté en fin de `<p>` | l'ordre devient nom · jour · drapeau |
+| `enLigne` ignoré | `muet` reçoit une carte portant le compteur du groupe, sur une chaîne éteinte |
+| `enLigne` faux sur le silence de l'hôte | l'hôte quitte sa propre session : `membres 5 · affichés 4 · horsClassement 1` |
+
+Deux assertions ont été **écrites puis retirées** avant d'atteindre le banc :
+« aucune carte colorée n'est seule dans son groupe » et « toute carte portant la
+clé porte la couleur ». Vérification faite dans le code, ni l'une ni l'autre ne
+peut tomber — un groupe ne se constitue que de cartes affichées, il n'est retenu
+qu'à partir de deux membres, et la classe et la clé sont posées sur la même
+carte dans la même boucle. Deux assertions vertes par construction valent moins
+que rien : elles font croire qu'on surveille.
+
+Le harnais a appris à jouer un participant **sans `stream`** : il en donnait un
+à tout le monde, si bien qu'aucun scénario ne pouvait voir la différence.
+
+## Une place est complète, ou elle n'est pas une place (v4.18.1)
+
+> « Où est Lukawaaa ? Le co-stream devrait être composé de trois streamers, là
+> il n'y en a que deux. »
+
+Les deux autres étaient bien là, **groupés, à leur rang** : la place de la
+4.18.0 faisait son travail. Le troisième était introuvable pour une raison
+simple — il n'est dans **aucun classement**. Le répertoire de Twitch ne l'a
+jamais rendu, ni en tête de sa catégorie ni ailleurs, et `setViewers` ne
+**crée** jamais d'entrée. Une règle de tri ne peut pas faire apparaître ce qui
+n'existe nulle part.
+
+### On complète la place avec ce qu'on savait déjà
+
+Guest Star **nomme** les participants et donne leur combiné. Rien de neuf n'est
+demandé à Twitch. Le reste — catégorie, ancienneté, avatar — arrive par la voie
+ordinaire dès que la carte existe : `TseChannels` reste la voix la plus
+autorisée sur une chaîne, et l'amorce ne sert qu'à tenir l'intervalle.
+
+**Et cela ne touche pas le pool**, délibérément. Un enregistrement que le
+répertoire ne rend jamais accumulerait ses absences et se ferait évincer en
+trois passes ; il faudrait alors l'exempter, donc distinguer deux espèces
+d'entrées dans une machinerie qui n'en connaît qu'une. La complétion vit à
+l'**affichage**, là où la question se pose, et disparaît d'elle-même quand la
+session expire.
+
+**Et seulement en « Top Chaînes »**, comme demandé. Ailleurs, `top()` sert à
+répondre « cette chaîne est-elle au classement ? » — et un membre complété n'y
+est justement pas : il est montré **avec sa place**, pas classé pour lui-même.
+Répondre oui ferait mentir `estAuClassement` et le bilan de co-stream, qui
+comptent ce que la marche connaît.
+
+Le filtre de langue ne s'applique pas non plus à ces membres : ils ne sont pas
+choisis pour eux-mêmes mais pour la place à laquelle ils appartiennent. Écarter
+un participant d'une session déjà retenue rendrait un co-stream amputé — c'est
+exactement le signalement.
+
+### Une limite assumée : pas sous filtre de langue
+
+D'un membre que le répertoire n'a jamais rendu, on connaît le **nom** et le
+**combiné** — Guest Star les donne — et rien d'autre. Pas ses tags, donc pas sa
+langue. Le faire entrer dans une liste filtrée reviendrait à affirmer qu'il
+parle celle qu'on a demandée, ce qu'on ignore.
+
+Le banc l'a montré sur un décor existant : sous filtre « Français », la
+complétion faisait apparaître le membre que ce filtre avait justement écarté, et
+coloriait un groupe qu'il avait disjoint. On s'abstient donc — sous filtre, une
+place peut rester incomplète. La limite se lèvera le jour où un membre complété
+portera ses propres tags, ce qui demande une requête que personne n'a encore
+jugée nécessaire.
+
+### Ce que le banc mesure
+
+Le décor est celui du terrain, et c'est tout son intérêt : « luka » **existe**
+— il a un stream, une catégorie, Twitch répond pour lui — mais aucun sommet de
+catégorie ne le rend.
+
+| mutant | résultat |
+| --- | --- |
+| la place laissée incomplète | `luka` n'apparaît ni au classement ni à l'écran, et le groupe se dessine à deux |
+
+Trois témoins : les deux membres que le répertoire rend sont à leur rang (la
+prémisse), le troisième est complété, et le groupe se **dessine à trois,
+contigus** — un membre complété mais laissé hors du groupe afficherait un
+co-stream qu'on ne reconnaît pas comme tel.
+
+## Un co-stream occupe une place, pas cinq (v4.18.0)
+
+> « Affiche l'ensemble des streamers d'un co-stream, **mais considère
+> l'ensemble d'un co-stream comme une place**. S'il y a du coup 38 cartes, ce
+> n'est pas grave — l'important est d'avoir les 30 meilleures places. »
+
+### Ce que la capture montrait
+
+Un groupe de cinq **coupé en deux** par une chaîne étrangère. Les membres d'une
+session portent chacun leur **propre échantillon** du compteur combiné —
+4 795, 4 788, 4 782 — et un solo à 4 785 vient se glisser au milieu. Trié chaîne
+par chaîne, le groupe se disloque à l'écran, barre de liaison comprise.
+
+### Deux couches, et il fallait les deux
+
+| couche | ce qui change |
+| --- | --- |
+| le **classement** | une place = une chaîne **ou** une session entière ; les cinq membres sortent ensemble et ne consomment qu'un rang |
+| l'**ordre des cartes** | un groupe se range à la position de son **meilleur** membre, et ses membres se suivent |
+
+Corriger l'une sans l'autre laissait le défaut visible.
+
+L'ordre des places est celui de leur meilleur membre — ce qui découle de la
+liste déjà triée : la première fois qu'on rencontre une place, c'est par sa
+chaîne la plus regardée. Aucun tri de plus, donc aucune occasion de diverger.
+
+### Une place vient d'un fait, pas d'une ressemblance
+
+La première rédaction acceptait aussi la **proximité** des compteurs — celle qui
+protège déjà le combiné. Mesuré au banc : elle rangeait `p1:3000`, `p2:2900` et
+`p3:2800` dans **une seule place**. Trois chaînes sans le moindre rapport
+fondues en un groupe, et deux vraies places de moins à l'écran.
+
+Les deux questions ne se ressemblent que de loin :
+
+| la question | sa nature | ce que coûte un faux positif |
+| --- | --- | --- |
+| « ce compteur est-il un combiné ? » | **protection** | un rafraîchissement retardé, que la marche suivante corrige |
+| « ces chaînes sont-elles le même direct ? » | **structure** | de vraies chaînes cachées derrière un groupe qui n'existe pas |
+
+Le même indice ne peut pas servir aux deux. Une place vient donc de **Guest
+Star**, et de lui seul : il nomme les participants. Quand il se tait, chaque
+chaîne garde sa place — on perd le regroupement, on n'invente pas de groupe.
+
+### Ce que le banc mesure
+
+Cinq places demandées rendent **neuf** chaînes : deux solos, les cinq du groupe,
+puis le suivant.
+
+| mutant | résultat |
+| --- | --- |
+| le classement compté chaîne par chaîne | `top(5)` s'arrête à `intrus`, trois membres restent dehors |
+| la proximité admise comme place | `p1`, `p2`, `p3` fondus en un groupe qui n'existe pas |
+
+Et un troisième témoin tient le revers : les **solos gardent leur rang au
+compteur**. Sans lui, un tri qui mettrait tous les groupes en tête passerait
+aussi — ce n'est pas ce qui a été demandé.
+
+### Ce que la règle change aux compteurs, et qui se dit
+
+Trois assertions du banc décrivaient l'**ancien** comportement : des membres de
+session restaient sous la coupe, invisibles. La règle les fait remonter — c'est
+la demande même — et les contrats ont donc bougé :
+
+| compteur | avant | après |
+| --- | --- | --- |
+| `affiches` | 3 | **4** |
+| `sousLaCoupe` | 1 | **0** |
+| groupes dessinés | 0 | **1** |
+
+`sousLaCoupe` n'est pas mort pour autant : il s'est rétréci à ce que
+l'heuristique seule ne peut pas rattraper — un membre sous la coupe dont Guest
+Star ignore la session. Et `horsClassement` garde tout son sens : aucune place
+ne peut faire apparaître ce dont la marche ignore l'existence.
+
+Deux autres assertions sont parties, parce qu'elles ne pouvaient **plus
+échouer** : elles vérifiaient que `sousLaCoupeAvecCombine` valait zéro *parce
+que c'était vrai*, sur un décor où `sousLaCoupe` vaut désormais zéro
+mécaniquement. Une assertion qui ne peut plus être fausse n'en est plus une. Ce
+qu'elles protégeaient — l'angle mort du compteur — reste tenu par le scénario
+143, qui porte le seul cas où il se verrait revenir.
+
+### Une découverte de décor, notée au passage
+
+La résolution Guest Star ne part pas sur un identifiant de chaîne d'une forme
+inattendue : le banc rendait « aucune requête Guest Star », donc aucune session,
+donc aucune place. Trouvé en cherchant pourquoi le décor restait muet, et écrit
+dans le scénario pour que la prochaine personne ne le recherche pas.
+
+## Le repli retiré, et une alerte qui criait trop vite (v4.17.1)
+
+### Le repli VOD, mesuré vingt et une fois
+
+Quand `archiveVideo` rend `null`, une seconde porte était tentée : la liste des
+archives de la chaîne, au cas où l'enregistrement en cours n'y serait exposé que
+là. Son commentaire s'était engagé à la juger — *« le prochain rapport dira si
+elle sert à quelque chose »*. Quatre rapports ont répondu :
+
+| rapport | tentatives | servies | écart de l'archive trouvée |
+| --- | --- | --- | --- |
+| 4.15.10 | 6 | **0** | −1 j à −17 j |
+| 4.15.11 | 3 | **0** | −1 j à −8 j |
+| 4.16.0 | 3 | **0** | −3,8 j |
+| 4.17.0 | 9 | **0** | −1 j à −8 j |
+
+**Vingt et une tentatives, zéro résultat**, et jamais de justesse : l'archive la
+plus récente est toujours celle d'un **autre jour**. Quand `archiveVideo` rend
+null, la chaîne n'enregistre pas ce direct — le champ disait vrai.
+
+Son retrait rend une requête par chaîne concernée, sur le point d'entrée
+précisément qu'on rationne. Et il **ne touche pas** la détection des coupures :
+elle passe par la sonde d'origine, qui pose une question *différente* à la même
+requête — « une archive se termine-t-elle **juste avant** ce direct ? » au lieu
+de « une archive commence-t-elle **en même temps** ? ».
+
+### Une alerte qui criait sur un seul échantillon
+
+> « [tse] Des sélecteurs critiques ne correspondent plus au DOM de Twitch —
+> l'extension est peut-être partiellement cassée. `followedSection` : section
+> "Chaînes suivies" introuvable (10 liens de chaîne) »
+
+**Rien n'était cassé** : le rapport pris juste après donnait la même sonde
+« ok ». L'alerte avait attrapé la sidebar **en train d'être rebâtie** — l'URL du
+contexte le dit, `/?lang=fr`, un rechargement après changement de langue,
+pendant lequel Twitch remonte ses liens avant l'en-tête de section.
+
+La sonde se défendait déjà d'un cas voisin — elle exige plus de trois liens
+avant d'oser dire « cassé » — et son propre commentaire énonçait la règle qui
+manquait : *« une alerte critique fausse coûte plus cher qu'une alerte tardive :
+elle apprend à ignorer les suivantes. »*
+
+On confirme donc, comme partout ailleurs : une carte éteinte demande
+`OFFLINE_CONFIRM` réponses, une absence du pool `GLOBAL_MISS_CONFIRM`, le voile
+attend `LOADING_STABILITY`. Le contrôle de santé était le dernier endroit qui
+criait sur un échantillon. La seconde lecture est **programmée** et non
+attendue : sans elle, une vraie rupture patienterait jusqu'à la maintenance
+suivante.
+
+### Et le compteur qui manquait pour répondre à « pourquoi pas les cinq autres ? »
+
+> « Pourquoi oostrix, on n'a pas les cinq autres co-streams ? »
+> `membres 6 · affiches 2 · horsClassement 4`
+
+`horsClassement` dit que le classement n'a **aucune** entrée pour ce membre. Il
+ne dit pas **pourquoi**, et les deux causes n'appellent pas le même remède : ou
+bien on ne sait rien de lui, ou bien on sait son nom **et** son nombre — par la
+session d'un membre qui a une carte — et le classement ne l'a quand même pas.
+Dans ce second cas le seul obstacle est que `setViewers` ne **crée** jamais
+d'entrée : le répertoire ne l'a jamais offert, parce qu'il range la session sous
+l'hôte, ou parce que l'audience **propre** du membre le laisse hors du sommet de
+sa catégorie.
+
+`horsClassementConnus` sépare les deux. Le correctif dépend de la réponse, et il
+touche la machinerie d'éviction — une entrée que le répertoire ne rend jamais
+accumule ses absences et se fait évincer en trois passes. Il aura sa version, et
+sa mesure.
+
+### Ce que le banc mesure
+
+Le scénario qui tenait déjà les trois autres propriétés de cette alerte — elle
+**nomme** la sonde fautive, elle ne crie qu'**une fois** par incident, elle se
+**réarme** après résolution — porte le décor exact du signalement : section sans
+étiquette, marqueurs retournés, sept liens en place. La quatrième propriété s'y
+ajoute plutôt que de vivre à côté.
+
+| mutant | résultat |
+| --- | --- |
+| l'alerte sur la première lecture | une sidebar qui se rebâtit est annoncée « cassée » |
+
+Et les autres moitiés tiennent le revers : une rupture qui **dure** est toujours
+annoncée, et **datée au journal** — sans quoi le correctif se réduirait à « ne
+jamais alerter ».
+
+### Ce qui n'est plus couvert, et qui se dit
+
+Le retrait du repli emporte six assertions et quatre sous-tests, et il faut le
+dire plutôt que de laisser le banc verdir sur du vide. Deux des sous-tests
+passaient encore après le retrait — ceux qui vérifient qu'on n'affiche **rien** —
+mais pour la mauvaise raison : ils ne pouvaient plus échouer. Une assertion qui
+ne peut plus échouer apprend à lui faire confiance à tort.
+
+Ce qui n'est donc plus éprouvé : le cas d'un stream ayant **reconnecté** dont
+l'enregistrement, commencé avant le live, le recouvre. Les décors sont restés
+dans le harnais, pour le jour où le besoin reviendrait.
+
+## Le combiné d'un membre qu'on n'interrogera jamais (v4.17.0)
+
+### La question, et le cercle qu'elle désignait
+
+> « Il y a un co-stream de trois et on n'en voit que deux en carte. Pourquoi
+> PestilenceRIOT n'est pas visible ? »
+
+Le rapport le chiffrait avec le compteur écrit pour ça : **`sousLaCoupe 6 ·
+sousLaCoupeAvecCombine 6`** — six membres dont on **connaît** le combiné, et qui
+restent sous la coupe.
+
+`readStream` sait pourtant depuis la 4.14.3 qu'un combiné connu prime sur ce que
+le répertoire raconte. Mais il le cherchait **à la clé de la chaîne elle-même**,
+dans le cache Guest Star. Or on n'interroge Guest Star que sur les chaînes qui
+ont une **carte**. D'où un cercle qui se refermait sur lui-même :
+
+```
+pas de carte → jamais interrogé → pas d'entrée Guest Star
+             → le répertoire impose l'audience propre (quelques centaines)
+             → sous le trentième rang → pas de carte
+```
+
+Rien ne pouvait le rouvrir.
+
+### On le connaissait déjà
+
+La réponse Guest Star d'un membre **qui a une carte** porte la liste de **tous**
+ses camarades, chacun avec son combiné. Rien de neuf n'est demandé à Twitch : on
+cesse simplement de ranger cette moitié-là sous une clé que personne
+n'interroge. Un registre par **login** — ce que `readStream` a en main quand il
+lit le répertoire — borné comme tout registre de ce fichier, et daté sur la
+session qui l'a rendu : un combiné périmé ne vaut pas mieux qu'une audience
+propre.
+
+| | classement | `repertoireBas` |
+| --- | --- | --- |
+| avant | `hote:11736 · g1:9000 · g2:8000 · g3:7000 · modele:800 · **absent:300**` | 0 |
+| après | `hote:11736 · **absent:11736** · g1:9000 · g2:8000 · g3:7000 · modele:800` | 11 |
+
+### Les deux badges, vus de l'autre côté
+
+> « Sur la partie "Chaînes live", JulietteArz a le badge bleu ; on a bien dit
+> que les deux parties ne sont pas liées. »
+
+La 4.16.1 visait la liste **suivie** en dur. Elle corrigeait le cas où le
+**membre** était ailleurs, et laissait entier celui où c'est la carte
+**survolée** qui l'est : depuis une carte de « Chaînes live », un co-streamer de
+la liste suivie repassait au bleu.
+
+« De cette liste » n'a de sens que par rapport à la carte qu'on regarde. On part
+donc de **sa** section à elle, quelle qu'elle soit, et deux cartes de sections
+différentes ne se nomment jamais entre elles.
+
+### Et la seconde voie d'éviction se compte à part
+
+Un rapport rendait l'arithmétique impossible : **`evicted 1138` pour `misses
+834`**, alors qu'il faut **trois** absences pour évincer — la voie documentée ne
+pouvait en expliquer que 278 au plus. Les trois quarts venaient de la
+**péremption par l'âge**, dont le commentaire affirme qu'elle est « assez large
+pour ne jamais concurrencer » le mécanisme normal. Elle le domine.
+
+Deux mécanismes sous un seul nombre, c'est exactement ce qui a rendu le défaut
+« KyriaTV » introuvable pendant deux enquêtes. Ils sont séparés — `perimees`
+contre `evicted` — **avant** de décider quoi que ce soit : le prochain rapport
+dira l'ampleur réelle, et c'est lui qui tranchera s'il faut donner à la
+péremption le garde-fou de réserve que l'autre voie a déjà.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| le combiné cherché par le seul identifiant | `absent:300`, bon dernier, `repertoireBas 0` |
+| la section suivie visée en dur | « Co-stream avec lbw » au bleu, depuis « Chaînes live » |
+
+### Et une assertion qui épousait une hypothèse
+
+Le banc mesure la cadence de **croisière** des sondes, et son décor attendait la
+chute du voile avant de poser ses cartes — ce qui suffisait, jusqu'au jour où un
+second cycle s'est intercalé sur une machine chargée : **`pointe 16`** là où la
+croisière en permet douze, **sans qu'aucune règle n'ait été enfreinte**, puisque
+la bourse du voile a la sienne.
+
+L'assertion supposait donc l'absence d'un second cycle au lieu de la constater.
+Le harnais date désormais chaque appel de l'état du voile, et la mesure ne garde
+que la croisière — ce qu'elle prétend mesurer.
+
+## « Dans la barre » veut dire « dans la liste » (v4.16.1)
+
+> « Je vois que LittleBigWhale est en co-stream avec JulietteArz, mais je ne
+> suis pas JulietteArz — peut-être parce qu'elle est présente plus bas dans
+> "Chaînes live" ? »
+
+L'hypothèse était la bonne. Le partage des deux badges posé par la 4.16.0
+demande « cette chaîne a-t-elle une carte à l'écran ? », et la question était
+posée au **document entier**. Or la barre latérale de Twitch ne contient pas que
+la liste suivie : elle porte aussi « Chaînes live » et « Catégories
+recommandées », dont les cartes ont exactement la même classe.
+
+Un co-streamer figurant dans l'une de ces sections passait donc pour visible
+*dans la liste*, et son nom partait au badge **bleu** — celui qui dit « de cette
+liste ». C'est un contresens sur ce que le badge affirme.
+
+La question est désormais posée à **la section**, et à elle seule. Elle vaut
+pour les deux modes : les cartes du classement sont fabriquées dans cette
+section-là, et la règle d'affichage du mode global y ajoute qu'une carte suivie
+restée dans le DOM derrière « Top Chaînes » n'est pas affichée, donc ne compte
+pas.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la recherche portée sur le document entier | « Co-stream avec juliettearz » au bleu, rien au violet |
+
+## La signature du combiné avait une frontière (v4.16.0)
+
+### Le signalement, à sa troisième visite
+
+> « Le bug KyriaTV est réapparu, et **revenu à la normale quelques secondes
+> après**. »
+
+Disparue **puis revenue** : donc ni évincée, ni éteinte. **Rétrogradée**, le
+temps qu'une marche la restaure. Deux versions avaient déjà fermé deux voies
+(la 4.13.1 le plancher des réponses tronquées, la 4.13.4 le retrait muet de
+`setViewers`) et la 4.13.1 écrivait noir sur blanc que le cas n'était pas
+refermé. Il l'est maintenant, et c'est une troisième voie.
+
+### Le rapport le désignait avec le compteur écrit pour ça
+
+```
+sousLaCoupe 3 · sousLaCoupeAvecCombine 3
+chutes 131 · chuteMax 14326 · chutesHorsEcran 16
+```
+
+Trois membres dont le combiné est **connu**, et qui sont quand même sous la
+coupe. Le commentaire qui a posé ce compteur disait : *« s'il est connu et que
+la chaîne est quand même en bas, c'est que le classement trie sur autre chose —
+et c'est le défaut, en un seul nombre. »* Et seize cartes sorties de l'écran par
+une chute de compteur.
+
+### Une garde qui cédait sur un arrondi
+
+Un compteur **propre** n'a pas le droit d'écraser une entrée qui porte la
+signature d'un **combiné**. La garde reconnaissait cette signature à l'égalité
+du **nombre affiché** — et un nombre affiché a des frontières. Les deux valeurs
+que le code cite lui-même en exemple le montrent :
+
+```
+11 736 → « 11,7 k »        11 821 → « 11,8 k »
+```
+
+Deux membres d'une même session, deux signatures, **aucun jumeau, aucune
+protection**. La capture du terrain montre le même groupe coupé en deux :
+« 17 k · 17 k · 16,9 k · 16,9 k ».
+
+Twitch échantillonne le compteur combiné **une fois par participant** : les
+membres d'une même session n'en rendent jamais la même valeur exacte. La
+comparaison sur le nombre affiché avait été adoptée pour absorber cet écart ;
+elle l'absorbe partout sauf sur une frontière, c'est-à-dire précisément là où
+ça compte.
+
+**On groupe donc par proximité** — et la bonne mesure de cette proximité est une
+**graduation du nombre affiché**, pas un pourcentage. Le banc a tranché entre
+les deux, et c'est lui qui avait les données : une tolérance relative de 2 %
+couvrait le cas de ce rapport (0,7 %) et cassait un relevé de terrain que le
+scénario 136 tenait depuis longtemps — **1 093 · 1 101 · 1 148**, trois membres
+affichés « 1,1 k », dont le plus grand écart vaut **4,1 %**.
+
+| session | écart max | en % | en valeur |
+| --- | --- | --- | --- |
+| 1 093 · 1 101 · 1 148 | 47 | 4,1 % | **< 100** |
+| 11 736 · 11 821 | 85 | 0,7 % | **< 100** |
+
+Les deux écarts sont le même en valeur absolue, et cent est précisément ce dont
+avance le nombre affiché : « 1,1 k » va de cent en cent, « 11,7 k » aussi.
+L'échantillonnage de Twitch tient donc dans **un cran de ce que l'œil lit**, à
+toutes les échelles.
+
+Ce qui fait de cette règle l'ancienne, moins son défaut : comparer les nombres
+affichés revenait déjà à les ranger par crans de cent, il manquait seulement de
+reconnaître deux crans **voisins**. On garde la largeur, on retire la frontière
+— il n'y a donc aucun réglage à deviner, et aucune constante à tourner. Sous le
+millier, où Twitch écrit le nombre nu, un cran vaut l'unité et seule l'égalité
+stricte regroupe.
+
+Le tri rend la chose transitive : un groupe de quatre dont les échantillons
+s'échelonnent se tient par ses voisins.
+
+**Et la garde se retient par login**, plus par valeur courante : elle lisait la
+signature de l'entrée *à l'instant du test*, si bien que le premier écrasement
+qui passait emportait la protection avec lui. L'appartenance à un co-stream est
+une propriété de la chaîne pendant la session, pas de son compteur à un instant
+donné.
+
+### Pourquoi le banc ne l'avait pas vu
+
+Le scénario 133 pose **4900 et 4900** — des compteurs strictement identiques,
+c'est-à-dire le seul cas que la garde savait traiter. Le scénario 149 joue les
+nombres du terrain.
+
+### Les deux badges ne disent pas la même chose
+
+> « On voit le badge bleu co-stream et le badge violet "En live avec…". Je
+> trouve qu'il fait doublon. »
+
+Il en faisait un : sur la capture, le bleu disait « Co-stream avec
+LittleBigWhale » et le violet « En live avec LittleBigWhale », l'un sous
+l'autre, pour la même personne.
+
+Ils répondent pourtant à deux questions différentes, et c'est ce qui les
+départage :
+
+| badge | ce qu'il dit |
+| --- | --- |
+| **bleu** | avec qui **de cette liste** la chaîne diffuse — ce que vous avez sous les yeux |
+| **violet** | qui d'**autre** est dans la session sans y figurer — ce que la liste ne peut pas montrer |
+
+En « Top Chaînes », où le groupe est affiché au complet, le violet n'a plus rien
+à dire et **disparaît**. En « Chaînes suivies », les membres suivis vont au
+bleu, les autres au violet. Les deux listes se partagent la **même** source —
+les membres que Guest Star rend — pour qu'aucun nom ne tombe entre les deux.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la signature comparée sur le nombre affiché | les deux membres tombent à **300**, `chuteMax 11521` |
+| la proximité mesurée en pourcentage (2 %) | `bb:1148` retombe à **300** — le relevé du scénario 136 |
+| le violet listant tous les membres | « Co-stream avec beta, gamma » **et** « En live avec beta, gamma » |
+
+Et la prémisse du scénario 149 tient l'autre moitié : une chaîne **sans jumeau**
+garde son compteur frais. Une tolérance trop large la figerait, et le banc le
+dirait.
+
+## Rien à apprendre d'un subathon (v4.15.12)
+
+Le rapport qui a suivi la 4.15.11 confirmait les quatre corrections. Il portait
+aussi, pour la **deuxième fois de suite**, le même écart d'une unité :
+
+```
+trouvees 5 · adoptees 4 · subathons.detectes 1
+trouvees 4 · adoptees 3 · subathons.detectes 1
+```
+
+Une chaîne dont la sonde trouvait bien son chaînage, et dont l'adoption le
+jetait ensuite.
+
+`adopterReprise` refuse les subathons, et il a raison : un direct qui ne
+s'arrête pas n'a pas de « reprise après coupure », ses interruptions ne veulent
+pas dire la même chose. Mais il refusait **après** la requête, quand elle était
+déjà partie et déjà payée.
+
+Et le commentaire du lot annonçait la garde — « une chaîne dont il n'y a rien à
+apprendre : déjà sondée, déjà chaînée, **subathon** ». Elle n'était écrite nulle
+part dans le code. Même classe de défaut que la borne du verrou de la version
+précédente : une phrase qui décrit un comportement que le programme n'a pas.
+
+Ce que ça coûtait : une requête sur le point d'entrée qu'on rationne — le même
+dont la 4.15.11 vient de ramener le refus de 40,7 % à 21 % — une place de la
+bourse du voile, et le voile retenu pour une réponse qu'on allait jeter.
+
+Le rapport y gagne un témoin : `trouvees` et `adoptees` s'accordent désormais,
+si bien qu'un écart entre eux veut enfin dire quelque chose.
+
+### Ce que le banc mesure
+
+Quatre chaînes portant le **même** chaînage, dont une en subathon — la seule
+chose qui l'en distingue est son titre.
+
+| mutant | résultat |
+| --- | --- |
+| la garde retirée | une sonde part sur le subathon, `trouvees 4 · adoptees 3` |
+
+## Le verrou du voile avait une borne, et elle ne bornait rien (v4.15.11)
+
+Rien dans ce rapport de terrain ne se plaignait. C'est le **journal du voile**
+qui parlait :
+
+```
+    496 ms  cycle  démarrage
+  10102 ms  levée  stabilité
+  64876 ms  cycle  entrée dans Top Chaînes
+  79904 ms  levée  DÉLAI MAXIMAL          ← quinze secondes tout rond
+ 121567 ms  cycle  changement de langue
+ 136593 ms  levée  DÉLAI MAXIMAL          ← quinze secondes tout rond
+```
+
+Deux cycles sur trois levés par le **plafond dur** de quinze secondes, et les
+**quarante-quatre refus** de Twitch du même rapport tombent exactement dans ces
+deux fenêtres.
+
+### Une seule cause pour les deux
+
+`majVerrouVoile` rendait la main à l'échéance **et remettait son échéance à
+zéro**. L'appel suivant, voyant du travail encore en cours, s'en accordait une
+neuve. La borne annoncée « et pas une seconde de plus » était en réalité une
+**fenêtre glissante**, reconduite tant qu'une sonde restait à faire — c'est-à-dire
+jusqu'au plafond dur.
+
+Et ces quinze secondes coûtent **deux fois**, parce que tout ce qui se règle sur
+« sommes-nous sous le voile » reste en régime de voile pendant ce temps : la
+bourse des sondes, et surtout le report d'un refus, ramené à 400 ms par la
+version précédente. Le refus nourrissait le refus.
+
+La borne se **consomme** désormais une fois par cycle de voile. Quand elle tombe
+alors qu'il reste du travail, elle est marquée dépensée et rien ne la repose
+avant le cycle suivant.
+
+### Pourquoi le banc ne l'avait pas vu
+
+Sa borne valait **cinq secondes** pour un voile qui meurt à **1,2 s** : le
+plafond dur tombait toujours le premier, donc la borne n'était la contrainte de
+rien, et ne pouvait pas manquer. Elle vaut maintenant 300 ms ici — un quart du
+plafond — et c'est ce rapport-là qui rend l'écart lisible.
+
+### La bourse était bonne, la pointe ne l'était pas
+
+Le refus de Twitch suit la cadence, et ce rapport en donne le quatrième point :
+
+| cadence | refus |
+| --- | --- |
+| 0,18–0,25 sonde/s | 21–23 % |
+| 0,45–0,48 sonde/s | 33 % |
+| la bouffée du voile | **40,7 %** (44 refus sur 108 sondes) |
+
+Mesuré au banc, les quarante sondes de la bouffée partaient en **une
+milliseconde**. Quarante requêtes simultanées sur un point d'entrée anonyme,
+c'est la forme même qu'un limiteur de débit punit.
+
+La bourse n'a donc pas baissé — c'est le **débit** qui est borné, par la
+mécanique exacte de la croisière : une fenêtre glissante, huit sondes par
+seconde. Quarante sondes font cinq fenêtres pour un verrou qui en dure six : la
+couverture ne bouge **pas d'une carte**, et la pointe tombe de quarante par
+milliseconde à huit par seconde.
+
+Si le refus ne descend pas, c'est la bourse qui baissera — cette fois avec deux
+mesures derrière elle. Le chiffre qui tranche est `reseau` rapporté à `sondes`.
+
+### Et le rapport annonçait un réseau parfait
+
+Ce même rapport portait **`echecs 0`** et `dernierEchec —` au-dessus d'une
+section d'erreurs annonçant quarante-quatre « réponse 200 avec erreurs
+GraphQL ». Dix pour cent des appels refusés, et la section réseau affichait une
+santé sans tache : qui la lit cherche ailleurs.
+
+Un refus se compte désormais à part, sous `refus`. Le flux ne change pas — un
+200 porteur d'erreurs reste rendu tel quel aux appelants — mais les deux pannes
+font deux nombres, parce qu'elles n'appellent pas la même conclusion : un échec
+de transport dit que la requête n'est pas passée, un refus dit que Twitch ne
+veut pas répondre à celle-là, maintenant.
+
+### Et l'onglet le plus lourd était lu deux fois
+
+Le même rapport portait deux lignes jumelles dans le relevé des abonnements :
+
+```
+onglet expired  affiché · 5331 nœuds · barre oui · 74 carte(s) · 74 chaîne(s)
+onglet expired  affiché · 5309 nœuds · barre oui · 74 carte(s) · 74 chaîne(s)
+```
+
+Le relevé lit les expirés **seuls et en premier** quand il ne connaît pas encore
+l'étiquette de l'ancienneté — c'est sur leurs cartes, les plus simples, qu'elle
+s'apprend. Puis la ligne suivante décidait de les relire « si l'étiquette est
+connue »… ce que la passe précédente venait justement de rendre vrai. Toujours
+vraie, donc, et l'onglet le plus lourd repartait pour un tour.
+
+Il n'y avait rien à aller rechercher : la lecture apprend l'étiquette **et**
+rend l'ancienneté dans le même passage — les deux lignes du rapport rendent
+bien les mêmes soixante-quatorze chaînes. Le relevé retient maintenant ce qu'il
+a lu, au lieu de relire un état qu'il vient lui-même de changer. Le coût n'était
+pas théorique : ce relevé tient le voile.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la borne reposée à chaque appel | verrou tenu **1029 ms** pour 300 annoncées |
+| la bourse rendue d'un bloc | **pointe 40**, étendue **1 ms** |
+| la relecture conditionnée à l'étiquette | **deux** chargements de l'onglet `expired` |
+
+## Un refus de Twitch ne doit pas coûter une minute (v4.15.10)
+
+> « Le changement arrive au bout d'une minute ou 2. »
+
+Le rapport qui accompagne cette phrase porte **`reseau 11`** sur trente-sept
+sondes — près d'un tiers refusé par Twitch — avec **`sousVoile 1`** sur deux
+adoptions.
+
+### La minute était dans une constante
+
+`RECONNECT_PROBE_RETRY` vaut soixante secondes, et elle a sa raison d'être **en
+croisière** : réessayer tout de suite ajoute sa requête à celles qui viennent
+d'être refusées, et nourrit la cause. Sous le voile, ce raisonnement tombe —
+personne ne navigue, la dépense est bornée par le voile lui-même, et une
+origine apprise une minute plus tard est exactement ce que l'utilisateur voit
+se corriger sous ses yeux.
+
+### Et un refus n'était nulle part
+
+C'est la moitié la plus coûteuse. Une sonde refusée n'était **plus en vol**, et
+sa chaîne n'était **pas en file** : le verrou de voile ne la comptait donc pas,
+et le voile se levait sur une carte dont l'origine restait à apprendre. En
+remettant la chaîne en file, les deux choses se réparent d'un coup — le vidage
+la reprend, et le voile sait qu'il l'attend.
+
+Deux conséquences qu'il a fallu traiter pour que ça tienne : un report en cours
+ne doit pas faire éjecter la chaîne de la file (sinon on l'oublie juste avant
+de pouvoir la reprendre), et le réveil du vidage doit attendre l'échéance du
+report (sinon il tourne à vide toutes les vingt millisecondes).
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la minute de report appliquée aussi sous le voile | **`sousVoile 5`** sur huit adoptions — les trois refusées apprennent après la levée |
+
+Le décor refuse les trois premières sondes par une réponse **200 porteuse
+d'erreurs GraphQL**, qui est la forme exacte que Twitch rend. Sans refus, le
+scénario mesurerait un chemin nominal et serait vert pour rien — d'où la
+première assertion, qui vérifie que le décor a bien joué ce qu'il prétend.
+
+## Le voile attend aussi les chaînes dont il ne sait rien (v4.15.9)
+
+> « Au bout de quelques secondes ça met 70h. Je veux l'uptime coupure comprise
+> sur la carte. »
+
+La réponse à la question posée à la version précédente : **le VOD fait foi**.
+La carte doit porter la durée du direct entier, coupures comprises — et elle la
+portait déjà, mais **après** la levée du voile, sous les yeux.
+
+Le rapport le chiffrait : `sousVoile 1` sur deux adoptions, voile levé à
+8730 ms. Une origine apprise sous le voile, l'autre après.
+
+### Ce que le voile n'attendait pas
+
+Il attendait les sondes **parties**. Or on ne peut pas poser la question de
+l'origine avant que la chaîne ne soit connue : la sonde exige un `stream`
+frais, et tant que le lot de chaînes n'a pas répondu, elle n'a **rien à
+accepter ni à refuser**. Une carte dont la réponse arrivait tard passait donc
+entre les mailles — le voile se levait sur elle, et sa durée se corrigeait
+ensuite.
+
+### La garde est étroite, et il le faut
+
+« La file travaille » serait trop large : elle travaille **sans cesse**, chaque
+entrée de cache qui périme y retourne. Le voile tiendrait alors jusqu'à son
+échéance à chaque page, y compris sur une sidebar entièrement connue — six
+secondes payées pour rien.
+
+La bonne question est plus étroite : **reste-t-il une chaîne dont on n'a jamais
+eu de réponse ?** Celle-là, et elle seule, empêche de poser la question de
+l'origine. Un rafraîchissement de routine porte sur une chaîne déjà connue :
+sa carte affiche déjà la bonne durée.
+
+Mesuré après correction, sur un décor ordinaire : **levée à 1046 ms**,
+inchangée.
+
+### Ce que la mesure dit, et ce que le banc ne tient pas
+
+Sur un décor où la réponse de chaîne traîne 1,2 s : le voile se levait à
+**250 ms**, il se lève à **1245 ms**. Et sur un décor ordinaire, **1046 ms**,
+inchangé — la garde étroite ne coûte rien.
+
+**Cette correction n'a pas son assertion, et c'est écrit plutôt que tu.** Trois
+formes ont été essayées, aucune ne tient : lire les durées à la levée (
+l'observateur de mutation se déclenche entre la réponse et l'écriture sur la
+carte), exiger un témoin du voile (il faut l'amorcer sur l'état courant, le
+voile du démarrage étant antérieur au script), comparer la date de levée à un
+seuil (qui dépend de l'instant où le premier lot part, non maîtrisé).
+
+Le scénario 144 tient l'autre moitié — sous le voile, les origines *sont*
+apprises et les durées lues à la levée. Ce qui reste découvert est l'attente
+des chaînes encore inconnues, vérifiée à la main. Écrire ce trou vaut mieux
+qu'une assertion verte qui ne mesure rien : c'est exactement ce qu'ont fait les
+trois tentatives.
+
+## Tout doit être prêt quand le voile disparaît (v4.15.8)
+
+> « Je t'assure qu'au tout début, il m'annonçait une vingtaine d'heures
+> d'uptime sur ce compte. Maintenant il met bien les coupures. Je veux que
+> cette data concernant les coupures soit prise en compte **durant le voile**,
+> tout doit être prêt lorsque le voile disparaît. »
+
+Le journal datait le défaut : `cycle 484 ms · levée 10720 ms`. Dix secondes de
+voile, pendant lesquelles douze sondes par trente secondes en laissaient partir
+quatre. Les autres cartes apprenaient leur origine **après** la levée — d'où un
+compteur qui passe de vingt heures à soixante-huit sous les yeux.
+
+### La cadence est faite pour la navigation, pas pour l'attente
+
+Elle existe pour ne pas marteler Twitch pendant qu'on regarde la liste. Sous le
+voile, **personne ne regarde** — et ce qui n'est pas appris à la levée sera vu
+se corriger. Le voile a donc désormais sa propre bourse, remise à neuf à chaque
+cycle et dépensée sans étalement.
+
+Ce que ça coûte est **borné et rare** : au plus `RECONNECT_PROBE_VEIL_BURST`
+requêtes, une fois par cycle de voile — au démarrage, à l'entrée dans Top
+Chaînes, à un changement de langue — et jamais pendant qu'on navigue.
+
+**Ce qu'on ne sait pas encore, et qui se mesurera.** Twitch refuse environ une
+sonde sur cinq, et la pente de ce refus avec la cadence n'a été relevée
+qu'entre 0,18 et 0,48 sonde par seconde. Une bouffée de quarante sort de cette
+plage. Les compteurs `sousVoile`, `reseau` et `enFile` du rapport diront si le
+marché est bon ; s'il ne l'est pas, c'est ce chiffre-là qui baissera.
+
+### Trois choses qu'il a fallu corriger pour y arriver
+
+**1. Une chaîne différée attendait un prochain lot.** Un lot ne part que si une
+carte réclame une chaîne inconnue du cache : beaucoup au démarrage, puis plus
+rien. Le module vide maintenant sa propre file.
+
+**2. « Pas encore connue » n'est pas « pas concernée ».** Les gardes rangeaient
+sous un seul *non* deux situations que tout sépare : une chaîne dont il n'y a
+rien à apprendre, et une chaîne dont la réponse est simplement en route. La
+seconde restait perdue. Mesuré : six cartes gardaient leur tronçon à la levée.
+
+**3. Le verrou de voile était asserté au mauvais endroit.** Posé dans le
+balayage, comme celui du mode global — or les sondes partent d'une réponse
+réseau, et un scan ne se déclenche que sur une mutation du DOM. Les cartes
+posées, plus rien ne bouge, donc plus aucun scan, et le minuteur de stabilité
+levait le voile pendant que trente et une sondes étaient en vol. Le verrou est
+désormais posé **depuis le module qui sait**, comme le fait le relevé
+d'abonnements, et son échéance court depuis qu'il y a quelque chose à attendre
+— non depuis l'ouverture du cycle, qui était déjà largement entamée.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la bourse du voile ramenée à celle de la croisière | **11 cartes sur 30** à « 5h00 », `enFile 19` à la levée |
+
+Le scénario mesure ce que les cartes affichaient **à l'instant** où le voile est
+tombé — ni avant, ni après. Son observateur vit dans la page et ne se déclenche
+qu'après avoir *vu* le voile posé : sans cette condition il capturerait la
+première mutation venue, voile absent, et serait vert pour rien. C'est un piège
+dans lequel la première rédaction est tombée.
+
+**Ce qui n'est pas couvert par un mutant, et il faut le dire :** le verrou
+lui-même. Avec la bourse, les sondes reviennent avant que le voile n'ait la
+moindre raison d'attendre — le mutant « voile sans verrou » passe donc au vert.
+Le verrou reste le filet des réseaux lents ; il est vérifié actif par la
+mesure, pas par une assertion.
+
+## Le combiné d'un membre qu'on n'interrogera jamais (v4.15.7)
+
+> « Plusieurs problèmes, des co-streams non visibles sur Top Chaînes. »
+
+Le rapport portait **`sousLaCoupe 14`** : quatorze membres de session connus du
+classement, mais retombés sous la coupe — donc triés sur leur audience
+**propre**, quelques centaines, au lieu du combiné que Twitch affiche.
+
+### D'abord : mon instrument disait « rien d'anormal », et il mentait
+
+Le même rapport portait `sousLaCoupeAvecCombine 0`, et ce compteur existe
+justement pour distinguer le cas sain du défaut. Il lisait :
+
+```js
+const idm = getChannelId(l);        // ← le cache des CARTES
+if (idm && Number.isFinite(getCollabViewers(idm))) …
+```
+
+Or cette branche compte précisément les membres **sans carte**. L'identifiant
+était donc toujours nul, le compteur toujours zéro, et « 14 · 0 » se lisait
+« quatorze anomalies impossibles ». **Un compteur qui ne peut pas se
+déclencher est pire que pas de compteur** : il produit une conclusion. Il lit
+maintenant le combiné là où il est réellement.
+
+### La réponse portait déjà ce qui manquait
+
+On n'interroge Guest Star que sur des identifiants connus, et on ne connaît que
+ceux des chaînes **ayant une carte**. Un membre sous la coupe n'en a pas :
+aucune requête ne partira jamais pour lui.
+
+Mais la requête demande, pour chaque invité :
+
+```graphql
+guests { user { id login displayName stream { collaborationViewersCount } } }
+```
+
+**L'identifiant et le combiné de tous les membres voyagent dans la même
+réponse.** On n'en gardait que le login et le nom, et on n'extrayait le combiné
+que pour la chaîne *interrogée* — c'est-à-dire pour celle qui a une carte, la
+seule qui n'en avait pas besoin. La moitié de chaque réponse partait à la
+poubelle.
+
+Rien de neuf n'est demandé à Twitch : on cesse de jeter.
+
+### Et la fenêtre des sondes, trop serrée d'un cran
+
+La 4.15.6 bornait les sondes d'origine à six par trente secondes. Le rapport
+donne les deux moitiés du résultat : le taux de refus est bien descendu — 21 %
+— mais **`differees 514`**, c'est-à-dire que la fenêtre a refusé sa place cinq
+cents fois pendant qu'elle laissait passer quarante-huit sondes. Une sidebar de
+cent trente cartes y aurait mis onze minutes.
+
+| cadence | refus |
+| --- | --- |
+| 0,18 /s | 21 % |
+| 0,25 /s | 23 % |
+| 0,48 /s | 33 % |
+
+**La pente est faible, et c'est le renseignement.** Payer une couverture deux
+fois plus lente pour deux points de refus est un mauvais marché. Douze par
+fenêtre tient la règle — un budget compté en temps, pas en lots, ce qui reste
+la correction de fond — sans payer ce prix-là.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| les combinés des autres membres jetés | **`sanscarte:120`** au lieu de `sanscarte:4000` |
+
+Le décor reprend celui du scénario 139, **qui fait provablement partir la
+requête**, et lui ajoute un troisième membre sans entrée de chaîne et sans
+carte. La première assertion vérifie que la session a bien été résolue : sans
+elle, la seconde mesurerait un décor sans co-stream et serait verte pour rien.
+
+## La cadence des sondes se comptait en lots, pas en temps (v4.15.6)
+
+Aucun défaut visible ici : un rapport, lu à côté du précédent. C'est la
+comparaison qui parle.
+
+| | 4.15.4 | 4.15.5 |
+| --- | --- | --- |
+| durée de page | 473 s | 250 s |
+| sondes | 119 | 119 |
+| **cadence** | 0,25 /s | **0,48 /s** |
+| **refus (« service error »)** | 23 % | **33 %** |
+
+La cadence a doublé, le taux de refus a suivi. Deux points seulement, mais ils
+montent ensemble — et la cause était écrite dans le commentaire du code.
+
+### « Six par lot » voulait dire « six par cycle »
+
+Et ce n'est pas ce que ça disait. Un lot ne part pas toutes les trente
+secondes : **il part dès qu'une carte réclame une chaîne que le cache ne
+connaît pas** — au démarrage, à chaque carte qui entre, et sans répit en Top
+Chaînes, où la liste se renouvelle. Mesuré au rapport : cent dix-neuf sondes en
+deux cent cinquante secondes, soit une toutes les deux secondes, là où le
+commentaire en promettait six toutes les trente.
+
+Le budget se compte donc désormais par **fenêtre de temps**, qui est la seule
+chose dont la cadence dépende vraiment. Le lot n'est plus qu'une *occasion* de
+dépenser ce budget, plus une autorisation d'en dépenser six.
+
+### Et le refus nourrissait sa propre cause
+
+La 4.15.4 rendait la session au registre sans délai — déjà mieux que de la
+perdre, qui coûtait dix-huit cartes par page. Mais réessayer au cycle
+**suivant** ajoute sa requête à celles qui viennent d'être refusées, ce qui
+remonte la cadence, ce qui refait refuser. Une boucle qui s'entretient.
+
+Un refus se reporte maintenant d'un délai franc, et on abandonne après trois
+essais : au-delà, ce n'est plus une contrariété de réseau, c'est un refus, et
+s'obstiner ne ferait que le nourrir. Les deux issues sont comptées — `differees`
+et `abandonnees` — pour que le prochain rapport dise si la fenêtre est trop
+étroite au lieu de le laisser deviner.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| le budget repris par lot au lieu du temps | **pointe 14** sondes dans une fenêtre qui en permet 6 |
+
+Cette assertion ne mesure ni un affichage ni un compteur : **elle mesure une
+cadence**, la fenêtre la plus chargée de tout le scénario. Elle a demandé un
+horodatage au harnais, parce qu'une cadence ne se lit pas dans une liste
+d'appels — et c'est précisément pour cela que le banc ne voyait rien pendant
+que le terrain, lui, comptait les refus.
+
+## La ligne du dessous comptait autrement que les deux du dessus (v4.15.5)
+
+> « Le uptime sur la carte est pareil que celui à côté de "Précédemment…",
+> cependant on peut voir une différence d'une minute sur le temps en dessous
+> de la frise. »
+
+Capture à l'appui : la carte et le total de la frise disaient tous deux
+**3h02**, et la ligne juste en dessous — *« Grand Theft Auto V · en cours »* —
+annonçait **3h03**.
+
+### Pourquoi c'est la même faute que la 4.15.2, une ligne plus bas
+
+La 4.15.2 avait donné au **total** de la frise la convention de la carte : une
+durée écoulée se tronque. Elle s'était arrêtée là. Or la légende juste en
+dessous porte la durée de chaque catégorie, et celle de la catégorie **en
+cours** se termine elle aussi à *maintenant* — c'est un écart à maintenant,
+pas un intervalle mesuré. Rendue par `formatDuree`, elle s'arrondissait.
+
+**Sur une frise à une seule catégorie, cette ligne EST le total.** Le produit
+affichait donc deux nombres pour la même chose, à un centimètre d'écart.
+
+```js
+approche((c.encours ? formatEcoule : formatDuree)(c.dureeMs))
+```
+
+Une catégorie **terminée** garde son arrondi, et c'est juste : elle est bornée
+par deux instants connus, c'est un intervalle. La question n'est pas *où on
+l'affiche* mais *est-ce que ça court encore*.
+
+Les lignes **repliées** n'ont pas la question : la catégorie en cours n'est
+jamais repliée, et ce qui reste est fait d'intervalles clos.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la ligne en cours rendue par `formatDuree` | **frise 3h00, ligne 3h01** |
+
+L'assertion s'ajoute au sous-test qui **choisit sa phase** — l'écart n'existe
+qu'au-delà de la demi-minute, et un décor qui la laisse au hasard ne détecte
+qu'une fois sur deux. Le décor n'a qu'une catégorie, exactement pour que sa
+ligne et le total soient le même nombre : les faire diverger devient alors une
+contradiction, et non une nuance d'arrondi.
+
+## Ce que le terrain a refusé, et ce que la 4.15.2 avait confondu (v4.15.4)
+
+> « ca73cca fonctionnait, mais là non. »
+
+Trois corrections, toutes nées du rapport joint à cette phrase.
+
+> **Sur le numéro.** Ces trois corrections ont d'abord été publiées sous
+> **4.15.3**, poussée avant la fin de son banc. Le dépôt ne publie pas ce
+> qu'il n'a pas éprouvé : 4.15.4 porte exactement le même code, cette fois
+> passé au banc complet avant d'être poussé. 4.15.3 ne doit pas être
+> installée.
+
+### Le groupement a été essayé, et le terrain l'a refusé
+
+La première rédaction allait plus loin : puisque GraphQL accepte un **tableau
+d'opérations** et répond dans le même ordre — c'est déjà ainsi que le mode
+global interroge ses vingt catégories — douze sondes pouvaient tenir dans un
+seul aller-retour. Le raisonnement se tenait. **Il était faux**, et il n'a
+tenu qu'une version.
+
+Deux rapports mis côte à côte le disent sans ambiguïté :
+
+| | une opération par requête | douze opérations par requête |
+| --- | --- | --- |
+| `sondes` | 8 | 48 |
+| `servies` | **8** | **5** |
+| `vides` | 0 | 25 |
+| `reseau` | 0 | 18 |
+| `adoptees` | 2 | **0** |
+
+Quarante-trois sondes sur quarante-huit refusées, et le journal nomme le
+refus : *« réponse 200 avec erreurs GraphQL — service error »*. Aucune origine
+apprise, donc la carte comptait de nouveau le tronçon et la frise n'avait plus
+de passé — **les deux défauts que cette version existe pour corriger, revenus
+par la porte de derrière**.
+
+**Ce qui distingue ce lot-ci de celui du mode global**, et qu'il fallait voir
+avant : `TseCategoryTop` rend une liste de chaînes, `TseVodRecent` rend des
+*archives avec leurs chapitres*, pour chaque chaîne. Douze de celles-là dans
+une requête, ce n'est pas douze fois plus de lignes, c'est douze fois un
+travail que Twitch facture à son service. Qu'il refuse se comprend ; l'avoir
+supposé accepté **sans le mesurer** était l'erreur.
+
+On revient donc à la forme mesurée — une opération par requête — et le budget
+par lot s'arrête à **six** : trois fois celui de la 4.15.1, et six
+allers-retours toutes les trente secondes au pire.
+
+### Un refus n'est pas une réponse
+
+Le registre des sessions déjà sondées existe pour qu'une chaîne ne le soit pas
+deux fois. C'est juste quand Twitch a **répondu**, y compris pour dire « rien ».
+Un refus, lui, n'apprend pas : le garder en mémoire perdait l'origine de cette
+chaîne pour toute la durée de la page. Le rapport le chiffrait — **dix-huit
+sondes tombées au réseau, dix-huit cartes condamnées à compter leur tronçon
+jusqu'au rechargement**. La session est désormais rendue au registre, et le
+cycle suivant réessaie.
+
+### La garde des chapitres avait changé de sens sans changer de texte
+
+Au survol, une ligne décidait s'il fallait demander les chapitres du tronçon
+courant : `!preludeDe(login) && friseACombler(login)`. La **3.72** l'avait
+écrite en connaissance de cause — à l'époque, `fetchChapitres` était le *seul*
+à verser au passé d'un direct, si bien que « ce direct a un passé » voulait
+dire « on a déjà demandé ses chapitres ». La phrase était juste, et elle
+bornait la dépense à une requête par session.
+
+**La sonde d'origine est devenue un second contributeur**, et elle y verse les
+tronçons d'*avant* la coupure. Sa seule présence suffisait alors à empêcher
+qu'on demande le tronçon *courant* — deux informations différentes que la garde
+confondait depuis. Le défaut dormait tant que la sonde ne partait qu'au survol,
+où elle courait à côté de cette ligne sans l'avoir encore devancée ; il est
+devenu constant quand le lot s'est mis à sonder toutes les cartes.
+
+Une première tentative avait **retiré** la garde, ce qui rouvrait une requête
+toutes les dix minutes par chaîne survolée. On repose plutôt la question de la
+3.72 telle qu'elle : *a-t-on déjà demandé les chapitres de ce tronçon ?*, et
+elle se lit dans le registre de `fetchChapitres`, nulle part ailleurs. La borne
+d'origine est rendue intacte — **une requête par session de stream, pas une de
+plus, exactement le même volume qu'avant**.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| les sondes d'un lot regroupées en une requête | 3 requêtes de 6 opérations au lieu de 14 d'une seule |
+| l'ancienne garde des chapitres remise | scénario 102 : **20 assertions sur 22** |
+
+Le premier ne mesure pas un comportement, **il tient une forme**. Le harnais
+répond à tout, groupé ou non : les deux passent au vert chez lui, et c'est
+précisément pourquoi le refus est arrivé chez l'utilisateur et non au banc.
+L'assertion existe pour qu'on ne regroupe pas une seconde fois, le jour où
+l'idée paraîtra de nouveau économique.
+
+Le second était déjà écrit, et depuis longtemps : le scénario 102 exigeait des
+deux sources du passé qu'elles **se rejoignent**, et d'une session qu'elle ne
+soit sondée **qu'une fois**. Les deux exigences tiennent ensemble, et c'est ce
+qui distingue cette correction de celle qui l'a précédée.
+
+## Deux origines par page, et pas une de plus (v4.15.2)
+
+> « Rien n'est corrigé. »
+
+Le rapport joint à ce message disait pourtant que la mécanique de la 4.15.1
+**fonctionnait** : `sondes 8 · servies 8 · trouvees 2 · adoptees 2`, sur une
+page de soixante-dix-huit secondes portant vingt-quatre lignes de carte. Huit
+sondes parties, dont **six venaient de survols**. Le lot, lui, n'en avait donc
+lancé que deux — et jamais plus, quel que soit le temps qu'on lui laissait.
+
+### Le budget était dépensé avant le filtre
+
+La sonde d'origine a ses gardes : session déjà sondée, chaîne déjà chaînée,
+subathon, plafond de page. Elles vivaient **à l'intérieur** de la sonde, et le
+lot qui l'appelait n'en savait rien. Il choisissait donc ses deux candidates sur
+le seul critère qu'il connaissait — « cette chaîne a un direct » — et la sonde
+les refusait ensuite en une ligne :
+
+```js
+// avant : le lot plafonne AVANT de savoir si la sonde acceptera
+if (entry?.stream?.id && aSonder.length < CFG.RECONNECT_PROBE_PER_BATCH) {
+  aSonder.push(login);
+}
+```
+
+**L'ordre du lot est celui de la liste**, donc stable d'un cycle à l'autre. Le
+budget retombait chaque fois sur *les deux mêmes chaînes*, déjà sondées au
+premier relevé. Deux origines apprises par page, puis plus rien — pendant que le
+compteur `sondes`, lui, restait bas et paraissait sage.
+
+La correction tient en un déplacement : le lot passe **toute** sa liste, et la
+sonde prend les premières qu'elle accepte, budget compris. Ce qui décide et ce
+qui compte sont désormais au même endroit.
+
+### Et la minute d'écart avec « Précédemment… »
+
+> « Beaucoup de cartes ont environ une minute de décalage. »
+
+La 4.15.1 avait traité une cause réelle — la part non observée sous la
+tolérance, qui disparaissait du total. Il en restait une seconde, et elle tient
+en un verbe. Le total de la frise se terminant à *maintenant*, c'est un écart à
+maintenant, exactement comme le compteur de la carte. Or il était rendu par
+`formatDuree`, qui **arrondit**, quand la carte **tronque** :
+
+```js
+const formatDuree  = (ms) => enForme(Math.max(0, Math.round(ms / 60_000)));
+const formatEcoule = (ms) => enForme(Math.max(0, Math.floor(ms / 60_000)));
+```
+
+Passé la demi-minute, les deux nombres divergeaient d'une minute pleine. La
+convention de la maison — *une durée écoulée se tronque, un intervalle mesuré
+s'arrondit* — était écrite juste au-dessus ; c'est son application au total qui
+manquait.
+
+### Ce qui a été écarté par la mesure
+
+Le compteur de la carte ne bat qu'à la minute, ce qui faisait un second suspect
+présentable. Il est innocent : **chaque balayage réécrit la durée** depuis le
+dataset (`applyChannelData`), et `REFRESH_TICK` en programme un toutes les cinq
+secondes. La carte n'est donc jamais en retard de plus de cinq secondes sur
+elle-même, et rien n'a été changé de ce côté — une constante qu'on abaisse sans
+défaut démontré est une constante qu'on abaissera encore.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| le budget du lot pris avant les gardes | **6 cartes sur 14** à « 5h00 », les huit autres figées à « 1m » |
+| le total de la frise rendu par `formatDuree` | **carte 3h00, frise 3h01** |
+
+Le premier exige **plus de cartes que le budget d'un lot** — quatorze pour
+six — sans quoi le défaut n'existe pas : c'est pourquoi le sous-test de la
+4.15.1, avec sa chaîne unique, passait déjà. Il n'ouvre aucun aperçu et le
+vérifie (`survols 0`), et il lit le rapport pour exiger quatorze sondes et
+quatorze adoptions.
+
+Le second **choisit sa phase** : l'écart n'existe qu'au-delà de la demi-minute,
+et un décor qui laisse la phase au hasard ne détecte qu'une fois sur deux. Le
+départ est posé quarante secondes après une minute pleine, ce qui laisse
+dix-huit secondes de marge avant que le mutant ne redevienne invisible.
+
+## La carte et la frise disent le même nombre (v4.15.1)
+
+Deux défauts signalés ensemble, tous deux nés de la 4.15.0 — et c'est la même
+durée qui est en cause.
+
+### 1. « Le temps ne se met à jour qu'au survol »
+
+> Capture à l'appui : une chaîne à **10h15** sur la carte, puis **57h32** dès
+> l'aperçu ouvert.
+
+**Ce n'était pas un défaut de rafraîchissement**, et c'est pour cela que le
+minuteur de la carte n'y pouvait rien : il faisait battre la bonne mécanique sur
+la **mauvaise origine**.
+
+Une coupure survenue **avant** l'ouverture de la page n'est dans aucune
+mémoire — ni la nôtre, qui n'existait pas, ni celle de Twitch, qui ne sert que
+le tronçon courant. Seule l'archive le dit, et la sonde qui la lit ne partait
+**qu'au survol**.
+
+Elle part désormais aussi pour les cartes affichées, **sans rien changer à ce
+qu'elle coûte** : les mêmes gardes exactement — une opération par *session* de
+stream, jamais sur une chaîne déjà chaînée, jamais sur un subathon, plafond par
+page. Ce qui change est *quand* on la pose, pas combien de fois. Deux sondes par
+lot suffisent à couvrir une sidebar en quelques cycles, sans faire de pointe.
+
+### 2. « Environ une minute de décalage avec Précédemment »
+
+La cause tient en un nombre : **`CATEGORY_TRAIL_TOLERANCE` vaut quatre-vingt-dix
+secondes**, ce qui est exactement l'ordre de grandeur relevé.
+
+`inconnuMs` mesure la part non observée du direct — du départ à notre première
+vue. Sous la tolérance, on la met à zéro, et à juste titre : une seconde de
+hachuré pour notre propre latence de relevé ne dit rien à personne. Mais **on la
+mettait à zéro sans la rendre à personne**. Le total de la frise vaut
+`inconnuMs + Σ segments` : cette part disparaissait donc du total, tandis que la
+carte, qui compte depuis l'origine, ne perdait rien.
+
+Elle est maintenant **absorbée par le premier segment**, ce qui est la seule
+chose honnête à en faire : un écart plus court que notre propre cadence de
+relevé n'est pas de l'ignorance, c'est du bruit de mesure, et il appartient à la
+catégorie qui l'encadre. Le total redevient `maintenant − origine` **par
+construction** — le même nombre que la carte, et non un nombre qui lui
+ressemble.
+
+### Laquelle des deux était juste ?
+
+**La carte.** Elle comptait depuis l'origine et ne perdait rien ; c'est la frise
+qui oubliait jusqu'à quatre-vingt-dix secondes. Les deux se rejoignent
+désormais sur la valeur de la carte.
+
+### Ce que le banc mesure
+
+| mutant | résultat |
+| --- | --- |
+| la sonde rendue au seul survol | la carte affiche **« 1m »** au lieu de « 5h00 » |
+| le filet non rendu au premier segment | **carte 3h01, frise 3h00** |
+
+Le premier cas **n'ouvre jamais l'aperçu** — c'est tout son objet — et le
+vérifie : `survols 0`, `sondes ≥ 1`. Sans ce témoin, l'assertion passerait aussi
+le jour où un survol se glisserait dans le décor.
+
+Le second en exige **deux** : un écart franc au-dessus de la tolérance, qui
+passait déjà et doit continuer, et un écart en dessous, qui est le cas signalé.
+Sans le premier, on ne saurait pas si le correctif a cassé la part non observée
+légitime.
+
+## La carte compte le direct, pas le tronçon (v4.15.0)
+
+### Ce que la capture montrait
+
+Une carte annonçait **3h41**. Deux centimètres plus bas, dans l'aperçu de la
+même chaîne : **« PRÉCÉDEMMENT SUR CE LIVE · 1 coupure · 10h11 »**, et une frise
+qui totalisait bien dix heures.
+
+Le produit tenait donc **deux vérités à la fois pour la même chose**, et c'est
+l'utilisateur qui devait les réconcilier.
+
+### D'abord : le système de coupure fonctionne-t-il ?
+
+Oui, et il est plus strict que « moins de dix minutes » — il exige **deux**
+bornes, toutes deux à dix minutes, et il faut les deux :
+
+| borne | ce qu'elle exige |
+| --- | --- |
+| `RECONNECT_GAP_MAX` = 10 min | la chaîne a été **vue en ligne** il y a moins de dix minutes |
+| `FRESH_MAX_MIN` = 10 min | le nouveau tronçon a **commencé** il y a moins de dix minutes |
+
+La première borne est en pratique plus serrée qu'elle n'en a l'air : « vu en
+ligne » vient du relevé, qui tourne toutes les trente secondes. L'écart mesuré
+est donc l'interruption réelle, à une demi-minute près.
+
+Deux exclusions encore : un **subathon** ne chaîne jamais ses redémarrages —
+Twitch impose de relancer toutes les quarante-huit heures, et chaîner
+produirait « 14 coupures » là où il ne s'est rien passé — et un identifiant de
+stream **inchangé** n'est pas une reprise mais la même session.
+
+Sur la capture, tout concorde : une coupure comptée, un total de 10h11, et un
+tronçon courant de 3h41.
+
+### Le renversement, et c'est le troisième tour
+
+Il faut le dire, parce que cette décision a déjà changé deux fois :
+
+- la **3.98** avait mis la durée du direct entier sur la carte ;
+- une version suivante l'a **annulé** sur retour d'usage, avec un argument qui
+  se défendait : *« deux vérités pour une même chose valent moins qu'une seule
+  bien placée »* — la session sur la carte, le direct dans l'aperçu.
+
+**Le raisonnement était juste et sa conclusion fausse.** Il supposait qu'on
+pouvait n'en montrer qu'une. La capture prouve le contraire : les deux étaient
+montrées quand même, à deux centimètres l'une de l'autre.
+
+Entre suivre Twitch et répondre à la question qu'on se pose en lisant une
+sidebar — *depuis combien de temps il diffuse* — c'est la seconde qui gagne.
+
+### Ce qui change, et ce qui ne change pas
+
+`debutReel()` existait déjà : il porte l'origine du direct à travers les
+coupures, et la frise s'en sert depuis longtemps. La carte lit maintenant la
+même source.
+
+**Sur une chaîne qui n'a pas coupé, les deux horodatages sont identiques** et
+rien ne bouge — c'est le cas de l'immense majorité des cartes. La différence
+n'apparaît qu'après une coupure reconnue.
+
+**La barre violette reste éteinte sur une reprise**, comme avant. Sa garde
+devient toutefois une ceinture en plus des bretelles : l'âge de la carte vaut
+maintenant six heures et le seuil de dix minutes suffirait seul. Elle est
+gardée parce qu'elle est le seul endroit qui dise **pourquoi**, et parce que les
+deux seuils sont égaux par coïncidence de valeur, pas de nature.
+
+### Deux commentaires qui se contredisaient
+
+Au point exact de l'assignation, deux blocs voisins disaient l'inverse l'un de
+l'autre : l'un décrivait la lecture de l'origine, l'autre expliquait qu'on
+compte la session. Le premier était un vestige du tour précédent, laissé en
+place par le revert. Ils sont fondus en un seul, qui dit ce que le code fait et
+pourquoi le choix inverse est tombé.
+
+### Ce que le banc mesure
+
+L'assertion du scénario 95 en est à son **troisième tour**, et elle le dit dans
+son commentaire. Elle est **retournée**, pas supprimée :
+
+| | assertion |
+| --- | --- |
+| avant | « le compteur de la carte repart bien de zéro : c'est la session » |
+| après | « le compteur garde le départ du DIRECT, non celui du tronçon » |
+
+Et une assertion de plus, parce que le dataset ne suffit pas : **la durée rendue
+à l'écran doit porter des heures**, pas des minutes de tronçon. Sans elle, un
+`tseStartedAt` correct et un affichage cassé passeraient tous deux au vert.
+
+### Le mode d'emploi et les fiches suivent
+
+Le chapitre 4 annonçait l'ancienne règle dans les **douze langues** : « la barre
+violette ne se rallume pas, **mais son compteur, lui, repart de zéro** ». Il dit
+maintenant l'inverse, et sa seconde puce cesse de présenter la durée entière
+comme une exception de l'aperçu — c'est la règle partout, l'aperçu ajoutant le
+**nombre** de coupures et leur dessin sur la frise.
+
+Les **douze fiches de boutique** promettaient la même chose. Elles distinguent
+désormais ce que fait Twitch — remettre le compteur à zéro — de ce que fait
+l'extension : continuer d'afficher le direct entier.
 
 ## Le premier relevé ne se fait disputer par personne (v4.14.5)
 
@@ -7125,6 +9122,10 @@ garde est revenue dans `updateFreshness`, à l'endroit exact où elle avait ét�
 retirée), le compteur repart de zéro comme chez Twitch, et le direct entier se
 lit dans l'aperçu — qui, lui, a la place de dire les deux.
 
+> **Renversé en 4.15.0.** La carte porte désormais la durée du direct entier :
+> voir *La carte compte le direct, pas le tronçon*.
+
+
 **Mais la frise, elle, recommençait**, et c'était le vrai dégât. Il ne se voyait
 pas depuis le code : `suivreCategorie` repart de zéro dès que l'identifiant de
 stream change, et il change à chaque reprise. Un spectateur qui survolait après
@@ -9229,15 +11230,17 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 | `tse:visits` | dates de vos visites par chaîne | tri « Mes plus visités » |
 | `tse:roster` | chaînes suivies aperçues dans la sidebar | poser une carte avant Twitch |
 | `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
-| `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois et le passé d'abonné | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
+| `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois, le passé d'abonné et leur échéance (anniversaire ou expiration) | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
 | `tse:substs` | date du dernier relevé complet, précédée du numéro du lecteur qui l'a produit | espacer les relevés de 6 h, et périmer d'office ceux d'une version antérieure |
 | `tse:submois` | libellé de l'ancienneté, appris sur la page | lire le nombre de mois sans dépendre de la langue |
+| `tse:sondes` | ce que Twitch a répondu aux sondes de reprise, par identifiant de direct, 48 h au plus | ne pas redemander au rechargement ce qui est déjà tranché |
 
 `tse.reset()` les efface toutes à tout moment ; vider les données de site de
 `twitch.tv` depuis les réglages du navigateur fait de même.
 
-Le mode **Top Chaînes** n'ajoute rien à cette liste : il ne mémorise rien, ne
-persiste pas même le mode choisi, et ses requêtes empruntent exactement le même
+Le mode **Top Chaînes** n'ajoute rien à cette liste, sinon que ses cartes ont
+leurs verdicts de sonde dans `tse:sondes` comme les autres : il ne mémorise rien
+d'autre, ne persiste pas même le mode choisi, et ses requêtes empruntent exactement le même
 chemin anonyme que le reste de l'extension — `credentials: 'omit'`, Client-ID
 public, aucun jeton de session, aucune permission supplémentaire.
 
@@ -9335,7 +11338,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 141 scénarios, 1240 assertions |
+| `npm test` | le harnais Playwright : 164 scénarios, 1363 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
