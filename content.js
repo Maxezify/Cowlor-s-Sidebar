@@ -2149,24 +2149,25 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom { color: #8a5900; }
     html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat { color: #7c5a1e; }
+    
     @supports (-webkit-background-clip: text) or (background-clip: text) {
       html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom {
-        background: linear-gradient(100deg,
+        background-image: linear-gradient(100deg,
           #8a5900   0%,
           #7a4e00  32%,
           #9c4f6b  46%,
           #8a5900  64%,
-          #8a5900 100%) 0 0 / 300% 100%;
+          #8a5900 100%);
         
         filter: none;
       }
       html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat {
-        background: linear-gradient(100deg,
+        background-image: linear-gradient(100deg,
           #7c5a1e   0%,
           #6b4700  34%,
           #8f3f63  47%,
           #7c5a1e  64%,
-          #7c5a1e 100%) 0 0 / 300% 100%;
+          #7c5a1e 100%);
         filter: none;
       }
     }
@@ -3965,6 +3966,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           login: l,
           id:      m.id || null,
           name:    (m.name || '').trim() || l,
+
           avatar:  null,
           viewers: Number.isFinite(m.combined) ? m.combined : 0,
           game:    null,
@@ -9260,6 +9262,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       return;
     }
 
+    if (data.avatar && isSynthetic(card)
+        && !card.querySelector(AVATAR_IMG)?.getAttribute('src')) {
+      poserAvatar(card, data.avatar,
+        cardNameEl(card)?.textContent?.trim() || data.name || card.dataset.tseLogin);
+    }
+
     const stream = data.stream;
 
     if (stream?.createdAt) {
@@ -11245,6 +11253,20 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
   };
 
+  const AVATAR_IMG = 'img.tw-image-avatar, .side-nav-card__avatar img';
+  const poserAvatar = (card, avatar, nom) => {
+    const img = card.querySelector(AVATAR_IMG);
+    if (!img) return;
+    img.removeAttribute('srcset');
+    if (avatar) {
+      img.setAttribute('src', avatar);
+      img.setAttribute('alt', nom);
+    } else {
+      img.removeAttribute('src');
+      img.setAttribute('alt', '');
+    }
+  };
+
   const buildAheadCard = (template, login, data) => {
     const card = template.cloneNode(true);
     scrubClone(card);
@@ -11267,13 +11289,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (catEl.hasAttribute('title')) catEl.setAttribute('title', categorie);
     }
 
-    const img = card.querySelector('img.tw-image-avatar, .side-nav-card__avatar img');
-    if (img) {
-      if (data.avatar) img.setAttribute('src', data.avatar);
-      else img.removeAttribute('src');
-      img.setAttribute('alt', name);
-      img.removeAttribute('srcset');
-    }
+    poserAvatar(card, data.avatar, name);
 
     card.dataset.tseSynthetic = 'true';
     card.dataset.tseLogin = login;
