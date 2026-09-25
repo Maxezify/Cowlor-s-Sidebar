@@ -125,6 +125,9 @@
   "colSource": {
     "message": "Origen"
   },
+  "colDue": {
+    "message": "Vencimiento"
+  },
   "colLag": {
     "message": "Retraso"
   },
@@ -394,7 +397,7 @@
     "message": "Tus suscripciones, en oro"
   },
   "guideAboTexte": {
-    "message": "Los canales que apoyás ya no se parecen a los demás: nombre dorado, categoría dorada, un anillo de oro alrededor del avatar y un reflejo lento sobre la tarjeta.\n• Aparece una insignia que dice desde cuándo.\n• Las tres formas de suscripción cuentan: pagada, regalada, móvil."
+    "message": "Los canales que apoyás ya no se parecen a los demás: nombre dorado, categoría dorada, un anillo de oro alrededor del avatar y un reflejo lento sobre la tarjeta.\n• Aparece una insignia que dice desde cuándo, y luego el próximo aniversario — o, en una suscripción regalada, el día en que termina.\n• Las tres formas de suscripción cuentan: pagada, regalada, móvil."
   },
   "guideTriTitre": {
     "message": "Ordenar y filtrar"

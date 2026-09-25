@@ -633,6 +633,13 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Stream Hôte',
       uiBadgeSubMonths:          (n) => `Abonné • ${n} MOIS`,
       uiBadgeExSubMonths:        (n) => `Ancien abonné • ${n} MOIS`,
+      /* L'ÉCHÉANCE, en jours, collée au badge d'abonnement : l'anniversaire
+         d'un abonnement payé, l'expiration d'un abonnement offert. 0 veut
+         dire aujourd'hui. */
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Anniversaire aujourd\'hui'
+        : `Prochain anniversaire dans ${j} jour${j > 1 ? 's' : ''}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Expire aujourd\'hui'
+        : `Expire dans ${j} jour${j > 1 ? 's' : ''}`,
       // Étiquettes de classification de contenu, en tête des badges de l'aperçu.
       // Formes COURTES : le badge tient dans 480 px, et Twitch lui-même annonce
       // « Il peut contenir : Jeux matures », pas la phrase entière de sa
@@ -723,6 +730,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Host Stream',
       uiBadgeSubMonths:          (n) => `Subscribed • ${n} MONTH${n > 1 ? 'S' : ''}`,
       uiBadgeExSubMonths:        (n) => `Former sub • ${n} MONTH${n > 1 ? 'S' : ''}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Anniversary today'
+        : `Next anniversary in ${j} day${j > 1 ? 's' : ''}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Expires today'
+        : `Expires in ${j} day${j > 1 ? 's' : ''}`,
       uiCclMatureGame:                      'Mature-rated game',
       uiCclGambling:                        'Gambling',
       uiCclSexualThemes:                    'Sexual themes',
@@ -808,6 +819,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Host-Stream',
       uiBadgeSubMonths:          (n) => `Abonniert • ${n} MONAT${n > 1 ? 'E' : ''}`,
       uiBadgeExSubMonths:        (n) => `Ehemals abonniert • ${n} MONAT${n > 1 ? 'E' : ''}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Jubiläum heute'
+        : `Nächstes Jubiläum in ${j} Tag${j > 1 ? 'en' : ''}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Läuft heute ab'
+        : `Läuft in ${j} Tag${j > 1 ? 'en' : ''} ab`,
       uiCclMatureGame:                      'Spiel ab 18',
       uiCclGambling:                        'Glücksspiel',
       uiCclSexualThemes:                    'Sexuelle Themen',
@@ -893,6 +908,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Canal anfitrión',
       uiBadgeSubMonths:          (n) => `Suscrito • ${n} ${n > 1 ? 'MESES' : 'MES'}`,
       uiBadgeExSubMonths:        (n) => `Exsuscriptor • ${n} ${n > 1 ? 'MESES' : 'MES'}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Aniversario hoy'
+        : `Próximo aniversario en ${j} día${j > 1 ? 's' : ''}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Caduca hoy'
+        : `Caduca en ${j} día${j > 1 ? 's' : ''}`,
       uiCclMatureGame:                      'Juego para adultos',
       uiCclGambling:                        'Juegos de azar',
       uiCclSexualThemes:                    'Temas sexuales',
@@ -978,6 +997,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Canal anfitrião',
       uiBadgeSubMonths:          (n) => `Inscrito • ${n} ${n > 1 ? 'MESES' : 'MÊS'}`,
       uiBadgeExSubMonths:        (n) => `Ex-inscrito • ${n} ${n > 1 ? 'MESES' : 'MÊS'}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Aniversário hoje'
+        : `Próximo aniversário em ${j} dia${j > 1 ? 's' : ''}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Expira hoje'
+        : `Expira em ${j} dia${j > 1 ? 's' : ''}`,
       uiCclMatureGame:                      'Jogo adulto',
       uiCclGambling:                        'Jogos de azar',
       uiCclSexualThemes:                    'Temas sexuais',
@@ -1063,6 +1086,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Stream host',
       uiBadgeSubMonths:          (n) => `Abbonato • ${n} MES${n > 1 ? 'I' : 'E'}`,
       uiBadgeExSubMonths:        (n) => `Ex abbonato • ${n} MES${n > 1 ? 'I' : 'E'}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Anniversario oggi'
+        : `Prossimo anniversario tra ${j} giorn${j > 1 ? 'i' : 'o'}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Scade oggi'
+        : `Scade tra ${j} giorn${j > 1 ? 'i' : 'o'}`,
       uiCclMatureGame:                      'Gioco per adulti',
       uiCclGambling:                        'Gioco d\'azzardo',
       uiCclSexualThemes:                    'Temi sessuali',
@@ -1148,6 +1175,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Kanał gospodarza',
       uiBadgeSubMonths:          (n) => `Subskrypcja • ${n} ${plurielSlave(n, ['MIESIĄC', 'MIESIĄCE', 'MIESIĘCY'])}`,
       uiBadgeExSubMonths:        (n) => `Dawna subskrypcja • ${n} ${plurielSlave(n, ['MIESIĄC', 'MIESIĄCE', 'MIESIĘCY'])}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Rocznica dziś'
+        : `Następna rocznica za ${j} ${plurielSlave(j, ['dzień', 'dni', 'dni'])}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Wygasa dziś'
+        : `Wygasa za ${j} ${plurielSlave(j, ['dzień', 'dni', 'dni'])}`,
       uiCclMatureGame:                      'Gra dla dorosłych',
       uiCclGambling:                        'Hazard',
       uiCclSexualThemes:                    'Treści seksualne',
@@ -1233,6 +1264,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Канал ведущего',
       uiBadgeSubMonths:          (n) => `Подписка • ${n} ${plurielSlave(n, ['МЕСЯЦ', 'МЕСЯЦА', 'МЕСЯЦЕВ'])}`,
       uiBadgeExSubMonths:        (n) => `Бывшая подписка • ${n} ${plurielSlave(n, ['МЕСЯЦ', 'МЕСЯЦА', 'МЕСЯЦЕВ'])}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Годовщина сегодня'
+        : `Следующая годовщина через ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Истекает сегодня'
+        : `Истекает через ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])}`,
       uiCclMatureGame:                      'Игра для взрослых',
       uiCclGambling:                        'Азартные игры',
       uiCclSexualThemes:                    'Сексуальные темы',
@@ -1318,6 +1353,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'ホスト配信',
       uiBadgeSubMonths:          (n) => `サブスク • ${n}か月`,
       uiBadgeExSubMonths:        (n) => `元サブスク • ${n}か月`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? '今日が記念日' : `次の記念日まであと${j}日`,
+      uiBadgeSubExpire:          (j) => j === 0 ? '今日で終了' : `あと${j}日で終了`,
       uiCclMatureGame:                      '成人向けゲーム',
       uiCclGambling:                        'ギャンブル',
       uiCclSexualThemes:                    '性的なテーマ',
@@ -1403,6 +1440,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       '主办直播',
       uiBadgeSubMonths:          (n) => `已订阅 • ${n} 个月`,
       uiBadgeExSubMonths:        (n) => `曾订阅 • ${n} 个月`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? '今天是订阅纪念日' : `距下次纪念日还有 ${j} 天`,
+      uiBadgeSubExpire:          (j) => j === 0 ? '今天到期' : `${j} 天后到期`,
       uiCclMatureGame:                      '成人向游戏',
       uiCclGambling:                        '赌博',
       uiCclSexualThemes:                    '性相关内容',
@@ -2010,6 +2049,30 @@ const TSE_GATE_MAX_CLICKS = 5;
        subathon, et RECONNECT_PROBE_MAX par page. */
     RECONNECT_PROBE_PER_WINDOW: 12,
     RECONNECT_PROBE_WINDOW:     30_000,
+    /* ── ET CE PLAFOND N'EST PLUS QU'UN PLAFOND (4.20.0) ────────────────────
+       Le rapport de terrain disait « 64 refus sur 191 sondes » à cadence
+       pleine : un tiers. S'obstiner nourrit le refus — la 4.15.6 l'avait déjà
+       mesuré, 23 % à 0,25 sonde/s contre 33 % à 0,48. La cadence se règle donc
+       sur ce que Twitch répond : sur chaque ÉCHANTILLON de dix réponses, plus
+       d'un refus sur dix la divise par deux, sans descendre sous deux par
+       fenêtre ; un échantillon propre la remonte de deux, sans jamais dépasser
+       RECONNECT_PROBE_PER_WINDOW. La bourse du voile suit dans la même
+       proportion : c'est sous le voile que tombaient la plupart des refus. */
+    RECONNECT_PROBE_RATE_SAMPLE:     10,
+    RECONNECT_PROBE_RATE_MAX:        0.1,
+    RECONNECT_PROBE_RATE_STEP:       2,
+    RECONNECT_PROBE_MIN_PER_WINDOW:  2,
+    /* ── CE QUE TWITCH A RÉPONDU, GARDÉ D'UN CHARGEMENT À L'AUTRE (4.20.0) ──
+       Pour un identifiant de stream donné, la réponse de la sonde ne change
+       jamais : ce qui précède un direct est fixé quand il démarre, et une
+       nouvelle coupure crée un NOUVEL identifiant, qui sera sondé, lui. On
+       garde donc chaque verdict — « rien ne raccorde » compris, qui est
+       l'immense majorité — quarante-huit heures, la durée maximale d'un direct
+       Twitch. Un rechargement ne sonde plus que les directs apparus depuis.
+       Les refus ne se gardent pas : ils n'apprennent rien sur le direct. */
+    RECONNECT_PROBE_STORE_KEY:  'tse:sondes',
+    RECONNECT_PROBE_STORE_TTL:  48 * 60 * 60_000,
+    RECONNECT_PROBE_STORE_MAX:  300,
     /* ── ET CE QU'ON FAIT D'UN REFUS ───────────────────────────────────────
        Assez long pour ne pas rejouer la requête dans la même bouffée que
        celles qui viennent d'être refusées, assez court pour que la carte
@@ -2249,6 +2312,14 @@ const TSE_GATE_MAX_CLICKS = 5;
        est celui qu'on laisse à la page pour CHANGER d'onglet après le clic ;
        au-delà, on recharge pour cet onglet-là, comme avant. */
     SUBS_PAGE_SWITCH:     4_000,
+    /* ── LA BARRE D'ONGLETS, TELLE QUE TWITCH LA DESSINE ────────────────────
+       Relevée dans la console d'un utilisateur le 24/09/2026 : six
+       <button role="tab" data-a-target="tw-tab-link">, SANS adresse, dans cet
+       ordre. La 4.19.2 y cherchait des liens « ?tab= », n'en trouvait aucun,
+       et rechargeait une page par onglet sans le dire. Leurs libellés sont
+       traduits et portent un compte — « Abonnements offerts(12) » — : on ne
+       les lit pas, on lit leur PLACE (cf. subsPage.boutonDe). */
+    SUBS_PAGE_TAB_ORDER:  ['paid', 'gifts', 'mobile', 'turbo', 'other', 'expired'],
     // Retenue MAXIMALE du voile de chargement, quand aucun relevé n'a encore
     // abouti — première installation, ou lecteur devenu périmé. Le voile se
     // lève AVANT ce délai dès que le premier onglet a rendu quelque chose (et
@@ -2333,6 +2404,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     // l'ordre n'a plus d'importance : les onglets peuvent partir ensemble, et
     // le relevé passe d'une vingtaine de secondes à la durée du plus lent.
     SUBS_LABEL_KEY:       'tse:submois',
+    // Jusqu'où chercher la date d'expiration d'un abonnement offert, en jours.
+    // Twitch offre au plus douze mois d'un coup : quatre cents jours couvrent
+    // le plus long, avec de la marge (cf. subsPage.lireCarte).
+    SUBS_DUE_HORIZON_DAYS: 400,
 
     SUBS_STORAGE_KEY:     'tse:subs',
     SUBS_MAX_LOGINS:      400,
@@ -7585,6 +7660,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         name:      node.broadcaster.displayName?.trim() || login,
         avatar:    node.broadcaster.profileImageURL || null,
         viewers:   vus,
+        // Le nombre est-il un combiné connu ? (cf. `chutesParNature`)
+        combinee:  Number.isFinite(combine),
         game:      node.game?.name || null,
         gameLabel: node.game?.displayName?.trim() || node.game?.name || null,
         createdAt: node.createdAt || null,
@@ -8139,6 +8216,22 @@ const TSE_GATE_MAX_CLICKS = 5;
        DEUX MEMBRES AU MOINS, comme pour le regroupement : un compteur unique
        n'est la signature de rien. */
     let combines = new Set();
+    /* ── LA NATURE DU NOMBRE QU'ON TIENT, POUR DIRE CELLE D'UNE CHUTE ───────
+       (4.20.0) Le rapport de terrain portait « chuteMax 49 744 » sans pouvoir
+       dire ce qui était tombé. Deux choses se ressemblent sous ce seul
+       nombre : une chaîne qui PERD SON COMBINÉ de co-stream — la session finit,
+       ou sa signature se perd — et redevient son audience propre ; et une
+       audience propre qui baisse sur un direct toujours en cours. La première
+       est un changement de NATURE du nombre, la seconde un changement de
+       valeur, et elles ne s'expliquent pas pareil.
+       LA NATURE SE POSE LÀ OÙ LE NOMBRE NAÎT, sur l'enregistrement lui-même
+       (`combinee`) : `readStream` quand il y applique un combiné connu, la
+       publication quand la signature du répertoire le reconnaît, `setViewers`
+       à chaque écriture — vrai pour un combiné de Guest Star, faux pour un
+       compteur propre. Aucun registre à part, donc rien à purger. */
+    const chutesParNature = { perteCombine: { n: 0, max: 0 }, combine: { n: 0, max: 0 },
+                              propre: { n: 0, max: 0 } };
+    let plusGrandeChute = null;
     /* SUR LE NOMBRE AFFICHÉ, ET NON SUR LE NOMBRE EXACT. La 4.13.9 comparait
        les valeurs exactes, et un rapport de terrain l'a mise en défaut : trois
        co-streamers affichés « 1,1 k » n'ont pas le même nombre exact. Twitch
@@ -8245,6 +8338,9 @@ const TSE_GATE_MAX_CLICKS = 5;
       rankingTs    = Date.now();
       threshold    = nthViewers(pool, options.get('topN'));
       recalculerCombines(ranking);
+      // Ce que la signature reconnaît porte un combiné (cf. `chutesParNature`).
+      ranking = ranking.map((r) => (combines.has(r.login) && !r.combinee
+        ? { ...r, combinee: true } : r));
     };
 
     // Pool de départ d'une passe : le classement courant, tel quel. Il n'est
@@ -9225,8 +9321,13 @@ const TSE_GATE_MAX_CLICKS = 5;
             creuse = true;
             return false;
           }
-          if (!Number.isFinite(viewers)
-              || (liste[i].viewers === viewers && !liste[i].creux)) return false;
+          if (!Number.isFinite(viewers)) return false;
+          if (liste[i].viewers === viewers && !liste[i].creux) {
+            /* Rien ne bouge, sauf la NATURE : Guest Star confirme en combiné le
+               nombre que le répertoire donnait nu (cf. `chutesParNature`). */
+            if (autorite && !liste[i].combinee) liste[i] = { ...liste[i], combinee: true };
+            return false;
+          }
           /* LE COMPTEUR DU RÉPERTOIRE PORTE LA SIGNATURE D'UN COMBINÉ : on ne
              l'écrase pas avec un compteur propre, qui décrit autre chose. La
              marche le rafraîchira ; en attendant, la carte et le classement
@@ -9252,11 +9353,22 @@ const TSE_GATE_MAX_CLICKS = 5;
             if (perte > stats.chuteMax) stats.chuteMax = perte;
             // Une chute SOUS le seuil d'affichage fait sortir la carte de
             // l'écran : c'est celle-là que l'utilisateur voit.
-            if (threshold > 0 && avant >= threshold && viewers < threshold) {
-              stats.chutesHorsEcran += 1;
+            const sortie = threshold > 0 && avant >= threshold && viewers < threshold;
+            if (sortie) stats.chutesHorsEcran += 1;
+            /* SA NATURE (cf. `chutesParNature`) : le combiné qui baisse, le
+               combiné perdu, ou l'audience propre qui baisse. Et la plus
+               grande, avec ce qui l'entourait — c'est elle qu'on cherche
+               quand un rapport annonce un nombre énorme. */
+            const nature = autorite ? 'combine'
+              : liste[i].combinee ? 'perteCombine' : 'propre';
+            const n = chutesParNature[nature];
+            n.n += 1;
+            if (perte > n.max) n.max = perte;
+            if (!plusGrandeChute || perte > plusGrandeChute.perte) {
+              plusGrandeChute = { nature, perte, avant, apres: viewers, sortieEcran: sortie };
             }
           }
-          liste[i] = { ...liste[i], viewers, creux: 0, ts: Date.now() };
+          liste[i] = { ...liste[i], viewers, combinee: autorite, creux: 0, ts: Date.now() };
           return true;
         };
         if (appliquer(ranking))      { rankingDirty = true; touche = true; }
@@ -9290,7 +9402,15 @@ const TSE_GATE_MAX_CLICKS = 5;
       // Les chutes de compteur, pour le rapport. Lecture pure.
       chutes() {
         return { chutes: stats.chutes, chuteMax: stats.chuteMax,
-                 chutesHorsEcran: stats.chutesHorsEcran };
+                 chutesHorsEcran: stats.chutesHorsEcran,
+                 chutesParNature: {
+                   perteCombine: { ...chutesParNature.perteCombine },
+                   combine:      { ...chutesParNature.combine },
+                   propre:       { ...chutesParNature.propre } },
+                 plusGrandeChute: plusGrandeChute ? { ...plusGrandeChute } : 'aucune',
+                 /* Les chaînes du classement dont le nombre EST un combiné, en
+                    ce moment : ce qui peut tomber en « perteCombine ». */
+                 combinesAuClassement: ranking.filter((r) => r.combinee).length };
       },
       estCombine(login) {
         const rec = ranking.find((r) => r.login === login)
@@ -10033,13 +10153,27 @@ const TSE_GATE_MAX_CLICKS = 5;
    *  requête supplémentaire, et qu'elle répond à une question qu'on se
    *  pose (« celui-là, je l'ai payé ou on me l'a offert ? »).
    *
+   *  ÉCHÉANCE (v4.20). La carte dit aussi dans combien de jours tombe le
+   *  prochain anniversaire, et, pour un abonnement offert, à quelle date il
+   *  expire. On garde celle que le badge affichera — l'anniversaire d'un
+   *  abonnement payé ou mobile, l'expiration d'un offert — en DATE, jamais en
+   *  nombre de jours : un compte relevé il y a six heures serait faux, une
+   *  date se recompte à l'affichage.
+   *
    *  Stockage : localStorage (clé SUBS_STORAGE_KEY), { login: [sub, ts]
-   *  ou [sub, ts, m, ex, src] }. Les formes courtes restent lues telles
-   *  quelles — une mémoire écrite par une version antérieure ne se perd pas.
+   *  ou [sub, ts, m, ex, src] ou [sub, ts, m, ex, src, ech] }. Les formes
+   *  courtes restent lues telles quelles — une mémoire écrite par une
+   *  version antérieure ne se perd pas.
    *  Effaçable par tse.reset(), comme le reste.
    * ============================================================ */
+  /* Minuit local d'un instant, et l'écart en jours de calendrier jusqu'à une
+     date. Arrondi, et non tronqué : un jour de changement d'heure dure 23 ou
+     25 heures, et le calendrier, lui, n'en saute aucun. */
+  const minuitLocal = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const joursJusqua = (t) => Math.round((minuitLocal(t) - minuitLocal(Date.now())) / 86_400_000);
+
   const subs = {
-    // login -> { sub: boolean, ts: number, m?: number, ex?: boolean }
+    // login -> { sub, ts, m?, ex?, src?, ech? } (cf. l'en-tête)
     map: new Map(),
 
     load() {
@@ -10058,6 +10192,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           if (Number.isFinite(m) && m > 0) e.m = m;
           if (v[3]) e.ex = true;
           if (typeof v[4] === 'string' && v[4]) e.src = v[4];
+          const ech = Number(v[5]);
+          if (Number.isFinite(ech) && ech > 0) e.ech = ech;
           this.map.set(login, e);
         }
         this.prune();
@@ -10072,7 +10208,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         for (const [login, e] of this.map) {
           // La forme longue n'est écrite que si elle porte quelque chose :
           // inutile d'alourdir chaque entrée de deux zéros.
-          if (e.src) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src];
+          if (e.ech) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src || '', e.ech];
+          else if (e.src) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src];
           else if (e.m || e.ex) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0];
           else obj[login] = [e.sub ? 1 : 0, e.ts];
         }
@@ -10117,6 +10254,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (avant?.m) e.m = avant.m;
       if (avant?.ex) e.ex = avant.ex;
       if (avant?.src) e.src = avant.src;
+      if (avant?.ech) e.ech = avant.ech;
       this.map.set(login, e);
       if (avant && avant.sub === sub) return false;   // rien de neuf
       // `differer` sert au relevé, qui enregistre une rafale d'abonnements
@@ -10165,8 +10303,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     /**
      * Note l'ONGLET d'où vient l'abonnement : 'paid', 'gifts' ou 'mobile'.
-     * Ne touche à rien d'autre. Une visite, qui ne sait pas d'où vient
-     * l'abonnement, n'appelle jamais ceci — la teinte par défaut s'applique.
+     * Ne touche à rien d'autre, et réécrit toute valeur différente : c'est le
+     * relevé qui choisit l'onglet qui sert (cf. `servies`). Une visite, qui ne
+     * sait pas d'où vient l'abonnement, n'appelle jamais ceci.
      */
     noteSource(login, src, differer = false) {
       if (!login || !src) return false;
@@ -10177,6 +10316,34 @@ const TSE_GATE_MAX_CLICKS = 5;
       this.map.set(login, e);
       if (!differer) this.flush();
       return true;
+    },
+
+    /**
+     * Note l'ÉCHÉANCE relevée sur /subscriptions, en minuit local — ou 0
+     * quand la carte n'en porte plus : une échéance qu'on ne lit plus ne doit
+     * pas survivre à la carte qui la portait. Appelée par le relevé juste
+     * après noteSource, pour la chaîne qu'il vient de créer ou de compléter.
+     */
+    noteEcheance(login, ech, differer = false) {
+      const avant = login ? this.map.get(login) : null;
+      if (!avant || (avant.ech || 0) === (ech || 0)) return false;
+      const e = { ...avant };
+      if (ech > 0) e.ech = ech; else delete e.ech;
+      this.map.set(login, e);
+      if (!differer) this.flush();
+      return true;
+    },
+
+    /* Jours jusqu'à l'échéance, comptés en DATES LOCALES — c'est ainsi que
+       Twitch compte ses « (dans 4 jours) » : relevé à minuit passé le 25/09,
+       « 29 sept. 2026 (dans 4 jours) » — et ce qu'elle est. Rien quand elle
+       est inconnue ou passée : le relevé suivant la remplacera, et d'ici là
+       le badge se tait plutôt que de compter à rebours sous zéro. */
+    echeanceFor(login) {
+      const e = login ? this.map.get(login) : null;
+      if (!e?.ech) return null;
+      const jours = joursJusqua(e.ech);
+      return jours >= 0 ? { jours, offert: e.src === 'gifts' } : null;
     },
 
     // Nombre total de mois d'abonnement relevé, ou 0. Sert au badge de
@@ -10215,7 +10382,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     entries() {
       return [...this.map.entries()]
         .map(([login, e]) => ({ login, sub: e.sub, ts: e.ts, mois: e.m || 0,
-                                ancien: !!e.ex, origine: e.src || '' }))
+                                ancien: !!e.ex, origine: e.src || '',
+                                echeance: e.ech || 0 }))
         .sort((a, b) => (b.sub - a.sub) || (b.ts - a.ts));
     },
 
@@ -10288,7 +10456,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* Ce que le DERNIER relevé a vu, onglet par onglet. Remis à neuf à chaque
        relevé : un bilan qui empilerait deux passes ne décrirait plus aucune
        des deux. */
-    let bilan = { onglets: [], fini: 0 };
+    let bilan = { onglets: [], fini: 0, bascule: '' };
     /* LES REPORTS SE COMPTENT À PART DU BILAN, et ce n'est pas un détail de
        rangement : un report veut dire qu'AUCUN relevé n'a eu lieu, alors que
        le bilan décrit un relevé qui a eu lieu. Les loger ensemble obligeait à
@@ -10369,8 +10537,7 @@ const TSE_GATE_MAX_CLICKS = 5;
      * seules peuvent enseigner l'étiquette sans risque de la confondre avec
      * la série en cours.
      */
-    const mois = (carte, apprendre) => {
-      const f = feuilles(carte);
+    const mois = (f, apprendre) => {
       if (apprendre) {
         // Une seule paire attendue : une étiquette, puis sa valeur chiffrée.
         // Toute autre forme signale que la page a changé — on n'apprend rien
@@ -10382,6 +10549,101 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (!etiquette) return 0;   // rien appris : on préfère ne rien dire
       const i = f.findIndex(x => x.t === etiquette);
       return i >= 0 && f[i + 1] ? entier(f[i + 1].t) : 0;
+    };
+
+    /* ──────────────────────────────────────────────────────────────
+     *  L'ÉCHÉANCE, SANS UN MOT DE FRANÇAIS NON PLUS
+     *  --------------------------------------------------------------
+     *  Relevé le 24/09/2026 sur les cartes du vrai Twitch :
+     *
+     *    carte PAYANTE
+     *      Prochain anniversaire d'abonnement dans : → 5 jours
+     *      Nombre total de mois abonné :            → 40 mois
+     *      Nombre de mois à la suite :              → 40 mois
+     *      Date de renouvellement de l'abonnement : → 29 sept. 2026 (dans 4 jours)
+     *
+     *    carte OFFERTE
+     *      Prochain anniversaire d'abonnement dans : → 23 jours
+     *      Abonnement offert par :                  → (un pseudonyme)
+     *      Nombre total de mois abonné :            → 1 mois
+     *      Nombre de mois à la suite :              → 1 mois
+     *      Vos avantages arrivent à expiration le   → 17 oct. 2026 (dans 22 jours)
+     *
+     *  L'ANNIVERSAIRE est la première valeur AVANT l'étiquette de
+     *  l'ancienneté — qu'on connaît déjà (cf. mois) — qui porte UN seul
+     *  nombre, dans une autre UNITÉ que l'ancienneté : « jours » contre
+     *  « mois », comparés sans être lus. Une date en porte deux ou trois, la
+     *  série se compte en mois : ni l'une ni l'autre ne passe pour lui.
+     *
+     *  L'EXPIRATION est une DATE, et une date ne se lit pas sans connaître
+     *  la langue. On l'ÉCRIT donc : les dates des prochains jours, mises en
+     *  forme dans la langue de la page comme Twitch met les siennes, et on
+     *  cherche celle que la carte porte. Une carte dont la date ne ressemble
+     *  à aucune ne donne rien au badge — il ne ment pas.
+     * ────────────────────────────────────────────────────────────── */
+    // L'unité d'une valeur (« jours », « mois ») : son texte sans chiffres ni
+    // espaces. Comparable sans être comprise.
+    const unite = (t) => t.replace(/[\d\s]+/g, '');
+    // \s couvre les espaces insécables qu'Intl glisse dans certaines langues.
+    const normaliser = (t) => t.toLowerCase().replace(/\s+/g, ' ').trim();
+    // Les formes qu'une date peut prendre sous Intl : mois abrégé, en toutes
+    // lettres, en chiffres. « 17 oct. 2026 » est la première en français.
+    const FORMES_DATE = [{ day: 'numeric', month: 'short', year: 'numeric' },
+                         { day: 'numeric', month: 'long', year: 'numeric' },
+                         { day: 'numeric', month: 'numeric', year: 'numeric' }];
+    // Les dates candidates, écrites une fois par langue et par jour.
+    let candidates = { langue: '', jour: 0, cles: [] };
+    const datesEcrites = (langue) => {
+      const jour = minuitLocal(Date.now());
+      if (candidates.langue === langue && candidates.jour === jour) return candidates.cles;
+      const cles = [];
+      try {
+        const formats = FORMES_DATE.map((o) => new Intl.DateTimeFormat(langue, o));
+        for (let i = 0; i <= CFG.SUBS_DUE_HORIZON_DAYS; i++) {
+          const d = new Date(jour);
+          d.setDate(d.getDate() + i);
+          for (const f of formats) cles.push([normaliser(f.format(d)), d.getTime()]);
+        }
+      } catch { /* langue qu'Intl ne connaît pas : aucune date, aucun badge */ }
+      candidates = { langue, jour, cles };
+      return cles;
+    };
+    /* La date qu'un texte porte, BORNÉE par des non-chiffres : « 2 nov. 2026 »
+       se lit dans « 12 nov. 2026 », et vient avant lui dans la liste. */
+    const dateDans = (texte, cles) => {
+      const t = normaliser(texte);
+      for (const [k, ms] of cles) {
+        const i = t.indexOf(k);
+        if (i >= 0 && !/\d/.test(t[i - 1] || '') && !/\d/.test(t[i + k.length] || '')) return ms;
+      }
+      return 0;
+    };
+
+    /**
+     * Ancienneté et échéance d'une carte : { mois, ech }, `ech` en minuit
+     * local ou 0. `offert` choisit l'échéance que le badge dira — la date
+     * d'expiration d'un abonnement offert, l'anniversaire sinon. `langue`
+     * est celle de la page lue, dans laquelle Twitch a écrit ses dates.
+     */
+    const lireCarte = (carte, passe, offert, langue) => {
+      const f = feuilles(carte);
+      const m = mois(f, passe);
+      const i = passe || !etiquette ? -1 : f.findIndex((x) => x.t === etiquette);
+      if (i < 0) return { mois: m, ech: 0 };
+      if (offert) {
+        for (const x of f.slice(i + 1)) {
+          if (!/\d{4}/.test(x.t)) continue;      // pas d'année, pas de date
+          const ms = dateDans(x.t, datesEcrites(langue));
+          if (ms) return { mois: m, ech: ms };
+        }
+        return { mois: m, ech: 0 };
+      }
+      const u = unite(f[i + 1]?.t || '');
+      const v = f.slice(0, i).find((x) => (x.t.match(/\d+/g) || []).length === 1 && unite(x.t) !== u);
+      if (!v) return { mois: m, ech: 0 };
+      const d = new Date(minuitLocal(Date.now()));
+      d.setDate(d.getDate() + parseInt(/\d+/.exec(v.t)[0], 10));
+      return { mois: m, ech: d.getTime() };
     };
 
     /* L'horodatage porte la VERSION DU LECTEUR qui l'a produit, pas seulement
@@ -10566,12 +10828,13 @@ const TSE_GATE_MAX_CLICKS = 5;
         if (cartes.length) {
           const trouve = [];
           const vus = new Set();
+          const langue = doc.documentElement.lang || navigator.language;
           for (const carte of cartes) {
             const lien = carte.querySelector('a[href^="/"]');
             const login = loginFromHref(lien?.getAttribute('href') || '');
             if (!login || vus.has(login)) continue;
             vus.add(login);
-            trouve.push({ login, mois: mois(carte, passe) });
+            trouve.push({ login, ...lireCarte(carte, passe, vu.onglet === 'gifts', langue) });
           }
           if (trouve.length) {
             // On ne conclut pas au premier passage. Une liste React ne
@@ -10582,12 +10845,14 @@ const TSE_GATE_MAX_CLICKS = 5;
             // badge nulle part.
             //
             // La stabilité se mesure en DURÉE, pas en nombre de passages. La
-            // signature porte les chaînes elles-mêmes, leur ancienneté et leur
-            // somme — tant que l'une bouge, la page s'écrit encore ; et deux
-            // onglets aux cartes différentes ne peuvent pas se confondre.
+            // signature porte les chaînes elles-mêmes, leur ancienneté, leur
+            // somme et leurs échéances — tant que l'une bouge, la page s'écrit
+            // encore ; et deux onglets aux cartes différentes ne peuvent pas se
+            // confondre.
             const signature = trouve.map(x => x.login).sort().join(',') + '/' +
               trouve.filter(x => x.mois > 0).length + '/' +
-              trouve.reduce((t, x) => t + x.mois, 0);
+              trouve.reduce((t, x) => t + x.mois, 0) + '/' +
+              trouve.filter(x => x.ech > 0).length;
             if (signature !== passage) { passage = signature; stableDepuis = Date.now(); return; }
             if (Date.now() - stableDepuis < CFG.SUBS_PAGE_STABLE) return;
             if (refuser(trouve, Date.now() - stableDepuis)) return;
@@ -10700,20 +10965,50 @@ const TSE_GATE_MAX_CLICKS = 5;
       document.body.appendChild(cadre);
     });
 
+    /* ── QUEL BOUTON POUR QUEL ONGLET ─────────────────────────────────────
+       Les onglets de Twitch sont des boutons sans adresse (cf.
+       CFG.SUBS_PAGE_TAB_ORDER) : un onglet s'y désigne par sa PLACE. Une place
+       ne se croit pas sur parole — Twitch peut ajouter, retirer ou déplacer un
+       onglet sans prévenir, et cliquer le mauvais ferait lire des expirés
+       comme des abonnements en cours. Deux preuves avant le clic : la barre a
+       exactement le nombre d'onglets attendu, et celui que la page dit choisi
+       (aria-selected) est, à sa place, celui qu'elle affiche.
+       Rend { bouton, rang, choisi } — `choisi` dit si la seconde preuve a pu
+       être faite — ou { raison }, que le rapport imprime quand on recharge au
+       lieu de cliquer. */
+    const ongletsDe = (doc) => [...(doc?.querySelector('main')?.querySelectorAll('[role="tab"]') || [])];
+    const boutonDe = (doc, onglet, affiche) => {
+      const ordre = CFG.SUBS_PAGE_TAB_ORDER;
+      const boutons = ongletsDe(doc);
+      if (!boutons.length) return { raison: 'aucun onglet dans la page' };
+      if (boutons.length !== ordre.length) {
+        return { raison: `${boutons.length} onglet(s) dans la page, ${ordre.length} attendus` };
+      }
+      const choisi = boutons.findIndex((b) => b.getAttribute('aria-selected') === 'true');
+      if (choisi >= 0 && ordre[choisi] !== affiche) {
+        return { raison: `la page dit choisi l'onglet n° ${choisi + 1}, « ${affiche} » attendu` };
+      }
+      const rang = ordre.indexOf(onglet);
+      return { bouton: boutons[rang], rang, choisi: choisi >= 0 };
+    };
+
     /**
-     * Fait changer d'onglet une page déjà chargée, par le lien qu'elle
-     * affiche elle-même, et rend les chaînes de cet onglet — ou `null` quand
-     * la page ne s'y prête pas : pas de lien pour cet onglet, ou pas de
-     * changement d'adresse dans SUBS_PAGE_SWITCH. L'appelant recharge alors.
+     * Fait changer d'onglet une page déjà chargée, en cliquant le bouton
+     * qu'elle affiche elle-même, et rend les chaînes de cet onglet — ou `null`
+     * quand la page ne s'y prête pas : barre méconnaissable, ou onglet qui ne
+     * change pas dans SUBS_PAGE_SWITCH. L'appelant recharge alors, et
+     * `bilan.bascule` dit pourquoi. `affiche` est l'onglet à l'écran.
      */
-    const basculer = (cadre, onglet, passe, precedents, donneesArrivees) => new Promise(resolve => {
+    const basculer = (cadre, onglet, affiche, passe, precedents, donneesArrivees) => new Promise(resolve => {
+      const abandon = (raison) => { bilan.bascule = raison; resolve(null); };
       let doc = null;
       try { doc = cadre.contentDocument; } catch { /* illisible : on rechargera */ }
-      const lien = doc && [...doc.querySelectorAll('a[href*="/subscriptions"]')]
-        .find(a => ongletDe(a.getAttribute('href') || '') === onglet);
-      if (!lien) return resolve(null);
-      const vu = { onglet, voie: 'bascule', charge: false, noeuds: 0, barre: false, cartes: 0,
-                   logins: 0, liens: 0, texte: '', panneau: false, blanc: false, expire: false };
+      if (!doc) return abandon('page illisible');
+      const cible = boutonDe(doc, onglet, affiche);
+      if (!cible.bouton) return abandon(cible.raison);
+      const vu = { onglet, voie: 'bascule', preuve: '', charge: false, noeuds: 0, barre: false,
+                   cartes: 0, logins: 0, liens: 0, texte: '', panneau: false, blanc: false,
+                   expire: false };
       bilan.onglets.push(vu);
       let sondeur = null, limite = null, delai = null;
       const finir = (logins) => {
@@ -10723,13 +11018,31 @@ const TSE_GATE_MAX_CLICKS = 5;
         vu.logins = Array.isArray(logins) ? logins.length : 0;
         resolve(logins);
       };
-      /* LA PAGE A-T-ELLE CHANGÉ D'ONGLET ? Son adresse le dit. Tant qu'elle
-         ne le dit pas, les cartes à l'écran sont celles de l'onglet d'avant —
-         et lire des EXPIRÉS en croyant lire des abonnements en cours dorerait
-         des chaînes qu'on ne suit plus. */
+      /* LA PAGE A-T-ELLE CHANGÉ D'ONGLET ? Tant qu'elle ne le dit pas, les
+         cartes à l'écran sont celles de l'onglet d'avant — et lire des EXPIRÉS
+         en croyant lire des abonnements en cours dorerait des chaînes qu'on ne
+         suit plus.
+         L'ADRESSE D'ABORD : quand elle suit le clic, elle nomme l'onglet
+         elle-même, et rien ne vaut ce témoin. Si elle n'a PAS bougé, Twitch ne
+         la tient peut-être pas à jour — alors le bouton cliqué doit être devenu
+         le choisi, ce qui ne vaut que si sa place a été prouvée avant le clic.
+         Une adresse partie vers un AUTRE onglet dément tout. `preuve` dit au
+         rapport lequel des deux témoins a parlé : c'est ce que le vrai Twitch
+         nous apprendra. */
+      const adresse = () => {
+        try { return ongletDe(cadre.contentWindow.location.href); }
+        catch { return null; }
+      };
+      const adresseAvant = adresse();
       const change = () => {
-        try { return ongletDe(cadre.contentWindow.location.href) === onglet; }
-        catch { return false; }
+        const ici = adresse();
+        if (ici === onglet) { vu.preuve = 'adresse'; return true; }
+        if (ici !== adresseAvant || !cible.choisi) return false;
+        let b = null;
+        try { b = ongletsDe(cadre.contentDocument)[cible.rang]; } catch { return false; }
+        if (b?.getAttribute('aria-selected') !== 'true') return false;
+        vu.preuve = 'aria-selected';
+        return true;
       };
       /* ET SI LES CARTES SONT EXACTEMENT CELLES DE L'ONGLET D'AVANT, on les
          veut stables bien plus longtemps avant d'y croire : c'est l'image
@@ -10744,11 +11057,14 @@ const TSE_GATE_MAX_CLICKS = 5;
         vu.voie = 'bascule refusée';
         if (sondeur) { clearInterval(sondeur); sondeur = null; }
         if (limite) { clearTimeout(limite); limite = null; }
-        resolve(null);
+        const ici = adresse();
+        abandon(ici && ici !== adresseAvant
+          ? `l'adresse dit « ${ici} », « ${onglet} » attendu`
+          : `l'onglet n'a pas changé en ${CFG.SUBS_PAGE_SWITCH} ms`);
       }, CFG.SUBS_PAGE_SWITCH);
       limite = setTimeout(() => { expirer(vu); finir([]); }, CFG.SUBS_PAGE_TIMEOUT);
-      try { lien.click(); }
-      catch { vu.voie = 'bascule refusée'; finir(null); return; }
+      try { cible.bouton.click(); }
+      catch { vu.voie = 'bascule refusée'; bilan.bascule = 'le clic a échoué'; finir(null); return; }
       sondeur = scruter(cadre, vu, passe, finir, change, refuser, !donneesArrivees);
     });
 
@@ -10797,7 +11113,7 @@ const TSE_GATE_MAX_CLICKS = 5;
          prise de bail, écrit par la page d'à côté, et « est-ce le tout premier
          relevé ? » doit se répondre à l'entrée, pas au milieu. */
       const premier = !!horodatage();
-      bilan = { onglets: [], fini: 0 };
+      bilan = { onglets: [], fini: 0, bascule: '' };
       const trouves = [];
       try {
         /* LA PRISE DE BAIL EN TROIS TEMPS : on regarde, on écrit, on relit.
@@ -10814,6 +11130,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           if (!bailTenu()) { differes += 1; return null; }
         }
         let touche = false;
+        const servies = new Set();   // chaînes dont un onglet de CE relevé a posé l'origine
         const verserPasse = (liste) => {
           for (const { login, mois: m } of liste) {
             touche = subs.noteMonths(login, m, true, true) || touche;
@@ -10824,14 +11141,23 @@ const TSE_GATE_MAX_CLICKS = 5;
         // sans attendre les onglets vides — qui n'apportent rien à voir.
         const verserCourant = (onglet) => (liste) => {
           if (!liste.length) return;
-          for (const { login, mois: m } of liste) {
+          for (const { login, mois: m, ech } of liste) {
             if (!trouves.includes(login)) trouves.push(login);
             touche = subs.noteMonths(login, m, false, true) || touche;
-            // L'origine avant l'état : record() la conserve, mais elle doit
-            // exister pour cela. Un onglet lu APRÈS un autre ne l'écrase pas
-            // — noteSource ne réécrit que si la valeur change, et le premier
-            // onglet à trouver une chaîne est celui qui la sert.
-            touche = subs.noteSource(login, onglet, true) || touche;
+            /* L'origine avant l'état : record() la conserve, mais elle doit
+               exister pour cela. LE PREMIER ONGLET À TROUVER UNE CHAÎNE LA SERT,
+               et un onglet lu après lui ne l'écrase pas. Ce commentaire le
+               promettait depuis la 3.52 ; noteSource réécrivait pourtant toute
+               valeur différente, et le dernier onglet gagnait. Trouvé en 4.20.0
+               par un abonnement payé doublé d'un offert en attente — la même
+               chaîne dans deux onglets — lu comme offert, avec la date de fin du
+               cadeau pour anniversaire. L'échéance suit l'origine : c'est elle
+               qui dit si la date est un anniversaire ou une fin. */
+            if (!servies.has(login)) {
+              servies.add(login);
+              touche = subs.noteSource(login, onglet, true) || touche;
+              touche = subs.noteEcheance(login, ech, true) || touche;
+            }
             touche = subs.record(login, true, true) || touche;
           }
           // Un seul rangement pour tout l'onglet. Il écrit la mémoire ENTIÈRE,
@@ -10863,6 +11189,7 @@ const TSE_GATE_MAX_CLICKS = 5;
              ...CFG.SUBS_PAGE_TABS.map(o => [o, false])];
         let cadre = null;
         let basculeRefusee = false;
+        let affiche = '';          // l'onglet que la page garde à l'écran
         let precedents = [];
         let donnees = false;       // un onglet a-t-il déjà rendu quelque chose ?
         let blancsDeSuite = 0;
@@ -10870,7 +11197,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           for (const [onglet, passe] of ordre) {
             let liste = null;
             if (cadre && !basculeRefusee) {
-              liste = await basculer(cadre, onglet, passe, precedents, donnees);
+              liste = await basculer(cadre, onglet, affiche, passe, precedents, donnees);
               if (liste === null) basculeRefusee = true;
             }
             if (liste === null) {
@@ -10879,6 +11206,7 @@ const TSE_GATE_MAX_CLICKS = 5;
               liste = r.logins;
               cadre = r.cadre;
             }
+            affiche = onglet;
             precedents = liste.map(x => x.login);
             if (passe) verserPasse(liste); else verserCourant(onglet)(liste);
             /* ── QUAND S'ARRÊTER ─────────────────────────────────────────────
@@ -11546,6 +11874,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       roster.clear();
       subs.clear();
       liveLag.clear();
+      preview.oublierVerdicts();
       console.log(S.consoleHistoryCleared);
     },
     // Abonnements repérés en visitant des chaînes (cf. module ABONNEMENTS).
@@ -11747,7 +12076,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       },
       subs() {
         const lignes = subs.entries();
-        return { colonnes: ['login', 'sub', 'ts', 'mois', 'ancien', 'origine'], lignes,
+        return { colonnes: ['login', 'sub', 'ts', 'mois', 'ancien', 'origine', 'echeance'], lignes,
                  resume: { chaines: lignes.length,
                            abonnees: lignes.filter(e => e.sub).length,
                            // 0 = aucun relevé complet encore fait. Le panneau
@@ -14271,9 +14600,15 @@ const TSE_GATE_MAX_CLICKS = 5;
        ET ELLE RAPPORTE AUSSI LE PASSÉ, parce qu'il voyage dans la même
        réponse : les chapitres de l'archive d'avant sont ce que le direct a
        traversé avant la coupure, datés à la seconde par Twitch lui-même. */
+    /* `cadence`, `ralenties`, `remontees` : la cadence adaptative (4.20.0).
+       `memorisees` : les verdicts relus du stockage au lieu d'une requête, et
+       `memoireAdoptees` les reprises qu'ils ont rendues — comptées à part de
+       `adoptees`, qui garde son sens : ce que la sonde a trouvé ET adopté. */
     const bilanSondes = { sondes: 0, servies: 0, trouvees: 0, vides: 0, chaines: 0,
                           reseau: 0, adoptees: 0, chapitresAvant: 0,
-                          differees: 0, abandonnees: 0, sousVoile: 0 };
+                          differees: 0, abandonnees: 0, sousVoile: 0,
+                          cadence: CFG.RECONNECT_PROBE_PER_WINDOW, ralenties: 0, remontees: 0,
+                          memorisees: 0, memoireAdoptees: 0 };
     /* streamId → état de la sonde pour CETTE session de stream :
          absent               — jamais sondée ;
          { essais, pasAvant } — sondée ; `pasAvant` à 0 veut dire que Twitch a
@@ -14304,6 +14639,32 @@ const TSE_GATE_MAX_CLICKS = 5;
        compté — le prochain rapport dira si la fenêtre est trop étroite au lieu
        de le laisser deviner. */
     let fenetreSondes = [];
+    /* ── LA CADENCE SE RÈGLE SUR CE QUE TWITCH RÉPOND (cf. la constante) ────
+       Un échantillon se juge ENTIER, puis repart de zéro : la décision
+       suivante porte sur des réponses obtenues à la NOUVELLE cadence. Juger
+       sur une fenêtre glissante ferait redescendre deux fois pour les mêmes
+       refus. */
+    let cadence = CFG.RECONNECT_PROBE_PER_WINDOW;
+    let echantillon = { n: 0, refus: 0 };
+    const noterIssue = (refus) => {
+      echantillon.n += 1;
+      if (refus) echantillon.refus += 1;
+      if (echantillon.n < CFG.RECONNECT_PROBE_RATE_SAMPLE) return;
+      const taux = echantillon.refus / echantillon.n;
+      echantillon = { n: 0, refus: 0 };
+      if (taux > CFG.RECONNECT_PROBE_RATE_MAX) {
+        const avant = cadence;
+        cadence = Math.max(CFG.RECONNECT_PROBE_MIN_PER_WINDOW, Math.floor(cadence / 2));
+        if (cadence < avant) bilanSondes.ralenties += 1;
+      } else if (cadence < CFG.RECONNECT_PROBE_PER_WINDOW) {
+        cadence = Math.min(CFG.RECONNECT_PROBE_PER_WINDOW, cadence + CFG.RECONNECT_PROBE_RATE_STEP);
+        bilanSondes.remontees += 1;
+      }
+      bilanSondes.cadence = cadence;
+    };
+    // La cadence du voile, dans la même proportion — jamais moins d'une.
+    const parFenetreVoile = () => Math.max(1, Math.round(
+      CFG.RECONNECT_PROBE_VEIL_PER_WINDOW * cadence / CFG.RECONNECT_PROBE_PER_WINDOW));
     /* ── SOUS LE VOILE, UNE BOURSE À PART, DÉPENSÉE D'UN COUP ───────────────
        LA CADENCE EST FAITE POUR LA NAVIGATION, PAS POUR L'ATTENTE. Elle
        existe pour ne pas marteler Twitch pendant qu'on regarde la liste ;
@@ -14358,12 +14719,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (loadingOverlay.enCycle() && bourseDuVoile() > 0) {
         const seuil = Date.now() - CFG.RECONNECT_PROBE_VEIL_WINDOW;
         fenetreVoile = fenetreVoile.filter(t => t > seuil);
-        return Math.min(voileReste,
-                        CFG.RECONNECT_PROBE_VEIL_PER_WINDOW - fenetreVoile.length);
+        return Math.min(voileReste, parFenetreVoile() - fenetreVoile.length);
       }
       const seuil = Date.now() - CFG.RECONNECT_PROBE_WINDOW;
       fenetreSondes = fenetreSondes.filter(t => t > seuil);
-      return CFG.RECONNECT_PROBE_PER_WINDOW - fenetreSondes.length;
+      return cadence - fenetreSondes.length;
     };
 
     /* ── CE QUI RESTE À APPRENDRE, POUR QUE LE VOILE PUISSE L'ATTENDRE ──────
@@ -14615,6 +14975,93 @@ const TSE_GATE_MAX_CLICKS = 5;
       return bilanSondes.sondes < CFG.RECONNECT_PROBE_MAX;
     };
 
+    /* ── LES VERDICTS, GARDÉS QUARANTE-HUIT HEURES (cf. la constante) ──────
+       streamId → { ts, login, maillons, segments } ; `maillons` à null veut
+       dire « Twitch a répondu, et rien ne raccorde ». Rangés dans l'ordre où
+       on les a appris, si bien que les plus vieux sortent les premiers. Sur
+       le disque : { streamId: [ts, login, [[début, fin, reprise]…] | 0,
+       segments] }. Une entrée qui ne ressemble pas à ça est ignorée — un
+       verdict douteux coûterait une origine fausse, une requête ne coûte
+       qu'une requête. */
+    const verdicts = new Map();
+    try {
+      const brut = JSON.parse(localStorage.getItem(CFG.RECONNECT_PROBE_STORE_KEY) || 'null');
+      const limite = Date.now() - CFG.RECONNECT_PROBE_STORE_TTL;
+      const maillonSain = (m) => Array.isArray(m) && m.length === 3 && m.every(Number.isFinite);
+      for (const [id, v] of Object.entries(brut && typeof brut === 'object' ? brut : {})) {
+        if (!Array.isArray(v) || !(Number(v[0]) > limite) || typeof v[1] !== 'string') continue;
+        const maillons = Array.isArray(v[2]) && v[2].length && v[2].every(maillonSain) ? v[2] : null;
+        if (v[2] !== 0 && !maillons) continue;
+        verdicts.set(id, { ts: Number(v[0]), login: v[1], maillons,
+                           segments: Array.isArray(v[3]) ? v[3] : [] });
+      }
+    } catch (e) {
+      erreurs.noter('stockage', 'lecture des sondes : ' + ((e && e.name) || e));
+    }
+    const retenirVerdict = (streamId, login, maillons, segments) => {
+      if (!streamId || !login) return;
+      verdicts.delete(streamId);
+      verdicts.set(streamId, {
+        ts: Date.now(), login,
+        maillons: maillons ? maillons.map((m) => [m.debut, m.fin, m.reprise]) : null,
+        segments: (segments || []).slice(-CFG.CHAPITRES_PASSE_MAX) });
+      const limite = Date.now() - CFG.RECONNECT_PROBE_STORE_TTL;
+      for (const [id, v] of verdicts) { if (v.ts > limite) break; verdicts.delete(id); }
+      while (verdicts.size > CFG.RECONNECT_PROBE_STORE_MAX) {
+        verdicts.delete(verdicts.keys().next().value);
+      }
+      try {
+        const obj = {};
+        for (const [id, v] of verdicts) obj[id] = [v.ts, v.login, v.maillons || 0, v.segments];
+        localStorage.setItem(CFG.RECONNECT_PROBE_STORE_KEY, JSON.stringify(obj));
+      } catch (e) { erreurs.noter('stockage', 'sondes : ' + ((e && e.name) || e)); }
+    };
+
+    /* L'ADOPTION, COMMUNE À LA SONDE ET À SA MÉMOIRE. `rejoue` range le compte
+       à part : une reprise relue du disque n'a pas été « trouvée » par cette
+       page, et `trouvees` contre `adoptees` doit garder son sens. */
+    const adopter = (login, flux, maillons, segments, rejoue) => {
+      /* CE QU'ON SAVAIT DÉJÀ, AVANT QUE L'ORIGINE NE CHANGE. Le passé est
+         rangé PAR ORIGINE, et l'adoption qui suit déplace justement celle-ci
+         du départ du tronçon vers celui de la chaîne. Les chapitres que la
+         requête ordinaire avait déjà versés — ceux du tronçon courant, sur une
+         chaîne observée tard — se retrouveraient sous une clé que plus
+         personne ne lit. On les reprend donc pour les reverser sous la
+         nouvelle, plutôt que de les laisser derrière. */
+      const acquis = passeDe(login, Date.parse(flux?.createdAt));
+      if (!adopterReprise(login, flux, maillons)) return false;
+      if (rejoue) bilanSondes.memoireAdoptees++;
+      else {
+        bilanSondes.adoptees++;
+        /* ── ADOPTÉE SOUS LE VOILE, OU SOUS LES YEUX DE L'UTILISATEUR ───────
+           La différence entre ces deux nombres EST le défaut signalé : une
+           origine apprise après la levée se voit, puisqu'un compteur passe de
+           vingt heures à soixante-huit. Les compter à part est ce qui permettra
+           de dire si le verrou de voile suffit, au lieu de le supposer. */
+        if (loadingOverlay.enCycle()) bilanSondes.sousVoile++;
+      }
+      if (acquis && acquis.length) noterPasse(login, maillons[0].debut, acquis);
+      if (segments && segments.length) {
+        noterPasse(login, maillons[0].debut, segments);
+        if (!rejoue) bilanSondes.chapitresAvant++;
+      }
+      return true;
+    };
+
+    /* LE VERDICT D'UN RECHARGEMENT PRÉCÉDENT, rendu sans requête : null s'il
+       n'y en a pas — ou si cette page a déjà traité ce direct — sinon vrai
+       quand il rend une reprise. La session est close comme si on l'avait
+       sondée, et les gardes ne la rouvriront pas. */
+    const rejouer = (login, flux) => {
+      const v = verdicts.get(flux?.id);
+      if (!v || v.login !== login || sondees.has(flux.id)) return null;
+      sondees.set(flux.id, { essais: 1, pasAvant: 0 });
+      bilanSondes.memorisees++;
+      if (!v.maillons) return false;
+      return adopter(login, flux,
+        v.maillons.map(([debut, fin, reprise]) => ({ debut, fin, reprise })), v.segments, true);
+    };
+
     /* La session est retenue AVANT la réponse, et c'est voulu : une sonde qui
        ne trouve rien — le cas normal — ne doit pas être refaite au cycle
        suivant. Le compteur s'incrémente au même endroit, pour que le plafond
@@ -14680,31 +15127,16 @@ const TSE_GATE_MAX_CLICKS = 5;
          donc un refus de plus, et il se rend au registre comme les autres. */
       if (!Array.isArray(aretes)) {
         bilanSondes.vides++;
+        noterIssue(true);
         reporterSonde(flux?.id, login);
         return false;
       }
       bilanSondes.servies++;
+      noterIssue(false);
       const maillons = chaineDesTroncons(aretes.map(e => e?.node).filter(Boolean), depart);
-      if (!maillons.length) return false;
+      if (!maillons.length) { retenirVerdict(flux.id, login, null, null); return false; }
       bilanSondes.trouvees++;
       if (maillons.length > 1) bilanSondes.chaines++;
-      /* CE QU'ON SAVAIT DÉJÀ, AVANT QUE L'ORIGINE NE CHANGE. Le passé est
-         rangé PAR ORIGINE, et l'adoption qui suit déplace justement celle-ci
-         du départ du tronçon vers celui de la chaîne. Les chapitres que la
-         requête ordinaire avait déjà versés — ceux du tronçon courant, sur une
-         chaîne observée tard — se retrouveraient sous une clé que plus
-         personne ne lit. On les reprend donc pour les reverser sous la
-         nouvelle, plutôt que de les laisser derrière. */
-      const acquis = passeDe(login, depart);
-      if (!adopterReprise(login, flux, maillons)) return false;
-      bilanSondes.adoptees++;
-      /* ── ADOPTÉE SOUS LE VOILE, OU SOUS LES YEUX DE L'UTILISATEUR ─────────
-         La différence entre ces deux nombres EST le défaut signalé : une
-         origine apprise après la levée se voit, puisqu'un compteur passe de
-         vingt heures à soixante-huit. Les compter à part est ce qui permettra
-         de dire si le verrou de voile suffit, au lieu de le supposer. */
-      if (loadingOverlay.enCycle()) bilanSondes.sousVoile++;
-      if (acquis && acquis.length) noterPasse(login, maillons[0].debut, acquis);
       /* LES CHAPITRES DE TOUS LES TRONÇONS D'AVANT, et non du seul dernier.
          Chaque maillon porte son archive, donc son passé ; les concaténer dans
          l'ordre du temps donne le direct entier tel que Twitch l'a enregistré.
@@ -14715,11 +15147,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         const { segments: s } = segmentsDuVod(m.noeud, m.debut);
         if (s && s.length) segments.push(...s);
       }
-      if (segments.length) {
-        noterPasse(login, maillons[0].debut, segments);
-        bilanSondes.chapitresAvant++;
-      }
-      return true;
+      retenirVerdict(flux.id, login, maillons, segments);
+      return adopter(login, flux, maillons, segments, false);
     };
 
     /* ── UNE SONDE, UNE REQUÊTE — ET C'EST UNE MESURE, PAS UN GOÛT ─────────
@@ -14756,6 +15185,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       const res = await post([opSonde(login)]);
       if (isResultsUnusable(res)) {
         bilanSondes.reseau++;
+        noterIssue(true);
         /* ── UN REFUS N'EST PAS UNE RÉPONSE ─────────────────────────────────
            Le registre `sondees` existe pour qu'une chaîne ne soit pas sondée
            deux fois : c'est juste quand Twitch a RÉPONDU, y compris pour dire
@@ -14914,6 +15344,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     /* Le chemin du SURVOL : une chaîne, tout de suite. */
     const sonderReprise = async (login, flux) => {
+      const r = rejouer(login, flux);
+      if (r !== null) return r;
       if (!gardesSonde(login, flux)) return false;
       retenirSonde(flux.id);
       return sonderUne(login, flux);
@@ -14926,6 +15358,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        cette réécriture corrige. */
     const sonderLot = async (logins) => {
       const retenues = [];
+      const rejouees = [];   // reprises rendues par la mémoire, sans requête
       let place = placeDansLaFenetre();
       for (const login of logins) {
         const flux = cache.get(login)?.stream;
@@ -14941,6 +15374,13 @@ const TSE_GATE_MAX_CLICKS = 5;
            cartes qui gardaient la durée de leur tronçon à la levée du voile —
            précisément celles dont la réponse de chaîne était en route. */
         if (!flux?.id) continue;
+        // Déjà tranché lors d'un chargement précédent : ni requête, ni place.
+        const memo = rejouer(login, flux);
+        if (memo !== null) {
+          differeesEnAttente.delete(login);
+          if (memo) rejouees.push(login);
+          continue;
+        }
         /* ── UN REPORT EN COURS N'EST PAS UN REFUS DÉFINITIF ────────────────
            `gardesSonde` dira non tant que l'échéance n'est pas passée, et la
            ligne suivante retirerait alors la chaîne de la file — c'est-à-dire
@@ -14959,13 +15399,13 @@ const TSE_GATE_MAX_CLICKS = 5;
         retenirSonde(flux.id);
         retenues.push({ login, flux });
       }
-      if (!retenues.length) return [];
+      if (!retenues.length) return rejouees;
       sondesEnVol += retenues.length;
       try {
         const issues = await Promise.all(
           retenues.map(e => sonderUne(e.login, e.flux)
             .catch((err) => { erreurs.noter('reprise', (err && err.message) || err); return false; })));
-        return retenues.filter((e, i) => issues[i]).map(e => e.login);
+        return [...rejouees, ...retenues.filter((e, i) => issues[i]).map(e => e.login)];
       } finally {
         // `finally` et non la suite du `then` : une exception inattendue ne
         // doit pas laisser le voile attendre des sondes qui ne reviendront pas.
@@ -16419,7 +16859,15 @@ const TSE_GATE_MAX_CLICKS = 5;
       const moisAbo = subs.monthsFor(login);
       if (moisAbo > 0) {
         if (subs.isSub(login)) {
-          badges.push(badgeNoeud('tse-preview__badge--sub', S.uiBadgeSubMonths(moisAbo)));
+          /* L'ÉCHÉANCE À LA SUITE, DANS LE MÊME BADGE — demandé ainsi : « Abonné
+             • 51 MOIS • Prochain anniversaire dans 9 jours » pour un abonnement
+             payé, « Abonné • 1 MOIS • Expire dans 8 jours » pour un offert.
+             Comptée ICI, à l'affichage, depuis une date : le relevé a pu avoir
+             lieu six heures plus tôt. */
+          const ech = subs.echeanceFor(login);
+          badges.push(badgeNoeud('tse-preview__badge--sub', S.uiBadgeSubMonths(moisAbo) + (ech
+            ? ' • ' + (ech.offert ? S.uiBadgeSubExpire(ech.jours) : S.uiBadgeSubAnniv(ech.jours))
+            : '')));
         } else if (subs.wasSub(login)) {
           badges.push(badgeNoeud('tse-preview__badge--exsub', S.uiBadgeExSubMonths(moisAbo)));
         }
@@ -17271,7 +17719,10 @@ const TSE_GATE_MAX_CLICKS = 5;
                                              nombres qui décrive un ÉTAT et non
                                              un cumul. */
                                           enFile: differeesEnAttente.size,
-                                          residentPasse: passeDirect.size } })
+                                          residentPasse: passeDirect.size,
+                                          residentVerdicts: verdicts.size } }),
+      // Pour tse.reset() : les verdicts gardés partent avec le reste.
+      oublierVerdicts: () => { verdicts.clear(); oublier(CFG.RECONNECT_PROBE_STORE_KEY, 'sondes'); }
     };
   })();
 

@@ -160,6 +160,10 @@
     "message": "Source",
     "description": "Colonne : origine de l'information"
   },
+  "colDue": {
+    "message": "Due",
+    "description": "Colonne : anniversaire d'un abonnement payé, expiration d'un abonnement offert"
+  },
   "colLag": {
     "message": "Delay",
     "description": "Colonne : retard mesuré"
@@ -492,7 +496,7 @@
     "message": "Your subscriptions, in gold"
   },
   "guideAboTexte": {
-    "message": "The channels you support no longer look like the others: golden name, golden category, a gold ring around the avatar and a slow shimmer across the card.\n• A badge appears and says how long you have been there.\n• All three kinds of subscription count: paid, gifted, mobile."
+    "message": "The channels you support no longer look like the others: golden name, golden category, a gold ring around the avatar and a slow shimmer across the card.\n• A badge appears and says how long you have been there, then the next anniversary — or, for a gifted subscription, the day it ends.\n• All three kinds of subscription count: paid, gifted, mobile."
   },
   "guideTriTitre": {
     "message": "Sorting and filtering"

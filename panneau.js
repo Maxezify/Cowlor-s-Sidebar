@@ -118,6 +118,13 @@ const fmt = {
   },
   dureeSec: (s) => (Number.isFinite(s) ? fmt.duree(s * 1000) : '—'),
   oui: (v) => (v ? T('valYes') : T('valNo')),
+  // Un jour, sans heure : une échéance tombe un jour, pas à une minute.
+  jour: (v) => {
+    const d = new Date(v || NaN);
+    return Number.isFinite(d.getTime())
+      ? d.toLocaleDateString(LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '—';
+  },
 };
 
 /* ── Les sections, et ce qu'elles montrent ───────────────────────────────────
@@ -135,6 +142,7 @@ const COL = {
   mois:      { cle: 'colMonths',    f: fmt.nombre, num: true },
   ancien:    { cle: 'colFormer',    f: fmt.oui },
   origine:   { cle: 'colSource',    f: fmt.texte, classe: () => 'faible' },
+  echeance:  { cle: 'colDue',       f: fmt.jour },
   lag:       { cle: 'colLag',       f: fmt.duree, num: true },
   gain:      { cle: 'colGain',      f: fmt.duree, num: true },
   t:         { cle: 'colElapsed',   f: fmt.duree, num: true },
@@ -1816,6 +1824,11 @@ const construireRapport = (r, transport, fond) => {
     paire('prochain relevé dans / next sweep in',
           Number.isFinite(r.relevesAbonnements?.prochainDansMs)
             ? `${Math.round(r.relevesAbonnements.prochainDansMs / 60_000)} min` : '—'),
+    /* POURQUOI LA PAGE A ÉTÉ RECHARGÉE AU LIEU D'ÊTRE CLIQUÉE. La 4.19.2 se
+       taisait là-dessus, et un rapport entier de « page » n'a rien dit de la
+       barre d'onglets de Twitch — il a fallu la demander à la console. */
+    paire('bascule abandonnée / tab switch dropped',
+          r.relevesAbonnements?.bascule || 'non / no'),
     /* CE QUE CHAQUE ONGLET A VU. Un relevé qui rend zéro ne dit rien tout
        seul : « affiché, barre là, 3 200 nœuds, 0 carte » désigne un sélecteur
        mort, « jamais chargé » désigne autre chose. Une ligne par onglet, dans
@@ -1825,7 +1838,8 @@ const construireRapport = (r, transport, fond) => {
        cette page », deux causes opposées sous un même zéro. */
     ...((r.relevesAbonnements?.onglets || []).map((o) => paire(
       `onglet ${o.onglet}`,
-      `${o.voie || 'page'} · ${o.charge ? 'affiché' : 'jamais chargé'} · ${o.noeuds} nœuds`
+      `${o.voie || 'page'}${o.preuve ? ` (${o.preuve})` : ''}`
+      + ` · ${o.charge ? 'affiché' : 'jamais chargé'} · ${o.noeuds} nœuds`
       + ` · barre ${o.barre ? 'oui' : 'non'} · ${o.cartes} carte(s)`
       + ` · ${o.logins} chaîne(s)`
       + (o.liens ? ` · ${o.liens} lien(s) de chaîne hors carte` : '')

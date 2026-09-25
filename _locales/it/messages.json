@@ -125,6 +125,9 @@
   "colSource": {
     "message": "Origine"
   },
+  "colDue": {
+    "message": "Scadenza"
+  },
   "colLag": {
     "message": "Ritardo"
   },
@@ -394,7 +397,7 @@
     "message": "I tuoi abbonamenti, in oro"
   },
   "guideAboTexte": {
-    "message": "I canali che sostieni non somigliano più agli altri: nome dorato, categoria dorata, un anello d'oro attorno all'avatar e un riflesso lento sulla scheda.\n• Compare un badge che dice da quanto tempo.\n• Contano tutte e tre le forme di abbonamento: pagato, regalato, da mobile."
+    "message": "I canali che sostieni non somigliano più agli altri: nome dorato, categoria dorata, un anello d'oro attorno all'avatar e un riflesso lento sulla scheda.\n• Compare un badge che dice da quanto tempo, poi il prossimo anniversario — o, per un abbonamento regalato, il giorno in cui finisce.\n• Contano tutte e tre le forme di abbonamento: pagato, regalato, da mobile."
   },
   "guideTriTitre": {
     "message": "Ordinare e filtrare"

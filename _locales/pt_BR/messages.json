@@ -125,6 +125,9 @@
   "colSource": {
     "message": "Origem"
   },
+  "colDue": {
+    "message": "Vencimento"
+  },
   "colLag": {
     "message": "Atraso"
   },
@@ -394,7 +397,7 @@
     "message": "Suas inscrições, em ouro"
   },
   "guideAboTexte": {
-    "message": "Os canais que você apoia não parecem mais com os outros: nome dourado, categoria dourada, um anel de ouro em volta do avatar e um reflexo lento sobre o cartão.\n• Aparece um emblema que diz desde quando.\n• As três formas de inscrição contam: paga, presenteada, pelo celular."
+    "message": "Os canais que você apoia não parecem mais com os outros: nome dourado, categoria dourada, um anel de ouro em volta do avatar e um reflexo lento sobre o cartão.\n• Aparece um emblema que diz desde quando, e depois o próximo aniversário — ou, numa inscrição de presente, o dia em que termina.\n• As três formas de inscrição contam: paga, presenteada, pelo celular."
   },
   "guideTriTitre": {
     "message": "Ordenar e filtrar"
