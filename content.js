@@ -4360,10 +4360,23 @@ const TSE_GATE_MAX_CLICKS = 5;
        « flex: 0 0 auto » : sans lui, le drapeau se laisse écraser par l'ellipse
        du pseudo dans une sidebar étroite — il devient une barre de deux pixels
        qui ne dit plus rien. */
-    .tse-lang-mark { display: inline-flex; flex: 0 0 auto; margin-right: 2px;
-                     vertical-align: middle; }
+    /* DEUX CLASSES AU SÉLECTEUR, comme la pastille du jour, et pour la même
+       raison (4.20.1) : une règle de l'hôte comme « .metacell span { display:
+       block } » bat une classe seule. Le décor du banc la porte ; le drapeau y
+       passait sous le pseudo, sur une ligne à lui, dès que la carte n'était pas
+       en subathon — la rangée flex du subathon masquait le défaut, et c'est le
+       seul cas que le scénario 154 éprouvait. */
+    .side-nav-card .tse-lang-mark { display: inline-flex; flex: 0 0 auto; margin-right: 2px;
+                                    vertical-align: middle; }
     .tse-lang-mark svg { display: block; width: 12px; height: 12px;
                          border-radius: 2px; }
+    /* UN PETIT ESPACE ENTRE LE PSEUDO ET LE DRAPEAU, demandé capture à l'appui
+       (4.20.1) : « je le trouve un peu collé ». Sur une carte en subathon, le
+       <p> du pseudo est une rangée flex dont l'écart (4 px) sépare déjà le nom
+       du drapeau ; ailleurs le drapeau suit le texte nu, sans rien entre eux.
+       On donne ici LE MÊME écart, et seulement là où il manque — le poser
+       partout l'aurait doublé sur les cartes en subathon. */
+    .side-nav-card:not([data-tse-subathon-day]) .tse-lang-mark { margin-left: 4px; }
     /* IL SUIT LE JETON « collab », et n'en demande pas un à lui. C'est une
        décoration de CO-STREAM : qui éteint les marques de co-stream éteint
        celle-ci avec. Un réglage de plus coûterait douze fichiers de locale et
