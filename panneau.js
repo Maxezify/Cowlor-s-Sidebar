@@ -1184,6 +1184,8 @@ const construireRapport = (r, transport, fond) => {
 
   L.push(...bloc('LIGNES DE CARTE / CARD LINES', aplatir(r.lignes)));
 
+  L.push(...bloc('CARTES SPONSORISÉES / SPONSORED CARDS', aplatir(r.promues)));
+
   L.push(...bloc('SUBATHONS', aplatir(r.subathons)));
 
   L.push(...bloc('SURVOL — DÉLAI D\'INTENTION / HOVER INTENT', aplatir(r.survol)));
