@@ -125,6 +125,9 @@
   "colSource": {
     "message": "Źródło"
   },
+  "colDue": {
+    "message": "Termin"
+  },
   "colLag": {
     "message": "Opóźnienie"
   },
@@ -388,13 +391,13 @@
     "message": "Początki i powroty"
   },
   "guideDebutTexte": {
-    "message": "Fioletowy pasek pojawia się przy lewej krawędzi karty: ta transmisja zaczęła się mniej niż dziesięć minut temu. Gaśnie sam z upływem dziesiątej minuty.\n• Jeśli streamer straci połączenie i wróci w ciągu dziesięciu minut, fioletowy pasek nie zapala się ponownie, ale jego licznik rusza od zera.\n• W podglądzie pokazany czas pozostaje czasem całej transmisji, razem z przerwą, a odznaka uprzedza, co się stało."
+    "message": "Fioletowy pasek pojawia się przy lewej krawędzi karty: ta transmisja zaczęła się mniej niż dziesięć minut temu. Gaśnie sam z upływem dziesiątej minuty.\n• Jeśli streamer straci połączenie i wróci w ciągu dziesięciu minut, fioletowy pasek nie zapala się ponownie — i licznik nie rusza od zera: liczy dalej całą transmisję, razem z przerwą.\n• Podgląd mówi dodatkowo, ile razy nastąpiła przerwa, i rysuje przerwy na pasku — a odznaka uprzedza, co się stało."
   },
   "guideAboTitre": {
     "message": "Twoje subskrypcje, na złoto"
   },
   "guideAboTexte": {
-    "message": "Kanały, które wspierasz, nie wyglądają już jak pozostałe: złota nazwa, złota kategoria, złoty pierścień wokół awatara i powolny refleks na karcie.\n• Pojawia się odznaka, która mówi, od jak dawna.\n• Liczą się wszystkie trzy formy subskrypcji: płatna, podarowana, mobilna."
+    "message": "Kanały, które wspierasz, nie wyglądają już jak pozostałe: złota nazwa, złota kategoria, złoty pierścień wokół awatara i powolny refleks na karcie.\n• Pojawia się odznaka, która mówi, od jak dawna, a potem kiedy następna rocznica — lub, przy subskrypcji podarowanej, kiedy się kończy.\n• Liczą się wszystkie trzy formy subskrypcji: płatna, podarowana, mobilna."
   },
   "guideTriTitre": {
     "message": "Sortowanie i filtrowanie"

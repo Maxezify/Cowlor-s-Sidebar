@@ -125,6 +125,9 @@
   "colSource": {
     "message": "Origem"
   },
+  "colDue": {
+    "message": "Vencimento"
+  },
   "colLag": {
     "message": "Atraso"
   },
@@ -388,13 +391,13 @@
     "message": "Os começos e os regressos"
   },
   "guideDebutTexte": {
-    "message": "Uma barra roxa aparece na borda esquerda de um cartão: essa live começou há menos de dez minutos. Ela se apaga sozinha no décimo minuto.\n• Se o streamer cair e voltar em menos de dez minutos, a barra roxa não acende de novo, mas o contador dele recomeça do zero.\n• Na prévia, a duração mostrada continua sendo a da live inteira, queda incluída, e um emblema avisa o que aconteceu."
+    "message": "Uma barra roxa aparece na borda esquerda de um cartão: essa live começou há menos de dez minutos. Ela se apaga sozinha no décimo minuto.\n• Se o streamer cair e voltar em menos de dez minutos, a barra roxa não acende de novo — e o contador dele não recomeça do zero: continua contando a live inteira, queda incluída.\n• A prévia diz ainda quantas vezes caiu e desenha as quedas na faixa — e um emblema avisa o que aconteceu."
   },
   "guideAboTitre": {
     "message": "Suas inscrições, em ouro"
   },
   "guideAboTexte": {
-    "message": "Os canais que você apoia não parecem mais com os outros: nome dourado, categoria dourada, um anel de ouro em volta do avatar e um reflexo lento sobre o cartão.\n• Aparece um emblema que diz desde quando.\n• As três formas de inscrição contam: paga, presenteada, pelo celular."
+    "message": "Os canais que você apoia não parecem mais com os outros: nome dourado, categoria dourada, um anel de ouro em volta do avatar e um reflexo lento sobre o cartão.\n• Aparece um emblema que diz desde quando, e depois o próximo aniversário — ou, numa inscrição de presente, o dia em que termina.\n• As três formas de inscrição contam: paga, presenteada, pelo celular."
   },
   "guideTriTitre": {
     "message": "Ordenar e filtrar"

@@ -125,6 +125,9 @@
   "colSource": {
     "message": "Origine"
   },
+  "colDue": {
+    "message": "Scadenza"
+  },
   "colLag": {
     "message": "Ritardo"
   },
@@ -388,13 +391,13 @@
     "message": "Gli inizi, e i ritorni"
   },
   "guideDebutTexte": {
-    "message": "Una barra viola compare sul bordo sinistro di una scheda: quella diretta è cominciata da meno di dieci minuti. Si spegne da sola allo scadere del decimo minuto.\n• Se lo streamer perde la connessione e torna entro dieci minuti, la barra viola non si riaccende, ma il suo contatore riparte da zero.\n• Nell'anteprima, la durata mostrata resta quella della diretta intera, interruzione compresa, e un badge avvisa di quel che è successo."
+    "message": "Una barra viola compare sul bordo sinistro di una scheda: quella diretta è cominciata da meno di dieci minuti. Si spegne da sola allo scadere del decimo minuto.\n• Se lo streamer perde la connessione e torna entro dieci minuti, la barra viola non si riaccende — e il suo contatore non riparte da zero: continua a contare la diretta intera, interruzione compresa.\n• L'anteprima dice inoltre quante volte si è interrotta e disegna le interruzioni sulla striscia — e un badge avvisa di quel che è successo."
   },
   "guideAboTitre": {
     "message": "I tuoi abbonamenti, in oro"
   },
   "guideAboTexte": {
-    "message": "I canali che sostieni non somigliano più agli altri: nome dorato, categoria dorata, un anello d'oro attorno all'avatar e un riflesso lento sulla scheda.\n• Compare un badge che dice da quanto tempo.\n• Contano tutte e tre le forme di abbonamento: pagato, regalato, da mobile."
+    "message": "I canali che sostieni non somigliano più agli altri: nome dorato, categoria dorata, un anello d'oro attorno all'avatar e un riflesso lento sulla scheda.\n• Compare un badge che dice da quanto tempo, poi il prossimo anniversario — o, per un abbonamento regalato, il giorno in cui finisce.\n• Contano tutte e tre le forme di abbonamento: pagato, regalato, da mobile."
   },
   "guideTriTitre": {
     "message": "Ordinare e filtrare"

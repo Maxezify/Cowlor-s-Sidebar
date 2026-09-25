@@ -188,8 +188,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     showLessStableSelector:  '[data-a-target="side-nav-show-less-button"], [data-test-selector="ShowLess"]',
 
     offlineRe:               /\b(?:déconnecté(?:e)?s?|offline|desconectad(?:o|a)s?)\b/i,
-
-    nativeHeaderRe:          /Spectateurs|Recommandées|Viewers|Recommended|Zuschauer|Empfohlen|espe(?:ct|t)adores/i,
     costreamHostRe:          /^(?:Co-stream d'un stream de|Co-stream from a stream by|Co-stream aus einem Stream von|Co-stream de um stream de)\s+([A-Za-z0-9_]+)$/,
 
     guestsTotalRe:           /\s(?:et|and|und|y|e)\s+(\d+)\s+(?:invité|guest|Gast|Gäste|invitado|convidado)/i,
@@ -236,6 +234,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeSubMonths:          (n) => `Abonné • ${n} MOIS`,
       uiBadgeExSubMonths:        (n) => `Ancien abonné • ${n} MOIS`,
 
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Anniversaire aujourd\'hui'
+        : `Prochain anniversaire dans ${j} jour${j > 1 ? 's' : ''}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Expire aujourd\'hui'
+        : `Expire dans ${j} jour${j > 1 ? 's' : ''}`,
+
       uiCclMatureGame:                      'Jeux matures',
       uiCclGambling:                        'Jeux d\'argent',
       uiCclSexualThemes:                    'Thèmes sexuels',
@@ -251,6 +254,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` et ${others} autre${others > 1 ? 's' : ''}` : '';
         return `En live avec ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `Dans la session, sans diffuser : ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Sponsorisé par ${nom}`,
       uiSortNoCoStreams:         'Aucun co-stream détecté actuellement',
       uiSortLabelSubs:           'Mes abonnements en tête',
@@ -320,6 +324,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Host Stream',
       uiBadgeSubMonths:          (n) => `Subscribed • ${n} MONTH${n > 1 ? 'S' : ''}`,
       uiBadgeExSubMonths:        (n) => `Former sub • ${n} MONTH${n > 1 ? 'S' : ''}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Anniversary today'
+        : `Next anniversary in ${j} day${j > 1 ? 's' : ''}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Expires today'
+        : `Expires in ${j} day${j > 1 ? 's' : ''}`,
       uiCclMatureGame:                      'Mature-rated game',
       uiCclGambling:                        'Gambling',
       uiCclSexualThemes:                    'Sexual themes',
@@ -335,6 +343,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` and ${others} other${others > 1 ? 's' : ''}` : '';
         return `Live with ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `In the session, not streaming: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Sponsored by ${nom}`,
       uiSortNoCoStreams:         'No co-streams currently detected',
       uiSortLabelSubs:           'My subscriptions first',
@@ -404,6 +413,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Host-Stream',
       uiBadgeSubMonths:          (n) => `Abonniert • ${n} MONAT${n > 1 ? 'E' : ''}`,
       uiBadgeExSubMonths:        (n) => `Ehemals abonniert • ${n} MONAT${n > 1 ? 'E' : ''}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Jubiläum heute'
+        : `Nächstes Jubiläum in ${j} Tag${j > 1 ? 'en' : ''}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Läuft heute ab'
+        : `Läuft in ${j} Tag${j > 1 ? 'en' : ''} ab`,
       uiCclMatureGame:                      'Spiel ab 18',
       uiCclGambling:                        'Glücksspiel',
       uiCclSexualThemes:                    'Sexuelle Themen',
@@ -419,6 +432,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` und ${others} ${others > 1 ? 'weiteren' : 'weiterem'}` : '';
         return `Live mit ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `In der Session, ohne zu streamen: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Gesponsert von ${nom}`,
       uiSortNoCoStreams:         'Derzeit keine Co-streams erkannt',
       uiSortLabelSubs:           'Meine Abos zuerst',
@@ -488,6 +502,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Canal anfitrión',
       uiBadgeSubMonths:          (n) => `Suscrito • ${n} ${n > 1 ? 'MESES' : 'MES'}`,
       uiBadgeExSubMonths:        (n) => `Exsuscriptor • ${n} ${n > 1 ? 'MESES' : 'MES'}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Aniversario hoy'
+        : `Próximo aniversario en ${j} día${j > 1 ? 's' : ''}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Caduca hoy'
+        : `Caduca en ${j} día${j > 1 ? 's' : ''}`,
       uiCclMatureGame:                      'Juego para adultos',
       uiCclGambling:                        'Juegos de azar',
       uiCclSexualThemes:                    'Temas sexuales',
@@ -503,6 +521,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` y ${others} más` : '';
         return `En vivo con ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `En la sesión, sin emitir: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Patrocinado por ${nom}`,
       uiSortNoCoStreams:         'No se detectaron co-streams por el momento',
       uiSortLabelSubs:           'Mis suscripciones primero',
@@ -572,6 +591,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Canal anfitrião',
       uiBadgeSubMonths:          (n) => `Inscrito • ${n} ${n > 1 ? 'MESES' : 'MÊS'}`,
       uiBadgeExSubMonths:        (n) => `Ex-inscrito • ${n} ${n > 1 ? 'MESES' : 'MÊS'}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Aniversário hoje'
+        : `Próximo aniversário em ${j} dia${j > 1 ? 's' : ''}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Expira hoje'
+        : `Expira em ${j} dia${j > 1 ? 's' : ''}`,
       uiCclMatureGame:                      'Jogo adulto',
       uiCclGambling:                        'Jogos de azar',
       uiCclSexualThemes:                    'Temas sexuais',
@@ -587,6 +610,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` e mais ${others}` : '';
         return `Ao vivo com ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `Na sessão, sem transmitir: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Patrocinado por ${nom}`,
       uiSortNoCoStreams:         'Nenhum co-stream detectado no momento',
       uiSortLabelSubs:           'Minhas inscrições primeiro',
@@ -656,6 +680,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Stream host',
       uiBadgeSubMonths:          (n) => `Abbonato • ${n} MES${n > 1 ? 'I' : 'E'}`,
       uiBadgeExSubMonths:        (n) => `Ex abbonato • ${n} MES${n > 1 ? 'I' : 'E'}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Anniversario oggi'
+        : `Prossimo anniversario tra ${j} giorn${j > 1 ? 'i' : 'o'}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Scade oggi'
+        : `Scade tra ${j} giorn${j > 1 ? 'i' : 'o'}`,
       uiCclMatureGame:                      'Gioco per adulti',
       uiCclGambling:                        'Gioco d\'azzardo',
       uiCclSexualThemes:                    'Temi sessuali',
@@ -671,6 +699,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` e altri ${others}` : '';
         return `In diretta con ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `Nella sessione, senza trasmettere: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Sponsorizzato da ${nom}`,
       uiSortNoCoStreams:         'Nessun co-stream rilevato al momento',
       uiSortLabelSubs:           'I miei abbonamenti per primi',
@@ -740,6 +769,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Kanał gospodarza',
       uiBadgeSubMonths:          (n) => `Subskrypcja • ${n} ${plurielSlave(n, ['MIESIĄC', 'MIESIĄCE', 'MIESIĘCY'])}`,
       uiBadgeExSubMonths:        (n) => `Dawna subskrypcja • ${n} ${plurielSlave(n, ['MIESIĄC', 'MIESIĄCE', 'MIESIĘCY'])}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Rocznica dziś'
+        : `Następna rocznica za ${j} ${plurielSlave(j, ['dzień', 'dni', 'dni'])}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Wygasa dziś'
+        : `Wygasa za ${j} ${plurielSlave(j, ['dzień', 'dni', 'dni'])}`,
       uiCclMatureGame:                      'Gra dla dorosłych',
       uiCclGambling:                        'Hazard',
       uiCclSexualThemes:                    'Treści seksualne',
@@ -755,6 +788,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` i jeszcze ${others}` : '';
         return `Na żywo z ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `W sesji, bez transmisji: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Sponsorowane przez ${nom}`,
       uiSortNoCoStreams:         'Nie wykryto obecnie żadnego co-streamu',
       uiSortLabelSubs:           'Moje subskrypcje na górze',
@@ -824,6 +858,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'Канал ведущего',
       uiBadgeSubMonths:          (n) => `Подписка • ${n} ${plurielSlave(n, ['МЕСЯЦ', 'МЕСЯЦА', 'МЕСЯЦЕВ'])}`,
       uiBadgeExSubMonths:        (n) => `Бывшая подписка • ${n} ${plurielSlave(n, ['МЕСЯЦ', 'МЕСЯЦА', 'МЕСЯЦЕВ'])}`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? 'Годовщина сегодня'
+        : `Следующая годовщина через ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])}`,
+      uiBadgeSubExpire:          (j) => j === 0 ? 'Истекает сегодня'
+        : `Истекает через ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])}`,
       uiCclMatureGame:                      'Игра для взрослых',
       uiCclGambling:                        'Азартные игры',
       uiCclSexualThemes:                    'Сексуальные темы',
@@ -839,6 +877,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? ` и ещё ${others}` : '';
         return `В эфире с ${invite}${suffix}`;
       },
+      uiBadgeSessionOffline:     (noms) => `В сессии, без трансляции: ${noms}`,
       uiBadgeSponsoredBy:        (nom) => `Спонсор: ${nom}`,
       uiSortNoCoStreams:         'Ко-стримы сейчас не обнаружены',
       uiSortLabelSubs:           'Мои подписки сверху',
@@ -908,6 +947,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       'ホスト配信',
       uiBadgeSubMonths:          (n) => `サブスク • ${n}か月`,
       uiBadgeExSubMonths:        (n) => `元サブスク • ${n}か月`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? '今日が記念日' : `次の記念日まであと${j}日`,
+      uiBadgeSubExpire:          (j) => j === 0 ? '今日で終了' : `あと${j}日で終了`,
       uiCclMatureGame:                      '成人向けゲーム',
       uiCclGambling:                        'ギャンブル',
       uiCclSexualThemes:                    '性的なテーマ',
@@ -923,6 +964,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? `ほか${others}人` : '';
         return `${invite}${suffix} と配信中`;
       },
+      uiBadgeSessionOffline:     (noms) => `セッション参加中・配信なし：${noms}`,
       uiBadgeSponsoredBy:        (nom) => `${nom} のスポンサー配信`,
       uiSortNoCoStreams:         '現在コラボ配信は検出されていません',
       uiSortLabelSubs:           'サブスク中のチャンネルを上に',
@@ -992,6 +1034,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBadgeCostreamHost:       '主办直播',
       uiBadgeSubMonths:          (n) => `已订阅 • ${n} 个月`,
       uiBadgeExSubMonths:        (n) => `曾订阅 • ${n} 个月`,
+      uiBadgeSubAnniv:           (j) => j === 0 ? '今天是订阅纪念日' : `距下次纪念日还有 ${j} 天`,
+      uiBadgeSubExpire:          (j) => j === 0 ? '今天到期' : `${j} 天后到期`,
       uiCclMatureGame:                      '成人向游戏',
       uiCclGambling:                        '赌博',
       uiCclSexualThemes:                    '性相关内容',
@@ -1007,6 +1051,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         const suffix = others > 0 ? `等 ${others} 人` : '';
         return `正在与 ${invite}${suffix} 直播`;
       },
+      uiBadgeSessionOffline:     (noms) => `参与联动但未开播：${noms}`,
       uiBadgeSponsoredBy:        (nom) => `由 ${nom} 赞助`,
       uiSortNoCoStreams:         '当前未检测到联合直播',
       uiSortLabelSubs:           '我订阅的频道优先',
@@ -1163,6 +1208,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     GQL_MAX_LOGINS: 50,
 
     GUEST_STAR_TTL:            30_000,
+
+    COMBINE_OWN_RATIO:         0.9,
+
+    GUEST_STAR_MEMBERS_MAX:    400,
     GUEST_STAR_DEBOUNCE:       300,
     GUEST_STAR_ERROR_COOLDOWN: 30_000,
 
@@ -1184,6 +1233,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     REVISIT_RELOAD_MS: 60_000,
 
     HEALTH_INITIAL_DELAY: 8_000,
+
+    HEALTH_CONFIRM:       2,
+    HEALTH_RECHECK:       5_000,
     SCAN_DEBOUNCE:  250,
 
     COLLAPSE_POLL_MS: 1_000,
@@ -1233,6 +1285,31 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     RECONNECT_PROBE_MAX:    300,
 
+    RECONNECT_PROBE_PER_WINDOW: 12,
+    RECONNECT_PROBE_WINDOW:     30_000,
+
+    RECONNECT_PROBE_RATE_SAMPLE:     10,
+    RECONNECT_PROBE_RATE_MAX:        0.25,
+    RECONNECT_PROBE_RATE_OK:         0.1,
+    RECONNECT_PROBE_RATE_STEP:       2,
+    RECONNECT_PROBE_MIN_PER_WINDOW:  2,
+
+    RECONNECT_PROBE_STORE_KEY:  'tse:sondes',
+    RECONNECT_PROBE_STORE_TTL:  48 * 60 * 60_000,
+    RECONNECT_PROBE_STORE_MAX:  300,
+
+    RECONNECT_PROBE_RETRY:      60_000,
+
+    RECONNECT_PROBE_VEIL_RETRY: 400,
+    RECONNECT_PROBE_TRIES:      3,
+
+    RECONNECT_PROBE_VEIL_BURST:  40,
+
+    RECONNECT_PROBE_VEIL_WINDOW:     1_000,
+    RECONNECT_PROBE_VEIL_PER_WINDOW: 8,
+
+    RECONNECT_PROBE_HOLD_MAX:    6_000,
+
     GLOBAL_BATCH_OPS:        20,
 
     GLOBAL_STRUCT_TICK:      30_000,
@@ -1274,7 +1351,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     SUBS_PAGE_STABLE:     1_500,
 
-    SUBS_PAGE_STAGGER:      600,
+    SUBS_PAGE_SWITCH:     4_000,
+
+    SUBS_PAGE_TAB_ORDER:  ['paid', 'gifts', 'mobile', 'turbo', 'other', 'expired'],
 
     SUBS_PAGE_HOLD_MAX:   7_000,
 
@@ -1282,14 +1361,18 @@ const TSE_GATE_MAX_CLICKS = 5;
     SUBS_PAGE_STAMP_KEY:  'tse:substs',
 
     SUBS_PAGE_RUN_KEY:    'tse:subsrun',
-    SUBS_PAGE_LEASE:      60_000,
+    SUBS_PAGE_LEASE:      120_000,
 
     SUBS_PAGE_CLAIM:      400,
 
     SUBS_PAGE_RETRY:      20_000,
     SUBS_PAGE_RETRIES:    5,
 
+    SUBS_PAGE_EMPTY_RETRY: 15 * 60_000,
+
     SUBS_LABEL_KEY:       'tse:submois',
+
+    SUBS_DUE_HORIZON_DAYS: 400,
 
     SUBS_STORAGE_KEY:     'tse:subs',
     SUBS_MAX_LOGINS:      400,
@@ -1470,8 +1553,6 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     return {
       get: (id) => valeurs[id],
-
-      actif: (id, membre) => !valeurs[id].includes(membre),
       tout: () => {
         const copie = {};
         for (const id of Object.keys(OPT_DEFS)) {
@@ -2267,6 +2348,17 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-dd--lang .tse-dd-menu { right: 0; left: auto; min-width: 64px; }
     .tse-dd--lang .tse-dd-opt { justify-content: center; }
     .tse-lang-code  { font-weight: 600; }
+    
+    
+    .side-nav-card .tse-lang-mark { display: inline-flex; flex: 0 0 auto; margin-right: 2px;
+                                    vertical-align: middle; }
+    .tse-lang-mark svg { display: block; width: 12px; height: 12px;
+                         border-radius: 2px; }
+    
+    .side-nav-card:not([data-tse-subathon-day]) .tse-lang-mark { margin-left: 4px; }
+    
+    html[data-tse-off~="collab"] .tse-lang-mark { display: none !important; }
+
     .tse-flag { display: inline-flex; }
     .tse-flag svg { display: block; width: 20px; height: 20px; }
     .tse-dd--lang .tse-dd-opt .tse-flag svg { width: 22px; height: 22px; }
@@ -2640,11 +2732,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-preview__badge--discount { background: rgba(255, 56, 219, 0.20); color: #ffa3ee; }
     .tse-preview__badge--costream { background: rgba(31, 105, 255, 0.25); color: #7fb3ff; }
     .tse-preview__badge--squad    { background: rgba(145, 71, 255, 0.25); color: #d1b3ff; }
+    
+    .tse-preview__badge--muet     { background: rgba(255, 255, 255, 0.10); color: #adadb8; }
     .tse-preview__badge--sponsor  { background: rgba(0, 184, 90, 0.22);  color: #6bdb9d; }
     html[data-tse-theme="light"] .tse-preview__badge--hype     { color: #993d00; }
     html[data-tse-theme="light"] .tse-preview__badge--discount { color: #a8008a; }
     html[data-tse-theme="light"] .tse-preview__badge--costream { color: #0045d1; }
     html[data-tse-theme="light"] .tse-preview__badge--squad    { color: #6000f0; }
+    html[data-tse-theme="light"] .tse-preview__badge--muet     { color: #53535f; }
     html[data-tse-theme="light"] .tse-preview__badge--sponsor  { color: #006b34; }
     
     .tse-preview__badge--sub      { background: rgba(255, 201, 102, 0.22); color: #ffd591; }
@@ -2941,6 +3036,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     html[data-tse-off~="badge-ccl"]      .tse-preview__badge--ccl,
     html[data-tse-off~="badge-costream"] .tse-preview__badge--costream,
     html[data-tse-off~="badge-squad"]    .tse-preview__badge--squad,
+    html[data-tse-off~="badge-squad"]    .tse-preview__badge--muet,
     html[data-tse-off~="badge-sub"]      .tse-preview__badge--sub,
     html[data-tse-off~="badge-exsub"]    .tse-preview__badge--exsub,
     html[data-tse-off~="badge-sponsor"]  .tse-preview__badge--sponsor,
@@ -3238,8 +3334,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       bruts.push({ ...o });
     }
 
-    if (continu && bruts.length && f.debutStream) {
-      bruts[0] = { ...bruts[0], debut: f.debutStream };
+    if (bruts.length && f.debutStream) {
+      const ecart = bruts[0].debut - f.debutStream;
+      if (continu || (ecart > 0 && ecart <= CFG.CATEGORY_TRAIL_TOLERANCE)) {
+        bruts[0] = { ...bruts[0], debut: f.debutStream };
+      }
     }
 
     const segments = bruts.map((s, i) => {
@@ -3301,6 +3400,14 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   let queue = new Map();
   let queueTimer = null;
+
+  let enVolLogins = new Set();
+  const chainesEnCours = () => {
+
+    for (const l of queue.keys()) if (!cache.has(l)) return true;
+    for (const l of enVolLogins) if (!cache.has(l)) return true;
+    return false;
+  };
   let gqlCooldownUntil = 0;
   let massOfflineStreak = 0;
 
@@ -3312,7 +3419,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const NETWORK_ERROR = Symbol('network-error');
 
-  const reseau = { appels: 0, echecs: 0, dernierEchec: 0, dernierSucces: 0 };
+  const reseau = { appels: 0, echecs: 0, refus: 0,
+                   dernierEchec: 0, dernierSucces: 0 };
   const echecReseau = (quoi, detail) => {
     reseau.echecs++;
     reseau.dernierEchec = Date.now();
@@ -3346,6 +3454,7 @@ const TSE_GATE_MAX_CLICKS = 5;
               const lots = Array.isArray(j) ? j : [j];
               const fautifs = lots.filter(o => o && Array.isArray(o.errors) && o.errors.length);
               if (fautifs.length) {
+                reseau.refus++;
                 erreurs.noter('gql', 'réponse 200 avec erreurs GraphQL',
                   String(fautifs[0].errors[0]?.message || '').slice(0, 120));
               }
@@ -3453,10 +3562,21 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!logins.length) return;
 
     const slices = chunk(logins, CFG.GQL_MAX_LOGINS);
-    const responses = await Promise.all(slices.map(s => post([buildChannelsOp(s)])));
+    for (const l of logins) enVolLogins.add(l);
+
+    preview.majVerrouVoile();
+    let responses;
+    try {
+      responses = await Promise.all(slices.map(s => post([buildChannelsOp(s)])));
+    } finally {
+
+      for (const l of logins) enVolLogins.delete(l);
+    }
 
     const now = Date.now();
     let fresh = 0;
+
+    const aSonder = [];
 
     const parsed = slices.map((slice, si) => {
       const results = responses[si];
@@ -3554,14 +3674,17 @@ const TSE_GATE_MAX_CLICKS = 5;
         suivreCategorie(login, entry);
         cache.set(login, entry);
 
-        const combine = getCollabViewers(id);
+        const combine = getCollabViewers(id) ?? combineDuMembre(login);
         const hote = getHostId(id);
         if (Number.isFinite(combine)) globalChannels.setViewers(login, combine, true);
         else if (typeof hote !== 'string') globalChannels.setViewers(login, entry.viewers);
         fresh++;
+
+        if (entry?.stream?.id) aSonder.push(login);
         (pending.get(login) || []).forEach(fn => fn(entry));
       });
     });
+    preview.sonderOrigines(aSonder);
 
     if (fresh) scheduleScan();
   }
@@ -3632,6 +3755,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
 
                     misses: 0, sousPlancher: 0, creux: 0, evicted: 0,
+
+                    perimees: 0,
 
                     sansReserve: 0,
 
@@ -3777,7 +3902,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
 
       let vus = viewers;
-      const combine = getCollabViewers(node.broadcaster?.id);
+
+      const combine = getCollabViewers(node.broadcaster?.id) ?? combineDuMembre(login);
       if (Number.isFinite(combine) && combine !== viewers) {
         if (combine > viewers) stats.repertoireBas += 1;
         else stats.repertoireHaut += 1;
@@ -3789,6 +3915,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         name:      node.broadcaster.displayName?.trim() || login,
         avatar:    node.broadcaster.profileImageURL || null,
         viewers:   vus,
+
+        combinee:  Number.isFinite(combine),
         game:      node.game?.name || null,
         gameLabel: node.game?.displayName?.trim() || node.game?.name || null,
         createdAt: node.createdAt || null,
@@ -3797,6 +3925,61 @@ const TSE_GATE_MAX_CLICKS = 5;
         ts:        now
       };
     };
+
+    const parPlaces = (liste, n) => {
+      const membres = new Map();
+      for (const r of liste) {
+        const p = placeDeRec(r);
+        let a = membres.get(p);
+        if (!a) membres.set(p, a = []);
+        a.push(r);
+      }
+      const out = [];
+      const prises = new Set();
+      for (const r of liste) {
+        const p = placeDeRec(r);
+        if (prises.has(p)) continue;
+        prises.add(p);
+        out.push(...completer(p, membres.get(p)));
+        if (prises.size >= n) break;
+      }
+      return out;
+    };
+
+    const completer = (cle, presents) => {
+
+      if (!state.globalMode) return presents;
+
+      if (!cle || cle.slice(0, 3) !== 'gs:') return presents;
+      const membres = membresDeLaSession(cle);
+      if (membres.length <= presents.length) return presents;
+      const vus = new Set(presents.map(r => r.login));
+      const out = [...presents];
+      for (const m of membres) {
+        const l = m?.login && String(m.login).toLowerCase();
+        if (!l || vus.has(l)) continue;
+
+        if (m.enLigne === false) continue;
+        vus.add(l);
+        out.push({
+          login: l,
+          id:      m.id || null,
+          name:    (m.name || '').trim() || l,
+          avatar:  null,
+          viewers: Number.isFinite(m.combined) ? m.combined : 0,
+          game:    null,
+          gameLabel: null,
+          createdAt: null,
+          tags:    [],
+          ts:      Date.now(),
+        });
+      }
+
+      out.sort((a, b) => b.viewers - a.viewers);
+      return out;
+    };
+
+    const placeDeRec = (rec) => sessionDuMembre(rec.login) || ('s:' + rec.login);
 
     const nthViewers = (pool, n) => {
       if (pool.size < n) return 0;
@@ -3872,7 +4055,7 @@ const TSE_GATE_MAX_CLICKS = 5;
 
         if (seen.has(login)) { rec.misses = 0; rec.creux = 0; continue; }
 
-        if (rec.ts < cutoff) { pool.delete(login); stats.evicted += 1; continue; }
+        if (rec.ts < cutoff) { pool.delete(login); stats.perimees += 1; continue; }
         if (!queried.has(rec.game)) continue;
 
         if (rec.viewers < plancherDe(rec)) { stats.sousPlancher += 1; continue; }
@@ -3946,24 +4129,63 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     let combines = new Set();
 
-    const signature = (rec) => `${rec.game} ${formatViewers(rec.viewers)}`;
+    const chutesParNature = { perteCombine: { n: 0, max: 0 }, combine: { n: 0, max: 0 },
+                              propre: { n: 0, max: 0 } };
+
+    let confirmes = new Set();
+    let refutations = 0;
+    const protege = (login) => combines.has(login) || confirmes.has(login);
+
+    const propres = new Map();
+    const plusJuste = (r) => {
+      const p = propres.get(r.login);
+      if (!p || Date.now() - p.ts >= 2 * CFG.LIVE_TTL) return r;
+      if (p.v < CFG.COMBINE_OWN_RATIO * r.viewers) return r;
+      return p.v === r.viewers ? r : { ...r, viewers: p.v };
+    };
+    let plusGrandeChute = null;
+
+    const pasAffiche = (n) => {
+      const v = Math.abs(n);
+      if (!(v >= 1000)) return 1;
+      return Math.pow(10, Math.floor(Math.log10(v) / 3) * 3) / 10;
+    };
     const recalculerCombines = (liste) => {
-      const vus = new Map();
+      const parJeu = new Map();
       for (const rec of liste) {
-        if (!rec.game || !Number.isFinite(rec.viewers)) continue;
-        const cle = signature(rec);
-        vus.set(cle, (vus.get(cle) || 0) + 1);
+        if (!rec.game || !rec.login || !Number.isFinite(rec.viewers)) continue;
+        let a = parJeu.get(rec.game);
+        if (!a) parJeu.set(rec.game, a = []);
+        a.push(rec);
       }
-      combines = new Set([...vus].filter(([, n]) => n >= 2).map(([cle]) => cle));
+      const vus = new Set();
+      for (const a of parJeu.values()) {
+        if (a.length < 2) continue;
+        a.sort((x, y) => x.viewers - y.viewers);
+        for (let i = 1; i < a.length; i++) {
+          const haut = a[i].viewers;
+          if (haut - a[i - 1].viewers <= pasAffiche(haut)) {
+            vus.add(a[i - 1].login);
+            vus.add(a[i].login);
+          }
+        }
+      }
+      combines = vus;
     };
 
     const publish = (pool) => {
       publieUneFois = true;
-      ranking      = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
+      for (const [l, p] of propres) if (Date.now() - p.ts >= 2 * CFG.LIVE_TTL) propres.delete(l);
+      ranking      = [...pool.values()].map(plusJuste).sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
       rankingTs    = Date.now();
       threshold    = nthViewers(pool, options.get('topN'));
       recalculerCombines(ranking);
+
+      const presents = new Set([...ranking, ...scopeRanking].map((r) => r.login));
+      for (const l of confirmes) if (!presents.has(l)) confirmes.delete(l);
+      ranking = ranking.map((r) => (confirmes.has(r.login) && !r.combinee
+        ? { ...r, combinee: true } : r));
     };
 
     const mesuresCatLangue = new Map();
@@ -4303,7 +4525,7 @@ const TSE_GATE_MAX_CLICKS = 5;
                 (rec) => planchers.get(rec.game) || 0);
       scope        = want.key;
       scopeLangApplied = applique;
-      scopeRanking = [...pool.values()].sort((a, b) => b.viewers - a.viewers);
+      scopeRanking = [...pool.values()].map(plusJuste).sort((a, b) => b.viewers - a.viewers);
       scopeDirty   = false;
       scopeTs      = Date.now();
 
@@ -4385,6 +4607,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     const reset = () => {
       categories = []; categoriesTs = 0;
       ranking = []; rankingDirty = false; rankingTs = 0;
+      confirmes = new Set();
+      propres.clear();
       threshold = 0; windowFloor = 0; lastFullWalk = 0; cooldownUntil = 0;
       scope = null; scopeRanking = []; scopeTs = 0; scopeDirty = false;
       worldLang = null; allLangPool = []; walkGen += 1;
@@ -4430,10 +4654,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         const lang = state.globalMode ? state.languageFilter : null;
         const liste = this.base();
 
-        if (!lang
+        const filtree = (!lang
             || (wantedScope() && scopeLangApplied)
-            || (!wantedScope() && worldLang === lang)) return liste.slice(0, n);
-        return liste.filter(r => r.tags.includes(lang)).slice(0, n);
+            || (!wantedScope() && worldLang === lang))
+          ? liste : liste.filter(r => r.tags.includes(lang));
+        return parPlaces(filtree, n);
       },
 
       langs(categorie = null) {
@@ -4484,10 +4709,18 @@ const TSE_GATE_MAX_CLICKS = 5;
             creuse = true;
             return false;
           }
-          if (!Number.isFinite(viewers)
-              || (liste[i].viewers === viewers && !liste[i].creux)) return false;
+          if (!Number.isFinite(viewers)) return false;
+          if (liste[i].viewers === viewers && !liste[i].creux) {
 
-          if (!autorite && combines.has(signature(liste[i]))) return false;
+            if (autorite && !liste[i].combinee) liste[i] = { ...liste[i], combinee: true };
+            return false;
+          }
+
+          if (!autorite && protege(login)) {
+
+            if (confirmes.has(login) && !liste[i].combinee) liste[i] = { ...liste[i], combinee: true };
+            return false;
+          }
 
           const avant = liste[i].viewers;
           if (Number.isFinite(avant) && viewers < avant) {
@@ -4495,13 +4728,44 @@ const TSE_GATE_MAX_CLICKS = 5;
             const perte = avant - viewers;
             if (perte > stats.chuteMax) stats.chuteMax = perte;
 
-            if (threshold > 0 && avant >= threshold && viewers < threshold) {
-              stats.chutesHorsEcran += 1;
+            const sortie = threshold > 0 && avant >= threshold && viewers < threshold;
+            if (sortie) stats.chutesHorsEcran += 1;
+
+            const nature = autorite ? 'combine'
+              : liste[i].combinee ? 'perteCombine' : 'propre';
+            const n = chutesParNature[nature];
+            n.n += 1;
+            if (perte > n.max) n.max = perte;
+            if (!plusGrandeChute || perte > plusGrandeChute.perte) {
+              plusGrandeChute = { nature, perte, avant, apres: viewers, sortieEcran: sortie };
             }
           }
-          liste[i] = { ...liste[i], viewers, creux: 0, ts: Date.now() };
+          liste[i] = { ...liste[i], viewers, combinee: autorite, creux: 0, ts: Date.now() };
           return true;
         };
+
+        if (!autorite && Number.isFinite(viewers) && protege(login)) {
+          const rec = ranking.find((r) => r.login === login)
+                   || scopeRanking.find((r) => r.login === login);
+          if (rec && Number.isFinite(rec.viewers) && rec.viewers > 0) {
+            if (viewers >= CFG.COMBINE_OWN_RATIO * rec.viewers) {
+              combines.delete(login);
+              confirmes.delete(login);
+              refutations += 1;
+              const nu = (liste) => liste.map((r) => (r.login === login && r.combinee
+                ? { ...r, combinee: false } : r));
+              ranking = nu(ranking);
+              scopeRanking = nu(scopeRanking);
+            } else {
+              confirmes.add(login);
+            }
+          }
+        }
+
+        if (Number.isFinite(viewers)) {
+          if (autorite) propres.delete(login);
+          else if (!protege(login)) propres.set(login, { v: viewers, ts: Date.now() });
+        }
         if (appliquer(ranking))      { rankingDirty = true; touche = true; }
         if (appliquer(scopeRanking)) { scopeDirty   = true; touche = true; }
 
@@ -4519,12 +4783,23 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       chutes() {
         return { chutes: stats.chutes, chuteMax: stats.chuteMax,
-                 chutesHorsEcran: stats.chutesHorsEcran };
+                 chutesHorsEcran: stats.chutesHorsEcran,
+                 chutesParNature: {
+                   perteCombine: { ...chutesParNature.perteCombine },
+                   combine:      { ...chutesParNature.combine },
+                   propre:       { ...chutesParNature.propre } },
+                 plusGrandeChute: plusGrandeChute ? { ...plusGrandeChute } : 'aucune',
+
+                 combinesAuClassement: ranking.filter((r) => r.combinee).length,
+
+                 signaturesSupposees: [...combines].filter((l) => !confirmes.has(l)).length,
+                 signaturesConfirmees: confirmes.size,
+                 signaturesRefutees: refutations };
       },
       estCombine(login) {
         const rec = ranking.find((r) => r.login === login)
                  || scopeRanking.find((r) => r.login === login);
-        return !!rec && combines.has(signature(rec));
+        return !!rec && protege(login);
       },
       report() {
         return {
@@ -4588,6 +4863,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
   const formatDuree = (ms) => enForme(Math.max(0, Math.round(ms / 60_000)));
 
+  const formatEcoule = (ms) => enForme(Math.max(0, Math.floor(ms / 60_000)));
+
   const loginFromHref = (href) => {
     if (!href) return null;
     const m = href.match(/^\/([A-Za-z0-9_]+)(?:[/?#]|$)/);
@@ -4638,7 +4915,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   const bilanSection = { voie: null, vides: 0, parCartes: 0, aucune: 0 };
 
   let bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
-                        horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0,
+                        horsClassement: 0, horsClassementConnus: 0,
+                        classesNonAffichees: 0, sousLaCoupe: 0,
                         sousLaCoupeAvecCombine: 0 };
 
   const followedSection = () => {
@@ -4684,6 +4962,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     let globalObserver = null;
     let wasPresent = false;
     let cycleActive = false;
+
+    let numCycle = 0;
 
     let overlay = null;
     let spinner = null;
@@ -4791,6 +5071,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (cycleActive) { noter('cycle ignoré', raison); return; }
       noter('cycle', raison);
       cycleActive = true;
+      numCycle += 1;
       lastCardCount = 0;
       verrous.clear();
       held = false;
@@ -4838,6 +5119,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     return { init, notifyScan,
       setHold, bumpActivity, startCycle,
+
+      enCycle: () => cycleActive,
+
+      numCycle: () => numCycle,
       journal: () => journal.slice(),
 
       verrous: () => [...verrous] };
@@ -4912,6 +5197,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
   };
 
+  const minuitLocal = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const joursJusqua = (t) => Math.round((minuitLocal(t) - minuitLocal(Date.now())) / 86_400_000);
+
   const subs = {
 
     map: new Map(),
@@ -4930,6 +5218,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           if (Number.isFinite(m) && m > 0) e.m = m;
           if (v[3]) e.ex = true;
           if (typeof v[4] === 'string' && v[4]) e.src = v[4];
+          const ech = Number(v[5]);
+          if (Number.isFinite(ech) && ech > 0) e.ech = ech;
           this.map.set(login, e);
         }
         this.prune();
@@ -4943,7 +5233,8 @@ const TSE_GATE_MAX_CLICKS = 5;
         const obj = {};
         for (const [login, e] of this.map) {
 
-          if (e.src) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src];
+          if (e.ech) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src || '', e.ech];
+          else if (e.src) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src];
           else if (e.m || e.ex) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0];
           else obj[login] = [e.sub ? 1 : 0, e.ts];
         }
@@ -4970,6 +5261,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (avant?.m) e.m = avant.m;
       if (avant?.ex) e.ex = avant.ex;
       if (avant?.src) e.src = avant.src;
+      if (avant?.ech) e.ech = avant.ech;
       this.map.set(login, e);
       if (avant && avant.sub === sub) return false;
 
@@ -5011,6 +5303,23 @@ const TSE_GATE_MAX_CLICKS = 5;
       return true;
     },
 
+    noteEcheance(login, ech, differer = false) {
+      const avant = login ? this.map.get(login) : null;
+      if (!avant || (avant.ech || 0) === (ech || 0)) return false;
+      const e = { ...avant };
+      if (ech > 0) e.ech = ech; else delete e.ech;
+      this.map.set(login, e);
+      if (!differer) this.flush();
+      return true;
+    },
+
+    echeanceFor(login) {
+      const e = login ? this.map.get(login) : null;
+      if (!e?.ech) return null;
+      const jours = joursJusqua(e.ech);
+      return jours >= 0 ? { jours, offert: e.src === 'gifts' } : null;
+    },
+
     monthsFor(login) {
       const e = login ? this.map.get(login) : null;
       return e?.m || 0;
@@ -5036,7 +5345,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     entries() {
       return [...this.map.entries()]
         .map(([login, e]) => ({ login, sub: e.sub, ts: e.ts, mois: e.m || 0,
-                                ancien: !!e.ex, origine: e.src || '' }))
+                                ancien: !!e.ex, origine: e.src || '',
+                                echeance: e.ech || 0 }))
         .sort((a, b) => (b.sub - a.sub) || (b.ts - a.ts));
     },
 
@@ -5053,7 +5363,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   const subsPage = (() => {
     let running = false;
 
-    let bilan = { onglets: [], fini: 0 };
+    let bilan = { onglets: [], fini: 0, bascule: '' };
 
     let differes = 0;
 
@@ -5090,8 +5400,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       return Number.isFinite(n) && n > 0 ? n : 0;
     };
 
-    const mois = (carte, apprendre) => {
-      const f = feuilles(carte);
+    const mois = (f, apprendre) => {
       if (apprendre) {
 
         if (f.length !== 2 || entier(f[0].t) || !entier(f[1].t)) return 0;
@@ -5103,15 +5412,81 @@ const TSE_GATE_MAX_CLICKS = 5;
       return i >= 0 && f[i + 1] ? entier(f[i + 1].t) : 0;
     };
 
+    const unite = (t) => t.replace(/[\d\s]+/g, '');
+
+    const normaliser = (t) => t.toLowerCase().replace(/\s+/g, ' ').trim();
+
+    const FORMES_DATE = [{ day: 'numeric', month: 'short', year: 'numeric' },
+                         { day: 'numeric', month: 'long', year: 'numeric' },
+                         { day: 'numeric', month: 'numeric', year: 'numeric' }];
+
+    let candidates = { langue: '', jour: 0, cles: [] };
+    const datesEcrites = (langue) => {
+      const jour = minuitLocal(Date.now());
+      if (candidates.langue === langue && candidates.jour === jour) return candidates.cles;
+      const cles = [];
+      try {
+        const formats = FORMES_DATE.map((o) => new Intl.DateTimeFormat(langue, o));
+        for (let i = 0; i <= CFG.SUBS_DUE_HORIZON_DAYS; i++) {
+          const d = new Date(jour);
+          d.setDate(d.getDate() + i);
+          for (const f of formats) cles.push([normaliser(f.format(d)), d.getTime()]);
+        }
+      } catch {   }
+      candidates = { langue, jour, cles };
+      return cles;
+    };
+
+    const dateDans = (texte, cles) => {
+      const t = normaliser(texte);
+      for (const [k, ms] of cles) {
+        const i = t.indexOf(k);
+        if (i >= 0 && !/\d/.test(t[i - 1] || '') && !/\d/.test(t[i + k.length] || '')) return ms;
+      }
+      return 0;
+    };
+
+    const lireCarte = (carte, passe, offert, langue) => {
+      const f = feuilles(carte);
+      const m = mois(f, passe);
+      const i = passe || !etiquette ? -1 : f.findIndex((x) => x.t === etiquette);
+      if (i < 0) return { mois: m, ech: 0 };
+      if (offert) {
+        for (const x of f.slice(i + 1)) {
+          if (!/\d{4}/.test(x.t)) continue;
+          const ms = dateDans(x.t, datesEcrites(langue));
+          if (ms) return { mois: m, ech: ms };
+        }
+        return { mois: m, ech: 0 };
+      }
+      const u = unite(f[i + 1]?.t || '');
+      const v = f.slice(0, i).find((x) => (x.t.match(/\d+/g) || []).length === 1 && unite(x.t) !== u);
+      if (!v) return { mois: m, ech: 0 };
+      const d = new Date(minuitLocal(Date.now()));
+      d.setDate(d.getDate() + parseInt(/\d+/.exec(v.t)[0], 10));
+      return { mois: m, ech: d.getTime() };
+    };
+
     const LECTEUR = 2;
-    const horodatage = () => {
+    const champs = () => {
       try {
         const brut = String(localStorage.getItem(CFG.SUBS_PAGE_STAMP_KEY) || '');
-        if (!brut) return 0;
-        const [v, t] = brut.includes(':') ? brut.split(':') : ['1', brut];
-        if (Number(v) !== LECTEUR) return 0;
-        return Number(t) || 0;
-      } catch { return 0; }
+        if (!brut) return null;
+        const [v, t, n] = brut.includes(':') ? brut.split(':') : ['1', brut];
+        if (Number(v) !== LECTEUR) return null;
+        return { t: Number(t) || 0, vides: Number(n) || 0 };
+      } catch { return null; }
+    };
+    const horodatage = () => champs()?.t || 0;
+    const videsDeSuite = () => champs()?.vides || 0;
+
+    const periodeReleve = () =>
+      options.get('abosPeriode') === OPT_DEFS.abosPeriode.defaut
+        ? CFG.SUBS_PAGE_TTL
+        : options.get('abosPeriode') * 3_600_000;
+    const attenteAvantReleve = (periode) => {
+      const n = videsDeSuite();
+      return n > 0 ? Math.min(periode, CFG.SUBS_PAGE_EMPTY_RETRY * 2 ** (n - 1)) : periode;
     };
 
     const JETON = Math.random().toString(36).slice(2, 10);
@@ -5140,36 +5515,131 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     window.addEventListener('pagehide', rendreBail);
-    const marquer = () => {
+    const marquer = (vides = 0) => {
       try {
-        localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY, LECTEUR + ':' + Date.now());
+        localStorage.setItem(CFG.SUBS_PAGE_STAMP_KEY,
+          LECTEUR + ':' + Date.now() + (vides > 0 ? ':' + vides : ''));
       } catch (e) {
 
         erreurs.noter('stockage', 'horodatage du relevé : ' + ((e && e.name) || e));
       }
     };
 
-    const visiterApres = (onglet, passe, rang) =>
-      new Promise(r => setTimeout(r, rang * CFG.SUBS_PAGE_STAGGER))
-        .then(() => visiter(onglet, passe));
+    const HORS_PANNEAU = 'h1, h2, h3, [role="tablist"], [role="tab"], a[href*="/subscriptions"]';
+    const textePanneau = (doc) => {
+      const main = doc.querySelector('main');
+      if (!main) return '';
+      const morceaux = [];
+      const w = doc.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+      for (let n = w.nextNode(); n; n = w.nextNode()) {
+        const parent = n.parentElement;
+        if (!parent || parent.closest(HORS_PANNEAU)
+            || parent.closest('script, style, noscript')) continue;
+        const t = n.textContent.replace(/\s+/g, ' ').trim();
+        if (t) morceaux.push(t);
+      }
+      return morceaux.join(' ');
+    };
 
-    const visiter = (onglet, passe = false) => new Promise(resolve => {
-      let cadre = document.createElement('iframe');
-      let sondeur = null, limite = null;
-      let debout = 0;
+    const ongletDe = (href) => {
+      try { return new URL(href, location.origin).searchParams.get('tab') || ''; }
+      catch { return ''; }
+    };
+
+    const scruter = (cadre, vu, passe, finir, pret = () => true, refuser = () => false,
+                     exigerPanneau = true) => {
       let passage = '';
       let noeuds = -1;
       let stableDepuis = 0;
+      let debout = 0;
+      return setInterval(() => {
+        let doc = null;
+        try { doc = cadre?.contentDocument; }
+        catch (e) {
+          erreurs.noter('abonnements', `onglet « ${vu.onglet} » : document inaccessible`,
+                        (e && e.name) || '');
+          return finir(null);
+        }
+        if (!doc || !pret(doc)) return;
+        const cartes = doc.querySelectorAll(DOM.subCardSelector);
 
-      const vu = { onglet, charge: false, noeuds: 0, barre: false, cartes: 0,
-                   logins: 0, texte: '' };
+        vu.charge = true;
+
+        vu.cartes = vu.voie === 'page' ? Math.max(vu.cartes, cartes.length) : cartes.length;
+        vu.noeuds = Math.max(vu.noeuds, doc.querySelectorAll('*').length);
+        if (!vu.barre) vu.barre = !!doc.querySelector(DOM.sidebarRoot);
+
+        const liens = cartes.length ? 0
+          : [...(doc.querySelector('main')?.querySelectorAll('a[href^="/"]') || [])]
+              .filter(a => loginFromHref(a.getAttribute('href') || '')).length;
+        vu.liens = Math.max(vu.liens || 0, liens);
+        vu.texte = cartes.length || liens ? ''
+          : textePanneau(doc).slice(0, CFG.SUBS_PAGE_TEXTE_MAX);
+        if (cartes.length || liens || vu.texte) vu.panneau = true;
+        if (cartes.length) {
+          const trouve = [];
+          const vus = new Set();
+          const langue = doc.documentElement.lang || navigator.language;
+          for (const carte of cartes) {
+            const lien = carte.querySelector('a[href^="/"]');
+            const login = loginFromHref(lien?.getAttribute('href') || '');
+            if (!login || vus.has(login)) continue;
+            vus.add(login);
+            trouve.push({ login, ...lireCarte(carte, passe, vu.onglet === 'gifts', langue) });
+          }
+          if (trouve.length) {
+
+            const signature = trouve.map(x => x.login).sort().join(',') + '/' +
+              trouve.filter(x => x.mois > 0).length + '/' +
+              trouve.reduce((t, x) => t + x.mois, 0) + '/' +
+              trouve.filter(x => x.ech > 0).length;
+            if (signature !== passage) { passage = signature; stableDepuis = Date.now(); return; }
+            if (Date.now() - stableDepuis < CFG.SUBS_PAGE_STABLE) return;
+            if (refuser(trouve, Date.now() - stableDepuis)) return;
+
+            if (!passe) vu.echeances = trouve.filter((x) => x.ech > 0).length;
+            return finir(trouve);
+          }
+        }
+        if (!cartes.length) {
+
+          const taille = doc.querySelectorAll('*').length;
+          if (taille !== noeuds) { noeuds = taille; debout = 0; return; }
+          if (!debout && doc.querySelector(DOM.sidebarRoot)) debout = Date.now();
+
+          if (exigerPanneau && !vu.panneau) return;
+          if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) {
+
+            return finir([]);
+          }
+        }
+      }, 400);
+    };
+
+    const expirer = (vu) => {
+      vu.expire = true;
+      vu.blanc = vu.charge && vu.barre && !vu.panneau;
+      erreurs.noter('abonnements', vu.blanc
+        ? `onglet « ${vu.onglet} » : rien sous ses onglets en ${CFG.SUBS_PAGE_TIMEOUT} ms`
+        : `onglet « ${vu.onglet} » : rien rendu en ${CFG.SUBS_PAGE_TIMEOUT} ms`);
+    };
+
+    const visiter = (onglet, passe = false, garder = false) => new Promise(resolve => {
+      let cadre = document.createElement('iframe');
+      let sondeur = null, limite = null;
+
+      const vu = { onglet, voie: 'page', charge: false, noeuds: 0, barre: false, cartes: 0,
+                   logins: 0, liens: 0, texte: '', panneau: false, blanc: false, expire: false };
       bilan.onglets.push(vu);
-      const finir = (logins) => {
+      const finir = (logins, garde = garder) => {
         if (sondeur) { clearInterval(sondeur); sondeur = null; }
         if (limite) { clearTimeout(limite); limite = null; }
-        vu.logins = logins.length;
-        if (cadre) { cadre.remove(); cadre = null; }
-        resolve(logins);
+        const ok = Array.isArray(logins);
+        vu.logins = ok ? logins.length : 0;
+        const rendu = ok && garde ? cadre : null;
+        if (cadre && !rendu) cadre.remove();
+        cadre = null;
+        resolve({ logins: ok ? logins : [], cadre: rendu });
       };
       cadre.setAttribute('aria-hidden', 'true');
       cadre.setAttribute('tabindex', '-1');
@@ -5177,12 +5647,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         'position:fixed;left:-10000px;top:0;width:1280px;height:900px;' +
         'opacity:0;pointer-events:none;border:0';
       cadre.src = `${location.origin}/subscriptions?tab=${encodeURIComponent(onglet)}`;
-      limite = setTimeout(() => {
-
-        erreurs.noter('abonnements',
-          `onglet « ${onglet} » : rien rendu en ${CFG.SUBS_PAGE_TIMEOUT} ms`);
-        finir([]);
-      }, CFG.SUBS_PAGE_TIMEOUT);
+      limite = setTimeout(() => { expirer(vu); finir([], false); }, CFG.SUBS_PAGE_TIMEOUT);
       cadre.addEventListener('load', () => {
 
         try {
@@ -5191,76 +5656,95 @@ const TSE_GATE_MAX_CLICKS = 5;
 
             erreurs.noter('abonnements', `onglet « ${onglet} » : renvoyé vers ${chemin}`,
                           'session expirée ou non connectée ?');
-            return finir([]);
+            return finir(null);
           }
         } catch (e) {
           erreurs.noter('abonnements', `onglet « ${onglet} » : origine illisible`,
                         (e && e.name) || '');
-          return finir([]);
+          return finir(null);
         }
 
-        sondeur = setInterval(() => {
-          let doc = null;
-          try { doc = cadre?.contentDocument; }
-          catch (e) {
-            erreurs.noter('abonnements', `onglet « ${onglet} » : document inaccessible`,
-                          (e && e.name) || '');
-            return finir([]);
-          }
-          if (!doc) return;
-          const cartes = doc.querySelectorAll(DOM.subCardSelector);
-
-          vu.charge = true;
-          vu.cartes = Math.max(vu.cartes, cartes.length);
-          vu.noeuds = Math.max(vu.noeuds, doc.querySelectorAll('*').length);
-          if (!vu.barre) vu.barre = !!doc.querySelector(DOM.sidebarRoot);
-
-          vu.texte = cartes.length ? ''
-            : (doc.querySelector('main')?.innerText || '')
-                .replace(/\s+/g, ' ').trim().slice(0, CFG.SUBS_PAGE_TEXTE_MAX);
-          if (cartes.length) {
-            const trouve = [];
-            const vus = new Set();
-            for (const carte of cartes) {
-              const lien = carte.querySelector('a[href^="/"]');
-              const login = loginFromHref(lien?.getAttribute('href') || '');
-              if (!login || vus.has(login)) continue;
-              vus.add(login);
-              trouve.push({ login, mois: mois(carte, passe) });
-            }
-            if (trouve.length) {
-
-              const signature = trouve.length + '/' +
-                trouve.filter(x => x.mois > 0).length + '/' +
-                trouve.reduce((s, x) => s + x.mois, 0);
-              if (signature !== passage) { passage = signature; stableDepuis = Date.now(); return; }
-              if (Date.now() - stableDepuis < CFG.SUBS_PAGE_STABLE) return;
-              return finir(trouve);
-            }
-          }
-          if (!cartes.length) {
-
-            const taille = doc.querySelectorAll('*').length;
-            if (taille !== noeuds) { noeuds = taille; debout = 0; return; }
-            if (!debout && doc.querySelector(DOM.sidebarRoot)) debout = Date.now();
-            if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) {
-
-              return finir([]);
-            }
-            return;
-          }
-        }, 400);
+        sondeur = scruter(cadre, vu, passe, (l) => finir(l));
       }, { once: true });
       document.body.appendChild(cadre);
     });
 
+    const ongletsDe = (doc) => [...(doc?.querySelector('main')?.querySelectorAll('[role="tab"]') || [])];
+    const boutonDe = (doc, onglet, affiche) => {
+      const ordre = CFG.SUBS_PAGE_TAB_ORDER;
+      const boutons = ongletsDe(doc);
+      if (!boutons.length) return { raison: 'aucun onglet dans la page' };
+      if (boutons.length !== ordre.length) {
+        return { raison: `${boutons.length} onglet(s) dans la page, ${ordre.length} attendus` };
+      }
+      const choisi = boutons.findIndex((b) => b.getAttribute('aria-selected') === 'true');
+      if (choisi >= 0 && ordre[choisi] !== affiche) {
+        return { raison: `la page dit choisi l'onglet n° ${choisi + 1}, « ${affiche} » attendu` };
+      }
+      const rang = ordre.indexOf(onglet);
+      return { bouton: boutons[rang], rang, choisi: choisi >= 0 };
+    };
+
+    const basculer = (cadre, onglet, affiche, passe, precedents, donneesArrivees) => new Promise(resolve => {
+      const abandon = (raison) => { bilan.bascule = raison; resolve(null); };
+      let doc = null;
+      try { doc = cadre.contentDocument; } catch {   }
+      if (!doc) return abandon('page illisible');
+      const cible = boutonDe(doc, onglet, affiche);
+      if (!cible.bouton) return abandon(cible.raison);
+      const vu = { onglet, voie: 'bascule', preuve: '', charge: false, noeuds: 0, barre: false,
+                   cartes: 0, logins: 0, liens: 0, texte: '', panneau: false, blanc: false,
+                   expire: false };
+      bilan.onglets.push(vu);
+      let sondeur = null, limite = null, delai = null;
+      const finir = (logins) => {
+        if (sondeur) { clearInterval(sondeur); sondeur = null; }
+        if (limite) { clearTimeout(limite); limite = null; }
+        if (delai) { clearTimeout(delai); delai = null; }
+        vu.logins = Array.isArray(logins) ? logins.length : 0;
+        resolve(logins);
+      };
+
+      const adresse = () => {
+        try { return ongletDe(cadre.contentWindow.location.href); }
+        catch { return null; }
+      };
+      const adresseAvant = adresse();
+      const change = () => {
+        const ici = adresse();
+        if (ici === onglet) { vu.preuve = 'adresse'; return true; }
+        if (ici !== adresseAvant || !cible.choisi) return false;
+        let b = null;
+        try { b = ongletsDe(cadre.contentDocument)[cible.rang]; } catch { return false; }
+        if (b?.getAttribute('aria-selected') !== 'true') return false;
+        vu.preuve = 'aria-selected';
+        return true;
+      };
+
+      const avant = [...(precedents || [])].sort().join(',');
+      const refuser = (trouve, stableMs) => !!avant
+        && trouve.map(x => x.login).sort().join(',') === avant
+        && stableMs < CFG.SUBS_PAGE_SETTLE;
+      delai = setTimeout(() => {
+        delai = null;
+        if (change()) return;
+        vu.voie = 'bascule refusée';
+        if (sondeur) { clearInterval(sondeur); sondeur = null; }
+        if (limite) { clearTimeout(limite); limite = null; }
+        const ici = adresse();
+        abandon(ici && ici !== adresseAvant
+          ? `l'adresse dit « ${ici} », « ${onglet} » attendu`
+          : `l'onglet n'a pas changé en ${CFG.SUBS_PAGE_SWITCH} ms`);
+      }, CFG.SUBS_PAGE_SWITCH);
+      limite = setTimeout(() => { expirer(vu); finir([]); }, CFG.SUBS_PAGE_TIMEOUT);
+      try { cible.bouton.click(); }
+      catch { vu.voie = 'bascule refusée'; bilan.bascule = 'le clic a échoué'; finir(null); return; }
+      sondeur = scruter(cadre, vu, passe, finir, change, refuser, !donneesArrivees);
+    });
+
     const refresh = async (force = false) => {
       if (!CFG.SUBS_PAGE_ENABLED || running) return null;
-
-      const periode = options.get('abosPeriode') === OPT_DEFS.abosPeriode.defaut
-        ? CFG.SUBS_PAGE_TTL
-        : options.get('abosPeriode') * 3_600_000;
-      if (!force && Date.now() - horodatage() < periode) return null;
+      if (!force && Date.now() - horodatage() < attenteAvantReleve(periodeReleve())) return null;
 
       if (!force && horodatage() && bailFrais()) { differes += 1; return null; }
       if (!document.body) return null;
@@ -5268,7 +5752,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       running = true;
 
       const premier = !!horodatage();
-      bilan = { onglets: [], fini: 0 };
+      bilan = { onglets: [], fini: 0, bascule: '' };
       const trouves = [];
       try {
 
@@ -5278,6 +5762,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           if (!bailTenu()) { differes += 1; return null; }
         }
         let touche = false;
+        const servies = new Set();
         const verserPasse = (liste) => {
           for (const { login, mois: m } of liste) {
             touche = subs.noteMonths(login, m, true, true) || touche;
@@ -5286,11 +5771,15 @@ const TSE_GATE_MAX_CLICKS = 5;
 
         const verserCourant = (onglet) => (liste) => {
           if (!liste.length) return;
-          for (const { login, mois: m } of liste) {
+          for (const { login, mois: m, ech } of liste) {
             if (!trouves.includes(login)) trouves.push(login);
             touche = subs.noteMonths(login, m, false, true) || touche;
 
-            touche = subs.noteSource(login, onglet, true) || touche;
+            if (!servies.has(login)) {
+              servies.add(login);
+              touche = subs.noteSource(login, onglet, true) || touche;
+              touche = subs.noteEcheance(login, ech, true) || touche;
+            }
             touche = subs.record(login, true, true) || touche;
           }
 
@@ -5299,19 +5788,51 @@ const TSE_GATE_MAX_CLICKS = 5;
           premierResultat();
         };
 
-        if (!etiquette) {
-          for (const onglet of CFG.SUBS_PAGE_TABS_PAST) verserPasse(await visiter(onglet, true));
-        }
+        const ordre = etiquette
+          ? [...CFG.SUBS_PAGE_TABS.map(o => [o, false]),
+             ...CFG.SUBS_PAGE_TABS_PAST.map(o => [o, true])]
+          : [...CFG.SUBS_PAGE_TABS_PAST.map(o => [o, true]),
+             ...CFG.SUBS_PAGE_TABS.map(o => [o, false])];
+        let cadre = null;
+        let basculeRefusee = false;
+        let affiche = '';
+        let precedents = [];
+        let donnees = false;
+        let blancsDeSuite = 0;
+        try {
+          for (const [onglet, passe] of ordre) {
+            let liste = null;
+            if (cadre && !basculeRefusee) {
+              liste = await basculer(cadre, onglet, affiche, passe, precedents, donnees);
+              if (liste === null) basculeRefusee = true;
+            }
+            if (liste === null) {
+              if (cadre) { cadre.remove(); cadre = null; }
+              const r = await visiter(onglet, passe, true);
+              liste = r.logins;
+              cadre = r.cadre;
+            }
+            affiche = onglet;
+            precedents = liste.map(x => x.login);
+            if (passe) verserPasse(liste); else verserCourant(onglet)(liste);
 
-        const encore = etiquette ? CFG.SUBS_PAGE_TABS_PAST : [];
-        let rang = 0;
-        await Promise.all([
-          ...encore.map(o => visiterApres(o, true, rang++).then(verserPasse)),
-          ...CFG.SUBS_PAGE_TABS.map(o => visiterApres(o, false, rang++).then(verserCourant(o))),
-        ]);
+            const dernier = bilan.onglets[bilan.onglets.length - 1];
+            if (dernier?.panneau) donnees = true;
+            if (dernier?.expire) {
+              if (!dernier.barre) break;
+              blancsDeSuite += 1;
+              if (blancsDeSuite >= 2) break;
+            } else {
+              blancsDeSuite = 0;
+            }
+          }
+        } finally {
+          if (cadre) cadre.remove();
+        }
         if (touche) subs.flush();
 
-        marquer();
+        const rienVu = !bilan.onglets.some(o => o.cartes > 0);
+        marquer(rienVu ? videsDeSuite() + 1 : 0);
 
         bilan.fini = Date.now();
         if (!trouves.length) {
@@ -5328,11 +5849,17 @@ const TSE_GATE_MAX_CLICKS = 5;
                 CFG.SUBS_PAGE_TABS.join(', '));
             }
           } else {
+
+            const blancs = affiches.filter((o) => !o.panneau).length;
+            const liens = Math.max(0, ...affiches.map((o) => o.liens || 0));
             erreurs.noter('abonnements',
               `${affiches.length} onglet(s) affiché(s), aucun ne rend « ${DOM.subCardSelector} »`,
               dit ? `la page dit : « ${dit} »`
-                : connus ? `${connus} abonnement(s) déjà connu(s) : le sélecteur ne correspond plus`
-                  : 'compte sans abonnement, ou sélecteur à revérifier');
+                : liens ? `${liens} lien(s) de chaîne dans la page, aucun dans une carte : le sélecteur ne correspond plus`
+                  : blancs === affiches.length
+                    ? 'la page n\'a rien rendu sous ses onglets — Twitch ne sert pas la liste'
+                    : connus ? `${connus} abonnement(s) déjà connu(s) : le sélecteur ne correspond plus`
+                      : 'compte sans abonnement, ou sélecteur à revérifier');
           }
         }
       } finally {
@@ -5404,8 +5931,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     };
 
     return { init, refresh, horodatage, notifySidebar, enAttente,
-             bilan: () => ({ ...bilan, differes,
-                             onglets: bilan.onglets.map((o) => ({ ...o })) }) };
+
+             bilan: () => {
+               const t = horodatage();
+               return { ...bilan, differes, videsDeSuite: videsDeSuite(),
+                        prochainDansMs: t
+                          ? Math.max(0, t + attenteAvantReleve(periodeReleve()) - Date.now()) : 0,
+                        onglets: bilan.onglets.map((o) => ({ ...o })) };
+             } };
   })();
 
   function detectSubscription() {
@@ -5477,7 +6010,6 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     return {
       init, flush, record,
-      size:    () => map.size,
       entries: () => (ordered ??= [...map.entries()].sort((a, b) => b[1] - a[1])),
       clear:   () => {
         map.clear(); dirty = false; ordered = null;
@@ -5664,6 +6196,16 @@ const TSE_GATE_MAX_CLICKS = 5;
     return out;
   };
 
+  const bilanBalayages = { total: 0, recents: [] };
+  const noterBalayage = () => {
+    const t = Date.now();
+    bilanBalayages.total += 1;
+    bilanBalayages.recents.push(t);
+    while (bilanBalayages.recents.length && t - bilanBalayages.recents[0] > 60_000) {
+      bilanBalayages.recents.shift();
+    }
+  };
+
   const tseApi = {
     scores(limit = Infinity) {
       const report = buildScoresReport().slice(0, limit);
@@ -5685,6 +6227,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       roster.clear();
       subs.clear();
       liveLag.clear();
+      preview.oublierVerdicts();
       console.log(S.consoleHistoryCleared);
     },
 
@@ -5821,7 +6364,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       },
       subs() {
         const lignes = subs.entries();
-        return { colonnes: ['login', 'sub', 'ts', 'mois', 'ancien', 'origine'], lignes,
+        return { colonnes: ['login', 'sub', 'ts', 'mois', 'ancien', 'origine', 'echeance'], lignes,
                  resume: { chaines: lignes.length,
                            abonnees: lignes.filter(e => e.sub).length,
 
@@ -5966,6 +6509,12 @@ const TSE_GATE_MAX_CLICKS = 5;
 
           chemin: location.pathname,
           cachee: document.hidden,
+
+          balayages: {
+            total: bilanBalayages.total,
+            derniereMinute: bilanBalayages.recents
+              .filter(t => maintenant - t <= 60_000).length,
+          },
           sidebar: !!nav,
           repliee: nav ? detectSidebarCollapsed() : null,
           voile: document.body.classList.contains('tse-loading'),
@@ -6046,6 +6595,8 @@ const TSE_GATE_MAX_CLICKS = 5;
           visites:     visits.map.size,
           abonnements: abonnements.length,
           abonnes:     abonnements.filter(e => e.sub).length,
+
+          echeances:   abonnements.filter(e => e.echeance > 0).length,
           roster:      roster.entries().length,
           mesures:     mesures.length,
           bascules:    [...basculements.keys()].filter(l => basculementFrais(l)).length,
@@ -6129,6 +6680,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
           appels: reseau.appels,
           echecs: reseau.echecs,
+
+          refus: reseau.refus,
 
           chapitres: preview.bilanChapitres(),
           dernierSuccesIlYaMs: reseau.dernierSucces
@@ -6545,6 +7098,31 @@ const TSE_GATE_MAX_CLICKS = 5;
     poserPastille(card, String(mates.length));
   };
 
+  const appliquerDrapeauLangue = (card) => {
+    const p = cardNameEl(card);
+    const ancien = p ? p.querySelector(':scope > .tse-lang-mark') : null;
+    const login  = card.dataset.tseLogin;
+    const filtre = state.globalMode ? state.languageFilter : null;
+    let langue = null;
+    if (p && filtre && login && sessionDuMembre(login)) {
+      const langs = langStore.getLangs(login) || [];
+      if (langs.length && !langs.includes(filtre)) langue = langs[0];
+    }
+    if (!langue) { ancien?.remove(); return; }
+    if (ancien && ancien.dataset.langue === langue) return;
+    ancien?.remove();
+    const svg = flagMarkup(langue);
+    if (!svg) return;
+    const marque = document.createElement('span');
+    marque.className = 'tse-lang-mark';
+    marque.dataset.langue = langue;
+    marque.title = langue;
+    marque.appendChild(noeudStatique(svg));
+
+    const puce = p.querySelector(':scope > .tse-subathon-jour');
+    if (puce) p.insertBefore(marque, puce); else p.appendChild(marque);
+  };
+
   const applyCollabBadge = (card) => {
 
     if (!PLUS_RE_PRESENT.test(card.textContent || '')) { pastilleDepuisGuestStar(card); return; }
@@ -6670,7 +7248,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       n = document.createElement('span');
       n.className = 'tse-subathon-nom';
 
-      for (const noeud of [...p.childNodes]) if (noeud !== b) n.appendChild(noeud);
+      for (const noeud of [...p.childNodes]) {
+        if (noeud === b) continue;
+        if (noeud.nodeType === 1 && noeud.classList.contains('tse-lang-mark')) continue;
+        n.appendChild(noeud);
+      }
       p.insertBefore(n, p.firstChild);
     }
 
@@ -6960,13 +7542,7 @@ const TSE_GATE_MAX_CLICKS = 5;
                              inexploitables: 0, sansVod: 0, sansStream: 0, reseau: 0,
 
                              clips: 0, clipsServis: 0, clipsHorsSujet: 0,
-                             clipsRefus: 0, clipsErreur: 0, clipsForme: null,
-
-                             replis: 0, replisServis: 0, replisErreur: 0,
-                             replisVides: 0, replisHorsSujet: 0,
-
-                             replisTropTot: 0, replisTropTard: 0,
-                             repliEcartMinMin: null, repliEcartMaxMin: null };
+                             clipsRefus: 0, clipsErreur: 0, clipsForme: null };
 
     const segmentsDuVod = (vod, debutStream) => {
       const aretes = vod?.moments?.edges;
@@ -6998,15 +7574,6 @@ const TSE_GATE_MAX_CLICKS = 5;
       const depart = Date.parse(vod?.createdAt);
       return Number.isFinite(depart) && !!debutStream
         && depart - debutStream <= CFG.CATEGORY_TRAIL_VOD_ECART;
-    };
-
-    const vodDuLive = (vod, debutStream) => {
-      const depart = Date.parse(vod?.createdAt);
-      if (!Number.isFinite(depart) || !debutStream) return false;
-      if (depart - debutStream > CFG.CATEGORY_TRAIL_VOD_ECART) return false;
-      const duree = Number(vod.lengthSeconds);
-      if (!Number.isFinite(duree) || duree <= 0) return false;
-      return depart + duree * 1000 >= debutStream;
     };
 
     const CLIPS_FORMES = [
@@ -7062,10 +7629,97 @@ const TSE_GATE_MAX_CLICKS = 5;
       return (segments || continu) ? chapitres.get(streamId) : null;
     };
 
+    const regimeNeuf = (cadence) => ({ sondes: 0, refus: 0, cadence, ralenties: 0, remontees: 0 });
     const bilanSondes = { sondes: 0, servies: 0, trouvees: 0, vides: 0, chaines: 0,
-                          reseau: 0, adoptees: 0, chapitresAvant: 0 };
+                          reseau: 0, adoptees: 0, chapitresAvant: 0,
+                          differees: 0, abandonnees: 0, sousVoile: 0,
+                          voile: regimeNeuf(CFG.RECONNECT_PROBE_VEIL_PER_WINDOW),
+                          croisiere: regimeNeuf(CFG.RECONNECT_PROBE_PER_WINDOW),
+                          memorisees: 0, memoireAdoptees: 0 };
 
-    const sondees = new Set();
+    const sondees = new Map();
+
+    let fenetreSondes = [];
+
+    const regimes = {
+      voile:     { n: 0, refus: 0, plancher: 1, pas: 1,
+                   plafond: CFG.RECONNECT_PROBE_VEIL_PER_WINDOW },
+      croisiere: { n: 0, refus: 0, plancher: CFG.RECONNECT_PROBE_MIN_PER_WINDOW,
+                   pas: CFG.RECONNECT_PROBE_RATE_STEP, plafond: CFG.RECONNECT_PROBE_PER_WINDOW },
+    };
+    const regimeDe = (streamId) => (sondees.get(streamId)?.voile ? 'voile' : 'croisiere');
+    const noterIssue = (refus, streamId) => {
+      const nom = regimeDe(streamId);
+      const r = regimes[nom];
+      const b = bilanSondes[nom];
+      if (refus) b.refus += 1;
+      r.n += 1;
+      if (refus) r.refus += 1;
+      if (r.n < CFG.RECONNECT_PROBE_RATE_SAMPLE) return;
+      const taux = r.refus / r.n;
+      r.n = 0; r.refus = 0;
+      if (taux > CFG.RECONNECT_PROBE_RATE_MAX) {
+        const avant = b.cadence;
+        b.cadence = Math.max(r.plancher, Math.floor(b.cadence / 2));
+        if (b.cadence < avant) b.ralenties += 1;
+      } else if (taux <= CFG.RECONNECT_PROBE_RATE_OK && b.cadence < r.plafond) {
+        b.cadence = Math.min(r.plafond, b.cadence + r.pas);
+        b.remontees += 1;
+      }
+    };
+
+    let fenetreVoile = [];
+    let voileCycleVu = 0;
+    let voileReste   = 0;
+    const bourseDuVoile = () => {
+      const cycle = loadingOverlay.numCycle();
+      if (cycle !== voileCycleVu) {
+        voileCycleVu = cycle;
+        voileReste   = CFG.RECONNECT_PROBE_VEIL_BURST;
+        fenetreVoile = [];
+      }
+      return voileReste;
+    };
+    const placeDansLaFenetre = () => {
+      if (loadingOverlay.enCycle() && bourseDuVoile() > 0) {
+        const seuil = Date.now() - CFG.RECONNECT_PROBE_VEIL_WINDOW;
+        fenetreVoile = fenetreVoile.filter(t => t > seuil);
+        return Math.min(voileReste, bilanSondes.voile.cadence - fenetreVoile.length);
+      }
+      const seuil = Date.now() - CFG.RECONNECT_PROBE_WINDOW;
+      fenetreSondes = fenetreSondes.filter(t => t > seuil);
+      return bilanSondes.croisiere.cadence - fenetreSondes.length;
+    };
+
+    let sondesEnVol = 0;
+
+    const differeesEnAttente = new Set();
+    const originesEnAttente = () =>
+      sondesEnVol > 0 || differeesEnAttente.size > 0 || chainesEnCours();
+
+    const attenteAvantPlace = () => {
+      if (placeDansLaFenetre() > 0) return 20;
+
+      if (loadingOverlay.enCycle() && voileReste > 0) {
+        if (!fenetreVoile.length) return CFG.RECONNECT_PROBE_VEIL_WINDOW;
+        return Math.max(0, fenetreVoile[0] + CFG.RECONNECT_PROBE_VEIL_WINDOW
+                           - Date.now()) + 20;
+      }
+      if (!fenetreSondes.length) return CFG.RECONNECT_PROBE_WINDOW;
+      return Math.max(0, fenetreSondes[0] + CFG.RECONNECT_PROBE_WINDOW - Date.now()) + 20;
+    };
+
+    const prochainReessai = () => {
+      let min = Infinity;
+      for (const l of differeesEnAttente) {
+        const id = cache.get(l)?.stream?.id;
+        const etat = id && sondees.get(id);
+        if (etat && etat.pasAvant && etat.essais < CFG.RECONNECT_PROBE_TRIES) {
+          min = Math.min(min, etat.pasAvant - Date.now());
+        }
+      }
+      return min === Infinity ? 0 : Math.max(0, min) + 20;
+    };
 
     const passeDirect = new Map();
 
@@ -7127,49 +7781,266 @@ const TSE_GATE_MAX_CLICKS = 5;
       return maillons.reverse();
     };
 
-    const sonderReprise = async (login, flux) => {
+    const gardesSonde = (login, flux) => {
       const streamId = flux?.id;
-      const depart = Date.parse(flux?.createdAt);
-      if (!streamId || !Number.isFinite(depart)) return false;
-      if (sondees.has(streamId)) return false;
+      if (!streamId || !Number.isFinite(Date.parse(flux?.createdAt))) return false;
+
+      const etat = sondees.get(streamId);
+      if (etat && (!etat.pasAvant
+                   || etat.essais >= CFG.RECONNECT_PROBE_TRIES
+                   || Date.now() < etat.pasAvant)) return false;
 
       if (coupuresDe(login)) return false;
 
-      if (bilanSondes.sondes >= CFG.RECONNECT_PROBE_MAX) return false;
-      sondees.add(streamId);
-      while (sondees.size > CFG.CHAPITRES_MAX) {
-        sondees.delete(sondees.values().next().value);
+      if (subathonDe(login)) return false;
+
+      return bilanSondes.sondes < CFG.RECONNECT_PROBE_MAX;
+    };
+
+    const verdicts = new Map();
+    try {
+      const brut = JSON.parse(localStorage.getItem(CFG.RECONNECT_PROBE_STORE_KEY) || 'null');
+      const limite = Date.now() - CFG.RECONNECT_PROBE_STORE_TTL;
+      const maillonSain = (m) => Array.isArray(m) && m.length === 3 && m.every(Number.isFinite);
+      for (const [id, v] of Object.entries(brut && typeof brut === 'object' ? brut : {})) {
+        if (!Array.isArray(v) || !(Number(v[0]) > limite) || typeof v[1] !== 'string') continue;
+        const maillons = Array.isArray(v[2]) && v[2].length && v[2].every(maillonSain) ? v[2] : null;
+        if (v[2] !== 0 && !maillons) continue;
+        verdicts.set(id, { ts: Number(v[0]), login: v[1], maillons,
+                           segments: Array.isArray(v[3]) ? v[3] : [] });
       }
+    } catch (e) {
+      erreurs.noter('stockage', 'lecture des sondes : ' + ((e && e.name) || e));
+    }
+    const retenirVerdict = (streamId, login, maillons, segments) => {
+      if (!streamId || !login) return;
+      verdicts.delete(streamId);
+      verdicts.set(streamId, {
+        ts: Date.now(), login,
+        maillons: maillons ? maillons.map((m) => [m.debut, m.fin, m.reprise]) : null,
+        segments: (segments || []).slice(-CFG.CHAPITRES_PASSE_MAX) });
+      const limite = Date.now() - CFG.RECONNECT_PROBE_STORE_TTL;
+      for (const [id, v] of verdicts) { if (v.ts > limite) break; verdicts.delete(id); }
+      while (verdicts.size > CFG.RECONNECT_PROBE_STORE_MAX) {
+        verdicts.delete(verdicts.keys().next().value);
+      }
+      try {
+        const obj = {};
+        for (const [id, v] of verdicts) obj[id] = [v.ts, v.login, v.maillons || 0, v.segments];
+        localStorage.setItem(CFG.RECONNECT_PROBE_STORE_KEY, JSON.stringify(obj));
+      } catch (e) { erreurs.noter('stockage', 'sondes : ' + ((e && e.name) || e)); }
+    };
+
+    const adopter = (login, flux, maillons, segments, rejoue) => {
+
+      const acquis = passeDe(login, Date.parse(flux?.createdAt));
+      if (!adopterReprise(login, flux, maillons)) return false;
+      if (rejoue) bilanSondes.memoireAdoptees++;
+      else {
+        bilanSondes.adoptees++;
+
+        if (loadingOverlay.enCycle()) bilanSondes.sousVoile++;
+      }
+      if (acquis && acquis.length) noterPasse(login, maillons[0].debut, acquis);
+      if (segments && segments.length) {
+        noterPasse(login, maillons[0].debut, segments);
+        if (!rejoue) bilanSondes.chapitresAvant++;
+      }
+      return true;
+    };
+
+    const rejouer = (login, flux) => {
+      const v = verdicts.get(flux?.id);
+      if (!v || v.login !== login || sondees.has(flux.id)) return null;
+      sondees.set(flux.id, { essais: 1, pasAvant: 0 });
+      bilanSondes.memorisees++;
+      if (!v.maillons) return false;
+      return adopter(login, flux,
+        v.maillons.map(([debut, fin, reprise]) => ({ debut, fin, reprise })), v.segments, true);
+    };
+
+    const retenirSonde = (streamId) => {
+      const etat = sondees.get(streamId);
+
+      const voile = loadingOverlay.enCycle() && voileReste > 0;
+      sondees.set(streamId, { essais: ((etat && etat.essais) || 0) + 1, pasAvant: 0, voile });
+      while (sondees.size > CFG.CHAPITRES_MAX) {
+        sondees.delete(sondees.keys().next().value);
+      }
+      fenetreSondes.push(Date.now());
+      if (voile) {
+        fenetreVoile.push(Date.now());
+        voileReste -= 1;
+      }
+      bilanSondes[voile ? 'voile' : 'croisiere'].sondes += 1;
       bilanSondes.sondes++;
-      const res = await post([{
-        operationName: 'TseVodRecent',
-        variables: { login },
-        query: RECENT_QUERY
-      }]);
-      if (isResultsUnusable(res)) { bilanSondes.reseau++; return false; }
-      const aretes = res?.[0]?.data?.user?.videos?.edges;
-      if (!Array.isArray(aretes)) { bilanSondes.vides++; return false; }
+    };
+
+    const reporterSonde = (streamId, login) => {
+      const etat = sondees.get(streamId);
+      if (!etat) return;
+      if (etat.essais >= CFG.RECONNECT_PROBE_TRIES) {
+        bilanSondes.abandonnees += 1;
+        if (login) differeesEnAttente.delete(login);
+        return;
+      }
+      etat.pasAvant = Date.now() + (loadingOverlay.enCycle()
+        ? CFG.RECONNECT_PROBE_VEIL_RETRY : CFG.RECONNECT_PROBE_RETRY);
+
+      if (login) differeesEnAttente.add(login);
+    };
+
+    const opSonde = (login) => ({
+      operationName: 'TseVodRecent',
+      variables: { login },
+      query: RECENT_QUERY
+    });
+
+    const digererSonde = (login, flux, aretes) => {
+      const depart = Date.parse(flux?.createdAt);
+      if (!Number.isFinite(depart)) return false;
+
+      if (!Array.isArray(aretes)) {
+        bilanSondes.vides++;
+        noterIssue(true, flux?.id);
+        reporterSonde(flux?.id, login);
+        return false;
+      }
       bilanSondes.servies++;
+      noterIssue(false, flux.id);
       const maillons = chaineDesTroncons(aretes.map(e => e?.node).filter(Boolean), depart);
-      if (!maillons.length) return false;
+      if (!maillons.length) { retenirVerdict(flux.id, login, null, null); return false; }
       bilanSondes.trouvees++;
       if (maillons.length > 1) bilanSondes.chaines++;
-
-      const acquis = passeDe(login, depart);
-      if (!adopterReprise(login, flux, maillons)) return false;
-      bilanSondes.adoptees++;
-      if (acquis && acquis.length) noterPasse(login, maillons[0].debut, acquis);
 
       const segments = [];
       for (const m of maillons) {
         const { segments: s } = segmentsDuVod(m.noeud, m.debut);
         if (s && s.length) segments.push(...s);
       }
-      if (segments.length) {
-        noterPasse(login, maillons[0].debut, segments);
-        bilanSondes.chapitresAvant++;
+      retenirVerdict(flux.id, login, maillons, segments);
+      return adopter(login, flux, maillons, segments, false);
+    };
+
+    const sonderUne = async (login, flux) => {
+      const res = await post([opSonde(login)]);
+      if (isResultsUnusable(res)) {
+        bilanSondes.reseau++;
+        noterIssue(true, flux.id);
+
+        reporterSonde(flux.id, login);
+        return false;
       }
-      return true;
+      return digererSonde(login, flux, res?.[0]?.data?.user?.videos?.edges);
+    };
+
+    let voileVerrouJusqua = 0;
+    let voileSecours = null;
+
+    let voileCycle = 0;
+    let voileEpuise = false;
+
+    let voileTenu = false;
+    const majVerrouVoile = (enPlus = false, peutLever = false) => {
+      const cycle = loadingOverlay.numCycle();
+      if (cycle !== voileCycle) {
+        voileCycle = cycle; voileEpuise = false; voileVerrouJusqua = 0;
+        voileTenu = false;
+        if (voileSecours) { clearTimeout(voileSecours); voileSecours = null; }
+      }
+      const actif = loadingOverlay.enCycle() && !voileEpuise
+                    && (enPlus || originesEnAttente());
+      if (actif && voileVerrouJusqua === 0) {
+        voileVerrouJusqua = Date.now() + CFG.RECONNECT_PROBE_HOLD_MAX;
+
+        voileSecours = setTimeout(() => { voileSecours = null; majVerrouVoile(); },
+                                  CFG.RECONNECT_PROBE_HOLD_MAX + 50);
+      }
+      const tenir = actif && Date.now() < voileVerrouJusqua;
+      if (tenir) { loadingOverlay.setHold(true, 'origines'); voileTenu = true; return; }
+
+      if (actif && voileVerrouJusqua !== 0) voileEpuise = true;
+
+      if (!peutLever && Date.now() < voileVerrouJusqua) return;
+      const tenait = voileTenu;
+      voileTenu = false;
+      loadingOverlay.setHold(false, 'origines');
+      voileVerrouJusqua = 0;
+      if (voileSecours) { clearTimeout(voileSecours); voileSecours = null; }
+
+      if (tenait && !peutLever) scheduleScan();
+    };
+
+    let videurTimer = null;
+    const vider = (logins) => {
+      if (logins && logins.length) for (const l of logins) differeesEnAttente.add(l);
+      if (!differeesEnAttente.size) return;
+      const lot = [...differeesEnAttente];
+      const promesse = sonderLot(lot);
+      majVerrouVoile();
+      promesse
+        .then((adoptes) => {
+          if (adoptes.length) {
+            for (const l of adoptes) { majReprise(l); majFrise(l); }
+            scheduleScan();
+          }
+        })
+        .catch((e) => erreurs.noter('reprise', (e && e.message) || e))
+        .finally(() => {
+          majVerrouVoile();
+          if (!differeesEnAttente.size || videurTimer) return;
+
+          videurTimer = setTimeout(() => { videurTimer = null; vider(null); },
+                                   Math.max(attenteAvantPlace(), prochainReessai()));
+        });
+    };
+
+    const sonderReprise = async (login, flux) => {
+      const r = rejouer(login, flux);
+      if (r !== null) return r;
+      if (!gardesSonde(login, flux)) return false;
+      retenirSonde(flux.id);
+      return sonderUne(login, flux);
+    };
+
+    const sonderLot = async (logins) => {
+      const retenues = [];
+      const rejouees = [];
+      let place = placeDansLaFenetre();
+      for (const login of logins) {
+        const flux = cache.get(login)?.stream;
+
+        if (!flux?.id) continue;
+
+        const memo = rejouer(login, flux);
+        if (memo !== null) {
+          differeesEnAttente.delete(login);
+          if (memo) rejouees.push(login);
+          continue;
+        }
+
+        const repris = sondees.get(flux.id);
+        if (repris && repris.pasAvant && Date.now() < repris.pasAvant
+            && repris.essais < CFG.RECONNECT_PROBE_TRIES) continue;
+        if (!gardesSonde(login, flux)) { differeesEnAttente.delete(login); continue; }
+
+        if (place <= 0) { bilanSondes.differees += 1; differeesEnAttente.add(login); continue; }
+        place -= 1;
+        differeesEnAttente.delete(login);
+        retenirSonde(flux.id);
+        retenues.push({ login, flux });
+      }
+      if (!retenues.length) return rejouees;
+      sondesEnVol += retenues.length;
+      try {
+        const issues = await Promise.all(
+          retenues.map(e => sonderUne(e.login, e.flux)
+            .catch((err) => { erreurs.noter('reprise', (err && err.message) || err); return false; })));
+        return [...rejouees, ...retenues.filter((e, i) => issues[i]).map(e => e.login)];
+      } finally {
+
+        sondesEnVol -= retenues.length;
+      }
     };
 
     const fetchChapitres = async (login, streamId, debutStream) => {
@@ -7192,40 +8063,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       const flux = res?.[0]?.data?.user?.stream;
       if (!flux) { bilanChapitres.sansStream++; return retenir(streamId, null, false); }
 
-      let vod = flux.archiveVideo;
-
-      if (!vod) {
-        bilanChapitres.replis++;
-        const res2 = await post([{
-          operationName: 'TseVodRecent',
-          variables: { login },
-          query: RECENT_QUERY
-        }]);
-        if (isResultsUnusable(res2)) {
-          bilanChapitres.replisErreur++;
-        } else {
-          const candidat = res2?.[0]?.data?.user?.videos?.edges?.[0]?.node;
-
-          if (!candidat) bilanChapitres.replisVides++;
-          else if (!vodDuLive(candidat, debutStream)) {
-            bilanChapitres.replisHorsSujet++;
-
-            const ecart = Math.round((Date.parse(candidat.createdAt) - debutStream) / 60_000);
-            if (Number.isFinite(ecart)) {
-              if (ecart < 0) bilanChapitres.replisTropTot++;
-              else bilanChapitres.replisTropTard++;
-              const b = bilanChapitres;
-              b.repliEcartMinMin = b.repliEcartMinMin === null
-                ? ecart : Math.min(b.repliEcartMinMin, ecart);
-              b.repliEcartMaxMin = b.repliEcartMaxMin === null
-                ? ecart : Math.max(b.repliEcartMaxMin, ecart);
-            }
-          } else {
-            vod = candidat;
-            bilanChapitres.replisServis++;
-          }
-        }
-      }
+      const vod = flux.archiveVideo;
 
       if (!vod) {
         bilanChapitres.sansVod++;
@@ -7491,11 +8329,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       return badge;
     };
 
+    const estDansLaBarre = (login) => {
+      const section = currentCard?.closest('.side-nav-section') || followedSection();
+      const c = section?.querySelector(`.side-nav-card[data-tse-login="${login}"]`);
+      return !!c && cardShown(c);
+    };
     const liveWithBadgeNoeud = (login, squadInfo, channelId) => {
       const mates = getGuestStarMates(login, channelId);
       if (mates.length) {
 
-        const noms = mates
+        const absents = mates.filter(m => !estDansLaBarre(m.login) && m.enLigne !== false);
+        if (!absents.length) return null;
+
+        const noms = absents
           .map(m => displayNameFor(m.login, m.name).trim())
           .filter(Boolean);
         if (!noms.length) return null;
@@ -7508,6 +8354,18 @@ const TSE_GATE_MAX_CLICKS = 5;
                           () => nomsEnGras([squadInfo.guest])));
       }
       return null;
+    };
+
+    const sessionOfflineBadgeNoeud = (login, channelId) => {
+      const muets = getGuestStarMates(login, channelId)
+        .filter(m => m.enLigne === false);
+      if (!muets.length) return null;
+      const noms = muets
+        .map(m => displayNameFor(m.login, m.name).trim())
+        .filter(Boolean);
+      if (!noms.length) return null;
+      return badgeNoeud('tse-preview__badge--muet',
+        phraseAvecFente(S.uiBadgeSessionOffline(FENTE), () => nomsEnGras(noms)));
     };
 
     const updateLiveWithBadge = (login, squadInfo, channelId) => {
@@ -7730,7 +8588,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       }
       const total = document.createElement('span');
       total.className = 'tse-preview__frise-total';
-      total.textContent = formatDuree(f.totalMs);
+
+      total.textContent = formatEcoule(f.totalMs);
       titre.appendChild(total);
       bloc.appendChild(titre);
 
@@ -7803,10 +8662,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       if (f.tronquee) {
         liste.appendChild(friseLigne(S.uiTrailTruncated, '', null, 'inconnu'));
       }
+
       for (const c of montrees) {
         liste.appendChild(friseLigne(
           c.libelle,
-          approche(formatDuree(c.dureeMs)) + (c.encours ? ` · ${S.uiTrailNow}` : ''),
+          approche((c.encours ? formatEcoule : formatDuree)(c.dureeMs))
+            + (c.encours ? ` · ${S.uiTrailNow}` : ''),
           couleurs.get(c.jeu),
           c.encours ? 'encours' : '',
           c.fois));
@@ -7930,15 +8791,25 @@ const TSE_GATE_MAX_CLICKS = 5;
       const moisAbo = subs.monthsFor(login);
       if (moisAbo > 0) {
         if (subs.isSub(login)) {
-          badges.push(badgeNoeud('tse-preview__badge--sub', S.uiBadgeSubMonths(moisAbo)));
+
+          const ech = subs.echeanceFor(login);
+          badges.push(badgeNoeud('tse-preview__badge--sub', S.uiBadgeSubMonths(moisAbo) + (ech
+            ? ' • ' + (ech.offert ? S.uiBadgeSubExpire(ech.jours) : S.uiBadgeSubAnniv(ech.jours))
+            : '')));
         } else if (subs.wasSub(login)) {
           badges.push(badgeNoeud('tse-preview__badge--exsub', S.uiBadgeExSubMonths(moisAbo)));
         }
       }
 
       let costreamBadge = costreamBadgeNoeud(costreamInfo);
-      if (!costreamBadge && costreamMates && costreamMates.length) {
-        const noms = costreamMates.map(l => displayNameFor(l));
+
+      let visibles = costreamMates && costreamMates.length ? [...costreamMates] : null;
+      if (!costreamBadge && !visibles) {
+        const dedans = getGuestStarMates(login).filter(m => estDansLaBarre(m.login));
+        if (dedans.length) visibles = dedans.map(m => m.login);
+      }
+      if (!costreamBadge && visibles && visibles.length) {
+        const noms = visibles.map(l => displayNameFor(l));
         costreamBadge = badgeNoeud('tse-preview__badge--costream',
           phraseAvecFente(S.uiBadgeCostreamWithNames(FENTE), () => nomsEnGras(noms)));
       }
@@ -7946,6 +8817,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       const liveWithBadge = liveWithBadgeNoeud(login, squadInfo);
       if (liveWithBadge) badges.push(liveWithBadge);
+
+      const muetsBadge = sessionOfflineBadgeNoeud(login);
+      if (muetsBadge) badges.push(muetsBadge);
 
       if (sponsorInfo) {
 
@@ -8207,10 +9081,13 @@ const TSE_GATE_MAX_CLICKS = 5;
             if (!trouve) return;
             majReprise(login);
             majFrise(login);
+
+            scheduleScan();
           })
           .catch((e) => erreurs.noter('reprise', (e && e.message) || e));
       }
-      if (flux?.id && !preludeDe(login) && friseACombler(login)) {
+
+      if (flux?.id && !chapitres.get(flux.id) && friseACombler(login)) {
 
         fetchChapitres(login, flux.id,
                        Date.parse(debutReel(login, flux.createdAt)) || 0)
@@ -8328,6 +9205,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     return {
       init,
 
+      majVerrouVoile: (enPlus, peutLever) => majVerrouVoile(enPlus, peutLever),
+      sonderOrigines: (logins) => vider(logins),
+
       closeIfDetached: () => {
 
         if (pendingCard && !pendingCard.isConnected) annulerAttente('detache');
@@ -8352,7 +9232,14 @@ const TSE_GATE_MAX_CLICKS = 5;
                                max: CFG.CHAPITRES_MAX,
 
                                reprise: { ...bilanSondes,
-                                          residentPasse: passeDirect.size } })
+                                          voile: { ...bilanSondes.voile },
+                                          croisiere: { ...bilanSondes.croisiere },
+
+                                          enFile: differeesEnAttente.size,
+                                          residentPasse: passeDirect.size,
+                                          residentVerdicts: verdicts.size } }),
+
+      oublierVerdicts: () => { verdicts.clear(); oublier(CFG.RECONNECT_PROBE_STORE_KEY, 'sondes'); }
     };
   })();
 
@@ -8379,7 +9266,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       liveLag.observe(card, stream);
 
-      card.dataset.tseStartedAt = stream.createdAt;
+      const loginCarte = card.dataset.tseLogin;
+      card.dataset.tseStartedAt =
+        (loginCarte && debutReel(loginCarte, stream.createdAt)) || stream.createdAt;
       card.dataset.tseOfflineHits = '0';
       delete card.dataset.tseOfflineTs;
 
@@ -8389,7 +9278,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       renderUptime(card, card.dataset.tseStartedAt);
       updateFreshness(card);
 
-      let montre = getCollabViewers(data.id);
+      let montre = getCollabViewers(data.id) ?? combineDuMembre(card.dataset.tseLogin);
       if (!Number.isFinite(montre)) {
         const login = card.dataset.tseLogin;
 
@@ -8457,6 +9346,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     applyCollabBadge(card);
+    appliquerDrapeauLangue(card);
     markExtraRows(card);
 
     const link = card.querySelector(DOM.cardLinkSelector);
@@ -9414,16 +10304,35 @@ const TSE_GATE_MAX_CLICKS = 5;
         const hostId = session?.host?.id ?? null;
 
         const raw = session
-          ? [session.host, ...(session.guests || []).map(g => g?.user)]
+          ? [{ u: session.host, sonde: false },
+             ...(session.guests || []).map(g => ({ u: g?.user, sonde: true }))]
           : [];
-        const seen = new Set();
-        const mates = [];
-        for (const u of raw) {
-          const login = u?.login?.toLowerCase();
-          if (!login || seen.has(login)) continue;
-          seen.add(login);
 
-          mates.push({ login, name: (u.displayName || '').trim() || null });
+        const seen = new Map();
+        const mates = [];
+        const combineDe = (u) => {
+          const v = u?.stream?.collaborationViewersCount;
+          return Number.isFinite(v) ? v : null;
+        };
+        for (const { u, sonde } of raw) {
+          const login = u?.login?.toLowerCase();
+          if (!login) continue;
+          const deja = seen.get(login);
+          if (deja) {
+
+            if (deja.combined === null) deja.combined = combineDe(u);
+            if (!deja.id && u.id) deja.id = u.id;
+
+            if (u?.stream) deja.enLigne = true;
+            else if (sonde && deja.enLigne === null) deja.enLigne = false;
+            continue;
+          }
+
+          const m = { login, name: (u.displayName || '').trim() || null,
+                      id: u.id || null, combined: combineDe(u),
+                      enLigne: sonde ? !!u?.stream : null };
+          seen.set(login, m);
+          mates.push(m);
         }
 
         let combined = null;
@@ -9457,6 +10366,7 @@ const TSE_GATE_MAX_CLICKS = 5;
           const combine = info && Number.isFinite(info.combined)
             ? info.combined : avant.combined;
           gsCache.set(id, { ...avant, combined: combine, vides, ts: now });
+          noterCombinesDeSession(gsCache.get(id));
           gsStats.gardees += 1;
           continue;
         }
@@ -9469,6 +10379,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         vides:    0,
         ts: now
       });
+      noterCombinesDeSession(gsCache.get(id));
     }
 
     const aCombiner = ids.some(id => Number.isFinite(gsCache.get(id)?.combined));
@@ -9479,7 +10390,14 @@ const TSE_GATE_MAX_CLICKS = 5;
         const v = gsCache.get(id)?.combined;
         if (!Number.isFinite(v)) continue;
         const login = parId.get(id);
-        if (login) globalChannels.setViewers(login, v);
+
+        if (login) globalChannels.setViewers(login, v, true);
+      }
+    }
+
+    for (const id of ids) {
+      for (const m of (gsCache.get(id)?.mates || [])) {
+        if (Number.isFinite(m.combined)) globalChannels.setViewers(m.login, m.combined, true);
       }
     }
     resolveGuestStarWaiters(ids);
@@ -9515,6 +10433,70 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!channelId) return null;
     const v = gsCache.get(channelId)?.combined;
     return Number.isFinite(v) ? v : null;
+  };
+
+  const combineDesMembres = new Map();
+
+  const sessionDesMembres = new Map();
+
+  const membresDeSession = new Map();
+  const noterCombinesDeSession = (entry) => {
+    if (!entry || !Array.isArray(entry.mates)) return;
+    const logins = entry.mates
+      .map(m => m?.login && String(m.login).toLowerCase())
+      .filter(Boolean);
+
+    const cle = logins.length >= 2
+      ? (typeof entry.hostId === 'string' && entry.hostId
+          ? 'gs:' + entry.hostId
+          : 'gs:' + [...logins].sort().join(','))
+      : null;
+    if (cle) {
+      membresDeSession.delete(cle);
+      membresDeSession.set(cle, { membres: entry.mates.slice(), ts: entry.ts });
+      while (membresDeSession.size > CFG.GUEST_STAR_MEMBERS_MAX) {
+        membresDeSession.delete(membresDeSession.keys().next().value);
+      }
+    }
+    for (const m of entry.mates) {
+      const l = m?.login && String(m.login).toLowerCase();
+      if (!l) continue;
+      if (cle) {
+        sessionDesMembres.delete(l);
+        sessionDesMembres.set(l, { cle, ts: entry.ts });
+        while (sessionDesMembres.size > CFG.GUEST_STAR_MEMBERS_MAX) {
+          sessionDesMembres.delete(sessionDesMembres.keys().next().value);
+        }
+      }
+      if (!Number.isFinite(m.combined)) continue;
+      combineDesMembres.delete(l);
+      combineDesMembres.set(l, { v: m.combined, ts: entry.ts });
+      while (combineDesMembres.size > CFG.GUEST_STAR_MEMBERS_MAX) {
+        combineDesMembres.delete(combineDesMembres.keys().next().value);
+      }
+    }
+  };
+
+  const INDEX_SESSION_MAX = CFG.GUEST_STAR_TTL + CFG.GUEST_STAR_ERROR_COOLDOWN;
+  const combineDuMembre = (login) => {
+    if (!login) return null;
+    const hit = combineDesMembres.get(String(login).toLowerCase());
+    if (!hit || Date.now() - hit.ts >= INDEX_SESSION_MAX) return null;
+    return hit.v;
+  };
+
+  const sessionDuMembre = (login) => {
+    if (!login) return null;
+    const hit = sessionDesMembres.get(String(login).toLowerCase());
+    if (!hit || Date.now() - hit.ts >= INDEX_SESSION_MAX) return null;
+    return hit.cle;
+  };
+
+  const membresDeLaSession = (cle) => {
+    if (!cle) return [];
+    const hit = membresDeSession.get(cle);
+    if (!hit || Date.now() - hit.ts >= INDEX_SESSION_MAX) return [];
+    return hit.membres;
   };
 
   const getGuestStarMates = (login, channelId) => {
@@ -9727,7 +10709,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
-                      horsClassement: 0, classesNonAffichees: 0, sousLaCoupe: 0,
+                      horsClassement: 0, horsClassementConnus: 0,
+                        classesNonAffichees: 0, sousLaCoupe: 0,
                         sousLaCoupeAvecCombine: 0 };
     const parLogin = new Map();
     for (const card of cards) {
@@ -9750,6 +10733,15 @@ const TSE_GATE_MAX_CLICKS = 5;
       else for (const l of membres) sessions.get(cle).add(l);
     }
     bilanCostream.sessions = sessions.size;
+
+    const membreCombine = new Map();
+    for (const card of cards) {
+      const l = card.dataset.tseLogin;
+      if (!l) continue;
+      for (const m of getGuestStarMates(l)) {
+        if (Number.isFinite(m.combined)) membreCombine.set(m.login, m.combined);
+      }
+    }
     for (const membres of sessions.values()) {
       bilanCostream.membres += membres.size;
       for (const l of membres) {
@@ -9759,12 +10751,16 @@ const TSE_GATE_MAX_CLICKS = 5;
         else if (globalChannels.estDansLeBase(l)) {
           bilanCostream.sousLaCoupe += 1;
 
-          const idm = getChannelId(l);
-          if (idm && Number.isFinite(getCollabViewers(idm))) {
-            bilanCostream.sousLaCoupeAvecCombine += 1;
+          const combineM = membreCombine.get(l);
+          if (Number.isFinite(combineM)) bilanCostream.sousLaCoupeAvecCombine += 1;
+        }
+        else {
+          bilanCostream.horsClassement += 1;
+
+          if (Number.isFinite(membreCombine.get(l))) {
+            bilanCostream.horsClassementConnus += 1;
           }
         }
-        else bilanCostream.horsClassement += 1;
       }
     }
 
@@ -9871,7 +10867,26 @@ const TSE_GATE_MAX_CLICKS = 5;
       });
     } else if (sortMode === 'viewers') {
 
-      sorted = [...cards].sort((a, b) => getCardViewers(b) - getCardViewers(a));
+      const audienceDuGroupe = new Map();
+      cards.forEach(card => {
+        const cle = card.dataset.tseCostreamKey;
+        if (!cle) return;
+        audienceDuGroupe.set(cle,
+          Math.max(audienceDuGroupe.get(cle) || 0, getCardViewers(card)));
+      });
+      const rangDe = (card) => {
+        const cle = card.dataset.tseCostreamKey;
+        return cle ? (audienceDuGroupe.get(cle) || 0) : getCardViewers(card);
+      };
+      sorted = [...cards].sort((a, b) => {
+        const d = rangDe(b) - rangDe(a);
+        if (d) return d;
+
+        const ka = a.dataset.tseCostreamKey || '';
+        const kb = b.dataset.tseCostreamKey || '';
+        if (ka !== kb) return ka < kb ? -1 : 1;
+        return getCardViewers(b) - getCardViewers(a);
+      });
     } else if (sortMode === 'costream') {
 
       const groupViewers = new Map();
@@ -10336,6 +11351,7 @@ const TSE_GATE_MAX_CLICKS = 5;
   };
 
   const scanSidebar = erreurs.garde('balayage', () => {
+    noterBalayage();
 
     refreshLanguage();
     refreshSidebarCollapsed();
@@ -10375,6 +11391,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (subsPage.enAttente()) {
       subsPage.notifySidebar(!!document.querySelector(DOM.followedCardSelector));
     }
+
+    const cartesSansDepart = [...cards].some(c =>
+      !isSynthetic(c) && c.dataset.tseLogin && !c.dataset.tseStartedAt
+      && c.dataset.tseOffline !== 'true');
+    preview.majVerrouVoile(cartesSansDepart, true);
     const nativeCount = [...cards].filter(c => !isSynthetic(c)).length;
     const stillGrowing = loadingOverlay.notifyScan(hadOfflineActivity, nativeCount);
 
@@ -10546,11 +11567,28 @@ const TSE_GATE_MAX_CLICKS = 5;
   }
 
   let healthWarned = false;
+  let healthSuite = 0;
+  let healthRecontrole = null;
   function runSelectorHealthCheck() {
     if (!document.querySelector(DOM.sidebarRoot)) return;
     if (document.body.classList.contains('tse-loading')) return;
     const report = runDiagnostics();
     const broken = hasCriticalBreakage(report);
+
+    if (!broken) {
+      healthSuite = 0;
+      if (healthRecontrole) { clearTimeout(healthRecontrole); healthRecontrole = null; }
+    } else {
+      healthSuite += 1;
+      if (healthSuite < CFG.HEALTH_CONFIRM) {
+        if (!healthRecontrole) {
+          healthRecontrole = setTimeout(() => {
+            healthRecontrole = null; runSelectorHealthCheck();
+          }, CFG.HEALTH_RECHECK);
+        }
+        return;
+      }
+    }
     if (broken && !healthWarned) {
       healthWarned = true;
 

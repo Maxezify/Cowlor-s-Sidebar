@@ -125,6 +125,9 @@
   "colSource": {
     "message": "Origen"
   },
+  "colDue": {
+    "message": "Vencimiento"
+  },
   "colLag": {
     "message": "Retraso"
   },
@@ -388,13 +391,13 @@
     "message": "Los comienzos y las vueltas"
   },
   "guideDebutTexte": {
-    "message": "Una barra morada aparece en el borde izquierdo de una tarjeta: ese directo empezó hace menos de diez minutos. Se apaga sola al cumplirse el décimo minuto.\n• Si el streamer pierde la conexión y vuelve antes de diez minutos, la barra morada no se enciende otra vez, pero su contador sí vuelve a cero.\n• En la vista previa, la duración mostrada sigue siendo la del directo entero, corte incluido, y una insignia avisa de lo que pasó."
+    "message": "Una barra morada aparece en el borde izquierdo de una tarjeta: ese directo empezó hace menos de diez minutos. Se apaga sola al cumplirse el décimo minuto.\n• Si el streamer pierde la conexión y vuelve antes de diez minutos, la barra morada no se enciende otra vez — y su contador tampoco vuelve a cero: sigue contando el directo entero, corte incluido.\n• La vista previa dice además cuántas veces se cortó y dibuja las interrupciones en la franja — y una insignia avisa de lo que pasó."
   },
   "guideAboTitre": {
     "message": "Tus suscripciones, en oro"
   },
   "guideAboTexte": {
-    "message": "Los canales a los que apoyas ya no se parecen a los demás: nombre dorado, categoría dorada, un anillo de oro alrededor del avatar y un reflejo lento sobre la tarjeta.\n• Aparece una insignia que dice desde cuándo.\n• Las tres formas de suscripción cuentan: pagada, regalada, móvil."
+    "message": "Los canales a los que apoyas ya no se parecen a los demás: nombre dorado, categoría dorada, un anillo de oro alrededor del avatar y un reflejo lento sobre la tarjeta.\n• Aparece una insignia que dice desde cuándo, y luego el próximo aniversario — o, en una suscripción regalada, el día en que termina.\n• Las tres formas de suscripción cuentan: pagada, regalada, móvil."
   },
   "guideTriTitre": {
     "message": "Ordenar y filtrar"

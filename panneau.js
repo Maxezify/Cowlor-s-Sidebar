@@ -46,6 +46,13 @@ const fmt = {
   },
   dureeSec: (s) => (Number.isFinite(s) ? fmt.duree(s * 1000) : '—'),
   oui: (v) => (v ? T('valYes') : T('valNo')),
+
+  jour: (v) => {
+    const d = new Date(v || NaN);
+    return Number.isFinite(d.getTime())
+      ? d.toLocaleDateString(LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '—';
+  },
 };
 
 const COL = {
@@ -58,6 +65,7 @@ const COL = {
   mois:      { cle: 'colMonths',    f: fmt.nombre, num: true },
   ancien:    { cle: 'colFormer',    f: fmt.oui },
   origine:   { cle: 'colSource',    f: fmt.texte, classe: () => 'faible' },
+  echeance:  { cle: 'colDue',       f: fmt.jour },
   lag:       { cle: 'colLag',       f: fmt.duree, num: true },
   gain:      { cle: 'colGain',      f: fmt.duree, num: true },
   t:         { cle: 'colElapsed',   f: fmt.duree, num: true },
@@ -1123,13 +1131,16 @@ const construireRapport = (r, transport, fond) => {
   ]));
 
   const obs = transport.observations;
+
+  const parCadre = (transport.trace || []).some(t => t.voie === 'cadre');
   L.push(...bloc('DIAGNOSTIC HORS PAGE / OFF-PAGE DIAGNOSTIC', [
     paire('worker — ponts', fond?.ok ? (fond.ponts.join(', ') || 'aucun / none')
                                      : `injoignable (${fond?.erreur || '—'})`),
     ...(fond?.ok ? [paire('worker — âge', `${fond.workerMs} ms`),
                     paire('worker — en vol', fond.enVol)] : []),
     paire('essais / attempts', (transport.trace || [])
-      .map(t => `#${t.essai} ${t.erreur} (${t.ms} ms)`).join('  →  ') || '—'),
+      .map(t => `#${t.essai} ${t.erreur} (${t.ms} ms${t.voie ? ', ' + t.voie : ''})`)
+      .join('  →  ') || '—'),
 
     ...(obs ? [
       paire('page — jalon / marker', obs.marque || 'ABSENT'),
@@ -1138,8 +1149,9 @@ const construireRapport = (r, transport, fond) => {
       paire('page — cachée / hidden', obs.cachee),
       paire('pont / bridge', `${obs.pont}, ${obs.reprises} reprise(s)`),
       paire('page — âge / age', `${obs.pageMs} ms`),
-    ] : [paire('observations du pont',
-               'aucune — le pont lui-même n\'a rien rendu / bridge silent')]),
+    ] : [paire('observations du pont', parCadre
+      ? 'sans objet — panneau incrusté, la page répond sans le pont / n/a — embedded panel, no bridge on the path'
+      : 'aucune — le pont lui-même n\'a rien rendu / bridge silent')]),
     ...(transport.partiel ? [
       paire('page — étape / stage', transport.partiel.etape),
       paire('page — depuis / since', `${transport.partiel.depuisMs} ms`),
@@ -1183,11 +1195,25 @@ const construireRapport = (r, transport, fond) => {
     paire('rangé derrière un autre onglet / stood down',
           r.relevesAbonnements?.differes ?? 0),
 
+    paire('relevés vides d\'affilée / empty sweeps in a row',
+          r.relevesAbonnements?.videsDeSuite ?? 0),
+    paire('prochain relevé dans / next sweep in',
+          Number.isFinite(r.relevesAbonnements?.prochainDansMs)
+            ? `${Math.round(r.relevesAbonnements.prochainDansMs / 60_000)} min` : '—'),
+
+    paire('bascule abandonnée / tab switch dropped',
+          r.relevesAbonnements?.bascule || 'non / no'),
+
     ...((r.relevesAbonnements?.onglets || []).map((o) => paire(
       `onglet ${o.onglet}`,
-      `${o.charge ? 'affiché' : 'jamais chargé'} · ${o.noeuds} nœuds`
+      `${o.voie || 'page'}${o.preuve ? ` (${o.preuve})` : ''}`
+      + ` · ${o.charge ? 'affiché' : 'jamais chargé'} · ${o.noeuds} nœuds`
       + ` · barre ${o.barre ? 'oui' : 'non'} · ${o.cartes} carte(s)`
       + ` · ${o.logins} chaîne(s)`
+
+      + (Number.isFinite(o.echeances) && o.logins ? ` · ${o.echeances}/${o.logins} échéance(s) lue(s)` : '')
+      + (o.liens ? ` · ${o.liens} lien(s) de chaîne hors carte` : '')
+      + (o.blanc ? ' · rien sous les onglets' : '')
       + (o.texte ? ` · la page dit : « ${o.texte} »` : '')))),
   ]));
   L.push(...bloc('RÉSEAU / NETWORK', [
