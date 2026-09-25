@@ -125,6 +125,9 @@
   "colSource": {
     "message": "Origem"
   },
+  "colDue": {
+    "message": "Vencimento"
+  },
   "colLag": {
     "message": "Atraso"
   },
@@ -388,13 +391,13 @@
     "message": "Os começos e os regressos"
   },
   "guideDebutTexte": {
-    "message": "Uma barra roxa aparece na margem esquerda de um cartão: essa transmissão começou há menos de dez minutos. Apaga-se sozinha ao fim do décimo minuto.\n• Se o streamer perder a ligação e voltar em menos de dez minutos, a barra roxa não se acende outra vez, mas o contador dele recomeça do zero.\n• Na pré-visualização, a duração mostrada continua a ser a da transmissão inteira, queda incluída, e um emblema avisa o que aconteceu."
+    "message": "Uma barra roxa aparece na margem esquerda de um cartão: essa transmissão começou há menos de dez minutos. Apaga-se sozinha ao fim do décimo minuto.\n• Se o streamer perder a ligação e voltar em menos de dez minutos, a barra roxa não se acende outra vez — e o contador dele não recomeça do zero: continua a contar a transmissão inteira, queda incluída.\n• A pré-visualização diz ainda quantas vezes caiu e desenha as quedas na faixa — e um emblema avisa o que aconteceu."
   },
   "guideAboTitre": {
     "message": "As suas inscrições, a ouro"
   },
   "guideAboTexte": {
-    "message": "Os canais que apoia já não se parecem com os outros: nome dourado, categoria dourada, um anel de ouro à volta do avatar e um reflexo lento sobre o cartão.\n• Aparece um emblema que diz desde quando.\n• As três formas de inscrição contam: paga, oferecida, móvel."
+    "message": "Os canais que apoia já não se parecem com os outros: nome dourado, categoria dourada, um anel de ouro à volta do avatar e um reflexo lento sobre o cartão.\n• Aparece um emblema que diz desde quando, e depois o próximo aniversário — ou, numa subscrição oferecida, o dia em que termina.\n• As três formas de inscrição contam: paga, oferecida, móvel."
   },
   "guideTriTitre": {
     "message": "Ordenar e filtrar"
