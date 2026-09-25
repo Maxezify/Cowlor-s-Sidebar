@@ -2178,6 +2178,77 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'or en clair, et l'avatar que personne ne posait (v4.21.1)
+
+> « Sur Firefox prod, l'effet CSS côté abonnement quand la sidebar est claire
+> est très bizarre. […] Vérifie si c'est aussi le cas sur Chrome. »
+>
+> « Certains avatars ne s'affichent pas. Investigue en profondeur. »
+
+Deux captures, deux défauts, tous deux présents **sur Chrome comme sur
+Firefox**.
+
+### L'or du clair peignait des pavés
+
+En thème clair, le pseudo et la catégorie d'une chaîne abonnée devenaient deux
+**rectangles bruns**. Reproduit sous Chromium au pixel près : Chrome était
+touché aussi, et depuis la **4.11.0** qui a écrit ces règles.
+
+`background:` est un **raccourci** : il ne pose pas que l'image, il remet aussi
+à leur valeur initiale tout ce qu'il ne nomme pas — dont `background-clip`, qui
+repasse à `border-box`. Les deux règles du clair l'employaient, et elles
+l'emportent sur celles du sombre (le sélecteur `html[…]` pèse plus). La découpe
+au texte était donc effacée : le dégradé remplissait toute la boîte, et le
+remplissage des lettres, lui, restait transparent.
+
+Seule l'image change entre les thèmes ; les règles du clair ne posent donc plus
+qu'elle (`background-image`). Découpe, taille et position animée restent
+celles du sombre.
+
+**Pourquoi le banc ne l'avait pas vu.** Le scénario 115 lit les **couleurs**
+du dégradé, et elles étaient bonnes. Il lit désormais aussi la **découpe
+calculée**, dans les trois modes (sombre, clair de Twitch, clair forcé).
+
+### Le membre complété n'avait pas d'avatar
+
+Dans « Top Chaînes », deux cartes montraient à la place de l'avatar le
+**début de leur pseudo** — « Snu », « Low4 » : le texte de remplacement d'une
+image sans source.
+
+Les deux étaient des **membres de co-stream complétés** par la session
+(4.18.1) : le répertoire ne les rend pas, et l'enregistrement fabriqué pour eux
+n'a donc pas d'avatar. La 4.18.1 écrivait que l'avatar « arrive par la voie
+ordinaire dès que la carte existe ». La voie ordinaire l'apportait bien —
+`TseChannels` demande `profileImageURL` pour chaque carte et le range au cache
+— mais **personne ne le posait** : une carte ne recevait son image qu'une fois,
+à sa fabrication, et gardait son trou jusqu'à sa sortie du classement.
+
+- **Dès que l'avatar est connu, il se pose** sur la carte fabriquée qui n'en a
+  pas, et son texte de remplacement revient avec lui.
+- **En attendant, pas de pseudo tronqué** : un disque vide le temps d'une
+  réponse, plutôt qu'un texte qui se lit comme une erreur.
+- **Une carte qui a déjà son image la garde.** Le répertoire et `TseChannels`
+  ne donnent pas forcément la même adresse ; les laisser se relayer ferait
+  recharger l'image à chaque passe.
+- **Les cartes de Twitch ne sont jamais touchées.**
+
+### Ce que le banc mesure
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le raccourci `background:` remis dans la règle claire du pseudo | la découpe, en clair donné **et** en clair forcé — le sombre reste vert |
+| le même, dans la règle claire de la catégorie | la découpe de la catégorie, dans les deux clairs |
+| la réparation retirée | la carte du membre garde `src: null` : la capture, à l'identique |
+| le pseudo laissé en texte de remplacement | `alt: "luka"` là où l'avatar manque |
+| la réparation posée même sur une image présente | les cartes du répertoire passent de `rep-…` à `api-…` : une image rechargée |
+| la garde « carte fabriquée » retirée | la carte de Twitch reçoit une source que Twitch ne lui a pas donnée |
+
+Six mutants, six pris.
+
+Le scénario 165 est neuf ; le 115 lit la découpe. Le décor gagne un levier :
+`__avatarRepertoire` fait servir au répertoire une autre adresse d'avatar que
+`TseChannels`, pour voir une carte hésiter entre les deux.
+
 ## Les deux rapports de la 4.20.0, pris au mot (v4.21.0)
 
 > « Fais toutes les propositions, soit rigoureux. »
@@ -10899,7 +10970,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 164 scénarios, 1363 assertions |
+| `npm test` | le harnais Playwright : 165 scénarios, 1369 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -10920,7 +10991,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1247 Ko | 449 Ko | 3 540 → **2** |
+| `content.js` | 1247 Ko | 449 Ko | 3 542 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 101 Ko | 48 Ko | 139 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

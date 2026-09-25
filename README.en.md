@@ -2057,6 +2057,74 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The light-theme gold, and the avatar nobody set (v4.21.1)
+
+> "On Firefox prod, the subscription CSS effect when the sidebar is light is
+> very odd. […] Check whether it is the case on Chrome too."
+>
+> "Some avatars don't show. Investigate in depth."
+
+Two screenshots, two defects, both present **on Chrome as on Firefox**.
+
+### The light-theme gold painted blocks
+
+In the light theme, a subscribed channel's name and category turned into two
+**brown rectangles**. Reproduced under Chromium to the pixel: Chrome was
+affected too, and has been since **4.11.0**, which wrote these rules.
+
+`background:` is a **shorthand**: it does not only set the image, it also resets
+everything it does not name to its initial value — including
+`background-clip`, which falls back to `border-box`. Both light-theme rules
+used it, and they win over the dark ones (the `html[…]` selector weighs more).
+The clip-to-text was therefore wiped: the gradient filled the whole box, while
+the letters' fill stayed transparent.
+
+Only the image changes between themes; the light rules now set only that
+(`background-image`). Clip, size and animated position stay the dark ones.
+
+**Why the bench had not seen it.** Scenario 115 read the gradient's
+**colours**, and they were right. It now also reads the **computed clip**, in
+all three modes (dark, Twitch's light, forced light).
+
+### The completed member had no avatar
+
+In "Top Channels", two cards showed, in place of the avatar, **the start of
+their name** — "Snu", "Low4": the alternative text of an image with no source.
+
+Both were **co-stream members completed** from the session (4.18.1): the
+directory does not return them, so the record made for them has no avatar.
+4.18.1 wrote that the avatar "arrives the ordinary way as soon as the card
+exists". The ordinary way did bring it — `TseChannels` asks `profileImageURL`
+for every card and stores it in the cache — but **nobody set it**: a card only
+received its image once, when it was made, and kept the hole until it left the
+ranking.
+
+- **As soon as the avatar is known, it is set** on a made card that lacks one,
+  and its alternative text comes back with it.
+- **Meanwhile, no truncated name**: an empty disc for the length of one
+  answer, rather than text that reads as an error.
+- **A card that already has its image keeps it.** The directory and
+  `TseChannels` do not necessarily give the same address; letting them take
+  turns would reload the image at every pass.
+- **Twitch's own cards are never touched.**
+
+### What the bench measures
+
+| mutant | what fails |
+| --- | --- |
+| the `background:` shorthand put back in the light name rule | the clip, in Twitch's light **and** forced light — dark stays green |
+| the same, in the light category rule | the category's clip, in both light modes |
+| the repair removed | the member's card keeps `src: null`: the screenshot, exactly |
+| the name left as alternative text | `alt: "luka"` where the avatar is missing |
+| the repair applied even over a present image | directory cards switch from `rep-…` to `api-…`: a reloaded image |
+| the "made card" guard removed | Twitch's card gets a source Twitch did not give it |
+
+Six mutants, six caught.
+
+Scenario 165 is new; 115 reads the clip. The harness gains a lever:
+`__avatarRepertoire` makes the directory serve another avatar address than
+`TseChannels`, to see a card waver between the two.
+
 ## The two 4.20.0 reports, taken at their word (v4.21.0)
 
 > "Do all the proposals, be rigorous."
@@ -10503,7 +10571,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 164 scenarios, 1363 assertions |
+| `npm test` | the Playwright harness: 165 scenarios, 1369 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -10523,7 +10591,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1247 KB | 449 KB | 3,540 → **2** |
+| `content.js` | 1247 KB | 449 KB | 3,542 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 101 KB | 48 KB | 139 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
