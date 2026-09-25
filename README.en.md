@@ -326,9 +326,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1247 KB | 449 KB | 3,542 → **2** |
+| `content.js` | 1247 KB | 449 KB | 3,550 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 101 KB | 48 KB | 139 → **0** |
+| `panneau.js` | 101 KB | 48 KB | 140 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1497 KB** | **604 KB** | **−59 %** |
@@ -2481,6 +2481,187 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The sponsored card, on an ordinary card's measurements (v4.21.3)
+
+> "It's better but not perfect. It has to be an ordinary card."
+
+4.21.2 had put the pieces in the right columns. Measured to the pixel on the
+second screenshot, three gaps remained against the neighbouring cards:
+
+| | ordinary card | sponsored card |
+| --- | --- | --- |
+| name's left edge | 50 px | 44 px |
+| avatar's left edge | 12 px | 9 px |
+| name to category | 17 px | 24 px |
+| row height | ~47 px | ~95 px |
+
+The text size was the same — twelve-pixel glyphs on both sides. Twitch dresses
+the sponsored card in **its own margins**: on the link, on its wrappers, on its
+texts' line height. Those values live in its stylesheet, which cannot be read
+from here.
+
+### Not copied from memory: measured
+
+At every sweep with a sponsored card to lay out, the extension takes an
+**ordinary card from the same list** and measures it: link height, avatar
+position and size, name, category and count positions relative to the link,
+gap between text and count, and the font, weight, line height, spacing and
+colour of both lines. These values are set as variables on the sponsored card,
+whose link and wrappers lose their margins: it becomes an ordinary card **by
+construction**, whatever Twitch's values are that day.
+
+The measured card is the first one that is **nothing but** ordinary: live,
+visible, with a category, without co-stream, badge or extra row, and not
+subscribed — its name is gold. Measuring a decorated one would copy its
+decoration. A subathon card, however, will do: its 14 px badge fits within the
+line height, and the bench uses it as the template without a pixel of
+difference. With no ordinary card on screen, the 4.21.2 grid stays.
+
+The template touches neither a subscriber's gold — its selector remains
+heavier, a subscribed and sponsored channel keeps its gold — nor the collapsed
+sidebar.
+
+### Two things the bench found
+
+**Three pixels.** Both text lines are `overflow: hidden` for their ellipsis,
+which brings their minimum size down to zero: in a fixed-height grid, a
+flexible row squeezed them to **three pixels** each, and the category rode up
+over the name. The text rows are therefore sized to their content
+(`max-content`).
+
+**A leaking margin.** A margin on a wrapper, under a link with no padding,
+moves nothing inside the card: it **collapses** through the link and pushes
+the card away from the one above. Measuring the card cannot see it; the bench
+therefore also measures the row, from the previous card to the next.
+
+### What the report now says
+
+The `CARTES SPONSORISÉES` block counts the cards under `gabarits`, and
+`ecartNomPx` / `ecartHauteurPx` must read **0** there. That is the measurement,
+on the real Twitch, of what the bench can only model.
+
+### What the bench measures
+
+| mutants | what fails |
+| --- | --- |
+| the link: its height, `min-height`, padding, border (4) | the card takes back a height or frame that is not a row's |
+| the wrappers: their height, padding, margin, or their very naming (4) | an offset inside the card — or, for the margin, the row pushed away from the one above |
+| the grid: `box-sizing`, height, margin, padding, column gap, alignment, `auto` rows (7) | a piece out of place; `auto` rows squeeze the text to 3 px |
+| the avatar: width, height, margin (3) | the avatar at Twitch's size or height |
+| the name: margin, font, size, weight, line height, spacing, colour (7) | the sponsored card's typography |
+| the category: the same (7) | same |
+| the count: its margins | the count off its line |
+| the single row without a category | the name at the top of the avatar |
+| the template never measured | the second screenshot, in full |
+| the reference accepts a co-stream, a subscribed card, a card without category (3) | three lines measured, the gold copied, and a category-less reference that interrupts the bench |
+| the variables never removed | a card no longer sponsored keeps the template |
+| the report does not count templates | `gabarits 0` where two are set |
+
+Forty mutants, forty caught.
+
+Scenario 166 is reworked in two stages: without an ordinary card (the fallback
+grid, and the report recognising the first screenshot), then with an ordinary
+card modelled after Twitch's, preceded by four decorated cards the template
+must skip. The sponsored card must match it to within a pixel. The sponsored
+card's model carries its own margins, at every level, and its own typography:
+every declaration of the template therefore has something to be caught on.
+
+## The sponsored card, laid out by its pieces (v4.21.2)
+
+> "There's a big bug in the sidebar. I think it's the sponsor, Nivea. The card
+> has to be perfect."
+
+A "Sponsored • <brand>" card, in a co-stream on top of that, displayed as
+**two storeys and three columns, the last one empty**: avatar and count side
+by side, the name to their right, the category alone underneath.
+
+### What the real DOM said
+
+The report counted one live card with neither of Twitch's two metadata boxes,
+and no recognised name (`groupe 38`, `boite 38`, `sansNom 1` out of 39). The
+markup read from the card, with and without the extension, gave the rest:
+
+```
+a.side-nav-card__link--promoted-followed
+  div
+    div.…__gradient
+    div                      ← grid container
+      div                    ← avatar + count
+        div                  ← avatar × brand logo
+        div.side-nav-card__live-status
+      div.…__title > p
+      div.…__content > p
+      div.…__sponsorship
+```
+
+The previous rules — written at the very first import, and never exercised:
+the bench had **no** sponsored card — went down level by level and flattened
+each wrapper with `display: contents`. They matched this DOM **level for
+level**, and lost anyway. Replayed on the bench against this exact markup,
+they produced a **correct** card: the only explanation consistent with the
+screenshot is an `!important` declaration on Twitch's side on the avatar +
+count block, which a `contents` without `!important` cannot beat, whatever its
+specificity. That block stayed a single grid item, placed in column 1.
+
+### What changes
+
+- **The name is found**: `cardNameEl` knows the sponsored card's title block.
+  A subscriber's gold, a subathon's badge and another language's flag now
+  reach it.
+- **The card is laid out by its four pieces**, found by the functions that
+  find them everywhere else (`avatarOf`, `cardNameEl`, `cardCategoryEl`,
+  `liveStatusOf`). The JS derives their common container, which becomes the
+  grid, and marks the wrappers in between; the CSS only knows these marks,
+  with `!important`. Neither the number of wrappers nor their hashed classes
+  matter any more.
+- **Without a category**, the name centres on the avatar, as on an ordinary
+  card.
+- **What is no longer a sponsored card goes back to Twitch**: collapsed
+  sidebar, missing piece, sponsorship over.
+- The advertising decoration stays hidden by the rules that name it, and the
+  preview still says "Sponsored by <brand>".
+
+### A block in the report
+
+`CARTES SPONSORISÉES / SPONSORED CARDS` says what the **real** page made of
+it, since Twitch's stylesheet is only exercised here through a model:
+`aplatis` against `plats` (does our `!important` win?),
+`categorieSousAvatar` (the screenshot's exact symptom), `ecartNomPx` and
+`ecartHauteurPx` (the card against the median ordinary card: zero means a card
+like the others), and a `squelette` — tags and stable classes of the first
+card, without a word of text or an address.
+
+### What I could not verify
+
+Twitch's stylesheet cannot be read from the repository: the `!important` is
+**inferred** — it is the only cause that makes the previous rules wrong on this
+DOM — and the bench **models** it. The next report will settle it: `aplatis`
+equal to `plats` and `categorieSousAvatar 0`. The grid itself also carries
+`!important`, as a precaution: the screenshot shows the previous grid did
+apply, and no scenario tells this choice apart.
+
+### What the bench measures
+
+| mutant | what fails |
+| --- | --- |
+| `cardNameEl` forgets the sponsored card | no name, nothing laid out — six assertions |
+| flattening without `!important` | **the screenshot**: the name pushed to 71 px by the avatar + count block; the report says `aplatis 3` of `plats 7` |
+| no wrapper flattened | the same screenshot, and the report at `plats 0` |
+| the count without a column | it leaves the right edge |
+| no single row without a category | the name stays stuck at the top of the avatar |
+| the "collapsed sidebar" guard removed | the grid unfolds what Twitch folds |
+| the grid never undone | a grid with a hole, then an ordinary card's grid |
+| the report counts every wrapper as flattened | it no longer recognises the screenshot |
+| the report never counts the symptom | same |
+| the block removed from the panel | it never reaches the text that is sent |
+| the grid without `!important` | **survives** — expected, see above |
+
+Eleven mutants, ten caught; the eleventh is the choice nothing tells apart.
+
+Scenario 166 is new, on the recorded markup (invented names); 70 renders the
+block in the report. The harness gains `__addPromotedCard` and the sponsored
+card's native layout.
 
 ## The light-theme gold, and the avatar nobody set (v4.21.1)
 
@@ -10995,7 +11176,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 165 scenarios, 1369 assertions |
+| `npm test` | the Playwright harness: 166 scenarios, 1386 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

@@ -338,9 +338,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1247 Ko | 449 Ko | 3 542 → **2** |
+| `content.js` | 1247 Ko | 449 Ko | 3 550 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 101 Ko | 48 Ko | 139 → **0** |
+| `panneau.js` | 101 Ko | 48 Ko | 140 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1497 Ko** | **604 Ko** | **−59 %** |
@@ -2616,6 +2616,192 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La carte sponsorisée, sur les mesures d'une carte ordinaire (v4.21.3)
+
+> « C'est mieux mais pas parfait. Il faut que ça soit une carte ordinaire. »
+
+La 4.21.2 avait mis les pièces dans les bonnes colonnes. Mesuré au pixel sur
+la seconde capture, il restait trois écarts avec les cartes voisines :
+
+| | carte ordinaire | carte sponsorisée |
+| --- | --- | --- |
+| bord gauche du pseudo | 50 px | 44 px |
+| bord gauche de l'avatar | 12 px | 9 px |
+| du pseudo à la catégorie | 17 px | 24 px |
+| hauteur de la rangée | ~47 px | ~95 px |
+
+La taille du texte, elle, était la même — des glyphes de douze pixels de
+part et d'autre. Twitch habille la carte sponsorisée de ses **propres
+marges** : sur le lien, sur ses enrobages, sur l'interligne de ses textes. Ces
+valeurs vivent dans sa feuille de style, qu'on ne peut pas lire d'ici.
+
+### On ne les recopie pas de mémoire : on les mesure
+
+À chaque balayage où une carte sponsorisée est à ranger, l'extension prend
+une **carte ordinaire de la même liste** et la mesure : hauteur du lien,
+position et taille de l'avatar, position du pseudo, de la catégorie et du
+compteur par rapport au lien, écart entre le texte et le compteur, et la
+police, la graisse, l'interligne, l'espacement et la couleur des deux lignes.
+Ces valeurs sont posées en variables sur la carte sponsorisée, dont le lien et
+les enrobages perdent leurs marges : elle devient une carte ordinaire **par
+construction**, quelles que soient les valeurs de Twitch ce jour-là.
+
+La carte mesurée est la première qui ne soit **rien d'autre** qu'ordinaire :
+en direct, visible, avec une catégorie, sans co-stream ni badge ni ligne
+annexe, et non abonnée — son pseudo est en or. En mesurer une décorée
+reviendrait à copier sa décoration. Une carte en subathon, elle, convient : sa
+pastille, haute de 14 px, tient dans l'interligne, et le banc la prend pour
+gabarit sans un pixel d'écart. Sans carte ordinaire à l'écran, la grille de la
+4.21.2 reste en place.
+
+Le gabarit ne touche ni l'or d'un abonné — son sélecteur reste plus lourd, une
+chaîne abonnée et sponsorisée garde son or — ni la sidebar réduite.
+
+### Deux choses que le banc a trouvées
+
+**Trois pixels.** Les deux lignes de texte sont en `overflow: hidden` pour
+leur ellipse, ce qui ramène leur taille minimale à zéro : dans une grille de
+hauteur fixe, une rangée flexible les écrasait à **trois pixels** chacune, et
+la catégorie remontait sur le pseudo. Les rangées du texte sont donc à leur
+taille de contenu (`max-content`).
+
+**Une marge qui fuit.** Une marge posée sur un enrobage, sous un lien sans
+rembourrage, ne déplace rien dans la carte : elle **fusionne** à travers le
+lien et écarte la carte de sa voisine du dessus. Mesurer la carte ne le voit
+pas ; le banc mesure donc aussi la rangée, de la carte précédente à la
+suivante.
+
+### Ce que le rapport dit désormais
+
+Le bloc `CARTES SPONSORISÉES` compte les cartes sous `gabarits`, et
+`ecartNomPx` / `ecartHauteurPx` doivent y valoir **0**. C'est la mesure sur le
+vrai Twitch de ce que le banc ne peut que modéliser.
+
+### Ce que le banc mesure
+
+| mutants | ce qui tombe |
+| --- | --- |
+| le lien : sa hauteur, son `min-height`, son rembourrage, sa bordure (4) | la carte reprend une hauteur ou un cadre qui ne sont pas ceux d'une rangée |
+| les enrobages : leur hauteur, leur rembourrage, leur marge, ou leur nom même (4) | un décalage dans la carte — ou, pour la marge, la rangée qui s'écarte de sa voisine du dessus |
+| la grille : `box-sizing`, hauteur, marge, rembourrage, écart de colonnes, alignement, rangées `auto` (7) | une pièce hors de sa place ; les rangées `auto` écrasent le texte à 3 px |
+| l'avatar : largeur, hauteur, marge (3) | l'avatar à la taille ou à la hauteur de Twitch |
+| le pseudo : marge, police, taille, graisse, interligne, espacement, couleur (7) | la typographie de la carte sponsorisée |
+| la catégorie : les mêmes (7) | idem |
+| le compteur : ses marges | le compteur hors de sa ligne |
+| la rangée unique sans catégorie | le pseudo en haut de l'avatar |
+| le gabarit jamais mesuré | la seconde capture, entière |
+| la référence accepte un co-stream, une abonnée, une carte sans catégorie (3) | trois lignes mesurées, l'or copié, et une référence sans catégorie qui interrompt le banc |
+| les variables jamais retirées | une carte qui n'est plus sponsorisée garde le gabarit |
+| le rapport ne compte pas les gabarits | `gabarits 0` là où deux sont posés |
+
+Quarante mutants, quarante pris.
+
+Le scénario 166 est repris en deux temps : sans carte ordinaire (la grille de
+repli, et le rapport qui reconnaît la première capture), puis avec une carte
+ordinaire modélisée à la manière de Twitch, précédée de quatre cartes
+décorées que le gabarit doit passer. La carte sponsorisée doit lui être
+identique au pixel près. Le modèle de la carte sponsorisée porte ses propres
+marges, à chaque étage, et sa propre typographie : chaque déclaration du
+gabarit a donc de quoi être prise en défaut.
+
+## La carte sponsorisée, rangée par ses pièces (v4.21.2)
+
+> « Il y a un gros bug sur la sidebar. Je pense que c'est le sponsor qui bug,
+> Nivea. Il faut que la carte soit parfaite. »
+
+Une carte « Sponsorisé • <marque> », en co-stream de surcroît, s'affichait en
+**deux étages et trois colonnes dont la dernière vide** : l'avatar et le
+compteur côte à côte, le pseudo à leur droite, la catégorie seule en dessous.
+
+### Ce que le DOM réel a dit
+
+Le rapport comptait une carte en direct sans aucune des deux boîtes de
+métadonnées de Twitch, et sans pseudo reconnu (`groupe 38`, `boite 38`,
+`sansNom 1` sur 39). Le balisage relevé sur la carte, avec et sans
+l'extension, a donné le reste :
+
+```
+a.side-nav-card__link--promoted-followed
+  div
+    div.…__gradient
+    div                      ← conteneur de la grille
+      div                    ← avatar + compteur
+        div                  ← avatar × logo de la marque
+        div.side-nav-card__live-status
+      div.…__title > p
+      div.…__content > p
+      div.…__sponsorship
+```
+
+Les règles d'avant — écrites au tout premier import, et jamais éprouvées : le
+banc n'avait **aucune** carte sponsorisée — descendaient par étages et
+aplatissaient chaque enrobage d'un `display: contents`. Elles correspondaient
+à ce DOM **niveau pour niveau**, et perdaient quand même. Rejouées au banc sur
+ce balisage exact, elles rendaient une carte **juste** : la seule explication
+compatible avec la capture est une déclaration `!important` côté Twitch sur le
+bloc avatar + compteur, qu'un `contents` sans `!important` ne bat pas, quelle
+que soit sa spécificité. Ce bloc restait un seul élément de grille, casé en
+colonne 1.
+
+### Ce qui change
+
+- **Le pseudo est trouvé** : `cardNameEl` connaît le bloc de titre de la carte
+  sponsorisée. L'or d'un abonné, la pastille d'un subathon et le drapeau d'une
+  autre langue l'atteignent désormais.
+- **La carte se range par ses quatre pièces**, trouvées par les fonctions qui
+  les trouvent partout ailleurs (`avatarOf`, `cardNameEl`, `cardCategoryEl`,
+  `liveStatusOf`). Le JS en déduit leur conteneur commun, qui devient la
+  grille, et marque les enrobages entre les deux ; le CSS ne connaît que ces
+  marques, en `!important`. Ni le nombre d'enrobages ni leurs classes hachées
+  n'y entrent plus.
+- **Sans catégorie**, le pseudo se centre sur l'avatar, comme sur une carte
+  ordinaire.
+- **Ce qui n'est plus une carte sponsorisée redevient celle de Twitch** :
+  sidebar réduite, pièce manquante, sponsorisation terminée.
+- Le décor publicitaire reste masqué par les règles qui le nomment, et
+  l'aperçu dit toujours « Sponsorisé par <marque> ».
+
+### Un bloc au rapport
+
+`CARTES SPONSORISÉES / SPONSORED CARDS` dit ce que la **vraie** page en a
+fait, puisque la feuille de Twitch n'est éprouvée ici que par un modèle :
+`aplatis` contre `plats` (notre `!important` gagne-t-il ?),
+`categorieSousAvatar` (le symptôme exact de la capture), `ecartNomPx` et
+`ecartHauteurPx` (la carte contre la médiane des cartes ordinaires : zéro,
+c'est une carte comme les autres), et un `squelette` — balises et classes
+stables de la première carte, sans un mot de texte ni une adresse.
+
+### Ce que je n'ai pas pu vérifier
+
+La feuille de Twitch n'est pas lisible depuis le dépôt : le `!important` est
+**déduit** — c'est la seule cause qui rende les règles d'avant fausses sur ce
+DOM — et le banc le **modélise**. Le prochain rapport le tranchera :
+`aplatis` égal à `plats` et `categorieSousAvatar 0`. La grille elle-même porte
+aussi `!important`, par précaution : la capture montre que la grille d'avant
+s'appliquait, et aucun scénario ne départage ce choix.
+
+### Ce que le banc mesure
+
+| mutant | ce qui tombe |
+| --- | --- |
+| `cardNameEl` oublie la carte sponsorisée | pas de pseudo, rien ne se range — six assertions |
+| l'aplatissement sans `!important` | **la capture** : le pseudo poussé à 71 px par le bloc avatar + compteur ; le rapport dit `aplatis 3` sur `plats 7` |
+| aucun enrobage aplati | la même capture, et le rapport à `plats 0` |
+| le compteur sans colonne | il quitte le bord droit |
+| pas de rangée unique sans catégorie | le pseudo reste collé en haut de l'avatar |
+| la garde « sidebar réduite » retirée | la grille déplie ce que Twitch replie |
+| la grille jamais défaite | une grille à trou, puis celle d'une carte ordinaire |
+| le rapport compte tout enrobage comme aplati | il ne reconnaît plus la capture |
+| le rapport ne compte jamais le symptôme | idem |
+| le bloc retiré du panneau | il n'arrive jamais au texte envoyé |
+| la grille sans `!important` | **survit** — attendu, cf. ci-dessus |
+
+Onze mutants, dix pris ; le onzième est le choix que rien ne départage.
+
+Le scénario 166 est neuf, sur le balisage relevé (noms inventés) ; le 70 rend
+le bloc au rapport. Le décor gagne `__addPromotedCard` et la mise en page
+native de la carte sponsorisée.
 
 ## L'or en clair, et l'avatar que personne ne posait (v4.21.1)
 
@@ -11409,7 +11595,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 165 scénarios, 1369 assertions |
+| `npm test` | le harnais Playwright : 166 scénarios, 1386 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
