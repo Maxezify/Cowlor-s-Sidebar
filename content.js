@@ -4415,8 +4415,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-show-less-hidden { display: none !important; }
 
     /* === Barre filtre + bouton tri === */
+    /* Les marges horizontales sont celles du TITRE, mesurées (cf.
+       alignerBloc) ; 6 px à défaut, la valeur qui aligne sur la capture. */
     .tse-filter {
-      padding: 8px 12px 4px;
+      padding: 8px var(--tse-bloc-d, 6px) 4px var(--tse-bloc-g, 6px);
       display: flex; flex-direction: column; gap: 6px;
     }
     /* Ligne des deux dropdowns : catégorie (extensible) + langue (bord droit). */
@@ -4615,8 +4617,14 @@ const TSE_GATE_MAX_CLICKS = 5;
        bancal dès qu'on en retire un, et franchement absurde à deux — un
        bouton dans chaque coin. Les réglages ayant rendu leur nombre variable,
        la rangée se centre, et les six cas se ressemblent. */
+    /* L'ÉCART CÈDE AVANT LA COLONNE. Six boutons d'au moins 28 px et cinq
+       écarts de 10 px font 218 px : dans une colonne plus étroite, la rangée
+       débordait des deux côtés (206 px sur la capture du 28/09, 6 px de trop
+       de part et d'autre). L'écart se réduit donc d'abord, et la rangée tient
+       dans la colonne tant qu'elle mesure au moins 168 px. */
     .tse-sort-row {
-      display: flex; align-items: center; justify-content: center; gap: 10px;
+      display: flex; align-items: center; justify-content: center;
+      gap: min(10px, calc((100% - 168px) / 5));
       margin-top: 4px;
     }
 
@@ -12824,6 +12832,32 @@ const TSE_GATE_MAX_CLICKS = 5;
               : null,
           };
         })(),
+        /* ── L'ALIGNEMENT DU BLOC SUR LE TITRE (4.23.1) ───────────────────
+           Le banc ne modélise qu'un conteneur ; ces lectures disent ce qu'il
+           en est sur la vraie page. `gauchePx` et `droitePx` : l'écart entre
+           les bords de nos contrôles et ceux du titre — 0 attendu.
+           `trisDebordePx` : ce qui dépasse de la colonne dans la rangée des
+           tris — 0 attendu. `source` : « titre » si les marges sont mesurées,
+           « defaut » si la feuille garde ses 6 px. */
+        alignement: (() => {
+          const bloc = document.getElementById(FILTER_ID);
+          const titre = document.querySelector(`${DOM.sidebarRoot} .side-nav__title`);
+          if (!bloc || !titre || sidebarCollapsed) return { source: null };
+          const b = bloc.getBoundingClientRect(), sb = getComputedStyle(bloc);
+          const t = titre.getBoundingClientRect(), st = getComputedStyle(titre);
+          const g = b.left + parseFloat(sb.paddingLeft), d = b.right - parseFloat(sb.paddingRight);
+          const tris = [...bloc.querySelectorAll('#tse-sort-row > button')]
+            .map((x) => x.getBoundingClientRect()).filter((r) => r.width > 0);
+          const r1 = (v) => Math.round(v * 10) / 10;
+          return {
+            source: bloc.style.getPropertyValue('--tse-bloc-g') ? 'titre' : 'defaut',
+            gauchePx: r1(g - (t.left + parseFloat(st.paddingLeft))),
+            droitePx: r1((t.right - parseFloat(st.paddingRight)) - d),
+            colonnePx: r1(d - g),
+            trisDebordePx: tris.length
+              ? r1(Math.max(0, g - tris[0].left, tris[tris.length - 1].right - d)) : null,
+          };
+        })(),
         /* ── LA RANGÉE DES STORIES (4.23.0) ───────────────────────────────
            Seul son bloc externe a été relevé : la puce lit la rangée sans en
            supposer la forme, et ce bloc dit ce qu'elle y a trouvé.
@@ -18927,6 +18961,46 @@ const TSE_GATE_MAX_CLICKS = 5;
     bindDropdownsGlobal();
   }
 
+  /* ── LE BLOC S'ALIGNE SUR LE TITRE (4.23.1) ─────────────────────────────
+     SIGNALÉ SUR CAPTURE : « un petit souci de marge » entre nos réglages et
+     le reste. Mesuré au pixel : les puces, les onglets et les menus
+     commençaient à 16 px du bord et finissaient à 221, quand le titre de la
+     barre commence à 11, les avatars des cartes à 11, et les boutons de tri
+     débordaient de 10 à 226. Le bloc avait 12 px de marge, et un conteneur de
+     Twitch, qu'on ne voit pas, en ajoutait 4.
+
+     ON NE RECOPIE PAS CES 4 PX, ON MESURE LE TITRE : ses bords intérieurs
+     deviennent ceux du bloc, par ses deux marges horizontales, posées en
+     variables. Quel que soit le conteneur, les contrôles commencent et
+     finissent là où commence le titre et où finit son bouton de repli. Sur
+     la capture, cela fait 218 px : exactement six boutons de tri de 28 px et
+     leurs cinq écarts de 10 px.
+
+     SANS TITRE MESURABLE — absent, ou une mesure hors de 0 à 40 px, qui dirait
+     qu'on mesure autre chose qu'une marge —, la feuille garde 6 px, la valeur
+     qui aligne sur la capture. Un titre MASQUÉ tombe dans ce second cas sans
+     garde à lui : sa boîte est nulle, et la marge de droite qu'on en tire
+     vaut toute la largeur du bloc. Poser un attribut de style
+     n'est pas une mutation que l'observateur suit : aucun balayage n'en
+     naît. */
+  function alignerBloc() {
+    const bloc = document.getElementById(FILTER_ID);
+    if (!bloc) return;
+    const titre = document.querySelector(`${DOM.sidebarRoot} .side-nav__title`);
+    const t = titre?.getBoundingClientRect();
+    let gauche = null, droite = null;
+    if (t) {
+      const b = bloc.getBoundingClientRect(), st = getComputedStyle(titre);
+      gauche = Math.round((t.left + parseFloat(st.paddingLeft) - b.left) * 10) / 10;
+      droite = Math.round((b.right - (t.right - parseFloat(st.paddingRight))) * 10) / 10;
+      if (!(gauche >= 0 && gauche <= 40 && droite >= 0 && droite <= 40)) gauche = droite = null;
+    }
+    for (const [nom, v] of [['--tse-bloc-g', gauche], ['--tse-bloc-d', droite]]) {
+      if (v === null) bloc.style.removeProperty(nom);
+      else bloc.style.setProperty(nom, `${v}px`);
+    }
+  }
+
   /* ============================================================
    *  LE PANNEAU, PAR-DESSUS LA PAGE
    *  ------------------------------------------------------------
@@ -22565,6 +22639,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     syncSerie();           // APRÈS la bascule de mode : la puce se pose au-dessus d'elle
     tagStoriesRow();
     syncStories();         // APRÈS le repérage de la rangée, et sous la puce de la série
+    alignerBloc();
     ensureGlobalBanner();
     ensureGlobalEmpty();
     hideNativeFollowedHeader();

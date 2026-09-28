@@ -7057,6 +7057,9 @@ titre('70. Panneau — la page rendue, mesurée');
                  cible: 'button', place: 'apres-bloc', dansBarre: true, reglage: 'integree',
                  espaceCartesPx: 9,
                  squelette: { '001': 'div.storiesLeftNavSection--csO9S', '002': '· button' } },
+      /* Un bloc décalé de 5 px à gauche du titre, et deux tris qui débordent :
+         ce que la capture du 28/09 aurait donné. */
+      alignement: { source: 'titre', gauchePx: 5, droitePx: 0, colonnePx: 206, trisDebordePx: 6 },
       /* Une bascule abandonnée ET un onglet lu par bascule : les deux lignes
          que la 4.20.0 ajoute, et qu'aucun rapport réel n'a encore portées. */
       relevesAbonnements: { horodatage: 0, enAttente: false,
@@ -7393,6 +7396,13 @@ titre('70. Panneau — la page rendue, mesurée');
      && /cible\s+button/.test(vue.texte) && /espaceCartesPx\s+9/.test(vue.texte)
      && /squelette\.001\s+div\.storiesLeftNavSection--csO9S/.test(vue.texte),
      JSON.stringify((vue.texte.match(/RANGÉE DES STORIES[\s\S]{0,240}/) || [])[0]));
+  /* L'ALIGNEMENT DU BLOC SUR LE TITRE (4.23.1). Le banc n'en modélise qu'un
+     conteneur : sur la vraie page, seul ce bloc dira si les bords tombent
+     juste. Mutant — la ligne retirée du panneau — il ne part jamais. */
+  ok('…le bloc de l\'alignement : l\'écart au titre, et ce qui déborde des tris',
+     contient('ALIGNEMENT DU BLOC / BLOCK ALIGNMENT') && /gauchePx\s+5/.test(vue.texte)
+     && /trisDebordePx\s+6/.test(vue.texte) && /colonnePx\s+206/.test(vue.texte),
+     JSON.stringify((vue.texte.match(/ALIGNEMENT DU BLOC[\s\S]{0,160}/) || [])[0]));
   /* POURQUOI LE RELEVÉ A RECHARGÉ, ET QUEL TÉMOIN A PROUVÉ CHAQUE CLIC.
      Mutants — l'une ou l'autre ligne retirée du rapport — : le vrai Twitch
      ne nous dirait jamais s'il tient son adresse à jour. */
@@ -23541,6 +23551,150 @@ const pageVariante = async (substitutions, init = null) => {
   ok('quand Twitch retire la rangée, la puce s\'en va, et ni elle ni le décor d\'une carte ne sont pris pour la rangée',
      partie.marques === 0 && !partie.puce && decor.anneau && decor.marques === 0 && !decor.puce,
      JSON.stringify({ partie, decor }));
+  await page.close();
+}
+
+/* ═════════ LE BLOC S'ALIGNE SUR LE TITRE ═════════════════════════════════════
+   SIGNALÉ SUR CAPTURE : les réglages, la série et les stories avaient plus de
+   marge que les boutons de tri et que le titre « Chaînes suivies ». Mesuré :
+   16 px contre 10 à 11. Le bloc avait 12 px de marge, et un conteneur de
+   Twitch en ajoutait 4.
+
+   LE DÉCOR REPRODUIT CETTE GÉOMÉTRIE : une barre de 238 px dont le conteneur
+   décale le bloc de 4 px, un titre qui déborde de ce décalage et porte 10 px
+   de marge intérieure — la colonne du titre fait donc 218 px, comme sur la
+   capture. Puis une colonne plus étroite, un titre masqué, un titre absurde. */
+{
+  titre('170. Le bloc filtre — les bords du titre, pour tous ses contrôles');
+  const page = await fresh();
+  await page.evaluate(() => localStorage.setItem('tse:roue', 'vu'));
+  await page.reload();
+  await page.evaluate(() => {
+    const st = document.createElement('style');
+    st.id = 'geometrie-twitch';
+    st.textContent = '#side-nav { width: 238px; padding: 0 4px; box-sizing: border-box; }'
+      + ' #side-nav .side-nav__title { margin: 0 -4px; padding: 0 10px; display: flex; align-items: center; }';
+    document.head.appendChild(st);
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = { aube: { id: '95', createdAt: h, viewers: 1500, game: 'Minecraft', tags: [] } };
+    window.__addCard('aube', 'Minecraft', '1,5 k');
+    window.__addSerie('Protégez votre série, série de 3 streams chez Vesper0');
+  });
+  await attendre(page, () => !!document.querySelector('#tse-filter > .tse-serie')
+    && !!document.querySelector('#tse-filter > .tse-stories')
+    && !document.body.classList.contains('tse-loading'), 15_000);
+  await wait(page, 300);
+  const secouer = () => page.evaluate(() => {
+    const t = document.createElement('div');
+    document.getElementById('cards').appendChild(t);
+    t.remove();
+  });
+  const bords = () => page.evaluate(() => {
+    const titre = document.querySelector('#side-nav .side-nav__title');
+    const t = titre.getBoundingClientRect(), st = getComputedStyle(titre);
+    const col = [t.left + parseFloat(st.paddingLeft), t.right - parseFloat(st.paddingRight)];
+    const bloc = document.getElementById('tse-filter');
+    const r = (e) => { const b = e.getBoundingClientRect(); return [b.left - col[0], b.right - col[1]].map((v) => Math.round(v * 10) / 10); };
+    const tris = [...document.querySelectorAll('#tse-sort-row > button')];
+    return {
+      colonne: Math.round((col[1] - col[0]) * 10) / 10,
+      marges: [getComputedStyle(bloc).paddingLeft, getComputedStyle(bloc).paddingRight],
+      serie: r(document.querySelector('#tse-filter > .tse-serie')),
+      stories: r(document.querySelector('#tse-filter > .tse-stories')),
+      onglets: r(document.getElementById('tse-mode-row')),
+      menus: r(document.querySelector('#tse-filter .tse-filter-row')),
+      tris: [r(tris[0])[0], r(tris[tris.length - 1])[1]],
+      /* L'écart MESURÉ entre deux boutons : la valeur calculée de « gap »
+         reste l'expression « min(…) », non résolue. */
+      ecart: Math.round((tris[1].getBoundingClientRect().left - tris[0].getBoundingClientRect().right) * 10) / 10,
+      rapport: window.tse.panneau.rapport().alignement,
+    };
+  });
+  const aligne = (m) => [m.serie, m.stories, m.onglets, m.menus, m.tris]
+    .every(([g, d]) => Math.abs(g) <= 0.5 && Math.abs(d) <= 0.5);
+
+  const capture = await bords();
+  /* LA PRÉMISSE : la colonne du titre est bien celle de la capture. */
+  ok('le décor reproduit la capture : une colonne de titre de 218 px, que le bloc ne recouvre pas d\'office',
+     capture.colonne === 218, JSON.stringify(capture));
+  /* Mutants — la mesure retirée, la variable ignorée par la feuille — les
+     contrôles reprennent 6 px de retrait : 16 px, la capture. */
+  ok('les marges du bloc sont celles du titre, mesurées : 6 px de part et d\'autre',
+     capture.marges.join() === '6px,6px' && capture.rapport.source === 'titre', JSON.stringify(capture));
+  ok('…et série, stories, onglets, menus et tris commencent et finissent aux bords du titre',
+     aligne(capture), JSON.stringify(capture));
+  /* 218 px, c'est exactement six boutons de 28 px et cinq écarts de 10 :
+     l'écart garde sa valeur pleine. */
+  ok('…les six tris y tiennent exactement, à leur écart de 10 px',
+     capture.ecart === 10, String(capture.ecart));
+  ok('…et le rapport le dit : zéro à gauche, zéro à droite, rien ne déborde',
+     capture.rapport.gauchePx === 0 && capture.rapport.droitePx === 0
+     && capture.rapport.trisDebordePx === 0 && capture.rapport.colonnePx === 218,
+     JSON.stringify(capture.rapport));
+
+  /* UNE COLONNE PLUS ÉTROITE, ET ASYMÉTRIQUE : 16 px à gauche, 14 à droite,
+     soit 208 px. Les marges suivent le titre, chacune de son côté, et la
+     rangée des tris ne déborde plus : c'est son écart qui cède. Mutants —
+     l'écart fixe de 10 px, une marge prise pour l'autre. */
+  const poserTitre = (css) => page.evaluate((c) => {
+    document.getElementById('geometrie-twitch').textContent += ` #side-nav .side-nav__title { ${c} }`;
+  }, css);
+  await poserTitre('padding: 0 14px 0 16px;');
+  await secouer();
+  await wait(page, 400);
+  const etroite = await bords();
+  ok('dans une colonne de 208 px, tout suit le titre de chaque côté, et l\'écart des tris cède avant la colonne',
+     etroite.colonne === 208 && etroite.marges.join() === '12px,10px' && aligne(etroite)
+     && etroite.ecart === 8 && etroite.rapport.trisDebordePx === 0 && etroite.rapport.colonnePx === 208,
+     JSON.stringify(etroite));
+
+  /* PLUS ÉTROITE QUE SIX BOUTONS : 158 px. L'écart tombe à zéro, les boutons
+     gardent leurs 28 px, et le rapport dit de combien ils débordent. */
+  await poserTitre('padding: 0 40px;');
+  await secouer();
+  await wait(page, 400);
+  const tropEtroite = await bords();
+  ok('…plus étroite que six boutons, les tris débordent, et le rapport dit de combien',
+     tropEtroite.colonne === 158 && tropEtroite.marges.join() === '36px,36px'
+     && tropEtroite.ecart === 0 && tropEtroite.rapport.trisDebordePx === 5,
+     JSON.stringify({ colonne: tropEtroite.colonne, marges: tropEtroite.marges, ecart: tropEtroite.ecart,
+                      rapport: tropEtroite.rapport }));
+
+  /* SANS TITRE MESURABLE, la feuille garde 6 px : titre masqué, titre dont
+     la marge dépasse ce qu'une marge peut être, titre qui déborde du bloc. */
+  const lireMarges = () => page.evaluate(() => {
+    const bloc = document.getElementById('tse-filter');
+    return { marges: [getComputedStyle(bloc).paddingLeft, getComputedStyle(bloc).paddingRight],
+             variable: bloc.style.getPropertyValue('--tse-bloc-g'),
+             rapport: window.tse.panneau.rapport().alignement };
+  });
+  /* En ligne : la règle qui met le titre en « flex » pour la roue pèse plus
+     lourd qu'un sélecteur de décor. */
+  await page.evaluate(() => { document.querySelector('#side-nav .side-nav__title').style.display = 'none'; });
+  await secouer();
+  await wait(page, 400);
+  const masque = await lireMarges();
+  await page.evaluate(() => { document.querySelector('#side-nav .side-nav__title').style.display = ''; });
+  await poserTitre('padding: 0 60px;');
+  await secouer();
+  await wait(page, 400);
+  const absurde = await lireMarges();
+  await poserTitre('margin: 0 -6px; padding: 0;');
+  await secouer();
+  await wait(page, 400);
+  const negatif = await lireMarges();
+  /* Mutants — le repli de la feuille, l'une ou l'autre borne, la largeur du
+     titre ignorée — une marge nulle, négative, ou de 56 px. Et le rapport,
+     sur le titre absurde, dit l'écart qui reste : 50 px de chaque côté. */
+  ok('sans titre mesurable — masqué, d\'une marge qui n\'en est pas une, ou plus large que le bloc —, le bloc garde 6 px',
+     masque.marges.join() === '6px,6px' && masque.variable === '' && masque.rapport.source === 'defaut'
+     && absurde.marges.join() === '6px,6px' && absurde.variable === ''
+     && negatif.marges.join() === '6px,6px' && negatif.variable === '',
+     JSON.stringify({ masque: masque.marges, absurde: absurde.marges, negatif: negatif.marges }));
+  ok('…et le rapport dit alors l\'écart qui reste au titre',
+     absurde.rapport.source === 'defaut' && absurde.rapport.gauchePx === -50
+     && absurde.rapport.droitePx === -50 && absurde.rapport.colonnePx === 218,
+     JSON.stringify(absurde.rapport));
   await page.close();
 }
 
