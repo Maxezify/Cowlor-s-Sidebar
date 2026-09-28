@@ -11,24 +11,26 @@
  *
  *   1) MODULE ANTI-PUB — fichier adblock.js, code tiers vendorisé
  *      (vaft v2.0.4, scamorza/TwitchAdBlock, MIT). N'agit QUE
- *      dans les iframes — concrètement, dans l'iframe d'aperçu
- *      servie par player.twitch.tv. Le stream principal n'est pas
- *      impacté. Voir l'en-tête d'adblock.js pour le détail et la
- *      liste des adaptations.
+ *      dans l'iframe d'aperçu, reconnue à son nom (cf.
+ *      TSE_PREVIEW_FRAME_NAME) : ni sur le stream principal, ni
+ *      dans un lecteur Twitch intégré ailleurs. Voir l'en-tête
+ *      d'adblock.js pour le détail et la liste des adaptations.
  *
  *   2) MODULE TSE (sidebar enrichie) — CE fichier. N'agit QU'EN
  *      top-level, jamais dans les iframes. C'est le module
  *      principal de l'extension.
  *
  *      Une exception, minuscule et volontaire : le PONT D'APERÇU en
- *      tête de ce fichier tourne, lui, dans les iframes du lecteur.
+ *      tête de ce fichier tourne, lui, dans l'iframe d'aperçu.
  *      Il n'y fait qu'une chose — signaler au parent la première image
  *      affichée — et ne touche à rien d'autre, précisément pour ne
  *      pas croiser le module anti-pub qui partage cette frame.
  *
- *  Les deux ont des gardes OPPOSÉES (iframe-only / top-level-only)
- *  donc dans n'importe quelle frame, exactement un des deux est
- *  actif. Ces gardes sont porteuses, pas décoratives : le module
+ *  Les deux ont des gardes OPPOSÉES (iframe d'aperçu seulement /
+ *  top-level seulement) : dans aucune frame les deux ne sont actifs
+ *  ensemble, et dans une iframe qui n'est pas l'aperçu — un lecteur
+ *  intégré ailleurs, la page d'abonnements lue en iframe — aucun ne
+ *  l'est. Ces gardes sont porteuses, pas décoratives : le module
  *  anti-pub force document.hidden et intercepte visibilitychange,
  *  ce qui perturberait la sidebar s'il tournait dans sa frame.
  *  L'ordre de chargement est fixé par le manifeste et reproduit
@@ -178,6 +180,27 @@ const TSE_PREVIEW_GATE_MSG = 'tse:preview-gate';
 // tourne pas dans cette iframe » et « il tourne mais ne trouve pas la modale ».
 const TSE_PREVIEW_HELLO_MSG = 'tse:preview-hello';
 
+/* L'IFRAME D'APERÇU SE RECONNAÎT À SON NOM (4.24.0.1, phase 0 du multistream).
+
+   Le manifeste injecte l'extension dans TOUT lecteur player.twitch.tv, sur
+   n'importe quel site : c'est ce qu'il faut pour atteindre l'iframe d'aperçu,
+   et c'est bien plus qu'elle. Jusqu'ici, ce pont et le module anti-pub
+   agissaient dans chacun de ces lecteurs : un lecteur Twitch intégré à un
+   site d'actualité voyait sa pub bloquée et son interstitielle de
+   classification levée. La fiche du Store promet pourtant que le blocage
+   « s'applique à la vignette d'aperçu au survol, et à rien d'autre ».
+
+   L'aperçu porte donc un nom, posé par injectIframe, et les deux modules
+   n'agissent que dans une frame qui le porte ET dont le parent est une page
+   twitch.tv. Le nom d'une frame se lit de l'intérieur dès document_start, ne
+   part pas au serveur comme le ferait un paramètre d'adresse, et survit à
+   une navigation interne du lecteur. adblock.js, chargé avant ce fichier, ne
+   peut pas lire ces constantes : il en recopie les valeurs, et le banc
+   vérifie qu'elles sont égales. */
+const TSE_PREVIEW_FRAME_NAME = 'tse-apercu';
+// Les pages qui posent l'aperçu : les deux formes que le manifeste déclare.
+const TSE_PREVIEW_PARENTS = ['https://www.twitch.tv', 'https://twitch.tv'];
+
 // Le levage de l'interstitielle. À false, on retrouve le comportement de la
 // 3.54 : les streams étiquetés restent sur leur vignette.
 const TSE_GATE_ENABLED = true;
@@ -197,11 +220,13 @@ const TSE_GATE_MAX_CLICKS = 5;
 (() => {
   'use strict';
 
-  // Uniquement dans une iframe du lecteur. Le try/catch couvre la
-  // SecurityError théorique sur window.top en cross-origin.
+  // Uniquement dans NOTRE iframe d'aperçu : un lecteur, qui porte le nom que
+  // lui donne injectIframe. Le try/catch couvre la SecurityError théorique sur
+  // window.top en cross-origin.
   try {
     if (window.top === window) return;
     if (location.hostname !== 'player.twitch.tv') return;
+    if (window.name !== TSE_PREVIEW_FRAME_NAME) return;
   } catch { return; }
 
   // Origines destinataires. `ancestorOrigins` est ordonné du parent IMMÉDIAT
@@ -217,7 +242,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     const a = location.ancestorOrigins;
     targets = a && a.length ? [a[0]] : null;
   } catch { targets = null; }
-  if (!targets) targets = ['https://www.twitch.tv', 'https://twitch.tv'];
+  // Un parent CONNU qui n'est pas twitch.tv : ce n'est pas notre aperçu, quel
+  // que soit son nom — un site tiers peut nommer son iframe comme il veut. Sans
+  // ancestorOrigins (Firefox avant la 148), le nom seul tranche.
+  if (targets && !TSE_PREVIEW_PARENTS.includes(targets[0])) return;
+  if (!targets) targets = TSE_PREVIEW_PARENTS;
 
   const poster = (quoi) => {
     for (const origin of targets) {
@@ -17728,6 +17757,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       const iframe = document.createElement('iframe');
       iframe.className = 'tse-preview__iframe';
+      // Le nom qui fait de ce lecteur l'aperçu, et de lui seul : le pont et
+      // l'anti-pub ne s'éveillent que dans une frame qui le porte (cf.
+      // TSE_PREVIEW_FRAME_NAME). Posé avant l'adresse, donc avant la frame.
+      iframe.name = TSE_PREVIEW_FRAME_NAME;
       iframe.src = buildIframeUrl(login);
       iframe.setAttribute('allow', 'autoplay; encrypted-media');
 

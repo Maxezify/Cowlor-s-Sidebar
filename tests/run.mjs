@@ -5521,14 +5521,17 @@ titre('61. Firefox — l\'aperçu tient sans les API que Chrome a en plus');
       • location.ancestorOrigins — jamais implémentée par Firefox avant ~148
         (Mozilla la tenait pour une fuite de vie privée). Le pont s'en sert
         pour VISER son postMessage ; sans elle, il retombe sur les deux
-        origines que le manifeste déclare. C'est LA divergence du portage, et
+        origines que le manifeste déclare. Depuis la 4.24.0.1, le pont ET
+        l'anti-pub s'en servent aussi pour reconnaître le parent de l'aperçu ;
+        sans elle, le nom de l'iframe tranche seul. C'est LA divergence du portage, et
         un repli cassé ne se verrait nulle part : l'aperçu ne se dévoilerait
         simplement jamais sous Firefox.
 
         Elle est [LegacyUnforgeable] — propriété propre, non configurable —
         donc impossible à retirer depuis la page. Le retrait se fait à la
         construction, sur une copie (cf. tests/build.mjs), et ce scénario
-        charge cette variante : /content.firefox.test.js.
+        charge ces variantes : /content.firefox.test.js et
+        /adblock.firefox.test.js.
 
       • requestVideoFrameCallback — arrivée en Firefox 132, donc présente au
         plancher. Elle est tout de même retirée ici, et celle-là POUR DE VRAI
@@ -5561,7 +5564,7 @@ titre('61. Firefox — l\'aperçu tient sans les API que Chrome a en plus');
         ctx.fillRect(0, 0, 32, 18);
       }, 40);
     </script>
-    <script src="/adblock.test.js"></script>
+    <script src="/adblock.firefox.test.js"></script>
     <script src="/content.firefox.test.js"></script>
   </body></html>`;
 
@@ -5585,17 +5588,33 @@ titre('61. Firefox — l\'aperçu tient sans les API que Chrome a en plus');
     const f = page.frames().find(x => x.url().startsWith('https://player.twitch.tv/'));
     if (!f) return null;
     try {
-      return await f.evaluate(() => ({
+      return await f.evaluate(async () => ({
         rvfc: window.__fxSansApi?.rvfc ?? null,
+        /* La SUBSTITUTION elle-même, lue dans le source servi : un nom de
+           fichier ne prouve pas qu'on y a retiré ancestorOrigins. */
+        substituee: await Promise.all(['/content.firefox.test.js', '/adblock.firefox.test.js']
+          .map((u) => fetch(u).then((r) => r.text())
+            .then((t) => t.includes('const a = undefined; /* Firefox < 148 */')
+              && !t.includes('const a = location.ancestorOrigins;'))))
+          .then((l) => l.every(Boolean)),
         // La variante de build est-elle bien celle qui tourne ? On lit la
         // ligne substituée dans le source servi, pas une intention.
         variante: [...document.scripts].some(s => s.src.endsWith('/content.firefox.test.js')),
+        /* Et celle de l'anti-pub (4.24.0.1) : sa garde lit ancestorOrigins
+           elle aussi, et doit se contenter du nom de l'aperçu sans elle. */
+        varianteAnti: [...document.scripts].some(s => s.src.endsWith('/adblock.firefox.test.js')),
+        anti: typeof window.twitchAdSolutionsVersion,
       }));
     } catch { return null; }
   })();
   ok('le décor est bien celui qu\'on croit : rVFC retirée, variante Firefox chargée',
-     !!decor && decor.rvfc === true && decor.variante === true,
+     !!decor && decor.rvfc === true && decor.variante === true && decor.varianteAnti === true
+     && decor.substituee === true,
      JSON.stringify(decor));
+  /* Mutant — sans ancestorOrigins, la garde de l'anti-pub refuserait tout :
+     l'aperçu n'aurait plus d'anti-pub sous Firefox, sans que rien ne se voie. */
+  ok('sans ancestorOrigins, l\'anti-pub s\'éveille quand même dans l\'aperçu, sur son seul nom',
+     !!decor && decor.anti === 'number', JSON.stringify(decor));
 
   const etat = await page.evaluate(() => {
     const f = document.querySelector('.tse-preview__iframe');
@@ -23934,6 +23953,157 @@ const pageVariante = async (substitutions, init = null) => {
      && !['rgb(255, 14, 0)', 'rgb(0, 0, 255)'].includes(enCours.pastille)
      && enCours.variable === 'rgb(255, 14, 0)' && arrivee === 'rgb(0, 0, 255)',
      JSON.stringify({ enCours, arrivee }));
+  await page.close();
+}
+
+/* ═════════ CE QUI TOURNE DANS UN LECTEUR NE VAUT QUE POUR L'APERÇU ═════════
+   PHASE 0 DU MULTISTREAM (4.24.0.1). Le manifeste injecte l'extension dans
+   TOUT lecteur player.twitch.tv, sur n'importe quel site. Jusqu'ici, le module
+   anti-pub et le pont d'aperçu agissaient dans chacun : un lecteur Twitch
+   intégré ailleurs voyait sa pub bloquée et son interstitielle levée, quand
+   la fiche du Store promet un blocage « à la vignette d'aperçu au survol, et à
+   rien d'autre ». Une salle multistream, faite de lecteurs intégrés, en
+   aurait hérité.
+
+   L'aperçu porte désormais un NOM, et les deux modules n'agissent que dans une
+   frame qui le porte, posée par une page twitch.tv. Trois lecteurs, servis par
+   la même page de lecteur factice :
+     — l'aperçu, posé par le survol : les deux modules s'éveillent ;
+     — un lecteur SANS ce nom dans la même page twitch.tv (une future tuile de
+       la salle, ou un lecteur intégré par Twitch lui-même) : aucun ;
+     — un lecteur qui porte ce nom, mais dans la page d'un site tiers (un
+       domaine réservé, .example) : aucun non plus, le nom ne suffit pas.
+   Le lecteur factice affiche une interstitielle de classification qui compte
+   ses clics : c'est ce que le pont lèverait. Cliquée, elle se ferme et la
+   vidéo part, comme sur Twitch — l'aperçu se dévoile alors et reste en
+   place, au lieu de rendre la main à sa vignette pendant qu'on le lit. */
+{
+  titre('172. Phase 0 — l\'anti-pub et le pont n\'agissent que dans l\'aperçu');
+  /* Les deux valeurs que les deux fichiers doivent partager : adblock.js,
+     chargé le premier, ne peut pas lire les constantes de content.js et les
+     recopie. Lues dans les SOURCES, comme la palette du scénario 29. */
+  const srcContenu = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+  const srcAnti = readFileSync(join(ICI, '..', 'adblock.js'), 'utf8');
+  const nomContenu = /const TSE_PREVIEW_FRAME_NAME = '([^']+)';/.exec(srcContenu)?.[1];
+  const parentsContenu = /const TSE_PREVIEW_PARENTS = \[([^\]]+)\];/.exec(srcContenu)?.[1]
+    .match(/'[^']+'/g).map((x) => x.slice(1, -1)).sort().join(' ');
+  const nomAnti = /if \(window\.name !== '([^']+)'\) return;/.exec(srcAnti)?.[1];
+  const parentsAnti = (/if \(a && a\.length && ([^)]*)\) return;/.exec(srcAnti)?.[1] || '')
+    .match(/'[^']+'/g)?.map((x) => x.slice(1, -1)).sort().join(' ');
+  ok('adblock.js recopie exactement le nom de l\'aperçu et ses parents',
+     !!nomContenu && nomContenu === nomAnti && !!parentsContenu && parentsContenu === parentsAnti,
+     JSON.stringify({ nomContenu, nomAnti, parentsContenu, parentsAnti }));
+
+  const lecteur = `<!doctype html><html><body>
+    <div data-a-target="content-classification-gate-overlay">
+      <button data-a-target="content-classification-gate-overlay-start-watching-button"
+              style="width:120px;height:32px">Commencer à regarder</button>
+    </div>
+    <script>
+      window.__clics = 0;
+      document.querySelector('button').addEventListener('click', () => {
+        window.__clics++;
+        document.querySelector('[data-a-target="content-classification-gate-overlay"]').remove();
+        const c = document.createElement('canvas');
+        c.width = 32; c.height = 18;
+        const ctx = c.getContext('2d');
+        const v = document.createElement('video');
+        v.autoplay = true; v.muted = true; v.playsInline = true;
+        v.srcObject = c.captureStream(25);
+        document.body.appendChild(v);
+        v.play().catch(() => {});
+        setInterval(() => { ctx.fillStyle = '#' + Math.floor(Math.random() * 16777215)
+          .toString(16).padStart(6, '0'); ctx.fillRect(0, 0, 32, 18); }, 40);
+      });
+    </script>
+    <script src="/adblock.test.js"></script>
+    <script src="/content.test.js"></script>
+  </body></html>`;
+  const page = await freshTwitch(lecteur);
+  await page.evaluate(() => localStorage.setItem('tse:roue', 'vu'));
+  await page.reload();
+  /* Les messages du pont, écoutés dans la page et rangés par lecteur : le
+     parent ne peut rien voir d'autre d'une frame cross-origin. */
+  await page.evaluate(() => {
+    window.__pont = [];
+    addEventListener('message', (e) => {
+      if (typeof e.data?.tse !== 'string') return;
+      const de = [...document.querySelectorAll('iframe')].find((f) => f.contentWindow === e.source);
+      window.__pont.push({ tse: e.data.tse, de: de ? (de.name || '(sans nom)') : '?' });
+    });
+    window.__fx = { apercu1: { id: '1721', createdAt: new Date(Date.now() - 3600_000).toISOString(),
+                               viewers: 1000, game: 'G', tags: [] } };
+    window.__addCard('apercu1', 'G', '1 k');
+  });
+  await wait(page, 1500);
+  await hoverCard(page, 0);
+  await attendre(page, () => !!document.querySelector('.tse-preview__iframe'), 6000);
+  // Le lecteur sans nom, posé par la page twitch.tv elle-même.
+  await page.evaluate(() => {
+    const f = document.createElement('iframe');
+    f.src = 'https://player.twitch.tv/?channel=tuile&parent=www.twitch.tv';
+    f.style.cssText = 'position:fixed;right:0;bottom:0;width:400px;height:300px';
+    document.body.appendChild(f);
+  });
+  /* Chaque lecteur est lu après lui avoir laissé le temps d'agir : son
+     chargement, puis une seconde et demie — ou, pour l'aperçu, le clic
+     attendu, qui arrive bien avant. */
+  const lire = async (canal) => {
+    let f = null;
+    for (let i = 0; i < 40 && !f; i++) {
+      f = page.frames().find((x) => x.url().includes('channel=' + canal));
+      if (!f) await wait(page, 100);
+    }
+    if (!f) return null;
+    await f.waitForLoadState('load').catch(() => {});
+    await f.waitForFunction(() => window.__clics > 0, null, { timeout: 1500 }).catch(() => {});
+    try {
+      return await f.evaluate(() => ({
+        nom: window.name,
+        anti: typeof window.twitchAdSolutionsVersion,
+        worker: /\[native code\]/.test(String(window.Worker)),
+        clics: window.__clics,
+      }));
+    } catch { return null; }
+  };
+  const apercu = await lire('apercu1');
+  const tuile = await lire('tuile');
+  const pont = await page.evaluate(() => window.__pont);
+  /* Mutants — le nom jamais posé par l'aperçu, ou posé autrement que la garde
+     ne l'attend : l'aperçu perdrait ses deux modules. */
+  ok('l\'aperçu porte son nom, et les deux modules s\'y éveillent : anti-pub, pont, interstitielle levée',
+     !!apercu && apercu.nom === nomContenu && apercu.anti === 'number' && apercu.worker === false
+     && apercu.clics === 1 && pont.some((m) => m.de === nomContenu && m.tse === 'tse:preview-hello'),
+     JSON.stringify({ apercu, pont }));
+  /* Mutants — la garde du nom retirée d'adblock.js, puis du pont : le lecteur
+     sans nom retrouverait l'anti-pub, ou son interstitielle serait levée. */
+  ok('un lecteur sans ce nom, dans la même page twitch.tv : ni anti-pub, ni pont, ni clic',
+     !!tuile && tuile.nom === '' && tuile.anti === 'undefined' && tuile.worker === true
+     && tuile.clics === 0 && !pont.some((m) => m.de === '(sans nom)'),
+     JSON.stringify({ tuile, pont }));
+
+  // ── Le même nom, dans la page d'un site tiers ──────────────────────────
+  await page.route('https://journal.example/**', (route) => route.fulfill({
+    contentType: 'text/html; charset=utf-8',
+    body: `<!doctype html><html><body>
+      <iframe name="${nomContenu}" src="https://player.twitch.tv/?channel=imposteur&parent=journal.example"
+              style="width:400px;height:300px"></iframe>
+      <script>
+        window.__pont = [];
+        addEventListener('message', (e) => { if (typeof e.data?.tse === 'string') window.__pont.push(e.data.tse); });
+      </script>
+    </body></html>`,
+  }));
+  await page.goto('https://journal.example/');
+  const imposteur = await lire('imposteur');
+  const pontTiers = await page.evaluate(() => window.__pont);
+  /* Mutants — le contrôle du parent retiré d'adblock.js, puis du pont : un
+     site tiers qui nomme son iframe comme l'aperçu en recevrait l'anti-pub, ou
+     verrait son interstitielle levée et l'extension se signaler à lui. */
+  ok('le même nom sur un site tiers : ni anti-pub, ni pont, ni clic — le parent compte',
+     !!imposteur && imposteur.nom === nomContenu && imposteur.anti === 'undefined'
+     && imposteur.worker === true && imposteur.clics === 0 && pontTiers.length === 0,
+     JSON.stringify({ imposteur, pontTiers }));
   await page.close();
 }
 

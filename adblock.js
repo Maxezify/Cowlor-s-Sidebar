@@ -16,17 +16,20 @@
  *   partageaient un fichier.
  *
  *  PORTÉE D'EXÉCUTION :
- *   Le module ne s'active QUE dans les iframes (notre iframe d'aperçu
- *   sur player.twitch.tv). Sur le stream principal, il se met en
- *   retrait. Pour un anti-pub global, installer vaft en externe : le
- *   handshake twitchAdSolutionsVersion gère la cohabitation, et c'est
- *   d'ailleurs lui qui fait que l'un des deux se retire proprement.
+ *   Le module ne s'active QUE dans notre iframe d'aperçu : un lecteur
+ *   player.twitch.tv qui porte le nom que content.js lui donne
+ *   (« tse-apercu »), posé par une page twitch.tv. Sur le stream
+ *   principal, il se met en retrait ; dans un lecteur Twitch intégré à
+ *   un autre site, ou dans tout autre lecteur sans ce nom, aussi. Pour
+ *   un anti-pub global, installer vaft en externe : le handshake
+ *   twitchAdSolutionsVersion gère la cohabitation, et c'est d'ailleurs
+ *   lui qui fait que l'un des deux se retire proprement.
  *
  *  LES HUIT ADAPTATIONS (toutes marquées « ADAPTATION » dans le code) :
  *   a) préfixe de log « [VAFT2] » → « [TSE-AdBlock] », pour distinguer
  *      nos lignes de celles d'un vaft installé en externe ;
  *   b) interrupteur TSE_ADBLOCK_ENABLED ;
- *   c) garde iframe-only (cf. ci-dessus) ;
+ *   c) garde « iframe d'aperçu seulement » (cf. ci-dessus) ;
  *   d) GM_info remplacé par la version en dur — cette API appartient aux
  *      gestionnaires de userscripts et n'existe pas dans une extension ;
  *   e) bannière de démarrage retirée (l'iframe renaît à chaque survol) ;
@@ -65,15 +68,27 @@ const TSE_ADBLOCK_ENABLED = true;
     // (b) Interrupteur : passer TSE_ADBLOCK_ENABLED à false neutralise
     //     entièrement le module sans toucher au reste du fichier.
     if (!TSE_ADBLOCK_ENABLED) return;
-    // (c) PORTÉE IFRAME UNIQUEMENT. Le module ne travaille que dans notre
-    //     iframe d'aperçu ; sur le stream principal il se met en retrait,
+    // (c) PORTÉE : L'IFRAME D'APERÇU, ET ELLE SEULE. Le module ne travaille
+    //     que dans notre iframe d'aperçu ; ailleurs il se met en retrait,
     //     l'utilisateur qui regarde vraiment un stream acceptant le modèle
     //     économique de Twitch. C'est un choix de l'extension, pas du fork.
     //     window.top peut lever une SecurityError en cross-origin : dans le
-    //     doute on continue, la garde du fork ci-dessous fera le tri.
+    //     doute on continue, les gardes suivantes feront le tri.
     try {
         if (window.top === window) return;
     } catch { /* frame cross-origin → on continue */ }
+    //     « Une iframe » ne suffisait pas (4.24.0.1) : le manifeste injecte
+    //     ce fichier dans TOUT lecteur player.twitch.tv, et un lecteur
+    //     intégré à un site d'actualité voyait sa pub bloquée, contre la
+    //     promesse du Store. L'aperçu se reconnaît à son NOM — valeur recopiée
+    //     de TSE_PREVIEW_FRAME_NAME (content.js), le banc vérifie l'égalité —
+    //     et à son parent, une page twitch.tv, quand le navigateur le dit.
+    //     Sans ancestorOrigins (Firefox avant la 148), le nom seul tranche.
+    if (window.name !== 'tse-apercu') return;
+    try {
+        const a = location.ancestorOrigins;
+        if (a && a.length && a[0] !== 'https://www.twitch.tv' && a[0] !== 'https://twitch.tv') return;
+    } catch { /* lecture refusée → le nom a tranché */ }
     // ═══════════════════════════════════════════════════════════════
 
     // @match covers every *.twitch.tv frame, including hidden auth/ads ones. frameElement is no

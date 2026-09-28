@@ -92,14 +92,16 @@ où le code change :
    nomme séparément, juste après lui, au lieu de la laisser passer sous
    « anonyme ». Voir la section « Vie privée » du README principal.
 6. **« Le blocage de pub reste à sa place »** — `adblock.js` ne s'active que
-   dans une iframe (garde `window.top !== window`), donc uniquement dans
-   l'aperçu que l'extension ouvre elle-même. Le lecteur principal n'est jamais
-   touché.
+   dans l'aperçu que l'extension ouvre elle-même : une iframe nommée
+   `tse-apercu`, posée par une page twitch.tv. Le lecteur principal n'est
+   jamais touché. Jusqu'à la 4.24.0.1, la garde se contentait d'« une iframe »
+   (`window.top !== window`), et un lecteur Twitch intégré à un autre site
+   était touché aussi : la phrase de la fiche n'était pas exacte.
 7. **« Code source entièrement lisible »** — `content.js` et `adblock.js` sont
    livrés **ni minifiés ni obscurcis** : mêmes noms, mêmes lignes, même
    indentation que dans le dépôt. Depuis la 3.59 le paquet part en revanche
    **sans les commentaires** — ceux du JavaScript, et depuis la 3.60 ceux du
-   CSS aussi (1562 → 632 Ko) ; la phrase reste vraie au mot près — c'est de
+   CSS aussi (1565 → 632 Ko) ; la phrase reste vraie au mot près — c'est de
    lisibilité qu'elle parle, pas d'annotations — et les commentaires, eux,
    sont dans le dépôt public. Ce chiffre-là est confronté à la mesure par
    `npm run addon` : il a été faux, et personne ne l'a vu. Les mentions
