@@ -1792,6 +1792,9 @@ const construireRapport = (r, transport, fond) => {
      la ligne, pas sur son conteneur : `espacePx` dit ce qui reste entre le
      titre et le bloc filtre une fois la ligne rangée. */
   L.push(...bloc('SÉRIE DE VISIONNAGE / WATCH STREAK', aplatir(r.serie)));
+  /* LA RANGÉE DES STORIES. Seul son bloc externe a été relevé : le squelette
+     et la place disent ce que Twitch rend vraiment, sans un mot de texte. */
+  L.push(...bloc('RANGÉE DES STORIES / STORIES ROW', aplatir(r.stories)));
   /* LE SUBATHON A SON PROPRE BLOC, et il en a besoin. La règle qui le
      reconnaît ne lit que le titre du direct : elle n'a jamais pu être
      exécutée contre le vrai Twitch, et ces six lignes sont la seule mesure

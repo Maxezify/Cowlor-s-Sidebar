@@ -2781,7 +2781,16 @@ const TSE_GATE_MAX_CLICKS = 5;
     subathonJour:    { defaut: true,      type: 'bool', css: true },
 
     /* — Ce que l'extension retire à Twitch — */
-    stories:         { defaut: true,      type: 'bool', css: true },
+    /* La rangée des stories, sur le modèle de la série (cf. syncStories).
+       C'ÉTAIT UN INTERRUPTEUR jusqu'à la 4.22 : « depuis » dit ce que devient
+       une valeur de l'ancien type, lue dans le stockage ou dans un export.
+       L'ancien « éteint » devient « masquee » : qui les avait masquées les
+       garde masquées. L'ancien « allumé » était le défaut — il n'est jamais
+       stocké, mais un export le porte, puisque les défauts y voyagent — et
+       devient le défaut d'aujourd'hui, plutôt qu'un refus compté à l'import. */
+    stories:         { defaut: 'integree', type: 'choix',
+                       valeurs: ['twitch', 'integree', 'masquee'],
+                       depuis: { false: 'masquee', true: 'integree' } },
     /* La ligne « Protégez votre série » : telle que Twitch la dessine, rangée
        dans le bloc filtre (cf. syncSerie), ou retirée. Pas « css » : la puce
        est un élément à nous, que le JS pose et retire. */
@@ -2840,7 +2849,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       const d = OPT_DEFS[id];
       if (!d) return undefined;
       if (d.type === 'bool')  return typeof v === 'boolean' ? v : undefined;
-      if (d.type === 'choix') return d.valeurs.includes(v) ? v : undefined;
+      if (d.type === 'choix') {
+        const w = typeof v === 'boolean' && d.depuis ? d.depuis[v] : v;
+        return d.valeurs.includes(w) ? w : undefined;
+      }
       if (d.type === 'jeu') {
         if (!Array.isArray(v)) return undefined;
         const gardes = v.filter((x) => d.valeurs.includes(x));
@@ -4644,9 +4656,11 @@ const TSE_GATE_MAX_CLICKS = 5;
       border: 1px solid rgba(var(--tse-encre), 0.08);
       border-radius: 6px;
     }
-    /* Rangée des stories : masquée UNIQUEMENT en mode Top Chaînes. Elle
-       reste intacte sur les chaînes suivies, où elle a du sens. */
-    body.tse-global-mode [data-tse-stories="row"] { display: none !important; }
+    /* Rangée des stories : masquée QUAND LE JS LA MARQUE (cf. syncStories),
+       qui sait le réglage, le mode et l'état de la sidebar. Les deux
+       attributs pèsent plus que la classe hachée de son composant de mise en
+       page, dont la feuille arrive après la nôtre. */
+    [data-tse-stories="row"][data-tse-stories-masquee] { display: none !important; }
     /* Twitch ne lui donne d'air qu'AU-DESSUS (style="margin-top: 0.7rem" posé
        en ligne) : en dessous, elle touchait notre bloc filtre. On lui rend la
        même valeur en bas, dans la même unité, pour qu'elle respire des deux
@@ -4675,7 +4689,10 @@ const TSE_GATE_MAX_CLICKS = 5;
        lien l'emporterait, à spécificité égale, par son seul rang. */
     a[data-tse-ligne-serie],
     [data-tse-ligne-serie] + .side-nav-show-more-toggle__button { display: none !important; }
-    .tse-serie {
+    /* LA TRAME EST COMMUNE AUX DEUX PUCES — série et stories (4.23.0) : ce
+       sont les deux invitations de Twitch, et elles se lisent comme une seule
+       famille. */
+    .tse-serie, .tse-stories {
       display: flex; align-items: center; gap: 8px;
       height: 28px; padding: 0 8px 0 5px; box-sizing: border-box;
       background: var(--tse-champ);
@@ -4686,15 +4703,18 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* C'EST UN LIEN, et la page a ses règles de lien — « a:hover », qui
        recolore et souligne, pèse plus qu'une classe seule. L'identifiant du
        bloc les passe toutes, quel que soit leur rang. */
-    #tse-filter > .tse-serie { color: var(--color-text-base, #efeff1); text-decoration: none; }
-    .tse-serie:hover { border-color: rgba(145, 71, 255, 0.5); }
-    .tse-serie:focus-visible { outline: none; border-color: ${CFG.PURPLE}; box-shadow: 0 0 0 1px ${CFG.PURPLE}; }
+    #tse-filter > .tse-serie,
+    #tse-filter > .tse-stories { color: var(--color-text-base, #efeff1); text-decoration: none; }
+    .tse-serie:hover, .tse-stories:hover { border-color: rgba(145, 71, 255, 0.5); }
+    .tse-serie:focus-visible,
+    .tse-stories:focus-visible { outline: none; border-color: ${CFG.PURPLE}; box-shadow: 0 0 0 1px ${CFG.PURPLE}; }
     .tse-serie-av {
       flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%; overflow: hidden;
       box-shadow: 0 0 0 1.5px var(--color-orange-12, #ffb018);
     }
     .tse-serie-av img { display: block; width: 100%; height: 100%; object-fit: cover; }
-    .tse-serie-texte { flex: 1 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .tse-serie-texte,
+    .tse-stories-texte { flex: 1 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
     .tse-serie-fin {
       display: inline-flex; align-items: center; gap: 3px;
       color: var(--color-orange-12, #ffb018); font-size: 1.1rem; font-weight: 700;
@@ -4703,6 +4723,41 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-serie-nombre:empty { display: none; }
     .tse-serie-fin svg { width: 12px; height: 12px; }
     .tse-serie-fin svg path { fill: currentColor; }
+
+    /* ── LA RANGÉE DES STORIES, EN PUCE (4.23.0, cf. syncStories) ─────────
+       La puce des stories est un BOUTON — la rangée de Twitch ouvre une
+       visionneuse, elle n'a pas d'adresse — et un bouton ne prend ni la
+       police ni l'alignement de la page : on les lui rend. */
+    .tse-stories { font-family: inherit; text-align: left; cursor: pointer; }
+    /* La pile : trois avatars au plus, de 15 px, qui se chevauchent dans une
+       gélule de 18 px. Son contour est l'anneau de Twitch — violet → cyan,
+       mesurés sur la capture — quand un nombre de non lues a été lu ; un
+       filet neutre sinon. */
+    .tse-stories-pile {
+      display: inline-flex; padding: 1.5px; border-radius: 999px;
+      background: var(--tse-anneau);
+    }
+    .tse-stories--non-lues .tse-stories-pile {
+      background: linear-gradient(200deg, ${CFG.PURPLE} 25%, #0bc1f6 85%);
+    }
+    .tse-stories-pile:empty { display: none; }
+    .tse-stories-pile img {
+      display: block; width: 15px; height: 15px; border-radius: 50%; object-fit: cover;
+      box-shadow: 0 0 0 1px var(--tse-decoupe);
+    }
+    .tse-stories-pile img + img { margin-left: -8px; }
+    .tse-stories-pile img:nth-child(1) { z-index: 3; }
+    .tse-stories-pile img:nth-child(2) { z-index: 2; }
+    /* Le nombre de non lues : la pastille des compteurs du bloc (cf.
+       .tse-sort-count), posée dans le flux plutôt qu'en coin. */
+    .tse-stories-nombre {
+      min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 999px; background: ${CFG.PURPLE}; color: #fff;
+      font-size: 0.95rem; font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .tse-stories-nombre:empty { display: none; }
     .tse-mode-tab {
       flex: 1 1 auto; min-width: 0;
       display: inline-flex; align-items: center; justify-content: center;
@@ -5813,11 +5868,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     html[data-tse-off~="tri-costream"] .tse-sort-toggle[data-tse-sort-mode="costream"] {
       display: none !important;
     }
-
-    /* — Les Stories de Twitch. Le produit ne les masquait qu'en mode global,
-         où la place manque ; ce réglage permet de les retirer tout le temps.
-         Le défaut reste « affichées », c'est-à-dire ce que Twitch fait. — */
-    html[data-tse-off~="stories"] [data-tse-stories="row"] { display: none !important; }
 
     /* — Les badges de l'aperçu, un par un — */
     html[data-tse-off~="badge-ccl"]      .tse-preview__badge--ccl,
@@ -12774,6 +12824,61 @@ const TSE_GATE_MAX_CLICKS = 5;
               : null,
           };
         })(),
+        /* ── LA RANGÉE DES STORIES (4.23.0) ───────────────────────────────
+           Seul son bloc externe a été relevé : la puce lit la rangée sans en
+           supposer la forme, et ce bloc dit ce qu'elle y a trouvé.
+             • `nombre`, `etiquettes`, `images`, `cible` — ce que la puce a
+               lu, et ce qu'un clic actionne ;
+             • `place`, `dansBarre` — où Twitch la rend, avant ou après notre
+               bloc : elle a changé de place depuis le relevé du 21/08 ;
+             • `espaceCartesPx` — du bas de notre bloc à la première carte :
+               une fois la rangée rangée, l'écart d'une barre sans stories ;
+             • `squelette` — balises, classes stables et attributs repères,
+               sans un mot de texte ni une adresse. */
+        stories: (() => {
+          const r = rangeeStories();
+          const bloc = document.getElementById(FILTER_ID);
+          const nav = document.querySelector(DOM.sidebarRoot);
+          const puce = bloc?.querySelector(':scope > .tse-stories') || null;
+          const lu = r ? lireStories(r) : null;
+          const cible = r ? cibleStories(r) : null;
+          const carte = nav ? [...nav.querySelectorAll('.side-nav-card')]
+            .find((c) => c.getClientRects().length > 0) : null;
+          const out = {
+            rangee: !!r,
+            masquee: !!r && r.hasAttribute(STORIES_MARQUE),
+            puce: !!puce,
+            nombre: puce?.querySelector('.tse-stories-nombre')?.textContent || null,
+            etiquettes: lu ? lu.etiquettes : null,
+            images: lu ? lu.sources.length : null,
+            cible: cible ? (cible === r ? 'rangee' : cible.tagName.toLowerCase()) : null,
+            place: r && bloc
+              ? (bloc.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING ? 'apres-bloc' : 'avant-bloc')
+              : null,
+            dansBarre: r && nav ? nav.contains(r) : null,
+            reglage: options.get('stories'),
+            espaceCartesPx: bloc && carte
+              ? Math.round(carte.getBoundingClientRect().top - bloc.getBoundingClientRect().bottom)
+              : null,
+            squelette: {},
+          };
+          if (r) {
+            const stable = (k) => /^(side-nav|tw-|tse-)/.test(k) || /stories/i.test(k);
+            let n = 0;
+            const decrire = (e, prof) => {
+              if (n >= 30 || prof > 7) return;
+              n++;
+              const marques = [...e.classList].filter(stable).map((k) => '.' + k).join('')
+                + (e.hasAttribute('aria-label') ? '[aria-label]' : '')
+                + (e.getAttribute('role') ? `[role=${e.getAttribute('role')}]` : '')
+                + (e.getAttribute('data-a-target') ? `[data-a-target=${e.getAttribute('data-a-target')}]` : '');
+              out.squelette[String(n).padStart(3, '0')] = '· '.repeat(prof) + e.tagName.toLowerCase() + marques;
+              for (const enfant of e.children) decrire(enfant, prof + 1);
+            };
+            decrire(r, 0);
+          }
+          return out;
+        })(),
         promues: (() => {
           const estPromue = (c) => !!c.querySelector('a[class*="--promoted-followed"]');
           const liste = cartes.filter(estPromue);
@@ -12816,7 +12921,11 @@ const TSE_GATE_MAX_CLICKS = 5;
               if (n >= 30 || prof > 7) return;
               n++;
               const classes = [...e.classList].filter(stable);
-              r.squelette[String(n).padStart(2, '0')] = '· '.repeat(prof)
+              /* TROIS CHIFFRES, et ce n'est pas de la coquetterie : « 10 » est un
+                 index pour JavaScript, qui range les index EN TÊTE d'un objet —
+                 à deux chiffres, le dixième nœud passait devant le premier, et
+                 le squelette se lisait dans le désordre (vu à la 4.23.0). */
+              r.squelette[String(n).padStart(3, '0')] = '· '.repeat(prof)
                 + e.tagName.toLowerCase() + classes.map(k => '.' + k).join('');
               for (const enfant of e.children) decrire(enfant, prof + 1);
             };
@@ -19557,6 +19666,14 @@ const TSE_GATE_MAX_CLICKS = 5;
    * Twitch réorganisait sa barre au point que le repère se retrouve dans la
    * section suivie, la remontée finirait par englober la liste — mieux vaut
    * ne rien masquer que vider la sidebar.
+   *
+   * DEUX FAUX CANDIDATS SONT ÉCARTÉS (4.23.0), et le second est né avec la
+   * puce. Le décor « stories » que Twitch pose autour de l'avatar d'une
+   * chaîne qui en publie : sans rangée à l'écran, il devenait le premier
+   * repère venu, et c'est l'avatar d'une carte qu'on aurait pris pour la
+   * rangée. Et notre propre puce, dont la classe dit « stories » et qui vit
+   * dans notre bloc — AVANT la rangée de Twitch quand celle-ci arrive après
+   * lui, comme sur la capture du 28/09.
    */
   const STORIES_RE = /stories/i;
   const classOf = (el) => el?.getAttribute?.('class') || '';
@@ -19570,7 +19687,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     // trouver. On part du parent, ce qui couvre les deux emplacements.
     const root = nav.parentElement || nav;
     if (root.querySelector('[data-tse-stories="row"]')) return;
-    let el = root.querySelector(DOM.storiesSelector);
+    let el = [...root.querySelectorAll(DOM.storiesSelector)]
+      .find((x) => !x.closest(`.side-nav-card, #${FILTER_ID}`));
     if (!el) return;
     // Prendre le bloc le PLUS EXTERNE de la grappe « stories » : le repère
     // peut être un descendant, et masquer lui seul laisserait les vignettes.
@@ -19625,10 +19743,22 @@ const TSE_GATE_MAX_CLICKS = 5;
      vu qu'une, mais rien ne dit que Twitch n'en rende pas une par chaîne en
      danger. La puce, elle, parle de la première. */
   const SERIE_MARQUE = 'data-tse-ligne-serie';
-  const nombreSerie = (etiquette) => {
+  /* Le nombre SEUL d'une étiquette, ou rien — la règle vaut pour la série
+     comme pour les stories. */
+  const nombreSeul = (etiquette) => {
     const seuls = [...(etiquette || '').matchAll(/(?<![\p{L}\p{N}])\d+(?:[\s.,]\d{3})*(?![\p{L}\p{N}])/gu)];
     return seuls.length === 1 ? seuls[0][0].replace(/\D/g, '') : '';
   };
+  /* On n'écrit que ce qui a changé, pour deux raisons qui se mesurent : les
+     puces vivent DANS la barre latérale, où remplacer un nœud texte réveille
+     l'observateur, donc un balayage — une boucle ; et réécrire le « src »
+     d'une image, même à l'identique, la fait recharger — un avatar redemandé
+     à chaque passe. */
+  const poserAttr = (el, attr, v) => {
+    if (!v) { if (el.hasAttribute(attr)) el.removeAttribute(attr); }
+    else if (el.getAttribute(attr) !== v) el.setAttribute(attr, v);
+  };
+  const poserTexte = (el, v) => { if (el.textContent !== v) el.textContent = v; };
   /* Cherchées depuis le PARENT de la barre, comme les stories, qui vivent à
      côté d'elle et non dedans : le conteneur de la ligne ne s'est pas vu. */
   const lignesSerie = () => {
@@ -19675,23 +19805,13 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (!puce) puce = construirePuce();
     if (bloc.firstElementChild !== puce) bloc.prepend(puce);
 
-    /* On n'écrit que ce qui a changé, pour deux raisons qui se mesurent : la
-       puce vit DANS la barre latérale, où remplacer un nœud texte réveille
-       l'observateur, donc un balayage — une boucle ; et réécrire le « src »
-       d'une image, même à l'identique, la fait recharger — un avatar
-       redemandé à chaque passe. */
-    const poser = (el, attr, v) => {
-      if (!v) { if (el.hasAttribute(attr)) el.removeAttribute(attr); }
-      else if (el.getAttribute(attr) !== v) el.setAttribute(attr, v);
-    };
-    const texte = (el, v) => { if (el.textContent !== v) el.textContent = v; };
     const etiquette = ligne.getAttribute('aria-label') || '';
-    poser(puce, 'href', ligne.getAttribute('href'));
-    poser(puce, 'aria-label', etiquette);
-    poser(puce, 'title', etiquette);
-    poser(puce.querySelector('img'), 'src', ligne.querySelector('img.tw-image-avatar')?.getAttribute('src'));
-    texte(puce.querySelector('.tse-serie-texte'), (ligne.querySelector('p')?.textContent || '').trim());
-    texte(puce.querySelector('.tse-serie-nombre'), nombreSerie(etiquette));
+    poserAttr(puce, 'href', ligne.getAttribute('href'));
+    poserAttr(puce, 'aria-label', etiquette);
+    poserAttr(puce, 'title', etiquette);
+    poserAttr(puce.querySelector('img'), 'src', ligne.querySelector('img.tw-image-avatar')?.getAttribute('src'));
+    poserTexte(puce.querySelector('.tse-serie-texte'), (ligne.querySelector('p')?.textContent || '').trim());
+    poserTexte(puce.querySelector('.tse-serie-nombre'), nombreSeul(etiquette));
     /* La flamme est celle de Twitch, clonée une fois : c'est son dessin, et
        notre feuille ne fait que la recolorer. */
     const fin = puce.querySelector('.tse-serie-fin');
@@ -19699,6 +19819,108 @@ const TSE_GATE_MAX_CLICKS = 5;
       const svg = ligne.querySelector('svg');
       if (svg) fin.appendChild(svg.cloneNode(true));
     }
+  }
+
+  /* ── LA RANGÉE DES STORIES, EN PUCE SOUS LA SÉRIE (4.23.0) ───────────────
+     DEMANDÉ SUR CAPTURE, après la série : « la partie Stories fait un peu
+     tache ». Mesuré au pixel : 46 px pour une action, une pile d'avatars de
+     37 px — l'objet le plus haut de la barre —, le violet des liens de Twitch
+     en graisse normale, un bord gauche à 11 px sous des contrôles à 16. Et
+     une place qui a changé depuis le relevé du 21/08 : sous notre bloc, collée
+     aux cartes, là où elle était au-dessus du titre.
+
+     LA MÊME PUCE QUE LA SÉRIE, juste sous elle : même puits, même filet,
+     28 px, texte blanc semi-gras. La pile passe à 18 px et garde l'anneau
+     violet → cyan de Twitch, qui dit « non lues ». Elle se ferme sur le
+     nombre de chaînes aux stories non lues — écrit dans une étiquette
+     accessible, jamais affiché —, dans la pastille violette que le bloc
+     emploie déjà pour les abonnements. Posée dans notre bloc, elle a une
+     place fixe, quel que soit le moment où Twitch rend sa rangée.
+
+     CE QU'ON NE SAIT PAS DE LA RANGÉE, et que la puce ne suppose donc pas :
+     seul son bloc externe a été relevé. Le clic va au premier bouton qu'elle
+     contient, à défaut à elle-même ; la pile reprend ses trois premières
+     images ; le texte est celui de son dernier paragraphe ; le nombre, celui
+     des étiquettes qui n'en portent qu'un, s'ils disent tous le même. SANS
+     NOMBRE, L'ANNEAU RESTE NEUTRE : on n'affiche pas « non lues » sans l'avoir
+     lu. Le rapport porte le squelette de la rangée, pour corriger sans
+     deviner le jour où il faudra.
+
+     QUI DÉCIDE DE QUOI : les mêmes règles que la série, au même endroit du
+     balayage — réglage, mode Top Chaînes, sidebar réduite. */
+  const STORIES_MARQUE = 'data-tse-stories-masquee';
+  const rangeeStories = () => {
+    const nav = document.querySelector(DOM.sidebarRoot);
+    const racine = nav?.parentElement || nav;
+    return racine?.querySelector('[data-tse-stories="row"]') || null;
+  };
+  const cibleStories = (r) => r.querySelector('button, [role="button"], a[href]') || r;
+  const lireStories = (r) => {
+    const etiquettes = [r, ...r.querySelectorAll('[aria-label]')]
+      .map((e) => e.getAttribute('aria-label')).filter(Boolean);
+    const lus = etiquettes.map((e) => [e, nombreSeul(e)]).filter(([, n]) => n);
+    const nombres = [...new Set(lus.map(([, n]) => n))];
+    const p = [...r.querySelectorAll('p')].pop();
+    return {
+      etiquettes: etiquettes.length,
+      nombre: nombres.length === 1 ? nombres[0] : '',
+      etiquette: nombres.length === 1 ? lus[0][0] : '',
+      texte: ((p || r).textContent || '').replace(/\s+/g, ' ').trim(),
+      sources: [...new Set([...r.querySelectorAll('img')]
+        .map((i) => i.getAttribute('src')).filter(Boolean))].slice(0, 3),
+    };
+  };
+  const construirePuceStories = () => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tse-stories';
+    const pile = document.createElement('span');
+    pile.className = 'tse-stories-pile';
+    const txt = document.createElement('span');
+    txt.className = 'tse-stories-texte';
+    const nb = document.createElement('span');
+    nb.className = 'tse-stories-nombre';
+    b.append(pile, txt, nb);
+    b.addEventListener('click', () => {
+      const r = rangeeStories();
+      if (r) cibleStories(r).click();
+    });
+    return b;
+  };
+  function syncStories() {
+    const bloc = document.getElementById(FILTER_ID);
+    const rangee = rangeeStories();
+    const reglage = options.get('stories');
+    const masquer = state.globalMode || reglage === 'masquee'
+                    || (reglage === 'integree' && !sidebarCollapsed);
+    rangee?.toggleAttribute(STORIES_MARQUE, masquer);
+    let puce = bloc?.querySelector(':scope > .tse-stories') || null;
+    const voulue = !!rangee && !!bloc && reglage === 'integree' && !state.globalMode && !sidebarCollapsed;
+    if (!voulue) { puce?.remove(); return; }
+    if (!puce) puce = construirePuceStories();
+    /* Sous la puce de la série quand elle est là, en tête sinon — et déplacée
+       seulement si elle n'y est pas : un déplacement est une mutation, donc un
+       balayage. */
+    const serie = bloc.querySelector(':scope > .tse-serie');
+    const place = serie ? serie.nextElementSibling : bloc.firstElementChild;
+    if (place !== puce) bloc.insertBefore(puce, place);
+
+    const lu = lireStories(rangee);
+    poserTexte(puce.querySelector('.tse-stories-texte'), lu.texte);
+    poserTexte(puce.querySelector('.tse-stories-nombre'), lu.nombre);
+    poserAttr(puce, 'title', lu.etiquette || lu.texte);
+    poserAttr(puce, 'aria-label', lu.etiquette ? `${lu.texte}, ${lu.etiquette}` : lu.texte);
+    puce.classList.toggle('tse-stories--non-lues', !!lu.nombre);
+    /* Autant d'images que la rangée en montre, trois au plus ; une image
+       n'est ajoutée ou retirée que si le compte change. */
+    const pile = puce.querySelector('.tse-stories-pile');
+    while (pile.children.length > lu.sources.length) pile.lastElementChild.remove();
+    while (pile.children.length < lu.sources.length) {
+      const img = document.createElement('img');
+      img.alt = '';
+      pile.appendChild(img);
+    }
+    lu.sources.forEach((src, k) => poserAttr(pile.children[k], 'src', src));
   }
 
   /**
@@ -22342,6 +22564,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     ensureModeRow();
     syncSerie();           // APRÈS la bascule de mode : la puce se pose au-dessus d'elle
     tagStoriesRow();
+    syncStories();         // APRÈS le repérage de la rangée, et sous la puce de la série
     ensureGlobalBanner();
     ensureGlobalEmpty();
     hideNativeFollowedHeader();

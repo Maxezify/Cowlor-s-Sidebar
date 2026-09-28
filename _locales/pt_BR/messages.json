@@ -571,10 +571,10 @@
     "message": "O que a Twitch mostra"
   },
   "optStories": {
-    "message": "Stories"
+    "message": "Linha de stories"
   },
   "optDescStories": {
-    "message": "Ficam visíveis por padrão: é o que a Twitch faz."
+    "message": "«Integrada» coloca a linha de stories da Twitch no bloco de filtros, com o número de canais com stories não vistos. Sempre oculta no modo Top Canais."
   },
   "optSerie": {
     "message": "Sequência de visualização"

@@ -571,10 +571,10 @@
     "message": "Lo que muestra Twitch"
   },
   "optStories": {
-    "message": "Stories"
+    "message": "Fila de stories"
   },
   "optDescStories": {
-    "message": "Se muestran por defecto: es lo que hace Twitch."
+    "message": "«Integrada» coloca la fila de stories de Twitch en el bloque de filtros, con el número de canales con stories sin ver. Siempre oculta en el modo Top Canales."
   },
   "optSerie": {
     "message": "Racha de visualización"

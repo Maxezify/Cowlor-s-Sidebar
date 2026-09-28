@@ -571,10 +571,10 @@
     "message": "Was Twitch anzeigt"
   },
   "optStories": {
-    "message": "Stories"
+    "message": "Stories-Zeile"
   },
   "optDescStories": {
-    "message": "Standardmäßig sichtbar: so macht es Twitch."
+    "message": "„Integriert“ ordnet Twitchs Stories-Zeile in den Filterblock ein, mit der Zahl der Kanäle mit ungesehenen Stories. Im Modus „Top-Kanäle“ immer ausgeblendet."
   },
   "optSerie": {
     "message": "Zuschauerserie"

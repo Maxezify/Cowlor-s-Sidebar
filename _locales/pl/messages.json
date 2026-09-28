@@ -571,10 +571,10 @@
     "message": "Co pokazuje Twitch"
   },
   "optStories": {
-    "message": "Stories"
+    "message": "Sekcja Stories"
   },
   "optDescStories": {
-    "message": "Domyślnie widoczne: tak robi Twitch."
+    "message": "„Zintegrowana” przenosi sekcję Stories Twitcha do bloku filtrów, z liczbą kanałów z nieobejrzanymi Stories. Zawsze ukryta w trybie Najpopularniejsze kanały."
   },
   "optSerie": {
     "message": "Seria oglądania"

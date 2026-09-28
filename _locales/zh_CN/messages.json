@@ -571,10 +571,10 @@
     "message": "Twitch 显示的内容"
   },
   "optStories": {
-    "message": "动态"
+    "message": "动态栏"
   },
   "optDescStories": {
-    "message": "默认显示：Twitch 就是这么做的。"
+    "message": "「整合」会把 Twitch 的动态栏收进筛选区，并显示有未读动态的频道数。在「热门频道」模式下始终隐藏。"
   },
   "optSerie": {
     "message": "观看连续记录"

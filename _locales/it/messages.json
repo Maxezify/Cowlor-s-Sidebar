@@ -571,10 +571,10 @@
     "message": "Ciò che mostra Twitch"
   },
   "optStories": {
-    "message": "Storie"
+    "message": "Riga delle storie"
   },
   "optDescStories": {
-    "message": "Restano visibili per impostazione predefinita: è ciò che fa Twitch."
+    "message": "«Integrata» sposta la riga delle storie di Twitch nel blocco dei filtri, con il numero di canali con storie non viste. Sempre nascosta in modalità Canali di punta."
   },
   "optSerie": {
     "message": "Serie di visualizzazione"

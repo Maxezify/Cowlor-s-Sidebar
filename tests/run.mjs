@@ -2252,7 +2252,10 @@ titre('35. Top Chaînes — basculer, afficher, revenir');
       const inactif = row?.querySelector('[data-tse-mode][aria-pressed="false"]');
       return row ? {
         dansFiltre: row.parentElement?.id === 'tse-filter',
-        premier: bar?.firstElementChild?.id === 'tse-mode-row',
+        /* En tête du bloc, ou juste sous les puces de Twitch (série,
+           stories), qui passent avant elle depuis la 4.22. */
+        premier: [...(bar?.children || [])]
+          .find((c) => !c.matches('.tse-serie, .tse-stories'))?.id === 'tse-mode-row',
         aria: row.getAttribute('aria-label'),
         // La bascule doit former UNE piste, à la même trame verticale que la
         // rangée de filtres juste en dessous.
@@ -2274,7 +2277,7 @@ titre('35. Top Chaînes — basculer, afficher, revenir');
     ok('la bascule est posée', !!ui, 'absente');
     ok('dans notre bloc filtre, que React ne reconstruit pas',
        ui?.dansFiltre === true, JSON.stringify(ui));
-    ok('et en tête du bloc, juste sous la rangée des stories',
+    ok('et en tête du bloc, sous les seules puces de Twitch',
        ui?.premier === true, JSON.stringify(ui));
     ok('le groupe annonce son rôle', ui?.aria === S_MENU_ARIA, ui?.aria);
     // Un contrôle segmenté, et non deux pastilles flottantes : la rangée
@@ -2328,25 +2331,18 @@ titre('35. Top Chaînes — basculer, afficher, revenir');
        ui?.onglets[0].presse === 'true' && ui?.onglets[1].presse === 'false',
        JSON.stringify(ui?.onglets));
 
-    // La rangée des stories : visible en mode suivi, masquée en Top Chaînes.
+    /* Les stories : visibles en mode suivi — dans le bloc, en puce, depuis la
+       4.23 (cf. scénario 169) —, absentes en Top Chaînes. « Visibles » veut
+       donc dire : la rangée de Twitch OU sa puce. */
     const storiesVisible = () => page.evaluate(() => {
       const el = document.querySelector('[data-tse-stories="row"]');
-      return el ? getComputedStyle(el).display !== 'none' : null;
+      const puce = document.querySelector('#tse-filter > .tse-stories');
+      if (!el) return null;
+      return getComputedStyle(el).display !== 'none'
+        || (!!puce && getComputedStyle(puce).display !== 'none');
     });
     ok('la rangée des stories est repérée', await storiesVisible() !== null);
-    ok('et reste visible sur les chaînes suivies', await storiesVisible() === true);
-    // Twitch ne lui pose de marge qu'en haut (0,7rem, en ligne) : sans la
-    // nôtre en bas, elle touche le bloc filtre. Mesuré en pixels calculés,
-    // donc à l'échelle réelle de Twitch (racine à 62,5 % → 0,7rem = 7px).
-    ok('elle respire autant en dessous qu\'au-dessus',
-       await page.evaluate(() => {
-         const cs = getComputedStyle(document.querySelector('[data-tse-stories="row"]'));
-         return cs.marginBottom === cs.marginTop && cs.marginBottom === '7px';
-       }),
-       await page.evaluate(() => {
-         const cs = getComputedStyle(document.querySelector('[data-tse-stories="row"]'));
-         return `haut ${cs.marginTop} / bas ${cs.marginBottom}`;
-       }));
+    ok('et les stories restent visibles sur les chaînes suivies', await storiesVisible() === true);
     ok('le bloc marqué porte bien la vignette ET le libellé',
        await page.evaluate(() => {
          const el = document.querySelector('[data-tse-stories="row"]');
@@ -2422,7 +2418,7 @@ titre('35. Top Chaînes — basculer, afficher, revenir');
     ok('l\'onglet Top Chaînes devient actif',
        apres.actif.join(',') === 'global', apres.actif.join(','));
     ok('le menu natif n\'a toujours pas été atteint', apres.natif === 0, String(apres.natif));
-    ok('la rangée des stories disparaît en Top Chaînes',
+    ok('les stories disparaissent en Top Chaînes',
        await storiesVisible() === false);
     // Les sections de recommandation de Twitch parlent de ce que l'utilisateur
     // SUIT : elles n'ont plus de rapport avec un classement mondial.
@@ -2465,7 +2461,7 @@ titre('35. Top Chaînes — basculer, afficher, revenir');
        await page.evaluate(() =>
          document.querySelector('[data-tse-sort-mode="alpha"]')?.getAttribute('aria-pressed'))
          === 'true');
-    ok('la rangée des stories revient avec les chaînes suivies',
+    ok('les stories reviennent avec les chaînes suivies',
        await storiesVisible() === true);
     ok('et les sections de recommandation aussi', await recoVisible() === true);
     ok('les chaînes suivies réapparaissent',
@@ -7055,6 +7051,12 @@ titre('70. Panneau — la page rendue, mesurée');
          masquée, et le voisin nommé. */
       serie: { lignes: 1, masquees: 1, puce: true, nombre: '3', reglage: 'integree',
                voisin: 'div.side-nav-show-more-toggle__button', voisinMasque: true, espacePx: 41 },
+      /* La rangée des stories rendue APRÈS le bloc, comme sur la capture du
+         28/09, et un squelette de deux nœuds. */
+      stories: { rangee: true, masquee: true, puce: true, nombre: '4', etiquettes: 2, images: 3,
+                 cible: 'button', place: 'apres-bloc', dansBarre: true, reglage: 'integree',
+                 espaceCartesPx: 9,
+                 squelette: { '001': 'div.storiesLeftNavSection--csO9S', '002': '· button' } },
       /* Une bascule abandonnée ET un onglet lu par bascule : les deux lignes
          que la 4.20.0 ajoute, et qu'aucun rapport réel n'a encore portées. */
       relevesAbonnements: { horodatage: 0, enAttente: false,
@@ -7383,6 +7385,14 @@ titre('70. Panneau — la page rendue, mesurée');
      && /nombre\s+3/.test(vue.texte) && /espacePx\s+41/.test(vue.texte)
      && /voisin\s+div\.side-nav-show-more-toggle__button/.test(vue.texte),
      JSON.stringify((vue.texte.match(/SÉRIE DE VISIONNAGE[\s\S]{0,200}/) || [])[0]));
+  /* LA RANGÉE DES STORIES (4.23.0). Seul son bloc externe a été relevé : sa
+     place et son squelette sont les seules mesures qu'on en aura sur la vraie
+     page. Mutant — la ligne retirée du panneau — elles ne partent jamais. */
+  ok('…le bloc de la rangée des stories : sa place, sa cible, son squelette',
+     contient('RANGÉE DES STORIES / STORIES ROW') && /place\s+apres-bloc/.test(vue.texte)
+     && /cible\s+button/.test(vue.texte) && /espaceCartesPx\s+9/.test(vue.texte)
+     && /squelette\.001\s+div\.storiesLeftNavSection--csO9S/.test(vue.texte),
+     JSON.stringify((vue.texte.match(/RANGÉE DES STORIES[\s\S]{0,240}/) || [])[0]));
   /* POURQUOI LE RELEVÉ A RECHARGÉ, ET QUEL TÉMOIN A PROUVÉ CHAQUE CLIC.
      Mutants — l'une ou l'autre ligne retirée du rapport — : le vrai Twitch
      ne nous dirait jamais s'il tient son adresse à jour. */
@@ -16269,7 +16279,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
       collab: { defaut: true, type: 'bool' },
       abonnes: { defaut: 'plein', type: 'choix', valeurs: ['plein', 'discret', 'aucun'] },
       subathonJour: { defaut: true, type: 'bool' },
-      stories: { defaut: true, type: 'bool' },
+      stories: { defaut: 'integree', type: 'choix', valeurs: ['twitch', 'integree', 'masquee'] },
       serie: { defaut: 'integree', type: 'choix', valeurs: ['twitch', 'integree', 'masquee'] },
       abosPeriode: { defaut: 6, type: 'choix', valeurs: [3, 6, 12, 24] },
       topN: { defaut: 30, type: 'choix', valeurs: [10, 30, 50] },
@@ -16347,6 +16357,8 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
                     .filter((t) => /^opt[A-Z]/.test(t)),
       tuiles: [...document.querySelectorAll('#resume .tuile-val')].map((t) => t.textContent),
       serie: [...document.querySelectorAll('#reglages [data-reg="serie"] option')].map((o) => o.textContent),
+      stories: [...document.querySelectorAll('#reglages [data-reg="stories"] option')].map((o) => o.textContent),
+      nomStories: document.querySelector('#reglages [data-reg="stories"] .reg-nom')?.textContent,
       voisine: document.querySelector('#reglages [data-reg="serie"]')?.previousElementSibling?.dataset.reg,
     };
   });
@@ -16374,6 +16386,13 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      Twitch affiche — et ses trois états se disent en mots. Mutant — les trois
      mots retirés de MOTS_VALEUR — le menu propose « twitch », « integree »,
      « masquee ». */
+  /* LES STORIES AUSSI, depuis la 4.23.0 : un choix à trois états, et un nom
+     féminin — « Rangée des stories » — pour que « Intégrée » et « Masquée »
+     s'y accordent comme pour la série. Mutant — l'ancien libellé — « Stories :
+     Intégrée ». */
+  ok('la rangée des stories dit aussi ses trois états, sous un nom qui s\'accorde',
+     vue.stories.join('|') === 'Comme Twitch|Intégrée|Masquée' && vue.nomStories === 'Rangée des stories',
+     JSON.stringify({ menu: vue.stories, nom: vue.nomStories }));
   ok('la série de visionnage suit les stories, et son menu dit ses trois états en mots',
      vue.voisine === 'stories' && vue.serie.join('|') === 'Comme Twitch|Intégrée|Masquée',
      JSON.stringify({ voisine: vue.voisine, menu: vue.serie }));
@@ -22400,6 +22419,13 @@ const pageVariante = async (substitutions, init = null) => {
      lignes.length >= 10 && lignes.some((y) => y.includes('side-nav-promoted-followed-card__title'))
      && lignes.every((y) => !/soleil|Savonia|https?:/.test(y)),
      JSON.stringify(lignes.slice(0, 6)));
+  /* DANS L'ORDRE DU DOCUMENT, le lien d'abord. Trouvé à la 4.23.0 : à clés
+     de deux chiffres, JavaScript rangeait « 10 », « 11 »… EN TÊTE de l'objet,
+     et un squelette de plus de neuf nœuds se lisait à partir du dixième. */
+  ok('…lu dans l\'ordre du document, à partir du lien',
+     lignes.length >= 10 && lignes[0].startsWith('a.side-nav-card__link')
+     && lignes.slice(1).every((y) => y.startsWith('· ')),
+     JSON.stringify(Object.keys(bon?.squelette || {}).slice(0, 4)));
 
   /* ── SECOND TEMPS : UNE CARTE ORDINAIRE ARRIVE ───────────────────────────
      Elle sert de gabarit, et la carte sponsorisée doit lui être identique AU
@@ -22610,12 +22636,16 @@ const pageVariante = async (substitutions, init = null) => {
     return {
       ligne: vu(ligne), marquee: !!ligne?.hasAttribute('data-tse-ligne-serie'), toggle: vu(toggle),
       puce: !!puce, premiere: document.getElementById('tse-filter')?.firstElementChild === puce,
-      apres: puce?.nextElementSibling?.id || null,
+      /* Sous elle, la puce des stories (le décor en porte une rangée, cf.
+         scénario 169), puis les onglets. */
+      apres: puce?.nextElementSibling?.className || null,
+      ensuite: puce?.nextElementSibling?.nextElementSibling?.id || null,
     };
   });
   const v1 = await vue();
-  ok('la puce se pose EN TÊTE du bloc filtre, au-dessus des onglets',
-     v1.puce && v1.premiere && v1.apres === 'tse-mode-row', JSON.stringify(v1));
+  ok('la puce se pose EN TÊTE du bloc filtre, au-dessus des stories et des onglets',
+     v1.puce && v1.premiere && /\btse-stories\b/.test(v1.apres || '') && v1.ensuite === 'tse-mode-row',
+     JSON.stringify(v1));
   /* Mutants — le « a » retiré du sélecteur (la feuille de Twitch, venue
      après, gagne au rang) ; la règle du voisin retirée — la ligne ou son
      déroulant reste à l'écran. */
@@ -22970,7 +23000,7 @@ const pageVariante = async (substitutions, init = null) => {
    est — et la boucle ne s'arrête plus. Mesuré comme le scénario 156, au
    réveil de production. */
 {
-  titre('168. La série de visionnage — au repos, sa puce ne relance aucun balayage');
+  titre('168. Les puces de Twitch — au repos, elles ne relancent aucun balayage');
   const { page, ratees } = await pageVariante([
     [/REFRESH_TICK:\s*100\b/, 'REFRESH_TICK:   5_000'],
     [/LIVE_TTL:\s*600\b/, 'LIVE_TTL:       30_000'],
@@ -22990,6 +23020,7 @@ const pageVariante = async (substitutions, init = null) => {
   });
   await attendre(page, () => !document.body.classList.contains('tse-loading')
     && !!document.querySelector('#tse-filter > .tse-serie')
+    && !!document.querySelector('#tse-filter > .tse-stories')
     && window.tse.panneau.rapport().relevesAbonnements?.horodatage > 0, 15_000);
   await page.evaluate(async () => {
     const lire = () => window.tse.panneau.rapport().page.balayages.total;
@@ -23006,9 +23037,510 @@ const pageVariante = async (substitutions, init = null) => {
   const apres = await page.evaluate(() => ({
     total: window.tse.panneau.rapport().page.balayages.total,
     puce: !!document.querySelector('#tse-filter > .tse-serie .tse-serie-nombre')?.textContent,
+    /* La puce des stories vit dans le même bloc, avec son texte, son nombre
+       et sa pile : le décor porte la rangée, elle est donc mesurée ici aussi. */
+    stories: !!document.querySelector('#tse-filter > .tse-stories .tse-stories-nombre')?.textContent
+      && document.querySelectorAll('#tse-filter > .tse-stories .tse-stories-pile img').length > 0,
   }));
-  ok('la puce est posée, son nombre écrit, et au repos il ne passe pas plus de balayages que le réveil n\'en commande',
-     apres.puce && apres.total - avant <= 2, JSON.stringify({ n: apres.total - avant, puce: apres.puce }));
+  ok('les deux puces sont posées, nombres écrits, et au repos il ne passe pas plus de balayages que le réveil n\'en commande',
+     apres.puce && apres.stories && apres.total - avant <= 2,
+     JSON.stringify({ n: apres.total - avant, puce: apres.puce, stories: apres.stories }));
+  await page.close();
+}
+
+/* ═════════ LA RANGÉE DES STORIES, UNE PUCE SOUS LA SÉRIE ═══════════════════
+   DEMANDÉ SUR CAPTURE, après la série : la rangée « Ouvrir les stories »
+   « fait un peu tache » — 46 px pour une action, une pile de 37 px, le violet
+   des liens de Twitch, un bord gauche qui n'est pas le nôtre. Piste retenue :
+   la même puce que la série, et le réglage à trois états.
+
+   LE DÉCOR PORTE LA RANGÉE DU RELEVÉ DU 21/08, dont seul le bloc externe est
+   réel : la puce ne suppose rien de l'intérieur, et ce scénario en éprouve
+   plusieurs formes. Une feuille posée APRÈS la nôtre donne à la classe hachée
+   de la rangée un « display » en « !important », comme les composants de
+   mise en page de Twitch. */
+{
+  titre('169. La rangée des stories — une puce du bloc filtre, et son réglage');
+  const page = await fresh();
+  await page.evaluate(() => localStorage.setItem('tse:roue', 'vu'));
+  await page.reload();
+  await page.evaluate(() => {
+    const st = document.createElement('style');
+    st.textContent = '#side-nav { width: 240px; }';
+    document.head.appendChild(st);
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {
+      aube:  { id: '91', createdAt: h, viewers: 1500, game: 'Minecraft', tags: [] },
+      brume: { id: '92', createdAt: h, viewers: 700,  game: 'Minecraft', tags: [] },
+    };
+    window.__addCard('aube', 'Minecraft', '1,5 k');
+    window.__addCard('brume', 'Minecraft', '700');
+  });
+  await attendre(page, () => !!document.getElementById('tse-mode-row')
+    && !!document.querySelector('#tse-filter > .tse-stories')
+    && !document.body.classList.contains('tse-loading'), 15_000);
+  await page.evaluate(() => {
+    const st = document.createElement('style');
+    st.textContent = '.dQMmwU { display: flex !important; }';
+    document.head.appendChild(st);
+    window.__storiesClics = 0;
+    document.querySelector('[data-tse-stories="row"] button').addEventListener('click', () => {
+      window.__storiesClics++; });
+  });
+  await wait(page, 300);
+  const rapport = () => page.evaluate(() => window.tse.panneau.rapport().stories);
+  const secouer = () => page.evaluate(() => {
+    const t = document.createElement('div');
+    document.getElementById('cards').appendChild(t);
+    t.remove();
+  });
+  const vue = () => page.evaluate(() => {
+    const r = document.querySelector('[data-tse-stories="row"]');
+    const puce = document.querySelector('#tse-filter > .tse-stories');
+    return {
+      rangee: !!r && getComputedStyle(r).display !== 'none',
+      marquee: !!r?.hasAttribute('data-tse-stories-masquee'),
+      puce: !!puce && getComputedStyle(puce).display !== 'none',
+      premiere: document.getElementById('tse-filter')?.firstElementChild === puce,
+      apres: puce?.nextElementSibling?.id || null,
+    };
+  });
+
+  const v1 = await vue();
+  ok('la puce se pose en tête du bloc filtre, au-dessus des onglets',
+     v1.puce && v1.premiere && v1.apres === 'tse-mode-row', JSON.stringify(v1));
+  /* Mutant — le masquage à la spécificité d'une classe — la feuille du
+     décor, venue après, rend la rangée. */
+  ok('…et la rangée de Twitch est masquée, malgré le « !important » de son composant',
+     !v1.rangee && v1.marquee, JSON.stringify(v1));
+
+  /* LA TRAME DES CONTRÔLES DU BLOC, mesurée contre eux, comme la série. */
+  const geo = await page.evaluate(() => {
+    const puce = document.querySelector('#tse-filter > .tse-stories');
+    const onglets = document.getElementById('tse-mode-row');
+    const menu = document.querySelector('#tse-filter .tse-dd-btn');
+    const bloc = document.getElementById('tse-filter');
+    const b = (e) => e.getBoundingClientRect();
+    const st = (e) => getComputedStyle(e);
+    const p = b(puce), o = b(onglets);
+    const peau = (e) => [st(e).backgroundColor, st(e).borderTopColor, st(e).borderTopWidth,
+                         st(e).borderTopLeftRadius, st(e).fontSize, st(e).color,
+                         st(e).textDecorationLine].join(' ');
+    const pile = puce.querySelector('.tse-stories-pile');
+    const imgs = [...pile.querySelectorAll('img')].map(b);
+    const txt = puce.querySelector('.tse-stories-texte');
+    const rg = document.createRange(); rg.selectNodeContents(txt);
+    const nb = puce.querySelector('.tse-stories-nombre');
+    return {
+      hauteur: p.height, gauche: p.left - o.left, droite: p.right - o.right,
+      peau: peau(puce), peauMenu: peau(menu), poids: st(puce).fontWeight,
+      police: st(puce).fontFamily === st(bloc).fontFamily, curseur: st(puce).cursor,
+      pile: [b(pile).left - p.left, b(pile).height, Math.round((b(pile).top + b(pile).height / 2) - (p.top + p.height / 2))],
+      images: imgs.map((i) => [i.width, i.height]),
+      rondes: [...pile.querySelectorAll('img')].every((i) => st(i).borderTopLeftRadius === '50%'
+        && st(i).objectFit === 'cover' && st(i).boxShadow !== 'none'),
+      chevauchement: imgs.length > 1 ? imgs[1].left - imgs[0].left : null,
+      dessus: [...pile.querySelectorAll('img')].map((i) => st(i).zIndex).join(','),
+      texteGauche: Math.round(rg.getBoundingClientRect().left - b(pile).right),
+      nombre: [b(nb).height, p.right - b(nb).right, st(nb).backgroundColor, st(nb).color, st(nb).fontWeight],
+      pastille: (() => { const t = document.createRange(); t.selectNodeContents(nb);
+        const tr = t.getBoundingClientRect();
+        return { largeur: b(nb).width, rayon: st(nb).borderTopLeftRadius,
+                 taille: parseFloat(st(nb).fontSize) / parseFloat(st(document.documentElement).fontSize),
+                 chasse: st(nb).fontVariantNumeric,
+                 centre: Math.round(((tr.left + tr.width / 2) - (b(nb).left + b(nb).width / 2)) * 2) / 2 }; })(),
+    };
+  });
+  ok('…avec la trame des contrôles du bloc : 28 px, les bords des onglets, leur puits, leur filet, leur rayon',
+     geo.hauteur === 28 && Math.abs(geo.gauche) <= 0.5 && Math.abs(geo.droite) <= 0.5
+     && geo.peau === geo.peauMenu && geo.poids === '600',
+     JSON.stringify(geo));
+  /* Mutants — la police, l'alignement ou le curseur d'un bouton laissés au
+     navigateur — un texte en Arial, centré dans sa place, sous une flèche. */
+  ok('…un bouton qui prend la police de la barre, s\'aligne à gauche et se montre cliquable',
+     geo.police && geo.texteGauche === 8 && geo.curseur === 'pointer', JSON.stringify(geo));
+  ok('…une pile de 18 px à 6 px du bord, deux avatars ronds de 15 px qui se chevauchent, le premier dessus',
+     geo.pile.join() === '6,18,0' && geo.images.map((x) => x.join('x')).join() === '15x15,15x15'
+     && geo.chevauchement === 7 && geo.dessus === '3,2' && geo.rondes,
+     JSON.stringify(geo));
+  ok('…et le nombre dans la pastille violette des compteurs, ronde, centrée, à 9 px du bord',
+     geo.nombre[0] === 16 && geo.nombre[1] === 9 && geo.nombre[2] === 'rgb(145, 71, 255)'
+     && geo.nombre[3] === 'rgb(255, 255, 255)' && geo.nombre[4] === '800'
+     && geo.pastille.largeur === 16 && geo.pastille.rayon === '999px' && geo.pastille.taille === 0.95
+     && geo.pastille.chasse === 'tabular-nums' && Math.abs(geo.pastille.centre) <= 0.5,
+     JSON.stringify({ nombre: geo.nombre, pastille: geo.pastille }));
+
+  const contenu = () => page.evaluate(() => {
+    const puce = document.querySelector('#tse-filter > .tse-stories');
+    if (!puce) return null;
+    const nb = puce.querySelector('.tse-stories-nombre');
+    return {
+      texte: puce.querySelector('.tse-stories-texte').textContent,
+      nombre: nb.textContent, nombreVu: getComputedStyle(nb).display !== 'none',
+      titre: puce.title, aria: puce.getAttribute('aria-label'),
+      sources: [...puce.querySelectorAll('.tse-stories-pile img')].map((i) => i.getAttribute('src')),
+      nonLues: puce.classList.contains('tse-stories--non-lues'),
+      anneau: getComputedStyle(puce.querySelector('.tse-stories-pile')).backgroundImage,
+      neutre: getComputedStyle(puce.querySelector('.tse-stories-pile')).backgroundColor,
+      pileVue: getComputedStyle(puce.querySelector('.tse-stories-pile')).display !== 'none',
+    };
+  });
+  const c1 = await contenu();
+  ok('elle dit la rangée de Twitch : son texte, ses avatars, et le nombre de chaînes aux stories non lues',
+     c1?.texte === 'Ouvrir les stories' && c1.nombre === '4' && c1.nombreVu
+     && c1.sources.join() === 'https://cdn/a.png,https://cdn/b.png'
+     && c1.titre === '4 chaînes avec des stories non lues'
+     && c1.aria === 'Ouvrir les stories, 4 chaînes avec des stories non lues',
+     JSON.stringify(c1));
+  /* L'anneau de Twitch, violet → cyan, mesuré sur la capture : il dit « non
+     lues », et il ne le dit que si un nombre a été lu. */
+  ok('…et l\'anneau violet → cyan des non lues autour de la pile',
+     c1?.nonLues && /linear-gradient/.test(c1.anneau) && c1.anneau.includes('rgb(145, 71, 255)')
+     && c1.anneau.includes('rgb(11, 193, 246)'),
+     JSON.stringify(c1));
+
+  /* ── LES AVATARS NE SE RECHARGENT PAS À CHAQUE PASSE ─────────────────────
+     Mutant — l'adresse réécrite sans comparer — chaque image de la pile est
+     redemandée à chaque balayage, une vingtaine de fois en deux secondes. */
+  const recharges = await page.evaluate(async () => {
+    const imgs = [...document.querySelectorAll('#tse-filter > .tse-stories .tse-stories-pile img')];
+    const lire = () => window.tse.panneau.rapport().page.balayages.total;
+    let n = 0;
+    const f = () => { n++; };
+    for (const i of imgs) { i.addEventListener('load', f); i.addEventListener('error', f); }
+    const b0 = lire();
+    await new Promise((r) => setTimeout(r, 2000));
+    for (const i of imgs) { i.removeEventListener('load', f); i.removeEventListener('error', f); }
+    return { images: imgs.length, n, balayages: lire() - b0 };
+  });
+  ok('les avatars de la pile ne se rechargent pas à chaque balayage',
+     recharges.images === 2 && recharges.balayages >= 5 && recharges.n === 0, JSON.stringify(recharges));
+
+  /* ── LE SURVOL ET LE FOCUS, ceux de la série et du menu ─────────────── */
+  await page.hover('#tse-filter > .tse-stories');
+  await wait(page, 250);
+  const survol = await page.evaluate(() => getComputedStyle(document.querySelector('#tse-filter > .tse-stories')).borderTopColor);
+  await page.mouse.move(700, 5);
+  await page.keyboard.press('Shift');
+  await page.evaluate(() => document.querySelector('#tse-filter > .tse-stories').focus());
+  await wait(page, 250);
+  const focus = await page.evaluate(() => {
+    const puce = document.querySelector('#tse-filter > .tse-stories');
+    const st = getComputedStyle(puce);
+    const r = { visible: puce.matches(':focus-visible'), filet: st.borderTopColor, anneau: st.boxShadow,
+                contour: st.outlineStyle };
+    puce.blur();
+    return r;
+  });
+  ok('au survol, le filet passe au violet ; au clavier, l\'anneau violet',
+     survol === 'rgba(145, 71, 255, 0.5)' && focus.visible && focus.filet === 'rgb(145, 71, 255)'
+     && focus.anneau === 'rgb(145, 71, 255) 0px 0px 0px 1px' && focus.contour === 'none',
+     JSON.stringify({ survol, focus }));
+
+  /* ── LE CLIC ─────────────────────────────────────────────────────────── */
+  const clics = await page.evaluate(() => {
+    const avant = window.__storiesClics;
+    document.querySelector('#tse-filter > .tse-stories').click();
+    return window.__storiesClics - avant;
+  });
+  ok('un clic sur la puce est relayé au bouton de la rangée, une fois', clics === 1, String(clics));
+
+  /* ── CE QUE LA PUCE LIT, SUR PLUSIEURS FORMES ────────────────────────────
+     Seul le bloc externe est relevé. On change donc l'intérieur : les
+     étiquettes, les images, ce qu'on peut cliquer. */
+  const modifier = async (f) => {
+    await page.evaluate(f);
+    await secouer();
+    await wait(page, 400);
+    return { ...(await contenu()), rapport: await rapport() };
+  };
+  const sansNombre = await modifier(() => document.querySelector('[data-tse-stories="row"] [aria-label*="non lues"]')
+    .setAttribute('aria-label', 'Des stories non lues'));
+  /* Mutants — la classe « non lues » posée sans nombre, la règle « :empty » —
+     l'anneau des non lues sans rien pour le justifier, une pastille vide. */
+  ok('sans nombre lisible, pas de pastille, et un anneau neutre : on ne dit pas « non lues » sans l\'avoir lu',
+     sansNombre.nombre === '' && !sansNombre.nombreVu && !sansNombre.nonLues
+     && sansNombre.anneau === 'none' && sansNombre.neutre === 'rgb(70, 70, 86)'
+     && sansNombre.titre === 'Ouvrir les stories' && sansNombre.aria === 'Ouvrir les stories',
+     JSON.stringify(sansNombre));
+  const doublon = await modifier(() => {
+    document.querySelector('[data-tse-stories="row"] [aria-label="Des stories non lues"]')
+      .setAttribute('aria-label', '4 chaînes avec des stories non lues');
+    document.querySelector('[data-tse-stories="row"] button').setAttribute('aria-label', '4 stories');
+  });
+  const deux = await modifier(() => document.querySelector('[data-tse-stories="row"] button')
+    .setAttribute('aria-label', '5 stories'));
+  /* Mutant — le compte des étiquettes au lieu des nombres distincts — le même
+     nombre dit deux fois devient illisible ; deux nombres différents, lus. */
+  ok('…le même nombre dit deux fois se lit ; deux nombres différents ne se lisent pas',
+     doublon.nombre === '4' && deux.nombre === '' && doublon.rapport.etiquettes === 3,
+     JSON.stringify({ doublon: doublon.nombre, deux: deux.nombre, etiquettes: doublon.rapport.etiquettes }));
+  await modifier(() => document.querySelector('[data-tse-stories="row"] button').removeAttribute('aria-label'));
+
+  const quatre = await modifier(() => {
+    const zone = document.querySelector('[data-tse-stories="row"] [aria-label*="non lues"]');
+    for (const src of ['https://cdn/b.png', 'https://cdn/c.png', 'https://cdn/d.png']) {
+      const d = document.createElement('div');
+      d.innerHTML = '<div class="tw-avatar"><img class="tw-image-avatar" alt="" src="' + src + '"></div>';
+      zone.appendChild(d);
+    }
+  });
+  const une = await modifier(() => {
+    const imgs = [...document.querySelectorAll('[data-tse-stories="row"] img')];
+    imgs.slice(1).forEach((i) => i.closest('div').remove());
+  });
+  const aucune = await modifier(() => document.querySelector('[data-tse-stories="row"] img').closest('div').remove());
+  /* Mutants — la borne à trois, le dédoublonnage, les images en trop jamais
+     retirées, la pile vide laissée à l'écran. */
+  ok('…trois avatars au plus, sans doublon ; une image retirée de la rangée quitte la pile',
+     quatre.sources.join() === 'https://cdn/a.png,https://cdn/b.png,https://cdn/c.png'
+     && une.sources.join() === 'https://cdn/a.png' && aucune.sources.length === 0 && !aucune.pileVue
+     && quatre.pileVue,
+     JSON.stringify({ quatre: quatre.sources, une: une.sources, aucune: aucune.sources }));
+  await page.evaluate(() => {
+    const zone = document.querySelector('[data-tse-stories="row"] [aria-label*="non lues"]');
+    zone.innerHTML = '<div><div class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/a.png"></div></div>'
+      + '<div><div class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/b.png"></div></div>';
+  });
+  /* LES AUTRES FORMES DU CONTENU. Une image encore sans adresse (le chargement
+     paresseux en rend) ; un texte caché hors du paragraphe et un premier
+     paragraphe qui n'est pas le libellé ; un libellé coupé de retours à la
+     ligne ; l'étiquette posée sur la rangée elle-même ; un nombre à deux
+     chiffres, qui élargit la pastille de ses marges. */
+  const formesTexte = await modifier(() => {
+    const r = document.querySelector('[data-tse-stories="row"]');
+    const zone = r.querySelector('[aria-label*="non lues"]');
+    zone.insertAdjacentHTML('afterbegin', '<div><div class="tw-avatar"><img class="tw-image-avatar" alt=""></div></div>');
+    zone.insertAdjacentHTML('beforeend', '<span>4</span>');
+    r.querySelector('button').insertAdjacentHTML('afterbegin', '<p>Nouveau</p>');
+    [...r.querySelectorAll('p')].pop().textContent = 'Ouvrir\n   les  stories';
+    r.setAttribute('aria-label', zone.getAttribute('aria-label').replace('4', '12'));
+    zone.removeAttribute('aria-label');
+  });
+  const largeur = await page.evaluate(() => {
+    const nb = document.querySelector('#tse-filter > .tse-stories .tse-stories-nombre');
+    const t = document.createRange(); t.selectNodeContents(nb);
+    return Math.round(nb.getBoundingClientRect().width - t.getBoundingClientRect().width);
+  });
+  /* Mutants — le premier paragraphe au lieu du dernier, le texte entier de
+     la rangée, les espaces laissés tels quels, l'image sans adresse gardée,
+     l'étiquette de la rangée ignorée, la pastille sans marges. */
+  ok('…le libellé du dernier paragraphe, espaces ramenés ; une image sans adresse ignorée ; l\'étiquette de la rangée lue',
+     formesTexte.texte === 'Ouvrir les stories' && formesTexte.sources.join() === 'https://cdn/a.png,https://cdn/b.png'
+     && formesTexte.nombre === '12' && largeur === 8,
+     JSON.stringify({ texte: formesTexte.texte, sources: formesTexte.sources, nombre: formesTexte.nombre, largeur }));
+  await page.evaluate(() => {
+    const r = document.querySelector('[data-tse-stories="row"]');
+    r.removeAttribute('aria-label');
+    r.querySelector('button').innerHTML = '<div aria-label="4 chaînes avec des stories non lues">'
+      + '<div><div class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/a.png"></div></div>'
+      + '<div><div class="tw-avatar"><img class="tw-image-avatar" alt="" src="https://cdn/b.png"></div></div>'
+      + '</div><div aria-label="Ouvrir les stories"><p title="Ouvrir les stories">Ouvrir les stories</p></div>';
+  });
+
+  /* CE QU'UN CLIC ACTIONNE : le bouton s'il y en a un ; un élément qui en
+     joue le rôle ; un lien ; la rangée elle-même à défaut. */
+  const formes = await page.evaluate(async () => {
+    const r = document.querySelector('[data-tse-stories="row"]');
+    const b = r.querySelector('button');
+    const lire = async () => { await new Promise((ok) => setTimeout(ok, 50));
+      return window.tse.panneau.rapport().stories.cible; };
+    const out = { bouton: await lire() };
+    const role = document.createElement('div'); role.setAttribute('role', 'button');
+    role.setAttribute('data-a-target', 'stories-open');
+    role.append(...b.childNodes); b.replaceWith(role);
+    out.role = await lire();
+    out.reperes = Object.values(window.tse.panneau.rapport().stories.squelette)[1];
+    const lien = document.createElement('a'); lien.href = '/stories';
+    lien.append(...role.childNodes); role.replaceWith(lien);
+    out.lien = await lire();
+    const nu = document.createElement('div'); nu.append(...lien.childNodes); lien.replaceWith(nu);
+    out.nu = await lire();
+    let recus = 0;
+    const f = () => { recus++; };
+    r.addEventListener('click', f);
+    document.querySelector('#tse-filter > .tse-stories').click();
+    r.removeEventListener('click', f);
+    out.clicRangee = recus;
+    const bouton = document.createElement('button'); bouton.append(...nu.childNodes); nu.replaceWith(bouton);
+    bouton.addEventListener('click', () => { window.__storiesClics++; });
+    out.retour = await lire();
+    return out;
+  });
+  ok('…le clic va au bouton, à l\'élément qui en joue le rôle, au lien, et à la rangée à défaut',
+     formes.bouton === 'button' && formes.role === 'div' && formes.lien === 'a' && formes.nu === 'rangee'
+     && formes.clicRangee === 1 && formes.retour === 'button'
+     && formes.reperes === '· div[role=button][data-a-target=stories-open]',
+     JSON.stringify(formes));
+
+  /* ── LE RÉGLAGE ──────────────────────────────────────────────────────── */
+  const regler = async (valeur) => {
+    await page.evaluate((x) => window.tse.options.poser('stories', x), valeur);
+    await wait(page, 300);
+    return { ...(await vue()), rapport: await rapport() };
+  };
+  const twitch = await regler('twitch');
+  /* Twitch ne lui pose de marge qu'en haut (0,7rem, en ligne) : sans la
+     nôtre en bas, elle toucherait ce qui la suit. Vérifié là où elle se voit,
+     sous « Comme Twitch » (auparavant au scénario 35). */
+  const marges = await page.evaluate(() => {
+    const cs = getComputedStyle(document.querySelector('[data-tse-stories="row"]'));
+    return [cs.marginTop, cs.marginBottom];
+  });
+  ok('réglage « Comme Twitch » : la rangée revient, sans puce, et respire autant en dessous qu\'au-dessus',
+     twitch.rangee && !twitch.marquee && !twitch.puce && marges.join() === '7px,7px'
+     && twitch.rapport.reglage === 'twitch' && twitch.rapport.masquee === false,
+     JSON.stringify({ twitch, marges }));
+  const masquee = await regler('masquee');
+  ok('réglage « Masquée » : ni rangée ni puce',
+     !masquee.rangee && masquee.marquee && !masquee.puce, JSON.stringify(masquee));
+  const integree = await regler('integree');
+  ok('réglage « Intégrée » : la puce revient en tête du bloc',
+     !integree.rangee && integree.puce && integree.premiere, JSON.stringify(integree));
+
+  /* L'ANCIEN INTERRUPTEUR. Jusqu'à la 4.22, « stories » valait vrai ou faux ;
+     le stockage et les exports en portent encore. Faux — masquées — le reste ;
+     vrai était le défaut, et devient celui d'aujourd'hui. Le reste est refusé,
+     et la série, qui n'a jamais été un interrupteur, n'apprend rien. */
+  const anciens = await page.evaluate(() => {
+    const o = window.tse.options;
+    const r = {};
+    r.faux = [o.poser('stories', false), o().stories];
+    r.vrai = [o.poser('stories', true), o().stories];
+    r.rose = [o.poser('stories', 'rose'), o().stories];
+    /* Une CHAÎNE « false » n'est pas l'ancien interrupteur : seul un vrai
+       booléen se convertit, le reste est refusé comme n'importe quelle
+       valeur inconnue. */
+    r.chaine = [o.poser('stories', 'false'), o().stories];
+    r.serie = [o.poser('serie', false), o().serie];
+    return r;
+  });
+  await page.evaluate(() => localStorage.setItem('tse:options', JSON.stringify({ stories: false })));
+  await page.reload();
+  await attendre(page, () => !!document.getElementById('tse-mode-row')
+    && !!document.querySelector('[data-tse-stories="row"]'), 15_000);
+  await wait(page, 400);
+  const recharge = { ...(await vue()), reglage: await page.evaluate(() => window.tse.options().stories) };
+  ok('l\'ancien « éteint » devient « Masquée », à la pose comme au rechargement ; l\'ancien « allumé » devient le défaut',
+     anciens.faux.join() === 'true,masquee' && anciens.vrai.join() === 'true,integree'
+     && anciens.rose.join() === 'false,integree' && anciens.chaine.join() === 'false,integree'
+     && anciens.serie.join() === 'false,integree'
+     && recharge.reglage === 'masquee' && !recharge.rangee && !recharge.puce,
+     JSON.stringify({ anciens, recharge }));
+  await page.evaluate(() => window.tse.options.poser('stories', 'integree'));
+  /* Le rechargement a emporté le décor posé à la main : la largeur, la
+     feuille de la rangée et les cartes, qu'on remet. */
+  await page.evaluate(() => {
+    const st = document.createElement('style');
+    st.textContent = '#side-nav { width: 240px; } .dQMmwU { display: flex !important; }';
+    document.head.appendChild(st);
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {
+      aube:  { id: '91', createdAt: h, viewers: 1500, game: 'Minecraft', tags: [] },
+      brume: { id: '92', createdAt: h, viewers: 700,  game: 'Minecraft', tags: [] },
+    };
+    window.__addCard('aube', 'Minecraft', '1,5 k');
+    window.__addCard('brume', 'Minecraft', '700');
+  });
+  await attendre(page, () => !!document.querySelector('#tse-filter > .tse-stories'), 8000);
+
+  /* ── TOP CHAÎNES ─────────────────────────────────────────────────────── */
+  await page.evaluate(() => document.querySelector('[data-tse-mode="global"]').click());
+  await attendre(page, () => !document.querySelector('#tse-filter > .tse-stories'), 8000);
+  const top = await vue();
+  const topTwitch = await regler('twitch');
+  ok('en Top Chaînes, ni rangée ni puce — même réglée « Comme Twitch »',
+     !top.puce && !top.rangee && !topTwitch.rangee && !topTwitch.puce,
+     JSON.stringify({ top, topTwitch }));
+  await regler('integree');
+  await page.evaluate(() => document.querySelector('[data-tse-mode="followed"]').click());
+  await attendre(page, () => !!document.querySelector('#tse-filter > .tse-stories'), 8000);
+  const retour = await vue();
+  ok('…et de retour sur les chaînes suivies, la puce revient',
+     retour.puce && retour.premiere && !retour.rangee, JSON.stringify(retour));
+
+  /* ── SIDEBAR RÉDUITE ─────────────────────────────────────────────────── */
+  await page.evaluate(() => document.body.classList.add('side-nav--collapsed'));
+  await secouer();
+  await attendre(page, () => !document.querySelector('#tse-filter > .tse-stories'), 8000);
+  await wait(page, 300);
+  const reduite = await vue();
+  const reduiteMasquee = await regler('masquee');
+  await regler('integree');
+  await page.evaluate(() => document.body.classList.remove('side-nav--collapsed'));
+  await secouer();
+  await attendre(page, () => !!document.querySelector('#tse-filter > .tse-stories'), 8000);
+  const depliee = await vue();
+  ok('sidebar réduite, la rangée de Twitch reste — sauf réglée « Masquée » ; dépliée, la puce revient',
+     reduite.rangee && !reduite.puce && !reduiteMasquee.rangee && depliee.puce && !depliee.rangee,
+     JSON.stringify({ reduite, reduiteMasquee, depliee }));
+
+  /* ── LA PLACE DE LA CAPTURE : APRÈS NOTRE BLOC ───────────────────────────
+     Le relevé du 21/08 la mettait à côté de la barre ; la capture du 28/09
+     la montre sous notre bloc, collée aux cartes. La puce doit la trouver
+     aussi là, et la masquer sans laisser d'écart. */
+  await attendre(page, () => !document.body.classList.contains('tse-loading'), 15_000);
+  const avantDeplacement = await rapport();
+  await page.evaluate(() => {
+    const r = document.querySelector('[data-tse-stories="row"]');
+    const section = document.querySelector('.side-nav-section[aria-label="Chaînes suivies"]');
+    section.parentElement.insertBefore(r, section);
+  });
+  await secouer();
+  await wait(page, 400);
+  const apresBloc = { ...(await vue()), rapport: await rapport() };
+  const apresBlocTwitch = await regler('twitch');
+  await regler('integree');
+  ok('rendue sous notre bloc, comme sur la capture, elle est trouvée et rangée — sans laisser d\'écart',
+     avantDeplacement.place === 'avant-bloc' && avantDeplacement.dansBarre === false
+     && apresBloc.puce && apresBloc.premiere && !apresBloc.rangee
+     && apresBloc.rapport.place === 'apres-bloc' && apresBloc.rapport.dansBarre === true
+     && apresBloc.rapport.espaceCartesPx === avantDeplacement.espaceCartesPx
+     && apresBlocTwitch.rapport.espaceCartesPx >= avantDeplacement.espaceCartesPx + 30,
+     JSON.stringify({ avant: avantDeplacement.espaceCartesPx, apres: apresBloc.rapport.espaceCartesPx,
+                      twitch: apresBlocTwitch.rapport.espaceCartesPx, place: apresBloc.rapport.place }));
+
+  /* ── LE RAPPORT ──────────────────────────────────────────────────────── */
+  const r1 = await rapport();
+  const lignes = Object.values(r1.squelette || {});
+  ok('le rapport dit ce que la puce a lu, et le squelette de la rangée, dans l\'ordre et sans un mot',
+     r1.rangee && r1.masquee && r1.puce && r1.nombre === '4' && r1.etiquettes === 2 && r1.images === 2
+     && r1.cible === 'button' && r1.reglage === 'integree'
+     && lignes[0] === 'div.storiesLeftNavSection--csO9S' && lignes[1] === '· button'
+     && lignes.some((y) => y.includes('[aria-label]')) && lignes.some((y) => y.includes('img.tw-image-avatar'))
+     && lignes.every((y) => !/Ouvrir|chaînes|https?:/.test(y)),
+     JSON.stringify({ ...r1, squelette: lignes.slice(0, 5) }));
+
+  /* ── CE QUI N'EST PAS LA RANGÉE ──────────────────────────────────────────
+     La rangée retirée par Twitch, deux candidats restent : notre propre puce,
+     dont la classe dit « stories », et le décor « stories » d'une carte dont
+     la chaîne en publie. Aucun des deux ne doit devenir la rangée. */
+  await page.evaluate(() => document.querySelector('[data-tse-stories="row"]').remove());
+  await secouer();
+  await wait(page, 500);
+  const partie = await page.evaluate(() => ({
+    marques: document.querySelectorAll('[data-tse-stories="row"]').length,
+    puce: !!document.querySelector('#tse-filter > .tse-stories'),
+  }));
+  await page.evaluate(() => {
+    window.__avatarStories = ['conteuse'];
+    window.__fx.conteuse = { id: '93', createdAt: new Date(Date.now() - 3600_000).toISOString(),
+                             viewers: 900, game: 'Minecraft', tags: [] };
+    window.__addCard('conteuse', 'Minecraft', '900');
+  });
+  await attendre(page, () => !!document.querySelector('.side-nav-card[data-tse-login="conteuse"]'), 8000);
+  await secouer();
+  await wait(page, 500);
+  const decor = await page.evaluate(() => ({
+    marques: document.querySelectorAll('[data-tse-stories="row"]').length,
+    puce: !!document.querySelector('#tse-filter > .tse-stories'),
+    anneau: !!document.querySelector('.side-nav-card[data-tse-login="conteuse"] [class*="stories"]'),
+  }));
+  /* Mutants — l'une ou l'autre exclusion retirée — notre puce se prend pour
+     la rangée et se masque elle-même ; l'avatar d'une chaîne devient la pile. */
+  ok('quand Twitch retire la rangée, la puce s\'en va, et ni elle ni le décor d\'une carte ne sont pris pour la rangée',
+     partie.marques === 0 && !partie.puce && decor.anneau && decor.marques === 0 && !decor.puce,
+     JSON.stringify({ partie, decor }));
   await page.close();
 }
 
