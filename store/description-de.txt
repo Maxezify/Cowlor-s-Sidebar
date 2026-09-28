@@ -81,7 +81,7 @@ Die Kanäle, die du wirklich unterstützt, sollten nicht aussehen wie alle ander
 _______________________________
 
 ➤ ✨ VERPASSE NIE WIEDER EINEN STREAM-START!
-Erkenne sofort, welche Streams gerade erst live gegangen sind! Ein dezenter violetter Balken links markiert Streams, die in den letzten Minuten gestartet sind.
+Erkenne sofort, welche Streams gerade erst live gegangen sind! Ein dezenter roter Balken links markiert Streams, die in den letzten Minuten gestartet sind.
 
 - Ein feiner, eleganter visueller Effekt, um den Streamer zu begrüßen.
 - Perfekt, um unter den Ersten zu sein und nie das Intro zu verpassen!

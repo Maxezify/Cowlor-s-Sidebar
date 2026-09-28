@@ -81,7 +81,7 @@ Los canales a los que de verdad apoyás no deberían verse como todos los demás
 _______________________________
 
 ➤ ✨ ¡NO TE PIERDAS NUNCA MÁS EL INICIO DE UN STREAM!
-¡Detectá al instante los streams que recién empiezan! Una discreta barra morada del lado izquierdo señala los streams lanzados en los últimos minutos.
+¡Detectá al instante los streams que recién empiezan! Una discreta barra roja del lado izquierdo señala los streams lanzados en los últimos minutos.
 
 - Un efecto visual sutil y elegante para darle la bienvenida al streamer.
 - ¡Perfecto para estar entre los primeros y no perderte nunca la intro!

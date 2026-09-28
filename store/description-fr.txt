@@ -81,7 +81,7 @@ Les chaînes que vous soutenez vraiment ne devraient pas ressembler à toutes le
 _______________________________
 
 ➤ ✨ NE RATEZ PLUS JAMAIS UN DÉBUT DE STREAM !
-Repérez instantanément les streams qui viennent de démarrer ! Une discrète barre violette sur le côté gauche signale les streams lancés dans les dernières minutes.
+Repérez instantanément les streams qui viennent de démarrer ! Une discrète barre rouge sur le côté gauche signale les streams lancés dans les dernières minutes.
 
 - Un effet visuel subtil et élégant pour accueillir le streamer.
 - Parfait pour être parmi les premiers et ne jamais rater l'intro !
