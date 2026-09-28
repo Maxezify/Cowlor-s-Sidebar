@@ -338,12 +338,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1307 Ko | 476 Ko | 3 572 → **2** |
+| `content.js` | 1310 Ko | 477 Ko | 3 574 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 104 Ko | 50 Ko | 143 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1558 Ko** | **631 Ko** | **−60 %** |
+| **les cinq** | **1562 Ko** | **632 Ko** | **−60 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -1134,7 +1134,7 @@ L'onglet d'origine reste néanmoins **en mémoire**, lisible par `tse.subs()` :
 il est relevé sans requête supplémentaire et répond à une question qu'on se
 pose — « celui-là, je l'ai payé ou on me l'a offert ? ».
 
-**Comment cela cohabite** avec le violet de « stream frais » et la couleur d'un
+**Comment cela cohabite** avec le rouge de « stream frais » et la couleur d'un
 co-stream, qui occupent déjà le fond : la couche animée est posée en `z-index`
 **négatif** dans le contexte d'empilement de la carte. Elle se peint donc après
 le fond de la carte — dont elle laisse passer la teinte, étant très
@@ -1147,7 +1147,7 @@ qu'un compte ordinaire affiche —, **16,75 ms d'intervalle moyen entre images
 contre 16,76 ms** sans la décoration.
 
 Ce style **ne touche pas au fond de la carte**, volontairement. Le fond
-appartient déjà à « stream frais » (violet) et au co-stream (couleur du
+appartient déjà à « stream frais » (rouge) et au co-stream (couleur du
 groupe), et la barre de gauche leur appartient aussi. En n'occupant que le
 contour, la décoration d'abonné se superpose aux deux sans les effacer : une
 carte peut être fraîche, en co-stream **et** abonnée, les trois signaux restent
@@ -2616,6 +2616,130 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La barre « vient de démarrer », au rouge du direct (v4.24.0)
+
+> « Possibilité de remplacer le violet de la carte lorsqu'un stream commence
+> par du rouge ? C'est un peu plus visible et ça fait référence à la couleur du
+> bouton rouge lorsqu'un live est en cours. »
+
+Un direct lancé depuis moins de dix minutes garde sa barre qui respire, son
+halo et le lavis sur le fond de sa carte. **Seule la couleur change** : le
+violet devient le rouge de la pastille « en direct » de Twitch. L'animation,
+son amplitude, sa cadence et ses dix minutes ne bougent pas.
+
+### Le rouge est mesuré, pas recopié
+
+L'extension lit la couleur calculée de la pastille « en direct » d'une carte
+de la barre latérale. Elle la pose en variable sur `<html>` (`--tse-direct`),
+et la feuille en déduit tout le signal :
+
+| élément | couleur |
+| --- | --- |
+| la barre et son halo | le rouge mesuré |
+| le lavis, à gauche | le même rouge à 18 % (`color-mix`) |
+| le lavis, à 40 % de la carte | le même rouge à 6 % |
+
+Le rouge n'est pas écrit en dur, pour deux raisons. Une capture n'en donne pas
+la valeur exacte : on y lit `#ff0e00`, là où la valeur connue de Twitch est
+`#eb0400`, parce qu'un écran à large gamut décale les couleurs. Et Twitch peut
+la changer, d'un thème à l'autre ou d'une version à la suivante ; la barre la
+suivra alors sans mise à jour de l'extension.
+
+**Ce qui n'est pas mesuré** :
+
+- **une pastille translucide ou transparente** : elle dirait autre chose que le
+  rouge du direct, et la dernière mesure reste ;
+- **une pastille hors de la barre latérale** : on ne cherche que celles des
+  cartes ;
+- **une pastille en pleine transition** : cette extension fond en 300 ms le
+  fond des cartes et de tout ce qu'elles contiennent, la pastille comprise.
+  Un changement de thème la ferait donc passer par des rouges de passage,
+  opaques, que rien d'autre ne distinguerait du vrai. Le balayage suivant la
+  lit une fois arrivée.
+
+**Tant qu'aucune pastille n'a été vue**, la barre prend `#eb0400`, le rouge
+historique de Twitch. Et un balayage qui retrouve le même rouge ne modifie pas
+`<html>` : la norme CSSOM ne réécrit pas une déclaration identique.
+
+### Ce qui suit la même couleur
+
+- **La carte fraîche et en co-stream** : le rouge l'emporte sur la couleur du
+  groupe, comme le violet avant lui.
+- **La maquette du mode d'emploi** : elle est rouge aussi, `#eb0400` en dur.
+  Le panneau est une page d'extension, et il ne voit pas les pastilles de
+  Twitch.
+- **Le texte du chapitre**, dans les douze langues : « une barre rouge
+  apparaît… ».
+- **La fiche du Chrome Web Store**, dans les douze langues : « une discrète
+  barre rouge ».
+
+### Le voisinage du rose
+
+La palette des co-streams compte un rose, `#ff7a8a`, à 353° de teinte. Le
+rouge de Twitch, vers 1°, en est à 8°. C'était déjà le cas du violet d'avant :
+il tombait à 10° du violet de la palette.
+
+Ce n'est pas la teinte qui les sépare, mais le reste. D'un côté, un rouge plein
+et sombre qui **bat** ; de l'autre, un rose pâle immobile. Et sur une carte qui
+cumule les deux, le rouge l'emporte. La palette elle-même n'a donc pas bougé.
+
+### Ce que le rapport dit
+
+Le bloc `PAGE` gagne une ligne, `battement.rouge` :
+
+- **le rouge lu**, par exemple `rgb(235, 4, 0)` ;
+- **ou `null`**, tant qu'aucune pastille n'a été lue : la barre garde alors le
+  repli de la feuille.
+
+### Ce que le banc mesure
+
+Le **scénario 171** (sept assertions) compte deux moitiés :
+
+- **sans pastille colorée**, la barre, son halo, le lavis et la carte fraîche
+  en co-stream prennent `#eb0400`, et le rapport dit `null` ;
+- **avec la pastille de la capture**, `#ff0e00`, tout le signal le suit, et le
+  rapport donne `rgb(255, 14, 0)`.
+
+Il vérifie aussi trois refus :
+
+- une pastille translucide ;
+- une pastille placée **hors** de la barre latérale, avant elle dans le
+  document ;
+- une pastille en pleine transition vers le bleu, figée à mi-chemin sur une
+  teinte opaque : la mesure ne bouge pas, puis suit le bleu une fois la
+  transition finie.
+
+Enfin, il compte quatre balayages sur la même pastille, qui ne modifient pas
+une seule fois `<html>`. Il attend chaque balayage au compteur du rapport, et
+non à la montre.
+
+Le **scénario 96**, celui du mode d'emploi, gagne une assertion : la maquette
+est rouge, barre, halo et lavis.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| le repli changé, le violet rétabli, la mesure ignorée par la feuille (3) | une barre qui ne suit pas la pastille, ou l'ancien violet |
+| le lavis à 18 et à 6 %, la barre, le halo aux deux bornes du battement (5) | une pièce du signal restée à l'ancienne couleur |
+| la carte fraîche en co-stream : son lavis, sa barre (2) | le violet, sur la seule carte qui cumule |
+| l'appel dans le balayage, l'exigence d'opacité relâchée puis retirée, la portée à la barre latérale (4) | aucune mesure, une barre éteinte par une pastille transparente, un vert pris pour le rouge |
+| la garde de transition retirée, puis visant une autre propriété (2) | une teinte de passage prise pour le rouge |
+| la variable retirée puis reposée à chaque balayage (1) | trente-deux écritures sur `<html>` en quatre balayages |
+| le rapport, figé à `null` puis à la chaîne vide (2) | une lecture qui ne sait pas dire non |
+| la maquette : sa couleur, son lavis, sa barre, son halo (4) | le violet, dans le mode d'emploi |
+
+Vingt-trois mutants, vingt-trois pris.
+
+**Le premier tour en a laissé passer un**, et il avait raison : la comparaison
+qui n'écrivait la variable que si elle changeait. La norme CSSOM la rend
+superflue, et Chromium la respecte. La comparaison a donc été retirée, mais
+l'assertion est restée : c'est la variable retirée puis reposée qui la fait
+tomber.
+
+**Le même tour a montré une assertion sensible à la charge**. Relue après une
+attente fixe, la pastille était parfois en pleine transition : c'est ce qui a
+fait voir le fondu de 300 ms que l'extension pose sur elle. D'où la garde de
+transition, et un banc qui attend chaque balayage au compteur du rapport.
 
 ## La marge de droite, miroir de celle de gauche (v4.23.2)
 
@@ -12085,7 +12209,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 170 scénarios, 1456 assertions |
+| `npm test` | le harnais Playwright : 171 scénarios, 1464 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

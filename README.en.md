@@ -326,12 +326,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1307 KB | 476 KB | 3,572 → **2** |
+| `content.js` | 1310 KB | 477 KB | 3,574 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 104 KB | 50 KB | 143 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1558 KB** | **631 KB** | **−60 %** |
+| **all five** | **1562 KB** | **632 KB** | **−60 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -1092,7 +1092,7 @@ The originating tab is still **kept in memory**, readable via `tse.subs()`: it
 is collected with no extra request and answers a question one does ask — "that
 one, did I pay for it or was it gifted?".
 
-**How this coexists** with the purple of "fresh stream" and a co-stream's
+**How this coexists** with the red of "fresh stream" and a co-stream's
 colour, which already own the background: the animated layer sits at a
 **negative** `z-index` within the card's stacking context. It therefore paints
 after the card's background — whose hue shows through, being very transparent —
@@ -1105,7 +1105,7 @@ an ordinary account shows — **16.75 ms average frame interval against
 16.76 ms** without the decoration.
 
 This styling **does not touch the card's background**, deliberately. The
-background already belongs to "fresh stream" (purple) and to co-streams (the
+background already belongs to "fresh stream" (red) and to co-streams (the
 group's colour), and the left bar belongs to them too. By occupying only the
 outline, the subscriber decoration layers over both without erasing either: a
 card can be fresh, co-streaming **and** subscribed, all three signals stay
@@ -2481,6 +2481,124 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The "just went live" bar, in the live red (v4.24.0)
+
+> "Could the purple on the card when a stream starts be replaced with red? It
+> is a bit more visible, and it echoes the colour of the red button while a
+> stream is live."
+
+A stream that started less than ten minutes ago keeps its breathing bar, its
+glow and the wash on its card's background. **Only the colour changes**: the
+purple becomes the red of Twitch's "live" dot. The animation, its amplitude,
+its pace and its ten minutes are unchanged.
+
+### The red is measured, not copied
+
+The extension reads the computed colour of the "live" dot on a sidebar card. It
+sets it as a variable on `<html>` (`--tse-direct`), and the stylesheet derives
+the whole signal from it:
+
+| element | colour |
+| --- | --- |
+| the bar and its glow | the measured red |
+| the wash, on the left | the same red at 18 % (`color-mix`) |
+| the wash, 40 % across the card | the same red at 6 % |
+
+The red is not hard-coded, for two reasons. A screenshot does not give its
+exact value: it reads `#ff0e00` there, where Twitch's known value is `#eb0400`,
+because a wide-gamut screen shifts colours. And Twitch may change it, from one
+theme to the other or from one release to the next; the bar will then follow
+without an update of the extension.
+
+**What is not measured**:
+
+- **a translucent or transparent dot**: it would say something other than the
+  live red, and the last measurement stays;
+- **a dot outside the sidebar**: only the cards' dots are looked for;
+- **a dot in mid-transition**: this extension fades the background of cards,
+  and of everything inside them, over 300 ms, the dot included. A theme change
+  would therefore take it through in-between reds, opaque ones, that nothing
+  else would tell apart from the real one. The next scan reads it once it has
+  arrived.
+
+**As long as no dot has been seen**, the bar takes `#eb0400`, Twitch's
+historical red. And a scan that finds the same red again does not modify
+`<html>`: the CSSOM standard does not rewrite an identical declaration.
+
+### What follows the same colour
+
+- **A card that is both fresh and co-streaming**: the red wins over the group's
+  colour, as the purple did before it.
+- **The guide's mock-up**: it is red too, `#eb0400` hard-coded. The panel is
+  an extension page, and it cannot see Twitch's dots.
+- **The chapter's text**, in all twelve languages: "a red bar appears…".
+- **The Chrome Web Store listing**, in all twelve languages: "a subtle red
+  bar".
+
+### The pink next door
+
+The co-stream palette has a pink, `#ff7a8a`, at a hue of 353°. Twitch's red,
+around 1°, sits 8° away. That was already the case with the former purple: it
+fell 10° from the palette's violet.
+
+It is not the hue that tells them apart, but everything else. On one side, a
+solid, dark red that **pulses**; on the other, a still, pale pink. And on a card
+that carries both, the red wins. So the palette itself has not moved.
+
+### What the report says
+
+The `PAGE` block gains one line, `battement.rouge`:
+
+- **the red that was read**, for instance `rgb(235, 4, 0)`;
+- **or `null`**, as long as no dot has been read: the bar then keeps the
+  stylesheet's fallback.
+
+### What the bench measures
+
+**Scenario 171** (seven assertions) has two halves:
+
+- **with no coloured dot**, the bar, its glow, the wash and the fresh
+  co-streaming card take `#eb0400`, and the report says `null`;
+- **with the screenshot's dot**, `#ff0e00`, the whole signal follows it, and
+  the report gives `rgb(255, 14, 0)`.
+
+It also checks three refusals:
+
+- a translucent dot;
+- a dot placed **outside** the sidebar, before it in the document;
+- a dot in mid-transition towards blue, frozen halfway on an opaque shade: the
+  measurement does not move, then follows the blue once the transition is
+  over.
+
+Finally, it counts four scans over the same dot, which do not modify `<html>`
+even once. It waits for each scan on the report's counter, not on the clock.
+
+**Scenario 96**, the guide's, gains one assertion: the mock-up is red, bar,
+glow and wash.
+
+| mutants | what falls |
+| --- | --- |
+| the fallback changed, the purple put back, the measurement ignored by the stylesheet (3) | a bar that does not follow the dot, or the old purple |
+| the wash at 18 and 6 %, the bar, the glow at both ends of the pulse (5) | one piece of the signal left in the old colour |
+| the fresh co-streaming card: its wash, its bar (2) | the purple, on the one card that carries both |
+| the call in the sweep, the opacity requirement loosened then removed, the scope to the sidebar (4) | no measurement, a bar blanked by a transparent dot, a green taken for the red |
+| the transition guard removed, then aimed at another property (2) | an in-between shade taken for the red |
+| the variable removed then set again on every scan (1) | thirty-two writes on `<html>` over four scans |
+| the report, frozen to `null` then to the empty string (2) | a reading that cannot say no |
+| the mock-up: its colour, its wash, its bar, its glow (4) | the purple, in the guide |
+
+Twenty-three mutants, twenty-three caught.
+
+**The first round let one through**, and it was right: the comparison that only
+wrote the variable when it changed. The CSSOM standard makes it redundant, and
+Chromium honours it. The comparison was therefore removed, but the assertion
+stayed: it is the variable removed then set again that makes it fall.
+
+**The same round showed an assertion sensitive to load**. Read after a fixed
+wait, the dot was sometimes in mid-transition: that is what revealed the 300 ms
+fade the extension puts on it. Hence the transition guard, and a bench that
+waits for each scan on the report's counter.
 
 ## The right margin, mirroring the left (v4.23.2)
 
@@ -11657,7 +11775,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 170 scenarios, 1456 assertions |
+| `npm test` | the Playwright harness: 171 scenarios, 1464 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
