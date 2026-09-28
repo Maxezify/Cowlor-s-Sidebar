@@ -81,7 +81,7 @@ Los canales a los que de verdad apoyas no deberían parecerse a todos los demás
 _______________________________
 
 ➤ ✨ ¡NO VUELVAS A PERDERTE EL INICIO DE UN DIRECTO!
-¡Detecta al instante los directos que acaban de empezar! Una discreta barra morada en el lado izquierdo señala los directos lanzados en los últimos minutos.
+¡Detecta al instante los directos que acaban de empezar! Una discreta barra roja en el lado izquierdo señala los directos lanzados en los últimos minutos.
 
 - Un efecto visual sutil y elegante para dar la bienvenida al streamer.
 - ¡Perfecto para estar entre los primeros y no perderte nunca la intro!

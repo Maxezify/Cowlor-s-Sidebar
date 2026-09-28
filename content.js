@@ -2589,7 +2589,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* === Reprise après coupure ===
        `createdAt` mesure la SESSION, pas le direct. Un streamer qui perd sa
        connexion et revient repart de zéro : la carte affiche « 2m », et la
-       barre violette « vient de démarrer » s'allume sur un live qui en est à
+       barre rouge « vient de démarrer » s'allume sur un live qui en est à
        sa sixième heure. Le signal ne dit pas seulement autre chose que la
        vérité — il dit le CONTRAIRE : « tu n'as rien raté » quand tout est
        derrière.
@@ -3100,7 +3100,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        rendu d'avant plutôt que sur du texte invisible. C'est la même
        prudence que partout ailleurs ici.
 
-       Les ACCENTS — violet du direct frais, or de l'abonnement, teintes des
+       Les ACCENTS — or de l'abonnement, teintes des
        badges — ne peuvent pas se déduire : un texte pâle sur un fond
        translucide clair est illisible, quelle que soit la variable. Ils sont
        donc écrits deux fois, et les contrastes du thème clair ont été
@@ -3121,6 +3121,11 @@ const TSE_GATE_MAX_CLICKS = 5;
          elles, ne changent pas, parce que ce sont elles qui portent la
          hiérarchie, et une hiérarchie n'a pas de thème. */
       --tse-encre:        255, 255, 255;
+      /* LE ROUGE DU DIRECT (4.24.0) : celui de la pastille « en direct » de
+         Twitch, MESURÉ sur la page (cf. mesurerRougeDirect, qui pose
+         --tse-direct sur <html>). Le repli est le rouge historique de Twitch,
+         pour une page où aucune pastille n'a encore été vue. */
+      --tse-frais:        var(--tse-direct, #eb0400);
       /* Surfaces : nos panneaux (aperçu, menus déroulants, infobulles).
          « background-alt » et non « background-base » : en sombre, la base
          de Twitch vaut #0e0e10 — le fond de la PAGE — quand nos panneaux
@@ -3274,7 +3279,7 @@ const TSE_GATE_MAX_CLICKS = 5;
             data-tse-fading → fade-out symétrique.
        Les deux fondus partagent LOADING_FADE_MS pour un crossfade
        propre : la sidebar se révèle au même rythme que l'overlay
-       disparaît, masquant la barre violette "stream frais" qui
+       disparaît, masquant la barre rouge "stream frais" qui
        attirerait l'œil pendant le fondu sinon. */
     /* opacity:0 masque la sidebar ; pointer-events:none la rend inerte
        pendant le voile. Sans ce second point, la sidebar (invisible mais
@@ -3766,7 +3771,14 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     /* === Stream frais (< 10 min) ===
-       Fond violet subtil + barre lumineuse + halo qui pulse.
+       Fond rouge subtil + barre lumineuse + halo qui pulse.
+
+       ROUGE, ET PLUS VIOLET, depuis la 4.24.0, à la demande : « c'est un peu
+       plus visible, et ça fait référence à la couleur du bouton rouge
+       lorsqu'un live est en cours ». Le rouge n'est pas recopié, il est celui
+       de la pastille « en direct » de Twitch, mesuré (--tse-frais). Les
+       teintes du fond se déduisent de lui par « color-mix » : les mêmes 18 et
+       6 % qu'avant, sur une couleur qu'on ne connaît qu'à l'exécution.
 
        LE BATTEMENT SE VOYAIT À PEINE, et c'est un signalement qui l'a dit. Il
        allait de 0,7 à 1 d'opacité — trente pour cent d'écart sur une barre de
@@ -3788,8 +3800,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       isolation: isolate;
       background: linear-gradient(
         90deg,
-        rgba(145, 71, 255, 0.18) 0%,
-        rgba(145, 71, 255, 0.06) 40%,
+        color-mix(in srgb, var(--tse-frais) 18%, transparent) 0%,
+        color-mix(in srgb, var(--tse-frais) 6%, transparent) 40%,
         transparent 100%
       );
       border-radius: 4px;
@@ -3799,7 +3811,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       position: absolute;
       left: 0; top: 4px; bottom: 4px;
       width: 3px;
-      background: ${CFG.PURPLE};
+      background: var(--tse-frais);
       border-radius: 0 3px 3px 0;
       /* La barre s'élargit vers la DROITE, sur le dégradé de la carte, et non
          vers l'extérieur où elle mordrait sur la colonne voisine. */
@@ -3817,12 +3829,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       0%, 100% {
         opacity: 0.3;
         transform: scaleX(1);
-        box-shadow: 0 0 4px ${CFG.PURPLE}, 0 0 1px ${CFG.PURPLE};
+        box-shadow: 0 0 4px var(--tse-frais), 0 0 1px var(--tse-frais);
       }
       50% {
         opacity: 1;
         transform: scaleX(2);
-        box-shadow: 0 0 18px ${CFG.PURPLE}, 0 0 8px ${CFG.PURPLE};
+        box-shadow: 0 0 18px var(--tse-frais), 0 0 8px var(--tse-frais);
       }
     }
 
@@ -3830,7 +3842,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        une couleur différente par groupe. La couleur est définie via la
        variable --tse-costream-color posée en JS sur chaque carte.
        Si une carte est à la fois "fresh" ET "costream", "fresh" gagne
-       visuellement (priorité au violet animé). */
+       visuellement (priorité au rouge animé). */
     .side-nav-card.tse-costream {
       position: relative;
       isolation: isolate;
@@ -3857,11 +3869,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* Si "fresh" et "costream" se cumulent, fresh prend le dessus visuellement. */
     .side-nav-card.tse-fresh.tse-costream { background-image: linear-gradient(
         90deg,
-        rgba(145, 71, 255, 0.18) 0%,
-        rgba(145, 71, 255, 0.06) 40%,
+        color-mix(in srgb, var(--tse-frais) 18%, transparent) 0%,
+        color-mix(in srgb, var(--tse-frais) 6%, transparent) 40%,
         transparent 100%
       ); }
-    .side-nav-card.tse-fresh.tse-costream::before { background: ${CFG.PURPLE}; }
+    .side-nav-card.tse-fresh.tse-costream::before { background: var(--tse-frais); }
     /* Jonction de barres : deux cartes co-stream VISIBLES adjacentes du même
        groupe (classes posées en JS par applyCostreamJoins) → leurs barres
        latérales fusionnent en une seule. On prolonge la barre au-delà du bord
@@ -3888,7 +3900,7 @@ const TSE_GATE_MAX_CLICKS = 5;
        en mode réduit, où il n'y a ni fond ni texte à colorer.
 
        COMMENT ÇA COHABITE, alors que le fond appartient déjà à « frais »
-       (violet) et au co-stream (couleur du groupe) : la couche animée est
+       (rouge) et au co-stream (couleur du groupe) : la couche animée est
        posée en z-index NÉGATIF dans le contexte d'empilement de la carte.
        Elle se peint donc APRÈS le fond de la carte — dont elle laisse passer
        la teinte, étant elle-même très transparente — mais AVANT le contenu,
@@ -5809,7 +5821,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* — La carte dans la barre — */
     html[data-tse-off~="duree"] .tse-uptime { display: none !important; }
     /* « VIENT DE DÉMARRER » EST DEUX CHOSES, et le réglage n'en retirait
-       qu'une. La barre violette se voit, mais c'est le LAVIS sur le fond de
+       qu'une. La barre rouge se voit, mais c'est le LAVIS sur le fond de
        la carte qui la fait remarquer — un utilisateur a demandé que tous les
        éléments partent, pas seulement la barre. Le dégradé du co-stream frais
        est écrit séparément (background-image contre background), d'où les
@@ -12698,8 +12710,12 @@ const TSE_GATE_MAX_CLICKS = 5;
             const anims = document.getAnimations().filter(
               a => a.effect && a.effect.pseudoElement === '::before'
                 && a.effect.target && a.effect.target.classList.contains('tse-fresh'));
+            /* `rouge` : la couleur de la barre, mesurée sur la pastille « en
+               direct » de Twitch (4.24.0) — null tant qu'aucune n'a été lue,
+               et la barre garde alors le repli de la feuille. */
             return { fraiches: fraiches.length, animations: anims.length,
-                     etat: anims.length ? anims[0].playState : null };
+                     etat: anims.length ? anims[0].playState : null,
+                     rouge: document.documentElement.style.getPropertyValue('--tse-direct') || null };
           })(),
           theme: themeTwitch(),
           /* CE QUI EST RÉGLÉ DOIT ÊTRE DANS LE RAPPORT, et seulement ce qui
@@ -13907,7 +13923,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     /* UNE REPRISE N'EST PAS UN DÉBUT, et cette garde a changé de statut sans
        changer de texte utile. Le compteur de la carte repartait de zéro sur
        une reprise, et l'âge lu ici valait donc « deux minutes » : sans cette
-       ligne, la barre violette se rallumait sur un direct de six heures.
+       ligne, la barre « frais » se rallumait sur un direct de six heures.
 
        DEPUIS QUE LA CARTE COMPTE LE DIRECT ENTIER, l'âge vaut six heures et le
        seuil de dix minutes suffirait à lui seul. On garde pourtant la garde,
@@ -18965,6 +18981,37 @@ const TSE_GATE_MAX_CLICKS = 5;
     bindDropdownsGlobal();
   }
 
+  /* ── LE ROUGE DU DIRECT, MESURÉ (4.24.0) ────────────────────────────────
+     La barre d'un stream qui vient de démarrer prend le rouge de la pastille
+     « en direct » de Twitch — celle des cartes, que l'extension sait déjà
+     trouver (DOM.liveIndicator). On lit sa couleur calculée plutôt que de la
+     recopier : une capture n'en donne pas la valeur exacte (un écran à large
+     gamut la décale), et Twitch peut la changer, ou la changer d'un thème à
+     l'autre. Seule une couleur OPAQUE est prise : une pastille transparente
+     ou translucide dirait autre chose que le rouge du direct, et le repli
+     de la feuille reste alors en place. La dernière mesure est gardée tant
+     qu'aucune pastille n'est à l'écran.
+
+     EN PLEINE TRANSITION, ELLE NE SE MESURE PAS. Le « survol progressif »
+     de cette feuille fond le fond de toute carte ET DE SES DESCENDANTS en
+     300 ms — la pastille comprise. Qu'elle change de couleur (un changement
+     de thème), et elle passe par des rouges intermédiaires, opaques, que rien
+     d'autre ne distinguerait du vrai. Le balayage suivant la lit arrivée.
+
+     RÉÉCRITE À L'IDENTIQUE, ELLE NE MUTE RIEN, et c'est la norme qui le
+     garantit, pas une comparaison ici : CSSOM ne touche à l'attribut style
+     que si la déclaration change. Un observateur de <html> ne reçoit donc
+     rien d'un balayage qui retrouve le même rouge — le scénario 171 le
+     compte. */
+  function mesurerRougeDirect() {
+    const pastille = document.querySelector(`${DOM.sidebarRoot} .side-nav-card ${DOM.liveIndicator}`);
+    if (!pastille) return;
+    if (pastille.getAnimations().some((a) => a.transitionProperty === 'background-color')) return;
+    const c = getComputedStyle(pastille).backgroundColor;
+    if (!/^rgb\(\d+, \d+, \d+\)$/.test(c)) return;
+    document.documentElement.style.setProperty('--tse-direct', c);
+  }
+
   /* ── LE BLOC S'ALIGNE SUR LE TITRE (4.23.1) ─────────────────────────────
      SIGNALÉ SUR CAPTURE : « un petit souci de marge » entre nos réglages et
      le reste. Mesuré au pixel : les puces, les onglets et les menus
@@ -20433,6 +20480,12 @@ const TSE_GATE_MAX_CLICKS = 5;
    *
    * Avant d'ajouter ou de modifier une entrée, vérifier que l'écart minimum
    * reste au-dessus de 40°. Le harnais de test le contrôle.
+   *
+   * LA BARRE « FRAIS » N'EST PAS DANS CETTE LISTE, et son rouge (4.24.0, vers
+   * 1°) tombe à 8° du rose — comme son violet d'avant tombait à 10° du
+   * violet. Ce n'est pas la teinte qui les sépare mais le reste : un rouge
+   * plein et sombre qui BAT, contre un rose pâle immobile ; et sur une carte
+   * qui cumule les deux, le rouge l'emporte (cf. .tse-fresh.tse-costream).
    */
   const COSTREAM_PALETTE = [
     { color: '#f5c518', bg: 'rgba(245, 197, 24, 0.18)',  fade: 'rgba(245, 197, 24, 0.06)'  }, // jaune      47°
@@ -22653,6 +22706,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     tagStoriesRow();
     syncStories();         // APRÈS le repérage de la rangée, et sous la puce de la série
     alignerBloc();
+    mesurerRougeDirect();
     ensureGlobalBanner();
     ensureGlobalEmpty();
     hideNativeFollowedHeader();

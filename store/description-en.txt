@@ -81,7 +81,7 @@ The channels you actually support shouldn't look like all the others. Now they d
 _______________________________
 
 ➤ ✨ NEVER MISS A STREAM START AGAIN!
-Instantly spot streams that just went live! A subtle purple bar on the left side flags streams that started in the last few minutes.
+Instantly spot streams that just went live! A subtle red bar on the left side flags streams that started in the last few minutes.
 
 - A subtle, elegant visual effect to welcome the streamer.
 - Perfect for being among the first and never missing the intro!

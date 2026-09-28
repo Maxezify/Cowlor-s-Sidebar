@@ -12908,6 +12908,22 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      barreCalme.anim === 'd-respire'
      && barreCalme.lMax - barreCalme.lMin >= 2,
      JSON.stringify(barreCalme));
+  /* ROUGE COMME LE PRODUIT (4.24.0) : le rouge du direct de Twitch, celui
+     que la barre de la sidebar prend en repli — la barre, son halo, le
+     lavis. Une maquette restée violette expliquerait l'ancienne couleur. */
+  const rougeMaquette = await page.evaluate(() => {
+    const e = document.querySelector('#guide .d-carte--frais');
+    if (!e) return null;
+    const st = getComputedStyle(e, '::before');
+    return { barre: st.backgroundColor, halo: st.boxShadow,
+             lavis: getComputedStyle(e).backgroundImage };
+  });
+  ok('…et la maquette est rouge, du rouge du direct de Twitch',
+     !!rougeMaquette && rougeMaquette.barre === 'rgb(235, 4, 0)'
+     && rougeMaquette.halo.startsWith('rgb(235, 4, 0) ')
+     && rougeMaquette.lavis.includes('rgba(235, 4, 0, 0.18) 0%')
+     && rougeMaquette.lavis.includes('rgba(235, 4, 0, 0.06) 40%'),
+     JSON.stringify(rougeMaquette));
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
   /* ── 7. L'ARC-EN-CIEL COURT VRAIMENT ──────────────────────────────────────
@@ -23726,6 +23742,198 @@ const pageVariante = async (substitutions, init = null) => {
      && absurde.rapport.margeGauchePx === 12 && absurde.rapport.margeDroitePx === 8
      && absurde.rapport.colonnePx === 220,
      JSON.stringify(absurde.rapport));
+  await page.close();
+}
+
+/* ═════════ LE ROUGE DU DIRECT, MESURÉ SUR TWITCH (4.24.0) ══════════════
+   DEMANDÉ SUR CAPTURE : que la barre d'un stream qui vient de démarrer soit
+   rouge et non plus violette — « c'est un peu plus visible, et ça fait
+   référence à la couleur du bouton rouge lorsqu'un live est en cours ».
+
+   LE ROUGE N'EST PAS RECOPIÉ, il est lu sur la pastille « en direct » des
+   cartes de Twitch. Le décor n'en colore aucune : la première moitié éprouve
+   donc le REPLI (#eb0400), la seconde colore la pastille d'un rouge qui n'est
+   pas celui du repli — celui de la capture, #ff0e00 — et exige que tout le
+   signal le suive : la barre, son halo, le lavis du fond, et la carte qui est
+   à la fois fraîche et en co-stream. Puis ce qu'il ne faut PAS mesurer : une
+   pastille translucide, une pastille hors de la barre latérale. Et qu'une
+   mesure identique ne réécrive rien sur <html>. */
+{
+  titre('171. Le stream frais — le rouge de la pastille « en direct »');
+  const page = await fresh();
+  await page.evaluate(() => localStorage.setItem('tse:roue', 'vu'));
+  await page.reload();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = {
+      neuf:  { id: '171', createdAt: new Date().toISOString(), viewers: 900, game: 'Just Chatting', tags: [] },
+      vieux: { id: '172', createdAt: h, viewers: 400, game: 'Minecraft', tags: [] },
+    };
+    window.__addCard('neuf', 'Discussions', '900');
+    window.__addCard('vieux', 'Minecraft', '400');
+  });
+  await attendre(page, () => !!document.querySelector('.side-nav-card.tse-fresh')
+    && !document.body.classList.contains('tse-loading'), 15_000);
+  await wait(page, 300);
+  /* LA FEUILLE FOND LE FOND DES PASTILLES en 300 ms (le survol progressif
+     couvre les descendants des cartes) : chaque changement de couleur du
+     décor est une transition, pendant laquelle la mesure s'abstient — c'est
+     éprouvé à la fin. Ailleurs, on la mène à son terme avant de balayer. */
+  const finir = () => page.evaluate(() => {
+    document.querySelectorAll('.tw-channel-status-indicator')
+      .forEach((p) => p.getAnimations().forEach((a) => a.finish()));
+  });
+  /* Une secousse, puis un balayage ENTIER, compté par le rapport : une
+     attente fixe relisait parfois avant lui, sur une machine chargée. */
+  const balayer = () => page.evaluate(async () => {
+    const total = () => window.tse.panneau.rapport().page.balayages.total;
+    const avant = total();
+    const t = document.createElement('div');
+    document.getElementById('cards').appendChild(t);
+    t.remove();
+    const fin = Date.now() + 10_000;
+    while (total() === avant && Date.now() < fin) await new Promise((r) => setTimeout(r, 50));
+  });
+  /* Tout ce qui porte le signal, lu en valeurs calculées. Le lavis s'écrit
+     par « color-mix », que Chromium rend en « color(srgb r g b / a) » : on le
+     ramène à des entiers 0–255 pour le comparer à la pastille. */
+  const lire = () => page.evaluate(() => {
+    const vers = (s) => {
+      let m = /^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: \/ ([\d.]+))?\)$/.exec(s);
+      if (m) return [m[1], m[2], m[3]].map((v) => Math.round(v * 255)).concat(m[4] === undefined ? 1 : +m[4]);
+      m = /^rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)$/.exec(s);
+      return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : s;
+    };
+    const arrets = (img) => (img.match(/color\(srgb [^)]+\)|rgba?\([^)]+\)/g) || []).map(vers);
+    const c = document.querySelector('.side-nav-card.tse-fresh');
+    const avant = getComputedStyle(c, '::before');
+    /* La carte fraîche ET en co-stream : les deux classes posées le temps
+       d'une lecture — le style se calcule sur-le-champ, avant que le
+       balayage suivant ne les retire. */
+    c.classList.add('tse-costream');
+    c.style.setProperty('--tse-costream-color', '#4d8cff');
+    const co = { barre: vers(getComputedStyle(c, '::before').backgroundColor),
+                 lavis: arrets(getComputedStyle(c).backgroundImage) };
+    c.classList.remove('tse-costream');
+    c.style.removeProperty('--tse-costream-color');
+    return {
+      variable: document.documentElement.style.getPropertyValue('--tse-direct'),
+      barre: vers(avant.backgroundColor),
+      halo: (avant.boxShadow.match(/rgba?\([^)]+\)/g) || []).map(vers),
+      lavis: arrets(getComputedStyle(c).backgroundImage),
+      co,
+      rapport: window.tse.panneau.rapport().page.battement.rouge,
+    };
+  });
+  const signal = (m, rgb) => {
+    const meme = (v, a) => Array.isArray(v) && v.slice(0, 3).join() === rgb.join()
+      && Math.abs(v[3] - a) < 0.005;
+    return meme(m.barre, 1) && m.halo.length === 2 && m.halo.every((v) => meme(v, 1))
+      && m.lavis.length === 3 && meme(m.lavis[0], 0.18) && meme(m.lavis[1], 0.06)
+      && m.lavis[2][3] === 0
+      && meme(m.co.barre, 1) && m.co.lavis.length === 3
+      && meme(m.co.lavis[0], 0.18) && meme(m.co.lavis[1], 0.06);
+  };
+
+  /* ── LE REPLI : aucune pastille colorée ─────────────────────────────── */
+  const repli = await lire();
+  /* Mutants — le repli changé, le violet rétabli, un lavis qui ne suit pas,
+     la carte co-stream fraîche laissée au violet ; et une pastille
+     transparente PRISE pour mesure, qui éteindrait la barre. */
+  ok('sans pastille colorée, la barre, son halo et le lavis prennent le rouge de Twitch, #eb0400',
+     repli.variable === '' && signal(repli, [235, 4, 0]), JSON.stringify(repli));
+  ok('…et le rapport le dit : aucun rouge lu',
+     repli.rapport === null, JSON.stringify(repli.rapport));
+
+  /* ── LA MESURE : la pastille de la capture, #ff0e00 ─────────────────── */
+  await page.evaluate(() => {
+    const st = document.createElement('style');
+    st.id = 'pastille-twitch';
+    st.textContent = '#side-nav .tw-channel-status-indicator { display: inline-block; width: 8px; height: 8px; background-color: #ff0e00; }';
+    document.head.appendChild(st);
+  });
+  await finir();
+  await balayer();
+  const mesure = await lire();
+  /* Mutants — la mesure retirée, ou jamais appelée par le balayage. */
+  ok('la pastille « en direct » colorée, tout le signal prend SON rouge, mesuré',
+     mesure.variable === 'rgb(255, 14, 0)' && signal(mesure, [255, 14, 0]), JSON.stringify(mesure));
+  ok('…et le rapport donne le rouge lu',
+     mesure.rapport === 'rgb(255, 14, 0)', JSON.stringify(mesure.rapport));
+
+  /* ── UNE MESURE IDENTIQUE NE RÉÉCRIT RIEN ───────────────────────────── */
+  const mutations = await page.evaluate(() => {
+    window.__mutHtml = 0;
+    window.__obsHtml = new MutationObserver((l) => { window.__mutHtml += l.length; });
+    window.__obsHtml.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+  }).then(async () => {
+    for (let i = 0; i < 4; i++) await balayer();
+    return page.evaluate(() => { window.__obsHtml.disconnect(); return window.__mutHtml; });
+  });
+  /* La norme le garantit (CSSOM ne réécrit pas une déclaration égale) ; ce
+     qui la contournerait — retirer puis reposer la variable — ferait deux
+     mutations de <html> par balayage. */
+  ok('quatre balayages sur la même pastille : pas une écriture sur <html>',
+     mutations === 0, String(mutations));
+
+  /* ── CE QUI NE SE MESURE PAS ────────────────────────────────────────── */
+  /* Une pastille translucide dit autre chose que le rouge du direct ; une
+     pastille HORS de la barre latérale — placée avant elle dans le document,
+     là où une requête sans portée la trouverait d'abord — n'est pas celle
+     des cartes. Dans les deux cas, la dernière mesure reste. */
+  await page.evaluate(() => {
+    document.getElementById('pastille-twitch').textContent =
+      '#side-nav .tw-channel-status-indicator { display: inline-block; width: 8px; height: 8px; background-color: rgba(0, 200, 0, 0.5); }';
+  });
+  await finir();
+  await balayer();
+  const translucide = await lire();
+  await page.evaluate(() => {
+    document.getElementById('pastille-twitch').textContent =
+      '#side-nav .tw-channel-status-indicator { display: inline-block; width: 8px; height: 8px; background-color: #ff0e00; }'
+      + ' #ailleurs .tw-channel-status-indicator { display: inline-block; width: 8px; height: 8px; background-color: #00c800; }';
+    const d = document.createElement('div');
+    d.id = 'ailleurs';
+    d.innerHTML = '<div class="side-nav-card"><span class="tw-channel-status-indicator"></span></div>';
+    document.body.prepend(d);
+  });
+  await finir();
+  await balayer();
+  const ailleurs = await lire();
+  /* Mutants — l'exigence d'opacité retirée (la barre passerait au vert
+     translucide), la portée à la barre latérale retirée (au vert plein). */
+  ok('une pastille translucide, ou hors de la barre latérale, ne remplace pas la mesure',
+     translucide.variable === 'rgb(255, 14, 0)' && signal(translucide, [255, 14, 0])
+     && ailleurs.variable === 'rgb(255, 14, 0)' && signal(ailleurs, [255, 14, 0]),
+     JSON.stringify({ translucide: translucide.variable, ailleurs: ailleurs.variable }));
+
+  /* ── UNE PASTILLE EN PLEINE TRANSITION ──────────────────────────────────
+     Un changement de thème la ferait passer d'un rouge à l'autre par des
+     teintes intermédiaires, OPAQUES : l'exigence d'opacité ne les arrête pas.
+     Le décor étire la transition à une minute, vers un bleu franc, en deux
+     marches dont la première tombe tout de suite : la pastille montre ainsi,
+     dès le balayage, une teinte de passage opaque — ni le rouge, ni le bleu.
+     Tant qu'elle court, la mesure ne bouge pas ; menée à son terme, elle
+     suit. */
+  await page.evaluate(() => {
+    document.getElementById('pastille-twitch').textContent =
+      '#side-nav .tw-channel-status-indicator { display: inline-block; width: 8px; height: 8px; background-color: #0000ff; transition: background-color 60s steps(2, jump-start); }';
+  });
+  await balayer();
+  const enCours = await page.evaluate(() => ({
+    variable: document.documentElement.style.getPropertyValue('--tse-direct'),
+    pastille: getComputedStyle(document.querySelector('#side-nav .tw-channel-status-indicator')).backgroundColor,
+  }));
+  await finir();
+  await balayer();
+  const arrivee = await page.evaluate(() => document.documentElement.style.getPropertyValue('--tse-direct'));
+  /* Mutant — la garde de transition retirée : la mesure prendrait la teinte
+     de passage, opaque, que la pastille montre à cet instant. */
+  ok('une pastille en pleine transition ne se mesure pas ; arrivée, elle se mesure',
+     /^rgb\(\d+, \d+, \d+\)$/.test(enCours.pastille)
+     && !['rgb(255, 14, 0)', 'rgb(0, 0, 255)'].includes(enCours.pastille)
+     && enCours.variable === 'rgb(255, 14, 0)' && arrivee === 'rgb(0, 0, 255)',
+     JSON.stringify({ enCours, arrivee }));
   await page.close();
 }
 
