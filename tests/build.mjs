@@ -189,8 +189,21 @@ writeFileSync(join(ICI, 'content.firefox.test.js'),
   src.replace(RE_ANCETRES, 'const a = undefined; /* Firefox < 148 */'));
 // Le module anti-pub est copié TEL QUEL : il ne porte aucune constante de temps
 // à régler, et c'est justement son comportement d'origine qu'on veut éprouver —
-// à savoir qu'il ne fait STRICTEMENT RIEN hors iframe.
+// à savoir qu'il ne fait STRICTEMENT RIEN hors de l'iframe d'aperçu.
 const adb = readFileSync(join(RACINE, 'adblock.js'), 'utf8');
-writeFileSync(join(ICI, 'adblock.test.js'), SANS_COMMENTAIRES ? degraisser(adb) : adb);
+const adbServi = SANS_COMMENTAIRES ? degraisser(adb) : adb;
+writeFileSync(join(ICI, 'adblock.test.js'), adbServi);
+/* Sa VARIANTE FIREFOX, pour la même raison que celle de content.js et par la
+   même ligne : depuis la 4.24.0.1, sa garde lit elle aussi ancestorOrigins
+   pour reconnaître le parent de l'aperçu. Sans cette copie, le scénario qui
+   reproduit Firefox éprouverait le pont sans ancestorOrigins, et l'anti-pub
+   avec — la moitié du repli n'aurait été vue par personne. */
+if (!RE_ANCETRES.test(adbServi)) {
+  console.error('SUBSTITUTION INTROUVABLE (variante Firefox, anti-pub):', RE_ANCETRES);
+  process.exit(1);
+}
+writeFileSync(join(ICI, 'adblock.firefox.test.js'),
+  adbServi.replace(RE_ANCETRES, 'const a = undefined; /* Firefox < 148 */'));
 console.log(`content.test.js construit (${subs.length} constantes de temps accélérées) + adblock.test.js copié tel quel`
+  + ' + leurs variantes Firefox'
   + (SANS_COMMENTAIRES ? ' — SANS COMMENTAIRES, comme le paquet livré' : ''));

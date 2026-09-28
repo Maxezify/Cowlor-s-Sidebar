@@ -9,6 +9,7 @@ package-lock.json
 tests/content.test.js
 tests/content.firefox.test.js
 tests/adblock.test.js
+tests/adblock.firefox.test.js
 
 # Captures de présentation produites par `npm run promo`. Régénérées à la
 # demande depuis promo.mjs : ce sont des artefacts, pas des sources.

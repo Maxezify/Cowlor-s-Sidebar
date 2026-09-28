@@ -1081,10 +1081,12 @@ guère que l'idée. Ce qui change concrètement :
 
 ### Portée d'exécution
 
-Inchangée : le module est volontairement limité aux **iframes** (concrètement,
-l'iframe `player.twitch.tv` que l'extension monte au survol). Il **ne touche
-pas** le stream principal que vous regardez sur `twitch.tv` — qui regarde
-vraiment un stream accepte le modèle économique de Twitch. Pour un blocage
+Le module est volontairement limité à **l'iframe d'aperçu** que l'extension
+monte au survol : un lecteur `player.twitch.tv` nommé `tse-apercu`, posé par
+une page twitch.tv. Avant la 4.24.0.1, toute iframe de lecteur suffisait, y
+compris un lecteur Twitch intégré à un autre site. Il **ne touche pas** le
+stream principal que vous regardez sur `twitch.tv` — qui regarde vraiment un
+stream accepte le modèle économique de Twitch. Pour un blocage
 global, installez vaft séparément ; les deux se reconnaissent via
 `window.twitchAdSolutionsVersion` et exactement un des deux tourne.
 
@@ -1116,7 +1118,7 @@ filtre, popup d'aperçu…) reste pleinement fonctionnel.
 Le code est sous licence **MIT** — Copyright (c) 2020-present TwitchAdSolutions
 Contributors. Huit adaptations seulement le séparent de l'amont, toutes marquées
 « ADAPTATION » dans le fichier et récapitulées dans son en-tête : préfixe de log
-`[TSE-AdBlock]`, interrupteur, garde iframe-only, version en dur à la place de
+`[TSE-AdBlock]`, interrupteur, garde « iframe d'aperçu seulement », version en dur à la place de
 `GM_info` (une API de gestionnaire de userscripts, absente dans une extension),
 retrait de la bannière de démarrage — en amont elle s'affiche une fois par page,
 ici l'iframe renaît à chaque survol et la console serait noyée — et deux réglages
@@ -2177,6 +2179,112 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## L'anti-pub et le pont, dans l'aperçu seulement (v4.24.0.1)
+
+Première pierre du multistream, sur les branches `claude/chrome-multi` et
+`claude/firefox-multi` : la **phase 0** de l'audit, le prérequis à toute salle.
+Rien de nouveau ne se voit. Ce qui change, c'est l'endroit où l'extension agit
+dans les lecteurs vidéo de Twitch.
+
+### Ce que le code faisait
+
+Le manifeste injecte l'extension dans **tout** lecteur `player.twitch.tv`, sur
+n'importe quel site. C'est ce qu'il faut pour atteindre l'iframe d'aperçu, et
+c'est bien plus qu'elle. Or deux modules agissaient dans chacun de ces
+lecteurs :
+
+| module | ce qu'il faisait dans un lecteur Twitch intégré à un autre site |
+| --- | --- |
+| l'anti-pub (`adblock.js`) | il bloquait la pub, alors que la fiche du Store en dit : « Il s'applique à la vignette d'aperçu au survol, et à rien d'autre. » |
+| le pont d'aperçu (`content.js`) | il levait l'avertissement de contenu (« Commencer à regarder »), et se signalait à la page du site par un message |
+
+L'aperçu, lui, peut lever l'avertissement : il affiche les étiquettes de
+contenu dans ses propres badges. Un lecteur intégré ailleurs ne les montre
+nulle part. Et une salle multistream, faite de lecteurs intégrés, aurait hérité
+des deux comportements.
+
+### Ce qui les éveille désormais
+
+L'iframe d'aperçu porte un **nom**, `tse-apercu`, posé avant son adresse. Les
+deux modules n'agissent que dans une frame qui réunit tout ceci :
+
+| condition | vérifiée par |
+| --- | --- |
+| une iframe, pas la page du haut | les deux, comme avant |
+| un lecteur `player.twitch.tv` | le pont ; l'anti-pub garde le tri de son code d'origine |
+| nommée `tse-apercu` | les deux |
+| dont le parent est `www.twitch.tv` ou `twitch.tv`, quand le navigateur le dit | les deux, par `location.ancestorOrigins` |
+
+**Pourquoi un nom plutôt qu'un paramètre d'adresse.** Une frame lit son nom de
+l'intérieur dès `document_start`, avant les scripts de Twitch. Le nom ne part
+pas aux serveurs de Twitch, et il survit à une navigation interne du lecteur.
+
+**Pourquoi le parent en plus du nom.** Un site peut nommer son iframe comme il
+veut. Le nom dit « c'est l'aperçu », le parent le confirme.
+
+`adblock.js` est chargé avant `content.js` et ne peut pas lire ses constantes.
+Il en recopie donc le nom et les deux parents, et le banc vérifie que les
+valeurs sont les mêmes des deux côtés.
+
+### La limite sous Firefox
+
+Firefox n'implémente pas `location.ancestorOrigins` avant la 148, et le
+plancher déclaré est la 140. Sans elle, **le nom seul tranche**. Un site tiers qui
+nommerait délibérément son iframe `tse-apercu` éveillerait alors les deux
+modules chez un utilisateur de l'extension. Ce n'est plus un accident possible :
+il faut le vouloir. Chrome, et Firefox à partir de la 148, vérifient le parent.
+
+### Ce qui ne change pas
+
+- **L'aperçu** garde son anti-pub, son pont et son avertissement levé.
+- **Le stream principal** : l'extension n'y bloque rien, comme avant.
+- **La fiche du Store** : aucune phrase à changer. Elle redevient exacte.
+
+### La version
+
+Les branches du multistream ajoutent un **quatrième nombre** à la version dont
+elles partent : `4.24.0.1`, c'est la 4.24.0 plus la phase 0. Chrome et Firefox
+acceptent quatre nombres, et une future 4.24.1 ou 4.25.0 de la branche
+principale ne pourra pas s'y confondre.
+
+### Ce que le banc mesure
+
+Le **scénario 172** (quatre assertions) sert la même page de lecteur factice à
+trois lecteurs. Elle affiche un avertissement de contenu qui compte ses clics.
+
+| lecteur | attendu |
+| --- | --- |
+| l'aperçu, posé par le survol | l'anti-pub s'éveille (il revendique son marqueur et accroche `Worker`), le pont dit bonjour, l'avertissement est cliqué une fois |
+| un lecteur sans ce nom, dans la même page twitch.tv | rien : pas d'anti-pub, pas de message, pas de clic |
+| un lecteur nommé `tse-apercu`, dans la page d'un site tiers (`journal.example`, un domaine réservé) | rien non plus : le parent compte |
+
+La quatrième assertion lit les deux sources et exige le même nom et les mêmes
+parents des deux côtés.
+
+Le **scénario 61**, qui reproduit Firefox dans Chromium, charge désormais aussi
+une variante de l'anti-pub sans `ancestorOrigins`. `tests/build.mjs` la produit
+par la même substitution que celle de `content.js`. Le scénario vérifie que
+l'anti-pub s'y éveille sur son seul nom. Il lit aussi le source servi des deux
+variantes pour s'assurer que la substitution a bien eu lieu : jusqu'ici, il se
+contentait du nom du fichier.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| le nom jamais posé par l'aperçu, ou un autre nom (2) | l'aperçu perd ses deux modules : ni anti-pub, ni avertissement levé, ni dévoilement (scénarios 30, 58, 61 et 172) |
+| dans `adblock.js`, la garde du nom retirée, puis un autre nom (2) | l'anti-pub dans le lecteur sans nom, ou plus dans l'aperçu |
+| dans `adblock.js`, le contrôle du parent retiré, un parent faux, le nom refusé sans `ancestorOrigins` (3) | l'anti-pub sur le site tiers, ou plus dans l'aperçu, sous Chrome comme sous Firefox |
+| dans le pont, la garde du nom retirée, le contrôle du parent retiré, le repli refusé, un parent faux (4) | un clic et un message dans le lecteur sans nom ou sur le site tiers, ou un aperçu muet sous Firefox |
+| la variante Firefox de l'anti-pub construite sans sa substitution (1) | un scénario Firefox qui ne reproduit plus Firefox |
+
+Douze mutants, douze pris, chacun par une assertion de comportement, pas
+seulement par la comparaison des sources.
+
+### Ce qui reste de la phase 0
+
+Les **sondes** de l'audit (P1 à P3, P5 à P7) se font dans un vrai navigateur,
+sur le vrai Twitch. Cet environnement ne peut pas joindre twitch.tv. Leurs
+réponses décideront de la phase 1.
 
 ## La barre « vient de démarrer », au rouge du direct (v4.24.0)
 
@@ -11770,7 +11878,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 171 scénarios, 1464 assertions |
+| `npm test` | le harnais Playwright : 172 scénarios, 1469 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -11791,12 +11899,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1310 Ko | 477 Ko | 3 574 → **2** |
-| `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
+| `content.js` | 1312 Ko | 477 Ko | 3 583 → **2** |
+| `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 104 Ko | 50 Ko | 143 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1562 Ko** | **632 Ko** | **−60 %** |
+| **les cinq** | **1565 Ko** | **632 Ko** | **−60 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -12213,8 +12321,9 @@ extension, et une quatrième transformation ajoute la localisation.
    - **`all_frames: true`** : pour permettre au module anti-pub de s'injecter
      dans l'iframe `player.twitch.tv` (équivalent MV3 de la directive
      `@allFrames true` du userscript Violentmonkey). Le module sidebar (TSE)
-     a une garde top-level qui le neutralise dans les iframes — donc dans
-     chaque frame, **exactement un** des deux modules est actif.
+     a une garde top-level qui le neutralise dans les iframes, et le module
+     anti-pub ne s'éveille que dans l'iframe d'aperçu : dans une frame donnée,
+     **au plus un** des deux modules est actif.
 
    Les matches incluent désormais `https://player.twitch.tv/*` en plus de
    `www.twitch.tv` et `twitch.tv` pour autoriser l'injection dans l'iframe
@@ -12230,7 +12339,7 @@ extension, et une quatrième transformation ajoute la localisation.
 3. **Module anti-pub intégré** (cf. section dédiée plus haut). Depuis la v3.25 le
    code est vendorisé tel quel depuis [scamorza/TwitchAdBlock](https://github.com/scamorza/TwitchAdBlock)
    dans son propre fichier, `adblock.js`, avec huit adaptations marquées —
-   interrupteur, garde iframe-only, préfixe `[TSE-AdBlock]` sur les logs, version
+   interrupteur, garde « iframe d'aperçu seulement », préfixe `[TSE-AdBlock]` sur les logs, version
    en dur à la place de `GM_info`, et pas de bannière au démarrage.
 
 4. **Internationalisation multilingue (FR / EN / DE / ES / PT)**. L'architecture i18n est
