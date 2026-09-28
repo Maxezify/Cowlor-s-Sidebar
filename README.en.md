@@ -2057,6 +2057,94 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The filter block, on the title's edges (v4.23.1)
+
+> "There's a small margin issue with the settings and the Streak and Stories
+> part. It should be reduced slightly, to match the sort buttons and the
+> title."
+
+Measured to the pixel on the screenshot:
+
+| element | left edge | right edge |
+| --- | --- | --- |
+| "Followed Channels" title | 11 px | 221 px (collapse button) |
+| card avatars and counts | 11 px | 226 px |
+| sort buttons | 10 px | 226 px |
+| chips, tabs, menus | **16 px** | **221 px** |
+
+Our controls were inset 6 px more than everything else. The block had 12 px of
+padding, and a Twitch container we cannot see added 4. The sort buttons, for
+their part, **overflowed**: six buttons of at least 28 px and five 10 px gaps
+make 218 px, in a 206 px column.
+
+### The title is measured; the 4 px are not copied
+
+At every sweep, the extension reads the inner edges of the bar's title: where
+its text starts, where its collapse button ends. It turns them into the
+block's two horizontal paddings. Whatever the container, the chips, tabs,
+menus and sort buttons start and end on the title's edges.
+
+On the screenshot, the column is then **218 px**: exactly six sort buttons and
+their five 10 px gaps. The sort row fits to the pixel.
+
+**With no measurable title**, the block keeps 6 px of padding, the value that
+aligns on the screenshot. That covers a missing or hidden title, or a
+measurement outside 0 to 40 px: it would mean we are measuring something other
+than a margin.
+
+### The sort row no longer overflows
+
+In a column narrower than 218 px, **the gap now gives way** before the column:
+it drops below 10 px, and the six buttons stay inside the column as long as it
+is at least 168 px wide.
+
+### What the report says
+
+The new `ALIGNEMENT DU BLOC / BLOCK ALIGNMENT` block gives:
+
+| field | content | expected |
+| --- | --- | --- |
+| `source` | `titre` when the paddings are measured, `defaut` otherwise | `titre` |
+| `gauchePx`, `droitePx` | the gap between our controls' edges and the title's | 0 |
+| `colonnePx` | the column's width | 218 on the screenshot |
+| `trisDebordePx` | what sticks out of the column in the sort row | 0 |
+
+The bench models only one container. On the real page, this block will tell
+whether the edges line up.
+
+### What the bench measures
+
+**Scenario 170** (nine assertions) reproduces the screenshot's geometry:
+- a 238 px bar whose container shifts the block by 4 px;
+- a title that overflows that shift and carries 10 px of inner padding.
+
+It then checks:
+- that chips, tabs, menus and sort buttons fall on the title's edges, within
+  0.5 px;
+- that the sort buttons fit exactly at 218 px;
+- in an asymmetric 208 px column: each padding on its own side, and an 8 px
+  gap;
+- in a 158 px column, narrower than six buttons: the overflow is reported;
+- the 6 px fallback for a hidden title, an absurd margin and a negative
+  measurement;
+- the report.
+
+| mutants | what falls |
+| --- | --- |
+| the call in the sweep, the variable ignored by the stylesheet (2) | the controls get their inset back: 16 px on the screenshot |
+| the 12 px fallback, the two paddings swapped (2) | a hidden title brings back the old inset; each padding takes the other side's value |
+| the title's inner padding read on the wrong side, left then right (2) | a shifted column as soon as the title is not symmetric |
+| the lower and upper bounds, the variable never removed (3) | a zero, negative or 56 px padding; an old measurement outliving the title |
+| the sort row's fixed gap, then its base (2) | six pixels of overflow on each side; sort buttons squeezed too tight |
+| the report: source, left gap, right gap, column, overflow, and its line in the panel (6) | a reading that cannot say no |
+
+Seventeen mutants, seventeen caught. **Two survived at first:**
+- **the "zero-width title" guard.** It was redundant: a hidden title has an
+  empty box, and the right padding derived from it is the whole width of the
+  block, far beyond the 40 px bound. The guard is removed;
+- **the report's column width.** The bench read it only at 218 px; it now
+  reads it at 208 too.
+
 ## The stories row, tucked under the streak (v4.23.0)
 
 > "Do you have proposals for the Stories part? It sticks out a bit next to
@@ -11081,7 +11169,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 169 scenarios, 1445 assertions |
+| `npm test` | the Playwright harness: 170 scenarios, 1455 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -11101,12 +11189,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1301 KB | 474 KB | 3,570 → **2** |
+| `content.js` | 1306 KB | 476 KB | 3,572 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 104 KB | 50 KB | 142 → **0** |
+| `panneau.js` | 104 KB | 50 KB | 143 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1553 KB** | **629 KB** | **−60 %** |
+| **all five** | **1558 KB** | **631 KB** | **−60 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

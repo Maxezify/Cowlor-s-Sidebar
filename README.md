@@ -2178,6 +2178,93 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le bloc filtre, aux bords du titre (v4.23.1)
+
+> « Il y a un petit souci de marge concernant les réglages et la partie Série
+> et Stories. Il faudrait la réduire légèrement, pour qu'elle soit identique à
+> celle des boutons de tri et du titre. »
+
+Mesuré au pixel sur la capture :
+
+| élément | bord gauche | bord droit |
+| --- | --- | --- |
+| titre « Chaînes suivies » | 11 px | 221 px (bouton de repli) |
+| avatars et compteurs des cartes | 11 px | 226 px |
+| boutons de tri | 10 px | 226 px |
+| puces, onglets, menus | **16 px** | **221 px** |
+
+Nos contrôles avaient 6 px de retrait de plus que tout le reste. Le bloc avait
+12 px de marge, et un conteneur de Twitch, qu'on ne voit pas, en ajoutait 4.
+Les boutons de tri, eux, **débordaient** : six boutons d'au moins 28 px et
+cinq écarts de 10 px font 218 px, dans une colonne de 206.
+
+### On mesure le titre, on ne recopie pas les 4 px
+
+À chaque balayage, l'extension lit les bords intérieurs du titre de la barre :
+là où commence son texte, là où finit son bouton de repli. Elle en fait les
+deux marges horizontales du bloc. Quel que soit le conteneur, les puces, les
+onglets, les menus et les tris commencent et finissent aux bords du titre.
+
+Sur la capture, la colonne fait alors **218 px** : exactement six boutons de
+tri et leurs cinq écarts de 10 px. La rangée des tris y tient au pixel.
+
+**Sans titre mesurable**, le bloc garde 6 px de marge, la valeur qui aligne
+sur la capture. C'est le cas d'un titre absent ou masqué, ou d'une mesure hors
+de 0 à 40 px : elle dirait qu'on mesure autre chose qu'une marge.
+
+### La rangée des tris ne déborde plus
+
+Dans une colonne plus étroite que 218 px, c'est désormais **l'écart qui cède**
+avant la colonne : il passe sous 10 px, et les six boutons restent dans la
+colonne tant qu'elle mesure au moins 168 px.
+
+### Ce que le rapport dit
+
+Le nouveau bloc `ALIGNEMENT DU BLOC / BLOCK ALIGNMENT` donne :
+
+| champ | contenu | attendu |
+| --- | --- | --- |
+| `source` | `titre` si les marges sont mesurées, `defaut` sinon | `titre` |
+| `gauchePx`, `droitePx` | l'écart entre les bords de nos contrôles et ceux du titre | 0 |
+| `colonnePx` | la largeur de la colonne | 218 sur la capture |
+| `trisDebordePx` | ce qui dépasse de la colonne dans la rangée des tris | 0 |
+
+Le banc ne modélise qu'un conteneur. Sur la vraie page, c'est ce bloc qui dira
+si les bords tombent juste.
+
+### Ce que le banc mesure
+
+Le **scénario 170** (neuf assertions) reproduit la géométrie de la capture :
+- une barre de 238 px dont le conteneur décale le bloc de 4 px ;
+- un titre qui déborde de ce décalage et porte 10 px de marge intérieure.
+
+Il vérifie ensuite :
+- que puces, onglets, menus et tris tombent aux bords du titre, à 0,5 px près ;
+- que les tris tiennent exactement à 218 px ;
+- dans une colonne asymétrique de 208 px : chaque marge de son côté, et un
+  écart de 8 px ;
+- dans une colonne de 158 px, plus étroite que six boutons : le débordement
+  est dit au rapport ;
+- le repli à 6 px pour un titre masqué, une marge absurde et une mesure
+  négative ;
+- le rapport.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'appel dans le balayage, la variable ignorée par la feuille (2) | les contrôles reprennent leur retrait : 16 px sur la capture |
+| le repli à 12 px, les deux marges inversées (2) | un titre masqué rend l'ancien retrait ; chaque marge prend la valeur de l'autre côté |
+| la marge intérieure du titre lue du mauvais côté, à gauche puis à droite (2) | une colonne décalée dès que le titre n'est pas symétrique |
+| les bornes basse et haute, la variable jamais retirée (3) | une marge nulle, négative ou de 56 px ; une ancienne mesure qui survit au titre |
+| l'écart fixe des tris, puis sa base (2) | six pixels de débordement de chaque côté ; des tris trop serrés |
+| le rapport : source, écart à gauche, à droite, colonne, débordement, et sa ligne au panneau (6) | une lecture qui ne sait pas dire non |
+
+Dix-sept mutants, dix-sept pris. **Deux avaient d'abord survécu :**
+- **la garde « titre de largeur nulle ».** Elle était redondante : un titre
+  masqué a une boîte nulle, et la marge de droite qu'on en tire vaut toute la
+  largeur du bloc, bien au-delà de la borne des 40 px. La garde est retirée ;
+- **la largeur de colonne du rapport.** Le banc ne la lisait qu'à 218 px ; il
+  la lit aussi à 208.
+
 ## La rangée des stories, rangée sous la série (v4.23.0)
 
 > « As-tu des propositions concernant la partie Stories ? Ça fait un peu tache
@@ -11494,7 +11581,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 169 scénarios, 1445 assertions |
+| `npm test` | le harnais Playwright : 170 scénarios, 1455 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -11515,12 +11602,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1301 Ko | 474 Ko | 3 570 → **2** |
+| `content.js` | 1306 Ko | 476 Ko | 3 572 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 104 Ko | 50 Ko | 142 → **0** |
+| `panneau.js` | 104 Ko | 50 Ko | 143 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1553 Ko** | **629 Ko** | **−60 %** |
+| **les cinq** | **1558 Ko** | **631 Ko** | **−60 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
