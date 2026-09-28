@@ -2180,6 +2180,127 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La salle mesurée, et le lecteur noir cerné (v4.24.0.5)
+
+La troisième sonde a suivi le protocole de la 4.24.0.4 : quatre lecteurs et
+deux chats de chaînes en Chat partagé, quatorze minutes, ouverte sur
+« Suivis », avec un compte sans abonnement. Le protocole demandait de couper
+le bloqueur de pub pour twitch.tv, et les pubs, cette fois, se sont affichées.
+
+### Ce qu'elle a mesuré
+
+| sonde | mesure |
+| --- | --- |
+| P3 — des pubs ? | **Oui, et la sonde les voit.** Une pub d'entrée d'environ 14 s sur deux lecteurs. Un troisième a passé 378 s en pub sur quatorze minutes, en deux coupures. |
+| P4 — rendre le son ? | Deux verdicts `ok` de plus, par le bouton du lecteur. |
+| P5 — des points ? | Toujours 0 → 0. Mais les deux feuilles « 0 \| 0 » étaient deux soldes, les Bits et les points : cf. plus bas. |
+| P6 — combien ça coûte ? | Voir le tableau suivant. |
+| P7 — le Chat partagé ? | **99 % de messages communs** (210) entre les chats de deux chaînes en Chat partagé : les chats intégrés montrent bien le chat partagé, et aucun repère ne le nomme. |
+
+**À quoi ressemble une pub** dans un lecteur intégré, d'après le journal :
+
+- trois repères apparaissent : `data-a-target=video-ad-label`,
+  `data-a-target=video-ad-countdown` et `data-test-selector=ad-banner-default-text` ;
+- une iframe `about:blank` est posée dans le lecteur ;
+- l'image passe en 1920 × 1080 ;
+- la carte du stream (titre, jeu) et les boutons suivre, s'abonner et offrir
+  disparaissent, puis reviennent à la fin de la pub.
+
+C'étaient les repères que la 4.24.0.3 cherchait. Si elle n'en a vu aucun, c'est
+que le bloqueur du navigateur les empêchait de s'afficher : l'utilisateur voyait
+alors l'espace de la pub, sans la pub.
+
+**Ce que coûte la salle.** Relevé au gestionnaire de tâches de Helium, ligne
+de l'onglet, sonde ouverte puis trente secondes après sa fermeture :
+
+| | sonde ouverte | sonde fermée | la salle |
+| --- | --- | --- | --- |
+| mémoire | 1 896 Mo | 994 Mo | **≈ +900 Mo** pour quatre lecteurs et deux chats |
+| processeur | 59,6 % | 43,8 % | **≈ +16 points** |
+| réseau | 1 076 Ko/s | 18,5 Ko/s | **≈ 8,6 Mbit/s** pour trois lecteurs qui jouaient |
+
+Deux mesures indépendantes se recoupent. La somme des débits relevés dans chaque
+lecteur (3 225 + 2 522 + 3 388 kbit/s) fait 9,1 Mbit/s, pour 8,6 Mbit/s au
+gestionnaire de tâches.
+
+Chaque lecteur décode sa vidéo dans un **nœud de calcul dédié** : le
+gestionnaire en liste un par lecteur. Il n'a donc fait **aucune tâche longue**
+sur le fil de la page. Les chats en ont fait 21 (2,2 s en quatorze minutes) :
+dans la salle, c'est le chat qui pèse sur la page, pas le lecteur.
+
+Deux points restent ouverts :
+
+- **25 tâches longues « autres »** (2,6 s), sans nom : cf. plus bas ;
+- **43,8 % de processeur, sonde fermée**, c'est beaucoup pour une page au
+  repos. La mesure a été prise trente secondes après la fermeture : il faut la
+  refaire au repos, puis extension coupée, pour savoir à qui elle revient.
+
+### Ce qui change
+
+| ce que le rapport a montré | ce que la sonde fait maintenant |
+| --- | --- |
+| un lecteur qui n'a pas montré une image en quatorze minutes, et un journal muet : ce qu'il affichait à la place du direct était là depuis le début, donc « stable », donc tu | **un lecteur qui n'a jamais joué liste aussi ses marques stables** ; `aJoue` le dit pour chacun |
+| le chat intégré porte `copo-balance-string`, le solde des points de chaîne, à côté de `bits-balance-string`, et le bloc qu'on lisait contient les deux | le solde est lu **d'abord sur `copo-balance-string`** ; le repli ne prend jamais les Bits pour des points |
+| 25 tâches longues « autres », sans rien pouvoir en dire | **`autresNoms`** : le nom de coupable que donne le navigateur (`unknown`, `multiple-contexts`…) et, pour une iframe, son hôte |
+
+### Le lecteur noir, cerné
+
+L'utilisateur a revu **un lecteur noir, commandes visibles**, sur une page de
+chaîne. Le script de diagnostic n'a rien affiché dans la console : il avait
+tourné dans une iframe, le sélecteur de contexte de la console indiquant
+« index.html » au lieu de « top ».
+
+**Le code d'abord.** Sur les 215 règles de la feuille de l'extension, deux
+seulement atteignent des éléments de Twitch hors de la barre :
+
+- la couche des infobulles de Twitch, cachée **pendant** un aperçu ;
+- `[data-test-selector="ShowMore"]`, caché **sur toute la page et en
+  permanence**, par erreur. La règle voulait cacher le bouton « Afficher plus »
+  de la barre en mode Top, mais son préfixe était posé devant une **liste** de
+  sélecteurs et n'en tenait que la première partie. Elle est corrigée, et
+  limitée à la barre.
+
+Aucune des deux ne peut cacher ni couvrir une vidéo. Il reste deux causes
+possibles : un élément à nous posé **sur** la vidéo, ou une cause hors de
+l'extension.
+
+**Le bloc `LECTEUR PRINCIPAL` les distingue maintenant.** Il ajoute :
+
+| ligne | ce qu'elle dit |
+| --- | --- |
+| `dessus` | le premier élément **opaque** peint sur le centre de la vidéo : un fond d'opacité au moins moitié, une image de fond, ou un contenu remplacé (image, iframe, canevas, vidéo). Les calques transparents du lecteur n'en sont pas. `hors écran` si le centre de la vidéo n'est pas dans la fenêtre |
+| `dessusNous` | si ce voile, ou l'un de ses ancêtres, est à nous |
+| `position` | le coin haut-gauche de la vidéo dans la fenêtre |
+| `images` | les images décodées : zéro sur une vidéo « qui joue », c'est le décodage qui manque, pas l'affichage |
+
+Le rapport du panneau lit la page elle-même : il n'a pas le souci du contexte de
+la console.
+
+### Ce que le banc mesure
+
+- **Scénario 173**, trois assertions de plus :
+  - un calque transparent n'est pas un voile ;
+  - un voile opaque est nommé, que ce soit celui de la page ou le nôtre ;
+  - un « Afficher plus » de la page n'est jamais caché, et celui de la barre
+    l'est en mode Top seulement.
+- **Scénario 174**, une de plus : un lecteur qui ne joue jamais liste ce qu'il
+  affiche. Ses décors changent aussi :
+  - un chat où le solde des Bits précède celui des points ;
+  - un chat sans repère propre, où les Bits viennent avant le bloc des points ;
+  - une iframe sans nom qui fait une tâche longue.
+- **Scénario 70** : les nouvelles lignes au panneau.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| les marques stables jamais listées, le lecteur cru ayant joué, `aJoue` figé (3) | le lecteur muet reste muet |
+| le repère propre du solde ignoré, les Bits pris pour des points (2) | 7 lu au lieu de 530 |
+| les « autres » sans détail, ou sans hôte (2) | 25 tâches sans nom |
+| `dessus` jamais rempli, un calque transparent pris pour un voile, le nôtre jamais ou toujours reconnu (4) | un lecteur couvert qu'on ne voit pas, ou qu'on nous attribue à tort |
+| `position` ou `images` perdues (2) | la vidéo sans place ni décodage |
+| la règle « ShowMore » rendue à son écriture fautive, ou retirée (2) | la page amputée d'un bouton, ou la barre qui le garde en mode Top |
+
+Quinze mutants, quinze pris, au premier tour.
+
 ## La sonde, ré-étalonnée sur le vrai Twitch (v4.24.0.4)
 
 La sonde de la 4.24.0.3 a tourné deux fois sur le vrai Twitch, sous Helium
@@ -12278,7 +12399,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 174 scénarios, 1494 assertions |
+| `npm test` | le harnais Playwright : 174 scénarios, 1498 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -12299,7 +12420,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1336 Ko | 492 Ko | 3 623 → **2** |
+| `content.js` | 1336 Ko | 492 Ko | 3 634 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 105 Ko | 50 Ko | 145 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

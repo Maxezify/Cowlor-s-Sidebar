@@ -2059,6 +2059,125 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The room measured, and the black player narrowed down (v4.24.0.5)
+
+The third probe followed the 4.24.0.4 protocol: four players and two chats of
+channels in a Shared Chat, fourteen minutes, opened on "Following", with an
+account that has no subscription. The protocol asked to turn the ad blocker off
+for twitch.tv, and this time the ads showed.
+
+### What it measured
+
+| probe | measurement |
+| --- | --- |
+| P3 — ads? | **Yes, and the probe sees them.** A pre-roll of about 14 s on two players. A third spent 378 s in ads over fourteen minutes, in two breaks. |
+| P4 — give the sound back? | Two more `ok` verdicts, through the player's button. |
+| P5 — points? | Still 0 → 0. But the two "0 \| 0" leaves were two balances, Bits and points: see below. |
+| P6 — what does it cost? | See the next table. |
+| P7 — Shared Chat? | **99% common messages** (210) between the chats of two channels in a Shared Chat: the embedded chats do show the shared chat, and no marker names it. |
+
+**What an ad looks like** in an embedded player, according to the log:
+
+- three markers appear: `data-a-target=video-ad-label`,
+  `data-a-target=video-ad-countdown` and `data-test-selector=ad-banner-default-text`;
+- an `about:blank` iframe is placed in the player;
+- the frame goes to 1920 × 1080;
+- the stream card (title, game) and the follow, subscribe and gift buttons
+  disappear, then come back when the ad ends.
+
+These were the markers 4.24.0.3 looked for. If it saw none, it is because the
+browser's blocker kept them from showing: the user then saw the ad's space,
+without the ad.
+
+**What the room costs.** Read in Helium's task manager, the tab's row, probe
+open then thirty seconds after closing it:
+
+| | probe open | probe closed | the room |
+| --- | --- | --- | --- |
+| memory | 1,896 MB | 994 MB | **≈ +900 MB** for four players and two chats |
+| CPU | 59.6% | 43.8% | **≈ +16 points** |
+| network | 1,076 KB/s | 18.5 KB/s | **≈ 8.6 Mbit/s** for three players that were playing |
+
+Two independent measurements agree. The sum of the bitrates read in each player
+(3,225 + 2,522 + 3,388 kbit/s) is 9.1 Mbit/s, against 8.6 Mbit/s in the task
+manager.
+
+Each player decodes its video in a **dedicated worker**: the task manager lists
+one per player. It therefore ran **no long task** on the page's thread. The
+chats ran 21 (2.2 s in fourteen minutes): in the room, the chat weighs on the
+page, not the player.
+
+Two points remain open:
+
+- **25 "other" long tasks** (2.6 s), unnamed: see below;
+- **43.8% CPU with the probe closed** is a lot for a page at rest. It was read
+  thirty seconds after closing: it must be read again at rest, then with the
+  extension off, to know whose it is.
+
+### What changes
+
+| what the report showed | what the probe does now |
+| --- | --- |
+| a player that showed no frame in fourteen minutes, and a silent log: what it displayed instead of the stream had been there from the start, hence "stable", hence unsaid | **a player that never played also lists its stable marks**; `aJoue` says it for each |
+| the embedded chat carries `copo-balance-string`, the channel points balance, next to `bits-balance-string`, and the block that was read contains both | the balance is read **first from `copo-balance-string`**; the fallback never takes Bits for points |
+| 25 "other" long tasks, with nothing to say about them | **`autresNoms`**: the culprit name the browser gives (`unknown`, `multiple-contexts`…) and, for an iframe, its host |
+
+### The black player, narrowed down
+
+The user saw **a black player, controls visible**, on a channel page again. The
+diagnostic script printed nothing in the console: it had run in an iframe, the
+console's context selector showing "index.html" instead of "top".
+
+**The code first.** Out of the extension's 215 style rules, only two reach
+Twitch elements outside the sidebar:
+
+- Twitch's tooltip layer, hidden **while** a preview is open;
+- `[data-test-selector="ShowMore"]`, hidden **on the whole page, all the
+  time**, by mistake. The rule meant to hide the sidebar's "Show more" button
+  in Top mode, but its prefix sat before a **list** of selectors and only held
+  its first part. It is fixed, and kept to the sidebar.
+
+Neither can hide or cover a video. Two possible causes remain: an element of
+ours laid **over** the video, or a cause outside the extension.
+
+**The `LECTEUR PRINCIPAL` block now tells them apart.** It adds:
+
+| line | what it says |
+| --- | --- |
+| `dessus` | the first **opaque** element painted over the video's centre: a background at least half opaque, a background image, or replaced content (image, iframe, canvas, video). The player's transparent layers do not count. `hors écran` if the video's centre is outside the window |
+| `dessusNous` | whether that cover, or one of its ancestors, is ours |
+| `position` | the video's top-left corner in the window |
+| `images` | the decoded frames: zero on a video that "plays" means decoding is missing, not display |
+
+The panel's report reads the page itself: it does not have the console's
+context problem.
+
+### What the bench measures
+
+- **Scenario 173**, three more assertions:
+  - a transparent layer is not a cover;
+  - an opaque cover is named, whether it is the page's or ours;
+  - a page "Show more" is never hidden, and the sidebar's is hidden in Top
+    mode only.
+- **Scenario 174**, one more: a player that never plays lists what it
+  displays. Its fixtures change too:
+  - a chat where the Bits balance comes before the points balance;
+  - a chat with no dedicated marker, where the Bits come before the points
+    block;
+  - an unnamed iframe running a long task.
+- **Scenario 70**: the new lines in the panel.
+
+| mutants | what falls |
+| --- | --- |
+| stable marks never listed, the player believed to have played, `aJoue` frozen (3) | the silent player stays silent |
+| the balance's dedicated marker ignored, Bits taken for points (2) | 7 read instead of 530 |
+| the "others" without detail, or without host (2) | 25 unnamed tasks |
+| `dessus` never filled, a transparent layer taken for a cover, ours never or always recognised (4) | a covered player going unseen, or blamed on us wrongly |
+| `position` or `images` lost (2) | the video without place or decoding |
+| the "ShowMore" rule back to its faulty form, or removed (2) | the page losing a button, or the sidebar keeping it in Top mode |
+
+Fifteen mutants, fifteen caught, in the first round.
+
 ## The probe, recalibrated on the real Twitch (v4.24.0.4)
 
 The 4.24.0.3 probe ran twice on the real Twitch, in Helium (Chromium 154), with
@@ -11849,7 +11968,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 174 scenarios, 1494 assertions |
+| `npm test` | the Playwright harness: 174 scenarios, 1498 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -11869,7 +11988,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1336 KB | 492 KB | 3,623 → **2** |
+| `content.js` | 1336 KB | 492 KB | 3,634 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 105 KB | 50 KB | 145 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
