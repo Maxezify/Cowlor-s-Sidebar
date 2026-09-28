@@ -2057,6 +2057,70 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The right margin, mirroring the left (v4.23.2)
+
+> "The margin is right on the left, but on the right it is not: it is not the
+> same size as the left one."
+
+Measured to the pixel on the screenshot (240 px wide):
+
+| element | left margin | right margin |
+| --- | --- | --- |
+| cards (avatars, counts) | 12 px | 13 px |
+| chips, tabs, menus, sort buttons | 12 to 13 px | **5 px** |
+
+**The cause is the 4.23.1 rule.** It put the block's right edge where the
+title's right inner padding ends. But Twitch's title is not symmetric: 12 px of
+padding on the left, while its collapse button reaches down to 5 px from the
+edge. The cards, for their part, are symmetric.
+
+### The left margin, carried over to the right
+
+The block now takes the title's **left** padding, where its text starts. It
+carries it over to the right, inside the title's box, that is across the bar's
+width. The controls therefore end as far from the right edge as they start from
+the left one: 12 px on each side on the screenshot, like the cards.
+
+**In an off-centre container**, the block's two paddings differ so that its
+controls stay symmetric. That is the case, for instance, of a scrollbar taking
+its room on one side only.
+
+The column is then 216 px on the screenshot, and the sort buttons' gap drops
+from 10 to 9.6 px so that they fit.
+
+### What the report says
+
+The `ALIGNEMENT DU BLOC / BLOCK ALIGNMENT` block now gives three margins, which
+must be **equal**:
+
+| field | content |
+| --- | --- |
+| `margeTitrePx` | where the title's text starts |
+| `margeGauchePx` | our controls' margin from the bar's left edge |
+| `margeDroitePx` | the same, from the right edge |
+
+On the 4.23.1 screenshot, these three numbers would have read 12, 12 and 5. That
+is the inequality the report could not state with its former fields.
+
+### What the bench measures
+
+**Scenario 170** (ten assertions) now reproduces this screenshot: a title with
+12 px of padding on the left and 5 on the right. The former fixture had 10 px on
+both sides: the 4.23.1 rule passed there, since the right padding equalled the
+left one. It also tests an off-centre container, where the block's two paddings
+must differ.
+
+| mutants | what falls |
+| --- | --- |
+| the 4.23.1 rule put back (1) | the screenshot, line for line: block paddings of 8 and 1 px, controls 12 and 5 px from the edges |
+| the right padding copied from the left one, the title's right inner padding taken as reference (2) | controls shifted in an off-centre container, or a column following the collapse button |
+| the call in the sweep, the variable ignored by the stylesheet, the 12 px fallback, the two paddings swapped (4) | the old inset, or each padding on the wrong side |
+| the lower and upper bounds, the variable never removed (3) | a zero, negative or 56 px padding; an old measurement outliving the title |
+| the sort row's fixed gap, then its base (2) | sort buttons overflowing, or squeezed too tight |
+| the report: source, title margin, left and right margins, column, overflow, and its line in the panel (7) | a reading that cannot say no |
+
+Nineteen mutants, nineteen caught.
+
 ## The filter block, on the title's edges (v4.23.1)
 
 > "There's a small margin issue with the settings and the Streak and Stories
@@ -11169,7 +11233,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 170 scenarios, 1455 assertions |
+| `npm test` | the Playwright harness: 170 scenarios, 1456 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -11189,7 +11253,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1306 KB | 476 KB | 3,572 → **2** |
+| `content.js` | 1307 KB | 476 KB | 3,572 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
 | `panneau.js` | 104 KB | 50 KB | 143 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

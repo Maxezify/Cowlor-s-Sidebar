@@ -2178,6 +2178,71 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La marge de droite, miroir de celle de gauche (v4.23.2)
+
+> « La marge est bonne à gauche, par contre à droite ce n'est pas bon : elle
+> n'est pas de la même taille que celle de gauche. »
+
+Mesuré au pixel sur la capture (240 px de large) :
+
+| élément | marge gauche | marge droite |
+| --- | --- | --- |
+| cartes (avatars, compteurs) | 12 px | 13 px |
+| puces, onglets, menus, tris | 12 à 13 px | **5 px** |
+
+**La cause est la règle de la 4.23.1.** Elle prenait le bord droit du bloc là où
+finit la marge intérieure droite du titre. Or le titre de Twitch n'est pas
+symétrique : 12 px de marge à gauche, mais son bouton de repli descend à 5 px du
+bord. Les cartes, elles, sont symétriques.
+
+### La marge de gauche, reportée à droite
+
+Le bloc prend désormais la marge **gauche** du titre, là où commence son texte.
+Il la reporte à droite, dans la boîte du titre, c'est-à-dire dans la largeur de
+la barre. Les contrôles finissent donc à la même distance du bord droit qu'ils
+commencent du bord gauche : 12 px de part et d'autre sur la capture, comme les
+cartes.
+
+**Dans un conteneur décentré**, les deux marges du bloc diffèrent pour que ses
+contrôles restent symétriques. C'est le cas, par exemple, d'une barre de
+défilement qui prend sa place d'un seul côté.
+
+La colonne fait alors 216 px sur la capture, et l'écart des tris passe de 10 à
+9,6 px pour qu'ils y tiennent.
+
+### Ce que le rapport dit
+
+Le bloc `ALIGNEMENT DU BLOC / BLOCK ALIGNMENT` donne maintenant trois marges,
+qui doivent être **égales** :
+
+| champ | contenu |
+| --- | --- |
+| `margeTitrePx` | là où commence le texte du titre |
+| `margeGauchePx` | la marge de nos contrôles depuis le bord gauche de la barre |
+| `margeDroitePx` | la même, depuis le bord droit |
+
+Sur la capture de la 4.23.1, ces trois nombres auraient valu 12, 12 et 5. C'est
+l'inégalité que le rapport n'aurait pas su dire avec ses anciens champs.
+
+### Ce que le banc mesure
+
+Le **scénario 170** (dix assertions) reproduit désormais cette capture-ci : un
+titre à 12 px de marge à gauche et 5 à droite. Le décor d'avant avait 10 px des
+deux côtés : la règle de la 4.23.1 y passait, puisque la marge de droite y était
+égale à celle de gauche. Il éprouve aussi un conteneur décentré, où les deux
+marges du bloc doivent différer.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la règle de la 4.23.1 remise en place (1) | la capture, trait pour trait : des marges de bloc de 8 et 1 px, des contrôles à 12 et 5 px des bords |
+| la marge de droite recopiée sur celle de gauche, la marge intérieure droite du titre prise pour référence (2) | des contrôles décalés dans un conteneur décentré, ou une colonne qui suit le bouton de repli |
+| l'appel dans le balayage, la variable ignorée par la feuille, le repli à 12 px, les deux marges inversées (4) | l'ancien retrait, ou chaque marge du mauvais côté |
+| les bornes basse et haute, la variable jamais retirée (3) | une marge nulle, négative ou de 56 px ; une ancienne mesure qui survit au titre |
+| l'écart fixe des tris, puis sa base (2) | des tris qui débordent, ou trop serrés |
+| le rapport : source, marge du titre, marges gauche et droite, colonne, débordement, et sa ligne au panneau (7) | une lecture qui ne sait pas dire non |
+
+Dix-neuf mutants, dix-neuf pris.
+
 ## Le bloc filtre, aux bords du titre (v4.23.1)
 
 > « Il y a un petit souci de marge concernant les réglages et la partie Série
@@ -11581,7 +11646,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 170 scénarios, 1455 assertions |
+| `npm test` | le harnais Playwright : 170 scénarios, 1456 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -11602,7 +11667,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1306 Ko | 476 Ko | 3 572 → **2** |
+| `content.js` | 1307 Ko | 476 Ko | 3 572 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
 | `panneau.js` | 104 Ko | 50 Ko | 143 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
