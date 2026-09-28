@@ -135,15 +135,17 @@ What the manifest gains:
   collects nor transmits anything, which the rest of this document details and
   which the total absence of permissions makes checkable.
 
-### Two APIs Chrome has and Firefox does not
+### Four APIs Chrome has and Firefox does not
 
 The code needed no change, but it had to be established that it **degrades
-correctly**. Only two calls are involved, both already guarded:
+correctly**. Four calls are involved, all guarded:
 
 | API | Firefox | What the code does without it |
 | --- | --- | --- |
 | `location.ancestorOrigins` | absent before ~148 | the preview and probe bridges fall back to the two manifest-declared origins to target their `postMessage`; their guards, like the ad blocker's, to the iframe's name alone (since 4.24.0.1) |
 | `requestVideoFrameCallback` | since 132 (so present at the floor) | the three-signal race runs on the remaining two — `playing` and `readyState` |
+| `PerformanceObserver`, type `longtask` | absent | the room probe does not count long tasks: its `tachesLongues` line is `null` (since 4.24.0.3) |
+| `webkitVideoDecodedByteCount` | absent (Chromium-only) | the probe does not measure its players' bitrate: `debitKbps` is `null` (since 4.24.0.4) |
 
 The first is **the** divergence of the port. If its fallback were broken, the
 preview would never reveal on Firefox, and nothing in the code would say so:
@@ -329,7 +331,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1336 KB | 492 KB | 3,604 → **2** |
+| `content.js` | 1336 KB | 492 KB | 3,623 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 105 KB | 50 KB | 145 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
@@ -2487,6 +2489,150 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The probe, recalibrated on the real Twitch (v4.24.0.4)
+
+The 4.24.0.3 probe ran twice on the real Twitch, in Helium (Chromium 154), with
+an account that has no subscription:
+
+- **first report**: four players and two chats, twelve minutes, opened on the
+  home page;
+- **second report**: three players and two chats of channels in a Shared Chat,
+  six minutes, opened on "Following".
+
+### What they answered
+
+| probe | answer | where it comes from |
+| --- | --- | --- |
+| P3 — ads in an embedded player? | **Embedded players carry the session.** With a Turbo account, no pre-roll ad; with an account without a subscription, ads from the start | observed by the user, **not measured**: the probe counted zero ads on its seven players |
+| P4 — give the sound back? | **Yes, through the player's button, without a pause**, on four players: two `ok` verdicts written, two inferred from a "mute" that went through the button, which the report did not keep | both reports |
+| P5 — points in an embedded chat? | **No gain**: balance 0 at the start and 0 at the end, over twelve minutes as over six | both reports; the cause remains to be settled |
+| P6 — what does it cost? | 87 long tasks for 9.0 s in 732 s (1.2% of the time) with four players; 47 for 4.6 s in 365 s (1.25%) with three. No dropped frame. Every player decodes 1280 × 720 for a 400 × 300 box | both reports |
+| P7 — does Shared Chat show? | **No** `shared-chat` **marker** in the embedded chats of two channels in a Shared Chat | second report |
+
+The 13.6 Mbit/s and 4.3 GB read in the Windows task manager apply to the whole
+browser, every tab included: they do not measure the probe alone.
+
+### What was missing, and what changes
+
+| what the reports showed | what the probe does now |
+| --- | --- |
+| ads on screen, no marker: no attribute contains "ad" | the **player log** records everything that appears and disappears in it, without looking for any word; the ad markers also search classes and ids, splitting camelCase |
+| a Shared Chat without a marker | the **messages common to both chats**, counted without being reported, and all of each chat's markers on one line, to compare from one report to the next |
+| a balance read as "00": the number is written twice in its block, and a balance of 530 would have been read as 530530 | the balance is read **leaf by leaf**; every leaf goes to the report |
+| sound given to a first player, then taken back, left only a "mute" | **every verdict is kept**: `sons` |
+| 87 long tasks, with no way to say whose | long tasks **by culprit**: the page, the players, the chats, the rest |
+| no bitrate | **each player's bitrate**, from the decoded bytes (Chromium only) |
+| a page video seen stopped at report time, with nothing known of the twelve minutes before | the **cumulated time** a page video plays: `videoDeLaPageS` |
+| a stopped player, with no sound button, 45 s behind, and nothing to say when | the **stopped time** and the number of stops, the time in ads, the video's state (`pret`, `erreur`) |
+
+### The player log
+
+At each reading, every two seconds, the bridge notes what is present in the
+player:
+
+- every `data-a-target` and `data-test-selector` value, suffixed "(caché)"
+  when the element is not displayed;
+- every nested iframe, by its host, which would show an ad served by an ad
+  network;
+- the number of video elements, when it is not one;
+- custom tags (a name with a hyphen);
+- the frame size, a stopped playback, a missing sound button.
+
+**What appears while the player sets up (15 s) and never moves again is counted,
+not listed**: `marquesStables`. The rest goes to the report, forty lines at
+most per player, what left first:
+
+```
+lecteurs.<channel>.marques.iframe=<host>   3→33 s · 16 relevé(s) · 1 apparition(s)
+```
+
+Times count from the player's opening. Only identifier-shaped values get in:
+nothing written by a person, no title, no sentence.
+
+This log is what will show what an ad looks like. The user described it this
+way: at the start, Twitch's loading in the player, "like when there is no ad
+left to show", with the ad's space in place. If the ad comes from an ad network
+in an iframe, or from a second video, the log will show it. The first report
+also had a stopped player, with no sound button, 45 s behind the clock: the log
+will say what was going on in it.
+
+### The messages common to both chats
+
+Two chats of the same Shared Chat show the same messages, each with its author.
+The probe keeps the text of each chat's messages **in the page**, 3,000 at
+most, and counts those present in both:
+
+```
+chatsCommuns.messages   97
+chatsCommuns.pct        88
+```
+
+The percentage is relative to the smaller of the two chats. Close to 100%, the
+two chats are one; close to zero, each has its own. **No text leaves the
+page**: the report only carries the count.
+
+### Long tasks, by culprit
+
+The players (player.twitch.tv) are on the same site as the page, hence often in
+the same process: their work then blocks the page's thread. Chromium assigns
+each long task to the iframe containing it, by its name. The probe's chats now
+carry the name `tse-sonde-chat`, to be recognised as the players are by
+`tse-sonde`.
+
+### The protocol, refined
+
+1. **Open "Following"**, not the home page: its carousel is a page video.
+2. **Note whether an ad blocker is active** in the browser, and turn it off
+   for twitch.tv while the probe runs. A blocker changes what P3 measures.
+3. Open the probe, wait, click "Son / Sound" on two players, as before.
+4. **In the browser's task manager** (`about:processes` in Firefox), read the
+   tab's row and the GPU process's row with the probe open, then thirty seconds
+   after `tse.sonde.fermer()`. The difference is the probe's cost. The Windows
+   task manager mixes every tab.
+5. **For P5**, with no new probe: open one of the probed channels with the same
+   account, and read the points balance **right away**. If it is still 0, the
+   room earns no points; if it is 10 or more, it does, but the embedded chat
+   does not refresh its balance.
+
+### What the bench measures
+
+**Scenario 174** goes from ten to fifteen assertions. The fixtures play what the
+probe must see without a keyword:
+
+| fake player or chat | what it now also does |
+| --- | --- |
+| "annonce" | during its ad, an ad-network iframe, a second video, a custom tag, and its sound button removed |
+| "quatre" | an ad marked by its class alone, in camelCase; a frame size that changes midway; a byte counter that restarts from zero |
+| "calme" | loads for two and a half seconds before playing; runs a long task in its player; its controls leave and come back |
+| every player | decodes 125 bytes per millisecond, i.e. 1,000 kbit/s |
+| the chats | two messages in common out of five and four, including a "gg" signed by two authors, which does not count; a balance written twice; a long task in "annonce"'s chat |
+
+**Scenario 70** checks that the panel shows the new lines.
+
+| mutants | what falls |
+| --- | --- |
+| the ad markers: the pattern widened, a hidden marker counted, classes ignored, camelCase not split, a hidden class counted (5) | ads that are not ads, or that go unseen |
+| the log: displayed and hidden merged, stable entries listed, the set-up window unbounded, returns never counted, iframes, videos, tags, frame size, playback, sound button out of the log, the cap (11) | a log that hides what moves, or drowns in what does not |
+| the bytes missing, a drop taken as a negative difference or ignored (3) | a wrong bitrate |
+| the video's state (1) | `pret` lost |
+| the verdicts: recounted at every reading, only the last kept, a pause read as a success (3) | P4 misread |
+| the durations: time in ads never cumulated, loading counted as a stop, a stop counted at every reading (3) | wrong durations |
+| the long tasks: all on the page, none on an iframe, the chats without a name (3) | P6 without a culprit |
+| the page's video: never seen, never cumulated (2) | a load measured on a page that plays |
+| the balance: read as one block, its leaves glued back (2) | 530530 |
+| the chats: messages compared without the author, relative to the larger one, never compared; their markers lost (4) | P7 misread |
+
+Thirty-seven mutants, thirty-seven caught. In the first round, one had slipped
+through: **a verdict recounted at every reading**, because the bench read the
+report before the player had sent the same command again. The bench now waits
+for one more reading, and the mutant falls.
+
+**A limit, stated rather than hidden.** When Twitch replaces its video element,
+the bytes decoded since the last reading are lost with it, two seconds at most:
+no measurement recovers them, and the bitrate is then slightly underestimated.
+The bench's fake counter therefore resets AT a reading, to test the page's
+arithmetic alone.
+
 ## The room probe (v4.24.0.3)
 
 Multistream phase 0, continued. Two of the audit's probes have already
@@ -2590,7 +2736,7 @@ chats:
 
 | fake player or chat | what it does |
 | --- | --- |
-| "annonce" | shows an ad marker for three seconds |
+| "annonce" | shows an ad marker for five seconds |
 | "bloque" | pauses 300 ms after its sound is given back |
 | every player | carries a hidden ad marker, and markers that are not ads (`add-to-list`, `stream-header-title`) |
 | the chats | an input box, three messages, a balance going from 530 to 540, and a Shared Chat header for "bloque" |
@@ -12132,7 +12278,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 174 scenarios, 1489 assertions |
+| `npm test` | the Playwright harness: 174 scenarios, 1494 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
