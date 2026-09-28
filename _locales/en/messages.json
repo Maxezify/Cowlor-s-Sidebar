@@ -685,10 +685,10 @@
     "message": "What Twitch shows"
   },
   "optStories": {
-    "message": "Stories"
+    "message": "Stories row"
   },
   "optDescStories": {
-    "message": "Shown by default: that is what Twitch does."
+    "message": "\"Integrated\" tucks Twitch's stories row into the filter block, with the number of channels with unseen stories. Always hidden in Top Channels mode."
   },
   "optSerie": {
     "message": "Watch streak"

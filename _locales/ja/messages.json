@@ -571,10 +571,10 @@
     "message": "Twitch が表示するもの"
   },
   "optStories": {
-    "message": "ストーリー"
+    "message": "ストーリーの行"
   },
   "optDescStories": {
-    "message": "既定では表示されます。Twitch がそうしているからです。"
+    "message": "「統合」では、Twitch のストーリーの行をフィルター欄にまとめ、未読のストーリーがあるチャンネル数を表示します。「トップチャンネル」モードでは常に非表示です。"
   },
   "optSerie": {
     "message": "視聴ストリーク"

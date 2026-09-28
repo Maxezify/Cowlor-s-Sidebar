@@ -2057,6 +2057,170 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The stories row, tucked under the streak (v4.23.0)
+
+> "Do you have proposals for the Stories part? It sticks out a bit next to
+> everything else in the sidebar."
+
+Measured to the pixel on the screenshot, the stories row clashes in four ways:
+
+| | Twitch's row | the rest of the bar |
+| --- | --- | --- |
+| space | 46 px: 58 px between the sort buttons and the first card, against 12 without it | controls 6 to 8 px apart |
+| avatar stack | 37 px tall, the tallest object in the bar | card avatars at 30 px, controls at 28 px |
+| text | Twitch's link purple (`#bf94ff`), regular weight, 14 px | white, semibold, 11.5 px |
+| left edge | 11 px | 16 px for our controls, right above |
+
+Its place had also changed. The 21/08 recording put it next to the bar, above
+the title; on the screenshot, it sits under our filter block, against the
+cards.
+
+### The same chip as the streak
+
+The row becomes a **28 px chip**, right under the streak's, on the same style:
+same well, same hairline, same radius, white semibold text. It holds:
+- the avatar stack, reduced to 18 px (at most three overlapping 15 px
+  avatars);
+- Twitch's text;
+- on the right, **the number of channels with unseen stories**, in the purple
+  badge the block already uses for subscriptions.
+
+The stack keeps Twitch's **purple → cyan ring** (`#9147ff` → `#0bc1f6`,
+measured on the screenshot), which means "unseen". Set in our block, the chip
+has a fixed place, whenever Twitch renders its row.
+
+**The click stays Twitch's.** The row is not moved, it is hidden, and a click on
+the chip is forwarded to its button: Twitch opens its viewer. Since the row has
+no address, the chip is a button, not a link.
+
+### What we do not know about the row, so the chip does not assume it
+
+Only the row's outer block has been recorded (`storiesLeftNavSection--…`).
+The chip reads the inside without assuming its shape:
+- **the click** goes to the row's first button, failing that to an element
+  playing that role, to a link, or to the row itself;
+- **the stack** takes its first three images, without duplicates, skipping
+  those that have no address yet;
+- **the text** is its last paragraph's, with spaces collapsed;
+- **the count** comes from the accessible labels, the row's own included,
+  under the streak's rule: a standalone number, never stuck to a letter.
+  Said twice, it is read; two different numbers are not.
+
+**With no readable count, the ring stays neutral** and the badge goes away:
+the chip does not show "unseen" without having read it.
+
+### The "Stories row" setting
+
+The "Stories" switch becomes a three-state choice, like the streak's, in the
+Options tab, group "What Twitch shows":
+
+| setting | followed channels | collapsed sidebar | Top Channels |
+| --- | --- | --- | --- |
+| **Integrated** (default) | the chip | Twitch's row | nothing |
+| As on Twitch | Twitch's row | Twitch's row | nothing |
+| Hidden | nothing | nothing | nothing |
+
+**Its name changes to agree.** The words for "Integrated" and "Hidden" are
+shared with the streak, and in French they are feminine singular:
+"Stories : Intégrée" does not agree. The setting is therefore called "Stories
+row", and takes in each language a name those two words agree with ("Rangée des
+stories", "Fila de stories", "Riga delle storie", "Sekcja Stories", "Строка
+историй"…).
+
+**The old switch is converted**, in storage as in a settings export. The old
+"off" becomes "Hidden": whoever hid the stories keeps them hidden. The old "on"
+was the default; it becomes today's default, rather than a refusal counted at
+import.
+
+### Two false candidates, ruled out
+
+The extension finds the row by a class containing "stories". Two other
+elements carry one:
+- **the decoration Twitch puts around the avatar of a channel that posts
+  stories.** With no row on screen, it became the first match, and a card's
+  avatar would have been taken for the row;
+- **our own chip**, whose class says "stories" and which lives in our block,
+  before Twitch's row when the row arrives after it.
+
+Both are ruled out, and the bench tests each of them.
+
+### What the report says
+
+The new `RANGÉE DES STORIES / STORIES ROW` block gives:
+
+| field | content |
+| --- | --- |
+| `rangee`, `masquee`, `puce`, `reglage` | the row found, hidden or not, the chip, the setting |
+| `nombre`, `etiquettes`, `images` | what the chip read |
+| `cible` | what a click triggers: `button`, `div`, `a`, or `rangee` |
+| `place`, `dansBarre` | where Twitch renders the row: before or after our block, in the bar or next to it |
+| `espaceCartesPx` | the gap between the bottom of our block and the first card |
+| `squelette` | the row's tags, stable classes and marker attributes, without a word of text or an address |
+
+**The skeletons read out of order**, this one as well as the sponsored cards'
+(4.21.3). Their keys had two digits, and JavaScript puts keys that look like
+indexes first in an object: "10", "11"… came before "01". They now have three
+digits, and the bench checks the order of both skeletons.
+
+### What the bench measures
+
+The bench's fixture carries the row from the 21/08 recording. A stylesheet set
+after ours gives its hashed class a `display` declared `!important`, like
+Twitch's layout components.
+
+**Scenario 169** (twenty-six assertions) tests:
+- the chip's place, style, geometry to the pixel, stack and badge, measured
+  against the block's controls;
+- hover, keyboard focus, the forwarded click, and avatars that do not
+  reload at every sweep;
+- reading several shapes of row: no count, a repeated count, two counts,
+  at most three avatars, an image without an address, text outside the
+  paragraph, a label on the row, and the four kinds of target;
+- the three settings, the old switch, Top Channels and the collapsed sidebar;
+- the row rendered after our block, as on the screenshot, without leaving a
+  gap;
+- the report, and the two false candidates.
+
+The other scenarios follow the new default:
+- **168** now checks that both chips, streak and stories, trigger no sweep at
+  rest;
+- **167** expects the stories chip between the streak's and the tabs;
+- **35** counts the stories as visible when their chip is;
+- its check of the row's margins moves to 169, under "As on Twitch", where
+  the row shows.
+
+| mutants | what falls |
+| --- | --- |
+| the lookup's two exclusions (2) | a card's avatar becomes the stack; our chip takes itself for the row and hides itself |
+| converting the old switch: "off", "on", the rule, only a real boolean (4) | hidden stories coming back; an import counting a refusal; the string "false" accepted |
+| hiding at a single class's specificity, the row's margin (2) | Twitch's stylesheet brings the row back; the row touches what follows it |
+| the style, colour, hover, focus and text shared with the streak (5) | the stories chip loses one of the block's surfaces |
+| the button's font, alignment and cursor (3) | text in the browser's font, centred, under an arrow |
+| the stack: `display`, padding, neutral ring, gradient, empty stack (5) | the ring disappears, lies, or stays alone without avatars |
+| the avatars: size, roundness, `object-fit`, cut-out, overlap, order (7) | a stack that is no longer Twitch's |
+| the badge: width, height, padding, `box-sizing`, centring, radius, background, size, weight, figures, `:empty` (11) | a badge off, or empty on screen |
+| reading: the three fallback targets, the row's own label, deduplication, the title, the last paragraph, spaces, images without an address, duplicated, beyond three (12) | the chip says something other than the row, or clicks elsewhere |
+| who decides: Top Channels, "Hidden", collapsed sidebar — for the row as for the chip — and the chip never removed (7) | each cell of the settings table |
+| the place: under the streak, the place guard (2) | the two chips fight over the head of the block, a sweep loop |
+| the content: text, count, title and its fallback, label, "unseen" class (6) | the chip says something other than the row, or "unseen" without having read it |
+| the stack: extra images never removed, missing ones never added, the address rewritten without comparing (3) | a frozen stack; avatars reloaded at every sweep |
+| forwarding the click, the call in the sweep (2) | a click that does nothing; no chip |
+| the report: hidden, target, place, in the bar, gap, stable classes (two), marker attributes (three), order (11) | a reading that cannot say no |
+| the panel's block, the agreeing label, the sponsored cards' skeleton order (3) | the block is never sent; "Stories : Intégrée"; a skeleton read from its tenth node |
+
+Eighty-five mutants, eighty-five caught. One of them, the call in the sweep,
+interrupts the bench after failing its first assertions: without a chip,
+there is nothing left to measure.
+
+**Three mutants survived at first:**
+- **the stack's `flex`.** It did nothing: the stack cannot shrink below its
+  content anyway. The declaration is removed;
+- **converting a string.** Did the rule accept the string `"false"`? No, and
+  the bench now checks it: only a real boolean is converted;
+- **the avatars' address rewritten at every pass.** The bench measured
+  reloads only for the streak's avatar. It now measures them for the stack
+  too.
+
 ## The watch streak, tucked into the filter block (v4.22.0)
 
 > "There's a 'Protégez votre série' part at the top that sticks out a bit."
@@ -10917,7 +11081,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 168 scenarios, 1417 assertions |
+| `npm test` | the Playwright harness: 169 scenarios, 1445 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -10937,12 +11101,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1289 KB | 467 KB | 3,562 → **2** |
+| `content.js` | 1301 KB | 474 KB | 3,570 → **2** |
 | `adblock.js` | 124 KB | 100 KB | 290 → **2** |
-| `panneau.js` | 104 KB | 49 KB | 141 → **0** |
+| `panneau.js` | 104 KB | 50 KB | 142 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1540 KB** | **622 KB** | **−60 %** |
+| **all five** | **1553 KB** | **629 KB** | **−60 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

@@ -2178,6 +2178,175 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La rangée des stories, rangée sous la série (v4.23.0)
+
+> « As-tu des propositions concernant la partie Stories ? Ça fait un peu tache
+> par rapport à tous les autres éléments de la sidebar. »
+
+Mesurée au pixel sur la capture, la rangée « Ouvrir les stories » détonne de
+quatre façons :
+
+| | la rangée de Twitch | le reste de la barre |
+| --- | --- | --- |
+| place | 46 px : 58 px entre les tris et la première carte, contre 12 sans elle | des contrôles espacés de 6 à 8 px |
+| pile d'avatars | 37 px de haut, l'objet le plus haut de la barre | avatars des cartes à 30 px, contrôles à 28 px |
+| texte | le violet des liens de Twitch (`#bf94ff`), en graisse normale, à 14 px | blanc, semi-gras, à 11,5 px |
+| bord gauche | 11 px | 16 px pour nos contrôles, juste au-dessus |
+
+Sa place avait aussi changé. Le relevé du 21/08 la mettait à côté de la barre,
+au-dessus du titre ; sur la capture, elle est sous notre bloc filtre, collée aux
+cartes.
+
+### La même puce que la série
+
+La rangée devient une **puce de 28 px**, juste sous celle de la série, sur la
+même trame : même puits, même filet, même rayon, texte blanc semi-gras. Elle
+contient :
+- la pile d'avatars, réduite à 18 px (trois avatars de 15 px au plus, qui se
+  chevauchent) ;
+- le texte de Twitch (« Ouvrir les stories ») ;
+- à droite, **le nombre de chaînes aux stories non lues**, dans la pastille
+  violette que le bloc emploie déjà pour les abonnements.
+
+La pile garde **l'anneau violet → cyan** de Twitch (`#9147ff` → `#0bc1f6`,
+mesurés sur la capture), qui veut dire « non lues ». Posée dans notre bloc, la
+puce a une place fixe, quel que soit le moment où Twitch rend sa rangée.
+
+**Le clic reste celui de Twitch.** La rangée n'est pas déplacée, elle est
+masquée, et un clic sur la puce est relayé à son bouton : c'est Twitch qui
+ouvre sa visionneuse. La rangée n'ayant pas d'adresse, la puce est un bouton,
+pas un lien.
+
+### Ce qu'on ne sait pas de la rangée, et ce que la puce ne suppose donc pas
+
+Seul le bloc externe de la rangée a été relevé (`storiesLeftNavSection--…`).
+La puce lit l'intérieur sans en supposer la forme :
+- **le clic** va au premier bouton de la rangée, à défaut à un élément qui en
+  joue le rôle, à un lien, ou à la rangée elle-même ;
+- **la pile** reprend ses trois premières images, sans doublon, en ignorant
+  celles qui n'ont pas encore d'adresse ;
+- **le texte** est celui de son dernier paragraphe, espaces ramenés ;
+- **le nombre** vient des étiquettes accessibles, rangée comprise, avec la
+  même règle que la série : un nombre seul, jamais collé à une lettre. Dit deux
+  fois, il se lit ; deux nombres différents ne se lisent pas.
+
+**Sans nombre lisible, l'anneau reste neutre** et la pastille disparaît : on
+n'affiche pas « non lues » sans l'avoir lu.
+
+### Le réglage « Rangée des stories »
+
+L'interrupteur « Stories » devient un choix à trois états, comme celui de la
+série, dans l'onglet Options, groupe « Ce que Twitch affiche » :
+
+| réglage | chaînes suivies | sidebar réduite | Top Chaînes |
+| --- | --- | --- | --- |
+| **Intégrée** (défaut) | la puce | la rangée de Twitch | rien |
+| Comme Twitch | la rangée de Twitch | la rangée de Twitch | rien |
+| Masquée | rien | rien | rien |
+
+**Son nom change pour s'accorder.** Les mots « Intégrée » et « Masquée » sont
+partagés avec la série, et « Stories : Intégrée » ne s'accorde pas. Le réglage
+s'appelle donc « Rangée des stories », et prend dans chaque langue un nom avec
+lequel ces deux mots s'accordent (« Fila de stories », « Riga delle storie »,
+« Sekcja Stories », « Строка историй »…).
+
+**L'ancien interrupteur est converti**, dans le stockage comme dans un export
+de réglages. L'ancien « éteint » devient « Masquée » : qui avait masqué les
+stories les garde masquées. L'ancien « allumé » était le défaut ; il devient le
+défaut d'aujourd'hui, plutôt qu'un refus compté à l'import.
+
+### Deux faux candidats, écartés
+
+L'extension repère la rangée par une classe qui contient « stories ». Deux
+autres éléments en portent une :
+- **le décor que Twitch pose autour de l'avatar d'une chaîne qui publie des
+  stories.** Sans rangée à l'écran, il devenait le premier repère venu, et
+  c'est l'avatar d'une carte qu'on aurait pris pour la rangée ;
+- **notre propre puce**, dont la classe dit « stories » et qui vit dans notre
+  bloc, avant la rangée de Twitch quand celle-ci arrive après lui.
+
+Les deux sont écartés, et le banc les éprouve l'un et l'autre.
+
+### Ce que le rapport dit
+
+Le nouveau bloc `RANGÉE DES STORIES / STORIES ROW` donne :
+
+| champ | contenu |
+| --- | --- |
+| `rangee`, `masquee`, `puce`, `reglage` | la rangée trouvée, masquée ou non, la puce, le réglage |
+| `nombre`, `etiquettes`, `images` | ce que la puce a lu |
+| `cible` | ce qu'un clic actionne : `button`, `div`, `a`, ou `rangee` |
+| `place`, `dansBarre` | où Twitch rend la rangée : avant ou après notre bloc, dans la barre ou à côté |
+| `espaceCartesPx` | l'écart entre le bas de notre bloc et la première carte |
+| `squelette` | balises, classes stables et attributs repères de la rangée, sans un mot de texte ni une adresse |
+
+**Les squelettes se lisaient dans le désordre**, celui-ci comme celui des
+cartes sponsorisées (4.21.3). Leurs clés avaient deux chiffres, et JavaScript
+range en tête d'un objet les clés qui ressemblent à des index : « 10 », « 11 »…
+passaient devant « 01 ». Elles ont désormais trois chiffres, et le banc vérifie
+l'ordre des deux squelettes.
+
+### Ce que le banc mesure
+
+Le décor du banc porte la rangée du relevé du 21/08. Une feuille posée après la
+nôtre donne à sa classe hachée un `display` en `!important`, comme les
+composants de mise en page de Twitch.
+
+Le **scénario 169** (vingt-six assertions) éprouve :
+- la place de la puce, sa trame, sa géométrie au pixel, sa pile et sa
+  pastille, mesurées contre les contrôles du bloc ;
+- le survol, le focus clavier, le clic relayé, et des avatars qui ne se
+  rechargent pas à chaque balayage ;
+- la lecture sur plusieurs formes de rangée : sans nombre, nombre répété,
+  deux nombres, trois avatars au plus, image sans adresse, texte hors du
+  paragraphe, étiquette sur la rangée, et les quatre sortes de cible ;
+- les trois réglages, l'ancien interrupteur, Top Chaînes et la sidebar
+  réduite ;
+- la rangée rendue après notre bloc, comme sur la capture, sans laisser
+  d'écart ;
+- le rapport, et les deux faux candidats.
+
+Les autres scénarios suivent le nouveau défaut :
+- le **168** vérifie désormais que les deux puces, série et stories, ne
+  relancent aucun balayage au repos ;
+- le **167** attend la puce des stories entre celle de la série et les
+  onglets ;
+- le **35** tient les stories pour visibles quand leur puce l'est ;
+- sa vérification des marges de la rangée passe au 169, sous « Comme Twitch »,
+  où la rangée se voit.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| les deux exclusions du repérage (2) | l'avatar d'une carte devient la pile ; notre puce se prend pour la rangée et se masque |
+| la conversion de l'ancien interrupteur : « éteint », « allumé », la règle, le seul vrai booléen (4) | des stories masquées qui reviennent ; un import qui compte un refus ; la chaîne « false » acceptée |
+| le masquage à la spécificité d'une classe, la marge de la rangée (2) | la feuille de Twitch rend la rangée ; la rangée colle à ce qui la suit |
+| la trame, la couleur, le survol, le focus et le texte partagés avec la série (5) | la puce des stories perd l'une des surfaces du bloc |
+| la police, l'alignement et le curseur du bouton (3) | un texte dans la police du navigateur, centré, sous une flèche |
+| la pile : `display`, rembourrage, anneau neutre, dégradé, pile vide (5) | l'anneau disparaît, ment, ou reste seul sans avatar |
+| les avatars : taille, rondeur, `object-fit`, découpe, chevauchement, ordre (7) | une pile qui n'est plus celle de Twitch |
+| la pastille : largeur, hauteur, marges, `box-sizing`, centrage, rayon, fond, taille, graisse, chiffres, `:empty` (11) | une pastille de travers, ou vide à l'écran |
+| la lecture : les trois cibles de repli, l'étiquette de la rangée, le dédoublonnage, le titre, le dernier paragraphe, les espaces, les images sans adresse, en double, au-delà de trois (12) | la puce dit autre chose que la rangée, ou clique ailleurs |
+| qui décide : Top Chaînes, « Masquée », sidebar réduite — pour la rangée comme pour la puce — et la puce jamais retirée (7) | chacune des cases du tableau des réglages |
+| la place : sous la série, la garde de la place (2) | les deux puces se disputent la tête du bloc, une boucle de balayages |
+| le contenu : texte, nombre, titre et son repli, étiquette, classe « non lues » (6) | la puce dit autre chose que la rangée, ou « non lues » sans l'avoir lu |
+| la pile : les images en trop jamais retirées, celles qui manquent jamais ajoutées, l'adresse réécrite sans comparer (3) | une pile figée ; des avatars rechargés à chaque balayage |
+| le relais du clic, l'appel dans le balayage (2) | un clic qui ne fait rien ; pas de puce |
+| le rapport : masquée, cible, place, dans la barre, écart, classes stables (deux), attributs repères (trois), ordre (11) | une lecture qui ne sait pas dire non |
+| le bloc du panneau, le libellé qui s'accorde, l'ordre du squelette des cartes sponsorisées (3) | le bloc ne part pas ; « Stories : Intégrée » ; un squelette lu à partir du dixième nœud |
+
+Quatre-vingt-cinq mutants, quatre-vingt-cinq pris. L'un d'eux, l'appel dans
+le balayage, interrompt le banc après avoir fait échouer ses premières
+assertions : sans puce, il n'y a plus rien à mesurer.
+
+**Trois mutants ont d'abord survécu :**
+- **le `flex` de la pile.** Il ne servait à rien : la pile ne peut de toute
+  façon pas rétrécir sous son contenu. La déclaration est retirée ;
+- **la conversion d'une chaîne.** La règle acceptait-elle la chaîne `"false"` ?
+  Non, et le banc le vérifie désormais : seul un vrai booléen se convertit ;
+- **l'adresse des avatars réécrite à chaque passe.** Le banc ne mesurait les
+  rechargements que pour l'avatar de la série. Il les mesure aussi pour la
+  pile.
+
 ## La série de visionnage, rangée dans le bloc filtre (v4.22.0)
 
 > « Il y a une partie en haut "Protégez votre série" qui fait un peu tache. »
@@ -11325,7 +11494,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 168 scénarios, 1417 assertions |
+| `npm test` | le harnais Playwright : 169 scénarios, 1445 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -11346,12 +11515,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1289 Ko | 467 Ko | 3 562 → **2** |
+| `content.js` | 1301 Ko | 474 Ko | 3 570 → **2** |
 | `adblock.js` | 124 Ko | 100 Ko | 290 → **2** |
-| `panneau.js` | 104 Ko | 49 Ko | 141 → **0** |
+| `panneau.js` | 104 Ko | 50 Ko | 142 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1540 Ko** | **622 Ko** | **−60 %** |
+| **les cinq** | **1553 Ko** | **629 Ko** | **−60 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
