@@ -7084,12 +7084,15 @@ titre('70. Panneau — la page rendue, mesurée');
       lecteur: { videos: 1, taillePx: '0x0', image: '1920x1080', etat: 4, enPause: false,
                  tempsS: 3163, erreur: null,
                  masquePar: 'div.hype-train-player-frame display:none',
-                 regle: '[class*="hype-train" i]', marques: null },
+                 regle: '[class*="hype-train" i]', marques: null,
+                 position: '190,590', images: 0,
+                 dessus: 'div.video-ref-voile fond rgb(0, 0, 0)', dessusNous: false },
       /* Une sonde refermée : un lecteur qui a vu une pub, un son refusé, un
          chat qui a gagné des points — les lignes que la phase 0 attend. */
       sonde: { ouverte: false, depuisS: 720, videoDeLaPage: false, videoDeLaPageS: 0,
                tachesLongues: { n: 14, ms: 1302, page: { n: 4, ms: 402 }, lecteurs: { n: 9, ms: 810 },
-                                chats: { n: 1, ms: 90 }, autres: { n: 0, ms: 0 } },
+                                chats: { n: 1, ms: 90 }, autres: { n: 0, ms: 0 },
+                                autresNoms: 'unknown ×20 · multiple-contexts ×5' },
                chatsCommuns: { messages: 97, pct: 88 },
                lecteurs: { velmora: { pont: true, video: true, lecture: true, muet: false,
                                       image: '1920x1080', dureeS: 718, avanceS: 716.5, perduesPct: 0.4,
@@ -7450,10 +7453,11 @@ titre('70. Panneau — la page rendue, mesurée');
   /* LE LECTEUR PRINCIPAL (4.24.0.2). Le banc ne joint pas Twitch : sur la
      vraie page, seul ce bloc dira ce qui cache la vidéo, et si c'est nous.
      Mutant — la ligne retirée du panneau — il ne part jamais. */
-  ok('…le bloc du lecteur principal : ce qui le cache, et la règle de l\'extension en cause',
+  ok('…le bloc du lecteur principal : ce qui le cache ou le couvre, et la règle de l\'extension en cause',
      contient('LECTEUR PRINCIPAL / MAIN PLAYER')
      && /masquePar\s+div\.hype-train-player-frame display:none/.test(vue.texte)
-     && /regle\s+\[class\*="hype-train" i\]/.test(vue.texte),
+     && /regle\s+\[class\*="hype-train" i\]/.test(vue.texte)
+     && /dessus\s+div\.video-ref-voile fond rgb\(0, 0, 0\)/.test(vue.texte) && /dessusNous\s+false/.test(vue.texte),
      JSON.stringify((vue.texte.match(/LECTEUR PRINCIPAL[\s\S]{0,260}/) || [])[0]));
   /* LA SONDE DE LA SALLE (4.24.0.3). C'est par ce bloc que la phase 0
      rapporte ce que le vrai Twitch a répondu. Mutant — la ligne retirée du
@@ -7468,6 +7472,7 @@ titre('70. Panneau — la page rendue, mesurée');
      && /lecteurs\.velmora\.marques\.iframe=regie\.exemple\.test\s+3→33 s · 16 relevé\(s\)/.test(vue.texte)
      && /lecteurs\.velmora\.sons\s+ok ×1 · pause ×1/.test(vue.texte)
      && /tachesLongues\.lecteurs\.ms\s+810/.test(vue.texte)
+     && /tachesLongues\.autresNoms\s+unknown ×20 · multiple-contexts ×5/.test(vue.texte)
      && /chatsCommuns\.pct\s+88/.test(vue.texte),
      JSON.stringify((vue.texte.match(/SONDE DE LA SALLE[\s\S]{0,1600}/) || [])[0]));
   /* POURQUOI LE RELEVÉ A RECHARGÉ, ET QUEL TÉMOIN A PROUVÉ CHAQUE CLIC.
@@ -24199,7 +24204,8 @@ const pageVariante = async (substitutions, init = null) => {
         <div class="hype-train-player-frame"><video id="principal" muted style="width:640px;height:360px"></video></div>
         <div class="video-player__controls">commandes</div>
       </div>
-      <a class="saveYourStreakSideNavRow--piege" href="/videos/1">Protégez votre série</a>`;
+      <a class="saveYourStreakSideNavRow--piege" href="/videos/1">Protégez votre série</a>
+      <button data-test-selector="ShowMore" id="plus-page">Afficher plus</button>`;
     // AVANT la barre dans le document : c'est l'ordre qui fait passer la
     // recherche sur la page d'abord.
     document.getElementById('root').prepend(contenu);
@@ -24302,6 +24308,73 @@ const pageVariante = async (substitutions, init = null) => {
      && /data-tse-stories-masquee/.test(parNous.regle || '')
      && parNous.marques === 'data-tse-stories data-tse-stories-masquee',
      JSON.stringify(parNous));
+
+  /* ── CE QUI EST PAR-DESSUS (4.24.0.5) ────────────────────────────────────
+     LE LECTEUR NOIR EST REVENU, commandes visibles, sans que rien ne le cache
+     au sens de `masquePar`. Une vidéo peut aussi être noire parce qu'un
+     élément OPAQUE est peint sur elle. Le bloc nomme le premier, sous le
+     centre de la vidéo, et dit s'il est à nous ; les calques transparents du
+     lecteur n'en sont pas. Il dit aussi où est la vidéo, et combien d'images
+     elle a décodées. */
+  await page.evaluate(() => {
+    const f = document.querySelector('.hype-train-player-frame');
+    f.removeAttribute('data-tse-stories');
+    f.removeAttribute('data-tse-stories-masquee');
+    const calque = document.createElement('div');
+    calque.className = 'player-overlay-click-handler';
+    calque.style.cssText = 'position:absolute;inset:0';
+    document.querySelector('.video-player__container').appendChild(calque);
+  });
+  const transparent = (await lire()).lecteur;
+  await page.evaluate(() => {
+    const voile = document.createElement('div');
+    voile.className = 'video-ref-voile';
+    voile.style.cssText = 'position:absolute;inset:0;background:#000';
+    document.querySelector('.video-player__container').appendChild(voile);
+  });
+  const voilePage = (await lire()).lecteur;
+  await page.evaluate(() => {
+    document.querySelector('.video-ref-voile').remove();
+    const voile = document.createElement('div');
+    voile.id = 'tse-essai-voile';
+    voile.style.cssText = 'position:fixed;inset:0;background:rgba(14,14,16,.97);z-index:5';
+    document.body.appendChild(voile);
+  });
+  const voileNous = (await lire()).lecteur;
+  await page.evaluate(() => document.getElementById('tse-essai-voile').remove());
+  /* Mutants — la position ou les images jamais dites ; un calque transparent
+     pris pour un voile. */
+  ok('rien d\'opaque sur la vidéo : un calque transparent n\'est pas un voile ; sa place et ses images sont dites',
+     transparent.dessus === null && transparent.dessusNous === null && transparent.masquePar === null
+     && /^260,-?\d+$/.test(transparent.position || '') && typeof transparent.images === 'number',
+     JSON.stringify(transparent));
+  /* Mutants — le voile jamais cherché ; le nôtre jamais reconnu, ou tout
+     voile pris pour le nôtre. */
+  ok('un voile opaque sur la vidéo est nommé, et le bloc dit s\'il est à nous',
+     voilePage.dessus === 'div.video-ref-voile fond rgb(0, 0, 0)' && voilePage.dessusNous === false
+     && voileNous.dessus === 'div#tse-essai-voile fond rgba(14, 14, 16, 0.97)' && voileNous.dessusNous === true,
+     JSON.stringify({ voilePage, voileNous }));
+
+  /* « AFFICHER PLUS » HORS DE LA BARRE (4.24.0.5). La règle du mode Top
+     s'écrivait avec le préfixe devant une LISTE de sélecteurs : il n'en tenait
+     que la première partie, et tout « ShowMore » de la page était caché, en
+     permanence. Trouvé en cherchant ce qui pouvait noircir le lecteur — ce
+     n'était pas lui. Mutant — la règle rendue à son ancienne écriture. */
+  const plus = await page.evaluate(() => {
+    const lirePlus = () => {
+      const b = document.querySelector('#side-nav [data-a-target="side-nav-show-more-button"]');
+      return { page: getComputedStyle(document.getElementById('plus-page')).display,
+               barre: b ? getComputedStyle(b).display : 'absent' };
+    };
+    const hors = lirePlus();
+    document.body.classList.add('tse-global-ready');
+    const top = lirePlus();
+    document.body.classList.remove('tse-global-ready');
+    return { hors, top };
+  });
+  ok('« Afficher plus » : celui de la page n\'est jamais caché ; celui de la barre, en mode Top seulement',
+     plus.hors.page !== 'none' && plus.top.page !== 'none' && plus.top.barre === 'none',
+     JSON.stringify(plus));
   await page.close();
 }
 
@@ -24359,10 +24432,11 @@ const pageVariante = async (substitutions, init = null) => {
       const ctx = c.getContext('2d');
       // « calme » charge deux secondes et demie avant de jouer : ce temps-là
       // n'est pas un arrêt.
-      if (canal === 'calme') v.removeAttribute('autoplay');
+      // « jamais » ne joue pas du tout : ce qu'il affiche doit être listé.
+      if (canal === 'calme' || canal === 'jamais') v.removeAttribute('autoplay');
       v.srcObject = c.captureStream(25);
       if (canal === 'calme') setTimeout(() => v.play().catch(() => {}), 2500);
-      else v.play().catch(() => {});
+      else if (canal !== 'jamais') v.play().catch(() => {});
       setInterval(() => { ctx.fillStyle = '#' + Math.floor(Math.random() * 16777215)
         .toString(16).padStart(6, '0'); ctx.fillRect(0, 0, c.width, c.height); }, 40);
       // « quatre » change de définition en route.
@@ -24445,11 +24519,19 @@ const pageVariante = async (substitutions, init = null) => {
       <div class="chat-line__message"><span>velmora</span>: salut</div>
       <div class="chat-line__message"><span>korrin</span>: bonsoir</div>
       ${propres}
-      <div data-test-selector="community-points-summary"><span>530</span><span style="visibility:hidden">530</span></div>
+      ${partage
+        /* Le repli : pas de repère propre, et le solde des Bits AVANT le bloc
+           des points — un « balance » qui n'est pas celui des points. */
+        ? '<div data-test-selector="bits-balance-string">7</div>'
+          + '<div data-test-selector="community-points-summary"><span>530</span><span style="visibility:hidden">530</span></div>'
+        /* Le repère propre, relevé sur le vrai Twitch (« copo-balance-string »),
+           dans un bloc qui porte AUSSI le solde des Bits, en premier. */
+        : '<div data-test-selector="community-points-summary"><span data-test-selector="bits-balance-string">7</span>'
+          + '<span data-test-selector="copo-balance-string"><span>530</span><span style="visibility:hidden">530</span></span></div>'}
       <div data-a-target="chat-input" contenteditable="true"></div>
       <script>
         setTimeout(() => {
-          for (const s of document.querySelectorAll('[data-test-selector="community-points-summary"] span')) s.textContent = '540';
+          for (const s of document.querySelectorAll('span')) if (s.textContent === '530') s.textContent = '540';
         }, 1500);
         ${partage ? '' : `setTimeout(() => {
           const fin = performance.now() + 120;
@@ -24512,6 +24594,7 @@ const pageVariante = async (substitutions, init = null) => {
   ok('chaque lecteur rapporte sa lecture : muette, une image, une position qui avance ; l\'anti-pub n\'y est pas',
      Object.entries(r1.lecteurs).every(([k, l]) => l.pont && l.video && l.lecture && l.muet === true
        && l.image === (k === 'quatre' ? '64x36' : '32x18') && l.avanceS > 0 && l.dureeS > 0 && l.perduesPct !== null
+       && l.aJoue === true
        && typeof l.pret === 'number' && l.erreur === null)
      && !!dansLeLecteur && dansLeLecteur.nom === 'tse-sonde' && dansLeLecteur.anti === 'undefined',
      JSON.stringify({ lecteurs: r1.lecteurs, dansLeLecteur }));
@@ -24558,18 +24641,21 @@ const pageVariante = async (substitutions, init = null) => {
      && L.quatre.debitKbps >= 900 && L.quatre.debitKbps <= 1100,
      JSON.stringify({ calme: L.calme.debitKbps, quatre: L.quatre.debitKbps }));
   /* Mutants — la saisie, les messages, le solde de départ ou le gain mal
-     lus (le texte du bloc entier lirait 530530), le Chat partagé relevé
-     partout ou nulle part, les repères du chat perdus. */
+     lus (le texte du bloc entier lirait 530530), le repère propre du solde
+     ignoré ou les Bits pris pour des points (7 au lieu de 530), le Chat
+     partagé relevé partout ou nulle part, les repères du chat perdus. */
   ok('les chats : même origine, saisie, messages, solde lu feuille par feuille et gain, Chat partagé là où il est',
      r1.chats.annonce.memeOrigine === true && r1.chats.annonce.saisie === true
      && r1.chats.annonce.messages === 5 && r1.chats.annonce.pointsDebut === 530
      && r1.chats.annonce.gainPoints === 10 && r1.chats.annonce.pointsTexte === '540 | 540'
-     && r1.chats.annonce.pointsRepere === 'data-test-selector=community-points-summary'
+     && r1.chats.annonce.pointsRepere === 'data-test-selector=copo-balance-string'
+     && r1.chats.bloque.pointsDebut === 530 && r1.chats.bloque.gainPoints === 10
+     && r1.chats.bloque.pointsRepere === 'data-test-selector=community-points-summary'
      && r1.chats.annonce.partage === false
      && r1.chats.bloque.partage === true
      && r1.chats.bloque.reperesPartage === 'data-test-selector=shared-chat-header'
-     && r1.chats.annonce.marques === 'a:chat-input t:community-points-summary'
-     && r1.chats.bloque.marques === 'a:chat-input t:community-points-summary t:shared-chat-header',
+     && r1.chats.annonce.marques === 'a:chat-input t:bits-balance-string t:community-points-summary t:copo-balance-string'
+     && r1.chats.bloque.marques === 'a:chat-input t:bits-balance-string t:community-points-summary t:shared-chat-header',
      JSON.stringify(r1.chats));
   /* LE CHAT PARTAGÉ SANS REPÈRE : deux messages en commun, sur cinq d'un
      côté et quatre de l'autre, et « gg » signé de deux auteurs n'en est pas
@@ -24604,19 +24690,31 @@ const pageVariante = async (substitutions, init = null) => {
       const fin = performance.now() + 120;
       while (performance.now() < fin) { /* une tâche longue, volontaire */ }
     }, 0);
-    await new Promise((r) => setTimeout(r, 600));
+    // Une iframe de la page qui n'est pas de la sonde — un chat sans nom — et
+    // sa tâche longue : une « autre », qui doit dire ce qu'elle est.
+    const tiers = document.createElement('iframe');
+    tiers.src = 'https://www.twitch.tv/embed/tiers/chat?parent=www.twitch.tv';
+    document.body.appendChild(tiers);
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      const t = window.tse.sonde.rapport().tachesLongues;
+      if (i >= 5 && t && t.page.n >= 1 && t.autres.n >= 1) break;
+    }
     const r = window.tse.sonde.rapport();
     clearInterval(peintre);
     v.remove();
+    tiers.remove();
     return { videoDeLaPage: r.videoDeLaPage, videoDeLaPageS: r.videoDeLaPageS, taches: r.tachesLongues };
   });
   /* Mutants — le temps de la vidéo de la page jamais cumulé ; toutes les
-     tâches longues au compte de la page, ou d'aucune iframe. */
+     tâches longues au compte de la page, ou d'aucune iframe ; les « autres »
+     sans leur nom ni l'hôte de leur iframe. */
   const t = charge.taches || {};
   ok('…et la charge de la page : une vidéo qui y joue, et les tâches longues, chacune à son coupable',
      charge.videoDeLaPage === true && charge.videoDeLaPageS > 0
      && t.page?.n >= 1 && t.page.ms >= 100 && t.lecteurs?.n >= 1 && t.chats?.n >= 1
-     && t.n === t.page.n + t.lecteurs.n + t.chats.n + t.autres.n,
+     && t.n === t.page.n + t.lecteurs.n + t.chats.n + t.autres.n
+     && t.autres.n >= 1 && (t.autresNoms || '').includes('same-origin-descendant@www.twitch.tv ×'),
      JSON.stringify(charge));
 
   // ── Le son (P4), par les boutons de la sonde : de vrais clics ────────────
@@ -24689,6 +24787,24 @@ const pageVariante = async (substitutions, init = null) => {
      && apres.rapport.ouverte === false
      && apres.rapport.lecteurs?.annonce?.pubsVues === avant.lecteurs.annonce.pubsVues,
      JSON.stringify({ muet, ferme, apres: { boite: apres.boite, cadres: apres.cadres, ouverte: apres.rapport.ouverte } }));
+
+  /* UN LECTEUR QUI N'A JAMAIS JOUÉ (4.24.0.5). Le troisième rapport réel en
+     portait un, et son journal ne disait rien : ce qu'il affichait à la place
+     du direct était là depuis le début, donc « stable », donc tu. Pour lui
+     seul, les marques stables sont listées. Mutants — les stables jamais
+     listées ; le lecteur cru ayant joué. */
+  await page.evaluate(() => window.tse.sonde.ouvrir('jamais'));
+  await attendre(page, () => (window.tse.sonde.rapport().lecteurs?.jamais?.dureeS ?? 0) >= 2, 8000);
+  const jamais = await page.evaluate(() => {
+    const r = window.tse.sonde.rapport();
+    window.tse.sonde.fermer();
+    return r.lecteurs.jamais;
+  });
+  const mj = jamais?.marques || {};
+  ok('un lecteur qui n\'a jamais joué liste aussi ce qu\'il affiche depuis le début',
+     jamais?.aJoue === false && !!fenetre(mj['data-a-target=add-to-list']) && !!fenetre(mj['lecture=non'])
+     && jamais.marquesStables >= 4,
+     JSON.stringify(jamais));
 
   // Le même nom sur un site tiers — sous Chromium, puis sous la variante
   // Firefox (sans ancestorOrigins), où le nom seul éveille le pont.

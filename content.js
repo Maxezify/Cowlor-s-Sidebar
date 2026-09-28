@@ -480,6 +480,7 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
   const t0 = Date.now();
   const journal = new Map();   // clé → { debut, fin, n, fois, la }
   let passe = 0;
+  let aJoue = false;
   const releve = () => {
     passe += 1;
     const s = Math.round((Date.now() - t0) / 1000);
@@ -516,6 +517,7 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
     if (v) {
       vues.add(`image=${v.videoWidth}x${v.videoHeight}`);
       if (v.paused) vues.add('lecture=non');
+      else aJoue = true;
     }
     if (!document.querySelector(BOUTON_SON)) vues.add('bouton-son=absent');
     for (const cle of vues) {
@@ -529,15 +531,23 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
   /* Ce qui part au parent : les clés qui ont bougé, jamais les stables. Est
      stable ce qui est apparu pendant l'installation du lecteur, n'est jamais
      reparti, et y est encore. Le reste — parti, revenu, ou arrivé plus tard —
-     est listé : d'abord ce qui n'est plus là, puis ce qui est arrivé tard. */
+     est listé : d'abord ce qui n'est plus là, puis ce qui est arrivé tard.
+
+     SAUF DANS UN LECTEUR QUI N'A JAMAIS JOUÉ (4.24.0.5). Le troisième rapport
+     réel en portait un : pas une image en quatorze minutes, et un journal qui
+     ne disait rien, puisque rien n'y avait bougé — ce qu'il affichait à la
+     place du direct était « stable », donc tu. Pour lui, c'est justement ce
+     décor figé qui explique : ses marques stables sont listées aussi. */
   const mouvements = () => {
     const stables = [], partis = [], venus = [];
     for (const [cle, e] of journal) {
       const present = e.la === passe;
-      if (present && e.fois === 1 && e.debut <= TSE_SONDE_ASSISE_S) stables.push(cle);
-      else (present ? venus : partis).push([cle, e.debut, e.fin, e.n, e.fois]);
+      const ligne = [cle, e.debut, e.fin, e.n, e.fois];
+      if (present && e.fois === 1 && e.debut <= TSE_SONDE_ASSISE_S) stables.push(ligne);
+      else (present ? venus : partis).push(ligne);
     }
-    const tous = [...partis.sort((a, b) => a[1] - b[1]), ...venus.sort((a, b) => a[1] - b[1])];
+    const parDebut = (a, b) => a[1] - b[1];
+    const tous = [...partis.sort(parDebut), ...venus.sort(parDebut), ...(aJoue ? [] : stables.sort(parDebut))];
     return { stables: stables.length, liste: tous.slice(0, 40), enPlus: Math.max(0, tous.length - 40) };
   };
 
@@ -5302,7 +5312,10 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
        nôtres. Le bouton « Afficher plus » de la liste suivie n'a plus d'objet,
        et les modes de tri non plus : le classement EST le tri. */
     body.tse-global-ready .side-nav-card:not([data-tse-global="true"]) { display: none !important; }
-    body.tse-global-ready ${DOM.showMoreStableSelector} { display: none !important; }
+    /* Le préfixe sur CHAQUE partie de la liste, et dans la barre (4.24.0.5) :
+       posé devant la liste entière, il ne tenait que sa première partie, et
+       « ShowMore » était caché sur toute la page, en permanence. */
+    ${DOM.showMoreStableSelector.split(',').map((s) => `body.tse-global-ready ${DOM.sidebarRoot} ${s.trim()}`).join(',\n    ')} { display: none !important; }
     body.tse-global-mode #tse-sort-row { display: none; }
 
     /* Bandeau d'honnêteté : le classement est servi, mais on dit quand il
@@ -12503,7 +12516,9 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
   const sonde = (() => {
     const MAX_LECTEURS = 4, MAX_CHATS = 2;
     const RE_LOGIN = /^[a-z0-9_]{2,25}$/;
-    const RE_POINTS = /balance|community-points|channel-points/i;
+    const RE_POINTS = /copo|community-points|channel-points|balance/i;
+    // Le solde des Bits est aussi un « balance » : ce n'est pas celui des points.
+    const RE_BITS = /bits/i;
     const RE_PARTAGE = /shared[-_]?chat/i;
     const RE_NOMBRE = /^\d[\d\s\u00a0\u202f.,]*$/;
     const COUPABLES = ['page', 'lecteurs', 'chats', 'autres'];
@@ -12518,6 +12533,19 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       const a = x.attribution && x.attribution[0];
       const nom = a ? a.containerName : '';
       return nom === TSE_SONDE_FRAME_NAME ? 'lecteurs' : nom === TSE_SONDE_CHAT_NAME ? 'chats' : 'autres';
+    };
+    /* CE QUE SONT LES « AUTRES » (4.24.0.5). Le troisième rapport réel en
+       comptait 25 pour 2,6 s — plus que les chats, et aucune à la page ni aux
+       lecteurs —, sans rien pouvoir en dire. Ce que le navigateur en sait :
+       son nom de coupable (« unknown », « multiple-contexts »…) et, quand
+       elle vient d'une iframe, l'hôte de celle-ci. */
+    const MAX_DETAILS = 12;
+    const detailAutre = (x) => {
+      const a = x.attribution && x.attribution[0];
+      let hote = '';
+      try { if (a && a.containerSrc) hote = new URL(a.containerSrc, location.href).hostname; } catch { /* adresse illisible */ }
+      const nom = x.name || '?';
+      return hote ? `${nom}@${hote}` : nom;
     };
 
     /* Le verdict du son (P4) : « ok » s'il joue et s'entend, « pause » si le
@@ -12592,29 +12620,40 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
         const t = (ligne.textContent || '').replace(/\s+/g, ' ').trim();
         if (t) c.textes.add(t);
       }
-      let points = null;
+      /* FEUILLE PAR FEUILLE, et non le texte du bloc entier. Le premier
+         rapport réel a lu « 00 » pour un solde de zéro : deux feuilles dans le
+         bloc, et un solde de 530 aurait été lu 530530. On garde la première
+         feuille qui est un nombre, et toutes au rapport. */
+      const lirePoints = (el, repere) => {
+        const feuilles = [];
+        const w = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let n = w.nextNode(); n; n = w.nextNode()) {
+          const x = n.data.trim();
+          if (x) feuilles.push(x);
+        }
+        const nombre = feuilles.find((x) => RE_NOMBRE.test(x));
+        c.pointsTexte = feuilles.join(' | ').slice(0, 48);
+        c.pointsRepere = repere;
+        return nombre ? Number(nombre.replace(/\D/g, '')) : NaN;
+      };
+      /* LE SOLDE À SON REPÈRE PROPRE D'ABORD (4.24.0.5). Le troisième rapport
+         réel a relevé dans le chat intégré « copo-balance-string » — le solde
+         des points de chaîne — à côté de « bits-balance-string ». Les deux
+         feuilles du bloc qu'on lisait pouvaient donc être deux soldes, et
+         rien ne disait laquelle était celle des points. Le motif large reste
+         le repli, sans jamais prendre les Bits pour des points. */
+      const copo = doc.querySelector('[data-test-selector="copo-balance-string"]');
+      let points = copo && /\d/.test(copo.textContent || '')
+        ? lirePoints(copo, 'data-test-selector=copo-balance-string') : null;
       for (const el of doc.querySelectorAll('[data-a-target], [data-test-selector]')) {
         for (const at of ['data-a-target', 'data-test-selector']) {
           const v = el.getAttribute(at);
           if (!v) continue;
           if (RE_CLE_CHAT.test(v)) c.marques.add(`${at === 'data-a-target' ? 'a' : 't'}:${v}`);
           if (RE_PARTAGE.test(v)) c.reperesPartage.add(`${at}=${v}`);
-          if (points !== null || !RE_POINTS.test(v)) continue;
+          if (points !== null || !RE_POINTS.test(v) || RE_BITS.test(v)) continue;
           if (!/\d/.test(el.textContent || '')) continue;
-          /* FEUILLE PAR FEUILLE, et non le texte du bloc entier. Le premier
-             rapport réel a lu « 00 » pour un solde de zéro : le nombre y est
-             écrit deux fois. Un solde de 530 aurait été lu 530530. On garde
-             la première feuille qui est un nombre, et toutes au rapport. */
-          const feuilles = [];
-          const w = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-          for (let n = w.nextNode(); n; n = w.nextNode()) {
-            const x = n.data.trim();
-            if (x) feuilles.push(x);
-          }
-          const nombre = feuilles.find((x) => RE_NOMBRE.test(x));
-          c.pointsTexte = feuilles.join(' | ').slice(0, 48);
-          c.pointsRepere = `${at}=${v}`;
-          points = nombre ? Number(nombre.replace(/\D/g, '')) : NaN;
+          points = lirePoints(el, `${at}=${v}`);
         }
       }
       if (points !== null && !Number.isNaN(points)) {
@@ -12633,6 +12672,9 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
         pont: l.messages > 0,
         video: et.video ?? null,
         lecture: et.lecture ?? null,
+        // A-t-il joué une seule fois ? Sinon, son journal liste aussi ses
+        // marques stables : c'est ce qu'il affichait à la place du direct.
+        aJoue: l.aJoue,
         muet: et.muet ?? null,
         image: et.image ?? null,
         pret: et.pret ?? null,
@@ -12706,7 +12748,10 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
            rien dire des douze minutes d'avant. D'où le temps cumulé. */
         videoDeLaPage: videoDeLaPage(),
         videoDeLaPageS: dixiemes(courante.pageVideoMs),
-        tachesLongues: lg ? { n: lg.n, ms: lg.ms, ...Object.fromEntries(COUPABLES.map((k) => [k, { ...lg[k] }])) } : null,
+        tachesLongues: lg ? { n: lg.n, ms: lg.ms, ...Object.fromEntries(COUPABLES.map((k) => [k, { ...lg[k] }])),
+          autresNoms: Object.keys(lg.autresNoms).length
+            ? Object.entries(lg.autresNoms).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ×${n}`).join(' · ')
+            : null } : null,
         lecteurs: parChaine(courante.lecteurs, bilanLecteur),
         chats: parChaine(courante.chats, bilanChat),
         chatsCommuns: communs(courante.chats),
@@ -12819,13 +12864,17 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
          l'iframe qui les contient, par son nom. */
       let longues = null, obs = null;
       try {
-        longues = { n: 0, ms: 0, ...Object.fromEntries(COUPABLES.map((k) => [k, { n: 0, ms: 0 }])) };
+        longues = { n: 0, ms: 0, ...Object.fromEntries(COUPABLES.map((k) => [k, { n: 0, ms: 0 }])), autresNoms: {} };
         obs = new PerformanceObserver((liste) => {
           for (const x of liste.getEntries()) {
             const ms = Math.round(x.duration);
             const k = coupable(x);
             longues.n += 1; longues.ms += ms;
             longues[k].n += 1; longues[k].ms += ms;
+            if (k !== 'autres') continue;
+            let d = detailAutre(x);
+            if (!(d in longues.autresNoms) && Object.keys(longues.autresNoms).length >= MAX_DETAILS) d = 'divers';
+            longues.autresNoms[d] = (longues.autresNoms[d] || 0) + 1;
           }
         });
         obs.observe({ type: 'longtask' });
@@ -13565,17 +13614,68 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
             const trouvee = cachantes.find((r) => { try { return e.matches(r.selectorText); } catch { return false; } });
             regle = trouvee ? trouvee.selectorText : null;
           }
+          /* ── CE QUI EST PAR-DESSUS (4.24.0.5) ─────────────────────────────
+             LE LECTEUR NOIR EST REVENU, commandes visibles, et rien ne le
+             cachait au sens de `masquePar` : une vidéo peut être noire parce
+             qu'un élément OPAQUE est peint au-dessus d'elle — un voile de
+             Twitch, une image, ou l'un des nôtres. On prend les éléments sous
+             le centre de la vidéo, du plus haut au plus bas, jusqu'à elle, et
+             on nomme le premier qui couvre vraiment : un fond d'opacité au
+             moins moitié, une image de fond, ou un contenu remplacé (image,
+             iframe, canevas, vidéo). Les calques transparents du lecteur —
+             Twitch en pose partout sur la vidéo — ne sont pas des voiles.
+             `dessusNous` dit si ce voile, ou l'un de ses ancêtres, est à nous. */
+          const r = v.getBoundingClientRect();
+          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          const couvre = (e) => {
+            const cs = getComputedStyle(e);
+            if (cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.5) return null;
+            if (/^(img|iframe|canvas|video)$/.test(e.localName)) return e.localName;
+            if (cs.backgroundImage && cs.backgroundImage !== 'none') return 'image de fond';
+            const m = /^rgba?\(([^)]+)\)$/.exec(cs.backgroundColor || '');
+            const alpha = m ? Number(m[1].split(/[\s,/]+/)[3] ?? 1) : 0;
+            return alpha >= 0.5 ? `fond ${cs.backgroundColor}` : null;
+          };
+          const estNotre = (e) => {
+            for (let x = e; x && x !== document.body && x !== document.documentElement; x = x.parentElement) {
+              if (x.id.startsWith('tse') || [...x.classList].some((k) => k.startsWith('tse'))
+                  || x.getAttributeNames().some((a) => a.startsWith('data-tse'))) return true;
+            }
+            return false;
+          };
+          let dessus = null, dessusNous = null;
+          if (!r.width || !r.height || cx < 0 || cy < 0 || cx >= window.innerWidth || cy >= window.innerHeight) {
+            dessus = 'hors écran';
+          } else {
+            for (const e of document.elementsFromPoint(cx, cy)) {
+              if (e === v) break;
+              const raison = couvre(e);
+              if (!raison) continue;
+              dessus = `${nom(e)}${e.id ? '#' + e.id : ''} ${raison}`;
+              dessusNous = estNotre(e);
+              break;
+            }
+          }
+          const q = typeof v.getVideoPlaybackQuality === 'function' ? v.getVideoPlaybackQuality() : null;
           return {
             videos: videos.length,
             taillePx: `${v.clientWidth}x${v.clientHeight}`,
+            // Le coin haut-gauche de la vidéo dans la fenêtre : là où l'œil
+            // doit la trouver.
+            position: `${Math.round(r.left)},${Math.round(r.top)}`,
             image: `${v.videoWidth}x${v.videoHeight}`,
             etat: v.readyState,
             enPause: v.paused,
             tempsS: Math.round(v.currentTime),
+            // Des images décodées : zéro sur une vidéo qui « joue », et c'est
+            // le décodage qui manque, pas l'affichage.
+            images: q ? q.totalVideoFrames : null,
             erreur: v.error ? v.error.code : null,
             masquePar,
             regle,
             marques: [...marques].join(' ') || null,
+            dessus,
+            dessusNous,
           };
         })(),
         /* ── LA SONDE DE LA SALLE (4.24.0.3) ──────────────────────────────
