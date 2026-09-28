@@ -142,7 +142,7 @@ correctly**. Only two calls are involved, both already guarded:
 
 | API | Firefox | What the code does without it |
 | --- | --- | --- |
-| `location.ancestorOrigins` | absent before ~148 | the preview bridge falls back to the two manifest-declared origins to target its `postMessage` |
+| `location.ancestorOrigins` | absent before ~148 | the preview and probe bridges fall back to the two manifest-declared origins to target their `postMessage`; their guards, like the ad blocker's, to the iframe's name alone (since 4.24.0.1) |
 | `requestVideoFrameCallback` | since 132 (so present at the floor) | the three-signal race runs on the remaining two — `playing` and `readyState` |
 
 The first is **the** divergence of the port. If its fallback were broken, the
@@ -156,8 +156,9 @@ Precision matters here, because the difference does.
 **Verified.** The manifest passes Mozilla's `addons-linter` — the very one AMO
 runs on submission — with **zero errors**. Bench scenario 61 replays Firefox's
 behaviour: `requestVideoFrameCallback` is genuinely removed from the page, and
-the `ancestorOrigins` read is neutralised at build time on a copy
-(`content.firefox.test.js`), because it cannot be neutralised any other way —
+the `ancestorOrigins` read is neutralised at build time on copies
+(`content.firefox.test.js`, and since 4.24.0.1 `adblock.firefox.test.js`),
+because it cannot be neutralised any other way —
 the property is `[LegacyUnforgeable]`, own and non-configurable. Measured, not
 assumed: `delete location.ancestorOrigins` returns `false`, the prototype
 variant returns `true` **while removing nothing**, and redefining throws a
@@ -262,7 +263,7 @@ that carries that name. On `https://www.twitch.tv/`, in the console:
 
 ```js
 const f = document.createElement('iframe');
-f.id = 'tse-sonde';
+f.id = 'tse-sonde-manuelle';   // not "tse-sonde": that is tse.sonde's box (4.24.0.3)
 f.name = 'tse-apercu';   // without this name, adblock.js stands down (4.24.0.1)
 f.src = 'https://player.twitch.tv/?channel=twitch&parent=www.twitch.tv&muted=true';
 f.style.cssText = 'position:fixed;bottom:0;right:0;width:400px;height:225px;z-index:99999';
@@ -287,7 +288,7 @@ the right; if it is not visible it sits in the `»` overflow menu. Pick the
 When done, switch back to the page context and remove the probe:
 
 ```js
-document.getElementById('tse-sonde').remove();
+document.getElementById('tse-sonde-manuelle').remove();
 ```
 
 Finally, **watch the console for errors on load**. A precise canary:
@@ -328,12 +329,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1318 KB | 479 KB | 3,587 → **2** |
+| `content.js` | 1336 KB | 492 KB | 3,604 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 104 KB | 50 KB | 144 → **0** |
+| `panneau.js` | 105 KB | 50 KB | 145 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1571 KB** | **635 KB** | **−60 %** |
+| **all five** | **1589 KB** | **648 KB** | **−59 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2485,6 +2486,153 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The room probe (v4.24.0.3)
+
+Multistream phase 0, continued. Two of the audit's probes have already
+answered, on screenshots:
+
+- **P1**: an embedded player and chat load inside a twitch.tv page;
+- **P2**: the embedded chat shares the page's origin and is signed in (points
+  balance, input box).
+
+The remaining questions need the real Twitch, which this environment cannot
+reach. So the probe asks them in the user's browser, and it reports
+**measurements** rather than impressions.
+
+### How to use it
+
+1. **Open a twitch.tv page without a stream**, the "Following" page for
+   instance. A player running in the page would skew the measured load, and the
+   `videoDeLaPage` line flags it.
+2. **In the console**, open the probe on at most four live channels, one of
+   them a channel you are subscribed to:
+   ```js
+   tse.sonde.ouvrir('subscribed_channel', 'channel_2', 'channel_3', 'channel_4')
+   ```
+3. **Wait a dozen minutes without touching anything.** That is the time for
+   pre-roll ads and for a points gain.
+4. **Click "Son / Sound"** under one player, then under another.
+5. **Note memory and CPU** in the browser's task manager (Shift + Esc in
+   Chrome): no page can read them.
+6. **Take the panel's report**: its `SONDE DE LA SALLE / ROOM PROBE` block
+   carries everything. Then `tse.sonde.fermer()`.
+
+For **P7**, run it again during a collaboration using Shared Chat, on its
+members.
+
+### What each line will answer
+
+| probe | block lines | what we will read there |
+| --- | --- | --- |
+| P3 — ads for a subscriber? | `lecteurs.<channel>.pubsVues`, `reperesPub` | 0 on the subscribed channel and at least 1 elsewhere: the embedded player is signed in, and the subscription applies there |
+| P4 — give the sound back? | `lecteurs.<channel>.ordre.verdict` | `ok`, or `pause` (the browser stopped it), or `sans-effet` (it stayed muted); `voie` says whether the player's button was found |
+| P5 — points in an embedded chat? | `chats.<channel>.pointsDebut`, `gainPoints` | a gain after twelve minutes |
+| P6 — what does it cost? | `tachesLongues`, `lecteurs.<channel>.perduesPct` | the page's load and the dropped frames; memory comes from the task manager |
+| P7 — does Shared Chat show? | `chats.<channel>.partage`, `reperesPartage` | the markers Twitch gives it |
+
+`avanceS` and `dureeS` say whether each video keeps pace with the clock, and
+`image` which frame it decodes.
+
+### What runs, and where
+
+**In each player, a probe bridge.** The probe's players carry the name
+`tse-sonde`, and the bridge only wakes up in a frame that carries it, set by a
+twitch.tv page: the same guards as the preview. Every two seconds it reports:
+
+- the video's playback, sound, position and decoded frame;
+- the dropped frames;
+- whether a sound button and a content warning are present;
+- the ad markers on display.
+
+**Neither the ad blocker nor the preview bridge gets in**, since the name is not
+theirs. The probe thus sees the player as Twitch serves it, ads and warning
+included: that is exactly P3's question.
+
+**Only two commands, "sound" and "mute"**, accepted from its parent alone and
+from a twitch.tv page alone. The bridge goes through the player's sound button,
+as Twitch recommends, and failing that through the video element. It reads the
+result a second and a half later, once the browser has decided. The probe's
+"Son / Sound" button gives the sound to its player and mutes the others, from a
+real click in the page: that is the activation the browser requires, and the
+probe tests it as it is.
+
+**In the page, the chats are read.** They share its origin, hence can be read
+from here: input box present, messages, points balance at the start and now,
+Shared Chat markers. The page's long tasks are counted where the browser exposes
+them; Firefox does not.
+
+### The markers are not assumed
+
+No ad, points-balance or Shared Chat selector could be surveyed from here. So
+the probe does not guess: it **collects** every `data-a-target` or
+`data-test-selector` attribute that evokes them, on a displayed element for
+ads, and the report names them. The first probe on the real Twitch will say
+which exist, and phase 1 will build on those.
+
+### What does not run
+
+**One probe at a time**, and nothing once it is closed: no listener, no timer,
+no observer. The last one's summary stays readable in the report after it
+closes. The players are 400 × 300 px, the minimum Twitch requires.
+
+### A single ancestorOrigins read
+
+Both bridges, the preview's and the probe's, read their parent's origin through
+the same function, `tseOrigineParent`. The bench's Firefox variant neutralises
+that read at build time, and that one alone. With two reads, the second bridge
+would have kept `ancestorOrigins` in a bench meant to reproduce Firefox.
+
+### What the bench measures
+
+**Scenario 174** (ten assertions) puts the probe to work on fake players and
+chats:
+
+| fake player or chat | what it does |
+| --- | --- |
+| "annonce" | shows an ad marker for three seconds |
+| "bloque" | pauses 300 ms after its sound is given back |
+| every player | carries a hidden ad marker, and markers that are not ads (`add-to-list`, `stream-header-title`) |
+| the chats | an input box, three messages, a balance going from 530 to 540, and a Shared Chat header for "bloque" |
+
+The scenario also checks:
+
+- what the probe refuses to open;
+- its caps (four players, two chats);
+- that the ad blocker does not get into its players;
+- the page's load;
+- the sound verdicts, `ok` then `pause`, from real clicks;
+- its closing.
+
+Finally, it checks that the probe stays silent where it must: a player without
+its name, a player carrying it on a third-party site, and, under the Firefox
+variant, a command coming from a third-party site.
+
+**Scenario 70** checks that the panel shows the new block.
+
+| mutants | what falls |
+| --- | --- |
+| in the player: the name guard, the parent check, the command origin check (3) | the probe talking to, or obeying, whoever did not open it |
+| the ad pattern widened, a hidden marker counted (2) | ads that are not ads |
+| the player's sound button ignored, the command's direction reversed, the state read without waiting (3) | a sound verdict that lies |
+| in the page: an ad counted at every reading (1) | one ad counted twice |
+| the player and chat caps, the players' name, their mute, their size (5) | a probe that does not ask the question as it is asked |
+| silence for the other players, the verdict (2) | two players talking, or a pause read as a success |
+| the chats: input box, messages, starting balance, Shared Chat (4) | P2, P5 or P7 misread |
+| channel names not checked (1) | a probe opened on anything |
+| closing: the box left behind, the summary lost (2) | a probe that stays, or forgets |
+| the load: the page's video, the long tasks (2) | P6 unmeasured |
+| the panel's line (1) | a summary that never comes back |
+
+Twenty-six mutants, twenty-six caught. In the first round, two had slipped
+past the bench as it was written:
+
+- **an ad counted at every reading**, because the bench read the report
+  before the ad was over;
+- **a summary lost on closing**, because the bench hit an exception instead of
+  an assertion.
+
+The bench was fixed, and both now fall to an assertion.
 
 ## The main player, out of reach of our hiding rules (v4.24.0.2)
 
@@ -11984,7 +12132,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 173 scenarios, 1478 assertions |
+| `npm test` | the Playwright harness: 174 scenarios, 1489 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
