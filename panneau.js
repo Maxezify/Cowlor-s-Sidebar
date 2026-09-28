@@ -622,7 +622,7 @@ const GROUPES_OPT = [
   ['optGrpBadges',  ['badges']],
   ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
-  ['optGrpTwitch',  ['stories']],
+  ['optGrpTwitch',  ['stories', 'serie']],
   ['optGrpAbos',    ['abosPeriode']],
   ['optGrpTheme',   ['theme']],
 ];
@@ -646,6 +646,7 @@ const MOTS_VALEUR = {
   plein: 'optValPlein',   discret: 'optValDiscret', aucun: 'optValAucun',
   petit: 'optValPetit',   normal: 'optValNormal',   grand: 'optValGrand',
   auto: 'optValAuto',     dark: 'optValDark',       light: 'optValLight',
+  twitch: 'optValTwitch', integree: 'optValIntegree', masquee: 'optValMasquee',
 };
 const EXEMPLES_DUREE = { hm: '4h19', colon: '4:19', min: '259 min' };
 
@@ -1185,6 +1186,12 @@ const construireRapport = (r, transport, fond) => {
   L.push(...bloc('LIGNES DE CARTE / CARD LINES', aplatir(r.lignes)));
 
   L.push(...bloc('CARTES SPONSORISÉES / SPONSORED CARDS', aplatir(r.promues)));
+
+  L.push(...bloc('SÉRIE DE VISIONNAGE / WATCH STREAK', aplatir(r.serie)));
+
+  L.push(...bloc('RANGÉE DES STORIES / STORIES ROW', aplatir(r.stories)));
+
+  L.push(...bloc('ALIGNEMENT DU BLOC / BLOCK ALIGNMENT', aplatir(r.alignement)));
 
   L.push(...bloc('SUBATHONS', aplatir(r.subathons)));
 

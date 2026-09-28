@@ -162,6 +162,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     followedHeaderSelector:  '[class*="followed-side-nav-header"]',
 
     storiesSelector:         '[data-a-target*="stories" i], [class*="stories" i]',
+
+    serieSelector:           'a[class*="saveYourStreakSideNavRow"]',
     followedCardSelector:    'a[data-test-selector="followed-channel"]',
 
     liveIndicator:           '.tw-channel-status-indicator',
@@ -1481,7 +1483,12 @@ const TSE_GATE_MAX_CLICKS = 5;
                        valeurs: ['plein', 'discret', 'aucun'], css: true },
     subathonJour:    { defaut: true,      type: 'bool', css: true },
 
-    stories:         { defaut: true,      type: 'bool', css: true },
+    stories:         { defaut: 'integree', type: 'choix',
+                       valeurs: ['twitch', 'integree', 'masquee'],
+                       depuis: { false: 'masquee', true: 'integree' } },
+
+    serie:           { defaut: 'integree', type: 'choix',
+                       valeurs: ['twitch', 'integree', 'masquee'] },
 
     abosPeriode:     { defaut: 6,         type: 'choix', valeurs: [3, 6, 12, 24] },
 
@@ -1507,7 +1514,10 @@ const TSE_GATE_MAX_CLICKS = 5;
       const d = OPT_DEFS[id];
       if (!d) return undefined;
       if (d.type === 'bool')  return typeof v === 'boolean' ? v : undefined;
-      if (d.type === 'choix') return d.valeurs.includes(v) ? v : undefined;
+      if (d.type === 'choix') {
+        const w = typeof v === 'boolean' && d.depuis ? d.depuis[v] : v;
+        return d.valeurs.includes(w) ? w : undefined;
+      }
       if (d.type === 'jeu') {
         if (!Array.isArray(v)) return undefined;
         const gardes = v.filter((x) => d.valeurs.includes(x));
@@ -2328,8 +2338,9 @@ const TSE_GATE_MAX_CLICKS = 5;
     .tse-show-less-hidden { display: none !important; }
 
     
+    
     .tse-filter {
-      padding: 8px 12px 4px;
+      padding: 8px var(--tse-bloc-d, 6px) 4px var(--tse-bloc-g, 6px);
       display: flex; flex-direction: column; gap: 6px;
     }
     
@@ -2467,8 +2478,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     
     
+    
     .tse-sort-row {
-      display: flex; align-items: center; justify-content: center; gap: 10px;
+      display: flex; align-items: center; justify-content: center;
+      gap: min(10px, calc((100% - 168px) / 5));
       margin-top: 4px;
     }
 
@@ -2483,9 +2496,72 @@ const TSE_GATE_MAX_CLICKS = 5;
       border-radius: 6px;
     }
     
-    body.tse-global-mode [data-tse-stories="row"] { display: none !important; }
+    [data-tse-stories="row"][data-tse-stories-masquee] { display: none !important; }
     
     [data-tse-stories="row"] { margin-bottom: 0.7rem !important; }
+
+    
+    
+    a[data-tse-ligne-serie],
+    [data-tse-ligne-serie] + .side-nav-show-more-toggle__button { display: none !important; }
+    
+    .tse-serie, .tse-stories {
+      display: flex; align-items: center; gap: 8px;
+      height: 28px; padding: 0 8px 0 5px; box-sizing: border-box;
+      background: var(--tse-champ);
+      border: 1px solid rgba(var(--tse-encre), 0.08); border-radius: 4px;
+      font-size: 1.15rem; font-weight: 600;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    
+    #tse-filter > .tse-serie,
+    #tse-filter > .tse-stories { color: var(--color-text-base, #efeff1); text-decoration: none; }
+    .tse-serie:hover, .tse-stories:hover { border-color: rgba(145, 71, 255, 0.5); }
+    .tse-serie:focus-visible,
+    .tse-stories:focus-visible { outline: none; border-color: ${CFG.PURPLE}; box-shadow: 0 0 0 1px ${CFG.PURPLE}; }
+    .tse-serie-av {
+      flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%; overflow: hidden;
+      box-shadow: 0 0 0 1.5px var(--color-orange-12, #ffb018);
+    }
+    .tse-serie-av img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .tse-serie-texte,
+    .tse-stories-texte { flex: 1 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .tse-serie-fin {
+      display: inline-flex; align-items: center; gap: 3px;
+      color: var(--color-orange-12, #ffb018); font-size: 1.1rem; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .tse-serie-nombre:empty { display: none; }
+    .tse-serie-fin svg { width: 12px; height: 12px; }
+    .tse-serie-fin svg path { fill: currentColor; }
+
+    
+    .tse-stories { font-family: inherit; text-align: left; cursor: pointer; }
+    
+    .tse-stories-pile {
+      display: inline-flex; padding: 1.5px; border-radius: 999px;
+      background: var(--tse-anneau);
+    }
+    .tse-stories--non-lues .tse-stories-pile {
+      background: linear-gradient(200deg, ${CFG.PURPLE} 25%, #0bc1f6 85%);
+    }
+    .tse-stories-pile:empty { display: none; }
+    .tse-stories-pile img {
+      display: block; width: 15px; height: 15px; border-radius: 50%; object-fit: cover;
+      box-shadow: 0 0 0 1px var(--tse-decoupe);
+    }
+    .tse-stories-pile img + img { margin-left: -8px; }
+    .tse-stories-pile img:nth-child(1) { z-index: 3; }
+    .tse-stories-pile img:nth-child(2) { z-index: 2; }
+    
+    .tse-stories-nombre {
+      min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 999px; background: ${CFG.PURPLE}; color: #fff;
+      font-size: 0.95rem; font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .tse-stories-nombre:empty { display: none; }
     .tse-mode-tab {
       flex: 1 1 auto; min-width: 0;
       display: inline-flex; align-items: center; justify-content: center;
@@ -3068,9 +3144,6 @@ const TSE_GATE_MAX_CLICKS = 5;
     html[data-tse-off~="tri-costream"] .tse-sort-toggle[data-tse-sort-mode="costream"] {
       display: none !important;
     }
-
-    
-    html[data-tse-off~="stories"] [data-tse-stories="row"] { display: none !important; }
 
     
     html[data-tse-off~="badge-ccl"]      .tse-preview__badge--ccl,
@@ -6625,6 +6698,92 @@ const TSE_GATE_MAX_CLICKS = 5;
           return r;
         })(),
 
+        serie: (() => {
+          const lignes = lignesSerie();
+          const voisin = lignes[0]?.nextElementSibling || null;
+          const puce = document.querySelector(`#${FILTER_ID} > .tse-serie`);
+          const titre = document.querySelector(`${DOM.sidebarRoot} .side-nav__title`);
+          const bloc = document.getElementById(FILTER_ID);
+          return {
+            lignes: lignes.length,
+            masquees: lignes.filter((l) => l.hasAttribute(SERIE_MARQUE)).length,
+            puce: !!puce,
+            nombre: puce?.querySelector('.tse-serie-nombre')?.textContent || null,
+            reglage: options.get('serie'),
+            voisin: voisin ? voisin.tagName.toLowerCase() + [...voisin.classList]
+              .filter((k) => /^(side-nav|tw-|tse-)/.test(k)).map((k) => '.' + k).join('') : null,
+            voisinMasque: voisin ? getComputedStyle(voisin).display === 'none' : null,
+            espacePx: titre && bloc
+              ? Math.round(bloc.getBoundingClientRect().top - titre.getBoundingClientRect().bottom)
+              : null,
+          };
+        })(),
+
+        alignement: (() => {
+          const bloc = document.getElementById(FILTER_ID);
+          const titre = document.querySelector(`${DOM.sidebarRoot} .side-nav__title`);
+          if (!bloc || !titre || sidebarCollapsed) return { source: null };
+          const b = bloc.getBoundingClientRect(), sb = getComputedStyle(bloc);
+          const t = titre.getBoundingClientRect(), marge = parseFloat(getComputedStyle(titre).paddingLeft);
+          const g = b.left + parseFloat(sb.paddingLeft), d = b.right - parseFloat(sb.paddingRight);
+          const tris = [...bloc.querySelectorAll('#tse-sort-row > button')]
+            .map((x) => x.getBoundingClientRect()).filter((r) => r.width > 0);
+          const r1 = (v) => Math.round(v * 10) / 10;
+          return {
+            source: bloc.style.getPropertyValue('--tse-bloc-g') ? 'titre' : 'defaut',
+            margeTitrePx: r1(marge),
+            margeGauchePx: r1(g - t.left),
+            margeDroitePx: r1(t.right - d),
+            colonnePx: r1(d - g),
+            trisDebordePx: tris.length
+              ? r1(Math.max(0, g - tris[0].left, tris[tris.length - 1].right - d)) : null,
+          };
+        })(),
+
+        stories: (() => {
+          const r = rangeeStories();
+          const bloc = document.getElementById(FILTER_ID);
+          const nav = document.querySelector(DOM.sidebarRoot);
+          const puce = bloc?.querySelector(':scope > .tse-stories') || null;
+          const lu = r ? lireStories(r) : null;
+          const cible = r ? cibleStories(r) : null;
+          const carte = nav ? [...nav.querySelectorAll('.side-nav-card')]
+            .find((c) => c.getClientRects().length > 0) : null;
+          const out = {
+            rangee: !!r,
+            masquee: !!r && r.hasAttribute(STORIES_MARQUE),
+            puce: !!puce,
+            nombre: puce?.querySelector('.tse-stories-nombre')?.textContent || null,
+            etiquettes: lu ? lu.etiquettes : null,
+            images: lu ? lu.sources.length : null,
+            cible: cible ? (cible === r ? 'rangee' : cible.tagName.toLowerCase()) : null,
+            place: r && bloc
+              ? (bloc.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING ? 'apres-bloc' : 'avant-bloc')
+              : null,
+            dansBarre: r && nav ? nav.contains(r) : null,
+            reglage: options.get('stories'),
+            espaceCartesPx: bloc && carte
+              ? Math.round(carte.getBoundingClientRect().top - bloc.getBoundingClientRect().bottom)
+              : null,
+            squelette: {},
+          };
+          if (r) {
+            const stable = (k) => /^(side-nav|tw-|tse-)/.test(k) || /stories/i.test(k);
+            let n = 0;
+            const decrire = (e, prof) => {
+              if (n >= 30 || prof > 7) return;
+              n++;
+              const marques = [...e.classList].filter(stable).map((k) => '.' + k).join('')
+                + (e.hasAttribute('aria-label') ? '[aria-label]' : '')
+                + (e.getAttribute('role') ? `[role=${e.getAttribute('role')}]` : '')
+                + (e.getAttribute('data-a-target') ? `[data-a-target=${e.getAttribute('data-a-target')}]` : '');
+              out.squelette[String(n).padStart(3, '0')] = '· '.repeat(prof) + e.tagName.toLowerCase() + marques;
+              for (const enfant of e.children) decrire(enfant, prof + 1);
+            };
+            decrire(r, 0);
+          }
+          return out;
+        })(),
         promues: (() => {
           const estPromue = (c) => !!c.querySelector('a[class*="--promoted-followed"]');
           const liste = cartes.filter(estPromue);
@@ -6667,7 +6826,8 @@ const TSE_GATE_MAX_CLICKS = 5;
               if (n >= 30 || prof > 7) return;
               n++;
               const classes = [...e.classList].filter(stable);
-              r.squelette[String(n).padStart(2, '0')] = '· '.repeat(prof)
+
+              r.squelette[String(n).padStart(3, '0')] = '· '.repeat(prof)
                 + e.tagName.toLowerCase() + classes.map(k => '.' + k).join('');
               for (const enfant of e.children) decrire(enfant, prof + 1);
             };
@@ -9759,6 +9919,25 @@ const TSE_GATE_MAX_CLICKS = 5;
     bindDropdownsGlobal();
   }
 
+  function alignerBloc() {
+    const bloc = document.getElementById(FILTER_ID);
+    if (!bloc) return;
+    const titre = document.querySelector(`${DOM.sidebarRoot} .side-nav__title`);
+    const t = titre?.getBoundingClientRect();
+    let gauche = null, droite = null;
+    if (t) {
+      const b = bloc.getBoundingClientRect();
+      const marge = parseFloat(getComputedStyle(titre).paddingLeft);
+      gauche = Math.round((t.left + marge - b.left) * 10) / 10;
+      droite = Math.round((b.right - (t.right - marge)) * 10) / 10;
+      if (!(gauche >= 0 && gauche <= 40 && droite >= 0 && droite <= 40)) gauche = droite = null;
+    }
+    for (const [nom, v] of [['--tse-bloc-g', gauche], ['--tse-bloc-d', droite]]) {
+      if (v === null) bloc.style.removeProperty(nom);
+      else bloc.style.setProperty(nom, `${v}px`);
+    }
+  }
+
   const INCRUSTE_ID   = 'tse-incruste';
   const TSE_URL_REQ   = 'tse-url-req';
   const TSE_URL_RES   = 'tse-url-res';
@@ -10201,7 +10380,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     const root = nav.parentElement || nav;
     if (root.querySelector('[data-tse-stories="row"]')) return;
-    let el = root.querySelector(DOM.storiesSelector);
+    let el = [...root.querySelectorAll(DOM.storiesSelector)]
+      .find((x) => !x.closest(`.side-nav-card, #${FILTER_ID}`));
     if (!el) return;
 
     while (el.parentElement && el.parentElement !== root
@@ -10210,6 +10390,150 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     if (el === nav || el.contains(nav) || el.querySelector('.side-nav-card')) return;
     el.setAttribute('data-tse-stories', 'row');
+  }
+
+  const SERIE_MARQUE = 'data-tse-ligne-serie';
+
+  const nombreSeul = (etiquette) => {
+    const seuls = [...(etiquette || '').matchAll(/(?<![\p{L}\p{N}])\d+(?:[\s.,]\d{3})*(?![\p{L}\p{N}])/gu)];
+    return seuls.length === 1 ? seuls[0][0].replace(/\D/g, '') : '';
+  };
+
+  const poserAttr = (el, attr, v) => {
+    if (!v) { if (el.hasAttribute(attr)) el.removeAttribute(attr); }
+    else if (el.getAttribute(attr) !== v) el.setAttribute(attr, v);
+  };
+  const poserTexte = (el, v) => { if (el.textContent !== v) el.textContent = v; };
+
+  const lignesSerie = () => {
+    const nav = document.querySelector(DOM.sidebarRoot);
+    const racine = nav?.parentElement || nav;
+    return racine ? [...racine.querySelectorAll(DOM.serieSelector)] : [];
+  };
+  const construirePuce = () => {
+    const a = document.createElement('a');
+    a.className = 'tse-serie';
+    const av = document.createElement('span');
+    av.className = 'tse-serie-av';
+    const img = document.createElement('img');
+    img.alt = '';
+    av.appendChild(img);
+    const txt = document.createElement('span');
+    txt.className = 'tse-serie-texte';
+    const fin = document.createElement('span');
+    fin.className = 'tse-serie-fin';
+    const nb = document.createElement('span');
+    nb.className = 'tse-serie-nombre';
+    fin.appendChild(nb);
+    a.append(av, txt, fin);
+    a.addEventListener('click', (e) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const l = lignesSerie()[0];
+      if (!l) return;
+      e.preventDefault();
+      l.click();
+    });
+    return a;
+  };
+  function syncSerie() {
+    const bloc = document.getElementById(FILTER_ID);
+    const lignes = lignesSerie();
+    const ligne = lignes[0];
+    const reglage = options.get('serie');
+    const masquer = state.globalMode || reglage === 'masquee'
+                    || (reglage === 'integree' && !sidebarCollapsed);
+    for (const l of lignes) l.toggleAttribute(SERIE_MARQUE, masquer);
+    let puce = bloc?.querySelector(':scope > .tse-serie') || null;
+    const voulue = !!ligne && !!bloc && reglage === 'integree' && !state.globalMode && !sidebarCollapsed;
+    if (!voulue) { puce?.remove(); return; }
+    if (!puce) puce = construirePuce();
+    if (bloc.firstElementChild !== puce) bloc.prepend(puce);
+
+    const etiquette = ligne.getAttribute('aria-label') || '';
+    poserAttr(puce, 'href', ligne.getAttribute('href'));
+    poserAttr(puce, 'aria-label', etiquette);
+    poserAttr(puce, 'title', etiquette);
+    poserAttr(puce.querySelector('img'), 'src', ligne.querySelector('img.tw-image-avatar')?.getAttribute('src'));
+    poserTexte(puce.querySelector('.tse-serie-texte'), (ligne.querySelector('p')?.textContent || '').trim());
+    poserTexte(puce.querySelector('.tse-serie-nombre'), nombreSeul(etiquette));
+
+    const fin = puce.querySelector('.tse-serie-fin');
+    if (!fin.querySelector('svg')) {
+      const svg = ligne.querySelector('svg');
+      if (svg) fin.appendChild(svg.cloneNode(true));
+    }
+  }
+
+  const STORIES_MARQUE = 'data-tse-stories-masquee';
+  const rangeeStories = () => {
+    const nav = document.querySelector(DOM.sidebarRoot);
+    const racine = nav?.parentElement || nav;
+    return racine?.querySelector('[data-tse-stories="row"]') || null;
+  };
+  const cibleStories = (r) => r.querySelector('button, [role="button"], a[href]') || r;
+  const lireStories = (r) => {
+    const etiquettes = [r, ...r.querySelectorAll('[aria-label]')]
+      .map((e) => e.getAttribute('aria-label')).filter(Boolean);
+    const lus = etiquettes.map((e) => [e, nombreSeul(e)]).filter(([, n]) => n);
+    const nombres = [...new Set(lus.map(([, n]) => n))];
+    const p = [...r.querySelectorAll('p')].pop();
+    return {
+      etiquettes: etiquettes.length,
+      nombre: nombres.length === 1 ? nombres[0] : '',
+      etiquette: nombres.length === 1 ? lus[0][0] : '',
+      texte: ((p || r).textContent || '').replace(/\s+/g, ' ').trim(),
+      sources: [...new Set([...r.querySelectorAll('img')]
+        .map((i) => i.getAttribute('src')).filter(Boolean))].slice(0, 3),
+    };
+  };
+  const construirePuceStories = () => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tse-stories';
+    const pile = document.createElement('span');
+    pile.className = 'tse-stories-pile';
+    const txt = document.createElement('span');
+    txt.className = 'tse-stories-texte';
+    const nb = document.createElement('span');
+    nb.className = 'tse-stories-nombre';
+    b.append(pile, txt, nb);
+    b.addEventListener('click', () => {
+      const r = rangeeStories();
+      if (r) cibleStories(r).click();
+    });
+    return b;
+  };
+  function syncStories() {
+    const bloc = document.getElementById(FILTER_ID);
+    const rangee = rangeeStories();
+    const reglage = options.get('stories');
+    const masquer = state.globalMode || reglage === 'masquee'
+                    || (reglage === 'integree' && !sidebarCollapsed);
+    rangee?.toggleAttribute(STORIES_MARQUE, masquer);
+    let puce = bloc?.querySelector(':scope > .tse-stories') || null;
+    const voulue = !!rangee && !!bloc && reglage === 'integree' && !state.globalMode && !sidebarCollapsed;
+    if (!voulue) { puce?.remove(); return; }
+    if (!puce) puce = construirePuceStories();
+
+    const serie = bloc.querySelector(':scope > .tse-serie');
+    const place = serie ? serie.nextElementSibling : bloc.firstElementChild;
+    if (place !== puce) bloc.insertBefore(puce, place);
+
+    const lu = lireStories(rangee);
+    poserTexte(puce.querySelector('.tse-stories-texte'), lu.texte);
+    poserTexte(puce.querySelector('.tse-stories-nombre'), lu.nombre);
+    poserAttr(puce, 'title', lu.etiquette || lu.texte);
+    poserAttr(puce, 'aria-label', lu.etiquette ? `${lu.texte}, ${lu.etiquette}` : lu.texte);
+    puce.classList.toggle('tse-stories--non-lues', !!lu.nombre);
+
+    const pile = puce.querySelector('.tse-stories-pile');
+    while (pile.children.length > lu.sources.length) pile.lastElementChild.remove();
+    while (pile.children.length < lu.sources.length) {
+      const img = document.createElement('img');
+      img.alt = '';
+      pile.appendChild(img);
+    }
+    lu.sources.forEach((src, k) => poserAttr(pile.children[k], 'src', src));
   }
 
   function hideNativeFollowedHeader() {
@@ -11577,7 +11901,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     ensureFilterBar();
     ensureSortRow();
     ensureModeRow();
+    syncSerie();
     tagStoriesRow();
+    syncStories();
+    alignerBloc();
     ensureGlobalBanner();
     ensureGlobalEmpty();
     hideNativeFollowedHeader();
