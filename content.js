@@ -80,8 +80,11 @@
  *      `"run_at": "document_start"` et `"all_frames": true`
  *      dans le manifeste. Les trois sont nécessaires :
  *       - MAIN : pour exposer window.tse à la console, hook
- *         history.pushState/replaceState et window.fetch,
- *         et injecter le CSS avant le premier rendu React ;
+ *         history.pushState/replaceState, injecter le CSS avant
+ *         le premier rendu React, et — pour le module anti-pub,
+ *         dans l'iframe d'aperçu seulement — accrocher fetch et
+ *         Worker. Ce module-ci n'accroche pas fetch : il ne
+ *         touche à aucune requête de la page (relu en 4.24.0.2) ;
  *       - document_start : pour intercepter avant tout autre
  *         script Twitch ;
  *       - all_frames : pour que le module anti-pub puisse
@@ -3408,11 +3411,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       font-variant-numeric: tabular-nums;
     }
 
-    /* === Masquages divers === */
-    [data-a-target*="hype-train" i],
-    [data-test-selector*="hype-train" i],
-    [class*="hype-train" i],
-    [class*="HypeTrain"] { display: none !important; }
+    /* === Masquages divers ===
+       LES HYPE TRAINS DE LA BARRE, ET D'ELLE SEULE (4.24.0.2). Cette règle
+       s'appliquait à TOUTE la page : n'importe quel élément dont la classe
+       contient « hype-train » disparaissait, où qu'il soit — l'encart du
+       chat, et tout ce que Twitch nommerait ainsi autour du lecteur. La
+       fiche promet « Fini les Hype Trains qui squattent la barre », pas
+       davantage ; et c'est un signalement de lecteur noir sur une page de
+       chaîne qui a fait relire sa portée. Elle ne vaut plus que dans la
+       barre latérale. */
+    ${DOM.sidebarRoot} [data-a-target*="hype-train" i],
+    ${DOM.sidebarRoot} [data-test-selector*="hype-train" i],
+    ${DOM.sidebarRoot} [class*="hype-train" i],
+    ${DOM.sidebarRoot} [class*="HypeTrain"] { display: none !important; }
 
     /* Lignes annexes (hype train, réduction d'abonnement, badges divers)
        injectées par Twitch sous le bloc principal d'une carte. Elles sont
@@ -12907,6 +12918,66 @@ const TSE_GATE_MAX_CLICKS = 5;
               ? r1(Math.max(0, g - tris[0].left, tris[tris.length - 1].right - d)) : null,
           };
         })(),
+        /* ── LE LECTEUR PRINCIPAL (4.24.0.2) ──────────────────────────────
+           Signalé sur capture : un lecteur noir sur une page de chaîne,
+           commandes visibles. Rien dans ce rapport ne pouvait dire si la
+           vidéo était cachée, par quoi, ni si elle jouait. Ce bloc le dit,
+           sur la plus grande vidéo de la page — l'aperçu n'en compte pas, il
+           vit dans une iframe :
+             • `taillePx`, `image`, `etat`, `enPause`, `tempsS`, `erreur` —
+               sa boîte, l'image qu'elle décode, son readyState ;
+             • `masquePar` — le premier élément, de la vidéo vers <body>, qui
+               la cache (display, visibility, opacité), ou null ;
+             • `regle` — la règle de NOTRE feuille qui cache cet élément, ou
+               null : c'est elle qui dit si l'extension est en cause ;
+             • `marques` — les attributs data-tse-* posés sur la vidéo ou ses
+               ancêtres : aucun attendu. */
+        lecteur: (() => {
+          const videos = [...document.querySelectorAll('video')];
+          if (!videos.length) return { videos: 0 };
+          const aire = (x) => x.clientWidth * x.clientHeight;
+          const v = videos.reduce((a, b) => (aire(b) > aire(a) ? b : a));
+          const nom = (e) => e.tagName.toLowerCase()
+            + [...e.classList].slice(0, 3).map((k) => '.' + k).join('');
+          const feuille = document.getElementById('tse-css')?.sheet;
+          const cachantes = feuille ? [...feuille.cssRules].filter((r) => r.selectorText
+            && /display:\s*none|visibility:\s*hidden|opacity:\s*0(?![.\d])/.test(r.style?.cssText || '')) : [];
+          const cache = (e) => {
+            const cs = getComputedStyle(e);
+            return cs.display === 'none' ? 'display:none'
+              : cs.visibility === 'hidden' ? 'visibility:hidden'
+              : parseFloat(cs.opacity) === 0 ? 'opacity:0' : null;
+          };
+          let masquePar = null, regle = null;
+          const marques = new Set();
+          for (let e = v; e && e !== document.documentElement; e = e.parentElement) {
+            for (const at of e.getAttributeNames()) if (at.startsWith('data-tse')) marques.add(at);
+            if (masquePar) continue;
+            let comment = cache(e);
+            if (!comment) continue;
+            // `visibility` s'hérite : on remonte jusqu'à l'élément qui la pose.
+            if (comment === 'visibility:hidden') {
+              while (e.parentElement && e.parentElement !== document.documentElement
+                     && getComputedStyle(e.parentElement).visibility === 'hidden') e = e.parentElement;
+              comment = cache(e);
+            }
+            masquePar = `${nom(e)} ${comment}`;
+            const trouvee = cachantes.find((r) => { try { return e.matches(r.selectorText); } catch { return false; } });
+            regle = trouvee ? trouvee.selectorText : null;
+          }
+          return {
+            videos: videos.length,
+            taillePx: `${v.clientWidth}x${v.clientHeight}`,
+            image: `${v.videoWidth}x${v.videoHeight}`,
+            etat: v.readyState,
+            enPause: v.paused,
+            tempsS: Math.round(v.currentTime),
+            erreur: v.error ? v.error.code : null,
+            masquePar,
+            regle,
+            marques: [...marques].join(' ') || null,
+          };
+        })(),
         /* ── LA RANGÉE DES STORIES (4.23.0) ───────────────────────────────
            Seul son bloc externe a été relevé : la puce lit la rangée sans en
            supposer la forme, et ce bloc dit ce qu'elle y a trouvé.
@@ -19845,6 +19916,27 @@ const TSE_GATE_MAX_CLICKS = 5;
   const STORIES_RE = /stories/i;
   const classOf = (el) => el?.getAttribute?.('class') || '';
 
+  /* ── CE QU'ON MASQUE À CÔTÉ DE LA BARRE RESTE DANS SA COLONNE (4.24.0.2) ──
+     La rangée des stories et la ligne de la série sont cherchées depuis le
+     PARENT de #side-nav, parce que Twitch les rend à côté de la barre et non
+     dedans. Ce parent n'a jamais été relevé : rien ne dit qu'il n'englobe pas
+     aussi le contenu de la page. Et le repère des stories est large — toute
+     classe qui contient « stories » —, alors qu'une page de chaîne peut en
+     porter (l'anneau des stories autour d'un avatar, par exemple). Un
+     élément ainsi pris serait masqué, lecteur compris s'il l'entoure.
+
+     DEUX CONDITIONS, indépendantes de la mise en page de Twitch : l'élément
+     ne contient ni vidéo ni iframe, et sa boîte tient dans la colonne de la
+     barre, à 8 px près. La première couvre ce que la seconde laisse passer :
+     un enrobage sans boîte (display: contents) se mesure en 0 × 0 au bord
+     gauche de la page, c'est-à-dire dans la colonne, et pourrait envelopper
+     un lecteur. */
+  const dansLaColonne = (el, nav) => {
+    if (el.querySelector('video, iframe')) return false;
+    const r = el.getBoundingClientRect(), n = nav.getBoundingClientRect();
+    return r.left >= n.left - 8 && r.right <= n.right + 8;
+  };
+
   function tagStoriesRow() {
     const nav = document.querySelector(DOM.sidebarRoot);
     if (!nav) return;
@@ -19854,20 +19946,28 @@ const TSE_GATE_MAX_CLICKS = 5;
     // trouver. On part du parent, ce qui couvre les deux emplacements.
     const root = nav.parentElement || nav;
     if (root.querySelector('[data-tse-stories="row"]')) return;
-    let el = [...root.querySelectorAll(DOM.storiesSelector)]
-      .find((x) => !x.closest(`.side-nav-card, #${FILTER_ID}`));
-    if (!el) return;
-    // Prendre le bloc le PLUS EXTERNE de la grappe « stories » : le repère
-    // peut être un descendant, et masquer lui seul laisserait les vignettes.
-    // On ne remonte que tant que le parent est LUI AUSSI marqué stories —
-    // remonter à l'aveugle finirait par emporter la barre entière.
-    while (el.parentElement && el.parentElement !== root
-           && STORIES_RE.test(classOf(el.parentElement))) {
-      el = el.parentElement;
+    /* TOUS LES CANDIDATS, dans l'ordre, et non le premier seul : depuis que
+       les gardes écartent ce qui sort de la colonne, un élément « stories »
+       du contenu de la page, rendu avant la rangée, aurait sinon empêché de
+       la trouver. */
+    const candidats = [...root.querySelectorAll(DOM.storiesSelector)]
+      .filter((x) => !x.closest(`.side-nav-card, #${FILTER_ID}`));
+    for (let el of candidats) {
+      // Prendre le bloc le PLUS EXTERNE de la grappe « stories » : le repère
+      // peut être un descendant, et masquer lui seul laisserait les vignettes.
+      // On ne remonte que tant que le parent est LUI AUSSI marqué stories —
+      // remonter à l'aveugle finirait par emporter la barre entière.
+      while (el.parentElement && el.parentElement !== root
+             && STORIES_RE.test(classOf(el.parentElement))) {
+        el = el.parentElement;
+      }
+      if (el === nav || el.contains(nav) || el.querySelector('.side-nav-card')) continue;
+      if (!dansLaColonne(el, nav)) continue;
+      el.setAttribute('data-tse-stories', 'row');
+      return;
     }
-    if (el === nav || el.contains(nav) || el.querySelector('.side-nav-card')) return;
-    el.setAttribute('data-tse-stories', 'row');
   }
+
 
   /* ── LA SÉRIE DE VISIONNAGE, RANGÉE DANS LE BLOC FILTRE (4.22.0) ─────────
      DEMANDÉ SUR CAPTURE : « Protégez votre série fait un peu tache ». Mesuré
@@ -19931,7 +20031,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   const lignesSerie = () => {
     const nav = document.querySelector(DOM.sidebarRoot);
     const racine = nav?.parentElement || nav;
-    return racine ? [...racine.querySelectorAll(DOM.serieSelector)] : [];
+    return racine ? [...racine.querySelectorAll(DOM.serieSelector)]
+      .filter((l) => dansLaColonne(l, nav)) : [];
   };
   const construirePuce = () => {
     const a = document.createElement('a');

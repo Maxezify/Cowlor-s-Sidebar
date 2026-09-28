@@ -7079,6 +7079,12 @@ titre('70. Panneau — la page rendue, mesurée');
       /* Les marges de la capture de la 4.23.1 : 12 px à gauche, 5 à droite. */
       alignement: { source: 'titre', margeTitrePx: 12, margeGauchePx: 12, margeDroitePx: 5,
                     colonnePx: 223, trisDebordePx: 0 },
+      /* Le lecteur noir du signalement de la 4.24.0.2, tel que le bloc le
+         dirait si une de nos règles en était la cause. */
+      lecteur: { videos: 1, taillePx: '0x0', image: '1920x1080', etat: 4, enPause: false,
+                 tempsS: 3163, erreur: null,
+                 masquePar: 'div.hype-train-player-frame display:none',
+                 regle: '[class*="hype-train" i]', marques: null },
       /* Une bascule abandonnée ET un onglet lu par bascule : les deux lignes
          que la 4.20.0 ajoute, et qu'aucun rapport réel n'a encore portées. */
       relevesAbonnements: { horodatage: 0, enAttente: false,
@@ -7422,6 +7428,14 @@ titre('70. Panneau — la page rendue, mesurée');
      contient('ALIGNEMENT DU BLOC / BLOCK ALIGNMENT') && /margeTitrePx\s+12/.test(vue.texte)
      && /margeDroitePx\s+5/.test(vue.texte) && /colonnePx\s+223/.test(vue.texte),
      JSON.stringify((vue.texte.match(/ALIGNEMENT DU BLOC[\s\S]{0,160}/) || [])[0]));
+  /* LE LECTEUR PRINCIPAL (4.24.0.2). Le banc ne joint pas Twitch : sur la
+     vraie page, seul ce bloc dira ce qui cache la vidéo, et si c'est nous.
+     Mutant — la ligne retirée du panneau — il ne part jamais. */
+  ok('…le bloc du lecteur principal : ce qui le cache, et la règle de l\'extension en cause',
+     contient('LECTEUR PRINCIPAL / MAIN PLAYER')
+     && /masquePar\s+div\.hype-train-player-frame display:none/.test(vue.texte)
+     && /regle\s+\[class\*="hype-train" i\]/.test(vue.texte),
+     JSON.stringify((vue.texte.match(/LECTEUR PRINCIPAL[\s\S]{0,260}/) || [])[0]));
   /* POURQUOI LE RELEVÉ A RECHARGÉ, ET QUEL TÉMOIN A PROUVÉ CHAQUE CLIC.
      Mutants — l'une ou l'autre ligne retirée du rapport — : le vrai Twitch
      ne nous dirait jamais s'il tient son adresse à jour. */
@@ -24104,6 +24118,156 @@ const pageVariante = async (substitutions, init = null) => {
      !!imposteur && imposteur.nom === nomContenu && imposteur.anti === 'undefined'
      && imposteur.worker === true && imposteur.clics === 0 && pontTiers.length === 0,
      JSON.stringify({ imposteur, pontTiers }));
+  await page.close();
+}
+
+/* ═════════ LE LECTEUR PRINCIPAL N'EST JAMAIS À NOUS ═════════════════════
+   SIGNALÉ SUR CAPTURE (4.24.0.2) : sur une page de chaîne, un lecteur noir,
+   commandes visibles. L'environnement du banc ne joint pas Twitch : la cause
+   n'a pas pu être lue sur la page. Ce qui a été lu, c'est le code, et deux
+   masquages y sortaient de la barre :
+     — la règle des Hype Trains, écrite pour TOUTE la page : un élément de la
+       page de chaîne dont la classe contient « hype-train » disparaissait ;
+     — la rangée des stories, cherchée depuis le PARENT de la barre avec un
+       repère large (« stories » dans une classe) : un élément du contenu de
+       la page pouvait être pris pour elle, et masqué.
+   Le décor pose une page de chaîne à droite de la barre, avec ces deux
+   pièges : un lecteur enveloppé d'une classe « hype-train », un anneau de
+   stories, et un enrobage « stories » sans boîte autour d'une vidéo. La
+   vraie rangée des stories est retirée d'abord : c'est quand elle manque que
+   la recherche descend jusqu'au contenu. */
+{
+  titre('173. Le lecteur principal — ni caché par nos masquages, ni pris pour la rangée des stories');
+  const page = await fresh();
+  await page.evaluate(() => localStorage.setItem('tse:roue', 'vu'));
+  await page.reload();
+  await attendre(page, () => !!document.querySelector('[data-tse-stories="row"]')
+    && !document.body.classList.contains('tse-loading'), 15_000);
+  await page.evaluate(() => {
+    const st = document.createElement('style');
+    st.textContent = '#side-nav { width: 240px; } .storiesLeftNavSection--csO9S { width: 240px; }';
+    document.head.appendChild(st);
+    // La vraie rangée s'en va : la recherche doit alors passer sur la page.
+    const rangee = document.querySelector('[data-tse-stories="row"]');
+    window.__rangee = rangee.cloneNode(true);
+    window.__rangee.removeAttribute('data-tse-stories');
+    window.__rangee.removeAttribute('data-tse-stories-masquee');
+    rangee.remove();
+    const contenu = document.createElement('main');
+    contenu.id = 'chaine';
+    contenu.style.cssText = 'position:absolute; left:260px; top:0; width:640px';
+    contenu.innerHTML = `
+      <div class="channel-header-stories-ring" style="width:40px;height:40px"></div>
+      <div class="storiesPlayerWrapper" style="display:contents">
+        <video id="piege" muted style="width:0;height:0"></video>
+      </div>
+      <div class="video-player__container" style="position:relative;width:640px;height:360px">
+        <div class="hype-train-player-frame"><video id="principal" muted style="width:640px;height:360px"></video></div>
+        <div class="video-player__controls">commandes</div>
+      </div>
+      <a class="saveYourStreakSideNavRow--piege" href="/videos/1">Protégez votre série</a>`;
+    // AVANT la barre dans le document : c'est l'ordre qui fait passer la
+    // recherche sur la page d'abord.
+    document.getElementById('root').prepend(contenu);
+    const train = document.createElement('div');
+    train.className = 'side-nav-hype-train-banner';
+    train.textContent = 'Hype Train niveau 3';
+    document.getElementById('side-nav').prepend(train);
+  });
+  const balayer = () => page.evaluate(async () => {
+    const total = () => window.tse.panneau.rapport().page.balayages.total;
+    const avant = total();
+    const t = document.createElement('div');
+    document.getElementById('cards').appendChild(t);
+    t.remove();
+    const fin = Date.now() + 10_000;
+    while (total() === avant && Date.now() < fin) await new Promise((r) => setTimeout(r, 50));
+  });
+  await balayer();
+  const lire = () => page.evaluate(() => {
+    const p = document.getElementById('principal');
+    return {
+      principal: p ? `${p.getBoundingClientRect().width}x${p.getBoundingClientRect().height}` : null,
+      cadre: getComputedStyle(document.querySelector('.hype-train-player-frame')).display,
+      trainBarre: getComputedStyle(document.querySelector('.side-nav-hype-train-banner')).display,
+      marquees: [...document.querySelectorAll('[data-tse-stories]')].map((e) => e.className.split(' ').pop()),
+      serie: document.querySelector('.saveYourStreakSideNavRow--piege').hasAttribute('data-tse-ligne-serie'),
+      lecteur: window.tse.panneau.rapport().lecteur,
+    };
+  });
+  const sansRangee = await lire();
+  /* Mutants — la règle des Hype Trains rendue à toute la page : le cadre du
+     lecteur disparaît, et la vidéo avec. */
+  ok('un lecteur enveloppé d\'une classe « hype-train » reste affiché ; le Hype Train de la barre, lui, est masqué',
+     sansRangee.principal === '640x360' && sansRangee.cadre === 'block' && sansRangee.trainBarre === 'none',
+     JSON.stringify(sansRangee));
+  /* Mutants — la garde de colonne retirée (l'anneau est pris pour la rangée),
+     ou sa condition sur la vidéo (l'enrobage sans boîte est pris). */
+  ok('sans rangée à côté de la barre, rien de la page de chaîne n\'est pris pour elle : ni l\'anneau, ni l\'enrobage d\'une vidéo',
+     sansRangee.marquees.length === 0, JSON.stringify(sansRangee.marquees));
+  /* Mutant — la même garde retirée des lignes de la série : un lien de la
+     page qui en porterait le repère serait masqué. */
+  ok('…ni un lien de la page qui porterait le repère de la série',
+     sansRangee.serie === false, String(sansRangee.serie));
+  ok('…et le rapport dit le lecteur : sa taille, rien qui le cache, aucune de nos marques',
+     sansRangee.lecteur.videos === 2 && sansRangee.lecteur.taillePx === '640x360'
+     && sansRangee.lecteur.masquePar === null && sansRangee.lecteur.regle === null
+     && sansRangee.lecteur.marques === null,
+     JSON.stringify(sansRangee.lecteur));
+
+  // La vraie rangée revient, APRÈS les pièges dans le document.
+  await page.evaluate(() => { document.getElementById('side-nav').before(window.__rangee); });
+  await balayer();
+  const avecRangee = await lire();
+  /* Mutant — la recherche arrêtée au premier candidat : l'anneau, écarté,
+     aurait suffi à ne plus jamais trouver la rangée. */
+  ok('la rangée revenue est trouvée, après les candidats écartés de la page',
+     avecRangee.marquees.join() === 'storiesLeftNavSection--csO9S', JSON.stringify(avecRangee.marquees));
+
+  /* ── CE QUE LE RAPPORT DIT QUAND LE LECTEUR EST CACHÉ ────────────────────
+     Deux causes, et le bloc doit les séparer. D'abord un masquage de la page
+     elle-même : l'élément est nommé, aucune de nos règles. Puis le défaut
+     qu'on vient de fermer, reproduit à la main — le cadre du lecteur marqué
+     comme rangée des stories, puis masqué : la règle et nos marques. */
+  await page.evaluate(() => {
+    document.querySelector('.storiesPlayerWrapper').remove();
+    const f = document.querySelector('.hype-train-player-frame');
+    f.style.display = 'none';
+  });
+  const parLaPage = (await lire()).lecteur;
+  /* `visibility` s'hérite : la vidéo elle-même se lit « hidden ». Le bloc
+     doit remonter jusqu'à l'élément qui la pose. */
+  await page.evaluate(() => {
+    document.querySelector('.hype-train-player-frame').style.display = '';
+    document.querySelector('.video-player__container').style.visibility = 'hidden';
+  });
+  const parHeritage = (await lire()).lecteur;
+  await page.evaluate(() => {
+    document.querySelector('.video-player__container').style.visibility = '';
+    const f = document.querySelector('.hype-train-player-frame');
+    f.style.display = '';
+    // La vraie rangée perd sa marque — si elle en a une : sous un défaut de
+    // recherche, elle n'a jamais été trouvée, et c'est l'assertion d'avant
+    // qui doit le dire, pas une exception ici.
+    document.querySelector('[data-tse-stories="row"]')?.removeAttribute('data-tse-stories');
+    f.setAttribute('data-tse-stories', 'row');
+    f.setAttribute('data-tse-stories-masquee', '');
+  });
+  const parNous = (await lire()).lecteur;
+  /* Mutants — `masquePar` jamais rempli, `regle` jamais cherchée, les
+     marques jamais relevées. */
+  ok('lecteur caché par la page : l\'élément est nommé, et aucune règle de l\'extension',
+     parLaPage.masquePar === 'div.hype-train-player-frame display:none' && parLaPage.regle === null
+     && parLaPage.marques === null,
+     JSON.stringify(parLaPage));
+  ok('…et par un visibility posé plus haut : l\'élément qui le pose, pas la vidéo qui en hérite',
+     parHeritage.masquePar === 'div.video-player__container visibility:hidden' && parHeritage.regle === null,
+     JSON.stringify(parHeritage));
+  ok('lecteur caché par une de nos règles : la règle et nos marques sont nommées',
+     parNous.masquePar === 'div.hype-train-player-frame display:none'
+     && /data-tse-stories-masquee/.test(parNous.regle || '')
+     && parNous.marques === 'data-tse-stories data-tse-stories-masquee',
+     JSON.stringify(parNous));
   await page.close();
 }
 

@@ -2059,6 +2059,108 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The main player, out of reach of our hiding rules (v4.24.0.2)
+
+> "Problem: the main player doesn't work when I'm on a channel."
+
+The screenshot shows a channel page: the player is black, but its controls are
+there (play, sound, "Clip", fullscreen), the timer runs and "LIVE" shows.
+
+### What was read, and what was not
+
+**The page itself could not be inspected**: this environment cannot reach
+twitch.tv. The code, for its part, was reread in full for everything that acts
+in the top page:
+
+- nothing there touches a `<video>` outside the preview iframe, nor `fetch`,
+  nor the player;
+- the navigation hooks (`pushState`) only arm a timer;
+- the red bar (4.24.0) and phase 0 (4.24.0.1) do not act outside the sidebar
+  and the preview.
+
+**Two hiding rules, however, could reach beyond the sidebar:**
+
+| hiding | scope until now | what it could hide on a channel page |
+| --- | --- | --- |
+| Hype Trains | the whole page | any element whose class contains "hype-train": the chat's banner, and anything Twitch might name that way around the player |
+| the stories row | the sidebar's parent, spotted by "stories" in a class | a page element taken for the row, then hidden, player included if it wraps one |
+
+**Neither is proven to be the cause.** Both are old, and the player used to
+work. But they are the only paths by which the extension could hide a player,
+and Twitch changes its page. A "hype-train" class set around the video during a
+Hype Train would have been enough, and the page in the screenshot shows every
+sign of one: SUBtember, subscriptions gifted in bulk.
+
+### What changes
+
+- **Hype Trains are only hidden in the sidebar now.** That is what the listing
+  promises: "No more Hype Trains squatting the sidebar". Visible consequence: the
+  Hype Train banner above the chat is back, as Twitch shows it.
+- **The stories row and the streak line are only picked up within the
+  sidebar's column**, give or take 8 px, and never if they contain a video or
+  an iframe. Every candidate is tried in order, no longer just the first one: a
+  page element that gets ruled out no longer prevents the real row from being
+  found.
+- **The report gains a `LECTEUR PRINCIPAL / MAIN PLAYER` block**, taken on the
+  page's largest video:
+
+| field | content |
+| --- | --- |
+| `videos` | how many `<video>` elements are in the page (the preview lives in an iframe and does not count) |
+| `taillePx`, `image` | its on-screen box, and the frame it decodes |
+| `etat`, `enPause`, `tempsS`, `erreur` | its `readyState`, whether it plays, its position, its error code |
+| `masquePar` | the first element, from the video up to `<body>`, that hides it (`display`, `visibility`, opacity), or `null` |
+| `regle` | the rule from **our** stylesheet that hides that element, or `null` |
+| `marques` | the `data-tse-*` attributes set on the video or its ancestors (none expected) |
+
+Since `visibility` is inherited, the block climbs to the element that sets it,
+instead of naming the video that inherits it.
+
+### If the player stays black
+
+A report taken on the channel page will say which of these three situations
+applies:
+
+- **`masquePar` and `regle` both filled**: one of the extension's rules hides
+  the player, and it is to be fixed here;
+- **`masquePar` filled, `regle` empty**: the page itself hides it;
+- **nothing hidden, but `image` at `0x0` or a low `etat`**: the video does not
+  decode, and it is Twitch's player, not its display.
+
+### What the bench measures
+
+**Scenario 173** (eight assertions) sets a channel page to the right of the
+sidebar, with its traps:
+
+- a player wrapped in a `hype-train-player-frame` class;
+- a stories ring;
+- a boxless "stories" wrapper (`display: contents`) around a video;
+- a link carrying the streak's marker.
+
+The real stories row is removed first, since it is when it is missing that the
+search goes down into the page. The scenario checks that:
+
+- the player stays displayed, and the sidebar's Hype Train is hidden;
+- nothing from the page is taken for the row or for the streak;
+- the row, once back, is found after the ruled-out candidates;
+- the report describes the player, then names what hides it: the page itself
+  (through `display`, then through an inherited `visibility`), and finally one
+  of our rules, with our marks.
+
+**Scenario 70** checks that the panel shows the new block.
+
+| mutants | what falls |
+| --- | --- |
+| the Hype Train rule given back to the whole page, then removed (2) | the player hidden with its frame, or the sidebar's Hype Train back |
+| the column guard removed, then its video condition, then its box condition (3) | the ring or a video's wrapper taken for the row |
+| the search stopped at the first candidate (1) | the real row never found again |
+| the guard removed from the streak lines (1) | a page link hidden |
+| the report: `masquePar`, `regle`, `marques`, the `visibility` climb, the choice of the largest video, and its line in the panel (6) | a reading that cannot say what hides the player |
+
+Thirteen mutants, thirteen caught. In the first round, one of them brought the
+bench down through an exception rather than an assertion. The bench was fixed so
+that the assertion is what says it.
+
 ## The ad blocker and the bridge, in the preview only (v4.24.0.1)
 
 The first stone of the multistream, on the `claude/chrome-multi` and
@@ -11456,7 +11558,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 172 scenarios, 1469 assertions |
+| `npm test` | the Playwright harness: 173 scenarios, 1478 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -11476,12 +11578,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1312 KB | 477 KB | 3,583 → **2** |
+| `content.js` | 1318 KB | 479 KB | 3,587 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 104 KB | 50 KB | 143 → **0** |
+| `panneau.js` | 104 KB | 50 KB | 144 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1565 KB** | **632 KB** | **−60 %** |
+| **all five** | **1571 KB** | **635 KB** | **−60 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
