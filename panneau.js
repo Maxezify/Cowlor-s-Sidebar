@@ -1801,6 +1801,9 @@ const construireRapport = (r, transport, fond) => {
   /* LE LECTEUR PRINCIPAL : sur une page de chaîne, ce qui cache la vidéo et
      la règle de l'extension qui le fait — null attendu aux deux. */
   L.push(...bloc('LECTEUR PRINCIPAL / MAIN PLAYER', aplatir(r.lecteur)));
+  /* LA SONDE DE LA SALLE : ce que les vrais lecteurs et chats intégrés ont
+     montré (pubs, son, points, Chat partagé), et la charge de la page. */
+  L.push(...bloc('SONDE DE LA SALLE / ROOM PROBE', aplatir(r.sonde)));
   /* LE SUBATHON A SON PROPRE BLOC, et il en a besoin. La règle qui le
      reconnaît ne lit que le titre du direct : elle n'a jamais pu être
      exécutée contre le vrai Twitch, et ces six lignes sont la seule mesure
