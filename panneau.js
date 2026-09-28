@@ -1798,6 +1798,9 @@ const construireRapport = (r, transport, fond) => {
   /* L'ALIGNEMENT DU BLOC SUR LE TITRE : zéro attendu partout, mesuré sur la
      vraie page, où le conteneur du bloc n'est pas celui du banc. */
   L.push(...bloc('ALIGNEMENT DU BLOC / BLOCK ALIGNMENT', aplatir(r.alignement)));
+  /* LE LECTEUR PRINCIPAL : sur une page de chaîne, ce qui cache la vidéo et
+     la règle de l'extension qui le fait — null attendu aux deux. */
+  L.push(...bloc('LECTEUR PRINCIPAL / MAIN PLAYER', aplatir(r.lecteur)));
   /* LE SUBATHON A SON PROPRE BLOC, et il en a besoin. La règle qui le
      reconnaît ne lit que le titre du direct : elle n'a jamais pu être
      exécutée contre le vrai Twitch, et ces six lignes sont la seule mesure
