@@ -150,6 +150,9 @@ const subs = [
   // valeur rendent leurs minuteurs indiscernables, et le test aurait attrapé
   // l'un pour l'autre sans jamais le dire. Cinq millisecondes d'écart suffisent
   // à les nommer ; le rapport avec le reste de l'échelle accélérée ne change pas.
+  // Lecture des chats de la sonde (4.24.0.3) : cinq secondes en production,
+  // pour qu'un solde de points lu au premier chargement le soit aussi au banc.
+  [/SONDE_CHAT_MS:\s*5_000/,       'SONDE_CHAT_MS:  300'],
   [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  45'],
   [/BATCH_DELAY:\s*[\d_]+/,       'BATCH_DELAY:    40'],
 ];

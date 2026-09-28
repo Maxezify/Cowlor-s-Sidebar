@@ -204,6 +204,23 @@ const TSE_PREVIEW_FRAME_NAME = 'tse-apercu';
 // Les pages qui posent l'aperçu : les deux formes que le manifeste déclare.
 const TSE_PREVIEW_PARENTS = ['https://www.twitch.tv', 'https://twitch.tv'];
 
+/* L'ORIGINE DU PARENT IMMÉDIAT, quand le navigateur la donne ; null sinon.
+   `ancestorOrigins` est ordonné du parent IMMÉDIAT vers le sommet : c'est
+   bien l'indice 0 qu'il faut — le dernier viserait la page du haut, qui n'est
+   le parent que dans le cas d'une iframe non imbriquée. Firefox ne
+   l'implémente pas avant la 148.
+
+   UNE SEULE LECTURE POUR LES DEUX PONTS (aperçu, sonde) : la variante
+   Firefox du banc neutralise cette ligne-ci, et elle seule
+   (cf. tests/build.mjs). Deux lectures, et le second pont aurait gardé
+   ancestorOrigins dans un banc censé reproduire Firefox. */
+const tseOrigineParent = () => {
+  try {
+    const a = location.ancestorOrigins;
+    return a && a.length ? a[0] : null;
+  } catch { return null; }
+};
+
 // Le levage de l'interstitielle. À false, on retrouve le comportement de la
 // 3.54 : les streams étiquetés restent sur leur vignette.
 const TSE_GATE_ENABLED = true;
@@ -232,24 +249,17 @@ const TSE_GATE_MAX_CLICKS = 5;
     if (window.name !== TSE_PREVIEW_FRAME_NAME) return;
   } catch { return; }
 
-  // Origines destinataires. `ancestorOrigins` est ordonné du parent IMMÉDIAT
-  // vers le sommet ; on poste à `parent`, donc c'est bien l'indice 0 qu'il
-  // faut — prendre le dernier viserait la page du haut, qui n'est le parent
-  // que dans le cas d'une iframe non imbriquée. Sans cette API, on retombe sur
-  // les deux formes que le manifeste déclare. Un envoi vers une origine qui ne
-  // correspond pas est simplement ignoré par le navigateur. Jamais '*' : le
-  // message ne porte aucune donnée, mais diffuser à l'aveugle reste une
+  // Origines destinataires : le parent immédiat quand on le connaît, sinon
+  // les deux formes que le manifeste déclare. Un envoi vers une origine qui
+  // ne correspond pas est simplement ignoré par le navigateur. Jamais '*' :
+  // le message ne porte aucune donnée, mais diffuser à l'aveugle reste une
   // habitude à ne pas prendre.
-  let targets;
-  try {
-    const a = location.ancestorOrigins;
-    targets = a && a.length ? [a[0]] : null;
-  } catch { targets = null; }
+  const parentConnu = tseOrigineParent();
   // Un parent CONNU qui n'est pas twitch.tv : ce n'est pas notre aperçu, quel
   // que soit son nom — un site tiers peut nommer son iframe comme il veut. Sans
   // ancestorOrigins (Firefox avant la 148), le nom seul tranche.
-  if (targets && !TSE_PREVIEW_PARENTS.includes(targets[0])) return;
-  if (!targets) targets = TSE_PREVIEW_PARENTS;
+  if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;
+  const targets = parentConnu ? [parentConnu] : TSE_PREVIEW_PARENTS;
 
   const poster = (quoi) => {
     for (const origin of targets) {
@@ -386,6 +396,118 @@ const TSE_GATE_MAX_CLICKS = 5;
     mo.observe(root, { childList: true, subtree: true });
     setTimeout(() => mo.disconnect(), 15_000);
   }
+})();
+
+/* ============================================================
+ *  PONT DE SONDE — la phase 0 du multistream (4.24.0.3)
+ *  -------------------------------------------------------------
+ *  La salle multistream reposera sur des lecteurs intégrés, et l'audit a
+ *  laissé des questions que seul le vrai Twitch tranche : un lecteur
+ *  intégré, connecté, montre-t-il des pubs à un abonné (P3) ? Accepte-t-il
+ *  qu'on lui rende le son (P4) ? Combien coûte-t-il (P6) ? La sonde
+ *  (tse.sonde, dans la page) ouvre de vrais lecteurs, nommés « tse-sonde »,
+ *  et CE pont, dans chacun, dit ce qui s'y passe.
+ *
+ *  UN NOM À LUI, et pas celui de l'aperçu : ni l'anti-pub ni le pont
+ *  d'aperçu ne s'éveillent ici. La sonde voit donc un lecteur tel que Twitch
+ *  le sert — pubs et avertissement de contenu compris —, ce qui est
+ *  exactement la question posée.
+ *
+ *  CE QU'IL RAPPORTE, toutes les deux secondes : la vidéo (lecture, son,
+ *  position, image décodée, images perdues), le bouton son du lecteur, un
+ *  avertissement de contenu, et les REPÈRES DE PUB. Ceux-là ne sont pas
+ *  supposés : aucun sélecteur de pub de Twitch n'a pu être relevé d'ici. Le
+ *  pont collecte tout attribut data-a-target ou data-test-selector dont un
+ *  segment vaut « ad », « ads », « advert… » ou « commercial », sur un
+ *  élément affiché — la première sonde sur le vrai Twitch dira lesquels
+ *  existent.
+ *
+ *  CE QU'IL ACCEPTE : « son » et « muet », de son parent seul, et d'une page
+ *  twitch.tv seulement. Par le bouton son du lecteur, comme le recommande
+ *  Twitch (laisser le démutage aux commandes du lecteur) ; à défaut, par
+ *  l'élément vidéo. Le résultat est relevé une seconde et demie après :
+ *  c'est là que le navigateur aura mis la vidéo en pause s'il refuse le son.
+ * ============================================================ */
+const TSE_SONDE_FRAME_NAME = 'tse-sonde';
+const TSE_SONDE_ETAT_MSG = 'tse:sonde-etat';
+const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
+
+(() => {
+  'use strict';
+
+  try {
+    if (window.top === window) return;
+    if (location.hostname !== 'player.twitch.tv') return;
+    if (window.name !== TSE_SONDE_FRAME_NAME) return;
+  } catch { return; }
+  const parentConnu = tseOrigineParent();
+  if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;
+  const cibles = parentConnu ? [parentConnu] : TSE_PREVIEW_PARENTS;
+
+  const BOUTON_SON = 'button[data-a-target="player-mute-unmute-button"]';
+  const RE_PUB = /(^|[-_])(ad|ads|advert[a-z]*|commercial)([-_]|$)/i;
+  const reperes = new Set();
+  let ordre = null;
+
+  const pubAffichee = () => {
+    let vue = false;
+    for (const el of document.querySelectorAll('[data-a-target], [data-test-selector]')) {
+      for (const at of ['data-a-target', 'data-test-selector']) {
+        const v = el.getAttribute(at);
+        if (!v || !RE_PUB.test(v) || !el.getClientRects().length) continue;
+        reperes.add(`${at}=${v}`);
+        vue = true;
+      }
+    }
+    return vue;
+  };
+  const etat = () => {
+    const v = document.querySelector('video');
+    const q = v && typeof v.getVideoPlaybackQuality === 'function' ? v.getVideoPlaybackQuality() : null;
+    return {
+      video: !!v,
+      lecture: !!v && !v.paused,
+      muet: v ? v.muted : null,
+      tempsS: v ? Math.round(v.currentTime * 10) / 10 : null,
+      image: v ? `${v.videoWidth}x${v.videoHeight}` : null,
+      images: q ? q.totalVideoFrames : null,
+      perdues: q ? q.droppedVideoFrames : null,
+      pub: pubAffichee(),
+      reperesPub: [...reperes],
+      boutonSon: !!document.querySelector(BOUTON_SON),
+      avertissement: !!document.querySelector(TSE_GATE_ZONE),
+      ordre,
+    };
+  };
+  const poster = () => {
+    const e = etat();
+    for (const o of cibles) {
+      try { window.parent.postMessage({ tse: TSE_SONDE_ETAT_MSG, etat: e }, o); } catch { /* origine refusée */ }
+    }
+  };
+
+  window.addEventListener('message', (e) => {
+    if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
+    const d = e.data;
+    if (!d || d.tse !== TSE_SONDE_ORDRE_MSG || (d.ordre !== 'son' && d.ordre !== 'muet')) return;
+    const v = document.querySelector('video');
+    const veutSon = d.ordre === 'son';
+    let voie = 'deja';
+    if (!v) voie = 'sans-video';
+    else if (v.muted === veutSon) {
+      const b = document.querySelector(BOUTON_SON);
+      if (b) { b.click(); voie = 'bouton'; } else { v.muted = !veutSon; voie = 'video'; }
+    }
+    ordre = { ordre: d.ordre, voie, apres: null };
+    const courant = ordre;
+    setTimeout(() => {
+      courant.apres = v ? { muet: v.muted, lecture: !v.paused } : null;
+      poster();
+    }, 1500);
+  });
+
+  poster();
+  setInterval(poster, 2000);
 })();
 
 (() => {
@@ -2601,6 +2723,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     // veut dire « l'écran est toujours là » : le dévoiler afficherait une modale
     // en travers de l'aperçu, ce qui est bien pire qu'une vignette.
     PREVIEW_GATE_TIMEOUT_MS: 2_500,
+    // Cadence de lecture des chats de la sonde (tse.sonde, phase 0 du
+    // multistream) : assez lente pour ne rien coûter, assez rapide pour
+    // saisir un solde de points au premier chargement.
+    SONDE_CHAT_MS: 5_000,
 
     // === Changement de catégorie en cours de stream ===
     // Durée de vie du badge « Vient de passer sur … ». C'est une NOUVELLE,
@@ -12249,6 +12375,263 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
   };
 
+  /* ── LA SONDE DE LA SALLE (4.24.0.3, phase 0 du multistream) ───────────
+     L'audit laisse des questions que seul le vrai Twitch tranche, et cet
+     environnement ne le joint pas. La sonde les pose dans le navigateur de
+     l'utilisateur et en rapporte des MESURES plutôt que des impressions :
+
+       tse.sonde.ouvrir('chaine1', 'chaine2', …)   jusqu'à 4 lecteurs, 2 chats
+       tse.sonde.son(0)                            le son au lecteur 0 (P4)
+       tse.sonde.rapport()                         le bilan — aussi au rapport
+       tse.sonde.fermer()
+
+     Les lecteurs portent le nom « tse-sonde » : le pont de sonde y dit, toutes
+     les deux secondes, la lecture, le son, l'image, les images perdues et les
+     repères de pub affichés (P3) ; ni l'anti-pub ni le pont d'aperçu n'y
+     entrent. Les chats sont ceux de Twitch, intégrés — de même origine que la
+     page, donc lisibles d'ici : saisie présente (connecté, P2), messages,
+     solde de points au début et maintenant (P5), repères de Chat partagé
+     (P7). Les tâches longues de la page donnent un ordre de grandeur de la
+     charge (P6) ; la mémoire, elle, se lit au gestionnaire de tâches du
+     navigateur, qu'aucune page ne voit.
+
+     Les repères des chats (points, Chat partagé) ne sont pas supposés plus
+     que ceux des pubs : tout attribut data-a-target ou data-test-selector qui
+     les évoque est relevé, et la première sonde dira lesquels existent.
+
+     UNE SEULE SONDE À LA FOIS, et rien qui tourne quand elle est fermée : ni
+     écouteur, ni minuteur, ni observateur. Le bilan de la dernière reste
+     lisible au rapport après sa fermeture. */
+  const sonde = (() => {
+    const MAX_LECTEURS = 4, MAX_CHATS = 2;
+    const RE_LOGIN = /^[a-z0-9_]{2,25}$/;
+    const RE_POINTS = /balance|community-points|channel-points/i;
+    const RE_PARTAGE = /shared[-_]?chat/i;
+    const RE_NOMBRE = /^\d[\d\s\u00a0\u202f.,]*$/;
+    let courante = null;
+    let derniere = null;
+
+    // `source` ancre le message à UN de nos lecteurs : c'est la seule
+    // vérification qui compte, comme pour l'aperçu.
+    const surMessage = (e) => {
+      if (!courante || !e.data || e.data.tse !== TSE_SONDE_ETAT_MSG) return;
+      const l = courante.lecteurs.find((x) => x.cadre.contentWindow === e.source);
+      if (!l) return;
+      const et = e.data.etat || {};
+      const t = Date.now();
+      l.messages += 1;
+      l.etat = et;
+      if (et.pub && !l.pubAvant) l.pubs += 1;
+      l.pubAvant = !!et.pub;
+      if (typeof et.tempsS === 'number') {
+        if (!l.premier) l.premier = { t, s: et.tempsS };
+        l.dernier = { t, s: et.tempsS };
+      }
+    };
+
+    const lireChat = (c) => {
+      let doc = null;
+      try { doc = c.cadre.contentDocument; } catch { c.memeOrigine = false; return; }
+      c.memeOrigine = !!doc;
+      if (!doc || !doc.body) return;
+      c.saisie = !!doc.querySelector('[data-a-target="chat-input"]');
+      c.messages = doc.querySelectorAll('.chat-line__message').length;
+      let points = null;
+      for (const el of doc.querySelectorAll('[data-a-target], [data-test-selector]')) {
+        for (const at of ['data-a-target', 'data-test-selector']) {
+          const v = el.getAttribute(at);
+          if (!v) continue;
+          if (RE_PARTAGE.test(v)) c.reperesPartage.add(`${at}=${v}`);
+          if (points !== null || !RE_POINTS.test(v)) continue;
+          const texte = (el.textContent || '').trim();
+          if (!texte || !/\d/.test(texte)) continue;
+          c.pointsTexte = texte.slice(0, 24);
+          c.pointsRepere = `${at}=${v}`;
+          points = RE_NOMBRE.test(texte) ? Number(texte.replace(/\D/g, '')) : NaN;
+        }
+      }
+      if (points !== null && !Number.isNaN(points)) {
+        if (c.pointsDebut === null) c.pointsDebut = points;
+        c.points = points;
+      }
+    };
+
+    const bilanLecteur = (l) => {
+      const et = l.etat || {};
+      const o = et.ordre || null;
+      return {
+        pont: l.messages > 0,
+        video: et.video ?? null,
+        lecture: et.lecture ?? null,
+        muet: et.muet ?? null,
+        image: et.image ?? null,
+        dureeS: l.premier ? Math.round((l.dernier.t - l.premier.t) / 100) / 10 : null,
+        avanceS: l.premier ? Math.round((l.dernier.s - l.premier.s) * 10) / 10 : null,
+        perduesPct: et.images ? Math.round((1000 * et.perdues) / et.images) / 10 : null,
+        pub: et.pub ?? null,
+        pubsVues: l.pubs,
+        reperesPub: et.reperesPub && et.reperesPub.length ? et.reperesPub.join(' ') : null,
+        boutonSon: et.boutonSon ?? null,
+        avertissement: et.avertissement ?? null,
+        ordre: o ? {
+          demande: o.ordre,
+          voie: o.voie,
+          muet: o.apres ? o.apres.muet : null,
+          lecture: o.apres ? o.apres.lecture : null,
+          /* Le verdict du son (P4) : « ok » s'il joue et s'entend, « pause »
+             si le navigateur l'a arrêté plutôt que de le laisser parler,
+             « sans-effet » s'il est resté muet. */
+          verdict: !o.apres || o.ordre !== 'son' ? null
+            : !o.apres.muet && o.apres.lecture ? 'ok'
+            : !o.apres.muet ? 'pause' : 'sans-effet',
+        } : null,
+      };
+    };
+    const bilanChat = (c) => ({
+      memeOrigine: c.memeOrigine,
+      saisie: c.saisie,
+      messages: c.messages,
+      points: c.points,
+      pointsDebut: c.pointsDebut,
+      gainPoints: c.points !== null && c.pointsDebut !== null ? c.points - c.pointsDebut : null,
+      pointsTexte: c.pointsTexte,
+      pointsRepere: c.pointsRepere,
+      partage: c.reperesPartage.size > 0,
+      reperesPartage: c.reperesPartage.size ? [...c.reperesPartage].join(' ') : null,
+    });
+
+    const bilan = () => {
+      if (!courante) return derniere || { ouverte: false };
+      courante.chats.forEach(lireChat);
+      const parChaine = (liste, f) => Object.fromEntries(liste.map((x) => [x.chaine, f(x)]));
+      return {
+        ouverte: true,
+        depuisS: Math.round((Date.now() - courante.t0) / 1000),
+        // Un stream qui joue dans la page fausse la charge mesurée : la sonde
+        // s'ouvre de préférence sur une page sans lecteur.
+        videoDeLaPage: [...document.querySelectorAll('video')].some((v) => !v.paused),
+        tachesLongues: courante.longues ? { ...courante.longues } : null,
+        lecteurs: parChaine(courante.lecteurs, bilanLecteur),
+        chats: parChaine(courante.chats, bilanChat),
+      };
+    };
+
+    const envoyer = (l, ordre) => {
+      try {
+        l.cadre.contentWindow.postMessage({ tse: TSE_SONDE_ORDRE_MSG, ordre }, 'https://player.twitch.tv');
+      } catch { /* lecteur retiré */ }
+    };
+    /* LE SON À UN LECTEUR, LE SILENCE AUX AUTRES : c'est le focus sonore de la
+       salle. Appelée par le bouton de la tuile, elle part d'un vrai clic dans
+       la page — l'activation que le navigateur exige pour laisser parler une
+       vidéo, et que la sonde doit éprouver telle quelle. */
+    const son = (i) => {
+      if (!courante || !courante.lecteurs[i]) return { erreur: 'lecteur inconnu / unknown player' };
+      courante.lecteurs.forEach((l, k) => envoyer(l, k === i ? 'son' : 'muet'));
+      return { son: courante.lecteurs[i].chaine };
+    };
+
+    const fermer = () => {
+      if (!courante) return { fermee: false };
+      derniere = { ...bilan(), ouverte: false };
+      clearInterval(courante.minuteur);
+      if (courante.obs) courante.obs.disconnect();
+      window.removeEventListener('message', surMessage);
+      courante.boite.remove();
+      courante = null;
+      return { fermee: true };
+    };
+
+    const ouvrir = (...demandees) => {
+      const logins = demandees.flat().map((c) => String(c).trim().toLowerCase()).filter(Boolean);
+      const faux = logins.filter((c) => !RE_LOGIN.test(c));
+      if (!logins.length) return { erreur: 'aucune chaîne / no channel' };
+      if (faux.length) return { erreur: `chaîne(s) invalide(s) / invalid channel(s) : ${faux.join(', ')}` };
+      fermer();
+      const uniques = [...new Set(logins)];
+      const retenues = uniques.slice(0, MAX_LECTEURS);
+      const hote = location.hostname;
+
+      const boite = document.createElement('div');
+      boite.id = 'tse-sonde';
+      const nav = document.querySelector(DOM.sidebarRoot);
+      const gauche = nav ? Math.max(0, Math.round(nav.getBoundingClientRect().right)) : 0;
+      boite.style.cssText = `position:fixed;top:50px;left:${gauche}px;right:0;bottom:0;z-index:9000;`
+        + 'overflow:auto;padding:12px;box-sizing:border-box;background:rgba(14,14,16,.97);'
+        + 'color:#efeff1;font:13px/1.4 system-ui,sans-serif;display:flex;flex-direction:column;gap:10px';
+      const tete = document.createElement('div');
+      tete.style.cssText = 'display:flex;gap:12px;align-items:center';
+      const titre = document.createElement('strong');
+      titre.textContent = 'Sonde de la salle / Room probe';
+      const clore = document.createElement('button');
+      clore.type = 'button';
+      clore.textContent = 'Fermer / Close';
+      clore.addEventListener('click', () => fermer());
+      tete.append(titre, clore);
+      const grille = document.createElement('div');
+      grille.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start';
+
+      const lecteurs = retenues.map((chaine, i) => {
+        const tuile = document.createElement('div');
+        tuile.style.cssText = 'display:flex;flex-direction:column;gap:4px';
+        const cadre = document.createElement('iframe');
+        // Le nom AVANT l'adresse, comme pour l'aperçu : c'est lui qui éveille
+        // le pont de sonde, et lui seul.
+        cadre.name = TSE_SONDE_FRAME_NAME;
+        cadre.src = `https://player.twitch.tv/?${new URLSearchParams({
+          channel: chaine, parent: hote, muted: 'true', autoplay: 'true' })}`;
+        cadre.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+        // 400 × 300 : le minimum que Twitch impose à un lecteur intégré.
+        cadre.style.cssText = 'width:400px;height:300px;border:0;background:#000';
+        const barre = document.createElement('div');
+        barre.style.cssText = 'display:flex;gap:8px;align-items:center';
+        const nom = document.createElement('span');
+        nom.textContent = chaine;
+        const bouton = document.createElement('button');
+        bouton.type = 'button';
+        bouton.textContent = 'Son / Sound';
+        bouton.dataset.tseSondeSon = String(i);
+        bouton.addEventListener('click', () => son(i));
+        barre.append(nom, bouton);
+        tuile.append(cadre, barre);
+        grille.appendChild(tuile);
+        return { chaine, cadre, etat: null, messages: 0, pubs: 0, pubAvant: false, premier: null, dernier: null };
+      });
+      const chats = retenues.slice(0, MAX_CHATS).map((chaine) => {
+        const cadre = document.createElement('iframe');
+        cadre.src = `${location.origin}/embed/${encodeURIComponent(chaine)}/chat?`
+          + `${new URLSearchParams({ parent: hote })}${themeTwitch() === 'dark' ? '&darkpopout' : ''}`;
+        cadre.style.cssText = 'width:340px;height:300px;border:0;background:#18181b';
+        grille.appendChild(cadre);
+        return { chaine, cadre, memeOrigine: null, saisie: null, messages: null, points: null,
+                 pointsDebut: null, pointsTexte: null, pointsRepere: null, reperesPartage: new Set() };
+      });
+      boite.append(tete, grille);
+      document.body.appendChild(boite);
+
+      let longues = null, obs = null;
+      try {
+        longues = { n: 0, ms: 0 };
+        obs = new PerformanceObserver((liste) => {
+          for (const x of liste.getEntries()) { longues.n += 1; longues.ms += Math.round(x.duration); }
+        });
+        obs.observe({ type: 'longtask' });
+      } catch { longues = null; obs = null; }   // Firefox : pas de « longtask »
+
+      window.addEventListener('message', surMessage);
+      const minuteur = setInterval(() => { if (courante) courante.chats.forEach(lireChat); }, CFG.SONDE_CHAT_MS);
+      courante = { t0: Date.now(), lecteurs, chats, boite, minuteur, obs, longues };
+      return {
+        ouverte: true,
+        lecteurs: retenues,
+        chats: retenues.slice(0, MAX_CHATS),
+        ...(uniques.length > MAX_LECTEURS ? { ignorees: uniques.slice(MAX_LECTEURS) } : {}),
+      };
+    };
+
+    return { ouvrir, son, fermer, rapport: bilan };
+  })();
+
   const tseApi = {
     scores(limit = Infinity) {
       const report = buildScoresReport().slice(0, limit);
@@ -12978,6 +13361,10 @@ const TSE_GATE_MAX_CLICKS = 5;
             marques: [...marques].join(' ') || null,
           };
         })(),
+        /* ── LA SONDE DE LA SALLE (4.24.0.3) ──────────────────────────────
+           Le bilan de la sonde ouverte, ou de la dernière refermée dans
+           cette page ; `ouverte: false` seul si aucune ne l'a été. */
+        sonde: sonde.rapport(),
         /* ── LA RANGÉE DES STORIES (4.23.0) ───────────────────────────────
            Seul son bloc externe a été relevé : la puce lit la rangée sans en
            supposer la forme, et ce bloc dit ce qu'elle y a trouvé.
@@ -13405,6 +13792,13 @@ const TSE_GATE_MAX_CLICKS = 5;
   /* Le rapport, lisible à la main comme le reste. Le panneau en fait un
      fichier ; la console en rend l'objet. */
   tseApi.panneau.rapport = () => panneau.rapport();
+  // La sonde de la salle (4.24.0.3) — cf. son module.
+  tseApi.sonde = Object.freeze({
+    ouvrir: (...chaines) => sonde.ouvrir(...chaines),
+    son: (i) => sonde.son(i),
+    fermer: () => sonde.fermer(),
+    rapport: () => sonde.rapport(),
+  });
 
   /* ============================================================
    *  PONT VERS LE PANNEAU (page → extension)

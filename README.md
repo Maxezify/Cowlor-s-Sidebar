@@ -2180,6 +2180,155 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La sonde de la salle (v4.24.0.3)
+
+La phase 0 du multistream, suite. Deux sondes de l'audit ont déjà répondu, sur
+captures :
+
+- **P1** : un lecteur et un chat intégrés se chargent dans une page twitch.tv ;
+- **P2** : le chat intégré est de même origine que la page, et connecté (solde
+  de points, zone de saisie).
+
+Les autres questions demandent le vrai Twitch, que cet environnement ne joint
+pas. La sonde les pose donc dans le navigateur de l'utilisateur, et elle en
+rapporte des **mesures** plutôt que des impressions.
+
+### Comment s'en servir
+
+1. **Ouvrir une page twitch.tv sans stream**, par exemple « Suivis ». Un
+   lecteur qui joue dans la page fausserait la charge mesurée, et la ligne
+   `videoDeLaPage` le signale.
+2. **Dans la console**, ouvrir la sonde sur quatre chaînes en direct au plus,
+   dont une à laquelle on est abonné :
+   ```js
+   tse.sonde.ouvrir('chaine_abonnee', 'chaine_2', 'chaine_3', 'chaine_4')
+   ```
+3. **Attendre une douzaine de minutes sans rien toucher.** C'est le temps des
+   pubs d'entrée et d'un gain de points.
+4. **Cliquer « Son / Sound »** sous un lecteur, puis sous un autre.
+5. **Relever la mémoire et le processeur** au gestionnaire de tâches du
+   navigateur (Maj + Échap sous Chrome) : aucune page ne peut les lire.
+6. **Prendre le rapport du panneau** : son bloc `SONDE DE LA SALLE / ROOM
+   PROBE` porte tout. Puis `tse.sonde.fermer()`.
+
+Pour **P7**, recommencer pendant une collaboration en Chat partagé, sur ses
+membres.
+
+### Ce que chaque ligne répondra
+
+| sonde | lignes du bloc | ce qu'on y lira |
+| --- | --- | --- |
+| P3 — des pubs pour un abonné ? | `lecteurs.<chaîne>.pubsVues`, `reperesPub` | 0 sur la chaîne abonnée et au moins 1 ailleurs : le lecteur intégré est connecté, et l'abonnement y vaut |
+| P4 — rendre le son ? | `lecteurs.<chaîne>.ordre.verdict` | `ok`, ou `pause` (le navigateur l'a arrêté), ou `sans-effet` (resté muet) ; `voie` dit si le bouton du lecteur a été trouvé |
+| P5 — des points dans un chat intégré ? | `chats.<chaîne>.pointsDebut`, `gainPoints` | un gain au bout de douze minutes |
+| P6 — combien ça coûte ? | `tachesLongues`, `lecteurs.<chaîne>.perduesPct` | la charge de la page et les images perdues ; la mémoire vient du gestionnaire de tâches |
+| P7 — le Chat partagé se voit-il ? | `chats.<chaîne>.partage`, `reperesPartage` | les repères que Twitch lui donne |
+
+`avanceS` et `dureeS` disent si chaque vidéo avance au rythme de l'horloge, et
+`image` quelle image elle décode.
+
+### Ce qui tourne, et où
+
+**Dans chaque lecteur, un pont de sonde.** Les lecteurs de la sonde portent le
+nom `tse-sonde`, et le pont ne s'éveille que dans une frame qui le porte, posée
+par une page twitch.tv : les mêmes gardes que l'aperçu. Toutes les deux
+secondes, il rapporte :
+
+- la lecture, le son, la position et l'image décodée de la vidéo ;
+- les images perdues ;
+- la présence du bouton son et d'un avertissement de contenu ;
+- les repères de pub affichés.
+
+**Ni l'anti-pub ni le pont d'aperçu n'y entrent**, puisque le nom n'est pas le
+leur. La sonde voit donc le lecteur tel que Twitch le sert, pubs et
+avertissement compris : c'est exactement la question de P3.
+
+**Deux ordres seulement, « son » et « muet »**, acceptés de son parent seul et
+d'une page twitch.tv seulement. Le pont passe par le bouton son du lecteur, comme
+le recommande Twitch, et à défaut par l'élément vidéo. Il relève le résultat une
+seconde et demie plus tard, le temps que le navigateur ait tranché. Le bouton
+« Son / Sound » de la sonde rend le son à son lecteur et coupe les autres, depuis
+un vrai clic dans la page : c'est l'activation que le navigateur exige, et la
+sonde l'éprouve telle quelle.
+
+**Dans la page, la lecture des chats.** Ils sont de même origine, donc lisibles
+d'ici : saisie présente, messages, solde de points au début et maintenant,
+repères de Chat partagé. Les tâches longues de la page sont comptées là où le
+navigateur les expose ; Firefox ne le fait pas.
+
+### Les repères ne sont pas supposés
+
+Aucun sélecteur de pub, de solde de points ou de Chat partagé n'a pu être relevé
+d'ici. La sonde ne devine donc pas : elle **collecte** tout attribut
+`data-a-target` ou `data-test-selector` qui les évoque, sur un élément affiché
+pour les pubs, et le rapport les nomme. La première sonde sur le vrai Twitch
+dira lesquels existent, et la phase 1 s'appuiera sur ceux-là.
+
+### Ce qui ne tourne pas
+
+**Une seule sonde à la fois**, et rien quand elle est fermée : ni écouteur, ni
+minuteur, ni observateur. Le bilan de la dernière reste lisible au rapport
+après sa fermeture. Les lecteurs font 400 × 300 px, le minimum que Twitch
+impose.
+
+### Une seule lecture d'ancestorOrigins
+
+Les deux ponts, l'aperçu et la sonde, lisent l'origine de leur parent par la même
+fonction, `tseOrigineParent`. La variante Firefox du banc neutralise cette
+lecture à la construction, et elle seule. Deux lectures, et le second pont
+aurait gardé `ancestorOrigins` dans un banc censé reproduire Firefox.
+
+### Ce que le banc mesure
+
+Le **scénario 174** (dix assertions) fait travailler la sonde sur des lecteurs et
+des chats factices :
+
+| lecteur ou chat factice | ce qu'il fait |
+| --- | --- |
+| « annonce » | affiche un repère de pub pendant trois secondes |
+| « bloque » | se met en pause 300 ms après qu'on lui a rendu le son |
+| tous les lecteurs | portent un repère de pub caché, et des repères qui n'en sont pas (`add-to-list`, `stream-header-title`) |
+| les chats | une saisie, trois messages, un solde qui passe de 530 à 540, et un en-tête de Chat partagé pour « bloque » |
+
+Le scénario vérifie aussi :
+
+- ce que la sonde refuse d'ouvrir ;
+- ses plafonds (quatre lecteurs, deux chats) ;
+- que l'anti-pub n'entre pas dans ses lecteurs ;
+- la charge de la page ;
+- les verdicts du son, `ok` puis `pause`, depuis de vrais clics ;
+- sa fermeture.
+
+Il vérifie enfin qu'elle se tait là où elle doit se taire : un lecteur sans son
+nom, un lecteur qui le porte sur un site tiers, et, sous la variante Firefox, un
+ordre venu d'un site tiers.
+
+Le **scénario 70** vérifie que le panneau affiche le nouveau bloc.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| dans le lecteur : la garde du nom, le contrôle du parent, celui de l'origine d'un ordre (3) | la sonde qui parle à qui ne l'a pas ouverte, ou lui obéit |
+| le motif des pubs élargi, un repère caché compté (2) | des pubs qui n'en sont pas |
+| le bouton son ignoré, le sens de l'ordre inversé, l'état relevé sans attendre (3) | un verdict du son qui ment |
+| dans la page : une pub comptée à chaque relevé (1) | une pub comptée deux fois |
+| les plafonds de lecteurs et de chats, le nom des lecteurs, leur muet, leur taille (5) | une sonde qui ne pose pas la question telle qu'elle est posée |
+| le silence aux autres lecteurs, le verdict (2) | deux lecteurs qui parlent, ou une pause lue comme un succès |
+| les chats : saisie, messages, solde de départ, Chat partagé (4) | P2, P5 ou P7 mal lues |
+| les noms de chaîne non vérifiés (1) | une sonde ouverte sur n'importe quoi |
+| la fermeture : la boîte laissée, le bilan perdu (2) | une sonde qui reste, ou qui oublie |
+| la charge : la vidéo de la page, les tâches longues (2) | P6 sans mesure |
+| la ligne du panneau (1) | un bilan qui ne revient jamais |
+
+Vingt-six mutants, vingt-six pris. Au premier tour, deux avaient échappé au
+banc tel qu'il était écrit :
+
+- **une pub comptée à chaque relevé**, parce que le banc relisait le rapport
+  avant la fin de la pub ;
+- **un bilan perdu à la fermeture**, parce que le banc tombait sur une
+  exception au lieu d'une assertion.
+
+Le banc a été corrigé, et les deux tombent maintenant par une assertion.
+
 ## Le lecteur principal, hors de portée de nos masquages (v4.24.0.2)
 
 > « Problème, le lecteur principal marche pas quand je suis sur une chaîne. »
@@ -11982,7 +12131,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 173 scénarios, 1478 assertions |
+| `npm test` | le harnais Playwright : 174 scénarios, 1489 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -12003,12 +12152,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1318 Ko | 479 Ko | 3 587 → **2** |
+| `content.js` | 1336 Ko | 492 Ko | 3 604 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 104 Ko | 50 Ko | 144 → **0** |
+| `panneau.js` | 105 Ko | 50 Ko | 145 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1571 Ko** | **635 Ko** | **−60 %** |
+| **les cinq** | **1589 Ko** | **648 Ko** | **−59 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
