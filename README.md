@@ -340,12 +340,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1312 Ko | 477 Ko | 3 583 → **2** |
+| `content.js` | 1318 Ko | 479 Ko | 3 587 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 104 Ko | 50 Ko | 143 → **0** |
+| `panneau.js` | 104 Ko | 50 Ko | 144 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1565 Ko** | **632 Ko** | **−60 %** |
+| **les cinq** | **1571 Ko** | **635 Ko** | **−60 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2620,6 +2620,110 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Le lecteur principal, hors de portée de nos masquages (v4.24.0.2)
+
+> « Problème, le lecteur principal marche pas quand je suis sur une chaîne. »
+
+Sur la capture, la page d'une chaîne : le lecteur est noir, mais ses commandes
+sont là (lecture, son, « Clip », plein écran), le chrono tourne et « LIVE »
+s'affiche.
+
+### Ce qui a été lu, et ce qui ne l'a pas été
+
+**La page n'a pas pu être inspectée** : cet environnement ne peut pas joindre
+twitch.tv. Le code, lui, a été relu en entier pour tout ce qui agit dans la page
+du haut :
+
+- rien n'y touche à une `<video>` hors de l'iframe d'aperçu, ni à `fetch`, ni
+  au lecteur ;
+- les crochets de navigation (`pushState`) ne font qu'armer un minuteur ;
+- la barre rouge (4.24.0) et la phase 0 (4.24.0.1) n'agissent pas hors de la
+  barre et de l'aperçu.
+
+**Deux masquages, en revanche, pouvaient sortir de la barre :**
+
+| masquage | portée jusqu'ici | ce qu'il pouvait cacher sur une page de chaîne |
+| --- | --- | --- |
+| les Hype Trains | toute la page | tout élément dont la classe contient « hype-train » : l'encart du chat, et tout ce que Twitch nommerait ainsi autour du lecteur |
+| la rangée des stories | le parent de la barre, repérée à « stories » dans une classe | un élément de la page pris pour la rangée, puis masqué, lecteur compris s'il l'entoure |
+
+**Aucun des deux n'est prouvé en cause.** Ils sont anciens, et le lecteur
+marchait. Mais ce sont les seuls chemins par lesquels l'extension pouvait cacher
+un lecteur, et Twitch change sa page. Une classe « hype-train » posée autour de
+la vidéo pendant un Hype Train suffisait, et la page de la capture en a tous les
+signes : SUBtember, abonnements offerts en série.
+
+### Ce qui change
+
+- **Les Hype Trains ne sont plus masqués que dans la barre latérale.** C'est ce
+  que la fiche promet : « Fini les Hype Trains qui squattent la barre ».
+  Conséquence visible : l'encart du Hype Train au-dessus du chat réapparaît,
+  tel que Twitch le montre.
+- **La rangée des stories et la ligne de la série ne sont prises que dans la
+  colonne de la barre**, à 8 px près, et jamais si elles contiennent une vidéo
+  ou une iframe. Tous les candidats sont essayés dans l'ordre, et non plus le
+  premier seul : un élément écarté de la page n'empêche plus de trouver la vraie
+  rangée.
+- **Le rapport gagne un bloc `LECTEUR PRINCIPAL / MAIN PLAYER`**, pris sur la
+  plus grande vidéo de la page :
+
+| champ | contenu |
+| --- | --- |
+| `videos` | combien de `<video>` dans la page (l'aperçu vit dans une iframe et n'en compte pas) |
+| `taillePx`, `image` | sa boîte à l'écran, et l'image qu'elle décode |
+| `etat`, `enPause`, `tempsS`, `erreur` | son `readyState`, sa lecture, sa position, son code d'erreur |
+| `masquePar` | le premier élément, de la vidéo vers `<body>`, qui la cache (`display`, `visibility`, opacité), ou `null` |
+| `regle` | la règle de **notre** feuille qui cache cet élément, ou `null` |
+| `marques` | les attributs `data-tse-*` posés sur la vidéo ou ses ancêtres (aucun attendu) |
+
+Comme `visibility` s'hérite, le bloc remonte jusqu'à l'élément qui la pose, au
+lieu de nommer la vidéo qui en hérite.
+
+### Si le lecteur reste noir
+
+Un rapport pris sur la page de la chaîne dira laquelle de ces trois situations
+se présente :
+
+- **`masquePar` et `regle` remplis** : une règle de l'extension cache le
+  lecteur, et c'est à corriger ici ;
+- **`masquePar` rempli, `regle` vide** : c'est la page elle-même qui le cache ;
+- **rien de caché, mais `image` à `0x0` ou `etat` bas** : la vidéo ne décode
+  pas, c'est le lecteur de Twitch et non son affichage.
+
+### Ce que le banc mesure
+
+Le **scénario 173** (huit assertions) pose une page de chaîne à droite de la
+barre, avec ses pièges :
+
+- un lecteur enveloppé d'une classe `hype-train-player-frame` ;
+- un anneau de stories ;
+- un enrobage « stories » sans boîte (`display: contents`) autour d'une vidéo ;
+- un lien qui porte le repère de la série.
+
+La vraie rangée des stories est retirée d'abord, puisque c'est quand elle
+manque que la recherche descend jusqu'à la page. Le scénario vérifie que :
+
+- le lecteur reste affiché, et le Hype Train de la barre est masqué ;
+- rien de la page n'est pris pour la rangée ou pour la série ;
+- la rangée revenue est trouvée, après les candidats écartés ;
+- le rapport dit le lecteur, puis nomme ce qui le cache : la page elle-même
+  (par `display`, puis par un `visibility` hérité), et enfin une de nos règles,
+  avec nos marques.
+
+Le **scénario 70** vérifie que le panneau affiche le nouveau bloc.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la règle des Hype Trains rendue à toute la page, puis retirée (2) | le lecteur caché avec son cadre, ou le Hype Train de la barre revenu |
+| la garde de colonne retirée, puis sa condition sur la vidéo, puis celle sur la boîte (3) | l'anneau ou l'enrobage d'une vidéo pris pour la rangée |
+| la recherche arrêtée au premier candidat (1) | la vraie rangée jamais retrouvée |
+| la garde retirée des lignes de la série (1) | un lien de la page masqué |
+| le rapport : `masquePar`, `regle`, `marques`, la remontée du `visibility`, le choix de la plus grande vidéo, et sa ligne au panneau (6) | une lecture qui ne sait pas dire qui cache le lecteur |
+
+Treize mutants, treize pris. Au premier tour, l'un d'eux faisait tomber le banc
+par une exception plutôt que par une assertion. Le banc a été corrigé pour que
+ce soit l'assertion qui le dise.
 
 ## L'anti-pub et le pont, dans l'aperçu seulement (v4.24.0.1)
 
@@ -12319,7 +12423,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 172 scénarios, 1469 assertions |
+| `npm test` | le harnais Playwright : 173 scénarios, 1478 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
