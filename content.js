@@ -12834,8 +12834,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         })(),
         /* ── L'ALIGNEMENT DU BLOC SUR LE TITRE (4.23.1) ───────────────────
            Le banc ne modélise qu'un conteneur ; ces lectures disent ce qu'il
-           en est sur la vraie page. `gauchePx` et `droitePx` : l'écart entre
-           les bords de nos contrôles et ceux du titre — 0 attendu.
+           en est sur la vraie page. `margeTitrePx` : là où commence le texte
+           du titre ; `margeGauchePx` et `margeDroitePx` : les marges de nos
+           contrôles depuis les bords de la barre. Les trois égaux attendus —
+           c'est l'égalité des deux dernières que la capture de la 4.23.1 a
+           démentie : 12 et 5.
            `trisDebordePx` : ce qui dépasse de la colonne dans la rangée des
            tris — 0 attendu. `source` : « titre » si les marges sont mesurées,
            « defaut » si la feuille garde ses 6 px. */
@@ -12844,15 +12847,16 @@ const TSE_GATE_MAX_CLICKS = 5;
           const titre = document.querySelector(`${DOM.sidebarRoot} .side-nav__title`);
           if (!bloc || !titre || sidebarCollapsed) return { source: null };
           const b = bloc.getBoundingClientRect(), sb = getComputedStyle(bloc);
-          const t = titre.getBoundingClientRect(), st = getComputedStyle(titre);
+          const t = titre.getBoundingClientRect(), marge = parseFloat(getComputedStyle(titre).paddingLeft);
           const g = b.left + parseFloat(sb.paddingLeft), d = b.right - parseFloat(sb.paddingRight);
           const tris = [...bloc.querySelectorAll('#tse-sort-row > button')]
             .map((x) => x.getBoundingClientRect()).filter((r) => r.width > 0);
           const r1 = (v) => Math.round(v * 10) / 10;
           return {
             source: bloc.style.getPropertyValue('--tse-bloc-g') ? 'titre' : 'defaut',
-            gauchePx: r1(g - (t.left + parseFloat(st.paddingLeft))),
-            droitePx: r1((t.right - parseFloat(st.paddingRight)) - d),
+            margeTitrePx: r1(marge),
+            margeGauchePx: r1(g - t.left),
+            margeDroitePx: r1(t.right - d),
             colonnePx: r1(d - g),
             trisDebordePx: tris.length
               ? r1(Math.max(0, g - tris[0].left, tris[tris.length - 1].right - d)) : null,
@@ -18969,12 +18973,20 @@ const TSE_GATE_MAX_CLICKS = 5;
      débordaient de 10 à 226. Le bloc avait 12 px de marge, et un conteneur de
      Twitch, qu'on ne voit pas, en ajoutait 4.
 
-     ON NE RECOPIE PAS CES 4 PX, ON MESURE LE TITRE : ses bords intérieurs
-     deviennent ceux du bloc, par ses deux marges horizontales, posées en
-     variables. Quel que soit le conteneur, les contrôles commencent et
-     finissent là où commence le titre et où finit son bouton de repli. Sur
-     la capture, cela fait 218 px : exactement six boutons de tri de 28 px et
-     leurs cinq écarts de 10 px.
+     ON NE RECOPIE PAS CES 4 PX, ON MESURE LE TITRE : là où commence son
+     texte devient le bord gauche du bloc, par sa marge horizontale posée en
+     variable. Quel que soit le conteneur, les contrôles commencent là où
+     commence le titre — et finissent à la même distance du bord opposé,
+     cf. ci-dessous.
+
+     LA DROITE EST LE MIROIR DE LA GAUCHE (4.23.2). La première rédaction
+     prenait aussi le bord droit du titre à sa marge intérieure droite, et la
+     capture suivante l'a démentie : 12 px à gauche, 5 à droite. Le titre de
+     Twitch n'est pas symétrique — son bouton de repli descend presque au
+     bord —, quand ses cartes le sont : avatars à 12 px, compteurs à 13 du
+     bord opposé. Le bloc prend donc la marge GAUCHE du titre, et la reporte
+     à droite dans la boîte du titre, c'est-à-dire dans la largeur de la
+     barre.
 
      SANS TITRE MESURABLE — absent, ou une mesure hors de 0 à 40 px, qui dirait
      qu'on mesure autre chose qu'une marge —, la feuille garde 6 px, la valeur
@@ -18990,9 +19002,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     const t = titre?.getBoundingClientRect();
     let gauche = null, droite = null;
     if (t) {
-      const b = bloc.getBoundingClientRect(), st = getComputedStyle(titre);
-      gauche = Math.round((t.left + parseFloat(st.paddingLeft) - b.left) * 10) / 10;
-      droite = Math.round((b.right - (t.right - parseFloat(st.paddingRight))) * 10) / 10;
+      const b = bloc.getBoundingClientRect();
+      const marge = parseFloat(getComputedStyle(titre).paddingLeft);
+      gauche = Math.round((t.left + marge - b.left) * 10) / 10;
+      droite = Math.round((b.right - (t.right - marge)) * 10) / 10;
       if (!(gauche >= 0 && gauche <= 40 && droite >= 0 && droite <= 40)) gauche = droite = null;
     }
     for (const [nom, v] of [['--tse-bloc-g', gauche], ['--tse-bloc-d', droite]]) {
