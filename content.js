@@ -414,13 +414,13 @@ const TSE_GATE_MAX_CLICKS = 5;
  *  exactement la question posée.
  *
  *  CE QU'IL RAPPORTE, toutes les deux secondes : la vidéo (lecture, son,
- *  position, image décodée, images perdues), le bouton son du lecteur, un
- *  avertissement de contenu, et les REPÈRES DE PUB. Ceux-là ne sont pas
- *  supposés : aucun sélecteur de pub de Twitch n'a pu être relevé d'ici. Le
- *  pont collecte tout attribut data-a-target ou data-test-selector dont un
- *  segment vaut « ad », « ads », « advert… » ou « commercial », sur un
- *  élément affiché — la première sonde sur le vrai Twitch dira lesquels
- *  existent.
+ *  position, image décodée, images perdues, octets décodés), le bouton son
+ *  du lecteur, un avertissement de contenu, les REPÈRES DE PUB, et le
+ *  JOURNAL du lecteur. Les repères ne sont pas supposés : tout attribut
+ *  data-a-target ou data-test-selector, toute classe ou identifiant dont un
+ *  segment dit « pub », sur un élément affiché. La première sonde sur le
+ *  vrai Twitch n'en a trouvé AUCUN pendant des pubs bien réelles (4.24.0.4) :
+ *  le journal, lui, ne cherche aucun mot — cf. plus bas.
  *
  *  CE QU'IL ACCEPTE : « son » et « muet », de son parent seul, et d'une page
  *  twitch.tv seulement. Par le bouton son du lecteur, comme le recommande
@@ -431,6 +431,10 @@ const TSE_GATE_MAX_CLICKS = 5;
 const TSE_SONDE_FRAME_NAME = 'tse-sonde';
 const TSE_SONDE_ETAT_MSG = 'tse:sonde-etat';
 const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
+// L'installation d'un lecteur : ce qui apparaît dans ce délai et ne bouge plus
+// est le lecteur lui-même, et le journal le compte sans le lister.
+const TSE_SONDE_ASSISE_S = 15;
+const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
 
 (() => {
   'use strict';
@@ -445,25 +449,105 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
   const cibles = parentConnu ? [parentConnu] : TSE_PREVIEW_PARENTS;
 
   const BOUTON_SON = 'button[data-a-target="player-mute-unmute-button"]';
-  const RE_PUB = /(^|[-_])(ad|ads|advert[a-z]*|commercial)([-_]|$)/i;
+  /* UN SEGMENT QUI DIT « PUB », et le découpage suit aussi les bosses du
+     camelCase : « video-ad-label », mais aussi « VideoAdOverlay » ou
+     « ScAdBanner-sc-x ». « add-to-list » ou « header » n'en sont pas. */
+  const RE_PUB = /^(ad|ads|advert[a-z]*|commercial[a-z]*|preroll|midroll)$/i;
+  const evoquePub = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').split(/[-_\s]+/).some((x) => RE_PUB.test(x));
+  // Une valeur d'attribut n'entre au journal que si elle a la forme d'un
+  // identifiant : rien d'écrit par un humain, pas de titre, pas de phrase.
+  const RE_CLE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
   const reperes = new Set();
   let ordre = null;
+  let numeroOrdre = 0;
 
-  const pubAffichee = () => {
-    let vue = false;
-    for (const el of document.querySelectorAll('[data-a-target], [data-test-selector]')) {
+  /* ── LE JOURNAL DU LECTEUR (4.24.0.4) ──────────────────────────────────
+     LA PREMIÈRE SONDE SUR LE VRAI TWITCH N'A VU AUCUNE PUB, et il y en avait :
+     l'utilisateur les a vues dès le début — le chargement de Twitch dans le
+     lecteur, l'espace de la pub en place. Aucun attribut data-a-target ni
+     data-test-selector ne disait « pub ». Chercher un autre mot aurait été
+     supposer encore. Le pont relève donc tout ce qui APPARAÎT ET DISPARAÎT
+     dans le lecteur, sans rien présumer, avec ses heures :
+       — chaque valeur data-a-target et data-test-selector, affichée ou non
+         (« (caché) ») ;
+       — les iframes imbriquées, par hôte — une pub servie par une régie ;
+       — le nombre d'éléments vidéo quand il n'est pas un ;
+       — les balises personnalisées (un nom à tiret) ;
+       — la définition de l'image, la lecture arrêtée, le bouton son absent.
+     Ce qui est là dès l'installation du lecteur et ne bouge plus est compté,
+     pas listé ; le reste est au rapport, et c'est lui qui dira à quoi une pub
+     ressemble. */
+  const t0 = Date.now();
+  const journal = new Map();   // clé → { debut, fin, n, fois, la }
+  let passe = 0;
+  const releve = () => {
+    passe += 1;
+    const s = Math.round((Date.now() - t0) / 1000);
+    const vues = new Set();
+    let pub = false;
+    for (const el of document.getElementsByTagName('*')) {
+      const tag = el.localName;
+      if (tag.includes('-') && RE_CLE.test(tag)) vues.add(`balise=${tag}`);
+      let affiche = null;
+      const estAffiche = () => (affiche ??= el.getClientRects().length > 0);
       for (const at of ['data-a-target', 'data-test-selector']) {
         const v = el.getAttribute(at);
-        if (!v || !RE_PUB.test(v) || !el.getClientRects().length) continue;
-        reperes.add(`${at}=${v}`);
-        vue = true;
+        if (!v || !RE_CLE.test(v)) continue;
+        vues.add(estAffiche() ? `${at}=${v}` : `${at}=${v} (caché)`);
+        if (evoquePub(v) && estAffiche()) { reperes.add(`${at}=${v}`); pub = true; }
+      }
+      const noms = [...el.classList];
+      if (el.id) noms.push(el.id);
+      for (const c of noms) {
+        if (!RE_CLE.test(c) || !evoquePub(c) || !estAffiche()) continue;
+        reperes.add(`${c === el.id ? 'id' : 'class'}=${c}`);
+        pub = true;
       }
     }
-    return vue;
+    for (const f of document.querySelectorAll('iframe')) {
+      let hote = '';
+      try { const u = new URL(f.src || 'about:blank', location.href); hote = /^https?:$/.test(u.protocol) ? u.hostname : u.protocol.slice(0, -1); }
+      catch { hote = '?'; }
+      vues.add(`iframe=${hote}`);
+    }
+    const videos = document.querySelectorAll('video');
+    if (videos.length !== 1) vues.add(`videos=${videos.length}`);
+    const v = videos[0];
+    if (v) {
+      vues.add(`image=${v.videoWidth}x${v.videoHeight}`);
+      if (v.paused) vues.add('lecture=non');
+    }
+    if (!document.querySelector(BOUTON_SON)) vues.add('bouton-son=absent');
+    for (const cle of vues) {
+      const e = journal.get(cle);
+      if (!e) { journal.set(cle, { debut: s, fin: s, n: 1, fois: 1, la: passe }); continue; }
+      if (e.la !== passe - 1) e.fois += 1;
+      e.fin = s; e.n += 1; e.la = passe;
+    }
+    return pub;
   };
+  /* Ce qui part au parent : les clés qui ont bougé, jamais les stables. Est
+     stable ce qui est apparu pendant l'installation du lecteur, n'est jamais
+     reparti, et y est encore. Le reste — parti, revenu, ou arrivé plus tard —
+     est listé : d'abord ce qui n'est plus là, puis ce qui est arrivé tard. */
+  const mouvements = () => {
+    const stables = [], partis = [], venus = [];
+    for (const [cle, e] of journal) {
+      const present = e.la === passe;
+      if (present && e.fois === 1 && e.debut <= TSE_SONDE_ASSISE_S) stables.push(cle);
+      else (present ? venus : partis).push([cle, e.debut, e.fin, e.n, e.fois]);
+    }
+    const tous = [...partis.sort((a, b) => a[1] - b[1]), ...venus.sort((a, b) => a[1] - b[1])];
+    return { stables: stables.length, liste: tous.slice(0, 40), enPlus: Math.max(0, tous.length - 40) };
+  };
+
   const etat = () => {
     const v = document.querySelector('video');
     const q = v && typeof v.getVideoPlaybackQuality === 'function' ? v.getVideoPlaybackQuality() : null;
+    // Chromium seul : les octets décodés, d'où le débit de chaque lecteur.
+    const octets = v && typeof v.webkitVideoDecodedByteCount === 'number'
+      ? v.webkitVideoDecodedByteCount + (Number(v.webkitAudioDecodedByteCount) || 0) : null;
+    const pub = releve();
     return {
       video: !!v,
       lecture: !!v && !v.paused,
@@ -472,10 +556,14 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
       image: v ? `${v.videoWidth}x${v.videoHeight}` : null,
       images: q ? q.totalVideoFrames : null,
       perdues: q ? q.droppedVideoFrames : null,
-      pub: pubAffichee(),
+      pret: v ? v.readyState : null,
+      erreur: v && v.error ? v.error.code : null,
+      octets,
+      pub,
       reperesPub: [...reperes],
       boutonSon: !!document.querySelector(BOUTON_SON),
       avertissement: !!document.querySelector(TSE_GATE_ZONE),
+      journal: mouvements(),
       ordre,
     };
   };
@@ -498,7 +586,9 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
       const b = document.querySelector(BOUTON_SON);
       if (b) { b.click(); voie = 'bouton'; } else { v.muted = !veutSon; voie = 'video'; }
     }
-    ordre = { ordre: d.ordre, voie, apres: null };
+    // Numéroté : le parent compte chaque verdict une fois, et garde ceux
+    // qu'un ordre suivant a remplacés.
+    ordre = { n: ++numeroOrdre, ordre: d.ordre, voie, apres: null };
     const courant = ordre;
     setTimeout(() => {
       courant.apres = v ? { muet: v.muted, lecture: !v.paused } : null;
@@ -12391,13 +12481,21 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
      entrent. Les chats sont ceux de Twitch, intégrés — de même origine que la
      page, donc lisibles d'ici : saisie présente (connecté, P2), messages,
      solde de points au début et maintenant (P5), repères de Chat partagé
-     (P7). Les tâches longues de la page donnent un ordre de grandeur de la
-     charge (P6) ; la mémoire, elle, se lit au gestionnaire de tâches du
-     navigateur, qu'aucune page ne voit.
+     (P7). Les tâches longues de la page, par coupable, et le débit de chaque
+     lecteur donnent la charge (P6) ; la mémoire, elle, se lit au
+     gestionnaire de tâches du navigateur, qu'aucune page ne voit.
 
      Les repères des chats (points, Chat partagé) ne sont pas supposés plus
      que ceux des pubs : tout attribut data-a-target ou data-test-selector qui
-     les évoque est relevé, et la première sonde dira lesquels existent.
+     les évoque est relevé.
+
+     LES DEUX PREMIERS RAPPORTS RÉELS (4.24.0.4) ont montré les limites de
+     cette méthode : des pubs vues, aucun repère ; un Chat partagé, aucun
+     repère. Deux mesures s'y ajoutent, qui ne cherchent aucun mot : le
+     journal de chaque lecteur (tout ce qui y apparaît et disparaît, avec ses
+     heures) et les messages communs aux deux chats. Chaque verdict du son
+     est gardé, pas seulement le dernier ; le temps arrêté et le temps en pub
+     sont cumulés.
 
      UNE SEULE SONDE À LA FOIS, et rien qui tourne quand elle est fermée : ni
      écouteur, ni minuteur, ni observateur. Le bilan de la dernière reste
@@ -12408,8 +12506,26 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
     const RE_POINTS = /balance|community-points|channel-points/i;
     const RE_PARTAGE = /shared[-_]?chat/i;
     const RE_NOMBRE = /^\d[\d\s\u00a0\u202f.,]*$/;
+    const COUPABLES = ['page', 'lecteurs', 'chats', 'autres'];
+    const MAX_TEXTES = 3000;
+    const RE_CLE_CHAT = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
     let courante = null;
     let derniere = null;
+
+    const videoDeLaPage = () => [...document.querySelectorAll('video')].some((v) => !v.paused);
+    const coupable = (x) => {
+      if (x.name === 'self') return 'page';
+      const a = x.attribution && x.attribution[0];
+      const nom = a ? a.containerName : '';
+      return nom === TSE_SONDE_FRAME_NAME ? 'lecteurs' : nom === TSE_SONDE_CHAT_NAME ? 'chats' : 'autres';
+    };
+
+    /* Le verdict du son (P4) : « ok » s'il joue et s'entend, « pause » si le
+       navigateur l'a arrêté plutôt que de le laisser parler, « sans-effet »
+       s'il est resté muet. */
+    const verdictSon = (o) => (!o || !o.apres || o.ordre !== 'son' ? null
+      : !o.apres.muet && o.apres.lecture ? 'ok'
+      : !o.apres.muet ? 'pause' : 'sans-effet');
 
     // `source` ancre le message à UN de nos lecteurs : c'est la seule
     // vérification qui compte, comme pour l'aperçu.
@@ -12420,12 +12536,40 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
       const et = e.data.etat || {};
       const t = Date.now();
       l.messages += 1;
+      /* LE TEMPS QUI VIENT DE PASSER APPARTIENT À L'ÉTAT D'AVANT : c'est lui
+         qui a duré jusqu'à ce message. Un lecteur arrêté ne compte qu'après
+         avoir joué une fois — le chargement n'est pas un arrêt. */
+      const avant = l.etat;
+      if (avant) {
+        const dt = t - l.tAvant;
+        if (avant.pub) l.pubMs += dt;
+        if (l.aJoue && !avant.lecture) l.arretMs += dt;
+        if (avant.lecture && !et.lecture) l.arrets += 1;
+      }
+      if (et.lecture) l.aJoue = true;
+      l.tAvant = t;
       l.etat = et;
       if (et.pub && !l.pubAvant) l.pubs += 1;
       l.pubAvant = !!et.pub;
       if (typeof et.tempsS === 'number') {
         if (!l.premier) l.premier = { t, s: et.tempsS };
         l.dernier = { t, s: et.tempsS };
+      }
+      /* LES OCTETS DÉCODÉS, cumulés : Twitch remplace parfois son élément
+         vidéo, et le compteur du nouveau repart de zéro. Un compteur qui
+         baisse est donc un compteur neuf, compté depuis zéro. */
+      if (typeof et.octets === 'number') {
+        if (l.octetsAvant === null) l.octetsT0 = t;
+        else l.octets += et.octets >= l.octetsAvant ? et.octets - l.octetsAvant : et.octets;
+        l.octetsAvant = et.octets;
+        l.octetsT = t;
+      }
+      // Chaque verdict une fois, et gardé quand l'ordre suivant le remplace.
+      const o = et.ordre;
+      if (o && o.apres && o.n !== l.ordreCompte) {
+        l.ordreCompte = o.n;
+        const v = verdictSon(o);
+        if (v) l.verdicts[v] = (l.verdicts[v] || 0) + 1;
       }
     };
 
@@ -12435,19 +12579,42 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
       c.memeOrigine = !!doc;
       if (!doc || !doc.body) return;
       c.saisie = !!doc.querySelector('[data-a-target="chat-input"]');
-      c.messages = doc.querySelectorAll('.chat-line__message').length;
+      const lignes = doc.querySelectorAll('.chat-line__message');
+      c.messages = lignes.length;
+      /* LES MESSAGES, pour les comparer d'un chat à l'autre — jamais pour le
+         rapport, qui n'en dira que le COMPTE. Deux chats d'un même Chat
+         partagé montrent les mêmes messages, chacun avec son auteur : c'est
+         une preuve qui ne suppose aucun repère, et le second rapport réel
+         l'a rendue nécessaire — trois chaînes en Chat partagé, aucun repère
+         « shared-chat » dans leurs chats intégrés. */
+      for (const ligne of lignes) {
+        if (c.textes.size >= MAX_TEXTES) break;
+        const t = (ligne.textContent || '').replace(/\s+/g, ' ').trim();
+        if (t) c.textes.add(t);
+      }
       let points = null;
       for (const el of doc.querySelectorAll('[data-a-target], [data-test-selector]')) {
         for (const at of ['data-a-target', 'data-test-selector']) {
           const v = el.getAttribute(at);
           if (!v) continue;
+          if (RE_CLE_CHAT.test(v)) c.marques.add(`${at === 'data-a-target' ? 'a' : 't'}:${v}`);
           if (RE_PARTAGE.test(v)) c.reperesPartage.add(`${at}=${v}`);
           if (points !== null || !RE_POINTS.test(v)) continue;
-          const texte = (el.textContent || '').trim();
-          if (!texte || !/\d/.test(texte)) continue;
-          c.pointsTexte = texte.slice(0, 24);
+          if (!/\d/.test(el.textContent || '')) continue;
+          /* FEUILLE PAR FEUILLE, et non le texte du bloc entier. Le premier
+             rapport réel a lu « 00 » pour un solde de zéro : le nombre y est
+             écrit deux fois. Un solde de 530 aurait été lu 530530. On garde
+             la première feuille qui est un nombre, et toutes au rapport. */
+          const feuilles = [];
+          const w = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          for (let n = w.nextNode(); n; n = w.nextNode()) {
+            const x = n.data.trim();
+            if (x) feuilles.push(x);
+          }
+          const nombre = feuilles.find((x) => RE_NOMBRE.test(x));
+          c.pointsTexte = feuilles.join(' | ').slice(0, 48);
           c.pointsRepere = `${at}=${v}`;
-          points = RE_NOMBRE.test(texte) ? Number(texte.replace(/\D/g, '')) : NaN;
+          points = nombre ? Number(nombre.replace(/\D/g, '')) : NaN;
         }
       }
       if (points !== null && !Number.isNaN(points)) {
@@ -12456,20 +12623,29 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
       }
     };
 
+    const dixiemes = (ms) => Math.round(ms / 100) / 10;
     const bilanLecteur = (l) => {
       const et = l.etat || {};
       const o = et.ordre || null;
+      const j = et.journal || null;
+      const verdicts = Object.entries(l.verdicts);
       return {
         pont: l.messages > 0,
         video: et.video ?? null,
         lecture: et.lecture ?? null,
         muet: et.muet ?? null,
         image: et.image ?? null,
-        dureeS: l.premier ? Math.round((l.dernier.t - l.premier.t) / 100) / 10 : null,
+        pret: et.pret ?? null,
+        erreur: et.erreur ?? null,
+        dureeS: l.premier ? dixiemes(l.dernier.t - l.premier.t) : null,
         avanceS: l.premier ? Math.round((l.dernier.s - l.premier.s) * 10) / 10 : null,
+        arrets: l.arrets,
+        arretS: dixiemes(l.arretMs),
         perduesPct: et.images ? Math.round((1000 * et.perdues) / et.images) / 10 : null,
+        debitKbps: l.octetsT > l.octetsT0 ? Math.round((8 * l.octets) / (l.octetsT - l.octetsT0)) : null,
         pub: et.pub ?? null,
         pubsVues: l.pubs,
+        pubS: dixiemes(l.pubMs),
         reperesPub: et.reperesPub && et.reperesPub.length ? et.reperesPub.join(' ') : null,
         boutonSon: et.boutonSon ?? null,
         avertissement: et.avertissement ?? null,
@@ -12478,13 +12654,13 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
           voie: o.voie,
           muet: o.apres ? o.apres.muet : null,
           lecture: o.apres ? o.apres.lecture : null,
-          /* Le verdict du son (P4) : « ok » s'il joue et s'entend, « pause »
-             si le navigateur l'a arrêté plutôt que de le laisser parler,
-             « sans-effet » s'il est resté muet. */
-          verdict: !o.apres || o.ordre !== 'son' ? null
-            : !o.apres.muet && o.apres.lecture ? 'ok'
-            : !o.apres.muet ? 'pause' : 'sans-effet',
+          verdict: verdictSon(o),
         } : null,
+        sons: verdicts.length ? verdicts.map(([k, n]) => `${k} ×${n}`).join(' · ') : null,
+        marquesStables: j ? j.stables : null,
+        marques: j && j.liste.length ? Object.fromEntries(j.liste.map(([cle, d, f, n, fois]) =>
+          [cle, `${d}→${f} s · ${n} relevé(s) · ${fois} apparition(s)`])) : null,
+        marquesEnPlus: j ? j.enPlus : null,
       };
     };
     const bilanChat = (c) => ({
@@ -12498,21 +12674,42 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
       pointsRepere: c.pointsRepere,
       partage: c.reperesPartage.size > 0,
       reperesPartage: c.reperesPartage.size ? [...c.reperesPartage].join(' ') : null,
+      /* Tous les repères du chat, sur UNE ligne triée (a: data-a-target,
+         t: data-test-selector) : d'un rapport à l'autre — chat seul, Chat
+         partagé — la différence nomme ce que Twitch y ajoute. */
+      marques: c.marques.size ? [...c.marques].sort().join(' ') : null,
     });
+    /* LE CHAT PARTAGÉ MESURÉ SANS REPÈRE : les messages vus dans les deux
+       chats, rapportés au plus petit des deux. Proche de 100 %, les deux
+       chats n'en font qu'un ; proche de zéro, chacun le sien. */
+    const communs = (chats) => {
+      if (chats.length < 2) return null;
+      const [a, b] = chats;
+      let n = 0;
+      for (const t of a.textes) if (b.textes.has(t)) n += 1;
+      const base = Math.min(a.textes.size, b.textes.size);
+      return { messages: n, pct: base ? Math.round((100 * n) / base) : null };
+    };
 
     const bilan = () => {
       if (!courante) return derniere || { ouverte: false };
       courante.chats.forEach(lireChat);
       const parChaine = (liste, f) => Object.fromEntries(liste.map((x) => [x.chaine, f(x)]));
+      const lg = courante.longues;
       return {
         ouverte: true,
         depuisS: Math.round((Date.now() - courante.t0) / 1000),
-        // Un stream qui joue dans la page fausse la charge mesurée : la sonde
-        // s'ouvre de préférence sur une page sans lecteur.
-        videoDeLaPage: [...document.querySelectorAll('video')].some((v) => !v.paused),
-        tachesLongues: courante.longues ? { ...courante.longues } : null,
+        /* Un stream qui joue dans la page fausse la charge mesurée : la sonde
+           s'ouvre de préférence sur une page sans lecteur. L'état d'un instant
+           ne le prouvait pas — le premier rapport réel, ouvert sur l'accueil
+           et son carrousel, le montrait à l'arrêt au moment du rapport, sans
+           rien dire des douze minutes d'avant. D'où le temps cumulé. */
+        videoDeLaPage: videoDeLaPage(),
+        videoDeLaPageS: dixiemes(courante.pageVideoMs),
+        tachesLongues: lg ? { n: lg.n, ms: lg.ms, ...Object.fromEntries(COUPABLES.map((k) => [k, { ...lg[k] }])) } : null,
         lecteurs: parChaine(courante.lecteurs, bilanLecteur),
         chats: parChaine(courante.chats, bilanChat),
+        chatsCommuns: communs(courante.chats),
       };
     };
 
@@ -12595,32 +12792,52 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
         barre.append(nom, bouton);
         tuile.append(cadre, barre);
         grille.appendChild(tuile);
-        return { chaine, cadre, etat: null, messages: 0, pubs: 0, pubAvant: false, premier: null, dernier: null };
+        return { chaine, cadre, etat: null, tAvant: 0, messages: 0, pubs: 0, pubAvant: false, pubMs: 0,
+                 aJoue: false, arrets: 0, arretMs: 0, premier: null, dernier: null,
+                 octets: 0, octetsAvant: null, octetsT0: null, octetsT: null, ordreCompte: 0, verdicts: {} };
       });
       const chats = retenues.slice(0, MAX_CHATS).map((chaine) => {
         const cadre = document.createElement('iframe');
+        // Un nom, pour que ses tâches longues soient mises à son compte.
+        cadre.name = TSE_SONDE_CHAT_NAME;
         cadre.src = `${location.origin}/embed/${encodeURIComponent(chaine)}/chat?`
           + `${new URLSearchParams({ parent: hote })}${themeTwitch() === 'dark' ? '&darkpopout' : ''}`;
         cadre.style.cssText = 'width:340px;height:300px;border:0;background:#18181b';
         grille.appendChild(cadre);
         return { chaine, cadre, memeOrigine: null, saisie: null, messages: null, points: null,
-                 pointsDebut: null, pointsTexte: null, pointsRepere: null, reperesPartage: new Set() };
+                 pointsDebut: null, pointsTexte: null, pointsRepere: null, reperesPartage: new Set(),
+                 textes: new Set(), marques: new Set() };
       });
       boite.append(tete, grille);
       document.body.appendChild(boite);
 
+      /* LES TÂCHES LONGUES, PAR COUPABLE. Le premier rapport réel en comptait
+         87 pour 9 s, sans pouvoir dire à qui : la page de Twitch, ses
+         lecteurs, ses chats ? Les lecteurs (player.twitch.tv) sont du même
+         site que la page, donc souvent du même processus — leur travail
+         bloque alors le fil de la page, et le navigateur l'attribue à
+         l'iframe qui les contient, par son nom. */
       let longues = null, obs = null;
       try {
-        longues = { n: 0, ms: 0 };
+        longues = { n: 0, ms: 0, ...Object.fromEntries(COUPABLES.map((k) => [k, { n: 0, ms: 0 }])) };
         obs = new PerformanceObserver((liste) => {
-          for (const x of liste.getEntries()) { longues.n += 1; longues.ms += Math.round(x.duration); }
+          for (const x of liste.getEntries()) {
+            const ms = Math.round(x.duration);
+            const k = coupable(x);
+            longues.n += 1; longues.ms += ms;
+            longues[k].n += 1; longues[k].ms += ms;
+          }
         });
         obs.observe({ type: 'longtask' });
       } catch { longues = null; obs = null; }   // Firefox : pas de « longtask »
 
       window.addEventListener('message', surMessage);
-      const minuteur = setInterval(() => { if (courante) courante.chats.forEach(lireChat); }, CFG.SONDE_CHAT_MS);
-      courante = { t0: Date.now(), lecteurs, chats, boite, minuteur, obs, longues };
+      const minuteur = setInterval(() => {
+        if (!courante) return;
+        courante.chats.forEach(lireChat);
+        if (videoDeLaPage()) courante.pageVideoMs += CFG.SONDE_CHAT_MS;
+      }, CFG.SONDE_CHAT_MS);
+      courante = { t0: Date.now(), lecteurs, chats, boite, minuteur, obs, longues, pageVideoMs: 0 };
       return {
         ouverte: true,
         lecteurs: retenues,

@@ -2180,6 +2180,153 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La sonde, ré-étalonnée sur le vrai Twitch (v4.24.0.4)
+
+La sonde de la 4.24.0.3 a tourné deux fois sur le vrai Twitch, sous Helium
+(Chromium 154), avec un compte sans abonnement :
+
+- **premier rapport** : quatre lecteurs et deux chats, douze minutes, ouvert sur
+  l'accueil ;
+- **second rapport** : trois lecteurs et deux chats de chaînes en Chat partagé,
+  six minutes, ouvert sur « Suivis ».
+
+### Ce qu'elles ont répondu
+
+| sonde | réponse | d'où elle vient |
+| --- | --- | --- |
+| P3 — des pubs dans un lecteur intégré ? | **Les lecteurs intégrés portent la session.** Avec un compte Turbo, aucune pub d'entrée ; avec un compte sans abonnement, des pubs dès le début | observé par l'utilisateur, **pas mesuré** : la sonde a compté zéro pub sur ses sept lecteurs |
+| P4 — rendre le son ? | **Oui, par le bouton du lecteur, sans pause**, sur quatre lecteurs : deux verdicts `ok` écrits, deux déduits d'un « muet » passé par le bouton, que le rapport ne gardait pas | les deux rapports |
+| P5 — des points dans un chat intégré ? | **Aucun gain** : solde 0 au départ et 0 à la fin, en douze minutes comme en six | les deux rapports ; la cause reste à trancher |
+| P6 — combien ça coûte ? | 87 tâches longues pour 9,0 s en 732 s (1,2 % du temps) avec quatre lecteurs ; 47 pour 4,6 s en 365 s (1,25 %) avec trois. Aucune image perdue. Chaque lecteur décode du 1280 × 720 pour une boîte de 400 × 300 | les deux rapports |
+| P7 — le Chat partagé se voit-il ? | **Aucun repère** `shared-chat` dans les chats intégrés de deux chaînes en Chat partagé | second rapport |
+
+Les 13,6 Mbit/s et les 4,3 Go relevés au gestionnaire de tâches de Windows
+valent pour le navigateur entier, tous onglets confondus : ils ne mesurent pas
+la sonde seule.
+
+### Ce qui a manqué, et ce qui change
+
+| ce que les rapports ont montré | ce que la sonde fait maintenant |
+| --- | --- |
+| des pubs à l'écran, aucun repère : aucun attribut ne contient « ad » | le **journal du lecteur** relève tout ce qui y apparaît et disparaît, sans chercher de mot ; les repères de pub cherchent aussi dans les classes et les identifiants, en découpant le camelCase |
+| un Chat partagé sans repère | les **messages communs aux deux chats**, comptés sans être rapportés, et tous les repères de chaque chat sur une ligne, à comparer d'un rapport à l'autre |
+| un solde lu « 00 » : le nombre est écrit deux fois dans son bloc, et un solde de 530 aurait été lu 530530 | le solde est lu **feuille par feuille** ; toutes les feuilles vont au rapport |
+| le son rendu à un premier lecteur, puis repris, ne laissait qu'un « muet » | **chaque verdict est gardé** : `sons` |
+| 87 tâches longues, sans pouvoir dire à qui | les tâches longues **par coupable** : la page, les lecteurs, les chats, le reste |
+| aucun débit | le **débit de chaque lecteur**, depuis les octets décodés (Chromium seulement) |
+| une vidéo de la page vue à l'arrêt au moment du rapport, sans rien savoir des douze minutes d'avant | le **temps cumulé** d'une vidéo de la page qui joue : `videoDeLaPageS` |
+| un lecteur arrêté, sans bouton son, 45 s en retard, et rien pour dire quand | le **temps arrêté** et le nombre d'arrêts, le temps en pub, l'état de la vidéo (`pret`, `erreur`) |
+
+### Le journal du lecteur
+
+À chaque relevé, toutes les deux secondes, le pont note ce qui est présent dans
+le lecteur :
+
+- chaque valeur `data-a-target` et `data-test-selector`, suffixée « (caché) »
+  quand l'élément n'est pas affiché ;
+- chaque iframe imbriquée, par son hôte, ce qui montrerait une pub servie par
+  une régie ;
+- le nombre d'éléments vidéo, quand il n'est pas un ;
+- les balises personnalisées (un nom à tiret) ;
+- la définition de l'image, une lecture arrêtée, un bouton son absent.
+
+**Ce qui apparaît pendant l'installation du lecteur (15 s) et ne bouge plus est
+compté, pas listé** : `marquesStables`. Le reste va au rapport, quarante lignes
+au plus par lecteur, ce qui est parti d'abord :
+
+```
+lecteurs.<chaîne>.marques.iframe=<hôte>   3→33 s · 16 relevé(s) · 1 apparition(s)
+```
+
+Les heures comptent depuis l'ouverture du lecteur. N'y entrent que des valeurs
+en forme d'identifiant : rien d'écrit par une personne, ni titre ni phrase.
+
+C'est ce journal qui dira à quoi ressemble une pub. L'utilisateur l'a décrite
+ainsi : au début, le chargement de Twitch dans le lecteur, « comme quand il n'y
+a plus de pub à afficher », avec l'espace de la pub en place. Si la pub vient
+d'une régie dans une iframe, ou d'une seconde vidéo, le journal la montrera.
+Le premier rapport comptait aussi un lecteur arrêté, sans bouton son, 45 s en
+retard sur l'horloge : le journal dira ce qui l'occupait.
+
+### Les messages communs aux deux chats
+
+Deux chats d'un même Chat partagé montrent les mêmes messages, chacun avec son
+auteur. La sonde garde le texte des messages de chaque chat **dans la page**,
+3 000 au plus, et compte ceux qui sont dans les deux :
+
+```
+chatsCommuns.messages   97
+chatsCommuns.pct        88
+```
+
+Le pourcentage est rapporté au plus petit des deux chats. Proche de 100 %, les
+deux chats n'en font qu'un ; proche de zéro, chacun a le sien. **Aucun texte ne
+quitte la page** : le rapport n'en porte que le compte.
+
+### Les tâches longues, par coupable
+
+Les lecteurs (player.twitch.tv) sont du même site que la page, donc souvent du
+même processus : leur travail bloque alors le fil de la page. Chromium attribue
+chaque tâche longue à l'iframe qui la contient, par son nom. Les chats de la
+sonde portent désormais le nom `tse-sonde-chat`, pour être reconnus comme les
+lecteurs le sont par `tse-sonde`.
+
+### Le protocole, précisé
+
+1. **Ouvrir « Suivis »**, pas l'accueil : son carrousel est une vidéo de la
+   page.
+2. **Noter si un bloqueur de pub est actif** dans le navigateur, et le couper
+   pour twitch.tv le temps de la sonde. Un bloqueur change ce que P3 mesure.
+3. Ouvrir la sonde, attendre, cliquer « Son / Sound » sur deux lecteurs, comme
+   avant.
+4. **Au gestionnaire de tâches du navigateur** (Maj + Échap), relever la ligne
+   de l'onglet et celle du processus GPU, sonde ouverte, puis trente secondes
+   après `tse.sonde.fermer()`. La différence est le coût de la sonde. Le
+   gestionnaire de Windows mélange tous les onglets.
+5. **Pour P5**, sans nouvelle sonde : ouvrir une des chaînes sondées avec le
+   même compte, et lire le solde de points **tout de suite**. S'il vaut encore
+   0, la salle ne fait pas gagner de points ; s'il vaut 10 ou plus, elle en fait
+   gagner, mais le chat intégré ne rafraîchit pas son solde.
+
+### Ce que le banc mesure
+
+Le **scénario 174** passe de dix à quinze assertions. Le décor joue ce que la
+sonde doit voir sans mot-clé :
+
+| lecteur ou chat factice | ce qu'il fait de plus |
+| --- | --- |
+| « annonce » | pendant sa pub, une iframe de régie, une seconde vidéo, une balise personnalisée, et son bouton son retiré |
+| « quatre » | une pub marquée par sa seule classe, en camelCase ; une définition qui change en route ; un compteur d'octets qui repart de zéro |
+| « calme » | charge deux secondes et demie avant de jouer ; fait une tâche longue dans son lecteur ; ses commandes partent et reviennent |
+| tous les lecteurs | décodent 125 octets par milliseconde, soit 1 000 kbit/s |
+| les chats | deux messages en commun sur cinq et quatre, dont un « gg » signé de deux auteurs, qui ne compte pas ; un solde écrit deux fois ; une tâche longue dans le chat d'« annonce » |
+
+Le **scénario 70** vérifie que le panneau affiche les nouvelles lignes.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| les repères de pub : le motif élargi, un repère caché compté, les classes ignorées, le camelCase non découpé, une classe cachée comptée (5) | des pubs qui n'en sont pas, ou qu'on ne voit pas |
+| le journal : l'affiché et le caché confondus, les stables listés, l'installation sans borne, les retours jamais comptés, les iframes, les vidéos, les balises, la définition, la lecture, le bouton son hors journal, le plafond (11) | un journal qui cache ce qui bouge, ou noie ce qui ne bouge pas |
+| les octets absents, une baisse prise pour une différence négative ou ignorée (3) | un débit faux |
+| l'état de la vidéo (1) | `pret` perdu |
+| les verdicts : recomptés à chaque relevé, le dernier seul gardé, une pause lue comme un succès (3) | P4 mal lue |
+| les durées : le temps en pub jamais cumulé, le chargement compté comme un arrêt, un arrêt compté à chaque relevé (3) | des durées fausses |
+| les tâches longues : toutes à la page, aucune à une iframe, les chats sans nom (3) | P6 sans coupable |
+| la vidéo de la page : jamais vue, jamais cumulée (2) | une charge mesurée sur une page qui joue |
+| le solde : lu d'un bloc, ses feuilles recollées (2) | 530530 |
+| les chats : les messages comparés sans l'auteur, rapportés au plus grand, jamais comparés ; leurs repères perdus (4) | P7 mal lue |
+
+Trente-sept mutants, trente-sept pris. Au premier tour, un avait échappé : **un
+verdict recompté à chaque relevé**, parce que le banc relisait le rapport avant
+que le lecteur ait renvoyé le même ordre. Le banc attend désormais un relevé de
+plus, et le mutant tombe.
+
+**Une limite, dite plutôt que cachée.** Quand Twitch remplace son élément
+vidéo, les octets décodés depuis la dernière lecture sont perdus avec lui, soit
+deux secondes au plus : aucune mesure ne les rattrape, et le débit est alors un
+peu sous-estimé. Le compteur factice du banc se remet donc à zéro À une lecture,
+pour éprouver la seule arithmétique de la page.
+
 ## La sonde de la salle (v4.24.0.3)
 
 La phase 0 du multistream, suite. Deux sondes de l'audit ont déjà répondu, sur
@@ -2285,7 +2432,7 @@ des chats factices :
 
 | lecteur ou chat factice | ce qu'il fait |
 | --- | --- |
-| « annonce » | affiche un repère de pub pendant trois secondes |
+| « annonce » | affiche un repère de pub pendant cinq secondes |
 | « bloque » | se met en pause 300 ms après qu'on lui a rendu le son |
 | tous les lecteurs | portent un repère de pub caché, et des repères qui n'en sont pas (`add-to-list`, `stream-header-title`) |
 | les chats | une saisie, trois messages, un solde qui passe de 530 à 540, et un en-tête de Chat partagé pour « bloque » |
@@ -12131,7 +12278,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 174 scénarios, 1489 assertions |
+| `npm test` | le harnais Playwright : 174 scénarios, 1494 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -12152,7 +12299,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1336 Ko | 492 Ko | 3 604 → **2** |
+| `content.js` | 1336 Ko | 492 Ko | 3 623 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 105 Ko | 50 Ko | 145 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

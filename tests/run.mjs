@@ -7087,14 +7087,19 @@ titre('70. Panneau — la page rendue, mesurée');
                  regle: '[class*="hype-train" i]', marques: null },
       /* Une sonde refermée : un lecteur qui a vu une pub, un son refusé, un
          chat qui a gagné des points — les lignes que la phase 0 attend. */
-      sonde: { ouverte: false, depuisS: 720, videoDeLaPage: false,
-               tachesLongues: { n: 14, ms: 1302 },
+      sonde: { ouverte: false, depuisS: 720, videoDeLaPage: false, videoDeLaPageS: 0,
+               tachesLongues: { n: 14, ms: 1302, page: { n: 4, ms: 402 }, lecteurs: { n: 9, ms: 810 },
+                                chats: { n: 1, ms: 90 }, autres: { n: 0, ms: 0 } },
+               chatsCommuns: { messages: 97, pct: 88 },
                lecteurs: { velmora: { pont: true, video: true, lecture: true, muet: false,
                                       image: '1920x1080', dureeS: 718, avanceS: 716.5, perduesPct: 0.4,
                                       pub: false, pubsVues: 1, reperesPub: 'data-a-target=video-ad-label',
                                       boutonSon: true, avertissement: false,
                                       ordre: { demande: 'son', voie: 'bouton', muet: false,
-                                               lecture: false, verdict: 'pause' } } },
+                                               lecture: false, verdict: 'pause' },
+                                      sons: 'ok ×1 · pause ×1', debitKbps: 3400, arrets: 1, arretS: 45.5,
+                                      marquesStables: 42, marquesEnPlus: 0,
+                                      marques: { 'iframe=regie.exemple.test': '3→33 s · 16 relevé(s) · 1 apparition(s)' } } },
                chats: { velmora: { memeOrigine: true, saisie: true, messages: 150, points: 540,
                                    pointsDebut: 530, gainPoints: 10, pointsTexte: '540',
                                    pointsRepere: 'data-test-selector=community-points-summary',
@@ -7453,12 +7458,18 @@ titre('70. Panneau — la page rendue, mesurée');
   /* LA SONDE DE LA SALLE (4.24.0.3). C'est par ce bloc que la phase 0
      rapporte ce que le vrai Twitch a répondu. Mutant — la ligne retirée du
      panneau — les sondes ne reviennent jamais. */
-  ok('…le bloc de la sonde : pubs vues et leurs repères, verdict du son, gain de points',
+  ok('…le bloc de la sonde : pubs et leurs repères, verdicts du son, journal du lecteur, tâches par coupable, messages communs',
      contient('SONDE DE LA SALLE / ROOM PROBE')
      && /lecteurs\.velmora\.reperesPub\s+data-a-target=video-ad-label/.test(vue.texte)
      && /lecteurs\.velmora\.ordre\.verdict\s+pause/.test(vue.texte)
-     && /chats\.velmora\.gainPoints\s+10/.test(vue.texte),
-     JSON.stringify((vue.texte.match(/SONDE DE LA SALLE[\s\S]{0,400}/) || [])[0]));
+     && /chats\.velmora\.gainPoints\s+10/.test(vue.texte)
+     /* 4.24.0.4 : le journal du lecteur, ses verdicts gardés, les tâches
+        longues par coupable, les messages communs aux chats. */
+     && /lecteurs\.velmora\.marques\.iframe=regie\.exemple\.test\s+3→33 s · 16 relevé\(s\)/.test(vue.texte)
+     && /lecteurs\.velmora\.sons\s+ok ×1 · pause ×1/.test(vue.texte)
+     && /tachesLongues\.lecteurs\.ms\s+810/.test(vue.texte)
+     && /chatsCommuns\.pct\s+88/.test(vue.texte),
+     JSON.stringify((vue.texte.match(/SONDE DE LA SALLE[\s\S]{0,1600}/) || [])[0]));
   /* POURQUOI LE RELEVÉ A RECHARGÉ, ET QUEL TÉMOIN A PROUVÉ CHAQUE CLIC.
      Mutants — l'une ou l'autre ligne retirée du rapport — : le vrai Twitch
      ne nous dirait jamais s'il tient son adresse à jour. */
@@ -24306,11 +24317,28 @@ const pageVariante = async (substitutions, init = null) => {
        comme un navigateur qui refuse de laisser parler une vidéo ;
      — tous portent un repère de pub caché (un compte à rebours), qui ne
        doit jamais compter ;
-     — les chats ont une saisie, trois messages, un solde qui passe de 530 à
+     — les chats ont une saisie, quatre messages, un solde qui passe de 530 à
        540, et celui de « bloque » un en-tête de Chat partagé.
    Puis là où elle doit se taire : un lecteur sans son nom, un lecteur qui le
    porte sur un site tiers, et — sous la variante Firefox, sans
-   ancestorOrigins — un ordre venu d'un site tiers. */
+   ancestorOrigins — un ordre venu d'un site tiers.
+
+   LA 4.24.0.4 A ÉTÉ ÉCRITE APRÈS DEUX SONDES SUR LE VRAI TWITCH : des pubs
+   vues à l'écran, aucun repère ; un Chat partagé, aucun repère. Le décor
+   joue donc aussi ce que la sonde doit voir SANS mot-clé :
+     — pendant la pub d'« annonce », une iframe de régie, une seconde vidéo
+       et une balise personnalisée, qui doivent sortir au journal avec leurs
+       heures, quand ce qui ne bouge pas y est seulement compté ;
+     — « quatre » a une pub marquée par sa seule CLASSE, en camelCase ;
+     — chaque lecteur décode 125 octets par milliseconde (1 000 kbit/s), et
+       celui de « quatre » remet son compteur à zéro en route, comme un
+       élément vidéo que Twitch remplace ;
+     — « calme » fait une tâche longue dans son lecteur, le chat d'« annonce »
+       une dans le sien : chacune doit être mise au compte de son iframe ;
+     — les deux chats ont deux messages en commun sur quatre, et un même
+       texte signé d'un autre auteur, qui n'en est pas un ;
+     — le solde est écrit DEUX FOIS dans son bloc, comme sur le vrai Twitch
+       (« 00 » pour un solde de zéro). */
 {
   titre('174. La sonde de la salle — pubs, son, points, Chat partagé, et ses gardes');
   const lecteur = `<!doctype html><html><body>
@@ -24318,18 +24346,58 @@ const pageVariante = async (substitutions, init = null) => {
     <button data-a-target="player-mute-unmute-button" style="width:30px;height:30px">son</button>
     <div data-a-target="add-to-list" style="width:30px;height:10px">liste</div>
     <div data-test-selector="stream-header-title" style="width:30px;height:10px">titre</div>
+    <div class="ScCoreButton-sc-1a2b header-add" style="width:30px;height:10px">bouton</div>
     <div data-a-target="video-ad-label" style="display:none;width:40px;height:10px">Pub</div>
     <div data-a-target="video-ad-countdown" style="display:none">0:15</div>
+    <div class="VideoAdOverlay" style="display:none;width:40px;height:10px">surcouche</div>
+    <div data-a-target="player-controls" style="width:40px;height:10px">commandes</div>
     <script>
+      const canal = new URLSearchParams(location.search).get('channel');
       const v = document.getElementById('v');
       const c = document.createElement('canvas');
       c.width = 32; c.height = 18;
       const ctx = c.getContext('2d');
+      // « calme » charge deux secondes et demie avant de jouer : ce temps-là
+      // n'est pas un arrêt.
+      if (canal === 'calme') v.removeAttribute('autoplay');
       v.srcObject = c.captureStream(25);
-      v.play().catch(() => {});
+      if (canal === 'calme') setTimeout(() => v.play().catch(() => {}), 2500);
+      else v.play().catch(() => {});
       setInterval(() => { ctx.fillStyle = '#' + Math.floor(Math.random() * 16777215)
-        .toString(16).padStart(6, '0'); ctx.fillRect(0, 0, 32, 18); }, 40);
-      const canal = new URLSearchParams(location.search).get('channel');
+        .toString(16).padStart(6, '0'); ctx.fillRect(0, 0, c.width, c.height); }, 40);
+      // « quatre » change de définition en route.
+      if (canal === 'quatre') setTimeout(() => { c.width = 64; c.height = 36; }, 3000);
+      // Chez « calme », les commandes partent et reviennent : DEUX apparitions,
+      // et une marque revenue n'est pas une marque stable.
+      if (canal === 'calme') {
+        const cmd = document.querySelector('[data-a-target="player-controls"]');
+        setTimeout(() => cmd.remove(), 2500);
+        setTimeout(() => document.body.append(cmd), 5000);
+      }
+      /* Des octets décodés au rythme connu de 1 000 kbit/s ; « quatre » remet
+         son compteur à zéro en route. La remise tombe À UNE LECTURE, et le
+         compteur neuf repart de la précédente : un vrai remplacement perdrait
+         les octets décodés entre la dernière lecture et lui — aucune mesure ne
+         les rattrape —, et c'est l'arithmétique de la page seule qu'on éprouve
+         ici : un compteur qui baisse est un compteur neuf. */
+      let remise = 0, lu = 0, remis = false;
+      const origine = performance.now();
+      Object.defineProperty(v, 'webkitVideoDecodedByteCount', { get: () => {
+        const t = performance.now();
+        if (canal === 'quatre' && !remis && t - origine > 3000) { remise = lu; remis = true; }
+        lu = t;
+        return Math.round((t - remise) * 125);
+      } });
+      Object.defineProperty(v, 'webkitAudioDecodedByteCount', { get: () => 0 });
+      if (canal === 'quatre') {
+        const s = document.querySelector('.VideoAdOverlay');
+        setTimeout(() => { s.style.display = 'block'; }, 300);
+        setTimeout(() => { s.style.display = 'none'; }, 5300);
+      }
+      if (canal === 'calme') setTimeout(() => {
+        const fin = performance.now() + 120;
+        while (performance.now() < fin) { /* une tâche longue, dans le lecteur */ }
+      }, 1500);
       window.__clics = 0;
       document.querySelector('[data-a-target="player-mute-unmute-button"]').addEventListener('click', () => {
         window.__clics++;
@@ -24340,10 +24408,18 @@ const pageVariante = async (substitutions, init = null) => {
       });
       if (canal === 'annonce') {
         const pub = document.querySelector('[data-a-target="video-ad-label"]');
+        const regie = document.createElement('iframe');
+        regie.src = 'https://regie.exemple.test/';
+        const seconde = document.createElement('video');
+        const balise = document.createElement('tse-essai-regie');
+        // Le bouton son disparaît pendant la pub, comme les commandes d'un vrai
+        // lecteur, et revient après.
+        const bouton = document.querySelector('[data-a-target="player-mute-unmute-button"]');
         // Cinq secondes : au moins deux relevés du pont tombent dedans, et
         // UNE pub doit rester une pub, pas une par relevé.
-        setTimeout(() => { pub.style.display = 'block'; }, 300);
-        setTimeout(() => { pub.style.display = 'none'; }, 5300);
+        setTimeout(() => { pub.style.display = 'block'; bouton.remove(); document.body.append(regie, seconde, balise); }, 300);
+        setTimeout(() => { pub.style.display = 'none'; regie.remove(); seconde.remove(); balise.remove();
+          document.body.prepend(bouton); }, 5300);
       }
     </script>
     <script src="/adblock.test.js"></script>
@@ -24352,18 +24428,34 @@ const pageVariante = async (substitutions, init = null) => {
   const page = await freshTwitch(lecteur);
   await page.evaluate(() => localStorage.setItem('tse:roue', 'vu'));
   await page.reload();
+  await page.route('https://regie.exemple.test/**', (route) => route.fulfill({
+    contentType: 'text/html; charset=utf-8', body: '<!doctype html><p>régie</p>' }));
   await page.route('https://www.twitch.tv/embed/**', (route) => {
     const partage = route.request().url().includes('/embed/bloque/');
+    // Deux messages en commun ; « gg » est dans les deux, mais pas du même
+    // auteur : ce n'est pas le même message.
+    const propres = partage
+      ? '<div class="chat-line__message"><span>ondine</span>: coucou</div>'
+        + '<div class="chat-line__message"><span>brasier</span>: gg</div>'
+      : '<div class="chat-line__message"><span>velmora</span>: gg</div>'
+        + '<div class="chat-line__message"><span>tarquin</span>: 7</div>'
+        + '<div class="chat-line__message"><span>tarquin</span>: re</div>';
     route.fulfill({ contentType: 'text/html; charset=utf-8', body: `<!doctype html><html><body>
       ${partage ? '<div data-test-selector="shared-chat-header">Chat partagé</div>' : ''}
-      <div class="chat-line__message">salut</div>
-      <div class="chat-line__message">bonsoir</div>
-      <div class="chat-line__message">gg</div>
-      <div data-test-selector="community-points-summary"><span>530</span></div>
+      <div class="chat-line__message"><span>velmora</span>: salut</div>
+      <div class="chat-line__message"><span>korrin</span>: bonsoir</div>
+      ${propres}
+      <div data-test-selector="community-points-summary"><span>530</span><span style="visibility:hidden">530</span></div>
       <div data-a-target="chat-input" contenteditable="true"></div>
-      <script>setTimeout(() => {
-        document.querySelector('[data-test-selector="community-points-summary"] span').textContent = '540';
-      }, 1500);</script>
+      <script>
+        setTimeout(() => {
+          for (const s of document.querySelectorAll('[data-test-selector="community-points-summary"] span')) s.textContent = '540';
+        }, 1500);
+        ${partage ? '' : `setTimeout(() => {
+          const fin = performance.now() + 120;
+          while (performance.now() < fin) { /* une tâche longue, dans le chat */ }
+        }, 1200);`}
+      </script>
     </body></html>` });
   });
 
@@ -24380,12 +24472,13 @@ const pageVariante = async (substitutions, init = null) => {
   // ── Ce qu'elle ouvre ────────────────────────────────────────────────────
   const ouverte = await page.evaluate(() => window.tse.sonde.ouvrir('annonce', 'Bloque', 'calme', 'quatre', 'cinq'));
   const cadres = await page.evaluate(() => ({
-    lecteurs: [...document.querySelectorAll('#tse-sonde iframe[name]')].map((f) => {
+    lecteurs: [...document.querySelectorAll('#tse-sonde iframe[name="tse-sonde"]')].map((f) => {
       const u = new URL(f.src);
       return [f.name, u.origin, u.searchParams.get('channel'), u.searchParams.get('parent'),
               u.searchParams.get('muted'), u.searchParams.get('autoplay'), f.style.width, f.style.height].join('|');
     }),
-    chats: [...document.querySelectorAll('#tse-sonde iframe:not([name])')].map((f) => f.src.split('&')[0]),
+    chats: [...document.querySelectorAll('#tse-sonde iframe[name="tse-sonde-chat"]')].map((f) => f.src.split('&')[0]),
+    autres: document.querySelectorAll('#tse-sonde iframe:not([name="tse-sonde"]):not([name="tse-sonde-chat"])').length,
   }));
   /* Mutants — le nom du lecteur perdu, le parent ou le muet oubliés, la
      taille sous le minimum de Twitch, le plafond de quatre lecteurs ou de
@@ -24395,7 +24488,8 @@ const pageVariante = async (substitutions, init = null) => {
      && cadres.lecteurs.length === 4
      && cadres.lecteurs[0] === 'tse-sonde|https://player.twitch.tv|annonce|www.twitch.tv|true|true|400px|300px'
      && cadres.chats.join() === 'https://www.twitch.tv/embed/annonce/chat?parent=www.twitch.tv,'
-       + 'https://www.twitch.tv/embed/bloque/chat?parent=www.twitch.tv',
+       + 'https://www.twitch.tv/embed/bloque/chat?parent=www.twitch.tv'
+     && cadres.autres === 0,
      JSON.stringify({ ouverte, cadres }));
 
   // Relu une fois la pub FINIE : c'est là qu'une pub comptée à chaque relevé,
@@ -24404,6 +24498,7 @@ const pageVariante = async (substitutions, init = null) => {
     const r = window.tse.sonde.rapport();
     return Object.values(r.lecteurs).every((l) => l.pont && l.avanceS > 0)
       && r.lecteurs.annonce.pubsVues >= 1 && r.lecteurs.annonce.pub === false
+      && r.lecteurs.quatre.pubsVues >= 1 && r.lecteurs.quatre.pub === false
       && r.chats.annonce.points === 540;
   }, 15_000);
   const r1 = await page.evaluate(() => window.tse.sonde.rapport());
@@ -24415,27 +24510,75 @@ const pageVariante = async (substitutions, init = null) => {
   /* Mutants — le pont de sonde qui ne poste rien, le nom de l'aperçu à la
      place du sien (l'anti-pub y entrerait, et fausserait P3). */
   ok('chaque lecteur rapporte sa lecture : muette, une image, une position qui avance ; l\'anti-pub n\'y est pas',
-     Object.values(r1.lecteurs).every((l) => l.pont && l.video && l.lecture && l.muet === true
-       && l.image === '32x18' && l.avanceS > 0 && l.dureeS > 0 && l.perduesPct !== null)
+     Object.entries(r1.lecteurs).every(([k, l]) => l.pont && l.video && l.lecture && l.muet === true
+       && l.image === (k === 'quatre' ? '64x36' : '32x18') && l.avanceS > 0 && l.dureeS > 0 && l.perduesPct !== null
+       && typeof l.pret === 'number' && l.erreur === null)
      && !!dansLeLecteur && dansLeLecteur.nom === 'tse-sonde' && dansLeLecteur.anti === 'undefined',
      JSON.stringify({ lecteurs: r1.lecteurs, dansLeLecteur }));
   /* Mutants — un motif de pub trop large (« add-to-list », « header »), un
-     repère compté sans être affiché, les passages en pub jamais comptés. */
-  ok('un repère de pub affiché est relevé et compté, et lui seul',
-     r1.lecteurs.annonce.pubsVues === 1 && r1.lecteurs.annonce.reperesPub === 'data-a-target=video-ad-label'
-     && r1.lecteurs.calme.pubsVues === 0 && r1.lecteurs.calme.reperesPub === null,
-     JSON.stringify({ annonce: r1.lecteurs.annonce, calme: r1.lecteurs.calme }));
+     repère compté sans être affiché, les passages en pub jamais comptés, les
+     classes ignorées, le camelCase non découpé, le temps en pub jamais
+     cumulé. */
+  const L = r1.lecteurs;
+  ok('un repère de pub affiché, par attribut ou par classe, est relevé et compté, et lui seul ; son temps aussi',
+     L.annonce.pubsVues === 1 && L.annonce.reperesPub === 'data-a-target=video-ad-label'
+     && L.quatre.pubsVues === 1 && L.quatre.reperesPub === 'class=VideoAdOverlay'
+     && L.annonce.pubS >= 2 && L.annonce.pubS <= 8
+     && L.calme.pubsVues === 0 && L.calme.reperesPub === null && L.calme.pubS === 0,
+     JSON.stringify({ annonce: L.annonce, quatre: L.quatre, calme: L.calme }));
+
+  /* LE JOURNAL DU LECTEUR. Ce que la pub a posé dans « annonce » — sa
+     marque affichée, l'iframe de régie, la seconde vidéo, la balise — sort
+     avec sa fenêtre ; rien de cela chez « calme » ; et ce qui n'a jamais
+     bougé n'est que compté. Mutants — les stables listés, l'affiché confondu
+     avec le caché (la marque de pub, présente cachée tout du long, se
+     croirait stable), les iframes, les vidéos, les balises, le bouton son, la
+     lecture ou la définition hors journal ; ce qui est arrivé tard et resté
+     pris pour l'installation du lecteur. */
+  const ja = L.annonce.marques || {}, jc = L.calme.marques || {};
+  const fenetre = (x) => /^(\d+)→(\d+) s · (\d+) relevé\(s\) · (\d+) apparition\(s\)$/.exec(x || '');
+  const etiquette = fenetre(ja['data-a-target=video-ad-label']);
+  ok('le journal du lecteur : ce que la pub a posé, avec ses heures ; ce qui ne bouge pas, compté seulement',
+     !!etiquette && Number(etiquette[2]) <= 6 && Number(etiquette[3]) >= 2 && etiquette[4] === '1'
+     && ['iframe=regie.exemple.test', 'videos=2', 'balise=tse-essai-regie', 'bouton-son=absent']
+       .every((k) => !!fenetre(ja[k]))
+     && !!fenetre(jc['lecture=non'])
+     && !!fenetre(L.quatre.marques?.['image=32x18']) && !!fenetre(L.quatre.marques?.['image=64x36'])
+     && ['data-a-target=video-ad-label', 'iframe=regie.exemple.test', 'videos=2', 'balise=tse-essai-regie']
+       .every((k) => !(k in jc))
+     && !('data-a-target=add-to-list' in ja) && !('data-a-target=add-to-list' in jc)
+     && L.calme.marquesStables >= 4 && L.calme.marquesEnPlus === 0,
+     JSON.stringify({ annonce: ja, calme: jc, stables: L.calme.marquesStables }));
+
+  /* LE DÉBIT, 1 000 kbit/s joués par le décor, et « quatre » dont le
+     compteur repart de zéro en route. Mutants — la baisse prise pour une
+     différence négative, ou ignorée : le débit de « quatre » s'effondre. */
+  ok('le débit de chaque lecteur, même quand son compteur repart de zéro',
+     L.calme.debitKbps >= 900 && L.calme.debitKbps <= 1100
+     && L.quatre.debitKbps >= 900 && L.quatre.debitKbps <= 1100,
+     JSON.stringify({ calme: L.calme.debitKbps, quatre: L.quatre.debitKbps }));
   /* Mutants — la saisie, les messages, le solde de départ ou le gain mal
-     lus, le Chat partagé relevé partout ou nulle part. */
-  ok('les chats : même origine, saisie, messages, solde de départ et gain, Chat partagé là où il est',
+     lus (le texte du bloc entier lirait 530530), le Chat partagé relevé
+     partout ou nulle part, les repères du chat perdus. */
+  ok('les chats : même origine, saisie, messages, solde lu feuille par feuille et gain, Chat partagé là où il est',
      r1.chats.annonce.memeOrigine === true && r1.chats.annonce.saisie === true
-     && r1.chats.annonce.messages === 3 && r1.chats.annonce.pointsDebut === 530
-     && r1.chats.annonce.gainPoints === 10
+     && r1.chats.annonce.messages === 5 && r1.chats.annonce.pointsDebut === 530
+     && r1.chats.annonce.gainPoints === 10 && r1.chats.annonce.pointsTexte === '540 | 540'
      && r1.chats.annonce.pointsRepere === 'data-test-selector=community-points-summary'
      && r1.chats.annonce.partage === false
      && r1.chats.bloque.partage === true
-     && r1.chats.bloque.reperesPartage === 'data-test-selector=shared-chat-header',
+     && r1.chats.bloque.reperesPartage === 'data-test-selector=shared-chat-header'
+     && r1.chats.annonce.marques === 'a:chat-input t:community-points-summary'
+     && r1.chats.bloque.marques === 'a:chat-input t:community-points-summary t:shared-chat-header',
      JSON.stringify(r1.chats));
+  /* LE CHAT PARTAGÉ SANS REPÈRE : deux messages en commun, sur cinq d'un
+     côté et quatre de l'autre, et « gg » signé de deux auteurs n'en est pas
+     un. Mutants — la comparaison sans l'auteur (trois communs), rapportée au
+     plus grand des deux (40 %), ou jamais faite. */
+  ok('…et les messages communs aux deux chats, comptés sans être rapportés',
+     JSON.stringify(r1.chatsCommuns) === '{"messages":2,"pct":50}'
+     && !JSON.stringify(r1).includes('salut'),
+     JSON.stringify(r1.chatsCommuns));
 
   /* La charge de la page (P6) : une vidéo de la page qui joue, et une tâche
      longue. Mutants — la vidéo de la page ignorée, l'observateur jamais
@@ -24465,10 +24608,15 @@ const pageVariante = async (substitutions, init = null) => {
     const r = window.tse.sonde.rapport();
     clearInterval(peintre);
     v.remove();
-    return { videoDeLaPage: r.videoDeLaPage, taches: r.tachesLongues };
+    return { videoDeLaPage: r.videoDeLaPage, videoDeLaPageS: r.videoDeLaPageS, taches: r.tachesLongues };
   });
-  ok('…et la charge de la page : une vidéo qui y joue, une tâche longue, sont relevées',
-     charge.videoDeLaPage === true && !!charge.taches && charge.taches.n >= 1 && charge.taches.ms >= 100,
+  /* Mutants — le temps de la vidéo de la page jamais cumulé ; toutes les
+     tâches longues au compte de la page, ou d'aucune iframe. */
+  const t = charge.taches || {};
+  ok('…et la charge de la page : une vidéo qui y joue, et les tâches longues, chacune à son coupable',
+     charge.videoDeLaPage === true && charge.videoDeLaPageS > 0
+     && t.page?.n >= 1 && t.page.ms >= 100 && t.lecteurs?.n >= 1 && t.chats?.n >= 1
+     && t.n === t.page.n + t.lecteurs.n + t.chats.n + t.autres.n,
      JSON.stringify(charge));
 
   // ── Le son (P4), par les boutons de la sonde : de vrais clics ────────────
@@ -24492,6 +24640,28 @@ const pageVariante = async (substitutions, init = null) => {
      o2.bloque?.verdict === 'pause' && o2.annonce?.demande === 'muet' && o2.annonce.voie === 'bouton'
      && o2.annonce.muet === true,
      JSON.stringify(o2));
+  /* CHAQUE VERDICT GARDÉ, ET LE TEMPS ARRÊTÉ. Le premier rapport réel
+     n'avait plus que le dernier ordre de chaque lecteur : le son rendu à un
+     premier lecteur, puis repris, n'y laissait qu'un « muet ». Mutants — le
+     seul dernier verdict gardé ; un verdict recompté à chaque relevé ; un
+     arrêt compté à chaque relevé ; le chargement compté comme un arrêt. */
+  await attendre(page, () => window.tse.sonde.rapport().lecteurs.bloque.arretS > 0, 6000);
+  // Un relevé de plus au moins, qui porte encore le même ordre : un verdict ne
+  // se compte qu'une fois, et c'est là qu'un verdict recompté se verrait.
+  await wait(page, 2500);
+  const r2 = (await page.evaluate(() => window.tse.sonde.rapport())).lecteurs;
+  ok('chaque verdict du son est gardé ; la pause est comptée, une fois, avec sa durée',
+     r2.annonce.sons === 'ok ×1' && r2.bloque.sons === 'pause ×1' && r2.calme.sons === null
+     && r2.bloque.arrets === 1 && r2.bloque.arretS > 0
+     && r2.calme.arrets === 0 && r2.calme.arretS === 0,
+     JSON.stringify(Object.fromEntries(Object.entries(r2).map(([k, l]) =>
+       [k, { sons: l.sons, arrets: l.arrets, arretS: l.arretS }]))));
+  /* UNE MARQUE QUI PART ET REVIENT n'est pas stable, même présente au début
+     et à la fin : les commandes de « calme », deux apparitions. Mutant — les
+     retours jamais comptés — : elle se fondrait dans le décor. */
+  const retour = fenetre((r2.calme.marques || {})['data-a-target=player-controls']);
+  ok('…et une marque partie puis revenue compte deux apparitions',
+     !!retour && retour[4] === '2', JSON.stringify(r2.calme.marques));
 
   // ── Où elle se tait ──────────────────────────────────────────────────────
   // Un lecteur sans son nom, dans la même page.
