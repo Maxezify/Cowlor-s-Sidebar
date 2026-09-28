@@ -254,14 +254,16 @@ rewrite afterwards. The ad blocker provides one: `adblock.js` captures
 **native**, nobody had wrapped it before us — the race is won, and that is
 precisely the guarantee `document_start` is supposed to offer.
 
-`adblock.js` only works inside the player iframe (it stands down on the main
-stream, see its `window.top === window` guard). But the preview iframe dies the
-moment you leave the hovered card — before you could switch context in the
-tools. So we build one that stays. On `https://www.twitch.tv/`, in the console:
+`adblock.js` only works inside the preview iframe: it stands down on the main
+stream and, since 4.24.0.1, in any player that does not carry the name
+`tse-apercu`. But the preview iframe dies the moment you leave the hovered card
+— before you could switch context in the tools. So we build one that stays, and
+that carries that name. On `https://www.twitch.tv/`, in the console:
 
 ```js
 const f = document.createElement('iframe');
 f.id = 'tse-sonde';
+f.name = 'tse-apercu';   // without this name, adblock.js stands down (4.24.0.1)
 f.src = 'https://player.twitch.tv/?channel=twitch&parent=www.twitch.tv&muted=true';
 f.style.cssText = 'position:fixed;bottom:0;right:0;width:400px;height:225px;z-index:99999';
 document.body.appendChild(f);
@@ -279,8 +281,8 @@ the right; if it is not visible it sits in the `»` overflow menu. Pick the
   page script. `document_start` is confirmed and the port is sound.
 - **`false`** → someone had already wrapped `fetch`: we came second.
 - **`undefined`** → either the console is still on the top frame (`adblock.js`
-  deliberately stands down there), or the content script was not injected into
-  the iframe.
+  deliberately stands down there), or the probe does not carry the name
+  `tse-apercu`, or the content script was not injected into the iframe.
 
 When done, switch back to the page context and remove the probe:
 
@@ -326,12 +328,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1310 KB | 477 KB | 3,574 → **2** |
-| `adblock.js` | 124 KB | 100 KB | 290 → **2** |
+| `content.js` | 1312 KB | 477 KB | 3,583 → **2** |
+| `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 104 KB | 50 KB | 143 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1562 KB** | **632 KB** | **−60 %** |
+| **all five** | **1565 KB** | **632 KB** | **−60 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -1404,10 +1406,12 @@ remains. What changes in practice:
 
 ### Execution scope
 
-Unchanged: the module is deliberately restricted to **iframes** (concretely, the
-`player.twitch.tv` iframe the extension mounts on hover). It **does not touch**
-the main stream you watch on `twitch.tv` — someone actually watching a stream
-accepts Twitch's business model. For global blocking, install vaft separately;
+The module is deliberately restricted to **the preview iframe** the extension
+mounts on hover: a `player.twitch.tv` player named `tse-apercu`, set by a
+twitch.tv page. Before 4.24.0.1, any player iframe was enough, including a
+Twitch player embedded on another site. It **does not touch** the main stream
+you watch on `twitch.tv` — someone actually watching a stream accepts Twitch's
+business model. For global blocking, install vaft separately;
 the two recognise each other via `window.twitchAdSolutionsVersion` and exactly
 one of them runs.
 
@@ -1438,7 +1442,7 @@ working fully.
 The code is licensed **MIT** — Copyright (c) 2020-present TwitchAdSolutions
 Contributors. Only eight adaptations separate it from upstream, each marked
 `ADAPTATION` in the file and summarised in its header: the `[TSE-AdBlock]` log
-prefix, the kill switch, the iframe-only guard, a hardcoded version in place of
+prefix, the kill switch, the "preview iframe only" guard, a hardcoded version in place of
 `GM_info` (a userscript-manager API absent from an extension), removal of the
 startup banner — upstream it prints once per page, here the iframe is recreated
 on every hover and the console would drown — and two settings ill-suited to a
@@ -2481,6 +2485,109 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The ad blocker and the bridge, in the preview only (v4.24.0.1)
+
+The first stone of the multistream, on the `claude/chrome-multi` and
+`claude/firefox-multi` branches: the audit's **phase 0**, the prerequisite to
+any room. Nothing new shows. What changes is where the extension acts inside
+Twitch's video players.
+
+### What the code used to do
+
+The manifest injects the extension into **every** `player.twitch.tv` player, on
+any site. That is what it takes to reach the preview iframe, and it is much
+more than that. Two modules acted in each of those players:
+
+| module | what it did in a Twitch player embedded on another site |
+| --- | --- |
+| the ad blocker (`adblock.js`) | it blocked the ads, while the Store listing says: "It applies to the hover preview thumbnail and to nothing else." |
+| the preview bridge (`content.js`) | it lifted the content warning ("Start watching"), and announced itself to the site's page with a message |
+
+The preview itself may lift the warning: it shows the content labels in its own
+badges. A player embedded elsewhere shows them nowhere. And a multistream room,
+made of embedded players, would have inherited both behaviours.
+
+### What wakes them up now
+
+The preview iframe carries a **name**, `tse-apercu`, set before its address.
+Both modules only act in a frame that meets all of this:
+
+| condition | checked by |
+| --- | --- |
+| an iframe, not the top page | both, as before |
+| a `player.twitch.tv` player | the bridge; the ad blocker keeps its original code's filter |
+| named `tse-apercu` | both |
+| whose parent is `www.twitch.tv` or `twitch.tv`, when the browser says so | both, through `location.ancestorOrigins` |
+
+**Why a name rather than an address parameter.** A frame reads its own name from
+the inside at `document_start`, before Twitch's scripts. The name is not sent to
+Twitch's servers, and it survives an internal navigation of the player.
+
+**Why the parent on top of the name.** A site can name its iframe whatever it
+likes. The name says "this is the preview", the parent confirms it.
+
+`adblock.js` is loaded before `content.js` and cannot read its constants. It
+therefore copies the name and the two parents, and the bench checks that the
+values are the same on both sides.
+
+### The limit under Firefox
+
+Firefox does not implement `location.ancestorOrigins` before version 148, and
+the declared floor is 140. Without it, **the name alone decides**. A third-party site that
+deliberately named its iframe `tse-apercu` would then wake both modules up for a
+user of the extension. It can no longer happen by accident: it has to be
+intended. Chrome, and Firefox from 148 on, check the parent.
+
+### What does not change
+
+- **The preview** keeps its ad blocker, its bridge and its lifted warning.
+- **The main stream**: the extension blocks nothing there, as before.
+- **The Store listing**: not a sentence to change. It is accurate again.
+
+### The version
+
+The multistream branches add a **fourth number** to the version they start
+from: `4.24.0.1` is 4.24.0 plus phase 0. Chrome and Firefox accept four numbers,
+and a future 4.24.1 or 4.25.0 of the main branch cannot be mistaken for it.
+
+### What the bench measures
+
+**Scenario 172** (four assertions) serves the same fake player page to three
+players. It shows a content warning that counts its clicks.
+
+| player | expected |
+| --- | --- |
+| the preview, set by the hover | the ad blocker wakes up (it claims its marker and hooks `Worker`), the bridge says hello, the warning is clicked once |
+| a player without that name, in the same twitch.tv page | nothing: no ad blocker, no message, no click |
+| a player named `tse-apercu`, in a third-party site's page (`journal.example`, a reserved domain) | nothing either: the parent counts |
+
+The fourth assertion reads both sources and requires the same name and the same
+parents on both sides.
+
+**Scenario 61**, which reproduces Firefox inside Chromium, now also loads a
+variant of the ad blocker without `ancestorOrigins`. `tests/build.mjs` produces
+it with the same substitution as for `content.js`. The scenario checks that the
+ad blocker wakes up there on its name alone. It also reads the served source of
+both variants to make sure the substitution did take place: until now, it went
+by the file name alone.
+
+| mutants | what falls |
+| --- | --- |
+| the name never set by the preview, or another name (2) | the preview loses both modules: no ad blocker, no lifted warning, no reveal (scenarios 30, 58, 61 and 172) |
+| in `adblock.js`, the name guard removed, then another name (2) | the ad blocker in the unnamed player, or no longer in the preview |
+| in `adblock.js`, the parent check removed, a wrong parent, the name refused without `ancestorOrigins` (3) | the ad blocker on the third-party site, or no longer in the preview, under Chrome as under Firefox |
+| in the bridge, the name guard removed, the parent check removed, the fallback refused, a wrong parent (4) | a click and a message in the unnamed player or on the third-party site, or a silent preview under Firefox |
+| the Firefox variant of the ad blocker built without its substitution (1) | a Firefox scenario that no longer reproduces Firefox |
+
+Twelve mutants, twelve caught, each by a behavioural assertion, not merely by
+the comparison of the sources.
+
+### What remains of phase 0
+
+The audit's **probes** (P1 to P3, P5 to P7) happen in a real browser, on the
+real Twitch. This environment cannot reach twitch.tv. Their answers will decide
+phase 1.
 
 ## The "just went live" bar, in the live red (v4.24.0)
 
@@ -11775,7 +11882,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 171 scenarios, 1464 assertions |
+| `npm test` | the Playwright harness: 172 scenarios, 1469 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -12038,8 +12145,9 @@ context, and a fourth transformation adds localization.
    - **`all_frames: true`**: so the anti-ad module can inject into the
      `player.twitch.tv` iframe (MV3 equivalent of the Violentmonkey
      `@allFrames true` directive). The sidebar (TSE) module has a top-level
-     guard that neutralizes it inside iframes — so in any given frame,
-     **exactly one** of the two modules is active.
+     guard that neutralizes it inside iframes, and the anti-ad module only
+     wakes up in the preview iframe: in any given frame, **at most one** of
+     the two modules is active.
 
    The matches now include `https://player.twitch.tv/*` in addition to
    `www.twitch.tv` and `twitch.tv` to allow injection into the preview
@@ -12055,7 +12163,7 @@ context, and a fourth transformation adds localization.
 3. **Bundled anti-ad module** (see the dedicated section above). Since v3.25 the
    code is vendored as-is from [scamorza/TwitchAdBlock](https://github.com/scamorza/TwitchAdBlock)
    into its own file, `adblock.js`, with eight marked adaptations — kill switch,
-   iframe-only guard, `[TSE-AdBlock]` log prefix, hardcoded version instead of
+   "preview iframe only" guard, `[TSE-AdBlock]` log prefix, hardcoded version instead of
    `GM_info`, and no startup banner.
 
 4. **Multi-language localization (FR / EN / DE / ES / PT)**. The i18n architecture is
