@@ -385,7 +385,7 @@
     "message": "Los co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Un punto morado en la esquina del avatar, con el número de participantes: ese canal transmite acompañado. Visible en la lista, sin pasar el mouse por nada.\n• Una insignia morada dice entonces quién recibe y quién es invitado, y con quién.\n• Un orden propio los agrupa arriba de la lista (capítulo $1).\n• Cuando varios participantes van seguidos en la lista, sus barras forman una sola, y sobre ella se posa un contador «▶ 3»: un clic los abre juntos en la página, en la sala multistream. Un clic en un recuadro le da el sonido y su chat; la tecla Esc, o un segundo clic en el contador, cierra la sala."
+    "message": "Un punto morado en la esquina del avatar, con el número de participantes: ese canal transmite acompañado. Visible en la lista, sin pasar el mouse por nada.\n• Una insignia morada dice entonces quién recibe y quién es invitado, y con quién.\n• Un orden propio los agrupa arriba de la lista (capítulo $1).\n• Cuando varios participantes van seguidos en la lista, sus barras forman una sola, y sobre ella se posa un botón «▶»: un clic los abre juntos en la página, en la sala multistream. Un clic en un recuadro le da el sonido, y el chat lo sigue; con dos streams sin chat compartido, los dos chats enmarcan los reproductores cuando hay espacio. La tecla Esc, o un segundo clic en el botón, cierra la sala."
   },
   "guideDebutTitre": {
     "message": "Los comienzos y las vueltas"
@@ -538,10 +538,10 @@
     "message": "Punto de colaboración"
   },
   "optSalle": {
-    "message": "Contador de sala multistream"
+    "message": "Botón de sala multistream"
   },
   "optDescSalle": {
-    "message": "El contador «▶ 3» sobre la barra de un co-stream: un clic abre sus streams juntos, en la página. Desactivado, la barra se queda, sin contador."
+    "message": "El botón «▶» sobre la barra de un co-stream: un clic abre sus streams juntos, en la página. Desactivado, la barra se queda, sin botón."
   },
   "optAbonnes": {
     "message": "El oro de las suscripciones"

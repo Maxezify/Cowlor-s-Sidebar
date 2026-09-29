@@ -385,7 +385,7 @@
     "message": "Os co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Um ponto roxo ao canto do avatar, com o número de participantes: este canal transmite acompanhado. Visível na lista, sem passar o rato por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa-os no topo da lista (capítulo $1).\n• Quando vários participantes aparecem seguidos na lista, as barras deles tornam-se uma só, e um contador «▶ 3» fica sobre ela: um clique abre-os juntos na página, na sala multistream. Um clique num quadro dá-lhe o som e o chat dele; a tecla Esc, ou um segundo clique no contador, fecha a sala."
+    "message": "Um ponto roxo ao canto do avatar, com o número de participantes: este canal transmite acompanhado. Visível na lista, sem passar o rato por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa-os no topo da lista (capítulo $1).\n• Quando vários participantes aparecem seguidos na lista, as barras deles tornam-se uma só, e um botão «▶» fica sobre ela: um clique abre-os juntos na página, na sala multistream. Um clique num quadro dá-lhe o som, e o chat acompanha; com duas transmissões sem chat partilhado, os dois chats ladeiam os leitores quando há espaço. A tecla Esc, ou um segundo clique no botão, fecha a sala."
   },
   "guideDebutTitre": {
     "message": "Os começos e os regressos"
@@ -538,10 +538,10 @@
     "message": "Ponto de colaboração"
   },
   "optSalle": {
-    "message": "Contador da sala multistream"
+    "message": "Botão da sala multistream"
   },
   "optDescSalle": {
-    "message": "O contador «▶ 3» na barra de um co-stream: um clique abre as transmissões juntas, na página. Desligado, a barra fica, sem contador."
+    "message": "O botão «▶» na barra de um co-stream: um clique abre as transmissões juntas, na página. Desligado, a barra fica, sem botão."
   },
   "optAbonnes": {
     "message": "O ouro das subscrições"

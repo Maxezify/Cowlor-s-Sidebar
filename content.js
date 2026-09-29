@@ -597,6 +597,18 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       ordre,
     };
   };
+  /* LES GESTES DE L'UTILISATEUR DANS LE LECTEUR (4.24.0.8), comptés — un
+     clic, une touche, jamais ce qu'ils visent. La salle relance le son d'une
+     tuile que Twitch a remise en muet après coup ; un geste dans ce lecteur
+     veut dire que l'utilisateur a pris la main, et elle cesse. Seuls les
+     événements de confiance comptent : nos propres clics sur les boutons du
+     lecteur n'en sont pas. */
+  let gestes = 0;
+  if (role === 'salle') {
+    const compterGeste = (e) => { if (e.isTrusted) gestes += 1; };
+    window.addEventListener('pointerdown', compterGeste, true);
+    window.addEventListener('keydown', compterGeste, true);
+  }
   // Le rôle de la salle : ce qu'elle affiche, rien de plus, à chaque seconde.
   const etatSalle = () => {
     const v = document.querySelector('video');
@@ -604,8 +616,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       video: !!v,
       lecture: !!v && !v.paused,
       muet: v ? v.muted : null,
+      // Au rapport seulement : un lecteur non muet à volume nul se tait aussi.
+      volume: v ? Math.round(v.volume * 100) / 100 : null,
       pub: [...document.querySelectorAll(TSE_PUB_REPERES)].some((el) => el.getClientRects().length > 0),
       boutonSon: !!document.querySelector(BOUTON_SON),
+      gestes,
       ordre,
     };
   };
@@ -3040,6 +3055,25 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // Le pas de la salle : la page sous elle a-t-elle changé d'adresse, la
     // barre latérale de largeur ?
     SALLE_PAS_MS:    1_000,
+    // LE SON TENU (4.24.0.8). Le lecteur de Twitch se remet en muet APRÈS
+    // l'apparition de sa vidéo (rapport réel : « son · deja · sans-effet ») :
+    // l'ordre est relancé toutes les deux secondes, cinq fois au plus, tant
+    // que le son n'a pas tenu trois secondes d'affilée.
+    SALLE_SON_RELANCE_MS: 2_000,
+    SALLE_SON_ESSAIS:     5,
+    SALLE_SON_TENU_MS:    3_000,
+    // DEUX CHATS (4.24.0.8), et la preuve qu'ils ne sont pas le même : celle
+    // de la phase 0 (P7), des messages communs. Partagés dès que la moitié
+    // des messages du plus petit sont communs (quatre au moins) ; distincts
+    // quand, sur douze au moins, pas plus d'un sur cinq ne l'est.
+    SALLE_PARTAGE_MIN:     4,
+    SALLE_DISTINCTS_MIN:   12,
+    // LA PAGE DE LA SALLE (4.24.0.8) : « Parcourir », sans vidéo, légère. Le
+    // nœud y mène la salle par une vraie navigation — la page du streamer,
+    // son lecteur et son adresse, ne restent pas dessous. La demande attend
+    // l'arrivée dans l'onglet (sessionStorage), vingt secondes au plus.
+    SALLE_PAGE:            '/directory',
+    SALLE_ATTENTE_MS:      20_000,
 
     // === Changement de catégorie en cours de stream ===
     // Durée de vie du badge « Vient de passer sur … ». C'est une NOUVELLE,
@@ -4375,7 +4409,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     }
 
     /* === Le nœud de la salle multistream, sur la barre (4.24.0.7) ===
-       Un compteur « ▶ 3 » à la couleur de la barre, posé au milieu du groupe.
+       Un bouton « ▶ » à la couleur de la barre, posé au milieu du groupe. Le
+       symbole seul depuis la 4.24.0.8 : le nombre de streams ne s'y lisait
+       pas mieux que sur la barre elle-même, et l'étiquette le dit au survol.
        Le liseré a la couleur de la carte : il « coupe » la barre, et on lit
        un nœud posé sur un fil plutôt qu'une bosse de la barre. Le calque qui
        le porte n'a pas de hauteur : il ne déplace rien dans la liste. Le nœud
@@ -4385,14 +4421,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     .tse-noeud {
       position: absolute; transform: translateY(-50%);
       display: inline-flex; align-items: center; gap: 5px;
-      height: 18px; margin: 0; padding: 0 6px 0 5px; box-sizing: border-box;
+      height: 18px; margin: 0; padding: 0 5px; box-sizing: border-box;
       border: 2px solid var(--tse-decoupe); border-radius: 999px;
       background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
       font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
       white-space: nowrap; cursor: pointer;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
     }
-    .tse-noeud__compte { display: inline-flex; align-items: center; gap: 3px; }
+    .tse-noeud__symbole { display: inline-flex; align-items: center; }
     .tse-noeud svg { width: 6px; height: 8px; fill: currentColor; }
     .tse-noeud__etiquette { display: none; }
     .tse-noeud:hover .tse-noeud__etiquette,
@@ -4403,10 +4439,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     .tse-noeud[aria-pressed="true"] {
       box-shadow: 0 0 0 2px var(--tse-noeud-couleur, #9147ff), 0 1px 3px rgba(0, 0, 0, 0.35);
     }
-    /* Barre réduite : le nombre seul, et pas d'étiquette — il n'y a pas la
-       place de l'écrire à côté d'un avatar. */
-    .tse-noeud.tse-noeud--reduit { padding: 0 5px; }
-    .tse-noeud--reduit svg,
+    /* Barre réduite : le symbole seul, même au survol — il n'y a pas la
+       place d'écrire l'étiquette à côté d'un avatar. */
     .tse-noeud--reduit:hover .tse-noeud__etiquette,
     .tse-noeud--reduit:focus-visible .tse-noeud__etiquette { display: none; }
     html[data-tse-off~="salle"] #tse-noeuds { display: none !important; }
@@ -6480,8 +6514,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        Un calque sur la zone principale : sous la barre du haut, à droite de
        la barre latérale, qui reste utilisable. Sous l'aperçu (9999) et la
        bulle (9000), qui doivent pouvoir s'y poser ; au-dessus du contenu de
-       la page. Les tuiles sont placées au pixel par le script — jamais
-       déplacées dans le document, ce qui rechargerait leur lecteur. */
+       la page. Les 8000 ne sont que le défaut : depuis la 4.24.0.8, le script
+       la pose juste SOUS la barre du haut de Twitch, dont les menus doivent
+       passer devant (cf. empiler). Les tuiles sont placées au pixel par le
+       script — jamais déplacées dans le document, ce qui rechargerait leur
+       lecteur. */
     #tse-salle {
       position: fixed; top: ${CFG.SALLE_HAUT_PX}px; right: 0; bottom: 0;
       z-index: 8000;
@@ -6566,6 +6603,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       flex: 0 0 ${CFG.SALLE_CHAT_PX}px; display: flex; flex-direction: column; min-height: 0;
       border-left: 1px solid rgba(var(--tse-encre), 0.08);
     }
+    /* Le chat de gauche, à deux streams sans Chat partagé (4.24.0.8). */
+    .tse-salle__chat--gauche { border-left: 0; border-right: 1px solid rgba(var(--tse-encre), 0.08); }
     .tse-salle__chat[hidden], .tse-salle__banc[hidden] { display: none; }
     .tse-salle__chat-tete {
       flex: 0 0 auto; padding: 6px 12px; font-weight: 600;
@@ -13406,29 +13445,123 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       etiquette.append(touche, nom, sonEl, pubEl);
       el.append(cadre, prise, etiquette);
       return { chaine, el, cadre, prise, touche, sonEl, pubEl, etat: null, messages: 0, pubs: 0,
-               pubAvant: false, sonEnvoye: false, dernierSon: 0, pauseCachee: false,
+               pubAvant: false, dernierSon: 0, pauseCachee: false,
+               sonEssais: 0, sonEnvoiT: 0, sonDepuis: 0, sonTenu: false, gestesAuDon: 0,
                ordreCompte: 0, dernierOrdre: null };
     };
 
-    const majChat = () => {
-      const c = courante;
-      const voulu = c.disposition && c.disposition.chat ? c.son : null;
-      if (voulu === c.chatChaine) return;
-      c.chatChaine = voulu;
-      if (c.chatCadre) c.chatCadre.remove();
-      c.chatCadre = null;
-      c.chatTete.textContent = voulu ? S.uiSalleChat(voulu) : '';
-      if (!voulu) return;
-      /* UN SEUL CHAT CHARGÉ, celui de la tuile qui a le son : c'est le chat
-         intégré de Twitch, de même origine que la page, connecté. Nommé,
-         pour que ses tâches longues soient reconnues comme les siennes. */
+    /* UN CÔTÉ DE CHAT : sa colonne, son en-tête, son iframe. Le chat intégré
+       de Twitch, de même origine que la page, connecté ; nommé, pour que ses
+       tâches longues soient reconnues comme les siennes. Un côté ne recharge
+       son chat que si sa chaîne change. */
+    const creerCoteChat = (cote) => {
+      const bloc = document.createElement('div');
+      bloc.className = `tse-salle__chat tse-salle__chat--${cote}`;
+      bloc.hidden = true;
+      const tete = document.createElement('div');
+      tete.className = 'tse-salle__chat-tete';
+      bloc.appendChild(tete);
+      return { bloc, tete, cadre: null, chaine: null };
+    };
+    const poserChat = (cote, chaine) => {
+      if (cote.chaine === chaine) return;
+      cote.chaine = chaine;
+      if (cote.cadre) cote.cadre.remove();
+      cote.cadre = null;
+      cote.tete.textContent = chaine ? S.uiSalleChat(chaine) : '';
+      cote.bloc.hidden = !chaine;
+      if (!chaine) return;
       const f = document.createElement('iframe');
       f.name = TSE_SALLE_CHAT_NAME;
-      f.title = S.uiSalleChat(voulu);
-      f.src = `${location.origin}/embed/${encodeURIComponent(voulu)}/chat?`
+      f.title = S.uiSalleChat(chaine);
+      f.src = `${location.origin}/embed/${encodeURIComponent(chaine)}/chat?`
         + `${new URLSearchParams({ parent: location.hostname })}${themeTwitch() === 'dark' ? '&darkpopout' : ''}`;
-      c.chatBloc.appendChild(f);
-      c.chatCadre = f;
+      cote.bloc.appendChild(f);
+      cote.cadre = f;
+    };
+    /* UN SEUL CHAT, celui de la tuile qui a le son — c'est la règle, et la
+       phase 0 l'a fondée : ce sont les chats qui pèsent sur la page.
+
+       SAUF À DEUX STREAMS SANS CHAT PARTAGÉ (4.24.0.8), à la demande : le
+       chat de l'autre stream prend la marge de gauche, que la grille laisse
+       vide, sans rien coûter aux tuiles (cf. disposerSalle). Chacun reste
+       alors à sa place : le son ne les déplace plus — les recharger à chaque
+       changement de son coûterait leurs messages. */
+    const majChat = () => {
+      const c = courante;
+      const d = c.disposition;
+      if (!d || !d.chat) { poserChat(c.chatD, null); poserChat(c.chatG, null); return; }
+      if (c.deuxChats) {
+        const droite = c.membres.includes(c.chatD.chaine) ? c.chatD.chaine : c.son;
+        poserChat(c.chatD, droite);
+        poserChat(c.chatG, c.membres.find((m) => m !== droite) || null);
+        return;
+      }
+      poserChat(c.chatG, null);
+      poserChat(c.chatD, c.son);
+    };
+
+    /* LE CHAT PARTAGÉ SE PROUVE PAR SES MESSAGES — la seule preuve mesurée :
+       la phase 0 n'a trouvé aucun repère qui le nomme dans les chats intégrés,
+       et 99 % de messages communs entre deux chats d'un même Chat partagé
+       (P7). Les messages sont gardés en mémoire le temps de comparer, jamais
+       rapportés : le rapport n'en dit que les COMPTES. Tant que rien n'est
+       tranché, les deux chats restent ; partagés, celui de gauche s'en va. */
+    const MAX_TEXTES = 300;
+    const lireChat = (cote) => {
+      let doc = null;
+      try { doc = cote.cadre && cote.cadre.contentDocument; } catch { /* autre origine */ }
+      if (!doc) return;
+      const ensemble = courante.textes.get(cote.chaine) || new Set();
+      courante.textes.set(cote.chaine, ensemble);
+      for (const ligne of doc.querySelectorAll('.chat-line__message')) {
+        if (ensemble.size >= MAX_TEXTES) break;
+        const t = (ligne.textContent || '').replace(/\s+/g, ' ').trim();
+        if (t) ensemble.add(t);
+      }
+    };
+    const comparerChats = () => {
+      const c = courante;
+      if (!c || !c.deuxChats || c.partage !== null || !c.chatD.cadre || !c.chatG.cadre) return;
+      lireChat(c.chatD);
+      lireChat(c.chatG);
+      const a = c.textes.get(c.chatD.chaine) || new Set();
+      const b = c.textes.get(c.chatG.chaine) || new Set();
+      const base = Math.min(a.size, b.size);
+      let communs = 0;
+      for (const t of a) if (b.has(t)) communs += 1;
+      c.comparaison = { messages: a.size + b.size, communs };
+      if (base >= CFG.SALLE_PARTAGE_MIN && communs * 2 >= base) c.partage = true;
+      else if (base >= CFG.SALLE_DISTINCTS_MIN && communs * 5 <= base) c.partage = false;
+      if (c.partage === null) return;
+      c.textes.clear();           // tranché : on ne garde rien de plus
+      if (c.partage) disposerSalle();
+    };
+
+    /* LE SON TENU (4.24.0.8). LE PREMIER RAPPORT RÉEL DE LA SALLE portait
+       « son · deja · sans-effet » sur la tuile qui devait l'avoir : quand
+       l'ordre est parti, la vidéo existait et n'était pas muette — le pont
+       n'a rien cliqué —, puis le lecteur de Twitch s'est mis en muet de
+       lui-même, en appliquant après coup son réglage. L'ordre ne vaut donc
+       pas pour une fois : tant que le son n'a pas TENU trois secondes, la
+       tuile qui doit l'avoir le redemande, toutes les deux secondes, cinq
+       fois au plus. Et jamais contre l'utilisateur : un geste dans ce
+       lecteur depuis que le son lui a été donné, et la salle cesse. */
+    const tenirSon = (t, et) => {
+      if (!et || !et.video || t.sonTenu) return;
+      if (t.sonEssais > 0 && (et.gestes || 0) > t.gestesAuDon) { t.sonTenu = true; return; }
+      const maintenant = Date.now();
+      if (et.muet === false) {
+        if (!t.sonDepuis) t.sonDepuis = maintenant;
+        if (maintenant - t.sonDepuis >= CFG.SALLE_SON_TENU_MS) t.sonTenu = true;
+        return;
+      }
+      t.sonDepuis = 0;
+      if (t.sonEssais >= CFG.SALLE_SON_ESSAIS) return;
+      if (t.sonEssais > 0 && maintenant - t.sonEnvoiT < CFG.SALLE_SON_RELANCE_MS) return;
+      envoyer(t, 'son');
+      t.sonEssais += 1;
+      t.sonEnvoiT = maintenant;
     };
 
     const donnerSon = (chaine) => {
@@ -13441,12 +13574,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         t.el.classList.toggle('tse-salle__tuile--son', a);
         t.prise.hidden = a;
         t.sonEl.hidden = !a;
-        if (a) t.dernierSon = Date.now();
-        /* Un lecteur qui n'a pas encore de vidéo ne peut rien entendre : son
-           ordre part dès que son pont en annonce une (cf. surMessage). Les
-           autres démarrent muets de toute façon. */
-        if (t.etat && t.etat.video) { envoyer(t, a ? 'son' : 'muet'); t.sonEnvoye = a; }
-        else t.sonEnvoye = false;
+        if (a) {
+          t.dernierSon = Date.now();
+          t.sonEssais = 0; t.sonDepuis = 0; t.sonTenu = false;
+          t.gestesAuDon = (t.etat && t.etat.gestes) || 0;
+          /* Un lecteur qui n'a pas encore de vidéo ne peut rien entendre : son
+             ordre part dès que son pont en annonce une (cf. surMessage). */
+          tenirSon(t, t.etat);
+        } else if (t.etat && t.etat.video) envoyer(t, 'muet');
       }
       majChat();
       return true;
@@ -13512,7 +13647,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         c.tuiles.push(t);
       }
       const e = CFG.SALLE_ECART_PX, m = CFG.SALLE_MARGE_PX;
-      const x0 = m + Math.max(0, Math.floor((d.W - (d.cols * d.l + (d.cols - 1) * e)) / 2));
+      /* DEUX CHATS DANS LES MARGES (4.24.0.8) : deux streams, et une marge
+         que la grille laisse vide assez large pour une colonne de chat — les
+         tuiles gardent alors exactement leur taille. Jamais un pixel de tuile
+         pour un second chat, et jamais si les deux chats sont le même. */
+      const occupe = d.cols * d.l + (d.cols - 1) * e;
+      c.deuxChats = !!d.chat && d.n === 2 && c.membres.length === 2 && c.partage !== true
+        && d.W - occupe >= CFG.SALLE_CHAT_PX + 1;
+      const W = c.deuxChats ? d.W - (CFG.SALLE_CHAT_PX + 1) : d.W;
+      const x0 = m + Math.max(0, Math.floor((W - occupe) / 2));
       const y0 = m + Math.max(0, Math.floor((d.H - (d.rangs * d.h + (d.rangs - 1) * e)) / 2));
       c.tuiles.forEach((t, i) => {
         const col = i % d.cols, rang = Math.floor(i / d.cols);
@@ -13529,7 +13672,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         c.banc.replaceChildren(...dehors.map(creerRemplacant));
       }
       c.banc.hidden = !dehors.length;
-      c.chatBloc.hidden = !d.chat;
       c.boutonChat.setAttribute('aria-pressed', String(d.chat));
       c.boutonChat.title = d.chat ? S.uiSalleChatMasquer : S.uiSalleChatAfficher;
       // « Masqué faute de place » ne se dit que si ce n'est pas un choix.
@@ -13554,7 +13696,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (et.pub && !t.pubAvant) t.pubs += 1;
       t.pubAvant = !!et.pub;
       t.pubEl.hidden = !et.pub;
-      if (t.chaine === c.son && !t.sonEnvoye && et.video) { envoyer(t, 'son'); t.sonEnvoye = true; }
+      if (t.chaine === c.son) tenirSon(t, et);
       const o = et.ordre;
       if (o && o.apres && o.n !== t.ordreCompte) {
         t.ordreCompte = o.n;
@@ -13601,8 +13743,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const pas = () => {
       const c = courante;
       if (!c) return;
-      if (location.href !== c.adresse) { fermer('navigation'); return; }
+      /* LE CHEMIN, pas l'adresse entière (4.24.0.8) : la salle vit désormais
+         sur une page de Twitch qui peut réécrire ses paramètres après coup,
+         et ce n'est pas un changement de page. */
+      if (location.pathname !== c.chemin) { fermer('navigation'); return; }
       if (zone().cle !== c.zoneCle) disposerSalle();
+      comparerChats();
       // La vidéo de la page reste en pause tant que la salle est ouverte, même
       // si son lecteur tente de repartir de lui-même.
       for (const v of c.pausees) {
@@ -13618,12 +13764,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         ouverte: true,
         depuisS: Math.round((Date.now() - c.t0) / 1000),
         origine: c.origine,
+        // Le temps entre le clic sur le nœud et la salle, quand elle a dû
+        // changer de page pour s'ouvrir (4.24.0.8).
+        arriveeMs: c.arriveeMs,
+        empilement: c.empilement,
         membres: c.membres.length,
         grille: d.n ? `${d.cols}×${d.rangs} · ${d.l}×${d.h}` : null,
         deborde: !!d.deborde,
         banc: c.membres.filter((m) => !c.tuiles.some((t) => t.chaine === m)).join(' ') || null,
         son: c.son,
-        chat: c.chatChaine,
+        chat: c.chatD.chaine,
+        // À deux streams sans Chat partagé : le chat de gauche, et ce que la
+        // comparaison a tranché (oui, non, ou null tant qu'elle compte).
+        chatGauche: c.chatG.chaine,
+        chatPartage: c.partage,
+        chatsCompares: c.comparaison ? `${c.comparaison.messages} messages · ${c.comparaison.communs} communs` : null,
         chatMasque: !d.chat,
         chatVoulu: c.chatVoulu === null ? 'auto' : c.chatVoulu ? 'oui' : 'non',
         sonsDonnes: c.sonsDonnes,
@@ -13636,6 +13791,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           video: t.etat ? t.etat.video : null,
           lecture: t.etat ? t.etat.lecture : null,
           muet: t.etat ? t.etat.muet : null,
+          volume: t.etat ? t.etat.volume ?? null : null,
+          // Les ordres « son » envoyés depuis qu'elle l'a reçu, et s'il a tenu.
+          sonEssais: t.sonEssais,
+          sonTenu: t.chaine === c.son ? t.sonTenu : null,
           pub: t.etat ? t.etat.pub : null,
           pubsVues: t.pubs,
           ordre: t.dernierOrdre,
@@ -13660,6 +13819,125 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
       if (auChangement) auChangement();
       return { fermee: true };
+    };
+
+    /* ── SOUS LA BARRE DU HAUT DE TWITCH (4.24.0.8) ─────────────────────────
+       SIGNALÉ AVEC UNE CAPTURE : les fenêtres des boutons en haut à droite de
+       Twitch — notifications, messages, profil — s'ouvraient COUPÉES au bord
+       de la salle, inutilisables. La salle était à 8000, au-dessus de tout.
+
+       LE BON NIVEAU EST JUSTE SOUS CELUI DE LA BARRE, et il se MESURE : Twitch
+       garantit lui-même que ses menus passent devant le contenu de sa page ;
+       une salle posée juste sous la barre est donc devant tout ce que Twitch
+       place sous ses menus. Le niveau d'un élément dans l'empilement de la
+       page est le z-index du plus haut de ses ancêtres qui crée un contexte
+       d'empilement. Sans barre trouvée, on garde 8000 — rien à ménager.
+
+       ET ON VÉRIFIE, à l'ouverture : si un élément de la page passe devant la
+       salle en un des points sondés, elle remonte à 8000, et le rapport dit
+       lequel. Les menus seraient alors coupés, mais la salle entière. */
+    const creeEmpilement = (cs, parent) => {
+      if (cs.zIndex !== 'auto' && (cs.position !== 'static'
+        || (parent && /flex|grid/.test(getComputedStyle(parent).display)))) return Number(cs.zIndex) || 0;
+      if (cs.position === 'fixed' || cs.position === 'sticky' || Number(cs.opacity) < 1
+        || cs.transform !== 'none' || cs.filter !== 'none' || cs.isolation === 'isolate') return 0;
+      return null;
+    };
+    const niveau = (el) => {
+      let z = 0;
+      for (let x = el; x && x !== document.documentElement; x = x.parentElement) {
+        const n = creeEmpilement(getComputedStyle(x), x.parentElement);
+        if (n !== null) z = n;     // le plus haut l'emporte : on écrase en montant
+      }
+      return z;
+    };
+    const barreDuHaut = () => {
+      const reperee = document.querySelector('[data-a-target="top-nav-container"]');
+      if (reperee) return { el: reperee, voie: 'repere' };
+      // Sinon : le plus grand ancêtre, sous le milieu de la bande du haut, qui
+      // tient dans cette bande et en prend presque toute la largeur.
+      let barre = null;
+      for (let x = document.elementFromPoint(Math.round(window.innerWidth / 2), Math.round(CFG.SALLE_HAUT_PX / 2));
+        x && x !== document.body && x !== document.documentElement; x = x.parentElement) {
+        const r = x.getBoundingClientRect();
+        if (r.top <= 1 && r.bottom <= CFG.SALLE_HAUT_PX + 2 && r.width >= window.innerWidth * 0.8) barre = x;
+      }
+      return barre ? { el: barre, voie: 'bande' } : null;
+    };
+    const decrire = (el) => {
+      if (!el) return null;
+      const cls = typeof el.className === 'string' ? el.className.trim().split(/\s+/)[0] : '';
+      return el.localName + (el.id ? `#${el.id}` : '') + (cls ? `.${cls}` : '');
+    };
+    const empiler = (boite) => {
+      const barre = barreDuHaut();
+      const zBarre = barre ? niveau(barre.el) : null;
+      const z = zBarre === null ? 8000 : Math.min(8000, Math.max(1, zBarre - 1));
+      boite.style.zIndex = String(z);
+      return { z, barre: zBarre, voie: barre ? barre.voie : null, couverte: null, _barre: barre ? barre.el : null };
+    };
+    const verifierEmpilement = (boite, e) => {
+      const barre = e._barre;
+      delete e._barre;
+      if (e.z === 8000) return;
+      const r = boite.getBoundingClientRect();
+      for (const fx of [0.3, 0.5, 0.7, 0.9]) {
+        for (const fy of [0.2, 0.5, 0.8]) {
+          const x = Math.round(r.left + r.width * fx), y = Math.round(r.top + r.height * fy);
+          const el = document.elementFromPoint(x, y);
+          if (!el || boite.contains(el) || (barre && barre.contains(el))) continue;
+          // Nos propres calques ont le droit d'être devant : ils y sont faits.
+          if (el.closest('.tse-preview, .tse-bulle, .tse-incruste, .tse-loading-overlay')) continue;
+          e.couverte = decrire(el);
+          e.z = 8000;
+          boite.style.zIndex = '8000';
+          return;
+        }
+      }
+    };
+
+    /* ── LA PAGE DE LA SALLE (4.24.0.8) ──────────────────────────────────────
+       SIGNALÉ : ouverte depuis la page d'un streamer, la salle se posait
+       par-dessus — l'adresse restait la sienne, et son lecteur vivait dessous,
+       en pause mais chargé. Le nœud mène donc la salle sur « Parcourir »
+       (CFG.SALLE_PAGE), une page de Twitch sans vidéo, et légère.
+
+       PAR UNE VRAIE NAVIGATION, pas par le routeur de Twitch : quitter une
+       chaîne DANS l'application laisse son stream jouer dans le mini-lecteur
+       persistant. Rechargée, la page ne garde rien du stream d'avant. La
+       demande traverse le chargement dans le stockage de l'onglet — ni
+       l'historique, ni les autres onglets ne la voient —, et ne vaut que pour
+       l'arrivée qui suit : consommée à la lecture, périmée après vingt
+       secondes. Déjà sur la page de la salle, elle s'ouvre sur place. */
+    const CLE_ATTENTE = 'tse:salle-attente';
+    const ouvrirDepuisBarre = (membres) => {
+      if (location.pathname === CFG.SALLE_PAGE) return ouvrir(membres, { origine: 'noeud' });
+      try {
+        sessionStorage.setItem(CLE_ATTENTE, JSON.stringify({ membres, t: Date.now() }));
+      } catch {
+        // Stockage refusé (fenêtre privée stricte) : sur place, plutôt que rien.
+        return ouvrir(membres, { origine: 'noeud' });
+      }
+      location.assign(CFG.SALLE_PAGE);
+      return { redirigee: true };
+    };
+    /* À l'arrivée : la demande est lue et effacée d'un même geste, puis la
+       salle attend la barre latérale — sa largeur borne la zone de la salle —,
+       dix secondes au plus. */
+    const reprendre = () => {
+      let attente = null;
+      try {
+        attente = JSON.parse(sessionStorage.getItem(CLE_ATTENTE) || 'null');
+        sessionStorage.removeItem(CLE_ATTENTE);
+      } catch { return; }
+      if (!attente || !Array.isArray(attente.membres) || !Number.isFinite(attente.t)) return;
+      if (Date.now() - attente.t > CFG.SALLE_ATTENTE_MS || Date.now() < attente.t) return;
+      const t0 = Date.now();
+      const essayer = () => {
+        if (!document.querySelector(DOM.sidebarRoot) && Date.now() - t0 < 10_000) { setTimeout(essayer, 100); return; }
+        ouvrir(attente.membres, { origine: 'noeud', arriveeMs: Date.now() - attente.t });
+      };
+      essayer();
     };
 
     const ouvrir = (...demandees) => {
@@ -13714,23 +13992,24 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       banc.className = 'tse-salle__banc';
       banc.hidden = true;
       gauche.append(scene, banc);
-      const chatBloc = document.createElement('div');
-      chatBloc.className = 'tse-salle__chat';
-      const chatTete = document.createElement('div');
-      chatTete.className = 'tse-salle__chat-tete';
-      chatBloc.appendChild(chatTete);
-      corps.append(gauche, chatBloc);
+      const chatG = creerCoteChat('gauche');
+      const chatD = creerCoteChat('droite');
+      corps.append(chatG.bloc, gauche, chatD.bloc);
       boite.append(tete, corps);
 
       // La vidéo que jouait la page : en pause, et gardée pour la relancer.
       const pausees = [...document.querySelectorAll('video')].filter((v) => !v.paused);
       for (const v of pausees) { try { v.pause(); } catch { /* ignore */ } }
 
+      const empilement = empiler(boite);
       document.body.appendChild(boite);
+      verifierEmpilement(boite, empilement);
       courante = {
-        t0: Date.now(), origine: opts.origine || 'console', adresse: location.href,
+        t0: Date.now(), origine: opts.origine || 'console', chemin: location.pathname,
+        arriveeMs: Number.isFinite(opts.arriveeMs) ? opts.arriveeMs : null, empilement,
         membres, tuiles: [], son: null, boite, scene, banc, cleBanc: null, note,
-        chatBloc, chatTete, chatCadre: null, chatChaine: null, chatVoulu: null, boutonChat,
+        chatG, chatD, deuxChats: false, partage: null, textes: new Map(), comparaison: null,
+        chatVoulu: null, boutonChat,
         disposition: null, zoneCle: null,
         pausees, repauses: 0, pausesCachees: 0, sonsDonnes: 0, remplacements: 0, minuteur: null,
       };
@@ -13757,6 +14036,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     return {
       ouvrir, son, fermer: (raison = 'api') => fermer(raison), rapport: bilan,
+      ouvrirDepuisBarre, reprendre,
       // Pour le nœud seulement — la console n'en reçoit rien (cf. tseApi).
       membres: () => (courante ? [...courante.membres] : null),
       surChangement: (fn) => { auChangement = fn; },
@@ -13769,6 +14049,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      permet de se mettre en multistream avec les streams de cette barrière ».
      Le choix s'est porté sur le COMPTEUR : un petit bouton « ▶ 3 », à la
      couleur de la barre, au milieu du groupe ; « Regarder les 3 » au survol.
+     LE SYMBOLE SEUL depuis la 4.24.0.8, à la demande : « ▶ », et le nombre
+     dans l'étiquette du survol seulement.
 
      IL VIT DANS SON PROPRE CALQUE, hors des cartes : le survoler n'ouvre pas
      l'aperçu, le cliquer n'ouvre pas la chaîne. Le calque est une boîte de
@@ -13829,14 +14111,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       b.type = 'button';
       b.className = 'tse-noeud';
       b.setAttribute('aria-pressed', 'false');
-      const compte = document.createElement('span');
-      compte.className = 'tse-noeud__compte';
-      compte.appendChild(noeudStatique(TRIANGLE));
-      compte.append(String(membres.length));
+      const symbole = document.createElement('span');
+      symbole.className = 'tse-noeud__symbole';
+      symbole.appendChild(noeudStatique(TRIANGLE));
       const etiquette = document.createElement('span');
       etiquette.className = 'tse-noeud__etiquette';
       etiquette.textContent = S.uiNoeudRegarder(membres.length);
-      b.append(compte, etiquette);
+      b.append(symbole, etiquette);
       ordonner(b, membres);
       b.addEventListener('click', (e) => {
         e.preventDefault();
@@ -13844,7 +14125,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         clics += 1;
         const ouverte = salle.membres();
         if (ouverte && cleDe(ouverte) === cle) salle.fermer('noeud');
-        else salle.ouvrir(b.dataset.tseNoeud.split(' '), { origine: 'noeud' });
+        else salle.ouvrirDepuisBarre(b.dataset.tseNoeud.split(' '));
       });
       return b;
     };
@@ -25252,6 +25533,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       preview.init();
       startObserver();
       startTimers();
+      salle.reprendre();     // une salle demandée depuis la page d'avant (4.24.0.8)
       jalon('pret');
     };
     if (document.body) ready();

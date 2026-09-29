@@ -29,6 +29,9 @@ export default [{
       // ResizeObserver : le nœud de la salle (4.24.0.7) suit par lui la
       // taille de la section, que l'observateur de la barre ne voit pas.
       ResizeObserver:'readonly',
+      // sessionStorage : la salle traverse par lui le chargement de sa page
+      // (4.24.0.8) — le stockage de l'onglet, que les autres ne voient pas.
+      sessionStorage:'readonly',
       // `browser` : le namespace de Firefox, celui qui rend des promesses.
       // Chrome ne le définit pas — d'où les gardes `typeof browser` dans
       // panneau.js et background.js, et d'où sa présence ici.
