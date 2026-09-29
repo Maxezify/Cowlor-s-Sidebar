@@ -938,6 +938,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Afficher le chat',
       uiSalleChatMasquer:        'Masquer le chat',
+      // Le nœud sur la barre des co-streams (4.24.0.7) : son étiquette au
+      // survol, et ce qu'il dit à un lecteur d'écran.
+      uiNoeudRegarder:           (n) => `Regarder les ${n}`,
+      uiNoeudAria:               (noms) => `Regarder ${noms} ensemble`,
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
@@ -1047,6 +1051,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Show the chat',
       uiSalleChatMasquer:        'Hide the chat',
+      uiNoeudRegarder:           (n) => `Watch all ${n}`,
+      uiNoeudAria:               (noms) => `Watch ${noms} together`,
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
@@ -1148,6 +1154,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Chat einblenden',
       uiSalleChatMasquer:        'Chat ausblenden',
+      uiNoeudRegarder:           (n) => `Alle ${n} ansehen`,
+      uiNoeudAria:               (noms) => `${noms} zusammen ansehen`,
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
@@ -1249,6 +1257,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Mostrar el chat',
       uiSalleChatMasquer:        'Ocultar el chat',
+      uiNoeudRegarder:           (n) => `Ver los ${n}`,
+      uiNoeudAria:               (noms) => `Ver a ${noms} juntos`,
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
@@ -1350,6 +1360,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Mostrar o chat',
       uiSalleChatMasquer:        'Ocultar o chat',
+      uiNoeudRegarder:           (n) => `Ver os ${n}`,
+      uiNoeudAria:               (noms) => `Assistir ${noms} juntos`,
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
@@ -1451,6 +1463,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Mostra la chat',
       uiSalleChatMasquer:        'Nascondi la chat',
+      uiNoeudRegarder:           (n) => `Guarda tutti e ${n}`,
+      uiNoeudAria:               (noms) => `Guarda ${noms} insieme`,
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
@@ -1552,6 +1566,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatBouton:         'Czat',
       uiSalleChatAfficher:       'Pokaż czat',
       uiSalleChatMasquer:        'Ukryj czat',
+      uiNoeudRegarder:           (n) => `Oglądaj ${n} naraz`,
+      uiNoeudAria:               (noms) => `Oglądaj razem: ${noms}`,
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
@@ -1653,6 +1669,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatBouton:         'Чат',
       uiSalleChatAfficher:       'Показать чат',
       uiSalleChatMasquer:        'Скрыть чат',
+      uiNoeudRegarder:           (n) => `Смотреть все ${n}`,
+      uiNoeudAria:               (noms) => `Смотреть вместе: ${noms}`,
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
@@ -1754,6 +1772,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatBouton:         'チャット',
       uiSalleChatAfficher:       'チャットを表示',
       uiSalleChatMasquer:        'チャットを非表示',
+      uiNoeudRegarder:           (n) => `${n} 人をまとめて見る`,
+      uiNoeudAria:               (noms) => `${noms} をまとめて見る`,
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
@@ -1853,6 +1873,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatBouton:         '聊天',
       uiSalleChatAfficher:       '显示聊天',
       uiSalleChatMasquer:        '隐藏聊天',
+      uiNoeudRegarder:           (n) => `一起观看 ${n} 个`,
+      uiNoeudAria:               (noms) => `一起观看 ${noms}`,
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
@@ -3225,6 +3247,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     dureeFormat:     { defaut: 'hm',      type: 'choix', valeurs: ['hm', 'colon', 'min'] },
     fresh:           { defaut: true,      type: 'bool', css: true },
     collab:          { defaut: true,      type: 'bool', css: true },
+    /* Le nœud de la salle multistream sur la barre des co-streams (4.24.0.7).
+       Coupé, il disparaît ; la salle reste ouvrable depuis la console. */
+    salle:           { defaut: true,      type: 'bool', css: true },
     abonnes:         { defaut: 'plein',   type: 'choix',
                        valeurs: ['plein', 'discret', 'aucun'], css: true },
     subathonJour:    { defaut: true,      type: 'bool', css: true },
@@ -4348,6 +4373,43 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       top: var(--tse-costream-jt, -8px);
       border-top-right-radius: 0;
     }
+
+    /* === Le nœud de la salle multistream, sur la barre (4.24.0.7) ===
+       Un compteur « ▶ 3 » à la couleur de la barre, posé au milieu du groupe.
+       Le liseré a la couleur de la carte : il « coupe » la barre, et on lit
+       un nœud posé sur un fil plutôt qu'une bosse de la barre. Le calque qui
+       le porte n'a pas de hauteur : il ne déplace rien dans la liste. Le nœud
+       part du bord de la carte, là où la barre est peinte : un pixel plus à
+       gauche et la liste, qui ne déborde pas, le rognerait. */
+    #tse-noeuds { position: relative; height: 0; margin: 0; padding: 0; z-index: 5; }
+    .tse-noeud {
+      position: absolute; transform: translateY(-50%);
+      display: inline-flex; align-items: center; gap: 5px;
+      height: 18px; margin: 0; padding: 0 6px 0 5px; box-sizing: border-box;
+      border: 2px solid var(--tse-decoupe); border-radius: 999px;
+      background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
+      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
+      white-space: nowrap; cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    }
+    .tse-noeud__compte { display: inline-flex; align-items: center; gap: 3px; }
+    .tse-noeud svg { width: 6px; height: 8px; fill: currentColor; }
+    .tse-noeud__etiquette { display: none; }
+    .tse-noeud:hover .tse-noeud__etiquette,
+    .tse-noeud:focus-visible .tse-noeud__etiquette { display: inline; }
+    .tse-noeud:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 1px; }
+    /* Sa salle est ouverte : un anneau de la couleur de la barre, au-delà du
+       liseré — le nœud enfoncé se lit de loin. */
+    .tse-noeud[aria-pressed="true"] {
+      box-shadow: 0 0 0 2px var(--tse-noeud-couleur, #9147ff), 0 1px 3px rgba(0, 0, 0, 0.35);
+    }
+    /* Barre réduite : le nombre seul, et pas d'étiquette — il n'y a pas la
+       place de l'écrire à côté d'un avatar. */
+    .tse-noeud.tse-noeud--reduit { padding: 0 5px; }
+    .tse-noeud--reduit svg,
+    .tse-noeud--reduit:hover .tse-noeud__etiquette,
+    .tse-noeud--reduit:focus-visible .tse-noeud__etiquette { display: none; }
+    html[data-tse-off~="salle"] #tse-noeuds { display: none !important; }
 
     /* === Chaîne dont on est ABONNÉ ===
        Le nom de la chaîne passe à l'or, et une lueur circule dans le FOND de
@@ -13231,6 +13293,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const MIN_L = 400, MIN_H = 300;
     let courante = null;
     let derniere = null;
+    // Prévenu à chaque ouverture et fermeture : le nœud de la barre (4.24.0.7)
+    // dit par là si SA salle est ouverte, quelle que soit la façon de fermer.
+    let auChangement = null;
 
     /* LA GRILLE : pour n lecteurs dans W × H, le nombre de colonnes qui donne
        les plus grandes tuiles en 16/9 — et aucune qui passe sous 400 × 300. */
@@ -13593,6 +13658,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       for (const v of c.pausees) {
         if (v.isConnected && v.paused) { try { v.play().catch(() => {}); } catch { /* ignore */ } }
       }
+      if (auChangement) auChangement();
       return { fermee: true };
     };
 
@@ -13674,6 +13740,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       document.addEventListener('visibilitychange', surVisibilite);
       courante.minuteur = setInterval(pas, CFG.SALLE_PAS_MS);
       disposerSalle();
+      if (auChangement) auChangement();
       return {
         ouverte: true,
         membres,
@@ -13688,7 +13755,182 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return { son: c.tuiles[i].chaine };
     };
 
-    return { ouvrir, son, fermer: () => fermer('api'), rapport: bilan };
+    return {
+      ouvrir, son, fermer: (raison = 'api') => fermer(raison), rapport: bilan,
+      // Pour le nœud seulement — la console n'en reçoit rien (cf. tseApi).
+      membres: () => (courante ? [...courante.membres] : null),
+      surChangement: (fn) => { auChangement = fn; },
+    };
+  })();
+
+  /* ── LE NŒUD SUR LA BARRE (4.24.0.7, phase 1 du multistream) ──────────
+     L'IDÉE DE DÉPART DE LA SALLE, prise au mot : « une sorte d'emoji au
+     milieu de la barrière colorée de co-stream qui, lorsqu'on clique dessus,
+     permet de se mettre en multistream avec les streams de cette barrière ».
+     Le choix s'est porté sur le COMPTEUR : un petit bouton « ▶ 3 », à la
+     couleur de la barre, au milieu du groupe ; « Regarder les 3 » au survol.
+
+     IL VIT DANS SON PROPRE CALQUE, hors des cartes : le survoler n'ouvre pas
+     l'aperçu, le cliquer n'ouvre pas la chaîne. Le calque est une boîte de
+     hauteur nulle posée en tête de la section suivie ; les nœuds s'y placent
+     au pixel, sur les rectangles que applyCostreamJoins vient de mesurer, et
+     défilent avec la liste.
+
+     RIEN QUI BOUCLE : l'observateur de la barre relance un balayage à chaque
+     enfant ajouté ou retiré. Un nœud n'est donc créé que pour une barre
+     nouvelle, retiré que pour une barre disparue, rattaché seulement s'il ne
+     l'est pas ; le reste du temps, seuls sa position, sa couleur et son ordre
+     changent — des styles et des attributs, que l'observateur ne regarde pas.
+
+     UN INTERRUPTEUR : un second clic referme la salle qu'il a ouverte, et il
+     reste enfoncé tant qu'elle l'est (la salle le prévient). Il SUIT SA BARRE
+     sans balayage quand la section change de taille (ResizeObserver). */
+  const noeudsSalle = (() => {
+    const TRIANGLE = '<svg viewBox="0 0 8 10" aria-hidden="true"><path d="M0 0v10l8-5z"/></svg>';
+    const parCle = new Map();     // les logins de la barre → le nœud
+    let voulues = new Map();      // les barres du dernier balayage, par clé
+    let couche = null;
+    let veille = null;            // ResizeObserver de la section
+    let suivie = null;
+    let clics = 0;
+
+    const cleDe = (membres) => [...membres].sort().join(' ');
+    const listeNoms = (noms) => {
+      try { return new Intl.ListFormat(S.locale, { type: 'conjunction' }).format(noms); }
+      catch { return noms.join(', '); }
+    };
+    /* ENFONCÉ QUAND SA SALLE EST OUVERTE — les mêmes chaînes, dans n'importe
+       quel ordre. Relu à chaque ouverture et fermeture de la salle, par où
+       qu'elle passe : Échap, « Fermer », un changement de page. */
+    const marquer = () => {
+      const ouverte = salle.membres();
+      const cle = ouverte ? cleDe(ouverte) : null;
+      for (const [k, n] of parCle) {
+        const v = String(k === cle);
+        if (n.getAttribute('aria-pressed') !== v) n.setAttribute('aria-pressed', v);
+      }
+    };
+    /* L'ORDRE DE LA BARRE, et le nom qui le dit. Une barre garde sa clé —
+       les mêmes chaînes — quand un tri la retourne : le nœud reste, mais il
+       ouvrira la salle dans le NOUVEL ordre, et le dira. Des attributs, que
+       l'observateur de la barre ne regarde pas. */
+    const ordonner = (b, membres) => {
+      const ordre = membres.join(' ');
+      if (b.dataset.tseNoeud === ordre) return;
+      b.dataset.tseNoeud = ordre;
+      b.setAttribute('aria-label', S.uiNoeudAria(listeNoms(membres)));
+      b.title = S.uiNoeudAria(listeNoms(membres));
+    };
+    /* UN CLIC OUVRE LA SALLE DE LA BARRE ; UN SECOND LA REFERME. Rouvrir
+       la même salle rechargerait tous ses lecteurs et perdrait le son choisi :
+       le nœud d'une salle ouverte est un interrupteur, pas un raccourci. */
+    const creer = (cle, membres) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tse-noeud';
+      b.setAttribute('aria-pressed', 'false');
+      const compte = document.createElement('span');
+      compte.className = 'tse-noeud__compte';
+      compte.appendChild(noeudStatique(TRIANGLE));
+      compte.append(String(membres.length));
+      const etiquette = document.createElement('span');
+      etiquette.className = 'tse-noeud__etiquette';
+      etiquette.textContent = S.uiNoeudRegarder(membres.length);
+      b.append(compte, etiquette);
+      ordonner(b, membres);
+      b.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        clics += 1;
+        const ouverte = salle.membres();
+        if (ouverte && cleDe(ouverte) === cle) salle.fermer('noeud');
+        else salle.ouvrir(b.dataset.tseNoeud.split(' '), { origine: 'noeud' });
+      });
+      return b;
+    };
+    const poserStyle = (el, prop, v) => { if (el.style.getPropertyValue(prop) !== v) el.style.setProperty(prop, v); };
+
+    /* LA PLACE, au pixel : au milieu de la barre, sur son bord gauche. Rejouée
+       à chaque balayage ET quand la section change de taille sans balayage —
+       une image qui se charge, une carte qui grandit : l'observateur de la
+       barre ne voit pas ces changements-là, et le nœud glisserait du fil. */
+    const placer = () => {
+      if (!couche || !couche.isConnected) return;
+      const origine = couche.getBoundingClientRect();
+      for (const [cle, { barre }] of voulues) {
+        const n = parCle.get(cle);
+        // Une carte partie entre deux balayages : le suivant tranchera.
+        if (!n || !barre.every((c) => c.isConnected)) continue;
+        const haut = barre[0].getBoundingClientRect();
+        const bas = barre[barre.length - 1].getBoundingClientRect();
+        // La couleur de la barre telle qu'elle est PEINTE : celle du groupe,
+        // ou le rouge d'un direct qui vient de démarrer, qui l'emporte.
+        const couleur = getComputedStyle(barre[0], '::before').backgroundColor;
+        poserStyle(n, 'top', `${Math.round((haut.top + bas.bottom) / 2 - origine.top)}px`);
+        poserStyle(n, 'left', `${Math.round(haut.left - origine.left)}px`);
+        poserStyle(n, '--tse-noeud-couleur', couleur);
+        n.classList.toggle('tse-noeud--reduit', sidebarCollapsed);
+      }
+    };
+    const suivre = (section) => {
+      if (suivie === section) return;
+      if (veille) veille.disconnect();
+      suivie = section;
+      if (!section || typeof ResizeObserver !== 'function') return;
+      veille = veille || new ResizeObserver(placer);
+      veille.observe(section);
+    };
+
+    /* Les barres de ce balayage → les nœuds. `barres` : les suites de cartes
+       jointes (au moins deux), dans l'ordre d'affichage. */
+    const maj = (barres) => {
+      voulues = new Map();
+      for (const barre of barres || []) {
+        const membres = [...new Set(barre.map((c) => c.dataset.tseLogin).filter(Boolean))];
+        if (membres.length >= 2) voulues.set(cleDe(membres), { barre, membres });
+      }
+      for (const [cle, n] of [...parCle]) {
+        if (voulues.has(cle) && n.isConnected) continue;
+        n.remove();
+        parCle.delete(cle);
+      }
+      const premiere = voulues.values().next().value;
+      const section = premiere ? premiere.barre[0].closest('.side-nav-section') : null;
+      if (!section) { voulues = new Map(); suivre(null); return; }
+      if (!couche || couche.parentElement !== section) {
+        couche = couche || Object.assign(document.createElement('div'), { id: 'tse-noeuds' });
+        section.prepend(couche);
+      }
+      for (const [cle, { membres }] of voulues) {
+        let n = parCle.get(cle);
+        if (!n) { n = creer(cle, membres); parCle.set(cle, n); }
+        else ordonner(n, membres);
+        if (n.parentElement !== couche) couche.appendChild(n);
+      }
+      placer();
+      marquer();
+      suivre(section);
+    };
+    salle.surChangement(marquer);
+    /* LE CALQUE NE DOIT RIEN DÉPLACER, et c'est une hypothèse sur Twitch : sa
+       section suivie est une boîte ordinaire. Si elle devenait une grille ou
+       une colonne flex avec un `gap`, ce calque de hauteur nulle y ajouterait
+       un écart — le rapport le dit : l'affichage de la section, et l'écart
+       mesuré entre le calque et ce qui le suit (0 attendu). */
+    const bilan = () => {
+      const out = { affiches: parCle.size, clics };
+      // Le prochain élément RENDU : Twitch garde dans la section des blocs
+      // masqués (son en-tête, sous le nôtre), qui n'ont pas de place.
+      let suivant = couche && couche.isConnected ? couche.nextElementSibling : null;
+      while (suivant && !suivant.getClientRects().length) suivant = suivant.nextElementSibling;
+      if (suivant) {
+        const cs = getComputedStyle(couche.parentElement);
+        out.section = `${cs.display} · gap ${cs.rowGap}`;
+        out.ecart = Math.round(suivant.getBoundingClientRect().top - couche.getBoundingClientRect().bottom);
+      }
+      return out;
+    };
+    return { maj, bilan };
   })();
 
   const tseApi = {
@@ -14477,8 +14719,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         sonde: sonde.rapport(),
         /* ── LA SALLE (4.24.0.6) ──────────────────────────────────────────
            La salle ouverte, ou la dernière refermée dans cette page, et
-           pourquoi elle l'a été ; `ouverte: false` seul si aucune ne l'a été. */
-        salle: salle.rapport(),
+           pourquoi elle l'a été ; `ouverte: false` seul si aucune ne l'a été.
+           `noeuds` (4.24.0.7) : les nœuds posés sur les barres à cet instant,
+           et les clics qu'ils ont reçus. */
+        salle: { ...salle.rapport(), noeuds: noeudsSalle.bilan() },
         /* ── LA RANGÉE DES STORIES (4.23.0) ───────────────────────────────
            Seul son bloc externe a été relevé : la puce lit la rangée sans en
            supposer la forme, et ce bloc dit ce qu'elle y a trouvé.
@@ -23264,7 +23508,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const key = a.dataset.tseCostreamKey;
       if (key && key === b.dataset.tseCostreamKey) pairs.push([a, b]);
     }
-    if (!pairs.length) return;
+    if (!pairs.length) return [];
     // 2) Mesure l'interstice de chaque paire (lectures groupées) et ÉCARTE
     //    celles dont la géométrie ne décrit pas deux cartes qui se suivent.
     //    Garde-fou volontairement indépendant de cardShown : celui-ci recopie
@@ -23293,6 +23537,18 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       mark(a, 'tse-costream-join-bottom', '--tse-costream-jb', ext);
       mark(b, 'tse-costream-join-top', '--tse-costream-jt', ext);
     }
+    /* 4) LES BARRES, telles qu'on vient de les peindre (4.24.0.7) : chaque
+       suite de cartes jointes est UNE barre, et c'est sur elle que le nœud de
+       la salle se pose. Rendues ici, et non recalculées ailleurs : la même
+       adjacence, la même géométrie, pas une seconde lecture. */
+    const jointeAvant = new Set(joins.map(([, b]) => b));
+    const barres = [];
+    let courante = null;
+    for (const c of visible) {
+      if (courante && jointeAvant.has(c)) courante.push(c);
+      else { courante = [c]; barres.push(courante); }
+    }
+    return barres.filter((b) => b.length >= 2);
   }
 
   /* ============================================================
@@ -24368,7 +24624,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const costreamGroups = detectCoStreams();
     updateSortButtonsState({ costreamGroups });
     applySorting();
-    applyCostreamJoins(); // après le tri : fusionne les barres des voisins du même co-stream
+    // Après le tri : fusionne les barres des voisins du même co-stream, et pose
+    // sur chacune le nœud de la salle multistream.
+    noeudsSalle.maj(applyCostreamJoins());
     autoExpandFollowed();
 
     // Ce scan a-t-il masqué de nouvelles cartes "Déconnecté(e)" ?

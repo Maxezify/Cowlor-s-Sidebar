@@ -385,7 +385,7 @@
     "message": "Los co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Un punto morado en la esquina del avatar, con el número de participantes: ese canal transmite acompañado. Visible en la lista, sin pasar el mouse por nada.\n• Una insignia morada dice entonces quién recibe y quién es invitado, y con quién.\n• Un orden propio los agrupa arriba de la lista (capítulo $1)."
+    "message": "Un punto morado en la esquina del avatar, con el número de participantes: ese canal transmite acompañado. Visible en la lista, sin pasar el mouse por nada.\n• Una insignia morada dice entonces quién recibe y quién es invitado, y con quién.\n• Un orden propio los agrupa arriba de la lista (capítulo $1).\n• Cuando varios participantes van seguidos en la lista, sus barras forman una sola, y sobre ella se posa un contador «▶ 3»: un clic los abre juntos en la página, en la sala multistream. Un clic en un recuadro le da el sonido y su chat; la tecla Esc, o un segundo clic en el contador, cierra la sala."
   },
   "guideDebutTitre": {
     "message": "Los comienzos y las vueltas"
@@ -537,6 +537,12 @@
   "optCollab": {
     "message": "Punto de colaboración"
   },
+  "optSalle": {
+    "message": "Contador de sala multistream"
+  },
+  "optDescSalle": {
+    "message": "El contador «▶ 3» sobre la barra de un co-stream: un clic abre sus streams juntos, en la página. Desactivado, la barra se queda, sin contador."
+  },
   "optAbonnes": {
     "message": "El oro de las suscripciones"
   },
@@ -679,7 +685,7 @@
     "message": "¿Restablecer todos los ajustes?"
   },
   "optResetText": {
-    "message": "Los veinte ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
+    "message": "Los veintiún ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
   },
   "optValPlein": {
     "message": "Completo"

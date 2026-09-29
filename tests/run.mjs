@@ -7108,13 +7108,14 @@ titre('70. Panneau — la page rendue, mesurée');
                                    pointsRepere: 'data-test-selector=community-points-summary',
                                    partage: false, reperesPartage: null } } },
       /* Une salle refermée par Échap : trois streams, un au banc, le son et
-         le chat sur « velmora », une pub vue. */
+         le chat sur « velmora », une pub vue ; deux nœuds sur les barres
+         (4.24.0.7), cliqués quatre fois. */
       salle: { ouverte: false, depuisS: 600, origine: 'noeud', membres: 3, grille: '1×2 · 791×444',
                deborde: false, banc: 'orvik', son: 'velmora', chat: 'velmora', chatMasque: false,
                sonsDonnes: 2, remplacements: 0, pagePausee: 1, repauses: 0, pausesCachees: 2,
                tuiles: { velmora: { pont: true, video: true, lecture: true, muet: false, pub: false,
                                     pubsVues: 1, ordre: 'son · bouton · ok' } },
-               fermeture: 'echap' },
+               fermeture: 'echap', noeuds: { affiches: 2, clics: 4 } },
       /* Une bascule abandonnée ET un onglet lu par bascule : les deux lignes
          que la 4.20.0 ajoute, et qu'aucun rapport réel n'a encore portées. */
       relevesAbonnements: { horodatage: 0, enAttente: false,
@@ -7484,13 +7485,15 @@ titre('70. Panneau — la page rendue, mesurée');
      && /chatsCommuns\.pct\s+88/.test(vue.texte),
      JSON.stringify((vue.texte.match(/SONDE DE LA SALLE[\s\S]{0,1600}/) || [])[0]));
   /* LA SALLE (4.24.0.6) : c'est par ce bloc qu'on saura, sur le vrai Twitch,
-     ce que la grille a choisi et pourquoi la salle s'est fermée. Mutant — la
-     ligne retirée du panneau. */
-  ok('…le bloc de la salle : sa grille, son banc, ce que chaque tuile a répondu, et pourquoi elle s\'est fermée',
+     ce que la grille a choisi et pourquoi la salle s'est fermée — et, depuis
+     la 4.24.0.7, combien de nœuds la barre portait. Mutant — la ligne retirée
+     du panneau. */
+  ok('…le bloc de la salle : sa grille, son banc, ce que chaque tuile a répondu, pourquoi elle s\'est fermée, ses nœuds',
      contient('SALLE MULTISTREAM / MULTISTREAM ROOM')
      && /grille\s+1×2 · 791×444/.test(vue.texte) && /banc\s+orvik/.test(vue.texte)
-     && /tuiles\.velmora\.ordre\s+son · bouton · ok/.test(vue.texte) && /fermeture\s+echap/.test(vue.texte),
-     JSON.stringify((vue.texte.match(/SALLE MULTISTREAM[\s\S]{0,600}/) || [])[0]));
+     && /tuiles\.velmora\.ordre\s+son · bouton · ok/.test(vue.texte) && /fermeture\s+echap/.test(vue.texte)
+     && /noeuds\.affiches\s+2/.test(vue.texte) && /noeuds\.clics\s+4/.test(vue.texte),
+     JSON.stringify((vue.texte.match(/SALLE MULTISTREAM[\s\S]{0,800}/) || [])[0]));
   /* POURQUOI LE RELEVÉ A RECHARGÉ, ET QUEL TÉMOIN A PROUVÉ CHAQUE CLIC.
      Mutants — l'une ou l'autre ligne retirée du rapport — : le vrai Twitch
      ne nous dirait jamais s'il tient son adresse à jour. */
@@ -15924,7 +15927,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses vingt réglages', table.n === 20, String(table.n));
+  ok('la table porte ses vingt et un réglages', table.n === 21, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -15941,18 +15944,22 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      LE NOMBRE ET SON NOM, pas le nombre seul : « dwadzieścia » figure ailleurs
      dans la fiche polonaise, et le mutant qui remettait « dix-neuf » dans la
      phrase des réglages survivait. */
-  const VINGT = { de: 'zwanzig Einstellungen', en: 'twenty settings', es: 'veinte ajustes',
-                  es_419: 'veinte ajustes', fr: 'vingt réglages', it: 'venti impostazioni',
-                  ja: '20 個の設定', pl: 'dwadzieścia ustawień', pt_BR: 'vinte configurações',
-                  pt_PT: 'vinte definições', ru: 'двадцать настроек', zh_CN: '二十项设置' };
-  const muettes = Object.entries(VINGT).flatMap(([loc, mot]) => [
+  /* Vingt et un depuis la 4.24.0.7 (le compteur de la salle). En russe, le
+     nom s'accorde au nombre et la phrase est tournée au nominatif des deux
+     côtés, pour que le même mot se lise dans les deux. */
+  const VINGT_ET_UN = { de: 'einundzwanzig Einstellungen', en: 'twenty-one settings',
+                        es: 'veintiún ajustes', es_419: 'veintiún ajustes', fr: 'vingt et un réglages',
+                        it: 'ventuno impostazioni', ja: '21 個の設定', pl: 'dwadzieścia jeden ustawień',
+                        pt_BR: 'vinte e uma configurações', pt_PT: 'vinte e uma definições',
+                        ru: 'двадцать одна настройка', zh_CN: '二十一项设置' };
+  const muettes = Object.entries(VINGT_ET_UN).flatMap(([loc, mot]) => [
     JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'))
       .optResetText.message.includes(mot) ? null : `panneau ${loc}`,
     readFileSync(join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8')
       .includes(mot) ? null : `fiche ${loc}`,
   ]).filter(Boolean);
   ok('…et le panneau comme la fiche du Store en annoncent autant, dans les douze langues',
-     table.n === 20 && muettes.length === 0, muettes.join(', ') || String(table.n));
+     table.n === 21 && muettes.length === 0, muettes.join(', ') || String(table.n));
   /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
      constante de production vaut six heures, mais tests/build.mjs la réécrit à
      quatre secondes pour que le relevé des abonnements soit éprouvable. La
@@ -16395,6 +16402,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
       dureeFormat: { defaut: 'hm', type: 'choix', valeurs: ['hm', 'colon', 'min'] },
       fresh: { defaut: true, type: 'bool' },
       collab: { defaut: true, type: 'bool' },
+      salle: { defaut: true, type: 'bool' },
       abonnes: { defaut: 'plein', type: 'choix', valeurs: ['plein', 'discret', 'aucun'] },
       subathonJour: { defaut: true, type: 'bool' },
       stories: { defaut: 'integree', type: 'choix', valeurs: ['twitch', 'integree', 'masquee'] },
@@ -16490,7 +16498,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              fantomes: peints.filter((id) => !table.includes(id)) };
   }, vue.peints);
 
-  ok('les vingt réglages de la page ont chacun leur ligne',
+  ok('les vingt et un réglages de la page ont chacun leur ligne',
      contrat.oublies.length === 0, contrat.oublies.join(', '));
   ok('…et aucune ligne fantôme : l\'ordre du panneau couvre exactement la table',
      contrat.fantomes.length === 0, contrat.fantomes.join(', '));
@@ -16515,7 +16523,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      vue.voisine === 'stories' && vue.serie.join('|') === 'Comme Twitch|Intégrée|Masquée',
      JSON.stringify({ voisine: vue.voisine, menu: vue.serie }));
   ok('les cartouches disent le compte, et zéro modifié au départ',
-     vue.tuiles[0] === '20' && vue.tuiles[1] === '0', JSON.stringify(vue.tuiles));
+     vue.tuiles[0] === '21' && vue.tuiles[1] === '0', JSON.stringify(vue.tuiles));
 
   /* ── CE QUI PART VERS LA PAGE ───────────────────────────────────────── */
   await page.evaluate(() => document.querySelector(
@@ -25264,6 +25272,339 @@ const pageVariante = async (substitutions, init = null) => {
      recus === 0 && !!cTiers && cTiers.clics.son === 0 && cTiers.clics.lecture === 0 && cTiers.muet === true
      && !!cRenard && cRenard.clics.son === 0 && cRenard.clics.lecture === 0 && cRenard.muet === true && cRenard.joue === true,
      JSON.stringify({ recus, cTiers, cRenard }));
+  await page.close();
+}
+
+/* ═════════ LE NŒUD SUR LA BARRE — LA SALLE EN UN CLIC ═════════════════════
+   PHASE 1 DU MULTISTREAM, DEUXIÈME ÉTAPE (4.24.0.7). Le compteur « ▶ 3 » posé
+   au milieu de chaque barre de co-stream ouvre la salle avec les chaînes de la
+   barre. Tout ce qu'il promet se mesure ici :
+     — SA PLACE, au pixel : au milieu de la barre, sur son bord gauche, à sa
+       couleur, entier dans une liste qui ne déborde pas ;
+     — SON CALQUE, hors des cartes : le survoler n'ouvre pas l'aperçu, le
+       cliquer ne suit pas le lien de la carte ;
+     — UN INTERRUPTEUR : un clic ouvre, un second referme, et l'état enfoncé
+       suit la salle quelle que soit la façon de la fermer ;
+     — RIEN QUI BOUCLE : un balayage le pose, et aucun balayage n'en naît ;
+     — IL SUIT LA BARRE sans balayage quand la section change de taille — le
+       cas qu'aucun observateur de la barre ne voit ;
+     — une barre qui perd un membre, le réglage, la barre réduite, le rapport.
+
+   LES CONSTANTES DE PRODUCTION, comme au scénario 156 : à la cadence du banc,
+   les balayages légitimes masqueraient la boucle qu'on cherche, et un
+   placement qui ne tiendrait qu'aux balayages passerait pour le suivi. */
+{
+  titre('176. Le nœud de la salle — sur la barre au pixel, un interrupteur, sans boucle');
+  const { page, ratees } = await pageVariante([
+    [/REFRESH_TICK:\s*100\b/, 'REFRESH_TICK:   5_000'],
+    [/LIVE_TTL:\s*600\b/, 'LIVE_TTL:       30_000'],
+    [/SUBS_PAGE_TTL:\s*4_000\b/, 'SUBS_PAGE_TTL: 6 * 60 * 60_000'],
+  ]);
+  ok('la variante porte le réveil, la fraîcheur et le relevé de production',
+     ratees.length === 0, JSON.stringify(ratees));
+  // Une fenêtre de bureau : les trois streams d'une barre tiennent dans la salle.
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  // Les lecteurs et le chat de la salle : des pages vides suffisent ici.
+  await page.route('https://player.twitch.tv/**', (route) => route.fulfill({
+    contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body style="margin:0;background:#000"></body></html>' }));
+  await page.route('https://www.twitch.tv/embed/**', (route) => route.fulfill({
+    contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body></body></html>' }));
+  /* LA LISTE NE DÉBORDE PAS, comme celle de Twitch : un nœud posé un pixel à
+     gauche de la carte y serait rogné. Réduite, elle a la largeur d'un avatar. */
+  await page.addStyleTag({ content: '#side-nav { width: 240px; overflow-x: hidden; }'
+    + ' #root.side-nav--collapsed #side-nav { width: 50px; }' });
+  /* DEUX CO-STREAMS SUIVIS, trois et deux membres, entre deux chaînes seules :
+     « fjord » au-dessus de tout (c'est elle qu'on fera grandir), « gypse »
+     sous tout. Les audiences les rangent sans ambiguïté, propres ou combinées.
+     LES DÉBUTS SONT CHOISIS POUR LE TRI PAR DURÉE : « cirrus » a démarré bien
+     après les autres (mais au-delà des dix minutes du rouge), et ce tri la
+     détachera de sa barre ; celle du duo s'y retournera. */
+  await page.evaluate(() => {
+    const il = (min) => new Date(Date.now() - min * 60_000).toISOString();
+    const c = (id, v, min) => ({ id, createdAt: il(min), viewers: v, game: 'Valheim', tags: [] });
+    window.__fx = { fjord: c('7601', 30000, 180), astra: c('7611', 9000, 60), boreal: c('7612', 8900, 59),
+                    cirrus: c('7613', 8800, 20), delta: c('7621', 5000, 58), eole: c('7622', 4900, 57),
+                    gypse: c('7631', 1000, 120) };
+    const trio = [['7611', 'astra', 9000], ['7612', 'boreal', 8900], ['7613', 'cirrus', 8800]]
+      .map(([id, login, viewers]) => ({ id, login, viewers, combined: 26700 }));
+    const duo = [['7621', 'delta', 5000], ['7622', 'eole', 4900]]
+      .map(([id, login, viewers]) => ({ id, login, viewers, combined: 9900 }));
+    window.__gs = {};
+    for (const g of trio) window.__gs[g.id] = { hostId: '7611', hostLogin: 'astra', guests: trio };
+    for (const g of duo) window.__gs[g.id] = { hostId: '7621', hostLogin: 'delta', guests: duo };
+    for (const [l, v] of [['fjord', '30 k'], ['astra', '26,7 k'], ['boreal', '26,7 k'], ['cirrus', '26,7 k'],
+                          ['delta', '9,9 k'], ['eole', '9,9 k'], ['gypse', '1 000']]) {
+      window.__addCard(l, 'Valheim', v);
+    }
+  });
+  // Le voile levé : tant qu'il est là, la barre est transparente aux clics.
+  await attendre(page, () => !document.body.classList.contains('tse-loading')
+    && document.querySelectorAll('.side-nav-card.tse-costream').length === 5
+    && document.querySelectorAll('#tse-noeuds .tse-noeud').length === 2, 15_000);
+  await wait(page, 300);
+
+  const lire = () => page.evaluate(() => {
+    const carte = (l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+    const nav = document.getElementById('side-nav').getBoundingClientRect();
+    const couche = document.getElementById('tse-noeuds');
+    // Le prochain élément RENDU : l'en-tête de Twitch, masqué, n'a pas de place.
+    let suivant = couche ? couche.nextElementSibling : null;
+    while (suivant && !suivant.getClientRects().length) suivant = suivant.nextElementSibling;
+    const noeuds = [...document.querySelectorAll('#tse-noeuds .tse-noeud')].map((n) => {
+      const membres = n.dataset.tseNoeud.split(' ');
+      const cartes = [carte(membres[0]), carte(membres[membres.length - 1])];
+      // Une carte partie — un nœud en retard sur sa barre : rien à mesurer.
+      if (!cartes[0] || !cartes[1]) return { membres, orpheline: true };
+      const haut = cartes[0].getBoundingClientRect();
+      const bas = cartes[1].getBoundingClientRect();
+      const r = n.getBoundingClientRect();
+      const cy = (r.top + r.bottom) / 2;
+      const touche = document.elementFromPoint(r.left + 3, cy);
+      return {
+        membres, compte: n.querySelector('.tse-noeud__compte').textContent,
+        etiquette: getComputedStyle(n.querySelector('.tse-noeud__etiquette')).display,
+        texte: n.querySelector('.tse-noeud__etiquette').textContent,
+        svg: getComputedStyle(n.querySelector('svg')).display,
+        aria: n.getAttribute('aria-label'), presse: n.getAttribute('aria-pressed'),
+        milieu: Math.round((cy - (haut.top + bas.bottom) / 2) * 10) / 10,
+        gauche: Math.round((r.left - haut.left) * 10) / 10,
+        entier: (touche === n || n.contains(touche)) && r.left >= nav.left && r.right <= nav.right,
+        fond: getComputedStyle(n).backgroundColor,
+        barre: getComputedStyle(cartes[0], '::before').backgroundColor,
+        reduit: n.classList.contains('tse-noeud--reduit'),
+        x: r.left + r.width / 2, y: cy, haut: Math.round(cy),
+      };
+    });
+    return {
+      noeuds, calques: document.querySelectorAll('#tse-noeuds').length,
+      calque: couche ? { h: couche.getBoundingClientRect().height,
+                         ecart: suivant ? suivant.getBoundingClientRect().top
+                                          - couche.getBoundingClientRect().top : null,
+                         affiche: getComputedStyle(couche).display } : null,
+      ordre: [...document.querySelectorAll('.side-nav-card')]
+        .filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.dataset.tseLogin),
+    };
+  });
+  const noeud = (e, chaine) => e.noeuds.find((n) => n.membres.includes(chaine));
+  // Les gestes ne lèvent jamais : un nœud absent est un échec d'assertion,
+  // pas une exception qui emporterait le scénario.
+  const vers = async (n) => { if (n && Number.isFinite(n.x)) await page.mouse.move(n.x, n.y); };
+  const e1 = await lire();
+  const t1 = noeud(e1, 'astra'), d1 = noeud(e1, 'delta');
+  /* Mutants — le milieu pris sur la première carte seule, le bord gauche
+     décalé hors de la liste (rogné), la couleur par défaut au lieu de celle
+     de la barre, le calque qui prend de la hauteur. */
+  ok('un nœud par barre, au milieu de la barre et sur son bord gauche, entier, à sa couleur',
+     e1.calques === 1 && e1.noeuds.length === 2 && !!t1 && !!d1
+     && t1.membres.join() === 'astra,boreal,cirrus' && d1.membres.join() === 'delta,eole'
+     && t1.compte === '3' && d1.compte === '2'
+     && e1.noeuds.every((n) => Math.abs(n.milieu) <= 1 && Math.abs(n.gauche) <= 0.5 && n.entier
+       && n.fond === n.barre && n.presse === 'false' && n.etiquette === 'none' && n.svg !== 'none')
+     && t1.fond !== d1.fond && e1.calque.h === 0 && e1.calque.ecart === 0,
+     JSON.stringify(e1));
+  /* Ce que lit un lecteur d'écran : les chaînes, en toutes lettres. */
+  ok('son nom accessible dit les chaînes qu\'il ouvre',
+     /astra/.test(t1?.aria) && /boreal/.test(t1?.aria) && /cirrus/.test(t1?.aria) && /ensemble/.test(t1?.aria),
+     t1?.aria);
+
+  // ── Le survol : l'étiquette, et pas l'aperçu ──────────────────────────────
+  await vers(t1);
+  await wait(page, 900);
+  const survol = await page.evaluate(() => ({
+    apercu: !!document.querySelector('.tse-preview') }));
+  const e2 = await lire();
+  /* LA PRÉMISSE : le même geste sur la carte ouvre bien l'aperçu — sans elle,
+     « pas d'aperçu » serait vrai d'un décor qui n'en ouvre jamais. */
+  const boite = await page.evaluate(() => {
+    const r = document.querySelector('.side-nav-card[data-tse-login="boreal"]').getBoundingClientRect();
+    return { x: r.left + r.width * 0.7, y: r.top + r.height / 2 };
+  });
+  await page.mouse.move(boite.x, boite.y);
+  await attendre(page, () => !!document.querySelector('.tse-preview'), 4000);
+  const surCarte = await page.evaluate(() => !!document.querySelector('.tse-preview'));
+  await page.mouse.move(900, 700);
+  await attendre(page, () => !document.querySelector('.tse-preview'), 4000);
+  /* Mutant — le nœud posé DANS la carte : son survol ouvrirait l'aperçu. */
+  /* L'étiquette est un élément d'une boîte flex : affichée, elle se calcule
+     « block », pas « inline ». */
+  ok('survolé, il dit « Regarder les 3 » ; l\'aperçu, que la carte ouvre, reste fermé',
+     survol.apercu === false && surCarte === true
+     && noeud(e2, 'astra')?.etiquette === 'block' && noeud(e2, 'astra')?.texte === 'Regarder les 3',
+     JSON.stringify({ survol, surCarte, astra: noeud(e2, 'astra') }));
+
+  // ── L'interrupteur ────────────────────────────────────────────────────────
+  const salle = () => page.evaluate(() => ({
+    ouverte: !!document.getElementById('tse-salle'),
+    chaines: [...document.querySelectorAll('#tse-salle .tse-salle__tuile, #tse-salle .tse-salle__remplacant')]
+      .map((t) => t.dataset.tseSalleChaine),
+    rapport: window.tse.salle.rapport(),
+    presses: Object.fromEntries([...document.querySelectorAll('.tse-noeud')]
+      .map((n) => [n.dataset.tseNoeud.split(' ')[0], n.getAttribute('aria-pressed')])),
+    chemin: location.pathname,
+  }));
+  const cliquerNoeud = async (premier) => {
+    const n = noeud(await lire(), premier);
+    if (n && Number.isFinite(n.x)) await page.mouse.click(n.x, n.y);
+    await wait(page, 300);
+  };
+  await cliquerNoeud('astra');
+  const o1 = await salle();
+  /* Mutants — le clic qui ne fait rien, qui ouvre les chaînes dans un autre
+     ordre que la barre, qui suit le lien de la carte ; l'état jamais enfoncé. */
+  ok('un clic ouvre la salle avec les chaînes de la barre, dans son ordre, sans quitter la page',
+     o1.ouverte && o1.chaines.join() === 'astra,boreal,cirrus' && o1.rapport.origine === 'noeud'
+     && o1.rapport.son === 'astra' && o1.presses.astra === 'true' && o1.presses.delta === 'false'
+     && o1.chemin === '/',
+     JSON.stringify(o1));
+  await cliquerNoeud('astra');
+  const o2 = await salle();
+  /* Mutant — le second clic qui rouvre la salle (et recharge ses lecteurs). */
+  ok('un second clic la referme, et le nœud se relève',
+     !o2.ouverte && o2.rapport.fermeture === 'noeud'
+     && o2.presses.astra === 'false' && o2.presses.delta === 'false',
+     JSON.stringify(o2));
+
+  await cliquerNoeud('astra');
+  await page.keyboard.press('Escape');
+  await wait(page, 200);
+  const o3 = await salle();
+  await cliquerNoeud('astra');
+  await cliquerNoeud('delta');
+  const o4 = await salle();
+  await page.evaluate(() => window.tse.salle.fermer());
+  await wait(page, 200);
+  const o5 = await salle();
+  /* Mutants — l'état relu au clic seulement (Échap et la console le
+     laisseraient enfoncé), la salle d'une autre barre prise pour la sienne. */
+  ok('l\'état enfoncé suit la salle : Échap, une autre barre, la console',
+     !o3.ouverte && o3.rapport.fermeture === 'echap' && o3.presses.astra === 'false'
+     && o4.ouverte && o4.chaines.join() === 'delta,eole' && o4.presses.delta === 'true' && o4.presses.astra === 'false'
+     && !o5.ouverte && o5.presses.delta === 'false' && o5.presses.astra === 'false',
+     JSON.stringify({ o3: o3.presses, o4: [o4.chaines, o4.presses], o5: o5.presses }));
+
+  // ── Rien qui boucle ───────────────────────────────────────────────────────
+  /* UNE ACCALMIE : une seconde et demie sans balayage, dix secondes au plus
+     pour l'obtenir — le démarrage et le relevé des abonnements ont droit à
+     leur activité ; une boucle n'en laisse jamais. */
+  const calme = await page.evaluate(async () => {
+    const lireB = () => window.tse.panneau.rapport().page.balayages.total;
+    const t0 = Date.now();
+    let dernier = lireB(), depuis = Date.now();
+    while (Date.now() - t0 < 10_000 && Date.now() - depuis < 1_500) {
+      await new Promise((r) => setTimeout(r, 100));
+      const n = lireB();
+      if (n !== dernier) { dernier = n; depuis = Date.now(); }
+    }
+    return { atteint: Date.now() - depuis >= 1_500, apresMs: Date.now() - t0 };
+  });
+  const b0 = await page.evaluate(() => window.tse.panneau.rapport().page.balayages.total);
+  await wait(page, 2500);
+  const b1 = await page.evaluate(() => window.tse.panneau.rapport().page.balayages.total);
+  /* Mutants — le nœud rattaché au calque, ou le calque replacé en tête de
+     section, à chaque balayage : chaque fois un enfant ajouté, chaque fois
+     un balayage de plus. */
+  ok('posés, les nœuds n\'entretiennent aucun balayage',
+     calme.atteint && b1 - b0 <= 1, JSON.stringify({ calme, balayages: b1 - b0 }));
+
+  // ── La section grandit sans balayage : le nœud suit ───────────────────────
+  /* UN ESSAI SANS BALAYAGE, jusqu'à quatre tentatives : le réveil de
+     production passe toutes les cinq secondes, et un balayage tombé dans la
+     fenêtre ferait le travail à la place du suivi. L'essai retenu est le
+     premier où le compteur n'a pas bougé. */
+  const fjord = (px) => page.evaluate((v) => {
+    const c = document.querySelector('.side-nav-card[data-tse-login="fjord"]');
+    if (!c) return;
+    if (v) c.style.paddingTop = v; else c.style.removeProperty('padding-top');
+  }, px);
+  const balayages = () => page.evaluate(() => window.tse.panneau.rapport().page.balayages.total);
+  let avantPousse = null, apresPousse = null, propre = false, essais = 0;
+  while (!propre && essais < 4) {
+    essais += 1;
+    avantPousse = await lire();
+    const bA = await balayages();
+    await fjord('40px');
+    await wait(page, 400);
+    apresPousse = await lire();
+    propre = (await balayages()) === bA;
+    await fjord(null);
+    await wait(page, 400);
+  }
+  /* Mutant — le placement rejoué aux balayages seulement : le nœud resterait
+     quarante pixels au-dessus de sa barre. */
+  ok('la section grandit sans balayage : les nœuds descendent avec leur barre',
+     propre && apresPousse.noeuds.length === 2
+     && apresPousse.noeuds.every((n) => Math.abs(n.milieu) <= 1)
+     && noeud(apresPousse, 'astra')?.haut - noeud(avantPousse, 'astra')?.haut >= 39,
+     JSON.stringify({ propre, essais, avant: avantPousse.noeuds.map((n) => [n.haut, n.milieu]),
+                      apres: apresPousse.noeuds.map((n) => [n.haut, n.milieu]) }));
+
+  // ── Un tri détache un membre, un autre retourne une barre ─────────────────
+  await page.evaluate(() => document.querySelector('#tse-sort-row [data-tse-sort-mode="uptime"]')?.click());
+  await attendre(page, () => [...document.querySelectorAll('.tse-noeud')]
+    .some((n) => n.dataset.tseNoeud === 'boreal astra'), 5000);
+  await wait(page, 300);
+  const e5 = await lire();
+  const e5duo = noeud(e5, 'delta');
+  /* Mutants — le nœud d'une barre disparue jamais retiré (il dirait encore
+     « 3 » et ouvrirait une chaîne partie) ; le nœud gardé dans son ancien
+     ordre (il ouvrirait la salle à l'envers de la barre). */
+  ok('un tri détache « cirrus » : son ancien nœud part, la barre restante porte « 2 » ; le duo retourné suit son nouvel ordre',
+     e5.ordre.slice(0, 5).join() === 'cirrus,eole,delta,boreal,astra'
+     && e5.noeuds.length === 2 && e5.noeuds.every((n) => !n.membres.includes('cirrus') && Math.abs(n.milieu) <= 1)
+     && noeud(e5, 'astra')?.compte === '2' && noeud(e5, 'astra')?.membres.join() === 'boreal,astra'
+     && e5duo?.membres.join() === 'eole,delta' && /eole.*delta/.test(e5duo?.aria),
+     JSON.stringify({ ordre: e5.ordre, noeuds: e5.noeuds.map((n) => [n.membres, n.compte, n.milieu, n.aria]) }));
+
+  // ── Le réglage ────────────────────────────────────────────────────────────
+  await page.evaluate(() => window.tse.options.poser('salle', false));
+  await wait(page, 300);
+  const coupe = await lire();
+  await page.evaluate(() => window.tse.options.poser('salle', true));
+  await wait(page, 300);
+  const remis = await lire();
+  /* Mutant — la règle du réglage oubliée : les nœuds resteraient. */
+  ok('le réglage « Compteur de salle multistream » coupé, plus aucun nœud ; remis, ils reviennent',
+     coupe.calque?.affiche === 'none' && coupe.noeuds.every((n) => !n.entier)
+     && !!remis.calque && remis.calque.affiche !== 'none' && remis.noeuds.length === 2 && remis.noeuds.every((n) => n.entier),
+     JSON.stringify({ coupe: coupe.calque, remis: remis.noeuds.map((n) => n.entier) }));
+
+  // ── La barre réduite ──────────────────────────────────────────────────────
+  await page.evaluate(() => {
+    document.getElementById('root').classList.add('side-nav--collapsed');
+    // Twitch reconstruit ses cartes en basculant : c'est cette mutation-là
+    // qui porte la détection (cf. scénario 37).
+    const d = document.createElement('div');
+    document.getElementById('cards').appendChild(d);
+    d.remove();
+  });
+  // La bascule relance un cycle, voile compris : on attend qu'il se lève.
+  await attendre(page, () => !document.body.classList.contains('tse-loading')
+    && [...document.querySelectorAll('.tse-noeud')].length === 2
+    && [...document.querySelectorAll('.tse-noeud')].every((n) => n.classList.contains('tse-noeud--reduit')), 8000);
+  await wait(page, 300);
+  const e6 = await lire();
+  await vers(noeud(e6, 'astra'));
+  await wait(page, 300);
+  const e7 = await lire();
+  await page.mouse.move(900, 700);
+  /* Mutants — le mode réduit ignoré (le triangle et l'étiquette déborderaient
+     d'une barre large d'un avatar). */
+  ok('barre réduite : le nombre seul, sans étiquette même au survol, entier et sur sa barre',
+     e6.noeuds.length === 2 && e6.noeuds.every((n) => n.reduit && n.svg === 'none' && n.entier
+       && Math.abs(n.milieu) <= 1 && Math.abs(n.gauche) <= 0.5)
+     && noeud(e7, 'astra')?.etiquette === 'none',
+     JSON.stringify({ e6: e6.noeuds, survol: noeud(e7, 'astra')?.etiquette }));
+
+  // ── Le rapport ────────────────────────────────────────────────────────────
+  const rap = await page.evaluate(() => window.tse.panneau.rapport().salle);
+  /* Mutant — les clics jamais comptés. Cinq : quatre sur le trio (ouvrir,
+     refermer, ouvrir avant Échap, ouvrir), un sur le duo. */
+  /* Et ce qui dira, sur le vrai Twitch, si le calque décale la liste : la
+     section du décor est une boîte ordinaire, l'écart est nul. */
+  ok('le rapport compte les nœuds posés et les clics reçus, et mesure l\'écart du calque',
+     rap.noeuds?.affiches === 2 && rap.noeuds?.clics === 5 && rap.ouverte === false && rap.fermeture === 'api'
+     && /^block · gap /.test(rap.noeuds?.section) && rap.noeuds?.ecart === 0,
+     JSON.stringify(rap.noeuds));
   await page.close();
 }
 

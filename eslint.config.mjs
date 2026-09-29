@@ -26,6 +26,9 @@ export default [{
       // PerformanceObserver : la sonde de la salle (4.24.0.3) y compte les
       // tâches longues de la page, là où le navigateur les expose.
       PerformanceObserver:'readonly',
+      // ResizeObserver : le nœud de la salle (4.24.0.7) suit par lui la
+      // taille de la section, que l'observateur de la barre ne voit pas.
+      ResizeObserver:'readonly',
       // `browser` : le namespace de Firefox, celui qui rend des promesses.
       // Chrome ne le définit pas — d'où les gardes `typeof browser` dans
       // panneau.js et background.js, et d'où sa présence ici.

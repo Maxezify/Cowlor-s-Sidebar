@@ -385,7 +385,7 @@
     "message": "Os co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Um ponto roxo no canto do avatar, com o número de participantes: esse canal transmite acompanhado. Visível na lista, sem passar o mouse por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa todos no topo da lista (capítulo $1)."
+    "message": "Um ponto roxo no canto do avatar, com o número de participantes: esse canal transmite acompanhado. Visível na lista, sem passar o mouse por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa todos no topo da lista (capítulo $1).\n• Quando vários participantes aparecem seguidos na lista, as barras deles viram uma só, e um contador «▶ 3» fica sobre ela: um clique abre todos juntos na página, na sala multistream. Um clique em um quadro dá a ele o som e o chat dele; a tecla Esc, ou um segundo clique no contador, fecha a sala."
   },
   "guideDebutTitre": {
     "message": "Os começos e os regressos"
@@ -537,6 +537,12 @@
   "optCollab": {
     "message": "Ponto de colaboração"
   },
+  "optSalle": {
+    "message": "Contador da sala multistream"
+  },
+  "optDescSalle": {
+    "message": "O contador «▶ 3» na barra de um co-stream: um clique abre as transmissões juntas, na página. Desligado, a barra fica, sem contador."
+  },
   "optAbonnes": {
     "message": "O ouro das assinaturas"
   },
@@ -679,7 +685,7 @@
     "message": "Redefinir todas as configurações?"
   },
   "optResetText": {
-    "message": "As vinte configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
+    "message": "As vinte e uma configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"
