@@ -436,19 +436,39 @@ const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
 const TSE_SONDE_ASSISE_S = 15;
 const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
 
+/* LA SALLE (4.24.0.6, phase 1 du multistream) : ses lecteurs portent leur
+   propre nom, et le pont y parle par ses propres messages. Le même pont, un
+   autre rôle — léger : ni journal, ni débit, seulement ce que la salle
+   affiche (lecture, son, pub) et les ordres qu'elle donne. */
+const TSE_SALLE_FRAME_NAME = 'tse-salle';
+const TSE_SALLE_ETAT_MSG = 'tse:salle-etat';
+const TSE_SALLE_ORDRE_MSG = 'tse:salle-ordre';
+const TSE_SALLE_CHAT_NAME = 'tse-salle-chat';
+/* Les repères d'une pub, RELEVÉS sur le vrai Twitch par la troisième sonde
+   (4.24.0.5) : ils paraissent ensemble au début d'une pub et partent
+   ensemble à sa fin. Ce ne sont plus des mots cherchés, ce sont des noms. */
+const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video-ad-countdown"], '
+  + '[data-test-selector="ad-banner-default-text"]';
+
 (() => {
   'use strict';
 
+  let role = null;
   try {
     if (window.top === window) return;
     if (location.hostname !== 'player.twitch.tv') return;
-    if (window.name !== TSE_SONDE_FRAME_NAME) return;
+    role = window.name === TSE_SONDE_FRAME_NAME ? 'sonde'
+      : window.name === TSE_SALLE_FRAME_NAME ? 'salle' : null;
   } catch { return; }
+  if (!role) return;
   const parentConnu = tseOrigineParent();
   if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;
   const cibles = parentConnu ? [parentConnu] : TSE_PREVIEW_PARENTS;
+  const MSG_ETAT = role === 'sonde' ? TSE_SONDE_ETAT_MSG : TSE_SALLE_ETAT_MSG;
+  const MSG_ORDRE = role === 'sonde' ? TSE_SONDE_ORDRE_MSG : TSE_SALLE_ORDRE_MSG;
 
   const BOUTON_SON = 'button[data-a-target="player-mute-unmute-button"]';
+  const BOUTON_LECTURE = 'button[data-a-target="player-play-pause-button"]';
   /* UN SEGMENT QUI DIT « PUB », et le découpage suit aussi les bosses du
      camelCase : « video-ad-label », mais aussi « VideoAdOverlay » ou
      « ScAdBanner-sc-x ». « add-to-list » ou « header » n'en sont pas. */
@@ -577,24 +597,50 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       ordre,
     };
   };
+  // Le rôle de la salle : ce qu'elle affiche, rien de plus, à chaque seconde.
+  const etatSalle = () => {
+    const v = document.querySelector('video');
+    return {
+      video: !!v,
+      lecture: !!v && !v.paused,
+      muet: v ? v.muted : null,
+      pub: [...document.querySelectorAll(TSE_PUB_REPERES)].some((el) => el.getClientRects().length > 0),
+      boutonSon: !!document.querySelector(BOUTON_SON),
+      ordre,
+    };
+  };
   const poster = () => {
-    const e = etat();
+    const e = role === 'sonde' ? etat() : etatSalle();
     for (const o of cibles) {
-      try { window.parent.postMessage({ tse: TSE_SONDE_ETAT_MSG, etat: e }, o); } catch { /* origine refusée */ }
+      try { window.parent.postMessage({ tse: MSG_ETAT, etat: e }, o); } catch { /* origine refusée */ }
     }
   };
 
+  /* QUATRE ORDRES : le son et le silence, la pause et la reprise — ces deux
+     derniers pour la salle, qui met en pause ses tuiles muettes quand
+     l'onglet passe en arrière-plan. Chacun par le bouton du lecteur, comme
+     Twitch le recommande, et à défaut par l'élément vidéo. */
+  const ORDRES = ['son', 'muet', 'pause', 'lecture'];
   window.addEventListener('message', (e) => {
     if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
     const d = e.data;
-    if (!d || d.tse !== TSE_SONDE_ORDRE_MSG || (d.ordre !== 'son' && d.ordre !== 'muet')) return;
+    if (!d || d.tse !== MSG_ORDRE || !ORDRES.includes(d.ordre)) return;
     const v = document.querySelector('video');
-    const veutSon = d.ordre === 'son';
     let voie = 'deja';
     if (!v) voie = 'sans-video';
-    else if (v.muted === veutSon) {
-      const b = document.querySelector(BOUTON_SON);
-      if (b) { b.click(); voie = 'bouton'; } else { v.muted = !veutSon; voie = 'video'; }
+    else if (d.ordre === 'son' || d.ordre === 'muet') {
+      const veutSon = d.ordre === 'son';
+      if (v.muted === veutSon) {
+        const b = document.querySelector(BOUTON_SON);
+        if (b) { b.click(); voie = 'bouton'; } else { v.muted = !veutSon; voie = 'video'; }
+      }
+    } else {
+      const veutLecture = d.ordre === 'lecture';
+      if (v.paused === veutLecture) {
+        const b = document.querySelector(BOUTON_LECTURE);
+        if (b) { b.click(); voie = 'bouton'; }
+        else { if (veutLecture) v.play().catch(() => {}); else v.pause(); voie = 'video'; }
+      }
     }
     // Numéroté : le parent compte chaque verdict une fois, et garde ceux
     // qu'un ordre suivant a remplacés.
@@ -607,7 +653,9 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
   });
 
   poster();
-  setInterval(poster, 2000);
+  // Toutes les secondes pour la salle : c'est elle qui affiche la pub, et une
+  // étiquette en retard de deux secondes se voit.
+  setInterval(poster, role === 'sonde' ? 2000 : 1000);
 })();
 
 (() => {
@@ -874,6 +922,22 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       uiBulleTitre:              'Merci d\'avoir installé Cowlor\'s Sidebar !',
       uiBulleTexte:              'Apprenez à utiliser l\'extension, personnalisez et regardez toutes vos données stockées ici.',
       uiFermer:                  'Fermer',
+      /* LA SALLE MULTISTREAM (4.24.0.6) : son titre, ses commandes, ses
+         étiquettes. « Pas de points de chaîne » est dit en toutes lettres :
+         un lecteur intégré n'en fait pas gagner, et l'audit a promis de le dire
+         plutôt que de le laisser découvrir. */
+      uiSalleTitre:              (n) => `Salle · ${n} stream${n > 1 ? 's' : ''}`,
+      uiSalleFermer:             'Fermer · Échap',
+      uiSalleSonPour:            (nom) => `Donner le son à ${nom}`,
+      uiSalleSonActif:           'Son',
+      uiSallePub:                'Pub',
+      uiSalleChat:               (nom) => `Chat de ${nom}`,
+      uiSalleChatMasque:         'Chat masqué : fenêtre trop étroite',
+      uiSallePoints:             'Pas de points de chaîne dans la salle',
+      uiSalleBanc:               (nom) => `Mettre ${nom} dans la grille`,
+      uiSalleChatBouton:         'Chat',
+      uiSalleChatAfficher:       'Afficher le chat',
+      uiSalleChatMasquer:        'Masquer le chat',
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
@@ -971,6 +1035,18 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       uiBulleTitre:              'Thanks for installing Cowlor\'s Sidebar!',
       uiBulleTexte:              'Learn how to use the extension, customise it and see all the data it stores, right here.',
       uiFermer:                  'Close',
+      uiSalleTitre:              (n) => `Room · ${n} stream${n > 1 ? 's' : ''}`,
+      uiSalleFermer:             'Close · Esc',
+      uiSalleSonPour:            (nom) => `Give the sound to ${nom}`,
+      uiSalleSonActif:           'Sound on',
+      uiSallePub:                'Ad',
+      uiSalleChat:               (nom) => `${nom}'s chat`,
+      uiSalleChatMasque:         'Chat hidden: window too narrow',
+      uiSallePoints:             'No channel points in the room',
+      uiSalleBanc:               (nom) => `Put ${nom} in the grid`,
+      uiSalleChatBouton:         'Chat',
+      uiSalleChatAfficher:       'Show the chat',
+      uiSalleChatMasquer:        'Hide the chat',
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
@@ -1060,6 +1136,18 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       uiBulleTitre:              'Danke, dass du Cowlor\'s Sidebar installiert hast!',
       uiBulleTexte:              'Lerne die Erweiterung kennen, passe sie an und sieh dir hier alle gespeicherten Daten an.',
       uiFermer:                  'Schließen',
+      uiSalleTitre:              (n) => `Raum · ${n} Stream${n > 1 ? 's' : ''}`,
+      uiSalleFermer:             'Schließen · Esc',
+      uiSalleSonPour:            (nom) => `Ton für ${nom} einschalten`,
+      uiSalleSonActif:           'Ton an',
+      uiSallePub:                'Werbung',
+      uiSalleChat:               (nom) => `Chat von ${nom}`,
+      uiSalleChatMasque:         'Chat ausgeblendet: Fenster zu schmal',
+      uiSallePoints:             'Keine Kanalpunkte im Raum',
+      uiSalleBanc:               (nom) => `${nom} ins Raster holen`,
+      uiSalleChatBouton:         'Chat',
+      uiSalleChatAfficher:       'Chat einblenden',
+      uiSalleChatMasquer:        'Chat ausblenden',
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
@@ -1149,6 +1237,18 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       uiBulleTitre:              '¡Gracias por instalar Cowlor\'s Sidebar!',
       uiBulleTexte:              'Aprende a usar la extensión, personalízala y consulta aquí todos tus datos guardados.',
       uiFermer:                  'Cerrar',
+      uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
+      uiSalleFermer:             'Cerrar · Esc',
+      uiSalleSonPour:            (nom) => `Dar el sonido a ${nom}`,
+      uiSalleSonActif:           'Con sonido',
+      uiSallePub:                'Anuncio',
+      uiSalleChat:               (nom) => `Chat de ${nom}`,
+      uiSalleChatMasque:         'Chat oculto: ventana demasiado estrecha',
+      uiSallePoints:             'Sin puntos de canal en la sala',
+      uiSalleBanc:               (nom) => `Poner a ${nom} en la cuadrícula`,
+      uiSalleChatBouton:         'Chat',
+      uiSalleChatAfficher:       'Mostrar el chat',
+      uiSalleChatMasquer:        'Ocultar el chat',
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
@@ -1238,6 +1338,18 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       uiBulleTitre:              'Obrigado por instalares a Cowlor\'s Sidebar!',
       uiBulleTexte:              'Aprende a usar a extensão, personaliza-a e vê aqui todos os teus dados guardados.',
       uiFermer:                  'Fechar',
+      uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
+      uiSalleFermer:             'Fechar · Esc',
+      uiSalleSonPour:            (nom) => `Dar o som a ${nom}`,
+      uiSalleSonActif:           'Com som',
+      uiSallePub:                'Anúncio',
+      uiSalleChat:               (nom) => `Chat de ${nom}`,
+      uiSalleChatMasque:         'Chat oculto: janela estreita demais',
+      uiSallePoints:             'Sem pontos do canal na sala',
+      uiSalleBanc:               (nom) => `Colocar ${nom} na grade`,
+      uiSalleChatBouton:         'Chat',
+      uiSalleChatAfficher:       'Mostrar o chat',
+      uiSalleChatMasquer:        'Ocultar o chat',
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
@@ -1327,6 +1439,18 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       uiBulleTitre:              'Grazie per aver installato Cowlor\'s Sidebar!',
       uiBulleTexte:              'Impara a usare l\'estensione, personalizzala e guarda qui tutti i tuoi dati memorizzati.',
       uiFermer:                  'Chiudi',
+      uiSalleTitre:              (n) => `Sala · ${n} stream`,
+      uiSalleFermer:             'Chiudi · Esc',
+      uiSalleSonPour:            (nom) => `Dai l'audio a ${nom}`,
+      uiSalleSonActif:           'Audio attivo',
+      uiSallePub:                'Pubblicità',
+      uiSalleChat:               (nom) => `Chat di ${nom}`,
+      uiSalleChatMasque:         'Chat nascosta: finestra troppo stretta',
+      uiSallePoints:             'Niente punti canale nella sala',
+      uiSalleBanc:               (nom) => `Metti ${nom} nella griglia`,
+      uiSalleChatBouton:         'Chat',
+      uiSalleChatAfficher:       'Mostra la chat',
+      uiSalleChatMasquer:        'Nascondi la chat',
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
@@ -1416,6 +1540,18 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       uiBulleTitre:              'Dzięki za zainstalowanie Cowlor\'s Sidebar!',
       uiBulleTexte:              'Naucz się korzystać z rozszerzenia, dostosuj je i zobacz tutaj wszystkie swoje zapisane dane.',
       uiFermer:                  'Zamknij',
+      uiSalleTitre:              (n) => `Sala · streamy: ${n}`,
+      uiSalleFermer:             'Zamknij · Esc',
+      uiSalleSonPour:            (nom) => `Włącz dźwięk: ${nom}`,
+      uiSalleSonActif:           'Dźwięk',
+      uiSallePub:                'Reklama',
+      uiSalleChat:               (nom) => `Czat: ${nom}`,
+      uiSalleChatMasque:         'Czat ukryty: okno jest za wąskie',
+      uiSallePoints:             'Brak punktów kanału w sali',
+      uiSalleBanc:               (nom) => `Przenieś ${nom} do siatki`,
+      uiSalleChatBouton:         'Czat',
+      uiSalleChatAfficher:       'Pokaż czat',
+      uiSalleChatMasquer:        'Ukryj czat',
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
@@ -1505,6 +1641,18 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       uiBulleTitre:              'Спасибо за установку Cowlor\'s Sidebar!',
       uiBulleTexte:              'Узнайте, как пользоваться расширением, настройте его и посмотрите здесь все сохранённые данные.',
       uiFermer:                  'Закрыть',
+      uiSalleTitre:              (n) => `Зал · трансляций: ${n}`,
+      uiSalleFermer:             'Закрыть · Esc',
+      uiSalleSonPour:            (nom) => `Включить звук: ${nom}`,
+      uiSalleSonActif:           'Звук',
+      uiSallePub:                'Реклама',
+      uiSalleChat:               (nom) => `Чат: ${nom}`,
+      uiSalleChatMasque:         'Чат скрыт: окно слишком узкое',
+      uiSallePoints:             'В зале баллы канала не начисляются',
+      uiSalleBanc:               (nom) => `Поместить ${nom} в сетку`,
+      uiSalleChatBouton:         'Чат',
+      uiSalleChatAfficher:       'Показать чат',
+      uiSalleChatMasquer:        'Скрыть чат',
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
@@ -1594,6 +1742,18 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       uiBulleTitre:              'Cowlor\'s Sidebar のインストール、ありがとうございます！',
       uiBulleTexte:              '使い方を学び、カスタマイズし、保存されているデータをここですべて確認できます。',
       uiFermer:                  '閉じる',
+      uiSalleTitre:              (n) => `ルーム · ${n} 配信`,
+      uiSalleFermer:             '閉じる · Esc',
+      uiSalleSonPour:            (nom) => `${nom} の音声に切り替え`,
+      uiSalleSonActif:           '音声',
+      uiSallePub:                '広告',
+      uiSalleChat:               (nom) => `${nom} のチャット`,
+      uiSalleChatMasque:         'チャット非表示：ウィンドウが狭すぎます',
+      uiSallePoints:             'ルームではチャンネルポイントは貯まりません',
+      uiSalleBanc:               (nom) => `${nom} をグリッドに表示`,
+      uiSalleChatBouton:         'チャット',
+      uiSalleChatAfficher:       'チャットを表示',
+      uiSalleChatMasquer:        'チャットを非表示',
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
@@ -1681,6 +1841,18 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
       uiBulleTitre:              '感谢你安装 Cowlor\'s Sidebar！',
       uiBulleTexte:              '在这里了解如何使用本扩展、进行个性化设置，并查看所有已保存的数据。',
       uiFermer:                  '关闭',
+      uiSalleTitre:              (n) => `放映室 · ${n} 个直播`,
+      uiSalleFermer:             '关闭 · Esc',
+      uiSalleSonPour:            (nom) => `切换到 ${nom} 的声音`,
+      uiSalleSonActif:           '有声',
+      uiSallePub:                '广告',
+      uiSalleChat:               (nom) => `${nom} 的聊天`,
+      uiSalleChatMasque:         '聊天已隐藏：窗口太窄',
+      uiSallePoints:             '放映室内不获得频道积分',
+      uiSalleBanc:               (nom) => `将 ${nom} 放入网格`,
+      uiSalleChatBouton:         '聊天',
+      uiSalleChatAfficher:       '显示聊天',
+      uiSalleChatMasquer:        '隐藏聊天',
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
@@ -2827,6 +2999,25 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
     // multistream) : assez lente pour ne rien coûter, assez rapide pour
     // saisir un solde de points au premier chargement.
     SONDE_CHAT_MS: 5_000,
+
+    // === La salle multistream (4.24.0.6) ===
+    // Les mesures de la page qu'elle occupe : la barre du haut de Twitch, sa
+    // propre tête, le banc des streams qui ne tiennent pas, la colonne du
+    // chat — celle du chat intégré de Twitch —, la marge et l'écart des
+    // tuiles. La feuille ET le calcul de la grille les lisent ici : deux
+    // copies d'un même nombre finissent toujours par diverger.
+    SALLE_HAUT_PX:   50,
+    SALLE_TETE_PX:   40,
+    SALLE_BANC_PX:   68,
+    SALLE_CHAT_PX:   340,
+    SALLE_MARGE_PX:  8,
+    SALLE_ECART_PX:  4,
+    // Au plus six lecteurs : une session Stream Together n'a pas plus de six
+    // participants, hôte compris.
+    SALLE_MAX:       6,
+    // Le pas de la salle : la page sous elle a-t-elle changé d'adresse, la
+    // barre latérale de largeur ?
+    SALLE_PAS_MS:    1_000,
 
     // === Changement de catégorie en cours de stream ===
     // Durée de vie du badge « Vient de passer sur … ». C'est une NOUVELLE,
@@ -6220,6 +6411,106 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
          reviendrait à défaire ce calcul. — */
     html[data-tse-apercu="petit"] .tse-preview { width: 360px; }
     html[data-tse-apercu="grand"] .tse-preview { width: 620px; }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       LA SALLE MULTISTREAM (4.24.0.6)
+       ──────────────────────────────────────────────────────────────────────
+       Un calque sur la zone principale : sous la barre du haut, à droite de
+       la barre latérale, qui reste utilisable. Sous l'aperçu (9999) et la
+       bulle (9000), qui doivent pouvoir s'y poser ; au-dessus du contenu de
+       la page. Les tuiles sont placées au pixel par le script — jamais
+       déplacées dans le document, ce qui rechargerait leur lecteur. */
+    #tse-salle {
+      position: fixed; top: ${CFG.SALLE_HAUT_PX}px; right: 0; bottom: 0;
+      z-index: 8000;
+      display: flex; flex-direction: column;
+      background: var(--color-background-base, #0e0e10);
+      color: var(--tse-texte);
+      font-size: 13px; line-height: 1.4;
+    }
+    html[data-tse-theme="light"] #tse-salle { background: var(--color-background-base, #f7f7f8); }
+    html[data-tse-force][data-tse-theme="dark"] #tse-salle { background: #0e0e10; }
+    html[data-tse-force][data-tse-theme="light"] #tse-salle { background: #f7f7f8; }
+    .tse-salle__tete {
+      flex: 0 0 auto; height: ${CFG.SALLE_TETE_PX}px; box-sizing: border-box;
+      display: flex; align-items: center; gap: 12px; padding: 0 ${CFG.SALLE_MARGE_PX + 4}px;
+      border-bottom: 1px solid rgba(var(--tse-encre), 0.08);
+    }
+    .tse-salle__titre { font-weight: 600; white-space: nowrap; }
+    .tse-salle__note {
+      color: var(--tse-texte-faible); font-size: 12px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+    }
+    .tse-salle__bouton-chat, .tse-salle__fermer {
+      flex: 0 0 auto;
+      padding: 4px 10px; border: 0; border-radius: 4px; cursor: pointer;
+      background: rgba(var(--tse-encre), 0.1); color: var(--tse-texte); font: inherit; font-weight: 600;
+    }
+    .tse-salle__bouton-chat { margin-left: auto; }
+    .tse-salle__bouton-chat[aria-pressed="true"] { background: rgba(145, 71, 255, 0.28); }
+    .tse-salle__bouton-chat:hover, .tse-salle__fermer:hover { background: rgba(var(--tse-encre), 0.16); }
+    .tse-salle__corps { flex: 1 1 auto; display: flex; min-height: 0; }
+    .tse-salle__gauche { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
+    .tse-salle__scene { position: relative; flex: 1 1 auto; min-height: 0; overflow: auto; }
+    .tse-salle__tuile {
+      position: absolute; box-sizing: border-box;
+      background: #000; border-radius: 4px; overflow: hidden;
+      box-shadow: 0 0 0 2px transparent;
+    }
+    /* La tuile qui a le son : le violet de Twitch, qui désigne. */
+    .tse-salle__tuile--son { box-shadow: 0 0 0 2px #9147ff; }
+    .tse-salle__tuile iframe { display: block; width: 100%; height: 100%; border: 0; }
+    /* Sur une tuile muette, une prise transparente reçoit le clic qui donne
+       le son : sans elle, le clic irait au lecteur, dans une iframe d'une
+       autre origine, et la page ne le verrait jamais. La tuile qui a le son
+       n'en a pas — ses commandes de Twitch restent à portée. */
+    .tse-salle__prise {
+      position: absolute; inset: 0; z-index: 1;
+      margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer;
+    }
+    .tse-salle__prise:hover, .tse-salle__prise:focus-visible { background: rgba(145, 71, 255, 0.12); outline: none; }
+    .tse-salle__etiquette {
+      position: absolute; top: 6px; left: 6px; z-index: 2; pointer-events: none;
+      display: flex; align-items: center; gap: 6px; max-width: calc(100% - 12px);
+      padding: 2px 8px; border-radius: 4px;
+      background: rgba(0, 0, 0, 0.62); color: #fff; font-size: 12px; font-weight: 600;
+    }
+    .tse-salle__touche { opacity: 0.6; font-variant-numeric: tabular-nums; }
+    .tse-salle__nom { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tse-salle__son { color: #bf94ff; }
+    .tse-salle__pub {
+      padding: 0 5px; border-radius: 3px; background: #ffd37a; color: #0e0e10; font-size: 11px;
+    }
+    .tse-salle__banc {
+      flex: 0 0 auto; height: ${CFG.SALLE_BANC_PX}px; box-sizing: border-box;
+      display: flex; gap: 8px; padding: 8px ${CFG.SALLE_MARGE_PX}px; overflow-x: auto; overflow-y: hidden;
+      border-top: 1px solid rgba(var(--tse-encre), 0.08);
+    }
+    /* Un remplaçant : la vignette de Twitch, son nom posé dessus. Serré, pour
+       que le banc coûte le moins de hauteur possible aux tuiles. */
+    .tse-salle__remplacant {
+      position: relative; flex: 0 0 auto; width: 92px; height: 52px;
+      margin: 0; padding: 0; border: 0; border-radius: 4px; overflow: hidden;
+      background: rgba(var(--tse-encre), 0.08); cursor: pointer;
+    }
+    .tse-salle__remplacant img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .tse-salle__remplacant span {
+      position: absolute; left: 0; right: 0; bottom: 0; padding: 1px 5px;
+      background: rgba(0, 0, 0, 0.62); color: #fff; font-size: 11px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tse-salle__remplacant:hover, .tse-salle__remplacant:focus-visible { box-shadow: 0 0 0 2px #9147ff; outline: none; }
+    .tse-salle__chat {
+      flex: 0 0 ${CFG.SALLE_CHAT_PX}px; display: flex; flex-direction: column; min-height: 0;
+      border-left: 1px solid rgba(var(--tse-encre), 0.08);
+    }
+    .tse-salle__chat[hidden], .tse-salle__banc[hidden] { display: none; }
+    .tse-salle__chat-tete {
+      flex: 0 0 auto; padding: 6px 12px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      border-bottom: 1px solid rgba(var(--tse-encre), 0.08);
+    }
+    .tse-salle__chat iframe { flex: 1 1 auto; width: 100%; border: 0; }
   `;
 
   const injectCSS = () => {
@@ -12898,6 +13189,508 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
     return { ouvrir, son, fermer, rapport: bilan };
   })();
 
+  /* ── LA SALLE MULTISTREAM (4.24.0.6, phase 1) ──────────────────────────
+     Regarder ensemble les streams d'un co-stream. La phase 0 a établi, sur
+     le vrai Twitch, tout ce que cette salle suppose :
+       — un lecteur intégré porte la session (Turbo y ôte les pubs), et on lui
+         rend le son par son propre bouton, sans que le navigateur l'arrête ;
+       — une pub s'y reconnaît à trois repères nommés (TSE_PUB_REPERES) ;
+       — un lecteur coûte ~220 Mo et décode hors du fil de la page ; ce sont
+         les CHATS qui pèsent sur la page — d'où un seul chat chargé ;
+       — deux chats d'un même Chat partagé sont le même chat ;
+       — un lecteur intégré ne fait pas gagner de points de chaîne.
+
+     CE QU'ELLE EST : un calque sur la zone principale (sous la barre du haut,
+     à droite de la barre latérale), des lecteurs intégrés nommés
+     « tse-salle » — le pont y prend le rôle de la salle —, et le chat intégré
+     de la tuile qui a le son.
+
+       tse.salle.ouvrir('chaine1', 'chaine2', …)   jusqu'à six streams
+       tse.salle.son(0)                            le son à la tuile 0
+       tse.salle.rapport()                         le bilan — aussi au rapport
+       tse.salle.fermer()
+
+     LES RÈGLES DE TWITCH, TENUES ICI ET NULLE PART AILLEURS :
+       — un lecteur intégré fait au moins 400 × 300 px : la grille n'en crée
+         jamais un plus petit, et ce qui ne tient pas va sur un banc de
+         vignettes, cliquables ;
+       — tout lecteur démarre muet (la lecture automatique l'exige) ; UN SEUL
+         a le son, par un clic sur sa tuile ou les touches 1 à 6 ;
+       — pas de spectateur fantôme : onglet caché, les tuiles muettes se
+         mettent en pause, et seule celle qui a le son continue.
+
+     ET LA PAGE DESSOUS : la vidéo qu'elle jouait est mise en pause à
+     l'ouverture et relancée à la fermeture — deux vidéos se disputeraient
+     sinon le son et la bande passante. Changer de page ferme la salle.
+
+     UNE SEULE SALLE À LA FOIS, et rien qui tourne quand elle est fermée : ni
+     écouteur, ni minuteur. Son bilan reste au rapport. */
+  const salle = (() => {
+    const RE_LOGIN = /^[a-z0-9_]{2,25}$/;
+    // Le minimum de Twitch pour un lecteur intégré.
+    const MIN_L = 400, MIN_H = 300;
+    let courante = null;
+    let derniere = null;
+
+    /* LA GRILLE : pour n lecteurs dans W × H, le nombre de colonnes qui donne
+       les plus grandes tuiles en 16/9 — et aucune qui passe sous 400 × 300. */
+    const grille = (n, W, H) => {
+      const e = CFG.SALLE_ECART_PX;
+      let meilleure = null;
+      for (let cols = 1; cols <= n; cols++) {
+        const rangs = Math.ceil(n / cols);
+        const l = Math.floor(Math.min((W - (cols - 1) * e) / cols, ((H - (rangs - 1) * e) / rangs) * 16 / 9));
+        const h = Math.floor((l * 9) / 16);
+        if (l < MIN_L || h < MIN_H) continue;
+        if (!meilleure || l > meilleure.l) meilleure = { n, cols, rangs, l, h };
+      }
+      return meilleure;
+    };
+    const capacite = (voulus, W, H) => {
+      for (let n = voulus; n >= 1; n--) { const g = grille(n, W, H); if (g) return g; }
+      return null;
+    };
+    /* Un essai de disposition, avec ou sans la colonne du chat : autant de
+       streams que possible, et un banc pour ceux qui ne tiennent pas. */
+    const essai = (voulus, largeur, hauteur, chat) => {
+      const m = CFG.SALLE_MARGE_PX;
+      const W = largeur - (chat ? CFG.SALLE_CHAT_PX + 1 : 0) - 2 * m;
+      let H = hauteur - 2 * m;
+      let g = capacite(voulus, W, H);
+      if (g && g.n < voulus) {
+        H = hauteur - CFG.SALLE_BANC_PX - 2 * m;
+        g = capacite(voulus, W, H);
+      }
+      return g ? { ...g, chat, W, H, deborde: false } : null;
+    };
+    /* LA DISPOSITION : LE PLUS DE STREAMS D'ABORD, le chat à égalité. Une
+       salle multistream qui ne montrerait qu'un stream pour garder son chat
+       manquerait son objet — c'était le cas, CALCULÉ, d'un écran de
+       1366 × 768 : une seule tuile, quel que soit le groupe, quand deux
+       tiennent sans le chat. `voulu` est le choix de l'utilisateur (le
+       bouton « Chat ») : il force le chat, ou le retire. Si même une tuile ne
+       tient pas, elle garde le minimum de Twitch et la scène défile — jamais
+       un lecteur plus petit. */
+    const disposer = (voulus, largeur, hauteur, voulu = null) => {
+      const avec = voulu === false ? null : essai(voulus, largeur, hauteur, true);
+      const sans = voulu === true ? null : essai(voulus, largeur, hauteur, false);
+      const d = !avec ? sans : !sans ? avec : sans.n > avec.n ? sans : avec;
+      if (d) return d;
+      const l = Math.ceil((MIN_H * 16) / 9);
+      return { n: 1, cols: 1, rangs: 1, l, h: MIN_H, chat: false, W: l, H: MIN_H, deborde: true };
+    };
+    const zone = () => {
+      const nav = document.querySelector(DOM.sidebarRoot);
+      const gauche = nav ? Math.max(0, Math.round(nav.getBoundingClientRect().right)) : 0;
+      return {
+        gauche,
+        largeur: window.innerWidth - gauche,
+        hauteur: window.innerHeight - CFG.SALLE_HAUT_PX - CFG.SALLE_TETE_PX,
+        cle: `${gauche}|${window.innerWidth}|${window.innerHeight}`,
+      };
+    };
+
+    // Ce qu'un ordre a donné, relevé par le pont une seconde et demie après.
+    const issue = (o) => {
+      const a = o.apres;
+      if (!a) return null;
+      if (o.ordre === 'son') return !a.muet && a.lecture ? 'ok' : !a.muet ? 'pause' : 'sans-effet';
+      if (o.ordre === 'muet') return a.muet ? 'ok' : 'sans-effet';
+      if (o.ordre === 'pause') return a.lecture ? 'sans-effet' : 'ok';
+      return a.lecture ? 'ok' : 'sans-effet';
+    };
+    const envoyer = (t, ordre) => {
+      try {
+        t.cadre.contentWindow.postMessage({ tse: TSE_SALLE_ORDRE_MSG, ordre }, 'https://player.twitch.tv');
+      } catch { /* lecteur retiré */ }
+    };
+
+    const creerTuile = (chaine) => {
+      const el = document.createElement('div');
+      el.className = 'tse-salle__tuile';
+      el.dataset.tseSalleChaine = chaine;
+      const cadre = document.createElement('iframe');
+      // Le nom AVANT l'adresse : c'est lui qui éveille le pont, dans son rôle
+      // de salle — et qui en tient l'anti-pub et le pont d'aperçu à l'écart.
+      cadre.name = TSE_SALLE_FRAME_NAME;
+      cadre.title = chaine;
+      cadre.src = `https://player.twitch.tv/?${new URLSearchParams({
+        channel: chaine, parent: location.hostname, muted: 'true', autoplay: 'true' })}`;
+      cadre.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+      const prise = document.createElement('button');
+      prise.type = 'button';
+      prise.className = 'tse-salle__prise';
+      prise.setAttribute('aria-label', S.uiSalleSonPour(chaine));
+      prise.title = S.uiSalleSonPour(chaine);
+      prise.addEventListener('click', () => donnerSon(chaine));
+      const etiquette = document.createElement('div');
+      etiquette.className = 'tse-salle__etiquette';
+      const touche = document.createElement('span');
+      touche.className = 'tse-salle__touche';
+      const nom = document.createElement('span');
+      nom.className = 'tse-salle__nom';
+      nom.textContent = chaine;
+      const sonEl = document.createElement('span');
+      sonEl.className = 'tse-salle__son';
+      sonEl.textContent = S.uiSalleSonActif;
+      sonEl.hidden = true;
+      const pubEl = document.createElement('span');
+      pubEl.className = 'tse-salle__pub';
+      pubEl.textContent = S.uiSallePub;
+      pubEl.hidden = true;
+      etiquette.append(touche, nom, sonEl, pubEl);
+      el.append(cadre, prise, etiquette);
+      return { chaine, el, cadre, prise, touche, sonEl, pubEl, etat: null, messages: 0, pubs: 0,
+               pubAvant: false, sonEnvoye: false, dernierSon: 0, pauseCachee: false,
+               ordreCompte: 0, dernierOrdre: null };
+    };
+
+    const majChat = () => {
+      const c = courante;
+      const voulu = c.disposition && c.disposition.chat ? c.son : null;
+      if (voulu === c.chatChaine) return;
+      c.chatChaine = voulu;
+      if (c.chatCadre) c.chatCadre.remove();
+      c.chatCadre = null;
+      c.chatTete.textContent = voulu ? S.uiSalleChat(voulu) : '';
+      if (!voulu) return;
+      /* UN SEUL CHAT CHARGÉ, celui de la tuile qui a le son : c'est le chat
+         intégré de Twitch, de même origine que la page, connecté. Nommé,
+         pour que ses tâches longues soient reconnues comme les siennes. */
+      const f = document.createElement('iframe');
+      f.name = TSE_SALLE_CHAT_NAME;
+      f.title = S.uiSalleChat(voulu);
+      f.src = `${location.origin}/embed/${encodeURIComponent(voulu)}/chat?`
+        + `${new URLSearchParams({ parent: location.hostname })}${themeTwitch() === 'dark' ? '&darkpopout' : ''}`;
+      c.chatBloc.appendChild(f);
+      c.chatCadre = f;
+    };
+
+    const donnerSon = (chaine) => {
+      const c = courante;
+      if (!c || !c.tuiles.some((t) => t.chaine === chaine)) return false;
+      c.son = chaine;
+      c.sonsDonnes += 1;
+      for (const t of c.tuiles) {
+        const a = t.chaine === chaine;
+        t.el.classList.toggle('tse-salle__tuile--son', a);
+        t.prise.hidden = a;
+        t.sonEl.hidden = !a;
+        if (a) t.dernierSon = Date.now();
+        /* Un lecteur qui n'a pas encore de vidéo ne peut rien entendre : son
+           ordre part dès que son pont en annonce une (cf. surMessage). Les
+           autres démarrent muets de toute façon. */
+        if (t.etat && t.etat.video) { envoyer(t, a ? 'son' : 'muet'); t.sonEnvoye = a; }
+        else t.sonEnvoye = false;
+      }
+      majChat();
+      return true;
+    };
+
+    // Un stream du banc prend la place de la tuile muette entendue il y a le
+    // plus longtemps — jamais, d'abord —, et reçoit le son : on l'a choisi.
+    const remplacer = (chaine) => {
+      const c = courante;
+      if (!c || !c.membres.includes(chaine) || c.tuiles.some((t) => t.chaine === chaine)) return;
+      const muettes = c.tuiles.filter((t) => t.chaine !== c.son);
+      const cible = muettes.length ? muettes.reduce((a, b) => (b.dernierSon < a.dernierSon ? b : a)) : c.tuiles[0];
+      if (!cible) return;
+      const t = creerTuile(chaine);
+      cible.el.replaceWith(t.el);
+      c.tuiles[c.tuiles.indexOf(cible)] = t;
+      c.remplacements += 1;
+      disposerSalle();
+      donnerSon(chaine);
+    };
+
+    const creerRemplacant = (chaine) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tse-salle__remplacant';
+      b.dataset.tseSalleChaine = chaine;
+      b.title = S.uiSalleBanc(chaine);
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = buildThumbUrl(chaine);
+      const nom = document.createElement('span');
+      nom.textContent = chaine;
+      b.append(img, nom);
+      b.addEventListener('click', () => remplacer(chaine));
+      return b;
+    };
+
+    /* PLACER LES TUILES. Qui est dans la grille : celle qui a le son, puis
+       celles qui y sont déjà, puis les suivantes dans l'ordre des membres. Une
+       tuile qui reste n'est JAMAIS déplacée dans le document — son lecteur
+       se rechargerait : seules sa position et sa taille changent. */
+    const disposerSalle = () => {
+      const c = courante;
+      if (!c) return;
+      const z = zone();
+      c.zoneCle = z.cle;
+      c.boite.style.left = `${z.gauche}px`;
+      const d = disposer(c.membres.length, z.largeur, z.hauteur, c.chatVoulu);
+      c.disposition = d;
+      const dedans = [];
+      if (c.son && c.tuiles.some((t) => t.chaine === c.son)) dedans.push(c.son);
+      for (const t of c.tuiles) if (dedans.length < d.n && !dedans.includes(t.chaine)) dedans.push(t.chaine);
+      for (const m of c.membres) if (dedans.length < d.n && !dedans.includes(m)) dedans.push(m);
+      for (const t of [...c.tuiles]) {
+        if (dedans.includes(t.chaine)) continue;
+        t.el.remove();
+        c.tuiles.splice(c.tuiles.indexOf(t), 1);
+      }
+      for (const ch of dedans) {
+        if (c.tuiles.some((t) => t.chaine === ch)) continue;
+        const t = creerTuile(ch);
+        c.scene.appendChild(t.el);
+        c.tuiles.push(t);
+      }
+      const e = CFG.SALLE_ECART_PX, m = CFG.SALLE_MARGE_PX;
+      const x0 = m + Math.max(0, Math.floor((d.W - (d.cols * d.l + (d.cols - 1) * e)) / 2));
+      const y0 = m + Math.max(0, Math.floor((d.H - (d.rangs * d.h + (d.rangs - 1) * e)) / 2));
+      c.tuiles.forEach((t, i) => {
+        const col = i % d.cols, rang = Math.floor(i / d.cols);
+        t.el.style.left = `${x0 + col * (d.l + e)}px`;
+        t.el.style.top = `${y0 + rang * (d.h + e)}px`;
+        t.el.style.width = `${d.l}px`;
+        t.el.style.height = `${d.h}px`;
+        t.touche.textContent = String(i + 1);
+      });
+      const dehors = c.membres.filter((ch) => !dedans.includes(ch));
+      const cleBanc = dehors.join(' ');
+      if (cleBanc !== c.cleBanc) {
+        c.cleBanc = cleBanc;
+        c.banc.replaceChildren(...dehors.map(creerRemplacant));
+      }
+      c.banc.hidden = !dehors.length;
+      c.chatBloc.hidden = !d.chat;
+      c.boutonChat.setAttribute('aria-pressed', String(d.chat));
+      c.boutonChat.title = d.chat ? S.uiSalleChatMasquer : S.uiSalleChatAfficher;
+      // « Masqué faute de place » ne se dit que si ce n'est pas un choix.
+      c.note.textContent = d.chat || c.chatVoulu === false ? S.uiSallePoints
+        : `${S.uiSallePoints} · ${S.uiSalleChatMasque}`;
+      // Le son ne quitte jamais la grille : si sa tuile en est sortie, il
+      // passe à la première.
+      if (!c.son || !c.tuiles.some((t) => t.chaine === c.son)) donnerSon(c.tuiles[0].chaine);
+      else majChat();
+    };
+
+    const surMessage = (e) => {
+      const c = courante;
+      if (!c || !e.data || e.data.tse !== TSE_SALLE_ETAT_MSG) return;
+      // `source` ancre le message à UNE de nos tuiles : la seule vérification
+      // qui compte, comme pour l'aperçu et la sonde.
+      const t = c.tuiles.find((x) => x.cadre.contentWindow === e.source);
+      if (!t) return;
+      const et = e.data.etat || {};
+      t.messages += 1;
+      t.etat = et;
+      if (et.pub && !t.pubAvant) t.pubs += 1;
+      t.pubAvant = !!et.pub;
+      t.pubEl.hidden = !et.pub;
+      if (t.chaine === c.son && !t.sonEnvoye && et.video) { envoyer(t, 'son'); t.sonEnvoye = true; }
+      const o = et.ordre;
+      if (o && o.apres && o.n !== t.ordreCompte) {
+        t.ordreCompte = o.n;
+        t.dernierOrdre = `${o.ordre} · ${o.voie} · ${issue(o)}`;
+      }
+    };
+
+    // Pas de spectateur fantôme : onglet caché, les tuiles muettes se mettent
+    // en pause ; celle qui a le son continue, puisqu'on l'écoute.
+    const surVisibilite = () => {
+      const c = courante;
+      if (!c) return;
+      for (const t of c.tuiles) {
+        if (document.hidden) {
+          if (t.chaine === c.son || !t.etat || !t.etat.lecture) continue;
+          envoyer(t, 'pause');
+          t.pauseCachee = true;
+          c.pausesCachees += 1;
+        } else if (t.pauseCachee) {
+          envoyer(t, 'lecture');
+          t.pauseCachee = false;
+        }
+      }
+    };
+
+    const surTouche = (e) => {
+      const c = courante;
+      if (!c || e.altKey || e.ctrlKey || e.metaKey) return;
+      const cible = e.target;
+      if (cible && (cible.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(cible.tagName || ''))) return;
+      if (e.key === 'Escape') {
+        e.preventDefault(); e.stopPropagation();
+        fermer('echap');
+        return;
+      }
+      const k = /^[1-6]$/.test(e.key) ? Number(e.key) - 1 : -1;
+      if (k < 0 || !c.tuiles[k]) return;
+      e.preventDefault(); e.stopPropagation();
+      donnerSon(c.tuiles[k].chaine);
+    };
+
+    const surRedim = () => { if (courante) disposerSalle(); };
+
+    const pas = () => {
+      const c = courante;
+      if (!c) return;
+      if (location.href !== c.adresse) { fermer('navigation'); return; }
+      if (zone().cle !== c.zoneCle) disposerSalle();
+      // La vidéo de la page reste en pause tant que la salle est ouverte, même
+      // si son lecteur tente de repartir de lui-même.
+      for (const v of c.pausees) {
+        if (v.isConnected && !v.paused) { try { v.pause(); } catch { /* ignore */ } c.repauses += 1; }
+      }
+    };
+
+    const bilan = () => {
+      const c = courante;
+      if (!c) return derniere || { ouverte: false };
+      const d = c.disposition || {};
+      return {
+        ouverte: true,
+        depuisS: Math.round((Date.now() - c.t0) / 1000),
+        origine: c.origine,
+        membres: c.membres.length,
+        grille: d.n ? `${d.cols}×${d.rangs} · ${d.l}×${d.h}` : null,
+        deborde: !!d.deborde,
+        banc: c.membres.filter((m) => !c.tuiles.some((t) => t.chaine === m)).join(' ') || null,
+        son: c.son,
+        chat: c.chatChaine,
+        chatMasque: !d.chat,
+        chatVoulu: c.chatVoulu === null ? 'auto' : c.chatVoulu ? 'oui' : 'non',
+        sonsDonnes: c.sonsDonnes,
+        remplacements: c.remplacements,
+        pagePausee: c.pausees.length,
+        repauses: c.repauses,
+        pausesCachees: c.pausesCachees,
+        tuiles: Object.fromEntries(c.tuiles.map((t) => [t.chaine, {
+          pont: t.messages > 0,
+          video: t.etat ? t.etat.video : null,
+          lecture: t.etat ? t.etat.lecture : null,
+          muet: t.etat ? t.etat.muet : null,
+          pub: t.etat ? t.etat.pub : null,
+          pubsVues: t.pubs,
+          ordre: t.dernierOrdre,
+        }])),
+      };
+    };
+
+    const fermer = (raison = 'api') => {
+      const c = courante;
+      if (!c) return { fermee: false };
+      derniere = { ...bilan(), ouverte: false, fermeture: raison };
+      clearInterval(c.minuteur);
+      window.removeEventListener('message', surMessage);
+      window.removeEventListener('resize', surRedim);
+      document.removeEventListener('keydown', surTouche, true);
+      document.removeEventListener('visibilitychange', surVisibilite);
+      c.boite.remove();
+      courante = null;
+      // La page reprend là où la salle l'avait arrêtée — si elle est encore là.
+      for (const v of c.pausees) {
+        if (v.isConnected && v.paused) { try { v.play().catch(() => {}); } catch { /* ignore */ } }
+      }
+      return { fermee: true };
+    };
+
+    const ouvrir = (...demandees) => {
+      const opts = demandees.length && demandees[demandees.length - 1]
+        && typeof demandees[demandees.length - 1] === 'object' && !Array.isArray(demandees[demandees.length - 1])
+        ? demandees.pop() : {};
+      const logins = demandees.flat().map((x) => String(x).trim().toLowerCase()).filter(Boolean);
+      const faux = logins.filter((x) => !RE_LOGIN.test(x));
+      if (!logins.length) return { erreur: 'aucune chaîne / no channel' };
+      if (faux.length) return { erreur: `chaîne(s) invalide(s) / invalid channel(s) : ${faux.join(', ')}` };
+      fermer('remplacee');
+      // Deux calques au même endroit ne se liraient pas : la sonde s'efface.
+      sonde.fermer();
+      const uniques = [...new Set(logins)];
+      const membres = uniques.slice(0, CFG.SALLE_MAX);
+
+      const boite = document.createElement('div');
+      boite.id = 'tse-salle';
+      boite.setAttribute('role', 'region');
+      boite.setAttribute('aria-label', S.uiSalleTitre(membres.length));
+      const tete = document.createElement('div');
+      tete.className = 'tse-salle__tete';
+      const titre = document.createElement('span');
+      titre.className = 'tse-salle__titre';
+      titre.textContent = S.uiSalleTitre(membres.length);
+      const note = document.createElement('span');
+      note.className = 'tse-salle__note';
+      const clore = document.createElement('button');
+      clore.type = 'button';
+      clore.className = 'tse-salle__fermer';
+      clore.textContent = S.uiSalleFermer;
+      clore.addEventListener('click', () => fermer('bouton'));
+      // Le chat, forcé ou retiré à la main : l'inverse de ce qui est affiché.
+      const boutonChat = document.createElement('button');
+      boutonChat.type = 'button';
+      boutonChat.className = 'tse-salle__bouton-chat';
+      boutonChat.textContent = S.uiSalleChatBouton;
+      boutonChat.addEventListener('click', () => {
+        const c = courante;
+        if (!c) return;
+        c.chatVoulu = !(c.disposition && c.disposition.chat);
+        disposerSalle();
+      });
+      tete.append(titre, note, boutonChat, clore);
+      const corps = document.createElement('div');
+      corps.className = 'tse-salle__corps';
+      const gauche = document.createElement('div');
+      gauche.className = 'tse-salle__gauche';
+      const scene = document.createElement('div');
+      scene.className = 'tse-salle__scene';
+      const banc = document.createElement('div');
+      banc.className = 'tse-salle__banc';
+      banc.hidden = true;
+      gauche.append(scene, banc);
+      const chatBloc = document.createElement('div');
+      chatBloc.className = 'tse-salle__chat';
+      const chatTete = document.createElement('div');
+      chatTete.className = 'tse-salle__chat-tete';
+      chatBloc.appendChild(chatTete);
+      corps.append(gauche, chatBloc);
+      boite.append(tete, corps);
+
+      // La vidéo que jouait la page : en pause, et gardée pour la relancer.
+      const pausees = [...document.querySelectorAll('video')].filter((v) => !v.paused);
+      for (const v of pausees) { try { v.pause(); } catch { /* ignore */ } }
+
+      document.body.appendChild(boite);
+      courante = {
+        t0: Date.now(), origine: opts.origine || 'console', adresse: location.href,
+        membres, tuiles: [], son: null, boite, scene, banc, cleBanc: null, note,
+        chatBloc, chatTete, chatCadre: null, chatChaine: null, chatVoulu: null, boutonChat,
+        disposition: null, zoneCle: null,
+        pausees, repauses: 0, pausesCachees: 0, sonsDonnes: 0, remplacements: 0, minuteur: null,
+      };
+      window.addEventListener('message', surMessage);
+      window.addEventListener('resize', surRedim);
+      document.addEventListener('keydown', surTouche, true);
+      document.addEventListener('visibilitychange', surVisibilite);
+      courante.minuteur = setInterval(pas, CFG.SALLE_PAS_MS);
+      disposerSalle();
+      return {
+        ouverte: true,
+        membres,
+        ...(uniques.length > CFG.SALLE_MAX ? { ignorees: uniques.slice(CFG.SALLE_MAX) } : {}),
+      };
+    };
+
+    const son = (i) => {
+      const c = courante;
+      if (!c || !c.tuiles[i]) return { erreur: 'tuile inconnue / unknown tile' };
+      donnerSon(c.tuiles[i].chaine);
+      return { son: c.tuiles[i].chaine };
+    };
+
+    return { ouvrir, son, fermer: () => fermer('api'), rapport: bilan };
+  })();
+
   const tseApi = {
     scores(limit = Infinity) {
       const report = buildScoresReport().slice(0, limit);
@@ -13682,6 +14475,10 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
            Le bilan de la sonde ouverte, ou de la dernière refermée dans
            cette page ; `ouverte: false` seul si aucune ne l'a été. */
         sonde: sonde.rapport(),
+        /* ── LA SALLE (4.24.0.6) ──────────────────────────────────────────
+           La salle ouverte, ou la dernière refermée dans cette page, et
+           pourquoi elle l'a été ; `ouverte: false` seul si aucune ne l'a été. */
+        salle: salle.rapport(),
         /* ── LA RANGÉE DES STORIES (4.23.0) ───────────────────────────────
            Seul son bloc externe a été relevé : la puce lit la rangée sans en
            supposer la forme, et ce bloc dit ce qu'elle y a trouvé.
@@ -14115,6 +14912,13 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
     son: (i) => sonde.son(i),
     fermer: () => sonde.fermer(),
     rapport: () => sonde.rapport(),
+  });
+  // La salle multistream (4.24.0.6) — cf. son module.
+  tseApi.salle = Object.freeze({
+    ouvrir: (...chaines) => salle.ouvrir(...chaines),
+    son: (i) => salle.son(i),
+    fermer: () => salle.fermer(),
+    rapport: () => salle.rapport(),
   });
 
   /* ============================================================
