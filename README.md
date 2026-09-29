@@ -2180,6 +2180,206 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La salle multistream, le moteur (v4.24.0.6)
+
+La phase 1 du multistream commence, sur les choix pris après les mesures de la
+phase 0 :
+
+| question | choix |
+| --- | --- |
+| la pub dans la salle | celle de Twitch, comme aujourd'hui : l'anti-pub reste à l'aperçu |
+| le nœud sur la barre colorée | le compteur, à l'étape suivante |
+| la portée | les co-streams seulement ; la salle libre plus tard |
+| le chat | celui de la tuile qui a le son, un seul chargé |
+| la qualité des lecteurs | automatique |
+
+Cette première étape livre **le moteur** : la salle s'ouvre depuis la console.
+Le nœud sur la barre colorée, qui l'ouvrira d'un clic, est l'étape suivante.
+
+```js
+tse.salle.ouvrir('chaine1', 'chaine2', 'chaine3')   // six streams au plus
+tse.salle.son(0)                                    // le son à la tuile 0
+tse.salle.rapport()                                 // le bilan, aussi au rapport
+tse.salle.fermer()
+```
+
+### Ce qu'on y voit
+
+La salle est un calque sur la zone principale de la page : sous la barre du haut
+de Twitch, à droite de la barre latérale, qui reste utilisable. Elle porte :
+
+- **une tête** : le titre, la mention « Pas de points de chaîne dans la salle »,
+  le bouton « Chat » et « Fermer · Échap » ;
+- **une grille de tuiles**, chacune étiquetée de son numéro et de sa chaîne.
+  « Son » marque celle qui a le son, et un liseré violet l'entoure ; « Pub »
+  s'affiche pendant une pub ;
+- **la colonne du chat**, celui de la tuile qui a le son ;
+- **un banc** en bas, avec la vignette des streams qui ne tiennent pas dans la
+  grille.
+
+### Ce qu'on y fait
+
+| geste | effet |
+| --- | --- |
+| clic sur une tuile muette | elle prend le son, les autres se taisent, le chat la suit |
+| touches 1 à 6 | la même chose, par le numéro de la tuile ; rien quand on écrit dans un champ |
+| clic sur une vignette du banc | ce stream entre dans la grille et prend le son. Il remplace la tuile muette entendue il y a le plus longtemps, ou jamais entendue |
+| bouton « Chat » | retire le chat, déchargé et pas seulement caché, ou le force |
+| Échap, « Fermer », changer de page | la salle se ferme |
+
+La tuile qui a le son n'a pas de prise par-dessus : ses commandes de Twitch
+(volume, qualité, plein écran) restent à portée. Sur une tuile muette, une prise
+transparente reçoit le clic. Sans elle, le clic irait au lecteur, dans une
+iframe d'une autre origine, et la page ne le verrait jamais.
+
+### La grille
+
+Twitch exige qu'un lecteur intégré fasse au moins 400 × 300 px. La salle
+cherche le nombre de colonnes qui donne les plus grandes tuiles en 16/9, et
+écarte toute grille qui passerait sous ce minimum. Ce qui ne tient pas va au
+banc.
+
+**Le plus de streams d'abord, le chat à égalité.** La première écriture gardait
+le chat coûte que coûte. Le calcul l'a condamnée : sur un écran de 1366 × 768,
+elle ne montrait qu'**un seul** stream, quel que soit le groupe, alors que deux
+tiennent sans le chat. Une salle multistream qui montre un stream manque son
+objet. Le bouton « Chat » rend le choix à l'utilisateur.
+
+Ce que donne la grille. Les chiffres sont calculés par la fonction de la salle,
+avec 110 px d'interface de navigateur, la barre du haut de Twitch (50 px) et la
+tête de la salle (40 px) :
+
+| écran | barre latérale | 2 streams | 3 streams | 4 streams | 6 streams |
+| --- | --- | --- | --- | --- | --- |
+| 1366 × 768 | étendue | 2, sans chat, 553 × 311 | 2 + banc, sans chat | 2 + banc, sans chat | 2 + banc, sans chat |
+| 1536 × 864 | étendue | 2 + chat, 572 × 321 | 3, sans chat, 572 × 321 | 4, sans chat | 2 + banc, sans chat, 638 × 358 |
+| 1920 × 1080 | étendue | 2 + chat, 764 × 429 | 3 + chat, 659 × 370 | 4 + chat, 659 × 370 | 6, sans chat, 552 × 310 |
+| 1920 × 1080 | réduite | 2 + chat, 764 × 429 | 3 + chat, 754 × 424 | 4 + chat, 754 × 424 | 6, sans chat, 615 × 345 |
+| 2560 × 1440 | étendue | 2 + chat, 1084 × 609 | 3 + chat, 979 × 550 | 4 + chat, 979 × 550 | 6 + chat, 720 × 405 |
+
+Si même une tuile ne tient pas, elle garde le minimum de Twitch, et la scène
+défile. La salle ne crée jamais un lecteur plus petit.
+
+**Une tuile qui reste n'est jamais déplacée dans le document.** Déplacer une
+iframe la recharge. Quand la fenêtre change de taille, seules la position et la
+taille des tuiles changent. Le son ne quitte jamais la grille : sa tuile passe
+la première quand la place manque.
+
+### Le son
+
+Tout lecteur démarre muet : c'est la condition de la lecture automatique. La
+première tuile reçoit le son **dès que son lecteur annonce une vidéo** ; avant,
+un ordre se perdrait. Le pont passe par le bouton son du lecteur, ce que la
+phase 0 a éprouvé sur le vrai Twitch (six fois sur six, sans pause). Un seul son
+à la fois.
+
+### La page dessous, l'onglet caché
+
+- **La vidéo que jouait la page** est mise en pause à l'ouverture et relancée à
+  la fermeture. Si le lecteur de Twitch repart de lui-même, la salle le remet en
+  pause, et le rapport le compte (`repauses`).
+- **Pas de spectateur fantôme** : onglet caché, les tuiles muettes se mettent en
+  pause. Celle qui a le son continue, puisqu'on l'écoute. Au retour, toutes
+  repartent.
+
+### Le pont, dans son rôle de salle
+
+Les lecteurs de la salle portent le nom `tse-salle`. Le pont de la sonde s'y
+éveille dans un **autre rôle**, avec ses propres messages : les mêmes gardes (le
+nom, une page twitch.tv pour parent, des ordres de lui seul), mais rien de
+lourd. Pas de journal ni de débit : toutes les secondes, la lecture, le son, et
+la pub, lue sur les trois repères relevés par la troisième sonde.
+
+Il accepte quatre ordres : le son, le silence, la pause et la reprise. Chacun
+passe par le bouton du lecteur, et à défaut par l'élément vidéo. Ni l'anti-pub ni
+le pont d'aperçu n'entrent dans ces lecteurs : le nom n'est pas le leur.
+
+### Le rapport
+
+Le bloc `SALLE MULTISTREAM / MULTISTREAM ROOM` dit :
+
+- la grille choisie, le banc, qui a le son, le chat chargé, et si le chat a été
+  choisi (`chatVoulu` : `auto`, `oui` ou `non`) ;
+- les sons donnés et les remplacements ;
+- la vidéo de la page mise en pause, et les pauses d'onglet caché ;
+- pour chaque tuile, sa lecture, son son, ses pubs et son dernier ordre (par
+  exemple « son · bouton · ok ») ;
+- après fermeture, pourquoi elle s'est fermée : `echap`, `bouton`,
+  `navigation`, `remplacee` ou `api`.
+
+**L'en-tête du rapport dit désormais ce qu'il nomme.** Il promettait « seulement
+des comptes ». Mais le journal de l'aperçu, le bloc de la sonde et celui de la
+salle nomment les chaînes ouvertes dans la page, et c'est ce qui rend leur
+diagnostic lisible. Les listes (visites, abonnements, roster) n'y sont toujours
+pas. La phrase dit maintenant les deux.
+
+### À vérifier sur le vrai Twitch
+
+| point | ce qui le dira |
+| --- | --- |
+| les menus de la barre du haut de Twitch s'ouvrent-ils au-dessus de la salle (z-index 8000) ? | l'œil |
+| le bouton lecture du lecteur porte-t-il `player-play-pause-button` ? | la ligne `ordre` d'une tuile après une pause d'onglet caché : `bouton` ou `video` |
+| le lecteur de la page accepte-t-il d'être mis en pause par son élément vidéo ? | `repauses` |
+| les vignettes du banc s'affichent-elles ? | l'œil |
+
+### Ce que le banc mesure
+
+Le **scénario 175** (quinze assertions) ouvre la salle sur trois lecteurs
+factices qui parlent le protocole du pont. Il vérifie :
+
+- ce qu'elle refuse d'ouvrir ;
+- la grille à quatre tailles de fenêtre : 1920 × 1080, 1366 × 658, 1846 × 506
+  (où c'est la hauteur qui borne les tuiles), puis de nouveau 1920 × 1080.
+  Jamais sous le minimum, en 16/9, dans la scène, sans chevauchement ;
+- le son, à l'ouverture, au clic et au clavier, avec le chat qui suit ;
+- l'étiquette de pub pendant la pub ;
+- l'onglet caché, par un faux `document.hidden` ;
+- le banc, et qu'aucun lecteur qui reste n'est rechargé ;
+- le bouton « Chat » ;
+- les trois fermetures ;
+- les gardes du pont sur un site tiers, sous la variante Firefox comprise.
+
+Le **scénario 70** vérifie le bloc au panneau et la phrase de l'en-tête.
+
+**Au passage, un test fragile du banc.** Le scénario 167 vérifie que l'avatar
+de la puce de série ne se recharge pas à chaque balayage. Il comptait le
+**premier** chargement comme une recharge : l'avatar du décor pointe vers une
+adresse que personne ne sert, et quand le réseau a tardé à refuser la requête,
+cet échec est tombé dans la fenêtre de mesure. Le test échouait alors quatre
+fois sur quatre, sur la 4.24.0.5 comme sur celle-ci, sans que le produit ait
+bougé. Il attend désormais la fin du premier chargement avant de compter. Le
+mutant qu'il vise, un `src` réécrit à chaque passe, reste pris.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| le pont, dans son rôle de salle : le rôle jamais pris, ses messages confondus avec ceux de la sonde, la pub jamais lue ou lue cachée, la pause jamais faite, l'origine d'un ordre non vérifiée (6) | une salle muette, ou qui obéit à un site tiers |
+| la tuile : son nom perdu, son lecteur lancé avec le son (2) | le pont absent, ou la lecture automatique refusée |
+| la grille : le minimum de Twitch oublié, la place du banc oubliée, le chat gardé au prix d'un stream, le chat perdu à égalité, une tuile déplacée dans le document, le son sorti de la grille (6) | des lecteurs trop petits, qui débordent ou se rechargent, ou moins de streams que possible |
+| le son : jamais donné à l'ouverture, pas retiré aux autres, la prise sans effet, le chat qui ne suit pas, les touches ignorées ou prises dans un champ (6) | un son qui ne se donne pas, ou deux qui parlent |
+| la pub : comptée à chaque relevé, jamais étiquetée (2) | une pub fausse, ou invisible |
+| la page : sa vidéo jamais mise en pause, ou jamais rendue (2) | deux vidéos qui se disputent le son |
+| l'onglet caché : la tuile qui a le son mise en pause, les tuiles jamais relancées (2) | un spectateur fantôme, ou une salle figée |
+| la fermeture : Échap ou le changement de page ignorés (2) | une salle qui reste |
+| le banc : son clic sans effet, le nouveau venu sans le son (2) | un stream qu'on ne peut pas faire entrer |
+| le bouton « Chat » : sans effet, écrasé par le calcul, le chat caché mais laissé chargé (3) | un choix qui ne tient pas, ou un chat qui coûte sans se voir |
+| le panneau : la ligne du bloc, la phrase de l'en-tête (2) | un bilan invisible, ou une promesse fausse |
+
+Trente-cinq mutants, trente-cinq pris. Au premier tour, deux n'avaient pas été
+pris par une assertion :
+
+- **la place du banc jamais retirée à la grille** avait échappé : les fenêtres
+  du scénario étaient toutes bornées par la largeur. La fenêtre basse de
+  1846 × 506, où c'est la hauteur qui borne les tuiles, le prend maintenant ;
+- **le minimum de Twitch oublié** était tombé par une exception : sans banc, un
+  clic attendait une vignette qui n'existait plus. Les clics du scénario ne
+  lèvent plus, et c'est une assertion qui le prend.
+
+**Une leçon de méthode.** Un passage de mutants interrompu en cours de route a
+laissé une mutation dans `content.js`, parce que le fichier n'est rétabli qu'à
+la fin de chaque essai. Elle a été retrouvée en vérifiant que chaque ligne
+d'origine de la liste était présente, et rétablie. Un passage de mutants se
+laisse désormais aller à son terme.
+
 ## La salle mesurée, et le lecteur noir cerné (v4.24.0.5)
 
 La troisième sonde a suivi le protocole de la 4.24.0.4 : quatre lecteurs et
@@ -12399,7 +12599,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 174 scénarios, 1498 assertions |
+| `npm test` | le harnais Playwright : 175 scénarios, 1514 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -12420,12 +12620,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1336 Ko | 492 Ko | 3 634 → **2** |
+| `content.js` | 1393 Ko | 532 Ko | 3 683 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 105 Ko | 50 Ko | 145 → **0** |
+| `panneau.js` | 105 Ko | 50 Ko | 147 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1589 Ko** | **648 Ko** | **−59 %** |
+| **les cinq** | **1647 Ko** | **688 Ko** | **−58 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

@@ -2059,6 +2059,203 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The multistream room, the engine (v4.24.0.6)
+
+Multistream phase 1 begins, on the choices made after the phase 0
+measurements:
+
+| question | choice |
+| --- | --- |
+| ads in the room | Twitch's, as today: the ad blocker stays in the preview |
+| the node on the coloured bar | the counter, in the next step |
+| scope | co-streams only; the free room later |
+| chat | the chat of the tile that has the sound, only one loaded |
+| player quality | automatic |
+
+This first step delivers **the engine**: the room opens from the console. The
+node on the coloured bar, which will open it in one click, is the next step.
+
+```js
+tse.salle.ouvrir('channel1', 'channel2', 'channel3')   // six streams at most
+tse.salle.son(0)                                       // sound to tile 0
+tse.salle.rapport()                                    // the summary, also in the report
+tse.salle.fermer()
+```
+
+### What you see
+
+The room is a layer over the page's main area: under Twitch's top bar, right
+of the sidebar, which stays usable. It carries:
+
+- **a header**: the title, the note "No channel points in the room", the "Chat"
+  button and "Close · Esc";
+- **a grid of tiles**, each labelled with its number and channel. "Sound on"
+  marks the one that has the sound, and a purple outline surrounds it; "Ad"
+  shows during an ad;
+- **the chat column**, the chat of the tile that has the sound;
+- **a bench** at the bottom, with the thumbnail of the streams that do not fit
+  in the grid.
+
+### What you do
+
+| gesture | effect |
+| --- | --- |
+| click on a muted tile | it gets the sound, the others go quiet, the chat follows |
+| keys 1 to 6 | the same, by tile number; nothing while typing in a field |
+| click on a bench thumbnail | that stream enters the grid and gets the sound. It replaces the muted tile heard longest ago, or never heard |
+| "Chat" button | removes the chat, unloaded and not just hidden, or forces it |
+| Esc, "Close", changing page | the room closes |
+
+The tile that has the sound has no catcher over it: its Twitch controls
+(volume, quality, full screen) stay within reach. On a muted tile, a
+transparent catcher takes the click. Without it, the click would go to the
+player, in an iframe from another origin, and the page would never see it.
+
+### The grid
+
+Twitch requires an embedded player of at least 400 × 300 px. The room looks for
+the number of columns giving the largest 16:9 tiles, and discards any grid that
+would fall under that minimum. What does not fit goes to the bench.
+
+**Most streams first, chat on a tie.** The first version kept the chat at any
+cost. The computation condemned it: on a 1366 × 768 screen it showed **one**
+stream only, whatever the group, when two fit without the chat. A multistream
+room showing one stream misses its point. The "Chat" button gives the choice
+back to the user.
+
+What the grid gives. The figures are computed by the room's own function, with
+110 px of browser interface, Twitch's top bar (50 px) and the room's header
+(40 px):
+
+| screen | sidebar | 2 streams | 3 streams | 4 streams | 6 streams |
+| --- | --- | --- | --- | --- | --- |
+| 1366 × 768 | expanded | 2, no chat, 553 × 311 | 2 + bench, no chat | 2 + bench, no chat | 2 + bench, no chat |
+| 1536 × 864 | expanded | 2 + chat, 572 × 321 | 3, no chat, 572 × 321 | 4, no chat | 2 + bench, no chat, 638 × 358 |
+| 1920 × 1080 | expanded | 2 + chat, 764 × 429 | 3 + chat, 659 × 370 | 4 + chat, 659 × 370 | 6, no chat, 552 × 310 |
+| 1920 × 1080 | collapsed | 2 + chat, 764 × 429 | 3 + chat, 754 × 424 | 4 + chat, 754 × 424 | 6, no chat, 615 × 345 |
+| 2560 × 1440 | expanded | 2 + chat, 1084 × 609 | 3 + chat, 979 × 550 | 4 + chat, 979 × 550 | 6 + chat, 720 × 405 |
+
+If even one tile does not fit, it keeps Twitch's minimum and the scene
+scrolls. The room never creates a smaller player.
+
+**A tile that stays is never moved in the document.** Moving an iframe reloads
+it. When the window is resized, only the tiles' position and size change. The
+sound never leaves the grid: its tile goes first when space runs out.
+
+### The sound
+
+Every player starts muted: that is the condition for autoplay. The first tile
+gets the sound **as soon as its player announces a video**; before that, a
+command would be lost. The bridge goes through the player's sound button, which
+phase 0 tested on the real Twitch (six times out of six, no pause). One sound
+at a time.
+
+### The page underneath, the hidden tab
+
+- **The video the page was playing** is paused on opening and resumed on
+  closing. If Twitch's player restarts by itself, the room pauses it again, and
+  the report counts it (`repauses`).
+- **No ghost viewer**: with the tab hidden, the muted tiles pause. The one that
+  has the sound keeps playing, since you are listening to it. On return, they
+  all restart.
+
+### The bridge, in its room role
+
+The room's players carry the name `tse-salle`. The probe's bridge wakes up
+there in **another role**, with its own messages: the same guards (the name, a
+twitch.tv page as parent, commands from it alone), but nothing heavy. No log
+and no bitrate: every second, the playback, the sound, and the ad, read on the
+three markers surveyed by the third probe.
+
+It accepts four commands: sound, silence, pause and resume. Each goes through
+the player's button, and failing that through the video element. Neither the
+ad blocker nor the preview bridge gets into these players: the name is not
+theirs.
+
+### The report
+
+The `SALLE MULTISTREAM / MULTISTREAM ROOM` block says:
+
+- the chosen grid, the bench, who has the sound, the loaded chat, and whether
+  the chat was chosen (`chatVoulu`: `auto`, `oui` or `non`);
+- the sounds given and the replacements;
+- the page video paused, and the hidden-tab pauses;
+- for each tile, its playback, its sound, its ads and its last command (for
+  instance "son · bouton · ok");
+- after closing, why it closed: `echap`, `bouton`, `navigation`, `remplacee`
+  or `api`.
+
+**The report's header now says what it names.** It promised "only counts". But
+the preview's log, the probe's block and the room's name the channels opened in
+the page, and that is what makes their diagnostic readable. The lists (visits,
+subscriptions, roster) are still not there. The sentence now says both.
+
+### To check on the real Twitch
+
+| point | what will tell |
+| --- | --- |
+| do the menus of Twitch's top bar open above the room (z-index 8000)? | the eye |
+| does the player's play button carry `player-play-pause-button`? | a tile's `ordre` line after a hidden-tab pause: `bouton` or `video` |
+| does the page's player accept being paused through its video element? | `repauses` |
+| do the bench thumbnails show? | the eye |
+
+### What the bench measures
+
+**Scenario 175** (fifteen assertions) opens the room on three fake players
+that speak the bridge protocol. It checks:
+
+- what it refuses to open;
+- the grid at four window sizes: 1920 × 1080, 1366 × 658, 1846 × 506 (where
+  height bounds the tiles), then 1920 × 1080 again. Never under the minimum,
+  16:9, inside the scene, no overlap;
+- the sound, on opening, by click and by keyboard, with the chat following;
+- the ad label during the ad;
+- the hidden tab, through a fake `document.hidden`;
+- the bench, and that no player that stays is reloaded;
+- the "Chat" button;
+- the three ways of closing;
+- the bridge's guards on a third-party site, under the Firefox variant too.
+
+**Scenario 70** checks the block in the panel and the header sentence.
+
+**Along the way, a fragile bench test.** Scenario 167 checks that the streak
+chip's avatar does not reload at every sweep. It counted the **first** load as
+a reload: the fixture's avatar points to an address nobody serves, and when the
+network was slow to refuse the request, that failure landed inside the
+measuring window. The test then failed four times out of four, on 4.24.0.5 as
+on this one, without the product having changed. It now waits for the first
+load to finish before counting. The mutant it targets, a `src` rewritten at
+every pass, is still caught.
+
+| mutants | what falls |
+| --- | --- |
+| the bridge, in its room role: the role never taken, its messages mixed up with the probe's, the ad never read or read while hidden, the pause never made, a command's origin unchecked (6) | a silent room, or one that obeys a third-party site |
+| the tile: its name lost, its player started with sound (2) | the bridge missing, or autoplay refused |
+| the grid: Twitch's minimum forgotten, the bench's room forgotten, the chat kept at the cost of a stream, the chat lost on a tie, a tile moved in the document, the sound pushed out of the grid (6) | players too small, overflowing or reloading, or fewer streams than possible |
+| the sound: never given on opening, not taken from the others, the catcher without effect, the chat not following, the keys ignored or taken in a field (6) | a sound that cannot be given, or two that talk |
+| the ad: counted at every reading, never labelled (2) | a false ad, or an invisible one |
+| the page: its video never paused, or never given back (2) | two videos fighting over the sound |
+| the hidden tab: the tile that has the sound paused, the tiles never restarted (2) | a ghost viewer, or a frozen room |
+| closing: Esc or a page change ignored (2) | a room that stays |
+| the bench: its click without effect, the newcomer without the sound (2) | a stream that cannot be brought in |
+| the "Chat" button: without effect, overridden by the computation, the chat hidden but left loaded (3) | a choice that does not hold, or a chat that costs without showing |
+| the panel: the block's line, the header sentence (2) | an invisible summary, or a false promise |
+
+Thirty-five mutants, thirty-five caught. In the first round, two had not been
+caught by an assertion:
+
+- **the bench's room never taken from the grid** had slipped through: the
+  scenario's windows were all bounded by width. The low 1846 × 506 window,
+  where height bounds the tiles, now catches it;
+- **Twitch's minimum forgotten** had fallen through an exception: with no
+  bench, a click waited for a thumbnail that no longer existed. The scenario's
+  clicks no longer throw, and an assertion catches it.
+
+**A lesson in method.** A mutant run interrupted midway left a mutation in
+`content.js`, because the file is only restored at the end of each attempt. It
+was found by checking that every original line of the list was present, and
+restored. A mutant run is now always left to finish.
+
 ## The room measured, and the black player narrowed down (v4.24.0.5)
 
 The third probe followed the 4.24.0.4 protocol: four players and two chats of
@@ -11968,7 +12165,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 174 scenarios, 1498 assertions |
+| `npm test` | the Playwright harness: 175 scenarios, 1514 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -11988,12 +12185,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1336 KB | 492 KB | 3,634 → **2** |
+| `content.js` | 1393 KB | 532 KB | 3,683 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 105 KB | 50 KB | 145 → **0** |
+| `panneau.js` | 105 KB | 50 KB | 147 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1589 KB** | **648 KB** | **−59 %** |
+| **all five** | **1647 KB** | **688 KB** | **−58 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

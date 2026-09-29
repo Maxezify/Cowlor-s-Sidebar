@@ -7107,6 +7107,14 @@ titre('70. Panneau — la page rendue, mesurée');
                                    pointsDebut: 530, gainPoints: 10, pointsTexte: '540',
                                    pointsRepere: 'data-test-selector=community-points-summary',
                                    partage: false, reperesPartage: null } } },
+      /* Une salle refermée par Échap : trois streams, un au banc, le son et
+         le chat sur « velmora », une pub vue. */
+      salle: { ouverte: false, depuisS: 600, origine: 'noeud', membres: 3, grille: '1×2 · 791×444',
+               deborde: false, banc: 'orvik', son: 'velmora', chat: 'velmora', chatMasque: false,
+               sonsDonnes: 2, remplacements: 0, pagePausee: 1, repauses: 0, pausesCachees: 2,
+               tuiles: { velmora: { pont: true, video: true, lecture: true, muet: false, pub: false,
+                                    pubsVues: 1, ordre: 'son · bouton · ok' } },
+               fermeture: 'echap' },
       /* Une bascule abandonnée ET un onglet lu par bascule : les deux lignes
          que la 4.20.0 ajoute, et qu'aucun rapport réel n'a encore portées. */
       relevesAbonnements: { horodatage: 0, enAttente: false,
@@ -7475,6 +7483,14 @@ titre('70. Panneau — la page rendue, mesurée');
      && /tachesLongues\.autresNoms\s+unknown ×20 · multiple-contexts ×5/.test(vue.texte)
      && /chatsCommuns\.pct\s+88/.test(vue.texte),
      JSON.stringify((vue.texte.match(/SONDE DE LA SALLE[\s\S]{0,1600}/) || [])[0]));
+  /* LA SALLE (4.24.0.6) : c'est par ce bloc qu'on saura, sur le vrai Twitch,
+     ce que la grille a choisi et pourquoi la salle s'est fermée. Mutant — la
+     ligne retirée du panneau. */
+  ok('…le bloc de la salle : sa grille, son banc, ce que chaque tuile a répondu, et pourquoi elle s\'est fermée',
+     contient('SALLE MULTISTREAM / MULTISTREAM ROOM')
+     && /grille\s+1×2 · 791×444/.test(vue.texte) && /banc\s+orvik/.test(vue.texte)
+     && /tuiles\.velmora\.ordre\s+son · bouton · ok/.test(vue.texte) && /fermeture\s+echap/.test(vue.texte),
+     JSON.stringify((vue.texte.match(/SALLE MULTISTREAM[\s\S]{0,600}/) || [])[0]));
   /* POURQUOI LE RELEVÉ A RECHARGÉ, ET QUEL TÉMOIN A PROUVÉ CHAQUE CLIC.
      Mutants — l'une ou l'autre ligne retirée du rapport — : le vrai Twitch
      ne nous dirait jamais s'il tient son adresse à jour. */
@@ -7506,8 +7522,12 @@ titre('70. Panneau — la page rendue, mesurée');
   const fuites = ['alpha', 'beta', 'gamma', 'delta'].filter(l => contient(l));
   ok('le rapport ne contient AUCUNE liste personnelle — seulement des comptes',
      fuites.length === 0, `fuites : ${JSON.stringify(fuites)}`);
-  ok('…et il le dit lui-même, dans les deux langues, en tête de fichier',
-     contient('AUCUNE LISTE PERSONNELLE') && contient('NO PERSONAL LISTS'));
+  /* …ET CE QU'IL NOMME QUAND MÊME (4.24.0.6) : les chaînes ouvertes dans la
+     page par l'aperçu, la sonde ou la salle. Mutant — la phrase retirée — :
+     l'en-tête promettrait plus que le fichier ne tient. */
+  ok('…et il le dit lui-même, dans les deux langues, en tête de fichier — y compris ce qu\'il nomme',
+     contient('AUCUNE LISTE PERSONNELLE') && contient('NO PERSONAL LISTS')
+     && contient('Il nomme en') && contient('It does name the channels'));
 
   /* ── COPIER ────────────────────────────────────────────────────────────
      navigator.clipboard n'existe pas sur une page file:// : c'est donc le
@@ -22906,6 +22926,20 @@ const pageVariante = async (substitutions, init = null) => {
   const recharges = await page.evaluate(async () => {
     const img = document.querySelector('#tse-filter > .tse-serie img');
     const lire = () => window.tse.panneau.rapport().page.balayages.total;
+    /* LE PREMIER CHARGEMENT D'ABORD, avant de compter. L'avatar du décor
+       pointe vers une adresse que personne ne sert : sa requête échoue par le
+       réseau, et quand cet échec tardait jusque dans la fenêtre de mesure, le
+       banc le comptait comme une recharge (« n: 1 »). Constaté sur la 4.24.0.5
+       comme sur la 4.24.0.6, quatre fois sur quatre, le jour où la réponse du
+       réseau a ralenti : le défaut était celui du banc, pas du produit. Une
+       réécriture du « src » à chaque passe relance, elle, un chargement — le
+       mutant reste pris. */
+    await new Promise((r) => {
+      if (img.complete) { r(); return; }
+      img.addEventListener('load', r, { once: true });
+      img.addEventListener('error', r, { once: true });
+      setTimeout(r, 8000);
+    });
     let n = 0;
     const f = () => { n++; };
     img.addEventListener('load', f); img.addEventListener('error', f);
@@ -24845,6 +24879,391 @@ const pageVariante = async (substitutions, init = null) => {
      tiers === 0 && !!cTiers && cTiers.clics === 0 && cTiers.muet === true
      && !!cRenard && cRenard.clics === 0 && cRenard.muet === true,
      JSON.stringify({ tiers, cTiers, cRenard }));
+  await page.close();
+}
+
+/* ═════════ LA SALLE MULTISTREAM — LE MOTEUR ════════════════════════════════
+   PHASE 1 DU MULTISTREAM, PREMIÈRE ÉTAPE (4.24.0.6). La salle s'ouvre d'ici
+   par la console ; la barre colorée viendra ensuite. Tout ce qu'elle suppose
+   a été MESURÉ sur le vrai Twitch en phase 0 — le banc éprouve ce qu'elle en
+   fait, sur des lecteurs factices qui parlent le protocole du pont :
+     — chaque lecteur a son bouton son et son bouton lecture ; « charlie »
+       montre une pub (les repères relevés sur le vrai Twitch) quatre
+       secondes ;
+     — le chat intégré est servi par la même origine, et dit sa chaîne ;
+     — la page joue une vidéo, que la salle doit mettre en pause et rendre.
+   Puis la grille à deux tailles de fenêtre, le banc, l'onglet caché, les
+   trois façons de fermer, et les gardes du pont dans son rôle de salle. */
+{
+  titre('175. La salle multistream — grille, son, chat, pub, page dessous, onglet caché, fermeture');
+  const lecteur = `<!doctype html><html><body style="margin:0">
+    <video id="v" autoplay muted playsinline style="width:320px;height:180px"></video>
+    <button data-a-target="player-mute-unmute-button">son</button>
+    <button data-a-target="player-play-pause-button">lecture</button>
+    <div data-a-target="video-ad-label" style="display:none;width:40px;height:10px">Pub</div>
+    <script>
+      window.__id = Math.random();
+      const canal = new URLSearchParams(location.search).get('channel');
+      const v = document.getElementById('v');
+      const c = document.createElement('canvas');
+      c.width = 32; c.height = 18;
+      const ctx = c.getContext('2d');
+      ctx.fillRect(0, 0, 32, 18);
+      v.srcObject = c.captureStream(25);
+      v.play().catch(() => {});
+      setInterval(() => { ctx.fillStyle = '#' + Math.floor(Math.random() * 16777215)
+        .toString(16).padStart(6, '0'); ctx.fillRect(0, 0, 32, 18); }, 40);
+      window.__clics = { son: 0, lecture: 0 };
+      document.querySelector('[data-a-target="player-mute-unmute-button"]').addEventListener('click', () => {
+        window.__clics.son++; v.muted = !v.muted;
+      });
+      document.querySelector('[data-a-target="player-play-pause-button"]').addEventListener('click', () => {
+        window.__clics.lecture++; if (v.paused) v.play().catch(() => {}); else v.pause();
+      });
+      if (canal === 'charlie') {
+        const pub = document.querySelector('[data-a-target="video-ad-label"]');
+        setTimeout(() => { pub.style.display = 'block'; }, 300);
+        setTimeout(() => { pub.style.display = 'none'; }, 4300);
+      }
+    </script>
+    <script src="/adblock.test.js"></script>
+    <script src="/content.test.js"></script>
+  </body></html>`;
+  const page = await freshTwitch(lecteur);
+  await page.evaluate(() => localStorage.setItem('tse:roue', 'vu'));
+  await page.reload();
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.route('https://www.twitch.tv/embed/**', (route) => {
+    const chaine = route.request().url().split('/embed/')[1].split('/')[0];
+    route.fulfill({ contentType: 'text/html; charset=utf-8',
+                    body: `<!doctype html><html><body><p id="chaine">${chaine}</p></body></html>` });
+  });
+  await attendre(page, () => !document.body.classList.contains('tse-loading'), 15_000);
+  // La barre latérale du décor prend toute la largeur : on lui rend celle de
+  // Twitch, sans quoi la salle n'aurait nulle part où se poser.
+  await page.addStyleTag({ content: '#side-nav { width: 240px; }' });
+
+  // La page joue une vidéo : la salle doit la mettre en pause, puis la rendre.
+  await page.evaluate(async () => {
+    const c = document.createElement('canvas');
+    c.width = 16; c.height = 9;
+    const ctx = c.getContext('2d');
+    ctx.fillRect(0, 0, 16, 9);
+    window.__peintre = setInterval(() => { ctx.fillStyle = ctx.fillStyle === '#000000' ? '#ffffff' : '#000000';
+      ctx.fillRect(0, 0, 16, 9); }, 40);
+    const v = document.createElement('video');
+    v.id = 'video-page';
+    v.muted = true; v.srcObject = c.captureStream(25);
+    document.body.appendChild(v);
+    await Promise.race([v.play().catch(() => {}), new Promise((r) => setTimeout(r, 1500))]);
+  });
+
+  /* Un clic qui ne trouve pas sa cible ne lève pas : sous un mutant qui la
+     retire, c'est l'assertion suivante qui doit le dire, pas une exception. */
+  const cliquer = (sel) => page.click(sel, { timeout: 3000 }).catch(() => {});
+
+  // ── Ce qu'elle refuse d'ouvrir ──────────────────────────────────────────
+  const refus = await page.evaluate(() => ({
+    vide: window.tse.salle.ouvrir(),
+    faux: window.tse.salle.ouvrir('Nom Invalide!'),
+    boite: !!document.getElementById('tse-salle'),
+  }));
+  ok('sans chaîne, ou avec un nom qui n\'en est pas un, la salle ne s\'ouvre pas',
+     !!refus.vide.erreur && /nom invalide!/i.test(refus.faux.erreur || '') && refus.boite === false,
+     JSON.stringify(refus));
+
+  // ── Ce qu'elle ouvre ────────────────────────────────────────────────────
+  const ouverte = await page.evaluate(() => window.tse.salle.ouvrir('alpha', 'Bravo', 'charlie'));
+  // Lit la salle telle qu'elle est À L'ÉCRAN : les tuiles, le banc, le chat.
+  const lireSalle = () => page.evaluate(() => {
+    const boite = document.getElementById('tse-salle');
+    if (!boite) return null;
+    const nav = document.querySelector('#side-nav').getBoundingClientRect();
+    const b = boite.getBoundingClientRect();
+    const scene = boite.querySelector('.tse-salle__scene').getBoundingClientRect();
+    const tuiles = [...boite.querySelectorAll('.tse-salle__tuile')].map((t) => {
+      const f = t.querySelector('iframe');
+      const r = f.getBoundingClientRect();
+      const u = new URL(f.src);
+      return {
+        chaine: t.dataset.tseSalleChaine, nom: f.name, l: Math.round(r.width), h: Math.round(r.height),
+        x: Math.round(r.left), y: Math.round(r.top), droite: Math.round(r.right), bas: Math.round(r.bottom),
+        url: [u.origin, u.searchParams.get('channel'), u.searchParams.get('parent'), u.searchParams.get('muted'),
+              u.searchParams.get('autoplay'), u.searchParams.get('controls')].join('|'),
+        allow: f.getAttribute('allow'),
+        son: t.classList.contains('tse-salle__tuile--son'),
+        prise: !t.querySelector('.tse-salle__prise').hidden,
+        pub: !t.querySelector('.tse-salle__pub').hidden,
+        touche: t.querySelector('.tse-salle__touche').textContent,
+      };
+    });
+    const chats = [...boite.querySelectorAll('iframe[name="tse-salle-chat"]')].map((f) => f.src.split('?')[0]);
+    return {
+      gauche: Math.round(b.left), haut: Math.round(b.top), navDroite: Math.round(nav.right),
+      scene: { x: Math.round(scene.left), y: Math.round(scene.top), droite: Math.round(scene.right), bas: Math.round(scene.bottom) },
+      tuiles, chats,
+      banc: [...boite.querySelectorAll('.tse-salle__remplacant')].map((x) => x.dataset.tseSalleChaine),
+      chatVisible: !boite.querySelector('.tse-salle__chat').hidden,
+      videoPage: document.getElementById('video-page').paused,
+    };
+  });
+  // Les invariants d'une grille : aucune tuile sous le minimum de Twitch, en
+  // 16/9, dans la scène, sans chevauchement.
+  const grilleSaine = (s) => s.tuiles.every((t) => t.l >= 400 && t.h >= 300 && t.h === Math.floor(t.l * 9 / 16)
+      && t.x >= s.scene.x && t.y >= s.scene.y && t.droite <= s.scene.droite && t.bas <= s.scene.bas)
+    && s.tuiles.every((a, i) => s.tuiles.every((b, j) => i === j
+      || a.droite <= b.x || b.droite <= a.x || a.bas <= b.y || b.bas <= a.y));
+  const s1 = await lireSalle();
+  /* Mutants — le nom du lecteur perdu (le pont n'y prend pas son rôle), le
+     parent, le muet ou la lecture automatique oubliés, la salle posée sur la
+     barre latérale ou sous la barre du haut, la grille qui passe sous le
+     minimum. */
+  ok('trois streams : trois tuiles nommées, muettes au départ, dans une grille saine à droite de la barre',
+     ouverte.membres.join() === 'alpha,bravo,charlie' && !!s1 && s1.tuiles.length === 3 && s1.banc.length === 0
+     && s1.gauche === s1.navDroite && s1.haut === 50
+     && s1.tuiles.every((t) => t.nom === 'tse-salle' && /autoplay/.test(t.allow || ''))
+     && s1.tuiles[0].url === 'https://player.twitch.tv|alpha|www.twitch.tv|true|true|'
+     && s1.tuiles.map((t) => t.touche).join() === '1,2,3'
+     && grilleSaine(s1),
+     JSON.stringify({ ouverte, s1 }));
+  /* Mutant — la vidéo de la page laissée à jouer sous la salle. */
+  ok('la vidéo que jouait la page est mise en pause',
+     s1.videoPage === true, JSON.stringify({ videoPage: s1.videoPage }));
+
+  // ── Le son (P4 tenu) : la première tuile, puis par clic, puis au clavier ──
+  const etatDe = () => page.evaluate(() => window.tse.salle.rapport());
+  await attendre(page, () => window.tse.salle.rapport().tuiles?.alpha?.muet === false
+    && !!window.tse.salle.rapport().tuiles?.alpha?.ordre, 8000);
+  const r1 = await etatDe();
+  const s2 = await lireSalle();
+  /* Mutants — le son jamais donné à l'ouverture, donné avant que le lecteur
+     ait une vidéo (perdu), donné à tous ; le chat qui ne suit pas le son. */
+  ok('à l\'ouverture, la première tuile a le son, par le bouton de son lecteur ; son chat est le seul chargé',
+     r1.son === 'alpha' && r1.tuiles.alpha.muet === false && /^son · bouton · ok$/.test(r1.tuiles.alpha.ordre || '')
+     && r1.tuiles.bravo.muet === true && r1.tuiles.charlie.muet === true
+     && s2.tuiles[0].son && !s2.tuiles[0].prise && s2.tuiles.slice(1).every((t) => !t.son && t.prise)
+     && s2.chats.join() === 'https://www.twitch.tv/embed/alpha/chat' && r1.chat === 'alpha',
+     JSON.stringify({ r1, tuiles: s2.tuiles.map((t) => [t.chaine, t.son, t.prise]), chats: s2.chats }));
+
+  // Un vrai clic sur la tuile de « bravo ».
+  await cliquer('#tse-salle [data-tse-salle-chaine="bravo"] .tse-salle__prise');
+  await attendre(page, () => window.tse.salle.rapport().tuiles?.bravo?.muet === false
+    && window.tse.salle.rapport().tuiles?.alpha?.muet === true, 8000);
+  const r2 = await etatDe();
+  const s3 = await lireSalle();
+  /* Mutants — la prise qui ne donne rien, le silence oublié aux autres, le
+     chat qui reste sur l'ancienne tuile ou qui s'ajoute au lieu de changer. */
+  ok('un clic sur une tuile muette lui donne le son, rend les autres muettes, et le chat la suit',
+     r2.son === 'bravo' && r2.tuiles.bravo.muet === false && r2.tuiles.alpha.muet === true
+     && s3.chats.join() === 'https://www.twitch.tv/embed/bravo/chat',
+     JSON.stringify({ r2, chats: s3.chats }));
+
+  // La touche 3, puis une touche frappée dans un champ, qui ne compte pas.
+  await page.keyboard.press('3');
+  await attendre(page, () => window.tse.salle.rapport().tuiles?.charlie?.muet === false, 8000);
+  const r3 = await etatDe();
+  await page.evaluate(() => {
+    const champ = document.createElement('input');
+    champ.id = 'champ-essai';
+    document.body.appendChild(champ);
+    champ.focus();
+  });
+  await page.keyboard.press('1');
+  await wait(page, 600);
+  const r4 = await etatDe();
+  await page.evaluate(() => { document.getElementById('champ-essai').remove(); document.body.focus(); });
+  /* Mutants — les touches ignorées, ou prises même dans un champ de saisie. */
+  ok('la touche 3 donne le son à la troisième tuile ; une touche frappée dans un champ ne touche à rien',
+     r3.son === 'charlie' && r3.tuiles.charlie.muet === false && r4.son === 'charlie',
+     JSON.stringify({ r3: r3.son, r4: r4.son }));
+
+  // ── La pub, par les repères relevés sur le vrai Twitch ────────────────────
+  // L'étiquette pendant la pub — pas seulement son compte après coup.
+  await attendre(page, () => {
+    const e = document.querySelector('#tse-salle [data-tse-salle-chaine="charlie"] .tse-salle__pub');
+    if (e && !e.hidden) window.__pubVue = true;
+    return window.tse.salle.rapport().tuiles?.charlie?.pubsVues >= 1 && window.__pubVue === true;
+  }, 10_000);
+  const pubVue = await page.evaluate(() => window.__pubVue === true);
+  await attendre(page, () => window.tse.salle.rapport().tuiles?.charlie?.pubsVues >= 1
+    && window.tse.salle.rapport().tuiles?.charlie?.pub === false, 10_000);
+  const r5 = await etatDe();
+  const s5 = await lireSalle();
+  /* Mutants — la pub jamais lue, comptée à chaque relevé, ou l'étiquette
+     laissée après la fin de la pub. */
+  ok('la pub de « charlie » est étiquetée sur sa tuile, comptée une fois, et l\'étiquette retirée à sa fin',
+     pubVue === true && r5.tuiles.charlie.pubsVues === 1 && r5.tuiles.alpha.pubsVues === 0
+     && s5.tuiles.every((t) => !t.pub),
+     JSON.stringify({ pubVue, charlie: r5.tuiles.charlie, alpha: r5.tuiles.alpha }));
+
+  // ── L'onglet caché : pas de spectateur fantôme ─────────────────────────────
+  const joue = (chaine) => page.frames().find((f) => f.url().includes('channel=' + chaine))
+    ?.evaluate(() => !document.getElementById('v').paused).catch(() => null);
+  const cacher = (oui) => page.evaluate((o) => {
+    if (o) {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    } else {
+      delete document.hidden;
+      delete document.visibilityState;
+    }
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, oui);
+  await cacher(true);
+  await wait(page, 500);
+  const cache = { alpha: await joue('alpha'), bravo: await joue('bravo'), charlie: await joue('charlie') };
+  await cacher(false);
+  await wait(page, 500);
+  const revu = { alpha: await joue('alpha'), bravo: await joue('bravo'), charlie: await joue('charlie') };
+  const r6 = await etatDe();
+  /* Mutants — rien de mis en pause, la tuile qui a le son mise en pause elle
+     aussi, les tuiles jamais relancées au retour. */
+  ok('onglet caché : les tuiles muettes s\'arrêtent, celle qui a le son continue ; au retour, toutes rejouent',
+     cache.alpha === false && cache.bravo === false && cache.charlie === true
+     && revu.alpha === true && revu.bravo === true && revu.charlie === true && r6.pausesCachees === 2,
+     JSON.stringify({ cache, revu, pausesCachees: r6.pausesCachees }));
+
+  // ── Une fenêtre d'ordinateur portable : le banc, et aucun lecteur rechargé ─
+  const ids = async () => Object.fromEntries(await Promise.all(['alpha', 'bravo', 'charlie'].map(async (ch) => {
+    const f = page.frames().find((x) => x.url().includes('channel=' + ch) && !x.isDetached());
+    return [ch, f ? await f.evaluate(() => window.__id).catch(() => null) : null];
+  })));
+  const avantIds = await ids();
+  /* 1366 × 658 : la fenêtre d'un écran de 1366 × 768. AVEC le chat, une
+     seule tuile tiendrait ; SANS, deux. La salle prend le plus de streams :
+     deux tuiles, pas de chat, et le troisième stream au banc. */
+  await page.setViewportSize({ width: 1366, height: 658 });
+  await attendre(page, () => document.querySelectorAll('#tse-salle .tse-salle__remplacant').length > 0, 5000);
+  const s7 = await lireSalle();
+  const r7 = await etatDe();
+  const apresIds = await ids();
+  const restees = s7.tuiles.map((t) => t.chaine);
+  /* Mutants — la grille qui ne se refait pas, qui passe sous le minimum, qui
+     garde le chat au prix d'un stream, qui sort la tuile qui a le son, ou qui
+     recharge les lecteurs qui restent en les déplaçant dans le document. */
+  ok('fenêtre de portable : deux streams plutôt que le chat, le troisième au banc, le son gardé, rien de rechargé',
+     s7.tuiles.length === 2 && s7.banc.length === 1 && s7.chatVisible === false && s7.chats.length === 0
+     && r7.chatMasque === true && r7.chatVoulu === 'auto' && restees.includes('charlie')
+     && grilleSaine(s7) && restees.every((ch) => apresIds[ch] !== null && apresIds[ch] === avantIds[ch]),
+     JSON.stringify({ tuiles: s7.tuiles.map((t) => [t.chaine, t.l, t.h]), banc: s7.banc, chat: s7.chatVisible,
+                      grille: r7.grille, avantIds, apresIds }));
+
+  /* UNE FENÊTRE BASSE : c'est la hauteur, cette fois, qui borne les tuiles —
+     et le banc en prend sa part. 1846 × 506 : deux tuiles, le chat, un
+     remplaçant ; la grille doit se calculer SUR la hauteur que le banc lui
+     laisse (590 × 331), sans quoi ses tuiles (622 × 349) débordent de la
+     scène. Mutant — la place du banc jamais retirée à la grille. */
+  await page.setViewportSize({ width: 1846, height: 506 });
+  await attendre(page, () => window.tse.salle.rapport().chatMasque === false, 5000);
+  const sBasse = await lireSalle();
+  const rBasse = await etatDe();
+  ok('fenêtre basse : la grille se calcule sur la hauteur que le banc lui laisse, et tient dans la scène',
+     sBasse.tuiles.length === 2 && sBasse.banc.length === 1 && sBasse.chatVisible === true
+     && rBasse.grille === '2×1 · 590×331' && grilleSaine(sBasse),
+     JSON.stringify({ grille: rBasse.grille, scene: sBasse.scene, tuiles: sBasse.tuiles.map((t) => [t.chaine, t.l, t.h, t.bas]) }));
+  await page.setViewportSize({ width: 1366, height: 658 });
+  await attendre(page, () => window.tse.salle.rapport().chatMasque === true, 5000);
+  const s7b = await lireSalle();
+
+  // Un clic sur le banc : ce stream entre dans la grille, avec le son.
+  const choisi = s7b.banc[0];
+  await cliquer(`#tse-salle .tse-salle__remplacant[data-tse-salle-chaine="${choisi}"]`);
+  await attendre(page, (ch) => window.tse.salle.rapport().tuiles?.[ch]?.muet === false, 8000, choisi);
+  const r8 = await etatDe();
+  const s8 = await lireSalle();
+  /* Mutants — le banc qui ne fait rien, le remplacé qui garde sa place, le
+     nouveau venu sans le son. */
+  ok('un clic sur le banc fait entrer ce stream dans la grille, avec le son ; le remplacé passe au banc',
+     r8.son === choisi && s8.tuiles.some((t) => t.chaine === choisi) && !s8.banc.includes(choisi)
+     && s8.tuiles.length + s8.banc.length === 3 && r8.remplacements === 1 && grilleSaine(s8),
+     JSON.stringify({ choisi, r8: { son: r8.son, banc: r8.banc }, tuiles: s8.tuiles.map((t) => t.chaine), banc: s8.banc }));
+
+  // ── Le bouton « Chat » : retirer le chat, puis le forcer ──────────────────
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await attendre(page, () => document.querySelectorAll('#tse-salle .tse-salle__tuile').length === 3
+    && document.querySelectorAll('#tse-salle iframe[name="tse-salle-chat"]').length === 1, 5000);
+  const avantBouton = await lireSalle();
+  await cliquer('#tse-salle .tse-salle__bouton-chat');
+  const sansChat = { salle: await lireSalle(), rapport: await etatDe() };
+  await cliquer('#tse-salle .tse-salle__bouton-chat');
+  const avecChat = { salle: await lireSalle(), rapport: await etatDe() };
+  /* Mutants — le bouton qui ne fait rien, ou dont le choix est écrasé par le
+     calcul automatique ; le chat retiré mais laissé chargé. */
+  ok('le bouton « Chat » retire le chat — déchargé, pas seulement caché — puis le remet sur la tuile qui a le son',
+     avantBouton.tuiles.length === 3 && avantBouton.chatVisible === true
+     && sansChat.salle.chatVisible === false && sansChat.salle.chats.length === 0 && sansChat.rapport.chatVoulu === 'non'
+     && sansChat.salle.tuiles.length === 3 && grilleSaine(sansChat.salle)
+     && avecChat.salle.chatVisible === true && avecChat.rapport.chatVoulu === 'oui'
+     && avecChat.salle.chats.join() === `https://www.twitch.tv/embed/${avecChat.rapport.son}/chat`,
+     JSON.stringify({ sansChat: { v: sansChat.salle.chatVisible, n: sansChat.salle.chats.length, c: sansChat.rapport.chatVoulu },
+                      avecChat: { v: avecChat.salle.chatVisible, chats: avecChat.salle.chats, son: avecChat.rapport.son } }));
+
+  // ── Fermer : Échap ; la page reprend ─────────────────────────────────────
+  await page.keyboard.press('Escape');
+  const ferme = await page.evaluate(() => ({
+    boite: !!document.getElementById('tse-salle'),
+    cadres: document.querySelectorAll('iframe[name="tse-salle"], iframe[name="tse-salle-chat"]').length,
+    rapport: window.tse.salle.rapport(),
+  }));
+  await wait(page, 400);
+  const videoRendue = await page.evaluate(() => !document.getElementById('video-page').paused);
+  /* Mutants — Échap ignoré, la boîte ou ses lecteurs laissés, le bilan perdu,
+     la vidéo de la page jamais rendue. */
+  ok('Échap ferme la salle : plus rien d\'elle dans la page, son bilan reste, la vidéo de la page reprend',
+     ferme.boite === false && ferme.cadres === 0 && ferme.rapport.ouverte === false
+     && ferme.rapport.fermeture === 'echap' && ferme.rapport.pagePausee === 1 && videoRendue === true,
+     JSON.stringify({ ferme, videoRendue }));
+
+  // Changer de page ferme la salle.
+  await page.evaluate(() => window.tse.salle.ouvrir('alpha', 'bravo'));
+  await page.evaluate(() => history.pushState({}, '', '/une-autre-page'));
+  await attendre(page, () => !document.getElementById('tse-salle'), 5000);
+  const nav = await page.evaluate(() => ({ boite: !!document.getElementById('tse-salle'),
+    fermeture: window.tse.salle.rapport().fermeture }));
+  /* Mutant — le pas de la salle qui ne regarde pas l'adresse : elle
+     resterait posée sur une page qui n'est plus celle où on l'a ouverte. */
+  ok('changer de page ferme la salle', nav.boite === false && nav.fermeture === 'navigation', JSON.stringify(nav));
+
+  // ── Le pont, dans son rôle de salle, se tait ailleurs ─────────────────────
+  const lecteurRenard = lecteur.replace('/content.test.js', '/content.firefox.test.js')
+    .replace('/adblock.test.js', '/adblock.firefox.test.js');
+  await page.route((url) => url.hostname === 'player.twitch.tv' && url.searchParams.get('channel') === 'renard',
+    (route) => route.fulfill({ contentType: 'text/html; charset=utf-8', body: lecteurRenard }));
+  await page.route('https://tiers.example/**', (route) => route.fulfill({
+    contentType: 'text/html; charset=utf-8',
+    body: `<!doctype html><html><body>
+      <iframe name="tse-salle" id="tiers" src="https://player.twitch.tv/?channel=tiers&parent=tiers.example"></iframe>
+      <iframe name="tse-salle" id="renard" src="https://player.twitch.tv/?channel=renard&parent=tiers.example"></iframe>
+      <script>
+        window.__recus = 0;
+        addEventListener('message', (e) => { if (e.data && e.data.tse === 'tse:salle-etat') window.__recus++; });
+      </script>
+    </body></html>` }));
+  await page.goto('https://tiers.example/');
+  await wait(page, 1500);
+  await page.evaluate(() => {
+    for (const id of ['tiers', 'renard']) {
+      for (const ordre of ['son', 'pause']) {
+        document.getElementById(id).contentWindow.postMessage({ tse: 'tse:salle-ordre', ordre }, '*');
+      }
+    }
+  });
+  await wait(page, 2500);
+  const recus = await page.evaluate(() => window.__recus);
+  const clics = async (canal) => {
+    const f = page.frames().find((x) => x.url().includes('channel=' + canal));
+    try { return await f.evaluate(() => ({ clics: window.__clics, muet: document.getElementById('v').muted,
+                                           joue: !document.getElementById('v').paused })); }
+    catch { return null; }
+  };
+  const cTiers = await clics('tiers'), cRenard = await clics('renard');
+  /* Mutants — le contrôle du parent retiré ; celui de l'origine d'un ordre
+     retiré (sous Firefox, où le nom seul éveille le pont, le site tiers
+     couperait la lecture et rendrait le son). */
+  ok('le nom de la salle sur un site tiers : aucun état ne lui parvient, aucun ordre n\'est suivi — Firefox compris',
+     recus === 0 && !!cTiers && cTiers.clics.son === 0 && cTiers.clics.lecture === 0 && cTiers.muet === true
+     && !!cRenard && cRenard.clics.son === 0 && cRenard.clics.lecture === 0 && cRenard.muet === true && cRenard.joue === true,
+     JSON.stringify({ recus, cTiers, cRenard }));
   await page.close();
 }
 
