@@ -385,7 +385,7 @@
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Ein violetter Punkt an der Ecke des Avatars, mit der Zahl der Beteiligten: Dieser Kanal sendet zu mehreren. In der Liste sichtbar, ohne etwas zu überfahren.\n• Ein violettes Abzeichen sagt dann, wer Gastgeber und wer Gast ist — und mit wem.\n• Eine eigene Sortierung gruppiert sie oben in der Liste (Kapitel $1)."
+    "message": "Ein violetter Punkt an der Ecke des Avatars, mit der Zahl der Beteiligten: Dieser Kanal sendet zu mehreren. In der Liste sichtbar, ohne etwas zu überfahren.\n• Ein violettes Abzeichen sagt dann, wer Gastgeber und wer Gast ist — und mit wem.\n• Eine eigene Sortierung gruppiert sie oben in der Liste (Kapitel $1).\n• Stehen mehrere Beteiligte in der Liste untereinander, werden ihre Balken zu einem, und ein Zähler „▶ 3“ sitzt darauf: Ein Klick öffnet sie gemeinsam auf der Seite, im Multistream-Raum. Ein Klick auf eine Kachel gibt ihr den Ton und ihren Chat; die Esc-Taste oder ein zweiter Klick auf den Zähler schließt den Raum."
   },
   "guideDebutTitre": {
     "message": "Starts und Rückkehr"
@@ -537,6 +537,12 @@
   "optCollab": {
     "message": "Kollaborations-Punkt"
   },
+  "optSalle": {
+    "message": "Zähler für den Multistream-Raum"
+  },
+  "optDescSalle": {
+    "message": "Der Zähler „▶ 3“ auf dem Balken eines Co-Streams: Ein Klick öffnet seine Streams gemeinsam auf der Seite. Aus bleibt der Balken, ohne Zähler."
+  },
   "optAbonnes": {
     "message": "Gold der Abonnements"
   },
@@ -679,7 +685,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle zwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle einundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"

@@ -2059,6 +2059,160 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The node on the bar: the room in one click (v4.24.0.7)
+
+Phase 1, second step: the counter chosen after phase 0 sits on the co-streams'
+coloured bar, and opens the room with the bar's streams. The room no longer
+needs the console.
+
+### What you see
+
+When several members of the same co-stream follow each other in the list,
+their bars become one. In the middle of that bar, on its left edge, sits a small
+**"▶ 3"** button:
+
+- **in the bar's colour**, read as it is painted: the group's, or the red of a
+  stream that just started, which wins;
+- **ringed in the card's colour**: it reads as a knot on a thread, not a bump on
+  the bar;
+- **"Watch all 3"** on hover or keyboard focus; its accessible name lists the
+  channels ("Watch astra, boreal, and cirrus together");
+- **collapsed sidebar**: the number alone, no triangle, no label. There is no
+  room to write them next to an avatar.
+
+### What you do with it
+
+| gesture | effect |
+| --- | --- |
+| click on the node | the room opens with the bar's channels, in list order; the first one has the sound |
+| second click on the same node | the room closes |
+| click on another bar's node | the room takes that bar's channels |
+
+**A switch, not a shortcut.** Reopening the same room would reload all its
+players and lose the chosen sound. The open room's node is therefore
+**pressed**: a ring in the bar's colour, and `aria-pressed`. It comes back up
+however the room closes: Escape, "Close", a page change, the console. The room
+notifies the node on every opening and every closing.
+
+**The "Multistream room counter" setting** (Card group, on by default) removes
+the node; the bar stays. The settings table goes to twenty-one, and the
+twenty-four sentences that give that number (the panel and the listings, in
+all twelve languages) follow. The guide gains a bullet in the co-streams
+chapter.
+
+### Where it lives
+
+**In its own layer, outside the cards.** A button inside the card would be
+inside its link: clicking it would open the channel, hovering it would open the
+preview. The layer is a zero-height box at the top of the followed section: it
+moves nothing in the list. The nodes are placed on it to the pixel, on the bars
+that the card junction has just measured. Same adjacency, same geometry,
+returned by `applyCostreamJoins`, not a second reading.
+
+**It starts at the card's edge**, where the bar is painted. One pixel further
+left, and the list, which does not overflow, would clip it.
+
+**Nothing loops.** The bar's observer triggers a scan on every child added or
+removed. A node is therefore created only for a new bar, removed only for a bar
+that is gone, attached only when it is not already. The rest of the time only
+its position, colour and order change: styles and attributes, which the
+observer does not watch.
+
+**It follows the bar without a scan.** An image loading, a card growing: the
+section changes size without any child being added, and the bar's observer
+does not see it. A `ResizeObserver` on the section replays the placement. It is
+the extension's first; the linter now knows it.
+
+**It follows the bar's order.** A sort can flip a bar without changing its
+members: the node stays, but it will open the room in the new order, and its
+accessible name says so.
+
+### The report
+
+The `SALLE MULTISTREAM / MULTISTREAM ROOM` block gains `noeuds`:
+
+- `affiches` and `clics`: the nodes placed at report time, and the clicks they
+  received;
+- `section` and `ecart`: the followed section's display, and the gap measured
+  between the layer and what follows it. The layer assumes Twitch's section is
+  an ordinary box; if it became a grid or a flex column with a `gap`, this gap
+  would say so (0 expected).
+
+A room opened by the node reports `origine: noeud`; closed by it,
+`fermeture: noeud`.
+
+### To check on real Twitch
+
+| point | what will tell |
+| --- | --- |
+| does the node sit on the bar, whole, in both sidebar modes? | the eye |
+| is the followed section an ordinary box? | `noeuds.section` and `noeuds.ecart` (0 expected) |
+| on a bar of three, does the node hide too much of the middle avatar? | the eye |
+| does the node follow the list when it scrolls? | the eye |
+
+### What the bench measures
+
+**Scenario 176** (thirteen assertions) runs under production constants, like
+156: at the bench's cadence, legitimate scans would hide a loop, and a
+placement that only held thanks to scans would pass for tracking. Two followed
+co-streams, of three and two members, between two solo channels. It checks:
+
+- the placement to the pixel: in the middle of the bar within one pixel, on its
+  left edge, whole in a list that does not overflow, in the bar's colour, and a
+  layer with no height and no gap;
+- the accessible name, and the label on hover;
+- that hovering the node does not open the preview, when the same gesture on
+  the card does;
+- the switch: open, close, and the pressed state after Escape, another bar and
+  the console;
+- no scan kept alive once the nodes are placed;
+- tracking without a scan: a card above grows by 40 px, the nodes move down,
+  and the scan counter has not moved;
+- an uptime sort that detaches one member and flips the other bar;
+- the setting, the collapsed sidebar, the report.
+
+**Scenario 70** checks the `noeuds` lines in the panel; **117** and **120**
+count twenty-one settings.
+
+**Two product defects, found by the bench before delivery.**
+
+- **A node kept the order it was born with.** A bar flipped by a sort keeps its
+  members, hence its key: the node stayed, and it would have opened the room in
+  the old order. It now reorders itself, accessible name included.
+- **The layer's gap was measured against a ghost.** The first draft took it on
+  the next element in the document, which is Twitch's header, hidden under
+  ours: −154 px in the report, for a list that had not moved. It is now
+  measured to the next rendered element.
+
+**And two lessons about the test set.**
+
+- **The loading veil makes the sidebar transparent to clicks.** On the first
+  run, the nodes read as "hidden": the scenario now waits for it to lift,
+  including after switching to collapsed mode, which puts it back.
+- **A removed card comes back.** To make a bar lose a member, the first draft
+  removed its card; the extension put it right back, since the channel was
+  still live: that is "getting ahead of Twitch" (v3.21). The scenario now
+  detaches the member with a sort.
+
+| mutants | what falls |
+| --- | --- |
+| placement: the middle taken on the first card, the node shifted out of the list, the default colour, a layer that takes height (4) | a node beside its bar, clipped, in another colour, or a shifted list |
+| the layer inside the card (1) | hovering opens the preview, clicking follows the card's link |
+| the switch: a click that does nothing, the channels reversed, the second click reopening, the state read on click only, another bar's room taken for its own (5) | a room that does not open or reloads, a node that lies |
+| loops: the node re-attached, or the layer re-placed, on every scan (2) | fifty scans in ten seconds |
+| tracking without a scan forgotten (1) | a node forty pixels above its bar |
+| bars: a gone bar's node never removed, the order never refreshed, two-card bars forgotten, the junction ignored (4) | a node that opens a channel that left, or in reverse; bars without a node, or a node over foreign cards |
+| the setting, the collapsed sidebar (the class and the rule), the hover label, the accessible name (5) | a node you cannot remove, that overflows, or says nothing |
+| the report: clicks never counted, nodes missing from the block, the gap measured against the hidden header (3) | a wrong summary |
+| the panel: the setting missing from its group (1) | a setting without a row |
+
+Twenty-six mutants, twenty-six caught. On the first round, two made the
+scenario throw instead of failing an assertion: the node inside the card and
+the re-attachment on every scan. The card to be grown was no longer there when
+the gesture looked for it. The gesture no longer throws, and both are caught by
+assertions: the preview opened and the link followed for one, fifty scans in
+ten seconds for the other.
+
 ## The multistream room, the engine (v4.24.0.6)
 
 Multistream phase 1 begins, on the choices made after the phase 0
@@ -12165,7 +12319,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 175 scenarios, 1514 assertions |
+| `npm test` | the Playwright harness: 176 scenarios, 1527 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -12185,12 +12339,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1393 KB | 532 KB | 3,683 → **2** |
+| `content.js` | 1406 KB | 540 KB | 3,706 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 105 KB | 50 KB | 147 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1647 KB** | **688 KB** | **−58 %** |
+| **all five** | **1660 KB** | **696 KB** | **−58 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

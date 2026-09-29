@@ -2180,6 +2180,165 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le nœud sur la barre : la salle en un clic (v4.24.0.7)
+
+Deuxième étape de la phase 1 : le compteur choisi après la phase 0 se pose sur
+la barre colorée des co-streams, et ouvre la salle avec les streams de la barre.
+La salle n'a plus besoin de la console.
+
+### Ce qu'on y voit
+
+Quand plusieurs membres d'un même co-stream se suivent dans la liste, leurs
+barres n'en font qu'une. Au milieu de cette barre, sur son bord gauche, se pose
+un petit bouton **« ▶ 3 »** :
+
+- **à la couleur de la barre**, lue telle qu'elle est peinte : celle du groupe,
+  ou le rouge d'un direct qui vient de démarrer, qui l'emporte ;
+- **cerclé de la couleur de la carte** : on lit un nœud posé sur un fil, pas une
+  bosse de la barre ;
+- **« Regarder les 3 »** au survol ou au focus du clavier ; son nom accessible
+  dit les chaînes (« Regarder astra, boreal et cirrus ensemble ») ;
+- **barre réduite** : le nombre seul, sans triangle ni étiquette. Il n'y a pas
+  la place de les écrire à côté d'un avatar.
+
+### Ce qu'on y fait
+
+| geste | effet |
+| --- | --- |
+| clic sur le nœud | la salle s'ouvre avec les chaînes de la barre, dans l'ordre de la liste ; la première a le son |
+| second clic sur le même nœud | la salle se referme |
+| clic sur le nœud d'une autre barre | la salle prend les chaînes de cette barre-là |
+
+**Un interrupteur, pas un raccourci.** Rouvrir la même salle rechargerait tous
+ses lecteurs et perdrait le son choisi. Le nœud de la salle ouverte est donc
+**enfoncé** : un anneau de la couleur de la barre, et `aria-pressed`. Il se
+relève quelle que soit la façon dont la salle se ferme : Échap, « Fermer », un
+changement de page, la console. La salle prévient le nœud à chaque ouverture et
+à chaque fermeture.
+
+**Le réglage « Compteur de salle multistream »** (groupe Carte, allumé par
+défaut) retire le nœud ; la barre reste. La table des réglages passe à vingt et
+un, et les vingt-quatre phrases qui donnent ce nombre (le panneau et les fiches,
+dans les douze langues) suivent. Le mode d'emploi gagne une puce au chapitre
+des co-streams.
+
+### Où il vit
+
+**Dans son propre calque, hors des cartes.** Un bouton dans la carte serait
+dans son lien : le cliquer ouvrirait la chaîne, le survoler ouvrirait l'aperçu.
+Le calque est une boîte de hauteur nulle posée en tête de la section suivie :
+il ne déplace rien dans la liste. Les nœuds y sont placés au pixel, sur les
+barres que la jonction des cartes vient de mesurer. C'est la même adjacence et
+la même géométrie, rendues par `applyCostreamJoins`, pas une seconde lecture.
+
+**Il part du bord de la carte**, là où la barre est peinte. Un pixel plus à
+gauche, et la liste, qui ne déborde pas, le rognerait.
+
+**Rien qui boucle.** L'observateur de la barre relance un balayage à chaque
+enfant ajouté ou retiré. Un nœud n'est donc créé que pour une barre nouvelle,
+retiré que pour une barre disparue, rattaché seulement s'il ne l'est pas. Le
+reste du temps, seuls sa position, sa couleur et son ordre changent : des
+styles et des attributs, que l'observateur ne regarde pas.
+
+**Il suit la barre sans balayage.** Une image qui se charge, une carte qui
+grandit : la section change de taille sans qu'aucun enfant soit ajouté, et
+l'observateur de la barre ne le voit pas. Un `ResizeObserver` sur la section
+rejoue le placement. C'est le premier de l'extension ; le linter le connaît
+désormais.
+
+**Il suit l'ordre de la barre.** Un tri peut retourner une barre sans en
+changer les membres : le nœud reste, mais il ouvrira la salle dans le nouvel
+ordre, et son nom accessible le dit.
+
+### Le rapport
+
+Le bloc `SALLE MULTISTREAM / MULTISTREAM ROOM` gagne `noeuds` :
+
+- `affiches` et `clics` : les nœuds posés à l'instant du rapport, et les clics
+  qu'ils ont reçus ;
+- `section` et `ecart` : l'affichage de la section suivie, et l'écart mesuré
+  entre le calque et ce qui le suit. Le calque suppose que la section de Twitch
+  est une boîte ordinaire ; si elle devenait une grille ou une colonne flex avec
+  un `gap`, cet écart le dirait (0 attendu).
+
+Une salle ouverte par le nœud dit `origine: noeud` ; refermée par lui,
+`fermeture: noeud`.
+
+### À vérifier sur le vrai Twitch
+
+| point | ce qui le dira |
+| --- | --- |
+| le nœud tient-il sur la barre, entier, dans les deux modes de la barre latérale ? | l'œil |
+| la section suivie est-elle une boîte ordinaire ? | `noeuds.section` et `noeuds.ecart` (0 attendu) |
+| sur une barre de trois, le nœud cache-t-il trop de l'avatar du milieu ? | l'œil |
+| le nœud suit-il la liste quand elle défile ? | l'œil |
+
+### Ce que le banc mesure
+
+Le **scénario 176** (treize assertions) tourne sous les constantes de
+production, comme le 156 : à la cadence du banc, les balayages légitimes
+masqueraient une boucle, et un placement qui ne tiendrait qu'aux balayages
+passerait pour le suivi. Deux co-streams suivis, de trois et deux membres,
+entre deux chaînes seules. Il vérifie :
+
+- la place au pixel : au milieu de la barre à un pixel près, sur son bord
+  gauche, entier dans une liste qui ne déborde pas, à la couleur de la barre,
+  et un calque sans hauteur ni écart ;
+- le nom accessible, et l'étiquette au survol ;
+- que le survol du nœud n'ouvre pas l'aperçu, quand le même geste sur la carte
+  l'ouvre ;
+- l'interrupteur : ouvrir, refermer, et l'état enfoncé après Échap, une autre
+  barre et la console ;
+- aucun balayage entretenu, une fois les nœuds posés ;
+- le suivi sans balayage : une carte au-dessus grandit de 40 px, les nœuds
+  descendent, et le compteur de balayages n'a pas bougé ;
+- un tri par durée qui détache un membre et retourne l'autre barre ;
+- le réglage, la barre réduite, le rapport.
+
+Le **scénario 70** vérifie les lignes `noeuds` au panneau ; les **117** et
+**120** comptent vingt et un réglages.
+
+**Deux défauts du produit, trouvés par le banc avant la livraison.**
+
+- **Un nœud gardait l'ordre de sa naissance.** Une barre retournée par un tri
+  garde ses membres, donc sa clé : le nœud restait, et il aurait ouvert la
+  salle dans l'ancien ordre. Il se réordonne maintenant, nom accessible
+  compris.
+- **L'écart du calque se mesurait contre un fantôme.** Le premier jet le
+  prenait sur l'élément suivant du document, et c'est l'en-tête de Twitch,
+  masqué sous le nôtre : −154 px au rapport, pour une liste qui n'avait pas
+  bougé. Il se mesure désormais au prochain élément rendu.
+
+**Et deux leçons de décor.**
+
+- **Le voile de chargement rend la barre latérale transparente aux clics.** Au
+  premier passage, les nœuds se lisaient « cachés » : le scénario attend
+  désormais qu'il se lève, y compris après la bascule en mode réduit, qui le
+  repose.
+- **Une carte retirée revient.** Pour faire perdre un membre à une barre, le
+  premier jet retirait sa carte ; l'extension la reposait aussitôt, puisque la
+  chaîne était encore en direct : c'est « prendre les devants sur Twitch »
+  (v3.21). Le scénario détache désormais le membre par un tri.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la place : le milieu pris sur la première carte, le nœud décalé hors de la liste, la couleur par défaut, un calque qui prend de la hauteur (4) | un nœud à côté de sa barre, rogné, d'une autre couleur, ou une liste décalée |
+| le calque dans la carte (1) | le survol ouvre l'aperçu, le clic suit le lien de la carte |
+| l'interrupteur : le clic sans effet, les chaînes à l'envers, le second clic qui rouvre, l'état relu au clic seulement, la salle d'une autre barre prise pour la sienne (5) | une salle qui ne s'ouvre pas ou se recharge, un nœud qui ment |
+| les boucles : le nœud rattaché, ou le calque replacé, à chaque balayage (2) | cinquante balayages en dix secondes |
+| le suivi sans balayage oublié (1) | un nœud quarante pixels au-dessus de sa barre |
+| les barres : un nœud de barre disparue jamais retiré, l'ordre jamais rafraîchi, les barres de deux oubliées, la jonction ignorée (4) | un nœud qui ouvre une chaîne partie, ou à l'envers ; des barres sans nœud, ou un nœud sur des cartes étrangères |
+| le réglage, la barre réduite (la classe et la règle), l'étiquette au survol, le nom accessible (5) | un nœud qu'on ne peut pas retirer, qui déborde, ou qui ne dit rien |
+| le rapport : les clics jamais comptés, les nœuds absents du bloc, l'écart mesuré contre l'en-tête masqué (3) | un bilan faux |
+| le panneau : le réglage absent de son groupe (1) | un réglage sans ligne |
+
+Vingt-six mutants, vingt-six pris. Au premier tour, deux avaient fait lever le
+scénario au lieu de faire tomber une assertion : le nœud dans la carte et le
+rattachement à chaque balayage. La carte qu'on fait grandir n'était plus là
+quand le geste la cherchait. Le geste ne lève plus, et les deux sont pris par
+des assertions : l'aperçu ouvert et le lien suivi pour l'un, cinquante
+balayages en dix secondes pour l'autre.
+
 ## La salle multistream, le moteur (v4.24.0.6)
 
 La phase 1 du multistream commence, sur les choix pris après les mesures de la
@@ -12599,7 +12758,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 175 scénarios, 1514 assertions |
+| `npm test` | le harnais Playwright : 176 scénarios, 1527 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -12620,12 +12779,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1393 Ko | 532 Ko | 3 683 → **2** |
+| `content.js` | 1406 Ko | 540 Ko | 3 706 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 105 Ko | 50 Ko | 147 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1647 Ko** | **688 Ko** | **−58 %** |
+| **les cinq** | **1660 Ko** | **696 Ko** | **−58 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

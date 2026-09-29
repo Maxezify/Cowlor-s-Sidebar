@@ -484,7 +484,7 @@
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "A purple dot in the corner of the avatar, with the number of participants: this channel is streaming with others. Visible in the list, with nothing to hover.\n• A purple badge then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter $1)."
+    "message": "A purple dot in the corner of the avatar, with the number of participants: this channel is streaming with others. Visible in the list, with nothing to hover.\n• A purple badge then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter $1).\n• When several members follow each other in the list, their bars become one, and a “▶ 3” counter sits on it: one click opens them together on the page, in the multistream room. A click on a tile gives it the sound and its chat; the Escape key, or a second click on the counter, closes the room."
   },
   "guideDebutTitre": {
     "message": "Starts, and comebacks"
@@ -651,6 +651,12 @@
   "optCollab": {
     "message": "Collaboration pill"
   },
+  "optSalle": {
+    "message": "Multistream room counter"
+  },
+  "optDescSalle": {
+    "message": "The “▶ 3” counter on a co-stream's bar: one click opens its streams together, on the page. Off, the bar stays, without the counter."
+  },
   "optAbonnes": {
     "message": "Subscription gold"
   },
@@ -793,7 +799,7 @@
     "message": "Reset every setting to its default?"
   },
   "optResetText": {
-    "message": "All twenty settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+    "message": "All twenty-one settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
   },
   "optValPlein": {
     "message": "Full"

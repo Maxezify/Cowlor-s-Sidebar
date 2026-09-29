@@ -1043,7 +1043,7 @@ const montrerMessage = (cle, bouton, detail) => {
 const GROUPES_OPT = [
   ['optGrpApercu',  ['apercu', 'apercuVideo', 'apercuQualite', 'apercuTaille']],
   ['optGrpBadges',  ['badges']],
-  ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'abonnes', 'subathonJour']],
+  ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'salle', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
   ['optGrpTwitch',  ['stories', 'serie']],
   ['optGrpAbos',    ['abosPeriode']],

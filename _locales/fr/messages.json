@@ -385,7 +385,7 @@
     "message": "Les co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Une pastille violette au coin de l'avatar, avec le nombre de participants : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1)."
+    "message": "Une pastille violette au coin de l'avatar, avec le nombre de participants : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1).\n• Quand plusieurs membres se suivent dans la liste, leurs barres n'en font qu'une, et un compteur « ▶ 3 » s'y pose : un clic les ouvre ensemble sur la page, dans la salle multistream. Un clic sur une tuile lui donne le son et son chat ; la touche Échap, ou un second clic sur le compteur, referme la salle."
   },
   "guideDebutTitre": {
     "message": "Les débuts, et les reprises"
@@ -537,6 +537,12 @@
   "optCollab": {
     "message": "Pastille de collaboration"
   },
+  "optSalle": {
+    "message": "Compteur de salle multistream"
+  },
+  "optDescSalle": {
+    "message": "Le compteur « ▶ 3 » sur la barre d'un co-stream : un clic ouvre ses streams ensemble, sur la page. Coupé, la barre reste, sans compteur."
+  },
   "optAbonnes": {
     "message": "L'or des abonnements"
   },
@@ -679,7 +685,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les vingt réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les vingt et un réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"
