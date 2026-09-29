@@ -25013,6 +25013,12 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       banc: [...boite.querySelectorAll('.tse-salle__remplacant')].map((x) => x.dataset.tseSalleChaine),
       chatVisible: !boite.querySelector('.tse-salle__chat--droite').hidden,
       videoPage: document.getElementById('video-page').paused,
+      // La ligne d'en-tête, et où vivent le titre et les commandes (4.24.0.9).
+      ligneTete: !boite.querySelector('.tse-salle__tete').hidden,
+      titreDans: boite.querySelector('.tse-salle__titre')
+        .closest('.tse-salle__tete, .tse-salle__chat--gauche, .tse-salle__chat--droite')?.classList[1] || 'tete',
+      fermerDans: boite.querySelector('.tse-salle__fermer')
+        .closest('.tse-salle__tete, .tse-salle__chat--gauche, .tse-salle__chat--droite')?.classList[1] || 'tete',
     };
   });
   // Les invariants d'une grille : aucune tuile sous le minimum de Twitch, en
@@ -25034,6 +25040,19 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      && s1.tuiles.map((t) => t.touche).join() === '1,2,3'
      && grilleSaine(s1),
      JSON.stringify({ ouverte, s1 }));
+  /* PLUS DE LIGNE PLEINE LARGEUR QUAND LE CHAT EST LÀ (4.24.0.9) : le titre
+     et les commandes en haut de sa colonne, la scène dès le haut de la salle.
+     Mutant — la ligne gardée (quarante pixels pris aux lecteurs). */
+  ok('avec le chat, plus de ligne d\'en-tête : titre et commandes en haut de sa colonne, la scène dès le haut',
+     s1.ligneTete === false && s1.titreDans === 'tse-salle__chat--droite' && s1.fermerDans === 'tse-salle__chat--droite'
+     && s1.scene.y === 50,
+     JSON.stringify({ ligne: s1.ligneTete, titre: s1.titreDans, fermer: s1.fermerDans, scene: s1.scene }));
+  /* LA DERNIÈRE RANGÉE CENTRÉE (4.24.0.9) : trois tuiles en deux colonnes,
+     la troisième au milieu, pas sous la première. Mutant — le décalage oublié. */
+  const [ta, tb, tc] = s1.tuiles;
+  ok('trois tuiles en deux colonnes : la troisième centrée sous les deux autres',
+     !!tc && tc.y > ta.y && Math.abs((tc.x + tc.droite) / 2 - (ta.x + tb.droite) / 2) <= 1,
+     JSON.stringify(s1.tuiles.map((t) => [t.chaine, t.x, t.droite, t.y])));
   /* Mutant — la vidéo de la page laissée à jouer sous la salle. */
   ok('la vidéo que jouait la page est mise en pause',
      s1.videoPage === true, JSON.stringify({ videoPage: s1.videoPage }));
@@ -25149,6 +25168,11 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   /* Mutants — la grille qui ne se refait pas, qui passe sous le minimum, qui
      garde le chat au prix d'un stream, qui sort la tuile qui a le son, ou qui
      recharge les lecteurs qui restent en les déplaçant dans le document. */
+  /* Sans chat, la ligne d'en-tête revient : le titre et les commandes n'ont
+     pas d'autre place. Mutant — la ligne retirée même sans chat. */
+  ok('sans chat, la ligne d\'en-tête revient, avec le titre et les commandes',
+     s7.ligneTete === true && s7.titreDans === 'tete' && s7.fermerDans === 'tete',
+     JSON.stringify({ ligne: s7.ligneTete, titre: s7.titreDans, fermer: s7.fermerDans }));
   ok('fenêtre de portable : deux streams plutôt que le chat, le troisième au banc, le son gardé, rien de rechargé',
      s7.tuiles.length === 2 && s7.banc.length === 1 && s7.chatVisible === false && s7.chats.length === 0
      && r7.chatMasque === true && r7.chatVoulu === 'auto' && restees.includes('charlie')
@@ -25157,11 +25181,14 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
                       grille: r7.grille, avantIds, apresIds }));
 
   /* UNE FENÊTRE BASSE : c'est la hauteur, cette fois, qui borne les tuiles —
-     et le banc en prend sa part. 1846 × 506 : deux tuiles, le chat, un
+     et le banc en prend sa part. 1846 × 466 : deux tuiles, le chat, un
      remplaçant ; la grille doit se calculer SUR la hauteur que le banc lui
-     laisse (590 × 331), sans quoi ses tuiles (622 × 349) débordent de la
-     scène. Mutant — la place du banc jamais retirée à la grille. */
-  await page.setViewportSize({ width: 1846, height: 506 });
+     laisse (590 × 331), sans quoi ses tuiles (618 × 347) débordent de la
+     scène. Mutant — la place du banc jamais retirée à la grille.
+     466 ET PLUS 506 depuis la 4.24.0.9 : la salle n'a plus de ligne d'en-tête
+     quand le chat est là, et à 506 ses quarante pixels rendus laissaient la
+     largeur borner les tuiles — la fenêtre ne mesurait plus le banc. */
+  await page.setViewportSize({ width: 1846, height: 466 });
   await attendre(page, () => window.tse.salle.rapport().chatMasque === false, 5000);
   const sBasse = await lireSalle();
   const rBasse = await etatDe();
@@ -25377,6 +25404,8 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
         fond: getComputedStyle(n).backgroundColor,
         barre: getComputedStyle(cartes[0], '::before').backgroundColor,
         reduit: n.classList.contains('tse-noeud--reduit'),
+        // Un rond parfait (4.24.0.9) : largeur et hauteur égales, rayon 50 %.
+        rond: Math.abs(r.width - r.height) < 0.5 && getComputedStyle(n).borderTopLeftRadius === '50%',
         x: r.left + r.width / 2, y: cy, haut: Math.round(cy),
       };
     });
@@ -25399,11 +25428,12 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   /* Mutants — le milieu pris sur la première carte seule, le bord gauche
      décalé hors de la liste (rogné), la couleur par défaut au lieu de celle
      de la barre, le calque qui prend de la hauteur ; le nombre remis dans la
-     capsule (4.24.0.8 : le symbole seul, à la demande). */
-  ok('un nœud par barre, au milieu de la barre et sur son bord gauche, entier, à sa couleur, le symbole seul',
+     capsule (4.24.0.8 : le symbole seul, à la demande) ; la capsule revenue
+     à la place du rond (4.24.0.9). */
+  ok('un nœud par barre, au milieu de la barre et sur son bord gauche, entier, à sa couleur, le symbole seul dans un rond',
      e1.calques === 1 && e1.noeuds.length === 2 && !!t1 && !!d1
      && t1.membres.join() === 'astra,boreal,cirrus' && d1.membres.join() === 'delta,eole'
-     && t1.visible === '' && d1.visible === ''
+     && t1.visible === '' && d1.visible === '' && t1.rond && d1.rond
      && e1.noeuds.every((n) => Math.abs(n.milieu) <= 1 && Math.abs(n.gauche) <= 0.5 && n.entier
        && n.fond === n.barre && n.presse === 'false' && n.etiquette === 'none' && n.svg !== 'none')
      && t1.fond !== d1.fond && e1.calque.h === 0 && e1.calque.ecart === 0,
@@ -25416,8 +25446,9 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   // ── Le survol : l'étiquette, et pas l'aperçu ──────────────────────────────
   await vers(t1);
   await wait(page, 900);
+  // Visible : l'aperçu fermé reste dans la page, masqué (data-tse-visible).
   const survol = await page.evaluate(() => ({
-    apercu: !!document.querySelector('.tse-preview') }));
+    apercu: !!document.querySelector('.tse-preview[data-tse-visible="true"]') }));
   const e2 = await lire();
   /* LA PRÉMISSE : le même geste sur la carte ouvre bien l'aperçu — sans elle,
      « pas d'aperçu » serait vrai d'un décor qui n'en ouvre jamais. */
@@ -25426,10 +25457,10 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     return { x: r.left + r.width * 0.7, y: r.top + r.height / 2 };
   });
   await page.mouse.move(boite.x, boite.y);
-  await attendre(page, () => !!document.querySelector('.tse-preview'), 4000);
-  const surCarte = await page.evaluate(() => !!document.querySelector('.tse-preview'));
+  await attendre(page, () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 4000);
+  const surCarte = await page.evaluate(() => !!document.querySelector('.tse-preview[data-tse-visible="true"]'));
   await page.mouse.move(900, 700);
-  await attendre(page, () => !document.querySelector('.tse-preview'), 4000);
+  await attendre(page, () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 4000);
   /* Mutant — le nœud posé DANS la carte : son survol ouvrirait l'aperçu. */
   /* L'étiquette est un élément d'une boîte flex : affichée, elle se calcule
      « block », pas « inline ». */
@@ -25561,18 +25592,31 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      && e5duo?.membres.join() === 'eole,delta' && /eole.*delta/.test(e5duo?.aria),
      JSON.stringify({ ordre: e5.ordre, noeuds: e5.noeuds.map((n) => [n.membres, n.texte, n.milieu, n.aria]) }));
 
-  // ── Le réglage ────────────────────────────────────────────────────────────
+  // ── Le réglage : le système multistream (4.24.0.9) ────────────────────────
+  // Une salle ouverte au moment où on le coupe : elle se ferme avec lui.
+  await page.evaluate(() => window.tse.salle.ouvrir('astra', 'boreal'));
   await page.evaluate(() => window.tse.options.poser('salle', false));
   await wait(page, 300);
   const coupe = await lire();
+  const salleCoupee = await page.evaluate(() => ({ ouverte: !!document.getElementById('tse-salle'),
+    fermeture: window.tse.salle.rapport().fermeture }));
+  // Un clic qui atteindrait quand même le nœud masqué n'ouvre rien.
+  const clicMasque = await page.evaluate(async () => {
+    document.querySelector('.tse-noeud')?.click();
+    await new Promise((r) => setTimeout(r, 300));
+    return { ouverte: !!document.getElementById('tse-salle'), chemin: location.pathname };
+  });
   await page.evaluate(() => window.tse.options.poser('salle', true));
   await wait(page, 300);
   const remis = await lire();
-  /* Mutant — la règle du réglage oubliée : les nœuds resteraient. */
-  ok('le réglage « Bouton de salle multistream » coupé, plus aucun nœud ; remis, ils reviennent',
+  /* Mutants — la règle du réglage oubliée (les nœuds resteraient), la salle
+     ouverte laissée quand le système est coupé. */
+  ok('le réglage « Salle multistream » coupé : plus aucun nœud, la salle ouverte se ferme ; remis, les nœuds reviennent',
      coupe.calque?.affiche === 'none' && coupe.noeuds.every((n) => !n.entier)
+     && salleCoupee.ouverte === false && salleCoupee.fermeture === 'reglage'
+     && clicMasque.ouverte === false && clicMasque.chemin === '/directory'
      && !!remis.calque && remis.calque.affiche !== 'none' && remis.noeuds.length === 2 && remis.noeuds.every((n) => n.entier),
-     JSON.stringify({ coupe: coupe.calque, remis: remis.noeuds.map((n) => n.entier) }));
+     JSON.stringify({ coupe: coupe.calque, salleCoupee, clicMasque, remis: remis.noeuds.map((n) => n.entier) }));
 
   // ── La barre réduite ──────────────────────────────────────────────────────
   await page.evaluate(() => {
@@ -25603,12 +25647,13 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
 
   // ── Le rapport ────────────────────────────────────────────────────────────
   const rap = await page.evaluate(() => window.tse.panneau.rapport().salle);
-  /* Mutant — les clics jamais comptés. Cinq : quatre sur le trio (ouvrir,
-     refermer, ouvrir avant Échap, ouvrir), un sur le duo. */
+  /* Mutant — les clics jamais comptés. Six : quatre sur le trio (ouvrir,
+     refermer, ouvrir avant Échap, ouvrir), un sur le duo, et celui qui
+     atteint le nœud masqué, système coupé (4.24.0.9) — compté, sans effet. */
   /* Et ce qui dira, sur le vrai Twitch, si le calque décale la liste : la
      section du décor est une boîte ordinaire, l'écart est nul. */
   ok('le rapport compte les nœuds posés et les clics reçus, et mesure l\'écart du calque',
-     rap.noeuds?.affiches === 2 && rap.noeuds?.clics === 5 && rap.ouverte === false && rap.fermeture === 'api'
+     rap.noeuds?.affiches === 2 && rap.noeuds?.clics === 6 && rap.ouverte === false && rap.fermeture === 'reglage'
      && /^block · gap /.test(rap.noeuds?.section) && rap.noeuds?.ecart === 0,
      JSON.stringify(rap.noeuds));
   await page.close();
@@ -25783,9 +25828,17 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       scene: rect(boite.querySelector('.tse-salle__scene')),
       tuiles: [...boite.querySelectorAll('.tse-salle__tuile')].map((t) => ({ chaine: t.dataset.tseSalleChaine, ...rect(t) })),
       chats: boite.querySelectorAll('iframe[name="tse-salle-chat"]').length,
+      titreDans: boite.querySelector('.tse-salle__titre')
+        .closest('.tse-salle__tete, .tse-salle__chat--gauche, .tse-salle__chat--droite')?.classList[1] || 'tete',
+      fermerDans: boite.querySelector('.tse-salle__fermer')
+        .closest('.tse-salle__tete, .tse-salle__chat--gauche, .tse-salle__chat--droite')?.classList[1] || 'tete',
       rapport: window.tse.salle.rapport(),
     };
   });
+  // Les tuiles collées aux chats : la marge de base de la scène, pas plus.
+  const collees = (s) => s.tuiles.length > 0
+    && Math.min(...s.tuiles.map((t) => t.x)) - s.scene.x === 8
+    && s.scene.droite - Math.max(...s.tuiles.map((t) => t.droite)) === 8;
   await attendre(page, () => window.tse.salle.rapport().chatPartage === false, 10_000);
   const deux = await lireSalle();
   const dansScene = (s) => s.tuiles.every((t) => t.x >= s.scene.x && t.droite <= s.scene.droite);
@@ -25798,6 +25851,23 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      && deux.rapport.chatPartage === false && /^\d+ messages · 0 communs$/.test(deux.rapport.chatsCompares || ''),
      JSON.stringify(deux && { gauche: deux.gauche, droite: deux.droite, scene: deux.scene, tuiles: deux.tuiles,
                               partage: deux.rapport.chatPartage, compare: deux.rapport.chatsCompares }));
+  /* LES CHATS REMPLISSENT LES MARGES, ET PORTENT LE TITRE ET LES COMMANDES
+     (4.24.0.9) : les deux colonnes se partagent la place que la grille laisse,
+     les tuiles s'y collent ; le titre en haut de celle de gauche, les
+     commandes en haut de celle de droite. Mutants — les marges laissées
+     vides, le partage inégal, le titre ou les commandes restés ailleurs.
+     ET LA HAUTEUR RENDUE AUX LECTEURS, au pixel : 1920 × 1080 et une barre
+     de 248 px laissent 1672 × 1030 à la salle, 1315 × 1014 à la grille avec
+     un chat et sans ligne d'en-tête — deux tuiles empilées de 897 × 504. La
+     ligne d'en-tête comptée quand même en ferait 862 × 484 (mutant). */
+  ok('deux chats : ils remplissent les marges à parts égales, le titre à gauche, les commandes à droite, et la hauteur va aux lecteurs',
+     !!deux && collees(deux) && Math.abs(deux.gauche.l - deux.droite.l) <= 2 && deux.gauche.l > 341
+     && deux.rapport.grille === '1×2 · 897×504'
+     && deux.titreDans === 'tse-salle__chat--gauche' && deux.fermerDans === 'tse-salle__chat--droite'
+     && /^\d+ · \d+$/.test(deux.rapport.chatsPx || ''),
+     JSON.stringify(deux && { g: deux.gauche.l, d: deux.droite.l, scene: deux.scene, tuiles: deux.tuiles,
+                              titre: deux.titreDans, fermer: deux.fermerDans, px: deux.rapport.chatsPx,
+                              grille: deux.rapport.grille }));
   // Le son change de tuile : les deux chats restent où ils sont.
   await page.click('#tse-salle .tse-salle__tuile[data-tse-salle-chaine="calme"] .tse-salle__prise', { timeout: 3000 }).catch(() => {});
   await wait(page, 600);
@@ -25809,6 +25879,42 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      && apresSon.droite.id === deux.droite.id && apresSon.gauche.id === deux.gauche.id,
      JSON.stringify(apresSon && { son: apresSon.rapport.son, g: [apresSon.gauche.chaine, apresSon.gauche.id === deux.gauche.id],
                                   d: [apresSon.droite.chaine, apresSon.droite.id === deux.droite.id] }));
+  /* L'APERÇU QUI RESTAIT (4.24.0.9). SIGNALÉ : ouvert au survol d'une carte,
+     il restait affiché quand la souris partait vers les lecteurs. Le chat de
+     gauche est une iframe collée à la barre : le pointeur y entre sans qu'un
+     seul mouvement parvienne à la page, dont la dernière position connue est
+     encore sur la carte. Un saut direct de la carte à ce chat le reproduit. */
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    window.__fx = { ...(window.__fx || {}), apercu: { id: '7790', createdAt: h, viewers: 500, game: 'Valheim', tags: [] } };
+    window.__addCard('apercu', 'Valheim', '500');
+  });
+  await attendre(page, () => !document.body.classList.contains('tse-loading')
+    && !!document.querySelector('.side-nav-card[data-tse-login="apercu"] .tse-uptime'), 10_000);
+  const carteApercu = await page.evaluate(() => {
+    const r = document.querySelector('.side-nav-card[data-tse-login="apercu"]')?.getBoundingClientRect();
+    return r ? { x: r.left + r.width * 0.6, y: r.top + r.height / 2 } : null;
+  });
+  if (carteApercu) await page.mouse.move(carteApercu.x, carteApercu.y);
+  // Visible : l'aperçu fermé reste dans la page, masqué (data-tse-visible).
+  await attendre(page, () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 5000);
+  const cible = await page.evaluate(() => {
+    const r = document.querySelector('#tse-salle .tse-salle__chat--gauche')?.getBoundingClientRect();
+    if (!r) return null;
+    const x = Math.round(r.left + 60), y = Math.round(window.innerHeight - 80);
+    return { x, y, surIframe: document.elementFromPoint(x, y)?.localName === 'iframe',
+             apercu: !!document.querySelector('.tse-preview[data-tse-visible="true"]') };
+  });
+  if (cible) await page.mouse.move(cible.x, cible.y);
+  await wait(page, 800);
+  const apercuApres = await page.evaluate(() => !!document.querySelector('.tse-preview[data-tse-visible="true"]'));
+  /* Mutant — le dernier survol ignoré : la position figée sur la carte
+     ferait croire à une réconciliation, et l'aperçu resterait. */
+  ok('l\'aperçu ouvert se ferme quand la souris passe de la carte à un chat de la salle',
+     !!cible && cible.apercu === true && cible.surIframe === true && apercuApres === false,
+     JSON.stringify({ carteApercu, cible, apercuApres }));
+  await page.mouse.move(1000, 500);
+
   // Une fenêtre basse : deux tuiles côte à côte, plus de marge pour un chat.
   await page.setViewportSize({ width: 1920, height: 700 });
   await wait(page, 1500);
@@ -25836,10 +25942,11 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   const partage = await lireSalle();
   /* Mutants — la comparaison qui ne voit jamais le partage (deux fois le même
      chat), ou le chat de gauche laissé après ; les tuiles non recentrées. */
-  ok('un Chat partagé : prouvé par ses messages, un seul chat reste, les tuiles gardent leur taille et se recentrent',
+  ok('un Chat partagé : prouvé par ses messages, un seul chat reste — qui prend toute la marge —, les tuiles gardent leur taille',
      avantPartage.chats === 2 && partage?.chats === 1 && !partage.gauche.visible && partage.droite.chaine === 'sa'
      && partage.tuiles.map((t) => t.l).join() === avantPartage.l.join()
-     && partage.tuiles[0].x < avantPartage.x[0] && dansScene(partage)
+     && collees(partage) && partage.titreDans === 'tse-salle__chat--droite'
+     && partage.fermerDans === 'tse-salle__chat--droite' && dansScene(partage)
      && /^\d+ messages · \d+ communs$/.test(partage.rapport.chatsCompares || ''),
      JSON.stringify({ avantPartage, apres: partage && { chats: partage.chats, tuiles: partage.tuiles, compare: partage.rapport.chatsCompares } }));
 
@@ -25881,6 +25988,19 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   /* Mutants — la demande relue à chaque chargement, ou sans limite d'âge. */
   ok('une demande consommée ne rouvre rien au rechargement, une demande périmée non plus',
      rechargee === false && perimee.salle === false && perimee.attente === null, JSON.stringify({ rechargee, perimee }));
+  // Le système coupé dans le panneau (4.24.0.9) : une demande fraîche non plus.
+  await page.evaluate(() => {
+    window.tse.options.poser('salle', false);
+    sessionStorage.setItem('tse:salle-attente', JSON.stringify({ membres: ['tardif', 'calme'], t: Date.now() }));
+  });
+  await page.reload();
+  await wait(page, 2500);
+  const systemeCoupe = await page.evaluate(() => ({ salle: !!document.getElementById('tse-salle'),
+    attente: sessionStorage.getItem('tse:salle-attente') }));
+  await page.evaluate(() => window.tse.options.poser('salle', true));
+  /* Mutant — le réglage ignoré à l'arrivée : la salle s'ouvrirait quand même. */
+  ok('le système coupé dans le panneau : une demande fraîche n\'ouvre rien, et elle est effacée',
+     systemeCoupe.salle === false && systemeCoupe.attente === null, JSON.stringify(systemeCoupe));
 
   // ── SOUS LA BARRE DU HAUT DE TWITCH ───────────────────────────────────────
   /* Une barre du haut comme celle de Twitch — fixe, à son propre niveau —,

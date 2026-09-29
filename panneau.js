@@ -1042,8 +1042,10 @@ const montrerMessage = (cle, bouton, detail) => {
 
 const GROUPES_OPT = [
   ['optGrpApercu',  ['apercu', 'apercuVideo', 'apercuQualite', 'apercuTaille']],
+  // Le système multistream a son groupe (4.24.0.9), pour qu'on le trouve.
+  ['optGrpMultistream', ['salle']],
   ['optGrpBadges',  ['badges']],
-  ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'salle', 'abonnes', 'subathonJour']],
+  ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
   ['optGrpTwitch',  ['stories', 'serie']],
   ['optGrpAbos',    ['abosPeriode']],

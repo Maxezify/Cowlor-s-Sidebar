@@ -525,6 +525,9 @@
   "optGrpCarte": {
     "message": "Die Karte in der Seitenleiste"
   },
+  "optGrpMultistream": {
+    "message": "Multistream"
+  },
   "optDuree": {
     "message": "Streamdauer"
   },
@@ -538,10 +541,10 @@
     "message": "Kollaborations-Punkt"
   },
   "optSalle": {
-    "message": "Schaltfläche für den Multistream-Raum"
+    "message": "Multistream-Raum"
   },
   "optDescSalle": {
-    "message": "Die Schaltfläche „▶“ auf dem Balken eines Co-Streams: Ein Klick öffnet seine Streams gemeinsam auf der Seite. Aus bleibt der Balken, ohne Schaltfläche."
+    "message": "Eine Schaltfläche „▶“ auf dem Balken eines Co-Streams öffnet seine Streams gemeinsam auf der Seite. Aus: keine Schaltfläche, kein Raum."
   },
   "optAbonnes": {
     "message": "Gold der Abonnements"
