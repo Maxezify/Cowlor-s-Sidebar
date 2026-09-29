@@ -20957,7 +20957,7 @@ addEventListener('message', (e) => {
    build.mjs. Chaque substitution est VÉRIFIÉE : une expression qui ne
    trouverait plus sa constante ferait tourner le scénario sur le script
    ordinaire, et il passerait sans rien mesurer. */
-const pageVariante = async (substitutions, init = null) => {
+const pageVariante = async (substitutions, init = null, chemin = '/') => {
   let src = fileText('content.test.js');
   const ratees = [];
   for (const [rx, par] of substitutions) {
@@ -20980,7 +20980,7 @@ const pageVariante = async (substitutions, init = null) => {
     route.fulfill({ contentType: 'image/png', body: PIXEL }));
   // Comme freshTwitch : un script d'amorce, posé dans TOUTES les frames.
   if (init) await page.addInitScript(init);
-  await page.goto('https://www.twitch.tv/');
+  await page.goto('https://www.twitch.tv' + chemin);
   return { page, ratees };
 };
 
@@ -25011,7 +25011,7 @@ const pageVariante = async (substitutions, init = null) => {
       scene: { x: Math.round(scene.left), y: Math.round(scene.top), droite: Math.round(scene.right), bas: Math.round(scene.bottom) },
       tuiles, chats,
       banc: [...boite.querySelectorAll('.tse-salle__remplacant')].map((x) => x.dataset.tseSalleChaine),
-      chatVisible: !boite.querySelector('.tse-salle__chat').hidden,
+      chatVisible: !boite.querySelector('.tse-salle__chat--droite').hidden,
       videoPage: document.getElementById('video-page').paused,
     };
   });
@@ -25295,11 +25295,13 @@ const pageVariante = async (substitutions, init = null) => {
    placement qui ne tiendrait qu'aux balayages passerait pour le suivi. */
 {
   titre('176. Le nœud de la salle — sur la barre au pixel, un interrupteur, sans boucle');
+  /* SUR LA PAGE DE LA SALLE (4.24.0.8) : le nœud y ouvre la salle sur place.
+     D'ailleurs, il y mène d'abord — c'est le scénario 177 qui l'éprouve. */
   const { page, ratees } = await pageVariante([
     [/REFRESH_TICK:\s*100\b/, 'REFRESH_TICK:   5_000'],
     [/LIVE_TTL:\s*600\b/, 'LIVE_TTL:       30_000'],
     [/SUBS_PAGE_TTL:\s*4_000\b/, 'SUBS_PAGE_TTL: 6 * 60 * 60_000'],
-  ]);
+  ], null, '/directory');
   ok('la variante porte le réveil, la fraîcheur et le relevé de production',
      ratees.length === 0, JSON.stringify(ratees));
   // Une fenêtre de bureau : les trois streams d'une barre tiennent dans la salle.
@@ -25361,7 +25363,10 @@ const pageVariante = async (substitutions, init = null) => {
       const cy = (r.top + r.bottom) / 2;
       const touche = document.elementFromPoint(r.left + 3, cy);
       return {
-        membres, compte: n.querySelector('.tse-noeud__compte').textContent,
+        membres,
+        // Ce que la capsule MONTRE au repos : le symbole seul (4.24.0.8), aucun
+        // texte — innerText ne lit pas l'étiquette masquée.
+        visible: n.innerText.trim(),
         etiquette: getComputedStyle(n.querySelector('.tse-noeud__etiquette')).display,
         texte: n.querySelector('.tse-noeud__etiquette').textContent,
         svg: getComputedStyle(n.querySelector('svg')).display,
@@ -25393,11 +25398,12 @@ const pageVariante = async (substitutions, init = null) => {
   const t1 = noeud(e1, 'astra'), d1 = noeud(e1, 'delta');
   /* Mutants — le milieu pris sur la première carte seule, le bord gauche
      décalé hors de la liste (rogné), la couleur par défaut au lieu de celle
-     de la barre, le calque qui prend de la hauteur. */
-  ok('un nœud par barre, au milieu de la barre et sur son bord gauche, entier, à sa couleur',
+     de la barre, le calque qui prend de la hauteur ; le nombre remis dans la
+     capsule (4.24.0.8 : le symbole seul, à la demande). */
+  ok('un nœud par barre, au milieu de la barre et sur son bord gauche, entier, à sa couleur, le symbole seul',
      e1.calques === 1 && e1.noeuds.length === 2 && !!t1 && !!d1
      && t1.membres.join() === 'astra,boreal,cirrus' && d1.membres.join() === 'delta,eole'
-     && t1.compte === '3' && d1.compte === '2'
+     && t1.visible === '' && d1.visible === ''
      && e1.noeuds.every((n) => Math.abs(n.milieu) <= 1 && Math.abs(n.gauche) <= 0.5 && n.entier
        && n.fond === n.barre && n.presse === 'false' && n.etiquette === 'none' && n.svg !== 'none')
      && t1.fond !== d1.fond && e1.calque.h === 0 && e1.calque.ecart === 0,
@@ -25454,7 +25460,7 @@ const pageVariante = async (substitutions, init = null) => {
   ok('un clic ouvre la salle avec les chaînes de la barre, dans son ordre, sans quitter la page',
      o1.ouverte && o1.chaines.join() === 'astra,boreal,cirrus' && o1.rapport.origine === 'noeud'
      && o1.rapport.son === 'astra' && o1.presses.astra === 'true' && o1.presses.delta === 'false'
-     && o1.chemin === '/',
+     && o1.chemin === '/directory',
      JSON.stringify(o1));
   await cliquerNoeud('astra');
   const o2 = await salle();
@@ -25548,12 +25554,12 @@ const pageVariante = async (substitutions, init = null) => {
   /* Mutants — le nœud d'une barre disparue jamais retiré (il dirait encore
      « 3 » et ouvrirait une chaîne partie) ; le nœud gardé dans son ancien
      ordre (il ouvrirait la salle à l'envers de la barre). */
-  ok('un tri détache « cirrus » : son ancien nœud part, la barre restante porte « 2 » ; le duo retourné suit son nouvel ordre',
+  ok('un tri détache « cirrus » : son ancien nœud part, la barre restante en compte deux ; le duo retourné suit son nouvel ordre',
      e5.ordre.slice(0, 5).join() === 'cirrus,eole,delta,boreal,astra'
      && e5.noeuds.length === 2 && e5.noeuds.every((n) => !n.membres.includes('cirrus') && Math.abs(n.milieu) <= 1)
-     && noeud(e5, 'astra')?.compte === '2' && noeud(e5, 'astra')?.membres.join() === 'boreal,astra'
+     && noeud(e5, 'astra')?.texte === 'Regarder les 2' && noeud(e5, 'astra')?.membres.join() === 'boreal,astra'
      && e5duo?.membres.join() === 'eole,delta' && /eole.*delta/.test(e5duo?.aria),
-     JSON.stringify({ ordre: e5.ordre, noeuds: e5.noeuds.map((n) => [n.membres, n.compte, n.milieu, n.aria]) }));
+     JSON.stringify({ ordre: e5.ordre, noeuds: e5.noeuds.map((n) => [n.membres, n.texte, n.milieu, n.aria]) }));
 
   // ── Le réglage ────────────────────────────────────────────────────────────
   await page.evaluate(() => window.tse.options.poser('salle', false));
@@ -25563,7 +25569,7 @@ const pageVariante = async (substitutions, init = null) => {
   await wait(page, 300);
   const remis = await lire();
   /* Mutant — la règle du réglage oubliée : les nœuds resteraient. */
-  ok('le réglage « Compteur de salle multistream » coupé, plus aucun nœud ; remis, ils reviennent',
+  ok('le réglage « Bouton de salle multistream » coupé, plus aucun nœud ; remis, ils reviennent',
      coupe.calque?.affiche === 'none' && coupe.noeuds.every((n) => !n.entier)
      && !!remis.calque && remis.calque.affiche !== 'none' && remis.noeuds.length === 2 && remis.noeuds.every((n) => n.entier),
      JSON.stringify({ coupe: coupe.calque, remis: remis.noeuds.map((n) => n.entier) }));
@@ -25587,10 +25593,10 @@ const pageVariante = async (substitutions, init = null) => {
   await wait(page, 300);
   const e7 = await lire();
   await page.mouse.move(900, 700);
-  /* Mutants — le mode réduit ignoré (le triangle et l'étiquette déborderaient
-     d'une barre large d'un avatar). */
-  ok('barre réduite : le nombre seul, sans étiquette même au survol, entier et sur sa barre',
-     e6.noeuds.length === 2 && e6.noeuds.every((n) => n.reduit && n.svg === 'none' && n.entier
+  /* Mutants — le mode réduit ignoré (l'étiquette déborderait d'une barre
+     large d'un avatar). */
+  ok('barre réduite : le symbole seul, sans étiquette même au survol, entier et sur sa barre',
+     e6.noeuds.length === 2 && e6.noeuds.every((n) => n.reduit && n.svg !== 'none' && n.visible === '' && n.entier
        && Math.abs(n.milieu) <= 1 && Math.abs(n.gauche) <= 0.5)
      && noeud(e7, 'astra')?.etiquette === 'none',
      JSON.stringify({ e6: e6.noeuds, survol: noeud(e7, 'astra')?.etiquette }));
@@ -25605,6 +25611,324 @@ const pageVariante = async (substitutions, init = null) => {
      rap.noeuds?.affiches === 2 && rap.noeuds?.clics === 5 && rap.ouverte === false && rap.fermeture === 'api'
      && /^block · gap /.test(rap.noeuds?.section) && rap.noeuds?.ecart === 0,
      JSON.stringify(rap.noeuds));
+  await page.close();
+}
+
+/* ═════════ LA SALLE, APRÈS SON PREMIER RAPPORT RÉEL ═══════════════════════
+   QUATRE RETOURS DE TERRAIN SUR LA 4.24.0.7, captures et rapport à l'appui,
+   et ce scénario les tient tous (4.24.0.8) :
+     — OUVERTE DEPUIS LA PAGE D'UN STREAMER, elle se posait par-dessus : son
+       adresse restait, son lecteur vivait dessous. Le nœud mène désormais
+       la salle sur « Parcourir », par une vraie navigation ;
+     — LE SON ÉTAIT COUPÉ À L'ARRIVÉE : « son · deja · sans-effet ». Le
+       lecteur de Twitch se remet en muet APRÈS l'apparition de sa vidéo ;
+       le lecteur factice « tardif » fait de même, et « rebelle » se recoupe
+       à chaque fois — la relance doit être bornée, et céder à l'utilisateur ;
+     — À DEUX STREAMS, les marges restaient vides : le chat de l'autre y
+       prend place, sauf si les deux chats sont un Chat partagé — « sa » et
+       « sb » servent le même ;
+     — LES MENUS DE LA BARRE DU HAUT S'OUVRAIENT COUPÉS : la salle se place
+       sous elle, et au-dessus de la page. */
+{
+  titre('177. La salle — la page du stream quittée, le son tenu, deux chats, les menus de Twitch');
+  const lecteur = `<!doctype html><html><body style="margin:0">
+    <video id="v" autoplay muted playsinline style="width:320px;height:180px"></video>
+    <button data-a-target="player-mute-unmute-button">son</button>
+    <button data-a-target="player-play-pause-button">lecture</button>
+    <script>
+      const canal = new URLSearchParams(location.search).get('channel');
+      const v = document.getElementById('v');
+      const c = document.createElement('canvas');
+      c.width = 32; c.height = 18;
+      const ctx = c.getContext('2d');
+      ctx.fillRect(0, 0, 32, 18);
+      v.srcObject = c.captureStream(25);
+      v.play().catch(() => {});
+      window.__clics = { son: 0 };
+      document.querySelector('[data-a-target="player-mute-unmute-button"]').addEventListener('click', () => {
+        window.__clics.son++; v.muted = !v.muted;
+      });
+      document.querySelector('[data-a-target="player-play-pause-button"]').addEventListener('click', () => {
+        if (v.paused) v.play().catch(() => {}); else v.pause();
+      });
+      // « tardif » : non muet à l'apparition, puis muet — Twitch qui applique
+      // son réglage après coup, ce que le premier rapport réel a montré.
+      if (canal === 'tardif') { v.muted = false; setTimeout(() => { v.muted = true; }, 900); }
+      // « rebelle » : se recoupe à chaque fois qu'on lui rend le son.
+      if (canal === 'rebelle') v.addEventListener('volumechange', () => {
+        if (!v.muted) setTimeout(() => { v.muted = true; }, 300);
+      });
+    </script>
+    <script src="/adblock.test.js"></script>
+    <script src="/content.test.js"></script>
+  </body></html>`;
+  // La largeur de Twitch pour la barre, posée à CHAQUE chargement : la salle
+  // change de page, et un style ajouté après coup ne survivrait pas.
+  const page = await freshTwitch(lecteur, [], '/zephyr', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  /* LES CHATS : trente messages chacun, un toutes les 120 ms. « sa » et
+     « sb » servent LE MÊME (un Chat partagé), les autres chacun le sien. */
+  await page.route('https://www.twitch.tv/embed/**', (route) => {
+    const chaine = route.request().url().split('/embed/')[1].split('/')[0];
+    const graine = ['sa', 'sb'].includes(chaine) ? 'commun' : chaine;
+    route.fulfill({ contentType: 'text/html; charset=utf-8', body: `<!doctype html><html><body>
+      <p id="chaine">${chaine}</p><div id="lignes"></div>
+      <script>
+        window.__id = Math.random();
+        let n = 0;
+        const t = setInterval(() => {
+          const d = document.createElement('div');
+          d.className = 'chat-line__message';
+          d.textContent = '${graine}_u' + n + ': message ' + n;
+          document.getElementById('lignes').appendChild(d);
+          if (++n >= 30) clearInterval(t);
+        }, 120);
+      </script></body></html>` });
+  });
+  await attendre(page, () => !document.body.classList.contains('tse-loading'), 15_000);
+
+  // ── LA PAGE DU STREAM QUITTÉE ─────────────────────────────────────────────
+  // La page d'un streamer : son lecteur joue.
+  await page.evaluate(async () => {
+    const c = document.createElement('canvas');
+    c.width = 16; c.height = 9;
+    c.getContext('2d').fillRect(0, 0, 16, 9);
+    const v = document.createElement('video');
+    v.id = 'video-page';
+    v.muted = true; v.srcObject = c.captureStream(25);
+    document.body.appendChild(v);
+    await Promise.race([v.play().catch(() => {}), new Promise((r) => setTimeout(r, 1500))]);
+    const h = new Date(Date.now() - 3600_000).toISOString();
+    const f = (id, v2) => ({ id, createdAt: h, viewers: v2, game: 'Valheim', tags: [] });
+    window.__fx = { tardif: f('7701', 9000), calme: f('7702', 8900), solo: f('7703', 100) };
+    const duo = [['7701', 'tardif', 9000], ['7702', 'calme', 8900]]
+      .map(([id, login, viewers]) => ({ id, login, viewers, combined: 17900 }));
+    window.__gs = { '7701': { hostId: '7701', hostLogin: 'tardif', guests: duo },
+                    '7702': { hostId: '7701', hostLogin: 'tardif', guests: duo } };
+    for (const [l, x] of [['tardif', '17,9 k'], ['calme', '17,9 k'], ['solo', '100']]) window.__addCard(l, 'Valheim', x);
+  });
+  await attendre(page, () => !document.body.classList.contains('tse-loading')
+    && !!document.querySelector('#tse-noeuds .tse-noeud'), 15_000);
+  await wait(page, 300);
+  const noeud = await page.evaluate(() => {
+    const n = document.querySelector('#tse-noeuds .tse-noeud');
+    if (!n) return null;
+    const r = n.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, membres: n.dataset.tseNoeud };
+  });
+  if (noeud) await page.mouse.click(noeud.x, noeud.y);
+  await attendre(page, () => location.pathname === '/directory' && !!document.getElementById('tse-salle'), 15_000);
+  /* La salle s'ouvre dès la barre latérale posée ; si sa largeur n'est pas
+     encore la bonne, le pas suivant de la salle redispose les tuiles — c'est
+     cette disposition-là qu'on lit. */
+  await attendre(page, () => document.querySelectorAll('#tse-salle .tse-salle__tuile').length === 2, 5000);
+  const arrivee = await page.evaluate(() => ({
+    chemin: location.pathname,
+    videoPage: !!document.getElementById('video-page'),
+    salle: !!document.getElementById('tse-salle'),
+    chaines: [...document.querySelectorAll('#tse-salle .tse-salle__tuile')].map((t) => t.dataset.tseSalleChaine),
+    rapport: window.tse.salle.rapport(),
+    attente: sessionStorage.getItem('tse:salle-attente'),
+  }));
+  /* Mutants — la salle ouverte sur place (l'adresse et le lecteur du
+     streamer restent), la demande perdue au chargement, ou laissée dans
+     l'onglet (elle rouvrirait la salle au prochain chargement). */
+  ok('depuis la page d\'un streamer, le nœud mène la salle sur « Parcourir » : plus d\'adresse ni de lecteur du stream',
+     noeud?.membres === 'tardif calme' && arrivee.chemin === '/directory' && arrivee.salle
+     && arrivee.videoPage === false && arrivee.chaines.join() === 'tardif,calme'
+     && arrivee.rapport.origine === 'noeud' && Number.isFinite(arrivee.rapport.arriveeMs)
+     && arrivee.rapport.arriveeMs < 20_000 && arrivee.attente === null,
+     JSON.stringify({ noeud, ...arrivee, rapport: { origine: arrivee.rapport.origine, arriveeMs: arrivee.rapport.arriveeMs } }));
+  // Twitch réécrit ses paramètres : ce n'est pas un changement de page.
+  await page.evaluate(() => history.replaceState({}, '', '/directory?sort=RELEVANCE'));
+  await wait(page, 1500);
+  const reecrite = await page.evaluate(() => !!document.getElementById('tse-salle'));
+  /* Mutant — l'adresse entière comparée au lieu du chemin. */
+  ok('…et un paramètre réécrit par Twitch ne la ferme pas', reecrite === true, String(reecrite));
+
+  // ── LE SON TENU ───────────────────────────────────────────────────────────
+  await attendre(page, () => window.tse.salle.rapport().tuiles?.tardif?.sonTenu === true, 15_000);
+  const tenu = await page.evaluate(() => window.tse.salle.rapport().tuiles?.tardif);
+  const lecteurTardif = await page.frames().find((f) => f.url().includes('channel=tardif'))
+    ?.evaluate(() => ({ muet: document.getElementById('v').muted, clics: window.__clics.son })).catch(() => null);
+  /* Mutant — l'ordre donné une seule fois, dès la vidéo : c'est le rapport
+     réel, « son · deja · sans-effet », et la tuile reste muette. */
+  ok('le lecteur qui se remet en muet après coup : l\'ordre est relancé, et le son tient',
+     tenu?.sonTenu === true && tenu?.muet === false && tenu?.sonEssais >= 1
+     && /^son · bouton · ok$/.test(tenu?.ordre || '') && lecteurTardif?.muet === false,
+     JSON.stringify({ tenu, lecteurTardif }));
+
+  // ── DEUX CHATS DANS LES MARGES ────────────────────────────────────────────
+  const lireSalle = () => page.evaluate(() => {
+    const boite = document.getElementById('tse-salle');
+    if (!boite) return null;
+    const rect = (el) => { const r = el.getBoundingClientRect(); return { x: Math.round(r.left), droite: Math.round(r.right), l: Math.round(r.width) }; };
+    const cote = (cls) => {
+      const b = boite.querySelector(cls);
+      const f = b && b.querySelector('iframe');
+      let id = null;
+      try { id = f && f.contentWindow.__id; } catch { /* ignore */ }
+      return { visible: !!b && !b.hidden, chaine: f ? decodeURIComponent(f.src.split('/embed/')[1].split('/')[0]) : null, id,
+               ...(b && !b.hidden ? rect(b) : {}) };
+    };
+    return {
+      gauche: cote('.tse-salle__chat--gauche'), droite: cote('.tse-salle__chat--droite'),
+      scene: rect(boite.querySelector('.tse-salle__scene')),
+      tuiles: [...boite.querySelectorAll('.tse-salle__tuile')].map((t) => ({ chaine: t.dataset.tseSalleChaine, ...rect(t) })),
+      chats: boite.querySelectorAll('iframe[name="tse-salle-chat"]').length,
+      rapport: window.tse.salle.rapport(),
+    };
+  });
+  await attendre(page, () => window.tse.salle.rapport().chatPartage === false, 10_000);
+  const deux = await lireSalle();
+  const dansScene = (s) => s.tuiles.every((t) => t.x >= s.scene.x && t.droite <= s.scene.droite);
+  /* Mutants — le second chat jamais posé, posé en rognant les tuiles, ou
+     tenu pour partagé ; la comparaison qui ne tranche jamais. */
+  ok('deux streams, deux chats distincts : l\'autre chat dans la marge de gauche, les tuiles dans la scène',
+     !!deux && deux.chats === 2 && deux.gauche.visible && deux.droite.visible
+     && deux.droite.chaine === 'tardif' && deux.gauche.chaine === 'calme'
+     && deux.gauche.droite <= deux.scene.x && dansScene(deux)
+     && deux.rapport.chatPartage === false && /^\d+ messages · 0 communs$/.test(deux.rapport.chatsCompares || ''),
+     JSON.stringify(deux && { gauche: deux.gauche, droite: deux.droite, scene: deux.scene, tuiles: deux.tuiles,
+                              partage: deux.rapport.chatPartage, compare: deux.rapport.chatsCompares }));
+  // Le son change de tuile : les deux chats restent où ils sont.
+  await page.click('#tse-salle .tse-salle__tuile[data-tse-salle-chaine="calme"] .tse-salle__prise', { timeout: 3000 }).catch(() => {});
+  await wait(page, 600);
+  const apresSon = await lireSalle();
+  /* Mutant — le chat de droite qui suit encore le son : les deux se
+     rechargeraient à chaque changement, et perdraient leurs messages. */
+  ok('…et le son qui change de tuile ne déplace ni ne recharge aucun des deux',
+     apresSon?.rapport.son === 'calme' && apresSon.droite.chaine === 'tardif' && apresSon.gauche.chaine === 'calme'
+     && apresSon.droite.id === deux.droite.id && apresSon.gauche.id === deux.gauche.id,
+     JSON.stringify(apresSon && { son: apresSon.rapport.son, g: [apresSon.gauche.chaine, apresSon.gauche.id === deux.gauche.id],
+                                  d: [apresSon.droite.chaine, apresSon.droite.id === deux.droite.id] }));
+  // Une fenêtre basse : deux tuiles côte à côte, plus de marge pour un chat.
+  await page.setViewportSize({ width: 1920, height: 700 });
+  await wait(page, 1500);
+  const basse = await lireSalle();
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await wait(page, 1500);
+  const haute = await lireSalle();
+  /* Mutant — la marge jamais mesurée : le second chat rognerait les tuiles. */
+  ok('sans marge assez large, un seul chat ; la marge revenue, le second aussi',
+     basse?.chats === 1 && !basse.gauche.visible && dansScene(basse)
+     && haute?.chats === 2 && haute.gauche.visible && dansScene(haute),
+     JSON.stringify({ basse: basse && { chats: basse.chats, tuiles: basse.tuiles, scene: basse.scene },
+                      haute: haute && { chats: haute.chats } }));
+
+  // Un Chat partagé : les deux chats sont le même, celui de gauche s'en va.
+  const avantPartage = await page.evaluate(() => {
+    window.tse.salle.ouvrir('sa', 'sb');
+    const b = document.getElementById('tse-salle');
+    return { chats: b.querySelectorAll('iframe[name="tse-salle-chat"]').length,
+             l: [...b.querySelectorAll('.tse-salle__tuile')].map((t) => Math.round(t.getBoundingClientRect().width)),
+             x: [...b.querySelectorAll('.tse-salle__tuile')].map((t) => Math.round(t.getBoundingClientRect().left)) };
+  });
+  await attendre(page, () => window.tse.salle.rapport().chatPartage === true, 10_000);
+  await wait(page, 300);
+  const partage = await lireSalle();
+  /* Mutants — la comparaison qui ne voit jamais le partage (deux fois le même
+     chat), ou le chat de gauche laissé après ; les tuiles non recentrées. */
+  ok('un Chat partagé : prouvé par ses messages, un seul chat reste, les tuiles gardent leur taille et se recentrent',
+     avantPartage.chats === 2 && partage?.chats === 1 && !partage.gauche.visible && partage.droite.chaine === 'sa'
+     && partage.tuiles.map((t) => t.l).join() === avantPartage.l.join()
+     && partage.tuiles[0].x < avantPartage.x[0] && dansScene(partage)
+     && /^\d+ messages · \d+ communs$/.test(partage.rapport.chatsCompares || ''),
+     JSON.stringify({ avantPartage, apres: partage && { chats: partage.chats, tuiles: partage.tuiles, compare: partage.rapport.chatsCompares } }));
+
+  // ── LA RELANCE BORNÉE, ET QUI CÈDE À L'UTILISATEUR ────────────────────────
+  await page.evaluate(() => window.tse.salle.ouvrir('rebelle', 'solo'));
+  await attendre(page, () => window.tse.salle.rapport().tuiles?.rebelle?.sonEssais >= 5, 16_000);
+  await wait(page, 3000);
+  const borne = await page.evaluate(() => window.tse.salle.rapport().tuiles?.rebelle);
+  /* Mutant — la relance sans borne : un lecteur qui se recoupe serait
+     relancé à vie. */
+  ok('un lecteur qui se recoupe toujours : cinq relances, pas une de plus',
+     borne?.sonEssais === 5 && borne?.sonTenu === false, JSON.stringify(borne));
+  await page.evaluate(() => window.tse.salle.ouvrir('rebelle', 'calme'));
+  await attendre(page, () => window.tse.salle.rapport().tuiles?.rebelle?.sonEssais >= 2, 10_000);
+  const avantGeste = await page.evaluate(() => window.tse.salle.rapport().tuiles?.rebelle?.sonEssais);
+  // Un vrai clic de l'utilisateur, DANS le lecteur.
+  await page.frames().find((f) => f.url().includes('channel=rebelle') && !f.isDetached())
+    ?.click('#v', { timeout: 3000 }).catch(() => {});
+  await wait(page, 6000);
+  const apresGeste = await page.evaluate(() => window.tse.salle.rapport().tuiles?.rebelle);
+  /* Mutant — le geste ignoré : la salle continuerait de rendre le son à un
+     lecteur que l'utilisateur vient de toucher. */
+  ok('…et un geste de l\'utilisateur dans le lecteur arrête la relance',
+     Number.isFinite(avantGeste) && apresGeste?.sonTenu === true && apresGeste.sonEssais <= avantGeste + 1
+     && apresGeste.sonEssais < 5,
+     JSON.stringify({ avantGeste, apresGeste }));
+
+  // ── UNE DEMANDE NE VAUT QU'UNE FOIS, ET PAS LONGTEMPS ─────────────────────
+  await page.evaluate(() => window.tse.salle.fermer());
+  await page.reload();
+  await wait(page, 2500);
+  const rechargee = await page.evaluate(() => !!document.getElementById('tse-salle'));
+  await page.evaluate(() => sessionStorage.setItem('tse:salle-attente',
+    JSON.stringify({ membres: ['tardif', 'calme'], t: Date.now() - 60_000 })));
+  await page.reload();
+  await wait(page, 2500);
+  const perimee = await page.evaluate(() => ({ salle: !!document.getElementById('tse-salle'),
+    attente: sessionStorage.getItem('tse:salle-attente') }));
+  /* Mutants — la demande relue à chaque chargement, ou sans limite d'âge. */
+  ok('une demande consommée ne rouvre rien au rechargement, une demande périmée non plus',
+     rechargee === false && perimee.salle === false && perimee.attente === null, JSON.stringify({ rechargee, perimee }));
+
+  // ── SOUS LA BARRE DU HAUT DE TWITCH ───────────────────────────────────────
+  /* Une barre du haut comme celle de Twitch — fixe, à son propre niveau —,
+     un de ses menus ouvert par-dessus la zone de la salle, et un élément de
+     la page qui a son propre niveau, plus bas. */
+  await page.evaluate(() => {
+    const nav = document.createElement('nav');
+    nav.dataset.aTarget = 'top-nav-container';
+    nav.style.cssText = 'position:fixed;top:0;left:0;right:0;height:50px;z-index:1000;background:#18181b';
+    const menu = document.createElement('div');
+    menu.id = 'menu-twitch';
+    menu.style.cssText = 'position:absolute;top:50px;right:20px;width:300px;height:400px;background:#333';
+    nav.appendChild(menu);
+    document.body.appendChild(nav);
+    const page2 = document.createElement('div');
+    page2.id = 'flottant';
+    page2.style.cssText = 'position:fixed;left:900px;top:500px;width:200px;height:100px;z-index:5;background:#f00';
+    document.body.appendChild(page2);
+    window.tse.salle.ouvrir('calme', 'solo');
+  });
+  await wait(page, 300);
+  const pile = await page.evaluate(() => {
+    const au = (id) => { const r = document.getElementById(id).getBoundingClientRect();
+      return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); };
+    const boite = document.getElementById('tse-salle');
+    return { empilement: window.tse.salle.rapport().empilement,
+             menuDevant: au('menu-twitch')?.id === 'menu-twitch',
+             pageDessous: boite.contains(au('flottant')) };
+  });
+  /* Mutants — la salle restée à 8000 (le menu coupé, le défaut signalé), ou
+     posée au niveau même de la barre (la salle, venue après, passerait
+     devant ses menus). */
+  ok('la salle se place sous la barre du haut : ses menus passent devant, la page reste dessous',
+     pile.empilement?.z === 999 && pile.empilement?.barre === 1000 && pile.empilement?.voie === 'repere'
+     && pile.empilement?.couverte === null && pile.menuDevant && pile.pageDessous,
+     JSON.stringify(pile));
+  await page.evaluate(() => {
+    const g = document.createElement('div');
+    g.id = 'geant';
+    g.style.cssText = 'position:fixed;left:300px;top:100px;width:1500px;height:900px;z-index:2000;background:#00f';
+    document.body.appendChild(g);
+    window.tse.salle.ouvrir('calme', 'solo');
+  });
+  await wait(page, 300);
+  const couverte = await page.evaluate(() => window.tse.salle.rapport().empilement);
+  /* Mutant — la vérification oubliée : la page passerait devant la salle. */
+  ok('…et si un élément de la page passe devant, elle remonte, et le rapport le nomme',
+     couverte?.z === 8000 && couverte?.couverte === 'div#geant', JSON.stringify(couverte));
   await page.close();
 }
 

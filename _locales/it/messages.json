@@ -385,7 +385,7 @@
     "message": "I co-stream"
   },
   "guideCostreamTexte": {
-    "message": "Un pallino viola all'angolo dell'avatar, con il numero di partecipanti: questo canale trasmette in compagnia. Visibile nell'elenco, senza passare sopra niente.\n• Un badge viola dice allora chi ospita e chi è invitato, e con chi.\n• Un ordinamento apposito li raggruppa in cima all'elenco (capitolo $1).\n• Quando più partecipanti si susseguono nell'elenco, le loro barre diventano una sola, e un contatore «▶ 3» ci si posa sopra: un clic li apre insieme sulla pagina, nella sala multistream. Un clic su un riquadro gli dà l'audio e la sua chat; il tasto Esc, o un secondo clic sul contatore, chiude la sala."
+    "message": "Un pallino viola all'angolo dell'avatar, con il numero di partecipanti: questo canale trasmette in compagnia. Visibile nell'elenco, senza passare sopra niente.\n• Un badge viola dice allora chi ospita e chi è invitato, e con chi.\n• Un ordinamento apposito li raggruppa in cima all'elenco (capitolo $1).\n• Quando più partecipanti si susseguono nell'elenco, le loro barre diventano una sola, e un pulsante «▶» ci si posa sopra: un clic li apre insieme sulla pagina, nella sala multistream. Un clic su un riquadro gli dà l'audio, e la chat lo segue; con due stream senza chat condivisa, le due chat incorniciano i player quando c'è spazio. Il tasto Esc, o un secondo clic sul pulsante, chiude la sala."
   },
   "guideDebutTitre": {
     "message": "Gli inizi, e i ritorni"
@@ -538,10 +538,10 @@
     "message": "Pallino di collaborazione"
   },
   "optSalle": {
-    "message": "Contatore della sala multistream"
+    "message": "Pulsante della sala multistream"
   },
   "optDescSalle": {
-    "message": "Il contatore «▶ 3» sulla barra di un co-stream: un clic apre i suoi stream insieme, sulla pagina. Disattivato, la barra resta, senza contatore."
+    "message": "Il pulsante «▶» sulla barra di un co-stream: un clic apre i suoi stream insieme, sulla pagina. Disattivato, la barra resta, senza pulsante."
   },
   "optAbonnes": {
     "message": "L'oro degli abbonamenti"

@@ -385,7 +385,7 @@
     "message": "Les co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Une pastille violette au coin de l'avatar, avec le nombre de participants : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1).\n• Quand plusieurs membres se suivent dans la liste, leurs barres n'en font qu'une, et un compteur « ▶ 3 » s'y pose : un clic les ouvre ensemble sur la page, dans la salle multistream. Un clic sur une tuile lui donne le son et son chat ; la touche Échap, ou un second clic sur le compteur, referme la salle."
+    "message": "Une pastille violette au coin de l'avatar, avec le nombre de participants : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1).\n• Quand plusieurs membres se suivent dans la liste, leurs barres n'en font qu'une, et un bouton « ▶ » s'y pose : un clic les ouvre ensemble sur la page, dans la salle multistream. Un clic sur une tuile lui donne le son, et le chat suit ; à deux streams sans Chat partagé, les deux chats encadrent les lecteurs quand la place le permet. La touche Échap, ou un second clic sur le bouton, referme la salle."
   },
   "guideDebutTitre": {
     "message": "Les débuts, et les reprises"
@@ -538,10 +538,10 @@
     "message": "Pastille de collaboration"
   },
   "optSalle": {
-    "message": "Compteur de salle multistream"
+    "message": "Bouton de salle multistream"
   },
   "optDescSalle": {
-    "message": "Le compteur « ▶ 3 » sur la barre d'un co-stream : un clic ouvre ses streams ensemble, sur la page. Coupé, la barre reste, sans compteur."
+    "message": "Le bouton « ▶ » sur la barre d'un co-stream : un clic ouvre ses streams ensemble, sur la page. Coupé, la barre reste, sans bouton."
   },
   "optAbonnes": {
     "message": "L'or des abonnements"

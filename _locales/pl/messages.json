@@ -385,7 +385,7 @@
     "message": "Co-streamy"
   },
   "guideCostreamTexte": {
-    "message": "Fioletowa kropka w rogu awatara, z liczbą uczestników: ten kanał nadaje w kilka osób. Widać to na liście, bez najeżdżania na cokolwiek.\n• Fioletowa odznaka mówi wtedy, kto gości, a kto jest gościem — i z kim.\n• Osobne sortowanie grupuje je na górze listy (rozdział $1).\n• Gdy kilku uczestników stoi na liście jeden pod drugim, ich paski łączą się w jeden, a na nim pojawia się licznik „▶ 3”: kliknięcie otwiera ich razem na stronie, w sali multistream. Kliknięcie kafelka daje mu dźwięk i jego czat; klawisz Esc albo drugie kliknięcie licznika zamyka salę."
+    "message": "Fioletowa kropka w rogu awatara, z liczbą uczestników: ten kanał nadaje w kilka osób. Widać to na liście, bez najeżdżania na cokolwiek.\n• Fioletowa odznaka mówi wtedy, kto gości, a kto jest gościem — i z kim.\n• Osobne sortowanie grupuje je na górze listy (rozdział $1).\n• Gdy kilku uczestników stoi na liście jeden pod drugim, ich paski łączą się w jeden, a na nim pojawia się przycisk „▶”: kliknięcie otwiera ich razem na stronie, w sali multistream. Kliknięcie kafelka daje mu dźwięk, a czat podąża za nim; przy dwóch streamach bez wspólnego czatu oba czaty otaczają odtwarzacze, gdy jest miejsce. Klawisz Esc albo drugie kliknięcie przycisku zamyka salę."
   },
   "guideDebutTitre": {
     "message": "Początki i powroty"
@@ -538,10 +538,10 @@
     "message": "Kropka współpracy"
   },
   "optSalle": {
-    "message": "Licznik sali multistream"
+    "message": "Przycisk sali multistream"
   },
   "optDescSalle": {
-    "message": "Licznik „▶ 3” na pasku co-streamu: kliknięcie otwiera jego streamy razem, na stronie. Wyłączony — pasek zostaje, bez licznika."
+    "message": "Przycisk „▶” na pasku co-streamu: kliknięcie otwiera jego streamy razem, na stronie. Wyłączony — pasek zostaje, bez przycisku."
   },
   "optAbonnes": {
     "message": "Złoto subskrypcji"
