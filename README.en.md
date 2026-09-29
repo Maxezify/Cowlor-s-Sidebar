@@ -2059,6 +2059,325 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The room: the full height for the players, quality matched to their size, and the same-instant study (v4.24.0.10)
+
+A third field report on the room, with screenshots: five fixes, and a study
+requested for later.
+
+### No row at the top any more, even without a chat
+
+**Reported:** with the chat removed, the top margin stayed. Version 4.24.0.9
+had moved the title and the controls out of the full-width row when the chat
+is there. Without a chat, for lack of another place, the row came back with
+its forty pixels, and the grid reserved them for it.
+
+**Without a chat, the title and the button now live in a chip** placed at the
+top right of the room, over the stage: dark, rounded, in the corner. The grid
+gets the full height, with or without a chat. The note "No channel points in
+the room" stays silent in the chip, and remains in the chat column.
+
+### The chat button says what it will do
+
+"Chat" said nothing: neither what it did nor what state it was in. The button
+now carries its action: **"Hide the chat"** when the chat is there, **"Show
+the chat"** when it is not. The label is set again on every layout. In the
+chip, the button takes Twitch's purple, to stand out over a video. Both labels
+had existed in all ten languages since 4.24.0.6, as tooltips; only the old
+"Chat" goes away.
+
+### No more "Close · Esc"
+
+The button is removed, as requested, and its label with it, in all ten
+languages. The room still closes with Esc, with a second click on the node on
+the bar, on any page change, and when the setting is turned off.
+
+### The node, smaller and on the line
+
+**Reported:** the circle covered a good part of the avatar, and did not fall
+in the middle of the coloured line.
+
+- **Twelve pixels instead of eighteen**, the triangle 4 × 5 instead of 6 × 8.
+- **Centred on the line.** The line is three pixels wide, on the card's left
+  edge. The node used to sit with its left edge on the line's left edge, so
+  its centre fell 7.5 px right of the line's middle. It now sits by its
+  centre, on the line's middle.
+- **Never outside the sidebar**, which would clip it. On Twitch, the sidebar
+  starts at the window's edge, and the line with it: the node then rests on
+  that edge. Its centre falls 4.5 px from the line's middle instead of 7.5,
+  and it reaches twelve pixels into the card instead of eighteen. When the
+  list leaves room on the left, the centring is exact.
+
+### Player quality: no more auto, the closest to the tile
+
+**Requested:** remove auto mode, and pick for each player the resolution
+closest to its size on entering the room. That size varies with the number
+of players.
+
+**Before**, no choice was made: the embedded player started in auto, and
+adaptive bitrate chose according to bandwidth. The probe had measured it in
+4.24.0.4: each player decoded 1280 × 720 for a 400 × 300 box.
+
+**Now:**
+
+1. **The target is a height in screen pixels**: a tile's CSS height, times
+   the screen density (`devicePixelRatio`). On a 150 % screen, a 504 px tile
+   covers 756: that is what the picture fills.
+2. **Each player's bridge picks from its channel's real ladder.** It varies
+   from one channel to another: a channel without transcoding only has the
+   source. It takes the closest quality, the highest on a tie, then the
+   smoothest.
+3. **Closest in proportion, not in pixels.** A 308 px tile is 148 px from
+   160p and 172 from 480p. But 160p would be enlarged almost twice there, and
+   480p reduced by a third. 480p is the closest to what the eye sees: the gap
+   is measured as `|ln(quality / target)|`.
+4. **It is set through the Twitch player's instance, `setQuality`**, which
+   pins the quality and takes the player out of auto. The URL's `quality`
+   parameter is only a preference, which adaptation overrides: measured as
+   early as 3.26, for the preview. The instance is reached through the React
+   tree of the player's page, the way the ad blocker does in this same
+   embedded player.
+5. **Held, without insisting.** If the player goes back to auto or changes
+   quality, the bridge sets it again: five times at most per request, never
+   twice within three seconds. A quality already in place is not set again.
+6. **Followed when the tile changes size**: window resized, chat hidden or
+   shown, player moved to the bench. The room sends one order per new height
+   only.
+7. **The URL also carries the closest usual quality** (160p30, 360p30,
+   480p30, 720p60, 1080p60). The player starts on it, before the order
+   arrives.
+
+**What can go missing, and how we will know.** If Twitch changes its tree,
+the instance cannot be found: the player stays in auto, on the URL's
+preference, and the report says so. Each tile there carries `lecteur`
+(instance found or not), `qualite` (the one set) and `auto` (still in auto or
+not). The room carries `qualiteCible`, the target height.
+
+**The instance is searched for one minute, no longer.** The player can mount
+after the page: the bridge searches for it at every reading. But a tree
+changed by Twitch would never be found, and walking it every second, in every
+tile, would only cost time. One minute after the first search, the bridge
+stops looking.
+
+### The stacking check, after the first layout
+
+On opening, the room checks that it does sit under Twitch's top bar
+(4.24.0.8). The bench found that this check missed. It ran before the first
+layout: the room had no left edge yet, measured only the width of its
+content, stuck to the right edge, and the probed points fell outside what
+covers it. The full-width header row used to widen it, and hid the defect.
+**The check now runs after the first layout.**
+
+### What the bench measures
+
+- **175**:
+  - without a chat, the chip (title and "Show the chat"), and the stage from
+    the top, 50 px under Twitch's bar;
+  - with the chat, "Hide the chat", and no "Close" anywhere;
+  - quality. The tiles are 368 px high. A player whose ladder is
+    160/480/720/1080 takes 480p30; those with 360p take 360p30. None stays in
+    auto, the URL carries `quality=360p30`, and each player receives a single
+    `setQuality`;
+  - the laptop window. The tiles go to 308 px: 480p30 stays in place without
+    being set again, and so does 360p30;
+  - latency read: `ecartLatence` = 1.5 s between 2 and 3.5 s;
+  - a player mounted after the opening, found; another, whose clock jumped a
+    minute before it mounted, no longer searched for.
+- **176**: the node, twelve pixels at most, centred on the line to within
+  half a pixel when the list leaves it room.
+- **177**:
+  - two chats, and 480p30 for 504 px tiles;
+  - the low and tall windows: 360p30, then 480p30;
+  - "Hide the chat": the chip, then both chats back;
+  - a 150 % screen: target 756, 720p60.
+
+An older assertion of 177, the stacking one, is what found the defect
+described above.
+
+| mutants | what breaks |
+| --- | --- |
+| the chip: put back into the flow (1) | the stage 34 px lower, under the chip |
+| the button label never set (1) | an empty button that says nothing |
+| quality: never requested, the usual ladder instead of the real one, distance in pixels, set again even when in place (4) | auto stays; 360p where the channel has none; 160p enlarged twice; five `setQuality` calls instead of one |
+| screen density ignored (1) | 480p on a 150 % screen, where 720p fills the tile |
+| the grid still counting the row without a chat (1) | 862 × 484 instead of 897 × 504 |
+| latency never read (1) | a report with nothing for the study |
+| the instance search: unbounded, or single (2) | a tree walked every second for nothing; a player mounted late never found |
+| the node: placed by its edge, drawn at eighteen pixels (2) | 4.5 px off the line; six more pixels over the card |
+
+Thirteen mutants, thirteen caught, on the first run.
+
+### The same instant on every player: the study (for later)
+
+**Requested:** study, with a view to adding it later, whether the players'
+latency makes it possible to show the same instant on every stream of a
+room, and to hold it there over time. Nothing below acts on the players yet:
+this version only reads the figures that will decide.
+
+#### What we are after
+
+Two co-streamers live the same event at the same moment: an explosion in
+their shared game, a line from one that the other hears. In the room, **that
+event must appear at the same moment on both tiles**, and still do so an hour
+later.
+
+#### Where the offset comes from
+
+Between what the broadcaster lives and what the tile shows, each frame goes
+through:
+
+| stage | where | observable from here? |
+| --- | --- | --- |
+| capture and encoding (OBS: buffer, B-frames, lookahead) | at the broadcaster's | no |
+| upload to the ingest server | at the broadcaster's, their connection | no |
+| the broadcaster's voluntary delay (a Twitch option, against "stream sniping") | at Twitch | to be measured: S6 |
+| transcoding, cutting into dated segments | at Twitch | yes, through the segments' dates |
+| delivery, download, player buffer | at Twitch and here | yes: that is the player's latency |
+
+**The latency the player knows** is read through `getLiveLatency()` on its
+instance. The documentation of the Amazon IVS player, on which Twitch's is
+built, defines it as the latency between the server and the player. Twitch's
+player shows a similar figure in its video stats ("Latency To Broadcaster").
+If S1 confirms it, two tiles with the same latency show two frames **that
+reached the server at the same instant**.
+
+What remains is the broadcaster's part: their encoder and their connection.
+It is specific to each, and **invisible from here**. No measurement taken on
+the viewer's side sees it; only the eye corrects it, through a manual offset
+per tile.
+
+#### What can already be read (since this version)
+
+Each tile in the report carries, read-only:
+
+- `latence`: `getLiveLatency()`;
+- `tampon`: `getBufferDuration()`, the video already downloaded ahead of
+  playback;
+- `vitesse`: `video.playbackRate`.
+
+The room carries `ecartLatence`: the latency of the latest tile minus that of
+the earliest. That is what synchronisation would have to close.
+
+**The unit remains to be confirmed.** The Android documentation gives it in
+milliseconds. The web one was out of reach from here (see the end of this
+section). The first real report settles it at a glance: 2.4 or 2400.
+
+**A second source exists, independent of the player**: the segments' dates.
+Twitch's playlists date them (`#EXT-X-PROGRAM-DATE-TIME`), and the ad blocker
+already reads those dates in the player's worker (`seqSegments`). Related to
+the frame on screen, they give the server time of what is being watched.
+Aligning those times means aligning the tiles. But the ad blocker has been
+kept out of the room's players since 4.24.0.1: reading those dates there
+would need a second hook on the worker, maintained twice. **It is the
+fallback**, should the player's latency prove too noisy.
+
+#### What can be done, and in which direction
+
+**A tile can be delayed, never brought forward past the live edge.** It
+cannot show what has not arrived yet. The common target is therefore at
+least the latency of the latest tile: the others are slowed down to it.
+
+| lever | effect | what we know about it |
+| --- | --- | --- |
+| **speed** (`setPlaybackRate` on the instance, or the video's `playbackRate`) | at 0.95, latency grows by 0.05 s per second: 1 s in 20 s; at 0.90, in 10 s | the IVS documentation warns that above 1.0 on live content, rebuffering may increase. Sound keeps its pitch (`preservesPitch`, on by default); its clarity is judged by ear (S8) |
+| **pause** of Δ s | latency grows by Δ at once | to be measured: does the player resume where it stopped, or jump to live? (S4) |
+| **seek** backwards within the buffer | the same, with no visible pause | the live window is short; last resort |
+| low-latency mode (`setLiveLowLatencyEnabled`) | turning it off raises every latency | the IVS documentation says changing it **restarts the stream**: not a lever, an adversary (below) |
+
+Only the tile with the sound is heard. The others, muted, can vary more:
+between 0.85 and 1.05, for instance. The sound tile stays gentle, between
+0.97 and 1.03. These bounds are proposals, to be tuned after S3 and S8.
+
+#### What will fight synchronisation
+
+1. **The player's own catch-up.** In low latency, streaming guides give one
+   to four seconds of latency, against five to seven without: the player
+   aims at a latency. Holding a tile 1.5 s behind its live edge may mean
+   fighting it. If it catches up through speed, the two settings compete; if
+   it jumps, the tile snaps back at once. **This is the deciding question**
+   (S3), and no documentation settles it.
+2. **Jumping to live after a rebuffer** (`setRebufferToLive` in the IVS API).
+   If Twitch enables it, latency drops at once after a stall, and the tile
+   falls out of step.
+3. **Ads.** A break in one tile (account without Turbo), then the return,
+   probably at the live edge. The room already sees ads (`pub`).
+4. **Quality changes.** Setting a quality can empty the buffer and shift the
+   latency. Quality is set on arrival and on every resize: synchronisation
+   must wait for it.
+5. **The hidden tab.** The room pauses the muted tiles there, to spare the
+   machine, and keeps the sound. On return, the muted tiles have fallen
+   behind the sound tile by the whole absence, unless the player jumps to
+   live.
+6. **Measurement noise.** Latency probably updates per segment or part, so
+   in steps. It must be smoothed, with the median of a few seconds, and
+   nothing corrected below a dead zone.
+
+#### The proposed strategy
+
+- **The target** `T`: the highest smoothed latency of the tiles, plus a
+  margin, to be tuned after S2. `T` only falls slowly, and only rises if a
+  delay lasts several seconds: one tile jumping must not drag all the others.
+- **For each tile, the gap** `e = T − latency`. Below 0.15 s, speed 1. Above,
+  a speed proportional to the gap, bounded as above. Beyond four seconds, a
+  pause of `e − 0.5` s, then speed to finish.
+- **Restart the alignment** after an ad, a stall (latency jumping by more
+  than a second), a quality change, a return to the tab, a tile added or
+  removed.
+- **Leave aside** a tile whose latency cannot be read (`lecteur: false`): it
+  stays at speed 1, and the report says so.
+- **In the room**: a "Same instant" switch, off by default until S3 is
+  settled. Per tile, a ±0.25 s adjustment for the broadcaster's part that no
+  measurement sees, remembered per channel.
+
+#### The precision to expect
+
+- **Between frames that reached the server at the same instant**: the dead
+  zone, plus measurement noise. Around 0.15 to 0.3 s if S2 confirms a stable
+  measurement. To the eye, that is "at the same time".
+- **Between broadcasters**: their own part adds up, and only the manual
+  adjustment removes it.
+- **Over time**: the broadcasters' clocks do not drift against each other
+  here, since everything is dated at the server. What drifts is the player:
+  its catch-up, its stalls. The loop, running at every reading (once a
+  second, already), takes it back. **"Locked, and staying so" is achievable
+  if S3 allows it.**
+
+#### What must be measured first
+
+| | question | how |
+| --- | --- | --- |
+| **S1** | the unit and meaning of `latence` | compare it, on the same channel, with the "Latency To Broadcaster" of the Twitch player's video stats (this version's report is enough) |
+| **S2** | its noise: how much does it vary in a minute, player at rest? | a series per tile in the report (this version's only keeps the last value) |
+| **S3** | does the player let a tile at 0.95 fall behind, or take it back? | a console command setting one tile's speed, and the series of its latency |
+| **S4** | after a 3 s pause, has latency grown by 3 s, or has the player jumped to live? | the same, with a pause |
+| **S5** | does setting a quality shift the latency? | the series around a window resize |
+| **S6** | is a broadcaster's voluntary delay counted in `latence`? | a channel that has one |
+| **S7** | where does latency land after an ad? | an account without Turbo |
+| **S8** | does the sound stay clean at 0.97 and 1.03? | by ear, on the sound tile |
+
+#### The plan, when the time comes
+
+1. **A probe version**, as in 4.24.0.3: the latency series per tile in the
+   report, and two console commands, `vitesse` and `pause` of a tile. It
+   answers S1–S8.
+2. **The engine**: the loop in the room, a `vitesse` order for the bridge,
+   like this version's `qualite` order. The bridge goes through
+   `setPlaybackRate` when the instance offers it, through the video
+   otherwise, and reports the actual speed.
+3. **The interface**: the switch and the per-tile adjustments.
+4. **The bench**: a fake player whose latency follows its speed, with a
+   simulated catch-up and jumps to live; mutants on the target, the dead
+   zone, the bounds and the restarts.
+
+**Nothing new on access**: no permission, no API call, no token. Everything
+happens inside the room's players, like quality.
+
+**Some sources for this study were out of reach from the work environment**:
+the IVS documentation (`aws.github.io`), Mozilla's bug report on Twitch's low
+latency (`bugzilla.mozilla.org`), and a public catch-up script
+(`greasyfork.org`). The proxy refused them. What is said about them above
+comes from a search engine's excerpts. Hence measurements S1 to S8 before any
+line of engine.
+
 ## The room: space for the players and the chats, the round button (v4.24.0.9)
 
 A second field report on the room, with screenshots, and six points.
@@ -12601,7 +12920,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 177 scenarios, 1545 assertions |
+| `npm test` | the Playwright harness: 177 scenarios, 1552 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -12621,7 +12940,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1428 KB | 551 KB | 3,755 → **2** |
+| `content.js` | 1428 KB | 551 KB | 3,785 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 106 KB | 50 KB | 148 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

@@ -24909,6 +24909,34 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     <button data-a-target="player-mute-unmute-button">son</button>
     <button data-a-target="player-play-pause-button">lecture</button>
     <div data-a-target="video-ad-label" style="display:none;width:40px;height:10px">Pub</div>
+    <div id="root"></div>
+    <script>
+      /* L'INSTANCE DU LECTEUR DE TWITCH, IMITÉE (4.24.0.10) : là où le pont
+         la cherche — le composant qui porte « mediaPlayerInstance », sous la
+         racine React de #root —, avec l'échelle de qualités d'une chaîne, et
+         une latence. « alpha » n'a pas de 360p : c'est l'échelle RÉELLE que le
+         pont doit lire, pas une échelle supposée. */
+      (() => {
+        const ch = new URLSearchParams(location.search).get('channel');
+        const echelle = (ch === 'alpha' ? [160, 480, 720, 1080] : [160, 360, 480, 720, 1080])
+          .map((h) => ({ name: h + (h >= 720 ? 'p60' : 'p30'), height: h, width: Math.round(h * 16 / 9),
+                         framerate: h >= 720 ? 60 : 30 }));
+        let courante = null, auto = true;
+        window.__lecteur = { poses: 0,
+          getQualities: () => echelle, getQuality: () => courante,
+          setQuality: (q) => { courante = q; auto = false; window.__lecteur.poses++; },
+          isAutoQualityMode: () => auto, setAutoQualityMode: (b) => { auto = !!b; },
+          getLiveLatency: () => ({ alpha: 2, bravo: 3.5, charlie: 2.4 })[ch] ?? 2.2,
+          getBufferDuration: () => 1.8 };
+        // « tardif » monte son lecteur quand le test le dit, pas au chargement.
+        window.__monter = () => {
+          document.getElementById('root').__reactContainer$faux = { stateNode: null, sibling: null,
+            child: { stateNode: { setPlayerActive() {}, props: { mediaPlayerInstance: window.__lecteur } },
+                     child: null, sibling: null } };
+        };
+        if (ch !== 'tardif') window.__monter();
+      })();
+    </script>
     <script>
       window.__id = Math.random();
       const canal = new URLSearchParams(location.search).get('channel');
@@ -25017,8 +25045,10 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       ligneTete: !boite.querySelector('.tse-salle__tete').hidden,
       titreDans: boite.querySelector('.tse-salle__titre')
         .closest('.tse-salle__tete, .tse-salle__chat--gauche, .tse-salle__chat--droite')?.classList[1] || 'tete',
-      fermerDans: boite.querySelector('.tse-salle__fermer')
+      boutonDans: boite.querySelector('.tse-salle__bouton-chat')
         .closest('.tse-salle__tete, .tse-salle__chat--gauche, .tse-salle__chat--droite')?.classList[1] || 'tete',
+      boutonTexte: boite.querySelector('.tse-salle__bouton-chat').textContent,
+      fermer: !!boite.querySelector('.tse-salle__fermer'),
     };
   });
   // Les invariants d'une grille : aucune tuile sous le minimum de Twitch, en
@@ -25043,10 +25073,12 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   /* PLUS DE LIGNE PLEINE LARGEUR QUAND LE CHAT EST LÀ (4.24.0.9) : le titre
      et les commandes en haut de sa colonne, la scène dès le haut de la salle.
      Mutant — la ligne gardée (quarante pixels pris aux lecteurs). */
-  ok('avec le chat, plus de ligne d\'en-tête : titre et commandes en haut de sa colonne, la scène dès le haut',
-     s1.ligneTete === false && s1.titreDans === 'tse-salle__chat--droite' && s1.fermerDans === 'tse-salle__chat--droite'
-     && s1.scene.y === 50,
-     JSON.stringify({ ligne: s1.ligneTete, titre: s1.titreDans, fermer: s1.fermerDans, scene: s1.scene }));
+  /* 4.24.0.10 : plus de bouton « Fermer · Échap » (Échap, le nœud et la
+     navigation ferment), et le bouton du chat dit ce qu'il fera. */
+  ok('avec le chat, plus de ligne d\'en-tête : titre et « Masquer le chat » en haut de sa colonne, pas de « Fermer », la scène dès le haut',
+     s1.ligneTete === false && s1.titreDans === 'tse-salle__chat--droite' && s1.boutonDans === 'tse-salle__chat--droite'
+     && s1.boutonTexte === 'Masquer le chat' && s1.fermer === false && s1.scene.y === 50,
+     JSON.stringify({ ligne: s1.ligneTete, titre: s1.titreDans, bouton: [s1.boutonDans, s1.boutonTexte], fermer: s1.fermer, scene: s1.scene }));
   /* LA DERNIÈRE RANGÉE CENTRÉE (4.24.0.9) : trois tuiles en deux colonnes,
      la troisième au milieu, pas sous la première. Mutant — le décalage oublié. */
   const [ta, tb, tc] = s1.tuiles;
@@ -25123,6 +25155,35 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      && s5.tuiles.every((t) => !t.pub),
      JSON.stringify({ pubVue, charlie: r5.tuiles.charlie, alpha: r5.tuiles.alpha }));
 
+  /* LA QUALITÉ DES LECTEURS (4.24.0.10) : plus d'automatique. Tuiles de
+     655 × 368 à une densité de 1 → 368 px d'écran ; la plus proche, en
+     proportion, dans l'échelle de CHAQUE chaîne : 360p pour bravo et
+     charlie, 480p pour alpha, qui n'a pas de 360p. Posée une fois. L'URL
+     porte la préférence usuelle ; la latence de chaque lecteur est relevée
+     (étude de la synchronisation) et l'écart entre eux calculé. */
+  await attendre(page, () => ['alpha', 'bravo', 'charlie'].every((ch) => window.tse.salle.rapport().tuiles?.[ch]?.qualite), 8000);
+  await wait(page, 3500);
+  const q1 = await page.evaluate(() => ({
+    r: window.tse.salle.rapport(),
+    url: document.querySelector('#tse-salle .tse-salle__tuile iframe')?.src || '',
+  }));
+  const poses = await page.frames().find((f) => f.url().includes('channel=alpha'))
+    ?.evaluate(() => window.__lecteur.poses).catch(() => null);
+  /* Mutants — la qualité jamais posée (le lecteur reste en automatique),
+     l'échelle supposée au lieu de lue, la pose répétée à chaque relevé. La
+     proportion contre les pixels, c'est la fenêtre de portable qui la
+     départage, plus bas. */
+  ok('la qualité : plus d\'automatique, la plus proche de la hauteur des tuiles dans l\'échelle de chaque chaîne, posée une fois',
+     q1.r.qualiteCible === 368 && q1.r.tuiles.bravo.qualite === '360p30' && q1.r.tuiles.charlie.qualite === '360p30'
+     && q1.r.tuiles.alpha.qualite === '480p30'
+     && ['alpha', 'bravo', 'charlie'].every((ch) => q1.r.tuiles[ch].auto === false && q1.r.tuiles[ch].lecteur === true)
+     && /[?&]quality=360p30(&|$)/.test(q1.url) && poses === 1,
+     JSON.stringify({ cible: q1.r.qualiteCible, q: Object.fromEntries(Object.entries(q1.r.tuiles).map(([k, t]) => [k, [t.qualite, t.auto, t.lecteur]])),
+                      url: q1.url.split('?')[1], poses }));
+  ok('…et la latence de chaque lecteur est relevée, avec l\'écart entre le plus en avance et le plus en retard',
+     q1.r.tuiles.alpha.latence === 2 && q1.r.tuiles.bravo.latence === 3.5 && q1.r.tuiles.charlie.latence === 2.4
+     && q1.r.ecartLatence === 1.5 && q1.r.tuiles.alpha.tampon === 1.8,
+     JSON.stringify({ l: Object.fromEntries(Object.entries(q1.r.tuiles).map(([k, t]) => [k, [t.latence, t.tampon]])), ecart: q1.r.ecartLatence }));
   // ── L'onglet caché : pas de spectateur fantôme ─────────────────────────────
   const joue = (chaine) => page.frames().find((f) => f.url().includes('channel=' + chaine))
     ?.evaluate(() => !document.getElementById('v').paused).catch(() => null);
@@ -25168,11 +25229,27 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   /* Mutants — la grille qui ne se refait pas, qui passe sous le minimum, qui
      garde le chat au prix d'un stream, qui sort la tuile qui a le son, ou qui
      recharge les lecteurs qui restent en les déplaçant dans le document. */
-  /* Sans chat, la ligne d'en-tête revient : le titre et les commandes n'ont
-     pas d'autre place. Mutant — la ligne retirée même sans chat. */
-  ok('sans chat, la ligne d\'en-tête revient, avec le titre et les commandes',
-     s7.ligneTete === true && s7.titreDans === 'tete' && s7.fermerDans === 'tete',
-     JSON.stringify({ ligne: s7.ligneTete, titre: s7.titreDans, fermer: s7.fermerDans }));
+  /* SANS CHAT NON PLUS, PLUS DE LIGNE (4.24.0.10) — SIGNALÉ : « la marge du
+     haut » restait quand on retirait le chat. Le titre et « Afficher le chat »
+     vont dans une pastille posée sur la scène ; la scène part du haut.
+     Mutants — la pastille jamais montrée, la ligne revenue. */
+  ok('sans chat, plus de ligne non plus : le titre et « Afficher le chat » dans une pastille, la scène dès le haut',
+     s7.ligneTete === true && s7.titreDans === 'tete' && s7.boutonDans === 'tete'
+     && s7.boutonTexte === 'Afficher le chat' && s7.scene.y === 50,
+     JSON.stringify({ pastille: s7.ligneTete, titre: s7.titreDans, bouton: [s7.boutonDans, s7.boutonTexte], scene: s7.scene }));
+  /* LA PLUS PROCHE EN PROPORTION (4.24.0.10). Tuiles de 549 × 308 : pour
+     alpha (160, 480, 720, 1080), 160p est à 148 px et 480p à 172 — mais 160p
+     serait agrandie près de deux fois, 480p réduite d'un tiers. 480p reste,
+     sans nouvelle pose. Mutant — l'écart en pixels : 160p. */
+  // Le temps qu'un relevé porte l'ordre, et qu'un autre en rapporte l'effet.
+  await wait(page, 3500);
+  const r7q = await etatDe();
+  const posesApres = await page.frames().find((f) => f.url().includes('channel=alpha') && !f.isDetached())
+    ?.evaluate(() => window.__lecteur.poses).catch(() => null);
+  ok('fenêtre de portable : la qualité suit la nouvelle hauteur, la plus proche en proportion, sans reposer ce qui n\'a pas changé',
+     r7q.qualiteCible === 308 && r7q.tuiles.alpha?.qualite === '480p30' && r7q.tuiles.charlie?.qualite === '360p30'
+     && posesApres === 1,
+     JSON.stringify({ cible: r7q.qualiteCible, alpha: r7q.tuiles.alpha?.qualite, charlie: r7q.tuiles.charlie?.qualite, posesApres }));
   ok('fenêtre de portable : deux streams plutôt que le chat, le troisième au banc, le son gardé, rien de rechargé',
      s7.tuiles.length === 2 && s7.banc.length === 1 && s7.chatVisible === false && s7.chats.length === 0
      && r7.chatMasque === true && r7.chatVoulu === 'auto' && restees.includes('charlie')
@@ -25213,7 +25290,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      && s8.tuiles.length + s8.banc.length === 3 && r8.remplacements === 1 && grilleSaine(s8),
      JSON.stringify({ choisi, r8: { son: r8.son, banc: r8.banc }, tuiles: s8.tuiles.map((t) => t.chaine), banc: s8.banc }));
 
-  // ── Le bouton « Chat » : retirer le chat, puis le forcer ──────────────────
+  // ── Le bouton du chat : retirer le chat, puis le forcer ──────────────────
   await page.setViewportSize({ width: 1920, height: 1080 });
   await attendre(page, () => document.querySelectorAll('#tse-salle .tse-salle__tuile').length === 3
     && document.querySelectorAll('#tse-salle iframe[name="tse-salle-chat"]').length === 1, 5000);
@@ -25224,7 +25301,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   const avecChat = { salle: await lireSalle(), rapport: await etatDe() };
   /* Mutants — le bouton qui ne fait rien, ou dont le choix est écrasé par le
      calcul automatique ; le chat retiré mais laissé chargé. */
-  ok('le bouton « Chat » retire le chat — déchargé, pas seulement caché — puis le remet sur la tuile qui a le son',
+  ok('« Masquer le chat » retire le chat — déchargé, pas seulement caché —, « Afficher le chat » le remet sur la tuile qui a le son',
      avantBouton.tuiles.length === 3 && avantBouton.chatVisible === true
      && sansChat.salle.chatVisible === false && sansChat.salle.chats.length === 0 && sansChat.rapport.chatVoulu === 'non'
      && sansChat.salle.tuiles.length === 3 && grilleSaine(sansChat.salle)
@@ -25258,6 +25335,36 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   /* Mutant — le pas de la salle qui ne regarde pas l'adresse : elle
      resterait posée sur une page qui n'est plus celle où on l'a ouverte. */
   ok('changer de page ferme la salle', nav.boite === false && nav.fermeture === 'navigation', JSON.stringify(nav));
+
+  /* LE LECTEUR CHERCHÉ UNE MINUTE, PAS PLUS (4.24.0.10). « tardif » monte le
+     sien après l'ouverture : le pont le trouve quand même. Un second
+     « tardif », dont l'horloge a sauté d'une minute avant qu'il ne se monte,
+     n'est plus cherché : quand Twitch a changé son arbre, le parcourir à
+     chaque relevé ne coûterait que du temps. Mutants — la recherche sans
+     borne ; une recherche unique, qui manquerait le lecteur monté tard. */
+  const cadreTardif = () => page.frames().find((f) => f.url().includes('channel=tardif') && !f.isDetached());
+  const lecteurTardif = () => page.evaluate(() => window.tse.salle.rapport().tuiles?.tardif?.lecteur ?? null);
+  await page.evaluate(() => window.tse.salle.ouvrir('alpha', 'tardif'));
+  await attendre(page, () => window.tse.salle.rapport().tuiles?.tardif?.lecteur === false, 8000);
+  const avantMontage = await lecteurTardif();
+  await cadreTardif()?.evaluate(() => window.__monter()).catch(() => null);
+  await attendre(page, () => window.tse.salle.rapport().tuiles?.tardif?.lecteur === true, 5000);
+  const monteTard = await lecteurTardif();
+  await page.keyboard.press('Escape');
+  await attendre(page, () => !document.getElementById('tse-salle'), 5000);
+  await page.evaluate(() => window.tse.salle.ouvrir('alpha', 'tardif'));
+  await attendre(page, () => window.tse.salle.rapport().tuiles?.tardif?.lecteur === false, 8000);
+  await cadreTardif()?.evaluate(() => {
+    const maintenant = Date.now.bind(Date);
+    Date.now = () => maintenant() + 61_000;
+    window.__monter();
+  }).catch(() => null);
+  await wait(page, 2500);
+  const horsDelai = await lecteurTardif();
+  await page.keyboard.press('Escape');
+  ok('le lecteur de Twitch est cherché une minute : trouvé monté tard, plus cherché passé ce délai',
+     avantMontage === false && monteTard === true && horsDelai === false,
+     JSON.stringify({ avantMontage, monteTard, horsDelai }));
 
   // ── Le pont, dans son rôle de salle, se tait ailleurs ─────────────────────
   const lecteurRenard = lecteur.replace('/content.test.js', '/content.firefox.test.js')
@@ -25406,6 +25513,9 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
         reduit: n.classList.contains('tse-noeud--reduit'),
         // Un rond parfait (4.24.0.9) : largeur et hauteur égales, rayon 50 %.
         rond: Math.abs(r.width - r.height) < 0.5 && getComputedStyle(n).borderTopLeftRadius === '50%',
+        diametre: Math.round(r.width * 10) / 10,
+        // Le centre du rond, rapporté au centre du trait (3 px au bord gauche).
+        centreTrait: Math.round((r.left + r.width / 2 - (haut.left + 1.5)) * 10) / 10,
         x: r.left + r.width / 2, y: cy, haut: Math.round(cy),
       };
     });
@@ -25433,7 +25543,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   ok('un nœud par barre, au milieu de la barre et sur son bord gauche, entier, à sa couleur, le symbole seul dans un rond',
      e1.calques === 1 && e1.noeuds.length === 2 && !!t1 && !!d1
      && t1.membres.join() === 'astra,boreal,cirrus' && d1.membres.join() === 'delta,eole'
-     && t1.visible === '' && d1.visible === '' && t1.rond && d1.rond
+     && t1.visible === '' && d1.visible === '' && t1.rond && d1.rond && t1.diametre <= 12
      && e1.noeuds.every((n) => Math.abs(n.milieu) <= 1 && Math.abs(n.gauche) <= 0.5 && n.entier
        && n.fond === n.barre && n.presse === 'false' && n.etiquette === 'none' && n.svg !== 'none')
      && t1.fond !== d1.fond && e1.calque.h === 0 && e1.calque.ecart === 0,
@@ -25442,6 +25552,22 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   ok('son nom accessible dit les chaînes qu\'il ouvre',
      /astra/.test(t1?.aria) && /boreal/.test(t1?.aria) && /cirrus/.test(t1?.aria) && /ensemble/.test(t1?.aria),
      t1?.aria);
+
+  /* PLUS PETIT, ET CENTRÉ SUR LE TRAIT (4.24.0.10). Au bord de la barre
+     latérale, le rond s'y appuie (au-dessus : sa gauche est celle de la
+     carte). Quand la liste laisse de la place à gauche de la carte, il se
+     centre sur le trait. Une marge intérieure de 10 px dans la barre du décor
+     la lui donne. Mutant — le rond posé au bord de la carte quoi qu'il
+     arrive. */
+  // Un style ne relance pas de balayage : on en demande un, qui replace.
+  await page.evaluate(() => { document.getElementById('side-nav').style.paddingLeft = '10px'; window.tse.rescan(); });
+  await wait(page, 600);
+  const decale = await lire();
+  await page.evaluate(() => { document.getElementById('side-nav').style.removeProperty('padding-left'); window.tse.rescan(); });
+  await wait(page, 600);
+  ok('le rond, douze pixels, se centre sur le trait quand la liste lui en laisse la place',
+     decale.noeuds.length === 2 && decale.noeuds.every((n) => n.diametre <= 12 && Math.abs(n.centreTrait) <= 0.5 && n.entier),
+     JSON.stringify(decale.noeuds.map((n) => [n.membres[0], n.diametre, n.centreTrait, n.entier])));
 
   // ── Le survol : l'étiquette, et pas l'aperçu ──────────────────────────────
   await vers(t1);
@@ -25680,6 +25806,30 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     <video id="v" autoplay muted playsinline style="width:320px;height:180px"></video>
     <button data-a-target="player-mute-unmute-button">son</button>
     <button data-a-target="player-play-pause-button">lecture</button>
+    <div id="root"></div>
+    <script>
+      /* L'INSTANCE DU LECTEUR DE TWITCH, IMITÉE (4.24.0.10) : là où le pont
+         la cherche — le composant qui porte « mediaPlayerInstance », sous la
+         racine React de #root —, avec l'échelle de qualités d'une chaîne, et
+         une latence. « alpha » n'a pas de 360p : c'est l'échelle RÉELLE que le
+         pont doit lire, pas une échelle supposée. */
+      (() => {
+        const ch = new URLSearchParams(location.search).get('channel');
+        const echelle = (ch === 'alpha' ? [160, 480, 720, 1080] : [160, 360, 480, 720, 1080])
+          .map((h) => ({ name: h + (h >= 720 ? 'p60' : 'p30'), height: h, width: Math.round(h * 16 / 9),
+                         framerate: h >= 720 ? 60 : 30 }));
+        let courante = null, auto = true;
+        window.__lecteur = { poses: 0,
+          getQualities: () => echelle, getQuality: () => courante,
+          setQuality: (q) => { courante = q; auto = false; window.__lecteur.poses++; },
+          isAutoQualityMode: () => auto, setAutoQualityMode: (b) => { auto = !!b; },
+          getLiveLatency: () => ({ alpha: 2, bravo: 3.5, charlie: 2.4 })[ch] ?? 2.2,
+          getBufferDuration: () => 1.8 };
+        document.getElementById('root').__reactContainer$faux = { stateNode: null, sibling: null,
+          child: { stateNode: { setPlayerActive() {}, props: { mediaPlayerInstance: window.__lecteur } },
+                   child: null, sibling: null } };
+      })();
+    </script>
     <script>
       const canal = new URLSearchParams(location.search).get('channel');
       const v = document.getElementById('v');
@@ -25830,8 +25980,10 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       chats: boite.querySelectorAll('iframe[name="tse-salle-chat"]').length,
       titreDans: boite.querySelector('.tse-salle__titre')
         .closest('.tse-salle__tete, .tse-salle__chat--gauche, .tse-salle__chat--droite')?.classList[1] || 'tete',
-      fermerDans: boite.querySelector('.tse-salle__fermer')
+      boutonDans: boite.querySelector('.tse-salle__bouton-chat')
         .closest('.tse-salle__tete, .tse-salle__chat--gauche, .tse-salle__chat--droite')?.classList[1] || 'tete',
+      boutonTexte: boite.querySelector('.tse-salle__bouton-chat').textContent,
+      fermer: !!boite.querySelector('.tse-salle__fermer'),
       rapport: window.tse.salle.rapport(),
     };
   });
@@ -25863,10 +26015,12 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   ok('deux chats : ils remplissent les marges à parts égales, le titre à gauche, les commandes à droite, et la hauteur va aux lecteurs',
      !!deux && collees(deux) && Math.abs(deux.gauche.l - deux.droite.l) <= 2 && deux.gauche.l > 341
      && deux.rapport.grille === '1×2 · 897×504'
-     && deux.titreDans === 'tse-salle__chat--gauche' && deux.fermerDans === 'tse-salle__chat--droite'
+     // 504 px d'écran : 480p, la plus proche en proportion (4.24.0.10).
+     && deux.rapport.tuiles.tardif?.qualite === '480p30' && deux.rapport.tuiles.calme?.qualite === '480p30'
+     && deux.titreDans === 'tse-salle__chat--gauche' && deux.boutonDans === 'tse-salle__chat--droite'
      && /^\d+ · \d+$/.test(deux.rapport.chatsPx || ''),
      JSON.stringify(deux && { g: deux.gauche.l, d: deux.droite.l, scene: deux.scene, tuiles: deux.tuiles,
-                              titre: deux.titreDans, fermer: deux.fermerDans, px: deux.rapport.chatsPx,
+                              titre: deux.titreDans, bouton: deux.boutonDans, px: deux.rapport.chatsPx,
                               grille: deux.rapport.grille }));
   // Le son change de tuile : les deux chats restent où ils sont.
   await page.click('#tse-salle .tse-salle__tuile[data-tse-salle-chaine="calme"] .tse-salle__prise', { timeout: 3000 }).catch(() => {});
@@ -25879,6 +26033,24 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      && apresSon.droite.id === deux.droite.id && apresSon.gauche.id === deux.gauche.id,
      JSON.stringify(apresSon && { son: apresSon.rapport.son, g: [apresSon.gauche.chaine, apresSon.gauche.id === deux.gauche.id],
                                   d: [apresSon.droite.chaine, apresSon.droite.id === deux.droite.id] }));
+  /* SANS CHAT, PLUS DE LIGNE NON PLUS (4.24.0.10). « Masquer le chat » : les
+     deux tuiles empilées prennent toute la hauteur — 1656 × 1014 pour la
+     grille, 897 × 504 —, le titre et « Afficher le chat » passent dans la
+     pastille posée sur la scène. Une ligne d'en-tête comptée en ferait
+     862 × 484 (mutant). Puis « Afficher le chat » rend les deux chats. */
+  await page.click('#tse-salle .tse-salle__bouton-chat', { timeout: 3000 }).catch(() => {});
+  await wait(page, 400);
+  const sansChat = await lireSalle();
+  await page.click('#tse-salle .tse-salle__bouton-chat', { timeout: 3000 }).catch(() => {});
+  await wait(page, 600);
+  const rendus = await lireSalle();
+  ok('« Masquer le chat » : toute la hauteur aux lecteurs, le titre et « Afficher le chat » dans la pastille ; puis les deux chats reviennent',
+     sansChat?.chats === 0 && sansChat.rapport.grille === '1×2 · 897×504' && sansChat.titreDans === 'tete'
+     && sansChat.boutonDans === 'tete' && sansChat.boutonTexte === 'Afficher le chat'
+     && rendus?.chats === 2 && rendus.boutonTexte === 'Masquer le chat' && rendus.boutonDans === 'tse-salle__chat--droite',
+     JSON.stringify({ sans: sansChat && [sansChat.chats, sansChat.rapport.grille, sansChat.titreDans, sansChat.boutonDans, sansChat.boutonTexte],
+                      rendus: rendus && [rendus.chats, rendus.boutonTexte, rendus.boutonDans] }));
+
   /* L'APERÇU QUI RESTAIT (4.24.0.9). SIGNALÉ : ouvert au survol d'une carte,
      il restait affiché quand la souris partait vers les lecteurs. Le chat de
      gauche est une iframe collée à la barre : le pointeur y entre sans qu'un
@@ -25917,17 +26089,19 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
 
   // Une fenêtre basse : deux tuiles côte à côte, plus de marge pour un chat.
   await page.setViewportSize({ width: 1920, height: 700 });
-  await wait(page, 1500);
+  await wait(page, 3500);
   const basse = await lireSalle();
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await wait(page, 1500);
+  await wait(page, 3500);
   const haute = await lireSalle();
   /* Mutant — la marge jamais mesurée : le second chat rognerait les tuiles. */
-  ok('sans marge assez large, un seul chat ; la marge revenue, le second aussi',
+  ok('sans marge assez large, un seul chat ; la marge revenue, le second aussi — et la qualité suit la taille des tuiles',
      basse?.chats === 1 && !basse.gauche.visible && dansScene(basse)
-     && haute?.chats === 2 && haute.gauche.visible && dansScene(haute),
-     JSON.stringify({ basse: basse && { chats: basse.chats, tuiles: basse.tuiles, scene: basse.scene },
-                      haute: haute && { chats: haute.chats } }));
+     && haute?.chats === 2 && haute.gauche.visible && dansScene(haute)
+     // La qualité suit la taille des tuiles : 368 px → 360p, 504 px → 480p.
+     && basse.rapport.tuiles.tardif?.qualite === '360p30' && haute.rapport.tuiles.tardif?.qualite === '480p30',
+     JSON.stringify({ basse: basse && { chats: basse.chats, tuiles: basse.tuiles, scene: basse.scene, q: basse.rapport.tuiles.tardif?.qualite },
+                      haute: haute && { chats: haute.chats, q: haute.rapport.tuiles.tardif?.qualite } }));
 
   // Un Chat partagé : les deux chats sont le même, celui de gauche s'en va.
   const avantPartage = await page.evaluate(() => {
@@ -25946,7 +26120,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      avantPartage.chats === 2 && partage?.chats === 1 && !partage.gauche.visible && partage.droite.chaine === 'sa'
      && partage.tuiles.map((t) => t.l).join() === avantPartage.l.join()
      && collees(partage) && partage.titreDans === 'tse-salle__chat--droite'
-     && partage.fermerDans === 'tse-salle__chat--droite' && dansScene(partage)
+     && partage.boutonDans === 'tse-salle__chat--droite' && dansScene(partage)
      && /^\d+ messages · \d+ communs$/.test(partage.rapport.chatsCompares || ''),
      JSON.stringify({ avantPartage, apres: partage && { chats: partage.chats, tuiles: partage.tuiles, compare: partage.rapport.chatsCompares } }));
 
@@ -26001,6 +26175,22 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   /* Mutant — le réglage ignoré à l'arrivée : la salle s'ouvrirait quand même. */
   ok('le système coupé dans le panneau : une demande fraîche n\'ouvre rien, et elle est effacée',
      systemeCoupe.salle === false && systemeCoupe.attente === null, JSON.stringify(systemeCoupe));
+
+  /* LA DENSITÉ DE L'ÉCRAN (4.24.0.10) : la qualité vise les pixels
+     d'ÉCRAN. À une densité de 1,5, des tuiles de 504 px CSS en font 756 :
+     720p, pas 480p. Mutant — la hauteur CSS seule. */
+  await page.evaluate(() => {
+    Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: () => 1.5 });
+    window.tse.salle.ouvrir('calme', 'solo');
+  });
+  await attendre(page, () => window.tse.salle.rapport().tuiles?.calme?.qualite === '720p60', 8000);
+  const dense = await page.evaluate(() => {
+    const r = window.tse.salle.rapport();
+    return { cible: r.qualiteCible, calme: r.tuiles?.calme?.qualite, grille: r.grille };
+  });
+  await page.evaluate(() => { delete window.devicePixelRatio; window.tse.salle.fermer(); });
+  ok('la qualité vise les pixels d\'écran : à une densité de 1,5, 504 px deviennent 756, et 720p',
+     dense.grille === '1×2 · 897×504' && dense.cible === 756 && dense.calme === '720p60', JSON.stringify(dense));
 
   // ── SOUS LA BARRE DU HAUT DE TWITCH ───────────────────────────────────────
   /* Une barre du haut comme celle de Twitch — fixe, à son propre niveau —,

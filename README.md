@@ -2180,6 +2180,335 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La salle : toute la hauteur aux lecteurs, la qualité à leur taille, et l'étude du même instant (v4.24.0.10)
+
+Un troisième retour de terrain sur la salle, captures à l'appui : cinq
+corrections, et une étude demandée pour plus tard.
+
+### Plus aucune ligne en haut, même sans chat
+
+**Signalé :** le chat retiré, la marge du haut restait. La 4.24.0.9 avait
+sorti le titre et les commandes de la ligne pleine largeur quand le chat est
+là. Sans chat, faute d'autre place, la ligne revenait avec ses quarante
+pixels, et la grille les lui réservait.
+
+**Sans chat, le titre et le bouton vivent désormais dans une pastille** posée
+en haut à droite de la salle, par-dessus la scène : sombre, arrondie, dans le
+coin. La grille reçoit toute la hauteur, avec ou sans chat. La note « Pas de
+points de chaîne dans la salle » se tait dans la pastille, et reste dans la
+colonne du chat.
+
+### Le bouton du chat dit ce qu'il fera
+
+« Chat » ne disait rien : ni ce qu'il faisait, ni dans quel état il était. Le
+bouton porte désormais son action : **« Masquer le chat »** quand le chat est
+là, **« Afficher le chat »** quand il ne l'est pas. Le libellé se repose à
+chaque disposition. Dans la pastille, le bouton prend le violet de Twitch,
+pour se voir par-dessus une vidéo. Les deux libellés existaient dans les dix
+langues depuis la 4.24.0.6, en info-bulle ; seul l'ancien « Chat » disparaît.
+
+### Plus de « Fermer · Échap »
+
+Le bouton est retiré, à la demande, et son libellé avec lui, dans les dix
+langues.
+La salle se ferme toujours par Échap, par un second clic sur le nœud de la
+barre, par tout changement de page, et quand le réglage est coupé.
+
+### Le nœud, plus petit et sur le trait
+
+**Signalé :** le rond couvrait une bonne partie de l'avatar, et ne tombait pas
+au milieu du trait coloré.
+
+- **Douze pixels au lieu de dix-huit**, le triangle à 4 × 5 au lieu de 6 × 8.
+- **Centré sur le trait.** Le trait fait trois pixels au bord gauche de la
+  carte. Le nœud se posait par son bord gauche sur celui du trait, et son
+  centre tombait 7,5 px à droite du milieu du trait. Il se pose désormais par
+  son centre, sur le milieu du trait.
+- **Jamais hors de la barre latérale**, qui le rognerait. Sur Twitch, elle
+  commence au bord de la fenêtre et le trait avec elle : le nœud s'appuie alors
+  sur ce bord. Son centre tombe à 4,5 px du milieu du trait au lieu de 7,5, et
+  il avance de douze pixels sur la carte au lieu de dix-huit. Quand la liste
+  laisse de la place à gauche, le centrage est exact.
+
+### La qualité des lecteurs : plus d'automatique, la plus proche de la tuile
+
+**Demandé :** retirer le mode automatique, et choisir pour chaque lecteur la
+résolution la plus proche de sa taille à l'arrivée dans la salle. Cette taille
+varie avec le nombre de lecteurs.
+
+**Avant**, aucun choix n'était fait : le lecteur intégré partait en
+automatique, et l'adaptation de débit choisissait selon la bande passante. La
+sonde l'avait mesuré en 4.24.0.4 : chaque lecteur décodait du 1280 × 720 pour
+une boîte de 400 × 300.
+
+**Maintenant :**
+
+1. **La cible est une hauteur en pixels d'écran** : la hauteur CSS d'une
+   tuile, fois la densité de l'écran (`devicePixelRatio`). Sur un écran à
+   150 %, une tuile de 504 px en couvre 756 : c'est ce que l'image remplit.
+2. **Le pont de chaque lecteur choisit dans l'échelle réelle de sa chaîne.**
+   Elle varie d'une chaîne à l'autre : une chaîne sans transcodage n'a que la
+   source. Il prend la qualité la plus proche, et à égalité la plus haute, puis
+   la plus fluide.
+3. **Plus proche en proportion, pas en pixels.** Une tuile de 308 px est à
+   148 px de 160p et à 172 de 480p. Mais 160p y serait agrandie près de deux
+   fois, et 480p réduite d'un tiers. C'est 480p qui est la plus proche de ce
+   que l'œil voit : l'écart se mesure en `|ln(qualité / cible)|`.
+4. **Elle est posée par l'instance du lecteur de Twitch, `setQuality`**, qui
+   fixe la qualité et sort le lecteur de l'automatique. Le paramètre `quality`
+   de l'URL n'est qu'une préférence, que l'adaptation dépasse : c'était mesuré
+   dès la 3.26, pour l'aperçu. L'instance s'atteint par l'arbre React de la
+   page du lecteur, comme le fait l'anti-pub dans ce même lecteur intégré.
+5. **Tenue, sans insister.** Si le lecteur revient en automatique ou change de
+   qualité, le pont la repose : cinq fois au plus par demande, jamais deux fois
+   en trois secondes. Une qualité déjà en place n'est pas reposée.
+6. **Suivie quand la tuile change de taille** : fenêtre redimensionnée, chat
+   masqué ou rendu, lecteur mis au banc. La salle n'envoie un ordre qu'une fois
+   par hauteur nouvelle.
+7. **L'URL porte en plus la plus proche des qualités usuelles** (160p30,
+   360p30, 480p30, 720p60, 1080p60). Le lecteur démarre dessus, avant que
+   l'ordre n'arrive.
+
+**Ce qui peut manquer, et comment on le saura.** Si Twitch change son arbre,
+l'instance est introuvable : le lecteur reste en automatique, sur la
+préférence de l'URL, et le rapport le dit. Chaque tuile y porte `lecteur`
+(l'instance trouvée ou non), `qualite` (celle qui est posée) et `auto` (resté
+en automatique ou non). La salle y porte `qualiteCible`, la hauteur visée.
+
+**L'instance est cherchée une minute, pas plus.** Le lecteur peut se monter
+après la page : le pont le cherche à chaque relevé. Mais un arbre changé par
+Twitch ne se trouverait jamais, et le parcourir chaque seconde, dans chaque
+tuile, ne coûterait que du temps. Passé une minute depuis la première
+recherche, le pont n'y revient plus.
+
+### La pile vérifiée après la première disposition
+
+La salle vérifie, à l'ouverture, qu'elle passe bien sous la barre du haut de
+Twitch (4.24.0.8). Le banc a trouvé que cette vérification tombait à côté.
+Elle s'exécutait avant la première disposition : la salle n'avait pas encore
+sa gauche, ne mesurait que la largeur de son contenu, collée au bord droit,
+et les points sondés tombaient hors de ce qui la couvre. La ligne d'en-tête
+pleine largeur l'élargissait jusque-là, et masquait le défaut. **La
+vérification passe désormais après la première disposition.**
+
+### Ce que le banc mesure
+
+- **175** :
+  - sans chat, la pastille (titre et « Afficher le chat »), et la scène dès
+    le haut, à 50 px sous la barre de Twitch ;
+  - avec le chat, « Masquer le chat », et plus de « Fermer » nulle part ;
+  - la qualité. Les tuiles font 368 px de haut. Un lecteur dont l'échelle est
+    160/480/720/1080 prend 480p30, ceux qui ont 360p prennent 360p30. Aucun ne
+    reste en automatique, l'URL porte `quality=360p30`, et chaque lecteur ne
+    reçoit qu'un `setQuality` ;
+  - la fenêtre de portable. Les tuiles passent à 308 px : 480p30 reste posée
+    sans être reposée, et 360p30 aussi ;
+  - la latence relevée : `ecartLatence` = 1,5 s entre 2 et 3,5 s ;
+  - un lecteur monté après l'ouverture, trouvé ; un autre, dont l'horloge a
+    sauté d'une minute avant qu'il ne se monte, plus cherché.
+- **176** : le nœud de douze pixels au plus, centré sur le trait à un
+  demi-pixel près quand la liste lui laisse la place.
+- **177** :
+  - deux chats, et 480p30 pour des tuiles de 504 px ;
+  - les fenêtres basse et haute : 360p30, puis 480p30 ;
+  - « Masquer le chat » : la pastille, puis les deux chats rendus ;
+  - un écran à 150 % : cible 756, 720p60.
+
+C'est une assertion plus ancienne du 177, celle de la pile, qui a trouvé le
+défaut décrit plus haut.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la pastille : remise dans le flux (1) | la scène 34 px plus bas, sous la pastille |
+| le libellé du bouton jamais posé (1) | un bouton vide, qui ne dit rien |
+| la qualité : jamais demandée, l'échelle usuelle au lieu de la réelle, la distance en pixels, reposée même quand elle est en place (4) | l'automatique qui reste ; 360p là où la chaîne n'en a pas ; 160p agrandie deux fois ; cinq `setQuality` au lieu d'un |
+| la densité de l'écran ignorée (1) | 480p sur un écran à 150 %, là où 720p remplit la tuile |
+| la grille qui compte encore la ligne sans chat (1) | 862 × 484 au lieu de 897 × 504 |
+| la latence jamais relevée (1) | un rapport sans rien pour l'étude |
+| la recherche de l'instance : sans borne, ou unique (2) | un arbre parcouru chaque seconde pour rien ; un lecteur monté tard jamais trouvé |
+| le nœud : posé par son bord, rendu à dix-huit pixels (2) | 4,5 px à côté du trait ; six pixels de plus sur la carte |
+
+Treize mutants, treize pris, au premier tour.
+
+### Le même instant sur tous les lecteurs : l'étude (pour plus tard)
+
+**Demandé :** étudier, en vue de l'ajouter plus tard, si la latence des
+lecteurs permet d'afficher le même instant sur chaque stream d'une salle, et
+de l'y tenir dans la durée. Rien de ce qui suit n'agit encore sur les
+lecteurs : cette version ne fait que relever les chiffres qui trancheront.
+
+#### Ce qu'on cherche
+
+Deux co-streamers vivent le même événement au même moment : une explosion
+dans leur partie commune, une réplique de l'un que l'autre entend. Dans la
+salle, **cet événement doit apparaître au même moment sur les deux tuiles**,
+et le rester au bout d'une heure.
+
+#### Où naît le décalage
+
+Entre ce que vit le diffuseur et ce qu'affiche la tuile, chaque image
+traverse :
+
+| étape | où | observable d'ici ? |
+| --- | --- | --- |
+| capture et encodage (OBS : tampon, images B, anticipation) | chez le diffuseur | non |
+| envoi vers le serveur d'ingestion | chez le diffuseur, sa connexion | non |
+| retard volontaire du diffuseur (option de Twitch, contre le « stream sniping ») | chez Twitch | à mesurer : S6 |
+| transcodage, découpage en segments datés | chez Twitch | oui, par les dates des segments |
+| distribution, téléchargement, tampon du lecteur | chez Twitch et chez nous | oui : c'est la latence du lecteur |
+
+**La latence que le lecteur connaît** se lit par `getLiveLatency()` sur son
+instance. La documentation du lecteur Amazon IVS, sur lequel repose celui de
+Twitch, la définit comme la latence entre le serveur et le lecteur. Le
+lecteur de Twitch affiche un chiffre voisin dans ses statistiques vidéo
+(« Latency To Broadcaster » en anglais). Si S1 le confirme, deux tuiles de
+même latence montrent deux images **arrivées au serveur au même instant**.
+
+Ce qui reste, c'est la partie du diffuseur : son encodeur et sa connexion.
+Elle est propre à chacun, et **invisible d'ici**. Aucune mesure prise côté
+spectateur ne la voit ; seul l'œil la corrige, par un décalage manuel par
+tuile.
+
+#### Ce qui se lit déjà (depuis cette version)
+
+Chaque tuile du rapport porte, en lecture seule :
+
+- `latence` : `getLiveLatency()` ;
+- `tampon` : `getBufferDuration()`, la vidéo déjà téléchargée devant la
+  lecture ;
+- `vitesse` : `video.playbackRate`.
+
+La salle porte `ecartLatence` : la latence de la tuile la plus en retard
+moins celle de la plus en avance. C'est ce que la synchronisation aurait à
+combler.
+
+**L'unité est à confirmer.** La documentation d'Android la donne en
+millisecondes. Celle du web était hors d'atteinte d'ici (voir la fin de la
+section). Le premier rapport réel tranche d'un coup d'œil : 2,4 ou 2400.
+
+**Une seconde source existe, indépendante du lecteur** : la date des
+segments. Les listes de lecture de Twitch les datent
+(`#EXT-X-PROGRAM-DATE-TIME`), et l'anti-pub lit déjà ces dates dans le worker
+du lecteur (`seqSegments`). Rapportée à l'image affichée, elle donne l'heure de
+serveur de ce qu'on voit. Aligner ces heures, c'est aligner les tuiles. Mais
+l'anti-pub est tenu hors des lecteurs de la salle depuis la 4.24.0.1 : lire
+ces dates y demanderait une seconde écoute du worker, à maintenir en double.
+**C'est la voie de repli**, si la latence du lecteur se révèle trop
+bruitée.
+
+#### Ce qu'on peut faire, et dans quel sens
+
+**Une tuile peut être retardée, jamais avancée au-delà du direct.** Elle ne
+peut pas montrer ce qui n'est pas encore arrivé. La cible commune est donc au
+moins la latence de la tuile la plus en retard : on ralentit les autres
+jusqu'à elle.
+
+| levier | effet | ce qu'on en sait |
+| --- | --- | --- |
+| **vitesse** (`setPlaybackRate` sur l'instance, ou `playbackRate` de la vidéo) | à 0,95, la latence croît de 0,05 s par seconde : 1 s en 20 s ; à 0,90, en 10 s | la documentation IVS prévient qu'au-dessus de 1,0 en direct, les coupures de tampon peuvent augmenter. Le son garde sa hauteur (`preservesPitch`, actif par défaut) ; sa netteté se juge à l'oreille (S8) |
+| **pause** de Δ s | la latence croît de Δ d'un coup | à mesurer : le lecteur reprend-il où il s'est arrêté, ou saute-t-il au direct ? (S4) |
+| **recherche** en arrière dans le tampon | idem, sans pause visible | la fenêtre du direct est courte ; dernier recours |
+| mode faible latence (`setLiveLowLatencyEnabled`) | le couper relève toutes les latences | la documentation IVS dit que le changer **relance le flux** : ce n'est pas un levier, c'est un adversaire (ci-dessous) |
+
+Seule la tuile qui a le son s'entend. Les autres, muettes, peuvent varier
+davantage : entre 0,85 et 1,05, par exemple. La tuile du son reste douce,
+entre 0,97 et 1,03. Ces bornes sont des propositions, à régler après S3 et
+S8.
+
+#### Ce qui se battra contre la synchronisation
+
+1. **Le rattrapage du lecteur lui-même.** En faible latence, les guides de
+   diffusion donnent une à quatre secondes de latence, contre cinq à sept
+   sans : le lecteur vise une latence. Retenir une tuile 1,5 s derrière son
+   direct, c'est peut-être s'opposer à lui. S'il rattrape par la vitesse, les
+   deux réglages se disputent ; s'il saute, la tuile revient d'un coup.
+   **C'est la question décisive** (S3), et aucune documentation ne la
+   tranche.
+2. **Le saut au direct après une coupure de tampon** (`setRebufferToLive`
+   dans l'API IVS). Si Twitch l'active, la latence tombe d'un coup après une
+   coupure, et la tuile sort de l'accord.
+3. **Les pubs.** Une coupure dans une tuile (compte sans Turbo), puis la
+   reprise, sans doute au direct. La salle voit déjà les pubs (`pub`).
+4. **Le changement de qualité.** Poser une qualité peut vider le tampon et
+   déplacer la latence. La qualité se pose à l'arrivée et à chaque
+   redimensionnement : la synchronisation doit l'attendre.
+5. **L'onglet caché.** La salle y met en pause les tuiles muettes, pour
+   épargner la machine, et garde le son. Au retour, les tuiles muettes ont
+   pris du retard sur celle du son, de toute la durée de l'absence, sauf si le
+   lecteur saute au direct.
+6. **Le bruit de la mesure.** La latence se met sans doute à jour par segment
+   ou par morceau, donc en marches. Il faut la lisser, par la médiane de
+   quelques secondes, et ne rien corriger sous une zone morte.
+
+#### La stratégie proposée
+
+- **La cible** `T` : la plus haute latence lissée des tuiles, plus une marge,
+  à régler après S2. `T` ne baisse que lentement, et ne monte que si un retard
+  dure plusieurs secondes : une tuile qui saute ne doit pas entraîner toutes
+  les autres.
+- **Pour chaque tuile, l'écart** `e = T − latence`. Sous 0,15 s, vitesse 1.
+  Au-delà, une vitesse proportionnelle à l'écart, bornée comme plus haut.
+  Au-delà de quatre secondes, une pause de `e − 0,5` s, puis la vitesse pour
+  finir.
+- **Relancer l'accord** après une pub, une coupure (la latence qui saute de
+  plus d'une seconde), un changement de qualité, un retour d'onglet, une
+  tuile ajoutée ou retirée.
+- **Laisser de côté** une tuile dont la latence ne se lit pas (`lecteur:
+  false`) : elle reste à vitesse 1, et le rapport le dit.
+- **Dans la salle** : un interrupteur « Même instant », coupé par défaut tant
+  que S3 n'est pas tranchée. Par tuile, un réglage de ±0,25 s pour la part du
+  diffuseur qu'aucune mesure ne voit, retenu par chaîne.
+
+#### La précision qu'on peut espérer
+
+- **Entre images arrivées au serveur au même instant** : la zone morte, plus
+  le bruit de la mesure. De l'ordre de 0,15 à 0,3 s si S2 confirme une mesure
+  stable. À l'œil, c'est « en même temps ».
+- **Entre les diffuseurs** : leur part propre s'ajoute, et seul le réglage
+  manuel la retire.
+- **Dans la durée** : les horloges des diffuseurs ne dérivent pas les unes par
+  rapport aux autres ici, puisque tout est daté au serveur. Ce qui dérive,
+  c'est le lecteur : son rattrapage, ses coupures. La boucle, qui tourne à
+  chaque relevé (une fois par seconde, déjà), le reprend. **« Calé, et qui le
+  reste » est atteignable si S3 le permet.**
+
+#### Ce qu'il faut mesurer d'abord
+
+| | question | comment |
+| --- | --- | --- |
+| **S1** | l'unité et le sens de `latence` | la comparer, sur la même chaîne, au « Latency To Broadcaster » des statistiques vidéo du lecteur de Twitch (le rapport de cette version suffit) |
+| **S2** | son bruit : de combien varie-t-elle en une minute, lecteur tranquille ? | une série par tuile au rapport (celui de cette version ne garde que la dernière valeur) |
+| **S3** | le lecteur laisse-t-il une tuile à 0,95 prendre du retard, ou le reprend-il ? | une commande de console qui pose la vitesse d'une tuile, et la série de sa latence |
+| **S4** | après une pause de 3 s, la latence a-t-elle pris 3 s, ou le lecteur a-t-il sauté au direct ? | idem, par une pause |
+| **S5** | poser une qualité déplace-t-il la latence ? | la série autour d'un changement de taille de fenêtre |
+| **S6** | le retard volontaire d'un diffuseur est-il compté dans `latence` ? | une chaîne qui en a un |
+| **S7** | où la latence retombe-t-elle après une pub ? | un compte sans Turbo |
+| **S8** | le son reste-t-il propre à 0,97 et 1,03 ? | à l'oreille, sur la tuile du son |
+
+#### Le plan, le moment venu
+
+1. **Une version-sonde**, comme en 4.24.0.3 : la série de latence par tuile au
+   rapport, et deux commandes de console, `vitesse` et `pause` d'une tuile.
+   Elle répond à S1–S8.
+2. **Le moteur** : la boucle dans la salle, un ordre `vitesse` pour le pont,
+   comme l'ordre `qualite` de cette version. Le pont passe par
+   `setPlaybackRate` quand l'instance l'offre, par la vidéo sinon, et rapporte
+   la vitesse réelle.
+3. **L'interface** : l'interrupteur et les réglages par tuile.
+4. **Le banc** : un faux lecteur dont la latence suit la vitesse, avec un
+   rattrapage simulé et des sauts au direct ; des mutants sur la cible, la zone
+   morte, les bornes et les relances.
+
+**Rien de neuf côté accès** : aucune permission, aucun appel d'API, aucun
+jeton. Tout se passe dans les lecteurs de la salle, comme la qualité.
+
+**Des sources de cette étude étaient hors d'atteinte depuis l'environnement de
+travail** : la documentation IVS (`aws.github.io`), le rapport de bogue de
+Mozilla sur la faible latence de Twitch (`bugzilla.mozilla.org`), et un script
+public de rattrapage (`greasyfork.org`). Le proxy les a refusés. Ce qui en est
+dit plus haut vient des extraits d'un moteur de recherche. D'où les mesures
+S1 à S8 avant toute ligne de moteur.
+
 ## La salle : la place aux lecteurs et aux chats, le bouton rond (v4.24.0.9)
 
 Un second retour de terrain sur la salle, captures à l'appui, et six points.
@@ -13048,7 +13377,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 177 scénarios, 1545 assertions |
+| `npm test` | le harnais Playwright : 177 scénarios, 1552 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -13069,7 +13398,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1428 Ko | 551 Ko | 3 755 → **2** |
+| `content.js` | 1428 Ko | 551 Ko | 3 785 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 106 Ko | 50 Ko | 148 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
