@@ -525,6 +525,9 @@
   "optGrpCarte": {
     "message": "La carte dans la barre"
   },
+  "optGrpMultistream": {
+    "message": "Multistream"
+  },
   "optDuree": {
     "message": "Durée du direct"
   },
@@ -538,10 +541,10 @@
     "message": "Pastille de collaboration"
   },
   "optSalle": {
-    "message": "Bouton de salle multistream"
+    "message": "Salle multistream"
   },
   "optDescSalle": {
-    "message": "Le bouton « ▶ » sur la barre d'un co-stream : un clic ouvre ses streams ensemble, sur la page. Coupé, la barre reste, sans bouton."
+    "message": "Un bouton « ▶ » sur la barre d'un co-stream ouvre ses streams ensemble, sur la page. Coupé : ni bouton, ni salle."
   },
   "optAbonnes": {
     "message": "L'or des abonnements"

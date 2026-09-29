@@ -2059,6 +2059,121 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The room: space for the players and the chats, the round button (v4.24.0.9)
+
+A second field report on the room, with screenshots, and six points.
+
+### The chats fill the margins
+
+With two stacked streams, the grid left two empty strips on either side of
+the players, even with two chats. **The space the grid leaves aside now goes
+to the chat columns**, in equal shares when there are two, and the tiles sit
+against them. With a single chat, it takes the whole margin. Without a chat,
+the tiles are centred as before.
+
+**The tiles never change size because of it.** The grid is computed first, on
+the base column (340 px); the chats only take what is left. The report gives
+both columns' widths (`chatsPx`, left · right).
+
+### No more full-width header row
+
+The "Room · 2 streams … Chat · Close" row took forty pixels of height from the
+players. **The title and the controls now live in the chat columns**:
+
+| chats | title | controls |
+| --- | --- | --- |
+| two | at the top of the left one | at the top of the right one |
+| one | at the top of its column, on the left | at the top of its column, on the right |
+| none | the full-width row, for lack of another place | the same |
+
+The grid counts it: forty more pixels of height when the chat is there. At
+1920 × 1080, two streams go from 764 × 429 to 800 × 450.
+
+**A column has the width it is given, not the width of its content.** On the
+bench's first run, the title and controls, moving into the column, widened it
+to their minimum width: 424 px instead of 341, and the tiles overflowed the
+scene. Hence `min-width: 0` on the column.
+
+### The last row is centred
+
+Three players in two columns: the third is centred under the other two,
+instead of staying stuck to the left under the first. Only its position
+changes: no tile is moved in the document.
+
+### The button: a perfect circle
+
+The "▶" is now in an 18 px **circle**, equal width and height, no longer in a
+capsule. The triangle is shifted one pixel to the right: geometrically
+centred, it looks tilted to the left. The hover label ("Watch all 3") comes
+out as a bubble beside it, without distorting the circle.
+
+### The multistream system has its setting
+
+The panel gains a **"Multistream"** group and its **"Multistream room"**
+setting, on by default. It takes over the node's setting (same key: a setting
+already chosen stays), but it now covers the whole system:
+
+- off, no more button on the bars;
+- an open room closes with it (`fermeture: reglage`);
+- a request pending from one page to the next is ignored, and erased;
+- a click that would still reach a hidden node opens nothing.
+
+The console keeps `tse.salle.ouvrir`: it is the diagnostic workbench, not the
+system.
+
+### The preview that stayed
+
+**Reported:** the preview opened by hovering a card stayed displayed when the
+mouse went towards the players.
+
+**Measured before being fixed.** Jumping from the card to the left chat, the
+page does receive a `mouseleave` on the card, then a `mouseover` on the chat's
+iframe. But it no longer receives a single `mousemove`: the pointer is in the
+iframe. The safeguard that tells a real exit from a card moved by React reads
+what is under the pointer's **last known position**. That position is still on
+the card, so it concluded the card had moved. The left chat, stuck to the
+sidebar, makes this jump immediate.
+
+**The fix follows the last hovered element, for iframes only.** If the pointer
+has just entered an iframe outside the card, the exit is real. Everywhere else,
+`mousemove` keeps the position up to date, and the safeguard stays what it
+was.
+
+**A bench lesson on the way.** The first test read the presence of
+`.tse-preview`: a closed preview stays in the page, hidden by
+`data-tse-visible="false"`. The test now reads its visibility, like the older
+scenarios. Scenario 176 read the same presence, and it is fixed too.
+
+### What the bench measures
+
+- **175**: no header row when the chat is there (title and controls in its
+  column, the scene from the top); the row back without a chat; the third tile
+  centred. The low window goes from 1846 × 506 to 1846 × 466: at 506, the forty
+  pixels given back let the width bound the tiles, and the window no longer
+  measured the bench's space.
+- **176**: the circle; the setting that closes the open room, and the click on
+  the hidden node that opens nothing.
+- **177**: two chats that fill the margins in equal shares, title on the left
+  and controls on the right; a single chat that takes the whole margin; the
+  preview closed when the mouse jumps from the card to the left chat; a fresh
+  request ignored when the system is off.
+
+| mutants | what falls |
+| --- | --- |
+| margins: a single chat that does not widen, two chats in unequal shares (2) | empty strips, or one chat wider than the other |
+| the header row: kept with the chat, never given back without it, counted in the grid anyway, the column widened by its content (4) | forty pixels taken from the players, controls nowhere to be found, or tiles that overflow |
+| the title left on the right with two chats (1) | the title and controls crammed on one side |
+| the last row not centred (1) | the third player stuck to the left |
+| the circle: the capsule back (1) | the previous shape |
+| the setting: the open room left open, the pending request followed, the click on a hidden node followed (3) | a system switched off that still opens a room |
+| the preview: the last hovered element ignored (1) | the preview that stays |
+
+Thirteen mutants, thirteen caught. On the first round, one escaped: the grid
+counted the header row even with the chat. In scenario 175's windows, the
+first attempt gave the same number of tiles, and the second, the one that
+counts the bench, computed it right. Scenario 177 now checks the grid to the
+pixel: 897 × 504, against 862 × 484 under the mutant.
+
 ## The room, after its first real report (v4.24.0.8)
 
 Version 4.24.0.7 ran on real Twitch, with screenshots and a report. What held,
@@ -12486,7 +12601,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 177 scenarios, 1539 assertions |
+| `npm test` | the Playwright harness: 177 scenarios, 1545 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -12506,12 +12621,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1421 KB | 548 KB | 3,741 → **2** |
+| `content.js` | 1428 KB | 551 KB | 3,755 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 105 KB | 50 KB | 147 → **0** |
+| `panneau.js` | 106 KB | 50 KB | 148 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1675 KB** | **704 KB** | **−58 %** |
+| **all five** | **1682 KB** | **707 KB** | **−58 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

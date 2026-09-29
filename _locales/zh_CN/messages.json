@@ -525,6 +525,9 @@
   "optGrpCarte": {
     "message": "侧边栏中的卡片"
   },
+  "optGrpMultistream": {
+    "message": "多流"
+  },
   "optDuree": {
     "message": "开播时长"
   },
@@ -538,10 +541,10 @@
     "message": "联动小圆点"
   },
   "optSalle": {
-    "message": "多流放映室按钮"
+    "message": "多流放映室"
   },
   "optDescSalle": {
-    "message": "联动竖条上的“▶”按钮：点击即可在页面上同时打开这些直播。关闭后，竖条保留，只是没有按钮。"
+    "message": "联动竖条上的“▶”按钮可在页面上同时打开这些直播。关闭后：既没有按钮，也没有放映室。"
   },
   "optAbonnes": {
     "message": "订阅的金色"

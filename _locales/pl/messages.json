@@ -525,6 +525,9 @@
   "optGrpCarte": {
     "message": "Karta na pasku bocznym"
   },
+  "optGrpMultistream": {
+    "message": "Multistream"
+  },
   "optDuree": {
     "message": "Czas trwania transmisji"
   },
@@ -538,10 +541,10 @@
     "message": "Kropka współpracy"
   },
   "optSalle": {
-    "message": "Przycisk sali multistream"
+    "message": "Sala multistream"
   },
   "optDescSalle": {
-    "message": "Przycisk „▶” na pasku co-streamu: kliknięcie otwiera jego streamy razem, na stronie. Wyłączony — pasek zostaje, bez przycisku."
+    "message": "Przycisk „▶” na pasku co-streamu otwiera jego streamy razem, na stronie. Wyłączone: ani przycisku, ani sali."
   },
   "optAbonnes": {
     "message": "Złoto subskrypcji"

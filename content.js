@@ -3281,8 +3281,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     dureeFormat:     { defaut: 'hm',      type: 'choix', valeurs: ['hm', 'colon', 'min'] },
     fresh:           { defaut: true,      type: 'bool', css: true },
     collab:          { defaut: true,      type: 'bool', css: true },
-    /* Le nœud de la salle multistream sur la barre des co-streams (4.24.0.7).
-       Coupé, il disparaît ; la salle reste ouvrable depuis la console. */
+    /* LE SYSTÈME MULTISTREAM (4.24.0.7, élargi en 4.24.0.9) : le nœud sur la
+       barre des co-streams, et la salle qu'il ouvre. Coupé : ni nœud, ni
+       salle depuis la barre, et une salle ouverte se ferme. Son propre groupe
+       au panneau. La clé reste « salle » : un réglage déjà posé le reste. */
     salle:           { defaut: true,      type: 'bool', css: true },
     abonnes:         { defaut: 'plein',   type: 'choix',
                        valeurs: ['plein', 'discret', 'aucun'], css: true },
@@ -4412,6 +4414,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        Un bouton « ▶ » à la couleur de la barre, posé au milieu du groupe. Le
        symbole seul depuis la 4.24.0.8 : le nombre de streams ne s'y lisait
        pas mieux que sur la barre elle-même, et l'étiquette le dit au survol.
+       UN ROND PARFAIT depuis la 4.24.0.9, à la demande : largeur et hauteur
+       égales ; l'étiquette sort en bulle à côté, sans le déformer.
        Le liseré a la couleur de la carte : il « coupe » la barre, et on lit
        un nœud posé sur un fil plutôt qu'une bosse de la barre. Le calque qui
        le porte n'a pas de hauteur : il ne déplace rien dans la liste. Le nœud
@@ -4420,19 +4424,26 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     #tse-noeuds { position: relative; height: 0; margin: 0; padding: 0; z-index: 5; }
     .tse-noeud {
       position: absolute; transform: translateY(-50%);
-      display: inline-flex; align-items: center; gap: 5px;
-      height: 18px; margin: 0; padding: 0 5px; box-sizing: border-box;
-      border: 2px solid var(--tse-decoupe); border-radius: 999px;
+      display: flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; margin: 0; padding: 0; box-sizing: border-box;
+      border: 2px solid var(--tse-decoupe); border-radius: 50%;
       background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
       font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
       white-space: nowrap; cursor: pointer;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
     }
-    .tse-noeud__symbole { display: inline-flex; align-items: center; }
+    /* Le triangle, décalé d'un pixel : son centre de gravité est à gauche de
+       sa boîte, et centré géométriquement il paraît penché vers la gauche. */
+    .tse-noeud__symbole { display: flex; align-items: center; margin-left: 1px; }
     .tse-noeud svg { width: 6px; height: 8px; fill: currentColor; }
-    .tse-noeud__etiquette { display: none; }
+    .tse-noeud__etiquette {
+      display: none; position: absolute; left: calc(100% + 6px); top: 50%;
+      transform: translateY(-50%); padding: 3px 8px; border-radius: 4px;
+      background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); pointer-events: none;
+    }
     .tse-noeud:hover .tse-noeud__etiquette,
-    .tse-noeud:focus-visible .tse-noeud__etiquette { display: inline; }
+    .tse-noeud:focus-visible .tse-noeud__etiquette { display: block; }
     .tse-noeud:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 1px; }
     /* Sa salle est ouverte : un anneau de la couleur de la barre, au-delà du
        liseré — le nœud enfoncé se lit de loin. */
@@ -6535,6 +6546,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       display: flex; align-items: center; gap: 12px; padding: 0 ${CFG.SALLE_MARGE_PX + 4}px;
       border-bottom: 1px solid rgba(var(--tse-encre), 0.08);
     }
+    .tse-salle__tete[hidden], .tse-salle__haut[hidden] { display: none; }
+    /* Le haut d'une colonne de chat : le titre, les commandes, ou les deux. */
+    .tse-salle__haut {
+      flex: 0 0 auto; height: ${CFG.SALLE_TETE_PX}px; box-sizing: border-box;
+      display: flex; align-items: center; gap: 10px; padding: 0 10px;
+      border-bottom: 1px solid rgba(var(--tse-encre), 0.08);
+    }
+    .tse-salle__titre-bloc {
+      flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px;
+    }
+    .tse-salle__commandes { flex: 0 0 auto; margin-left: auto; display: flex; align-items: center; gap: 8px; }
     .tse-salle__titre { font-weight: 600; white-space: nowrap; }
     .tse-salle__note {
       color: var(--tse-texte-faible); font-size: 12px;
@@ -6545,7 +6567,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       padding: 4px 10px; border: 0; border-radius: 4px; cursor: pointer;
       background: rgba(var(--tse-encre), 0.1); color: var(--tse-texte); font: inherit; font-weight: 600;
     }
-    .tse-salle__bouton-chat { margin-left: auto; }
     .tse-salle__bouton-chat[aria-pressed="true"] { background: rgba(145, 71, 255, 0.28); }
     .tse-salle__bouton-chat:hover, .tse-salle__fermer:hover { background: rgba(var(--tse-encre), 0.16); }
     .tse-salle__corps { flex: 1 1 auto; display: flex; min-height: 0; }
@@ -6599,8 +6620,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .tse-salle__remplacant:hover, .tse-salle__remplacant:focus-visible { box-shadow: 0 0 0 2px #9147ff; outline: none; }
+    /* min-width 0 : la colonne a la largeur que le script lui donne, pas
+       celle de son contenu — le titre et les commandes y vivent désormais
+       (4.24.0.9), et leur largeur minimale l'élargissait au détriment des
+       tuiles. */
     .tse-salle__chat {
-      flex: 0 0 ${CFG.SALLE_CHAT_PX}px; display: flex; flex-direction: column; min-height: 0;
+      flex: 0 0 ${CFG.SALLE_CHAT_PX}px; display: flex; flex-direction: column; min-height: 0; min-width: 0;
       border-left: 1px solid rgba(var(--tse-encre), 0.08);
     }
     /* Le chat de gauche, à deux streams sans Chat partagé (4.24.0.8). */
@@ -13359,10 +13384,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const essai = (voulus, largeur, hauteur, chat) => {
       const m = CFG.SALLE_MARGE_PX;
       const W = largeur - (chat ? CFG.SALLE_CHAT_PX + 1 : 0) - 2 * m;
-      let H = hauteur - 2 * m;
+      // La ligne du haut n'existe que sans chat (4.24.0.9) : avec lui, le
+      // titre et les commandes vivent dans sa colonne.
+      let H = hauteur - (chat ? 0 : CFG.SALLE_TETE_PX) - 2 * m;
       let g = capacite(voulus, W, H);
       if (g && g.n < voulus) {
-        H = hauteur - CFG.SALLE_BANC_PX - 2 * m;
+        H = hauteur - (chat ? 0 : CFG.SALLE_TETE_PX) - CFG.SALLE_BANC_PX - 2 * m;
         g = capacite(voulus, W, H);
       }
       return g ? { ...g, chat, W, H, deborde: false } : null;
@@ -13389,7 +13416,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return {
         gauche,
         largeur: window.innerWidth - gauche,
-        hauteur: window.innerHeight - CFG.SALLE_HAUT_PX - CFG.SALLE_TETE_PX,
+        hauteur: window.innerHeight - CFG.SALLE_HAUT_PX,
         cle: `${gauche}|${window.innerWidth}|${window.innerHeight}`,
       };
     };
@@ -13458,10 +13485,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const bloc = document.createElement('div');
       bloc.className = `tse-salle__chat tse-salle__chat--${cote}`;
       bloc.hidden = true;
+      // Le haut de la colonne : le titre ou les commandes de la salle y
+      // viennent quand il n'y a plus de ligne pleine largeur (4.24.0.9).
+      const haut = document.createElement('div');
+      haut.className = 'tse-salle__haut';
+      haut.hidden = true;
       const tete = document.createElement('div');
       tete.className = 'tse-salle__chat-tete';
-      bloc.appendChild(tete);
-      return { bloc, tete, cadre: null, chaine: null };
+      bloc.append(haut, tete);
+      return { bloc, haut, tete, cadre: null, chaine: null };
     };
     const poserChat = (cote, chaine) => {
       if (cote.chaine === chaine) return;
@@ -13654,12 +13686,33 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const occupe = d.cols * d.l + (d.cols - 1) * e;
       c.deuxChats = !!d.chat && d.n === 2 && c.membres.length === 2 && c.partage !== true
         && d.W - occupe >= CFG.SALLE_CHAT_PX + 1;
-      const W = c.deuxChats ? d.W - (CFG.SALLE_CHAT_PX + 1) : d.W;
-      const x0 = m + Math.max(0, Math.floor((W - occupe) / 2));
+      /* LES CHATS REMPLISSENT LES MARGES (4.24.0.9), à la demande : la place
+         que la grille laisse de côté va aux colonnes de chat — à parts égales
+         quand il y en a deux —, et les tuiles se collent. Sans chat, elles se
+         centrent comme avant. Les tuiles ne changent jamais de taille pour
+         autant : la grille est calculée avant, sur la colonne de base. */
+      const libre = Math.max(0, d.W - occupe);
+      let gPx = 0, dPx = 0, x0;
+      if (d.chat) {
+        if (c.deuxChats) {
+          const reste = libre - (CFG.SALLE_CHAT_PX + 1);
+          gPx = CFG.SALLE_CHAT_PX + Math.floor(reste / 2);
+          dPx = CFG.SALLE_CHAT_PX + reste - Math.floor(reste / 2);
+        } else dPx = CFG.SALLE_CHAT_PX + libre;
+        x0 = m;
+      } else x0 = m + Math.floor(libre / 2);
+      c.chatsPx = d.chat ? `${gPx} · ${dPx}` : null;
+      c.chatG.bloc.style.flex = `0 0 ${gPx}px`;
+      c.chatD.bloc.style.flex = `0 0 ${dPx}px`;
       const y0 = m + Math.max(0, Math.floor((d.H - (d.rangs * d.h + (d.rangs - 1) * e)) / 2));
+      /* LA DERNIÈRE RANGÉE, SI ELLE EST INCOMPLÈTE, SE CENTRE (4.24.0.9) :
+         trois lecteurs en deux colonnes, le troisième au milieu, pas collé à
+         gauche sous le premier. */
+      const derniere = c.tuiles.length - (d.rangs - 1) * d.cols;
+      const decalage = derniere > 0 && derniere < d.cols ? Math.floor(((d.cols - derniere) * (d.l + e)) / 2) : 0;
       c.tuiles.forEach((t, i) => {
         const col = i % d.cols, rang = Math.floor(i / d.cols);
-        t.el.style.left = `${x0 + col * (d.l + e)}px`;
+        t.el.style.left = `${x0 + col * (d.l + e) + (rang === d.rangs - 1 ? decalage : 0)}px`;
         t.el.style.top = `${y0 + rang * (d.h + e)}px`;
         t.el.style.width = `${d.l}px`;
         t.el.style.height = `${d.h}px`;
@@ -13672,6 +13725,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         c.banc.replaceChildren(...dehors.map(creerRemplacant));
       }
       c.banc.hidden = !dehors.length;
+      placerTete(c, d);
       c.boutonChat.setAttribute('aria-pressed', String(d.chat));
       c.boutonChat.title = d.chat ? S.uiSalleChatMasquer : S.uiSalleChatAfficher;
       // « Masqué faute de place » ne se dit que si ce n'est pas un choix.
@@ -13681,6 +13735,27 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // passe à la première.
       if (!c.son || !c.tuiles.some((t) => t.chaine === c.son)) donnerSon(c.tuiles[0].chaine);
       else majChat();
+    };
+
+    /* OÙ VONT LE TITRE ET LES COMMANDES (4.24.0.9). Deux chats : le titre en
+       haut de celui de gauche, les commandes en haut de celui de droite. Un
+       chat : les deux en haut de sa colonne, le titre à gauche, les commandes
+       à droite. Aucun : la ligne pleine largeur, faute d'autre place. Ce ne
+       sont que des boutons et du texte — les déplacer ne recharge rien. */
+    const placerTete = (c, d) => {
+      const pourTitre = !d.chat ? c.tete : c.deuxChats ? c.chatG.haut : c.chatD.haut;
+      const pourCommandes = !d.chat ? c.tete : c.chatD.haut;
+      if (pourTitre === pourCommandes) {
+        if (c.titreBloc.parentElement !== pourTitre || c.titreBloc.nextElementSibling !== c.commandes) {
+          pourTitre.append(c.titreBloc, c.commandes);
+        }
+      } else {
+        if (c.titreBloc.parentElement !== pourTitre) pourTitre.appendChild(c.titreBloc);
+        if (c.commandes.parentElement !== pourCommandes) pourCommandes.appendChild(c.commandes);
+      }
+      c.tete.hidden = !!d.chat;
+      c.chatG.haut.hidden = !(d.chat && c.deuxChats);
+      c.chatD.haut.hidden = !d.chat;
     };
 
     const surMessage = (e) => {
@@ -13777,6 +13852,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         // À deux streams sans Chat partagé : le chat de gauche, et ce que la
         // comparaison a tranché (oui, non, ou null tant qu'elle compte).
         chatGauche: c.chatG.chaine,
+        // La largeur des colonnes de chat, gauche · droite (4.24.0.9) : elles
+        // prennent les marges que la grille laisse.
+        chatsPx: c.chatsPx,
         chatPartage: c.partage,
         chatsCompares: c.comparaison ? `${c.comparaison.messages} messages · ${c.comparaison.communs} communs` : null,
         chatMasque: !d.chat,
@@ -13820,6 +13898,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (auChangement) auChangement();
       return { fermee: true };
     };
+    /* LE SYSTÈME COUPÉ DANS LE PANNEAU (4.24.0.9) : une salle ouverte se
+       ferme avec lui. La console, outil de diagnostic, peut encore en ouvrir
+       une — ce n'est pas le système, c'est l'établi. */
+    options.surChangement(() => { if (courante && !options.get('salle')) fermer('reglage'); });
 
     /* ── SOUS LA BARRE DU HAUT DE TWITCH (4.24.0.8) ─────────────────────────
        SIGNALÉ AVEC UNE CAPTURE : les fenêtres des boutons en haut à droite de
@@ -13911,6 +13993,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        secondes. Déjà sur la page de la salle, elle s'ouvre sur place. */
     const CLE_ATTENTE = 'tse:salle-attente';
     const ouvrirDepuisBarre = (membres) => {
+      // Le système coupé (4.24.0.9) : le nœud est masqué, mais un clic parti
+      // avant le réglage n'ouvre rien non plus.
+      if (!options.get('salle')) return { erreur: 'salle coupée / room disabled' };
       if (location.pathname === CFG.SALLE_PAGE) return ouvrir(membres, { origine: 'noeud' });
       try {
         sessionStorage.setItem(CLE_ATTENTE, JSON.stringify({ membres, t: Date.now() }));
@@ -13931,6 +14016,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         sessionStorage.removeItem(CLE_ATTENTE);
       } catch { return; }
       if (!attente || !Array.isArray(attente.membres) || !Number.isFinite(attente.t)) return;
+      if (!options.get('salle')) return;
       if (Date.now() - attente.t > CFG.SALLE_ATTENTE_MS || Date.now() < attente.t) return;
       const t0 = Date.now();
       const essayer = () => {
@@ -13981,7 +14067,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         c.chatVoulu = !(c.disposition && c.disposition.chat);
         disposerSalle();
       });
-      tete.append(titre, note, boutonChat, clore);
+      /* LE TITRE ET LES COMMANDES VOYAGENT (4.24.0.9) : dans la colonne du
+         chat quand il y en a une — plus de ligne pleine largeur, la hauteur va
+         aux lecteurs —, dans la ligne du haut seulement sans chat. */
+      const titreBloc = document.createElement('div');
+      titreBloc.className = 'tse-salle__titre-bloc';
+      titreBloc.append(titre, note);
+      const commandes = document.createElement('div');
+      commandes.className = 'tse-salle__commandes';
+      commandes.append(boutonChat, clore);
+      tete.append(titreBloc, commandes);
       const corps = document.createElement('div');
       corps.className = 'tse-salle__corps';
       const gauche = document.createElement('div');
@@ -14009,6 +14104,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         arriveeMs: Number.isFinite(opts.arriveeMs) ? opts.arriveeMs : null, empilement,
         membres, tuiles: [], son: null, boite, scene, banc, cleBanc: null, note,
         chatG, chatD, deuxChats: false, partage: null, textes: new Map(), comparaison: null,
+        tete, titreBloc, commandes, chatsPx: null,
         chatVoulu: null, boutonChat,
         disposition: null, zoneCle: null,
         pausees, repauses: 0, pausesCachees: 0, sonsDonnes: 0, remplacements: 0, minuteur: null,
@@ -20344,6 +20440,18 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // après un requestAnimationFrame (cf. handler mouseleave).
     let lastMouseX = -1;
     let lastMouseY = -1;
+    /* LE DERNIER ÉLÉMENT SURVOLÉ (4.24.0.9), et il dit ce que la position ne
+       peut pas dire. SIGNALÉ : l'aperçu restait ouvert quand la souris
+       quittait la carte vers la salle multistream. Le chat de gauche y est
+       une iframe COLLÉE à la barre latérale : le pointeur passe de la carte à
+       l'iframe sans un seul `mousemove` reçu par la page, dont la dernière
+       position connue est donc encore SUR LA CARTE — et le test anti-fantôme
+       y lisait une réconciliation React. Or l'entrée dans l'iframe émet bien,
+       dans la page, un `mouseover` sur l'élément <iframe> : c'est lui qui
+       tranche. SEULEMENT pour une iframe — le seul endroit où la position se
+       fige ; partout ailleurs les `mousemove` la tiennent à jour, et le test
+       anti-fantôme reste ce qu'il était. */
+    let dernierSurvol = null;
 
     // Résout la carte canonique (le wrapper englobant) à partir d'un nœud
     // survolé. NÉCESSAIRE car en mode RÉDUIT, Twitch pose la classe
@@ -20373,6 +20481,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
       }, { passive: true, capture: true });
+      document.addEventListener('mouseover', (e) => { dernierSurvol = e.target; }, { passive: true, capture: true });
 
       document.addEventListener('mouseenter', (e) => {
         const t = e.target;
@@ -20427,7 +20536,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           // Déjà refermé — ou déjà réarmé sur une autre carte — entre-temps.
           if (card !== currentCard && card !== pendingCard) return;
           const under = document.elementFromPoint(lastMouseX, lastMouseY);
-          if (under && card.contains(under)) {
+          const horsCarte = !!dernierSurvol && dernierSurvol.localName === 'iframe'
+            && dernierSurvol.isConnected && !card.contains(dernierSurvol);
+          if (under && card.contains(under) && !horsCarte) {
             // Le DOM s'est restabilisé, souris toujours sur la carte → ignore.
             // Vaut pour l'attente comme pour l'aperçu ouvert : le minuteur
             // continue de courir, et c'est ce qu'on veut.

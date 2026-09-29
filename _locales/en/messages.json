@@ -639,6 +639,9 @@
   "optGrpCarte": {
     "message": "The card in the sidebar"
   },
+  "optGrpMultistream": {
+    "message": "Multistream"
+  },
   "optDuree": {
     "message": "Stream uptime"
   },
@@ -652,10 +655,10 @@
     "message": "Collaboration pill"
   },
   "optSalle": {
-    "message": "Multistream room button"
+    "message": "Multistream room"
   },
   "optDescSalle": {
-    "message": "The “▶” button on a co-stream's bar: one click opens its streams together, on the page. Off, the bar stays, without the button."
+    "message": "A “▶” button on a co-stream's bar opens its streams together, on the page. Off: no button, no room."
   },
   "optAbonnes": {
     "message": "Subscription gold"

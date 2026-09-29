@@ -525,6 +525,9 @@
   "optGrpCarte": {
     "message": "La tarjeta en la barra lateral"
   },
+  "optGrpMultistream": {
+    "message": "Multistream"
+  },
   "optDuree": {
     "message": "Duración del directo"
   },
@@ -538,10 +541,10 @@
     "message": "Punto de colaboración"
   },
   "optSalle": {
-    "message": "Botón de sala multistream"
+    "message": "Sala multistream"
   },
   "optDescSalle": {
-    "message": "El botón «▶» sobre la barra de un co-stream: un clic abre sus streams juntos, en la página. Desactivado, la barra se queda, sin botón."
+    "message": "Un botón «▶» sobre la barra de un co-stream abre sus streams juntos, en la página. Desactivado: ni botón ni sala."
   },
   "optAbonnes": {
     "message": "El oro de las suscripciones"
