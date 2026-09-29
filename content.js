@@ -609,10 +609,114 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     window.addEventListener('pointerdown', compterGeste, true);
     window.addEventListener('keydown', compterGeste, true);
   }
+  /* ── LE LECTEUR DE TWITCH LUI-MÊME (4.24.0.10) ──────────────────────────
+     La qualité se choisit par l'instance du lecteur, pas par l'URL : le
+     paramètre « quality » n'est qu'une préférence que l'adaptation de débit
+     dépasse (mesuré en 3.26 pour l'aperçu). `setQuality` sur l'instance, lui,
+     fixe la qualité et sort le lecteur du mode automatique — c'est le chemin
+     du module anti-pub, repris de TwitchAdSolutions et éprouvé dans ce même
+     lecteur intégré. On l'atteint de la même façon : par l'arbre React de la
+     page du lecteur, jusqu'au composant qui porte `mediaPlayerInstance`.
+     Introuvable (Twitch a changé), le rapport le dit, et rien ne casse. */
+  let instanceLecteur = null;
+  // Une minute de recherche au plus, depuis la première : le temps que le
+  // lecteur se monte. Au-delà, l'arbre a changé, et le parcourir à chaque
+  // relevé, dans chaque tuile, ne coûterait que du temps.
+  let rechercheDepuis = 0;
+  const lecteurTwitch = () => {
+    if (instanceLecteur) return instanceLecteur;
+    if (!rechercheDepuis) rechercheDepuis = Date.now();
+    else if (Date.now() - rechercheDepuis > 60_000) return null;
+    try {
+      const racine = document.getElementById('root');
+      if (!racine) return null;
+      let fibre = racine._reactRootContainer?._internalRoot?.current || null;
+      if (!fibre) {
+        const cle = Object.keys(racine).find((k) => k.startsWith('__reactContainer'));
+        fibre = cle ? racine[cle] : null;
+      }
+      if (!fibre) return null;
+      // En largeur, pas en profondeur récursive : l'arbre d'une page de
+      // lecteur est profond, et une pile épuisée ne doit rien casser.
+      const file = [fibre];
+      for (let i = 0; i < file.length && i < 20_000; i++) {
+        const n = file[i];
+        const inst = n.stateNode && n.stateNode.props && n.stateNode.props.mediaPlayerInstance;
+        if (inst && n.stateNode.setPlayerActive) {
+          instanceLecteur = inst.playerInstance || inst;
+          return instanceLecteur;
+        }
+        if (n.child) file.push(n.child);
+        if (n.sibling) file.push(n.sibling);
+      }
+    } catch { /* arbre illisible : pas de lecteur */ }
+    return null;
+  };
+  /* LA QUALITÉ VOULUE : une HAUTEUR en pixels d'écran, donnée par la salle.
+     Le pont choisit dans l'échelle RÉELLE de la chaîne — elle varie d'une
+     chaîne à l'autre — la qualité la plus proche, la plus haute à égalité,
+     et la pose. PROCHE EN PROPORTION, pas en pixels : une tuile de 308 px
+     est à 148 px de 160p et à 172 de 480p, mais 160p y serait agrandie deux
+     fois, et 480p réduite d'un tiers — c'est 480p qui est la plus proche de
+     ce que l'œil voit. Reposée si le lecteur revient en automatique, cinq fois au
+     plus par demande, jamais deux fois en trois secondes. */
+  let hauteurVoulue = null;
+  let qualiteEssais = 0;
+  let qualiteT = 0;
+  const choisirQualite = (echelle, h) => {
+    let meilleure = null;
+    for (const q of echelle) {
+      if (!q || !Number.isFinite(q.height)) continue;
+      const ecart = Math.abs(Math.log(q.height / h));
+      if (!meilleure || ecart < meilleure.ecart
+        || (ecart === meilleure.ecart && (q.height > meilleure.q.height
+          || (q.height === meilleure.q.height && (q.framerate || 0) > (meilleure.q.framerate || 0))))) {
+        meilleure = { q, ecart };
+      }
+    }
+    return meilleure && meilleure.q;
+  };
+  const tenirQualite = () => {
+    if (!hauteurVoulue || qualiteEssais >= 5 || Date.now() - qualiteT < 3000) return;
+    const lecteur = lecteurTwitch();
+    if (!lecteur || typeof lecteur.setQuality !== 'function') return;
+    let echelle = [];
+    try { echelle = lecteur.getQualities() || []; } catch { return; }
+    const cible = choisirQualite(echelle, hauteurVoulue);
+    if (!cible) return;
+    let actuelle = null, auto = null;
+    try { actuelle = lecteur.getQuality && lecteur.getQuality(); } catch { /* ignore */ }
+    try { auto = lecteur.isAutoQualityMode ? lecteur.isAutoQualityMode() : null; } catch { /* ignore */ }
+    if (actuelle && actuelle.name === cible.name && auto === false) return;
+    try {
+      lecteur.setQuality(cible);
+      qualiteEssais += 1;
+      qualiteT = Date.now();
+    } catch { qualiteEssais += 1; qualiteT = Date.now(); }
+  };
+  // Relevés en lecture seule, pour l'étude de la synchronisation (4.24.0.10) :
+  // la latence du direct selon le lecteur, son tampon, la vitesse de lecture.
+  const releveLecteur = () => {
+    const lecteur = lecteurTwitch();
+    if (!lecteur) return { lecteur: false };
+    const lire = (f) => { try { const x = f(); return Number.isFinite(x) ? Math.round(x * 100) / 100 : null; } catch { return null; } };
+    let nom = null, auto = null;
+    try { nom = lecteur.getQuality ? (lecteur.getQuality() || {}).name || null : null; } catch { /* ignore */ }
+    try { auto = lecteur.isAutoQualityMode ? !!lecteur.isAutoQualityMode() : null; } catch { /* ignore */ }
+    return {
+      lecteur: true, qualite: nom, auto,
+      latence: lecteur.getLiveLatency ? lire(() => lecteur.getLiveLatency()) : null,
+      tampon: lecteur.getBufferDuration ? lire(() => lecteur.getBufferDuration()) : null,
+    };
+  };
   // Le rôle de la salle : ce qu'elle affiche, rien de plus, à chaque seconde.
   const etatSalle = () => {
     const v = document.querySelector('video');
+    tenirQualite();
     return {
+      ...releveLecteur(),
+      qualiteVoulue: hauteurVoulue,
+      vitesse: v ? v.playbackRate : null,
       video: !!v,
       lecture: !!v && !v.paused,
       muet: v ? v.muted : null,
@@ -639,6 +743,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   window.addEventListener('message', (e) => {
     if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
     const d = e.data;
+    /* LA QUALITÉ (4.24.0.10) : un ordre à part, qui ne passe ni par un bouton
+       ni par le verdict des quatre autres. Salle seulement. */
+    if (d && d.tse === MSG_ORDRE && d.ordre === 'qualite' && role === 'salle') {
+      const h = Math.round(Number(d.hauteur));
+      if (h >= 100 && h <= 4320 && h !== hauteurVoulue) {
+        hauteurVoulue = h; qualiteEssais = 0; qualiteT = 0; tenirQualite();
+      }
+      return;
+    }
     if (!d || d.tse !== MSG_ORDRE || !ORDRES.includes(d.ordre)) return;
     const v = document.querySelector('video');
     let voie = 'deja';
@@ -942,7 +1055,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          un lecteur intégré n'en fait pas gagner, et l'audit a promis de le dire
          plutôt que de le laisser découvrir. */
       uiSalleTitre:              (n) => `Salle · ${n} stream${n > 1 ? 's' : ''}`,
-      uiSalleFermer:             'Fermer · Échap',
       uiSalleSonPour:            (nom) => `Donner le son à ${nom}`,
       uiSalleSonActif:           'Son',
       uiSallePub:                'Pub',
@@ -950,7 +1062,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasque:         'Chat masqué : fenêtre trop étroite',
       uiSallePoints:             'Pas de points de chaîne dans la salle',
       uiSalleBanc:               (nom) => `Mettre ${nom} dans la grille`,
-      uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Afficher le chat',
       uiSalleChatMasquer:        'Masquer le chat',
       // Le nœud sur la barre des co-streams (4.24.0.7) : son étiquette au
@@ -1055,7 +1166,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiBulleTexte:              'Learn how to use the extension, customise it and see all the data it stores, right here.',
       uiFermer:                  'Close',
       uiSalleTitre:              (n) => `Room · ${n} stream${n > 1 ? 's' : ''}`,
-      uiSalleFermer:             'Close · Esc',
       uiSalleSonPour:            (nom) => `Give the sound to ${nom}`,
       uiSalleSonActif:           'Sound on',
       uiSallePub:                'Ad',
@@ -1063,7 +1173,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasque:         'Chat hidden: window too narrow',
       uiSallePoints:             'No channel points in the room',
       uiSalleBanc:               (nom) => `Put ${nom} in the grid`,
-      uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Show the chat',
       uiSalleChatMasquer:        'Hide the chat',
       uiNoeudRegarder:           (n) => `Watch all ${n}`,
@@ -1158,7 +1267,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiBulleTexte:              'Lerne die Erweiterung kennen, passe sie an und sieh dir hier alle gespeicherten Daten an.',
       uiFermer:                  'Schließen',
       uiSalleTitre:              (n) => `Raum · ${n} Stream${n > 1 ? 's' : ''}`,
-      uiSalleFermer:             'Schließen · Esc',
       uiSalleSonPour:            (nom) => `Ton für ${nom} einschalten`,
       uiSalleSonActif:           'Ton an',
       uiSallePub:                'Werbung',
@@ -1166,7 +1274,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasque:         'Chat ausgeblendet: Fenster zu schmal',
       uiSallePoints:             'Keine Kanalpunkte im Raum',
       uiSalleBanc:               (nom) => `${nom} ins Raster holen`,
-      uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Chat einblenden',
       uiSalleChatMasquer:        'Chat ausblenden',
       uiNoeudRegarder:           (n) => `Alle ${n} ansehen`,
@@ -1261,7 +1368,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiBulleTexte:              'Aprende a usar la extensión, personalízala y consulta aquí todos tus datos guardados.',
       uiFermer:                  'Cerrar',
       uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
-      uiSalleFermer:             'Cerrar · Esc',
       uiSalleSonPour:            (nom) => `Dar el sonido a ${nom}`,
       uiSalleSonActif:           'Con sonido',
       uiSallePub:                'Anuncio',
@@ -1269,7 +1375,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasque:         'Chat oculto: ventana demasiado estrecha',
       uiSallePoints:             'Sin puntos de canal en la sala',
       uiSalleBanc:               (nom) => `Poner a ${nom} en la cuadrícula`,
-      uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Mostrar el chat',
       uiSalleChatMasquer:        'Ocultar el chat',
       uiNoeudRegarder:           (n) => `Ver los ${n}`,
@@ -1364,7 +1469,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiBulleTexte:              'Aprende a usar a extensão, personaliza-a e vê aqui todos os teus dados guardados.',
       uiFermer:                  'Fechar',
       uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
-      uiSalleFermer:             'Fechar · Esc',
       uiSalleSonPour:            (nom) => `Dar o som a ${nom}`,
       uiSalleSonActif:           'Com som',
       uiSallePub:                'Anúncio',
@@ -1372,7 +1476,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasque:         'Chat oculto: janela estreita demais',
       uiSallePoints:             'Sem pontos do canal na sala',
       uiSalleBanc:               (nom) => `Colocar ${nom} na grade`,
-      uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Mostrar o chat',
       uiSalleChatMasquer:        'Ocultar o chat',
       uiNoeudRegarder:           (n) => `Ver os ${n}`,
@@ -1467,7 +1570,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiBulleTexte:              'Impara a usare l\'estensione, personalizzala e guarda qui tutti i tuoi dati memorizzati.',
       uiFermer:                  'Chiudi',
       uiSalleTitre:              (n) => `Sala · ${n} stream`,
-      uiSalleFermer:             'Chiudi · Esc',
       uiSalleSonPour:            (nom) => `Dai l'audio a ${nom}`,
       uiSalleSonActif:           'Audio attivo',
       uiSallePub:                'Pubblicità',
@@ -1475,7 +1577,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasque:         'Chat nascosta: finestra troppo stretta',
       uiSallePoints:             'Niente punti canale nella sala',
       uiSalleBanc:               (nom) => `Metti ${nom} nella griglia`,
-      uiSalleChatBouton:         'Chat',
       uiSalleChatAfficher:       'Mostra la chat',
       uiSalleChatMasquer:        'Nascondi la chat',
       uiNoeudRegarder:           (n) => `Guarda tutti e ${n}`,
@@ -1570,7 +1671,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiBulleTexte:              'Naucz się korzystać z rozszerzenia, dostosuj je i zobacz tutaj wszystkie swoje zapisane dane.',
       uiFermer:                  'Zamknij',
       uiSalleTitre:              (n) => `Sala · streamy: ${n}`,
-      uiSalleFermer:             'Zamknij · Esc',
       uiSalleSonPour:            (nom) => `Włącz dźwięk: ${nom}`,
       uiSalleSonActif:           'Dźwięk',
       uiSallePub:                'Reklama',
@@ -1578,7 +1678,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasque:         'Czat ukryty: okno jest za wąskie',
       uiSallePoints:             'Brak punktów kanału w sali',
       uiSalleBanc:               (nom) => `Przenieś ${nom} do siatki`,
-      uiSalleChatBouton:         'Czat',
       uiSalleChatAfficher:       'Pokaż czat',
       uiSalleChatMasquer:        'Ukryj czat',
       uiNoeudRegarder:           (n) => `Oglądaj ${n} naraz`,
@@ -1673,7 +1772,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiBulleTexte:              'Узнайте, как пользоваться расширением, настройте его и посмотрите здесь все сохранённые данные.',
       uiFermer:                  'Закрыть',
       uiSalleTitre:              (n) => `Зал · трансляций: ${n}`,
-      uiSalleFermer:             'Закрыть · Esc',
       uiSalleSonPour:            (nom) => `Включить звук: ${nom}`,
       uiSalleSonActif:           'Звук',
       uiSallePub:                'Реклама',
@@ -1681,7 +1779,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasque:         'Чат скрыт: окно слишком узкое',
       uiSallePoints:             'В зале баллы канала не начисляются',
       uiSalleBanc:               (nom) => `Поместить ${nom} в сетку`,
-      uiSalleChatBouton:         'Чат',
       uiSalleChatAfficher:       'Показать чат',
       uiSalleChatMasquer:        'Скрыть чат',
       uiNoeudRegarder:           (n) => `Смотреть все ${n}`,
@@ -1776,7 +1873,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiBulleTexte:              '使い方を学び、カスタマイズし、保存されているデータをここですべて確認できます。',
       uiFermer:                  '閉じる',
       uiSalleTitre:              (n) => `ルーム · ${n} 配信`,
-      uiSalleFermer:             '閉じる · Esc',
       uiSalleSonPour:            (nom) => `${nom} の音声に切り替え`,
       uiSalleSonActif:           '音声',
       uiSallePub:                '広告',
@@ -1784,7 +1880,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasque:         'チャット非表示：ウィンドウが狭すぎます',
       uiSallePoints:             'ルームではチャンネルポイントは貯まりません',
       uiSalleBanc:               (nom) => `${nom} をグリッドに表示`,
-      uiSalleChatBouton:         'チャット',
       uiSalleChatAfficher:       'チャットを表示',
       uiSalleChatMasquer:        'チャットを非表示',
       uiNoeudRegarder:           (n) => `${n} 人をまとめて見る`,
@@ -1877,7 +1972,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiBulleTexte:              '在这里了解如何使用本扩展、进行个性化设置，并查看所有已保存的数据。',
       uiFermer:                  '关闭',
       uiSalleTitre:              (n) => `放映室 · ${n} 个直播`,
-      uiSalleFermer:             '关闭 · Esc',
       uiSalleSonPour:            (nom) => `切换到 ${nom} 的声音`,
       uiSalleSonActif:           '有声',
       uiSallePub:                '广告',
@@ -1885,7 +1979,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasque:         '聊天已隐藏：窗口太窄',
       uiSallePoints:             '放映室内不获得频道积分',
       uiSalleBanc:               (nom) => `将 ${nom} 放入网格`,
-      uiSalleChatBouton:         '聊天',
       uiSalleChatAfficher:       '显示聊天',
       uiSalleChatMasquer:        '隐藏聊天',
       uiNoeudRegarder:           (n) => `一起观看 ${n} 个`,
@@ -4415,7 +4508,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        symbole seul depuis la 4.24.0.8 : le nombre de streams ne s'y lisait
        pas mieux que sur la barre elle-même, et l'étiquette le dit au survol.
        UN ROND PARFAIT depuis la 4.24.0.9, à la demande : largeur et hauteur
-       égales ; l'étiquette sort en bulle à côté, sans le déformer.
+       égales ; l'étiquette sort en bulle à côté, sans le déformer. PLUS
+       PETIT depuis la 4.24.0.10 — douze pixels, pour ne plus couvrir
+       l'avatar — et CENTRÉ SUR LE TRAIT autant que le bord de la liste le
+       permet (cf. placer).
        Le liseré a la couleur de la carte : il « coupe » la barre, et on lit
        un nœud posé sur un fil plutôt qu'une bosse de la barre. Le calque qui
        le porte n'a pas de hauteur : il ne déplace rien dans la liste. Le nœud
@@ -4425,7 +4521,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     .tse-noeud {
       position: absolute; transform: translateY(-50%);
       display: flex; align-items: center; justify-content: center;
-      width: 18px; height: 18px; margin: 0; padding: 0; box-sizing: border-box;
+      width: 12px; height: 12px; margin: 0; padding: 0; box-sizing: border-box;
       border: 2px solid var(--tse-decoupe); border-radius: 50%;
       background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
       font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
@@ -4435,7 +4531,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     /* Le triangle, décalé d'un pixel : son centre de gravité est à gauche de
        sa boîte, et centré géométriquement il paraît penché vers la gauche. */
     .tse-noeud__symbole { display: flex; align-items: center; margin-left: 1px; }
-    .tse-noeud svg { width: 6px; height: 8px; fill: currentColor; }
+    .tse-noeud svg { width: 4px; height: 5px; fill: currentColor; }
     .tse-noeud__etiquette {
       display: none; position: absolute; left: calc(100% + 6px); top: 50%;
       transform: translateY(-50%); padding: 3px 8px; border-radius: 4px;
@@ -6541,11 +6637,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     html[data-tse-theme="light"] #tse-salle { background: var(--color-background-base, #f7f7f8); }
     html[data-tse-force][data-tse-theme="dark"] #tse-salle { background: #0e0e10; }
     html[data-tse-force][data-tse-theme="light"] #tse-salle { background: #f7f7f8; }
+    /* Sans chat, le titre et le bouton du chat dans une pastille posée en
+       haut à droite de la salle, par-dessus la scène (4.24.0.10) — plus de
+       ligne qui prenne de la hauteur aux lecteurs. La note s'y tait. */
     .tse-salle__tete {
-      flex: 0 0 auto; height: ${CFG.SALLE_TETE_PX}px; box-sizing: border-box;
-      display: flex; align-items: center; gap: 12px; padding: 0 ${CFG.SALLE_MARGE_PX + 4}px;
-      border-bottom: 1px solid rgba(var(--tse-encre), 0.08);
+      position: absolute; top: ${CFG.SALLE_MARGE_PX}px; right: ${CFG.SALLE_MARGE_PX}px; z-index: 3;
+      display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 10px;
+      border-radius: 6px; background: rgba(14, 14, 16, 0.82); color: #efeff1;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
     }
+    .tse-salle__tete .tse-salle__note { display: none; }
     .tse-salle__tete[hidden], .tse-salle__haut[hidden] { display: none; }
     /* Le haut d'une colonne de chat : le titre, les commandes, ou les deux. */
     .tse-salle__haut {
@@ -6562,13 +6663,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       color: var(--tse-texte-faible); font-size: 12px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
     }
-    .tse-salle__bouton-chat, .tse-salle__fermer {
+    .tse-salle__bouton-chat {
       flex: 0 0 auto;
       padding: 4px 10px; border: 0; border-radius: 4px; cursor: pointer;
       background: rgba(var(--tse-encre), 0.1); color: var(--tse-texte); font: inherit; font-weight: 600;
     }
-    .tse-salle__bouton-chat[aria-pressed="true"] { background: rgba(145, 71, 255, 0.28); }
-    .tse-salle__bouton-chat:hover, .tse-salle__fermer:hover { background: rgba(var(--tse-encre), 0.16); }
+    .tse-salle__bouton-chat:hover { background: rgba(var(--tse-encre), 0.16); }
+    .tse-salle__tete .tse-salle__bouton-chat { background: #9147ff; color: #fff; }
+    .tse-salle__tete .tse-salle__bouton-chat:hover { background: #772ce8; }
     .tse-salle__corps { flex: 1 1 auto; display: flex; min-height: 0; }
     .tse-salle__gauche { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
     .tse-salle__scene { position: relative; flex: 1 1 auto; min-height: 0; overflow: auto; }
@@ -13384,12 +13486,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const essai = (voulus, largeur, hauteur, chat) => {
       const m = CFG.SALLE_MARGE_PX;
       const W = largeur - (chat ? CFG.SALLE_CHAT_PX + 1 : 0) - 2 * m;
-      // La ligne du haut n'existe que sans chat (4.24.0.9) : avec lui, le
-      // titre et les commandes vivent dans sa colonne.
-      let H = hauteur - (chat ? 0 : CFG.SALLE_TETE_PX) - 2 * m;
+      // Plus de ligne du haut (4.24.0.10) : avec le chat, le titre et les
+      // commandes vivent dans sa colonne ; sans lui, dans une pastille posée
+      // sur la scène. Toute la hauteur est à la grille.
+      let H = hauteur - 2 * m;
       let g = capacite(voulus, W, H);
       if (g && g.n < voulus) {
-        H = hauteur - (chat ? 0 : CFG.SALLE_TETE_PX) - CFG.SALLE_BANC_PX - 2 * m;
+        H = hauteur - CFG.SALLE_BANC_PX - 2 * m;
         g = capacite(voulus, W, H);
       }
       return g ? { ...g, chat, W, H, deborde: false } : null;
@@ -13399,7 +13502,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        manquerait son objet — c'était le cas, CALCULÉ, d'un écran de
        1366 × 768 : une seule tuile, quel que soit le groupe, quand deux
        tiennent sans le chat. `voulu` est le choix de l'utilisateur (le
-       bouton « Chat ») : il force le chat, ou le retire. Si même une tuile ne
+       bouton du chat) : il force le chat, ou le retire. Si même une tuile ne
        tient pas, elle garde le minimum de Twitch et la scène défile — jamais
        un lecteur plus petit. */
     const disposer = (voulus, largeur, hauteur, voulu = null) => {
@@ -13430,10 +13533,37 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (o.ordre === 'pause') return a.lecture ? 'sans-effet' : 'ok';
       return a.lecture ? 'ok' : 'sans-effet';
     };
-    const envoyer = (t, ordre) => {
+    const envoyer = (t, ordre, plus = null) => {
       try {
-        t.cadre.contentWindow.postMessage({ tse: TSE_SALLE_ORDRE_MSG, ordre }, 'https://player.twitch.tv');
+        t.cadre.contentWindow.postMessage({ tse: TSE_SALLE_ORDRE_MSG, ordre, ...(plus || {}) }, 'https://player.twitch.tv');
       } catch { /* lecteur retiré */ }
+    };
+
+    /* LA QUALITÉ DES LECTEURS (4.24.0.10) : plus d'automatique, à la demande.
+       La hauteur d'une tuile, en pixels d'ÉCRAN — la hauteur CSS fois la
+       densité de l'écran, car c'est ce que l'image remplit —, et le pont de
+       chaque lecteur pose la qualité la plus proche dans l'échelle réelle de
+       sa chaîne. L'URL porte en plus la plus proche des qualités usuelles :
+       une préférence, que le lecteur suit au démarrage, avant que l'ordre
+       n'arrive. */
+    const QUALITES_USUELLES = [[160, '160p30'], [360, '360p30'], [480, '480p30'], [720, '720p60'], [1080, '1080p60']];
+    const hauteurCible = () => {
+      const d = courante && courante.disposition;
+      return d && d.h ? Math.round(d.h * (window.devicePixelRatio || 1)) : null;
+    };
+    // Proche en proportion, comme dans le pont (cf. choisirQualite).
+    const qualiteUsuelle = (h) => {
+      let meilleure = QUALITES_USUELLES[0];
+      for (const q of QUALITES_USUELLES) {
+        if (Math.abs(Math.log(q[0] / h)) <= Math.abs(Math.log(meilleure[0] / h))) meilleure = q;
+      }
+      return meilleure[1];
+    };
+    const tenirQualite = (t) => {
+      const h = hauteurCible();
+      if (!h || t.qualiteEnvoyee === h) return;
+      envoyer(t, 'qualite', { hauteur: h });
+      t.qualiteEnvoyee = h;
     };
 
     const creerTuile = (chaine) => {
@@ -13445,8 +13575,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // de salle — et qui en tient l'anti-pub et le pont d'aperçu à l'écart.
       cadre.name = TSE_SALLE_FRAME_NAME;
       cadre.title = chaine;
+      const h = hauteurCible();
       cadre.src = `https://player.twitch.tv/?${new URLSearchParams({
-        channel: chaine, parent: location.hostname, muted: 'true', autoplay: 'true' })}`;
+        channel: chaine, parent: location.hostname, muted: 'true', autoplay: 'true',
+        ...(h ? { quality: qualiteUsuelle(h) } : {}) })}`;
       cadre.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
       const prise = document.createElement('button');
       prise.type = 'button';
@@ -13473,7 +13605,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       el.append(cadre, prise, etiquette);
       return { chaine, el, cadre, prise, touche, sonEl, pubEl, etat: null, messages: 0, pubs: 0,
                pubAvant: false, dernierSon: 0, pauseCachee: false,
-               sonEssais: 0, sonEnvoiT: 0, sonDepuis: 0, sonTenu: false, gestesAuDon: 0,
+               sonEssais: 0, sonEnvoiT: 0, sonDepuis: 0, sonTenu: false, gestesAuDon: 0, qualiteEnvoyee: null,
                ordreCompte: 0, dernierOrdre: null };
     };
 
@@ -13726,8 +13858,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
       c.banc.hidden = !dehors.length;
       placerTete(c, d);
-      c.boutonChat.setAttribute('aria-pressed', String(d.chat));
-      c.boutonChat.title = d.chat ? S.uiSalleChatMasquer : S.uiSalleChatAfficher;
+      c.boutonChat.textContent = d.chat ? S.uiSalleChatMasquer : S.uiSalleChatAfficher;
       // « Masqué faute de place » ne se dit que si ce n'est pas un choix.
       c.note.textContent = d.chat || c.chatVoulu === false ? S.uiSallePoints
         : `${S.uiSallePoints} · ${S.uiSalleChatMasque}`;
@@ -13772,6 +13903,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       t.pubAvant = !!et.pub;
       t.pubEl.hidden = !et.pub;
       if (t.chaine === c.son) tenirSon(t, et);
+      if (et.video) tenirQualite(t);
       const o = et.ordre;
       if (o && o.apres && o.n !== t.ordreCompte) {
         t.ordreCompte = o.n;
@@ -13855,6 +13987,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         // La largeur des colonnes de chat, gauche · droite (4.24.0.9) : elles
         // prennent les marges que la grille laisse.
         chatsPx: c.chatsPx,
+        // La hauteur de tuile, en pixels d'écran, que la qualité vise.
+        qualiteCible: hauteurCible(),
+        // L'écart de latence entre la tuile la plus en avance et la plus en
+        // retard, en secondes : ce que la synchronisation aurait à combler.
+        ecartLatence: (() => {
+          const l = c.tuiles.map((t) => t.etat && t.etat.latence).filter((x) => Number.isFinite(x));
+          return l.length >= 2 ? Math.round((Math.max(...l) - Math.min(...l)) * 100) / 100 : null;
+        })(),
         chatPartage: c.partage,
         chatsCompares: c.comparaison ? `${c.comparaison.messages} messages · ${c.comparaison.communs} communs` : null,
         chatMasque: !d.chat,
@@ -13870,6 +14010,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           lecture: t.etat ? t.etat.lecture : null,
           muet: t.etat ? t.etat.muet : null,
           volume: t.etat ? t.etat.volume ?? null : null,
+          // La qualité posée, et si le lecteur est resté en automatique ;
+          // « lecteur » : l'instance de Twitch trouvée, ou non (4.24.0.10).
+          lecteur: t.etat ? t.etat.lecteur ?? null : null,
+          qualite: t.etat ? t.etat.qualite ?? null : null,
+          auto: t.etat ? t.etat.auto ?? null : null,
+          // Pour l'étude de la synchronisation : la latence du direct selon le
+          // lecteur, son tampon, sa vitesse (lecture seule).
+          latence: t.etat ? t.etat.latence ?? null : null,
+          tampon: t.etat ? t.etat.tampon ?? null : null,
+          vitesse: t.etat ? t.etat.vitesse ?? null : null,
           // Les ordres « son » envoyés depuis qu'elle l'a reçu, et s'il a tenu.
           sonEssais: t.sonEssais,
           sonTenu: t.chaine === c.son ? t.sonTenu : null,
@@ -14051,16 +14201,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       titre.textContent = S.uiSalleTitre(membres.length);
       const note = document.createElement('span');
       note.className = 'tse-salle__note';
-      const clore = document.createElement('button');
-      clore.type = 'button';
-      clore.className = 'tse-salle__fermer';
-      clore.textContent = S.uiSalleFermer;
-      clore.addEventListener('click', () => fermer('bouton'));
+      /* PLUS DE BOUTON « FERMER » (4.24.0.10), à la demande : Échap, le nœud
+         de la barre et tout changement de page ferment la salle. */
       // Le chat, forcé ou retiré à la main : l'inverse de ce qui est affiché.
+      // Son libellé DIT ce qu'il fera — « Masquer le chat », « Afficher le
+      // chat » —, posé à chaque disposition (4.24.0.10).
       const boutonChat = document.createElement('button');
       boutonChat.type = 'button';
       boutonChat.className = 'tse-salle__bouton-chat';
-      boutonChat.textContent = S.uiSalleChatBouton;
       boutonChat.addEventListener('click', () => {
         const c = courante;
         if (!c) return;
@@ -14068,14 +14216,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         disposerSalle();
       });
       /* LE TITRE ET LES COMMANDES VOYAGENT (4.24.0.9) : dans la colonne du
-         chat quand il y en a une — plus de ligne pleine largeur, la hauteur va
-         aux lecteurs —, dans la ligne du haut seulement sans chat. */
+         chat quand il y en a une ; sans chat, dans une pastille posée en haut
+         à droite de la salle (4.24.0.10) — plus aucune ligne pleine largeur,
+         toute la hauteur va aux lecteurs. */
       const titreBloc = document.createElement('div');
       titreBloc.className = 'tse-salle__titre-bloc';
       titreBloc.append(titre, note);
       const commandes = document.createElement('div');
       commandes.className = 'tse-salle__commandes';
-      commandes.append(boutonChat, clore);
+      commandes.append(boutonChat);
       tete.append(titreBloc, commandes);
       const corps = document.createElement('div');
       corps.className = 'tse-salle__corps';
@@ -14098,7 +14247,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
       const empilement = empiler(boite);
       document.body.appendChild(boite);
-      verifierEmpilement(boite, empilement);
       courante = {
         t0: Date.now(), origine: opts.origine || 'console', chemin: location.pathname,
         arriveeMs: Number.isFinite(opts.arriveeMs) ? opts.arriveeMs : null, empilement,
@@ -14115,6 +14263,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       document.addEventListener('visibilitychange', surVisibilite);
       courante.minuteur = setInterval(pas, CFG.SALLE_PAS_MS);
       disposerSalle();
+      /* APRÈS la première disposition, pas avant : avant elle, la salle n'a
+         pas encore sa gauche, et ne mesure que la largeur de son contenu,
+         collée au bord droit — les points sondés tomberaient à côté de ce
+         qui la couvre (4.24.0.10 : sans ligne d'en-tête pleine largeur, elle
+         n'avait plus de quoi s'élargir). */
+      verifierEmpilement(boite, empilement);
       if (auChangement) auChangement();
       return {
         ouverte: true,
@@ -14179,7 +14333,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
     /* ENFONCÉ QUAND SA SALLE EST OUVERTE — les mêmes chaînes, dans n'importe
        quel ordre. Relu à chaque ouverture et fermeture de la salle, par où
-       qu'elle passe : Échap, « Fermer », un changement de page. */
+       qu'elle passe : Échap, un changement de page, le réglage. */
     const marquer = () => {
       const ouverte = salle.membres();
       const cle = ouverte ? cleDe(ouverte) : null;
@@ -14231,6 +14385,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        à chaque balayage ET quand la section change de taille sans balayage —
        une image qui se charge, une carte qui grandit : l'observateur de la
        barre ne voit pas ces changements-là, et le nœud glisserait du fil. */
+    const barreGauche = () => {
+      const nav = document.querySelector(DOM.sidebarRoot);
+      return nav ? nav.getBoundingClientRect().left : 0;
+    };
     const placer = () => {
       if (!couche || !couche.isConnected) return;
       const origine = couche.getBoundingClientRect();
@@ -14244,7 +14402,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         // ou le rouge d'un direct qui vient de démarrer, qui l'emporte.
         const couleur = getComputedStyle(barre[0], '::before').backgroundColor;
         poserStyle(n, 'top', `${Math.round((haut.top + bas.bottom) / 2 - origine.top)}px`);
-        poserStyle(n, 'left', `${Math.round(haut.left - origine.left)}px`);
+        /* CENTRÉ SUR LE TRAIT (4.24.0.10), large de trois pixels au bord gauche
+           de la carte — mais jamais hors de la barre latérale, qui le
+           rognerait : sur Twitch, elle commence au bord de la fenêtre, et le
+           rond s'y appuie alors, au plus près du trait. */
+        const bord = barreGauche();
+        const gauche = Math.max(haut.left + 1.5 - n.offsetWidth / 2, bord);
+        poserStyle(n, 'left', `${Math.round(gauche - origine.left)}px`);
         poserStyle(n, '--tse-noeud-couleur', couleur);
         n.classList.toggle('tse-noeud--reduit', sidebarCollapsed);
       }
