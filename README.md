@@ -343,12 +343,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1421 Ko | 548 Ko | 3 741 → **2** |
+| `content.js` | 1428 Ko | 551 Ko | 3 755 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 105 Ko | 50 Ko | 147 → **0** |
+| `panneau.js` | 106 Ko | 50 Ko | 148 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1675 Ko** | **704 Ko** | **−58 %** |
+| **les cinq** | **1682 Ko** | **707 Ko** | **−58 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2623,6 +2623,124 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La salle : la place aux lecteurs et aux chats, le bouton rond (v4.24.0.9)
+
+Un second retour de terrain sur la salle, captures à l'appui, et six points.
+
+### Les chats remplissent les marges
+
+À deux streams empilés, la grille laissait deux bandes vides de part et
+d'autre des lecteurs, même avec deux chats. **La place que la grille laisse de
+côté va désormais aux colonnes de chat**, à parts égales quand il y en a deux,
+et les tuiles s'y collent. Avec un seul chat, il prend toute la marge. Sans
+chat, les tuiles se centrent comme avant.
+
+**Les tuiles ne changent jamais de taille pour autant.** La grille est calculée
+d'abord, sur la colonne de base (340 px) ; les chats ne prennent que ce qui
+reste. Le rapport dit la largeur des deux colonnes (`chatsPx`, gauche · droite).
+
+### Plus de ligne d'en-tête pleine largeur
+
+La ligne « Salle · 2 streams … Chat · Fermer » prenait quarante pixels de
+hauteur aux lecteurs. **Le titre et les commandes vivent maintenant dans les
+colonnes de chat** :
+
+| chats | titre | commandes |
+| --- | --- | --- |
+| deux | en haut de celui de gauche | en haut de celui de droite |
+| un | en haut de sa colonne, à gauche | en haut de sa colonne, à droite |
+| aucun | la ligne pleine largeur, faute d'autre place | la même |
+
+La grille compte avec : quarante pixels de hauteur en plus quand le chat est
+là. À 1920 × 1080, deux streams passent de 764 × 429 à 800 × 450.
+
+**Une colonne a la largeur qu'on lui donne, pas celle de son contenu.** Au
+premier passage du banc, le titre et les commandes, en entrant dans la
+colonne, l'élargissaient à leur largeur minimale : 424 px au lieu de 341, et
+les tuiles débordaient de la scène. D'où `min-width: 0` sur la colonne.
+
+### La dernière rangée se centre
+
+Trois lecteurs en deux colonnes : le troisième se centre sous les deux autres,
+au lieu de rester collé à gauche sous le premier. Seule sa position change :
+aucune tuile n'est déplacée dans le document.
+
+### Le bouton : un rond parfait
+
+Le « ▶ » est désormais dans un **cercle** de 18 px, largeur et hauteur égales,
+et non plus dans une capsule. Le triangle est décalé d'un pixel à droite :
+centré géométriquement, il paraît pencher vers la gauche. L'étiquette du
+survol (« Regarder les 3 ») sort en bulle à côté, sans déformer le rond.
+
+### Le système multistream a son réglage
+
+Le panneau gagne un groupe **« Multistream »** et son réglage **« Salle
+multistream »**, allumé par défaut. Il reprend le réglage du nœud (même clé :
+un réglage déjà posé le reste), mais il vaut désormais pour tout le système :
+
+- coupé, plus de bouton sur les barres ;
+- une salle ouverte se ferme avec lui (`fermeture: reglage`) ;
+- une demande en attente d'une page à l'autre est ignorée, et effacée ;
+- un clic qui atteindrait quand même un nœud masqué n'ouvre rien.
+
+La console garde `tse.salle.ouvrir` : c'est l'établi du diagnostic, pas le
+système.
+
+### L'aperçu qui restait
+
+**Signalé :** l'aperçu ouvert au survol d'une carte restait affiché quand la
+souris partait vers les lecteurs.
+
+**Mesuré avant d'être corrigé.** La page reçoit bien, en sautant de la carte
+au chat de gauche, un `mouseleave` sur la carte, puis un `mouseover` sur
+l'iframe du chat. Mais elle ne reçoit plus un seul `mousemove` : le pointeur
+est dans l'iframe. Le garde-fou qui distingue une vraie sortie d'une carte
+déplacée par React relit ce qui est sous la **dernière position connue** du
+pointeur. Cette position est encore sur la carte, et il concluait à un
+déplacement. Le chat de gauche, collé à la barre latérale, rend ce saut
+immédiat.
+
+**Le correctif suit le dernier survol, pour les iframes seulement.** Si le
+pointeur vient d'entrer dans une iframe hors de la carte, la sortie est vraie.
+Partout ailleurs, les `mousemove` tiennent la position à jour, et le garde-fou
+reste ce qu'il était.
+
+**Une leçon de banc au passage.** Le premier test lisait la présence de
+`.tse-preview` : l'aperçu refermé reste dans la page, masqué par
+`data-tse-visible="false"`. Le test lit désormais sa visibilité, comme les
+scénarios plus anciens. Le scénario 176 lisait la même présence, et il est
+corrigé aussi.
+
+### Ce que le banc mesure
+
+- **175** : sans ligne d'en-tête quand le chat est là (titre et commandes dans
+  sa colonne, la scène dès le haut) ; la ligne revenue sans chat ; la troisième
+  tuile centrée. La fenêtre basse passe de 1846 × 506 à 1846 × 466 : à 506, les
+  quarante pixels rendus laissaient la largeur borner les tuiles, et la fenêtre
+  ne mesurait plus la place du banc.
+- **176** : le rond ; le réglage qui ferme la salle ouverte, et le clic sur le
+  nœud masqué qui n'ouvre rien.
+- **177** : deux chats qui remplissent les marges à parts égales, titre à
+  gauche et commandes à droite ; un seul chat qui prend toute la marge ;
+  l'aperçu refermé quand la souris saute de la carte au chat de gauche ; une
+  demande fraîche ignorée quand le système est coupé.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| les marges : un seul chat qui ne s'élargit pas, deux chats à parts inégales (2) | des bandes vides, ou un chat plus large que l'autre |
+| la ligne d'en-tête : gardée avec le chat, jamais rendue sans lui, comptée dans la grille quand même, la colonne élargie par son contenu (4) | quarante pixels pris aux lecteurs, des commandes introuvables, ou des tuiles qui débordent |
+| le titre resté à droite avec deux chats (1) | le titre et les commandes entassés d'un côté |
+| la dernière rangée non centrée (1) | le troisième lecteur collé à gauche |
+| le rond : la capsule revenue (1) | la forme d'avant |
+| le réglage : la salle ouverte laissée, la demande en attente suivie, le clic sur un nœud masqué suivi (3) | un système coupé qui ouvre encore une salle |
+| l'aperçu : le dernier survol ignoré (1) | l'aperçu qui reste |
+
+Treize mutants, treize pris. Au premier tour, un avait échappé : la grille
+comptait la ligne d'en-tête même avec le chat. Dans les fenêtres du 175, le
+premier essai donnait le même nombre de tuiles, et le second, celui qui compte
+le banc, calculait juste. Le 177 vérifie désormais la grille au pixel :
+897 × 504, contre 862 × 484 sous le mutant.
 
 ## La salle, après son premier rapport réel (v4.24.0.8)
 
@@ -13376,7 +13494,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 177 scénarios, 1539 assertions |
+| `npm test` | le harnais Playwright : 177 scénarios, 1545 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
