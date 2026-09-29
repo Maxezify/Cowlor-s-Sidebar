@@ -343,12 +343,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1406 Ko | 540 Ko | 3 706 → **2** |
+| `content.js` | 1421 Ko | 548 Ko | 3 741 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 105 Ko | 50 Ko | 147 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1660 Ko** | **696 Ko** | **−58 %** |
+| **les cinq** | **1675 Ko** | **704 Ko** | **−58 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2623,6 +2623,179 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La salle, après son premier rapport réel (v4.24.0.8)
+
+La 4.24.0.7 a tourné sur le vrai Twitch, captures et rapport à l'appui. Ce qui
+tenait, ce qui ne tenait pas :
+
+| point | ce que le terrain a dit | suite |
+| --- | --- | --- |
+| le nœud sur la barre, dans les deux modes (Chaînes suivies, Top Chaînes) | posé, au milieu de la barre | le symbole seul, à la demande |
+| le calque décale-t-il la liste ? | `noeuds.section` : `flex · gap normal`, `noeuds.ecart` : 0 | rien à faire |
+| la salle ouverte depuis la page d'un streamer | l'adresse et le lecteur du streamer restaient dessous | la salle a sa page |
+| le son à l'ouverture | coupé : `ordre son · deja · sans-effet` | le son tenu |
+| les menus de la barre du haut (z-index 8000) | coupés au bord de la salle, inutilisables | la salle passe sous la barre |
+| deux streams | les marges de part et d'autre des lecteurs restent vides | deux chats, s'ils ne sont pas le même |
+
+### Le bouton : le symbole seul
+
+La capsule posée sur la barre ne porte plus que **« ▶ »**. Le nombre de
+streams se lit déjà sur la barre elle-même, et l'étiquette du survol le dit
+toujours (« Regarder les 3 »). En barre réduite aussi, le symbole seul. Le
+réglage devient « Bouton de salle multistream », et le mode d'emploi comme sa
+description disent « bouton » dans les douze langues.
+
+### La salle a sa page
+
+**Signalé :** ouverte depuis la page d'un streamer, la salle se posait
+par-dessus. L'adresse restait la sienne, et son lecteur vivait dessous, en
+pause mais chargé.
+
+Le nœud mène désormais la salle sur **« Parcourir »** (`/directory`) : une page
+de Twitch sans vidéo, légère, accessible connecté ou non. Déjà sur cette page,
+la salle s'ouvre sur place.
+
+**Par une vraie navigation, pas par le routeur de Twitch.** Quitter une chaîne
+à l'intérieur de l'application laisse son stream jouer dans le mini-lecteur
+persistant de Twitch. Une page rechargée, elle, ne garde rien du stream
+d'avant.
+
+**La demande traverse le chargement** dans le stockage de l'onglet
+(`sessionStorage`) : ni l'historique ni les autres onglets ne la voient. Elle
+ne vaut que pour l'arrivée qui suit, car elle est effacée à la lecture, et
+elle se périme après vingt secondes. La salle attend ensuite la barre
+latérale, dont la largeur borne sa zone, et s'ouvre. Le rapport dit le temps
+écoulé entre le clic et la salle (`arriveeMs`).
+
+**La salle se ferme au changement de CHEMIN**, plus d'adresse entière. Twitch
+peut réécrire les paramètres de sa page après coup, et ce n'est pas un
+changement de page.
+
+### Le son tenu
+
+**Le rapport réel portait `son · deja · sans-effet`** sur la tuile qui devait
+avoir le son. Quand l'ordre est parti, la vidéo existait et n'était pas muette :
+le pont n'a rien cliqué. Puis le lecteur de Twitch s'est mis en muet de
+lui-même, en appliquant son réglage après coup.
+
+L'ordre ne vaut donc plus pour une fois. Tant que le son n'a pas **tenu trois
+secondes d'affilée**, la tuile qui doit l'avoir le redemande, toutes les deux
+secondes, **cinq fois au plus**.
+
+**Jamais contre l'utilisateur.** Le pont compte les gestes faits dans le
+lecteur : un clic ou une touche, jamais ce qu'ils visent, et seulement les
+événements de confiance, donc pas nos propres clics. Un geste depuis que le son
+a été donné, et la salle cesse de relancer.
+
+Le rapport donne, par tuile, `sonEssais`, `sonTenu` et le `volume`. Un lecteur
+non muet mais à volume nul se tait aussi ; ce cas n'a pas été observé, et il
+est désormais lisible.
+
+### Deux chats dans les marges
+
+À deux streams, la grille les empile et laisse deux marges vides. **Le chat de
+l'autre stream prend la marge de gauche**, à trois conditions :
+
+- deux streams, tous deux dans la grille ;
+- une marge assez large pour une colonne de chat. **Les tuiles gardent alors
+  exactement leur taille** : jamais un pixel de tuile pour un second chat ;
+- les deux chats ne sont pas un Chat partagé.
+
+**Le Chat partagé se prouve par ses messages**, la seule preuve mesurée. La
+phase 0 n'a trouvé aucun repère qui le nomme dans les chats intégrés, et 99 %
+de messages communs entre deux chats d'un même Chat partagé (P7). Les deux
+chats sont donc chargés, puis comparés à chaque pas. Ils sont **partagés** dès
+que la moitié des messages du plus petit sont communs (quatre au moins) : celui
+de gauche s'en va, et les tuiles se recentrent. Ils sont **distincts** quand,
+sur douze au moins, pas plus d'un sur cinq ne l'est. Les messages ne sont
+gardés en mémoire que le temps de trancher, et le rapport n'en dit que les
+comptes (`chatsCompares`, `chatPartage`).
+
+**Chacun reste à sa place.** À deux chats, le son qui change de tuile ne les
+déplace plus : les recharger coûterait leurs messages. Une fenêtre qui
+rétrécit retire le second ; revenue à sa taille, elle le rend.
+
+### Sous la barre du haut de Twitch
+
+**Signalé avec une capture :** les fenêtres des boutons en haut à droite de
+Twitch (notifications, messages, profil) s'ouvraient coupées au bord de la
+salle. Elle était à 8000, au-dessus de tout.
+
+**Le bon niveau est juste sous celui de la barre, et il se mesure.** Twitch
+garantit lui-même que ses menus passent devant le contenu de sa page ; une
+salle posée juste sous la barre est donc devant tout ce que Twitch place sous
+ses menus.
+
+Le niveau d'un élément dans l'empilement de la page est le z-index du plus haut
+de ses ancêtres qui crée un contexte d'empilement. La barre est trouvée par
+son repère (`top-nav-container`), sinon comme le plus grand bloc qui tient
+dans la bande du haut. Sans barre trouvée, la salle garde 8000 : il n'y a rien
+à ménager.
+
+**Et on vérifie, à l'ouverture.** Douze points de la salle sont sondés. Si un
+élément de la page passe devant, elle remonte à 8000 et le rapport le nomme
+(`empilement.couverte`). Les menus seraient alors coupés, mais la salle serait
+entière. Nos propres calques ont le droit d'être devant : l'aperçu, la bulle
+et le panneau.
+
+### Le rapport
+
+Le bloc `SALLE MULTISTREAM / MULTISTREAM ROOM` gagne :
+
+- `arriveeMs` : le temps entre le clic et la salle, quand elle a changé de page ;
+- `empilement` : le niveau de la salle (`z`), celui de la barre (`barre`),
+  comment elle a été trouvée (`voie`), et ce qui passerait devant (`couverte`) ;
+- `chatGauche`, `chatPartage`, `chatsCompares` ;
+- par tuile : `volume`, `sonEssais`, `sonTenu`.
+
+### À vérifier sur le vrai Twitch
+
+| point | ce qui le dira |
+| --- | --- |
+| la barre du haut porte-t-elle `top-nav-container`, et à quel niveau ? | `empilement.voie` et `empilement.barre` |
+| ses menus passent-ils enfin devant la salle ? | l'œil |
+| le son tient-il à l'arrivée, et en combien d'essais ? | `sonTenu`, `sonEssais`, l'`ordre` de la tuile |
+| **sous Firefox**, plus strict sur le son qui démarre sans geste dans le document, la relance suffit-elle ? | les mêmes lignes, dans un rapport pris sous Firefox |
+| un duo en Chat partagé est-il reconnu, et un duo sans l'est-il comme distinct ? | `chatPartage`, `chatsCompares` |
+| « Parcourir » est-il léger sous la salle ? | le gestionnaire de tâches du navigateur |
+
+### Ce que le banc mesure
+
+Le **scénario 177** (douze assertions) tient les quatre retours :
+
+- la page du stream quittée : sur une page de chaîne dont la vidéo joue, un
+  clic sur le nœud mène sur `/directory` ; la salle s'y ouvre avec les chaînes
+  de la barre, sans la vidéo d'avant, la demande consommée ; un paramètre
+  réécrit ne la ferme pas ;
+- le son tenu : le lecteur factice « tardif » est non muet à l'apparition, puis
+  muet 900 ms plus tard, comme Twitch ; le son y tient. « rebelle » se recoupe
+  à chaque fois : cinq relances, pas une de plus, et un vrai clic dans son
+  lecteur arrête la relance ;
+- deux chats distincts dans la marge de gauche, tuiles dans la scène ; le son
+  qui change ne les déplace ni ne les recharge ; une fenêtre basse n'en laisse
+  qu'un, et la marge revenue rend le second ; un Chat partagé (« sa », « sb »
+  servent le même) est prouvé par ses messages, un seul chat reste, et les
+  tuiles gardent leur taille ;
+- une demande consommée ne rouvre rien au rechargement, une demande périmée
+  non plus ;
+- sous une barre du haut à 1000 avec un menu ouvert : la salle à 999, le menu
+  devant, un élément de la page à 5 dessous ; un élément à 2000 qui passe
+  devant la fait remonter à 8000, et le rapport le nomme.
+
+Le **scénario 176** passe sur la page de la salle, où le nœud ouvre sur place,
+et vérifie que la capsule ne montre aucun texte au repos. Le **175** lit la
+colonne du chat de droite.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| le son : l'ordre donné une fois dès la vidéo (le rapport réel), une seule relance, la relance sans borne, le geste ignoré côté salle ou côté pont, le son jamais tenu (6) | une tuile muette, ou relancée à vie contre l'utilisateur |
+| les deux chats : jamais posés, posés sans mesurer la marge, gardés sur un Chat partagé, le chat qui suit encore le son, la comparaison qui ne conclut jamais au partage ou jamais à la distinction, jamais faite, la salle non redisposée après (8) | des marges vides, des tuiles rognées, deux fois le même chat, ou des chats rechargés à chaque son |
+| l'empilement : resté à 8000, posé au niveau même de la barre, jamais vérifié, les menus de la barre pris pour la page (4) | des menus coupés, ou une page devant la salle |
+| la page de la salle : ouverte sur place, la demande laissée dans l'onglet, sans limite d'âge, l'adresse entière comparée, jamais reprise à l'arrivée (5) | le stream d'avant sous la salle, une salle qui se rouvre, ou qui se ferme toute seule |
+| le bouton : le nombre remis dans la capsule (1) | la capsule d'avant |
+
+Vingt-quatre mutants, vingt-quatre pris par une assertion, au premier tour.
 
 ## Le nœud sur la barre : la salle en un clic (v4.24.0.7)
 
@@ -13203,7 +13376,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 176 scénarios, 1527 assertions |
+| `npm test` | le harnais Playwright : 177 scénarios, 1539 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

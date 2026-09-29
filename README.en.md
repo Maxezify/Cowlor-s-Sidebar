@@ -331,12 +331,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1406 KB | 540 KB | 3,706 → **2** |
+| `content.js` | 1421 KB | 548 KB | 3,741 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 105 KB | 50 KB | 147 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1660 KB** | **696 KB** | **−58 %** |
+| **all five** | **1675 KB** | **704 KB** | **−58 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2488,6 +2488,174 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The room, after its first real report (v4.24.0.8)
+
+Version 4.24.0.7 ran on real Twitch, with screenshots and a report. What held,
+what did not:
+
+| point | what the field said | follow-up |
+| --- | --- | --- |
+| the node on the bar, in both modes (Followed channels, Top Channels) | placed, in the middle of the bar | the symbol alone, as requested |
+| does the layer shift the list? | `noeuds.section`: `flex · gap normal`, `noeuds.ecart`: 0 | nothing to do |
+| the room opened from a streamer's page | the streamer's address and player stayed underneath | the room has its own page |
+| sound on opening | off: `ordre son · deja · sans-effet` | the sound is held |
+| the top bar's menus (z-index 8000) | cut at the room's edge, unusable | the room goes under the bar |
+| two streams | the margins on either side of the players stay empty | two chats, unless they are the same one |
+
+### The button: the symbol alone
+
+The capsule on the bar now shows only **"▶"**. The number of streams can
+already be read on the bar itself, and the hover label still says it
+("Watch all 3"). In the collapsed sidebar, too, the symbol alone. The setting
+becomes "Multistream room button", and the guide and its description say
+"button" in all twelve languages.
+
+### The room has its own page
+
+**Reported:** opened from a streamer's page, the room sat on top of it. The
+address stayed the streamer's, and their player lived underneath, paused but
+loaded.
+
+The node now takes the room to **"Browse"** (`/directory`): a Twitch page with
+no video, light, available signed in or not. Already on that page, the room
+opens in place.
+
+**Through a real navigation, not through Twitch's router.** Leaving a channel
+inside the app keeps its stream playing in Twitch's persistent mini-player. A
+reloaded page keeps nothing of the previous stream.
+
+**The request crosses the page load** in the tab's storage
+(`sessionStorage`): neither the history nor other tabs see it. It only counts
+for the arrival that follows, since it is erased when read, and it expires
+after twenty seconds. The room then waits for the sidebar, whose width bounds
+its area, and opens. The report gives the time between the click and the room
+(`arriveeMs`).
+
+**The room closes on a change of PATH**, no longer of the whole address.
+Twitch may rewrite its page's parameters afterwards, and that is not a page
+change.
+
+### The sound, held
+
+**The real report carried `son · deja · sans-effet`** on the tile that should
+have had the sound. When the order left, the video existed and was not muted:
+the bridge clicked nothing. Then Twitch's player muted itself, applying its
+setting afterwards.
+
+So the order no longer counts for one shot. Until the sound has **held for
+three seconds in a row**, the tile that should have it asks again, every two
+seconds, **five times at most**.
+
+**Never against the user.** The bridge counts the gestures made in the player:
+a click or a key, never what they target, and only trusted events, so not our
+own clicks. One gesture since the sound was given, and the room stops retrying.
+
+The report gives, per tile, `sonEssais`, `sonTenu` and the `volume`. A player
+that is not muted but has zero volume is silent too; this case has not been
+observed, and it can now be read.
+
+### Two chats in the margins
+
+With two streams, the grid stacks them and leaves two empty margins. **The
+other stream's chat takes the left margin**, under three conditions:
+
+- two streams, both in the grid;
+- a margin wide enough for a chat column. **The tiles then keep exactly their
+  size**: never a tile pixel for a second chat;
+- the two chats are not a Shared Chat.
+
+**A Shared Chat is proven by its messages**, the only measured proof. Phase 0
+found no marker naming it in the embedded chats, and 99% of messages in common
+between two chats of the same Shared Chat (P7). Both chats are therefore
+loaded, then compared on every step. They are **shared** as soon as half of
+the smaller one's messages are in common (four at least): the left one goes,
+and the tiles re-centre. They are **distinct** when, out of twelve at least,
+no more than one in five is. The messages are kept in memory only until a
+decision is made, and the report gives only their counts (`chatsCompares`,
+`chatPartage`).
+
+**Each one stays in place.** With two chats, the sound moving to another tile
+no longer moves them: reloading them would cost their messages. A window that
+shrinks removes the second one; back to its size, it restores it.
+
+### Under Twitch's top bar
+
+**Reported with a screenshot:** the windows of the buttons at the top right of
+Twitch (notifications, messages, profile) opened cut at the room's edge. It
+was at 8000, above everything.
+
+**The right level is just below the bar's, and it is measured.** Twitch itself
+guarantees its menus go in front of its page content; a room placed just below
+the bar is therefore in front of everything Twitch places under its menus.
+
+An element's level in the page's stacking is the z-index of its highest
+ancestor that creates a stacking context. The bar is found by its marker
+(`top-nav-container`), otherwise as the largest block that fits in the top
+band. With no bar found, the room keeps 8000: there is nothing to spare.
+
+**And it is checked, on opening.** Twelve points of the room are probed. If a
+page element goes in front, the room goes back up to 8000 and the report names
+it (`empilement.couverte`). The menus would then be cut, but the room would be
+whole. Our own layers are allowed in front: the preview, the bubble and the
+panel.
+
+### The report
+
+The `SALLE MULTISTREAM / MULTISTREAM ROOM` block gains:
+
+- `arriveeMs`: the time between the click and the room, when it changed page;
+- `empilement`: the room's level (`z`), the bar's (`barre`), how it was found
+  (`voie`), and what would go in front (`couverte`);
+- `chatGauche`, `chatPartage`, `chatsCompares`;
+- per tile: `volume`, `sonEssais`, `sonTenu`.
+
+### To check on real Twitch
+
+| point | what will tell |
+| --- | --- |
+| does the top bar carry `top-nav-container`, and at what level? | `empilement.voie` and `empilement.barre` |
+| do its menus finally go in front of the room? | the eye |
+| does the sound hold on arrival, and in how many tries? | `sonTenu`, `sonEssais`, the tile's `ordre` |
+| **under Firefox**, stricter about sound starting without a gesture in the document, are the retries enough? | the same lines, in a report taken under Firefox |
+| is a duo in Shared Chat recognised, and a duo without one seen as distinct? | `chatPartage`, `chatsCompares` |
+| is "Browse" light under the room? | the browser's task manager |
+
+### What the bench measures
+
+**Scenario 177** (twelve assertions) holds the four reports:
+
+- the stream's page left: on a channel page whose video plays, a click on the
+  node leads to `/directory`; the room opens there with the bar's channels,
+  without the previous video, the request consumed; a rewritten parameter does
+  not close it;
+- the sound held: the fake player "tardif" is unmuted when it appears, then
+  muted 900 ms later, like Twitch; the sound holds. "rebelle" mutes itself
+  every time: five retries, not one more, and a real click in its player stops
+  the retries;
+- two distinct chats in the left margin, tiles in the scene; the sound moving
+  neither moves nor reloads them; a low window leaves only one, and the margin
+  back restores the second; a Shared Chat ("sa" and "sb" serve the same one)
+  is proven by its messages, a single chat remains, and the tiles keep their
+  size;
+- a consumed request reopens nothing on reload, nor does an expired one;
+- under a top bar at 1000 with an open menu: the room at 999, the menu in
+  front, a page element at 5 underneath; an element at 2000 that goes in front
+  sends it back up to 8000, and the report names it.
+
+**Scenario 176** runs on the room's page, where the node opens in place, and
+checks that the capsule shows no text at rest. **175** reads the right chat
+column.
+
+| mutants | what falls |
+| --- | --- |
+| sound: the order given once as soon as the video appears (the real report), a single retry, retrying without a bound, the gesture ignored on the room's side or the bridge's, the sound never held (6) | a muted tile, or one retried forever against the user |
+| two chats: never placed, placed without measuring the margin, kept on a Shared Chat, the chat still following the sound, the comparison never concluding shared or never concluding distinct, never run, the room not laid out again afterwards (8) | empty margins, clipped tiles, the same chat twice, or chats reloaded on every sound change |
+| stacking: left at 8000, placed at the bar's own level, never checked, the bar's menus taken for the page (4) | cut menus, or a page in front of the room |
+| the room's page: opened in place, the request left in the tab, no age limit, the whole address compared, never resumed on arrival (5) | the previous stream under the room, a room that reopens, or closes by itself |
+| the button: the number put back in the capsule (1) | the previous capsule |
+
+Twenty-four mutants, twenty-four caught by an assertion, on the first round.
 
 ## The node on the bar: the room in one click (v4.24.0.7)
 
@@ -12749,7 +12917,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 176 scenarios, 1527 assertions |
+| `npm test` | the Playwright harness: 177 scenarios, 1539 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
