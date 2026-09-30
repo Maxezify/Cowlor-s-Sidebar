@@ -772,15 +772,47 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      garde le dernier essai ; la salle le note avec la latence du moment. */
   let essai = null;
   let numeroEssai = 0;
-  const poserVitesse = (r) => {
+  /* LA VOIE DE L'ÉLÉMENT (4.24.0.13). Le second rapport réel : 0,95 posé par
+     l'instance, et ni la vidéo ni le lecteur n'ont jamais lu autre chose que
+     1 — la latence n'a pas bougé. `voie: 'video'` pose la vitesse sur
+     l'élément lui-même, sans passer par le lecteur : la garde-t-il ? */
+  const poserVitesse = (r, voieVoulue = null) => {
     const lecteur = lecteurTwitch();
     const v = document.querySelector('video');
     let voie = null;
-    if (lecteur && typeof lecteur.setPlaybackRate === 'function') {
+    if (voieVoulue !== 'video' && lecteur && typeof lecteur.setPlaybackRate === 'function') {
       try { lecteur.setPlaybackRate(r); voie = 'instance'; } catch { /* voie suivante */ }
     }
     if (!voie && v) { v.playbackRate = r; voie = 'video'; }
-    essai = { n: ++numeroEssai, type: 'vitesse', valeur: r, voie: voie || 'sans-video', t: Date.now(), fin: null };
+    essai = { n: ++numeroEssai, type: voieVoulue === 'video' ? 'vitesse-video' : 'vitesse', valeur: r,
+              voie: voie || 'sans-video', t: Date.now(), fin: null };
+  };
+  /* LE RECUL DANS LE TAMPON (4.24.0.13). La pause, au rapport réel, a fait
+     RECHARGER le lecteur : il est revenu au direct. Reculer d'une seconde —
+     de 0,2 à 5 à la console — dans ce qui est déjà téléchargé, par `seekTo`,
+     retient-il la tuile, ou le lecteur y revient-il aussi ? La position
+     avant et, une demi-seconde après, la position obtenue. */
+  const faireRecul = (s) => {
+    const lecteur = lecteurTwitch();
+    const v = document.querySelector('video');
+    let voie = null, avant = null;
+    const t0 = performance.now();
+    if (lecteur && typeof lecteur.seekTo === 'function' && typeof lecteur.getPosition === 'function') {
+      try { avant = lecteur.getPosition(); lecteur.seekTo(avant - s); voie = 'instance'; } catch { /* voie suivante */ }
+    }
+    if (!voie && v) { avant = v.currentTime; v.currentTime = avant - s; voie = 'video'; }
+    const e = { n: ++numeroEssai, type: 'recul', valeur: s, voie: voie || 'sans-video', t: Date.now(), fin: null,
+                avant: Number.isFinite(avant) ? Math.round(avant * 1000) / 1000 : null, apres: null };
+    essai = e;
+    if (!voie) return;
+    setTimeout(() => {
+      const p = voie === 'instance' ? lireNombre(() => lecteur.getPosition()) : (v ? v.currentTime : null);
+      e.apres = Number.isFinite(p) ? Math.round(p * 1000) / 1000 : null;
+      // Le temps écoulé depuis le recul : la lecture a continué pendant ce
+      // temps, et la salle en tient compte (recul obtenu).
+      e.ecouleS = Math.round(performance.now() - t0) / 1000;
+      e.fin = Date.now();
+    }, 500);
   };
   const fairePause = (s) => {
     const lecteur = lecteurTwitch();
@@ -816,13 +848,28 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          à chaque relevé tant qu'il est suspendu.
 
      CE QUI EN SORT : l'ENVELOPPE du son — le niveau moyen de chaque bloc de
-     1024 échantillons (~21 ms), rien d'autre. Chaque bloc est daté par
-     l'horloge audio (`playbackTime`, continue et exacte au sein d'une tuile),
-     ramenée à l'heure commune par le plus petit écart observé entre l'heure
-     du rappel et celle du bloc sur les dix à vingt dernières secondes : un
-     rappel ne peut qu'être en retard, jamais en avance, et le plus petit
-     retard est la meilleure ancre. Ni le son ni l'enveloppe ne quittent la
-     page ; le rapport ne porte que le décalage calculé.
+     1024 échantillons (~21 ms), rien d'autre. Chaque bloc est daté par son
+     RANG : un bloc dure exactement 1024 échantillons, et le n-ième commence
+     n × 1024 échantillons après le premier. Ce temps est ramené à l'heure
+     commune par le plus petit écart observé entre l'heure du rappel et la
+     fin du bloc, sur les dix à vingt dernières secondes : un rappel ne peut
+     qu'être en retard, jamais en avance, et le plus petit retard est la
+     meilleure ancre. Ni le son ni l'enveloppe ne quittent la page ; le
+     rapport ne porte que le décalage calculé.
+
+     PAS `playbackTime` (4.24.0.13). Il datait les blocs jusqu'ici, et le banc
+     a montré qu'il porte, sous Chromium, une gigue de ±4 ms — des pas de 17 à
+     32 ms pour une période de 23,22 — IDENTIQUE dans toutes les tuiles, au
+     dixième de milliseconde. Sur le banc à deux voix, six passes datées par
+     lui ont donné trois calculs sur trente-six avec un pic parasite (à
+     −10 ms, z 16,5 ; à −2 580 ms) ; neuf passes datées par le rang, aucun
+     sur cinquante-quatre. Il ne sert plus qu'à compter un bloc perdu.
+
+     L'AMORCE (4.24.0.13). L'écoute démarre dans toutes les tuiles au même
+     ordre, donc au même instant, et chaque capture commence par un bloc muet
+     (le plancher, −8) avant le son : un saut commun à toutes, qui pesait plus
+     que tout le reste — un pic à 0 ms, r 0,62, au banc. Une capture ne
+     compte qu'une seconde après son premier son.
 
      JAMAIS `mozCaptureStream` : sous Firefox, il coupe le son de l'élément. */
   const ecoute = (() => {
@@ -830,6 +877,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     let actif = false, ac = null, proc = null, nul = null, source = null, flux = null, video = null;
     let etat = 'inactive', reliaisons = 0, sr = null;
     let ancreCour = Infinity, ancrePrec = Infinity, ancreT = 0;
+    // Le rang du bloc, et l'heure audio du précédent pour compter les pertes.
+    let rang = -1, dernierPt = null;
+    // L'amorce d'une capture : pas encore de son, puis les blocs d'une seconde.
+    let sonVu = false, amorce = 0;
     let lot = [];
     // Blocs et blocs silencieux, par seconde, sur les dix dernières.
     let secondes = [], blocs = 0, muets = 0;
@@ -854,13 +905,18 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         source = ac.createMediaStreamSource(flux);
         source.connect(proc);
         reliaisons += 1;
+        sonVu = false; amorce = Math.ceil(sr / B);
       } catch (e) { etat = `erreur:${(e && e.name) || 'source'}`; source = null; }
     };
     const surBloc = (e) => {
       const mur = Date.now();
-      const tCtx = e.playbackTime * 1000;
+      const periode = (B / sr) * 1000;
+      // Un bloc de plus — ou plusieurs, si l'horloge audio a sauté (blocs perdus).
+      rang += dernierPt === null ? 1 : Math.max(1, Math.round(((e.playbackTime - dernierPt) * 1000) / periode));
+      dernierPt = e.playbackTime;
+      const finBloc = (rang + 1) * periode;
       if (mur - ancreT > 10_000) { ancrePrec = ancreCour; ancreCour = Infinity; ancreT = mur; }
-      ancreCour = Math.min(ancreCour, mur - tCtx);
+      ancreCour = Math.min(ancreCour, mur - finBloc);
       const ancre = Math.min(ancreCour, ancrePrec);
       const x = e.inputBuffer.getChannelData(0);
       let s = 0;
@@ -869,7 +925,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const niveau = Math.log10(s / x.length + 1e-8);
       blocs += 1;
       if (niveau < -7) muets += 1;
-      lot.push([Math.round(tCtx - (B / sr) * 1000 + ancre), Math.round(niveau * 1000) / 1000]);
+      if (!sonVu) { if (niveau < -7) return; sonVu = true; }
+      if (amorce > 0) { amorce -= 1; return; }
+      // Le milieu du bloc, au dixième de milliseconde.
+      lot.push([Math.round((ancre + (rang + 0.5) * periode) * 10) / 10, Math.round(niveau * 1000) / 1000]);
       // Borné : si la salle ne relève plus (onglet gelé), on garde le plus récent.
       if (lot.length > 600) lot.splice(0, lot.length - 600);
     };
@@ -896,7 +955,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       try { if (nul) nul.disconnect(); } catch { /* ignore */ }
       try { if (ac) ac.close(); } catch { /* ignore */ }
       ac = null; proc = null; nul = null; lot = []; secondes = []; blocs = 0; muets = 0;
-      ancreCour = Infinity; ancrePrec = Infinity; ancreT = 0;
+      ancreCour = Infinity; ancrePrec = Infinity; ancreT = 0; rang = -1; dernierPt = null;
+      sonVu = false; amorce = 0;
       etat = 'inactive';
     };
     // À chaque relevé : suivre le souhait de la salle, relancer un contexte
@@ -976,7 +1036,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     try {
       Object.defineProperty(window, 'tse', {
         value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
-          ['essais', 'vitesse', 'pause', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
+          ['essais', 'vitesse', 'vitesseVideo', 'recul', 'pause', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
         writable: false, configurable: false,
       });
     } catch { /* déjà posé */ }
@@ -1014,11 +1074,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     /* LA SONDE DU MÊME INSTANT (4.24.0.11) : le relevé, sur-le-champ ; et
        les deux commandes de la console, bornées ici comme dans la salle. Des
        noms à elles : « pause » est déjà l'ordre de l'onglet caché. */
-    if (d && d.tse === MSG_ORDRE && role === 'salle' && ['releve', 'essai-vitesse', 'essai-pause'].includes(d.ordre)) {
+    if (d && d.tse === MSG_ORDRE && role === 'salle' && ['releve', 'essai-vitesse', 'essai-pause', 'essai-recul'].includes(d.ordre)) {
       if (d.ordre === 'releve' && Number.isFinite(d.n)) repondreReleve(d);
       else if (d.ordre === 'essai-vitesse') {
         const r = Number(d.valeur);
-        if (r >= 0.5 && r <= 1.5) poserVitesse(r);
+        if (r >= 0.5 && r <= 1.5) poserVitesse(r, d.voie === 'video' ? 'video' : null);
+      } else if (d.ordre === 'essai-recul') {
+        const s = Number(d.duree);
+        if (s >= 0.2 && s <= 5) faireRecul(s);
       } else if (d.ordre === 'essai-pause') {
         const s = Number(d.duree);
         if (s >= 0.2 && s <= 10) fairePause(s);
@@ -13741,6 +13804,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        tse.salle.fermer()
        tse.salle.vitesse('chaine', 0.95)           S3 (4.24.0.11), 0.5 à 1.5
        tse.salle.pause('chaine', 3)                S4, 0.2 à 10 s
+       tse.salle.vitesseVideo(0.95)                S3 bis, sur l'élément vidéo
+       tse.salle.recul(1)                          S5, 0.2 à 5 s (seekTo)
+       tse.salle.essais()                          le protocole, 4 min
        tse.salle.ecoute()  /  ecoute(false)        S9 : le décalage par le son
        tse.salle.series()                          les relevés entiers
 
@@ -13915,6 +13981,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                ordreCompte: 0, dernierOrdre: null,
                // La sonde du même instant (4.24.0.11).
                serie: [], sauts: 0, api: null, apiTotal: null, faibleLatence: null,
+               aberrants: 0, rechargements: 0,
                essai: null, essaiVu: 0, essaiFinVu: 0, ecouteEtat: null, env: [] };
     };
 
@@ -14245,8 +14312,31 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          des sauts « 0 → 0 ». Une vraie latence de direct n'est jamais nulle. */
       const lat = fini(d.latence);
       const ech = { n: d.n, t: fini(d.t), l: lat !== null && lat > 0 ? lat : null, b: fini(d.tampon), v: fini(d.vitesse),
-                    vl: fini(d.vitesseLecteur), lecture: d.lecture === true, sy: fini(d.sync), po: fini(d.position) };
+                    vl: fini(d.vitesseLecteur), lecture: d.lecture === true, sy: fini(d.sync), po: fini(d.position),
+                    redemarrage: false };
+      /* UN TAMPON IMPOSSIBLE N'EST PAS UNE MESURE (4.24.0.13). Le second
+         rapport réel a lu 174,42 s de tampon pendant un rechargement : la
+         vidéo téléchargée devant la lecture ne peut pas dépasser la latence,
+         puisqu'on ne télécharge rien au-delà du direct. Au-delà de la latence
+         et d'une demi-seconde de marge — ou de 60 s sans latence connue —,
+         le relevé est écarté, et compté. */
+      if (ech.b !== null && (ech.b < 0 || (ech.l !== null ? ech.b > ech.l + 0.5 : ech.b > 60))) {
+        ech.b = null;
+        t.aberrants += 1;
+      }
       const prec = t.serie[t.serie.length - 1];
+      const es = d.essai && typeof d.essai === 'object' ? d.essai : null;
+      /* UN RECHARGEMENT SE VOIT À LA POSITION (4.24.0.13) : elle compte le
+         temps de lecture depuis le début de la session, et repart de zéro
+         quand le lecteur recharge — ce qu'il a fait au second rapport réel,
+         à la reprise d'une pause. Sauf un recul voulu, commencé depuis le
+         relevé précédent : jusqu'à 5 s, la position recule aussi. */
+      const recule = !!(es && es.type === 'recul' && prec && prec.t !== null && Number.isFinite(es.t) && es.t > prec.t);
+      if (prec && prec.po !== null && ech.po !== null && ech.po < prec.po - 1 && !recule) {
+        ech.redemarrage = true;
+        t.rechargements += 1;
+        noter(c, t.chaine, `rechargement du lecteur (position ${prec.po} → ${ech.po})`, ech.l);
+      }
       t.serie.push(ech);
       if (t.serie.length > CFG.SALLE_SERIE_N) t.serie.shift();
       if (Array.isArray(d.api)) {
@@ -14262,7 +14352,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const limite = t.env[t.env.length - 1][0] - 2 * CFG.SALLE_ECOUTE_FENETRE_MS;
         while (t.env.length && t.env[0][0] < limite) t.env.shift();
       }
-      const es = d.essai && typeof d.essai === 'object' ? d.essai : null;
       if (es && Number.isFinite(es.n) && es.n !== t.essaiVu) {
         t.essaiVu = es.n;
         noter(c, t.chaine, `${es.type} ${es.valeur} · ${es.voie}`, ech.l);
@@ -14274,18 +14363,22 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       t.essai = es;
       /* UN SAUT, ce n'est pas une latence qui bouge : c'est une latence qui
          s'écarte de ce que la seconde écoulée laissait attendre — rien à
-         vitesse 1, (1 − vitesse) par seconde sinon, une seconde par seconde
-         en pause. Une pause ou un ralenti voulus ne sont donc pas des sauts.
-         On ne juge que les secondes SANS changement : même état de lecture,
-         même vitesse, aucun essai commencé ni fini entre les deux relevés —
-         sinon on ne sait pas quelle part de la seconde a eu quel régime. La
-         vitesse est celle du lecteur quand il la donne, de la vidéo sinon. */
+         vitesse 1, (1 − vitesse) par seconde sinon. Un ralenti voulu n'est
+         donc pas un saut. On ne juge que les secondes SANS changement : même
+         vitesse, aucun essai commencé ni fini entre les deux relevés, pas de
+         rechargement — sinon on ne sait pas quelle part de la seconde a eu
+         quel régime.
+         EN LECTURE SEULEMENT (4.24.0.13). Le second rapport réel l'a montré :
+         en pause, le lecteur FIGE sa latence au lieu de la faire croître ; la
+         supposer croissante y voyait trois faux sauts « 1.596 → 1.596 ». La
+         vitesse est celle de la VIDÉO — c'est elle qui joue —, du lecteur à
+         défaut. */
       const dans = (x) => Number.isFinite(x) && x > prec.t && x <= ech.t;
       if (prec && prec.n === ech.n - 1 && prec.l !== null && ech.l !== null && prec.t !== null && ech.t !== null
-        && prec.lecture === ech.lecture && prec.v === ech.v && prec.vl === ech.vl
+        && prec.lecture && ech.lecture && prec.v === ech.v && prec.vl === ech.vl && !ech.redemarrage
         && !(es && (dans(es.t) || dans(es.fin)))) {
         const dt = (ech.t - prec.t) / 1000;
-        const attendu = ech.lecture ? (1 - (ech.vl ?? ech.v ?? 1)) * dt : dt;
+        const attendu = (1 - (ech.v ?? ech.vl ?? 1)) * dt;
         if (Math.abs(ech.l - prec.l - attendu) > CFG.SALLE_SAUT_S) {
           t.sauts += 1;
           noter(c, t.chaine, `saut de latence ${prec.l} → ${ech.l}`, ech.l);
@@ -14391,8 +14484,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const cle = `${ref.chaine}~${t.chaine}`;
         const p = c.ecoute.paires[cle] || (c.ecoute.paires[cle] = { dernier: null, historique: [] });
         p.dernier = { ...res, attendu: attenduEntre(ref, t), niveaux: niv ? { ms: niv.ms, z: niv.z } : null };
-        p.historique.push(res.ms);
-        if (p.historique.length > 12) p.historique.shift();
+        /* CHAQUE CALCUL EN ENTIER (4.24.0.13) : au second rapport réel, les
+           décalages sont passés de ~550 à ~1000 ms sans que la latence ne
+           bouge, et l'historique ne gardait que le premier pic. Deux voix
+           qui se croisent donnent deux pics ; pour le trancher, il faut les
+           deux, leur force, et l'attendu de CE calcul. */
+        p.historique.push({ ms: res.ms, r: res.r, z: res.z, ms2: res.ms2, r2: res.r2, attendu: p.dernier.attendu });
+        if (p.historique.length > 24) p.historique.shift();
         c.ecoute.calculs += 1;
       }
     };
@@ -14537,6 +14635,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         vitesse: vs.length ? `${Math.min(...vs)} · ${Math.max(...vs)}` : null,
         vitesseLecteur: vls.length ? `${Math.min(...vls)} · ${Math.max(...vls)}` : null,
         sauts: t.sauts,
+        // Les rechargements vus à la position, et les tampons écartés (4.24.0.13).
+        rechargements: t.rechargements,
+        aberrants: t.aberrants,
         /* Ce que le premier rapport réel a appris à regarder (4.24.0.12) :
            la part d'AMONT — latence moins tampon, l'âge de la vidéo à son
            arrivée —, la CADENCE à laquelle le lecteur remet sa latence à jour
@@ -14547,7 +14648,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         penteMsS: pente(s.slice(-60).map((x) => [x.t, x.l])),
         // getSyncTime et getPosition : la dernière valeur, et sa pente par seconde.
         sync: suite(s.map((x) => [x.t, x.sy])),
-        position: suite(s.map((x) => [x.t, x.po])),
+        // La position depuis le DERNIER rechargement : sa pente à travers une
+        // remise à zéro ne dirait rien (4.24.0.13 — 0,203/s au rapport réel).
+        position: suite(s.slice(Math.max(0, s.map((x) => x.redemarrage).lastIndexOf(true))).map((x) => [x.t, x.po])),
         // Les soixante dernières latences, une par seconde, telles quelles ;
         // et les tampons, de même (4.24.0.12) : la dent de scie s'y lit.
         valeurs: s.slice(-60).map((x) => (x.l === null ? '—' : x.l)).join(' '),
@@ -14584,20 +14687,67 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         leviers: LEVIERS.map((n) => `${n} ${t.api.includes(n) ? '✓' : '✗'}`).join(' · '),
       };
     };
+    /* Un calcul, en une ligne : le pic, le second et son poids face au
+       premier — TOUJOURS, car deux voix d'égale force donnent souvent des
+       pics inégaux (le second sous 60 % du premier dans 3 à 15 % des
+       fenêtres de 20 s, selon le signal, en simulation) —, le z, et
+       l'attendu selon les latences. */
+    const FORT = 0.6;
+    const ligneCalcul = (h) => `${h.ms}`
+      + (h.ms2 !== null && h.r > 0 ? ` (${h.ms2} ${Math.round((100 * h.r2) / h.r)} %)` : '')
+      + ` z ${h.z.toFixed(1)}${h.attendu !== null ? ` att ${h.attendu}` : ''}`;
+    /* LES PICS STABLES, sur tout l'historique (4.24.0.13). La règle, écrite
+       pour être relue : les calculs dont le pic tient (z ≥ 5) ; leur premier
+       pic, et le second quand il pèse au moins 60 % du premier ; triés, puis
+       coupés en groupes là où deux valeurs voisines s'écartent de plus de
+       80 ms ; un groupe est STABLE s'il réunit au moins deux valeurs. Deux
+       groupes stables — les deux plus nombreux — donnent leur milieu et leur
+       demi-écart : si ce sont deux voix, le milieu est le décalage, le
+       demi-écart le délai du salon vocal. En simulation, sur 90 s d'écoute
+       (dix-huit calculs), elle a vu juste aux quarante essais de chaque cas,
+       une voix comme deux ; sur quinze secondes, elle manque parfois la
+       seconde voix, trop faible dans trop de calculs. C'est une lecture, pas
+       une preuve : un vrai changement de décalage donnerait aussi deux
+       groupes, et l'on regarde alors si l'attendu de chaque calcul a bougé
+       d'autant. */
+    const lirePics = (hist) => {
+      const vals = [];
+      for (const h of hist) {
+        if (!(h.z >= 5)) continue;
+        vals.push(h.ms);
+        if (h.ms2 !== null && h.r2 >= FORT * h.r) vals.push(h.ms2);
+      }
+      if (!vals.length) return null;
+      vals.sort((a, b) => a - b);
+      const groupes = [[vals[0]]];
+      for (const v of vals.slice(1)) {
+        const g = groupes[groupes.length - 1];
+        if (v - g[g.length - 1] > 80) groupes.push([v]); else g.push(v);
+      }
+      const stables = groupes.filter((g) => g.length >= 2).sort((a, b) => b.length - a.length);
+      if (!stables.length) return null;
+      const med = (g) => Math.round(mediane(g));
+      if (stables.length === 1) return `un pic stable : ${med(stables[0])} ms (${stables[0].length})`;
+      const [a, b] = [stables[0], stables[1]].sort((x, y) => med(x) - med(y));
+      return `deux pics stables : ${med(a)} ms (${a.length}) et ${med(b)} ms (${b.length})`
+        + ` → milieu ${Math.round((med(a) + med(b)) / 2)} ms, demi-écart ${Math.round((med(b) - med(a)) / 2)} ms`;
+    };
     const bilanEcoute = (c) => {
       const e = c.ecoute;
       if (!e.actif && !e.calculs) return { actif: false };
-      const paires = {}, historique = {};
+      const paires = {}, historique = {}, stables = {};
       for (const [cle, p] of Object.entries(e.paires)) {
         const d = p.dernier;
         paires[cle] = `décalage ${d.ms} ms · r ${d.r.toFixed(2)} · z ${d.z.toFixed(1)}`
           + (d.ms2 !== null ? ` · 2e pic ${d.ms2} ms (r ${d.r2.toFixed(2)})` : '')
           + ` · attendu ${d.attendu === null ? '—' : `${d.attendu} ms`} · ${d.secondes} s`
           + (d.niveaux ? ` · niveaux ${d.niveaux.ms} ms (z ${d.niveaux.z.toFixed(1)})` : '');
-        historique[cle] = p.historique.join(' ');
+        historique[cle] = p.historique.map(ligneCalcul).join(' · ');
+        const pics = lirePics(p.historique);
+        if (pics) stables[cle] = pics;
       }
       return { actif: e.actif, depuisS: e.depuis ? Math.round((Date.now() - e.depuis) / 1000) : null,
-               calculs: e.calculs, paires, historique };
+               calculs: e.calculs, paires, historique, pics: stables };
     };
 
     const bilan = () => {
@@ -14977,13 +15127,23 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         || (/^[1-9]$/.test(nom) ? c.tuiles[Number(nom) - 1] || null : null);
       return t ? { t, valeur } : { erreur: `tuile inconnue « ${qui} » / unknown tile — ${aide}` };
     };
-    const vitesseSur = (args, appelante = null) => {
+    // `voie` : 'video' pose la vitesse sur l'élément, sans le lecteur (4.24.0.13).
+    const vitesseSur = (args, appelante = null, voie = null) => {
       const d = designer(args, appelante);
       if (d.erreur) return { erreur: d.erreur };
       const x = Number(d.valeur);
       if (!(x >= 0.5 && x <= 1.5)) return { erreur: 'vitesse hors de 0.5–1.5 / speed outside 0.5–1.5' };
-      envoyer(d.t, 'essai-vitesse', { valeur: x });
-      return { envoye: 'vitesse', chaine: d.t.chaine, valeur: x };
+      envoyer(d.t, 'essai-vitesse', { valeur: x, ...(voie === 'video' ? { voie } : {}) });
+      return { envoye: voie === 'video' ? 'vitesse-video' : 'vitesse', chaine: d.t.chaine, valeur: x };
+    };
+    // Le recul dans le tampon, de 0,2 à 5 s (4.24.0.13).
+    const reculSur = (args, appelante = null) => {
+      const d = designer(args, appelante);
+      if (d.erreur) return { erreur: d.erreur };
+      const x = Number(d.valeur);
+      if (!(x >= 0.2 && x <= 5)) return { erreur: 'recul hors de 0.2–5 s / rewind outside 0.2–5 s' };
+      envoyer(d.t, 'essai-recul', { duree: x });
+      return { envoye: 'recul', chaine: d.t.chaine, secondes: x };
     };
     const pauseSur = (args, appelante = null) => {
       const d = designer(args, appelante);
@@ -15018,21 +15178,35 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     /* ── LE PROTOCOLE EN UNE COMMANDE (4.24.0.12) : tse.salle.essais() ────────
        Cinq commandes à taper au bon moment, c'étaient cinq occasions de se
        tromper, et le premier essai réel n'est pas allé plus loin que la
-       première. Une seule commande les enchaîne désormais, sur la tuile muette
-       (ou celle d'où l'on tape) ; l'autre tuile sert de RÉFÉRENCE — elle dit
-       ce que la latence fait d'elle-même pendant ce temps :
+       première. Une seule commande les enchaîne, sur la tuile muette (ou
+       celle d'où l'on tape) ; l'autre tuile sert de RÉFÉRENCE — elle dit ce
+       que la latence fait d'elle-même pendant ce temps.
+
+       LE PROTOCOLE 2 (4.24.0.13). Le second rapport réel a répondu au
+       premier : 0,95 par l'instance n'a rien fait (la vitesse lue est restée
+       à 1, la latence aussi), et la pause a fait RECHARGER le lecteur, revenu
+       au direct. Deux autres leviers, donc, et une écoute plus longue :
          0 s      début ;
-         30 s     S3 : vitesse 0,95 ;
+         30 s     S3 bis : vitesse 0,95 sur l'ÉLÉMENT vidéo, sans le lecteur ;
          90 s     retour à 1 ;
-         120 s    S4 : pause de 3 s ;
-         150 s    S9 : l'écoute, une minute ;
-         210 s    fin — le rapport porte les mesures (bloc « protocole »).
+         120 s    S5 : recul d'une seconde dans le tampon (seekTo) ;
+         150 s    S9 : l'écoute, quatre-vingt-dix secondes ;
+         240 s    fin — le rapport porte les mesures (bloc « protocole »).
        À chaque étape, la latence des deux tuiles est prise : la médiane des
        quatre dernières secondes, parce que le lecteur ne la remet à jour que
-       toutes les deux secondes, en dents de scie (rapport réel). essais(false)
+       toutes les deux secondes, en dents de scie (rapport réel). Pendant le
+       ralenti, les vitesses LUES — vidéo et lecteur —, et le nombre de
+       rechargements de la cible sur tout le protocole. essais(false)
        l'arrête et remet tout en place ; fermer la salle aussi. essais(0.1)
        joue le même protocole dix fois plus vite — c'est pour le banc. */
-    const PROTOCOLE = [[0, 'debut'], [30, 'ralenti'], [90, 'retour'], [120, 'pause'], [150, 'ecoute'], [210, 'fin']];
+    const PROTOCOLE = [[0, 'debut'], [30, 'ralenti'], [90, 'retour'], [120, 'recul'], [150, 'ecoute'], [240, 'fin']];
+    const RECUL_S = 1;
+    // Les vitesses lues d'une tuile entre deux instants : vidéo et lecteur.
+    const vitessesEntre = (t, de, a) => {
+      const s = t.serie.filter((x) => x.t !== null && x.t > de && x.t <= a);
+      const plage = (l) => (l.length ? `${Math.min(...l)}–${Math.max(...l)}` : '—');
+      return `vidéo ${plage(s.map((x) => x.v).filter((x) => x !== null))} · lecteur ${plage(s.map((x) => x.vl).filter((x) => x !== null))}`;
+    };
     const latenceRecente = (t, echelle) => {
       const s = t.serie;
       if (!s.length) return null;
@@ -15048,7 +15222,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       p.etat = raison;
       // Tout remis en place : la vitesse, et l'écoute s'il l'a allumée.
       const t = c.tuiles.find((x) => x.chaine === p.cible);
-      if (t && p.etape === 'ralenti') envoyer(t, 'essai-vitesse', { valeur: 1 });
+      if (t && p.etape === 'ralenti') envoyer(t, 'essai-vitesse', { valeur: 1, voie: 'video' });
       if (p.ecouteAllumee && c.ecoute.actif) ecoute(false);
       noter(c, p.cible, `protocole ${raison}`);
     };
@@ -15070,7 +15244,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const p = {
         etat: 'en cours', etape: null, echelle: e, cible: cible.chaine,
         reference: reference ? reference.chaine : null, marques: {}, minuteurs: [],
-        ecouteAllumee: false, pauseS: Math.round(Math.max(0.2, 3 * e) * 100) / 100, s9: null,
+        ecouteAllumee: false, s9: null, rechargementsAvant: cible.rechargements, rechargements: null,
       };
       c.protocole = p;
       const tuile = (nom) => c.tuiles.find((x) => x.chaine === nom) || null;
@@ -15088,16 +15262,22 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       };
       const actions = {
         debut: () => {},
-        ralenti: (tc) => envoyer(tc, 'essai-vitesse', { valeur: 0.95 }),
-        retour: (tc) => envoyer(tc, 'essai-vitesse', { valeur: 1 }),
-        pause: (tc) => {
-          envoyer(tc, 'essai-pause', { duree: p.pauseS });
-          // La latence juste après : deux relevés au moins après la reprise.
-          plus((p.pauseS + Math.max(2, 5 * e)) * 1000, () => marquer('apres-pause'));
+        ralenti: (tc) => envoyer(tc, 'essai-vitesse', { valeur: 0.95, voie: 'video' }),
+        retour: (tc) => {
+          // Les vitesses lues pendant le ralenti, avant de les remettre à 1.
+          p.vitessesLues = vitessesEntre(tc, p.marques.ralenti.t, Date.now());
+          envoyer(tc, 'essai-vitesse', { valeur: 1, voie: 'video' });
+        },
+        recul: (tc) => {
+          envoyer(tc, 'essai-recul', { duree: RECUL_S });
+          // La latence juste après : deux relevés au moins après le recul.
+          plus(Math.max(2, 5 * e) * 1000, (t2) => { marquer('apres-recul'); p.reculEssai = t2.essai; });
         },
         ecoute: () => { if (!c.ecoute.actif) { ecoute(true); p.ecouteAllumee = true; } },
-        fin: () => {
-          p.s9 = { ...bilanEcoute(c).paires };
+        fin: (tc) => {
+          p.rechargements = tc.rechargements - p.rechargementsAvant;
+          const e2 = bilanEcoute(c);
+          p.s9 = { ...e2.paires, ...Object.fromEntries(Object.entries(e2.pics || {}).map(([k, v]) => [`${k} pics`, v])) };
           if (p.ecouteAllumee && c.ecoute.actif) ecoute(false);
           p.etat = 'fini';
         },
@@ -15111,7 +15291,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         });
       }
       return { protocole: 'lancé / started', cible: p.cible, reference: p.reference,
-               duree: `${Math.round(210 * e)} s`, ensuite: 'le rapport, à la fin / take the report at the end' };
+               duree: `${Math.round(240 * e)} s`, ensuite: 'le rapport, à la fin / take the report at the end' };
     };
     // Le rapport du protocole : l'attendu, le mesuré, et ce que la tuile de
     // référence a fait d'elle-même pendant ce temps.
@@ -15127,10 +15307,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return {
         etat: p.etat === 'en cours' ? `en cours · ${p.etape || 'debut'}` : p.etat,
         cible: p.cible, reference: p.reference, echelle: p.echelle,
-        S3ralenti: comparer('ralenti', 'retour', m.ralenti && m.retour ? 0.05 * (m.retour.t - m.ralenti.t) / 1000 : undefined),
-        S3retour: comparer('retour', 'pause'),
-        S4pause: comparer('pause', 'apres-pause', p.pauseS),
-        S4tenue: comparer('pause', 'ecoute', p.pauseS),
+        S3video: comparer('ralenti', 'retour', m.ralenti && m.retour ? 0.05 * (m.retour.t - m.ralenti.t) / 1000 : undefined),
+        S3vitessesLues: p.vitessesLues || null,
+        S3retour: comparer('retour', 'recul'),
+        S5recul: comparer('recul', 'apres-recul', RECUL_S),
+        /* La position avant le recul et une demi-seconde après, et le recul
+           OBTENU : la lecture a continué pendant cette demi-seconde, à
+           vitesse 1 (le recul se fait après le retour à 1). */
+        S5position: p.reculEssai && p.reculEssai.type === 'recul' ? (() => {
+          const r = p.reculEssai;
+          const obtenu = Number.isFinite(r.avant) && Number.isFinite(r.apres) && Number.isFinite(r.ecouleS)
+            ? Math.round((r.avant + r.ecouleS - r.apres) * 1000) / 1000 : null;
+          return `${r.avant ?? '—'} → ${r.apres ?? '—'} en ${r.ecouleS ?? '—'} s · recul obtenu ${obtenu ?? '—'} s · ${r.voie}`;
+        })() : null,
+        S5tenue: comparer('recul', 'ecoute', RECUL_S),
+        rechargements: p.rechargements,
         S9: p.s9,
       };
     };
@@ -15141,6 +15332,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       switch (nom) {
         case 'essais': return essais(args[0], appelante);
         case 'vitesse': return vitesseSur(args, appelante);
+        case 'vitesseVideo': return vitesseSur(args, appelante, 'video');
+        case 'recul': return reculSur(args, appelante);
         case 'pause': return pauseSur(args, appelante);
         case 'ecoute': return ecoute(args[0] === undefined ? true : args[0]);
         case 'rapport': return bilan();
@@ -15151,6 +15344,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     return {
       ouvrir, son, fermer: (raison = 'api') => fermer(raison), rapport: bilan,
       vitesse: (...a) => vitesseSur(a), pause: (...a) => pauseSur(a), ecoute, series,
+      vitesseVideo: (...a) => vitesseSur(a, null, 'video'), recul: (...a) => reculSur(a),
       essais: (arg) => essais(arg), commande,
       ouvrirDepuisBarre, reprendre,
       // Pour le nœud seulement — la console n'en reçoit rien (cf. tseApi).
@@ -16585,6 +16779,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     series: () => salle.series(),
     // Le protocole en une commande (4.24.0.12).
     essais: (arg) => salle.essais(arg),
+    // La vitesse sur l'élément vidéo, et le recul dans le tampon (4.24.0.13).
+    vitesseVideo: (...a) => salle.vitesseVideo(...a),
+    recul: (...a) => salle.recul(...a),
   });
 
   /* ============================================================

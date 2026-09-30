@@ -26277,10 +26277,21 @@ const S_LECTEUR_SONDE = () => {
         const ch = new URLSearchParams(location.search).get('channel');
         const v = document.getElementById('v');
         class FauxLecteur {
-          constructor() { this.L = ({ alpha: 2, bravo: 2.5 })[ch] ?? 2.2; this.t = Date.now(); this.t0 = this.t; this.vitesse = 1; this.arret = false; }
+          constructor() {
+            this.L = ({ alpha: 2, bravo: 2.5 })[ch] ?? 2.2; this.t = Date.now(); this.t0 = this.t;
+            this.arret = false; this.pos = 0; this.aberrantJusqua = 0;
+            /* LA VITESSE DE L'ÉLÉMENT (4.24.0.13) : c'est elle qui joue, et la
+               latence la suit. Un élément nourri d'un MediaStream garde sa
+               vitesse à 1 sous Chromium : on la tient donc ici, à sa place. */
+            let vElem = 1;
+            Object.defineProperty(v, 'playbackRate', { configurable: true,
+              get: () => vElem, set: (x) => { this.maj(); vElem = Number(x); } });
+            this.vElem = () => vElem;
+          }
           maj() {
             const n = Date.now(); const dt = (n - this.t) / 1000;
-            this.L += (this.arret ? dt : (1 - this.vitesse) * dt) - (ch === 'charlie' ? 0.003 * dt : 0);
+            this.L += (this.arret ? dt : (1 - this.vElem()) * dt) - (ch === 'charlie' ? 0.003 * dt : 0);
+            this.pos += this.arret ? 0 : this.vElem() * dt;
             this.t = n;
           }
           getQualities() { return [{ name: '480p30', height: 480, framerate: 30 }, { name: '720p60', height: 720, framerate: 60 }]; }
@@ -26291,6 +26302,8 @@ const S_LECTEUR_SONDE = () => {
           getLiveLatency() {
             this.maj();
             if (Date.now() - this.t0 < 2500) return 0;
+            // En pause, le vrai lecteur FIGE sa latence (second rapport réel).
+            if (this.arret) return this.gel;
             // « charlie » : la valeur tenue deux secondes, comme le vrai lecteur.
             if (ch === 'charlie') {
               const tranche = Math.floor(Date.now() / 2000);
@@ -26300,16 +26313,28 @@ const S_LECTEUR_SONDE = () => {
             return this.L;
           }
           getSyncTime() { return Date.now(); }
-          getPosition() { return (Date.now() - this.t0) / 1000; }
-          getBufferDuration() { return 1.8; }
+          getPosition() { this.maj(); return this.pos; }
+          // Reculer dans le tampon : la position recule, la latence grandit d'autant.
+          seekTo(p) { this.maj(); const recul = this.pos - p; this.pos = p; this.L += recul; }
+          getBufferDuration() {
+            // Un rechargement : une lecture aberrante du tampon, comme au rapport
+            // réel — un peu plus d'une seconde, pour qu'un relevé la voie.
+            if (Date.now() < this.aberrantJusqua) return 174.42;
+            return 1.8;
+          }
           isLiveLowLatency() { return ch === 'alpha'; }
-          getPlaybackRate() { return this.vitesse; }
-          setPlaybackRate(r) { this.maj(); this.vitesse = r; v.playbackRate = r; }
-          pause() { this.maj(); this.arret = true; v.pause(); }
+          getPlaybackRate() { return 1; }
+          /* ACCEPTÉE, SANS EFFET (4.24.0.13) : au second rapport réel, 0,95 posé
+             par l'instance n'a changé ni la vitesse lue — ni celle du lecteur ni
+             celle de la vidéo — ni la latence. */
+          setPlaybackRate() {}
+          pause() { this.maj(); this.gel = this.L; this.arret = true; v.pause(); }
           play() { this.maj(); this.arret = false; v.play().catch(() => {}); }
         }
         window.__lecteur = new FauxLecteur();
         window.__sauter = (x) => { window.__lecteur.maj(); window.__lecteur.L -= x; };
+        // Un rechargement : la position repart de zéro, le tampon lu une fois aberrant.
+        window.__recharger = () => { window.__lecteur.maj(); window.__lecteur.pos = 0; window.__lecteur.aberrantJusqua = Date.now() + 1200; };
         document.getElementById('root').__reactContainer$faux = { stateNode: null, sibling: null,
           child: { stateNode: { setPlayerActive() {}, props: { mediaPlayerInstance: window.__lecteur } },
                    child: null, sibling: null } };
@@ -26318,7 +26343,14 @@ const S_LECTEUR_SONDE = () => {
     <script>
       (() => {
         const ch = new URLSearchParams(location.search).get('channel');
-        const D = ({ bravo: 350 })[ch] || 0;
+        /* LES VOIX (4.24.0.13) : [voix, retard en ms]. Une voix, c'est une
+           fréquence et une suite d'amplitudes à elle. « duo1 » et « duo2 »
+           sont deux co-streamers qui se parlent : chacun diffuse sa voix, et
+           celle de l'autre avec le délai du salon vocal (200 ms) ; « duo2 »
+           montre tout 350 ms plus tard. La voix de duo1 passe donc 550 ms plus
+           tard sur duo2, celle de duo2 150 ms plus tard : deux pics, à −550 et
+           −150, dont le milieu est le vrai décalage, −350. */
+        const VOIX = ({ bravo: [[0, 350]], duo1: [[0, 0], [1, 200]], duo2: [[1, 350], [0, 550]] })[ch] || [[0, 0]];
         const v = document.getElementById('v');
         const c = document.createElement('canvas');
         c.width = 32; c.height = 18;
@@ -26327,19 +26359,40 @@ const S_LECTEUR_SONDE = () => {
         v.srcObject = new MediaStream([image]);
         v.play().catch(() => {});
         document.querySelector('[data-a-target="player-mute-unmute-button"]').addEventListener('click', () => { v.muted = !v.muted; });
-        // Le son : 440 Hz, une amplitude par tranche de 100 ms de l'HORLOGE,
-        // décalée de D. Il n'entre dans la vidéo qu'une fois le contexte lancé
-        // — une piste muette retiendrait le chargement de la page.
+        // Le son : 440 Hz (660 pour une seconde voix), une amplitude par
+        // tranche de 30 ms de l'HORLOGE, décalée de D. Il n'entre dans la vidéo
+        // qu'une fois le contexte lancé — une piste muette retiendrait le
+        // chargement de la page.
+        /* 30 ms ET PAS 100, des amplitudes de 0,25 à 1 ET PAS DE 0 À 1
+           (4.24.0.13). Simulé hors navigateur sur des milliers de tirages :
+           avec des tranches de 100 ms et des amplitudes proches de zéro,
+           deux voix d'égale force donnent des pics si inégaux que trois
+           calculs ne lisent les deux voix qu'une fois sur trois ; ainsi, et
+           sur six calculs, 3 999 fois sur 4 000. Le vrai son est plus pauvre
+           en attaques : c'est le mécanisme qu'on éprouve ici, pas la
+           sensibilité. */
+        const TRANCHE = 30;
         const gen = new AudioContext();
-        const osc = gen.createOscillator();
-        osc.frequency.value = 440;
-        const g = gen.createGain();
-        g.gain.value = 0;
         const dest = gen.createMediaStreamDestination();
-        osc.connect(g).connect(dest);
-        osc.start();
-        const amp = (k) => ((k * 2654435761) >>> 0) % 1000 / 1000;
-        let prochaine = 0, relie = false;
+        const pistes = VOIX.map(([voix, D]) => {
+          const osc = gen.createOscillator();
+          osc.frequency.value = voix ? 660 : 440;
+          const g = gen.createGain();
+          g.gain.value = 0;
+          osc.connect(g).connect(dest);
+          osc.start();
+          return { voix, D, g, prochaine: 0 };
+        });
+        /* Un hachage ENTIER (4.24.0.13) : k vaut ~1,8·10¹⁰, et k × 2654435761
+           dépasse 2⁵³ — le produit flottant perdait sa précision, et deux voix
+           ne différaient plus que d'une constante. */
+        const hache = (n) => {
+          n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+          n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+          return (n ^ (n >>> 16)) >>> 0;
+        };
+        const amp = (k, voix) => 0.25 + 0.75 * (hache(((k % 1000000007) | 0) + voix * 1000003) % 1000 / 1000);
+        let relie = false;
         const tenir = () => {
           if (gen.state !== 'running') { gen.resume().catch(() => {}); return; }
           if (!relie) {
@@ -26348,11 +26401,13 @@ const S_LECTEUR_SONDE = () => {
             v.play().catch(() => {});
           }
           const mur = Date.now(), ctx = gen.currentTime;
-          const k0 = Math.floor((mur - D) / 100);
-          for (let k = Math.max(prochaine, k0); k < k0 + 10; k++) {
-            const t = ctx + ((k * 100 + D) - mur) / 1000;
-            if (t > ctx) g.gain.setValueAtTime(amp(k), t);
-            prochaine = k + 1;
+          for (const p of pistes) {
+            const k0 = Math.floor((mur - p.D) / TRANCHE);
+            for (let k = Math.max(p.prochaine, k0); k < k0 + 20; k++) {
+              const t = ctx + ((k * TRANCHE + p.D) - mur) / 1000;
+              if (t > ctx) p.g.gain.setValueAtTime(amp(k, p.voix), t);
+              p.prochaine = k + 1;
+            }
           }
         };
         setInterval(tenir, 200);
@@ -26393,9 +26448,12 @@ const S_LECTEUR_SONDE = () => {
      — S9 : le décalage mesuré par le SON, quand le même son passe dans deux
        streams.
    LE LECTEUR FACTICE est une CLASSE, comme celui de Twitch (ses méthodes sur
-   le prototype), et sa latence obéit à ce qu'on lui fait : (1 − vitesse) par
-   seconde, une seconde par seconde en pause. SON SON est lié à l'horloge : la
-   même suite de salves (tranches de 100 ms d'amplitude pseudo-aléatoire),
+   le prototype), et sa latence obéit à ce qu'on lui fait : (1 − vitesse de
+   l'élément) par seconde, une seconde par seconde en pause — mais lue figée
+   tant que la pause dure, comme le vrai (4.24.0.13) ; la vitesse posée par
+   l'instance est acceptée sans effet, comme chez le vrai. SON SON est lié à
+   l'horloge : la
+   même suite de salves (tranches de 30 ms d'amplitude pseudo-aléatoire),
    « bravo » 350 ms après « alpha » — le décalage que l'écoute doit trouver,
    dans deux lecteurs MUETS pour l'un, comme dans la salle. « bravo » a en
    plus un AudioContext qui démarre suspendu, et que resume() ne relance
@@ -26447,28 +26505,35 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify({ alpha: r1.tuiles.alpha, bravo: { serie: r1.tuiles.bravo?.serie, faible: r1.tuiles.bravo?.faibleLatence },
                       api: r1.lecteurApi, leviers: r1.leviers }));
 
-  /* S3 — UNE VITESSE : 0,8 sur « alpha », par l'instance ; sa latence prend
-     0,2 s par seconde, sans qu'aucun saut ne soit noté ; revenue à 1, elle ne
-     bouge plus. La vitesse lue est celle du lecteur (getPlaybackRate) : la
-     vidéo factice, nourrie d'un MediaStream, garde sa vitesse de lecture à 1
-     sous Chromium — un élément alimenté par MSE, comme chez Twitch, la suit.
-     Mutants — la vitesse posée sur la vidéo seule (l'instance l'ignorerait) ;
-     l'essai jamais noté. */
+  /* S3 — UNE VITESSE, PAR L'INSTANCE PUIS PAR L'ÉLÉMENT (4.24.0.13). Par
+     l'instance, 0,8 sur « alpha » est accepté et noté, mais sans effet — la
+     vitesse lue reste à 1, la latence ne bouge pas —, comme au second rapport
+     réel. Par l'élément, 0,8 fait prendre à la tuile 0,2 s de latence par
+     seconde, sans qu'aucun saut ne soit noté ; revenue à 1, elle ne bouge
+     plus. Mutants — la vitesse posée sur la vidéo seule (l'instance d'abord) ;
+     l'essai jamais noté ; un saut qui ignore la vitesse. */
   await page.evaluate(() => window.tse.salle.vitesse('alpha', 0.8));
+  await wait(page, 2500);
+  const r2a = await rapport();
+  await page.evaluate(() => window.tse.salle.vitesseVideo('alpha', 0.8));
   await wait(page, 3500);
   const r2 = await rapport();
   const aLat2 = r2.tuiles.alpha?.latence;
-  await page.evaluate(() => window.tse.salle.vitesse('alpha', 1));
+  await page.evaluate(() => window.tse.salle.vitesseVideo('alpha', 1));
   await wait(page, 1200);
   const aAvant = (await rapport()).tuiles.alpha?.latence;
   await wait(page, 2000);
   const aApres = (await rapport()).tuiles.alpha?.latence;
   const evts2 = Object.values(r2.instant?.evenements || {});
-  ok('S3 : une vitesse de 0,8 par l\'instance fait prendre à la tuile 0,2 s de latence par seconde, notée au journal, sans saut ; à 1, plus rien',
-     r2.tuiles.alpha?.essai === 'vitesse 0.8 · instance' && aLat2 > 2.45 && aLat2 < 2.95
-     && evts2.some((x) => /alpha · vitesse 0\.8 · instance · latence 2/.test(x)) && r2.tuiles.alpha.serie.sauts === 0
-     && /^0\.8 · 1$/.test(r2.tuiles.alpha.serie.vitesseLecteur) && Math.abs(aApres - aAvant) < 0.02,
-     JSON.stringify({ essai: r2.tuiles.alpha?.essai, aLat2, aAvant, aApres, vitesseLecteur: r2.tuiles.alpha?.serie?.vitesseLecteur, evts2 }));
+  ok('S3 : par l\'instance, 0,8 est noté mais sans effet ; par l\'élément, la tuile prend 0,2 s de latence par seconde, sans saut ; à 1, plus rien',
+     r2a.tuiles.alpha?.essai === 'vitesse 0.8 · instance' && Math.abs(r2a.tuiles.alpha.latence - 2) < 0.05
+     && evts2.some((x) => /alpha · vitesse 0\.8 · instance · latence 2/.test(x))
+     && r2.tuiles.alpha?.essai === 'vitesse-video 0.8 · video' && aLat2 > 2.45 && aLat2 < 2.95
+     && evts2.some((x) => /alpha · vitesse-video 0\.8 · video · latence 2/.test(x)) && r2.tuiles.alpha.serie.sauts === 0
+     && /^0\.8 · 1$/.test(r2.tuiles.alpha.serie.vitesse) && /^1 · 1$/.test(r2.tuiles.alpha.serie.vitesseLecteur)
+     && Math.abs(aApres - aAvant) < 0.02,
+     JSON.stringify({ instance: { essai: r2a.tuiles.alpha?.essai, latence: r2a.tuiles.alpha?.latence }, essai: r2.tuiles.alpha?.essai,
+                      aLat2, aAvant, aApres, vitesse: r2.tuiles.alpha?.serie?.vitesse, vitesseLecteur: r2.tuiles.alpha?.serie?.vitesseLecteur, evts2 }));
 
   /* S4 — UNE PAUSE de 1,5 s sur « bravo » : sa latence prend 1,5 s, la
      lecture reprend d'elle-même, et ce n'est pas un saut. Mutants — la
@@ -26661,10 +26726,15 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify(top));
   await wait(page, 2500);
 
-  /* LE PROTOCOLE, dix fois plus vite : S3 sur « bravo » (la tuile muette),
-     « alpha » en référence ; S4 ; l'écoute allumée puis éteinte ; les mesures
-     au rapport, attendu contre mesuré. Mutants — la vitesse jamais remise ; la
-     référence absente ; le mesuré faux ; l'écoute laissée allumée. */
+  /* LE PROTOCOLE 2 (4.24.0.13), dix fois plus vite : S3 bis sur « bravo » (la
+     tuile muette) — la vitesse posée sur l'ÉLÉMENT, et les vitesses lues
+     pendant le ralenti, vidéo contre lecteur ; S5, le recul d'une seconde
+     dans le tampon, et la position avant et après ; « alpha » en référence ;
+     l'écoute allumée puis éteinte ; les mesures au rapport, attendu contre
+     mesuré ; l'écoute de 90 s (neuf ici). Mutants — la vitesse jamais
+     remise ; la vitesse passée par le lecteur ; la référence absente ; le
+     mesuré faux ; l'écoute laissée allumée ou écourtée ; le recul absent ou
+     à l'envers ; les vitesses lues et les rechargements absents. */
   const lance = await page.evaluate(() => window.tse.salle.essais(0.1));
   const double = await page.evaluate(() => window.tse.salle.essais(0.1));
   await attendre(page, () => window.tse.salle.rapport().protocole?.etat === 'fini', 40_000);
@@ -26672,15 +26742,21 @@ const S_LECTEUR_SONDE = () => {
   const pr = r3.protocole || {};
   const evts3 = Object.values(r3.instant?.evenements || {});
   const s3 = await page.evaluate(() => window.tse.salle.series().tuiles.bravo.slice(-1)[0]);
-  ok('le protocole en une commande : S3, S4 et l\'écoute enchaînés, et leurs mesures au rapport',
-     /^lancé/.test(lance?.protocole || '') && lance.cible === 'bravo' && lance.reference === 'alpha' && lance.duree === '21 s'
+  const reculObtenu = Number((/recul obtenu (-?[\d.]+) s/.exec(pr.S5position || '') || [])[1]);
+  // L'heure d'une étape au journal : l'écoute dure 90 s, ici neuf.
+  const heure = (e) => Number((new RegExp(`^\\+([\\d.]+) s · bravo · protocole · ${e}( ·|$)`).exec(evts3.find((x) => x.includes(`protocole · ${e}`)) || '') || [])[1]);
+  ok('le protocole en une commande : la vitesse de l\'élément, le recul dans le tampon et l\'écoute enchaînés, et leurs mesures au rapport',
+     /^lancé/.test(lance?.protocole || '') && lance.cible === 'bravo' && lance.reference === 'alpha' && lance.duree === '24 s'
      && /déjà en cours/.test(double?.erreur || '') && pr.etat === 'fini'
-     && Math.abs(nombre(pr.S3ralenti, 'mesuré') - nombre(pr.S3ralenti, 'attendu')) <= 0.1 && Math.abs(nombre(pr.S3ralenti, 'attendu') - 0.3) <= 0.02
-     && Math.abs(nombre(pr.S3ralenti, 'référence')) <= 0.05 && Math.abs(nombre(pr.S3retour, 'mesuré')) <= 0.1
-     && Math.abs(nombre(pr.S4pause, 'mesuré') - 0.3) <= 0.12 && Math.abs(nombre(pr.S4tenue, 'mesuré') - 0.3) <= 0.12
-     && ['ralenti', 'retour', 'pause', 'ecoute', 'fin'].every((e) => evts3.some((x) => x.includes(`bravo · protocole · ${e}`)))
+     && Math.abs(nombre(pr.S3video, 'mesuré') - nombre(pr.S3video, 'attendu')) <= 0.1 && Math.abs(nombre(pr.S3video, 'attendu') - 0.3) <= 0.02
+     && pr.S3vitessesLues === 'vidéo 0.95–0.95 · lecteur 1–1'
+     && Math.abs(nombre(pr.S3video, 'référence')) <= 0.05 && Math.abs(nombre(pr.S3retour, 'mesuré')) <= 0.1
+     && Math.abs(nombre(pr.S5recul, 'mesuré') - 1) <= 0.12 && Math.abs(nombre(pr.S5tenue, 'mesuré') - 1) <= 0.12
+     && Math.abs(reculObtenu - 1) <= 0.05 && /· instance$/.test(pr.S5position || '') && pr.rechargements === 0
+     && ['ralenti', 'retour', 'recul', 'ecoute', 'fin'].every((e) => evts3.some((x) => x.includes(`bravo · protocole · ${e}`)))
+     && Math.abs(heure('fin') - heure('ecoute') - 9) <= 1
      && evts3.some((x) => /écoute allumée/.test(x)) && evts3.some((x) => /écoute éteinte/.test(x))
-     && r3.ecoute?.actif === false && s3?.vl === 1,
+     && r3.ecoute?.actif === false && s3?.v === 1 && s3?.vl === 1,
      JSON.stringify({ lance, double, pr, s3, evts3: evts3.slice(-10) }));
 
   /* ARRÊTÉ en pleine étape, il remet la vitesse ; la salle fermée, il
@@ -26703,6 +26779,128 @@ const S_LECTEUR_SONDE = () => {
      /^arrêté/.test(arret?.protocole || '') && r4.protocole?.etat === 'arrêté' && Math.abs(l2 - l1) < 0.01
      && r5.ouverte === false && r5.protocole?.etat === 'arrêté : salle fermée',
      JSON.stringify({ arret, etat4: r4.protocole?.etat, l1, l2, etat5: r5.protocole?.etat }));
+  await page.close();
+}
+
+/* ═════════ CE QUE LE SECOND RAPPORT RÉEL A APPRIS À LA SONDE (4.24.0.13) ═
+   Le second essai réel, protocole complet, a montré trois choses que la
+   sonde lisait mal :
+     — à la reprise d'une pause, le lecteur RECHARGE : sa position repart de
+       zéro, et son tampon a été lu une fois à 174,42 s — plus que la latence,
+       ce qui est impossible ;
+     — en pause, il FIGE sa latence (trois faux sauts « 1.596 → 1.596 ») :
+       le lecteur factice fige désormais la sienne, et le 178 le tient ;
+     — l'écoute est passée de ~550 à ~1000 ms sans que la latence ne bouge :
+       deux voix qui se croisent donnent deux pics, et l'historique n'en
+       gardait qu'un.
+   « duo1 » et « duo2 » sont deux co-streamers qui se parlent : chacun
+   diffuse sa voix et celle de l'autre, 200 ms plus tard, et « duo2 »
+   montre tout 350 ms plus tard. Deux pics, à −550 et −150 ; leur milieu est
+   le vrai décalage.
+   ET UN QUATRIÈME, trouvé ici : l'écoute démarre dans toutes les tuiles au
+   même ordre, donc au même instant, et chaque capture commence par un bloc
+   muet puis le son — un saut commun à toutes, que la corrélation prenait
+   pour le son, à 0 ms (r 0,62, z 15). La capture ne compte plus qu'une
+   seconde après son premier son. */
+{
+  titre('180. La sonde, après le second rapport réel — rechargement, tampon impossible, deux voix');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport());
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  await page.evaluate(() => window.tse.salle.ouvrir('alpha', 'bravo', 'charlie'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 6, 20_000);
+
+  /* LE RECHARGEMENT : la position de « charlie » retombe à zéro, et son
+     tampon est lu une fois à 174,42 s. Noté au journal, compté ; le tampon
+     impossible écarté des chiffres ; la pente de la position prise depuis la
+     remise à zéro. Mutants — le rechargement jamais vu ; le tampon impossible
+     gardé ; la pente à travers la remise à zéro. */
+  await cadre('charlie')?.evaluate(() => window.__recharger()).catch(() => null);
+  await wait(page, 4500);
+  const r1 = await rapport();
+  const sc = r1.tuiles.charlie?.serie || {};
+  const evts1 = Object.values(r1.instant?.evenements || {});
+  const pente = Number((/· (-?[\d.]+)\/s$/.exec(sc.position || '') || [])[1]);
+  ok('un rechargement se voit à la position, et le tampon impossible qu\'il fait lire est écarté',
+     sc.rechargements === 1 && sc.aberrants === 1 && evts1.some((x) => /charlie · rechargement du lecteur \(position [\d.]+ → 0/.test(x))
+     && Number(sc.tampon?.split(' · ')[2]) <= 1.8 && Number(sc.amont?.split(' · ')[0]) >= 0
+     && Math.abs(pente - 1) < 0.05,
+     JSON.stringify({ serie: sc, evts1: evts1.slice(-4) }));
+
+  /* LES DEUX LEVIERS DU PROTOCOLE 2, À LA CONSOLE D'UNE TUILE : relayés à
+     la salle, exécutés sur la tuile d'où l'on tape. vitesseVideo pose la
+     vitesse sur l'élément, sans le lecteur ; recul recule dans le tampon, par
+     l'instance — et trois secondes de recul ne sont pas un rechargement, bien
+     que la position recule de plus d'une seconde. Bornés comme les autres.
+     Mutants — vitesseVideo qui passe par le lecteur ; le recul sans ses
+     bornes ; le recul pris pour un rechargement. */
+  const leviers = {
+    video: await cadre('alpha')?.evaluate(() => window.tse.salle.vitesseVideo(0.9)).catch((e) => String(e)),
+    recul: await cadre('bravo')?.evaluate(() => window.tse.salle.recul(3)).catch((e) => String(e)),
+    ...(await page.evaluate(() => ({ trop: window.tse.salle.vitesseVideo('alpha', 3), loin: window.tse.salle.recul('bravo', 9) }))),
+  };
+  await wait(page, 2500);
+  const rl = await rapport();
+  const sa = await page.evaluate(() => window.tse.salle.series().tuiles.alpha.slice(-1)[0]);
+  ok('à la console d\'une tuile, vitesseVideo pose la vitesse sur l\'élément seul, et recul recule dans le tampon — bornés',
+     /envoyé à la salle/.test(leviers.video || '') && /envoyé à la salle/.test(leviers.recul || '')
+     && /hors de 0\.5–1\.5/.test(leviers.trop?.erreur || '') && /hors de 0\.2–5/.test(leviers.loin?.erreur || '')
+     && rl.tuiles.alpha?.essai === 'vitesse-video 0.9 · video' && sa?.v === 0.9 && sa?.vl === 1
+     && rl.tuiles.bravo?.essai === 'recul 3 · instance · fini' && rl.tuiles.bravo.serie?.rechargements === 0,
+     JSON.stringify({ leviers, alpha: rl.tuiles.alpha?.essai, bravo: rl.tuiles.bravo?.essai,
+                      rechargements: rl.tuiles.bravo?.serie?.rechargements, sa }));
+  await page.evaluate(() => window.tse.salle.vitesseVideo('alpha', 1));
+
+  /* UNE PAUSE À LA MAIN, hors de tout essai : la latence de « alpha » lue
+     figée, puis plus grande de la durée de la pause à la reprise. Ni l'une ni
+     l'autre n'est un saut : on ne juge que les secondes de lecture. Mutant —
+     un saut jugé en pause. */
+  await wait(page, 1200);
+  const sautsAvant = (await rapport()).tuiles.alpha?.serie?.sauts;
+  await cadre('alpha')?.evaluate(() => window.__lecteur.pause()).catch(() => null);
+  await wait(page, 2500);
+  await cadre('alpha')?.evaluate(() => window.__lecteur.play()).catch(() => null);
+  await wait(page, 2500);
+  const rp = await rapport();
+  ok('une pause à la main, et sa reprise plus loin du direct, ne sont pas des sauts de latence',
+     Number.isFinite(sautsAvant) && rp.tuiles.alpha?.serie?.sauts === sautsAvant && rp.tuiles.alpha.lecture === true
+     && rp.tuiles.alpha.latence > 4.3,
+     JSON.stringify({ sautsAvant, sauts: rp.tuiles.alpha?.serie?.sauts, lecture: rp.tuiles.alpha?.lecture, latence: rp.tuiles.alpha?.latence }));
+
+  /* DEUX VOIX. L'écoute sur « duo1 » et « duo2 » : chaque calcul garde ses
+     deux pics, le poids du second, son z et l'attendu ; les deux groupes
+     stables donnent −550 et −150, et leur milieu, −350 — pas 0. Six calculs :
+     sur trois, même ce son-là manque la seconde voix une fois sur cent
+     (simulé) ; sur six, 3 999 fois sur 4 000, et avec huit valeurs au moins
+     dans les deux groupes. Mutants — le second pic perdu ; le milieu faux ;
+     les groupes coupés au mauvais endroit ; l'amorce de la capture comptée. */
+  await page.evaluate(() => window.tse.salle.ouvrir('duo1', 'duo2'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 3, 20_000);
+  await page.evaluate(() => window.tse.salle.ecoute());
+  await attendre(page, () => (window.tse.salle.rapport().ecoute?.calculs || 0) >= 6, 60_000);
+  const r2 = await rapport();
+  const pics = r2.ecoute?.pics?.['duo1~duo2'] || '';
+  const nb = (re) => Number((re.exec(pics) || [])[1]);
+  const [pa, pb] = [nb(/stables : (-?\d+) ms/), nb(/ et (-?\d+) ms/)];
+  const milieu = nb(/milieu (-?\d+) ms/), demi = nb(/demi-écart (-?\d+) ms/);
+  // Les valeurs des deux groupes : six calculs, et le second pic compté dans
+  // la plupart — premiers pics seuls, on n'en aurait que six au plus.
+  const valeurs = nb(/stables : -?\d+ ms \((\d+)\)/) + nb(/ et -?\d+ ms \((\d+)\)/);
+  const hist = r2.ecoute?.historique?.['duo1~duo2'] || '';
+  ok('deux voix qui se croisent : deux pics stables, à −550 et −150 ms, dont le milieu est le vrai décalage',
+     /^deux pics stables/.test(pics) && Math.abs(pa + 550) <= 30 && Math.abs(pb + 150) <= 30
+     && Math.abs(milieu + 350) <= 30 && Math.abs(demi - 200) <= 30 && valeurs >= 8
+     && hist.split(' · ').length >= 6 && hist.split(' · ').every((h) => /^-?\d+ \(-?\d+ \d+ %\) z [\d.]+ att -?\d+$/.test(h)),
+     JSON.stringify({ pics, hist, paire: r2.ecoute?.paires?.['duo1~duo2'] }));
+  await page.evaluate(() => window.tse.salle.ecoute(false));
   await page.close();
 }
 
