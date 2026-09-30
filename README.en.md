@@ -2059,6 +2059,240 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## What the second report taught: a player that reloads, two voices, and protocol 2 (v4.24.0.13)
+
+This time, the protocol ran to the end: 374 s of room, two co-streamers in
+Shared Chat, 300 readings per tile, the four steps played on the muted tile,
+the other as reference. It answered both its questions — not as expected —
+and showed three things the probe read wrong. This version fixes the probe,
+changes levers, and records the rest. Published on `claude/chrome-multi`
+only.
+
+### What the protocol measured
+
+| step | expected | measured (target) | reference |
+| --- | --- | --- | --- |
+| S3: speed 0.95 through the instance, 60 s | +3.00 s | −0.02 s | −0.02 s |
+| S3: back to 1, 30 s | — | +0.10 s | −0.03 s |
+| S4: 3 s pause, right after | +3.00 s | −0.15 s | +0.07 s |
+| S4: thirty seconds after | +3.00 s | −0.08 s | +0.09 s |
+| S9: listening, 60 s, ten computations | 378 ms (latencies) | 530 · 560 · 560 · 560 · 560 · 560 · 550 · 1010 · 1000 · 1000 ms | |
+
+1. **The speed set through the instance did nothing.**
+   `setPlaybackRate(0.95)` was accepted — no error, logged as "vitesse 0.95 ·
+   instance" —, but the speed read stayed at 1 from the first reading to the
+   last, on the player (`getPlaybackRate`) as on the video, and latency did
+   not move (−0.02 s, like the reference). The low-latency player probably
+   sets its speed itself — a hypothesis. Protocol 2 sets the speed on the
+   video **element**, without going through the player.
+2. **The pause made the player RELOAD.** It is all in the report:
+   - during the pause, latency stayed **frozen** at 1.596 — the probe
+     expected it to grow by a second per second, and saw three false
+     "latency jumps 1.596 → 1.596";
+   - on resuming, quality went to 1080p60 (source) then back to 720p60 a
+     second later: the room re-imposing its quality on a fresh player;
+   - `getPosition` read 192.66 on the target against 368.62 on the
+     reference, with a slope of 0.203/s over the series: it **started again
+     from zero** on resuming — 374 − 181 = 193 s, the time elapsed since;
+   - the buffer was read once at **174.42 s** (and "upstream" at −172.8):
+     impossible, below;
+   - afterwards, latency was back at the live edge (−0.15 s instead of
+     +3.00).
+
+   So pausing is not a lever: the player resumes at the live edge. Protocol 2
+   replaces it with a **rewind within the buffer**.
+3. **Listening gave two values, and only one at a time**: 530–560 ms seven
+   times, then 1000–1010 ms three times, when latency expected 378 at the
+   last computation — the only one whose expected value is in the report; no
+   event in the log during that minute — no jump, no quality change. Two
+   possible readings:
+   - **two voices.** The co-streamers talk through a voice chat: A's voice
+     goes into B's stream after the voice chat's delay d, and B's into A's.
+     If Δ is the true offset between the tiles, A's voice gives a peak at
+     Δ − d, B's at Δ + d. With 550 and 1000: **Δ ≈ 775 ms, d ≈ 225 ms** — a
+     plausible voice chat delay. The switch from one to the other would say
+     who was talking;
+   - **a real change of offset** of 450 ms, with latency not moving: less
+     likely, not ruled out.
+
+   If these are two voices, the true offset (775 ms) differs from the latency
+   (378 ms) by 400 ms: the part of the path `getLiveLatency` does not see —
+   each streamer's encoding and sending. That is exactly why S9 exists. But
+   the history only kept each computation's first peak: impossible to decide.
+   4.24.0.13 keeps both, their weight, the z and the expected value of each
+   computation, and listens for 90 s.
+4. **The series, again (S2).** Median latencies 1.963 and 1.584 s — 0.38 s
+   apart; buffers 1.458 and 1.10; upstream 0.501 and 0.49: **the gap came
+   from the buffer again**. Still an update every two seconds and the ±0.13 s
+   alternation, but a slope of −0.5 and −0.1 ms/s, against −3 the previous
+   time: the sawtooth has no fixed slope.
+5. **The player's two clocks.** `getSyncTime`: 1790791934000 in both tiles,
+   slope 999.998 and 1000.116 per second — a wall clock in milliseconds, the
+   same everywhere, ending in 000: nothing there to align two tiles below the
+   second. `getPosition`: the session's playback time, reset by a reload —
+   which makes it the detector.
+
+### What the probe read wrong, and now reads
+
+- **A reload shows in the position**: if it goes back by more than a second
+  (outside a wanted rewind), the log says "rechargement du lecteur (position
+  X → Y)", the tile counts its `rechargements`, and that second is not
+  judged. The position's slope is taken since the last reload.
+- **An impossible buffer is not a measurement**: the buffer is the video
+  downloaded ahead of playback, and nothing exists beyond the live edge — it
+  cannot exceed the latency. Beyond the latency plus half a second (or 60 s
+  with no known latency), or negative, the reading is discarded and counted
+  (`aberrants`).
+- **No jump during a pause**: only seconds where both readings are playing
+  are judged — paused, the player freezes its latency, and which law it
+  follows is unknown. The expected speed is the video's, the player's
+  otherwise.
+- **The listening history, computation by computation**: the peak, the
+  second and its weight against the first, the z, the expected value —
+  `-560 (-160 68 %) z 7.1 att 0`. And a reading, `pics`: the computations
+  whose peak holds (z ≥ 5), their first peak and the second if it weighs 60 %
+  of the first, grouped at 80 ms; two groups of at least two values give
+  their **midpoint** (the offset, if these are two voices) and their
+  **half-gap** (the voice chat's delay). A reading, not a proof: a real
+  change of offset would also give two groups, and each computation's
+  expected value then says whether latency moved as much.
+
+### Listening heard its own start
+
+The bench found what the report could not show. Two voices, at −550 and
+−150 ms: listening returned **a single peak, at 0 ms**, r 0.62, z 15.
+
+- **The cause**: listening starts in every tile on the same order, so at the
+  same instant, and each capture begins with a silent block (−8, the floor)
+  before the sound. A jump of 7.5 units, common to all tiles, which weighs
+  more, once the variations are normalized, than all the rest of the signal.
+  Recomputed outside the browser on the captured envelopes, the variations'
+  correlation gives 0.62 at 0 ms; the levels', which do not see the jump,
+  give −550 and −150. **A capture now only counts one second after its first
+  sound.** In the real report, nothing suggests it weighed — no computation at
+  0, and real sound has far more attacks than the bench's —, but the
+  computations of each listening's first twenty seconds contained it.
+- **`playbackTime` no longer dates the blocks.** Under Chromium, the audio
+  time the `ScriptProcessor` gives each block jitters by ±4 ms — steps of 17
+  to 32 ms for a 23.22 ms period —, and with a jitter IDENTICAL in every
+  tile, to a tenth of a millisecond. A block lasts exactly 1024 samples: it is
+  dated by its **rank**, brought back to the common time by the same anchor
+  as before; `playbackTime` only counts a lost block. It was not the cause of
+  the 0 ms peak — the start was —, but on the two-voice bench, start
+  excluded, six runs dated by it gave three computations out of thirty-six
+  with a spurious peak (at −10 ms, z 16.5; at −2,580 ms), and nine runs
+  dated by rank none out of fifty-four. A hint, not a proof: spurious peaks
+  falling at random would all three land on the same side six times in a
+  hundred. The rank, for its part, is exact by construction.
+
+### Two voices of equal strength, two unequal peaks
+
+The first fake sound — 100 ms slices with an amplitude drawn between 0 and
+1 — read both voices only one time in three. A simulation outside the
+browser (the fake sound's envelope, block by block, and the room's
+correlation, copied) over thousands of draws said why:
+
+- **two voices of equal strength often give unequal peaks**: the second
+  under 60 % of the first in 15 % of 20 s windows with that sound, 3 % with
+  30 ms slices, 0.7 % with, in addition, amplitudes from 0.25 to 1. The
+  variations of a logarithmic envelope have heavy tails: a few big events
+  make most of the correlation;
+- **over 90 s of listening (eighteen computations), the peak reading was
+  right in all forty trials of each case**, one voice as two; over three
+  computations, it misses the second voice when it is too weak in too many
+  computations.
+
+Hence, in the probe, the second peak **always** in the history with its
+weight — nothing is lost to the analysis any more —, and, on the bench, a
+fake sound in 30 ms slices with amplitudes from 0.25 to 1, over six
+computations: 3,999 times in 4,000 in simulation. Tried and dropped: a
+periodic sequence (margins at the threshold for some phases), voices offset
+by half a slice (no gain), speaking turns (periodic, hence periodic peaks).
+
+### Protocol 2
+
+```
+tse.salle.essais()        // 4 min
+tse.salle.essais(false)   // stop it
+```
+
+| time | step |
+| --- | --- |
+| 0 s | start |
+| 30 s | S3 bis: speed 0.95 on the video **element**, without the player |
+| 90 s | back to 1 |
+| 120 s | S5: **one-second rewind** within the buffer (`seekTo` on the instance, `currentTime` otherwise) |
+| 150 s | S9: listening, **90 s** |
+| 240 s | end |
+
+In the report, `protocole` block:
+
+- `S3video`: expected +3.00 s, measured, reference;
+- `S3vitessesLues`: the speeds read during the slowdown, video and player —
+  does the player set the element back to 1?
+- `S3retour`: does latency keep its delay?
+- `S5recul`: expected +1.00 s, measured five seconds after;
+- `S5position`: the position before, half a second after, and the **rewind
+  obtained** (playback having continued in between);
+- `S5tenue`: thirty seconds after — does the player catch up?
+- `rechargements`: the target's reloads during the protocol;
+- `S9`: the listening pairs, and their stable peaks.
+
+Two more console commands, bounded like the others:
+`tse.salle.vitesseVideo(0.95)` and `tse.salle.recul(1)` (0.2 to 5 s).
+
+**Nothing is tried on `setLiveMaxLatency`, `setLiveSpeedUpRate` or
+`setInitialBufferDuration`**: one lever at a time.
+
+### What the bench measures
+
+**The fake player** imitates what the report showed: it freezes its
+latency when paused; the speed set through the instance is accepted, **with
+no effect**; its latency follows the element's speed; it has `getPosition`
+and `seekTo`; it can reload (position at zero, a 174.42 s buffer read for
+1.2 s); and "duo1" and "duo2" carry two voices.
+
+- **178**, S3 rewritten: through the instance, 0.8 logged but with no
+  effect; through the element, 0.2 s of latency per second, with no jump;
+  back to 1, nothing more.
+- **179**: protocol 2, ten times faster — the speed set on the element and
+  read as "vidéo 0.95–0.95 · lecteur 1–1", the one-second rewind obtained
+  within 0.05 s through the instance, the hold, no reload, nine seconds of
+  listening turned on then off, the speed set back — and set back too when
+  stopped mid-slowdown.
+- **180, new**: a reload seen in the position, counted, logged, its
+  impossible buffer discarded, the slope taken since; `vitesseVideo` and
+  `recul` typed in a tile's console, relayed, bounded — and a three-second
+  rewind that is not a reload; a pause by hand whose resuming is not a jump;
+  two voices — two stable peaks at −550 and −150 ms (30 ms tolerance, 10 ms
+  off observed), their midpoint at −350, not 0, at least eight values in the
+  two groups, and the full history of six computations.
+
+| mutants | what falls |
+| --- | --- |
+| listening: the start counted; the anchor of the rank-dated blocks lost (2) | the 0 ms peak back; an offset wrong by a suspended context's delay |
+| reload: never seen; the wanted rewind taken for one; its count missing from the report; the position's slope taken across the reset (4) | a reloaded player going unnoticed, or seen where there is none |
+| the impossible buffer kept (1) | 174.42 s in the figures |
+| jumps judged during a pause (1) | a pause's resuming taken for a jump |
+| history and peaks: the second peak and its weight, the expected value, the second peak ignored by the reading, groups cut wrong, the wrong midpoint (5) | two voices unreadable, or a wrong offset |
+| levers: the element's speed going through the player (in the bridge, then in the console relay), the instance's set on the video alone, the rewind reversed, the rewind unbounded (5) | a trial that does not do what it says |
+| protocol 2: the rewind missing; the speeds read, the reloads missing from the report; listening cut short; a stop that leaves the element slowed (5) | a missing measurement; a tile left slowed |
+
+Twenty-three mutants. In the first round, twenty caught; the three
+survivors showed three holes in the bench, now filled: the `vitesseVideo`
+relay from a tile never taken; a fake player whose instance also slowed the
+element — the real one does nothing, and a stop going through it would leave
+the tile slowed; a pause by hand never played. In the second round, all three
+caught, and 4.24.0.11's "trial never logged" mutant, replayed on the
+rewritten S3, still caught.
+
+### For the next report
+
+1. Open the room from the node, on two co-streamers who talk to each other.
+2. F12, any context of the room: `tse.salle.essais()`.
+3. Leave the room alone for 4 min (the log says "protocole · fin").
+4. Take the report.
+
 ## The console everywhere, the protocol in one command, and what the series showed (v4.24.0.12)
 
 The probe's first real trial stopped at the first command:
@@ -13368,7 +13602,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 179 scenarios, 1568 assertions |
+| `npm test` | the Playwright harness: 180 scenarios, 1572 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -13388,7 +13622,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1467 KB | 577 KB | 3,872 → **2** |
+| `content.js` | 1467 KB | 577 KB | 3,895 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 106 KB | 50 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

@@ -2180,6 +2180,246 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Ce que le second rapport a appris : un lecteur qui recharge, deux voix, et le protocole 2 (v4.24.0.13)
+
+Cette fois, le protocole est allé au bout : 374 s de salle, deux
+co-streamers en Chat partagé, 300 relevés par tuile, les quatre étapes
+jouées sur la tuile muette, l'autre en référence. Il a répondu à ses deux
+questions — et pas comme prévu —, et montré trois choses que la sonde lisait
+mal. Cette version corrige la sonde, change de leviers, et consigne le
+reste. Publiée sur `claude/chrome-multi` seulement.
+
+### Ce que le protocole a mesuré
+
+| étape | attendu | mesuré (cible) | référence |
+| --- | --- | --- | --- |
+| S3 : vitesse 0,95 par l'instance, 60 s | +3,00 s | −0,02 s | −0,02 s |
+| S3 : retour à 1, 30 s | — | +0,10 s | −0,03 s |
+| S4 : pause de 3 s, juste après | +3,00 s | −0,15 s | +0,07 s |
+| S4 : trente secondes après | +3,00 s | −0,08 s | +0,09 s |
+| S9 : l'écoute, 60 s, dix calculs | 378 ms (latences) | 530 · 560 · 560 · 560 · 560 · 560 · 550 · 1010 · 1000 · 1000 ms | |
+
+1. **La vitesse posée par l'instance n'a rien fait.** `setPlaybackRate(0.95)`
+   a été accepté — sans erreur, noté « vitesse 0.95 · instance » —, mais la
+   vitesse lue est restée à 1 du premier au dernier relevé, sur le lecteur
+   (`getPlaybackRate`) comme sur la vidéo, et la latence n'a pas bougé
+   (−0,02 s, comme la référence). Le lecteur en faible latence règle sans
+   doute sa vitesse lui-même — c'est une hypothèse. Le protocole 2 pose la
+   vitesse sur l'**élément** vidéo, sans passer par le lecteur.
+2. **La pause a fait RECHARGER le lecteur.** Tout est au rapport :
+   - pendant la pause, la latence est restée **figée** à 1,596 — la sonde
+     l'attendait croissante d'une seconde par seconde, et y a vu trois faux
+     « sauts de latence 1.596 → 1.596 » ;
+   - à la reprise, la qualité est passée à 1080p60 (source) puis revenue à
+     720p60 une seconde plus tard : la salle réimposant sa qualité à un
+     lecteur neuf ;
+   - `getPosition` valait 192,66 sur la cible contre 368,62 sur la
+     référence, avec une pente de 0,203/s sur la série : elle est **repartie
+     de zéro** à la reprise — 374 − 181 = 193 s, le temps écoulé depuis ;
+   - le tampon a été lu une fois à **174,42 s** (et l'« amont » à −172,8) :
+     impossible, ci-dessous ;
+   - après : la latence est revenue au direct (−0,15 s au lieu de +3,00).
+
+   La pause n'est donc pas un levier : le lecteur reprend au direct. Le
+   protocole 2 la remplace par un **recul dans le tampon**.
+3. **L'écoute a donné deux valeurs, et une seule à la fois** : 530–560 ms
+   sept fois, puis 1000–1010 ms trois fois, quand la latence en attendait
+   378 au dernier calcul — le seul dont l'attendu soit au rapport ; aucun
+   événement au journal pendant cette minute — ni saut, ni changement de
+   qualité. Deux lectures possibles :
+   - **deux voix.** Les co-streamers se parlent par un salon vocal : la voix
+     de A passe dans le stream de B après le délai d du salon, et celle de B
+     dans celui de A. Si Δ est le vrai décalage entre les tuiles, la voix de
+     A donne un pic à Δ − d, celle de B à Δ + d. Avec 550 et 1000 : **Δ ≈ 775
+     ms, d ≈ 225 ms** — un délai de salon vocal plausible. Le passage de l'un
+     à l'autre dirait qui parlait ;
+   - **un vrai changement de décalage** de 450 ms, sans que la latence ne
+     bouge : moins probable, pas exclu.
+
+   Si ce sont deux voix, le vrai décalage (775 ms) s'écarte de la latence
+   (378 ms) de 400 ms : la part du chemin que `getLiveLatency` ne voit pas —
+   l'encodage et l'envoi de chaque streamer. C'est exactement pour cela que
+   S9 existe. Mais l'historique ne gardait que le premier pic de chaque
+   calcul : impossible de trancher. La 4.24.0.13 garde les deux, leur poids,
+   le z et l'attendu de chaque calcul, et écoute 90 s.
+4. **La série, de nouveau (S2).** Latences médianes 1,963 et 1,584 s — 0,38
+   s d'écart ; tampons 1,458 et 1,10 ; amont 0,501 et 0,49 : **l'écart venait
+   encore du tampon**. Toujours une mise à jour toutes les deux secondes et
+   l'alternance de ±0,13 s, mais une pente de −0,5 et −0,1 ms/s, contre −3
+   la fois précédente : la dent de scie n'a pas de pente fixe.
+5. **Les deux horloges du lecteur.** `getSyncTime` : 1790791934000 dans les
+   deux tuiles, pente 999,998 et 1000,116 par seconde — une heure murale en
+   millisecondes, la même partout, et qui finit par 000 : rien, là, pour
+   aligner deux tuiles sous la seconde. `getPosition` : le temps de lecture
+   de la session, remis à zéro par un rechargement — ce qui en fait le
+   détecteur.
+
+### Ce que la sonde lisait mal, et lit désormais
+
+- **Un rechargement se voit à la position** : si elle recule de plus d'une
+  seconde (hors recul voulu), le journal note « rechargement du lecteur
+  (position X → Y) », la tuile compte ses `rechargements`, et la seconde
+  n'est pas jugée. La pente de la position est prise depuis le dernier
+  rechargement.
+- **Un tampon impossible n'est pas une mesure** : le tampon, c'est la vidéo
+  téléchargée devant la lecture, et rien n'existe au-delà du direct — il ne
+  peut pas dépasser la latence. Au-delà de la latence et d'une demi-seconde
+  (ou de 60 s sans latence connue), ou négatif, le relevé est écarté et
+  compté (`aberrants`).
+- **Pas de saut en pause** : on ne juge que les secondes où les deux relevés
+  sont en lecture — en pause, le lecteur fige sa latence, et on ne sait pas
+  quelle loi elle suit. La vitesse attendue est celle de la vidéo, du
+  lecteur à défaut.
+- **L'historique de l'écoute, calcul par calcul** : le pic, le second et son
+  poids face au premier, le z, l'attendu — `-560 (-160 68 %) z 7.1 att 0`.
+  Et une lecture, `pics` : les calculs dont le pic tient (z ≥ 5), leur
+  premier pic et le second s'il pèse 60 % du premier, groupés à 80 ms ; deux
+  groupes d'au moins deux valeurs donnent leur **milieu** (le décalage, si
+  ce sont deux voix) et leur **demi-écart** (le délai du salon). C'est une
+  lecture, pas une preuve : un vrai changement de décalage donnerait aussi
+  deux groupes, et l'attendu de chaque calcul dit alors si la latence a
+  bougé d'autant.
+
+### L'écoute entendait son propre démarrage
+
+Le banc a trouvé ce que le rapport ne pouvait pas montrer. Deux voix, à −550
+et −150 ms : l'écoute rendait **un seul pic, à 0 ms**, r 0,62, z 15.
+
+- **La cause** : l'écoute démarre dans toutes les tuiles au même ordre, donc
+  au même instant, et chaque capture commence par un bloc muet (−8, le
+  plancher) avant le son. Un saut de 7,5 unités, commun à toutes les tuiles,
+  qui pèse plus, une fois les variations réduites, que tout le reste du
+  signal. Recalculée hors navigateur sur les enveloppes capturées, la
+  corrélation des variations donne 0,62 à 0 ms ; celle des niveaux, qui ne
+  voit pas le saut, donne −550 et −150. **Une capture ne compte plus qu'une
+  seconde après son premier son.** Au rapport réel, rien n'indique qu'il ait
+  pesé — aucun calcul à 0, et le vrai son a bien plus d'attaques que le
+  banc —, mais les calculs des vingt premières secondes de chaque écoute le
+  contenaient.
+- **`playbackTime` n'est plus l'heure des blocs.** Sous Chromium, l'heure
+  audio que le `ScriptProcessor` donne à chaque bloc tremble de ±4 ms — des
+  pas de 17 à 32 ms pour une période de 23,22 —, et d'un tremblement
+  IDENTIQUE dans toutes les tuiles, au dixième de milliseconde près. Un bloc
+  dure exactement 1024 échantillons : il est daté par son **rang**, ramené à
+  l'heure commune par la même ancre qu'avant ; `playbackTime` ne sert plus
+  qu'à compter un bloc perdu. Il n'était pas la cause du pic à 0 ms — l'amorce
+  l'était —, mais sur le banc à deux voix, amorce écartée, six passes datées
+  par lui ont donné trois calculs sur trente-six avec un pic parasite (à
+  −10 ms, z 16,5 ; à −2 580 ms), et neuf passes datées par le rang aucun sur
+  cinquante-quatre. Un indice, pas une preuve : des parasites tombés au
+  hasard seraient tous trois du même côté six fois sur cent. Le rang, lui,
+  est exact par construction.
+
+### Deux voix d'égale force, deux pics inégaux
+
+Le premier son factice — des tranches de 100 ms d'amplitude tirée entre 0
+et 1 — ne lisait les deux voix qu'une fois sur trois. Une simulation hors
+navigateur (l'enveloppe du faux son, bloc par bloc, et la corrélation de la
+salle, recopiée) sur des milliers de tirages a dit pourquoi :
+
+- **deux voix d'égale force donnent souvent des pics inégaux** : le second
+  sous 60 % du premier dans 15 % des fenêtres de 20 s avec ce son-là, 3 %
+  avec des tranches de 30 ms, 0,7 % avec, en plus, des amplitudes de 0,25
+  à 1. Les variations d'une enveloppe logarithmique ont des queues lourdes :
+  quelques gros événements font l'essentiel de la corrélation ;
+- **sur 90 s d'écoute (dix-huit calculs), la lecture des pics a vu juste aux
+  quarante essais de chaque cas**, une voix comme deux ; sur trois calculs,
+  elle manque la seconde voix quand elle est trop faible dans trop de
+  calculs.
+
+D'où, dans la sonde, le second pic **toujours** à l'historique avec son
+poids — on ne perd plus rien à l'analyse —, et, au banc, un son factice en
+tranches de 30 ms et d'amplitudes de 0,25 à 1, sur six calculs : 3 999 fois
+sur 4 000 en simulation. Essayés et écartés : une suite périodique (des
+marges au seuil pour certaines phases), des voix décalées d'une
+demi-tranche (aucun gain), des tours de parole (périodiques, donc des pics
+périodiques).
+
+### Le protocole 2
+
+```
+tse.salle.essais()        // 4 min
+tse.salle.essais(false)   // l'arrêter
+```
+
+| temps | étape |
+| --- | --- |
+| 0 s | début |
+| 30 s | S3 bis : vitesse 0,95 sur l'**élément** vidéo, sans le lecteur |
+| 90 s | retour à 1 |
+| 120 s | S5 : **recul d'une seconde** dans le tampon (`seekTo` sur l'instance, `currentTime` à défaut) |
+| 150 s | S9 : l'écoute, **90 s** |
+| 240 s | fin |
+
+Au rapport, bloc `protocole` :
+
+- `S3video` : attendu +3,00 s, mesuré, référence ;
+- `S3vitessesLues` : les vitesses lues pendant le ralenti, vidéo et lecteur
+  — le lecteur remet-il l'élément à 1 ?
+- `S3retour` : la latence garde-t-elle son retard ?
+- `S5recul` : attendu +1,00 s, mesuré cinq secondes après ;
+- `S5position` : la position avant, une demi-seconde après, et le **recul
+  obtenu** (la lecture ayant continué entre les deux) ;
+- `S5tenue` : trente secondes après — le lecteur rattrape-t-il ?
+- `rechargements` : ceux de la cible pendant le protocole ;
+- `S9` : les paires de l'écoute, et leurs pics stables.
+
+Deux commandes de plus à la console, bornées comme les autres :
+`tse.salle.vitesseVideo(0.95)` et `tse.salle.recul(1)` (0,2 à 5 s).
+
+**Rien n'est essayé sur `setLiveMaxLatency`, `setLiveSpeedUpRate` ni
+`setInitialBufferDuration`** : un levier à la fois.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** imite ce que le rapport a montré : il fige sa
+latence en pause ; la vitesse posée par l'instance est acceptée, **sans
+effet** ; sa latence suit la vitesse de l'élément ; il a `getPosition` et
+`seekTo` ; il sait recharger (position à zéro, un tampon de 174,42 s lu
+pendant 1,2 s) ; et « duo1 » et « duo2 » portent deux voix.
+
+- **178**, S3 réécrit : par l'instance, 0,8 noté mais sans effet ; par
+  l'élément, 0,2 s de latence par seconde, sans saut ; revenue à 1, plus
+  rien.
+- **179** : le protocole 2, dix fois plus vite — la vitesse posée sur
+  l'élément et lue « vidéo 0.95–0.95 · lecteur 1–1 », le recul d'une seconde
+  obtenu à 0,05 s près par l'instance, la tenue, aucun rechargement, l'écoute
+  de neuf secondes allumée puis éteinte, la vitesse remise — et remise aussi
+  quand on l'arrête en plein ralenti.
+- **180, neuf** : un rechargement vu à la position, compté, noté, son tampon
+  impossible écarté, la pente prise depuis ; `vitesseVideo` et `recul` tapés
+  dans la console d'une tuile, relayés, bornés — et trois secondes de recul
+  qui ne sont pas un rechargement ; une pause à la main dont la reprise n'est
+  pas un saut ; deux voix — deux pics stables à −550 et −150 ms (30 ms de
+  tolérance, 10 ms d'écart observé), leur milieu à −350, pas 0, huit valeurs
+  au moins dans les deux groupes, et l'historique complet de six calculs.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'écoute : l'amorce comptée ; l'ancre des blocs datés par leur rang perdue (2) | le pic à 0 ms de retour ; un décalage faux de la durée d'un contexte suspendu |
+| le rechargement : jamais vu ; le recul voulu pris pour lui ; son compte absent du rapport ; la pente de la position prise à travers la remise à zéro (4) | un lecteur rechargé qui passe inaperçu, ou vu là où il n'est pas |
+| le tampon impossible gardé (1) | 174,42 s dans les chiffres |
+| les sauts jugés en pause (1) | la reprise d'une pause prise pour un saut |
+| l'historique et les pics : le second pic et son poids, l'attendu, le second pic ignoré par la lecture, les groupes mal coupés, le milieu faux (5) | deux voix illisibles, ou un décalage faux |
+| les leviers : la vitesse de l'élément passée par le lecteur (au pont, puis dans le relais de la console), celle de l'instance posée sur la vidéo seule, le recul à l'envers, le recul sans bornes (5) | un essai qui ne fait pas ce qu'il dit |
+| le protocole 2 : le recul absent ; les vitesses lues, les rechargements absents du rapport ; l'écoute écourtée ; l'arrêt qui laisse l'élément ralenti (5) | une mesure manquante ; une tuile laissée ralentie |
+
+Vingt-trois mutants. Au premier tour, vingt pris ; les trois survivants ont
+montré trois trous du banc, comblés : le relais de `vitesseVideo` depuis une
+tuile jamais emprunté ; un lecteur factice dont l'instance ralentissait
+aussi l'élément — le vrai ne fait rien, et un arrêt qui passerait par elle
+laisserait la tuile ralentie ; une pause à la main jamais jouée. Au second
+tour, les trois pris, et le mutant « essai jamais noté » de la 4.24.0.11,
+rejoué sur le S3 réécrit, toujours pris.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux co-streamers qui se parlent.
+2. F12, n'importe quel contexte de la salle : `tse.salle.essais()`.
+3. Ne plus toucher à la salle pendant 4 min (le journal dit « protocole ·
+   fin »).
+4. Prendre le rapport.
+
 ## La console partout, le protocole en une commande, et ce que la série a montré (v4.24.0.12)
 
 Le premier essai réel de la sonde s'est arrêté à la première commande :
@@ -13838,7 +14078,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 179 scénarios, 1568 assertions |
+| `npm test` | le harnais Playwright : 180 scénarios, 1572 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -13859,7 +14099,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1467 Ko | 577 Ko | 3 872 → **2** |
+| `content.js` | 1467 Ko | 577 Ko | 3 895 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 106 Ko | 50 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
