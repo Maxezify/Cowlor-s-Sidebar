@@ -2180,6 +2180,205 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La console partout, le protocole en une commande, et ce que la série a montré (v4.24.0.12)
+
+Le premier essai réel de la sonde s'est arrêté à la première commande :
+`tse.salle.vitesse('<chaîne>', 0.95)` → `ReferenceError: tse is not
+defined`. Le rapport pris juste avant, lui, portait cinq minutes de série
+(S2). Cette version corrige la console, remplace cinq commandes par une, et
+consigne ce que la série a appris. Publiée sur `claude/chrome-multi`
+seulement.
+
+### « tse is not defined » : deux causes
+
+**`window.tse` n'existait que dans la page de Twitch elle-même** — le
+contexte « top » de la console, monde MAIN. Or une page où la salle est
+ouverte compte bien d'autres documents : une iframe `player.twitch.tv` par
+tuile, un ou deux chats, le panneau incrusté (une page d'extension), et le
+monde isolé de l'extension. Un clic droit → **Inspecter** sur une tuile, un
+chat ou le panneau met la console dans ce document-là, où `tse` n'existe
+pas : c'est exactement l'erreur reçue. L'autre explication — `window.tse`
+jamais posé — est exclue par le rapport lui-même : un échec de la pose est
+consigné au journal d'erreurs, et le journal était vide, la salle
+fonctionnant par ailleurs.
+
+**Et l'exemple était recopié tel quel.** `'<chaîne>'` était mon exemple, pas
+un nom de chaîne ; même dans le bon contexte, la commande aurait répondu
+« tuile inconnue ». Les instructions étaient mal conçues.
+
+### La console partout
+
+| où la console se trouve | ce que `tse.salle` y fait |
+| --- | --- |
+| la page (« top ») | comme avant |
+| une **tuile** (`player.twitch.tv`) | relaie la commande à la salle par `postMessage` ; elle s'exécute **sur cette tuile** si la commande n'en nomme pas, et la réponse s'affiche dans la console de la tuile |
+| un **chat** de la salle | c'est le `tse` de la page : même origine |
+| le **panneau** incrusté | relaie par le chemin de ses autres demandes ; la page n'y sert que `essais`, `vitesse`, `pause`, `ecoute`, `rapport` |
+
+Le monde isolé de l'extension (« Cowlor's Sidebar » dans le menu des
+contextes) n'est pas couvert : on n'y arrive pas par « Inspecter ».
+
+**Garde-fous.** La salle n'accepte une commande relayée que de ses propres
+tuiles (la source du message est comparée à leurs fenêtres) ; les commandes
+restent bornées (vitesse 0,5–1,5, pause 0,2–10 s) ; le panneau ne peut rien
+demander d'autre — une commande hors liste répond « commande inconnue ».
+
+**Plus besoin de nom.**
+
+```
+tse.salle.vitesse(0.95)             // la tuile d'où l'on tape, sinon la première muette
+tse.salle.vitesse('chaine', 0.95)   // par son nom
+tse.salle.vitesse(2, 0.95)          // par son numéro, celui de sa touche
+```
+
+Un nom inconnu fait lister les tuiles, numéros compris.
+
+### Le protocole en une commande
+
+```
+tse.salle.essais()        // environ 3 min 30
+tse.salle.essais(false)   // l'arrêter
+```
+
+Il enchaîne sur la tuile muette (ou celle d'où l'on tape), l'autre servant de
+**référence** — elle dit ce que la latence fait d'elle-même pendant ce temps :
+
+| temps | étape |
+| --- | --- |
+| 0 s | début |
+| 30 s | S3 : vitesse 0,95 |
+| 90 s | retour à 1 |
+| 120 s | S4 : pause de 3 s |
+| 150 s | S9 : l'écoute, une minute |
+| 210 s | fin |
+
+À chaque étape, la latence des deux tuiles est prise : la médiane des quatre
+dernières secondes, parce que le lecteur ne la remet à jour que toutes les
+deux secondes (ci-dessous). Le rapport porte un bloc `protocole` :
+`S3ralenti` (attendu +3,00 s, mesuré, référence), `S3retour` (la latence
+garde-t-elle son retard ?), `S4pause` (juste après), `S4tenue` (trente
+secondes après), `S9` (les paires de l'écoute). Arrêté, ou la salle fermée,
+il remet la vitesse à 1 et éteint l'écoute s'il l'a allumée.
+
+**L'écoute a besoin d'un geste dans la page** : après la redirection, Chrome
+compte le clic sur le nœud — la tuile du son a bien eu son son dans le
+rapport. Si une tuile dit `suspended`, un clic sur le titre de la salle suffit.
+
+### Ce que la série a montré (S2)
+
+Deux co-streamers en Chat partagé, 352 s de salle, 300 relevés par tuile :
+
+| | tuile du son | tuile muette |
+| --- | --- | --- |
+| latence (min · méd · max) | 1,822 · 1,963 · 2,099 | 2,085 · 2,24 · 2,383 |
+| tampon (min · méd · max) | 1,332 · 1,432 · 1,512 | 1,652 · 1,743 · 1,787 |
+| latence − tampon (médianes) | ≈ 0,53 | ≈ 0,50 |
+| vitesse (vidéo, lecteur) | 1 · 1 | 1 · 1 |
+
+1. **Le lecteur ne remet sa latence à jour que toutes les deux secondes.**
+   Sur les soixante dernières valeurs de chaque tuile, les trente paires sont
+   des paires : chaque valeur tient deux relevés. C'est la durée d'un segment
+   chez Twitch.
+2. **Chaque mise à jour monte ou descend de 0,13 s**, en alternance
+   (0,132 et 0,131 en moyenne) : une valeur isolée porte ±0,07 s de bruit.
+3. **Lissée sur quatre secondes, la latence est une dent de scie.** Elle
+   baisse lentement — −3,0 et −3,1 ms/s —, puis remonte d'un coup de
+   0,13 s : à 32 s pour l'une, à 2 s et 36 s pour l'autre — un intervalle
+   observé de 34 s, quand 0,13 s à −3 ms/s en laisserait attendre une
+   quarantaine. Et ce, à vitesse 1 de bout en bout, sur la vidéo comme sur le
+   lecteur.
+4. **Une hypothèse, pas une mesure.** Le lecteur en faible latence rattraperait
+   un peu plus vite que le temps réel jusqu'à ce que son tampon soit trop
+   mince, puis céderait d'un cran. L'API a bien un `setLiveSpeedUpRate`, et ce
+   rattrapage ne passerait pas par la vitesse lisible. 0,133 s, c'est aussi
+   huit images à 60 i/s : la coïncidence est notée, pas interprétée.
+5. **L'écart entre les tuiles** : 0,287 s de médiane sur les 300 tours, mais
+   des creux à 0,01 quand les alternances des deux tuiles se croisent. Lissé sur quatre
+   secondes : 0,28 à 0,31, avec des creux à 0,14–0,16 pendant les quelques
+   secondes où une tuile a fait son cran et pas l'autre. **Un moteur devra
+   comparer des moyennes sur quatre secondes, et compter avec ±0,07 s de
+   gigue propre à chaque lecteur**, à moins d'apprivoiser sa régulation.
+6. **Cette fois, l'écart venait du tampon.** Les parts d'amont se valent
+   (≈ 0,53 et 0,50) ; les tampons diffèrent de 0,31 s. Au premier rapport,
+   c'était l'inverse : 0,35 s d'écart d'amont, 0,19 s de tampon. Il n'y a
+   pas de règle : les deux varient.
+7. **La tuile en retard était la muette** : la tuile du son aurait dû
+   ralentir, doucement. Mais l'étude disait « jamais avancée » : c'était trop
+   strict. Une tuile peut avancer **dans son propre tampon** — ici 1,74 s —,
+   tant qu'elle y garde une marge : jamais au-delà du direct, mais pas
+   seulement en arrière. À mesurer : le lecteur reconstitue-t-il son tampon ?
+8. **Relevés simultanés, estimations non.** Les réponses d'un tour arrivent à
+   0–1 ms d'intervalle, mais chaque latence peut dater de deux secondes. À
+   −3 ms/s, cela fait moins de 10 ms : négligeable devant l'alternance.
+9. **Les « sauts de latence 0 → 0 » de l'ouverture étaient faux** : avant de
+   jouer, le lecteur rend 0. Une latence nulle compte désormais comme « pas
+   encore mesurée ». Restent deux vrais mouvements à l'ouverture (+0,50 puis
+   −0,51 s en un peu plus d'une seconde, sur la tuile du son) : sans doute
+   le changement de qualité — une hypothèse.
+
+**Ce que le lecteur offre : 89 fonctions**, et tous les leviers cherchés sont
+là. Plusieurs n'étaient pas prévus : `setLiveSpeedUpRate` (le rattrapage
+lui-même, sans doute), `setLiveMaxLatency`, `setInitialBufferDuration`,
+`getSyncTime`, `getBufferedRanges`, `getSinkBufferedRanges`. Les deux
+premières pourraient empêcher le lecteur de défaire un alignement ; rien
+n'est essayé sur elles, seulement noté.
+
+### Ce que le rapport porte en plus
+
+Par tuile, dans `serie` :
+
+- `amont` : latence − tampon, relevé par relevé ;
+- `majS` : les secondes entre deux mises à jour de la latence ;
+- `penteMsS` : sa pente sur la dernière minute ;
+- `tampons` : les soixante derniers tampons, comme les latences ;
+- `sync` et `position` : `getSyncTime` et `getPosition`, lus tels quels, avec
+  leur pente par seconde, qui dira leur nature.
+
+Et `instant.ecart4s` : l'écart lissé sur quatre secondes.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** des scénarios 178 et 179 imite désormais ce que le
+rapport a montré : une latence de 0 avant de jouer ; « charlie » tient sa
+latence deux secondes et dérive de −3 ms/s ; `getSyncTime` et
+`getPosition`.
+
+**Le 179, neuf :**
+
+- la latence nulle n'est pas une mesure, et les nouveaux relevés sont justes :
+  cadence de 2 s et pente de −3 ms/s sur « charlie », amont, pentes des deux
+  horloges ;
+- dans la console d'une tuile, `tse.salle` relaie, sur cette tuile — même
+  celle du son —, et la réponse revient s'afficher ;
+- dans la console d'un chat, `tse` est celui de la page ;
+- le panneau relaie les commandes de la sonde, et seulement elles ;
+- sans nom, la tuile muette ; par numéro ; l'exemple recopié fait lister les
+  tuiles ;
+- le protocole, dix fois plus vite : S3, S4, l'écoute allumée puis éteinte,
+  attendu contre mesuré, la vitesse remise ;
+- arrêté, il remet la vitesse ; la salle fermée, il s'arrête avec elle.
+
+**Le 124** vérifie la moitié « panneau » du relais : `tse.salle` existe dans
+le document du panneau et y envoie la demande `salle`.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la console : aucun relais dans les tuiles, la tuile appelante ignorée, rien dans les chats, rien dans le panneau (4) | « tse is not defined » de retour, ou la commande qui tombe sur une autre tuile |
+| la page, côté panneau : l'action absente ; une commande hors liste servie (2) | un panneau sans voie ; une porte ouverte à autre chose que la sonde |
+| la tuile désignée : le nom exigé, le numéro ignoré, l'erreur sans la liste des tuiles (3) | l'erreur du premier essai réel, telle quelle |
+| les relevés : le 0 compté comme mesure ; la cadence, la pente, l'amont, l'horloge de synchronisation, les tampons, l'écart lissé faux (7) | des sauts « 0 → 0 » ; des chiffres qui ne disent plus la dent de scie |
+| le protocole : le retour à 1 oublié, la référence absente, l'écoute laissée allumée, l'arrêt qui laisse la tuile ralentie, les minuteurs qui survivent à la salle, l'attendu faux, deux protocoles à la fois (7) | une tuile laissée ralentie ; une mesure sans point de comparaison ; une salle fermée qui agit encore |
+
+Vingt-trois mutants, vingt-trois pris, au premier tour.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux co-streamers qui se parlent.
+2. F12 : n'importe quel contexte de la salle convient désormais.
+3. Taper `tse.salle.essais()`, puis ne plus toucher à la salle pendant
+   3 min 30 (le journal du rapport dit « protocole · fin »).
+4. Prendre le rapport.
+
 ## La sonde du même instant, et le décalage mesuré par le son (v4.24.0.11)
 
 Une version-sonde pour l'étude du même instant : des relevés simultanés, ce
@@ -13639,7 +13838,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 178 scénarios, 1560 assertions |
+| `npm test` | le harnais Playwright : 179 scénarios, 1568 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -13660,9 +13859,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1467 Ko | 577 Ko | 3 842 → **2** |
+| `content.js` | 1467 Ko | 577 Ko | 3 872 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 106 Ko | 50 Ko | 148 → **0** |
+| `panneau.js` | 106 Ko | 50 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
 | **les cinq** | **1721 Ko** | **733 Ko** | **−57 %** |

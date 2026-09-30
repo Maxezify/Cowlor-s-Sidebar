@@ -2059,6 +2059,197 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The console everywhere, the protocol in one command, and what the series showed (v4.24.0.12)
+
+The probe's first real trial stopped at the first command:
+`tse.salle.vitesse('<chaîne>', 0.95)` → `ReferenceError: tse is not
+defined`. The report taken just before carried five minutes of series (S2).
+This version fixes the console, replaces five commands with one, and records
+what the series taught. Published on `claude/chrome-multi` only.
+
+### "tse is not defined": two causes
+
+**`window.tse` only existed in Twitch's page itself** — the console's "top"
+context, MAIN world. But a page with the room open holds many other
+documents: one `player.twitch.tv` iframe per tile, one or two chats, the
+embedded panel (an extension page), and the extension's isolated world. A
+right-click → **Inspect** on a tile, a chat or the panel puts the console in
+that document, where `tse` does not exist: exactly the error received. The
+other explanation — `window.tse` never set — is ruled out by the report
+itself: a failure to set it is logged in the error journal, and the journal
+was empty, the room working otherwise.
+
+**And the example was copied as is.** `'<chaîne>'` was my example, not a
+channel name; even in the right context, the command would have answered
+"unknown tile". The instructions were poorly designed.
+
+### The console everywhere
+
+| where the console is | what `tse.salle` does there |
+| --- | --- |
+| the page ("top") | as before |
+| a **tile** (`player.twitch.tv`) | relays the command to the room through `postMessage`; it runs **on that tile** if the command names none, and the answer shows in the tile's console |
+| a room **chat** | it is the page's `tse`: same origin |
+| the embedded **panel** | relays through the path of its other requests; the page only serves `essais`, `vitesse`, `pause`, `ecoute`, `rapport` there |
+
+The extension's isolated world ("Cowlor's Sidebar" in the contexts menu) is
+not covered: "Inspect" does not lead there.
+
+**Safeguards.** The room only accepts a relayed command from its own tiles
+(the message's source is compared with their windows); commands stay bounded
+(speed 0.5–1.5, pause 0.2–10 s); the panel cannot ask for anything else — a
+command outside the list answers "unknown command".
+
+**No name needed any more.**
+
+```
+tse.salle.vitesse(0.95)             // the tile typed from, otherwise the first muted one
+tse.salle.vitesse('channel', 0.95)  // by name
+tse.salle.vitesse(2, 0.95)          // by number, its key's
+```
+
+An unknown name lists the tiles, numbers included.
+
+### The protocol in one command
+
+```
+tse.salle.essais()        // about 3 min 30
+tse.salle.essais(false)   // stop it
+```
+
+It runs on the muted tile (or the one typed from), the other serving as
+**reference** — it says what latency does by itself meanwhile:
+
+| time | step |
+| --- | --- |
+| 0 s | start |
+| 30 s | S3: speed 0.95 |
+| 90 s | back to 1 |
+| 120 s | S4: 3 s pause |
+| 150 s | S9: listening, one minute |
+| 210 s | end |
+
+At each step, both tiles' latency is taken: the median of the last four
+seconds, because the player only updates it every two seconds (below). The
+report carries a `protocole` block: `S3ralenti` (expected +3.00 s, measured,
+reference), `S3retour` (does latency keep its delay?), `S4pause` (right
+after), `S4tenue` (thirty seconds after), `S9` (the listening pairs). Stopped,
+or the room closed, it sets speed back to 1 and turns listening off if it
+turned it on.
+
+**Listening needs a gesture in the page**: after the redirect, Chrome counts
+the click on the node — the sound tile did get its sound in the report. If a
+tile says `suspended`, one click on the room's title is enough.
+
+### What the series showed (S2)
+
+Two co-streamers in Shared Chat, 352 s of room, 300 readings per tile:
+
+| | sound tile | muted tile |
+| --- | --- | --- |
+| latency (min · med · max) | 1.822 · 1.963 · 2.099 | 2.085 · 2.24 · 2.383 |
+| buffer (min · med · max) | 1.332 · 1.432 · 1.512 | 1.652 · 1.743 · 1.787 |
+| latency − buffer (medians) | ≈ 0.53 | ≈ 0.50 |
+| speed (video, player) | 1 · 1 | 1 · 1 |
+
+1. **The player only updates its latency every two seconds.** Over each
+   tile's last sixty values, all thirty pairs are pairs: each value holds for
+   two readings. That is the length of a segment at Twitch.
+2. **Each update goes up or down by 0.13 s**, alternately (0.132 and 0.131 on
+   average): a single value carries ±0.07 s of noise.
+3. **Smoothed over four seconds, latency is a sawtooth.** It falls slowly —
+   −3.0 and −3.1 ms/s —, then jumps back up by 0.13 s: at 32 s for one, at 2 s
+   and 36 s for the other — an observed interval of 34 s, where 0.13 s at
+   −3 ms/s would suggest about forty. And this at speed 1 throughout, on the
+   video as on the player.
+4. **A hypothesis, not a measurement.** The low-latency player would catch up
+   slightly faster than real time until its buffer gets too thin, then give
+   way by one notch. The API does have a `setLiveSpeedUpRate`, and that
+   catch-up would not go through the readable speed. 0.133 s is also eight
+   frames at 60 fps: the coincidence is noted, not interpreted.
+5. **The gap between tiles**: a median of 0.287 s over the 300 rounds, but
+   dips to 0.01 when the two tiles' alternations cross. Smoothed over four
+   seconds: 0.28 to 0.31, with dips to 0.14–0.16 during the few seconds when
+   one tile has made its notch and not the other. **An engine will have to
+   compare four-second means, and reckon with ±0.07 s of jitter specific to
+   each player**, unless it tames the player's regulation.
+6. **This time, the gap came from the buffer.** The upstream parts are equal
+   (≈ 0.53 and 0.50); the buffers differ by 0.31 s. In the first report, it
+   was the opposite: 0.35 s of upstream gap, 0.19 s of buffer. There is no
+   rule: both vary.
+7. **The late tile was the muted one**: the sound tile would have had to slow
+   down, gently. But the study said "never brought forward": that was too
+   strict. A tile can move forward **within its own buffer** — here 1.74 s —,
+   as long as it keeps a margin: never past the live edge, but not only
+   backwards. To be measured: does the player rebuild its buffer?
+8. **Simultaneous readings, not simultaneous estimates.** A round's answers
+   arrive 0–1 ms apart, but each latency may be two seconds old. At −3 ms/s,
+   that is under 10 ms: negligible next to the alternation.
+9. **The "latency jumps 0 → 0" at opening were false**: before playing, the
+   player returns 0. A zero latency now counts as "not measured yet". Two
+   real moves remain at opening (+0.50 then −0.51 s in just over a second, on
+   the sound tile): probably the quality change — a hypothesis.
+
+**What the player offers: 89 functions**, and every lever looked for is
+there. Several were not expected: `setLiveSpeedUpRate` (the catch-up itself,
+probably), `setLiveMaxLatency`, `setInitialBufferDuration`, `getSyncTime`,
+`getBufferedRanges`, `getSinkBufferedRanges`. The first two might keep the
+player from undoing an alignment; nothing is tried on them, only noted.
+
+### What the report carries in addition
+
+Per tile, under `serie`:
+
+- `amont`: latency − buffer, reading by reading;
+- `majS`: the seconds between two latency updates;
+- `penteMsS`: its slope over the last minute;
+- `tampons`: the last sixty buffers, like latencies;
+- `sync` and `position`: `getSyncTime` and `getPosition`, read as is, with
+  their slope per second, which will tell their nature.
+
+And `instant.ecart4s`: the gap smoothed over four seconds.
+
+### What the bench measures
+
+**The fake player** of scenarios 178 and 179 now imitates what the report
+showed: a latency of 0 before playing; "charlie" holds its latency two
+seconds and drifts by −3 ms/s; `getSyncTime` and `getPosition`.
+
+**179, new:**
+
+- a zero latency is not a measurement, and the new readings are right: a 2 s
+  cadence and a −3 ms/s slope on "charlie", upstream, both clocks' slopes;
+- in a tile's console, `tse.salle` relays, on that tile — even the sound
+  one —, and the answer comes back to be shown;
+- in a chat's console, `tse` is the page's;
+- the panel relays the probe's commands, and only them;
+- without a name, the muted tile; by number; the copied example lists the
+  tiles;
+- the protocol, ten times faster: S3, S4, listening on then off, expected
+  against measured, speed set back;
+- stopped, it sets speed back; the room closed, it stops with it.
+
+**124** checks the "panel" half of the relay: `tse.salle` exists in the
+panel's document and sends the `salle` request from there.
+
+| mutants | what breaks |
+| --- | --- |
+| console: no relay in tiles, the calling tile ignored, nothing in chats, nothing in the panel (4) | "tse is not defined" back, or the command landing on another tile |
+| the page, panel side: the action missing; a command outside the list served (2) | a panel with no path; a door open to something other than the probe |
+| the designated tile: the name required, the number ignored, the error without the tile list (3) | the first real trial's error, as is |
+| readings: 0 counted as a measurement; cadence, slope, upstream, sync clock, buffers, smoothed gap wrong (7) | "0 → 0" jumps; figures that no longer tell the sawtooth |
+| the protocol: back to 1 forgotten, reference missing, listening left on, the stop leaving the tile slowed, timers outliving the room, the expected value wrong, two protocols at once (7) | a tile left slowed; a measurement with nothing to compare to; a closed room still acting |
+
+Twenty-three mutants, twenty-three caught, on the first run.
+
+### For the next report
+
+1. Open the room from the node, on two co-streamers who talk to each other.
+2. F12: any context of the room now works.
+3. Type `tse.salle.essais()`, then leave the room alone for 3 min 30 (the
+   report's log says "protocole · fin").
+4. Take the report.
+
 ## The same-instant probe, and the offset measured by sound (v4.24.0.11)
 
 A probe version for the same-instant study: simultaneous readings, what
@@ -13177,7 +13368,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 178 scenarios, 1560 assertions |
+| `npm test` | the Playwright harness: 179 scenarios, 1568 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -13197,9 +13388,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1467 KB | 577 KB | 3,842 → **2** |
+| `content.js` | 1467 KB | 577 KB | 3,872 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 106 KB | 50 KB | 148 → **0** |
+| `panneau.js` | 106 KB | 50 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
 | **all five** | **1721 KB** | **733 KB** | **−57 %** |

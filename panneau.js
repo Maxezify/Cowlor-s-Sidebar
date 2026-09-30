@@ -993,6 +993,26 @@ const demander = async (charge, essai = 0, trace = []) => {
   return { ...(r || { ok: false, erreur: 'absent' }), trace };
 };
 
+/* LA CONSOLE DU PANNEAU (4.24.0.12). RAPPORT RÉEL : « tse is not defined ».
+   Un clic droit → Inspecter dans le panneau incrusté met la console dans ce
+   document-ci, où `tse` n'existait pas : il n'est posé que dans la page de
+   Twitch. Les commandes de la sonde du même instant y sont désormais relayées
+   à la page, par le chemin des autres demandes du panneau — et elles seules.
+   La réponse revient en promesse, et s'affiche aussi d'elle-même. */
+try {
+  const relayer = (commande) => async (...args) => {
+    const r = await demander({ action: 'salle', arg: { commande, args: args.slice(0, 3) } });
+    const resultat = r && r.ok ? r.data : { erreur: (r && r.erreur) || 'absent' };
+    console.info(`[tse] ${commande} →`, resultat);
+    return resultat;
+  };
+  Object.defineProperty(window, 'tse', {
+    value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
+      ['essais', 'vitesse', 'pause', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
+    writable: false, configurable: false,
+  });
+} catch { /* déjà posé */ }
+
 /* ── Rendu ───────────────────────────────────────────────────────────────── */
 const $ = (id) => document.getElementById(id);
 let courante = SECTIONS[0].id;
