@@ -17437,6 +17437,22 @@ addEventListener('message', (e) => {
      /sans objet/.test(rapport.pont) && !/bridge silent/.test(rapport.pont)
      && /, cadre\)/.test(rapport.essais), JSON.stringify(rapport));
 
+  /* LA CONSOLE DU PANNEAU (4.24.0.12). Un rapport réel : « tse is not
+     defined », la console ouverte sur le panneau. `tse.salle` y relaie
+     désormais à la page, par le même chemin que ses autres demandes — la
+     page, elle, n'y sert que les commandes de la sonde (scénario 179).
+     Mutant — rien de posé dans le panneau. */
+  const avant = await page.evaluate(() => window.__vues.length);
+  const relais = await cadre().evaluate(async () => ({
+    type: typeof window.tse?.salle?.vitesse,
+    retour: await window.tse.salle.vitesse(0.9),
+  })).catch((e) => String(e));
+  const vue = await page.evaluate((n) => window.__vues.slice(n), avant);
+  ok('dans la console du panneau, tse.salle relaie à la page par le chemin de ses demandes',
+     relais?.type === 'function' && vue.length === 1 && vue[0].action === 'salle'
+     && vue[0].arg?.commande === 'vitesse' && vue[0].arg?.args?.[0] === 0.9 && !!relais.retour,
+     JSON.stringify({ relais, vue }));
+
   await page.close();
   rmSync(hote, { force: true });
 }
@@ -26242,28 +26258,16 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   await page.close();
 }
 
-/* ═════════ LA SONDE DU MÊME INSTANT (4.24.0.11) ═══════════════════════════
-   Le premier rapport réel de la 4.24.0.10 a donné UNE latence par tuile, lue
-   à des instants différents. Cette sonde répond aux questions de l'étude :
-     — S2 : des relevés SIMULTANÉS, demandés par la salle à toutes les tuiles
-       d'un coup, et leur série ;
-     — l'API réelle du lecteur : ses fonctions, le mode faible latence ;
-     — S3, S4 : deux essais tapés à la console, une vitesse et une pause, sur
-       une tuile, notés au journal avec la latence du moment ;
-     — S9 : le décalage mesuré par le SON, quand le même son passe dans deux
-       streams.
-   LE LECTEUR FACTICE est une CLASSE, comme celui de Twitch (ses méthodes sur
-   le prototype), et sa latence obéit à ce qu'on lui fait : (1 − vitesse) par
-   seconde, une seconde par seconde en pause. SON SON est lié à l'horloge : la
-   même suite de salves (tranches de 100 ms d'amplitude pseudo-aléatoire),
-   « bravo » 350 ms après « alpha » — le décalage que l'écoute doit trouver,
-   dans deux lecteurs MUETS pour l'un, comme dans la salle. « bravo » a en
-   plus un AudioContext qui démarre suspendu, et que resume() ne relance
-   qu'au bout de 2,5 s : le blocage de la lecture automatique, tel que mesuré
-   sous Chromium — et une horloge audio qui part en retard. */
-{
-  titre('178. La sonde du même instant — relevés simultanés, essais de la console, écoute du son');
-  const lecteur = `<!doctype html><html><body style="margin:0">
+/* LE LECTEUR FACTICE DE LA SONDE DU MÊME INSTANT (178, 179). Une classe,
+   comme celui de Twitch ; sa latence suit ce qu'on lui fait. Depuis le premier
+   rapport réel (4.24.0.12), il en imite aussi trois traits :
+     — une latence de 0 tant qu'il n'a pas joué (2,5 s) ;
+     — « charlie » : une latence remise à jour toutes les DEUX secondes
+       seulement, et qui dérive de −3 ms par seconde, comme sur le vrai
+       Twitch ;
+     — getSyncTime, une horloge en ms, et getPosition, en secondes. */
+const S_LECTEUR_SONDE = () => {
+  return `<!doctype html><html><body style="margin:0">
     <video id="v" autoplay muted playsinline style="width:320px;height:180px"></video>
     <button data-a-target="player-mute-unmute-button">son</button>
     <button data-a-target="player-play-pause-button">lecture</button>
@@ -26273,14 +26277,30 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
         const ch = new URLSearchParams(location.search).get('channel');
         const v = document.getElementById('v');
         class FauxLecteur {
-          constructor() { this.L = ({ alpha: 2, bravo: 2.5 })[ch] ?? 2.2; this.t = Date.now(); this.vitesse = 1; this.arret = false; }
-          maj() { const n = Date.now(); const dt = (n - this.t) / 1000; this.L += this.arret ? dt : (1 - this.vitesse) * dt; this.t = n; }
+          constructor() { this.L = ({ alpha: 2, bravo: 2.5 })[ch] ?? 2.2; this.t = Date.now(); this.t0 = this.t; this.vitesse = 1; this.arret = false; }
+          maj() {
+            const n = Date.now(); const dt = (n - this.t) / 1000;
+            this.L += (this.arret ? dt : (1 - this.vitesse) * dt) - (ch === 'charlie' ? 0.003 * dt : 0);
+            this.t = n;
+          }
           getQualities() { return [{ name: '480p30', height: 480, framerate: 30 }, { name: '720p60', height: 720, framerate: 60 }]; }
           getQuality() { return this.q || null; }
           setQuality(q) { this.q = q; }
           isAutoQualityMode() { return !this.q; }
           setAutoQualityMode() {}
-          getLiveLatency() { this.maj(); return this.L; }
+          getLiveLatency() {
+            this.maj();
+            if (Date.now() - this.t0 < 2500) return 0;
+            // « charlie » : la valeur tenue deux secondes, comme le vrai lecteur.
+            if (ch === 'charlie') {
+              const tranche = Math.floor(Date.now() / 2000);
+              if (tranche !== this.tranche) { this.tranche = tranche; this.tenue = this.L; }
+              return this.tenue;
+            }
+            return this.L;
+          }
+          getSyncTime() { return Date.now(); }
+          getPosition() { return (Date.now() - this.t0) / 1000; }
           getBufferDuration() { return 1.8; }
           isLiveLowLatency() { return ch === 'alpha'; }
           getPlaybackRate() { return this.vitesse; }
@@ -26360,6 +26380,30 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     <script src="/adblock.test.js"></script>
     <script src="/content.test.js"></script>
   </body></html>`;
+};
+
+/* ═════════ LA SONDE DU MÊME INSTANT (4.24.0.11) ═══════════════════════════
+   Le premier rapport réel de la 4.24.0.10 a donné UNE latence par tuile, lue
+   à des instants différents. Cette sonde répond aux questions de l'étude :
+     — S2 : des relevés SIMULTANÉS, demandés par la salle à toutes les tuiles
+       d'un coup, et leur série ;
+     — l'API réelle du lecteur : ses fonctions, le mode faible latence ;
+     — S3, S4 : deux essais tapés à la console, une vitesse et une pause, sur
+       une tuile, notés au journal avec la latence du moment ;
+     — S9 : le décalage mesuré par le SON, quand le même son passe dans deux
+       streams.
+   LE LECTEUR FACTICE est une CLASSE, comme celui de Twitch (ses méthodes sur
+   le prototype), et sa latence obéit à ce qu'on lui fait : (1 − vitesse) par
+   seconde, une seconde par seconde en pause. SON SON est lié à l'horloge : la
+   même suite de salves (tranches de 100 ms d'amplitude pseudo-aléatoire),
+   « bravo » 350 ms après « alpha » — le décalage que l'écoute doit trouver,
+   dans deux lecteurs MUETS pour l'un, comme dans la salle. « bravo » a en
+   plus un AudioContext qui démarre suspendu, et que resume() ne relance
+   qu'au bout de 2,5 s : le blocage de la lecture automatique, tel que mesuré
+   sous Chromium — et une horloge audio qui part en retard. */
+{
+  titre('178. La sonde du même instant — relevés simultanés, essais de la console, écoute du son');
+  const lecteur = S_LECTEUR_SONDE();
   // La largeur de Twitch pour la barre, comme au 177 : sans elle, la barre
   // du faux page.html prend la place de la seconde tuile.
   const page = await freshTwitch(lecteur, [], '/directory', () => {
@@ -26396,6 +26440,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      r1.tuiles.alpha?.serie?.n >= 6 && r1.tuiles.alpha.serie.latence === '2 · 2 · 2'
      && r1.tuiles.bravo?.serie?.tampon === '1.8 · 1.8 · 1.8'
      && r1.tuiles.alpha.faibleLatence === true && r1.tuiles.bravo.faibleLatence === false
+     && r1.tuiles.alpha.serie.tampons.split(' ').every((x) => x === '1.8') && r1.instant.ecart4s === '0.5 · 0.5 · 0.5'
      && Array.isArray(r1.lecteurApi) && ['getLiveLatency', 'setPlaybackRate', 'isLiveLowLatency', 'pause'].every((n) => r1.lecteurApi.includes(n))
      && !r1.lecteurApi.includes('constructor') && r1.lecteurApiTotal === r1.lecteurApi.length
      && /setPlaybackRate ✓/.test(r1.leviers) && /setRebufferToLive ✗/.test(r1.leviers),
@@ -26491,6 +26536,173 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      r6.ecoute?.actif === false && r6.tuiles.alpha?.ecoute === 'inactive' && r6.tuiles.bravo?.ecoute === 'inactive'
      && /décalage -?\d+ ms/.test(r6.ecoute?.paires?.['alpha~bravo'] || ''),
      JSON.stringify({ ecoute: r6.ecoute, alpha: r6.tuiles.alpha?.ecoute, bravo: r6.tuiles.bravo?.ecoute }));
+  await page.close();
+}
+
+/* ═════════ LA CONSOLE PARTOUT, ET LE PROTOCOLE EN UNE COMMANDE (4.24.0.12) ═
+   RAPPORT RÉEL : « tse is not defined ». La console était dans une iframe de
+   la salle — un clic droit → Inspecter sur une tuile, un chat, le panneau —,
+   où `tse` n'existait pas ; et l'exemple « '<chaîne>' » avait été recopié
+   tel quel. Ce scénario tient les trois relais (tuile, chat, panneau), la
+   tuile désignée sans nom ou par son numéro, les mesures que le rapport réel
+   a appris à regarder, et le protocole qui enchaîne S3, S4 et S9 en une
+   commande — joué dix fois plus vite. */
+{
+  titre('179. La console partout, et le protocole de la sonde en une commande');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const consoles = [];
+  page.on('console', async (m) => {
+    if (!m.text().startsWith('[tse]')) return;
+    const args = await Promise.all(m.args().map((a) => a.jsonValue().catch(() => null)));
+    consoles.push({ texte: m.text(), valeur: args[1] ?? null });
+  });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport());
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  const nombre = (texte, avant) => Number((new RegExp(`${avant} ([+-]\\d+\\.\\d+) s`).exec(texte || '') || [])[1]);
+  await page.evaluate(() => window.tse.salle.ouvrir('alpha', 'bravo', 'charlie'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 9, 20_000);
+  const r0 = await rapport();
+
+  /* CE QUE LE RAPPORT RÉEL A APPRIS À REGARDER. Une latence de 0 avant la
+     lecture n'est pas une mesure — le rapport y voyait des sauts « 0 → 0 ».
+     « charlie » ne remet sa latence à jour que toutes les deux secondes et
+     dérive de −3 ms/s, comme le vrai lecteur : la cadence et la pente le
+     disent. La part d'amont, et deux horloges de l'API lues à leur pente.
+     Mutants — le 0 compté comme mesure ; la cadence, la pente, l'amont. */
+  const evts0 = Object.values(r0.instant?.evenements || {});
+  const pc = r0.tuiles.charlie?.serie?.penteMsS;
+  const vitesseDe = (s) => Number((/· (-?[\d.]+)\/s$/.exec(s || '') || [])[1]);
+  ok('la latence nulle d\'avant la lecture n\'est pas une mesure ; cadence, pente, amont et horloges de l\'API au rapport',
+     !evts0.some((x) => /saut de latence 0 /.test(x)) && Number(r0.tuiles.alpha?.serie?.latence?.split(' · ')[0]) === 2
+     && r0.tuiles.charlie?.serie?.majS === 2 && pc <= -2 && pc >= -4
+     && r0.tuiles.alpha.serie.amont === '0.2 · 0.2 · 0.2' && r0.tuiles.bravo?.serie?.amont === '0.7 · 0.7 · 0.7'
+     && Math.abs(vitesseDe(r0.tuiles.alpha.serie.sync) - 1000) < 20 && Math.abs(vitesseDe(r0.tuiles.alpha.serie.position) - 1) < 0.02,
+     JSON.stringify({ evts0, alpha: r0.tuiles.alpha?.serie, charlie: r0.tuiles.charlie?.serie }));
+
+  /* LA CONSOLE D'UNE TUILE : `tse.salle` y relaie à la salle, qui exécute
+     sur CETTE tuile quand la commande n'en nomme pas — même la tuile du son —
+     et renvoie sa réponse, affichée dans la console de la tuile. Mutants —
+     pas de relais ; la tuile appelante ignorée. */
+  const depuisBravo = await cadre('bravo')?.evaluate(() => ({ type: typeof window.tse?.salle?.vitesse,
+    retour: window.tse.salle.vitesse(0.8) })).catch((e) => String(e));
+  await wait(page, 1600);
+  const r1 = await rapport();
+  const depuisAlpha = await cadre('alpha')?.evaluate(() => window.tse.salle.pause(0.5)).catch((e) => String(e));
+  await wait(page, 1600);
+  const r2 = await rapport();
+  await cadre('bravo')?.evaluate(() => window.tse.salle.vitesse(1)).catch(() => null);
+  await wait(page, 600);
+  ok('dans la console d\'une tuile, tse.salle relaie à la salle, sur cette tuile, et la réponse y revient',
+     depuisBravo?.type === 'function' && /envoyé à la salle/.test(depuisBravo.retour)
+     && /^vitesse 0\.8 · instance/.test(r1.tuiles.bravo?.essai || '') && /^pause 0\.5 · instance/.test(r2.tuiles.alpha?.essai || '')
+     && /envoyé à la salle/.test(depuisAlpha || '')
+     && consoles.some((x) => x.valeur?.envoye === 'vitesse' && x.valeur?.chaine === 'bravo' && x.valeur?.valeur === 0.8),
+     JSON.stringify({ depuisBravo, depuisAlpha, bravo: r1.tuiles.bravo?.essai, alpha: r2.tuiles.alpha?.essai, consoles }));
+
+  /* LA CONSOLE D'UN CHAT : de même origine que la page, `tse` y est le sien.
+     Mutant — rien de posé dans les chats. */
+  const chat = page.frames().find((f) => f.name() === 'tse-salle-chat' && !f.isDetached());
+  const depuisChat = chat ? await chat.evaluate(() => ({ meme: window.tse === window.top.tse,
+    ouverte: window.tse?.salle?.rapport()?.ouverte })).catch((e) => String(e)) : 'pas de chat';
+  ok('dans la console d\'un chat de la salle, tse est celui de la page', depuisChat?.meme === true && depuisChat.ouverte === true,
+     JSON.stringify(depuisChat));
+
+  /* LE PANNEAU : sa console relaie par le chemin de ses autres demandes, et
+     la page n'y sert que les commandes de la sonde. Mutants — l'action
+     absente ; une commande hors liste servie. */
+  const panneau = await page.evaluate(async () => {
+    // L'adresse du panneau, que bridge.js donne dans la vraie vie.
+    window.postMessage({ tse: 'tse-url-res', url: 'chrome-extension://tse/panneau.html' }, '*');
+    await new Promise((r) => setTimeout(r, 60));
+    if (!document.getElementById('tse-incruste')) {
+      document.getElementById('tse-roue').click();
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    const f = document.querySelector('.tse-incruste-frame');
+    const w = f && f.contentWindow;
+    if (!w) return 'pas de cadre';
+    const recues = [];
+    w.addEventListener('message', (e) => { if (e.data && e.data.tse === 'tse-incruste-res') recues.push(e.data); });
+    const demander = (id, arg) => window.dispatchEvent(new MessageEvent('message',
+      { data: { tse: 'tse-incruste-req', id, action: 'salle', arg }, source: w }));
+    demander(41, { commande: 'vitesse', args: [0.9] });
+    demander(42, { commande: 'fermer', args: [] });
+    await new Promise((r) => setTimeout(r, 300));
+    return recues.map((x) => ({ id: x.id, ok: x.ok, data: x.data }));
+  });
+  const p41 = Array.isArray(panneau) ? panneau.find((x) => x.id === 41) : null;
+  const p42 = Array.isArray(panneau) ? panneau.find((x) => x.id === 42) : null;
+  ok('le panneau relaie les commandes de la sonde, et seulement elles',
+     p41?.ok === true && p41.data?.envoye === 'vitesse' && p41.data?.chaine === 'bravo' && p41.data?.valeur === 0.9
+     && p42?.ok === true && /commande inconnue/.test(p42.data?.erreur || '') && (await rapport()).ouverte === true,
+     JSON.stringify(panneau));
+
+  /* SANS NOM, PAR NUMÉRO, ET L'EXEMPLE RECOPIÉ : la tuile muette par défaut,
+     la tuile de la touche 3, et une erreur qui liste les tuiles. Mutants —
+     le nom exigé ; l'erreur muette sur les tuiles. */
+  const top = await page.evaluate(() => ({
+    sansNom: window.tse.salle.vitesse(1),
+    exemple: window.tse.salle.vitesse('<chaîne>', 0.95),
+    numero: window.tse.salle.pause(3, 0.4),
+    vide: window.tse.salle.vitesse(),
+  }));
+  ok('sans nom, la tuile muette ; par numéro, celle de la touche ; un nom inconnu fait lister les tuiles',
+     top.sansNom?.chaine === 'bravo' && top.numero?.chaine === 'charlie'
+     && /« <chaîne> »/.test(top.exemple?.erreur || '') && /1 alpha, 2 bravo, 3 charlie/.test(top.exemple?.erreur || '')
+     && /hors de 0\.5–1\.5/.test(top.vide?.erreur || ''),
+     JSON.stringify(top));
+  await wait(page, 2500);
+
+  /* LE PROTOCOLE, dix fois plus vite : S3 sur « bravo » (la tuile muette),
+     « alpha » en référence ; S4 ; l'écoute allumée puis éteinte ; les mesures
+     au rapport, attendu contre mesuré. Mutants — la vitesse jamais remise ; la
+     référence absente ; le mesuré faux ; l'écoute laissée allumée. */
+  const lance = await page.evaluate(() => window.tse.salle.essais(0.1));
+  const double = await page.evaluate(() => window.tse.salle.essais(0.1));
+  await attendre(page, () => window.tse.salle.rapport().protocole?.etat === 'fini', 40_000);
+  const r3 = await rapport();
+  const pr = r3.protocole || {};
+  const evts3 = Object.values(r3.instant?.evenements || {});
+  const s3 = await page.evaluate(() => window.tse.salle.series().tuiles.bravo.slice(-1)[0]);
+  ok('le protocole en une commande : S3, S4 et l\'écoute enchaînés, et leurs mesures au rapport',
+     /^lancé/.test(lance?.protocole || '') && lance.cible === 'bravo' && lance.reference === 'alpha' && lance.duree === '21 s'
+     && /déjà en cours/.test(double?.erreur || '') && pr.etat === 'fini'
+     && Math.abs(nombre(pr.S3ralenti, 'mesuré') - nombre(pr.S3ralenti, 'attendu')) <= 0.1 && Math.abs(nombre(pr.S3ralenti, 'attendu') - 0.3) <= 0.02
+     && Math.abs(nombre(pr.S3ralenti, 'référence')) <= 0.05 && Math.abs(nombre(pr.S3retour, 'mesuré')) <= 0.1
+     && Math.abs(nombre(pr.S4pause, 'mesuré') - 0.3) <= 0.12 && Math.abs(nombre(pr.S4tenue, 'mesuré') - 0.3) <= 0.12
+     && ['ralenti', 'retour', 'pause', 'ecoute', 'fin'].every((e) => evts3.some((x) => x.includes(`bravo · protocole · ${e}`)))
+     && evts3.some((x) => /écoute allumée/.test(x)) && evts3.some((x) => /écoute éteinte/.test(x))
+     && r3.ecoute?.actif === false && s3?.vl === 1,
+     JSON.stringify({ lance, double, pr, s3, evts3: evts3.slice(-10) }));
+
+  /* ARRÊTÉ en pleine étape, il remet la vitesse ; la salle fermée, il
+     s'arrête avec elle. Mutants — l'arrêt qui laisse la tuile ralentie ; les
+     minuteurs qui survivent à la salle. */
+  await page.evaluate(() => window.tse.salle.essais(0.1));
+  await wait(page, 5000);
+  const arret = await page.evaluate(() => window.tse.salle.essais(false));
+  await wait(page, 2200);
+  const l1 = (await page.evaluate(() => window.tse.salle.series().tuiles.bravo.slice(-1)[0])).l;
+  await wait(page, 2000);
+  const l2 = (await page.evaluate(() => window.tse.salle.series().tuiles.bravo.slice(-1)[0])).l;
+  const r4 = await rapport();
+  await page.evaluate(() => window.tse.salle.essais(0.1));
+  await wait(page, 1000);
+  await page.evaluate(() => window.tse.salle.fermer());
+  await wait(page, 3000);
+  const r5 = await rapport();
+  ok('arrêté, le protocole remet la vitesse à 1 ; la salle fermée, il s\'arrête avec elle',
+     /^arrêté/.test(arret?.protocole || '') && r4.protocole?.etat === 'arrêté' && Math.abs(l2 - l1) < 0.01
+     && r5.ouverte === false && r5.protocole?.etat === 'arrêté : salle fermée',
+     JSON.stringify({ arret, etat4: r4.protocole?.etat, l1, l2, etat5: r5.protocole?.etat }));
   await page.close();
 }
 

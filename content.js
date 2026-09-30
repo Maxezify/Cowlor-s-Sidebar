@@ -445,6 +445,10 @@ const TSE_SALLE_ETAT_MSG = 'tse:salle-etat';
 const TSE_SALLE_ORDRE_MSG = 'tse:salle-ordre';
 // La réponse d'un lecteur à un relevé demandé par la salle (4.24.0.11).
 const TSE_SALLE_RELEVE_MSG = 'tse:salle-releve';
+// Une commande tapée dans la console d'une tuile, relayée à la salle, et sa
+// réponse (4.24.0.12).
+const TSE_SALLE_CONSOLE_MSG = 'tse:salle-console';
+const TSE_SALLE_CONSOLE_REPONSE = 'tse:salle-console-reponse';
 const TSE_SALLE_CHAT_NAME = 'tse-salle-chat';
 /* Les repères d'une pub, RELEVÉS sur le vrai Twitch par la troisième sonde
    (4.24.0.5) : ils paraissent ensemble au début d'une pub et partent
@@ -931,6 +935,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       tampon: f('getBufferDuration') ? lireNombre(() => lecteur.getBufferDuration()) : null,
       vitesse: v ? v.playbackRate : null,
       vitesseLecteur: f('getPlaybackRate') ? lireNombre(() => lecteur.getPlaybackRate()) : null,
+      /* Deux fonctions que le premier rapport a révélées dans l'API
+         (4.24.0.12), lues telles quelles : getSyncTime — une horloge du
+         flux ? — et getPosition. Leur nature se lira à leur pente. */
+      sync: f('getSyncTime') ? lireNombre(() => lecteur.getSyncTime()) : null,
+      position: f('getPosition') ? lireNombre(() => lecteur.getPosition()) : null,
       lecture: !!v && !v.paused,
       faibleLatence: f('isLiveLowLatency') ? (() => { try { return !!lecteur.isLiveLowLatency(); } catch { return null; } })() : null,
       essai,
@@ -942,6 +951,36 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       try { window.parent.postMessage(r, o); } catch { /* origine refusée */ }
     }
   };
+
+  /* ── LA CONSOLE DANS UNE TUILE (4.24.0.12) ──────────────────────────────
+     RAPPORT RÉEL : « tse is not defined ». `window.tse` n'existe que dans la
+     page elle-même ; or un clic droit → Inspecter sur une tuile met la
+     console dans le cadre du lecteur, où il n'y avait rien. Désormais, dans
+     une tuile de la salle, `tse.salle` relaie la commande à la salle, qui
+     l'exécute — sur CETTE tuile quand la commande n'en nomme pas — et renvoie
+     sa réponse, affichée ici. Les arguments ne passent que s'ils sont
+     simples ; la salle ne reçoit que de ses propres tuiles (cf. surMessage),
+     et ses commandes restent bornées. */
+  if (role === 'salle') {
+    let numeroConsole = 0;
+    const simple = (x) => (x === null || x === undefined || ['number', 'string', 'boolean'].includes(typeof x) ? x : String(x));
+    const relayer = (commande) => (...args) => {
+      const n = ++numeroConsole;
+      for (const o of cibles) {
+        try {
+          window.parent.postMessage({ tse: TSE_SALLE_CONSOLE_MSG, n, commande, args: args.slice(0, 3).map(simple) }, o);
+        } catch { /* origine refusée */ }
+      }
+      return `[tse] ${commande} → envoyé à la salle / sent to the room`;
+    };
+    try {
+      Object.defineProperty(window, 'tse', {
+        value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
+          ['essais', 'vitesse', 'pause', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
+        writable: false, configurable: false,
+      });
+    } catch { /* déjà posé */ }
+  }
 
   const poster = () => {
     const e = role === 'sonde' ? etat() : etatSalle();
@@ -965,6 +1004,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (h >= 100 && h <= 4320 && h !== hauteurVoulue) {
         hauteurVoulue = h; qualiteEssais = 0; qualiteT = 0; tenirQualite();
       }
+      return;
+    }
+    // La réponse de la salle à une commande tapée ici (4.24.0.12).
+    if (d && d.tse === TSE_SALLE_CONSOLE_REPONSE && role === 'salle') {
+      console.info(`[tse] ${d.commande} →`, d.resultat);
       return;
     }
     /* LA SONDE DU MÊME INSTANT (4.24.0.11) : le relevé, sur-le-champ ; et
@@ -1013,6 +1057,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   // Toutes les secondes pour la salle : c'est elle qui affiche la pub, et une
   // étiquette en retard de deux secondes se voit.
   setInterval(poster, role === 'sonde' ? 2000 : 1000);
+})();
+
+/* LA CONSOLE DANS UN CHAT DE LA SALLE OU DE LA SONDE (4.24.0.12). Le chat
+   intégré est une page de www.twitch.tv, de même origine que celle qui porte
+   la salle : `tse` y est tout simplement celui de la page. Seulement dans
+   NOS cadres de chat, et seulement de même origine — sinon, rien. */
+(() => {
+  'use strict';
+  try {
+    if (window.top === window) return;
+    if (window.name !== TSE_SALLE_CHAT_NAME && window.name !== TSE_SONDE_CHAT_NAME) return;
+    const haut = window.top;
+    if (haut.location.origin !== location.origin) return;
+    Object.defineProperty(window, 'tse', { get: () => haut.tse, configurable: false });
+  } catch { /* autre origine, ou déjà posé : rien */ }
 })();
 
 (() => {
@@ -14181,8 +14240,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
     const surReleve = (c, t, d) => {
       if (!Number.isFinite(d.n)) return;
-      const ech = { n: d.n, t: fini(d.t), l: fini(d.latence), b: fini(d.tampon), v: fini(d.vitesse),
-                    vl: fini(d.vitesseLecteur), lecture: d.lecture === true };
+      /* UNE LATENCE DE 0, C'EST « PAS ENCORE MESURÉE » (4.24.0.12) : le
+         lecteur la rend avant d'avoir joué, et le premier rapport réel y a vu
+         des sauts « 0 → 0 ». Une vraie latence de direct n'est jamais nulle. */
+      const lat = fini(d.latence);
+      const ech = { n: d.n, t: fini(d.t), l: lat !== null && lat > 0 ? lat : null, b: fini(d.tampon), v: fini(d.vitesse),
+                    vl: fini(d.vitesseLecteur), lecture: d.lecture === true, sy: fini(d.sync), po: fini(d.position) };
       const prec = t.serie[t.serie.length - 1];
       t.serie.push(ech);
       if (t.serie.length > CFG.SALLE_SERIE_N) t.serie.shift();
@@ -14340,12 +14403,23 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     const surMessage = (e) => {
       const c = courante;
-      if (!c || !e.data || (e.data.tse !== TSE_SALLE_ETAT_MSG && e.data.tse !== TSE_SALLE_RELEVE_MSG)) return;
+      if (!c || !e.data || ![TSE_SALLE_ETAT_MSG, TSE_SALLE_RELEVE_MSG, TSE_SALLE_CONSOLE_MSG].includes(e.data.tse)) return;
       // `source` ancre le message à UNE de nos tuiles : la seule vérification
       // qui compte, comme pour l'aperçu et la sonde.
       const t = c.tuiles.find((x) => x.cadre.contentWindow === e.source);
       if (!t) return;
       if (e.data.tse === TSE_SALLE_RELEVE_MSG) { surReleve(c, t, e.data); return; }
+      /* Une commande tapée dans la console de CETTE tuile (4.24.0.12) : elle
+         s'exécute ici, sur elle par défaut, et la réponse lui revient. */
+      if (e.data.tse === TSE_SALLE_CONSOLE_MSG) {
+        const args = Array.isArray(e.data.args) ? e.data.args.slice(0, 3) : [];
+        const resultat = commande(String(e.data.commande || ''), args, t);
+        try {
+          t.cadre.contentWindow.postMessage({ tse: TSE_SALLE_CONSOLE_REPONSE, n: e.data.n,
+            commande: e.data.commande, resultat }, 'https://player.twitch.tv');
+        } catch { /* tuile retirée entre-temps */ }
+        return;
+      }
       const et = e.data.etat || {};
       t.messages += 1;
       if (t.etat && et.qualite && t.etat.qualite && et.qualite !== t.etat.qualite) {
@@ -14419,6 +14493,33 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
     };
 
+    // La pente, par les moindres carrés, de points [heure ms, valeur] : en
+    // unités par seconde.
+    const penteParS = (pts) => {
+      const p = pts.filter(([x, y]) => x !== null && y !== null);
+      if (p.length < 3) return null;
+      const mx = p.reduce((a, [x]) => a + x, 0) / p.length, my = p.reduce((a, [, y]) => a + y, 0) / p.length;
+      let num = 0, den = 0;
+      for (const [x, y] of p) { num += (x - mx) * (y - my); den += (x - mx) ** 2; }
+      return den ? (num / den) * 1000 : null;
+    };
+    const pente = (pts) => { const x = penteParS(pts); return x === null ? null : Math.round(x * 10000) / 10; };
+    const suite = (pts) => {
+      const p = pts.filter(([, y]) => y !== null);
+      if (!p.length) return null;
+      const x = penteParS(p);
+      return `${p[p.length - 1][1]} · ${x === null ? '—' : `${Math.round(x * 1000) / 1000}/s`}`;
+    };
+    // Les secondes entre deux changements de la latence : la médiane.
+    const cadence = (s) => {
+      const changes = [];
+      for (let i = 1; i < s.length; i++) {
+        if (s[i].l !== null && s[i - 1].l !== null && s[i].l !== s[i - 1].l && s[i].t !== null) changes.push(s[i].t);
+      }
+      const ecarts = changes.slice(1).map((x, i) => (x - changes[i]) / 1000);
+      const m = mediane(ecarts);
+      return m === null ? null : Math.round(m * 10) / 10;
+    };
     // min · médiane · max, sur les valeurs connues.
     const trois = (l) => {
       const v = l.filter((x) => x !== null);
@@ -14436,8 +14537,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         vitesse: vs.length ? `${Math.min(...vs)} · ${Math.max(...vs)}` : null,
         vitesseLecteur: vls.length ? `${Math.min(...vls)} · ${Math.max(...vls)}` : null,
         sauts: t.sauts,
-        // Les soixante dernières latences, une par seconde, telles quelles.
+        /* Ce que le premier rapport réel a appris à regarder (4.24.0.12) :
+           la part d'AMONT — latence moins tampon, l'âge de la vidéo à son
+           arrivée —, la CADENCE à laquelle le lecteur remet sa latence à jour
+           (les valeurs y venaient par paires : toutes les deux secondes), et
+           sa PENTE sur la dernière minute, en ms par seconde. */
+        amont: trois(s.map((x) => (x.l !== null && x.b !== null ? x.l - x.b : null))),
+        majS: cadence(s),
+        penteMsS: pente(s.slice(-60).map((x) => [x.t, x.l])),
+        // getSyncTime et getPosition : la dernière valeur, et sa pente par seconde.
+        sync: suite(s.map((x) => [x.t, x.sy])),
+        position: suite(s.map((x) => [x.t, x.po])),
+        // Les soixante dernières latences, une par seconde, telles quelles ;
+        // et les tampons, de même (4.24.0.12) : la dent de scie s'y lit.
         valeurs: s.slice(-60).map((x) => (x.l === null ? '—' : x.l)).join(' '),
+        tampons: s.slice(-60).map((x) => (x.b === null ? '—' : x.b)).join(' '),
       };
     };
     const bilanInstant = (c) => {
@@ -14449,6 +14563,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         simultaneiteMs: simult.length ? `${mediane(simult)} · ${Math.max(...simult)}` : null,
         ecart: e.length ? `${trois(e.map((x) => x.e))} · ${e[e.length - 1].e}` : null,
         ecartSerie: e.slice(-60).map((x) => x.e).join(' ') || null,
+        /* L'écart LISSÉ sur quatre tours (4.24.0.12) : le lecteur ne remet sa
+           latence à jour que toutes les deux secondes, en alternance de
+           ±0,13 s — deux mises à jour, c'est une alternance entière. */
+        ecart4s: e.length >= 4 ? trois(e.slice(3).map((x, i) => (e[i].e + e[i + 1].e + e[i + 2].e + x.e) / 4)) : null,
         evenementsTotal: c.evenementsTotal,
         evenements: Object.fromEntries(c.evenements.map((v, i) => [String(i + 1).padStart(2, '0'),
           `+${(v.t / 1000).toFixed(1)} s · ${v.chaine || 'salle'} · ${v.texte}${v.latence !== null ? ` · latence ${v.latence}` : ''}`])),
@@ -14524,6 +14642,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         ...bilanApi(c),
         // L'ÉCOUTE (S9) : le décalage mesuré par le son, paire par paire.
         ecoute: bilanEcoute(c),
+        // LE PROTOCOLE (4.24.0.12) : ses étapes, et ses mesures.
+        protocole: bilanProtocole(c),
         chatPartage: c.partage,
         chatsCompares: c.comparaison ? `${c.comparaison.messages} messages · ${c.comparaison.communs} communs` : null,
         chatMasque: !d.chat,
@@ -14571,6 +14691,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const fermer = (raison = 'api') => {
       const c = courante;
       if (!c) return { fermee: false };
+      // Le protocole s'arrête avec la salle, et remet ce qu'il a changé.
+      arreterProtocole(c, 'arrêté : salle fermée');
       derniere = { ...bilan(), ouverte: false, fermeture: raison };
       clearInterval(c.minuteur);
       window.removeEventListener('message', surMessage);
@@ -14797,6 +14919,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         // La sonde du même instant (4.24.0.11).
         releveN: 0, ecarts: [], evenements: [], evenementsTotal: 0,
         ecoute: { actif: false, depuis: null, calculs: 0, paires: {} },
+        protocole: null,
       };
       window.addEventListener('message', surMessage);
       window.addEventListener('resize', surRedim);
@@ -14829,28 +14952,46 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        tuile — S3 : le lecteur laisse-t-il une tuile ralentie prendre du
        retard ? S4 : après une pause, la latence a-t-elle pris la durée de la
        pause ? —, l'écoute (S9), et les séries entières pour qui veut les
-       copier. Bornés ici ET dans le pont. */
-    const tuileNommee = (chaine) => {
+       copier. Bornés ici ET dans le pont.
+
+       QUELLE TUILE (4.24.0.12). Le rapport réel l'a montré : un exemple
+       recopié tel quel — « '<chaîne>' » — ne désigne rien. Désormais :
+         vitesse(0.95)             la tuile d'où l'on tape, sinon la première
+                                   tuile muette ;
+         vitesse('chaine', 0.95)   par son nom ;
+         vitesse(2, 0.95)          par son numéro, celui de sa touche ;
+       et une tuile inconnue fait lister les tuiles, numéros compris. */
+    const designer = (brut, appelante) => {
       const c = courante;
       if (!c) return { erreur: 'aucune salle ouverte / no open room' };
-      const t = c.tuiles.find((x) => x.chaine === String(chaine || '').trim().toLowerCase());
-      return t ? { t } : { erreur: 'tuile inconnue / unknown tile' };
+      const args = [...brut];
+      while (args.length && args[args.length - 1] === undefined) args.pop();
+      const aide = `tuiles / tiles : ${c.tuiles.map((t, i) => `${i + 1} ${t.chaine}`).join(', ')}`;
+      if (args.length < 2) {
+        const t = appelante || c.tuiles.find((x) => x.chaine !== c.son) || null;
+        return t ? { t, valeur: args[0] } : { erreur: `aucune tuile muette / no muted tile — ${aide}` };
+      }
+      const [qui, valeur] = args;
+      const nom = String(qui).trim().toLowerCase();
+      const t = c.tuiles.find((x) => x.chaine === nom)
+        || (/^[1-9]$/.test(nom) ? c.tuiles[Number(nom) - 1] || null : null);
+      return t ? { t, valeur } : { erreur: `tuile inconnue « ${qui} » / unknown tile — ${aide}` };
     };
-    const vitesse = (chaine, valeur) => {
-      const x = Number(valeur);
+    const vitesseSur = (args, appelante = null) => {
+      const d = designer(args, appelante);
+      if (d.erreur) return { erreur: d.erreur };
+      const x = Number(d.valeur);
       if (!(x >= 0.5 && x <= 1.5)) return { erreur: 'vitesse hors de 0.5–1.5 / speed outside 0.5–1.5' };
-      const { t, erreur } = tuileNommee(chaine);
-      if (erreur) return { erreur };
-      envoyer(t, 'essai-vitesse', { valeur: x });
-      return { envoye: 'vitesse', chaine: t.chaine, valeur: x };
+      envoyer(d.t, 'essai-vitesse', { valeur: x });
+      return { envoye: 'vitesse', chaine: d.t.chaine, valeur: x };
     };
-    const pause = (chaine, secondes) => {
-      const x = Number(secondes);
+    const pauseSur = (args, appelante = null) => {
+      const d = designer(args, appelante);
+      if (d.erreur) return { erreur: d.erreur };
+      const x = Number(d.valeur);
       if (!(x >= 0.2 && x <= 10)) return { erreur: 'pause hors de 0.2–10 s / pause outside 0.2–10 s' };
-      const { t, erreur } = tuileNommee(chaine);
-      if (erreur) return { erreur };
-      envoyer(t, 'essai-pause', { duree: x });
-      return { envoye: 'pause', chaine: t.chaine, secondes: x };
+      envoyer(d.t, 'essai-pause', { duree: x });
+      return { envoye: 'pause', chaine: d.t.chaine, secondes: x };
     };
     const ecoute = (actif = true) => {
       const c = courante;
@@ -14874,9 +15015,143 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       };
     };
 
+    /* ── LE PROTOCOLE EN UNE COMMANDE (4.24.0.12) : tse.salle.essais() ────────
+       Cinq commandes à taper au bon moment, c'étaient cinq occasions de se
+       tromper, et le premier essai réel n'est pas allé plus loin que la
+       première. Une seule commande les enchaîne désormais, sur la tuile muette
+       (ou celle d'où l'on tape) ; l'autre tuile sert de RÉFÉRENCE — elle dit
+       ce que la latence fait d'elle-même pendant ce temps :
+         0 s      début ;
+         30 s     S3 : vitesse 0,95 ;
+         90 s     retour à 1 ;
+         120 s    S4 : pause de 3 s ;
+         150 s    S9 : l'écoute, une minute ;
+         210 s    fin — le rapport porte les mesures (bloc « protocole »).
+       À chaque étape, la latence des deux tuiles est prise : la médiane des
+       quatre dernières secondes, parce que le lecteur ne la remet à jour que
+       toutes les deux secondes, en dents de scie (rapport réel). essais(false)
+       l'arrête et remet tout en place ; fermer la salle aussi. essais(0.1)
+       joue le même protocole dix fois plus vite — c'est pour le banc. */
+    const PROTOCOLE = [[0, 'debut'], [30, 'ralenti'], [90, 'retour'], [120, 'pause'], [150, 'ecoute'], [210, 'fin']];
+    const latenceRecente = (t, echelle) => {
+      const s = t.serie;
+      if (!s.length) return null;
+      const dernier = s[s.length - 1].t;
+      const fenetre = Math.max(1_000, 4_000 * echelle);
+      return mediane(s.filter((x) => x.l !== null && x.t !== null && dernier - x.t <= fenetre).map((x) => x.l));
+    };
+    const arreterProtocole = (c, raison) => {
+      const p = c.protocole;
+      if (!p || p.etat !== 'en cours') return;
+      for (const m of p.minuteurs) clearTimeout(m);
+      p.minuteurs = [];
+      p.etat = raison;
+      // Tout remis en place : la vitesse, et l'écoute s'il l'a allumée.
+      const t = c.tuiles.find((x) => x.chaine === p.cible);
+      if (t && p.etape === 'ralenti') envoyer(t, 'essai-vitesse', { valeur: 1 });
+      if (p.ecouteAllumee && c.ecoute.actif) ecoute(false);
+      noter(c, p.cible, `protocole ${raison}`);
+    };
+    const essais = (arg, appelante = null) => {
+      const c = courante;
+      if (!c) return { erreur: 'aucune salle ouverte / no open room' };
+      const enCours = c.protocole && c.protocole.etat === 'en cours';
+      if (arg === false) {
+        if (!enCours) return { protocole: 'aucun en cours / none running' };
+        arreterProtocole(c, 'arrêté');
+        return { protocole: 'arrêté / stopped' };
+      }
+      if (enCours) return { erreur: 'un protocole est déjà en cours — essais(false) l\'arrête / already running' };
+      const e = arg === undefined || arg === null || arg === true ? 1 : Number(arg);
+      if (!(e >= 0.05 && e <= 1)) return { erreur: 'échelle hors de 0.05–1 / scale outside 0.05–1' };
+      const cible = appelante || c.tuiles.find((x) => x.chaine !== c.son) || null;
+      if (!cible) return { erreur: 'aucune tuile muette / no muted tile' };
+      const reference = c.tuiles.find((x) => x !== cible) || null;
+      const p = {
+        etat: 'en cours', etape: null, echelle: e, cible: cible.chaine,
+        reference: reference ? reference.chaine : null, marques: {}, minuteurs: [],
+        ecouteAllumee: false, pauseS: Math.round(Math.max(0.2, 3 * e) * 100) / 100, s9: null,
+      };
+      c.protocole = p;
+      const tuile = (nom) => c.tuiles.find((x) => x.chaine === nom) || null;
+      const marquer = (nom) => {
+        const tc = tuile(p.cible), tr = tuile(p.reference);
+        p.marques[nom] = { t: Date.now(), cible: tc ? latenceRecente(tc, e) : null,
+                           ref: tr ? latenceRecente(tr, e) : null };
+      };
+      const plus = (ms, fn) => {
+        p.minuteurs.push(setTimeout(() => {
+          if (courante !== c || c.protocole !== p || p.etat !== 'en cours') return;
+          if (!tuile(p.cible)) { arreterProtocole(c, 'arrêté : tuile retirée'); return; }
+          fn(tuile(p.cible));
+        }, ms));
+      };
+      const actions = {
+        debut: () => {},
+        ralenti: (tc) => envoyer(tc, 'essai-vitesse', { valeur: 0.95 }),
+        retour: (tc) => envoyer(tc, 'essai-vitesse', { valeur: 1 }),
+        pause: (tc) => {
+          envoyer(tc, 'essai-pause', { duree: p.pauseS });
+          // La latence juste après : deux relevés au moins après la reprise.
+          plus((p.pauseS + Math.max(2, 5 * e)) * 1000, () => marquer('apres-pause'));
+        },
+        ecoute: () => { if (!c.ecoute.actif) { ecoute(true); p.ecouteAllumee = true; } },
+        fin: () => {
+          p.s9 = { ...bilanEcoute(c).paires };
+          if (p.ecouteAllumee && c.ecoute.actif) ecoute(false);
+          p.etat = 'fini';
+        },
+      };
+      for (const [s, nom] of PROTOCOLE) {
+        plus(s * 1000 * e, (tc) => {
+          marquer(nom);
+          p.etape = nom;
+          actions[nom](tc);
+          noter(c, p.cible, `protocole · ${nom}`, p.marques[nom].cible);
+        });
+      }
+      return { protocole: 'lancé / started', cible: p.cible, reference: p.reference,
+               duree: `${Math.round(210 * e)} s`, ensuite: 'le rapport, à la fin / take the report at the end' };
+    };
+    // Le rapport du protocole : l'attendu, le mesuré, et ce que la tuile de
+    // référence a fait d'elle-même pendant ce temps.
+    const bilanProtocole = (c) => {
+      const p = c.protocole;
+      if (!p) return null;
+      const m = p.marques;
+      const delta = (a, b, k) => (m[a] && m[b] && m[a][k] !== null && m[b][k] !== null ? m[b][k] - m[a][k] : null);
+      const s = (x) => (x === null ? '—' : `${x >= 0 ? '+' : ''}${x.toFixed(2)} s`);
+      const comparer = (a, b, attendu = undefined) => (m[a] && m[b]
+        ? `${attendu === undefined ? '' : `attendu ${s(attendu)} · `}mesuré ${s(delta(a, b, 'cible'))} · référence ${s(delta(a, b, 'ref'))}`
+        : null);
+      return {
+        etat: p.etat === 'en cours' ? `en cours · ${p.etape || 'debut'}` : p.etat,
+        cible: p.cible, reference: p.reference, echelle: p.echelle,
+        S3ralenti: comparer('ralenti', 'retour', m.ralenti && m.retour ? 0.05 * (m.retour.t - m.ralenti.t) / 1000 : undefined),
+        S3retour: comparer('retour', 'pause'),
+        S4pause: comparer('pause', 'apres-pause', p.pauseS),
+        S4tenue: comparer('pause', 'ecoute', p.pauseS),
+        S9: p.s9,
+      };
+    };
+    /* LE POINT D'ENTRÉE COMMUN des trois relais (4.24.0.12) : la console d'une
+       tuile, celle du panneau, et la page elle-même. `appelante` : la tuile
+       d'où la commande est venue, s'il y en a une. */
+    const commande = (nom, args = [], appelante = null) => {
+      switch (nom) {
+        case 'essais': return essais(args[0], appelante);
+        case 'vitesse': return vitesseSur(args, appelante);
+        case 'pause': return pauseSur(args, appelante);
+        case 'ecoute': return ecoute(args[0] === undefined ? true : args[0]);
+        case 'rapport': return bilan();
+        default: return { erreur: `commande inconnue / unknown command : ${nom}` };
+      }
+    };
+
     return {
       ouvrir, son, fermer: (raison = 'api') => fermer(raison), rapport: bilan,
-      vitesse, pause, ecoute, series,
+      vitesse: (...a) => vitesseSur(a), pause: (...a) => pauseSur(a), ecoute, series,
+      essais: (arg) => essais(arg), commande,
       ouvrirDepuisBarre, reprendre,
       // Pour le nœud seulement — la console n'en reçoit rien (cf. tseApi).
       membres: () => (courante ? [...courante.membres] : null),
@@ -16265,6 +16540,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const r = await subsPage.refresh(true);
         return { fait: r !== null, chaines: Array.isArray(r) ? r.length : 0 };
       },
+      /* LA CONSOLE DU PANNEAU (4.24.0.12) : `tse.salle` y relaie ici, par ce
+         même chemin, les commandes de la sonde du même instant — et elles
+         seules, par leur point d'entrée commun. */
+      salle(arg) {
+        const args = Array.isArray(arg && arg.args) ? arg.args.slice(0, 3) : [];
+        return salle.commande(String((arg && arg.commande) || ''), args);
+      },
       async globalOn()  { state.globalMode = true;  await globalChannels.warm();
                           return { actif: true }; },
       globalOff()       { state.globalMode = false; globalChannels.reset();
@@ -16296,10 +16578,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     fermer: () => salle.fermer(),
     rapport: () => salle.rapport(),
     // La sonde du même instant (4.24.0.11) — cf. le module de la salle.
-    vitesse: (chaine, valeur) => salle.vitesse(chaine, valeur),
-    pause: (chaine, secondes) => salle.pause(chaine, secondes),
+    // Sans nom de chaîne, la tuile muette (4.24.0.12).
+    vitesse: (...a) => salle.vitesse(...a),
+    pause: (...a) => salle.pause(...a),
     ecoute: (actif = true) => salle.ecoute(actif),
     series: () => salle.series(),
+    // Le protocole en une commande (4.24.0.12).
+    essais: (arg) => salle.essais(arg),
   });
 
   /* ============================================================
