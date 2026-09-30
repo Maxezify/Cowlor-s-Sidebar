@@ -443,6 +443,8 @@ const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
 const TSE_SALLE_FRAME_NAME = 'tse-salle';
 const TSE_SALLE_ETAT_MSG = 'tse:salle-etat';
 const TSE_SALLE_ORDRE_MSG = 'tse:salle-ordre';
+// La réponse d'un lecteur à un relevé demandé par la salle (4.24.0.11).
+const TSE_SALLE_RELEVE_MSG = 'tse:salle-releve';
 const TSE_SALLE_CHAT_NAME = 'tse-salle-chat';
 /* Les repères d'une pub, RELEVÉS sur le vrai Twitch par la troisième sonde
    (4.24.0.5) : ils paraissent ensemble au début d'une pub et partent
@@ -728,6 +730,219 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       ordre,
     };
   };
+
+  /* ── LA SONDE DU MÊME INSTANT (4.24.0.11) ───────────────────────────────
+     Le premier rapport réel a donné UNE valeur de latence par tuile, lue à
+     des instants différents : chaque pont envoie son état à son rythme, et
+     le rapport garde le dernier. Pour mesurer un écart entre tuiles, il faut
+     les lire ENSEMBLE — c'est la salle qui demande désormais un relevé, à
+     toutes à la fois, et chacune répond sur-le-champ, avec l'heure de sa
+     réponse : le rapport dit de combien les relevés d'un même tour se sont
+     écartés. Lecture seule, sauf deux commandes tapées à la console (S3,
+     S4) et l'écoute (S9), qui ne s'allume que sur demande. */
+  const lireNombre = (f, chiffres = 3) => {
+    try {
+      const x = f();
+      const p = 10 ** chiffres;
+      return Number.isFinite(x) ? Math.round(x * p) / p : null;
+    } catch { return null; }
+  };
+  /* L'API DU LECTEUR : les noms de ses fonctions, les siennes et celles de
+     ses prototypes — c'est là que vivent les méthodes d'une classe. Lus par
+     leurs descripteurs, sans jamais appeler un accesseur. Pour savoir quels
+     leviers existent vraiment chez Twitch, pas dans une documentation. */
+  const lireApi = (lecteur) => {
+    const noms = new Set();
+    for (let o = lecteur; o && o !== Object.prototype; o = Object.getPrototypeOf(o)) {
+      for (const k of Object.getOwnPropertyNames(o)) {
+        if (k === 'constructor') continue;
+        const d = Object.getOwnPropertyDescriptor(o, k);
+        if (d && typeof d.value === 'function') noms.add(k);
+      }
+    }
+    return [...noms].sort();
+  };
+  /* LES DEUX COMMANDES DE LA CONSOLE (S3, S4) : poser une vitesse, faire une
+     pause de quelques secondes. Par l'instance quand elle le permet — c'est
+     le chemin qu'un moteur prendrait —, par l'élément vidéo sinon. Le pont
+     garde le dernier essai ; la salle le note avec la latence du moment. */
+  let essai = null;
+  let numeroEssai = 0;
+  const poserVitesse = (r) => {
+    const lecteur = lecteurTwitch();
+    const v = document.querySelector('video');
+    let voie = null;
+    if (lecteur && typeof lecteur.setPlaybackRate === 'function') {
+      try { lecteur.setPlaybackRate(r); voie = 'instance'; } catch { /* voie suivante */ }
+    }
+    if (!voie && v) { v.playbackRate = r; voie = 'video'; }
+    essai = { n: ++numeroEssai, type: 'vitesse', valeur: r, voie: voie || 'sans-video', t: Date.now(), fin: null };
+  };
+  const fairePause = (s) => {
+    const lecteur = lecteurTwitch();
+    const v = document.querySelector('video');
+    let voie = null;
+    if (lecteur && typeof lecteur.pause === 'function' && typeof lecteur.play === 'function') {
+      try { lecteur.pause(); voie = 'instance'; } catch { /* voie suivante */ }
+    }
+    if (!voie && v) { v.pause(); voie = 'video'; }
+    const e = { n: ++numeroEssai, type: 'pause', valeur: s, voie: voie || 'sans-video', t: Date.now(), fin: null };
+    essai = e;
+    if (!voie) return;
+    setTimeout(() => {
+      if (voie === 'instance') { try { lecteur.play(); } catch { /* ignore */ } }
+      else v.play().catch(() => {});
+      e.fin = Date.now();
+    }, s * 1000);
+  };
+
+  /* ── L'ÉCOUTE (S9) : LE DÉCALAGE RÉEL, MESURÉ PAR LE SON ──────────────────
+     Deux co-streamers qui se parlent diffusent chacun la voix de l'autre :
+     le même son passe dans les deux streams. Le décalage entre deux tuiles se
+     mesure alors là où l'œil le voit, part du diffuseur comprise — ce que la
+     latence du lecteur ne voit pas.
+
+     MESURÉ SOUS CHROMIUM AVANT D'ÊTRE ÉCRIT (cf. README) :
+       — `captureStream()` rend le son d'un élément MUET ou à volume nul, tel
+         quel ; `createMediaElementSource`, lui, rend du silence pour un
+         élément muet, et détourne la sortie du lecteur. D'où la capture ;
+       — un AudioContext d'iframe démarre suspendu, et `resume()` n'aboutit
+         qu'après un geste dans la page parente, délégué par l'attribut
+         `allow="autoplay"` que portent les tuiles. D'où le `resume()` redit
+         à chaque relevé tant qu'il est suspendu.
+
+     CE QUI EN SORT : l'ENVELOPPE du son — le niveau moyen de chaque bloc de
+     1024 échantillons (~21 ms), rien d'autre. Chaque bloc est daté par
+     l'horloge audio (`playbackTime`, continue et exacte au sein d'une tuile),
+     ramenée à l'heure commune par le plus petit écart observé entre l'heure
+     du rappel et celle du bloc sur les dix à vingt dernières secondes : un
+     rappel ne peut qu'être en retard, jamais en avance, et le plus petit
+     retard est la meilleure ancre. Ni le son ni l'enveloppe ne quittent la
+     page ; le rapport ne porte que le décalage calculé.
+
+     JAMAIS `mozCaptureStream` : sous Firefox, il coupe le son de l'élément. */
+  const ecoute = (() => {
+    const B = 1024;
+    let actif = false, ac = null, proc = null, nul = null, source = null, flux = null, video = null;
+    let etat = 'inactive', reliaisons = 0, sr = null;
+    let ancreCour = Infinity, ancrePrec = Infinity, ancreT = 0;
+    let lot = [];
+    // Blocs et blocs silencieux, par seconde, sur les dix dernières.
+    let secondes = [], blocs = 0, muets = 0;
+    const detacher = () => {
+      try { if (source) source.disconnect(); } catch { /* ignore */ }
+      source = null;
+      if (flux) for (const p of flux.getTracks()) { try { p.stop(); } catch { /* ignore */ } }
+      flux = null; video = null;
+    };
+    const relier = () => {
+      const v = document.querySelector('video');
+      if (!v) { etat = 'sans-video'; return; }
+      if (typeof v.captureStream !== 'function') { etat = 'indisponible'; return; }
+      const piste = flux && flux.getAudioTracks()[0];
+      if (v === video && source && piste && piste.readyState === 'live') return;
+      // Élément remplacé, piste finie, ou pas encore de son : on recapture.
+      detacher();
+      try { flux = v.captureStream(); } catch (e) { etat = `erreur:${(e && e.name) || 'capture'}`; return; }
+      video = v;
+      if (!flux.getAudioTracks().length) { etat = 'sans-piste'; return; }
+      try {
+        source = ac.createMediaStreamSource(flux);
+        source.connect(proc);
+        reliaisons += 1;
+      } catch (e) { etat = `erreur:${(e && e.name) || 'source'}`; source = null; }
+    };
+    const surBloc = (e) => {
+      const mur = Date.now();
+      const tCtx = e.playbackTime * 1000;
+      if (mur - ancreT > 10_000) { ancrePrec = ancreCour; ancreCour = Infinity; ancreT = mur; }
+      ancreCour = Math.min(ancreCour, mur - tCtx);
+      const ancre = Math.min(ancreCour, ancrePrec);
+      const x = e.inputBuffer.getChannelData(0);
+      let s = 0;
+      for (let i = 0; i < x.length; i++) s += x[i] * x[i];
+      // log10 de la puissance moyenne : -8 est le plancher, -7 ≈ -70 dBFS.
+      const niveau = Math.log10(s / x.length + 1e-8);
+      blocs += 1;
+      if (niveau < -7) muets += 1;
+      lot.push([Math.round(tCtx - (B / sr) * 1000 + ancre), Math.round(niveau * 1000) / 1000]);
+      // Borné : si la salle ne relève plus (onglet gelé), on garde le plus récent.
+      if (lot.length > 600) lot.splice(0, lot.length - 600);
+    };
+    const demarrer = () => {
+      actif = true;
+      const AC = window.AudioContext;
+      if (!AC) { etat = 'indisponible'; return; }
+      try {
+        ac = new AC();
+        sr = ac.sampleRate;
+        proc = ac.createScriptProcessor(B, 1, 1);
+        nul = ac.createGain();
+        nul.gain.value = 0;
+        proc.connect(nul);
+        nul.connect(ac.destination);
+        proc.onaudioprocess = surBloc;
+      } catch (e) { etat = `erreur:${(e && e.name) || 'contexte'}`; ac = null; return; }
+      relier();
+    };
+    const arreter = () => {
+      actif = false;
+      detacher();
+      try { if (proc) { proc.onaudioprocess = null; proc.disconnect(); } } catch { /* ignore */ }
+      try { if (nul) nul.disconnect(); } catch { /* ignore */ }
+      try { if (ac) ac.close(); } catch { /* ignore */ }
+      ac = null; proc = null; nul = null; lot = []; secondes = []; blocs = 0; muets = 0;
+      ancreCour = Infinity; ancrePrec = Infinity; ancreT = 0;
+      etat = 'inactive';
+    };
+    // À chaque relevé : suivre le souhait de la salle, relancer un contexte
+    // suspendu, relier de nouveau si l'élément ou sa piste ont changé.
+    const tenir = (voulu) => {
+      if (voulu && !actif) demarrer();
+      else if (!voulu && actif) arreter();
+      if (!actif || !ac) return;
+      if (ac.state === 'suspended') ac.resume().catch(() => {});
+      relier();
+      if (source) etat = ac.state;
+      secondes.push([blocs, muets]);
+      if (secondes.length > 10) secondes.shift();
+      blocs = 0; muets = 0;
+    };
+    const bilan = () => {
+      if (!actif) return { etat };
+      const b = secondes.reduce((x, y) => x + y[0], 0);
+      const m = secondes.reduce((x, y) => x + y[1], 0);
+      return { etat, sr, reliaisons, blocs: b, silence: b ? Math.round((m / b) * 100) / 100 : null };
+    };
+    const prendre = () => { const l = lot; lot = []; return l; };
+    return { tenir, bilan, prendre };
+  })();
+
+  const repondreReleve = (d) => {
+    ecoute.tenir(d.ecoute === true);
+    const lecteur = lecteurTwitch();
+    const v = document.querySelector('video');
+    const f = (nom) => lecteur && typeof lecteur[nom] === 'function';
+    const r = {
+      tse: TSE_SALLE_RELEVE_MSG,
+      n: d.n,
+      t: Date.now(),
+      latence: f('getLiveLatency') ? lireNombre(() => lecteur.getLiveLatency()) : null,
+      tampon: f('getBufferDuration') ? lireNombre(() => lecteur.getBufferDuration()) : null,
+      vitesse: v ? v.playbackRate : null,
+      vitesseLecteur: f('getPlaybackRate') ? lireNombre(() => lecteur.getPlaybackRate()) : null,
+      lecture: !!v && !v.paused,
+      faibleLatence: f('isLiveLowLatency') ? (() => { try { return !!lecteur.isLiveLowLatency(); } catch { return null; } })() : null,
+      essai,
+      ecoute: ecoute.bilan(),
+      env: ecoute.prendre(),
+    };
+    if (d.api === true && lecteur) r.api = lireApi(lecteur);
+    for (const o of cibles) {
+      try { window.parent.postMessage(r, o); } catch { /* origine refusée */ }
+    }
+  };
+
   const poster = () => {
     const e = role === 'sonde' ? etat() : etatSalle();
     for (const o of cibles) {
@@ -749,6 +964,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const h = Math.round(Number(d.hauteur));
       if (h >= 100 && h <= 4320 && h !== hauteurVoulue) {
         hauteurVoulue = h; qualiteEssais = 0; qualiteT = 0; tenirQualite();
+      }
+      return;
+    }
+    /* LA SONDE DU MÊME INSTANT (4.24.0.11) : le relevé, sur-le-champ ; et
+       les deux commandes de la console, bornées ici comme dans la salle. Des
+       noms à elles : « pause » est déjà l'ordre de l'onglet caché. */
+    if (d && d.tse === MSG_ORDRE && role === 'salle' && ['releve', 'essai-vitesse', 'essai-pause'].includes(d.ordre)) {
+      if (d.ordre === 'releve' && Number.isFinite(d.n)) repondreReleve(d);
+      else if (d.ordre === 'essai-vitesse') {
+        const r = Number(d.valeur);
+        if (r >= 0.5 && r <= 1.5) poserVitesse(r);
+      } else if (d.ordre === 'essai-pause') {
+        const s = Number(d.duree);
+        if (s >= 0.2 && s <= 10) fairePause(s);
       }
       return;
     }
@@ -3167,6 +3396,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // l'arrivée dans l'onglet (sessionStorage), vingt secondes au plus.
     SALLE_PAGE:            '/directory',
     SALLE_ATTENTE_MS:      20_000,
+    // LA SONDE DU MÊME INSTANT (4.24.0.11). Cinq minutes de relevés par
+    // tuile, un par seconde ; un saut, c'est une latence qui s'écarte de plus
+    // d'une demi-seconde de ce que la vitesse et la pause laissaient attendre.
+    SALLE_SERIE_N:         300,
+    SALLE_SAUT_S:          0.5,
+    SALLE_EVENEMENTS_MAX:  60,
+    // L'ÉCOUTE (S9) : l'enveloppe du son ramenée sur une grille de 10 ms,
+    // vingt secondes comparées, des décalages cherchés jusqu'à ±6 s, et un
+    // calcul toutes les cinq secondes. Six secondes communes au moins.
+    SALLE_ECOUTE_PAS_MS:     10,
+    SALLE_ECOUTE_FENETRE_MS: 20_000,
+    SALLE_ECOUTE_MAX_MS:     6_000,
+    SALLE_ECOUTE_TOUS:       5,
+    SALLE_ECOUTE_MIN_MS:     6_000,
 
     // === Changement de catégorie en cours de stream ===
     // Durée de vie du badge « Vient de passer sur … ». C'est une NOUVELLE,
@@ -13437,6 +13680,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        tse.salle.son(0)                            le son à la tuile 0
        tse.salle.rapport()                         le bilan — aussi au rapport
        tse.salle.fermer()
+       tse.salle.vitesse('chaine', 0.95)           S3 (4.24.0.11), 0.5 à 1.5
+       tse.salle.pause('chaine', 3)                S4, 0.2 à 10 s
+       tse.salle.ecoute()  /  ecoute(false)        S9 : le décalage par le son
+       tse.salle.series()                          les relevés entiers
 
      LES RÈGLES DE TWITCH, TENUES ICI ET NULLE PART AILLEURS :
        — un lecteur intégré fait au moins 400 × 300 px : la grille n'en crée
@@ -13606,7 +13853,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return { chaine, el, cadre, prise, touche, sonEl, pubEl, etat: null, messages: 0, pubs: 0,
                pubAvant: false, dernierSon: 0, pauseCachee: false,
                sonEssais: 0, sonEnvoiT: 0, sonDepuis: 0, sonTenu: false, gestesAuDon: 0, qualiteEnvoyee: null,
-               ordreCompte: 0, dernierOrdre: null };
+               ordreCompte: 0, dernierOrdre: null,
+               // La sonde du même instant (4.24.0.11).
+               serie: [], sauts: 0, api: null, apiTotal: null, faibleLatence: null,
+               essai: null, essaiVu: 0, essaiFinVu: 0, ecouteEtat: null, env: [] };
     };
 
     /* UN CÔTÉ DE CHAT : sa colonne, son en-tête, son iframe. Le chat intégré
@@ -13889,17 +14139,221 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       c.chatD.haut.hidden = !d.chat;
     };
 
+    /* ── LA SONDE DU MÊME INSTANT (4.24.0.11) ─────────────────────────────
+       À chaque pas, la salle demande un relevé à TOUTES ses tuiles d'un coup,
+       numéroté ; chacune répond sur-le-champ (cf. le pont). L'écart d'un tour
+       se calcule sur les réponses de CE tour, et l'heure des réponses dit de
+       combien elles se sont écartées : c'est ce qui manquait au premier
+       rapport réel, dont les deux latences avaient été lues à des instants
+       différents. */
+    const fini = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null);
+    const mediane = (l) => {
+      if (!l.length) return null;
+      const s = [...l].sort((a, b) => a - b);
+      const m = Math.floor(s.length / 2);
+      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+    };
+    const r3 = (x) => (x === null ? null : Math.round(x * 1000) / 1000);
+    // Le journal : ce qui arrive aux tuiles, daté depuis l'ouverture, avec la
+    // latence du moment. Les plus récents seulement, le total à part.
+    const noter = (c, chaine, texte, latence = null) => {
+      c.evenementsTotal += 1;
+      c.evenements.push({ t: Date.now() - c.t0, chaine, texte, latence });
+      if (c.evenements.length > CFG.SALLE_EVENEMENTS_MAX) c.evenements.shift();
+    };
+    const demanderReleves = (c) => {
+      // Le tour précédent est clos : son écart, s'il a au moins deux réponses.
+      if (c.releveN) {
+        const n = c.releveN;
+        const reponses = c.tuiles.map((t) => t.serie.find((s) => s.n === n)).filter(Boolean);
+        const lats = reponses.map((s) => s.l).filter((x) => x !== null);
+        if (lats.length >= 2) {
+          const heures = reponses.map((s) => s.t).filter((x) => x !== null);
+          c.ecarts.push({ n, e: r3(Math.max(...lats) - Math.min(...lats)),
+                          s: heures.length ? Math.max(...heures) - Math.min(...heures) : null });
+          if (c.ecarts.length > CFG.SALLE_SERIE_N) c.ecarts.shift();
+        }
+      }
+      c.releveN += 1;
+      for (const t of c.tuiles) {
+        envoyer(t, 'releve', { n: c.releveN, api: !t.api, ecoute: c.ecoute.actif });
+      }
+    };
+    const surReleve = (c, t, d) => {
+      if (!Number.isFinite(d.n)) return;
+      const ech = { n: d.n, t: fini(d.t), l: fini(d.latence), b: fini(d.tampon), v: fini(d.vitesse),
+                    vl: fini(d.vitesseLecteur), lecture: d.lecture === true };
+      const prec = t.serie[t.serie.length - 1];
+      t.serie.push(ech);
+      if (t.serie.length > CFG.SALLE_SERIE_N) t.serie.shift();
+      if (Array.isArray(d.api)) {
+        t.apiTotal = d.api.length;
+        t.api = d.api.filter((x) => typeof x === 'string').slice(0, 250);
+      }
+      t.faibleLatence = typeof d.faibleLatence === 'boolean' ? d.faibleLatence : null;
+      t.ecouteEtat = d.ecoute && typeof d.ecoute === 'object' ? d.ecoute : null;
+      if (Array.isArray(d.env) && d.env.length) {
+        for (const p of d.env) {
+          if (Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1])) t.env.push(p);
+        }
+        const limite = t.env[t.env.length - 1][0] - 2 * CFG.SALLE_ECOUTE_FENETRE_MS;
+        while (t.env.length && t.env[0][0] < limite) t.env.shift();
+      }
+      const es = d.essai && typeof d.essai === 'object' ? d.essai : null;
+      if (es && Number.isFinite(es.n) && es.n !== t.essaiVu) {
+        t.essaiVu = es.n;
+        noter(c, t.chaine, `${es.type} ${es.valeur} · ${es.voie}`, ech.l);
+      }
+      if (es && es.fin && t.essaiFinVu !== es.n) {
+        t.essaiFinVu = es.n;
+        noter(c, t.chaine, `fin de ${es.type}`, ech.l);
+      }
+      t.essai = es;
+      /* UN SAUT, ce n'est pas une latence qui bouge : c'est une latence qui
+         s'écarte de ce que la seconde écoulée laissait attendre — rien à
+         vitesse 1, (1 − vitesse) par seconde sinon, une seconde par seconde
+         en pause. Une pause ou un ralenti voulus ne sont donc pas des sauts.
+         On ne juge que les secondes SANS changement : même état de lecture,
+         même vitesse, aucun essai commencé ni fini entre les deux relevés —
+         sinon on ne sait pas quelle part de la seconde a eu quel régime. La
+         vitesse est celle du lecteur quand il la donne, de la vidéo sinon. */
+      const dans = (x) => Number.isFinite(x) && x > prec.t && x <= ech.t;
+      if (prec && prec.n === ech.n - 1 && prec.l !== null && ech.l !== null && prec.t !== null && ech.t !== null
+        && prec.lecture === ech.lecture && prec.v === ech.v && prec.vl === ech.vl
+        && !(es && (dans(es.t) || dans(es.fin)))) {
+        const dt = (ech.t - prec.t) / 1000;
+        const attendu = ech.lecture ? (1 - (ech.vl ?? ech.v ?? 1)) * dt : dt;
+        if (Math.abs(ech.l - prec.l - attendu) > CFG.SALLE_SAUT_S) {
+          t.sauts += 1;
+          noter(c, t.chaine, `saut de latence ${prec.l} → ${ech.l}`, ech.l);
+        }
+      }
+      // Une vitesse changée sans commande : le lecteur rattrape-t-il par là ?
+      if (prec && prec.v !== null && ech.v !== null && prec.v !== ech.v && !(es && ech.t - es.t < 2_000)) {
+        noter(c, t.chaine, `vitesse ${prec.v} → ${ech.v} (lecteur)`, ech.l);
+      }
+    };
+
+    /* ── L'ÉCOUTE (S9), CÔTÉ SALLE : LA CORRÉLATION ──────────────────────────
+       Les enveloppes de deux tuiles, ramenées sur une même grille de 10 ms
+       par interpolation, sur les vingt dernières secondes qu'elles ont en
+       commun. On compare leurs VARIATIONS (la différence d'un pas à l'autre,
+       centrée et réduite) : ce sont les attaques — une syllabe, un bruit —
+       qui s'alignent, pas le niveau moyen. Pour chaque décalage de −6 à +6 s,
+       la corrélation des deux ; le plus haut pic donne le décalage.
+       LES NIVEAUX AUSSI, à côté : le banc ne départage pas les deux — son
+       signal réussit aux deux —, c'est le vrai son qui le dira.
+       CONVENTION : pour la paire « a~b », un décalage positif veut dire que
+       le même son passe PLUS TARD sur a que sur b — comme `latence(a) −
+       latence(b)`, que le rapport met en regard (« attendu »).
+       Deux voix qui se croisent donnent deux pics, décalés du délai de leur
+       salon vocal de part et d'autre : le second pic est au rapport aussi. */
+    const variations = (env, t0, n, enVariations = true) => {
+      const pas = CFG.SALLE_ECOUTE_PAS_MS;
+      const x = new Float64Array(n);
+      let j = 0;
+      for (let i = 0; i < n; i++) {
+        const tt = t0 + i * pas;
+        while (j < env.length - 2 && env[j + 1][0] < tt) j++;
+        const a = env[j], b = env[j + 1];
+        const f = b[0] > a[0] ? Math.min(1, Math.max(0, (tt - a[0]) / (b[0] - a[0]))) : 0;
+        x[i] = a[1] + f * (b[1] - a[1]);
+      }
+      const d = new Float64Array(n - 1);
+      let m = 0;
+      for (let i = 1; i < n; i++) { d[i - 1] = enVariations ? x[i] - x[i - 1] : x[i]; m += d[i - 1]; }
+      m /= d.length;
+      let v = 0;
+      for (let i = 0; i < d.length; i++) v += (d[i] - m) ** 2;
+      const et = Math.sqrt(v / d.length) || 1;
+      for (let i = 0; i < d.length; i++) d[i] = (d[i] - m) / et;
+      return d;
+    };
+    const correler = (ea, eb, enVariations = true) => {
+      if (ea.length < 3 || eb.length < 3) return null;
+      const A = [...ea].sort((p, q) => p[0] - q[0]);
+      const Bv = [...eb].sort((p, q) => p[0] - q[0]);
+      const pas = CFG.SALLE_ECOUTE_PAS_MS;
+      const fin = Math.min(A[A.length - 1][0], Bv[Bv.length - 1][0]);
+      const debut = Math.max(A[0][0], Bv[0][0], fin - CFG.SALLE_ECOUTE_FENETRE_MS);
+      if (fin - debut < CFG.SALLE_ECOUTE_MIN_MS) return null;
+      const n = Math.floor((fin - debut) / pas) + 1;
+      const a = variations(A, debut, n, enVariations), b = variations(Bv, debut, n, enVariations);
+      const maxL = Math.round(CFG.SALLE_ECOUTE_MAX_MS / pas);
+      const rs = [];
+      for (let L = -maxL; L <= maxL; L++) {
+        // a(t) face à b(t − L) : un pic en L > 0 dit que a est en retard.
+        let s = 0, k = 0;
+        const i0 = Math.max(0, L), i1 = Math.min(a.length, b.length + L);
+        for (let i = i0; i < i1; i++) { s += a[i] * b[i - L]; k++; }
+        rs.push(k >= a.length / 2 ? s / k : NaN);
+      }
+      const valides = rs.filter((r) => !Number.isNaN(r));
+      if (!valides.length) return null;
+      const moy = valides.reduce((x, y) => x + y, 0) / valides.length;
+      const et = Math.sqrt(valides.reduce((x, y) => x + (y - moy) ** 2, 0) / valides.length) || 1;
+      // Les pics : les maxima locaux, le plus haut, puis le plus haut à 50 ms
+      // au moins du premier.
+      const pics = [];
+      for (let i = 0; i < rs.length; i++) {
+        const r = rs[i];
+        if (Number.isNaN(r)) continue;
+        if ((i === 0 || !(rs[i - 1] > r)) && (i === rs.length - 1 || !(rs[i + 1] > r))) pics.push({ ms: (i - maxL) * pas, r });
+      }
+      pics.sort((p, q) => q.r - p.r);
+      const p1 = pics[0];
+      const p2 = pics.find((p) => Math.abs(p.ms - p1.ms) >= 50) || null;
+      return { ms: p1.ms, r: p1.r, z: (p1.r - moy) / et, ms2: p2 ? p2.ms : null, r2: p2 ? p2.r : null,
+               secondes: Math.round((fin - debut) / 100) / 10 };
+    };
+    // La latence attendue entre deux tuiles, sur les mêmes relevés : la
+    // médiane de latence(a) − latence(b), en ms, sur la fenêtre écoutée.
+    const attenduEntre = (ta, tb) => {
+      const parN = new Map(tb.serie.map((s) => [s.n, s.l]));
+      const diffs = ta.serie.slice(-Math.ceil(CFG.SALLE_ECOUTE_FENETRE_MS / 1000))
+        .filter((s) => s.l !== null && parN.get(s.n) !== null && parN.has(s.n))
+        .map((s) => s.l - parN.get(s.n));
+      const m = mediane(diffs);
+      return m === null ? null : Math.round(m * 1000);
+    };
+    const ecouter = (c) => {
+      if (!c.ecoute.actif || c.releveN % CFG.SALLE_ECOUTE_TOUS) return;
+      const ref = c.tuiles.find((t) => t.chaine === c.son) || c.tuiles[0];
+      if (!ref) return;
+      for (const t of c.tuiles) {
+        if (t === ref) continue;
+        const res = correler(ref.env, t.env);
+        const niv = res && correler(ref.env, t.env, false);
+        if (!res) continue;
+        const cle = `${ref.chaine}~${t.chaine}`;
+        const p = c.ecoute.paires[cle] || (c.ecoute.paires[cle] = { dernier: null, historique: [] });
+        p.dernier = { ...res, attendu: attenduEntre(ref, t), niveaux: niv ? { ms: niv.ms, z: niv.z } : null };
+        p.historique.push(res.ms);
+        if (p.historique.length > 12) p.historique.shift();
+        c.ecoute.calculs += 1;
+      }
+    };
+    const sonder = (c) => {
+      demanderReleves(c);
+      ecouter(c);
+    };
+
     const surMessage = (e) => {
       const c = courante;
-      if (!c || !e.data || e.data.tse !== TSE_SALLE_ETAT_MSG) return;
+      if (!c || !e.data || (e.data.tse !== TSE_SALLE_ETAT_MSG && e.data.tse !== TSE_SALLE_RELEVE_MSG)) return;
       // `source` ancre le message à UNE de nos tuiles : la seule vérification
       // qui compte, comme pour l'aperçu et la sonde.
       const t = c.tuiles.find((x) => x.cadre.contentWindow === e.source);
       if (!t) return;
+      if (e.data.tse === TSE_SALLE_RELEVE_MSG) { surReleve(c, t, e.data); return; }
       const et = e.data.etat || {};
       t.messages += 1;
+      if (t.etat && et.qualite && t.etat.qualite && et.qualite !== t.etat.qualite) {
+        noter(c, t.chaine, `qualité ${t.etat.qualite} → ${et.qualite}`, fini(et.latence));
+      }
       t.etat = et;
       if (et.pub && !t.pubAvant) t.pubs += 1;
+      if (!!et.pub !== t.pubAvant) noter(c, t.chaine, et.pub ? 'début de pub' : 'fin de pub', fini(et.latence));
       t.pubAvant = !!et.pub;
       t.pubEl.hidden = !et.pub;
       if (t.chaine === c.son) tenirSon(t, et);
@@ -13916,6 +14370,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const surVisibilite = () => {
       const c = courante;
       if (!c) return;
+      noter(c, null, document.hidden ? 'onglet caché' : 'onglet revenu');
       for (const t of c.tuiles) {
         if (document.hidden) {
           if (t.chaine === c.son || !t.etat || !t.etat.lecture) continue;
@@ -13956,11 +14411,75 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (location.pathname !== c.chemin) { fermer('navigation'); return; }
       if (zone().cle !== c.zoneCle) disposerSalle();
       comparerChats();
+      sonder(c);
       // La vidéo de la page reste en pause tant que la salle est ouverte, même
       // si son lecteur tente de repartir de lui-même.
       for (const v of c.pausees) {
         if (v.isConnected && !v.paused) { try { v.pause(); } catch { /* ignore */ } c.repauses += 1; }
       }
+    };
+
+    // min · médiane · max, sur les valeurs connues.
+    const trois = (l) => {
+      const v = l.filter((x) => x !== null);
+      return v.length ? `${r3(Math.min(...v))} · ${r3(mediane(v))} · ${r3(Math.max(...v))}` : null;
+    };
+    const bilanSerie = (t) => {
+      const s = t.serie;
+      if (!s.length) return null;
+      const vs = s.map((x) => x.v).filter((x) => x !== null);
+      const vls = s.map((x) => x.vl).filter((x) => x !== null);
+      return {
+        n: s.length,
+        latence: trois(s.map((x) => x.l)),
+        tampon: trois(s.map((x) => x.b)),
+        vitesse: vs.length ? `${Math.min(...vs)} · ${Math.max(...vs)}` : null,
+        vitesseLecteur: vls.length ? `${Math.min(...vls)} · ${Math.max(...vls)}` : null,
+        sauts: t.sauts,
+        // Les soixante dernières latences, une par seconde, telles quelles.
+        valeurs: s.slice(-60).map((x) => (x.l === null ? '—' : x.l)).join(' '),
+      };
+    };
+    const bilanInstant = (c) => {
+      const e = c.ecarts;
+      const simult = e.map((x) => x.s).filter((x) => x !== null);
+      return {
+        releves: c.releveN,
+        tours: e.length,
+        simultaneiteMs: simult.length ? `${mediane(simult)} · ${Math.max(...simult)}` : null,
+        ecart: e.length ? `${trois(e.map((x) => x.e))} · ${e[e.length - 1].e}` : null,
+        ecartSerie: e.slice(-60).map((x) => x.e).join(' ') || null,
+        evenementsTotal: c.evenementsTotal,
+        evenements: Object.fromEntries(c.evenements.map((v, i) => [String(i + 1).padStart(2, '0'),
+          `+${(v.t / 1000).toFixed(1)} s · ${v.chaine || 'salle'} · ${v.texte}${v.latence !== null ? ` · latence ${v.latence}` : ''}`])),
+      };
+    };
+    // Les leviers d'un futur moteur — présents (✓) ou non (✗) dans l'instance.
+    const LEVIERS = ['getLiveLatency', 'getBufferDuration', 'isLiveLowLatency', 'setLiveLowLatencyEnabled',
+      'getPlaybackRate', 'setPlaybackRate', 'pause', 'play', 'seekTo', 'getPosition', 'setRebufferToLive'];
+    const bilanApi = (c) => {
+      const t = c.tuiles.find((x) => x.api);
+      if (!t) return { lecteurApi: null, leviers: null };
+      return {
+        lecteurApi: t.api,
+        lecteurApiTotal: t.apiTotal,
+        leviers: LEVIERS.map((n) => `${n} ${t.api.includes(n) ? '✓' : '✗'}`).join(' · '),
+      };
+    };
+    const bilanEcoute = (c) => {
+      const e = c.ecoute;
+      if (!e.actif && !e.calculs) return { actif: false };
+      const paires = {}, historique = {};
+      for (const [cle, p] of Object.entries(e.paires)) {
+        const d = p.dernier;
+        paires[cle] = `décalage ${d.ms} ms · r ${d.r.toFixed(2)} · z ${d.z.toFixed(1)}`
+          + (d.ms2 !== null ? ` · 2e pic ${d.ms2} ms (r ${d.r2.toFixed(2)})` : '')
+          + ` · attendu ${d.attendu === null ? '—' : `${d.attendu} ms`} · ${d.secondes} s`
+          + (d.niveaux ? ` · niveaux ${d.niveaux.ms} ms (z ${d.niveaux.z.toFixed(1)})` : '');
+        historique[cle] = p.historique.join(' ');
+      }
+      return { actif: e.actif, depuisS: e.depuis ? Math.round((Date.now() - e.depuis) / 1000) : null,
+               calculs: e.calculs, paires, historique };
     };
 
     const bilan = () => {
@@ -13991,10 +14510,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         qualiteCible: hauteurCible(),
         // L'écart de latence entre la tuile la plus en avance et la plus en
         // retard, en secondes : ce que la synchronisation aurait à combler.
-        ecartLatence: (() => {
+        // Depuis la 4.24.0.11, celui du dernier tour de relevés SIMULTANÉS ;
+        // avant le premier tour, celui des derniers états reçus.
+        ecartLatence: c.ecarts.length ? Math.round(c.ecarts[c.ecarts.length - 1].e * 100) / 100 : (() => {
           const l = c.tuiles.map((t) => t.etat && t.etat.latence).filter((x) => Number.isFinite(x));
           return l.length >= 2 ? Math.round((Math.max(...l) - Math.min(...l)) * 100) / 100 : null;
         })(),
+        // LA SONDE DU MÊME INSTANT (4.24.0.11) : les tours de relevés, leur
+        // simultanéité, l'écart tour par tour, et le journal des tuiles.
+        instant: bilanInstant(c),
+        // Les fonctions de l'instance du lecteur de Twitch, lues dans la
+        // première tuile qui l'a trouvée, et les leviers qu'elles offrent.
+        ...bilanApi(c),
+        // L'ÉCOUTE (S9) : le décalage mesuré par le son, paire par paire.
+        ecoute: bilanEcoute(c),
         chatPartage: c.partage,
         chatsCompares: c.comparaison ? `${c.comparaison.messages} messages · ${c.comparaison.communs} communs` : null,
         chatMasque: !d.chat,
@@ -14020,6 +14549,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           latence: t.etat ? t.etat.latence ?? null : null,
           tampon: t.etat ? t.etat.tampon ?? null : null,
           vitesse: t.etat ? t.etat.vitesse ?? null : null,
+          // La sonde du même instant (4.24.0.11) : le mode faible latence,
+          // la série de ses relevés, le dernier essai de la console, l'écoute.
+          faibleLatence: t.faibleLatence,
+          serie: bilanSerie(t),
+          essai: t.essai ? `${t.essai.type} ${t.essai.valeur} · ${t.essai.voie}${t.essai.fin ? ' · fini' : ''}` : null,
+          ecoute: t.ecouteEtat ? [t.ecouteEtat.etat, t.ecouteEtat.sr ? `${t.ecouteEtat.sr} Hz` : null,
+            Number.isFinite(t.ecouteEtat.silence) ? `silence ${Math.round(t.ecouteEtat.silence * 100)} %` : null,
+            Number.isFinite(t.ecouteEtat.reliaisons) ? `reliée ${t.ecouteEtat.reliaisons}` : null]
+            .filter(Boolean).join(' · ') : null,
           // Les ordres « son » envoyés depuis qu'elle l'a reçu, et s'il a tenu.
           sonEssais: t.sonEssais,
           sonTenu: t.chaine === c.son ? t.sonTenu : null,
@@ -14256,6 +14794,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         chatVoulu: null, boutonChat,
         disposition: null, zoneCle: null,
         pausees, repauses: 0, pausesCachees: 0, sonsDonnes: 0, remplacements: 0, minuteur: null,
+        // La sonde du même instant (4.24.0.11).
+        releveN: 0, ecarts: [], evenements: [], evenementsTotal: 0,
+        ecoute: { actif: false, depuis: null, calculs: 0, paires: {} },
       };
       window.addEventListener('message', surMessage);
       window.addEventListener('resize', surRedim);
@@ -14284,8 +14825,58 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return { son: c.tuiles[i].chaine };
     };
 
+    /* LA SONDE DU MÊME INSTANT, À LA CONSOLE (4.24.0.11). Deux essais sur UNE
+       tuile — S3 : le lecteur laisse-t-il une tuile ralentie prendre du
+       retard ? S4 : après une pause, la latence a-t-elle pris la durée de la
+       pause ? —, l'écoute (S9), et les séries entières pour qui veut les
+       copier. Bornés ici ET dans le pont. */
+    const tuileNommee = (chaine) => {
+      const c = courante;
+      if (!c) return { erreur: 'aucune salle ouverte / no open room' };
+      const t = c.tuiles.find((x) => x.chaine === String(chaine || '').trim().toLowerCase());
+      return t ? { t } : { erreur: 'tuile inconnue / unknown tile' };
+    };
+    const vitesse = (chaine, valeur) => {
+      const x = Number(valeur);
+      if (!(x >= 0.5 && x <= 1.5)) return { erreur: 'vitesse hors de 0.5–1.5 / speed outside 0.5–1.5' };
+      const { t, erreur } = tuileNommee(chaine);
+      if (erreur) return { erreur };
+      envoyer(t, 'essai-vitesse', { valeur: x });
+      return { envoye: 'vitesse', chaine: t.chaine, valeur: x };
+    };
+    const pause = (chaine, secondes) => {
+      const x = Number(secondes);
+      if (!(x >= 0.2 && x <= 10)) return { erreur: 'pause hors de 0.2–10 s / pause outside 0.2–10 s' };
+      const { t, erreur } = tuileNommee(chaine);
+      if (erreur) return { erreur };
+      envoyer(t, 'essai-pause', { duree: x });
+      return { envoye: 'pause', chaine: t.chaine, secondes: x };
+    };
+    const ecoute = (actif = true) => {
+      const c = courante;
+      if (!c) return { erreur: 'aucune salle ouverte / no open room' };
+      // Rallumée, elle repart de zéro ; éteinte, ses derniers résultats
+      // restent au rapport — c'est pour eux qu'on l'a allumée.
+      if (actif && !c.ecoute.actif) { c.ecoute.paires = {}; c.ecoute.calculs = 0; }
+      c.ecoute.actif = !!actif;
+      c.ecoute.depuis = c.ecoute.actif ? Date.now() : null;
+      for (const t of c.tuiles) t.env = [];
+      noter(c, null, c.ecoute.actif ? 'écoute allumée' : 'écoute éteinte');
+      return { ecoute: c.ecoute.actif };
+    };
+    const series = () => {
+      const c = courante;
+      if (!c) return null;
+      return {
+        ecarts: c.ecarts.map((x) => ({ ...x })),
+        tuiles: Object.fromEntries(c.tuiles.map((t) => [t.chaine, t.serie.map((x) => ({ ...x }))])),
+        evenements: c.evenements.map((x) => ({ ...x })),
+      };
+    };
+
     return {
       ouvrir, son, fermer: (raison = 'api') => fermer(raison), rapport: bilan,
+      vitesse, pause, ecoute, series,
       ouvrirDepuisBarre, reprendre,
       // Pour le nœud seulement — la console n'en reçoit rien (cf. tseApi).
       membres: () => (courante ? [...courante.membres] : null),
@@ -15704,6 +16295,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     son: (i) => salle.son(i),
     fermer: () => salle.fermer(),
     rapport: () => salle.rapport(),
+    // La sonde du même instant (4.24.0.11) — cf. le module de la salle.
+    vitesse: (chaine, valeur) => salle.vitesse(chaine, valeur),
+    pause: (chaine, secondes) => salle.pause(chaine, secondes),
+    ecoute: (actif = true) => salle.ecoute(actif),
+    series: () => salle.series(),
   });
 
   /* ============================================================

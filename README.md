@@ -2180,6 +2180,268 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La sonde du même instant, et le décalage mesuré par le son (v4.24.0.11)
+
+Une version-sonde pour l'étude du même instant : des relevés simultanés, ce
+que le lecteur de Twitch offre vraiment, deux essais tapés à la console. Et la
+piste S9, poussée jusqu'à une mesure qui marche au banc : **le décalage réel
+entre deux tuiles, mesuré par leur son**. Publiée sur `claude/chrome-multi`
+seulement.
+
+### Ce que le premier rapport réel a dit
+
+Une salle de deux co-streamers, ouverte depuis le nœud, 83 s après
+l'ouverture :
+
+| | latence | tampon | latence − tampon |
+| --- | --- | --- | --- |
+| tuile du son | 2,53 | 2,10 | 0,43 |
+| tuile muette | 1,99 | 1,91 | 0,08 |
+| écart | **0,54** | 0,19 | 0,35 |
+
+- **L'unité est la seconde** : 2,53, pas 2530. La moitié de S1 est tranchée ;
+  reste à confronter le chiffre au « Latency To Broadcaster » de Twitch.
+- **La lecture marche** sur le vrai Twitch : l'instance est trouvée dans les
+  deux tuiles, et elle répond.
+- **Deux tampons voisins de deux secondes, deux latences qui ne se rejoignent
+  pas.** Le lecteur semble viser une durée de tampon plutôt qu'une latence
+  commune. L'essentiel de l'écart vient alors d'amont (0,35 s sur 0,54). Pour
+  s'aligner, il faudrait que le tampon de la tuile muette monte d'environ
+  0,5 s. S3 se reformule : le lecteur le tolère-t-il ?
+- **Ce que le rapport ne permettait pas de dire** : une seule valeur par
+  tuile, lue à des instants différents — chaque pont envoyait son état à son
+  rythme, et le rapport gardait le dernier. D'où cette version.
+
+### Des relevés simultanés (S2)
+
+**La salle demande, les tuiles répondent sur-le-champ.** À chaque pas (une
+seconde), la salle envoie à toutes ses tuiles d'un coup une demande
+numérotée ; chacune répond aussitôt, avec l'heure de sa réponse. L'écart d'un
+tour se calcule sur les réponses de CE tour, et le rapport dit de combien
+elles se sont écartées dans le temps.
+
+Au rapport, dans `instant` :
+
+| champ | ce qu'il dit |
+| --- | --- |
+| `releves`, `tours` | les demandes envoyées, et les tours d'au moins deux réponses |
+| `simultaneiteMs` | l'écart entre les heures des réponses d'un tour : médiane · max |
+| `ecart` | l'écart de latence, tour par tour : min · médiane · max · dernier |
+| `ecartSerie` | les soixante derniers écarts, un par seconde |
+| `evenements` | le journal des tuiles (ci-dessous) |
+
+`ecartLatence` est désormais celui du dernier tour. Et par tuile, dans
+`serie` : le nombre de relevés, la latence et le tampon (min · médiane · max),
+la vitesse de la vidéo et celle du lecteur (min · max), les sauts, et les
+soixante dernières latences telles quelles. Cinq minutes de relevés sont
+gardées ; la latence est lue au millième.
+
+`tse.salle.series()` rend, à la console, les séries entières.
+
+### Ce que le lecteur de Twitch offre vraiment
+
+`lecteurApi` donne les noms des fonctions de l'instance — les siennes, et
+celles de ses prototypes, là où vivent les méthodes d'une classe —, lus par
+leurs descripteurs, sans jamais appeler un accesseur. `leviers` en tire la
+présence (✓) ou l'absence (✗) de ceux qu'un moteur utiliserait :
+`getLiveLatency`, `getBufferDuration`, `isLiveLowLatency`,
+`setLiveLowLatencyEnabled`, `getPlaybackRate`, `setPlaybackRate`, `pause`,
+`play`, `seekTo`, `getPosition`, `setRebufferToLive`. Et chaque tuile dit si
+elle est en faible latence (`faibleLatence`).
+
+### Deux essais à la console (S3, S4)
+
+```
+tse.salle.vitesse('chaine', 0.95)   // S3 : de 0,5 à 1,5
+tse.salle.pause('chaine', 3)        // S4 : de 0,2 à 10 s
+```
+
+Par l'instance du lecteur quand elle le permet — le chemin qu'un moteur
+prendrait —, par la vidéo sinon ; `essai` dit laquelle. Les bornes sont
+tenues dans la salle ET dans le pont.
+
+**Le journal** (`instant.evenements`) date depuis l'ouverture, avec la
+latence du moment : chaque essai et la fin d'une pause ; une vitesse changée
+SANS commande (le lecteur qui rattrape) ; un changement de qualité ; le
+début et la fin d'une pub ; l'onglet caché et revenu ; et les **sauts**.
+
+**Un saut n'est pas une latence qui bouge.** C'est une latence qui s'écarte
+de plus d'une demi-seconde de ce que la seconde écoulée laissait attendre :
+rien à vitesse 1, (1 − vitesse) par seconde sinon, une seconde par seconde en
+pause. On ne juge que les secondes sans changement de régime — même état de
+lecture, même vitesse, aucun essai commencé ni fini entre les deux relevés.
+Sinon on ne sait pas quelle part de la seconde a eu quel régime. Le premier
+jet ne le faisait pas : la fin d'une pause y passait pour un saut, et le banc
+l'a pris.
+
+**Une collision, trouvée par le banc.** Les deux commandes s'appelaient
+d'abord « vitesse » et « pause » ; or « pause » est déjà l'ordre que la salle
+envoie à ses tuiles muettes quand l'onglet se cache. Le pont interceptait
+l'un pour l'autre, et le scénario 175 a vu les tuiles jouer onglet caché. Les
+deux ordres de la sonde s'appellent désormais `essai-vitesse` et
+`essai-pause`.
+
+**Pour S3**, sur une tuile muette : laisser la salle ouverte une minute, taper
+`tse.salle.vitesse('<chaîne>', 0.95)`, attendre une minute, remettre `1`,
+attendre trente secondes, puis prendre le rapport. **Pour S4** :
+`tse.salle.pause('<chaîne>', 3)`, trente secondes, le rapport. **Pour S2**,
+rien à taper : cinq minutes de salle ouverte suffisent.
+
+### S9 — le décalage mesuré par le son
+
+**L'idée.** Deux co-streamers qui se parlent diffusent chacun la voix de
+l'autre : le même son passe dans les deux streams. Comparer les deux sons
+donne le décalage là où l'œil le voit, **part des diffuseurs comprise** — ce
+que la latence du lecteur ne voit pas.
+
+**Mesuré sous Chromium avant d'être écrit.** Trois expériences, avec le
+Chromium du banc, dans une iframe `player.twitch.tv` :
+
+| capture du son d'un `<video>` | puissance moyenne relevée |
+| --- | --- |
+| `captureStream()`, élément non muet | 0,177 |
+| `captureStream()`, élément **muet** | 0,173 |
+| `captureStream()`, élément à **volume 0** | 0,177 |
+| `createMediaElementSource()`, élément muet | **0** |
+| `createMediaElementSource()`, élément non muet | 0,185 |
+
+1. **`captureStream()` rend le son d'un lecteur muet**, tel quel. Or toutes
+   les tuiles sauf une sont muettes. `createMediaElementSource()`, lui, rend
+   du silence pour un élément muet, et détourne en plus la sortie du lecteur.
+   D'où la capture.
+2. **Un AudioContext d'iframe démarre suspendu**, et `resume()` reste en
+   attente sans échouer. Il n'aboutit qu'après un vrai clic dans la page
+   **parente**, et seulement si l'iframe porte `allow="autoplay"` — ce que
+   les tuiles portent. Sans l'attribut, il reste suspendu. Au passage, un
+   `frame.evaluate` de Playwright donne lui-même un geste à l'iframe : la
+   première version de l'expérience était faussée par là, et elle a été
+   refaite sans.
+3. **La chaîne complète, sur un prototype** : deux iframes jouent la même
+   suite de salves, liée à l'horloge, l'une en retard connu sur l'autre, dans
+   un élément muet. Retards trouvés : −399 ms pour −400, +303 pour +300,
+   −1237 pour −1230, +71 pour +70, 0 pour 0. Sept millisecondes au pire,
+   corrélation de 0,80 à 1.
+
+**Comment ça marche.**
+
+- **Dans chaque tuile**, le son capturé passe dans un AudioContext, qui en
+  tire une **enveloppe** : le niveau moyen de chaque bloc de 1024
+  échantillons, soit ~21 ms à 48 kHz. Rien d'autre. Chaque bloc est daté par
+  l'horloge audio (`playbackTime`), continue et exacte au sein d'une tuile.
+  Cette heure est ramenée à l'heure commune par le plus petit écart observé
+  entre l'heure du rappel et celle du bloc, sur les dix à vingt dernières
+  secondes : un rappel peut être en retard, jamais en avance, et le plus
+  petit retard est la meilleure ancre.
+- **Dans la salle**, toutes les cinq secondes, les enveloppes de la tuile du
+  son et de chaque autre sont ramenées sur une grille de 10 ms, sur les vingt
+  dernières secondes communes. On compare leurs **variations** (centrées,
+  réduites) : ce sont les attaques — une syllabe, un bruit — qui s'alignent,
+  pas le niveau moyen. Pour chaque décalage de −6 à +6 s, leur corrélation ;
+  le plus haut pic donne le décalage, au pas de 10 ms.
+- **Les niveaux aussi, à côté.** Le banc ne départage pas les deux : son
+  signal réussit aux deux, et un mutant qui corrélait les niveaux au lieu des
+  variations a survécu. Plutôt que d'affirmer un choix que le banc ne prouve
+  pas, le rapport donne les deux ; c'est le vrai son qui dira lequel tient.
+  Au banc, les variations se détachent plus nettement du bruit (z de 14,6
+  contre 6,6 pour les niveaux, au même passage).
+- **Au rapport**, pour chaque paire `a~b` : le décalage, sa corrélation `r`,
+  son écart au bruit des autres décalages `z`, le second pic, l'**attendu**
+  — la médiane de `latence(a) − latence(b)` sur les mêmes relevés —, et le
+  décalage selon les niveaux ; avec l'historique des douze derniers
+  décalages. **Un décalage positif veut dire
+  que le même son passe plus tard sur `a`.**
+
+**Ce qu'il faut savoir pour lire un résultat.**
+
+- **Deux voix qui se croisent donnent deux pics.** La voix de A passe dans le
+  stream de A directement, et dans celui de B par leur salon vocal, avec son
+  délai `d`. Les pics tombent vers Δ − d et Δ + d : c'est pourquoi le second
+  pic est au rapport. Leur milieu estime Δ quand les deux voix parlent.
+- **Un pic à 0 ms peut venir de la machine.** Au banc, un second pic revient
+  à 0 ms alors qu'aucun son n'y est commun : un fil d'exécution bloqué
+  perturbe toutes les tuiles au même instant. Il ne dit rien des streams.
+- **Sans son commun, pas de mesure.** Un `z` faible, des décalages qui
+  changent d'un calcul à l'autre : il n'y a rien à aligner.
+
+**Choix, et limites.**
+
+- **`ScriptProcessorNode`, déprécié**, plutôt qu'un AudioWorklet. Celui-ci
+  demanderait de charger un module depuis une adresse, que ce pont n'a pas et
+  que la politique de sécurité de la page du lecteur pourrait refuser — non
+  vérifié. `ScriptProcessorNode` ne demande rien. Chrome l'avertit dans la
+  console de la tuile.
+- **Allumée à la demande**, jamais seule : `tse.salle.ecoute()`, puis
+  `tse.salle.ecoute(false)`. Éteinte, ses derniers résultats restent au
+  rapport. Chaque tuile dit son état : `running`, `suspended` (il faut un clic
+  dans la page), `sans-piste`, `indisponible`.
+- **Le coût** : un AudioContext par tuile, 43 à 47 blocs par seconde selon
+  la fréquence de l'appareil, et toutes les cinq secondes environ quatre
+  millions de multiplications par paire (deux corrélations).
+- **Rien ne quitte la page** : ni le son, ni l'enveloppe. Le rapport ne porte
+  que les décalages calculés. Aucun micro, aucune permission.
+- **Firefox n'a que `mozCaptureStream`**, préfixée, qui peut couper le son de
+  l'élément : elle n'est jamais appelée. D'où, entre autres, cette version
+  sur Chrome seulement.
+
+**Pour S9** : une salle de deux co-streamers qui se parlent (même salon
+vocal) ; un clic dans la page ; `tse.salle.ecoute()` ; une minute ; le
+rapport ; `tse.salle.ecoute(false)`.
+
+### Ce que le banc mesure
+
+Un scénario neuf, le **178**, avec un lecteur factice. C'est une classe,
+comme celui de Twitch (ses méthodes sur le prototype). Sa latence obéit à ce
+qu'on lui fait : (1 − vitesse) par seconde, une seconde par seconde en pause.
+Son son est lié à l'horloge, « bravo » 350 ms après « alpha ». « bravo » a
+en plus un AudioContext qui démarre vraiment suspendu — horloge arrêtée — et
+que `resume()` ne relance qu'au bout de 2,5 s : son horloge audio part en
+retard sur celle d'« alpha », et seule l'ancre rattrape ce retard.
+
+- des relevés simultanés : simultanéité de 0 à 2 ms au banc, l'écart juste à
+  chaque tour ;
+- la série, le mode faible latence, l'API lue jusque dans le prototype, les
+  leviers ;
+- S3 : 0,8 par l'instance, 0,2 s de latence par seconde, noté au journal,
+  sans saut ; à 1, plus rien ;
+- S4 : une pause de 1,5 s, 1,5 s de latence, la lecture reprise, pas de saut ;
+- un vrai saut, noté et compté ;
+- les bornes de la console ;
+- S9 : **−350 ms retrouvés à 30 ms près**, par les variations et par les
+  niveaux, tuile muette comprise, le contexte suspendu relancé (quatre
+  passages : −350, −340, −350, −350) ;
+- l'écoute éteinte, ses résultats gardés.
+
+La vitesse que le 178 lit est celle du lecteur (`getPlaybackRate`) : sous
+Chromium, un élément nourri d'un MediaStream, comme la vidéo factice, garde
+sa vitesse de lecture à 1. Sur le vrai Twitch, le rapport dira si la vidéo
+suit la vitesse posée par l'instance : `vitesse` et `vitesseLecteur` sont
+relevées toutes les deux.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| les relevés : l'heure des réponses jamais comparée (1) | une simultanéité inconnue |
+| l'API : les propriétés propres seulement ; le mode faible latence jamais lu (2) | un lecteur sans méthodes ; `faibleLatence` vide |
+| les essais : la vitesse posée sur la vidéo seule, la pause jamais levée, la borne de la console retirée, l'essai jamais noté (4) | `video` au lieu d'`instance`, et une latence qui ne bouge pas ; une tuile restée en pause ; une vitesse de 3 acceptée ; un journal muet |
+| les sauts : jugés même aux changements de régime ; jamais vus (2) | la fin d'une pause prise pour un saut ; le retour au direct manqué |
+| l'écoute : le signe inversé (1) | +350 au lieu de −350 |
+| l'écoute : l'heure des blocs sans ancre (1) | **2640 ms au lieu de −350, avec un z de 8** : un pic net n'est pas une preuve, si les horloges ne sont pas ramenées ensemble |
+| l'écoute : le contexte jamais relancé, ou relancé une seule fois (2) | « bravo » resté suspendu, aucune mesure |
+| l'écoute : tout compté comme silence ; jamais éteinte (2) | 100 % de silence ; des contextes qui tournent encore |
+
+Quinze mutants, quinze pris, au second tour. Au premier, deux avaient
+échappé :
+
+- **l'ancre.** Au banc, les deux AudioContext partaient au même relevé, et
+  leurs horloges coïncidaient : l'ancre n'y servait à rien. Le faux « bravo »
+  est désormais vraiment suspendu et part 2,5 s en retard, comme un contexte
+  relancé plus tard sur le vrai Twitch ;
+- **les niveaux au lieu des variations.** Le signal du banc réussit aux deux :
+  le rapport donne désormais les deux, plutôt qu'un choix que rien ne
+  prouve.
+
+Les scénarios 175 à 177 passent sans changement, et l'un d'eux a trouvé la
+collision des ordres « pause ».
+
 ## La salle : toute la hauteur aux lecteurs, la qualité à leur taille, et l'étude du même instant (v4.24.0.10)
 
 Un troisième retour de terrain sur la salle, captures à l'appui : cinq
@@ -13377,7 +13639,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 177 scénarios, 1552 assertions |
+| `npm test` | le harnais Playwright : 178 scénarios, 1560 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -13398,12 +13660,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1428 Ko | 551 Ko | 3 785 → **2** |
+| `content.js` | 1467 Ko | 577 Ko | 3 842 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 106 Ko | 50 Ko | 148 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1682 Ko** | **707 Ko** | **−58 %** |
+| **les cinq** | **1721 Ko** | **733 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

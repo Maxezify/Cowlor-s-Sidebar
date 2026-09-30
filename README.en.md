@@ -2059,6 +2059,263 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The same-instant probe, and the offset measured by sound (v4.24.0.11)
+
+A probe version for the same-instant study: simultaneous readings, what
+Twitch's player actually offers, two trials typed at the console. And lead
+S9, pushed as far as a measurement that works on the bench: **the real offset
+between two tiles, measured by their sound**. Published on
+`claude/chrome-multi` only.
+
+### What the first real report said
+
+A room of two co-streamers, opened from the node, 83 s after opening:
+
+| | latency | buffer | latency − buffer |
+| --- | --- | --- | --- |
+| sound tile | 2.53 | 2.10 | 0.43 |
+| muted tile | 1.99 | 1.91 | 0.08 |
+| gap | **0.54** | 0.19 | 0.35 |
+
+- **The unit is the second**: 2.53, not 2530. Half of S1 is settled; what
+  remains is to compare the figure with Twitch's "Latency To Broadcaster".
+- **Reading works** on real Twitch: the instance is found in both tiles, and
+  it answers.
+- **Two buffers close to two seconds, two latencies that do not meet.** The
+  player seems to aim at a buffer duration rather than a common latency. Most
+  of the gap then comes from upstream (0.35 s of 0.54). To line up, the muted
+  tile's buffer would have to grow by about 0.5 s. S3 becomes: does the
+  player tolerate it?
+- **What the report could not say**: a single value per tile, read at
+  different instants — each bridge sent its state at its own pace, and the
+  report kept the last one. Hence this version.
+
+### Simultaneous readings (S2)
+
+**The room asks, the tiles answer at once.** At every step (one second), the
+room sends a numbered request to all its tiles in one go; each answers
+immediately, with the time of its answer. A round's gap is computed on THAT
+round's answers, and the report says how far apart in time they were.
+
+In the report, under `instant`:
+
+| field | what it says |
+| --- | --- |
+| `releves`, `tours` | the requests sent, and the rounds with at least two answers |
+| `simultaneiteMs` | the spread between the answer times of a round: median · max |
+| `ecart` | the latency gap, round by round: min · median · max · last |
+| `ecartSerie` | the last sixty gaps, one per second |
+| `evenements` | the tiles' log (below) |
+
+`ecartLatence` is now the last round's. And per tile, under `serie`: the
+number of readings, latency and buffer (min · median · max), the video's
+speed and the player's (min · max), jumps, and the last sixty latencies as
+read. Five minutes of readings are kept; latency is read to the millisecond.
+
+`tse.salle.series()` returns, at the console, the full series.
+
+### What Twitch's player actually offers
+
+`lecteurApi` gives the names of the instance's functions — its own, and those
+of its prototypes, where a class's methods live —, read through their
+descriptors, never calling an accessor. `leviers` derives from it the
+presence (✓) or absence (✗) of those an engine would use: `getLiveLatency`,
+`getBufferDuration`, `isLiveLowLatency`, `setLiveLowLatencyEnabled`,
+`getPlaybackRate`, `setPlaybackRate`, `pause`, `play`, `seekTo`,
+`getPosition`, `setRebufferToLive`. And each tile says whether it is in low
+latency (`faibleLatence`).
+
+### Two trials at the console (S3, S4)
+
+```
+tse.salle.vitesse('channel', 0.95)   // S3: from 0.5 to 1.5
+tse.salle.pause('channel', 3)        // S4: from 0.2 to 10 s
+```
+
+Through the player's instance when it allows it — the path an engine would
+take —, through the video otherwise; `essai` says which. The bounds are held
+in the room AND in the bridge.
+
+**The log** (`instant.evenements`) is dated from opening, with the latency
+of the moment: each trial and the end of a pause; a speed changed WITHOUT a
+command (the player catching up); a quality change; the start and end of an
+ad; the tab hidden and back; and **jumps**.
+
+**A jump is not a latency that moves.** It is a latency that departs by more
+than half a second from what the elapsed second led to expect: nothing at
+speed 1, (1 − speed) per second otherwise, one second per second while
+paused. Only seconds without a change of regime are judged — same playback
+state, same speed, no trial started or ended between the two readings.
+Otherwise, there is no knowing which part of the second had which regime.
+The first draft did not do this: the end of a pause passed for a jump, and
+the bench caught it.
+
+**A collision, found by the bench.** The two commands were first called
+"vitesse" and "pause"; but "pause" is already the order the room sends its
+muted tiles when the tab is hidden. The bridge took one for the other, and
+scenario 175 saw the tiles play with the tab hidden. The probe's two orders
+are now called `essai-vitesse` and `essai-pause`.
+
+**For S3**, on a muted tile: leave the room open for a minute, type
+`tse.salle.vitesse('<channel>', 0.95)`, wait a minute, set `1` back, wait
+thirty seconds, then take the report. **For S4**:
+`tse.salle.pause('<channel>', 3)`, thirty seconds, the report. **For S2**,
+nothing to type: five minutes of open room are enough.
+
+### S9 — the offset measured by sound
+
+**The idea.** Two co-streamers who talk to each other each broadcast the
+other's voice: the same sound goes through both streams. Comparing the two
+sounds gives the offset where the eye sees it, **broadcasters' part
+included** — which the player's latency does not see.
+
+**Measured under Chromium before being written.** Three experiments, with
+the bench's Chromium, in a `player.twitch.tv` iframe:
+
+| capturing a `<video>`'s sound | mean power read |
+| --- | --- |
+| `captureStream()`, element not muted | 0.177 |
+| `captureStream()`, element **muted** | 0.173 |
+| `captureStream()`, element at **volume 0** | 0.177 |
+| `createMediaElementSource()`, element muted | **0** |
+| `createMediaElementSource()`, element not muted | 0.185 |
+
+1. **`captureStream()` returns a muted player's sound**, as is. All tiles
+   but one are muted. `createMediaElementSource()`, on the other hand,
+   returns silence for a muted element, and diverts the player's output on top
+   of that. Hence the capture.
+2. **An iframe's AudioContext starts suspended**, and `resume()` stays
+   pending without failing. It only goes through after a real click in the
+   **parent** page, and only if the iframe carries `allow="autoplay"` — which
+   the tiles do. Without the attribute, it stays suspended. Along the way,
+   Playwright's `frame.evaluate` gives the iframe a gesture by itself: the
+   first version of the experiment was skewed by it, and it was redone
+   without.
+3. **The full chain, on a prototype**: two iframes play the same sequence of
+   bursts, tied to the clock, one with a known delay on the other, in a muted
+   element. Delays found: −399 ms for −400, +303 for +300, −1237 for −1230,
+   +71 for +70, 0 for 0. Seven milliseconds at worst, correlation from 0.80
+   to 1.
+
+**How it works.**
+
+- **In each tile**, the captured sound goes into an AudioContext, which
+  derives its **envelope** from it: the mean level of each block of 1024
+  samples, ~21 ms at 48 kHz. Nothing else. Each block is dated by the audio
+  clock (`playbackTime`), continuous and exact within a tile. That time is
+  brought back to the common time by the smallest gap observed between the
+  callback's time and the block's, over the last ten to twenty seconds: a
+  callback can be late, never early, and the smallest delay is the best
+  anchor.
+- **In the room**, every five seconds, the envelopes of the sound tile and of
+  each other one are brought onto a 10 ms grid, over the last twenty common
+  seconds. Their **variations** (centred, scaled) are compared: it is the
+  onsets — a syllable, a noise — that line up, not the mean level. For each
+  offset from −6 to +6 s, their correlation; the highest peak gives the
+  offset, to the 10 ms step.
+- **The levels too, alongside.** The bench does not tell the two apart: its
+  signal passes both, and a mutant that correlated levels instead of
+  variations survived. Rather than assert a choice the bench does not prove,
+  the report gives both; the real sound will say which holds. On the bench,
+  variations stand out more clearly from the noise (z of 14.6 against 6.6 for
+  levels, in the same run).
+- **In the report**, for each pair `a~b`: the offset, its correlation `r`,
+  its distance from the noise of the other offsets `z`, the second peak, the
+  **expected** value — the median of `latency(a) − latency(b)` over the same
+  readings —, and the offset according to levels; with the history of the
+  last twelve offsets. **A positive
+  offset means the same sound plays later on `a`.**
+
+**What to know to read a result.**
+
+- **Two voices crossing give two peaks.** A's voice goes into A's stream
+  directly, and into B's through their voice channel, with its delay `d`. The
+  peaks fall around Δ − d and Δ + d: that is why the second peak is in the
+  report. Their midpoint estimates Δ when both voices speak.
+- **A peak at 0 ms can come from the machine.** On the bench, a second peak
+  keeps coming back at 0 ms while no sound is common there: a blocked thread
+  disturbs all tiles at the same instant. It says nothing about the streams.
+- **Without a common sound, no measurement.** A low `z`, offsets that change
+  from one computation to the next: there is nothing to align.
+
+**Choices, and limits.**
+
+- **`ScriptProcessorNode`, deprecated**, rather than an AudioWorklet. The
+  latter would need a module loaded from an address, which this bridge does
+  not have and which the player page's security policy might refuse — not
+  verified. `ScriptProcessorNode` needs nothing. Chrome warns about it in the
+  tile's console.
+- **Turned on on demand**, never by itself: `tse.salle.ecoute()`, then
+  `tse.salle.ecoute(false)`. Turned off, its last results stay in the report.
+  Each tile states its status: `running`, `suspended` (a click in the page is
+  needed), `sans-piste`, `indisponible`.
+- **The cost**: one AudioContext per tile, 43 to 47 blocks per second
+  depending on the device's rate, and every five seconds about four million
+  multiplications per pair (two correlations).
+- **Nothing leaves the page**: neither the sound nor the envelope. The
+  report only carries the computed offsets. No microphone, no permission.
+- **Firefox only has `mozCaptureStream`**, prefixed, which can mute the
+  element: it is never called. Hence, among other reasons, this version on
+  Chrome only.
+
+**For S9**: a room of two co-streamers who talk to each other (same voice
+channel); one click in the page; `tse.salle.ecoute()`; one minute; the
+report; `tse.salle.ecoute(false)`.
+
+### What the bench measures
+
+A new scenario, **178**, with a fake player. It is a class, like Twitch's
+(its methods on the prototype). Its latency obeys what is done to it:
+(1 − speed) per second, one second per second while paused. Its sound is
+tied to the clock, "bravo" 350 ms after "alpha". "bravo" also has an
+AudioContext that starts truly suspended — clock stopped — and that
+`resume()` only restarts after 2.5 s: its audio clock starts late on
+"alpha"'s, and only the anchor makes up for it.
+
+- simultaneous readings: 0 to 2 ms of spread on the bench, the right gap at
+  every round;
+- the series, low-latency mode, the API read down into the prototype, the
+  levers;
+- S3: 0.8 through the instance, 0.2 s of latency per second, logged, no
+  jump; at 1, nothing more;
+- S4: a 1.5 s pause, 1.5 s of latency, playback resumed, no jump;
+- a real jump, logged and counted;
+- the console's bounds;
+- S9: **−350 ms found to within 30 ms**, through variations and through
+  levels, muted tile included, the suspended context resumed (four runs:
+  −350, −340, −350, −350);
+- listening turned off, its results kept.
+
+The speed scenario 178 reads is the player's (`getPlaybackRate`): under
+Chromium, an element fed by a MediaStream, like the fake video, keeps its
+playback rate at 1. On real Twitch, the report will say whether the video
+follows the speed set through the instance: `vitesse` and `vitesseLecteur`
+are both read.
+
+| mutants | what breaks |
+| --- | --- |
+| readings: the answer times never compared (1) | an unknown simultaneity |
+| API: own properties only; low-latency mode never read (2) | a player without methods; empty `faibleLatence` |
+| trials: the speed set on the video only, the pause never lifted, the console's bound removed, the trial never logged (4) | `video` instead of `instance`, and a latency that does not move; a tile left paused; a speed of 3 accepted; a silent log |
+| jumps: judged even across regime changes; never seen (2) | the end of a pause taken for a jump; the return to live missed |
+| listening: the sign reversed (1) | +350 instead of −350 |
+| listening: block times without the anchor (1) | **2640 ms instead of −350, with a z of 8**: a sharp peak is no proof if the clocks are not brought together |
+| listening: the context never resumed, or resumed only once (2) | "bravo" left suspended, no measurement |
+| listening: everything counted as silence; never turned off (2) | 100 % silence; contexts still running |
+
+Fifteen mutants, fifteen caught, on the second run. On the first, two had
+escaped:
+
+- **the anchor.** On the bench, both AudioContexts started at the same
+  reading, and their clocks matched: the anchor was useless there. The fake
+  "bravo" is now truly suspended and starts 2.5 s late, like a context
+  resumed later on real Twitch;
+- **levels instead of variations.** The bench's signal passes both: the
+  report now gives both, rather than a choice nothing proves.
+
+Scenarios 175 to 177 pass unchanged, and one of them found the "pause"
+orders collision.
+
 ## The room: the full height for the players, quality matched to their size, and the same-instant study (v4.24.0.10)
 
 A third field report on the room, with screenshots: five fixes, and a study
@@ -12920,7 +13177,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 177 scenarios, 1552 assertions |
+| `npm test` | the Playwright harness: 178 scenarios, 1560 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -12940,12 +13197,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1428 KB | 551 KB | 3,785 → **2** |
+| `content.js` | 1467 KB | 577 KB | 3,842 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 106 KB | 50 KB | 148 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1682 KB** | **707 KB** | **−58 %** |
+| **all five** | **1721 KB** | **733 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
