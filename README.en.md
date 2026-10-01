@@ -2059,6 +2059,170 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The alignment holds, measured more accurately — and by sound if needed (v4.24.0.16)
+
+The sixth real report is the first one of protocol 4: two streams sharing
+sound, the target aligned on the reference by the clock, then three minutes
+of follow-up. **The alignment holds** — but it stopped 0.19 s short of its
+goal, for two reasons that can be read to the millisecond. This version
+fixes them, and adds alignment by sound. Published on `claude/chrome-multi`
+only.
+
+### What the report establishes
+
+**1. All measurements agree on the move.** Reference~target gap, phase B
+minus phase A:
+
+| measurement | B − A |
+| --- | --- |
+| position (moves obtained) | −1302 ms |
+| clock | −1291 ms |
+| sound, component 1 (1670 → 390) | −1280 ms |
+| sound, component 2 (1080 → −200) | −1280 ms |
+| player latency | −1328 ms |
+
+**2. The alignment holds for three minutes, without drifting.** No catch-up,
+no gap, no reload. The clock, during the follow-up: 0.217 · 0.154 · 0.104 ·
+0.151 s. The sound did not move: 390 ms ±10 ms over thirty computations,
+−200 ms ±15 ms over twenty-three. **It is the clock that wanders, by
+±40 ms**, even over twenty seconds; the real offset stayed put.
+
+**3. Why 0.19 s instead of 0.** The initial gap was 1.504 s; the two passes
+obtained 1.302 s; 0.202 s remained, and the final measurement said 0.190 —
+the measurements agree. It is the second pass that went wrong, twice:
+
+- its five-second **measurement** saw −0.157 s, when the position predicted
+  −0.087: 70 ms of clock error;
+- its **stall**: the skip took the rewind's (0.207 s) when its own was 0.075.
+  The six real moves say so: a rewind stalls by 0.218 · 0.099 · 0.207 s
+  (0.175 on average), a skip by 0.083 · 0.103 · 0.075 (0.087).
+
+By the position and with the right stall, it would have asked 0.17 s instead
+of 0.364, and ended near zero.
+
+**4. Two voices, symmetric.** Before the alignment, two components of the
+common sound at 1080 and 1670 ms; after, at −200 and 390 ms: **a half-gap of
+295 ms both times**. That is the signature of a voice chat — each streamer
+plays their own voice in their stream, and the other's with the chat's
+delay. Their midpoint is the real offset: 1375 ms before, **+95 ms after**.
+It sits 70 to 90 ms below the clock, before as after: even with the clocks
+aligned, the target remained 95 ms ahead. On the fifth report's pair, the
+sound had three components: no midpoint made sense there.
+
+**5. Phase A only had three readings.** The series keeps three hundred (five
+minutes); the room had lasted six, and the report, taken at the end, no
+longer found the early ones. Phase A's clock and sound did not suffer.
+
+**6. The rest.** The dated `ratechange` events: our 0.95 at 11 ms, its echo
+by the player at 30 ms (0.949999988 — its single-precision value), the
+return to 1 at 141 ms: the player enforces its speed. The reference stayed
+six minutes at 3.4 s of latency without ever catching up: the fourth
+report's 3.1 s was not a threshold. And both tiles' clocks lost about a
+hundred milliseconds together in three minutes — the PC's clock, in all
+likelihood; it cancels out in the gap.
+
+### What the alignment does now
+
+1. **The initial gap over twenty seconds of ticks**, instead of eight.
+2. **The second pass by the position**: the gap minus the move obtained,
+   which the position gives within 20 ms — no new clock measurement at that
+   point.
+3. **A stall per direction**: 0.175 s for a rewind, 0.087 for a skip; the one
+   measured on a tile is only reused in the same direction.
+4. **A verification**, twenty seconds of ticks after the last move, and **a
+   third pass** if the gap still exceeds the threshold there — three passes
+   at most.
+
+In the report, `alignement` block: `passe1` to `passe3`, each with its basis
+("par l'horloge", "par la position", "après vérification"),
+`verifications`, `apres`, and `apresAutre` — the two voices after an
+alignment by the clock. The follow-up adds the two voices' midpoint when it
+is clear.
+
+### The two voices, and alignment by sound
+
+**In the report**, `ecoute.voix`: for each pair where two voices are
+**clear** — two groups of peaks of at least three values, 100 to 1500 ms
+apart, with no third weighing more than a third of the second —, their
+midpoint, half-gap, the number of values behind each, and the midpoint's
+distance to the clock. The protocol's phases carry it too, and `S10son` the
+midpoint's move.
+
+```
+tse.salle.aligner('son')   // aims at the two voices' midpoint
+```
+
+Measurement and verification by sound, at a **0.05 s** threshold — the
+sound holds within ±15 ms, the clock within ±40; the second pass, still by
+the position. It needs listening on, and two clear voices on every pair:
+otherwise it refuses, naming the tiles. On the sixth report's pair, it would
+have delayed the target about 95 ms more than the clock. `aligner()` stays
+on the clock, which works even without common sound; so does protocol 4.
+
+**The phases are frozen at their end**: A when the alignment starts, B at
+the end of the protocol.
+
+### What the bench measures
+
+**The fake player** now stalls depending on the direction — 0.15 s for a
+rewind, 0.08 for a skip, and "alpha", which stalls far more, 0.3 and 0.25.
+
+- **179**: protocol 4 at scale 0.1, its announced duration (~34 s), the first
+  pass labelled "par l'horloge".
+- **180**: `aligner()` alone, on three tiles far apart: "charlie" aligned at
+  once; "alpha" rewound by the clock, skipped forward by the position with a
+  skip's stall (0.087), which is not enough (it stalls 0.25); the
+  verification sees it, and the third pass skips it forward with the
+  measured stall — within 30 ms of 0 afterwards, all through the follow-up.
+  The two voices in the report, for "duo" only, and on their first
+  appearance three values each; `aligner('son')` refused without them or
+  without listening; then, on "duo1" and "duo2", which the clock says are
+  aligned and the sound says are 350 ms apart: three passes by sound and
+  position, the midpoint brought under 50 ms, and the clock now showing the
+  gap the moves made.
+- **181**: protocol 4 at scale 0.6 — three passes, by the clock, by the
+  position, after verification —, the two voices of phase B (midpoint −60,
+  half-gap 210), and **the frozen phases**: listening restarted, which clears
+  the history and the clock, changes nothing in them.
+
+| mutants | what falls |
+| --- | --- |
+| the alignment: one direction's stall used for the other; a single 0.12 s stall; no pass by the position; no third pass (4) | "alpha"'s skip stalled like a rewind; its second pass waiting for the clock; "alpha" left 0.16 s from the goal, "duo1" 0.075 |
+| the two voices and `aligner('son')`: clear from one value; the midpoint taken at the lower voice; listening not required; the measurement taken by the clock; the clock's threshold (5) | two "clear" voices at 1 and 1 values; a midpoint at −560 instead of −350; a refusal that does not say listening is needed; "duo1" never moved, or left at 0.075 s |
+| the protocol: phase A, or B, never frozen; their two voices forgotten; the duration announced with the old formula (4) | phases that change when listening restarts; "~36 s" instead of ~34 |
+
+Thirteen mutants, thirteen caught — on a second look. In the first round,
+all thirteen fell; reading each failure again, three only came from fragile
+bench assertions that the mutants did not touch:
+
+- the clock alignment test required "charlie" under 0.1 s at the end. But
+  its −3 ms/s drift, read at the fake clock's 20 ms step, brings it to +0.06
+  or +0.08 s (six repetitions), one step from the threshold — and once the
+  third pass is done, there is none left. The test now states the rule: the
+  end is the last verification, "charlie" left as is at the first one, its
+  drift from one to the other bounded;
+- the sound alignment and protocol tests required the text "calage prévu
+  0.1", or "0.25", for a measured stall — which was 0.101 in one
+  repetition. They now state the rule: a pass's expected stall is the one
+  the previous pass measured, in the same direction.
+
+The "two voices clear from one value" mutant only fell through the second
+fragility: replayed, it survived. **The report now says how many values
+back each voice**, and the bench checks that on their first appearance
+there are at least three — under the mutant, "1 et 1 valeurs".
+The midpoint, rewritten for this, and the two mutants that only the sound
+test caught were replayed on the final bench: all three caught.
+
+### For the next report
+
+1. Open the room from the node, on two streams that share sound.
+2. F12, any context of the room: `tse.salle.essais()`.
+3. Leave the room alone for about 4 min 30 (the log says "protocole · fin").
+4. Take the report.
+5. Then, if the report shows two clear voices: `tse.salle.ecoute()`, one
+   minute of listening, `tse.salle.aligner('son')`, wait for "alignement ·
+   fin du suivi" (about 4 min), and take the report again.
+
 ## Two reports, a clock that holds, and the alignment (v4.24.0.15)
 
 Protocol 3 was played twice in full, on two pairs: one with no sound in
@@ -14091,7 +14255,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 181 scenarios, 1582 assertions |
+| `npm test` | the Playwright harness: 181 scenarios, 1586 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -14111,12 +14275,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1536 KB | 617 KB | 3,972 → **2** |
+| `content.js` | 1548 KB | 623 KB | 3,992 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1791 KB** | **774 KB** | **−57 %** |
+| **all five** | **1803 KB** | **780 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

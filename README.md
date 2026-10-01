@@ -2180,6 +2180,172 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'alignement tient, mesuré plus juste — et par le son s'il le faut (v4.24.0.16)
+
+Le sixième rapport réel est le premier du protocole 4 : deux streams qui
+partagent du son, la cible alignée sur la référence par l'horloge, puis
+trois minutes de suivi. **L'alignement tient** — mais il s'est arrêté à
+0,19 s de son but, pour deux raisons qu'on voit au chiffre près. Cette
+version les corrige, et ajoute l'alignement par le son. Publiée sur
+`claude/chrome-multi` seulement.
+
+### Ce que le rapport établit
+
+**1. Toutes les mesures s'accordent sur le déplacement.** Écart
+référence~cible, phase B moins phase A :
+
+| mesure | B − A |
+| --- | --- |
+| position (déplacements obtenus) | −1302 ms |
+| horloge | −1291 ms |
+| son, composante 1 (1670 → 390) | −1280 ms |
+| son, composante 2 (1080 → −200) | −1280 ms |
+| latence du lecteur | −1328 ms |
+
+**2. L'alignement tient trois minutes, sans dériver.** Aucun rattrapage,
+aucune coupure, aucun rechargement. L'horloge, pendant le suivi : 0,217 ·
+0,154 · 0,104 · 0,151 s. Le son, lui, n'a pas bougé : 390 ms ±10 ms sur
+trente calculs, −200 ms ±15 ms sur vingt-trois. **C'est l'horloge qui erre,
+de ±40 ms**, même sur vingt secondes ; le décalage réel est resté en place.
+
+**3. Pourquoi 0,19 s au lieu de 0.** L'écart initial était de 1,504 s ; les
+deux passes ont obtenu 1,302 s ; il restait 0,202 s, et la mesure finale a
+dit 0,190 — les mesures sont cohérentes. C'est la seconde passe qui s'est
+trompée, deux fois :
+
+- sa **mesure** de cinq secondes a vu −0,157 s, quand la position prévoyait
+  −0,087 : 70 ms d'erreur de l'horloge ;
+- son **calage** : l'avance a pris celui du recul (0,207 s) quand le sien
+  valait 0,075. Les six déplacements réels le disent : un recul cale de
+  0,218 · 0,099 · 0,207 s (0,175 en moyenne), une avance de 0,083 · 0,103 ·
+  0,075 (0,087).
+
+Par la position et au bon calage, elle aurait demandé 0,17 s au lieu de
+0,364, et fini près de zéro.
+
+**4. Deux voix, symétriques.** Avant l'alignement, deux composantes du son
+commun à 1080 et 1670 ms ; après, à −200 et 390 ms : **demi-écart de 295 ms
+les deux fois**. C'est la signature d'un salon vocal — chacun passe sa voix
+dans son stream, et celle de l'autre avec le délai du salon. Leur milieu est
+le décalage réel : 1375 ms avant, **+95 ms après**. Il se tient 70 à 90 ms
+sous l'horloge, avant comme après : même horloges alignées, la cible restait
+en avance de 95 ms. Sur la paire du cinquième rapport, le son avait trois
+composantes : aucun milieu n'y avait de sens.
+
+**5. La phase A n'avait que trois relevés.** La série en garde trois cents
+(cinq minutes) ; la salle en avait duré six, et le rapport, pris à la fin, ne
+trouvait plus ceux du début. L'horloge et le son de A n'en souffraient pas.
+
+**6. Le reste.** Les `ratechange` datés : notre 0,95 à 11 ms, son écho par
+le lecteur à 30 ms (0,949999988 — sa valeur en simple précision), le retour
+à 1 à 141 ms : le lecteur impose sa vitesse. La référence est restée six
+minutes à 3,4 s de latence sans jamais rattraper : le 3,1 s du quatrième
+rapport n'était pas un seuil. Et l'horloge des deux tuiles a perdu ensemble
+une centaine de millisecondes en trois minutes — l'horloge du PC, selon
+toute vraisemblance ; elle s'annule dans l'écart.
+
+### Ce que l'alignement fait désormais
+
+1. **L'écart initial sur vingt secondes de passages**, au lieu de huit.
+2. **La deuxième passe par la position** : l'écart moins le déplacement
+   obtenu, que la position donne à 20 ms près — plus de nouvelle mesure de
+   l'horloge à ce moment-là.
+3. **Un calage par sens** : 0,175 s pour un recul, 0,087 pour une avance ;
+   celui mesuré sur une tuile ne resert qu'au même sens.
+4. **Une vérification**, vingt secondes de passages après le dernier
+   déplacement, et **une troisième passe** si l'écart y dépasse encore le
+   seuil — trois passes au plus.
+
+Au rapport, bloc `alignement` : `passe1` à `passe3`, chacune avec sa base
+(« par l'horloge », « par la position », « après vérification »),
+`verifications`, `apres`, et `apresAutre` — les deux voix après un
+alignement par l'horloge. Le suivi y ajoute le milieu des deux voix quand
+il est net.
+
+### Les deux voix, et l'alignement par le son
+
+**Au rapport**, `ecoute.voix` : pour chaque paire où deux voix sont
+**nettes** — deux groupes de pics d'au moins trois valeurs, écartés de 100 à
+1500 ms, sans troisième qui pèse plus du tiers du second —, leur milieu,
+leur demi-écart, le nombre de valeurs de chacune et la distance du milieu à
+l'horloge. Les phases du protocole le portent aussi, et `S10son` le
+déplacement du milieu.
+
+```
+tse.salle.aligner('son')   // vise le milieu des deux voix
+```
+
+Mesure et vérification par le son, au seuil de **0,05 s** — le son tient à
+±15 ms, l'horloge à ±40 ; la deuxième passe, toujours par la position. Il
+lui faut l'écoute allumée, et deux voix nettes sur chaque paire : sinon il
+refuse, en nommant les tuiles. Sur la paire du sixième rapport, il aurait
+retardé la cible d'environ 95 ms de plus que l'horloge. `aligner()` reste
+par l'horloge, qui marche même sans son commun ; le protocole 4 aussi.
+
+**Les phases sont figées à leur fin** : A au début de l'alignement, B à la
+fin du protocole.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** cale désormais selon le sens — 0,15 s pour un recul,
+0,08 pour une avance, et « alpha », qui cale bien plus, 0,3 et 0,25.
+
+- **179** : le protocole 4 à l'échelle 0,1, sa durée annoncée (~34 s), la
+  première passe notée « par l'horloge ».
+- **180** : `aligner()` seul, sur trois tuiles très décalées : « charlie »
+  aligné du premier coup ; « alpha » reculé par l'horloge, avancé par la
+  position au calage d'une avance (0,087), qui ne suffit pas (il en cale
+  0,25) ; la vérification le voit, et la troisième passe l'avance au calage
+  mesuré — à 0 près de 30 ms ensuite, tout le suivi. Les deux voix au rapport,
+  pour « duo » seulement, et à leur première apparition, trois valeurs
+  chacune ; `aligner('son')` refusé sans elles ou sans écoute ; puis, sur
+  « duo1 » et « duo2 », que l'horloge dit alignées et le son dit à 350 ms :
+  trois passes par le son et la position, le milieu ramené sous 50 ms, et
+  l'horloge qui dit désormais l'écart des déplacements.
+- **181** : le protocole 4 à l'échelle 0,6 — trois passes, par l'horloge, par
+  la position, après vérification —, les deux voix de la phase B (milieu −60,
+  demi-écart 210), et **les phases figées** : l'écoute rallumée, qui efface
+  l'historique et l'horloge, n'y change rien.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'alignement : le calage d'un sens pris à l'autre ; un calage unique de 0,12 s ; pas de passe par la position ; pas de troisième passe (4) | l'avance de « alpha » calée comme un recul ; sa deuxième passe qui attend l'horloge ; « alpha » laissé à 0,16 s du but, « duo1 » à 0,075 |
+| les deux voix et `aligner('son')` : nettes dès une valeur ; le milieu pris à la voix basse ; l'écoute pas exigée ; la mesure prise à l'horloge ; le seuil de l'horloge (5) | deux voix « nettes » à 1 et 1 valeurs ; un milieu à −560 au lieu de −350 ; un refus qui ne dit pas qu'il faut l'écoute ; « duo1 » jamais déplacé, ou laissé à 0,075 s |
+| le protocole : la phase A, ou B, jamais figée ; leurs deux voix oubliées ; la durée annoncée à l'ancienne formule (4) | des phases qui changent quand l'écoute repart ; « ~36 s » au lieu de ~34 |
+
+Treize mutants, treize pris — au second regard. Au premier tour, les treize
+tombaient ; en relisant chaque chute, trois ne tenaient qu'à des assertions
+fragiles du banc, que les mutants ne touchaient pas :
+
+- le test de l'alignement par l'horloge exigeait « charlie » sous 0,1 s à la
+  fin. Or sa dérive de −3 ms/s, lue au pas de 20 ms de l'horloge factice, l'y
+  amène à +0,06 ou +0,08 s (six répétitions), à un pas du seuil — et la
+  troisième passe faite, il n'y en a plus. Le test dit désormais la règle :
+  la fin est la dernière vérification, « charlie » laissé tel quel à la
+  première, sa dérive de l'une à l'autre bornée ;
+- les tests de l'alignement par le son et du protocole exigeaient le texte
+  « calage prévu 0.1 », ou « 0.25 », d'un calage mesuré — qui valait 0,101 à
+  une répétition. Ils disent désormais la règle : le calage prévu d'une passe
+  est celui que la passe d'avant a mesuré, au même sens.
+
+Le mutant « deux voix nettes dès une valeur » ne tombait que par la seconde
+fragilité : rejoué, il survivait. **Le rapport dit désormais combien de
+valeurs portent chaque voix**, et le banc vérifie qu'à leur première
+apparition il y en a trois au moins — sous le mutant, « 1 et 1 valeurs ».
+Le milieu, réécrit pour cela, et les deux mutants que seul le test par le son
+prenait ont été rejoués sur le banc final : pris tous les trois.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux streams qui partagent du son.
+2. F12, n'importe quel contexte de la salle : `tse.salle.essais()`.
+3. Ne plus toucher à la salle pendant environ 4 min 30 (le journal dit
+   « protocole · fin »).
+4. Prendre le rapport.
+5. Puis, si le rapport montre deux voix nettes : `tse.salle.ecoute()`,
+   une minute d'écoute, `tse.salle.aligner('son')`, attendre « alignement ·
+   fin du suivi » (environ 4 min), et reprendre le rapport.
+
 ## Deux rapports, une horloge qui tient, et l'alignement (v4.24.0.15)
 
 Le protocole 3 a été joué deux fois en entier, sur deux paires : l'une sans
@@ -14577,7 +14743,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 181 scénarios, 1582 assertions |
+| `npm test` | le harnais Playwright : 181 scénarios, 1586 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -14598,12 +14764,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1536 Ko | 617 Ko | 3 972 → **2** |
+| `content.js` | 1548 Ko | 623 Ko | 3 992 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1791 Ko** | **774 Ko** | **−57 %** |
+| **les cinq** | **1803 Ko** | **780 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
