@@ -2059,6 +2059,240 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The rewind holds, the speed cannot be set, and protocol 3 tests the measurement (v4.24.0.14)
+
+The third real trial played protocol 2 in full: 322 s of room, two streams
+(chat not shared, but sound in common), 300 readings per tile, the steps on
+the muted tile, the other as reference. Two clear results, a measurement
+that holds up, and four things the probe read wrong. This version draws
+protocol 3 from it, which tests the measurement with known shifts.
+Published on `claude/chrome-multi` only.
+
+### What the report establishes
+
+**1. The speed cannot be set, not even on the video element.** The trial
+did happen — "vitesse-video 0.95 · video" in the log —, but none of the sixty
+readings of the slowdown read anything but 1: "vidéo 1–1 · lecteur 1–1".
+Latency moved by +0.13 s instead of +3.00 s, within the ±0.13 s noise. The
+player therefore sets the speed back to 1 in under a second. With the
+instance route, ruled out by the previous report, no speed lever works from
+outside.
+
+**2. The rewind within the buffer works, and it holds.**
+
+| measurement | value |
+| --- | --- |
+| rewind asked / obtained | 1.00 s / 1.104 s (position 156.256 → 155.652 in 0.5 s) |
+| latency, 5 s after | +0.92 s (reference +0.03) |
+| latency, 30 s after | +1.15 s (reference +0.01) |
+| latency, 2 min after | 3.0075 against 1.898 before, i.e. +1.11 s |
+| target's buffer | from about 1.4 s to 2.44–2.51 s |
+| reloads, slope | 0; −0.1 ms/s |
+
+The player did not catch up in 2 min 40, nor reload. And this rewind
+brought the two tiles closer: their gap went from about 1.8 s to 0.74 s.
+**That is the lever of a synchronisation engine: delay the tiles that are
+ahead.** Delaying a tile enlarges its buffer, which makes it safer.
+
+**3. `getSyncTime` follows playback: it is not a wall clock.** The slope
+lost by its values over the 300 readings, compared with what a step would
+produce (least squares: `6 h f(1 − f) / T`):
+
+| tile | event | predicted deficit | `getSyncTime` | `getPosition` |
+| --- | --- | --- | --- | --- |
+| target | 1.104 s rewind at +160 s | 5.5 ms/s | 4.9 | 6.0 |
+| reference | 2.2 s stall at +52 s | 4.0 ms/s | 3.6 | 3.0 |
+
+A wall clock would keep 1000/s. Its values, …612000 and …613000, are
+rounded to the second and put the reference 1 s behind — which matches its
+extra 0.74 s of latency. It is, in all likelihood, the time of the frame
+being played.
+
+**4. The reference received its video in bursts: four gaps, every 76 to
+80 s** (+52, +128, +206, +286 s).
+
+- During each gap, the buffer melts by exactly 1.000 s per second (3.246 →
+  2.248 → 1.248 → 0.248), then refills at once (+2.965 s): three seconds
+  with nothing arriving, playback continuing.
+- At the first one, the buffer held only about 1.1 s: playback stalled
+  (buffer at 0.049), latency went from 1.5 to 3.7 s and stayed there — which
+  both clocks' slopes confirm. The next three were absorbed by a buffer of
+  about 3.2 s.
+- During these gaps, `getLiveLatency` dives (3.7 → 1.0 or 1.6), then comes
+  back: the player seems to compute its latency from the data it has
+  received (about buffer + 0.4 s). Its value is wrong while the video is
+  late.
+- Of the ten "jumps" counted, only the one at +52 s was a real stall; the
+  others were the estimate diving. And the eleven "aberrant buffers" were in
+  fact wrong latencies: the rule blamed the buffer.
+- **For an engine: never advance a tile into its margin, realign when a
+  player raises its latency by itself, and do not trust `getLiveLatency`
+  during a gap.**
+
+**5. Sound: a stable peak at 745 ms over ten computations (z from 6.8 to
+8.7), when latency expected 686 ms (median).** Peak − expected: +50 ms
+(σ 51 ms, standard error 16 ms). **Here, the latency difference predicts the
+real offset within 50 ms.**
+
+Secondary values show up too — 1330–1360 and 1160, at the start and in the
+last two computations, z of 5.7 at most. In the previous report, the second
+value sat at expected + 620 ms; here, at expected + 650–670 ms. Three
+readings remain possible:
+
+- **two voices** through a voice chat: the true offset would then be about
+  1040 ms (voice chat delay of about 300 ms), against 775 ms the previous
+  time. But the same lead of about 370 ms, invisible to latency, would then
+  appear in two unrelated pairs, in the same direction: suspicious;
+- **the dominant peak is the true offset** (+50 ms here, +170 ms last time),
+  the other an echo or another source;
+- **a capture bias tied to the tile that has the sound**: both times, the
+  reference was the audible tile.
+
+The report cannot decide — and listening having started 30 s after the
+rewind, sound cannot be seen before and after. Hence protocol 3.
+
+**6. The rest.** The sawtooth holds (±0.138 s on the target); its slope,
+−0.1 ms/s, has nothing left of the first report's −3 ms/s. The initial gap
+between the tiles again came from the buffer.
+
+### What the probe read wrong, and now reads
+
+- **A false jump right after the rewind** (1.812 → 2.813): the rewind's
+  effect only shows at the latency's next update, up to two seconds later.
+  **No jump is judged any more within 2.5 s of a trial's start or end.**
+- **The blame for an impossible buffer**: when the buffer exceeds latency by
+  more than half a second, it now goes to whichever of the two values
+  strays furthest from its median over the last ten readings — the buffer in
+  the second report (174.42 s), the latency in the third. A negative buffer,
+  or one over 60 s, is still wrong by definition. A wrong buffer is
+  discarded (`aberrants`); a wrong latency stays in the series, but leaves
+  the upstream part and the expected value (`latencesIncoherentes`).
+- **Jumps, read from the position**: advanced as much as the time elapsed,
+  playback went on — the **estimate** moved; less, playback **stalled**;
+  more, it jumped **forward** (within 0.3 s). In the log — "saut de latence
+  3.737 → 1.6 · estimation" — and in the report, `sautsNature`.
+- **Delivery gaps**: a buffer melting at playback's pace (70 to 130 % of the
+  time elapsed) for at least two readings in a row, then refilling at once.
+  In the log — "coupure d'arrivée : au moins 3 s sans vidéo" — and in the
+  report, `coupures` and `coupuresDetail` (durations, intervals).
+- **The log in order**: "10" is a numeric key, which JavaScript sorts before
+  "01"; keys now have three digits. And latencies to the millisecond
+  ("1.8980000000000001").
+
+### The playhead's clock
+
+`getSyncTime`, rounded to the second, says nothing below the second; but the
+**instant** it moves to the next one does: the playhead is then exactly at
+that time. While listening, each tile reads it every 20 ms, and each tick
+gives `now − time`: the playhead's latency, within 20 ms, **without the
+player's estimate** that dives during gaps. Only ticks of the most frequent
+step (1000 ms) count: any other step is a playback jump.
+
+In the report: per tile, `horloge` ("2.873 s · ±12 ms · 58 passages de
+1000 ms · lecteur 2.861 s"); for the room, `instant.ecartHorloge`; for each
+listening computation, the gap by the clock over its very window ("… att 686
+sync 690").
+
+It is a working hypothesis, drawn from the slopes: protocol 3 will tell
+whether this clock moves by exactly what playback moves.
+
+### Protocol 3
+
+```
+tse.salle.essais()        // 4 min
+tse.salle.essais(false)   // stop it
+```
+
+Listening runs throughout, its pair's direction fixed when it starts.
+
+| time | phase | what should be seen |
+| --- | --- | --- |
+| 0 s | A — the element's speed read back: 0.95 set, then read at 0, 50, 250 and 1000 ms, with the number of `ratechange` events | how fast the player sets it back to 1 |
+| 60 s | B — **the sound moves to the target** | if the offset does not move, capture does not depend on the audible tile; if it does, that bias is measured |
+| 120 s | C — the sound comes back; **1 s rewind** of the target | every peak, the expected value and the clock must move by exactly the rewind obtained |
+| 180 s | D — **1 s skip forward** of the target, into its enlarged buffer | does the player keep it? |
+| 240 s | end | |
+
+A phase only keeps the computations whose peak holds (z ≥ 5) and whose
+twenty-second window starts at least two seconds after its start and ends
+before the next: seven or eight per phase — more in A, where listening has
+just started and the first windows are shorter.
+
+In the report, `protocole` block:
+
+- `S3relecture`: "0.95 posé · relu 0 ms 0.95 · 50 ms 1 · … · 2 changements";
+- `phases`: for each pair and each phase, the number of computations, the
+  grouped peaks, the expected value and the clock;
+- `S6bascule` (B − A), `S5son` (C − A), `S7son` (D − C): the shift of the
+  peak, of the expected value and of the clock, and the **predicted** one —
+  0 for the switch, ∓ the rewind or skip obtained depending on the pair's
+  direction;
+- `S5recul`, `S5position`, `S5tenue`; `S7avance`, `S7position`, `S7tenue`;
+- `rechargements`, `coupures` during the protocol; `S9`.
+
+During phase B, you hear the other stream for a minute. Stopped,
+`essais(false)` gives the sound back to the reference and turns listening
+off; a rewind or a skip already done stays done.
+
+**One more console command**: `tse.salle.avance(1)`, 0.2 to 5 s — refused
+within half a second of the buffer's end, or the tile would stall.
+
+Still nothing is tried on `setLiveMaxLatency`, `setLiveSpeedUpRate` or
+`setInitialBufferDuration`.
+
+### What the bench measures
+
+**The fake player** imitates what the reports showed: its latency read
+frozen when paused; the speed set through the instance accepted with no
+effect, **the element's set back to 1 at once** (a microtask, with its
+"ratechange" events); **`getSyncTime`, the time of the frame played, rounded
+to the second**; a **delivery gap** that empties the buffer and then makes
+the estimate dive. And **its sound follows the playhead**: a rewind, a
+pause, a jump move it as much — without which protocol 3 could test
+nothing.
+
+- **178**: S3 rewritten (the element set back to 1, no reading sees 0.8);
+  the jump recognised as a jump forward; S9 expects the playheads' offset,
+  pause and jump included.
+- **179**: protocol 3 at scale 0.1 — the sequence only: read-back, sound
+  switched and back, rewind and skip obtained and held, no phase kept at
+  that scale; stopped mid-switch, it gives the sound back.
+- **180**: `avance` in a tile's console, refused at 2 s for a 1.8 s buffer,
+  granted at 1 s.
+- **181, new**: a delivery gap seen in the buffer, its latency dive held to
+  be incoherent, its two jumps read as estimate, the upstream part without
+  it; a rewind started right after a latency update, which is not a jump;
+  the log in order; **protocol 3 at scale 0.6** (144 s) — nothing at the
+  switch, a second lost at the rewind and regained at the skip, by sound,
+  latency and clock, and each tile's clock within 20 ms.
+
+| mutants | what falls |
+| --- | --- |
+| the clock: never read; its gap between two tiles reversed; the room's gap missing (3) | the playhead with no clock, or a backwards one |
+| the probe: the blame always on the buffer; the upstream part with the incoherent latency; the gap never seen; the window after a trial forgotten; the jumps' nature ignored; the log with two digits (6) | the real report's eleven sound buffers discarded, its false jumps, its log out of order |
+| protocol 3: the pair's direction following the sound; the phases with no end bound; the predicted value with the wrong sign; the history too short; the read-back missing, read before setting, or without its changes; the switch forgotten; the sound never given back, at the end or when stopped; the skip obtained reversed (11) | a phase mixing two regimes; a shift judged against a wrong prediction; the tile left on the other sound |
+| the skip: unguarded, reversed, missing from the console or its relay (4) | a tile entering its margin and stalling |
+
+Twenty-five mutants, twenty-four caught. In the first round, twenty-one;
+three survivors showed three weaknesses of the bench, fixed: the rewind
+meant to test the window after a trial fell at the wrong moment of
+"charlie"'s cadence — the old rule would not have counted it either; a
+computation just after phase B ends still counts in it, and hid a flipped
+pair — the bench now requires that the pair never flips; at scale 0.6, a
+24-computation history lost too little of phase A to be seen — the bench
+requires that it keeps the whole protocol. **One survivor, owned**: the
+rounding of the log's latencies. Only the protocol's medians produce noisy
+ones — (1.897 + 1.899) / 2 = 1.8980000000000001, the report's very case —,
+and the fake player's exact latencies produce none.
+
+### For the next report
+
+1. Open the room from the node, on two streams that share sound.
+2. F12, any context of the room: `tse.salle.essais()`.
+3. Leave the room alone for 4 min — one minute on the other sound in the
+   middle (the log says "protocole · fin" at the end).
+4. Take the report.
+
 ## What the second report taught: a player that reloads, two voices, and protocol 2 (v4.24.0.13)
 
 This time, the protocol ran to the end: 374 s of room, two co-streamers in
@@ -13602,7 +13836,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 180 scenarios, 1572 assertions |
+| `npm test` | the Playwright harness: 181 scenarios, 1576 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -13622,12 +13856,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1467 KB | 577 KB | 3,895 → **2** |
+| `content.js` | 1515 KB | 604 KB | 3,932 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 106 KB | 50 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1721 KB** | **733 KB** | **−57 %** |
+| **all five** | **1770 KB** | **761 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

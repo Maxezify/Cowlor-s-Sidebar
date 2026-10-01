@@ -2180,6 +2180,244 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le recul tient, la vitesse ne se pose pas, et le protocole 3 éprouve la mesure (v4.24.0.14)
+
+Le troisième essai réel a joué le protocole 2 en entier : 322 s de salle,
+deux streams (chat non partagé, mais du son en commun), 300 relevés par
+tuile, les étapes sur la tuile muette, l'autre en référence. Deux résultats
+nets, une mesure qui se confirme, et quatre choses que la sonde lisait mal.
+Cette version en tire le protocole 3, qui éprouve la mesure par des
+décalages connus. Publiée sur `claude/chrome-multi` seulement.
+
+### Ce que le rapport établit
+
+**1. La vitesse ne se pose pas, même sur l'élément vidéo.** L'essai a bien eu
+lieu — « vitesse-video 0.95 · video » au journal —, mais aucun des soixante
+relevés du ralenti n'a lu autre chose que 1 : « vidéo 1–1 · lecteur 1–1 ».
+La latence a pris +0,13 s au lieu de +3,00 s, dans le bruit de ±0,13 s. Le
+lecteur remet donc la vitesse à 1 en moins d'une seconde. Avec la voie de
+l'instance, écartée au rapport précédent, aucun levier de vitesse ne marche
+de l'extérieur.
+
+**2. Le recul dans le tampon marche, et il tient.**
+
+| mesure | valeur |
+| --- | --- |
+| recul demandé / obtenu | 1,00 s / 1,104 s (position 156,256 → 155,652 en 0,5 s) |
+| latence, 5 s après | +0,92 s (référence +0,03) |
+| latence, 30 s après | +1,15 s (référence +0,01) |
+| latence, 2 min après | 3,0075 contre 1,898 avant, soit +1,11 s |
+| tampon de la cible | d'environ 1,4 s à 2,44–2,51 s |
+| rechargements, pente | 0 ; −0,1 ms/s |
+
+Le lecteur n'a pas rattrapé en 2 min 40, ni rechargé. Et ce recul a
+rapproché les deux tuiles : leur écart est passé d'environ 1,8 s à 0,74 s.
+**C'est le levier d'un moteur de synchronisation : retarder les tuiles en
+avance.** Retarder une tuile agrandit son tampon, ce qui la rend plus sûre.
+
+**3. `getSyncTime` suit la lecture : ce n'est pas une heure murale.** La
+perte de pente de ses valeurs sur les 300 relevés, comparée à ce que
+produirait un palier (moindres carrés : `6 h f(1 − f) / T`) :
+
+| tuile | événement | déficit prédit | `getSyncTime` | `getPosition` |
+| --- | --- | --- | --- | --- |
+| cible | recul de 1,104 s à +160 s | 5,5 ms/s | 4,9 | 6,0 |
+| référence | calage de 2,2 s à +52 s | 4,0 ms/s | 3,6 | 3,0 |
+
+Une heure murale garderait 1000/s. Ses valeurs, …612000 et …613000, sont
+arrondies à la seconde et placent la référence 1 s derrière — ce qui colle
+avec ses 0,74 s de latence en plus. C'est, selon toute vraisemblance,
+l'heure de l'image jouée.
+
+**4. La référence recevait sa vidéo par à-coups : quatre coupures, toutes
+les 76 à 80 s** (+52, +128, +206, +286 s).
+
+- Pendant chaque coupure, le tampon fond d'exactement 1,000 s par seconde
+  (3,246 → 2,248 → 1,248 → 0,248), puis se remplit d'un coup (+2,965 s) :
+  trois secondes sans rien recevoir, la lecture continuant.
+- À la première, le tampon ne faisait qu'environ 1,1 s : la lecture a calé
+  (tampon à 0,049), la latence est passée de 1,5 à 3,7 s et y est restée —
+  ce que confirment les pentes des deux horloges. Les trois suivantes ont été
+  absorbées par un tampon d'environ 3,2 s.
+- Pendant ces coupures, `getLiveLatency` plonge (3,7 → 1,0 ou 1,6), puis
+  remonte : le lecteur semble calculer sa latence à partir des données qu'il
+  a reçues (environ tampon + 0,4 s). Sa valeur est fausse tant que la vidéo
+  tarde.
+- Sur les dix « sauts » comptés, seul celui de +52 s était un vrai calage ;
+  les autres, l'estimation qui plongeait. Et les onze « tampons aberrants »
+  étaient en réalité des latences fausses : la règle accusait le tampon.
+- **Pour un moteur : ne jamais avancer une tuile dans sa marge, réaligner
+  quand un lecteur relève sa latence de lui-même, et ne pas se fier à
+  `getLiveLatency` pendant une coupure.**
+
+**5. Le son : un pic stable à 745 ms sur dix calculs (z de 6,8 à 8,7),
+quand la latence attendait 686 ms (médiane).** Écart pic − attendu : +50 ms
+(σ 51 ms, erreur-type 16 ms). **Ici, la différence de latence prédit le
+décalage réel à 50 ms près.**
+
+Des valeurs secondaires sortent aussi — 1330–1360 et 1160, au début et dans
+les deux derniers calculs, z de 5,7 au plus. Au rapport précédent, la seconde
+valeur se trouvait à attendu + 620 ms ; ici, à attendu + 650–670 ms. Trois
+lectures restent possibles :
+
+- **deux voix** passant par un salon vocal : le vrai décalage serait alors
+  d'environ 1040 ms (délai du salon d'environ 300 ms), contre 775 ms la fois
+  précédente. Mais il faudrait qu'une même avance d'environ 370 ms, invisible
+  pour la latence, se retrouve dans deux paires sans rapport, et dans le même
+  sens : c'est suspect ;
+- **le pic dominant est le vrai décalage** (+50 ms ici, +170 ms la dernière
+  fois), l'autre un écho ou une autre source ;
+- **un biais de la capture lié à la tuile qui a le son** : les deux fois, la
+  référence était la tuile sonore.
+
+Le rapport ne peut pas trancher — et l'écoute ayant commencé 30 s après le
+recul, on ne voit pas le son avant et après. D'où le protocole 3.
+
+**6. Le reste.** La dent de scie tient (±0,138 s sur la cible) ; sa pente,
+−0,1 ms/s, n'a plus rien des −3 ms/s du premier rapport. L'écart initial
+entre les tuiles venait encore du tampon.
+
+### Ce que la sonde lisait mal, et lit désormais
+
+- **Un faux saut juste après le recul** (1,812 → 2,813) : l'effet du recul
+  n'apparaît qu'à la mise à jour suivante de la latence, jusqu'à deux
+  secondes plus tard. **Aucun saut n'est plus jugé dans les 2,5 s qui suivent
+  le début ou la fin d'un essai.**
+- **La faute du tampon impossible** : quand le tampon dépasse la latence de
+  plus d'une demi-seconde, elle va désormais à celle des deux valeurs qui
+  s'écarte le plus de sa médiane sur les dix derniers relevés — le tampon au
+  deuxième rapport (174,42 s), la latence au troisième. Un tampon négatif ou
+  de plus de 60 s reste faux d'office. Le tampon faux est écarté
+  (`aberrants`) ; la latence fausse reste dans la série, mais sort de l'amont
+  et de l'attendu (`latencesIncoherentes`).
+- **Les sauts, lus à la position** : avancée d'autant que le temps écoulé, la
+  lecture a continué — c'est l'**estimation** qui a bougé ; moins, la lecture
+  a **calé** ; plus, elle a sauté en **avant** (à 0,3 s près). Au journal —
+  « saut de latence 3.737 → 1.6 · estimation » — et au rapport, `sautsNature`.
+- **Les coupures d'arrivée** : un tampon qui fond au rythme de la lecture (70
+  à 130 % du temps écoulé) deux relevés de suite au moins, puis se remplit
+  d'un coup. Au journal — « coupure d'arrivée : au moins 3 s sans vidéo » —
+  et au rapport, `coupures` et `coupuresDetail` (durées, intervalles).
+- **Le journal dans l'ordre** : « 10 » est une clé numérique, que JavaScript
+  range avant « 01 » ; les clés ont désormais trois chiffres. Et les
+  latences au millième (« 1.8980000000000001 »).
+
+### L'horloge de la tête de lecture
+
+`getSyncTime`, arrondie à la seconde, ne dit rien sous la seconde ; mais
+l'**instant** où elle passe à la suivante, si : la tête de lecture est alors
+exactement à cette heure-là. Pendant l'écoute, chaque tuile la relève toutes
+les 20 ms, et chaque passage donne `maintenant − heure` : la latence de la
+tête de lecture, à 20 ms près, **sans l'estimation du lecteur** qui plonge
+pendant les coupures. Seuls comptent les passages du pas le plus fréquent
+(1000 ms) : un autre pas, c'est un saut de la lecture.
+
+Au rapport : par tuile, `horloge` (« 2.873 s · ±12 ms · 58 passages de 1000 ms
+· lecteur 2.861 s ») ; pour la salle, `instant.ecartHorloge` ; pour chaque
+calcul d'écoute, l'écart par l'horloge sur sa fenêtre même (« … att 686 sync
+690 »).
+
+C'est une hypothèse de travail, tirée des pentes : le protocole 3 dira si
+cette horloge bouge d'exactement ce que bouge la lecture.
+
+### Le protocole 3
+
+```
+tse.salle.essais()        // 4 min
+tse.salle.essais(false)   // l'arrêter
+```
+
+L'écoute tourne tout du long, le sens de sa paire figé à l'allumage.
+
+| temps | phase | ce qu'on doit voir |
+| --- | --- | --- |
+| 0 s | A — la vitesse de l'élément relue : 0,95 posé, puis relu à 0, 50, 250 et 1000 ms, avec le nombre de `ratechange` | en combien de temps le lecteur la remet à 1 |
+| 60 s | B — **le son passe à la cible** | si le décalage ne bouge pas, la capture ne dépend pas de la tuile audible ; s'il bouge, on mesure ce biais |
+| 120 s | C — le son revient ; **recul d'1 s** de la cible | chaque pic, l'attendu et l'horloge doivent bouger d'exactement le recul obtenu |
+| 180 s | D — **avance d'1 s** de la cible, dans son tampon agrandi | le lecteur la garde-t-il ? |
+| 240 s | fin | |
+
+Une phase ne retient que les calculs dont le pic tient (z ≥ 5) et dont la
+fenêtre de vingt secondes commence deux secondes au moins après son début et
+finit avant la suivante : sept ou huit par phase — davantage en A, où
+l'écoute vient de s'allumer et les premières fenêtres sont plus courtes.
+
+Au rapport, bloc `protocole` :
+
+- `S3relecture` : « 0.95 posé · relu 0 ms 0.95 · 50 ms 1 · … · 2 changements » ;
+- `phases` : pour chaque paire et chaque phase, le nombre de calculs, les pics
+  groupés, l'attendu et l'horloge ;
+- `S6bascule` (B − A), `S5son` (C − A), `S7son` (D − C) : l'écart du pic, de
+  l'attendu et de l'horloge, et le **prévu** — 0 pour la bascule, ∓ le recul
+  ou l'avance obtenus selon le sens de la paire ;
+- `S5recul`, `S5position`, `S5tenue` ; `S7avance`, `S7position`, `S7tenue` ;
+- `rechargements`, `coupures` pendant le protocole ; `S9`.
+
+La phase B, tu entends l'autre stream pendant une minute. Arrêté,
+`essais(false)` rend le son à la référence et éteint l'écoute ; un recul ou
+une avance déjà faits restent faits.
+
+**Une commande de plus à la console** : `tse.salle.avance(1)`, de 0,2 à 5 s —
+refusée à moins d'une demi-seconde du bout du tampon, faute de quoi la tuile
+calerait.
+
+On ne touche toujours pas à `setLiveMaxLatency`, `setLiveSpeedUpRate` ni
+`setInitialBufferDuration`.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** imite ce que les rapports ont montré : sa latence lue
+figée en pause ; la vitesse posée par l'instance acceptée sans effet, **celle
+de l'élément remise à 1 aussitôt** (une microtâche, avec ses « ratechange ») ;
+**`getSyncTime`, l'heure de l'image jouée, arrondie à la seconde** ; une
+**coupure d'arrivée** qui vide le tampon puis fait plonger l'estimation. Et
+**son son suit la tête de lecture** : un recul, une pause, un saut le
+déplacent d'autant — sans quoi le protocole 3 ne pourrait rien éprouver.
+
+- **178** : S3 réécrit (l'élément remis à 1, aucun relevé ne lit 0,8) ; le
+  saut reconnu comme un saut en avant ; S9 attend le décalage des têtes de
+  lecture, pause et saut compris.
+- **179** : le protocole 3 à l'échelle 0,1 — la suite seulement : relecture,
+  bascule et retour du son, recul et avance obtenus et tenus, aucune phase
+  retenue à cette échelle ; arrêté en pleine bascule, il rend le son.
+- **180** : `avance` à la console d'une tuile, refusée à 2 s pour 1,8 s de
+  tampon, accordée à 1 s.
+- **181, neuf** : une coupure d'arrivée vue au tampon, sa plongée de latence
+  tenue pour incohérente, ses deux sauts lus comme de l'estimation, l'amont
+  sans elle ; un recul lancé juste après une mise à jour de latence, qui
+  n'est pas un saut ; le journal dans l'ordre ; **le protocole 3 à l'échelle
+  0,6** (144 s) — rien à la bascule, une seconde perdue au recul et regagnée
+  à l'avance, par le son, la latence et l'horloge, et l'horloge de chaque
+  tuile à 20 ms près.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'horloge : jamais relevée ; son écart entre deux tuiles à l'envers ; l'écart de la salle absent (3) | la tête de lecture sans horloge, ou à rebours |
+| la sonde : la faute toujours au tampon ; l'amont avec la latence incohérente ; la coupure jamais vue ; la fenêtre après l'essai oubliée ; la nature des sauts ignorée ; le journal à deux chiffres (6) | les onze tampons justes écartés du rapport réel, ses faux sauts, son journal dans le désordre |
+| le protocole 3 : le sens de la paire qui suit le son ; les phases sans borne de fin ; le prévu au mauvais signe ; l'historique trop court ; la relecture absente, lue avant de poser, ou sans ses changements ; la bascule oubliée ; le son jamais rendu, ni à la fin ni à l'arrêt ; l'avance obtenue à l'envers (11) | une phase qui mélange deux régimes ; un écart jugé contre un prévu faux ; la tuile laissée sur l'autre son |
+| l'avance : sans garde, à l'envers, absente de la console ou de son relais (4) | une tuile qui entre dans sa marge et cale |
+
+Vingt-cinq mutants, vingt-quatre pris. Au premier tour, vingt et un ; trois
+survivants ont montré trois faiblesses du banc, corrigées : le recul qui
+devait éprouver la fenêtre après l'essai tombait au mauvais moment de la
+cadence de « charlie » — la règle d'avant ne l'aurait pas compté non plus ;
+un calcul qui suit de peu la fin de la phase B y compte encore, et masquait
+une paire retournée — le banc exige désormais qu'elle ne se retourne
+jamais ; à l'échelle 0,6, un historique de 24 calculs perdait trop peu de la
+phase A pour qu'on le voie — le banc exige qu'il garde tout le protocole.
+**Un survivant, assumé** : l'arrondi des latences du journal. Seules les
+médianes du protocole en produisent de bruitées — (1,897 + 1,899) / 2 =
+1.8980000000000001, le cas même du rapport —, et les latences exactes du
+lecteur factice n'en produisent aucune.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux streams qui partagent du son.
+2. F12, n'importe quel contexte de la salle : `tse.salle.essais()`.
+3. Ne plus toucher à la salle pendant 4 min — une minute sur l'autre son au
+   milieu (le journal dit « protocole · fin » à la fin).
+4. Prendre le rapport.
+
 ## Ce que le second rapport a appris : un lecteur qui recharge, deux voix, et le protocole 2 (v4.24.0.13)
 
 Cette fois, le protocole est allé au bout : 374 s de salle, deux
@@ -14078,7 +14316,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 180 scénarios, 1572 assertions |
+| `npm test` | le harnais Playwright : 181 scénarios, 1576 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -14099,12 +14337,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1467 Ko | 577 Ko | 3 895 → **2** |
+| `content.js` | 1515 Ko | 604 Ko | 3 932 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 106 Ko | 50 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1721 Ko** | **733 Ko** | **−57 %** |
+| **les cinq** | **1770 Ko** | **761 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
