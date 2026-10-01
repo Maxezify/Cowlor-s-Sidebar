@@ -26264,8 +26264,11 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      — une latence de 0 tant qu'il n'a pas joué (2,5 s) ;
      — « charlie » : une latence remise à jour toutes les DEUX secondes
        seulement, et qui dérive de −3 ms par seconde, comme sur le vrai
-       Twitch ;
-     — getSyncTime, une horloge en ms, et getPosition, en secondes. */
+       Twitch ; « delta », toutes les CINQ (cf. le 181) ;
+     — getSyncTime, une horloge en ms, et getPosition, en secondes.
+   Et depuis la 4.24.0.15, trois de plus : chaque déplacement CALE la lecture
+   (0,15 s, 0,3 s pour « alpha ») ; getSyncTime rend 0 avant de jouer ; le
+   lecteur sait RATTRAPER de lui-même, à 1,03, comme au quatrième rapport. */
 const S_LECTEUR_SONDE = () => {
   return `<!doctype html><html><body style="margin:0">
     <video id="v" autoplay muted playsinline style="width:320px;height:180px"></video>
@@ -26278,7 +26281,7 @@ const S_LECTEUR_SONDE = () => {
         const v = document.getElementById('v');
         class FauxLecteur {
           constructor() {
-            this.L = ({ alpha: 2, bravo: 2.5, echo: 3.6 })[ch] ?? 2.2; this.t = Date.now(); this.t0 = this.t;
+            this.L = ({ alpha: 2, bravo: 2.5, echo: 3.6, hotel: 7.7 })[ch] ?? 2.2; this.t = Date.now(); this.t0 = this.t;
             this.L0 = this.L; this.B = ch === 'echo' ? 3.2 : 1.8; this.coupure = null;
             this.arret = false; this.pos = 0; this.aberrantJusqua = 0;
             /* LA VITESSE DE L'ÉLÉMENT (4.24.0.13, revue en 4.24.0.14) : c'est
@@ -26289,13 +26292,16 @@ const S_LECTEUR_SONDE = () => {
                — son élément, nourri d'un MediaStream, n'en émettrait aucun. */
             let vElem = 1;
             const changer = (x) => { this.maj(); vElem = x; v.dispatchEvent(new Event('ratechange')); };
-            Object.defineProperty(v, 'playbackRate', { configurable: true, get: () => vElem,
+            /* SA vitesse, elle, tient (4.24.0.15) : un rattrapage du lecteur,
+               1,03 pendant treize secondes au quatrième rapport réel. */
+            this.vPropre = null;
+            Object.defineProperty(v, 'playbackRate', { configurable: true, get: () => this.vPropre ?? vElem,
               set: (x) => { changer(Number(x)); if (vElem !== 1) queueMicrotask(() => changer(1)); } });
-            this.vElem = () => vElem;
+            this.vElem = () => this.vPropre ?? vElem;
           }
           maj() {
             const n = Date.now(); const dt = (n - this.t) / 1000;
-            this.L += (this.arret ? dt : (1 - this.vElem()) * dt) - (ch === 'charlie' ? 0.003 * dt : 0);
+            this.L += (this.arret ? dt : (1 - this.vElem()) * dt) - (ch === 'charlie' || ch === 'delta' ? 0.003 * dt : 0);
             this.pos += this.arret ? 0 : this.vElem() * dt;
             this.t = n;
           }
@@ -26314,9 +26320,10 @@ const S_LECTEUR_SONDE = () => {
                continuant : 3,7 → 1,6 au troisième rapport réel. */
             const k = this.coupure, fin = k ? k.t0 + k.D * 1000 : 0;
             if (k && Date.now() >= fin && Date.now() < fin + 2000) return Math.round((this.B - k.D + 1.4) * 1000) / 1000;
-            // « charlie » : la valeur tenue deux secondes, comme le vrai lecteur.
-            if (ch === 'charlie') {
-              const tranche = Math.floor(Date.now() / 2000);
+            // « charlie » : la valeur tenue deux secondes, comme le vrai lecteur ;
+            // « delta », cinq.
+            if (ch === 'charlie' || ch === 'delta') {
+              const tranche = Math.floor(Date.now() / (ch === 'delta' ? 5000 : 2000));
               if (tranche !== this.tranche) { this.tranche = tranche; this.tenue = this.L; }
               return this.tenue;
             }
@@ -26325,10 +26332,23 @@ const S_LECTEUR_SONDE = () => {
           /* L'HEURE DE L'IMAGE JOUÉE, arrondie à la seconde (4.24.0.14) : au
              troisième rapport réel, getSyncTime a perdu ce que la lecture a
              perdu — un recul, un calage —, et ses valeurs finissent par 000. */
-          getSyncTime() { this.maj(); return Math.floor((Date.now() - this.L * 1000) / 1000) * 1000; }
+          // 0 avant la première image, comme la latence (cinquième rapport réel).
+          getSyncTime() {
+            this.maj();
+            return Date.now() - this.t0 < 2500 ? 0 : Math.floor((Date.now() - this.L * 1000) / 1000) * 1000;
+          }
           getPosition() { this.maj(); return this.pos; }
-          // Reculer dans le tampon : la position recule, la latence grandit d'autant.
-          seekTo(p) { this.maj(); const recul = this.pos - p; this.pos = p; this.L += recul; }
+          /* Reculer ou avancer dans le tampon : la position bouge, la latence
+             d'autant — PLUS UN CALAGE (4.24.0.15) : chaque déplacement réel a
+             coûté 0,08 à 0,22 s de lecture de plus que demandé. Ici 0,15 s, et
+             0,3 s pour « alpha », que l'alignement doive corriger en seconde
+             passe. */
+          seekTo(p) {
+            this.maj();
+            const cale = ch === 'alpha' ? 0.3 : 0.15, d = this.pos - p;
+            this.pos = p - cale;
+            this.L += d + cale;
+          }
           getBufferDuration() {
             // Un rechargement : une lecture aberrante du tampon, comme au rapport
             // réel — un peu plus d'une seconde, pour qu'un relevé la voie.
@@ -26342,7 +26362,7 @@ const S_LECTEUR_SONDE = () => {
             return this.B;
           }
           isLiveLowLatency() { return ch === 'alpha'; }
-          getPlaybackRate() { return 1; }
+          getPlaybackRate() { return this.vPropre ?? 1; }
           /* ACCEPTÉE, SANS EFFET (4.24.0.13) : au second rapport réel, 0,95 posé
              par l'instance n'a changé ni la vitesse lue — ni celle du lecteur ni
              celle de la vidéo — ni la latence. */
@@ -26355,6 +26375,12 @@ const S_LECTEUR_SONDE = () => {
         window.__sauter = (x) => { window.__lecteur.maj(); window.__lecteur.L -= x; window.__lecteur.pos += x; };
         // Une coupure d'arrivée de D secondes (4.24.0.14).
         window.__coupure = (D) => { window.__lecteur.maj(); window.__lecteur.coupure = { t0: Date.now(), D }; };
+        // Un rattrapage du lecteur lui-même : la vitesse x, s secondes (4.24.0.15).
+        window.__rattraper = (x, s) => {
+          const l = window.__lecteur;
+          l.maj(); l.vPropre = x; v.dispatchEvent(new Event('ratechange'));
+          setTimeout(() => { l.maj(); l.vPropre = null; v.dispatchEvent(new Event('ratechange')); }, s * 1000);
+        };
         // Un rechargement : la position repart de zéro, le tampon lu une fois aberrant.
         window.__recharger = () => { window.__lecteur.maj(); window.__lecteur.pos = 0; window.__lecteur.aberrantJusqua = Date.now() + 1200; };
         document.getElementById('root').__reactContainer$faux = { stateNode: null, sibling: null,
@@ -26372,7 +26398,13 @@ const S_LECTEUR_SONDE = () => {
            montre tout 350 ms plus tard. La voix de duo1 passe donc 550 ms plus
            tard sur duo2, celle de duo2 150 ms plus tard : deux pics, à −550 et
            −150, dont le milieu est le vrai décalage, −350. */
-        const VOIX = ({ bravo: [[0, 350]], duo1: [[0, 0], [1, 200]], duo2: [[1, 350], [0, 550]] })[ch] || [[0, 0]];
+        /* « foxtrot » (4.24.0.15) n'a rien en commun avec les autres : sa voix
+           est la sienne — le quatrième rapport réel, deux streams sans son
+           partagé. « golf » et « hotel » passent le son 5,5 s plus tard, au
+           bord de ce que l'écoute cherche : « golf » sans que sa latence le
+           dise, « hotel » avec (7,7 s, une chaîne en latence normale). */
+        const VOIX = ({ bravo: [[0, 350]], duo1: [[0, 0], [1, 200]], duo2: [[1, 350], [0, 550]], foxtrot: [[2, 0]],
+                        golf: [[0, 5500]], hotel: [[0, 5500]] })[ch] || [[0, 0]];
         const v = document.getElementById('v');
         const c = document.createElement('canvas');
         c.width = 32; c.height = 18;
@@ -26396,15 +26428,21 @@ const S_LECTEUR_SONDE = () => {
         const TRANCHE = 30;
         const gen = new AudioContext();
         const dest = gen.createMediaStreamDestination();
-        const pistes = VOIX.map(([voix, D]) => {
+        const piste = (voix, D, hz = voix ? 660 : 440, poids = 1) => {
           const osc = gen.createOscillator();
-          osc.frequency.value = voix ? 660 : 440;
+          osc.frequency.value = hz;
           const g = gen.createGain();
           g.gain.value = 0;
           osc.connect(g).connect(dest);
           osc.start();
-          return { voix, D, g, prochaine: 0 };
-        });
+          return { voix, D, g, poids, prochaine: 0, dec: 0 };
+        };
+        const pistes = VOIX.map(([voix, D]) => piste(voix, D));
+        /* UNE SOURCE DE PLUS, en cours de route (4.24.0.15) : la même voix,
+           D ms plus tard, à une autre fréquence — deux sinus de même
+           fréquence interféreraient —, et plus forte. Au cinquième rapport
+           réel, le son commun avait trois composantes. */
+        window.__ajouterVoix = (voix, D, hz, poids) => { pistes.push(piste(voix, D, hz, poids)); };
         /* Un hachage ENTIER (4.24.0.13) : k vaut ~1,8·10¹⁰, et k × 2654435761
            dépasse 2⁵³ — le produit flottant perdait sa précision, et deux voix
            ne différaient plus que d'une constante. */
@@ -26426,7 +26464,6 @@ const S_LECTEUR_SONDE = () => {
           l.maj();
           return Math.round((l.L - l.L0) * 1000);
         };
-        for (const p of pistes) p.dec = 0;
         let relie = false;
         const tenir = () => {
           if (gen.state !== 'running') { gen.resume().catch(() => {}); return; }
@@ -26445,7 +26482,7 @@ const S_LECTEUR_SONDE = () => {
             const k0 = Math.floor((mur - D) / TRANCHE);
             for (let k = Math.max(p.prochaine, k0); k < k0 + 20; k++) {
               const t = ctx + ((k * TRANCHE + D) - mur) / 1000;
-              if (t > ctx) p.g.gain.setValueAtTime(amp(k, p.voix), t);
+              if (t > ctx) p.g.gain.setValueAtTime(amp(k, p.voix) * p.poids, t);
               p.prochaine = k + 1;
             }
           }
@@ -26707,7 +26744,7 @@ const S_LECTEUR_SONDE = () => {
      et renvoie sa réponse, affichée dans la console de la tuile. Mutants —
      pas de relais ; la tuile appelante ignorée. */
   const depuisBravo = await cadre('bravo')?.evaluate(() => ({ type: typeof window.tse?.salle?.vitesse,
-    retour: window.tse.salle.vitesse(0.8) })).catch((e) => String(e));
+    aligner: typeof window.tse?.salle?.aligner, retour: window.tse.salle.vitesse(0.8) })).catch((e) => String(e));
   await wait(page, 1600);
   const r1 = await rapport();
   const depuisAlpha = await cadre('alpha')?.evaluate(() => window.tse.salle.pause(0.5)).catch((e) => String(e));
@@ -26716,7 +26753,7 @@ const S_LECTEUR_SONDE = () => {
   await cadre('bravo')?.evaluate(() => window.tse.salle.vitesse(1)).catch(() => null);
   await wait(page, 600);
   ok('dans la console d\'une tuile, tse.salle relaie à la salle, sur cette tuile, et la réponse y revient',
-     depuisBravo?.type === 'function' && /envoyé à la salle/.test(depuisBravo.retour)
+     depuisBravo?.type === 'function' && depuisBravo.aligner === 'function' && /envoyé à la salle/.test(depuisBravo.retour)
      && /^vitesse 0\.8 · instance/.test(r1.tuiles.bravo?.essai || '') && /^pause 0\.5 · instance/.test(r2.tuiles.alpha?.essai || '')
      && /envoyé à la salle/.test(depuisAlpha || '')
      && consoles.some((x) => x.valeur?.envoye === 'vitesse' && x.valeur?.chaine === 'bravo' && x.valeur?.valeur === 0.8),
@@ -26750,14 +26787,17 @@ const S_LECTEUR_SONDE = () => {
       { data: { tse: 'tse-incruste-req', id, action: 'salle', arg }, source: w }));
     demander(41, { commande: 'vitesse', args: [0.9] });
     demander(42, { commande: 'fermer', args: [] });
+    demander(43, { commande: 'aligner', args: [false] });
     await new Promise((r) => setTimeout(r, 300));
     return recues.map((x) => ({ id: x.id, ok: x.ok, data: x.data }));
   });
   const p41 = Array.isArray(panneau) ? panneau.find((x) => x.id === 41) : null;
   const p42 = Array.isArray(panneau) ? panneau.find((x) => x.id === 42) : null;
+  const p43 = Array.isArray(panneau) ? panneau.find((x) => x.id === 43) : null;
   ok('le panneau relaie les commandes de la sonde, et seulement elles',
      p41?.ok === true && p41.data?.envoye === 'vitesse' && p41.data?.chaine === 'bravo' && p41.data?.valeur === 0.9
-     && p42?.ok === true && /commande inconnue/.test(p42.data?.erreur || '') && (await rapport()).ouverte === true,
+     && p42?.ok === true && /commande inconnue/.test(p42.data?.erreur || '') && (await rapport()).ouverte === true
+     && p43?.ok === true && p43.data?.alignement === 'aucun en cours / none running',
      JSON.stringify(panneau));
 
   /* SANS NOM, PAR NUMÉRO, ET L'EXEMPLE RECOPIÉ : la tuile muette par défaut,
@@ -26776,62 +26816,71 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify(top));
   await wait(page, 2500);
 
-  /* LE PROTOCOLE 3 (4.24.0.14), dix fois plus vite — la SUITE seulement :
-     à cette échelle, une phase dure six secondes, et aucun calcul d'écoute
-     (vingt secondes de fenêtre) n'y tient ; le 181 l'éprouve à la moitié.
-     Sur « bravo » (la tuile muette), « alpha » (celle du son) en référence :
-     l'écoute allumée ; la vitesse de l'élément relue — posée, remise à 1
-     par le lecteur, deux « ratechange » ; le son passé à « bravo » pendant
-     la phase B, rendu à « alpha » ensuite ; le recul puis l'avance d'une
-     seconde, obtenus par l'instance et tenus ; l'écoute éteinte. Mutants —
-     la relecture absente ; la bascule du son oubliée, ou jamais rendue ;
-     le recul ou l'avance absents ou à l'envers ; la tenue fausse ; l'écoute
-     laissée allumée. */
+  /* LE PROTOCOLE 4 (4.24.0.15), dix fois plus vite — la SUITE seulement : à
+     cette échelle, la phase A dure six secondes, la phase B dix-huit, et
+     aucun calcul d'écoute (vingt secondes de fenêtre) n'y tient ; le 181
+     l'éprouve à 0,6. Sur « bravo » (la tuile muette), « alpha » (celle du
+     son) en référence : l'écoute allumée ; la vitesse de l'élément relue —
+     posée, remise à 1 par le lecteur, deux « ratechange », chacun daté ;
+     l'alignement lancé à 6 s, ses passes, son suivi raccourci (3, 6, 12,
+     18 s) ; les phases A et B lues aux relevés et à l'horloge, sans aucun
+     calcul ; l'écoute éteinte à la fin. Un alignement à la main est refusé
+     avant le sien comme pendant. Mutants — la relecture absente, ses changements non datés ;
+     l'alignement jamais lancé, ou une fin qui ne l'attend pas ; les phases
+     qui dépendent du son ; l'écoute laissée allumée. */
   const lance = await page.evaluate(() => window.tse.salle.essais(0.1));
   const double = await page.evaluate(() => window.tse.salle.essais(0.1));
-  await wait(page, 9000);
-  const sonB = (await rapport()).son;
-  await attendre(page, () => window.tse.salle.rapport().protocole?.etat === 'fini', 40_000);
+  const avantSon = await page.evaluate(() => window.tse.salle.aligner(0.1));
+  await attendre(page, () => window.tse.salle.rapport().protocole?.etat === 'en cours · suivi', 40_000);
+  const pendant = await page.evaluate(() => window.tse.salle.aligner(0.1));
+  await attendre(page, () => window.tse.salle.rapport().protocole?.etat === 'fini', 60_000);
   const r3 = await rapport();
   const pr = r3.protocole || {};
+  const al = r3.alignement || {};
   const evts3 = Object.values(r3.instant?.evenements || {});
   const s3 = await page.evaluate(() => window.tse.salle.series().tuiles.bravo.slice(-1)[0]);
-  const obtenu = (x, type) => Number((new RegExp(`${type} obtenue? (-?[\\d.]+) s`).exec(x || '') || [])[1]);
-  ok('le protocole 3 en une commande : relecture de la vitesse, bascule du son, recul puis avance dans le tampon, et leurs mesures au rapport',
-     /^lancé/.test(lance?.protocole || '') && lance.cible === 'bravo' && lance.reference === 'alpha' && lance.duree === '24 s'
-     && /déjà en cours/.test(double?.erreur || '') && pr.etat === 'fini'
-     && /^0\.95 posé · relu 0 ms 0\.95 · \d+ ms 1 · \d+ ms 1 · \d+ ms 1 · 2 changements · video$/.test(pr.S3relecture || '')
-     && sonB === 'bravo' && r3.son === 'alpha'
-     && Math.abs(nombre(pr.S5recul, 'mesuré') - 1) <= 0.12 && Math.abs(nombre(pr.S5tenue, 'mesuré') - 1) <= 0.12
-     && Math.abs(obtenu(pr.S5position, 'recul') - 1) <= 0.05 && /· instance$/.test(pr.S5position || '')
-     && Math.abs(nombre(pr.S7avance, 'mesuré') + 1) <= 0.12 && Math.abs(nombre(pr.S7tenue, 'mesuré') + 1) <= 0.12
-     && Math.abs(obtenu(pr.S7position, 'avance') - 1) <= 0.05 && /· instance$/.test(pr.S7position || '')
-     && pr.rechargements === 0 && pr.coupures === 'bravo 0 · alpha 0'
-     && Object.keys(pr.phases || {}).length === 8 && Object.values(pr.phases).every((x) => x === null)
-     && ['debut', 'bascule', 'recul', 'avance', 'fin'].every((e) => evts3.some((x) => x.includes(`bravo · protocole · ${e}`)))
+  const ecartDe = (x) => Number((/écart ([\d.]+) s/.exec(x || '') || [])[1]);
+  const phase = (P) => pr.phases?.[`alpha~bravo ${P}`] || '';
+  ok('le protocole 4 en une commande : relecture datée, alignement par l\'horloge et son suivi, phases lues sans le son',
+     /^lancé/.test(lance?.protocole || '') && lance.cible === 'bravo' && lance.reference === 'alpha' && lance.duree === '~36 s'
+     && /déjà en cours/.test(double?.erreur || '') && /un protocole est en cours/.test(avantSon?.erreur || '')
+     && /déjà en cours/.test(pendant?.erreur || '') && pr.etat === 'fini'
+     && /^0\.95 posé · relu \d+ ms 0\.95 · \d+ ms 1 · \d+ ms 1 · \d+ ms 1 · 2 changements \(\d+ ms → 0\.95, \d+ ms → 1\) · video$/.test(pr.S3relecture || '')
+     && al.etat === 'fini' && al.echelle === 0.1 && /^[a-z]+ \(la plus en retard\)$/.test(al.reference || '')
+     && typeof al.passe1 === 'string' && ecartDe(al.apres) <= 0.1 && Object.keys(al.suivi || {}).join() === '+3 s,+6 s,+12 s,+18 s'
+     && ['A', 'B'].every((P) => /^\d+ relevés · attendu -?\d+ ms · horloge -?\d+ ms · 0 calcul$/.test(phase(P)))
+     && Number(/^(\d+) relevés/.exec(phase('A'))?.[1]) >= 3
+     && /^pic — ms · attendu [+-]?\d+ · horloge [+-]?\d+ · prévu [+-]?\d+ ms$/.test(pr.S10son?.['alpha~bravo'] || '')
+     && /^oui · \d+ calculs sur \d+ tiennent hors du bord$/.test(pr.sonCommun?.['alpha~bravo'] || '')
+     && pr.rattrapages === 'alpha 0 · bravo 0 · charlie 0' && pr.rechargements === 'alpha 0 · bravo 0 · charlie 0'
+     && pr.coupures === 'alpha 0 · bravo 0 · charlie 0'
+     && ['debut', 'aligner', 'aligné', 'fin'].every((e) => evts3.some((x) => x.includes(`bravo · protocole · ${e}`)))
+     && evts3.some((x) => /salle · alignement · passe 1 · /.test(x)) && evts3.some((x) => /salle · alignement · fin du suivi/.test(x))
      && evts3.some((x) => /écoute allumée/.test(x)) && evts3.some((x) => /écoute éteinte/.test(x))
      && r3.ecoute?.actif === false && s3?.v === 1,
-     JSON.stringify({ lance, double, sonB, son: r3.son, pr, s3, evts3: evts3.slice(-12) }));
+     JSON.stringify({ lance, double, avantSon, pendant, pr, al, s3, evts3: evts3.slice(-16) }));
 
-  /* ARRÊTÉ en pleine phase B, il rend le son à la référence et éteint
-     l'écoute ; la salle fermée, il s'arrête avec elle. Mutants — l'arrêt qui
-     laisse le son à la cible ; les minuteurs qui survivent à la salle. */
+  /* ARRÊTÉ pendant le suivi, il arrête l'alignement avec lui et éteint
+     l'écoute ; la salle fermée, il s'arrête avec elle, son alignement aussi.
+     Mutants — l'alignement qui survit au protocole ; les minuteurs qui
+     survivent à la salle. */
   await page.evaluate(() => window.tse.salle.essais(0.1));
-  await wait(page, 8000);
-  const sonAvant = (await rapport()).son;
+  await attendre(page, () => window.tse.salle.rapport().protocole?.etat === 'en cours · suivi', 40_000);
   const arret = await page.evaluate(() => window.tse.salle.essais(false));
   await wait(page, 1200);
   const r4 = await rapport();
   await page.evaluate(() => window.tse.salle.essais(0.1));
-  await wait(page, 1000);
+  await wait(page, 7500);
+  const etat5 = (await rapport()).alignement?.etat;
   await page.evaluate(() => window.tse.salle.fermer());
   await wait(page, 3000);
   const r5 = await rapport();
-  ok('arrêté en pleine bascule, le protocole rend le son à la référence et éteint l\'écoute ; la salle fermée, il s\'arrête avec elle',
-     sonAvant === 'bravo' && /^arrêté/.test(arret?.protocole || '') && r4.protocole?.etat === 'arrêté'
-     && r4.son === 'alpha' && r4.ecoute?.actif === false
-     && r5.ouverte === false && r5.protocole?.etat === 'arrêté : salle fermée',
-     JSON.stringify({ sonAvant, arret, etat4: r4.protocole?.etat, son4: r4.son, ecoute4: r4.ecoute?.actif, etat5: r5.protocole?.etat }));
+  ok('arrêté pendant le suivi, le protocole arrête l\'alignement et éteint l\'écoute ; la salle fermée, ils s\'arrêtent avec elle',
+     /^arrêté/.test(arret?.protocole || '') && r4.protocole?.etat === 'arrêté' && r4.alignement?.etat === 'arrêté avec le protocole'
+     && r4.ecoute?.actif === false && /^(en cours|suivi)/.test(etat5 || '')
+     && r5.ouverte === false && r5.protocole?.etat === 'arrêté : salle fermée' && r5.alignement?.etat === 'arrêté : salle fermée',
+     JSON.stringify({ arret, etat4: r4.protocole?.etat, al4: r4.alignement?.etat, ecoute4: r4.ecoute?.actif, etat5,
+                      p5: r5.protocole?.etat, al5: r5.alignement?.etat }));
   await page.close();
 }
 
@@ -26943,51 +26992,124 @@ const S_LECTEUR_SONDE = () => {
      && rp.tuiles.alpha.latence > 4.3,
      JSON.stringify({ sautsAvant, sauts: rp.tuiles.alpha?.serie?.sauts, lecture: rp.tuiles.alpha?.lecture, latence: rp.tuiles.alpha?.latence }));
 
+  /* S10 SEUL (4.24.0.15) : aligner(), l'écoute éteinte — c'est lui qui
+     allume l'horloge, et il en attend cinq secondes de passages. Les têtes
+     de lecture sont loin l'une de l'autre : « bravo » a reculé de 3 s et
+     avancé d'une (4,8 s, calages compris), « alpha » s'est arrêté 2,5 s
+     (4,5 s), « charlie » n'a pas bougé (2,1 s). « bravo », la plus en
+     retard, sert de référence ; « alpha » recule de son écart moins le
+     calage attendu, cale de 0,3 s, et la seconde passe l'avance de ce
+     qu'il a pris de trop, au calage MESURÉ ; « charlie » recule de 2,6 s et
+     n'a plus rien à corriger. Le suivi raccourci : 3, 6, 12, 18 s. Un second
+     alignement est refusé pendant le premier ; aligner(false) l'arrête ; la
+     salle fermée aussi. Mutants — l'horloge jamais allumée hors de
+     l'écoute ; la référence qui n'est pas la plus en retard ; le calage
+     ignoré, ou mesuré à l'envers ; la seconde passe absente ; l'arrêt sans
+     effet ; la salle fermée qui l'oublie. */
+  const al1 = await page.evaluate(() => window.tse.salle.aligner(0.1));
+  const al2 = await page.evaluate(() => window.tse.salle.aligner(0.1));
+  await attendre(page, () => window.tse.salle.rapport().alignement?.etat === 'fini', 60_000);
+  const ral = await rapport();
+  const A = ral.alignement || {};
+  const ecartDe = (x) => Number((/écart (-?[\d.]+) s/.exec(x || '') || [])[1]);
+  const lu = (x, re) => Number((re.exec(x || '') || [])[1]);
+  const morceau = (x, re) => (re.exec(x || '') || [''])[0].trim();
+  const p1a = morceau(A.passe1, /alpha recul [^;]*/), p2a = morceau(A.passe2, /alpha avance [^;]*/);
+  const p1c = morceau(A.passe1, /charlie recul [^;]*/);
+  const evtsAl = Object.values(ral.instant?.evenements || {});
+  ok('S10 : aligner() met les têtes de lecture à la même heure — la plus en retard en référence, le calage compensé, puis corrigé',
+     /^lancé/.test(al1?.alignement || '') && /déjà en cours/.test(al2?.erreur || '') && A.reference === 'bravo (la plus en retard)'
+     && ecartDe(A.avant) >= 2.5 && ecartDe(A.apres) <= 0.05
+     && Object.values(A.suivi || {}).length === 4 && Object.values(A.suivi).every((x) => ecartDe(x) <= 0.1)
+     && /calage prévu 0\.12\) · obtenu [\d.]+ s · calage [\d.]+ · instance$/.test(p1a)
+     && Math.abs(lu(p1a, /calage ([\d.]+) · instance/) - 0.3) <= 0.01
+     && Math.abs(lu(p1a, /recul ([\d.]+) s demandé/) - (lu(p1a, /\(écart ([\d.]+) s/) - 0.12)) <= 0.002
+     && Math.abs(lu(p1c, /calage ([\d.]+) · instance/) - 0.15) <= 0.01
+     && /^alpha avance [\d.]+ s demandé \(écart -[\d.]+ s, calage prévu 0\.(29\d|3|30\d)\) · obtenu [\d.]+ s · calage [\d.]+ · instance$/.test(p2a)
+     && Math.abs(lu(p2a, /avance ([\d.]+) s demandé/) - (lu(p2a, /\(écart -([\d.]+) s/) + lu(p2a, /calage prévu ([\d.]+)\)/))) <= 0.002
+     && /charlie rien/.test(A.passe2 || '')
+     && evtsAl.some((x) => /salle · alignement · début/.test(x)) && ral.ecoute?.actif === false,
+     JSON.stringify({ al1, al2, A }));
+  const al3 = await page.evaluate(() => window.tse.salle.aligner(0.1));
+  await wait(page, 600);
+  const al4 = await page.evaluate(() => window.tse.salle.aligner(false));
+  const etat4 = (await rapport()).alignement?.etat;
+  const al5 = await page.evaluate(() => window.tse.salle.aligner(false));
+  await page.evaluate(() => window.tse.salle.aligner(0.1));
+  await wait(page, 600);
+  await page.evaluate(() => window.tse.salle.fermer());
+  const etat6 = (await rapport()).alignement?.etat;
+  ok('aligner(false) arrête un alignement, et la salle fermée aussi ; sans alignement, rien à arrêter',
+     /^lancé/.test(al3?.alignement || '') && /^arrêté/.test(al4?.alignement || '') && etat4 === 'arrêté'
+     && al5?.alignement === 'aucun en cours / none running' && etat6 === 'arrêté : salle fermée',
+     JSON.stringify({ al3, al4, etat4, al5, etat6 }));
+
   /* DEUX VOIX. L'écoute sur « duo1 » et « duo2 » : chaque calcul garde ses
      deux pics, le poids du second, son z et l'attendu ; les deux groupes
      stables donnent −550 et −150, et leur milieu, −350 — pas 0. Six calculs :
      sur trois, même ce son-là manque la seconde voix une fois sur cent
      (simulé) ; sur six, 3 999 fois sur 4 000, et avec huit valeurs au moins
      dans les deux groupes. Mutants — le second pic perdu ; le milieu faux ;
-     les groupes coupés au mauvais endroit ; l'amorce de la capture comptée. */
-  await page.evaluate(() => window.tse.salle.ouvrir('duo1', 'duo2'));
+     les groupes coupés au mauvais endroit ; l'amorce de la capture comptée.
+     DEPUIS LA 4.24.0.15, des FENÊTRES DISJOINTES seulement : deux calculs
+     voisins partagent les trois quarts de leur son. Quatorze calculs (une
+     paire), soit quatre fenêtres de vingt secondes qui ne se chevauchent
+     pas ; les deux voix dans la plupart. Et « foxtrot », dont le son n'a rien
+     de commun : « non ». AU BORD, deux cas : « golf », 5,5 s plus tard sans
+     que la latence ni l'horloge le disent — écarté, « non » ; « hotel », 5,5 s
+     plus tard, et sa latence aussi — gardé, « oui », un pic stable à −5500.
+     Mutants — les fenêtres qui se chevauchent comptées ; le verdict du son
+     commun faux ; le bord jamais écarté, ou toujours. */
+  await page.evaluate(() => window.tse.salle.ouvrir('duo1', 'duo2', 'foxtrot', 'golf', 'hotel'));
   await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 3, 20_000);
   await page.evaluate(() => window.tse.salle.ecoute());
-  await attendre(page, () => (window.tse.salle.rapport().ecoute?.calculs || 0) >= 6, 60_000);
+  await attendre(page, () => (window.tse.salle.rapport().ecoute?.calculs || 0) >= 56, 150_000);
   const r2 = await rapport();
   const pics = r2.ecoute?.pics?.['duo1~duo2'] || '';
   const nb = (re) => Number((re.exec(pics) || [])[1]);
   const [pa, pb] = [nb(/stables : (-?\d+) ms/), nb(/ et (-?\d+) ms/)];
   const milieu = nb(/milieu (-?\d+) ms/), demi = nb(/demi-écart (-?\d+) ms/);
-  // Les valeurs des deux groupes : six calculs, et le second pic compté dans
-  // la plupart — premiers pics seuls, on n'en aurait que six au plus.
+  // Les valeurs des deux groupes : quatre fenêtres disjointes, et le second
+  // pic compté dans la plupart — premiers pics seuls, on n'en aurait que
+  // quatre au plus.
   const valeurs = nb(/stables : -?\d+ ms \((\d+)\)/) + nb(/ et -?\d+ ms \((\d+)\)/);
+  const fenetres = nb(/· (\d+) fenêtres? disjointes?/);
   const hist = r2.ecoute?.historique?.['duo1~duo2'] || '';
-  ok('deux voix qui se croisent : deux pics stables, à −550 et −150 ms, dont le milieu est le vrai décalage',
+  const commun = r2.ecoute?.commun || {};
+  ok('deux voix qui se croisent : deux pics stables, à −550 et −150 ms, dont le milieu est le vrai décalage — en fenêtres disjointes',
      /^deux pics stables/.test(pics) && Math.abs(pa + 550) <= 30 && Math.abs(pb + 150) <= 30
-     && Math.abs(milieu + 350) <= 30 && Math.abs(demi - 200) <= 30 && valeurs >= 8
-     && hist.split(' · ').length >= 6 && hist.split(' · ').every((h) => /^-?\d+ \(-?\d+ \d+ %\) z [\d.]+ att -?\d+( sync -?\d+)?$/.test(h)),
+     && Math.abs(milieu + 350) <= 30 && Math.abs(demi - 200) <= 30 && valeurs >= 6 && fenetres >= 3 && fenetres <= 4
+     && hist.split(' · ').length >= 14 && hist.split(' · ').every((h) => /^-?\d+ \(-?\d+ \d+ %\) z [\d.]+ att -?\d+( sync -?\d+)?$/.test(h)),
      JSON.stringify({ pics, hist, paire: r2.ecoute?.paires?.['duo1~duo2'] }));
+  const picsH = r2.ecoute?.pics?.['duo1~hotel'] || '', picsG = r2.ecoute?.pics?.['duo1~golf'] || '';
+  ok('le son commun : « oui » pour les deux voix, « non » pour un stream qui n\'en partage aucun',
+     /^oui · \d+ calculs sur \d+ tiennent hors du bord$/.test(commun['duo1~duo2'] || '')
+     && /^non · \d+ calculs sur \d+ tiennent hors du bord$/.test(commun['duo1~foxtrot'] || ''),
+     JSON.stringify({ commun, histF: r2.ecoute?.historique?.['duo1~foxtrot'] }));
+  ok('au bord des ±6 s, un pic est écarté si l\'horloge ne l\'attend pas, gardé si elle l\'attend',
+     /^non · \d+ calculs sur \d+ tiennent hors du bord$/.test(commun['duo1~golf'] || '')
+     && /· \d+ au bord écartés?$/.test(picsG) && !/: -5\d{3} ms/.test(picsG)
+     && /^oui · \d+ calculs sur \d+ tiennent hors du bord$/.test(commun['duo1~hotel'] || '')
+     && /^un pic stable : -\d+ ms \(\d+\)/.test(picsH) && Math.abs(Number((/: (-?\d+) ms/.exec(picsH) || [])[1]) + 5500) <= 30,
+     JSON.stringify({ golf: [commun['duo1~golf'], picsG], hotel: [commun['duo1~hotel'], picsH],
+                      histG: r2.ecoute?.historique?.['duo1~golf'], histH: r2.ecoute?.historique?.['duo1~hotel'] }));
   await page.evaluate(() => window.tse.salle.ecoute(false));
   await page.close();
 }
 
-/* ═════════ CE QUE LE TROISIÈME RAPPORT RÉEL A APPRIS (4.24.0.14) ══════════
-   Le troisième essai réel, protocole 2 complet, a répondu : la vitesse posée
-   sur l'élément n'est lue par aucun relevé — le lecteur la remet à 1 —, le
-   recul d'une seconde tient, et le son trouve le décalage à 50 ms de la
-   latence. Il a aussi montré ce que la sonde lisait mal :
-     — une tuile recevait sa vidéo par à-coups : trois secondes sans rien,
-       toutes les 76 à 80 s ; son estimation de latence plongeait alors deux
-       secondes, et la règle du tampon impossible accusait… le tampon ;
-     — dix « sauts » sur cette tuile, dont un seul vrai ;
-     — un faux saut juste après le recul, la latence ne se mettant à jour
-       que toutes les deux secondes ;
-     — le journal imprimé dans le désordre.
-   Et getSyncTime suit la tête de lecture : le protocole 3 s'en sert comme
-   d'une horloge, et éprouve la mesure par le son avec des décalages connus. */
+/* ═════════ CE QUE LES TROISIÈME À CINQUIÈME RAPPORTS RÉELS ONT APPRIS ═════
+   Le troisième essai réel (4.24.0.14) : une tuile recevait sa vidéo par
+   à-coups — trois secondes sans rien, toutes les 76 à 80 s — et son
+   estimation de latence plongeait alors ; un faux saut juste après un recul ;
+   le journal dans le désordre.
+   Le quatrième et le cinquième (4.24.0.15) : une chaîne qui ne remet sa
+   latence à jour que toutes les QUATRE secondes ; un lecteur qui rattrape de
+   lui-même, à 1,03 ; des « sauts » qui n'étaient que des latences déjà
+   reconnues fausses ; l'horloge, la latence et le son commun qui suivent
+   chaque déplacement — d'où l'alignement par l'horloge, que le protocole 4
+   éprouve ici. */
 {
-  titre('181. La sonde, après le troisième rapport réel — coupures, sauts lus à la position, protocole 3');
+  titre('181. La sonde, après les rapports réels — coupures, cadence, rattrapages, protocole 4 et alignement');
   const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
     localStorage.setItem('tse:roue', 'vu');
     document.addEventListener('DOMContentLoaded', () => {
@@ -26999,29 +27121,30 @@ const S_LECTEUR_SONDE = () => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   const rapport = () => page.evaluate(() => window.tse.salle.rapport());
   const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
-  await page.evaluate(() => window.tse.salle.ouvrir('alpha', 'echo', 'charlie'));
+  await page.evaluate(() => window.tse.salle.ouvrir('alpha', 'echo', 'charlie', 'delta'));
   await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 8, 20_000);
 
   /* UNE COUPURE D'ARRIVÉE sur « echo » (latence 3,6 s, tampon 3,2 s), comme
      au rapport réel : trois secondes sans vidéo, le tampon qui fond d'une
      seconde par seconde puis se remplit d'un coup, et l'estimation qui plonge
      à 1,6 s deux secondes durant, la lecture continuant. Une coupure notée et
-     comptée ; la latence tenue pour incohérente, pas le tampon ; deux sauts,
-     lus à la position comme de l'ESTIMATION ; l'amont sans la plongée.
-     Mutants — la coupure jamais vue ; la faute toujours au tampon ; les sauts
-     sans leur nature ; l'amont avec la latence incohérente. */
+     comptée ; la latence tenue pour incohérente, pas le tampon ; et AUCUN
+     saut (4.24.0.15) — au cinquième rapport réel, les quatre « sauts »
+     d'une tuile étaient ces plongées, aller et retour ; l'amont sans elles.
+     Mutants — la coupure jamais vue ; la faute toujours au tampon ; un saut
+     jugé sur une latence incohérente ; l'amont avec elle. */
   await cadre('echo')?.evaluate(() => window.__coupure(3)).catch(() => null);
   await wait(page, 7000);
   const r1 = await rapport();
   const se = r1.tuiles.echo?.serie || {};
   const evts1 = Object.values(r1.instant?.evenements || {});
   const duree = Number((/au moins ([\d.]+) s/.exec(se.coupuresDetail || '') || [])[1]);
-  ok('une coupure d\'arrivée est vue au tampon, la plongée de la latence qui la suit tenue pour incohérente, et ses sauts lus comme de l\'estimation',
+  ok('une coupure d\'arrivée est vue au tampon, la plongée de la latence qui la suit tenue pour incohérente — et pour aucun saut',
      se.coupures === 1 && duree >= 1.9 && duree <= 3.1
      && evts1.some((x) => /echo · coupure d'arrivée : au moins [\d.]+ s sans vidéo \(tampon [\d.]+ → [\d.]+\)/.test(x))
      && se.latencesIncoherentes >= 1 && se.latencesIncoherentes <= 2 && se.aberrants === 0
-     && se.sauts === 2 && se.sautsNature === 'estimation 2 · calage 0 · avance 0 · inconnue 0'
-     && evts1.filter((x) => /echo · saut de latence [\d.]+ → [\d.]+ · estimation · /.test(x)).length === 2
+     && se.sauts === 0 && se.sautsNature === 'estimation 0 · calage 0 · avance 0 · inconnue 0'
+     && !evts1.some((x) => /echo · saut de latence/.test(x))
      && Number(se.amont?.split(' · ')[0]) >= 0.3,
      JSON.stringify({ serie: { ...se, valeurs: undefined }, evts1: evts1.slice(-8) }));
 
@@ -27029,27 +27152,65 @@ const S_LECTEUR_SONDE = () => {
      que toutes les deux secondes — au premier relevé de chaque tranche. Un
      recul d'une seconde lancé sitôt ce relevé-là reçu, fini une demi-seconde
      plus tard : la mise à jour suivante tombe deux relevés après, hors de
-     l'essai — la règle d'avant y voyait un saut, à coup sûr. Mutant — la
-     fenêtre après l'essai oubliée. */
-  const sautsAvant = r1.tuiles.charlie?.serie?.sauts;
-  await page.evaluate(async () => {
-    const tranche = Math.ceil(Date.now() / 2000) * 2000;
+     l'essai — la règle d'avant y voyait un saut, à coup sûr.
+     À LA CADENCE DE LA TUILE (4.24.0.15). Une chaîne du quatrième rapport
+     réel ne remettait sa latence à jour que toutes les QUATRE secondes, à un
+     instant qui ne doit rien aux relevés : l'effet d'un recul peut n'y
+     paraître que 3,5 s après la fin de l'essai — hors des 2,5 s d'avant. Le
+     lecteur factice met la sienne à jour au relevé même ; « delta » le fait
+     toutes les CINQ secondes, ce qui reproduit ce pire cas. Les latences :
+     2,2 s, plus le recul, plus le calage (0,15 s), moins la dérive. Mutants
+     — la fenêtre après l'essai oubliée ; la fenêtre fixe, sans la
+     cadence. */
+  const sautsAvant = (await rapport()).tuiles;
+  const reculerApresMaj = (ch, pas) => page.evaluate(async ([ch, pas]) => {
+    const tranche = Math.ceil(Date.now() / pas) * pas;
     await new Promise((res) => {
       const i = setInterval(() => {
-        const s = window.tse.salle.series().tuiles.charlie;
+        const s = window.tse.salle.series().tuiles[ch];
         if (s.length && s[s.length - 1].t >= tranche) { clearInterval(i); res(); }
       }, 10);
     });
-    return window.tse.salle.recul('charlie', 1);
-  });
-  await wait(page, 5000);
+    return window.tse.salle.recul(ch, 1);
+  }, [ch, pas]);
+  await reculerApresMaj('charlie', 2000);
+  await reculerApresMaj('delta', 5000);
+  await wait(page, 9000);
   const r2 = await rapport();
   const evts2 = Object.values(r2.instant?.evenements || {});
-  ok('un recul n\'est pas un saut, même quand le lecteur ne met sa latence à jour que deux secondes plus tard',
-     Number.isFinite(sautsAvant) && r2.tuiles.charlie?.serie?.sauts === sautsAvant && r2.tuiles.charlie.essai === 'recul 1 · instance · fini'
-     && Math.abs(r2.tuiles.charlie.latence - 3.2) < 0.2,
-     JSON.stringify({ sautsAvant, sauts: r2.tuiles.charlie?.serie?.sauts, essai: r2.tuiles.charlie?.essai,
-                      latence: r2.tuiles.charlie?.latence, evts2: evts2.slice(-5) }));
+  ok('un recul n\'est pas un saut, même quand le lecteur ne met sa latence à jour que toutes les deux, ou cinq, secondes',
+     ['charlie', 'delta'].every((ch) => Number.isFinite(sautsAvant[ch]?.serie?.sauts)
+       && r2.tuiles[ch]?.serie?.sauts === sautsAvant[ch].serie.sauts && r2.tuiles[ch].essai === 'recul 1 · instance · fini'
+       && Math.abs(r2.tuiles[ch].latence - 3.3) < 0.2)
+     && r2.tuiles.delta.serie.majS === 5,
+     JSON.stringify({ charlie: [sautsAvant.charlie?.serie?.sauts, r2.tuiles.charlie?.serie?.sauts, r2.tuiles.charlie?.essai, r2.tuiles.charlie?.latence],
+                      delta: [sautsAvant.delta?.serie?.sauts, r2.tuiles.delta?.serie?.sauts, r2.tuiles.delta?.essai, r2.tuiles.delta?.latence,
+                              r2.tuiles.delta?.serie?.majS], evts2: evts2.slice(-8) }));
+
+  /* LES RATTRAPAGES DU LECTEUR (4.24.0.15) : « alpha », jamais déplacé, passe
+     de lui-même à 1,03 six secondes — comme la tuile de référence du
+     quatrième rapport réel, treize secondes durant ; « charlie », reculé
+     plus haut, de même. Chacun compté, avec sa durée, sa vitesse, sa latence
+     avant et après, ce que la vitesse devait lui faire perdre (−0,18 s), et
+     pour le second : « après déplacement ». Ni l'un ni l'autre n'est un
+     saut. Mutants — le rattrapage jamais vu, ou jamais fini ; l'attendu au
+     mauvais signe ; la tuile déplacée jamais marquée. */
+  await cadre('alpha')?.evaluate(() => window.__rattraper(1.03, 6)).catch(() => null);
+  await cadre('charlie')?.evaluate(() => window.__rattraper(1.03, 6)).catch(() => null);
+  await wait(page, 9000);
+  const rr = await rapport();
+  const [ra, rc] = [rr.tuiles.alpha?.serie || {}, rr.tuiles.charlie?.serie || {}];
+  const evtsR = Object.values(rr.instant?.evenements || {});
+  const attR = Number((/attendu (-?[\d.]+) s/.exec(ra.rattrapagesDetail || '') || [])[1]);
+  const durR = Number((/^([\d.]+) s à/.exec(ra.rattrapagesDetail || '') || [])[1]);
+  ok('un rattrapage du lecteur est compté — sa durée, sa vitesse, sa latence avant et après, l\'attendu — et dit s\'il suit un déplacement',
+     ra.rattrapages === 1 && /^[\d.]+ s à 1\.03 · 2 → 1\.8\d* \(attendu -0\.\d+ s\)$/.test(ra.rattrapagesDetail || '')
+     && Math.abs(durR - 6) <= 1.1 && Math.abs(attR + 0.18) <= 0.035 && ra.deplacee === false && ra.sauts === 0
+     && rc.rattrapages === 1 && /^[\d.]+ s à 1\.03 · [\d.]+ → [\d.]+ \(attendu -0\.\d+ s\) · après déplacement$/.test(rc.rattrapagesDetail || '')
+     && rc.deplacee === true
+     && evtsR.some((x) => /alpha · rattrapage du lecteur : [\d.]+ s à 1\.03, latence 2 → 1\.8\d* \(attendu -0\.\d+ s\)/.test(x)),
+     JSON.stringify({ alpha: [ra.rattrapages, ra.rattrapagesDetail, ra.deplacee, ra.sauts], charlie: [rc.rattrapages, rc.rattrapagesDetail, rc.deplacee],
+                      evtsR: evtsR.slice(-6) }));
 
   /* LE JOURNAL, DANS L'ORDRE : des clés à trois chiffres — « 10 » était une
      clé numérique, rangée avant « 01 » —, et des latences au millième. Dix
@@ -27067,50 +27228,77 @@ const S_LECTEUR_SONDE = () => {
   await page.evaluate(() => window.tse.salle.fermer());
   await wait(page, 1500);
 
-  /* LE PROTOCOLE 3, à l'échelle 0,6 — 144 s — sur « alpha » (le son) et
+  /* LE PROTOCOLE 4, à l'échelle 0,6 — 156 s — sur « alpha » (le son) et
      « bravo » (la cible) : le son de « bravo » passe 350 ms après celui
      d'« alpha », leurs latences sont de 2 et 2,5 s, et le son suit la tête de
-     lecture. Chaque phase retient ses calculs ; leurs écarts :
-       B − A (le son passé à « bravo ») : rien ne bouge — le faux n'a pas de
-         biais de capture ;
-       C − A (le recul d'une seconde) : le pic, l'attendu et l'horloge
-         perdent une seconde, comme prévu d'après le recul obtenu ;
-       D − C (l'avance d'une seconde) : ils la regagnent.
-     Et l'horloge de la tête de lecture donne chaque latence à 20 ms près.
-     Mutants — les phases mal bornées ; le sens de la paire qui suit le son ;
-     le prévu au mauvais signe ; l'horloge jamais relevée ; l'écart par
-     l'horloge faux ; l'historique trop court pour tout le protocole. */
+     lecture. L'alignement prend « bravo », la plus en retard, pour
+     référence, et recule « alpha » de 0,38 s (0,5 moins le calage attendu) ;
+     « alpha » cale de 0,3 s : 0,68 obtenus, 0,18 de trop ; la seconde passe
+     l'avance de 0,48 (0,18 plus le calage mesuré), 0,18 obtenus. Puis :
+       A (avant) : pic −350, attendu et horloge −500 ;
+       B (après) : horloge et attendu 0, pic +150 — et une SOURCE DE PLUS,
+         ajoutée sur « bravo » sitôt aligné, plus forte, qui donne un second
+         groupe à −270 : le pic de B qui répond à celui de A est celui qui a
+         bougé de ce que l'horloge a vu, pas le plus nombreux (le cinquième
+         rapport réel avait trois composantes) ;
+       B − A : +500 par le son, la latence, l'horloge et le prévu ; le pic a
+         suivi ; le son commun, « oui ».
+     Les pics stables : depuis le dernier déplacement seulement — 113 s
+     d'écoute après lui, donc cinq fenêtres disjointes au plus, contre sept
+     ou huit sur toute l'écoute ; leurs valeurs ne le diraient pas, la source
+     ajoutée (−770 + 486 ≈ −284 ms) tombant à 50 ms du pic d'avant (−350).
+     Mutants — la
+     référence qui n'est pas la plus en retard ; le calage jamais compensé,
+     ou mesuré à l'envers ; la seconde passe absente ; les phases mal
+     bornées ; l'attendu ou l'horloge pris aux calculs ; le pic d'après pris
+     au groupe le plus nombreux ; le prévu au mauvais signe ; les pics
+     d'avant le déplacement comptés ; l'historique trop court. */
   await page.evaluate(() => window.tse.salle.ouvrir('alpha', 'bravo'));
   await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 4, 20_000);
   const lance = await page.evaluate(() => window.tse.salle.essais(0.6));
+  await attendre(page, () => window.tse.salle.rapport().protocole?.etat === 'en cours · suivi', 90_000);
+  await cadre('bravo')?.evaluate(() => window.__ajouterVoix(0, 770, 550, 1.1)).catch(() => null);
   await attendre(page, () => window.tse.salle.rapport().protocole?.etat === 'fini', 170_000);
   const r3 = await rapport();
   const pr = r3.protocole || {};
+  const al = r3.alignement || {};
   const ph = (P) => pr.phases?.[`alpha~bravo ${P}`] || '';
-  const picDe = (P) => Number((/pics (-?\d+) \(/.exec(ph(P)) || [])[1]);
-  const lire = (x, k) => Number((new RegExp(`${k} ([+-]?\\d+)`).exec(x || '') || [])[1]);
-  const [b6, c5, d7] = [pr.S6bascule?.['alpha~bravo'], pr.S5son?.['alpha~bravo'], pr.S7son?.['alpha~bravo']];
-  const hA = r3.tuiles.alpha?.serie?.horloge || '';
-  const hLat = Number((/^([\d.]+) s/.exec(hA) || [])[1]);
-  const nCalculs = (P) => Number((/^(\d+) calculs/.exec(ph(P)) || [])[1]);
-  // L'historique garde tout le protocole (vingt-sept calculs environ ici,
-  // quarante-huit en vrai) ; la paire ne se retourne jamais avec le son.
+  const lire = (x, re) => Number((re.exec(x || '') || [])[1]);
+  const picsDe = (P) => (/· pics (.*)$/.exec(ph(P)) || [, ''])[1].split(' · ').map((g) => Number(g.split(' ')[0]));
+  const s10 = pr.S10son?.['alpha~bravo'] || '';
+  const ecartDe = (x) => Number((/écart (-?[\d.]+) s/.exec(x || '') || [])[1]);
+  const p1 = al.passe1 || '', p2 = al.passe2 || '';
   const calculs = (r3.ecoute?.historique?.['alpha~bravo'] || '').split(' · ').length;
-  ok('le protocole 3 retrouve les décalages connus : rien à la bascule du son, une seconde perdue au recul, regagnée à l\'avance — par le son, la latence et l\'horloge',
-     lance?.duree === '144 s' && pr.etat === 'fini'
-     && ['A', 'B', 'C', 'D'].every((P) => /^\d+ calculs · pics -?\d+ \(\d+\)/.test(ph(P)))
-     && nCalculs('A') >= 3 && ['B', 'C', 'D'].every((P) => nCalculs(P) >= 2)
+  const picsStables = r3.ecoute?.pics?.['alpha~bravo'] || '';
+  ok('S10 dans le protocole 4 : « bravo » en référence, « alpha » reculé, son calage mesuré puis corrigé — l\'écart ramené à zéro et tenu',
+     lance?.duree === '~156 s' && pr.etat === 'fini' && al.etat === 'fini' && al.reference === 'bravo (la plus en retard)'
+     && Math.abs(lire(al.avant, /écart ([\d.]+) s/) - 0.5) <= 0.03
+     && /^alpha recul [\d.]+ s demandé \(écart [\d.]+ s, calage prévu 0\.12\) · obtenu [\d.]+ s · calage [\d.]+ · instance$/.test(p1)
+     && Math.abs(lire(p1, /recul ([\d.]+) s/) - 0.38) <= 0.03 && Math.abs(lire(p1, /calage ([\d.]+) · instance/) - 0.3) <= 0.01
+     && /^alpha avance [\d.]+ s demandé \(écart -[\d.]+ s, calage prévu 0\.[\d]+\) · obtenu [\d.]+ s · calage [\d.]+ · instance$/.test(p2)
+     && Math.abs(lire(p2, /avance ([\d.]+) s/) - 0.48) <= 0.04 && Math.abs(lire(p2, /calage prévu ([\d.]+)/) - 0.3) <= 0.01
+     && ecartDe(al.apres) <= 0.04 && Object.values(al.suivi || {}).length === 4 && Object.values(al.suivi).every((x) => ecartDe(x) <= 0.04)
+     && Math.abs(lire(al.deplacements, /^alpha \+([\d.]+) s$/) - 0.5) <= 0.04,
+     JSON.stringify({ lance, al }));
+  ok('le protocole 4 retrouve l\'alignement par le son, la latence et l\'horloge — le même pic de part et d\'autre, et le son commun',
+     /^\d+ relevés · attendu -?\d+ ms · horloge -?\d+ ms · \d+ calculs · pics -?\d+ \(\d+\)/.test(ph('A')) && /· pics /.test(ph('B'))
+     && lire(ph('A'), /^\d+ relevés · attendu (-?\d+)/) === -500 && Math.abs(lire(ph('A'), /horloge (-?\d+)/) + 500) <= 25
+     && Math.abs(lire(ph('B'), /attendu (-?\d+)/)) <= 40 && Math.abs(lire(ph('B'), /horloge (-?\d+)/)) <= 40
+     && lire(ph('A'), /· (\d+) calculs/) >= 3 && lire(ph('B'), /· (\d+) calculs/) >= 10
+     && Math.abs(picsDe('A')[0] + 350) <= 30 && picsDe('B').some((x) => Math.abs(x - 150) <= 30)
+     && picsDe('B').some((x) => Math.abs(x + 270) <= 30)
+     && Math.abs(lire(s10, /^pic \+(\d+)/) - 500) <= 40 && Math.abs(lire(s10, /attendu \+(\d+)/) - 500) <= 40
+     && Math.abs(lire(s10, /horloge \+(\d+)/) - 500) <= 40 && Math.abs(lire(s10, /prévu \+(\d+)/) - 500) <= 40
+     && / · le pic a suivi l'horloge$/.test(s10)
+     && /^oui · \d+ calculs sur \d+ tiennent hors du bord · le pic a suivi l'alignement$/.test(pr.sonCommun?.['alpha~bravo'] || '')
+     && /^0\.95 posé · relu \d+ ms 0\.95 · .* · 2 changements \(\d+ ms → 0\.95, \d+ ms → 1\) · video$/.test(pr.S3relecture || '')
+     && pr.rattrapages === 'alpha 0 · bravo 0' && pr.rechargements === 'alpha 0 · bravo 0' && pr.coupures === 'alpha 0 · bravo 0'
+     && / · depuis le dernier déplacement$/.test(picsStables)
+     && lire(picsStables, /· (\d+) fenêtres? disjointes?/) <= 5
      && calculs >= 25 && Object.keys(r3.ecoute?.paires || {}).join() === 'alpha~bravo'
-     && Math.abs(picDe('A') + 350) <= 30 && Math.abs(picDe('B') + 350) <= 30 && Math.abs(picDe('C') + 1350) <= 30 && Math.abs(picDe('D') + 350) <= 30
-     && Math.abs(lire(b6, 'pic')) <= 30 && Math.abs(lire(b6, 'attendu')) <= 60 && Math.abs(lire(b6, 'horloge')) <= 30 && lire(b6, 'prévu') === 0
-     && Math.abs(lire(c5, 'pic') + 1000) <= 40 && Math.abs(lire(c5, 'attendu') + 1000) <= 100 && Math.abs(lire(c5, 'horloge') + 1000) <= 40
-     && Math.abs(lire(c5, 'prévu') + 1000) <= 30
-     && Math.abs(lire(d7, 'pic') - 1000) <= 40 && Math.abs(lire(d7, 'attendu') - 1000) <= 100 && Math.abs(lire(d7, 'horloge') - 1000) <= 40
-     && Math.abs(lire(d7, 'prévu') - 1000) <= 30
-     && /· \d+ passages de 1000 ms · lecteur 2 s$/.test(hA) && hLat >= 2 && hLat <= 2.06
-     && Math.abs(r3.instant?.ecartHorloge - 0.5) <= 0.03,
-     JSON.stringify({ lance, phases: pr.phases, b6, c5, d7, S5position: pr.S5position, S7position: pr.S7position,
-                      horloge: [hA, r3.tuiles.bravo?.serie?.horloge], ecartHorloge: r3.instant?.ecartHorloge,
+     && Math.abs(r3.instant?.ecartHorloge) <= 0.04,
+     JSON.stringify({ phases: pr.phases, s10, commun: pr.sonCommun, S3: pr.S3relecture, picsStables,
+                      horloge: [r3.tuiles.alpha?.serie?.horloge, r3.tuiles.bravo?.serie?.horloge], ecartHorloge: r3.instant?.ecartHorloge,
                       historique: r3.ecoute?.historique }));
   await page.close();
 }

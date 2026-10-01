@@ -2180,6 +2180,267 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Deux rapports, une horloge qui tient, et l'alignement (v4.24.0.15)
+
+Le protocole 3 a été joué deux fois en entier, sur deux paires : l'une sans
+aucun son en commun (quatrième rapport réel), l'autre avec — la paire du
+troisième rapport (cinquième rapport réel). Chacun a reculé la cible d'une
+seconde, puis l'a avancée d'une seconde, l'écoute tournant tout du long.
+Ensemble, ils établissent que **l'horloge de la tête de lecture suit chaque
+déplacement à 10–15 ms près**, que le son commun le suit aussi, et que la
+sonde lisait encore mal six choses. Cette version en tire **l'alignement par
+l'horloge** (S10) et le protocole 4, qui l'éprouve. Publiée sur
+`claude/chrome-multi` seulement.
+
+### Ce que les deux rapports établissent
+
+**1. L'horloge suit la lecture, à 10–15 ms près, par des décalages connus.**
+Les phases relues sur les seules fenêtres qui tombent entièrement dedans
+(huit calculs chacune, sauf mention), médiane de l'écart par l'horloge :
+
+| rapport | déplacement | obtenu (position) | horloge | latence |
+| --- | --- | --- | --- | --- |
+| 4ᵉ | recul de la cible (C − B) | −1218 ms | **−1218** | −1244 |
+| 4ᵉ | avance de la cible (D − C) | +917 ms | **+928** | +986 |
+| 5ᵉ | recul de la cible (C − A) | −1099 ms | **−1086** | −1097 |
+| 5ᵉ | son passé à la cible (B − A) | 0 | −89 | −57 |
+
+À l'intérieur d'une phase, l'horloge varie de ±25 à ±45 ms (écart-type des
+médianes sur 20 s) ; la latence du lecteur, de ±20 à ±80 ms. Au cinquième
+rapport, elle a dérivé de −89 ms entre A et B **sans que rien ne bouge** — le
+son commun, lui, est resté au même pic. C'est sa limite : une dizaine de
+millisecondes sur un déplacement, plusieurs dizaines sur une minute.
+
+**2. Le son commun suit la tête de lecture, lui aussi — et ne dépend pas de
+la tuile qui l'a.** Au cinquième rapport, le pic principal était à
+**1210 ms dans les huit calculs de la phase A** ; en B, le son passé à la
+cible, quatre des cinq calculs qui tiennent l'y trouvent encore (le
+cinquième, à 1960 : cf. 3). S6 : +0 ms. Le biais de capture, troisième
+lecture du rapport précédent, est écarté. Au recul, le pic est passé à
+120–140 ms (−1080, pour −1099 obtenus) ; après l'avance, deux calculs le
+trouvent à 1040 ms — sans tenir (z 3,5 et 4,2) —, soit +900 pour +897.
+
+**3. Ce son commun a trois composantes, qui bougent ensemble.**
+
+| phase | composante 1 | 2 | 3 | horloge |
+| --- | --- | --- | --- | --- |
+| A | 1210 | 1640 | 1950 | 1150 |
+| C (après le recul) | 130 | 550–560 | 860–870 | 64 |
+| D (après l'avance et un calage de la référence) | 1640–1650 | 2070 | 2350–2370 | 1506 |
+
+Écarts constants : +430 et +730 ms environ, à 15 ms près. Chacune a suivi
+chaque déplacement : trois sources distinctes, à des délais fixes l'une de
+l'autre — des voix passant par un salon vocal, d'un côté ou de l'autre, s'y
+prêtent. Au troisième rapport, sur la même paire : 745, puis +415 et +585 à
++615. **La première, la plus forte, se tient 50 à 135 ms après l'horloge** ;
+laquelle est « le » décalage, le son seul ne peut pas le dire. L'horloge,
+elle, compare ce que chaque diffuseur a envoyé au même instant.
+
+**4. Sans son commun, le son ne dit rien — et le disait mal.** Au quatrième
+rapport, six calculs sur quarante-sept tenaient (z ≥ 5), dont cinq à plus de
+5 s, au bord des ±6 s cherchées ; vingt pics principaux sur quarante-sept y
+étaient, trente à plus de 4 s. Aucun n'a suivi le recul. Et la sonde
+annonçait pourtant « deux pics stables : 5100 ms (3) et 5590 ms (2) » : trois
+calculs de suite, qui partageaient les trois quarts de leur son.
+
+**5. La vitesse : remise à 1 entre 60 et 250 ms.** Relue à 61 ms, elle valait
+déjà 1 au quatrième rapport ; à 62 ms, encore 0,95 au cinquième ; 1 à 250 ms
+les deux fois, avec trois `ratechange`.
+
+**6. Chaque déplacement cale un peu.** Obtenu moins demandé : +0,218 et
++0,099 s aux reculs, −0,083 et −0,103 s aux avances — la lecture perd 0,08 à
+0,22 s de plus. Une avance d'1 s n'en donne que 0,9 ; un recul d'1 s, 1,1 à
+1,2. Rien n'a rechargé, et les deux déplacements ont tenu leur minute.
+
+**7. Le lecteur rattrape parfois de lui-même — pas après un déplacement.**
+Au quatrième rapport, la référence est passée à **1,03 pendant 13,6 s**
+(latence 3,10 → 2,83 s), une seule fois. La cible, reculée d'1,2 s, est
+restée une minute à 3,5 s de latence — plus haut que la référence quand elle
+a rattrapé — sans jamais le faire. Les deux tuiles annonçaient le mode faible
+latence. Une seule observation : le protocole 4 les compte.
+
+**8. La référence du cinquième rapport recevait encore sa vidéo par à-coups**
+(deux coupures, 209 s d'intervalle), et la seconde, pendant la phase D, l'a
+fait caler d'environ 0,55 s (référence +0,56 s à la tenue). C'est ce que
+l'horloge a vu en D − C : +1442 ms, soit l'avance obtenue (+897) **plus** ce
+calage ; la latence, +1446 ; la première composante du son, +1515. Le
+protocole 3 ne comptait que les déplacements de la cible : il annonçait
+« prévu +897 » — et « pic +1940 » (cf. plus bas).
+
+**9. `getSyncTime` vaut 0 avant la première image.** La série du cinquième
+rapport remontait à l'ouverture de la salle (292 relevés) : ces zéros
+donnaient à `sync` une pente de 384 millions par seconde.
+
+### Ce que la sonde lisait mal, et lit désormais
+
+- **Les phases sans le son.** Une phase ne prenait l'attendu et l'horloge que
+  dans ses calculs qui tenaient : au quatrième rapport, aucun en A et en D —
+  phases vides, écarts « — ». Désormais, l'attendu vient des **relevés** de la
+  phase et l'horloge de **ses passages**, à partir de deux secondes après son
+  début ; le son s'y ajoute quand il tient.
+- **Le même pic de part et d'autre.** Au cinquième rapport, le groupe le plus
+  nombreux était la composante 1 en C, la 2 en D : « pic +1940 » au lieu de
+  +1515. Le pic d'après est désormais, parmi les groupes de la phase, **le
+  plus proche du pic d'avant déplacé de ce que l'horloge a vu**. Il a
+  **suivi** s'il en est à 150 ms au plus — jugé seulement pour un
+  déplacement de 0,2 s au moins.
+- **Les pics stables, sur des fenêtres disjointes** — deux calculs voisins
+  partagent quinze secondes de son —, choisies depuis la dernière, à un quart
+  de seconde de recouvrement près ; **pas au bord** — un pic à plus de 5 s
+  est écarté et compté, sauf à moins d'une seconde de ce que l'horloge (à
+  défaut, la latence) attend : un vrai décalage de 5,5 s, une chaîne en
+  latence normale face à une en faible latence, reste ; et **depuis le
+  dernier déplacement** : « deux pics
+  stables : 140 et 1210 → milieu 675 » réunissait l'avant et l'après d'un
+  recul.
+- **Le son commun, en un mot** (`ecoute.commun`) : la part des calculs qui
+  tiennent hors du bord — la moitié au moins, « oui » ; moins d'un cinquième,
+  « non » ; entre les deux, « incertain » ; et « non » si le pic n'a pas suivi
+  un déplacement connu. Au quatrième rapport : 1 sur 47, « non » ; au
+  cinquième : 36 sur 46, « oui ».
+- **Aucun saut jugé sur une latence incohérente.** Les quatre « sauts » de la
+  référence au cinquième rapport étaient les deux plongées de son estimation
+  pendant les coupures, aller et retour — des latences déjà reconnues fausses.
+- **La fenêtre d'après un essai, à la cadence de la tuile** : sa cadence plus
+  une demi-seconde, 2,5 s au moins. Une chaîne du quatrième rapport ne
+  remettait sa latence à jour que toutes les quatre secondes, à un instant
+  qui ne doit rien aux relevés : l'effet d'un recul pouvait n'y paraître que
+  3,5 s après la fin de l'essai. La cadence elle-même se lit désormais sur la
+  moitié de deux écarts successifs : un relevé tombé juste avant ou juste
+  après une mise à jour fait alterner 1 et 3 s pour une cadence de 2.
+- **Chaque `ratechange` daté** (« 3 changements (0 ms → 0.95, 58 ms → 1, …) »).
+- **Les rattrapages du lecteur** (`rattrapages`, `rattrapagesDetail`) : leur
+  durée, leur vitesse, la latence avant et après, ce que la vitesse devait
+  faire perdre, et « après déplacement » si la tuile avait été reculée ou
+  avancée avant. Au journal : « rattrapage du lecteur : 13.6 s à 1.03, latence
+  3.104 → 2.833 (attendu −0.41 s) ».
+- **`getSyncTime` à 0** n'est plus une mesure, comme la latence à 0.
+
+### L'alignement par l'horloge (S10)
+
+```
+tse.salle.aligner()        // dix à quinze secondes de passes, trois minutes de suivi
+tse.salle.aligner(false)   // l'arrêter
+```
+
+1. L'horloge de chaque tuile, sur ses huit dernières secondes (elle s'allume
+   d'elle-même si l'écoute ne tourne pas, cinq secondes d'abord).
+2. **La tuile la plus en retard sert de référence, et ne bouge pas.** Chaque
+   autre **recule** de son écart avec elle, moins le calage attendu
+   (0,12 s, entre la médiane — 0,10 — et la moyenne — 0,13 — des quatre
+   déplacements réels).
+3. Cinq secondes après, on remesure, sur les passages d'après. Un écart
+   restant de plus de 0,1 s est corrigé par un second déplacement — reculer
+   encore, ou avancer de ce qu'on a trop reculé —, au calage **mesuré** sur
+   cette tuile au premier (obtenu moins demandé).
+4. Puis le **suivi**, sans rien toucher : l'écart à +30, +60, +120 et +180 s.
+   Le lecteur rattrape-t-il ? Une coupure fait-elle caler une tuile ?
+
+On ne fait que retarder : une tuile retardée a un tampon plus grand, donc
+plus sûr — et l'avance de la seconde passe ne fait que rendre ce qu'on avait
+pris de trop, dans ce tampon agrandi, sous la garde d'une demi-seconde.
+
+Au rapport, bloc `alignement` : `reference` (« … (la plus en retard) »),
+`avant` et `apres` (« … 1.387 · … 0.377 · écart 1.010 s · … +1.010 » —
+chaque horloge, puis l'avance de chaque tuile sur la référence), `passe1` et
+`passe2` (demandé, écart, calage prévu, obtenu, calage mesuré, voie),
+`deplacements` (la latence prise par chaque tuile), `suivi`.
+
+**Ce qu'il ne fait pas** : l'horloge ne voit que la tête de lecture, pas la
+part du diffuseur. Sur la paire du cinquième rapport, il reculerait la cible
+d'environ 1,0 s, et laisserait la première composante du son à 50–135 ms,
+les autres à +430 et +730 ms de plus — aucun réglage ne peut aligner à la
+fois des voix qui passent par un salon vocal.
+
+### Le protocole 4
+
+```
+tse.salle.essais()        // 4 min environ
+tse.salle.essais(false)   // l'arrêter, l'alignement avec
+```
+
+| temps | phase | ce qu'on doit voir |
+| --- | --- | --- |
+| 0 s | A — l'écoute allumée ; la vitesse de l'élément relue sur la cible, chaque `ratechange` daté | l'écart avant, par le son, la latence et l'horloge |
+| 60 s | l'alignement : deux passes | la référence, les reculs, les calages |
+| ~72 s | B — aligné ; le suivi à +30, +60, +120, +180 s | l'écart tient-il ? le son a-t-il bougé de ce que l'horloge a vu ? |
+| ~4 min 12 | fin | |
+
+Au rapport, bloc `protocole` : `S3relecture` ; `phases` (A, B : relevés,
+attendu, horloge, calculs, pics) ; `S10son` (B − A : le pic, l'attendu,
+l'horloge, le prévu — les déplacements obtenus —, et si le pic a suivi) ;
+`sonCommun` ; `rattrapages`, `rechargements` et `coupures` de chaque tuile
+pendant le protocole ; `S9`. Et le bloc `alignement`.
+
+On ne touche toujours pas à `setLiveMaxLatency`, `setLiveSpeedUpRate` ni
+`setInitialBufferDuration`.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** cale désormais à chaque déplacement — 0,15 s, et
+0,3 s pour « alpha », que la seconde passe doive corriger —, rend 0 par
+`getSyncTime` avant de jouer, sait **rattraper** de lui-même (`__rattraper`),
+et « delta » ne remet sa latence à jour que toutes les cinq secondes : le
+pire cas d'une cadence de quatre, quand la mise à jour ne tombe pas au
+relevé. « foxtrot » n'a aucun son en commun ; « golf » et « hotel » passent
+le son 5,5 s plus tard, l'un sans que sa latence le dise, l'autre avec ; et
+une **source de plus** peut s'ajouter en cours de route (`__ajouterVoix`).
+
+- **179** : le protocole 4 à l'échelle 0,1 — la suite seulement : la
+  relecture et ses deux `ratechange` datés, l'alignement lancé, son suivi
+  raccourci, les phases lues aux relevés et à l'horloge sans aucun calcul ;
+  un alignement à la main refusé avant le sien comme pendant ; arrêté pendant
+  le suivi, il arrête l'alignement ; la salle fermée, tous deux. `aligner`
+  relayé par la console d'une tuile et par celle du panneau ; `getSyncTime` à
+  0 hors de la pente.
+- **180** : **`aligner()` seul**, l'écoute éteinte — c'est lui qui allume
+  l'horloge. Têtes de lecture à 4,513, 4,813 et 2,133 s : « bravo », la plus
+  en retard, en référence ; « alpha » recule de 0,18 s, en obtient 0,48
+  (calage mesuré 0,3), et la seconde passe l'avance de 0,48 (0,181 obtenus) ;
+  « charlie » recule de 2,56 s (2,711 obtenus) et n'a plus rien à corriger :
+  écart final **0,000 s** — puis 0,058 s au bout du suivi, la dérive de
+  « charlie ». `aligner(false)` l'arrête, la salle fermée aussi. Le duo, en
+  fenêtres disjointes ; « foxtrot », « non » ; au bord, « golf » (5,5 s par
+  le son seul) écarté, « hotel » (5,5 s par le son et la latence) gardé.
+- **181** : la coupure d'arrivée, sans aucun saut ; un recul juste après une
+  mise à jour de la latence, toutes les deux ou cinq secondes, qui n'en est
+  pas un ; deux rattrapages, dont un « après déplacement » ; et **le
+  protocole 4 à l'échelle 0,6** (156 s) : « bravo » en référence, « alpha »
+  reculé de 0,38 s (0,68 obtenus), avancé de 0,48 (0,18 obtenus), l'écart
+  ramené sous 40 ms et tenu tout le suivi ; A : pic −350, attendu et horloge
+  −500 ; B : 0, pic +150 — et une source de plus, plus forte, à −270 ; B − A :
+  +500 par le son, la latence, l'horloge et le prévu, le pic a suivi ; le son
+  commun, « oui » ; les pics stables, depuis le dernier déplacement.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'alignement : la référence la plus en avance ; le calage attendu jamais retiré ; le calage mesuré à l'envers, ou ignoré à la seconde passe ; pas de seconde passe ; un seuil de 0,5 s ; l'horloge jamais allumée hors de l'écoute ; la salle fermée qui l'oublie (8) | des tuiles laissées à 0,18 s, ou 0,3 s trop loin |
+| le protocole 4 : l'alignement jamais lancé, ou jamais attendu ; arrêté sans lui ; un alignement à la main avant le sien ; l'attendu des phases pris aux calculs ; le pic d'après pris au groupe le plus nombreux ; le prévu au mauvais signe, ou à la paire retournée ; les `ratechange` non datés (9) | des phases vides sans son ; « pic +1940 » au lieu de +1515 |
+| le son : les pics d'avant le déplacement comptés ; le déplacement jamais vu ; les fenêtres qui se chevauchent ; le verdict « non » oublié ; le bord jamais écarté, ou toujours (6) | « 140 et 1210 → milieu 675 » ; « 5100 (3) » ; un vrai décalage de 5,5 s perdu |
+| la sonde : un saut jugé sur une latence incohérente ; la fenêtre fixe à 2,5 s ; un rattrapage jamais fini, ou d'attendu inversé ; la tuile déplacée jamais marquée ; `getSyncTime` à 0 compté (6) | les quatre faux sauts du cinquième rapport ; sa pente de 384 millions par seconde |
+| la console : `aligner` absent de la salle, ou du relais des tuiles (2) | une commande qui ne répond pas |
+
+Trente-deux mutants, trente et un pris. Au premier tour, vingt-huit sur
+trente et un ; deux survivants ont montré deux faiblesses. Le banc n'avait
+aucun pic au bord — et, en y regardant, la règle elle-même écartait un vrai
+décalage de 5,5 s : elle tient désormais compte de l'horloge, et « golf » et
+« hotel » l'éprouvent dans les deux sens. Et avec la source ajoutée en
+route, les pics d'avant l'alignement n'entraient jamais dans les deux groupes
+retenus, coupés ou non : le banc borne désormais le nombre de fenêtres.
+**Un survivant, assumé** : mesurer la seconde passe sur des passages d'avant
+le déplacement. La mesure est plafonnée à huit secondes ; cinq secondes après
+le déplacement, elle en garde trois d'avant pour cinq d'après, et la médiane
+retombe sur ceux d'après — à cette cadence, le mutant ne change rien.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux streams qui partagent du son — la
+   paire du cinquième rapport, par exemple.
+2. F12, n'importe quel contexte de la salle : `tse.salle.essais()`.
+3. Ne plus toucher à la salle pendant 4 min 15 (le journal dit « protocole ·
+   fin » à la fin).
+4. Prendre le rapport.
+
 ## Le recul tient, la vitesse ne se pose pas, et le protocole 3 éprouve la mesure (v4.24.0.14)
 
 Le troisième essai réel a joué le protocole 2 en entier : 322 s de salle,
@@ -14316,7 +14577,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 181 scénarios, 1576 assertions |
+| `npm test` | le harnais Playwright : 181 scénarios, 1582 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -14337,12 +14598,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1515 Ko | 604 Ko | 3 932 → **2** |
+| `content.js` | 1536 Ko | 617 Ko | 3 972 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 106 Ko | 50 Ko | 150 → **0** |
+| `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1770 Ko** | **761 Ko** | **−57 %** |
+| **les cinq** | **1791 Ko** | **774 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
