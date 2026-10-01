@@ -998,7 +998,7 @@ const demander = async (charge, essai = 0, trace = []) => {
    document-ci, où `tse` n'existait pas : il n'est posé que dans la page de
    Twitch. Les commandes de la sonde du même instant y sont désormais relayées
    à la page, par le chemin des autres demandes du panneau — et elles seules
-   (vitesseVideo et recul depuis la 4.24.0.13).
+   (vitesseVideo et recul depuis la 4.24.0.13, avance depuis la 4.24.0.14).
    La réponse revient en promesse, et s'affiche aussi d'elle-même. */
 try {
   const relayer = (commande) => async (...args) => {
@@ -1009,7 +1009,7 @@ try {
   };
   Object.defineProperty(window, 'tse', {
     value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
-      ['essais', 'vitesse', 'vitesseVideo', 'recul', 'pause', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
+      ['essais', 'vitesse', 'vitesseVideo', 'recul', 'avance', 'pause', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
     writable: false, configurable: false,
   });
 } catch { /* déjà posé */ }
