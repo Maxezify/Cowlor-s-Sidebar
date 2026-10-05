@@ -546,6 +546,12 @@
   "optDescSalle": {
     "message": "Przycisk „▶” na pasku co-streamu otwiera jego streamy razem, na stronie. Wyłączone: ani przycisku, ani sali."
   },
+  "optSalleAuto": {
+    "message": "Automatyczne wyrównanie"
+  },
+  "optDescSalleAuto": {
+    "message": "Po otwarciu sali streamy są ustawiane na tę samą chwilę — według zegara, a potem według dźwięku, gdy wyraźnie słychać w nim dwa głosy — i tak utrzymywane. Wyłączone: nic nie przesuwa się samo."
+  },
   "optAbonnes": {
     "message": "Złoto subskrypcji"
   },
@@ -688,7 +694,7 @@
     "message": "Przywrócić wszystkie ustawienia domyślne?"
   },
   "optResetText": {
-    "message": "Na tej stronie dwadzieścia jeden ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
+    "message": "Na tej stronie dwadzieścia dwa ustawienia wrócą do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
   },
   "optValPlein": {
     "message": "Pełne"

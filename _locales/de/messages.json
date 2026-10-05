@@ -546,6 +546,12 @@
   "optDescSalle": {
     "message": "Eine Schaltfläche „▶“ auf dem Balken eines Co-Streams öffnet seine Streams gemeinsam auf der Seite. Aus: keine Schaltfläche, kein Raum."
   },
+  "optSalleAuto": {
+    "message": "Automatische Ausrichtung"
+  },
+  "optDescSalleAuto": {
+    "message": "Beim Öffnen des Raums werden die Streams auf dieselbe Zeit gebracht — über die Uhr, dann über den Ton, wenn darin zwei Stimmen deutlich zu hören sind — und dort gehalten. Aus: Nichts bewegt sich von selbst."
+  },
   "optAbonnes": {
     "message": "Gold der Abonnements"
   },
@@ -688,7 +694,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle einundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle zweiundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"

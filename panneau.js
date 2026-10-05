@@ -1010,7 +1010,7 @@ try {
   };
   Object.defineProperty(window, 'tse', {
     value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
-      ['essais', 'aligner', 'vitesse', 'vitesseVideo', 'recul', 'avance', 'pause', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
+      ['essais', 'aligner', 'auto', 'leviers', 'vitesse', 'vitesseVideo', 'recul', 'avance', 'pause', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
     writable: false, configurable: false,
   });
 } catch { /* déjà posé */ }
@@ -1065,7 +1065,7 @@ const montrerMessage = (cle, bouton, detail) => {
 const GROUPES_OPT = [
   ['optGrpApercu',  ['apercu', 'apercuVideo', 'apercuQualite', 'apercuTaille']],
   // Le système multistream a son groupe (4.24.0.9), pour qu'on le trouve.
-  ['optGrpMultistream', ['salle']],
+  ['optGrpMultistream', ['salle', 'salleAuto']],
   ['optGrpBadges',  ['badges']],
   ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
@@ -1282,7 +1282,7 @@ const groupeEchange = () => {
   bExp.type = 'button';
   bExp.addEventListener('click', () => {
     /* On n'exporte QUE les écarts, comme le stockage : un fichier qui
-       contiendrait les vingt-et-une valeurs figerait les défauts du jour de
+       contiendrait les vingt-deux valeurs figerait les défauts du jour de
        l'export chez celui qui l'importera six versions plus tard. */
     const ecarts = {};
     for (const id of etatOpt.modifies) ecarts[id] = etatOpt.valeurs[id];
@@ -1548,7 +1548,7 @@ const charger = async (id) => {
     b.className = 'bouton bouton--fantome';
     b.textContent = T(a.cle);
     /* « Tout remettre par défaut » est irréversible autant que « tout
-       effacer » : vingt-et-un choix disparaissent d'un clic, sans annulation.
+       effacer » : vingt-deux choix disparaissent d’un clic, sans annulation.
        La table porte donc un champ « confirme », et les actions qui l'ont
        passent par la même boîte que la purge. */
     b.addEventListener('click', () => (a.confirme

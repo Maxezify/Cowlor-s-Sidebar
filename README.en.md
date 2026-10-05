@@ -2059,6 +2059,298 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Automatic alignment, from the moment you enter (v4.24.0.17)
+
+As requested: "when you enter a multistream, whatever the number of
+streams, you should get a perfect alignment". The seventh real report held
+two sessions on the same pair, one aligned by the clock (protocol 4), the
+other by sound (`aligner('son')`) — **and both looked right**. This version
+chains them by itself, for every tile, and keeps them. Published on
+`claude/chrome-multi` only.
+
+### What the seventh report establishes
+
+**1. By the clock, the pass by the position did its job.** 1.085 s →
+0.006 s in two passes and 23.5 s. The rewind stalled by 0.056 s, not the
+0.175 expected: the position saw it, and the second pass asked 0.063 s with
+the measured stall — 0.144 obtained (stall 0.081). By the position −0.025 s
+remained, +0.006 by the clock. The frozen phases hold: phase A has 58
+readings (3 in the previous report).
+
+**2. All measurements of the move agree.** B − A: position +1110 ms, clock
++1103, midpoint of the two voices +1080, peak +1050; latency, +1181.
+
+**3. The clock wanders while nothing moves.** During the follow-up: 0.006 →
+0.133 → 0.123 → 0.044 → 0.043 s. Its ticks spread by ±89 ms on the tile that
+did not move, ±80 in the second session — ±120 on the one that moved, move
+included.
+
+**4. By sound, the verification saved the alignment, just barely.** 1.275 s
+→ 0.135 → −0.010 s in two passes. According to the position, only 0.028 s
+remained after the first; the verification found 0.135. It took two
+minutes — on the twenty-fifth and last try: 29 computations out of 60 were
+too weak (z < 5). On the first move, sound and position disagree by 107 ms
+(1.140 vs 1.247); on the second, by 2 ms (0.145 vs 0.147).
+
+**5. Three components of equal weight.**
+
+| when | components of the sound (values) |
+| --- | --- |
+| between the two rewinds | −17 (3) · 170 (3) · 290 (3) |
+| after the second | −174 (11) · −30 (13) · 152 (12) |
+
+The verifications took the outer pair (half-gap ~165 ms); the end of the
+session, −30 and 145 (half-gap 88, like the first session's 90). The
+midpoint shifts by some 70 ms depending on the pair, and nothing says which
+is right. The history kept 60 computations out of 86 — everything before
+the alignment lost —, and the report did not say which voices each
+measurement had used.
+
+**6. Clock versus sound, over three reports.**
+
+| report | clock − sound (target ahead according to the clock) |
+| --- | --- |
+| sixth (another pair) | +0.07 to +0.09 s |
+| seventh, 1st session | +0.14 s |
+| seventh, 2nd session | +0.18 to +0.27 s, depending on the pair of voices |
+
+Same sign, size depending on the pair. And **latency minus clock latency is
+2.153 and 2.154 s on the two tiles** (2.07 and 2.19 in the second session):
+the clock and the latency share Twitch's reference, and neither sees what
+happens at each streamer before Twitch — capture, encoding, upload. Sound
+does. This is very likely where the gap comes from; I cannot separate the
+streamer's share from that of an asymmetric voice chat.
+
+**7. By eye, on this pair, both alignments are as good**: 0.15 to 0.25 s
+between clock and sound does not show there.
+
+### What automatic alignment does
+
+Setting **"Automatic alignment"**, in the Multistream group of the panel,
+**on by default**. In a room opened from the node:
+
+1. **On opening, by the clock**: eight seconds for the players to settle
+   (their quality is set around 4 to 7 s in the reports), twenty of ticks,
+   then the S10 passes — every tile, the one furthest behind as reference.
+   The clock works even without common sound. **Moves start around 28 s
+   after opening; aligned around 50 s — 75 s if a third pass is needed.**
+2. **By sound next.** It turns listening on for itself. When a pair has two
+   clear voices since the last move, and their midpoint — at least 0.05 s —
+   holds within 40 ms from one check to the next: the tile with the sound
+   (the **anchor**) does not move, the other rewinds — or skips forward, if
+   its buffer allows. Tiles without clear voices stay aligned by the clock.
+   A tile aligned by sound is aligned by sound only once: the clock then
+   keeps its relation.
+3. **On watch**, a check every twenty seconds: how far each tile lags the
+   anchor, by the clock, against what it must **keep** — 0 for a tile
+   aligned by the clock; for a tile aligned by sound, what its first minute
+   afterwards showed. Realigned:
+   - after an **event** — reload, arrival cut, catch-up, playback jump, new
+     tile — as soon as twenty seconds of ticks afterwards show 0.1 s or
+     more;
+   - on a **drift** of 0.2 s or more, three checks in a row — the clock
+     wanders by ±0.13 s on its own — and at least a minute after the
+     previous one;
+   - each time by the clock, **keeping the lags**: a realignment does not
+     undo what sound settled.
+4. **At most six realignments in ten minutes** — beyond that, a ten-minute
+   pause: a skewed measurement must not make the tiles jump endlessly. Two
+   alignments by sound that could move nothing on a tile: it no longer
+   tries for that tile.
+
+It steps aside for the protocol, a manual alignment and `aligner(false)`;
+turning the setting off stops it, listening with it. The console remains
+the workbench: `tse.salle.auto()` starts it in a room the console opened,
+`auto(0.1)` accelerated, `auto(false)` stops it.
+
+In the report, the **`auto`** block: the state, the anchor, the log — when,
+why, by what, the gap before → after, the number of passes —, and at the
+last check how far each tile lags the anchor (positive: behind) with what
+it keeps, its drift, the clear voices seen and the pending event.
+
+### The measurements, corrected
+
+- **A rewind's stall is expected at 0.13 s**: the average of the seven real
+  rewinds — 0.218 · 0.099 · 0.207 · 0.056 · 0.081 · 0.147 · 0.097. The
+  measured stall, reused on the same tile, was off by 25 and 50 ms; the
+  average, by 48 and 32: nothing justifies changing the rule.
+- **Verification by sound re-registers.** Each measurement keeps its pair's
+  pattern — its components, its midpoint; the next one looks for how far the
+  whole pattern slid: two components found again within 40 ms, and on a tie
+  the slide closest to what the obtained moves did — never more than 150 ms
+  from it: in the bench, a passing component made a false one win, and a
+  tile skipped 0.19 s too far; sound and position never diverged by more
+  than 107 ms on a real move. Two clear voices are no
+  longer needed after a move: a third component no longer gets in the way,
+  and two computations are enough. And no more falling back on two clear
+  voices when re-registration fails: **the bench caught it out** — on three
+  components, the first computations after the move only saw two, "clear"
+  but not the same voices, and their midpoint made a tile skip forward
+  0.31 s too far, while claiming to be aligned. Without re-registration, it
+  waits; after two minutes, it finishes by the clock, and says so — in the
+  log, the gap afterwards "par l'horloge".
+- **A tile aligned by sound is aligned by sound only once** — the bench
+  caught it out twice more, with a third component stronger than the
+  voices. After "duo2" skipped forward, it made with the first voice two
+  "clear" voices: 10 and 12 values, the real second voice having only 2.
+  Their midpoint, −275 ms, when the real pair said +40: two checks later,
+  the pilot would have made "duo2" skip forward 0.27 s too far. And when
+  the real second voice stayed too rare for re-registration, two minutes
+  long, the impossible verification counted as a failure: the pilot took
+  up sound again, on the two false voices, and made "duo2" skip forward
+  0.30 s too far. It no longer looks at the sound of a tile that sound
+  moved — verified or not: in the report, "par le son non vérifiée"; the
+  clock keeps its relation. Only an alignment that could move nothing
+  counts as a failure.
+- **Two clear voices mix in time** — the bench caught it out a third time,
+  unprompted: five minutes of pilot on three tiles, and the only voice
+  "charlie" shares with "alpha" jumped from 290 to 410 ms from one
+  computation to the next, the clock by 20 ms. Two groups, seven values
+  then three: "two clear voices" with a midpoint of 350 ms, and the pilot
+  aligned "charlie" on it. Two real voices show together, often in the same
+  computation; two periods of one voice, one after the other. It now takes,
+  over all pairs of one value from each group, at least one in five in each
+  order — the same computation counting half in each. The rule holds
+  wherever two voices are read: the pilot, `aligner('son')`, the protocol's
+  phases, the report.
+- **After a move, the tile's sound envelope starts over.** A window
+  straddling it mixed two offsets; the computations afterwards no longer
+  wait twenty seconds — six are enough.
+- **The listening history keeps 150 computations**, twelve and a half
+  minutes.
+- In the report, **each measurement by sound says what gave it** — "deux
+  voix" or "recalé de +387 ms" — and the components seen.
+
+### What we do not know yet — and the report now measures
+
+- **How far a rewind can go.** None went beyond 1.4 s in the reports; a room
+  mixing low and normal latency would need 3 to 5. Per tile: `serie.arriere`
+  (the video element), `serie.arriereLecteur` and `plages`
+  (getBufferedRanges, as returned).
+- **The catch-up levers.** `tse.salle.leviers()` calls, on the muted tile,
+  setLiveSpeedUpRate(1.1) and setLiveMaxLatency(its latency minus one
+  second); the `essaiLeviers` block says what each call answered, the latency,
+  the speeds seen and the catch-ups — and the `leviers` field already says,
+  before any try, whether the instance has these functions. If they make
+  the player catch up, we would hold a lever without a jump. The tile keeps these settings until the
+  room closes: their original values cannot be read anywhere.
+
+### What the bench measures
+
+**The fake player**: the "duo" tiles stall by 0.05 s — the smallest real
+stall; it catches up when given a maximum latency, at the given speed, as
+we assume the real one does; its ranges keep twelve seconds behind
+playback; its clock can be late, one of its voices fall silent and come
+back, all its sound jump without playback moving; and "duo3" plays both
+voices 750 ms after "duo1".
+
+- **176**: opened from the node, the room starts automatic alignment;
+  setting off, no pilot; back on, it starts; off again, it stops, listening
+  with it.
+- **178**: the list of levers also names setLiveSpeedUpRate,
+  setLiveMaxLatency and getBufferedRanges.
+- **180**: S10 with the 0.13 stall; by sound, "duo1" rewinds by sound then
+  by the position (0.05 s asked, 0.10 obtained), and the verification
+  re-registers: the components slid by what the moves did, within 40 ms.
+  When that noise pushes the verification to 0.05 s or more — the rewind
+  overshoots by 0.02, read within ±35 ms —, a third pass, an advance that
+  overshoots in turn, and the report says what is left (seen in the
+  bench: 0.119 by sound, 0.07 by position): the bench accepts that path.
+  The two voices' midpoint is held to ±45 ms: the fake player's sound
+  anchor moves it between −315 and −380 from one run to the next, for
+  −350 — ±30 only passed by chance.
+- **181**: protocol 4 with the 0.13 stall — three passes, as before. Phase
+  A's peak is held to ±60 ms, S10 to ±70: the anchor of "bravo"'s audio
+  context, which starts suspended, leaves it between −330 and −400 from one
+  run to the next, for −350 — ±30 and ±40 only passed by chance.
+- **182**: automatic alignment on three tiles, at scale 0.1. Opening waits
+  for the clock of "charlie", twelve seconds late — "sans horloge :
+  charlie" in the report —, then aligns by the clock, in three passes; a
+  jump of "bravo", realigned on six seconds of ticks after it — at least
+  seven between the two in the room's log; the drift of "charlie", counted
+  "2 de suite" while nothing moves, realigned at the third check;
+  `aligner(false)`, a manual alignment and the protocol, which stop it; the
+  levers tried on "bravo" — a catch-up at 1.1 — and the back buffer, twelve
+  seconds. Lastly "kilo" and "lima", whose shared voice jumps by 300 ms
+  without playback moving: two groups one after the other, not two clear
+  voices, and the pilot does nothing about it.
+- **183**: by sound, on "duo1" and "duo2". Opening has nothing to correct;
+  at the first check that sees the two voices, nothing moves; at the
+  second, stable, "duo2" skips forward towards the anchor. As soon as the
+  pass starts, a third component of the same weight comes in, and the
+  real second voice falls silent for forty-five seconds: first a clear
+  pair, a false one — re-registration waits; then a copy of the first
+  voice, which rebuilds the pattern under a false slide, 220 ms from the
+  expected one — set aside; the voice back and the copy silenced, it
+  re-registers. The computation after the move spans less than twenty
+  seconds. The second voice falls silent again:
+  two "clear" voices, false, that the pilot does not look at. The relation
+  sound gave, calibrated, is kept when the anchor jumps and the pilot
+  realigns by the clock; `auto(false)` turns listening off. In another
+  room, all of "duo2"'s sound falls silent as soon as the alignment starts:
+  two minutes, the end by the clock, saying so, and "duo2" "par le son non
+  vérifiée". Then "duo3", at 750 ms: the pilot sees its two voices and
+  leaves them; by hand, `aligner('son')` makes "duo1" rewind, one voice of
+  "duo3" falls silent — a single component after the move, and the
+  verification waits without concluding.
+
+| mutants | what falls |
+| --- | --- |
+| opening: the pilot never started; listening not turned on; opening without waiting for every tile's clock; the node's room without it; the setting that does not stop it, or does not restart it (6) | four assertions of 182 out of five; listening off; "sans horloge : charlie" never in the report; automatic alignment missing, or still running, in 176 |
+| the watch: the jump never signalled; checked on ticks from before it; drift from one check; at the clock's threshold (4) | the jump realigned as a drift; six seconds between the jump and the realignment, not seven; "charlie" realigned before "2 de suite" |
+| what stops it: the protocol, a manual alignment, `aligner(false)` leaving it running; `auto(false)` leaving listening on (4) | "actif" instead of "arrêté : …"; listening still on |
+| sound: never looked at; without stability; beyond half a second; the anchor moved; the tile aligned by sound looked at again; the impossible verification counted as a failure; the voices not required to mix in time (7) | no alignment by sound; alignment at the first check; "duo3" aligned at 750 ms; a reference that is no longer the anchor; "duo2" realigned on the false voices; no "par le son non vérifiée"; "lima" aligned on its voice that jumped |
+| the verification: falling back on two clear voices; re-registering on one component; no bound around the expected slide; the envelope kept (4) | the false pair taken for the real one; a re-registration without the second voice, and "duo3" verified on one component; "duo2" re-registered on the false slide, and skipped too far; no computation under twenty seconds |
+| what the clock keeps of sound: the relation reset to zero; never calibrated (2) | "duo2" realigned on 0; "garde +0.000 … à calibrer" |
+| the measurements: the 0.175 stall; a lever call forgotten; the ranges never read; the history at 60 computations (4) | S10 and the sound of 180; the missing call in the report; no ranges; **survives** — see below |
+
+Thirty-one mutants, thirty caught — in three rounds, and the first mostly
+served to correct the bench, then the pilot:
+
+- in 182, two survived: the event checked on ticks from before it, and
+  opening without waiting for every tile's clock. The bench now reads, in
+  the room's log, the gap between the jump and the realignment — at least
+  seven seconds, six under the mutant —, and makes "charlie"'s clock twelve
+  seconds late;
+- in 183, two survived — re-registering on one component, the half-second
+  bound — and three falls only held on a false assertion: "no more two
+  clear voices" once the third component came in. Replayed, it failed on
+  the original code; reading why is how the bench found the two pilot
+  defects described above. 183 was rewritten so that every mechanism in it
+  is certain, not drawn by lot — the second voice that falls silent then
+  comes back, false voices clear for sure, the impossible verification,
+  "duo3" —, and its thirteen mutants, the two of the fixes included,
+  replayed against it;
+- reading why a 182 mutant fell, a "son (charlie)" in the log, where
+  "charlie" shares only one voice: five minutes of pilot reproduced it, and
+  that is the rule of voices mixing in time. 182 makes it certain with
+  "kilo" and "lima", and its mutant falls;
+- the full bench caught a false re-registration — a passing component,
+  and "duo2" skipped 0.19 s too far: hence the 150 ms bound, and 183 with
+  two traps one after the other. In the third round, the bound, the
+  fallback, the tile looked at again and re-registering on one component,
+  replayed against it, fall;
+- it also caught two faults outside any mutant: the lever
+  test's block was called `leviers` in the report, and wiped the field of
+  the same name — what the instance offers, since 4.24.0.11 —: 178 saw it,
+  the test is now `essaiLeviers`; and the function keeping the sound
+  patterns was called `retenir`, like the chapter memo's writer that 88
+  reads in the code by that name: renamed;
+- **one survivor, the history cut to sixty computations**: sixty
+  computations are five minutes of listening, and the bench does not run
+  that long — it only matters in a real report. That it survives the
+  second round also says 183 no longer falls by chance: one more control.
+
+### For the next report
+
+1. Open the room from the node, on two or more streams that share sound —
+   without typing anything.
+2. Watch: alignment by the clock comes within the first minute; by sound
+   afterwards, if there are two clear voices. Ten minutes of room.
+3. Take the report (`auto` block), and say what you saw.
+4. Then, in the console: `tse.salle.leviers()`, thirty seconds, and take the
+   report again (`essaiLeviers` block).
+
 ## The alignment holds, measured more accurately — and by sound if needed (v4.24.0.16)
 
 The sixth real report is the first one of protocol 4: two streams sharing
@@ -14255,7 +14547,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 181 scenarios, 1586 assertions |
+| `npm test` | the Playwright harness: 183 scenarios, 1599 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -14275,12 +14567,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1548 KB | 623 KB | 3,992 → **2** |
+| `content.js` | 1586 KB | 646 KB | 4,062 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1803 KB** | **780 KB** | **−57 %** |
+| **all five** | **1841 KB** | **803 KB** | **−56 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

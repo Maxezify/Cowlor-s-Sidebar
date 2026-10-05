@@ -546,6 +546,12 @@
   "optDescSalle": {
     "message": "Un pulsante «▶» sulla barra di un co-stream apre i suoi stream insieme, sulla pagina. Disattivato: niente pulsante, niente sala."
   },
+  "optSalleAuto": {
+    "message": "Allineamento automatico"
+  },
+  "optDescSalleAuto": {
+    "message": "All'apertura della sala, gli stream vengono messi alla stessa ora — con l'orologio, poi con il suono quando vi si sentono chiaramente due voci — e mantenuti così. Disattivato: niente si muove da solo."
+  },
   "optAbonnes": {
     "message": "L'oro degli abbonamenti"
   },
@@ -688,7 +694,7 @@
     "message": "Ripristinare tutte le impostazioni?"
   },
   "optResetText": {
-    "message": "Le ventuno impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
+    "message": "Le ventidue impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
   },
   "optValPlein": {
     "message": "Completo"

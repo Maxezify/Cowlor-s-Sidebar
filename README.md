@@ -2180,6 +2180,305 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'alignement automatique, dès l'entrée (v4.24.0.17)
+
+À la demande : « que lorsqu'on rentre dans un multistream, quel que soit le
+nombre de streams, on puisse avoir un alignement parfait ». Le septième
+rapport réel portait deux sessions sur la même paire, l'une alignée par
+l'horloge (le protocole 4), l'autre par le son (`aligner('son')`) — **et les
+deux ont paru justes**. Cette version les enchaîne toute seule, pour toutes
+les tuiles, et les tient. Publiée sur `claude/chrome-multi` seulement.
+
+### Ce que le septième rapport établit
+
+**1. Par l'horloge, la passe par la position a fait son travail.** 1,085 s →
+0,006 s en deux passes et 23,5 s. Le recul a calé de 0,056 s, pas des
+0,175 prévus : la position l'a vu, et la deuxième passe a demandé 0,063 s au
+calage mesuré — 0,144 obtenus (calage 0,081). Il restait −0,025 s par la
+position, +0,006 par l'horloge. Les phases figées tiennent : la phase A a
+58 relevés (3 au rapport précédent).
+
+**2. Toutes les mesures du déplacement concordent.** B − A : position
++1110 ms, horloge +1103, milieu des deux voix +1080, pic +1050 ; la latence,
++1181.
+
+**3. L'horloge erre, sans que rien ne bouge.** Au suivi : 0,006 → 0,133 →
+0,123 → 0,044 → 0,043 s. Ses passages s'étalent de ±89 ms sur la tuile qui
+n'a pas bougé, ±80 à la seconde session — ±120 sur celle qui a bougé,
+déplacement compris.
+
+**4. Par le son, la vérification a sauvé l'alignement, de justesse.** 1,275 s
+→ 0,135 → −0,010 s en deux passes. Selon la position, il ne restait que
+0,028 s après la première ; la vérification a trouvé 0,135. Elle a mis deux
+minutes — au vingt-cinquième et dernier essai : 29 calculs sur 60 étaient
+trop faibles (z < 5). Sur le premier déplacement, son et position
+divergent de 107 ms (1,140 contre 1,247) ; sur le second, de 2 ms (0,145
+contre 0,147).
+
+**5. Trois composantes, de même poids.**
+
+| moment | composantes du son (valeurs) |
+| --- | --- |
+| entre les deux reculs | −17 (3) · 170 (3) · 290 (3) |
+| après le second | −174 (11) · −30 (13) · 152 (12) |
+
+Les vérifications ont pris la paire extérieure (demi-écart ~165 ms) ; la fin
+de session, −30 et 145 (demi-écart 88, comme les 90 de la première
+session). Le milieu glisse de quelque 70 ms selon la paire, et rien ne dit
+laquelle est la bonne. L'historique gardait 60 calculs sur 86 — tout
+l'avant-alignement perdu —, et le rapport ne disait pas quelles voix chaque
+mesure avait prises.
+
+**6. L'horloge contre le son, sur trois rapports.**
+
+| rapport | horloge − son (la cible en avance selon l'horloge) |
+| --- | --- |
+| sixième (autre paire) | +0,07 à +0,09 s |
+| septième, 1re session | +0,14 s |
+| septième, 2e session | +0,18 à +0,27 s, selon la paire de voix |
+
+Même signe, ampleur selon la paire. Et **la latence moins la latence
+d'horloge vaut 2,153 et 2,154 s sur les deux tuiles** (2,07 et 2,19 à la
+seconde session) : l'horloge et la latence partagent la référence de
+Twitch, et aucune ne voit ce qui se passe chez chaque streamer avant
+Twitch — capture, encodage, envoi. Le son, si. C'est très probablement
+l'origine de l'écart ; je ne sais pas en séparer la part du streamer de
+celle d'un salon vocal asymétrique.
+
+**7. À l'œil, sur cette paire, les deux alignements se valent** : 0,15 à
+0,25 s d'écart entre l'horloge et le son ne s'y voient pas.
+
+### Ce que fait l'alignement automatique
+
+Réglage **« Alignement automatique »**, dans le groupe Multistream du
+panneau, **allumé par défaut**. Dans une salle ouverte par le nœud :
+
+1. **À l'ouverture, par l'horloge** : huit secondes pour que les lecteurs
+   s'installent (leur qualité se pose vers 4 à 7 s aux rapports), vingt de
+   passages, puis les passes de S10 — toutes les tuiles, la plus en retard
+   en référence. L'horloge marche même sans son commun. **Les déplacements
+   commencent vers 28 s après l'ouverture ; aligné vers 50 s — 75 s s'il
+   faut une troisième passe.**
+2. **Par le son ensuite.** Il allume l'écoute pour lui. Quand une paire a
+   deux voix nettes depuis le dernier déplacement, et que leur milieu —
+   0,05 s au moins — tient à 40 ms près d'un contrôle au suivant : la tuile
+   du son (l'**ancre**) ne bouge pas, l'autre recule — ou avance, si son
+   tampon le permet. Les tuiles sans voix nettes restent alignées par
+   l'horloge. Une tuile alignée par le son ne l'est qu'une fois : l'horloge
+   garde ensuite sa relation.
+3. **En veille**, un contrôle toutes les vingt secondes : le retard de chaque
+   tuile sur l'ancre, par l'horloge, face à celui qu'elle doit **garder** —
+   0 pour une tuile alignée par l'horloge ; pour une tuile alignée par le
+   son, celui de sa première minute d'après. Réaligné :
+   - après un **événement** — rechargement, coupure d'arrivée, rattrapage,
+     saut de la lecture, tuile nouvelle — dès que vingt secondes de
+     passages d'après le disent à 0,1 s ou plus ;
+   - sur une **dérive** de 0,2 s ou plus, trois contrôles de suite —
+     l'horloge erre seule de ±0,13 s — et une minute au moins après le
+     précédent ;
+   - chaque fois par l'horloge, **en gardant les retards** : un
+     réalignement ne défait pas ce que le son a réglé.
+4. **Au plus six réalignements en dix minutes** — au-delà, une pause de dix
+   minutes : une mesure faussée ne doit pas faire sauter les tuiles sans
+   fin. Deux alignements par le son qui n'ont rien pu déplacer sur une
+   tuile : il ne le retente plus pour elle.
+
+Il s'efface devant le protocole, un alignement à la main et
+`aligner(false)` ; le réglage coupé l'arrête, l'écoute avec. La console
+reste l'établi : `tse.salle.auto()` le lance dans une salle qu'elle a
+ouverte, `auto(0.1)` en accéléré, `auto(false)` l'arrête.
+
+Au rapport, bloc **`auto`** : l'état, l'ancre, le journal — quand, pourquoi,
+par quoi, l'écart avant → après, le nombre de passes —, et au dernier
+contrôle le retard de chaque tuile sur l'ancre (positif : en retard) avec
+celui qu'elle garde, sa dérive, les deux voix nettes vues et l'événement en
+attente.
+
+### Les mesures, corrigées
+
+- **Le calage d'un recul se prévoit à 0,13 s** : la moyenne des sept reculs
+  réels — 0,218 · 0,099 · 0,207 · 0,056 · 0,081 · 0,147 · 0,097. Le calage
+  mesuré, repris sur la même tuile, s'est trompé de 25 et 50 ms ; la
+  moyenne, de 48 et 32 : rien ne justifie d'en changer la règle.
+- **La vérification par le son recale.** Chaque mesure retient le motif de
+  sa paire — ses composantes, son milieu ; la suivante cherche de combien
+  tout le motif a glissé : deux composantes retrouvées à 40 ms près, et à
+  égalité le glissement le plus proche de ce que les déplacements obtenus
+  ont fait — jamais à plus de 150 ms de lui : au banc, une composante de
+  passage en a fait gagner un faux, et une tuile a avancé de 0,19 s de
+  trop ; son et position n'ont jamais divergé de plus de 107 ms sur un
+  déplacement réel. Plus besoin de deux voix nettes après un déplacement : une
+  troisième composante ne gêne plus, et deux calculs suffisent. Et plus de
+  repli sur deux voix nettes quand le recalage manque : **le banc l'a pris
+  en défaut** — sur trois composantes, les premiers calculs d'après n'en
+  voyaient que deux, « nettes » mais pas les mêmes voix, et leur milieu a
+  fait avancer une tuile de 0,31 s de trop, en se disant aligné. Sans
+  recalage, on attend ; au bout de deux minutes, on finit par l'horloge, en
+  le disant — au journal, l'écart d'après « par l'horloge ».
+- **Une tuile alignée par le son ne l'est qu'une fois** — le banc l'a pris
+  en défaut deux fois de plus, une troisième composante plus forte que les
+  voix aidant. Après l'avance de « duo2 », elle faisait avec la première
+  voix deux voix « nettes » : 10 et 12 valeurs, la vraie seconde voix n'en
+  ayant que 2. Leur milieu, −275 ms, quand la vraie paire disait +40 : deux
+  contrôles plus tard, le pilote aurait fait avancer « duo2 » de 0,27 s de
+  trop. Et quand la vraie seconde voix restait trop rare pour le recalage,
+  deux minutes durant, la vérification impossible comptait pour un échec :
+  le pilote reprenait le son, sur les deux voix fausses, et a fait avancer
+  « duo2 » de 0,30 s de trop. Il ne regarde plus le son d'une tuile que le
+  son a déplacée — vérifiée ou non : au rapport, « par le son non
+  vérifiée » ; l'horloge garde sa relation. Seul un alignement qui n'a rien
+  pu déplacer compte pour un échec.
+- **Deux voix nettes se mêlent dans le temps** — le banc l'a pris en défaut
+  une troisième fois, sans qu'on le cherche : cinq minutes de pilote sur
+  trois tuiles, et la seule voix que « charlie » partage avec « alpha » a
+  sauté de 290 à 410 ms d'un calcul à l'autre, l'horloge de 20 ms. Deux
+  groupes, sept valeurs puis trois : « deux voix nettes » au milieu de
+  350 ms, et le pilote a aligné « charlie » dessus. Deux vraies voix se
+  montrent ensemble, souvent dans le même calcul ; deux époques d'une même
+  voix, l'une après l'autre. Il faut désormais, sur toutes les paires d'une
+  valeur de chaque groupe, au moins une sur cinq dans chaque ordre — un
+  même calcul comptant pour moitié dans chacun. La règle vaut partout où
+  l'on lit deux voix : le pilote, `aligner('son')`, les phases du
+  protocole, le rapport.
+- **Après un déplacement, l'enveloppe du son de la tuile repart de zéro.**
+  Une fenêtre qui l'enjambait mêlait deux décalages ; les calculs d'après
+  n'attendent plus vingt secondes — six suffisent.
+- **L'historique de l'écoute garde 150 calculs**, douze minutes et demie.
+- Au rapport, **chaque mesure par le son dit ce qui l'a donnée** — « deux
+  voix » ou « recalé de +387 ms » — et les composantes vues.
+
+### Ce qu'on ne sait pas encore — et que le rapport mesure désormais
+
+- **Jusqu'où un recul peut aller.** Aucun n'a dépassé 1,4 s aux rapports ;
+  une salle qui mêle faible latence et latence normale en demanderait 3 à
+  5. Par tuile : `serie.arriere` (l'élément vidéo), `serie.arriereLecteur`
+  et `plages` (getBufferedRanges, telles quelles).
+- **Les leviers de rattrapage.** `tse.salle.leviers()` appelle, sur la tuile
+  muette, setLiveSpeedUpRate(1,1) et setLiveMaxLatency(sa latence moins une
+  seconde) ; le bloc `essaiLeviers` dit ce que chaque appel a répondu, la
+  latence, les vitesses vues et les rattrapages — et le champ `leviers`
+  dit déjà, avant tout essai, si l'instance a ces fonctions. S'ils font
+  rattraper le lecteur, on tiendrait un levier sans saut. La tuile garde ces réglages
+  jusqu'à la fermeture de la salle : leurs valeurs d'origine ne se lisent
+  nulle part.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** : les « duo » calent de 0,05 s — le plus petit
+calage réel ; il sait rattraper quand on lui pose une latence maximale, à
+la vitesse posée, tel qu'on le suppose du vrai ; ses plages gardent douze
+secondes derrière la lecture ; son horloge peut tarder, une de ses voix se
+taire et reprendre, tout son son sauter sans que la lecture bouge ; et
+« duo3 » passe les deux voix 750 ms après « duo1 ».
+
+- **176** : ouverte par le nœud, la salle lance l'automatique ; réglage
+  coupé, pas de pilote ; rallumé, il démarre ; recoupé, il s'arrête,
+  l'écoute avec.
+- **178** : la liste des leviers dit aussi setLiveSpeedUpRate,
+  setLiveMaxLatency et getBufferedRanges.
+- **180** : S10 au calage de 0,13 ; par le son, « duo1 » recule par le son
+  puis par la position (0,05 s demandés, 0,10 obtenus), et la vérification
+  recale : les composantes ont glissé de ce que les déplacements ont fait,
+  à 40 ms près. Quand ce bruit pousse la vérification à 0,05 s ou plus —
+  le recul dépasse de 0,02, lu à ±35 ms —, une troisième passe, une avance
+  qui dépasse à son tour, et le rapport dit ce qui reste (vu au banc :
+  0,119 au son, 0,07 à la position) : le banc admet ce chemin. Le milieu
+  des deux voix est tenu à ±45 ms : l'ancre du son
+  du lecteur factice le déplace de −315 à −380 selon les passages, pour
+  −350 — ±30 ne passait qu'au hasard.
+- **181** : le protocole 4 au calage de 0,13 — trois passes, comme avant.
+  Le pic de la phase A est tenu à ±60 ms, S10 à ±70 : l'ancre du contexte
+  audio de « bravo », qui démarre suspendu, le laisse de −330 à −400 selon
+  les passages, pour −350 — ±30 et ±40 ne passaient qu'au hasard.
+- **182** : l'automatique sur trois tuiles, à l'échelle 0,1. L'ouverture
+  attend l'horloge de « charlie », qui tarde de douze secondes — « sans
+  horloge : charlie » au rapport —, puis aligne par l'horloge, en trois
+  passes ; un saut de « bravo », réaligné sur six secondes de passages
+  d'après lui — sept au moins entre les deux au journal de la salle ; la
+  dérive de « charlie », comptée « 2 de suite » sans que rien ne bouge,
+  réalignée au troisième contrôle ; `aligner(false)`, un alignement à la
+  main et le protocole, qui l'arrêtent ; les leviers essayés sur « bravo »
+  — un rattrapage à 1,1 — et le tampon en arrière, douze secondes. Enfin
+  « kilo » et « lima », dont la voix commune saute de 300 ms sans que la
+  lecture bouge : deux groupes l'un après l'autre, pas deux voix nettes, et
+  le pilote n'en fait rien.
+- **183** : par le son, sur « duo1 » et « duo2 ». L'ouverture n'a rien à
+  corriger ; au premier contrôle qui voit les deux voix, rien ne bouge ; au
+  second, stables, « duo2 » avance vers l'ancre. Sitôt la passe lancée,
+  une troisième composante de même poids entre, et la vraie seconde voix
+  se tait quarante-cinq secondes : d'abord une paire nette, fausse — le
+  recalage attend ; puis une copie de la première voix, qui refait le
+  motif sous un faux glissement, à 220 ms de l'attendu — écarté ; la voix
+  revenue et la copie tue, il recale.
+  Le calcul d'après le déplacement tient sur moins de vingt secondes. La
+  seconde voix se tait de nouveau : deux voix « nettes », fausses, que le
+  pilote ne regarde pas. La relation que le son a donnée, calibrée, est
+  gardée quand l'ancre saute et que le pilote réaligne par l'horloge ;
+  `auto(false)` éteint l'écoute. Dans une autre salle, tout le son de
+  « duo2 » se tait sitôt l'alignement lancé : deux minutes, la fin par
+  l'horloge en le disant, et « duo2 » « par le son non vérifiée ». Puis
+  « duo3 », à 750 ms : le pilote voit ses deux voix et les laisse ; à la
+  main, `aligner('son')` fait reculer « duo1 », une voix de « duo3 » se
+  tait — une seule composante après le déplacement, et la vérification
+  attend sans conclure.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'ouverture : le pilote jamais lancé ; l'écoute pas allumée ; l'ouverture sans attendre l'horloge de chaque tuile ; la salle du nœud sans lui ; le réglage qui ne le coupe pas, ou ne le relance pas (6) | quatre assertions du 182 sur cinq ; l'écoute éteinte ; « sans horloge : charlie » jamais au rapport ; l'automatique absent, ou qui tourne encore, au 176 |
+| la veille : le saut jamais signalé ; vérifié sur des passages d'avant lui ; la dérive dès un contrôle ; au seuil de l'horloge (4) | le saut réaligné comme une dérive ; six secondes entre le saut et le réalignement, pas sept ; « charlie » réaligné avant « 2 de suite » |
+| ce qui l'arrête : le protocole, la main, `aligner(false)` qui le laissent tourner ; `auto(false)` qui laisse l'écoute (4) | « actif » au lieu d'« arrêté : … » ; l'écoute toujours allumée |
+| le son : jamais regardé ; sans stabilité ; au-delà d'une demi-seconde ; l'ancre déplacée ; la tuile alignée par le son regardée de nouveau ; la vérification impossible comptée pour un échec ; les voix pas exigées mêlées dans le temps (7) | aucun alignement par le son ; l'alignement dès le premier contrôle ; « duo3 » aligné à 750 ms ; une référence qui n'est plus l'ancre ; « duo2 » réaligné sur les voix fausses ; pas de « par le son non vérifiée » ; « lima » aligné sur sa voix qui a sauté |
+| la vérification : le repli sur deux voix nettes ; le recalage sur une composante ; sans borne autour de l'attendu ; l'enveloppe gardée (4) | la paire fausse prise pour la vraie ; un recalage sans la seconde voix, et « duo3 » vérifié sur une composante ; « duo2 » recalé sur le faux glissement, et avancé de trop ; aucun calcul sous vingt secondes |
+| ce que l'horloge garde du son : la relation remise à zéro ; jamais calibrée (2) | « duo2 » réaligné sur 0 ; « garde +0.000 … à calibrer » |
+| les mesures : le calage de 0,175 ; un appel des leviers oublié ; les plages jamais relues ; l'historique à 60 calculs (4) | S10 et le son du 180 ; l'appel manquant au rapport ; pas de plages ; **survit** — cf. plus bas |
+
+Trente et un mutants, trente pris — en trois tours, et le premier a
+surtout servi à corriger le banc, puis le pilote :
+
+- au 182, deux survivaient : l'événement vérifié sur des passages d'avant
+  lui, et l'ouverture sans attendre l'horloge de chaque tuile. Le banc lit
+  désormais, au journal de la salle, l'écart entre le saut et le
+  réalignement — sept secondes au moins, six sous le mutant —, et fait
+  tarder l'horloge de « charlie » de douze secondes ;
+- au 183, deux survivaient — le recalage sur une composante, la borne
+  d'une demi-seconde — et trois chutes ne tenaient qu'à une assertion
+  fausse : « plus de deux voix nettes » une fois la troisième composante
+  entrée. Rejouée, elle échouait sur le code d'origine ; c'est en lisant
+  pourquoi que le banc a trouvé les deux défauts du pilote décrits plus
+  haut. Le 183 a été réécrit pour que chaque mécanisme y soit certain, pas
+  tiré au sort — la seconde voix qui se tait puis revient, les voix fausses
+  nettes à coup sûr, la vérification impossible, « duo3 » —, et ses treize
+  mutants, les deux des correctifs compris, rejoués contre lui ;
+- en relisant la chute d'un mutant du 182, un « son (charlie) » au journal,
+  là où « charlie » n'a qu'une voix en commun : cinq minutes de pilote l'ont
+  reproduit, et c'est la règle des voix mêlées dans le temps. Le 182 la
+  rend certaine avec « kilo » et « lima », et son mutant tombe ;
+- le banc complet a pris un faux recalage — une composante de passage, et
+  « duo2 » avancé de 0,19 s de trop : d'où la borne de 150 ms, et le 183 à
+  deux pièges l'un après l'autre. Au troisième tour, la borne, le repli, la
+  tuile regardée de nouveau et le recalage sur une composante, rejoués
+  contre lui, tombent ;
+- il a pris aussi deux fautes hors de tout mutant : le bloc
+  de l'essai des leviers s'appelait `leviers` au rapport, et effaçait le
+  champ du même nom — ce que l'instance offre, depuis la 4.24.0.11 — : le
+  178 l'a vu, l'essai est désormais `essaiLeviers` ; et la fonction qui
+  retient les motifs du son s'appelait `retenir`, comme l'écriture du mémo
+  de chapitres que le 88 lit dans le code par ce nom : renommée ;
+- **un survivant, l'historique ramené à soixante calculs** : soixante
+  calculs, c'est cinq minutes d'écoute, et le banc n'en tient pas autant —
+  il n'a de sens qu'au rapport réel. Qu'il survive au second tour dit aussi
+  que le 183 ne tombe plus au hasard : c'est un témoin de plus.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux streams ou plus qui partagent du
+   son — sans rien taper.
+2. Regarder : l'alignement par l'horloge vient dans la première minute ;
+   par le son ensuite, s'il y a deux voix nettes. Dix minutes de salle.
+3. Prendre le rapport (bloc `auto`), et dire ce que vous avez vu.
+4. Puis, à la console : `tse.salle.leviers()`, trente secondes, et reprendre
+   le rapport (bloc `essaiLeviers`).
+
 ## L'alignement tient, mesuré plus juste — et par le son s'il le faut (v4.24.0.16)
 
 Le sixième rapport réel est le premier du protocole 4 : deux streams qui
@@ -14743,7 +15042,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 181 scénarios, 1586 assertions |
+| `npm test` | le harnais Playwright : 183 scénarios, 1599 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -14764,12 +15063,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1548 Ko | 623 Ko | 3 992 → **2** |
+| `content.js` | 1586 Ko | 646 Ko | 4 062 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1803 Ko** | **780 Ko** | **−57 %** |
+| **les cinq** | **1841 Ko** | **803 Ko** | **−56 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

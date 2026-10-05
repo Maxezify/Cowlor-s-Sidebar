@@ -546,6 +546,12 @@
   "optDescSalle": {
     "message": "Um botão «▶» na barra de um co-stream abre as transmissões juntas, na página. Desligado: nem botão, nem sala."
   },
+  "optSalleAuto": {
+    "message": "Alinhamento automático"
+  },
+  "optDescSalleAuto": {
+    "message": "Ao abrir a sala, as transmissões são colocadas no mesmo instante — pelo relógio, depois pelo som quando nele se ouvem duas vozes com clareza — e mantidas assim. Desligado: nada se mexe sozinho."
+  },
   "optAbonnes": {
     "message": "O ouro das subscrições"
   },
@@ -688,7 +694,7 @@
     "message": "Repor todas as definições?"
   },
   "optResetText": {
-    "message": "As vinte e uma definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
+    "message": "As vinte e duas definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"
