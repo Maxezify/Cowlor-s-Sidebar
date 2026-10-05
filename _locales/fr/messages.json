@@ -546,6 +546,12 @@
   "optDescSalle": {
     "message": "Un bouton « ▶ » sur la barre d'un co-stream ouvre ses streams ensemble, sur la page. Coupé : ni bouton, ni salle."
   },
+  "optSalleAuto": {
+    "message": "Alignement automatique"
+  },
+  "optDescSalleAuto": {
+    "message": "À l'ouverture de la salle, les streams sont mis à la même heure — par l'horloge, puis par le son quand deux voix s'y entendent nettement — et tenus ensuite. Coupé : rien ne bouge seul."
+  },
   "optAbonnes": {
     "message": "L'or des abonnements"
   },
@@ -688,7 +694,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les vingt et un réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les vingt-deux réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"

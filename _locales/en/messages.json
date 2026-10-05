@@ -660,6 +660,12 @@
   "optDescSalle": {
     "message": "A “▶” button on a co-stream's bar opens its streams together, on the page. Off: no button, no room."
   },
+  "optSalleAuto": {
+    "message": "Automatic alignment"
+  },
+  "optDescSalleAuto": {
+    "message": "When the room opens, the streams are set to the same time — by the clock, then by sound when two voices are clearly heard in it — and kept there. Off: nothing moves on its own."
+  },
   "optAbonnes": {
     "message": "Subscription gold"
   },
@@ -802,7 +808,7 @@
     "message": "Reset every setting to its default?"
   },
   "optResetText": {
-    "message": "All twenty-one settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+    "message": "All twenty-two settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
   },
   "optValPlein": {
     "message": "Full"

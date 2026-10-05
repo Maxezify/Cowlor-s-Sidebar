@@ -15927,7 +15927,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses vingt et un réglages', table.n === 21, String(table.n));
+  ok('la table porte ses vingt-deux réglages', table.n === 22, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -15944,22 +15944,24 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      LE NOMBRE ET SON NOM, pas le nombre seul : « dwadzieścia » figure ailleurs
      dans la fiche polonaise, et le mutant qui remettait « dix-neuf » dans la
      phrase des réglages survivait. */
-  /* Vingt et un depuis la 4.24.0.7 (le compteur de la salle). En russe, le
-     nom s'accorde au nombre et la phrase est tournée au nominatif des deux
-     côtés, pour que le même mot se lise dans les deux. */
-  const VINGT_ET_UN = { de: 'einundzwanzig Einstellungen', en: 'twenty-one settings',
-                        es: 'veintiún ajustes', es_419: 'veintiún ajustes', fr: 'vingt et un réglages',
-                        it: 'ventuno impostazioni', ja: '21 個の設定', pl: 'dwadzieścia jeden ustawień',
-                        pt_BR: 'vinte e uma configurações', pt_PT: 'vinte e uma definições',
-                        ru: 'двадцать одна настройка', zh_CN: '二十一项设置' };
-  const muettes = Object.entries(VINGT_ET_UN).flatMap(([loc, mot]) => [
+  /* Vingt et un depuis la 4.24.0.7 (le compteur de la salle), vingt-deux
+     depuis la 4.24.0.17 (l'alignement automatique). En russe et en
+     polonais, le nom s'accorde au nombre — « две настройки », « dwa
+     ustawienia » — et la phrase est tournée pour que le même mot se lise
+     dans les deux. */
+  const VINGT_DEUX = { de: 'zweiundzwanzig Einstellungen', en: 'twenty-two settings',
+                       es: 'veintidós ajustes', es_419: 'veintidós ajustes', fr: 'vingt-deux réglages',
+                       it: 'ventidue impostazioni', ja: '22 個の設定', pl: 'dwadzieścia dwa ustawienia',
+                       pt_BR: 'vinte e duas configurações', pt_PT: 'vinte e duas definições',
+                       ru: 'двадцать две настройки', zh_CN: '二十二项设置' };
+  const muettes = Object.entries(VINGT_DEUX).flatMap(([loc, mot]) => [
     JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'))
       .optResetText.message.includes(mot) ? null : `panneau ${loc}`,
     readFileSync(join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8')
       .includes(mot) ? null : `fiche ${loc}`,
   ]).filter(Boolean);
   ok('…et le panneau comme la fiche du Store en annoncent autant, dans les douze langues',
-     table.n === 21 && muettes.length === 0, muettes.join(', ') || String(table.n));
+     table.n === 22 && muettes.length === 0, muettes.join(', ') || String(table.n));
   /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
      constante de production vaut six heures, mais tests/build.mjs la réécrit à
      quatre secondes pour que le relevé des abonnements soit éprouvable. La
@@ -16498,7 +16500,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              fantomes: peints.filter((id) => !table.includes(id)) };
   }, vue.peints);
 
-  ok('les vingt et un réglages de la page ont chacun leur ligne',
+  ok('les vingt-deux réglages de la page ont chacun leur ligne',
      contrat.oublies.length === 0, contrat.oublies.join(', '));
   ok('…et aucune ligne fantôme : l\'ordre du panneau couvre exactement la table',
      contrat.fantomes.length === 0, contrat.fantomes.join(', '));
@@ -25661,6 +25663,28 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      && !o5.ouverte && o5.presses.delta === 'false' && o5.presses.astra === 'false',
      JSON.stringify({ o3: o3.presses, o4: [o4.chaines, o4.presses], o5: o5.presses }));
 
+  /* L'ALIGNEMENT AUTOMATIQUE (4.24.0.17) : une salle ouverte par le nœud le
+     lance, réglage allumé — il attend ici l'horloge de lecteurs qui n'en ont
+     pas. Réglage coupé : pas de pilote ; rallumé, il démarre ; recoupé, il
+     s'arrête, l'écoute avec. La console, elle, n'en lance pas (cf. le 182).
+     Mutants — le pilote jamais lancé à l'ouverture ; lancé malgré le
+     réglage ; le réglage qui ne l'arrête pas ; ni ne le relance. */
+  const auto1 = o1.rapport.auto, auto2 = o2.rapport.auto;
+  await page.evaluate(() => window.tse.options.poser('salleAuto', false));
+  await cliquerNoeud('astra');
+  const sansAuto = (await salle()).rapport.auto;
+  await page.evaluate(() => window.tse.options.poser('salleAuto', true));
+  const rallume = (await salle()).rapport;
+  await page.evaluate(() => window.tse.options.poser('salleAuto', false));
+  const recoupe = (await salle()).rapport;
+  await page.evaluate(() => { window.tse.options.poser('salleAuto', true); window.tse.salle.fermer(); });
+  ok('ouverte par le nœud, la salle lance l\'alignement automatique — et le réglage le coupe, le relance',
+     /^actif · (mesure d'ouverture|sans horloge)/.test(auto1?.etat || '') && auto1?.origine === 'ouverture'
+     && auto2?.etat === 'arrêté : salle fermée' && sansAuto === null
+     && /^actif/.test(rallume.auto?.etat || '') && rallume.auto?.origine === 'reglage' && rallume.ecoute?.actif === true
+     && recoupe.auto?.etat === 'arrêté : réglage' && recoupe.ecoute?.actif === false,
+     JSON.stringify({ auto1, auto2, sansAuto, rallume: [rallume.auto, rallume.ecoute?.actif], recoupe: [recoupe.auto, recoupe.ecoute?.actif] }));
+
   // ── Rien qui boucle ───────────────────────────────────────────────────────
   /* UNE ACCALMIE : une seconde et demie sans balayage, dix secondes au plus
      pour l'obtenir — le démarrage et le relevé des abonnements ont droit à
@@ -25789,13 +25813,14 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
 
   // ── Le rapport ────────────────────────────────────────────────────────────
   const rap = await page.evaluate(() => window.tse.panneau.rapport().salle);
-  /* Mutant — les clics jamais comptés. Six : quatre sur le trio (ouvrir,
-     refermer, ouvrir avant Échap, ouvrir), un sur le duo, et celui qui
-     atteint le nœud masqué, système coupé (4.24.0.9) — compté, sans effet. */
+  /* Mutant — les clics jamais comptés. Sept : quatre sur le trio (ouvrir,
+     refermer, ouvrir avant Échap, ouvrir), un sur le duo, celui qui ouvre la
+     salle alignement automatique coupé (4.24.0.17), et celui qui atteint le
+     nœud masqué, système coupé (4.24.0.9) — compté, sans effet. */
   /* Et ce qui dira, sur le vrai Twitch, si le calque décale la liste : la
      section du décor est une boîte ordinaire, l'écart est nul. */
   ok('le rapport compte les nœuds posés et les clics reçus, et mesure l\'écart du calque',
-     rap.noeuds?.affiches === 2 && rap.noeuds?.clics === 6 && rap.ouverte === false && rap.fermeture === 'reglage'
+     rap.noeuds?.affiches === 2 && rap.noeuds?.clics === 7 && rap.ouverte === false && rap.fermeture === 'reglage'
      && /^block · gap /.test(rap.noeuds?.section) && rap.noeuds?.ecart === 0,
      JSON.stringify(rap.noeuds));
   await page.close();
@@ -26304,6 +26329,22 @@ const S_LECTEUR_SONDE = () => {
             this.L += (this.arret ? dt : (1 - this.vElem()) * dt) - (ch === 'charlie' || ch === 'delta' ? 0.003 * dt : 0);
             this.pos += this.arret ? 0 : this.vElem() * dt;
             this.t = n;
+            /* LES LEVIERS DE RATTRAPAGE (4.24.0.17), tels qu'on les SUPPOSE —
+               c'est ce que tse.salle.leviers() vient éprouver sur le vrai :
+               au-delà de la latence maximale posée, le lecteur rattrape à la
+               vitesse posée (1,03 sans elle) jusqu'à y revenir. */
+            if (this.maxLat !== undefined && !this.arret) {
+              const v1 = this.vRattrape ?? 1.03;
+              if (this.L > this.maxLat + 0.02 && this.vPropre === null) { this.vPropre = v1; v.dispatchEvent(new Event('ratechange')); }
+              else if (this.L <= this.maxLat && this.vPropre === v1) { this.vPropre = null; v.dispatchEvent(new Event('ratechange')); }
+            }
+          }
+          setLiveSpeedUpRate(x) { this.vRattrape = x; }
+          setLiveMaxLatency(x) { this.maj(); this.maxLat = x; }
+          // Les plages du tampon : douze secondes derrière la lecture, le tampon devant.
+          getBufferedRanges() {
+            this.maj();
+            return [{ start: Math.round(Math.max(0, this.pos - 12) * 1000) / 1000, end: Math.round((this.pos + this.B) * 1000) / 1000 }];
           }
           getQualities() { return [{ name: '480p30', height: 480, framerate: 30 }, { name: '720p60', height: 720, framerate: 60 }]; }
           getQuality() { return this.q || null; }
@@ -26332,24 +26373,27 @@ const S_LECTEUR_SONDE = () => {
           /* L'HEURE DE L'IMAGE JOUÉE, arrondie à la seconde (4.24.0.14) : au
              troisième rapport réel, getSyncTime a perdu ce que la lecture a
              perdu — un recul, un calage —, et ses valeurs finissent par 000. */
-          // 0 avant la première image, comme la latence (cinquième rapport réel).
+          // 0 avant la première image, comme la latence (cinquième rapport réel)
+          // — et tant qu'on la fait tarder (__horlogeDes, 4.24.0.17).
           getSyncTime() {
             this.maj();
-            return Date.now() - this.t0 < 2500 ? 0 : Math.floor((Date.now() - this.L * 1000) / 1000) * 1000;
+            return Date.now() - this.t0 < 2500 || Date.now() < (this.horlogeDes || 0) ? 0
+              : Math.floor((Date.now() - this.L * 1000) / 1000) * 1000;
           }
           getPosition() { this.maj(); return this.pos; }
           /* Reculer ou avancer dans le tampon : la position bouge, la latence
              d'autant — PLUS UN CALAGE (4.24.0.15), qui dépend du SENS
-             (4.24.0.16) : aux rapports réels, 0,10 à 0,22 s pour un recul,
+             (4.24.0.16) : aux rapports réels, 0,056 à 0,22 s pour un recul,
              0,075 à 0,10 pour une avance. Ici 0,15 et 0,08 ; « alpha » cale
              bien plus, 0,3 et 0,25, que l'alignement doive corriger en
-             deuxième et troisième passes ; les « duo », 0,1 dans les deux
-             sens, ce qui laisse 0,075 s à l'alignement par le son — entre
-             son seuil et celui de l'horloge. */
+             deuxième et troisième passes ; les « duo », 0,05 dans les deux
+             sens (4.24.0.17) — le plus petit calage réel —, ce qui laisse
+             0,08 s à un recul par le son prévu à 0,13 — entre le seuil du son
+             et celui de l'horloge. */
           seekTo(p) {
             this.maj();
             const recul = p < this.pos;
-            const cale = ch === 'alpha' ? (recul ? 0.3 : 0.25) : /^duo/.test(ch) ? 0.1 : (recul ? 0.15 : 0.08);
+            const cale = ch === 'alpha' ? (recul ? 0.3 : 0.25) : /^duo/.test(ch) ? 0.05 : (recul ? 0.15 : 0.08);
             const d = this.pos - p;
             this.pos = p - cale;
             this.L += d + cale;
@@ -26378,6 +26422,8 @@ const S_LECTEUR_SONDE = () => {
         window.__lecteur = new FauxLecteur();
         // Un saut en avant de la lecture : la position avance, la latence baisse d'autant.
         window.__sauter = (x) => { window.__lecteur.maj(); window.__lecteur.L -= x; window.__lecteur.pos += x; };
+        // Une horloge qui tarde : getSyncTime rend 0 ms millisecondes encore (4.24.0.17).
+        window.__horlogeDes = (ms) => { window.__lecteur.horlogeDes = Date.now() + ms; };
         // Une coupure d'arrivée de D secondes (4.24.0.14).
         window.__coupure = (D) => { window.__lecteur.maj(); window.__lecteur.coupure = { t0: Date.now(), D }; };
         // Un rattrapage du lecteur lui-même : la vitesse x, s secondes (4.24.0.15).
@@ -26402,13 +26448,15 @@ const S_LECTEUR_SONDE = () => {
            celle de l'autre avec le délai du salon vocal (200 ms) ; « duo2 »
            montre tout 350 ms plus tard. La voix de duo1 passe donc 550 ms plus
            tard sur duo2, celle de duo2 150 ms plus tard : deux pics, à −550 et
-           −150, dont le milieu est le vrai décalage, −350. */
+           −150, dont le milieu est le vrai décalage, −350. « duo3 » (4.24.0.17)
+           passe les deux voix 750 ms après « duo1 » — à −950 et −550, milieu
+           −750 : plus loin que ce que le pilote croit du son. */
         /* « foxtrot » (4.24.0.15) n'a rien en commun avec les autres : sa voix
            est la sienne — le quatrième rapport réel, deux streams sans son
            partagé. « golf » et « hotel » passent le son 5,5 s plus tard, au
            bord de ce que l'écoute cherche : « golf » sans que sa latence le
            dise, « hotel » avec (7,7 s, une chaîne en latence normale). */
-        const VOIX = ({ bravo: [[0, 350]], duo1: [[0, 0], [1, 200]], duo2: [[1, 350], [0, 550]], foxtrot: [[2, 0]],
+        const VOIX = ({ bravo: [[0, 350]], duo1: [[0, 0], [1, 200]], duo2: [[1, 350], [0, 550]], duo3: [[1, 750], [0, 950]], foxtrot: [[2, 0]],
                         golf: [[0, 5500]], hotel: [[0, 5500]] })[ch] || [[0, 0]];
         const v = document.getElementById('v');
         const c = document.createElement('canvas');
@@ -26448,6 +26496,20 @@ const S_LECTEUR_SONDE = () => {
            fréquence interféreraient —, et plus forte. Au cinquième rapport
            réel, le son commun avait trois composantes. */
         window.__ajouterVoix = (voix, D, hz, poids) => { pistes.push(piste(voix, D, hz, poids)); };
+        // Tout le son de la tuile qui saute de ms, la lecture ne bougeant pas (4.24.0.17).
+        window.__decalerSon = (ms) => {
+          for (const p of pistes) { p.D += ms; p.g.gain.cancelScheduledValues(gen.currentTime); p.prochaine = 0; }
+        };
+        // Une source qui se TAIT (4.24.0.17) — ou reprend, à son poids — sur-le-champ :
+        // ce qui était prévu est annulé, et repris au prochain tour.
+        window.__taireVoix = (i, poids = 0) => {
+          const p = pistes[i];
+          if (!p) return;
+          p.poids = poids;
+          p.g.gain.cancelScheduledValues(gen.currentTime);
+          p.g.gain.setValueAtTime(0, gen.currentTime);
+          p.prochaine = 0;
+        };
         /* Un hachage ENTIER (4.24.0.13) : k vaut ~1,8·10¹⁰, et k × 2654435761
            dépasse 2⁵³ — le produit flottant perdait sa précision, et deux voix
            ne différaient plus que d'une constante. */
@@ -26584,7 +26646,8 @@ const S_LECTEUR_SONDE = () => {
      && r1.tuiles.alpha.serie.tampons.split(' ').every((x) => x === '1.8') && r1.instant.ecart4s === '0.5 · 0.5 · 0.5'
      && Array.isArray(r1.lecteurApi) && ['getLiveLatency', 'setPlaybackRate', 'isLiveLowLatency', 'pause'].every((n) => r1.lecteurApi.includes(n))
      && !r1.lecteurApi.includes('constructor') && r1.lecteurApiTotal === r1.lecteurApi.length
-     && /setPlaybackRate ✓/.test(r1.leviers) && /setRebufferToLive ✗/.test(r1.leviers),
+     && /setPlaybackRate ✓/.test(r1.leviers) && /setRebufferToLive ✗/.test(r1.leviers)
+     && /setLiveSpeedUpRate ✓ · setLiveMaxLatency ✓ · getBufferedRanges ✓$/.test(r1.leviers),
      JSON.stringify({ alpha: r1.tuiles.alpha, bravo: { serie: r1.tuiles.bravo?.serie, faible: r1.tuiles.bravo?.faibleLatence },
                       api: r1.lecteurApi, leviers: r1.leviers }));
 
@@ -27003,8 +27066,8 @@ const S_LECTEUR_SONDE = () => {
      l'autre : « bravo » a reculé de 3 s et avancé d'une (4,73 s, calages
      compris), « alpha » s'est arrêté 2,5 s (4,5 s), « charlie » n'a pas bougé
      (2,1 s). « bravo », la plus en retard, sert de référence ; chaque autre
-     recule de son écart moins le calage attendu d'un recul (0,175 s).
-     « charlie » cale de 0,15 s : il ne lui reste rien. « alpha » cale de 0,3 s
+     recule de son écart moins le calage attendu d'un recul (0,13 s depuis
+     la 4.24.0.17). « charlie » cale de 0,15 s : il ne lui reste rien. « alpha » cale de 0,3 s
      et dépasse ; la deuxième passe, PAR LA POSITION, l'avance de ce qu'il a
      pris de trop plus le calage attendu d'une AVANCE (0,087 s) — mais il en
      cale 0,25 ; la vérification le voit, et la troisième passe l'avance au
@@ -27047,7 +27110,7 @@ const S_LECTEUR_SONDE = () => {
      && A.apres === (A.verifications || '').split(' ; ').pop()
      && Math.abs(c3) < 0.1 && residu(A.apres, 'charlie') >= c3 && residu(A.apres, 'charlie') <= c3 + 0.06
      && Object.values(A.suivi || {}).length === 4 && Object.values(A.suivi).every((x) => Math.abs(residu(x, 'alpha')) <= 0.03)
-     && /^par l'horloge · /.test(A.passe1 || '') && /calage prévu 0\.175\) · obtenu [\d.]+ s · calage [\d.]+ · instance$/.test(p1a)
+     && /^par l'horloge · /.test(A.passe1 || '') && /calage prévu 0\.13\) · obtenu [\d.]+ s · calage [\d.]+ · instance$/.test(p1a)
      && demandeJuste(p1a, 'recul') && Math.abs(lu(p1a, /calage ([\d.]+) · instance/) - 0.3) <= 0.01
      && Math.abs(lu(p1c, /calage ([\d.]+) · instance/) - 0.15) <= 0.01
      && /^par la position · /.test(A.passe2 || '') && /charlie rien/.test(A.passe2 || '')
@@ -27131,25 +27194,31 @@ const S_LECTEUR_SONDE = () => {
      calcul apporte au plus une valeur à chaque voix, et les deux voix
      n'apparaissent au rapport qu'avec trois valeurs chacune au moins. Leurs
      horloges disent 0, le son dit que « duo2 » passe 350 ms après. « duo2 »
-     sert de référence, « duo1 » recule de 0,350 − 0,175 et en obtient 0,275
-     (calage 0,1) : il reste 0,075 s — sous le seuil de l'horloge (0,1),
+     sert de référence, « duo1 » recule de 0,350 − 0,13 et en obtient 0,265
+     (calage 0,05) : il reste 0,08 s — sous le seuil de l'horloge (0,1),
      au-dessus de celui du son (0,05) —, et la deuxième passe, par la
-     position, le recule encore, du minimum (0,05 s, 0,15 obtenus), au calage
-     qu'elle vient de mesurer. La vérification, par le son, attend des
-     calculs d'après ce recul, y voit −0,075, et la troisième passe l'avance :
-     le milieu finit sous 50 ms. L'horloge, elle, dit désormais l'écart que
-     les déplacements ont fait — l'écart que les deux vues ont entre elles —,
-     à 40 ms près : elle se lit au pas de 20 ms sur chaque tuile. Mutants —
-     les deux voix lues sans netteté, ou nettes dès une valeur ; le milieu
-     faux ; l'écoute pas exigée ; le mode son qui mesure à l'horloge ; le
-     seuil du son pris à l'horloge. */
+     position, le recule encore, du minimum (0,05 s, 0,10 obtenus), au calage
+     qu'elle vient de mesurer. La vérification, par le son, RECALE les
+     composantes d'après sur celles d'avant (4.24.0.17) : elles ont glissé
+     de ce que les déplacements ont fait, à 40 ms près, et le milieu finit
+     sous 50 ms. La première mesure, sur les premiers calculs de l'écoute,
+     tient à 40 ms près (0,38 s pour 0,35 au banc). L'horloge, elle, dit
+     désormais l'écart que les déplacements ont fait — l'écart que les deux
+     vues ont entre elles —, à 40 ms près : elle se lit au pas de 20 ms sur
+     chaque tuile. Mutants — les deux voix lues sans netteté, ou nettes dès
+     une valeur ; le milieu faux ; l'écoute pas exigée ; le mode son qui
+     mesure à l'horloge ; le seuil du son pris à l'horloge. */
+  /* LE MILIEU À ±45 ms (4.24.0.17) : les deux composantes glissent ensemble
+     d'un passage à l'autre — l'ancre du son du lecteur factice —, et le
+     milieu avec : de −315 à −380 sur les passages du banc, pour −350. ±30
+     ne passait qu'au hasard. */
   const voixR = r2.ecoute?.voix || {};
   const sansVoix = await page.evaluate(() => window.tse.salle.aligner('son', 0.1));
   await page.evaluate(() => window.tse.salle.ecoute(false));
   const sansEcoute = await page.evaluate(() => window.tse.salle.aligner('son', 0.1));
   ok('deux voix nettes au rapport, et aligner(\'son\') refusé sans elles ou sans écoute',
      /^milieu -3[0-9]{2} ms · demi-écart [12][0-9]{2} ms \(-5[0-9]{2} et -1[0-9]{2}, \d+ et \d+ valeurs\)/.test(voixR['duo1~duo2'] || '')
-     && Math.abs(Number((/^milieu (-?\d+)/.exec(voixR['duo1~duo2'] || '') || [])[1]) + 350) <= 30
+     && Math.abs(Number((/^milieu (-?\d+)/.exec(voixR['duo1~duo2'] || '') || [])[1]) + 350) <= 45
      && Object.keys(voixR).join() === 'duo1~duo2'
      && /pas de deux voix nettes/.test(sansVoix?.erreur || '') && /foxtrot, golf, hotel/.test(sansVoix.erreur)
      && /l'écoute doit tourner/.test(sansEcoute?.erreur || ''),
@@ -27170,22 +27239,36 @@ const S_LECTEUR_SONDE = () => {
   const rs = await rapport();
   const S = rs.alignement || {};
   const p1d = morceau(S.passe1, /duo1 recul [^;]*/), p2d = morceau(S.passe2, /duo1 recul [^;]*/);
-  const p3d = morceau(S.passe3, /duo1 avance [^;]*/);
   const pris = lu(S.deplacements, /^duo1 \+([\d.]+) s$/);
-  ok('aligner(\'son\') vise le milieu des deux voix : « duo2 » en référence, « duo1 » reculé deux fois puis avancé après vérification par le son — l\'horloge dit autre chose',
+  /* LA TROISIÈME PASSE, QUAND LE BRUIT LA DEMANDE (4.24.0.17). Après la
+     deuxième, le recul de « duo1 » dépasse de 0,02 s, que la vérification
+     lit à ±35 ms près — l'ancre du son du lecteur factice. Une fois sur
+     quelques passages, elle lit 0,05 ou plus : une troisième passe, une
+     avance au calage prévu de 0,087 quand les « duo » calent de 0,05 — elle
+     dépasse encore —, et le moteur s'arrête là en disant ce qui reste (vu au
+     banc : 0,119 au son, 0,07 à la position). Le banc admet ce chemin, et
+     vérifie que le rapport le dit ; la première vérification, elle, recale
+     dans les deux cas sur ce que les deux reculs ont obtenu. */
+  const troisPasses = S.passe3 !== null;
+  const verifs = String(S.verifications || '').split(' ; ');
+  const reculs = lu(p1d, /obtenu ([\d.]+) s/) + lu(p2d, /obtenu ([\d.]+) s/);
+  ok('aligner(\'son\') vise le milieu des deux voix : « duo2 » en référence, « duo1 » reculé par le son puis par la position, vérifié par recalage — l\'horloge dit autre chose',
      /^lancé/.test(parSon?.alignement || '') && parSon.mode === 'son' && S.mode === 'son'
      && S.reference === 'duo2 (la plus en retard, par le son)'
-     && /^par le son · /.test(S.avant || '') && Math.abs(ecartDe(S.avant) - 0.35) <= 0.03
-     && /^par le son · /.test(S.passe1 || '') && demandeJuste(p1d, 'recul') && /calage prévu 0\.175\)/.test(p1d)
-     && Math.abs(lu(p1d, /calage ([\d.]+) · instance/) - 0.1) <= 0.01
+     && /^par le son · /.test(S.avant || '') && Math.abs(ecartDe(S.avant) - 0.35) <= 0.04
+     && /· duo2 deux voix \(-5\d\d \(\d+\) · -1\d\d \(\d+\)\)$/.test(S.avant || '')
+     && /^par le son · /.test(S.passe1 || '') && demandeJuste(p1d, 'recul') && /calage prévu 0\.13\)/.test(p1d)
+     && Math.abs(lu(p1d, /calage ([\d.]+) · instance/) - 0.05) <= 0.01
      && /^par la position · /.test(S.passe2 || '') && demandeJuste(p2d, 'recul')
      && lu(p2d, /calage prévu ([\d.]+)\)/) === lu(p1d, /calage ([\d.]+) · instance/)
-     && Math.abs(lu(p2d, /\(écart ([\d.]+) s/) - 0.075) <= 0.02
-     && /^après vérification · /.test(S.passe3 || '') && demandeJuste(p3d, 'avance') && /calage prévu 0\.087\)/.test(p3d)
-     && Math.abs(lu(p3d, /calage ([\d.]+) · instance/) - 0.1) <= 0.01
-     && /^par le son · [^;]+ ; par le son · /.test(S.verifications || '')
-     && /^par le son · /.test(S.apres || '') && ecartDe(S.apres) <= 0.05
-     && /^par l'horloge · /.test(S.apresAutre || '') && pris >= 0.3 && Math.abs(ecartDe(S.apresAutre) - pris) <= 0.04
+     && Math.abs(lu(p2d, /\(écart ([\d.]+) s/) - 0.08) <= 0.02
+     && /^par le son · [^;]+ · duo2 recalé de \+\d+ ms \([^;]+\)$/.test(verifs[0])
+     && Math.abs(lu(verifs[0], /recalé de \+(\d+) ms/) - 1000 * reculs) <= 40
+     && /^par le son · /.test(S.apres || '') && S.apres === verifs[verifs.length - 1]
+     && (troisPasses
+       ? /^après vérification · duo1 avance /.test(S.passe3) && verifs.length === 2 && ecartDe(verifs[0]) >= 0.05
+       : verifs.length === 1 && ecartDe(S.apres) <= 0.05 && pris >= 0.3)
+     && /^par l'horloge · /.test(S.apresAutre || '') && Math.abs(ecartDe(S.apresAutre) - pris) <= 0.04
      && S.note === null,
      JSON.stringify({ parSon, S, voix: rs.ecoute?.voix }));
   await page.evaluate(() => window.tse.salle.ecoute(false));
@@ -27328,11 +27411,12 @@ const S_LECTEUR_SONDE = () => {
      celui d'« alpha », leurs latences sont de 2 et 2,5 s, et le son suit la
      tête de lecture. L'alignement prend « bravo », la plus en retard, pour
      référence (4.24.0.16) :
-       passe 1, par l'horloge : « alpha » recule de 0,325 s (0,5 moins le
-         calage d'un recul, 0,175) ; il cale de 0,3 : 0,625 obtenus ;
-       passe 2, par la position : il reste −0,125 ; l'avance de 0,212 (0,125
+       passe 1, par l'horloge : « alpha » recule de 0,37 s (0,5 moins le
+         calage d'un recul, 0,13 depuis la 4.24.0.17) ; il cale de 0,3 : 0,67
+         obtenus ;
+       passe 2, par la position : il reste −0,17 ; l'avance de 0,257 (0,17
          plus le calage d'une avance, 0,087) — mais « alpha » cale de 0,25 en
-         avançant, et perd 0,038 au lieu de gagner ;
+         avançant, et ne gagne que 0,007 ;
        vérification, douze secondes de passages plus tard : −0,163 ;
        passe 3 : l'avance de 0,413, au calage d'avance MESURÉ (0,25) — 0,163
          obtenus, l'écart ramené à zéro. Puis :
@@ -27378,11 +27462,11 @@ const S_LECTEUR_SONDE = () => {
      lance?.duree === '~160 s' && pr.etat === 'fini' && al.etat === 'fini' && al.reference === 'bravo (la plus en retard)'
      && Math.abs(lire(al.avant, /écart ([\d.]+) s/) - 0.5) <= 0.03
      && /^par l'horloge · alpha recul /.test(al.passe1 || '')
-     && /^alpha recul [\d.]+ s demandé \(écart [\d.]+ s, calage prévu 0\.175\) · obtenu [\d.]+ s · calage [\d.]+ · instance$/.test(p1)
-     && Math.abs(lire(p1, /recul ([\d.]+) s/) - 0.325) <= 0.03 && Math.abs(lire(p1, /calage ([\d.]+) · instance/) - 0.3) <= 0.01
+     && /^alpha recul [\d.]+ s demandé \(écart [\d.]+ s, calage prévu 0\.13\) · obtenu [\d.]+ s · calage [\d.]+ · instance$/.test(p1)
+     && Math.abs(lire(p1, /recul ([\d.]+) s/) - 0.37) <= 0.03 && Math.abs(lire(p1, /calage ([\d.]+) · instance/) - 0.3) <= 0.01
      && /^par la position · alpha avance /.test(al.passe2 || '')
      && /^alpha avance [\d.]+ s demandé \(écart -[\d.]+ s, calage prévu 0\.087\) · obtenu -?[\d.]+ s · calage [\d.]+ · instance$/.test(p2)
-     && Math.abs(lire(p2, /avance ([\d.]+) s/) - 0.212) <= 0.03 && Math.abs(lire(p2, /calage ([\d.]+) · instance/) - 0.25) <= 0.01
+     && Math.abs(lire(p2, /avance ([\d.]+) s/) - 0.257) <= 0.03 && Math.abs(lire(p2, /calage ([\d.]+) · instance/) - 0.25) <= 0.01
      && /^après vérification · alpha avance /.test(al.passe3 || '')
      && /^alpha avance [\d.]+ s demandé \(écart -[\d.]+ s, calage prévu [\d.]+\) · obtenu [\d.]+ s · calage [\d.]+ · instance$/.test(p3)
      && lire(p3, /calage prévu ([\d.]+)\)/) === lire(p2, /calage ([\d.]+) · instance/)
@@ -27391,16 +27475,22 @@ const S_LECTEUR_SONDE = () => {
      && ecartDe(al.apres) <= 0.04 && Object.values(al.suivi || {}).length === 4 && Object.values(al.suivi).every((x) => ecartDe(x) <= 0.04)
      && Math.abs(lire(al.deplacements, /^alpha \+([\d.]+) s$/) - 0.5) <= 0.04,
      JSON.stringify({ lance, al }));
+  /* LE PIC DE A, À ±60 ms, ET S10 À ±70 (4.24.0.17) : « bravo » démarre son
+     contexte audio suspendu, et l'ancre qui le rattrape laisse quelques
+     dizaines de millisecondes — de −330 à −400 sur huit passages du banc
+     (4.24.0.15 à .17), pour −350. À −400, la troisième composante de B,
+     vers +40, devient le pic le plus proche de ce que l'horloge attend :
+     S10 lit +440. ±30 et ±40 ne passaient qu'au hasard du tirage. */
   ok('le protocole 4 retrouve l\'alignement par le son, la latence et l\'horloge — le même pic de part et d\'autre, et le son commun',
      /^\d+ relevés · attendu -?\d+ ms · horloge -?\d+ ms · \d+ calculs · pics -?\d+ \(\d+\)/.test(ph('A')) && /· pics /.test(ph('B'))
      && lire(ph('A'), /^\d+ relevés · attendu (-?\d+)/) === -500 && Math.abs(lire(ph('A'), /horloge (-?\d+)/) + 500) <= 25
      && Math.abs(lire(ph('B'), /attendu (-?\d+)/)) <= 40 && Math.abs(lire(ph('B'), /horloge (-?\d+)/)) <= 40
      && lire(ph('A'), /· (\d+) calculs/) >= 3 && lire(ph('B'), /· (\d+) calculs/) >= 10
-     && Math.abs(picsDe('A')[0] + 350) <= 30 && picsDe('B').some((x) => Math.abs(x - 150) <= 30)
+     && Math.abs(picsDe('A')[0] + 350) <= 60 && picsDe('B').some((x) => Math.abs(x - 150) <= 30)
      && picsDe('B').some((x) => Math.abs(x + 270) <= 30) && !/deux voix/.test(ph('A'))
      && Math.abs(lire(ph('B'), /deux voix : milieu (-?\d+) ms/) + 60) <= 30
      && Math.abs(lire(ph('B'), /demi-écart (\d+) ms/) - 210) <= 30
-     && Math.abs(lire(s10, /^pic \+(\d+)/) - 500) <= 40 && Math.abs(lire(s10, /attendu \+(\d+)/) - 500) <= 40
+     && Math.abs(lire(s10, /^pic \+(\d+)/) - 500) <= 70 && Math.abs(lire(s10, /attendu \+(\d+)/) - 500) <= 40
      && Math.abs(lire(s10, /horloge \+(\d+)/) - 500) <= 40 && Math.abs(lire(s10, /prévu \+(\d+)/) - 500) <= 40
      && / · le pic a suivi l'horloge$/.test(s10)
      && /^oui · \d+ calculs sur \d+ tiennent hors du bord · le pic a suivi l'alignement$/.test(pr.sonCommun?.['alpha~bravo'] || '')
@@ -27425,6 +27515,390 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify(r4.protocole?.phases) === JSON.stringify(pr.phases) && Object.keys(pr.phases || {}).length === 2
      && JSON.stringify(r4.protocole?.S10son) === JSON.stringify(pr.S10son) && r4.ecoute?.calculs === 0,
      JSON.stringify({ avant: pr.phases, apres: r4.protocole?.phases, calculs: r4.ecoute?.calculs }));
+  await page.close();
+}
+
+/* ═════════ L'ALIGNEMENT AUTOMATIQUE (4.24.0.17) ═══════════════════════════
+   À la demande : un alignement « parfait » dès l'entrée dans la salle, quel
+   que soit le nombre de streams — et les deux alignements du septième rapport
+   réel, l'un par l'horloge, l'autre par le son, ont paru justes. Le pilote
+   les enchaîne lui-même ; ici à l'échelle 0,1 (auto(0.1)) : vingt secondes de
+   passages en deviennent six, une minute six secondes. L'écoute, elle, garde
+   son pas — un calcul toutes les cinq secondes. */
+{
+  titre('182. L\'alignement automatique — à l\'ouverture, en veille, et qui l\'arrête');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport());
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  const ligne = (r, n) => r.auto?.journal?.[String(n).padStart(3, '0')] || '';
+  // Une entrée du journal du pilote, finie (ou arrêtée) — plus « en cours ».
+  const finie = (n, ms) => attendre(page, (k) => {
+    const l = window.tse.salle.rapport().auto?.journal?.[k] || '';
+    return !!l && !/ · en cours/.test(l);
+  }, ms, String(n).padStart(3, '0'));
+  const lu = (x, re) => Number((re.exec(x || '') || [])[1]);
+  const quand = (l) => lu(l, /^\+(\d+) s/);
+  const residu = (x, nom) => Number(((new RegExp(`${nom} ([+−][\\d.]+)(?: ·|$)`).exec(x || '') || [])[1] ?? 'absent').replace('−', '-'));
+
+  /* TROIS TUILES, À L'OUVERTURE. « alpha » 2 s de latence, « bravo » 2,5,
+     « charlie » 2,2 — qui dérive de −3 ms/s. Huit dixièmes de seconde
+     d'installation, six de passages, puis S10 : « bravo », la plus en
+     retard, sert de référence ; « alpha » recule de 0,5 − 0,13 et cale de
+     0,3, la position et la vérification le ramènent — trois passes, comme
+     au 180 ; « charlie », d'une seule. L'écoute allumée par le pilote,
+     l'ancre sur « alpha », la tuile du son. Un second auto() est refusé.
+     L'HORLOGE DE « CHARLIE » TARDE de douze secondes : le pilote l'attend,
+     « sans horloge : charlie » au rapport, avant de mesurer quoi que ce soit.
+     Mutants — le pilote jamais lancé ; l'ouverture sans attendre l'horloge
+     de toutes les tuiles ; l'écoute pas allumée. */
+  await page.evaluate(() => window.tse.salle.ouvrir('alpha', 'bravo', 'charlie'));
+  let charlieTarde = false;
+  for (let i = 0; i < 100 && !charlieTarde; i++) {
+    charlieTarde = await (cadre('charlie')?.evaluate(() => {
+      if (typeof window.__horlogeDes !== 'function') return false;
+      window.__horlogeDes(12_000);
+      return true;
+    }) ?? Promise.resolve(false)).catch(() => false);
+    if (!charlieTarde) await wait(page, 100);
+  }
+  const lance = await page.evaluate(() => window.tse.salle.auto(0.1));
+  const deja = await page.evaluate(() => window.tse.salle.auto(0.1));
+  const sansHorloge = await page.waitForFunction(() => {
+    const e = window.tse.salle.rapport().auto?.etat || '';
+    return /sans horloge/.test(e) ? e : null;
+  }, null, { timeout: 30_000, polling: 200 }).then((h) => h.jsonValue()).catch(() => null);
+  await finie(1, 60_000);
+  const r1 = await rapport();
+  const j1 = ligne(r1, 1);
+  ok('à l\'ouverture, l\'automatique aligne les trois tuiles par l\'horloge, l\'écoute allumée pour lui',
+     /^lancé/.test(lance?.auto || '') && /tourne déjà/.test(deja?.erreur || '')
+     && charlieTarde && sansHorloge === 'actif · sans horloge : charlie'
+     && /^\+\d+ s · ouverture · par l'horloge · fini · écart 0\.[45]\d\d → 0\.\d{3} s · 3 passes en \d+ s$/.test(j1)
+     && r1.alignement?.reference === 'bravo (la plus en retard)' && r1.alignement?.origine === 'auto'
+     && Math.abs(residu(r1.alignement?.apres, 'alpha')) <= 0.03 && Math.abs(residu(r1.alignement?.apres, 'charlie')) < 0.1
+     && r1.alignement?.etat === 'fini' && r1.alignement?.suivi && !Object.keys(r1.alignement.suivi).length
+     && r1.ecoute?.actif === true && r1.auto?.ancre === 'alpha' && /^actif/.test(r1.auto?.etat || '') && r1.auto?.alignements === 1,
+     JSON.stringify({ lance, deja, charlieTarde, sansHorloge, auto: r1.auto, al: r1.alignement }));
+
+  /* UN ÉVÉNEMENT : « bravo » saute d'une seconde en avant — sa latence en
+     perd une, sa position en gagne autant. La sonde y voit un saut
+     « avance » ; le pilote attend six secondes de passages d'après, y lit
+     « bravo » à une seconde de son retard gardé, et le réaligne — il recule.
+     Au journal de la salle, entre le saut et le réalignement : six secondes
+     de fenêtre, plus la seconde qui suit l'événement.
+     Mutants — l'événement jamais signalé ; signalé et jamais vérifié ;
+     vérifié sur des passages d'avant lui. */
+  await cadre('bravo')?.evaluate(() => window.__sauter(1)).catch(() => null);
+  await finie(2, 60_000);
+  const r2 = await rapport();
+  const j2 = ligne(r2, 2);
+  const evts = Object.values(r2.instant?.evenements || {});
+  const iAuto = evts.findIndex((l) => / · salle · auto · saut \(avance\) \(bravo\)$/.test(l));
+  const tAuto = iAuto >= 0 ? lu(evts[iAuto], /^\+([\d.]+) s/) : NaN;
+  const tSaut = evts.slice(0, Math.max(0, iAuto)).filter((l) => / · bravo · saut de latence .* · avance(?: ·|$)/.test(l))
+    .map((l) => lu(l, /^\+([\d.]+) s/)).pop();
+  ok('un saut de la lecture est un événement : six secondes de passages d\'après, et la tuile est réalignée',
+     /^\+\d+ s · saut \(avance\) \(bravo\) · par l'horloge · fini · écart (?:0\.9[5-9]\d|1\.0\d\d) → 0\.\d{3} s · \d passes? en \d+ s$/.test(j2)
+     && /bravo recul /.test(r2.alignement?.passe1 || '') && quand(j2) - quand(j1) >= 6
+     && tAuto - tSaut >= 6.8,
+     JSON.stringify({ j2, tSaut, tAuto, al: r2.alignement, auto: r2.auto }));
+
+  /* UNE DÉRIVE : « charlie » perd 3 ms par seconde sur l'ancre. Sous 0,2 s,
+     rien — l'horloge erre seule de ±0,13 s au septième rapport ; au-delà,
+     trois contrôles de suite, et il est réaligné : au rapport, la dérive
+     comptée « 2 de suite » sans que rien ne bouge encore. Mutants — la dérive
+     jamais comptée ; réalignée dès le premier contrôle au-delà ; au seuil de
+     l'horloge. */
+  const deuxDeSuite = await page.waitForFunction(() => {
+    const a = window.tse.salle.rapport().auto || {};
+    return a.alignements === 2 && /charlie −0\.2\d\d \(2 de suite\)/.test(a.derive || '') ? a.derive : null;
+  }, null, { timeout: 180_000, polling: 200 }).then((h) => h.jsonValue()).catch(() => null);
+  await finie(3, 60_000);
+  const r3 = await rapport();
+  const j3 = ligne(r3, 3);
+  ok('une dérive de plus de 0,2 s, trois contrôles de suite, est réalignée — pas avant',
+     !!deuxDeSuite && /^\+\d+ s · dérive \(charlie\) · par l'horloge · fini · écart 0\.2\d\d → 0\.\d{3} s · \d passes? en \d+ s$/.test(j3)
+     && /charlie recul /.test(r3.alignement?.passe1 || ''),
+     JSON.stringify({ deuxDeSuite, j2, j3, al: r3.alignement, auto: r3.auto }));
+
+  /* QUI L'ARRÊTE : aligner(false) ; un alignement à la main, qui prend sa
+     place ; le protocole, qui aligne lui-même. Chacun le dit au rapport.
+     Mutants — l'un d'eux qui le laisse tourner. */
+  const arret = await page.evaluate(() => window.tse.salle.aligner(false));
+  const ra = await rapport();
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  const main = await page.evaluate(() => window.tse.salle.aligner(0.1));
+  const rb = await rapport();
+  await page.evaluate(() => window.tse.salle.aligner(false));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  const proto = await page.evaluate(() => window.tse.salle.essais(0.1));
+  const rc = await rapport();
+  await page.evaluate(() => window.tse.salle.essais(false));
+  ok('aligner(false), un alignement à la main et le protocole arrêtent l\'automatique',
+     arret?.alignement === 'arrêté / stopped' && ra.auto?.etat === 'arrêté'
+     && /^lancé/.test(main?.alignement || '') && rb.auto?.etat === 'arrêté : alignement à la main'
+     && /^lancé/.test(proto?.protocole || '') && rc.auto?.etat === 'arrêté : protocole',
+     JSON.stringify({ arret, a: ra.auto?.etat, main, b: rb.auto?.etat, proto, c: rc.auto?.etat }));
+
+  /* LES LEVIERS DE RATTRAPAGE, essayés sur la tuile muette : le lecteur
+     factice fait ce qu'on SUPPOSE du vrai — au-delà de la latence maximale
+     posée, il rattrape à la vitesse posée, 1,1. Une seconde de trop : une
+     dizaine de secondes à 1,1, que la sonde compte comme un rattrapage. Et
+     le tampon en arrière, lu aux plages de l'instance. Mutants — un appel
+     oublié ; la vitesse jamais lue ; les plages jamais relues. */
+  const lev = await page.evaluate(() => window.tse.salle.leviers(0.6));
+  await attendre(page, () => window.tse.salle.rapport().essaiLeviers?.etat === 'fini', 40_000);
+  const rl = await rapport();
+  const L = rl.essaiLeviers || {};
+  const sb = rl.tuiles?.bravo?.serie || {};
+  ok('les leviers de rattrapage : chaque appel au rapport, la vitesse et le rattrapage qu\'ils ont donnés — et le tampon en arrière',
+     lev?.envoye === 'leviers' && lev.chaine === 'bravo' && lev.vitesse === 1.1
+     && L.appels === `setLiveSpeedUpRate(1.1) ok · setLiveMaxLatency(${lev.latence}) ok`
+     && /\b1\.1\b/.test(L.vitesses || '') && /^\d+(\.\d)? s à 1\.1, latence [\d.]+ → [\d.]+/.test(L.rattrapages || '')
+     && Math.abs(lu(L.latence, /min ([\d.]+)/) - lev.latence) <= 0.1
+     && /^[\d.]+–[\d.]+$/.test(rl.tuiles?.bravo?.plages || '')
+     && /^[\d.]+ · [\d.]+ · [\d.]+$/.test(sb.arriereLecteur || '')
+     && String(sb.arriereLecteur).split(' · ').slice(1).every((x) => Math.abs(Number(x) - 12) <= 0.01),
+     JSON.stringify({ lev, L, plages: rl.tuiles?.bravo?.plages, arriere: sb.arriereLecteur }));
+
+  /* UNE VOIX QUI SAUTE N'EN FAIT PAS DEUX. Au banc, cinq minutes de pilote
+     sur ces trois tuiles, et la voix de « charlie » — la seule qu'elle
+     partage avec « alpha » — a sauté de 290 à 410 ms d'un calcul à l'autre,
+     l'horloge de 20 ms : deux groupes, sept valeurs puis trois, « deux voix
+     nettes », et le pilote a aligné « charlie » sur leur milieu. Ici, à coup
+     sûr : « kilo » et « lima » partagent une voix, celle de « lima » saute
+     de 300 ms sans que sa lecture bouge. L'historique a ses deux groupes,
+     l'un après l'autre ; ce ne sont pas deux voix nettes, et le pilote n'en
+     fait rien. Mutant — les voix pas exigées mêlées dans le temps. */
+  await page.evaluate(() => window.tse.salle.fermer());
+  await page.evaluate(() => window.tse.salle.ouvrir('kilo', 'lima'));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  await finie(1, 60_000);
+  await attendre(page, () => (window.tse.salle.rapport().ecoute?.calculs || 0) >= 5, 60_000);
+  const saute = await (cadre('lima')?.evaluate(() => { window.__decalerSon(300); return true; })
+    ?? Promise.resolve(false)).catch(() => false);
+  await wait(page, 40_000);
+  const rk = await rapport();
+  const valeurs = String(rk.ecoute?.historique?.['kilo~lima'] || '').split(' · ').map((x) => Number(x.split(' ')[0]));
+  const autour = (c) => valeurs.slice(-12).filter((x) => Math.abs(Math.abs(x) - c) <= 40).length;
+  ok('une voix qui saute n\'en fait pas deux : deux groupes l\'un après l\'autre, pas deux voix nettes, et le pilote n\'en fait rien',
+     saute && autour(0) >= 3 && autour(300) >= 3 && !rk.ecoute?.voix?.['kilo~lima']
+     && rk.auto?.alignements === 1 && !rk.auto?.son,
+     JSON.stringify({ saute, valeurs, voix: rk.ecoute?.voix, j: rk.auto?.journal, son: rk.auto?.son }));
+
+  await page.close();
+}
+
+/* ═════════ L'ALIGNEMENT AUTOMATIQUE, PAR LE SON (4.24.0.17) ═══════════════
+   La suite du 182, sur deux tuiles qui partagent deux voix. */
+{
+  titre('183. L\'alignement automatique — par le son, et ce que l\'horloge en garde');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport());
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  const ligne = (r, n) => r.auto?.journal?.[String(n).padStart(3, '0')] || '';
+  const finie = (n, ms) => attendre(page, (k) => {
+    const l = window.tse.salle.rapport().auto?.journal?.[k] || '';
+    return !!l && !/ · en cours/.test(l);
+  }, ms, String(n).padStart(3, '0'));
+  const lu = (x, re) => Number((re.exec(x || '') || [])[1]);
+  const residu = (x, nom) => Number(((new RegExp(`${nom} ([+−][\\d.]+)(?: ·|$)`).exec(x || '') || [])[1] ?? 'absent').replace('−', '-'));
+
+  /* PAR LE SON. « duo1 » et « duo2 » : leurs horloges disent 0, le son dit
+     que « duo2 » passe 350 ms après (deux voix, cf. le 180). L'ouverture n'a
+     rien à corriger. Puis, deux voix nettes, stables d'un contrôle à
+     l'autre : « duo1 » a le son, l'écoute et l'ancre, et ne bouge pas ;
+     « duo2 », en retard, AVANCE de 0,35 + 0,087 — son tampon de 1,8 s le
+     permet. Elle ne cale que de 0,05 : il reste 37 à 50 ms selon la mesure,
+     au bord du seuil du son — une vérification à 0,050 relance une passe,
+     et la troisième y met fin (vu au banc : 0,010 s en trois passes). Sitôt
+     la passe lancée, une TROISIÈME composante entre dans
+     « duo2 », aussi forte que les deux voix — trois composantes de même
+     poids, comme au septième rapport réel —, et la vraie seconde voix se
+     tait quarante-cinq secondes. Les quinze premières, il ne reste qu'une
+     paire, nette et FAUSSE — la troisième composante et la première voix.
+     Un seul appariement : le recalage attend ; un repli sur deux voix
+     nettes s'y tromperait, à coup sûr. Les trente suivantes — six calculs,
+     que la copie ait ses deux valeurs —, une copie de la première voix,
+     370 ms plus tard, entre aussi : avec la troisième, elle refait le motif
+     d'avant sous un faux glissement — l'attendu moins 220 ms, quels que
+     soient le calage et l'ancre —, deux composantes retrouvées, quand le
+     vrai n'en retrouve qu'une tant que la seconde voix se tait. À 220 ms de
+     ce que l'avance a obtenu : écarté (au banc, une composante de passage
+     l'a fait une fois, et « duo2 » a avancé de 0,19 s de trop). La copie se
+     tait quand la seconde voix revient — quatre sources de même poids, et
+     la seconde voix ne se montrait plus assez pour recaler —, et il RECALE
+     les composantes d'après sur celles d'avant — la troisième n'y a pas
+     toujours ses deux valeurs ; les voix fausses, plus bas, la montrent.
+     Pas plus forte que les voix : la vraie seconde voix n'aurait plus que
+     deux valeurs ou moins sur douze calculs, et le recalage tiendrait au
+     tirage.
+     Au premier contrôle qui voit les deux voix, le pilote les note et ne
+     bouge rien : il faut qu'un second contrôle les retrouve.
+     Mutants — le son jamais regardé ; la stabilité pas exigée ; l'ancre
+     déplacée ; la vérification qui veut deux voix nettes, ou s'y replie ;
+     le recalage sans borne autour de l'attendu. */
+  await page.evaluate(() => window.tse.salle.ouvrir('duo1', 'duo2'));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  await finie(1, 60_000);
+  const rd1 = await rapport();
+  const premierSon = await page.waitForFunction(() => {
+    const a = window.tse.salle.rapport().auto || {};
+    return a.son ? { son: a.son, alignements: a.alignements } : null;
+  }, null, { timeout: 240_000, polling: 100 }).then((h) => h.jsonValue()).catch(() => null);
+  await attendre(page, () => !!window.tse.salle.rapport().auto?.journal?.['002'], 240_000);
+  await cadre('duo2')?.evaluate(() => { window.__ajouterVoix(0, 770, 550, 1); window.__taireVoix(0); }).catch(() => null);
+  setTimeout(() => { cadre('duo2')?.evaluate(() => window.__ajouterVoix(0, 370, 330, 1)).catch(() => null); }, 15_000);
+  setTimeout(() => { cadre('duo2')?.evaluate(() => { window.__taireVoix(3); window.__taireVoix(0, 1); }).catch(() => null); }, 45_000);
+  /* L'ENVELOPPE REPART DE ZÉRO après le déplacement : le calcul d'après
+     tient sur moins de vingt secondes — jamais sinon, l'écoute tournant
+     depuis plus longtemps. Mutant — l'enveloppe gardée. */
+  const fenetreCourte = await page.waitForFunction(() => {
+    const x = Number((/ · ([\d.]+) s(?: ·|$)/.exec(window.tse.salle.rapport().ecoute?.paires?.['duo1~duo2'] || '') || [])[1]);
+    return x < 19 ? x : null;
+  }, null, { timeout: 30_000, polling: 200 }).then((h) => h.jsonValue()).catch(() => null);
+  await finie(2, 240_000);
+  const rd2 = await rapport();
+  const S = rd2.alignement || {};
+  ok('par le son : deux voix nettes et stables, « duo2 » avance vers l\'ancre ; une troisième composante survient, la vérification recale le motif',
+     /^\+\d+ s · ouverture · par l'horloge · fini · écart 0\.0\d\d → 0\.0\d\d s · 1 passe en \d+ s$/.test(ligne(rd1, 1))
+     && /^\+\d+ s · son \(duo2\) · par le son · fini · écart 0\.3\d\d → 0\.0[0-4]\d s · [123] passes? en \d+ s$/.test(ligne(rd2, 2))
+     && S.mode === 'son' && S.reference === 'duo1 (l\'ancre, par le son)' && S.origine === 'auto'
+     && /^par le son · duo2 avance [\d.]+ s demandé \(écart -0\.3\d\d s, calage prévu 0\.087\) · obtenu 0\.[34]\d{0,2} s/.test(S.passe1 || '')
+     && /^par le son · [^;]+ · duo2 recalé de \+\d+ ms \(/.test(S.verifications || '')
+     && Math.abs(lu(S.verifications, /recalé de \+(\d+) ms/) - 1000 * lu(S.passe1, /obtenu ([\d.]+) s/)) <= 40
+     && /recalé de \+\d+ ms \((?:-?\d+ \(\d+\) · )+-?\d+ \(\d+\)\)/.test(S.verifications || '')
+     && Math.abs(residu(S.apres, 'duo2')) < 0.05 && S.note === null
+     && fenetreCourte >= 6 && premierSon?.alignements === 1 && /^duo2 milieu -3\d\d ms$/.test(premierSon?.son || ''),
+     JSON.stringify({ fenetreCourte, premierSon, j: rd2.auto?.journal, S, voix: rd2.ecoute?.voix, pics: rd2.ecoute?.pics }));
+
+  /* UNE TUILE ALIGNÉE PAR LE SON NE L'EST QU'UNE FOIS. La vraie seconde voix
+     de « duo2 » se tait : restent la troisième composante et la première
+     voix — deux voix « nettes », fausses, au milieu vers −210 à −310 ms
+     selon ce que l'avance a obtenu, quand la vraie paire dit 0 à ±50. Au premier tour du banc, le hasard des tirages les
+     faisait déjà nettes : le pilote les aurait suivies, et fait avancer
+     « duo2 » de 0,27 s de trop. Deux contrôles de plus : rien ne bouge, et
+     le pilote ne les regarde même pas. Mutant — la tuile alignée par le son,
+     de nouveau regardée. */
+  await cadre('duo2')?.evaluate(() => { window.__taireVoix(0); window.__taireVoix(3); }).catch(() => null);
+  const fausses = await page.waitForFunction(() => {
+    const v = window.tse.salle.rapport().ecoute?.voix?.['duo1~duo2'] || '';
+    return Number((/^milieu (-?\d+) ms/.exec(v) || [])[1]) <= -150 ? v : null;
+  }, null, { timeout: 90_000, polling: 500 }).then((h) => h.jsonValue()).catch(() => null);
+  await wait(page, 14_000);
+  const rdF = await rapport();
+  ok('une tuile alignée par le son ne l\'est qu\'une fois : deux voix « nettes » d\'après, fausses, n\'y changent rien',
+     !!fausses && rdF.auto?.alignements === 2 && !rdF.auto?.son,
+     JSON.stringify({ fausses, j: rdF.auto?.journal, son: rdF.auto?.son, voix: rdF.ecoute?.voix }));
+
+  /* LE SON GARDÉ PAR L'HORLOGE. Une minute après (six secondes ici), la
+     relation d'horloge de « duo2 » à l'ancre est CALIBRÉE — un tiers de
+     seconde d'avance environ, ce que le son lui a donné. Puis « duo1 »,
+     l'ancre, saute de 0,6 s — pas d'une seconde : sa latence passerait
+     sous son tampon de 1,8 s, et la sonde, à bon droit, n'y verrait qu'une
+     latence incohérente, pas un saut. Le pilote réaligne par l'horloge en
+     GARDANT cette relation — à son seuil près, 0,1 s — et pas en la
+     remettant à 0, ce qui défairait le son. Cette relation : les 0,35 s du
+     son, à ce que la vérification laisse (±0,05) et à l'erreur de l'horloge
+     (±0,02) près — 0,28 à 0,42 ; au banc complet, 0,299 après une fin à
+     0,047. Mutants — la relation jamais calibrée ; le réalignement qui
+     vise 0. */
+  await attendre(page, () => /duo2 −0\.\d{3} \(garde −0\.\d{3}, par le son\)/.test(window.tse.salle.rapport().auto?.retards || ''), 60_000);
+  const rd3 = await rapport();
+  const garde = lu(rd3.auto?.retards, /garde −(0\.\d{3})/);
+  await cadre('duo1')?.evaluate(() => window.__sauter(0.6)).catch(() => null);
+  await finie(3, 90_000);
+  await attendre(page, () => /^duo2 −0\.\d{3} \(garde/.test(window.tse.salle.rapport().auto?.retards || '')
+    && (window.tse.salle.rapport().auto?.alignements || 0) === 3 && /veille/.test(window.tse.salle.rapport().auto?.etat || ''), 40_000);
+  const rd4 = await rapport();
+  const apresRetard = lu(rd4.auto?.retards, /^duo2 −(0\.\d{3})/);
+  ok('un réalignement par l\'horloge garde la relation que le son a donnée',
+     garde >= 0.27 && garde <= 0.45 && /^\+\d+ s · saut \(avance\) \(duo1\) · par l'horloge · fini · /.test(ligne(rd4, 3))
+     && /^par l'horloge \(relations gardées\) · /.test(rd4.alignement?.apres || '')
+     && Math.abs(apresRetard - garde) < 0.1,
+     JSON.stringify({ garde, apresRetard, retards: [rd3.auto?.retards, rd4.auto?.retards], al: rd4.alignement, j: rd4.auto?.journal }));
+
+  // auto(false) : l'automatique s'arrête, et l'écoute qu'il avait allumée avec lui.
+  const fin = await page.evaluate(() => window.tse.salle.auto(false));
+  const rd5 = await rapport();
+  await page.evaluate(() => window.tse.salle.fermer());
+  const rd6 = await rapport();
+  ok('auto(false) l\'arrête et éteint l\'écoute qu\'il avait allumée ; la salle fermée, il est à l\'arrêt',
+     fin?.auto === 'arrêté / stopped' && rd5.auto?.etat === 'arrêté' && rd5.ecoute?.actif === false
+     && rd6.ouverte === false && rd6.auto?.etat === 'arrêté',
+     JSON.stringify({ fin, a5: rd5.auto?.etat, e5: rd5.ecoute?.actif, a6: rd6.auto?.etat }));
+
+  /* LA VÉRIFICATION IMPOSSIBLE. Une nouvelle salle, « duo1 » et « duo2 » :
+     sitôt l'alignement par le son lancé, tout le son de « duo2 » se tait.
+     Deux minutes sans recalage, la fin par l'horloge, en le disant — l'écart
+     d'après mesuré par l'horloge, et dit tel. La tuile reste alignée par le
+     son, « non vérifiée » : son déplacement suivait une mesure du son, et
+     la remesurer par deux voix nettes, c'est risquer les mauvaises — au
+     banc, le pilote y a fait avancer « duo2 » de 0,30 s de trop. Mutant — la
+     tuile déplacée comptée comme un échec. */
+  await page.evaluate(() => window.tse.salle.ouvrir('duo1', 'duo2'));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  await finie(1, 60_000);
+  await attendre(page, () => !!window.tse.salle.rapport().auto?.journal?.['002'], 240_000);
+  const tues = await (cadre('duo2')?.evaluate(() => { window.__taireVoix(0); window.__taireVoix(1); return true; })
+    ?? Promise.resolve(false)).catch(() => false);
+  await finie(2, 200_000);
+  await attendre(page, () => /par le son/.test(window.tse.salle.rapport().auto?.retards || ''), 30_000);
+  const rv = await rapport();
+  ok('la vérification impossible : la fin par l\'horloge, en le disant, et la tuile reste alignée par le son, « non vérifiée »',
+     tues && /^\+\d+ s · son \(duo2\) · par le son · fini · écart 0\.3\d\d → 0\.\d{3} s par l'horloge · [12] passes? en \d+ s · vérification par le son impossible \(duo2\)$/.test(ligne(rv, 2))
+     && /^duo2 [+−]0\.\d{3} \(garde [+−]0\.\d{3}, par le son non vérifiée(?:, à calibrer)?\)$/.test(rv.auto?.retards || ''),
+     JSON.stringify({ tues, j: rv.auto?.journal, retards: rv.auto?.retards, al: rv.alignement }));
+  await page.evaluate(() => window.tse.salle.fermer());
+
+  /* AU-DELÀ D'UNE DEMI-SECONDE, LE PILOTE NE CROIT PAS LE SON. « duo3 »
+     passe les deux voix de « duo1 » 750 ms plus tard : deux voix nettes,
+     stables, que le pilote voit et laisse — alignées par l'horloge, les
+     paires réelles n'en étaient qu'à 0,07–0,27 s par le son ; si loin, c'est
+     plus probablement deux composantes mal appariées. Trois contrôles de
+     plus, et toujours le seul alignement d'ouverture.
+     UNE SEULE COMPOSANTE RETROUVÉE NE RECALE PAS. À la main, aligner('son')
+     fait reculer « duo1 » vers « duo3 » ; sitôt la mesure prise, une voix
+     de « duo3 » se tait : après le déplacement, il ne reste qu'une
+     composante. Le glissement d'une seule, le plus proche de l'attendu, ne
+     serait que la position redite — la vérification attend, et ne conclut
+     pas : quarante secondes après, toujours rien.
+     Mutants — la borne d'une demi-seconde retirée ; le recalage sur une
+     composante. */
+  await page.evaluate(() => window.tse.salle.ouvrir('duo1', 'duo3'));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  await finie(1, 60_000);
+  const vu750 = await page.waitForFunction(() => /^duo3 milieu -7\d\d ms$/.test(window.tse.salle.rapport().auto?.son || ''),
+    null, { timeout: 120_000, polling: 200 }).then(() => true).catch(() => false);
+  await wait(page, 14_000);
+  const re1 = await rapport();
+  const main = await page.evaluate(() => window.tse.salle.aligner('son', 0.1));
+  const tue = await (cadre('duo3')?.evaluate(() => { window.__taireVoix(0); return true; }) ?? Promise.resolve(false)).catch(() => false);
+  await wait(page, 40_000);
+  const re2 = await rapport();
+  await page.evaluate(() => window.tse.salle.aligner(false));
+  ok('au-delà d\'une demi-seconde, le pilote ne croit pas le son ; et une seule composante retrouvée ne recale pas',
+     vu750 && /^duo3 milieu -7\d\d ms$/.test(re1.auto?.son || '') && re1.auto?.alignements === 1
+     && /^lancé/.test(main?.alignement || '') && tue
+     && /^par le son · duo1 recul /.test(re2.alignement?.passe1 || '')
+     && re2.alignement?.verifications === null && /^en cours/.test(re2.alignement?.etat || ''),
+     JSON.stringify({ vu750, son: re1.auto?.son, j: re1.auto?.journal, main, tue, al: re2.alignement, pics: re2.ecoute?.pics }));
   await page.close();
 }
 

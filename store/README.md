@@ -101,7 +101,7 @@ où le code change :
    livrés **ni minifiés ni obscurcis** : mêmes noms, mêmes lignes, même
    indentation que dans le dépôt. Depuis la 3.59 le paquet part en revanche
    **sans les commentaires** — ceux du JavaScript, et depuis la 3.60 ceux du
-   CSS aussi (1803 → 780 Ko) ; la phrase reste vraie au mot près — c'est de
+   CSS aussi (1841 → 803 Ko) ; la phrase reste vraie au mot près — c'est de
    lisibilité qu'elle parle, pas d'annotations — et les commentaires, eux,
    sont dans le dépôt public. Ce chiffre-là est confronté à la mesure par
    `npm run addon` : il a été faux, et personne ne l'a vu. Les mentions
@@ -136,9 +136,10 @@ où le code change :
    fait : le mouvement cesse, le signal continue (scénarios 113, 114 et 116).
    Le contrôle `PROMESSES` de `tests/store.mjs` relie ces deux phrases-là au
    code, comme `CITES` le fait pour les libellés.
-11. **« Un onglet Options … vingt et un réglages »** — la table `OPT_DEFS` de
-   `content.js` en porte vingt et un depuis la 4.24.0.7 (le compteur de la
-   salle multistream), vingt depuis la 4.22.0. Le scénario 117 compte la
+11. **« Un onglet Options … vingt-deux réglages »** — la table `OPT_DEFS` de
+   `content.js` en porte vingt-deux depuis la 4.24.0.17 (l'alignement
+   automatique de la salle), vingt et un depuis la 4.24.0.7 (le compteur de
+   la salle multistream), vingt depuis la 4.22.0. Le scénario 117 compte la
    table ET relit le mot dans les douze fiches et dans la phrase du panneau
    qui remet tout par défaut : la 4.22.0 a ajouté un réglage, et ces
    vingt-quatre phrases disaient encore « dix-neuf » sans que rien ne le
