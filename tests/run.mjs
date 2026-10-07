@@ -26356,7 +26356,8 @@ const S_LECTEUR_SONDE = () => {
             const cale = k ? Math.max(0, (Math.min(n, k.t0 + k.D * 1000) - Math.max(this.t, k.t0)) / 1000) : 0;
             this.L += cale;
             dt -= cale;
-            this.L += (this.arret ? dt : (1 - this.vElem()) * dt) - (ch === 'charlie' || ch === 'delta' ? 0.003 * dt : 0);
+            this.L += (this.arret ? dt : (1 - this.vElem()) * dt) - (ch === 'charlie' || ch === 'delta' ? 0.003 * dt : 0)
+              + (this.glisse || 0) * dt;
             this.pos += this.arret ? 0 : this.vElem() * dt;
             this.t = n;
             /* UN LECTEUR EN FAIBLE LATENCE QUI REPREND LES RECULS (4.24.0.19) :
@@ -26478,6 +26479,8 @@ const S_LECTEUR_SONDE = () => {
           l.maj(); l.vPropre = x; v.dispatchEvent(new Event('ratechange'));
           setTimeout(() => { l.maj(); l.vPropre = null; v.dispatchEvent(new Event('ratechange')); }, s * 1000);
         };
+        // Une latence qui glisse de v secondes par seconde, l'horloge et le son avec elle (4.24.0.20).
+        window.__glisser = (v) => { window.__lecteur.maj(); window.__lecteur.glisse = v; };
         // Une chute de lecture de D secondes, à partir de maintenant (4.24.0.18).
         window.__caler = (D) => { window.__lecteur.maj(); window.__lecteur.cale = { t0: Date.now(), D }; };
         // Un rechargement : la position repart de zéro, le tampon lu une fois aberrant.
@@ -26514,9 +26517,17 @@ const S_LECTEUR_SONDE = () => {
         /* « romeo », « sierra », « tango », « victor » et « whiskey »
            (4.24.0.19) ont chacun leur voix : rien en commun, l'horloge seule
            — c'est elle qu'on éprouve. */
+        /* LA GRAPPE LOIN DE L'HORLOGE (4.24.0.20) — le douzième rapport réel.
+           « xray » passe trois sons à la fois : deux voix et le jeu (une
+           troisième source, à 880 Hz — deux sinus de même fréquence
+           interféreraient). « yankee » les passe 900, 1150 et 1420 ms plus
+           tôt : trois composantes, 250 ms l'une de l'autre, la plus proche à
+           0,9 s de l'horloge. « zulu » passe la première 300 ms plus tard —
+           puis 1,5 s, quand le banc la fait sauter. */
         const VOIX = ({ bravo: [[0, 350]], duo1: [[0, 0], [1, 200]], duo2: [[1, 350], [0, 550]], duo3: [[1, 750], [0, 950]], foxtrot: [[2, 0]],
                         golf: [[0, 5500]], hotel: [[0, 5500]], mike: [[0, 300]], papa: [[0, -1100]], oscar: [[0, -700], [1, 900]],
-                        romeo: [[3, 0]], sierra: [[4, 0]], tango: [[5, 0]], victor: [[6, 0]], whiskey: [[7, 0]] })[ch] || [[0, 0]];
+                        romeo: [[3, 0]], sierra: [[4, 0]], tango: [[5, 0]], victor: [[6, 0]], whiskey: [[7, 0]],
+                        xray: [[0, 0], [1, 0], [8, 0, 880]], yankee: [[0, -900], [8, -1150, 880], [1, -1420]], zulu: [[0, 300]] })[ch] || [[0, 0]];
         const v = document.getElementById('v');
         const c = document.createElement('canvas');
         c.width = 32; c.height = 18;
@@ -26549,7 +26560,7 @@ const S_LECTEUR_SONDE = () => {
           osc.start();
           return { voix, D, g, poids, prochaine: 0, dec: 0 };
         };
-        const pistes = VOIX.map(([voix, D]) => piste(voix, D));
+        const pistes = VOIX.map(([voix, D, hz]) => piste(voix, D, hz));
         /* UNE SOURCE DE PLUS, en cours de route (4.24.0.15) : la même voix,
            D ms plus tard, à une autre fréquence — deux sinus de même
            fréquence interféreraient —, et plus forte. Au cinquième rapport
@@ -27688,8 +27699,9 @@ const S_LECTEUR_SONDE = () => {
   const r3 = await rapport();
   const j3 = ligne(r3, 3);
   ok('une dérive de plus de 0,2 s, trois contrôles de suite, est réalignée — pas avant',
-     !!deuxDeSuite && /^\+\d+ s · dérive \(charlie\) · par l'horloge · fini · écart 0\.2\d\d → 0\.\d{3} s · \d passes? en \d+ s$/.test(j3)
-     && /charlie recul /.test(r3.alignement?.passe1 || ''),
+     // L'écart de « charlie » lui-même : celui de la salle compte aussi le reste de « bravo » (4.24.0.20).
+     !!deuxDeSuite && /^\+\d+ s · dérive \(charlie\) · par l'horloge · fini · écart 0\.[23]\d\d → 0\.\d{3} s · \d passes? en \d+ s$/.test(j3)
+     && /· charlie \+0\.2\d\d$/.test(r3.alignement?.avant || '') && /charlie recul /.test(r3.alignement?.passe1 || ''),
      JSON.stringify({ deuxDeSuite, j2, j3, al: r3.alignement, auto: r3.auto }));
 
   /* QUI L'ARRÊTE : aligner(false) ; un alignement à la main, qui prend sa
@@ -27759,13 +27771,13 @@ const S_LECTEUR_SONDE = () => {
      de 300 ms sans que sa lecture bouge. L'historique a ses deux groupes,
      l'un après l'autre ; ce ne sont pas deux voix nettes, et le pilote n'en
      fait rien.
-     SUR LA CARTE DU SON (4.24.0.18) : deux composantes, 0 et −300, l'une
-     après l'autre — JAMAIS une paire. Selon l'instant, la première domine
-     encore — sa cible est la relation déjà tenue, rien ne bouge —, ou
-     aucune ne pèse plus de deux fois l'autre : « ambigu ». Bien plus tard,
-     la seconde dominerait, et le pilote la suivrait, à bon droit : un son
-     qui a changé de chemin pour de bon.
-     Mutant — les voix pas exigées mêlées dans le temps. */
+     SUR LA CARTE DU SON (4.24.0.18, revu en 4.24.0.20) : deux composantes,
+     0 et −300, d'une même grappe mais l'une après l'autre — jamais deux
+     voix mêlées. Selon l'instant, la première est encore la seule voix —
+     sa cible est la relation déjà tenue, rien ne bouge —, la seconde ne
+     s'est pas encore établie — « en attente » —, ou les deux le sont :
+     « ambigu : une voix qui saute ». Mutant — les voix pas exigées mêlées
+     dans le temps. */
   await page.evaluate(() => window.tse.salle.fermer());
   await page.evaluate(() => window.tse.salle.ouvrir('kilo', 'lima'));
   await page.evaluate(() => window.tse.salle.auto(0.1));
@@ -27785,7 +27797,7 @@ const S_LECTEUR_SONDE = () => {
   const valeurs = valeursDe(rk);
   ok('une voix qui saute n\'en fait pas deux : deux groupes l\'un après l\'autre, jamais une paire, et le pilote n\'en fait rien',
      saute && autour(valeurs, 0) >= 3 && autour(valeurs, 300) >= 3
-     && /^lima (?:aucune cible : ambigu : |cible -?\d{1,2} ms, la dominante$)/.test(rk.auto?.son || '') && rk.auto?.alignements === 1,
+     && /^lima (?:aucune cible : (?:ambigu : |en attente : )|cible -?\d{1,2} ms, la seule voix$)/.test(rk.auto?.son || '') && rk.auto?.alignements === 1,
      JSON.stringify({ saute, valeurs, carte: rk.ecoute?.carte, j: rk.auto?.journal, son: rk.auto?.son }));
 
   await page.close();
@@ -27849,7 +27861,7 @@ const S_LECTEUR_SONDE = () => {
   ok('le son calibre : la plus haute des deux voix, stable deux contrôles, devient la relation de « duo2 » ; l\'horloge l\'y amène, l\'ancre en place ; le son la revoit à 0',
      /^\+\d+ s · ouverture · par l'horloge · fini · écart 0\.0\d\d → 0\.0\d\d s · 1 passe en \d+ s$/.test(ligne(rd1, 1))
      && premierSon?.alignements === 1
-     && /^duo2 cible -1\d\d ms, (?:la plus haute de la paire|au-dessus de la dominante, la voix de l'ancre)$/.test(premierSon?.son || '')
+     && /^duo2 cible -1\d\d ms, la plus haute de la grappe$/.test(premierSon?.son || '')
      && evenements(rd2).some((l) => / · salle · auto · calibré par le son : duo2 −0\.1\d\d s$/.test(l))
      && /^\+\d+ s · son \(duo2\) · par l'horloge · fini · écart 0\.1\d\d → 0\.0\d\d s · 1 passe en \d+ s$/.test(ligne(rd2, 2))
      && S.reference === 'duo1 (l\'ancre)' && S.origine === 'auto'
@@ -27929,19 +27941,19 @@ const S_LECTEUR_SONDE = () => {
      && rd6.ouverte === false && rd6.auto?.etat === 'arrêté',
      JSON.stringify({ fin, a5: rd5.auto?.etat, e5: rd5.ecoute?.actif, a6: rd6.auto?.etat }));
 
-  /* UNE DOMINANTE. « mike » ne partage avec « duo1 » que sa première voix,
+  /* UNE SEULE VOIX. « mike » ne partage avec « duo1 » que sa première voix,
      300 ms plus tard : une seule composante, à −300, près de l'horloge — la
-     dominante, la cible. « mike » AVANCE de 0,3 s, l'ancre reste.
-     Mutant — la dominante pas reconnue. */
+     seule voix de sa grappe, la cible. « mike » AVANCE de 0,3 s, l'ancre
+     reste. Mutant — la voix seule jamais retenue. */
   await page.evaluate(() => window.tse.salle.ouvrir('duo1', 'mike'));
   await page.evaluate(() => window.tse.salle.auto(0.1));
   await finie(1, 60_000);
   await finie(2, 180_000);
   const rm = await rapport();
   const vueM = await revue('mike');
-  ok('une seule voix commune, près de l\'horloge : la dominante, et « mike » avance d\'autant — l\'ancre en place',
+  ok('une seule voix commune, près de l\'horloge : la cible, et « mike » avance d\'autant — l\'ancre en place',
      /^\+\d+ s · son \(mike\) · par l'horloge · fini · écart 0\.[23]\d\d → 0\.0\d\d s · \d passes? en \d+ s$/.test(ligne(rm, 2))
-     && /^mike cible -[23]\d\d ms, la dominante · garde −0\.[23]\d\d s · /.test(rm.auto?.son || '')
+     && /^mike cible -[23]\d\d ms, la seule voix · garde −0\.[23]\d\d s · /.test(rm.auto?.son || '')
      && rm.alignement?.reference === 'duo1 (l\'ancre)' && /mike avance /.test(rm.alignement?.passe1 || '')
      && Math.abs(residu(rm.alignement?.apres, 'mike')) < 0.1 && Math.abs(lu(vueM, /vue à ([+-]\d+) ms/)) <= 70,
      JSON.stringify({ j: rm.auto?.journal, al: rm.alignement, son: rm.auto?.son, vueM, carte: rm.ecoute?.carte }));
@@ -27949,11 +27961,12 @@ const S_LECTEUR_SONDE = () => {
 
   /* UN ÉCHO — les huitième et neuvième rapports réels. « papa » passe la
      première voix de « duo1 » 1,1 s plus tôt, seule : une composante forte,
-     loin de l'horloge — ce que fait un streamer qui regarde le live de
-     l'autre, le son ouvert. Au huitième rapport, la viser aurait décalé de
-     2,46 s une tuile que l'œil voyait juste. Jamais une cible : « écho
-     probable », au rapport, et rien ne bouge. Mutant — la borne de l'écho
-     retirée. */
+     seule et loin de l'horloge — ce que fait un streamer qui regarde le live
+     de l'autre, le son ouvert. Au huitième rapport, la viser aurait décalé
+     de 2,46 s une tuile que l'œil voyait juste. Une composante SEULE à plus
+     de 0,8 s de l'horloge n'est jamais une cible (4.24.0.20 : une grappe de
+     voix mêlées peut l'être jusqu'à 1,5 s, cf. le 185) : « écho probable »,
+     et rien ne bouge. Mutant — la borne de la composante seule retirée. */
   await page.evaluate(() => window.tse.salle.ouvrir('duo1', 'papa'));
   await page.evaluate(() => window.tse.salle.auto(0.1));
   await finie(1, 60_000);
@@ -27969,26 +27982,28 @@ const S_LECTEUR_SONDE = () => {
   await page.evaluate(() => window.tse.salle.fermer());
 
   /* LE SON SE DÉDIT. « oscar » passe les deux voix de « duo1 », la première
-     700 ms plus tôt, la seconde 700 plus tard : 1,4 s l'une de l'autre, trop
-     loin pour une paire — la première fait la composante +700, la seconde
-     −700. La première se tait trente secondes : la seconde, seule, devient
-     la dominante, et le pilote y cale « oscar », à −0,7 s — c'est ce qu'il
-     sait. La première reprend : toutes deux établies, chacune avec ses
-     premiers pics, mêlées dans le temps, de poids voisins — « ambigu ». Deux
-     contrôles de suite : la relation du son est retirée, « oscar » revient à
-     l'horloge. Mutants — le son qui ne se dédit jamais ; la relation gardée
-     en se dédisant ; la dominance qui n'en demande pas le double ; la paire
-     sans borne d'écart (au premier tour du banc, elle survivait : la même
-     voix toujours premier pic, la seconde n'était jamais établie). */
+     700 ms plus tôt, la seconde 700 plus tard : 1,4 s l'une de l'autre, deux
+     grappes — la première fait la composante +700, la seconde −700. La
+     première se tait dès le départ : la seconde, seule, est la cible, et le
+     pilote y cale « oscar », à −0,7 s — c'est ce qu'il sait. La première
+     arrive : d'abord l'une après l'autre — « une source a sauté » —, puis
+     ensemble, deux grappes à même distance de l'horloge : ambigu, de toute
+     façon. Deux contrôles de suite : la relation du son est retirée,
+     « oscar » revient à l'horloge. Mutants — le son qui ne se dédit jamais ;
+     la relation gardée en se dédisant ; deux grappes à même distance
+     départagées quand même ; tout pris pour une seule grappe. */
   await page.evaluate(() => window.tse.salle.ouvrir('duo1', 'oscar'));
+  for (let i = 0; i < 40; i++) {
+    const tue = await cadre('oscar')?.evaluate(() => typeof window.__taireVoix === 'function' && (window.__taireVoix(0), true)).catch(() => false);
+    if (tue) break;
+    await wait(page, 250);
+  }
   await page.evaluate(() => window.tse.salle.auto(0.1));
   await finie(1, 60_000);
-  await cadre('oscar')?.evaluate(() => window.__taireVoix(0)).catch(() => null);
-  await wait(page, 30_000);
-  await cadre('oscar')?.evaluate(() => window.__taireVoix(0, 1)).catch(() => null);
   // Le calage sur la voix seule : la note, relevée avant que le journal de la salle ne l'efface.
-  await finie(2, 120_000);
+  await finie(2, 180_000);
   const calage = evenements(await rapport()).join(' | ');
+  await cadre('oscar')?.evaluate(() => window.__taireVoix(0, 1)).catch(() => null);
   const dedit = await page.waitForFunction(() => {
     const s = window.tse.salle.rapport().auto?.son || '';
     return /^oscar aucune cible : ambigu : .* · le son s'est dédit : retour à l'horloge$/.test(s) ? s : null;
@@ -27997,8 +28012,8 @@ const S_LECTEUR_SONDE = () => {
   const nPremiers = [...String(ro.ecoute?.carte?.['duo1~oscar'] || '').matchAll(/(-?\d+)(?: ms)? \((\d+) · \d+ %\)/g)]
     .filter((m) => Math.abs(Math.abs(Number(m[1])) - 700) <= 80).map((m) => Number(m[2]));
   const notes = evenements(ro).join(' | ');
-  ok('une voix seule, dominante un temps : « oscar » s\'y cale ; l\'autre revient, la carte est ambiguë — le son se dédit, « oscar » revient à l\'horloge',
-     /^oscar aucune cible : ambigu : -?[67]\d\d et -?[67]\d\d ms, de poids voisins, sans paire · le son s'est dédit/.test(dedit || '')
+  ok('une voix seule : « oscar » s\'y cale ; l\'autre arrive, la carte est ambiguë — le son se dédit, « oscar » revient à l\'horloge',
+     /^oscar aucune cible : ambigu : (?:deux grappes, -?[67]\d\d et -?[67]\d\d ms, à même distance de l'horloge|une source a sauté, -?[67]\d\d → -?[67]\d\d ms) · le son s'est dédit/.test(dedit || '')
      && /^\+\d+ s · son \(oscar\) · par l'horloge · fini · écart 0\.[67]\d\d → 0\.0\d\d s/.test(ligne(ro, 2))
      && /^\+\d+ s · son \(oscar\) · par l'horloge · fini · écart 0\.[67]\d\d → 0\.0\d\d s/.test(ligne(ro, 3))
      && ro.auto?.alignements === 3 && /calibré par le son : oscar −0\.[67]\d\d s/.test(calage)
@@ -28121,6 +28136,462 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify({ j: r5.auto?.journal, ref: r4.alignement?.reference, couts: r4.alignement?.couts, p1: r4.alignement?.passe1,
                       retards: r5.auto?.retards, etat: r5.auto?.etat }));
   await page.close();
+}
+
+/* ═════════ LA GRAPPE DES VOIX (4.24.0.20) ═══════════════════════════════════
+   Au douzième rapport réel, la carte d'une paire : 634 · 853 · 1138 ms — la
+   voix de l'ancre chez la tuile, le jeu, la voix de la tuile chez l'ancre.
+   L'horloge se trompait de 0,85 s sur le jeu ; la règle d'avant jetait tout
+   ce qui était à plus de 0,8 s d'elle pour un écho, et calait la tuile sur
+   634 — la voix de l'ANCRE : ses lèvres 0,5 s en avance sur sa voix. */
+{
+  titre('185. La cible des lèvres — la grappe des voix, loin de l\'horloge, et la source qui saute');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport());
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  const ligne = (r, n) => r.auto?.journal?.[String(n).padStart(3, '0')] || '';
+  const finie = (n, ms) => attendre(page, (k) => {
+    const l = window.tse.salle.rapport().auto?.journal?.[k] || '';
+    return !!l && !/ · en cours/.test(l);
+  }, ms, String(n).padStart(3, '0'));
+  const evenements = (r) => Object.values(r.instant?.evenements || {});
+  const compo = (x) => [...String(x || '').matchAll(/(-?\d+)(?: ms)? \(\d+ · \d+ %\)/g)].map((m) => Number(m[1]));
+
+  /* LA GRAPPE LOIN DE L'HORLOGE. « yankee » passe les trois sons de
+     « xray » 900, 1150 et 1420 ms plus tôt — ce que l'horloge, qui les dit
+     à la même heure, ne voit pas. Une grappe, la plus proche à 0,9 s de
+     l'horloge : deux voix et plus, mêlées — la signature d'un salon —, elle
+     est retenue jusqu'à 1,5 s. La cible : la PLUS HAUTE, 1420 — la voix de
+     la tuile telle qu'on l'entend dans l'ancre. « yankee » recule de 1,42 s
+     par l'horloge, l'ancre en place, et le son revoit sa cible à 0.
+     EN UN DÉPLACEMENT OU EN DEUX. Le pilote du banc décide sur un quart de
+     l'exigence, deux premiers pics par voix : il arrive que deux voix
+     soient établies avant la troisième — 900 et 1150, la cible 1150 —, et
+     « yankee » recule d'abord de 1,15 s, puis de 0,27 quand 1420 s'établit.
+     C'est ce que fait le vrai quand une voix parle peu ; au premier jet, ce
+     test exigeait un seul déplacement, et échouait au gré du tirage. Ce qui
+     ne doit jamais arriver : un calage sur 900 — la voix de l'ancre.
+     Mutants — chaque composante à plus de 0,8 s tenue pour un écho (la règle
+     d'avant) ; la grappe bornée à 0,8 s ; la plus basse de la grappe. */
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'yankee'));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  await finie(1, 60_000);
+  /* À 60 ms près : la voix passée 1420 ms plus tôt se mesure de 1392 à
+     1411 ms, d'un tour à l'autre — l'horloge du lecteur factice tient à la
+     seconde, et la relation qu'on en tire, à quelques dizaines de ms. */
+  const pres = (x, v) => Number.isFinite(x) && Math.abs(x - v) <= 60;
+  const cibleDe = (s) => Number((/^yankee cible (-?\d+) ms, /.exec(s || '') || [])[1]);
+  const vueY = await page.waitForFunction(() => {
+    const r = window.tse.salle.rapport();
+    const s = r.auto?.son || '';
+    const j = Object.values(r.auto?.journal || {});
+    const m = /^yankee cible (\d+) ms, .* · vue à [+-]\d+ ms depuis \((?:[2-9]|\d\d+)\)/.exec(s);
+    return m && Math.abs(Number(m[1]) - 1420) <= 60 && j.length >= 2 && !/ · en cours/.test(j[j.length - 1]) ? s : null;
+  }, null, { timeout: 300_000, polling: 500 }).then((h) => h.jsonValue()).catch(() => null);
+  /* Les trois voix sur la carte : le pilote peut viser 1420 dès que 900 et
+     1420 sont établies et mêlées — le jeu, 1150, n'y pèse pas encore assez
+     pour y paraître. Au banc, une fois, sous un mutant qui ne le touchait
+     pas. On attend qu'il y soit, puis on lit le rapport. */
+  await attendre(page, () => {
+    const k = window.tse.salle.rapport().ecoute?.carte?.['xray~yankee'] || '';
+    const v = [...k.matchAll(/(-?\d+)(?: ms)? \(\d+ · \d+ %\)/g)].map((x) => Number(x[1]));
+    return [900, 1150, 1420].every((c) => v.some((x) => Math.abs(x - c) <= 60));
+  }, 120_000);
+  const r1 = await rapport();
+  const carteY = r1.ecoute?.carte?.['xray~yankee'];
+  const calesY = evenements(r1).map((l) => (/ · salle · auto · calibré par le son : yankee ([+−]\d\.\d{3}) s$/.exec(l) || [])[1])
+    .filter(Boolean).map((x) => Number(x.replace('−', '-')));
+  const suiteY = Object.values(r1.auto?.journal || {}).slice(1);
+  ok('une grappe de trois voix à 0,9–1,4 s de l\'horloge : la plus haute est la cible, « yankee » recule d\'autant, le son la revoit à 0',
+     [900, 1150, 1420].every((v) => compo(carteY).some((x) => pres(x, v)))
+     && pres(cibleDe(r1.auto?.son), 1420) && / ms, la plus haute de la grappe · garde \+1\.\d{3} s · /.test(r1.auto?.son || '')
+     && calesY.length >= 1 && calesY.length <= 2 && calesY.every((g) => g >= 1.1) && pres(calesY[calesY.length - 1] * 1000, 1420)
+     && suiteY.length >= 1 && suiteY.length <= 3 && suiteY.every((l) => /^\+\d+ s · son(?: revu)? \(yankee\) · par l'horloge · fini/.test(l))
+     && / → 0\.0\d\d s/.test(suiteY[suiteY.length - 1] || '')
+     && r1.alignement?.reference === 'xray (l\'ancre)' && /yankee recul /.test(r1.alignement?.passe1 || '')
+     && Math.abs(Number((/vue à ([+-]\d+) ms/.exec(vueY || '') || [])[1])) <= 80,
+     JSON.stringify({ carte: carteY, cible: r1.ecoute?.cible, j: r1.auto?.journal, son: r1.auto?.son, vueY, cales: calesY,
+                      p1: r1.alignement?.passe1 }));
+  await page.evaluate(() => window.tse.salle.fermer());
+
+  /* LA SOURCE QUI SAUTE — le huitième rapport réel. « zulu » ne partage avec
+     « xray » que sa première voix, 300 ms plus tard : la seule voix, la
+     cible ; « zulu » avance de 0,3 s. Puis son son saute de 1,2 s — comme
+     l'écho d'un live dont le lecteur a sauté : −300, puis −1500, jamais
+     ensemble. Ce n'est pas une voix : « une source a sauté », deux contrôles
+     de suite — le son se dédit, « zulu » revient à l'horloge. Mutant — la
+     source qui saute jamais vue : −1500, seule et loin, passerait pour un
+     écho, et −300 resterait la cible. */
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'zulu'));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  await finie(1, 60_000);
+  await finie(2, 180_000);
+  const calage = evenements(await rapport()).join(' | ');
+  const saute = await (cadre('zulu')?.evaluate(() => { window.__decalerSon(1200); return true; }) ?? Promise.resolve(false)).catch(() => false);
+  const dedit = await page.waitForFunction(() => {
+    const s = window.tse.salle.rapport().auto?.son || '';
+    return /^zulu aucune cible : ambigu : .* · le son s'est dédit : retour à l'horloge$/.test(s) ? s : null;
+  }, null, { timeout: 180_000, polling: 200 }).then((h) => h.jsonValue()).catch(() => null);
+  await finie(3, 90_000);
+  const r2 = await rapport();
+  ok('une source qui saute de 1,2 s n\'est pas une voix : le son se dédit, « zulu » revient à l\'horloge',
+     saute && /calibré par le son : zulu −0\.[23]\d\d s/.test(calage)
+     && /^zulu aucune cible : ambigu : une source a sauté, -[23]\d\d → -1[45]\d\d ms · le son s'est dédit/.test(dedit || '')
+     && /^\+\d+ s · son \(zulu\) · par l'horloge · fini/.test(ligne(r2, 3)) && r2.auto?.alignements === 3
+     && /^zulu [+−]0\.0\d\d \(garde \+0\.000, le son s'est dédit\)$/.test(r2.auto?.retards || ''),
+     JSON.stringify({ saute, dedit, j: r2.auto?.journal, son: r2.auto?.son, retards: r2.auto?.retards, carte: r2.ecoute?.carte,
+                      calage: /calibré par le son : [^|]*/.exec(calage)?.[0] ?? null }));
+
+  /* LE SON REVOIT — le treizième rapport réel. « mike » ne partage avec
+     « xray » que sa première voix, 300 ms plus tard : la cible, et « mike »
+     avance de 0,3 s. Puis sa latence glisse, 4 ms par seconde, trente-cinq
+     secondes : 0,14 s. L'horloge seule attendrait 0,2 s trois contrôles de
+     suite — elle n'y arrive jamais. Le son voit la cible à plus de 0,1 s,
+     l'horloge dans le même sens : « son revu (mike) », « mike » avance, et
+     le son la revoit à 0.
+     CE QUE LE BANC Y A VU. Pendant la glissade, le son ne voit rien : la
+     fenêtre d'un calcul couvre un décalage qui bouge, son pic s'étale — z
+     de 3,3 à 4,2, sous le seuil de 5. Il voit −130 ms dès qu'elle s'arrête.
+     Et au rapport, la vue se lisait depuis la mise en place de la cible, pas
+     depuis le dernier déplacement : juste après l'avance, « vue à −150 ms »
+     — les pics d'avant la correction mêlés à ceux d'après —, deux tours sur
+     trois. Elle se lit désormais comme le pilote la lit : à la fin de
+     l'alignement, « pas encore revue ».
+     Mutants — le son qui ne revoit rien ; la vue lue depuis la mise en
+     place. */
+  await page.evaluate(() => window.tse.salle.fermer());
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'mike'));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  await finie(1, 60_000);
+  await finie(2, 180_000);
+  const glisse = await (cadre('mike')?.evaluate(() => { window.__glisser(0.004); return true; }) ?? Promise.resolve(false)).catch(() => false);
+  await wait(page, 35_000);
+  const arret = await (cadre('mike')?.evaluate(() => { window.__glisser(0); return window.__lecteur.glisse === 0; })
+    ?? Promise.resolve(false)).catch(() => false);
+  await finie(3, 150_000);
+  const r3 = await rapport();
+  const vueM = await page.waitForFunction(() => {
+    const s = window.tse.salle.rapport().auto?.son || '';
+    return /^mike cible .* · vue à [+-]\d+ ms depuis \((?:[2-9]|\d\d+)\)/.test(s) ? s : null;
+  }, null, { timeout: 90_000, polling: 500 }).then((h) => h.jsonValue()).catch(() => null);
+  ok('une latence qui glisse de 0,14 s : le son la voit, « son revu », et la revoit à 0 — sans attendre les 0,2 s de l\'horloge',
+     glisse && arret && /^\+\d+ s · son revu \(mike\) · par l'horloge · fini/.test(ligne(r3, 3))
+     && /mike avance /.test(r3.alignement?.passe1 || '')
+     && / · pas encore revue$/.test(r3.auto?.son || '')
+     && Math.abs(Number((/vue à ([+-]\d+) ms/.exec(vueM || '') || [])[1])) <= 70,
+     JSON.stringify({ glisse, arret, j: r3.auto?.journal, p1: r3.alignement?.passe1, son: r3.auto?.son, vueM, derive: r3.auto?.derive }));
+  await page.close();
+}
+
+/* ═════════ LA GRAPPE DES VOIX, REJOUÉE (4.24.0.20) ═══════════════════════════
+   La règle de la cible — carteSon et cibleSon, extraites du code tel qu'il
+   est livré — sur trois écoutes réelles : l'historique des calculs d'une
+   paire, rien que des nombres, tel que le rapport l'écrit. Rejouées calcul
+   après calcul, comme le pilote voit la carte grandir, à l'exigence entière
+   — celle du vrai. Au banc en direct, les pics se tirent au hasard, et avec
+   eux l'ordre dans lequel les voix s'établissent : une voix seule, la
+   première établie, ne s'y montre qu'au gré du tirage. Ici, à chaque
+   fois. */
+{
+  titre('186. La grappe des voix, rejouée sur trois écoutes réelles');
+  /* Les historiques des huitième, neuvième et douzième rapports réels : le
+     pic, le second et son poids, z, l'attendu, la relation d'horloge. */
+  const ECOUTES_REELLES = {
+    huitieme: [
+      '-5580 (5560 80 %) z 3.6 att 950 sync 1057', '-5870 (4960 91 %) z 2.9 att 959 sync 1031',
+      '3610 (4620 99 %) z 3.4 att 508 sync 123', '3800 (4610 95 %) z 3.4 att 23 sync 58',
+      '5070 (-2190 87 %) z 3.0 att -17 sync 56', '2400 (2850 82 %) z 3.8 att -93 sync -66',
+      '2400 (2850 82 %) z 3.8 att -142 sync -76', '3260 (2400 92 %) z 3.4 att -142 sync -79',
+      '5590 (5890 95 %) z 4.4 att -141 sync -82', '5890 (5280 77 %) z 4.0 att -172 sync -124',
+      '5850 (5570 93 %) z 3.6 att -145 sync -94', '-5500 (-4230 98 %) z 3.1 att -182 sync -113',
+      '-4230 (4010 100 %) z 3.6 att -182 sync -134', '970 (3210 83 %) z 3.8 att -190 sync -125',
+      '970 (3210 95 %) z 3.2 att -179 sync -124', '1310 (4890 79 %) z 4.0 att -194 sync -109',
+      '1310 (-5110 100 %) z 3.0 att -194 sync -105', '-4920 (2470 82 %) z 3.5 att -122 sync -95',
+      '-5180 (-5770 97 %) z 3.3 att -151 sync -105', '-4800 (30 82 %) z 3.1 att -134 sync -86',
+      '5780 (3940 95 %) z 3.2 att -134 sync -66', '5170 (5770 81 %) z 3.5 att -181 sync -97',
+      '5440 (5170 94 %) z 3.5 att -194 sync -117', '-2430 (750 97 %) z 2.8 att -159 sync -115',
+      '-2920 (1760 92 %) z 3.4 att -124 sync -78', '4200 (-1980 99 %) z 2.6 att -123 sync -75',
+      '5890 (5550 69 %) z 4.0 att -94 sync -66', '5890 (5550 66 %) z 4.5 att -123 sync -65',
+      '4440 (2710 77 %) z 4.1 att -139 sync -45', '3470 (-980 98 %) z 3.4 att -142 sync -87',
+      '-4470 (-5450 88 %) z 4.2 att -143 sync -86', '-3330 (-4310 90 %) z 3.3 att -162 sync -97',
+      '1040 (-3210 98 %) z 4.2 att -136 sync -116', '1040 (5770 80 %) z 5.2 att -115 sync -84',
+      '1040 (-5150 57 %) z 5.1 att -115 sync -69', '1040 (-2210 58 %) z 5.1 att -115 sync -87',
+      '1010 (-1540 70 %) z 4.0 att -117 sync -79', '1010 (-4540 71 %) z 5.2 att -125 sync -68',
+      '-4270 (990 96 %) z 3.7 att -127 sync -58', '1040 (3070 87 %) z 4.2 att -104 sync -78',
+      '1050 (5000 70 %) z 4.3 att -104 sync -68', '-4310 (5010 98 %) z 3.1 att -153 sync -68',
+      '-4310 (-2160 98 %) z 3.1 att -179 sync -88', '5620 (4100 89 %) z 3.1 att -171 sync -99',
+      '-3280 (-4200 61 %) z 4.4 att -92 sync -70', '-3280 (1040 73 %) z 4.4 att -117 sync -47',
+      '1050 (-4580 76 %) z 4.1 att -107 sync -26', '1050 (-3290 52 %) z 6.2 att -122 sync -35',
+      '1050 (-2900 56 %) z 5.5 att -136 sync -78', '1050 (-1260 66 %) z 4.7 att -158 sync -108',
+      '4520 (3330 84 %) z 4.3 att -167 sync -99', '4520 (3330 73 %) z 5.3 att -201 sync -148',
+      '4520 (3320 63 %) z 5.3 att -184 sync -119', '-2950 (-1560 97 %) z 3.4 att -180 sync -137',
+      '1490 (-1560 99 %) z 3.2 att -193 sync -167', '4330 (2840 99 %) z 3.4 att -131 sync -145',
+      '-4850 (-5650 74 %) z 4.2 att -130 sync -133', '-4850 (5630 98 %) z 3.4 att -73 sync -73',
+      '-4640 (-4850 96 %) z 3.7 att -73 sync -54', '4540 (5200 90 %) z 3.5 att -63 sync -66',
+      '3640 (4330 96 %) z 3.3 att -85 sync -26', '5550 (4330 99 %) z 3.5 att -109 sync -71',
+      '1210 (3530 89 %) z 4.1 att -144 sync -97', '390 (-690 92 %) z 3.1 att -174 sync -87',
+      '-3940 (-5350 93 %) z 3.2 att -145 sync -108', '-5350 (380 92 %) z 3.4 att -108 sync -86',
+      '4690 (-690 84 %) z 3.6 att -123 sync -108', '4240 (-4170 94 %) z 3.0 att -69 sync -86',
+      '-3870 (-2330 96 %) z 3.8 att -152 sync -114', '-2330 (-3870 93 %) z 3.7 att -162 sync -115',
+      '-2320 (-3870 86 %) z 3.9 att -162 sync -118', '4890 (5680 87 %) z 4.1 att -168 sync -114',
+      '5280 (5870 94 %) z 4.0 att -169 sync -126', '-5530 (-4450 87 %) z 3.2 att -182 sync -95',
+      '1610 (3340 95 %) z 2.7 att -158 sync -105', '-5990 (-4440 91 %) z 3.2 att -170 sync -106',
+      '2310 (-4630 85 %) z 3.3 att -162 sync -94', '-3640 (-4630 93 %) z 3.9 att -160 sync -105',
+      '4490 (4640 95 %) z 4.2 att -141 sync -65', '4490 (4640 83 %) z 4.2 att -141 sync -80',
+      '4490 (5640 100 %) z 3.8 att -131 sync -60', '-5970 (-5830 91 %) z 3.1 att -144 sync -118',
+      '-5210 (-950 95 %) z 3.1 att -151 sync -110', '-560 (-3880 96 %) z 3.1 att -107 sync -78',
+      '-3160 (-1770 96 %) z 3.2 att -106 sync -79', '1060 (4620 39 %) z 6.9 att -106 sync -57',
+      '1060 (-4810 74 %) z 4.8 att -109 sync -41', '1060 (-4810 84 %) z 4.1 att -134 sync -59',
+      '-4490 (-4810 91 %) z 3.6 att -135 sync -57', '2330 (5820 81 %) z 4.4 att -117 sync -50',
+      '10 (-2910 100 %) z 2.9 att -105 sync -55', '5820 (-4980 94 %) z 3.2 att -103 sync -42',
+      '-2900 (3780 96 %) z 2.8 att -105 sync -52', '2340 (4700 64 %) z 4.8 att -118 sync -26',
+      '2340 (4330 56 %) z 4.8 att -121 sync -43', '2310 (-1680 37 %) z 8.3 att -133 sync -47',
+      '2310 (-1680 43 %) z 8.3 att -135 sync -75', '2310 (4280 36 %) z 10.2 att -112 sync -75',
+      '2310 (4780 62 %) z 5.3 att -115 sync -55', '2380 (4770 71 %) z 5.0 att -123 sync -88',
+      '2370 (4600 44 %) z 6.8 att -120 sync -79', '2370 (4600 49 %) z 6.2 att -139 sync -79',
+      '2370 (1120 53 %) z 5.4 att -136 sync -109', '2380 (-5350 68 %) z 4.5 att -122 sync -87',
+      '2380 (-5350 87 %) z 4.4 att -126 sync -98', '2360 (-5340 74 %) z 5.6 att -122 sync -68',
+      '2370 (-2960 30 %) z 8.3 att -146 sync -88', '2370 (0 26 %) z 8.6 att -159 sync -127',
+      '2370 (4740 31 %) z 7.6 att -150 sync -79', '2350 (270 54 %) z 6.3 att -207 sync -135',
+      '2350 (5210 74 %) z 5.8 att -217 sync -115', '2350 (5210 71 %) z 6.1 att -165 sync -79',
+      '2350 (3520 69 %) z 4.6 att -195 sync -92', '2370 (-1930 47 %) z 7.9 att -155 sync -90',
+      '2370 (-1930 42 %) z 8.2 att -155 sync -89', '2370 (4390 29 %) z 10.2 att -155 sync -87',
+      '2370 (3910 34 %) z 8.7 att -147 sync -108', '2370 (-5590 56 %) z 6.6 att -113 sync -107',
+      '2370 (230 79 %) z 4.2 att -113 sync -87', '230 (-4320 80 %) z 3.9 att -129 sync -88',
+      '230 (630 76 %) z 4.1 att -129 sync -86', '-3990 (-3740 83 %) z 4.0 att -159 sync -95',
+      '-3410 (-3990 100 %) z 3.6 att -159 sync -115', '2380 (2890 88 %) z 3.7 att -167 sync -122',
+      '2380 (5550 74 %) z 4.7 att -176 sync -111', '2370 (4570 39 %) z 6.7 att -156 sync -114',
+      '2380 (2880 37 %) z 8.6 att -163 sync -89', '2380 (-4330 33 %) z 9.0 att -150 sync -56',
+      '2380 (5250 47 %) z 7.1 att -150 sync -79', '-5860 (2390 99 %) z 4.2 att -143 sync -116',
+      '5250 (-5850 92 %) z 3.6 att -141 sync -101', '-5850 (-4240 91 %) z 3.4 att -125 sync -83',
+      '2400 (3580 81 %) z 4.1 att -125 sync -97', '-1480 (-2140 96 %) z 3.1 att -164 sync -98',
+      '2400 (4110 87 %) z 4.1 att -95 sync -119', '5300 (2400 92 %) z 3.8 att -131 sync -118',
+      '4110 (5300 85 %) z 3.7 att -85 sync -48', '3540 (-4770 93 %) z 3.1 att -105 sync -55',
+      '-3630 (-4140 92 %) z 3.4 att -106 sync -117', '2380 (-5700 42 %) z 7.3 att -100 sync -120',
+      '2380 (4770 53 %) z 7.7 att -106 sync -134', '2380 (4770 45 %) z 7.6 att -94 sync -92',
+      '2380 (-4060 36 %) z 7.4 att -64 sync -89', '2380 (-1550 60 %) z 5.6 att -121 sync -80',
+      '2380 (-4330 77 %) z 4.7 att -113 sync -83', '2380 (-5700 95 %) z 3.6 att -157 sync -104',
+      '70 (5470 99 %) z 3.2 att -162 sync -114', '4850 (80 95 %) z 2.8 att -155 sync -124',
+      '-3160 (3910 96 %) z 2.6 att -137 sync -107', '-3160 (-3470 97 %) z 2.8 att -21 sync -85',
+    ].join(' · '),
+    neuvieme: [
+      '-300 (930 54 %) z 6.1 att -202 sync -148', '-300 (930 61 %) z 7.2 att -202 sync -58',
+      '-300 (940 59 %) z 7.8 att -202 sync -145', '40 (-2970 36 %) z 7.3 att -175 sync -37',
+      '40 (-2970 33 %) z 8.5 att -9 sync -3', '40 (3060 32 %) z 8.1 att 0 sync -5',
+      '40 (1150 33 %) z 8.2 att 11 sync 26', '40 (1140 48 %) z 5.9 att 6 sync 22',
+      '30 (-480 86 %) z 5.2 att 25 sync -17', '-480 (30 65 %) z 6.1 att 28 sync -25',
+      '-480 (1100 64 %) z 6.2 att 32 sync -36', '-480 (1110 97 %) z 6.2 att 28 sync -30',
+      '1110 (-480 57 %) z 6.9 att 22 sync 8', '1110 (-4940 34 %) z 7.8 att 14 sync 57',
+      '1120 (740 47 %) z 7.6 att -6 sync 33', '1140 (5950 53 %) z 5.8 att -26 sync -4',
+      '1130 (3070 41 %) z 8.2 att -50 sync -21', '1130 (10 77 %) z 6.1 att -86 sync -27',
+      '10 (1130 90 %) z 6.5 att -99 sync -49', '10 (1120 44 %) z 8.0 att -6 sync -27',
+      '10 (1100 32 %) z 9.0 att 2 sync 9', '10 (1100 51 %) z 7.2 att 18 sync 19',
+      '10 (1100 66 %) z 5.7 att -5 sync 33', '5300 (10 80 %) z 4.3 att -6 sync -6',
+      '5300 (1120 100 %) z 4.7 att -35 sync -49', '5300 (1120 96 %) z 4.8 att -48 sync -47',
+      '1120 (3430 49 %) z 6.0 att -35 sync -82', '1130 (5570 93 %) z 3.5 att -7 sync -109',
+      '-5260 (-4320 91 %) z 3.1 att 2 sync -82', '1110 (1310 53 %) z 5.5 att -6 sync -87',
+      '1110 (2520 51 %) z 5.5 att -6 sync -45', '1110 (2510 47 %) z 5.7 att -6 sync 3',
+      '1110 (1490 38 %) z 6.9 att -11 sync -22', '980 (1110 87 %) z 5.6 att 9 sync 22',
+      '1100 (2260 71 %) z 5.6 att 9 sync 8', '1100 (2260 76 %) z 5.8 att 13 sync 0',
+      '770 (2760 91 %) z 3.6 att 24 sync -15', '780 (1110 67 %) z 4.9 att 10 sync -86',
+      '1110 (780 52 %) z 7.0 att -129 sync -94', '1110 (-5650 41 %) z 6.8 att -137 sync -65',
+      '1120 (980 38 %) z 8.1 att -38 sync 14', '1110 (1300 30 %) z 7.7 att -86 sync 29',
+      '1130 (2060 37 %) z 7.8 att -45 sync 25', '1120 (370 27 %) z 9.6 att -45 sync -18',
+      '1110 (-5890 35 %) z 8.0 att -33 sync -42', '1110 (1000 82 %) z 5.8 att -11 sync 19',
+      '1000 (1110 92 %) z 5.1 att -5 sync -5', '1000 (-950 34 %) z 7.8 att 9 sync -12',
+      '1010 (-100 68 %) z 5.6 att -9 sync -17', '-5070 (4590 89 %) z 3.4 att -73 sync -81',
+      '-5070 (3770 96 %) z 3.2 att -137 sync -85', '-1700 (1200 81 %) z 4.5 att -94 sync -90',
+      '1200 (-3600 78 %) z 4.2 att -7 sync -70', '1190 (-4200 47 %) z 6.0 att -6 sync -17',
+      '1190 (5290 53 %) z 5.7 att -5 sync -8', '1190 (-5060 44 %) z 6.9 att 1 sync -7',
+      '1190 (1080 84 %) z 3.9 att 8 sync -8', '3760 (1080 99 %) z 2.9 att -7 sync -38',
+      '-10 (1080 46 %) z 5.6 att -613 sync -160', '-10 (1080 52 %) z 5.8 att -1147 sync -1056',
+      '-10 (5290 36 %) z 7.4 att -1193 sync -1141', '-10 (-300 42 %) z 7.9 att -1191 sync -1119',
+      '2170 (2240 91 %) z 3.9 att -1172 sync -1185', '-10 (-4270 80 %) z 3.6 att -1172 sync -1216',
+      '-10 (-4760 53 %) z 5.2 att -1186 sync -1188', '0 (-350 48 %) z 5.9 att -1187 sync -1214',
+      '0 (-3950 51 %) z 5.7 att -1201 sync -1197', '20 (-1860 70 %) z 4.9 att -1187 sync -1188',
+      '1180 (800 47 %) z 6.1 att -1070 sync -28', '1180 (-1650 53 %) z 5.5 att -110 sync -34',
+      '1180 (-1650 46 %) z 5.8 att -70 sync -19', '1190 (-5360 52 %) z 5.7 att -10 sync 1',
+      '1190 (4470 48 %) z 7.0 att 7 sync 26', '1190 (4470 44 %) z 6.9 att -8 sync 49',
+      '1190 (-2240 40 %) z 7.6 att -27 sync 20', '1180 (4730 60 %) z 5.3 att -27 sync 4',
+      '-710 (1170 99 %) z 3.8 att -20 sync -70', '1170 (1340 49 %) z 7.1 att -21 sync -89',
+      '1180 (1360 62 %) z 4.7 att -8 sync -56', '1180 (1360 47 %) z 6.2 att -10 sync -49',
+      '1180 (1660 44 %) z 6.6 att -9 sync -16', '1180 (-5670 46 %) z 6.8 att -6 sync -16',
+      '1180 (2490 52 %) z 6.4 att -8 sync -23', '1180 (5650 66 %) z 4.1 att -7 sync -17',
+      '1180 (-5020 57 %) z 5.2 att -7 sync -8', '1180 (3260 88 %) z 3.5 att 0 sync -8',
+      '1180 (3260 69 %) z 4.7 att -11 sync -8', '1180 (3260 62 %) z 5.2 att -70 sync -89',
+      '4240 (1180 100 %) z 3.6 att -90 sync -66', '1180 (-5910 98 %) z 3.5 att -99 sync -92',
+      '710 (1170 92 %) z 4.5 att -115 sync -86', '-5890 (1180 83 %) z 4.9 att -143 sync -62',
+      '1180 (-5890 94 %) z 3.5 att -139 sync -80', '20 (1180 73 %) z 5.5 att -139 sync -75',
+      '20 (-380 87 %) z 5.5 att -135 sync -89', '-380 (30 86 %) z 5.5 att -135 sync -89',
+      '-370 (20 36 %) z 8.3 att -144 sync -96', '-370 (3270 26 %) z 9.5 att -137 sync -79',
+      '-370 (5340 36 %) z 7.7 att -128 sync -52', '-370 (-240 38 %) z 7.7 att 43 sync -18',
+      '1180 (4800 59 %) z 5.4 att 58 sync 2', '1180 (4800 70 %) z 5.7 att 46 sync 2',
+      '1180 (4970 75 %) z 5.8 att 34 sync 18', '1180 (160 65 %) z 5.1 att -26 sync -20',
+      '340 (-4870 99 %) z 3.1 att -37 sync -32', '1130 (800 56 %) z 4.5 att -88 sync -61',
+      '1140 (5950 54 %) z 5.0 att -88 sync -130', '-4900 (1140 85 %) z 4.2 att -119 sync -95',
+      '-520 (1520 36 %) z 9.0 att -89 sync -65', '-520 (-4510 39 %) z 8.7 att -58 sync 0',
+      '-520 (-4510 40 %) z 8.7 att -11 sync 27', '-520 (-4510 29 %) z 10.0 att -11 sync 9',
+      '-520 (1170 40 %) z 9.2 att -10 sync 18', '-520 (1160 79 %) z 6.9 att -8 sync 19',
+      '-520 (1160 90 %) z 5.9 att -8 sync 13', '1170 (-510 86 %) z 4.4 att -8 sync -40',
+      '1170 (-600 50 %) z 6.0 att -8 sync -46', '1160 (-2010 44 %) z 6.4 att -10 sync -33',
+      '1150 (2630 44 %) z 6.6 att -10 sync -18', '1150 (-430 63 %) z 5.9 att -11 sync 47',
+      '-430 (2240 59 %) z 5.2 att -12 sync 66', '-430 (2240 74 %) z 4.8 att -62 sync 68',
+      '2640 (4780 94 %) z 3.1 att -65 sync 50', '5240 (730 93 %) z 3.1 att -74 sync 59',
+      '1590 (4830 97 %) z 2.8 att -81 sync 63', '1070 (720 83 %) z 3.2 att -81 sync 60',
+      '1080 (640 87 %) z 3.3 att -92 sync 22', '-4730 (-3520 98 %) z 2.8 att -99 sync -55',
+      '-4730 (3830 90 %) z 3.7 att -68 sync -41', '80 (5710 88 %) z 2.9 att -12 sync -3',
+      '5340 (3020 100 %) z 2.6 att -12 sync -6', '1850 (5600 96 %) z 3.3 att -12 sync 2',
+      '-3440 (-3690 77 %) z 3.6 att -13 sync -155', '-2280 (-4990 89 %) z 3.4 att -3598 sync -3676',
+      '-3080 (-2280 88 %) z 3.2 att -3650 sync -3681', '1700 (3670 98 %) z 3.1 att -3571 sync -3637',
+      '1530 (1700 83 %) z 3.4 att -3385 sync -3434',
+    ].join(' · '),
+    douzieme: [
+      '-140 (2370 62 %) z 4.7 att -706 sync -798', '-130 (2370 46 %) z 6.0 att -706 sync -735',
+      '-130 (140 52 %) z 6.5 att -705 sync -784', '1180 (1400 93 %) z 4.3 att -187 sync -102',
+      '670 (1180 81 %) z 4.6 att 4 sync 24', '660 (1180 61 %) z 6.6 att 96 sync 24',
+      '670 (-3650 47 %) z 6.8 att 96 sync 36', '670 (1590 76 %) z 4.0 att 96 sync 66',
+      '1230 (990 83 %) z 4.4 att 99 sync 37', '1230 (990 81 %) z 5.4 att 64 sync 15',
+      '1230 (990 61 %) z 5.5 att 64 sync 32', '680 (1240 71 %) z 4.3 att 63 sync 49',
+      '1170 (660 76 %) z 5.5 att 60 sync 17', '1170 (900 92 %) z 6.1 att 76 sync 32',
+      '880 (1160 80 %) z 7.3 att 84 sync -15', '880 (1170 66 %) z 6.8 att 86 sync 33',
+      '880 (610 44 %) z 7.0 att 83 sync 19', '620 (870 84 %) z 5.1 att 75 sync -6',
+      '620 (5140 41 %) z 7.4 att 68 sync 13', '620 (5970 53 %) z 6.7 att 75 sync -51',
+      '660 (-5320 49 %) z 6.7 att 87 sync -38', '660 (-5330 44 %) z 7.0 att 109 sync -24',
+      '660 (4790 43 %) z 6.7 att 99 sync -37', '650 (-5290 34 %) z 9.1 att 116 sync -11',
+      '650 (-5290 41 %) z 8.6 att 98 sync 5', '650 (-2760 46 %) z 8.8 att 54 sync -25',
+      '650 (1180 79 %) z 7.3 att 57 sync 7', '1180 (890 88 %) z 5.1 att 119 sync 75',
+      '1180 (890 83 %) z 5.9 att 154 sync 88', '1190 (900 65 %) z 5.6 att 111 sync 75',
+      '890 (1210 99 %) z 3.9 att 167 sync 88', '650 (-5160 51 %) z 5.7 att 38 sync 75',
+      '900 (1140 82 %) z 4.6 att 25 sync 72', '900 (620 30 %) z 8.6 att 72 sync 72',
+      '900 (640 59 %) z 8.3 att 106 sync 59', '900 (640 91 %) z 7.0 att 108 sync 59',
+      '900 (640 94 %) z 6.5 att 108 sync 33', '640 (-2310 33 %) z 9.6 att 123 sync 55',
+      '650 (-3170 29 %) z 9.0 att 98 sync 73', '650 (-3170 35 %) z 8.7 att 61 sync 68',
+      '650 (-3170 29 %) z 9.4 att 74 sync 59', '650 (1140 40 %) z 9.3 att 52 sync 64',
+      '650 (1140 74 %) z 7.2 att 95 sync 66', '650 (1140 99 %) z 6.0 att 127 sync 58',
+      '1150 (650 62 %) z 7.0 att 117 sync 66', '890 (640 50 %) z 8.1 att 101 sync -8',
+      '890 (640 78 %) z 6.1 att 87 sync -9', '890 (630 93 %) z 4.5 att 54 sync -16',
+      '640 (1160 75 %) z 5.3 att 54 sync -36', '640 (1160 69 %) z 5.7 att 71 sync -17',
+      '1160 (640 96 %) z 4.9 att 86 sync -8', '270 (10 62 %) z 7.1 att -412 sync -607',
+      '270 (10 81 %) z 6.9 att -581 sync -657', '270 (10 71 %) z 7.9 att -500 sync -579',
+      '270 (10 58 %) z 8.1 att -520 sync -620', '270 (10 68 %) z 5.4 att -520 sync -627',
+      '270 (560 78 %) z 4.7 att -556 sync -577', '20 (560 73 %) z 5.4 att -625 sync -627',
+      '20 (560 73 %) z 6.4 att -625 sync -645', '20 (570 44 %) z 7.8 att -609 sync -616',
+      '30 (570 36 %) z 8.1 att -580 sync -604', '280 (30 81 %) z 8.1 att -580 sync -567',
+      '30 (280 90 %) z 7.3 att -512 sync -539', '30 (280 93 %) z 6.6 att -518 sync -540',
+      '20 (280 74 %) z 8.4 att -518 sync -566', '20 (-1430 30 %) z 9.0 att -496 sync -582',
+      '20 (540 42 %) z 6.9 att -581 sync -634', '10 (250 44 %) z 6.8 att -646 sync -663',
+      '250 (540 81 %) z 4.6 att -589 sync -659', '250 (10 58 %) z 6.0 att -648 sync -629',
+      '250 (10 56 %) z 5.9 att -515 sync -640', '260 (10 84 %) z 4.9 att -535 sync -616',
+      '540 (250 64 %) z 5.6 att -558 sync -646', '530 (270 36 %) z 8.4 att -543 sync -625',
+      '530 (20 44 %) z 8.9 att -542 sync -624', '530 (30 76 %) z 6.0 att -519 sync -613',
+      '30 (510 67 %) z 6.9 att -481 sync -584', '40 (510 78 %) z 6.2 att -466 sync -593',
+      '510 (40 69 %) z 6.6 att -607 sync -606', '510 (5990 47 %) z 6.6 att -607 sync -617',
+      '510 (10 97 %) z 4.5 att -602 sync -634', '0 (4310 42 %) z 6.5 att -602 sync -654',
+      '0 (3910 33 %) z 8.3 att -604 sync -697', '0 (4620 33 %) z 8.8 att -602 sync -664',
+      '0 (2830 49 %) z 6.9 att -602 sync -636', '-30 (4910 43 %) z 6.9 att -568 sync -635',
+      '-40 (530 59 %) z 5.5 att -498 sync -581', '-40 (5740 67 %) z 4.9 att -529 sync -602',
+      '230 (-40 72 %) z 5.6 att -519 sync -623', '230 (-10 34 %) z 8.4 att -587 sync -642',
+      '230 (-20 27 %) z 9.1 att -667 sync -642', '230 (5710 25 %) z 9.5 att -664 sync -641',
+      '230 (510 38 %) z 7.9 att -658 sync -645', '240 (-30 48 %) z 6.9 att -657 sync -661',
+      '240 (-10 69 %) z 7.8 att -655 sync -692', '-10 (5800 61 %) z 6.0 att -655 sync -726',
+      '-20 (240 42 %) z 7.1 att -655 sync -738', '-10 (-4810 48 %) z 6.5 att -644 sync -688',
+      '-20 (540 96 %) z 3.8 att -595 sync -609', '540 (250 96 %) z 3.4 att -587 sync -584',
+      '510 (250 99 %) z 4.9 att -590 sync -599', '500 (240 40 %) z 8.2 att -590 sync -598',
+      '500 (3420 26 %) z 10.4 att -592 sync -591', '500 (240 43 %) z 9.4 att -598 sync -604',
+      '500 (240 46 %) z 9.2 att -592 sync -557', '250 (510 98 %) z 5.7 att -598 sync -581',
+      '240 (-3280 74 %) z 4.9 att -596 sync -578', '0 (520 46 %) z 6.5 att -588 sync -570',
+      '0 (-3370 43 %) z 7.2 att -594 sync -575', '0 (-3370 48 %) z 7.2 att -600 sync -590',
+      '0 (260 63 %) z 5.8 att -602 sync -584', '0 (260 97 %) z 4.5 att -627 sync -622',
+      '-10 (250 69 %) z 4.8 att -635 sync -615', '-10 (540 87 %) z 3.8 att -643 sync -660',
+      '0 (530 64 %) z 5.8 att -661 sync -634', '540 (250 96 %) z 3.7 att -677 sync -601',
+      '530 (250 100 %) z 3.7 att -681 sync -609', '250 (-3730 60 %) z 5.0 att -659 sync -616',
+      '230 (-3730 69 %) z 5.0 att -651 sync -623', '230 (-3720 48 %) z 6.3 att -612 sync -621',
+      '230 (0 76 %) z 4.8 att -604 sync -607', '10 (240 94 %) z 4.2 att -601 sync -578',
+      '230 (10 75 %) z 5.1 att -582 sync -558', '240 (10 93 %) z 5.2 att -557 sync -543',
+      '230 (520 38 %) z 8.5 att -557 sync -609', '230 (0 82 %) z 6.5 att -624 sync -617',
+      '230 (10 84 %) z 6.7 att -611 sync -611',
+    ].join(' · '),
+  };
+  const src = readFileSync(join(ICI, 'content.test.js'), 'utf8');
+  // Une déclaration du pilote : une ligne, ou un bloc jusqu'à son accolade fermante.
+  const decl = (nom) => {
+    const i = src.indexOf(`\n    const ${nom} = `);
+    if (i < 0) return `throw new Error('introuvable : ${nom}');`;
+    const bloc = src.slice(i + 1).split('\n')[0].trimEnd().endsWith('{');
+    return src.slice(i + 1, bloc ? src.indexOf('\n    };', i) + 7 : src.indexOf(';\n', i) + 1);
+  };
+  const code = ['mediane', 'FORT', 'BORD_MS', 'auBord', 'picsDe', 'CARTE_RAYON_MS', 'carteSon', 'SON_POIDS_MIN',
+                'MELANGE_CARTE', 'GRAPPE_MS', 'LOIN_SEULE_MS', 'LOIN_GRAPPE_MS', 'EGALE_MS', 'melees', 'cibleSon'].map(decl).join('\n');
+  const CFG = { SALLE_ECOUTE_MAX_MS: Number((/SALLE_ECOUTE_MAX_MS:\s*([\d_]+)/.exec(src) || [, 'NaN'])[1].replace(/_/g, '')) };
+  let regle = null;
+  try { regle = new Function('CFG', `${code}\nreturn { carteSon, cibleSon };`)(CFG); } catch (e) { regle = { erreur: String(e) }; }
+  // Un calcul, tel que le rapport l'écrit : « 1180 (1400 93 %) z 4.3 att -187 sync -102 ».
+  const RX = /^(-?\d+)(?: \((-?\d+) (\d+) %\))? z ([\d.]+)(?: att (-?\d+))?(?: sync (-?\d+))?$/;
+  const lire = (txt) => txt.split(' · ').map((e) => {
+    const [, ms, ms2, pct, z, att, sync] = RX.exec(e.trim());
+    return { ms: +ms, ms2: ms2 === undefined ? null : +ms2, r: 1, r2: pct === undefined ? 0 : +pct / 100, z: +z,
+             attendu: att === undefined ? null : +att, sync: sync === undefined ? NaN : +sync };
+  });
+  // Ce que la règle dit de l'écoute à chaque longueur, comme le pilote la voit grandir.
+  const rejouer = (txt) => {
+    if (!regle.cibleSon) return [];
+    const h = lire(txt);
+    return h.map((_, i) => regle.cibleSon(regle.carteSon(h.slice(0, i + 1))));
+  };
+  const dire = (x) => (x.refus ? `aucune : ${x.refus}` : `${x.rel} ms, ${x.voie}`)
+    + (x.echos ? ` · écho ${x.echos.join(', ')}` : '') + (x.sauts ? ` · saut ${x.sauts.join(' → ')}` : '');
+  // Les états successifs, sans répéter le même : « 27 en attente … | 29 1155 ms … ».
+  const suite = (l) => l.map((x, i) => [i + 1, dire(x).replace(/ \(poids [\d.]+ sur \d+\)/, '')])
+    .filter(([, d], i, t) => !i || d.replace(/-?\d+/g, '#') !== t[i - 1][1].replace(/-?\d+/g, '#'))
+    .map(([n, d]) => `${n} ${d}`).join(' | ');
+  const parlent = (l) => l.filter((x) => !(x.refus && x.refus.startsWith('trop peu')));
+  const cibles = (l) => l.filter((x) => !x.refus);
+
+  /* LE DOUZIÈME : 634 · 853 · 1138 — la voix de l'ancre chez la tuile, le
+     jeu, la voix de la tuile chez l'ancre, 0,6 à 1,1 s de l'horloge. La
+     cible : 1138, la plus haute — dès la première, jamais en dessous de
+     1000. Au vingt-septième calcul, la voix de l'ancre s'établit seule : en
+     attente. Mutants — chaque composante à plus de 0,8 s tenue pour un écho
+     (la règle d'avant) ; la plus basse de la grappe ; une voix seule prise
+     sans peser le reste de sa grappe. */
+  const d12 = rejouer(ECOUTES_REELLES.douzieme);
+  const f12 = d12[d12.length - 1] || {};
+  const p12 = parlent(d12);
+  ok('le douzième rapport rejoué : la voix de l\'ancre seule d\'abord, en attente ; puis 1138, la plus haute de la grappe, jamais en dessous',
+     d12.length === 127 && /^11[0-8]\d$/.test(String(f12.rel)) && f12.voie === 'la plus haute de la grappe' && !f12.echos && !f12.sauts
+     && /^en attente : 6\d\d ms, seule établie dans sa grappe$/.test(p12[0]?.refus || '')
+     && cibles(d12).length > 0 && cibles(d12).every((x) => x.rel >= 1_100 && x.voie === 'la plus haute de la grappe'),
+     regle.erreur || suite(d12));
+
+  /* LE HUITIÈME : 1117, puis 2460 — jamais ensemble, l'écho d'un live dont
+     le lecteur a sauté. Une source qui saute : jamais une cible. Mutants —
+     la source qui saute jamais vue ; une seule grappe pour tout. */
+  const d8 = rejouer(ECOUTES_REELLES.huitieme);
+  const p8 = parlent(d8);
+  ok('le huitième rapport rejoué : « une source a sauté, 1117 → 2460 ms » dès qu\'elle parle — jamais une cible',
+     d8.length === 150 && p8.length > 0
+     && p8.every((x) => /^ambigu : une source a sauté, 111\d → 24[56]\d ms$/.test(x.refus || '')),
+     regle.erreur || suite(d8));
+
+  /* LE NEUVIÈME : une grappe près de l'horloge, −496 · −291 · 44 ; une
+     autre à 1,0–1,2 s, 1020 · 1168 — la plus lourde. La cible : 44, la plus
+     haute de la grappe proche ; 1168 en écho. Avant que 44 ne s'établisse,
+     1012 est un temps seule et loin : jamais une cible. Mutant — une voix
+     seule retenue jusqu'à 1,5 s. */
+  const d9 = rejouer(ECOUTES_REELLES.neuvieme);
+  const f9 = d9[d9.length - 1] || {};
+  ok('le neuvième rapport rejoué : 44 ms, la plus haute de la grappe proche, 1168 en écho — jamais une autre cible',
+     d9.length === 137 && f9.rel === 44 && f9.voie === 'la plus haute de la grappe' && /^11[56]\d$/.test(String(f9.echos))
+     && cibles(d9).length > 0 && cibles(d9).every((x) => Math.abs(x.rel - 44) <= 30),
+     regle.erreur || suite(d9));
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
