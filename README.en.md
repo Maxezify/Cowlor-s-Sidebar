@@ -2059,6 +2059,306 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Sound calibrates, the clock aligns and holds (v4.24.0.18)
+
+Two real reports on 4.24.0.17, each in two parts. The eighth: three streams
+opened from the node, aligned by the clock on opening — "the three streams
+were set exactly". The ninth: two streams, and the eye saw one of them
+**"about one second" behind the other, "above all by the lips"** — the clock
+saying it was aligned. The request: "a mix of clock and sound to calibrate
+properly", "be rigorous, optimise and fix the automatic process, the lever
+too". Published on `claude/chrome-multi` only.
+
+### What the two reports establish
+
+**1. Opening by the clock does what it should.** Eighth: 1.332 → 0.072 s in
+two passes and 42 s, on three tiles. Ninth: 0.146 → 0.005 s. The seeks back
+stalled 0.105, 0.104 and 0.079 s, then 0.109: the predicted 0.13 overshot by
+25 to 50 ms.
+
+**2. But the tile you listen to jumped.** The latest tile was the reference,
+every other one stepped back to it — the anchor included: in the eighth,
+right at opening, the sound tile stepped back 0.29 s; in the ninth, after the
+target fell behind, 1.17 s, and the whole room took 1.17 s more latency.
+
+**3. A fall nothing saw.** Around the fifth minute of the ninth, the target
+lost 1.19 s of playback — its latency rose by as much, with no jump and no
+cut in the log. The pilot only saw it as a drift, three checks later
+(+359 s). And after the lever trial (point 7), playback stopped, latency
+went from 2.7 to 6.7 s: nothing either — a jump isn't judged when the speed
+changes, and the player had started catching up.
+
+**4. Sound, located against the clock.** In the ninth, when the target fell
+1.19 s behind, its main peak went from +1190 to −10 ms, and the clock from 0
+to −1141: their difference stayed between +1131 and +1214 ms. A shared sound
+is fixed **relative to the clock**, whatever playback does. Over each
+report's hundred and fifty computations, located that way:
+
+| report | components, in ms relative to the clock (first peaks · share of weight) |
+| --- | --- |
+| eighth, the anchor and the tile moved back 1.4 s | **+2460** (27 · 66 %) · +1117 (7 · 17 %) |
+| ninth | **+1168** (48 · 50 %) · +44 (13 · 14 %) · −496 (11 · 12 %) · +1020 (7 · 8 %) · −291 (6 · 6 %) |
+
+**5. Echoes.** In the eighth, the dominant component moved mid-session from
+1045 to 2370 ms — a 1.3 s jump: that is how a Twitch player's latency moves,
+never a voice channel. A streamer watching the other's live with the sound
+on replays **all** of the other's stream in their own, one Twitch latency
+later: a lone component, strong — it carries all the sound — and far from
+the clock. On that pair, which the eye saw right, following it would have
+shifted the tile by 2.46 s. In the ninth, +1168 has the same signature:
+alone, half the computations, far. Below it, three components near the
+clock, alternating over the minutes: +44, −291 and −496 — the voices of a
+voice channel.
+
+**6. What the eye saw, in the ninth.** Each shared sound makes a component
+c = Δ + pA − pT: Δ the real offset, pA and pT the paths of the sound into
+the anchor's stream and into the target's. A voice born at the target lands
+above Δ, a voice born at the anchor below. +44, the highest: the target's
+voice in the anchor's stream; −291 and −496, the anchor's in the target's —
+by two paths, or two channel delays; Δ between the two, −0.12 to −0.23 s.
+The target's voice, as heard through the channel, thus
+lands **44 ms** from its lips: the clock was right. Through the echo, it
+lands 1.17 s after — **very probably the second the eye saw**. The direction
+hardly matters to the eye over a second: you see lips that don't match. What
+the extension cannot do: remove an echo from a stream — the anchor's viewers
+hear it too. Locking onto it would put everything else — gestures, the
+game — 1.2 s off, as in the eighth.
+
+**7. The lever.** In both reports, setLiveMaxLatency was reported "ok", and
+the player's console wrote: "UnboundTypeError: Cannot call
+MediaPlayer.setLiveMaxLatency due to unbound types: N6twitch9MediaTimeE". The
+instance is only a relay: the call goes to the player, in another thread,
+and fails there — it expects a type JavaScript cannot build, no value gets
+through. In the ninth, within five seconds, the target's buffer melted from
+2.30 to 0.17 s, its latency stayed frozen at 2.732 for five readings then
+jumped to 6.73 s, and the player caught up at 1.03 — still 5.68 s at report
+time. setLiveSpeedUpRate(1.1) did nothing visible: the player caught up at
+1.03.
+
+**8. getBufferedRanges** returns an object 4.24.0.17 couldn't read —
+"forme object" on every tile. The back buffer, through the element: 28.7 to
+31.5 s everywhere.
+
+**9. The ninth's "±580 ms" clock** is not noise: it is the spread of all its
+ticks, moves included — 1.17 s back on the anchor, a 1.19 s fall on the
+target. In the eighth, ±66 to ±71 ms.
+
+### What this version does
+
+**1. The sound map.** Each pair — the anchor, the tile you hear, against
+each other one — locates its components **relative to the clock**: a
+computation's peak minus that computation's clock relation. A move or a
+fall changes nothing there: the map feeds on the whole listening, a hundred
+and fifty computations, no longer just the minute after the last move. A
+component: around the most surrounded value, everything within 80 ms — the
+clock wanders ±50 ms from one computation to the next —, its median; a
+first peak weighs 1, a second 0.5. In the report, `ecoute.carte`.
+
+**2. The target.** The component to bring to 0, in the report
+`ecoute.cible`:
+- **never an echo**: beyond 0.8 s from the clock — a direct path never went
+  past 0.5 s in the reports, an echo never under a second —, a component is
+  called a "probable echo", nothing more;
+- near the clock, over two minutes of computations that hold (a weight of
+  24): **a pair** — the highest of the established components that has
+  another 100 to 1000 ms below it, mixed with it in time: the tile's voice as
+  heard in the anchor. Not their midpoint, as in 4.24.0.16: it left the lips
+  ahead by the channel's delay, 0.1 to 0.3 s, at the edge of what shows;
+- otherwise **a dominant one**: more than twice the weight of the next, and
+  the minimum weight on its own — a single shared voice;
+- otherwise **ambiguous**: nothing moves, and the report says why.
+
+Established: the first peak of at least six computations, a tenth of the
+weight near the clock. Mixed: over all pairs of one computation from each,
+at least a tenth in each order — over the whole listening, real voices
+alternate in stretches of several minutes; a voice that jumps, two periods
+one after the other, stays around 0.02.
+
+**3. The pilot: sound calibrates, the clock aligns and holds.**
+- On opening, by the clock, as before.
+- **Each pair's target, stable within 40 ms from one check to the next,
+  becomes the relation the tile keeps to the anchor**, as soon as it moves
+  0.05 s from the previous one — "calibré par le son" in the log. The clock
+  brings the tile there, in twenty seconds, and checks it; sound then says
+  where it sees the target — at 0, if it told the truth. No more passes
+  measured by sound, which waited up to two minutes for computations and
+  got lost on three components.
+- **Sound takes it back**: a relation it gave — a lone voice, dominant for a
+  while — that the map calls "ambiguous" two checks in a row, the other
+  voice back, is withdrawn: the tile returns to the clock, "le son s'est
+  dédit" in the report. For lack of computations, it stays.
+- **The anchor no longer moves when the others can come to it**: each tile
+  later than it moves forward to it, if it keeps a second of buffer
+  afterwards; otherwise, as before, the latest tile is the reference. A tile
+  that fell behind moves forward again, instead of the whole room stepping
+  back.
+- **The anchor follows the sound**: given to another tile for fifteen
+  seconds, that tile becomes the anchor; every kept relation is rewritten
+  against it — nothing moves —, and listening restarts, so the map rebuilds
+  on what you now hear.
+- A tile's relation no longer depends on its first minute afterwards: it
+  comes from the whole map.
+
+**4. Playback falls.** From one reading to the next, the position advances
+by the elapsed time, at the video's speed; less, and playback lost the
+difference. More than 0.15 s lost at each reading, 0.4 s in all, with no
+trial, reload or pause to explain it: a fall, in the room's log, in the
+tile's series (`chutes`, `chutesDetail`), and an event for the pilot — six
+seconds of ticks after it at bench scale, twenty for real, instead of a
+minute of drift.
+
+**5. The lever, fixed.** setLiveMaxLatency is never called again.
+`tse.salle.leviers()` only tries setLiveSpeedUpRate(1.1), "envoyé" — the
+call left, no more — and never during an alignment. The `essaiLeviers` block
+also gives the lowest buffer and what stalled during the trial: a lever that
+melted the buffer would show.
+
+**6. getBufferedRanges, described.** Its constructor and its keys, each with
+its type (`tuiles.*.plagesForme`); and if one of them — "video" first —
+holds an array of ranges, it is read.
+
+**7. A seek back is predicted to stall 0.12 s**, the mean of the eleven real
+ones.
+
+**8. `aligner('son')`**: listening on, a target on every pair — otherwise
+the refusal says which one is missing, and why —, then the clock goes
+there, the anchor kept in place if it can be.
+
+**9. The setting** now says: "the streams are set to the same time by the
+clock; their shared sound then fine-tunes them — each stream's lips on its
+voice as you hear it — and the clock keeps them there", in all twelve
+languages.
+
+### What the bench measures
+
+**The fake player** can stall its playback without pausing (`__caler`) —
+the position stops, the latency rises by as much; it counts calls to
+setLiveMaxLatency, which it must never receive, and accepts
+setLiveSpeedUpRate with no effect; its ranges come in three shapes —
+{start, end}, under "video" and "audio" ("charlie"), an opaque object
+("alpha"); and three more voices, against "duo1": "mike", the first 300 ms
+later, alone; "papa", 1.1 s earlier, alone — an echo; "oscar", the first
+700 ms earlier and the second 700 later.
+
+- **180**: S10 at a 0.12 stall. The map in the report, located against the
+  clock: −550 and −150 for "duo1~duo2"; 0 for "hotel", 5.5 s later by sound
+  AND by clock — sound says the clock is right. At fourteen computations,
+  the report's target: "trop peu de calculs (poids … sur 24)".
+  `aligner('son')` refuses this room naming "foxtrot" and "golf", and
+  refuses without listening; on "duo1" and "duo2" alone, it aims at −150 —
+  the higher of the two voices, not their midpoint —, "duo1", the anchor,
+  stays put, "duo2" moves forward by the clock, in one pass, and sound sees
+  its target at 0 again, within 70 ms.
+- **182**: the clock alone — "bravo" and "charlie" go silent. On opening,
+  the anchor "alpha" doesn't move: "bravo" and "charlie" move forward to it,
+  one pass. "bravo"'s jump brought down to 0.6 s — moved forward to 2 s of
+  latency, a one-second jump would put it under its buffer, and the probe
+  would rightly see only an inconsistent latency. The lever: refused during
+  an alignment; setLiveSpeedUpRate "envoyé", setLiveMaxLatency never
+  called, nothing stalled, the buffer unchanged; ranges in their three
+  shapes, the opaque object described. "kilo" and "lima": the voice that
+  jumps makes two components one after the other — never a pair; depending
+  on the moment, the old one still dominates, or it is "ambigu" —, and
+  nothing moves.
+- **183**: sound calibrates, the clock aligns and holds. On "duo1" and
+  "duo2": at the first check that sees the target, nothing moves; at the
+  second, "duo2"'s relation becomes −0.150 s, "calibré par le son", and
+  "duo2" moves forward, the anchor in place; sound sees the target at 0
+  again. A 0.5 s fall: seen, in the log and the series, an event, and "duo2"
+  moves forward again keeping its relation; the map didn't move. A 1.2 s
+  fall, too big for its buffer: it becomes the reference, the anchor steps
+  back. The sound given to "duo2": the anchor follows it, "duo1"'s relation
+  is rewritten (+0.150 s), then the rebuilt map aims at +550 — "duo1"'s
+  voice in "duo2" — and "duo1" steps back. "mike": a dominant one, and it
+  moves forward 0.3 s. "papa": "rien près de l'horloge · écho probable :
+  1100 ms", nothing moves. "oscar": its first voice goes silent for
+  thirty seconds; the second, alone, becomes the dominant one, and "oscar"
+  is set 0.7 s onto it. The first comes back: two established components,
+  1.4 s apart, "ambigu" — sound takes it back, and "oscar" returns to the
+  clock.
+
+### What the bench found — and the ninth report, replayed
+
+- **Mixing at a fifth, on the ninth report.** Replayed on its history,
+  4.24.0.17's rule — a fifth in each order — did not find the channel's
+  voices mixed: 0.18 and 0.16, they alternate in stretches of several
+  minutes. The pair kept would have been −291 and −496, and the target moved
+  forward 0.3 s, its lips 0.34 s before its voice. At a tenth: the pair +44
+  and −291, the target at +44 — nothing moves. This threshold only shows in
+  the real report: the fake player's voices mix at every computation.
+
+- **The dominant rule, on the eighth report.** The first version aimed at
+  the strongest component, wherever it was — it would have followed the
+  ninth report's echo. Run on the eighth report's history, it would have
+  shifted by 2.46 s a pair the eye saw right: hence the echo bound.
+- **A missing component read.** Ambiguity was phrased with the second
+  component — missing, when the only one did not yet weigh the minimum: an
+  exception, and the pilot's check stopped there. 182's jump passed for a
+  drift. The new rule counts the weight near the clock first.
+- **Exactly twice is not dominant**: two voices of equal strength, one
+  always first peak and the other always second, make exactly double.
+- **A fall excluded as "just after a trial".** The trial was set aside at
+  the latency's update rate, as for a jump; but the fake player's latency,
+  constant between events, made a twenty-second rate, and a 1.2 s fall,
+  five seconds after a forward move, went unseen. The position is read at
+  every reading: two and a half seconds are enough.
+- **Keeping the anchor in place changes the rest.** Moved forward to the
+  anchor, "bravo" sits at 2 s of latency; its one-second jump put it under
+  its 1.8 s buffer, and the probe rightly saw only an inconsistent latency:
+  182's jump is brought down to 0.6 s. And 182 silences "bravo"'s and
+  "charlie"'s shared sound: it was only 150 and 200 ms from the clock —
+  their starting latencies —, and the pilot would have calibrated it.
+- **A relation nothing supported any more.** For a second voice of "oscar"
+  to be established, the bench silenced the first for a while: the second,
+  alone, became the dominant one, and the pilot set "oscar" 0.7 s onto it —
+  rightly, it was all it heard. Then the first came back, the map said
+  "ambiguous"… and the relation stayed: only a new target rewrote it, never
+  a refusal. In the ninth report, the channel's voices alternate over
+  stretches of minutes: one voice alone at the start of a room, and the
+  tile would have stayed off on it. Hence **sound takes it back**.
+
+| mutants | what falls |
+| --- | --- |
+| the map: the peak without the computation's clock; the report's target at the pilot's requirement (2) | "hotel" at 5.5 s instead of 0; a target in the report at fourteen computations |
+| the target: the lower of the two voices; their midpoint; the pair without mixing in time; the pair without its one-second bound (4) | "duo2" aimed at −558 ms, at −337; "lima" aimed at the voice that jumped; "oscar" set to +0.69 s, the higher of a 1.4 s "pair" |
+| echo and dominant: the echo without its bound; the dominant always; never (3) | "papa" set 1.1 s off onto the echo; "oscar" left at −0.7 s on one of its two voices; the report crashing on a lone component |
+| the pilot: sound never looked at; without stability; the relation reset to zero; the anchor never kept, in 182 and 183; `aligner('son')` without the anchor; the buffer margin ignored (7) | no calibration; the relation from the first check; "duo2" brought to 0, not to its relation; "alpha", "duo1" stepped back; a reference that is no longer the anchor; "duo2", fallen 1.2 s, moved forward past its buffer |
+| sound taking it back: never; the relation kept while taking it back (2) | "oscar" left at −0.7 s on an ambiguous map; "le son s'est dédit", the relation still at −0.7 s |
+| the anchor following the sound: never; without rewriting the relation (2) | no relation rewritten; "duo1 +0.078 (garde +0.000)" |
+| falls: never seen; seen without an event (2) | both of 183's falls |
+| the lever: setLiveMaxLatency called again; "ok" for "envoyé"; during an alignment; the shape never described; ranges under a key ignored (5) | the call counted by the fake player; "ok"; the trial accepted during the opening; no shape for "alpha"; no ranges for "charlie" |
+| a seek back's stall at 0.13 s (1) | S10 in 180 |
+
+Twenty-eight mutants, twenty-eight caught — in two rounds:
+
+- **one survivor in the first, the pair without its one-second bound.**
+  "oscar" carries two of "duo1"'s voices, at +700 and −700 ms: the second,
+  always the second peak, was never established, and the pair rule had
+  nothing to decide — bound or no bound. 183 now silences the first voice
+  for thirty seconds: the second becomes first peak in its turn, and
+  the bench requires both components established. That is where the
+  defect "sound takes it back" fixes showed up: the lone, dominant voice set
+  "oscar", and the relation stayed. Replayed against the rewritten 183, the
+  mutant takes both voices for a 1.4 s pair, sets "oscar" on the higher
+  one, at +0.69 s, and falls;
+- **the dominant never recognised crashes the report**: without it,
+  ambiguity is stated with a second component that doesn't exist — the
+  defect the new rule fixed, described above. The bench fails: caught.
+
+### For the next report
+
+1. The same pair as the ninth report, if possible, opened from the node —
+   nothing typed. Ten minutes in the room.
+2. **Listen to the anchor** — the tile with the sound: is the other
+   streamer's voice heard twice in it, a second apart? That is the echo.
+3. In the report: `ecoute.carte` and `ecoute.cible` — the target near the
+   clock, and the "écho probable" if there is one —, the `auto` block, and
+   `tuiles.*.plagesForme`.
+4. Then **click the other tile** to give it the sound: the anchor follows
+   after fifteen seconds, the map rebuilds, and three to four minutes later
+   the relation recalibrates on what you now hear. Do its lips, and the
+   other's, match? Take the report again.
+
 ## Automatic alignment, from the moment you enter (v4.24.0.17)
 
 As requested: "when you enter a multistream, whatever the number of
@@ -14547,7 +14847,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 183 scenarios, 1599 assertions |
+| `npm test` | the Playwright harness: 183 scenarios, 1600 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -14567,7 +14867,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1586 KB | 646 KB | 4,062 → **2** |
+| `content.js` | 1586 KB | 646 KB | 4,065 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

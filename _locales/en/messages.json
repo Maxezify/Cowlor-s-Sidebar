@@ -664,7 +664,7 @@
     "message": "Automatic alignment"
   },
   "optDescSalleAuto": {
-    "message": "When the room opens, the streams are set to the same time — by the clock, then by sound when two voices are clearly heard in it — and kept there. Off: nothing moves on its own."
+    "message": "When the room opens, the streams are set to the same time by the clock; their shared sound then fine-tunes them — each stream's lips on its voice as you hear it — and the clock keeps them there. Off: nothing moves on its own."
   },
   "optAbonnes": {
     "message": "Subscription gold"
