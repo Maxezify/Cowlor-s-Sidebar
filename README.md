@@ -2180,6 +2180,205 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Les lèvres : la grappe des voix (v4.24.0.20)
+
+Deux rapports réels sur la 4.24.0.19, ouverts par le nœud : deux streams,
+puis trois. Et la consigne : « C'est bon pour la qualité des streams. Je
+veux que ce soit les lèvres. Soit rigoureux. » Publiée sur
+`claude/chrome-multi` seulement.
+
+Les tuiles, ici : **A**, l'ancre — celle qu'on entend —, à 1,7 s de latence
+au douzième rapport, 2,6 au treizième ; **B**, à 2,3 puis 3,1 s ; **C**, au
+treizième seulement, à 2,7 s.
+
+### Ce que les deux rapports établissent
+
+**1. La qualité** : à deux, des tuiles de 627 px — 1080p, la source ; à
+trois, 551 px — 720p. « C'est bon. »
+
+**2. Le pilote est calme.** Deux alignements à deux, trois à trois ; pas un
+rattrapage, pas une pause, une coupure d'arrivée.
+
+**3. Mais il calait B sur la voix de A.** La carte du son de la paire A~B :
+
+| rapport | composantes, en ms par rapport à l'horloge (premiers pics · part du poids) |
+| --- | --- |
+| douzième, deux streams | 634 (47 · 45 %) · 853 (32 · 30 %) · **1138** (17 · 20 %) |
+| treizième, trois streams | 583 (35 · 27 %) · 697 (4 · 5 %) · 840 (40 · 29 %) · **1064** (32 · 26 %) · 1204 (5 · 6 %) |
+
+Trois composantes, à 220–290 ms l'une de l'autre : un salon vocal. Chaque
+son commun tombe à Δ + pA − pT : en bas, la voix de A dans le stream de B
+(Δ − d') ; au milieu, le jeu (Δ) ; en haut, **la voix de B dans le stream de
+A** (Δ + d) — d' = 219 et 257 ms, d = 285 et 224. Les lèvres de B tombent
+sur sa voix telle qu'on l'entend : 1138, 1064. La règle de la 4.24.0.18
+tenait pour écho toute composante à plus de 0,8 s de l'horloge : elle a
+jeté 853 et 1138, et pris 634 — **la voix de A** — pour « la dominante ».
+B était calé là, et bien calé : le son le voyait à +10 ms, sur 35 calculs.
+**Ses lèvres étaient 0,50 s en avance sur sa voix** ; au treizième, 0,52 s.
+
+**4. Pourquoi l'horloge était si loin.** Elle dit quand Twitch a reçu
+l'image, pas quand le streamer l'a jouée. Le jeu — le milieu de la grappe —
+était à 0,84–0,85 s d'elle dans les deux rapports : les chaînes d'encodage de
+A et de B ne se valent pas. Au dixième rapport, 0,36–0,38 s. Une borne
+mesurée depuis l'horloge ne peut pas dire ce qui est un écho.
+
+**5. Un micro, un salon.** Au treizième, la voix de A arrive chez B en 257
+ms, chez C en 258 — la même, comme il se doit : la lecture tient. Chez C,
+−239 (la voix de A) et 19 (le jeu) ; sa propre voix, entendue dans A, ne
+pèse presque rien — 253 ms, cinq premiers pics, 6 % : pas établie. Le pilote
+garde 19 ; si C parle peu dans le salon, ses lèvres peuvent rester 0,2 s
+en avance, et le rapport le dira quand elle sera établie.
+
+**6. Une tuile tenue à −160 ms.** Le son voyait la cible de C à −160 ms, sur
+46 calculs, l'horloge disant +0,081 s : elle tient chaque tuile à 0,2 s
+près, trois contrôles de suite — pour ne pas réaligner sur son propre bruit,
+±70 ms. Pour des lèvres, c'est trop.
+
+### Ce que fait cette version
+
+**1. La grappe des voix.** Les composantes se rangent en grappes — moins de
+0,6 s de l'une à la suivante : un salon vocal n'en sépare pas deux de plus.
+- **Une source qui saute** — deux composantes établies à plus de 0,6 s, l'une
+  après l'autre dans le temps — n'est pas une voix : c'est un écho, que la
+  latence du lecteur de celui qui regarde déplace. Écartée.
+- **La grappe retenue** est la plus proche de l'horloge : à 1,5 s au plus
+  si elle a deux voix établies et mêlées — la signature d'un salon —, à 0,8 s
+  si elle n'en a qu'une — une composante seule et loin, c'est le live de
+  l'autre rejoué. Deux grappes à moins de 0,3 s de distance l'une de
+  l'autre : ambigu. Le reste : « écho probable ».
+- **La cible** : la plus haute composante établie de la grappe, mêlée à une
+  autre — la voix de la tuile dans l'ancre. Une seule établie, si elle pèse
+  plus du double du reste de sa grappe ; sinon, « en attente » : au douzième
+  rapport, la voix de A s'établissait seule, la première.
+
+Rejoués :
+
+| rapport | avant | maintenant |
+| --- | --- | --- |
+| huitième | rien près de l'horloge | « ambigu : une source a sauté, 1117 → 2460 ms » — rien ne bouge |
+| neuvième | 44 ms | 44 ms ; la grappe 1020 · 1168 en écho |
+| dixième | −115 et 568 ms | −115 et 568 ms |
+| douzième | 634 ms, « la dominante » | **1138 ms**, la plus haute de la grappe |
+| treizième | 583 ms ; 19 | **1064 ms** ; 19 |
+
+Les huitième, neuvième et douzième sont rejoués au banc (186), sur leur
+historique, par le code même ; les dixième et treizième, dont le rapport ne
+donne que la carte, l'ont été sur elle, à la main.
+
+Au neuvième, la grappe 1020 · 1168 est plus loin de l'horloge que l'autre :
+écho probable, comme en 4.24.0.18 — mais ce n'est plus une certitude,
+l'horloge pouvant se tromper de 0,85 s. Si les lèvres y paraissaient encore
+à une seconde, c'est elle qu'il faudrait viser ; le rapport le montrerait.
+
+**2. Le son revoit.** Quand le son voit la cible d'une tuile à 0,1 s ou plus,
+sur six pics au moins depuis le dernier déplacement, et que l'horloge va dans
+le même sens, la tuile est réalignée — « son revu » au journal —, l'écart en
+deçà duquel elle ne bouge pas ramené à 0,05 s pour cet alignement. Pas une
+tuile dont l'écart est accepté, ni une qu'il faudrait reculer et qui ne le
+tient pas.
+
+**3. Au rapport**, `ecoute.cible` et `auto.son` disent « la plus haute de la
+grappe », « la seule voix », « en attente : … seule établie dans sa
+grappe », « ambigu : deux grappes … à même distance de l'horloge », « ambigu
+: une source a sauté, a → b ms », « ambigu : une voix qui saute » ; et
+« source qui saute : a → b ms » à côté des échos. Toute ambiguïté vaut, pour
+le pilote, ce qu'elle valait : deux contrôles de suite, et le son se dédit.
+Et « vue à … » se lit depuis le dernier déplacement, comme le pilote la lit
+— « pas encore revue » à la fin d'un alignement.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** : une troisième source, à 880 Hz — le jeu — ; une
+latence qui glisse (`__glisser`), l'horloge et le son avec elle.
+
+- **185**, nouveau. « yankee » passe les trois sons de « xray » 900, 1150 et
+  1420 ms plus tôt : une grappe, la plus proche à 0,9 s de l'horloge ; la
+  cible, 1420 — « yankee » recule de 1,42 s, en un déplacement ou en deux,
+  jamais sur 900, et le son la revoit à 0.
+  « zulu » : sa seule voix, la cible, puis son son saute de 1,2 s — « une
+  source a sauté », le son se dédit, retour à l'horloge. « mike » : sa
+  latence glisse de 0,14 s ; l'horloge seule n'atteindrait jamais 0,2 s —
+  « son revu », il avance — « pas encore revue » à la fin de l'alignement —,
+  et le son le revoit à 0.
+- **183** : « mike », « la seule voix » ; « oscar » commence sa première voix
+  tue — la seconde, seule, est la cible ; la première arrive : ambigu, le son
+  se dédit. **182** : « lima », la voix qui saute — « ambigu », « en
+  attente » ou « la seule voix », jamais un déplacement. **180** : « duo2 »,
+  « la plus haute de la grappe ».
+- **186**, nouveau : la règle rejouée sur trois écoutes réelles — `carteSon`
+  et `cibleSon` extraites du code tel qu'il est livré, l'historique des
+  huitième, neuvième et douzième rapports, rien que des nombres —, calcul
+  après calcul, à l'exigence entière. Au douzième, « en attente : 645 ms »
+  au vingt-septième calcul — la voix de A, établie seule —, 1155 au
+  vingt-neuvième, 1138 à la fin : jamais en dessous de 1000. Au huitième,
+  « une source a sauté » dès que la carte parle. Au neuvième, 44, la grappe
+  1020 · 1168 en écho, jamais une autre cible. Déterministe : au banc en
+  direct, l'ordre dans lequel les voix s'établissent se tire au hasard.
+
+### Ce que le banc a trouvé
+
+- **La voix de l'ancre, établie la première.** Rejouée sur le douzième
+  rapport, la première écriture de la règle prenait, au vingt-septième
+  calcul, 645 ms pour « la seule voix » — la voix de A, qui s'établit avant
+  les autres. Deux calculs plus tard la grappe était là, et le pilote, qui
+  attend deux contrôles de suite à vingt secondes l'un de l'autre, n'aurait
+  sans doute pas bougé ; une voix de tuile plus rare, et B était calé sur
+  celle de A. Une voix seule doit désormais peser plus du double du reste de
+  sa grappe : là, « en attente ».
+- **Un mutant pris par hasard.** Au premier tour, « une voix seule prise
+  sans peser le reste de sa grappe » tombait au 185 — mais le même test
+  tombait aussi sous deux mutants qui ne le touchaient en rien : « yankee »
+  avait vu 900 et 1150 établies avant 1420, et reculé de 1,15 s, puis de
+  0,27. Le pilote du banc décide sur un quart de l'exigence — deux premiers
+  pics par voix —, et l'ordre dans lequel les voix s'établissent se tire au
+  hasard. Le test exigeait un seul déplacement ; il juge désormais la fin
+  — 1420, jamais 900. Au second tour, sous un autre mutant sans rapport, le
+  pilote visait déjà 1422 que la carte ne montrait pas encore le jeu : le
+  test attend que les trois voix y paraissent. La voix seule s'éprouve au
+  186, à chaque fois.
+- **Une vue qui mêlait l'avant et l'après.** Trois tours du 185 non muté,
+  deux échecs de « mike » : « son revu » l'avançait bien — l'horloge de
+  0,140 à 0,001 s —, puis le rapport disait la cible « vue à −150 ms ».
+  Une sonde, relevant toutes les cinq secondes la latence vraie du lecteur
+  factice, l'a montré : la vue se lisait depuis la mise en place de la
+  cible, pas depuis le dernier déplacement, et mêlait les pics d'avant la
+  correction à ceux d'après. Le pilote, lui, la lisait bien. Corrigé au
+  rapport. La sonde a montré autre chose : pendant que la latence glisse, le
+  son ne voit rien — le pic d'un calcul s'étale sur sa fenêtre, z de 3,3 à
+  4,2, sous le seuil de 5 —, et il voit l'écart dès qu'elle s'arrête. Une
+  dérive lente, le son la rattrape après coup.
+- **Une voix qui se tait trente secondes est une source qui saute.**
+  L'ancien test de « oscar » faisait taire sa première voix en cours de
+  route : la seconde, seule, venait ensuite, l'une après l'autre — le banc
+  n'y trouvait plus de cible, à bon droit. Il commence désormais sa
+  première voix tue.
+- **Un test du 182 qui mesurait l'écart de la salle** — il compte aussi le
+  reste d'une autre tuile : 0,300 s un tour, 0,2xx le précédent. Il lit
+  désormais l'écart de la tuile qui dérive, elle seule.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| où est la grappe : chaque composante à plus de 0,8 s tenue pour un écho (la règle d'avant) ; la grappe bornée à 0,8 s (2) | au douzième rejoué, 626 ms, « la seule voix » — la voix de A ; « yankee » sans cible, « rien près de l'horloge » ; « zulu » qui ne se dédit pas |
+| une seule grappe pour tout, au 185 et au 183 (2) | au huitième, « rien près de l'horloge » au lieu de la source qui saute ; au neuvième, 1144 ms pour cible ; « zulu », « une voix qui saute » ; « oscar » calé à +0,71 s |
+| la cible : la plus basse de la grappe ; une voix seule prise sans peser le reste de sa grappe (2) | au douzième, 645 ms — la voix de A — ; « yankee » calé sur 902 ; au vingt-septième calcul, « 645 ms, la seule voix » au lieu de « en attente » |
+| la source qui saute jamais vue (1) | au huitième, « rien près de l'horloge » ; « zulu » ne se dédit pas |
+| une voix seule retenue jusqu'à 1,5 s ; deux grappes à même distance sans ambiguïté (2) | « papa » calé à +1,12 s sur l'écho ; « oscar » reste sur l'une de ses deux voix |
+| le son revoit : jamais ; la vue lue depuis la mise en place (2) | « mike » jamais réaligné ; à la fin de l'avance, la vue d'avant la correction au lieu de « pas encore revue » |
+
+Onze mutants, onze pris. Le 186 en prend six, à coup sûr, sur les écoutes
+réelles ; le 185 et le 183, les autres. Au premier tour, « une voix seule
+sans peser sa grappe » semblait pris au 185 : c'était le hasard du tirage
+(cf. ci-dessus). Il l'est désormais au 186.
+
+### Pour le prochain rapport
+
+1. La même salle si possible, à deux puis à trois, ouverte par le nœud ; dix
+   minutes.
+2. **Regarder les lèvres de B** — la tuile qui était 0,5 s en avance —, sa
+   voix telle qu'on l'entend dans A.
+3. Au rapport : `ecoute.carte`, `ecoute.cible`, et `auto.son` — sa cible, la
+   garde, « vue à … » ; les « son revu » de `auto.journal`.
+
 ## Le lecteur qui reprend le recul, et la qualité d'un cran au-dessus (v4.24.0.19)
 
 Deux rapports réels sur la 4.24.0.18, une même salle de trois streams — une
@@ -15562,7 +15761,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 184 scénarios, 1604 assertions |
+| `npm test` | le harnais Playwright : 186 scénarios, 1610 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -15583,7 +15782,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1586 Ko | 646 Ko | 4 083 → **2** |
+| `content.js` | 1586 Ko | 646 Ko | 4 089 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

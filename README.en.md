@@ -2059,6 +2059,202 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The lips: the cluster of voices (v4.24.0.20)
+
+Two real reports on 4.24.0.19, opened from the node: two streams, then
+three. And the instruction: "Quality is good. I want it to be the lips. Be
+rigorous." Published on `claude/chrome-multi` only.
+
+The tiles, here: **A**, the anchor — the one you hear —, at 1.7 s of
+latency in the twelfth report, 2.6 in the thirteenth; **B**, at 2.3 then
+3.1 s; **C**, in the thirteenth only, at 2.7 s.
+
+### What the two reports establish
+
+**1. Quality**: with two, 627 px tiles — 1080p, the source; with three,
+551 px — 720p. "It's good."
+
+**2. The pilot is calm.** Two alignments with two streams, three with
+three; not one catch-up, not one pause, one arrival cut.
+
+**3. But it set B on A's voice.** The sound map of the A~B pair:
+
+| report | components, in ms against the clock (first peaks · share of weight) |
+| --- | --- |
+| twelfth, two streams | 634 (47 · 45 %) · 853 (32 · 30 %) · **1138** (17 · 20 %) |
+| thirteenth, three streams | 583 (35 · 27 %) · 697 (4 · 5 %) · 840 (40 · 29 %) · **1064** (32 · 26 %) · 1204 (5 · 6 %) |
+
+Three components, 220–290 ms apart: a voice channel. Each shared sound lands
+at Δ + pA − pT: at the bottom, A's voice in B's stream (Δ − d'); in the
+middle, the game (Δ); at the top, **B's voice in A's stream** (Δ + d) — d' =
+219 and 257 ms, d = 285 and 224. B's lips land on his voice as you hear it:
+1138, 1064. The 4.24.0.18 rule took every component more than 0.8 s from
+the clock for an echo: it threw away 853 and 1138, and took 634 — **A's
+voice** — for "la dominante". B was set there, and set well: sound saw it at
++10 ms, over 35 computations. **His lips were 0.50 s ahead of his voice**;
+in the thirteenth, 0.52 s.
+
+**4. Why the clock was so far off.** It says when Twitch received the image,
+not when the streamer played it. The game — the middle of the cluster — was
+0.84–0.85 s from it in both reports: A's and B's encoding chains are not
+alike. In the tenth report, 0.36–0.38 s. A bound measured from the clock
+cannot tell what is an echo.
+
+**5. One microphone, one channel.** In the thirteenth, A's voice reaches B
+in 257 ms, C in 258 — the same, as it must be: the reading holds. For C,
+−239 (A's voice) and 19 (the game); its own voice, as heard in A, weighs
+almost nothing — 253 ms, five first peaks, 6 %: not established. The pilot
+keeps 19; if C speaks little in the channel, its lips may stay 0.2 s ahead,
+and the report will say so once that voice is established.
+
+**6. A tile held at −160 ms.** Sound saw C's target at −160 ms, over 46
+computations, the clock saying +0.081 s: it holds each tile within 0.2 s,
+three checks in a row — so as not to realign on its own noise, ±70 ms. For
+lips, that's too much.
+
+### What this version does
+
+**1. The cluster of voices.** Components are grouped into clusters — under
+0.6 s from one to the next: a voice channel never separates two by more.
+- **A source that jumps** — two established components more than 0.6 s
+  apart, one after the other in time — is not a voice: it's an echo, moved
+  by the latency of the player of whoever is watching. Discarded.
+- **The cluster kept** is the one closest to the clock: 1.5 s at most if it
+  has two established, mixed voices — a voice channel's signature —, 0.8 s
+  if it has only one — a lone, distant component is the other's live
+  replayed. Two clusters less than 0.3 s apart in distance: ambiguous. The
+  rest: "écho probable".
+- **The target**: the highest established component of the cluster, mixed
+  with another — the tile's voice in the anchor. A single established one,
+  if it weighs more than twice the rest of its cluster; otherwise, "en
+  attente": in the twelfth report, A's voice was established alone, first.
+
+Replayed:
+
+| report | before | now |
+| --- | --- | --- |
+| eighth | nothing near the clock | "ambigu : une source a sauté, 1117 → 2460 ms" — nothing moves |
+| ninth | 44 ms | 44 ms; the 1020 · 1168 cluster as an echo |
+| tenth | −115 and 568 ms | −115 and 568 ms |
+| twelfth | 634 ms, "la dominante" | **1138 ms**, the highest of the cluster |
+| thirteenth | 583 ms; 19 | **1064 ms**; 19 |
+
+The eighth, ninth and twelfth are replayed on the bench (186), on their
+history, by the code itself; the tenth and thirteenth, whose report only
+gives the map, were replayed on it, by hand.
+
+In the ninth, the 1020 · 1168 cluster is further from the clock than the
+other: a probable echo, as in 4.24.0.18 — but no longer a certainty, the
+clock being able to be 0.85 s off. If the lips there still looked a second
+off, that is the one to aim at; the report would show it.
+
+**2. Sound looks again.** When sound sees a tile's target 0.1 s off or more,
+on at least six peaks since the last move, and the clock goes the same way,
+the tile is realigned — "son revu" in the log —, the gap under which it
+doesn't move brought down to 0.05 s for that alignment. Not a tile whose gap
+is accepted, nor one that would have to step back and doesn't hold it.
+
+**3. In the report**, `ecoute.cible` and `auto.son` say "la plus haute de la
+grappe", "la seule voix", "en attente : … seule établie dans sa grappe",
+"ambigu : deux grappes … à même distance de l'horloge", "ambigu : une
+source a sauté, a → b ms", "ambigu : une voix qui saute"; and "source qui
+saute : a → b ms" next to the echoes. Any ambiguity is worth what it was
+worth to the pilot: two checks in a row, and sound takes it back. And "vue
+à …" is read since the last move, as the pilot reads it — "pas encore
+revue" at the end of an alignment.
+
+### What the bench measures
+
+**The fake player**: a third source, at 880 Hz — the game —; a latency that
+slides (`__glisser`), the clock and sound with it.
+
+- **185**, new. "yankee" carries "xray"'s three sounds 900, 1150 and
+  1420 ms earlier: a cluster, the nearest 0.9 s from the clock; the target,
+  1420 — "yankee" steps back 1.42 s, in one move or two, never onto 900, and
+  sound sees it at 0 again. "zulu": its only voice, the target, then its
+  sound jumps 1.2 s — "une source a sauté", sound takes it back, back to
+  the clock. "mike": its latency slides by 0.14 s; the clock alone would
+  never reach 0.2 s — "son revu", it moves forward — "pas encore revue" at
+  the end of the alignment —, and sound sees it at 0 again.
+- **183**: "mike", "la seule voix"; "oscar" starts with its first voice
+  silent — the second, alone, is the target; the first arrives: ambiguous,
+  sound takes it back. **182**: "lima", the voice that jumps — "ambigu",
+  "en attente" or "la seule voix", never a move. **180**: "duo2", "la plus
+  haute de la grappe".
+- **186**, new: the rule replayed on three real listenings — `carteSon` and
+  `cibleSon` extracted from the code as shipped, the history of the eighth,
+  ninth and twelfth reports, numbers only —, computation after computation,
+  at the full requirement. In the twelfth, "en attente : 645 ms" at the
+  twenty-seventh computation — A's voice, established alone —, 1155 at the
+  twenty-ninth, 1138 at the end: never below 1000. In the eighth, "une
+  source a sauté" as soon as the map speaks. In the ninth, 44, the
+  1020 · 1168 cluster as an echo, never another target. Deterministic: on
+  the live bench, the order in which voices get established is drawn at
+  random.
+
+### What the bench found
+
+- **The anchor's voice, established first.** Replayed on the twelfth
+  report, the rule's first draft took 645 ms for "la seule voix" at the
+  twenty-seventh computation — A's voice, established before the others.
+  Two computations later the cluster was there, and the pilot, which waits
+  for two checks in a row twenty seconds apart, would probably not have
+  moved; with a rarer tile voice, B would have been set on A's. A lone
+  voice must now weigh more than twice the rest of its cluster: there, "en
+  attente".
+- **A mutant caught by chance.** In the first round, "a lone voice taken
+  without weighing the rest of its cluster" fell in 185 — but the same test
+  also fell under two mutants that didn't touch it at all: "yankee" had
+  seen 900 and 1150 established before 1420, and stepped back 1.15 s, then
+  0.27. The bench's pilot decides on a quarter of the requirement — two
+  first peaks per voice —, and the order in which voices get established is
+  drawn at random. The test required a single move; it now judges the end
+  — 1420, never 900. In the second round, under another unrelated mutant,
+  the pilot was already aiming at 1422 while the map didn't show the game
+  yet: the test waits for all three voices to appear on it. The lone voice
+  is tested in 186, every time.
+- **A view that mixed before and after.** Three rounds of unmutated 185,
+  two failures of "mike": "son revu" did move it forward — the clock from
+  0.140 to 0.001 s —, then the report said the target was "vue à −150 ms".
+  A probe, reading the fake player's true latency every five seconds,
+  showed it: the view was read since the target was set in place, not since
+  the last move, and mixed the peaks from before the correction with those
+  after. The pilot read it right. Fixed in the report. The probe showed
+  something else: while the latency slides, sound sees nothing — a
+  computation's peak smears over its window, z from 3.3 to 4.2, under the
+  threshold of 5 —, and it sees the gap as soon as it stops. A slow drift,
+  sound catches it afterwards.
+- **A voice silent for thirty seconds is a source that jumps.** The old
+  "oscar" test silenced its first voice midway: the second, alone, came
+  next, one after the other — the bench rightly found no target there any
+  more. It now starts with its first voice silent.
+- **A 182 test that measured the room's gap** — which also counts another
+  tile's residue: 0.300 s one round, 0.2xx the previous one. It now reads
+  the gap of the drifting tile, alone.
+
+| mutants | what falls |
+| --- | --- |
+| where the cluster is: every component more than 0.8 s away taken for an echo (the former rule); the cluster bounded at 0.8 s (2) | in the replayed twelfth, 626 ms, "la seule voix" — A's voice; "yankee" without a target, "rien près de l'horloge"; "zulu" not taking it back |
+| one single cluster for everything, in 185 and in 183 (2) | in the eighth, "rien près de l'horloge" instead of the source that jumps; in the ninth, 1144 ms as the target; "zulu", "une voix qui saute"; "oscar" set at +0.71 s |
+| the target: the lowest of the cluster; a lone voice taken without weighing the rest of its cluster (2) | in the twelfth, 645 ms — A's voice —; "yankee" set on 902; at the twenty-seventh computation, "645 ms, la seule voix" instead of "en attente" |
+| the source that jumps never seen (1) | in the eighth, "rien près de l'horloge"; "zulu" not taking it back |
+| a lone voice kept up to 1.5 s; two clusters at the same distance without ambiguity (2) | "papa" set at +1.12 s on the echo; "oscar" stays on one of its two voices |
+| sound looks again: never; the view read since the target was set (2) | "mike" never realigned; at the end of the move forward, the view from before the correction instead of "pas encore revue" |
+
+Eleven mutants, eleven caught. 186 catches six, every time, on the real
+listenings; 185 and 183, the others. In the first round, "a lone voice
+without weighing its cluster" seemed caught in 185: it was the luck of the
+draw (see above). It is now caught in 186.
+
+### For the next report
+
+1. The same room if possible, with two then three streams, opened from the
+   node; ten minutes.
+2. **Watch B's lips** — the tile that was 0.5 s ahead —, against his voice
+   as you hear it in A.
+3. In the report: `ecoute.carte`, `ecoute.cible`, and `auto.son` — its
+   target, the relation, "vue à …"; the "son revu" in `auto.journal`.
+
 ## The player that takes back the step back, and quality one notch up (v4.24.0.19)
 
 Two real reports on 4.24.0.18, one room of three streams — a game for
@@ -15050,7 +15246,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 184 scenarios, 1604 assertions |
+| `npm test` | the Playwright harness: 186 scenarios, 1610 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -15070,7 +15266,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1586 KB | 646 KB | 4,083 → **2** |
+| `content.js` | 1586 KB | 646 KB | 4,089 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

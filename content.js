@@ -15412,42 +15412,58 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        que ses lèvres tombent sur sa voix entendue — le milieu des deux voix
        (4.24.0.16) les laissait en avance du délai du salon, 0,1 à 0,3 s, à
        la limite de ce qui se voit.
-       LES ÉCHOS. Un streamer qui regarde le live de l'autre, le son ouvert,
-       rejoue dans son stream TOUT celui de l'autre, une latence de Twitch
-       plus tard : une composante seule, forte — elle porte tout le son —, et
-       loin. Au huitième rapport réel, +2460 ms, la plus forte de sa paire —
-       passée en cours de session de 1045 à 2370 ms, comme saute la latence
-       d'un lecteur, jamais un salon vocal —, sur trois tuiles jugées « calées
-       exactement » à l'œil par l'horloge ; au neuvième, +1168, la moitié des
-       calculs. La viser aurait décalé la tuile d'autant. Un chemin direct n'a
-       jamais dépassé 0,5 s aux rapports, un écho jamais moins d'une
-       seconde : au-delà de 0,8 s de l'horloge, une composante est un écho
-       probable — au rapport, jamais une cible.
-       PRÈS DE L'HORLOGE, sur deux minutes de calculs qui tiennent (un poids
-       de 24) :
-         — une PAIRE : la plus haute des composantes établies qui en a une
-           autre, établie, 100 à 1000 ms plus bas, mêlée à elle dans le temps
-           — la voix de la tuile au-dessus de celle de l'ancre ;
-         — sinon, une DOMINANTE : plus de deux fois le poids de la suivante,
-           et le poids minimal à elle seule — une seule voix commune. Pas
-           deux fois tout juste : deux sources toujours là ensemble, l'une
-           toujours premier pic, l'autre toujours second, font exactement
-           deux fois ;
-         — sinon, AMBIGU : rien ne bouge, et le rapport dit pourquoi.
+       LA GRAPPE DES VOIX (4.24.0.20). Un salon vocal fait donc, par paire,
+       jusqu'à TROIS composantes, à 200–300 ms l'une de l'autre : la voix de
+       l'ancre chez la tuile (Δ − d'), le son que les deux ont en même temps
+       — le jeu, la voix d'un troisième — (Δ), la voix de la tuile chez
+       l'ancre (Δ + d). Aux dixième, douzième et treizième rapports réels :
+       −655 · −383 · −115 ; 89 · 358 · 568 ; 634 · 853 · 1138 ; 583 · 840 ·
+       1064. La cible des lèvres est la PLUS HAUTE de la grappe.
+       OÙ ELLE SE TROUVE. La 4.24.0.18 tenait pour écho toute composante à
+       plus de 0,8 s de l'horloge. Or l'horloge dit quand l'image a été
+       reçue par Twitch, pas quand elle a été jouée chez le streamer : au
+       douzième rapport, elle se trompait de 0,85 s sur le jeu, et la règle
+       jetait 853 et 1138 — la vraie cible —, pour caler la tuile sur 634,
+       la voix de l'ANCRE : ses lèvres 0,5 s en avance sur sa voix. Désormais :
+         — les composantes se rangent en GRAPPES : moins de 0,6 s de l'une
+           à la suivante — un salon vocal n'en sépare pas deux de plus ;
+         — une SOURCE QUI SAUTE — deux composantes établies à plus de 0,6 s,
+           l'une après l'autre dans le temps — n'est pas une voix : c'est un
+           écho, que la latence du lecteur de celui qui regarde déplace. Au
+           huitième rapport, 1117 puis 2460, jamais ensemble. Écartée ;
+         — la grappe retenue est la plus proche de l'horloge : à 1,5 s au
+           plus si elle a deux voix établies et mêlées — la signature d'un
+           salon —, à 0,8 s si elle n'en a qu'une — une composante seule et
+           loin, c'est l'écho d'un live rejoué ; deux grappes à moins de
+           0,3 s de distance l'une de l'autre : ambigu. Les autres
+           composantes établies sont des échos probables ;
+         — la cible : la plus haute composante établie de la grappe, mêlée à
+           une autre ; une seule établie, si elle pèse plus du double du
+           reste de sa grappe — sinon, la grappe se forme encore : au
+           douzième rapport, la voix de l'ancre s'établissait seule la
+           première.
+       Rejoués : le huitième, une source qui saute, rien ; le neuvième, 44
+       ms — la grappe 1020 · 1168, plus loin de l'horloge, en écho ; le
+       dixième, −115 et 568 ; le douzième, 1138 au lieu de 634 ; le
+       treizième, 1064 au lieu de 583, et 19.
+       Sur deux minutes de calculs qui tiennent — un poids de 24 —, dans la
+       grappe comme en tout.
        ÉTABLIE : le premier pic de six calculs au moins, et un dixième du
-       poids près de l'horloge.
+       poids de la carte.
        MÊLÉES, comme deux voix (cf. deuxVoix), mais à un DIXIÈME : sur toute
        l'écoute, de vraies voix alternent par plages de plusieurs minutes, et
        celles du salon, au neuvième rapport, ne se mêlaient qu'à 0,16 et
-       0,18 — au cinquième de deuxVoix, la paire retenue aurait été la
-       mauvaise, −291 et −496, et la tuile avancée de 0,3 s. Une voix qui
-       saute, deux époques l'une après l'autre, reste vers 0,02.
+       0,18. Une voix qui saute, deux époques l'une après l'autre, reste vers
+       0,02.
        `f` : l'exigence, 1 en vrai ; le pilote et aligner('son') la règlent
        sur leur échelle, un quart au moins — le banc n'attend pas deux
        minutes ; le rapport de l'écoute, lui, garde l'exigence entière. */
     const SON_POIDS_MIN = 24;
-    const ECHO_MS = 800;
     const MELANGE_CARTE = 0.1;
+    const GRAPPE_MS = 600;
+    const LOIN_SEULE_MS = 800;
+    const LOIN_GRAPPE_MS = 1_500;
+    const EGALE_MS = 300;
     const melees = (x, y) => {
       let avant = 0;
       for (const a of x.calculs) for (const b of y.calculs) avant += a < b ? 1 : a === b ? 0.5 : 0;
@@ -15457,27 +15473,55 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const cibleSon = (k, f = 1) => {
       const min = SON_POIDS_MIN * f, nMin = Math.ceil(6 * f);
       const comps = k ? k.comps : [];
-      const proches = comps.filter((x) => Math.abs(x.rel) <= ECHO_MS);
-      const total = proches.reduce((s, x) => s + x.w, 0);
-      const echos = comps.filter((x) => Math.abs(x.rel) > ECHO_MS && x.n >= nMin).map((x) => x.rel);
-      const dire = (r) => (echos.length ? { ...r, echos } : r);
-      if (total < min) {
-        return dire({ refus: echos.length && !proches.length ? 'rien près de l\'horloge' : `trop peu de calculs (poids ${total} sur ${min})` });
+      const total = comps.reduce((s, x) => s + x.w, 0);
+      if (total < min) return { refus: `trop peu de calculs (poids ${total} sur ${min})` };
+      const etablies = comps.filter((x) => x.n >= nMin && x.w >= 0.1 * total);
+      // Les sources qui sautent : établies, loin l'une de l'autre, jamais ensemble.
+      const sautees = new Set();
+      for (const a of etablies) {
+        for (const b of etablies) if (b.rel - a.rel > GRAPPE_MS && !melees(a, b)) { sautees.add(a); sautees.add(b); }
       }
-      const etablie = (x) => x.n >= nMin && x.w >= 0.1 * total;
-      const hautes = proches.filter(etablie).sort((u, v) => v.rel - u.rel);
-      for (const h of hautes) {
-        if (hautes.some((b) => h.rel - b.rel >= 100 && h.rel - b.rel <= 1_000 && melees(h, b))) {
-          return dire({ rel: h.rel, voie: 'la plus haute de la paire' });
-        }
+      // Dans l'ordre où elles sont venues : « 1117 → 2460 ».
+      const sauts = [...sautees].sort((u, v) => Math.min(...u.calculs) - Math.min(...v.calculs)).map((x) => x.rel);
+      const grappes = [];
+      for (const x of comps.filter((c) => !sautees.has(c)).sort((u, v) => u.rel - v.rel)) {
+        const g = grappes[grappes.length - 1];
+        if (g && x.rel - g[g.length - 1].rel <= GRAPPE_MS) g.push(x); else grappes.push([x]);
       }
-      const [S, T] = [...proches].sort((u, v) => v.w - u.w);
-      if (!etablie(S)) return dire({ refus: 'aucune composante établie' });
-      if (S.w >= min && (!T || S.w > 2 * T.w)) return dire({ rel: S.rel, voie: 'la dominante' });
-      return dire({ refus: `ambigu : ${S.rel} et ${T.rel} ms, de poids voisins, sans paire` });
+      const valides = [];
+      for (const g of grappes) {
+        const e = g.filter((x) => etablies.includes(x));
+        if (!e.length) continue;
+        const bord = Math.min(...e.map((x) => Math.abs(x.rel)));
+        const voix = e.some((x) => e.some((y) => y !== x && melees(x, y)));
+        if (bord <= (voix ? LOIN_GRAPPE_MS : LOIN_SEULE_MS)) valides.push({ g, e, bord });
+      }
+      valides.sort((u, v) => u.bord - v.bord);
+      const deux = valides.length > 1 && valides[1].bord - valides[0].bord < EGALE_MS;
+      const retenues = deux ? [...valides[0].g, ...valides[1].g] : valides.length ? valides[0].g : [];
+      const echos = etablies.filter((x) => !sautees.has(x) && !retenues.includes(x)).map((x) => x.rel).sort((u, v) => u - v);
+      const dire = (r) => ({ ...r, ...(echos.length ? { echos } : {}), ...(sauts.length ? { sauts } : {}) });
+      const proche = (v) => v.e.reduce((p, q) => (Math.abs(q.rel) < Math.abs(p.rel) ? q : p)).rel;
+      if (!valides.length) {
+        return sauts.length && !echos.length ? { refus: `ambigu : une source a sauté, ${sauts.join(' → ')} ms` }
+          : dire({ refus: 'rien près de l\'horloge' });
+      }
+      if (deux) return dire({ refus: `ambigu : deux grappes, ${proche(valides[0])} et ${proche(valides[1])} ms, à même distance de l'horloge` });
+      const { g, e } = valides[0];
+      const poids = g.reduce((s, x) => s + x.w, 0);
+      if (poids < min) return dire({ refus: `trop peu de calculs (poids ${poids} sur ${min})` });
+      if (e.length === 1) {
+        return e[0].w > 2 * (poids - e[0].w) ? dire({ rel: e[0].rel, voie: 'la seule voix' })
+          : dire({ refus: `en attente : ${e[0].rel} ms, seule établie dans sa grappe` });
+      }
+      const melangees = e.filter((x) => e.some((y) => y !== x && melees(x, y)));
+      if (!melangees.length) return dire({ refus: `ambigu : une voix qui saute, ${e.map((x) => x.rel).join(' puis ')} ms` });
+      return dire({ rel: melangees.reduce((p, q) => (q.rel > p.rel ? q : p)).rel, voie: 'la plus haute de la grappe' });
     };
-    // « · écho probable : 1168 ms » : ce que la cible a laissé, loin de l'horloge.
-    const texteEchos = (x) => (x.echos ? ` · écho probable : ${x.echos.join(', ')} ms` : '');
+    // « · écho probable : 1168 ms » : ce que la cible a laissé hors de sa grappe ;
+    // « · source qui saute : 1117 → 2460 ms » (4.24.0.20).
+    const texteEchos = (x) => (x.echos ? ` · écho probable : ${x.echos.join(', ')} ms` : '')
+      + (x.sauts ? ` · source qui saute : ${x.sauts.join(' → ')} ms` : '');
     // « 1168 ms (48 · 50 %) · 44 (13 · 14 %) » : chaque composante, ses premiers pics, sa part.
     const texteCarte = (k) => (k.comps.length ? k.comps.map((x, i) => `${x.rel}${i ? '' : ' ms'} (${x.n} · ${Math.round(x.part * 100)} %)`).join(' · ')
       + ` · poids ${k.total}` : null);
@@ -16169,12 +16213,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          — `mode` : 'son' pour le dire au rapport — la mesure reste
            l'horloge. */
     const lancerAlignement = (c, { echelle: e, mode = 'horloge', alafin = null, suivi = true, ancre = null,
-                                   decale = null, origine = 'main' }) => {
+                                   decale = null, origine = 'main', seuil = SEUIL_S }) => {
       // La fenêtre de l'horloge : vingt secondes, six au moins à l'échelle du banc.
       const FENETRE = Math.max(6_000, 20_000 * e);
       const a = { etat: 'en cours', mode, echelle: e, t0: Date.now(), minuteurs: [], ref: null, avant: null,
                   passes: [], verifs: [], apres: null, apresAutre: null, dernier: null, calages: {}, suivi: [],
-                  note: null, alafin, origine, ancre, decale, refRaison: null, bornes: {}, couts: null };
+                  note: null, alafin, origine, ancre, decale, refRaison: null, bornes: {}, couts: null, seuil };
       c.alignement = a;
       noter(c, null, `alignement · début · par l'horloge${decale ? ' (relations gardées)' : ''}`);
       const plus = (ms, fn) => {
@@ -16212,8 +16256,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          tout son écart, calage compris, en gardant sa seconde de tampon —
          'tampon', et elle avance de ce qu'elle peut. Sinon null. */
       const bornee = (t, ecart) => {
-        if (ecart >= SEUIL_S && t.retientPas) return 'rattrape';
-        const max = ecart <= -SEUIL_S ? avanceMax(t) : null;
+        if (ecart >= a.seuil && t.retientPas) return 'rattrape';
+        const max = ecart <= -a.seuil ? avanceMax(t) : null;
         return max !== null && -ecart + calageDe(t.chaine, 'avance') > max ? 'tampon' : null;
       };
       // Une avance bornée qui gagne encore quelque chose : plus que son calage, que la lecture reperd.
@@ -16221,7 +16265,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // Reste-t-il un écart qu'une tuile peut encore corriger ?
       const aFaire = (restes) => Object.entries(restes).some(([nom, r]) => {
         const t = tuile(nom);
-        if (!t || Math.abs(r) < SEUIL_S) return false;
+        if (!t || Math.abs(r) < a.seuil) return false;
         const b = bornee(t, r);
         return !b || (b === 'tampon' && utile(t));
       });
@@ -16297,7 +16341,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         for (const [nom, ecart] of Object.entries(ecarts)) {
           const t = tuile(nom);
           if (!t) continue;
-          if (Math.abs(ecart) < SEUIL_S) { p.actions[nom] = { type: 'rien', ecart }; continue; }
+          if (Math.abs(ecart) < a.seuil) { p.actions[nom] = { type: 'rien', ecart }; continue; }
           const type = ecart > 0 ? 'recul' : 'avance';
           // Ce qu'elle ne peut pas faire (4.24.0.19, cf. faisable).
           const borne = bornee(t, ecart);
@@ -16545,7 +16589,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        aligner(false), le réglage coupé et la salle fermée l'arrêtent. */
     const AUTO = Object.freeze({
       DEBUT_MS: 8_000, DERIVE_S: 0.2, DERIVE_N: 3, ENTRE_MS: 60_000, STABLE_MS: 40, SON_SEUIL_S: 0.05,
-      ANCRE_MS: 15_000, PLAFOND_N: 6, PLAFOND_MS: 600_000, PAUSE_MS: 600_000, RATTRAPAGE_MS: 180_000,
+      ANCRE_MS: 15_000, PLAFOND_N: 6, PLAFOND_MS: 600_000, PAUSE_MS: 600_000, RATTRAPAGE_MS: 180_000, SON_REVU_MS: 100,
     });
     const tuileDe = (c, nom) => c.tuiles.find((x) => x.chaine === nom) || null;
     // L'ancre : la tuile de l'écoute, sinon celle du son, sinon la première.
@@ -16631,7 +16675,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         x.depuis = (a.dernier || Date.now()) + 1_000;
       }
     };
-    const lancerAuto = (c, p, raison) => {
+    // `seuil` : l'écart en deçà duquel une tuile ne bouge pas — 0,05 s quand le son a revu (cf. controler).
+    const lancerAuto = (c, p, raison, seuil = SEUIL_S) => {
       const e = p.echelle, maintenant = Date.now();
       if (p.journal.filter((j) => j.t > maintenant - AUTO.PLAFOND_MS * e).length >= AUTO.PLAFOND_N) {
         p.pauseJusqua = maintenant + AUTO.PAUSE_MS * e;
@@ -16646,7 +16691,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       p.enCours = raison;
       noter(c, null, `auto · ${raison}`);
       // Chaque tuile garde sa relation sur l'ancre ; l'ancre en place si elle le peut.
-      lancerAlignement(c, { echelle: e, suivi: false, origine: 'auto', ancre: A ? A.chaine : null,
+      lancerAlignement(c, { echelle: e, suivi: false, origine: 'auto', ancre: A ? A.chaine : null, seuil,
         decale: Object.keys(p.cibles).length ? { ...p.cibles } : null, alafin: (etape) => finAuto(c, p, j, etape) });
     };
     /* L'ANCRE SUIT LE SON (4.24.0.18). La cible du son met les lèvres de
@@ -16775,6 +16820,28 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (Math.abs(derive[k]) < SEUIL_S) { x.aligne = true; x.depuis = maintenant; } else aAligner.push(k);
       }
       if (aAligner.length && libre) { lancerAuto(c, p, `son (${aAligner.join(', ')})`); return; }
+      /* 3 bis. LE SON REVOIT (4.24.0.20). L'horloge tient chaque tuile à sa
+         relation à 0,2 s près, trois contrôles de suite : son relevé erre de
+         ±70 ms, et l'on ne réaligne pas sur du bruit. Pour des lèvres, c'est
+         trop : au treizième rapport réel, le son voyait la cible d'une tuile
+         à −160 ms, sur 46 calculs, l'horloge disant +0,081 s. Le son, lui,
+         ne se trompe pas de 70 ms sur une médiane de six pics. Quand il voit
+         la cible à 0,1 s ou plus, et que l'horloge va dans le même sens, la
+         tuile est réalignée sans attendre — l'écart en deçà duquel elle ne
+         bouge pas ramené à 0,05 s pour cet alignement. Pas une tuile dont
+         l'écart est accepté, ni une qu'il faudrait reculer et qui ne le
+         tient pas. */
+      const nVue = Math.ceil(6 * Math.max(0.25, e));
+      const revus = [];
+      for (const [k, x] of Object.entries(p.son)) {
+        const t = tuileDe(c, k);
+        if (!x.aligne || x.retiree || !t || !Number.isFinite(derive[k]) || p.accepte[k] !== undefined) continue;
+        if (derive[k] > 0 && t.retientPas) continue;
+        const v = cibleVue(c.ecoute.paires[`${A.chaine}~${k}`], x.rel, Math.max(x.depuis || 0, p.dernierFin + 1_000));
+        if (v && v.n >= nVue && Math.abs(v.ms) >= AUTO.SON_REVU_MS && Math.abs(derive[k]) >= SEUIL_S / 2
+          && Math.sign(derive[k]) === -Math.sign(v.ms)) revus.push(k);
+      }
+      if (revus.length && libre) { lancerAuto(c, p, `son revu (${revus.join(', ')})`, SEUIL_S / 2); return; }
       // 4. Une dérive durable — hors des tuiles que le son vient de régler.
       for (const nom of Object.keys(rel)) {
         const x = derive[nom];
@@ -16846,7 +16913,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           const dedit = s && s.retiree ? ` · le son s'est dédit : retour à l'horloge${s.aligne ? '' : ', à mettre en place'}` : '';
           if (x.refus) return `${k} aucune cible : ${x.refus}${dedit}${texteEchos(x)}`;
           if (dedit) return `${k} cible ${x.rel} ms, ${x.voie}${dedit}${texteEchos(x)}`;
-          const vue = s && s.aligne ? cibleVue(c.ecoute.paires[`${p.ancre}~${k}`], s.rel, s.depuis) : null;
+          /* DEPUIS LE DERNIER DÉPLACEMENT (4.24.0.20), comme le pilote la
+             lit : un « son revu » ne remet pas la cible en place, il la
+             corrige. Lue depuis sa mise en place, la vue mêlait les pics
+             d'avant la correction — −130 ms — à ceux d'après : au banc,
+             « vue à −150 ms » juste après une avance qui l'avait remise à 0. */
+          const vue = s && s.aligne ? cibleVue(c.ecoute.paires[`${p.ancre}~${k}`], s.rel, Math.max(s.depuis || 0, p.dernierFin + 1_000)) : null;
           return `${k} cible ${x.rel} ms, ${x.voie}` + (!s ? '' : ` · garde ${signeS(p.cibles[k])} s · ${!s.aligne ? 'à mettre en place'
             : vue ? `vue à ${vue.ms >= 0 ? '+' : ''}${vue.ms} ms depuis (${vue.n})` : 'pas encore revue'}`) + texteEchos(x);
         }).join(' · ') : null,
