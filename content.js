@@ -665,10 +665,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      est à 148 px de 160p et à 172 de 480p, mais 160p y serait agrandie deux
      fois, et 480p réduite d'un tiers — c'est 480p qui est la plus proche de
      ce que l'œil voit. Reposée si le lecteur revient en automatique, cinq fois au
-     plus par demande, jamais deux fois en trois secondes. */
+     plus par demande, jamais deux fois en trois secondes.
+     UN CRAN AU-DESSUS (4.24.0.19) : à la demande — « ça pixellise » —, la
+     hauteur suivante de l'échelle, au-dessus de la plus proche : 720p pour
+     les tuiles de 551 px de la salle à trois, qui étaient en 480p. Rien
+     au-dessus de la plus haute. */
   let hauteurVoulue = null;
   let qualiteEssais = 0;
   let qualiteT = 0;
+  // La meilleure d'une hauteur : la plus fluide.
+  const meilleureA = (echelle, hauteur) => echelle.filter((q) => q && q.height === hauteur)
+    .reduce((p, q) => (!p || (q.framerate || 0) > (p.framerate || 0) ? q : p), null);
   const choisirQualite = (echelle, h) => {
     let meilleure = null;
     for (const q of echelle) {
@@ -680,7 +687,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         meilleure = { q, ecart };
       }
     }
-    return meilleure && meilleure.q;
+    if (!meilleure) return null;
+    const dessus = echelle.filter((q) => q && Number.isFinite(q.height) && q.height > meilleure.q.height)
+      .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
+    return dessus === null ? meilleure.q : meilleureA(echelle, dessus);
   };
   const tenirQualite = () => {
     if (!hauteurVoulue || qualiteEssais >= 5 || Date.now() - qualiteT < 3000) return;
@@ -14116,19 +14126,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        chaque lecteur pose la qualité la plus proche dans l'échelle réelle de
        sa chaîne. L'URL porte en plus la plus proche des qualités usuelles :
        une préférence, que le lecteur suit au démarrage, avant que l'ordre
-       n'arrive. */
+       n'arrive. Depuis la 4.24.0.19, l'une et l'autre UN CRAN AU-DESSUS de
+       la plus proche (cf. choisirQualite). */
     const QUALITES_USUELLES = [[160, '160p30'], [360, '360p30'], [480, '480p30'], [720, '720p60'], [1080, '1080p60']];
     const hauteurCible = () => {
       const d = courante && courante.disposition;
       return d && d.h ? Math.round(d.h * (window.devicePixelRatio || 1)) : null;
     };
-    // Proche en proportion, comme dans le pont (cf. choisirQualite).
+    // Proche en proportion, puis un cran au-dessus, comme dans le pont (cf. choisirQualite).
     const qualiteUsuelle = (h) => {
-      let meilleure = QUALITES_USUELLES[0];
-      for (const q of QUALITES_USUELLES) {
-        if (Math.abs(Math.log(q[0] / h)) <= Math.abs(Math.log(meilleure[0] / h))) meilleure = q;
-      }
-      return meilleure[1];
+      let i = 0;
+      QUALITES_USUELLES.forEach((q, k) => {
+        if (Math.abs(Math.log(q[0] / h)) <= Math.abs(Math.log(QUALITES_USUELLES[i][0] / h))) i = k;
+      });
+      return QUALITES_USUELLES[Math.min(i + 1, QUALITES_USUELLES.length - 1)][1];
     };
     const tenirQualite = (t) => {
       const h = hauteurCible();
@@ -14188,6 +14199,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                // 4.24.0.15 : les rattrapages du lecteur lui-même, et si la
                // tuile a déjà été déplacée (recul, avance) avant eux.
                rattrapages: [], rattrapage: null, deplacee: false,
+               // 4.24.0.19 : si son lecteur reprend les reculs (cf. surReleve).
+               retientPas: null,
                // 4.24.0.18 : les chutes de lecture, et celle en cours.
                chutes: [], chute: null,
                essai: null, essaiVu: 0, essaiFinVu: 0, ecouteEtat: null, env: [], envDes: 0,
@@ -14561,6 +14574,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         envoyer(t, 'releve', { n: c.releveN, api: !t.api, ecoute: c.ecoute.actif, horloge });
       }
     };
+    // Un rattrapage parti si tôt après un recul le reprend (4.24.0.19, cf. plus bas).
+    const RETIENT_MS = 30_000;
     const surReleve = (c, t, d) => {
       if (!Number.isFinite(d.n)) return;
       /* UNE LATENCE DE 0, C'EST « PAS ENCORE MESURÉE » (4.24.0.12) : le
@@ -14800,6 +14815,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (!r) {
           t.rattrapage = { t: ech.t, l: prec && prec.l !== null && !prec.lIncoherente ? prec.l : ech.l,
                            v: ech.v, attendu: 0, apresDeplacement: t.deplacee };
+          /* UN LECTEUR QUI REPREND LE RECUL (4.24.0.19) : le rattrapage part
+             dans les trente secondes d'un recul qu'on lui a fait faire — aux
+             dixième et onzième rapports réels, dès la seconde d'après, trois
+             fois sur trois. La tuile est marquée : l'alignement ne la recule
+             plus (cf. choisirRef, bornee). */
+          if (ech.v > 1 && es && es.type === 'recul' && (es.voie === 'instance' || es.voie === 'video')
+            && Number.isFinite(es.t) && ech.t - es.t <= RETIENT_MS) {
+            if (!t.retientPas) noter(c, t.chaine, `le lecteur reprend le recul, à ${ech.v} : la tuile ne sera plus reculée`, ech.l);
+            t.retientPas = { t: t.retientPas ? t.retientPas.t : ech.t, n: (t.retientPas ? t.retientPas.n : 0) + 1 };
+          }
         } else if (Math.abs(ech.v - 1) > Math.abs(r.v - 1)) r.v = ech.v;
       } else if (r && ech.v === 1) {
         t.rattrapage = null;
@@ -15586,6 +15611,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           // La sonde du même instant (4.24.0.11) : le mode faible latence,
           // la série de ses relevés, le dernier essai de la console, l'écoute.
           faibleLatence: t.faibleLatence,
+          // Un lecteur qui reprend les reculs (4.24.0.19) : la tuile n'est plus reculée.
+          recul: t.retientPas ? `repris par le lecteur ${t.retientPas.n} fois, la première à +${Math.round((t.retientPas.t - c.t0) / 1000)} s`
+            + ' : la tuile n\'est plus reculée' : 'tenu',
           serie: bilanSerie(t),
           essai: t.essai ? `${t.essai.type} ${t.essai.valeur} · ${t.essai.voie}${t.essai.fin ? ' · fini' : ''}` : null,
           // Les plages du tampon selon l'instance, telles quelles (4.24.0.17).
@@ -16087,8 +16115,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const a = Date.now();
       return Object.fromEntries(c.tuiles.map((t) => [t.chaine, latenceHorloge(t, Math.max(de, a - fenetre), a)]));
     };
-    // Le tampon devant la lecture : la médiane des cinq derniers relevés, en s.
-    const tamponDe = (t) => mediane(t.serie.slice(-5).map((x) => x.b).filter((x) => x !== null));
+    /* Le tampon devant la lecture : le PLUS BAS des cinq derniers relevés, en
+       s (4.24.0.19). Au dixième rapport réel, une tuile servie par segments
+       avait un tampon en dents de scie, 1,3 puis 2,3 s d'un relevé à l'autre :
+       leur médiane prenait l'une ou l'autre au hasard des cinq, et c'est au
+       creux qu'une avance cale. */
+    const tamponDe = (t) => {
+      const l = t.serie.slice(-5).map((x) => x.b).filter((x) => x !== null);
+      return l.length ? Math.min(...l) : null;
+    };
+    /* Ce qu'une tuile peut avancer en gardant sa seconde de tampon, en s ;
+       null sans tampon lu. */
+    const avanceMax = (t) => {
+      const b = tamponDe(t);
+      return b === null ? null : r3(b - MARGE_AVANCE_S);
+    };
     // « bravo 2.512 · alpha 2.498 · écart 0.014 s · alpha +0.014 » : chaque
     // latence, l'écart extrême, et chaque tuile face à la référence — positif,
     // elle est en avance.
@@ -16133,7 +16174,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const FENETRE = Math.max(6_000, 20_000 * e);
       const a = { etat: 'en cours', mode, echelle: e, t0: Date.now(), minuteurs: [], ref: null, avant: null,
                   passes: [], verifs: [], apres: null, apresAutre: null, dernier: null, calages: {}, suivi: [],
-                  note: null, alafin, origine, ancre, decale };
+                  note: null, alafin, origine, ancre, decale, refRaison: null, bornes: {}, couts: null };
       c.alignement = a;
       noter(c, null, `alignement · début · par l'horloge${decale ? ' (relations gardées)' : ''}`);
       const plus = (ms, fn) => {
@@ -16166,6 +16207,24 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const x = a.calages[nom];
         return x && Number.isFinite(x[type]) ? x[type] : CALAGE_S[type];
       };
+      /* CE QU'UNE TUILE NE PEUT PAS FAIRE (4.24.0.19) : reculer, si son
+         lecteur reprend les reculs (cf. retientPas) — 'rattrape' ; avancer de
+         tout son écart, calage compris, en gardant sa seconde de tampon —
+         'tampon', et elle avance de ce qu'elle peut. Sinon null. */
+      const bornee = (t, ecart) => {
+        if (ecart >= SEUIL_S && t.retientPas) return 'rattrape';
+        const max = ecart <= -SEUIL_S ? avanceMax(t) : null;
+        return max !== null && -ecart + calageDe(t.chaine, 'avance') > max ? 'tampon' : null;
+      };
+      // Une avance bornée qui gagne encore quelque chose : plus que son calage, que la lecture reperd.
+      const utile = (t) => avanceMax(t) - calageDe(t.chaine, 'avance') >= 0.05;
+      // Reste-t-il un écart qu'une tuile peut encore corriger ?
+      const aFaire = (restes) => Object.entries(restes).some(([nom, r]) => {
+        const t = tuile(nom);
+        if (!t || Math.abs(r) < SEUIL_S) return false;
+        const b = bornee(t, r);
+        return !b || (b === 'tampon' && utile(t));
+      });
       const finir = (x) => {
         a.apres = x;
         // L'autre vue, pour le rapport : où le son voit la cible de chaque paire.
@@ -16203,9 +16262,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const de = a.dernier + 1_000;
         plus(Math.max(0, de + FENETRE - Date.now()), () => mesurer(de, (x) => {
           a.verifs.push(x);
-          if (refusee()) a.ref = plusTard(x.m);
+          if (refusee()) choisirRef(x, false);
           const restes = ecartsDe(x.m);
-          if (a.passes.length < 3 && Object.values(restes).some((r) => Math.abs(r) >= SEUIL_S)) {
+          if (a.passes.length < 3 && aFaire(restes)) {
             passe('verification', restes);
             return;
           }
@@ -16240,10 +16299,19 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           if (!t) continue;
           if (Math.abs(ecart) < SEUIL_S) { p.actions[nom] = { type: 'rien', ecart }; continue; }
           const type = ecart > 0 ? 'recul' : 'avance';
+          // Ce qu'elle ne peut pas faire (4.24.0.19, cf. faisable).
+          const borne = bornee(t, ecart);
+          if (borne && (borne === 'rattrape' || !utile(t))) {
+            p.actions[nom] = { type: 'rien', ecart, borne };
+            a.bornes[nom] = borne;
+            continue;
+          }
           const calage = calageDe(nom, type);
-          const s = Math.round(Math.min(10, Math.max(0.05, ecart > 0 ? ecart - calage : -ecart + calage)) * 1000) / 1000;
+          let s = Math.round(Math.min(10, Math.max(0.05, ecart > 0 ? ecart - calage : -ecart + calage)) * 1000) / 1000;
+          if (borne) { s = avanceMax(t); a.bornes[nom] = borne; }
           envoyer(t, `essai-${type}`, { duree: s });
-          p.actions[nom] = { type, ecart, demande: s, calagePrevu: calage, envoi: Date.now(), essai: null, obtenu: null, calage: null };
+          p.actions[nom] = { type, ecart, demande: s, calagePrevu: calage, envoi: Date.now(), essai: null, obtenu: null, calage: null,
+                             ...(borne ? { borne } : {}) };
         }
         const bougees = Object.entries(p.actions).filter(([, x]) => x.type !== 'rien');
         noter(c, null, `alignement · passe ${p.n} (${BASES[base]}) · ${bougees.length
@@ -16261,7 +16329,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             for (const [nom, x] of bougees) {
               if (x.obtenu !== null) restes[nom] = r3(x.ecart - (x.type === 'recul' ? x.obtenu : -x.obtenu));
             }
-            if (Object.values(restes).some((r) => Math.abs(r) >= SEUIL_S)) { passe('position', restes); return; }
+            if (aFaire(restes)) { passe('position', restes); return; }
           }
           verifier();
         });
@@ -16277,16 +16345,47 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          reste en place quand chaque tuile plus en retard qu'elle peut
          AVANCER jusqu'à elle : ce qu'elle a à prendre, calage compris, en
          gardant une seconde de tampon. */
+      /* LA RÉFÉRENCE QUI LAISSE LE MOINS D'ÉCART (4.24.0.19). Aux dixième et
+         onzième rapports réels, une tuile en faible latence reculée de 0,17
+         à 1,39 s : son lecteur est reparti à 1,03, de lui-même, 81 à 125 s
+         durant, jusqu'à reprendre tout le recul — chaque fois. Les passes la
+         reculaient de nouveau, la vérification revoyait l'écart, le pilote
+         réalignait : six réalignements en dix minutes, la pause, et la tuile
+         à 1,46 s de sa relation. Une autre, servie par segments, n'avait que
+         0,3 s de tampon à donner.
+         Chaque tuile a donc sa PORTÉE : avancer de ce que son tampon donne,
+         calage déduit, en gardant sa seconde ; reculer sans limite — sauf si
+         son lecteur reprend les reculs (cf. retientPas). Pour chaque tuile
+         prise pour référence, chacune va au plus près d'elle, et ce qui lui
+         reste, face à l'ANCRE — la tuile qu'on entend : c'est sur elle que
+         tout se juge —, s'additionne. La référence qui en laisse le moins ;
+         à 0,1 s près, l'ancre, puis la plus en retard — c'était la règle, et
+         sans tuile marquée ni tampon trop court, elle ne change pas.
+         `ancre` : l'ancre peut-elle l'être ? */
+      const choisirRef = (x, ancre = true) => {
+        const noms = Object.keys(x.m).filter((k) => Number.isFinite(x.m[k]) && tuile(k));
+        const tard = plusTard(x.m);
+        const A = ancre && noms.includes(a.ancre) ? a.ancre : null;
+        // Où une tuile peut aller, au plus près du niveau L.
+        const va = (k, L) => {
+          const t = tuile(k), max = avanceMax(t);
+          const bas = x.m[k] - (max === null ? 0 : Math.max(0, max - calageDe(k, 'avance')));
+          return Math.min(t.retientPas ? x.m[k] : Infinity, Math.max(bas, L));
+        };
+        const cout = (r) => {
+          const base = A ? va(A, x.m[r]) : x.m[r];
+          return noms.reduce((somme, k) => somme + (k === A ? 0 : Math.abs(va(k, x.m[r]) - base)), 0);
+        };
+        const couts = Object.fromEntries(noms.map((k) => [k, cout(k)]));
+        const mieux = noms.reduce((p, q) => (couts[q] < couts[p] ? q : p), tard);
+        a.ref = A && couts[A] <= couts[mieux] + SEUIL_S ? A : couts[tard] <= couts[mieux] + SEUIL_S ? tard : mieux;
+        a.refRaison = a.ref === A ? 'l\'ancre' : a.ref === tard ? 'la plus en retard'
+          : tuile(a.ref).retientPas ? 'ne tient pas un recul' : 'le moins d\'écart';
+        a.couts = Object.fromEntries(Object.entries(couts).map(([k, v]) => [k, r3(v)]));
+      };
       const commencer = (x) => {
         a.avant = x;
-        a.ref = plusTard(x.m);
-        const A = a.ancre;
-        if (A && Number.isFinite(x.m[A]) && c.tuiles.every((t) => {
-          const v = x.m[t.chaine];
-          if (t.chaine === A || v === null || v === undefined || v - x.m[A] < SEUIL_S) return true;
-          const b = tamponDe(t);
-          return b !== null && v - x.m[A] + calageDe(t.chaine, 'avance') + MARGE_AVANCE_S <= b;
-        })) a.ref = A;
+        choisirRef(x);
         passe('horloge', ecartsDe(x.m));
       };
       // L'horloge tournait déjà (l'écoute) : sur ses vingt dernières
@@ -16297,6 +16396,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return a;
     };
     const BASES = { horloge: 'par l\'horloge', position: 'par la position', verification: 'après vérification' };
+    // Pourquoi une tuile n'a pas bougé de tout son écart (4.24.0.19).
+    const BORNES = { rattrape: 'ne tient pas un recul : son lecteur le rattrape', tampon: 'borné au tampon' };
     /* La relation que le son donne à chaque tuile sur l'ancre de l'écoute,
        en s — positive, la tuile en retard —, ou ce qui manque. */
     const relationsDuSon = (c, f = 1) => {
@@ -16367,8 +16468,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const passe = (p) => {
         if (!p) return null;
         return `${BASES[p.base]} · ${Object.entries(p.actions).map(([k, x]) => (x.type === 'rien'
-          ? `${k} rien (écart ${x.ecart.toFixed(3)} s)`
-          : `${k} ${x.type} ${x.demande} s demandé (écart ${x.ecart.toFixed(3)} s, calage prévu ${x.calagePrevu})`
+          ? `${k} rien (écart ${x.ecart.toFixed(3)} s${x.borne ? ` · ${BORNES[x.borne]}` : ''})`
+          : `${k} ${x.type} ${x.demande} s demandé (écart ${x.ecart.toFixed(3)} s, calage prévu ${x.calagePrevu}`
+            + `${x.borne ? ` · ${BORNES[x.borne]}` : ''})`
             + (x.essai ? ` · obtenu ${x.obtenu ?? '—'} s · calage ${x.calage ?? '—'} · ${x.essai.voie}` : ' · essai non relu')))
           .join(' ; ')}`;
       };
@@ -16377,8 +16479,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         etat: a.etat === 'en cours' ? `en cours · passe ${a.passes.length || 1}` : a.etat,
         mode: a.mode,
         echelle: a.echelle,
-        // L'ancre gardée en place (4.24.0.18), ou la plus en retard.
-        reference: a.ref ? `${a.ref} (${a.ref === a.ancre ? 'l\'ancre' : 'la plus en retard'})` : null,
+        // L'ancre gardée en place (4.24.0.18), la tuile qui ne tient pas un recul (4.24.0.19), ou la plus en retard.
+        reference: a.ref ? `${a.ref} (${a.refRaison || (a.ref === a.ancre ? 'l\'ancre' : 'la plus en retard')})` : null,
+        // Ce que chaque référence possible laissait d'écart, face à l'ancre (4.24.0.19).
+        couts: a.couts ? Object.entries(a.couts).map(([k, x]) => `${k} ${x.toFixed(3)}`).join(' · ') : null,
         origine: a.origine,
         avant: texteUnite(a.avant, a.ref),
         passe1: passe(a.passes[0]),
@@ -16424,8 +16528,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
               — sur une DÉRIVE de 0,2 s ou plus trois contrôles de suite, une
                 minute au moins après le précédent.
             L'ancre ne bouge pas quand les autres peuvent venir à elle (cf.
-            commencer) : une tuile tombée en arrière AVANCE dans son tampon,
-            au lieu que toutes les autres reculent.
+            choisirRef) : une tuile tombée en arrière AVANCE dans son tampon,
+            au lieu que toutes les autres reculent. Une tuile dont le lecteur
+            reprend les reculs n'en reçoit plus — elle devient la référence ;
+            pendant qu'un lecteur rattrape, on attend sa fin ; l'écart qu'une
+            tuile garde au bout de son tampon est accepté (4.24.0.19).
          4. L'ANCRE SUIT LE SON : passé à une autre tuile depuis quinze
             secondes, elle devient l'ancre (cf. changerAncre).
          5. AU PLUS SIX RÉALIGNEMENTS EN DIX MINUTES : au-delà, une pause de
@@ -16438,7 +16545,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        aligner(false), le réglage coupé et la salle fermée l'arrêtent. */
     const AUTO = Object.freeze({
       DEBUT_MS: 8_000, DERIVE_S: 0.2, DERIVE_N: 3, ENTRE_MS: 60_000, STABLE_MS: 40, SON_SEUIL_S: 0.05,
-      ANCRE_MS: 15_000, PLAFOND_N: 6, PLAFOND_MS: 600_000, PAUSE_MS: 600_000,
+      ANCRE_MS: 15_000, PLAFOND_N: 6, PLAFOND_MS: 600_000, PAUSE_MS: 600_000, RATTRAPAGE_MS: 180_000,
     });
     const tuileDe = (c, nom) => c.tuiles.find((x) => x.chaine === nom) || null;
     // L'ancre : la tuile de l'écoute, sinon celle du son, sinon la première.
@@ -16461,11 +16568,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       /* `cibles` : la relation que chaque tuile garde sur l'ancre, en s ;
          `son` : celles que le son a données — sa cible, et si l'horloge l'a
          mise en place ; `sonVu` : la cible de chaque paire au dernier
-         contrôle, ou son refus. */
+         contrôle, ou son refus ; `bornes` : les tuiles que le dernier
+         alignement n'a pu mener que jusqu'au bout de leur tampon, et
+         `accepte`, l'écart qui leur reste, mesuré après lui (4.24.0.19). */
       const p = { etat: 'actif', echelle: e, origine, t0: maintenant, ecouteAllumee: false, aligne: false, enCours: null,
                   journal: [], dernierFin: 0, repere: maintenant, cibles: {}, son: {}, sonVu: {}, derives: {},
                   evenement: null, dernierControle: 0, mesure: null, attente: 'mesure d\'ouverture',
-                  pauseJusqua: 0, connues: c.tuiles.map((t) => t.chaine), ancre: null, sonAilleurs: null };
+                  pauseJusqua: 0, connues: c.tuiles.map((t) => t.chaine), ancre: null, sonAilleurs: null,
+                  bornes: {}, accepte: {}, accepteVu: false };
       c.pilote = p;
       if (!c.ecoute.actif) { ecoute(true); p.ecouteAllumee = true; }
       p.ancre = (ancreDe(c) || {}).chaine || null;
@@ -16510,6 +16620,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         return;
       }
       p.aligne = true;
+      // Les tuiles qui n'ont pu aller au bout — leur tampon, ou un recul que leur lecteur reprend :
+      // leur écart restant sera accepté (cf. controler).
+      p.bornes = a ? { ...(a.bornes || {}) } : {};
       // Les relations du son que cet alignement visait sont en place : le son
       // dira, à partir de là, où il voit leur cible.
       for (const [nom, x] of Object.entries(p.son)) {
@@ -16526,6 +16639,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         return;
       }
       const A = ancreDe(c);
+      p.bornes = {}; p.accepte = {}; p.accepteVu = false;
       const j = { t: maintenant, raison, etat: 'en cours', resume: null };
       p.journal.push(j);
       if (p.journal.length > 30) p.journal.shift();
@@ -16550,7 +16664,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (x) cibles[t.chaine] = x;
       }
       noter(c, null, `auto · l'ancre suit le son : ${p.ancre} → ${N}`);
-      p.cibles = cibles; p.son = {}; p.sonVu = {}; p.derives = {}; p.sonAilleurs = null;
+      p.cibles = cibles; p.son = {}; p.sonVu = {}; p.derives = {}; p.sonAilleurs = null; p.bornes = {}; p.accepte = {}; p.accepteVu = false;
       p.ancre = N;
       if (c.ecoute.actif) { ecoute(false); ecoute(true); }
     };
@@ -16560,14 +16674,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // L'ancre partie : les relations gardées ne valent plus ; l'écoute reprend sur la tuile du son.
       if (p.ancre && !noms.includes(p.ancre)) {
         if (c.ecoute.actif) { ecoute(false); ecoute(true); }
-        p.cibles = {}; p.son = {}; p.sonVu = {}; p.derives = {}; p.sonAilleurs = null;
+        p.cibles = {}; p.son = {}; p.sonVu = {}; p.derives = {}; p.sonAilleurs = null; p.bornes = {}; p.accepte = {}; p.accepteVu = false;
         p.ancre = (ancreDe(c) || {}).chaine || null;
         signaler(c, p.ancre, 'ancre changée');
       }
       for (const nom of noms) if (!p.connues.includes(nom)) signaler(c, nom, 'nouvelle tuile');
       for (const nom of p.connues) {
         if (noms.includes(nom)) continue;
-        delete p.cibles[nom]; delete p.son[nom]; delete p.sonVu[nom]; delete p.derives[nom];
+        delete p.cibles[nom]; delete p.son[nom]; delete p.sonVu[nom]; delete p.derives[nom]; delete p.bornes[nom]; delete p.accepte[nom];
       }
       p.connues = noms;
     };
@@ -16592,7 +16706,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
              revient à l'horloge. Faute de calculs, elle reste. */
           const s = p.son[t.chaine];
           if (s && !s.retiree && x.refus && avant && avant.refus && x.refus.startsWith('ambigu') && avant.refus.startsWith('ambigu')) {
-            delete p.cibles[t.chaine];
+            delete p.cibles[t.chaine]; delete p.accepte[t.chaine];
             p.son[t.chaine] = { rel: 0, voie: 'retirée', retiree: true, t: maintenant, aligne: false, depuis: null };
             retirees.push(t.chaine);
             continue;
@@ -16600,7 +16714,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           if (x.refus || !avant || avant.refus || Math.abs(avant.rel - x.rel) > AUTO.STABLE_MS) continue;
           const g = r3(x.rel / 1000);
           if (Math.abs(g - (p.cibles[t.chaine] || 0)) < AUTO.SON_SEUIL_S) continue;
-          p.cibles[t.chaine] = g;
+          p.cibles[t.chaine] = g; delete p.accepte[t.chaine];
           p.son[t.chaine] = { rel: x.rel, voie: x.voie, t: maintenant, aligne: false, depuis: null };
           calibrees.push(`${t.chaine} ${signeS(g)} s`);
         }
@@ -16618,7 +16732,30 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         rel[t.chaine] = x;
         if (x !== null) derive[t.chaine] = r3(x - (p.cibles[t.chaine] || 0));
       }
+      /* L'ÉCART QUI RESTE HORS D'ATTEINTE (4.24.0.19) : un alignement qui n'a
+         pu mener une tuile au bout — sa seconde de tampon atteinte, ou un
+         recul que son lecteur reprend — laisse un écart, sur elle, ou sur
+         toutes si c'est l'ancre qui est bornée. Il est mesuré une fois, sur
+         la première fenêtre entière d'après — pas sur une tuile dont le
+         lecteur rattrape : elle bouge encore —, puis accepté : la dérive se
+         compte à partir de lui. Une fois : une dérive venue après n'est pas
+         un écart hors d'atteinte. Sans cela, le même écart revenait à chaque
+         contrôle, et le pilote réalignait pour rien. */
+      if (Object.keys(p.bornes).length && !p.accepteVu) {
+        p.accepteVu = true;
+        for (const k of Object.keys(derive)) {
+          const t = tuileDe(c, k);
+          if (Math.abs(derive[k]) >= SEUIL_S && !(t && t.rattrapage)) p.accepte[k] = derive[k];
+        }
+      }
+      for (const k of Object.keys(derive)) if (p.accepte[k] !== undefined) derive[k] = r3(derive[k] - p.accepte[k]);
       p.mesure = { t: maintenant, rel, derive };
+      /* UN LECTEUR QUI RATTRAPE (4.24.0.19) : on le laisse finir — trois
+         minutes au plus. Réaligner pendant qu'il file viserait une tuile qui
+         bouge encore ; sa fin est un événement, qui réaligne. */
+      const rattrapent = c.tuiles.filter((t) => t.rattrapage && t.rattrapage.v > 1 && maintenant - t.rattrapage.t < AUTO.RATTRAPAGE_MS * e)
+        .map((t) => t.chaine);
+      if (rattrapent.length) { p.attente = `rattrapage en cours (${rattrapent.join(', ')})`; return; }
       const libre = maintenant - p.dernierFin >= AUTO.ENTRE_MS * e;
       // 2. Un événement : vingt secondes de passages d'après, et la tuile nouvelle mesurée.
       const ev = p.evenement;
@@ -16698,7 +16835,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         journal: Object.fromEntries(p.journal.map((j, i) => [String(i + 1).padStart(3, '0'),
           `+${Math.round((j.t - c.t0) / 1000)} s · ${j.raison} · par l'horloge · ${j.etat}${j.resume ? ` · ${j.resume}` : ''}`])),
         retards: m ? Object.entries(m.rel).map(([k, x]) => `${k} ${signeS(x)} (garde ${signeS(p.cibles[k] ?? 0)}`
-          + `${!p.son[k] ? '' : p.son[k].retiree ? ', le son s\'est dédit' : ', par le son'})`).join(' · ') : null,
+          + `${!p.son[k] ? '' : p.son[k].retiree ? ', le son s\'est dédit' : ', par le son'}`
+          + `${p.accepte[k] !== undefined ? `, ${signeS(p.accepte[k])} hors d'atteinte`
+            + `${p.bornes[k] ? ` : ${p.bornes[k] === 'rattrape' ? 'recul repris' : 'tampon'}` : ''}` : ''})`)
+          .join(' · ') : null,
         derive: m && Object.keys(m.derive).length ? Object.entries(m.derive).map(([k, x]) => `${k} ${signeS(x)}`
           + `${p.derives[k] ? ` (${p.derives[k]} de suite)` : ''}`).join(' · ') : null,
         son: Object.keys(p.sonVu).length ? Object.entries(p.sonVu).map(([k, x]) => {

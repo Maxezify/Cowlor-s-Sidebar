@@ -2180,6 +2180,214 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le lecteur qui reprend le recul, et la qualité d'un cran au-dessus (v4.24.0.19)
+
+Deux rapports réels sur la 4.24.0.18, une même salle de trois streams — une
+partie à trois, un salon vocal —, ouverte par le nœud ; le second quelques
+minutes après avoir donné le son à une autre tuile. Et une demande : « en
+disposition à 3, peux-tu mettre la qualité au-dessus ? de 480 à 720. Je
+trouve que ça pixellise. Fais +1 en qualité pour chaque disposition
+actuelle. » Publiée sur `claude/chrome-multi` seulement.
+
+Les trois tuiles, ici : **A**, l'ancre — celle qu'on entend d'abord —, 3,8 s
+de latence et 3,3 s de tampon ; **R**, en faible latence, autour de 3,1 s ;
+**S**, servie par segments, autour de 3,7 s.
+
+### La qualité, un cran au-dessus
+
+La salle à trois avait des tuiles de 551 px : 480p était la plus proche, en
+proportion, dans l'échelle de chaque chaîne. Le pont prend désormais la
+hauteur **suivante** de cette échelle — 720p —, et l'adresse du lecteur aussi,
+pour son démarrage. Dans toutes les dispositions :
+
+| la plus proche | posée désormais |
+| --- | --- |
+| 160p | 360p |
+| 360p | 480p |
+| 480p | 720p |
+| 720p | 1080p |
+| 1080p, la plus haute | 1080p — rien au-dessus |
+
+À hauteur égale, la plus fluide (720p60 plutôt que 720p30). Trois 720p60,
+c'est environ trois fois 6 Mb/s.
+
+### Ce que les deux rapports établissent
+
+**1. Le son voit, cette fois, trois composantes par paire — et c'est le
+modèle même.** Repérées par rapport à l'horloge, sur toute l'écoute :
+
+| paire | composantes (premiers pics · part du poids) |
+| --- | --- |
+| A~S | −655 ms (59 · 45 %) · −383 (22 · 18 %) · **−115** (38 · 31 %) |
+| A~R | 89 ms (57 · 47 %) · 358 (33 · 33 %) · **568** (15 · 13 %) |
+
+Symétriques : −383 ± 270, et 358 − 269, 358 + 210. Chaque son commun tombe à
+Δ + pA − pT : en dessous, la voix de A dans le stream de l'autre ; au milieu,
+le son que les deux ont en même temps — le jeu, partagé par les trois, ou la
+voix du troisième, qui passe par le salon des deux côtés — : le vrai décalage
+Δ ; au-dessus, la voix de l'autre dans le stream de A. Le salon se lit de
+même : la voix de A arrive chez les autres en 270 ms, celle de S chez A en
+268, celle de R en 210. Et Δ vaut −383 ms pour S, +358 pour R : **cette
+fois, l'horloge se trompait de 0,36 à 0,38 s sur le jeu** — les chaînes
+d'encodage des streamers ne se valent pas ; au neuvième rapport, 44 ms.
+
+La cible du pilote, la plus haute — la voix de la tuile telle qu'on
+l'entend dans A, sur laquelle tombent ses lèvres — : −115 pour S, +568 pour
+R. S y a été mise et tenue : le son l'y voyait à −15 ms, sur 44 calculs.
+Le prix, qu'il faut dire : le jeu de S est alors à 0,27 s de celui de A,
+celui de R à 0,21 s. Les lèvres ou le jeu — pas les deux, tant que le salon
+a son délai.
+
+**2. R ne tient pas un recul.** Son lecteur, en faible latence, garde sa
+latence vers 3,0–3,2 s. Pour ses lèvres, le son voulait R 0,563 s derrière
+A par l'horloge — or R, d'elle-même, est 0,7 s devant : 1,26 s de latence de
+plus que son lecteur n'en garde. À +364 s, R recule de 0,168 s ; son lecteur
+repart aussitôt à 1,03, **125 s durant**, « latence 4,104 → 3,183 · après un
+déplacement ». La vérification revoit l'écart et recule encore — 0,224,
+puis 0,705 s : l'alignement finit à 0,504 s, plus loin qu'il n'avait
+commencé (0,288).
+
+**3. Le pilote en pause, la tuile à 1,46 s.** Six réalignements en dix
+minutes — l'ouverture, une dérive, le son de R et trois coupures de S —, et
+la pause de dix minutes à +535 s. Pendant ce temps, R a repris son
+recul : au rapport, −0,899 s pour une relation de +0,563 — 1,46 s d'écart —,
+et le son voyait sa cible à +1405 ms.
+
+**4. S coupe, et son tampon est en dents de scie.** Une coupure d'arrivée
+toutes les 112 à 140 s — « au moins 2 s sans vidéo », le tampon de 2,3 à
+0,3 s —, quatre, puis sept : chacune un événement, chacune un réalignement
+de toute la salle. Et d'un relevé à l'autre, son tampon passait de 1,3 à 2,3
+s et retour : un lecteur servi par segments — pas en faible latence.
+
+**5. Le son donné à R.** La pause finie, à +1135 s, R reculée de 1,28 +
+0,23 + 0,51 s. Puis l'ancre a suivi le son — « l'ancre suit le son : A → R »
+—, les relations se sont réécrites sur elle (A −0,563, S −0,688), la carte
+est repartie de zéro. Mais R, l'ancre, ne pouvait rester en place : S ne
+pouvait pas avancer jusqu'à elle. S, la plus en retard, est devenue la
+référence ; R a reculé de 1,36 + 0,24 + 0,53 s, l'a repris en 81 s, et
+rebelote à +1346 s : trois fois en quatre minutes.
+
+**6. L'ouverture** : 3,986 → 0,846 s en trois passes. Ses détails sont sortis
+du journal de la salle, qui garde soixante lignes ; le même rattrapage est
+probable, pas établi.
+
+### Ce que fait cette version
+
+**1. La qualité, un cran au-dessus** — ci-dessus.
+
+**2. Un lecteur qui reprend le recul est repéré.** Un rattrapage — la vitesse
+du lecteur au-dessus de 1, sans qu'on l'ait demandée — parti dans les
+trente secondes d'un recul qu'on lui a fait faire : la tuile est marquée, «
+le lecteur reprend le recul … : la tuile ne sera plus reculée » au journal,
+`tuiles.*.recul` au rapport. Elle ne recule plus : une passe qui le lui
+demanderait la laisse — « rien (… ne tient pas un recul : son lecteur le
+rattrape) ».
+
+**3. La référence qui laisse le moins d'écart.** Chaque tuile a sa portée :
+avancer de ce que son tampon donne, calage déduit, en gardant sa seconde ;
+reculer sans limite, sauf si elle est marquée. Pour chaque tuile prise pour
+référence, chacune va au plus près d'elle, et ce qui lui reste, **face à
+l'ancre** — la tuile qu'on entend : c'est sur elle que tout se juge —,
+s'additionne. La référence qui en laisse le moins ; à 0,1 s près, l'ancre,
+puis la plus en retard — sans tuile marquée ni tampon trop court, c'est la
+règle d'avant. Au rapport, `alignement.couts`.
+
+**4. Une avance bornée au tampon.** Celle qui entamerait la seconde de marge
+s'arrête à elle — « borné au tampon » ; et jamais une avance qui ne gagne
+pas plus que son calage : la lecture le reperdrait.
+
+**5. Le tampon lu au creux** : le plus bas des cinq derniers relevés, plus
+leur médiane, qui tombait sur l'une ou l'autre dent de la scie.
+
+**6. Le pilote attend la fin d'un rattrapage** — trois minutes au plus :
+réaligner une tuile qui file viserait une cible qui bouge. Sa fin est un
+événement, qui réaligne.
+
+**7. L'écart hors d'atteinte est accepté.** Après un alignement borné, l'écart
+qui reste est mesuré une fois, sur la première fenêtre entière d'après — pas
+sur une tuile qui rattrape encore —, puis la dérive se compte à partir de
+lui : « hors d'atteinte : tampon » ou « : recul repris » à `auto.retards`.
+
+**Ce que cette version aurait fait du dixième rapport.** À +364 s, R recule
+de 0,168 s ; son lecteur repart : R est marquée, la vérification ne la
+poursuit pas, le pilote attend les deux minutes de rattrapage. Puis : l'ancre
+en place laisserait R à 1,26 s ; R pour référence, A avance de 1,26 s — ses
+3,3 s de tampon en donnent 2,2 —, et S, qui n'a que 0,2 s à donner au creux
+de 1,3 s, reste à 1,05 s. 1,05 contre 1,26 : R est la référence, l'écart de
+S est accepté, et rien ne bouge plus. **Avec ces trois streams, aucune
+position ne les met tous trois justes** : le lecteur de R ne garde pas plus
+de 3,2 s de latence, S ne descend pas sous 3,5 s sans entamer sa seconde
+de marge,
+et le son veut R 0,56 s derrière A. L'une reste à une seconde à peu près —
+désormais dite, mesurée et tenue immobile, au lieu de six réalignements et
+d'une pause. Au onzième, le son sur R : R est l'ancre et ne recule pas, A
+avance jusqu'à elle, S reste en arrière, son écart accepté.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** : « romeo » et « victor » repartent d'eux-mêmes à
+1,05 dès qu'on les pousse 0,3 s au-delà de leur latence ; « romeo »,
+« sierra », « tango », « victor » et « whiskey » ont un tampon qui suit la
+latence — un recul l'allonge, une avance le raccourcit, un rattrapage le
+consomme —, jamais plus grand qu'elle ; celui de « sierra » en dents de
+scie, une seconde de plus deux relevés sur trois.
+
+- **175, 177** : la qualité un cran au-dessus. 368 px : 480p, et 720p pour
+  « alpha », qui n'a pas de 360p ; l'adresse, 480p. 308 px : 720p pour
+  « alpha », 480p pour « charlie », sans nouvelle pose. 504 px : 720p. À
+  une densité de 1,5 : 1080p ; à 2,5 : 1080p, le sommet, qui reste.
+- **184** : l'ouverture aux valeurs du dixième rapport — « tango » à 3,8 s,
+  3,3 s de tampon ; « romeo » à 3 ; « sierra » à 3,8, 1,6 s au creux.
+  L'ancre en place, « romeo » recule, son lecteur repart : marquée, la
+  vérification ne la recule plus. Le pilote attend — « rattrapage en cours
+  (romeo) » —, puis « romeo » est la référence, « tango » y avance,
+  « sierra » « borné au tampon », une passe ; quarante-cinq secondes sans
+  réalignement, l'écart de « sierra » « hors d'atteinte : tampon ». Puis
+  « whiskey », une ancre sans tampon à donner, et « victor » : l'ancre
+  reste, « victor » « rien (… ne tient pas un recul) », son écart « recul
+  repris » accepté — pas de réalignements vides.
+
+### Ce que le banc a trouvé
+
+- **Un écart que le pilote ne savait pas accepter.** Au premier jet, seul
+  l'écart borné par le tampon l'était. Quand l'ancre restait la référence,
+  la tuile marquée gardait le sien… et le pilote « réalignait » sans rien
+  bouger — quatre « dérive » en vingt-cinq secondes, « 1 passe en 0 s ». L'écart
+  d'un recul repris est accepté comme l'autre, et sur toutes les tuiles
+  quand c'est l'ancre qui est bornée — une fois, après l'alignement : une
+  dérive venue ensuite n'est pas un écart hors d'atteinte.
+- **Un tampon plus grand que la latence.** Le premier lecteur factice en
+  donnait 3,3 s sous 2,2 s de latence ; la sonde, à bon droit, l'écartait
+  comme impossible, et l'ancre paraissait ne rien pouvoir donner. Le banc
+  suit désormais le rapport réel.
+- **Un aléa du 180.** Une fois, sur les quatre derniers tours, `aligner('son')` n'a pas
+  trouvé de cible en deux minutes — la carte « −148 (38 premiers pics) ·
+  −548 (4) » ; rejoué, il passe. Le banc garde désormais le dernier refus,
+  pour dire pourquoi s'il revient.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la qualité : sans le cran ; l'adresse sans le cran ; rien de posé au sommet de l'échelle ; le cran le plus haut au lieu du suivant (4) | 360p, 480p et 720p restés à la plus proche ; l'adresse à 360p ; à une densité de 2,5, aucune qualité ; « alpha » en 1080p à 368 px |
+| le recul repris : jamais marqué ; les passes qui reculent quand même (2) | « romeo » reculé de nouveau dès l'ouverture, et à chaque réalignement |
+| la référence : la tuile marquée prise pour une autre ; l'ancre toujours (2) | « tango » gardée, « romeo » à 0,75 s |
+| l'avance : sans borne ; le tampon lu à sa médiane ; l'avance qui ne gagne rien (3) | « sierra » avancée de tout son écart, ou d'une seconde passe pour rien |
+| le pilote : sans attendre la fin d'un rattrapage ; l'écart restant compté pour une dérive ; seul celui du tampon accepté (3) | pas de « rattrapage en cours » ; des réalignements vides, en boucle |
+
+Quatorze mutants, quatorze pris, au premier tour.
+
+### Pour le prochain rapport
+
+1. La même salle à trois si possible, ouverte par le nœud ; dix minutes.
+2. **Regarder R**, la tuile en faible latence : plus de va-et-vient ; et la
+   salle ne devrait plus se mettre en pause. Au rapport : `tuiles.*.recul`,
+   `alignement.couts`, `auto.retards` et ses « hors d'atteinte »,
+   `auto.journal`.
+3. **La qualité** : est-ce net à 720p ? Des coupures en plus
+   (`tuiles.*.serie.coupures`) ?
+4. **Les lèvres ou le jeu** : avec un salon vocal, on ne peut caler les deux
+   — ici 0,21 à 0,27 s d'écart. Le pilote vise les lèvres ; dire si le jeu
+   compte plus.
+
 ## Le son calibre, l'horloge aligne et garde (v4.24.0.18)
 
 Deux rapports réels sur la 4.24.0.17, chacun en deux temps. Le huitième :
@@ -15354,7 +15562,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 183 scénarios, 1600 assertions |
+| `npm test` | le harnais Playwright : 184 scénarios, 1604 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -15375,7 +15583,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1586 Ko | 646 Ko | 4 065 → **2** |
+| `content.js` | 1586 Ko | 646 Ko | 4 083 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

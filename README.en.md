@@ -2059,6 +2059,209 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The player that takes back the step back, and quality one notch up (v4.24.0.19)
+
+Two real reports on 4.24.0.18, one room of three streams — a game for
+three, a voice channel —, opened from the node; the second a few minutes
+after giving the sound to another tile. And a request: "with three streams,
+can you put the quality above? from 480 to 720. I find it pixelates. Do +1
+in quality for each current layout." Published on `claude/chrome-multi`
+only.
+
+The three tiles, here: **A**, the anchor — the one you hear first —, 3.8 s
+of latency and 3.3 s of buffer; **R**, in low latency, around 3.1 s; **S**,
+served by segments, around 3.7 s.
+
+### Quality, one notch up
+
+The three-stream room had 551 px tiles: 480p was the closest, in
+proportion, in each channel's ladder. The bridge now takes the **next**
+height of that ladder — 720p —, and so does the player's address, for its
+start. In every layout:
+
+| the closest | set now |
+| --- | --- |
+| 160p | 360p |
+| 360p | 480p |
+| 480p | 720p |
+| 720p | 1080p |
+| 1080p, the highest | 1080p — nothing above |
+
+At equal height, the smoothest (720p60 rather than 720p30). Three 720p60
+streams are about three times 6 Mb/s.
+
+### What the two reports establish
+
+**1. Sound sees, this time, three components per pair — the model itself.**
+Located against the clock, over the whole listening:
+
+| pair | components (first peaks · share of weight) |
+| --- | --- |
+| A~S | −655 ms (59 · 45 %) · −383 (22 · 18 %) · **−115** (38 · 31 %) |
+| A~R | 89 ms (57 · 47 %) · 358 (33 · 33 %) · **568** (15 · 13 %) |
+
+Symmetric: −383 ± 270, and 358 − 269, 358 + 210. Each shared sound lands at
+Δ + pA − pT: below, A's voice in the other's stream; in the middle, the
+sound both have at once — the game, shared by all three, or the third
+player's voice, which goes through the channel on both sides —: the real
+offset Δ; above, the other's voice in A's stream. The channel reads the same
+way: A's voice reaches the others in 270 ms, S's reaches A in 268, R's in
+210. And Δ is −383 ms for S, +358 for R: **this time the clock was off by
+0.36 to 0.38 s on the game** — the streamers' encoding chains are not
+alike; in the ninth report, 44 ms.
+
+The pilot's target, the highest — the tile's voice as heard in A, where its
+lips land —: −115 for S, +568 for R. S was put there and held: sound saw it
+at −15 ms, over 44 computations. The price, which must be said: S's game is
+then 0.27 s from A's, R's 0.21 s. Lips or game — not both, as long as the
+channel has its delay.
+
+**2. R doesn't hold a step back.** Its player, in low latency, keeps its
+latency around 3.0–3.2 s. For its lips, sound wanted R 0.563 s behind A by
+the clock — but R, on its own, is 0.7 s ahead: 1.26 s more latency than its
+player keeps. At +364 s, R steps back 0.168 s; its player immediately
+speeds up to 1.03, **for 125 s**, "latency 4.104 → 3.183 · after a move".
+The verification sees the gap again and steps back again — 0.224, then
+0.705 s: the alignment ends at 0.504 s, further than it started (0.288).
+
+**3. The pilot paused, the tile 1.46 s off.** Six realignments in ten
+minutes — the opening, a drift, R's sound and three of S's cuts —, and the
+ten-minute pause at +535 s. Meanwhile R took back its step: in the report,
+−0.899 s for a relation of +0.563 — 1.46 s off —, and sound saw its target
+at +1405 ms.
+
+**4. S cuts out, and its buffer is a saw.** An arrival cut every 112 to
+140 s — "at least 2 s without video", the buffer from 2.3 to 0.3 s —, four,
+then seven: each an event, each a realignment of the whole room. And from
+one reading to the next its buffer went from 1.3 to 2.3 s and back: a
+player served by segments — not in low latency.
+
+**5. The sound given to R.** The pause over, at +1135 s, R stepped back
+1.28 + 0.23 + 0.51 s. Then the anchor followed the sound — "l'ancre suit le
+son : A → R" —, the relations were rewritten against it (A −0.563, S
+−0.688), the map restarted. But R, the anchor, couldn't stay put: S couldn't
+move forward to it. S, the latest, became the reference; R stepped back
+1.36 + 0.24 + 0.53 s, took it back in 81 s, and again at +1346 s: three
+times in four minutes.
+
+**6. The opening**: 3.986 → 0.846 s in three passes. Its details have left
+the room's log, which keeps sixty lines; the same catch-up is likely, not
+established.
+
+### What this version does
+
+**1. Quality, one notch up** — above.
+
+**2. A player that takes back a step back is spotted.** A catch-up — the
+player's speed above 1, without our asking — starting within thirty seconds
+of a step back we made it take: the tile is marked, "le lecteur reprend le
+recul … : la tuile ne sera plus reculée" in the log, `tuiles.*.recul` in the
+report. It no longer steps back: a pass that would ask it leaves it — "rien
+(… ne tient pas un recul : son lecteur le rattrape)".
+
+**3. The reference that leaves the least gap.** Each tile has its reach:
+moving forward by what its buffer gives, stall deducted, keeping its
+second; stepping back without limit, unless it is marked. For each tile
+taken as reference, each one goes as near to it as it can, and what remains,
+**against the anchor** — the tile you hear: everything is judged on it —,
+adds up. The reference that leaves the least; within 0.1 s, the anchor, then
+the latest — with no marked tile and no short buffer, it's the old rule. In
+the report, `alignement.couts`.
+
+**4. A move forward bounded by the buffer.** One that would eat into the
+second of margin stops at it — "borné au tampon"; and never a move forward
+that gains no more than its stall: playback would lose it again.
+
+**5. The buffer read at its trough**: the lowest of the last five readings,
+no longer their median, which landed on either tooth of the saw.
+
+**6. The pilot waits for a catch-up to end** — three minutes at most:
+realigning a tile on the move would aim at a moving target. Its end is an
+event, which realigns.
+
+**7. The out-of-reach gap is accepted.** After a bounded alignment, the gap
+that remains is measured once, on the first full window afterwards — not on
+a tile still catching up —, then drift is counted from it: "hors
+d'atteinte : tampon" or ": recul repris" in `auto.retards`.
+
+**What this version would have made of the tenth report.** At +364 s, R
+steps back 0.168 s; its player speeds up: R is marked, the verification
+doesn't chase it, the pilot waits out the two minutes of catch-up. Then:
+the anchor in place would leave R 1.26 s off; with R as reference, A moves
+forward 1.26 s — its 3.3 s of buffer give 2.2 —, and S, which has only
+0.2 s to give at its 1.3 s trough, stays 1.05 s off. 1.05 against 1.26: R
+is the reference, S's gap is accepted, and nothing moves any more. **With
+these three streams, no position puts all three right**: R's player keeps
+no more than 3.2 s of latency, S can't go under 3.5 s without eating into
+its second of margin, and sound wants R 0.56 s behind A. One stays about a
+second off — now stated, measured and held still, instead of six
+realignments and a pause. In the eleventh, sound on R: R is the anchor and
+doesn't step back, A moves forward to it, S stays behind, its gap accepted.
+
+### What the bench measures
+
+**The fake player**: "romeo" and "victor" speed up on their own to 1.05 as
+soon as they are pushed 0.3 s past their latency; "romeo", "sierra",
+"tango", "victor" and "whiskey" have a buffer that follows the latency — a
+step back lengthens it, a move forward shortens it, a catch-up consumes it
+—, never larger than it; "sierra"'s as a saw, one second more two readings
+out of three.
+
+- **175, 177**: quality one notch up. 368 px: 480p, and 720p for "alpha",
+  which has no 360p; the address, 480p. 308 px: 720p for "alpha", 480p for
+  "charlie", with no new setting. 504 px: 720p. At a density of 1.5: 1080p;
+  at 2.5: 1080p, the top, which stays.
+- **184**: the opening with the tenth report's values — "tango" at 3.8 s,
+  3.3 s of buffer; "romeo" at 3; "sierra" at 3.8, 1.6 s at its trough. The
+  anchor in place, "romeo" steps back, its player speeds up: marked, the
+  verification no longer steps it back. The pilot waits — "rattrapage en
+  cours (romeo)" —, then "romeo" is the reference, "tango" moves forward to
+  it, "sierra" "borné au tampon", one pass; forty-five seconds without a
+  realignment, "sierra"'s gap "hors d'atteinte : tampon". Then "whiskey",
+  an anchor with no buffer to give, and "victor": the anchor stays,
+  "victor" "rien (… ne tient pas un recul)", its gap "recul repris"
+  accepted — no empty realignments.
+
+### What the bench found
+
+- **A gap the pilot couldn't accept.** In the first draft, only the gap
+  bounded by the buffer was. When the anchor stayed the reference, the
+  marked tile kept its own… and the pilot "realigned" without moving
+  anything — four "dérive" in twenty-five seconds, "1 passe en 0 s". The
+  gap of a step back taken back is accepted like the other, and on every
+  tile when the anchor itself is bounded — once, after the alignment: a
+  drift that comes later is not an out-of-reach gap.
+- **A buffer larger than the latency.** The first fake player gave 3.3 s of
+  it under 2.2 s of latency; the probe, rightly, discarded it as
+  impossible, and the anchor seemed to have nothing to give. The bench now
+  follows the real report.
+- **A chance failure in 180.** Once, over the last four rounds,
+  `aligner('son')` found no target in two minutes — the map "−148 (38 first
+  peaks) · −548 (4)"; replayed, it passes. The bench now keeps the last
+  refusal, to say why if it comes back.
+
+| mutants | what falls |
+| --- | --- |
+| quality: without the notch; the address without it; nothing set at the top of the ladder; the highest notch instead of the next (4) | 360p, 480p and 720p left at the closest; the address at 360p; at a density of 2.5, no quality; "alpha" at 1080p for 368 px |
+| the step back taken back: never marked; passes that step back anyway (2) | "romeo" stepped back again from the opening, and at each realignment |
+| the reference: the marked tile treated like any other; always the anchor (2) | "tango" kept, "romeo" 0.75 s off |
+| moving forward: unbounded; the buffer read at its median; the move that gains nothing (3) | "sierra" moved forward by its whole gap, or by a second pass for nothing |
+| the pilot: not waiting for a catch-up to end; the remaining gap counted as drift; only the buffer's accepted (3) | no "rattrapage en cours"; empty realignments, in a loop |
+
+Fourteen mutants, fourteen caught, in the first round.
+
+### For the next report
+
+1. The same three-stream room if possible, opened from the node; ten
+   minutes.
+2. **Watch R**, the low-latency tile: no more back and forth; and the room
+   should no longer pause. In the report: `tuiles.*.recul`,
+   `alignement.couts`, `auto.retards` and its "hors d'atteinte",
+   `auto.journal`.
+3. **Quality**: is 720p sharp? More cuts (`tuiles.*.serie.coupures`)?
+4. **Lips or game**: with a voice channel, both can't be set — here 0.21 to
+   0.27 s apart. The pilot aims at the lips; say if the game matters more.
+
 ## Sound calibrates, the clock aligns and holds (v4.24.0.18)
 
 Two real reports on 4.24.0.17, each in two parts. The eighth: three streams
@@ -14847,7 +15050,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 183 scenarios, 1600 assertions |
+| `npm test` | the Playwright harness: 184 scenarios, 1604 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -14867,7 +15070,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1586 KB | 646 KB | 4,065 → **2** |
+| `content.js` | 1586 KB | 646 KB | 4,083 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

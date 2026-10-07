@@ -25176,9 +25176,11 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   /* LA QUALITÉ DES LECTEURS (4.24.0.10) : plus d'automatique. Tuiles de
      655 × 368 à une densité de 1 → 368 px d'écran ; la plus proche, en
      proportion, dans l'échelle de CHAQUE chaîne : 360p pour bravo et
-     charlie, 480p pour alpha, qui n'a pas de 360p. Posée une fois. L'URL
-     porte la préférence usuelle ; la latence de chaque lecteur est relevée
-     (étude de la synchronisation) et l'écart entre eux calculé. */
+     charlie, 480p pour alpha, qui n'a pas de 360p — puis UN CRAN AU-DESSUS
+     (4.24.0.19) : 480p, et 720p pour alpha. Posée une fois. L'URL porte la
+     préférence usuelle, un cran au-dessus aussi ; la latence de chaque
+     lecteur est relevée (étude de la synchronisation) et l'écart entre eux
+     calculé. */
   await attendre(page, () => ['alpha', 'bravo', 'charlie'].every((ch) => window.tse.salle.rapport().tuiles?.[ch]?.qualite), 8000);
   await wait(page, 3500);
   const q1 = await page.evaluate(() => ({
@@ -25188,14 +25190,14 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   const poses = await page.frames().find((f) => f.url().includes('channel=alpha'))
     ?.evaluate(() => window.__lecteur.poses).catch(() => null);
   /* Mutants — la qualité jamais posée (le lecteur reste en automatique),
-     l'échelle supposée au lieu de lue, la pose répétée à chaque relevé. La
-     proportion contre les pixels, c'est la fenêtre de portable qui la
-     départage, plus bas. */
-  ok('la qualité : plus d\'automatique, la plus proche de la hauteur des tuiles dans l\'échelle de chaque chaîne, posée une fois',
-     q1.r.qualiteCible === 368 && q1.r.tuiles.bravo.qualite === '360p30' && q1.r.tuiles.charlie.qualite === '360p30'
-     && q1.r.tuiles.alpha.qualite === '480p30'
+     l'échelle supposée au lieu de lue, la pose répétée à chaque relevé ; le
+     cran au-dessus oublié, dans le pont ou dans l'URL. La proportion contre
+     les pixels, c'est la fenêtre de portable qui la départage, plus bas. */
+  ok('la qualité : plus d\'automatique, un cran au-dessus de la plus proche de la hauteur des tuiles, dans l\'échelle de chaque chaîne, posée une fois',
+     q1.r.qualiteCible === 368 && q1.r.tuiles.bravo.qualite === '480p30' && q1.r.tuiles.charlie.qualite === '480p30'
+     && q1.r.tuiles.alpha.qualite === '720p60'
      && ['alpha', 'bravo', 'charlie'].every((ch) => q1.r.tuiles[ch].auto === false && q1.r.tuiles[ch].lecteur === true)
-     && /[?&]quality=360p30(&|$)/.test(q1.url) && poses === 1,
+     && /[?&]quality=480p30(&|$)/.test(q1.url) && poses === 1,
      JSON.stringify({ cible: q1.r.qualiteCible, q: Object.fromEntries(Object.entries(q1.r.tuiles).map(([k, t]) => [k, [t.qualite, t.auto, t.lecteur]])),
                       url: q1.url.split('?')[1], poses }));
   ok('…et la latence de chaque lecteur est relevée, avec l\'écart entre le plus en avance et le plus en retard',
@@ -25257,15 +25259,16 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      JSON.stringify({ pastille: s7.ligneTete, titre: s7.titreDans, bouton: [s7.boutonDans, s7.boutonTexte], scene: s7.scene }));
   /* LA PLUS PROCHE EN PROPORTION (4.24.0.10). Tuiles de 549 × 308 : pour
      alpha (160, 480, 720, 1080), 160p est à 148 px et 480p à 172 — mais 160p
-     serait agrandie près de deux fois, 480p réduite d'un tiers. 480p reste,
-     sans nouvelle pose. Mutant — l'écart en pixels : 160p. */
+     serait agrandie près de deux fois, 480p réduite d'un tiers. 480p, et un
+     cran au-dessus : 720p reste, sans nouvelle pose. Mutant — l'écart en
+     pixels : 160p, et 480p un cran au-dessus. */
   // Le temps qu'un relevé porte l'ordre, et qu'un autre en rapporte l'effet.
   await wait(page, 3500);
   const r7q = await etatDe();
   const posesApres = await page.frames().find((f) => f.url().includes('channel=alpha') && !f.isDetached())
     ?.evaluate(() => window.__lecteur.poses).catch(() => null);
   ok('fenêtre de portable : la qualité suit la nouvelle hauteur, la plus proche en proportion, sans reposer ce qui n\'a pas changé',
-     r7q.qualiteCible === 308 && r7q.tuiles.alpha?.qualite === '480p30' && r7q.tuiles.charlie?.qualite === '360p30'
+     r7q.qualiteCible === 308 && r7q.tuiles.alpha?.qualite === '720p60' && r7q.tuiles.charlie?.qualite === '480p30'
      && posesApres === 1,
      JSON.stringify({ cible: r7q.qualiteCible, alpha: r7q.tuiles.alpha?.qualite, charlie: r7q.tuiles.charlie?.qualite, posesApres }));
   ok('fenêtre de portable : deux streams plutôt que le chat, le troisième au banc, le son gardé, rien de rechargé',
@@ -26056,8 +26059,8 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   ok('deux chats : ils remplissent les marges à parts égales, le titre à gauche, les commandes à droite, et la hauteur va aux lecteurs',
      !!deux && collees(deux) && Math.abs(deux.gauche.l - deux.droite.l) <= 2 && deux.gauche.l > 341
      && deux.rapport.grille === '1×2 · 897×504'
-     // 504 px d'écran : 480p, la plus proche en proportion (4.24.0.10).
-     && deux.rapport.tuiles.tardif?.qualite === '480p30' && deux.rapport.tuiles.calme?.qualite === '480p30'
+     // 504 px d'écran : 480p, la plus proche en proportion (4.24.0.10), et un cran au-dessus (4.24.0.19).
+     && deux.rapport.tuiles.tardif?.qualite === '720p60' && deux.rapport.tuiles.calme?.qualite === '720p60'
      && deux.titreDans === 'tse-salle__chat--gauche' && deux.boutonDans === 'tse-salle__chat--droite'
      && /^\d+ · \d+$/.test(deux.rapport.chatsPx || ''),
      JSON.stringify(deux && { g: deux.gauche.l, d: deux.droite.l, scene: deux.scene, tuiles: deux.tuiles,
@@ -26139,8 +26142,8 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   ok('sans marge assez large, un seul chat ; la marge revenue, le second aussi — et la qualité suit la taille des tuiles',
      basse?.chats === 1 && !basse.gauche.visible && dansScene(basse)
      && haute?.chats === 2 && haute.gauche.visible && dansScene(haute)
-     // La qualité suit la taille des tuiles : 368 px → 360p, 504 px → 480p.
-     && basse.rapport.tuiles.tardif?.qualite === '360p30' && haute.rapport.tuiles.tardif?.qualite === '480p30',
+     // La qualité suit la taille des tuiles : 368 px → 360p, 504 px → 480p — un cran au-dessus, 480p et 720p.
+     && basse.rapport.tuiles.tardif?.qualite === '480p30' && haute.rapport.tuiles.tardif?.qualite === '720p60',
      JSON.stringify({ basse: basse && { chats: basse.chats, tuiles: basse.tuiles, scene: basse.scene, q: basse.rapport.tuiles.tardif?.qualite },
                       haute: haute && { chats: haute.chats, q: haute.rapport.tuiles.tardif?.qualite } }));
 
@@ -26219,19 +26222,27 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
 
   /* LA DENSITÉ DE L'ÉCRAN (4.24.0.10) : la qualité vise les pixels
      d'ÉCRAN. À une densité de 1,5, des tuiles de 504 px CSS en font 756 :
-     720p, pas 480p. Mutant — la hauteur CSS seule. */
-  await page.evaluate(() => {
-    Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: () => 1.5 });
-    window.tse.salle.ouvrir('calme', 'solo');
-  });
-  await attendre(page, () => window.tse.salle.rapport().tuiles?.calme?.qualite === '720p60', 8000);
-  const dense = await page.evaluate(() => {
-    const r = window.tse.salle.rapport();
-    return { cible: r.qualiteCible, calme: r.tuiles?.calme?.qualite, grille: r.grille };
-  });
-  await page.evaluate(() => { delete window.devicePixelRatio; window.tse.salle.fermer(); });
-  ok('la qualité vise les pixels d\'écran : à une densité de 1,5, 504 px deviennent 756, et 720p',
-     dense.grille === '1×2 · 897×504' && dense.cible === 756 && dense.calme === '720p60', JSON.stringify(dense));
+     720p, pas 480p — et un cran au-dessus (4.24.0.19), 1080p. À 2,5, 1260 :
+     1080p est la plus proche ET la plus haute — rien au-dessus, elle reste.
+     Mutants — la hauteur CSS seule ; rien de posé au sommet de l'échelle. */
+  const densite = async (d) => {
+    await page.evaluate((x) => {
+      Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: () => x });
+      window.tse.salle.ouvrir('calme', 'solo');
+    }, d);
+    await attendre(page, () => window.tse.salle.rapport().tuiles?.calme?.qualite === '1080p60', 8000);
+    const x = await page.evaluate(() => {
+      const r = window.tse.salle.rapport();
+      return { cible: r.qualiteCible, calme: r.tuiles?.calme?.qualite, grille: r.grille };
+    });
+    await page.evaluate(() => { delete window.devicePixelRatio; window.tse.salle.fermer(); });
+    return x;
+  };
+  const dense = await densite(1.5);
+  const tresDense = await densite(2.5);
+  ok('la qualité vise les pixels d\'écran : à une densité de 1,5, 504 px deviennent 756, et 1080p, un cran au-dessus de 720p ; à 2,5, 1080p, le sommet',
+     dense.grille === '1×2 · 897×504' && dense.cible === 756 && dense.calme === '1080p60'
+     && tresDense.cible === 1260 && tresDense.calme === '1080p60', JSON.stringify({ dense, tresDense }));
 
   // ── SOUS LA BARRE DU HAUT DE TWITCH ───────────────────────────────────────
   /* Une barre du haut comme celle de Twitch — fixe, à son propre niveau —,
@@ -26306,8 +26317,19 @@ const S_LECTEUR_SONDE = () => {
         const v = document.getElementById('v');
         class FauxLecteur {
           constructor() {
-            this.L = ({ alpha: 2, bravo: 2.5, echo: 3.6, hotel: 7.7 })[ch] ?? 2.2; this.t = Date.now(); this.t0 = this.t;
+            this.L = ({ alpha: 2, bravo: 2.5, echo: 3.6, hotel: 7.7, romeo: 3, sierra: 3.8, tango: 3.8, victor: 1.4 })[ch] ?? 2.2;
+            this.t = Date.now(); this.t0 = this.t;
             this.L0 = this.L; this.B = ch === 'echo' ? 3.2 : 1.8; this.coupure = null;
+            /* LE TAMPON QUI SUIT LA LATENCE (4.24.0.19) : pour « romeo »,
+               « sierra » et « tango », ce que la lecture a devant elle bouge
+               avec elle — un recul l'allonge, une avance le raccourcit, un
+               rattrapage le consomme : 2,5 s, 1,6 et 3,3 au départ, sous des
+               latences de 3, 3,8 et 3,8 s — les valeurs du dixième rapport réel,
+               et jamais plus de tampon que de latence. « sierra »
+               le reçoit PAR SEGMENTS, en dents de scie : une seconde de plus
+               deux relevés sur trois — 1,3 puis 2,3 s au dixième rapport réel. */
+            // « victor » rattrape aussi ; « whiskey » n'a qu'une seconde de tampon : rien à donner.
+            this.K = ({ romeo: 0.5, sierra: 2.2, tango: 0.5, victor: 0.4, whiskey: 1.2 })[ch];
             this.arret = false; this.pos = 0; this.aberrantJusqua = 0;
             /* LA VITESSE DE L'ÉLÉMENT (4.24.0.13, revue en 4.24.0.14) : c'est
                elle qui joue, et la latence la suivrait — mais le vrai lecteur
@@ -26337,6 +26359,19 @@ const S_LECTEUR_SONDE = () => {
             this.L += (this.arret ? dt : (1 - this.vElem()) * dt) - (ch === 'charlie' || ch === 'delta' ? 0.003 * dt : 0);
             this.pos += this.arret ? 0 : this.vElem() * dt;
             this.t = n;
+            /* UN LECTEUR EN FAIBLE LATENCE QUI REPREND LES RECULS (4.24.0.19) :
+               « romeo », poussé à plus de 0,3 s au-delà de sa latence, repart
+               de lui-même — à 1,05 ici, 1,03 aux dixième et onzième rapports
+               réels — jusqu'à elle. */
+            if ((ch === 'romeo' || ch === 'victor') && !this.arret) {
+              if (this.vPropre === null && this.L > this.L0 + 0.3) { this.vPropre = 1.05; v.dispatchEvent(new Event('ratechange')); }
+              else if (this.vPropre === 1.05 && this.L <= this.L0 + 0.05) { this.vPropre = null; v.dispatchEvent(new Event('ratechange')); }
+            }
+          }
+          tamponDevant() {
+            if (this.K === undefined) return this.B;
+            this.maj();
+            return Math.round((this.L - this.K + (ch === 'sierra' && Math.floor(Date.now() / 1000) % 3 ? 1 : 0)) * 1000) / 1000;
           }
           /* LE LEVIER (4.24.0.17, revu en 4.24.0.18) : setLiveSpeedUpRate
              accepté sans effet, comme aux huitième et neuvième rapports réels ;
@@ -26352,7 +26387,7 @@ const S_LECTEUR_SONDE = () => {
              object » sans plus. */
           getBufferedRanges() {
             this.maj();
-            const l = [{ start: Math.round(Math.max(0, this.pos - 12) * 1000) / 1000, end: Math.round((this.pos + this.B) * 1000) / 1000 }];
+            const l = [{ start: Math.round(Math.max(0, this.pos - 12) * 1000) / 1000, end: Math.round((this.pos + this.tamponDevant()) * 1000) / 1000 }];
             if (ch === 'charlie') return { video: l, audio: l };
             if (ch === 'alpha') return new (class PlagesIvs { constructor() { this.n = 1; this.debut = l[0].start; } })();
             return l;
@@ -26419,7 +26454,7 @@ const S_LECTEUR_SONDE = () => {
             if (k && Date.now() >= k.t0 && Date.now() < k.t0 + k.D * 1000) {
               return Math.round(Math.max(0.05, this.B - (Date.now() - k.t0) / 1000) * 1000) / 1000;
             }
-            return this.B;
+            return this.tamponDevant();
           }
           isLiveLowLatency() { return ch === 'alpha'; }
           getPlaybackRate() { return this.vPropre ?? 1; }
@@ -26476,8 +26511,12 @@ const S_LECTEUR_SONDE = () => {
            700 ms plus tôt, la seconde 700 plus tard : à chaque calcul l'une en
            premier pic, l'autre en second — deux composantes de même poids,
            trop loin l'une de l'autre pour une paire : ambigu. */
+        /* « romeo », « sierra », « tango », « victor » et « whiskey »
+           (4.24.0.19) ont chacun leur voix : rien en commun, l'horloge seule
+           — c'est elle qu'on éprouve. */
         const VOIX = ({ bravo: [[0, 350]], duo1: [[0, 0], [1, 200]], duo2: [[1, 350], [0, 550]], duo3: [[1, 750], [0, 950]], foxtrot: [[2, 0]],
-                        golf: [[0, 5500]], hotel: [[0, 5500]], mike: [[0, 300]], papa: [[0, -1100]], oscar: [[0, -700], [1, 900]] })[ch] || [[0, 0]];
+                        golf: [[0, 5500]], hotel: [[0, 5500]], mike: [[0, 300]], papa: [[0, -1100]], oscar: [[0, -700], [1, 900]],
+                        romeo: [[3, 0]], sierra: [[4, 0]], tango: [[5, 0]], victor: [[6, 0]], whiskey: [[7, 0]] })[ch] || [[0, 0]];
         const v = document.getElementById('v');
         const c = document.createElement('canvas');
         c.width = 32; c.height = 18;
@@ -27249,10 +27288,13 @@ const S_LECTEUR_SONDE = () => {
   await page.evaluate(() => window.tse.salle.ouvrir('duo1', 'duo2'));
   await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 3, 20_000);
   await page.evaluate(() => window.tse.salle.ecoute());
+  // Le dernier refus est gardé : s'il n'y a jamais d'alignement, il dit pourquoi (4.24.0.19).
   const parSon = await page.waitForFunction(() => {
     const r = window.tse.salle.aligner('son', 0.1);
+    window.__dernierSon = r;
     return r && r.alignement ? r : null;
   }, null, { timeout: 120_000, polling: 1_000 }).then((h) => h.jsonValue()).catch(() => null);
+  const dernierSon = parSon ? null : await page.evaluate(() => window.__dernierSon).catch(() => null);
   await attendre(page, () => window.tse.salle.rapport().alignement?.etat === 'fini', 120_000);
   const rs = await rapport();
   const S = rs.alignement || {};
@@ -27267,7 +27309,7 @@ const S_LECTEUR_SONDE = () => {
      && Math.abs(lu(p1d, /calage ([\d.]+) · instance/) - 0.05) <= 0.01 && S.passe2 === null
      && /^par l'horloge \(relations gardées\) · /.test(S.apres || '') && ecartDe(S.apres) < 0.1
      && Math.abs(vue) <= 70 && S.note === null,
-     JSON.stringify({ parSon, S, carte: rs.ecoute?.carte }));
+     JSON.stringify({ parSon, dernierSon, S, carte: rs.ecoute?.carte }));
   await page.evaluate(() => window.tse.salle.ecoute(false));
   await page.close();
 }
@@ -27964,6 +28006,120 @@ const S_LECTEUR_SONDE = () => {
      && /^oscar [+−]0\.0\d\d \(garde \+0\.000, le son s'est dédit\)$/.test(ro.auto?.retards || '')
      && nPremiers.length === 2 && nPremiers.every((n) => n >= 2),
      JSON.stringify({ dedit, son: ro.auto?.son, retards: ro.auto?.retards, j: ro.auto?.journal, carte: ro.ecoute?.carte, calage: /calibré par le son : [^|]*/.exec(calage)?.[0] ?? null, notes: notes.slice(-400) }));
+  await page.close();
+}
+
+/* ═════════ LE LECTEUR QUI REPREND LE RECUL (4.24.0.19) ═════════════════════
+   Aux dixième et onzième rapports réels, une tuile en faible latence, la plus
+   en avance de trois, reculée par l'alignement : son lecteur est reparti de
+   lui-même à 1,03, chaque fois, jusqu'à reprendre tout le recul ; les passes
+   la reculaient de nouveau, le pilote réalignait — six fois en dix minutes,
+   la pause, et la tuile à 1,46 s de sa relation. Une autre tuile, servie par
+   segments, n'avait qu'un tampon en dents de scie, 1,3 s au creux. */
+{
+  titre('184. L\'alignement face au lecteur qui reprend le recul, et au tampon qui ne permet pas d\'avancer');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport());
+  const ligne = (r, n) => r.auto?.journal?.[String(n).padStart(3, '0')] || '';
+  const finie = (n, ms) => attendre(page, (k) => {
+    const l = window.tse.salle.rapport().auto?.journal?.[k] || '';
+    return !!l && !/ · en cours/.test(l);
+  }, ms, String(n).padStart(3, '0'));
+  const evenements = (r) => Object.values(r.instant?.evenements || {});
+  const passes = (r) => [r.alignement?.passe1, r.alignement?.passe2, r.alignement?.passe3].filter(Boolean);
+
+  /* L'OUVERTURE — les valeurs du dixième rapport réel. « tango », l'ancre —
+     la tuile qu'on entend —, à 3,8 s de latence, 3,3 s de tampon ;
+     « romeo », en faible latence, à 3 ; « sierra » à 3,8, 1,6 s de tampon au
+     creux de ses dents de scie. L'ancre reste en place ; « romeo » recule de
+     0,8 s. Son lecteur repart aussitôt, à 1,05 : la tuile est marquée, et la
+     vérification, qui la voit reprendre son avance, ne la recule plus.
+     Mutants — le rattrapage jamais pris pour un recul repris ; les passes
+     qui reculent quand même. */
+  await page.evaluate(() => window.tse.salle.ouvrir('tango', 'romeo', 'sierra'));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  await finie(1, 60_000);
+  const r1 = await rapport();
+  const ouverture = passes(r1);
+  ok('à l\'ouverture, « romeo » reculée reprend son recul : marquée, la vérification ne la recule plus',
+     /^\+\d+ s · ouverture · par l'horloge · fini/.test(ligne(r1, 1)) && r1.alignement?.reference === 'tango (l\'ancre)'
+     && /romeo recul /.test(ouverture[0] || '') && ouverture.slice(1).every((x) => !/romeo recul /.test(x))
+     && /^repris par le lecteur \d+ fois, la première à \+\d+ s : la tuile n'est plus reculée$/.test(r1.tuiles?.romeo?.recul || '')
+     && r1.tuiles?.tango?.recul === 'tenu' && r1.tuiles?.sierra?.recul === 'tenu'
+     && evenements(r1).some((l) => / · romeo · le lecteur reprend le recul, à 1\.05 : la tuile ne sera plus reculée(?: · latence [\d.]+)?$/.test(l)),
+     JSON.stringify({ j: r1.auto?.journal, ref: r1.alignement?.reference, ouverture, recul: r1.tuiles?.romeo?.recul,
+                      verifs: r1.alignement?.verifications, evts: evenements(r1).filter((l) => /romeo/.test(l)) }));
+
+  /* LE PILOTE ATTEND LA FIN DU RATTRAPAGE — une tuile qui file n'est pas une
+     cible —, puis réaligne sur l'événement. « romeo », revenue à 3,05 s, ne
+     recule plus. Laisser l'ancre en place laisserait « romeo » à 0,75 s ;
+     prendre « romeo » pour référence, « tango » y avance — son tampon le
+     permet —, et « sierra », qui n'a que 0,6 s à donner, s'arrête à 0,24 s :
+     moins d'écart en tout — c'est elle. « borné au tampon ».
+     Une passe : avancer « sierra » de ce qu'il lui reste ne gagnerait pas
+     plus que le calage — la lecture le reperdrait. Mutants — le pilote qui
+     n'attend pas ; la référence qui ignore la tuile marquée, ou qui garde
+     toujours l'ancre ; l'avance sans borne ; le tampon lu à la médiane de ses
+     dents de scie ; les avances qui ne gagnent rien. */
+  const attente = await page.waitForFunction(() => /rattrapage en cours \(romeo\)/.test(window.tse.salle.rapport().auto?.etat || '')
+    ? window.tse.salle.rapport().auto.etat : null, null, { timeout: 30_000, polling: 200 }).then((h) => h.jsonValue()).catch(() => null);
+  await finie(2, 90_000);
+  const r2 = await rapport();
+  const reprise = passes(r2);
+  ok('le pilote attend la fin du rattrapage ; puis « romeo » est la référence, « tango » y avance, « sierra » au bout de son tampon',
+     attente === 'actif · rattrapage en cours (romeo)'
+     && /^\+\d+ s · rattrapage \(romeo\) · par l'horloge · fini/.test(ligne(r2, 2))
+     && r2.alignement?.reference === 'romeo (ne tient pas un recul)'
+     && /tango avance [\d.]+ s demandé \(écart -0\.[6-8]\d\d s, calage prévu [\d.]+\)/.test(reprise[0] || '')
+     && /sierra avance 0\.[4-6]\d* s demandé \(écart -0\.[6-8]\d\d s, calage prévu [\d.]+ · borné au tampon\)/.test(reprise[0] || '')
+     && reprise.every((x) => !/romeo (?:recul|avance) /.test(x)) && reprise.length === 1,
+     JSON.stringify({ attente, j: r2.auto?.journal, ref: r2.alignement?.reference, couts: r2.alignement?.couts, reprise,
+                      apres: r2.alignement?.apres }));
+
+  /* ET L'ÉCART QUI RESTE À « sierra » EST ACCEPTÉ : mesuré une fois, il ne
+     compte plus pour une dérive. Quarante-cinq secondes — sept contrôles —,
+     pas un réalignement de plus, pas de pause, et « romeo » ne rattrape plus.
+     Mutant — l'écart restant compté pour une dérive. */
+  await wait(page, 45_000);
+  const r3 = await rapport();
+  ok('l\'écart que « sierra » garde au bout de son tampon est accepté : ni réalignement, ni pause, et « romeo » ne rattrape plus',
+     r3.auto?.alignements === 2 && !/pause/.test(r3.auto?.etat || '')
+     && /sierra \+0\.[1-3]\d\d \(garde \+0\.000, \+0\.[1-3]\d\d hors d'atteinte : tampon\)/.test(r3.auto?.retards || '')
+     && r3.tuiles?.romeo?.serie?.rattrapages === 1,
+     JSON.stringify({ j: r3.auto?.journal, etat: r3.auto?.etat, retards: r3.auto?.retards, derive: r3.auto?.derive,
+                      ratt: r3.tuiles?.romeo?.serie?.rattrapagesDetail }));
+
+  /* L'ANCRE QUI N'A RIEN À DONNER. « whiskey », l'ancre, une seconde de
+     tampon : elle ne peut pas avancer. « victor », en faible latence, 0,8 s
+     devant elle, recule à l'ouverture — son lecteur le reprend. La prendre
+     pour référence ne gagnerait rien : l'ancre reste, « victor » ne recule
+     plus, « rien (… ne tient pas un recul) », et son écart est accepté —
+     « recul repris ». Pas de boucle de réalignements vides. Mutant —
+     l'écart d'une tuile qui ne tient pas un recul jamais accepté (c'était
+     le cas au premier jet : sept « dérive » en quarante secondes). */
+  await page.evaluate(() => window.tse.salle.fermer());
+  await page.evaluate(() => window.tse.salle.ouvrir('whiskey', 'victor'));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  await finie(2, 120_000);
+  const r4 = await rapport();
+  await wait(page, 40_000);
+  const r5 = await rapport();
+  ok('une ancre sans tampon à donner : elle reste, « victor » ne recule plus, son écart est accepté — pas de réalignements vides',
+     /^\+\d+ s · ouverture · par l'horloge · fini/.test(ligne(r4, 1)) && /^\+\d+ s · rattrapage \(victor\) · par l'horloge · fini/.test(ligne(r4, 2))
+     && r4.alignement?.reference === 'whiskey (l\'ancre)'
+     && /victor rien \(écart 0\.[6-8]\d\d s · ne tient pas un recul : son lecteur le rattrape\)/.test(r4.alignement?.passe1 || '')
+     && r5.auto?.alignements === 2 && !/pause/.test(r5.auto?.etat || '')
+     && /victor −0\.[6-8]\d\d \(garde \+0\.000, −0\.[6-8]\d\d hors d'atteinte : recul repris\)/.test(r5.auto?.retards || ''),
+     JSON.stringify({ j: r5.auto?.journal, ref: r4.alignement?.reference, couts: r4.alignement?.couts, p1: r4.alignement?.passe1,
+                      retards: r5.auto?.retards, etat: r5.auto?.etat }));
   await page.close();
 }
 
