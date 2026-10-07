@@ -550,7 +550,7 @@
     "message": "Automatische Ausrichtung"
   },
   "optDescSalleAuto": {
-    "message": "Beim Öffnen des Raums werden die Streams auf dieselbe Zeit gebracht — über die Uhr, dann über den Ton, wenn darin zwei Stimmen deutlich zu hören sind — und dort gehalten. Aus: Nichts bewegt sich von selbst."
+    "message": "Beim Öffnen des Raums werden die Streams über die Uhr auf dieselbe Zeit gebracht; der gemeinsame Ton stimmt sie dann fein ab — die Lippen jedes Streams auf seine Stimme, so wie man sie hört — und die Uhr hält sie dort. Aus: Nichts bewegt sich von selbst."
   },
   "optAbonnes": {
     "message": "Gold der Abonnements"

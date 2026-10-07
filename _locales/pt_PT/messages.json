@@ -550,7 +550,7 @@
     "message": "Alinhamento automático"
   },
   "optDescSalleAuto": {
-    "message": "Ao abrir a sala, as transmissões são colocadas no mesmo instante — pelo relógio, depois pelo som quando nele se ouvem duas vozes com clareza — e mantidas assim. Desligado: nada se mexe sozinho."
+    "message": "Ao abrir a sala, as transmissões são colocadas no mesmo instante pelo relógio; o som em comum afina-as depois — os lábios de cada transmissão na sua voz tal como se ouve — e o relógio mantém-nas assim. Desligado: nada se mexe sozinho."
   },
   "optAbonnes": {
     "message": "O ouro das subscrições"

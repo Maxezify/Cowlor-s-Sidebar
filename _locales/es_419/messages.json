@@ -550,7 +550,7 @@
     "message": "Alineación automática"
   },
   "optDescSalleAuto": {
-    "message": "Al abrir la sala, los streams se ponen a la misma hora —por el reloj, luego por el sonido cuando se oyen en él dos voces con claridad— y se mantienen así. Desactivado: nada se mueve solo."
+    "message": "Al abrir la sala, los streams se ponen a la misma hora con el reloj; el sonido compartido los ajusta después —los labios de cada stream sobre su voz tal como se oye— y el reloj los mantiene así. Desactivado: nada se mueve solo."
   },
   "optAbonnes": {
     "message": "El oro de las suscripciones"

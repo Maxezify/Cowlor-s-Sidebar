@@ -550,7 +550,7 @@
     "message": "Alignement automatique"
   },
   "optDescSalleAuto": {
-    "message": "À l'ouverture de la salle, les streams sont mis à la même heure — par l'horloge, puis par le son quand deux voix s'y entendent nettement — et tenus ensuite. Coupé : rien ne bouge seul."
+    "message": "À l'ouverture de la salle, les streams sont mis à la même heure par l'horloge ; le son commun les cale ensuite — les lèvres de chaque stream sur sa voix telle qu'on l'entend — et l'horloge les y tient. Coupé : rien ne bouge seul."
   },
   "optAbonnes": {
     "message": "L'or des abonnements"
