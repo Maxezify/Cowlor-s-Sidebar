@@ -26540,12 +26540,16 @@ const S_LECTEUR_SONDE = () => {
            une source seule, que le calage tient pour un écho ; « uniform », comme
            « xray », avec 3,5 s de tampon — sous 4,5 s de latence : un tampon
            plus long que la latence est écarté, comme au vrai. */
+        /* « kilo » et « november » (4.24.0.22) passent les trois sons de
+           « xray », au même instant : l'une change de source en cours de
+           route, l'autre n'a pas d'AudioWorklet (cf. plus bas). */
         const VOIX = ({ bravo: [[0, 350]], duo1: [[0, 0], [1, 200]], duo2: [[1, 350], [0, 550]], duo3: [[1, 750], [0, 950]], foxtrot: [[2, 0]],
                         golf: [[0, 5500]], hotel: [[0, 5500]], mike: [[0, 300]], papa: [[0, -1100]], oscar: [[0, -700], [1, 900]],
                         romeo: [[3, 0]], sierra: [[4, 0]], tango: [[5, 0]], victor: [[6, 0]], whiskey: [[7, 0]],
                         xray: [[0, 0], [1, 0], [8, 0, 880]], yankee: [[0, -900], [8, -1150, 880], [1, -1420]], zulu: [[0, 300]],
                         quebec: [[0, 4470], [8, 4180, 880], [1, 3870]], india: [[0, -600], [8, -480, 880], [1, -350]], juliett: [[0, -600], [8, -480, 880], [1, -350]],
-                        uniform: [[0, 0], [1, 0], [8, 0, 880]] })[ch] || [[0, 0]];
+                        uniform: [[0, 0], [1, 0], [8, 0, 880]], kilo: [[0, 0], [1, 0], [8, 0, 880]],
+                        november: [[0, 0], [1, 0], [8, 0, 880]] })[ch] || [[0, 0]];
         const v = document.getElementById('v');
         const c = document.createElement('canvas');
         c.width = 32; c.height = 18;
@@ -26569,12 +26573,14 @@ const S_LECTEUR_SONDE = () => {
         const TRANCHE = 30;
         const gen = new AudioContext();
         const dest = gen.createMediaStreamDestination();
+        // La sortie courante du son : la première, puis celle d'un changement de source (4.24.0.22).
+        let sortie = dest;
         const piste = (voix, D, hz = voix ? 660 : 440, poids = 1) => {
           const osc = gen.createOscillator();
           osc.frequency.value = hz;
           const g = gen.createGain();
           g.gain.value = 0;
-          osc.connect(g).connect(dest);
+          osc.connect(g).connect(sortie);
           osc.start();
           return { voix, D, g, poids, prochaine: 0, dec: 0 };
         };
@@ -26584,6 +26590,34 @@ const S_LECTEUR_SONDE = () => {
            fréquence interféreraient —, et plus forte. Au cinquième rapport
            réel, le son commun avait trois composantes. */
         window.__ajouterVoix = (voix, D, hz, poids) => { pistes.push(piste(voix, D, hz, poids)); };
+        /* LE LECTEUR CHANGE DE SOURCE (4.24.0.22) : une nouvelle piste porte
+           le son, l'ancienne se TAIT — ce que fait la capture d'un vrai
+           lecteur qui recharge son flux sans recharger sa page (mesuré sous
+           Chromium, cf. README : une piste de plus, l'ancienne « live » et
+           muette). L'élément vidéo reste le même. */
+        /* LA CAPTURE D'UN VRAI LECTEUR, IMITÉE (4.24.0.22). Un élément nourri
+           par un srcObject ne montre pas ce que fait la capture d'un élément
+           nourri par MSE — le cas de Twitch —, mesuré sous Chromium (186) : à
+           chaque changement de source, elle GAGNE une piste, et l'ancienne
+           reste « live », muette. « kilo » le fait : sa capture rend une copie
+           de la piste du son, et en gagne une à chaque __changerSource. Une
+           copie : arrêter la capture ne coupe pas le son du lecteur. */
+        const captures = [];
+        if (ch === 'kilo') {
+          v.captureStream = () => {
+            const f = new MediaStream([sortie.stream.getAudioTracks()[0].clone()]);
+            captures.push(f);
+            return f;
+          };
+        }
+        window.__changerSource = () => {
+          const d2 = gen.createMediaStreamDestination();
+          for (const p of pistes) { p.g.disconnect(sortie); p.g.connect(d2); }
+          sortie = d2;
+          v.srcObject = new MediaStream([image, d2.stream.getAudioTracks()[0]]);
+          v.play().catch(() => {});
+          for (const f of captures) f.addTrack(d2.stream.getAudioTracks()[0].clone());
+        };
         // Tout le son de la tuile qui saute de ms, la lecture ne bougeant pas (4.24.0.17).
         window.__decalerSon = (ms) => {
           for (const p of pistes) { p.D += ms; p.g.gain.cancelScheduledValues(gen.currentTime); p.prochaine = 0; }
@@ -26651,6 +26685,12 @@ const S_LECTEUR_SONDE = () => {
       // demie, comme avant un geste dans la page. Son horloge audio part donc
       // en retard sur celle d'« alpha » : sans l'ancre, le décalage serait
       // faux d'autant.
+      /* « november » (4.24.0.22) : la page refuse le module de l'AudioWorklet
+         — ce que ferait une politique de sécurité qui n'admet pas les blobs.
+         L'écoute garde alors l'ancien nœud, et le rapport le dit. */
+      if (new URLSearchParams(location.search).get('channel') === 'november') {
+        AudioWorklet.prototype.addModule = () => Promise.reject(new DOMException('module refusé par la page', 'AbortError'));
+      }
       if (new URLSearchParams(location.search).get('channel') === 'bravo') {
         const Vrai = window.AudioContext;
         window.AudioContext = class extends Vrai {
@@ -27983,6 +28023,245 @@ const S_LECTEUR_SONDE = () => {
   ok('la tenue, jugée par le code : corrigée, une tuile ne redescend pas vers la voix d\'en dessous ; elle monte vers une plus haute ; libre, elle se corrige ; la grappe descendue, elle redescend',
      cas.length === 6 && cas.every((x) => x.tient === x.attendu),
      regle.erreur || JSON.stringify(cas));
+}
+
+/* ═════════ L'ÉCOUTE QUI SUIT LA PISTE COURANTE (4.24.0.22) ═══════════════════
+   LE SECOND RAPPORT RÉEL DE LA 4.24.0.21 : deux streams, 702 s d'écoute et
+   pas un calcul ; la tuile muette à « silence 100 % », reliée une fois, la
+   référence à 0 %. Sa capture écoutait une piste que le lecteur ne
+   nourrissait plus. Ce scénario tient le témoin de Chromium — ce que
+   l'imitation de « kilo » suppose —, la capture qui suit la piste courante,
+   l'AudioWorklet, et son repli quand la page refuse le module. */
+{
+  titre('186. L\'écoute d\'une tuile — la capture suit la piste courante ; l\'AudioWorklet, et son repli');
+  /* LE TÉMOIN, mesuré ici même sur un élément nourri par un fichier — comme
+     un lecteur MSE, et contrairement à un srcObject : un changement de
+     source AJOUTE une piste à la capture ; l'ancienne reste « live »,
+     muette ; la dernière porte le son. Et une seconde capture du même
+     élément rend la première muette — d'où une seule capture par élément.
+     Si Chromium change, ce test le dit, et l'imitation est à revoir. */
+  const t = await browser.newPage();
+  await t.setContent('<video id="v" muted playsinline></video>');
+  const temoin = await t.evaluate(async () => {
+    const dormir = (ms) => new Promise((f) => setTimeout(f, ms));
+    // Vingt secondes d'un sinus de f Hz, en WAV.
+    const wav = (f) => {
+      const sr = 22050, n = sr * 20, b = new ArrayBuffer(44 + n * 2), d = new DataView(b);
+      const s = (o, x) => { for (let i = 0; i < x.length; i++) d.setUint8(o + i, x.charCodeAt(i)); };
+      s(0, 'RIFF'); d.setUint32(4, 36 + n * 2, true); s(8, 'WAVEfmt '); d.setUint32(16, 16, true); d.setUint16(20, 1, true);
+      d.setUint16(22, 1, true); d.setUint32(24, sr, true); d.setUint32(28, sr * 2, true); d.setUint16(32, 2, true); d.setUint16(34, 16, true);
+      s(36, 'data'); d.setUint32(40, n * 2, true);
+      for (let i = 0; i < n; i++) d.setInt16(44 + i * 2, Math.sin(2 * Math.PI * f * i / sr) * 12000, true);
+      return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+    };
+    const ac = new AudioContext();
+    await ac.resume().catch(() => {});
+    // Le niveau d'une piste, en log10 de la puissance : −8 est le silence.
+    const niveau = async (p) => {
+      const an = ac.createAnalyser(); an.fftSize = 2048;
+      const src = ac.createMediaStreamSource(new MediaStream([p])); src.connect(an);
+      await dormir(600);
+      const x = new Float32Array(2048); an.getFloatTimeDomainData(x);
+      let s = 0; for (const y of x) s += y * y;
+      src.disconnect();
+      return Math.round(Math.log10(s / x.length + 1e-8) * 100) / 100;
+    };
+    const v = document.getElementById('v');
+    v.src = wav(440); await v.play(); await dormir(600);
+    const flux = v.captureStream();
+    const avant = { pistes: flux.getAudioTracks().length, niveau: await niveau(flux.getAudioTracks()[0]) };
+    v.src = wav(660); await v.play(); await dormir(1200);
+    const l = flux.getAudioTracks();
+    const apres = { pistes: l.length, etats: l.map((p) => p.readyState), ancienne: await niveau(l[0]), derniere: await niveau(l[l.length - 1]) };
+    const f2 = v.captureStream();
+    const seconde = { nouvelle: await niveau(f2.getAudioTracks()[0]), premiere: await niveau(l[l.length - 1]) };
+    return { avant, apres, seconde };
+  }).catch((e) => ({ erreur: String(e) }));
+  await t.close();
+  ok('Chromium, mesuré : un changement de source ajoute une piste à la capture — l\'ancienne « live » et muette, la dernière porte le son —, et une seconde capture rend la première muette',
+     temoin.avant?.pistes === 1 && temoin.avant.niveau > -4
+     && temoin.apres?.pistes === 2 && temoin.apres.etats.every((x) => x === 'live')
+     && temoin.apres.ancienne < -7 && temoin.apres.derniere > -4
+     && temoin.seconde?.nouvelle > -4 && temoin.seconde.premiere < -7,
+     JSON.stringify(temoin));
+
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport());
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  // Les calculs d'une paire, tels que le rapport les écrit : le pic, et z.
+  const calculs = (r, cle) => String(r.ecoute?.historique?.[cle] || '').split(' · ').filter(Boolean)
+    .map((x) => ({ ms: Number((/^(-?\d+)/.exec(x) || [])[1]), z: Number((/ z (-?[\d.]+)/.exec(x) || [])[1]) }));
+  // Nets et à zéro : deux des trois derniers au moins — la machine chargée en manque un parfois.
+  const nets = (l) => l.length >= 3 && l.slice(-3).filter((h) => h.z >= 5 && Math.abs(h.ms) <= 60).length >= 2;
+  const silence = (r, ch) => Number((/silence (\d+) %/.exec(r.tuiles?.[ch]?.ecoute || '') || [])[1]);
+
+  /* L'AUDIOWORKLET, ET SON REPLI. « xray », « kilo » et « november »
+     passent les mêmes trois sons, au même instant. L'écoute allumée,
+     « xray » et « kilo » mesurent par le worklet ; la page de « november »
+     refuse le module : l'ancien nœud prend le relais, et le rapport dit
+     pourquoi. Les deux paires calculent, nettes, à zéro. Mutants — le
+     worklet jamais tenté ; le refus sans repli (plus une mesure). */
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'kilo', 'november'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 4, 20_000);
+  await page.evaluate(() => window.tse.salle.ecoute());
+  await attendre(page, () => {
+    const h = window.tse.salle.rapport().ecoute?.historique || {};
+    return ['xray~kilo', 'xray~november'].every((k) => String(h[k] || '').split(' · ').filter(Boolean).length >= 3);
+  }, 90_000);
+  const r1 = await rapport();
+  ok('l\'AudioWorklet mesure ; la page refuse son module, l\'ancien nœud prend le relais — le rapport dit lequel, et pourquoi —, et les deux paires calculent, nettes, à zéro',
+     /^running · \d+ Hz · silence \d+ % · reliée 1 · worklet · pistes 1$/.test(r1.tuiles?.xray?.ecoute || '')
+     && /^running · \d+ Hz · silence \d+ % · reliée 1 · worklet · pistes 1$/.test(r1.tuiles?.kilo?.ecoute || '')
+     && /^running · \d+ Hz · silence \d+ % · reliée 1 · script \(module refusé : AbortError\) · pistes 1$/.test(r1.tuiles?.november?.ecoute || '')
+     && ['xray', 'kilo', 'november'].every((ch) => silence(r1, ch) < 50)
+     && nets(calculs(r1, 'xray~kilo')) && nets(calculs(r1, 'xray~november')),
+     JSON.stringify({ xray: r1.tuiles?.xray?.ecoute, kilo: r1.tuiles?.kilo?.ecoute, november: r1.tuiles?.november?.ecoute,
+                      historique: r1.ecoute?.historique }));
+
+  /* LA TUILE QUI CHANGE DE SOURCE — le second rapport réel. « kilo »
+     recharge son flux sans recharger sa page : sa capture gagne une piste,
+     l'ancienne se tait. L'écoute s'y relie — « reliée 2 · pistes 2 » —,
+     n'est pas muette, et la paire calcule encore, nette, à zéro, sur ce qui
+     suit. Mutant — la capture laissée sur sa première piste : silence
+     100 %, plus un calcul, comme au rapport. */
+  const n0 = calculs(r1, 'xray~kilo').length;
+  const change = await cadre('kilo')?.evaluate(() => { window.__changerSource(); return true; }).catch((e) => String(e));
+  await wait(page, 30_000);
+  const r2 = await rapport();
+  const apres = calculs(r2, 'xray~kilo').slice(n0);
+  ok('« kilo » change de source : sa capture gagne une piste, l\'écoute s\'y relie — reliée 2, pistes 2 —, n\'est pas muette, et la paire calcule encore, nette, à zéro',
+     change === true && /^running · \d+ Hz · silence \d+ % · reliée 2 · worklet · pistes 2$/.test(r2.tuiles?.kilo?.ecoute || '')
+     && silence(r2, 'kilo') < 50 && apres.length >= 4 && nets(apres)
+     && /· reliée 1 · worklet · pistes 1$/.test(r2.tuiles?.xray?.ecoute || ''),
+     JSON.stringify({ change, kilo: r2.tuiles?.kilo?.ecoute, xray: r2.tuiles?.xray?.ecoute, apres }));
+  await page.close();
+}
+
+/* ═════════ LE STREAM QUI S'ARRÊTE (4.24.0.22) ════════════════════════════════
+   À la demande : un stream qui passe hors ligne quitte la salle — trois
+   deviennent deux ; de deux, la salle se ferme sur la page de celui qui
+   reste. La preuve est celle de Twitch — la requête anonyme de la barre —,
+   jamais celle du lecteur ; et il en faut deux relevés, à vingt-cinq
+   secondes d'écart au vrai, 0,8 s ici, relus chaque seconde (trente au
+   vrai). */
+{
+  titre('187. Le stream qui s\'arrête — retiré de la salle sur deux relevés de Twitch ; de deux, la page de celui qui reste');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  /* La page peut naviguer — c'est ce qu'on attend au bout, et ce que fait
+     trop tôt une règle fautive : rien ici ne doit lever, l'assertion dira
+     ce qui manque. */
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport()).catch(() => ({}));
+  const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 100 }).then(() => true).catch(() => false);
+  const evts = (r) => Object.values(r.instant?.evenements || {});
+  const journal = (r) => Object.values(r.calage?.journal || {});
+  const direct = (login) => page.evaluate((l) => {
+    window.__fx[l] = { id: 'id-' + l, createdAt: new Date(Date.now() - 3_600_000).toISOString(), viewers: 900, game: 'G', tags: [] };
+  }, login).catch(() => {});
+
+  /* « ON NE SAIT PAS » NE COMPTE POUR RIEN. Trois membres que la réponse
+     de Twitch omet : la salle les a demandés — dans la requête de la barre,
+     pas une autre —, et six secondes plus tard, personne n'est dit hors
+     ligne. Mutant — l'inconnu pris pour hors ligne. */
+  await page.evaluate(() => window.tse.salle.ouvrir('tau', 'upsilon', 'phi'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 4, 20_000);
+  await wait(page, 6_000);
+  const r0 = await rapport();
+  const demandes = await page.evaluate(() => window.__calls.filter((c) => ['tau', 'upsilon', 'phi'].every((l) => c.ops.includes(l)))
+    .map((c) => c.op)).catch(() => []);
+  ok('« on ne sait pas » ne compte pour rien : trois membres que Twitch omet, demandés par la requête de la barre, et personne n\'est dit hors ligne',
+     r0.membres === 3 && r0.horsLigne === null && r0.retirees === null && !evts(r0).some((x) => /hors ligne/.test(x))
+     && demandes.length >= 3 && demandes.every((op) => op === 'TseChannels'),
+     JSON.stringify({ membres: r0.membres, horsLigne: r0.horsLigne, retirees: r0.retirees, demandes }));
+
+  /* TROIS DEVIENNENT DEUX. Tous en direct, le calage lancé : « tau » a le
+     son, et c'est la référence. Puis « tau » s'arrête : dite hors ligne une
+     fois — « à confirmer » —, retirée au relevé d'après, 0,8 s au moins
+     plus tard. Sa tuile part, le son passe à « upsilon », la grille et
+     le titre passent à deux ; le calage oublie ce qu'il savait d'elle, et
+     repart sur sa nouvelle référence. Mutants — un relevé hors ligne suffit
+     ; la tuile qui avait le son gardée ; le calage qui ne l'oublie pas. */
+  for (const l of ['tau', 'upsilon', 'phi']) await direct(l);
+  await page.evaluate(() => window.tse.salle.auto(0.1)).catch(() => {});
+  await tant(() => (window.tse.salle.rapport().ecoute?.calculs || 0) >= 2, 60_000);
+  const rA0 = await rapport();
+  await page.evaluate(() => { window.__fx.tau = null; }).catch(() => {});
+  const parti = await tant(() => /^tau à \+\d+ s$/.test(window.tse.salle.rapport().retirees || ''), 20_000);
+  await wait(page, 1_500);
+  const rA = await rapport();
+  const eA = evts(rA);
+  const iA = eA.findIndex((x) => / · tau · hors ligne selon Twitch — à confirmer$/.test(x));
+  const jA = eA.findIndex((x) => / · tau · hors ligne — retirée de la salle$/.test(x));
+  const tA = (i) => Number((/^\+([\d.]+) s/.exec(eA[i] || '') || [])[1]);
+  const titreA = await page.evaluate(() => document.querySelector('#tse-salle .tse-salle__titre')?.textContent || '').catch(() => '');
+  const cadreTau = page.frames().some((f) => f.url().includes('channel=tau') && !f.isDetached());
+  ok('trois deviennent deux : « tau », hors ligne à deux relevés de 0,8 s d\'écart au moins, quitte la salle — sa tuile, son son, sa référence — ; le titre et la grille passent à deux',
+     rA0.son === 'tau' && rA0.membres === 3 && parti && rA.membres === 2 && Object.keys(rA.tuiles || {}).sort().join() === 'phi,upsilon'
+     && !cadreTau && rA.son === 'upsilon' && iA >= 0 && jA > iA && tA(jA) - tA(iA) >= 0.8 && rA.horsLigne === null
+     && /· 2 streams$/.test(titreA) && /^(1×2|2×1) · /.test(rA.grille || '') && rA.grille !== rA0.grille,
+     JSON.stringify({ son0: rA0.son, parti, membres: rA.membres, tuiles: Object.keys(rA.tuiles || {}), son: rA.son, grille0: rA0.grille, grille: rA.grille,
+                      titreA, cadreTau, evenements: eA.slice(-12) }));
+  await tant(() => Object.keys(window.tse.salle.rapport().ecoute?.paires || {}).includes('upsilon~phi'), 30_000);
+  const rA2 = await rapport();
+  ok('le calage oublie « tau » : le journal le dit, la référence passe à « upsilon », et l\'écoute ne garde que la paire qui reste',
+     journal(rA2).some((x) => /tau : hors ligne — retirée de la salle$/.test(x))
+     && journal(rA2).some((x) => /référence nouvelle : upsilon \(la tuile qui a le son\), tout se remesure$/.test(x))
+     && Object.keys(rA2.ecoute?.paires || {}).join() === 'upsilon~phi' && /^actif/.test(rA2.calage?.etat || ''),
+     JSON.stringify({ journal: journal(rA2).slice(-8), paires: Object.keys(rA2.ecoute?.paires || {}), etat: rA2.calage?.etat }));
+
+  /* DEUX RELEVÉS, PAS DEUX LECTURES DU MÊME. « upsilon » dite hors ligne une
+     fois ; puis le réseau tombe : ce qu'on relit d'elle n'est plus que
+     l'entrée du cache — le même relevé, servi encore pendant la pause
+     d'erreur —, ou « on ne sait pas ». Six secondes : elle reste. Puis le réseau revient, et « upsilon »
+     en direct — un streamer qui se reconnecte : elle reste, et le constat
+     est oublié. Mutants — un relevé relu compté deux fois ; le retour en
+     direct qui n'efface rien. */
+  const vue = await page.evaluate(async () => {
+    window.__fx.upsilon = null;
+    for (const t0 = Date.now(); Date.now() - t0 < 15_000; await new Promise((f) => setTimeout(f, 20))) {
+      if (window.tse.salle.rapport().horsLigne === 'upsilon') { window.__failNext = 1e6; return true; }
+    }
+    return false;
+  }).catch(() => false);
+  await wait(page, 6_000);
+  const rB = await rapport();
+  await page.evaluate(() => { window.__failNext = 0; }).catch(() => {});
+  await direct('upsilon');
+  const oublie = await tant(() => window.tse.salle.rapport().horsLigne === null, 15_000);
+  await wait(page, 3_000);
+  const rC = await rapport();
+  ok('deux relevés, pas deux lectures du même : le réseau tombé, « upsilon » reste ; revenue en direct, elle reste, et le constat est oublié',
+     vue && rB.membres === 2 && rB.horsLigne === 'upsilon' && rB.retirees === rA.retirees
+     && oublie && rC.membres === 2 && rC.horsLigne === null && rC.retirees === rA.retirees,
+     JSON.stringify({ vue, b: { membres: rB.membres, horsLigne: rB.horsLigne, retirees: rB.retirees },
+                      c: { membres: rC.membres, horsLigne: rC.horsLigne, retirees: rC.retirees } }));
+
+  /* DE DEUX, UN : « phi » s'arrête, la salle se ferme, et l'on arrive sur
+     la page de « upsilon ». Mutant — la salle fermée sans redirection. */
+  await page.evaluate(() => { window.__fx.phi = null; }).catch(() => {});
+  const va = await page.waitForURL(/\/upsilon$/, { timeout: 20_000 }).then(() => true).catch(() => false);
+  await wait(page, 1_500);
+  const rD = await page.evaluate(() => window.tse?.salle?.rapport?.() ?? null).catch(() => null);
+  const salleD = await page.$('#tse-salle').catch(() => null);
+  ok('de deux, un : « phi » partie, la salle se ferme, et l\'on arrive sur la page de « upsilon »',
+     va && new URL(page.url()).pathname === '/upsilon' && rD?.ouverte === false && !salleD,
+     JSON.stringify({ va, url: page.url(), rD }));
+  await page.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

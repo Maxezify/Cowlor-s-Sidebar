@@ -32,6 +32,10 @@ export default [{
       // sessionStorage : la salle traverse par lui le chargement de sa page
       // (4.24.0.8) — le stockage de l'onglet, que les autres ne voient pas.
       sessionStorage:'readonly',
+      // MediaStream et AudioWorkletNode : l'écoute de la salle (4.24.0.22) se
+      // branche sur UNE piste de la capture, et mesure son enveloppe dans un
+      // worklet plutôt que dans le ScriptProcessorNode déprécié.
+      MediaStream:'readonly', AudioWorkletNode:'readonly',
       // `browser` : le namespace de Firefox, celui qui rend des promesses.
       // Chrome ne le définit pas — d'où les gardes `typeof browser` dans
       // panneau.js et background.js, et d'où sa présence ici.

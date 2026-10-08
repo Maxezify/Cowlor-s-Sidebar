@@ -932,21 +932,59 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      compte qu'une seconde après son premier son.
 
      JAMAIS `mozCaptureStream` : sous Firefox, il coupe le son de l'élément. */
+  /* LA CAPTURE SUIT LA PISTE COURANTE (4.24.0.22). Le second rapport réel
+     de la 4.24.0.21 : 702 s d'écoute, ZÉRO calcul, la tuile muette à
+     « silence 100 % ». Mesuré sous Chromium (cf. README) : quand le lecteur
+     CHANGE DE SOURCE — un rechargement de son flux, sans recharger la page —,
+     la capture d'un élément lui AJOUTE une piste ; l'ancienne reste « live »,
+     et muette. La capture restait branchée sur elle, se croyait vivante, et
+     n'entendait plus que du silence. Et deux pièges de plus, mesurés de même :
+     une SECONDE capture du même élément rend la première muette ; arrêter
+     les pistes d'une capture peut rendre muette celle qui lui succède. D'où
+     la règle : une seule capture par élément, branchée sur sa piste la plus
+     récente ; on ne recapture que si l'élément a changé, ou si toutes ses
+     pistes sont finies.
+
+     L'AUDIOWORKLET (4.24.0.22). Chrome signale `ScriptProcessorNode` comme
+     déprécié, et l'inscrit aux erreurs de l'extension — un utilisateur l'a
+     vu. Le module est chargé d'un blob ; si la page le refuse, ou si le
+     navigateur n'a pas d'AudioWorklet, on garde l'ancien nœud. Le rapport dit
+     lequel (`worklet` ou `script`). Même bloc de 1024 échantillons, même
+     niveau, même datation : le rang d'un bloc vient de `currentFrame`, le
+     compte exact des échantillons du contexte — plus juste encore que le rang
+     compté à la main, qui devinait les blocs perdus. */
+  const MODULE_ENVELOPPE = `registerProcessor('tse-enveloppe', class extends AudioWorkletProcessor {
+  constructor() { super(); this.s = 0; this.n = 0; }
+  process(entrees) {
+    const x = entrees[0] && entrees[0][0];
+    const q = x ? x.length : 128;
+    if (x) for (let i = 0; i < q; i++) this.s += x[i] * x[i];
+    this.n += q;
+    if (this.n >= 1024) { this.port.postMessage([currentFrame + q, this.s / this.n]); this.s = 0; this.n = 0; }
+    return true;
+  }
+});`;
   const ecoute = (() => {
     const B = 1024;
-    let actif = false, ac = null, proc = null, nul = null, source = null, flux = null, video = null;
-    let etat = 'inactive', reliaisons = 0, sr = null;
+    let actif = false, ac = null, proc = null, nul = null, source = null, flux = null, video = null, piste = null;
+    let etat = 'inactive', reliaisons = 0, sr = null, voie = null;
     let ancreCour = Infinity, ancrePrec = Infinity, ancreT = 0;
-    // Le rang du bloc, et l'heure audio du précédent pour compter les pertes.
+    // Le rang du bloc, et l'heure audio du précédent pour compter les pertes
+    // (l'ancien nœud seulement : le worklet sait son rang).
     let rang = -1, dernierPt = null;
     // L'amorce d'une capture : pas encore de son, puis les blocs d'une seconde.
     let sonVu = false, amorce = 0;
     let lot = [];
     // Blocs et blocs silencieux, par seconde, sur les dix dernières.
     let secondes = [], blocs = 0, muets = 0;
-    const detacher = () => {
+    // Le branchement seul ; la capture, elle, reste.
+    const debrancher = () => {
       try { if (source) source.disconnect(); } catch { /* ignore */ }
-      source = null;
+      source = null; piste = null;
+    };
+    // La capture entière : seulement si l'élément a changé, ou à l'arrêt.
+    const detacher = () => {
+      debrancher();
       if (flux) for (const p of flux.getTracks()) { try { p.stop(); } catch { /* ignore */ } }
       flux = null; video = null;
     };
@@ -954,64 +992,111 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const v = document.querySelector('video');
       if (!v) { etat = 'sans-video'; return; }
       if (typeof v.captureStream !== 'function') { etat = 'indisponible'; return; }
-      const piste = flux && flux.getAudioTracks()[0];
-      if (v === video && source && piste && piste.readyState === 'live') return;
-      // Élément remplacé, piste finie, ou pas encore de son : on recapture.
-      detacher();
-      try { flux = v.captureStream(); } catch (e) { etat = `erreur:${(e && e.name) || 'capture'}`; return; }
-      video = v;
-      if (!flux.getAudioTracks().length) { etat = 'sans-piste'; return; }
+      // Le nœud n'est pas encore là (le module se charge) : au prochain relevé.
+      if (!proc) return;
+      if (v !== video) {
+        detacher();
+        try { flux = v.captureStream(); } catch (e) { etat = `erreur:${(e && e.name) || 'capture'}`; return; }
+        video = v;
+      }
+      const vivantes = flux.getAudioTracks().filter((p) => p.readyState === 'live');
+      const derniere = vivantes[vivantes.length - 1] || null;
+      if (!derniere) {
+        // Aucune piste vivante — pas encore de son, ou une source finie : on
+        // lâche cette capture, ses pistes arrêtées AVANT d'en prendre une
+        // autre (cf. plus haut), et on recapture au prochain relevé.
+        detacher();
+        etat = 'sans-piste';
+        return;
+      }
+      if (derniere === piste && source) return;
+      debrancher();
       try {
-        source = ac.createMediaStreamSource(flux);
+        source = ac.createMediaStreamSource(new MediaStream([derniere]));
         source.connect(proc);
+        piste = derniere;
         reliaisons += 1;
         sonVu = false; amorce = Math.ceil(sr / B);
-      } catch (e) { etat = `erreur:${(e && e.name) || 'source'}`; source = null; }
+      } catch (e) { etat = `erreur:${(e && e.name) || 'source'}`; source = null; piste = null; }
     };
-    const surBloc = (e) => {
-      const mur = Date.now();
-      const periode = (B / sr) * 1000;
-      // Un bloc de plus — ou plusieurs, si l'horloge audio a sauté (blocs perdus).
-      rang += dernierPt === null ? 1 : Math.max(1, Math.round(((e.playbackTime - dernierPt) * 1000) / periode));
-      dernierPt = e.playbackTime;
-      const finBloc = (rang + 1) * periode;
+    // Un bloc de 1024 échantillons fini : `finMs`, sa fin en ms d'horloge audio.
+    const surFin = (finMs, puissance, mur) => {
       if (mur - ancreT > 10_000) { ancrePrec = ancreCour; ancreCour = Infinity; ancreT = mur; }
-      ancreCour = Math.min(ancreCour, mur - finBloc);
+      ancreCour = Math.min(ancreCour, mur - finMs);
       const ancre = Math.min(ancreCour, ancrePrec);
-      const x = e.inputBuffer.getChannelData(0);
-      let s = 0;
-      for (let i = 0; i < x.length; i++) s += x[i] * x[i];
       // log10 de la puissance moyenne : -8 est le plancher, -7 ≈ -70 dBFS.
-      const niveau = Math.log10(s / x.length + 1e-8);
+      const niveau = Math.log10(puissance + 1e-8);
       blocs += 1;
       if (niveau < -7) muets += 1;
       if (!sonVu) { if (niveau < -7) return; sonVu = true; }
       if (amorce > 0) { amorce -= 1; return; }
       // Le milieu du bloc, au dixième de milliseconde.
-      lot.push([Math.round((ancre + (rang + 0.5) * periode) * 10) / 10, Math.round(niveau * 1000) / 1000]);
+      lot.push([Math.round((ancre + finMs - ((B / sr) * 1000) / 2) * 10) / 10, Math.round(niveau * 1000) / 1000]);
       // Borné : si la salle ne relève plus (onglet gelé), on garde le plus récent.
       if (lot.length > 600) lot.splice(0, lot.length - 600);
     };
+    // L'ancien nœud : un bloc de plus — ou plusieurs, si l'horloge audio a sauté (blocs perdus).
+    const surBloc = (e) => {
+      const mur = Date.now();
+      const periode = (B / sr) * 1000;
+      rang += dernierPt === null ? 1 : Math.max(1, Math.round(((e.playbackTime - dernierPt) * 1000) / periode));
+      dernierPt = e.playbackTime;
+      const x = e.inputBuffer.getChannelData(0);
+      let s = 0;
+      for (let i = 0; i < x.length; i++) s += x[i] * x[i];
+      surFin((rang + 1) * periode, s / x.length, mur);
+    };
     const demarrer = () => {
       actif = true;
+      voie = null;
       const AC = window.AudioContext;
       if (!AC) { etat = 'indisponible'; return; }
+      let ctx;
       try {
-        ac = new AC();
+        ctx = ac = new AC();
         sr = ac.sampleRate;
-        proc = ac.createScriptProcessor(B, 1, 1);
         nul = ac.createGain();
         nul.gain.value = 0;
-        proc.connect(nul);
         nul.connect(ac.destination);
-        proc.onaudioprocess = surBloc;
       } catch (e) { etat = `erreur:${(e && e.name) || 'contexte'}`; ac = null; return; }
-      relier();
+      const parScript = (pourquoi) => {
+        if (ac !== ctx) return;
+        try {
+          proc = ac.createScriptProcessor(B, 1, 1);
+          proc.onaudioprocess = surBloc;
+          proc.connect(nul);
+        } catch (e) { etat = `erreur:${(e && e.name) || 'processeur'}`; proc = null; return; }
+        voie = pourquoi ? `script (${pourquoi})` : 'script';
+        relier();
+      };
+      if (!ac.audioWorklet || typeof AudioWorkletNode !== 'function') { parScript('sans worklet'); return; }
+      // Le rapport dit qu'on attend le module, plutôt qu'« inactive ».
+      etat = 'module';
+      let url = null;
+      try { url = URL.createObjectURL(new Blob([MODULE_ENVELOPPE], { type: 'application/javascript' })); } catch { parScript('sans blob'); return; }
+      ac.audioWorklet.addModule(url).then(() => {
+        if (ac !== ctx) return;
+        try {
+          proc = new AudioWorkletNode(ac, 'tse-enveloppe', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
+                                                              channelCount: 1, channelCountMode: 'explicit' });
+          proc.port.onmessage = (m) => { const [fin, puissance] = m.data; surFin((fin / sr) * 1000, puissance, Date.now()); };
+          proc.connect(nul);
+        } catch (e) { proc = null; parScript(`nœud refusé : ${(e && e.name) || 'erreur'}`); return; }
+        voie = 'worklet';
+        relier();
+      }).catch((e) => parScript(`module refusé : ${(e && e.name) || 'erreur'}`))
+        .finally(() => { try { URL.revokeObjectURL(url); } catch { /* ignore */ } });
     };
     const arreter = () => {
       actif = false;
       detacher();
-      try { if (proc) { proc.onaudioprocess = null; proc.disconnect(); } } catch { /* ignore */ }
+      try {
+        if (proc) {
+          if (proc.port) proc.port.onmessage = null;
+          else proc.onaudioprocess = null;
+          proc.disconnect();
+        }
+      } catch { /* ignore */ }
       try { if (nul) nul.disconnect(); } catch { /* ignore */ }
       try { if (ac) ac.close(); } catch { /* ignore */ }
       ac = null; proc = null; nul = null; lot = []; secondes = []; blocs = 0; muets = 0;
@@ -1036,7 +1121,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (!actif) return { etat };
       const b = secondes.reduce((x, y) => x + y[0], 0);
       const m = secondes.reduce((x, y) => x + y[1], 0);
-      return { etat, sr, reliaisons, blocs: b, silence: b ? Math.round((m / b) * 100) / 100 : null };
+      return { etat, sr, reliaisons, voie, pistes: flux ? flux.getAudioTracks().length : 0,
+               blocs: b, silence: b ? Math.round((m / b) * 100) / 100 : null };
     };
     const prendre = () => { const l = lot; lot = []; return l; };
     return { tenir, bilan, prendre };
@@ -1125,7 +1211,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      l'exécute — sur CETTE tuile quand la commande n'en nomme pas — et renvoie
      sa réponse, affichée ici. Les arguments ne passent que s'ils sont
      simples ; la salle ne reçoit que de ses propres tuiles (cf. surMessage),
-     et ses commandes restent bornées. `aligner` depuis la 4.24.0.15. */
+     et ses commandes restent bornées. */
   if (role === 'salle') {
     let numeroConsole = 0;
     const simple = (x) => (x === null || x === undefined || ['number', 'string', 'boolean'].includes(typeof x) ? x : String(x));
@@ -3622,6 +3708,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // l'arrivée dans l'onglet (sessionStorage), vingt secondes au plus.
     SALLE_PAGE:            '/directory',
     SALLE_ATTENTE_MS:      20_000,
+    // LE STREAM QUI S'ARRÊTE (4.24.0.22) : chaque membre relu toutes les
+    // trente secondes auprès de Twitch ; hors ligne deux fois, à vingt-cinq
+    // secondes d'écart au moins, il quitte la salle.
+    SALLE_DIRECTS_MS:      30_000,
+    SALLE_HORS_LIGNE_MS:   25_000,
     // LA SONDE DU MÊME INSTANT (4.24.0.11). Cinq minutes de relevés par
     // tuile, un par seconde ; un saut, c'est une latence qui s'écarte de plus
     // d'une demi-seconde de ce que la vitesse et la pause laissaient attendre.
@@ -14296,8 +14387,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const d = disposer(c.membres.length, z.largeur, z.hauteur, c.chatVoulu);
       c.disposition = d;
       const dedans = [];
-      if (c.son && c.tuiles.some((t) => t.chaine === c.son)) dedans.push(c.son);
-      for (const t of c.tuiles) if (dedans.length < d.n && !dedans.includes(t.chaine)) dedans.push(t.chaine);
+      // Un membre retiré (4.24.0.22) n'y reste pas, même s'il avait le son.
+      if (c.son && c.membres.includes(c.son) && c.tuiles.some((t) => t.chaine === c.son)) dedans.push(c.son);
+      for (const t of c.tuiles) {
+        if (dedans.length < d.n && c.membres.includes(t.chaine) && !dedans.includes(t.chaine)) dedans.push(t.chaine);
+      }
       for (const m of c.membres) if (dedans.length < d.n && !dedans.includes(m)) dedans.push(m);
       for (const t of [...c.tuiles]) {
         if (dedans.includes(t.chaine)) continue;
@@ -14928,6 +15022,82 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     const surRedim = () => { if (courante) disposerSalle(); };
 
+    /* ── LE STREAM QUI S'ARRÊTE (4.24.0.22) ──────────────────────────────────
+       À la demande : un stream qui passe hors ligne quitte la salle — trois
+       deviennent deux, la grille se refait ; de deux, la salle se ferme sur
+       la page de celui qui reste.
+
+       LA PREUVE EST CELLE DE TWITCH, PAS CELLE DU LECTEUR. Un lecteur qui
+       cale, qui recharge son flux, qui reste deux secondes sans image
+       ressemble à un stream fini — les rapports réels en sont pleins, et pas
+       un de ces streams n'avait fini. Chaque membre est donc relu toutes les
+       trente secondes par la requête anonyme qui tient la barre à jour
+       (fetchChannel, groupée avec elle ; une entrée fraîche est servie sans
+       requête). « On ne sait pas » — réseau coupé, réponse inexploitable,
+       extinction de masse écartée — ne compte pour rien. Hors ligne DEUX
+       fois, à vingt-cinq secondes d'écart au moins — deux relevés, pas deux
+       lectures du même —, il est retiré ; un streamer qui se reconnecte
+       entre-temps reste. */
+    const surveillerDirects = (c) => {
+      const maintenant = Date.now();
+      if (maintenant - c.directsT < CFG.SALLE_DIRECTS_MS) return;
+      c.directsT = maintenant;
+      for (const login of c.membres) {
+        const frais = getFreshChannel(login);
+        (frais ? Promise.resolve(frais) : fetchChannel(login))
+          .then((e) => jugerDirect(c, login, e)).catch(() => {});
+      }
+    };
+    const jugerDirect = (c, login, e) => {
+      if (courante !== c || !c.membres.includes(login)) return;
+      if (!e || e === UPTIME_UNKNOWN || !Number.isFinite(e.ts)) return;
+      if (e.stream) { c.horsLigne.delete(login); return; }
+      const premier = c.horsLigne.get(login);
+      if (premier === undefined) {
+        c.horsLigne.set(login, e.ts);
+        noter(c, login, 'hors ligne selon Twitch — à confirmer');
+        return;
+      }
+      if (e.ts - premier >= CFG.SALLE_HORS_LIGNE_MS) retirerMembre(c, login);
+    };
+    // Ce que le calage savait de lui : ses paires, ses états — et la référence, si c'était elle.
+    const oublierAuCalage = (c, login) => {
+      for (const cle of Object.keys(c.ecoute.paires)) {
+        if (cle.split('~').includes(login)) delete c.ecoute.paires[cle];
+      }
+      const k = c.calage;
+      if (k) for (const m of [k.vus, k.etats, k.coups, k.gel, k.faible, k.dits, k.deplacements]) delete m[login];
+      if (c.ecoute.ref === login && c.ecoute.actif) {
+        // L'écoute repart sur celle qui a désormais le son.
+        ecoute(false); ecoute(true);
+        if (k) {
+          repartir(k); k.sonAilleurs = null;
+          if (k.etat === 'actif') journaliser(c, k, `référence nouvelle : ${c.ecoute.ref || '—'} (la tuile qui a le son), tout se remesure`);
+        }
+      }
+    };
+    const retirerMembre = (c, login) => {
+      c.horsLigne.delete(login);
+      c.membres = c.membres.filter((m) => m !== login);
+      c.retirees.push({ chaine: login, t: Date.now() });
+      noter(c, login, 'hors ligne — retirée de la salle');
+      if (c.calage && c.calage.etat === 'actif') journaliser(c, c.calage, `${login} : hors ligne — retirée de la salle`);
+      // Seul ou personne : la salle n'a plus d'objet. Seul, on va sur sa page.
+      if (c.membres.length <= 1) {
+        const restant = c.membres[0] || null;
+        fermer('hors-ligne');
+        if (restant) location.assign(`/${encodeURIComponent(restant)}`);
+        return;
+      }
+      c.titre.textContent = S.uiSalleTitre(c.membres.length);
+      c.boite.setAttribute('aria-label', S.uiSalleTitre(c.membres.length));
+      // Les chats se comparent de nouveau : la paire n'est peut-être plus la même.
+      c.partage = null; c.textes.clear(); c.comparaison = null;
+      disposerSalle();
+      oublierAuCalage(c, login);
+      if (auChangement) auChangement();
+    };
+
     const pas = () => {
       const c = courante;
       if (!c) return;
@@ -14937,6 +15107,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (location.pathname !== c.chemin) { fermer('navigation'); return; }
       if (zone().cle !== c.zoneCle) disposerSalle();
       comparerChats();
+      surveillerDirects(c);
       sonder(c);
       caler(c);
       // La vidéo de la page reste en pause tant que la salle est ouverte, même
@@ -15243,6 +15414,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         arriveeMs: c.arriveeMs,
         empilement: c.empilement,
         membres: c.membres.length,
+        // Les streams partis hors ligne, retirés de la salle (4.24.0.22), et
+        // ceux que Twitch a dits hors ligne une fois, à confirmer.
+        retirees: c.retirees.map((r) => `${r.chaine} à +${Math.round((r.t - c.t0) / 1000)} s`).join(' · ') || null,
+        horsLigne: [...c.horsLigne.keys()].join(' ') || null,
         grille: d.n ? `${d.cols}×${d.rangs} · ${d.l}×${d.h}` : null,
         deborde: !!d.deborde,
         banc: c.membres.filter((m) => !c.tuiles.some((t) => t.chaine === m)).join(' ') || null,
@@ -15313,7 +15488,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           plagesForme: t.plagesForme ?? null,
           ecoute: t.ecouteEtat ? [t.ecouteEtat.etat, t.ecouteEtat.sr ? `${t.ecouteEtat.sr} Hz` : null,
             Number.isFinite(t.ecouteEtat.silence) ? `silence ${Math.round(t.ecouteEtat.silence * 100)} %` : null,
-            Number.isFinite(t.ecouteEtat.reliaisons) ? `reliée ${t.ecouteEtat.reliaisons}` : null]
+            Number.isFinite(t.ecouteEtat.reliaisons) ? `reliée ${t.ecouteEtat.reliaisons}` : null,
+            // 4.24.0.22 : la voie de la mesure, et les pistes que la capture a vues — une de plus à chaque source.
+            typeof t.ecouteEtat.voie === 'string' ? t.ecouteEtat.voie : null,
+            Number.isFinite(t.ecouteEtat.pistes) ? `pistes ${t.ecouteEtat.pistes}` : null]
             .filter(Boolean).join(' · ') : null,
           // Les ordres « son » envoyés depuis qu'elle l'a reçu, et s'il a tenu.
           sonEssais: t.sonEssais,
@@ -15567,6 +15745,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         ecoute: { actif: false, depuis: null, calculs: 0, paires: {}, ref: null, coupe: null },
         // Le calage par le son (4.24.0.21).
         calage: null,
+        // Les streams qui s'arrêtent (4.24.0.22) : la dernière relecture, le
+        // premier constat « hors ligne » de chacun, et ceux qui sont partis.
+        titre, directsT: 0, horsLigne: new Map(), retirees: [],
       };
       window.addEventListener('message', surMessage);
       window.addEventListener('resize', surRedim);
