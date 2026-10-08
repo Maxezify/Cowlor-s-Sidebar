@@ -2268,14 +2268,16 @@ really is: sound does not always hear it.
 | the lowest voice; voices linked at 450 ms (2) | 185: −4490 in the fourteenth, −300 in the ninth, 660 — A's voice — in the twelfth; in the fourteenth, "une source seule, à −4490 ms", nothing |
 | the lone source followed up to 5 s; the channel balance at zero (2) | 185: in the eighth, the echo decided at 1040 ms; in the ninth, the echo at 1110 |
 | the agreement of two verdicts removed (1) | 185: decided at computation 42 instead of 43, at 8, at 16 — on a single verdict |
-| no hold; the old hold, in-sync tiles only, both ways (2) | 185: a checked tile moves down to the voice below, an in-sync one no longer moves up; 182, no hold: after the drop, four corrections — down, then up twice |
+| no hold; the old hold, in-sync tiles only, both ways (2) | 185: a checked tile moves down to the voice below, an in-sync one no longer moves up; 182, no hold: its highest voice quiet, the pair moves down to the one below, 0.16 s then 0.14 |
 | low latency never removed; the low-latency tile stepped back anyway; the skip without the buffer margin (3) | 183: "india" never steps back; "juliett" moved back 1.1 s, which its player takes back; "xray" skipped 0.68 s on 1.8 s of buffer |
 | no limit (1) | 184: five corrections in five minutes, never "laissée là" |
 
 Fourteen mutants, fourteen caught. On the first run, two were caught only
 by chance — the agreement removed, through a window missing the highest
 voice; the old hold, not at all in 183: they are now caught in 185, every time, the rule
-extracted from the code and judged on fixed verdicts.
+extracted from the code and judged on fixed verdicts. The 182 and 183
+mutants were replayed on the final version of those tests: the same ones
+fall, except those two, which 185 catches.
 
 ### What this version does not know yet
 

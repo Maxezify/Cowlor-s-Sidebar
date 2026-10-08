@@ -2392,7 +2392,7 @@ la plus haute voix : le son ne l'entend pas toujours.
 | la plus basse voix ; les voix liées à 450 ms (2) | 185 : −4490 au quatorzième, −300 au neuvième, 660 — la voix de A — au douzième ; au quatorzième, « une source seule, à −4490 ms », rien |
 | la source seule suivie jusqu'à 5 s ; l'équilibre du salon à zéro (2) | 185 : au huitième, l'écho décidé à 1040 ms ; au neuvième, l'écho à 1110 |
 | l'accord de deux verdicts retiré (1) | 185 : décidé au 42ᵉ calcul au lieu du 43ᵉ, au 8ᵉ, au 16ᵉ — sur un seul verdict |
-| pas de tenue ; la tenue d'avant, la seule tuile calée, dans les deux sens (2) | 185 : une tuile vérifiée redescend vers la voix d'en dessous, une calée ne monte plus ; 182, sans tenue : après la chute, quatre corrections — descendre, puis remonter deux fois |
+| pas de tenue ; la tenue d'avant, la seule tuile calée, dans les deux sens (2) | 185 : une tuile vérifiée redescend vers la voix d'en dessous, une calée ne monte plus ; 182, sans tenue : sa plus haute voix tue, la paire descend vers celle d'en dessous, 0,16 s puis 0,14 |
 | la faible latence jamais retirée ; la tuile en faible latence reculée quand même ; l'avance sans la marge du tampon (3) | 183 : « india » ne recule jamais ; « juliett » reculée de 1,1 s, que son lecteur reprend ; « xray » avancé de 0,68 s sur 1,8 s de tampon |
 | pas de limite (1) | 184 : cinq corrections en cinq minutes, jamais « laissée là » |
 
@@ -2400,6 +2400,8 @@ Quatorze mutants, quatorze pris. Au premier tour, deux ne l'étaient que
 par le tirage — l'accord retiré, par une fenêtre où manquait la plus haute
 voix ; la tenue d'avant, pas du tout au 183 : ils le sont désormais au 185,
 à chaque fois, la règle extraite du code et jugée sur des verdicts posés.
+Les mutants du 182 et du 183 ont été rejoués sur la version finale de ces
+tests : les mêmes tombent, sauf ces deux-là, que le 185 prend.
 
 ### Ce que cette version ne sait pas encore
 
