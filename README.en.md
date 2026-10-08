@@ -2059,6 +2059,155 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Three streams: what is in sync follows the reference (v4.24.0.23)
+
+Three real reports on 4.24.0.22, opened from the node. Two streams, twelve
+minutes: "very satisfied, I see no offset in the lips". Three streams, ten
+minutes: one offset at first, then in sync with the reference after a few
+minutes — "a pity the third stays 1 or even 2 seconds ahead for the whole
+report"; then the same room at twenty-two minutes: "the three streams look
+perfectly in sync". And the instruction: "we should see whether with three
+streamers, or more, calibration works well for everyone". Two more
+requests: above a shared chat, say where the sound is rather than "… 's
+chat"; and nothing on the players any more — "the player with the sound is
+outlined in purple, which is enough". Published on `claude/chrome-multi`
+only.
+
+### What the reports establish
+
+**1. The AudioWorklet works on real Twitch.** Every tile of the three
+reports says `worklet · pistes 1`: Twitch's player accepts the module, and
+the "ScriptProcessorNode is deprecated" warning does not come back. And not
+one source change in these sessions — one track each.
+
+**2. Two streams: in sync.** Low latency removed from both ("the player says
+no"); at +75 s, the muted tile 0.50 s behind — the reference steps back
+0.38 s; in sync at +145 s. At +680 s, a higher voice appeared, at +0.20 s:
+the muted tile steps back 0.08 s; in sync at +740 s. The chat, shared,
+proven by its messages (98, 48 in common).
+
+**3. Three streams: the tile left behind by the reference.** **A**, the
+reference; **B** and **C**, muted.
+
+| when | what happened |
+| --- | --- |
+| +5 s | low latency removed from B and C |
+| before +70 s | B: "a single source, at −1.94 s — an echo, perhaps": nothing moves — the offset the eye saw at first |
+| +70 s | C 0.56 s behind → **A steps back 0.44 s**; C under verification |
+| +125 s | B 1.35 s behind → **A steps back 1.23 s** — and C, with no verdict at that calculation (five clean calculations of the eight required since the previous step back), **stays where it is: 1.4 s ahead** |
+| +130 → +590 s | C: "a single source, at 1.4 s — an echo, perhaps: nothing moves", **81 calculations out of 82** |
+| +295 s | B 0.19 s ahead → B steps back 0.07 s |
+| +590 s | a second voice of C, heavy enough at last: C 1.69 s ahead → C steps back 1.57 s |
+| +640 → +1335 s | in sync; nothing more, eleven minutes long |
+
+The echo rule is not wrong: an echo has never been seen under a second, and
+a single source at 1.4 s is a candidate. But that offset was **created by
+calibration itself**, stepping the reference back without taking along what
+was already in sync with it. With two streams there is nothing to take
+along; with three or more, the reference steps back once per tile behind,
+and each time everything already in sync stayed behind.
+
+### What this version does
+
+1. **What is in sync follows the reference.** In sync or under
+   verification, a tile has a known relation to the reference — to within
+   zero. When the reference steps back for another tile, such a tile with
+   no verdict at that calculation steps back with it, by the same amount,
+   in the same move — "(suit la référence)" in the journal —, then gets
+   verified again: each player stalls a little in its own way. A free tile
+   — about which nothing is known — stays, and is measured again.
+2. **A relation that playback has changed is no longer known.** A reload, a
+   stall, a jump, the end of a catch-up: the tile becomes free again — it
+   would no longer follow the reference on the strength of a relation that
+   no longer holds. If it is the reference, all of them.
+3. **Three corrections at most, per relation.** Counted against the tile
+   whose relation to the reference changes — whether it moves, or the
+   reference comes to it —, no longer against the tile that moves. With
+   three streams or more the reference steps back for each one: counting it
+   would have stopped it before it reached the last one.
+4. **Above a shared chat, where the sound is.** "Sound: X" instead of "X's
+   chat" — Twitch already puts its "Shared Chat" banner there —, and the
+   header follows the sound. The chat itself stays when the sound moves: it
+   is the same for everyone, and reloading it cost its messages to show the
+   same ones. Without a shared chat, each column keeps "X's chat". In the
+   report: `chatTitre`.
+5. **Nothing on the players.** No more "1 · channel · Sound" label, no more
+   "Ad" badge laid over the picture: the purple outline marks the tile with
+   the sound, Twitch shows its own ad — the report still counts it. Keys 1
+   to 6 still give the sound, in the grid's reading order. The transparent
+   catcher that receives the click stays.
+
+### With three streams or more, what to expect
+
+A tile's first decision takes about a minute of listening: eight clean
+calculations, two agreeing verdicts. The reference may step back once per
+tile behind — and each time, what was in sync follows it instead of staying
+behind. A tile whose only shared sound is a single, distant source is still
+treated as a possible echo: it does not move, and the report says so.
+
+### What the bench measures
+
+- **188** — three streams: "mike", one voice 0.3 s behind, decided first —
+  the reference steps back —; it falls silent; "lima", a voice chat 2.9 to
+  3.2 s behind, decided next: the reference steps back 2.44 s, and "mike",
+  under verification and without a verdict, by the same amount in the same
+  move; two corrections; the sound back, everything is in sync, the voices
+  truly at zero, no "single source" in the journal — the reference reading
+  its position a moment late, like a real player, without a reload counted.
+  Then "mike"'s player
+  reloads: free, measured again, back in sync without a move.
+- **185** — the three-stream report replayed, at full strictness: the pair
+  left ahead is "a single source" 81 calculations out of 82, and decided at
+  the 114th only — what 188 now prevents.
+- **177** — above the shared chat: "Son : sa", then "Son : sb" when the
+  sound moves to the other tile, the chat kept without reloading; without
+  sharing, "Chat de …" on each side.
+- **175** — tiles carry only their player and their catcher, ads included;
+  the ad still seen and counted.
+
+### What the bench found
+
+- **A step back taken for a reload.** In 182, on the first round, the
+  reference stepped back 4 s; its player returned its position a moment
+  late, and the probe read a reload into it (49.96 → 46.74 s) — a false
+  positive older than this version, harmless until now: measurement
+  restarted, as after any step back. A reload now unlinks tiles: the tile
+  under verification lost its hold, and the room went down to the voice
+  below, three corrections for one. The probe no longer reads a reload
+  into a wanted step back under 2.5 s old, when the position has not gone
+  back further than the step requested, plus a second. And the fake player
+  can now return its position late, like a real one (`__seekLent`): in
+  188, the old rule counts a reload of the reference.
+- **Expectations too narrow.** 183 wanted "xray 0.5–0.6 s behind"; the first
+  message came on another voice of the same voice chat, 0.46 s. 188 only
+  admitted "lima" moving up a voice at the start of a line; it comes after
+  "mike avec la référence". Both now judge what matters.
+- **A one-second stall, on a single voice.** On 188's first try, "mike", one
+  voice, lost 1 s of playback: at −0.97 s, a single source — the echo rule
+  leaves it alone, rightly. 188 now unlinks through a reload, which moves
+  nothing.
+
+| mutants | what falls |
+| --- | --- |
+| the tile in sync left behind (1) | 188: "lima" decided, the reference steps back alone; "mike", its sound back: "a single source, at 1620 ms — an echo, perhaps: nothing moves" — the three-stream report, replayed |
+| a free tile taken along too (1) | 188: "lima", silent and unknown, stepped back with the reference for "mike" |
+| corrections counted against the tile that moves, the reference included (1) | 188: five corrections for two relations |
+| a reload that leaves the tile "in sync" (1) | 188: "mike" never free after its reload |
+| the reference's step back taken for a reload (1) | 188: a reload counted on the reference — and everything unlinked |
+| the "X's chat" header above the shared chat; the chat reloaded when the sound moves (2) | 177: "Chat de sa"; "sb"'s chat reloaded, its messages lost |
+| a label back on the players (1) | 175: three tiles carrying more than their player and their catcher |
+
+Eight mutants, eight caught; the step back taken for a reload, only since
+the fake player returns its position late — in 182 it fell only depending
+on the moment of the reading.
+
+### For the next report
+
+1. A room with three streams or more, opened from the node; ten minutes.
+2. In the calibration journal, the "(suit la référence)" moves, and
+   `calage.tuiles`: calée, vérification or libre.
+3. On a shared chat, the header — and `chatTitre` in the report.
+
 ## The capture that follows the track, and the stream that ends (v4.24.0.22)
 
 Two real reports on 4.24.0.21, opened from the node, one after the other.
@@ -15671,7 +15820,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 187 scenarios, 1600 assertions |
+| `npm test` | the Playwright harness: 188 scenarios, 1605 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -15691,7 +15840,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1539 KB | 614 KB | 4,004 → **2** |
+| `content.js` | 1539 KB | 614 KB | 4,012 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

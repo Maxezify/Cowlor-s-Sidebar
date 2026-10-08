@@ -2180,6 +2180,158 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Trois streams : ce qui est calé suit la référence (v4.24.0.23)
+
+Trois rapports réels sur la 4.24.0.22, ouverts par le nœud. Deux streams,
+douze minutes : « très satisfait, je ne vois aucun décalage au niveau des
+lèvres ». Trois streams, dix minutes : l'un décalé au début, puis calé avec
+la référence au bout de quelques minutes — « dommage que le troisième reste
+sur l'ensemble du rapport à 1 voire 2 secondes d'avance » ; puis, la même
+salle à vingt-deux minutes : « les trois streams semblent parfaitement
+calés ». Et la consigne : « il faudrait voir si à trois streamers, voire
+plus, le calage puisse bien fonctionner pour tout le monde ». Deux demandes
+de plus : au-dessus d'un chat partagé, dire où est le son plutôt que
+« Chat de … » ; et plus rien sur les lecteurs — « le lecteur avec le son est
+entouré en violet, ce qui est suffisant ». Publiée sur `claude/chrome-multi`
+seulement.
+
+### Ce que les rapports établissent
+
+**1. L'AudioWorklet passe sur le vrai Twitch.** Chaque tuile des trois
+rapports dit `worklet · pistes 1` : le lecteur de Twitch accepte le module,
+l'avertissement « ScriptProcessorNode is deprecated » ne revient pas. Et pas
+un changement de source dans ces sessions — une piste chacune.
+
+**2. Deux streams : calés.** La faible latence retirée aux deux (« le lecteur
+dit non ») ; à +75 s, la muette 0,50 s en retard — la référence recule de
+0,38 s ; calée à +145 s. À +680 s, une voix plus haute apparue, à +0,20 s :
+la muette recule de 0,08 s ; calée à +740 s. Le chat, partagé, prouvé par
+ses messages (98, dont 48 en commun).
+
+**3. Trois streams : la tuile laissée derrière par la référence.** **A**, la
+référence ; **B** et **C**, muettes.
+
+| quand | ce qui s'est passé |
+| --- | --- |
+| +5 s | faible latence retirée à B et C |
+| avant +70 s | B : « une source seule, à −1,94 s — un écho, peut-être » : rien ne bouge — c'est le décalage que l'œil a vu au début |
+| +70 s | C en retard de 0,56 s → **A recule de 0,44 s** ; C vérifiée |
+| +125 s | B en retard de 1,35 s → **A recule de 1,23 s** — et C, sans verdict à ce calcul-là (cinq calculs nets sur les huit exigés depuis le recul d'avant), **reste où elle est : 1,4 s d'avance** |
+| +130 → +590 s | C : « une source seule, à 1,4 s — un écho, peut-être : rien ne bouge », **81 calculs sur 82** |
+| +295 s | B en avance de 0,19 s → B recule de 0,07 s |
+| +590 s | une seconde voix de C, assez lourde enfin : C en avance de 1,69 s → C recule de 1,57 s |
+| +640 → +1335 s | calée ; plus rien, onze minutes durant |
+
+La règle de l'écho n'est pas fausse : un écho n'a jamais été vu à moins
+d'une seconde, et une source seule à 1,4 s en est un candidat. Mais ce
+décalage-là, c'est **le calage lui-même qui l'avait créé**, en reculant la
+référence sans emmener ce qui était déjà calé avec elle. À deux streams, il
+n'y a rien à emmener ; à trois et plus, la référence recule une fois par
+tuile en retard, et chaque fois tout ce qui était calé restait derrière.
+
+### Ce que fait cette version
+
+1. **Ce qui est calé suit la référence.** Calée ou vérifiée, une tuile a une
+   relation connue à la référence — à zéro près. Quand la référence recule
+   pour une autre, une telle tuile sans verdict à ce calcul recule avec
+   elle, du même pas, dans le même geste — « (suit la référence) » au
+   journal —, puis se vérifie : chaque lecteur cale un peu à sa façon. Une
+   tuile libre — dont on ne sait rien — reste, et se mesure de nouveau.
+2. **Une relation que la lecture a changée n'est plus connue.** Un
+   rechargement, une chute, un saut, la fin d'un rattrapage : la tuile
+   redevient libre — elle ne suivrait plus la référence sur la foi d'une
+   relation qui n'est plus. Si c'est la référence, toutes.
+3. **Trois corrections au plus, par relation.** Comptées à la tuile dont la
+   relation à la référence change — qu'elle bouge, ou que la référence
+   vienne à elle —, plus à la tuile qui bouge. À trois streams et plus, la
+   référence recule pour chacune : la compter elle-même l'aurait arrêtée
+   avant d'avoir rejoint la dernière.
+4. **Au-dessus d'un chat partagé, où est le son.** « Son : X » au lieu de
+   « Chat de X » — Twitch y pose déjà son bandeau « Chat partagé » —, et
+   l'en-tête suit le son. Le chat, lui, reste quand le son change : c'est le
+   même pour tous, le recharger lui coûtait ses messages pour afficher les
+   mêmes. Sans chat partagé, chaque colonne garde « Chat de X ». Au rapport :
+   `chatTitre`.
+5. **Rien sur les lecteurs.** Plus d'étiquette « 1 · chaîne · Son », plus de
+   pastille « Pub » posées sur l'image : le contour violet désigne la tuile
+   qui a le son, Twitch dit sa pub — le rapport la compte toujours. Les
+   touches 1 à 6 donnent toujours le son, dans l'ordre de lecture de la
+   grille. Reste la prise, transparente, qui reçoit le clic.
+
+### À trois streams et plus, à quoi s'attendre
+
+La première décision d'une tuile demande une minute environ d'écoute : huit
+calculs nets, deux verdicts d'accord. La référence peut reculer une fois par
+tuile en retard — et chaque fois, ce qui était calé la suit au lieu de
+rester derrière. Une tuile n'entendant de commun qu'une source seule, loin,
+reste tenue pour un écho possible : elle ne bouge pas, et le rapport le
+dit.
+
+### Ce que le banc mesure
+
+- **188** — trois streams : « mike », une voix 0,3 s en retard, décidée la
+  première — la référence recule — ; elle se tait ; « lima », un salon
+  2,9 à 3,2 s derrière, décidée ensuite : la référence recule de 2,44 s, et
+  « mike », vérifiée et sans verdict, du même pas dans le même geste ; deux
+  corrections ; le son revenu, tout est calé, les voix vraiment à zéro,
+  sans « source seule » au journal — la référence lisant sa position un
+  instant en retard, comme un vrai lecteur, sans un rechargement compté.
+  Puis le lecteur de « mike » recharge :
+  libre, remesurée, recalée sans un geste.
+- **185** — le rapport à trois streams rejoué, à l'exigence entière : la
+  paire laissée en avance est « une source seule » 81 calculs sur 82, et
+  décidée au 114ᵉ seulement — ce que 188 empêche désormais.
+- **177** — au-dessus du chat partagé : « Son : sa », puis « Son : sb »
+  quand le son passe à l'autre tuile, le chat gardé sans rechargement ;
+  sans partage, « Chat de … » de chaque côté.
+- **175** — les tuiles ne portent que leur lecteur et leur prise, pub
+  comprise ; la pub toujours vue et comptée.
+
+### Ce que le banc a trouvé
+
+- **Un recul pris pour un rechargement.** Au 182, au premier tour, la
+  référence a reculé de 4 s ; son lecteur a rendu sa position un instant
+  en retard, et la sonde y a lu un rechargement (49,96 → 46,74 s) — un faux
+  positif d'avant cette version, sans conséquence jusque-là : la mesure
+  repartait, comme après tout recul. Un rechargement délie désormais les
+  tuiles : la tuile vérifiée a perdu sa tenue, et la salle est redescendue
+  vers la voix d'en dessous, trois corrections pour une. La sonde ne lit
+  plus de rechargement dans un recul voulu de moins de 2,5 s, quand la
+  position n'a pas reculé de plus que le recul demandé, plus une seconde.
+  Et le faux lecteur sait désormais rendre sa position en retard, comme un
+  vrai (`__seekLent`) : au 188, l'ancienne règle y compte un rechargement
+  de la référence.
+- **Des attentes trop étroites.** Le 183 voulait « xray en retard de
+  0,5–0,6 s » ; le premier message est venu sur une autre voix du même
+  salon, 0,46 s. Le 188 n'admettait la montée d'une voix de « lima » qu'en
+  tête de ligne ; elle vient après « mike avec la référence ». Les deux
+  jugent désormais ce qui compte.
+- **Une chute d'une seconde, sur une voix seule.** Au premier essai du 188,
+  « mike », une seule voix, a perdu 1 s de lecture : à −0,97 s, une source
+  seule — la règle de l'écho n'y touche pas, à bon droit. Le 188 délie
+  désormais par un rechargement, qui ne déplace rien.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la tuile calée laissée là (1) | 188 : « lima » décidée, la référence recule seule ; « mike », le son revenu : « une source seule, à 1620 ms — un écho, peut-être : rien ne bouge » — le rapport à trois streams, rejoué |
+| une tuile libre emmenée aussi (1) | 188 : « lima », muette et inconnue, reculée avec la référence pour « mike » |
+| les corrections comptées à la tuile qui bouge, la référence comprise (1) | 188 : cinq corrections pour deux relations |
+| le rechargement qui laisse la tuile « calée » (1) | 188 : « mike » jamais libre après son rechargement |
+| le recul de la référence pris pour un rechargement (1) | 188 : un rechargement compté sur la référence — et tout délié |
+| l'en-tête « Chat de … » au-dessus du chat partagé ; le chat rechargé quand le son change (2) | 177 : « Chat de sa » ; le chat de « sb » rechargé, ses messages perdus |
+| une étiquette remise sur les lecteurs (1) | 175 : trois tuiles qui portent plus que leur lecteur et leur prise |
+
+Huit mutants, huit pris ; le recul pris pour un rechargement, seulement
+depuis que le faux lecteur rend sa position en retard — au 182, il ne
+tombait que selon l'instant du relevé.
+
+### Pour le prochain rapport
+
+1. Une salle à trois streams ou plus, ouverte par le nœud ; dix minutes.
+2. Au journal du calage, les gestes « (suit la référence) », et
+   `calage.tuiles` : calée, vérification ou libre.
+3. Sur un chat partagé, l'en-tête — et `chatTitre` au rapport.
+
 ## La capture qui suit la piste, et le stream qui s'arrête (v4.24.0.22)
 
 Deux rapports réels sur la 4.24.0.21, ouverts par le nœud, l'un après
@@ -16190,7 +16342,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 187 scénarios, 1600 assertions |
+| `npm test` | le harnais Playwright : 188 scénarios, 1605 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -16211,7 +16363,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1539 Ko | 614 Ko | 4 004 → **2** |
+| `content.js` | 1539 Ko | 614 Ko | 4 012 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
