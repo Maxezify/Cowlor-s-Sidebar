@@ -2180,6 +2180,189 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La capture qui suit la piste, et le stream qui s'arrête (v4.24.0.22)
+
+Deux rapports réels sur la 4.24.0.21, ouverts par le nœud, l'un après
+l'autre. Le premier, trois streams : « très satisfaisant, très peu de
+décalage ». Le second, deux streams : « 2 voire 3 secondes de décalage tout
+le long du test. Est-ce que le système de calage se réinitialise lorsqu'on
+va sur un autre multistream ? » Deux demandes : un stream qui passe hors
+ligne quitte la salle, trois devenant deux ; de deux, la salle disparaît, et
+l'on est sur la page de celui qui reste. Et une erreur, à la page des
+extensions de Chrome : « The ScriptProcessorNode is deprecated. Use
+AudioWorkletNode instead. » Publiée sur `claude/chrome-multi` seulement.
+
+### Oui, le calage repart de zéro à chaque salle
+
+Chaque salle a le sien : il commence à l'ouverture — « +0 s · début ·
+référence … (la tuile qui a le son) » au journal des deux rapports —, retire
+la faible latence de chaque tuile, et ne garde rien des salles d'avant. Le
+second rapport ne manquait pas d'un recommencement : **son calage n'a
+jamais rien entendu de la tuile muette.**
+
+### Le premier rapport : trois streams, calés
+
+**A**, la référence (le son) ; **B** et **C**, muettes.
+
+| quand | ce que le son a dit | le geste |
+| --- | --- | --- |
+| +4 s | — | faible latence retirée aux trois — « le lecteur dit non » : elle est partie, sur le vrai Twitch, mesuré pour la première fois |
+| +100 s | B en avance de 0,87 s, C en retard de 1,70 s | A recule de 1,58 s, B de 2,45 s — C, la plus en retard, est le point de rencontre |
+| +175 s | B à +10 ms | calée |
+| +225 s | C à −10 ms | calée |
+| +305 s | C en avance de 0,19 s | C recule de 0,07 s |
+
+Trois corrections en dix minutes, et l'œil d'accord. Une chose de plus, à la
+fin : la référence à **91 % de silence**, et la quinzaine de derniers calculs
+de chaque paire — les quatre-vingts dernières secondes — n'étaient plus que
+du bruit : z sous 5, des pics de −5,9 à +5,9 s. Rien n'a bougé pour autant :
+du bruit ne fait pas deux verdicts d'accord. Pas de rechargement, pas de
+saut ; deux coupures d'arrivée de la référence juste avant (+587, +605 s).
+Un streamer qui se tait, ou la panne du second rapport : celui-ci ne pouvait
+pas le dire. Le prochain le pourra (`pistes N`, plus bas).
+
+### Le second rapport : deux streams, pas un calcul
+
+**A**, la référence ; **B**, muette.
+
+- `ecoute.calculs 0` en 702 s ; `calage.mesures` de B : « en attente : 0
+  calculs nets sur 8 ». Le calage n'a rien décidé, faute de rien entendre ;
+  les 2 à 3 s que l'œil voyait sont restées.
+- `tuiles.B.ecoute` : `running · 48000 Hz · silence 100 % · reliée 1` ; A,
+  silence 0 %. La capture de B n'a pas entendu un seul bloc en 702 s — pas
+  même de quoi commencer une enveloppe : sans elle, aucun calcul, même faux.
+- **La cause, mesurée sous Chromium** — et gardée au banc (186) :
+
+  | sur un élément nourri par un fichier, comme un lecteur MSE | ce que fait sa capture |
+  | --- | --- |
+  | la source change | elle **gagne une piste** ; l'ancienne reste « live », à −8 — le silence numérique —, la nouvelle porte le son |
+  | `load()` sur la même source | ses pistes finies, une nouvelle |
+  | une seconde capture du même élément | la première devient muette |
+  | les pistes d'une capture arrêtées après qu'une autre a été prise | celle-ci devient muette — arrêtées avant, elle entend |
+  | (un `srcObject` qui change) | (rien de tout cela — d'où une imitation au banc) |
+
+  La 4.24.0.21 restait sur sa piste tant qu'elle était « live » : elle l'est
+  restée, muette, jusqu'au bout. La capture de B est prise à l'ouverture de
+  la salle, une seconde après le chargement de sa tuile ; son lecteur a
+  changé de source ensuite — en démarrant, à la qualité choisie par la
+  salle, à la faible latence retirée à +3 s : le rapport ne dit pas lequel,
+  et la correction n'a pas à le savoir. Rien ne la réservait à la tuile
+  muette : la référence pouvait tomber de même.
+- Un autre trait de B : cinquante « coupures d'arrivée », une toutes les
+  quatre secondes, son tampon en dents de scie de 9 à 5,5 s, jamais plus bas
+  — un flux qui arrive par blocs, pas une coupure qui gêne. Elles ont rempli
+  le journal de la salle, soixante événements, qui avait perdu tout ce qui
+  précédait +453 s ; celui du calage, à part, a tout gardé.
+
+### Ce que fait cette version
+
+1. **La capture suit la piste courante.** Une seule capture par élément —
+   une seconde rendrait la première muette —, branchée sur sa piste vivante
+   la plus récente ; à chaque relevé, si une piste plus récente est
+   apparue, l'écoute s'y relie. On ne recapture que si l'élément a changé,
+   ou si plus aucune piste n'est vivante — les anciennes arrêtées d'abord.
+   Le rapport dit les pistes vues : `pistes N`, une de plus à chaque
+   changement de source.
+2. **L'AudioWorklet.** Le `ScriptProcessorNode` est déprécié, et Chrome
+   l'inscrivait aux erreurs de l'extension. La mesure — le niveau de chaque
+   bloc de 1024 échantillons, daté — passe dans un `AudioWorkletNode`, son
+   module chargé d'un blob ; le rang du bloc vient de `currentFrame`, le
+   compte exact du contexte, plutôt que d'un rang compté à la main. Si la
+   page refuse le module, ou si le navigateur n'a pas d'AudioWorklet,
+   l'ancien nœud reste — et l'avertissement avec lui. Le rapport dit la
+   voie : `worklet`, ou `script (module refusé : …)`.
+3. **Le stream qui s'arrête.** Chaque membre est relu toutes les trente
+   secondes par la requête anonyme qui tient la barre à jour, groupée avec
+   elle — une entrée fraîche est servie sans requête. Hors ligne deux fois,
+   à vingt-cinq secondes d'écart au moins — deux relevés, pas deux lectures
+   du même —, il quitte la salle : sa tuile part, le son passe à la première
+   tuile s'il l'avait, la grille et le titre se refont ; le calage oublie
+   ses paires et ses états, et repart sur la nouvelle référence si c'était
+   elle. De deux, la salle se ferme, et l'on va sur la page de celui qui
+   reste. « On ne sait pas » — réseau coupé, réponse inexploitable,
+   extinction de masse écartée — ne compte pour rien ; un streamer qui
+   revient en direct entre-temps reste. Jamais le lecteur pour preuve : les
+   rapports réels sont pleins de lecteurs qui calent, rechargent, restent
+   deux secondes sans image, et pas un de ces streams n'était fini. Du
+   moment où Twitch le dit hors ligne au retrait : trente secondes à une
+   minute et demie, selon où tombent les relevés. Au rapport : `retirees`
+   (« chaîne à +N s ») et `horsLigne` (un premier constat, à confirmer).
+
+### Ce que le banc mesure
+
+- **186** — le témoin de Chromium, mesuré au banc même : un changement de
+  source ajoute une piste à la capture, l'ancienne « live » et muette, la
+  dernière porte le son ; une seconde capture rend la première muette.
+  « kilo » imite cette capture — le faux lecteur, nourri d'un `srcObject`,
+  ne le ferait pas — ; la page de « november » refuse le module.
+  L'AudioWorklet mesure, le repli aussi, et le rapport dit lequel et
+  pourquoi ; « kilo » change de source : reliée 2, pistes 2, pas muette, et
+  la paire calcule encore, nette, à zéro.
+- **187** — trois membres que Twitch omet : demandés par la requête de la
+  barre, personne n'est dit hors ligne. Tous en direct, le calage lancé, la
+  référence s'arrête : retirée au second relevé, 0,8 s au moins après le
+  premier — sa tuile, son son, sa référence ; le titre et la grille à
+  deux ; le calage repart sur la nouvelle référence, et l'écoute ne garde
+  que la paire qui reste. Une tuile dite hors ligne une fois, puis le réseau
+  tombe : relire le cache n'est pas un second relevé, elle reste ; revenue
+  en direct, elle reste, et le constat s'efface. De deux, un : la salle se
+  ferme, et la page est celle de celui qui reste.
+- **178** — « bravo », dont le contexte démarre suspendu, se mesure par le
+  worklet comme il se mesurait par l'ancien nœud.
+
+### Ce que le banc a trouvé
+
+- **Un plantage au lieu d'un échec.** Au premier tour des mutants, deux
+  règles fautives — l'inconnu pris pour hors ligne, un seul relevé —
+  fermaient la salle trop tôt, et le 187 levait une exception au lieu de
+  dire ce qui manquait : au banc complet, elle aurait arrêté tous les
+  scénarios suivants. Il ne lève plus : la page peut naviguer, l'assertion
+  le dit.
+- **Une règle que le banc ne jugeait pas.** Compter deux lectures du même
+  relevé pour deux relevés passait le 187 : relue toutes les secondes et
+  demie, la salle tombait toujours au bout de la pause d'erreur (une
+  seconde et demie aussi), jamais dedans — elle ne relisait jamais
+  l'entrée du cache. Au vrai, les deux durent trente secondes, et elle y
+  tombe. Relue chaque seconde au banc, elle y tombe aussi, et la règle
+  fautive retire « upsilon ».
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la capture laissée sur sa première piste ; sur sa piste « live » d'avant — la règle de la 4.24.0.21 (2) | 186 : « kilo » muette après son changement de source, plus un calcul — le second rapport, rejoué |
+| recapturer à chaque relevé (1) | 186 : « kilo » reliée 90 fois en une minute et demie ; « xray » et « november », recapturés après l'arrêt de leurs pistes, n'ont plus de piste du tout |
+| le worklet jamais tenté ; le module refusé sans repli (2) | 186 : `script (sans worklet)` partout ; « november » arrêtée à « module », sans une mesure |
+| l'inconnu pris pour hors ligne (1) | 187 : les trois membres retirés, la salle fermée avant d'avoir servi |
+| un seul relevé hors ligne ; deux lectures du même prises pour deux relevés (2) | 187 : « upsilon » retirée pendant que le réseau est tombé, et l'on part sur la page de « phi » |
+| le retour en direct qui n'efface rien (1) | 187 : « upsilon » toujours « à confirmer », revenue en direct |
+| la tuile qui avait le son gardée ; une tuile retirée gardée dans la grille (2) | 187 : « tau » toujours là, et « phi » sortie à sa place |
+| le calage qui n'oublie pas (1) | 187 : sa référence partie, pas de « référence nouvelle » ; la paire de « tau » au rapport |
+| la salle fermée sans redirection (1) | 187 : on reste sur `/directory` |
+
+Treize mutants, treize pris ; « deux lectures du même », seulement depuis
+que le banc relit sous la pause d'erreur.
+
+### Ce que cette version ne sait pas encore
+
+- **Si le lecteur de Twitch accepte le module.** Sa politique de sécurité
+  n'a pas pu être lue d'ici. Le rapport le dira — `worklet`, ou `script
+  (module refusé : …)` ; refusé, l'avertissement de Chrome reviendrait, et
+  il faudrait servir le module comme un fichier de l'extension.
+- **Ce qui fait changer de source un lecteur** : `pistes N` dira combien de
+  fois, et `reliée N` combien de fois l'écoute a suivi.
+- **Une minute et demie au plus** entre le « hors ligne » de Twitch et le
+  retrait : deux relevés à vingt-cinq secondes d'écart, relus toutes les
+  trente. Sur un seul relevé, une réponse de Twitch qui omet un direct un
+  instant — la barre exige deux réponses pour la même raison — sortirait un
+  stream qui n'a pas fini.
+
+### Pour le prochain rapport
+
+1. Une salle ouverte par le nœud, dix minutes ; puis une autre.
+2. Au rapport, pour chaque tuile, la ligne `ecoute` : la voie (`worklet` ou
+   `script (…)`), `pistes`, `reliée`, et le silence.
+3. Si un stream s'arrête pendant ce temps : `retirees` et `horsLigne`, et
+   la page où l'on arrive.
+
 ## Le calage par le son, et rien d'autre (v4.24.0.21)
 
 Un rapport réel sur la 4.24.0.20, deux streams, quatorze minutes, ouvert
@@ -16007,7 +16190,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 185 scénarios, 1592 assertions |
+| `npm test` | le harnais Playwright : 187 scénarios, 1600 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -16028,7 +16211,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1539 Ko | 614 Ko | 3 980 → **2** |
+| `content.js` | 1539 Ko | 614 Ko | 4 004 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

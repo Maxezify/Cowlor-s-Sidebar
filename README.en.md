@@ -2059,6 +2059,188 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The capture that follows the track, and the stream that ends (v4.24.0.22)
+
+Two real reports on 4.24.0.21, opened from the node, one after the other.
+The first, three streams: "very satisfying, very little offset". The
+second, two streams: "2 or even 3 seconds of offset all through the test.
+Does the calibration reset when you go to another multistream?" Two
+requests: a stream that goes offline leaves the room, three becoming two;
+from two, the room disappears, and you land on the page of the one that
+remains. And an error, on Chrome's extensions page: "The
+ScriptProcessorNode is deprecated. Use AudioWorkletNode instead."
+Published on `claude/chrome-multi` only.
+
+### Yes, calibration starts from zero in every room
+
+Each room has its own: it starts on opening — "+0 s · début · référence …
+(la tuile qui a le son)" in the journal of both reports —, removes low
+latency from every tile, and keeps nothing of earlier rooms. The second
+report did not lack a fresh start: **its calibration never heard anything
+from the muted tile.**
+
+### The first report: three streams, in sync
+
+**A**, the reference (the sound); **B** and **C**, muted.
+
+| when | what the sound said | the move |
+| --- | --- | --- |
+| +4 s | — | low latency removed from all three — "the player says no": it went, on real Twitch, measured for the first time |
+| +100 s | B 0.87 s ahead, C 1.70 s behind | A steps back 1.58 s, B 2.45 s — C, the furthest behind, is the meeting point |
+| +175 s | B at +10 ms | in sync |
+| +225 s | C at −10 ms | in sync |
+| +305 s | C 0.19 s ahead | C steps back 0.07 s |
+
+Three corrections in ten minutes, and the eye agreed. One more thing, at
+the end: the reference at **91 % silence**, and the last fifteen or so
+calculations of each pair — the last eighty seconds — were nothing but
+noise: z under 5, peaks from −5.9 to +5.9 s. Nothing moved because of it:
+noise does not make two agreeing verdicts. No reload, no jump; two arrival
+gaps on the reference just before (+587, +605 s). A streamer gone quiet, or
+the second report's failure: this report could not tell. The next one will
+(`pistes N`, below).
+
+### The second report: two streams, not one calculation
+
+**A**, the reference; **B**, muted.
+
+- `ecoute.calculs 0` in 702 s; B's `calage.mesures`: "en attente : 0
+  calculs nets sur 8". Calibration decided nothing, having heard nothing;
+  the 2 to 3 s the eye saw stayed.
+- `tuiles.B.ecoute`: `running · 48000 Hz · silence 100 % · reliée 1`; A,
+  0 % silence. B's capture did not hear a single block in 702 s — not even
+  enough to start an envelope: without one, no calculation, not even a
+  wrong one.
+- **The cause, measured under Chromium** — and kept in the bench (186):
+
+  | on an element fed by a file, like an MSE player | what its capture does |
+  | --- | --- |
+  | the source changes | it **gains a track**; the old one stays "live", at −8 — digital silence —, the new one carries the sound |
+  | `load()` on the same source | its tracks ended, a new one |
+  | a second capture of the same element | the first goes silent |
+  | a capture's tracks stopped after another was taken | that one goes silent — stopped before, it hears |
+  | (a `srcObject` that changes) | (none of this — hence an imitation in the bench) |
+
+  4.24.0.21 stayed on its track as long as it was "live": it stayed live,
+  and silent, to the end. B's capture is taken when the room opens, a
+  second after its tile loaded; its player changed source afterwards — on
+  starting, at the quality the room chose, at the low latency removed at
+  +3 s: the report does not say which, and the fix does not need to know.
+  Nothing reserved it for the muted tile: the reference could fall the same
+  way.
+- Another trait of B: fifty "arrival gaps", one every four seconds, its
+  buffer a sawtooth from 9 to 5.5 s, never lower — a stream that arrives in
+  blocks, not a gap that hurts. They filled the room's journal, sixty
+  events, which had lost everything before +453 s; the calibration journal,
+  kept apart, had it all.
+
+### What this version does
+
+1. **The capture follows the current track.** One capture per element — a
+   second would silence the first —, bound to its most recent live track;
+   at every reading, if a more recent track has appeared, listening
+   rebinds to it. It recaptures only if the element changed, or if no
+   track is alive any more — the old ones stopped first. The report gives
+   the tracks seen: `pistes N`, one more per source change.
+2. **The AudioWorklet.** `ScriptProcessorNode` is deprecated, and Chrome
+   listed it among the extension's errors. The measurement — the level of
+   each 1024-sample block, timestamped — moves into an `AudioWorkletNode`,
+   its module loaded from a blob; the block's rank comes from
+   `currentFrame`, the context's exact count, rather than a rank counted by
+   hand. If the page refuses the module, or the browser has no
+   AudioWorklet, the old node stays — and the warning with it. The report
+   gives the path: `worklet`, or `script (module refusé : …)`.
+3. **The stream that ends.** Each member is re-read every thirty seconds by
+   the anonymous query that keeps the bar up to date, batched with it — a
+   fresh entry is served without a request. Offline twice, at least
+   twenty-five seconds apart — two readings, not two reads of the same
+   one —, it leaves the room: its tile goes, the sound moves to the first
+   tile if it had it, the grid and the title are redone; calibration
+   forgets its pairs and states, and restarts on the new reference if it
+   was the reference. From two, the room closes, and you go to the page of
+   the one that remains. "We don't know" — network down, unusable
+   response, mass extinction discarded — counts for nothing; a streamer
+   back live in the meantime stays. Never the player as proof: real
+   reports are full of players that stall, reload, show no picture for two
+   seconds, and not one of those streams had ended. From the moment Twitch
+   says offline to the removal: thirty seconds to a minute and a half,
+   depending on where the readings fall. In the report: `retirees`
+   ("channel at +N s") and `horsLigne` (a first finding, to be confirmed).
+
+### What the bench measures
+
+- **186** — the Chromium witness, measured in the bench itself: a source
+  change adds a track to the capture, the old one "live" and silent, the
+  last one carrying the sound; a second capture silences the first.
+  "kilo" imitates that capture — the fake player, fed by a `srcObject`,
+  would not —; "november"'s page refuses the module. The AudioWorklet
+  measures, the fallback too, and the report says which and why; "kilo"
+  changes source: rebound 2, tracks 2, not silent, and the pair still
+  calculates, clean, at zero.
+- **187** — three members Twitch leaves out: requested by the bar's query,
+  nobody is called offline. All live, calibration running, the reference
+  ends: removed at the second reading, at least 0.8 s after the first —
+  its tile, its sound, its reference; the title and the grid at two;
+  calibration restarts on the new reference, and listening keeps only the
+  pair that remains. A tile called offline once, then the network drops:
+  re-reading the cache is not a second reading, it stays; back live, it
+  stays, and the finding is erased. From two, one: the room closes, and
+  the page is the one of who remains.
+- **178** — "bravo", whose context starts suspended, is measured through
+  the worklet as it was through the old node.
+
+### What the bench found
+
+- **A crash instead of a failure.** In the first round of mutants, two
+  faulty rules — unknown taken as offline, a single reading — closed the
+  room too early, and 187 threw an exception instead of saying what was
+  missing: in the full bench it would have stopped every following
+  scenario. It no longer throws: the page may navigate, the assertion says
+  so.
+- **A rule the bench did not judge.** Counting two reads of the same
+  reading as two readings passed 187: re-read every second and a half, the
+  room always landed at the end of the error pause (a second and a half
+  too), never inside it — it never re-read the cache entry. For real, both
+  last thirty seconds, and it does land inside. Re-read every second in the
+  bench, it lands inside too, and the faulty rule removes "upsilon".
+
+| mutants | what falls |
+| --- | --- |
+| the capture left on its first track; on its earlier "live" track — 4.24.0.21's rule (2) | 186: "kilo" silent after its source change, not one more calculation — the second report, replayed |
+| recapturing at every reading (1) | 186: "kilo" rebound 90 times in a minute and a half; "xray" and "november", recaptured after their tracks were stopped, have no track at all |
+| the worklet never tried; the module refused without fallback (2) | 186: `script (sans worklet)` everywhere; "november" stuck at "module", without a single measurement |
+| unknown taken as offline (1) | 187: all three members removed, the room closed before it served |
+| a single offline reading; two reads of the same taken as two readings (2) | 187: "upsilon" removed while the network is down, and you land on "phi"'s page |
+| back live erasing nothing (1) | 187: "upsilon" still "to be confirmed", back live |
+| the tile that had the sound kept; a removed tile kept in the grid (2) | 187: "tau" still there, and "phi" out in its place |
+| calibration that does not forget (1) | 187: its reference gone, no "référence nouvelle"; "tau"'s pair in the report |
+| the room closed without redirection (1) | 187: you stay on `/directory` |
+
+Thirteen mutants, thirteen caught; "two reads of the same", only since the
+bench re-reads inside the error pause.
+
+### What this version does not know yet
+
+- **Whether Twitch's player accepts the module.** Its security policy could
+  not be read from here. The report will say — `worklet`, or `script
+  (module refusé : …)`; refused, Chrome's warning would come back, and the
+  module would have to be served as an extension file.
+- **What makes a player change source**: `pistes N` will say how many
+  times, and `reliée N` how many times listening followed.
+- **A minute and a half at most** between Twitch's "offline" and the
+  removal: two readings twenty-five seconds apart, re-read every thirty. On
+  a single reading, a Twitch response that leaves out a live stream for a
+  moment — the bar demands two responses for the same reason — would remove
+  a stream that has not ended.
+
+### For the next report
+
+1. A room opened from the node, ten minutes; then another.
+2. In the report, for each tile, the `ecoute` line: the path (`worklet` or
+   `script (…)`), `pistes`, `reliée`, and the silence.
+3. If a stream ends meanwhile: `retirees` and `horsLigne`, and the page you
+   land on.
+
 ## Calibration by sound, and nothing else (v4.24.0.21)
 
 One real report on 4.24.0.20, two streams, fourteen minutes, opened from
@@ -15489,7 +15671,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 185 scenarios, 1592 assertions |
+| `npm test` | the Playwright harness: 187 scenarios, 1600 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -15509,7 +15691,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1539 KB | 614 KB | 3,980 → **2** |
+| `content.js` | 1539 KB | 614 KB | 4,004 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

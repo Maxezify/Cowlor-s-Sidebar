@@ -160,6 +160,16 @@ const subs = [
   [/const TSE_SONDE_ASSISE_S = 15;/, 'const TSE_SONDE_ASSISE_S = 1;'],
   [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  45'],
   [/BATCH_DELAY:\s*[\d_]+/,       'BATCH_DELAY:    40'],
+  /* Le stream qui s'arrête (4.24.0.22) : la salle relit ses membres toutes
+     les trente secondes, et confirme un « hors ligne » vingt-cinq secondes
+     après le premier. Ici une seconde, et 0,8 : le rapport entre les deux
+     est gardé. Et la relecture passe SOUS la pause d'erreur (1,5 s ici,
+     trente secondes au vrai, autant que la relecture) : au vrai, une
+     relecture qui tombe dans la pause lit l'entrée du cache, le même
+     relevé encore. À 1,5 s, le banc ne l'y faisait jamais tomber, et un
+     mutant qui comptait deux lectures du même pour deux relevés passait. */
+  [/SALLE_DIRECTS_MS:\s*30_000/,    'SALLE_DIRECTS_MS:      1_000'],
+  [/SALLE_HORS_LIGNE_MS:\s*25_000/, 'SALLE_HORS_LIGNE_MS:     800'],
 ];
 for (const [re, to] of subs) {
   if (!re.test(src)) { console.error('SUBSTITUTION INTROUVABLE:', re); process.exit(1); }
