@@ -550,7 +550,7 @@
     "message": "Alignement automatique"
   },
   "optDescSalleAuto": {
-    "message": "À l'ouverture de la salle, les streams sont mis à la même heure par l'horloge ; le son commun les cale ensuite — les lèvres de chaque stream sur sa voix telle qu'on l'entend — et l'horloge les y tient. Coupé : rien ne bouge seul."
+    "message": "Les streams sont calés par leur son commun — les lèvres de chaque stream sur sa voix telle qu'on l'entend. Il faut environ une minute d'écoute ; sans son commun, rien ne bouge. Coupé : rien ne bouge seul."
   },
   "optAbonnes": {
     "message": "L'or des abonnements"

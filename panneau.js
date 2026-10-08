@@ -997,9 +997,10 @@ const demander = async (charge, essai = 0, trace = []) => {
    Un clic droit → Inspecter dans le panneau incrusté met la console dans ce
    document-ci, où `tse` n'existait pas : il n'est posé que dans la page de
    Twitch. Les commandes de la sonde du même instant y sont désormais relayées
-   à la page, par le chemin des autres demandes du panneau — et elles seules
-   (vitesseVideo et recul depuis la 4.24.0.13, avance depuis la 4.24.0.14,
-   aligner depuis la 4.24.0.15).
+   à la page, par le chemin des autres demandes du panneau — et elles seules.
+   Depuis la 4.24.0.21, cinq : le calage, l'écoute, le recul, l'avance, le
+   rapport ; les essais de vitesse, de pause, de leviers et l'alignement par
+   l'horloge sont partis avec lui.
    La réponse revient en promesse, et s'affiche aussi d'elle-même. */
 try {
   const relayer = (commande) => async (...args) => {
@@ -1010,7 +1011,7 @@ try {
   };
   Object.defineProperty(window, 'tse', {
     value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
-      ['essais', 'aligner', 'auto', 'leviers', 'vitesse', 'vitesseVideo', 'recul', 'avance', 'pause', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
+      ['auto', 'recul', 'avance', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
     writable: false, configurable: false,
   });
 } catch { /* déjà posé */ }

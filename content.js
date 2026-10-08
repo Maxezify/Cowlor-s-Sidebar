@@ -776,27 +776,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     }
     return [...noms].sort();
   };
-  /* LES DEUX COMMANDES DE LA CONSOLE (S3, S4) : poser une vitesse, faire une
-     pause de quelques secondes. Par l'instance quand elle le permet — c'est
-     le chemin qu'un moteur prendrait —, par l'élément vidéo sinon. Le pont
-     garde le dernier essai ; la salle le note avec la latence du moment. */
+  /* LE DERNIER ESSAI : un déplacement demandé par la salle — recul ou
+     avance —, ou la faible latence retirée (4.24.0.21). Le pont le garde ; la
+     salle le note avec la latence du moment. */
   let essai = null;
   let numeroEssai = 0;
-  /* LA VOIE DE L'ÉLÉMENT (4.24.0.13). Le second rapport réel : 0,95 posé par
-     l'instance, et ni la vidéo ni le lecteur n'ont jamais lu autre chose que
-     1 — la latence n'a pas bougé. `voie: 'video'` pose la vitesse sur
-     l'élément lui-même, sans passer par le lecteur : la garde-t-il ? */
-  const poserVitesse = (r, voieVoulue = null) => {
-    const lecteur = lecteurTwitch();
-    const v = document.querySelector('video');
-    let voie = null;
-    if (voieVoulue !== 'video' && lecteur && typeof lecteur.setPlaybackRate === 'function') {
-      try { lecteur.setPlaybackRate(r); voie = 'instance'; } catch { /* voie suivante */ }
-    }
-    if (!voie && v) { v.playbackRate = r; voie = 'video'; }
-    essai = { n: ++numeroEssai, type: voieVoulue === 'video' ? 'vitesse-video' : 'vitesse', valeur: r,
-              voie: voie || 'sans-video', t: Date.now(), fin: null };
-  };
   /* LE RECUL DANS LE TAMPON (4.24.0.13). La pause, au rapport réel, a fait
      RECHARGER le lecteur : il est revenu au direct. Reculer d'une seconde —
      de 0,2 à 5 à la console — dans ce qui est déjà téléchargé, par `seekTo`,
@@ -837,66 +821,22 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       e.fin = Date.now();
     }, 500);
   };
-  /* LA VITESSE RELUE (4.24.0.14). Au troisième rapport réel, 0,95 posé sur
-     l'élément n'a été lu par AUCUN des soixante relevés : le lecteur la remet
-     à 1 en moins d'une seconde. En combien ? La vitesse relue sur-le-champ,
-     puis à 50, 250 et 1000 ms, et le nombre de `ratechange` — le nôtre, et
-     ceux du lecteur. Remise à 1 à la fin, si le lecteur ne l'a pas fait.
-     CHAQUE `ratechange` DATÉ (4.24.0.15) : au quatrième rapport réel, la
-     vitesse était remise à 1 avant 61 ms, et il y en avait eu TROIS — le
-     nôtre et deux du lecteur, sans qu'on sache lesquels. Désormais, chacun
-     avec son instant et la vitesse qu'il laisse. */
-  const relireVitesse = (r) => {
-    const v = document.querySelector('video');
-    const e = { n: ++numeroEssai, type: 'relecture', valeur: r, voie: v ? 'video' : 'sans-video', t: Date.now(), fin: null,
-                relues: [], changements: 0, changes: [] };
-    essai = e;
-    if (!v) return;
-    const t0 = performance.now();
-    const compter = () => {
-      e.changements += 1;
-      e.changes.push([Math.round(performance.now() - t0), v.playbackRate]);
-    };
-    v.addEventListener('ratechange', compter);
-    const lire = () => e.relues.push([Math.round(performance.now() - t0), v.playbackRate]);
-    v.playbackRate = r;
-    lire();
-    for (const ms of [50, 250, 1000]) {
-      setTimeout(() => {
-        lire();
-        if (ms < 1000) return;
-        v.removeEventListener('ratechange', compter);
-        if (v.playbackRate !== 1) v.playbackRate = 1;
-        e.fin = Date.now();
-      }, ms);
-    }
-  };
-  /* LE LEVIER DE RATTRAPAGE, ESSAYÉ À LA DEMANDE (4.24.0.17, réparé en
-     4.24.0.18). Au quatrième rapport réel, un lecteur a rattrapé de
-     lui-même, à 1,03, treize secondes durant. Deux fonctions de l'instance
-     semblaient le régler : setLiveSpeedUpRate et setLiveMaxLatency.
-     Aux huitième et neuvième rapports, setLiveMaxLatency a été dit « ok » —
-     aucune exception ici —, et la console du lecteur a écrit : « UnboundTypeError:
-     Cannot call MediaPlayer.setLiveMaxLatency due to unbound types:
-     N6twitch9MediaTimeE ». L'instance n'est qu'un relais : l'appel part au
-     lecteur, dans un autre fil, et c'est là qu'il échoue — elle attend un
-     type que JavaScript ne sait pas construire, aucune valeur ne passe. Au
-     neuvième, dans les cinq secondes, le tampon de la tuile a fondu de 2,3 à 0,17 s,
-     la lecture a calé, la latence est passée de 2,7 à 6,7 s. Elle n'est
-     plus jamais appelée. Reste setLiveSpeedUpRate, qui prend un nombre ;
-     « envoyé » dit seulement qu'aucune exception n'est revenue ici — ce
-     qu'il fait se lit aux relevés. */
-  const essayerLeviers = (vitesse) => {
+  /* LA FAIBLE LATENCE RETIRÉE (4.24.0.21). Au quatorzième rapport réel, une
+     tuile en faible latence, reculée de 4,9 s, est repartie d'elle-même à
+     1,03 et a repris ces 4,4 s en 146 secondes — son lecteur vise sa latence
+     basse, et défait tout recul. Une salle calée n'en veut pas : la salle
+     la retire, une fois, par setLiveLowLatencyEnabled(false) — un booléen,
+     que l'instance sait passer (cf. setLiveMaxLatency, qu'elle ne savait
+     pas). « instance » dit seulement qu'aucune exception n'est revenue ici ;
+     ce qu'il a fait, isLiveLowLatency le dit au relevé suivant. */
+  const retirerFaibleLatence = () => {
     const lecteur = lecteurTwitch();
-    const e = { n: ++numeroEssai, type: 'leviers', valeur: vitesse, voie: lecteur ? 'instance' : 'sans-lecteur',
-                t: Date.now(), fin: null, appels: [] };
-    essai = e;
-    const nom = 'setLiveSpeedUpRate';
-    if (!lecteur || typeof lecteur[nom] !== 'function') e.appels.push(`${nom} absent`);
+    let voie;
+    if (!lecteur || typeof lecteur.setLiveLowLatencyEnabled !== 'function') voie = 'absent';
     else {
-      try { lecteur[nom](vitesse); e.appels.push(`${nom}(${vitesse}) envoyé`); } catch (err) { e.appels.push(`${nom}(${vitesse}) : ${(err && err.name) || 'erreur'}`); }
+      try { lecteur.setLiveLowLatencyEnabled(false); voie = 'instance'; } catch (err) { voie = `refusé : ${(err && err.name) || 'erreur'}`; }
     }
-    e.fin = Date.now();
+    essai = { n: ++numeroEssai, type: 'faible-latence', valeur: false, voie, t: Date.now(), fin: Date.now() };
   };
   /* LE TAMPON EN ARRIÈRE (4.24.0.17) : jusqu'où un recul peut aller dans ce
      que le lecteur garde. Aux rapports réels, aucun recul n'a dépassé
@@ -952,24 +892,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     if (!l) return { plages: r === undefined || r === null ? null : forme, forme };
     return { plages: l.slice(0, 8).map((x) => (x && x.every(Number.isFinite) ? x.map((y) => Math.round(y * 1000) / 1000) : null)), forme };
   };
-  const fairePause = (s) => {
-    const lecteur = lecteurTwitch();
-    const v = document.querySelector('video');
-    let voie = null;
-    if (lecteur && typeof lecteur.pause === 'function' && typeof lecteur.play === 'function') {
-      try { lecteur.pause(); voie = 'instance'; } catch { /* voie suivante */ }
-    }
-    if (!voie && v) { v.pause(); voie = 'video'; }
-    const e = { n: ++numeroEssai, type: 'pause', valeur: s, voie: voie || 'sans-video', t: Date.now(), fin: null };
-    essai = e;
-    if (!voie) return;
-    setTimeout(() => {
-      if (voie === 'instance') { try { lecteur.play(); } catch { /* ignore */ } }
-      else v.play().catch(() => {});
-      e.fin = Date.now();
-    }, s * 1000);
-  };
-
   /* ── L'ÉCOUTE (S9) : LE DÉCALAGE RÉEL, MESURÉ PAR LE SON ──────────────────
      Deux co-streamers qui se parlent diffusent chacun la voix de l'autre :
      le même son passe dans les deux streams. Le décalage entre deux tuiles se
@@ -1160,7 +1082,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   const repondreReleve = (d) => {
     ecoute.tenir(d.ecoute === true);
-    // L'horloge tourne pendant l'écoute ET pendant un alignement (4.24.0.15).
+    // L'horloge tourne pendant l'écoute (4.24.0.15) — pour le rapport seulement, depuis la 4.24.0.21.
     horloge.tenir(d.ecoute === true || d.horloge === true);
     const lecteur = lecteurTwitch();
     const v = document.querySelector('video');
@@ -1219,7 +1141,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     try {
       Object.defineProperty(window, 'tse', {
         value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
-          ['essais', 'aligner', 'auto', 'leviers', 'vitesse', 'vitesseVideo', 'recul', 'avance', 'pause', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
+          ['auto', 'recul', 'avance', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
         writable: false, configurable: false,
       });
     } catch { /* déjà posé */ }
@@ -1254,33 +1176,19 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       console.info(`[tse] ${d.commande} →`, d.resultat);
       return;
     }
-    /* LA SONDE DU MÊME INSTANT (4.24.0.11) : le relevé, sur-le-champ ; et
-       les deux commandes de la console, bornées ici comme dans la salle. Des
-       noms à elles : « pause » est déjà l'ordre de l'onglet caché. */
-    if (d && d.tse === MSG_ORDRE && role === 'salle'
-      && ['releve', 'essai-vitesse', 'essai-pause', 'essai-recul', 'essai-avance', 'essai-relecture', 'essai-leviers'].includes(d.ordre)) {
+    /* LE RELEVÉ, sur-le-champ (4.24.0.11) ; les déplacements, bornés ici
+       comme dans la salle ; la faible latence retirée (4.24.0.21). Des noms
+       à eux : « pause » est déjà l'ordre de l'onglet caché. */
+    if (d && d.tse === MSG_ORDRE && role === 'salle' && ['releve', 'essai-recul', 'essai-avance', 'faible-latence'].includes(d.ordre)) {
       if (d.ordre === 'releve' && Number.isFinite(d.n)) repondreReleve(d);
-      else if (d.ordre === 'essai-leviers') {
-        // Bornée ici comme dans la salle : une vitesse de 1 à 1,5.
-        const r = Number(d.vitesse);
-        if (r >= 1 && r <= 1.5) essayerLeviers(r);
-      }
-      else if (d.ordre === 'essai-vitesse') {
-        const r = Number(d.valeur);
-        if (r >= 0.5 && r <= 1.5) poserVitesse(r, d.voie === 'video' ? 'video' : null);
-      } else if (d.ordre === 'essai-relecture') {
-        const r = Number(d.valeur);
-        if (r >= 0.5 && r <= 1.5) relireVitesse(r);
-      } else if (d.ordre === 'essai-recul' || d.ordre === 'essai-avance') {
-        /* De 0,05 à 10 s depuis la 4.24.0.15 : l'alignement (S10) recule
-           d'un écart entre tuiles — parfois plus de 5 s —, et ses
-           corrections descendent à 0,05 s. La console, elle, reste bornée à
-           0,2–5 s par la salle ; l'avance, par son tampon. */
+      else if (d.ordre === 'faible-latence') retirerFaibleLatence();
+      else {
+        /* De 0,05 à 10 s : le calage recule d'un écart entre tuiles —
+           parfois plus de 5 s —, et ses corrections descendent à 0,05 s. La
+           console, elle, reste bornée à 0,2–5 s par la salle ; l'avance, par
+           son tampon. */
         const s = Number(d.duree);
         if (s >= 0.05 && s <= 10) deplacer(s, d.ordre === 'essai-recul' ? 1 : -1);
-      } else if (d.ordre === 'essai-pause') {
-        const s = Number(d.duree);
-        if (s >= 0.2 && s <= 10) fairePause(s);
       }
       return;
     }
@@ -14006,16 +13914,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        tse.salle.son(0)                            le son à la tuile 0
        tse.salle.rapport()                         le bilan — aussi au rapport
        tse.salle.fermer()
-       tse.salle.vitesse('chaine', 0.95)           S3 (4.24.0.11), 0.5 à 1.5
-       tse.salle.pause('chaine', 3)                S4, 0.2 à 10 s
-       tse.salle.vitesseVideo(0.95)                S3 bis, sur l'élément vidéo
-       tse.salle.recul(1)                          S5, 0.2 à 5 s (seekTo)
-       tse.salle.avance(1)                         S7, 0.2 à 5 s, dans le tampon
-       tse.salle.essais()                          le protocole 4, 4 min
-       tse.salle.aligner()  /  aligner(false)      S10 : aligner par l'horloge
-       tse.salle.aligner('son')                    S10 : vers les relations du son
-       tse.salle.auto()  /  auto(false)            l'alignement automatique (4.24.0.17)
-       tse.salle.leviers()                         le levier de rattrapage, essayé
+       tse.salle.recul(1)                          0.2 à 5 s (seekTo)
+       tse.salle.avance(1)                         0.2 à 5 s, dans le tampon
+       tse.salle.auto()  /  auto(false)            le calage par le son (4.24.0.21)
        tse.salle.ecoute()  /  ecoute(false)        S9 : le décalage par le son
        tse.salle.series()                          les relevés entiers
 
@@ -14545,13 +14446,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const l = latencesHorloge(t, de, a);
       return l.length >= 3 ? mediane(l) : null;
     };
-    const alignementVivant = (c) => !!(c.alignement && ['en cours', 'suivi'].includes(c.alignement.etat));
-    /* Le déplacement OBTENU par un recul ou une avance : la position avant,
-       une demi-seconde après, et ce qu'elle a gagné ou perdu en plus de la
-       lecture — qui a continué pendant cette demi-seconde, à vitesse 1.
-       `sens` : 1 pour un recul, −1 pour une avance. */
-    const obtenuDe = (r, sens) => (r && Number.isFinite(r.avant) && Number.isFinite(r.apres) && Number.isFinite(r.ecouleS)
-      ? Math.round(sens * (r.avant + r.ecouleS - r.apres) * 1000) / 1000 : null);
     const demanderReleves = (c) => {
       // Le tour précédent est clos : son écart, s'il a au moins deux réponses.
       if (c.releveN) {
@@ -14566,10 +14460,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         }
       }
       c.releveN += 1;
-      // L'horloge de la tête de lecture tourne pendant l'écoute et pendant
-      // un alignement, suivi compris (4.24.0.15) — et tant que l'automatique
-      // veille (4.24.0.17).
-      const horloge = c.ecoute.actif || alignementVivant(c) || !!(c.pilote && c.pilote.etat === 'actif');
+      // L'horloge de la tête de lecture tourne pendant l'écoute — pour le
+      // rapport seulement, depuis la 4.24.0.21.
+      const horloge = c.ecoute.actif;
       for (const t of c.tuiles) {
         envoyer(t, 'releve', { n: c.releveN, api: !t.api, ecoute: c.ecoute.actif, horloge });
       }
@@ -14697,10 +14590,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (es && Number.isFinite(es.n) && es.n !== t.essaiVu) {
         t.essaiVu = es.n;
         noter(c, t.chaine, `${es.type} ${es.valeur} · ${es.voie}`, ech.l);
-        // Les leviers (4.24.0.17) : ce que chaque appel a répondu.
-        if (es.type === 'leviers' && c.leviers && c.leviers.chaine === t.chaine && Array.isArray(es.appels)) {
-          c.leviers.appels = es.appels.slice(0, 4).map((x) => String(x).slice(0, 80));
-        }
         /* Un déplacement : la tuile est marquée, et l'écoute sait que ses
            pics d'avant ne sont plus ceux d'après (cf. lirePics). */
         if ((es.type === 'recul' || es.type === 'avance') && (es.voie === 'instance' || es.voie === 'video')) {
@@ -14757,8 +14646,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           t.sauts += 1;
           t.sautsNature[nature] += 1;
           noter(c, t.chaine, `saut de latence ${prec.l} → ${ech.l} · ${nature === 'inconnue' ? 'position inconnue' : nature}`, ech.l);
-          // L'estimation seule n'a rien déplacé ; la lecture, si.
-          if (nature !== 'estimation') signaler(c, t.chaine, `saut (${nature})`);
+          /* Même « estimation » : au quatorzième rapport réel, un saut de
+             3,3 à 5,4 s ainsi classé a déplacé le son de 1,8 s. Signalé, il
+             ne fait que rouvrir la mesure du calage (cf. signaler). */
+          signaler(c, t.chaine, `saut (${nature})`);
         }
       }
       /* LES CHUTES DE LECTURE (4.24.0.18). Au neuvième rapport réel, une
@@ -14804,22 +14695,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          seconde jamais. Chacun est compté : sa durée, sa vitesse, la latence
          avant et après, ce que la vitesse devait faire gagner, et si la tuile
          avait été déplacée avant lui — un moteur qui recule une tuile doit
-         savoir si le lecteur l'y laisse. La vitesse est celle de la vidéo ;
-         une vitesse posée par un essai n'en est pas un. */
-      const commandee = !!(es && /vitesse|relecture/.test(es.type) && ech.t !== null
-        && ech.t - Math.max(es.t || 0, es.fin || 0) < 2_000);
+         savoir si le lecteur l'y laisse. La vitesse est celle de la vidéo —
+         plus aucune n'est posée par la salle depuis la 4.24.0.21. */
       const r = t.rattrapage;
       // L'attendu : ce que la latence devait perdre, (vitesse − 1) par seconde.
       if (r && suivis && prec.v !== null) r.attendu -= (prec.v - 1) * ((ech.t - prec.t) / 1000);
-      if (ech.v !== null && ech.v !== 1 && !commandee && ech.t !== null) {
+      if (ech.v !== null && ech.v !== 1 && ech.t !== null) {
         if (!r) {
           t.rattrapage = { t: ech.t, l: prec && prec.l !== null && !prec.lIncoherente ? prec.l : ech.l,
                            v: ech.v, attendu: 0, apresDeplacement: t.deplacee };
           /* UN LECTEUR QUI REPREND LE RECUL (4.24.0.19) : le rattrapage part
              dans les trente secondes d'un recul qu'on lui a fait faire — aux
              dixième et onzième rapports réels, dès la seconde d'après, trois
-             fois sur trois. La tuile est marquée : l'alignement ne la recule
-             plus (cf. choisirRef, bornee). */
+             fois sur trois. La tuile est marquée : le calage ne la recule plus
+             (cf. peutReculer). */
           if (ech.v > 1 && es && es.type === 'recul' && (es.voie === 'instance' || es.voie === 'video')
             && Number.isFinite(es.t) && ech.t - es.t <= RETIENT_MS) {
             if (!t.retientPas) noter(c, t.chaine, `le lecteur reprend le recul, à ${ech.v} : la tuile ne sera plus reculée`, ech.l);
@@ -15049,7 +14938,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (zone().cle !== c.zoneCle) disposerSalle();
       comparerChats();
       sonder(c);
-      piloter(c);
+      caler(c);
       // La vidéo de la page reste en pause tant que la salle est ouverte, même
       // si son lecteur tente de repartir de lui-même.
       for (const v of c.pausees) {
@@ -15198,7 +15087,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       };
     };
     // Les leviers d'un futur moteur — présents (✓) ou non (✗) dans l'instance.
-    // Les trois derniers (4.24.0.17) : ce que tse.salle.leviers() essaie, et les plages du tampon.
+    // Les trois derniers (4.24.0.17) : les leviers de vitesse et de latence, et les plages du tampon.
     const LEVIERS = ['getLiveLatency', 'getBufferDuration', 'isLiveLowLatency', 'setLiveLowLatencyEnabled',
       'getPlaybackRate', 'setPlaybackRate', 'pause', 'play', 'seekTo', 'getPosition', 'setRebufferToLive',
       'setLiveSpeedUpRate', 'setLiveMaxLatency', 'getBufferedRanges'];
@@ -15276,7 +15165,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       .filter((ms) => ms !== null && !auBord(h, ms));
     // Des valeurs triées, coupées en groupes là où deux voisines s'écartent
     // de plus de 80 ms — dans l'ordre croissant. `cle` : la valeur d'un objet
-    // (cf. deuxVoix, qui garde de quel calcul vient chaque pic).
+    // (cf. mesurerSon, qui garde le poids de chaque pic).
     const grouper = (vals, cle = (x) => x) => {
       const v = [...vals].sort((x, y) => cle(x) - cle(y));
       const groupes = v.length ? [[v[0]]] : [];
@@ -15315,236 +15204,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
     const verdictSon = ({ part }, suivi = null) => (part === null ? null
       : suivi === false || part < 0.2 ? 'non' : part >= 0.5 ? 'oui' : 'incertain');
-    /* DEUX VOIX (4.24.0.16) — la signature d'un salon vocal. Chacun des deux
-       diffuseurs passe sa voix dans son stream, et celle de l'autre avec le
-       délai du salon : le même son fait deux pics, à Δ − d et Δ + d. Au
-       sixième rapport réel, 1080 et 1670 ms avant l'alignement, −200 et
-       390 ms après : demi-écart 295 ms les deux fois. Leur MILIEU Δ est le
-       décalage réel — si le salon a le même délai dans les deux sens —, et il
-       se tenait 70 à 90 ms sous l'horloge, avant comme après.
-       NETTE seulement : les calculs qui tiennent (z ≥ 5), leurs pics hors du
-       bord groupés à 80 ms près ; deux groupes de trois valeurs au moins,
-       écartés de 100 à 1500 ms, et aucun troisième qui pèse plus du tiers du
-       second. Au cinquième rapport réel, trois composantes, à 0, +430 et
-       +730 ms : pas nette, et aucun milieu n'y avait de sens.
-       ET MÊLÉES DANS LE TEMPS (4.24.0.17). Au banc, une voix seule qui a
-       sauté de 290 à 410 ms d'un calcul à l'autre — l'horloge, elle, de
-       20 ms — a fait deux groupes, sept valeurs puis trois : « deux voix
-       nettes », et le pilote a aligné la tuile sur leur milieu. Deux vraies
-       voix se montrent ensemble, souvent dans le même calcul ; deux époques
-       d'une même voix, l'une après l'autre. Sur toutes les paires d'une
-       valeur de chaque groupe, il en faut au moins une sur cinq dans chaque
-       ordre — un même calcul compte pour moitié dans chacun.
-       DEPUIS LA 4.24.0.18, elle ne sert plus qu'aux phases du protocole : la
-       carte du son (cf. carteSon) lui a pris sa règle du mélange — à un
-       dixième, sur toute l'écoute —, et le pilote vise la plus haute des deux
-       voix, plus leur milieu. */
-    const MELANGE_MIN = 0.2;
-    const deuxVoix = (hist) => {
-      const h = hist.filter((x) => x.z >= 5);
-      const groupes = grouper(h.flatMap((x, i) => picsDe(x).map((ms) => ({ ms, i }))), (p) => p.ms)
-        .sort((u, v) => v.length - u.length);
-      if (groupes.length < 2 || groupes[1].length < 3) return null;
-      if (groupes.length > 2 && 3 * groupes[2].length > groupes[1].length) return null;
-      let avant = 0;
-      for (const a of groupes[0]) for (const b of groupes[1]) avant += a.i < b.i ? 1 : a.i === b.i ? 0.5 : 0;
-      const n = groupes[0].length * groupes[1].length;
-      if (Math.min(avant, n - avant) < MELANGE_MIN * n) return null;
-      const [u, v] = groupes.slice(0, 2).map((g) => ({ ms: Math.round(mediane(g.map((p) => p.ms))), n: g.length }))
-        .sort((x, y) => x.ms - y.ms);
-      if (v.ms - u.ms < 100 || v.ms - u.ms > 1_500) return null;
-      const sync = mediane(h.map((x) => x.sync).filter(Number.isFinite));
-      return { basse: u.ms, haute: v.ms, nBasse: u.n, nHaute: v.n, milieu: Math.round((u.ms + v.ms) / 2),
-               demi: Math.round((v.ms - u.ms) / 2), sync: sync === null ? null : Math.round(sync) };
-    };
-    /* LA CARTE DU SON (4.24.0.18) : les composantes d'une paire, chacune
-       repérée par rapport à l'HORLOGE — le pic d'un calcul moins la relation
-       d'horloge de ce calcul (la latence d'horloge de l'ancre moins celle de
-       la tuile, en ms). Au neuvième rapport réel, la tuile a perdu 1,19 s de
-       lecture vers la cinquième minute : son pic dominant est passé de +1190
-       à −10 ms, l'horloge de 0 à −1141 — leur différence est restée entre
-       +1131 et +1214. Un déplacement, une chute n'y changent rien : la carte
-       se nourrit de TOUTE l'écoute — les cent cinquante derniers calculs —,
-       et non plus de la minute d'après le dernier déplacement.
-       Les calculs qui tiennent (z ≥ 5), leurs pics hors du bord — le
-       premier compte 1, le second 0,5 s'il pèse 60 % du premier. Une
-       composante : autour de la valeur la plus entourée, tout ce qui tombe
-       à 80 ms près — l'horloge erre de ±50 ms d'un calcul à l'autre —, et
-       sa médiane ; puis la suivante dans ce qui reste, cinq au plus, d'un
-       poids de 3 au moins. Chacune avec son poids, ses calculs — leur
-       rang dans l'historique —, le nombre de ceux dont elle est le premier
-       pic, et sa part du poids. */
-    const CARTE_RAYON_MS = 80;
-    const carteSon = (hist) => {
-      const pts = [];
-      hist.forEach((h, i) => {
-        if (!(h.z >= 5) || !Number.isFinite(h.sync)) return;
-        for (const ms of picsDe(h)) pts.push({ rel: ms - h.sync, w: ms === h.ms ? 1 : 0.5, i });
-      });
-      const total = pts.reduce((s, q) => s + q.w, 0);
-      const comps = [];
-      let reste = pts;
-      const autour = (x) => reste.filter((q) => Math.abs(q.rel - x) <= CARTE_RAYON_MS);
-      while (reste.length && comps.length < 5) {
-        let mieux = null;
-        for (const p of reste) {
-          const w = autour(p.rel).reduce((s, q) => s + q.w, 0);
-          if (!mieux || w > mieux.w) mieux = { w, rel: p.rel };
-        }
-        const membres = autour(mediane(autour(mieux.rel).map((q) => q.rel)));
-        const w = membres.reduce((s, q) => s + q.w, 0);
-        if (w < 3) break;
-        comps.push({ rel: Math.round(mediane(membres.map((q) => q.rel))), w, n: membres.filter((q) => q.w === 1).length,
-                     part: w / total, calculs: membres.map((q) => q.i) });
-        reste = reste.filter((q) => !membres.includes(q));
-      }
-      return { comps: comps.sort((u, v) => v.w - u.w), total };
-    };
-    /* LA CIBLE : la composante que l'alignement met à 0.
-       QUI EST QUI. Chaque son commun fait une composante c = Δ + pA − pT :
-       Δ, le vrai décalage — celui que montrent les lèvres —, pA et pT les
-       chemins du son jusque dans le stream de l'ancre et dans celui de la
-       tuile. Un son né chez la TUILE — sa voix, pT = 0 — tombe à Δ + pA,
-       au-dessus de Δ ; un son né chez l'ANCRE, à Δ − pT, en dessous. De deux
-       voix, la plus haute est donc TOUJOURS celle de la tuile, sans supposer
-       le salon vocal symétrique. Or on n'entend que l'ancre : la voix de la
-       tuile y passe à Δ + pA, ses lèvres se voient à Δ. La mettre à 0, c'est
-       que ses lèvres tombent sur sa voix entendue — le milieu des deux voix
-       (4.24.0.16) les laissait en avance du délai du salon, 0,1 à 0,3 s, à
-       la limite de ce qui se voit.
-       LA GRAPPE DES VOIX (4.24.0.20). Un salon vocal fait donc, par paire,
-       jusqu'à TROIS composantes, à 200–300 ms l'une de l'autre : la voix de
-       l'ancre chez la tuile (Δ − d'), le son que les deux ont en même temps
-       — le jeu, la voix d'un troisième — (Δ), la voix de la tuile chez
-       l'ancre (Δ + d). Aux dixième, douzième et treizième rapports réels :
-       −655 · −383 · −115 ; 89 · 358 · 568 ; 634 · 853 · 1138 ; 583 · 840 ·
-       1064. La cible des lèvres est la PLUS HAUTE de la grappe.
-       OÙ ELLE SE TROUVE. La 4.24.0.18 tenait pour écho toute composante à
-       plus de 0,8 s de l'horloge. Or l'horloge dit quand l'image a été
-       reçue par Twitch, pas quand elle a été jouée chez le streamer : au
-       douzième rapport, elle se trompait de 0,85 s sur le jeu, et la règle
-       jetait 853 et 1138 — la vraie cible —, pour caler la tuile sur 634,
-       la voix de l'ANCRE : ses lèvres 0,5 s en avance sur sa voix. Désormais :
-         — les composantes se rangent en GRAPPES : moins de 0,6 s de l'une
-           à la suivante — un salon vocal n'en sépare pas deux de plus ;
-         — une SOURCE QUI SAUTE — deux composantes établies à plus de 0,6 s,
-           l'une après l'autre dans le temps — n'est pas une voix : c'est un
-           écho, que la latence du lecteur de celui qui regarde déplace. Au
-           huitième rapport, 1117 puis 2460, jamais ensemble. Écartée ;
-         — la grappe retenue est la plus proche de l'horloge : à 1,5 s au
-           plus si elle a deux voix établies et mêlées — la signature d'un
-           salon —, à 0,8 s si elle n'en a qu'une — une composante seule et
-           loin, c'est l'écho d'un live rejoué ; deux grappes à moins de
-           0,3 s de distance l'une de l'autre : ambigu. Les autres
-           composantes établies sont des échos probables ;
-         — la cible : la plus haute composante établie de la grappe, mêlée à
-           une autre ; une seule établie, si elle pèse plus du double du
-           reste de sa grappe — sinon, la grappe se forme encore : au
-           douzième rapport, la voix de l'ancre s'établissait seule la
-           première.
-       Rejoués : le huitième, une source qui saute, rien ; le neuvième, 44
-       ms — la grappe 1020 · 1168, plus loin de l'horloge, en écho ; le
-       dixième, −115 et 568 ; le douzième, 1138 au lieu de 634 ; le
-       treizième, 1064 au lieu de 583, et 19.
-       Sur deux minutes de calculs qui tiennent — un poids de 24 —, dans la
-       grappe comme en tout.
-       ÉTABLIE : le premier pic de six calculs au moins, et un dixième du
-       poids de la carte.
-       MÊLÉES, comme deux voix (cf. deuxVoix), mais à un DIXIÈME : sur toute
-       l'écoute, de vraies voix alternent par plages de plusieurs minutes, et
-       celles du salon, au neuvième rapport, ne se mêlaient qu'à 0,16 et
-       0,18. Une voix qui saute, deux époques l'une après l'autre, reste vers
-       0,02.
-       `f` : l'exigence, 1 en vrai ; le pilote et aligner('son') la règlent
-       sur leur échelle, un quart au moins — le banc n'attend pas deux
-       minutes ; le rapport de l'écoute, lui, garde l'exigence entière. */
-    const SON_POIDS_MIN = 24;
-    const MELANGE_CARTE = 0.1;
-    const GRAPPE_MS = 600;
-    const LOIN_SEULE_MS = 800;
-    const LOIN_GRAPPE_MS = 1_500;
-    const EGALE_MS = 300;
-    const melees = (x, y) => {
-      let avant = 0;
-      for (const a of x.calculs) for (const b of y.calculs) avant += a < b ? 1 : a === b ? 0.5 : 0;
-      const n = x.calculs.length * y.calculs.length;
-      return Math.min(avant, n - avant) >= MELANGE_CARTE * n;
-    };
-    const cibleSon = (k, f = 1) => {
-      const min = SON_POIDS_MIN * f, nMin = Math.ceil(6 * f);
-      const comps = k ? k.comps : [];
-      const total = comps.reduce((s, x) => s + x.w, 0);
-      if (total < min) return { refus: `trop peu de calculs (poids ${total} sur ${min})` };
-      const etablies = comps.filter((x) => x.n >= nMin && x.w >= 0.1 * total);
-      // Les sources qui sautent : établies, loin l'une de l'autre, jamais ensemble.
-      const sautees = new Set();
-      for (const a of etablies) {
-        for (const b of etablies) if (b.rel - a.rel > GRAPPE_MS && !melees(a, b)) { sautees.add(a); sautees.add(b); }
-      }
-      // Dans l'ordre où elles sont venues : « 1117 → 2460 ».
-      const sauts = [...sautees].sort((u, v) => Math.min(...u.calculs) - Math.min(...v.calculs)).map((x) => x.rel);
-      const grappes = [];
-      for (const x of comps.filter((c) => !sautees.has(c)).sort((u, v) => u.rel - v.rel)) {
-        const g = grappes[grappes.length - 1];
-        if (g && x.rel - g[g.length - 1].rel <= GRAPPE_MS) g.push(x); else grappes.push([x]);
-      }
-      const valides = [];
-      for (const g of grappes) {
-        const e = g.filter((x) => etablies.includes(x));
-        if (!e.length) continue;
-        const bord = Math.min(...e.map((x) => Math.abs(x.rel)));
-        const voix = e.some((x) => e.some((y) => y !== x && melees(x, y)));
-        if (bord <= (voix ? LOIN_GRAPPE_MS : LOIN_SEULE_MS)) valides.push({ g, e, bord });
-      }
-      valides.sort((u, v) => u.bord - v.bord);
-      const deux = valides.length > 1 && valides[1].bord - valides[0].bord < EGALE_MS;
-      const retenues = deux ? [...valides[0].g, ...valides[1].g] : valides.length ? valides[0].g : [];
-      const echos = etablies.filter((x) => !sautees.has(x) && !retenues.includes(x)).map((x) => x.rel).sort((u, v) => u - v);
-      const dire = (r) => ({ ...r, ...(echos.length ? { echos } : {}), ...(sauts.length ? { sauts } : {}) });
-      const proche = (v) => v.e.reduce((p, q) => (Math.abs(q.rel) < Math.abs(p.rel) ? q : p)).rel;
-      if (!valides.length) {
-        return sauts.length && !echos.length ? { refus: `ambigu : une source a sauté, ${sauts.join(' → ')} ms` }
-          : dire({ refus: 'rien près de l\'horloge' });
-      }
-      if (deux) return dire({ refus: `ambigu : deux grappes, ${proche(valides[0])} et ${proche(valides[1])} ms, à même distance de l'horloge` });
-      const { g, e } = valides[0];
-      const poids = g.reduce((s, x) => s + x.w, 0);
-      if (poids < min) return dire({ refus: `trop peu de calculs (poids ${poids} sur ${min})` });
-      if (e.length === 1) {
-        return e[0].w > 2 * (poids - e[0].w) ? dire({ rel: e[0].rel, voie: 'la seule voix' })
-          : dire({ refus: `en attente : ${e[0].rel} ms, seule établie dans sa grappe` });
-      }
-      const melangees = e.filter((x) => e.some((y) => y !== x && melees(x, y)));
-      if (!melangees.length) return dire({ refus: `ambigu : une voix qui saute, ${e.map((x) => x.rel).join(' puis ')} ms` });
-      return dire({ rel: melangees.reduce((p, q) => (q.rel > p.rel ? q : p)).rel, voie: 'la plus haute de la grappe' });
-    };
-    // « · écho probable : 1168 ms » : ce que la cible a laissé hors de sa grappe ;
-    // « · source qui saute : 1117 → 2460 ms » (4.24.0.20).
-    const texteEchos = (x) => (x.echos ? ` · écho probable : ${x.echos.join(', ')} ms` : '')
-      + (x.sauts ? ` · source qui saute : ${x.sauts.join(' → ')} ms` : '');
-    // « 1168 ms (48 · 50 %) · 44 (13 · 14 %) » : chaque composante, ses premiers pics, sa part.
-    const texteCarte = (k) => (k.comps.length ? k.comps.map((x, i) => `${x.rel}${i ? '' : ' ms'} (${x.n} · ${Math.round(x.part * 100)} %)`).join(' · ')
-      + ` · poids ${k.total}` : null);
-    /* CE QUE LE SON DIT DEPUIS `de` de la cible de chaque paire : les pics des
-       calculs d'après, à 80 ms près de la cible sur la carte, ramenés à
-       l'instant — la cible vue à +8 ms, alignée ; à +1168, pas du tout. */
-    const cibleVue = (p, rel, de) => {
-      const vus = [];
-      for (const h of p ? p.historique : []) {
-        if (!(h.debut >= de) || !(h.z >= 5) || !Number.isFinite(h.sync)) continue;
-        for (const ms of picsDe(h)) if (Math.abs(ms - h.sync - rel) <= CARTE_RAYON_MS) vus.push(ms);
-      }
-      return vus.length ? { ms: Math.round(mediane(vus)), n: vus.length } : null;
-    };
-    const sonApres = (c, de, f = 1) => Object.entries(c.ecoute.paires).map(([cle, p]) => {
-      const x = cibleSon(carteSon(p.historique), f);
-      const v = x.refus ? null : cibleVue(p, x.rel, de);
-      return v ? `${cle} cible à ${v.ms >= 0 ? '+' : ''}${v.ms} ms (${v.n})` : null;
-    }).filter(Boolean).join(' · ') || null;
     const bilanEcoute = (c) => {
       const e = c.ecoute;
       if (!e.actif && !e.calculs) return { actif: false };
-      const paires = {}, historique = {}, stables = {}, commun = {}, carte = {}, cible = {};
+      const paires = {}, historique = {}, stables = {}, commun = {};
       for (const [cle, p] of Object.entries(e.paires)) {
         const d = p.dernier;
         paires[cle] = `décalage ${d.ms} ms · r ${d.r.toFixed(2)} · z ${d.z.toFixed(1)}`
@@ -15562,18 +15225,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (pics) stables[cle] = e.coupe ? `${pics} · depuis le dernier déplacement` : pics;
         const part = partCommune(p.historique);
         commun[cle] = `${verdictSon(part)} · ${part.k} calculs sur ${part.n} tiennent hors du bord`;
-        /* LA CARTE DU SON et sa cible (4.24.0.18), sur toute l'écoute : la
-           cible en ms par rapport à l'horloge, et ce qu'elle demande — la
-           tuile en retard sur l'ancre d'autant, positif. */
-        const k = carteSon(p.historique);
-        carte[cle] = texteCarte(k);
-        const x = cibleSon(k);
-        const [ra, rt] = cle.split('~');
-        cible[cle] = (x.refus ? `aucune : ${x.refus}`
-          : `${x.rel} ms, ${x.voie} · ${rt} ${Math.abs(x.rel / 1000).toFixed(3)} s ${x.rel >= 0 ? 'après' : 'avant'} ${ra}`) + texteEchos(x);
       }
       return { actif: e.actif, depuisS: e.depuis ? Math.round((Date.now() - e.depuis) / 1000) : null,
-               calculs: e.calculs, paires, historique, pics: stables, commun, carte, cible };
+               calculs: e.calculs, paires, historique, pics: stables, commun };
     };
 
     const bilan = () => {
@@ -15618,15 +15272,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         ...bilanApi(c),
         // L'ÉCOUTE (S9) : le décalage mesuré par le son, paire par paire.
         ecoute: bilanEcoute(c),
-        // LE PROTOCOLE (4.24.0.12) : ses étapes, et ses mesures.
-        protocole: bilanProtocole(c),
-        // L'ALIGNEMENT PAR L'HORLOGE (S10, 4.24.0.15) : ses passes, son suivi.
-        alignement: bilanAlignement(c),
-        // L'ALIGNEMENT AUTOMATIQUE (4.24.0.17) : ses alignements, sa veille.
-        auto: bilanPilote(c),
-        // Les leviers de rattrapage, quand on les a essayés (4.24.0.17) — pas
-        // « leviers », qui dit depuis la 4.24.0.11 ceux que l'instance offre.
-        essaiLeviers: bilanLeviers(c),
+        // LE CALAGE PAR LE SON (4.24.0.21) : ses mesures, ses corrections.
+        calage: bilanCalage(c),
         chatPartage: c.partage,
         chatsCompares: c.comparaison ? `${c.comparaison.messages} messages · ${c.comparaison.communs} communs` : null,
         chatMasque: !d.chat,
@@ -15681,10 +15328,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const fermer = (raison = 'api') => {
       const c = courante;
       if (!c) return { fermee: false };
-      // Le protocole s'arrête avec la salle, et remet ce qu'il a changé.
-      arreterProtocole(c, 'arrêté : salle fermée', true);
-      arreterPilote(c, 'arrêté : salle fermée');
-      arreterAlignement(c, 'arrêté : salle fermée');
+      arreterCalage(c, 'arrêté : salle fermée');
       derniere = { ...bilan(), ouverte: false, fermeture: raison };
       clearInterval(c.minuteur);
       window.removeEventListener('message', surMessage);
@@ -15704,15 +15348,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        ferme avec lui. La console, outil de diagnostic, peut encore en ouvrir
        une — ce n'est pas le système, c'est l'établi. */
     options.surChangement(() => { if (courante && !options.get('salle')) fermer('reglage'); });
-    /* L'ALIGNEMENT AUTOMATIQUE COUPÉ, ou rallumé (4.24.0.17) : il s'arrête —
+    /* LE CALAGE COUPÉ, ou rallumé (4.24.0.17, 4.24.0.21) : il s'arrête —
        l'écoute avec, s'il l'avait allumée — ou reprend, dans une salle
        ouverte par le nœud. */
     options.surChangement(() => {
       const c = courante;
       if (!c) return;
-      if (!options.get('salleAuto')) arreterPilote(c, 'arrêté : réglage', true);
+      if (!options.get('salleAuto')) arreterCalage(c, 'arrêté : réglage', true);
       // Rallumé : s'il n'avait pas démarré (réglage coupé à l'ouverture), ou si le réglage l'avait arrêté.
-      else if (c.origine === 'noeud' && (!c.pilote || c.pilote.etat === 'arrêté : réglage')) demarrerPilote(c, 1, 'reglage');
+      else if (c.origine === 'noeud' && (!c.calage || c.calage.etat === 'arrêté : réglage')) demarrerCalage(c, 1, 'reglage');
     });
 
     /* ── SOUS LA BARRE DU HAUT DE TWITCH (4.24.0.8) ─────────────────────────
@@ -15921,11 +15565,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         // La sonde du même instant (4.24.0.11).
         releveN: 0, ecarts: [], evenements: [], evenementsTotal: 0,
         ecoute: { actif: false, depuis: null, calculs: 0, paires: {}, ref: null, coupe: null },
-        protocole: null,
-        alignement: null,
-        // L'alignement automatique, et l'essai des leviers (4.24.0.17).
-        pilote: null,
-        leviers: null,
+        // Le calage par le son (4.24.0.21).
+        calage: null,
       };
       window.addEventListener('message', surMessage);
       window.addEventListener('resize', surRedim);
@@ -15939,8 +15580,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          qui la couvre (4.24.0.10 : sans ligne d'en-tête pleine largeur, elle
          n'avait plus de quoi s'élargir). */
       verifierEmpilement(boite, empilement);
-      // Ouverte par le nœud : l'alignement automatique, si le réglage le veut (4.24.0.17).
-      if (courante.origine === 'noeud' && options.get('salleAuto')) demarrerPilote(courante, 1, 'ouverture');
+      // Ouverte par le nœud : le calage par le son, si le réglage le veut (4.24.0.21).
+      if (courante.origine === 'noeud' && options.get('salleAuto')) demarrerCalage(courante, 1, 'ouverture');
       if (auChangement) auChangement();
       return {
         ouverte: true,
@@ -15985,15 +15626,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         || (/^[1-9]$/.test(nom) ? c.tuiles[Number(nom) - 1] || null : null);
       return t ? { t, valeur } : { erreur: `tuile inconnue « ${qui} » / unknown tile — ${aide}` };
     };
-    // `voie` : 'video' pose la vitesse sur l'élément, sans le lecteur (4.24.0.13).
-    const vitesseSur = (args, appelante = null, voie = null) => {
-      const d = designer(args, appelante);
-      if (d.erreur) return { erreur: d.erreur };
-      const x = Number(d.valeur);
-      if (!(x >= 0.5 && x <= 1.5)) return { erreur: 'vitesse hors de 0.5–1.5 / speed outside 0.5–1.5' };
-      envoyer(d.t, 'essai-vitesse', { valeur: x, ...(voie === 'video' ? { voie } : {}) });
-      return { envoye: voie === 'video' ? 'vitesse-video' : 'vitesse', chaine: d.t.chaine, valeur: x };
-    };
     // Le recul dans le tampon, de 0,2 à 5 s (4.24.0.13).
     const reculSur = (args, appelante = null) => {
       const d = designer(args, appelante);
@@ -16012,65 +15644,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (!(x >= 0.2 && x <= 5)) return { erreur: 'avance hors de 0.2–5 s / skip outside 0.2–5 s' };
       envoyer(d.t, 'essai-avance', { duree: x });
       return { envoye: 'avance', chaine: d.t.chaine, secondes: x };
-    };
-    const pauseSur = (args, appelante = null) => {
-      const d = designer(args, appelante);
-      if (d.erreur) return { erreur: d.erreur };
-      const x = Number(d.valeur);
-      if (!(x >= 0.2 && x <= 10)) return { erreur: 'pause hors de 0.2–10 s / pause outside 0.2–10 s' };
-      envoyer(d.t, 'essai-pause', { duree: x });
-      return { envoye: 'pause', chaine: d.t.chaine, secondes: x };
-    };
-    /* LE LEVIER DE RATTRAPAGE, À LA DEMANDE (4.24.0.17, réparé en
-       4.24.0.18 — cf. le pont) : sur la tuile muette — ou celle d'où l'on
-       tape, ou celle qu'on nomme —, setLiveSpeedUpRate(1.1), et plus jamais
-       setLiveMaxLatency. Pas pendant un alignement : il déplace les tuiles,
-       et l'on ne saurait plus qui a fait quoi. Trente secondes de relevés
-       disent ce qu'il a fait (leviers(0.3) : neuf) — la latence, le tampon
-       au plus bas, les vitesses, les rattrapages, et ce qui a calé : un
-       levier qui ferait fondre le tampon se verrait. La tuile garde ce
-       réglage jusqu'à la fermeture de la salle : sa valeur d'origine ne se
-       lit nulle part. */
-    const leviers = (args, appelante = null) => {
-      const c = courante;
-      const d = designer(args, appelante);
-      if (d.erreur) return { erreur: d.erreur };
-      if (alignementVivant(c)) return { erreur: 'un alignement est en cours — aligner(false) l\'arrête / an alignment is running' };
-      const e = d.valeur === undefined || d.valeur === null ? 1 : Number(d.valeur);
-      if (!(e >= 0.05 && e <= 1)) return { erreur: 'échelle hors de 0.05–1 / scale outside 0.05–1' };
-      const der = [...d.t.serie].reverse().find((x) => x.l !== null && !x.lIncoherente);
-      if (!der) return { erreur: 'latence encore inconnue / latency not known yet' };
-      const vitesse = 1.1;
-      envoyer(d.t, 'essai-leviers', { vitesse });
-      c.leviers = { chaine: d.t.chaine, t: Date.now(), avant: der.l, tampon: der.b, vitesse, duree: Math.round(30_000 * e),
-                    rattrapages: d.t.rattrapages.length, coupures: d.t.coupures.length, chutes: d.t.chutes.length, appels: null };
-      return { envoye: 'leviers', chaine: d.t.chaine, vitesse, observation: `${Math.round(30 * e)} s`,
-               ensuite: 'le rapport, bloc « essaiLeviers » / see the report' };
-    };
-    // Ce que le levier a fait, au rapport : l'appel, la latence, le tampon, les vitesses, ce qui a calé ou rattrapé.
-    const bilanLeviers = (c) => {
-      const L = c.leviers;
-      if (!L) return null;
-      const t = c.tuiles.find((x) => x.chaine === L.chaine);
-      if (!t) return { chaine: L.chaine, etat: 'tuile retirée' };
-      const s = t.serie.filter((x) => x.t !== null && x.t >= L.t && x.t <= L.t + L.duree);
-      const lats = s.map((x) => (x.lIncoherente ? null : x.l)).filter((x) => x !== null);
-      const tampons = s.map((x) => x.b).filter((x) => x !== null);
-      const vitesses = [...new Set(s.flatMap((x) => [x.v, x.vl]).filter((x) => x !== null && x !== 1))];
-      const ratt = t.rattrapages.slice(L.rattrapages).filter((r) => r.t >= L.t);
-      const calees = [...t.coupures.slice(L.coupures).map((x) => `coupure ${x.duree} s`), ...t.chutes.slice(L.chutes).map((x) => `chute ${x.perdu} s`)];
-      return {
-        etat: Date.now() - L.t >= L.duree ? 'fini' : 'en cours',
-        chaine: L.chaine,
-        demande: `setLiveSpeedUpRate(${L.vitesse})`,
-        appels: L.appels ? L.appels.join(' · ') : null,
-        latence: lats.length ? `avant ${L.avant} · min ${r3(Math.min(...lats))} · dernière ${lats[lats.length - 1]}` : null,
-        tampon: tampons.length ? `avant ${L.tampon ?? '—'} · min ${r3(Math.min(...tampons))} · dernier ${tampons[tampons.length - 1]}` : null,
-        vitesses: vitesses.length ? vitesses.join(' · ') : 'aucune autre que 1',
-        rattrapages: ratt.length ? ratt.map((r) => `${r.duree} s à ${r.v}, latence ${r.avant ?? '—'} → ${r.apres ?? '—'}`).join(' ; ')
-          : t.rattrapage ? `en cours à ${t.rattrapage.v}` : 'aucun',
-        cale: calees.length ? calees.join(' · ') : 'rien',
-      };
     };
     const ecoute = (actif = true) => {
       const c = courante;
@@ -16095,1105 +15668,335 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       };
     };
 
-    /* ── S10 : L'ALIGNEMENT (4.24.0.15, revu en 4.24.0.16) : tse.salle.aligner() ──
-       Ce que les rapports réels ont établi, et sur quoi il repose :
-         — la vitesse ne se pose pas : le lecteur la remet à 1 en moins d'un
-           quart de seconde, par l'instance comme par l'élément ;
-         — le RECUL dans le tampon tient, l'AVANCE dans un tampon agrandi
-           aussi ; au sixième rapport, l'écart aligné a tenu trois minutes, le
-           son à ±15 ms ;
-         — l'horloge de la tête de lecture (getSyncTime), la position et le
-           son commun suivent chaque déplacement : au sixième rapport, −1302
-           ms par la position, −1291 par l'horloge, −1280 par le son.
-       La tuile la plus EN RETARD sert de référence et ne bouge pas ; chaque
-       autre recule de son écart avec elle, moins le calage attendu. Puis le
-       suivi, à +30, +60, +120 et +180 s, sans rien toucher.
-
-       CE QUE LE SIXIÈME RAPPORT A CORRIGÉ (4.24.0.16). L'alignement s'est
-       arrêté à 0,19 s de son but. L'écart initial était de 1,504 s, les
-       passes ont obtenu 1,302 s : il restait 0,202 s, et la mesure finale a dit
-       0,190. La seconde passe s'était trompée deux fois — sa mesure de cinq
-       secondes a vu −0,157 quand la position disait −0,087 : l'horloge erre
-       de ±40 ms ; et l'avance a pris le calage du recul, 0,207 s, quand le
-       sien valait 0,075. Désormais :
-         — la mesure initiale porte sur VINGT secondes de passages ;
-         — la seconde passe se fait PAR LA POSITION : l'écart moins le
-           déplacement obtenu, que getPosition donne à 20 ms près ;
-         — le calage se prévoit PAR SENS : 0,175 s pour un recul (0,218 ·
-           0,099 · 0,207 aux rapports), 0,087 pour une avance (0,083 · 0,103 ·
-           0,075) ; celui mesuré sur une tuile ne resert qu'au même sens ;
-         — une VÉRIFICATION, sur les passages d'après le dernier déplacement,
-           et une troisième passe si l'écart y dépasse encore le seuil — trois
-           passes au plus.
-
-       aligner(false) l'arrête ; ce qui est déplacé le reste. Une échelle
-       raccourcit les mesures et le suivi, pour le banc : aligner(0.1),
-       aligner('son', 0.1).
-
-       CE QUE LE SEPTIÈME RAPPORT A CORRIGÉ (4.24.0.17) : le calage d'un recul
-       prévu à la moyenne des reculs réels.
-
-       CE QUE LES HUITIÈME ET NEUVIÈME ONT CORRIGÉ (4.24.0.18).
-         — LE CALAGE D'UN RECUL À 0,12 s : la moyenne des ONZE reculs réels —
-           0,218 · 0,099 · 0,207 · 0,056 · 0,081 · 0,147 · 0,097, puis 0,105 ·
-           0,104 · 0,079 · 0,109 ;
-         — TOUT PAR L'HORLOGE. Le mode « par le son » mesurait chaque passe
-           et la vérification au son, qui attend ses calculs — deux minutes au
-           plus — et se perd sur trois composantes. Le son dit désormais OÙ
-           aller : la relation que chaque tuile doit avoir avec l'ancre (cf. la
-           carte du son, cibleSon) ; l'horloge y va, en vingt secondes, et le
-           vérifie. aligner('son') : l'écoute allumée, une cible sur chaque
-           paire ; sinon, le refus dit pourquoi ;
-         — L'ANCRE EN PLACE quand elle peut l'être (cf. commencer). */
-    const SEUIL_S = 0.1;
-    const CALAGE_S = { recul: 0.12, avance: 0.087 };
-    // Le temps de relire un déplacement : sa position une demi-seconde après,
-    // puis le relevé qui la rapporte.
-    const RELIRE_MS = 2_500;
-    const SUIVI_S = [30, 60, 120, 180];
-    // Une avance garde une seconde de tampon au moins (4.24.0.18) ; le pont en refuse en deçà d'une demi.
-    const MARGE_AVANCE_S = 1;
-    // L'horloge de chaque tuile, sur ses passages depuis `de` — `fenetre` au
-    // plus —, en secondes ; null à moins de trois passages.
-    const horloges = (c, de, fenetre) => {
-      const a = Date.now();
-      return Object.fromEntries(c.tuiles.map((t) => [t.chaine, latenceHorloge(t, Math.max(de, a - fenetre), a)]));
+    /* ── LE CALAGE PAR LE SON (4.24.0.21) : tse.salle.auto() ──────────────────
+       CE QUE LE QUATORZIÈME RAPPORT RÉEL A MONTRÉ. Deux streams, quatorze
+       minutes. L'œil : calés dans les premières secondes, calés de nouveau
+       vers la troisième minute, puis quatre secondes d'écart jusqu'au bout.
+       Le son l'a mesuré tout du long, au même endroit : −0,2 s vers +190 s,
+       −3,9 s ensuite, z de 7 à 10. L'HORLOGE (getSyncTime) disait 0,7 s : elle
+       date l'image à son arrivée chez Twitch, pas au moment où le streamer l'a
+       jouée, et se trompait ici de 4,6 s, CONSTANTS — un délai de diffuseur.
+       Le pilote d'avant alignait sur elle : il a reculé de 4,9 s la tuile en
+       faible latence, que son lecteur a reprise en 146 s ; puis avancé de 4 s
+       l'autre — 4 s d'écart au son, et son tampon mangé, une coupure toutes
+       les cent secondes. Quatre alignements, quatre fois contre ce que le son
+       et l'œil voyaient.
+       DÉSORMAIS, UN INSTRUMENT ET UN GESTE :
+         — LE SON SEUL décide. L'horloge et la latence restent au rapport,
+           elles ne déplacent plus rien ;
+         — sur ce qu'il a entendu DEPUIS LE DERNIER CHANGEMENT de la paire —
+           un déplacement, un rechargement, une chute, un saut, un rattrapage —,
+           trente calculs au plus, huit calculs nets (z ≥ 5) au moins, et deux
+           verdicts de suite qui s'accordent à 80 ms ;
+         — la cible : la voix la plus haute de la grappe (cf. mesurerSon) ;
+         — le geste : RECULER la tuile en avance. Une avance mange le tampon
+           (cf. plus haut) : elle n'est permise qu'à une tuile qui garde deux
+           secondes de tampon après elle, et seulement quand celle qui est
+           devant ne peut pas reculer ;
+         — la FAIBLE LATENCE retirée, une fois, à chaque tuile qui l'a : son
+           lecteur défait tout recul (cf. le pont). Si elle tient quand même
+           — le recul repris —, la tuile ne recule plus ;
+         — CORRIGÉE, une tuile NE REDESCEND PAS tant qu'une voix de sa grappe
+           est à moins de 0,4 s : un salon vocal en a trois, à 0,2–0,3 s l'une
+           de l'autre, et la plus haute — la cible — se tait quand son
+           streamer ne parle pas ; viser alors celle d'en dessous ferait
+           osciller la salle — au banc, une tuile corrigée sur la plus haute
+           est redescendue sur celle d'en dessous au calcul suivant. Elle
+           MONTE, en revanche, vers une voix plus haute de 0,15 s : la
+           décision a pu venir avant que la plus haute ne soit établie. Seule
+           la grappe entière descendue la fait redescendre ;
+         — trois corrections au plus par tuile en dix minutes ; au-delà, elle
+           est laissée là dix minutes, et le rapport le dit.
+       Rien ne bouge sans son commun : le rapport dit « en attente ».
+       auto(false) l'arrête ; auto(0.1) le règle à l'échelle du banc. */
+    const CALAGE = Object.freeze({
+      NETS: 8, FENETRE: 30, GROUPE_MS: 80, LIEN_MS: 700, EQUILIBRE: 0.25, SEULE_MS: 500,
+      SEUIL_S: 0.15, TENUE_S: 0.4,
+      // Ce qu'un recul cale en plus — la moyenne des onze reculs réels —, ce qu'une avance perd.
+      RECUL_S: 0.12, AVANCE_S: 0.087, MARGE_S: 2,
+      MAX_N: 3, MAX_MS: 600_000, ANCRE_MS: 15_000,
+    });
+    const tuileDe = (c, nom) => c.tuiles.find((x) => x.chaine === nom) || null;
+    /* CE QUI CHANGE LA PAIRE (cf. surReleve) : un rechargement, une chute,
+       un saut, la fin d'un rattrapage — la lecture a bougé, ce que le son a
+       entendu avant ne dit plus où elle est. Pas une coupure d'arrivée : la
+       lecture continue sur son tampon. */
+    const signaler = (c, chaine, quoi) => {
+      const t = tuileDe(c, chaine);
+      if (t && quoi !== 'coupure') t.changement = Date.now();
     };
-    /* Le tampon devant la lecture : le PLUS BAS des cinq derniers relevés, en
-       s (4.24.0.19). Au dixième rapport réel, une tuile servie par segments
-       avait un tampon en dents de scie, 1,3 puis 2,3 s d'un relevé à l'autre :
-       leur médiane prenait l'une ou l'autre au hasard des cinq, et c'est au
-       creux qu'une avance cale. */
+    // Le tampon devant la lecture : le plus bas des cinq derniers relevés (4.24.0.19), en s.
     const tamponDe = (t) => {
       const l = t.serie.slice(-5).map((x) => x.b).filter((x) => x !== null);
       return l.length ? Math.min(...l) : null;
     };
-    /* Ce qu'une tuile peut avancer en gardant sa seconde de tampon, en s ;
-       null sans tampon lu. */
-    const avanceMax = (t) => {
-      const b = tamponDe(t);
-      return b === null ? null : r3(b - MARGE_AVANCE_S);
-    };
-    // « bravo 2.512 · alpha 2.498 · écart 0.014 s · alpha +0.014 » : chaque
-    // latence, l'écart extrême, et chaque tuile face à la référence — positif,
-    // elle est en avance.
-    const texteMesure = (m, ref) => {
-      const l = Object.values(m).filter((x) => x !== null);
-      const signe = (x) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(3)}`;
-      return Object.entries(m).map(([k, x]) => `${k} ${x === null ? '—' : x.toFixed(3)}`).join(' · ')
-        + (l.length >= 2 ? ` · écart ${(Math.max(...l) - Math.min(...l)).toFixed(3)} s` : '')
-        + (ref && m[ref] !== null && m[ref] !== undefined ? Object.entries(m).filter(([k, x]) => k !== ref && x !== null)
-          .map(([k, x]) => ` · ${k} ${signe(m[ref] - x)}`).join('') : '');
-    };
-    /* Une mesure au rapport : « relations gardées » quand chaque tuile vise
-       la relation d'horloge qu'on lui a donnée — celle du son, ou celle que
-       l'automatique lui garde. */
-    const texteUnite = (x, ref) => (x ? `par l'horloge${x.decale ? ' (relations gardées)' : ''} · ${texteMesure(x.m, ref)}` : null);
-    // La tuile la plus en retard d'une mesure.
-    const plusTard = (m) => Object.entries(m).filter(([, v]) => v !== null).reduce((p, q) => (q[1] > p[1] ? q : p))[0];
-    const arreterAlignement = (c, raison) => {
-      const a = c.alignement;
-      if (!alignementVivant(c)) return;
-      for (const m of a.minuteurs) clearTimeout(m);
-      a.minuteurs = [];
-      a.etat = raison;
-      noter(c, null, `alignement ${raison}`);
-      if (a.alafin) a.alafin('arret');
-    };
-    /* LE MOTEUR DES PASSES. `alafin(etape)` : 'aligne' à la fin des passes,
-       'fini' à la fin du suivi, 'arret' s'il s'arrête avant (le protocole 4
-       et l'automatique s'en servent).
-       CE QUE L'AUTOMATIQUE ET LE SON Y AJOUTENT (4.24.0.17, 4.24.0.18) :
-         — `suivi: false` : pas de suivi, la fin dès les passes faites — il
-           surveille lui-même ;
-         — `decale` : la relation d'horloge que chaque tuile doit avoir avec
-           l'ancre — celle que le son a établie ;
-         — `ancre` : la référence préférée, qui ne bouge pas si les autres
-           peuvent venir à elle ;
-         — `mode` : 'son' pour le dire au rapport — la mesure reste
-           l'horloge. */
-    const lancerAlignement = (c, { echelle: e, mode = 'horloge', alafin = null, suivi = true, ancre = null,
-                                   decale = null, origine = 'main', seuil = SEUIL_S }) => {
-      // La fenêtre de l'horloge : vingt secondes, six au moins à l'échelle du banc.
-      const FENETRE = Math.max(6_000, 20_000 * e);
-      const a = { etat: 'en cours', mode, echelle: e, t0: Date.now(), minuteurs: [], ref: null, avant: null,
-                  passes: [], verifs: [], apres: null, apresAutre: null, dernier: null, calages: {}, suivi: [],
-                  note: null, alafin, origine, ancre, decale, refRaison: null, bornes: {}, couts: null, seuil };
-      c.alignement = a;
-      noter(c, null, `alignement · début · par l'horloge${decale ? ' (relations gardées)' : ''}`);
-      const plus = (ms, fn) => {
-        a.minuteurs.push(setTimeout(() => {
-          if (courante !== c || c.alignement !== a || !alignementVivant(c)) return;
-          fn();
-        }, ms));
-      };
-      const tuile = (nom) => c.tuiles.find((x) => x.chaine === nom) || null;
-      // Chaque tuile décalée de ce qu'elle doit garder.
-      const mesure = (de) => ({ decale: !!a.decale, m: Object.fromEntries(Object.entries(horloges(c, de, FENETRE))
-        .map(([k, v]) => [k, v === null || !a.decale ? v : r3(v - (a.decale[k] || 0))])) });
-      // Une mesure, reprise tant qu'il lui manque une tuile : trois fois, toutes les deux secondes.
-      const mesurer = (de, suite, echec) => {
-        const essai = (fois) => {
-          const x = mesure(de);
-          const manque = Object.keys(x.m).filter((k) => x.m[k] === null);
-          if (!manque.length) { suite(x); return; }
-          if (fois < 3) { plus(2_000, () => essai(fois + 1)); return; }
-          echec(manque);
-        };
-        essai(0);
-      };
-      const sansMesure = (manque) => arreterAlignement(c, `arrêté : sans horloge (${manque.join(', ')})`);
-      const ecartsDe = (m) => Object.fromEntries(c.tuiles
-        .filter((t) => t.chaine !== a.ref && m[t.chaine] !== null && m[t.chaine] !== undefined)
-        .map((t) => [t.chaine, r3(m[a.ref] - m[t.chaine])]));
-      // Le calage mesuré sur CETTE tuile dans CE sens, sinon l'attendu du sens.
-      const calageDe = (nom, type) => {
-        const x = a.calages[nom];
-        return x && Number.isFinite(x[type]) ? x[type] : CALAGE_S[type];
-      };
-      /* CE QU'UNE TUILE NE PEUT PAS FAIRE (4.24.0.19) : reculer, si son
-         lecteur reprend les reculs (cf. retientPas) — 'rattrape' ; avancer de
-         tout son écart, calage compris, en gardant sa seconde de tampon —
-         'tampon', et elle avance de ce qu'elle peut. Sinon null. */
-      const bornee = (t, ecart) => {
-        if (ecart >= a.seuil && t.retientPas) return 'rattrape';
-        const max = ecart <= -a.seuil ? avanceMax(t) : null;
-        return max !== null && -ecart + calageDe(t.chaine, 'avance') > max ? 'tampon' : null;
-      };
-      // Une avance bornée qui gagne encore quelque chose : plus que son calage, que la lecture reperd.
-      const utile = (t) => avanceMax(t) - calageDe(t.chaine, 'avance') >= 0.05;
-      // Reste-t-il un écart qu'une tuile peut encore corriger ?
-      const aFaire = (restes) => Object.entries(restes).some(([nom, r]) => {
-        const t = tuile(nom);
-        if (!t || Math.abs(r) < a.seuil) return false;
-        const b = bornee(t, r);
-        return !b || (b === 'tampon' && utile(t));
-      });
-      const finir = (x) => {
-        a.apres = x;
-        // L'autre vue, pour le rapport : où le son voit la cible de chaque paire.
-        const de = (a.dernier || a.t0) + 1_000;
-        a.apresAutre = c.ecoute.actif ? sonApres(c, de, Math.max(0.25, e)) : null;
-        a.etat = 'suivi';
-        noter(c, null, `alignement · ${texteUnite(x, a.ref)}`);
-        if (a.alafin) a.alafin('aligne');
-        // Sans suivi (l'automatique) : fini dès les passes faites.
-        if (!suivi) {
-          if (c.alignement !== a || a.etat !== 'suivi') return;
-          a.etat = 'fini';
-          if (a.alafin) a.alafin('fini');
-          return;
-        }
-        SUIVI_S.forEach((s, i) => plus(s * 1000 * e, () => {
-          const depuis = (a.dernier || a.t0) + 1_000;
-          a.suivi.push({ s, m: horloges(c, depuis, FENETRE), voix: c.ecoute.actif ? sonApres(c, depuis, Math.max(0.25, e)) : null });
-          if (i < SUIVI_S.length - 1) return;
-          a.etat = 'fini';
-          noter(c, null, `alignement · fin du suivi · ${texteMesure(a.suivi[a.suivi.length - 1].m, a.ref)}`);
-          if (a.alafin) a.alafin('fini');
-        }));
-      };
-      // Une avance refusée par le pont à la dernière passe : le tampon a fondu entre-temps.
-      const refusee = () => {
-        const p = a.passes[a.passes.length - 1];
-        return !!p && Object.values(p.actions).some((x) => x.essai && String(x.essai.voie).startsWith('refusé'));
-      };
-      /* LA VÉRIFICATION, sur les passages d'après le dernier déplacement : une
-         passe de plus si l'écart y dépasse le seuil et qu'il en reste à faire ;
-         sinon, la fin des passes. Une avance refusée : la plus en retard
-         redevient la référence. */
-      const verifier = () => {
-        const de = a.dernier + 1_000;
-        plus(Math.max(0, de + FENETRE - Date.now()), () => mesurer(de, (x) => {
-          a.verifs.push(x);
-          if (refusee()) choisirRef(x, false);
-          const restes = ecartsDe(x.m);
-          if (a.passes.length < 3 && aFaire(restes)) {
-            passe('verification', restes);
-            return;
-          }
-          finir(x);
-        }, (manque) => {
-          a.note = `vérification par l'horloge impossible (${manque.join(', ')})`;
-          finir(mesure(de));
-        }));
-      };
-      // Les essais d'une passe, relus : le déplacement obtenu, le calage mesuré.
-      const relire = (p) => {
-        for (const [nom, x] of Object.entries(p.actions)) {
-          if (x.type === 'rien') continue;
-          const t = tuile(nom);
-          const es = t && t.essai;
-          if (!es || es.type !== x.type || !(es.t >= x.envoi - 1_000)) continue;
-          x.essai = es;
-          // Une avance refusée — le tampon — n'a rien déplacé.
-          if (String(es.voie).startsWith('refusé')) { x.obtenu = 0; continue; }
-          x.obtenu = obtenuDe(es, x.type === 'recul' ? 1 : -1);
-          if (x.obtenu === null) continue;
-          x.calage = r3(x.type === 'recul' ? x.obtenu - x.demande : x.demande - x.obtenu);
-          (a.calages[nom] = a.calages[nom] || {})[x.type] = x.calage;
-        }
-      };
-      const passe = (base, ecarts) => {
-        if (!tuile(a.ref)) { arreterAlignement(c, 'arrêté : référence retirée'); return; }
-        const p = { n: a.passes.length + 1, base, t: Date.now(), actions: {} };
-        a.passes.push(p);
-        for (const [nom, ecart] of Object.entries(ecarts)) {
-          const t = tuile(nom);
-          if (!t) continue;
-          if (Math.abs(ecart) < a.seuil) { p.actions[nom] = { type: 'rien', ecart }; continue; }
-          const type = ecart > 0 ? 'recul' : 'avance';
-          // Ce qu'elle ne peut pas faire (4.24.0.19, cf. faisable).
-          const borne = bornee(t, ecart);
-          if (borne && (borne === 'rattrape' || !utile(t))) {
-            p.actions[nom] = { type: 'rien', ecart, borne };
-            a.bornes[nom] = borne;
-            continue;
-          }
-          const calage = calageDe(nom, type);
-          let s = Math.round(Math.min(10, Math.max(0.05, ecart > 0 ? ecart - calage : -ecart + calage)) * 1000) / 1000;
-          if (borne) { s = avanceMax(t); a.bornes[nom] = borne; }
-          envoyer(t, `essai-${type}`, { duree: s });
-          p.actions[nom] = { type, ecart, demande: s, calagePrevu: calage, envoi: Date.now(), essai: null, obtenu: null, calage: null,
-                             ...(borne ? { borne } : {}) };
-        }
-        const bougees = Object.entries(p.actions).filter(([, x]) => x.type !== 'rien');
-        noter(c, null, `alignement · passe ${p.n} (${BASES[base]}) · ${bougees.length
-          ? bougees.map(([k, x]) => `${k} ${x.type} ${x.demande} s`).join(' · ') : 'rien à corriger'}`);
-        if (!bougees.length) { finir(a.verifs[a.verifs.length - 1] || a.avant); return; }
-        a.dernier = p.t;
-        plus(RELIRE_MS, () => {
-          relire(p);
-          /* Après la première passe, la seconde PAR LA POSITION : l'écart
-             moins ce que la tuile a pris — un recul l'augmente, une avance la
-             diminue. Une tuile dont l'essai n'est pas relu attend la
-             vérification. */
-          if (p.n === 1) {
-            const restes = {};
-            for (const [nom, x] of bougees) {
-              if (x.obtenu !== null) restes[nom] = r3(x.ecart - (x.type === 'recul' ? x.obtenu : -x.obtenu));
-            }
-            if (aFaire(restes)) { passe('position', restes); return; }
-          }
-          verifier();
-        });
-      };
-      /* LA RÉFÉRENCE : la plus en retard, qui ne bouge pas ; chaque autre
-         recule jusqu'à elle.
-         L'ANCRE PLUTÔT, QUAND ELLE LE PEUT (4.24.0.18). La plus en retard
-         pour référence, la chute d'une tuile faisait reculer toutes les
-         autres d'autant : au neuvième rapport réel, 1,19 s de latence de plus
-         pour la salle entière, et un saut sur la tuile qu'on écoute ; au
-         huitième, dès l'ouverture, la tuile qu'on écoute a reculé de 0,29 s.
-         L'ancre — la tuile du son, pour l'automatique et aligner('son') —
-         reste en place quand chaque tuile plus en retard qu'elle peut
-         AVANCER jusqu'à elle : ce qu'elle a à prendre, calage compris, en
-         gardant une seconde de tampon. */
-      /* LA RÉFÉRENCE QUI LAISSE LE MOINS D'ÉCART (4.24.0.19). Aux dixième et
-         onzième rapports réels, une tuile en faible latence reculée de 0,17
-         à 1,39 s : son lecteur est reparti à 1,03, de lui-même, 81 à 125 s
-         durant, jusqu'à reprendre tout le recul — chaque fois. Les passes la
-         reculaient de nouveau, la vérification revoyait l'écart, le pilote
-         réalignait : six réalignements en dix minutes, la pause, et la tuile
-         à 1,46 s de sa relation. Une autre, servie par segments, n'avait que
-         0,3 s de tampon à donner.
-         Chaque tuile a donc sa PORTÉE : avancer de ce que son tampon donne,
-         calage déduit, en gardant sa seconde ; reculer sans limite — sauf si
-         son lecteur reprend les reculs (cf. retientPas). Pour chaque tuile
-         prise pour référence, chacune va au plus près d'elle, et ce qui lui
-         reste, face à l'ANCRE — la tuile qu'on entend : c'est sur elle que
-         tout se juge —, s'additionne. La référence qui en laisse le moins ;
-         à 0,1 s près, l'ancre, puis la plus en retard — c'était la règle, et
-         sans tuile marquée ni tampon trop court, elle ne change pas.
-         `ancre` : l'ancre peut-elle l'être ? */
-      const choisirRef = (x, ancre = true) => {
-        const noms = Object.keys(x.m).filter((k) => Number.isFinite(x.m[k]) && tuile(k));
-        const tard = plusTard(x.m);
-        const A = ancre && noms.includes(a.ancre) ? a.ancre : null;
-        // Où une tuile peut aller, au plus près du niveau L.
-        const va = (k, L) => {
-          const t = tuile(k), max = avanceMax(t);
-          const bas = x.m[k] - (max === null ? 0 : Math.max(0, max - calageDe(k, 'avance')));
-          return Math.min(t.retientPas ? x.m[k] : Infinity, Math.max(bas, L));
-        };
-        const cout = (r) => {
-          const base = A ? va(A, x.m[r]) : x.m[r];
-          return noms.reduce((somme, k) => somme + (k === A ? 0 : Math.abs(va(k, x.m[r]) - base)), 0);
-        };
-        const couts = Object.fromEntries(noms.map((k) => [k, cout(k)]));
-        const mieux = noms.reduce((p, q) => (couts[q] < couts[p] ? q : p), tard);
-        a.ref = A && couts[A] <= couts[mieux] + SEUIL_S ? A : couts[tard] <= couts[mieux] + SEUIL_S ? tard : mieux;
-        a.refRaison = a.ref === A ? 'l\'ancre' : a.ref === tard ? 'la plus en retard'
-          : tuile(a.ref).retientPas ? 'ne tient pas un recul' : 'le moins d\'écart';
-        a.couts = Object.fromEntries(Object.entries(couts).map(([k, v]) => [k, r3(v)]));
-      };
-      const commencer = (x) => {
-        a.avant = x;
-        choisirRef(x);
-        passe('horloge', ecartsDe(x.m));
-      };
-      // L'horloge tournait déjà (l'écoute) : sur ses vingt dernières
-      // secondes ; sinon, ses premiers passages d'abord.
-      const tournait = c.tuiles.every((t) => latenceHorloge(t, a.t0 - 8_000, a.t0) !== null);
-      if (tournait) mesurer(a.t0 - FENETRE, commencer, sansMesure);
-      else plus(FENETRE, () => mesurer(a.t0, commencer, sansMesure));
-      return a;
-    };
-    const BASES = { horloge: 'par l\'horloge', position: 'par la position', verification: 'après vérification' };
-    // Pourquoi une tuile n'a pas bougé de tout son écart (4.24.0.19).
-    const BORNES = { rattrape: 'ne tient pas un recul : son lecteur le rattrape', tampon: 'borné au tampon' };
-    /* La relation que le son donne à chaque tuile sur l'ancre de l'écoute,
-       en s — positive, la tuile en retard —, ou ce qui manque. */
-    const relationsDuSon = (c, f = 1) => {
-      const R = c.ecoute.ref, relations = {}, refus = [];
-      for (const t of c.tuiles) {
-        if (t.chaine === R) continue;
-        const paire = c.ecoute.paires[`${R}~${t.chaine}`];
-        const x = cibleSon(carteSon(paire ? paire.historique : []), f);
-        if (x.refus) refus.push(`${t.chaine} (${x.refus})`); else relations[t.chaine] = r3(x.rel / 1000);
+    // Une tuile qui tient un recul : ni en faible latence, ni un recul déjà repris par son lecteur.
+    const peutReculer = (t) => t.faibleLatence !== true && !t.retientPas;
+    /* LA MESURE D'UNE PAIRE « réf~t », sur ce qu'on a entendu depuis
+       `depuis` — son dernier changement : les trente derniers calculs nets
+       (z ≥ 5), huit au moins. Leurs pics hors du bord — le premier compte 1,
+       le second 0,5 s'il pèse 60 % du premier — groupés à 80 ms près ; une
+       VOIX : un groupe de deux premiers pics au moins ; une GRAPPE : des voix
+       à 700 ms au plus l'une de la suivante — les deux voix extrêmes d'un
+       salon, sa voix du milieu pas encore établie, en étaient à 480 à 650.
+         — UN SALON VOCAL fait plusieurs voix, à 0,2–0,3 s l'une de l'autre :
+           celle de la référence chez la tuile, le son commun, celle de la
+           tuile chez la référence — aux neuvième, dixième, douzième,
+           treizième et quatorzième rapports réels, la deuxième voix pesait
+           le tiers à la moitié de la première. C'est lui qu'on suit : une
+           grappe dont la deuxième voix a le quart au moins des premiers pics
+           de la première. Deux salons : celui qui a le plus de voix ;
+           autant, « ambigu ».
+         — UN ÉCHO — un streamer qui regarde le live de l'autre, le son
+           ouvert — est une source SEULE : elle porte tout le son, et saute
+           avec le lecteur qui la rejoue. Au huitième rapport, 1045 puis
+           2370 ms, sur une paire que l'œil voyait juste ; au neuvième, 1180
+           ms, sa deuxième voix au sixième de la première, au-dessus d'un
+           salon vu à 40 ms. Une source seule ne déplace rien au-delà de
+           0,5 s : un écho n'a jamais été vu à moins d'une seconde.
+       LA CIBLE : dans un salon, la plus haute voix — elle met les lèvres de
+       la tuile sur sa voix telle qu'on l'entend (4.24.0.20) ; une source
+       seule, sa voix la plus lourde. L'horloge n'y est pour rien : elle
+       s'est trompée de 4,6 s, et tremble de ±150 ms d'un calcul à l'autre.
+       Rejouée sur les huitième, neuvième, douzième et quatorzième rapports
+       réels (cf. le banc).
+       En ms : positif, le son passe plus tard sur la référence — la tuile est
+       en avance d'autant. `f` : l'exigence — les calculs exigés, la fenêtre
+       —, un quart au moins au banc. */
+    const pointsDe = (h) => [[h.ms, 1], [h.ms2 !== null && h.r2 >= FORT * h.r ? h.ms2 : null, 0.5]]
+      .filter(([ms]) => ms !== null && Math.abs(ms) <= BORD_MS).map(([ms, w]) => ({ ms, w }));
+    const enchainer = (voix) => {
+      const grappes = [];
+      for (const g of voix) {
+        const d = grappes[grappes.length - 1];
+        if (d && g.ms - d[d.length - 1].ms <= CALAGE.LIEN_MS) d.push(g); else grappes.push([g]);
       }
-      return { relations, refus };
+      return grappes;
     };
-    // La commande : aligner(), aligner(0.5), aligner('son'), aligner('son', 0.5), aligner(false).
-    const aligner = (x, y) => {
-      const c = courante;
-      if (!c) return { erreur: 'aucune salle ouverte / no open room' };
-      // aligner(false) arrête TOUT alignement, l'automatique compris (4.24.0.17).
-      if (x === false) {
-        const pilote = arreterPilote(c, 'arrêté');
-        if (!alignementVivant(c)) return pilote ? { alignement: 'arrêté / stopped' } : { alignement: 'aucun en cours / none running' };
-        arreterAlignement(c, 'arrêté');
-        return { alignement: 'arrêté / stopped' };
+    const premiersDe = (gr) => gr.reduce((s, g) => s + g.n1, 0);
+    const estSalon = (gr) => {
+      const n = gr.map((g) => g.n1).sort((a, b) => b - a);
+      return n.length >= 2 && n[1] >= CALAGE.EQUILIBRE * n[0];
+    };
+    const mesurerSon = (hist, depuis, f = 1) => {
+      const nMin = Math.max(3, Math.round(CALAGE.NETS * f));
+      const nets = hist.filter((h) => h.z >= 5 && Number.isFinite(h.debut) && h.debut >= depuis)
+        .slice(-Math.max(nMin, Math.round(CALAGE.FENETRE * f)));
+      if (nets.length < nMin) return { refus: `${nets.length} calculs nets sur ${nMin}`, n: nets.length };
+      const voix = grouper(nets.flatMap(pointsDe), (p) => p.ms)
+        .map((g) => ({ ms: Math.round(mediane(g.map((p) => p.ms))), n1: g.filter((p) => p.w === 1).length }))
+        .filter((g) => g.n1 >= 2);
+      if (!voix.length) return { refus: 'aucune voix nette', n: nets.length };
+      const grappes = enchainer(voix);
+      const salons = grappes.filter(estSalon);
+      let grappe, seule = false;
+      if (salons.length) {
+        const plus = Math.max(...salons.map((gr) => gr.length));
+        const choix = salons.filter((gr) => gr.length === plus);
+        if (choix.length > 1) return { refus: `ambigu : deux salons, autour de ${choix.map((gr) => gr[0].ms).join(' et ')} ms`, n: nets.length };
+        grappe = choix[0];
+      } else {
+        grappe = grappes.reduce((a, b) => (premiersDe(b) > premiersDe(a) ? b : a));
+        seule = true;
       }
-      // Celui de l'automatique cède la place (plus bas) ; un autre, non.
-      if (alignementVivant(c) && c.alignement.origine !== 'auto') {
-        return { erreur: 'un alignement est déjà en cours — aligner(false) l\'arrête / already running' };
+      const ms = seule ? grappe.reduce((a, b) => (b.n1 > a.n1 ? b : a)).ms : grappe[grappe.length - 1].ms;
+      if (seule && Math.abs(ms) > CALAGE.SEULE_MS) {
+        return { refus: `une source seule, à ${ms} ms — un écho, peut-être : rien ne bouge`, n: nets.length };
       }
-      // Le protocole 4 aligne lui-même, à son heure : pas avant lui.
-      if (c.protocole && c.protocole.etat === 'en cours') {
-        return { erreur: 'un protocole est en cours — il aligne lui-même / a protocol is running, it aligns by itself' };
-      }
-      const mode = x === 'son' ? 'son' : 'horloge';
-      const brut = mode === 'son' ? y : x;
-      const e = brut === undefined || brut === null || brut === true ? 1 : Number(brut);
-      if (!(e >= 0.05 && e <= 1)) return { erreur: 'échelle hors de 0.05–1 / scale outside 0.05–1' };
-      if (c.tuiles.length < 2) return { erreur: 'il faut deux tuiles / two tiles needed' };
-      let son = null;
-      if (mode === 'son') {
-        if (!c.ecoute.actif) return { erreur: 'l\'écoute doit tourner — tse.salle.ecoute() / listening must be on' };
-        son = relationsDuSon(c, Math.max(0.25, e));
-        if (son.refus.length) {
-          return { erreur: `pas de cible du son / no sound target : ${son.refus.join(', ')} — aligner() vise l'horloge / aligns on the clock` };
-        }
-      }
-      // À la main, l'automatique s'arrête : on ne se dispute pas les tuiles.
-      arreterPilote(c, 'arrêté : alignement à la main');
-      lancerAlignement(c, { echelle: e, mode, decale: son && son.relations, ancre: son && c.ecoute.ref });
-      return { alignement: 'lancé / started', mode, ...(son ? { relations: son.relations } : {}),
-               suivi: `${Math.round(180 * e)} s après les passes / after the passes`,
-               ensuite: 'le rapport, bloc « alignement » / see the report' };
+      return { ms, voix: grappe.map((g) => ({ ms: g.ms, n1: g.n1 })), n: nets.length, seule };
     };
-    // Ce que chaque tuile a gagné de latence par l'alignement : un recul
-    // obtenu l'augmente, une avance la diminue — en secondes.
-    const gainsAlignement = (a) => {
-      const g = {};
-      for (const p of a ? a.passes : []) {
-        for (const [k, x] of Object.entries(p.actions)) {
-          if (x.type === 'rien') continue;
-          if (x.obtenu === null) return null;
-          g[k] = (g[k] || 0) + (x.type === 'recul' ? x.obtenu : -x.obtenu);
-        }
-      }
-      return g;
+    // Une décision : un verdict qui redit le précédent à 80 ms près — rejouée au banc (185).
+    const accorde = (avant, v) => !v.refus && !!avant && !avant.refus && Math.abs(avant.ms - v.ms) <= CALAGE.GROUPE_MS;
+    /* LA TENUE (cf. plus haut) : corrigée — vérifiée ou calée —, une tuile
+       ne redescend pas tant qu'une voix de sa grappe est près de zéro ; elle
+       monte vers une plus haute. Libre, rien ne la tient : un vrai retard de
+       0,3 s se corrige. Jugée au banc sur des verdicts posés (185). */
+    const tient = (etat, v) => (etat === 'vérification' || etat === 'calée')
+      && v.ms < CALAGE.SEUIL_S * 1000 && v.voix.some((g) => Math.abs(g.ms) < CALAGE.TENUE_S * 1000);
+    const signeMs = (x) => `${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.abs(x)}`;
+    const secondes = (x) => `${(Math.round(Math.abs(x) * 100) / 100).toFixed(2)} s`;
+    // Un verdict, en clair : « quebec en retard de 3.87 s · voix −4470 (6) · −3870 (9) · 15 calculs nets ».
+    const texteMesure = (v, nom) => (v.refus ? `en attente : ${v.refus}`
+      : `${Math.abs(v.ms) < CALAGE.SEUIL_S * 1000 ? 'avec la référence' : `${v.ms > 0 ? 'en avance' : 'en retard'} de ${secondes(v.ms / 1000)}`}`
+        + ` (${signeMs(v.ms)} ms) · voix ${v.voix.map((g) => `${signeMs(g.ms)} (${g.n1})`).join(' · ')} · ${v.n} calculs nets`);
+    const journaliser = (c, k, texte) => {
+      k.journal.push({ t: Date.now(), texte });
+      if (k.journal.length > 60) k.journal.shift();
+      noter(c, null, `calage · ${texte}`);
     };
-    const bilanAlignement = (c) => {
-      const a = c.alignement;
-      if (!a) return null;
-      const passe = (p) => {
-        if (!p) return null;
-        return `${BASES[p.base]} · ${Object.entries(p.actions).map(([k, x]) => (x.type === 'rien'
-          ? `${k} rien (écart ${x.ecart.toFixed(3)} s${x.borne ? ` · ${BORNES[x.borne]}` : ''})`
-          : `${k} ${x.type} ${x.demande} s demandé (écart ${x.ecart.toFixed(3)} s, calage prévu ${x.calagePrevu}`
-            + `${x.borne ? ` · ${BORNES[x.borne]}` : ''})`
-            + (x.essai ? ` · obtenu ${x.obtenu ?? '—'} s · calage ${x.calage ?? '—'} · ${x.essai.voie}` : ' · essai non relu')))
-          .join(' ; ')}`;
-      };
-      const g = gainsAlignement(a);
-      return {
-        etat: a.etat === 'en cours' ? `en cours · passe ${a.passes.length || 1}` : a.etat,
-        mode: a.mode,
-        echelle: a.echelle,
-        // L'ancre gardée en place (4.24.0.18), la tuile qui ne tient pas un recul (4.24.0.19), ou la plus en retard.
-        reference: a.ref ? `${a.ref} (${a.refRaison || (a.ref === a.ancre ? 'l\'ancre' : 'la plus en retard')})` : null,
-        // Ce que chaque référence possible laissait d'écart, face à l'ancre (4.24.0.19).
-        couts: a.couts ? Object.entries(a.couts).map(([k, x]) => `${k} ${x.toFixed(3)}`).join(' · ') : null,
-        origine: a.origine,
-        avant: texteUnite(a.avant, a.ref),
-        passe1: passe(a.passes[0]),
-        passe2: passe(a.passes[1]),
-        passe3: passe(a.passes[2]),
-        verifications: a.verifs.length ? a.verifs.map((x) => texteUnite(x, a.ref)).join(' ; ') : null,
-        apres: texteUnite(a.apres, a.ref),
-        // L'autre vue : où le son voit la cible de chaque paire (4.24.0.18).
-        apresAutre: a.apresAutre,
-        note: a.note,
-        // La latence que chaque tuile a prise par ses déplacements obtenus.
-        deplacements: g && Object.keys(g).length ? Object.entries(g).map(([k, x]) => `${k} ${x >= 0 ? '+' : ''}${x.toFixed(3)} s`).join(' · ') : null,
-        suivi: Object.fromEntries(a.suivi.map(({ s, m, voix }) => [`+${Math.round(s * a.echelle)} s`,
-          texteMesure(m, a.ref) + (voix ? ` · son : ${voix}` : '')])),
-      };
+    // Tout se remesure : une écoute repartie, une autre référence.
+    const repartir = (k) => { k.vus = {}; k.etats = {}; k.calculsVus = -1; };
+    const demarrerCalage = (c, e = 1, origine = 'console') => {
+      if (c.calage && c.calage.etat === 'actif') return { erreur: 'le calage tourne déjà — auto(false) l\'arrête / already running' };
+      const k = { etat: 'actif', echelle: e, origine, t0: Date.now(), ecouteAllumee: false, attente: null, journal: [],
+                  vus: {}, etats: {}, coups: {}, gel: {}, faible: {}, dits: {}, deplacements: {}, calculsVus: -1, sonAilleurs: null };
+      c.calage = k;
+      if (!c.ecoute.actif) { ecoute(true); k.ecouteAllumee = true; }
+      journaliser(c, k, `début · référence ${c.ecoute.ref || '—'} (la tuile qui a le son)`);
+      return { auto: 'démarré / started', echelle: e };
     };
-
-    /* ── L'ALIGNEMENT AUTOMATIQUE (4.24.0.17, revu en 4.24.0.18) : le pilote ──
-       À LA DEMANDE : « que lorsqu'on rentre dans un multistream, quel que soit
-       le nombre de streams, on puisse avoir un alignement parfait ». Puis,
-       au neuvième rapport réel, une tuile restée à une seconde de l'ancre
-       « par rapport aux lèvres », l'horloge la disant alignée : « un mix
-       horloge et son pour bien calibrer ». Le pilote, pour toutes les tuiles :
-         1. À L'OUVERTURE, PAR L'HORLOGE : huit secondes pour que les lecteurs
-            s'installent — leur qualité se pose vers 4 à 7 s aux rapports —,
-            vingt de passages, puis les passes de S10. L'horloge marche même
-            sans son commun.
-         2. LE SON CALIBRE : il allume l'écoute — l'ANCRE est la tuile qu'on
-            entend —, et chaque paire dresse sa carte du son, repérée par
-            rapport à l'horloge ; sa cible (cf. cibleSon), stable à 40 ms près
-            d'un contrôle au suivant, devient la RELATION que la tuile garde
-            sur l'ancre — dès qu'elle s'écarte de 0,05 s de la précédente.
-            L'horloge AMÈNE la tuile à cette relation, et la vérifie ; le son
-            dit ensuite où il voit la cible — à 0, s'il a dit vrai. Une
-            relation que la carte dit ambiguë deux contrôles de suite est
-            retirée : la tuile revient à l'horloge.
-         3. L'HORLOGE GARDE : un contrôle toutes les vingt secondes, le retard
-            de chaque tuile sur l'ancre face à sa relation. Réaligné :
-              — après un ÉVÉNEMENT — rechargement, coupure d'arrivée, chute de
-                lecture, rattrapage, saut de la lecture, tuile nouvelle — dès
-                que vingt secondes de passages d'après le disent à 0,1 s ou
-                plus ;
-              — sur une DÉRIVE de 0,2 s ou plus trois contrôles de suite, une
-                minute au moins après le précédent.
-            L'ancre ne bouge pas quand les autres peuvent venir à elle (cf.
-            choisirRef) : une tuile tombée en arrière AVANCE dans son tampon,
-            au lieu que toutes les autres reculent. Une tuile dont le lecteur
-            reprend les reculs n'en reçoit plus — elle devient la référence ;
-            pendant qu'un lecteur rattrape, on attend sa fin ; l'écart qu'une
-            tuile garde au bout de son tampon est accepté (4.24.0.19).
-         4. L'ANCRE SUIT LE SON : passé à une autre tuile depuis quinze
-            secondes, elle devient l'ancre (cf. changerAncre).
-         5. AU PLUS SIX RÉALIGNEMENTS EN DIX MINUTES : au-delà, une pause de
-            dix minutes — une mesure faussée ne doit pas faire sauter les
-            tuiles sans fin.
-       Il démarre seul dans une salle ouverte par le nœud, réglage
-       « alignement automatique » allumé ; la console reste l'établi :
-       tse.salle.auto() l'y lance, auto(0.1) en accéléré pour le banc,
-       auto(false) l'arrête. Le protocole, un alignement à la main,
-       aligner(false), le réglage coupé et la salle fermée l'arrêtent. */
-    const AUTO = Object.freeze({
-      DEBUT_MS: 8_000, DERIVE_S: 0.2, DERIVE_N: 3, ENTRE_MS: 60_000, STABLE_MS: 40, SON_SEUIL_S: 0.05,
-      ANCRE_MS: 15_000, PLAFOND_N: 6, PLAFOND_MS: 600_000, PAUSE_MS: 600_000, RATTRAPAGE_MS: 180_000, SON_REVU_MS: 100,
-    });
-    const tuileDe = (c, nom) => c.tuiles.find((x) => x.chaine === nom) || null;
-    // L'ancre : la tuile de l'écoute, sinon celle du son, sinon la première.
-    const ancreDe = (c) => tuileDe(c, c.ecoute.ref) || tuileDe(c, c.son) || c.tuiles[0] || null;
-    // Le retard d'une tuile sur l'ancre, par leurs passages entre `de` et `a` : en s.
-    const relationDe = (t, A, de, a) => {
-      const x = latenceHorloge(t, de, a), y = latenceHorloge(A, de, a);
-      return x === null || y === null ? null : r3(x - y);
-    };
-    // Un événement sur une tuile : le pilote le vérifiera (cf. controler).
-    const signaler = (c, chaine, quoi) => {
-      const p = c.pilote;
-      if (p && p.etat === 'actif' && p.aligne) p.evenement = { t: Date.now(), chaine, quoi };
-    };
-    const demarrerPilote = (c, e = 1, origine = 'console') => {
-      if (c.pilote && c.pilote.etat === 'actif') return { erreur: 'l\'automatique tourne déjà — auto(false) l\'arrête / already running' };
-      if (c.protocole && c.protocole.etat === 'en cours') return { erreur: 'un protocole est en cours / a protocol is running' };
-      if (alignementVivant(c)) return { erreur: 'un alignement est en cours — aligner(false) l\'arrête / an alignment is running' };
-      const maintenant = Date.now();
-      /* `cibles` : la relation que chaque tuile garde sur l'ancre, en s ;
-         `son` : celles que le son a données — sa cible, et si l'horloge l'a
-         mise en place ; `sonVu` : la cible de chaque paire au dernier
-         contrôle, ou son refus ; `bornes` : les tuiles que le dernier
-         alignement n'a pu mener que jusqu'au bout de leur tampon, et
-         `accepte`, l'écart qui leur reste, mesuré après lui (4.24.0.19). */
-      const p = { etat: 'actif', echelle: e, origine, t0: maintenant, ecouteAllumee: false, aligne: false, enCours: null,
-                  journal: [], dernierFin: 0, repere: maintenant, cibles: {}, son: {}, sonVu: {}, derives: {},
-                  evenement: null, dernierControle: 0, mesure: null, attente: 'mesure d\'ouverture',
-                  pauseJusqua: 0, connues: c.tuiles.map((t) => t.chaine), ancre: null, sonAilleurs: null,
-                  bornes: {}, accepte: {}, accepteVu: false };
-      c.pilote = p;
-      if (!c.ecoute.actif) { ecoute(true); p.ecouteAllumee = true; }
-      p.ancre = (ancreDe(c) || {}).chaine || null;
-      noter(c, null, `auto · début${e !== 1 ? ` · échelle ${e}` : ''}`);
-      return { auto: 'lancé / started', echelle: e, ensuite: 'le rapport, bloc « auto » / see the report' };
-    };
-    // `eteindre` : l'écoute aussi, s'il l'avait allumée.
-    const arreterPilote = (c, raison, eteindre = false) => {
-      const p = c.pilote;
-      if (!p || p.etat !== 'actif') return false;
-      p.etat = raison;
-      noter(c, null, `auto ${raison}`);
-      if (alignementVivant(c) && c.alignement.origine === 'auto') arreterAlignement(c, 'arrêté avec l\'automatique');
-      if (eteindre && p.ecouteAllumee && c.ecoute.actif) ecoute(false);
+    const arreterCalage = (c, raison, eteindre = false) => {
+      const k = c.calage;
+      if (!k || k.etat !== 'actif') return false;
+      k.etat = raison;
+      // L'écoute qu'il avait allumée s'éteint avec lui — sauf à la fermeture, qui garde son rapport.
+      if (eteindre && k.ecouteAllumee && c.ecoute.actif) ecoute(false);
+      journaliser(c, k, raison);
       return true;
     };
-    // L'écart extrême d'une mesure, en s.
-    const etendue = (x) => {
-      const l = x ? Object.values(x.m).filter((v) => v !== null) : [];
-      return l.length >= 2 ? r3(Math.max(...l) - Math.min(...l)) : null;
+    // Dire une fois ce qui empêche une tuile de bouger, pas à chaque calcul.
+    const direUneFois = (c, k, nom, texte) => {
+      if (k.dits[nom] === texte) return;
+      k.dits[nom] = texte;
+      journaliser(c, k, texte);
     };
-    const signeS = (x) => (Number.isFinite(x) ? `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(3)}` : '—');
-    // La fin d'un alignement du pilote : son résumé, et ce qu'il en retient.
-    const finAuto = (c, p, j, etape) => {
-      if (etape === 'aligne') return;
-      const a = c.alignement;
-      j.etat = etape === 'fini' ? 'fini' : (a ? a.etat : 'interrompu');
-      if (a) {
-        const av = etendue(a.avant), ap = etendue(a.apres);
-        j.resume = `écart ${av === null ? '—' : av.toFixed(3)} → ${ap === null ? '—' : ap.toFixed(3)} s`
-          + ` · ${a.passes.length} passe${a.passes.length > 1 ? 's' : ''} en ${Math.round((Date.now() - j.t) / 1000)} s`
-          + `${a.note ? ` · ${a.note}` : ''}`;
-      }
-      p.enCours = null;
-      p.dernierFin = Date.now();
-      if (p.etat !== 'actif') return;
-      // Les relations se mesurent désormais après le dernier déplacement.
-      if (a && a.dernier) { p.repere = a.dernier + 1_000; p.derives = {}; }
-      if (etape !== 'fini') {
-        // Faute d'horloge : on réessaiera plus tard, sans s'acharner.
-        if (!p.aligne) p.t0 = Date.now();
-        return;
-      }
-      p.aligne = true;
-      // Les tuiles qui n'ont pu aller au bout — leur tampon, ou un recul que leur lecteur reprend :
-      // leur écart restant sera accepté (cf. controler).
-      p.bornes = a ? { ...(a.bornes || {}) } : {};
-      // Les relations du son que cet alignement visait sont en place : le son
-      // dira, à partir de là, où il voit leur cible.
-      for (const [nom, x] of Object.entries(p.son)) {
-        if (x.aligne || !a || !a.decale || a.decale[nom] !== p.cibles[nom]) continue;
-        x.aligne = true;
-        x.depuis = (a.dernier || Date.now()) + 1_000;
-      }
-    };
-    // `seuil` : l'écart en deçà duquel une tuile ne bouge pas — 0,05 s quand le son a revu (cf. controler).
-    const lancerAuto = (c, p, raison, seuil = SEUIL_S) => {
-      const e = p.echelle, maintenant = Date.now();
-      if (p.journal.filter((j) => j.t > maintenant - AUTO.PLAFOND_MS * e).length >= AUTO.PLAFOND_N) {
-        p.pauseJusqua = maintenant + AUTO.PAUSE_MS * e;
-        noter(c, null, `auto · en pause : ${AUTO.PLAFOND_N} réalignements en ${Math.round((AUTO.PLAFOND_MS * e) / 1000)} s`);
-        return;
-      }
-      const A = ancreDe(c);
-      p.bornes = {}; p.accepte = {}; p.accepteVu = false;
-      const j = { t: maintenant, raison, etat: 'en cours', resume: null };
-      p.journal.push(j);
-      if (p.journal.length > 30) p.journal.shift();
-      p.enCours = raison;
-      noter(c, null, `auto · ${raison}`);
-      // Chaque tuile garde sa relation sur l'ancre ; l'ancre en place si elle le peut.
-      lancerAlignement(c, { echelle: e, suivi: false, origine: 'auto', ancre: A ? A.chaine : null, seuil,
-        decale: Object.keys(p.cibles).length ? { ...p.cibles } : null, alafin: (etape) => finAuto(c, p, j, etape) });
-    };
-    /* L'ANCRE SUIT LE SON (4.24.0.18). La cible du son met les lèvres de
-       chaque tuile sur sa voix telle qu'on l'ENTEND : dans le stream de
-       l'ancre. Le son passé à une autre tuile depuis quinze secondes, elle
-       devient l'ancre : chaque relation gardée se réécrit par rapport à elle
-       — rien ne bouge —, et l'écoute repart, pour que la carte se refasse sur
-       ce qu'on entend désormais. */
-    const changerAncre = (c, p, N) => {
-      const g = p.cibles[N] || 0;
-      const cibles = {};
+    // À chaque pas de la salle ; ne décide qu'à un calcul du son nouveau.
+    const caler = (c) => {
+      const k = c.calage;
+      if (!k || k.etat !== 'actif') return;
+      const e = k.echelle, maintenant = Date.now();
+      if (c.tuiles.length < 2) { k.attente = 'une seule tuile'; return; }
+      if (!c.ecoute.actif) { ecoute(true); k.ecouteAllumee = true; repartir(k); }
+      // La référence suit le son, quand il est donné à une autre tuile et y reste quinze secondes.
+      if (c.son && c.son !== c.ecoute.ref && tuileDe(c, c.son)) {
+        if (!k.sonAilleurs || k.sonAilleurs.chaine !== c.son) k.sonAilleurs = { chaine: c.son, t: maintenant };
+        else if (maintenant - k.sonAilleurs.t >= CALAGE.ANCRE_MS * e) {
+          ecoute(false); ecoute(true);
+          repartir(k);
+          k.sonAilleurs = null;
+          journaliser(c, k, `le son passe à ${c.ecoute.ref} : référence nouvelle, tout se remesure`);
+        }
+      } else k.sonAilleurs = null;
       for (const t of c.tuiles) {
-        if (t.chaine === N) continue;
-        const x = r3((t.chaine === p.ancre ? 0 : p.cibles[t.chaine] || 0) - g);
-        if (x) cibles[t.chaine] = x;
+        if (t.faibleLatence !== true || k.faible[t.chaine]) continue;
+        k.faible[t.chaine] = maintenant;
+        t.changement = maintenant;
+        envoyer(t, 'faible-latence', { actif: false });
+        journaliser(c, k, `${t.chaine} : faible latence retirée — son lecteur défait tout recul`);
       }
-      noter(c, null, `auto · l'ancre suit le son : ${p.ancre} → ${N}`);
-      p.cibles = cibles; p.son = {}; p.sonVu = {}; p.derives = {}; p.sonAilleurs = null; p.bornes = {}; p.accepte = {}; p.accepteVu = false;
-      p.ancre = N;
-      if (c.ecoute.actif) { ecoute(false); ecoute(true); }
-    };
-    // Les tuiles arrivées ou parties depuis le dernier pas.
-    const suivreTuiles = (c, p) => {
-      const noms = c.tuiles.map((t) => t.chaine);
-      // L'ancre partie : les relations gardées ne valent plus ; l'écoute reprend sur la tuile du son.
-      if (p.ancre && !noms.includes(p.ancre)) {
-        if (c.ecoute.actif) { ecoute(false); ecoute(true); }
-        p.cibles = {}; p.son = {}; p.sonVu = {}; p.derives = {}; p.sonAilleurs = null; p.bornes = {}; p.accepte = {}; p.accepteVu = false;
-        p.ancre = (ancreDe(c) || {}).chaine || null;
-        signaler(c, p.ancre, 'ancre changée');
-      }
-      for (const nom of noms) if (!p.connues.includes(nom)) signaler(c, nom, 'nouvelle tuile');
-      for (const nom of p.connues) {
-        if (noms.includes(nom)) continue;
-        delete p.cibles[nom]; delete p.son[nom]; delete p.sonVu[nom]; delete p.derives[nom]; delete p.bornes[nom]; delete p.accepte[nom];
-      }
-      p.connues = noms;
-    };
-    // Un contrôle de veille (cf. le pilote, 2 et 3).
-    const controler = (c, p, maintenant, FEN) => {
-      const e = p.echelle;
-      const A = ancreDe(c);
-      if (!A) return;
-      /* 1. LE SON CALIBRE. La carte ne dépend pas des déplacements : elle se
-         lit même juste après l'un d'eux. */
-      if (c.ecoute.actif && c.ecoute.ref === A.chaine) {
-        const vus = {}, calibrees = [], retirees = [];
-        for (const t of c.tuiles) {
-          if (t === A) continue;
-          const paire = c.ecoute.paires[`${A.chaine}~${t.chaine}`];
-          const x = cibleSon(carteSon(paire ? paire.historique : []), Math.max(0.25, e));
-          const avant = p.sonVu[t.chaine];
-          vus[t.chaine] = x;
-          /* LE SON SE DÉDIT. Une relation qu'il a donnée — une voix seule,
-             dominante un temps — et que la carte dit ambiguë deux contrôles de
-             suite, l'autre voix revenue : plus rien ne la soutient, la tuile
-             revient à l'horloge. Faute de calculs, elle reste. */
-          const s = p.son[t.chaine];
-          if (s && !s.retiree && x.refus && avant && avant.refus && x.refus.startsWith('ambigu') && avant.refus.startsWith('ambigu')) {
-            delete p.cibles[t.chaine]; delete p.accepte[t.chaine];
-            p.son[t.chaine] = { rel: 0, voie: 'retirée', retiree: true, t: maintenant, aligne: false, depuis: null };
-            retirees.push(t.chaine);
-            continue;
-          }
-          if (x.refus || !avant || avant.refus || Math.abs(avant.rel - x.rel) > AUTO.STABLE_MS) continue;
-          const g = r3(x.rel / 1000);
-          if (Math.abs(g - (p.cibles[t.chaine] || 0)) < AUTO.SON_SEUIL_S) continue;
-          p.cibles[t.chaine] = g; delete p.accepte[t.chaine];
-          p.son[t.chaine] = { rel: x.rel, voie: x.voie, t: maintenant, aligne: false, depuis: null };
-          calibrees.push(`${t.chaine} ${signeS(g)} s`);
-        }
-        p.sonVu = vus;
-        if (calibrees.length) noter(c, null, `auto · calibré par le son : ${calibrees.join(' · ')}`);
-        if (retirees.length) noter(c, null, `auto · le son se dédit, retour à l'horloge : ${retirees.join(' · ')}`);
-      }
-      // Une fenêtre entière d'après le dernier déplacement.
-      if (maintenant - p.repere < FEN) { p.attente = 'contrôle après déplacement'; return; }
-      const de = maintenant - FEN;
-      const rel = {}, derive = {};
+      if (c.ecoute.calculs === k.calculsVus) return;
+      k.calculsVus = c.ecoute.calculs;
+      const ref = tuileDe(c, c.ecoute.ref);
+      if (!ref) return;
+      /* Chaque paire, depuis son dernier changement ; ne compte qu'un
+         verdict qui redit le précédent à 80 ms près. */
+      const avances = { [ref.chaine]: 0 };
+      const verdicts = {}, tenues = {};
       for (const t of c.tuiles) {
-        if (t === A) continue;
-        const x = relationDe(t, A, de, maintenant);
-        rel[t.chaine] = x;
-        if (x !== null) derive[t.chaine] = r3(x - (p.cibles[t.chaine] || 0));
+        if (t === ref) continue;
+        const p = c.ecoute.paires[`${ref.chaine}~${t.chaine}`];
+        const depuis = Math.max(c.ecoute.depuis || 0, ref.changement || 0, t.changement || 0) + 1_000;
+        const v = mesurerSon(p ? p.historique : [], depuis, Math.max(0.25, e));
+        const avant = k.vus[t.chaine];
+        k.vus[t.chaine] = v;
+        if (!accorde(avant, v)) continue;
+        verdicts[t.chaine] = v;
+        const tenue = tient(k.etats[t.chaine], v);
+        // Tenue contre ce que le son dit — pas quand il la dit déjà à zéro.
+        if (tenue && v.ms <= -CALAGE.SEUIL_S * 1000) tenues[t.chaine] = true;
+        avances[t.chaine] = tenue ? 0 : v.ms / 1000;
       }
-      /* L'ÉCART QUI RESTE HORS D'ATTEINTE (4.24.0.19) : un alignement qui n'a
-         pu mener une tuile au bout — sa seconde de tampon atteinte, ou un
-         recul que son lecteur reprend — laisse un écart, sur elle, ou sur
-         toutes si c'est l'ancre qui est bornée. Il est mesuré une fois, sur
-         la première fenêtre entière d'après — pas sur une tuile dont le
-         lecteur rattrape : elle bouge encore —, puis accepté : la dérive se
-         compte à partir de lui. Une fois : une dérive venue après n'est pas
-         un écart hors d'atteinte. Sans cela, le même écart revenait à chaque
-         contrôle, et le pilote réalignait pour rien. */
-      if (Object.keys(p.bornes).length && !p.accepteVu) {
-        p.accepteVu = true;
-        for (const k of Object.keys(derive)) {
-          const t = tuileDe(c, k);
-          if (Math.abs(derive[k]) >= SEUIL_S && !(t && t.rattrapage)) p.accepte[k] = derive[k];
+      const noms = Object.keys(avances);
+      // Rien de jugé à ce calcul : l'état reste ce qu'il était — calée, si elle l'est.
+      if (noms.length < 2) { if (!k.attente) k.attente = 'le son ne s\'est pas encore prononcé'; return; }
+      /* LE POINT DE RENCONTRE : la tuile la plus en retard, que les autres
+         rejoignent en reculant. Sauf si une tuile qui ne peut pas reculer
+         est devant elle : c'est elle, alors, et celles qui sont derrière
+         avancent — si leur tampon le permet. */
+      const fixes = noms.filter((n) => !peutReculer(tuileDe(c, n)));
+      const rdv = fixes.length ? Math.max(...fixes.map((n) => avances[n])) : Math.min(...noms.map((n) => avances[n]));
+      const fenetreMax = CALAGE.MAX_MS * e;
+      const gestes = [];
+      for (const n of noms) {
+        const t = tuileDe(c, n);
+        const d = r3(avances[n] - rdv);
+        if (Math.abs(d) < CALAGE.SEUIL_S) continue;
+        k.coups[n] = (k.coups[n] || []).filter((x) => maintenant - x < fenetreMax);
+        if (k.coups[n].length >= CALAGE.MAX_N) {
+          direUneFois(c, k, n, `${n} : ${CALAGE.MAX_N} corrections en ${Math.round(fenetreMax / 60_000)} min — laissée là`);
+          continue;
+        }
+        if (d > 0) {
+          if (peutReculer(t)) gestes.push({ t, type: 'recul', s: Math.min(10, Math.max(0.05, r3(d - CALAGE.RECUL_S))), d });
+          else direUneFois(c, k, n, `${n} en avance de ${secondes(d)}, mais ${t.retientPas ? 'son lecteur reprend chaque recul' : 'toujours en faible latence'} : rien à faire`);
+        } else {
+          const s = r3(-d + CALAGE.AVANCE_S);
+          const b = tamponDe(t);
+          if (b !== null && b - s >= CALAGE.MARGE_S) gestes.push({ t, type: 'avance', s: Math.min(10, s), d });
+          else direUneFois(c, k, n, `${n} en retard de ${secondes(d)} sur une tuile qui ne peut pas reculer, et ${b === null ? 'son tampon est inconnu' : `${b} s de tampon`} : rien à faire`);
         }
       }
-      for (const k of Object.keys(derive)) if (p.accepte[k] !== undefined) derive[k] = r3(derive[k] - p.accepte[k]);
-      p.mesure = { t: maintenant, rel, derive };
-      /* UN LECTEUR QUI RATTRAPE (4.24.0.19) : on le laisse finir — trois
-         minutes au plus. Réaligner pendant qu'il file viserait une tuile qui
-         bouge encore ; sa fin est un événement, qui réaligne. */
-      const rattrapent = c.tuiles.filter((t) => t.rattrapage && t.rattrapage.v > 1 && maintenant - t.rattrapage.t < AUTO.RATTRAPAGE_MS * e)
-        .map((t) => t.chaine);
-      if (rattrapent.length) { p.attente = `rattrapage en cours (${rattrapent.join(', ')})`; return; }
-      const libre = maintenant - p.dernierFin >= AUTO.ENTRE_MS * e;
-      // 2. Un événement : vingt secondes de passages d'après, et la tuile nouvelle mesurée.
-      const ev = p.evenement;
-      if (ev) {
-        if (de < ev.t + 1_000 || (ev.quoi === 'nouvelle tuile' && !Number.isFinite(rel[ev.chaine]) && maintenant - ev.t < 4 * FEN)) {
-          p.attente = `contrôle après ${ev.quoi} (${ev.chaine})`;
-          return;
+      const mesure = Object.entries(verdicts).map(([n, v]) => `${n} ${texteMesure(v, n).split(' · voix')[0]}`).join(' ; ');
+      if (!gestes.length) {
+        /* Rien à corriger : calées, les paires jugées à moins de 0,15 s de
+           la référence — pas une tuile que rien n'a pu rejoindre. */
+        for (const n of Object.keys(verdicts)) {
+          if (Math.abs(avances[n]) >= CALAGE.SEUIL_S || k.etats[n] === 'calée') continue;
+          k.etats[n] = 'calée';
+          journaliser(c, k, `calée : ${n} ${texteMesure(verdicts[n], n).split(' · voix')[0]}`
+            + (tenues[n] ? ' — sa voix la plus haute pas revue, une autre à moins de 0,4 s : elle tient' : ''));
         }
-        p.evenement = null;
-        if (Object.values(derive).some((x) => Math.abs(x) >= SEUIL_S)) { lancerAuto(c, p, `${ev.quoi} (${ev.chaine})`); return; }
-      }
-      /* 3. Une relation du son pas encore en place : l'horloge l'y amène dès
-         que c'est permis. À moins de 0,1 s, elle y est déjà. */
-      const aAligner = [];
-      for (const [k, x] of Object.entries(p.son)) {
-        if (x.aligne || !Number.isFinite(derive[k])) continue;
-        if (Math.abs(derive[k]) < SEUIL_S) { x.aligne = true; x.depuis = maintenant; } else aAligner.push(k);
-      }
-      if (aAligner.length && libre) { lancerAuto(c, p, `son (${aAligner.join(', ')})`); return; }
-      /* 3 bis. LE SON REVOIT (4.24.0.20). L'horloge tient chaque tuile à sa
-         relation à 0,2 s près, trois contrôles de suite : son relevé erre de
-         ±70 ms, et l'on ne réaligne pas sur du bruit. Pour des lèvres, c'est
-         trop : au treizième rapport réel, le son voyait la cible d'une tuile
-         à −160 ms, sur 46 calculs, l'horloge disant +0,081 s. Le son, lui,
-         ne se trompe pas de 70 ms sur une médiane de six pics. Quand il voit
-         la cible à 0,1 s ou plus, et que l'horloge va dans le même sens, la
-         tuile est réalignée sans attendre — l'écart en deçà duquel elle ne
-         bouge pas ramené à 0,05 s pour cet alignement. Pas une tuile dont
-         l'écart est accepté, ni une qu'il faudrait reculer et qui ne le
-         tient pas. */
-      const nVue = Math.ceil(6 * Math.max(0.25, e));
-      const revus = [];
-      for (const [k, x] of Object.entries(p.son)) {
-        const t = tuileDe(c, k);
-        if (!x.aligne || x.retiree || !t || !Number.isFinite(derive[k]) || p.accepte[k] !== undefined) continue;
-        if (derive[k] > 0 && t.retientPas) continue;
-        const v = cibleVue(c.ecoute.paires[`${A.chaine}~${k}`], x.rel, Math.max(x.depuis || 0, p.dernierFin + 1_000));
-        if (v && v.n >= nVue && Math.abs(v.ms) >= AUTO.SON_REVU_MS && Math.abs(derive[k]) >= SEUIL_S / 2
-          && Math.sign(derive[k]) === -Math.sign(v.ms)) revus.push(k);
-      }
-      if (revus.length && libre) { lancerAuto(c, p, `son revu (${revus.join(', ')})`, SEUIL_S / 2); return; }
-      // 4. Une dérive durable — hors des tuiles que le son vient de régler.
-      for (const nom of Object.keys(rel)) {
-        const x = derive[nom];
-        p.derives[nom] = Number.isFinite(x) && Math.abs(x) >= AUTO.DERIVE_S && !aAligner.includes(nom) ? (p.derives[nom] || 0) + 1 : 0;
-      }
-      const derivees = Object.keys(p.derives).filter((k) => p.derives[k] >= AUTO.DERIVE_N);
-      if (libre && derivees.length) { lancerAuto(c, p, `dérive (${derivees.join(', ')})`); return; }
-      p.attente = aAligner.length ? `son (${aAligner.join(', ')}) : réalignement permis à +${Math.round((p.dernierFin + AUTO.ENTRE_MS * e - c.t0) / 1000)} s` : null;
-    };
-    // Le pas du pilote, à chaque pas de la salle.
-    const piloter = (c) => {
-      const p = c.pilote;
-      if (!p || p.etat !== 'actif') return;
-      const e = p.echelle, maintenant = Date.now();
-      if (alignementVivant(c)) return;
-      if (maintenant < p.pauseJusqua) { p.attente = 'en pause : trop de réalignements'; return; }
-      suivreTuiles(c, p);
-      if (c.tuiles.length < 2) { p.attente = 'une seule tuile'; return; }
-      // L'ancre suit le son (cf. changerAncre).
-      if (c.son && p.ancre && c.son !== p.ancre && tuileDe(c, c.son)) {
-        if (!p.sonAilleurs || p.sonAilleurs.chaine !== c.son) p.sonAilleurs = { chaine: c.son, t: maintenant };
-        else if (maintenant - p.sonAilleurs.t >= AUTO.ANCRE_MS * e) changerAncre(c, p, c.son);
-      } else p.sonAilleurs = null;
-      const FEN = Math.max(6_000, 20_000 * e);
-      if (!p.aligne) {
-        if (maintenant < p.t0 + AUTO.DEBUT_MS * e + FEN) { p.attente = 'mesure d\'ouverture'; return; }
-        const manque = c.tuiles.filter((t) => latenceHorloge(t, maintenant - FEN, maintenant) === null).map((t) => t.chaine);
-        if (manque.length) { p.attente = `sans horloge : ${manque.join(', ')}`; return; }
-        lancerAuto(c, p, 'ouverture');
+        k.attente = Object.keys(verdicts).length === c.tuiles.length - 1 && Object.values(k.etats).every((x) => x === 'calée') ? 'calée' : 'en écoute';
         return;
       }
-      if (maintenant - p.dernierControle < FEN) return;
-      p.dernierControle = maintenant;
-      controler(c, p, maintenant, FEN);
+      for (const g of gestes) {
+        envoyer(g.t, `essai-${g.type}`, { duree: g.s });
+        g.t.changement = maintenant;
+        k.coups[g.t.chaine].push(maintenant);
+        k.deplacements[g.t.chaine] = r3((k.deplacements[g.t.chaine] || 0) + (g.type === 'recul' ? g.s : -g.s));
+        delete k.dits[g.t.chaine];
+      }
+      /* Une première correction appelle une vérification ; une seconde,
+         c'est calé. Pour les tuiles dont la relation à la référence a bougé
+         — pas celle qui a reculé d'autant qu'elle ; sans verdict, elle
+         redevient libre. */
+      const pas = Object.fromEntries(gestes.map((g) => [g.t.chaine, g.type === 'recul' ? g.s : -g.s]));
+      for (const t of c.tuiles) {
+        const n = t.chaine;
+        if (t === ref || (pas[n] || 0) === (pas[ref.chaine] || 0)) continue;
+        k.etats[n] = !verdicts[n] ? 'libre' : k.etats[n] === 'vérification' ? 'calée' : 'vérification';
+      }
+      k.attente = 'vérification';
+      journaliser(c, k, `${mesure} → ${gestes.map((g) => `${g.t.chaine} ${g.type === 'recul' ? 'recule' : 'avance'} de ${g.s} s`).join(' · ')}`);
     };
     // La commande : auto(), auto(0.1), auto(false).
     const auto = (x) => {
       const c = courante;
       if (!c) return { erreur: 'aucune salle ouverte / no open room' };
-      if (x === false) return arreterPilote(c, 'arrêté', true) ? { auto: 'arrêté / stopped' } : { auto: 'aucun en cours / none running' };
+      if (x === false) return arreterCalage(c, 'arrêté', true) ? { auto: 'arrêté / stopped' } : { auto: 'aucun en cours / none running' };
       const e = x === undefined || x === null || x === true ? 1 : Number(x);
       if (!(e >= 0.05 && e <= 1)) return { erreur: 'échelle hors de 0.05–1 / scale outside 0.05–1' };
-      return demarrerPilote(c, e, 'console');
+      return demarrerCalage(c, e, 'console');
     };
-    /* Le pilote au rapport : son état, chaque alignement — quand, pourquoi,
-       l'écart avant et après —, au dernier contrôle le retard de chaque tuile
-       sur l'ancre (positif : en retard), la relation qu'elle garde, sa dérive ;
-       et, par tuile, la cible du son — ou pourquoi il n'y en a pas —, et où
-       le son la voit depuis que l'horloge l'a mise en place. */
-    const bilanPilote = (c) => {
-      const p = c.pilote;
-      if (!p) return null;
-      const m = p.mesure;
+    const bilanCalage = (c) => {
+      const k = c.calage;
+      if (!k) return null;
+      const ref = c.ecoute.ref;
       return {
-        etat: p.etat !== 'actif' ? p.etat : p.enCours ? `actif · ${p.enCours}` : p.attente ? `actif · ${p.attente}` : 'actif · en veille',
-        echelle: p.echelle, origine: p.origine, ancre: p.ancre,
-        alignements: p.journal.length,
-        journal: Object.fromEntries(p.journal.map((j, i) => [String(i + 1).padStart(3, '0'),
-          `+${Math.round((j.t - c.t0) / 1000)} s · ${j.raison} · par l'horloge · ${j.etat}${j.resume ? ` · ${j.resume}` : ''}`])),
-        retards: m ? Object.entries(m.rel).map(([k, x]) => `${k} ${signeS(x)} (garde ${signeS(p.cibles[k] ?? 0)}`
-          + `${!p.son[k] ? '' : p.son[k].retiree ? ', le son s\'est dédit' : ', par le son'}`
-          + `${p.accepte[k] !== undefined ? `, ${signeS(p.accepte[k])} hors d'atteinte`
-            + `${p.bornes[k] ? ` : ${p.bornes[k] === 'rattrape' ? 'recul repris' : 'tampon'}` : ''}` : ''})`)
-          .join(' · ') : null,
-        derive: m && Object.keys(m.derive).length ? Object.entries(m.derive).map(([k, x]) => `${k} ${signeS(x)}`
-          + `${p.derives[k] ? ` (${p.derives[k]} de suite)` : ''}`).join(' · ') : null,
-        son: Object.keys(p.sonVu).length ? Object.entries(p.sonVu).map(([k, x]) => {
-          const s = p.son[k];
-          const dedit = s && s.retiree ? ` · le son s'est dédit : retour à l'horloge${s.aligne ? '' : ', à mettre en place'}` : '';
-          if (x.refus) return `${k} aucune cible : ${x.refus}${dedit}${texteEchos(x)}`;
-          if (dedit) return `${k} cible ${x.rel} ms, ${x.voie}${dedit}${texteEchos(x)}`;
-          /* DEPUIS LE DERNIER DÉPLACEMENT (4.24.0.20), comme le pilote la
-             lit : un « son revu » ne remet pas la cible en place, il la
-             corrige. Lue depuis sa mise en place, la vue mêlait les pics
-             d'avant la correction — −130 ms — à ceux d'après : au banc,
-             « vue à −150 ms » juste après une avance qui l'avait remise à 0. */
-          const vue = s && s.aligne ? cibleVue(c.ecoute.paires[`${p.ancre}~${k}`], s.rel, Math.max(s.depuis || 0, p.dernierFin + 1_000)) : null;
-          return `${k} cible ${x.rel} ms, ${x.voie}` + (!s ? '' : ` · garde ${signeS(p.cibles[k])} s · ${!s.aligne ? 'à mettre en place'
-            : vue ? `vue à ${vue.ms >= 0 ? '+' : ''}${vue.ms} ms depuis (${vue.n})` : 'pas encore revue'}`) + texteEchos(x);
+        etat: k.etat !== 'actif' ? k.etat : `actif · ${k.attente || 'en écoute'}`,
+        echelle: k.echelle,
+        origine: k.origine,
+        reference: ref,
+        corrections: Object.values(k.coups).reduce((s, l) => s + l.length, 0),
+        mesures: Object.fromEntries(Object.entries(k.vus).map(([n, v]) => [n, texteMesure(v, n)])),
+        tuiles: Object.fromEntries(c.tuiles.filter((t) => t.chaine !== ref).map((t) => [t.chaine, k.etats[t.chaine] || 'libre'])),
+        deplacements: Object.entries(k.deplacements).map(([n, s]) => `${n} ${s >= 0 ? 'recul' : 'avance'} ${Math.abs(s)} s`).join(' · ') || null,
+        faibleLatence: Object.keys(k.faible).length ? Object.entries(k.faible).map(([n, t]) => {
+          const x = tuileDe(c, n);
+          return `${n} retirée à +${Math.round((t - k.t0) / 1000)} s · le lecteur dit ${x && x.faibleLatence === false ? 'non' : x && x.faibleLatence ? 'oui' : '—'}`;
         }).join(' · ') : null,
-        evenement: p.evenement ? `${p.evenement.quoi} (${p.evenement.chaine}) à +${Math.round((p.evenement.t - c.t0) / 1000)} s` : null,
+        journal: Object.fromEntries(k.journal.map((j, i) => [String(i + 1).padStart(3, '0'), `+${Math.round((j.t - k.t0) / 1000)} s · ${j.texte}`])),
       };
     };
 
-    /* ── LE PROTOCOLE EN UNE COMMANDE (4.24.0.12) : tse.salle.essais() ────────
-       Cinq commandes à taper au bon moment, c'étaient cinq occasions de se
-       tromper, et le premier essai réel n'est pas allé plus loin que la
-       première. Une seule commande les enchaîne, sur la tuile muette (ou
-       celle d'où l'on tape) ; l'autre tuile sert de RÉFÉRENCE.
-
-       Les protocoles 2 et 3 (4.24.0.13, 4.24.0.14) ont établi ce sur quoi
-       l'alignement repose (cf. S10) : la vitesse ne se pose pas ; le recul et
-       l'avance tiennent ; l'horloge, la latence et le son commun suivent la
-       tête de lecture ; le son mesuré ne dépend pas de la tuile qui l'a.
-
-       LE PROTOCOLE 4 (4.24.0.15) éprouve l'alignement, l'écoute tournant
-       tout du long :
-         0 s      A — début : l'écoute allumée, le sens de sa paire figé ; la
-                  vitesse de l'élément relue sur la cible, chaque `ratechange`
-                  daté ;
-         60 s     l'alignement (S10) par l'horloge : une passe, la seconde
-                  par la position 2,5 s après, la vérification vingt secondes
-                  plus tard — et une troisième passe s'il le faut (4.24.0.16) ;
-         ~84 s    B — aligné : le suivi à +30, +60, +120 et +180 s ;
-         ~4 min 25 fin, au dernier suivi — la phase A figée au début de
-                  l'alignement, la B à la fin.
-       Par phase et par paire, SANS DÉPENDRE DU SON — au quatrième rapport
-       réel, aucun calcul ne tenait, et les phases restaient vides — : la
-       latence attendue, par les relevés, et l'horloge, par ses passages, à
-       partir de deux secondes après le début de la phase. Le son s'y ajoute
-       quand il tient. B − A : ce que l'alignement a changé, par le son, la
-       latence et l'horloge, face au PRÉVU — les déplacements obtenus.
-       essais(false) l'arrête, et l'alignement avec ; fermer la salle aussi.
-       essais(0.6) joue le même protocole plus vite — pour le banc. */
-    const PROTOCOLE = [[0, 'debut'], [60, 'aligner']];
-    const MARGE_PHASE_MS = 2_000;
-    const arreterProtocole = (c, raison, salleFermee = false) => {
-      const p = c.protocole;
-      if (!p || p.etat !== 'en cours') return;
-      for (const m of p.minuteurs) clearTimeout(m);
-      p.minuteurs = [];
-      p.etat = raison;
-      // Tout remis en place : l'alignement s'il l'a lancé, l'écoute s'il l'a
-      // allumée. Ce qui est déplacé le reste.
-      if (p.alignementLance) arreterAlignement(c, salleFermee ? 'arrêté : salle fermée' : 'arrêté avec le protocole');
-      if (p.ecouteAllumee && c.ecoute.actif) ecoute(false);
-      noter(c, p.cible, `protocole ${raison}`);
-    };
-    // Les compteurs de chaque tuile, pour ce qui arrive PENDANT le protocole.
-    const compteurs = (c) => Object.fromEntries(c.tuiles.map((t) => [t.chaine,
-      { rechargements: t.rechargements, coupures: t.coupures.length, rattrapages: t.rattrapages.length + (t.rattrapage ? 1 : 0) }]));
-    const essais = (arg, appelante = null) => {
-      const c = courante;
-      if (!c) return { erreur: 'aucune salle ouverte / no open room' };
-      const enCours = c.protocole && c.protocole.etat === 'en cours';
-      if (arg === false) {
-        if (!enCours) return { protocole: 'aucun en cours / none running' };
-        arreterProtocole(c, 'arrêté');
-        return { protocole: 'arrêté / stopped' };
-      }
-      if (enCours) return { erreur: 'un protocole est déjà en cours — essais(false) l\'arrête / already running' };
-      // Celui de l'automatique s'arrête avec lui (plus bas) ; un autre, non.
-      if (alignementVivant(c) && c.alignement.origine !== 'auto') {
-        return { erreur: 'un alignement est en cours — aligner(false) l\'arrête / an alignment is running' };
-      }
-      const e = arg === undefined || arg === null || arg === true ? 1 : Number(arg);
-      if (!(e >= 0.05 && e <= 1)) return { erreur: 'échelle hors de 0.05–1 / scale outside 0.05–1' };
-      const cible = appelante || c.tuiles.find((x) => x.chaine !== c.son) || null;
-      if (!cible) return { erreur: 'aucune tuile muette / no muted tile' };
-      // La référence : la tuile qui a le son, sinon la première autre.
-      const reference = c.tuiles.find((x) => x !== cible && x.chaine === c.son) || c.tuiles.find((x) => x !== cible) || null;
-      if (!reference) return { erreur: 'il faut deux tuiles / two tiles needed' };
-      /* L'AUTOMATIQUE S'EFFACE (4.24.0.17) : le protocole mesure, aligne et
-         suit lui-même. L'écoute qu'il avait allumée passe au protocole, qui
-         l'éteindra à sa fin. */
-      const ecouteDuPilote = !!(c.pilote && c.pilote.etat === 'actif' && c.pilote.ecouteAllumee);
-      arreterPilote(c, 'arrêté : protocole');
-      const p = {
-        etat: 'en cours', etape: null, echelle: e, cible: cible.chaine, reference: reference.chaine,
-        marques: {}, minuteurs: [], ecouteAllumee: ecouteDuPilote, alignementLance: false, s9: null,
-        avant: compteurs(c), apres: null, relecture: null, figees: {},
-      };
-      c.protocole = p;
-      const tuile = (nom) => c.tuiles.find((x) => x.chaine === nom) || null;
-      const marquer = (nom) => { p.marques[nom] = { t: Date.now() }; };
-      const plus = (ms, fn) => {
-        p.minuteurs.push(setTimeout(() => {
-          if (courante !== c || c.protocole !== p || p.etat !== 'en cours') return;
-          if (!tuile(p.cible)) { arreterProtocole(c, 'arrêté : tuile retirée'); return; }
-          fn(tuile(p.cible));
-        }, ms));
-      };
-      const finir = () => {
-        marquer('fin');
-        if (p.marques.aligne) p.figees.B = figerPhase(c, p.marques.aligne.t, p.marques.fin.t);
-        p.apres = compteurs(c);
-        const e2 = bilanEcoute(c);
-        p.s9 = { ...e2.paires,
-                 ...Object.fromEntries(Object.entries(e2.pics || {}).map(([k, v]) => [`${k} pics`, v])),
-                 ...Object.fromEntries(Object.entries(e2.commun || {}).map(([k, v]) => [`${k} commun`, v])) };
-        if (p.ecouteAllumee && c.ecoute.actif) ecoute(false);
-        p.etat = 'fini';
-        p.etape = 'fin';
-        noter(c, p.cible, 'protocole · fin');
-      };
-      const actions = {
-        debut: (tc) => {
-          if (!c.ecoute.actif) { ecoute(true); p.ecouteAllumee = true; }
-          envoyer(tc, 'essai-relecture', { valeur: 0.95 });
-          // L'essai de la cible, relu quand le pont l'a fini.
-          plus(Math.max(2, 5 * e) * 1000, (t2) => { p.relecture = t2.essai; });
-        },
-        aligner: () => {
-          p.figees.A = figerPhase(c, p.marques.debut.t, p.marques.aligner.t);
-          if (alignementVivant(c)) { arreterProtocole(c, 'arrêté : un alignement était déjà en cours'); return; }
-          p.alignementLance = true;
-          lancerAlignement(c, { echelle: e, mode: 'horloge', alafin: (etape) => {
-            if (c.protocole !== p || p.etat !== 'en cours') return;
-            if (etape === 'aligne') { marquer('aligne'); p.etape = 'suivi'; noter(c, p.cible, 'protocole · aligné'); }
-            else if (etape === 'fini') finir();
-            else arreterProtocole(c, `arrêté : alignement ${c.alignement ? c.alignement.etat : 'interrompu'}`);
-          } });
-        },
-      };
-      for (const [s, nom] of PROTOCOLE) {
-        plus(s * 1000 * e, (tc) => {
-          marquer(nom);
-          p.etape = nom;
-          noter(c, p.cible, `protocole · ${nom}`);
-          actions[nom](tc);
-        });
-      }
-      return { protocole: 'lancé / started', cible: p.cible, reference: p.reference,
-               // Le protocole, les passes et leur vérification, le suivi.
-               duree: `~${Math.round(240 * e + 3.5 + Math.max(6, 20 * e))} s`, ensuite: 'le rapport, à la fin / take the report at the end' };
-    };
-    /* UNE PHASE, pour une paire « a~b » (4.24.0.15) : depuis deux secondes
-       après son début jusqu'à sa fin,
-         — l'ATTENDU, par les relevés : la médiane de latence(a) − latence(b),
-           relevé par relevé, sans les latences incohérentes ;
-         — l'HORLOGE, par ses passages : la latence d'horloge de a moins
-           celle de b ;
-         — le SON, quand il tient : les calculs dont la fenêtre est dans la
-           phase et dont le pic tient (z ≥ 5) ; leurs pics hors du bord — le
-           premier, et le second s'il pèse 60 % du premier —, groupés à 80 ms
-           près, le plus nombreux d'abord ; et deux voix, quand elles sont
-           nettes (4.24.0.16).
-       En ms, a − b. */
-    const phaseDe = (hist, ta, tb, de, a) => {
-      const d = de + MARGE_PHASE_MS;
-      const dans = (s) => s.t !== null && s.t >= d && s.t <= a && s.l !== null && !s.lIncoherente;
-      const parN = new Map(tb ? tb.serie.filter(dans).map((s) => [s.n, s.l]) : []);
-      const diffs = ta ? ta.serie.filter((s) => dans(s) && parN.has(s.n)).map((s) => s.l - parN.get(s.n)) : [];
-      const h = hist.filter((x) => Number.isFinite(x.debut) && x.debut >= d && x.fin <= a && x.z >= 5);
-      const groupes = grouper(h.flatMap(picsDe)).sort((u, v) => v.length - u.length);
-      const attendu = mediane(diffs);
-      return { releves: diffs.length, attendu: attendu === null ? null : Math.round(attendu * 1000),
-               sync: ta && tb ? horlogeEntre(ta, tb, d, a) : null, n: h.length,
-               groupes: groupes.map((g) => ({ med: Math.round(mediane(g)), n: g.length })), voix: deuxVoix(h) };
-    };
-    /* LES PHASES FIGÉES À LEUR FIN (4.24.0.16). Au sixième rapport réel, la
-       phase A n'avait plus que TROIS relevés : la série en garde trois cents
-       — cinq minutes —, la salle en avait duré six, et le rapport, pris à la
-       fin, ne trouvait plus ceux du début. Chaque phase est désormais
-       calculée à sa fin, et gardée. Les paires sont celles de l'écoute — la
-       tuile qui avait le son à l'allumage face à chaque autre —, qu'un calcul
-       du son y ait abouti ou non. */
-    const figerPhase = (c, de, a) => {
-      const ref = c.ecoute.ref || c.son;
-      const tuileDe = (nom) => c.tuiles.find((x) => x.chaine === nom) || null;
-      return Object.fromEntries(c.tuiles.filter((t) => t.chaine !== ref).map((t) => {
-        const cle = `${ref}~${t.chaine}`;
-        const paire = c.ecoute.paires[cle];
-        return [cle, phaseDe(paire ? paire.historique : [], tuileDe(ref), t, de, a)];
-      }));
-    };
-    /* B − A, pour une paire. LE MÊME PIC DES DEUX CÔTÉS (4.24.0.15) : au
-       cinquième rapport réel, le son commun avait TROIS composantes, à 0,
-       +425 et +730 ms l'une de l'autre, qui suivaient toutes la tête de
-       lecture ; et le groupe le plus nombreux n'était pas le même avant et
-       après l'avance — « pic +1940 » au lieu de +1515. Le pic d'après est
-       donc, parmi les groupes de B, le plus proche du principal de A déplacé
-       de ce que l'horloge a vu (du prévu, sans elle). Il a SUIVI s'il en est
-       à 150 ms au plus — jugé seulement pour un déplacement de 0,2 s au
-       moins, faute de quoi rester en place ne prouverait rien. */
-    const ecartPhases = (P, Q, prevu) => {
-      const d = (k) => (P[k] === null || Q[k] === null ? null : Q[k] - P[k]);
-      const guide = d('sync') ?? prevu;
-      let pic = null;
-      if (P.groupes.length && Q.groupes.length) {
-        const vise = P.groupes[0].med + (guide ?? 0);
-        const g = Q.groupes.reduce((u, v) => (Math.abs(v.med - vise) < Math.abs(u.med - vise) ? v : u));
-        pic = g.med - P.groupes[0].med;
-      }
-      const suivi = pic === null || guide === null || Math.abs(guide) < 200 ? null : Math.abs(pic - guide) <= 150;
-      return { pic, attendu: d('attendu'), sync: d('sync'), prevu, suivi };
-    };
-    // Le rapport du protocole : par phase, B − A, le son commun, et ce qui
-    // est arrivé aux tuiles pendant ce temps.
-    const bilanProtocole = (c) => {
-      const p = c.protocole;
-      if (!p) return null;
-      const m = p.marques;
-      const f = (x) => (x === null ? '—' : `${x >= 0 ? '+' : ''}${x}`);
-      const bornes = { A: m.debut && m.aligner ? [m.debut.t, m.aligner.t] : null,
-                       B: m.aligne ? [m.aligne.t, m.fin ? m.fin.t : Date.now()] : null };
-      // Figées à leur fin (4.24.0.16) ; celle qui n'est pas finie, sur l'instant.
-      const parPhase = Object.fromEntries(['A', 'B'].map((nom) => [nom,
-        p.figees[nom] || (bornes[nom] ? figerPhase(c, ...bornes[nom]) : {})]));
-      const gains = gainsAlignement(c.alignement);
-      const phases = {}, S10son = {}, sonCommun = {};
-      for (const cle of [...new Set([...Object.keys(parPhase.A), ...Object.keys(parPhase.B)])]) {
-        const [a, b] = cle.split('~');
-        const paire = c.ecoute.paires[cle];
-        const ph = {};
-        for (const nom of ['A', 'B']) {
-          const x = parPhase[nom][cle];
-          if (!x) continue;
-          ph[nom] = x;
-          phases[`${cle} ${nom}`] = `${x.releves} relevés · attendu ${x.attendu ?? '—'} ms · horloge ${x.sync ?? '—'} ms`
-            + ` · ${x.n} calcul${x.n > 1 ? 's' : ''}${x.groupes.length ? ` · pics ${x.groupes.map((g) => `${g.med} (${g.n})`).join(' · ')}` : ''}`
-            + (x.voix ? ` · deux voix : milieu ${x.voix.milieu} ms, demi-écart ${x.voix.demi} ms`
-              + (x.sync === null ? '' : `, milieu − horloge ${x.voix.milieu - x.sync} ms`) : '');
-        }
-        // Le prévu : ce que a a pris de latence par l'alignement, moins ce que b a pris.
-        const prevu = gains ? Math.round(((gains[a] || 0) - (gains[b] || 0)) * 1000) : null;
-        const x = ph.A && ph.B ? ecartPhases(ph.A, ph.B, prevu) : null;
-        if (x) {
-          S10son[cle] = `pic ${f(x.pic)} ms · attendu ${f(x.attendu)} · horloge ${f(x.sync)} · prévu ${f(x.prevu)} ms`
-            + (ph.A.voix && ph.B.voix ? ` · milieu des deux voix ${f(ph.B.voix.milieu - ph.A.voix.milieu)} ms` : '')
-            + (x.suivi === null ? '' : ` · le pic ${x.suivi ? 'a suivi' : 'n\'a pas suivi'} l'horloge`);
-        }
-        const part = partCommune(paire ? paire.historique : []);
-        sonCommun[cle] = `${verdictSon(part, x ? x.suivi : null) ?? '—'} · ${part.k} calculs sur ${part.n} tiennent hors du bord`
-          + (x && x.suivi !== null ? ` · le pic ${x.suivi ? 'a suivi' : 'n\'a pas suivi'} l'alignement` : '');
-      }
-      // Ce qui est arrivé à chaque tuile pendant le protocole.
-      const fin = p.apres || compteurs(c);
-      const pendant = (k) => Object.entries(fin).map(([nom, x]) => `${nom} ${x[k] - ((p.avant[nom] || {})[k] || 0)}`).join(' · ');
-      const rl = p.relecture && p.relecture.type === 'relecture' ? p.relecture : null;
-      return {
-        etat: p.etat === 'en cours' ? `en cours · ${p.etape || 'debut'}` : p.etat,
-        cible: p.cible, reference: p.reference, echelle: p.echelle,
-        // S3 ter : la vitesse de l'élément, relue ; chaque `ratechange` daté (4.24.0.15).
-        S3relecture: rl ? `${rl.valeur} posé · relu ${rl.relues.map(([ms, r]) => `${ms} ms ${r}`).join(' · ')}`
-          + ` · ${rl.changements} changement${rl.changements > 1 ? 's' : ''}`
-          + (Array.isArray(rl.changes) && rl.changes.length ? ` (${rl.changes.map(([ms, r]) => `${ms} ms → ${r}`).join(', ')})` : '')
-          + ` · ${rl.voie}` : null,
-        phases,
-        S10son,
-        sonCommun,
-        rattrapages: pendant('rattrapages'),
-        rechargements: pendant('rechargements'),
-        coupures: pendant('coupures'),
-        S9: p.s9,
-      };
-    };
     /* LE POINT D'ENTRÉE COMMUN des trois relais (4.24.0.12) : la console d'une
        tuile, celle du panneau, et la page elle-même. `appelante` : la tuile
        d'où la commande est venue, s'il y en a une. */
     const commande = (nom, args = [], appelante = null) => {
       switch (nom) {
-        case 'essais': return essais(args[0], appelante);
-        // L'alignement (S10) : le mode et l'échelle seuls, jamais de rappel.
-        case 'aligner': return aligner(args[0], args[1]);
         case 'auto': return auto(args[0]);
-        case 'leviers': return leviers(args, appelante);
-        case 'vitesse': return vitesseSur(args, appelante);
-        case 'vitesseVideo': return vitesseSur(args, appelante, 'video');
         case 'recul': return reculSur(args, appelante);
         case 'avance': return avanceSur(args, appelante);
-        case 'pause': return pauseSur(args, appelante);
         case 'ecoute': return ecoute(args[0] === undefined ? true : args[0]);
         case 'rapport': return bilan();
         default: return { erreur: `commande inconnue / unknown command : ${nom}` };
@@ -17201,11 +16004,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
 
     return {
-      ouvrir, son, fermer: (raison = 'api') => fermer(raison), rapport: bilan,
-      vitesse: (...a) => vitesseSur(a), pause: (...a) => pauseSur(a), ecoute, series,
-      vitesseVideo: (...a) => vitesseSur(a, null, 'video'), recul: (...a) => reculSur(a), avance: (...a) => avanceSur(a),
-      essais: (arg) => essais(arg), aligner: (x, y) => aligner(x, y), auto: (x) => auto(x),
-      leviers: (...a) => leviers(a), commande,
+      ouvrir, son, fermer: (raison = 'api') => fermer(raison), rapport: bilan, ecoute, series,
+      recul: (...a) => reculSur(a), avance: (...a) => avanceSur(a), auto: (x) => auto(x), commande,
       ouvrirDepuisBarre, reprendre,
       // Pour le nœud seulement — la console n'en reçoit rien (cf. tseApi).
       membres: () => (courante ? [...courante.membres] : null),
@@ -18631,24 +17431,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     son: (i) => salle.son(i),
     fermer: () => salle.fermer(),
     rapport: () => salle.rapport(),
-    // La sonde du même instant (4.24.0.11) — cf. le module de la salle.
-    // Sans nom de chaîne, la tuile muette (4.24.0.12).
-    vitesse: (...a) => salle.vitesse(...a),
-    pause: (...a) => salle.pause(...a),
+    // L'écoute du son (S9) et les relevés entiers (4.24.0.11).
     ecoute: (actif = true) => salle.ecoute(actif),
     series: () => salle.series(),
-    // Le protocole en une commande (4.24.0.12).
-    essais: (arg) => salle.essais(arg),
-    // La vitesse sur l'élément vidéo, et le recul dans le tampon (4.24.0.13).
-    vitesseVideo: (...a) => salle.vitesseVideo(...a),
+    // Reculer, avancer une tuile dans son tampon — sans nom de chaîne, la
+    // tuile muette (4.24.0.12) ; 0,2 à 5 s.
     recul: (...a) => salle.recul(...a),
-    // L'avance dans le tampon (4.24.0.14).
     avance: (...a) => salle.avance(...a),
-    // L'alignement par l'horloge (S10, 4.24.0.15) — ou par le son (4.24.0.16).
-    aligner: (...a) => salle.aligner(...a),
-    // L'alignement automatique, et l'essai des leviers de rattrapage (4.24.0.17).
+    // Le calage par le son (4.24.0.21) : auto(), auto(false).
     auto: (x) => salle.auto(x),
-    leviers: (...a) => salle.leviers(...a),
   });
 
   /* ============================================================

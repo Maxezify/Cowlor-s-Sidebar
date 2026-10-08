@@ -550,7 +550,7 @@
     "message": "Automatyczne wyrównanie"
   },
   "optDescSalleAuto": {
-    "message": "Po otwarciu sali streamy są ustawiane na tę samą chwilę według zegara; wspólny dźwięk dostraja je potem — usta każdego streamu do jego głosu, tak jak go słychać — a zegar je tak utrzymuje. Wyłączone: nic nie przesuwa się samo."
+    "message": "Streamy są synchronizowane według wspólnego dźwięku — usta każdego streamu do jego głosu, tak jak go słychać. Potrzeba około minuty słuchania; bez wspólnego dźwięku nic się nie przesuwa. Wyłączone: nic nie przesuwa się samo."
   },
   "optAbonnes": {
     "message": "Złoto subskrypcji"

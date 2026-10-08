@@ -550,7 +550,7 @@
     "message": "Alinhamento automático"
   },
   "optDescSalleAuto": {
-    "message": "Ao abrir a sala, as transmissões são colocadas no mesmo instante pelo relógio; o som em comum afina-as depois — os lábios de cada transmissão na sua voz tal como se ouve — e o relógio mantém-nas assim. Desligado: nada se mexe sozinho."
+    "message": "As transmissões são sincronizadas pelo som em comum — os lábios de cada transmissão na sua voz tal como se ouve. Demora cerca de um minuto de escuta; sem som em comum, nada se mexe. Desligado: nada se mexe sozinho."
   },
   "optAbonnes": {
     "message": "O ouro das subscrições"

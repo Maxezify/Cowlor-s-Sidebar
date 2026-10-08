@@ -550,7 +550,7 @@
     "message": "Automatische Ausrichtung"
   },
   "optDescSalleAuto": {
-    "message": "Beim Öffnen des Raums werden die Streams über die Uhr auf dieselbe Zeit gebracht; der gemeinsame Ton stimmt sie dann fein ab — die Lippen jedes Streams auf seine Stimme, so wie man sie hört — und die Uhr hält sie dort. Aus: Nichts bewegt sich von selbst."
+    "message": "Die Streams werden über ihren gemeinsamen Ton abgestimmt — die Lippen jedes Streams auf seine Stimme, so wie man sie hört. Das dauert etwa eine Minute; ohne gemeinsamen Ton bewegt sich nichts. Aus: Nichts bewegt sich von selbst."
   },
   "optAbonnes": {
     "message": "Gold der Abonnements"
