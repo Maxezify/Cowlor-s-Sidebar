@@ -2059,6 +2059,247 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Calibration by sound, and nothing else (v4.24.0.21)
+
+One real report on 4.24.0.20, two streams, fourteen minutes, opened from
+the node. What the eye saw: in sync in the very first seconds, in sync
+again in the first minutes — "I told myself, that's it" —, then about four
+seconds apart for three quarters of the report. And the instruction:
+"drastically simplify how it works, make it effective, make sure it really
+works. […] I demand rigour, pragmatism, realism." Published on
+`claude/chrome-multi` only.
+
+The tiles, here: **A**, the one with the sound — the reference; **B**, the
+other, in low latency.
+
+### What the fourteenth report establishes
+
+**1. The clock was 4.6 seconds off, from start to finish.** Sound measured
+the A~B pair every 5.3 s; so did the clock (`getSyncTime`). Their
+difference, computation after computation, over eleven minutes: −4.5 to
+−4.7 s for one voice, −5.1 to −5.3 for the other — **constant**, through
+four alignments, twelve arrival cuts and a jump. The clock dates the image
+when it reaches Twitch, not when the streamer played it: a delay on the broadcaster's
+side, probably, which it cannot see. Sound agreed with the eye — every
+time.
+
+**2. What happened, and what the eye saw of it.**
+
+| when | the pilot | the clock said | sound said |
+| --- | --- | --- | --- |
+| before +28 s | nothing yet | 5.06 s apart | 0 to −0.4 s (inferred) — **in sync**, the first observation |
+| +28 s | moves B back 4.94 s, then forward 0.34 | 0.27 s | B ≈ 4.7 s behind (inferred); −3.76 s at +63 s |
+| +29 → +175 s | — | — | B's player, in low latency, takes back the step at 1.03 for 146 s |
+| +175 → +215 s | — | 4.4 s | **−0.20 to −0.24 s, z up to 10.5 — in sync**, the second observation |
+| +215 s | "catch-up (B)": **moves A forward 4.01 s** | 0.79 s | **B 3.84 s behind** |
+| +215 → +840 s | two more alignments (+462, +812 s), by the clock | 0.66 to 0.90 s | B 3.85 to 4.2 s behind; 2.1 s after a jump of A |
+
+"Before +28 s" cannot be read directly — the history keeps the last 150
+computations out of 162 —, it is inferred: B moved back 4.60 s net, taken
+back at 3 % from +29 s, heard at −3.76 s at the first computation kept
+(+63 s); 0 to −0.4 s before any move. **Both times the eye saw them in
+sync, they were; both times, the clock said 4 to 5 s apart, and the pilot
+believed it.**
+
+**3. What moving A forward cost.** 4 s of buffer. A already had arrival
+cuts, about every hundred seconds: before the move, they left it 4.4 s of
+buffer; after, 0.3–0.4 s — five times on the edge of a stall.
+
+**4. The 4.24.0.20 rule had nothing left to aim at.** The sound map,
+relative to the clock: −4610 · −4808 · −5075 · −5228 ms — "nothing near
+the clock, probable echo". The two voices of the channel, rejected because
+the clock was far off.
+
+**5. The right move.** B 3.84 s behind A; B, in low latency, does not hold
+a step back; A did ("recul tenu"): **move A back 3.7 s**. Not a skip ahead
+— it eats the buffer.
+
+### What was removed
+
+Everything that aligned on the clock, or had been built for the
+experiment: the clock alignment (`aligner()`, its passes, its checks, its
+third pass); the pilot that realigned on every event, its guard, its
+lasting drift, its delays; the sound map relative to the clock and its
+target; "sound sees again"; the trial protocol and its phases; the speed
+and pause levers, and the commands that went with them (`aligner`,
+`essais`, `vitesse`, `pause`, `leviers`). **content.js loses 1,209
+lines.** Left at the console: `auto`, `recul`, `avance`, `ecoute`,
+`rapport`.
+
+### What this version does
+
+One instrument, one move, five rules.
+
+1. **Sound alone decides.** The clock and the latency stay in the report;
+   they no longer move anything.
+2. **On what it heard since the pair's last change** — a move, a reload, a
+   drop, a jump, the end of a catch-up: the last 30 clean computations
+   (z ≥ 5), 8 at least, and a decision when two verdicts in a row agree
+   within 80 ms. One to one and a half minutes of listening after each
+   change.
+3. **The target: the highest voice of the channel.** Peaks are grouped
+   within 80 ms; a voice has at least two first peaks; voices at most
+   700 ms from the next form a cluster; a cluster whose second voice has at
+   least a quarter of the first one's peaks is a **voice channel** — the
+   reference's voice in the tile, the game, the tile's voice in the
+   reference. Its highest voice puts the tile's lips on its voice as you
+   hear it (4.24.0.20). **A lone source** — no channel — may be an echo: it
+   moves nothing beyond 0.5 s.
+4. **The move: step back the tile that is ahead.** The meeting point is the
+   tile furthest behind. **Low latency** is removed, once, from each tile
+   that has it (`setLiveLowLatencyEnabled(false)`): its player undoes any
+   step back. If it holds anyway, the tile does not step back, and the
+   other one skips ahead — only if its buffer keeps 2 s after the skip;
+   otherwise nothing, and the log says why.
+5. **Once corrected, a tile does not move down** while one voice of its
+   cluster is under 0.4 s: a channel has three, 0.2–0.3 s apart, and the
+   highest — the target — goes quiet when its streamer is not talking;
+   aiming then at the one below would make the room oscillate. It **moves
+   up**, on the other hand, towards a voice 0.15 s higher: the decision may
+   have come before the highest one was established. Two corrections, at
+   most, for one offset. **Three corrections at most** per tile in ten
+   minutes; beyond that, it is left alone.
+
+Nothing moves without shared sound: the report says "en attente", and why.
+
+### Replayed on four real listenings
+
+The rule, extracted from the code as shipped, replayed computation after
+computation on each report's history — numbers only — since the old
+pilot's last move (scenario 185):
+
+| report | what is heard | this rule |
+| --- | --- | --- |
+| fourteenth | a channel, −4490 · −3840 ms; the clock 4.6 s away from it | **−3840 ms at computation 43**, 80 s after A was moved forward — move A back 3.72 s; then nothing else |
+| eighth | a lone source, 1040 then 2370 ms; the pair right to the eye | "une source seule, à 1040 ms — un écho, peut-être": **never a decision** |
+| ninth | a channel, −300 · 40 ms; a source at 1.1 s, heavier | **40 ms**, then 20; the source at 1.1 s never |
+| twelfth | a channel, 660 · 880 · 1170 ms | **1170 ms**, the highest, at computation 17 — the old pilot set it on 634, A's voice |
+
+In the fourteenth, before A was moved forward, the rule did not yet have
+its eight clean computations — B's catch-up smeared the peaks, z under 5
+—: it would have done **nothing**, where the old pilot moved B back 4.9 s,
+then A forward 4 s.
+
+### What the bench measures
+
+**The fake player**: "quebec", a channel whose voices come 4.47 · 4.18 ·
+3.87 s after the reference, which the clock puts at 2 s; "india" and
+"juliett", a channel 0.6 · 0.48 · 0.35 s earlier, in low latency — the
+first gives it up when asked, the second does not; "uniform", 3.5 s of
+buffer. And the bench reads, in each fake player, where the highest voice
+really is: sound does not always hear it.
+
+- **182** — the clock is two seconds off, sound alone decides: "xray"
+  steps back — in one correction, or in two if the middle voice is
+  established first —, and the highest voice ends at zero. In sync, it no
+  longer moves: the clock puts it at 1.9 s, its highest voice goes quiet
+  for a minute — one voice of its cluster stays at 0.3 s, it holds. A 1.5 s
+  drop reopens the measurement — "en attente" at the next computation —,
+  and the pair is set again.
+- **183** — low latency: removed, "india" steps back and holds, no
+  catch-up; kept, "juliett" does not step back, and "xray", 1.8 s of
+  buffer, does not skip ahead — nothing moves, the log says why; facing
+  "uniform", it is "uniform" that skips ahead.
+- **184** — a lone echo at 1.1 s and a stream with no shared sound move
+  nothing; a lone source at 0.3 s does, once. A channel that jumps steps
+  back each time; at the third correction in five minutes (scale 0.5), it
+  is left alone, and the log says so.
+- **185** — the rule replayed on the fourteenth, eighth, ninth and twelfth
+  reports (above), to the computation; and the hold, extracted from the
+  code, judged on six fixed verdicts: once corrected, a tile that only hears
+  the voice below does not move down; towards a higher one, it moves up;
+  free, it gets corrected; the whole cluster moved down, it moves down.
+  Deterministic.
+- **124, 176, 178–181** rewritten: `rapport.calage` instead of the
+  alignment, the pilot and the protocol; `recul` and `avance` at the
+  console, the panel's included.
+
+### What the bench found
+
+- **The tile that came back down.** On the first run, "india", corrected
+  onto its highest voice (+580 ms), heard at the next computation only the
+  one below, at −280 — the other had gone quiet in that window —, and the
+  room moved the other tile back 0.13 s: three corrections for one offset,
+  the very oscillation the fourteenth report complained about. "yankee"
+  likewise. Now a corrected tile does not move down while one voice of its
+  cluster is under 0.4 s; towards a higher voice, it moves up.
+- **The first decision on the middle voice.** At bench scale — three clean
+  computations instead of eight —, "quebec" was decided on −4180, the
+  middle voice, before the highest was established; the check saw it above,
+  at +340, and the pair moved up to it. That is allowed, and it is what the
+  bench checks: two corrections at most, the highest voice at zero in the
+  end. On the real listenings, at full demand, the first decision was always
+  the highest (185).
+- **"Calée", a tile nothing had reached.** Facing "juliett", which keeps its
+  low latency, "uniform" could not skip ahead — and yet the log said "calée:
+  juliett en avance de 0,36 s". A tile is in sync only within 0.15 s of the
+  reference.
+- **An impossible fake player.** "uniform" had 3.5 s of buffer under 2.2 s
+  of latency: the probe discards a buffer longer than the latency, as on
+  the real thing, and the skip stayed refused, "tampon inconnu". The fake
+  was wrong: 4.5 s of latency now.
+- **Tests that judged a path.** Written for one exact correction — "xray
+  recule de 3,75 s", "three jumps, three corrections" —, they failed on
+  correct paths: two corrections for one offset; a limit counted within its
+  window — at scale 0.3, three minutes, barely more than three corrections:
+  the tile was not always left alone. They now judge the outcome, at scale
+  0.5 for the limit. And the old "yankee" loop made the sound jump twice in a
+  row.
+- **The highest voice, four minutes without a word.** On the full bench,
+  "quebec" well set on its highest voice, sound heard only the middle one —
+  held, as it should be —, and the test, which waited to measure it at
+  zero, timed out. It now reads, in the fake player, the latency each tile
+  has taken: the highest voice is at zero there, or not. And "juliett",
+  which had only two voices, let only one be heard, 0.6 s, for four
+  minutes: a lone source, taken for an echo — nothing moved, rightly. It
+  now has a three-sound channel.
+- **Two rules the live bench only judged by chance.** Removing the
+  agreement of two verdicts made 182 fail only once, the highest voice
+  missing from the last window; putting back the old hold passed 183 when
+  the draw let the highest voice be heard in time. Both rules are now
+  separate functions, `accorde` and `tient`, which 185 extracts from the
+  code and judges on the real listenings and on fixed verdicts.
+
+| mutants | what falls |
+| --- | --- |
+| the clock taken for the sound (1) | 182: the pair "in sync" by the clock, sound hearing it at −2.16 s — the fourteenth report, replayed on the bench |
+| the window taken from the start of listening, not from the last change (1) | 182: "xray" moved back 37 s, then 100 — each correction judged on the computations from before it |
+| the drop that does not reopen the measurement (1) | 182: no "en attente" after the drop |
+| the lowest voice; voices linked at 450 ms (2) | 185: −4490 in the fourteenth, −300 in the ninth, 660 — A's voice — in the twelfth; in the fourteenth, "une source seule, à −4490 ms", nothing |
+| the lone source followed up to 5 s; the channel balance at zero (2) | 185: in the eighth, the echo decided at 1040 ms; in the ninth, the echo at 1110 |
+| the agreement of two verdicts removed (1) | 185: decided at computation 42 instead of 43, at 8, at 16 — on a single verdict |
+| no hold; the old hold, in-sync tiles only, both ways (2) | 185: a checked tile moves down to the voice below, an in-sync one no longer moves up; 182, no hold: after the drop, four corrections — down, then up twice |
+| low latency never removed; the low-latency tile stepped back anyway; the skip without the buffer margin (3) | 183: "india" never steps back; "juliett" moved back 1.1 s, which its player takes back; "xray" skipped 0.68 s on 1.8 s of buffer |
+| no limit (1) | 184: five corrections in five minutes, never "laissée là" |
+
+Fourteen mutants, fourteen caught. On the first run, two were caught only
+by chance — the agreement removed, through a window missing the highest
+voice; the old hold, not at all in 183: they are now caught in 185, every time, the rule
+extracted from the code and judged on fixed verdicts.
+
+### What this version does not know yet
+
+- **`setLiveLowLatencyEnabled(false)`** is in the instance's API (the
+  report lists it), but its effect on real Twitch is not measured. The
+  report will say: `calage.faibleLatence` — "le lecteur dit non" if it is
+  gone, "oui" otherwise.
+- **One to one and a half minutes** of listening before the first
+  decision, and after each change: eight clean computations, two verdicts
+  in agreement — 45 to 80 s on the replayed reports.
+- **Without shared sound, nothing moves** — two streams with nothing to
+  hear of each other stay where they are.
+- **A lone source beyond 0.5 s never moves anything**: it may be a real
+  offset, with no channel to confirm it. The echo thresholds come from five
+  real reports.
+
+### For the next report
+
+1. The same room if possible, opened from the node; ten minutes.
+2. Watch the lips, and note when the eye sees a change.
+3. In the report: `calage.etat`, `calage.mesures`, `calage.journal` — each
+   move and its measurement —, `calage.faibleLatence`, and each tile's
+   `rattrapages`.
+
 ## The lips: the cluster of voices (v4.24.0.20)
 
 Two real reports on 4.24.0.19, opened from the node: two streams, then
@@ -15246,7 +15487,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 186 scenarios, 1610 assertions |
+| `npm test` | the Playwright harness: 185 scenarios, 1592 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -15266,12 +15507,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1586 KB | 646 KB | 4,089 → **2** |
+| `content.js` | 1539 KB | 614 KB | 3,980 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1841 KB** | **803 KB** | **−56 %** |
+| **all five** | **1794 KB** | **771 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

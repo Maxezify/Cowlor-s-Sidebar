@@ -2180,6 +2180,250 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le calage par le son, et rien d'autre (v4.24.0.21)
+
+Un rapport réel sur la 4.24.0.20, deux streams, quatorze minutes, ouvert
+par le nœud. Ce que l'œil a vu : calés dans les toutes premières secondes,
+calés de nouveau dans les premières minutes — « je me suis dit c'est bon » —,
+puis environ quatre secondes d'écart sur les trois quarts du rapport. Et la
+consigne : « simplifier drastiquement son fonctionnement, que ce soit
+efficace, t'assurer que ça fonctionne vraiment. […] J'exige de la rigueur,
+du pragmatisme, du réalisme. » Publiée sur `claude/chrome-multi` seulement.
+
+Les tuiles, ici : **A**, celle qui a le son — la référence ; **B**, l'autre,
+en faible latence.
+
+### Ce que le quatorzième rapport établit
+
+**1. L'horloge se trompait de 4,6 secondes, d'un bout à l'autre.** Le son
+mesurait la paire A~B toutes les 5,3 s ; l'horloge (`getSyncTime`) aussi.
+Leur différence, calcul après calcul, sur onze minutes : −4,5 à −4,7 s pour
+une voix, −5,1 à −5,3 pour l'autre — **constante**, à travers quatre
+alignements, douze coupures d'arrivée et un saut. L'horloge date l'image à son arrivée
+chez Twitch, pas au moment où le streamer l'a jouée : un délai côté
+diffuseur, probablement, qu'elle ne peut pas voir. Le son, lui, était
+d'accord avec l'œil — à chaque fois.
+
+**2. Ce qui s'est passé, et ce que l'œil en a vu.**
+
+| quand | le pilote | l'horloge disait | le son disait |
+| --- | --- | --- | --- |
+| avant +28 s | rien encore | 5,06 s d'écart | 0 à −0,4 s (déduit) — **calés**, la première observation |
+| +28 s | recule B de 4,94 s, puis l'avance de 0,34 | 0,27 s | B ≈ 4,7 s en retard (déduit) ; −3,76 s à +63 s |
+| +29 → +175 s | — | — | le lecteur de B, en faible latence, reprend le recul à 1,03 pendant 146 s |
+| +175 → +215 s | — | 4,4 s | **−0,20 à −0,24 s, z jusqu'à 10,5 — calés**, la seconde observation |
+| +215 s | « rattrapage (B) » : **avance A de 4,01 s** | 0,79 s | **B 3,84 s en retard** |
+| +215 → +840 s | deux alignements de plus (+462, +812 s), par l'horloge | 0,66 à 0,90 s | B 3,85 à 4,2 s en retard ; 2,1 s après un saut de A |
+
+Le « avant +28 s » ne se lit pas directement — l'historique garde les 150
+derniers calculs sur 162 —, il se déduit : B reculé de 4,60 s net, repris à
+3 % depuis +29 s, entendu à −3,76 s au premier calcul gardé (+63 s) ;
+0 à −0,4 s avant tout geste. **Les deux fois où l'œil les a vus calés, ils
+l'étaient ; les deux fois, l'horloge disait 4 à 5 s d'écart, et le pilote
+l'a crue.**
+
+**3. Ce que l'avance de A a coûté.** 4 s de tampon. A avait déjà des
+coupures d'arrivée, toutes les cent secondes environ : avant l'avance, elles
+la laissaient à 4,4 s de tampon ; après, à 0,3–0,4 s — cinq fois au bord du
+gel.
+
+**4. La règle de la 4.24.0.20 n'avait plus rien à viser.** La carte du son,
+relative à l'horloge : −4610 · −4808 · −5075 · −5228 ms — « rien près de
+l'horloge, écho probable ». Les deux voix du salon, rejetées parce que
+l'horloge était loin.
+
+**5. Le geste juste.** B en retard de 3,84 s sur A ; B en faible latence ne
+tient pas un recul ; A, elle, le tenait (« recul tenu ») : **reculer A de
+3,7 s**. Pas une avance — elle mange le tampon.
+
+### Ce qui a été retiré
+
+Tout ce qui alignait sur l'horloge, ou avait été construit pour
+l'expérience : l'alignement par l'horloge (`aligner()`, ses passes, ses
+vérifications, sa troisième passe) ; le pilote qui réalignait à chaque
+événement, sa garde, sa dérive durable, ses retards ; la carte du son
+relative à l'horloge et sa cible ; « le son revoit » ; le protocole
+d'essais et ses phases ; les leviers de vitesse et de pause, et les
+commandes qui allaient avec (`aligner`, `essais`, `vitesse`, `pause`,
+`leviers`). **content.js perd 1 209 lignes.** Restent à la console : `auto`,
+`recul`, `avance`, `ecoute`, `rapport`.
+
+### Ce que fait cette version
+
+Un instrument, un geste, cinq règles.
+
+1. **Le son seul décide.** L'horloge et la latence restent au rapport ;
+   elles ne déplacent plus rien.
+2. **Sur ce qu'il a entendu depuis le dernier changement** de la paire — un
+   déplacement, un rechargement, une chute, un saut, la fin d'un
+   rattrapage : les 30 derniers calculs nets (z ≥ 5), 8 au moins, et une
+   décision quand deux verdicts de suite s'accordent à 80 ms. Une minute à
+   une minute et demie d'écoute après chaque changement.
+3. **La cible : la plus haute voix du salon.** Les pics se groupent à 80 ms
+   près ; une voix en a deux premiers au moins ; des voix à 700 ms au plus
+   l'une de la suivante font une grappe ; une grappe dont la deuxième voix a
+   le quart au moins des pics de la première est un **salon** — la voix de
+   la référence chez la tuile, le jeu, la voix de la tuile chez la
+   référence. Sa voix la plus haute met les lèvres de la tuile sur sa voix
+   telle qu'on l'entend (4.24.0.20). **Une source seule** — sans salon —
+   est un écho possible : elle ne déplace rien au-delà de 0,5 s.
+4. **Le geste : reculer la tuile en avance.** Le point de rencontre est la
+   tuile la plus en retard. La **faible latence** est retirée, une fois, à
+   chaque tuile qui l'a (`setLiveLowLatencyEnabled(false)`) : son lecteur
+   défait tout recul. Si elle tient quand même, la tuile ne recule pas, et
+   c'est l'autre qui avance — seulement si son tampon garde 2 s après
+   l'avance ; sinon rien, et le journal dit pourquoi.
+5. **Corrigée, une tuile ne redescend pas** tant qu'une voix de sa grappe
+   est à moins de 0,4 s : un salon en a trois, à 0,2–0,3 s l'une de
+   l'autre, et la plus haute — la cible — se tait quand son streamer ne
+   parle pas ; viser alors celle d'en dessous ferait osciller la salle. Elle
+   **monte**, en revanche, vers une voix plus haute de 0,15 s : la décision
+   a pu venir avant que la plus haute ne soit établie. Deux corrections, au
+   plus, pour un décalage. **Trois corrections au plus** par tuile en dix
+   minutes ; au-delà, elle est laissée là.
+
+Rien ne bouge sans son commun : le rapport dit « en attente », et pourquoi.
+
+### Rejoué sur quatre écoutes réelles
+
+La règle, extraite du code tel qu'il est livré, rejouée calcul après calcul
+sur l'historique de chaque rapport — rien que des nombres — depuis le
+dernier déplacement du pilote d'avant (scénario 185) :
+
+| rapport | ce qu'on y entend | cette règle |
+| --- | --- | --- |
+| quatorzième | un salon, −4490 · −3840 ms ; l'horloge à 4,6 s de lui | **−3840 ms au 43ᵉ calcul**, 80 s après l'avance de A — reculer A de 3,72 s ; puis rien d'autre |
+| huitième | une source seule, 1040 puis 2370 ms ; la paire juste à l'œil | « une source seule, à 1040 ms — un écho, peut-être » : **jamais une décision** |
+| neuvième | un salon, −300 · 40 ms ; une source à 1,1 s, plus lourde | **40 ms**, puis 20 ; la source à 1,1 s jamais |
+| douzième | un salon, 660 · 880 · 1170 ms | **1170 ms**, la plus haute, au 17ᵉ calcul — le pilote d'avant calait sur 634, la voix de A |
+
+Au quatorzième, avant l'avance de A, la règle n'avait pas encore ses huit
+calculs nets — la reprise de B étalait les pics, z sous 5 — : elle n'aurait
+**rien** fait, là où le pilote d'avant a reculé B de 4,9 s puis avancé A de
+4 s.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** : « quebec », un salon aux voix 4,47 · 4,18 · 3,87 s
+plus tard que la référence, que l'horloge dit à 2 s ; « india » et
+« juliett », un salon 0,6 · 0,48 · 0,35 s plus tôt, en faible latence — la
+première la rend quand on la lui retire, la seconde non ; « uniform »,
+3,5 s de tampon. Et le banc lit, dans chaque faux lecteur, où est vraiment
+la plus haute voix : le son ne l'entend pas toujours.
+
+- **182** — l'horloge se trompe de deux secondes, le son seul décide :
+  « xray » recule — en une correction, ou en deux si la voix du milieu
+  s'établit la première —, et la plus haute voix est à zéro. Calée, elle ne
+  bouge plus : l'horloge la dit à 1,9 s, sa voix la plus haute se tait une
+  minute — une voix de sa grappe reste à 0,3 s, elle tient. Une chute de
+  1,5 s rouvre la mesure — « en attente » au calcul suivant —, et la paire
+  est recalée.
+- **183** — la faible latence : retirée, « india » recule et tient, sans
+  rattrapage ; gardée, « juliett » ne recule pas, et « xray », 1,8 s de
+  tampon, n'avance pas — rien ne bouge, le journal dit pourquoi ; face à
+  « uniform », c'est elle qui avance.
+- **184** — un écho seul à 1,1 s et un stream sans son commun ne déplacent
+  rien ; une source seule à 0,3 s, si, une fois. Un salon qui saute recule à
+  chaque fois ; à la troisième correction en cinq minutes (l'échelle 0,5),
+  il est laissé là, et le journal le dit.
+- **185** — la règle rejouée sur les quatorzième, huitième, neuvième et
+  douzième rapports (ci-dessus), au calcul près ; et la tenue, extraite du
+  code, jugée sur six verdicts posés : corrigée, une tuile qui n'entend plus
+  que la voix d'en dessous ne redescend pas ; vers une plus haute, elle
+  monte ; libre, elle se corrige ; la grappe entière descendue, elle
+  redescend. Déterministe.
+- **124, 176, 178–181** réécrits : `rapport.calage` à la place de
+  l'alignement, du pilote et du protocole ; `recul` et `avance` à la
+  console, celle du panneau comprise.
+
+### Ce que le banc a trouvé
+
+- **La tuile qui redescendait.** Au premier tour, « india », corrigée sur
+  sa plus haute voix (+580 ms), n'a plus entendu au calcul suivant que celle
+  d'en dessous, à −280 — l'autre s'était tue dans cette fenêtre —, et la
+  salle a reculé l'autre tuile de 0,13 s : trois corrections pour un seul
+  décalage, l'oscillation même que le quatorzième rapport reprochait.
+  « yankee » de même. Désormais, une tuile corrigée ne redescend pas tant
+  qu'une voix de sa grappe est à moins de 0,4 s ; vers une voix plus
+  haute, elle monte.
+- **La première décision sur la voix du milieu.** À l'échelle du banc —
+  trois calculs nets au lieu de huit —, « quebec » a été décidée sur −4180,
+  la voix du milieu, avant que la plus haute ne soit établie ; la
+  vérification l'a vue au-dessus, à +340, et la paire y est montée. C'est
+  permis, et c'est ce que le banc vérifie : deux corrections au plus, la
+  plus haute voix à zéro à la fin. Sur les écoutes réelles, à l'exigence
+  entière, la première décision a toujours été la plus haute (185).
+- **« Calée », une tuile que rien n'avait rejointe.** Face à « juliett »,
+  qui garde sa faible latence, « uniform » n'a pas pu avancer — et le
+  journal disait pourtant « calée : juliett en avance de 0,36 s ». Une
+  tuile n'est calée qu'à 0,15 s de la référence.
+- **Un faux lecteur impossible.** « uniform » avait 3,5 s de tampon sous
+  2,2 s de latence : la sonde écarte un tampon plus long que la latence,
+  comme au vrai, et l'avance restait refusée, « tampon inconnu ». C'est le
+  faux qui était faux : 4,5 s de latence désormais.
+- **Des tests qui jugeaient un chemin.** Écrits pour une correction exacte
+  — « xray recule de 3,75 s », « trois sauts, trois corrections » —, ils
+  échouaient sur des chemins justes : deux corrections pour un décalage ;
+  une limite comptée dans sa fenêtre — à l'échelle 0,3, trois minutes, à
+  peine plus que trois corrections : il n'y était pas toujours laissé. Ils
+  jugent désormais l'arrivée, à l'échelle 0,5 pour la limite. Et l'ancienne
+  boucle de « yankee » faisait sauter le son deux fois de suite.
+- **La plus haute voix, quatre minutes sans un mot.** Au banc complet,
+  « quebec » bien calé sur sa plus haute voix, le son n'a plus entendu que
+  celle du milieu — tenue, comme il se doit —, et le test, qui attendait
+  de la mesurer à zéro, a expiré. Il lit désormais, dans le faux lecteur,
+  la latence que chaque tuile a prise : la plus haute voix y est à zéro, ou
+  non. Et « juliett », qui n'avait que deux voix, n'en a fait entendre
+  qu'une, 0,6 s, quatre minutes : une source seule, tenue pour un écho —
+  rien n'a bougé, à bon droit. Elle a désormais un salon de trois sons.
+- **Deux règles que le direct ne jugeait qu'au hasard.** Retirer l'accord
+  de deux verdicts ne faisait tomber le 182 qu'une fois, la plus haute voix
+  absente de la dernière fenêtre ; rendre la tenue d'avant passait le 183
+  quand le tirage faisait entendre la plus haute voix à temps. Les deux
+  règles sont désormais des fonctions à part, `accorde` et `tient`, que le
+  185 extrait du code et juge sur les écoutes réelles et sur des verdicts
+  posés.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'horloge prise pour le son (1) | 182 : la paire « calée » par l'horloge, le son l'entendant à −2,16 s — le quatorzième rapport, rejoué au banc |
+| la fenêtre prise depuis le début de l'écoute, pas depuis le dernier changement (1) | 182 : « xray » reculé de 37 s, puis de 100 — chaque correction jugée sur les calculs d'avant elle |
+| la chute qui ne rouvre pas la mesure (1) | 182 : pas d'« en attente » après la chute |
+| la plus basse voix ; les voix liées à 450 ms (2) | 185 : −4490 au quatorzième, −300 au neuvième, 660 — la voix de A — au douzième ; au quatorzième, « une source seule, à −4490 ms », rien |
+| la source seule suivie jusqu'à 5 s ; l'équilibre du salon à zéro (2) | 185 : au huitième, l'écho décidé à 1040 ms ; au neuvième, l'écho à 1110 |
+| l'accord de deux verdicts retiré (1) | 185 : décidé au 42ᵉ calcul au lieu du 43ᵉ, au 8ᵉ, au 16ᵉ — sur un seul verdict |
+| pas de tenue ; la tenue d'avant, la seule tuile calée, dans les deux sens (2) | 185 : une tuile vérifiée redescend vers la voix d'en dessous, une calée ne monte plus ; 182, sans tenue : après la chute, quatre corrections — descendre, puis remonter deux fois |
+| la faible latence jamais retirée ; la tuile en faible latence reculée quand même ; l'avance sans la marge du tampon (3) | 183 : « india » ne recule jamais ; « juliett » reculée de 1,1 s, que son lecteur reprend ; « xray » avancé de 0,68 s sur 1,8 s de tampon |
+| pas de limite (1) | 184 : cinq corrections en cinq minutes, jamais « laissée là » |
+
+Quatorze mutants, quatorze pris. Au premier tour, deux ne l'étaient que
+par le tirage — l'accord retiré, par une fenêtre où manquait la plus haute
+voix ; la tenue d'avant, pas du tout au 183 : ils le sont désormais au 185,
+à chaque fois, la règle extraite du code et jugée sur des verdicts posés.
+
+### Ce que cette version ne sait pas encore
+
+- **`setLiveLowLatencyEnabled(false)`** est dans l'API de l'instance (le
+  rapport la liste), mais son effet sur le vrai Twitch n'est pas mesuré.
+  Le rapport le dira : `calage.faibleLatence` — « le lecteur dit non » si
+  elle est partie, « oui » sinon.
+- **Une minute à une minute et demie** d'écoute avant la première
+  décision, et après chaque changement : huit calculs nets, deux verdicts
+  d'accord — 45 à 80 s sur les rapports rejoués.
+- **Sans son commun, rien ne bouge** — deux streams sans rien à entendre de
+  l'autre restent où ils sont.
+- **Une source seule au-delà de 0,5 s ne déplace jamais rien** : c'est peut-être
+  un vrai décalage, sans salon pour le confirmer. Les seuils de l'écho
+  viennent de cinq rapports réels.
+
+### Pour le prochain rapport
+
+1. La même salle si possible, ouverte par le nœud ; dix minutes.
+2. Regarder les lèvres, et noter quand l'œil voit un changement.
+3. Au rapport : `calage.etat`, `calage.mesures`, `calage.journal` — chaque
+   geste et sa mesure —, `calage.faibleLatence`, et les `rattrapages` de
+   chaque tuile.
+
 ## Les lèvres : la grappe des voix (v4.24.0.20)
 
 Deux rapports réels sur la 4.24.0.19, ouverts par le nœud : deux streams,
@@ -15761,7 +16005,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 186 scénarios, 1610 assertions |
+| `npm test` | le harnais Playwright : 185 scénarios, 1592 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -15782,12 +16026,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1586 Ko | 646 Ko | 4 089 → **2** |
+| `content.js` | 1539 Ko | 614 Ko | 3 980 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1841 Ko** | **803 Ko** | **−56 %** |
+| **les cinq** | **1794 Ko** | **771 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
