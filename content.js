@@ -1597,9 +1597,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          plutôt que de le laisser découvrir. */
       uiSalleTitre:              (n) => `Salle · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Donner le son à ${nom}`,
-      uiSalleSonActif:           'Son',
-      uiSallePub:                'Pub',
       uiSalleChat:               (nom) => `Chat de ${nom}`,
+      uiSalleChatSon:            (nom) => `Son : ${nom}`,
       uiSalleChatMasque:         'Chat masqué : fenêtre trop étroite',
       uiSallePoints:             'Pas de points de chaîne dans la salle',
       uiSalleBanc:               (nom) => `Mettre ${nom} dans la grille`,
@@ -1708,9 +1707,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiFermer:                  'Close',
       uiSalleTitre:              (n) => `Room · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Give the sound to ${nom}`,
-      uiSalleSonActif:           'Sound on',
-      uiSallePub:                'Ad',
       uiSalleChat:               (nom) => `${nom}'s chat`,
+      uiSalleChatSon:            (nom) => `Sound: ${nom}`,
       uiSalleChatMasque:         'Chat hidden: window too narrow',
       uiSallePoints:             'No channel points in the room',
       uiSalleBanc:               (nom) => `Put ${nom} in the grid`,
@@ -1809,9 +1807,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiFermer:                  'Schließen',
       uiSalleTitre:              (n) => `Raum · ${n} Stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Ton für ${nom} einschalten`,
-      uiSalleSonActif:           'Ton an',
-      uiSallePub:                'Werbung',
       uiSalleChat:               (nom) => `Chat von ${nom}`,
+      uiSalleChatSon:            (nom) => `Ton: ${nom}`,
       uiSalleChatMasque:         'Chat ausgeblendet: Fenster zu schmal',
       uiSallePoints:             'Keine Kanalpunkte im Raum',
       uiSalleBanc:               (nom) => `${nom} ins Raster holen`,
@@ -1910,9 +1907,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiFermer:                  'Cerrar',
       uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Dar el sonido a ${nom}`,
-      uiSalleSonActif:           'Con sonido',
-      uiSallePub:                'Anuncio',
       uiSalleChat:               (nom) => `Chat de ${nom}`,
+      uiSalleChatSon:            (nom) => `Sonido: ${nom}`,
       uiSalleChatMasque:         'Chat oculto: ventana demasiado estrecha',
       uiSallePoints:             'Sin puntos de canal en la sala',
       uiSalleBanc:               (nom) => `Poner a ${nom} en la cuadrícula`,
@@ -2011,9 +2007,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiFermer:                  'Fechar',
       uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Dar o som a ${nom}`,
-      uiSalleSonActif:           'Com som',
-      uiSallePub:                'Anúncio',
       uiSalleChat:               (nom) => `Chat de ${nom}`,
+      uiSalleChatSon:            (nom) => `Som: ${nom}`,
       uiSalleChatMasque:         'Chat oculto: janela estreita demais',
       uiSallePoints:             'Sem pontos do canal na sala',
       uiSalleBanc:               (nom) => `Colocar ${nom} na grade`,
@@ -2112,9 +2107,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiFermer:                  'Chiudi',
       uiSalleTitre:              (n) => `Sala · ${n} stream`,
       uiSalleSonPour:            (nom) => `Dai l'audio a ${nom}`,
-      uiSalleSonActif:           'Audio attivo',
-      uiSallePub:                'Pubblicità',
       uiSalleChat:               (nom) => `Chat di ${nom}`,
+      uiSalleChatSon:            (nom) => `Audio: ${nom}`,
       uiSalleChatMasque:         'Chat nascosta: finestra troppo stretta',
       uiSallePoints:             'Niente punti canale nella sala',
       uiSalleBanc:               (nom) => `Metti ${nom} nella griglia`,
@@ -2213,9 +2207,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiFermer:                  'Zamknij',
       uiSalleTitre:              (n) => `Sala · streamy: ${n}`,
       uiSalleSonPour:            (nom) => `Włącz dźwięk: ${nom}`,
-      uiSalleSonActif:           'Dźwięk',
-      uiSallePub:                'Reklama',
       uiSalleChat:               (nom) => `Czat: ${nom}`,
+      uiSalleChatSon:            (nom) => `Dźwięk: ${nom}`,
       uiSalleChatMasque:         'Czat ukryty: okno jest za wąskie',
       uiSallePoints:             'Brak punktów kanału w sali',
       uiSalleBanc:               (nom) => `Przenieś ${nom} do siatki`,
@@ -2314,9 +2307,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiFermer:                  'Закрыть',
       uiSalleTitre:              (n) => `Зал · трансляций: ${n}`,
       uiSalleSonPour:            (nom) => `Включить звук: ${nom}`,
-      uiSalleSonActif:           'Звук',
-      uiSallePub:                'Реклама',
       uiSalleChat:               (nom) => `Чат: ${nom}`,
+      uiSalleChatSon:            (nom) => `Звук: ${nom}`,
       uiSalleChatMasque:         'Чат скрыт: окно слишком узкое',
       uiSallePoints:             'В зале баллы канала не начисляются',
       uiSalleBanc:               (nom) => `Поместить ${nom} в сетку`,
@@ -2415,9 +2407,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiFermer:                  '閉じる',
       uiSalleTitre:              (n) => `ルーム · ${n} 配信`,
       uiSalleSonPour:            (nom) => `${nom} の音声に切り替え`,
-      uiSalleSonActif:           '音声',
-      uiSallePub:                '広告',
       uiSalleChat:               (nom) => `${nom} のチャット`,
+      uiSalleChatSon:            (nom) => `音声：${nom}`,
       uiSalleChatMasque:         'チャット非表示：ウィンドウが狭すぎます',
       uiSallePoints:             'ルームではチャンネルポイントは貯まりません',
       uiSalleBanc:               (nom) => `${nom} をグリッドに表示`,
@@ -2514,9 +2505,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiFermer:                  '关闭',
       uiSalleTitre:              (n) => `放映室 · ${n} 个直播`,
       uiSalleSonPour:            (nom) => `切换到 ${nom} 的声音`,
-      uiSalleSonActif:           '有声',
-      uiSallePub:                '广告',
       uiSalleChat:               (nom) => `${nom} 的聊天`,
+      uiSalleChatSon:            (nom) => `声音：${nom}`,
       uiSalleChatMasque:         '聊天已隐藏：窗口太窄',
       uiSallePoints:             '放映室内不获得频道积分',
       uiSalleBanc:               (nom) => `将 ${nom} 放入网格`,
@@ -7259,18 +7249,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer;
     }
     .tse-salle__prise:hover, .tse-salle__prise:focus-visible { background: rgba(145, 71, 255, 0.12); outline: none; }
-    .tse-salle__etiquette {
-      position: absolute; top: 6px; left: 6px; z-index: 2; pointer-events: none;
-      display: flex; align-items: center; gap: 6px; max-width: calc(100% - 12px);
-      padding: 2px 8px; border-radius: 4px;
-      background: rgba(0, 0, 0, 0.62); color: #fff; font-size: 12px; font-weight: 600;
-    }
-    .tse-salle__touche { opacity: 0.6; font-variant-numeric: tabular-nums; }
-    .tse-salle__nom { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tse-salle__son { color: #bf94ff; }
-    .tse-salle__pub {
-      padding: 0 5px; border-radius: 3px; background: #ffd37a; color: #0e0e10; font-size: 11px;
-    }
     .tse-salle__banc {
       flex: 0 0 auto; height: ${CFG.SALLE_BANC_PX}px; box-sizing: border-box;
       display: flex; gap: 8px; padding: 8px ${CFG.SALLE_MARGE_PX}px; overflow-x: auto; overflow-y: hidden;
@@ -14160,24 +14138,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       prise.setAttribute('aria-label', S.uiSalleSonPour(chaine));
       prise.title = S.uiSalleSonPour(chaine);
       prise.addEventListener('click', () => donnerSon(chaine));
-      const etiquette = document.createElement('div');
-      etiquette.className = 'tse-salle__etiquette';
-      const touche = document.createElement('span');
-      touche.className = 'tse-salle__touche';
-      const nom = document.createElement('span');
-      nom.className = 'tse-salle__nom';
-      nom.textContent = chaine;
-      const sonEl = document.createElement('span');
-      sonEl.className = 'tse-salle__son';
-      sonEl.textContent = S.uiSalleSonActif;
-      sonEl.hidden = true;
-      const pubEl = document.createElement('span');
-      pubEl.className = 'tse-salle__pub';
-      pubEl.textContent = S.uiSallePub;
-      pubEl.hidden = true;
-      etiquette.append(touche, nom, sonEl, pubEl);
-      el.append(cadre, prise, etiquette);
-      return { chaine, el, cadre, prise, touche, sonEl, pubEl, etat: null, messages: 0, pubs: 0,
+      /* RIEN SUR LE LECTEUR (4.24.0.23), à la demande : plus d'étiquette
+         « 1 · chaîne · Son » ni de pastille « Pub » posées sur l'image. Le
+         contour violet dit la tuile qui a le son ; Twitch dit sa pub, et le
+         rapport la compte. Les touches 1 à 6 suivent l'ordre de lecture de
+         la grille. Reste la prise, transparente. */
+      el.append(cadre, prise);
+      return { chaine, el, cadre, prise, etat: null, messages: 0, pubs: 0,
                pubAvant: false, dernierSon: 0, pauseCachee: false,
                sonEssais: 0, sonEnvoiT: 0, sonDepuis: 0, sonTenu: false, gestesAuDon: 0, qualiteEnvoyee: null,
                ordreCompte: 0, dernierOrdre: null,
@@ -14223,7 +14190,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       cote.chaine = chaine;
       if (cote.cadre) cote.cadre.remove();
       cote.cadre = null;
-      cote.tete.textContent = chaine ? S.uiSalleChat(chaine) : '';
       cote.bloc.hidden = !chaine;
       if (!chaine) return;
       const f = document.createElement('iframe');
@@ -14234,6 +14200,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       cote.bloc.appendChild(f);
       cote.cadre = f;
     };
+    const titrerChat = (cote, texte) => { if (cote.tete.textContent !== texte) cote.tete.textContent = texte; };
     /* UN SEUL CHAT, celui de la tuile qui a le son — c'est la règle, et la
        phase 0 l'a fondée : ce sont les chats qui pèsent sur la page.
 
@@ -14245,15 +14212,27 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const majChat = () => {
       const c = courante;
       const d = c.disposition;
-      if (!d || !d.chat) { poserChat(c.chatD, null); poserChat(c.chatG, null); return; }
-      if (c.deuxChats) {
+      if (!d || !d.chat) { poserChat(c.chatD, null); poserChat(c.chatG, null); }
+      else if (c.deuxChats) {
         const droite = c.membres.includes(c.chatD.chaine) ? c.chatD.chaine : c.son;
         poserChat(c.chatD, droite);
         poserChat(c.chatG, c.membres.find((m) => m !== droite) || null);
-        return;
+      } else {
+        poserChat(c.chatG, null);
+        /* Partagé, le chat est celui de tous : le son passé à une autre
+           tuile, on le garde — le recharger lui coûterait ses messages pour
+           afficher les mêmes (4.24.0.23). */
+        poserChat(c.chatD, c.partage === true && c.membres.includes(c.chatD.chaine) ? c.chatD.chaine : c.son);
       }
-      poserChat(c.chatG, null);
-      poserChat(c.chatD, c.son);
+      /* L'EN-TÊTE DIT OÙ EST LE SON, AU-DESSUS D'UN CHAT PARTAGÉ (4.24.0.23),
+         à la demande : « Chat de X » au-dessus d'un chat qui est celui de
+         tous ne disait rien d'utile — Twitch y pose déjà son bandeau
+         « Chat partagé ». Le chat restant est celui de la tuile qui a le son
+         (cf. plus haut) : l'en-tête la nomme, et la suit. Ailleurs, chaque
+         colonne garde le nom de son chat. */
+      const partage = c.partage === true && !c.deuxChats;
+      titrerChat(c.chatD, !c.chatD.chaine ? '' : partage ? S.uiSalleChatSon(c.son) : S.uiSalleChat(c.chatD.chaine));
+      titrerChat(c.chatG, c.chatG.chaine ? S.uiSalleChat(c.chatG.chaine) : '');
     };
 
     /* LE CHAT PARTAGÉ SE PROUVE PAR SES MESSAGES — la seule preuve mesurée :
@@ -14328,7 +14307,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const a = t.chaine === chaine;
         t.el.classList.toggle('tse-salle__tuile--son', a);
         t.prise.hidden = a;
-        t.sonEl.hidden = !a;
         if (a) {
           t.dernierSon = Date.now();
           t.sonEssais = 0; t.sonDepuis = 0; t.sonTenu = false;
@@ -14442,7 +14420,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         t.el.style.top = `${y0 + rang * (d.h + e)}px`;
         t.el.style.width = `${d.l}px`;
         t.el.style.height = `${d.h}px`;
-        t.touche.textContent = String(i + 1);
       });
       const dehors = c.membres.filter((ch) => !dedans.includes(ch));
       const cleBanc = dehors.join(' ');
@@ -14619,8 +14596,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          temps de lecture depuis le début de la session, et repart de zéro
          quand le lecteur recharge — ce qu'il a fait au second rapport réel,
          à la reprise d'une pause. Sauf un recul voulu, commencé depuis le
-         relevé précédent : jusqu'à 5 s, la position recule aussi. */
-      const recule = !!(es && es.type === 'recul' && prec && prec.t !== null && Number.isFinite(es.t) && es.t > prec.t);
+         relevé précédent : jusqu'à 5 s, la position recule aussi.
+         « Depuis le relevé précédent », À LA FENÊTRE D'UN ESSAI PRÈS
+         (4.24.0.23) : au banc, un recul de 4 s, daté d'un instant avant ce
+         relevé-là, a été pris pour un rechargement — et un rechargement
+         délie désormais les tuiles du calage (cf. signaler). La position
+         n'a pas reculé de plus que le recul demandé, plus une seconde. */
+      const recule = !!(es && es.type === 'recul' && prec && prec.t !== null && Number.isFinite(es.t)
+        && es.t > prec.t - CFG.SALLE_APRES_ESSAI_MS && prec.po !== null && ech.po !== null
+        && prec.po - ech.po <= (Number(es.valeur) || 5) + 1);
       if (prec && prec.po !== null && ech.po !== null && ech.po < prec.po - 1 && !recule) {
         ech.redemarrage = true;
         t.rechargements += 1;
@@ -14975,7 +14959,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (et.pub && !t.pubAvant) t.pubs += 1;
       if (!!et.pub !== t.pubAvant) noter(c, t.chaine, et.pub ? 'début de pub' : 'fin de pub', fini(et.latence));
       t.pubAvant = !!et.pub;
-      t.pubEl.hidden = !et.pub;
       if (t.chaine === c.son) tenirSon(t, et);
       if (et.video) tenirQualite(t);
       const o = et.ordre;
@@ -15423,6 +15406,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         banc: c.membres.filter((m) => !c.tuiles.some((t) => t.chaine === m)).join(' ') || null,
         son: c.son,
         chat: c.chatD.chaine,
+        // Ce que dit l'en-tête du chat : « Chat de X », ou, partagé, où est le son (4.24.0.23).
+        chatTitre: c.chatD.tete.textContent || null,
         // À deux streams sans Chat partagé : le chat de gauche, et ce que la
         // comparaison a tranché (oui, non, ou null tant qu'elle compte).
         chatGauche: c.chatG.chaine,
@@ -15904,7 +15889,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        lecture continue sur son tampon. */
     const signaler = (c, chaine, quoi) => {
       const t = tuileDe(c, chaine);
-      if (t && quoi !== 'coupure') t.changement = Date.now();
+      if (!t || quoi === 'coupure') return;
+      t.changement = Date.now();
+      /* ET LA RELATION N'EST PLUS CONNUE (4.24.0.23) : calée ou vérifiée, la
+         tuile suivait la référence quand celle-ci reculait (cf. caler) — sur
+         la foi d'une relation que sa lecture vient de changer d'on ne sait
+         combien. Elle redevient libre ; la référence elle-même a bougé : toutes. */
+      const k = c.calage;
+      if (!k) return;
+      for (const n of chaine === c.ecoute.ref ? Object.keys(k.etats) : [chaine]) {
+        if (k.etats[n] && k.etats[n] !== 'libre') k.etats[n] = 'libre';
+      }
     };
     // Le tampon devant la lecture : le plus bas des cinq derniers relevés (4.24.0.19), en s.
     const tamponDe = (t) => {
@@ -16077,26 +16072,47 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (tenue && v.ms <= -CALAGE.SEUIL_S * 1000) tenues[t.chaine] = true;
         avances[t.chaine] = tenue ? 0 : v.ms / 1000;
       }
-      const noms = Object.keys(avances);
       // Rien de jugé à ce calcul : l'état reste ce qu'il était — calée, si elle l'est.
-      if (noms.length < 2) { if (!k.attente) k.attente = 'le son ne s\'est pas encore prononcé'; return; }
+      if (!Object.keys(verdicts).length) { if (!k.attente) k.attente = 'le son ne s\'est pas encore prononcé'; return; }
+      /* LES TUILES QUI SUIVENT LA RÉFÉRENCE (4.24.0.23). Le premier rapport
+         réel à trois streams : la tuile C calée à +70 s, la référence
+         reculée pour elle ; à +125 s, la référence recule encore de 1,23 s
+         pour la tuile B — et C, qui n'avait pas de verdict à ce calcul-là,
+         reste où elle est : 1,4 s d'avance, sept minutes, la règle de
+         l'écho la tenant pour une source seule. Calée ou vérifiée, une tuile
+         sans verdict a une relation CONNUE à la référence — à zéro près :
+         elle est du rendez-vous à zéro, et recule avec elle. Libre, on ne
+         sait rien d'elle : elle reste, et se mesure de nouveau. */
+      const suiveuses = [];
+      for (const t of c.tuiles) {
+        if (t === ref || avances[t.chaine] !== undefined) continue;
+        if (k.etats[t.chaine] === 'calée' || k.etats[t.chaine] === 'vérification') { avances[t.chaine] = 0; suiveuses.push(t.chaine); }
+      }
+      /* TROIS CORRECTIONS AU PLUS PAR TUILE, en dix minutes : celles qui
+         changent SA relation à la référence — qu'elle bouge, ou que la
+         référence vienne à elle. Plus la référence elle-même, ni ce qui la
+         suit : à trois streams et plus, elle recule pour chacun, et la
+         compter l'arrêterait avant d'avoir rejoint le dernier. Au-delà, la
+         tuile est laissée là — hors du rendez-vous. */
+      const fenetreMax = CALAGE.MAX_MS * e;
+      for (const n of Object.keys(verdicts)) {
+        k.coups[n] = (k.coups[n] || []).filter((x) => maintenant - x < fenetreMax);
+        if (Math.abs(avances[n]) < CALAGE.SEUIL_S || k.coups[n].length < CALAGE.MAX_N) continue;
+        direUneFois(c, k, n, `${n} : ${CALAGE.MAX_N} corrections en ${Math.round(fenetreMax / 60_000)} min — laissée là`);
+        delete avances[n];
+      }
+      const noms = Object.keys(avances);
       /* LE POINT DE RENCONTRE : la tuile la plus en retard, que les autres
          rejoignent en reculant. Sauf si une tuile qui ne peut pas reculer
          est devant elle : c'est elle, alors, et celles qui sont derrière
          avancent — si leur tampon le permet. */
       const fixes = noms.filter((n) => !peutReculer(tuileDe(c, n)));
       const rdv = fixes.length ? Math.max(...fixes.map((n) => avances[n])) : Math.min(...noms.map((n) => avances[n]));
-      const fenetreMax = CALAGE.MAX_MS * e;
       const gestes = [];
       for (const n of noms) {
         const t = tuileDe(c, n);
         const d = r3(avances[n] - rdv);
         if (Math.abs(d) < CALAGE.SEUIL_S) continue;
-        k.coups[n] = (k.coups[n] || []).filter((x) => maintenant - x < fenetreMax);
-        if (k.coups[n].length >= CALAGE.MAX_N) {
-          direUneFois(c, k, n, `${n} : ${CALAGE.MAX_N} corrections en ${Math.round(fenetreMax / 60_000)} min — laissée là`);
-          continue;
-        }
         if (d > 0) {
           if (peutReculer(t)) gestes.push({ t, type: 'recul', s: Math.min(10, Math.max(0.05, r3(d - CALAGE.RECUL_S))), d });
           else direUneFois(c, k, n, `${n} en avance de ${secondes(d)}, mais ${t.retientPas ? 'son lecteur reprend chaque recul' : 'toujours en faible latence'} : rien à faire`);
@@ -16112,33 +16128,42 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         /* Rien à corriger : calées, les paires jugées à moins de 0,15 s de
            la référence — pas une tuile que rien n'a pu rejoindre. */
         for (const n of Object.keys(verdicts)) {
-          if (Math.abs(avances[n]) >= CALAGE.SEUIL_S || k.etats[n] === 'calée') continue;
+          if (Math.abs(avances[n] ?? Infinity) >= CALAGE.SEUIL_S || k.etats[n] === 'calée') continue;
           k.etats[n] = 'calée';
           journaliser(c, k, `calée : ${n} ${texteMesure(verdicts[n], n).split(' · voix')[0]}`
             + (tenues[n] ? ' — sa voix la plus haute pas revue, une autre à moins de 0,4 s : elle tient' : ''));
         }
-        k.attente = Object.keys(verdicts).length === c.tuiles.length - 1 && Object.values(k.etats).every((x) => x === 'calée') ? 'calée' : 'en écoute';
+        // La salle est calée quand chaque tuile l'est — mesurée à zéro depuis le dernier changement de sa relation.
+        k.attente = c.tuiles.every((t) => t === ref || k.etats[t.chaine] === 'calée') ? 'calée' : 'en écoute';
         return;
       }
       for (const g of gestes) {
         envoyer(g.t, `essai-${g.type}`, { duree: g.s });
         g.t.changement = maintenant;
-        k.coups[g.t.chaine].push(maintenant);
         k.deplacements[g.t.chaine] = r3((k.deplacements[g.t.chaine] || 0) + (g.type === 'recul' ? g.s : -g.s));
         delete k.dits[g.t.chaine];
       }
-      /* Une première correction appelle une vérification ; une seconde,
-         c'est calé. Pour les tuiles dont la relation à la référence a bougé
-         — pas celle qui a reculé d'autant qu'elle ; sans verdict, elle
-         redevient libre. */
+      /* Les états, tuile par tuile, selon ce qu'est devenue sa relation à la
+         référence. Changée, et jugée à ce calcul : une première correction
+         appelle une vérification, une seconde, c'est calé — et elle compte.
+         Changée sans verdict — elle n'a pas pu suivre, ou on ne savait rien
+         d'elle — : libre. Gardée en reculant avec elle : à vérifier, chaque
+         lecteur calant un peu à sa façon. */
       const pas = Object.fromEntries(gestes.map((g) => [g.t.chaine, g.type === 'recul' ? g.s : -g.s]));
       for (const t of c.tuiles) {
         const n = t.chaine;
-        if (t === ref || (pas[n] || 0) === (pas[ref.chaine] || 0)) continue;
-        k.etats[n] = !verdicts[n] ? 'libre' : k.etats[n] === 'vérification' ? 'calée' : 'vérification';
+        if (t === ref) continue;
+        if ((pas[n] || 0) === (pas[ref.chaine] || 0)) {
+          if (pas[n] && k.etats[n] === 'calée') k.etats[n] = 'vérification';
+          continue;
+        }
+        if (!verdicts[n] || avances[n] === undefined) { k.etats[n] = 'libre'; continue; }
+        k.etats[n] = k.etats[n] === 'vérification' ? 'calée' : 'vérification';
+        k.coups[n].push(maintenant);
       }
       k.attente = 'vérification';
-      journaliser(c, k, `${mesure} → ${gestes.map((g) => `${g.t.chaine} ${g.type === 'recul' ? 'recule' : 'avance'} de ${g.s} s`).join(' · ')}`);
+      journaliser(c, k, `${mesure} → ${gestes.map((g) => `${g.t.chaine} ${g.type === 'recul' ? 'recule' : 'avance'} de ${g.s} s`
+        + (suiveuses.includes(g.t.chaine) ? ' (suit la référence)' : '')).join(' · ')}`);
     };
     // La commande : auto(), auto(0.1), auto(false).
     const auto = (x) => {

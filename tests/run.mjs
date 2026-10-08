@@ -25047,8 +25047,8 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
         allow: f.getAttribute('allow'),
         son: t.classList.contains('tse-salle__tuile--son'),
         prise: !t.querySelector('.tse-salle__prise').hidden,
-        pub: !t.querySelector('.tse-salle__pub').hidden,
-        touche: t.querySelector('.tse-salle__touche').textContent,
+        // Rien sur le lecteur (4.24.0.23) : son iframe et sa prise, rien d'autre.
+        enfants: [...t.children].map((e) => e.localName + (e.className ? `.${e.className}` : '')).join('|'),
       };
     });
     const chats = [...boite.querySelectorAll('iframe[name="tse-salle-chat"]')].map((f) => f.src.split('?')[0]);
@@ -25080,12 +25080,14 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      parent, le muet ou la lecture automatique oubliés, la salle posée sur la
      barre latérale ou sous la barre du haut, la grille qui passe sous le
      minimum. */
-  ok('trois streams : trois tuiles nommées, muettes au départ, dans une grille saine à droite de la barre',
+  /* 4.24.0.23 : plus d'étiquette « 1 · chaîne · Son » sur l'image, à la
+     demande — le contour violet suffit. Mutant — l'étiquette remise. */
+  ok('trois streams : trois tuiles nommées, muettes au départ, rien posé sur leurs lecteurs, dans une grille saine à droite de la barre',
      ouverte.membres.join() === 'alpha,bravo,charlie' && !!s1 && s1.tuiles.length === 3 && s1.banc.length === 0
      && s1.gauche === s1.navDroite && s1.haut === 50
      && s1.tuiles.every((t) => t.nom === 'tse-salle' && /autoplay/.test(t.allow || ''))
      && s1.tuiles[0].url === 'https://player.twitch.tv|alpha|www.twitch.tv|true|true|'
-     && s1.tuiles.map((t) => t.touche).join() === '1,2,3'
+     && s1.tuiles.every((t) => t.enfants === 'iframe|button.tse-salle__prise')
      && grilleSaine(s1),
      JSON.stringify({ ouverte, s1 }));
   /* PLUS DE LIGNE PLEINE LARGEUR QUAND LE CHAT EST LÀ (4.24.0.9) : le titre
@@ -25155,22 +25157,25 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      JSON.stringify({ r3: r3.son, r4: r4.son }));
 
   // ── La pub, par les repères relevés sur le vrai Twitch ────────────────────
-  // L'étiquette pendant la pub — pas seulement son compte après coup.
+  // Vue pendant qu'elle passe — pas seulement comptée après coup —, et rien
+  // posé pour autant sur le lecteur (4.24.0.23) : Twitch la dit lui-même.
   await attendre(page, () => {
-    const e = document.querySelector('#tse-salle [data-tse-salle-chaine="charlie"] .tse-salle__pub');
-    if (e && !e.hidden) window.__pubVue = true;
-    return window.tse.salle.rapport().tuiles?.charlie?.pubsVues >= 1 && window.__pubVue === true;
+    const r = window.tse.salle.rapport().tuiles?.charlie;
+    if (r?.pub === true) {
+      window.__pubVue = true;
+      window.__pubEnfants = [...document.querySelector('#tse-salle [data-tse-salle-chaine="charlie"]').children].length;
+    }
+    return r?.pubsVues >= 1 && window.__pubVue === true;
   }, 10_000);
-  const pubVue = await page.evaluate(() => window.__pubVue === true);
+  const pubVue = await page.evaluate(() => window.__pubVue === true && window.__pubEnfants === 2);
   await attendre(page, () => window.tse.salle.rapport().tuiles?.charlie?.pubsVues >= 1
     && window.tse.salle.rapport().tuiles?.charlie?.pub === false, 10_000);
   const r5 = await etatDe();
   const s5 = await lireSalle();
-  /* Mutants — la pub jamais lue, comptée à chaque relevé, ou l'étiquette
-     laissée après la fin de la pub. */
-  ok('la pub de « charlie » est étiquetée sur sa tuile, comptée une fois, et l\'étiquette retirée à sa fin',
+  /* Mutants — la pub jamais lue, comptée à chaque relevé. */
+  ok('la pub de « charlie » est vue pendant qu\'elle passe et comptée une fois — sans rien poser sur son lecteur',
      pubVue === true && r5.tuiles.charlie.pubsVues === 1 && r5.tuiles.alpha.pubsVues === 0
-     && s5.tuiles.every((t) => !t.pub),
+     && s5.tuiles.every((t) => t.enfants === 'iframe|button.tse-salle__prise'),
      JSON.stringify({ pubVue, charlie: r5.tuiles.charlie, alpha: r5.tuiles.alpha }));
 
   /* LA QUALITÉ DES LECTEURS (4.24.0.10) : plus d'automatique. Tuiles de
@@ -26015,6 +26020,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       let id = null;
       try { id = f && f.contentWindow.__id; } catch { /* ignore */ }
       return { visible: !!b && !b.hidden, chaine: f ? decodeURIComponent(f.src.split('/embed/')[1].split('/')[0]) : null, id,
+               tete: b ? b.querySelector('.tse-salle__chat-tete')?.textContent ?? null : null,
                ...(b && !b.hidden ? rect(b) : {}) };
     };
     return {
@@ -26043,6 +26049,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   ok('deux streams, deux chats distincts : l\'autre chat dans la marge de gauche, les tuiles dans la scène',
      !!deux && deux.chats === 2 && deux.gauche.visible && deux.droite.visible
      && deux.droite.chaine === 'tardif' && deux.gauche.chaine === 'calme'
+     && deux.droite.tete === 'Chat de tardif' && deux.gauche.tete === 'Chat de calme'
      && deux.gauche.droite <= deux.scene.x && dansScene(deux)
      && deux.rapport.chatPartage === false && /^\d+ messages · 0 communs$/.test(deux.rapport.chatsCompares || ''),
      JSON.stringify(deux && { gauche: deux.gauche, droite: deux.droite, scene: deux.scene, tuiles: deux.tuiles,
@@ -26167,6 +26174,25 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      && partage.boutonDans === 'tse-salle__chat--droite' && dansScene(partage)
      && /^\d+ messages · \d+ communs$/.test(partage.rapport.chatsCompares || ''),
      JSON.stringify({ avantPartage, apres: partage && { chats: partage.chats, tuiles: partage.tuiles, compare: partage.rapport.chatsCompares } }));
+
+  /* AU-DESSUS D'UN CHAT PARTAGÉ, OÙ EST LE SON (4.24.0.23), à la demande :
+     « Chat de sa » ne disait rien d'un chat qui est celui des deux. L'en-tête
+     nomme la tuile qui a le son — « Son : sa » —, et la suit quand le son
+     passe à « sb ». Le chat, lui, reste : c'est le même, le recharger lui
+     coûterait ses messages. Sans chat partagé, chaque colonne garde
+     « Chat de … » (plus haut). Mutants — l'en-tête d'avant ; l'en-tête figé
+     au premier son ; le chat rechargé au changement de son. */
+  await page.evaluate(() => window.tse.salle.son(1));
+  await attendre(page, () => window.tse.salle.rapport().son === 'sb', 8000);
+  await wait(page, 1500);
+  const partage2 = await lireSalle();
+  ok('au-dessus du chat partagé, l\'en-tête dit où est le son, et le suit — « Son : sa », puis « Son : sb » —, le chat gardé sans rechargement',
+     partage?.droite.tete === 'Son : sa' && partage.rapport.chatTitre === 'Son : sa'
+     && partage2?.droite.tete === 'Son : sb' && partage2.rapport.chatTitre === 'Son : sb'
+     && partage2.droite.chaine === 'sa' && partage2.droite.id != null && partage2.droite.id === partage.droite.id
+     && partage2.chats === 1 && partage2.rapport.chatPartage === true,
+     JSON.stringify({ avant: partage && [partage.droite.tete, partage.rapport.chatTitre, partage.droite.id],
+                      apres: partage2 && [partage2.droite.tete, partage2.rapport.chatTitre, partage2.droite.chaine, partage2.droite.id, partage2.chats] }));
 
   // ── LA RELANCE BORNÉE, ET QUI CÈDE À L'UTILISATEUR ────────────────────────
   await page.evaluate(() => window.tse.salle.ouvrir('rebelle', 'solo'));
@@ -26433,7 +26459,15 @@ const S_LECTEUR_SONDE = () => {
             return Date.now() - this.t0 < 2500 || Date.now() < (this.horlogeDes || 0) ? 0
               : Math.floor((Date.now() - this.L * 1000) / 1000) * 1000;
           }
-          getPosition() { this.maj(); return this.pos; }
+          /* LE SEEK LENT (4.24.0.23) : un vrai lecteur ne rend sa nouvelle
+             position qu'un instant après seekTo. « __seekLent(ms) » : pendant
+             ms après un déplacement, la position lue est encore l'ancienne,
+             qui avance. La latence, elle — et le son —, bouge tout de suite. */
+          getPosition() {
+            this.maj();
+            if (this.lent && Date.now() - this.seekT < this.lent) return this.posAvant + (Date.now() - this.seekT) / 1000;
+            return this.pos;
+          }
           /* Reculer ou avancer dans le tampon : la position bouge, la latence
              d'autant — PLUS UN CALAGE (4.24.0.15), qui dépend du SENS
              (4.24.0.16) : aux rapports réels, 0,056 à 0,22 s pour un recul,
@@ -26448,6 +26482,7 @@ const S_LECTEUR_SONDE = () => {
             const recul = p < this.pos;
             const cale = ch === 'alpha' ? (recul ? 0.3 : 0.25) : /^duo/.test(ch) ? 0.05 : (recul ? 0.15 : 0.08);
             const d = this.pos - p;
+            this.seekT = Date.now(); this.posAvant = this.pos;
             this.pos = p - cale;
             this.L += d + cale;
           }
@@ -26478,6 +26513,7 @@ const S_LECTEUR_SONDE = () => {
         window.__sauter = (x) => { window.__lecteur.maj(); window.__lecteur.L -= x; window.__lecteur.pos += x; };
         // Une horloge qui tarde : getSyncTime rend 0 ms millisecondes encore (4.24.0.17).
         window.__horlogeDes = (ms) => { window.__lecteur.horlogeDes = Date.now() + ms; };
+        window.__seekLent = (ms) => { window.__lecteur.lent = ms; };
         // Une coupure d'arrivée de D secondes (4.24.0.14).
         window.__coupure = (D) => { window.__lecteur.maj(); window.__lecteur.coupure = { t0: Date.now(), D }; };
         // Un rattrapage du lecteur lui-même : la vitesse x, s secondes (4.24.0.15).
@@ -26542,14 +26578,17 @@ const S_LECTEUR_SONDE = () => {
            plus long que la latence est écarté, comme au vrai. */
         /* « kilo » et « november » (4.24.0.22) passent les trois sons de
            « xray », au même instant : l'une change de source en cours de
-           route, l'autre n'a pas d'AudioWorklet (cf. plus bas). */
+           route, l'autre n'a pas d'AudioWorklet (cf. plus bas). « lima »
+           (4.24.0.23) les passe 3,2, 3,05 et 2,9 s plus tard : un salon loin
+           derrière, la troisième tuile d'une salle où « mike » est déjà
+           calée. */
         const VOIX = ({ bravo: [[0, 350]], duo1: [[0, 0], [1, 200]], duo2: [[1, 350], [0, 550]], duo3: [[1, 750], [0, 950]], foxtrot: [[2, 0]],
                         golf: [[0, 5500]], hotel: [[0, 5500]], mike: [[0, 300]], papa: [[0, -1100]], oscar: [[0, -700], [1, 900]],
                         romeo: [[3, 0]], sierra: [[4, 0]], tango: [[5, 0]], victor: [[6, 0]], whiskey: [[7, 0]],
                         xray: [[0, 0], [1, 0], [8, 0, 880]], yankee: [[0, -900], [8, -1150, 880], [1, -1420]], zulu: [[0, 300]],
                         quebec: [[0, 4470], [8, 4180, 880], [1, 3870]], india: [[0, -600], [8, -480, 880], [1, -350]], juliett: [[0, -600], [8, -480, 880], [1, -350]],
                         uniform: [[0, 0], [1, 0], [8, 0, 880]], kilo: [[0, 0], [1, 0], [8, 0, 880]],
-                        november: [[0, 0], [1, 0], [8, 0, 880]] })[ch] || [[0, 0]];
+                        november: [[0, 0], [1, 0], [8, 0, 880]], lima: [[0, 3200], [8, 3050, 880], [1, 2900]] })[ch] || [[0, 0]];
         const v = document.getElementById('v');
         const c = document.createElement('canvas');
         c.width = 32; c.height = 18;
@@ -27503,7 +27542,8 @@ const S_LECTEUR_SONDE = () => {
   await page.evaluate(() => window.tse.salle.fermer());
   await page.evaluate(() => window.tse.salle.ouvrir('xray', 'juliett'));
   await page.evaluate(() => window.tse.salle.auto(0.1));
-  const ditB = await tant(() => /xray en retard de 0\.[56]\d s sur une tuile qui ne peut pas reculer, et 1\.8 s de tampon : rien à faire/
+  // Le retard dit est celui d'une voix du salon de « juliett » — 0,35, 0,48 ou 0,6 s, selon celle qui s'établit la première.
+  const ditB = await tant(() => /xray en retard de 0\.[3-6]\d s sur une tuile qui ne peut pas reculer, et 1\.8 s de tampon : rien à faire/
     .test(Object.values(window.tse.salle.rapport().calage?.journal || {}).join(' | ')), 150_000);
   await wait(page, 30_000);
   const rB = await rapport();
@@ -27913,6 +27953,69 @@ const S_LECTEUR_SONDE = () => {
       '230 (520 38 %) z 8.5 att -557 sync -609', '230 (0 82 %) z 6.5 att -624 sync -617',
       '230 (10 84 %) z 6.7 att -611 sync -611',
     ].join(' · '),
+    /* Le rapport à trois streams sur la 4.24.0.22 (4.24.0.23) : la paire de
+       la tuile laissée en avance quand la référence a reculé pour la
+       troisième. */
+    troisStreams: [
+      '-690 (-4280 50 %) z 6.2 att 206 sync 59', '-690 (-3340 45 %) z 7.3 att 200 sync 42',
+      '-680 (1970 36 %) z 8.0 att 200 sync 10', '-670 (-4390 33 %) z 9.2 att 200 sync 20',
+      '-670 (-4390 51 %) z 7.1 att 125 sync 20', '-670 (-4390 62 %) z 6.8 att 125 sync 20',
+      '-560 (1680 46 %) z 6.3 att 47 sync 69', '-560 (-630 33 %) z 8.7 att 43 sync 59',
+      '-560 (-630 44 %) z 9.0 att 47 sync 79', '-560 (-710 71 %) z 7.2 att 138 sync 99',
+      '-560 (-710 70 %) z 6.7 att 228 sync 168', '-670 (-560 82 %) z 4.6 att 229 sync 137',
+      '40 (-70 82 %) z 4.8 att 247 sync 554', '40 (-70 97 %) z 5.7 att 617 sync 609',
+      '50 (-80 85 %) z 6.3 att 704 sync 630', '-80 (50 91 %) z 6.4 att 760 sync 670',
+      '50 (-80 84 %) z 6.1 att 768 sync 688', '50 (-200 99 %) z 4.3 att 776 sync 718',
+      '-200 (-1760 91 %) z 3.9 att 773 sync 708', '-190 (-50 92 %) z 4.0 att 771 sync 720',
+      '-50 (290 54 %) z 6.1 att 771 sync 699', '300 (-50 98 %) z 4.0 att 768 sync 689',
+      '1420 (-3530 72 %) z 8.5 att 910 sync 2120', '1420 (-1970 52 %) z 8.5 att 2194 sync 2110',
+      '1410 (-1970 72 %) z 6.0 att 2218 sync 2100', '1410 (-1970 68 %) z 6.3 att 2218 sync 2120',
+      '1400 (2100 49 %) z 6.9 att 2214 sync 2070', '1400 (670 73 %) z 5.8 att 2188 sync 2139',
+      '1510 (930 78 %) z 4.6 att 2161 sync 2109', '1460 (1690 73 %) z 6.0 att 2129 sync 2099',
+      '1460 (1690 89 %) z 5.6 att 2135 sync 2139', '1690 (1460 52 %) z 7.7 att 2158 sync 2098',
+      '1690 (2310 79 %) z 6.1 att 2223 sync 2139', '1380 (1690 93 %) z 5.5 att 2230 sync 2178',
+      '1380 (1690 86 %) z 5.3 att 2228 sync 2159', '1370 (1690 89 %) z 4.9 att 2226 sync 2109',
+      '1460 (-1840 38 %) z 9.1 att 2221 sync 2059', '1460 (3300 28 %) z 10.6 att 2206 sync 2020',
+      '1460 (5690 54 %) z 5.9 att 2206 sync 2060', '1460 (1390 80 %) z 4.8 att 2206 sync 2109',
+      '1460 (-3960 61 %) z 5.1 att 2214 sync 2198', '1460 (270 54 %) z 5.3 att 2222 sync 2188',
+      '270 (1700 99 %) z 3.6 att 2225 sync 2168', '1460 (-2970 82 %) z 3.8 att 2226 sync 2189',
+      '-4270 (1250 95 %) z 4.0 att 2220 sync 2149', '1460 (1250 83 %) z 4.5 att 2242 sync 2228',
+      '1460 (1260 86 %) z 5.6 att 2254 sync 2208', '1270 (1140 48 %) z 6.3 att 2264 sync 2198',
+      '1460 (2910 36 %) z 9.4 att 2227 sync 2188', '1460 (-270 27 %) z 10.3 att 2123 sync 2138',
+      '1460 (1330 26 %) z 11.8 att 2145 sync 2099', '1460 (3270 21 %) z 11.9 att 2138 sync 2116',
+      '1460 (1270 60 %) z 7.8 att 2160 sync 2119', '1460 (1270 78 %) z 5.4 att 2173 sync 2198',
+      '-1260 (1790 95 %) z 3.2 att 2160 sync 2189', '1460 (-5410 89 %) z 3.6 att 2190 sync 2158',
+      '1460 (1780 98 %) z 4.3 att 2208 sync 2149', '1460 (1780 66 %) z 5.5 att 2211 sync 2169',
+      '1460 (-3960 33 %) z 10.2 att 2209 sync 2180', '1460 (1260 38 %) z 8.9 att 2210 sync 2169',
+      '1270 (1460 72 %) z 8.8 att 2219 sync 2200', '1270 (1460 96 %) z 7.1 att 2219 sync 2191',
+      '1270 (1460 59 %) z 6.7 att 2271 sync 2208', '1270 (1460 95 %) z 4.3 att 2278 sync 2259',
+      '1420 (-5560 52 %) z 6.2 att 2293 sync 2298', '1410 (-60 35 %) z 8.1 att 2293 sync 2239',
+      '1410 (4130 31 %) z 8.4 att 2285 sync 2219', '1400 (-3280 34 %) z 7.7 att 2281 sync 2198',
+      '1700 (-3270 88 %) z 4.3 att 2151 sync 2168', '1700 (4620 80 %) z 4.1 att 2168 sync 2167',
+      '1700 (1460 70 %) z 4.7 att 2101 sync 2168', '1690 (4730 37 %) z 6.6 att 2101 sync 2129',
+      '1420 (1690 99 %) z 4.1 att 2118 sync 2178', '1420 (1690 61 %) z 4.7 att 2121 sync 2179',
+      '1420 (3060 54 %) z 5.2 att 2133 sync 2198', '1460 (-3920 57 %) z 5.6 att 2195 sync 2199',
+      '1420 (3660 67 %) z 4.7 att 2189 sync 2179', '1420 (5860 67 %) z 4.7 att 2204 sync 2198',
+      '1460 (4920 90 %) z 3.5 att 2209 sync 2218', '1460 (1700 82 %) z 4.5 att 2218 sync 2259',
+      '3620 (1460 92 %) z 3.5 att 2246 sync 2229', '-2890 (5150 98 %) z 2.9 att 2268 sync 2219',
+      '1400 (3870 92 %) z 4.3 att 2284 sync 2219', '1400 (5390 32 %) z 8.8 att 2296 sync 2208',
+      '1410 (1700 50 %) z 8.8 att 2300 sync 2258', '1410 (1690 48 %) z 8.5 att 2297 sync 2219',
+      '1410 (630 26 %) z 9.3 att 2301 sync 2248', '1410 (2020 43 %) z 6.4 att 2166 sync 2190',
+      '1410 (-5080 56 %) z 5.8 att 2044 sync 2169', '1420 (-5080 66 %) z 5.1 att 2212 sync 2200',
+      '1410 (1690 71 %) z 5.7 att 2256 sync 2180', '1400 (1700 85 %) z 4.6 att 2274 sync 2200',
+      '1700 (1400 67 %) z 5.7 att 2286 sync 2200', '1700 (1400 99 %) z 4.5 att 2286 sync 2250',
+      '1270 (-970 72 %) z 4.8 att 2287 sync 2250', '1460 (1540 90 %) z 3.6 att 2292 sync 2221',
+      '1400 (4980 57 %) z 5.1 att 2294 sync 2248', '1400 (-4060 51 %) z 6.2 att 2298 sync 2219',
+      '1400 (1190 30 %) z 9.7 att 2283 sync 2220', '1400 (3640 33 %) z 10.6 att 2231 sync 2255',
+      '1400 (3640 33 %) z 10.2 att 2219 sync 2269', '1400 (-3620 24 %) z 10.4 att 2203 sync 2269',
+      '1400 (1690 34 %) z 8.8 att 2203 sync 2260', '1400 (1270 48 %) z 8.4 att 2209 sync 2250',
+      '1400 (1270 79 %) z 8.4 att 2214 sync 2230', '1270 (1400 84 %) z 7.4 att 2214 sync 2190',
+      '1400 (1270 66 %) z 8.0 att 2134 sync 2200', '1690 (1270 66 %) z 6.5 att 2119 sync 2170',
+      '1690 (-5240 55 %) z 5.8 att 2134 sync 2120', '1690 (1380 52 %) z 6.6 att 2135 sync 2149',
+      '1380 (1690 80 %) z 6.0 att 2135 sync 2140', '1380 (1690 85 %) z 4.5 att 2136 sync 2129',
+      '1690 (5690 70 %) z 5.0 att 2136 sync 2170', '1240 (1680 66 %) z 5.7 att 2126 sync 2179',
+      '-240 (-1870 45 %) z 7.1 att 2053 sync 594', '-240 (-4170 46 %) z 7.5 att 690 sync 620',
+    ].join(' · '),
   };
   const src = readFileSync(join(ICI, 'content.test.js'), 'utf8');
   // Une déclaration du calage : une ligne, ou un bloc jusqu'à son accolade fermante.
@@ -28000,6 +28103,26 @@ const S_LECTEUR_SONDE = () => {
   ok('le douzième rapport rejoué : 1170, la plus haute voix du salon, décidé au dix-septième calcul — jamais la voix de l\'ancre',
      d12.length === 127 && s12.length > 0 && s12[0].k === 17 && s12.every((x) => x.v.ms >= 1_100 && x.v.ms <= 1_200 && x.v.voix.length === 3),
      regle.erreur || suite(d12));
+
+  /* LE RAPPORT À TROIS STREAMS (4.24.0.23) : la tuile calée à −560 ms,
+     puis laissée là quand la référence a reculé de 1,23 s pour la
+     troisième (calcul 23). Ce que la règle a fait de ce qui suivait, à
+     l'exigence entière : « une source seule, à 1,4 s — un écho, peut-être »,
+     calcul après calcul, jusqu'au cent-treizième ; au cent-quatorzième
+     seulement, une seconde voix assez lourde, 1690 décidé. Ce n'est pas la
+     règle de l'écho qui est fausse — un écho n'a jamais été vu à moins
+     d'une seconde, celui-ci était à 1,4 s — : c'est le calage qui avait
+     créé ce décalage-là, en reculant la référence sans elle. D'où, en
+     4.24.0.23, la tuile calée qui suit la référence (188). */
+  const d3 = rejouer(ECOUTES_REELLES.troisStreams);
+  const apres3 = d3.filter((x) => x.seg === 22);
+  const seule3 = apres3.filter((x) => x.k >= 31 && x.k <= 112);
+  const s3 = decisions(apres3);
+  ok('le rapport à trois streams rejoué : laissée 1,4 s en avance par la référence, la tuile est « une source seule » quatre-vingts calculs durant, décidée au cent-quatorzième seulement',
+     d3.length === 116 && decisions(d3.filter((x) => x.seg === 0)).every((x) => x.v.ms >= -700 && x.v.ms <= -500)
+     && seule3.length === 82 && seule3.filter((x) => /^une source seule, à 1[34]\d\d ms/.test(x.v.refus || '')).length >= 75
+     && s3.length > 0 && s3[0].k === 114 && s3[0].v.ms === 1_690,
+     regle.erreur || suite(d3));
 
   /* LA TENUE, SUR DES VERDICTS POSÉS. Au banc en direct, qu'une fenêtre
      n'entende pas la plus haute voix juste après une correction dépend du
@@ -28261,6 +28384,112 @@ const S_LECTEUR_SONDE = () => {
   ok('de deux, un : « phi » partie, la salle se ferme, et l\'on arrive sur la page de « upsilon »',
      va && new URL(page.url()).pathname === '/upsilon' && rD?.ouverte === false && !salleD,
      JSON.stringify({ va, url: page.url(), rD }));
+  await page.close();
+}
+
+/* ═════════ TROIS STREAMS : CE QUI EST CALÉ SUIT LA RÉFÉRENCE (4.24.0.23) ═════
+   Le premier rapport réel à trois streams sur la 4.24.0.22 : la référence
+   recule de 0,44 s pour une tuile, qui est calée ; puis de 1,23 s pour la
+   troisième — et la première, sans verdict à ce calcul-là, reste où elle
+   était : 1,4 s d'avance, que la règle de l'écho tient pour une source
+   seule, sept minutes. Ici la même suite, à l'échelle 0,1 : « mike » (une
+   voix, 0,3 s en retard) décidée la première ; elle se tait ; « lima » (un
+   salon loin derrière) décidée ensuite. */
+{
+  titre('188. Trois streams — la référence recule pour l\'une, celle qui était calée la suit');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport()).catch(() => ({}));
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  const journal = (r) => Object.values(r.calage?.journal || {});
+  const gestes = (r) => journal(r).filter((x) => / → /.test(x)).map((x) => x.replace(/^\+\d+ s · /, ''));
+  const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 500 }).then(() => true).catch(() => false);
+  const taire = (ch, poids) => cadre(ch)?.evaluate((p) => { for (let i = 0; i < 3; i++) window.__taireVoix(i, p); }, poids).catch(() => null);
+  /* OÙ SONT VRAIMENT LES VOIX, lu dans les faux lecteurs : celle de « mike »
+     passe 300 ms après « xray », la plus haute de « lima » 2,9 s après — plus
+     ce que chacun a pris de latence depuis. En ms, positif : en avance. */
+  const prise = (ch) => cadre(ch)?.evaluate(() => { const l = window.__lecteur; l.maj(); return (l.L - l.L0) * 1000; }).catch(() => null);
+  const vraie = async (ch, D) => {
+    const t = await prise(ch), r = await prise('xray');
+    return t == null || r == null ? null : Math.round(-(D + t - r));
+  };
+  const calees = async (ms) => {
+    for (const t0 = Date.now(); Date.now() - t0 < ms; await wait(page, 2_000)) {
+      const k = (await rapport()).calage;
+      if (k?.etat === 'actif · calée' && k?.tuiles?.mike === 'calée' && k?.tuiles?.lima === 'calée'
+        && Math.abs(await vraie('mike', 300) ?? 1e9) < 150 && Math.abs(await vraie('lima', 2900) ?? 1e9) < 150) return true;
+    }
+    return false;
+  };
+
+  /* « mike » d'abord, « lima » muette : la référence recule pour « mike ».
+     Puis « mike » se tait — plus un verdict d'elle —, et « lima » parle :
+     décidée, la référence recule de 2,4 s environ, et « mike », vérifiée
+     sans verdict, recule avec elle, du même pas, dans le même geste. Deux
+     corrections : une par relation qui a changé — pas celles de la
+     référence, ni de ce qui la suit. Le son revenu, tout est calé, sans une
+     correction de plus.
+     Mutants — la tuile calée laissée là : elle finirait 2,6 s en avance,
+     une source seule, et la règle de l'écho ne la rattraperait plus ; une
+     tuile libre emmenée aussi ; les corrections comptées à la tuile qui
+     bouge, la référence comprise ; le recul de la référence, lu un instant
+     en retard, pris pour un rechargement. */
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'mike', 'lima'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 4, 20_000);
+  /* Et la référence lit sa position comme un vrai lecteur, un instant en
+     retard sur son recul : la sonde le prenait pour un rechargement (182,
+     au premier tour) — et un rechargement de la référence délie tout. */
+  await cadre('xray')?.evaluate(() => window.__seekLent(1500)).catch(() => null);
+  await taire('lima', 0);
+  await page.evaluate(() => window.tse.salle.auto(0.1)).catch(() => {});
+  const un = await tant(() => Object.values(window.tse.salle.rapport().calage?.journal || {})
+    .some((x) => / → xray recule de /.test(x)), 150_000);
+  await taire('mike', 0);
+  await taire('lima', 1);
+  const deux = await tant(() => Object.values(window.tse.salle.rapport().calage?.journal || {})
+    .some((x) => /lima en retard de .* → /.test(x)), 200_000);
+  const rA = await rapport();
+  await taire('mike', 1);
+  const calA = await calees(200_000);
+  const rB = await rapport();
+  const gA = gestes(rA), gB = gestes(rB);
+  const m = /^lima en retard de 2\.[3-7]\d s \([−-]2[3-7]\d\d ms\) → xray recule de (2\.\d+) s · mike recule de (2\.\d+) s \(suit la référence\)$/.exec(gA[1] || '');
+  ok('trois streams : « mike » calée la première ; « lima » décidée ensuite, la référence recule — et « mike », sans verdict, recule avec elle, du même pas',
+     un && deux && gA.length === 2 && /^mike en retard de 0\.[23]\d s \([−-][23]\d\d ms\) → xray recule de 0\.[12]\d* s$/.test(gA[0])
+     && !!m && m[1] === m[2] && rA.calage?.corrections === 2,
+     JSON.stringify({ un, deux, gestes: gA, etats: rA.calage?.tuiles, corrections: rA.calage?.corrections }));
+  /* « lima » peut encore monter d'une voix — décidée sur celle du milieu,
+     la plus haute établie ensuite (cf. le 182) : elle seule, alors. */
+  ok('…et tout est calé — les voix vraiment à zéro —, « mike » sans une correction à elle, sans « source seule » au journal, le recul de la référence jamais pris pour un rechargement',
+     calA && gB.length <= 3
+     && gB.slice(2).every((x) => /lima en avance de 0\.[1-3]\d s \(\+[1-3]\d\d ms\) → lima recule de 0\.[0-2]\d* s$/.test(x) && !/mike (recule|avance)/.test(x))
+     && !journal(rB).some((x) => /source seule/.test(x)) && rB.tuiles?.xray?.serie?.rechargements === 0,
+     JSON.stringify({ calA, gestes: gB, mesures: rB.calage?.mesures, rechargementsReference: rB.tuiles?.xray?.serie?.rechargements,
+                      vraies: [await vraie('mike', 300), await vraie('lima', 2900)] }));
+
+  /* UN RECHARGEMENT DÉLIE. Le lecteur de « mike » recharge : ce que le son
+     savait de sa relation à la référence ne vaut plus — elle redevient
+     libre, et ne suivrait plus la référence sur la foi d'une relation que
+     sa lecture vient peut-être de changer. Remesurée — rien n'a bougé, ici
+     —, elle est calée de nouveau, sans un geste. Mutant — le rechargement
+     qui laisse la tuile « calée ». */
+  await cadre('mike')?.evaluate(() => window.__recharger()).catch(() => null);
+  const libre = await tant(() => {
+    const r = window.tse.salle.rapport();
+    return r.tuiles?.mike?.serie?.rechargements >= 1 && r.calage?.tuiles?.mike === 'libre';
+  }, 40_000);
+  const calC = await calees(200_000);
+  const rC = await rapport();
+  ok('un rechargement délie : « mike » redevient libre, se remesure, et se recale — sans un geste',
+     libre && calC && gestes(rC).length === gB.length,
+     JSON.stringify({ libre, calC, gestes: gestes(rC), etats: rC.calage?.tuiles, rechargements: rC.tuiles?.mike?.serie?.rechargements }));
   await page.close();
 }
 
