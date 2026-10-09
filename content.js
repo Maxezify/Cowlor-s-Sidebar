@@ -13590,7 +13590,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                // 4.24.0.17 : les plages du tampon, telles que l'instance les rend.
                plages: null,
                // 4.24.0.24 : les octets décodés, cumulés — d'où le débit.
-               octets: 0, octetsAvant: null, octetsT0: null, octetsT: null };
+               octets: 0, octetsAvant: null, octetsT0: null, octetsT: null,
+               // 4.24.0.25 : l'heure de son premier son entendu, et de la dernière mesure rouverte (cf. rouvrir).
+               premierSon: null, rouverte: null };
     };
 
     /* UN CÔTÉ DE CHAT : sa colonne, son en-tête, son iframe. Le chat intégré
@@ -14093,6 +14095,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           // Rien d'avant le dernier déplacement (4.24.0.17, cf. plus bas).
           if (Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]) && p[0] >= t.envDes) t.env.push(p);
         }
+        if (t.env.length && t.premierSon === null) t.premierSon = t.env[0][0];
         if (t.env.length) {
           // Quarante secondes gardées, coupées d'un geste — pas bloc par bloc.
           const limite = t.env[t.env.length - 1][0] - 2 * CFG.SALLE_ECOUTE_FENETRE_MS;
@@ -14389,6 +14392,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const m = mediane(diffs);
       return m === null ? null : Math.round(m * 1000);
     };
+    /* D'OÙ SE MESURE LA PAIRE « réf~t » : depuis son dernier changement — de
+       l'écoute, de la référence ou de la tuile —, plus une seconde (cf.
+       mesurerSon). */
+    const depuisPaire = (c, ref, t) => Math.max(c.ecoute.depuis || 0, ref.changement || 0, t.changement || 0) + 1_000;
     const ecouter = (c) => {
       if (!c.ecoute.actif || c.releveN % CFG.SALLE_ECOUTE_TOUS) return;
       /* ONGLET CACHÉ, RIEN À ENTENDRE (4.24.0.24, à l'audit) : les tuiles
@@ -14408,7 +14415,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (!res) continue;
         paires += 1;
         const cle = `${ref.chaine}~${t.chaine}`;
-        const p = c.ecoute.paires[cle] || (c.ecoute.paires[cle] = { dernier: null, historique: [] });
+        /* RIEN DE NEUF, RIEN DE COMPTÉ (4.24.0.25). Une tuile dont le son
+           n'arrive plus — son lecteur figé, sa capture tarie — garde son
+           enveloppe telle quelle : la fenêtre commune s'arrête avec elle, et
+           chaque tour refaisait le même calcul. Le calage les comptait comme
+           autant de mesures : six à la suite font un verdict, deux verdicts
+           pareils une décision — sur vingt secondes de son entendues une
+           fois. Un tour en apporte cinq ; moins de la moitié depuis le
+           dernier calcul, c'est sa fenêtre à peine poussée : rien n'est
+           compté, et le rapport le dit (`sansSonNouveau`). */
+        const connue = c.ecoute.paires[cle];
+        if (connue && res.fin - connue.dernier.fin < (CFG.SALLE_ECOUTE_TOUS * CFG.SALLE_PAS_MS) / 2) {
+          connue.sansNouveau += 1;
+          continue;
+        }
+        const p = connue || (c.ecoute.paires[cle] = { dernier: null, historique: [], sansNouveau: 0 });
         p.dernier = { ...res, attendu: attenduEntre(ref, t) };
         /* CHAQUE CALCUL EN ENTIER (4.24.0.13) : au second rapport réel, les
            décalages sont passés de ~550 à ~1000 ms sans que la latence ne
@@ -14421,6 +14442,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         p.historique.push({ ms: res.ms, r: res.r, z: res.z, ms2: res.ms2, r2: res.r2, attendu: p.dernier.attendu,
                             debut: res.debut, fin: res.fin });
         if (p.historique.length > 150) p.historique.shift();
+        // Le premier calcul que la mesure compte depuis le dernier changement de la paire (4.24.0.25, cf. bilanCalage).
+        const depuis = depuisPaire(c, ref, t);
+        if (res.debut >= depuis && (!p.compte || p.compte.depuis !== depuis)) p.compte = { depuis, t: Date.now() };
         c.ecoute.calculs += 1;
       }
       if (paires) compter(c.cout.ecoute, performance.now() - t0, paires);
@@ -14570,7 +14594,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (cle.split('~').includes(login)) delete c.ecoute.paires[cle];
       }
       const k = c.calage;
-      if (k) for (const m of [k.vus, k.etats, k.coups, k.faible, k.dits, k.deplacements]) delete m[login];
+      if (k) for (const m of [k.vus, k.lus, k.etats, k.coups, k.faible, k.dits, k.deplacements, k.premieres]) delete m[login];
       if (c.ecoute.ref === login && c.ecoute.actif) {
         // L'écoute repart sur celle qui a désormais le son.
         ecoute(false); ecoute(true);
@@ -14895,7 +14919,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         commun[cle] = `${verdictSon(part)} · ${part.k} calculs sur ${part.n} tiennent hors du bord`;
       }
       return { actif: e.actif, depuisS: e.depuis ? Math.round((Date.now() - e.depuis) / 1000) : null,
-               calculs: e.calculs, paires, historique, pics: stables, commun };
+               calculs: e.calculs, paires, historique, pics: stables, commun,
+               // Les tours sans son nouveau d'une paire, pas comptés (4.24.0.25, cf. ecouter).
+               sansSonNouveau: Object.entries(e.paires).filter(([, p]) => p.sansNouveau)
+                 .map(([cle, p]) => `${cle} ${p.sansNouveau}`).join(' · ') || null };
     };
 
     const bilan = () => {
@@ -15391,8 +15418,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
            elles ne déplacent plus rien ;
          — sur ce qu'il a entendu DEPUIS LE DERNIER CHANGEMENT de la paire —
            un déplacement, un rechargement, une chute, un saut, un rattrapage —,
-           trente calculs au plus, huit calculs nets (z ≥ 5) au moins, et deux
-           verdicts de suite qui s'accordent à 80 ms ;
+           trente calculs au plus, six calculs nets (z ≥ 5) au moins — huit
+           jusqu'à la 4.24.0.25, cf. CALAGE —, et deux verdicts de suite qui
+           s'accordent à 80 ms ;
          — la cible : la voix la plus haute de la grappe (cf. mesurerSon) ;
          — le geste : RECULER la tuile en avance. Une avance mange le tampon
            (cf. plus haut) : elle n'est permise qu'à une tuile qui garde deux
@@ -15414,8 +15442,22 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
            est laissée là dix minutes, et le rapport le dit.
        Rien ne bouge sans son commun : le rapport dit « en attente ».
        auto(false) l'arrête ; auto(0.1) le règle à l'échelle du banc. */
+    /* SIX CALCULS NETS, ET NON PLUS HUIT (4.24.0.25), à la demande : que le
+       calage se fasse le plus tôt possible. Le seuil a été balayé sur les
+       neuf écoutes réelles gardées — vingt-trois segments, quinze décisions
+       à huit —, la règle entière rejouée à chaque calcul. À six : les quinze
+       décisions, quatorze les mêmes à 80 ms près, huit d'entre elles plus
+       tôt (vingt-six calculs gagnés, plus de deux minutes), la quinzième plus
+       proche de ce que la paire a fini par dire (−70 ms au lieu de +190, la
+       fin −40) ; une de plus, à −10 ms, où huit ne décidaient rien. À cinq,
+       les mêmes, et deux de plus là où rien ne s'est jamais établi ; à
+       quatre, une décision À CONTRESENS (−200 ms, la fin à +190) : six garde
+       deux crans de marge. Ce que le seuil ne change pas : une source seule
+       au-delà de 0,5 s attend toujours sa seconde voix (cf. mesurerSon) —
+       aux rapports réels de la 4.24.0.22, c'est elle qui a fixé le calcul des
+       premières décisions, à huit comme à six. */
     const CALAGE = Object.freeze({
-      NETS: 8, FENETRE: 30, GROUPE_MS: 80, LIEN_MS: 700, EQUILIBRE: 0.25, SEULE_MS: 500,
+      NETS: 6, FENETRE: 30, GROUPE_MS: 80, LIEN_MS: 700, EQUILIBRE: 0.25, SEULE_MS: 500,
       SEUIL_S: 0.15, TENUE_S: 0.4,
       // Ce qu'un recul cale en plus — la moyenne des onze reculs réels —, ce qu'une avance perd.
       RECUL_S: 0.12, AVANCE_S: 0.087, MARGE_S: 2,
@@ -15427,10 +15469,30 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        reprise (cf. surVisibilite) — la lecture a bougé, ce que le son a
        entendu avant ne dit plus où elle est. Pas une coupure d'arrivée : la
        lecture continue sur son tampon. */
+    /* LA MESURE REPART, ET SON ENVELOPPE AVEC ELLE (4.24.0.25). Un
+       changement de la relation — un saut, une chute, un rechargement, la fin
+       d'un rattrapage, une pause, la faible latence retirée — rouvrait la
+       mesure (`changement`, cf. mesurerSon), mais l'enveloppe de la tuile
+       gardait ses vingt secondes d'avant : un calcul ne compte que s'il
+       commence après le changement, et le premier à le faire venait vingt
+       secondes plus tard, le temps que la fenêtre se vide de l'avant. Aux
+       deux rapports réels faits sous la 4.24.0.22, le premier calcul à +15 s,
+       le premier COMPTÉ à +35 s — la faible latence retirée à +5 s, les
+       estimations sautées à +9 et +11 s — et à +30 s — la faible latence
+       retirée seule ; ainsi refaits, ils redonnent les deux décisions réelles
+       à la seconde. Un déplacement, lui, coupait l'enveloppe depuis la
+       4.24.0.17 — six secondes après, on calcule. Désormais tout changement
+       fait de même (cf. le 190). */
+    const rouvrir = (t, quoi, quand = Date.now()) => {
+      t.changement = quand;
+      t.rouverte = { t: quand, quoi };
+      t.env = [];
+      t.envDes = quand + 1_000;
+    };
     const signaler = (c, chaine, quoi) => {
       const t = tuileDe(c, chaine);
       if (!t || quoi === 'coupure') return;
-      t.changement = Date.now();
+      rouvrir(t, quoi);
       /* ET LA RELATION N'EST PLUS CONNUE (4.24.0.23) : calée ou vérifiée, la
          tuile suivait la référence quand celle-ci reculait (cf. caler) — sur
          la foi d'une relation que sa lecture vient de changer d'on ne sait
@@ -15450,7 +15512,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const peutReculer = (t) => t.faibleLatence !== true && !t.retientPas;
     /* LA MESURE D'UNE PAIRE « réf~t », sur ce qu'on a entendu depuis
        `depuis` — son dernier changement : les trente derniers calculs nets
-       (z ≥ 5), huit au moins. Leurs pics hors du bord — le premier compte 1,
+       (z ≥ 5), six au moins. Leurs pics hors du bord — le premier compte 1,
        le second 0,5 s'il pèse 60 % du premier — groupés à 80 ms près ; une
        VOIX : un groupe de deux premiers pics au moins ; une GRAPPE : des voix
        à 700 ms au plus l'une de la suivante — les deux voix extrêmes d'un
@@ -15541,11 +15603,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       noter(c, null, `calage · ${texte}`);
     };
     // Tout se remesure : une écoute repartie, une autre référence.
-    const repartir = (k) => { k.vus = {}; k.etats = {}; k.calculsVus = -1; };
+    const repartir = (k) => { k.vus = {}; k.lus = {}; k.etats = {}; k.calculsVus = -1; };
+    // La première fois de chaque étape, par tuile, pour le rapport (4.24.0.25, cf. bilanCalage).
+    const premiere = (k, n, etape, quand) => {
+      const x = k.premieres[n] || (k.premieres[n] = {});
+      if (x[etape] === undefined) x[etape] = quand;
+    };
     const demarrerCalage = (c, e = 1, origine = 'console') => {
       if (c.calage && c.calage.etat === 'actif') return { erreur: 'le calage tourne déjà — auto(false) l\'arrête / already running' };
       const k = { etat: 'actif', echelle: e, origine, t0: Date.now(), ecouteAllumee: false, attente: null, journal: [],
-                  vus: {}, etats: {}, coups: {}, faible: {}, dits: {}, deplacements: {}, calculsVus: -1, sonAilleurs: null };
+                  vus: {}, lus: {}, etats: {}, coups: {}, faible: {}, dits: {}, deplacements: {}, premieres: {}, salleCalee: null,
+                  calculsVus: -1, sonAilleurs: null };
       c.calage = k;
       if (!c.ecoute.actif) { ecoute(true); k.ecouteAllumee = true; }
       journaliser(c, k, `début · référence ${c.ecoute.ref || '—'} (la tuile qui a le son)`);
@@ -15586,7 +15654,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       for (const t of c.tuiles) {
         if (t.faibleLatence !== true || k.faible[t.chaine]) continue;
         k.faible[t.chaine] = maintenant;
-        t.changement = maintenant;
+        rouvrir(t, 'faible latence retirée', maintenant);
         envoyer(t, 'faible-latence', { actif: false });
         journaliser(c, k, `${t.chaine} : faible latence retirée — son lecteur défait tout recul`);
       }
@@ -15601,10 +15669,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       for (const t of c.tuiles) {
         if (t === ref) continue;
         const p = c.ecoute.paires[`${ref.chaine}~${t.chaine}`];
-        const depuis = Math.max(c.ecoute.depuis || 0, ref.changement || 0, t.changement || 0) + 1_000;
+        const depuis = depuisPaire(c, ref, t);
         const v = mesurerSon(p ? p.historique : [], depuis, Math.max(0.25, e));
         const avant = k.vus[t.chaine];
         k.vus[t.chaine] = v;
+        /* UN CALCUL NEUF, OU PAS DE JUGEMENT (4.24.0.25). Deux verdicts qui
+           s'accordent, c'est un verdict qui a tenu un tour d'écoute de plus.
+           Une paire que ce tour n'a pas calculée — le son de sa tuile
+           n'arrive plus (cf. ecouter), ou n'a pas six secondes depuis sa
+           mesure rouverte — redirait le sien sans avoir rien entendu de plus,
+           et s'accorderait avec lui-même : elle attend son calcul. */
+        const dernier = p ? p.dernier : null;
+        if (k.lus[t.chaine] === dernier) continue;
+        k.lus[t.chaine] = dernier;
+        if (!v.refus) premiere(k, t.chaine, 'verdict', maintenant);
         if (!accorde(avant, v)) continue;
         verdicts[t.chaine] = v;
         const tenue = tient(k.etats[t.chaine], v);
@@ -15670,16 +15748,19 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         for (const n of Object.keys(verdicts)) {
           if (Math.abs(avances[n] ?? Infinity) >= CALAGE.SEUIL_S || k.etats[n] === 'calée') continue;
           k.etats[n] = 'calée';
+          premiere(k, n, 'calee', maintenant);
           journaliser(c, k, `calée : ${n} ${texteMesure(verdicts[n], n).split(' · voix')[0]}`
             + (tenues[n] ? ' — sa voix la plus haute pas revue, une autre à moins de 0,4 s : elle tient' : ''));
         }
         // La salle est calée quand chaque tuile l'est — mesurée à zéro depuis le dernier changement de sa relation.
         k.attente = c.tuiles.every((t) => t === ref || k.etats[t.chaine] === 'calée') ? 'calée' : 'en écoute';
+        if (k.attente === 'calée' && k.salleCalee === null) k.salleCalee = maintenant;
         return;
       }
       for (const g of gestes) {
         envoyer(g.t, `essai-${g.type}`, { duree: g.s });
         g.t.changement = maintenant;
+        g.t.rouverte = { t: maintenant, quoi: g.type };
         k.deplacements[g.t.chaine] = r3((k.deplacements[g.t.chaine] || 0) + (g.type === 'recul' ? g.s : -g.s));
         delete k.dits[g.t.chaine];
       }
@@ -15700,6 +15781,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (!verdicts[n] || avances[n] === undefined) { k.etats[n] = 'libre'; continue; }
         k.etats[n] = k.etats[n] === 'vérification' ? 'calée' : 'vérification';
         k.coups[n].push(maintenant);
+        premiere(k, n, 'correction', maintenant);
+        if (k.etats[n] === 'calée') premiere(k, n, 'calee', maintenant);
       }
       k.attente = 'vérification';
       journaliser(c, k, `${mesure} → ${gestes.map((g) => `${g.t.chaine} ${g.type === 'recul' ? 'recule' : 'avance'} de ${g.s} s`
@@ -15718,6 +15801,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const k = c.calage;
       if (!k) return null;
       const ref = c.ecoute.ref;
+      const a = (x) => (Number.isFinite(x) ? `${x < k.t0 ? '−' : '+'}${Math.abs(Math.round((x - k.t0) / 1000))} s` : '—');
       return {
         etat: k.etat !== 'actif' ? k.etat : `actif · ${k.attente || 'en écoute'}`,
         echelle: k.echelle,
@@ -15732,6 +15816,22 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           return `${n} retirée à +${Math.round((t - k.t0) / 1000)} s · le lecteur dit ${x && x.faibleLatence === false ? 'non' : x && x.faibleLatence ? 'oui' : '—'}`;
         }).join(' · ') : null,
         journal: Object.fromEntries(k.journal.map((j, i) => [String(i + 1).padStart(3, '0'), `+${Math.round((j.t - k.t0) / 1000)} s · ${j.texte}`])),
+        /* L'HEURE DE CHAQUE ÉTAPE (4.24.0.25), que le prochain rapport réel
+           dise où passe le temps. Par tuile : son premier son entendu ; la
+           DERNIÈRE fois que la mesure de sa paire a été rouverte — par elle
+           ou par la référence — et pourquoi, et le premier calcul compté
+           depuis ; la PREMIÈRE fois qu'elle a eu un verdict, une correction,
+           qu'elle a été calée. Et la salle entière, calée. */
+        chronologie: Object.fromEntries(c.tuiles.map((t) => {
+          if (t.chaine === ref) return [t.chaine, `son ${a(t.premierSon)} · référence`];
+          const x = k.premieres[t.chaine] || {}, r = tuileDe(c, ref), p = c.ecoute.paires[`${ref}~${t.chaine}`];
+          const o = [t.rouverte, r && r.rouverte && { ...r.rouverte, quoi: `${ref} : ${r.rouverte.quoi}` }].filter(Boolean)
+            .reduce((u, v) => (!u || v.t > u.t ? v : u), null);
+          const compte = r && p && p.compte && p.compte.depuis === depuisPaire(c, r, t) ? p.compte.t : null;
+          return [t.chaine, [`son ${a(t.premierSon)}`, o ? `rouverte ${a(o.t)} (${o.quoi})` : null, `calcul ${a(compte)}`,
+            `verdict ${a(x.verdict)}`, `correction ${a(x.correction)}`, `calée ${a(x.calee)}`].filter(Boolean).join(' · ')];
+        })),
+        salleCalee: k.salleCalee === null ? null : a(k.salleCalee),
       };
     };
 

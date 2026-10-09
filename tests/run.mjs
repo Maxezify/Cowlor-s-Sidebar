@@ -25860,8 +25860,13 @@ const S_LECTEUR_SONDE = () => {
             /* LA FAIBLE LATENCE (4.24.0.21) : « india » et « juliett » l'ont, et
                leur lecteur reprend tout recul — à 1,05 ici, 1,03 au
                quatorzième rapport réel, 4,4 s en 146 secondes. « india » la
-               laisse retirer ; « juliett » ignore l'ordre, et la garde. */
-            this.ll = ['alpha', 'india', 'juliett'].includes(ch);
+               laisse retirer ; « juliett » ignore l'ordre, et la garde.
+               « kappa » (4.24.0.25) la laisse retirer, et cinq secondes plus
+               tard son estimation SAUTE de 4,4 s — la lecture et le son ne
+               bougeant pas : aux deux rapports réels faits sous la 4.24.0.22,
+               1,64 → 5,97 s quatre secondes après le retrait, 1,51 → 7,51 six
+               secondes après. */
+            this.ll = ['alpha', 'india', 'juliett', 'kappa'].includes(ch);
             /* LE TAMPON QUI SUIT LA LATENCE (4.24.0.19) : pour « romeo »,
                « sierra » et « tango », ce que la lecture a devant elle bouge
                avec elle — un recul l'allonge, une avance le raccourcit, un
@@ -25958,7 +25963,7 @@ const S_LECTEUR_SONDE = () => {
               if (tranche !== this.tranche) { this.tranche = tranche; this.tenue = this.L; }
               return this.tenue;
             }
-            return this.L;
+            return this.L + (Date.now() >= (this.estimeDes ?? Infinity) ? 4.4 : 0);
           }
           /* L'HEURE DE L'IMAGE JOUÉE, arrondie à la seconde (4.24.0.14) : au
              troisième rapport réel, getSyncTime a perdu ce que la lecture a
@@ -26010,7 +26015,11 @@ const S_LECTEUR_SONDE = () => {
             return this.tamponDevant();
           }
           isLiveLowLatency() { return this.ll; }
-          setLiveLowLatencyEnabled(x) { this.maj(); if (ch !== 'juliett') this.ll = !!x; }
+          setLiveLowLatencyEnabled(x) {
+            this.maj();
+            if (ch !== 'juliett') this.ll = !!x;
+            if (ch === 'kappa' && !x && this.estimeDes === undefined) this.estimeDes = Date.now() + 5_000;
+          }
           getPlaybackRate() { return this.vPropre ?? 1; }
           /* ACCEPTÉE, SANS EFFET (4.24.0.13) : au second rapport réel, 0,95 posé
              par l'instance n'a changé ni la vitesse lue — ni celle du lecteur ni
@@ -26087,6 +26096,10 @@ const S_LECTEUR_SONDE = () => {
            une source seule, que le calage tient pour un écho ; « uniform », comme
            « xray », avec 3,5 s de tampon — sous 4,5 s de latence : un tampon
            plus long que la latence est écarté, comme au vrai. */
+        /* « kappa » (4.24.0.25) passe la voix de « xray » 0,4 s plus tard, et
+           rien d'autre : une source seule près de zéro, que trois calculs
+           suffisent à juger — c'est l'heure de la mesure qu'on éprouve, en
+           faible latence (cf. plus haut). */
         /* « kilo » et « november » (4.24.0.22) passent les trois sons de
            « xray », au même instant : l'une change de source en cours de
            route, l'autre n'a pas d'AudioWorklet (cf. plus bas). « lima »
@@ -26099,7 +26112,8 @@ const S_LECTEUR_SONDE = () => {
                         xray: [[0, 0], [1, 0], [8, 0, 880]], yankee: [[0, -900], [8, -1150, 880], [1, -1420]], zulu: [[0, 300]],
                         quebec: [[0, 4470], [8, 4180, 880], [1, 3870]], india: [[0, -600], [8, -480, 880], [1, -350]], juliett: [[0, -600], [8, -480, 880], [1, -350]],
                         uniform: [[0, 0], [1, 0], [8, 0, 880]], kilo: [[0, 0], [1, 0], [8, 0, 880]],
-                        november: [[0, 0], [1, 0], [8, 0, 880]], lima: [[0, 3200], [8, 3050, 880], [1, 2900]] })[ch] || [[0, 0]];
+                        november: [[0, 0], [1, 0], [8, 0, 880]], lima: [[0, 3200], [8, 3050, 880], [1, 2900]],
+                        kappa: [[0, 400]] })[ch] || [[0, 0]];
         const v = document.getElementById('v');
         const c = document.createElement('canvas');
         c.width = 32; c.height = 18;
@@ -27581,14 +27595,16 @@ const S_LECTEUR_SONDE = () => {
   /* LE QUATORZIÈME : le son a entendu « B » 3,8 s en retard sur « A », qui
      a le son — une voix à −4,5 s, une à −3,85 —, quand l'horloge disait
      0,7 s. Après l'avance de A par le pilote d'avant (calcul 28), la règle
-     décide −38xx ms au quarante-troisième calcul — reculer A —, et ne dit
-     jamais autre chose : la plus haute des deux voix ; avant, rien.
+     décide −38xx ms au quarante et unième calcul — reculer A —, et ne dit
+     jamais autre chose : la plus haute des deux voix ; avant, rien. Au
+     quarante-troisième jusqu'à la 4.24.0.25 : six calculs nets exigés, et
+     non plus huit (cf. CALAGE).
      Mutants — la plus basse des voix ; les voix liées à 450 ms (les deux
      voix, à 650 l'une de l'autre, seraient deux sources seules loin : rien). */
   const d14 = rejouer(ECOUTES_REELLES.quatorzieme);
   const s14 = decisions(d14.filter((x) => x.seg === 27));
-  ok('le quatorzième rapport rejoué : B en retard de 3,8 s sur A, décidé au quarante-troisième calcul — la plus haute des deux voix, et rien d\'autre',
-     d14.length === 150 && s14.length > 0 && s14[0].k === 43 && s14.every((x) => x.v.ms >= -3_950 && x.v.ms <= -3_800 && !x.v.seule)
+  ok('le quatorzième rapport rejoué : B en retard de 3,8 s sur A, décidé au quarante et unième calcul — la plus haute des deux voix, et rien d\'autre',
+     d14.length === 150 && s14.length > 0 && s14[0].k === 41 && s14.every((x) => x.v.ms >= -3_950 && x.v.ms <= -3_800 && !x.v.seule)
      && s14[0].v.voix.length === 2 && s14[0].v.voix[0].ms < -4_300 && decisions(d14.filter((x) => x.seg < 27)).length === 0,
      regle.erreur || suite(d14));
 
@@ -27603,24 +27619,28 @@ const S_LECTEUR_SONDE = () => {
 
   /* LE NEUVIÈME : un salon à 40 ms — −300 et 40 —, et une source à 1,1 s,
      plus lourde, sa deuxième voix au sixième de la première : un écho.
-     Décidé : 40, puis 20 — jamais l'écho. Mutant — une deuxième voix au
-     sixième prise pour un salon (l'écho suivi). */
+     Décidé : 40, au septième calcul (au neuvième jusqu'à la 4.24.0.25),
+     puis 20 — jamais l'écho. Mutant — une deuxième voix au sixième prise
+     pour un salon (l'écho suivi). */
   const d9 = rejouer(ECOUTES_REELLES.neuvieme);
   const s9 = decisions(d9);
   ok('le neuvième rapport rejoué : le salon à 40 ms décidé, l\'écho à 1,1 s jamais — « une source seule, à 11xx ms »',
-     d9.length === 137 && s9.length > 0 && s9[0].v.ms === 40 && s9[0].k === 9 && s9.every((x) => Math.abs(x.v.ms) <= 100)
+     d9.length === 137 && s9.length > 0 && s9[0].v.ms === 40 && s9[0].k === 7 && s9.every((x) => Math.abs(x.v.ms) <= 100)
      && d9.some((x) => /^une source seule, à 11\d\d ms — un écho, peut-être : rien ne bouge$/.test(x.v.refus || '')),
      regle.erreur || suite(d9));
 
   /* LE DOUZIÈME : un salon 660 · 880 · 1170 — la voix de l'ancre chez la
      tuile, le jeu, la voix de la tuile chez l'ancre (4.24.0.20). Décidé :
-     1170, la plus haute, au dix-septième calcul — avant que le pilote
-     d'avant ne cale sur 634, la voix de l'ancre. Mutants — la plus basse ;
+     1175, la plus haute, au quinzième calcul — deux voix du salon établies,
+     660 et 1175, le jeu au suivant ; au dix-septième, sur les trois,
+     jusqu'à la 4.24.0.25 —, avant que le pilote d'avant ne cale sur 634, la
+     voix de l'ancre. Mutants — la plus basse ;
      le seuil d'équilibre qui tient un salon pour une source seule. */
   const d12 = rejouer(ECOUTES_REELLES.douzieme);
   const s12 = decisions(d12.filter((x) => x.seg === 3));
-  ok('le douzième rapport rejoué : 1170, la plus haute voix du salon, décidé au dix-septième calcul — jamais la voix de l\'ancre',
-     d12.length === 127 && s12.length > 0 && s12[0].k === 17 && s12.every((x) => x.v.ms >= 1_100 && x.v.ms <= 1_200 && x.v.voix.length === 3),
+  ok('le douzième rapport rejoué : 1175, la plus haute voix du salon, décidé au quinzième calcul — jamais la voix de l\'ancre',
+     d12.length === 127 && s12.length > 0 && s12[0].k === 15 && s12[0].v.voix.length === 2 && s12[1]?.v.voix.length === 3
+     && s12.every((x) => x.v.ms >= 1_100 && x.v.ms <= 1_200 && x.v.voix.some((g) => g.ms >= 600 && g.ms <= 700)),
      regle.erreur || suite(d12));
 
   /* LE RAPPORT À TROIS STREAMS (4.24.0.23) : la tuile calée à −560 ms,
@@ -28260,6 +28280,146 @@ const S_LECTEUR_SONDE = () => {
      && rG.tuiles?.tetu?.avertissement === 'à l\'écran · 5 clic(s)' && tt?.clics === 5 && tt?.voile === true
      && evenements(rG).some((x) => /gate · avertissement de contenu à l'écran — levé, comme dans l'aperçu/.test(x)),
      JSON.stringify({ gate: [rG.tuiles?.gate?.avertissement, g], tetu: [rG.tuiles?.tetu?.avertissement, tt] }));
+  await page.close();
+}
+
+/* ═════════ LE CALAGE AU PLUS TÔT (4.24.0.25) ═══════════════════════════════
+   La demande : que le calage se fasse le plus tôt possible. Aux deux rapports
+   réels faits sous la 4.24.0.22, la faible latence retirée à +5 s, les
+   lecteurs ont remonté leur estimation de quatre à six secondes quelques
+   secondes plus tard — des sauts, qui rouvrent la mesure — et le premier
+   calcul compté n'est venu qu'à +35 s : l'enveloppe gardait ses vingt
+   secondes d'avant, et un calcul ne compte que s'il commence après le
+   changement. Désormais la mesure rouverte repart d'une enveloppe vide —
+   six secondes, et on calcule. Ici, à l'échelle 0,1 du calage : « xray », la
+   référence ; « kappa », une voix 0,4 s derrière, en faible latence, dont
+   l'estimation saute cinq secondes après le retrait. */
+{
+  titre('190. Le calage au plus tôt — la mesure rouverte repart de zéro, le son qui n\'arrive plus ne compte pas');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport()).catch(() => ({}));
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  const journal = (r) => Object.values(r.calage?.journal || {});
+  const gestes = (r) => journal(r).filter((x) => / → /.test(x)).map((x) => x.replace(/^\+\d+ s · /, ''));
+  const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 250 }).then(() => true).catch(() => false);
+  // Où est vraiment une voix D ms derrière « xray », en ms — positif : en avance.
+  const prise = (ch) => cadre(ch)?.evaluate(() => { const l = window.__lecteur; l.maj(); return (l.L - l.L0) * 1000; }).catch(() => null);
+  const vraie = async (ch, D) => {
+    const t = await prise(ch), r = await prise('xray');
+    return t == null || r == null ? null : Math.round(-(D + t - r));
+  };
+
+  /* LE SAUT D'ESTIMATION QUI SUIT LA FAIBLE LATENCE. Retirée au premier pas,
+     « kappa » saute de 4,4 s cinq secondes plus tard : la mesure rouverte,
+     son enveloppe vidée. Le premier calcul compté vient au premier tour qui
+     a six secondes de son d'après — huit à treize secondes après le saut ;
+     l'enveloppe gardée, il attendait que sa fenêtre de vingt secondes se
+     vide de l'avant : vingt-deux à vingt-sept. Seuil : dix-sept. Puis la
+     décision, et la salle calée ; le rapport dit l'heure de chaque étape.
+     Mutant — la mesure rouverte sans vider l'enveloppe. */
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'kappa'));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  const saut = await tant(() => (window.tse.salle.rapport().tuiles?.kappa?.serie?.sauts || 0) >= 1, 60_000);
+  const tSaut = Date.now();
+  // Lu avant la décision, qui rouvrira la mesure à son tour.
+  const lu = await page.waitForFunction(() => {
+    const m = /rouverte \+(\d+) s \(saut \(estimation\)\) · calcul \+(\d+) s/.exec(window.tse.salle.rapport().calage?.chronologie?.kappa || '');
+    return m ? [Number(m[1]), Number(m[2])] : false;
+  }, null, { timeout: 60_000, polling: 250 }).then((h) => h.jsonValue()).catch(() => null);
+  const decide = await tant(() => Object.values(window.tse.salle.rapport().calage?.journal || {}).some((x) => / → /.test(x)), 120_000);
+  const delai = Math.round((Date.now() - tSaut) / 100) / 10;
+  const rA = await rapport();
+  let calee = false;
+  for (const t0 = Date.now(); !calee && Date.now() - t0 < 200_000; await wait(page, 2_000)) {
+    const k = (await rapport()).calage;
+    calee = k?.etat === 'actif · calée' && k?.tuiles?.kappa === 'calée' && Math.abs(await vraie('kappa', 400) ?? 1e9) < 150;
+  }
+  const rB = await rapport();
+  const ch = rB.calage?.chronologie || {};
+  ok('la faible latence retirée, l\'estimation saute : la mesure repart d\'une enveloppe vide — le premier calcul compté dans les dix-sept secondes —, et la décision suit',
+     saut && !!lu && lu[1] - lu[0] <= 17 && decide && delai <= 45
+     && /^kappa en retard de 0\.[34]\d s \([−-][34]\d\d ms\) → xray recule de 0\.[1-3]\d* s$/.test(gestes(rA)[0] || '')
+     && /^saut de latence [\d.]+ → [\d.]+ · estimation/.test(Object.values(rA.instant?.evenements || {}).map((x) => x.replace(/^\+[\d.]+ s · kappa · /, '')).find((x) => /^saut de latence/.test(x)) || ''),
+     JSON.stringify({ saut, lu, decide, delai, gestes: gestes(rA), chronologie: rA.calage?.chronologie }));
+  ok('…puis la salle est calée, et le rapport dit l\'heure de chaque étape : le premier son, la mesure rouverte et pourquoi, le premier calcul compté, le verdict, la correction, la tuile calée',
+     calee && /^son \+\d+ s · rouverte \+\d+ s \(xray : recul\) · calcul \+\d+ s · verdict \+\d+ s · correction \+\d+ s · calée \+\d+ s$/.test(ch.kappa || '')
+     && /^son \+\d+ s · référence$/.test(ch.xray || '')
+     && /^\+\d+ s$/.test(rB.calage?.salleCalee || '') && /^kappa retirée à \+\d+ s · le lecteur dit non$/.test(rB.calage?.faibleLatence || '')
+     && rB.ecoute?.sansSonNouveau === null,
+     JSON.stringify({ calee, chronologie: ch, salleCalee: rB.calage?.salleCalee, sansSonNouveau: rB.ecoute?.sansSonNouveau, mesures: rB.calage?.mesures }));
+  await page.evaluate(() => window.tse.salle.fermer()).catch(() => {});
+
+  /* LA FAIBLE LATENCE RETIRÉE, SEULE. Au rapport réel à trois streams, rien
+     n'avait sauté : la faible latence retirée à +5,1 s rouvrait la mesure
+     sur une enveloppe déjà pleine, et le premier calcul compté venait à
+     +30 s. Ici l'écoute allumée d'abord, quinze secondes ; puis le calage :
+     « india » perd sa faible latence, et son premier calcul compté vient
+     dans les dix-sept secondes. Mutant — la faible latence retirée sans
+     vider l'enveloppe. */
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'india'));
+  await page.evaluate(() => window.tse.salle.ecoute(true));
+  await wait(page, 15_000);
+  const avantC = (await rapport()).ecoute?.calculs || 0;
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  const luC = await page.waitForFunction(() => {
+    const m = /rouverte ([+−]\d+) s \(faible latence retirée\) · calcul \+(\d+) s/.exec(window.tse.salle.rapport().calage?.chronologie?.india || '');
+    return m ? [Number(m[1].replace('−', '-')), Number(m[2])] : false;
+  }, null, { timeout: 60_000, polling: 250 }).then((h) => h.jsonValue()).catch(() => null);
+  const rC0 = await rapport();
+  ok('la faible latence retirée sur une écoute déjà pleine : la mesure repart d\'une enveloppe vide, le premier calcul compté dans les dix-sept secondes',
+     avantC >= 1 && !!luC && luC[1] - luC[0] <= 17,
+     JSON.stringify({ avantC, luC, chronologie: rC0.calage?.chronologie, calculs: rC0.ecoute?.calculs }));
+  await page.evaluate(() => window.tse.salle.fermer()).catch(() => {});
+
+  /* LE SON QUI N'ARRIVE PLUS. Les relevés de « mike » passent, sans son :
+     sa capture tarie, son enveloppe ne bouge plus — ni la fenêtre commune.
+     Coupé à son premier verdict, qui n'est pas encore une décision : tant
+     qu'il n'arrive rien, rien n'est compté ni décidé — « foxtrot », sans
+     son commun, fait calculer chaque tour. Le son revenu, la décision vient.
+     Mutants — la même fenêtre comptée à chaque tour ; le verdict d'une
+     paire sans calcul neuf qui s'accorde avec lui-même. */
+  await page.evaluate(() => {
+    window.__sansSon = new Set();
+    window.addEventListener('message', (e) => {
+      if (!e.data || e.data.tse !== 'tse:salle-releve' || !window.__sansSon.size) return;
+      const f = [...document.querySelectorAll('iframe')].find((x) => x.contentWindow === e.source);
+      if (f && window.__sansSon.has(new URL(f.src).searchParams.get('channel'))) e.data.env = [];
+    }, true);
+  });
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'mike', 'foxtrot'));
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  const coupe = await tant(() => {
+    const r = window.tse.salle.rapport();
+    const m = r.calage?.mesures?.mike;
+    if (!m || /^en attente/.test(m)) return false;
+    window.__sansSon.add('mike');
+    window.__coupe = { n: (r.ecoute?.historique?.['xray~mike'] || '').split(' · ').length, calculs: r.ecoute?.calculs || 0, mesure: m };
+    return true;
+  }, 150_000);
+  await wait(page, 35_000);
+  const rC = await rapport();
+  const gel = await page.evaluate(() => window.__coupe).catch(() => null);
+  const n = (rC.ecoute?.historique?.['xray~mike'] || '').split(' · ').length;
+  const sans = Number(/xray~mike (\d+)/.exec(rC.ecoute?.sansSonNouveau || '')?.[1] || 0);
+  ok('le son de « mike » n\'arrive plus : sa fenêtre n\'est plus comptée, son verdict ne s\'accorde pas avec lui-même — rien ne bouge',
+     coupe && !!gel && gestes(rC).length === 0 && rC.calage?.tuiles?.mike === 'libre' && rC.calage?.mesures?.mike === gel.mesure
+     && n <= gel.n + 1 && sans >= 5 && (rC.ecoute?.calculs || 0) - gel.calculs >= 5,
+     JSON.stringify({ coupe, gel, n, sansSonNouveau: rC.ecoute?.sansSonNouveau, calculs: rC.ecoute?.calculs, gestes: gestes(rC), etats: rC.calage?.tuiles }));
+  await page.evaluate(() => window.__sansSon.delete('mike'));
+  const reprend = await tant(() => Object.values(window.tse.salle.rapport().calage?.journal || {})
+    .some((x) => /mike en retard de 0\.[23]\d s \([−-][23]\d\d ms\) → xray recule de /.test(x)), 120_000);
+  const rD = await rapport();
+  ok('…son son revenu, la décision vient',
+     reprend && gestes(rD).length === 1,
+     JSON.stringify({ reprend, gestes: gestes(rD), mesures: rD.calage?.mesures }));
   await page.close();
 }
 
