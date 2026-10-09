@@ -8080,6 +8080,9 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
     const journal = { versPage: [], reponses: [] };
     let ecouteurPage = null;      // l'écouteur 'message' posé par bridge.js
     let onConnect = null, onMessageFond = null;
+    /* Le côté fond du dernier port ouvert, et ce que `lastError` vaut — et
+       combien de fois on l'a lu (4.24.0.26, cf. plus bas). */
+    let coteFondDernier = null, erreurPort = null, lecturesErreur = 0;
 
     /* Un couple de ports : ce que `chrome.runtime.connect()` rend d'un côté,
        ce que `onConnect` reçoit de l'autre. Les deux se parlent en direct —
@@ -8094,6 +8097,7 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
         onMessage:    { addListener: (l) => moi.auts.push(l) },
         onDisconnect: { addListener: (l) => moi.fins.push(l) },
       });
+      coteFondDernier = b;
       return [faire(f, b, undefined), faire(b, f, { tab: { id: tabId } })];
     };
 
@@ -8113,6 +8117,7 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
         onConnect: { addListener: (l) => { onConnect = l; } },
         onMessage: { addListener: (l) => { onMessageFond = l; } },
         getURL: (c) => 'chrome-extension://tse/' + c,
+        get lastError() { lecturesErreur++; return erreurPort; },
       },
     };
     const ctxFond = createContext({
@@ -8168,7 +8173,18 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
     const pageRepond = (charge) =>
       ecouteurPage({ source: fen, data: { tse: 'tse-panneau-res', ...charge } });
 
-    return { journal, depuisPanneau, pageRepond,
+    /* LA PAGE ENTRE DANS LE CACHE AVANT/ARRIÈRE, et c'est Chrome qui ferme
+       le canal : il prévient le bout qui reste — le fond — en posant
+       `lastError` le temps de ses écouteurs. Rend le nombre de lectures. */
+    const fermerParLeCache = () => {
+      const avant = lecturesErreur;
+      erreurPort = { message: 'The page keeping the extension port is moved into back/forward cache, so the message channel is closed.' };
+      for (const l of coteFondDernier.fins) l();
+      erreurPort = null;
+      return lecturesErreur - avant;
+    };
+
+    return { journal, depuisPanneau, pageRepond, fermerParLeCache,
              etat: () => new Promise((res) => {
                onMessageFond({ type: 'tse-panneau-etat' }, {}, res);
              }) };
@@ -8192,6 +8208,22 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
     ok('…accompagnée de ce que le pont voit, MÊME quand tout va bien',
        r.observations && r.observations.marque === 'pret'
        && r.observations.pont === 'branché', JSON.stringify(r.observations));
+  }
+
+  /* ── LE CACHE AVANT/ARRIÈRE, CÔTÉ FOND (4.24.0.26) ───────────────────────
+     Un utilisateur a lu, dans la liste d'erreurs de l'extension, « Unchecked
+     runtime.lastError: The page keeping the extension port is moved into
+     back/forward cache ». La 4.4.0 avait fait lire la cause au pont ; Chrome
+     la donne aussi à l'autre bout, le worker, qui ne la lisait pas. Mutant —
+     l'écouteur de déconnexion du fond qui ne la lit pas. */
+  {
+    const t = contexteTransport();
+    const avant = await t.etat();
+    const lues = t.fermerParLeCache();
+    const apres = await t.etat();
+    ok('la page entre dans le cache avant/arrière : le fond LIT la cause de la fermeture, et oublie le port',
+       avant.ponts.length === 1 && lues >= 1 && apres.ponts.length === 0,
+       JSON.stringify({ avant: avant.ponts, lues, apres: apres.ponts }));
   }
 
   /* ── LA CLASSE, PAS L'INSTANCE ──────────────────────────────────────────
@@ -28420,6 +28452,45 @@ const S_LECTEUR_SONDE = () => {
   ok('…son son revenu, la décision vient',
      reprend && gestes(rD).length === 1,
      JSON.stringify({ reprend, gestes: gestes(rD), mesures: rD.calage?.mesures }));
+  await page.close();
+}
+
+/* ═════════ SANS CAPTURE, PAS DE CALAGE (4.24.0.26) ═════════════════════════
+   Au portage sur Firefox : le calage n'entend que ce que `captureStream()`
+   rend, et Firefox ne l'a que depuis la 149. Avant, l'écoute ne rendrait
+   rien, et le calage retirait quand même la faible latence de chaque tuile.
+   Ici le navigateur d'avant, dans la page comme dans les tuiles : la
+   méthode retirée de HTMLMediaElement. */
+{
+  titre('191. Sans capture du son, pas de calage — la faible latence gardée, le rapport dit pourquoi');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    delete HTMLMediaElement.prototype.captureStream;
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport()).catch(() => ({}));
+
+  /* « india », en faible latence, face à « xray » : auto() refuse, dit
+     pourquoi ; rien n'écoute, rien ne bouge, la faible latence reste — et
+     la salle, elle, est là. Mutant — le calage qui démarre sans capture. */
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'india'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 3, 20_000);
+  const reponse = await page.evaluate(() => window.tse.salle.auto(0.1)).catch((e) => ({ exception: String(e) }));
+  await wait(page, 8_000);
+  const r = await rapport();
+  const sansCapture = await page.evaluate(() => typeof HTMLMediaElement.prototype.captureStream).catch(() => null);
+  ok('sans captureStream, le calage ne démarre pas : la faible latence gardée, rien d\'écouté, et le rapport dit pourquoi',
+     sansCapture === 'undefined' && /captureStream/.test(reponse?.erreur || '')
+     && r.calage?.etat === 'indisponible : ce navigateur ne capture pas le son d\'un lecteur (captureStream)'
+     && Object.values(r.calage?.journal || {}).some((x) => /— rien ne bouge, la faible latence est gardée$/.test(x))
+     && r.calage?.faibleLatence === null && r.tuiles?.india?.faibleLatence === true && r.tuiles?.india?.essai === null
+     && r.ecoute?.actif === false && Object.keys(r.tuiles || {}).length === 2,
+     JSON.stringify({ sansCapture, reponse, calage: r.calage, india: [r.tuiles?.india?.faibleLatence, r.tuiles?.india?.essai], ecoute: r.ecoute?.actif }));
   await page.close();
 }
 
