@@ -2180,6 +2180,77 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le multistream sur toutes les branches (v4.24.0.26)
+
+La demande, après la 4.24.0.25 : « feu vert pour les autres branches ». Le
+multistream quitte les branches `-multi` : `claude/chrome` et la branche
+d'audit les rejoignent, `claude/firefox-multi` reçoit les versions 4.24.0.11
+à 4.24.0.26 et `claude/firefox` la rejoint, puis les deux paquets de
+production sont refaits.
+
+### Ce que le portage a trouvé
+
+Le calage n'entend que ce que `captureStream()` rend du lecteur de chaque
+tuile. Les données de compatibilité de MDN et les notes de version de
+Firefox le disent : **Firefox ne l'a que depuis la 149** — la capture du son
+brut, sans le volume de l'élément, comme la spécification l'exige et comme
+Chromium le fait ; sa `mozCaptureStream` d'avant coupait le son de
+l'élément, et le pont ne s'en sert pas. Or le manifeste Firefox admet la
+140 (l'ESR) : avant la 149, l'écoute ne rendrait jamais rien — et le calage
+retirait quand même, à l'ouverture, la faible latence de chaque tuile.
+Pour rien.
+
+| | avant | désormais |
+| --- | --- | --- |
+| un navigateur sans `captureStream()` | le calage démarre, retire la faible latence de chaque tuile, et attend un son qui ne viendra pas | il ne démarre pas : « indisponible : ce navigateur ne capture pas le son d'un lecteur (captureStream) » au rapport et au journal, la faible latence gardée, rien d'écouté |
+| Chrome, Firefox 149 et plus | — | rien ne change : la même capture, le même calage |
+
+La page et ses tuiles sont du même navigateur : ce qui manque à l'une manque
+aux autres, et la page le sait avant d'avoir rien retiré.
+
+### L'erreur du cache avant/arrière, revenue
+
+Rapportée pendant ce portage, depuis la liste d'erreurs de l'extension :
+
+> Unchecked runtime.lastError: The page keeping the extension port is moved
+> into back/forward cache, so the message channel is closed.
+
+La même qu'à la 4.4.0, qui avait fait lire la cause au pont (`bridge.js`) et
+l'avait fait se débrancher à `pagehide`. Mais quand une page entre dans ce
+cache, Chrome ferme le canal et prévient **l'autre bout** — le service worker
+(`background.js`) —, dont l'écouteur de déconnexion ne lisait pas
+`runtime.lastError` ; et le débranchement du pont à `pagehide` n'est pas
+ordonné avec la mise en cache : la fermeture arrive parfois la première.
+Le worker lit désormais la cause, sans agir — un port qui tombe est le cas
+normal, le pont se rebranche au retour (`pageshow`). Rien d'autre ne change :
+c'était une ligne dans une liste d'erreurs, pas une panne.
+
+### Sous Firefox, à vérifier
+
+Cet environnement n'a pas de Gecko : le banc de la branche Firefox tourne
+sous Chromium, comme aux portages précédents. Sous Firefox 149 et plus, le
+calage tourne donc tel qu'il a été éprouvé sous Chrome, sans avoir été
+mesuré. Ce qu'un premier essai doit regarder : que la tuile qui a le son
+reste audible une fois l'écoute lancée (l'ancienne capture de Firefox
+coupait la sortie de l'élément) ; puis, au rapport, la ligne `ecoute` de
+chaque tuile (`running`, `worklet` ou `script`, `blocs N/10 s`) et
+`calage.chronologie`.
+
+### Ce que le banc mesure
+
+- **73** — la page entre dans le cache avant/arrière, et c'est Chrome qui
+  ferme le canal : le fond lit la cause, et oublie le port.
+- **191** — un navigateur sans `captureStream()`, dans la page comme dans
+  les tuiles : `auto()` refuse et dit pourquoi ; « india » garde sa faible
+  latence, aucun ordre ne lui part, rien n'écoute ; la salle, elle, est là.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le calage qui démarre sans capture (1) | 191 : « india retirée à +1 s · le lecteur dit non », et « son — » jusqu'au bout |
+| le fond qui ne lit pas la cause d'un port fermé (1) | 73 : la fermeture par le cache, et pas une lecture de `lastError` |
+
+Deux mutants, deux pris.
+
 ## Le calage au plus tôt (v4.24.0.25)
 
 La demande, après l'audit : « optimiser le système de calage pour qu'il se
@@ -16656,7 +16727,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 189 scénarios, 1601 assertions |
+| `npm test` | le harnais Playwright : 190 scénarios, 1603 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -16677,11 +16748,11 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1529 Ko | 604 Ko | 3 986 → **2** |
+| `content.js` | 1529 Ko | 604 Ko | 3 987 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
-| `background.js` | 9 Ko | 2 Ko | 21 → **0** |
+| `background.js` | 9 Ko | 2 Ko | 22 → **0** |
 | **les cinq** | **1784 Ko** | **760 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme

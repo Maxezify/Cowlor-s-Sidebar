@@ -62,6 +62,17 @@ chrome.runtime.onConnect.addListener((port) => {
   ports.set(tabId, port);
 
   port.onDisconnect.addListener(() => {
+    /* LIRE lastError ICI AUSSI (4.24.0.26). Quand une page entre dans le cache
+       avant/arrière, Chrome ferme le canal et prévient L'AUTRE BOUT — ce
+       worker — avec « The page keeping the extension port is moved into
+       back/forward cache, so the message channel is closed. » Personne ne
+       consultant la cause, Chrome l'inscrivait en « Unchecked
+       runtime.lastError » dans la liste d'erreurs de l'extension : un
+       utilisateur l'y a lu deux fois. La 4.4.0 avait fait taire le pont, qui
+       se débranche aussi à `pagehide` ; mais ce débranchement et la mise en
+       cache ne sont pas ordonnés, et la fermeture arrive parfois la première.
+       Un port qui tombe est le cas normal : on consulte, sans agir. */
+    void chrome.runtime.lastError;
     if (ports.get(tabId) === port) ports.delete(tabId);
   });
 

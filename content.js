@@ -15609,12 +15609,29 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const x = k.premieres[n] || (k.premieres[n] = {});
       if (x[etape] === undefined) x[etape] = quand;
     };
+    /* SANS CAPTURE, PAS DE CALAGE (4.24.0.26, au portage). Le calage
+       n'entend que ce que `captureStream()` rend du lecteur de chaque tuile
+       (cf. le pont). Firefox ne l'a que depuis la 149 ; sa `mozCaptureStream`
+       d'avant coupait le son de l'élément, et le pont ne s'en sert pas. Sans
+       elle, l'écoute ne rendrait jamais rien — et le calage retirerait quand
+       même la faible latence de chaque tuile, pour rien. Il ne démarre donc
+       pas, et le rapport dit pourquoi. La page et ses tuiles sont du même
+       navigateur : ce qui manque ici leur manque aussi. */
+    const peutCapturer = () => typeof window.HTMLMediaElement === 'function'
+      && typeof window.HTMLMediaElement.prototype.captureStream === 'function';
     const demarrerCalage = (c, e = 1, origine = 'console') => {
       if (c.calage && c.calage.etat === 'actif') return { erreur: 'le calage tourne déjà — auto(false) l\'arrête / already running' };
-      const k = { etat: 'actif', echelle: e, origine, t0: Date.now(), ecouteAllumee: false, attente: null, journal: [],
+      const capture = peutCapturer();
+      const k = { etat: capture ? 'actif' : 'indisponible : ce navigateur ne capture pas le son d\'un lecteur (captureStream)',
+                  echelle: e, origine, t0: Date.now(), ecouteAllumee: false, attente: null, journal: [],
                   vus: {}, lus: {}, etats: {}, coups: {}, faible: {}, dits: {}, deplacements: {}, premieres: {}, salleCalee: null,
                   calculsVus: -1, sonAilleurs: null };
       c.calage = k;
+      if (!capture) {
+        journaliser(c, k, `${k.etat} — rien ne bouge, la faible latence est gardée`);
+        return { erreur: 'calage par le son indisponible : ce navigateur ne capture pas le son d\'un lecteur'
+          + ' / sound sync unavailable: this browser cannot capture a player\'s sound (captureStream)' };
+      }
       if (!c.ecoute.actif) { ecoute(true); k.ecouteAllumee = true; }
       journaliser(c, k, `début · référence ${c.ecoute.ref || '—'} (la tuile qui a le son)`);
       return { auto: 'démarré / started', echelle: e };

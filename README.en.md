@@ -2059,6 +2059,75 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Multistream on every branch (v4.24.0.26)
+
+The request, after 4.24.0.25: "green light for the other branches". The
+multistream leaves the `-multi` branches: `claude/chrome` and the audit
+branch catch up with them, `claude/firefox-multi` receives versions
+4.24.0.11 to 4.24.0.26 and `claude/firefox` catches up with it, then both
+production packages are rebuilt.
+
+### What the port found
+
+Calibration only hears what `captureStream()` returns from each tile's
+player. MDN's compatibility data and Firefox's release notes say it:
+**Firefox only has it since 149** — capturing the raw sound, without the
+element's volume, as the specification requires and as Chromium does; its
+former `mozCaptureStream` cut the element's sound, and the bridge does not
+use it. Yet the Firefox manifest accepts 140 (the ESR): before 149,
+listening would never return anything — and calibration still removed, on
+opening, the low latency of every tile. For nothing.
+
+| | before | now |
+| --- | --- | --- |
+| a browser without `captureStream()` | calibration starts, removes every tile's low latency, and waits for a sound that will never come | it does not start: "indisponible : ce navigateur ne capture pas le son d'un lecteur (captureStream)" in the report and the log, low latency kept, nothing listened to |
+| Chrome, Firefox 149 and later | — | nothing changes: the same capture, the same calibration |
+
+The page and its tiles run in the same browser: what one lacks the others
+lack, and the page knows it before removing anything.
+
+### The back/forward cache error, back again
+
+Reported during this port, from the extension's error list:
+
+> Unchecked runtime.lastError: The page keeping the extension port is moved
+> into back/forward cache, so the message channel is closed.
+
+The same as in 4.4.0, which had the bridge (`bridge.js`) read the cause and
+disconnect on `pagehide`. But when a page enters that cache, Chrome closes
+the channel and notifies **the other end** — the service worker
+(`background.js`) —, whose disconnect listener did not read
+`runtime.lastError`; and the bridge's disconnect on `pagehide` is not
+ordered with the caching: the closing sometimes comes first. The worker now
+reads the cause, without acting — a port that drops is the normal case, the
+bridge reconnects on return (`pageshow`). Nothing else changes: it was a
+line in an error list, not a failure.
+
+### Under Firefox, to be checked
+
+This environment has no Gecko: the Firefox branch's bench runs under
+Chromium, as in previous ports. Under Firefox 149 and later, calibration
+therefore runs as it was tested under Chrome, without having been measured.
+What a first try must look at: that the tile with the sound stays audible
+once listening starts (Firefox's former capture cut the element's output);
+then, in the report, each tile's `ecoute` line (`running`, `worklet` or
+`script`, `blocs N/10 s`) and `calage.chronologie`.
+
+### What the bench measures
+
+- **73** — the page enters the back/forward cache, and Chrome closes the
+  channel: the worker reads the cause, and forgets the port.
+- **191** — a browser without `captureStream()`, in the page as in the
+  tiles: `auto()` refuses and says why; "india" keeps its low latency, no
+  order is sent to it, nothing listens; the room itself is there.
+
+| mutant | what falls |
+| --- | --- |
+| calibration starting without capture (1) | 191: "india retirée à +1 s · le lecteur dit non", and "son —" to the end |
+| the worker not reading why a port closed (1) | 73: closed by the cache, and not one read of `lastError` |
+
+Two mutants, two caught.
+
 ## Calibration as early as possible (v4.24.0.25)
 
 The request, after the audit: "optimise the calibration system so that it
@@ -16131,7 +16200,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 189 scenarios, 1601 assertions |
+| `npm test` | the Playwright harness: 190 scenarios, 1603 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -16151,11 +16220,11 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1529 KB | 604 KB | 3,986 → **2** |
+| `content.js` | 1529 KB | 604 KB | 3,987 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 149 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
-| `background.js` | 9 KB | 2 KB | 21 → **0** |
+| `background.js` | 9 KB | 2 KB | 22 → **0** |
 | **all five** | **1784 KB** | **760 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
