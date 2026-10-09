@@ -2059,6 +2059,154 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The multistream audit (v4.24.0.24)
+
+The request, after 4.24.0.23: "a complete audit of this multistream part
+[…] check that everything is fine, well optimised, no dead code, good
+performance, detailed debug […] technically solid, without breaking a single
+current feature, because everything seems to work well now". Before porting
+it to the other branches. Published on `claude/chrome-multi` only.
+
+### What was read
+
+Everything the multistream runs: the player bridge (inside each tile), the
+room — grid, sound, chats, readings, listening, calibration, report,
+console —, the node on the bar, the stylesheet, the locales, the settings.
+And, with tools rather than by eye: every declared identifier and its reads
+(none never read); every object field, written and read (three written for
+nobody); every locale key (all served); the cost of the correlation,
+measured.
+
+### What the audit found
+
+| finding | the evidence | what changes |
+| --- | --- | --- |
+| **A tile that left the grid came back "in sync"** | the window shrinks, a tile goes to the bench — its player is destroyed; the window back, a new player, at another position and another latency: calibration still believed it in sync, and measured the new one on the old one's history | out of the grid — to the bench, or replaced —, it is forgotten by calibration like a tile gone offline: its state, its pair, its measurement; a new player is measured only on what was heard from it |
+| **The hidden tab unlinked nothing** | muted tiles are paused there; resumed, they start again where they were, or from live if the player reloads — their relation to the reference is no longer known, and they kept their "in sync" | the pause and the resume unlink the tile, like a reload; and listening correlates nothing while the tab is hidden — no pair can be measured there |
+| **The content warning stayed on screen** | the preview has lifted Twitch's acknowledgement screen since 3.55; the room, never: a tile whose channel carries a classification label stayed without picture or sound, and the catcher laid on every muted tile took the user's click | lifted in the room as in the preview — the same button, one click per button, five at most —, written in the log and the report |
+| **The phase 0 probe, dormant** | `tse.sonde` and the bridge's "probe" role (4.24.0.3 to 4.24.0.5): its questions — ads, sound, points, load, Shared Chat — were settled by 4.24.0.6, and no report has used it since | removed — module, bridge role, bench setting, report and panel block, scenario 174. What it alone measured and still serves — bitrate, dropped frames, long tasks, content warning — moves to the room's report |
+| **The 50 Hz clock, for the report alone** | since 4.24.0.21, the playhead clock (`getSyncTime`, read every 20 ms in every tile while listening) moves nothing; it had been 4.6 s wrong in the fourteenth real report | removed: fifty timers per second and per tile fewer. `getSyncTime` is still read once per reading, for the report |
+| **The level correlation, for one line** | a second full computation per pair since 4.24.0.11, "that the real sound will settle": twenty real reports, and nothing ever decided on it | removed: half the cost of listening |
+| **The correlation, one sum per lag** | 2,000 points times 1,201 lags per pair, every five seconds: with six streams, on the bench, 55 ms in one block at worst, even without the levels — a long task | the same sums, all at once, through the Fourier transform: tested against the old one on 2,985 envelopes, not one peak different; 0.73 ms instead of 3.36 on a twenty-second window |
+| **Data nobody read** | the position before and after a move, read by the bridge; the calibration's `gel` field, created, never used | the position now serves: "fin de recul · position 49.964 → 48.112 en 0.5 s : −2.352 s" — what the move obtained; `gel` removed |
+| **Comments from before** | "it is the room that shows the ad" (the badge left in 4.24.0.23); "two commands S3, S4" (left in 4.24.0.21) | said as the code is |
+
+### What it costs, measured
+
+The correlation of one pair — twenty seconds of envelope, ±6 s searched,
+2,000 points × 1,201 lags —, same code, same V8 engine, outside the browser:
+**3.98 ms for the variations, 3.69 ms for the levels**; through the Fourier
+transform, **0.73 ms** — preparation included.
+
+And in the browser, on the bench, the same room before and after: six
+streams, listening on, ninety seconds measured after thirty of warm-up, the
+script time read by the browser itself.
+
+| | 4.24.0.23 | 4.24.0.24 |
+| --- | --- | --- |
+| long tasks of the page | **5**, from 51 to 91 ms | **none** |
+| one listening computation (five pairs) | 29 ms on average, 55 at worst, measured without the levels — which doubled them | **10 ms** on average, 22 at worst |
+| script time, 90 s | 4.39 s | 3.74 s |
+| the clock | 50 readings per second and per tile | none |
+| hidden tab | listening correlates | nothing |
+
+The script time includes that of the bench's six fake players, which make
+their own sound: the room's share of it is small, and it is that share that
+melted.
+
+`content.js` loses **471 lines** — 798 removed, 327 written, the Fourier transform included; `panneau.js` its probe block.
+
+### What the report says on top
+
+The debug, asked to be detailed, is so where it will serve: on the user's
+machine, with three streams or more.
+
+- `charge.pas`, `charge.ecoute` — how long the room's steps and its
+  listening take, average and worst, **per pair** for listening: what the
+  room really costs, no longer an estimate;
+- `charge.tachesLongues` — tasks over 50 ms while it is open, by culprit:
+  the page (the room included), the players, the chats;
+- `charge.sorties` — tiles that left the grid, and were forgotten by
+  calibration;
+- per tile, `debitKbps` and `imagesPerdues` — can the machine keep up with
+  so many streams?; `avertissement` — seen, lifted, in how many clicks; in
+  `ecoute`, `blocs N/10 s` — the rate over 1024, times ten: 431 at
+  44.1 kHz, 469 at 48; fewer, the capture is starving;
+- in the log, the position obtained at the end of each move, a tile leaving
+  the grid, a warning lifted.
+
+Gone: `serie.horloge`, `instant.ecartHorloge`, "sync" in each computation,
+"niveaux" in each pair, and the `SONDE DE LA SALLE` block.
+
+### What did not move
+
+The calibration rules — measure, agree, hold, follow the reference,
+correct —, the grid, the held sound, the chats, the page underneath, the
+node. Not one assertion on their behaviour was touched: the replayed real
+reports (185) give the same decisions at the same computations.
+
+### What the bench measures
+
+- **189** — the audit: the correlation through the Fourier transform,
+  judged on the code itself against the direct sum — three hundred
+  envelopes, not one peak different, at least twice as fast. The report
+  carries the cost, the long tasks, each player's load and the obtained step
+  back; no more probe, clock or levels.
+  "mike" in sync, the window shrinks: it leaves the grid, is forgotten; back,
+  its new player is free, then gets in sync again without a move. The hidden
+  tab unlinks it, and not one sound computation while it is hidden. A click
+  on the bench makes the replaced tile leave, forgotten too. The content
+  warning lifted in one click; a stubborn screen, five clicks at most.
+- **178**, **180** — the level correlation and the clock gone: the offset
+  found by the variations alone; at the ±6 s edge, latency alone decides to
+  keep a peak.
+- **70** — the panel's report: no more probe block; the room's load goes
+  through, line by line.
+- **174** — removed, with the probe. The bridge's guards — a third-party
+  site naming its frames like ours, Firefox included — remain tested by 175.
+
+### What the bench found
+
+- **A long task the reading had not seen.** The audit counted 38 ms every
+  five seconds with six streams, 20 without the levels — measured outside
+  the browser. In the bench's browser, with six players running: 29 ms on
+  average, **55 at worst**, and five long tasks in ninety seconds. Hence the
+  Fourier transform, which was not in the plan.
+- **A line read to the letter.** Scenario 186 reads each tile's listening
+  line whole; the blocks, slipped into its middle, made it fail. They are at
+  its end.
+- **A probe the search had not found.** Scenario 70 fed the panel's report a
+  fake probe, without ever writing `tse.sonde`: the first full check made it
+  fall, the only failure out of 1,596. It now tests the reverse — the block
+  gone, the room's load in.
+- **A budget too short.** On the second full check, scenario 182 took its
+  slow path — decided on the middle voice at +128 s, moved up to the
+  highest at +278 s — and its verification was still running when its 300 s
+  wait ended: the highest voice at −31 ms, two corrections, nothing wrong.
+  Replayed alone, twice: the direct path, in sync at +73 and +138 s. The
+  wait now goes up to 450 s, and stops as soon as it is in sync.
+
+| mutants | what falls |
+| --- | --- |
+| the tile that left the grid never forgotten (1) | 189: back, "mike" is "in sync" at once, the old player's history in its pair |
+| the tile replaced from the bench never forgotten (1) | 189: "lima" replaced without a word in the log, its exit not counted |
+| the pause that leaves the tile "in sync" (1) | 189: tab hidden, "mike" still "in sync" |
+| computations that go on with the tab hidden (1) | 189: three more computations in twelve hidden seconds |
+| the warning never lifted; clicks without a bound (2) | 189: "gate" and "tetu" on screen, zero clicks; "tetu", nine clicks in nine seconds |
+| the cost never counted; a move's position never read (2) | 189: `charge.pas` empty; "fin de recul" without what it obtained |
+| the transform too short; the conjugate forgotten (2) | 189: lags folded back, 89 envelopes out of 298 with wrong peaks; a convolution, 272 out of 298 |
+| the probe block left in the panel (1) | 70: "SONDE DE LA SALLE" in the report |
+
+Eleven mutants, eleven caught.
+
+### For the next report
+
+1. A room with three streams or more, opened from the node; ten minutes.
+2. `charge`: how long the steps and listening take, and the long tasks —
+   what the room costs on your machine.
+3. Per tile, `imagesPerdues`: beyond a few percent, the machine can no
+   longer keep up with so many streams.
+
 ## Three streams: what is in sync follows the reference (v4.24.0.23)
 
 Three real reports on 4.24.0.22, opened from the node. Two streams, twelve
@@ -15820,7 +15968,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 188 scenarios, 1605 assertions |
+| `npm test` | the Playwright harness: 188 scenarios, 1596 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -15840,12 +15988,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1539 KB | 614 KB | 4,012 → **2** |
+| `content.js` | 1529 KB | 604 KB | 3,976 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 107 KB | 51 KB | 150 → **0** |
+| `panneau.js` | 107 KB | 51 KB | 149 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 21 → **0** |
-| **all five** | **1794 KB** | **771 KB** | **−57 %** |
+| **all five** | **1784 KB** | **760 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

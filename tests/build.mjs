@@ -150,14 +150,6 @@ const subs = [
   // valeur rendent leurs minuteurs indiscernables, et le test aurait attrapé
   // l'un pour l'autre sans jamais le dire. Cinq millisecondes d'écart suffisent
   // à les nommer ; le rapport avec le reste de l'échelle accélérée ne change pas.
-  // Lecture des chats de la sonde (4.24.0.3) : cinq secondes en production,
-  // pour qu'un solde de points lu au premier chargement le soit aussi au banc.
-  [/SONDE_CHAT_MS:\s*5_000/,       'SONDE_CHAT_MS:  300'],
-  /* L'installation d'un lecteur de la sonde (4.24.0.4) : quinze secondes en
-     production, où un vrai lecteur met ce temps à se monter. Le lecteur factice
-     est monté d'un bloc, avant le premier relevé : une seconde suffit, et
-     tout ce qui bouge ensuite — la pub, la pause — doit sortir du lot. */
-  [/const TSE_SONDE_ASSISE_S = 15;/, 'const TSE_SONDE_ASSISE_S = 1;'],
   [/SCAN_DEBOUNCE:\s*[\d_]+/,     'SCAN_DEBOUNCE:  45'],
   [/BATCH_DELAY:\s*[\d_]+/,       'BATCH_DELAY:    40'],
   /* Le stream qui s'arrête (4.24.0.22) : la salle relit ses membres toutes

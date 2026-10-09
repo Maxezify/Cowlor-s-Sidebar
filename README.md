@@ -2180,6 +2180,156 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'audit du multistream (v4.24.0.24)
+
+La demande, après la 4.24.0.23 : « un audit complet de cette partie
+multistream […] vérifier que tout est ok, bien optimisé, pas de code mort,
+bonne performance, debug détaillé […] solide techniquement, sans casser la
+moindre fonctionnalité actuelle, car tout a l'air de bien fonctionner là ».
+Avant de la porter sur les autres branches. Publiée sur `claude/chrome-multi`
+seulement.
+
+### Ce qui a été lu
+
+Tout ce que le multistream fait tourner : le pont des lecteurs (dans chaque
+tuile), la salle — grille, son, chats, relevés, écoute, calage, rapport,
+console —, le nœud de la barre, la feuille, les locales, les réglages. Et,
+outillé plutôt qu'à l'œil : chaque identifiant déclaré, et ses lectures
+(aucun jamais lu) ; chaque champ d'objet, écrit et lu (trois écrits pour
+personne) ; chaque clé de locale (toutes servies) ; le coût de la
+corrélation, mesuré.
+
+### Ce que l'audit a trouvé
+
+| constat | la preuve | ce qui change |
+| --- | --- | --- |
+| **Une tuile sortie de la grille revenait « calée »** | la fenêtre rétrécit, une tuile part au banc — son lecteur est détruit ; la fenêtre revenue, un lecteur neuf, d'une autre position et d'une autre latence : le calage la croyait calée, et mesurait le nouveau sur l'historique de l'ancien | sortie de la grille — au banc, ou remplacée —, elle est oubliée du calage comme une tuile partie hors ligne : son état, sa paire, sa mesure ; un lecteur neuf ne se mesure que sur ce qu'on a entendu de lui |
+| **L'onglet caché ne déliait rien** | les tuiles muettes y sont mises en pause ; reprises, elles repartent d'où elles étaient, ou du direct si le lecteur recharge — leur relation à la référence n'est plus connue, et elles gardaient leur « calée » | la pause et la reprise délient la tuile, comme un rechargement ; et l'écoute ne corrèle rien tant que l'onglet est caché — aucune paire ne s'y mesure |
+| **L'avertissement de contenu restait à l'écran** | l'aperçu lève l'écran d'acquittement de Twitch depuis la 3.55 ; la salle, jamais : une tuile dont la chaîne porte un label de classification restait sans image ni son, et la prise posée sur toute tuile muette prenait le clic de l'utilisateur | levé dans la salle comme dans l'aperçu — le même bouton, un clic par bouton, cinq au plus —, noté au journal et au rapport |
+| **La sonde de phase 0, dormante** | `tse.sonde` et le rôle « sonde » du pont (4.24.0.3 à 4.24.0.5) : ses questions — pubs, son, points, charge, Chat partagé — sont tranchées depuis la 4.24.0.6, et plus aucun rapport ne s'en est servi | retirée — module, rôle du pont, réglage du banc, bloc du rapport et du panneau, scénario 174. Ce qu'elle seule mesurait et qui sert encore — débit, images perdues, tâches longues, avertissement de contenu — passe au rapport de la salle |
+| **L'horloge à 50 Hz, pour le rapport seul** | depuis la 4.24.0.21, l'horloge de la tête de lecture (`getSyncTime`, relevée toutes les 20 ms dans chaque tuile tant que l'écoute tourne) ne déplace plus rien ; elle s'était trompée de 4,6 s au quatorzième rapport réel | retirée : cinquante minuteries par seconde et par tuile de moins. `getSyncTime` reste lu une fois par relevé, au rapport |
+| **La corrélation des niveaux, pour une ligne** | un second calcul complet par paire, depuis la 4.24.0.11, « que le vrai son départagera » : vingt rapports réels, et rien n'a jamais décidé sur lui | retirée : la moitié du coût de l'écoute |
+| **La corrélation, une somme par décalage** | 2 000 points fois 1 201 décalages par paire, toutes les cinq secondes : à six streams, au banc, 55 ms d'un bloc au pire, même sans les niveaux — une tâche longue | les mêmes sommes, toutes à la fois, par la transformée de Fourier : éprouvée contre l'ancienne sur 2 985 enveloppes, aucun pic différent ; 0,73 ms au lieu de 3,36 sur une fenêtre de vingt secondes |
+| **Des données que personne ne lisait** | la position avant et après un déplacement, relevée par le pont ; le champ `gel` du calage, créé, jamais servi | la position sert désormais : « fin de recul · position 49,964 → 48,112 en 0,5 s : −2,352 s » — ce que le déplacement a obtenu ; `gel` retiré |
+| **Des commentaires d'avant** | « c'est elle qui affiche la pub » (la pastille partie en 4.24.0.23) ; « deux commandes S3, S4 » (parties en 4.24.0.21) | dits comme le code est |
+
+### Ce que ça coûte, mesuré
+
+La corrélation d'une paire — vingt secondes d'enveloppe, ±6 s cherchées,
+2 000 points × 1 201 décalages —, même code, même moteur V8, hors
+navigateur : **3,98 ms pour les variations, 3,69 ms pour les niveaux** ; par
+la transformée de Fourier, **0,73 ms** — préparation comprise.
+
+Et dans le navigateur, au banc, la même salle avant et après : six streams,
+l'écoute allumée, quatre-vingt-dix secondes mesurées après trente de mise en
+route, le temps de script relevé par le navigateur lui-même.
+
+| | 4.24.0.23 | 4.24.0.24 |
+| --- | --- | --- |
+| tâches longues de la page | **5**, de 51 à 91 ms | **aucune** |
+| un calcul de l'écoute (cinq paires) | 29 ms en moyenne, 55 au pire, mesurés sans les niveaux — qui les doublaient | **10 ms** en moyenne, 22 au pire |
+| temps de script, 90 s | 4,39 s | 3,74 s |
+| l'horloge | 50 relevés par seconde et par tuile | aucun |
+| onglet caché | l'écoute corrèle | rien |
+
+Le temps de script comprend celui des six faux lecteurs du banc, qui
+fabriquent leur son : la part de la salle y est petite, et c'est elle qui a
+fondu.
+
+`content.js` perd **471 lignes** — 798 retirées, 327 écrites, la transformée de Fourier comprise ; `panneau.js` son bloc de la sonde.
+
+### Ce que le rapport dit de plus
+
+Le debug, demandé détaillé, l'est là où il servira : sur la machine de
+l'utilisateur, avec trois streams ou plus.
+
+- `charge.pas`, `charge.ecoute` — la durée des pas de la salle et de son
+  écoute, moyenne et pire, **par paire** pour l'écoute : ce que la salle
+  coûte vraiment, plus une estimation ;
+- `charge.tachesLongues` — les tâches de plus de 50 ms pendant qu'elle est
+  ouverte, par coupable : la page (la salle comprise), les lecteurs, les
+  chats ;
+- `charge.sorties` — les tuiles sorties de la grille, et oubliées du calage ;
+- par tuile, `debitKbps` et `imagesPerdues` — la machine suit-elle tant de
+  streams ? ; `avertissement` — vu, levé, en combien de clics ; dans
+  `ecoute`, `blocs N/10 s` — la fréquence sur 1024, fois dix : 431 à
+  44,1 kHz, 469 à 48 ; moins, la capture a faim ;
+- au journal, la position obtenue à chaque fin de déplacement, une tuile
+  sortie de la grille, un avertissement levé.
+
+Partis : `serie.horloge`, `instant.ecartHorloge`, « sync » dans chaque
+calcul, « niveaux » dans chaque paire, et le bloc `SONDE DE LA SALLE`.
+
+### Ce qui n'a pas bougé
+
+Les règles du calage — mesurer, accorder, tenir, suivre la référence,
+corriger —, la grille, le son tenu, les chats, la page dessous, le nœud. Pas
+une assertion sur leur comportement n'a été touchée : les rapports réels
+rejoués (185) disent les mêmes décisions aux mêmes calculs.
+
+### Ce que le banc mesure
+
+- **189** — l'audit : la corrélation par la transformée de Fourier, jugée
+  sur le code même contre la somme directe — trois cents enveloppes, pas un
+  pic différent, deux fois plus vite au moins. Le rapport porte le coût, les
+  tâches longues, la charge de chaque lecteur et le recul obtenu ; plus de
+  sonde, d'horloge ni de niveaux. « mike » calée, la fenêtre rétrécit : elle sort de la grille, est
+  oubliée ; revenue, son lecteur neuf est libre, puis se recale sans un
+  geste. L'onglet caché la délie, et pas un calcul du son tant qu'il l'est.
+  Un clic sur le banc fait sortir la tuile remplacée, oubliée de même.
+  L'avertissement de contenu levé d'un clic ; un écran têtu, cinq clics au
+  plus.
+- **178**, **180** — la corrélation des niveaux et l'horloge parties : le
+  décalage retrouvé par les variations seules ; au bord des ±6 s, la
+  latence seule décide de garder un pic.
+- **70** — le rapport du panneau : plus de bloc de la sonde ; la charge de
+  la salle y passe, ligne à ligne.
+- **174** — retiré, avec la sonde. Les gardes du pont — un site tiers qui
+  nomme ses cadres comme nous, Firefox compris — restent éprouvées par le 175.
+
+### Ce que le banc a trouvé
+
+- **Une tâche longue que la lecture n'avait pas vue.** L'audit comptait
+  38 ms toutes les cinq secondes à six streams, 20 sans les niveaux — mesuré
+  hors navigateur. Dans le navigateur du banc, avec six lecteurs qui
+  tournent : 29 ms en moyenne, **55 au pire**, et cinq tâches longues en
+  quatre-vingt-dix secondes. D'où la transformée de Fourier, qui n'était pas
+  au plan.
+- **Une ligne lue à la lettre.** Le 186 lit la ligne d'écoute de chaque
+  tuile en entier ; les blocs, glissés au milieu, la faisaient échouer. Ils
+  sont à sa fin.
+- **Une sonde que la recherche n'avait pas trouvée.** Le 70 nourrissait le
+  rapport du panneau d'une sonde factice, sans jamais écrire `tse.sonde` :
+  le premier contrôle complet l'a fait tomber, seul échec sur 1 596. Il
+  éprouve désormais l'inverse — le bloc parti, la charge de la salle venue.
+- **Un budget trop court.** Au deuxième contrôle complet, le 182 a pris sa
+  voie lente — décidé sur la voix du milieu à +128 s, monté vers la plus
+  haute à +278 s — et sa vérification courait encore quand son attente de
+  300 s a pris fin : la plus haute voix à −31 ms, deux corrections, rien de
+  faux. Rejoué seul, deux fois : la voie directe, calée à +73 et +138 s.
+  L'attente va désormais jusqu'à 450 s, et s'arrête dès que c'est calé.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la tuile sortie de la grille jamais oubliée (1) | 189 : revenue, « mike » est « calée » d'emblée, l'historique de l'ancien lecteur dans sa paire |
+| la tuile remplacée depuis le banc jamais oubliée (1) | 189 : « lima » remplacée sans un mot au journal, sa sortie pas comptée |
+| la pause qui laisse la tuile « calée » (1) | 189 : onglet caché, « mike » toujours « calée » |
+| les calculs qui continuent onglet caché (1) | 189 : trois calculs de plus en douze secondes cachées |
+| l'avertissement jamais levé ; les clics sans borne (2) | 189 : « gate » et « tetu » à l'écran, zéro clic ; « tetu », neuf clics en neuf secondes |
+| le coût jamais compté ; la position d'un essai jamais lue (2) | 189 : `charge.pas` vide ; « fin de recul » sans ce qu'il a obtenu |
+| la transformée trop courte ; le conjugué oublié (2) | 189 : les décalages repliés, 89 enveloppes sur 298 aux pics faux ; une convolution, 272 sur 298 |
+| le bloc de la sonde resté au panneau (1) | 70 : « SONDE DE LA SALLE » au rapport |
+
+Onze mutants, onze pris.
+
+### Pour le prochain rapport
+
+1. Une salle à trois streams ou plus, ouverte par le nœud ; dix minutes.
+2. `charge` : la durée des pas et de l'écoute, et les tâches longues — ce que
+   la salle coûte sur votre machine.
+3. Par tuile, `imagesPerdues` : au-delà de quelques pour cent, la machine ne
+   suit plus tant de streams.
+
 ## Trois streams : ce qui est calé suit la référence (v4.24.0.23)
 
 Trois rapports réels sur la 4.24.0.22, ouverts par le nœud. Deux streams,
@@ -16342,7 +16492,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 188 scénarios, 1605 assertions |
+| `npm test` | le harnais Playwright : 188 scénarios, 1596 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -16363,12 +16513,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1539 Ko | 614 Ko | 4 012 → **2** |
+| `content.js` | 1529 Ko | 604 Ko | 3 976 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
+| `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1794 Ko** | **771 Ko** | **−57 %** |
+| **les cinq** | **1784 Ko** | **760 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

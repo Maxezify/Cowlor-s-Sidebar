@@ -210,7 +210,7 @@ const TSE_PREVIEW_PARENTS = ['https://www.twitch.tv', 'https://twitch.tv'];
    le parent que dans le cas d'une iframe non imbriquée. Firefox ne
    l'implémente pas avant la 148.
 
-   UNE SEULE LECTURE POUR LES DEUX PONTS (aperçu, sonde) : la variante
+   UNE SEULE LECTURE POUR LES DEUX PONTS (aperçu, salle) : la variante
    Firefox du banc neutralise cette ligne-ci, et elle seule
    (cf. tests/build.mjs). Deux lectures, et le second pont aurait gardé
    ancestorOrigins dans un banc censé reproduire Firefox. */
@@ -399,47 +399,33 @@ const TSE_GATE_MAX_CLICKS = 5;
 })();
 
 /* ============================================================
- *  PONT DE SONDE — la phase 0 du multistream (4.24.0.3)
+ *  LE PONT DES LECTEURS DE LA SALLE (4.24.0.6, phase 1 du multistream)
  *  -------------------------------------------------------------
- *  La salle multistream reposera sur des lecteurs intégrés, et l'audit a
- *  laissé des questions que seul le vrai Twitch tranche : un lecteur
- *  intégré, connecté, montre-t-il des pubs à un abonné (P3) ? Accepte-t-il
- *  qu'on lui rende le son (P4) ? Combien coûte-t-il (P6) ? La sonde
- *  (tse.sonde, dans la page) ouvre de vrais lecteurs, nommés « tse-sonde »,
- *  et CE pont, dans chacun, dit ce qui s'y passe.
+ *  La salle pose de vrais lecteurs intégrés, nommés « tse-salle », et CE
+ *  pont, dans chacun, dit ce qui s'y passe et exécute ce qu'elle demande.
  *
  *  UN NOM À LUI, et pas celui de l'aperçu : ni l'anti-pub ni le pont
- *  d'aperçu ne s'éveillent ici. La sonde voit donc un lecteur tel que Twitch
- *  le sert — pubs et avertissement de contenu compris —, ce qui est
- *  exactement la question posée.
+ *  d'aperçu ne s'éveillent ici. Le lecteur est tel que Twitch le sert.
  *
- *  CE QU'IL RAPPORTE, toutes les deux secondes : la vidéo (lecture, son,
- *  position, image décodée, images perdues, octets décodés), le bouton son
- *  du lecteur, un avertissement de contenu, les REPÈRES DE PUB, et le
- *  JOURNAL du lecteur. Les repères ne sont pas supposés : tout attribut
- *  data-a-target ou data-test-selector, toute classe ou identifiant dont un
- *  segment dit « pub », sur un élément affiché. La première sonde sur le
- *  vrai Twitch n'en a trouvé AUCUN pendant des pubs bien réelles (4.24.0.4) :
- *  le journal, lui, ne cherche aucun mot — cf. plus bas.
+ *  CE QU'IL RAPPORTE, chaque seconde : la vidéo (lecture, son, volume,
+ *  vitesse), ses images et ses octets décodés, la qualité, la latence et le
+ *  tampon selon le lecteur de Twitch, une pub (TSE_PUB_REPERES), un
+ *  avertissement de contenu, les gestes de l'utilisateur ; et, à la demande
+ *  de la salle, un relevé daté — position, plages, essais, enveloppe du son.
  *
- *  CE QU'IL ACCEPTE : « son » et « muet », de son parent seul, et d'une page
- *  twitch.tv seulement. Par le bouton son du lecteur, comme le recommande
- *  Twitch (laisser le démutage aux commandes du lecteur) ; à défaut, par
- *  l'élément vidéo. Le résultat est relevé une seconde et demie après :
- *  c'est là que le navigateur aura mis la vidéo en pause s'il refuse le son.
+ *  CE QU'IL ACCEPTE, de son parent seul et d'une page twitch.tv seulement :
+ *  le son et le silence, la pause et la reprise — par les boutons du
+ *  lecteur, comme Twitch le recommande, à défaut par l'élément vidéo —, la
+ *  qualité, le relevé, un recul ou une avance dans le tampon, la faible
+ *  latence retirée.
+ *
+ *  LA SONDE DE PHASE 0 (4.24.0.3 à 4.24.0.5) partageait ce pont : ses
+ *  questions — pubs, son, points, charge, Chat partagé — sont tranchées
+ *  depuis, et elle est partie à l'audit de la 4.24.0.24. Ce qu'elle seule
+ *  mesurait et qui sert encore — le débit, les images perdues, les tâches
+ *  longues par coupable, l'avertissement de contenu — est passé au rapport
+ *  de la salle.
  * ============================================================ */
-const TSE_SONDE_FRAME_NAME = 'tse-sonde';
-const TSE_SONDE_ETAT_MSG = 'tse:sonde-etat';
-const TSE_SONDE_ORDRE_MSG = 'tse:sonde-ordre';
-// L'installation d'un lecteur : ce qui apparaît dans ce délai et ne bouge plus
-// est le lecteur lui-même, et le journal le compte sans le lister.
-const TSE_SONDE_ASSISE_S = 15;
-const TSE_SONDE_CHAT_NAME = 'tse-sonde-chat';
-
-/* LA SALLE (4.24.0.6, phase 1 du multistream) : ses lecteurs portent leur
-   propre nom, et le pont y parle par ses propres messages. Le même pont, un
-   autre rôle — léger : ni journal, ni débit, seulement ce que la salle
-   affiche (lecture, son, pub) et les ordres qu'elle donne. */
 const TSE_SALLE_FRAME_NAME = 'tse-salle';
 const TSE_SALLE_ETAT_MSG = 'tse:salle-etat';
 const TSE_SALLE_ORDRE_MSG = 'tse:salle-ordre';
@@ -459,150 +445,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 (() => {
   'use strict';
 
-  let role = null;
   try {
     if (window.top === window) return;
     if (location.hostname !== 'player.twitch.tv') return;
-    role = window.name === TSE_SONDE_FRAME_NAME ? 'sonde'
-      : window.name === TSE_SALLE_FRAME_NAME ? 'salle' : null;
+    if (window.name !== TSE_SALLE_FRAME_NAME) return;
   } catch { return; }
-  if (!role) return;
   const parentConnu = tseOrigineParent();
   if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;
   const cibles = parentConnu ? [parentConnu] : TSE_PREVIEW_PARENTS;
-  const MSG_ETAT = role === 'sonde' ? TSE_SONDE_ETAT_MSG : TSE_SALLE_ETAT_MSG;
-  const MSG_ORDRE = role === 'sonde' ? TSE_SONDE_ORDRE_MSG : TSE_SALLE_ORDRE_MSG;
 
   const BOUTON_SON = 'button[data-a-target="player-mute-unmute-button"]';
   const BOUTON_LECTURE = 'button[data-a-target="player-play-pause-button"]';
-  /* UN SEGMENT QUI DIT « PUB », et le découpage suit aussi les bosses du
-     camelCase : « video-ad-label », mais aussi « VideoAdOverlay » ou
-     « ScAdBanner-sc-x ». « add-to-list » ou « header » n'en sont pas. */
-  const RE_PUB = /^(ad|ads|advert[a-z]*|commercial[a-z]*|preroll|midroll)$/i;
-  const evoquePub = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').split(/[-_\s]+/).some((x) => RE_PUB.test(x));
-  // Une valeur d'attribut n'entre au journal que si elle a la forme d'un
-  // identifiant : rien d'écrit par un humain, pas de titre, pas de phrase.
-  const RE_CLE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
-  const reperes = new Set();
   let ordre = null;
   let numeroOrdre = 0;
 
-  /* ── LE JOURNAL DU LECTEUR (4.24.0.4) ──────────────────────────────────
-     LA PREMIÈRE SONDE SUR LE VRAI TWITCH N'A VU AUCUNE PUB, et il y en avait :
-     l'utilisateur les a vues dès le début — le chargement de Twitch dans le
-     lecteur, l'espace de la pub en place. Aucun attribut data-a-target ni
-     data-test-selector ne disait « pub ». Chercher un autre mot aurait été
-     supposer encore. Le pont relève donc tout ce qui APPARAÎT ET DISPARAÎT
-     dans le lecteur, sans rien présumer, avec ses heures :
-       — chaque valeur data-a-target et data-test-selector, affichée ou non
-         (« (caché) ») ;
-       — les iframes imbriquées, par hôte — une pub servie par une régie ;
-       — le nombre d'éléments vidéo quand il n'est pas un ;
-       — les balises personnalisées (un nom à tiret) ;
-       — la définition de l'image, la lecture arrêtée, le bouton son absent.
-     Ce qui est là dès l'installation du lecteur et ne bouge plus est compté,
-     pas listé ; le reste est au rapport, et c'est lui qui dira à quoi une pub
-     ressemble. */
-  const t0 = Date.now();
-  const journal = new Map();   // clé → { debut, fin, n, fois, la }
-  let passe = 0;
-  let aJoue = false;
-  const releve = () => {
-    passe += 1;
-    const s = Math.round((Date.now() - t0) / 1000);
-    const vues = new Set();
-    let pub = false;
-    for (const el of document.getElementsByTagName('*')) {
-      const tag = el.localName;
-      if (tag.includes('-') && RE_CLE.test(tag)) vues.add(`balise=${tag}`);
-      let affiche = null;
-      const estAffiche = () => (affiche ??= el.getClientRects().length > 0);
-      for (const at of ['data-a-target', 'data-test-selector']) {
-        const v = el.getAttribute(at);
-        if (!v || !RE_CLE.test(v)) continue;
-        vues.add(estAffiche() ? `${at}=${v}` : `${at}=${v} (caché)`);
-        if (evoquePub(v) && estAffiche()) { reperes.add(`${at}=${v}`); pub = true; }
-      }
-      const noms = [...el.classList];
-      if (el.id) noms.push(el.id);
-      for (const c of noms) {
-        if (!RE_CLE.test(c) || !evoquePub(c) || !estAffiche()) continue;
-        reperes.add(`${c === el.id ? 'id' : 'class'}=${c}`);
-        pub = true;
-      }
-    }
-    for (const f of document.querySelectorAll('iframe')) {
-      let hote = '';
-      try { const u = new URL(f.src || 'about:blank', location.href); hote = /^https?:$/.test(u.protocol) ? u.hostname : u.protocol.slice(0, -1); }
-      catch { hote = '?'; }
-      vues.add(`iframe=${hote}`);
-    }
-    const videos = document.querySelectorAll('video');
-    if (videos.length !== 1) vues.add(`videos=${videos.length}`);
-    const v = videos[0];
-    if (v) {
-      vues.add(`image=${v.videoWidth}x${v.videoHeight}`);
-      if (v.paused) vues.add('lecture=non');
-      else aJoue = true;
-    }
-    if (!document.querySelector(BOUTON_SON)) vues.add('bouton-son=absent');
-    for (const cle of vues) {
-      const e = journal.get(cle);
-      if (!e) { journal.set(cle, { debut: s, fin: s, n: 1, fois: 1, la: passe }); continue; }
-      if (e.la !== passe - 1) e.fois += 1;
-      e.fin = s; e.n += 1; e.la = passe;
-    }
-    return pub;
-  };
-  /* Ce qui part au parent : les clés qui ont bougé, jamais les stables. Est
-     stable ce qui est apparu pendant l'installation du lecteur, n'est jamais
-     reparti, et y est encore. Le reste — parti, revenu, ou arrivé plus tard —
-     est listé : d'abord ce qui n'est plus là, puis ce qui est arrivé tard.
-
-     SAUF DANS UN LECTEUR QUI N'A JAMAIS JOUÉ (4.24.0.5). Le troisième rapport
-     réel en portait un : pas une image en quatorze minutes, et un journal qui
-     ne disait rien, puisque rien n'y avait bougé — ce qu'il affichait à la
-     place du direct était « stable », donc tu. Pour lui, c'est justement ce
-     décor figé qui explique : ses marques stables sont listées aussi. */
-  const mouvements = () => {
-    const stables = [], partis = [], venus = [];
-    for (const [cle, e] of journal) {
-      const present = e.la === passe;
-      const ligne = [cle, e.debut, e.fin, e.n, e.fois];
-      if (present && e.fois === 1 && e.debut <= TSE_SONDE_ASSISE_S) stables.push(ligne);
-      else (present ? venus : partis).push(ligne);
-    }
-    const parDebut = (a, b) => a[1] - b[1];
-    const tous = [...partis.sort(parDebut), ...venus.sort(parDebut), ...(aJoue ? [] : stables.sort(parDebut))];
-    return { stables: stables.length, liste: tous.slice(0, 40), enPlus: Math.max(0, tous.length - 40) };
-  };
-
-  const etat = () => {
-    const v = document.querySelector('video');
-    const q = v && typeof v.getVideoPlaybackQuality === 'function' ? v.getVideoPlaybackQuality() : null;
-    // Chromium seul : les octets décodés, d'où le débit de chaque lecteur.
-    const octets = v && typeof v.webkitVideoDecodedByteCount === 'number'
-      ? v.webkitVideoDecodedByteCount + (Number(v.webkitAudioDecodedByteCount) || 0) : null;
-    const pub = releve();
-    return {
-      video: !!v,
-      lecture: !!v && !v.paused,
-      muet: v ? v.muted : null,
-      tempsS: v ? Math.round(v.currentTime * 10) / 10 : null,
-      image: v ? `${v.videoWidth}x${v.videoHeight}` : null,
-      images: q ? q.totalVideoFrames : null,
-      perdues: q ? q.droppedVideoFrames : null,
-      pret: v ? v.readyState : null,
-      erreur: v && v.error ? v.error.code : null,
-      octets,
-      pub,
-      reperesPub: [...reperes],
-      boutonSon: !!document.querySelector(BOUTON_SON),
-      avertissement: !!document.querySelector(TSE_GATE_ZONE),
-      journal: mouvements(),
-      ordre,
-    };
-  };
   /* LES GESTES DE L'UTILISATEUR DANS LE LECTEUR (4.24.0.8), comptés — un
      clic, une touche, jamais ce qu'ils visent. La salle relance le son d'une
      tuile que Twitch a remise en muet après coup ; un geste dans ce lecteur
@@ -610,11 +466,33 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      événements de confiance comptent : nos propres clics sur les boutons du
      lecteur n'en sont pas. */
   let gestes = 0;
-  if (role === 'salle') {
-    const compterGeste = (e) => { if (e.isTrusted) gestes += 1; };
-    window.addEventListener('pointerdown', compterGeste, true);
-    window.addEventListener('keydown', compterGeste, true);
-  }
+  const compterGeste = (e) => { if (e.isTrusted) gestes += 1; };
+  window.addEventListener('pointerdown', compterGeste, true);
+  window.addEventListener('keydown', compterGeste, true);
+  /* L'AVERTISSEMENT DE CONTENU (4.24.0.24, à l'audit). L'aperçu le lève
+     depuis la 3.55 ; la salle, jamais : une tuile dont la chaîne porte un
+     label de classification restait sur son écran d'acquittement — ni
+     image, ni son, rien à caler —, et la prise, posée sur toute tuile
+     muette, prenait le clic que l'utilisateur lui destinait. Levé ici comme
+     dans l'aperçu, par le même bouton — l'utilisateur a choisi ces streams
+     en ouvrant la salle —, un clic par bouton, cinq au plus ; au rapport,
+     qu'il a été vu, et combien de clics. TSE_GATE_ENABLED à false : vu, pas
+     levé. */
+  const leves = new WeakSet();
+  let avertissementVu = false, avertissementClics = 0;
+  const leverAvertissement = () => {
+    // Visible comme dans l'aperçu : un sur-cadre resté dans le DOM n'en est pas un.
+    const visible = (b) => { if (!b) return null; const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? b : null; };
+    const zone = document.querySelector(TSE_GATE_ZONE);
+    const bouton = visible(document.querySelector(TSE_GATE_BUTTON)) || (zone ? visible(zone.querySelector('button')) : null);
+    if (!bouton) return false;
+    avertissementVu = true;
+    if (!TSE_GATE_ENABLED || avertissementClics >= TSE_GATE_MAX_CLICKS || leves.has(bouton)) return true;
+    leves.add(bouton);
+    avertissementClics += 1;
+    try { bouton.click(); } catch { /* retiré entre-temps */ }
+    return true;
+  };
   /* ── LE LECTEUR DE TWITCH LUI-MÊME (4.24.0.10) ──────────────────────────
      La qualité se choisit par l'instance du lecteur, pas par l'URL : le
      paramètre « quality » n'est qu'une préférence que l'adaptation de débit
@@ -725,10 +603,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       tampon: lecteur.getBufferDuration ? lire(() => lecteur.getBufferDuration()) : null,
     };
   };
-  // Le rôle de la salle : ce qu'elle affiche, rien de plus, à chaque seconde.
+  // Ce que la salle affiche et ce qu'elle tient, chaque seconde.
   const etatSalle = () => {
     const v = document.querySelector('video');
     tenirQualite();
+    const avertissement = leverAvertissement();
+    /* LA CHARGE D'UN LECTEUR (4.24.0.24, reprise de la sonde de phase 0) :
+       les images décodées et perdues — un lecteur qui en perd, c'est une
+       machine qui ne suit pas tant de streams —, et les octets décodés,
+       d'où son débit (Chromium seul). Des compteurs, que la salle cumule. */
+    const q = v && typeof v.getVideoPlaybackQuality === 'function' ? v.getVideoPlaybackQuality() : null;
     return {
       ...releveLecteur(),
       qualiteVoulue: hauteurVoulue,
@@ -738,8 +622,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       muet: v ? v.muted : null,
       // Au rapport seulement : un lecteur non muet à volume nul se tait aussi.
       volume: v ? Math.round(v.volume * 100) / 100 : null,
+      images: q ? q.totalVideoFrames : null,
+      perdues: q ? q.droppedVideoFrames : null,
+      octets: v && typeof v.webkitVideoDecodedByteCount === 'number'
+        ? v.webkitVideoDecodedByteCount + (Number(v.webkitAudioDecodedByteCount) || 0) : null,
       pub: [...document.querySelectorAll(TSE_PUB_REPERES)].some((el) => el.getClientRects().length > 0),
       boutonSon: !!document.querySelector(BOUTON_SON),
+      avertissement, avertissementVu, avertissementClics,
       gestes,
       ordre,
     };
@@ -752,8 +641,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      les lire ENSEMBLE — c'est la salle qui demande désormais un relevé, à
      toutes à la fois, et chacune répond sur-le-champ, avec l'heure de sa
      réponse : le rapport dit de combien les relevés d'un même tour se sont
-     écartés. Lecture seule, sauf deux commandes tapées à la console (S3,
-     S4) et l'écoute (S9), qui ne s'allume que sur demande. */
+     écartés. Lecture seule, sauf ce que la salle demande : un déplacement,
+     la faible latence retirée, et l'écoute (S9), allumée par elle. */
   const lireNombre = (f, chiffres = 3) => {
     try {
       const x = f();
@@ -1128,48 +1017,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     return { tenir, bilan, prendre };
   })();
 
-  /* ── L'HORLOGE DE LA TÊTE DE LECTURE (4.24.0.14) ─────────────────────────
-     `getSyncTime` rend une heure en millisecondes, arrondie à la seconde. Le
-     troisième rapport réel a montré qu'elle SUIT LA LECTURE : sa pente a
-     perdu exactement ce que la lecture a perdu — 1,1 s de recul sur une
-     tuile, 2,2 s de calage sur l'autre —, ce qu'une heure murale ne ferait
-     pas. C'est donc, selon toute vraisemblance, l'heure de l'image jouée.
-     Arrondie à la seconde, elle ne dit rien sous la seconde ; mais l'INSTANT
-     où elle passe à la suivante, si : la tête de lecture est alors
-     exactement à cette heure-là. Relevée toutes les 20 ms pendant l'écoute,
-     chaque passage donne `maintenant − heure` — la latence de la tête de
-     lecture, à 20 ms près, sans l'estimation du lecteur, qui plonge quand la
-     vidéo tarde (même rapport). Chaque passage garde son pas : 1000 ms pour
-     un passage ordinaire, autre chose pour un saut. */
-  const horloge = (() => {
-    let minuteur = null, derniere = null, tics = [], vuT = 0;
-    const pas = () => {
-      // Plus de relevé depuis cinq secondes : la salle ne l'écoute plus.
-      if (Date.now() - vuT > 5_000) { tenir(false); return; }
-      const lecteur = lecteurTwitch();
-      if (!lecteur || typeof lecteur.getSyncTime !== 'function') return;
-      let x;
-      try { x = lecteur.getSyncTime(); } catch { return; }
-      if (!Number.isFinite(x)) return;
-      if (derniere !== null && x !== derniere) {
-        tics.push([Date.now(), x, x - derniere]);
-        if (tics.length > 120) tics.splice(0, tics.length - 120);
-      }
-      derniere = x;
-    };
-    const tenir = (voulu) => {
-      if (voulu) vuT = Date.now();
-      if (voulu && !minuteur) { derniere = null; minuteur = setInterval(pas, 20); }
-      else if (!voulu && minuteur) { clearInterval(minuteur); minuteur = null; derniere = null; tics = []; }
-    };
-    const prendre = () => { const l = tics; tics = []; return l; };
-    return { tenir, prendre };
-  })();
-
   const repondreReleve = (d) => {
     ecoute.tenir(d.ecoute === true);
-    // L'horloge tourne pendant l'écoute (4.24.0.15) — pour le rapport seulement, depuis la 4.24.0.21.
-    horloge.tenir(d.ecoute === true || d.horloge === true);
     const lecteur = lecteurTwitch();
     const v = document.querySelector('video');
     const f = (nom) => lecteur && typeof lecteur[nom] === 'function';
@@ -1195,7 +1044,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       essai,
       ecoute: ecoute.bilan(),
       env: ecoute.prendre(),
-      tics: horloge.prendre(),
     };
     if (d.api === true && lecteur) r.api = lireApi(lecteur);
     for (const o of cibles) {
@@ -1212,45 +1060,43 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      sa réponse, affichée ici. Les arguments ne passent que s'ils sont
      simples ; la salle ne reçoit que de ses propres tuiles (cf. surMessage),
      et ses commandes restent bornées. */
-  if (role === 'salle') {
-    let numeroConsole = 0;
-    const simple = (x) => (x === null || x === undefined || ['number', 'string', 'boolean'].includes(typeof x) ? x : String(x));
-    const relayer = (commande) => (...args) => {
-      const n = ++numeroConsole;
-      for (const o of cibles) {
-        try {
-          window.parent.postMessage({ tse: TSE_SALLE_CONSOLE_MSG, n, commande, args: args.slice(0, 3).map(simple) }, o);
-        } catch { /* origine refusée */ }
-      }
-      return `[tse] ${commande} → envoyé à la salle / sent to the room`;
-    };
-    try {
-      Object.defineProperty(window, 'tse', {
-        value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
-          ['auto', 'recul', 'avance', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
-        writable: false, configurable: false,
-      });
-    } catch { /* déjà posé */ }
-  }
+  let numeroConsole = 0;
+  const simple = (x) => (x === null || x === undefined || ['number', 'string', 'boolean'].includes(typeof x) ? x : String(x));
+  const relayer = (commande) => (...args) => {
+    const n = ++numeroConsole;
+    for (const o of cibles) {
+      try {
+        window.parent.postMessage({ tse: TSE_SALLE_CONSOLE_MSG, n, commande, args: args.slice(0, 3).map(simple) }, o);
+      } catch { /* origine refusée */ }
+    }
+    return `[tse] ${commande} → envoyé à la salle / sent to the room`;
+  };
+  try {
+    Object.defineProperty(window, 'tse', {
+      value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
+        ['auto', 'recul', 'avance', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
+      writable: false, configurable: false,
+    });
+  } catch { /* déjà posé */ }
 
   const poster = () => {
-    const e = role === 'sonde' ? etat() : etatSalle();
+    const e = etatSalle();
     for (const o of cibles) {
-      try { window.parent.postMessage({ tse: MSG_ETAT, etat: e }, o); } catch { /* origine refusée */ }
+      try { window.parent.postMessage({ tse: TSE_SALLE_ETAT_MSG, etat: e }, o); } catch { /* origine refusée */ }
     }
   };
 
   /* QUATRE ORDRES : le son et le silence, la pause et la reprise — ces deux
-     derniers pour la salle, qui met en pause ses tuiles muettes quand
-     l'onglet passe en arrière-plan. Chacun par le bouton du lecteur, comme
-     Twitch le recommande, et à défaut par l'élément vidéo. */
+     derniers quand l'onglet passe en arrière-plan, la salle mettant en pause
+     ses tuiles muettes. Chacun par le bouton du lecteur, comme Twitch le
+     recommande, et à défaut par l'élément vidéo. */
   const ORDRES = ['son', 'muet', 'pause', 'lecture'];
   window.addEventListener('message', (e) => {
     if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
     const d = e.data;
     /* LA QUALITÉ (4.24.0.10) : un ordre à part, qui ne passe ni par un bouton
-       ni par le verdict des quatre autres. Salle seulement. */
-    if (d && d.tse === MSG_ORDRE && d.ordre === 'qualite' && role === 'salle') {
+       ni par le verdict des quatre autres. */
+    if (d && d.tse === TSE_SALLE_ORDRE_MSG && d.ordre === 'qualite') {
       const h = Math.round(Number(d.hauteur));
       if (h >= 100 && h <= 4320 && h !== hauteurVoulue) {
         hauteurVoulue = h; qualiteEssais = 0; qualiteT = 0; tenirQualite();
@@ -1258,14 +1104,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return;
     }
     // La réponse de la salle à une commande tapée ici (4.24.0.12).
-    if (d && d.tse === TSE_SALLE_CONSOLE_REPONSE && role === 'salle') {
+    if (d && d.tse === TSE_SALLE_CONSOLE_REPONSE) {
       console.info(`[tse] ${d.commande} →`, d.resultat);
       return;
     }
     /* LE RELEVÉ, sur-le-champ (4.24.0.11) ; les déplacements, bornés ici
        comme dans la salle ; la faible latence retirée (4.24.0.21). Des noms
        à eux : « pause » est déjà l'ordre de l'onglet caché. */
-    if (d && d.tse === MSG_ORDRE && role === 'salle' && ['releve', 'essai-recul', 'essai-avance', 'faible-latence'].includes(d.ordre)) {
+    if (d && d.tse === TSE_SALLE_ORDRE_MSG && ['releve', 'essai-recul', 'essai-avance', 'faible-latence'].includes(d.ordre)) {
       if (d.ordre === 'releve' && Number.isFinite(d.n)) repondreReleve(d);
       else if (d.ordre === 'faible-latence') retirerFaibleLatence();
       else {
@@ -1278,7 +1124,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
       return;
     }
-    if (!d || d.tse !== MSG_ORDRE || !ORDRES.includes(d.ordre)) return;
+    if (!d || d.tse !== TSE_SALLE_ORDRE_MSG || !ORDRES.includes(d.ordre)) return;
     const v = document.querySelector('video');
     let voie = 'deja';
     if (!v) voie = 'sans-video';
@@ -1307,12 +1153,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   });
 
   poster();
-  // Toutes les secondes pour la salle : c'est elle qui affiche la pub, et une
-  // étiquette en retard de deux secondes se voit.
-  setInterval(poster, role === 'sonde' ? 2000 : 1000);
+  /* Chaque seconde : le son tenu, la qualité, l'avertissement levé et la
+     pub comptée se jugent sur cet état — en retard de deux secondes, un son
+     que Twitch a remis en muet le resterait d'autant. */
+  setInterval(poster, 1000);
 })();
 
-/* LA CONSOLE DANS UN CHAT DE LA SALLE OU DE LA SONDE (4.24.0.12). Le chat
+/* LA CONSOLE DANS UN CHAT DE LA SALLE (4.24.0.12). Le chat
    intégré est une page de www.twitch.tv, de même origine que celle qui porte
    la salle : `tse` y est tout simplement celui de la page. Seulement dans
    NOS cadres de chat, et seulement de même origine — sinon, rien. */
@@ -1320,7 +1167,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   'use strict';
   try {
     if (window.top === window) return;
-    if (window.name !== TSE_SALLE_CHAT_NAME && window.name !== TSE_SONDE_CHAT_NAME) return;
+    if (window.name !== TSE_SALLE_CHAT_NAME) return;
     const haut = window.top;
     if (haut.location.origin !== location.origin) return;
     Object.defineProperty(window, 'tse', { get: () => haut.tse, configurable: false });
@@ -3656,10 +3503,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // veut dire « l'écran est toujours là » : le dévoiler afficherait une modale
     // en travers de l'aperçu, ce qui est bien pire qu'une vignette.
     PREVIEW_GATE_TIMEOUT_MS: 2_500,
-    // Cadence de lecture des chats de la sonde (tse.sonde, phase 0 du
-    // multistream) : assez lente pour ne rien coûter, assez rapide pour
-    // saisir un solde de points au premier chargement.
-    SONDE_CHAT_MS: 5_000,
 
     // === La salle multistream (4.24.0.6) ===
     // Les mesures de la page qu'elle occupe : la barre du haut de Twitch, sa
@@ -13543,426 +13386,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     }
   };
 
-  /* ── LA SONDE DE LA SALLE (4.24.0.3, phase 0 du multistream) ───────────
-     L'audit laisse des questions que seul le vrai Twitch tranche, et cet
-     environnement ne le joint pas. La sonde les pose dans le navigateur de
-     l'utilisateur et en rapporte des MESURES plutôt que des impressions :
-
-       tse.sonde.ouvrir('chaine1', 'chaine2', …)   jusqu'à 4 lecteurs, 2 chats
-       tse.sonde.son(0)                            le son au lecteur 0 (P4)
-       tse.sonde.rapport()                         le bilan — aussi au rapport
-       tse.sonde.fermer()
-
-     Les lecteurs portent le nom « tse-sonde » : le pont de sonde y dit, toutes
-     les deux secondes, la lecture, le son, l'image, les images perdues et les
-     repères de pub affichés (P3) ; ni l'anti-pub ni le pont d'aperçu n'y
-     entrent. Les chats sont ceux de Twitch, intégrés — de même origine que la
-     page, donc lisibles d'ici : saisie présente (connecté, P2), messages,
-     solde de points au début et maintenant (P5), repères de Chat partagé
-     (P7). Les tâches longues de la page, par coupable, et le débit de chaque
-     lecteur donnent la charge (P6) ; la mémoire, elle, se lit au
-     gestionnaire de tâches du navigateur, qu'aucune page ne voit.
-
-     Les repères des chats (points, Chat partagé) ne sont pas supposés plus
-     que ceux des pubs : tout attribut data-a-target ou data-test-selector qui
-     les évoque est relevé.
-
-     LES DEUX PREMIERS RAPPORTS RÉELS (4.24.0.4) ont montré les limites de
-     cette méthode : des pubs vues, aucun repère ; un Chat partagé, aucun
-     repère. Deux mesures s'y ajoutent, qui ne cherchent aucun mot : le
-     journal de chaque lecteur (tout ce qui y apparaît et disparaît, avec ses
-     heures) et les messages communs aux deux chats. Chaque verdict du son
-     est gardé, pas seulement le dernier ; le temps arrêté et le temps en pub
-     sont cumulés.
-
-     UNE SEULE SONDE À LA FOIS, et rien qui tourne quand elle est fermée : ni
-     écouteur, ni minuteur, ni observateur. Le bilan de la dernière reste
-     lisible au rapport après sa fermeture. */
-  const sonde = (() => {
-    const MAX_LECTEURS = 4, MAX_CHATS = 2;
-    const RE_LOGIN = /^[a-z0-9_]{2,25}$/;
-    const RE_POINTS = /copo|community-points|channel-points|balance/i;
-    // Le solde des Bits est aussi un « balance » : ce n'est pas celui des points.
-    const RE_BITS = /bits/i;
-    const RE_PARTAGE = /shared[-_]?chat/i;
-    const RE_NOMBRE = /^\d[\d\s\u00a0\u202f.,]*$/;
-    const COUPABLES = ['page', 'lecteurs', 'chats', 'autres'];
-    const MAX_TEXTES = 3000;
-    const RE_CLE_CHAT = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
-    let courante = null;
-    let derniere = null;
-
-    const videoDeLaPage = () => [...document.querySelectorAll('video')].some((v) => !v.paused);
-    const coupable = (x) => {
-      if (x.name === 'self') return 'page';
-      const a = x.attribution && x.attribution[0];
-      const nom = a ? a.containerName : '';
-      return nom === TSE_SONDE_FRAME_NAME ? 'lecteurs' : nom === TSE_SONDE_CHAT_NAME ? 'chats' : 'autres';
-    };
-    /* CE QUE SONT LES « AUTRES » (4.24.0.5). Le troisième rapport réel en
-       comptait 25 pour 2,6 s — plus que les chats, et aucune à la page ni aux
-       lecteurs —, sans rien pouvoir en dire. Ce que le navigateur en sait :
-       son nom de coupable (« unknown », « multiple-contexts »…) et, quand
-       elle vient d'une iframe, l'hôte de celle-ci. */
-    const MAX_DETAILS = 12;
-    const detailAutre = (x) => {
-      const a = x.attribution && x.attribution[0];
-      let hote = '';
-      try { if (a && a.containerSrc) hote = new URL(a.containerSrc, location.href).hostname; } catch { /* adresse illisible */ }
-      const nom = x.name || '?';
-      return hote ? `${nom}@${hote}` : nom;
-    };
-
-    /* Le verdict du son (P4) : « ok » s'il joue et s'entend, « pause » si le
-       navigateur l'a arrêté plutôt que de le laisser parler, « sans-effet »
-       s'il est resté muet. */
-    const verdictSon = (o) => (!o || !o.apres || o.ordre !== 'son' ? null
-      : !o.apres.muet && o.apres.lecture ? 'ok'
-      : !o.apres.muet ? 'pause' : 'sans-effet');
-
-    // `source` ancre le message à UN de nos lecteurs : c'est la seule
-    // vérification qui compte, comme pour l'aperçu.
-    const surMessage = (e) => {
-      if (!courante || !e.data || e.data.tse !== TSE_SONDE_ETAT_MSG) return;
-      const l = courante.lecteurs.find((x) => x.cadre.contentWindow === e.source);
-      if (!l) return;
-      const et = e.data.etat || {};
-      const t = Date.now();
-      l.messages += 1;
-      /* LE TEMPS QUI VIENT DE PASSER APPARTIENT À L'ÉTAT D'AVANT : c'est lui
-         qui a duré jusqu'à ce message. Un lecteur arrêté ne compte qu'après
-         avoir joué une fois — le chargement n'est pas un arrêt. */
-      const avant = l.etat;
-      if (avant) {
-        const dt = t - l.tAvant;
-        if (avant.pub) l.pubMs += dt;
-        if (l.aJoue && !avant.lecture) l.arretMs += dt;
-        if (avant.lecture && !et.lecture) l.arrets += 1;
-      }
-      if (et.lecture) l.aJoue = true;
-      l.tAvant = t;
-      l.etat = et;
-      if (et.pub && !l.pubAvant) l.pubs += 1;
-      l.pubAvant = !!et.pub;
-      if (typeof et.tempsS === 'number') {
-        if (!l.premier) l.premier = { t, s: et.tempsS };
-        l.dernier = { t, s: et.tempsS };
-      }
-      /* LES OCTETS DÉCODÉS, cumulés : Twitch remplace parfois son élément
-         vidéo, et le compteur du nouveau repart de zéro. Un compteur qui
-         baisse est donc un compteur neuf, compté depuis zéro. */
-      if (typeof et.octets === 'number') {
-        if (l.octetsAvant === null) l.octetsT0 = t;
-        else l.octets += et.octets >= l.octetsAvant ? et.octets - l.octetsAvant : et.octets;
-        l.octetsAvant = et.octets;
-        l.octetsT = t;
-      }
-      // Chaque verdict une fois, et gardé quand l'ordre suivant le remplace.
-      const o = et.ordre;
-      if (o && o.apres && o.n !== l.ordreCompte) {
-        l.ordreCompte = o.n;
-        const v = verdictSon(o);
-        if (v) l.verdicts[v] = (l.verdicts[v] || 0) + 1;
-      }
-    };
-
-    const lireChat = (c) => {
-      let doc = null;
-      try { doc = c.cadre.contentDocument; } catch { c.memeOrigine = false; return; }
-      c.memeOrigine = !!doc;
-      if (!doc || !doc.body) return;
-      c.saisie = !!doc.querySelector('[data-a-target="chat-input"]');
-      const lignes = doc.querySelectorAll('.chat-line__message');
-      c.messages = lignes.length;
-      /* LES MESSAGES, pour les comparer d'un chat à l'autre — jamais pour le
-         rapport, qui n'en dira que le COMPTE. Deux chats d'un même Chat
-         partagé montrent les mêmes messages, chacun avec son auteur : c'est
-         une preuve qui ne suppose aucun repère, et le second rapport réel
-         l'a rendue nécessaire — trois chaînes en Chat partagé, aucun repère
-         « shared-chat » dans leurs chats intégrés. */
-      for (const ligne of lignes) {
-        if (c.textes.size >= MAX_TEXTES) break;
-        const t = (ligne.textContent || '').replace(/\s+/g, ' ').trim();
-        if (t) c.textes.add(t);
-      }
-      /* FEUILLE PAR FEUILLE, et non le texte du bloc entier. Le premier
-         rapport réel a lu « 00 » pour un solde de zéro : deux feuilles dans le
-         bloc, et un solde de 530 aurait été lu 530530. On garde la première
-         feuille qui est un nombre, et toutes au rapport. */
-      const lirePoints = (el, repere) => {
-        const feuilles = [];
-        const w = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-        for (let n = w.nextNode(); n; n = w.nextNode()) {
-          const x = n.data.trim();
-          if (x) feuilles.push(x);
-        }
-        const nombre = feuilles.find((x) => RE_NOMBRE.test(x));
-        c.pointsTexte = feuilles.join(' | ').slice(0, 48);
-        c.pointsRepere = repere;
-        return nombre ? Number(nombre.replace(/\D/g, '')) : NaN;
-      };
-      /* LE SOLDE À SON REPÈRE PROPRE D'ABORD (4.24.0.5). Le troisième rapport
-         réel a relevé dans le chat intégré « copo-balance-string » — le solde
-         des points de chaîne — à côté de « bits-balance-string ». Les deux
-         feuilles du bloc qu'on lisait pouvaient donc être deux soldes, et
-         rien ne disait laquelle était celle des points. Le motif large reste
-         le repli, sans jamais prendre les Bits pour des points. */
-      const copo = doc.querySelector('[data-test-selector="copo-balance-string"]');
-      let points = copo && /\d/.test(copo.textContent || '')
-        ? lirePoints(copo, 'data-test-selector=copo-balance-string') : null;
-      for (const el of doc.querySelectorAll('[data-a-target], [data-test-selector]')) {
-        for (const at of ['data-a-target', 'data-test-selector']) {
-          const v = el.getAttribute(at);
-          if (!v) continue;
-          if (RE_CLE_CHAT.test(v)) c.marques.add(`${at === 'data-a-target' ? 'a' : 't'}:${v}`);
-          if (RE_PARTAGE.test(v)) c.reperesPartage.add(`${at}=${v}`);
-          if (points !== null || !RE_POINTS.test(v) || RE_BITS.test(v)) continue;
-          if (!/\d/.test(el.textContent || '')) continue;
-          points = lirePoints(el, `${at}=${v}`);
-        }
-      }
-      if (points !== null && !Number.isNaN(points)) {
-        if (c.pointsDebut === null) c.pointsDebut = points;
-        c.points = points;
-      }
-    };
-
-    const dixiemes = (ms) => Math.round(ms / 100) / 10;
-    const bilanLecteur = (l) => {
-      const et = l.etat || {};
-      const o = et.ordre || null;
-      const j = et.journal || null;
-      const verdicts = Object.entries(l.verdicts);
-      return {
-        pont: l.messages > 0,
-        video: et.video ?? null,
-        lecture: et.lecture ?? null,
-        // A-t-il joué une seule fois ? Sinon, son journal liste aussi ses
-        // marques stables : c'est ce qu'il affichait à la place du direct.
-        aJoue: l.aJoue,
-        muet: et.muet ?? null,
-        image: et.image ?? null,
-        pret: et.pret ?? null,
-        erreur: et.erreur ?? null,
-        dureeS: l.premier ? dixiemes(l.dernier.t - l.premier.t) : null,
-        avanceS: l.premier ? Math.round((l.dernier.s - l.premier.s) * 10) / 10 : null,
-        arrets: l.arrets,
-        arretS: dixiemes(l.arretMs),
-        perduesPct: et.images ? Math.round((1000 * et.perdues) / et.images) / 10 : null,
-        debitKbps: l.octetsT > l.octetsT0 ? Math.round((8 * l.octets) / (l.octetsT - l.octetsT0)) : null,
-        pub: et.pub ?? null,
-        pubsVues: l.pubs,
-        pubS: dixiemes(l.pubMs),
-        reperesPub: et.reperesPub && et.reperesPub.length ? et.reperesPub.join(' ') : null,
-        boutonSon: et.boutonSon ?? null,
-        avertissement: et.avertissement ?? null,
-        ordre: o ? {
-          demande: o.ordre,
-          voie: o.voie,
-          muet: o.apres ? o.apres.muet : null,
-          lecture: o.apres ? o.apres.lecture : null,
-          verdict: verdictSon(o),
-        } : null,
-        sons: verdicts.length ? verdicts.map(([k, n]) => `${k} ×${n}`).join(' · ') : null,
-        marquesStables: j ? j.stables : null,
-        marques: j && j.liste.length ? Object.fromEntries(j.liste.map(([cle, d, f, n, fois]) =>
-          [cle, `${d}→${f} s · ${n} relevé(s) · ${fois} apparition(s)`])) : null,
-        marquesEnPlus: j ? j.enPlus : null,
-      };
-    };
-    const bilanChat = (c) => ({
-      memeOrigine: c.memeOrigine,
-      saisie: c.saisie,
-      messages: c.messages,
-      points: c.points,
-      pointsDebut: c.pointsDebut,
-      gainPoints: c.points !== null && c.pointsDebut !== null ? c.points - c.pointsDebut : null,
-      pointsTexte: c.pointsTexte,
-      pointsRepere: c.pointsRepere,
-      partage: c.reperesPartage.size > 0,
-      reperesPartage: c.reperesPartage.size ? [...c.reperesPartage].join(' ') : null,
-      /* Tous les repères du chat, sur UNE ligne triée (a: data-a-target,
-         t: data-test-selector) : d'un rapport à l'autre — chat seul, Chat
-         partagé — la différence nomme ce que Twitch y ajoute. */
-      marques: c.marques.size ? [...c.marques].sort().join(' ') : null,
-    });
-    /* LE CHAT PARTAGÉ MESURÉ SANS REPÈRE : les messages vus dans les deux
-       chats, rapportés au plus petit des deux. Proche de 100 %, les deux
-       chats n'en font qu'un ; proche de zéro, chacun le sien. */
-    const communs = (chats) => {
-      if (chats.length < 2) return null;
-      const [a, b] = chats;
-      let n = 0;
-      for (const t of a.textes) if (b.textes.has(t)) n += 1;
-      const base = Math.min(a.textes.size, b.textes.size);
-      return { messages: n, pct: base ? Math.round((100 * n) / base) : null };
-    };
-
-    const bilan = () => {
-      if (!courante) return derniere || { ouverte: false };
-      courante.chats.forEach(lireChat);
-      const parChaine = (liste, f) => Object.fromEntries(liste.map((x) => [x.chaine, f(x)]));
-      const lg = courante.longues;
-      return {
-        ouverte: true,
-        depuisS: Math.round((Date.now() - courante.t0) / 1000),
-        /* Un stream qui joue dans la page fausse la charge mesurée : la sonde
-           s'ouvre de préférence sur une page sans lecteur. L'état d'un instant
-           ne le prouvait pas — le premier rapport réel, ouvert sur l'accueil
-           et son carrousel, le montrait à l'arrêt au moment du rapport, sans
-           rien dire des douze minutes d'avant. D'où le temps cumulé. */
-        videoDeLaPage: videoDeLaPage(),
-        videoDeLaPageS: dixiemes(courante.pageVideoMs),
-        tachesLongues: lg ? { n: lg.n, ms: lg.ms, ...Object.fromEntries(COUPABLES.map((k) => [k, { ...lg[k] }])),
-          autresNoms: Object.keys(lg.autresNoms).length
-            ? Object.entries(lg.autresNoms).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ×${n}`).join(' · ')
-            : null } : null,
-        lecteurs: parChaine(courante.lecteurs, bilanLecteur),
-        chats: parChaine(courante.chats, bilanChat),
-        chatsCommuns: communs(courante.chats),
-      };
-    };
-
-    const envoyer = (l, ordre) => {
-      try {
-        l.cadre.contentWindow.postMessage({ tse: TSE_SONDE_ORDRE_MSG, ordre }, 'https://player.twitch.tv');
-      } catch { /* lecteur retiré */ }
-    };
-    /* LE SON À UN LECTEUR, LE SILENCE AUX AUTRES : c'est le focus sonore de la
-       salle. Appelée par le bouton de la tuile, elle part d'un vrai clic dans
-       la page — l'activation que le navigateur exige pour laisser parler une
-       vidéo, et que la sonde doit éprouver telle quelle. */
-    const son = (i) => {
-      if (!courante || !courante.lecteurs[i]) return { erreur: 'lecteur inconnu / unknown player' };
-      courante.lecteurs.forEach((l, k) => envoyer(l, k === i ? 'son' : 'muet'));
-      return { son: courante.lecteurs[i].chaine };
-    };
-
-    const fermer = () => {
-      if (!courante) return { fermee: false };
-      derniere = { ...bilan(), ouverte: false };
-      clearInterval(courante.minuteur);
-      if (courante.obs) courante.obs.disconnect();
-      window.removeEventListener('message', surMessage);
-      courante.boite.remove();
-      courante = null;
-      return { fermee: true };
-    };
-
-    const ouvrir = (...demandees) => {
-      const logins = demandees.flat().map((c) => String(c).trim().toLowerCase()).filter(Boolean);
-      const faux = logins.filter((c) => !RE_LOGIN.test(c));
-      if (!logins.length) return { erreur: 'aucune chaîne / no channel' };
-      if (faux.length) return { erreur: `chaîne(s) invalide(s) / invalid channel(s) : ${faux.join(', ')}` };
-      fermer();
-      const uniques = [...new Set(logins)];
-      const retenues = uniques.slice(0, MAX_LECTEURS);
-      const hote = location.hostname;
-
-      const boite = document.createElement('div');
-      boite.id = 'tse-sonde';
-      const nav = document.querySelector(DOM.sidebarRoot);
-      const gauche = nav ? Math.max(0, Math.round(nav.getBoundingClientRect().right)) : 0;
-      boite.style.cssText = `position:fixed;top:50px;left:${gauche}px;right:0;bottom:0;z-index:9000;`
-        + 'overflow:auto;padding:12px;box-sizing:border-box;background:rgba(14,14,16,.97);'
-        + 'color:#efeff1;font:13px/1.4 system-ui,sans-serif;display:flex;flex-direction:column;gap:10px';
-      const tete = document.createElement('div');
-      tete.style.cssText = 'display:flex;gap:12px;align-items:center';
-      const titre = document.createElement('strong');
-      titre.textContent = 'Sonde de la salle / Room probe';
-      const clore = document.createElement('button');
-      clore.type = 'button';
-      clore.textContent = 'Fermer / Close';
-      clore.addEventListener('click', () => fermer());
-      tete.append(titre, clore);
-      const grille = document.createElement('div');
-      grille.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start';
-
-      const lecteurs = retenues.map((chaine, i) => {
-        const tuile = document.createElement('div');
-        tuile.style.cssText = 'display:flex;flex-direction:column;gap:4px';
-        const cadre = document.createElement('iframe');
-        // Le nom AVANT l'adresse, comme pour l'aperçu : c'est lui qui éveille
-        // le pont de sonde, et lui seul.
-        cadre.name = TSE_SONDE_FRAME_NAME;
-        cadre.src = `https://player.twitch.tv/?${new URLSearchParams({
-          channel: chaine, parent: hote, muted: 'true', autoplay: 'true' })}`;
-        cadre.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
-        // 400 × 300 : le minimum que Twitch impose à un lecteur intégré.
-        cadre.style.cssText = 'width:400px;height:300px;border:0;background:#000';
-        const barre = document.createElement('div');
-        barre.style.cssText = 'display:flex;gap:8px;align-items:center';
-        const nom = document.createElement('span');
-        nom.textContent = chaine;
-        const bouton = document.createElement('button');
-        bouton.type = 'button';
-        bouton.textContent = 'Son / Sound';
-        bouton.dataset.tseSondeSon = String(i);
-        bouton.addEventListener('click', () => son(i));
-        barre.append(nom, bouton);
-        tuile.append(cadre, barre);
-        grille.appendChild(tuile);
-        return { chaine, cadre, etat: null, tAvant: 0, messages: 0, pubs: 0, pubAvant: false, pubMs: 0,
-                 aJoue: false, arrets: 0, arretMs: 0, premier: null, dernier: null,
-                 octets: 0, octetsAvant: null, octetsT0: null, octetsT: null, ordreCompte: 0, verdicts: {} };
-      });
-      const chats = retenues.slice(0, MAX_CHATS).map((chaine) => {
-        const cadre = document.createElement('iframe');
-        // Un nom, pour que ses tâches longues soient mises à son compte.
-        cadre.name = TSE_SONDE_CHAT_NAME;
-        cadre.src = `${location.origin}/embed/${encodeURIComponent(chaine)}/chat?`
-          + `${new URLSearchParams({ parent: hote })}${themeTwitch() === 'dark' ? '&darkpopout' : ''}`;
-        cadre.style.cssText = 'width:340px;height:300px;border:0;background:#18181b';
-        grille.appendChild(cadre);
-        return { chaine, cadre, memeOrigine: null, saisie: null, messages: null, points: null,
-                 pointsDebut: null, pointsTexte: null, pointsRepere: null, reperesPartage: new Set(),
-                 textes: new Set(), marques: new Set() };
-      });
-      boite.append(tete, grille);
-      document.body.appendChild(boite);
-
-      /* LES TÂCHES LONGUES, PAR COUPABLE. Le premier rapport réel en comptait
-         87 pour 9 s, sans pouvoir dire à qui : la page de Twitch, ses
-         lecteurs, ses chats ? Les lecteurs (player.twitch.tv) sont du même
-         site que la page, donc souvent du même processus — leur travail
-         bloque alors le fil de la page, et le navigateur l'attribue à
-         l'iframe qui les contient, par son nom. */
-      let longues = null, obs = null;
-      try {
-        longues = { n: 0, ms: 0, ...Object.fromEntries(COUPABLES.map((k) => [k, { n: 0, ms: 0 }])), autresNoms: {} };
-        obs = new PerformanceObserver((liste) => {
-          for (const x of liste.getEntries()) {
-            const ms = Math.round(x.duration);
-            const k = coupable(x);
-            longues.n += 1; longues.ms += ms;
-            longues[k].n += 1; longues[k].ms += ms;
-            if (k !== 'autres') continue;
-            let d = detailAutre(x);
-            if (!(d in longues.autresNoms) && Object.keys(longues.autresNoms).length >= MAX_DETAILS) d = 'divers';
-            longues.autresNoms[d] = (longues.autresNoms[d] || 0) + 1;
-          }
-        });
-        obs.observe({ type: 'longtask' });
-      } catch { longues = null; obs = null; }   // Firefox : pas de « longtask »
-
-      window.addEventListener('message', surMessage);
-      const minuteur = setInterval(() => {
-        if (!courante) return;
-        courante.chats.forEach(lireChat);
-        if (videoDeLaPage()) courante.pageVideoMs += CFG.SONDE_CHAT_MS;
-      }, CFG.SONDE_CHAT_MS);
-      courante = { t0: Date.now(), lecteurs, chats, boite, minuteur, obs, longues, pageVideoMs: 0 };
-      return {
-        ouverte: true,
-        lecteurs: retenues,
-        chats: retenues.slice(0, MAX_CHATS),
-        ...(uniques.length > MAX_LECTEURS ? { ignorees: uniques.slice(MAX_LECTEURS) } : {}),
-      };
-    };
-
-    return { ouvrir, son, fermer, rapport: bilan };
-  })();
-
   /* ── LA SALLE MULTISTREAM (4.24.0.6, phase 1) ──────────────────────────
      Regarder ensemble les streams d'un co-stream. La phase 0 a établi, sur
      le vrai Twitch, tout ce que cette salle suppose :
@@ -14144,17 +13567,18 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          rapport la compte. Les touches 1 à 6 suivent l'ordre de lecture de
          la grille. Reste la prise, transparente. */
       el.append(cadre, prise);
-      return { chaine, el, cadre, prise, etat: null, messages: 0, pubs: 0,
+      /* `changement` dès la création (4.24.0.24) : un lecteur neuf ; rien de
+         ce que le son a entendu avant lui ne le mesure (cf. mesurerSon). */
+      return { chaine, el, cadre, prise, etat: null, messages: 0, pubs: 0, changement: Date.now(),
                pubAvant: false, dernierSon: 0, pauseCachee: false,
                sonEssais: 0, sonEnvoiT: 0, sonDepuis: 0, sonTenu: false, gestesAuDon: 0, qualiteEnvoyee: null,
                ordreCompte: 0, dernierOrdre: null,
                // La sonde du même instant (4.24.0.11).
                serie: [], sauts: 0, api: null, apiTotal: null, faibleLatence: null,
                aberrants: 0, rechargements: 0,
-               // 4.24.0.14 : latences incohérentes, sauts par nature, coupures
-               // d'arrivée, et les passages de l'horloge de la tête de lecture.
+               // 4.24.0.14 : latences incohérentes, sauts par nature, coupures d'arrivée.
                latencesIncoherentes: 0, sautsNature: { estimation: 0, calage: 0, avance: 0, inconnue: 0 },
-               vidange: null, coupures: [], tics: [],
+               vidange: null, coupures: [],
                // 4.24.0.15 : les rattrapages du lecteur lui-même, et si la
                // tuile a déjà été déplacée (recul, avance) avant eux.
                rattrapages: [], rattrapage: null, deplacee: false,
@@ -14164,7 +13588,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                chutes: [], chute: null,
                essai: null, essaiVu: 0, essaiFinVu: 0, ecouteEtat: null, env: [], envDes: 0,
                // 4.24.0.17 : les plages du tampon, telles que l'instance les rend.
-               plages: null };
+               plages: null,
+               // 4.24.0.24 : les octets décodés, cumulés — d'où le débit.
+               octets: 0, octetsAvant: null, octetsT0: null, octetsT: null };
     };
 
     /* UN CÔTÉ DE CHAT : sa colonne, son en-tête, son iframe. Le chat intégré
@@ -14334,6 +13760,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       c.remplacements += 1;
       disposerSalle();
       donnerSon(chaine);
+      oublierTuile(c, cible.chaine);
     };
 
     const creerRemplacant = (chaine) => {
@@ -14371,10 +13798,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (dedans.length < d.n && c.membres.includes(t.chaine) && !dedans.includes(t.chaine)) dedans.push(t.chaine);
       }
       for (const m of c.membres) if (dedans.length < d.n && !dedans.includes(m)) dedans.push(m);
+      const sorties = [];
       for (const t of [...c.tuiles]) {
         if (dedans.includes(t.chaine)) continue;
         t.el.remove();
         c.tuiles.splice(c.tuiles.indexOf(t), 1);
+        sorties.push(t.chaine);
       }
       for (const ch of dedans) {
         if (c.tuiles.some((t) => t.chaine === ch)) continue;
@@ -14437,6 +13866,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // passe à la première.
       if (!c.son || !c.tuiles.some((t) => t.chaine === c.son)) donnerSon(c.tuiles[0].chaine);
       else majChat();
+      // Après le son : si la référence est sortie, la nouvelle est celle qui l'a désormais.
+      for (const ch of sorties) oublierTuile(c, ch);
     };
 
     /* OÙ VONT LE TITRE ET LES COMMANDES (4.24.0.9). Deux chats : le titre en
@@ -14484,6 +13915,41 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       c.evenements.push({ t: Date.now() - c.t0, chaine, texte, latence: r3(latence) });
       if (c.evenements.length > CFG.SALLE_EVENEMENTS_MAX) c.evenements.shift();
     };
+    /* CE QUE LA SALLE COÛTE À LA PAGE (4.24.0.24, à l'audit) : la durée de
+       chaque pas — relevés, chats, calage, écoute comprise —, et à part
+       celle de l'écoute, qui corrèle les enveloppes toutes les cinq
+       secondes, la plus lourde. Mesurée sur la machine de l'utilisateur,
+       pas estimée : au banc, 4 ms par paire. */
+    const nouveauCout = () => ({ n: 0, total: 0, max: 0, paires: 0 });
+    const compter = (o, ms, paires = 0) => {
+      o.n += 1; o.total += ms; o.paires += paires;
+      if (ms > o.max) o.max = ms;
+    };
+    const texteCout = (o) => (!o.n ? null : `${(o.total / o.n).toFixed(1)} ms en moyenne · ${o.max.toFixed(1)} au plus · ${o.n} fois`
+      + (o.paires ? ` · ${(o.total / o.paires).toFixed(1)} ms par paire` : ''));
+    /* LES TÂCHES LONGUES PENDANT LA SALLE (4.24.0.24, reprise de la sonde
+       de phase 0) : plus de 50 ms d'affilée sur le fil de la page, par
+       coupable — la page elle-même (la salle y compris), les lecteurs, les
+       chats. Les lecteurs (player.twitch.tv) sont du même site que la page,
+       souvent du même processus : leur travail la bloque aussi, et le
+       navigateur l'attribue à l'iframe, par son nom. Chromium seul. */
+    const COUPABLES = ['page', 'lecteurs', 'chats', 'autres'];
+    const coupable = (x) => {
+      if (x.name === 'self') return 'page';
+      const nom = x.attribution && x.attribution[0] ? x.attribution[0].containerName : '';
+      return nom === TSE_SALLE_FRAME_NAME ? 'lecteurs' : nom === TSE_SALLE_CHAT_NAME ? 'chats' : 'autres';
+    };
+    const observerTaches = (c) => {
+      try {
+        const l = Object.fromEntries(COUPABLES.map((k) => [k, { n: 0, ms: 0 }]));
+        const obs = new PerformanceObserver((liste) => {
+          for (const x of liste.getEntries()) { const k = l[coupable(x)]; k.n += 1; k.ms += Math.round(x.duration); }
+        });
+        obs.observe({ type: 'longtask' });
+        c.longues = l; c.obsLongues = obs;
+      } catch { c.longues = null; c.obsLongues = null; }   // pas de « longtask » : Firefox
+    };
+    const texteTaches = (l) => (!l ? null : COUPABLES.map((k) => `${k} ${l[k].n} · ${l[k].ms} ms`).join(' ; '));
     /* LA NATURE D'UN SAUT, lue à la position (4.24.0.14). Au troisième
        rapport réel, dix « sauts » sur une tuile, et un seul vrai : la lecture
        y avait calé 2,2 s ; les neuf autres, c'était l'estimation du lecteur
@@ -14495,27 +13961,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (prec.po === null || ech.po === null) return 'inconnue';
       const e = (ech.po - prec.po) - dt * (ech.v ?? 1);
       return e < -0.3 ? 'calage' : e > 0.3 ? 'avance' : 'estimation';
-    };
-    /* LA LATENCE PAR L'HORLOGE (4.24.0.14) : à chaque passage ORDINAIRE de
-       l'horloge de la tête de lecture — celui du pas le plus fréquent, 1000 ms
-       si elle est bien arrondie à la seconde —, `heure du passage − valeur`
-       (cf. le pont). Un passage d'un autre pas, c'est un saut de la lecture :
-       il ne date rien. Entre deux instants, en secondes. */
-    const pasHorloge = (t) => {
-      const n = new Map();
-      for (const p of t.tics) n.set(p[2], (n.get(p[2]) || 0) + 1);
-      let meilleur = null;
-      for (const [pas, k] of n) if (pas > 0 && (!meilleur || k > meilleur[1])) meilleur = [pas, k];
-      return meilleur ? meilleur[0] : null;
-    };
-    const latencesHorloge = (t, de = -Infinity, a = Infinity) => {
-      const pas = pasHorloge(t);
-      return t.tics.filter(([h, , p]) => p === pas && h >= de && h <= a).map(([h, x]) => (h - x) / 1000);
-    };
-    // La médiane, sur trois passages au moins.
-    const latenceHorloge = (t, de, a) => {
-      const l = latencesHorloge(t, de, a);
-      return l.length >= 3 ? mediane(l) : null;
     };
     const demanderReleves = (c) => {
       // Le tour précédent est clos : son écart, s'il a au moins deux réponses.
@@ -14531,11 +13976,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         }
       }
       c.releveN += 1;
-      // L'horloge de la tête de lecture tourne pendant l'écoute — pour le
-      // rapport seulement, depuis la 4.24.0.21.
-      const horloge = c.ecoute.actif;
       for (const t of c.tuiles) {
-        envoyer(t, 'releve', { n: c.releveN, api: !t.api, ecoute: c.ecoute.actif, horloge });
+        envoyer(t, 'releve', { n: c.releveN, api: !t.api, ecoute: c.ecoute.actif });
       }
     };
     // Un rattrapage parti si tôt après un recul le reprend (4.24.0.19, cf. plus bas).
@@ -14652,18 +14094,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           if (Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]) && p[0] >= t.envDes) t.env.push(p);
         }
         if (t.env.length) {
+          // Quarante secondes gardées, coupées d'un geste — pas bloc par bloc.
           const limite = t.env[t.env.length - 1][0] - 2 * CFG.SALLE_ECOUTE_FENETRE_MS;
-          while (t.env.length && t.env[0][0] < limite) t.env.shift();
+          let i = 0;
+          while (i < t.env.length && t.env[i][0] < limite) i++;
+          if (i) t.env.splice(0, i);
         }
-      }
-      // Les passages de l'horloge de la tête de lecture (cf. le pont) :
-      // [heure du passage, valeur, pas].
-      if (Array.isArray(d.tics) && d.tics.length) {
-        for (const p of d.tics) {
-          if (Array.isArray(p) && p.length === 3 && p.every(Number.isFinite)) t.tics.push(p);
-        }
-        // Dix minutes : le protocole 4 en dure plus de quatre (4.24.0.15).
-        if (t.tics.length > 600) t.tics.splice(0, t.tics.length - 600);
       }
       if (es && Number.isFinite(es.n) && es.n !== t.essaiVu) {
         t.essaiVu = es.n;
@@ -14682,7 +14118,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
       if (es && es.fin && t.essaiFinVu !== es.n) {
         t.essaiFinVu = es.n;
-        noter(c, t.chaine, `fin de ${es.type}`, ech.l);
+        /* CE QUE LE DÉPLACEMENT A DONNÉ (4.24.0.24, à l'audit) : le pont
+           relève la position avant le seekTo et une demi-seconde après —
+           lus jusqu'ici par personne. La lecture a continué entre les deux :
+           ce qu'elle a bougé, moins le temps écoulé, c'est le déplacement
+           obtenu, à comparer à celui demandé. */
+        const obtenu = [es.avant, es.apres, es.ecouleS].every(Number.isFinite) ? r3(es.apres - es.avant - es.ecouleS) : null;
+        noter(c, t.chaine, `fin de ${es.type}${obtenu === null ? ''
+          : ` · position ${es.avant} → ${es.apres} en ${es.ecouleS} s : ${obtenu > 0 ? '+' : ''}${obtenu} s`}`, ech.l);
       }
       t.essai = es;
       /* UN SAUT, ce n'est pas une latence qui bouge : c'est une latence qui
@@ -14813,14 +14256,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        centrée et réduite) : ce sont les attaques — une syllabe, un bruit —
        qui s'alignent, pas le niveau moyen. Pour chaque décalage de −6 à +6 s,
        la corrélation des deux ; le plus haut pic donne le décalage.
-       LES NIVEAUX AUSSI, à côté : le banc ne départage pas les deux — son
-       signal réussit aux deux —, c'est le vrai son qui le dira.
+       PLUS LES NIVEAUX (4.24.0.24, à l'audit) : leur corrélation, calculée
+       à côté depuis la 4.24.0.11 pour que le vrai son départage, doublait le
+       coût de chaque calcul — 3,7 ms de plus par paire, 18 ms toutes les
+       cinq secondes à six streams — pour une ligne du rapport. Le vrai son a
+       départagé : vingt rapports réels, et rien n'a jamais décidé sur eux.
        CONVENTION : pour la paire « a~b », un décalage positif veut dire que
        le même son passe PLUS TARD sur a que sur b — comme `latence(a) −
        latence(b)`, que le rapport met en regard (« attendu »).
        Deux voix qui se croisent donnent deux pics, décalés du délai de leur
        salon vocal de part et d'autre : le second pic est au rapport aussi. */
-    const variations = (env, t0, n, enVariations = true) => {
+    const variations = (env, t0, n) => {
       const pas = CFG.SALLE_ECOUTE_PAS_MS;
       const x = new Float64Array(n);
       let j = 0;
@@ -14833,7 +14279,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
       const d = new Float64Array(n - 1);
       let m = 0;
-      for (let i = 1; i < n; i++) { d[i - 1] = enVariations ? x[i] - x[i - 1] : x[i]; m += d[i - 1]; }
+      for (let i = 1; i < n; i++) { d[i - 1] = x[i] - x[i - 1]; m += d[i - 1]; }
       m /= d.length;
       let v = 0;
       for (let i = 0; i < d.length; i++) v += (d[i] - m) ** 2;
@@ -14841,7 +14287,61 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       for (let i = 0; i < d.length; i++) d[i] = (d[i] - m) / et;
       return d;
     };
-    const correler = (ea, eb, enVariations = true) => {
+    /* LA TRANSFORMÉE DE FOURIER (4.24.0.24, à l'audit). Les sommes de la
+       corrélation — pour chaque décalage L, Σ a[i]·b[i − L] — se calculaient
+       une à une : 2 000 points fois 1 201 décalages par paire, 5,8 ms dans le
+       navigateur du banc, et à six streams 55 ms d'un bloc au pire — une
+       tâche longue toutes les cinq secondes. Les mêmes sommes, toutes à la
+       fois, par le produit de deux transformées : a et b complétés de zéros
+       jusqu'à N ≥ longueur + 600, rien ne se replie sur les décalages
+       cherchés. Éprouvé contre l'ancien calcul sur 2 985 enveloppes —
+       décalées, bruitées, à deux voix, coupées de silences, de six à
+       quarante secondes : aucun pic différent, r à 10⁻¹³ près ; sur une
+       fenêtre de vingt secondes, 0,73 ms au lieu de 3,36 (cf. le 189). Un
+       signal plat — un silence — ne se transforme pas : ses sommes sont
+       nulles, exactement, comme avant. */
+    const fft = (re, im, inverse) => {
+      const N = re.length;
+      for (let i = 1, j = 0; i < N; i++) {
+        let bit = N >> 1;
+        for (; j & bit; bit >>= 1) j ^= bit;
+        j ^= bit;
+        if (i < j) { let x = re[i]; re[i] = re[j]; re[j] = x; x = im[i]; im[i] = im[j]; im[j] = x; }
+      }
+      for (let len = 2; len <= N; len <<= 1) {
+        const angle = ((inverse ? 2 : -2) * Math.PI) / len, wr = Math.cos(angle), wi = Math.sin(angle), demi = len / 2;
+        for (let i = 0; i < N; i += len) {
+          let cr = 1, ci = 0;
+          for (let k = 0; k < demi; k++) {
+            const p = i + k, q = p + demi;
+            const vr = re[q] * cr - im[q] * ci, vi = re[q] * ci + im[q] * cr;
+            re[q] = re[p] - vr; im[q] = im[p] - vi;
+            re[p] += vr; im[p] += vi;
+            const x = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = x;
+          }
+        }
+      }
+      if (inverse) for (let i = 0; i < N; i++) { re[i] /= N; im[i] /= N; }
+    };
+    const plat = (x) => x.every((v) => v === 0);
+    // Σ a[i]·b[i − L], pour L de −maxL à +maxL : à l'indice L, ou N + L quand L < 0.
+    const sommes = (a, b, maxL) => {
+      let N = 1;
+      while (N < a.length + maxL) N <<= 1;
+      const ar = new Float64Array(N), ai = new Float64Array(N), br = new Float64Array(N), bi = new Float64Array(N);
+      if (plat(a) || plat(b)) return ar;
+      ar.set(a); br.set(b);
+      fft(ar, ai, false); fft(br, bi, false);
+      // A · conj(B)
+      for (let k = 0; k < N; k++) {
+        const x = ar[k] * br[k] + ai[k] * bi[k];
+        ai[k] = ai[k] * br[k] - ar[k] * bi[k];
+        ar[k] = x;
+      }
+      fft(ar, ai, true);
+      return ar;
+    };
+    const correler = (ea, eb) => {
       if (ea.length < 3 || eb.length < 3) return null;
       const A = [...ea].sort((p, q) => p[0] - q[0]);
       const Bv = [...eb].sort((p, q) => p[0] - q[0]);
@@ -14850,15 +14350,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const debut = Math.max(A[0][0], Bv[0][0], fin - CFG.SALLE_ECOUTE_FENETRE_MS);
       if (fin - debut < CFG.SALLE_ECOUTE_MIN_MS) return null;
       const n = Math.floor((fin - debut) / pas) + 1;
-      const a = variations(A, debut, n, enVariations), b = variations(Bv, debut, n, enVariations);
+      const a = variations(A, debut, n), b = variations(Bv, debut, n);
       const maxL = Math.round(CFG.SALLE_ECOUTE_MAX_MS / pas);
+      const S = sommes(a, b, maxL);
       const rs = [];
       for (let L = -maxL; L <= maxL; L++) {
-        // a(t) face à b(t − L) : un pic en L > 0 dit que a est en retard.
-        let s = 0, k = 0;
-        const i0 = Math.max(0, L), i1 = Math.min(a.length, b.length + L);
-        for (let i = i0; i < i1; i++) { s += a[i] * b[i - L]; k++; }
-        rs.push(k >= a.length / 2 ? s / k : NaN);
+        // a(t) face à b(t − L) : un pic en L > 0 dit que a est en retard. La
+        // moyenne sur ce qui se recouvre ; moins de la moitié, rien.
+        const k = Math.min(a.length, b.length + L) - Math.max(0, L);
+        rs.push(k >= a.length / 2 ? S[(L + S.length) % S.length] / k : NaN);
       }
       const valides = rs.filter((r) => !Number.isNaN(r));
       if (!valides.length) return null;
@@ -14889,42 +14389,41 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const m = mediane(diffs);
       return m === null ? null : Math.round(m * 1000);
     };
-    // Le même écart, par l'horloge de la tête de lecture, sur la fenêtre
-    // même du calcul (4.24.0.14) : en ms, a − b, comme l'attendu.
-    const horlogeEntre = (ta, tb, de, a) => {
-      const la = latenceHorloge(ta, de, a), lb = latenceHorloge(tb, de, a);
-      return la === null || lb === null ? null : Math.round((la - lb) * 1000);
-    };
     const ecouter = (c) => {
       if (!c.ecoute.actif || c.releveN % CFG.SALLE_ECOUTE_TOUS) return;
+      /* ONGLET CACHÉ, RIEN À ENTENDRE (4.24.0.24, à l'audit) : les tuiles
+         muettes y sont en pause (cf. surVisibilite), aucune paire ne s'y
+         mesure — et chaque calcul coûtait ses millisecondes pour rien. */
+      if (document.hidden) return;
       /* LE SENS DE LA PAIRE, figé à l'allumage (4.24.0.14) : la tuile qui a
          le son à ce moment-là. Le protocole 3 passe le son à l'autre tuile
          pendant une minute ; la paire ne doit pas se retourner avec lui. */
       const ref = c.tuiles.find((t) => t.chaine === c.ecoute.ref) || c.tuiles.find((t) => t.chaine === c.son) || c.tuiles[0];
       if (!ref) return;
+      const t0 = performance.now();
+      let paires = 0;
       for (const t of c.tuiles) {
         if (t === ref) continue;
         const res = correler(ref.env, t.env);
-        const niv = res && correler(ref.env, t.env, false);
         if (!res) continue;
+        paires += 1;
         const cle = `${ref.chaine}~${t.chaine}`;
         const p = c.ecoute.paires[cle] || (c.ecoute.paires[cle] = { dernier: null, historique: [] });
-        p.dernier = { ...res, attendu: attenduEntre(ref, t), niveaux: niv ? { ms: niv.ms, z: niv.z } : null };
+        p.dernier = { ...res, attendu: attenduEntre(ref, t) };
         /* CHAQUE CALCUL EN ENTIER (4.24.0.13) : au second rapport réel, les
            décalages sont passés de ~550 à ~1000 ms sans que la latence ne
            bouge, et l'historique ne gardait que le premier pic. Deux voix
            qui se croisent donnent deux pics ; pour le trancher, il faut les
-           deux, leur force, et l'attendu de CE calcul. */
-        /* Et, depuis la 4.24.0.14, l'écart par l'horloge de la tête de
-           lecture, et la fenêtre du calcul — le protocole 3 range chaque
-           calcul dans sa phase. CENT CINQUANTE calculs, douze minutes et
-           demie d'écoute (4.24.0.17) : au septième rapport réel, soixante
-           n'en gardaient plus le début, ni rien d'avant l'alignement. */
+           deux, leur force, et l'attendu de CE calcul — et sa fenêtre
+           (4.24.0.14). CENT CINQUANTE calculs, douze minutes et demie
+           d'écoute (4.24.0.17) : au septième rapport réel, soixante n'en
+           gardaient plus le début. */
         p.historique.push({ ms: res.ms, r: res.r, z: res.z, ms2: res.ms2, r2: res.r2, attendu: p.dernier.attendu,
-                            sync: horlogeEntre(ref, t, res.debut, res.fin), debut: res.debut, fin: res.fin });
+                            debut: res.debut, fin: res.fin });
         if (p.historique.length > 150) p.historique.shift();
         c.ecoute.calculs += 1;
       }
+      if (paires) compter(c.cout.ecoute, performance.now() - t0, paires);
     };
     const sonder = (c) => {
       demanderReleves(c);
@@ -14935,7 +14434,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const c = courante;
       if (!c || !e.data || ![TSE_SALLE_ETAT_MSG, TSE_SALLE_RELEVE_MSG, TSE_SALLE_CONSOLE_MSG].includes(e.data.tse)) return;
       // `source` ancre le message à UNE de nos tuiles : la seule vérification
-      // qui compte, comme pour l'aperçu et la sonde.
+      // qui compte, comme pour l'aperçu.
       const t = c.tuiles.find((x) => x.cadre.contentWindow === e.source);
       if (!t) return;
       if (e.data.tse === TSE_SALLE_RELEVE_MSG) { surReleve(c, t, e.data); return; }
@@ -14955,6 +14454,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (t.etat && et.qualite && t.etat.qualite && et.qualite !== t.etat.qualite) {
         noter(c, t.chaine, `qualité ${t.etat.qualite} → ${et.qualite}`, fini(et.latence));
       }
+      /* LES OCTETS DÉCODÉS, cumulés (4.24.0.24, comme le faisait la sonde) :
+         Twitch remplace parfois son élément vidéo, et le compteur du nouveau
+         repart de zéro — un compteur qui baisse est un compteur neuf. */
+      const o8 = fini(et.octets);
+      if (o8 !== null) {
+        const maintenant = Date.now();
+        if (t.octetsAvant === null) t.octetsT0 = maintenant;
+        else t.octets += o8 >= t.octetsAvant ? o8 - t.octetsAvant : o8;
+        t.octetsAvant = o8;
+        t.octetsT = maintenant;
+      }
+      if (et.avertissementVu && !(t.etat && t.etat.avertissementVu)) {
+        noter(c, t.chaine, `avertissement de contenu à l'écran${TSE_GATE_ENABLED ? ' — levé, comme dans l\'aperçu' : ''}`);
+      }
       t.etat = et;
       if (et.pub && !t.pubAvant) t.pubs += 1;
       if (!!et.pub !== t.pubAvant) noter(c, t.chaine, et.pub ? 'début de pub' : 'fin de pub', fini(et.latence));
@@ -14968,8 +14481,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
     };
 
-    // Pas de spectateur fantôme : onglet caché, les tuiles muettes se mettent
-    // en pause ; celle qui a le son continue, puisqu'on l'écoute.
+    /* Pas de spectateur fantôme : onglet caché, les tuiles muettes se mettent
+       en pause ; celle qui a le son continue, puisqu'on l'écoute.
+       ET UNE PAUSE DÉLIE (4.24.0.24, à l'audit) : reprise, une tuile repart
+       d'où elle s'était arrêtée, ou du direct si son lecteur recharge — au
+       second rapport réel, il rechargeait. Sa relation à la référence n'est
+       plus connue : signalée à la pause comme à la reprise, elle redevient
+       libre et se remesure, au lieu de suivre la référence sur la foi d'un
+       calage d'avant. */
     const surVisibilite = () => {
       const c = courante;
       if (!c) return;
@@ -14980,9 +14499,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           envoyer(t, 'pause');
           t.pauseCachee = true;
           c.pausesCachees += 1;
+          signaler(c, t.chaine, 'pause');
         } else if (t.pauseCachee) {
           envoyer(t, 'lecture');
           t.pauseCachee = false;
+          signaler(c, t.chaine, 'reprise');
         }
       }
     };
@@ -15049,7 +14570,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (cle.split('~').includes(login)) delete c.ecoute.paires[cle];
       }
       const k = c.calage;
-      if (k) for (const m of [k.vus, k.etats, k.coups, k.gel, k.faible, k.dits, k.deplacements]) delete m[login];
+      if (k) for (const m of [k.vus, k.etats, k.coups, k.faible, k.dits, k.deplacements]) delete m[login];
       if (c.ecoute.ref === login && c.ecoute.actif) {
         // L'écoute repart sur celle qui a désormais le son.
         ecoute(false); ecoute(true);
@@ -15058,6 +14579,25 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           if (k.etat === 'actif') journaliser(c, k, `référence nouvelle : ${c.ecoute.ref || '—'} (la tuile qui a le son), tout se remesure`);
         }
       }
+    };
+    /* UNE TUILE QUI SORT DE LA GRILLE (4.24.0.24, à l'audit) — au banc, ou
+       parce que la fenêtre a rétréci : son lecteur est détruit. Revenue, ce
+       sera un autre lecteur, à une autre position, d'une autre latence. Ce
+       que le calage savait d'elle n'est plus vrai de rien : la garder
+       « calée » l'aurait fait suivre la référence sur la foi d'une relation
+       qui n'existe plus, et l'historique de sa paire — celui de l'ANCIEN
+       lecteur — aurait pesé sur la mesure du nouveau. Elle est oubliée,
+       comme une tuile partie hors ligne. */
+    const oublierTuile = (c, login) => {
+      const k = c.calage;
+      const connue = !!c.ecoute.paires[`${c.ecoute.ref}~${login}`] || !!(k && (k.etats[login] || k.vus[login]));
+      // Partie hors ligne, elle n'est plus membre : retirerMembre le dit déjà.
+      if (c.membres.includes(login)) {
+        c.sorties += 1;
+        noter(c, login, 'sortie de la grille — son lecteur détruit, sa mesure repart de zéro');
+        if (connue && k && k.etat === 'actif') journaliser(c, k, `${login} : sortie de la grille — oubliée`);
+      }
+      oublierAuCalage(c, login);
     };
     const retirerMembre = (c, login) => {
       c.horsLigne.delete(login);
@@ -15088,6 +14628,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          sur une page de Twitch qui peut réécrire ses paramètres après coup,
          et ce n'est pas un changement de page. */
       if (location.pathname !== c.chemin) { fermer('navigation'); return; }
+      const t0 = performance.now();
       if (zone().cle !== c.zoneCle) disposerSalle();
       comparerChats();
       surveillerDirects(c);
@@ -15098,6 +14639,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       for (const v of c.pausees) {
         if (v.isConnected && !v.paused) { try { v.pause(); } catch { /* ignore */ } c.repauses += 1; }
       }
+      compter(c.cout.pas, performance.now() - t0);
     };
 
     // La pente, par les moindres carrés, de points [heure ms, valeur] : en
@@ -15179,19 +14721,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
            médiane · max. Jusqu'où un recul peut aller : jamais mesuré. */
         arriere: trois(s.map((x) => x.ar ?? null)),
         arriereLecteur: trois(s.map((x) => x.arL ?? null)),
-        /* L'HORLOGE DE LA TÊTE DE LECTURE (4.24.0.14) : sa latence, médiane et
-           dispersion (demi-écart interquartile), le nombre de passages et
-           leur pas — et, sur la même période, celle du lecteur. */
-        horloge: (() => {
-          const l = latencesHorloge(t);
-          if (l.length < 3) return null;
-          const tri = [...l].sort((a, b) => a - b);
-          const q = (f) => tri[Math.floor(f * (tri.length - 1))];
-          const de = t.tics[0][0], a = t.tics[t.tics.length - 1][0];
-          const lecteur = mediane(s.filter((x) => x.t !== null && x.t >= de && x.t <= a && x.l !== null && !x.lIncoherente).map((x) => x.l));
-          return `${r3(mediane(l))} s · ±${Math.round(((q(0.75) - q(0.25)) / 2) * 1000)} ms · ${l.length} passages de ${pasHorloge(t)} ms`
-            + ` · lecteur ${lecteur === null ? '—' : `${r3(lecteur)} s`}`;
-        })(),
         /* Ce que le premier rapport réel a appris à regarder (4.24.0.12) :
            la part d'AMONT — latence moins tampon, l'âge de la vidéo à son
            arrivée —, la CADENCE à laquelle le lecteur remet sa latence à jour
@@ -15224,14 +14753,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
            latence à jour que toutes les deux secondes, en alternance de
            ±0,13 s — deux mises à jour, c'est une alternance entière. */
         ecart4s: e.length >= 4 ? trois(e.slice(3).map((x, i) => (e[i].e + e[i + 1].e + e[i + 2].e + x.e) / 4)) : null,
-        /* L'écart par l'horloge de la tête de lecture (4.24.0.14) : sur les
-           vingt dernières secondes, la plus grande latence d'horloge moins la
-           plus petite — comme `ecart`, sans l'estimation du lecteur. */
-        ecartHorloge: (() => {
-          const fin = Math.max(0, ...c.tuiles.map((t) => (t.tics.length ? t.tics[t.tics.length - 1][0] : 0)));
-          const l = c.tuiles.map((t) => latenceHorloge(t, fin - 20_000, fin)).filter((x) => x !== null);
-          return l.length >= 2 ? r3(Math.max(...l) - Math.min(...l)) : null;
-        })(),
         evenementsTotal: c.evenementsTotal,
         /* Trois chiffres (4.24.0.14) : « 10 » est une clé numérique, rangée
            avant « 01 » par JavaScript — le journal s'imprimait dans le
@@ -15262,9 +14783,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const FORT = 0.6;
     const ligneCalcul = (h) => `${h.ms}`
       + (h.ms2 !== null && h.r > 0 ? ` (${h.ms2} ${Math.round((100 * h.r2) / h.r)} %)` : '')
-      + ` z ${h.z.toFixed(1)}${h.attendu !== null ? ` att ${h.attendu}` : ''}`
-      // L'écart par l'horloge de la tête de lecture, quand il y en a (4.24.0.14).
-      + (Number.isFinite(h.sync) ? ` sync ${h.sync}` : '');
+      + ` z ${h.z.toFixed(1)}${h.attendu !== null ? ` att ${h.attendu}` : ''}`;
     /* LES PICS STABLES, sur tout l'historique (4.24.0.13). La règle, écrite
        pour être relue : les calculs dont le pic tient (z ≥ 5) ; leur premier
        pic, et le second quand il pèse au moins 60 % du premier ; triés, puis
@@ -15288,15 +14807,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        ET PAS AU BORD : un pic à plus de 5 s — à moins d'une seconde des ±6 s
        cherchées — est écarté, et compté. Au quatrième rapport réel, cinq des
        six pics qui tenaient y étaient, à six secondes de l'attendu. SAUF
-       s'il tombe à moins d'une seconde de ce que l'horloge du calcul (à
-       défaut, la latence) attend : un vrai décalage de 5,5 s — une chaîne en
-       latence normale face à une en faible latence — reste. */
+       s'il tombe à moins d'une seconde de ce que la latence attend : un vrai
+       décalage de 5,5 s — une chaîne en latence normale face à une en faible
+       latence — reste. */
     const BORD_MS = CFG.SALLE_ECOUTE_MAX_MS - 1_000;
-    const auBord = (h, ms) => {
-      if (Math.abs(ms) <= BORD_MS) return false;
-      const attendu = Number.isFinite(h.sync) ? h.sync : h.attendu;
-      return !(Number.isFinite(attendu) && Math.abs(ms - attendu) <= 1_000);
-    };
+    const auBord = (h, ms) => Math.abs(ms) > BORD_MS && !(Number.isFinite(h.attendu) && Math.abs(ms - h.attendu) <= 1_000);
     /* Un quart de seconde de recouvrement toléré — un peu plus de 1 % de la
        fenêtre : les calculs tombent toutes les cinq secondes à quelques
        millisecondes près, et la règle stricte sauterait une fenêtre sur
@@ -15366,8 +14881,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const d = p.dernier;
         paires[cle] = `décalage ${d.ms} ms · r ${d.r.toFixed(2)} · z ${d.z.toFixed(1)}`
           + (d.ms2 !== null ? ` · 2e pic ${d.ms2} ms (r ${d.r2.toFixed(2)})` : '')
-          + ` · attendu ${d.attendu === null ? '—' : `${d.attendu} ms`} · ${d.secondes} s`
-          + (d.niveaux ? ` · niveaux ${d.niveaux.ms} ms (z ${d.niveaux.z.toFixed(1)})` : '');
+          + ` · attendu ${d.attendu === null ? '—' : `${d.attendu} ms`} · ${d.secondes} s`;
         historique[cle] = p.historique.map(ligneCalcul).join(' · ');
         /* DEPUIS LE DERNIER DÉPLACEMENT (4.24.0.15) : au cinquième rapport
            réel, « deux pics stables : 140 et 1210 → milieu 675 » réunissait
@@ -15434,6 +14948,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         ecoute: bilanEcoute(c),
         // LE CALAGE PAR LE SON (4.24.0.21) : ses mesures, ses corrections.
         calage: bilanCalage(c),
+        /* CE QUE LA SALLE COÛTE (4.24.0.24, à l'audit) : la durée de ses pas
+           et de son écoute, mesurée ; les tâches longues de la page pendant
+           qu'elle est ouverte, par coupable ; les tuiles sorties de la grille,
+           et oubliées du calage. */
+        charge: {
+          pas: texteCout(c.cout.pas),
+          ecoute: texteCout(c.cout.ecoute),
+          tachesLongues: texteTaches(c.longues),
+          sorties: c.sorties,
+        },
         chatPartage: c.partage,
         chatsCompares: c.comparaison ? `${c.comparaison.messages} messages · ${c.comparaison.communs} communs` : null,
         chatMasque: !d.chat,
@@ -15454,6 +14978,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           lecteur: t.etat ? t.etat.lecteur ?? null : null,
           qualite: t.etat ? t.etat.qualite ?? null : null,
           auto: t.etat ? t.etat.auto ?? null : null,
+          /* LA CHARGE DU LECTEUR (4.24.0.24) : son débit, cumulé depuis le
+             premier relevé, et la part d'images perdues — la machine suit-elle
+             tant de streams ? */
+          debitKbps: t.octetsT > t.octetsT0 ? Math.round((8 * t.octets) / (t.octetsT - t.octetsT0)) : null,
+          imagesPerdues: t.etat && Number.isFinite(t.etat.images) && t.etat.images > 0
+            ? `${Math.round((1000 * (t.etat.perdues || 0)) / t.etat.images) / 10} % de ${t.etat.images}` : null,
+          // L'avertissement de contenu (4.24.0.24) : jamais vu, à l'écran, ou levé — et les clics.
+          avertissement: !t.etat || !t.etat.avertissementVu ? null
+            : `${t.etat.avertissement ? 'à l\'écran' : 'levé'} · ${t.etat.avertissementClics || 0} clic(s)`,
           // Pour l'étude de la synchronisation : la latence du direct selon le
           // lecteur, son tampon, sa vitesse (lecture seule).
           latence: t.etat ? t.etat.latence ?? null : null,
@@ -15476,7 +15009,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             Number.isFinite(t.ecouteEtat.reliaisons) ? `reliée ${t.ecouteEtat.reliaisons}` : null,
             // 4.24.0.22 : la voie de la mesure, et les pistes que la capture a vues — une de plus à chaque source.
             typeof t.ecouteEtat.voie === 'string' ? t.ecouteEtat.voie : null,
-            Number.isFinite(t.ecouteEtat.pistes) ? `pistes ${t.ecouteEtat.pistes}` : null]
+            Number.isFinite(t.ecouteEtat.pistes) ? `pistes ${t.ecouteEtat.pistes}` : null,
+            /* 4.24.0.24 : les blocs reçus en dix secondes — la fréquence sur
+               1024, fois dix : 431 à 44,1 kHz, 469 à 48 ; moins, la capture a faim. */
+            Number.isFinite(t.ecouteEtat.blocs) ? `blocs ${t.ecouteEtat.blocs}/10 s` : null]
             .filter(Boolean).join(' · ') : null,
           // Les ordres « son » envoyés depuis qu'elle l'a reçu, et s'il a tenu.
           sonEssais: t.sonEssais,
@@ -15494,6 +15030,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       arreterCalage(c, 'arrêté : salle fermée');
       derniere = { ...bilan(), ouverte: false, fermeture: raison };
       clearInterval(c.minuteur);
+      if (c.obsLongues) c.obsLongues.disconnect();
       window.removeEventListener('message', surMessage);
       window.removeEventListener('resize', surRedim);
       document.removeEventListener('keydown', surTouche, true);
@@ -15654,8 +15191,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (!logins.length) return { erreur: 'aucune chaîne / no channel' };
       if (faux.length) return { erreur: `chaîne(s) invalide(s) / invalid channel(s) : ${faux.join(', ')}` };
       fermer('remplacee');
-      // Deux calques au même endroit ne se liraient pas : la sonde s'efface.
-      sonde.fermer();
       const uniques = [...new Set(logins)];
       const membres = uniques.slice(0, CFG.SALLE_MAX);
 
@@ -15733,7 +15268,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         // Les streams qui s'arrêtent (4.24.0.22) : la dernière relecture, le
         // premier constat « hors ligne » de chacun, et ceux qui sont partis.
         titre, directsT: 0, horsLigne: new Map(), retirees: [],
+        // Ce qu'elle coûte, et les tâches longues pendant qu'elle est ouverte (4.24.0.24).
+        cout: { pas: nouveauCout(), ecoute: nouveauCout() }, longues: null, obsLongues: null,
+        // Les tuiles sorties de la grille, et ce que le calage en a oublié (4.24.0.24).
+        sorties: 0,
       };
+      observerTaches(courante);
       window.addEventListener('message', surMessage);
       window.addEventListener('resize', surRedim);
       document.addEventListener('keydown', surTouche, true);
@@ -15819,8 +15359,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (actif && !c.ecoute.actif) { c.ecoute.paires = {}; c.ecoute.calculs = 0; c.ecoute.ref = c.son; c.ecoute.coupe = null; }
       c.ecoute.actif = !!actif;
       c.ecoute.depuis = c.ecoute.actif ? Date.now() : null;
-      // Les passages de l'horloge restent au rapport une fois l'écoute éteinte.
-      for (const t of c.tuiles) { t.env = []; if (c.ecoute.actif) t.tics = []; }
+      for (const t of c.tuiles) t.env = [];
       noter(c, null, c.ecoute.actif ? 'écoute allumée' : 'écoute éteinte');
       return { ecoute: c.ecoute.actif };
     };
@@ -15884,7 +15423,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     });
     const tuileDe = (c, nom) => c.tuiles.find((x) => x.chaine === nom) || null;
     /* CE QUI CHANGE LA PAIRE (cf. surReleve) : un rechargement, une chute,
-       un saut, la fin d'un rattrapage — la lecture a bougé, ce que le son a
+       un saut, la fin d'un rattrapage, la pause de l'onglet caché et sa
+       reprise (cf. surVisibilite) — la lecture a bougé, ce que le son a
        entendu avant ne dit plus où elle est. Pas une coupure d'arrivée : la
        lecture continue sur son tampon. */
     const signaler = (c, chaine, quoi) => {
@@ -16005,7 +15545,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const demarrerCalage = (c, e = 1, origine = 'console') => {
       if (c.calage && c.calage.etat === 'actif') return { erreur: 'le calage tourne déjà — auto(false) l\'arrête / already running' };
       const k = { etat: 'actif', echelle: e, origine, t0: Date.now(), ecouteAllumee: false, attente: null, journal: [],
-                  vus: {}, etats: {}, coups: {}, gel: {}, faible: {}, dits: {}, deplacements: {}, calculsVus: -1, sonAilleurs: null };
+                  vus: {}, etats: {}, coups: {}, faible: {}, dits: {}, deplacements: {}, calculsVus: -1, sonAilleurs: null };
       c.calage = k;
       if (!c.ecoute.actif) { ecoute(true); k.ecouteAllumee = true; }
       journaliser(c, k, `début · référence ${c.ecoute.ref || '—'} (la tuile qui a le son)`);
@@ -17180,10 +16720,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             dessusNous,
           };
         })(),
-        /* ── LA SONDE DE LA SALLE (4.24.0.3) ──────────────────────────────
-           Le bilan de la sonde ouverte, ou de la dernière refermée dans
-           cette page ; `ouverte: false` seul si aucune ne l'a été. */
-        sonde: sonde.rapport(),
         /* ── LA SALLE (4.24.0.6) ──────────────────────────────────────────
            La salle ouverte, ou la dernière refermée dans cette page, et
            pourquoi elle l'a été ; `ouverte: false` seul si aucune ne l'a été.
@@ -17624,13 +17160,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   /* Le rapport, lisible à la main comme le reste. Le panneau en fait un
      fichier ; la console en rend l'objet. */
   tseApi.panneau.rapport = () => panneau.rapport();
-  // La sonde de la salle (4.24.0.3) — cf. son module.
-  tseApi.sonde = Object.freeze({
-    ouvrir: (...chaines) => sonde.ouvrir(...chaines),
-    son: (i) => sonde.son(i),
-    fermer: () => sonde.fermer(),
-    rapport: () => sonde.rapport(),
-  });
   // La salle multistream (4.24.0.6) — cf. son module.
   tseApi.salle = Object.freeze({
     ouvrir: (...chaines) => salle.ouvrir(...chaines),
