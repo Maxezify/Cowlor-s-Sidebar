@@ -2059,6 +2059,169 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Calibration as early as possible (v4.24.0.25)
+
+The request, after the audit: "optimise the calibration system so that it
+happens as early as possible. Investigate thoroughly and make the additions,
+if possible, rigorously". Published on `claude/chrome-multi` only.
+
+### Where the time went
+
+A calibration decision needs: sound on both sides since the pair's last
+change; six seconds of common sound for a first computation; one
+computation every five seconds; eight clean computations (z ≥ 5); a voice —
+two first peaks at the same place — and, if it is alone and far from zero, a
+second one; then a second verdict that repeats the first.
+
+The two real reports made under 4.24.0.22, redone computation by
+computation: each pair's history, the rule extracted from the code, the time
+of each computation recovered by counting rounds — one every five seconds,
+one lost after each move.
+
+| | two streams | three streams, the first pair |
+| --- | --- | --- |
+| the first computation | +15 s | +15 s |
+| the measurement reopened | +9.2 and +11.0 s: low latency removed at +5.2 s, both players' estimate jumps by four to six seconds | +5.1 s: low latency removed |
+| the first **counted** computation | **+35 s** | **+30 s** |
+| the second voice established — before it, "a single source, far: an echo, perhaps" | at the tenth computation | at the eighth |
+| the decision | +75 s | +70 s |
+
+Rebuilt this way, the history gives back both real decisions to the second.
+Two things held them back:
+
+1. **Twenty seconds after every reopened measurement.** A computation only
+   counts if it starts after the pair's change; but the tile's envelope kept
+   its twenty seconds from before, and the window had to empty itself of
+   them — twenty-two to twenty-seven seconds before the first counted
+   computation. A move had emptied the envelope since 4.24.0.17; a jump, a
+   stall, a reload, the end of a catch-up, a pause, low latency removed did
+   not.
+2. **Eight clean computations required.**
+
+The rest is the sound itself: a single voice far from zero waits for its
+second voice. A real echo was seen at 1.05, 1.18 and 2.37 s; true voices,
+from 0.87 to 1.94 s: nothing in the sound alone tells them apart sooner.
+
+### What changes
+
+| | before | now |
+| --- | --- | --- |
+| **The reopened measurement** — jump, stall, reload, end of a catch-up, pause, low latency removed | the envelope kept: the first counted computation twenty-two to twenty-seven seconds later | the envelope emptied, as after a move: six seconds of sound, and it computes — eight to thirteen seconds later |
+| **The requirement** | eight clean computations | **six** |
+| **A tile whose sound no longer arrives** — a frozen player, a dried-up capture | its window stops with it, redone every round and counted each time: six in a row make a verdict, two identical verdicts a decision — on twenty seconds of sound heard once | less than half a round of new sound since the last computation — two and a half seconds —, nothing is counted; and a pair without a new computation does not judge: two verdicts that agree are a verdict that held one more round of listening |
+
+### The threshold, swept on real data
+
+Six, not five or four: the whole rule, replayed at every computation, on
+the nine real listenings kept — twenty-three segments, fifteen decisions at
+eight.
+
+| clean computations | the same decisions, within 80 ms | earlier | computations gained | a different one | more, where eight decided nothing |
+| --- | --- | --- | --- | --- | --- |
+| 8 | 15 | — | — | — | — |
+| **6** | **14** | **8** | **26** — 2 min 18 s | 1: −70 ms instead of +190, closer to what the pair ended up saying (−40) | 1, at −10 ms |
+| 5 | 14 | 8 | 34 | the same | 3 |
+| 4 | 13 | 7 | 28 | 2, one of them **the wrong way**: −200 ms, the pair ending at +190 | 3 |
+| 3 | 12 | 6 | 32 | 3 | 3 |
+
+At four, a decision the wrong way: six keeps two notches of margin.
+
+### What it gives
+
+**On the bench** (190), "kappa" loses its low latency, and its estimate
+jumps by 4.4 s five seconds later:
+
+| | envelope kept (mutant) | emptied |
+| --- | --- | --- |
+| the first counted computation, after the jump | 23 to 27 s | **12 to 13 s** |
+| the decision, after the jump | 38 to 42 s | **27 to 28 s** |
+
+**The real reports**, redone with the new rule — assuming the shorter
+windows after a reopened measurement say what the full ones said:
+
+| | under 4.24.0.24 | now |
+| --- | --- | --- |
+| two streams, the first decision | +75 s | **+65 s** — the first counted computation at +20 s |
+| three streams, the first decision | +70 s | **+55 s** — the first counted computation at +15 s |
+| two streams, in sync | at the thirteenth computation after the correction | **at the eleventh** |
+| three streams, the second decision | at the tenth computation after the correction | **at the eighth** |
+| the 4.24.0.21 report, both tiles in sync | at the thirteenth and twenty-third computations after the correction | **at the ninth and thirteenth** |
+
+The first decisions are the emptied envelope — they waited for their second
+voice at the same computation, at eight as at six; the following ones are
+the threshold.
+
+### What the report says on top
+
+- `calage.chronologie` — per tile, the time of each step: its first sound
+  heard; the last time its pair's measurement was reopened — by it or by
+  the reference — and why; the first counted computation since; its first
+  verdict, its first correction, the first time in sync. "son +3 s ·
+  rouverte +8 s (saut (estimation)) · calcul +20 s · verdict +30 s ·
+  correction +35 s · calée +55 s";
+- `calage.salleCalee` — the whole room in sync, the first time;
+- `ecoute.sansSonNouveau` — per pair, the rounds without new sound, not
+  counted.
+
+### What did not move
+
+The echo rule, the hold, the target — the highest voice —, the moves, the
+threshold of a clean computation (z ≥ 5), the agreement of two verdicts: it
+is what rules out a verdict drawn from an isolated computation, and it only
+costs one round. The round cadence too: one computation per pair as soon as
+it has new sound would gain two and a half seconds on average, but with
+three streams the verdicts would no longer come in step — and the reference
+would step back for one without taking the other along (cf. 4.24.0.23).
+
+### What the bench measures
+
+- **190** — calibration as early as possible. Low latency removed, the
+  estimate of "kappa" jumps: the first counted computation comes within
+  seventeen seconds, the decision follows, the room gets in sync, and the
+  timeline tells each step. Listening switched on first, low latency removed
+  alone — the three-stream report: the same. The sound of "mike" cut at its
+  first verdict, "foxtrot" making every round compute: nothing is counted,
+  nothing is decided; the sound back, the decision comes.
+- **185** — the real reports replayed, at six clean computations: the same
+  decisions, earlier — the fourteenth at the forty-first computation instead
+  of the forty-third, the ninth at the seventh instead of the ninth, the
+  twelfth at the fifteenth instead of the seventeenth, on two voices of the
+  voice chat, the third established at the next.
+
+### What the investigation corrected along the way
+
+- **A sound that seemed late.** Counted without the rounds lost after each
+  move, the history put the first computation at +25 and +30 s — a sound
+  late by twenty seconds. With them: +15 s, and the first counted
+  computation at +35 and +30 s gives back the real decisions to the second.
+  It was not the sound: it was the kept envelope.
+- **A bench that measured something else.** The first 190 measured the time
+  of the decision, on a voice chat of three equally weighted voices: at the
+  bench's scale, only three clean computations, and the verdict was fifteen
+  seconds late for an unrelated reason. It now measures the time of the
+  first counted computation — what the cut changes —, on a single voice.
+- **One voice fewer.** The twelfth report replayed waited for the voice
+  chat's three voices; at six clean computations, the decision comes on two
+  — the same voice, 1,175 ms instead of 1,170.
+
+| mutants | what falls |
+| --- | --- |
+| the reopened measurement without emptying the envelope (1) | 190: the first counted computation 27 s after the jump, 24 after low latency removed alone |
+| low latency removed that only reopens the measurement, as before (1) | 190: nothing reopened at its removal, neither in the report nor in the envelope |
+| the same window counted every round (1) | 190: the sound of "mike" cut, its window counted again — and the reference steps back for it |
+| the verdict of a pair without a new computation, agreeing with itself (1) | 190: at the next round, on the same computations, the reference steps back |
+| the timeline never kept (1) | 190: "verdict — · correction — · calée —" for a tile in sync |
+| eight clean computations, as before; four (2) | 185: the forty-third, ninth and seventeenth computations; at four, a single source decided at −220 ms in the fourteenth, before any move |
+
+Seven mutants, seven caught.
+
+### For the next report
+
+1. A room opened from the node, ten minutes.
+2. `calage.chronologie`: where the time goes, tile by tile.
+3. `calage.salleCalee`: the time to compare — +145 s with two streams,
+   +225 s with three, in the latest reports.
+
 ## The multistream audit (v4.24.0.24)
 
 The request, after 4.24.0.23: "a complete audit of this multistream part
@@ -15968,7 +16131,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 188 scenarios, 1596 assertions |
+| `npm test` | the Playwright harness: 189 scenarios, 1601 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -15988,7 +16151,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1529 KB | 604 KB | 3,976 → **2** |
+| `content.js` | 1529 KB | 604 KB | 3,986 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 149 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

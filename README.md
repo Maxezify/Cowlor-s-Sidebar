@@ -2180,6 +2180,170 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le calage au plus tôt (v4.24.0.25)
+
+La demande, après l'audit : « optimiser le système de calage pour qu'il se
+fasse le plus tôt possible. Investigue à fond et fais les ajouts, si
+possible, avec rigueur ». Publiée sur `claude/chrome-multi` seulement.
+
+### Où passait le temps
+
+Une décision du calage demande : du son des deux côtés depuis le dernier
+changement de la paire ; six secondes de son commun pour un premier calcul ;
+un calcul toutes les cinq secondes ; huit calculs nets (z ≥ 5) ; une voix —
+deux premiers pics au même endroit — et, si elle est seule et loin de zéro,
+une seconde ; puis un second verdict qui redit le premier.
+
+Les deux rapports réels faits sous la 4.24.0.22, refaits calcul par calcul :
+l'historique de chaque paire, la règle extraite du code, l'heure de chaque
+calcul retrouvée au compte des tours — un toutes les cinq secondes, un de
+perdu après chaque déplacement.
+
+| | deux streams | trois streams, la première paire |
+| --- | --- | --- |
+| le premier calcul | +15 s | +15 s |
+| la mesure rouverte | +9,2 et +11,0 s : la faible latence retirée à +5,2 s, l'estimation des deux lecteurs saute de quatre à six secondes | +5,1 s : la faible latence retirée |
+| le premier calcul **compté** | **+35 s** | **+30 s** |
+| la seconde voix établie — avant, « une source seule, loin : un écho, peut-être » | au dixième calcul | au huitième |
+| la décision | +75 s | +70 s |
+
+Ainsi reconstitué, l'historique redonne les deux décisions réelles à la
+seconde près. Deux choses les retenaient :
+
+1. **Vingt secondes après chaque mesure rouverte.** Un calcul ne compte que
+   s'il commence après le changement de la paire ; or l'enveloppe de la
+   tuile gardait ses vingt secondes d'avant, et la fenêtre devait s'en vider
+   — vingt-deux à vingt-sept secondes avant le premier calcul compté. Un
+   déplacement, lui, vidait l'enveloppe depuis la 4.24.0.17 : un saut, une
+   chute, un rechargement, la fin d'un rattrapage, une pause, la faible
+   latence retirée, non.
+2. **Huit calculs nets exigés.**
+
+Le reste tient au son lui-même : une voix seule loin de zéro attend sa
+seconde voix. Un écho réel a été vu à 1,05, 1,18 et 2,37 s ; des voix vraies,
+de 0,87 à 1,94 s : rien, dans le son seul, ne les sépare plus tôt.
+
+### Ce qui change
+
+| | avant | désormais |
+| --- | --- | --- |
+| **La mesure rouverte** — saut, chute, rechargement, fin d'un rattrapage, pause, faible latence retirée | l'enveloppe gardée : le premier calcul compté vingt-deux à vingt-sept secondes après | l'enveloppe vidée, comme après un déplacement : six secondes de son, et on calcule — huit à treize secondes après |
+| **L'exigence** | huit calculs nets | **six** |
+| **Une tuile dont le son n'arrive plus** — un lecteur figé, une capture tarie | sa fenêtre s'arrête avec elle, refaite à chaque tour et comptée chaque fois : six d'affilée font un verdict, deux verdicts pareils une décision — sur vingt secondes de son entendues une fois | moins d'un demi-tour de son nouveau depuis le dernier calcul — deux secondes et demie —, rien n'est compté ; et une paire sans calcul neuf ne juge pas : deux verdicts qui s'accordent, c'est un verdict qui a tenu un tour d'écoute de plus |
+
+### Le seuil, balayé sur le réel
+
+Six, et pas cinq ni quatre : la règle entière, rejouée à chaque calcul, sur
+les neuf écoutes réelles gardées — vingt-trois segments, quinze décisions à
+huit.
+
+| calculs nets | les mêmes décisions, à 80 ms | plus tôt | calculs gagnés | une autre | de plus, où huit ne décidaient rien |
+| --- | --- | --- | --- | --- | --- |
+| 8 | 15 | — | — | — | — |
+| **6** | **14** | **8** | **26** — 2 min 18 s | 1 : −70 ms au lieu de +190, plus près de ce que la paire a fini par dire (−40) | 1, à −10 ms |
+| 5 | 14 | 8 | 34 | la même | 3 |
+| 4 | 13 | 7 | 28 | 2, dont une **à contresens** : −200 ms, la paire finie à +190 | 3 |
+| 3 | 12 | 6 | 32 | 3 | 3 |
+
+À quatre, une décision à contresens : six en garde deux crans.
+
+### Ce que ça donne
+
+**Au banc** (190), « kappa » perd sa faible latence, et son estimation saute
+de 4,4 s cinq secondes plus tard :
+
+| | l'enveloppe gardée (mutant) | vidée |
+| --- | --- | --- |
+| le premier calcul compté, après le saut | 23 à 27 s | **12 à 13 s** |
+| la décision, après le saut | 38 à 42 s | **27 à 28 s** |
+
+**Les rapports réels**, refaits à la règle nouvelle — à supposer que les
+fenêtres plus courtes d'après une mesure rouverte disent ce qu'ont dit les
+entières :
+
+| | sous la 4.24.0.24 | désormais |
+| --- | --- | --- |
+| deux streams, la première décision | +75 s | **+65 s** — le premier calcul compté à +20 s |
+| trois streams, la première décision | +70 s | **+55 s** — le premier calcul compté à +15 s |
+| deux streams, calée | au treizième calcul après la correction | **au onzième** |
+| trois streams, la seconde décision | au dixième calcul après la correction | **au huitième** |
+| le rapport de la 4.24.0.21, les deux tuiles calées | aux treizième et vingt-troisième calculs après la correction | **aux neuvième et treizième** |
+
+Les premières décisions, c'est l'enveloppe vidée — elles attendaient leur
+seconde voix au même calcul, à huit comme à six ; les suivantes, c'est le
+seuil.
+
+### Ce que le rapport dit de plus
+
+- `calage.chronologie` — par tuile, l'heure de chaque étape : son premier son
+  entendu ; la dernière fois que la mesure de sa paire a été rouverte — par
+  elle ou par la référence — et pourquoi ; le premier calcul compté depuis ;
+  son premier verdict, sa première correction, la première fois calée.
+  « son +3 s · rouverte +8 s (saut (estimation)) · calcul +20 s · verdict
+  +30 s · correction +35 s · calée +55 s » ;
+- `calage.salleCalee` — la salle entière calée, la première fois ;
+- `ecoute.sansSonNouveau` — par paire, les tours sans son nouveau, pas
+  comptés.
+
+### Ce qui n'a pas bougé
+
+La règle de l'écho, la tenue, la cible — la plus haute voix —, les gestes,
+le seuil d'un calcul net (z ≥ 5), l'accord de deux verdicts : c'est lui qui
+écarte un verdict tiré d'un calcul isolé, et il ne coûte qu'un tour. La
+cadence des tours aussi : un calcul par paire dès qu'elle a son nouveau
+gagnerait deux secondes et demie en moyenne, mais à trois streams les
+verdicts ne viendraient plus au même pas — et la référence reculerait pour
+l'une sans emmener l'autre (cf. 4.24.0.23).
+
+### Ce que le banc mesure
+
+- **190** — le calage au plus tôt. La faible latence retirée, l'estimation
+  de « kappa » saute : le premier calcul compté vient dans les dix-sept
+  secondes, la décision suit, la salle est calée, et la chronologie dit
+  chaque étape. L'écoute allumée d'abord, la faible latence retirée seule —
+  le rapport à trois streams : de même. Le son de « mike » coupé à son
+  premier verdict, « foxtrot » faisant calculer chaque tour : rien n'est
+  compté, rien n'est décidé ; le son revenu, la décision vient.
+- **185** — les rapports réels rejoués, à six calculs nets : les mêmes
+  décisions, plus tôt — le quatorzième au quarante et unième calcul au lieu
+  du quarante-troisième, le neuvième au septième au lieu du neuvième, le
+  douzième au quinzième au lieu du dix-septième, sur deux voix du salon, la
+  troisième établie au suivant.
+
+### Ce que l'enquête a corrigé en route
+
+- **Un son qui semblait tarder.** Compté sans les tours perdus après chaque
+  déplacement, l'historique plaçait le premier calcul à +25 et +30 s — un
+  son qui aurait tardé vingt secondes. Avec eux : +15 s, et le premier calcul
+  compté à +35 et +30 s redonne les décisions réelles à la seconde. Ce
+  n'était pas le son : c'était l'enveloppe gardée.
+- **Un banc qui mesurait autre chose.** Le premier 190 mesurait l'heure de
+  la décision, sur un salon de trois voix d'égal poids : à l'échelle du banc,
+  trois calculs nets seulement, et le verdict tardait de quinze secondes pour
+  une raison sans rapport. Il mesure désormais l'heure du premier calcul
+  compté — ce que la coupure change —, sur une voix seule.
+- **Une voix de moins.** Le douzième rapport rejoué attendait les trois voix
+  du salon ; à six calculs nets, la décision vient sur deux — la même voix,
+  1 175 ms au lieu de 1 170.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la mesure rouverte sans vider l'enveloppe (1) | 190 : le premier calcul compté 27 s après le saut, 24 après la faible latence retirée seule |
+| la faible latence retirée qui ne rouvre que la mesure, comme avant (1) | 190 : rien de rouvert à son retrait, au rapport ni dans l'enveloppe |
+| la même fenêtre comptée à chaque tour (1) | 190 : le son de « mike » coupé, sa fenêtre recomptée — et la référence recule pour elle |
+| le verdict d'une paire sans calcul neuf, qui s'accorde avec lui-même (1) | 190 : au tour suivant, sur les mêmes calculs, la référence recule |
+| la chronologie jamais tenue (1) | 190 : « verdict — · correction — · calée — » d'une tuile calée |
+| huit calculs nets, comme avant ; quatre (2) | 185 : les quarante-troisième, neuvième et dix-septième calculs ; à quatre, une source seule décidée à −220 ms au quatorzième, avant tout déplacement |
+
+Sept mutants, sept pris.
+
+### Pour le prochain rapport
+
+1. Une salle ouverte par le nœud, dix minutes.
+2. `calage.chronologie` : où passe le temps, tuile par tuile.
+3. `calage.salleCalee` : l'heure à comparer — +145 s à deux streams, +225 s à
+   trois, aux derniers rapports.
+
 ## L'audit du multistream (v4.24.0.24)
 
 La demande, après la 4.24.0.23 : « un audit complet de cette partie
@@ -16492,7 +16656,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 188 scénarios, 1596 assertions |
+| `npm test` | le harnais Playwright : 189 scénarios, 1601 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -16513,7 +16677,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1529 Ko | 604 Ko | 3 976 → **2** |
+| `content.js` | 1529 Ko | 604 Ko | 3 986 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
