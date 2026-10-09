@@ -2121,6 +2121,28 @@ then, in the report, each tile's `ecoute` line (`running`, `worklet` or
   tiles: `auto()` refuses and says why; "india" keeps its low latency, no
   order is sent to it, nothing listens; the room itself is there.
 
+### What the Firefox check found
+
+The first full check of the Firefox branch — same code, same bench as
+Chrome, under Chromium — counted **four failures**, in two scenarios that
+passed every time under Chrome:
+
+- **190**: when the sound of "mike" came back, "foxtrot", the tile with no
+  common sound that made every round compute, drew a false verdict near
+  zero and stepped back with it. Measured for four minutes, the pair gives
+  only one clean computation out of forty-seven, at an arbitrary
+  position: a rare draw — but a scenario must not depend on a pair that
+  can decide. It is now "papa", an echo: forty-seven clean out of
+  forty-seven, all at 1,090 ms, which the echo rule never decides. Its two
+  mutants are still caught;
+- **188**: "lima", a voice chat of three voices, was read as "a single
+  source" for more than two hundred seconds — its first peaks all on the
+  same voice —, and was only decided after the reload. A draw of the fake
+  sound, likewise.
+
+Replayed twice each on the same tree: green, every assertion. The second
+full check of the Firefox branch: green.
+
 | mutant | what falls |
 | --- | --- |
 | calibration starting without capture (1) | 191: "india retirée à +1 s · le lecteur dit non", and "son —" to the end |
@@ -2249,8 +2271,9 @@ would step back for one without taking the other along (cf. 4.24.0.23).
   seventeen seconds, the decision follows, the room gets in sync, and the
   timeline tells each step. Listening switched on first, low latency removed
   alone — the three-stream report: the same. The sound of "mike" cut at its
-  first verdict, "foxtrot" making every round compute: nothing is counted,
-  nothing is decided; the sound back, the decision comes.
+  first verdict, "papa" — an echo, never decided — making every round
+  compute: nothing is counted, nothing is decided; the sound back, the
+  decision comes.
 - **185** — the real reports replayed, at six clean computations: the same
   decisions, earlier — the fourteenth at the forty-first computation instead
   of the forty-third, the ninth at the seventh instead of the ninth, the

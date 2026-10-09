@@ -2244,6 +2244,28 @@ chaque tuile (`running`, `worklet` ou `script`, `blocs N/10 s`) et
   les tuiles : `auto()` refuse et dit pourquoi ; « india » garde sa faible
   latence, aucun ordre ne lui part, rien n'écoute ; la salle, elle, est là.
 
+### Ce que le contrôle Firefox a trouvé
+
+Le premier contrôle complet de la branche Firefox — même code, même banc
+que Chrome, sous Chromium — a compté **quatre échecs**, dans deux
+scénarios qui passaient à chaque fois sous Chrome :
+
+- **190** : au retour du son de « mike », « foxtrot », la tuile sans son
+  commun qui faisait calculer chaque tour, a tiré un faux verdict près de
+  zéro et reculé avec elle. Mesurée quatre minutes, la paire ne donne
+  qu'un calcul net sur quarante-sept, à une position quelconque : un
+  tirage rare — mais un scénario ne doit pas dépendre d'une paire qui
+  peut décider. C'est désormais « papa », un écho : quarante-sept nets
+  sur quarante-sept, tous à 1 090 ms, que la règle de l'écho ne décide
+  jamais. Ses deux mutants restent pris ;
+- **188** : « lima », un salon de trois voix, est restée lue « source
+  seule » plus de deux cents secondes — ses premiers pics tous sur la
+  même voix —, et n'a été décidée qu'après le rechargement. Un tirage du
+  faux son, de même.
+
+Rejoués deux fois chacun sur le même arbre : verts, toutes assertions. Le
+second contrôle complet de la branche Firefox : vert.
+
 | mutant | ce qui tombe |
 | --- | --- |
 | le calage qui démarre sans capture (1) | 191 : « india retirée à +1 s · le lecteur dit non », et « son — » jusqu'au bout |
@@ -2373,8 +2395,9 @@ l'une sans emmener l'autre (cf. 4.24.0.23).
   secondes, la décision suit, la salle est calée, et la chronologie dit
   chaque étape. L'écoute allumée d'abord, la faible latence retirée seule —
   le rapport à trois streams : de même. Le son de « mike » coupé à son
-  premier verdict, « foxtrot » faisant calculer chaque tour : rien n'est
-  compté, rien n'est décidé ; le son revenu, la décision vient.
+  premier verdict, « papa » — un écho, jamais décidé — faisant calculer
+  chaque tour : rien n'est compté, rien n'est décidé ; le son revenu, la
+  décision vient.
 - **185** — les rapports réels rejoués, à six calculs nets : les mêmes
   décisions, plus tôt — le quatorzième au quarante et unième calcul au lieu
   du quarante-troisième, le neuvième au septième au lieu du neuvième, le
