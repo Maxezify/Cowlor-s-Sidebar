@@ -28414,8 +28414,16 @@ const S_LECTEUR_SONDE = () => {
   /* LE SON QUI N'ARRIVE PLUS. Les relevés de « mike » passent, sans son :
      sa capture tarie, son enveloppe ne bouge plus — ni la fenêtre commune.
      Coupé à son premier verdict, qui n'est pas encore une décision : tant
-     qu'il n'arrive rien, rien n'est compté ni décidé — « foxtrot », sans
-     son commun, fait calculer chaque tour. Le son revenu, la décision vient.
+     qu'il n'arrive rien, rien n'est compté ni décidé — « papa », un écho
+     que la règle ne décide jamais, fait calculer chaque tour. Le son
+     revenu, la décision vient.
+     « papa » et pas « foxtrot », sans son commun : au contrôle de la
+     branche Firefox, « foxtrot » a tiré une fois un faux verdict près de
+     zéro, et reculé avec « mike » ; mesurée quatre minutes, la paire ne
+     donne qu'un calcul net sur quarante-sept, au hasard — un tirage rare,
+     mais un scénario ne doit pas dépendre d'une paire qui peut décider.
+     « papa » : quarante-sept nets sur quarante-sept, tous à 1 090 ms, une
+     source seule loin de zéro, jamais décidée.
      Mutants — la même fenêtre comptée à chaque tour ; le verdict d'une
      paire sans calcul neuf qui s'accorde avec lui-même. */
   await page.evaluate(() => {
@@ -28426,7 +28434,7 @@ const S_LECTEUR_SONDE = () => {
       if (f && window.__sansSon.has(new URL(f.src).searchParams.get('channel'))) e.data.env = [];
     }, true);
   });
-  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'mike', 'foxtrot'));
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'mike', 'papa'));
   await page.evaluate(() => window.tse.salle.auto(0.1));
   const coupe = await tant(() => {
     const r = window.tse.salle.rapport();
