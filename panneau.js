@@ -1670,19 +1670,19 @@ const construireRapport = (r, transport, fond) => {
     `généré / generated : ${d.toISOString()}`,
     '',
     /* LA PROMESSE, DITE AU MOT PRÈS (4.24.0.6). Elle disait « seulement des
-       comptes » ; mais le journal de l'aperçu, le bloc de la sonde et celui
-       de la salle NOMMENT les chaînes qu'ils ont ouvertes dans cette page —
-       c'est ce qui rend leur diagnostic lisible. Les listes, elles, n'y sont
-       pas. La phrase dit maintenant les deux. */
+       comptes » ; mais le journal de l'aperçu et le bloc de la salle NOMMENT
+       les chaînes qu'ils ont ouvertes dans cette page — c'est ce qui rend
+       leur diagnostic lisible. Les listes, elles, n'y sont pas. La phrase dit
+       maintenant les deux. */
     `CE FICHIER NE CONTIENT AUCUNE LISTE PERSONNELLE : ni les chaînes visitées,`,
     `ni les abonnements, ni le roster — seulement leurs COMPTES. Il nomme en`,
-    `revanche les chaînes ouvertes dans cette page par l'aperçu, la sonde ou la`,
-    `salle, et porte tout le diagnostic technique. Relisez-le avant de l'envoyer.`,
+    `revanche les chaînes ouvertes dans cette page par l'aperçu ou la salle, et`,
+    `porte tout le diagnostic technique. Relisez-le avant de l'envoyer.`,
     '',
     `THIS FILE CONTAINS NO PERSONAL LISTS: not the channels you visit, not your`,
     `subscriptions, not the roster — only their COUNTS. It does name the channels`,
-    `opened in this page by the preview, the probe or the room, and carries the`,
-    `full technical diagnostic. Read it before sending it.`,
+    `opened in this page by the preview or the room, and carries the full`,
+    `technical diagnostic. Read it before sending it.`,
     '',
   ];
 
@@ -1833,9 +1833,6 @@ const construireRapport = (r, transport, fond) => {
   /* LE LECTEUR PRINCIPAL : sur une page de chaîne, ce qui cache la vidéo et
      la règle de l'extension qui le fait — null attendu aux deux. */
   L.push(...bloc('LECTEUR PRINCIPAL / MAIN PLAYER', aplatir(r.lecteur)));
-  /* LA SONDE DE LA SALLE : ce que les vrais lecteurs et chats intégrés ont
-     montré (pubs, son, points, Chat partagé), et la charge de la page. */
-  L.push(...bloc('SONDE DE LA SALLE / ROOM PROBE', aplatir(r.sonde)));
   /* LA SALLE : ouverte ou la dernière refermée — sa grille, qui a le son,
      le chat chargé, et ce que chaque tuile a dit de son lecteur. */
   L.push(...bloc('SALLE MULTISTREAM / MULTISTREAM ROOM', aplatir(r.salle)));
